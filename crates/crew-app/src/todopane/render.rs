@@ -2,16 +2,14 @@
 //! list from the top, the `@project` popup and the bordered composer at the
 //! bottom. All layout arithmetic lives here so `cells` and [`click_at`] can
 //! never disagree about what sits on a row.
+pub(crate) use super::fitline::*;
 use crew_render::CellView;
 
-use super::item::TodoItem;
 use super::{composer, duedate, gutter, TodoPane};
 
 /// Column where the `[ ]` checkbox starts; the title follows two past it.
-const BOX_COL: u16 = 2;
-const TITLE_COL: u16 = 6;
-/// Cap on visible popup rows (incl. its 2 border rows).
-const POPUP_MAX: u16 = 8;
+pub(crate) const BOX_COL: u16 = 2;
+pub(crate) const TITLE_COL: u16 = 6;
 
 pub(super) fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bold: bool) -> CellView {
     CellView {
@@ -43,17 +41,13 @@ pub(crate) fn content(cols: u16) -> u16 {
     cols.min(MAX_LIST_W)
 }
 
-/// See [`content`]. Wide enough for a real task, a project and a due stamp
-/// with air between them; narrow enough that they stay one row.
-const MAX_LIST_W: u16 = 92;
-
 /// The header row's done button: the visible, clickable way to reach ticked
 /// items. `h` on the list has always done this, but a key that only works
 /// once the list has focus is not an affordance — and on an all-done pane
 /// there is nothing to focus at all. `None` when there is nothing ticked to
 /// show (no button for an empty promise) or inside the history view, which
 /// is already done-only.
-fn done_chip(p: &TodoPane) -> Option<String> {
+pub(crate) fn done_chip(p: &TodoPane) -> Option<String> {
     if p.done_view {
         return None;
     }
@@ -65,208 +59,6 @@ fn done_chip(p: &TodoPane) -> Option<String> {
             format!("[show {n} done]")
         }
     })
-}
-
-/// Where the done button sits on the header row: `(start, end)` columns, or
-/// `None` when there is no button. Render and hit-test both read this, so
-/// the button can't drift out from under the click.
-fn done_chip_zone(p: &TodoPane, cols: u16) -> Option<(u16, u16)> {
-    let chip = done_chip(p)?;
-    let end = cols.saturating_sub(1);
-    let start = end.saturating_sub(crate::chatwidth::str_w(&chip) as u16);
-    (start > TITLE_COL).then_some((start, end))
-}
-
-/// The dim info row above the list: the `@project` filter's summary, the
-/// done button, or both.
-fn header_h(p: &TodoPane, cols: u16) -> u16 {
-    // A button too wide for the pane isn't drawn, so it must not reserve the
-    // row either — a narrow pane keeps every line for the list.
-    u16::from(p.filter.is_some() || done_chip_zone(p, cols).is_some())
-}
-
-/// Rows the open tag popup occupies (0 when closed or the pane is short).
-pub(crate) fn popup_h(p: &TodoPane, rows: u16) -> u16 {
-    match &p.tagmenu {
-        Some(m) if rows >= 10 && !m.matches.is_empty() => {
-            crate::cmdmenu::menu_rows(m.matches.len()).min(POPUP_MAX)
-        }
-        _ => 0,
-    }
-}
-
-/// Rows left for the item list.
-pub(crate) fn list_height(p: &TodoPane, cols: u16, rows: u16) -> u16 {
-    let cols = content(cols);
-
-    rows.saturating_sub(composer::height(p, cols, rows) + popup_h(p, rows) + header_h(p, cols))
-}
-
-/// Column of a row's `✗`. One in from the gutter column ([`gutter`]) rather
-/// than hard against it: a thumb drawn flush against the delete affordance
-/// reads as a mark ON it.
-fn del_col(cols: u16) -> u16 {
-    cols.saturating_sub(3)
-}
-
-/// Mirror of [`place_right`]'s arithmetic without the cells: the next free
-/// slot after a width-`w` chip ending at `end` (or `end` unchanged when the
-/// chip would reach the title zone and goes unplaced).
-fn place_w(end: u16, w: u16) -> u16 {
-    let start = end.saturating_sub(w);
-    if start <= TITLE_COL {
-        end
-    } else {
-        start.saturating_sub(2)
-    }
-}
-
-/// Column the title's first line stops before when the chips ride beside it:
-/// where the right-side chips (due, `@tag`, `✗`; in the done view the tick
-/// time instead of the due) begin, minus the same two-column gap the chips
-/// keep between each other.
-///
-/// Two, not one. At one the title and the chip beside it read as one phrase
-/// the moment a title happens to fill its budget — `…and reverts @crew` — and
-/// every other gap on the row was already two, so the one place it mattered
-/// was the tightest.
-fn inline_max(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16 {
-    let mut right = del_col(cols).saturating_sub(2);
-    if done_view {
-        if it.done_ms.is_some() {
-            right = place_w(right, 5); // "HH:MM"
-        }
-    } else if let Some(due) = it.due_ms {
-        let lbl = duedate::label(due, it.due_has_time, now_ms);
-        right = place_w(right, crate::chatwidth::str_w(&lbl) as u16);
-    }
-    if let Some(tag) = &it.project {
-        right = place_w(right, crate::chatwidth::str_w(&format!("@{tag}")) as u16);
-    }
-    right
-}
-
-/// Whether the item carries anything on its right side at all.
-fn has_chips(it: &TodoItem, done_view: bool) -> bool {
-    it.project.is_some()
-        || if done_view {
-            it.done_ms.is_some()
-        } else {
-            it.due_ms.is_some()
-        }
-}
-
-/// Most of a first line the row will fight for before it STACKS — chips off
-/// the title line and onto a row of their own beneath it.
-///
-/// A narrow tile is where a right-aligned column stops being a column: the
-/// chips are laid out first and take what they need, so on a 36-cell pane
-/// `ship the release notes` was left three cells and hard-broke into `shi` /
-/// `p the release notes`. Past that the row gives up on sharing the line and
-/// becomes two bands, which is what it already looks like.
-const MIN_TITLE_W: u16 = 20;
-
-/// Whether this item stacks. Measured against the title it actually has, not
-/// only [`MIN_TITLE_W`]: `pay rent` beside a tag and a due on a 40-cell pane
-/// has eight cells of title and sixteen to put them in, and moving that down
-/// a row would buy nothing. Never for an item with nothing on its right —
-/// there is nothing to move down.
-fn stacked(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> bool {
-    if !has_chips(it, done_view) {
-        return false;
-    }
-    let budget = inline_max(it, cols, now_ms, done_view).saturating_sub(TITLE_COL);
-    let want = (crate::chatwidth::str_w(&it.title) as u16).min(MIN_TITLE_W);
-    budget < want
-}
-
-/// The title's wrapped lines as char-index ranges: greedy word wrap, the
-/// first line stopping where the chips begin, continuation lines spanning
-/// the pane. Always at least one range, so every item owns a row.
-fn title_lines(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> Vec<(usize, usize)> {
-    let chars: Vec<char> = it.title.chars().collect();
-    let wc = (cols.saturating_sub(2 + TITLE_COL)).max(1) as usize;
-    let w0 = if stacked(it, cols, now_ms, done_view) {
-        wc
-    } else {
-        (inline_max(it, cols, now_ms, done_view).saturating_sub(TITLE_COL)).max(1) as usize
-    };
-    wrap_ranges(&chars, w0, wc)
-}
-
-/// Greedy word wrap over `chars` into (start, end) char ranges: the first
-/// line `w0` cells wide, continuations `wc`. Always at least one range.
-pub(super) fn wrap_ranges(chars: &[char], w0: usize, wc: usize) -> Vec<(usize, usize)> {
-    let mut lines = Vec::new();
-    let mut start = 0;
-    loop {
-        let budget = if lines.is_empty() { w0 } else { wc };
-        let fit = crate::chatwidth::fit_end(chars, start, budget);
-        if fit >= chars.len() {
-            lines.push((start, chars.len()));
-            return lines;
-        }
-        // Break on the last space inside the window when the cut would land
-        // mid-word; a single over-long word hard-breaks.
-        let cut = chars[start..fit]
-            .iter()
-            .rposition(|c| c.is_whitespace())
-            .map(|i| start + i)
-            .filter(|&i| i > start && !chars[fit].is_whitespace())
-            .unwrap_or(fit);
-        lines.push((start, cut));
-        start = cut;
-        while start < chars.len() && chars[start].is_whitespace() {
-            start += 1;
-        }
-        if start >= chars.len() {
-            return lines;
-        }
-    }
-}
-
-/// Rows item `it` occupies at this pane width.
-pub(crate) fn item_h(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16 {
-    let cols = content(cols);
-
-    title_lines(it, cols, now_ms, done_view).len() as u16
-        + u16::from(stacked(it, cols, now_ms, done_view))
-}
-
-/// Local calendar day of a done item's tick; `None` groups every legacy
-/// (pre-stamp) tick into the one shared "earlier" bucket.
-fn done_day(it: &TodoItem) -> Option<chrono::NaiveDate> {
-    it.done_ms
-        .and_then(duedate::from_epoch_ms)
-        .map(|d| d.date())
-}
-
-/// Whether display row `di` opens a new day bucket in the done history —
-/// its day-header row rides on this item, so every height sum stays a
-/// per-item sum. Never true outside the view.
-pub(crate) fn starts_day_group(
-    items: &[TodoItem],
-    done_view: bool,
-    order: &[usize],
-    di: usize,
-) -> bool {
-    done_view && (di == 0 || done_day(&items[order[di]]) != done_day(&items[order[di - 1]]))
-}
-
-/// Rows display entry `di` occupies: the item's wrapped title plus, in the
-/// done view, the day header it opens. THE height truth for scroll, page
-/// and click math — they must all sum this, or they disagree.
-pub(crate) fn row_h(
-    items: &[TodoItem],
-    done_view: bool,
-    order: &[usize],
-    di: usize,
-    cols: u16,
-    now_ms: u64,
-) -> u16 {
-    let cols = content(cols);
-    item_h(&items[order[di]], cols, now_ms, done_view)
-        + u16::from(starts_day_group(items, done_view, order, di))
 }
 
 /// What a click on pane-content cell (`row`, `col`) means.
@@ -481,7 +273,7 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
 /// draw, and the row it must stop before.
 type RowBox = (u16, u16, u16);
 
-fn row_cells(
+pub(crate) fn row_cells(
     out: &mut Vec<CellView>,
     p: &TodoPane,
     idx: usize,
@@ -563,28 +355,6 @@ fn row_cells(
             out.push(cell(x, r, c, ink, selected))
         });
     }
-}
-
-/// Place `s` ending at `end` (exclusive of the following gap) on `row`;
-/// returns the column two left of where it started (the next slot).
-fn place_right(
-    out: &mut Vec<CellView>,
-    s: &str,
-    end: u16,
-    row: u16,
-    fg: (u8, u8, u8),
-    bold: bool,
-) -> u16 {
-    let w = crate::chatwidth::str_w(s) as u16;
-    let start = end.saturating_sub(w);
-    if start <= TITLE_COL {
-        return end;
-    }
-    let styled = s.chars().map(|c| (c, ()));
-    crate::chatwidth::place_row(start, end, styled, |x, c, ()| {
-        out.push(cell(x, row, c, fg, bold))
-    });
-    start.saturating_sub(2)
 }
 
 #[cfg(test)]

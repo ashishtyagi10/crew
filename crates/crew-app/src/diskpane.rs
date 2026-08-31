@@ -13,11 +13,9 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-use crew_render::{CellView, Paint};
+use crew_render::CellView;
 
-use crate::boxdraw::section_header;
-use crate::palette::accent;
-use crate::plot::{treemap, Canvas};
+use crate::plot::treemap;
 
 /// One child of the scanned directory.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -29,22 +27,22 @@ pub struct Child {
 
 /// What the worker fills in as it walks.
 #[derive(Default)]
-struct Scan {
-    children: Mutex<Vec<Child>>,
+pub(crate) struct Scan {
+    pub(crate) children: Mutex<Vec<Child>>,
     /// Files visited so far — the progress readout.
-    seen: AtomicU64,
-    done: AtomicBool,
-    cancel: AtomicBool,
+    pub(crate) seen: AtomicU64,
+    pub(crate) done: AtomicBool,
+    pub(crate) cancel: AtomicBool,
 }
 
 pub struct DiskPane {
-    root: PathBuf,
-    scan: Arc<Scan>,
+    pub(crate) root: PathBuf,
+    pub(crate) scan: Arc<Scan>,
     /// The last snapshot taken off the worker, sorted descending.
-    children: Vec<Child>,
-    total: u64,
-    scanning: bool,
-    files: u64,
+    pub(crate) children: Vec<Child>,
+    pub(crate) total: u64,
+    pub(crate) scanning: bool,
+    pub(crate) files: u64,
     /// The tile the keyboard is on, if any.
     pub(crate) selected: usize,
 }
@@ -68,25 +66,6 @@ impl DiskPane {
         &self.root
     }
 
-    /// Kick off a walk of `self.root` on a worker thread.
-    fn start(&mut self) {
-        self.scan.cancel.store(true, Ordering::Relaxed); // stop any previous walk
-        let scan = Arc::new(Scan::default());
-        self.scan = Arc::clone(&scan);
-        self.children.clear();
-        self.total = 0;
-        self.files = 0;
-        self.selected = 0;
-        self.scanning = true;
-        let root = self.root.clone();
-        std::thread::spawn(move || walk(&root, &scan));
-    }
-
-    /// Rescan the current directory.
-    pub fn rescan(&mut self) {
-        self.start();
-    }
-
     /// Descend into the selected tile (a directory), or go up with `None`.
     pub fn open(&mut self, child: Option<&str>) {
         match child {
@@ -98,51 +77,6 @@ impl DiskPane {
             }
         }
         self.start();
-    }
-
-    /// The child a tile index names, if it is a directory.
-    pub fn child(&self, i: usize) -> Option<&Child> {
-        self.children.get(i)
-    }
-
-    #[cfg(test)]
-    pub fn children(&self) -> &[Child] {
-        &self.children
-    }
-
-    /// Put a finished scan in without a worker, so the tile renderer can be
-    /// exercised on names of a chosen length (the same seam `DashPane` uses).
-    #[cfg(test)]
-    pub(crate) fn seed_children(&mut self, children: Vec<Child>) {
-        self.total = children.iter().map(|c| c.bytes).sum();
-        self.files = children.len() as u64;
-        self.scanning = false;
-        self.children = children;
-    }
-
-    /// Take the worker's latest numbers. Returns true when they moved.
-    pub fn poll(&mut self) -> bool {
-        let seen = self.scan.seen.load(Ordering::Relaxed);
-        let done = self.scan.done.load(Ordering::Relaxed);
-        let mut changed = seen != self.files || (done && self.scanning);
-        self.files = seen;
-        if changed {
-            if let Ok(list) = self.scan.children.lock() {
-                let mut next = list.clone();
-                next.sort_by(|a, b| b.bytes.cmp(&a.bytes).then(a.name.cmp(&b.name)));
-                changed = next != self.children;
-                self.total = next.iter().map(|c| c.bytes).sum();
-                self.children = next;
-            }
-        }
-        if done {
-            self.scanning = false;
-        }
-        changed
-    }
-
-    pub fn is_scanning(&self) -> bool {
-        self.scanning
     }
 }
 
@@ -193,22 +127,7 @@ impl DiskPane {
 }
 
 #[cfg(test)]
-impl DiskPane {
-    /// Stand in for a completed scan, for tests and the shot harness.
-    pub(crate) fn set_children_for_test(&mut self, kids: &[(&str, u64, bool)], selected: usize) {
-        self.children = kids
-            .iter()
-            .map(|(n, b, d)| Child {
-                name: (*n).into(),
-                bytes: *b,
-                is_dir: *d,
-            })
-            .collect();
-        self.total = self.children.iter().map(|c| c.bytes).sum();
-        self.scanning = false;
-        self.selected = selected;
-    }
-}
+impl DiskPane {}
 
 impl Drop for DiskPane {
     /// A closed pane must not keep walking someone's home directory.
@@ -218,7 +137,7 @@ impl Drop for DiskPane {
 }
 
 /// Walk `root`'s children, publishing each child's total as it completes.
-fn walk(root: &Path, scan: &Scan) {
+pub(crate) fn walk(root: &Path, scan: &Scan) {
     let Ok(dir) = std::fs::read_dir(root) else {
         scan.done.store(true, Ordering::Relaxed);
         return;
@@ -309,153 +228,7 @@ pub fn tiles(children: &[Child], cols: u16, rows: u16) -> Vec<treemap::Tile> {
     treemap::layout(map_rect(cols, rows), &values)
 }
 
-impl DiskPane {
-    pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
-        let t = crew_theme::theme();
-        let mut out = Vec::new();
-        if cols < 20 || rows < 6 {
-            return out;
-        }
-        out.extend(section_header(
-            "DISK",
-            cols,
-            t.border_normal,
-            accent(),
-            t.page_bg,
-        ));
-        // The reading is placed first and the path takes what is left. Both
-        // used to be one string clipped at the pane's edge, so a narrow tile
-        // showed a path cut mid-component and no total at all — the two
-        // numbers the header exists to say, gone, on the pane where the map is
-        // hardest to read. And the path elides from the LEFT: the tail is the
-        // directory you are in, the head is the road you took to it.
-        let reading = match self.scanning {
-            true => format!(
-                "{} so far, {} files scanned\u{2026}",
-                bytes(self.total),
-                self.files
-            ),
-            false => format!("{} in {} entries", bytes(self.total), self.children.len()),
-        };
-        let sep = "  \u{2014}  ";
-        let reading_w = crate::chatwidth::str_w(&reading) as u16;
-        let path_room = (cols.saturating_sub(2))
-            .checked_sub(reading_w + sep.chars().count() as u16)
-            .filter(|&r| r >= MIN_PATH_W);
-        match path_room {
-            Some(room) => {
-                let path = crate::cwd::fit_legend(&short_path(&self.root), room as usize);
-                put(
-                    &mut out,
-                    &format!("{path}{sep}{reading}"),
-                    1,
-                    1,
-                    t.ink,
-                    cols,
-                );
-            }
-            // Too narrow to say both: the reading wins. A path you cannot
-            // read is not a path, and the map under it already says where
-            // you are by what is in it.
-            None => put(&mut out, &reading, 1, 1, t.ink, cols),
-        }
-
-        // A label per tile that has the room for one: name on the first row,
-        // size under it. A tile too small for its own name gets none — the
-        // area is still the reading.
-        let map = tiles(&self.children, cols, rows);
-        let colors = tile_colors(&self.children, &map);
-        for (i, tile) in map.iter().enumerate() {
-            let Some(child) = self.children.get(tile.index) else {
-                continue;
-            };
-            if tile.w < 5.0 || tile.h < 1.0 {
-                continue;
-            }
-            // Ink chosen against the TILE, not against the page. It used to
-            // be the page's own ink on the selected tile and the page's own
-            // background on every other one — so on a dark theme the picked
-            // tile wrote near-white on a bright pastel fill and was the one
-            // label on the map you could not read. The ring already says which
-            // tile is picked; the label only has to be legible.
-            let fg = label_ink(tile_bg(
-                colors[i],
-                child.is_dir,
-                tile.index == self.selected,
-            ));
-            let room = (tile.w - 1.0) as usize;
-            // `vend` is not a directory anybody has. A tile that cuts a name
-            // without saying so reads as a complete, wrong name; `ven…` reads
-            // as a name that did not fit — which is the truth.
-            let name = crate::chatwidth::clip_w(&child.name, room);
-            put(
-                &mut out,
-                &name,
-                tile.x as u16 + 1,
-                tile.y as u16,
-                fg,
-                cols.saturating_sub(1),
-            );
-            if tile.h >= 2.0 {
-                put(
-                    &mut out,
-                    &bytes(child.bytes),
-                    tile.x as u16 + 1,
-                    tile.y as u16 + 1,
-                    fg,
-                    cols.saturating_sub(1),
-                );
-            }
-        }
-        let hint =
-            "\u{2190}\u{2192} pick \u{00b7} enter opens \u{00b7} backspace up \u{00b7} r rescans";
-        put(
-            &mut out,
-            hint,
-            1,
-            rows.saturating_sub(1),
-            t.text_muted,
-            cols,
-        );
-        out
-    }
-
-    pub fn paint(&self, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
-        let t = crew_theme::theme();
-        if cols < 20 || rows < 6 || self.children.is_empty() {
-            return Vec::new();
-        }
-        let mut c = Canvas::new(cols, rows, aspect);
-        let map = tiles(&self.children, cols, rows);
-        let colors = tile_colors(&self.children, &map);
-        for (i, tile) in map.iter().enumerate() {
-            let Some(child) = self.children.get(tile.index) else {
-                continue;
-            };
-            // The roster's tag pool, dealt so no two touching tiles match.
-            let color = colors[i];
-            let (x, y) = (tile.x, tile.y * aspect);
-            let (w, h) = (
-                (tile.w - 0.08).max(0.05),
-                (tile.h * aspect - 0.08).max(0.05),
-            );
-            let selected = tile.index == self.selected;
-            let alpha = tile_alpha(child.is_dir, selected);
-            c.rect(x, y, w, h, color, alpha);
-            if selected {
-                // A ring around the picked tile, drawn as four thin bars: the
-                // fill alone cannot say "this one" on a busy map.
-                let k = 0.2;
-                let ink = t.ink;
-                c.rect(x, y, w, k, ink, 1.0);
-                c.rect(x, y + h - k, w, k, ink, 1.0);
-                c.rect(x, y, k, h, ink, 1.0);
-                c.rect(x + w - k, y, k, h, ink, 1.0);
-            }
-        }
-        c.paint()
-    }
-}
+impl DiskPane {}
 
 /// What a key press asked the app to do.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -514,7 +287,14 @@ impl DiskPane {
     }
 }
 
-fn put(out: &mut Vec<CellView>, s: &str, col: u16, row: u16, fg: (u8, u8, u8), cols: u16) {
+pub(crate) fn put(
+    out: &mut Vec<CellView>,
+    s: &str,
+    col: u16,
+    row: u16,
+    fg: (u8, u8, u8),
+    cols: u16,
+) {
     for (i, ch) in s.chars().enumerate() {
         let col = col + i as u16;
         if col >= cols {
@@ -539,7 +319,7 @@ fn put(out: &mut Vec<CellView>, s: &str, col: u16, row: u16, fg: (u8, u8, u8), c
 /// out short of the floor at every lightness — a file tile at 0.55 alpha over
 /// a dark page reached 4.34 and stopped there. `enforced` gives up chroma
 /// rather than the floor, so every tile on the map is readable, not most.
-fn label_ink(bg: (u8, u8, u8)) -> (u8, u8, u8) {
+pub(crate) fn label_ink(bg: (u8, u8, u8)) -> (u8, u8, u8) {
     crew_theme::readable::enforced(
         crew_theme::theme().page_bg,
         bg,
@@ -549,13 +329,13 @@ fn label_ink(bg: (u8, u8, u8)) -> (u8, u8, u8) {
 
 /// Columns the header keeps for the path before it gives up and shows the
 /// reading alone — fewer than this and the leading `\u{2026}` is most of it.
-const MIN_PATH_W: u16 = 8;
+pub(crate) const MIN_PATH_W: u16 = 8;
 
 /// The colour a tile's label is read against: its fill composited over the
 /// page at the alpha the fill is actually drawn with, which is the background
 /// the eye sees — not the raw pool colour, which a 0.55-alpha file tile never
 /// shows.
-fn tile_bg(color: (u8, u8, u8), is_dir: bool, selected: bool) -> (u8, u8, u8) {
+pub(crate) fn tile_bg(color: (u8, u8, u8), is_dir: bool, selected: bool) -> (u8, u8, u8) {
     let page = crew_theme::theme().page_bg;
     let a = tile_alpha(is_dir, selected);
     let mix = |c: u8, p: u8| (f32::from(c) * a + f32::from(p) * (1.0 - a)).round() as u8;
@@ -586,7 +366,7 @@ fn touches(a: &treemap::Tile, b: &treemap::Tile) -> bool {
 /// The name still picks first, so a directory keeps its colour when you
 /// rescan the parent it is in; only a tile that would touch a twin steps
 /// along the pool to the next free entry.
-fn tile_colors(children: &[Child], tiles: &[treemap::Tile]) -> Vec<(u8, u8, u8)> {
+pub(crate) fn tile_colors(children: &[Child], tiles: &[treemap::Tile]) -> Vec<(u8, u8, u8)> {
     let pool: Vec<(u8, u8, u8)> = {
         let t = crew_theme::theme();
         let mut v: Vec<(u8, u8, u8)> = Vec::new();
@@ -630,7 +410,7 @@ fn tile_colors(children: &[Child], tiles: &[treemap::Tile]) -> Vec<(u8, u8, u8)>
 /// How solid a tile is drawn. Directories carry their colour; plain files sit
 /// back, so a tree full of one big file still reads as different from a
 /// subtree — and the picked tile is solid whichever it is.
-fn tile_alpha(is_dir: bool, selected: bool) -> f32 {
+pub(crate) fn tile_alpha(is_dir: bool, selected: bool) -> f32 {
     match (is_dir, selected) {
         (_, true) => 1.0,
         (true, false) => 0.85,
@@ -639,7 +419,7 @@ fn tile_alpha(is_dir: bool, selected: bool) -> f32 {
 }
 
 /// `~/code/crew` rather than `/Users/you/code/crew`.
-fn short_path(p: &Path) -> String {
+pub(crate) fn short_path(p: &Path) -> String {
     let s = p.to_string_lossy();
     match dirs::home_dir() {
         Some(home) => match s.strip_prefix(home.to_string_lossy().as_ref()) {
