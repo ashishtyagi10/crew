@@ -115,6 +115,11 @@ mod diffjob;
 mod diffrefine;
 mod diskpane;
 mod dispatch;
+mod dispatchargs;
+mod dispatchlook;
+mod dispatchspace;
+mod dispatchtodo;
+mod dispatchtype;
 mod dockicon;
 #[cfg(test)]
 #[path = "docshot_tests.rs"]
