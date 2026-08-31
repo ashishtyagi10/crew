@@ -51,11 +51,10 @@ src/cmdmenu_tests.rs 208
 src/cmdrow_tests.rs 223
 src/cmdspan.rs 211
 src/cmdspan_tests.rs 332
-src/config.rs 455
+src/config.rs 341
 src/config_tests.rs 395
 src/configread.rs 246
 src/crispshot_tests.rs 352
-src/cwd.rs 449
 src/daemon/cli.rs 354
 src/daemon/mod.rs 304
 src/daemon/mod_tests.rs 295
@@ -87,7 +86,7 @@ src/hints.rs 285
 src/inputbar_tests.rs 499
 src/inputshot_tests.rs 288
 src/ipc.rs 218
-src/ipc_win.rs 244
+src/ipc_win.rs 215
 src/keyentry.rs 209
 src/keyentry_tests.rs 246
 src/keys.rs 228

@@ -107,6 +107,7 @@ mod cmdrecents;
 mod cmdrow;
 mod cmdspan;
 pub mod config;
+mod configdefault;
 mod confirm;
 mod crashlog;
 #[cfg(test)]
@@ -115,6 +116,7 @@ mod crispshot_tests;
 mod ctxlimit;
 mod cursortrail;
 mod cwd;
+mod cwdshow;
 mod daemon;
 mod dashpane;
 mod daylight;
