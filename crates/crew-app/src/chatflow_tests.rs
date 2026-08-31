@@ -77,3 +77,47 @@ fn streaming_cards_carry_no_usage() {
     pane.absorb_delta("coder".into(), "Hel".into());
     assert_eq!(pane.streaming[0].usage, None);
 }
+
+// ---------------------------------------------------------------------------
+// A tool wait is not thinking
+// ---------------------------------------------------------------------------
+
+#[test]
+fn an_agent_on_a_tool_says_which_one_and_then_stops_saying_it() {
+    let mut p = test_pane();
+    p.absorb_activity("api-consumer".into(), "thinking", "hive".into());
+    assert_eq!(p.active_status().unwrap().0, "api-consumer");
+
+    p.absorb_activity("api-consumer".into(), "tool sys:run", "hive".into());
+    assert_eq!(
+        p.active_status().unwrap().0,
+        "api-consumer \u{22ef} sys:run"
+    );
+
+    // The bare form clears it: the model is thinking again.
+    p.absorb_activity("api-consumer".into(), "tool", String::new());
+    assert_eq!(p.active_status().unwrap().0, "api-consumer");
+}
+
+/// A tool round happens INSIDE a hop. Clearing the label by re-sending
+/// `thinking` would have begun a second one, inflating the waterfall by a hop
+/// per tool call — which is why the clear has its own state.
+#[test]
+fn a_tool_round_does_not_begin_a_second_hop() {
+    let mut p = test_pane();
+    p.absorb_activity("coder".into(), "thinking", "user".into());
+    let before = p.active.len();
+    p.absorb_activity("coder".into(), "tool sys:run", "hive".into());
+    p.absorb_activity("coder".into(), "tool", String::new());
+    assert_eq!(p.active.len(), before, "the agent was counted twice");
+    // …and one agent is still one agent to everything downstream.
+    assert_eq!(p.active_names(), vec!["coder"]);
+}
+
+/// A tool event for an agent nobody started must not invent an active agent.
+#[test]
+fn a_tool_state_for_an_unknown_agent_is_ignored() {
+    let mut p = test_pane();
+    p.absorb_activity("ghost".into(), "tool sys:run", "hive".into());
+    assert!(p.active_names().is_empty());
+}

@@ -34,6 +34,10 @@ pub(crate) const WORK: &[Cmd] = &[
         desc: "What you ran in this pane, how long each took and which failed",
     },
     Cmd {
+        name: "/tools",
+        desc: "What agents ran through the tool gate: tier, outcome, who asked",
+    },
+    Cmd {
         name: "/out",
         desc: "Open the last command's output on its own, in the file viewer",
     },

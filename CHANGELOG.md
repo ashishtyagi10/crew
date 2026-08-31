@@ -8,6 +8,59 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.98
+
+**What the agents did to your machine, and what they are waiting on.**
+
+Every tool call an agent makes passes one gate and appends one line to
+`~/.config/crew/ledger.jsonl` — its tier, who asked, what the gate decided and
+how it ended. That has been true since the gate landed, and nothing had ever
+read it: `Ledger::read` had no caller outside its own tests. **`/tools`** opens
+it, newest first, in the file viewer. A call that never returned shows `·`
+rather than a tick, for the same reason `/blocks` does — the gate writes the
+decision when it makes it and the outcome when the call ends, so a crash
+between the two leaves a real row with nothing after it. The ledger is
+append-only and machine-wide, so the view takes the most recent thousand rows
+and says how many it left out; unreadable lines are counted, not skipped in
+silence.
+
+While a call is in flight the header now names it — `api-consumer ⋯ sys:run` —
+instead of counting up with only the agent's name. A tool wait is not thinking,
+and `sys:run` alone may sit two minutes on its deadline.
+
+And the `[tool] ` marker is gone from the card. It is machinery — how the
+broker tells the app what kind of card this is, carried in the text only
+because that is the field that crosses the wire — and the gutter and the muted
+ink already say the same thing in a glyph. Stripped in the one function both
+the counting and the drawing pass read, so the two cannot disagree about where
+the card wraps.
+
+## 0.19.97
+
+**Tool use reads as tool use, not as four more replies.**
+
+A tool call arrives in the transcript under the agent's name — which is right,
+you need to know who reached for it — and that meant it rendered as a full
+reply: solid gutter, the agent's roster colour, never folded. A task making
+four calls produced nine cards that all looked like the agent talking, and the
+one card that was the answer had nothing to distinguish it.
+
+Tool cards now take the quiet voice: the dotted gutter and muted ink the
+broker's own notes use, with the caller's name kept. The result lands as its
+own card whose first line is `sys:run ✓ 1.2s` — outcome, then how long it took,
+which is what separates a slow tool from a hung one while you watch — and its
+output is folded to that one line until you click it open.
+
+Successful results used to be dropped entirely, on the reasoning that raw
+output would bury the agent's answer. That was sound while every tool card
+rendered in full and stopped being sound once they fold. Dropping it left the
+agent's paraphrase as the only account of what an API returned, which is the
+one thing you cannot check an integration against.
+
+Underneath: `folded` and `foldable` were separate predicates — what the frame
+draws and what a click may toggle — and a card the first folds and the second
+does not is collapsed with no way to open it. They now share one threshold.
+
 ## 0.19.96
 
 **The weird line is gone.**

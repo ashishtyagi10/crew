@@ -107,13 +107,23 @@ pub(super) fn translate(
         // engines rendering the same action two ways would read as two
         // different features.
         HiveEvent::ToolCall { agent, label, args } => {
-            vec![msg(
-                agent_name(agent, agent_task).as_str(),
-                format!(
-                    "[tool] {}",
-                    crate::broker::toolline::call_line(label, args, 200)
+            let name = agent_name(agent, agent_task);
+            vec![
+                msg(
+                    name.as_str(),
+                    format!(
+                        "[tool] {}",
+                        crate::broker::toolline::call_line(label, args, 200)
+                    ),
                 ),
-            )]
+                // …and say the agent is ON A TOOL, not thinking. The header
+                // counts up either way; only this says whose wait it is.
+                PluginEvent::Activity {
+                    agent: name,
+                    state: format!("tool {label}"),
+                    from: "hive".into(),
+                },
+            ]
         }
         // Every result is shown, outcome and duration first, output beneath.
         //
@@ -144,7 +154,17 @@ pub(super) fn translate(
             } else {
                 format!("[tool] {head}\n{body}")
             };
-            vec![msg(agent_name(agent, agent_task).as_str(), card)]
+            let name = agent_name(agent, agent_task);
+            vec![
+                msg(name.as_str(), card),
+                // Back to thinking — bare `tool` clears the label without
+                // starting a new hop (see the app's `absorb_activity`).
+                PluginEvent::Activity {
+                    agent: name,
+                    state: "tool".into(),
+                    from: String::new(),
+                },
+            ]
         }
         // A task failure is chat-visible content, not a connection loss: the
         // app's chat pane treats `PluginEvent::Error` as the broker connection

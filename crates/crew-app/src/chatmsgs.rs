@@ -251,13 +251,25 @@ fn append_hidden_suffix(line: &mut CardLine, hidden: usize, cols: usize) {
 /// whether a card is long enough to fold), so the two can never disagree
 /// with what `card_lines` actually renders.
 pub(crate) fn full_body(m: &Message, cols: usize, view: View) -> Vec<CardLine> {
-    // Body text: agents speak in ink; the system voice stays muted.
-    let fg = if is_system_voice(&m.sender) {
+    // Body text: agents speak in ink; the system voice — and the machine
+    // talking on an agent's behalf — stays muted.
+    let fg = if is_system_voice(&m.sender) || is_tool_card(m) {
         crew_theme::theme().text_muted
     } else {
         crew_theme::theme().ink
     };
-    let mut body = body_lines(&m.text, cols, fg, view.source);
+    // The `[tool] ` marker is MACHINERY: it is how the broker tells the app
+    // what kind of card this is, and it is carried in the text because that
+    // is the only field that crosses the wire. Now that the gutter and the
+    // ink say the same thing in a glyph, printing it too is telling the
+    // reader twice. Stripped here, in the ONE place both the counting and the
+    // drawing pass read — strip it anywhere else and the two disagree about
+    // where the card wraps.
+    let text = match is_tool_card(m) {
+        true => m.text.strip_prefix(TOOL_PREFIX).unwrap_or(&m.text),
+        false => m.text.as_str(),
+    };
+    let mut body = body_lines(text, cols, fg, view.source);
     // The reply's usage trailer joins the body BEFORE the clamp in normal
     // view, so the auto-fold hides it — and counts it in ` … +N` — like any
     // body line. Compact view (Ctrl+O) excludes it entirely: it is metadata,

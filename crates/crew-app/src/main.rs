@@ -336,6 +336,7 @@ mod todopane;
 #[path = "todoshot_tests.rs"]
 mod todoshot_tests;
 mod toggles;
+mod toolsview;
 mod tui;
 mod unread;
 mod update;

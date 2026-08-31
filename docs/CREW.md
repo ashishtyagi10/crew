@@ -1216,6 +1216,20 @@ longer aim at.
   its top border; running `/pin` again gives the pane back to the LRU. More
   pins than tiles is not an error and cannot make room that does not exist: the
   oldest pins keep their tiles and the rest demote like anything else.
+- **`/tools`** — what the AGENTS ran, newest first: the time, the tier
+  (`read` / `reversible` / `irreversible`), how it ended, the tool and who
+  asked for it. Every tool call an agent makes passes one gate and appends one
+  line to `~/.config/crew/ledger.jsonl` — that has been true since the gate
+  landed, and until now nothing could open it. A call that never returned
+  shows `·` rather than a tick, for the same reason `/blocks` does: the gate
+  writes the decision when it makes it and the outcome when the call ends, so a
+  crash between the two leaves a real row with nothing after it, and drawing
+  that as success would invent an answer. The ledger is append-only and
+  machine-wide rather than per-session, so the view takes the most recent
+  thousand rows and says how many it left out; unreadable lines are counted and
+  reported rather than silently skipped. It opens in the file viewer, like
+  `/blocks` and `/out`.
+
 - **`/blocks`** — what you ran in this pane, newest first: how long each took,
   which of them failed, and the number that reaches its output. A pane's
   scrollback is one long column in which everything that ever ran is mixed
@@ -2081,6 +2095,15 @@ sizes shown). `CREW_SYS_MODE=readonly` blocks the mutating pair (`run`,
 shows the active mode. An approximate per-thread **token budget**
 (`CREW_BROKER_TOKEN_BUDGET`, default unlimited) terminates a thread that blows
 past it.
+
+**A tool wait is not thinking.** While a call is in flight the pane header
+names it — `| api-consumer ⋯ sys:run · 12s` — instead of counting up with only
+the agent's name. `sys:run` alone may sit two minutes on its deadline, and the
+difference between "give it a moment" and "something is stuck" is knowing whose
+wait it is. The label clears when the result lands, on its own activity state
+rather than by re-sending `thinking`: a tool round happens *inside* a hop, and
+clearing it the other way would have inflated the hop waterfall by one hop per
+tool call.
 
 **Tools in the transcript.** A tool call and its result are the machine
 talking, not the agent, and they read that way: both cards take the quieter

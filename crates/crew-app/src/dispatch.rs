@@ -25,6 +25,7 @@ impl CrewApp {
             "out" => self.open_last_output(""),
             // …and the list the number in `/out <n>` counts through.
             "blocks" => self.open_blocks(),
+            "tools" => self.open_tools(),
             "pin" => self.toggle_pin(),
             "marks" => self.marks_command(""),
             "invisibles" => self.invisibles_command(""),

@@ -14,6 +14,13 @@ pub(crate) struct ActiveAgent {
     pub from: String,
     /// When it started thinking — drives the spinner and elapsed label.
     pub since: Instant,
+    /// `server:tool` while a tool call is in flight for this agent.
+    ///
+    /// A tool wait is not thinking. `sys:run` alone may sit two minutes on its
+    /// deadline, and the header counted up all that time with the agent's name
+    /// and no hint that the wait was not the model's — which is the difference
+    /// between "give it a moment" and "something is stuck".
+    pub tool: Option<String>,
 }
 
 /// The agent name a sender or delta is keyed by: the part before a relay's
@@ -81,7 +88,19 @@ impl crate::chat::ChatPane {
                         name: agent,
                         from,
                         since: Instant::now(),
+                        tool: None,
                     });
+                }
+            }
+            // `tool <server:name>` while a call is in flight, bare `tool` when
+            // it returns. Deliberately NOT re-sending `thinking` to clear it:
+            // that arm begins a hop, and a tool round is part of the hop it
+            // interrupts, so clearing that way would inflate the waterfall by
+            // one hop per tool call.
+            (s, false) if s == "tool" || s.starts_with("tool ") => {
+                let label = s.strip_prefix("tool").unwrap_or("").trim();
+                if let Some(a) = self.active.iter_mut().find(|a| a.name == agent) {
+                    a.tool = (!label.is_empty()).then(|| label.to_string());
                 }
             }
             ("idle", false) => {
@@ -166,7 +185,13 @@ impl crate::chat::ChatPane {
             .map(|a| a.since.elapsed().as_secs())
             .max()?;
         match &self.active[..] {
-            [one] => Some((one.name.clone(), secs)),
+            [one] => Some((
+                match &one.tool {
+                    Some(t) => format!("{} \u{22ef} {t}", one.name),
+                    None => one.name.clone(),
+                },
+                secs,
+            )),
             many => Some((format!("{} working", many.len()), secs)),
         }
     }

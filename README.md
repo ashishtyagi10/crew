@@ -358,6 +358,9 @@ it.
   took, which of them failed, and the number `/out` counts back with — so
   `/blocks` says what you ran and `/out 2` opens the output of the third one
   back.
+- **`/tools`** lists what the agents ran through the tool gate — tier, outcome,
+  who asked and how it ended — newest first. Every tool call already appended a
+  line to the action ledger; this is the thing that opens it.
 - **`/blame`** answers who last touched each line of the file in the viewer,
   collapsed to the boundaries where one commit's work ends and the next begins.
 - **`/reopen`** (**Cmd+Shift+T**) undoes the last pane close: a shell in the

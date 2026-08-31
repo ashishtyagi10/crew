@@ -903,3 +903,48 @@ fn the_tool_predicate_does_not_capture_an_agent_quoting_the_marker() {
     assert!(!is_tool_card(&msg("agent smith", "[tool] sys:run x")));
     assert!(is_tool_card(&msg("coder", "[tool] sys:run x")));
 }
+
+/// The `[tool] ` marker is how the broker tells the app what kind of card this
+/// is — machinery, carried in the text only because that is the field that
+/// crosses the wire. The gutter and the ink now say the same thing in a glyph,
+/// so printing it as well tells the reader twice.
+#[test]
+fn the_tool_marker_is_machinery_and_never_reaches_the_reader() {
+    let _g = crate::app::theme_test_guard();
+    let m = msg(
+        "api-consumer",
+        "[tool] sys:run \u{2713} 1.2s\nDarwin 27.0.0",
+    );
+    let view = View {
+        source: false,
+        compact: false,
+        gap_rows: 1,
+        streaming_from: usize::MAX,
+    };
+    let body = full_body(&m, 80, view);
+    let first: String = body[0].iter().map(|c| c.c).collect();
+    assert!(first.trim_start().starts_with("sys:run"), "{first:?}");
+    assert!(!first.contains("[tool]"), "{first:?}");
+    // …and the output beneath it is untouched.
+    let second: String = body[1].iter().map(|c| c.c).collect();
+    assert!(second.contains("Darwin 27.0.0"), "{second:?}");
+}
+
+/// Stripping in `full_body` — the one function BOTH the counting pass and the
+/// drawing pass read — is what keeps them agreeing about where a card wraps.
+#[test]
+fn stripping_the_marker_does_not_drift_the_line_count() {
+    let _g = crate::app::theme_test_guard();
+    let m = msg(
+        "api-consumer",
+        "[tool] sys:run \u{2713} 1.2s\nline two\nline three",
+    );
+    let view = View {
+        source: false,
+        compact: false,
+        gap_rows: 1,
+        streaming_from: usize::MAX,
+    };
+    let drawn = card_lines(&[&m], 80, 0, view).len();
+    assert_eq!(drawn, card_line_count(&[&m], 80, view));
+}
