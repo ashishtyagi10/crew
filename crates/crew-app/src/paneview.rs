@@ -277,20 +277,6 @@ fn push_pane_scenes(
         PaneContent::Terminal(t) => crate::unread::count(t.pty.scrollable_lines(), t.read_at),
         _ => 0,
     };
-    // The boundary between what you had read in this pane and what arrived
-    // while you were reading another one.
-    if let PaneContent::Terminal(t) = &p.content {
-        let total = t.pty.scrollable_lines();
-        let row = crate::unread::divider_row(
-            total,
-            t.read_at,
-            usize::from(p.grid.rows),
-            t.pty.display_offset(),
-        );
-        if let Some(row) = row {
-            crate::unread::mark(&mut cells, row, p.grid.cols, unread);
-        }
-    }
     // An agent cites files in prose as often as a compiler does, and a chat
     // pane resolves the same Cmd+click a terminal one does — so the same
     // marks belong here.

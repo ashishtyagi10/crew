@@ -8,6 +8,33 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.96
+
+**The weird line is gone.**
+
+Reported twice, the second time with a picture of it drawn straight through an
+agent CLI's statusline. It was crew's **unread divider**: a rule under the last
+row you had read, with `1 new` hung off its right end — which is why the tag
+appeared to be part of the statusline.
+
+The first report was answered by giving the rule that tag, on the theory that a
+bare full-width line reads as damage because nothing says what it is. That was
+half the problem. The other half no tag can fix: **counting buffer lines is not
+"output arrived" for a program that redraws itself.** An agent CLI repaints its
+input box and statusline in place, growing the buffer by a line each time, so
+the boundary lands *inside* the live interface rather than between two lines of
+scrollback — constantly, and naming a repaint as news.
+
+So the rule is gone and the **count stays**. It was already on the card's
+border, in the sidebar and on the minimized thumbnail; a badge saying *something
+happened here* is honest at the granularity it is shown at, and a rule claiming
+*and it starts on this row* is not, for any pane running something that paints
+its own screen.
+
+Reproduced in the shot harness first — a transcript, an input box and a
+statusline, with the divider over it — which showed that even in its best case,
+landing on a blank row, it reads as a stray line across the pane.
+
 ## 0.19.95
 
 **A second window costs a surface, not a second GPU.**

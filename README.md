@@ -318,10 +318,9 @@ it.
   UI.
 - **How long** the foreground command has been running (`9s`, `2m14`, `1h05`),
   past five seconds.
-- **What arrived while you were away**: a rule under the last line you had
-  read, and a count on the border, in the sidebar and on the minimized
-  thumbnail. It clears when you type into the pane or scroll back to the live
-  bottom.
+- **What arrived while you were away**: a count on the border, in the sidebar
+  and on the minimized thumbnail. It clears when you type into the pane or
+  scroll back to the live bottom.
 - **Where each command began** (a tick) and **where the errors are** (a red
   bar) — block structure and failure marks without any shell integration,
   since crew already watches each pane's foreground process. `/marks off` for a

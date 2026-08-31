@@ -1491,11 +1491,22 @@ rather than parking at an arbitrary percentage, and `0` clears it.
 ## What arrived while you were away
 
 A grid means most panes are producing output while you read one of the others,
-and coming back to one always asks the same question: *where does the new part
-start?* Each terminal pane remembers how many lines it held when you last read
-it and draws the boundary as a **rule under the last line you had seen** — not
-a banner row, which would cover a line of output; the thing being marked is the
-gap *between* two lines, and an underline on the row above is exactly that.
+and coming back to one always asks the same question: *what did I miss?* Each
+terminal pane remembers how many lines it held when you last read it, and the
+difference rides the card's border as a count.
+
+**There used to be a rule as well**, drawn across the pane under the last row
+you had read, answering *where* the new part starts rather than only how much
+of it there is. It is gone (0.19.96). It was reported as "a weird line" twice:
+the first time a bare full-width rule read as damage, and was given a `12 new`
+tag to name itself; the second report came with a picture of it drawn through
+an agent CLI's statusline, which is the part no tag fixes. A program that
+repaints its own footer in place grows the buffer by a line on every repaint,
+so the boundary lands *inside* the live interface rather than between two lines
+of scrollback — constantly, and naming a repaint as news. Counting buffer lines
+is not "output arrived" for a program that redraws itself. The count survives
+because it is honest at the granularity it is shown at; the rule did not,
+because it claimed a position.
 
 The card's border carries the **count** beside its activity dot: the dot has
 always said "something happened here", and the number is the difference between
