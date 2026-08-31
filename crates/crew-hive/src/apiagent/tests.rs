@@ -175,6 +175,7 @@ async fn api_factory_model_override_reaches_request() {
                     input_tokens: 1,
                     output_tokens: 1,
                     cost_microusd: 0,
+                    ..Default::default()
                 })
             })
         }
@@ -327,6 +328,7 @@ impl crate::provider::Provider for Scripted {
                 input_tokens: 1,
                 output_tokens: 1,
                 cost_microusd: 0,
+                ..Default::default()
             })
         })
     }

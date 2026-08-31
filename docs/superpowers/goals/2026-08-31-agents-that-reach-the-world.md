@@ -48,6 +48,17 @@ match. Those two sentences are Pillars 2 and 3; the rest of this document exists
 affordable.
 
 ### Pillar 1 — the tool loop reaches the swarm, and it stops being a text convention
+**SHIPPED 2026-08-31** (branch `swarm-tools`, two commits). The `Tools` trait and the `@tool`
+parser moved down into crew-hive so both engines share one; `ApiAgent` runs the loop; the approval
+gate moved from per-broker to per-session so four concurrent agents ask once, not four times; and
+the provider layer grew native tool-use — `CompletionRequest.tools`/`.turns`, `Completion.calls`,
+`Provider::supports_tools`, mapped to Anthropic's `tool_use`/`tool_result` blocks and the OpenAI
+shape's `tool_calls`/`role:"tool"`. `ToolCatalog` owns the `server:tool` ↔ wire-name encoding in one
+place. MCP schemas are no longer discarded, and the four `sys` tools ship hand-written ones. The
+text convention remains the fallback for providers without tool support. NOT DONE: the `@agent`
+relay still uses the text path (its adapters include CLI agents that are not `Provider`s), and none
+of it has been driven against a live key yet.
+
 `CompletionRequest` is `{model, system, prompt, max_tokens}` (`provider/mod.rs:53`) — a single-shot
 string in, a string out. It CANNOT EXPRESS A TOOL-USE TURN, which is why the existing tool path had
 to be invented in prose: the relay appends a TOOLS section and asks the model to make the final

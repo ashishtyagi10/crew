@@ -35,6 +35,7 @@ fn openrouter_body_asks_for_cost_but_custom_endpoint_does_not() {
         system: None,
         prompt: "hi".into(),
         max_tokens: 8,
+        ..Default::default()
     };
     let messages = vec![serde_json::json!({"role": "user", "content": "hi"})];
     let with_cost = build_body("m", &req, &messages, true);
@@ -92,6 +93,7 @@ async fn stalled_server_fails_fast_instead_of_hanging() {
         system: None,
         prompt: "hi".into(),
         max_tokens: 8,
+        ..Default::default()
     };
     let res = tokio::time::timeout(Duration::from_secs(5), p.complete(req))
         .await
@@ -208,6 +210,7 @@ async fn streams_deltas_and_reports_final_usage_over_http() {
         system: None,
         prompt: "hi".into(),
         max_tokens: 8,
+        ..Default::default()
     };
     let done = p.complete_streaming(req, on_chunk).await.unwrap();
     assert_eq!(chunks.lock().unwrap().concat(), "Hello");
@@ -243,6 +246,7 @@ async fn midstream_transport_error_does_not_fall_back_to_another_model() {
         system: None,
         prompt: "hi".into(),
         max_tokens: 8,
+        ..Default::default()
     };
     let res = tokio::time::timeout(Duration::from_secs(5), p.complete_streaming(req, on_chunk))
         .await
@@ -312,6 +316,7 @@ async fn retries_once_without_stream_options_on_400() {
         system: None,
         prompt: "hi".into(),
         max_tokens: 8,
+        ..Default::default()
     };
     let done = tokio::time::timeout(Duration::from_secs(5), p.complete_streaming(req, on_chunk))
         .await
@@ -359,6 +364,7 @@ async fn wrapped_error_200_body_with_json_content_type_retries_then_errors() {
         system: None,
         prompt: "hi".into(),
         max_tokens: 8,
+        ..Default::default()
     };
     let res = tokio::time::timeout(Duration::from_secs(10), p.complete_streaming(req, on_chunk))
         .await
@@ -398,6 +404,7 @@ async fn wrapped_error_200_body_without_content_type_is_not_silent_success() {
         system: None,
         prompt: "hi".into(),
         max_tokens: 8,
+        ..Default::default()
     };
     let res = tokio::time::timeout(Duration::from_secs(10), p.complete_streaming(req, on_chunk))
         .await
@@ -466,6 +473,7 @@ async fn reassembles_line_split_mid_multibyte_across_writes_with_crlf_and_no_fin
         system: None,
         prompt: "hi".into(),
         max_tokens: 8,
+        ..Default::default()
     };
     let done = tokio::time::timeout(Duration::from_secs(5), p.complete_streaming(req, on_chunk))
         .await
@@ -502,6 +510,7 @@ async fn missing_usage_frame_falls_back_to_chars_over_4_estimate() {
         system: None,
         prompt: "abcdefgh".into(), // 8 chars → 2 estimated input tokens
         max_tokens: 8,
+        ..Default::default()
     };
     let done = p.complete_streaming(req, on_chunk).await.unwrap();
     assert_eq!(done.text, "12345678");
@@ -537,6 +546,7 @@ async fn missing_usage_estimate_uses_chars_not_bytes_and_floors_tiny_output_at_o
         system: None,
         prompt: prompt.into(),
         max_tokens: 8,
+        ..Default::default()
     };
     let done = p.complete_streaming(req, on_chunk).await.unwrap();
     assert_eq!(done.text, reply);

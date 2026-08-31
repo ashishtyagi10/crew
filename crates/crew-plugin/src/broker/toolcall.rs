@@ -35,12 +35,11 @@ pub(crate) fn hint_for(tools: &[McpTool]) -> String {
     let lines: Vec<String> = tools
         .iter()
         .map(|t| {
-            format!(
-                "- {}:{} \u{2014} {}",
-                t.server,
-                t.name,
-                clip(&t.description, 100)
-            )
+            // FIRST LINE, then clipped. `McpTool::description` is now the
+            // server's whole description — paragraphs and all — and pasting
+            // that into a one-line-per-tool list would break the list.
+            let one = t.description.lines().next().unwrap_or("");
+            format!("- {}:{} \u{2014} {}", t.server, t.name, clip(one, 100))
         })
         .collect();
     format!(

@@ -169,6 +169,7 @@ fn far_request(query: &str, cwd: &std::path::Path, model: String) -> crew_hive::
         system: Some(far_system_prompt(cwd)),
         prompt: query.to_string(),
         max_tokens: FAR_MAX_TOKENS,
+        ..Default::default()
     }
 }
 

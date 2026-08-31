@@ -70,7 +70,13 @@ pub(super) fn budget_spent(reply: &str, max_rounds: u32) -> String {
         .iter()
         .rposition(|l| !l.trim().is_empty())
         .unwrap_or(kept.len());
-    let body = kept[..cut].join("\n");
+    with_budget_note(&kept[..cut].join("\n"), max_rounds)
+}
+
+/// `body` plus the budget note. The native path uses this directly: a
+/// structured tool call never lands in the output text, so there is nothing to
+/// strip — only the note to add.
+pub(super) fn with_budget_note(body: &str, max_rounds: u32) -> String {
     let note = format!(
         "[tool budget spent — {max_rounds} calls for this task; the last request was not run]"
     );

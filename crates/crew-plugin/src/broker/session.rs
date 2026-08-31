@@ -151,7 +151,12 @@ impl Session {
     /// same value to its agent factory, so both engines call the same tools
     /// through the same gate into the same ledger.
     pub fn tools(&self) -> Option<Arc<dyn crew_hive::tools::Tools>> {
-        let sys = super::systools::enabled();
+        self.tools_with_sys(super::systools::enabled())
+    }
+
+    /// [`Self::tools`] with the `sys` verdict handed in, so a test can build
+    /// the real surface without the process-wide env that decides it.
+    pub fn tools_with_sys(&self, sys: bool) -> Option<Arc<dyn crew_hive::tools::Tools>> {
         if !sys && self.lock_mcp().is_empty() {
             return None;
         }
@@ -255,6 +260,30 @@ impl super::toolcall::ToolRunner for SessionTools {
         };
         tools.extend(self.mcp.lock().unwrap_or_else(|e| e.into_inner()).tools());
         super::toolcall::hint_for(&tools)
+    }
+
+    /// Structured definitions for native tool-use: the same merged surface
+    /// [`Self::hint`] describes in prose, with each tool's real JSON Schema.
+    ///
+    /// Both must stay in step, because the PROVIDER decides which of the two a
+    /// given run uses — a tool present in one and not the other is a tool that
+    /// appears and disappears depending on which model is serving.
+    fn specs(&self) -> Vec<crew_hive::tools::ToolSpec> {
+        let mut tools = if self.sys {
+            super::systools::tools()
+        } else {
+            Vec::new()
+        };
+        tools.extend(self.mcp.lock().unwrap_or_else(|e| e.into_inner()).tools());
+        tools
+            .into_iter()
+            .map(|t| crew_hive::tools::ToolSpec {
+                server: t.server,
+                tool: t.name,
+                description: t.description,
+                input_schema: t.input_schema,
+            })
+            .collect()
     }
 
     /// Every tool call in the running broker passes through here — `sys` and MCP alike — which
@@ -423,6 +452,56 @@ mod tests {
         let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
         let h = SessionTools::for_test(host, false).hint();
         assert!(!h.contains("sys:"), "{h}");
+    }
+
+    /// The native surface and the text surface must describe the SAME tools.
+    /// The provider picks which one a run uses, so a tool in one and not the
+    /// other appears or disappears depending on which model is serving.
+    #[test]
+    fn specs_and_hint_cover_the_same_tools() {
+        use super::super::toolcall::ToolRunner;
+        let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
+        let t = SessionTools::for_test(host, true);
+        let hint = t.hint();
+        let specs = t.specs();
+        assert!(!specs.is_empty());
+        for s in &specs {
+            assert!(
+                hint.contains(&format!("{}:{}", s.server, s.tool)),
+                "{}:{} is callable natively but unadvertised in the hint",
+                s.server,
+                s.tool
+            );
+        }
+    }
+
+    /// Every native tool ships a schema a provider will accept: an object with
+    /// a `type`. A `null` or a bare `{}` is rejected by the API, which would
+    /// take down the whole request — not just that one tool.
+    #[test]
+    fn every_spec_carries_a_usable_schema() {
+        use super::super::toolcall::ToolRunner;
+        let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
+        for s in SessionTools::for_test(host, true).specs() {
+            assert_eq!(
+                s.input_schema["type"], "object",
+                "{}:{} schema: {}",
+                s.server, s.tool, s.input_schema
+            );
+        }
+    }
+
+    /// `sys:run` without a command was a wasted round: the model emitted the
+    /// call, the dispatcher answered "missing string argument", and the agent
+    /// tried again. The schema now makes the provider refuse it first.
+    #[test]
+    fn sys_run_declares_its_command_required() {
+        use super::super::toolcall::ToolRunner;
+        let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
+        let specs = SessionTools::for_test(host, true).specs();
+        let run = specs.iter().find(|s| s.tool == "run").expect("sys:run");
+        assert_eq!(run.input_schema["required"][0], "cmd");
+        assert_eq!(run.input_schema["properties"]["cmd"]["type"], "string");
     }
 
     #[test]

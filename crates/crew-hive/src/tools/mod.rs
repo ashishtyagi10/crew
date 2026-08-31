@@ -18,6 +18,116 @@
 #[cfg(test)]
 mod tests;
 
+/// One tool as CREW names it, before any provider gets to see it.
+///
+/// crew's identity for a tool is `server:tool`, which no provider accepts as a
+/// function name — Anthropic and the OpenAI shape both require
+/// `[a-zA-Z0-9_-]{1,64}`. Keeping crew's spelling here and doing the encoding
+/// in exactly one place ([`ToolCatalog`]) is what stops `server:tool`,
+/// `server__tool` and `server-tool` all existing at once.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ToolSpec {
+    pub server: String,
+    pub tool: String,
+    pub description: String,
+    /// JSON Schema for the arguments. `{"type":"object"}` when the source
+    /// declared nothing — never `null`, which providers reject.
+    pub input_schema: serde_json::Value,
+}
+
+impl ToolSpec {
+    /// `server:tool` — crew's spelling, for prompts, events and the ledger.
+    pub fn label(&self) -> String {
+        format!("{}:{}", self.server, self.tool)
+    }
+}
+
+/// Provider-facing tool definitions plus the map back to `(server, tool)`.
+///
+/// The map is why this is a type and not a function: decoding by splitting the
+/// wire name would be a guess, and a guess is wrong the moment a name is
+/// sanitised, truncated or de-duplicated. Whatever transformation happened on
+/// the way out, [`Self::resolve`] undoes exactly.
+#[derive(Debug, Default)]
+pub struct ToolCatalog {
+    defs: Vec<crate::provider::ToolDef>,
+    by_wire: std::collections::HashMap<String, (String, String)>,
+}
+
+/// Longest function name providers accept.
+const MAX_WIRE_NAME: usize = 64;
+
+/// One side of a wire name: every character outside `[A-Za-z0-9_-]` becomes
+/// `_`. Note that `:` and `.` — the two most likely characters in a real MCP
+/// server name — both land here.
+fn sanitize(part: &str) -> String {
+    part.chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect()
+}
+
+impl ToolCatalog {
+    /// Encode `specs` for the wire, keeping every name unique and legal.
+    ///
+    /// Uniqueness is enforced rather than assumed: two servers whose names
+    /// differ only in a character that sanitises to `_` would otherwise
+    /// collide, and a collision means a model's call resolves to the WRONG
+    /// TOOL — silently, on someone else's server. A clashing name gets a
+    /// numeric suffix, and the map records where it really goes.
+    pub fn build(specs: &[ToolSpec]) -> Self {
+        let mut defs = Vec::with_capacity(specs.len());
+        let mut by_wire: std::collections::HashMap<String, (String, String)> =
+            std::collections::HashMap::new();
+        for spec in specs {
+            let base = format!("{}__{}", sanitize(&spec.server), sanitize(&spec.tool));
+            let base: String = base.chars().take(MAX_WIRE_NAME).collect();
+            let mut name = base.clone();
+            let mut n = 2;
+            while by_wire.contains_key(&name) {
+                let suffix = format!("_{n}");
+                let keep = MAX_WIRE_NAME - suffix.len();
+                name = format!("{}{suffix}", base.chars().take(keep).collect::<String>());
+                n += 1;
+            }
+            by_wire.insert(name.clone(), (spec.server.clone(), spec.tool.clone()));
+            defs.push(crate::provider::ToolDef {
+                name,
+                description: spec.description.clone(),
+                input_schema: spec.input_schema.clone(),
+            });
+        }
+        Self { defs, by_wire }
+    }
+
+    pub fn defs(&self) -> &[crate::provider::ToolDef] {
+        &self.defs
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.defs.is_empty()
+    }
+
+    /// `(server, tool)` for a name the model called, or `None` if it invented
+    /// one — which models do, and which must read as a tool error the agent
+    /// can recover from rather than a panic or a call to something else.
+    pub fn resolve(&self, wire: &str) -> Option<(&str, &str)> {
+        self.by_wire
+            .get(wire)
+            .map(|(s, t)| (s.as_str(), t.as_str()))
+    }
+
+    /// The names a model may call, for an error message that helps.
+    pub fn names(&self) -> Vec<&str> {
+        self.defs.iter().map(|d| d.name.as_str()).collect()
+    }
+}
+
 /// Executes tool calls on behalf of an agent.
 ///
 /// SYNCHRONOUS on purpose: the implementation on the other side of this trait
@@ -33,6 +143,18 @@ pub trait Tools: Send + Sync {
     /// Run one tool. `Err` is shown to the agent, never propagated as a task
     /// failure: a tool that refuses is information the agent can act on.
     fn call(&self, server: &str, tool: &str, args: &str) -> Result<String, String>;
+
+    /// Structured definitions, for providers that speak native tool-use.
+    ///
+    /// Defaults to EMPTY, which means "fall back to the `@tool` text
+    /// convention in [`hint`]". A `Tools` implementation that has schemas is
+    /// expected to return them here AND keep `hint` working, because the
+    /// provider decides which path runs, not the tool surface.
+    ///
+    /// [`hint`]: Tools::hint
+    fn specs(&self) -> Vec<ToolSpec> {
+        Vec::new()
+    }
 }
 
 /// Most tool rounds one agent may take within a single task.

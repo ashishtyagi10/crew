@@ -5,6 +5,7 @@
 mod tests;
 
 mod context;
+mod native;
 mod toolloop;
 
 pub(crate) use context::build_prompt;
@@ -18,7 +19,7 @@ use crate::board::TaskResult;
 use crate::bus::HiveEvent;
 use crate::graph::{AgentKind, ModelTier};
 use crate::provider::{CompletionRequest, Provider};
-use crate::tools::{self, Tools, MAX_TOOL_ROUNDS};
+use crate::tools::{self, ToolCatalog, Tools, MAX_TOOL_ROUNDS};
 
 // ---------------------------------------------------------------------------
 // Cost table — micros-USD per token (input / output)
@@ -96,6 +97,39 @@ impl Agent for ApiAgent {
                 AgentKind::Pty { .. } => None,
             };
             let model_id = model.unwrap_or_else(|| tier.model_id().to_owned());
+            // NATIVE OR TEXT, decided once. Native needs BOTH halves — schemas
+            // from the tool surface and tool support from the provider — and
+            // when either is missing the `@tool` convention still works, which
+            // is why it stays rather than being replaced.
+            if let Some(runner) = tools.clone() {
+                let specs = runner.specs();
+                if !specs.is_empty() && provider.supports_tools() {
+                    let delta_bus = ctx.bus.clone();
+                    let delta_agent = agent_id.clone();
+                    let on_chunk: crate::provider::ChunkFn = Arc::new(move |s: &str| {
+                        delta_bus.publish(HiveEvent::OutputDelta {
+                            agent: delta_agent.clone(),
+                            text: s.to_string(),
+                        });
+                    });
+                    // No tools hint in the prompt: the tools are on the wire,
+                    // and advertising the text convention beside them invites
+                    // a model to use both.
+                    let prompt = build_prompt(&ctx.task.prompt, &ctx.deps);
+                    return native::run(
+                        ctx,
+                        provider,
+                        runner,
+                        ToolCatalog::build(&specs),
+                        model_id,
+                        system,
+                        prompt,
+                        max_tokens,
+                        on_chunk,
+                    )
+                    .await;
+                }
+            }
             // The tools section is part of the BASE prompt, not just the first
             // request: every follow-up re-states it, or an agent that used one
             // tool would find the syntax for the second one gone.
@@ -127,6 +161,7 @@ impl Agent for ApiAgent {
                     system: system.clone(),
                     prompt,
                     max_tokens,
+                    ..Default::default()
                 };
                 let completion = match provider
                     .complete_streaming(req, Arc::clone(&on_chunk))

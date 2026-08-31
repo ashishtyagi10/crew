@@ -18,11 +18,24 @@ pub use config::ServerConfig;
 pub type StatusSink = Arc<dyn Fn(bool, &str) + Send + Sync>;
 
 /// One callable tool on a connected server.
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// `Eq` is gone because `input_schema` is a `serde_json::Value` (floats).
+/// `PartialEq` is what tests compare with; nothing hashed or ordered these.
+#[derive(Debug, Clone, PartialEq)]
 pub struct McpTool {
     pub server: String,
     pub name: String,
+    /// The server's FULL description, newlines and all.
+    ///
+    /// It used to be truncated to its first line at the point of parsing, for
+    /// a text hint that then clipped it again to 100 characters. Native
+    /// tool-use wants the whole thing — servers put the usage notes that
+    /// disambiguate two similar tools in the second paragraph — so the
+    /// shortening moved to the hint, which is the only place that needs it.
     pub description: String,
+    /// JSON Schema for the arguments, straight from `tools/list`.
+    /// `{"type":"object"}` when the server declared none.
+    pub input_schema: serde_json::Value,
 }
 
 /// All configured MCP servers: lazy connections plus a per-server tool cache,
@@ -192,10 +205,11 @@ impl McpHost {
         );
         let tools: Vec<McpTool> = list
             .into_iter()
-            .map(|(name, description)| McpTool {
+            .map(|(name, description, input_schema)| McpTool {
                 server: server.to_string(),
                 name,
                 description,
+                input_schema,
             })
             .collect();
         self.cache.insert(server.to_string(), tools.clone());

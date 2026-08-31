@@ -49,6 +49,7 @@ fn complete_once(
         system: None,
         prompt: prompt.to_string(),
         max_tokens,
+        ..Default::default()
     };
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()

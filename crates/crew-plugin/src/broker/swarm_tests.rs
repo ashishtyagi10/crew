@@ -685,6 +685,7 @@ impl crew_hive::Provider for AskThenAnswer {
                 input_tokens: 1,
                 output_tokens: 1,
                 cost_microusd: 0,
+                ..Default::default()
             })
         })
     }
@@ -798,4 +799,98 @@ fn the_mock_arm_gets_no_tools_even_when_the_session_has_them() {
     assert!(calls.lock().unwrap().is_empty(), "the mock arm ran a tool");
     // The directive comes back as plain text, which is all it is here.
     assert_eq!(out.output, "@tool weather:current {}");
+}
+
+/// The native path, end to end through `run_with`: a tool-speaking provider
+/// plus the session's real tool surface. The text convention never appears.
+struct NativeProvider;
+
+impl crew_hive::Provider for NativeProvider {
+    fn supports_tools(&self) -> bool {
+        true
+    }
+    fn complete(
+        &self,
+        req: crew_hive::CompletionRequest,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<
+                    Output = Result<crew_hive::Completion, crew_hive::ProviderError>,
+                > + Send,
+        >,
+    > {
+        // Answer once results have come back; call a tool the first time.
+        let answered = req
+            .turns
+            .iter()
+            .any(|t| matches!(t, crew_hive::provider::Turn::ToolResults(_)));
+        // The tools it was offered must include the built-in surface.
+        let has_run = req.tools.iter().any(|t| t.name == "sys__run");
+        Box::pin(async move {
+            Ok(crew_hive::Completion {
+                text: if answered {
+                    "listed it".into()
+                } else {
+                    String::new()
+                },
+                input_tokens: 1,
+                output_tokens: 1,
+                cost_microusd: 0,
+                calls: if answered || !has_run {
+                    vec![]
+                } else {
+                    vec![crew_hive::ToolInvocation {
+                        id: "c1".into(),
+                        name: "sys__run".into(),
+                        input: serde_json::json!({"cmd": "echo native-path-works"}),
+                    }]
+                },
+            })
+        })
+    }
+}
+
+#[test]
+fn a_swarm_agent_runs_a_real_sys_command_over_native_tool_use() {
+    // `testenv::mock` would disable the sys surface (it sets
+    // CREW_BROKER_MOCK_REPLY), so the session's tools are built explicitly
+    // with the surface ON — the same object `Session::tools` hands the swarm.
+    let _env = testenv::mock("unused");
+    let session = Session::new();
+    let tools = session
+        .tools_with_sys(true)
+        .expect("a session with sys tools has a surface");
+
+    let factory =
+        Arc::new(crew_hive::ApiFactory::new(Arc::new(NativeProvider), 256).with_tools(tools));
+
+    let mut evs = Vec::new();
+    run_with(
+        "list the directory",
+        Arc::new(StubPlanner { fanout: 1 }),
+        factory,
+        None,
+        "test-model",
+        Arc::new(AtomicBool::new(false)),
+        None,
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
+    .unwrap();
+
+    let texts: Vec<&str> = evs
+        .iter()
+        .filter_map(|e| match e {
+            PluginEvent::Message { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    // A REAL shell command ran, through the gate, from a parallel swarm agent.
+    assert!(
+        texts.iter().any(|t| t.starts_with("[tool] sys:run")),
+        "no sys:run in transcript: {texts:?}"
+    );
+    assert!(texts.iter().any(|t| t.contains("listed it")), "{texts:?}");
 }

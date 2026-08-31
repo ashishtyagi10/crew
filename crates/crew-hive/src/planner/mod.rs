@@ -193,6 +193,7 @@ impl<P: Provider> Planner for LlmPlanner<P> {
             system: Some(PLANNER_SYSTEM.to_owned()),
             prompt: goal.to_owned(),
             max_tokens: 2048,
+            ..Default::default()
         };
         let fut = self.provider.complete(req);
         Box::pin(async move {

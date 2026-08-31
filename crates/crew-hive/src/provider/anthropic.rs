@@ -3,7 +3,10 @@ use std::pin::Pin;
 
 use serde::Deserialize;
 
-use super::{http_client, request_timeout, Completion, CompletionRequest, Provider, ProviderError};
+use super::{
+    http_client, request_timeout, Completion, CompletionRequest, Provider, ProviderError,
+    ToolInvocation, Turn,
+};
 
 const ENDPOINT: &str = "https://api.anthropic.com/v1/messages";
 const VERSION: &str = "2023-06-01";
@@ -23,6 +26,14 @@ struct Block {
     kind: String,
     #[serde(default)]
     text: String,
+    // `tool_use` blocks. Defaulted rather than in a second struct so one
+    // `content` array parses whatever mix of blocks a reply carries.
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    input: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize)]
@@ -73,12 +84,26 @@ impl AnthropicProvider {
         if r.kind == "error" || r.error.is_some() {
             return Err(ProviderError::Api(body.to_string()));
         }
+        // EVERY text block, joined — not just the first. A reply that thinks,
+        // calls a tool, then thinks again carries several, and taking only
+        // `find` silently dropped the rest.
         let text = r
             .content
             .iter()
-            .find(|b| b.kind == "text")
-            .map(|b| b.text.clone())
-            .unwrap_or_default();
+            .filter(|b| b.kind == "text")
+            .map(|b| b.text.as_str())
+            .collect::<Vec<_>>()
+            .join("");
+        let calls: Vec<ToolInvocation> = r
+            .content
+            .iter()
+            .filter(|b| b.kind == "tool_use")
+            .map(|b| ToolInvocation {
+                id: b.id.clone(),
+                name: b.name.clone(),
+                input: b.input.clone().unwrap_or_else(|| serde_json::json!({})),
+            })
+            .collect();
         let usage = r
             .usage
             .ok_or_else(|| ProviderError::Decode("missing usage".into()))?;
@@ -87,11 +112,80 @@ impl AnthropicProvider {
             input_tokens: usage.input_tokens,
             output_tokens: usage.output_tokens,
             cost_microusd: 0,
+            calls,
         })
     }
 }
 
+/// The `messages` array for one request: the opening user prompt, then every
+/// turn since.
+///
+/// Anthropic requires the assistant's `tool_use` blocks to be REPLAYED in the
+/// history — a tool result whose `tool_use_id` has no matching call in a prior
+/// assistant turn is rejected outright — so the conversation is rebuilt in
+/// full on every request rather than sending only the newest exchange.
+pub(crate) fn build_messages(req: &CompletionRequest) -> Vec<serde_json::Value> {
+    let mut messages = vec![serde_json::json!({"role": "user", "content": req.prompt})];
+    for turn in &req.turns {
+        match turn {
+            Turn::Assistant { text, calls } => {
+                let mut content = Vec::new();
+                if !text.is_empty() {
+                    content.push(serde_json::json!({"type": "text", "text": text}));
+                }
+                for c in calls {
+                    content.push(serde_json::json!({
+                        "type": "tool_use",
+                        "id": c.id,
+                        "name": c.name,
+                        "input": c.input,
+                    }));
+                }
+                messages.push(serde_json::json!({"role": "assistant", "content": content}));
+            }
+            // Results go back as a USER turn — they are input to the model,
+            // not something it said.
+            Turn::ToolResults(results) => {
+                let content: Vec<serde_json::Value> = results
+                    .iter()
+                    .map(|r| {
+                        serde_json::json!({
+                            "type": "tool_result",
+                            "tool_use_id": r.id,
+                            "content": r.content,
+                            "is_error": r.is_error,
+                        })
+                    })
+                    .collect();
+                messages.push(serde_json::json!({"role": "user", "content": content}));
+            }
+        }
+    }
+    messages
+}
+
+/// The tools array, or `None` when there are none. ABSENT, not empty: an
+/// empty `tools: []` is a different request and some endpoints reject it.
+pub(crate) fn build_tools(req: &CompletionRequest) -> Option<serde_json::Value> {
+    (!req.tools.is_empty()).then(|| {
+        req.tools
+            .iter()
+            .map(|t| {
+                serde_json::json!({
+                    "name": t.name,
+                    "description": t.description,
+                    "input_schema": t.input_schema,
+                })
+            })
+            .collect()
+    })
+}
+
 impl Provider for AnthropicProvider {
+    fn supports_tools(&self) -> bool {
+        true
+    }
+
     fn complete(
         &self,
         req: CompletionRequest,
@@ -102,10 +196,13 @@ impl Provider for AnthropicProvider {
             let mut body = serde_json::json!({
                 "model": req.model,
                 "max_tokens": req.max_tokens,
-                "messages": [{"role": "user", "content": req.prompt}],
+                "messages": build_messages(&req),
             });
             if let Some(sys) = &req.system {
                 body["system"] = serde_json::json!(sys);
+            }
+            if let Some(tools) = build_tools(&req) {
+                body["tools"] = tools;
             }
             let resp = client
                 .post(ENDPOINT)

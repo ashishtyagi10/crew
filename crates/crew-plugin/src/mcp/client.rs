@@ -112,8 +112,11 @@ impl McpClient {
         }
     }
 
-    /// `tools/list` → `(name, one-line description)` per tool.
-    pub fn tools(&mut self) -> Result<Vec<(String, String)>, String> {
+    /// `tools/list` → `(name, description, input schema)` per tool.
+    ///
+    /// The description is returned WHOLE; shortening it is the prompt's job,
+    /// not the parser's (see [`crate::mcp::McpTool::description`]).
+    pub fn tools(&mut self) -> Result<Vec<(String, String, Value)>, String> {
         let r = self.request("tools/list", json!({}))?;
         let tools = r
             .get("tools")
@@ -128,11 +131,21 @@ impl McpClient {
                     .get("description")
                     .and_then(Value::as_str)
                     .unwrap_or("")
-                    .lines()
-                    .next()
-                    .unwrap_or("")
                     .to_string();
-                Some((name, desc))
+                // A missing, null or non-object schema becomes `{"type":
+                // "object"}`. Providers reject `null` outright, and they also
+                // reject a bare `{}` — which real servers do send for a
+                // no-argument tool — so a schema that omits `type` has it
+                // filled in rather than being passed along to be refused.
+                let mut schema = t
+                    .get("inputSchema")
+                    .filter(|v| v.is_object())
+                    .cloned()
+                    .unwrap_or_else(|| json!({"type": "object"}));
+                if let Some(o) = schema.as_object_mut() {
+                    o.entry("type").or_insert_with(|| json!("object"));
+                }
+                Some((name, desc, schema))
             })
             .collect())
     }
