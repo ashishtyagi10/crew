@@ -21,6 +21,7 @@ pub mod heatmap;
 pub mod meter;
 pub mod pie;
 pub mod sdf;
+mod shape;
 pub mod treemap;
 
 pub use canvas::Canvas;

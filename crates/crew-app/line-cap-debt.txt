@@ -69,9 +69,9 @@ src/docshot_tests.rs 422
 src/docwin/event.rs 371
 src/events.rs 323
 src/farpane/keys.rs 441
-src/farpane/mod.rs 355
+src/farpane/mod.rs 287
 src/farpane/mod_tests.rs 590
-src/farpane/remote.rs 507
+src/farpane/remote.rs 357
 src/farpane/remote_tests.rs 432
 src/farpane/render.rs 391
 src/farpane/render_tests.rs 652
@@ -108,7 +108,7 @@ src/panelist_tests.rs 283
 src/panescroll_tests.rs 555
 src/paneview.rs 533
 src/paneview_tests.rs 512
-src/plot/canvas.rs 472
+src/plot/canvas.rs 349
 src/poll.rs 877
 src/render.rs 561
 src/reopen_tests.rs 230
