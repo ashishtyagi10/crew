@@ -223,6 +223,7 @@ mod md;
 #[path = "mdshot_tests.rs"]
 mod mdshot_tests;
 
+mod cardchrome;
 mod mentionrange;
 mod menuink;
 #[cfg(test)]
