@@ -207,6 +207,7 @@ mod lastout;
 mod layout;
 mod leading;
 mod ledgercli;
+mod linecap;
 mod linkhl;
 mod linkhover;
 mod load;
