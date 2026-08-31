@@ -122,6 +122,7 @@ pub(super) async fn run(
                     label: label_of(call, &catalog),
                     ok: false,
                     text: format!("not run \u{2014} tool budget spent ({MAX_TOOL_ROUNDS} rounds)"),
+                    ms: 0,
                 });
             }
             let text = super::toolloop::with_budget_note(&completion.text, MAX_TOOL_ROUNDS);
@@ -160,6 +161,7 @@ pub(super) async fn run(
                     label: call.name.clone(),
                     ok: false,
                     text: o.content.clone(),
+                    ms: 0,
                 });
                 results.push(o);
                 continue;
@@ -175,9 +177,11 @@ pub(super) async fn run(
             // scheduler's agents and its bus drain share one thread.
             let runner = Arc::clone(&tools);
             let (s, t) = (server.to_string(), tool.to_string());
+            let started = std::time::Instant::now();
             let called = tokio::task::spawn_blocking(move || runner.call(&s, &t, &args))
                 .await
                 .unwrap_or_else(|e| Err(format!("tool task failed: {e}")));
+            let ms = started.elapsed().as_millis() as u64;
             let (ok, text) = match called {
                 Ok(v) if v.trim().is_empty() => (true, "(empty result)".to_string()),
                 Ok(v) => (true, v),
@@ -188,6 +192,7 @@ pub(super) async fn run(
                 label,
                 ok,
                 text: text.clone(),
+                ms,
             });
             results.push(ToolOutcome {
                 id: call.id.clone(),

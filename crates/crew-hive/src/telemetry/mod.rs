@@ -107,6 +107,7 @@ impl Fleet {
                 label,
                 ok,
                 text,
+                ..
             } => {
                 if let Some(rec) = self.agents.get_mut(&agent.0) {
                     if !*ok {

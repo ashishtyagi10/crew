@@ -222,6 +222,7 @@ impl Agent for ApiAgent {
                         label: call.label(),
                         ok: false,
                         text: format!("not run — tool budget spent ({MAX_TOOL_ROUNDS} calls)"),
+                        ms: 0,
                     });
                     ctx.bus.publish(HiveEvent::OutputChunk {
                         agent: agent_id,
@@ -250,10 +251,12 @@ impl Agent for ApiAgent {
                 let runner = Arc::clone(runner);
                 let (server, tool, args) =
                     (call.server.clone(), call.tool.clone(), call.args.clone());
+                let started = std::time::Instant::now();
                 let outcome =
                     tokio::task::spawn_blocking(move || runner.call(&server, &tool, &args))
                         .await
                         .unwrap_or_else(|e| Err(format!("tool task failed: {e}")));
+                let ms = started.elapsed().as_millis() as u64;
                 let (ok, text) = match outcome {
                     Ok(t) if t.trim().is_empty() => (true, "(empty result)".to_string()),
                     Ok(t) => (true, t),
@@ -268,6 +271,7 @@ impl Agent for ApiAgent {
                     label: label.clone(),
                     ok,
                     text: text.clone(),
+                    ms,
                 });
                 exchanges.push(toolloop::exchange(&label, &call.args, &text));
                 round += 1;

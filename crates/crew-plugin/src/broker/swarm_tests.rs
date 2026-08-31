@@ -894,3 +894,74 @@ fn a_swarm_agent_runs_a_real_sys_command_over_native_tool_use() {
     );
     assert!(texts.iter().any(|t| t.contains("listed it")), "{texts:?}");
 }
+
+// ---------------------------------------------------------------------------
+// Tool results are shown, not dropped
+// ---------------------------------------------------------------------------
+
+fn tool_result_card(ok: bool, ms: u64, text: &str) -> String {
+    let mut specialties = HashMap::new();
+    specialties.insert(TaskId(0), "api-consumer".to_string());
+    let mut agent_task = HashMap::new();
+    agent_task.insert(1u64, TaskId(0));
+    let evs = translate(
+        &HiveEvent::ToolResult {
+            agent: AgentId(1),
+            label: "sys:run".into(),
+            ok,
+            text: text.into(),
+            ms,
+        },
+        &specialties,
+        &mut agent_task,
+        &mut HashMap::new(),
+        0,
+    );
+    match evs.into_iter().next() {
+        Some(PluginEvent::Message { sender, text, .. }) => {
+            assert_eq!(sender, "api-consumer", "the caller is named, not the tool");
+            text
+        }
+        other => panic!("expected a Message, got {other:?}"),
+    }
+}
+
+/// A successful result used to produce NOTHING, so what an API actually
+/// returned was unreachable — only the agent's paraphrase of it.
+#[test]
+fn a_successful_result_reaches_the_transcript() {
+    let card = tool_result_card(true, 1_200, "Oslo: +56F\nTokyo: +78F");
+    let mut lines = card.lines();
+    // The first line is the whole card when folded, so it has to carry the
+    // outcome and the duration.
+    assert_eq!(lines.next().unwrap(), "[tool] sys:run \u{2713} 1s");
+    // …and the output is under it, for the click.
+    assert_eq!(lines.next().unwrap(), "Oslo: +56F");
+}
+
+#[test]
+fn a_failure_keeps_its_mark_and_its_text() {
+    let card = tool_result_card(false, 300, "connection refused");
+    assert!(card.starts_with("[tool] sys:run \u{2717} 0.3s"), "{card}");
+    assert!(card.contains("connection refused"), "{card}");
+}
+
+/// A tool that returns nothing must not leave a card with a trailing blank
+/// body — one line in, one line out.
+#[test]
+fn an_empty_result_is_a_single_line() {
+    let card = tool_result_card(true, 40, "   \n\n");
+    assert_eq!(card, "[tool] sys:run \u{2713} 0.0s");
+}
+
+/// The transcript is held in memory and a `curl` of a large page has no
+/// ceiling of its own.
+#[test]
+fn a_huge_result_is_bounded() {
+    let card = tool_result_card(true, 100, &"x".repeat(super::swarmmsg::RESULT_CLIP * 3));
+    assert!(
+        card.chars().count() < super::swarmmsg::RESULT_CLIP + 200,
+        "{}",
+        card.len()
+    );
+}

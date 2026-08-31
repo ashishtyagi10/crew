@@ -329,3 +329,50 @@ fn a_streaming_system_card_toggles_behind_the_settled_transcript() {
     assert!(p.streaming[0].expanded, "the streaming card toggled");
     assert!(p.messages.iter().all(|m| !m.expanded));
 }
+
+// ---------------------------------------------------------------------------
+// Tool cards fold at their first line
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_tool_result_folds_to_its_outcome_line() {
+    let mut m = tool_msg();
+    // One line is the whole card: nothing to fold.
+    assert!(!folded(&m, 1));
+    // Two is already output under the outcome line.
+    assert!(folded(&m, 2));
+    // …and it stays folded where a system card would still be open, because
+    // three lines of a JSON body is not a preview.
+    assert!(folded(&m, FOLD_LINES));
+    m.expanded = true;
+    assert!(!folded(&m, 40), "a clicked-open card shows everything");
+}
+
+/// The drift these two predicates exist to prevent: a card `folded` collapses
+/// but `foldable` does not consider foldable is collapsed with NO WAY TO OPEN
+/// IT.
+#[test]
+fn every_folded_tool_card_is_also_clickable() {
+    let m = tool_msg();
+    let cols = 80;
+    let view = View {
+        source: false,
+        compact: false,
+        gap_rows: 1,
+        streaming_from: usize::MAX,
+    };
+    let body_len = crate::chatmsgs::full_body(&m, cols, view).len();
+    assert!(body_len > 1, "fixture must be long enough to fold");
+    assert_eq!(folded(&m, body_len), foldable(&m, cols, view));
+}
+
+fn tool_msg() -> Message {
+    Message {
+        sender: "api-consumer".into(),
+        text: "[tool] sys:run \u{2713} 1.2s\nOslo: +56F\nTokyo: +78F".into(),
+        ts: String::new(),
+        meta: String::new(),
+        usage: None,
+        expanded: false,
+    }
+}

@@ -867,3 +867,39 @@ fn chained_replies_take_no_spacer_even_at_the_roomiest() {
         "a chained pair took a spacer"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Tool cards are the machine talking, not the agent
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_tool_card_takes_the_quiet_gutter_and_muted_ink() {
+    let _g = crate::app::theme_test_guard();
+    let tool = msg("api-consumer", "[tool] sys:run  curl -s wttr.in/Oslo");
+    let reply = msg("api-consumer", "Oslo is 4C and cloudy.");
+    let muted = crew_theme::theme().text_muted;
+
+    let t = header_line(&tool, 0, None);
+    let r = header_line(&reply, 0, None);
+
+    // Same sender, two voices: dotted vs solid gutter.
+    assert_eq!(t[0].c, '\u{2506}', "tool gutter");
+    assert_eq!(r[0].c, GUTTER, "reply gutter");
+    // …and the tool card's name is muted, so a run of four calls does not read
+    // as four replies in the agent's own colour.
+    assert_eq!(t[0].fg, muted);
+    assert_ne!(
+        r[0].fg, muted,
+        "an agent's actual reply must keep its roster colour"
+    );
+}
+
+#[test]
+fn the_tool_predicate_does_not_capture_an_agent_quoting_the_marker() {
+    // Mid-sentence, not a tool line.
+    assert!(!is_tool_card(&msg("coder", "I would write [tool] here")));
+    // The system voice has its own treatment already; it must not be
+    // reclassified, or the splash and turn summaries change fold depth.
+    assert!(!is_tool_card(&msg("agent smith", "[tool] sys:run x")));
+    assert!(is_tool_card(&msg("coder", "[tool] sys:run x")));
+}

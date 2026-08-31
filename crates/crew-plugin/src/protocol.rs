@@ -466,6 +466,7 @@ mod tests {
                 label: "sys:run".into(),
                 ok: false,
                 text: "exit 1".into(),
+                ms: 1_234,
             },
         ] {
             let s = serde_json::to_string(&PluginEvent::Hive { event: ev.clone() }).unwrap();

@@ -2082,6 +2082,18 @@ shows the active mode. An approximate per-thread **token budget**
 (`CREW_BROKER_TOKEN_BUDGET`, default unlimited) terminates a thread that blows
 past it.
 
+**Tools in the transcript.** A tool call and its result are the machine
+talking, not the agent, and they read that way: both cards take the quieter
+dotted gutter and muted ink instead of the agent's roster colour, so a task
+that makes four calls no longer produces nine cards that all look like the
+agent speaking. The call announces itself as it starts — `[tool] sys:run
+curl -s wttr.in/Oslo`, subject-first — and the result lands as its own card
+whose first line is `sys:run ✓ 1.2s`: outcome, then how long it took, which is
+what separates a slow tool from a hung one while you watch. The output sits
+underneath, **folded to that one line** until you click it open. Every result
+is kept, success included: an agent's paraphrase of what an API returned is the
+one thing you cannot check an integration against.
+
 **`@file` mentions.** In the composer, a trailing `@<query>` pops a fuzzy file
 picker over the project tree (filename-prefix first, then path matches; ↑/↓
 navigate, Tab/Enter accept, Esc closes just the popup). On send, each

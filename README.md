@@ -495,6 +495,12 @@ same way as MCP tools. `CREW_SYS_MODE=readonly` blocks the mutating ones,
 directory and sandbox mode. An optional token budget
 (`CREW_BROKER_TOKEN_BUDGET`) hard-stops a runaway thread.
 
+Tool use shows in the transcript as its own voice: the call announces itself
+subject-first, the result card leads with `sys:run ✓ 1.2s` — outcome and
+duration — and its output is folded to that one line until you click it open.
+Both take the quiet dotted gutter, so a task that calls four tools doesn't read
+as nine agent replies.
+
 It also borrows the flagship moves of the big coding agents: **plan mode**
 (ask for "a plan for …" and nothing runs until you approve it — enter or
 "approve" runs it, esc or "reject" discards — à la Claude Code),

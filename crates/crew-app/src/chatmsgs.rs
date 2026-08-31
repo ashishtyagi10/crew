@@ -116,10 +116,28 @@ pub(crate) fn is_system_voice(sender: &str) -> bool {
     matches!(sender, "agent smith" | "crew" | "system" | "broker")
 }
 
-/// The gutter glyph for a sender: a lighter bar for the system/broker voice,
-/// the solid bar for agents and the user.
-fn gutter_for(sender: &str) -> char {
-    if is_system_voice(sender) {
+/// The prefix both engines stamp on a tool line — `broker::toolcall` on the
+/// relay, `broker::swarmmsg` in the swarm.
+pub(crate) const TOOL_PREFIX: &str = "[tool] ";
+
+/// Whether this card is a tool call or its result rather than something an
+/// agent SAID.
+///
+/// It arrives under the agent's own name — which is right, you need to know
+/// who reached for the tool — and that used to mean it rendered as a full
+/// reply: solid gutter, the agent's roster colour, never folded. A task that
+/// makes four calls then produced nine cards that all looked like the agent
+/// talking, and the one card that was the answer had nothing to distinguish
+/// it. This is the predicate that separates the two; the sender stays.
+pub(crate) fn is_tool_card(m: &Message) -> bool {
+    !is_system_voice(&m.sender) && m.text.starts_with(TOOL_PREFIX)
+}
+
+/// The gutter glyph for a card: a lighter bar for the system/broker voice and
+/// for machine chatter (tool calls), the solid bar for what an agent or the
+/// user actually said.
+fn gutter_for(m: &Message) -> char {
+    if is_system_voice(&m.sender) || is_tool_card(m) {
         '\u{2506}' // ┆ dotted — quieter
     } else {
         GUTTER // ▍ solid
@@ -133,6 +151,19 @@ fn sender_color(sender: &str) -> Color {
         crew_theme::theme().text_muted
     } else {
         crate::chatroster::agent_color(sender)
+    }
+}
+
+/// …and the colour for one CARD, which is the sender's voice unless the card
+/// is the machine talking on their behalf. `text_muted` is reused rather than
+/// a new role invented: it is already contrast-checked against every page and
+/// wash in the theme system, and a fourth ink for tools would have to earn
+/// that all over again.
+fn card_color(m: &Message, sender: &str) -> Color {
+    if is_tool_card(m) {
+        crew_theme::theme().text_muted
+    } else {
+        sender_color(sender)
     }
 }
 
@@ -152,7 +183,7 @@ fn header_line(m: &Message, now_ms: u64, connector: Option<char>) -> CardLine {
     if let Some(conn) = connector {
         line.extend(format!("{conn} ").chars().map(|c| plain(c, muted, false)));
     } else {
-        line.push(plain(gutter_for(&m.sender), sender_color(parts[0]), false));
+        line.push(plain(gutter_for(m), card_color(m, parts[0]), false));
         if let Some(id) = crate::chattime::task_tag(&m.meta) {
             line.extend(format!("#{id} ").chars().map(|c| plain(c, muted, false)));
         }
@@ -161,7 +192,7 @@ fn header_line(m: &Message, now_ms: u64, connector: Option<char>) -> CardLine {
         if i > 0 {
             line.extend(" \u{2192} ".chars().map(|c| plain(c, muted, false)));
         }
-        line.extend(part.chars().map(|c| plain(c, sender_color(part), true)));
+        line.extend(part.chars().map(|c| plain(c, card_color(m, part), true)));
     }
     if let Some(rel) = crate::chattime::rel_time(&m.ts, now_ms) {
         let tail = format!(" \u{00b7} {rel}");

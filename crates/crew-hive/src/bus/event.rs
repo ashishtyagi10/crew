@@ -55,6 +55,15 @@ pub enum HiveEvent {
         label: String,
         ok: bool,
         text: String,
+        /// How long the call took, in milliseconds.
+        ///
+        /// A tool is the one part of a run whose duration is not the model's:
+        /// `sys:run` alone may sit for two minutes on its deadline, and an
+        /// agent waiting on it produces no text at all. Without this the pane
+        /// cannot tell a slow tool from a hung one, which is the question a
+        /// person actually has while watching.
+        #[serde(default)]
+        ms: u64,
     },
     Failed {
         agent: AgentId,

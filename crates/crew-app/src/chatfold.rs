@@ -19,23 +19,40 @@ use crate::chatmsgs::View;
 /// Body lines a system-voice card may show before it auto-folds.
 pub(crate) const FOLD_LINES: usize = 3;
 
-/// Whether a card with `body_len` full body lines renders folded right now:
-/// system voice, not the splash nameplate (folding box art to one `╔` line
-/// would destroy it), longer than [`FOLD_LINES`], and not clicked open.
+/// Body lines this card may show before it folds, or `None` if it never
+/// folds at all.
+///
+/// ONE threshold, read by both [`folded`] (what the frame draws) and
+/// [`foldable`] (what a click may toggle). They were two separate predicates,
+/// and a card the first folded but the second did not consider foldable is a
+/// card collapsed with no way to open it — invisible until the exact content
+/// that splits them shows up.
+///
+/// TOOL CARDS fold at ONE line, not [`FOLD_LINES`]: their first line already
+/// says everything a summary needs (`sys:run ✓ 1.2s`) and every line under it
+/// is raw output — three lines of a JSON body is not a preview, it is three
+/// lines of a JSON body. The splash nameplate never folds; clamping box art to
+/// its `╔` line would destroy it.
+fn fold_threshold(m: &Message) -> Option<usize> {
+    if crate::chatmsgs::is_splash(m) {
+        return None;
+    }
+    if crate::chatmsgs::is_tool_card(m) {
+        return Some(1);
+    }
+    crate::chatmsgs::is_system_voice(&m.sender).then_some(FOLD_LINES)
+}
+
+/// Whether a card with `body_len` full body lines renders folded right now.
 pub(crate) fn folded(m: &Message, body_len: usize) -> bool {
-    crate::chatmsgs::is_system_voice(&m.sender)
-        && !crate::chatmsgs::is_splash(m)
-        && !m.expanded
-        && body_len > FOLD_LINES
+    !m.expanded && fold_threshold(m).is_some_and(|t| body_len > t)
 }
 
 /// Whether the card is fold-toggleable at all — [`folded`] minus the
 /// `expanded` override, measured against the message's FULL body (the
 /// rendered, possibly clamped card no longer knows its real length).
 pub(crate) fn foldable(m: &Message, cols: usize, view: View) -> bool {
-    crate::chatmsgs::is_system_voice(&m.sender)
-        && !crate::chatmsgs::is_splash(m)
-        && crate::chatmsgs::full_body(m, cols, view).len() > FOLD_LINES
+    fold_threshold(m).is_some_and(|t| crate::chatmsgs::full_body(m, cols, view).len() > t)
 }
 
 /// The card-line index sitting at absolute pane `row`, under the exact

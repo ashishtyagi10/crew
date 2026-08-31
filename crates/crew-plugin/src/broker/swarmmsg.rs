@@ -3,6 +3,12 @@
 use super::*;
 use crate::broker::tick::{text_streaming_enabled, TextGate};
 
+/// Chars of tool output a result card carries. Generous because the card is
+/// FOLDED to one line until clicked — a long result costs scroll the reader
+/// opted into, not scroll imposed on them — and bounded because the transcript
+/// is held in memory and a `curl` of a large page has no ceiling of its own.
+pub(super) const RESULT_CLIP: usize = 4_000;
+
 /// Map one HiveEvent to chat-facing events. Raw `Hive` forwarding happens at
 /// the call site; this returns only the human-readable translations.
 ///
@@ -109,28 +115,36 @@ pub(super) fn translate(
                 ),
             )]
         }
-        // A successful result is NOT echoed: the agent's own next message says
-        // what it made of it, and pasting raw tool output into the transcript
-        // would bury that under a page of JSON. A failure is echoed, because
-        // nothing else will ever mention it — including an approval the gate
-        // refused, which is the case a person most needs to see.
+        // Every result is shown, outcome and duration first, output beneath.
+        //
+        // Successful results used to be dropped, on the reasoning that pasting
+        // raw tool output into the transcript would bury the agent's own
+        // answer under a page of JSON. That was sound while a tool card was an
+        // ordinary agent card that always rendered in full — and it stopped
+        // being sound once tool cards FOLD (`chatfold`). Folded, this is one
+        // line saying what happened and how long it took; clicked open, it is
+        // what the API actually returned. Dropping it left no way to see that
+        // at all — only the agent's paraphrase, which is the one thing a
+        // person checking an integration cannot take on trust.
         HiveEvent::ToolResult {
             agent,
             label,
             ok,
             text,
+            ms,
         } => {
-            if *ok {
-                vec![]
+            let head = crate::broker::toolline::result_line(label, *ok, *ms);
+            // `toolclip`, NOT `route::clip`: the latter flattens whitespace,
+            // which would fold every line of output onto the card's first
+            // line — the one line the fold shows — so a folded result would
+            // BE the whole result, and clicking it open would reveal nothing.
+            let body = crate::broker::toolclip::clip_result(text.trim_end(), RESULT_CLIP);
+            let card = if body.is_empty() {
+                format!("[tool] {head}")
             } else {
-                vec![msg(
-                    agent_name(agent, agent_task).as_str(),
-                    format!(
-                        "[tool] {label} \u{2717} {}",
-                        crate::broker::route::clip(text, 400)
-                    ),
-                )]
-            }
+                format!("[tool] {head}\n{body}")
+            };
+            vec![msg(agent_name(agent, agent_task).as_str(), card)]
         }
         // A task failure is chat-visible content, not a connection loss: the
         // app's chat pane treats `PluginEvent::Error` as the broker connection
