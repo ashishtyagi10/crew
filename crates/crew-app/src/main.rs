@@ -70,6 +70,7 @@ mod cardpaint;
 #[cfg(test)]
 #[path = "cardshot_tests.rs"]
 mod cardshot_tests;
+mod chatcard;
 mod chatmsgs;
 mod chatpalette;
 mod chatplace;
@@ -327,6 +328,8 @@ mod sidebarshot_tests;
 mod smoothlvl;
 mod spark;
 mod spawn;
+mod spawndata;
+mod spawnpanes;
 mod spotlight;
 mod spring;
 pub mod stats;
