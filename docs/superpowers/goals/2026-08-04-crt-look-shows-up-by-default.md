@@ -1,5 +1,8 @@
 # Goal — the CRT theme LOOKS like a CRT the moment you pick it
 
+**Status: COMPLETE** — shipped v0.12.6: a theme switch clears stale `crt`/`glass` pins and a
+one-shot upgrade heals the configs that already had them.
+
 **Set:** 2026-08-04 by the user, after reporting — for the third time — that the CRT theme is
 "just a dark theme with some colors": no glow, no transparency, fonts not smooth.
 

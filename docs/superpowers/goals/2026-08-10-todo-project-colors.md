@@ -1,7 +1,11 @@
 # Goal — todo pane: every `@project` gets its own color
 
 **Status: SET 2026-08-10** by the user: each project tag in the todo pane should render
-in its own distinct color, so a mixed list reads by project at a glance. Not started.
+in its own distinct color, so a mixed list reads by project at a glance.
+
+**SHIPPED v0.16.3**: a tag's name hashes to one of the theme's twelve chromatic terminal-palette
+slots (`crew-theme/src/tagcolor.rs`) — nothing stored, so every pane, restart and platform agrees,
+and the colour reaches the row chip, the composer tint, the filter header and the tag menu.
 
 **What exists today:** every `@tag` renders in the single user accent —
 the row chip (`todopane/render.rs::place_right`), the live composer tint

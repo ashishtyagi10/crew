@@ -1,5 +1,10 @@
 # Goal — crew follows the system appearance, automatically
 
+**Status: SHIPPED v0.14.2–v0.14.4** — `auto` is the fourth theme and the fresh-install default,
+with `theme_dark`/`theme_light` pairing and a DECSET 2031 scheme push to child TUIs. **Live verify
+outstanding** on the standing macOS-permissions debt (`2026-09-01-close-the-open-goals.md`,
+Pillar 5).
+
 **Set:** 2026-08-06 by the user: crew's theme should sync with the OS automatically — light mode
 gets a light crew, dark mode gets a dark crew, and a mid-session flip (manual toggle, or macOS
 auto-switching at sunset) re-themes crew without anyone typing anything.

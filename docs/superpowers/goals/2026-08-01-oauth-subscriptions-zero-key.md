@@ -1,5 +1,8 @@
 # Goal — sign in, don't paste keys: subscriptions become first-class model providers
 
+**Status: COMPLETE** — shipped v0.12.0 with the field fix in v0.12.1: `/login` and `/logout`, a
+signed-out device-flow provider as a numbered row in `/model`, and a grant that outranks a key.
+
 **Set:** 2026-08-01 by the user.
 
 Today crew's model access is KEY-SHAPED: the broker discovers `DASHSCOPE_API_KEY` /

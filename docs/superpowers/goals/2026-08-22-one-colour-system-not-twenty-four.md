@@ -1,5 +1,11 @@
 # Goal — one colour system, not twenty-four hand-tuned palettes
 
+**Status: PHASES 1–2 SHIPPED, PHASE 3 OPEN.** Every text role is derived from the page it sits on
+(`crew-theme/src/ramp.rs`) and the 16-slot terminal palette is derived rather than eyeballed
+(`ansi.rs`), landed across v0.18.2–v0.18.6 with parity contracts. The open question below was
+answered by cutting the menu: `ALL_THEMES` is twelve, not twenty-four. Phase 3 (restraint,
+measured) is carried in `2026-09-01-close-the-open-goals.md`, Pillar 5.
+
 **Set:** 2026-08-22 by the user, after asking what 2026 actually likes.
 
 crew has **24 themes and 2,376 hand-authored colour channels** (17 single-colour roles plus a

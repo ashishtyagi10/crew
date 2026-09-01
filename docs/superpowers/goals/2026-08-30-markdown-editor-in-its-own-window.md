@@ -1,5 +1,11 @@
 # Goal — a markdown file opens in its own crew window, already rendered, and you type into the render
 
+**Status: SHIPPED v0.19.84–v0.19.95, LAST MILE OPEN.** A document opens in a second window,
+rendered, with the cursor in the render; typing, undo, selection, cut/paste and save all work on
+it. Link editing, Tab-through-table-cells, the minimal-diff save assertion over a real repo
+document, and `crew ask` reaching a second window's panes are carried in
+`2026-09-01-close-the-open-goals.md`, Pillar 5.
+
 **Set:** 2026-08-30 by the user: *"open Markdown viewer into another window of crew. Make it a
 Markdown editor in preview mode — the user should immediately see markdown editor properly
 rendered."*

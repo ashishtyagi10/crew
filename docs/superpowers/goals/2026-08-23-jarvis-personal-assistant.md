@@ -1,5 +1,11 @@
 # Goal — crew becomes JARVIS: a resident assistant you talk to, not an app you open
 
+**Status: PILLARS 1–2 SHIPPED, 3–5 OPEN.** `crewd` exists and is opt-in
+(`crew daemon install` writes a launchd agent or a systemd user unit — `crew-app/src/daemon/`),
+every tool call passes one gate and appends to an append-only ledger that `/tools` reads, and
+Telegram is the second `Channel` beside the pane. The clock, the voice channel, the integration
+catalog and the morning briefing are carried in `2026-09-01-close-the-open-goals.md`.
+
 **Set:** 2026-08-23 by the user. "I would like crew to be the real personal assistant — you give it
 a task and it handles it without any issue, should have integration channel with everything that is
 needed in everyday life." Asked to clarify: **it should work like JARVIS.**

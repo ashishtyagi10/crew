@@ -124,4 +124,5 @@ fully unit/integration-tested; bring-your-own-LLM per agent.
 
 See the design spec at
 [`docs/superpowers/specs/2026-06-27-crew-agent-swarm-design.md`](superpowers/specs/2026-06-27-crew-agent-swarm-design.md)
-and the implementation plans under `docs/superpowers/plans/`.
+and the open goals under [`docs/superpowers/goals/`](superpowers/goals/). What each
+release actually changed is in `CHANGELOG.md`.

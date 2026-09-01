@@ -1,5 +1,9 @@
 # Goal — CRT stops being a bright border: holographic glow, real transparency, TRON/JARVIS overhaul
 
+**Status: COMPLETE** — shipped v0.12.2–v0.12.4 (per-theme `CrtStyle`, real half-res bloom,
+light-trace frames). The luminous glass sheet it introduced was retired again in v0.13.5 by the
+flat-tube decision; the tube itself stands.
+
 **Set:** 2026-08-04 by the user.
 
 The verdict from daily use: paper-light and paper-dark are fine; **CRT is just a bright border**.

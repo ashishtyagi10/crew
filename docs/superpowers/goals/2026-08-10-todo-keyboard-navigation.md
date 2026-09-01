@@ -1,7 +1,12 @@
 # Goal — todo pane: full keyboard navigation (list traversal + a composer cursor)
 
 **Status: SET 2026-08-10** by the user: the todos should be fully navigable from the
-keyboard. Not started.
+keyboard.
+
+**SHIPPED v0.16.4–v0.16.6** (night loop, 2026-08-11): `PageUp`/`PageDown` page the
+selection by real visible height and `Home`/`End`/`Ctrl+A`/`Ctrl+E` jump to first/last
+(`todopane/keys.rs`), and the composer grew a real cursor with word motion — both respecting an
+active `@project` filter.
 
 **What exists today** (shipped 0.15.0–0.16.1, `crew-app/src/todopane/keys.rs`): Up/Down
 step the selection one item, Tab/Esc hop between composer and list, Space/Enter toggle

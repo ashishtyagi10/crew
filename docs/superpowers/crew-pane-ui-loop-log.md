@@ -1,5 +1,8 @@
 # Crew pane UI enhancement — 10-iteration loop
 
+**Status: COMPLETE** — all ten iterations landed and the trigger was deleted. Kept as the
+record of what the loop did; the crew pane has moved well past it since.
+
 **Goal:** transform the `/crew` multi-agent pane from a bland sender:text list
 into a rich, modern multi-model/multi-agent UI, taking inspiration from
 Claude Code, Cursor, Antigravity, Groq, and other market leaders.

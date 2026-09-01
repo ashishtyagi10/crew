@@ -1,5 +1,9 @@
 # Goal — read any file where you already are; write markdown as it looks
 
+**Status: CLOSED.** Phase 1 (the viewer) shipped 2026-07-31. Phase 2 (writing markdown as it
+looks) was taken up by `2026-08-30-markdown-editor-in-its-own-window.md` and shipped there over
+v0.19.84–v0.19.95; what is left of it is listed in `2026-09-01-close-the-open-goals.md`.
+
 **Set:** 2026-07-28 by the user.
 **Phase 1 spec:** `docs/superpowers/specs/2026-07-28-file-viewer-pane-design.md`
 

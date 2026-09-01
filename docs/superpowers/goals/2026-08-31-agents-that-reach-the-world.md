@@ -1,5 +1,9 @@
 # Goal — agents that reach the world: a real tool loop, and LangGraph behind the bridge
 
+**Status: PILLAR 1 SHIPPED, 2–6 OPEN.** The swarm can call tools (see Pillar 1 below). The
+manifest contract, tool retrieval at scale, the wire, the sidecar and cycles are carried in
+`2026-09-01-close-the-open-goals.md`, Pillars 3 and 4.
+
 **Set:** 2026-08-31 by the user. "Can we add support for langgraph in crew if not already done, we
 are going to need good framework, so that we can build amazing agents/tools to work end to end,
 accessing API's etc."
@@ -10,7 +14,8 @@ landed is more interesting than the absence.** The bridge for it was DESIGNED an
 (`serve_stdio`, `LoopbackTransport`) and `remoteagent/` (`RemoteAgent`, `RemoteFactory`) exist
 today, and the plan that produced them says in as many words that the point was "external
 orchestration engines (LangGraph / custom Python)"
-(`docs/superpowers/plans/2026-06-27-crew-hive-remote.md:5`). It is DEAD CODE IN PRODUCTION.
+(the crew-hive remote-spill plan, since deleted — the code is `crates/crew-hive/src/{wire,worker,
+remoteagent}/`). It is DEAD CODE IN PRODUCTION.
 `RemoteFactory` is constructed in exactly three places and every one of them is a test
 (`crates/crew-hive/tests/engine.rs:260`, `remoteagent/tests.rs:59`, and its own doc example).
 Nothing spawns a sidecar, no config key selects one, no `/crew` path can reach one. The seam is

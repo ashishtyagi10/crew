@@ -1,5 +1,12 @@
 # Goal — smith trusts the model: fewer commands, budgeted context, model-decided next steps
 
+**Status: SHIPPED but for one number.** The constructs were retired, no keyword match elects a
+judge anywhere (`is_critic`/`is_writer`/`pick_by_role`: zero hits), `MAX_ROUNDS`/`GOAL_ROUNDS` are
+backstops rather than drivers, `broker/compact.rs` summarizes rather than drops, and
+`crew-hive/src/sched/replan.rs` re-plans mid-run. Done-means 1 asked for at most eight constructs
+and `broker/commands.rs:115` lists nine — carried as debt in
+`2026-09-01-close-the-open-goals.md`, Pillar 5.
+
 **Set:** 2026-08-01 by the user.
 
 The smith pane speaks 20 constructs (`broker/commands.rs:116`), and most of them are the same relay
