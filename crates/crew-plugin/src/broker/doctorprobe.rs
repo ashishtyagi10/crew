@@ -24,6 +24,25 @@ pub(crate) fn on_path(bin: &str, path: &str) -> bool {
     })
 }
 
+/// One integration's line: its tools, and whether the credential it names is actually set.
+/// A manifest whose token is missing works perfectly until its first call, and this is the
+/// place that can say so before then.
+fn integration_line(i: &super::integration::Integration) -> String {
+    use super::integration::Auth;
+    let env = match &i.auth {
+        Auth::Bearer { env } | Auth::Header { env, .. } | Auth::Query { env, .. } => Some(env),
+        Auth::None => None,
+    };
+    let auth = match env {
+        None => "no credential needed".to_string(),
+        Some(e) => match std::env::var(e).ok().filter(|v| !v.trim().is_empty()) {
+            Some(_) => format!("{e} is set"),
+            None => format!("{e} is NOT set \u{2014} calls will refuse"),
+        },
+    };
+    format!("\u{2013} {}: {} tool(s), {auth}", i.name, i.tools.len())
+}
+
 /// Probe the live environment for the report. `session` supplies the counters
 /// that only it knows (turns, tokens); everything else is probed here.
 pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
@@ -77,6 +96,10 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
             .is_ok_and(|o| o.status.success()),
         skills: super::skills::load().len(),
         plugin_agents: super::plugins::load().len(),
+        integrations: super::integration::load()
+            .iter()
+            .map(integration_line)
+            .collect(),
         mcp_servers: crate::mcp::config::load().len(),
         mcp_detail: if crate::mcp::config::load().is_empty() {
             Vec::new()

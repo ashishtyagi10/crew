@@ -10,6 +10,7 @@ fn healthy() -> DoctorInputs {
         git: true,
         skills: 2,
         plugin_agents: 1,
+        integrations: Vec::new(),
         mcp_servers: 3,
         mcp_detail: vec![
             "\u{25aa} files \u{2014} 2 tool(s): read, write".into(),

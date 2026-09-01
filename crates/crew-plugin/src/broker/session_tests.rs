@@ -241,3 +241,90 @@ mod retrieval {
         assert!(out.contains("no tool matches"), "{out}");
     }
 }
+
+/// Integrations: a manifest is a tool surface, with no Rust and no restart.
+mod integrations {
+    use super::*;
+    use crate::broker::integration;
+
+    const WEATHER: &str = r#"{
+      "name": "weather",
+      "base_url": "https://api.example.com",
+      "auth": {"kind": "bearer", "env": "CREW_TEST_WEATHER_TOKEN"},
+      "tools": [
+        {"name": "forecast", "description": "the forecast for a city",
+         "path": "/f/{city}", "tier": "read"},
+        {"name": "subscribe", "description": "sign up for alerts", "method": "POST",
+         "path": "/sub"}
+      ]
+    }"#;
+
+    fn tools(sys: bool) -> SessionTools {
+        SessionTools::with_integrations(sys, vec![integration::parse(WEATHER).unwrap()])
+    }
+
+    /// The whole contract in one assertion: a file appeared, and the agents can see its tools.
+    #[test]
+    fn a_manifest_puts_its_tools_on_the_same_surface_as_everything_else() {
+        let t = tools(true);
+        let hint = t.hint_for("what is the weather in Oslo");
+        assert!(hint.contains("weather:forecast"), "{hint}");
+        assert!(hint.contains("the forecast for a city"), "{hint}");
+        let specs: Vec<String> = t
+            .specs_for("what is the weather in Oslo")
+            .iter()
+            .map(|s| s.label())
+            .collect();
+        assert!(specs.contains(&"weather:forecast".to_string()), "{specs:?}");
+    }
+
+    /// The manifest's own tier reaches the gate — which is the difference between an
+    /// integration that can read the weather and one that can subscribe you to something.
+    #[test]
+    fn the_manifests_tier_is_the_one_the_gate_uses() {
+        let t = tools(true);
+        assert_eq!(
+            t.tier_for("weather", "forecast"),
+            crate::broker::tier::Tier::Read
+        );
+        assert_eq!(
+            t.tier_for("weather", "subscribe"),
+            crate::broker::tier::Tier::Irreversible,
+            "a tool whose manifest says nothing must ask"
+        );
+    }
+
+    /// A trigger firing at 3am may read the forecast and may not sign anybody up for anything.
+    #[test]
+    fn a_scheduled_run_is_held_to_the_manifests_tiers() {
+        let t = SessionTools {
+            requester: Requester::Trigger("nightly".into()),
+            ledger: None,
+            ..tools(true)
+        };
+        let err = t
+            .call("weather", "subscribe", "{}")
+            .expect_err("irreversible, and nobody is awake to ask");
+        assert!(err.contains("cannot be undone"), "{err}");
+    }
+
+    /// The credential is checked before anything is sent, and the message names the variable
+    /// rather than coming back as somebody else's 401.
+    #[test]
+    fn a_missing_credential_says_which_variable_to_set_without_a_round_trip() {
+        std::env::remove_var("CREW_TEST_WEATHER_TOKEN");
+        let err = tools(true)
+            .call("weather", "forecast", r#"{"city": "Oslo"}"#)
+            .expect_err("no token, no call");
+        assert!(err.contains("CREW_TEST_WEATHER_TOKEN"), "{err}");
+    }
+
+    /// A tool the manifest does not declare is refused by name, not attempted.
+    #[test]
+    fn a_tool_the_manifest_never_declared_is_refused() {
+        let err = tools(true)
+            .call("weather", "delete_everything", "{}")
+            .expect_err("not in the manifest");
+        assert!(err.contains("no tool"), "{err}");
+    }
+}

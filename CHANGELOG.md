@@ -8,6 +8,44 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.20.5
+
+**Reaching a new API is one file.**
+
+Tools were the last extension surface crew never opened. Plugin agents load
+from a JSON manifest, skills from a `.md`, MCP servers from `mcp.json` — but
+reaching an HTTP API meant editing `systools.rs` and cutting a release. So the
+fortieth integration cost a commit, and that is the thing this closes.
+
+**A manifest in `~/.config/crew/integrations/` (or a project's
+`.crew/integrations/`) is a server of tools.** Name, base URL, auth, and a list
+of endpoints with their methods, paths, query parameters and JSON bodies;
+`{arg}` placeholders are filled from the model's arguments, URL-encoded in a
+URL and type-preserved in a body. They land on the same `@tool server:tool`
+surface as everything else — the same gate, the same ledger, the same
+retrieval, both engines — and because the surface is built fresh per task, a
+file dropped in is live on the next one.
+
+Two rules the format enforces rather than suggests:
+
+* **A manifest never holds a secret.** Every `auth` variant names an
+  ENVIRONMENT VARIABLE, and there is no field that takes a token. Manifests get
+  copied between machines, pasted into issues and committed to `.crew/` in a
+  repository; a format with a `"token"` field is a format that leaks one. A
+  missing credential is caught before the request is built, and the message
+  names the variable rather than arriving as somebody else's 401.
+* **A tool is irreversible unless its manifest says otherwise.** `tier` is
+  `read`, `reversible` or `irreversible`, and absent — or misspelled — means
+  the strictest. An integration nobody has thought carefully about asks before
+  it acts, which is the same default an unknown MCP server already gets, and it
+  is what a scheduled run at 3am is held to.
+
+`/doctor` lists every integration with its tool count and whether the variable
+it names is actually set; `/reload` reports what it found, because dropping a
+manifest in and seeing nothing acknowledge it is indistinguishable from one
+that failed to parse. `examples/integrations/weather.json` needs no account and
+is the one to copy first.
+
 ## 0.20.4
 
 **The agent stops being shown every tool it has.**

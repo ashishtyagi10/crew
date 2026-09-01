@@ -55,7 +55,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /doctor — health-check the AI stack (provider, CLIs, MCP servers and tools, memory, session)\n\
     #<note> — remember a preference (ask \u{201c}what do you remember?\u{201d} to see them)\n\
     skills: drop .md playbooks into .crew/skills — a task that names one applies it by itself\n\
-    /reload — re-read skills, plugin agents, and mcp.json without a restart\n\
+    /reload — re-read skills, plugin agents, integrations and mcp.json without a restart\n\
     /stop [#n] — cancel all background tasks, or just task #n\n\
     @<agent> <task> — choose who starts the relay\n\
     @<a>+<b> <task> — those agents answer in parallel\n\
@@ -220,6 +220,13 @@ fn reload_cmd(
         .map(|p| p.name().to_string())
         .collect();
     let servers = session.lock_mcp().reload();
+    // Integrations are read fresh for every task, so this is a REPORT rather than a reload —
+    // and reporting them is the point: dropping a manifest in and seeing nothing acknowledge it
+    // is indistinguishable from a manifest that failed to parse.
+    let integrations: Vec<String> = super::integration::load()
+        .iter()
+        .map(|i| format!("{} ({} tool(s))", i.name, i.tools.len()))
+        .collect();
     emit(PluginEvent::Roster {
         agents: session.registry().infos(),
     })?;
@@ -236,9 +243,11 @@ fn reload_cmd(
             "reloaded from disk:\n\
              \u{25aa} skills: {}\n\
              \u{25aa} plugin agents: {}\n\
+             \u{25aa} integrations: {}\n\
              \u{25aa} mcp: {}",
             list(skills.into_iter().map(|s| s.name).collect()),
             list(plugins),
+            list(integrations),
             if servers.is_empty() {
                 "none configured".to_string()
             } else {

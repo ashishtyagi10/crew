@@ -15,6 +15,9 @@ crew-hive = { path = "../crew-hive" }
 tokio = { workspace = true }
 # Skill / plugin-agent / MCP discovery reads the user config dir.
 dirs = { workspace = true }
+# Integration manifests call HTTP APIs directly (broker/integration/): one
+# manifest file, no Rust, no sidecar. The same client the providers use.
+reqwest = { workspace = true }
 
 # Integration tests (tests/) parse the broker's JSON event lines.
 [dev-dependencies]

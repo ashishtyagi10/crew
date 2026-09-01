@@ -6,11 +6,13 @@ they missed, and run with a trigger's authority rather than a person's — set f
 with `crew daemon at`, or from a phone with "remind me tomorrow 9am to …". The document window's
 last mile (Cmd+K on a URL, Tab through a table, the minimal-diff save asserted over `docs/CREW.md`)
 landed with it, and the command-diet number was amended in the goal that owns it, with the reason.
-**Pillar 3's second half — retrieval — SHIPPED v0.20.4**: above 24 tools the task chooses which
+**Pillar 3 SHIPPED v0.20.4–v0.20.5**: an HTTP API is one manifest file with no Rust
+(`~/.config/crew/integrations/`, project-overridable, hot), secrets are env-named by construction,
+a tool is irreversible unless its manifest says otherwise, and `/doctor` + `/reload` report what
+is loaded. Retrieval landed with it: above 24 tools the task chooses which
 are named, crew's own are never dropped, what was left out is counted, and `sys:find_tools`
-searches the whole catalog so nothing is unreachable. Open: the morning briefing (which waits on
-Pillar 3's first half), Pillar 2 (voice), Pillar 3's manifest contract, Pillar 4, and Pillar 5
-items 1, 3 and 5.
+searches the whole catalog so nothing is unreachable. Open: the morning briefing, Pillar 2 (voice), Pillar 4 (the sidecar), and
+Pillar 5 items 1, 3 and 5.
 
 **Set:** 2026-09-01 by the user — *"write a goal to complete any pending plan"* — after an audit of
 every goal, plan and spec under `docs/superpowers/` against the tree at v0.20.0.
@@ -92,7 +94,12 @@ spoken answer you cannot interrupt is worse than a printed one.
 
 ### Pillar 3 — the fortieth integration is a file, and the agent can still find it
 
-Unchanged from `2026-08-31` (its Pillars 2 and 3) and still the largest piece of work here.
+**SHIPPED v0.20.4 (retrieval) and v0.20.5 (the manifest contract).** `broker/integration/` loads
+JSON manifests from `~/.config/crew/integrations/` and `.crew/integrations/`, turns each into a
+server of tools on the existing `@tool` surface, fills `{arg}` placeholders from the call, reads
+every credential from an environment variable the manifest NAMES rather than holds, and defaults
+every tool to irreversible. `broker/toolpick.rs` does the choosing. What follows is the goal as
+it was set.
 
 Adding `weather_data`, `google_api` or the fortieth integration must be: drop one manifest into
 `~/.config/crew/integrations/` (or a project's `.crew/integrations/`), `/reload`, done. Zero Rust. If

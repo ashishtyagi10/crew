@@ -2304,6 +2304,42 @@ tasks fall back to key discovery and the keyless relay exactly as before. The pa
 — planner 4.2s → … · N exchange(s) · ~X tok (approx)`) at the end of every
 task, and accumulates the spend into the header's `~N tok` meter.
 
+**Reaching an API is one file (`integrations/`).** An HTTP API becomes a set of
+tools from a single JSON manifest — no Rust, no recompile, no sidecar. Drop it
+in `~/.config/crew/integrations/` (yours) or `.crew/integrations/` (this
+project's, which wins on a name collision), and the tools are on the same
+`@tool server:tool` surface as everything else: the same gate, the same ledger,
+the same retrieval, both engines.
+
+```json
+{
+  "name": "weather",
+  "base_url": "https://api.example.com/v1",
+  "auth": {"kind": "bearer", "env": "WEATHER_TOKEN"},
+  "tools": [{
+    "name": "forecast",
+    "description": "the forecast for a city",
+    "method": "GET",
+    "path": "/forecast/{city}",
+    "query": {"units": "metric"},
+    "tier": "read",
+    "input_schema": {"type": "object", "properties": {"city": {"type": "string"}},
+                     "required": ["city"]}
+  }]
+}
+```
+
+`{arg}` placeholders in `path`, `query` and a JSON `body` are filled from the
+call's arguments (URL-encoded in the URL, type-preserved in a body: `"{n}"`
+with `n = 3` sends the number). `auth` is `bearer`, `header`, `query` or
+`none` — and **always names an environment variable**: there is no field that
+holds a token, because manifests get copied between machines and committed to
+repositories. `tier` is `read`, `reversible` or `irreversible`, and **absent
+means irreversible**, so an integration nobody has thought carefully about asks
+before it acts. `/doctor` lists each integration with its tool count and
+whether the variable it names is actually set — a missing credential says so
+there rather than as somebody else's 401 — and `/reload` reports what it found.
+
 **Too many tools to list.** Every tool an agent can reach — crew's own `sys`
 surface and every connected MCP server's — used to be pasted into the task on
 every hop. Above **24 tools** the task now chooses which are named: tools are

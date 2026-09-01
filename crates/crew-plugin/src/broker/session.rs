@@ -157,7 +157,7 @@ impl Session {
     /// [`Self::tools`] with the `sys` verdict handed in, so a test can build
     /// the real surface without the process-wide env that decides it.
     pub fn tools_with_sys(&self, sys: bool) -> Option<Arc<dyn crew_hive::tools::Tools>> {
-        if !sys && self.lock_mcp().is_empty() {
+        if !sys && self.lock_mcp().is_empty() && super::integration::load().is_empty() {
             return None;
         }
         Some(Arc::new(SessionTools::new(
@@ -197,6 +197,10 @@ struct SessionTools {
     policy: super::approval::Policy,
     /// Where decisions are recorded. `None` in tests that must not touch the user's ledger.
     ledger: Option<super::ledger::Ledger>,
+    /// Manifest-defined HTTP integrations, read when this surface is built. `SessionTools` is
+    /// built fresh per hop, so dropping a file in `~/.config/crew/integrations/` takes effect on
+    /// the next task with no restart — the same hot-reload skills and `mcp.json` have.
+    integrations: Vec<super::integration::Integration>,
 }
 
 impl SessionTools {
@@ -216,6 +220,7 @@ impl SessionTools {
             // contains a test run's shell calls is worse than no audit trail, because
             // someone reading it later cannot tell which lines were a person.
             ledger: (!cfg!(test)).then(|| super::ledger::Ledger::at(super::ledger::default_path())),
+            integrations: super::integration::load(),
         }
     }
 
@@ -224,6 +229,18 @@ impl SessionTools {
     #[cfg(test)]
     fn for_test(mcp: Arc<Mutex<crate::mcp::McpHost>>, sys: bool) -> Self {
         Self::new(mcp, sys, Arc::new(Mutex::new(super::approval::Gate::new())))
+    }
+
+    /// [`Self::for_test`] with integrations handed in rather than read from disk. The
+    /// discovery path is tested in `integration::tests`; wiring it through `CREW_PROJECT_DIR`
+    /// here would put a process-global env var in a suite that runs in parallel — the exact
+    /// flake the `sys` field's comment above records.
+    #[cfg(test)]
+    fn with_integrations(sys: bool, integrations: Vec<super::integration::Integration>) -> Self {
+        Self {
+            integrations,
+            ..Self::for_test(Arc::new(Mutex::new(crate::mcp::McpHost::default())), sys)
+        }
     }
 
     /// The same runner answering to somebody who is NOT at the keyboard. Unused until a channel
@@ -260,7 +277,35 @@ impl SessionTools {
             Vec::new()
         };
         tools.extend(self.mcp.lock().unwrap_or_else(|e| e.into_inner()).tools());
+        tools.extend(super::integration::tools_of(&self.integrations));
         tools
+    }
+
+    /// The integration owning `server`, if one does.
+    fn integration(&self, server: &str) -> Option<&super::integration::Integration> {
+        self.integrations.iter().find(|i| i.name == server)
+    }
+
+    /// The reversibility class of one tool. An integration's manifest says its own, defaulting
+    /// to irreversible; everything else is classified where it always was.
+    fn tier_for(&self, server: &str, tool: &str) -> super::tier::Tier {
+        match self.integration(server) {
+            Some(i) => i.tier_of(tool),
+            None => super::tier::tier_of(server, tool),
+        }
+    }
+
+    /// Run one manifest-defined tool: build the request, send it, hand back the body.
+    fn call_integration(&self, server: &str, tool: &str, args: &str) -> Result<String, String> {
+        let int = self
+            .integration(server)
+            .ok_or_else(|| format!("no integration named {server}"))?;
+        let spec = int
+            .tools
+            .iter()
+            .find(|t| t.name == tool)
+            .ok_or_else(|| format!("{server} has no tool {tool}"))?;
+        super::integration::run::send(super::integration::request::build(int, spec, args)?)
     }
 }
 
@@ -309,7 +354,7 @@ impl super::toolcall::ToolRunner for SessionTools {
     fn call(&self, server: &str, tool: &str, args: &str) -> Result<String, String> {
         use super::approval::Decision;
         let name = format!("{server}:{tool}");
-        let tier = super::tier::tier_of(server, tool);
+        let tier = self.tier_for(server, tool);
         let now = super::ledger::now_ms();
         let decision = self.gate.lock().unwrap_or_else(|e| e.into_inner()).decide(
             &name,
@@ -351,6 +396,8 @@ impl super::toolcall::ToolRunner for SessionTools {
             ))
         } else if server == "sys" && self.sys {
             super::systools::call(tool, args)
+        } else if self.integration(server).is_some() {
+            self.call_integration(server, tool, args)
         } else {
             self.mcp
                 .lock()

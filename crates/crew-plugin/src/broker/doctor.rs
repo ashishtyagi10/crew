@@ -26,6 +26,10 @@ pub(crate) struct DoctorInputs {
     pub skills: usize,
     pub plugin_agents: usize,
     pub mcp_servers: usize,
+    /// Manifest-defined HTTP integrations, and per-integration detail: how many tools it
+    /// declares and whether the credential it names is actually in the environment. An
+    /// integration that will fail on its first call should say so here rather than there.
+    pub integrations: Vec<String>,
     /// Per-server detail (name, tools or failure), one line each — what the
     /// retired `/mcp` construct used to list, folded in here so the
     /// information kept a home.
@@ -129,6 +133,14 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
         "mcp servers",
         "none (declare in .crew/mcp.json)",
     ));
+    out.push(opt(
+        i.integrations.len(),
+        "integrations",
+        "none (JSON manifests under .crew/integrations)",
+    ));
+    for l in &i.integrations {
+        out.push(format!("  {l}"));
+    }
     for l in &i.mcp_detail {
         out.push(format!("  {l}"));
     }

@@ -1,0 +1,29 @@
+{
+  "name": "weather",
+  "description": "Open-Meteo: forecasts with no account and no key.",
+  "base_url": "https://api.open-meteo.com/v1",
+  "auth": {"kind": "none"},
+  "tools": [
+    {
+      "name": "forecast",
+      "description": "current weather and a daily forecast for a latitude/longitude",
+      "method": "GET",
+      "path": "/forecast",
+      "query": {
+        "latitude": "{lat}",
+        "longitude": "{lon}",
+        "current": "temperature_2m,precipitation,wind_speed_10m",
+        "forecast_days": "3"
+      },
+      "tier": "read",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "lat": {"type": "string", "description": "latitude, e.g. 59.91"},
+          "lon": {"type": "string", "description": "longitude, e.g. 10.75"}
+        },
+        "required": ["lat", "lon"]
+      }
+    }
+  ]
+}
