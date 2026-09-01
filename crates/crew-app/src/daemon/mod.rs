@@ -25,6 +25,7 @@ pub(crate) mod reply;
 pub(crate) mod service;
 pub(crate) mod session;
 pub(crate) mod task;
+pub(crate) mod watchchat;
 pub(crate) mod watchcli;
 pub(crate) mod wire;
 
@@ -112,7 +113,14 @@ impl Daemon {
         // Collected before sending: routing a task borrows the session registry, and the
         // channels are borrowed to answer on.
         let mut outgoing: Vec<(String, String)> = Vec::new();
+        let now_ms = crate::chattime::unix_now_ms();
         for msg in inbound {
+            // A watch command first: "remind me tomorrow 9am to call the bank" is an alarm, and
+            // handing it to an agent would produce a cheerful reply and no alarm.
+            if let Some(answer) = self.watch_chat(&msg.from, &msg.text, now_ms) {
+                outgoing.push((msg.from, answer));
+                continue;
+            }
             let answer = match reply::respond(&msg.text, &snap) {
                 Some(a) => a,
                 // Not a question about the resident — hand it to an agent.

@@ -170,6 +170,12 @@ impl Bridge {
         out
     }
 
+    /// Is this conversation blocked on an approval? While it is, everything the sender says is
+    /// an ANSWER, and nothing else may claim it.
+    pub(crate) fn is_awaiting(&self, addr: &str) -> bool {
+        self.routes.get(addr).is_some_and(|r| r.awaiting.is_some())
+    }
+
     /// How many addresses currently hold a session.
     #[cfg(test)]
     pub(crate) fn len(&self) -> usize {

@@ -2328,6 +2328,14 @@ repeat; `--to telegram:12345` says where the answer goes, and may be omitted
 when exactly one channel is configured with exactly one address. Each intent
 gets a short id (`w1`) to cancel it by.
 
+**From a phone.** The same three commands work on any channel: `remind me
+tomorrow 9am to call the bank`, `watching`, and `cancel w1`. A cadence word
+anywhere in the sentence (`daily`, `weekly`, `every 30m`) makes it repeat, and
+the answer comes back to the address that set it. The parse claims only those
+three forms: `book me a flight tomorrow` has a time in it and is still a task
+for an agent, a bare `cancel` is still a refusal, and a conversation waiting on
+an approval has nothing it says read as a command.
+
 Four things it deliberately does:
 
 - **A missed firing says it was missed.** A laptop shut over a firing delivers

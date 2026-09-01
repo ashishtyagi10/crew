@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.20.2
+
+**Set the alarm from your phone.**
+
+The clock shipped last release with one way in: a terminal on the machine.
+That is exactly what you do not have when you think of the errand. A message
+on a channel now sets one — **`remind me tomorrow 9am to call the bank`** —
+along with `watching` to see what is standing and `cancel w1` to call one off,
+and `daily` / `weekly` / `every 30m` anywhere in the sentence makes it repeat.
+The answer goes back to the address that set it.
+
+The parse is deliberately narrow, because the failure it must not have is
+claiming a task. "book me a flight tomorrow" has a time in it and is not an
+alarm; handing "remind me…" to a model instead would produce a cheerful
+"will do!" and no alarm, which is the worst outcome available here. Only a
+message that starts with `remind`, or is `watching`, or is `cancel` with a real
+id, is read as a command — a bare `cancel` stays what it has always been, a
+refusal — and a conversation already blocked on an approval has nothing it
+says read as a command at all.
+
+`help` on a channel lists the three new words, which the test that pins the
+help text against the vocabulary now requires.
+
 ## 0.20.1
 
 **Crew gets a clock.**

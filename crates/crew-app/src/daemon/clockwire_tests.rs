@@ -87,3 +87,67 @@ fn an_intent_with_nowhere_to_answer_is_refused_rather_than_stored() {
     }
     assert!(r.watch.live().is_empty(), "and nothing was written");
 }
+
+/// The same three commands, said on a channel instead of typed on the machine — which is where
+/// somebody actually is when they think of the errand.
+mod from_a_channel {
+    use super::super::tests::{rig, sent};
+    use crate::channel::Inbound;
+
+    fn say(r: &mut super::super::tests::Rig, text: &str) {
+        r.wire.lock().unwrap().inbox.push(Inbound {
+            from: "test:me".into(),
+            text: text.into(),
+        });
+        r.d.service_channels();
+    }
+
+    #[test]
+    fn an_alarm_set_from_a_channel_is_confirmed_and_fires_later() {
+        let mut r = rig("chat-set");
+        say(&mut r, "remind me tomorrow 9am to call the bank");
+        let out = sent(&r);
+        assert_eq!(out.len(), 1, "one confirmation");
+        assert!(out[0].1.contains("call the bank"), "{}", out[0].1);
+        assert!(out[0].1.contains("w1"), "and it names the id: {}", out[0].1);
+
+        let live = r.watch.live();
+        assert_eq!(live.len(), 1);
+        assert_eq!(live[0].to, "test:me", "it answers where it was set");
+        let fire = live[0].fire_ms;
+        r.d.service_intents(fire);
+        let out = sent(&r);
+        assert_eq!(out.len(), 2, "and the firing follows");
+        assert!(out[1].1.contains("call the bank"), "{}", out[1].1);
+    }
+
+    #[test]
+    fn a_watch_command_never_reaches_an_agent() {
+        // The confirmation has to come from the daemon. Handing "remind me…" to a model would
+        // produce a cheerful "will do!" and no alarm — the worst outcome available here.
+        let mut r = rig("chat-noagent");
+        say(&mut r, "remind me tomorrow 9am to call the bank");
+        say(&mut r, "watching");
+        say(&mut r, "cancel w1");
+        assert!(
+            r.opened.lock().unwrap().is_empty(),
+            "no session was opened for a watch command"
+        );
+        assert!(r.watch.live().is_empty(), "and the cancel took effect");
+        let out = sent(&r);
+        assert!(out[1].1.contains("call the bank"), "listing: {}", out[1].1);
+        assert!(out[2].1.contains("cancelled"), "{}", out[2].1);
+    }
+
+    #[test]
+    fn an_ordinary_task_with_a_time_in_it_still_goes_to_an_agent() {
+        let mut r = rig("chat-task");
+        say(&mut r, "book me a flight tomorrow");
+        assert_eq!(
+            r.opened.lock().unwrap().as_slice(),
+            ["channel:test:me"],
+            "the task opened a session"
+        );
+        assert!(r.watch.live().is_empty(), "and set no alarm");
+    }
+}

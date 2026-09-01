@@ -49,13 +49,16 @@ pub(crate) fn respond(text: &str, snap: &Snapshot) -> Option<String> {
 
 /// The vocabulary, named once so a command cannot quietly stop being mentioned in the help text.
 #[cfg(test)]
-const KNOWN: &[&str] = &["help", "status", "sessions"];
+const KNOWN: &[&str] = &["help", "status", "sessions", "remind", "watching", "cancel"];
 
 const HELP: &str = "crew, at your service.\n\
      Anything you say that is not one of these becomes a task for an agent:\n\
      help \u{2014} this\n\
      status \u{2014} version, uptime, session count\n\
-     sessions \u{2014} the agent sessions I am holding";
+     sessions \u{2014} the agent sessions I am holding\n\
+     remind me <when> to <what> \u{2014} an alarm (add daily/weekly/every 30m to repeat)\n\
+     watching \u{2014} what I am waiting to do\n\
+     cancel <id> \u{2014} call one of those off";
 
 /// Uptime a person can read at a glance.
 pub(crate) fn human_uptime(secs: u64) -> String {
