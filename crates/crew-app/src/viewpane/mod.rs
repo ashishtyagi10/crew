@@ -23,6 +23,7 @@ pub(crate) mod linemarks;
 mod linepaint;
 mod lines;
 pub(crate) mod load;
+pub(crate) mod mdedit;
 pub(crate) mod mdrung;
 mod metacard;
 mod outline;

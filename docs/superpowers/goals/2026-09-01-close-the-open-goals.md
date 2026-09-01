@@ -1,5 +1,14 @@
 # Goal — close the open goals: the clock, the voice, the fortieth integration, and the sidecar
 
+**Status (2026-09-01): Pillar 1 SHIPPED (v0.20.1–v0.20.2), Pillar 5 items 2 and 4 CLOSED
+(v0.20.3).** Crew has a clock: standing intents that survive a restart, fire once, report what
+they missed, and run with a trigger's authority rather than a person's — set from the terminal
+with `crew daemon at`, or from a phone with "remind me tomorrow 9am to …". The document window's
+last mile (Cmd+K on a URL, Tab through a table, the minimal-diff save asserted over `docs/CREW.md`)
+landed with it, and the command-diet number was amended in the goal that owns it, with the reason.
+Open: the morning briefing (which waits on Pillar 3), Pillar 2 (voice), Pillar 3, Pillar 4, and
+Pillar 5 items 1, 3 and 5.
+
 **Set:** 2026-09-01 by the user — *"write a goal to complete any pending plan"* — after an audit of
 every goal, plan and spec under `docs/superpowers/` against the tree at v0.20.0.
 
@@ -120,14 +129,16 @@ Four items, each small, each currently carried by a goal doc instead of by a com
    macOS-permissions debt (`2026-08-06`, `2026-08-09`, `2026-08-12`). Either the harness gets its
    permissions and the passes run, or the debt is written off in the docs. Carrying it in three
    places is the worst of both: it reads as work outstanding and nobody can tell if it is.
-2. **The document window's last mile.** `2026-08-30`'s done-list names link editing and
+2. ~~**The document window's last mile.**~~ **CLOSED v0.20.3.** `2026-08-30`'s done-list names link editing and
    Tab-through-table-cells; `docwin/event.rs` maps Tab to two spaces and has neither. Its item 4 — a
    save whose diff touches only what was edited, asserted over a REAL repo document — has no test in
    `docwin_tests.rs`, and that assertion is the entire reason the byte-provenance model was chosen.
 3. **`crew ask` addresses one window.** The ask socket and the federation relay are held by the
    launch canvas, so a second window's panes are unaddressable — stated as the honest cost of the
    smaller shape in `2026-08-30` and never taken back.
-4. **The command diet's own number.** `CONSTRUCTS` (`broker/commands.rs:115`) lists nine; the
+4. ~~**The command diet's own number.**~~ **CLOSED 2026-09-01 by amendment** — the reason is in
+   `2026-08-01-smith-autonomy-command-diet.md`, done-means 1: what the diet was about is retired,
+   and the nine that remain are mechanical verbs with no model in the path. `CONSTRUCTS` (`broker/commands.rs:115`) lists nine; the
    `2026-08-01` goal's done-means 1 says at most eight. Retire one — `/restore` and `/diff` are both
    checkpoint verbs — or amend the number in that goal with the reason. Not both, and not neither.
 5. **Phase 3 of the colour system.** `2026-08-22` left one phase open: bloom radius and amplitude,

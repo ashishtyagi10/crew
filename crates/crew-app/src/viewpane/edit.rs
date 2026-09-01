@@ -160,7 +160,7 @@ impl ViewPane {
     }
 
     /// Re-read the document at `offset` and put the caret there.
-    fn after_edit(&mut self, offset: usize, cols: u16, rows: u16) {
+    pub(crate) fn after_edit(&mut self, offset: usize, cols: u16, rows: u16) {
         self.dirty = true;
         self.anchor = None;
         // The layout cache is keyed by width and theme, not by the text — so

@@ -66,7 +66,7 @@ fn w_is_the_pop_out_key_and_the_others_are_untouched() {
 /// what they mean in one — a letter is a letter, not a viewer command.
 #[test]
 fn a_letter_types_itself_rather_than_running_the_viewers_command() {
-    use super::event::{edit_for, Edit};
+    use super::keys::{edit_for, Edit};
     use winit::keyboard::ModifiersState;
     let plain = ModifiersState::empty();
     for c in ["o", "r", "w", "s", "v", "n"] {
@@ -81,7 +81,7 @@ fn a_letter_types_itself_rather_than_running_the_viewers_command() {
 /// …and the one chord that is not typing.
 #[test]
 fn cmd_s_saves_and_cmd_letters_do_not_type() {
-    use super::event::{edit_for, Edit};
+    use super::keys::{edit_for, Edit};
     use winit::keyboard::ModifiersState;
     assert_eq!(
         edit_for(&ch("s"), true, ModifiersState::SUPER),

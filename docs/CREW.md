@@ -1042,7 +1042,16 @@ longer aim at.
   **Cmd+X** cuts and **Cmd+V** pastes, as markdown — a paste is an insert, so
   it replaces a selection and comes back out with one undo. And because a
   link's target is invisible in a render (that is what rendering a link
-  *means*), the frame names it while the cursor is inside one. Making crew's windows plural all the way down — panes, focus
+  *means*), the frame names it while the cursor is inside one.
+  **Cmd+K** makes that line the field you type it in: with the cursor inside a
+  link it opens holding the current URL, **Enter** writes the new one over the
+  old one's bytes and **Esc** leaves the file exactly as it was. With a
+  selection and no link, the same chord makes one — the words become
+  `[text]()` with the field open on the empty URL — and cancelling that takes
+  the scaffold back out rather than leaving `[half a thought]()` behind.
+  **Tab inside a table** walks to the next cell, on to the first cell of the
+  next row when the row runs out (the `|---|` divider is punctuation, not a
+  cell), and types two spaces anywhere else. Making crew's windows plural all the way down — panes, focus
   and zoom per window — is the first pillar of
   `docs/superpowers/goals/2026-08-30-markdown-editor-in-its-own-window.md`, and
   a document window deliberately needs none of it.

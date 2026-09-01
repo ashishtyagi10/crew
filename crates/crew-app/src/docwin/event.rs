@@ -2,87 +2,11 @@
 //! the three a window has that a tile does not — resize, close, and redraw.
 use winit::event::{MouseScrollDelta, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
-use winit::keyboard::ModifiersState;
 use winit::window::WindowId;
 
+use super::keys::{edit_key, Edit};
 use crate::app::CrewApp;
-use crate::viewpane::caret::Step;
 use crate::viewpane::ViewAction;
-use winit::keyboard::{Key, NamedKey};
-
-/// What a key means to a document being edited.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Edit {
-    Move(Step),
-    Type(String),
-    /// The same movement, dragging a selection behind it.
-    Select(Step),
-    SelectAll,
-    Backspace,
-    Delete,
-    Newline,
-    Save,
-    Undo,
-    Redo,
-    /// Wrap (or unwrap) the selection in this marker — `**` or `*`.
-    Wrap(&'static str),
-    Copy,
-    Cut,
-    Paste,
-}
-
-/// Classify a key press for an editing window. `None` leaves it to the
-/// viewer's own keys (Esc, the search, the scroll), which still apply.
-pub(crate) fn edit_key(k: &winit::event::KeyEvent, mods: ModifiersState) -> Option<Edit> {
-    edit_for(&k.logical_key, k.state.is_pressed(), mods)
-}
-
-/// [`edit_key`] over a key the tests can build — winit's `KeyEvent` is
-/// `#[non_exhaustive]` and carries a platform field with no `Default`.
-pub(crate) fn edit_for(key: &Key, pressed: bool, mods: ModifiersState) -> Option<Edit> {
-    if !pressed {
-        return None;
-    }
-    let cmd = mods.super_key() || mods.control_key();
-    let moved = |s: Step| match mods.shift_key() {
-        true => Some(Edit::Select(s)),
-        false => Some(Edit::Move(s)),
-    };
-    match key {
-        Key::Named(NamedKey::ArrowLeft) => moved(Step::Left),
-        Key::Named(NamedKey::ArrowRight) => moved(Step::Right),
-        Key::Named(NamedKey::ArrowUp) => moved(Step::Up),
-        Key::Named(NamedKey::ArrowDown) => moved(Step::Down),
-        Key::Named(NamedKey::Home) => moved(Step::Home),
-        Key::Named(NamedKey::End) => moved(Step::End),
-        Key::Named(NamedKey::Backspace) if !cmd => Some(Edit::Backspace),
-        Key::Named(NamedKey::Delete) if !cmd => Some(Edit::Delete),
-        Key::Named(NamedKey::Enter) if !cmd => Some(Edit::Newline),
-        Key::Named(NamedKey::Space) if !cmd => Some(Edit::Type(" ".into())),
-        Key::Named(NamedKey::Tab) if !cmd => Some(Edit::Type("  ".into())),
-        Key::Character(s) if cmd => match s.as_str() {
-            "s" => Some(Edit::Save),
-            "a" => Some(Edit::SelectAll),
-            "c" => Some(Edit::Copy),
-            "x" => Some(Edit::Cut),
-            "v" => Some(Edit::Paste),
-            // The markers never appear on screen, so this is the way one gets
-            // into the file at all.
-            "b" => Some(Edit::Wrap("**")),
-            "i" => Some(Edit::Wrap("*")),
-            "z" => Some(Edit::Undo),
-            // Cmd+Shift+Z arrives as the shifted character, exactly like the
-            // `{`/`}` and `T` chords the grid uses.
-            "Z" => Some(Edit::Redo),
-            _ => None,
-        },
-        // A letter is a letter. Without the caret this is `r` for reload and
-        // `o` for open-externally; with one, the window is an editor and
-        // typing `o` has to type an `o`.
-        Key::Character(s) => Some(Edit::Type(s.to_string())),
-        _ => None,
-    }
-}
 
 impl CrewApp {
     /// Open `path` in a window of its own. Returns whether one appeared.
@@ -196,6 +120,13 @@ impl CrewApp {
                 }
                 WindowEvent::KeyboardInput { event: k, .. } => {
                     let (cols, rows) = (d.grid.cols, d.grid.rows);
+                    d.hint = None;
+                    // An open URL field has the keys first: it is a field, and
+                    // Esc closing the window out from under one would be the
+                    // one keystroke that loses what was typed.
+                    if d.link_field_key(&k.logical_key, k.state.is_pressed(), cols, rows) {
+                        return;
+                    }
                     // While there is a caret this window is an EDITOR, and
                     // the keys mean what they mean in one: the arrows move
                     // the cursor rather than scrolling, and a letter is a
@@ -279,6 +210,19 @@ impl CrewApp {
                             // where the pane is no longer borrowed and the
                             // status line can be set.
                             Some(Edit::Save) => save = true,
+                            Some(Edit::Tab) => {
+                                if !d.view.tab_cell(cols, rows) {
+                                    d.view.insert("  ", cols, rows);
+                                    d.warned = false;
+                                }
+                                d.window.request_redraw();
+                                return;
+                            }
+                            Some(Edit::Link) => {
+                                d.open_link_field(cols, rows);
+                                d.window.request_redraw();
+                                return;
+                            }
                             None => {}
                         }
                     }

@@ -69,6 +69,13 @@ impl DocWindow {
             true => format!("{name} \u{25cf}"),
             false => name,
         };
+        if let Some(h) = self.hint {
+            return format!("{name} \u{00b7} {h}");
+        }
+        // Typing a URL takes the line the URL was already shown on.
+        if let Some(field) = self.link_field_legend() {
+            return format!("{name} \u{00b7} {field}");
+        }
         // A link's target is invisible in a render; while the cursor is
         // inside one, the frame is where it says so.
         if let Some(url) = self.view.caret_link(self.grid.cols) {

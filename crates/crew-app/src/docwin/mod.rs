@@ -29,6 +29,8 @@ use crew_term::GridSize;
 
 pub(crate) mod draw;
 mod event;
+pub(crate) mod keys;
+pub(crate) mod linkedit;
 
 /// The margin, in cells, between the window's edge and the document's frame —
 /// the same one-cell ring every pane card sits in.
@@ -47,6 +49,12 @@ pub(crate) struct DocWindow {
     /// Last pointer position, in this window's physical pixels — winit
     /// reports the position and the button press as separate events.
     pub pointer: (f32, f32),
+    /// The URL field, while it is open (Cmd+K).
+    pub link: Option<linkedit::UrlEdit>,
+    /// One line the window has to say for itself, shown on the frame until the next key. A
+    /// document window is its own surface: the main window's status bar is somewhere the person
+    /// reading this is not looking.
+    pub hint: Option<&'static str>,
     /// The grid the document was last laid out at. Recomputed on every resize,
     /// because a document wraps to its window and nothing else.
     pub grid: GridSize,
@@ -81,6 +89,8 @@ impl DocWindow {
             mods: Default::default(),
             warned: false,
             pointer: (0.0, 0.0),
+            link: None,
+            hint: None,
             grid: GridSize { cols: 80, rows: 40 },
         };
         me.refit();
@@ -159,3 +169,7 @@ impl DocWindow {
 #[cfg(test)]
 #[path = "docwin_tests.rs"]
 mod docwin_tests;
+
+#[cfg(test)]
+#[path = "savediff_tests.rs"]
+mod savediff_tests;

@@ -8,6 +8,40 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.20.3
+
+**The document window's last mile: the URL you can edit, and Tab through a
+table.**
+
+Two things the markdown editor's own goal listed as unbuilt, and the assertion
+its whole design was chosen for.
+
+**Cmd+K edits a link's URL.** The frame has named the link under the cursor
+since v0.19.93, because a render deliberately hides it — that is what rendering
+a link *means*. Now that line is the field you type it in: it opens holding the
+current URL, Enter writes the new one over the old one's bytes as a single
+undoable splice, and Esc leaves the file exactly as it was. With a selection
+and no link the same chord makes one, and cancelling THAT takes the scaffold
+back out — an editor that leaves `[half a thought]()` in your document because
+you changed your mind is worse than one with no shortcut at all. (Two undos,
+not one: an insert over a selection is a delete and a splice, and they do not
+coalesce. A single undo left the words deleted and the link gone.)
+
+**Tab walks a table's cells** — to the next cell, on to the first cell of the
+next row when the row runs out, skipping the `|---|` divider because a divider
+is punctuation rather than a cell anybody types in — and still types two spaces
+anywhere else. Both work on the source at a byte offset, which is what the
+caret already is, so neither needed anything new tracked.
+
+**And the claim the editor is built on is now asserted against a document
+nobody wrote for the purpose.** Four tests open `docs/CREW.md` — the repo's own
+manual, thousands of lines of tables, fences, nested lists and unicode — edit
+it and save: opening and saving it untouched writes it back byte for byte,
+typing one word changes exactly those five bytes at exactly that offset,
+deleting inside a table leaves every other row alone, and an edit followed by an
+undo writes the file it started as. A serializing editor fails the first of
+those, which is the reason this one is not a serializing editor.
+
 ## 0.20.2
 
 **Set the alarm from your phone.**

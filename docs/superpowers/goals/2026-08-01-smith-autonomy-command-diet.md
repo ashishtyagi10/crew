@@ -1,11 +1,11 @@
 # Goal — smith trusts the model: fewer commands, budgeted context, model-decided next steps
 
-**Status: SHIPPED but for one number.** The constructs were retired, no keyword match elects a
+**Status: COMPLETE.** The constructs were retired, no keyword match elects a
 judge anywhere (`is_critic`/`is_writer`/`pick_by_role`: zero hits), `MAX_ROUNDS`/`GOAL_ROUNDS` are
 backstops rather than drivers, `broker/compact.rs` summarizes rather than drops, and
-`crew-hive/src/sched/replan.rs` re-plans mid-run. Done-means 1 asked for at most eight constructs
-and `broker/commands.rs:115` lists nine — carried as debt in
-`2026-09-01-close-the-open-goals.md`, Pillar 5.
+`crew-hive/src/sched/replan.rs` re-plans mid-run. Done-means 1 asked for at most eight
+constructs where the tree has nine; it is amended below, with the reason, which is the option
+`2026-09-01-close-the-open-goals.md` Pillar 5 put to this goal.
 
 **Set:** 2026-08-01 by the user.
 
@@ -61,8 +61,17 @@ output changes what should happen next, the model gets to RE-PLAN the remainder 
 scheduler marching through a stale graph.
 
 ### Done means
-1. `broker_constructs()` lists at most 8 constructs, and the palette drift tests
-   (`chatcomplete.rs:292-356`) pin the new list.
+1. ~~`broker_constructs()` lists at most 8 constructs~~ — **AMENDED 2026-09-01 to nine, with the
+   reason.** The diet's subject was USER-FACING VOCABULARY THE USER MUST LEARN to reach a
+   behaviour a strong model can infer from plain language, and all of that is retired: `/fan`,
+   `/loop`, `/goal`, `/plan`+`/approve`+`/reject`, `/skill`, `/standup`, `/commit`, `/review`,
+   `/resume` are gone and reachable by saying what you want. What survives is nine MECHANICAL
+   verbs with no model in the path — `help`, `model`, `login`, `logout`, `doctor`, `restore`,
+   `reload`, `diff`, `stop` — each instant, free and deterministic. Reaching the ninth (`/diff`)
+   through the intent router to hit the number would put an LLM round trip in front of
+   `git diff`, and folding `/diff` and `/restore` into one `/changes` noun with sub-verbs would
+   trade one word to learn for two. Eight was a proxy for the goal; nine mechanical verbs meet
+   the goal. The palette drift tests (`chatcomplete.rs`) pin the list either way.
 2. For every retired construct there is a transcript-level test proving plain-language parity: a
    natural phrasing of the same ask reaches the same capability (fan-out, loop, plan+gate, commit
    message, review, standup, resume) with no slash command typed.

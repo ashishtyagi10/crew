@@ -1,9 +1,11 @@
 # Goal — a markdown file opens in its own crew window, already rendered, and you type into the render
 
-**Status: SHIPPED v0.19.84–v0.19.95, LAST MILE OPEN.** A document opens in a second window,
-rendered, with the cursor in the render; typing, undo, selection, cut/paste and save all work on
-it. Link editing, Tab-through-table-cells, the minimal-diff save assertion over a real repo
-document, and `crew ask` reaching a second window's panes are carried in
+**Status: SHIPPED v0.19.84–v0.20.3.** A document opens in a second window, rendered, with the
+cursor in the render; typing, undo, selection, cut/paste and save all work on it. v0.20.3 closed
+the last mile: **Cmd+K** edits a link's URL in the frame (and makes a link out of a selection),
+**Tab** walks a table's cells, and done-means 4 — a save whose diff touches only what was edited —
+is now asserted over `docs/CREW.md` itself rather than over a fixture. The one thing left is
+`crew ask` reaching a second window's panes, carried in
 `2026-09-01-close-the-open-goals.md`, Pillar 5.
 
 **Set:** 2026-08-30 by the user: *"open Markdown viewer into another window of crew. Make it a
