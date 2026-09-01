@@ -132,6 +132,8 @@ mod diffrefine;
 mod diskdraw;
 mod diskpane;
 mod diskscan;
+mod disktile;
+mod diskwalk;
 mod dispatch;
 mod dispatchargs;
 mod dispatchlook;
