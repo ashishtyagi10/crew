@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.20.8
+
+**The last effect with no rule gets one.**
+
+The colour system's third phase asked for a defensible number per POOL rather
+than a per-theme feel, on every effect. Most of it turned out to be done: the
+dot lattice and the gradient wash are per-appearance constants, grain is one
+value on every theme, every theme drifts at one rate, glow sits in a per-pool
+band and every light page glows less than every dark one — all of it asserted.
+
+**Flicker had nothing.** Twelve numbers between 0.010 and 0.08, each picked by
+eye. It now has the same structural rule the glow has, which the shipped values
+already satisfy: every paper page wobbles less than every tube, because a
+brightness wobble is a property of a phosphor and a page that wobbles like a
+tube is a page pretending to be one — plus a ceiling, above which a streaming
+pane reads as a failing backlight rather than as a working agent.
+
+What is deliberately NOT collapsed is the variation inside a tube's band. A
+slow blue phosphor blooms further than a tight amber one; that is the theme
+keeping its own character, which the colour goal's own "what this is not"
+section protects. Nothing in this release changes what any theme looks like.
+
 ## 0.20.7
 
 **The bridge stops being a test fixture.**

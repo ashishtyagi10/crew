@@ -736,6 +736,40 @@ fn every_light_page_glows_less_than_every_dark_one() {
     );
 }
 
+/// Flicker was the last effect with no rule at all — twelve numbers between 0.010 and 0.08,
+/// each picked by eye. It gets the same STRUCTURAL rule the glow has, which the shipped values
+/// already satisfy: a tube may wobble, a page barely may, and every page must sit below every
+/// tube. A brightness wobble is a property of a phosphor, so a paper page that wobbles like a
+/// tube is a paper page pretending to be one.
+#[test]
+fn every_page_flickers_less_than_every_tube() {
+    let flicker = |tube: bool| -> Vec<f32> {
+        ALL_THEMES
+            .iter()
+            .filter(|id| id.is_crt() == tube)
+            .filter_map(|id| id.theme().crt.map(|c| c.flicker))
+            .collect()
+    };
+    let busiest_page = flicker(false).into_iter().fold(0.0f32, f32::max);
+    let calmest_tube = flicker(true).into_iter().fold(f32::MAX, f32::min);
+    assert!(
+        busiest_page < calmest_tube,
+        "the busiest page wobbles {busiest_page} and the calmest tube {calmest_tube} — the \
+         pools overlap, so some paper page is carrying a tube's flicker"
+    );
+    // And nothing wobbles enough to read as a fault: above this a stream looks like a failing
+    // backlight rather than a working agent.
+    for id in ALL_THEMES {
+        let Some(c) = id.theme().crt else { continue };
+        assert!(
+            c.flicker <= 0.10,
+            "{}: flicker {} reads as a fault, not as life",
+            id.as_str(),
+            c.flicker
+        );
+    }
+}
+
 /// The backdrop is a family trait, not a per-theme flourish: every modern
 /// page of one appearance carries exactly the same lattice and wash. Pinned
 /// so a new member joins the family rather than inventing its own weights —

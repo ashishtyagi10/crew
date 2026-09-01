@@ -3,8 +3,15 @@
 **Status: PHASES 1–2 SHIPPED, PHASE 3 OPEN.** Every text role is derived from the page it sits on
 (`crew-theme/src/ramp.rs`) and the 16-slot terminal palette is derived rather than eyeballed
 (`ansi.rs`), landed across v0.18.2–v0.18.6 with parity contracts. The open question below was
-answered by cutting the menu: `ALL_THEMES` is twelve, not twenty-four. Phase 3 (restraint,
-measured) is carried in `2026-09-01-close-the-open-goals.md`, Pillar 5.
+answered by cutting the menu: `ALL_THEMES` is twelve, not twenty-four. **Phase 3 CLOSED 2026-09-01**, and mostly by
+work that had already landed: the dot lattice and the gradient wash are per-appearance
+CONSTANTS (`the_modern_backdrop_is_a_per_appearance_constant`), grain is one value on every
+theme (`grain_is_newsprint_on_every_theme`), every theme drifts at one rate, glow sits in a
+per-pool band and every light page glows less than every dark one, and v0.20.8 gave flicker —
+the last unruled knob — the same structural rule. What is deliberately NOT collapsed is the
+variation WITHIN a tube's band: a slow blue phosphor blooms further than a tight amber one, and
+that is the theme keeping its own character, which this goal's own "what this is not" section
+protects.
 
 **Set:** 2026-08-22 by the user, after asking what 2026 actually likes.
 

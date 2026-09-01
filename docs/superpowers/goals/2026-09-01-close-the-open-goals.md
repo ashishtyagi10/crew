@@ -15,7 +15,11 @@ searches the whole catalog so nothing is unreachable. **v0.20.6** closed Pillar 
 morning briefing, which needed no code path of its own — the clock plus an integration is one).
 **v0.20.7 closed Pillar 4**: the wire carries tools, streamed deltas and opaque state, a tool
 call goes back to CREW (so a sidecar never holds a credential), `CREW_SIDECAR` spawns one, and
-`/doctor` reports it. Open: Pillar 2 (voice) and Pillar 5 items 1 and 5.
+`/doctor` reports it. **v0.20.8 closed Pillar 5 item 5**: the colour system's Phase 3 was already met by the
+per-appearance constants and per-pool bands that landed in v0.18.x; flicker, the one effect with
+no rule at all, got the same structural one, and the verdict is recorded in the goal that owns
+it. Open: **Pillar 2 (voice)**, and Pillar 5 item 1 (live verify), which needs a display and
+macOS permissions this session does not have.
 
 **Set:** 2026-09-01 by the user — *"write a goal to complete any pending plan"* — after an audit of
 every goal, plan and spec under `docs/superpowers/` against the tree at v0.20.0.
@@ -166,7 +170,10 @@ Four items, each small, each currently carried by a goal doc instead of by a com
    and the nine that remain are mechanical verbs with no model in the path. `CONSTRUCTS` (`broker/commands.rs:115`) lists nine; the
    `2026-08-01` goal's done-means 1 says at most eight. Retire one — `/restore` and `/diff` are both
    checkpoint verbs — or amend the number in that goal with the reason. Not both, and not neither.
-5. **Phase 3 of the colour system.** `2026-08-22` left one phase open: bloom radius and amplitude,
+5. ~~**Phase 3 of the colour system.**~~ **CLOSED v0.20.8** — see
+   `2026-08-22-one-colour-system-not-twenty-four.md`: the lattice, the wash, the grain and the
+   drift are per-appearance constants already, glow is banded and ordered, and flicker gained the
+   same rule. The within-band variation that remains is each phosphor's character, not drift. `2026-08-22` left one phase open: bloom radius and amplitude,
    the gradient light-ring, the dot lattice and grain each get a defensible number per pool rather
    than a per-theme feel, checked with the screenshot harness that already renders every theme.
 
