@@ -2,6 +2,7 @@
 //! (including the segment after a `+` in multi-target selectors) and
 //! `/lo<Tab>` completes construct names. Pure string-in/string-out so it's
 //! trivially testable.
+pub(crate) use crate::completefuzzy::*;
 use crew_plugin::AgentInfo;
 
 /// Every composer slash action: broker constructs plus the pane-local
@@ -78,55 +79,6 @@ pub(crate) fn complete(input: &str, agents: &[AgentInfo]) -> Option<String> {
         return Some(format!("{ext}{tail}"));
     }
     None
-}
-
-/// Extend `prefix` against `candidates`: the full name when exactly one
-/// matches (`(name, true)`), else the longest common prefix when it grows the
-/// input (`(lcp, false)`). Case-insensitive; `None` when nothing matches or
-/// nothing would change.
-fn extend(prefix: &str, candidates: &[&str]) -> Option<(String, bool)> {
-    let low = prefix.to_lowercase();
-    let hits: Vec<&&str> = candidates
-        .iter()
-        .filter(|c| c.to_lowercase().starts_with(&low))
-        .collect();
-    match hits.as_slice() {
-        [] => None,
-        [one] => Some((one.to_string(), true)),
-        many => {
-            let first = many[0].to_lowercase();
-            let mut lcp = first.len();
-            for c in many.iter().skip(1) {
-                let c = c.to_lowercase();
-                lcp = first
-                    .chars()
-                    .zip(c.chars())
-                    .take(lcp)
-                    .take_while(|(a, b)| a == b)
-                    .count();
-            }
-            (lcp > prefix.len()).then(|| (first[..lcp].to_string(), false))
-        }
-    }
-}
-
-/// Case-insensitive subsequence match: is every char of `needle` found in
-/// `hay` in order? (`"gl"` matches `"goal"`, `"pnr"` matches `"planner"`.)
-/// Case-folds and delegates to `crate::suggest`'s identical (already
-/// case-normalized-by-caller) helper.
-fn is_subsequence(needle: &str, hay: &str) -> bool {
-    crate::suggest::is_subsequence(&needle.to_lowercase(), &hay.to_lowercase())
-}
-
-/// The single candidate that fuzzy-matches `needle`, or `None` if zero or
-/// more than one do.
-fn fuzzy_unique<'a>(needle: &str, candidates: &[&'a str]) -> Option<&'a str> {
-    let mut hits = candidates.iter().filter(|c| is_subsequence(needle, c));
-    let first = *hits.next()?;
-    match hits.next() {
-        Some(_) => None,
-        None => Some(first),
-    }
 }
 
 #[cfg(test)]

@@ -64,6 +64,7 @@ mod chatmention;
 #[cfg(test)]
 #[path = "chatshot_tests.rs"]
 mod chatshot_tests;
+mod completefuzzy;
 mod mentionexpand;
 
 mod canvas;
@@ -121,6 +122,7 @@ mod cursortrail;
 mod cwd;
 mod cwdshow;
 mod daemon;
+mod dashlayout;
 mod dashpane;
 mod daylight;
 mod density;

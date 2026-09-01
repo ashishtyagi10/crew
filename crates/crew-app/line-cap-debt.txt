@@ -16,7 +16,7 @@ src/channel/telegram/mod.rs 286
 src/channel/telegram/mod_tests.rs 201
 src/chartshot_tests.rs 399
 src/chat_tests.rs 1885
-src/chatcomplete.rs 364
+src/chatcomplete.rs 316
 src/chatfind.rs 204
 src/chatfind_tests.rs 366
 src/chatflow.rs 207
@@ -61,7 +61,7 @@ src/daemon/mod_tests.rs 295
 src/daemon/session.rs 296
 src/daemon/session_tests.rs 295
 src/daemon/task_tests.rs 369
-src/dashpane.rs 389
+src/dashpane.rs 300
 src/diskpane.rs 435
 src/diskpane_tests.rs 266
 src/docshot_tests.rs 422
@@ -137,7 +137,7 @@ src/toast.rs 334
 src/toast_tests.rs 240
 src/toastshot_tests.rs 212
 src/todopane/composer.rs 225
-src/todopane/duedate.rs 363
+src/todopane/duedate.rs 252
 src/todopane/duedate_tests.rs 225
 src/todopane/keys.rs 224
 src/todopane/keys_tests.rs 614

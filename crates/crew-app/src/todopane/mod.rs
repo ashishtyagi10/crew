@@ -18,6 +18,7 @@ mod act;
 mod click;
 mod composer;
 pub(crate) mod duedate;
+pub(crate) mod duetext;
 mod edit;
 pub(crate) mod fitline;
 mod gutter;
