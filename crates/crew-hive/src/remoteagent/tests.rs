@@ -28,6 +28,7 @@ async fn remote_agent_dispatches_and_returns_result() {
             success: true,
             input_tokens: 2,
             output_tokens: 2,
+            state: None,
         },
     };
     let agent = RemoteAgent::new(Arc::new(tr));
@@ -54,6 +55,7 @@ async fn remote_factory_makes_dispatching_agents() {
             success: true,
             input_tokens: 1,
             output_tokens: 1,
+            state: None,
         },
     });
     let factory = RemoteFactory::new(transport);

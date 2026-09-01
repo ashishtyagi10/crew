@@ -30,6 +30,10 @@ pub(crate) struct DoctorInputs {
     /// declares and whether the credential it names is actually in the environment. An
     /// integration that will fail on its first call should say so here rather than there.
     pub integrations: Vec<String>,
+    /// The out-of-process engine, if `CREW_SIDECAR` names one: the command, and whether it can
+    /// actually be run. A machine with no Python must learn that here, in one line, rather than
+    /// from a task that failed at the end of a long graph.
+    pub sidecar: Option<(String, bool)>,
     /// Per-server detail (name, tools or failure), one line each — what the
     /// retired `/mcp` construct used to list, folded in here so the
     /// information kept a home.
@@ -141,6 +145,23 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
     for l in &i.integrations {
         out.push(format!("  {l}"));
     }
+    out.push(match &i.sidecar {
+        None => line(
+            '\u{2013}',
+            "sidecar",
+            "none (CREW_SIDECAR names one; crew runs natively)",
+        ),
+        Some((cmd, true)) => line(
+            '\u{2713}',
+            "sidecar",
+            &format!("{cmd} — swarm tasks run there"),
+        ),
+        Some((cmd, false)) => line(
+            '\u{2717}',
+            "sidecar",
+            &format!("{cmd} — not runnable on this machine; crew runs natively"),
+        ),
+    });
     for l in &i.mcp_detail {
         out.push(format!("  {l}"));
     }

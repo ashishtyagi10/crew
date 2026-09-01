@@ -8,6 +8,44 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.20.7
+
+**The bridge stops being a test fixture.**
+
+`wire/`, `worker/` and `remoteagent/` have been in crew-hive since June, built
+so an external engine could run crew's tasks — and `RemoteFactory` was
+constructed in exactly three places, all of them tests. Nothing spawned a
+sidecar and no setting selected one, because the wire was not worth crossing:
+`RemoteTask` carried `{agent, task, prompt, model, deps}` and the reply carried
+a string, so an engine behind it could only be a slower `ApiAgent` with none of
+its tools.
+
+**The protocol is a conversation now.** A task carries the tools the worker may
+use and whatever state it last returned; the worker streams `delta` text,
+asks for a tool by name with `call`, gets a `result` back on the same stream,
+and finishes with `done`. That turn is the whole point: **a sidecar never holds
+a credential** — it names `sys:run` and crew runs it, through the same gate and
+into the same ledger as everything else. An engine that could authenticate on
+its own would be a second, unaudited way for crew to reach the world.
+
+**`state` is the sidecar's.** crew hands back whatever it last returned,
+verbatim, and never looks inside it. Resumability belongs to the engine that
+has cycles; a checkpoint crew could read is a checkpoint crew would eventually
+be expected to migrate.
+
+**`CREW_SIDECAR` selects one** (`python3 /path/to/crew_sidecar.py`), and it is
+opt-in in every direction: unset by default, probed before it is spawned,
+falling back to crew's own agents with a line on stderr if it will not start,
+and reported by `/doctor` in all three states. crew still plans the graph and
+still owns the tools — the sidecar replaces the agents, never the spine. On a
+machine with no Python nothing changes.
+
+`examples/sidecar/crew_sidecar.py` is the whole protocol in one readable file,
+and the test suite drives a real Python child through it: a delta, a tool call
+answered by crew, an answer, and state coming back — skipped, loudly, on a
+machine with no Python, which is the machine the feature is designed to leave
+alone.
+
 ## 0.20.6
 
 **`crew ask` stops being a one-window command.**

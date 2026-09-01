@@ -96,6 +96,14 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
             .is_ok_and(|o| o.status.success()),
         skills: super::skills::load().len(),
         plugin_agents: super::plugins::load().len(),
+        sidecar: std::env::var("CREW_SIDECAR")
+            .ok()
+            .filter(|s| !s.trim().is_empty())
+            .map(|raw| {
+                let runnable = crew_hive::worker::stdio::parse_command(&raw)
+                    .is_some_and(|(p, _)| crew_hive::worker::stdio::probe(&p));
+                (raw, runnable)
+            }),
         integrations: super::integration::load()
             .iter()
             .map(integration_line)

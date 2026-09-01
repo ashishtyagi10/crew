@@ -2298,11 +2298,42 @@ pre-streaming behaviour for a regressed run or a deterministic test;
 `CREW_INTENT=0` disables the intent router — every plain message then runs as
 a swarm instead of the model first choosing its execution shape (a direct
 reply, an all-agents fan-out, refinement rounds, a plan awaiting approval, or
-the swarm); `CREW_SUBSCRIPTIONS=0` disables the signed-in-subscription rung —
+the swarm); `CREW_SIDECAR` names an out-of-process engine to run swarm TASKS
+(`python3 /path/to/crew_sidecar.py`) — see **An engine crew did not compile in**
+below; unset by default, and a command crew cannot find is ignored;
+`CREW_SUBSCRIPTIONS=0` disables the signed-in-subscription rung —
 crew then never runs `claude auth status` / `codex login status` and plain
 tasks fall back to key discovery and the keyless relay exactly as before. The pane also prints a per-turn timeline + cost summary (`turn done
 — planner 4.2s → … · N exchange(s) · ~X tok (approx)`) at the end of every
 task, and accumulates the spend into the header's `~N tok` meter.
+
+**An engine crew did not compile in (`CREW_SIDECAR`).** crew plans a goal into
+a task graph and runs each task with its own agents. When a job wants something
+that graph will not express — cycles, a checkpoint, a workflow engine you
+already have — `CREW_SIDECAR` points at a process that runs the TASKS instead,
+over one JSON object per line on stdin/stdout:
+
+```
+crew  -> {"kind":"task","task":1,"prompt":"…","tools":[…],"state":…}
+you   -> {"kind":"delta","text":"thinking…"}          (0 or more)
+you   -> {"kind":"call","id":"c1","tool":"sys:run","args":"{\"cmd\":\"ls\"}"}
+crew  -> {"kind":"result","id":"c1","output":"…","ok":true}
+you   -> {"kind":"done","task":1,"output":"…","success":true,"state":{…}}
+```
+
+crew still plans, still owns the tools, and still gates and ledgers every call:
+**a sidecar never holds a credential** — it names a tool and crew runs it, which
+is why the protocol has a turn in it at all. **`state` is the sidecar's**: crew
+hands back whatever it last returned, verbatim, and never looks inside, which is
+where a graph engine keeps the checkpoint that makes it resumable. Streamed
+`delta` text lands in the pane as it arrives, like any other agent's.
+
+It is opt-in in every direction. Unset by default; a command crew cannot find
+is ignored; one that fails to spawn falls back to crew's own agents and says so;
+and `/doctor` reports which of the three you are in. On a machine with no
+Python, `/crew` behaves exactly as it does today.
+`examples/sidecar/crew_sidecar.py` is the whole protocol in one readable file —
+a LangGraph graph goes where its `run_task` is.
 
 **Reaching an API is one file (`integrations/`).** An HTTP API becomes a set of
 tools from a single JSON manifest — no Rust, no recompile, no sidecar. Drop it

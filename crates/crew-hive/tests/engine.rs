@@ -255,6 +255,7 @@ async fn scheduler_runs_remote_agents() {
             success: true,
             input_tokens: 1,
             output_tokens: 1,
+            state: None,
         },
     });
     let factory = Arc::new(RemoteFactory::new(transport));

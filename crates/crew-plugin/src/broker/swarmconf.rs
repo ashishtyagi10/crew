@@ -30,6 +30,35 @@ pub(super) type Backend = (
     Option<Arc<dyn Planner>>,
 );
 
+/// The sidecar command, if one is configured AND runnable. `CREW_SIDECAR` is a command line —
+/// `python3 -m crew_langgraph` — and it is opt-in in every direction: unset by default, probed
+/// before it is spawned, and reported by `/doctor` either way.
+pub(super) fn sidecar_command() -> Option<(String, Vec<String>)> {
+    let raw = std::env::var("CREW_SIDECAR").ok()?;
+    let (program, args) = crew_hive::worker::stdio::parse_command(&raw)?;
+    crew_hive::worker::stdio::probe(&program).then_some((program, args))
+}
+
+/// The sidecar factory, when one is configured, runnable, and starts.
+///
+/// A failure to spawn falls back to crew's own agents rather than failing the task: the sidecar
+/// is an engine BEHIND the bridge, never crew's spine, and a machine that lost its Python must
+/// go on working exactly as it did before. It says so on stderr, where the broker's log is.
+fn sidecar_factory(
+    tools: &Option<Arc<dyn crew_hive::tools::Tools>>,
+) -> Option<Arc<dyn AgentFactory>> {
+    let (program, args) = sidecar_command()?;
+    match crew_hive::worker::stdio::StdioTransport::spawn(&program, &args) {
+        Ok(t) => Some(Arc::new(
+            crew_hive::RemoteFactory::new(Arc::new(t)).with_tools(tools.clone()),
+        )),
+        Err(e) => {
+            eprintln!("crew: could not start the sidecar `{program}`: {e} — running natively");
+            None
+        }
+    }
+}
+
 pub(super) fn backend(tools: Option<Arc<dyn crew_hive::tools::Tools>>) -> Backend {
     match crate::broker::discover::provider_and_model() {
         None => (
@@ -59,14 +88,22 @@ pub(super) fn backend(tools: Option<Arc<dyn crew_hive::tools::Tools>>) -> Backen
                 }
                 .with_model(model.clone()),
             );
-            let mut factory =
-                crew_hive::ApiFactory::new(provider, WORK_MAX_TOKENS).with_model(model.clone());
-            if let Some(t) = tools {
-                factory = factory.with_tools(t);
-            }
+            // The sidecar replaces the AGENTS, never the planner: crew decomposes the goal and
+            // owns the tools and the gate, and the engine behind the bridge runs the tasks.
+            let factory: Arc<dyn AgentFactory> = match sidecar_factory(&tools) {
+                Some(f) => f,
+                None => {
+                    let mut f = crew_hive::ApiFactory::new(provider, WORK_MAX_TOKENS)
+                        .with_model(model.clone());
+                    if let Some(t) = tools {
+                        f = f.with_tools(t);
+                    }
+                    Arc::new(f)
+                }
+            };
             (
                 Arc::clone(&planner),
-                Arc::new(factory),
+                factory,
                 Some(Budget {
                     max_micros_usd: Budget::DEFAULT_MICROS_USD,
                 }),
@@ -100,3 +137,7 @@ pub(super) fn lagged_note(n: u64) -> String {
         if n == 1 { "" } else { "s" }
     )
 }
+
+#[cfg(test)]
+#[path = "swarmconf_tests.rs"]
+mod tests;

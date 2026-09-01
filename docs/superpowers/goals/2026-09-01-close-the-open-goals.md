@@ -13,7 +13,9 @@ is loaded. Retrieval landed with it: above 24 tools the task chooses which
 are named, crew's own are never dropped, what was left out is counted, and `sys:find_tools`
 searches the whole catalog so nothing is unreachable. **v0.20.6** closed Pillar 5 item 3 (`crew ask` reaches every window) and done-means 2 (the
 morning briefing, which needed no code path of its own — the clock plus an integration is one).
-Open: Pillar 2 (voice), Pillar 4 (the sidecar), and Pillar 5 items 1 and 5.
+**v0.20.7 closed Pillar 4**: the wire carries tools, streamed deltas and opaque state, a tool
+call goes back to CREW (so a sidecar never holds a credential), `CREW_SIDECAR` spawns one, and
+`/doctor` reports it. Open: Pillar 2 (voice) and Pillar 5 items 1 and 5.
 
 **Set:** 2026-09-01 by the user — *"write a goal to complete any pending plan"* — after an audit of
 every goal, plan and spec under `docs/superpowers/` against the tree at v0.20.0.
@@ -123,7 +125,15 @@ that a tool the agent needs is never the one that got filtered out.
 
 ### Pillar 4 — the bridge stops being a test fixture
 
-`crew-hive` already contains `wire/` (the `RemoteTask`/`RemoteReply` line protocol and the
+**SHIPPED v0.20.7.** The wire grew `tools`, `state` and a message protocol (`delta` / `call` /
+`result` / `done`), `StdioTransport` spawns a sidecar, `RemoteFactory` carries the session's
+tools, `CREW_SIDECAR` selects it, `/doctor` reports it, and
+`examples/sidecar/crew_sidecar.py` is the reference. One deviation from the text below, taken
+deliberately: the selector is an environment knob rather than a `/crew engine sidecar`
+construct, because the command diet's whole point is that configuration is not vocabulary.
+What follows is the goal as it was set.
+
+`crew-hive` already contained `wire/` (the `RemoteTask`/`RemoteReply` line protocol and the
 `Transport` trait), `worker/` (`serve_stdio`, `LoopbackTransport`) and `remoteagent/`
 (`RemoteAgent`, `RemoteFactory`) — built for exactly this and **unreachable from production**:
 `RemoteFactory` is constructed in three places and all three are tests. Nothing spawns a sidecar and
