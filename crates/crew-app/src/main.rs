@@ -210,6 +210,7 @@ mod inputlegend;
 mod inputshot_tests;
 mod invisibles;
 mod ipc;
+mod ipc_cards;
 mod ipc_types;
 #[cfg(windows)]
 mod ipc_win;

@@ -135,8 +135,9 @@ fn nothing_installs_the_service_without_being_asked() {
             .unwrap_or_default()
             .to_string_lossy()
             .to_string();
-        // The installer itself, its tests, and the one CLI subcommand that exists to call it.
-        if name.starts_with("service") || name.starts_with("cli") {
+        // The installer itself, its tests, and the one CLI subcommand that exists to call it
+        // (`installcli.rs` IS `crew daemon install`, split out of `cli.rs` for size).
+        if name.starts_with("service") || name.starts_with("cli") || name == "installcli.rs" {
             continue;
         }
         let Ok(text) = std::fs::read_to_string(f) else {

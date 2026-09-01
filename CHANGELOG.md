@@ -8,6 +8,52 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.20.1
+
+**Crew gets a clock.**
+
+The resident could hold a conversation and could not hold an appointment. It
+routes a message from your phone to an agent and the answer back, and nothing
+anywhere in it fired on time — the only natural-language time in the whole tree
+belonged to the todo pane.
+
+**`crew daemon at "tomorrow 9am brief me on the calendar"`** now reads the time
+out of the sentence, using that same grammar, and hands the rest to an agent
+when it comes round. `--every daily|weekly|hourly|30m` repeats it, `--to`
+says where the answer goes (and may be left off when exactly one channel is
+configured with exactly one address), `crew daemon watching` lists what is
+standing, and `crew daemon cancel w1` calls one off.
+
+Four decisions are worth naming, because each is a way this could have been
+built wrong:
+
+**A missed firing says it was missed.** A laptop shut over 7am delivers the
+briefing late with `(this was due 4h ago — crew was not running then)` rather
+than pretending it looked on time. A repeat that slept through several
+occurrences rolls forward to the next one and says how many it stepped over —
+seven alarms in a burst at breakfast is not what "daily" meant.
+
+**A scheduled run has the least authority in crew, not the most.** Every firing
+opens a session of its OWN as a `trigger:` requester, never the session a person
+is talking to crew in. Sharing that session would hand a schedule the tier a
+human conversation earned, which is the one promotion the action gate exists to
+prevent; as it stands, an irreversible tool call a firing reaches for is refused
+rather than asked about, because there is nobody awake to ask.
+
+**It survives a restart**, because the watchlist is `watchlist.jsonl` beside the
+ledger and under the same discipline: append-only, a cancellation is a
+tombstone, a firing is a recorded fact, and what is standing is the fold of the
+log. A torn last line costs one entry, not the watchlist.
+
+**It fires once.** The firing is recorded before the work is dispatched — the
+poll runs four times a second, and a crash between the two costs one run
+instead of repeating it forever.
+
+Underneath, six files were split along the boundaries this work exposed: the
+daemon's wire face (`answer`) left its state, the clock left the serve loop,
+`crew daemon install` left the CLI router, and the ipc card types left the
+protocol envelope.
+
 ## 0.20.0
 
 **`/tools` becomes readable where it is actually opened.**

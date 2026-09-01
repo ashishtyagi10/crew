@@ -14,6 +14,9 @@ usage:
   crew daemon close <id>      stop one session
   crew daemon send <id> <ln>  write one line to a session's agent
   crew daemon poll <id>       read a session's output (--after N to resume)
+  crew daemon at <when+what>  do something later (--to ADDR, --every daily|30m)
+  crew daemon watching        list what crew is waiting to do
+  crew daemon cancel <id>     call one standing intent off
   crew daemon channels        list the ways in, and which are usable
   crew daemon say <to> <txt>  send a message out through a channel (kind:rest)
   crew daemon install         start the resident at login (opt-in; --remove undoes it)
@@ -27,81 +30,9 @@ fn instance() -> Option<String> {
         .filter(|s| !s.is_empty())
 }
 
-/// Whether the opt-in login service is installed for this user.
-fn service_state() -> &'static str {
-    let Some(home) = dirs::home_dir() else {
-        return "unknown (no home directory)";
-    };
-    match std::env::current_exe()
-        .ok()
-        .and_then(|exe| super::service::unit_for_host(&exe))
-    {
-        Some(unit) if super::service::is_installed(&home, &unit) => "installed",
-        Some(_) => "not installed (crew daemon install)",
-        None => "unsupported on this platform",
-    }
-}
-
-/// `crew daemon install` / `--remove`. Nothing else in crew may call this: a background service
-/// the user did not ask for turns a bad release into a login loop instead of an `/update`.
-fn install(remove: bool) -> i32 {
-    let Some(home) = dirs::home_dir() else {
-        println!("cannot find your home directory");
-        return 1;
-    };
-    let exe = match std::env::current_exe() {
-        Ok(p) => p,
-        Err(e) => {
-            println!("cannot locate the crew binary: {e}");
-            return 1;
-        }
-    };
-    let Some(unit) = super::service::unit_for_host(&exe) else {
-        println!("crew has no service integration for this platform yet");
-        return 1;
-    };
-    if remove {
-        if let Err(e) = super::service::run_step(&home, &unit.deactivate) {
-            println!("could not deactivate the service: {e}");
-        }
-        return match super::service::remove_unit(&home, &unit) {
-            Ok(true) => {
-                println!("the crew daemon will no longer start at login");
-                0
-            }
-            Ok(false) => {
-                println!("the crew daemon was not installed");
-                0
-            }
-            Err(e) => {
-                println!("could not remove the service file: {e}");
-                1
-            }
-        };
-    }
-    match super::service::write_unit(&home, &unit) {
-        Ok(path) => {
-            println!("wrote {}", path.display());
-            match super::service::run_step(&home, &unit.activate) {
-                Ok(()) => println!("the crew daemon will start at login (and is starting now)"),
-                Err(e) => println!(
-                    "wrote the service file but could not activate it: {e}\n\
-                     activate it yourself with: {}",
-                    unit.activate.join(" ")
-                ),
-            }
-            0
-        }
-        Err(e) => {
-            println!("could not write the service file: {e}");
-            1
-        }
-    }
-}
-
 /// The "nothing is listening" message and exit code, shared by every subcommand that needs a
 /// running resident.
-fn no_daemon() -> i32 {
+pub(super) fn no_daemon() -> i32 {
     println!("no crew daemon running");
     3
 }
@@ -117,7 +48,7 @@ pub(crate) fn dispatch_cli() -> Option<i32> {
 }
 
 /// The value of `--cwd`, if given.
-fn flag<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
+pub(super) fn flag<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
     let i = args.iter().position(|a| a == name)?;
     args.get(i + 1).map(String::as_str)
 }
@@ -137,7 +68,7 @@ fn positional(args: &[String], after: usize) -> Option<&str> {
 
 /// Render a reply that is not the one this subcommand expected, so a protocol mismatch reads as
 /// a mismatch instead of a silent zero exit.
-fn unexpected(r: &Reply) -> i32 {
+pub(super) fn unexpected(r: &Reply) -> i32 {
     println!("unexpected reply from the daemon: {r:?}");
     4
 }
@@ -282,6 +213,9 @@ pub(crate) fn run_sub(args: &[String]) -> i32 {
                 None => no_daemon(),
             }
         }
+        Some("at") | Some("watching") | Some("cancel") => {
+            super::watchcli::sub(inst.as_deref(), args, USAGE)
+        }
         Some("channels") => {
             match super::request(inst.as_deref(), &Request::Channels { v: PROTOCOL_V }) {
                 Some(Reply::Channels { registered, ready }) => {
@@ -324,8 +258,8 @@ pub(crate) fn run_sub(args: &[String]) -> i32 {
                 None => no_daemon(),
             }
         }
-        Some("install") => install(args.iter().any(|a| a == "--remove")),
-        Some("uninstall") => install(true),
+        Some("install") => super::installcli::install(args.iter().any(|a| a == "--remove")),
+        Some("uninstall") => super::installcli::install(true),
         Some("status") => {
             let code = match probe(inst.as_deref()) {
                 Some(st) => {
@@ -339,7 +273,7 @@ pub(crate) fn run_sub(args: &[String]) -> i32 {
             };
             // "Running now" and "comes back at login" are different questions, and the second
             // is the one that decides whether this is a resident or a process you started once.
-            println!("login service: {}", service_state());
+            println!("login service: {}", super::installcli::service_state());
             code
         }
         _ => {

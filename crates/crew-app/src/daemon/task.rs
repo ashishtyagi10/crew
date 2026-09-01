@@ -10,9 +10,13 @@
 //! that away along with its context.
 use std::collections::BTreeMap;
 
-use crew_plugin::{PluginCommand, PluginEvent};
+use crew_plugin::PluginCommand;
 
+pub(crate) use super::answers::{emitted, Emitted};
+use super::answers::{parse_answer, ALLOWED, REFUSED, UNCLEAR};
 use super::session::Registry;
+#[cfg(test)]
+pub(crate) use crew_plugin::PluginEvent;
 
 /// The broker channel name a daemon-owned session talks on. The broker echoes it back on every
 /// message; nothing else depends on the value.
@@ -25,6 +29,10 @@ pub(crate) const ACK: &str = "on it\u{2026}";
 /// One channel address's conversation.
 struct Route {
     session: String,
+    /// Where this conversation's answers go. Usually the key, and deliberately its own field:
+    /// a fired intent runs in a session of its OWN (see [`Bridge::dispatch_as`]) and still has
+    /// to answer on the address the person who set it reads.
+    reply: String,
     /// How far through this session's output we have already read.
     cursor: usize,
     /// The approval this conversation is blocked on, if any. While it is set, the next thing
@@ -49,10 +57,30 @@ impl Bridge {
         addr: &str,
         text: &str,
     ) -> Result<&'static str, String> {
+        // The session is for whoever is at that address, and the broker child is told so: its
+        // gate must not treat a phone as a person at the keyboard.
+        let who = crew_plugin::approval::Requester::Channel(addr.to_string());
+        self.dispatch_as(reg, addr, addr, &who, text)
+    }
+
+    /// [`Bridge::dispatch`] with the conversation named separately from the address it answers
+    /// on, and with an explicit requester.
+    ///
+    /// A fired intent uses this, and the separation is the security-relevant part: a trigger is
+    /// the most restricted requester there is, so it must never land in the session a PERSON
+    /// opened by messaging in. Sharing that session would hand a scheduled run the tier a human
+    /// conversation earned — the one promotion the gate exists to prevent.
+    pub(crate) fn dispatch_as(
+        &mut self,
+        reg: &mut Registry,
+        key: &str,
+        reply: &str,
+        who: &crew_plugin::approval::Requester,
+        text: &str,
+    ) -> Result<&'static str, String> {
+        let addr = key;
         if !self.routes.contains_key(addr) {
-            // The session is for whoever is at that address, and the broker child is told so:
-            // its gate must not treat a phone as a person at the keyboard.
-            let requester = crew_plugin::approval::Requester::Channel(addr.to_string()).to_env();
+            let requester = who.to_env();
             let id = reg
                 .open_for(addr, None, Some(&requester))
                 .map_err(|e| format!("could not start a session: {e}"))?;
@@ -65,6 +93,7 @@ impl Bridge {
                 addr.to_string(),
                 Route {
                     session: id,
+                    reply: reply.to_string(),
                     cursor: 0,
                     awaiting: None,
                 },
@@ -111,7 +140,8 @@ impl Bridge {
     /// `Message` is the one event that carries the finished, normalized reply.
     pub(crate) fn collect(&mut self, reg: &Registry) -> Vec<(String, String)> {
         let mut out = Vec::new();
-        for (addr, route) in self.routes.iter_mut() {
+        for route in self.routes.values_mut() {
+            let addr = route.reply.clone();
             let Some((lines, next, dropped)) = reg.output(&route.session, route.cursor) else {
                 continue;
             };
@@ -144,49 +174,6 @@ impl Bridge {
     #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         self.routes.len()
-    }
-}
-
-/// What crew says when it has taken an answer.
-pub(crate) const ALLOWED: &str = "approved \u{2014} carrying on";
-pub(crate) const REFUSED: &str = "refused \u{2014} I will not do it";
-/// What it says when the answer was neither. Deliberately does NOT guess: the whole point of
-/// asking is that somebody meant to say yes or no, and reading "maybe later" as either is worse
-/// than asking twice.
-pub(crate) const UNCLEAR: &str = "I need a yes or a no on that one.";
-
-/// Something from a session worth sending on.
-#[derive(Debug, PartialEq)]
-pub(crate) enum Emitted {
-    /// A finished reply.
-    Reply(String),
-    /// A question a human has to answer before the agent can continue.
-    Ask { id: String, question: String },
-}
-
-/// What one broker output line means to the channel, if anything.
-pub(crate) fn emitted(line: &str) -> Option<Emitted> {
-    match serde_json::from_str::<PluginEvent>(line).ok()? {
-        PluginEvent::Message { text, .. } if !text.trim().is_empty() => Some(Emitted::Reply(text)),
-        PluginEvent::Approval { id, question, .. } => Some(Emitted::Ask { id, question }),
-        _ => None,
-    }
-}
-
-/// Read a yes or a no out of what somebody typed. `None` for anything else — including an empty
-/// message, and including words like "maybe": an approval is exactly the place not to guess.
-pub(crate) fn parse_answer(text: &str) -> Option<bool> {
-    match text
-        .trim()
-        .to_lowercase()
-        .trim_end_matches(['.', '!'])
-        .trim()
-    {
-        "y" | "yes" | "ok" | "okay" | "sure" | "approve" | "approved" | "go" | "go ahead"
-        | "do it" | "allow" => Some(true),
-        "n" | "no" | "nope" | "deny" | "denied" | "refuse" | "stop" | "cancel" | "don't"
-        | "dont" => Some(false),
-        _ => None,
     }
 }
 

@@ -38,6 +38,13 @@ pub(crate) trait Channel: Send {
         Vec::new()
     }
 
+    /// The one address this channel may talk to, when there is exactly one. A standing intent
+    /// has to answer SOMEWHERE, and for a Telegram bot with a single allowed chat that address
+    /// is a fact rather than a guess. `None` whenever it would be a guess.
+    fn default_address(&self) -> Option<String> {
+        None
+    }
+
     /// Is this channel usable right now? A channel with no credential configured is present but
     /// inert — it reports false rather than pretending, so `crew daemon status` can say which
     /// ways in are actually open.
@@ -104,6 +111,19 @@ impl Router {
             out.extend(c.poll());
         }
         out
+    }
+
+    /// The address to answer on when nobody named one: the sole default of the sole ready
+    /// channel. `None` when there are none or more than one — sending someone's morning
+    /// briefing to whichever channel sorted first is exactly the mistake worth refusing.
+    pub(crate) fn default_address(&self) -> Option<String> {
+        let mut found = self
+            .channels
+            .values()
+            .filter(|c| c.ready())
+            .filter_map(|c| c.default_address());
+        let first = found.next()?;
+        found.next().is_none().then_some(first)
     }
 
     /// Send `text` to `addr`. An unroutable address is an error, never a silent drop: a reply

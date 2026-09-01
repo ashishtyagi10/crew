@@ -2303,6 +2303,47 @@ anyone can drive. Crew prints the id of any chat it turns away, so the first
 rejected message tells you what to put there. `crew daemon channels` shows every
 way in and whether it is usable.
 
+**The resident (`crew daemon`).** Crew's broker is normally a child of the
+window, so closing the window ends it. The daemon is the process that outlives
+it: no display, no window, its own local endpoint. It is **opt-in in every
+direction** — no release, update or app launch ever installs it.
+
+| command | what it does |
+|---|---|
+| `crew daemon run` | run the resident in this terminal (foreground) |
+| `crew daemon status` | report a running resident, or exit 3 if there is none |
+| `crew daemon install` | start it at login (a launchd user agent on macOS, a systemd user unit on Linux); `--remove` undoes it |
+| `crew daemon channels` | every way in, and which are usable |
+| `crew daemon sessions` / `open` / `close` / `send` / `poll` | the agent sessions the daemon owns |
+| `crew daemon say <to> <text>` | send one message out through a channel |
+| `crew daemon at <when+what>` | do something later — see below |
+| `crew daemon watching` | what crew is waiting to do, soonest first |
+| `crew daemon cancel <id>` | call one standing intent off |
+
+**Standing intents — crew's own clock.** `crew daemon at "tomorrow 9am brief me
+on the calendar"` reads the time out of the sentence (the same grammar the todo
+composer uses, so `friday 5pm`, `in 2 weeks` and `tomorrow` all work) and hands
+the rest to an agent when it fires. `--every daily|weekly|hourly|30m` makes it
+repeat; `--to telegram:12345` says where the answer goes, and may be omitted
+when exactly one channel is configured with exactly one address. Each intent
+gets a short id (`w1`) to cancel it by.
+
+Four things it deliberately does:
+
+- **A missed firing says it was missed.** A laptop shut over a firing delivers
+  it late with `(this was due 4h ago — crew was not running then)`, and a repeat
+  that slept through several occurrences runs ONCE and says how many it skipped.
+  Seven alarms in a burst at breakfast is not what "daily" meant.
+- **It survives restarts.** The watchlist is `~/.config/crew/watchlist.jsonl`,
+  append-only beside the ledger: a cancellation is a tombstone, a firing is a
+  recorded fact, and what is standing is the fold of the log.
+- **A scheduled run has the LEAST authority, not the most.** Every firing opens
+  a session of its own as a `trigger:` requester — never the session a person is
+  talking to crew in — so an irreversible tool call it reaches for is refused
+  rather than asked about, because there is nobody awake to ask.
+- **It fires once.** The firing is recorded before the work is dispatched, so a
+  crash costs one run rather than repeating it on every poll forever.
+
 **Pointing a pane at a different binary.** Each plugin-backed pane runs a child
 process, and each resolves its command the same way: an environment override
 first, then a sibling of the running executable. `CREW_BROKER_PLUGIN` replaces

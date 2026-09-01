@@ -13,11 +13,13 @@
 //! 2. `export CREW_TELEGRAM_TOKEN=<token>`
 //! 3. Message your new bot once, then set `CREW_TELEGRAM_CHATS=<your chat id>` — crew prints the
 //!    id of any chat it turns away, so the first rejected message tells you what to put there.
-use std::collections::BTreeSet;
 
 use super::{Channel, Inbound};
 
+pub(crate) mod allow;
 pub(crate) mod api;
+
+pub(crate) use allow::Allowlist;
 
 /// One message as the Bot API reports it, reduced to what a channel needs.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,32 +38,6 @@ pub(crate) trait TelegramApi: Send {
     fn get_updates(&self, offset: i64) -> Result<Vec<Update>, String>;
     /// Send one message to a chat.
     fn send_message(&self, chat_id: i64, text: &str) -> Result<(), String>;
-}
-
-/// Who crew will listen to. An assistant with a public address is an assistant anyone can drive,
-/// so silence toward strangers is the default: an empty allowlist accepts NOBODY rather than
-/// everybody. The alternative — open until configured — is a window that stands open for
-/// exactly as long as it takes the owner to notice.
-#[derive(Debug, Default, Clone)]
-pub(crate) struct Allowlist(BTreeSet<i64>);
-
-impl Allowlist {
-    /// Parse `CREW_TELEGRAM_CHATS`: comma or space separated chat ids.
-    pub(crate) fn parse(raw: &str) -> Self {
-        Self(
-            raw.split([',', ' ', '\t'])
-                .filter_map(|s| s.trim().parse::<i64>().ok())
-                .collect(),
-        )
-    }
-
-    pub(crate) fn allows(&self, chat_id: i64) -> bool {
-        self.0.contains(&chat_id)
-    }
-
-    pub(crate) fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
 }
 
 /// What one poll produced: the messages to act on, the new offset, and the chats turned away.
@@ -278,6 +254,11 @@ impl Channel for Telegram {
     /// neither be addressed nor answer, so calling it ready would be a lie.
     fn ready(&self) -> bool {
         self.api.is_some() && !self.allow.is_empty()
+    }
+
+    /// A bot allowed to talk to exactly one chat has exactly one address.
+    fn default_address(&self) -> Option<String> {
+        self.allow.sole().map(|id| format!("telegram:{id}"))
     }
 }
 

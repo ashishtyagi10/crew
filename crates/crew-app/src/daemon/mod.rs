@@ -15,11 +15,20 @@ use std::time::Instant;
 use crate::ipc;
 use crate::ipc_types::{Reply, Request};
 
+pub(crate) mod answers;
 pub(crate) mod cli;
+pub(crate) mod clock;
+pub(crate) mod installcli;
+pub(crate) mod intent;
+pub(crate) mod intentlog;
 pub(crate) mod reply;
 pub(crate) mod service;
 pub(crate) mod session;
 pub(crate) mod task;
+pub(crate) mod watchcli;
+pub(crate) mod wire;
+
+pub(crate) use wire::answer;
 
 /// The daemon's live state, flattened to the values a status reply needs. Kept separate from the
 /// serving loop so the reply logic is pure and testable without binding a socket.
@@ -41,6 +50,8 @@ pub(crate) struct Daemon {
     /// Every way in and out. Empty until a real channel is built — the resident is reachable
     /// only from a pane today, and `crew daemon channels` says so rather than implying more.
     channels: crate::channel::Router,
+    /// What crew is waiting to do on its own clock.
+    watch: intentlog::Watchlist,
 }
 
 impl Daemon {
@@ -62,7 +73,15 @@ impl Daemon {
                 let _ = r.add(Box::new(crate::channel::telegram::Telegram::from_env()));
                 r
             },
+            watch: intentlog::Watchlist::at(intentlog::default_path()),
         }
+    }
+
+    /// Point the resident at a watchlist of the test's own, so a test never fires — or
+    /// cancels — anything standing in the user's real one.
+    #[cfg(test)]
+    pub(crate) fn set_watchlist(&mut self, w: intentlog::Watchlist) {
+        self.watch = w;
     }
 
     /// Register a channel on a running daemon. Tests use it to drive a whole round trip; a
@@ -130,90 +149,6 @@ impl Daemon {
             sessions: self.sessions.len(),
             version: crate::appregister::VERSION.to_string(),
         }
-    }
-}
-
-/// Answer one request. `None` for anything the daemon does not serve — the ask ops belong to the
-/// GUI's endpoint, and a client that dials the wrong socket must get silence rather than a
-/// confidently wrong reply.
-pub(crate) fn answer(req: &Request, d: &mut Daemon) -> Option<Reply> {
-    match req {
-        Request::DaemonStatus { .. } => {
-            let st = d.status();
-            Some(Reply::Daemon {
-                pid: st.pid,
-                uptime_s: st.uptime_s,
-                sessions: st.sessions,
-                version: st.version,
-            })
-        }
-        Request::OpenSession { label, cwd, .. } => {
-            let dir = cwd.as_deref().map(std::path::Path::new);
-            Some(match d.sessions.open(label, dir) {
-                Ok(id) => Reply::Session { id },
-                Err(e) => Reply::Failed {
-                    message: format!("could not start a session: {e}"),
-                },
-            })
-        }
-        Request::Sessions { .. } => Some(Reply::Sessions {
-            sessions: d
-                .sessions
-                .cards()
-                .into_iter()
-                .map(|c| crate::ipc_types::SessionCard {
-                    id: c.id,
-                    label: c.label,
-                    cwd: c.cwd,
-                    alive: c.alive,
-                })
-                .collect(),
-        }),
-        Request::Channels { .. } => Some(Reply::Channels {
-            registered: d.channels.kinds().into_iter().map(str::to_string).collect(),
-            ready: d
-                .channels
-                .ready_kinds()
-                .into_iter()
-                .map(str::to_string)
-                .collect(),
-        }),
-        Request::Say { to, text, .. } => Some(match d.channels.send(to, text) {
-            Ok(()) => Reply::Sent {
-                id: to.clone(),
-                delivered: true,
-            },
-            Err(e) => Reply::Failed { message: e },
-        }),
-        Request::SessionSend { id, line, .. } => Some(match d.sessions.send(id, line) {
-            Some(delivered) => Reply::Sent {
-                id: id.clone(),
-                delivered,
-            },
-            None => Reply::Failed {
-                message: format!("no such session: {id}"),
-            },
-        }),
-        Request::SessionPoll { id, after, .. } => Some(match d.sessions.output(id, *after) {
-            Some((lines, next, dropped)) => Reply::Events {
-                lines,
-                next,
-                dropped,
-            },
-            None => Reply::Failed {
-                message: format!("no such session: {id}"),
-            },
-        }),
-        Request::CloseSession { id, .. } => Some(match d.sessions.close(id) {
-            Some(was_alive) => Reply::Closed {
-                id: id.clone(),
-                was_alive,
-            },
-            None => Reply::Failed {
-                message: format!("no such session: {id}"),
-            },
-        }),
-        _ => None,
     }
 }
 
@@ -294,6 +229,7 @@ pub(crate) fn run_at(path: std::path::PathBuf) -> i32 {
             Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
         }
         daemon.service_channels();
+        daemon.service_intents(crate::chattime::unix_now_ms());
         daemon.deliver_replies();
     }
     0

@@ -4,6 +4,8 @@
 //! bytes in a future federated build (see docs/vision/sentinel-network.md).
 use serde::{Deserialize, Serialize};
 
+pub use crate::ipc_cards::{CastAnswer, IntentCard, PaneCard, SessionCard};
+
 /// Protocol version, bumped on any incompatible envelope change.
 pub const PROTOCOL_V: u32 = 1;
 
@@ -61,6 +63,20 @@ pub enum Request {
     Channels { v: u32 },
     /// Send one message out through a channel, addressed `kind:rest`.
     Say { v: u32, to: String, text: String },
+    /// Register a standing intent: work the daemon does later, on its own.
+    /// `repeat_secs` is `None` for a one-shot. The time is absolute epoch ms —
+    /// "tomorrow 9am" is resolved by the client, where the user's clock is.
+    Watch {
+        v: u32,
+        text: String,
+        to: String,
+        fire_ms: u64,
+        repeat_secs: Option<u64>,
+    },
+    /// List what the daemon is waiting to do.
+    Watching { v: u32 },
+    /// Call one standing intent off by id.
+    Unwatch { v: u32, id: String },
     /// Ask the resident daemon what it is: pid, uptime, live session count.
     /// Served on the daemon endpoint only — the GUI's ask socket does not
     /// answer it, and the daemon does not answer the ask ops.
@@ -142,6 +158,21 @@ pub enum Reply {
     Failed {
         message: String,
     },
+    /// A standing intent was registered.
+    Watched {
+        id: String,
+        fire_ms: u64,
+    },
+    /// Everything the daemon is waiting to do, soonest first.
+    Watchlist {
+        intents: Vec<IntentCard>,
+    },
+    /// A standing intent was called off. `found` is false when nothing by that
+    /// id was standing — a cancel that matched nothing must not report success.
+    Unwatched {
+        id: String,
+        found: bool,
+    },
     /// The resident daemon's status.
     Daemon {
         pid: u32,
@@ -151,35 +182,6 @@ pub enum Reply {
     },
 }
 
-/// One pane's outcome within a broadcast reply. `text` is `Some` when it
-/// answered; otherwise `no_answer` says why (both never set at once).
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-pub struct CastAnswer {
-    pub pane: String,
-    pub label: Option<String>,
-    pub text: Option<String>,
-    pub no_answer: Option<NoAnswer>,
-}
-
-/// One addressable pane in the `crew panes` roster.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-pub struct PaneCard {
-    pub id: String,
-    pub label: Option<String>,
-    pub kind: String,
-    pub running: Option<String>,
-    pub dir: Option<String>,
-    pub busy: bool,
-}
-
 #[cfg(test)]
 #[path = "ipc_types_tests.rs"]
 mod tests;
-/// One session in a [`Reply::Sessions`] listing.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-pub struct SessionCard {
-    pub id: String,
-    pub label: String,
-    pub cwd: Option<String>,
-    pub alive: bool,
-}

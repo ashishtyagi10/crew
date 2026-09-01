@@ -69,7 +69,10 @@ impl CrewApp {
             | Request::SessionSend { .. }
             | Request::SessionPoll { .. }
             | Request::Channels { .. }
-            | Request::Say { .. } => return false,
+            | Request::Say { .. }
+            | Request::Watch { .. }
+            | Request::Watching { .. }
+            | Request::Unwatch { .. } => return false,
         };
         let Some(idx) = crate::askroute::resolve(&self.panes, &to) else {
             let _ = reply.send(Reply::NoAnswer {
