@@ -37,7 +37,12 @@ impl CrewApp {
 
     /// Handle one request: serve the roster, or resolve + inject + register.
     /// Returns true if it injected (screen changed).
-    fn service_request(&mut self, req: Request, reply: Sender<Reply>, now_ms: u64) -> bool {
+    pub(crate) fn service_request(
+        &mut self,
+        req: Request,
+        reply: Sender<Reply>,
+        now_ms: u64,
+    ) -> bool {
         let (from, to, question, id) = match req {
             Request::Panes { .. } => {
                 let panes = crate::panes_roster::roster(&self.panes, &self.procnames);

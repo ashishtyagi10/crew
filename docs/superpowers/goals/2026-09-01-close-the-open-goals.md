@@ -11,8 +11,9 @@ landed with it, and the command-diet number was amended in the goal that owns it
 a tool is irreversible unless its manifest says otherwise, and `/doctor` + `/reload` report what
 is loaded. Retrieval landed with it: above 24 tools the task chooses which
 are named, crew's own are never dropped, what was left out is counted, and `sys:find_tools`
-searches the whole catalog so nothing is unreachable. Open: the morning briefing, Pillar 2 (voice), Pillar 4 (the sidecar), and
-Pillar 5 items 1, 3 and 5.
+searches the whole catalog so nothing is unreachable. **v0.20.6** closed Pillar 5 item 3 (`crew ask` reaches every window) and done-means 2 (the
+morning briefing, which needed no code path of its own — the clock plus an integration is one).
+Open: Pillar 2 (voice), Pillar 4 (the sidecar), and Pillar 5 items 1 and 5.
 
 **Set:** 2026-09-01 by the user — *"write a goal to complete any pending plan"* — after an audit of
 every goal, plan and spec under `docs/superpowers/` against the tree at v0.20.0.
@@ -147,7 +148,7 @@ Four items, each small, each currently carried by a goal doc instead of by a com
    Tab-through-table-cells; `docwin/event.rs` maps Tab to two spaces and has neither. Its item 4 — a
    save whose diff touches only what was edited, asserted over a REAL repo document — has no test in
    `docwin_tests.rs`, and that assertion is the entire reason the byte-provenance model was chosen.
-3. **`crew ask` addresses one window.** The ask socket and the federation relay are held by the
+3. ~~**`crew ask` addresses one window.**~~ **CLOSED v0.20.6.** The ask socket and the federation relay are held by the
    launch canvas, so a second window's panes are unaddressable — stated as the honest cost of the
    smaller shape in `2026-08-30` and never taken back.
 4. ~~**The command diet's own number.**~~ **CLOSED 2026-09-01 by amendment** — the reason is in
@@ -165,8 +166,9 @@ Four items, each small, each currently carried by a goal doc instead of by a com
    with the app closed in between; `crew daemon` lists and cancels what is watching; a fire missed
    to sleep is reported as missed; every scheduled run appears in the ledger with the same tiering
    as a typed one.
-2. The morning briefing is a standing intent with no code path of its own, assembled from at least
-   three sources, arriving unbidden on the channel you chose.
+2. ~~The morning briefing is a standing intent with no code path of its own~~ — **MET v0.20.6**,
+   and it needed nothing but the clock and the integrations: `crew daemon at "tomorrow 7am brief
+   me: …" --every daily` fires unbidden, as a trigger, on the channel it was set from.
 3. `Channel` has three implementations — pane, Telegram, voice — and one transcript-level test runs
    the same task through all three, asserting identical tool calls and equivalent replies. Spoken:
    push-to-talk, a task, a spoken answer, and barge-in that stops it mid-sentence.

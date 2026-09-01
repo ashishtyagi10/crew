@@ -17,6 +17,28 @@ pub(crate) fn split_instance(addr: &str) -> (&str, Option<&str>) {
     }
 }
 
+/// Split a window prefix off an address: `w1p0` → `(Some(1), "p0")`, `schema` → `(None,
+/// "schema")`. Only a `w<digits>p<digits>` shape is a window prefix — a pane LABELLED `w1p0`
+/// would be unreachable otherwise, and a label beginning with `w` (`worker`, `web`) must not be
+/// mistaken for one.
+pub(crate) fn split_window(addr: &str) -> (Option<usize>, &str) {
+    let Some(rest) = addr.strip_prefix('w') else {
+        return (None, addr);
+    };
+    let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+    if digits.is_empty() {
+        return (None, addr);
+    }
+    let after = &rest[digits.len()..];
+    let looks_like_a_pane = after
+        .strip_prefix('p')
+        .is_some_and(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()));
+    match looks_like_a_pane {
+        true => (digits.parse().ok(), after),
+        false => (None, addr),
+    }
+}
+
 /// Resolve an address to a pane index: an exact `/name`-or-label match first,
 /// else the `p{index}` fallback form (every pane is addressable even unnamed).
 pub(crate) fn resolve(panes: &[Pane], addr: &str) -> Option<usize> {

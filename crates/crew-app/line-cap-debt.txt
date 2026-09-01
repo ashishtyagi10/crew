@@ -9,8 +9,7 @@ src/app_tests.rs 1354
 src/appregister.rs 291
 src/blocked.rs 267
 src/blocked_tests.rs 413
-src/canvas.rs 216
-src/canvas_tests.rs 208
+src/canvas/canvas_tests.rs 208
 src/cardshot_tests.rs 210
 src/channel/telegram/mod.rs 286
 src/channel/telegram/mod_tests.rs 201

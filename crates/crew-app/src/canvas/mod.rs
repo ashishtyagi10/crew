@@ -27,8 +27,20 @@ use crate::app::CrewApp;
 use crate::config::CrewConfig;
 
 /// Every open canvas.
+mod ask;
+mod life;
+
 pub struct Crew {
     canvases: Vec<CrewApp>,
+    /// The `crew ask` endpoint, held HERE rather than by the first canvas.
+    ///
+    /// It was the launch canvas's, which made every pane in every other window unaddressable:
+    /// `crew panes` listed one window's panes and `crew ask` could only reach them. The socket
+    /// is one thing about the PROCESS, so the process's owner holds it and routes each request
+    /// to the canvas that can answer it.
+    ipc: Option<crate::ipc::IpcHandle>,
+    /// Broadcasts in flight, each fanned across every canvas and merged back into one reply.
+    casts: Vec<ask::Merge>,
     /// The canvas whose window last had an event — where a canvas-less action
     /// (a restart, a quit) is answered from.
     active: usize,
@@ -38,11 +50,13 @@ pub struct Crew {
 }
 
 impl Crew {
-    pub fn new(first: CrewApp) -> Self {
+    pub fn new(mut first: CrewApp) -> Self {
         Self {
             config: first.config.clone(),
+            ipc: first.ipc.take(),
             canvases: vec![first],
             active: 0,
+            casts: Vec::new(),
         }
     }
 
@@ -102,84 +116,6 @@ impl Crew {
             c.open_window(event_loop);
         }
     }
-
-    /// A new canvas: the shared config and the active canvas's directory, and
-    /// nothing else — no panes, its own focus, its own everything. It is not
-    /// the first, so the launch notes and upgrade migrations are not repeated.
-    fn fresh(&self) -> CrewApp {
-        let cwd = self
-            .canvases
-            .get(self.active)
-            .map(|c| c.cwd.clone())
-            .unwrap_or_default();
-        CrewApp {
-            config: self.config.clone(),
-            cwd: cwd.clone(),
-            // An empty canvas has nothing else to type into.
-            input: crate::inputbar::InputBar {
-                focused: true,
-                history: crate::history::load(),
-                cwd,
-                ..Default::default()
-            },
-            ..Default::default()
-        }
-    }
-
-    /// Close the canvases that asked to go. Closing the LAST one quits —
-    /// there is no crew without a window — and closing any other does not.
-    fn close_asked(&mut self, event_loop: &ActiveEventLoop) {
-        if !self.canvases.iter().any(|c| c.closing) {
-            return;
-        }
-        if self.canvases.len() <= 1 {
-            self.save_all();
-            event_loop.exit();
-            return;
-        }
-        self.canvases.retain(|c| !c.closing);
-        self.active = self.active.min(self.canvases.len() - 1);
-    }
-
-    /// Publish a config the active canvas changed to every other canvas.
-    ///
-    /// The config is one thing about the *user*, not about a window: change
-    /// the font in one and the other must not go on drawing at the old size
-    /// and then save the old value over yours. Compared rather than
-    /// subscribed to, because every path that writes it already exists and
-    /// none of them knows there is more than one canvas.
-    fn share_config(&mut self) {
-        let Some(active) = self.canvases.get(self.active) else {
-            return;
-        };
-        if active.config == self.config {
-            return;
-        }
-        self.config = active.config.clone();
-        let shared = self.config.clone();
-        for (i, c) in self.canvases.iter_mut().enumerate() {
-            if i != self.active {
-                c.apply_config(shared.clone());
-            }
-        }
-    }
-
-    /// Save every canvas's panes as one session, each stamped with the window
-    /// it was in — so a session with two windows comes back as two windows.
-    fn save_all(&mut self) {
-        let mut all = Vec::new();
-        let mut restorable = false;
-        for (i, c) in self.canvases.iter().enumerate() {
-            restorable |= c.had_restorable;
-            all.extend(c.session_panes().into_iter().map(|mut p| {
-                p.window = i;
-                p
-            }));
-        }
-        if !all.is_empty() || restorable {
-            crate::sessionsave::save_at(crate::sessionsave::path(), all);
-        }
-    }
 }
 
 impl ApplicationHandler for Crew {
@@ -188,6 +124,7 @@ impl ApplicationHandler for Crew {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        self.pump_ipc(crate::chattime::unix_now_ms());
         for c in self.canvases.iter_mut() {
             c.tick(event_loop);
         }

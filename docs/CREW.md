@@ -2385,6 +2385,19 @@ repeat; `--to telegram:12345` says where the answer goes, and may be omitted
 when exactly one channel is configured with exactly one address. Each intent
 gets a short id (`w1`) to cancel it by.
 
+**The morning briefing is a standing intent, not a feature.** With the clock
+and integrations in place it needs no code of its own:
+
+```
+crew daemon at "tomorrow 7am brief me: what is on my calendar, the weather
+where I am, and what changed in the repo since yesterday" --every daily
+```
+
+It fires on its own clock, runs as a trigger (so it may read the world and
+must ask before doing anything irreversible), and the answer arrives on the
+channel you set it from. Anything the agent can reach — an integration
+manifest, an MCP server, `sys:run` — is a source it can assemble from.
+
 **From a phone.** The same three commands work on any channel: `remind me
 tomorrow 9am to call the bank`, `watching`, and `cancel w1`. A cadence word
 anywhere in the sentence (`daily`, `weekly`, `every 30m`) makes it repeat, and
@@ -2408,6 +2421,15 @@ Four things it deliberately does:
   rather than asked about, because there is nobody awake to ask.
 - **It fires once.** The firing is recorded before the work is dispatched, so a
   crash costs one run rather than repeating it on every poll forever.
+
+**`crew ask` reaches every window.** The ask endpoint belongs to the process,
+not to the window that opened it: `crew panes` lists every window's panes and
+`crew ask` can reach any of them. The first window's panes keep the `p0`, `p1`
+spelling they have always had; a second window's are `w1p0`, `w1p1`. A pane
+addressed by NAME (`crew ask schema "…"`) is looked for in every window, since
+a name belongs to the pane rather than to the window it happens to be in, and a
+broadcast (`--all` / `--any`) fans across all of them and comes back as one
+answer.
 
 **Pointing a pane at a different binary.** Each plugin-backed pane runs a child
 process, and each resolves its command the same way: an environment override

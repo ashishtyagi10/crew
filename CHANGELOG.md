@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.20.6
+
+**`crew ask` stops being a one-window command.**
+
+The ask socket belonged to the launch canvas, so every pane in every other
+window was unaddressable: `crew panes` listed one window and `crew ask` could
+only reach it. A window is not a process. The endpoint now belongs to the
+process's owner, which routes each request to the canvas that can answer it —
+the roster is every window's panes, a targeted ask reaches any of them, and a
+broadcast fans across all of them and comes back as one reply.
+
+Addressing keeps the spelling it had: the first window's panes are still `p0`,
+`p1`, and a second window's are `w1p0`. A pane addressed by NAME is looked for
+in every window, because a name belongs to the pane rather than to the window
+it is in — and a pane actually called `w1p0`, or `worker`, or `web`, is not
+mistaken for a window prefix.
+
+**And the morning briefing turns out to need no code.** With the clock (0.20.1)
+and integrations (0.20.5) in place it is a standing intent like any other:
+`crew daemon at "tomorrow 7am brief me: my calendar, the weather, and what
+changed in the repo" --every daily`. It fires unbidden, runs as a trigger — so
+it reads the world and must ask before doing anything irreversible — and
+answers on the channel it was set from. That was the goal's condition for it:
+a briefing with a code path of its own would have meant the clock was built
+wrong.
+
 ## 0.20.5
 
 **Reaching a new API is one file.**
