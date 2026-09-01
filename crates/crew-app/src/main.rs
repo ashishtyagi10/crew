@@ -64,6 +64,7 @@ mod chatmention;
 #[cfg(test)]
 #[path = "chatshot_tests.rs"]
 mod chatshot_tests;
+mod mentionexpand;
 
 mod canvas;
 mod cardpaint;
