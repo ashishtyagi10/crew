@@ -1,25 +1,17 @@
 # Goal — close the open goals: the clock, the voice, the fortieth integration, and the sidecar
 
-**Status (2026-09-01): Pillar 1 SHIPPED (v0.20.1–v0.20.2), Pillar 5 items 2 and 4 CLOSED
-(v0.20.3).** Crew has a clock: standing intents that survive a restart, fire once, report what
-they missed, and run with a trigger's authority rather than a person's — set from the terminal
-with `crew daemon at`, or from a phone with "remind me tomorrow 9am to …". The document window's
-last mile (Cmd+K on a URL, Tab through a table, the minimal-diff save asserted over `docs/CREW.md`)
-landed with it, and the command-diet number was amended in the goal that owns it, with the reason.
-**Pillar 3 SHIPPED v0.20.4–v0.20.5**: an HTTP API is one manifest file with no Rust
-(`~/.config/crew/integrations/`, project-overridable, hot), secrets are env-named by construction,
-a tool is irreversible unless its manifest says otherwise, and `/doctor` + `/reload` report what
-is loaded. Retrieval landed with it: above 24 tools the task chooses which
-are named, crew's own are never dropped, what was left out is counted, and `sys:find_tools`
-searches the whole catalog so nothing is unreachable. **v0.20.6** closed Pillar 5 item 3 (`crew ask` reaches every window) and done-means 2 (the
-morning briefing, which needed no code path of its own — the clock plus an integration is one).
-**v0.20.7 closed Pillar 4**: the wire carries tools, streamed deltas and opaque state, a tool
-call goes back to CREW (so a sidecar never holds a credential), `CREW_SIDECAR` spawns one, and
-`/doctor` reports it. **v0.20.8 closed Pillar 5 item 5**: the colour system's Phase 3 was already met by the
-per-appearance constants and per-pool bands that landed in v0.18.x; flicker, the one effect with
-no rule at all, got the same structural one, and the verdict is recorded in the goal that owns
-it. Open: **Pillar 2 (voice)**, and Pillar 5 item 1 (live verify), which needs a display and
-macOS permissions this session does not have.
+**Status: FOUR OF FIVE PILLARS SHIPPED, v0.20.1–v0.20.8 (2026-09-01).**
+
+| pillar | state |
+|---|---|
+| 1 — the clock | **SHIPPED v0.20.1–v0.20.2.** Standing intents that survive a restart, fire once, report what they missed, and run with a trigger's authority rather than a person's — set with `crew daemon at`, or from a phone with "remind me tomorrow 9am to …". |
+| 2 — voice | **OPEN.** The only pillar untouched: it needs a decision on an STT/TTS provider and a credential to verify against, neither of which this session could take on the user's behalf. |
+| 3 — the fortieth integration is a file | **SHIPPED v0.20.4–v0.20.5.** An HTTP API is one manifest (`~/.config/crew/integrations/`, project-overridable, hot); secrets are env-named by construction; a tool is irreversible unless its manifest says so; above 24 tools the task chooses what the prompt names, crew's own tools are never dropped, and `sys:find_tools` reaches the rest. |
+| 4 — the bridge | **SHIPPED v0.20.7.** The wire carries tools, streamed deltas and opaque state; a tool call goes back to CREW, so a sidecar never holds a credential; `CREW_SIDECAR` spawns one and `/doctor` reports it; `examples/sidecar/crew_sidecar.py` is the reference. |
+| 5 — the debt | **FOUR OF FIVE CLOSED.** Item 2 (the document window's last mile) v0.20.3, item 4 (the command-diet number, by amendment) 2026-09-01, item 3 (`crew ask` across windows) v0.20.6, item 5 (colour Phase 3) v0.20.8. **Item 1 — live verify — is open:** it needs a display and macOS permissions this session does not have. |
+
+Done-means 2 (the morning briefing) is met and needed no code path of its own, which was its own
+condition: the clock plus an integration IS one.
 
 **Set:** 2026-09-01 by the user — *"write a goal to complete any pending plan"* — after an audit of
 every goal, plan and spec under `docs/superpowers/` against the tree at v0.20.0.
