@@ -18,7 +18,9 @@ pub(crate) mod edit;
 #[path = "editpane_tests.rs"]
 mod editpane_tests;
 pub(crate) mod keys;
-pub(crate) mod lines;
+pub(crate) mod linemarks;
+mod linepaint;
+mod lines;
 pub(crate) mod load;
 pub(crate) mod mdrung;
 mod metacard;

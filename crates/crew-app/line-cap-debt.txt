@@ -156,7 +156,7 @@ src/viewpane/edit.rs 236
 src/viewpane/edit_tests.rs 364
 src/viewpane/keys.rs 217
 src/viewpane/keys_tests.rs 528
-src/viewpane/lines.rs 411
+src/viewpane/lines.rs 204
 src/viewpane/lines_tests.rs 544
 src/viewpane/load.rs 215
 src/viewpane/pane.rs 213
