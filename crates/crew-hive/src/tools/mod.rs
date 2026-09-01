@@ -155,6 +155,30 @@ pub trait Tools: Send + Sync {
     fn specs(&self) -> Vec<ToolSpec> {
         Vec::new()
     }
+
+    /// [`hint`] for one task in particular — the RETRIEVAL seam.
+    ///
+    /// Defaults to [`hint`], so an implementation with a handful of tools needs nothing. An
+    /// implementation with two hundred is expected to show the ones the task could plausibly
+    /// want, say how many it left out, and leave a way to reach the rest: the prompt is
+    /// O(all tools) per hop per agent otherwise, and selection accuracy collapses long before
+    /// the token bill does.
+    ///
+    /// [`hint`]: Tools::hint
+    fn hint_for(&self, _task: &str) -> String {
+        self.hint()
+    }
+
+    /// [`specs`] for one task in particular, under the same contract as [`hint_for`].
+    ///
+    /// The two MUST select alike: the provider decides which path runs, and a tool present in
+    /// one and absent from the other is a tool that appears and disappears depending on which
+    /// model is serving.
+    ///
+    /// [`specs`]: Tools::specs
+    fn specs_for(&self, _task: &str) -> Vec<ToolSpec> {
+        self.specs()
+    }
 }
 
 /// Most tool rounds one agent may take within a single task.

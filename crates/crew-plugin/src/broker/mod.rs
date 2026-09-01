@@ -66,6 +66,7 @@ pub mod tier;
 mod toolcall;
 mod toolclip;
 mod toolline;
+mod toolpick;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};
 pub use agents::known_adapters;

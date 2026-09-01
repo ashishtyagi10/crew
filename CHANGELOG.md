@@ -8,6 +8,45 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.20.4
+
+**The agent stops being shown every tool it has.**
+
+`SessionTools::hint` pasted every tool on every connected MCP server into the
+task body — on every hop, for every agent, in every swarm. That is free at four
+tools and a wall at forty: one Google Workspace server is fifty on its own, and
+the token bill is the lesser half of the problem, because selection ACCURACY
+collapses first. A model shown two hundred similarly-worded one-line
+descriptions picks worse than one shown the twenty that could plausibly matter.
+
+The task now decides. Above a budget of 24, tools are scored against the words
+of the task — a tool NAMED `calendar` beats one that mentions calendars in
+passing, and a tool the task names outright (`@tool gcal:events`) outranks
+everything — and the best of them are what the prompt carries. Three rules keep
+that honest:
+
+* **Below the budget nothing is filtered.** A crew with ten tools has exactly
+  the prompt it had yesterday, byte for byte.
+* **crew's own `sys` tools are never dropped**, however the task is worded.
+  They are how an agent does anything at all on this machine.
+* **Nothing is unreachable.** What was left out is counted in the prompt (`37
+  more tool(s) are connected but not listed here`), and a new **`sys:find_tools
+  {"q": "…"}`** searches the whole catalog by name and description. A scorer
+  alone cannot promise that the tool an agent needs is never the one that got
+  dropped; leaving a door can.
+
+The selection is deterministic — same task, same list, so a cached prompt stays
+cached — and the prose hint and the native tool schemas select ALIKE, because
+the provider decides which of the two paths runs and a tool present in one and
+absent from the other is a tool that appears and disappears depending on which
+model is serving.
+
+`sys:find_tools` is classified a read, so even a trigger firing at 3am with
+nobody to ask may look for a tool. An empty or malformed query says how many
+tools are connected rather than matching all of them — a substring test against
+`""` is true of every string, and answering a malformed call with the whole
+catalog is how a budget gets undone by accident.
+
 ## 0.20.3
 
 **The document window's last mile: the URL you can edit, and Tab through a

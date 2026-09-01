@@ -47,7 +47,7 @@ impl Tier {
 /// `curl`. It is the one built-in that can do anything at all, so it is the one that asks.
 pub fn sys_tier(tool: &str) -> Option<Tier> {
     Some(match tool {
-        "read_file" | "list_dir" => Tier::Read,
+        "read_file" | "list_dir" | "find_tools" => Tier::Read,
         "write_file" => Tier::Reversible,
         "run" => Tier::Irreversible,
         _ => return None,

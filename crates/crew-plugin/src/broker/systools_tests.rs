@@ -9,10 +9,13 @@ fn enabled_from_defaults_on_and_respects_gates() {
 }
 
 #[test]
-fn tools_lists_the_four_sys_tools() {
+fn tools_lists_the_sys_surface() {
     let t = tools();
     let names: Vec<&str> = t.iter().map(|t| t.name.as_str()).collect();
-    assert_eq!(names, ["run", "read_file", "write_file", "list_dir"]);
+    assert_eq!(
+        names,
+        ["run", "read_file", "write_file", "find_tools", "list_dir"]
+    );
     assert!(t.iter().all(|t| t.server == "sys"));
     assert!(t.iter().all(|t| !t.description.is_empty()));
 }

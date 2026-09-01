@@ -102,7 +102,7 @@ impl Agent for ApiAgent {
             // when either is missing the `@tool` convention still works, which
             // is why it stays rather than being replaced.
             if let Some(runner) = tools.clone() {
-                let specs = runner.specs();
+                let specs = runner.specs_for(&ctx.task.prompt);
                 if !specs.is_empty() && provider.supports_tools() {
                     let delta_bus = ctx.bus.clone();
                     let delta_agent = agent_id.clone();
@@ -135,7 +135,10 @@ impl Agent for ApiAgent {
             // tool would find the syntax for the second one gone.
             let base = tools::augment(
                 &build_prompt(&ctx.task.prompt, &ctx.deps),
-                &tools.as_ref().map(|t| t.hint()).unwrap_or_default(),
+                &tools
+                    .as_ref()
+                    .map(|t| t.hint_for(&ctx.task.prompt))
+                    .unwrap_or_default(),
             );
             // Fragments publish as they arrive. NOTE that with tool rounds the
             // deltas now carry MORE than the final `OutputChunk`: every round's

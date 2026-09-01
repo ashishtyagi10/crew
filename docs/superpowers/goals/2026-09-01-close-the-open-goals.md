@@ -6,8 +6,11 @@ they missed, and run with a trigger's authority rather than a person's — set f
 with `crew daemon at`, or from a phone with "remind me tomorrow 9am to …". The document window's
 last mile (Cmd+K on a URL, Tab through a table, the minimal-diff save asserted over `docs/CREW.md`)
 landed with it, and the command-diet number was amended in the goal that owns it, with the reason.
-Open: the morning briefing (which waits on Pillar 3), Pillar 2 (voice), Pillar 3, Pillar 4, and
-Pillar 5 items 1, 3 and 5.
+**Pillar 3's second half — retrieval — SHIPPED v0.20.4**: above 24 tools the task chooses which
+are named, crew's own are never dropped, what was left out is counted, and `sys:find_tools`
+searches the whole catalog so nothing is unreachable. Open: the morning briefing (which waits on
+Pillar 3's first half), Pillar 2 (voice), Pillar 3's manifest contract, Pillar 4, and Pillar 5
+items 1, 3 and 5.
 
 **Set:** 2026-09-01 by the user — *"write a goal to complete any pending plan"* — after an audit of
 every goal, plan and spec under `docs/superpowers/` against the tree at v0.20.0.
@@ -97,8 +100,12 @@ an integration ever needs a source edit, that is a bug in the contract and the f
 was hard-coded into the manifest schema. crew already proves the pattern three times — agent
 manifests, skills, `mcp.json` — and tools are the one extension surface that never got it.
 
-And the selection problem that arrives with the tenth integration, not the fortieth:
-`SessionTools::hint` (`crates/crew-plugin/src/broker/session.rs:255`) concatenates the `sys` tools
+**The selection half SHIPPED v0.20.4** (`broker/toolpick.rs`): a budget of 24, scoring against
+the task's words, `sys` never dropped, the count of what was left out in the prompt, and
+`sys:find_tools` as the door back to everything. The manifest contract above is what remains.
+
+And the selection problem that arrives with the tenth integration, not the fortieth, as it stood:
+`SessionTools::hint` (`crates/crew-plugin/src/broker/session.rs:255`) concatenated the `sys` tools
 with every tool on every connected MCP server, and that string is prepended to the task body on
 EVERY hop of EVERY agent. Free at four tools. At two hundred — one Google Workspace server is fifty
 — it is thousands of tokens per hop per agent in a four-wide swarm, and the token bill is the lesser

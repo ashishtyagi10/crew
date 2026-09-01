@@ -2288,7 +2288,8 @@ approximate token spend; `CREW_BROKER_TIMEOUT_MS` (default 180000) bounds each
 agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request;
 `CREW_MAX_TASKS` (default 4) caps concurrent background tasks;
 `CREW_SYS_TOOLS=0` / `CREW_SYS_MODE=readonly` disable or sandbox the built-in
-sys tools; `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
+sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:list_dir`, and
+`sys:find_tools`, which searches every connected tool by name and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
 `CREW_HTTP_TIMEOUT_MS` (default 120000) bounds each HTTP attempt to a provider,
 deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled endpoint names the
 transport and still leaves the model fallback chain a turn;
@@ -2302,6 +2303,17 @@ crew then never runs `claude auth status` / `codex login status` and plain
 tasks fall back to key discovery and the keyless relay exactly as before. The pane also prints a per-turn timeline + cost summary (`turn done
 — planner 4.2s → … · N exchange(s) · ~X tok (approx)`) at the end of every
 task, and accumulates the spend into the header's `~N tok` meter.
+
+**Too many tools to list.** Every tool an agent can reach — crew's own `sys`
+surface and every connected MCP server's — used to be pasted into the task on
+every hop. Above **24 tools** the task now chooses which are named: tools are
+scored against its words (a tool *called* `calendar` beats one that mentions
+calendars in passing, and one the task names outright wins outright), crew's
+own `sys` tools are never dropped, and the prompt says how many were left out.
+Nothing becomes unreachable — `sys:find_tools {"q": "calendar"}` searches the
+whole catalog by name and description, and is classified a read, so even a
+scheduled run with nobody to ask may look. Below 24 tools nothing is filtered
+and the prompt is what it always was.
 
 **Reaching crew from a phone (Telegram).** `CREW_TELEGRAM_TOKEN` is a bot token
 from `@BotFather` — with none set the channel is registered but inert and never

@@ -60,7 +60,7 @@ pub(crate) fn hint_for(tools: &[McpTool]) -> String {
 /// The task text an agent sees: the body, plus the tools section when tools
 /// are attached.
 pub(crate) fn augment(body: &str, tools: Option<&dyn ToolRunner>) -> String {
-    crew_hive::tools::augment(body, &tools.map(|t| t.hint()).unwrap_or_default())
+    crew_hive::tools::augment(body, &tools.map(|t| t.hint_for(body)).unwrap_or_default())
 }
 
 /// The parser, shared with the swarm for the same reason the trait is: one

@@ -172,3 +172,72 @@ fn session_tools_dispatches_sys_locally() {
     let e = off.call("sys", "run", r#"{"cmd":"echo x"}"#).unwrap_err();
     assert!(e.contains("unknown MCP server"), "{e}");
 }
+
+/// Retrieval, through the real tool surface rather than through the picker alone: what the
+/// session shows a task, and the door out of what it hid.
+mod retrieval {
+    use super::*;
+
+    /// The `sys` surface alone is well under the budget, so nothing is filtered and the hint is
+    /// the whole catalog — the behaviour every crew has today.
+    #[test]
+    fn a_crew_with_only_its_own_tools_shows_all_of_them() {
+        let t = SessionTools::for_test(host(), true);
+        let hint = t.hint_for("anything at all");
+        for name in ["sys:run", "sys:read_file", "sys:write_file", "sys:list_dir"] {
+            assert!(hint.contains(name), "{name} missing from: {hint}");
+        }
+        assert!(
+            !hint.contains("more tool(s) are connected"),
+            "nothing was hidden, so nothing is admitted: {hint}"
+        );
+        assert_eq!(
+            t.hint_for("anything at all"),
+            t.hint(),
+            "below the budget the two are the same string"
+        );
+    }
+
+    /// The picker and the native path must choose alike, or a tool appears and disappears
+    /// depending on which model is serving.
+    #[test]
+    fn the_prose_and_the_schemas_describe_the_same_tools() {
+        let t = SessionTools::for_test(host(), true);
+        let hint = t.hint_for("read a file");
+        for s in t.specs_for("read a file") {
+            assert!(hint.contains(&s.label()), "{} not in the hint", s.label());
+        }
+    }
+
+    /// The door: a search reaches the whole catalog, whatever the prompt showed.
+    #[test]
+    fn find_tools_searches_the_catalog_and_is_a_read() {
+        let t = SessionTools::for_test(host(), true);
+        let out = t
+            .call("sys", "find_tools", r#"{"q": "file"}"#)
+            .expect("a search is a read: it looks at a list crew already holds");
+        assert!(out.contains("sys:read_file"), "{out}");
+        assert!(out.contains("sys:write_file"), "{out}");
+        assert!(
+            !out.contains("sys:run"),
+            "and not the ones that do not match"
+        );
+    }
+
+    /// A trigger — the least-trusted requester there is — may still SEARCH, because reading a
+    /// list crew already holds does nothing to anybody's machine.
+    #[test]
+    fn even_a_trigger_may_look_for_a_tool() {
+        let t = SessionTools::for_requester(host(), true, Requester::Trigger("nightly".into()));
+        assert!(t.call("sys", "find_tools", r#"{"q": "file"}"#).is_ok());
+    }
+
+    /// A malformed call says what there is rather than erroring: the model's next move is to
+    /// search again with a word in it.
+    #[test]
+    fn a_search_with_no_query_lists_nothing_and_says_how_many_there_are() {
+        let t = SessionTools::for_test(host(), true);
+        let out = t.call("sys", "find_tools", "not json").expect("no error");
+        assert!(out.contains("no tool matches"), "{out}");
+    }
+}

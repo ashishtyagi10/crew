@@ -251,15 +251,36 @@ impl SessionTools {
     }
 }
 
-impl super::toolcall::ToolRunner for SessionTools {
-    fn hint(&self) -> String {
+impl SessionTools {
+    /// Every tool this session can reach: crew's own, then every connected MCP server's.
+    fn catalog(&self) -> Vec<crate::mcp::McpTool> {
         let mut tools = if self.sys {
             super::systools::tools()
         } else {
             Vec::new()
         };
         tools.extend(self.mcp.lock().unwrap_or_else(|e| e.into_inner()).tools());
-        super::toolcall::hint_for(&tools)
+        tools
+    }
+}
+
+impl super::toolcall::ToolRunner for SessionTools {
+    fn hint(&self) -> String {
+        super::toolcall::hint_for(&self.catalog())
+    }
+
+    /// The tools worth naming for THIS task, plus a count of what was left out.
+    ///
+    /// Below [`toolpick::BUDGET`] this is exactly [`Self::hint`]; above it, the task decides.
+    /// See `toolpick` for why the alternative — every tool on every hop — fails at forty.
+    fn hint_for(&self, task: &str) -> String {
+        let (picked, left_out) =
+            super::toolpick::pick(self.catalog(), task, super::toolpick::BUDGET);
+        let mut hint = super::toolcall::hint_for(&picked);
+        if !hint.is_empty() {
+            hint.push_str(&super::toolpick::omitted_note(left_out));
+        }
+        hint
     }
 
     /// Structured definitions for native tool-use: the same merged surface
@@ -269,21 +290,14 @@ impl super::toolcall::ToolRunner for SessionTools {
     /// given run uses — a tool present in one and not the other is a tool that
     /// appears and disappears depending on which model is serving.
     fn specs(&self) -> Vec<crew_hive::tools::ToolSpec> {
-        let mut tools = if self.sys {
-            super::systools::tools()
-        } else {
-            Vec::new()
-        };
-        tools.extend(self.mcp.lock().unwrap_or_else(|e| e.into_inner()).tools());
-        tools
-            .into_iter()
-            .map(|t| crew_hive::tools::ToolSpec {
-                server: t.server,
-                tool: t.name,
-                description: t.description,
-                input_schema: t.input_schema,
-            })
-            .collect()
+        specs_of(self.catalog())
+    }
+
+    /// The same selection [`Self::hint_for`] makes, in the native shape. The two must agree:
+    /// the provider decides which path runs, and a tool in one and not the other is a tool that
+    /// appears and disappears depending on which model is serving.
+    fn specs_for(&self, task: &str) -> Vec<crew_hive::tools::ToolSpec> {
+        specs_of(super::toolpick::pick(self.catalog(), task, super::toolpick::BUDGET).0)
     }
 
     /// Every tool call in the running broker passes through here — `sys` and MCP alike — which
@@ -326,7 +340,16 @@ impl super::toolcall::ToolRunner for SessionTools {
             Decision::Allow => {}
         }
 
-        let out = if server == "sys" && self.sys {
+        let out = if server == "sys" && tool == "find_tools" && self.sys {
+            // Answered HERE rather than in `systools`, because the thing being searched is the
+            // session's own catalog and nothing below this point has it. It is the door that
+            // makes retrieval safe: a tool the picker left out is one question away.
+            Ok(super::toolpick::search(
+                &self.catalog(),
+                &search_query(args),
+                super::toolpick::BUDGET,
+            ))
+        } else if server == "sys" && self.sys {
             super::systools::call(tool, args)
         } else {
             self.mcp
@@ -344,6 +367,29 @@ impl super::toolcall::ToolRunner for SessionTools {
         }
         out
     }
+}
+
+/// The `q` of a `sys:find_tools` call. A malformed or missing argument searches for nothing,
+/// which lists nothing and says how many tools there are — more useful than an error, because
+/// the model's next move is to search again with a word in it.
+fn search_query(args: &str) -> String {
+    serde_json::from_str::<serde_json::Value>(args)
+        .ok()
+        .and_then(|v| v.get("q")?.as_str().map(str::to_string))
+        .unwrap_or_default()
+}
+
+/// Tool descriptors in the shape a provider is handed.
+fn specs_of(tools: Vec<crate::mcp::McpTool>) -> Vec<crew_hive::tools::ToolSpec> {
+    tools
+        .into_iter()
+        .map(|t| crew_hive::tools::ToolSpec {
+            server: t.server,
+            tool: t.name,
+            description: t.description,
+            input_schema: t.input_schema,
+        })
+        .collect()
 }
 
 #[cfg(test)]

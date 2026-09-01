@@ -17,7 +17,11 @@ fn every_built_in_tool_is_classified() {
         "these tools have no tier, so the gate cannot know whether they can be undone: \
          {unclassified:?} — add them to `sys_tier`"
     );
-    assert_eq!(systools::tools().len(), 4, "the sys surface is four tools");
+    assert_eq!(
+        systools::tools().len(),
+        5,
+        "the sys surface is five tools: four that act, and `find_tools` to reach the rest"
+    );
 }
 
 /// The default is the whole safety argument: a server nobody has classified might send mail.

@@ -52,7 +52,7 @@ pub(crate) fn mode_label() -> &'static str {
     }
 }
 
-/// The four `sys` tool descriptors: prose for the text hint, JSON Schema for
+/// The `sys` tool descriptors: prose for the text hint, JSON Schema for
 /// native tool-use.
 ///
 /// The descriptions keep their inline `{"cmd": …}` examples even though the
@@ -111,6 +111,20 @@ pub(crate) fn tools() -> Vec<McpTool> {
                     "content": {"type": "string", "description": "the WHOLE file; it is overwritten, not appended"},
                 },
                 "required": ["path", "content"],
+            }),
+        ),
+        mk(
+            "find_tools",
+            "search every connected tool by name or description, for when the ones listed              above are not the one you need: {\"q\": \"calendar\"}",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "q": {
+                        "type": "string",
+                        "description": "words to match against tool names and descriptions",
+                    },
+                },
+                "required": ["q"],
             }),
         ),
         mk(
