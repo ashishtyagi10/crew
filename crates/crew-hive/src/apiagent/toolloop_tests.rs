@@ -66,7 +66,7 @@ fn budget_spent_on_a_bare_directive_is_just_the_note() {
     let out = budget_spent("@tool weather:current {}", 4);
     assert_eq!(
         out,
-        "[tool budget spent — 4 calls for this task; the last request was not run]"
+        "[tool budget spent — 4 calls for this run; the last request was not run]"
     );
 }
 

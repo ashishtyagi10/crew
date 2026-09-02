@@ -16,7 +16,7 @@ use crate::agent::AgentContext;
 use crate::board::TaskResult;
 use crate::bus::HiveEvent;
 use crate::provider::{ChunkFn, CompletionRequest, Provider, ToolInvocation, ToolOutcome, Turn};
-use crate::tools::{ToolCatalog, Tools, MAX_TOOL_ROUNDS};
+use crate::tools::{ToolCatalog, Tools};
 
 /// Most tools one turn may fire, however many the model asked for.
 ///
@@ -112,20 +112,21 @@ pub(super) async fn run(
             };
         }
 
-        if round >= MAX_TOOL_ROUNDS {
+        if ctx.budget.take(round).is_none() {
             // Unlike the text path there is no directive to strip — a
             // structured call never lands in the output — so the answer is
             // whatever the model said, plus a note that it stopped early.
+            let total = ctx.budget.total();
             for call in &completion.calls {
                 ctx.bus.publish(HiveEvent::ToolResult {
                     agent: agent_id.clone(),
                     label: label_of(call, &catalog),
                     ok: false,
-                    text: format!("not run \u{2014} tool budget spent ({MAX_TOOL_ROUNDS} rounds)"),
+                    text: format!("not run \u{2014} tool budget spent ({total} rounds this run)"),
                     ms: 0,
                 });
             }
-            let text = super::toolloop::with_budget_note(&completion.text, MAX_TOOL_ROUNDS);
+            let text = super::toolloop::with_budget_note(&completion.text, total);
             ctx.bus.publish(HiveEvent::OutputChunk {
                 agent: agent_id,
                 text: text.clone(),

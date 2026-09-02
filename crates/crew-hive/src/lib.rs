@@ -104,6 +104,7 @@ pub use govern::{budget_governor, Budget};
 pub use oauth::{authorize_url, exchange_openrouter_code, pkce, random_token, Pkce};
 
 // Tools
+pub use tools::budget::ToolBudget;
 pub use tools::{parse_tool_call, ToolCall, ToolCatalog, ToolSpec, Tools, MAX_TOOL_ROUNDS};
 
 // Wire

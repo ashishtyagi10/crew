@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.12
+
+**Tool rounds are a budget over the run, not a cap per task.**
+
+`MAX_TOOL_ROUNDS = 4` was sized for a world with four tools: four rounds
+per task, and a wrong first pick cost a quarter of them. With a catalog of
+two hundred, a task that needs six rounds and a task that needs one are
+both common, and a per-task cap starved the first to protect the second.
+
+The swarm pools them now (`ToolBudget`, carried in every agent's context):
+a run gets four rounds per task, any one agent may draw up to eight, and
+what a one-round task leaves is there for a six-round one. The budget an
+agent is told it has left is the smaller of its own ceiling and the pool.
+A single-task run is exactly what it was — the old tests hold unchanged —
+and the note that ends an over-budget answer says how many calls the run
+had. The relay still spends four per hop: a hop is one question.
+
 ## 0.21.11
 
 **`/watching` — what crew is waiting to do, from the app.**

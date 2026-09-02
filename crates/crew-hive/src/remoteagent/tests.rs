@@ -34,6 +34,7 @@ async fn remote_agent_dispatches_and_returns_result() {
     let agent = RemoteAgent::new(Arc::new(tr));
     let bus = EventBus::new(32);
     let ctx = AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(0),
         task: spec(5),
         deps: vec![],
@@ -62,6 +63,7 @@ async fn remote_factory_makes_dispatching_agents() {
     let agent = factory.make(&AgentKind::Api { system: None });
     let bus = EventBus::new(32);
     let ctx = AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(1),
         task: spec(9),
         deps: vec![],

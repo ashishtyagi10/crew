@@ -15,6 +15,7 @@
 //! messages and schemas this is the convention crew has. It has the virtue of
 //! already being proven in the relay against real models.
 
+pub mod budget;
 pub mod near;
 
 #[cfg(test)]
@@ -183,7 +184,8 @@ pub trait Tools: Send + Sync {
     }
 }
 
-/// Most tool rounds one agent may take within a single task.
+/// Tool rounds per TASK, which the swarm pools over the run ([`budget`]) and
+/// the relay spends per hop.
 ///
 /// Sized for the relay, where a hop is one question. It is deliberately the
 /// same number here so the two engines behave alike, and it is deliberately

@@ -16,12 +16,15 @@ use crate::bus::{AgentId, EventBus};
 use crate::graph::{AgentKind, TaskId, TaskSpec};
 
 /// Everything an agent needs to do its task: its id, the task spec, the
-/// already-gathered results of its dependencies, and the event bus.
+/// already-gathered results of its dependencies, the event bus, and the
+/// run's tool budget.
 pub struct AgentContext {
     pub agent: AgentId,
     pub task: TaskSpec,
     pub deps: Vec<TaskResult>,
     pub bus: EventBus,
+    /// The run's pool of tool rounds, shared with every other agent in it.
+    pub budget: crate::tools::budget::ToolBudget,
 }
 
 /// A unit of work. Object-safe: `run` returns a boxed future so `Box<dyn Agent>`

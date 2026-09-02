@@ -184,7 +184,7 @@ So tool selection becomes a real stage instead of a string concatenation:
   the relay, able to pick.
 - **A wrong choice must be cheap.** `MAX_TOOL_ROUNDS = 4` per hop was sized for a world with four
   tools; a wrong first pick now costs a quarter of the budget. The cap becomes a budget over the
-  RUN, and a tool error returns a structured, actionable message (unknown tool → the near matches — shipped v0.21.8),
+  RUN (shipped v0.21.12: four per task, pooled, one agent up to eight), and a tool error returns a structured, actionable message (unknown tool → the near matches — shipped v0.21.8),
   not prose.
 
 The test that proves this pillar, and it should be written before the catalogue grows: with forty

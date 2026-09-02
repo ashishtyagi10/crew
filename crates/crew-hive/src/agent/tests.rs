@@ -25,6 +25,7 @@ async fn stub_agent_succeeds_and_emits() {
         fail_ids: HashSet::new(),
     };
     let ctx = AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(0),
         task: spec(7),
         deps: vec![TaskResult {
@@ -52,6 +53,7 @@ async fn stub_agent_fails_for_configured_id() {
     ids.insert(TaskId(3));
     let agent = StubAgent { fail_ids: ids };
     let ctx = AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(0),
         task: spec(3),
         deps: vec![],

@@ -4,6 +4,7 @@ use crate::board::TaskResult;
 use crate::bus::{AgentId, EventBus, HiveEvent};
 use crate::graph::{AgentKind, ModelTier, TaskId, TaskSpec};
 use crate::provider::MockProvider;
+use crate::tools::MAX_TOOL_ROUNDS;
 use std::sync::Arc;
 
 fn spec(id: u64) -> TaskSpec {
@@ -61,6 +62,7 @@ async fn api_agent_completes_and_emits() {
         256,
     );
     let ctx = AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(0),
         task: spec(1),
         deps: vec![],
@@ -90,6 +92,7 @@ async fn api_agent_emits_output_chunk_and_cost() {
         128,
     );
     let ctx = AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(1),
         task: spec(2),
         deps: vec![],
@@ -123,6 +126,7 @@ async fn api_agent_with_deps_passes_context_in_prompt() {
         256,
     );
     let ctx = AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(2),
         task: spec(3),
         deps: vec![TaskResult {
@@ -186,6 +190,7 @@ async fn api_factory_model_override_reaches_request() {
     let agent = factory.make(&crate::graph::AgentKind::Api { system: None });
     let bus = EventBus::new(32);
     let ctx = AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(0),
         task: spec(1),
         deps: vec![],
@@ -207,6 +212,7 @@ async fn api_agent_streams_deltas_then_one_complete_chunk() {
         256,
     );
     let ctx = AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(7),
         task: spec(1),
         deps: vec![],
@@ -257,6 +263,7 @@ async fn api_agent_bills_at_the_tasks_own_tier() {
         let mut task = spec(1); // prompt "summarize" = 1 input token
         task.model = tier;
         let ctx = AgentContext {
+            budget: crate::tools::budget::ToolBudget::solo(),
             agent: AgentId(0),
             task,
             deps: vec![],
@@ -368,6 +375,7 @@ fn fake(result: Result<String, String>) -> (Arc<FakeTools>, Arc<Mutex<Vec<String
 
 fn ctx(bus: &EventBus) -> AgentContext {
     AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(7),
         task: spec(1),
         deps: vec![],
@@ -526,4 +534,30 @@ async fn every_round_is_billed() {
     // Two model calls means two token deltas, or the budget governor
     // undercounts a tool-using run by every round after the first.
     assert_eq!(token_events, 2);
+}
+
+/// The cap is the RUN's, not the task's: in a three-task run an agent that
+/// needs eight rounds gets them, and the ninth is refused.
+#[tokio::test]
+async fn a_run_budget_lets_one_agent_past_the_old_cap() {
+    let asking = "@tool weather:current {}";
+    let (provider, _) = Scripted::new(&[asking; 12]);
+    let (tools, calls) = fake(Ok("4C".into()));
+    let bus = EventBus::new(256);
+    let agent = ApiAgent::new(provider, 256).with_tools(tools);
+    let budget = crate::tools::budget::ToolBudget::for_run(3);
+    let mut c = ctx(&bus);
+    c.budget = budget.clone();
+    let result = agent.run(c).await;
+    assert_eq!(calls.lock().unwrap().len(), 2 * MAX_TOOL_ROUNDS as usize);
+    assert!(
+        result.output.contains("12 calls for this run"),
+        "{}",
+        result.output
+    );
+    assert_eq!(
+        budget.left(),
+        4,
+        "what this agent did not take is still in the pool"
+    );
 }

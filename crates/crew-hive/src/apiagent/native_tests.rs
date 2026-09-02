@@ -4,6 +4,7 @@ use crate::bus::{AgentId, EventBus};
 use crate::graph::{AgentKind, ModelTier, TaskId, TaskSpec};
 use crate::provider::{Completion, ProviderError};
 use crate::tools::ToolSpec;
+use crate::tools::MAX_TOOL_ROUNDS;
 use std::sync::Mutex;
 
 /// A provider that replays scripted completions and records each request, so
@@ -93,6 +94,7 @@ fn answering(text: &str) -> Completion {
 
 fn ctx(bus: &EventBus) -> AgentContext {
     AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(3),
         task: TaskSpec {
             id: TaskId(1),

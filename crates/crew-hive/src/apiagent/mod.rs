@@ -19,7 +19,7 @@ use crate::board::TaskResult;
 use crate::bus::HiveEvent;
 use crate::graph::{AgentKind, ModelTier};
 use crate::provider::{CompletionRequest, Provider};
-use crate::tools::{self, ToolCatalog, Tools, MAX_TOOL_ROUNDS};
+use crate::tools::{self, ToolCatalog, Tools};
 
 // ---------------------------------------------------------------------------
 // Cost table — micros-USD per token (input / output)
@@ -215,16 +215,17 @@ impl Agent for ApiAgent {
                         success: true,
                     };
                 };
-                if round >= MAX_TOOL_ROUNDS {
+                let Some(rounds_left) = ctx.budget.take(round) else {
                     // Asked for one more with the budget gone. Say so in the
                     // output rather than returning an unrun directive that
                     // reads like a call which happened.
-                    let text = toolloop::budget_spent(&completion.text, MAX_TOOL_ROUNDS);
+                    let total = ctx.budget.total();
+                    let text = toolloop::budget_spent(&completion.text, total);
                     ctx.bus.publish(HiveEvent::ToolResult {
                         agent: agent_id.clone(),
                         label: call.label(),
                         ok: false,
-                        text: format!("not run — tool budget spent ({MAX_TOOL_ROUNDS} calls)"),
+                        text: format!("not run — tool budget spent ({total} calls this run)"),
                         ms: 0,
                     });
                     ctx.bus.publish(HiveEvent::OutputChunk {
@@ -236,7 +237,7 @@ impl Agent for ApiAgent {
                         output: text,
                         success: true,
                     };
-                }
+                };
 
                 let label = call.label();
                 ctx.bus.publish(HiveEvent::ToolCall {
@@ -278,7 +279,7 @@ impl Agent for ApiAgent {
                 });
                 exchanges.push(toolloop::exchange(&label, &call.args, &text));
                 round += 1;
-                prompt = toolloop::follow_up(&base, &exchanges, MAX_TOOL_ROUNDS - round);
+                prompt = toolloop::follow_up(&base, &exchanges, rounds_left);
             }
         })
     }

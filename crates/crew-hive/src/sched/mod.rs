@@ -96,6 +96,10 @@ impl Scheduler {
         // The graph is LOCAL and mutable: a re-plan swaps the not-yet-run
         // remainder for a replacement sub-graph mid-run.
         let mut graph = self.graph.clone();
+        // One pool for the whole run: what a one-round task leaves, a
+        // six-round task may take. Sized once, from the plan as given — a
+        // re-plan changes which tasks run, not how much a run may spend.
+        let budget = crate::tools::budget::ToolBudget::for_run(graph.len());
         let mut replans_left = replan::REPLAN_CAP;
         let mut done: HashSet<TaskId> = HashSet::new();
         let mut failed: HashSet<TaskId> = HashSet::new();
@@ -149,6 +153,7 @@ impl Scheduler {
                 let board = self.board.clone();
                 let sem = sem.clone();
                 let cancel = self.cancel.clone();
+                let budget = budget.clone();
                 joinset.spawn(async move {
                     let task_id = spec.id;
                     let _permit = sem.acquire_owned().await.expect("semaphore open");
@@ -177,6 +182,7 @@ impl Scheduler {
                         task: spec,
                         deps,
                         bus,
+                        budget,
                     };
                     let result = match std::panic::AssertUnwindSafe(agent.run(ctx))
                         .catch_unwind()

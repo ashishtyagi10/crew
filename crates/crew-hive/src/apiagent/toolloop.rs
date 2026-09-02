@@ -78,7 +78,7 @@ pub(super) fn budget_spent(reply: &str, max_rounds: u32) -> String {
 /// strip — only the note to add.
 pub(super) fn with_budget_note(body: &str, max_rounds: u32) -> String {
     let note = format!(
-        "[tool budget spent — {max_rounds} calls for this task; the last request was not run]"
+        "[tool budget spent — {max_rounds} calls for this run; the last request was not run]"
     );
     if body.trim().is_empty() {
         note
