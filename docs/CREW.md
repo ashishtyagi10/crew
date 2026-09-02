@@ -342,7 +342,7 @@ deliberately offers nothing, since that pane is already gone.
 Press **`/keys`** in the input bar for this list in-app: the bindings above,
 then a section for **every pane kind that answers to keys of its own** — an
 agent pane, the file viewer, a `/far` file panel, the `/todo` list,
-`/settings` and a document window. Most of those keys used to be written down
+`/settings`, a document window and the `/disk` map. Most of those keys used to be written down
 here in the manual and nowhere a user could find them without reading the manual: the viewer's whole
 set, the panel's function-key row, and six of the todo list's eight actions.
 A test reads each pane's own key map and holds the overlay to it, the same way

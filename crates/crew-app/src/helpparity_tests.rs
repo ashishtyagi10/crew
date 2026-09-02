@@ -1,7 +1,7 @@
 //! `/keys` holds every pane kind to its own key map: the tables in
 //! [`crate::helppanes`] are read against the source of each pane's `keys.rs`.
 use crate::helppanes::{
-    DOC_BINDINGS, FAR_BINDINGS, SETTINGS_BINDINGS, TODO_BINDINGS, VIEW_BINDINGS,
+    DISK_BINDINGS, DOC_BINDINGS, FAR_BINDINGS, SETTINGS_BINDINGS, TODO_BINDINGS, VIEW_BINDINGS,
 };
 
 /// The keys a source file's key map answers to, as the overlay would have to
@@ -9,9 +9,12 @@ use crate::helppanes::{
 /// from `NamedKey::F<n>`.
 fn keys_in(src: &str) -> Vec<String> {
     let mut keys: Vec<String> = Vec::new();
-    // `"k" => Some(Edit::…)` is how a document window spells its chords.
+    // `"k" => Some(Edit::…)` is how a document window spells its chords;
+    // `.as_str() == "k"` is how the viewer AND the disk map spell a letter
+    // (the viewer binds it as `s`, the map as `c` — the pattern must not
+    // care which, or the map's `r` is invisible to this test, as it was).
     for (pat, take) in [
-        ("s.as_str() == \"", 1),
+        (".as_str() == \"", 1),
         ("\" => ViewInput::", 0),
         ("\" => Some(Edit::", 0),
     ] {
@@ -119,6 +122,13 @@ fn every_pane_key_is_in_the_overlay() {
             include_str!("docwin/keys.rs"),
             DOC_BINDINGS,
             8,
+        ),
+        // The map's arrows are named keys; `r` is the letter it has.
+        (
+            "the /disk map",
+            include_str!("diskpane.rs"),
+            DISK_BINDINGS,
+            1,
         ),
         // The settings form names no letters of its own — every field is
         // reached with named keys — so it has no floor to meet.

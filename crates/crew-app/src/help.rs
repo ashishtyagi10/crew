@@ -11,7 +11,7 @@ use crate::palette::accent_color;
 
 use crate::helplayout::{self, sections, Row, KEY_COL};
 use crate::helppanes::{
-    DOC_BINDINGS, FAR_BINDINGS, SETTINGS_BINDINGS, TODO_BINDINGS, VIEW_BINDINGS,
+    DISK_BINDINGS, DOC_BINDINGS, FAR_BINDINGS, SETTINGS_BINDINGS, TODO_BINDINGS, VIEW_BINDINGS,
 };
 use crate::helptable::{BINDINGS, CHAT_BINDINGS};
 
@@ -51,6 +51,7 @@ pub fn size() -> (u16, u16) {
         .chain(TODO_BINDINGS)
         .chain(SETTINGS_BINDINGS)
         .chain(DOC_BINDINGS)
+        .chain(DISK_BINDINGS)
         .map(|(_, d)| d.chars().count())
         .max()
         .unwrap_or(KEY_COL);

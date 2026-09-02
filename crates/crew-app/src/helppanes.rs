@@ -149,3 +149,17 @@ pub(crate) const DOC_BINDINGS: &[(&str, &str)] = &[
         "Re-read the file from disk (asks once if you have unsaved edits)",
     ),
 ];
+
+/// Keys the **`/disk`** map answers to. Six of them, every one in the manual
+/// and none in the overlay — the pane kind that was added after the parity
+/// test learned to read key maps, and the one it was never pointed at.
+pub(crate) const DISK_BINDINGS: &[(&str, &str)] = &[
+    (
+        "Left / Right \u{b7} Up / Down",
+        "Pick the previous / next tile, in size order",
+    ),
+    ("Enter", "Go into the picked directory"),
+    ("Backspace", "Go up a level"),
+    ("r", "Rescan"),
+    ("Esc", "Close the map"),
+];

@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.15
+
+**`/keys` lists the `/disk` map's keys.**
+
+The map has answered to six keys since it was drawn — the arrows walk the
+tiles in size order, Enter goes in, Backspace goes up, `r` rescans, Esc
+closes — and every one of them was in the manual and none in the overlay
+that exists to make the manual unnecessary. The parity test that reads
+each pane's key map never read this one, and would not have found `r` if
+it had: the map spells its letter `c.as_str() == "r"` where the viewer
+spells it `s.as_str()`, and the parse matched the viewer's spelling only.
+It matches the call now, not the binding's name, and the map is the sixth
+pane kind the overlay is held to.
+
 ## 0.21.14
 
 **Cmd+R re-reads a document window's file.**

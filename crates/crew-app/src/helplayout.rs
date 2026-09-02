@@ -19,7 +19,7 @@
 use crate::chatlayout::wrap_indices;
 use crate::chatwidth::str_w;
 use crate::helppanes::{
-    DOC_BINDINGS, FAR_BINDINGS, SETTINGS_BINDINGS, TODO_BINDINGS, VIEW_BINDINGS,
+    DISK_BINDINGS, DOC_BINDINGS, FAR_BINDINGS, SETTINGS_BINDINGS, TODO_BINDINGS, VIEW_BINDINGS,
 };
 use crate::helptable::{BINDINGS, CHAT_BINDINGS};
 
@@ -44,7 +44,7 @@ pub(crate) enum Row {
 /// The per-pane sections, in the order they are listed. One place, so adding a
 /// pane kind is one row here and nothing else — the height, the width, the
 /// scrolling and the filter all read this.
-pub(crate) fn sections() -> [(&'static str, &'static [(&'static str, &'static str)]); 6] {
+pub(crate) fn sections() -> [(&'static str, &'static [(&'static str, &'static str)]); 7] {
     [
         ("in an agent pane", CHAT_BINDINGS),
         ("in the file viewer", VIEW_BINDINGS),
@@ -52,6 +52,7 @@ pub(crate) fn sections() -> [(&'static str, &'static [(&'static str, &'static st
         ("in the /todo pane", TODO_BINDINGS),
         ("in /settings", SETTINGS_BINDINGS),
         ("in a document window", DOC_BINDINGS),
+        ("in the /disk map", DISK_BINDINGS),
     ]
 }
 
