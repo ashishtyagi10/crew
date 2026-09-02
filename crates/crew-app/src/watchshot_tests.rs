@@ -19,6 +19,7 @@ fn watching_shot_standing_and_empty() {
         fire_ms: NOW + fire_in,
         repeat,
         created_ms: NOW - 3 * 86_400_000,
+        anchor_ms: None,
     };
     let standing = vec![
         intent(

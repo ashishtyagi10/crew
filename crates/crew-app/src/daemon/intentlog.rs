@@ -33,6 +33,8 @@ pub(crate) enum Entry {
     },
     /// Somebody called it off.
     Cancelled { id: String, at_ms: u64 },
+    /// The next firing was pushed to `to_ms`; a repeat's cadence stays where it was.
+    Snoozed { id: String, to_ms: u64, at_ms: u64 },
 }
 
 /// The watchlist file's home, beside the ledger and the config.
@@ -106,11 +108,18 @@ impl Watchlist {
                     Some(next) => {
                         if let Some(i) = live.iter_mut().find(|i| i.id == id) {
                             i.fire_ms = next;
+                            i.anchor_ms = None;
                         }
                     }
                     None => live.retain(|i| i.id != id),
                 },
                 Entry::Cancelled { id, .. } => live.retain(|i| i.id != id),
+                Entry::Snoozed { id, to_ms, .. } => {
+                    if let Some(i) = live.iter_mut().find(|i| i.id == id) {
+                        i.anchor_ms = Some(i.anchor_ms.unwrap_or(i.fire_ms));
+                        i.fire_ms = to_ms;
+                    }
+                }
             }
         }
         live.sort_by_key(|i| (i.fire_ms, i.id.clone()));
@@ -149,6 +158,7 @@ impl Watchlist {
             fire_ms,
             repeat,
             created_ms: now_ms,
+            anchor_ms: None,
         };
         self.append(&Entry::Added {
             intent: intent.clone(),

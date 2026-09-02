@@ -11,6 +11,7 @@ fn intent(fire_ms: u64, repeat: Repeat) -> Intent {
         fire_ms,
         repeat,
         created_ms: 0,
+        anchor_ms: None,
     }
 }
 

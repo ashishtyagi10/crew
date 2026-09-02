@@ -145,6 +145,20 @@ pub(crate) fn answer(req: &Request, d: &mut Daemon) -> Option<Reply> {
                 },
             })
         }
+        Request::Snooze { id, delay_ms, .. } => Some(
+            match d
+                .watch
+                .snooze(id, *delay_ms, crate::chattime::unix_now_ms())
+            {
+                Ok(fire_ms) => Reply::Snoozed {
+                    id: id.clone(),
+                    fire_ms,
+                },
+                Err(e) => Reply::Failed {
+                    message: format!("could not write the watchlist: {e}"),
+                },
+            },
+        ),
         Request::CloseSession { id, .. } => Some(match d.sessions.close(id) {
             Some(was_alive) => Reply::Closed {
                 id: id.clone(),

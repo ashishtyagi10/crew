@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.18
+
+**A standing intent can be snoozed.**
+
+The one you could not deal with at 7am could only be cancelled, and
+cancelling loses it. `snooze <id> <for>` pushes the next firing back by a
+duration the cadence grammar already reads — `30m`, `2h`, `1d` — from all
+three faces: `crew daemon snooze w1 30m`, "snooze w1 30m" said over a
+channel, and `/watching snooze w1 30m` in the app. A repeat keeps its
+cadence: the daily 7am briefing snoozed half an hour fires at 7:30 today
+and at 7:00 tomorrow, because the snooze is about one occurrence and
+without an anchor every later firing would have inherited the half hour.
+One appended entry in `watchlist.jsonl`, like a cancel, so it holds
+whether or not the daemon is up. A bare "snooze" on a channel is not a
+watch command (somebody may be telling an agent to snooze something), and
+"snooze w1" with no duration is answered with what would have worked.
+
 ## 0.21.17
 
 **The goal documents are held to the tree.**

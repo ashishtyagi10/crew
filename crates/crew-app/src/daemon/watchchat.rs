@@ -20,6 +20,8 @@ pub(crate) enum Ask {
     List,
     /// Call one off.
     Cancel(String),
+    /// Push one's next firing back by this many ms.
+    Snooze { id: String, delay_ms: u64 },
 }
 
 /// Read a watch command, if the message is one. The outer `None` means "not for me — give it to
@@ -39,6 +41,25 @@ pub(crate) fn read(said: &str, now_ms: u64) -> Option<Result<Ask, String>> {
                 return None;
             }
             return Some(Ok(Ask::Cancel(id.to_string())));
+        }
+        "snooze" | "/snooze" => {
+            // The same care: a bare "snooze" is not a watch command, and one with an id
+            // and no duration IS one, answered with what would have worked.
+            let id = lower.split_whitespace().nth(1)?;
+            if !id.starts_with('w') || id[1..].parse::<u64>().is_err() {
+                return None;
+            }
+            let delay = lower
+                .split_whitespace()
+                .nth(2)
+                .and_then(super::snooze::delay_ms);
+            return Some(match delay {
+                Some(delay_ms) => Ok(Ask::Snooze {
+                    id: id.to_string(),
+                    delay_ms,
+                }),
+                None => Err(super::snooze::FOR_HOW_LONG.to_string()),
+            });
         }
         "remind" | "/remind" => {}
         _ => return None,

@@ -1,4 +1,4 @@
-//! `crew daemon at | watching | cancel` — the clock's CLI face.
+//! `crew daemon at | watching | cancel | snooze` — the clock's CLI face.
 //!
 //! The time is read OUT OF THE TASK, the way the todo composer reads it out of a title
 //! (`crate::todopane::duedate`): `crew daemon at "tomorrow 9am brief me on the calendar"` sets
@@ -36,6 +36,13 @@ pub(super) fn sub(inst: Option<&str>, args: &[String], usage: &str) -> i32 {
         Some("cancel") => match args.get(1) {
             Some(id) => cancel(inst, id),
             None => {
+                print!("{usage}");
+                2
+            }
+        },
+        Some("snooze") => match (args.get(1), args.get(2)) {
+            (Some(id), Some(word)) => super::snooze::cli(inst, id, word),
+            _ => {
                 print!("{usage}");
                 2
             }

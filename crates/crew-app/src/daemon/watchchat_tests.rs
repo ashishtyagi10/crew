@@ -103,3 +103,30 @@ fn a_reminder_for_a_time_that_has_passed_says_so() {
     };
     assert!(e.contains("already passed"), "{e}");
 }
+
+/// "snooze w1 30m" is a watch command; a bare "snooze" is not — somebody may be telling an
+/// agent to snooze something — and "snooze w1" with no duration IS one, answered with what
+/// would have worked rather than handed to an agent as a task.
+#[test]
+fn a_snooze_needs_an_id_and_says_so_without_a_duration() {
+    assert!(read("snooze", now_ms()).is_none());
+    assert!(read("snooze the alarm", now_ms()).is_none());
+    assert_eq!(
+        read("snooze w1 30m", now_ms()),
+        Some(Ok(Ask::Snooze {
+            id: "w1".into(),
+            delay_ms: 1_800_000
+        }))
+    );
+    assert_eq!(
+        read("/snooze W2 2h", now_ms()),
+        Some(Ok(Ask::Snooze {
+            id: "w2".into(),
+            delay_ms: 7_200_000
+        }))
+    );
+    let e = read("snooze w1", now_ms()).unwrap().unwrap_err();
+    assert!(e.contains("30m"), "{e}");
+    let e = read("snooze w1 daily", now_ms()).unwrap().unwrap_err();
+    assert!(e.contains("how long"), "a cadence is not a duration: {e}");
+}

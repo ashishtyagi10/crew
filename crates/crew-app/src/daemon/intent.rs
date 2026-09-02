@@ -99,6 +99,13 @@ pub(crate) struct Intent {
     pub repeat: Repeat,
     /// Epoch ms it was registered, so a listing can say how long it has been standing.
     pub created_ms: u64,
+    /// Where a repeat's cadence is counted from while a snooze has moved
+    /// `fire_ms` off it. A daily 7am snoozed to 7:30 fires at 7:30 today and
+    /// at 7:00 tomorrow: the snooze is about ONE occurrence, and without an
+    /// anchor every later firing would inherit the half hour. `None` when
+    /// `fire_ms` is the cadence's own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anchor_ms: Option<u64>,
 }
 
 impl Intent {
@@ -117,7 +124,7 @@ impl Intent {
             return None;
         };
         let step = secs.max(1) * 1000;
-        let mut next = self.fire_ms.saturating_add(step);
+        let mut next = self.anchor_ms.unwrap_or(self.fire_ms).saturating_add(step);
         let mut skipped = 0;
         while next <= now_ms {
             next = next.saturating_add(step);

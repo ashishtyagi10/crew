@@ -38,7 +38,7 @@ pub(crate) fn listing(intents: &[Intent], now_ms: u64) -> String {
     // why anybody opens this.
     out.push_str(&format!(
         "{} standing \u{b7} times as of opening\n/watching re-reads the list\n\
-         /watching cancel <id> calls one off\n\n",
+         /watching cancel <id> calls one off \u{b7} /watching snooze <id> 30m pushes one back\n\n",
         intents.len()
     ));
     for i in intents {
@@ -84,8 +84,21 @@ pub(crate) fn cancel(list: &Watchlist, id: &str, now_ms: u64) -> String {
     }
 }
 
+/// What `/watching snooze <id> <for>` did, as the status line says it.
+pub(crate) fn snooze(list: &Watchlist, rest: &str, now_ms: u64) -> String {
+    let mut words = rest.split_whitespace();
+    let (Some(id), Some(word)) = (words.next(), words.next()) else {
+        return "usage: /watching snooze <id> <for>  (30m, 2h, 1d)".into();
+    };
+    match crate::daemon::snooze::delay_ms(word) {
+        Some(delay) => crate::daemon::snooze::said(id, list.snooze(id, delay, now_ms), now_ms),
+        None => crate::daemon::snooze::FOR_HOW_LONG.into(),
+    }
+}
+
 impl crate::app::CrewApp {
-    /// `/watching` — the standing intents in the viewer; `/watching cancel <id>` calls one off.
+    /// `/watching` — the standing intents in the viewer; `/watching cancel <id>` calls one
+    /// off; `/watching snooze <id> <for>` pushes one back.
     pub(crate) fn open_watching(&mut self, arg: &str) {
         let list = Watchlist::at(crate::daemon::intentlog::default_path());
         let now_ms = crate::chattime::unix_now_ms();
@@ -94,8 +107,16 @@ impl crate::app::CrewApp {
             self.set_status(said);
             return;
         }
+        if let Some(rest) = arg.trim().strip_prefix("snooze") {
+            let said = snooze(&list, rest, now_ms);
+            self.set_status(said);
+            return;
+        }
         if !arg.trim().is_empty() {
-            self.set_status("usage: /watching \u{b7} /watching cancel <id>".to_string());
+            self.set_status(
+                "usage: /watching \u{b7} /watching cancel <id> \u{b7} /watching snooze <id> <for>"
+                    .to_string(),
+            );
             return;
         }
         let text = listing(&list.live(), now_ms);

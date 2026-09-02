@@ -24,6 +24,7 @@ pub(crate) mod intentlog;
 pub(crate) mod reply;
 pub(crate) mod service;
 pub(crate) mod session;
+pub(crate) mod snooze;
 pub(crate) mod task;
 pub(crate) mod watchchat;
 pub(crate) mod watchcli;

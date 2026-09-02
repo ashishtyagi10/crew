@@ -39,6 +39,9 @@ impl super::Daemon {
                         .join("\n")
                 }
             }
+            Ok(Ask::Snooze { id, delay_ms }) => {
+                super::snooze::said(&id, self.watch.snooze(&id, delay_ms, now_ms), now_ms)
+            }
             Ok(Ask::Cancel(id)) => match self.watch.cancel(&id, now_ms) {
                 Ok(true) => format!("{id} cancelled"),
                 Ok(false) => format!("I am not watching for {id}"),

@@ -77,7 +77,8 @@ impl CrewApp {
             | Request::Say { .. }
             | Request::Watch { .. }
             | Request::Watching { .. }
-            | Request::Unwatch { .. } => return false,
+            | Request::Unwatch { .. }
+            | Request::Snooze { .. } => return false,
         };
         let Some(idx) = crate::askroute::resolve(&self.panes, &to) else {
             let _ = reply.send(Reply::NoAnswer {

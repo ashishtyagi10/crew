@@ -77,6 +77,8 @@ pub enum Request {
     Watching { v: u32 },
     /// Call one standing intent off by id.
     Unwatch { v: u32, id: String },
+    /// Push one standing intent's next firing by `delay_ms` from the daemon's now.
+    Snooze { v: u32, id: String, delay_ms: u64 },
     /// Ask the resident daemon what it is: pid, uptime, live session count.
     /// Served on the daemon endpoint only — the GUI's ask socket does not
     /// answer it, and the daemon does not answer the ask ops.
@@ -172,6 +174,12 @@ pub enum Reply {
     Unwatched {
         id: String,
         found: bool,
+    },
+    /// A standing intent was snoozed; `fire_ms` is where it landed, `None` when
+    /// nothing by that id was standing.
+    Snoozed {
+        id: String,
+        fire_ms: Option<u64>,
     },
     /// The resident daemon's status.
     Daemon {

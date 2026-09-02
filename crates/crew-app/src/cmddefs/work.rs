@@ -39,7 +39,7 @@ pub(crate) const WORK: &[Cmd] = &[
     },
     Cmd {
         name: "/watching",
-        desc: "What crew is waiting to do on its clock \u{b7} /watching cancel <id> calls one off",
+        desc: "What crew is waiting to do on its clock \u{b7} cancel <id> \u{b7} snooze <id> 30m",
     },
     Cmd {
         name: "/out",

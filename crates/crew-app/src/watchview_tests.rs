@@ -13,6 +13,7 @@ fn intent(id: &str, text: &str, to: &str, fire_in: u64, repeat: Repeat) -> Inten
         fire_ms: NOW + fire_in,
         repeat,
         created_ms: NOW - 3 * 24 * HOUR,
+        anchor_ms: None,
     }
 }
 
@@ -83,5 +84,31 @@ fn cancel_writes_the_log_the_clock_reads() {
         Watchlist::at(&p).live().is_empty(),
         "gone for whoever reads the file next"
     );
+    let _ = std::fs::remove_file(&p);
+}
+
+/// `/watching snooze w1 30m` is the third verb, and its status line says where it landed.
+#[test]
+fn snooze_from_the_app_says_where_it_landed() {
+    let p = std::env::temp_dir().join(format!(
+        "crew-watchview-snooze-{}.jsonl",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_file(&p);
+    let list = Watchlist::at(&p);
+    let it = list
+        .add(
+            "noon",
+            "",
+            NOW + HOUR,
+            crate::daemon::intent::Repeat::Once,
+            NOW,
+        )
+        .unwrap();
+    assert_eq!(snooze(&list, " w1 30m", NOW), "w1 snoozed \u{2014} in 30m");
+    assert_eq!(list.live()[0].fire_ms, NOW + 30 * 60_000, "{}", it.id);
+    assert_eq!(snooze(&list, "w7 30m", NOW), "crew is not watching for w7");
+    assert!(snooze(&list, "w1", NOW).starts_with("usage:"));
+    assert!(snooze(&list, "w1 daily", NOW).contains("how long"));
     let _ = std::fs::remove_file(&p);
 }

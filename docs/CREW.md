@@ -1260,9 +1260,12 @@ longer aim at.
 - **`/watching`** — what crew is waiting to do on its own clock: every
   standing intent (`crew daemon at …`, or "remind me …" said over a channel),
   soonest first, with when it fires, how often, the task, where the answer
-  goes and how long it has stood. **`/watching cancel <id>`** calls one off —
-  an append to the same `watchlist.jsonl` the daemon folds on every tick, so
-  it takes effect whether or not the daemon is up right now. It reads the log
+  goes and how long it has stood. **`/watching cancel <id>`** calls one off
+  and **`/watching snooze <id> 30m`** pushes its next firing back (`2h`, `1d`
+  work too; a repeat keeps its cadence, so a daily 7am snoozed half an hour
+  is late today and on time tomorrow) — each an append to the same
+  `watchlist.jsonl` the daemon folds on every tick, so it takes effect
+  whether or not the daemon is up right now. It reads the log
   directly, like `/tools` reads the ledger; nothing here needs the socket.
 
   A row is one quiet line — how long ago, a mark, the tool, its tier — and the
@@ -2443,6 +2446,7 @@ direction** — no release, update or app launch ever installs it.
 | `crew daemon at <when+what>` | do something later — see below |
 | `crew daemon watching` | what crew is waiting to do, soonest first (`/watching` in the app) |
 | `crew daemon cancel <id>` | call one standing intent off |
+| `crew daemon snooze <id> <for>` | push its next firing back by `30m`, `2h`, `1d` — a repeat keeps its cadence |
 
 **Standing intents — crew's own clock.** `crew daemon at "tomorrow 9am brief me
 on the calendar"` reads the time out of the sentence (the same grammar the todo

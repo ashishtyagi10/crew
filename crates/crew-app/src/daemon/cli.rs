@@ -17,6 +17,7 @@ usage:
   crew daemon at <when+what>  do something later (--to ADDR, --every daily|30m)
   crew daemon watching        list what crew is waiting to do
   crew daemon cancel <id>     call one standing intent off
+  crew daemon snooze <id> <for>  push its next firing back (30m, 2h, 1d)
   crew daemon channels        list the ways in, and which are usable
   crew daemon say <to> <txt>  send a message out through a channel (kind:rest)
   crew daemon install         start the resident at login (opt-in; --remove undoes it)
