@@ -6,69 +6,15 @@
 //! prose is still markdown, a `.md` that is really a JPEG is not.
 use std::path::Path;
 
+pub(crate) use super::extractor::{Extractor, Opaque, Probe};
+
 /// How many leading bytes `detect` is given. The caller reads at most this
 /// much, so a multi-byte char can be cut in half at the boundary — see
 /// `looks_utf8`.
 pub(crate) const SNIFF_BYTES: usize = 8192;
 
-/// An external text-extraction tool. `TextUtil` ships with macOS; `PdfToText`
-/// comes from poppler and is frequently absent.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Extractor {
-    TextUtil,
-    PdfToText,
-}
-
-impl Extractor {
-    /// The binary name, used to probe `PATH` and to name what to install.
-    pub(crate) fn bin(self) -> &'static str {
-        match self {
-            Extractor::TextUtil => "textutil",
-            Extractor::PdfToText => "pdftotext",
-        }
-    }
-
-    /// What the user is told to install when this tool is missing.
-    pub(crate) fn install_hint(self) -> &'static str {
-        match self {
-            Extractor::TextUtil => "textutil (ships with macOS)",
-            Extractor::PdfToText => "pdftotext — brew install poppler",
-        }
-    }
-}
-
-/// Why a file gets the metadata card instead of a rendering.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Opaque {
-    Binary,
-    NotUtf8,
-    NoExtractor(Extractor),
-    /// `read_capped` itself failed — not found, permission denied, or some
-    /// other I/O error, none of which is "binary" (Fix 2's fold-in item:
-    /// `load_now` used to tag every read failure `Binary`, a false, specific
-    /// claim about bytes it never actually read).
-    Unreadable,
-}
-
-/// Which tools are on `PATH`. Passed in rather than probed here so `detect`
-/// stays pure and the "missing tool degrades a rung" rule is testable.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Probe {
-    pub textutil: bool,
-    pub pdftotext: bool,
-}
-
-impl Probe {
-    fn has(self, e: Extractor) -> bool {
-        match e {
-            Extractor::TextUtil => self.textutil,
-            Extractor::PdfToText => self.pdftotext,
-        }
-    }
-}
-
 /// One rung of the ladder. `lang` is the `md/syntax.rs` language tag, `""`
-/// for "text, no keywords".
+/// for "text, no keywords" — [`Format::lang`] reads it off any rung.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Format {
     Code {
@@ -101,6 +47,18 @@ pub(crate) enum Format {
 
 /// Extension → rung. Kept as a flat table because it is read once per open
 /// and a `match` here is easier to extend than a lazy map.
+impl Format {
+    /// The `md::syntax` language tag for a rung, `""` when it has none. Only
+    /// `Code`/`Data` carry one — everything else that reaches the numbered
+    /// rung (an `Extract`, or `Markdown`/`Csv` shown raw) is plain text.
+    pub(crate) fn lang(self) -> &'static str {
+        match self {
+            Format::Code { lang } | Format::Data { lang } => lang,
+            _ => "",
+        }
+    }
+}
+
 fn by_extension(ext: &str) -> Option<Format> {
     let f = match ext {
         "rs" => Format::Code { lang: "rust" },

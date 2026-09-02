@@ -21,6 +21,7 @@ pub(crate) mod edit;
 #[cfg(test)]
 #[path = "editpane_tests.rs"]
 pub(crate) mod editpane_tests;
+mod extractor;
 pub(crate) mod keys;
 pub(crate) mod linemarks;
 mod linepaint;

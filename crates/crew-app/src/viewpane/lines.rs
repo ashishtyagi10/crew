@@ -169,10 +169,10 @@ fn ready_lines(
         Format::Text => super::linepaint::unnumbered(text, cols, t.ink, t.text_muted, ws),
         // Fix 1: `Code`/`Data` used to reach here with no `lang`, which is
         // why every character painted the same `ink` regardless of what the
-        // lexer would have called it. `format_lang` is `""` for every other
+        // lexer would have called it. `Format::lang` is `""` for every other
         // rung that lands here (raw `Markdown`/`Csv`), so their behaviour is
         // unchanged.
-        _ => numbered(text, cols, format_lang(format), t.ink, t.text_muted, ws),
+        _ => numbered(text, cols, format.lang(), t.ink, t.text_muted, ws),
     };
     // A file with nothing in it renders as an empty pane, which is
     // indistinguishable from one that failed to render — and from one still
@@ -188,16 +188,6 @@ fn ready_lines(
     }
     out.extend(body);
     (out, marks, pictures)
-}
-
-/// The `md::syntax` language tag for a rung, `""` when it has none. Only
-/// `Code`/`Data` carry one — everything else that reaches `numbered` (an
-/// `Extract`, or `Markdown`/`Csv` shown raw) is plain text.
-fn format_lang(format: Format) -> &'static str {
-    match format {
-        Format::Code { lang } | Format::Data { lang } => lang,
-        _ => "",
-    }
 }
 
 #[cfg(test)]

@@ -16,6 +16,10 @@ use crew_plugin::ledger::{Ledger, Record};
 #[path = "toolsview_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "toolsfit_tests.rs"]
+mod fit_tests;
+
 /// Rows the listing shows. The ledger is append-only and unbounded — it is the
 /// record of a machine, not of a session — so the view takes the tail. A
 /// thousand rows is more than anyone scrolls and small enough to render.

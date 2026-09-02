@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.10
+
+**Three files over the line cap grew, and the gate said so, and I tagged.**
+
+v0.21.9's `linecap` ratchet was red on main: `detect.rs`, `lines.rs` and
+`toolsview_tests.rs` — all already over the 200-line cap — each grew by a
+few lines for the plain rung and the row width, and the release script
+read the failure and pushed anyway because its own exit code never
+followed the test's. Same shape as v0.21.1; the script exits red now.
+
+The fix is three splits along real boundaries rather than three bigger
+numbers in the debt file: the extractor probe and the opaque reasons have
+`viewpane/extractor.rs`, the language tag is `Format::lang` on the rung
+itself, and the row-fit tests have `toolsfit_tests.rs`. `detect.rs` and
+`lines.rs` are under the cap now, and off the list for good.
+
 ## 0.21.9
 
 **The `/tools` listing, drawn for the first time — and fitted.**
