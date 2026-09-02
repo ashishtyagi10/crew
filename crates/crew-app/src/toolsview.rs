@@ -63,8 +63,10 @@ pub(crate) fn listing(records: &[Record], bad: usize, filter: &str, now_ms: u64)
         // different answers and only one of them means you typed it wrong.
         out.push_str(&match (records.is_empty(), filter.is_empty()) {
             (true, _) => "Nothing yet. Every tool an agent calls lands here.\n".to_string(),
+            // Two lines, a sentence each: on one line this was the widest
+            // row the listing could produce and wrapped in a 75-column pane.
             (false, _) => format!(
-                "No call matches \u{201c}{filter}\u{201d}. {} call(s) recorded \u{2014} \
+                "No call matches \u{201c}{filter}\u{201d}.\n{} call(s) recorded \u{2014} \
                  /tools with no term lists them.\n",
                 records.len()
             ),

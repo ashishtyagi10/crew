@@ -25,7 +25,13 @@ pub(crate) const AGO_W: usize = 8;
 pub(crate) const DETAIL_INDENT: usize = 13;
 
 /// Total columns a row — or a wrapped detail line — may take.
-pub(crate) const ROW_W: usize = 60;
+///
+/// The main row is exactly this wide with its widest tier (`irreversible`),
+/// and it is what the narrowest tile the listing is opened in can show:
+/// `toolshot_tests` drew it at sixty and watched every irreversible row
+/// break `irreve↪rsible` and every note wrap mid-word a second time in the
+/// viewer.
+pub(crate) const ROW_W: usize = 47;
 
 /// How a call ended, in ONE glyph.
 ///

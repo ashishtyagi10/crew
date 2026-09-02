@@ -393,6 +393,9 @@ mod todopane;
 #[path = "todoshot_tests.rs"]
 mod todoshot_tests;
 mod toggles;
+#[cfg(test)]
+#[path = "toolshot_tests.rs"]
+mod toolshot_tests;
 mod toolsrow;
 mod toolsview;
 mod tui;

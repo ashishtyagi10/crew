@@ -951,8 +951,9 @@ longer aim at.
   a busy pane instead of typing into a running program.
 - **`/view <file>`** (alias `/md`) — opens a zoomed **file viewer** pane: a
   single, read-only pane over the file, rendered by format (markdown,
-  numbered-gutter code, aligned CSV, colored diffs, or a metadata card for
-  anything else). ↑/↓ and PageUp/PageDown/Home/End scroll, `r` reloads from
+  numbered-gutter code, plain un-numbered text for `.txt` and the listings
+  crew writes itself — `/out`, `/blocks`, `/tools` — aligned CSV, colored
+  diffs, or a metadata card for anything else). ↑/↓ and PageUp/PageDown/Home/End scroll, `r` reloads from
   disk — a **wrapped row says it is one**, with a `↪` in the gutter where its
   line number would be, since a blank gutter beside a wrapped line and a blank
   gutter beside an empty line are the same blank — `s` toggles raw text

@@ -166,12 +166,12 @@ fn an_unknown_extension_holding_text_reads_as_plain_code() {
 #[test]
 fn an_empty_file_is_not_opaque() {
     // Fix 6: the old assertion only ruled out `Opaque`, which passes for ANY
-    // other rung, correct or not (e.g. it would still pass if `by_content`
-    // started misclassifying an empty file as `Diff`). `.txt` carries no
-    // extension mapping, so this falls to `by_content`, whose fallback for
-    // unrecognised content is `Code { lang: "" }` — assert that exact rung.
+    // other rung, correct or not. `.txt` is the plain-text rung; a file with
+    // no extension falls to `by_content`, whose fallback is `Code { lang: "" }`
+    // — assert the exact rung in both cases.
+    assert_eq!(detect(Path::new("empty.txt"), b"", all()), Format::Text);
     assert_eq!(
-        detect(Path::new("empty.txt"), b"", all()),
+        detect(Path::new("empty"), b"", all()),
         Format::Code { lang: "" }
     );
 }

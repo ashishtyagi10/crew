@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.9
+
+**The `/tools` listing, drawn for the first time — and fitted.**
+
+`toolshot_tests` renders the action ledger the way a person opens it: as a
+file in the viewer, wide and as a narrow tile, with one of every row a call
+can produce. Two things were wrong in the tile, and one of them was wrong
+everywhere:
+
+- **Every listing wore a line-number gutter.** `/out`, `/blocks` and
+  `/tools` wrote a `.log`, the viewer had no plain rung, so the fallback was
+  code — six columns of numbers nobody would ever refer to, on every row of
+  a listing. There is a plain rung now (`Format::Text`, un-numbered,
+  wrapped at the full width) and `.txt` is its extension; crew's own
+  listings are `.txt`.
+- **The row was built for sixty columns and the tile has forty-seven.** So
+  every `irreversible` row broke `irreve↪rsible` and every note wrapped a
+  second time, mid-word, in the viewer. The row width is the tile's now —
+  the main row is exactly that wide with its widest tier — and a note wraps
+  once, on words, under its row.
+- The no-match sentence was the one row wider than a 75-column pane. It is
+  two sentences on two lines.
+
 ## 0.21.8
 
 **An unknown tool is answered with what was probably meant.**

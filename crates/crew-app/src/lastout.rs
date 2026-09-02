@@ -21,7 +21,7 @@ pub(crate) fn temp_path(pane: usize, name: &str) -> PathBuf {
         .take(24)
         .collect();
     let slug = if slug.is_empty() { "out".into() } else { slug };
-    std::env::temp_dir().join(format!("crew-out-{pane}-{slug}.log"))
+    std::env::temp_dir().join(format!("crew-out-{pane}-{slug}.txt"))
 }
 
 /// The `[from, to)` slice of `lines`, as text. Clamped, since the scrollback

@@ -75,6 +75,10 @@ pub(crate) enum Format {
         lang: &'static str,
     },
     Markdown,
+    /// Prose or a listing — `.txt`, and the files crew writes for `/out`,
+    /// `/blocks` and `/tools`. Wrapped, un-numbered: a line number is a
+    /// coordinate in SOURCE, and on a listing it is six columns of noise.
+    Text,
     Data {
         lang: &'static str,
     },
@@ -106,6 +110,7 @@ fn by_extension(ext: &str) -> Option<Format> {
         "c" | "h" | "cpp" | "hpp" | "cc" => Format::Code { lang: "c" },
         "sh" | "bash" | "zsh" => Format::Code { lang: "shell" },
         "md" | "markdown" | "mdx" => Format::Markdown,
+        "txt" | "text" => Format::Text,
         "json" => Format::Data { lang: "json" },
         "yaml" | "yml" => Format::Data { lang: "yaml" },
         "toml" => Format::Data { lang: "toml" },
