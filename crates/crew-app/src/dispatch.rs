@@ -37,6 +37,7 @@ impl CrewApp {
             "blocks" => self.open_blocks(),
             "tools" => self.open_tools(""),
             "watching" => self.open_watching(""),
+            "integrations" => self.open_integrations(),
             "pin" => self.toggle_pin(),
             "marks" => self.marks_command(""),
             "invisibles" => self.invisibles_command(""),

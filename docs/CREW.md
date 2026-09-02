@@ -1257,6 +1257,14 @@ longer aim at.
   what is in view — `4 read · 1 reversible · 4 irreversible`, then `1 denied ·
   2 failed · 1 pending` when there is anything unusual to count — so "what
   was denied" is answered before the first row is read.
+- **`/integrations`** — what crew can reach: every manifest in
+  `~/.config/crew/integrations/` (or a project's `.crew/integrations/`), the
+  credential it names and whether that is set, and every tool with the tier
+  the gate will use — a tool whose manifest names no tier is irreversible
+  here as it is there. `/tools` says what ran; this says what is available,
+  and says `WEATHER_TOKEN is NOT set — calls will refuse` before the first
+  call finds out. `/doctor` carries one line per integration; this is the
+  page.
 - **`/watching`** — what crew is waiting to do on its own clock: every
   standing intent (`crew daemon at …`, or "remind me …" said over a channel),
   soonest first, with when it fires, how often, the task, where the answer

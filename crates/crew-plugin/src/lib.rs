@@ -7,6 +7,10 @@ pub mod approval {
 pub mod ledger {
     pub use crate::broker::ledger::*;
 }
+/// The manifest-defined HTTP integrations, as loaded: what crew can reach.
+pub mod integration {
+    pub use crate::broker::integration::{load, Auth, IntTool, Integration};
+}
 /// Tool tiering: what a tool can do to the world, and whether it can be undone.
 pub mod tier {
     pub use crate::broker::tier::*;

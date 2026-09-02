@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.23
+
+**`/integrations` — what crew can reach, and whether each will work.**
+
+`/tools` says what ran; nothing in the app said what is available. The
+only answer to "what can crew reach, and will it work" was one line per
+integration in `/doctor`, among fifteen other probes — and a manifest
+whose token is missing works perfectly until its first call. The new
+page lists every manifest (`~/.config/crew/integrations/`, or a
+project's `.crew/integrations/`), the credential it names and whether
+that is set (`WEATHER_TOKEN is NOT set — calls will refuse`, said before
+the first call finds out), its description, and every tool with the tier
+the gate will use — a tool whose manifest names no tier is irreversible
+here as it is there, and the test says so. Built to the tile, drawn in
+the harness, and re-read on each opening like the manifests themselves.
+
 ## 0.21.22
 
 **A tool call missing its arguments learns all of them in one round.**

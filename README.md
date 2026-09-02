@@ -363,6 +363,8 @@ it.
   line to the action ledger; this is the thing that opens it. `/tools <term>`
   narrows it — one term against the tool, tier, requester, decision, outcome
   or note.
+- **`/integrations`** lists what crew can reach — every manifest, its credential and
+  whether it is set, every tool's tier.
 - **`/watching`** lists what crew is waiting to do on its own clock — every
   standing intent, soonest first — and `/watching cancel <id>` calls one off.
 - **`/blame`** answers who last touched each line of the file in the viewer,

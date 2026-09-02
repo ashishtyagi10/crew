@@ -389,6 +389,9 @@ mod toastshot_tests;
 #[path = "transientshot_tests.rs"]
 mod transientshot_tests;
 
+#[cfg(test)]
+mod integrshot_tests;
+mod integrview;
 mod todopane;
 #[cfg(test)]
 #[path = "todoshot_tests.rs"]

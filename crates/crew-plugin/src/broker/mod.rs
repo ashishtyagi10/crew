@@ -32,7 +32,7 @@ mod engine;
 mod fan;
 mod gitmsg;
 mod hop;
-mod integration;
+pub(crate) mod integration;
 mod intent;
 pub mod ledger;
 mod logincmd;

@@ -47,7 +47,7 @@ pub(crate) mod run;
 /// How the API is authenticated. Every variant names an env var; none carries a secret.
 #[derive(Debug, Clone, Default, Deserialize, PartialEq)]
 #[serde(tag = "kind", rename_all = "lowercase")]
-pub(crate) enum Auth {
+pub enum Auth {
     /// `Authorization: Bearer $env`.
     Bearer { env: String },
     /// A header of your own: `X-Api-Key: $env`.
@@ -61,7 +61,7 @@ pub(crate) enum Auth {
 
 /// One tool the integration offers.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
-pub(crate) struct IntTool {
+pub struct IntTool {
     pub name: String,
     #[serde(default)]
     pub description: String,
@@ -91,7 +91,7 @@ fn get() -> String {
 
 /// One manifest: a named server with a base URL and its tools.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
-pub(crate) struct Integration {
+pub struct Integration {
     pub name: String,
     #[serde(default)]
     pub description: String,
@@ -108,7 +108,7 @@ pub(crate) struct Integration {
 
 impl Integration {
     /// The tier of one of its tools, as [`super::tier`] classifies things.
-    pub(crate) fn tier_of(&self, tool: &str) -> super::tier::Tier {
+    pub fn tier_of(&self, tool: &str) -> super::tier::Tier {
         use super::tier::Tier;
         match self
             .tools
@@ -180,7 +180,7 @@ fn base_dir() -> PathBuf {
 
 /// User + project integrations, a project manifest replacing a user one of the same name —
 /// exactly how plugin agents, skills and MCP servers already resolve.
-pub(crate) fn load() -> Vec<Integration> {
+pub fn load() -> Vec<Integration> {
     load_at(&base_dir())
 }
 
