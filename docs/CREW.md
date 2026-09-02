@@ -275,7 +275,10 @@ pointer across the canvas costs one frame per thing it crosses.
 **Minimize to nav.** Every full tile carries a **`[-]` button** on its top
 border. Clicking it hides the pane into the left nav: the pane keeps running
 (its process is untouched) but leaves the grid, focus moves to the nearest
-visible pane, and its sidebar PANES row gains a right-aligned **`[+]`**.
+visible pane, and its sidebar PANES row gains a right-aligned **`[+]`**. A
+row's markers — the dot slot, the `[+]`, the unread count — are placed from
+the right edge inward with a column of air between them, and a title cut to
+fit keeps that air too, rather than running into its own marker.
 Click the row — or focus the pane any other way (Cmd+1 … 9) — and it
 restores to the grid; focusing a hidden pane always un-hides it. Hidden panes
 are skipped by pane cycling and never receive bare input-bar text.

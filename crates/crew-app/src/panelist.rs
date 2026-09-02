@@ -105,7 +105,17 @@ pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize, spin: char) -> Vec
         // edge inward and the title takes what is left, so on a narrow nav it
         // is the title that runs short — and a title that stops mid-word looks
         // like a pane that is called that.
-        let fit = crate::chatwidth::clip_w(&p.title, rx.saturating_sub(tstart) as usize);
+        //
+        // And one column of air before whatever sits at `rx` — the dot slot,
+        // the `[+]`, the count — the same air `claim` keeps between those.
+        // Without it a title cut to fit ran straight into its own marker
+        // (`cargo wat…12 ●`, `far ~/co…[+]`). A row with nothing at its
+        // right keeps the column for its title; a blinking marker counts as
+        // there in both phases, or the title would jitter with it.
+        let occupied =
+            plus.is_some() || count.is_some() || p.attention.is_some() || p.busy || p.activity;
+        let room = rx.saturating_sub(tstart + u16::from(occupied));
+        let fit = crate::chatwidth::clip_w(&p.title, room as usize);
         write(&mut out, &fit, tstart, row, title_fg, rx, t.page_bg);
         if let Some(x) = plus {
             write(&mut out, "[+]", x, row, accent(), cols, t.page_bg);
@@ -180,6 +190,9 @@ fn write(
     });
 }
 
+#[cfg(test)]
+#[path = "panelistgap_tests.rs"]
+mod gap_tests;
 #[cfg(test)]
 #[path = "panelist_tests.rs"]
 mod tests;

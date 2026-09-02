@@ -111,6 +111,9 @@ mod cmdrecents;
 mod cmdrow;
 mod cmdspan;
 #[cfg(test)]
+#[path = "composercards_tests.rs"]
+mod composercards_tests;
+#[cfg(test)]
 #[path = "composershot_tests.rs"]
 mod composershot_tests;
 pub mod config;
@@ -377,6 +380,9 @@ mod toastcard;
 #[cfg(test)]
 #[path = "toastshot_tests.rs"]
 mod toastshot_tests;
+#[cfg(test)]
+#[path = "transientshot_tests.rs"]
+mod transientshot_tests;
 
 mod todopane;
 #[cfg(test)]

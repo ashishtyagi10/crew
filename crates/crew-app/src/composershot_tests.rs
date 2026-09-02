@@ -1,8 +1,8 @@
 //! Off-screen render of what a crew pane shows before and around its
 //! transcript: the empty state in its three shapes, the auto-folded system
-//! card, the folded tool card and the compaction marker inside a transcript,
-//! and the two cards that sit over the composer — Cmd+F find and Ctrl+R
-//! history search.
+//! card, the folded tool card and the compaction marker inside a transcript.
+//! The two cards that sit over the composer — Cmd+F find and Ctrl+R history
+//! search — are `composercards_tests`, on the same fixture.
 //!
 //! `chatshot` renders a live conversation; these are the states a session
 //! passes through on its way in and out of one, and none had been in a frame.
@@ -14,7 +14,6 @@ use crate::chatlayout::Message;
 use crate::goalshot_tests::dump;
 use crate::shotgpu_tests::shot_at;
 use crew_plugin::{AgentInfo, Plugin};
-use crew_render::PaneScene;
 
 fn msg(sender: &str, text: &str) -> Message {
     Message {
@@ -27,7 +26,7 @@ fn msg(sender: &str, text: &str) -> Message {
     }
 }
 
-fn pane() -> ChatPane {
+pub(crate) fn pane() -> ChatPane {
     let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
     let mut p = ChatPane::new(plugin, "crew".into());
     p.connected = true;
@@ -48,7 +47,7 @@ fn pane() -> ChatPane {
 
 /// A transcript with every card shape that folds: `/doctor` in the system
 /// voice, a tool call under an agent's name, and the compaction marker.
-fn folded_pane() -> ChatPane {
+pub(crate) fn folded_pane() -> ChatPane {
     let mut p = pane();
     p.messages = vec![
         crate::chatcompact::marker(12),
@@ -137,77 +136,5 @@ fn composer_shot_empty_states() {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         }
-    }
-}
-
-/// A card that draws its own frame, at the width a pane hands it.
-fn card_shot(name: &str, w: u32, card: impl Fn(u16) -> (Vec<crew_render::CellView>, u16)) {
-    let px = crate::shotdraw_tests::draw(w, 300, 13.0, |cw, ch| {
-        let cols = (w as f32 / cw).floor() as u16;
-        let (cells, rows) = card(cols);
-        eprintln!("--- composer-{name} {cols}x{rows}");
-        for l in dump(&cells, cols, rows) {
-            eprintln!("|{l}");
-        }
-        vec![PaneScene {
-            cells,
-            x: 0.0,
-            y: 0.0,
-            w: w as f32,
-            h: f32::from(rows) * ch,
-            focused: false,
-            bordered: false,
-            glass: false,
-            scan: -1.0,
-            overlay: true,
-            paint: Vec::new(),
-        }]
-    });
-    if let Some(px) = px {
-        crate::shotdraw_tests::write_png(&format!("composer-{name}"), &px, w, 300);
-    }
-}
-
-#[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
-fn composer_shot_find_and_history() {
-    let _g = crate::app::theme_test_guard();
-    let p = folded_pane();
-    let visible = p.visible_messages();
-    let find = crate::chatfind::ChatFind {
-        query: "plot".into(),
-        matches: crate::chatfind::filter(&visible, "plot"),
-        sel: 0,
-    };
-    let none = crate::chatfind::ChatFind {
-        query: "zebra".into(),
-        matches: vec![],
-        sel: 0,
-    };
-    for (name, w, f) in [
-        ("find", 700, &find),
-        ("find-narrow", 380, &find),
-        ("find-none", 700, &none),
-    ] {
-        card_shot(name, w, |cols| crate::chatfind::card(f, &visible, cols));
-    }
-    let lines: Vec<String> = [
-        "cargo test -p crew-app --bin crew chat",
-        "@scout what changed in plot/ since v0.19.60?",
-        "/doctor",
-        "cargo clippy --workspace --all-targets",
-        "why is the sidebar chart a smear at two rows?\nand the ring's track?",
-    ]
-    .iter()
-    .map(|s| s.to_string())
-    .collect();
-    let hist = crate::chathistsearch::HistSearch {
-        query: "car".into(),
-        saved: String::new(),
-        matches: crate::chathistsearch::filter(&lines, "car"),
-        sel: 1,
-    };
-    for (name, w) in [("history", 700), ("history-narrow", 380)] {
-        card_shot(name, w, |cols| crate::chathistsearch::card(&hist, cols));
     }
 }

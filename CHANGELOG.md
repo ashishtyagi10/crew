@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.3
+
+**The nav's transients, and a test I shipped red.**
+
+`transientshot_tests` renders the states of the left column nobody can hold
+still: the UPDATE card at every stage of a `/update` (checking, downloading,
+done, up to date, failed — at the nav's width and narrower), the parked-update
+legend, every marker a PANES row can wear at once, and the ghost of a closing
+card at three points of its collapse. The update card and the legend came
+through clean — a failure wraps and marks its cut, the legend keeps `/update`
+in view. The pane rows did not:
+
+- **A cut title ran straight into its own marker.** `cargo wat…12 ●`,
+  `far ~/co…[+]`, `claude — crew⠋`: the row's markers are placed from the
+  right edge inward with a column of air between each other, and the title
+  took every column up to the first of them. It keeps one column of air now,
+  like everything else on the row.
+
+And the confession: v0.21.1 and v0.21.2 shipped with one test red on main.
+`composershot_tests` was written at 199 lines, `cargo fmt` reflowed it to 213
+in the next release, and the line-cap ratchet caught it exactly as designed —
+in a test run whose one failing line I did not read before tagging. The file
+is two now (`composershot` for the pane's states, `composercards` for the two
+cards over the composer), and the release checklist reads the failures first.
+
 ## 0.21.2
 
 **Four small surfaces, three of them wrong.**
