@@ -39,6 +39,7 @@ fn planner_invents_craft_shaped_specialists() {
             provider,
             tier: ModelTier::Capable,
             model: Some("qwen-max".to_string()),
+            capabilities: Vec::new(),
         };
         let graph = rt.block_on(planner.plan(goal)).expect("plan");
 
@@ -112,6 +113,7 @@ fn planner_leaves_independent_work_independent() {
             provider,
             tier: ModelTier::Capable,
             model: Some("qwen-max".to_string()),
+            capabilities: Vec::new(),
         };
         let graph = rt.block_on(planner.plan(goal)).expect("plan");
 

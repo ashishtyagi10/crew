@@ -263,6 +263,21 @@ mod integrations {
         SessionTools::with_integrations(sys, vec![integration::parse(WEATHER).unwrap()])
     }
 
+    /// The planner's line: the manifest's name and what it is for — not its tool rows.
+    #[test]
+    fn a_manifest_is_one_capability_line_for_the_planner() {
+        let caps = tools(true).capabilities();
+        assert_eq!(
+            caps,
+            vec!["weather: forecast, subscribe".to_string()],
+            "no description: its tools"
+        );
+        let mut with_desc = integration::parse(WEATHER).unwrap();
+        with_desc.description = "forecasts for any city".into();
+        let caps = SessionTools::with_integrations(true, vec![with_desc]).capabilities();
+        assert_eq!(caps, vec!["weather: forecasts for any city".to_string()]);
+    }
+
     /// The whole contract in one assertion: a file appeared, and the agents can see its tools.
     #[test]
     fn a_manifest_puts_its_tools_on_the_same_surface_as_everything_else() {

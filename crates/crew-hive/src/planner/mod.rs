@@ -7,6 +7,8 @@
 #[cfg(test)]
 mod tests;
 
+mod capabilities;
+
 use std::future::Future;
 use std::pin::Pin;
 
@@ -171,12 +173,27 @@ pub struct LlmPlanner<P: Provider> {
     /// required for non-Anthropic providers (DashScope/OpenRouter), whose
     /// model ids the tier table doesn't know.
     pub model: Option<String>,
+    /// What the agents can reach — one line per source, from
+    /// [`crate::tools::Tools::capabilities`]. Empty leaves the prompt as it was.
+    pub capabilities: Vec<String>,
 }
 
 impl<P: Provider> LlmPlanner<P> {
     pub fn with_model(mut self, m: impl Into<String>) -> Self {
         self.model = Some(m.into());
         self
+    }
+
+    pub fn with_capabilities(mut self, caps: Vec<String>) -> Self {
+        self.capabilities = caps;
+        self
+    }
+
+    /// The system prompt this planner sends: the shape, then what is reachable.
+    pub fn system(&self) -> String {
+        let mut s = PLANNER_SYSTEM.to_owned();
+        s.push_str(&capabilities::section(&self.capabilities));
+        s
     }
 }
 
@@ -190,7 +207,7 @@ impl<P: Provider> Planner for LlmPlanner<P> {
                 .model
                 .clone()
                 .unwrap_or_else(|| self.tier.model_id().to_owned()),
-            system: Some(PLANNER_SYSTEM.to_owned()),
+            system: Some(self.system()),
             prompt: goal.to_owned(),
             max_tokens: 2048,
             ..Default::default()

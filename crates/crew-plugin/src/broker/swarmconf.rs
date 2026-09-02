@@ -85,8 +85,12 @@ pub(super) fn backend(tools: Option<Arc<dyn crew_hive::tools::Tools>>) -> Backen
                     provider: Arc::clone(&provider),
                     tier: ModelTier::Standard,
                     model: None,
+                    capabilities: Vec::new(),
                 }
-                .with_model(model.clone()),
+                .with_model(model.clone())
+                // The planner runs once, before there are tasks, so it never sees a tool
+                // hint; this is how it learns a goal is reachable at all.
+                .with_capabilities(tools.as_ref().map(|t| t.capabilities()).unwrap_or_default()),
             );
             // The sidecar replaces the AGENTS, never the planner: crew decomposes the goal and
             // owns the tools and the gate, and the engine behind the bridge runs the tasks.

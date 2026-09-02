@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.19
+
+**The planner learns what the agents can reach.**
+
+The swarm's planner decomposes a goal into specialists and, until now,
+knew nothing about the world the tasks would run in: a goal like "brief
+me on tomorrow's weather" was planned as research-by-recall even with a
+weather integration one `@tool` away. The agents found it — the tool hint
+is per task, per hop — but a plan that does not know a thing is reachable
+cannot put it in a task, or give that task to the specialist who would
+hold it. The tool surface now answers one more question, coarsely: one
+line per integration (its manifest's description) and per MCP server (a
+few of its tool names), and the planner appends them to its system prompt
+with the rule that a task needing one is reachable, not research, and
+must not invent a source that is not listed. With nothing reachable the
+prompt is byte-identical to the one its `deps` clause was measured on.
+
 ## 0.21.18
 
 **A standing intent can be snoozed.**

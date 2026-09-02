@@ -314,6 +314,12 @@ impl super::toolcall::ToolRunner for SessionTools {
         super::toolcall::hint_for(&self.catalog())
     }
 
+    /// One line per integration and per MCP server, for the planner.
+    fn capabilities(&self) -> Vec<String> {
+        let mcp = self.mcp.lock().unwrap_or_else(|e| e.into_inner()).tools();
+        super::capabilities::lines(&self.integrations, &mcp)
+    }
+
     /// The tools worth naming for THIS task, plus a count of what was left out.
     ///
     /// Below [`toolpick::BUDGET`] this is exactly [`Self::hint`]; above it, the task decides.

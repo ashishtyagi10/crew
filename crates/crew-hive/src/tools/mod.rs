@@ -159,6 +159,18 @@ pub trait Tools: Send + Sync {
         Vec::new()
     }
 
+    /// What an agent can REACH, one line each, for the PLANNER: an
+    /// integration and what it is for, an MCP server and what it holds.
+    ///
+    /// The planner never sees a tool hint — that is per task, per hop, and
+    /// the planner runs once before there are tasks — so it could not know a
+    /// goal was reachable, and could not route a task to the specialist who
+    /// would hold the right integration. Coarse on purpose: a name and a
+    /// sentence per source, not a tool list. Defaults to nothing.
+    fn capabilities(&self) -> Vec<String> {
+        Vec::new()
+    }
+
     /// [`hint`] for one task in particular — the RETRIEVAL seam.
     ///
     /// Defaults to [`hint`], so an implementation with a handful of tools needs nothing. An

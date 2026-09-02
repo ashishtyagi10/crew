@@ -84,6 +84,7 @@ impl SwarmPane {
                     provider: provider.clone(),
                     tier: PLAN_TIER,
                     model: None,
+                    capabilities: Vec::new(),
                 });
                 let factory = Arc::new(ApiFactory::new(Arc::new(provider), WORK_MAX_TOKENS));
                 // Real API agents accrue cost — cap the run.

@@ -180,7 +180,10 @@ So tool selection becomes a real stage instead of a string concatenation:
 - **Retrieval when even one server is too big.** For a fifty-tool server, rank its tools against the
   task text (lexical first — it is honest, debuggable and needs no embedding model; embeddings only
   if measurement demands) and show the top handful plus an explicit "ask for the full list".
-- **The PLANNER learns that tools exist.** `PLANNER_SYSTEM` (`planner/mod.rs:138`) decomposes a goal
+- **The PLANNER learns that tools exist.** **SHIPPED v0.21.19**: `Tools::capabilities()` is one
+  line per integration and per MCP server, and `LlmPlanner` appends them to its system prompt
+  (`planner/capabilities.rs`) — byte-identical to the A/B'd prompt when there are none. As set:
+  `PLANNER_SYSTEM` (`planner/mod.rs:138`) decomposes a goal
   into specialists and has NO notion of capability — it cannot know a task is reachable, so it
   cannot route a task to the agent holding the right integration. It gets the integration summary
   list too, and may name the integrations a task will need. This is what makes the swarm, not just

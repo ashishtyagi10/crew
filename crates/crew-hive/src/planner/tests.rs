@@ -203,6 +203,7 @@ async fn llm_planner_parses_provider_json() {
         },
         tier: crate::graph::ModelTier::Standard,
         model: None,
+        capabilities: Vec::new(),
     };
     let g = planner.plan("goal").await.unwrap();
     assert_eq!(g.len(), 1);
@@ -244,8 +245,82 @@ async fn llm_planner_model_override_reaches_request() {
         provider: Probe(seen.clone()),
         tier: crate::graph::ModelTier::Standard,
         model: None,
+        capabilities: Vec::new(),
     }
     .with_model("qwen-max");
     planner.plan("goal").await.unwrap();
     assert_eq!(seen.lock().unwrap().as_str(), "qwen-max");
+}
+
+/// With nothing reachable the prompt is byte-identical to the one the deps clause was A/B'd
+/// on; with sources it names each, once, and says a task that needs one is reachable.
+#[test]
+fn the_planner_names_what_is_reachable_and_nothing_when_nothing_is() {
+    let bare = LlmPlanner {
+        provider: MockProvider { reply: "[]".into() },
+        tier: crate::graph::ModelTier::Standard,
+        model: None,
+        capabilities: Vec::new(),
+    };
+    assert_eq!(bare.system(), PLANNER_SYSTEM);
+    let blank_only = bare.with_capabilities(vec!["  ".into()]);
+    assert_eq!(
+        blank_only.system(),
+        PLANNER_SYSTEM,
+        "a blank line is nothing"
+    );
+    let with = blank_only.with_capabilities(vec![
+        "weather: Open-Meteo forecasts, no key".into(),
+        "gws (an MCP server): search_gmail_messages, +40 more".into(),
+    ]);
+    let s = with.system();
+    assert!(
+        s.starts_with(PLANNER_SYSTEM),
+        "the shape comes first, untouched"
+    );
+    assert_eq!(s.matches("weather: Open-Meteo").count(), 1, "{s}");
+    assert!(
+        s.contains("- gws (an MCP server): search_gmail_messages"),
+        "{s}"
+    );
+    assert!(s.contains("reachable, not research"), "{s}");
+}
+
+/// …and it is the prompt the provider is actually sent.
+#[tokio::test]
+async fn the_capabilities_reach_the_request() {
+    use std::sync::{Arc, Mutex};
+    struct Probe(Arc<Mutex<String>>);
+    impl crate::provider::Provider for Probe {
+        fn complete(
+            &self,
+            req: crate::provider::CompletionRequest,
+        ) -> std::pin::Pin<
+            Box<
+                dyn std::future::Future<
+                        Output = Result<
+                            crate::provider::Completion,
+                            crate::provider::ProviderError,
+                        >,
+                    > + Send,
+            >,
+        > {
+            *self.0.lock().unwrap() = req.system.clone().unwrap_or_default();
+            Box::pin(async {
+                Ok(crate::provider::Completion {
+                    text: r#"[{"id":0,"title":"t","prompt":"p","deps":[]}]"#.into(),
+                    ..Default::default()
+                })
+            })
+        }
+    }
+    let seen = Arc::new(Mutex::new(String::new()));
+    let planner = LlmPlanner {
+        provider: Probe(seen.clone()),
+        tier: crate::graph::ModelTier::Standard,
+        model: None,
+        capabilities: vec!["weather: forecasts".into()],
+    };
+    planner.plan("goal").await.unwrap();
+    assert!(seen.lock().unwrap().contains("- weather: forecasts"));
 }
