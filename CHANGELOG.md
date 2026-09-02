@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.22
+
+**A tool call missing its arguments learns all of them in one round.**
+
+`missing argument "lat"` was the whole answer to an integration call with
+no arguments, and the model that got it supplied `lat`, called again, and
+got `missing argument "lon"` — a round per argument, on a tool whose
+manifest knew every one of them. The call is checked before anything is
+filled now, and the error is the validation error the goal asked for:
+every missing argument at once, each with its description from the
+schema; the optional ones it also takes; and, for a key the tool does not
+know, the one it probably meant (`"latitude" is not an argument — did
+you mean "lat"?`). Without a schema the placeholders in the path, query
+and body are the contract, and they are still all named at once.
+
 ## 0.21.21
 
 **`/watching` says what each standing intent has already done.**

@@ -23,6 +23,8 @@ pub(crate) struct Req {
 /// than saying "unauthorized" after a round trip.
 pub(crate) fn build(int: &Integration, tool: &IntTool, args: &str) -> Result<Req, String> {
     let vals = arguments(args)?;
+    // Every missing argument at once, before the first template asks for one.
+    super::args::check(&int.name, tool, &vals)?;
     let mut url = format!(
         "{}{}",
         int.base_url.trim_end_matches('/'),
