@@ -83,9 +83,16 @@ pub(crate) fn listing(records: &[Record], bad: usize, filter: &str, now_ms: u64)
     // agents keep working. The count is the other half: a filtered view of
     // three rows out of nine hundred should not look like the whole history.
     out.push_str(&format!(
-        "{} call(s) \u{b7} times as of opening\n/tools re-reads the ledger\n\n",
+        "{} call(s) \u{b7} times as of opening\n/tools re-reads the ledger\n",
         hits.len()
     ));
+    // What kind of history this is, before a line of it: the tiers in view,
+    // and how many did not simply run.
+    for row in crate::toolstally::tally(&hits) {
+        out.push_str(&row);
+        out.push('\n');
+    }
+    out.push('\n');
     let shown = hits.len().min(MAX_ROWS);
     for r in hits.iter().rev().take(shown) {
         out.push_str(&format!(

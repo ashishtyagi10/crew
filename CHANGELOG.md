@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.13
+
+**`/tools` says what kind of history it is showing.**
+
+The listing tails a thousand rows, filters on a word, and never said how
+many of what it was showing: "what was denied", the first question an
+audit surface gets, meant scanning a column for `✗`. Two rows under the
+heading tally the view now — the tiers in rank order (`4 read · 1
+reversible · 4 irreversible`), then the endings that were not simply "it
+ran" (`1 denied · 2 failed · 1 pending`), the second row only when there is
+something to count. Zeroes are left out; `0 denied` on every listing is
+the reassurance nobody reads twice. The tally follows the filter, so
+`/tools telegram` counts only the phone's calls.
+
 ## 0.21.12
 
 **Tool rounds are a budget over the run, not a cap per task.**

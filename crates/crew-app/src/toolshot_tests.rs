@@ -158,6 +158,14 @@ fn tools_shot_wide_and_as_a_tile() {
         let all = rows.join("\n");
         assert!(all.contains("9 call(s)"), "{name}:\n{all}");
         assert!(all.contains("2 unreadable"), "{name}:\n{all}");
+        assert!(
+            all.contains("4 read \u{b7} 1 reversible \u{b7} 4 irreversible"),
+            "{name}:\n{all}"
+        );
+        assert!(
+            all.contains("1 denied \u{b7} 2 failed \u{b7} 1 pending"),
+            "{name}:\n{all}"
+        );
         // Built to fit the tile: every line the listing wrote is one row of
         // the viewer, whole — and no row wears a line number.
         intact(&rows, &text, name);

@@ -1249,7 +1249,10 @@ longer aim at.
   shows `·` rather than a tick, for the same reason `/blocks` does: the gate
   writes the decision when it makes it and the outcome when the call ends, so a
   crash between the two leaves a real row with nothing after it, and drawing
-  that as success would invent an answer.
+  that as success would invent an answer. Under the heading, two rows tally
+  what is in view — `4 read · 1 reversible · 4 irreversible`, then `1 denied ·
+  2 failed · 1 pending` when there is anything unusual to count — so "what
+  was denied" is answered before the first row is read.
 - **`/watching`** — what crew is waiting to do on its own clock: every
   standing intent (`crew daemon at …`, or "remind me …" said over a channel),
   soonest first, with when it fires, how often, the task, where the answer

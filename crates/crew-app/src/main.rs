@@ -397,6 +397,7 @@ mod toggles;
 #[path = "toolshot_tests.rs"]
 mod toolshot_tests;
 mod toolsrow;
+mod toolstally;
 mod toolsview;
 mod tui;
 mod unread;
