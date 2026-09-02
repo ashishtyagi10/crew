@@ -8,6 +8,7 @@ pub(crate) mod blamejob;
 pub(crate) mod caret;
 pub(crate) mod caretfind;
 pub(crate) mod caretmove;
+mod caretpos;
 mod codepaint;
 pub(crate) mod csv;
 pub(crate) mod detect;
@@ -18,7 +19,7 @@ pub(crate) mod diffsplitdraw;
 pub(crate) mod edit;
 #[cfg(test)]
 #[path = "editpane_tests.rs"]
-mod editpane_tests;
+pub(crate) mod editpane_tests;
 pub(crate) mod keys;
 pub(crate) mod linemarks;
 mod linepaint;

@@ -30,6 +30,7 @@ use crew_term::GridSize;
 pub(crate) mod draw;
 mod event;
 pub(crate) mod keys;
+pub(crate) mod legend;
 pub(crate) mod linkedit;
 
 /// The margin, in cells, between the window's edge and the document's frame —

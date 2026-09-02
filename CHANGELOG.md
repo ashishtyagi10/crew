@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.6
+
+**The document window says where the caret is.**
+
+The frame's legend named the file, wore a `●` while anything was unsaved and
+gave a percentage for how far through you were — and never said which line
+the caret was on. Every editor owes that. It reads `window.md · 4:32 · 96%`
+now: the line and column **of the file**, counted in characters, so the
+number is the one you would quote to someone else or type into another
+editor's go-to-line (the `# ` a heading hides is still in the file, so the
+caret on its first letter is column 3).
+
+The legend moved out of the draw path into `docwin/legend.rs`, a free
+function over the view — which is how it got tests at all, and how the
+document-window shots now render the real legend rather than a literal.
+
 ## 0.21.5
 
 **The document window's caret moves by the page.**

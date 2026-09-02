@@ -58,37 +58,6 @@ impl DocWindow {
 
     /// What the frame's legend says: the file, and where in it you are.
     pub(crate) fn legend(&self) -> String {
-        let name = self
-            .view
-            .path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_else(|| self.view.path.to_string_lossy().into_owned());
-        // An editor owes you a standing answer to "is what I typed on disk".
-        let name = match self.view.dirty {
-            true => format!("{name} \u{25cf}"),
-            false => name,
-        };
-        if let Some(h) = self.hint {
-            return format!("{name} \u{00b7} {h}");
-        }
-        // Typing a URL takes the line the URL was already shown on.
-        if let Some(field) = self.link_field_legend() {
-            return format!("{name} \u{00b7} {field}");
-        }
-        // A link's target is invisible in a render; while the cursor is
-        // inside one, the frame is where it says so.
-        if let Some(url) = self.view.caret_link(self.grid.cols) {
-            return format!("{name} \u{00b7} \u{2192} {url}");
-        }
-        let (back, total) = self.view.position(self.grid.cols, self.grid.rows);
-        if total == 0 || total <= usize::from(self.grid.rows) {
-            return name;
-        }
-        // The same reading the pane card's thumb is written from, spelled out
-        // here because a window has no card border to draw a thumb on.
-        let seen = total.saturating_sub(back);
-        let pct = (seen * 100 / total.max(1)).min(100);
-        format!("{name} \u{00b7} {pct}%")
+        super::legend::legend(&self.view, self.grid, self.hint, self.link_field_legend())
     }
 }

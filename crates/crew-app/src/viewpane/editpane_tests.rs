@@ -5,7 +5,7 @@ use super::{LoadState, ViewPane};
 use crate::viewpane::detect::Format;
 use crate::viewpane::load::Loaded;
 
-const DOC: &str = "\
+pub(crate) const DOC: &str = "\
 # The document window
 
 A document wants a window you can put on the other screen, size to a
@@ -18,7 +18,7 @@ The last paragraph, which is here so there is somewhere below to scroll to
 and somewhere above to scroll back from.
 ";
 
-fn doc() -> ViewPane {
+pub(crate) fn doc() -> ViewPane {
     let mut p = ViewPane::open(std::env::temp_dir().join("caret.md"));
     p.state = LoadState::Ready {
         format: Format::Markdown,

@@ -1020,7 +1020,9 @@ longer aim at.
   numbered one, the same indent in a nested one, the bar in a quote). No `#`,
   no `**`, no `](` ever appears on screen. **Cmd+S** writes it; the frame's
   legend carries a `●` while there is anything unsaved, and Esc on unsaved
-  changes asks once before discarding them.
+  changes asks once before discarding them. The legend also says where the
+  caret is as `line:column` **of the file** — the `# ` you never see still
+  counts, so the number is the one another editor's go-to-line would take.
   **What it writes is what it read, with the edit spliced in.** The caret is a
   *byte* of the file (every rendered character knows the byte it came from),
   so an edit is a splice and nothing else can move: no re-wrapped paragraphs,

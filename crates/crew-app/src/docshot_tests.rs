@@ -212,6 +212,8 @@ fn doc_shot_caret() {
         for _ in 0..steps {
             view.move_caret(dir, 80, 24);
         }
+        let grid = crew_term::GridSize { cols: 80, rows: 24 };
+        let legend = crate::docwin::legend::legend(&view, grid, None, None);
         let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
             let m = 12.0;
             let rect = Rect {
@@ -220,7 +222,7 @@ fn doc_shot_caret() {
                 w: w as f32 - m * 2.0,
                 h: h as f32 - m * 2.0,
             };
-            crate::docwin::draw::scenes(rect, cw, ch, "window.md", &view)
+            crate::docwin::draw::scenes(rect, cw, ch, &legend, &view)
         });
         let Some(px) = px else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
