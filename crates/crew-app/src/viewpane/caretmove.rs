@@ -38,7 +38,7 @@ impl ViewPane {
         }
         let to = {
             let cache = self.lines_for(cols);
-            super::caret::at_cell(&cache.lines, self.scroll + row, col)
+            super::caretfind::at_cell(&cache.lines, self.scroll + row, col)
         };
         if to.is_some() {
             self.clear_selection();
@@ -92,7 +92,7 @@ impl ViewPane {
         let Some(at) = self.caret_at else { return };
         let found = {
             let cache = self.lines_for(cols);
-            super::caret::find(&cache.lines, at)
+            super::caretfind::find(&cache.lines, at)
         };
         if let Some(c) = found {
             self.caret = Some(c);

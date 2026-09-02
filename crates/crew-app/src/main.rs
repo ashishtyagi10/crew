@@ -150,6 +150,9 @@ mod dockicon;
 #[cfg(test)]
 #[path = "docshot_tests.rs"]
 mod docshot_tests;
+#[cfg(test)]
+#[path = "docthemeshot_tests.rs"]
+mod docthemeshot_tests;
 mod docwin;
 mod dump;
 mod ease;

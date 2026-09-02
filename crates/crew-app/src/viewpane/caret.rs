@@ -36,7 +36,7 @@ pub(crate) struct Caret {
 /// drew nothing at — one column past its last sourced character, holding the
 /// byte just after it. Without it there is nowhere to stand at the end of a
 /// document, and nothing can ever be added to one.
-fn stops(line: &CardLine) -> Vec<(u16, u32)> {
+pub(super) fn stops(line: &CardLine) -> Vec<(u16, u32)> {
     let mut out = Vec::new();
     let mut col: u16 = 0;
     let mut end: Option<(u16, u32)> = None;
@@ -76,6 +76,25 @@ pub(crate) fn first(lines: &[CardLine]) -> Option<Caret> {
     })
 }
 
+/// The last place in the document a caret can be.
+pub(crate) fn last(lines: &[CardLine]) -> Option<Caret> {
+    lines
+        .iter()
+        .rev()
+        .find_map(|l| {
+            let (col, _) = *stops(l).last()?;
+            Some(Caret {
+                row: 0,
+                col,
+                want: col,
+            })
+        })
+        .and_then(|c| {
+            let row = lines.iter().rposition(|l| !stops(l).is_empty())?;
+            Some(Caret { row, ..c })
+        })
+}
+
 /// Which way a step goes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Step {
@@ -85,6 +104,15 @@ pub(crate) enum Step {
     Down,
     Home,
     End,
+    /// A page of rows, either way. The page is the window's height, which
+    /// only the caller knows — a classifier without it would be guessing.
+    Page {
+        down: bool,
+        rows: usize,
+    },
+    /// The document's first / last place.
+    Top,
+    Bottom,
 }
 
 /// The caret after one step, or the caret unchanged at either end of the
@@ -94,6 +122,11 @@ pub(crate) fn step(lines: &[CardLine], c: Caret, dir: Step) -> Caret {
     match dir {
         Step::Left | Step::Right => horizontal(lines, c, dir == Step::Right),
         Step::Up | Step::Down => vertical(lines, c, dir == Step::Down),
+        // Rows the caret cannot stand on are skipped, not counted: a page is
+        // a page of places, and the fold stops moving at either end anyway.
+        Step::Page { down, rows } => (0..rows.max(1)).fold(c, |c, _| vertical(lines, c, down)),
+        Step::Top => first(lines).unwrap_or(c),
+        Step::Bottom => last(lines).unwrap_or(c),
         Step::Home | Step::End => {
             let row = lines.get(c.row).map(stops).unwrap_or_default();
             let at = match dir {
@@ -177,71 +210,10 @@ fn vertical(lines: &[CardLine], c: Caret, down: bool) -> Caret {
     c
 }
 
-/// The caret nearest a clicked cell: the last position at or before `col` on
-/// that row, or the row's end when the click was past everything on it.
-///
-/// A click that lands on a row of pure furniture — a rule, a code field's
-/// border — finds the nearest row that has somewhere to stand, rather than
-/// doing nothing: a click always means "put it here", and the nearest here is
-/// the honest answer.
-pub(crate) fn at_cell(lines: &[CardLine], row: usize, col: u16) -> Option<Caret> {
-    for r in (0..=row.min(lines.len().saturating_sub(1))).rev() {
-        let s = stops(&lines[r]);
-        if s.is_empty() {
-            continue;
-        }
-        let at = match r == row {
-            true => s
-                .iter()
-                .rev()
-                .find(|&&(c, _)| c <= col)
-                .or(s.first())
-                .copied(),
-            // A click below the last row with anything on it lands at its end.
-            false => s.last().copied(),
-        };
-        let (col, _) = at?;
-        return Some(Caret {
-            row: r,
-            col,
-            want: col,
-        });
-    }
-    first(lines)
-}
-
-/// Where the caret should be after the document was laid out again (a resize,
-/// an edit): the position now holding `offset`, or the nearest one after it.
-///
-/// Rows carry increasing offsets, so this is a search rather than a walk — a
-/// document of a hundred thousand rows must not be scanned on every keypress
-/// that changes its width.
-pub(crate) fn find(lines: &[CardLine], offset: u32) -> Option<Caret> {
-    let key = |row: &CardLine| stops(row).first().map(|&(_, s)| s);
-    let mut lo = 0usize;
-    let mut hi = lines.len();
-    while lo < hi {
-        let mid = (lo + hi) / 2;
-        match key(&lines[mid]) {
-            Some(s) if s > offset => hi = mid,
-            _ => lo = mid + 1,
-        }
-    }
-    // `lo` is one past the last row that starts at or before `offset`; walk
-    // back over rows the renderer filled with furniture (which have no key).
-    let start = lines[..lo].iter().rposition(|l| key(l).is_some())?;
-    for (row, line) in lines.iter().enumerate().skip(start) {
-        if let Some(&(col, _)) = stops(line).iter().find(|&&(_, s)| s >= offset) {
-            return Some(Caret {
-                row,
-                col,
-                want: col,
-            });
-        }
-    }
-    first(lines)
-}
-
 #[cfg(test)]
 #[path = "caret_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "caretjump_tests.rs"]
+mod jumps;

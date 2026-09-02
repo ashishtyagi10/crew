@@ -114,3 +114,41 @@ fn a_pane_that_is_not_editing_ignores_the_caret_keys() {
     assert_eq!(p.caret, None);
     assert_eq!(p.scroll, 0, "and did not scroll instead");
 }
+
+/// PageDown is a page of the window, not a page of some constant: five rows
+/// is exactly what five Down presses would have done, and the view follows.
+#[test]
+fn a_page_down_is_that_many_downs_and_stays_in_view() {
+    let mut by_hand = doc();
+    by_hand.start_editing(60);
+    for _ in 0..5 {
+        by_hand.move_caret(Step::Down, 60, 6);
+    }
+    let mut p = doc();
+    p.start_editing(60);
+    p.move_caret(
+        Step::Page {
+            down: true,
+            rows: 5,
+        },
+        60,
+        6,
+    );
+    let c = p.caret.expect("still there");
+    assert_eq!(Some(c), by_hand.caret);
+    assert!(
+        c.row > 0 && c.row >= p.scroll && c.row < p.scroll + 6,
+        "row {} from {}",
+        c.row,
+        p.scroll
+    );
+    assert!(p.scroll > 0, "the window scrolled to follow");
+    p.move_caret(Step::Bottom, 60, 6);
+    let end = p.caret.expect("still there");
+    assert!(
+        end.row > c.row && end.row >= p.scroll && end.row < p.scroll + 6,
+        "row {} from {}",
+        end.row,
+        p.scroll
+    );
+}

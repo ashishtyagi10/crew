@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.5
+
+**The document window's caret moves by the page.**
+
+PageUp and PageDown in a document window used to fall through to the viewer,
+which scrolled the view and left the caret where it was — and the next arrow
+key snapped the view straight back to it, so a long document could not be
+read past by keyboard at all. They move the caret a page now, with Shift
+dragging a selection behind them like the arrows do, and a page is the
+window's height, which the classifier is told rather than guesses.
+**Cmd+↑/↓** go to the document's ends and **Cmd+←/→** to the line's, the way
+every Mac editor spells them. The two rows are in `/keys`.
+
+`viewpane/caret.rs` gave the click-and-relayout finders their own file on the
+way, and shrank.
+
 ## 0.21.4
 
 **The document window's keys reach `/keys`.**

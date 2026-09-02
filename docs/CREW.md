@@ -1036,7 +1036,10 @@ longer aim at.
   not a re-rendering of something that meant the same. **Click** to put the
   cursor where you are looking (past the end of a line puts it at the end),
   and **Delete** removes the character at the caret as Backspace removes the
-  one behind it.
+  one behind it. **PageUp/PageDown** move the caret a page at a time — the
+  viewer scrolls on those keys, but an editor's cursor has to go with the
+  view or the next arrow snaps the view straight back — and **Cmd+↑/↓** jump
+  to the document's ends, **Cmd+←/→** to the line's.
   **Shift+arrows select**, Cmd+A selects the document, Cmd+C copies — the
   *markdown*, not the rendering, so what you paste into another document is
   still markdown — and typing or Backspace replaces what is selected.

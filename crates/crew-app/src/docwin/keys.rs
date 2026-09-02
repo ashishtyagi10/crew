@@ -34,13 +34,24 @@ pub(crate) enum Edit {
 
 /// Classify a key press for an editing window. `None` leaves it to the
 /// viewer's own keys (Esc, the search, the scroll), which still apply.
-pub(crate) fn edit_key(k: &winit::event::KeyEvent, mods: ModifiersState) -> Option<Edit> {
-    edit_for(&k.logical_key, k.state.is_pressed(), mods)
+pub(crate) fn edit_key(
+    k: &winit::event::KeyEvent,
+    mods: ModifiersState,
+    rows: u16,
+) -> Option<Edit> {
+    // A page keeps one row of the last page in view, like every pager.
+    let page = usize::from(rows).saturating_sub(1).max(1);
+    edit_for(&k.logical_key, k.state.is_pressed(), mods, page)
 }
 
 /// [`edit_key`] over a key the tests can build — winit's `KeyEvent` is
 /// `#[non_exhaustive]` and carries a platform field with no `Default`.
-pub(crate) fn edit_for(key: &Key, pressed: bool, mods: ModifiersState) -> Option<Edit> {
+pub(crate) fn edit_for(
+    key: &Key,
+    pressed: bool,
+    mods: ModifiersState,
+    page: usize,
+) -> Option<Edit> {
     if !pressed {
         return None;
     }
@@ -50,12 +61,27 @@ pub(crate) fn edit_for(key: &Key, pressed: bool, mods: ModifiersState) -> Option
         false => Some(Edit::Move(s)),
     };
     match key {
+        // Cmd+arrow is the Mac's spelling of Home/End and the document's ends.
+        Key::Named(NamedKey::ArrowLeft) if cmd => moved(Step::Home),
+        Key::Named(NamedKey::ArrowRight) if cmd => moved(Step::End),
+        Key::Named(NamedKey::ArrowUp) if cmd => moved(Step::Top),
+        Key::Named(NamedKey::ArrowDown) if cmd => moved(Step::Bottom),
         Key::Named(NamedKey::ArrowLeft) => moved(Step::Left),
         Key::Named(NamedKey::ArrowRight) => moved(Step::Right),
         Key::Named(NamedKey::ArrowUp) => moved(Step::Up),
         Key::Named(NamedKey::ArrowDown) => moved(Step::Down),
         Key::Named(NamedKey::Home) => moved(Step::Home),
         Key::Named(NamedKey::End) => moved(Step::End),
+        // The viewer scrolls on these; an editor moves the caret, or the
+        // next arrow key would snap the view straight back to it.
+        Key::Named(NamedKey::PageUp) => moved(Step::Page {
+            down: false,
+            rows: page,
+        }),
+        Key::Named(NamedKey::PageDown) => moved(Step::Page {
+            down: true,
+            rows: page,
+        }),
         Key::Named(NamedKey::Backspace) if !cmd => Some(Edit::Backspace),
         Key::Named(NamedKey::Delete) if !cmd => Some(Edit::Delete),
         Key::Named(NamedKey::Enter) if !cmd => Some(Edit::Newline),

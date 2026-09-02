@@ -15,7 +15,7 @@ use crate::viewpane::detect::Format;
 use crate::viewpane::load::Loaded;
 use crate::viewpane::{LoadState, ViewPane};
 
-const MD: &str = "\
+pub(crate) const MD: &str = "\
 # The document window
 
 A document wants a window you can put on the other screen, size to a
@@ -84,7 +84,7 @@ fn illustrated() -> (ViewPane, std::path::PathBuf) {
     (p, img)
 }
 
-fn doc(text: &str) -> ViewPane {
+pub(crate) fn doc(text: &str) -> ViewPane {
     doc_at(std::env::temp_dir().join("window.md"), text)
 }
 
@@ -196,11 +196,21 @@ fn doc_shot_sticky_heading() {
 fn doc_shot_caret() {
     let _g = crate::app::theme_test_guard();
     let (w, h) = (720u32, 460u32);
-    for (name, steps) in [("doc-caret", 0usize), ("doc-caret-in-a-list", 120)] {
+    use crate::viewpane::caret::Step;
+    let page = Step::Page {
+        down: true,
+        rows: 23,
+    };
+    let moves = [
+        ("doc-caret", Step::Right, 0usize),
+        ("doc-caret-in-a-list", Step::Right, 120),
+        ("doc-caret-paged", page, 1),
+    ];
+    for (name, dir, steps) in moves {
         let mut view = doc(MD);
         view.start_editing(80);
         for _ in 0..steps {
-            view.move_caret(crate::viewpane::caret::Step::Right, 80, 24);
+            view.move_caret(dir, 80, 24);
         }
         let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
             let m = 12.0;
@@ -349,74 +359,4 @@ that a narrow window has to wrap it more than once.
         }
     }
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
-}
-
-/// The document window on a light page and through a green tube — the two
-/// places a surface built and eyed on the dark theme goes wrong.
-#[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
-fn doc_shot_themes() {
-    let _a = crate::palette::test_guard();
-    let _g = crate::app::theme_test_guard();
-    let mut view = doc(MD);
-    view.scroll = 6;
-    for (suffix, id) in [
-        ("light", crew_theme::ThemeId::PaperLight),
-        ("crt-green", crew_theme::ThemeId::CrtGreen),
-    ] {
-        crew_theme::set_theme(id);
-        crate::palette::set_accent(crew_theme::theme().accent_default);
-        let (w, h) = (720u32, 560u32);
-        let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
-            let m = 12.0;
-            let rect = Rect {
-                x: m,
-                y: m,
-                w: w as f32 - m * 2.0,
-                h: h as f32 - m * 2.0,
-            };
-            crate::docwin::draw::scenes(rect, cw, ch, "window.md \u{00b7} 22%", &view)
-        });
-        let Some(px) = px else {
-            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
-            return;
-        };
-        crate::shotdraw_tests::write_png(&format!("doc-{suffix}"), &px, w, h);
-        assert!(crate::shotgpu_tests::ink(&px) > 3_000, "doc-{suffix} drew");
-    }
-    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
-}
-
-/// A document window at the proportions it opens at (a reading measure, taller
-/// than wide) and at a shape somebody has dragged it into.
-#[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
-fn doc_shot_window() {
-    let _g = crate::app::theme_test_guard();
-    let view = doc(MD);
-    for (name, w, h) in [
-        ("doc-window", 720u32, 900u32),
-        ("doc-window-wide", 1100, 620),
-        ("doc-window-narrow", 460, 760),
-    ] {
-        let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
-            let m = 12.0;
-            let rect = Rect {
-                x: m,
-                y: m,
-                w: w as f32 - m * 2.0,
-                h: h as f32 - m * 2.0,
-            };
-            crate::docwin::draw::scenes(rect, cw, ch, "window.md \u{00b7} 34%", &view)
-        });
-        let Some(px) = px else {
-            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
-            return;
-        };
-        crate::shotdraw_tests::write_png(name, &px, w, h);
-        assert!(
-            crate::shotgpu_tests::ink(&px) > 3_000,
-            "{name} drew a document"
-        );
-    }
 }

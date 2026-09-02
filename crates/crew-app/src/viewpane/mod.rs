@@ -6,6 +6,7 @@ pub(crate) mod blame;
 pub(crate) mod blamegutter;
 pub(crate) mod blamejob;
 pub(crate) mod caret;
+pub(crate) mod caretfind;
 pub(crate) mod caretmove;
 mod codepaint;
 pub(crate) mod csv;

@@ -71,7 +71,7 @@ fn a_letter_types_itself_rather_than_running_the_viewers_command() {
     let plain = ModifiersState::empty();
     for c in ["o", "r", "w", "s", "v", "n"] {
         assert_eq!(
-            edit_for(&ch(c), true, plain),
+            edit_for(&ch(c), true, plain, 20),
             Some(Edit::Type(c.into())),
             "{c} is a letter while editing, not a viewer command"
         );
@@ -84,20 +84,20 @@ fn cmd_s_saves_and_cmd_letters_do_not_type() {
     use super::keys::{edit_for, Edit};
     use winit::keyboard::ModifiersState;
     assert_eq!(
-        edit_for(&ch("s"), true, ModifiersState::SUPER),
+        edit_for(&ch("s"), true, ModifiersState::SUPER, 20),
         Some(Edit::Save)
     );
     assert_eq!(
-        edit_for(&ch("s"), true, ModifiersState::CONTROL),
+        edit_for(&ch("s"), true, ModifiersState::CONTROL, 20),
         Some(Edit::Save)
     );
     assert_eq!(
-        edit_for(&ch("q"), true, ModifiersState::SUPER),
+        edit_for(&ch("q"), true, ModifiersState::SUPER, 20),
         None,
         "a chord crew has no answer for is left alone, not typed"
     );
     assert_eq!(
-        edit_for(&ch("s"), false, ModifiersState::empty()),
+        edit_for(&ch("s"), false, ModifiersState::empty(), 20),
         None,
         "a key going UP types nothing"
     );

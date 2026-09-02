@@ -62,7 +62,7 @@ src/daemon/session_tests.rs 295
 src/daemon/task_tests.rs 369
 src/dashpane.rs 300
 src/diskpane_tests.rs 266
-src/docshot_tests.rs 422
+src/docshot_tests.rs 362
 src/docwin/event.rs 371
 src/events.rs 323
 src/farpane/keys.rs 321
@@ -146,7 +146,7 @@ src/update.rs 295
 src/usageledger.rs 260
 src/usagepane.rs 289
 src/usagepane_tests.rs 293
-src/viewpane/caret.rs 247
+src/viewpane/caret.rs 219
 src/viewpane/detect.rs 218
 src/viewpane/edit.rs 236
 src/viewpane/edit_tests.rs 364

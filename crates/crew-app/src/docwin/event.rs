@@ -132,7 +132,7 @@ impl CrewApp {
                     // the cursor rather than scrolling, and a letter is a
                     // letter rather than a viewer command.
                     if d.view.caret.is_some() {
-                        match edit_key(&k, mods) {
+                        match edit_key(&k, mods, rows) {
                             Some(Edit::Move(dir)) => {
                                 d.view.clear_selection();
                                 d.view.move_caret(dir, cols, rows);

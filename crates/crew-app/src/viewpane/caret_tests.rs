@@ -1,17 +1,18 @@
 //! Where a caret can be, and where it must refuse to be.
+use super::super::caretfind::find;
 use super::*;
 use crate::md::render;
 
 /// Render `text` at `cols` the way the viewer's markdown rung does, so these
 /// are the very lines the pane draws.
-fn lines(text: &str, cols: usize) -> Vec<CardLine> {
+pub(super) fn lines(text: &str, cols: usize) -> Vec<CardLine> {
     let fg = crew_theme::theme().ink;
     crate::chatmd::map_lines(render(text, cols), cols, fg)
 }
 
 /// The character the caret is on — `None` at a row's end stop, where the
 /// caret stands after the last character and there is no cell.
-fn char_at(ls: &[CardLine], c: Caret) -> Option<char> {
+pub(super) fn char_at(ls: &[CardLine], c: Caret) -> Option<char> {
     let mut col = 0u16;
     for cell in ls.get(c.row)? {
         let w = crate::chatwidth::char_w(cell.c) as u16;
@@ -26,7 +27,7 @@ fn char_at(ls: &[CardLine], c: Caret) -> Option<char> {
     None
 }
 
-const DOC: &str = "\
+pub(super) const DOC: &str = "\
 # Title
 
 - one
