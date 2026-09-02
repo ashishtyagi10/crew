@@ -584,7 +584,11 @@ The docked command bar supports:
   comes straight back, including when you dismiss the picker without choosing.
   A strip of swatches tells you what a palette *is*; only wearing it tells you
   what the screen you are looking at will *look like*, which is the question
-  you are actually asking. A rotation mode names a *pool*, not a palette, so
+  you are actually asking. Whatever a list mixes — swatch rows beside plain
+  ones, a six-chip palette under a four-chip mode, agents with a role above
+  files with none — every description starts in one column, so the list is
+  read down rather than scanned; a row without a swatch leaves the swatch
+  column blank rather than closing it up. A rotation mode names a *pool*, not a palette, so
   those rows leave the theme alone: previewing "one of these four" by picking
   one would show something the choice does not promise. The preview is only a
   preview — no config write, no accent re-resolution, no scheme push to the

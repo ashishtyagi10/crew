@@ -28,20 +28,20 @@ const DIM: Color = Color::Rgb(120, 130, 140);
 #[test]
 fn the_matched_characters_are_the_marked_ones() {
     let row = item("/dump", "Dump the grid", vec![1, 3, 4], None);
-    assert_eq!(bold(&spans(&row, 8, 40, DIM)), "dmp");
+    assert_eq!(bold(&spans(&row, 8, 0, 40, DIM)), "dmp");
 }
 
 /// A match list from a longer label must not mark characters off the end.
 #[test]
 fn a_position_past_the_label_marks_nothing() {
     let row = item("/x", "Hi", vec![0, 9], None);
-    assert_eq!(bold(&spans(&row, 4, 20, DIM)), "/");
+    assert_eq!(bold(&spans(&row, 4, 0, 20, DIM)), "/");
 }
 
 #[test]
 fn an_unmatched_row_marks_nothing() {
     let row = item("/dump", "Dump the grid", vec![], None);
-    assert_eq!(bold(&spans(&row, 8, 40, DIM)), "");
+    assert_eq!(bold(&spans(&row, 8, 0, 40, DIM)), "");
 }
 
 /// The whole point of the column: every description starts at the same
@@ -53,7 +53,7 @@ fn descriptions_start_at_the_same_column_on_every_row() {
         item("/longer", "Second", vec![], None),
     ];
     let w = label_col(&rows, 60);
-    let at = |r: &MenuItem| text(&spans(r, w, 60, DIM)).find(char::is_uppercase);
+    let at = |r: &MenuItem| text(&spans(r, w, 0, 60, DIM)).find(char::is_uppercase);
     assert_eq!(at(&rows[0]), at(&rows[1]));
     assert_eq!(at(&rows[0]), Some(w + GAP));
 }
@@ -63,7 +63,7 @@ fn descriptions_start_at_the_same_column_on_every_row() {
 #[test]
 fn an_overlong_label_pushes_its_own_description_instead_of_being_clipped() {
     let row = item("/an-extremely-long-command", "Desc", vec![], None);
-    let line = text(&spans(&row, 6, 60, DIM));
+    let line = text(&spans(&row, 6, 0, 60, DIM));
     assert!(line.starts_with("/an-extremely-long-command"));
     assert!(line.ends_with("  Desc"), "{line}");
 }
@@ -79,7 +79,7 @@ fn the_label_column_is_capped_at_half_the_row() {
 #[test]
 fn the_chord_is_flush_with_the_right_edge() {
     let row = item("/clear", "Clear the pane", vec![], Some("Cmd+K"));
-    let line = text(&spans(&row, 8, 40, DIM));
+    let line = text(&spans(&row, 8, 0, 40, DIM));
     assert_eq!(line.chars().count(), 40, "{line:?}");
     assert!(line.ends_with("Cmd+K"), "{line:?}");
 }
@@ -89,7 +89,7 @@ fn the_chord_is_flush_with_the_right_edge() {
 #[test]
 fn a_narrow_row_keeps_the_description_and_drops_the_chord() {
     let row = item("/clear", "Clear the pane", vec![], Some("Cmd+K"));
-    let line = text(&spans(&row, 8, 18, DIM));
+    let line = text(&spans(&row, 8, 0, 18, DIM));
     assert!(!line.contains("Cmd+K"), "{line:?}");
     assert!(line.contains("Clear"), "{line:?}");
     assert!(line.chars().count() <= 18, "{line:?}");
@@ -111,7 +111,7 @@ fn no_row_ever_exceeds_the_columns_it_was_given() {
     for avail in 1..=80usize {
         let w = label_col(&rows, avail);
         for r in &rows {
-            let n = text(&spans(r, w, avail, DIM)).chars().count();
+            let n = text(&spans(r, w, 0, avail, DIM)).chars().count();
             assert!(n <= avail, "{:?} took {n} of {avail}", r.label);
         }
     }
@@ -122,7 +122,7 @@ fn no_row_ever_exceeds_the_columns_it_was_given() {
 fn a_header_row_is_left_alone() {
     let mut h = item("your subscriptions", "ignored", vec![], Some("Cmd+K"));
     h.header = true;
-    assert_eq!(text(&spans(&h, 8, 40, DIM)), "your subscriptions");
+    assert_eq!(text(&spans(&h, 8, 0, 40, DIM)), "your subscriptions");
 }
 
 fn chip(fg: (u8, u8, u8)) -> crate::swatch::Chip {
@@ -138,7 +138,7 @@ fn chip(fg: (u8, u8, u8)) -> crate::swatch::Chip {
 fn a_swatch_is_drawn_after_the_label_and_before_the_description() {
     let mut row = item("aurora", "teal into violet", vec![], None);
     row.swatch = vec![chip((1, 2, 3)), chip((4, 5, 6))];
-    let line = spans(&row, 8, 40, DIM);
+    let line = spans(&row, 8, 0, 40, DIM);
     let text = text(&line);
     let block = text.find('\u{2588}').expect("no swatch drawn");
     assert!(block > text.find("aurora").unwrap());
@@ -153,7 +153,7 @@ fn a_swatch_is_drawn_after_the_label_and_before_the_description() {
 fn each_swatch_cell_keeps_its_own_colour() {
     let mut row = item("aurora", "d", vec![], None);
     row.swatch = vec![chip((10, 20, 30)), chip((40, 50, 60))];
-    let line = spans(&row, 8, 40, DIM);
+    let line = spans(&row, 8, 0, 40, DIM);
     let blocks: Vec<&ratatui::text::Span> = line
         .spans
         .iter()
@@ -174,7 +174,7 @@ fn a_chip_with_a_page_colour_draws_it_as_the_cell_background() {
         fg: (200, 100, 50),
         bg: Some((9, 9, 12)),
     }];
-    let line = spans(&row, 6, 40, DIM);
+    let line = spans(&row, 6, 0, 40, DIM);
     let s = line
         .spans
         .iter()
@@ -191,7 +191,7 @@ fn a_row_with_a_swatch_still_never_exceeds_its_columns() {
     let mut row = item("aurora", "teal into violet", vec![0], Some("Cmd+K"));
     row.swatch = vec![chip((1, 2, 3)); 4];
     for avail in 1..=80usize {
-        let n = text(&spans(&row, 6, avail, DIM)).chars().count();
+        let n = text(&spans(&row, 6, 0, avail, DIM)).chars().count();
         assert!(n <= avail, "took {n} of {avail}");
     }
 }
@@ -201,7 +201,7 @@ fn a_row_with_a_swatch_still_never_exceeds_its_columns() {
 #[test]
 fn a_clipped_description_ends_in_an_ellipsis() {
     let i = item("/dump", "Write the frame's cells to a file", vec![], None);
-    let line = text(&spans(&i, 5, 24, Color::Reset));
+    let line = text(&spans(&i, 5, 0, 24, Color::Reset));
     assert!(line.ends_with('\u{2026}'), "{line:?}");
     assert!(crate::chatwidth::str_w(&line) <= 24, "{line:?}");
 }

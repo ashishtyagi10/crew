@@ -96,7 +96,7 @@ pub(super) fn slash_items(query: &str) -> Vec<MenuItem> {
 /// Rows for the leading `@`: the full attach picker (agents, skills, files
 /// — `chatmention::filter`'s section order), agents only once the token has
 /// a `+` (multi-target selectors route, they don't attach).
-pub(super) fn attach_items(
+pub(crate) fn attach_items(
     query: &str,
     entries: &[crate::chatmention::MentionEntry],
     multi: bool,

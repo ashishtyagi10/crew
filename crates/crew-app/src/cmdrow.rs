@@ -49,29 +49,48 @@ pub(crate) fn content_w(items: &[MenuItem]) -> usize {
 
 /// Width of the label column for `items`: the widest label, bounded by a share
 /// of `avail`. Headers are excluded — a section title is not in the column.
+///
+/// Only rows that HAVE a description set the column. A file path in the
+/// attach picker has none, and the longest of them was setting where every
+/// agent's description started — half a row away from the agent.
 pub(crate) fn label_col(items: &[MenuItem], avail: usize) -> usize {
     let widest = items
         .iter()
-        .filter(|i| !i.header)
+        .filter(|i| !i.header && !i.desc.is_empty())
         .map(|i| i.label.chars().count())
         .max()
         .unwrap_or(0);
     widest.min(avail / MAX_LABEL_SHARE)
 }
 
-/// The spans of one row, laid out in `avail` columns.
+/// Width of the swatch column: the widest swatch in the list, so a row with
+/// fewer chips — or none, as `/gradient`'s `off` and `subtle` have — keeps
+/// its description in the same column as the rows that carry one.
+pub(crate) fn swatch_col(items: &[MenuItem]) -> usize {
+    items.iter().map(|i| i.swatch.len()).max().unwrap_or(0)
+}
+
+/// The spans of one row, laid out in `avail` columns, its swatch (if any)
+/// in a column `swatch_w` wide.
 ///
 /// `hit` positions are character indices into the label; anything past its end
 /// is ignored, so a stale match list can never mark a character that is not
 /// there.
-pub(crate) fn spans(item: &MenuItem, label_w: usize, avail: usize, dim: Color) -> Line<'static> {
+pub(crate) fn spans(
+    item: &MenuItem,
+    label_w: usize,
+    swatch_w: usize,
+    avail: usize,
+    dim: Color,
+) -> Line<'static> {
     let label_fg = item
         .color
         .map(|(r, g, b)| Color::Rgb(r, g, b))
         .unwrap_or_else(crate::palette::accent_color);
     if item.header {
+        // A card can be narrower than its section title, too.
         return Line::from(Span::styled(
-            item.label.clone(),
+            crate::chatwidth::clip_w(&item.label, avail),
             Style::new().fg(dim).add_modifier(Modifier::BOLD),
         ));
     }
@@ -93,20 +112,24 @@ pub(crate) fn spans(item: &MenuItem, label_w: usize, avail: usize, dim: Color) -
     // being cut in half by a column it overflowed.
     let mut desc_col = label_w.max(col) + GAP;
     // The swatch comes first after the label: on a row whose whole subject IS
-    // a colour, the colour outranks the sentence describing it.
-    let sw = item.swatch.len();
+    // a colour, the colour outranks the sentence describing it. The column is
+    // the list's widest swatch, so a row with fewer chips, or none, still
+    // starts its description where the others do.
+    let sw = swatch_w.max(item.swatch.len());
     if sw > 0 && avail >= desc_col + sw {
-        out.push(Span::raw(" ".repeat(desc_col - col)));
-        col = desc_col;
-        for chip in &item.swatch {
-            let mut style = Style::new().fg(Color::Rgb(chip.fg.0, chip.fg.1, chip.fg.2));
-            if let Some((r, g, b)) = chip.bg {
-                style = style.bg(Color::Rgb(r, g, b));
+        if !item.swatch.is_empty() {
+            out.push(Span::raw(" ".repeat(desc_col - col)));
+            col = desc_col;
+            for chip in &item.swatch {
+                let mut style = Style::new().fg(Color::Rgb(chip.fg.0, chip.fg.1, chip.fg.2));
+                if let Some((r, g, b)) = chip.bg {
+                    style = style.bg(Color::Rgb(r, g, b));
+                }
+                out.push(Span::styled(chip.c.to_string(), style));
+                col += 1;
             }
-            out.push(Span::styled(chip.c.to_string(), style));
-            col += 1;
         }
-        desc_col = col + GAP;
+        desc_col += sw + GAP;
     }
     let room = avail.saturating_sub(desc_col);
     // The chord is the first thing dropped. It is a hint about a row you can
@@ -134,6 +157,9 @@ pub(crate) fn spans(item: &MenuItem, label_w: usize, avail: usize, dim: Color) -
     Line::from(out)
 }
 
+#[cfg(test)]
+#[path = "cmdrowcol_tests.rs"]
+mod col_tests;
 #[cfg(test)]
 #[path = "cmdrow_tests.rs"]
 mod tests;

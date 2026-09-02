@@ -8,6 +8,33 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.0
+
+**Every picker reads down one column.**
+
+`menushot` had shot the slash palette and the model picker; the attach picker,
+the two colour pickers and the path picker are the same `menu_card` with row
+shapes only they produce, and `pickshot_tests` is the first frame any of them
+has been in. Three of the four had the same class of bug — a column agreed on
+by the wrong rows:
+
+- **The attach picker's file paths set where every agent's role started.**
+  `@crates/crew-app/src/viewpane/render_tests.rs` has no description, and it
+  was the widest label, so `agent · writes and edits code` began half a row
+  away from `@coder`. Only rows that *have* a description set the column now.
+- **`/gradient` had two description columns.** `off`, `subtle`, `lively` and
+  `reset` carry no colour; the eight named pairs carry four cells of it, and
+  their descriptions started six columns later. `/theme` had the same split
+  between its four-chip modes and six-chip palettes. The swatch column is the
+  list's widest swatch, and a row with fewer chips — or none — leaves it blank.
+- **`@a+b  fans the task out to both, in parallel` ended `in para`** on a
+  quarter-width tile: a section header was the one row shape that did not mark
+  its cut.
+
+The path picker and the provider-key prompt came through clean at every width
+shot — the key prompt keeps its variable name over the word `paste` on a
+narrow card, and its hint clips with a mark — and are recorded as such.
+
 ## 0.20.9
 
 **The `/goal` pane fits its tile.**

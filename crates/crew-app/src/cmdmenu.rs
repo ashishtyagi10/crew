@@ -78,10 +78,11 @@ pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16)
     // width the list actually draws in.
     let avail = usize::from(w).saturating_sub(2);
     let label_w = crate::cmdrow::label_col(matches, avail);
+    let swatch_w = crate::cmdrow::swatch_col(matches);
     let dim = crate::menuink::desc_color();
     let items: Vec<ListItem> = matches
         .iter()
-        .map(|c| ListItem::new(crate::cmdrow::spans(c, label_w, avail, dim)))
+        .map(|c| ListItem::new(crate::cmdrow::spans(c, label_w, swatch_w, avail, dim)))
         .collect();
     let list = List::new(items)
         // No background bar — bold the selected row so its text stays fully legible.

@@ -296,6 +296,9 @@ mod pathcomplete;
 mod pathexpand;
 mod pathhl;
 mod pathmenu;
+#[cfg(test)]
+#[path = "pickshot_tests.rs"]
+mod pickshot_tests;
 mod plot;
 mod pointer;
 mod poll;
