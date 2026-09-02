@@ -1,8 +1,11 @@
 # Goal — agents that reach the world: a real tool loop, and LangGraph behind the bridge
 
-**Status: PILLAR 1 SHIPPED, 2–6 OPEN.** The swarm can call tools (see Pillar 1 below). The
-manifest contract, tool retrieval at scale, the wire, the sidecar and cycles are carried in
-`2026-09-01-close-the-open-goals.md`, Pillars 3 and 4.
+**Status: PILLARS 1–4 SHIPPED, 5–6 OPEN.** The swarm can call tools (Pillar 1, 2026-08-31);
+an integration is one manifest file (Pillar 2, v0.20.5); the task chooses the tools it is shown
+(Pillar 3, v0.20.4); the wire carries tools, deltas and state to a sidecar (Pillar 4, v0.20.7) —
+the last three shipped under `2026-09-01-close-the-open-goals.md`, Pillars 3 and 4. Open: the
+LangGraph reference sidecar (Pillar 5 — the reference that exists is plain Python) and cycles
+(Pillar 6).
 
 **Set:** 2026-08-31 by the user. "Can we add support for langgraph in crew if not already done, we
 are going to need good framework, so that we can build amazing agents/tools to work end to end,

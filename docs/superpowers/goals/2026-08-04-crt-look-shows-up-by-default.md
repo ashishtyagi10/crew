@@ -40,10 +40,10 @@ This is why "fix font rendering" kept being requested against a feature that kep
   a vendored-glyphon upgrade must re-apply BOTH.
 
 ### Still open (the Ghostty/Warp gap, ranked)
-1. **Pixel-snap pane rects** (`layout.rs` computes raw-float origins): glyphs currently land in up
-   to 4 subpixel bins per character — 4× atlas entries, 4× grow churn, and border strokes off the
-   pixel grid. Snapping origins collapses the bins and sharpens every hairline.
-2. **Settings pane has no Font Smoothing field** — the flagship v0.12.5 feature is `/smooth`-only.
+1. ~~**Pixel-snap pane rects**~~ — **CLOSED v0.13.6** (`layout_snap_tests.rs`): origins snap
+   to the device pixel, the bins collapsed, hairlines sharpened.
+2. ~~**Settings pane has no Font Smoothing field**~~ — **CLOSED 0.13.9**: `Field::Smooth` in
+   `settingspane/labels.rs`.
 3. **Real frosted glass is unimplemented**: crew's glass is tinted alpha, not a backdrop blur.
    Warp-style frost needs an `NSVisualEffectView` behind the wgpu layer (or a self-blur pass).
    Window opacity < 1.0 stays opt-in taste (Settings → WINDOW), and that default is correct.

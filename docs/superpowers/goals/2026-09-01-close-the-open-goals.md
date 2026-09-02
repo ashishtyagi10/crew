@@ -194,7 +194,9 @@ Four items, each small, each currently carried by a goal doc instead of by a com
    in the same merge that changes its state.
 8. No goal document under `docs/superpowers/goals/` claims a status the tree contradicts —
    enforced by reading them at the end of each iteration, the way `changelog_covers_the_current_
-   version` enforces the changelog.
+   version` enforces the changelog. **Mechanised v0.21.17** (`goaldocs.rs`): every version a
+   goal cites has a changelog entry and every source file it cites exists; the prose status is
+   still read by a person, but the facts it rides on are read by a test.
 
 ### Non-negotiables
 

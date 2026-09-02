@@ -191,6 +191,7 @@ mod gitfleet;
 #[path = "glassshot_tests.rs"]
 mod glassshot_tests;
 mod glide;
+mod goaldocs;
 #[cfg(test)]
 #[path = "goalshot_tests.rs"]
 mod goalshot_tests;

@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.17
+
+**The goal documents are held to the tree.**
+
+`docs/superpowers/goals/` is where a goal is set and where its status is
+written when it ships, and the last open goal asked that no document there
+claim a status the tree contradicts. Three of fourteen did: two status
+lines a release or more behind what had shipped (the clock; the manifest
+contract, retrieval and the bridge), and a "still open" list naming two
+things closed since 0.13.9. A status is prose, but it rests on facts a
+test can read — the versions a document says something shipped in, and
+the source files it points at — and a test reads them now: every cited
+`vX.Y.Z` has a changelog entry, and every backticked `.rs` path exists
+under `crates/` or `vendor/`. It found four citations pointing at files
+that had been renamed or split; all four point at where the code went.
+
 ## 0.21.16
 
 **`/blocks` fits the tile it is opened in.**

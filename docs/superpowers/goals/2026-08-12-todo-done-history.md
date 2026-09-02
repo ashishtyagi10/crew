@@ -17,7 +17,7 @@ and `sort_key` (`item.rs:68`) fakes "newest completion first" by sorting done it
 
 ## Proposed decisions (defaults taken while drafting — veto before work starts)
 
-- **The command is `/todo done`.** `/todo` today takes no arguments (`cmddefs.rs:130`);
+- **The command is `/todo done`.** `/todo` today takes no arguments (`cmddefs/look.rs`);
   it grows one optional word. `/todo done` opens (or focuses) the todo pane already in
   done view; bare `/todo` behaves exactly as now. No new pane type — done view is a
   mode of the existing pane, like `@project` filtering is.
