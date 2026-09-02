@@ -20,6 +20,7 @@ pub(crate) mod cli;
 pub(crate) mod clock;
 pub(crate) mod installcli;
 pub(crate) mod intent;
+pub(crate) mod intenthistory;
 pub(crate) mod intentlog;
 pub(crate) mod ledgerchat;
 pub(crate) mod reply;

@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.21
+
+**`/watching` says what each standing intent has already done.**
+
+The live fold answers "what is still standing" and folds the firings
+away, so a daily briefing that had run for a month and one set this
+morning read the same, and a firing missed to a shut laptop was said
+once on its channel and then nowhere. The `Fired` entries carried all of
+it — when, and how many occurrences the roll stepped over — and nothing
+read them back. The listing's detail line does now: `fired 40× · last 22h
+ago · 3 missed`, the missed count only when there is one, and nothing at
+all under an intent that has never fired. A cancel is not a firing, and
+the test says so.
+
 ## 0.21.20
 
 **"What have you done?" — the ledger answers from a phone.**

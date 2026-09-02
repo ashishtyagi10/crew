@@ -19,7 +19,7 @@ fn intent(id: &str, text: &str, to: &str, fire_in: u64, repeat: Repeat) -> Inten
 
 #[test]
 fn nothing_standing_says_how_to_set_one() {
-    let out = listing(&[], NOW);
+    let out = listing(&[], &Default::default(), NOW);
     assert!(out.contains("Nothing standing"), "{out}");
     assert!(out.contains("crew daemon at"), "{out}");
     assert!(
@@ -41,6 +41,7 @@ fn a_row_says_when_how_often_and_what_and_the_detail_says_where_and_since() {
             ),
             intent("w2", "chase the invoice", "", 5 * 24 * HOUR, Repeat::Once),
         ],
+        &Default::default(),
         NOW,
     );
     assert!(out.contains("2 standing"), "{out}");
@@ -111,4 +112,44 @@ fn snooze_from_the_app_says_where_it_landed() {
     assert!(snooze(&list, "w1", NOW).starts_with("usage:"));
     assert!(snooze(&list, "w1 daily", NOW).contains("how long"));
     let _ = std::fs::remove_file(&p);
+}
+
+/// A row that has fired says so under itself — how many times, when last, and what it
+/// missed — and one that never has says nothing extra.
+#[test]
+fn a_row_says_what_it_has_already_done() {
+    let mut history = std::collections::BTreeMap::new();
+    history.insert(
+        "w1".to_string(),
+        crate::daemon::intenthistory::Fired {
+            count: 40,
+            last_ms: NOW - 22 * HOUR,
+            missed: 3,
+        },
+    );
+    let out = listing(
+        &[
+            intent(
+                "w1",
+                "brief me",
+                "telegram:42",
+                2 * HOUR,
+                Repeat::Every { secs: 86_400 },
+            ),
+            intent("w2", "chase the invoice", "", 5 * 24 * HOUR, Repeat::Once),
+        ],
+        &history,
+        NOW,
+    );
+    let detail = out.lines().find(|l| l.contains("telegram:42")).unwrap();
+    assert_eq!(
+        detail,
+        "     \u{2192} telegram:42 \u{b7} standing 3d \u{b7} fired 40\u{d7} \u{b7} last 22h ago \u{b7} 3 missed"
+    );
+    let w2 = out
+        .lines()
+        .skip_while(|l| !l.starts_with("w2"))
+        .nth(1)
+        .unwrap();
+    assert_eq!(w2, "     standing 3d", "never fired: nothing extra");
 }

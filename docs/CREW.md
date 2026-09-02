@@ -1260,7 +1260,10 @@ longer aim at.
 - **`/watching`** — what crew is waiting to do on its own clock: every
   standing intent (`crew daemon at …`, or "remind me …" said over a channel),
   soonest first, with when it fires, how often, the task, where the answer
-  goes and how long it has stood. **`/watching cancel <id>`** calls one off
+  goes, how long it has stood, and what it has already done — `fired 40× ·
+  last 22h ago · 3 missed` — so a daily that has run for a month and one set
+  this morning no longer read the same, and a firing missed to a shut laptop
+  is not said once on its channel and then nowhere. **`/watching cancel <id>`** calls one off
   and **`/watching snooze <id> 30m`** pushes its next firing back (`2h`, `1d`
   work too; a repeat keeps its cadence, so a daily 7am snoozed half an hour
   is late today and on time tomorrow) — each an append to the same

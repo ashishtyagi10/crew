@@ -44,13 +44,26 @@ fn watching_shot_standing_and_empty() {
             Repeat::Every { secs: 1_800 },
         ),
     ];
+    let mut history = std::collections::BTreeMap::new();
+    history.insert(
+        "w1".to_string(),
+        crate::daemon::intenthistory::Fired {
+            count: 40,
+            last_ms: NOW - 16 * 3_600_000,
+            missed: 3,
+        },
+    );
     for (name, text, w) in [
         (
             "watching-tile",
-            crate::watchview::listing(&standing, NOW),
+            crate::watchview::listing(&standing, &history, NOW),
             420u32,
         ),
-        ("watching-empty", crate::watchview::listing(&[], NOW), 640),
+        (
+            "watching-empty",
+            crate::watchview::listing(&[], &history, NOW),
+            640,
+        ),
     ] {
         let Some(rows) = tools_shot(name, &text, w) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");

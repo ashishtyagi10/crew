@@ -10,7 +10,10 @@
 //! Read straight off the log, like `/tools` reads the ledger: the daemon
 //! re-reads the same file on every tick, so a cancel appended here is a
 //! cancel the clock honours, daemon running or not.
+use std::collections::BTreeMap;
+
 use crate::daemon::intent::{spell, until, Intent};
+use crate::daemon::intenthistory::{self, Fired};
 use crate::daemon::intentlog::Watchlist;
 
 #[cfg(test)]
@@ -24,7 +27,12 @@ const UNTIL_W: usize = 8;
 const REPEAT_W: usize = 10;
 
 /// The listing for `intents` (soonest first, as the log folds them), as viewer text.
-pub(crate) fn listing(intents: &[Intent], now_ms: u64) -> String {
+/// `history` is what each has already done, by id — the fold that `live()` drops.
+pub(crate) fn listing(
+    intents: &[Intent],
+    history: &BTreeMap<String, Fired>,
+    now_ms: u64,
+) -> String {
     let mut out = String::from("# watching \u{b7} what crew is waiting to do\n");
     if intents.is_empty() {
         out.push_str(
@@ -58,6 +66,12 @@ pub(crate) fn listing(intents: &[Intent], now_ms: u64) -> String {
         }
         if let Some(ms) = now_ms.checked_sub(i.created_ms) {
             parts.push(format!("standing {}", spell(ms / 1000)));
+        }
+        // What it has already done: a daily that has fired forty times and one set
+        // this morning read the same otherwise, and a missed firing was said once on
+        // its channel and then nowhere.
+        if let Some(f) = history.get(&i.id) {
+            parts.push(intenthistory::note(f, now_ms));
         }
         if !parts.is_empty() {
             out.push_str(&format!(
@@ -119,7 +133,7 @@ impl crate::app::CrewApp {
             );
             return;
         }
-        let text = listing(&list.live(), now_ms);
+        let text = listing(&list.live(), &list.history(), now_ms);
         let path = crate::lastout::temp_path(usize::MAX, "watching");
         if let Err(e) = std::fs::write(&path, text) {
             self.set_status(format!("watching: cannot write: {e}"));
