@@ -110,6 +110,9 @@ mod cmdmenu;
 mod cmdrecents;
 mod cmdrow;
 mod cmdspan;
+#[cfg(test)]
+#[path = "composershot_tests.rs"]
+mod composershot_tests;
 pub mod config;
 mod configdefault;
 mod confirm;

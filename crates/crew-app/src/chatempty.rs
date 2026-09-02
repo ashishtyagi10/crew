@@ -31,23 +31,15 @@ fn line(
     });
 }
 
-/// Emit one onboarding row (skipped below `max_row`) and advance the cursor.
-fn put(
-    cells: &mut Vec<CellView>,
-    row: &mut u16,
-    max_row: u16,
-    cols: u16,
-    s: &str,
-    fg: (u8, u8, u8),
-    bold: bool,
-) {
-    if *row < max_row {
-        line(cells, *row, 1, cols, s, fg, bold);
-    }
-    *row += 1;
-}
+/// One onboarding row: its text, ink and weight.
+type Row = (String, (u8, u8, u8), bool);
 
 /// Render the onboarding block into rows `top..max_row`.
+///
+/// The block is composed first and fitted second, because the rows it gets
+/// are whatever the composer and the footer have left: on a short tile the
+/// no-provider advice used to end `automatically,` — a sentence cut by the
+/// row budget with nothing to say so.
 pub(crate) fn empty_cells(
     cols: u16,
     max_row: u16,
@@ -55,73 +47,86 @@ pub(crate) fn empty_cells(
     connected: bool,
     agents: &[AgentInfo],
 ) -> Vec<CellView> {
-    let t = crew_theme::theme();
+    let avail = max_row.saturating_sub(top + 1) as usize;
     let mut cells = Vec::new();
-    let mut row = top + 1;
+    for (i, (s, fg, bold)) in fit(block(cols, connected, agents), avail, cols)
+        .into_iter()
+        .enumerate()
+    {
+        line(&mut cells, top + 1 + i as u16, 1, cols, &s, fg, bold);
+    }
+    cells
+}
+
+/// The rows the state asks for, before any budget is applied.
+fn block(cols: u16, connected: bool, agents: &[AgentInfo]) -> Vec<Row> {
+    let t = crew_theme::theme();
+    let muted = |s: String| (s, t.text_muted, false);
     if !connected {
-        put(
-            &mut cells,
-            &mut row,
-            max_row,
-            cols,
-            "\u{25cb} connecting to the crew broker\u{2026}",
-            t.text_muted,
-            false,
-        );
-        return cells;
+        return vec![muted(
+            "\u{25cb} connecting to the crew broker\u{2026}".to_string(),
+        )];
     }
     if agents.is_empty() {
-        put(
-            &mut cells,
-            &mut row,
-            max_row,
-            cols,
-            "No agents available.",
-            t.ink,
-            true,
-        );
-        put(&mut cells, &mut row, max_row, cols, "", t.text_muted, false);
+        let mut rows = vec![
+            ("No agents available.".to_string(), t.ink, true),
+            muted(String::new()),
+        ];
         // The same words the broker uses (`crew_plugin::no_provider_advice`),
         // wrapped to the pane. Four wordings of this advice existed across the
         // two processes and two of them went stale for two releases; there is
         // one copy now, and this is a view of it.
-        for line in wrap_advice(crew_plugin::no_provider_advice(), cols) {
-            put(
-                &mut cells,
-                &mut row,
-                max_row,
-                cols,
-                &line,
-                t.text_muted,
-                false,
-            );
-        }
-    } else {
-        // Minimal, Claude-Code-style: a single muted hint. No roster dump and
-        // no keybind table — the pane shouldn't spend rows on chrome before the
-        // first task. `@agent` picks who starts; plain text runs the swarm.
-        let first = &agents[0].name;
-        put(
-            &mut cells,
-            &mut row,
-            max_row,
-            cols,
-            &format!("Type a task and press Enter \u{2014} @agent to pick who starts (e.g. @{first}), / for commands."),
-            t.text_muted,
-            false,
+        rows.extend(
+            wrap_to(crew_plugin::no_provider_advice(), cols)
+                .into_iter()
+                .map(muted),
         );
+        return rows;
     }
-    cells
+    // Minimal, Claude-Code-style: a single muted hint. No roster dump and no
+    // keybind table — the pane shouldn't spend rows on chrome before the first
+    // task. `@agent` picks who starts; plain text runs the swarm. Wrapped: on
+    // a half tile the one sentence ended `/ for comm`.
+    let first = &agents[0].name;
+    let hint = format!(
+        "Type a task and press Enter \u{2014} @agent to pick who starts (e.g. @{first}), / for commands."
+    );
+    wrap_to(&hint, cols).into_iter().map(muted).collect()
+}
+
+/// Fit `block` into `avail` rows: the blank spacers go first, and if the
+/// words still do not fit the last row that does is cut and marked.
+fn fit(mut block: Vec<Row>, avail: usize, cols: u16) -> Vec<Row> {
+    if block.len() > avail {
+        block.retain(|r| !r.0.is_empty());
+    }
+    if block.len() > avail {
+        block.truncate(avail);
+        if let Some(last) = block.last_mut() {
+            let w = wrap_width(cols);
+            let mut s = crate::chatwidth::clip_w(&last.0, w.saturating_sub(1));
+            if !s.ends_with('\u{2026}') {
+                s.push('\u{2026}');
+            }
+            last.0 = s;
+        }
+    }
+    block
+}
+
+/// Columns a wrapped onboarding line may take.
+fn wrap_width(cols: u16) -> usize {
+    (cols.saturating_sub(4)).max(12) as usize
 }
 
 #[cfg(test)]
 #[path = "chatempty_tests.rs"]
 mod tests;
 
-/// Wrap the shared no-provider advice to the pane's width, on spaces, with a
-/// sentence capital. Pure so the wrapping is testable without a pane.
-fn wrap_advice(advice: &str, cols: u16) -> Vec<String> {
-    let width = (cols.saturating_sub(4)).max(12) as usize;
+/// Wrap `advice` to the pane's width, on spaces, with a sentence capital.
+/// Pure so the wrapping is testable without a pane.
+fn wrap_to(advice: &str, cols: u16) -> Vec<String> {
+    let width = wrap_width(cols);
     let mut out: Vec<String> = Vec::new();
     let mut line = String::new();
     for word in advice.split_whitespace() {

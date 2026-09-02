@@ -1892,7 +1892,10 @@ finds; the pane lists them (and notes when none are present). Adding a fourth
 agent is one adapter (see *Architecture* below) — discovery and routing don't
 change.
 
-**Sending a task.** Type a task and press Enter. By default the first detected
+**Sending a task.** A fresh pane says exactly that, wrapped to its width and
+nothing more (no roster, no key table); a pane with no provider gets the
+broker's own advice, fitted to the rows the composer leaves it. Type a task
+and press Enter. By default the first detected
 agent starts; prefix `@<agent>` (e.g. `@codex refactor this`) to choose who
 starts. The agent receives a clean, normalized message — never another agent's
 raw CLI output.

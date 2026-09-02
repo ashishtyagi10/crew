@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.1
+
+**A fresh crew pane says its whole sentence.**
+
+`composershot_tests` renders the states a session passes through on its way
+into a conversation — the three empty states, the auto-folded `/doctor` card,
+a folded tool card, the compaction marker, and the Cmd+F and Ctrl+R cards
+over the composer — at a half tile and a whole window. The folds and both
+cards came through clean. The empty state did not:
+
+- **The one hint a ready pane shows ended `/ for comm`** on a whole window and
+  `@agent to p` on a half tile. It was one row by decree — no roster, no
+  keybind table — and the decree had been read as "one line". It wraps now,
+  and stays the only thing on the page.
+- **The no-provider advice ended `automatically,`** on a short tile. The
+  block asked for six rows, the composer and footer left four, and the rows
+  past the budget were dropped without a mark. The block is fitted now: the
+  blank spacer goes first, and a sentence that still does not fit is cut
+  where the rows end and says so with `…`.
+
 ## 0.21.0
 
 **Every picker reads down one column.**
