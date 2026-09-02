@@ -18,6 +18,8 @@ pub(crate) enum Ask {
     },
     /// What are you watching for?
     List,
+    /// What happens next? The soonest one, on one line.
+    Next,
     /// Call one off.
     Cancel(String),
     /// Push one's next firing back by this many ms.
@@ -33,6 +35,10 @@ pub(crate) fn read(said: &str, now_ms: u64) -> Option<Result<Ask, String>> {
     let first = lower.split_whitespace().next().unwrap_or("");
     match first {
         "watching" | "/watching" | "reminders" => return Some(Ok(Ask::List)),
+        "next" | "/next" => return Some(Ok(Ask::Next)),
+        // "what's next", "whats next", "what is next" — and nothing longer, so "what's next
+        // on the roadmap" stays a task.
+        "what's" | "whats" | "what" if is_whats_next(&lower) => return Some(Ok(Ask::Next)),
         "cancel" | "/cancel" => {
             // Only with a real id. A bare "cancel" is somebody refusing an approval, and
             // stealing that word here would answer the wrong question.
@@ -140,6 +146,12 @@ fn take_cadence(said: &str) -> (String, Repeat) {
         }
     }
     (said.to_string(), Repeat::Once)
+}
+
+/// `what's next` / `whats next` / `what is next`, with a `?` or not, and no more words.
+fn is_whats_next(lower: &str) -> bool {
+    let bare = lower.trim_end_matches(['?', '!', '.']).trim();
+    matches!(bare, "what's next" | "whats next" | "what is next")
 }
 
 /// Drop `words` from the front of `s`, in any order, case-insensitively.

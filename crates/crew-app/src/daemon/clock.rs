@@ -39,6 +39,7 @@ impl super::Daemon {
                         .join("\n")
                 }
             }
+            Ok(Ask::Next) => super::nextcli::soonest(&self.watch.live(), now_ms),
             Ok(Ask::Snooze { id, delay_ms }) => {
                 super::snooze::said(&id, self.watch.snooze(&id, delay_ms, now_ms), now_ms)
             }

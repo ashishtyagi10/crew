@@ -2456,6 +2456,7 @@ direction** — no release, update or app launch ever installs it.
 | `crew daemon say <to> <text>` | send one message out through a channel |
 | `crew daemon at <when+what>` | do something later — see below |
 | `crew daemon watching` | what crew is waiting to do, soonest first (`/watching` in the app) |
+| `crew daemon next` | the soonest of them, on one line — for a prompt or a status bar; exit 0 with nothing standing |
 | `crew daemon cancel <id>` | call one standing intent off |
 | `crew daemon snooze <id> <for>` | push its next firing back by `30m`, `2h`, `1d` — a repeat keeps its cadence |
 
@@ -2480,8 +2481,9 @@ must ask before doing anything irreversible), and the answer arrives on the
 channel you set it from. Anything the agent can reach — an integration
 manifest, an MCP server, `sys:run` — is a source it can assemble from.
 
-**From a phone.** The same four commands work on any channel: `remind me
-tomorrow 9am to call the bank`, `watching`, `cancel w1` and `snooze w1 30m`. A
+**From a phone.** The same commands work on any channel: `remind me
+tomorrow 9am to call the bank`, `watching`, *what's next?*, `cancel w1` and
+`snooze w1 30m`. A
 cadence word anywhere in the sentence (`daily`, `weekly`, `every 30m`) makes it
 repeat, and the answer comes back to the address that set it. The parse claims
 only those forms: `book me a flight tomorrow` has a time in it and is still a

@@ -130,3 +130,14 @@ fn a_snooze_needs_an_id_and_says_so_without_a_duration() {
     let e = read("snooze w1 daily", now_ms()).unwrap().unwrap_err();
     assert!(e.contains("how long"), "a cadence is not a duration: {e}");
 }
+
+/// "what's next" is a question for the clock; "what's next on the roadmap" is a task.
+#[test]
+fn whats_next_is_a_command_and_only_on_its_own() {
+    assert_eq!(read("next", now_ms()), Some(Ok(Ask::Next)));
+    assert_eq!(read("What's next?", now_ms()), Some(Ok(Ask::Next)));
+    assert_eq!(read("whats next", now_ms()), Some(Ok(Ask::Next)));
+    assert_eq!(read("what is next", now_ms()), Some(Ok(Ask::Next)));
+    assert!(read("what's next on the roadmap", now_ms()).is_none());
+    assert!(read("what", now_ms()).is_none());
+}

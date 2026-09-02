@@ -23,6 +23,7 @@ pub(crate) mod intent;
 pub(crate) mod intenthistory;
 pub(crate) mod intentlog;
 pub(crate) mod ledgerchat;
+pub(crate) mod nextcli;
 pub(crate) mod reply;
 pub(crate) mod service;
 pub(crate) mod session;

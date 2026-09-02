@@ -16,6 +16,7 @@ usage:
   crew daemon poll <id>       read a session's output (--after N to resume)
   crew daemon at <when+what>  do something later (--to ADDR, --every daily|30m)
   crew daemon watching        list what crew is waiting to do
+  crew daemon next            the soonest of them, on one line
   crew daemon cancel <id>     call one standing intent off
   crew daemon snooze <id> <for>  push its next firing back (30m, 2h, 1d)
   crew daemon channels        list the ways in, and which are usable

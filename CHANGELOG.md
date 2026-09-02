@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.24
+
+**`crew daemon next` — what happens next, on one line.**
+
+`crew daemon watching` prints the whole list, which answers a different
+question from the one people actually ask a resident. `next` is the
+soonest standing intent on one line — `w3  in 30m  every 30m  check the
+deploy` — for a prompt, a status bar, or a glance; with nothing standing
+it says so and exits 0, because a quiet clock is not an error. From a
+phone, "next" or "what's next?" gets the same line, and only on its own:
+"what's next on the roadmap" is still a task for an agent.
+
 ## 0.21.23
 
 **`/integrations` — what crew can reach, and whether each will work.**
