@@ -1024,6 +1024,10 @@ longer aim at.
   changes asks once before discarding them. The legend also says where the
   caret is as `line:column` **of the file** — the `# ` you never see still
   counts, so the number is the one another editor's go-to-line would take.
+  **Cmd+R** re-reads the file from disk — an agent may have written it
+  underneath you — keeping the caret on its byte where the new text still
+  has it; with unsaved edits it asks once, and the second Cmd+R discards
+  them. (The viewer's bare `r` types an `r` here: the window is an editor.)
   **What it writes is what it read, with the edit spliced in.** The caret is a
   *byte* of the file (every rendered character knows the byte it came from),
   so an edit is a splice and nothing else can move: no re-wrapped paragraphs,

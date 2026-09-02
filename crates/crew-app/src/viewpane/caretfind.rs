@@ -1,7 +1,7 @@
 //! Where a caret is found again: under a click, or after the document was
 //! laid out at a new width. Split from [`super::caret`], which is about where
 //! a caret can step; these are about where one lands.
-use super::caret::{first, stops, Caret};
+use super::caret::{first, last, stops, Caret};
 use crate::chatbody::CardLine;
 
 /// The caret nearest a clicked cell: the last position at or before `col` on
@@ -66,5 +66,7 @@ pub(crate) fn find(lines: &[CardLine], offset: u32) -> Option<Caret> {
             });
         }
     }
-    first(lines)
+    // Past every place in the document: the end, not the start — this is a
+    // caret that was at the end of a longer text.
+    last(lines)
 }

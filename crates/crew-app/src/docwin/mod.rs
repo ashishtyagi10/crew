@@ -32,6 +32,7 @@ mod event;
 pub(crate) mod keys;
 pub(crate) mod legend;
 pub(crate) mod linkedit;
+mod reread;
 
 /// The margin, in cells, between the window's edge and the document's frame —
 /// the same one-cell ring every pane card sits in.

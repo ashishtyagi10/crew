@@ -68,6 +68,7 @@ impl CrewApp {
         };
         let mut close = false;
         let mut save = false;
+        let mut reread = false;
         let mut copy: Option<String> = None;
         let mut refused = false;
         let mut paste = false;
@@ -210,6 +211,7 @@ impl CrewApp {
                             // where the pane is no longer borrowed and the
                             // status line can be set.
                             Some(Edit::Save) => save = true,
+                            Some(Edit::Reload) => reread = true,
                             Some(Edit::Tab) => {
                                 if !d.view.tab_cell(cols, rows) {
                                     d.view.insert("  ", cols, rows);
@@ -257,13 +259,10 @@ impl CrewApp {
             self.copy_text(text);
         }
         if save {
-            let d = &mut self.docs[i];
-            let name = d.view.path.display().to_string();
-            d.warned = false;
-            match d.view.save() {
-                Ok(()) => self.set_status(format!("saved {name}")),
-                Err(e) => self.set_status(format!("could not save {name}: {e}")),
-            }
+            self.save_doc(i);
+        }
+        if reread {
+            self.reread_doc(i);
         }
         if close {
             // Esc on a document with unsaved edits asks once rather than

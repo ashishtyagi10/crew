@@ -88,8 +88,16 @@ impl ViewPane {
     /// Find the caret again after the document was laid out at a new width.
     /// The byte is what the caret IS; the row and column are only where this
     /// layout happens to put it.
+    ///
+    /// Except after a re-read of a file that got shorter: a byte past the new
+    /// end is not a place in this text, and a caret drawn at the end while
+    /// still holding it would splice the next keystroke into nothing. It is
+    /// clamped to the end; a byte that exists is kept exactly.
     pub(crate) fn relayout_caret(&mut self, cols: u16, rows: u16) {
         let Some(at) = self.caret_at else { return };
+        let len = self.source_str().map_or(at, |s| s.len() as u32);
+        let at = at.min(len);
+        self.caret_at = Some(at);
         let found = {
             let cache = self.lines_for(cols);
             super::caretfind::find(&cache.lines, at)

@@ -114,3 +114,12 @@ fn alt_arrows_hop_a_word() {
         Some(Edit::Move(Step::Left))
     );
 }
+
+#[test]
+fn cmd_r_rereads_and_a_bare_r_is_a_letter() {
+    assert_eq!(edit_for(&ch("r"), true, CMD, 20), Some(Edit::Reload));
+    assert_eq!(
+        edit_for(&ch("r"), true, ModifiersState::empty(), 20),
+        Some(Edit::Type("r".into()))
+    );
+}

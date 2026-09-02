@@ -36,6 +36,7 @@ pub(crate) mod pictures;
 mod plainrung;
 mod render;
 mod rendercap;
+mod reread;
 pub(crate) mod search;
 mod search_apply;
 pub(crate) mod select;

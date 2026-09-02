@@ -144,4 +144,8 @@ pub(crate) const DOC_BINDINGS: &[(&str, &str)] = &[
         "Cmd+S",
         "Save \u{2014} only the bytes you changed are rewritten",
     ),
+    (
+        "Cmd+R",
+        "Re-read the file from disk (asks once if you have unsaved edits)",
+    ),
 ];

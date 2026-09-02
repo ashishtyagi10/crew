@@ -19,6 +19,8 @@ pub(crate) enum Edit {
     Delete,
     Newline,
     Save,
+    /// Cmd+R: re-read the file from disk.
+    Reload,
     Undo,
     Redo,
     /// Wrap (or unwrap) the selection in this marker — `**` or `*`.
@@ -92,6 +94,7 @@ pub(crate) fn edit_for(
         Key::Named(NamedKey::Tab) if !cmd => Some(Edit::Tab),
         Key::Character(s) if cmd => match s.as_str() {
             "s" => Some(Edit::Save),
+            "r" => Some(Edit::Reload),
             "a" => Some(Edit::SelectAll),
             "c" => Some(Edit::Copy),
             "x" => Some(Edit::Cut),

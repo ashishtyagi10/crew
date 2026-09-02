@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.14
+
+**Cmd+R re-reads a document window's file.**
+
+The viewer has had `r` since the file viewer shipped; in a document window
+`r` types an `r`, because the window is an editor — and so a document an
+agent rewrote underneath you could not be refreshed without closing it.
+**Cmd+R** re-reads the file: the caret keeps its byte where the new text
+still has it, the undo history of the old text goes with the old text, and
+with unsaved edits it asks once — the same once Esc asks — before the
+second press discards them. In `/keys` and the manual.
+
+The test for it found a latent bug on the way: after a relayout the caret's
+byte was never checked against the text, so a caret at the end of a longer
+file, re-read as a shorter one, was drawn at the new end while still
+holding a byte past it — and the next keystroke would have spliced into
+nothing. The byte is clamped to the text now, and a byte past every place
+in a document lands at its end rather than its start.
+
 ## 0.21.13
 
 **`/tools` says what kind of history it is showing.**
