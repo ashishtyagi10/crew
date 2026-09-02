@@ -21,8 +21,8 @@ use crew_hive::{
 use crew_render::CellView;
 
 use crate::swarm::bridge::SwarmHandle;
+use crate::swarm::compose::Run;
 use crate::swarm::plan::{plan_goal, PlanHandle};
-use crate::swarm::view::swarm_cells;
 
 // Backend selection + execution helpers live in `swarm::backend`; re-exported
 // so callers (and the tests) keep addressing them through this module.
@@ -183,33 +183,24 @@ impl SwarmPane {
             return vec![];
         }
         match &self.state {
-            SwarmState::Planning { goal, .. } => banner(&format!("planning: {goal}…"), cols),
-            SwarmState::Failed { msg } => banner(&format!("plan failed: {msg}"), cols),
-            SwarmState::Running { handle, fleet, .. } => {
-                // The task list gives up the columns the timeline draws in.
-                let list_w = cols - crate::swarm::view::timeline_cols(cols);
-                let mut cells = swarm_cells(handle.graph(), fleet, list_w, rows);
-                cells.extend(crate::swarm::view::timeline_cells(cols, rows, self.axis()));
-                if handle.is_cancelled() {
-                    cells.extend(crate::swarm::view::cancelled_notice(cols, rows));
-                }
-                cells
+            SwarmState::Planning { goal, .. } => banner(&format!("planning: {goal}…"), cols, rows),
+            SwarmState::Failed { msg } => banner(&format!("plan failed: {msg}"), cols, rows),
+            SwarmState::Running {
+                handle,
+                fleet,
+                timeline,
+            } => Run {
+                graph: handle.graph(),
+                fleet,
+                timeline,
+                cancelled: handle.is_cancelled(),
             }
+            .cells(cols, rows, crate::anim::now_ms()),
         }
     }
 }
 
 impl SwarmPane {
-    /// The timeline's axis right now — `None` unless a run is under way.
-    fn axis(&self) -> Option<(u64, u64)> {
-        match &self.state {
-            SwarmState::Running { timeline, .. } if !timeline.is_empty() => {
-                Some(timeline.axis(crate::anim::now_ms()))
-            }
-            _ => None,
-        }
-    }
-
     /// The task bars, drawn (see [`crate::plot::gantt`]). Empty until a task
     /// has started, and on a pane too narrow for both halves.
     pub fn paint(&self, cols: u16, rows: u16, aspect: f32) -> Vec<crew_render::Paint> {
@@ -221,15 +212,13 @@ impl SwarmPane {
         else {
             return Vec::new();
         };
-        let w = crate::swarm::view::timeline_cols(cols);
-        if w == 0 || rows < 3 || timeline.is_empty() {
-            return Vec::new();
+        Run {
+            graph: handle.graph(),
+            fleet,
+            timeline,
+            cancelled: handle.is_cancelled(),
         }
-        let now = crate::anim::now_ms();
-        let (t0, t1) = timeline.axis(now);
-        let ids: Vec<_> = handle.graph().tasks().iter().map(|t| t.id).collect();
-        let spans = timeline.spans_for(&ids, fleet, now, crate::swarm::view::state_color);
-        crate::swarm::view::timeline_paint(&spans, cols, rows, aspect, (t0, t1), now)
+        .paint(cols, rows, aspect, crate::anim::now_ms())
     }
 }
 

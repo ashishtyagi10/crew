@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.20.9
+
+**The `/goal` pane fits its tile.**
+
+`chartshot` had shot the timeline half of a swarm pane from hand-placed cells;
+nothing had ever drawn the pane the way `SwarmPane::cells` composes it — the
+list and the bars sharing one width, a list too tall for its rows, a cancelled
+run — at any size. `goalshot_tests` does now, and the dumped rows read like a
+bug list:
+
+- **The HUD cut its own price in half.** At 47 columns the first row ended
+  `cost:$0.` and at 32 it ended `cost:$0` — a number sliced by the frame reads
+  as a different number. The HUD now takes the widest of three forms that
+  fits: with the cost, without it, then the list's own glyphs (`●1 ✓3 ✗1`).
+- **Tails and titles clipped in silence** (`error: atla`, `compiling`,
+  `packing th`). A row keeps its title whole and marks a cut tail with `…`, or
+  drops the tail when fewer than a word's worth of columns remain.
+- **The planning banner was one row** and a goal is a sentence: on a card
+  four rows tall it ended `…outside its own car`. Both banners wrap now and
+  mark the cut on the last row if they still do not fit.
+- **Bars beside `… +N more`.** The timeline drew one lane per row and the
+  list one task per row *minus one*, so on an overflowing pane the last bar
+  belonged to a task the row did not name. Lanes stop at the last named task.
+- **The cancellation notice landed on the list.** It was painted over the last
+  row whatever was there — on a full list, over the overflow note. A cancelled
+  run's list gives the notice its row.
+
+The composition moved out of the pane into `swarm::compose::Run`, so the shot
+and the pane draw through one function rather than two that could drift.
+
 ## 0.20.8
 
 **The last effect with no rule gets one.**

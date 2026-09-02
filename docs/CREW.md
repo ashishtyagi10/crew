@@ -2564,6 +2564,14 @@ The bars give way to the task names on a pane too narrow for both. Timings are
 observed by the pane, not reported by the engine (which has no clock), so a
 task that starts and finishes between two frames reads as instantaneous.
 
+The pane fits its tile rather than being cut by it: the HUD drops the cost,
+then shortens to the list's own glyphs (`●1 ✓3 ✗1`), before any number is
+sliced; a task row keeps its title whole and marks a cut tail with `…` (or
+drops the tail when no word would fit); the planning and failure banners wrap
+the goal across the pane; and on a list too tall for the tile, the bars stop
+at the last *named* task and the `… +N more` row and the cancellation notice
+each keep a row of their own.
+
 Real-LLM `/goal`/`/batch` runs are capped by the `budget_governor` (default
 $1.00), and the pane surfaces a cancellation notice when the cap trips. The agent
 factory family is complete — `StubFactory`, `ApiFactory`, and `RemoteFactory`

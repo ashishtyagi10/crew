@@ -95,13 +95,29 @@ pub(crate) fn jobs_from_lines(text: &str) -> Vec<Job> {
         .collect()
 }
 
-/// Lay `text` across row 0 as a single line of cell views (truncated to
-/// `cols`). Via a ratatui buffer so wide characters in a goal keep alignment.
-pub(crate) fn banner(text: &str, cols: u16) -> Vec<CellView> {
-    if cols == 0 {
+/// Lay `text` across the pane, word-wrapped to `cols` and cut with a mark on
+/// the last of `rows` if it still does not fit. Via a ratatui buffer so wide
+/// characters in a goal keep alignment.
+///
+/// One row was the whole banner once, and a goal is a sentence: on a card
+/// four rows tall the planning banner ended `…outside its own car`, cut by
+/// the frame with nothing to say so.
+pub(crate) fn banner(text: &str, cols: u16, rows: u16) -> Vec<CellView> {
+    if cols == 0 || rows == 0 {
         return vec![];
     }
-    let mut buf = ratatui::buffer::Buffer::empty(ratatui::layout::Rect::new(0, 0, cols, 1));
-    buf.set_line(0, 0, &ratatui::text::Line::raw(text), cols);
+    let full: Vec<char> = text.chars().collect();
+    let ranges = crate::chatlayout::wrap_indices(&full, cols as usize);
+    let n = ranges.len().min(rows as usize);
+    let mut buf = ratatui::buffer::Buffer::empty(ratatui::layout::Rect::new(0, 0, cols, rows));
+    for (i, (start, end)) in ranges.iter().take(n).enumerate() {
+        let line: String = if i + 1 == n && n < ranges.len() {
+            // The rest of the text, cut where the row ends and marked.
+            crate::chatwidth::clip_w(&full[*start..].iter().collect::<String>(), cols as usize)
+        } else {
+            full[*start..*end].iter().collect()
+        };
+        buf.set_line(0, i as u16, &ratatui::text::Line::raw(line), cols);
+    }
     crate::tui::to_cells(&buf)
 }

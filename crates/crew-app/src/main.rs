@@ -179,6 +179,9 @@ mod gitfleet;
 #[path = "glassshot_tests.rs"]
 mod glassshot_tests;
 mod glide;
+#[cfg(test)]
+#[path = "goalshot_tests.rs"]
+mod goalshot_tests;
 mod gradientcmd;
 mod gradientlvl;
 mod graincmd;

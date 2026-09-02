@@ -72,49 +72,41 @@ pub fn swarm_cells(graph: &TaskGraph, fleet: &Fleet, cols: u16, rows: u16) -> Ve
     let t = crew_theme::theme();
     let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
 
-    // HUD row: live/done/failed + cost in dollars.
+    // HUD row: live/done/failed + cost, in the widest form the width holds.
     let totals = fleet.totals();
-    let hud = format!(
-        " live:{} done:{} failed:{} cost:${:.4}",
+    let hud = super::rows::hud_text(
         totals.live,
         totals.done,
         totals.failed,
-        totals.micros_usd as f64 / 1_000_000.0,
+        totals.micros_usd,
+        cols,
     );
     buf.set_line(0, 0, &Line::styled(hud, style(t.ink, false)), cols);
 
     // Task rows below the HUD. A task with no spawned agent yet is Pending.
     let by_task: HashMap<_, _> = fleet.agents().map(|a| (a.task, a)).collect();
-    let avail = rows.saturating_sub(1) as usize;
     let tasks = graph.tasks();
-    // Keep one row for the overflow note when the list doesn't fit.
-    let shown = if tasks.len() > avail {
-        avail.saturating_sub(1)
-    } else {
-        tasks.len()
-    };
+    let shown = super::rows::shown(tasks.len(), rows);
     for (i, spec) in tasks.iter().take(shown).enumerate() {
         let agent = by_task.get(&spec.id);
         let state = agent.map_or(TaskState::Pending, |a| a.state);
         let (glyph, color, bold) = state_style(state);
-        let mut spans = vec![
-            Span::styled(format!(" {glyph} "), style(color, bold)),
-            Span::styled(spec.title.clone(), style(color, bold)),
-        ];
         // The live tail: what the agent last printed (or the failure reason).
         let tail = agent
             .filter(|_| matches!(state, TaskState::Running | TaskState::Failed))
             .map(|a| a.last_line.as_str())
             .unwrap_or_default();
+        let (title, tail) = super::rows::task_row(&spec.title, tail, cols);
+        let mut spans = vec![
+            Span::styled(format!(" {glyph} "), style(color, bold)),
+            Span::styled(title, style(color, bold)),
+        ];
         if !tail.is_empty() {
-            spans.push(Span::styled(
-                format!(" \u{2014} {tail}"),
-                style(t.text_muted, false),
-            ));
+            spans.push(Span::styled(tail, style(t.text_muted, false)));
         }
         buf.set_line(0, (i + 1) as u16, &Line::from(spans), cols);
     }
-    if tasks.len() > shown && avail > 0 {
+    if tasks.len() > shown && rows > 1 {
         let note = format!(" \u{2026} +{} more", tasks.len() - shown);
         buf.set_line(
             0,
