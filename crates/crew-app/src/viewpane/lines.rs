@@ -166,7 +166,7 @@ fn ready_lines(
             lines
         }
         Format::Csv { delim } if !raw => super::csv::lines(text, delim, cols),
-        Format::Text => super::linepaint::unnumbered(text, cols, t.ink, t.text_muted, ws),
+        Format::Text => super::plainrung::unnumbered(text, cols, t.ink, t.text_muted, ws),
         // Fix 1: `Code`/`Data` used to reach here with no `lang`, which is
         // why every character painted the same `ink` regardless of what the
         // lexer would have called it. `Format::lang` is `""` for every other

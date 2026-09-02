@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.11
+
+**`/watching` — what crew is waiting to do, from the app.**
+
+The clock shipped in v0.20.1 and its standing intents could be listed and
+called off from the CLI and from a phone — and not from the app, the one
+place a person is most likely to wonder what is pending. `/watching` opens
+them in the viewer, soonest first: when each fires, how often, the task,
+where the answer goes and how long it has stood. `/watching cancel <id>`
+calls one off by appending to the same `watchlist.jsonl` the daemon folds
+on every tick, so it takes effect whether or not the daemon is up. In the
+palette, the manual and the README.
+
+And the plain rung learned to wrap on words. Drawing the listing in a tile
+showed `brief me on the cale|ndar`: the rung was wrapping prose the way the
+numbered rungs wrap code, wherever the column ran out. It breaks between
+words now, a continuation keeps its line's indent, and the shot asserts
+that every drawn row is a whole line of the listing or a piece broken on a
+space — the previous assertion, on a `↪` marker this rung never draws,
+could not have failed.
+
 ## 0.21.10
 
 **Three files over the line cap grew, and the gate said so, and I tagged.**

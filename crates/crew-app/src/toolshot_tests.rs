@@ -12,7 +12,7 @@ use crate::viewpane::{LoadState, ViewPane};
 use crew_plugin::ledger::Record;
 
 /// A fixed 'now' so relative times are deterministic: 2026-08-31T00:00:00Z.
-const NOW: u64 = 1_787_788_800_000;
+pub(crate) const NOW: u64 = 1_787_788_800_000;
 
 fn rec(
     ago_s: u64,
@@ -113,7 +113,24 @@ fn pane(text: &str) -> ViewPane {
     p
 }
 
-fn tools_shot(name: &str, text: &str, w: u32) -> Option<Vec<String>> {
+/// Every drawn row is a whole line of the listing, or a piece of one that
+/// was broken between words: the plain rung wraps prose on words, and the
+/// rows a listing builds to fit the tile must not wrap at all.
+pub(crate) fn intact(rows: &[String], text: &str, name: &str) {
+    for row in rows.iter().map(|r| r.trim_end()).filter(|r| !r.is_empty()) {
+        let piece = row.trim_start();
+        let at = text
+            .find(piece)
+            .unwrap_or_else(|| panic!("{name}: row {row:?} is not a piece of the listing"));
+        let after = text[at + piece.len()..].chars().next();
+        assert!(
+            matches!(after, None | Some(' ') | Some('\n')),
+            "{name}: row {row:?} ends mid-word (next char {after:?})"
+        );
+    }
+}
+
+pub(crate) fn tools_shot(name: &str, text: &str, w: u32) -> Option<Vec<String>> {
     let p = pane(text);
     let mut dumped = Vec::new();
     shot_at(name, w, 520, 13.0, "tools", |cols, rows, aspect| {
@@ -141,23 +158,10 @@ fn tools_shot_wide_and_as_a_tile() {
         let all = rows.join("\n");
         assert!(all.contains("9 call(s)"), "{name}:\n{all}");
         assert!(all.contains("2 unreadable"), "{name}:\n{all}");
-        // Built to fit the tile: nothing the listing wrote wraps a second
-        // time in the viewer, and no row wears a line number.
-        assert!(
-            !all.contains('\u{21aa}'),
-            "{name} wrapped in the viewer:\n{all}"
-        );
-        assert!(
-            all.contains("irreversible") && !all.contains("irreve\n"),
-            "{name}:\n{all}"
-        );
-        let numbered = rows
-            .iter()
-            .filter(|r| {
-                r.trim_start().starts_with(|c: char| c.is_ascii_digit()) && r.contains(" # tools")
-            })
-            .count();
-        assert_eq!(numbered, 0, "{name} has a gutter:\n{all}");
+        // Built to fit the tile: every line the listing wrote is one row of
+        // the viewer, whole — and no row wears a line number.
+        intact(&rows, &text, name);
+        assert!(!all.contains("1 # tools"), "{name} has a gutter:\n{all}");
     }
 }
 

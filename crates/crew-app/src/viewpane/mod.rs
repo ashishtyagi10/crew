@@ -33,6 +33,7 @@ mod metacard;
 mod outline;
 mod pane;
 pub(crate) mod pictures;
+mod plainrung;
 mod render;
 mod rendercap;
 pub(crate) mod search;

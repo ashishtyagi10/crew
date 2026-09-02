@@ -38,6 +38,10 @@ pub(crate) const WORK: &[Cmd] = &[
         desc: "What agents ran through the tool gate \u{b7} /tools <term> narrows it",
     },
     Cmd {
+        name: "/watching",
+        desc: "What crew is waiting to do on its clock \u{b7} /watching cancel <id> calls one off",
+    },
+    Cmd {
         name: "/out",
         desc: "Open the last command's output on its own, in the file viewer",
     },

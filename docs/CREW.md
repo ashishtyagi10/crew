@@ -1250,6 +1250,13 @@ longer aim at.
   writes the decision when it makes it and the outcome when the call ends, so a
   crash between the two leaves a real row with nothing after it, and drawing
   that as success would invent an answer.
+- **`/watching`** — what crew is waiting to do on its own clock: every
+  standing intent (`crew daemon at …`, or "remind me …" said over a channel),
+  soonest first, with when it fires, how often, the task, where the answer
+  goes and how long it has stood. **`/watching cancel <id>`** calls one off —
+  an append to the same `watchlist.jsonl` the daemon folds on every tick, so
+  it takes effect whether or not the daemon is up right now. It reads the log
+  directly, like `/tools` reads the ledger; nothing here needs the socket.
 
   A row is one quiet line — how long ago, a mark, the tool, its tier — and the
   common call (a person at this keyboard, running something that worked) says
@@ -2425,7 +2432,7 @@ direction** — no release, update or app launch ever installs it.
 | `crew daemon sessions` / `open` / `close` / `send` / `poll` | the agent sessions the daemon owns |
 | `crew daemon say <to> <text>` | send one message out through a channel |
 | `crew daemon at <when+what>` | do something later — see below |
-| `crew daemon watching` | what crew is waiting to do, soonest first |
+| `crew daemon watching` | what crew is waiting to do, soonest first (`/watching` in the app) |
 | `crew daemon cancel <id>` | call one standing intent off |
 
 **Standing intents — crew's own clock.** `crew daemon at "tomorrow 9am brief me

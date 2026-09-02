@@ -412,6 +412,10 @@ mod viewpane;
 mod viewshot_tests;
 mod washfocus;
 mod washphase;
+#[cfg(test)]
+#[path = "watchshot_tests.rs"]
+mod watchshot_tests;
+mod watchview;
 mod welcome;
 mod welcomeart;
 #[cfg(test)]

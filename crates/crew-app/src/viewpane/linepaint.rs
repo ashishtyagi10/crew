@@ -76,46 +76,6 @@ pub(crate) fn numbered(
     painted(text, cols, &paints, ink, muted).0
 }
 
-/// Plain rows with no gutter at all, for text that is not source: a note, a
-/// listing crew wrote itself. Wrapped at the full width, so a row built to
-/// fit a narrow pane fits it rather than losing six columns to numbers
-/// nobody will ever refer to.
-pub(crate) fn unnumbered(
-    text: &str,
-    cols: usize,
-    ink: (u8, u8, u8),
-    muted: (u8, u8, u8),
-    ws: &[Vec<bool>],
-) -> Vec<CardLine> {
-    let mut paints: Vec<Vec<CharPaint>> = text
-        .split('\n')
-        .map(|line| line_paint(line, "", ink))
-        .collect();
-    super::whitespace::dim(&mut paints, ws, muted);
-    let (mut last, mut pos) = (0usize, 0usize);
-    let mut out = Vec::new();
-    for (n, chars) in wrap(text, cols.max(1)) {
-        if n != last {
-            pos = 0;
-        }
-        last = n;
-        let paint = row_paint(&paints, n, pos, chars.len());
-        pos += chars.len();
-        let mut line = row("", ink, false);
-        match paint {
-            Some(paint) => line.extend(
-                chars
-                    .iter()
-                    .zip(paint)
-                    .map(|(c, (fg, bold))| plain(*c, *fg, *bold)),
-            ),
-            None => line.extend(chars.iter().map(|c| plain(*c, ink, false))),
-        }
-        out.push(line);
-    }
-    out
-}
-
 /// The numbered-gutter body, given a paint per character. Shared by the
 /// syntax rungs and the diff rung — they differ only in how the paint is
 /// worked out, never in how it is laid down.
