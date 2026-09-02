@@ -75,6 +75,7 @@ impl CrewApp {
             | Request::SessionPoll { .. }
             | Request::Channels { .. }
             | Request::Say { .. }
+            | Request::Press { .. }
             | Request::Watch { .. }
             | Request::Watching { .. }
             | Request::Unwatch { .. } => return false,

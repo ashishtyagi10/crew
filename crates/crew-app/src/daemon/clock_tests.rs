@@ -1,73 +1,7 @@
 //! What crew does on its own, and the two things it must never get wrong: running a firing
 //! twice, and running one with more authority than a schedule is allowed to have.
-use crate::channel::loopback::Loopback;
+use super::rig::{rig, sent};
 use crate::daemon::intent::Repeat;
-use crate::daemon::intentlog::Watchlist;
-use crate::daemon::session::{SessionProc, Spawner};
-use crate::daemon::Daemon;
-use std::path::Path;
-
-/// A session process that exists and does nothing; the registry's own behaviour is covered in
-/// `session_tests`.
-struct Idle;
-impl SessionProc for Idle {
-    fn alive(&mut self) -> bool {
-        true
-    }
-    fn kill(&mut self) {}
-    fn send(&mut self, _line: &str) -> bool {
-        true
-    }
-    fn output(&self) -> (Vec<String>, usize) {
-        (Vec::new(), 0)
-    }
-}
-
-/// A spawner that remembers what requester each session was opened for, which is the whole
-/// security question for a scheduled run.
-struct Recorder(std::sync::Arc<std::sync::Mutex<Vec<String>>>);
-impl Spawner for Recorder {
-    fn spawn(
-        &mut self,
-        _cwd: Option<&Path>,
-        requester: Option<&str>,
-    ) -> std::io::Result<Box<dyn SessionProc>> {
-        self.0
-            .lock()
-            .unwrap()
-            .push(requester.unwrap_or("<none>").to_string());
-        Ok(Box::new(Idle))
-    }
-}
-
-pub(super) struct Rig {
-    pub d: Daemon,
-    pub wire: std::sync::Arc<std::sync::Mutex<crate::channel::loopback::Wire>>,
-    pub opened: std::sync::Arc<std::sync::Mutex<Vec<String>>>,
-    pub watch: Watchlist,
-}
-
-/// A daemon with a channel that goes nowhere and a watchlist of this test's own — never the
-/// user's, which a firing would otherwise consume for real.
-pub(super) fn rig(tag: &str) -> Rig {
-    let opened = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
-    let mut d = Daemon::with_spawner(Box::new(Recorder(std::sync::Arc::clone(&opened))));
-    let (c, wire) = Loopback::pair("test");
-    d.add_channel(Box::new(c));
-    let path = std::env::temp_dir().join(format!("crew-clock-{}-{tag}.jsonl", std::process::id()));
-    let _ = std::fs::remove_file(&path);
-    d.set_watchlist(Watchlist::at(&path));
-    Rig {
-        d,
-        wire,
-        opened,
-        watch: Watchlist::at(&path),
-    }
-}
-
-pub(super) fn sent(r: &Rig) -> Vec<(String, String)> {
-    r.wire.lock().unwrap().outbox.clone()
-}
 
 #[test]
 fn an_intent_whose_time_has_come_fires_and_says_so_where_it_answers() {

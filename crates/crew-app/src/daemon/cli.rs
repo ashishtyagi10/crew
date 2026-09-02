@@ -17,6 +17,7 @@ usage:
   crew daemon at <when+what>  do something later (--to ADDR, --every daily|30m)
   crew daemon watching        list what crew is waiting to do
   crew daemon cancel <id>     call one standing intent off
+  crew daemon listen          push-to-talk: press to listen, again to stop or interrupt
   crew daemon channels        list the ways in, and which are usable
   crew daemon say <to> <txt>  send a message out through a channel (kind:rest)
   crew daemon install         start the resident at login (opt-in; --remove undoes it)
@@ -215,6 +216,24 @@ pub(crate) fn run_sub(args: &[String]) -> i32 {
         }
         Some("at") | Some("watching") | Some("cancel") => {
             super::watchcli::sub(inst.as_deref(), args, USAGE)
+        }
+        Some("listen") => {
+            let req = Request::Press {
+                v: PROTOCOL_V,
+                kind: positional(args, 1).unwrap_or("voice").to_string(),
+            };
+            match super::request(inst.as_deref(), &req) {
+                Some(Reply::Pressed { did, .. }) => {
+                    println!("{did}");
+                    0
+                }
+                Some(Reply::Failed { message }) => {
+                    println!("{message}");
+                    1
+                }
+                Some(other) => unexpected(&other),
+                None => no_daemon(),
+            }
         }
         Some("channels") => {
             match super::request(inst.as_deref(), &Request::Channels { v: PROTOCOL_V }) {
