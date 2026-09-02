@@ -10,9 +10,10 @@ use ratatui::widgets::{Block, BorderType, List, ListItem, Widget};
 use crate::palette::accent_color;
 
 use crate::helplayout::{self, sections, Row, KEY_COL};
-use crate::helptable::{
-    BINDINGS, CHAT_BINDINGS, FAR_BINDINGS, SETTINGS_BINDINGS, TODO_BINDINGS, VIEW_BINDINGS,
+use crate::helppanes::{
+    DOC_BINDINGS, FAR_BINDINGS, SETTINGS_BINDINGS, TODO_BINDINGS, VIEW_BINDINGS,
 };
+use crate::helptable::{BINDINGS, CHAT_BINDINGS};
 
 /// Preferred overlay size in cells: both binding tables, a spacer and a
 /// heading between them, plus borders/title/hint.
@@ -49,6 +50,7 @@ pub fn size() -> (u16, u16) {
         .chain(FAR_BINDINGS)
         .chain(TODO_BINDINGS)
         .chain(SETTINGS_BINDINGS)
+        .chain(DOC_BINDINGS)
         .map(|(_, d)| d.chars().count())
         .max()
         .unwrap_or(KEY_COL);
@@ -170,3 +172,7 @@ pub fn help_cells(cols: u16, rows: u16, scroll: usize, needle: &str) -> Vec<Cell
 #[cfg(test)]
 #[path = "help_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "helpparity_tests.rs"]
+mod parity;

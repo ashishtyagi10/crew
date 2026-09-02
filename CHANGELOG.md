@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.4
+
+**The document window's keys reach `/keys`.**
+
+The markdown editor that `w` (or `/doc`) opens in a window of its own has
+had a key map since v0.19.84 — Cmd+B/I, Cmd+K, Tab through a table's cells,
+Shift+arrows, undo and redo — and every one of those keys was written down in
+the manual and nowhere a user could find it without reading the manual. It
+was the one pane kind added *after* `/keys` learned to hold every pane to its
+own key map, and the one pane kind that map did not cover.
+
+`/keys` has a sixth section now, "in a document window", and the parity test
+reads `docwin/keys.rs` the way it reads the other four key maps: a chord
+added there and not here fails the build. The pane tables moved to
+`helppanes.rs` on the way, which takes `helptable.rs` off the line-cap debt
+list.
+
 ## 0.21.3
 
 **The nav's transients, and a test I shipped red.**

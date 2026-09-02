@@ -77,8 +77,7 @@ src/glassshot_tests.rs 550
 src/gradientcmd_tests.rs 220
 src/grid/tests.rs 357
 src/handler.rs 295
-src/help_tests.rs 443
-src/helptable.rs 215
+src/help_tests.rs 316
 src/hints.rs 285
 src/inputbar_tests.rs 499
 src/inputshot_tests.rs 288

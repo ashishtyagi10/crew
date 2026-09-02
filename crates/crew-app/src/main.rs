@@ -201,6 +201,7 @@ mod handler;
 mod help;
 mod helpkeys;
 mod helplayout;
+mod helppanes;
 #[cfg(test)]
 #[path = "helpshot_tests.rs"]
 mod helpshot_tests;

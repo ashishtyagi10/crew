@@ -77,6 +77,9 @@ fn help_shot_states() {
     let _g = crate::app::theme_test_guard();
     for (name, scroll, needle) in [
         ("help-scrolled", 14usize, ""),
+        // The last section — the document window's — is the one a fresh
+        // shot at scroll 0 never reaches.
+        ("help-tail", usize::MAX, ""),
         ("help-filtered", 0, "pane"),
         ("help-nomatch", 0, "zzz"),
     ] {
