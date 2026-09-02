@@ -5,8 +5,15 @@ use crate::chatbody::{plain, CardLine};
 use crate::viewpane::detect::Opaque;
 use crate::viewpane::load::FileMeta;
 
-fn row(s: &str, fg: (u8, u8, u8), bold: bool) -> CardLine {
-    s.chars().map(|c| plain(c, fg, bold)).collect()
+/// `s` as card lines, word-wrapped to `cols` — a card thirty columns wide
+/// used to end `press  o  to open in the default`, its last word cut by the
+/// frame with nothing to say so.
+fn rows(s: &str, fg: (u8, u8, u8), bold: bool, cols: usize) -> Vec<CardLine> {
+    let full: Vec<char> = s.chars().collect();
+    crate::chatlayout::wrap_indices(&full, cols.max(1))
+        .into_iter()
+        .map(|(a, b)| full[a..b].iter().map(|&c| plain(c, fg, bold)).collect())
+        .collect()
 }
 
 /// `bytes` in compact units, the same convention `farpane/render.rs::fmt_size`
@@ -60,9 +67,10 @@ pub(crate) fn opaque_card(why: Opaque, meta: Option<&FileMeta>, cols: usize) -> 
         Opaque::NoExtractor(_) => "no extractor",
         Opaque::Unreadable => "unreadable",
     };
-    let mut lines = vec![row(&head, t.ink, true), Vec::new()];
+    let mut lines = rows(&head, t.ink, true, cols);
+    lines.push(Vec::new());
     if let Some(m) = meta {
-        lines.push(row(
+        lines.extend(rows(
             &format!(
                 "{kind}  \u{00b7}  {}  \u{00b7}  modified {}",
                 fmt_size(m.size),
@@ -70,20 +78,16 @@ pub(crate) fn opaque_card(why: Opaque, meta: Option<&FileMeta>, cols: usize) -> 
             ),
             t.text_muted,
             false,
+            cols,
         ));
     }
-    lines.push(row(
+    lines.extend(rows(
         "press  o  to open in the default app",
         t.text_muted,
         false,
+        cols,
     ));
     lines
-        .into_iter()
-        .map(|mut l| {
-            l.truncate(cols.max(1));
-            l
-        })
-        .collect()
 }
 
 #[cfg(test)]

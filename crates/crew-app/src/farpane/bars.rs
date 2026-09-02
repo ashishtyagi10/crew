@@ -141,7 +141,7 @@ pub(super) fn prompt_bar(buf: &mut Buffer, area: Rect, prompt: &super::super::Pr
     let label = match prompt.kind {
         super::super::PromptKind::MkDir => "Create folder: ",
     };
-    let line = format!("{label}{}▏", prompt.input);
+    let line = prompt_text(label, &prompt.input, area.width as usize);
     Paragraph::new(Line::from(Span::styled(
         line,
         Style::new().fg(bar_fg).bg(bar_bg),
@@ -149,3 +149,32 @@ pub(super) fn prompt_bar(buf: &mut Buffer, area: Rect, prompt: &super::super::Pr
     .style(Style::new().bg(bar_bg))
     .render(area, buf);
 }
+
+/// The prompt's row: the label, then the input with its caret. A name longer
+/// than the row keeps its END — the part being typed — behind a `…`, so the
+/// caret never leaves the screen. It did: on a 2×2 tile a folder name past
+/// forty characters was typed blind.
+pub(super) fn prompt_text(label: &str, input: &str, width: usize) -> String {
+    use crate::chatwidth::{char_w, str_w};
+    const CARET: char = '\u{258f}';
+    let room = width.saturating_sub(str_w(label) + 1);
+    if str_w(input) <= room {
+        return format!("{label}{input}{CARET}");
+    }
+    // Everything after `…` that fits, taken from the end.
+    let mut w = 0;
+    let mut tail: Vec<char> = Vec::new();
+    for c in input.chars().rev() {
+        if w + char_w(c) > room.saturating_sub(1) {
+            break;
+        }
+        w += char_w(c);
+        tail.push(c);
+    }
+    let tail: String = tail.into_iter().rev().collect();
+    format!("{label}\u{2026}{tail}{CARET}")
+}
+
+#[cfg(test)]
+#[path = "bars_tests.rs"]
+mod tests;

@@ -129,15 +129,8 @@ pub(crate) fn family_key(p: &mut SettingsPane, key: &KeyEvent) -> Option<Setting
         Key::Named(NamedKey::Enter) => {
             commit_family(p);
         }
-        Key::Named(NamedKey::ArrowDown) => {
-            p.family_open = true;
-            let n = p.filtered().len().max(1);
-            p.family_sel = (p.family_sel + 1).min(n - 1);
-        }
-        Key::Named(NamedKey::ArrowUp) => {
-            p.family_open = true;
-            p.family_sel = p.family_sel.saturating_sub(1);
-        }
+        Key::Named(NamedKey::ArrowDown) => step_family(p, 1),
+        Key::Named(NamedKey::ArrowUp) => step_family(p, -1),
         Key::Named(NamedKey::Backspace) => {
             p.family_query.pop();
             p.family_open = true;
@@ -163,6 +156,23 @@ fn button_key(p: &mut SettingsPane, key: &KeyEvent, is_save: bool) -> Option<Set
         Key::Named(NamedKey::Enter) | Key::Named(NamedKey::Space) => Some(SettingsAction::Cancel),
         _ => None,
     }
+}
+
+/// An arrow on the family field: the first one OPENS the list with the
+/// cursor on the family the field names, so the list starts where you are;
+/// every one after that moves the cursor.
+pub(crate) fn step_family(p: &mut SettingsPane, delta: i64) {
+    let names = p.filtered();
+    let n = names.len().max(1);
+    if !p.family_open {
+        p.family_open = true;
+        p.family_sel = names
+            .iter()
+            .position(|f| f.eq_ignore_ascii_case(&p.family_query))
+            .unwrap_or(0);
+        return;
+    }
+    p.family_sel = (p.family_sel as i64 + delta).clamp(0, n as i64 - 1) as usize;
 }
 
 fn push_family(p: &mut SettingsPane, c: char) {

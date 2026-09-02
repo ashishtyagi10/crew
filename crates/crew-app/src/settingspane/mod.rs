@@ -149,12 +149,18 @@ impl SettingsPane {
     /// always led by the system-default label.
     pub(crate) fn filtered(&self) -> Vec<String> {
         let q = self.family_query.to_lowercase();
+        // A query that IS a family — the field as you find it when you arrow
+        // into it — lists everything. Filtering "Lilex" down to `Lilex` gave
+        // a one-row list to browse from, and browsing is what the arrow asks.
+        let browse = q.is_empty()
+            || DEFAULT_FAMILY_LABEL.to_lowercase() == q
+            || self.families.iter().any(|f| f.to_lowercase() == q);
         let mut out = Vec::new();
-        if q.is_empty() || DEFAULT_FAMILY_LABEL.to_lowercase().contains(&q) {
+        if browse || DEFAULT_FAMILY_LABEL.to_lowercase().contains(&q) {
             out.push(DEFAULT_FAMILY_LABEL.to_string());
         }
         for f in &self.families {
-            if q.is_empty() || f.to_lowercase().contains(&q) {
+            if browse || f.to_lowercase().contains(&q) {
                 out.push(f.clone());
             }
         }
@@ -166,6 +172,9 @@ impl SettingsPane {
 #[path = "mod_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "family_tests.rs"]
+mod family_tests;
 #[cfg(test)]
 #[path = "form_tests.rs"]
 mod form_tests;

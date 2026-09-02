@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.2
+
+**Four small surfaces, three of them wrong.**
+
+`edgeshot_tests` renders the `/far` make-folder prompt, the settings pane's
+font dropdown, the viewer's `/` search line and the viewer's card for a file it
+cannot render. The search line was clean at every state. The other three:
+
+- **The make-folder prompt was typed blind past forty characters.** The row
+  drew the START of the name and the caret fell off the right edge. It keeps
+  the END now — the part being typed — behind a `…`, so the caret never leaves
+  the screen.
+- **The font dropdown opened on a one-row list.** The field holds the current
+  family when you arrow into it, and that name was being used as the filter:
+  `Lilex` matched `Lilex`. A query that *is* a family lists every family now,
+  and the first arrow opens the list with the cursor on the one you have
+  rather than moving off it. The cursor is the `›` and the bold, like every
+  other list on the canvas — the accent-under-page-ink bar it had was the one
+  highlight in crew that shouted.
+- **The opaque-file card cut its sentences.** At thirty columns it ended
+  `press  o  to open in the default` and `modified 3h`. It wraps.
+
 ## 0.21.1
 
 **A fresh crew pane says its whole sentence.**

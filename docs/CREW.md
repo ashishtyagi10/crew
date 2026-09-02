@@ -626,7 +626,9 @@ The docked command bar supports:
   touches the live renderer, never the pinned `font_family` in Settings, and
   a manual family pick there also turns rotation back off.
   The font *family* is picked in `/settings` — a type-to-search dropdown over
-  every installed monospace family (the active one carries a `✓`); run
+  every installed monospace family (the active one carries a `✓`; arrowing
+  into the field opens the whole list with the cursor on the family you have,
+  and only typing narrows it); run
   `crew --list-fonts` in any shell to print the same list and check a newly
   installed font is visible to Crew. Inclusion is verified by measurement, not
   font-table flags: a family is listed when a candidate face (flagged
@@ -1361,7 +1363,8 @@ longer aim at.
   panel **only while the command line is empty**; `↑`/`↓`/`PgUp`/`PgDn`/`Home`/`End`
   move the cursor, `Enter` descends into a folder (or `..`) or opens a file with
   the OS default, `Backspace` climbs to the parent, `F5`/`F6` copy/move to the
-  other panel, `F7` makes a folder, `F8` trashes, `F10` closes. Type on the
+  other panel, `F7` makes a folder (the prompt keeps the end of a long name and
+  its caret in view), `F8` trashes, `F10` closes. Type on the
   **command line** and press `Enter` to run a command against the **active
   panel** — `cd <path>` navigates that panel in place, anything else runs in
   its directory on a worker thread (a `⟳` note shows while it runs, the

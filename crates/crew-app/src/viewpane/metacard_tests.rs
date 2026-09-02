@@ -99,3 +99,20 @@ fn the_card_still_offers_o_for_every_reason() {
     let body: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
     assert!(body.contains("press") && body.contains('o'), "got {body}");
 }
+
+/// A narrow viewer wraps the card's sentences rather than cutting them.
+#[test]
+fn a_narrow_card_wraps_every_line_and_loses_no_word() {
+    let meta = FileMeta {
+        size: 34 * 1024 * 1024,
+        modified: Some(SystemTime::now() - Duration::from_secs(3600)),
+    };
+    let ls = card(Opaque::Binary, Some(meta), 30);
+    for l in &ls {
+        assert!(l.len() <= 30, "{:?}", text(l));
+    }
+    let body: String = ls.iter().map(text).collect::<Vec<_>>().join(" ");
+    assert!(body.contains("default app"), "{body}");
+    assert!(body.contains("ago"), "{body}");
+    assert!(ls.len() > 4, "wrapped onto more rows: {}", ls.len());
+}

@@ -150,6 +150,9 @@ mod docshot_tests;
 mod docwin;
 mod dump;
 mod ease;
+#[cfg(test)]
+#[path = "edgeshot_tests.rs"]
+mod edgeshot_tests;
 mod editpane;
 mod envexpand;
 mod envlock;

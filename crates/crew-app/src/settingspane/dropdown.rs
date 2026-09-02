@@ -4,7 +4,7 @@
 //! always see which font is active while browsing candidates.
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
 use ratatui::widgets::{
     Block, BorderType, Clear, List, ListItem, ListState, StatefulWidget, Widget,
@@ -41,11 +41,12 @@ pub(crate) fn dropdown(buf: &mut Buffer, p: &SettingsPane, anchor: Rect) {
         .border_type(BorderType::Rounded)
         .border_style(Style::new().fg(accent_color()))
         .title(Span::styled(" fonts ", Style::new().fg(accent_color())));
-    let t = crew_theme::theme();
-    let page_col = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
+    // No background bar — the cursor is the `›` and the bold, the same idiom
+    // every list on the canvas uses (`cmdmenu`); a bar of accent under page-
+    // coloured text was the one highlight in crew that shouted.
     let list = List::new(items)
         .block(block)
-        .highlight_style(Style::new().fg(page_col).bg(accent_color()))
+        .highlight_style(Style::new().fg(accent_color()).add_modifier(Modifier::BOLD))
         .highlight_symbol("\u{203a} ");
     let mut state = ListState::default();
     state.select(Some(p.family_sel));
