@@ -186,3 +186,7 @@ impl Bridge {
 #[cfg(test)]
 #[path = "task_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "taskseam.rs"]
+mod seam;

@@ -21,6 +21,7 @@ pub(crate) mod clock;
 pub(crate) mod installcli;
 pub(crate) mod intent;
 pub(crate) mod intentlog;
+pub(crate) mod ledgerchat;
 pub(crate) mod reply;
 pub(crate) mod service;
 pub(crate) mod session;
@@ -54,6 +55,8 @@ pub(crate) struct Daemon {
     channels: crate::channel::Router,
     /// What crew is waiting to do on its own clock.
     watch: intentlog::Watchlist,
+    /// The action ledger, read back for a channel that asks what crew has done.
+    ledger: std::path::PathBuf,
 }
 
 impl Daemon {
@@ -76,7 +79,14 @@ impl Daemon {
                 r
             },
             watch: intentlog::Watchlist::at(intentlog::default_path()),
+            ledger: crew_plugin::ledger::default_path(),
         }
+    }
+
+    /// Point the resident at a ledger of the test's own.
+    #[cfg(test)]
+    pub(crate) fn set_ledger(&mut self, path: &std::path::Path) {
+        self.ledger = path.to_path_buf();
     }
 
     /// Point the resident at a watchlist of the test's own, so a test never fires — or
@@ -119,6 +129,11 @@ impl Daemon {
             // A watch command first: "remind me tomorrow 9am to call the bank" is an alarm, and
             // handing it to an agent would produce a cheerful reply and no alarm.
             if let Some(answer) = self.watch_chat(&msg.from, &msg.text, now_ms) {
+                outgoing.push((msg.from, answer));
+                continue;
+            }
+            // Then the ledger: "what have you done" is a question for the record, not an agent.
+            if let Some(answer) = self.ledger_chat(&msg.from, &msg.text, now_ms) {
                 outgoing.push((msg.from, answer));
                 continue;
             }

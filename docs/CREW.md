@@ -2469,13 +2469,17 @@ must ask before doing anything irreversible), and the answer arrives on the
 channel you set it from. Anything the agent can reach — an integration
 manifest, an MCP server, `sys:run` — is a source it can assemble from.
 
-**From a phone.** The same three commands work on any channel: `remind me
-tomorrow 9am to call the bank`, `watching`, and `cancel w1`. A cadence word
-anywhere in the sentence (`daily`, `weekly`, `every 30m`) makes it repeat, and
-the answer comes back to the address that set it. The parse claims only those
-three forms: `book me a flight tomorrow` has a time in it and is still a task
-for an agent, a bare `cancel` is still a refusal, and a conversation waiting on
-an approval has nothing it says read as a command.
+**From a phone.** The same four commands work on any channel: `remind me
+tomorrow 9am to call the bank`, `watching`, `cancel w1` and `snooze w1 30m`. A
+cadence word anywhere in the sentence (`daily`, `weekly`, `every 30m`) makes it
+repeat, and the answer comes back to the address that set it. The parse claims
+only those forms: `book me a flight tomorrow` has a time in it and is still a
+task for an agent, a bare `cancel` (or `snooze`) is still a refusal or a task,
+and a conversation waiting on an approval has nothing it says read as a
+command. The ledger answers from a phone too: `tools`, `ledger` or *what have
+you done?* returns the last ten calls — a trailing word narrows them (`tools
+gmail`, *what did you do with gmail?*) — so the pocket the approvals arrive in
+can also see what it has already approved.
 
 Four things it deliberately does:
 

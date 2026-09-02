@@ -40,7 +40,7 @@ impl Spawner for Recorder {
     }
 }
 
-pub(super) struct Rig {
+pub(crate) struct Rig {
     pub d: Daemon,
     pub wire: std::sync::Arc<std::sync::Mutex<crate::channel::loopback::Wire>>,
     pub opened: std::sync::Arc<std::sync::Mutex<Vec<String>>>,
@@ -49,7 +49,7 @@ pub(super) struct Rig {
 
 /// A daemon with a channel that goes nowhere and a watchlist of this test's own — never the
 /// user's, which a firing would otherwise consume for real.
-pub(super) fn rig(tag: &str) -> Rig {
+pub(crate) fn rig(tag: &str) -> Rig {
     let opened = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
     let mut d = Daemon::with_spawner(Box::new(Recorder(std::sync::Arc::clone(&opened))));
     let (c, wire) = Loopback::pair("test");

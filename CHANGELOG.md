@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.20
+
+**"What have you done?" — the ledger answers from a phone.**
+
+The irreversible approvals arrive on your phone, so from your pocket you
+could say yes and could not see what you had already said yes to: the
+ledger was readable from `/tools` and `crew ledger`, both of which need
+the machine in front of you. `tools`, `ledger` or "what have you done?"
+said over a channel returns the last ten calls — how long ago, the mark,
+the tool, and what was unusual about it — newest nearest your thumb, and
+a trailing word narrows them (`tools gmail`, "what did you do with
+gmail?"). Like the clock's verbs it claims only what it names: "install
+the tools for rust" is still a task, and a conversation blocked on an
+approval has nothing it says read as a question. The manual's phone
+paragraph also now counts `snooze` among the verbs, which 0.21.18 forgot.
+
 ## 0.21.19
 
 **The planner learns what the agents can reach.**
