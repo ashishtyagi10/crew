@@ -61,6 +61,9 @@ pub(crate) fn edit_for(
         false => Some(Edit::Move(s)),
     };
     match key {
+        // Alt+arrow hops a word, as it does in every composer crew has.
+        Key::Named(NamedKey::ArrowLeft) if mods.alt_key() => moved(Step::WordLeft),
+        Key::Named(NamedKey::ArrowRight) if mods.alt_key() => moved(Step::WordRight),
         // Cmd+arrow is the Mac's spelling of Home/End and the document's ends.
         Key::Named(NamedKey::ArrowLeft) if cmd => moved(Step::Home),
         Key::Named(NamedKey::ArrowRight) if cmd => moved(Step::End),

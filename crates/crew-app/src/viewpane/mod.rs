@@ -9,6 +9,7 @@ pub(crate) mod caret;
 pub(crate) mod caretfind;
 pub(crate) mod caretmove;
 mod caretpos;
+mod caretword;
 mod codepaint;
 pub(crate) mod csv;
 pub(crate) mod detect;

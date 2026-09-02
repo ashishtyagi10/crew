@@ -92,3 +92,25 @@ fn cmd_arrows_are_the_line_and_document_ends() {
         Some(Edit::Move(Step::End))
     );
 }
+
+#[test]
+fn alt_arrows_hop_a_word() {
+    let left = Key::Named(NamedKey::ArrowLeft);
+    assert_eq!(
+        edit_for(&left, true, ModifiersState::ALT, 20),
+        Some(Edit::Move(Step::WordLeft))
+    );
+    assert_eq!(
+        edit_for(
+            &Key::Named(NamedKey::ArrowRight),
+            true,
+            ModifiersState::ALT | ModifiersState::SHIFT,
+            20
+        ),
+        Some(Edit::Select(Step::WordRight))
+    );
+    assert_eq!(
+        edit_for(&left, true, ModifiersState::empty(), 20),
+        Some(Edit::Move(Step::Left))
+    );
+}

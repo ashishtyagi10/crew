@@ -78,21 +78,13 @@ pub(crate) fn first(lines: &[CardLine]) -> Option<Caret> {
 
 /// The last place in the document a caret can be.
 pub(crate) fn last(lines: &[CardLine]) -> Option<Caret> {
-    lines
-        .iter()
-        .rev()
-        .find_map(|l| {
-            let (col, _) = *stops(l).last()?;
-            Some(Caret {
-                row: 0,
-                col,
-                want: col,
-            })
-        })
-        .and_then(|c| {
-            let row = lines.iter().rposition(|l| !stops(l).is_empty())?;
-            Some(Caret { row, ..c })
-        })
+    let row = lines.iter().rposition(|l| !stops(l).is_empty())?;
+    let (col, _) = *stops(&lines[row]).last()?;
+    Some(Caret {
+        row,
+        col,
+        want: col,
+    })
 }
 
 /// Which way a step goes.
@@ -104,6 +96,9 @@ pub(crate) enum Step {
     Down,
     Home,
     End,
+    /// A word either way — a run of non-blank characters, like the composers'.
+    WordLeft,
+    WordRight,
     /// A page of rows, either way. The page is the window's height, which
     /// only the caller knows — a classifier without it would be guessing.
     Page {
@@ -125,6 +120,9 @@ pub(crate) fn step(lines: &[CardLine], c: Caret, dir: Step) -> Caret {
         // Rows the caret cannot stand on are skipped, not counted: a page is
         // a page of places, and the fold stops moving at either end anyway.
         Step::Page { down, rows } => (0..rows.max(1)).fold(c, |c, _| vertical(lines, c, down)),
+        Step::WordLeft | Step::WordRight => {
+            super::caretword::word(lines, c, dir == Step::WordRight)
+        }
         Step::Top => first(lines).unwrap_or(c),
         Step::Bottom => last(lines).unwrap_or(c),
         Step::Home | Step::End => {
@@ -212,7 +210,7 @@ fn vertical(lines: &[CardLine], c: Caret, down: bool) -> Caret {
 
 #[cfg(test)]
 #[path = "caret_tests.rs"]
-mod tests;
+pub(crate) mod tests;
 
 #[cfg(test)]
 #[path = "caretjump_tests.rs"]

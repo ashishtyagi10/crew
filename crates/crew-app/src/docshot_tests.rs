@@ -205,6 +205,7 @@ fn doc_shot_caret() {
         ("doc-caret", Step::Right, 0usize),
         ("doc-caret-in-a-list", Step::Right, 120),
         ("doc-caret-paged", page, 1),
+        ("doc-caret-words", Step::WordRight, 5),
     ];
     for (name, dir, steps) in moves {
         let mut view = doc(MD);

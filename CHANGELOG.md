@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.7
+
+**A document window's caret hops words.**
+
+Alt+←/→ move the caret a word at a time — a run of non-blank characters,
+the same word the todo composer and the input bar hop — with Shift dragging
+a selection behind them. At a row's end the hop is the ordinary step onto
+the next row, so a document can be walked by words alone rather than
+finishing every line with an arrow. Read off the rendered row, so a list
+bullet or a table rule is stepped over like it is for every other move. In
+`/keys`, in the manual, and in the caret shots.
+
 ## 0.21.6
 
 **The document window says where the caret is.**
