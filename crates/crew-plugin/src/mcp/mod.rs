@@ -148,13 +148,11 @@ impl McpHost {
     fn client(&mut self, server: &str) -> Result<&mut McpClient, String> {
         let Some(cfg) = self.servers.get(server) else {
             let known: Vec<&str> = self.servers.keys().map(|s| s.as_str()).collect();
-            return Err(format!(
-                "unknown MCP server \u{201c}{server}\u{201d} \u{2014} configured: {}",
-                if known.is_empty() {
-                    "(none)".into()
-                } else {
-                    known.join(", ")
-                }
+            return Err(crew_hive::tools::near::unknown(
+                "MCP server",
+                server,
+                &known,
+                "",
             ));
         };
         if !self.clients.contains_key(server) {
@@ -239,6 +237,15 @@ impl McpHost {
             serde_json::from_str(args)
                 .map_err(|e| format!("tool arguments are not valid JSON: {e}"))?
         };
+        // A name the server does not list is answered here, with the near
+        // misses — not sent, where the server's own refusal would read as a
+        // failed call and drop the connection for a typo.
+        let listed = self.fetch(server)?;
+        if !listed.iter().any(|t| t.name == tool) {
+            let names: Vec<&str> = listed.iter().map(|t| t.name.as_str()).collect();
+            let kind = format!("tool on {server}");
+            return Err(crew_hive::tools::near::unknown(&kind, tool, &names, ""));
+        }
         let res = self.client(server)?.call(tool, value);
         if res.is_err() {
             self.clients.remove(server);

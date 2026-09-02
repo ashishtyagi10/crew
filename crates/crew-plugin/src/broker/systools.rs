@@ -155,7 +155,7 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "write_file" => write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
         "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),
         other => Err(format!(
-            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, list_dir"
+            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, list_dir, find_tools"
         )),
     }
 }

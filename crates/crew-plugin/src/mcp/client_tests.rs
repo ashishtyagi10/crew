@@ -256,3 +256,22 @@ fn host_report_names_a_server_that_fails_to_launch() {
         "got: {report}"
     );
 }
+
+/// A mistyped tool is answered from the listing, and the connection — which
+/// a server's own refusal used to drop — is still there for the retry.
+#[test]
+fn a_tool_the_server_does_not_list_is_refused_without_dropping_the_connection() {
+    let mut servers = BTreeMap::new();
+    servers.insert("fake".to_string(), canned("near", &[INIT, TOOLS, CALL_OK]));
+    let mut host = McpHost::new(servers);
+    let e = host.call("fake", "ecoh", "{}").unwrap_err();
+    assert_eq!(
+        e,
+        "unknown tool on fake \u{201c}ecoh\u{201d} \u{2014} available: echo"
+    );
+    assert!(host.clients.contains_key("fake"), "still connected");
+    assert_eq!(
+        host.call("fake", "echo", r#"{"text":"hi"}"#).unwrap(),
+        "hello\nworld"
+    );
+}

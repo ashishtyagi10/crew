@@ -298,3 +298,35 @@ async fn a_provider_without_tool_support_falls_back_to_the_text_convention() {
     assert!(seen[0].tools.is_empty());
     assert!(seen[0].prompt.contains("unused on the native path"));
 }
+
+/// An invented name gets the near misses, not the whole catalog.
+#[test]
+fn an_unknown_tool_is_answered_with_what_was_probably_meant() {
+    use crate::tools::{ToolCatalog, ToolSpec};
+    let spec = |s: &str, t: &str| ToolSpec {
+        server: s.into(),
+        tool: t.into(),
+        description: String::new(),
+        input_schema: serde_json::json!({"type": "object"}),
+    };
+    let call = ToolInvocation {
+        id: "c1".into(),
+        name: "sys_run".into(),
+        input: serde_json::json!({}),
+    };
+    let few = ToolCatalog::build(&[spec("sys", "run"), spec("sys", "read_file")]);
+    let o = outcome_for_unknown(&call, &few);
+    assert!(o.is_error && o.id == "c1" && o.name == "sys_run");
+    assert_eq!(
+        o.content,
+        "unknown tool \u{201c}sys_run\u{201d} \u{2014} available: sys__read_file, sys__run"
+    );
+    let mut specs: Vec<ToolSpec> = (0..12).map(|i| spec("gh", &format!("issue_{i}"))).collect();
+    specs.push(spec("sys", "run"));
+    specs.push(spec("sys", "find_tools"));
+    let many = ToolCatalog::build(&specs);
+    assert_eq!(
+        outcome_for_unknown(&call, &many).content,
+        "unknown tool \u{201c}sys_run\u{201d} \u{2014} did you mean sys__run, sys__find_tools? (14 tools in all; sys__find_tools searches them)"
+    );
+}

@@ -28,18 +28,18 @@ pub(super) const MAX_CALLS_PER_TURN: usize = 8;
 
 /// What a call resolved to, or why it did not.
 fn outcome_for_unknown(call: &ToolInvocation, catalog: &ToolCatalog) -> ToolOutcome {
-    let mut known = catalog.names();
-    known.sort_unstable();
+    let known = catalog.names();
+    // Naming the near misses turns an invented name into one recoverable
+    // round instead of a repeat of the same wrong guess — and at retrieval
+    // scale the whole list would be the wall the picker exists to avoid.
+    let tail = match known.contains(&"sys__find_tools") {
+        true => "; sys__find_tools searches them",
+        false => "",
+    };
     ToolOutcome {
         id: call.id.clone(),
         name: call.name.clone(),
-        // Naming the real options turns an invented name into one recoverable
-        // round instead of a repeat of the same wrong guess.
-        content: format!(
-            "unknown tool \u{201c}{}\u{201d} \u{2014} available: {}",
-            call.name,
-            known.join(", ")
-        ),
+        content: crate::tools::near::unknown("tool", &call.name, &known, tail),
         is_error: true,
     }
 }

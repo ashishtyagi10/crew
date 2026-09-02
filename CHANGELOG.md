@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.8
+
+**An unknown tool is answered with what was probably meant.**
+
+A model that invents a tool name — `sys_run` for `sys__run`, `ecoh` for
+`echo` — got one of three things back: on the native path, the whole
+catalog (`available: …`, two hundred names at retrieval scale, the exact
+wall the picker exists to avoid); on an MCP server, the server's own
+refusal, which read as a failed call and **dropped the connection** for a
+typo; on a sys tool, a list that had forgotten `find_tools`.
+
+One sentence now, one shape everywhere: a short list is simply listed, a
+long one says `did you mean sys__run, sys__find_tools? (14 tools in all;
+sys__find_tools searches them)`. The MCP host checks the name against the
+server's own listing before sending, so the connection stays up for the
+retry. `crew_hive::tools::near` holds the edit distance, and the broker's
+slash-command typo hint uses the same one rather than its own copy.
+
 ## 0.21.7
 
 **A document window's caret hops words.**

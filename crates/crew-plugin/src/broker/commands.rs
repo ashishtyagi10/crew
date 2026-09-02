@@ -136,33 +136,10 @@ fn closest_construct(typo: &str) -> Option<&'static str> {
                 .zip(c.chars())
                 .take_while(|(a, b)| a == b)
                 .count();
-            shared_prefix >= 2 || levenshtein(&typo, c) <= 2
+            shared_prefix >= 2 || crew_hive::tools::near::levenshtein(&typo, c) <= 2
         })
-        .min_by_key(|c| levenshtein(&typo, c))
+        .min_by_key(|c| crew_hive::tools::near::levenshtein(&typo, c))
         .copied()
-}
-
-/// Classic edit-distance DP (insert/delete/substitute, unit cost).
-fn levenshtein(a: &str, b: &str) -> usize {
-    let a: Vec<char> = a.chars().collect();
-    let b: Vec<char> = b.chars().collect();
-    let (la, lb) = (a.len(), b.len());
-    let mut dp = vec![vec![0usize; lb + 1]; la + 1];
-    for (i, row) in dp.iter_mut().enumerate().take(la + 1) {
-        row[0] = i;
-    }
-    for (j, cell) in dp[0].iter_mut().enumerate().take(lb + 1) {
-        *cell = j;
-    }
-    for i in 1..=la {
-        for j in 1..=lb {
-            let cost = usize::from(a[i - 1] != b[j - 1]);
-            dp[i][j] = (dp[i - 1][j] + 1)
-                .min(dp[i][j - 1] + 1)
-                .min(dp[i - 1][j - 1] + cost);
-        }
-    }
-    dp[la][lb]
 }
 
 /// Handle a `/command` line; emits reply events through `emit`. `_tick_emit`

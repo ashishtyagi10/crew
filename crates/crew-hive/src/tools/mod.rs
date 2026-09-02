@@ -15,6 +15,8 @@
 //! messages and schemas this is the convention crew has. It has the virtue of
 //! already being proven in the relay against real models.
 
+pub mod near;
+
 #[cfg(test)]
 mod tests;
 
