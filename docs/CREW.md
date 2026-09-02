@@ -1301,7 +1301,9 @@ longer aim at.
 
   Each row is numbered the way `/out`'s argument is, which is the point of
   pairing them: `/blocks` says what you ran and `/out 2` opens the output of
-  the third one back. A block still running says so and counts up; one whose
+  the third one back. The rows are built to fit a tile: a command longer than
+  its column is cut in the middle and repeated whole on the lines under its
+  row. A block still running says so and counts up; one whose
   shell reported no exit status shows `·` rather than a tick, because crew only
   knows how a command ended when the shell says so and drawing "no answer" as
   success would be inventing one. It opens in the file viewer like `/out` and

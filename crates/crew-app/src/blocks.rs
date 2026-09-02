@@ -16,9 +16,20 @@
 //! pane's history *into* that history is how a listing becomes something
 //! else to scroll past.
 use crate::cmdspan::{Span, Spans};
+use crate::toolsrow::{fit, wrap, ROW_W};
 
 /// Columns the elapsed field takes, so the command names line up.
 const TIME_W: usize = 7;
+
+/// Columns before the command: number, elapsed, outcome, and a space each.
+///
+/// The row is built to fit a TILE, like `/tools`' — a viewer opened as one
+/// tile of a grid is nearer 47 columns than 80, and a command line is the
+/// one column that must not wrap: `cargo test -p crew-app --bin crew` broken
+/// after `--bin` reads as two commands. So the command gets what is left of
+/// [`ROW_W`], cut in the middle when it is longer, and a cut command is
+/// repeated whole on the indented lines under its row.
+const NAME_AT: usize = 3 + 1 + TIME_W + 1 + 9 + 1;
 
 /// How a block ended, in one glyph plus its status.
 ///
@@ -54,11 +65,17 @@ pub(crate) fn listing(spans: &Spans, title: &str, now: u64) -> String {
     for (i, s) in spans.recent().enumerate() {
         any = true;
         let took = elapsed(Spans::elapsed_ms(s, now));
+        let name = s.name.trim();
+        let shown = fit(name, ROW_W - NAME_AT);
         out.push_str(&format!(
-            "{i:>3}  {took:<TIME_W$}  {:<10}  {}\n",
-            outcome(s),
-            s.name
+            "{i:>3} {took:>TIME_W$} {:<9} {shown}\n",
+            outcome(s)
         ));
+        if shown != name {
+            for line in wrap(name, ROW_W - NAME_AT) {
+                out.push_str(&format!("{:NAME_AT$}{line}\n", ""));
+            }
+        }
     }
     if !any {
         out.push_str("nothing has run in this pane yet\n");
@@ -97,6 +114,9 @@ impl crate::app::CrewApp {
     }
 }
 
+#[cfg(test)]
+#[path = "blocksshot_tests.rs"]
+mod shot;
 #[cfg(test)]
 #[path = "blocks_tests.rs"]
 mod tests;

@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.16
+
+**`/blocks` fits the tile it is opened in.**
+
+The listing was drawn off-screen for the first time and its rows were
+built for no width at all: number, elapsed, outcome, then the whole
+command line — so in a viewer opened as one tile of a grid, the one column
+that matters wrapped wherever the tile happened to end, and `cargo test
+-p crew-app --bin crew` broken after `--bin` read as two commands. The
+row is 47 columns now, like `/tools`': a command longer than its column
+is cut in the middle (both ends are what tell two commands apart) and
+repeated whole, wrapped on words, on the indented lines under its row.
+A short command is neither cut nor repeated. The shot is in the harness.
+
 ## 0.21.15
 
 **`/keys` lists the `/disk` map's keys.**
