@@ -32,7 +32,7 @@ pub(crate) fn unnumbered(
             .count()
             .min(cols / 2);
         let mut first = true;
-        for (s, e) in crate::chatlayout::wrap_indices(&chars, cols) {
+        for (s, e) in hanging(&chars, cols, lead) {
             let indent = if first { 0 } else { lead };
             let (s, e) = (s.min(chars.len()), e.min(chars.len()).max(s));
             let mut row = row(&" ".repeat(indent), ink, false);
@@ -45,13 +45,38 @@ pub(crate) fn unnumbered(
                 ),
                 None => row.extend(body.iter().map(|c| plain(*c, ink, false))),
             }
-            // A continuation with its indent could overrun the width by the
-            // indent; the cells past it are dropped rather than wrapped again.
-            row.truncate(cols);
+            debug_assert!(row.len() <= cols, "a hanging wrap fits by construction");
             out.push(row);
             first = false;
         }
     }
+    out
+}
+
+/// Word-wrap `chars` with a hanging indent: the first piece gets the whole
+/// width, every later piece `cols - lead`, so the indent a continuation is
+/// drawn with never pushes its tail past the edge.
+///
+/// This used to wrap everything at `cols` and then TRUNCATE each indented
+/// continuation back to `cols` — up to `lead` characters of every wrapped
+/// detail line in `/tools`, `/log` and any indented prose in `/view` were
+/// silently gone, with no mark, and the row looked complete.
+pub(crate) fn hanging(chars: &[char], cols: usize, lead: usize) -> Vec<(usize, usize)> {
+    let mut out = crate::chatlayout::wrap_indices(chars, cols);
+    let Some(&(_, e)) = out.first() else {
+        return out;
+    };
+    if e >= chars.len() || lead == 0 {
+        return out;
+    }
+    // Past the first piece; a word break also consumed its space.
+    let next = e + usize::from(chars.get(e) == Some(&' '));
+    out.truncate(1);
+    if next >= chars.len() {
+        return out;
+    }
+    let rest = crate::chatlayout::wrap_indices(&chars[next..], cols.saturating_sub(lead).max(1));
+    out.extend(rest.into_iter().map(|(s, e)| (s + next, e + next)));
     out
 }
 

@@ -44,3 +44,33 @@ fn a_blank_line_is_one_empty_row_and_nothing_is_numbered() {
     let rows = text_of(&unnumbered("one\n\nthree", 40, ink, ink, &[]));
     assert_eq!(rows, vec!["one", "", "three"]);
 }
+
+/// Every character of an indented line survives the wrap. The continuation
+/// used to be wrapped at the full width and then cut back to it AFTER its
+/// indent was prepended — the last `indent` characters of each such row were
+/// dropped, and nothing marked the cut.
+#[test]
+fn an_indented_continuation_loses_nothing() {
+    let ink = (200, 200, 200);
+    let text = "        eight in: alpha bravo charlie delta echo foxtrot golf hotel india juliet";
+    let rows = text_of(&unnumbered(text, 24, ink, ink, &[]));
+    let mut seen = String::new();
+    for row in &rows {
+        assert!(row.chars().count() <= 24, "{row:?}");
+        seen.push_str(row.trim());
+        seen.push(' ');
+    }
+    for word in text.split_whitespace() {
+        assert!(seen.contains(word), "{word} was dropped: {rows:?}");
+    }
+    // …and a long unbreakable word is hard-cut into pieces that all arrive.
+    let rows = text_of(&unnumbered(
+        "    abcdefghijklmnopqrstuvwxyz0123456789",
+        12,
+        ink,
+        ink,
+        &[],
+    ));
+    let joined: String = rows.iter().map(|r| r.trim()).collect();
+    assert_eq!(joined, "abcdefghijklmnopqrstuvwxyz0123456789", "{rows:?}");
+}

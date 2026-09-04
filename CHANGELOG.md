@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.29
+
+**The plain viewer rung stops dropping the end of wrapped indented lines.**
+
+Prose and crew's own listings wrap on words with a hanging indent, so a
+detail line stays under its row. The wrap was computed at the full
+width, the indent was prepended afterwards, and the row was cut back to
+the width — up to `indent` characters of every wrapped continuation in
+`/tools`, `/log` and any indented paragraph in `/view` were silently
+gone. The row looked complete; nothing marked the cut; the comment on
+the line said so. Continuations wrap at `width − indent` now, and the
+test feeds a line through and checks every word arrived — it fails on
+the old code by the last word of each row.
+
 ## 0.21.28
 
 **The line-cap test, green again.**
