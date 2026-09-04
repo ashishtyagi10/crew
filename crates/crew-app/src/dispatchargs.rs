@@ -89,6 +89,10 @@ impl CrewApp {
             // whose arm was deleted would have looked the same. The
             // broker has always answered "unknown construct"; the app
             // owes the same courtesy.
+            if let Some(msg) = pane_only(other) {
+                self.set_status(msg);
+                return;
+            }
             let hint = crate::suggest::closest_command(other);
             self.set_status(match hint {
                 Some(c) => format!("unknown command /{other} — did you mean {c}?"),
@@ -96,4 +100,20 @@ impl CrewApp {
             });
         }
     }
+}
+
+/// The answer for a construct the AGENT PANE's composer offers but the input
+/// bar does not — `/doctor`, `/login`, `/export` and the rest of
+/// [`crate::chatcomplete::CONSTRUCTS`] that have no arm here.
+///
+/// Without this the fuzzy matcher had the floor, and `/doctor` was answered
+/// with "did you mean /doc?" — the document window, a different thing
+/// entirely. The command is real; it is standing in the wrong place that is
+/// the problem, and the status should say where the right place is.
+pub(crate) fn pane_only(typed: &str) -> Option<String> {
+    let name = typed.split_whitespace().next()?.to_lowercase();
+    let slash = format!("/{name}");
+    crate::chatcomplete::CONSTRUCTS
+        .contains(&slash.as_str())
+        .then(|| format!("{slash} runs in an agent pane — open one with /smith and type it there"))
 }

@@ -34,6 +34,43 @@ fn restart_is_a_migration_stub_pointing_at_update() {
     );
 }
 
+/// `/help` is what a new hand types first; it must open the overlay, not
+/// answer "unknown command" (nothing in the palette shares `hel`, so the
+/// fuzzy matcher had no guess either).
+#[test]
+fn help_opens_the_keys_overlay() {
+    let mut app = CrewApp::default();
+    assert!(!app.help_open);
+    let exit = app.run_slash_command("help");
+    assert!(!exit);
+    assert!(app.help_open, "/help must open the same overlay /keys does");
+}
+
+/// A construct the composer offers but the bar does not is answered with
+/// WHERE it runs — not with the fuzzy matcher's nearest bar command, which
+/// for `/doctor` was `/doc`, the document window.
+#[test]
+fn a_pane_only_construct_is_pointed_at_the_pane() {
+    let mut app = CrewApp::default();
+    for c in ["doctor", "login", "logout", "reload", "stop", "export"] {
+        app.run_slash_command(c);
+        let s = app.status.clone().expect("a status was set").0;
+        assert!(s.contains(&format!("/{c} runs in an agent pane")), "{s}");
+        assert!(!s.contains("unknown"), "{s}");
+        assert!(!s.contains("did you mean"), "{s}");
+    }
+    // With an argument, same answer; and a bar command is never redirected.
+    assert!(crate::dispatchargs::pane_only("doctor now").is_some());
+    assert!(
+        crate::dispatchargs::pane_only("model").is_some(),
+        "/model IS a construct"
+    );
+    app.run_slash_command("model");
+    let s = app.status.clone().expect("a status was set").0;
+    assert!(!s.contains("agent pane"), "/model has its own arm: {s}");
+    assert!(crate::dispatchargs::pane_only("wobblefish").is_none());
+}
+
 // --- /gamma ---------------------------------------------------------------
 
 // --- glass ----------------------------------------------------------------

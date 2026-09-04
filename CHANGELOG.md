@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.25
+
+**`/help` works from the input bar, and `/doctor` is not "did you mean /doc?".**
+
+`/help` is the first thing a new hand types, and the manual documents it —
+but the input bar had no arm for it, nothing in the palette shares `hel`,
+and the answer was a bare "unknown command /help". It opens the same
+overlay `/keys` does now. The other half is the constructs the agent
+pane's composer offers that the bar never did: `/doctor`, `/login`,
+`/logout`, `/reload`, `/stop`, `/export`. Each fell to the fuzzy matcher,
+and for `/doctor` that meant "did you mean /doc?" — the document window,
+a different thing entirely. They are real commands standing in the wrong
+place, and the status says where the right place is: "/doctor runs in an
+agent pane — open one with /smith and type it there". A bar command that
+is also a construct (`/model`, `/theme`) keeps its own arm, and the test
+says so.
+
 ## 0.21.24
 
 **`crew daemon next` — what happens next, on one line.**
