@@ -104,13 +104,6 @@ fn a_click_lands_on_the_tile_it_is_over() {
     assert_eq!(p.tile_at(1.0, 0.0, 40, 20), None);
 }
 
-#[test]
-fn a_pane_too_small_for_the_map_draws_nothing_rather_than_a_mess() {
-    let p = DiskPane::new(std::env::temp_dir());
-    assert!(p.cells(12, 20).is_empty());
-    assert!(p.paint(12, 20, 2.0).is_empty());
-}
-
 /// A treemap tile that cuts a name without saying so reads as a complete,
 /// wrong name: `vendor` in a small tile drew `vend`, which is not a
 /// directory anybody has.

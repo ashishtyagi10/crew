@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.32
+
+**A card too small to draw says so; so does an empty directory, and an empty file.**
+
+`/usage` below 24×6 and `/disk` below 20×6 returned no cells at all. The
+card kept its border and legend, so a short tile looked like a rendering
+fault — and the way out, zooming it, was the one thing the blank did not
+say. Both show `too small · Cmd+Z zooms` now, muted, clipped to the
+card. Two more blanks of the same family: `/disk` on a directory with
+nothing in it drew a header over nothing (a map that had not come, or
+one with nothing to show — the same picture), and the viewer on a
+zero-byte file was a titled empty box. `empty directory` and
+`(empty file)`, each with a test the blank fails.
+
 ## 0.21.31
 
 **Four cuts that never said so.**

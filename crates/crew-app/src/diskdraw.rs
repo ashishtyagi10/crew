@@ -15,7 +15,7 @@ impl DiskPane {
         let t = crew_theme::theme();
         let mut out = Vec::new();
         if cols < 20 || rows < 6 {
-            return out;
+            return crate::toosmall::note(cols, rows);
         }
         out.extend(section_header(
             "DISK",
@@ -59,6 +59,11 @@ impl DiskPane {
             // read is not a path, and the map under it already says where
             // you are by what is in it.
             None => put(&mut out, &reading, 1, 1, t.ink, cols),
+        }
+        // A scanned directory with nothing in it: the map has no tiles to
+        // draw, and a header over a blank read as a map that had not come.
+        if !self.scanning && self.children.is_empty() {
+            put(&mut out, "empty directory", 1, 3, t.text_muted, cols);
         }
 
         // A label per tile that has the room for one: name on the first row,

@@ -77,7 +77,7 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
     let t = crew_theme::theme();
     let mut out = Vec::new();
     if cols < 24 || rows < 6 {
-        return out;
+        return crate::toosmall::note(cols, rows);
     }
     let put = |out: &mut Vec<CellView>, s: &str, col: u16, row: u16, fg: (u8, u8, u8)| {
         for (i, ch) in s.chars().enumerate() {

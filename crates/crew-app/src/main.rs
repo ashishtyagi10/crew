@@ -388,6 +388,7 @@ mod toastnarrowshot_tests;
 #[cfg(test)]
 #[path = "toastshot_tests.rs"]
 mod toastshot_tests;
+mod toosmall;
 #[cfg(test)]
 #[path = "transientshot_tests.rs"]
 mod transientshot_tests;

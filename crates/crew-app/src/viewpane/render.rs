@@ -92,6 +92,13 @@ impl ViewPane {
             return Vec::new();
         }
         let page_bg = crew_theme::theme().page_bg;
+        // A zero-byte file drew nothing at all: a titled empty box, with no
+        // way to tell it from a load still in flight.
+        if let crate::viewpane::LoadState::Ready { loaded, .. } = &self.state {
+            if loaded.text.is_empty() && loaded.image.is_none() {
+                return crate::toosmall::row("(empty file)", cols);
+            }
+        }
         let cache = self.lines_for(cols);
         let top = self.scroll.min(cache.lines.len().saturating_sub(1));
         let mut out = Vec::new();

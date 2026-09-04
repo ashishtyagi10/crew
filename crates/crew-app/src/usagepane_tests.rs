@@ -86,14 +86,6 @@ fn the_labels_name_every_row_of_the_grid() {
 }
 
 #[test]
-fn a_narrow_or_short_pane_draws_nothing_rather_than_a_mess() {
-    let _g = crate::app::theme_test_guard();
-    assert!(cells(&one_hot(0, 0), 20, 40).is_empty());
-    assert!(paint(&one_hot(0, 0), 20, 40, 2.0).is_empty());
-    assert!(cells(&one_hot(0, 0), 60, 4).is_empty());
-}
-
-#[test]
 fn money_never_rounds_a_real_cost_to_nothing() {
     assert_eq!(money(0), "$0.00");
     assert_eq!(money(1_500_000), "$1.50");
