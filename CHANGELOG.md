@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.30
+
+**An error toast takes a second row instead of losing its cause.**
+
+Every `set_status_err` becomes a toast, and the card held one row of at
+most 46 columns — so a real failure read `error: failed to spawn shell:
+No such file or dir…` on any window, with the part that says why cut
+off. The full text only survived in `/log`. A card gives its text two
+rows now, wrapped on words, and is a row taller for it; the stack under
+it moves down by that row. Two rows is the limit — a toast is a glance
+— and a message longer than that clips on the second row, marked. The
+stack was also only ever shot at 900px, where a 46-column card never
+wraps; `toast-narrow` draws it at 360px, where the cards in this note
+came from.
+
 ## 0.21.29
 
 **The plain viewer rung stops dropping the end of wrapped indented lines.**

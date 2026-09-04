@@ -384,6 +384,8 @@ mod themereport;
 mod toast;
 mod toastcard;
 #[cfg(test)]
+mod toastnarrowshot_tests;
+#[cfg(test)]
 #[path = "toastshot_tests.rs"]
 mod toastshot_tests;
 #[cfg(test)]

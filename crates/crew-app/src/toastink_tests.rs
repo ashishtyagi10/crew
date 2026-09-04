@@ -50,7 +50,9 @@ fn long_text_clips_on_a_cell_boundary_with_ellipsis() {
     // The clip itself lives in `chatwidth::clip_w` (shared with every card
     // legend); here we assert the toast body actually goes through it.
     let mut t = Toasts::default();
-    t.push("x".repeat(MAX_TEXT_COLS + 20), "note", false, 1_000);
+    // Two rows' worth and more: the card gives it its two rows (see
+    // `toastcard::MAX_TEXT_ROWS`) and the second is the one that clips.
+    t.push("x".repeat(MAX_TEXT_COLS * 2 + 20), "note", false, 1_000);
     let mut scenes = Vec::new();
     let content = Rect {
         x: 0.0,
@@ -62,8 +64,12 @@ fn long_text_clips_on_a_cell_boundary_with_ellipsis() {
     let s = &scenes[0];
     assert_eq!(s.w, (MAX_TEXT_COLS + 4) as f32 * 8.0, "card caps its width");
     assert!(
-        s.cells.iter().any(|c| c.row == 1 && c.c == '…'),
+        s.cells.iter().any(|c| c.row == 2 && c.c == '…'),
         "over-wide toast text must end in an ellipsis"
+    );
+    assert!(
+        !s.cells.iter().any(|c| c.row == 1 && c.c == '…'),
+        "the first row is full, not cut"
     );
 }
 

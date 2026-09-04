@@ -26,7 +26,7 @@
 pub(crate) use crate::toastcard::*;
 use crew_render::PaneScene;
 
-use crate::chatwidth::{clip_w, str_w};
+use crate::chatwidth::str_w;
 use crate::ease::Timeline;
 use crate::layout::Rect;
 
@@ -244,12 +244,12 @@ pub(crate) fn push_toasts(
     let max_cols = (((content.w - 2.0 * gap) / cw).floor() as usize).min(MAX_TEXT_COLS + 4);
     let mut y = content.y + gap;
     for (i, t) in toasts.items.iter().enumerate() {
-        let text = clip_w(&t.text, max_cols.saturating_sub(4));
-        let cols = (str_w(&text) + 4).min(max_cols) as u16;
+        let lines = crate::toastcard::fit(&t.text, max_cols.saturating_sub(4));
+        let cols = (lines.iter().map(|l| str_w(l)).max().unwrap_or(0) + 4).min(max_cols) as u16;
         if cols < 6 {
             continue;
         }
-        let (w, h) = (f32::from(cols) * cw, 3.0 * ch);
+        let (w, h) = (f32::from(cols) * cw, (lines.len() + 2) as f32 * ch);
         let age = t.age(now);
         // Enter from beyond the right edge, exit the same way. The exit skips
         // at Motion off (the slide Timeline is zero-length there too).
@@ -272,7 +272,7 @@ pub(crate) fn push_toasts(
         scenes.push(PaneScene {
             cells: card_cells(
                 &CardText {
-                    text: &text,
+                    text: &t.text,
                     legend: t.legend,
                     repeats: t.repeats,
                     alert: t.alert,
