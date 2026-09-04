@@ -150,17 +150,6 @@ impl CrewApp {
         })
     }
 
-    /// Resolve the orchestrator plugin command path.
-    pub(crate) fn orchestrator_plugin_cmd() -> String {
-        std::env::var("CREW_ORCHESTRATOR_PLUGIN").unwrap_or_else(|_| {
-            std::env::current_exe()
-                .ok()
-                .and_then(|p| p.parent().map(|d| d.join("crew-orchestrator-plugin")))
-                .map(|p| p.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "crew-orchestrator-plugin".to_string())
-        })
-    }
-
     /// Resolve the `/crew` multi-agent broker command. Defaults to **this**
     /// binary (`crew`), which the pane runs with `--broker-plugin` — so `/crew`
     /// works wherever Crew is installed, with no separate binary to ship. Set

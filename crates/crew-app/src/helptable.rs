@@ -8,6 +8,7 @@
 /// `(keys, description)` rows shown in the overlay.
 pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ("Ctrl+Tab / Ctrl+Shift+Tab", "Next / previous pane"),
+    ("Cmd+] / Cmd+[", "Next / previous pane, in index order"),
     ("Cmd+1 … 9", "Jump to pane N"),
     ("Cmd+A / Cmd+.", "Jump to next active / waiting pane"),
     ("Cmd+{ / Cmd+}", "Move pane left / right"),
@@ -22,6 +23,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+I / Cmd+T", "Focus the input bar / new shell pane"),
     ("Cmd+F", "Find: in a chat transcript, or /find in the bar"),
     ("Cmd+, / Cmd+J", "Settings / chat pane"),
+    ("Cmd+O", "Open agent smith (same as /smith)"),
     ("Cmd+G / Cmd+Z", "Toggle sidebar / zoom focused pane"),
     ("Cmd+S", "Broadcast to all panes \u{b7} save a focused settings form"),
     (
@@ -64,6 +66,14 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ),
     ("Cmd+/", "These keys"),
     ("/ (in input)", "Command palette"),
+    (
+        "Tab / \u{2192} (in input)",
+        "Accept the ghost text \u{b7} fill the highlighted palette row",
+    ),
+    (
+        "\u{2191} / \u{2193} (in input)",
+        "Recall a line you typed before, filtered by what is in the bar",
+    ),
     (
         "! · * · ? · ?? (in input)",
         "New pane / broadcast / ask ai a command / explain this pane",

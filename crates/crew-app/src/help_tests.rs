@@ -131,10 +131,25 @@ fn tiny_renders_nothing() {
     assert!(help_cells(8, 3, 0, "").is_empty());
 }
 
-/// Chords the manual carries that the overlay deliberately does not: pane
-/// cycling has a documented second spelling, and the overlay lists the
-/// primary one. Declared, so a real omission stays visible.
-const OVERLAY_OMITS: &[&str] = &["Cmd+]", "Cmd+["];
+/// The bar's own keys, and the chord that was in neither list. `Cmd+O`
+/// opened a pane (a dead one, on a binary nothing builds) and was documented
+/// nowhere; `Cmd+]` / `Cmd+[` were in the manual and allowlisted OUT of the
+/// overlay; the bar's Tab and history recall were listed only as composer
+/// keys, so `/keys` implied they did nothing in the bar.
+#[test]
+fn the_bar_keys_and_the_lost_chords_are_listed() {
+    for needle in [
+        "Cmd+O",
+        "Cmd+] / Cmd+[",
+        "Tab / \u{2192} (in input)",
+        "\u{2191} / \u{2193} (in input)",
+    ] {
+        assert!(
+            BINDINGS.iter().any(|(k, _)| *k == needle),
+            "/keys lacks `{needle}`"
+        );
+    }
+}
 
 /// The manual says `/keys` shows "this list in-app". It did not:
 /// **Ctrl+Shift+L** and **Ctrl+Shift+M** were documented and missing from
@@ -169,7 +184,7 @@ fn the_overlay_and_the_manual_list_the_same_chords() {
             .chain(CHAT_BINDINGS)
             .any(|(k, _)| k.contains(&chord));
         assert!(
-            listed || OVERLAY_OMITS.contains(&chord.as_str()),
+            listed,
             "docs/CREW.md documents `{chord}`, which /keys never shows"
         );
     }

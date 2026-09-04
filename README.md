@@ -221,6 +221,7 @@ the arrow and page keys, and any other key closes it.
 | New shell pane | **Cmd+T** |
 | Reopen last session's panes (shells, Far, /crew) | `/restore` |
 | Settings / chat pane | **Cmd+,** / **Cmd+J** |
+| Open agent smith | **Cmd+O** (same as `/smith`) |
 | Toggle sidebar | **Cmd+G** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — type to filter, ↑↓ to scroll, Esc to close |
 | Zoom focused pane | **Cmd+Z** (or double-click its top border) |

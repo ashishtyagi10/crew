@@ -359,7 +359,7 @@ a letter, a space or Backspace), and the filter is forgotten on the way out.
 
 | Action | Keys |
 |--------|------|
-| Next / previous pane | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also Cmd+] / Cmd+[) |
+| Next / previous pane | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also **Cmd+]** / **Cmd+[**, in index order) |
 | Jump to pane N | **Cmd+1 … 9** |
 | Jump to next active pane | **Cmd+A** |
 | Jump to next pane waiting on you | **Cmd+.** |
@@ -371,6 +371,8 @@ a letter, a space or Backspace), and the filter is forgotten on the way out.
 | Find: in a chat transcript, or `/find` in the bar | **Cmd+F** |
 | New shell pane | **Cmd+T** |
 | Settings / chat pane | **Cmd+,** / **Cmd+J** |
+| Open agent smith | **Cmd+O** (same as `/smith`) |
+| Accept the ghost text, or fill the highlighted palette row | **Tab** / **→** (in the input bar) |
 | Toggle sidebar | **Cmd+G** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — type to filter, ↑↓ to scroll, Esc to close |
 | Zoom focused pane | **Cmd+Z** (or double-click its top border) |
@@ -2524,8 +2526,8 @@ process, and each resolves its command the same way: an environment override
 first, then a sibling of the running executable. `CREW_BROKER_PLUGIN` replaces
 the `/smith` broker — which by default is **this** binary re-invoked with
 `--broker-plugin`, so `/smith` works wherever Crew is installed with no second
-binary to ship. `CREW_CHAT_PLUGIN` and `CREW_ORCHESTRATOR_PLUGIN` do the same
-for the echo and orchestrator plugins. Point one at a debug build to run a
+binary to ship. `CREW_CHAT_PLUGIN` does the same
+for the echo plugin (Cmd+J). Point one at a debug build to run a
 pane against uncommitted work while the rest of the app stays on the installed
 release. `CREW_PANE` names the sending pane in an inter-pane `crew ask`
 message (default `an agent`); Crew sets it for panes it spawns.

@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.27
+
+**`/keys` lists the keys that were lost, and Cmd+O opens a live pane.**
+
+Cmd+O spawned a chat pane on a `crew-orchestrator-plugin` binary that
+nothing builds any more — a chord that opened a dead pane, in no list
+and in no manual, exactly the class of drift the Ctrl+O test was written
+to catch. It opens agent smith now (the same pane as `/smith`), and the
+overlay and both manuals say so. Two more rows the overlay owed: `Cmd+]`
+/ `Cmd+[` were documented and then allowlisted OUT of `/keys` by the very
+test that compares the two lists (the allowlist is gone); and the bar's
+own Tab and history recall were listed only as composer keys, so the
+overlay implied they did nothing in the bar. The manual's shortcut table
+gained the same rows, and the parity test now has no exceptions.
+
 ## 0.21.26
 
 **The command palette says "no match" instead of vanishing.**

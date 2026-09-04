@@ -97,10 +97,10 @@ impl CrewApp {
                 let cmd = Self::echo_plugin_cmd();
                 self.spawn_chat_pane(&cmd);
             }
-            "o" => {
-                let cmd = Self::orchestrator_plugin_cmd();
-                self.spawn_chat_pane(&cmd);
-            }
+            // Cmd+O: agent smith. This used to spawn a chat pane on a
+            // `crew-orchestrator-plugin` binary nothing builds any more — a
+            // chord that opened a dead pane, listed nowhere.
+            "o" => self.spawn_crew_pane(),
             "w" => return self.close_pane(self.focused),
             // Cmd+F: find-in-conversation on a focused chat pane (no-op
             // elsewhere, so the chord stays free for other pane kinds later).
