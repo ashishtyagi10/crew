@@ -107,6 +107,7 @@ mod cmddefs;
 mod cmdhead;
 mod cmdkeys;
 mod cmdmenu;
+mod cmdnote;
 mod cmdrecents;
 mod cmdrow;
 mod cmdspan;

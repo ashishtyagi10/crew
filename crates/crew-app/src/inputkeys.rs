@@ -41,8 +41,11 @@ impl InputBar {
             }
         }
 
-        let menu = crate::suggest::menu_items_in(&self.text, &self.cwd);
-        let menu_open = self.focused && !menu.is_empty();
+        let menu = crate::cmdnote::rows(&self.text, &self.cwd);
+        // A note saying nothing matched is drawn, but it is not a row you
+        // can step to, fill or run — the keys fall through to history, the
+        // ghost and dispatch.
+        let menu_open = self.focused && crate::cmdnote::selectable(&menu);
 
         // Command-palette navigation (Up/Down) when it's open.
         if menu_open {

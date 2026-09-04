@@ -89,7 +89,8 @@ pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16)
         .highlight_style(Style::new().add_modifier(Modifier::BOLD))
         .highlight_symbol("› ");
     let mut state = ListState::default();
-    state.select(Some(sel.min(matches.len() - 1)));
+    // A list of nothing but notes and titles has no row to mark.
+    state.select(crate::cmdnote::selectable(matches).then(|| sel.min(matches.len() - 1)));
     StatefulWidget::render(list, buf.area, &mut buf, &mut state);
     crate::tui::to_cells(&buf)
         .into_iter()

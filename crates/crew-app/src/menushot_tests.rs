@@ -93,6 +93,21 @@ fn menu_shot_width_sweep() {
     }
 }
 
+/// The palette when nothing matches: one dim note, no selection marker on
+/// it, and a card that is still a card at a tile's width.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn menu_shot_no_match_note() {
+    let _g = crate::app::theme_test_guard();
+    let items = crate::cmdnote::rows("/xyzzy", std::path::Path::new(""));
+    assert_eq!(items.len(), 1);
+    let Some(px) = menu_shot("menu-nomatch", &items, 0, 380) else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    assert!(crate::shotgpu_tests::ink(&px) > 300, "the note drew");
+}
+
 /// The same card on a light page and on a tube. Every description in every
 /// picker is drawn in one colour, so a colour that only reads on a dark page
 /// takes all five callers down together.

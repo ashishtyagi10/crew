@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.26
+
+**The command palette says "no match" instead of vanishing.**
+
+Type `/xyz` and the palette disappeared. A card that vanishes reads as a
+key that did nothing, and it is indistinguishable from a rendering fault
+— the `/keys` overlay had stated that rule and answered with one dim note
+since it got a filter; the two palettes above the input bar never did.
+Now the command list says `no command matches "/xyz" · /help`, and a
+closed-set picker whose values the argument filtered to nothing says
+`no /theme value matches "wobble"`. A freeform argument (`/run cargo …`)
+has no list to be empty and gets no note. The note is a title, not a
+choice: nothing marks it, Up/Down still recall history past it, Tab still
+takes the ghost, and Enter still hands the line to dispatch, where "did
+you mean" lives. Shot at a tile's width (`menu-nomatch`), where the first
+wording clipped its own advice.
+
 ## 0.21.25
 
 **`/help` works from the input bar, and `/doctor` is not "did you mean /doc?".**
