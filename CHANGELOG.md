@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.28
+
+**The line-cap test, green again.**
+
+0.21.27 was tagged with one test red: `help_tests.rs` is on the line-cap
+debt list and the new `/keys` test pushed it from 316 to 331 lines. The
+release script honoured the exit code of `tail`, not the gate's — the
+same mistake as 0.21.1, in a new costume. The test lives in its own file
+now, the gate runs unpiped, and nothing the app does changed.
+
 ## 0.21.27
 
 **`/keys` lists the keys that were lost, and Cmd+O opens a live pane.**

@@ -175,5 +175,9 @@ pub fn help_cells(cols: u16, rows: u16, scroll: usize, needle: &str) -> Vec<Cell
 mod tests;
 
 #[cfg(test)]
+#[path = "helplost_tests.rs"]
+mod lost_tests;
+
+#[cfg(test)]
 #[path = "helpparity_tests.rs"]
 mod parity;
