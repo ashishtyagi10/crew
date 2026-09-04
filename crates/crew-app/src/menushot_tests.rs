@@ -39,7 +39,7 @@ fn commands() -> Vec<MenuItem> {
 
 /// The model picker: provider headers, a row the stack cannot serve, and a
 /// row blocked on a key. Three shapes only this caller produces.
-fn models() -> Vec<MenuItem> {
+pub(crate) fn models() -> Vec<MenuItem> {
     let header = |l: &str| MenuItem {
         label: l.into(),
         header: true,
@@ -61,7 +61,7 @@ fn models() -> Vec<MenuItem> {
     ]
 }
 
-fn menu_shot(name: &str, items: &[MenuItem], sel: usize, w: u32) -> Option<Vec<u8>> {
+pub(crate) fn menu_shot(name: &str, items: &[MenuItem], sel: usize, w: u32) -> Option<Vec<u8>> {
     let rows = crate::cmdmenu::menu_rows(items.len());
     let h = u32::from(rows) * 22 + 24;
     // The shot's own card IS the popup's fieldset frame — `menu_card` is that

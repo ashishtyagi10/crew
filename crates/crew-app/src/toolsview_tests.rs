@@ -76,6 +76,16 @@ fn a_note_is_shown_under_its_row() {
     r.note = "exit 127: command not found".into();
     let out = listing(&[r], 0, "", NOW);
     assert!(out.contains("exit 127"), "{out}");
+    // A long note is ONE line, indented, for the viewer to wrap at the
+    // pane's width — it used to be pre-wrapped to thirty-four columns and
+    // read that narrow in a pane of a hundred.
+    let mut r = rec(1_000, "sys:run", "irreversible", "allow", "failed");
+    r.note = "nobody answered the approval in five whole minutes, and the gate gave up".into();
+    let out = listing(&[r], 0, "", NOW);
+    let notes: Vec<&str> = out.lines().filter(|l| l.contains("nobody")).collect();
+    assert_eq!(notes.len(), 1, "{out}");
+    assert!(notes[0].ends_with("gave up"), "{out}");
+    assert!(notes[0].starts_with(&" ".repeat(DETAIL_INDENT)), "{out}");
 }
 
 /// A history with a hole in it that SAYS SO is worth more than one that

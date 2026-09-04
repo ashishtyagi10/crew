@@ -75,13 +75,20 @@ fn every_row_fits_a_tiled_viewer() {
         })],
         &|_| false,
     );
-    for line in out.lines().skip(1) {
+    // The rows built to a column (name, tool + tier) fit the tile; the
+    // prose is ONE line each, for the viewer to wrap at its own width.
+    for line in out.lines().skip(1).filter(|l| !l.starts_with("  ")) {
         assert!(
             line.chars().count() <= ROW_W,
             "{} cols: {line:?}",
             line.chars().count()
         );
     }
+    let desc = weather(Auth::None).description;
+    assert!(
+        out.lines().any(|l| l.trim() == desc.trim()),
+        "the description is one line, not pre-wrapped: {out}"
+    );
 }
 
 #[test]

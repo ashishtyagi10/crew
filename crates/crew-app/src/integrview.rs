@@ -17,6 +17,7 @@ use crew_plugin::integration::{Auth, Integration};
 pub(crate) mod tests;
 
 /// Columns a row may take — the tile width `/tools` fits to.
+#[cfg(test)]
 const ROW_W: usize = crate::toolsrow::ROW_W;
 /// Columns a tool name takes, so the tiers line up.
 const TOOL_W: usize = 22;
@@ -53,16 +54,14 @@ pub(crate) fn listing(ints: &[Integration], set: &dyn Fn(&str) -> bool) -> Strin
     for i in ints {
         out.push_str(&i.name);
         out.push('\n');
-        // The credential, then the description: prose, wrapped on words to
-        // the tile, under the name they belong to.
-        let mut prose = vec![credential(i, set)];
+        // The credential, then the description: prose, one line each,
+        // under the name they belong to. NOT wrapped here: the viewer's
+        // plain rung wraps prose on words with a hanging indent at the
+        // pane's real width, and a line pre-wrapped to the tile stayed
+        // forty-seven columns wide in a pane of a hundred and twenty.
+        out.push_str(&format!("  {}\n", credential(i, set)));
         if !i.description.trim().is_empty() {
-            prose.push(i.description.trim().to_string());
-        }
-        for p in prose {
-            for line in crate::toolsrow::wrap(&p, ROW_W - 2) {
-                out.push_str(&format!("  {line}\n"));
-            }
+            out.push_str(&format!("  {}\n", i.description.trim()));
         }
         for t in &i.tools {
             out.push_str(&format!(

@@ -7,11 +7,13 @@ use crate::toolshot_tests::{intact, tools_shot, NOW};
 
 /// The other listing crew writes itself: `/watching`, on the same rung. A
 /// task is free text and a tile is narrow, so its rows may wrap — on words.
-#[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
-fn watching_shot_standing_and_empty() {
+/// Three standing intents and one firing history, for this shot and the
+/// width sweep in `sweepshot_tests`.
+pub(crate) fn fixture() -> (
+    Vec<crate::daemon::intent::Intent>,
+    std::collections::BTreeMap<String, crate::daemon::intenthistory::Fired>,
+) {
     use crate::daemon::intent::{Intent, Repeat};
-    let _g = crate::app::theme_test_guard();
     let intent = |id: &str, text: &str, to: &str, fire_in: u64, repeat: Repeat| Intent {
         id: id.into(),
         text: text.into(),
@@ -53,6 +55,14 @@ fn watching_shot_standing_and_empty() {
             missed: 3,
         },
     );
+    (standing, history)
+}
+
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn watching_shot_standing_and_empty() {
+    let _g = crate::app::theme_test_guard();
+    let (standing, history) = fixture();
     for (name, text, w) in [
         (
             "watching-tile",

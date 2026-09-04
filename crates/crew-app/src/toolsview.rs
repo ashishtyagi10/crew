@@ -9,7 +9,7 @@
 //! Rendered to a temp file and opened in the file viewer, the way `/blocks`
 //! and `/out` are — a history is something you scroll and search, not
 //! something to paste into the conversation it is a history of.
-use crate::toolsrow::{ago, detail, fit, mark, wrap, AGO_W, DETAIL_INDENT, ROW_W, TOOL_W};
+use crate::toolsrow::{ago, detail, fit, mark, AGO_W, DETAIL_INDENT, TOOL_W};
 use crew_plugin::ledger::{Ledger, Record};
 
 #[cfg(test)]
@@ -102,10 +102,11 @@ pub(crate) fn listing(records: &[Record], bad: usize, filter: &str, now_ms: u64)
             fit(&r.tool, TOOL_W),
             r.tier,
         ));
+        // One line, however long: the plain rung wraps it on words under
+        // its own indent at the pane's width. Pre-wrapped to the tile, a
+        // note read thirty-four columns wide in a pane of a hundred.
         if let Some(d) = detail(r) {
-            for line in wrap(&d, ROW_W - DETAIL_INDENT) {
-                out.push_str(&format!("{:DETAIL_INDENT$}{line}\n", ""));
-            }
+            out.push_str(&format!("{:DETAIL_INDENT$}{d}\n", ""));
         }
     }
     if hits.len() > shown {

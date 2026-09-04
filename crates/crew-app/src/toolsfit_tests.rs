@@ -23,7 +23,13 @@ fn no_row_is_wider_than_a_tiled_viewer() {
     );
     worst.requester = "channel:a-fairly-long-address".into();
     worst.note = "nobody answered in five minutes".into();
-    for line in listing(&[worst], 0, "", NOW).lines() {
+    // The detail line is prose: one line for the viewer to wrap on words
+    // under its indent, at the pane's width. The ROW is what must fit.
+    let indent = " ".repeat(DETAIL_INDENT);
+    for line in listing(&[worst], 0, "", NOW)
+        .lines()
+        .filter(|l| !l.starts_with(&indent))
+    {
         assert!(
             line.chars().count() <= 47,
             "{} cols: {line:?}",

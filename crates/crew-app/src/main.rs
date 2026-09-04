@@ -372,6 +372,8 @@ mod swarmpane;
 #[path = "swarmshot_tests.rs"]
 mod swarmshot_tests;
 mod swatch;
+#[cfg(test)]
+mod sweepshot_tests;
 mod sysdials;
 mod termimg;
 #[cfg(test)]

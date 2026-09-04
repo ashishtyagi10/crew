@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.33
+
+**Width sweeps: the model picker, `/usage` and the two listings at a tile and at a window.**
+
+Four surfaces were only ever drawn at one width. The model picker
+(640px), `/usage` (760px), and `/watching` and `/integrations`, which
+tied each width to a different content case — the wrapped detail rows
+were never seen wide and the empty hints never in the tile they appear
+in. A layout that branches on width has not been seen until each branch
+has. `sweepshot_tests` draws all four at 380–420px and at 1000–1100px
+and dumps the rows. What it showed: in a 120-column pane, an
+integration's description and a tool call's note were still wrapped at
+47 columns, because the listing pre-wrapped them to the tile. They are
+one line each now; the viewer's plain rung wraps prose on words under
+its own indent at the pane's real width (fixed to keep every character
+in 0.21.29), so a tile reads as before and a wide pane reads wide.
+
 ## 0.21.32
 
 **A card too small to draw says so; so does an empty directory, and an empty file.**
