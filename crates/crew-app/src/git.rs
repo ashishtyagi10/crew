@@ -191,7 +191,7 @@ pub fn git_cells(info: &GitInfo, cols: u16) -> Vec<CellView> {
 /// Draw `s` at `row`, indented to align under the section legend, clipped to `cols`.
 fn put(out: &mut Vec<CellView>, s: &str, row: u16, cols: u16, fg: (u8, u8, u8), bg: (u8, u8, u8)) {
     let max = cols.saturating_sub(4) as usize;
-    for (i, c) in s.chars().take(max).enumerate() {
+    for (i, c) in crate::chatwidth::clip_w(s, max).chars().enumerate() {
         out.push(CellView {
             col: 3 + i as u16,
             row,

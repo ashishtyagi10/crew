@@ -145,3 +145,15 @@ fn the_refinement_comes_with_the_split() {
         "everything is one colour — nothing was refined"
     );
 }
+
+/// A header wider than the pane is cut and SAYS so; it used to stop
+/// mid-path in silence while the body rows beside it fitted.
+#[test]
+fn a_wide_header_marks_its_cut() {
+    let _g = crate::app::theme_test_guard();
+    let diff = "diff --git a/some/deeply/nested/directory/file.rs b/some/deeply/nested/directory/file.rs\n@@ -1,1 +1,1 @@\n-a\n+b\n";
+    let rows = lines(diff, MIN_COLS).expect("wide enough").0;
+    let head = text_of(&rows[0]);
+    assert_eq!(head.chars().count(), MIN_COLS, "{head:?}");
+    assert!(head.ends_with('\u{2026}'), "{head:?}");
+}

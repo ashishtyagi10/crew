@@ -160,6 +160,9 @@ pub fn help_cells(cols: u16, rows: u16, scroll: usize, needle: &str) -> Vec<Cell
         (true, false) => " \u{2191} for the rest \u{b7} type to filter \u{b7} esc ",
         _ => " type to filter \u{b7} esc to close ",
     };
+    // A narrow overlay cuts the hint, marked, rather than starting it at
+    // column zero and dropping whatever fell off the right edge.
+    let hint = crate::chatwidth::clip_w(hint, usize::from(cols.saturating_sub(2)));
     let hint_col = cols.saturating_sub(hint.chars().count() as u16 + 2);
     for (i, ch) in hint.chars().enumerate() {
         let col = hint_col + i as u16;

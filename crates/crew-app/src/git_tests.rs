@@ -109,3 +109,20 @@ fn parse_status_ahead_only() {
     let info = parse_status("## main...up [ahead 3]\n").unwrap();
     assert_eq!((info.ahead, info.behind), (3, 0));
 }
+
+/// A branch wider than the card is cut, and the cut is marked — the row
+/// used to just stop mid-word, while the badge next door ellipsized.
+#[test]
+fn a_long_branch_is_cut_with_a_mark() {
+    let _g = crate::app::theme_test_guard();
+    let info = GitInfo {
+        branch: "feature/a-branch-name-that-runs-well-past-the-card".into(),
+        changed: 0,
+        ahead: 0,
+        behind: 0,
+    };
+    let cells = git_cells(&info, 24);
+    let row: String = cells.iter().filter(|c| c.row == 1).map(|c| c.c).collect();
+    assert!(row.ends_with('\u{2026}'), "{row:?}");
+    assert!(row.chars().count() <= 20, "{row:?}");
+}

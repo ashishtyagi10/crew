@@ -61,8 +61,11 @@ fn summary(when: &str, msg: &str) -> String {
     // Keep it to a single line: this is flashed in the status bar, and a
     // multi-line panic message (assertion failures are often several) would
     // otherwise smear across the chrome.
+    // Cut at 120, and MARKED: an assertion message runs past that as a
+    // rule, and the one line saying why crew died used to end mid-sentence
+    // looking complete.
     let first = msg.lines().next().unwrap_or(msg).trim();
-    let first: String = first.chars().take(120).collect();
+    let first = crate::chatwidth::clip_w(first, 120);
     format!("{when} — {first}")
 }
 

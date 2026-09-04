@@ -35,6 +35,9 @@ fn summary_is_one_line_and_bounded() {
         "unbounded summary: {} chars",
         s.chars().count()
     );
+    // …and the cut is marked: the one line saying why crew died used to
+    // end mid-sentence looking complete.
+    assert!(s.ends_with('\u{2026}'), "{s}");
 }
 
 #[test]

@@ -21,3 +21,19 @@ fn the_bar_keys_and_the_lost_chords_are_listed() {
         );
     }
 }
+
+/// The bottom hint on a narrow overlay is cut with a mark, not started at
+/// column zero with its tail dropped off the right edge.
+#[test]
+fn the_hint_marks_its_cut_on_a_narrow_overlay() {
+    let _g = crate::app::theme_test_guard();
+    let cells = crate::help::help_cells(30, 12, 0, "");
+    let last = cells.iter().map(|c| c.row).max().expect("rows");
+    let hint: String = cells
+        .iter()
+        .filter(|c| c.row == last)
+        .map(|c| c.c)
+        .collect();
+    assert!(hint.contains('\u{2026}'), "{hint:?}");
+    assert!(cells.iter().all(|c| c.col < 30), "nothing past the edge");
+}

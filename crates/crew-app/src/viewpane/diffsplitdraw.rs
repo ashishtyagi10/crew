@@ -147,7 +147,14 @@ pub(crate) fn lines(text: &str, cols: usize) -> Option<(Vec<CardLine>, Vec<Mark>
                     .zip(&paint)
                     .map(|(c, (fg, bold))| plain(c, *fg, *bold))
                     .collect();
-                row.truncate(cols);
+                // A header wider than the pane is cut, and says so — the
+                // body rows go through `side_rows`, which fits; this one
+                // used to stop mid-path in silence.
+                if row.len() > cols && cols > 0 {
+                    row.truncate(cols - 1);
+                    let fg = paint.last().map(|p| p.0).unwrap_or_default();
+                    row.push(plain('\u{2026}', fg, false));
+                }
                 out.push(row);
                 src += 1;
             }

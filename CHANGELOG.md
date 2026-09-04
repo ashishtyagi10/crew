@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.31
+
+**Four cuts that never said so.**
+
+Every place crew shortens text is supposed to mark the cut — a sliced
+number reads as a different number, and a sliced sentence reads as a
+whole one. Four places did not, and each was found by reading, not by
+a picture: the sidebar GIT card cut a long branch mid-word while the
+badge beside it ellipsized; a `diff --git` header in a split view
+stopped mid-path while the body rows beside it fitted; the crash notice
+on the next launch cut the one line saying why crew died at 120
+characters, and an assertion message runs past that as a rule; and the
+`/keys` overlay's bottom hint, on a narrow overlay, started at column
+zero and dropped its tail off the right edge. All four go through the
+one clip now, and each has a test the old code fails.
+
 ## 0.21.30
 
 **An error toast takes a second row instead of losing its cause.**
