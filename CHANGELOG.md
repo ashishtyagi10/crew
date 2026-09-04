@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.35
+
+**`/integrations` holds a tool name whole when a tile can.**
+
+The tool column was a fixed 22, so `subscribe_to_weather_alerts` read
+`subscribe_t…her_alerts` in a pane with forty columns to spare — the
+width sweep in 0.21.33 showed it. The column is the longest name across
+every loaded integration now, between 22 and what a tile holds beside
+`irreversible` (32); a name past that is still cut in the middle and
+marked, with the row still no wider than the tile, and the test checks
+both ends.
+
 ## 0.21.34
 
 **The empty hints of `/watching` and `/integrations` are paragraphs, not hand-broken lines.**

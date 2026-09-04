@@ -57,13 +57,29 @@ fn every_tool_is_listed_with_the_tier_the_gate_will_use() {
         "{}",
         row("unsubscribe")
     );
+    // The fixture's 34-column name is more than a tile holds beside
+    // `irreversible`: cut in the middle, marked, the row no wider than
+    // the tile.
     let cut = row("subscribe_t");
-    assert!(cut.ends_with(" irreversible"), "{cut}");
     assert!(
-        cut.contains('\u{2026}'),
-        "a long name is cut, not wrapped: {cut}"
+        cut.contains('\u{2026}') && cut.ends_with(" irreversible"),
+        "{cut}"
     );
+    assert!(cut.chars().count() <= ROW_W, "{cut}");
     assert!(out.contains("1 integration(s) \u{b7} 3 tool(s)"), "{out}");
+    // A name a tile CAN hold is held whole: the column widens to it. At
+    // a fixed 22 this one was `subscribe_t…her_alerts`.
+    let mut fits = weather(Auth::None);
+    fits.tools[1].name = "subscribe_to_weather_alerts".into();
+    let out = listing(&[fits], &|_| false);
+    let whole = out
+        .lines()
+        .find(|l| l.contains("subscribe_to_weather_alerts"))
+        .unwrap();
+    assert!(
+        whole.ends_with(" irreversible") && !whole.contains('\u{2026}'),
+        "{whole}"
+    );
 }
 
 #[test]

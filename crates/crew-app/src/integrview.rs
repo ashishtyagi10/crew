@@ -19,8 +19,25 @@ pub(crate) mod tests;
 /// Columns a row may take — the tile width `/tools` fits to.
 #[cfg(test)]
 const ROW_W: usize = crate::toolsrow::ROW_W;
-/// Columns a tool name takes, so the tiers line up.
-const TOOL_W: usize = 22;
+/// The narrowest the tool column goes, so short names still line up.
+const TOOL_W_MIN: usize = 22;
+
+/// The widest it goes: what a tile holds beside the widest tier —
+/// two of indent, the name, a space and `irreversible`.
+const TOOL_W_MAX: usize = crate::toolsrow::ROW_W - 2 - 1 - 12;
+
+/// Columns the tool column takes: the longest name across every
+/// integration, so nothing a tile can hold whole is cut in the middle.
+/// `subscribe_to_weather_alerts` was `subscribe_t…her_alerts` at a fixed
+/// 22, in a pane with forty columns to spare.
+fn tool_col(ints: &[Integration]) -> usize {
+    ints.iter()
+        .flat_map(|i| &i.tools)
+        .map(|t| crate::chatwidth::str_w(&t.name))
+        .max()
+        .unwrap_or(0)
+        .clamp(TOOL_W_MIN, TOOL_W_MAX)
+}
 
 /// The credential an integration names, and whether it is set — `set` is
 /// asked rather than the environment, so a test can say either.
@@ -49,6 +66,7 @@ pub(crate) fn listing(ints: &[Integration], set: &dyn Fn(&str) -> bool) -> Strin
         return out;
     }
     let tools: usize = ints.iter().map(|i| i.tools.len()).sum();
+    let w = tool_col(ints);
     out.push_str(&format!(
         "{} integration(s) \u{b7} {tools} tool(s) \u{b7} re-read per call\n\n",
         ints.len()
@@ -67,8 +85,8 @@ pub(crate) fn listing(ints: &[Integration], set: &dyn Fn(&str) -> bool) -> Strin
         }
         for t in &i.tools {
             out.push_str(&format!(
-                "  {:<TOOL_W$} {}\n",
-                crate::toolsrow::fit(&t.name, TOOL_W),
+                "  {:<w$} {}\n",
+                crate::toolsrow::fit(&t.name, w),
                 i.tier_of(&t.name).label()
             ));
         }
