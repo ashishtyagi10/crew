@@ -40,9 +40,11 @@ fn credential(i: &Integration, set: &dyn Fn(&str) -> bool) -> String {
 pub(crate) fn listing(ints: &[Integration], set: &dyn Fn(&str) -> bool) -> String {
     let mut out = String::from("# integrations \u{b7} what crew can reach\n");
     if ints.is_empty() {
+        // One paragraph, for the viewer to wrap at its own width (see
+        // `watchview` for why).
         out.push_str(
-            "None. Drop a manifest in ~/.config/crew/integrations/\n(or a project's \
-             .crew/integrations/) and /reload;\nexamples/integrations/weather.json is one.\n",
+            "None. Drop a manifest in ~/.config/crew/integrations/ (or a project's \
+             .crew/integrations/) and /reload; examples/integrations/weather.json is one.\n",
         );
         return out;
     }

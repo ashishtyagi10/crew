@@ -35,8 +35,11 @@ pub(crate) fn listing(
 ) -> String {
     let mut out = String::from("# watching \u{b7} what crew is waiting to do\n");
     if intents.is_empty() {
+        // A headline and ONE paragraph: the viewer wraps prose on words at
+        // the pane's width, and a hint broken by hand at the tile's read as
+        // a ragged poem in a wide pane.
         out.push_str(
-            "Nothing standing.\n`crew daemon at \"tomorrow 9am the forecast\"` sets one,\n\
+            "Nothing standing.\n`crew daemon at \"tomorrow 9am the forecast\"` sets one, \
              and so does \u{201c}remind me \u{2026}\u{201d} said over a channel.\n",
         );
         return out;

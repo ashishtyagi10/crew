@@ -21,6 +21,15 @@ fn intent(id: &str, text: &str, to: &str, fire_in: u64, repeat: Repeat) -> Inten
 fn nothing_standing_says_how_to_set_one() {
     let out = listing(&[], &Default::default(), NOW);
     assert!(out.contains("Nothing standing"), "{out}");
+    // The advice is one paragraph, not lines broken by hand to a tile.
+    assert_eq!(out.lines().count(), 3, "{out}");
+    assert!(
+        out.lines()
+            .nth(2)
+            .unwrap()
+            .ends_with("said over a channel."),
+        "{out}"
+    );
     assert!(out.contains("crew daemon at"), "{out}");
     assert!(
         !out.contains("standing \u{b7}"),

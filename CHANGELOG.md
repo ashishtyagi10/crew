@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.34
+
+**The empty hints of `/watching` and `/integrations` are paragraphs, not hand-broken lines.**
+
+Both hints were broken by hand at the tile's 47 columns — three and
+four short lines that read as a ragged poem in a wide pane, the same
+pre-wrapping 0.21.33 took out of the detail rows. Each is a headline
+and one paragraph now; the viewer's plain rung wraps it on words at the
+pane's real width, so a tile reads as before (`sweepshot_tests` draws
+both at 47 columns) and a window reads as a sentence. The tests count
+the lines.
+
 ## 0.21.33
 
 **Width sweeps: the model picker, `/usage` and the two listings at a tile and at a window.**

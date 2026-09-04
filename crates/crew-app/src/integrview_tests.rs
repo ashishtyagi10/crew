@@ -95,6 +95,11 @@ fn every_row_fits_a_tiled_viewer() {
 fn nothing_loaded_says_where_a_manifest_goes() {
     let out = listing(&[], &|_| true);
     assert!(out.contains("integrations/"), "{out}");
+    assert_eq!(
+        out.lines().count(),
+        2,
+        "one paragraph, not hand-broken lines: {out}"
+    );
     assert!(out.contains("/reload"), "{out}");
     assert!(out.contains("weather.json"), "{out}");
 }
