@@ -1,20 +1,23 @@
-use super::render;
 use crate::farpane::FarPane;
 
-/// Reconstruct rendered text per row (opaque blanks render as a block in some
-/// paths; this pane uses `to_cells`, so blanks are simply absent).
+/// `super::render` under the theme lock: a parallel theme switch mid-render turned blanks into
+/// blocks on Windows CI (`to_cells` compares each blank's bg with the CURRENT page colour).
+/// A test already holding `theme_test_guard` calls `super::render` — the lock is not reentrant.
+fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<crew_render::CellView> {
+    let _lock = crate::app::THEME_LOCK.lock(); // poisoned or not, the Result holds the guard
+    super::render(p, cols, rows)
+}
+
+/// Rendered text per row; `to_cells` drops blanks, so they are simply absent.
 fn text(cells: &[crew_render::CellView]) -> String {
     let max_row = cells.iter().map(|c| c.row).max().unwrap_or(0);
     let mut lines = vec![String::new(); max_row as usize + 1];
     let mut sorted: Vec<(u16, u16, char)> = cells.iter().map(|c| (c.row, c.col, c.c)).collect();
     sorted.sort_unstable();
-    let mut last = (u16::MAX, 0u16);
-    for (row, col, c) in sorted {
-        if (row, col) != last {
-            lines[row as usize].push(c);
-        }
-        last = (row, col);
-    }
+    sorted.dedup_by_key(|x| (x.0, x.1));
+    sorted
+        .into_iter()
+        .for_each(|(row, _, c)| lines[row as usize].push(c));
     lines.join("\n")
 }
 
@@ -254,7 +257,7 @@ fn ghost_text_renders_dim_after_the_cursor() {
     let mut pane = fixture_pane("ghost");
     pane.cmdline = "ba".into();
     pane.history = CmdHistory::from_entries(vec!["bazqux".into()]);
-    let cells = render(&pane, 80, 24);
+    let cells = super::render(&pane, 80, 24);
     let cmd_row = 22; // rows(24) - cmdline row(1) - function bar row(1)
     let mut row: Vec<(u16, char, (u8, u8, u8))> = cells
         .iter()
@@ -356,7 +359,7 @@ fn suggested_command_highlights_the_bar_and_shows_the_accept_hint() {
     pane.ask = Some(AskState::Suggested {
         original: "! list files".into(),
     });
-    let cells = render(&pane, 80, 24);
+    let cells = super::render(&pane, 80, 24);
     let cmd_row = 22;
     let mut row: Vec<(u16, char)> = cells
         .iter()
@@ -408,7 +411,7 @@ fn only_the_active_panel_draws_a_filled_cursor_bar() {
     // fill is now exclusive to the active panel; the inactive side remembers
     // its row in bold.
     let p = fixture_pane("activebar"); // active defaults to Side::Left
-    let cells = render(&p, 80, 24);
+    let cells = super::render(&p, 80, 24);
     let page = crew_theme::theme().page_bg;
     let divider_x = cells
         .iter()
@@ -480,7 +483,7 @@ fn status_line_truncation_keeps_the_size_suffix() {
     std::fs::write(base.join(long), b"x").unwrap();
     let mut p = FarPane::new(base);
     p.left.sel = 1;
-    let cells = render(&p, 40, 24);
+    let cells = super::render(&p, 40, 24);
     let status_row = 21;
     let mut row: Vec<(u16, char)> = cells
         .iter()
@@ -521,7 +524,7 @@ fn active_panel_legend_is_a_filled_accent_tab() {
     // The active panel's legend now carries an accent bg fill (a "selected
     // tab"); the inactive legend stays plain — bg fill on row 0 must appear
     // on exactly one side of the divider.
-    let cells = render(&fixture_pane("legendtab"), 80, 24);
+    let cells = super::render(&fixture_pane("legendtab"), 80, 24);
     let page = crew_theme::theme().page_bg;
     let divider_x = cells
         .iter()

@@ -354,7 +354,7 @@ pub(crate) fn submit_bytes(line: &str) -> Vec<u8> {
 /// would otherwise race under the default parallel test runner. Mirrors the
 /// `guard()` used by crew-theme's own tests.
 #[cfg(test)]
-static THEME_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+pub(crate) static THEME_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 /// Holds the lock, pins a known theme, and RESTORES whatever was active on drop.
 ///
