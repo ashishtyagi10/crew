@@ -53,8 +53,9 @@ pub const EMBEDDED_FAMILY: &str = "Lilex";
 ///
 /// Deliberately excludes typewriter/legacy faces (Courier, Courier New, PT
 /// Mono, Andale, Consolas, and pre-Retina Monaco — SF Mono is the modern
-/// macOS face) and Stelo (its lowercase `l` renders as a broken
-/// bar — user bug report 2026-07-24): a rotation must never land on one. The *manual*
+/// macOS face), Stelo (its lowercase `l` renders as a broken bar — user bug
+/// report 2026-07-24) and Intel One Mono with its `IntoneMono` Nerd Font
+/// builds (taste — asked out 2026-09-06): a rotation must never land on one. The *manual*
 /// `/font` picker is unaffected — it still offers every installed coding
 /// face; this only governs what crew picks on its own. Menlo and the other
 /// OS-stock faces stay ONLY as mid-list options — never a lead, and no longer
@@ -79,9 +80,6 @@ pub const FONT_ALLOWLIST: &[&str] = &[
     "GeistMono Nerd Font",
     "Google Sans Code",
     "IBM Plex Mono",
-    "Intel One Mono",
-    "IntoneMono Nerd Font",
-    "IntoneMono Nerd Font Mono",
     "Lilex",
     "Lilex Nerd Font",
     "Martian Mono",
