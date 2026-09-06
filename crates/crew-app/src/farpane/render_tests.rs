@@ -472,7 +472,7 @@ fn status_line_carries_the_selected_entrys_full_name() {
 
 #[test]
 fn status_line_truncation_keeps_the_size_suffix() {
-    // A name longer than the whole row ellipsizes, but ` · size` survives.
+    let _g = crate::app::theme_test_guard(); // a theme moving mid-render turns blanks into blocks
     let long = "an_extremely_long_filename_that_cannot_fit_even_a_full_row.txt";
     let base = std::env::temp_dir().join("crew_far_render_statustrunc");
     let _ = std::fs::remove_dir_all(&base);
@@ -489,7 +489,7 @@ fn status_line_truncation_keeps_the_size_suffix() {
         .collect();
     row.sort_unstable_by_key(|(col, _)| *col);
     let line: String = row.into_iter().map(|(_, c)| c).collect();
-    // to_cells drops blank (space) cells, so assert the squished suffix.
+    // A long name ellipsizes but ` · size` survives; to_cells drops blanks, so it's squished.
     assert!(
         line.contains("\u{2026}\u{b7}1B"),
         "ellipsis+suffix missing: {line:?}"
