@@ -1,23 +1,20 @@
 use crate::farpane::FarPane;
 
-/// `super::render` under the theme lock: a parallel theme switch mid-render turned blanks into
-/// blocks on Windows CI (`to_cells` compares each blank's bg with the CURRENT page colour).
-/// A test already holding `theme_test_guard` calls `super::render` — the lock is not reentrant.
+/// Theme-locked: a mid-render theme switch turns blanks into blocks. Guarded tests use `super::`.
 fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<crew_render::CellView> {
     let _lock = crate::app::THEME_LOCK.lock(); // poisoned or not, the Result holds the guard
     super::render(p, cols, rows)
 }
 
-/// Rendered text per row; `to_cells` drops blanks, so they are simply absent.
+/// Text per row; blanks absent (`to_cells` drops them); the first cell drawn at a spot wins.
 fn text(cells: &[crew_render::CellView]) -> String {
     let max_row = cells.iter().map(|c| c.row).max().unwrap_or(0);
     let mut lines = vec![String::new(); max_row as usize + 1];
-    let mut sorted: Vec<(u16, u16, char)> = cells.iter().map(|c| (c.row, c.col, c.c)).collect();
-    sorted.sort_unstable();
-    sorted.dedup_by_key(|x| (x.0, x.1));
-    sorted
-        .into_iter()
-        .for_each(|(row, _, c)| lines[row as usize].push(c));
+    let map: std::collections::BTreeMap<(u16, u16), char> =
+        cells.iter().rev().map(|c| ((c.row, c.col), c.c)).collect();
+    for ((row, _), c) in map {
+        lines[row as usize].push(c);
+    }
     lines.join("\n")
 }
 
