@@ -35,3 +35,21 @@ fn files_sort_by_size_descending_with_name_tiebreak() {
     assert_eq!(e[1].size, 0, "directories carry no size");
     assert_eq!(e[0].size, 0, "the parent row carries no size");
 }
+
+#[cfg(unix)]
+#[test]
+fn a_symlink_to_a_folder_lists_as_a_folder() {
+    let base = std::env::temp_dir().join("crew_far_list_symlink_test");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(base.join("real")).unwrap();
+    std::os::unix::fs::symlink(base.join("real"), base.join("link")).unwrap();
+    let e = read_dir(&base);
+    let link = e
+        .iter()
+        .find(|e| e.name == "link")
+        .expect("the link is listed");
+    assert!(
+        link.is_dir,
+        "Enter must descend into it, not try to open it"
+    );
+}

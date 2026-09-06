@@ -121,10 +121,13 @@ pub(crate) fn submit_ask(p: &mut FarPane, desc: &str) -> FarAction {
 }
 
 /// `cd <path>` from the command line: point the active panel at the target
-/// (relative to its current directory; `~`/`$VAR` expand) without touching
-/// the other panel.
+/// (relative to its current directory; `~`/`$VAR` expand; quotes and
+/// backslash-escapes come off) without touching the other panel. The
+/// destination is normalised lexically, so `cd ..` lands on the parent
+/// itself — not on a path ENDING in `..`, whose own parent walks back down.
 fn change_dir(p: &mut FarPane, cwd: &Path, target: &str) -> FarAction {
-    let dest = crate::pathexpand::expand_path(cwd, target);
+    let target = super::shellword::unescape(target);
+    let dest = crate::pathexpand::normalized(&crate::pathexpand::expand_path(cwd, &target));
     if !dest.is_dir() {
         return FarAction::Status(format!("cd: not a directory: {}", dest.display()));
     }

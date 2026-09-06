@@ -28,6 +28,26 @@ pub(crate) fn expand_path(base: &Path, arg: &str) -> PathBuf {
     }
 }
 
+/// `path` with `.` and `..` components collapsed and any trailing separator
+/// gone, lexically — symlinks stay as typed, like a shell's logical `cd`.
+/// `/a/b/..` → `/a`; `/..` stays `/`.
+pub(crate) fn normalized(path: &Path) -> PathBuf {
+    use std::path::Component;
+    let mut out = PathBuf::new();
+    for c in path.components() {
+        match c {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if !out.pop() && !out.has_root() {
+                    out.push("..");
+                }
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 #[path = "pathexpand_tests.rs"]
 mod tests;

@@ -23,7 +23,10 @@ pub(crate) fn read_dir(dir: &Path) -> Vec<Entry> {
         .flatten()
         .flatten()
         .map(|e| {
-            let is_dir = e.file_type().map(|t| t.is_dir()).unwrap_or(false);
+            // Through the link, so a symlink to a folder lists — and
+            // descends — as one; a dangling link falls back to the link.
+            let meta = std::fs::metadata(e.path()).or_else(|_| e.metadata()).ok();
+            let is_dir = meta.as_ref().is_some_and(|m| m.is_dir());
             Entry {
                 name: e.file_name().to_string_lossy().into_owned(),
                 is_dir,
@@ -31,7 +34,7 @@ pub(crate) fn read_dir(dir: &Path) -> Vec<Entry> {
                 size: if is_dir {
                     0
                 } else {
-                    e.metadata().map(|m| m.len()).unwrap_or(0)
+                    meta.map(|m| m.len()).unwrap_or(0)
                 },
             }
         })

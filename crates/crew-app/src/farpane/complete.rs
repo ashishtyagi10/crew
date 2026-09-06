@@ -3,10 +3,13 @@
 //! (`candidates`), and applying a chosen candidate back into the command
 //! line (`apply`). Everything here takes `(text, cwd, binaries)` as
 //! parameters and returns data — no globals, no I/O beyond the single
-//! bounded `read_dir` a `Path`-kind lookup needs — so it's unit-testable
-//! against tempdirs without touching a real `FarPane`.
+//! bounded `read_dir` a `Path`-kind lookup needs (see [`super::pathcomp`])
+//! — so it's unit-testable against tempdirs without touching a real
+//! `FarPane`.
 use std::collections::HashSet;
 use std::path::Path;
+
+use super::shellword::token_start;
 
 /// Which token the caret sits in — completion always assumes the caret is at
 /// end-of-line (the command bar is append/pop only today).
@@ -21,11 +24,12 @@ pub(crate) enum TokenKind {
 /// A builtin the command bar understands directly (not a `$PATH` binary).
 const BUILTINS: [&str; 1] = ["cd"];
 
-/// Which token the caret sits in and its text so far. The first
-/// whitespace-separated word is `Command`; every later word — including
-/// `cd`'s argument — is `Path`.
+/// Which token the caret sits in and its text so far (escapes intact). The
+/// first whitespace-separated word is `Command`; every later word —
+/// including `cd`'s argument — is `Path`. A backslash-escaped space does
+/// not end a word: `cd My\ Folder` is two words, not three.
 pub(crate) fn caret_token(text: &str) -> (TokenKind, &str) {
-    let token_start = text.rfind(char::is_whitespace).map(|i| i + 1).unwrap_or(0);
+    let token_start = token_start(text);
     let token = &text[token_start..];
     let is_first_word = text[..token_start].trim().is_empty();
     let kind = if is_first_word {
@@ -40,12 +44,16 @@ pub(crate) fn caret_token(text: &str) -> (TokenKind, &str) {
 /// strings for that token, ready for [`apply`]. Case-sensitive prefix
 /// matches come first, then case-insensitive ones, each group in the input
 /// order (`binaries` is expected pre-sorted, as produced by
-/// [`scan_path_binaries`]; directory listings are sorted here).
+/// [`scan_path_binaries`]; directory listings are sorted in `pathcomp`).
+/// A `cd` argument only ever completes to a folder.
 pub(crate) fn candidates(text: &str, cwd: &Path, binaries: &[String]) -> Vec<String> {
     let (kind, token) = caret_token(text);
     match kind {
         TokenKind::Command => command_candidates(token, binaries),
-        TokenKind::Path => path_candidates(token, cwd),
+        TokenKind::Path => {
+            let dirs_only = text.split_whitespace().next() == Some("cd");
+            super::pathcomp::path_candidates(token, cwd, dirs_only)
+        }
     }
 }
 
@@ -58,45 +66,9 @@ fn command_candidates(prefix: &str, binaries: &[String]) -> Vec<String> {
     rank_prefix(prefix, pool.into_iter())
 }
 
-/// Path-kind candidates: split `token` at its last `/` into the directory
-/// part (kept literal — `~`/`$VAR` stay unexpanded in the returned string)
-/// and the name prefix to match; read that one directory (expanded via
-/// `pathexpand` against `cwd`) once, prefix-match its entries, and suffix
-/// directories with `/`.
-fn path_candidates(token: &str, cwd: &Path) -> Vec<String> {
-    let (dir_part, name_prefix) = match token.rfind('/') {
-        Some(i) => (&token[..=i], &token[i + 1..]),
-        None => ("", token),
-    };
-    let dir = if dir_part.is_empty() {
-        cwd.to_path_buf()
-    } else {
-        crate::pathexpand::expand_path(cwd, dir_part)
-    };
-    let Ok(read) = std::fs::read_dir(&dir) else {
-        return Vec::new();
-    };
-    let mut entries: Vec<(String, bool)> = read
-        .filter_map(|e| e.ok())
-        .map(|e| {
-            let is_dir = e.file_type().map(|t| t.is_dir()).unwrap_or(false);
-            (e.file_name().to_string_lossy().into_owned(), is_dir)
-        })
-        .collect();
-    entries.sort_by(|a, b| a.0.cmp(&b.0));
-    let names: Vec<&str> = entries.iter().map(|(n, _)| n.as_str()).collect();
-    rank_prefix(name_prefix, names.into_iter())
-        .into_iter()
-        .map(|name| {
-            let is_dir = entries.iter().any(|(n, d)| *n == name && *d);
-            format!("{dir_part}{name}{}", if is_dir { "/" } else { "" })
-        })
-        .collect()
-}
-
 /// Case-sensitive prefix matches first, then case-insensitive matches not
 /// already included — each group in `items`'s given order, deduped.
-fn rank_prefix<'a>(prefix: &str, items: impl Iterator<Item = &'a str>) -> Vec<String> {
+pub(super) fn rank_prefix<'a>(prefix: &str, items: impl Iterator<Item = &'a str>) -> Vec<String> {
     let items: Vec<&str> = items.collect();
     let mut seen = HashSet::new();
     let mut out = Vec::new();
@@ -123,8 +95,7 @@ fn rank_prefix<'a>(prefix: &str, items: impl Iterator<Item = &'a str>) -> Vec<St
 /// text (a bare command name, or a path candidate from [`candidates`],
 /// which already includes the token's directory part).
 pub(crate) fn apply(text: &str, candidate: &str) -> String {
-    let token_start = text.rfind(char::is_whitespace).map(|i| i + 1).unwrap_or(0);
-    format!("{}{}", &text[..token_start], candidate)
+    format!("{}{}", &text[..token_start(text)], candidate)
 }
 
 /// An in-progress Tab-completion cycle on `FarPane::complete`: the ranked
@@ -134,6 +105,31 @@ pub(crate) struct CycleState {
     pub(crate) candidates: Vec<String>,
     pub(crate) i: usize,
     pub(crate) prefix: String,
+}
+
+/// The strip shown after the caret while a cycle runs: how far through
+/// the list the applied candidate is, then every candidate's leaf name so
+/// the next Tab is a choice, not a guess. Capped so a wide directory
+/// cannot push the bar off the row.
+const HINT_CAP: usize = 72;
+
+impl CycleState {
+    pub(crate) fn hint(&self) -> String {
+        let leaves = self.candidates.iter().map(|c| {
+            let leaf = c.trim_end_matches('/').rsplit('/').next().unwrap_or(c);
+            format!("{leaf}{}", if c.ends_with('/') { "/" } else { "" })
+        });
+        let mut out = format!("  {}/{} ", self.i + 1, self.candidates.len());
+        for leaf in leaves {
+            if out.chars().count() + leaf.chars().count() + 2 > HINT_CAP {
+                out.push_str(" \u{2026}");
+                break;
+            }
+            out.push_str("  ");
+            out.push_str(&leaf);
+        }
+        out
+    }
 }
 
 /// Read each directory in `path_var` (a `:`-joined `$PATH`-style string)

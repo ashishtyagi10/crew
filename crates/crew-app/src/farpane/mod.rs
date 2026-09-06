@@ -28,11 +28,13 @@ mod keys;
 mod list;
 mod location;
 mod panelchrome;
+mod pathcomp;
 mod pollcmd;
 mod rclone;
 mod remote;
 mod render;
 mod run;
+mod shellword;
 mod sides;
 mod types;
 

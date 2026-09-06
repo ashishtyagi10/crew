@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.36
+
+**`cd` on the `/far` command line goes where you said, and Tab knows it is `cd`.**
+
+`cd ..` joined `..` onto the panel's path and left it there, so the
+listing showed the parent while the legend read `…/sub/..` and Backspace
+walked back DOWN into `sub` — the location's own parent was the folder
+you had just left. The destination is normalised now (`.`, `..` and a
+trailing `/` collapse), a quoted or backslash-escaped name is one name,
+and a symlink to a folder lists and descends as a folder.
+
+Tab after `cd` offered files; it offers folders only now. Dotfiles stay
+hidden until the word starts with `.`, `..` and `~` finish to `../` and
+`~/`, and a name with a space comes back escaped so the next Tab reads
+inside it instead of splitting it in two. While Tab cycles, the bar
+shows `2/5` and every candidate's name after the caret, so the next
+press is a choice rather than a guess.
+
 ## 0.21.35
 
 **`/integrations` holds a tool name whole when a tile can.**
