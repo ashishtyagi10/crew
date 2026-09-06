@@ -5,7 +5,6 @@
 //! Split from [`crate::diskpane`] for the line cap, along the line between the
 //! pane and the filesystem work behind it.
 use crate::diskpane::*;
-pub(crate) use crate::disktile::*;
 use crate::plot::treemap;
 use std::path::Path;
 use std::sync::atomic::Ordering;
