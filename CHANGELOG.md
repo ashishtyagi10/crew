@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.37
+
+**Intel One Mono leaves the font rotation.**
+
+It joined in 0.16.13 and the user does not like it. The allowlist drops
+it and its `IntoneMono` Nerd Font builds, so neither `/font` roulette
+nor a theme's preference list can land on it again; the banned-faces
+test names all three. The manual `/font` picker still offers every
+installed coding face, as before.
+
 ## 0.21.36
 
 **`cd` on the `/far` command line goes where you said, and Tab knows it is `cd`.**
