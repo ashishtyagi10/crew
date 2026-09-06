@@ -55,3 +55,49 @@ fn cd_parsing() {
     assert_eq!(cd_target("cdx"), None);
     assert_eq!(cd_target("ls"), None);
 }
+
+/// A pane rooted at a unique tempdir holding `sub/deep` and `My Docs`.
+fn pane(key: &str) -> (std::path::PathBuf, FarPane) {
+    let base = std::env::temp_dir().join(format!("crew_far_run_{key}"));
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(base.join("sub/deep")).unwrap();
+    std::fs::create_dir_all(base.join("My Docs")).unwrap();
+    let p = FarPane::new(base.clone());
+    (base, p)
+}
+
+fn cd(p: &mut FarPane, line: &str) -> std::path::PathBuf {
+    p.cmdline = line.into();
+    assert!(matches!(run_cmdline(p), FarAction::Status(_)));
+    p.left.loc.local_path().unwrap()
+}
+
+#[test]
+fn cd_dot_dot_lands_on_the_parent_itself() {
+    let (base, mut p) = pane("dotdot");
+    cd(&mut p, "cd sub/deep");
+    assert_eq!(
+        cd(&mut p, "cd .."),
+        base.join("sub"),
+        "no `..` left in the path"
+    );
+    assert_eq!(
+        cd(&mut p, "cd ../"),
+        base,
+        "trailing slash is not part of the location"
+    );
+    // Backspace (ascend) from there must go UP, which a `base/sub/..`
+    // location got wrong — its own parent was `base/sub`.
+    assert_eq!(
+        p.left.loc.parent().unwrap().local_path().unwrap(),
+        base.parent().unwrap()
+    );
+}
+
+#[test]
+fn cd_takes_a_tab_completed_or_quoted_name_with_a_space() {
+    let (base, mut p) = pane("spaces");
+    assert_eq!(cd(&mut p, "cd My\\ Docs/"), base.join("My Docs"));
+    cd(&mut p, "cd ..");
+    assert_eq!(cd(&mut p, "cd \"My Docs\""), base.join("My Docs"));
+}

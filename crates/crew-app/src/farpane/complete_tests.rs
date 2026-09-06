@@ -92,3 +92,35 @@ fn scan_path_binaries_finds_executables_only_sorted_and_deduped() {
     let path_var = format!("{}:{}", base.display(), base.display());
     assert_eq!(scan_path_binaries(&path_var), vec!["mytool".to_string()]);
 }
+
+#[test]
+fn caret_token_keeps_an_escaped_space_inside_the_word() {
+    assert_eq!(
+        caret_token("cd My\\ Docs/no"),
+        (TokenKind::Path, "My\\ Docs/no")
+    );
+    assert_eq!(
+        apply("cd My\\ Docs/no", "My\\ Docs/notes/"),
+        "cd My\\ Docs/notes/"
+    );
+}
+
+#[test]
+fn cycle_hint_counts_and_names_every_candidate_by_its_leaf() {
+    let state = CycleState {
+        candidates: vec!["src/farpane/".into(), "src/fonts.rs".into()],
+        i: 1,
+        prefix: "ls src/f".into(),
+    };
+    assert_eq!(state.hint(), "  2/2   farpane/  fonts.rs");
+    let wide = CycleState {
+        candidates: (0..40).map(|k| format!("candidate-{k:02}")).collect(),
+        i: 0,
+        prefix: String::new(),
+    };
+    let hint = wide.hint();
+    assert!(
+        hint.ends_with('\u{2026}') && hint.chars().count() <= 76,
+        "{hint:?}"
+    );
+}

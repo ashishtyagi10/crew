@@ -40,14 +40,14 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
     scroll_thumb(&mut buf, larea, &p.left, p.active == Side::Left);
     scroll_thumb(&mut buf, rarea, &p.right, p.active == Side::Right);
     // A Tab-cycle already shows its candidate in `cmdline` directly; the
-    // ghost suggestion would be confusing layered on top of it, so it's
-    // suppressed while a cycle is active.
-    let ghost = if p.complete.is_none() {
-        p.history
+    // ghost slot carries the candidate strip instead (`CycleState::hint`),
+    // so the next Tab is a choice, not a guess.
+    let ghost = match &p.complete {
+        None => p
+            .history
             .ghost(&p.cmdline)
-            .map(|full| full[p.cmdline.len()..].to_string())
-    } else {
-        None
+            .map(|full| full[p.cmdline.len()..].to_string()),
+        Some(cycle) => Some(cycle.hint()),
     };
     // The `!` ask's live status: elapsed seconds while thinking (recomputed
     // fresh every frame from the stored `Instant` — nothing to tick), or
