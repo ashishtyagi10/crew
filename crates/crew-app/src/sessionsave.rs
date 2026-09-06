@@ -227,9 +227,7 @@ mod tests;
 mod window_tests {
     use super::*;
 
-    /// A shell pane in the platform temp dir: `load_at` keeps only panes
-    /// whose directory exists, and `/tmp` is not a directory on Windows —
-    /// which returned zero panes there and read as "deduped away".
+    /// In the temp dir: `load_at` drops panes whose dir is missing (`/tmp` on Windows).
     fn at(window: usize) -> SavedPane {
         SavedPane {
             window,
@@ -237,9 +235,8 @@ mod window_tests {
         }
     }
 
-    /// Two windows, each with a shell in the same directory — which is what
-    /// happens the moment you open a second window and go on working in the
-    /// same project. They are two panes, not one.
+    /// Two windows, each with a shell in the same directory — what happens the
+    /// moment you open a second window in the same project: two panes, not one.
     #[test]
     fn the_same_pane_in_two_windows_is_two_panes() {
         let dir = std::env::temp_dir().join("crew-session-windows.toml");
