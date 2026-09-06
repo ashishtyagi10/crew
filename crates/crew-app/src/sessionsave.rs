@@ -227,10 +227,13 @@ mod tests;
 mod window_tests {
     use super::*;
 
-    fn at(window: usize, dir: &str) -> SavedPane {
+    /// A shell pane in the platform temp dir: `load_at` keeps only panes
+    /// whose directory exists, and `/tmp` is not a directory on Windows —
+    /// which returned zero panes there and read as "deduped away".
+    fn at(window: usize) -> SavedPane {
         SavedPane {
             window,
-            ..SavedPane::shell(dir.into())
+            ..SavedPane::shell(std::env::temp_dir().to_string_lossy().into_owned())
         }
     }
 
@@ -240,7 +243,7 @@ mod window_tests {
     #[test]
     fn the_same_pane_in_two_windows_is_two_panes() {
         let dir = std::env::temp_dir().join("crew-session-windows.toml");
-        save_at(Some(dir.clone()), vec![at(0, "/tmp"), at(1, "/tmp")]);
+        save_at(Some(dir.clone()), vec![at(0), at(1)]);
         let back = load_at(Some(dir.clone()));
         assert_eq!(back.len(), 2, "one of the windows was deduped away");
         assert_eq!(back[0].window, 0);
@@ -252,7 +255,7 @@ mod window_tests {
     #[test]
     fn the_same_pane_twice_in_one_window_is_still_one() {
         let dir = std::env::temp_dir().join("crew-session-dedupe.toml");
-        save_at(Some(dir.clone()), vec![at(0, "/tmp"), at(0, "/tmp")]);
+        save_at(Some(dir.clone()), vec![at(0), at(0)]);
         assert_eq!(load_at(Some(dir.clone())).len(), 1);
         let _ = std::fs::remove_file(dir);
     }
@@ -261,7 +264,7 @@ mod window_tests {
     #[test]
     fn a_pane_in_the_first_window_writes_no_window_key() {
         let dir = std::env::temp_dir().join("crew-session-old.toml");
-        save_at(Some(dir.clone()), vec![at(0, "/tmp")]);
+        save_at(Some(dir.clone()), vec![at(0)]);
         let text = std::fs::read_to_string(&dir).expect("written");
         assert!(!text.contains("window"), "wrote: {text}");
         let _ = std::fs::remove_file(dir);
