@@ -36,6 +36,7 @@ fn glyph_names_the_event() {
 
 #[test]
 fn pulses_then_settles() {
+    let _g = crate::app::motion_test_guard(); // `steady()` reads the global motion level
     let a = Attention {
         kind: NotifyKind::Bell,
         at_ms: 1000,
@@ -76,6 +77,7 @@ fn raise_overwrites_with_the_newest_event() {
 
 #[test]
 fn any_pulsing_only_while_a_marker_is_fresh() {
+    let _g = crate::app::motion_test_guard(); // `steady()` reads the global motion level
     let mut a = pane();
     let b = pane();
     assert!(!any_pulsing(&[], 0));
