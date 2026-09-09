@@ -1,6 +1,6 @@
 //! Registering, listing and cancelling a standing intent over the wire — the three requests the
 //! `crew daemon at | watching | cancel` CLI is a thin face over.
-use super::tests::rig;
+use super::rig::rig;
 use crate::daemon::answer;
 use crate::ipc_types::{Reply, Request, PROTOCOL_V};
 
@@ -91,10 +91,10 @@ fn an_intent_with_nowhere_to_answer_is_refused_rather_than_stored() {
 /// The same three commands, said on a channel instead of typed on the machine — which is where
 /// somebody actually is when they think of the errand.
 mod from_a_channel {
-    use super::super::tests::{rig, sent};
+    use super::super::rig::{rig, sent};
     use crate::channel::Inbound;
 
-    fn say(r: &mut super::super::tests::Rig, text: &str) {
+    fn say(r: &mut super::super::rig::Rig, text: &str) {
         r.wire.lock().unwrap().inbox.push(Inbound {
             from: "test:me".into(),
             text: text.into(),

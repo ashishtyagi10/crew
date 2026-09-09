@@ -73,6 +73,8 @@ pub enum Request {
         fire_ms: u64,
         repeat_secs: Option<u64>,
     },
+    /// Push a channel's button (voice's push-to-talk); `kind` names the channel, whose button it is.
+    Press { v: u32, kind: String },
     /// List what the daemon is waiting to do.
     Watching { v: u32 },
     /// Call one standing intent off by id.
@@ -159,6 +161,11 @@ pub enum Reply {
     /// The request was understood but could not be carried out.
     Failed {
         message: String,
+    },
+    /// A channel's button was pushed, and what it did. `channel`, because `kind` is the serde tag.
+    Pressed {
+        channel: String,
+        did: String,
     },
     /// A standing intent was registered.
     Watched {

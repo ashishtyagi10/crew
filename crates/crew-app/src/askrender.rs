@@ -40,6 +40,7 @@ pub(crate) fn render(r: &Reply) -> (String, i32) {
         | Reply::Sent { .. }
         | Reply::Events { .. }
         | Reply::Channels { .. }
+        | Reply::Pressed { .. }
         | Reply::Watched { .. }
         | Reply::Watchlist { .. }
         | Reply::Unwatched { .. }
