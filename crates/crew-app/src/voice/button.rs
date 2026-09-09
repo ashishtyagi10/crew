@@ -11,26 +11,25 @@ use super::{words, State, Voice, ADDRESS};
 use crate::channel::Inbound;
 
 impl Voice {
-    /// Returns what the press did, for the terminal that pressed it.
-    pub(crate) fn press(&self) -> &'static str {
+    /// What the press did, for the terminal that pressed it — or why it could not be done, which
+    /// is the same terminal's business: a button that fails silently looks like a button that
+    /// worked.
+    pub(crate) fn press(&self) -> Result<&'static str, String> {
         match self.state() {
             State::Listening => {
                 self.stop_record.store(true, Ordering::SeqCst);
-                "listening \u{2014} stopping"
+                Ok("listening \u{2014} stopping")
             }
             State::Speaking => {
                 // Barge-in. The playback thread checks this between blocks.
                 self.stop_play.store(true, Ordering::SeqCst);
-                "stopped talking"
+                Ok("stopped talking")
             }
-            State::Thinking => "still thinking about the last one",
-            State::Idle => match self.begin() {
-                Ok(()) => "listening \u{2014} speak, then press again",
-                Err(e) => {
-                    self.note(e.clone());
-                    "could not start listening"
-                }
-            },
+            State::Thinking => Ok("still thinking about the last one"),
+            State::Idle => self
+                .begin()
+                .map(|()| "listening \u{2014} speak, then press again")
+                .inspect_err(|e| self.note(e.clone())),
         }
     }
 

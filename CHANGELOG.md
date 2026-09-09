@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.39
+
+**Push-to-talk: the microphone is the third way in.**
+
+`crew daemon listen` is the button. Press it and speak; press it again
+to stop, or while crew is reading an answer back to cut it off. A spoken
+task reaches the same session a typed one does, through the same gate,
+and the reply comes back aloud — flattened for the ear, code fences
+dropped, clipped at ~700 characters with "the rest is on screen". No
+wake word and no always-on microphone: nothing opens until you press.
+Whisper transcribes, OpenAI TTS speaks, both behind `OPENAI_API_KEY`
+(`CREW_VOICE_STT`, `CREW_VOICE_TTS`, `CREW_VOICE` pick the models and
+the voice); with no key or no microphone the channel is registered but
+not ready, and `crew daemon channels` says which. Silence is never sent:
+a recording too quiet to be speech is dropped before it costs a round
+trip, which also keeps Whisper's habit of transcribing silence into a
+plausible sentence out of the ledger. Built on macOS and Windows; Linux
+reports voice unavailable rather than growing a system audio dependency.
+A `voice:local` address means a standing intent set by voice needs no
+`--to`. The whole state machine — listen, stop, refuse silence, speak,
+interrupt — is tested against fakes with no hardware, key or network.
+
 ## 0.21.38
 
 **A free NVIDIA key is the no-cost first run, and Nemotron 3.5 is its default.**

@@ -33,8 +33,12 @@ fn full_scale_floats_reach_full_scale_samples_without_wrapping() {
 #[test]
 fn nothing_recorded_is_nothing_returned_rather_than_a_panic() {
     assert!(to_mic_rate(&[], 48_000, 2).is_empty());
+    // A zero rate and zero channels both clamp to one, so a single frame at "1 Hz" stretches
+    // to a full second of 16 kHz: 16,000 copies of the one sample, and no division by zero.
+    let out = to_mic_rate(&[0.1], 0, 0);
+    assert_eq!(out.len(), 16_000, "a zero rate must not divide by zero");
     assert!(
-        to_mic_rate(&[0.1], 0, 0).is_empty() || true,
-        "a zero rate must not divide by zero"
+        out.iter().all(|s| *s == out[0]),
+        "one frame must repeat, not vary"
     );
 }

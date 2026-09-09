@@ -40,8 +40,11 @@ pub(crate) trait Channel: Send {
 
     /// Somebody pushed this channel's button, if it has one. The voice channel's push-to-talk
     /// is the only one today: a pane has a keyboard and a phone has a send key, but a microphone
-    /// has to be told when to listen. `None` from every channel that has no such control.
-    fn press(&mut self) -> Option<&'static str> {
+    /// has to be told when to listen. `None` from every channel that has no such control;
+    /// `Some(Ok(did))` is what the press did; `Some(Err(why))` means the button is there but the
+    /// press could not be carried out — the reason belongs to whoever pressed it, not only to
+    /// the log.
+    fn press(&mut self) -> Option<Result<&'static str, String>> {
         None
     }
 
@@ -141,8 +144,8 @@ impl Router {
     }
 
     /// Push one channel's button by kind. `None` when no such channel is registered, or when it
-    /// has no button to push.
-    pub(crate) fn press(&mut self, kind: &str) -> Option<&'static str> {
+    /// has no button to push; otherwise what the press did, or why it could not be done.
+    pub(crate) fn press(&mut self, kind: &str) -> Option<Result<&'static str, String>> {
         self.channels.get_mut(kind)?.press()
     }
 

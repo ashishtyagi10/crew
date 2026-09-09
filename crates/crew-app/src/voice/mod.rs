@@ -95,8 +95,8 @@ impl Voice {
     /// you is worse than one that says it is not configured.
     pub(crate) fn from_env() -> Self {
         Self::new(
-            Arc::new(mic::Device::default()),
-            Arc::new(mic::Device::default()),
+            Arc::new(mic::Device),
+            Arc::new(mic::Device),
             openai::OpenAiSpeech::from_env().map(|s| Arc::new(s) as Arc<dyn Speech>),
         )
     }
@@ -174,7 +174,7 @@ impl Channel for Voice {
         std::mem::take(&mut self.lock().notices)
     }
 
-    fn press(&mut self) -> Option<&'static str> {
+    fn press(&mut self) -> Option<Result<&'static str, String>> {
         Some(Voice::press(self))
     }
 

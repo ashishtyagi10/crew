@@ -2,7 +2,6 @@
 //! written into it, a channel that goes nowhere, and a watchlist of the test's own — never the
 //! user's, which a firing would otherwise consume for real.
 use crate::channel::loopback::Loopback;
-use crate::daemon::intent::Repeat;
 use crate::daemon::intentlog::Watchlist;
 use crate::daemon::session::{SessionProc, Spawner};
 use crate::daemon::Daemon;

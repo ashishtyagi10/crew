@@ -141,10 +141,9 @@ fn a_reply_is_spoken_aloud() {
     assert_eq!(r.said.lock().unwrap().as_slice(), ["The forecast is fine."]);
 }
 
-#[test]
-fn a_channel_with_no_key_is_registered_but_not_ready() {
-    // The same shape Telegram has: present the moment it is configured, inert until it is.
-    let voice = Voice::new(
+/// A voice with a microphone but no key: what a machine without `OPENAI_API_KEY` registers.
+pub(super) fn keyless() -> Voice {
+    Voice::new(
         Arc::new(FakeEars {
             pcm: vec![],
             stopped: Arc::new(AtomicBool::new(false)),
@@ -152,7 +151,13 @@ fn a_channel_with_no_key_is_registered_but_not_ready() {
         }),
         Arc::new(FakeMouth::default()),
         None,
-    );
+    )
+}
+
+#[test]
+fn a_channel_with_no_key_is_registered_but_not_ready() {
+    // The same shape Telegram has: present the moment it is configured, inert until it is.
+    let voice = keyless();
     assert_eq!(voice.kind(), "voice");
     assert!(!voice.ready());
     assert_eq!(voice.default_address(), None);

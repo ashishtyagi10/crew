@@ -11,7 +11,6 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 /// This machine's audio, through whatever backend the platform has.
-#[derive(Default)]
 pub(crate) struct Device;
 
 /// Nearest-neighbour resample to crew's 16 kHz. Whisper takes any rate, but the upload is
@@ -22,8 +21,7 @@ fn to_mic_rate(input: &[f32], from: u32, channels: u16) -> Vec<i16> {
     let from = from.max(1);
     let channels = channels.max(1) as usize;
     let frames = input.len() / channels;
-    let out_len =
-        (frames as u64 * u64::from(super::openai::MIC_RATE) / u64::from(from)).max(0) as usize;
+    let out_len = (frames as u64 * u64::from(super::openai::MIC_RATE) / u64::from(from)) as usize;
     (0..out_len)
         .map(|i| {
             let src = i as u64 * u64::from(from) / u64::from(super::openai::MIC_RATE).max(1);
@@ -103,8 +101,10 @@ mod real {
                 sample_rate: cpal::SampleRate(rate),
                 buffer_size: cpal::BufferSize::Default,
             };
+            // The callback outlives this frame; the samples must be owned.
+            let owned: Vec<i16> = pcm.to_vec();
             let samples: Arc<Mutex<std::vec::IntoIter<i16>>> =
-                Arc::new(Mutex::new(pcm.to_vec().into_iter()));
+                Arc::new(Mutex::new(owned.into_iter()));
             let feed = Arc::clone(&samples);
             let done = Arc::new(std::sync::atomic::AtomicBool::new(false));
             let finished = Arc::clone(&done);
