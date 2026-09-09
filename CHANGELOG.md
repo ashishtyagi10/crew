@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.42
+
+**Colour in the smith pane: syntax hues, agent colours that read everywhere, an accented table header.**
+
+Keywords, types, function calls and attributes in a code fence each
+take a hue of their own (magenta, yellow, blue, muted italic) on top
+of the strings and comments that already had one; keywords stay bold.
+Every hue is lifted against the page and the code field by the same
+floors the existing inks pass, and falls back to the code colour on a
+preset where it cannot, so the contrast sweep still holds on all
+sixteen. Agent names hash over the twelve chromatic slots the project
+tags use, lifted to 3.0:1 on every page, instead of six unfloored
+bright slots: nine distinct colours across twenty names, up from six.
+Table headers take the accent; image rows and footnote marks take the
+marker ink. The far pane's treemap follows the same twelve slots.
+
 ## 0.21.41
 
 **Nerd Font icons in the smith pane, and plain Unicode wherever the font has none.**
