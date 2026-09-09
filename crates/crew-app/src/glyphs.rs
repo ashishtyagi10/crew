@@ -64,6 +64,11 @@ pub(crate) enum Glyph<'a> {
     ToolOpen,
     /// The queued indicator's hourglass, frame 0 or 1 (`⧗` / `⧖`).
     Hourglass(u8),
+    /// A tool block's load lines: a skill applied (`✦`), an MCP server
+    /// connected (`⇄`), a language server started (`λ`).
+    Skill,
+    Mcp,
+    Lsp,
     Lang(&'a str),
 }
 
@@ -104,6 +109,9 @@ pub(crate) fn nerd(g: Glyph) -> &'static str {
         Glyph::Tool | Glyph::ToolOpen => "\u{f0ad}", // nf-fa-wrench
         // nf-fa-hourglass_start / nf-fa-hourglass_end
         Glyph::Hourglass(i) => ["\u{f251}", "\u{f253}"][usize::from(i) % 2],
+        Glyph::Skill => "\u{f0e7}", // nf-fa-bolt
+        Glyph::Mcp => "\u{f1e6}",   // nf-fa-plug
+        Glyph::Lsp => "\u{f1ab}",   // nf-fa-language
     }
 }
 
@@ -130,6 +138,9 @@ pub(crate) fn fallback(g: Glyph) -> &'static str {
         Glyph::Dir | Glyph::Tool => "\u{25b8}",     // ▸
         Glyph::ToolOpen => "\u{25be}",              // ▾
         Glyph::Hourglass(i) => ["\u{29d7}", "\u{29d6}"][usize::from(i) % 2], // ⧗ ⧖
+        Glyph::Skill => "\u{2726}",                 // ✦ (a bolt is two cells wide)
+        Glyph::Mcp => "\u{21c4}",                   // ⇄
+        Glyph::Lsp => "\u{3bb}",                    // λ
         Glyph::Lang(_) => "",
     }
 }
@@ -143,6 +154,8 @@ pub(crate) fn pick(g: Glyph) -> &'static str {
         fallback(g)
     }
 }
+
+pub(crate) use crate::glyphmark::{fence_header, footnote_mark};
 
 /// [`pick`] as one char, for the cell-at-a-time callers.
 pub(crate) fn pick_char(g: Glyph) -> char {
@@ -167,30 +180,6 @@ pub(crate) fn spinner_on(now_ms: u64, on: bool) -> &'static str {
         false => (ASCII_SPINNER.len(), fallback),
     };
     table(Glyph::Spinner(((now_ms / 120) % frames as u64) as u8))
-}
-
-/// A fence header's label: `<icon> <label>` on a Nerd Font, the bare label
-/// otherwise (`code` untagged). Laid into a [`crate::segment`] badge by the
-/// card, so it is clipped to `width` less the badge's caps and pads.
-pub(crate) fn fence_header(lang: &str, width: usize) -> String {
-    let label = if lang.is_empty() { "code" } else { lang };
-    let text = if on() {
-        format!("{} {label}", nerd(Glyph::Lang(lang)))
-    } else {
-        label.to_string()
-    };
-    let chrome = crate::segment::width("", crate::segment::Caps::BOTH);
-    crate::chatwidth::clip_w(&text, width.saturating_sub(chrome))
-}
-
-/// A `[^label]` reference's mark: `<icon>label` on a Nerd Font, `[label]`
-/// otherwise.
-pub(crate) fn footnote_mark(label: &str) -> String {
-    if on() {
-        format!("{}{label}", nerd(Glyph::Footnote))
-    } else {
-        format!("[{label}]")
-    }
 }
 
 #[cfg(test)]

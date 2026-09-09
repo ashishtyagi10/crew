@@ -69,4 +69,28 @@ pub enum HiveEvent {
         agent: AgentId,
         error: String,
     },
+    /// Something the run reached for came in — a skill playbook was spliced
+    /// into a prompt, an MCP server answered its handshake, a language server
+    /// started. Not a tool call (nothing ran, nothing to approve) yet the same
+    /// kind of news: an action against the world that shapes the reply and
+    /// that the pane could not otherwise show. Without it a skill rewrites
+    /// the prompt in silence and a 13-second `npx` download reads as a hang.
+    ///
+    /// `agent` is a NAME, not an [`AgentId`]: the relay engine has no hive
+    /// ids, and an MCP connect happens under whoever's call forced it — so
+    /// the empty string means "whoever is active" and the pane decides.
+    Loaded {
+        #[serde(default)]
+        agent: String,
+        /// `"skill"`, `"mcp"` or `"lsp"`.
+        #[serde(default)]
+        kind: String,
+        /// The skill's name, the server's name, the language server command.
+        #[serde(default)]
+        name: String,
+        /// One short human line: `applied · <one-liner>`,
+        /// `connected · 12 tools: a, b, …`, `<lang> · <root dir>`.
+        #[serde(default)]
+        detail: String,
+    },
 }

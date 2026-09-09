@@ -110,3 +110,34 @@ fn list_report_plain_flat_skill_line_is_unchanged() {
         "got: {report}"
     );
 }
+
+/// One `Loaded { kind: "skill" }` per applied playbook, under the agent
+/// handed in, carrying the one-liner a reader can recognise the skill by.
+#[test]
+fn loaded_events_name_each_applied_skill_for_the_agent() {
+    let applied = vec![
+        Applied {
+            name: "review".into(),
+            description: "strict Rust review".into(),
+        },
+        Applied {
+            name: "deploy".into(),
+            description: "ship safely".into(),
+        },
+    ];
+    let evs = loaded_events(&applied, "coder");
+    assert_eq!(evs.len(), 2);
+    let PluginEvent::Hive { event } = &evs[1] else {
+        panic!("not a Hive event: {:?}", evs[1]);
+    };
+    assert_eq!(
+        *event,
+        crew_hive::HiveEvent::Loaded {
+            agent: "coder".into(),
+            kind: "skill".into(),
+            name: "deploy".into(),
+            detail: "applied \u{b7} ship safely".into(),
+        }
+    );
+    assert!(loaded_events(&[], "coder").is_empty());
+}

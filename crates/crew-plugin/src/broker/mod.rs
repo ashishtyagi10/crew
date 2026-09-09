@@ -32,6 +32,7 @@ mod engine;
 mod fan;
 mod gitmsg;
 mod hop;
+mod hostnote;
 pub(crate) mod integration;
 mod intent;
 pub mod ledger;

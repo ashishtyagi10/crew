@@ -72,8 +72,17 @@ pub(crate) fn from_manifest(m: Manifest) -> Option<PluginAgent> {
     })
 }
 
-/// Every valid `.json` manifest in `dir`, sorted by file name.
+/// Every valid `.json` manifest in `dir`, sorted by file name. One that
+/// will not parse is reported to the host's LOG, not dropped in silence: a
+/// manifest with a stray comma used to mean an agent that never appeared,
+/// with nothing anywhere saying why.
 pub(crate) fn load_dir(dir: &Path) -> Vec<PluginAgent> {
+    load_dir_with(dir, &mut |why| super::hostnote::status(true, why))
+}
+
+/// [`load_dir`] with the failure path explicit: `on_err` gets one
+/// `agent manifest <file>: <err>` line per manifest that did not parse.
+pub(crate) fn load_dir_with(dir: &Path, on_err: &mut dyn FnMut(String)) -> Vec<PluginAgent> {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return Vec::new();
     };
@@ -86,9 +95,18 @@ pub(crate) fn load_dir(dir: &Path) -> Vec<PluginAgent> {
     paths
         .iter()
         .filter_map(|p| {
-            let text = std::fs::read_to_string(p).ok()?;
-            let m: Manifest = serde_json::from_str(&text).ok()?;
-            from_manifest(m)
+            let parsed = std::fs::read_to_string(p)
+                .map_err(|e| e.to_string())
+                .and_then(|text| {
+                    serde_json::from_str::<Manifest>(&text).map_err(|e| e.to_string())
+                });
+            match parsed {
+                Ok(m) => from_manifest(m),
+                Err(e) => {
+                    on_err(format!("agent manifest {}: {e}", p.display()));
+                    None
+                }
+            }
         })
         .collect()
 }

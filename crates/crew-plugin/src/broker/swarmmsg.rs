@@ -139,6 +139,10 @@ pub(super) fn translate(
                 format!("\u{2717} failed: {error}"),
             )]
         }
+        // Rides the forwarded `Hive` event alone: the pane draws it as a
+        // line in the tool block, and it is nobody's activity — no agent is
+        // waiting on a skill the way it waits on a tool.
+        HiveEvent::Loaded { .. } => vec![],
     }
 }
 

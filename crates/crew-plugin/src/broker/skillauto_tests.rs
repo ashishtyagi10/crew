@@ -37,6 +37,11 @@ fn seeded_guard(name: &str, body: &str) -> testenv::MockEnv {
 
 /// Run one relay turn on a capturing agent; return the prompt it saw.
 fn first_prompt(task: &str) -> String {
+    turn(task).0
+}
+
+/// One relay turn: the first prompt the agent saw, and every event emitted.
+fn turn(task: &str) -> (String, Vec<crate::PluginEvent>) {
     let calls = Arc::new(Mutex::new(Vec::new()));
     let agent: Box<dyn Adapter> = Box::new(Capturing {
         name: "claude".into(),
@@ -47,7 +52,11 @@ fn first_prompt(task: &str) -> String {
         6,
         std::time::Duration::from_secs(1),
     );
-    let mut sink = |_ev| Ok(());
+    let mut evs = Vec::new();
+    let mut sink = |ev| {
+        evs.push(ev);
+        Ok(())
+    };
     relay_turn(
         &broker,
         "claude",
@@ -58,7 +67,60 @@ fn first_prompt(task: &str) -> String {
     )
     .unwrap();
     let c = calls.lock().unwrap();
-    c[0].clone()
+    (c[0].clone(), evs)
+}
+
+/// The `Loaded` events among `evs`, as `(agent, kind, name, detail)`.
+fn loaded(evs: &[crate::PluginEvent]) -> Vec<(String, String, String, String)> {
+    evs.iter()
+        .filter_map(|e| match e {
+            crate::PluginEvent::Hive {
+                event:
+                    crew_hive::HiveEvent::Loaded {
+                        agent,
+                        kind,
+                        name,
+                        detail,
+                    },
+            } => Some((agent.clone(), kind.clone(), name.clone(), detail.clone())),
+            _ => None,
+        })
+        .collect()
+}
+
+/// An applied playbook is ANNOUNCED — one `Loaded` per skill, under the
+/// dialled agent, before its reply — where it used to rewrite the prompt in
+/// silence. An unmatched roster announces nothing: nothing was applied.
+#[test]
+fn an_applied_skill_is_announced_once_under_the_dialled_agent() {
+    let _g = seeded_guard("review", "Check unsafe blocks first.");
+    let (_, evs) = turn("run a review of lib.rs");
+    assert_eq!(
+        loaded(&evs),
+        [(
+            "claude".to_string(),
+            "skill".to_string(),
+            "review".to_string(),
+            "applied \u{b7} Check unsafe blocks first.".to_string()
+        )]
+    );
+    let first_reply = evs
+        .iter()
+        .position(|e| matches!(e, crate::PluginEvent::Message { .. }))
+        .expect("a reply");
+    let announce = evs
+        .iter()
+        .position(|e| matches!(e, crate::PluginEvent::Hive { .. }))
+        .unwrap();
+    assert!(
+        announce < first_reply,
+        "announced before the reply it heads"
+    );
+    let (_, evs) = turn("say hello");
+    assert!(
+        loaded(&evs).is_empty(),
+        "nothing applied, nothing announced"
+    );
 }
 
 #[test]

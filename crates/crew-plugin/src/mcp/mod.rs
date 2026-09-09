@@ -17,6 +17,17 @@ pub use config::ServerConfig;
 /// use) keeps the host silent.
 pub type StatusSink = Arc<dyn Fn(bool, &str) + Send + Sync>;
 
+/// Where a connect that SUCCEEDED goes as transcript news — a
+/// [`crew_hive::HiveEvent::Loaded`] the pane draws as a line in the tool
+/// block (`⇄ mcp github · connected · 12 tools`), next to the calls it
+/// served. The `Status` note stays for the LOG; this is the copy a person
+/// reading the reply sees. Kept a second sink rather than a widened first
+/// one so nothing that installs a `StatusSink` today has to change.
+pub type EventSink = Arc<dyn Fn(crew_hive::HiveEvent) + Send + Sync>;
+
+/// How many tool names a `connected` line spells out before `…`.
+const NAMED_TOOLS: usize = 4;
+
 /// One callable tool on a connected server.
 ///
 /// `Eq` is gone because `input_schema` is a `serde_json::Value` (floats).
@@ -50,6 +61,8 @@ pub struct McpHost {
     auto: bool,
     /// Lifecycle notes destination; `None` = silent.
     sink: Option<StatusSink>,
+    /// Successful-connect destination (see [`EventSink`]); `None` = silent.
+    events: Option<EventSink>,
     /// Note keys already sent for the current connection generation. A dead
     /// server is retried on every turn (`client()` caches only successes), so
     /// without this the same connect failure would hit the LOG per turn.
@@ -90,6 +103,11 @@ impl McpHost {
     /// Route lifecycle notes to `sink` (the broker's `Status` event emit).
     pub fn set_sink(&mut self, sink: StatusSink) {
         self.sink = Some(sink);
+    }
+
+    /// Route each successful connect to `sink` as a `Loaded` event.
+    pub fn set_event_sink(&mut self, sink: EventSink) {
+        self.events = Some(sink);
     }
 
     /// Send one note through the sink, at most once per `key` per connection
@@ -201,6 +219,10 @@ impl McpHost {
             false,
             &format!("mcp {server} connected \u{b7} {} tool(s)", list.len()),
         );
+        if let Some(events) = &self.events {
+            let names: Vec<&str> = list.iter().map(|(n, ..)| n.as_str()).collect();
+            events(loaded_event(server, &names));
+        }
         let tools: Vec<McpTool> = list
             .into_iter()
             .map(|(name, description, input_schema)| McpTool {
@@ -291,5 +313,26 @@ impl McpHost {
             }
         }
         lines.join("\n")
+    }
+}
+
+/// The `Loaded` line for a server that just listed its tools: the count and
+/// the first few names, so a reader knows what the agent can now reach
+/// without opening `/mcp`. `12 tools: a, b, c, d, …`; `1 tool: echo`.
+pub(crate) fn loaded_event(server: &str, tools: &[&str]) -> crew_hive::HiveEvent {
+    let plural = if tools.len() == 1 { "" } else { "s" };
+    let mut names = tools[..tools.len().min(NAMED_TOOLS)].join(", ");
+    if tools.len() > NAMED_TOOLS {
+        names.push_str(", \u{2026}");
+    }
+    let detail = match tools.is_empty() {
+        true => "connected \u{b7} 0 tools".to_string(),
+        false => format!("connected \u{b7} {} tool{plural}: {names}", tools.len()),
+    };
+    crew_hive::HiveEvent::Loaded {
+        agent: String::new(),
+        kind: "mcp".into(),
+        name: server.to_string(),
+        detail,
     }
 }

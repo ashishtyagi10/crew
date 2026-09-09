@@ -2234,15 +2234,41 @@ calling agent's card, not as a card of its own: a spinner and the subject
 (`fs:read src/foo.rs`, `sys:run cargo test`) with the seconds counting up
 while it runs, then `✓`/`✗` and the duration (`120 ms`, `3.2 s`) — which is
 what separates a slow tool from a hung one while you watch — and the first
-line of the result, muted. Click that line for up to twelve rows of the
-output on the code field; the copy that crosses the wire is bounded, so a
-`curl` of a large page cannot swell the pane. When the agent's reply settles
-the block folds to `▸ 4 tool calls · 2.1 s` above it, and a click reopens it.
-Every result is kept, success included: an agent's paraphrase of what an API
-returned is the one thing you cannot check an integration against. The relay
-engine (`@agent` messages) has no live events, so its calls still land as
-`[tool]` cards in the quieter dotted gutter, folded to one line until
-clicked.
+line of the result, muted. Click that line and the ARGUMENTS open first —
+one `key: value` row per argument when they are a JSON object, the raw text
+otherwise, six rows then `… +N more` — then a `→ result` row and up to
+twelve rows of the output on the code field (`… +N lines` past that), all
+on the code field; the copy that crosses the wire is bounded, so a `curl` of
+a large page cannot swell the pane. A pending line opens too: while a call
+runs, what it was asked is already worth reading. When the agent's reply
+settles the block folds to `▸ 4 tool calls · 2.1 s` above it, and a click
+reopens it. Every result is kept, success included: an agent's paraphrase of
+what an API returned is the one thing you cannot check an integration
+against. The relay engine (`@agent` messages) has no live events, so its
+calls still land as `[tool]` cards in the quieter dotted gutter, folded to
+one line until clicked.
+
+**Loads in the same block.** Three things shape a reply without being tool
+calls, and each used to happen in silence: a skill whose name the task
+mentions is spliced into the prompt, an MCP server is connected the first
+time a call needs it (a cold `npx` download can take thirteen seconds — it
+read as a hang), a language server is started on the first `lsp:` call.
+Each is now a line in the tool block, born done — no spinner, no duration,
+nothing ran: `✦ skill rust-testing · applied · <its one-liner>`,
+`⇄ mcp github · connected · 12 tools: a, b, c, d, …`,
+`λ lsp rust-analyzer · rust · crew` (the icon set draws a bolt, a plug and a
+language mark). A click opens the detail one segment per row, an MCP
+server's tool names one to a row. The summary counts them by kind —
+`▸ 4 tool calls · 1 skill · 2.1 s` — and times only the calls. A skill
+applied to a swarm task is run-level, so its line sits above the plan line;
+one applied on `@agent` sits above that agent's reply; a server that connected
+under nobody's name joins the block of the call that forced it, or heads the
+next reply. The LOG gets the same news (`smith: skill rust-testing applied`,
+`smith: mcp github connected`, `smith: lsp rust-analyzer started`), and the
+failures that were swallowed before reach it in the attention colour: a skill
+file that will not read, an agent manifest that will not parse, a language
+server that will not start. A call refused for being past the eight-per-turn
+bound shows as a failed line too — it used to be answered only to the model.
 
 **`@file` mentions.** In the composer, a trailing `@<query>` pops a fuzzy file
 picker over the project tree (filename-prefix first, then path matches; ↑/↓

@@ -173,3 +173,48 @@ fn status_rows_say_which_servers_are_installed() {
     assert_eq!(rows[1].0, "shell");
     assert!(rows[1].2);
 }
+
+/// A server that will not start is a `Status` line for the LOG — once, not
+/// once per call, since every call re-tries — and never a `Loaded` line.
+#[test]
+fn a_server_that_will_not_start_is_noted_once_and_never_announced_loaded() {
+    use std::sync::{Arc, Mutex};
+    let mut h = LspHost::new(table("crew-no-such-ls"));
+    let notes: Arc<Mutex<Vec<(bool, String)>>> = Arc::default();
+    let loaded: Arc<Mutex<Vec<crew_lsp::Diagnostic>>> = Arc::default();
+    let n = Arc::clone(&notes);
+    let l = Arc::clone(&loaded);
+    h.set_sinks(
+        Arc::new(move |e, m: &str| n.lock().unwrap().push((e, m.to_string()))),
+        Arc::new(move |_| l.lock().unwrap().clear()),
+    );
+    for _ in 0..2 {
+        h.call("hover", r#"{"file": "src/lib.rs", "line": 1, "col": 1}"#)
+            .unwrap_err();
+    }
+    let notes = notes.lock().unwrap();
+    assert_eq!(notes.len(), 1, "one note for two tries: {notes:?}");
+    assert!(notes[0].0, "an error-level note");
+    assert!(
+        notes[0].1.starts_with("lsp crew-no-such-ls: "),
+        "names the command: {}",
+        notes[0].1
+    );
+    assert!(notes[0].1.contains("not installed"), "{}", notes[0].1);
+}
+
+/// The `Loaded` line: the command (what you would install), the language,
+/// the project directory's NAME — not its whole path, which would eat the row.
+#[test]
+fn the_loaded_line_names_command_language_and_project() {
+    let ev = loaded_event("rust", "rust-analyzer", Path::new("/Users/me/code/crew"));
+    assert_eq!(
+        ev,
+        crew_hive::HiveEvent::Loaded {
+            agent: String::new(),
+            kind: "lsp".into(),
+            name: "rust-analyzer".into(),
+            detail: "rust \u{b7} crew".into(),
+        }
+    );
+}

@@ -5,7 +5,9 @@ use crate::chattool::{ToolDone, ToolLine};
 
 fn done_line(ok: bool, ms: u64, text: &str) -> ToolLine {
     ToolLine {
+        kind: crate::chattoolkind::LineKind::Tool,
         label: "fs:read".into(),
+        args: String::new(),
         args_short: "a".into(),
         started_ms: 0,
         done: Some(ToolDone {

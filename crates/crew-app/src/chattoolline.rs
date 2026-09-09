@@ -4,6 +4,7 @@
 //! Pure — a line, a clock, a width and the icon-set switch in; cells out.
 use crate::chatbody::{plain, CardCell, CardLine};
 use crate::chattool::ToolLine;
+use crate::chattoolkind::LineKind;
 use crate::chatwidth::{char_w, clip_w, str_w};
 use crate::glyphs::{fallback, nerd, Glyph};
 
@@ -66,6 +67,15 @@ pub(crate) fn glyph(g: Glyph, on: bool) -> &'static str {
 fn parts(line: &ToolLine, now_ms: u64, on: bool) -> (&'static str, Color, Color, Option<String>) {
     use crate::md::syntax::Token;
     let th = crew_theme::theme();
+    // A load: its kind's mark in the accent, and no clock — nothing ran.
+    if line.kind != LineKind::Tool {
+        return (
+            glyph(line.kind.glyph(), on),
+            crate::palette::accent(),
+            th.ink,
+            None,
+        );
+    }
     match &line.done {
         None => {
             let mark = match crate::motion::level() {
@@ -92,11 +102,17 @@ type Color = crate::chatbody::Color;
 /// One line as the card draws it, `cols` wide: `  ⟳ label subject · 3s`
 /// while pending, `  ✓ label subject · 120 ms` once done (`✗` on failure),
 /// then the result's first line muted in whatever room is left. The
-/// subject is clipped so the timing always fits. `on` = the Nerd Font icon
-/// set is active.
+/// subject is clipped so the timing always fits. A load reads
+/// `  ✦ skill rust-testing · applied · tests first`, its detail in the
+/// timing's place and held to half the row so the name always shows. `on`
+/// = the Nerd Font icon set is active.
 pub(crate) fn render(line: &ToolLine, now_ms: u64, cols: usize, on: bool) -> CardLine {
     let muted = crew_theme::theme().text_muted;
     let (mark, mark_fg, fg, tail) = parts(line, now_ms, on);
+    let tail = match (&line.done, line.kind) {
+        (Some(d), k) if k != LineKind::Tool => Some(clip_w(&d.text, cols / 2)),
+        _ => tail,
+    };
     let tail = tail.map_or(String::new(), |t| format!(" \u{00b7} {t}"));
     let subject = match line.args_short.is_empty() {
         true => line.label.clone(),
@@ -113,6 +129,7 @@ pub(crate) fn render(line: &ToolLine, now_ms: u64, cols: usize, on: bool) -> Car
     let first = line
         .done
         .as_ref()
+        .filter(|_| line.kind == LineKind::Tool)
         .and_then(|d| d.text.lines().find(|l| !l.trim().is_empty()));
     if let Some(first) = first.filter(|_| cols > used + 4) {
         let preview = format!("  {}", clip_w(first.trim(), cols - used - 2));
@@ -121,26 +138,22 @@ pub(crate) fn render(line: &ToolLine, now_ms: u64, cols: usize, on: bool) -> Car
     out
 }
 
-/// The opened result text under a done line: up to [`TEXT_ROWS`] rows on
-/// the code field, muted, each clipped to the width; a longer text ends in
-/// `… +N lines`. Empty unless the line was clicked open.
+/// The rows opened under a clicked line — the arguments, `→ result`, up to
+/// [`TEXT_ROWS`] of the result (`chattoolargs::opened_rows` decides them) —
+/// on the code field, muted, each clipped to the width. Empty unless the
+/// line was clicked open.
 pub(crate) fn text_rows(line: &ToolLine, cols: usize) -> Vec<CardLine> {
-    let Some(d) = line.done.as_ref().filter(|_| line.show_text) else {
+    if !line.show_text {
         return Vec::new();
-    };
+    }
     let (bg, fg) = (crate::chatink::code_bg(), crew_theme::theme().text_muted);
     let cell = |c: char| CardCell {
         bg: Some(bg),
         ..plain(c, fg, false)
     };
-    let all: Vec<&str> = d.text.lines().collect();
-    let shown = all.len().min(TEXT_ROWS);
-    (0..shown)
-        .map(|i| {
-            let s = match i + 1 == TEXT_ROWS && all.len() > TEXT_ROWS {
-                true => format!("\u{2026} +{} lines", all.len() - i),
-                false => all[i].to_string(),
-            };
+    crate::chattoolargs::opened_rows(line)
+        .into_iter()
+        .map(|s| {
             let body = format!("    {}", clip_w(&s, cols.saturating_sub(4)));
             let pad = cols.saturating_sub(str_w(&body));
             body.chars()
