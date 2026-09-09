@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.65
+
+**Fix: a composer pop-up no longer covers the composer.** The `/` palette,
+the `@` attach picker, the `/model` picker, the key prompt, Cmd+F and Ctrl+R
+all stand above the crew pane's composer — but each subtracted only the
+composer's rows from the pane's bottom, never the summary footer's (up to
+three rows) under it, so every pop-up landed on the composer itself and hid
+the very text being chosen: the query you typed, the row you were about to
+accept. One placement, `popupplace::above_composer`, now reads the same
+grants the pane is drawn from, so the pop-up's bottom edge is the composer's
+top edge. `popup_shot_stands_on_the_composer` renders both placements side
+by side.
+
 ## 0.21.64
 
 **The nav's LOG slot becomes two glance cards — SERVING and WAITING ON YOU

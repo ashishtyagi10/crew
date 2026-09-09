@@ -369,6 +369,10 @@ mod pickshot_tests;
 mod plot;
 mod pointer;
 mod poll;
+mod popupplace;
+#[cfg(test)]
+#[path = "popupshot_tests.rs"]
+mod popupshot_tests;
 mod procname;
 mod quit;
 mod readout;
