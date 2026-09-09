@@ -1168,9 +1168,11 @@ longer aim at.
   the bar: toggle the master switch, add a watched output pattern, or clear
   the patterns (the full set of knobs lives in `/settings`).
 - **`/diff`** — reviews the working tree's git changes **in the file viewer**:
-  a `git status --short` summary, the `diff --stat`, then the full unified
-  diff, rendered by crew's own diff rung rather than dumped as `git`'s colours
-  into a scrollback. That means each removed line is **paired with the added
+  a `git status --short` summary, the `diff --stat`, the full unified diff,
+  then **every untracked file as an addition against nothing** (`git diff` is
+  index-relative, so a file an agent had just created was a `??` line in the
+  status and absent from the review itself), rendered by crew's own diff rung
+  rather than dumped as `git`'s colours into a scrollback. That means each removed line is **paired with the added
   line that replaced it** and only the run that actually differs is drawn at
   full strength — the text the two share recedes toward the page — so you read
   *what* changed instead of hunting for it inside two lines of near-identical
@@ -2128,8 +2130,21 @@ and a typo gets a **did-you-mean** suggestion):
 - **`/reload`** — pick up extension edits without a restart: re-reads skills
   and plugin manifests, forces MCP to re-read `mcp.json` and reconnect on
   next use, and re-emits the roster so the pane's badges update.
-- **`/diff`** — the working tree's `git diff --stat` inline in the
-  transcript; **`/doctor`** — the broker's working directory and sys-tool
+- **`/diff`** — everything different from the last commit, inline in the
+  transcript: the `--stat` block, then **the patch itself** in a fenced `diff`
+  block the pane renders (added lines green, removed red, hunk headers cyan,
+  the changed words marked), untracked files included and crew's own `.crew/`
+  transcript excluded. Bounded at 30 KB on a line boundary, with a note
+  counting the lines left out. You rarely need to ask: **every task that
+  changes files is followed by its own patch** (12 KB, then "`/diff` shows the
+  whole patch") and, when a language server for the changed files is
+  installed, a **`diagnostics after the change:`** section listing what it
+  found — one line per diagnostic, `path:line:col — severity [source]:
+  message` — or the single line `no diagnostics in the N changed files` when
+  it found nothing. Deleted files are not asked about; the pass stops after
+  8 s so a slow server never holds a task's ending hostage; and with no server
+  on the machine there is no section at all, so the diff reads the same with
+  or without LSP. **`/doctor`** — the broker's working directory and sys-tool
   sandbox mode.
 - **"commit this"** — an **AI-written commit message** (à la Aider; the
   `/commit` slash form is retired, plain language replaced it): an agent
@@ -2219,15 +2234,41 @@ calling agent's card, not as a card of its own: a spinner and the subject
 (`fs:read src/foo.rs`, `sys:run cargo test`) with the seconds counting up
 while it runs, then `✓`/`✗` and the duration (`120 ms`, `3.2 s`) — which is
 what separates a slow tool from a hung one while you watch — and the first
-line of the result, muted. Click that line for up to twelve rows of the
-output on the code field; the copy that crosses the wire is bounded, so a
-`curl` of a large page cannot swell the pane. When the agent's reply settles
-the block folds to `▸ 4 tool calls · 2.1 s` above it, and a click reopens it.
-Every result is kept, success included: an agent's paraphrase of what an API
-returned is the one thing you cannot check an integration against. The relay
-engine (`@agent` messages) has no live events, so its calls still land as
-`[tool]` cards in the quieter dotted gutter, folded to one line until
-clicked.
+line of the result, muted. Click that line and the ARGUMENTS open first —
+one `key: value` row per argument when they are a JSON object, the raw text
+otherwise, six rows then `… +N more` — then a `→ result` row and up to
+twelve rows of the output on the code field (`… +N lines` past that), all
+on the code field; the copy that crosses the wire is bounded, so a `curl` of
+a large page cannot swell the pane. A pending line opens too: while a call
+runs, what it was asked is already worth reading. When the agent's reply
+settles the block folds to `▸ 4 tool calls · 2.1 s` above it, and a click
+reopens it. Every result is kept, success included: an agent's paraphrase of
+what an API returned is the one thing you cannot check an integration
+against. The relay engine (`@agent` messages) has no live events, so its
+calls still land as `[tool]` cards in the quieter dotted gutter, folded to
+one line until clicked.
+
+**Loads in the same block.** Three things shape a reply without being tool
+calls, and each used to happen in silence: a skill whose name the task
+mentions is spliced into the prompt, an MCP server is connected the first
+time a call needs it (a cold `npx` download can take thirteen seconds — it
+read as a hang), a language server is started on the first `lsp:` call.
+Each is now a line in the tool block, born done — no spinner, no duration,
+nothing ran: `✦ skill rust-testing · applied · <its one-liner>`,
+`⇄ mcp github · connected · 12 tools: a, b, c, d, …`,
+`λ lsp rust-analyzer · rust · crew` (the icon set draws a bolt, a plug and a
+language mark). A click opens the detail one segment per row, an MCP
+server's tool names one to a row. The summary counts them by kind —
+`▸ 4 tool calls · 1 skill · 2.1 s` — and times only the calls. A skill
+applied to a swarm task is run-level, so its line sits above the plan line;
+one applied on `@agent` sits above that agent's reply; a server that connected
+under nobody's name joins the block of the call that forced it, or heads the
+next reply. The LOG gets the same news (`smith: skill rust-testing applied`,
+`smith: mcp github connected`, `smith: lsp rust-analyzer started`), and the
+failures that were swallowed before reach it in the attention colour: a skill
+file that will not read, an agent manifest that will not parse, a language
+server that will not start. A call refused for being past the eight-per-turn
+bound shows as a failed line too — it used to be answered only to the model.
 
 **`@file` mentions.** In the composer, a trailing `@<query>` pops a fuzzy file
 picker over the project tree (filename-prefix first, then path matches; ↑/↓

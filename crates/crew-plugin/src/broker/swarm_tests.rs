@@ -1067,3 +1067,25 @@ fn thought_deltas_translate_to_gated_thoughts_and_the_reply_flushes_the_tail() {
         "a raw ThoughtDelta never crosses the wire"
     );
 }
+
+/// A `Loaded` event crosses the wire verbatim (the pane draws it) and has no
+/// chat-facing translation: nobody is waiting on a skill the way they wait
+/// on a tool, so it must not touch the activity header.
+#[test]
+fn a_loaded_event_is_forwarded_whole_and_translates_to_nothing() {
+    let ev = HiveEvent::Loaded {
+        agent: "coder".into(),
+        kind: "mcp".into(),
+        name: "github".into(),
+        detail: "connected \u{b7} 2 tools: a, b".into(),
+    };
+    assert_eq!(swarmmsg::forwarded(&ev), Some(ev.clone()));
+    let out = translate(
+        &ev,
+        &HashMap::new(),
+        &mut HashMap::new(),
+        &mut HashMap::<u64, TextGate>::new(),
+        0,
+    );
+    assert!(out.is_empty(), "no Activity for a load: {out:?}");
+}

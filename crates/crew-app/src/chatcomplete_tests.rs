@@ -54,7 +54,8 @@ fn completes_and_describes_diff() {
     // Not the palette's own sentence any more — the broker's, verbatim.
     assert_eq!(
         describe("/diff"),
-        "everything different from the last commit, new files included"
+        "everything different from the last commit as a patch, new files included \
+         (every task that changes files shows its own patch and the diagnostics after it)"
     );
 }
 

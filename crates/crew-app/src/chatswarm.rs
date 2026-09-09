@@ -3,7 +3,7 @@
 //! state the line simply disappears — the per-agent replies already streamed
 //! into the transcript, so no summary record is left behind. Live rendering
 //! (one status line: spinner, focused task, elapsed, settled count) lives in
-//! `chatswarmview`.
+//! `chatswarmview`; the LOG tee of the same events in `chatswarmlog`.
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -125,6 +125,7 @@ impl SwarmStatus {
             | HiveEvent::ThoughtDelta { .. }
             | HiveEvent::ToolCall { .. }
             | HiveEvent::ToolResult { .. }
+            | HiveEvent::Loaded { .. }
             | HiveEvent::Failed { .. } => {}
         }
     }
@@ -175,58 +176,3 @@ impl ChatPane {
 #[cfg(test)]
 #[path = "chatswarm_tests.rs"]
 mod tests;
-
-/// The LOG line a hive event deserves, or `None` for the high-volume tiers
-/// (token/cost/output deltas — liveness, not lifecycle). `(error, text)`;
-/// titles come from the live plan so the LOG speaks task names, not ids.
-pub(crate) fn log_line(swarm: Option<&SwarmStatus>, ev: &HiveEvent) -> Option<(bool, String)> {
-    let title = |id: TaskId| -> String {
-        swarm
-            .and_then(|s| s.tasks.iter().find(|t| t.id == id))
-            .map(|t| format!(" \u{2018}{}\u{2019}", t.title))
-            .unwrap_or_default()
-    };
-    match ev {
-        HiveEvent::AgentSpawned { agent, task } => Some((
-            false,
-            format!(
-                "smith: agent {} took task #{}{}",
-                agent.0,
-                task.0,
-                title(*task)
-            ),
-        )),
-        HiveEvent::TaskStateChanged { task, state } => {
-            let s = match state {
-                TaskState::Pending => return None, // plan baseline, not news
-                TaskState::Ready => return None,
-                TaskState::Running => "running",
-                TaskState::Done => "done",
-                TaskState::Failed => "FAILED",
-                TaskState::Cancelled => "cancelled",
-            };
-            Some((
-                *state == TaskState::Failed,
-                format!("smith: task #{}{} \u{2192} {s}", task.0, title(*task)),
-            ))
-        }
-        HiveEvent::Failed { agent, error } => {
-            Some((true, format!("smith: agent {} failed: {error}", agent.0)))
-        }
-        // A tool call IS lifecycle — it is the swarm touching something
-        // outside crew — so it earns a LOG line where output deltas do not.
-        HiveEvent::ToolCall { agent, label, .. } => {
-            Some((false, format!("smith: agent {} called {label}", agent.0)))
-        }
-        // Only failures: the ToolCall line already announced the call, and
-        // repeating every success would double the busiest run's volume.
-        HiveEvent::ToolResult {
-            label, ok, text, ..
-        } => (!ok).then(|| (true, format!("smith: {label} failed: {text}"))),
-        HiveEvent::TokenDelta { .. }
-        | HiveEvent::CostDelta { .. }
-        | HiveEvent::OutputDelta { .. }
-        | HiveEvent::ThoughtDelta { .. }
-        | HiveEvent::OutputChunk { .. } => None,
-    }
-}

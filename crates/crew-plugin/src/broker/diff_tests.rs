@@ -2,9 +2,12 @@ use super::*;
 
 #[test]
 fn clean_tree_reports_a_friendly_line() {
-    assert_eq!(diff_report(""), "working tree clean \u{2014} no changes");
     assert_eq!(
-        diff_report("   \n  \t "),
+        diff_report("", ""),
+        "working tree clean \u{2014} no changes"
+    );
+    assert_eq!(
+        diff_report("   \n  \t ", ""),
         "working tree clean \u{2014} no changes"
     );
 }
@@ -13,7 +16,7 @@ fn clean_tree_reports_a_friendly_line() {
 fn small_stat_passes_through_trimmed() {
     let stat = "\n a.txt | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n";
     assert_eq!(
-        diff_report(stat),
+        diff_report(stat, ""),
         "a.txt | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)"
     );
 }
@@ -21,7 +24,7 @@ fn small_stat_passes_through_trimmed() {
 #[test]
 fn over_cap_stat_is_truncated_with_marker() {
     let long = "x".repeat(5000);
-    let out = diff_report(&long);
+    let out = diff_report(&long, "");
     assert_eq!(
         out.chars().count(),
         4000 + "\n\u{2026} (diff truncated)".chars().count()
@@ -47,7 +50,7 @@ fn a_new_file_and_a_staged_edit_both_show() {
     assert!(stat.contains("new.rs"), "untracked file missing: {stat}");
     assert!(stat.contains("a.txt"), "staged edit missing: {stat}");
     assert!(
-        !diff_report(&stat).starts_with("working tree clean"),
+        !diff_report(&stat, "").starts_with("working tree clean"),
         "reported clean with two changed files: {stat}"
     );
     let _ = std::fs::remove_dir_all(&dir);
@@ -61,7 +64,7 @@ fn crews_own_files_are_excluded_here_too() {
     std::fs::create_dir_all(dir.join(".crew")).unwrap();
     std::fs::write(dir.join(".crew/session-live.md"), "## a reply").unwrap();
     assert_eq!(
-        diff_report(&worktree_stat(&dir).unwrap()),
+        diff_report(&worktree_stat(&dir).unwrap(), ""),
         "working tree clean \u{2014} no changes"
     );
     // …by being EXCLUDED, not by nothing being visible. Without this the test
@@ -80,7 +83,7 @@ fn crews_own_files_are_excluded_here_too() {
 fn an_untouched_tree_is_still_clean() {
     let dir = temp_repo("clean");
     assert_eq!(
-        diff_report(&worktree_stat(&dir).unwrap()),
+        diff_report(&worktree_stat(&dir).unwrap(), ""),
         "working tree clean \u{2014} no changes"
     );
     let _ = std::fs::remove_dir_all(&dir);
@@ -112,6 +115,55 @@ fn outside_a_repository_it_is_an_error_not_a_panic() {
     let dir = std::env::temp_dir().join(format!("crew-diff-norepo-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     assert!(worktree_stat(&dir).is_err());
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The whole point of asking: the patch itself, in the fence the pane's diff
+/// lexer renders, after the stat — not the stat alone.
+#[test]
+fn the_reply_carries_the_patch_in_a_diff_fence() {
+    let dir = temp_repo("patch");
+    std::fs::write(dir.join("a.txt"), "two").unwrap();
+    std::fs::write(dir.join("new.rs"), "fn new() {}\n").unwrap();
+    let stat = worktree_stat(&dir).unwrap();
+    let patch = worktree_patch(&dir).unwrap();
+    let out = diff_report(&stat, &patch);
+    assert!(out.starts_with("a.txt"), "the stat still leads: {out}");
+    assert!(out.contains("\n```diff\n"), "no fence: {out}");
+    assert!(out.contains("@@ -1 +1 @@"), "no hunk header: {out}");
+    // "one" had no trailing newline, so git says so between the two lines.
+    assert!(out.contains("\n-one\n"), "{out}");
+    assert!(out.contains("\n+two"), "{out}");
+    assert!(out.contains("+fn new() {}"), "the untracked file: {out}");
+    assert!(out.trim_end().ends_with("```"), "unclosed fence: {out}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// `/diff` shows more than the end-of-task note but is bounded too, and the
+/// clip lands on a line boundary. Its note has no "/diff shows the rest" tail
+/// — this IS /diff.
+#[test]
+fn a_huge_patch_is_clipped_on_a_line_without_the_diff_hint() {
+    let lines: Vec<String> = (0..4000).map(|i| format!("+{i:08}")).collect();
+    let out = diff_report("a | 1 +", &lines.join("\n"));
+    assert!(out.chars().count() < PATCH_CAP + 200, "{}", out.len());
+    assert!(out.contains("\n\u{2026} (+"), "no clip note: {out}");
+    assert!(
+        out.contains("more lines)\n```"),
+        "note not before the fence close: {out}"
+    );
+    assert!(!out.contains("/diff shows"), "{out}");
+    let _ = lines;
+}
+
+#[test]
+fn a_clean_tree_is_still_one_friendly_line() {
+    let dir = temp_repo("clean-patch");
+    let out = diff_report(
+        &worktree_stat(&dir).unwrap(),
+        &worktree_patch(&dir).unwrap(),
+    );
+    assert_eq!(out, "working tree clean \u{2014} no changes");
     let _ = std::fs::remove_dir_all(&dir);
 }
 

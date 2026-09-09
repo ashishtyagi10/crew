@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 use crew_lsp::servers::{self, Server};
 use crew_lsp::{Client, Diagnostic};
 
-use crate::mcp::McpTool;
+use crate::mcp::{EventSink, McpTool, StatusSink};
 pub use tools::Args;
 
 /// Per-request deadline. A language server that has not answered in this
@@ -33,6 +33,16 @@ pub struct LspHost {
     /// The latest `publishDiagnostics` per URI, from every notification
     /// drained while answering anything.
     diags: BTreeMap<String, Vec<Diagnostic>>,
+    /// Where a start that failed goes (`lsp <cmd>: <why>`, for the LOG) and
+    /// where one that succeeded goes (a `Loaded` line in the pane's tool
+    /// block). A language server used to start with no sink, no status and
+    /// no log line: rust-analyzer's first index can take a minute, and the
+    /// only sign anything was happening was the tool call's clock.
+    sink: Option<StatusSink>,
+    events: Option<EventSink>,
+    /// Failures already noted, keyed `lang:root` — a missing binary is
+    /// re-tried by every call, and would otherwise hit the LOG every call.
+    noted: std::collections::BTreeSet<String>,
 }
 
 impl LspHost {
@@ -56,6 +66,40 @@ impl LspHost {
     /// Whether any language is served at all.
     pub fn is_empty(&self) -> bool {
         self.servers.is_empty()
+    }
+
+    /// Route start failures to `sink` and successful starts to `events`.
+    pub fn set_sinks(&mut self, sink: StatusSink, events: EventSink) {
+        self.sink = Some(sink);
+        self.events = Some(events);
+    }
+
+    /// Start the server for `(lang, root)`, telling the sinks how it went.
+    fn start(&mut self, lang: &str, root: &Path) -> Result<Client, String> {
+        let key = format!("{lang}:{}", root.display());
+        let started = self.server_for(lang).and_then(|(server, bin)| {
+            let mut c = Client::spawn(&bin.to_string_lossy(), &server.args, lang, root)?;
+            c.initialize(TIMEOUT)?;
+            Ok((server.command, c))
+        });
+        match started {
+            Ok((command, c)) => {
+                self.noted.remove(&key);
+                if let Some(events) = &self.events {
+                    events(loaded_event(lang, &command, root));
+                }
+                Ok(c)
+            }
+            Err(e) => {
+                let cmd = self.servers.get(lang).map_or(lang, |s| s.command.as_str());
+                if self.noted.insert(key) {
+                    if let Some(sink) = &self.sink {
+                        sink(true, &format!("lsp {cmd}: {e}"));
+                    }
+                }
+                Err(e)
+            }
+        }
     }
 
     /// The four tools, when there is a server table to answer them.
@@ -83,13 +127,18 @@ impl LspHost {
         Ok((server.clone(), bin))
     }
 
+    /// Whether a language server for `path` is both configured and installed
+    /// — what the end-of-task diagnostics ask before opening anything, so a
+    /// file nobody serves costs no spawn and earns no "not installed" line.
+    pub fn serves_file(&self, path: &Path) -> bool {
+        servers::lang_of(path).is_some_and(|lang| self.server_for(lang).is_ok())
+    }
+
     /// The running client for `(lang, root)`, started on first use.
     fn client(&mut self, lang: &str, root: &Path) -> Result<&mut Client, String> {
         let key = (lang.to_string(), root.to_path_buf());
         if !self.clients.contains_key(&key) {
-            let (server, bin) = self.server_for(lang)?;
-            let mut c = Client::spawn(&bin.to_string_lossy(), &server.args, lang, root)?;
-            c.initialize(TIMEOUT)?;
+            let c = self.start(lang, root)?;
             self.clients.insert(key.clone(), c);
         }
         Ok(self.clients.get_mut(&key).expect("just inserted"))
@@ -197,6 +246,22 @@ impl LspHost {
                 )
             })
             .collect()
+    }
+}
+
+/// The `Loaded` line for a server that answered `initialize`: the command
+/// (what a person would install or configure), the language it serves and
+/// the project it indexes — `rust-analyzer · rust · crew`.
+pub(crate) fn loaded_event(lang: &str, command: &str, root: &Path) -> crew_hive::HiveEvent {
+    let project = root
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| root.display().to_string());
+    crew_hive::HiveEvent::Loaded {
+        agent: String::new(),
+        kind: "lsp".into(),
+        name: command.to_string(),
+        detail: format!("{lang} \u{b7} {project}"),
     }
 }
 

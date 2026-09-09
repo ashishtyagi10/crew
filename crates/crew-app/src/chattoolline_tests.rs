@@ -6,7 +6,9 @@ use crate::motion::MotionLevel::{Full, Off};
 
 fn line(label: &str, args: &str, started: u64) -> ToolLine {
     ToolLine {
+        kind: LineKind::Tool,
         label: label.into(),
+        args: String::new(),
         args_short: args.into(),
         started_ms: started,
         done: None,

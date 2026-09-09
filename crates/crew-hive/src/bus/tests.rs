@@ -75,3 +75,29 @@ async fn default_capacity_is_applied_and_lag_reports_the_miss_count() {
         other => panic!("expected Lagged(10), got {other:?}"),
     }
 }
+
+/// The wire copy of a `Loaded` event survives a round trip, and one written
+/// by a broker that knows fewer fields still parses — every field defaults.
+#[test]
+fn a_loaded_event_round_trips_and_its_fields_default() {
+    let ev = HiveEvent::Loaded {
+        agent: "coder".into(),
+        kind: "skill".into(),
+        name: "rust-testing".into(),
+        detail: "applied \u{b7} tests first".into(),
+    };
+    let json = serde_json::to_string(&ev).unwrap();
+    assert!(json.contains("\"Loaded\""), "{json}");
+    assert_eq!(serde_json::from_str::<HiveEvent>(&json).unwrap(), ev);
+    let sparse: HiveEvent = serde_json::from_str(r#"{"Loaded":{"kind":"mcp","name":"github"}}"#)
+        .expect("agent and detail default");
+    assert_eq!(
+        sparse,
+        HiveEvent::Loaded {
+            agent: String::new(),
+            kind: "mcp".into(),
+            name: "github".into(),
+            detail: String::new(),
+        }
+    );
+}

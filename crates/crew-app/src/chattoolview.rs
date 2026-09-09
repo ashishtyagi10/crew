@@ -22,11 +22,12 @@ pub(crate) enum ToolHit {
     Line(usize),
 }
 
-/// `  ▸ 4 tool calls · 2.1 s` (`▾` open; a wrench on the icon set) with a
-/// `· 1 failed` in the removed ink when any call did.
+/// `  ▸ 4 tool calls · 1 skill · 2.1 s` (`▾` open; a wrench on the icon
+/// set; the counts are `chattoolkind::summary_text`'s) with a `· 1 failed`
+/// in the removed ink when any call did.
 pub(crate) fn summary(b: &ToolBlock, cols: usize, on: bool) -> CardLine {
     let th = crew_theme::theme();
-    let (calls, failed, ms) = b.tally();
+    let (_, failed, _) = b.tally();
     let mark = glyph(
         if b.expanded {
             Glyph::ToolOpen
@@ -35,11 +36,7 @@ pub(crate) fn summary(b: &ToolBlock, cols: usize, on: bool) -> CardLine {
         },
         on,
     );
-    let plural = if calls == 1 { "" } else { "s" };
-    let head = format!(
-        "  {mark} {calls} tool call{plural} \u{00b7} {}",
-        crate::chattoolline::fmt_ms(ms)
-    );
+    let head = format!("  {mark} {}", crate::chattoolkind::summary_text(b));
     let mut out: CardLine = head
         .chars()
         .map(|c| plain(c, th.text_muted, false))

@@ -124,7 +124,7 @@ impl ChatPane {
                         // Quiet lifecycle tee: the run's spawn/state beats
                         // land in the LOG (and /log) without flashing the bar.
                         if let Some((error, message)) =
-                            crate::chatswarm::log_line(self.swarm.as_ref(), &event)
+                            crate::chatswarmlog::log_line(self.swarm.as_ref(), &event)
                         {
                             actions.push(HostAction::Log { error, message });
                         }

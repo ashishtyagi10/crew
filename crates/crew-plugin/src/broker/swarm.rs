@@ -23,6 +23,8 @@ const CONCURRENCY: usize = 4;
 const WORK_MAX_TOKENS: u32 = 2048;
 /// Fan-out for the offline stub planner.
 const STUB_FANOUT: usize = 2;
+/// The name a run-level `Loaded` event carries — the plan line's own sender.
+const SWARM_LEAD: &str = "agent smith";
 
 /// Entry point for a plain (unaddressed) chat task.
 pub(crate) fn run_task(
@@ -33,7 +35,14 @@ pub(crate) fn run_task(
     // A pending resume folds the previous session's tail in as restored
     // context (consumed once) — mirroring `relay_counting` — and skills
     // weave in first, matched on the raw task, exactly as on the relay path.
-    let task_owned = fold_resume(session, &super::skillframe::with_skills(task));
+    // Each applied playbook is announced under the run's lead: the frame is
+    // run-level (it heads the task the planner reads), and "agent smith" is
+    // the sender of the plan line the pane anchors it above.
+    let framed = super::skillframe::with_skills(task);
+    for ev in super::skillframe::loaded_events(&framed.applied, SWARM_LEAD) {
+        emit(ev)?;
+    }
+    let task_owned = fold_resume(session, &framed.body);
     super::sessionlog::append("user", task);
     let (planner, factory, budget, model, replan) = backend(session.tools());
     run_with(

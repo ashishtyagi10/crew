@@ -35,7 +35,6 @@ src/chatpalette.rs 222
 src/chatpalette_tests.rs 348
 src/chatsummary.rs 296
 src/chatsummary_tests.rs 639
-src/chatswarm.rs 232
 src/chatswarm_tests.rs 331
 src/chatswarmview.rs 307
 src/chatswarmview_tests.rs 460

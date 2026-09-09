@@ -275,3 +275,43 @@ fn a_tool_the_server_does_not_list_is_refused_without_dropping_the_connection() 
         "hello\nworld"
     );
 }
+
+/// A connect that succeeds is transcript news: one `Loaded { kind: "mcp" }`
+/// through the event sink, naming the server and counting its tools — the
+/// `Status` note stays for the LOG, this is what the reply's block shows.
+/// Once per connection generation, like the notes.
+#[test]
+fn a_successful_connect_emits_one_loaded_event_with_the_tool_count() {
+    use std::sync::{Arc, Mutex};
+    let mut servers = BTreeMap::new();
+    servers.insert("fake".to_string(), canned("loaded-ok", &[INIT, TOOLS]));
+    let mut host = McpHost::new(servers);
+    let seen: Arc<Mutex<Vec<crew_hive::HiveEvent>>> = Arc::default();
+    let sink_seen = Arc::clone(&seen);
+    host.set_event_sink(Arc::new(move |ev| sink_seen.lock().unwrap().push(ev)));
+    host.tools();
+    host.tools();
+    assert_eq!(
+        *seen.lock().unwrap(),
+        [crew_hive::HiveEvent::Loaded {
+            agent: String::new(),
+            kind: "mcp".into(),
+            name: "fake".into(),
+            detail: "connected \u{b7} 1 tool: echo".into(),
+        }],
+        "one event for two turns: the second answers from cache"
+    );
+}
+
+#[test]
+fn the_connected_line_names_the_first_few_tools_then_elides() {
+    let many = ["a", "b", "c", "d", "e", "f"];
+    let crew_hive::HiveEvent::Loaded { detail, .. } = crate::mcp::loaded_event("gh", &many) else {
+        panic!("not a Loaded event");
+    };
+    assert_eq!(detail, "connected \u{b7} 6 tools: a, b, c, d, \u{2026}");
+    let crew_hive::HiveEvent::Loaded { detail, .. } = crate::mcp::loaded_event("gh", &[]) else {
+        panic!("not a Loaded event");
+    };
+    assert_eq!(detail, "connected \u{b7} 0 tools");
+}

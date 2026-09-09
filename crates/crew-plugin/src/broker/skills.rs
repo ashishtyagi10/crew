@@ -67,7 +67,20 @@ fn normalize_name(s: &str) -> String {
 
 /// All `.md` skills in `dir`, plus subdirectories containing a `SKILL.md` (empty
 /// when the dir doesn't exist), sorted by name so loading order is stable.
+/// A file that will not read (not UTF-8, unreadable) is reported to the
+/// host's LOG rather than dropped in silence — a playbook you wrote and
+/// cannot see applied is a bug you cannot find.
 pub(crate) fn load_dir(dir: &Path, origin: &'static str) -> Vec<Skill> {
+    load_dir_with(dir, origin, &mut |why| super::hostnote::status(true, why))
+}
+
+/// [`load_dir`] with the failure path explicit: `on_err` gets one
+/// `skill <file>: <why>` line per file that did not load.
+pub(crate) fn load_dir_with(
+    dir: &Path,
+    origin: &'static str,
+    on_err: &mut dyn FnMut(String),
+) -> Vec<Skill> {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return Vec::new();
     };
@@ -87,7 +100,13 @@ pub(crate) fn load_dir(dir: &Path, origin: &'static str) -> Vec<Skill> {
     sources
         .into_iter()
         .filter_map(|(path, stem, root)| {
-            let text = std::fs::read_to_string(&path).ok()?;
+            let text = match std::fs::read_to_string(&path) {
+                Ok(t) => t,
+                Err(e) => {
+                    on_err(format!("skill {}: {e}", path.display()));
+                    return None;
+                }
+            };
             let mut s = parse(&text, &stem, origin);
             s.path = path;
             s.dir = root;

@@ -146,12 +146,22 @@ pub(super) async fn run(
             // tool_call ids are not all answered, so skipping one would fail
             // the next request rather than the call.
             if i >= MAX_CALLS_PER_TURN {
+                let content =
+                    format!("not run \u{2014} at most {MAX_CALLS_PER_TURN} tools per turn");
+                // The person watching gets the refusal too: with no `ToolCall`
+                // for a dropped call, this result is the ONLY trace the pane
+                // ever sees of it (it lands as a failed line, `chattool`).
+                ctx.bus.publish(HiveEvent::ToolResult {
+                    agent: agent_id.clone(),
+                    label: label_of(call, &catalog),
+                    ok: false,
+                    text: content.clone(),
+                    ms: 0,
+                });
                 results.push(ToolOutcome {
                     id: call.id.clone(),
                     name: call.name.clone(),
-                    content: format!(
-                        "not run \u{2014} at most {MAX_CALLS_PER_TURN} tools per turn"
-                    ),
+                    content,
                     is_error: true,
                 });
                 continue;

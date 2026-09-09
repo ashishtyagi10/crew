@@ -230,6 +230,7 @@ async fn an_invented_tool_name_is_answered_not_executed() {
 async fn every_call_in_a_turn_is_answered_even_past_the_per_turn_bound() {
     let many = Completion {
         text: String::new(),
+        thought: String::new(),
         input_tokens: 1,
         output_tokens: 1,
         cost_microusd: 0,
@@ -333,4 +334,60 @@ fn an_unknown_tool_is_answered_with_what_was_probably_meant() {
         outcome_for_unknown(&call, &many).content,
         "unknown tool \u{201c}sys_run\u{201d} \u{2014} did you mean sys__run, sys__find_tools? (14 tools in all; sys__find_tools searches them)"
     );
+}
+
+/// The refusal past the per-turn bound reaches the BUS too, one `ToolResult
+/// { ok: false }` per dropped call: the pane draws the block from these
+/// events, so a call answered only on the wire back to the model was a call
+/// the person watching never saw refused.
+#[tokio::test]
+async fn calls_refused_past_the_per_turn_bound_publish_a_failed_result_each() {
+    let many = Completion {
+        text: String::new(),
+        input_tokens: 1,
+        output_tokens: 1,
+        cost_microusd: 0,
+        calls: (0..MAX_CALLS_PER_TURN + 2)
+            .map(|i| ToolInvocation {
+                id: format!("c{i}"),
+                name: "weather__current".into(),
+                input: serde_json::json!({}),
+            })
+            .collect(),
+    };
+    let (provider, _) = Scripted::new(vec![many, answering("done")]);
+    let tools = Arc::new(FakeTools {
+        calls: Arc::new(Mutex::new(Vec::new())),
+        result: Ok("4C".into()),
+    });
+    let bus = EventBus::new(256);
+    let mut rx = bus.subscribe();
+    crate::apiagent::ApiAgent::new(provider, 256)
+        .with_tools(tools)
+        .run(ctx(&bus))
+        .await;
+    let mut refused = Vec::new();
+    while let Ok(ev) = rx.try_recv() {
+        if let HiveEvent::ToolResult {
+            ok: false,
+            text,
+            label,
+            ms,
+            ..
+        } = ev
+        {
+            refused.push((label, text, ms));
+        }
+    }
+    assert_eq!(
+        refused.len(),
+        2,
+        "one refusal per dropped call: {refused:?}"
+    );
+    assert_eq!(refused[0].0, "weather:current");
+    assert_eq!(
+        refused[0].1,
+        format!("not run \u{2014} at most {MAX_CALLS_PER_TURN} tools per turn")
+    );
+    assert_eq!(refused[0].2, 0, "nothing ran, so no duration");
 }

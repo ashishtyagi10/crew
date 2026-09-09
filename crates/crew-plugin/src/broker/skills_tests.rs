@@ -200,3 +200,26 @@ fn list_is_rooted_at_the_given_project_dir_not_the_cwd() {
     assert_eq!(review.origin, "project");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// A skill file that will not read (not UTF-8 here) is REPORTED with its
+/// path, while its neighbours still load. It used to vanish.
+#[test]
+fn an_unreadable_skill_file_is_reported_and_the_rest_still_load() {
+    let d = tmpdir("unreadable");
+    std::fs::write(d.join("good.md"), "Tests first.").unwrap();
+    std::fs::write(d.join("bad.md"), [0xff, 0xfe, 0x00, 0x80]).unwrap();
+    let mut errs = Vec::new();
+    let loaded = load_dir_with(&d, "project", &mut |e| errs.push(e));
+    assert_eq!(
+        loaded.iter().map(|s| s.name.as_str()).collect::<Vec<_>>(),
+        ["good"]
+    );
+    assert_eq!(errs.len(), 1, "{errs:?}");
+    let want = format!("skill {}: ", d.join("bad.md").display());
+    assert!(errs[0].starts_with(&want), "{}", errs[0]);
+    assert!(
+        errs[0].contains("invalid utf-8") || errs[0].contains("UTF-8"),
+        "{}",
+        errs[0]
+    );
+}
