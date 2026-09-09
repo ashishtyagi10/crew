@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.58
+
+**The smith pane shows the diff a task made — and what the language servers
+make of it.**
+
+After a task changes files, the pane used to name them and point at `/diff`.
+Now the file list is followed by the patch itself, in a fenced diff block the
+pane already renders (added lines green, removed red, hunk headers cyan, the
+changed words marked), cut at 12,000 characters on a line boundary with a note
+saying how many lines `/diff` still holds. Beneath it, when a language server
+on the machine serves any of the changed files, a `diagnostics after the
+change:` section lists what it reports, or one line says the changed files are
+clean. No server means no section: the diff reads perfectly on its own.
+
+`/diff` in the smith pane now prints the stat block and the full patch (to
+30,000 characters) instead of the stat alone; the terminal pane's `/diff`
+review includes untracked files, which `git diff` used to hide.
+
 ## 0.21.57
 
 **Fix: the `/login` and `/logout` pickers did nothing when picked.**

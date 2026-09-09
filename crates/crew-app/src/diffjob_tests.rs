@@ -72,3 +72,68 @@ fn a_read_of_a_repo_lands_in_a_file_exactly_once() {
         Err(e) => assert!(e.contains("clean"), "{e}"),
     }
 }
+
+fn git(dir: &Path, args: &[&str]) {
+    assert!(std::process::Command::new("git")
+        .args(args)
+        .current_dir(dir)
+        .status()
+        .unwrap()
+        .success());
+}
+
+/// `git diff` compares the working tree with the INDEX, so a file an agent
+/// has just created — the most likely thing in a tree after an agent ran —
+/// was in the `??` line of the status and nowhere in the review's diff. Both
+/// the edit and the new file must be in the written review, as content.
+#[test]
+fn an_untracked_file_is_in_the_review_as_content() {
+    let dir = std::env::temp_dir().join(format!(
+        "crew-diffjob-untracked-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0),
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    for args in [
+        &["init", "-q"][..],
+        &["config", "user.email", "t@t"],
+        &["config", "user.name", "t"],
+    ] {
+        git(&dir, args);
+    }
+    std::fs::write(dir.join("tracked.txt"), "one\n").unwrap();
+    git(&dir, &["add", "-A"]);
+    git(&dir, &["commit", "-q", "-m", "init"]);
+    std::fs::write(dir.join("tracked.txt"), "two\n").unwrap();
+    std::fs::write(dir.join("fresh.rs"), "fn fresh() {}\n").unwrap();
+
+    let mut j = DiffJob::default();
+    j.start(dir.clone());
+    let mut done = None;
+    for _ in 0..200 {
+        if let Some(d) = j.take() {
+            done = Some(d);
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
+    let path = done
+        .expect("the read finished")
+        .expect("a dirty tree writes a review");
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains("?? fresh.rs"), "status: {text}");
+    assert!(text.contains("-one\n+two"), "the tracked edit: {text}");
+    assert!(
+        text.contains("+fn fresh() {}"),
+        "the untracked file's content is missing: {text}"
+    );
+    assert!(
+        text.contains("b/fresh.rs"),
+        "a header for the new file: {text}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_file(&path);
+}

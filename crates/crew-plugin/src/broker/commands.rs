@@ -57,7 +57,8 @@ pub(crate) const HELP: &str = "constructs:\n\
     \u{201c}look over my changes\u{201d}, \u{201c}what did I ship this week\u{201d} and \
     \u{201c}pick up where we left off\u{201d} reach code review, a standup and the last session\n\
     /restore [n] — list the automatic snapshots, or put snapshot n's files back\n\
-    /diff — everything different from the last commit, new files included\n\
+    /diff — everything different from the last commit as a patch, new files included \
+    (every task that changes files shows its own patch and the diagnostics after it)\n\
     /doctor — health-check the AI stack (provider, CLIs, MCP servers and tools, memory, session)\n\
     #<note> — remember a preference (ask \u{201c}what do you remember?\u{201d} to see them)\n\
     skills: drop .md playbooks into .crew/skills — a task that names one applies it by itself\n\

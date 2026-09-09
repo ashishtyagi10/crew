@@ -19,11 +19,11 @@ use crate::PluginEvent;
 use super::checkpoint::{git, worktree_tree};
 use super::relay::msg;
 
-/// The empty tree, asked of git rather than hard-coded — the well-known
-/// `4b825dc…` is the SHA-1 value and is wrong in a SHA-256 repository.
-fn empty_tree(dir: &Path) -> Result<String, String> {
-    git(dir, &["hash-object", "-t", "tree", "/dev/null"], None)
-}
+/// How much of the patch `/diff` shows inline, in chars — wider than the
+/// end-of-task note's [`super::taskdiff::PATCH_CAP`] because here the reader
+/// ASKED for the whole thing; bounded all the same, since a pane is not a
+/// pager and a repo-wide reformat would bury the transcript.
+pub(crate) const PATCH_CAP: usize = 30_000;
 
 /// `--stat` for everything in `dir` that differs from the last commit,
 /// untracked files included. On an unborn branch there is no HEAD to compare
@@ -31,10 +31,7 @@ fn empty_tree(dir: &Path) -> Result<String, String> {
 /// rather than as an error.
 fn worktree_stat(dir: &Path) -> Result<String, String> {
     let tree = worktree_tree(dir)?;
-    let base = match git(dir, &["rev-parse", "--verify", "HEAD^{tree}"], None) {
-        Ok(head) => head,
-        Err(_) => empty_tree(dir)?,
-    };
+    let base = super::changed::head_tree(dir)?;
     git(
         dir,
         &[
@@ -53,21 +50,35 @@ fn worktree_stat(dir: &Path) -> Result<String, String> {
     )
 }
 
-/// Format `git diff --stat` output for the crew pane. Empty (clean tree) →
-/// a friendly line; long output is bounded so a huge repo can't flood the pane.
-pub(crate) fn diff_report(raw_stat: &str) -> String {
+/// The same comparison as [`worktree_stat`], as a patch.
+fn worktree_patch(dir: &Path) -> Result<String, String> {
+    super::changed::patch(dir, &super::changed::head_tree(dir)?)
+}
+
+/// The `/diff` reply: the stat block, then the patch in the ```diff fence the
+/// pane renders (clipped on a line boundary at [`PATCH_CAP`]). An empty stat
+/// (clean tree) is a friendly line instead; a long stat is bounded so a huge
+/// repo cannot flood the pane before the patch even starts.
+pub(crate) fn diff_report(raw_stat: &str, patch: &str) -> String {
     let trimmed = raw_stat.trim();
     if trimmed.is_empty() {
         return "working tree clean \u{2014} no changes".to_string();
     }
     const CAP: usize = 4000;
-    if trimmed.len() > CAP {
+    let mut out = if trimmed.len() > CAP {
         let mut s: String = trimmed.chars().take(CAP).collect();
         s.push_str("\n\u{2026} (diff truncated)");
         s
     } else {
         trimmed.to_string()
+    };
+    if !patch.trim().is_empty() {
+        out.push_str("\n\n");
+        out.push_str(&super::taskdiff::fenced(&super::taskdiff::clip(
+            patch, PATCH_CAP, "",
+        )));
     }
+    out
 }
 
 /// `/diff` — show everything that differs from the last commit, bounded.
@@ -78,8 +89,8 @@ pub(crate) fn diff_cmd(
         Ok(d) => d,
         Err(e) => return emit(msg("agent smith", format!("diff failed: {e}"))),
     };
-    match worktree_stat(&dir) {
-        Ok(raw) => emit(msg("agent smith", diff_report(&raw))),
+    match worktree_stat(&dir).and_then(|stat| Ok((stat, worktree_patch(&dir)?))) {
+        Ok((stat, patch)) => emit(msg("agent smith", diff_report(&stat, &patch))),
         Err(e) => emit(msg("agent smith", format!("diff failed: {e}"))),
     }
 }
