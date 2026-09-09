@@ -64,6 +64,8 @@ mod swarm;
 mod sysread;
 mod sysrun;
 mod systools;
+mod taskdiag;
+mod taskdiff;
 mod tasks;
 mod tick;
 pub mod tier;

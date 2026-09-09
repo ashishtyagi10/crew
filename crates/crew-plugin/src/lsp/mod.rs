@@ -127,6 +127,13 @@ impl LspHost {
         Ok((server.clone(), bin))
     }
 
+    /// Whether a language server for `path` is both configured and installed
+    /// — what the end-of-task diagnostics ask before opening anything, so a
+    /// file nobody serves costs no spawn and earns no "not installed" line.
+    pub fn serves_file(&self, path: &Path) -> bool {
+        servers::lang_of(path).is_some_and(|lang| self.server_for(lang).is_ok())
+    }
+
     /// The running client for `(lang, root)`, started on first use.
     fn client(&mut self, lang: &str, root: &Path) -> Result<&mut Client, String> {
         let key = (lang.to_string(), root.to_path_buf());

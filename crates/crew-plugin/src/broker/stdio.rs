@@ -500,6 +500,15 @@ fn report_changes(session: &Session, id: u64, out: &Out) {
     if let Some(line) = super::changed::summary(&changes, hint) {
         let _ = emit(out, &msg("agent smith", format!("task #{id}: {line}")));
     }
+    // …and WHAT changed, then what the language servers make of it. The lsp
+    // lock is held for the pass; the budget inside bounds how long.
+    let diagnostics = |files: &[String]| {
+        let mut lsp = session.lock_lsp();
+        super::taskdiag::lsp_diagnostics(&mut *lsp, files, super::taskdiff::DIAG_BUDGET)
+    };
+    if let Some(body) = super::taskdiff::report(&dir, &base, &changes, diagnostics) {
+        let _ = emit(out, &msg("agent smith", body));
+    }
 }
 
 /// Whether this session has already mentioned checkpoints; marks it as told.

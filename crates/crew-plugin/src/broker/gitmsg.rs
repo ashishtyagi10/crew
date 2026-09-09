@@ -70,24 +70,7 @@ fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
 /// comparison through a throwaway index is the only way to include one without
 /// touching the user's real index.
 fn whole_tree_diff(dir: &Path) -> Result<String, String> {
-    let tree = super::checkpoint::worktree_tree(dir)?;
-    let base = super::checkpoint::git(dir, &["rev-parse", "--verify", "HEAD^{tree}"], None)
-        .or_else(|_| {
-            super::checkpoint::git(dir, &["hash-object", "-t", "tree", "/dev/null"], None)
-        })?;
-    super::checkpoint::git(
-        dir,
-        &[
-            "diff-tree",
-            "-p",
-            "-r",
-            &base,
-            &tree,
-            "--",
-            super::changed::NOT_CREW,
-        ],
-        None,
-    )
+    super::changed::patch(dir, &super::changed::head_tree(dir)?)
 }
 
 /// The diff a commit message should describe: the staged diff when anything
