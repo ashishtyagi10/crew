@@ -112,7 +112,7 @@ fn wrap_ranges(full: &[char], cols: usize) -> Vec<(usize, usize)> {
 
 /// Cumulative char-count boundaries of `spans`: `bounds[i]` is the char
 /// offset where span `i` starts, `bounds[len]` is the total char count.
-fn span_bounds(spans: &[MdSpan]) -> Vec<usize> {
+pub(super) fn span_bounds(spans: &[MdSpan]) -> Vec<usize> {
     let mut bounds = Vec::with_capacity(spans.len() + 1);
     let mut total = 0;
     bounds.push(0);
@@ -125,7 +125,12 @@ fn span_bounds(spans: &[MdSpan]) -> Vec<usize> {
 
 /// Slices `spans` to the char range `[s, e)`, splitting spans that straddle
 /// the boundary so styling survives the cut.
-fn spans_for_range(spans: &[MdSpan], bounds: &[usize], s: usize, e: usize) -> Vec<MdSpan> {
+pub(super) fn spans_for_range(
+    spans: &[MdSpan],
+    bounds: &[usize],
+    s: usize,
+    e: usize,
+) -> Vec<MdSpan> {
     let mut out = Vec::new();
     for (i, sp) in spans.iter().enumerate() {
         let (sp_start, sp_end) = (bounds[i], bounds[i + 1]);

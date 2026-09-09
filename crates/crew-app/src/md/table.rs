@@ -2,6 +2,9 @@
 //! `layout.rs` to keep that file under its line budget.
 use crate::md::{ColAlign, LineKind, MdLine, MdSpan};
 
+#[path = "tablewrap.rs"]
+mod tablewrap;
+
 const SEP: &str = " │ ";
 
 /// Spaces before and after a `cell_w`-wide cell in a `w`-wide column.
@@ -51,12 +54,13 @@ fn col_widths(header: &[Vec<MdSpan>], rows: &[Vec<Vec<MdSpan>>]) -> Vec<usize> {
     widths
 }
 
+/// Columns the separators between `n` columns take.
+fn sep_width(n: usize) -> usize {
+    SEP.chars().count() * n.saturating_sub(1)
+}
+
 fn total_width(widths: &[usize]) -> usize {
-    if widths.is_empty() {
-        0
-    } else {
-        widths.iter().sum::<usize>() + SEP.chars().count() * (widths.len() - 1)
-    }
+    widths.iter().sum::<usize>() + sep_width(widths.len())
 }
 
 /// Builds one row's spans, then hard-truncates to `cols`. Column padding
@@ -120,24 +124,37 @@ fn rule_line(widths: &[usize], cols: usize) -> MdLine {
     }
 }
 
-/// Lays out a table: header line (bold, flagged `table_head`), a `─` rule under it, then each data
-/// row — all space-padded to each column's max cell width and hard-truncated
-/// at `cols` if the table is wider than that.
+/// Lays out a table: header line (bold, flagged `table_head`), a `─` rule
+/// under it, then each data row — all space-padded to each column's max
+/// cell width. A table wider than `cols` has its widest columns squeezed
+/// and their cells wrapped onto continuation rows (`tablewrap`); one that
+/// cannot fit even so is hard-truncated at `cols`, as every table was.
 pub(super) fn lines(
     header: Vec<Vec<MdSpan>>,
     aligns: Vec<ColAlign>,
     rows: Vec<Vec<Vec<MdSpan>>>,
     cols: usize,
 ) -> Vec<MdLine> {
-    let widths = col_widths(&header, &rows);
-    let mut out = vec![
-        row_line(&header, &widths, &aligns, true, cols),
-        rule_line(&widths, cols),
-    ];
-    out.extend(
-        rows.iter()
-            .map(|row| row_line(row, &widths, &aligns, false, cols)),
-    );
+    let natural = col_widths(&header, &rows);
+    let squeezed = (total_width(&natural) > cols)
+        .then(|| tablewrap::shrink(&natural, sep_width(natural.len()), cols))
+        .flatten();
+    let Some(widths) = squeezed else {
+        let mut out = vec![
+            row_line(&header, &natural, &aligns, true, cols),
+            rule_line(&natural, cols),
+        ];
+        out.extend(
+            rows.iter()
+                .map(|row| row_line(row, &natural, &aligns, false, cols)),
+        );
+        return out;
+    };
+    let mut out = tablewrap::row_lines(&header, &widths, &aligns, true, cols);
+    out.push(rule_line(&widths, cols));
+    for row in &rows {
+        out.extend(tablewrap::row_lines(row, &widths, &aligns, false, cols));
+    }
     out
 }
 

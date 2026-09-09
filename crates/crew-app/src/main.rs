@@ -67,6 +67,7 @@ mod chatkeystore;
 mod chatlayout;
 mod chatliveness;
 mod chatmd;
+mod chatmdcells;
 mod chatmention;
 mod chatmotion;
 #[cfg(test)]
@@ -86,6 +87,7 @@ mod cardshot_tests;
 mod chatcard;
 mod chatmsgs;
 mod chatpalette;
+mod chatpicpaint;
 mod chatplace;
 mod chatplanbtn;
 mod chatplanclick;
@@ -270,6 +272,10 @@ mod linkhl;
 mod linkhover;
 mod load;
 mod md;
+#[cfg(test)]
+mod mdcardcells_tests;
+#[cfg(test)]
+mod mdcardshot_tests;
 #[cfg(test)]
 #[path = "mdshot_tests.rs"]
 mod mdshot_tests;

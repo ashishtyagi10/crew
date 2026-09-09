@@ -4,9 +4,12 @@
 //! `chatwidth::fit_end` — the same primitive the old chat-body path used for
 //! code chunking — so wide glyphs (CJK, emoji) never overflow the pane.
 //! What a span draws in is `chatspan`'s call; this file only places cells.
+use std::path::Path;
+
 use crate::chatbody::{plain, CardCell, CardLine, Color};
 use crate::chatink;
-use crate::md::{LineKind, MdLine, MdSpan};
+use crate::chatmdcells::{push_chunked, span_cells};
+use crate::md::{LineKind, MdLine};
 
 /// One picture the mapped lines reserved room for: where its box starts in
 /// the OUTPUT rows, how tall it is, and what to draw there.
@@ -21,8 +24,21 @@ pub(crate) struct Picture {
 /// column and re-chunked to `width` display columns per row. A picture is
 /// one named row here (`chatimage`) and a top-level heading is ruled under —
 /// the card's own reading of the document, which the viewer does not share.
+/// No working directory, so a relative picture is never more than named.
 pub(crate) fn map_lines(md_lines: Vec<MdLine>, width: usize, fg: Color) -> Vec<CardLine> {
-    map_lines_inner(md_lines, width, fg, None)
+    map_lines_inner(md_lines, width, fg, None, None)
+}
+
+/// [`map_lines`] for a pane working in `cwd`: a picture whose source is a
+/// local file the cache holds gets its box (`chatimage::box_lines`) above
+/// the named row, one still being read a `loading…` under it.
+pub(crate) fn map_chat(
+    md_lines: Vec<MdLine>,
+    width: usize,
+    fg: Color,
+    cwd: Option<&Path>,
+) -> Vec<CardLine> {
+    map_lines_inner(md_lines, width, fg, None, cwd)
 }
 
 /// [`map_lines`] for the VIEWER, plus where the pictures ended up.
@@ -36,17 +52,18 @@ pub(crate) fn with_pictures(
     fg: Color,
 ) -> (Vec<CardLine>, Vec<Picture>) {
     let mut pics: Vec<Picture> = Vec::new();
-    let lines = map_lines_inner(md_lines, width, fg, Some(&mut pics));
+    let lines = map_lines_inner(md_lines, width, fg, Some(&mut pics), None);
     (lines, pics)
 }
 
 /// `pics` is where the viewer collects its picture boxes; `None` is the chat
-/// card, which paints none and names them instead.
+/// card, which marks its boxes into the rows themselves (`chatimage`).
 fn map_lines_inner(
     md_lines: Vec<MdLine>,
     width: usize,
     fg: Color,
     mut pics: Option<&mut Vec<Picture>>,
+    cwd: Option<&Path>,
 ) -> Vec<CardLine> {
     let muted = crew_theme::theme().text_muted;
     let chat = pics.is_none();
@@ -64,10 +81,8 @@ fn map_lines_inner(
             match pics.as_deref_mut() {
                 Some(pics) => reserve(pics, &line, i, out.len()),
                 None if i > 0 => continue,
-                // The `[image]` tag is a mark, like a bullet: marker ink.
                 None => {
-                    let mark = chatink::marker_fg();
-                    push_chunked(&mut out, &crate::chatimage::cells(&line, mark), width, mark);
+                    chat_picture(&mut out, &line, width, fg, muted, cwd);
                     continue;
                 }
             }
@@ -127,6 +142,30 @@ fn map_lines_inner(
     out
 }
 
+/// A picture on a CHAT card: its box when the cache holds it, the named
+/// row — the `[image]` tag is a mark, like a bullet: marker ink — and a
+/// `loading…` under that while the worker is still out.
+fn chat_picture(
+    out: &mut Vec<CardLine>,
+    line: &MdLine,
+    width: usize,
+    fg: Color,
+    muted: Color,
+    cwd: Option<&Path>,
+) {
+    use crate::chatimage::{self, Fate};
+    let src = crate::md::picture::src_of(line).unwrap_or_default();
+    let fate = chatimage::fate(src, cwd);
+    if let Fate::Painted(_) = &fate {
+        out.extend(chatimage::box_lines(src, width, fg));
+    }
+    let mark = chatink::marker_fg();
+    push_chunked(out, &chatimage::cells(line, mark), width, mark);
+    if fate == Fate::Loading {
+        push_chunked(out, &chatimage::loading_cells(muted), width, muted);
+    }
+}
+
 /// Records row `i` of a picture block landing at output row `at`. Every row
 /// of the block carries the source; the first one opens the record and the
 /// rest extend it, so a picture is one entry however the block was cut.
@@ -140,53 +179,6 @@ fn reserve(pics: &mut Vec<Picture>, line: &MdLine, i: u16, at: usize) {
             src: src.to_string(),
         }),
     }
-}
-
-/// Splits `cells` into rows of at most `width` DISPLAY columns (a wide glyph
-/// counts two), each prefixed with a one-column indent cell.
-fn push_chunked(out: &mut Vec<CardLine>, cells: &[CardCell], width: usize, line_fg: Color) {
-    if cells.is_empty() {
-        out.push(vec![plain(' ', line_fg, false)]);
-        return;
-    }
-    let full: Vec<char> = cells.iter().map(|c| c.c).collect();
-    let mut s = 0;
-    loop {
-        let e = crate::chatwidth::fit_end(&full, s, width);
-        let mut row = vec![plain(' ', line_fg, false)];
-        row.extend(cells[s..e].iter().cloned());
-        out.push(row);
-        s = e;
-        if s >= full.len() {
-            break;
-        }
-    }
-}
-
-/// Per-char cells for one styled span, given the line's kind (chrome/code
-/// lines override span style entirely; body spans map `MdStyle`).
-fn span_cells(span: &MdSpan, kind: LineKind, fg: Color, muted: Color) -> Vec<CardCell> {
-    let ink = crate::chatspan::style(span, kind, fg, muted);
-    // Each character carries the byte it came from: the span's offset plus
-    // the bytes of the characters before it in the span.
-    let mut at = span.src;
-    span.text
-        .chars()
-        .map(|c| {
-            let src = at;
-            at = at.map(|n| n + c.len_utf8() as u32);
-            CardCell {
-                c,
-                fg: ink.fg,
-                bold: ink.bold,
-                italic: ink.italic,
-                strike: ink.strike,
-                bg: ink.bg,
-                link: ink.link.clone(),
-                src,
-            }
-        })
-        .collect()
 }
 
 #[cfg(test)]

@@ -3,12 +3,9 @@
 //! the body beneath it (newline-aware prose, bordered code blocks — see
 //! `chatbody`) and a blank spacer line between messages. Hand-off senders
 //! (`planner → coder`) keep a per-name colour on each side.
+use crate::chatbody::{plain, CardLine};
 pub(crate) use crate::chatcard::*;
-use crew_render::CellView;
-
-use crate::chatbody::{body_lines, plain, CardLine};
 use crate::chatlayout::Message;
-use crate::chatplace::line_cells;
 
 /// A card's typewriter state and the clock it is read at.
 type Reveal<'a> = Option<(&'a crate::chatreveal::Reveal, u64)>;
@@ -50,6 +47,9 @@ pub(crate) struct View<'a> {
     pub(crate) reveals: &'a [crate::chatreveal::CardReveal],
     /// The agents' tool-call blocks (see `chattool`), seated by `chattoolview`.
     pub(crate) tools: &'a [crate::chattool::ToolBlock],
+    /// The pane's working directory — where a picture's relative source
+    /// resolves (`chatimage::fate`); `None` leaves every such picture named.
+    pub(crate) cwd: Option<&'a std::path::Path>,
 }
 
 impl Default for View<'_> {
@@ -61,6 +61,7 @@ impl Default for View<'_> {
             gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             reveals: &[],
             tools: &[],
+            cwd: None,
         }
     }
 }
@@ -116,7 +117,7 @@ fn body_at(m: &Message, cols: usize, view: View<'_>, reveal: Reveal) -> Vec<Card
     let shown = reveal.map_or(text, |(r, now)| {
         crate::chatreveal::clip_at(text, r, now, level)
     });
-    let mut body = body_lines(shown, cols, fg, view.source);
+    let mut body = crate::chatbody::body_lines_at(shown, cols, fg, view.source, view.cwd);
     if let Some((r, now)) = reveal {
         crate::chatreveal::glow_tail(&mut body, r, now, text.chars().count(), level);
     }
@@ -249,10 +250,14 @@ pub(crate) fn card_line_count(messages: &[&Message], cols: u16, view: View<'_>) 
     card_lines(messages, cols as usize, 0, view).len()
 }
 
-/// Render the card view of `messages` into `rows` rows starting at `top_row`,
-/// scrolled `scroll` lines up from the live bottom, in the given render `view`
-/// (see [`View`]). Placement — windowing plus the newest card's arrival
-/// glide — is `chatglide::place`.
+/// The card view's cells alone — what the tests assert on; the frame draws
+/// through `chatpicpaint::message_art`, which places the lines once for the
+/// cells and the pictures both.
+#[cfg(test)]
+pub(crate) use crate::chatplace::line_cells;
+#[cfg(test)]
+pub(crate) use crew_render::CellView;
+#[cfg(test)]
 pub(crate) fn message_cells(
     messages: &[&Message],
     cols: u16,
@@ -261,15 +266,7 @@ pub(crate) fn message_cells(
     scroll: usize,
     view: View<'_>,
 ) -> Vec<CellView> {
-    if cols == 0 || rows == 0 {
-        return Vec::new();
-    }
-    let page = crew_theme::theme().page_bg;
-    let now = crate::chattime::unix_now_ms();
-    crate::chatglide::place(messages, cols, rows, top_row, scroll, view, now)
-        .iter()
-        .flat_map(|(row, line)| line_cells(*row, line, cols, page))
-        .collect()
+    crate::chatpicpaint::message_art(messages, cols, rows, top_row, scroll, view, 2.0).0
 }
 
 #[cfg(test)]
