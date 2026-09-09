@@ -19,7 +19,7 @@ use super::{LineKind, MdLine, MdSpan, MdStyle};
 /// document whose lines move once the pictures land would reflow under the
 /// reader. Roughly a third of a comfortable window, and the picture is
 /// letterboxed inside it, so a wide banner and a tall portrait both fit.
-pub(super) const ROWS: u16 = 12;
+pub(crate) const ROWS: u16 = 12;
 
 /// A never-drawn span carrying one picture's source and alt text through the
 /// span stream — the same convention `tasklist::sentinel` uses for a checkbox.

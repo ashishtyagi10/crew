@@ -33,14 +33,44 @@ enum Entry {
 
 static CACHE: Mutex<Option<HashMap<PathBuf, Entry>>> = Mutex::new(None);
 
+/// Where a picture stands, without the picture: what a LAYOUT asks, since
+/// it decides how many rows to give one and never needs its pixels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Probe {
+    Ready,
+    Loading,
+    Failed,
+}
+
 /// The picture at `path`, or `None` while it is being read (or if it never
 /// arrives). Asking is what starts the read.
 pub(crate) fn get(path: &Path) -> Option<Bitmap> {
+    match probe(path) {
+        Probe::Ready => peek(path),
+        _ => None,
+    }
+}
+
+/// The picture at `path` if it has ALREADY landed — no read is started and
+/// none is collected. The paint pass reads through this so a picture's
+/// arrival is only ever noticed by the layout, which is the pass that gives
+/// it its rows; were the paint to notice first, `loading()` would fall quiet
+/// before any layout had seen the picture, and no frame would come to draw
+/// it (see `chatimage`).
+pub(crate) fn peek(path: &Path) -> Option<Bitmap> {
+    match lock().as_ref()?.get(path)? {
+        Entry::Ready(bm) => Some((**bm).clone()),
+        _ => None,
+    }
+}
+
+/// Where `path` stands. Asking for a path never asked for starts its read.
+pub(crate) fn probe(path: &Path) -> Probe {
     let mut g = lock();
     let map = g.get_or_insert_with(HashMap::new);
     match map.get(path) {
-        Some(Entry::Ready(bm)) => return Some((**bm).clone()),
-        Some(Entry::Failed) => return None,
+        Some(Entry::Ready(_)) => return Probe::Ready,
+        Some(Entry::Failed) => return Probe::Failed,
         Some(Entry::Loading(_)) => {}
         None => {
             if map.len() >= KEEP {
@@ -53,7 +83,7 @@ pub(crate) fn get(path: &Path) -> Option<Bitmap> {
                 let _ = tx.send(bm);
             });
             map.insert(path.to_path_buf(), Entry::Loading(rx));
-            return None;
+            return Probe::Loading;
         }
     }
     // Loading: see whether the worker has finished, without blocking the
@@ -67,16 +97,15 @@ pub(crate) fn get(path: &Path) -> Option<Bitmap> {
         _ => None,
     };
     match done {
-        Some(Entry::Ready(bm)) => {
-            let out = (*bm).clone();
-            map.insert(path.to_path_buf(), Entry::Ready(bm));
-            Some(out)
+        Some(e @ Entry::Ready(_)) => {
+            map.insert(path.to_path_buf(), e);
+            Probe::Ready
         }
         Some(e) => {
             map.insert(path.to_path_buf(), e);
-            None
+            Probe::Failed
         }
-        None => None,
+        None => Probe::Loading,
     }
 }
 
@@ -91,15 +120,23 @@ pub(crate) fn loading() -> bool {
 /// Resolve a document's `![alt](src)` against the file it was written in.
 /// `None` for anything that is not a local path this process can open.
 pub(crate) fn resolve(src: &str, doc: &Path) -> Option<PathBuf> {
+    locate(src, doc.parent()).filter(|p| p.is_file())
+}
+
+/// The local path `src` names, relative paths taken from `dir` — a lexical
+/// answer, no stat: whether the file exists is the worker's finding (see
+/// [`probe`]), so a chat card laying out a hundred messages asks the disk
+/// nothing. `None` for a remote or inline source, and for a relative path
+/// with no directory to be relative to.
+pub(crate) fn locate(src: &str, dir: Option<&Path>) -> Option<PathBuf> {
     if src.contains("://") || src.starts_with("data:") {
         return None;
     }
     let p = Path::new(src);
-    let full = match p.is_absolute() {
-        true => p.to_path_buf(),
-        false => doc.parent()?.join(p),
-    };
-    full.is_file().then_some(full)
+    match p.is_absolute() {
+        true => Some(p.to_path_buf()),
+        false => Some(dir?.join(p)),
+    }
 }
 
 /// Whether a read is still out for exactly this path — what a test asks,

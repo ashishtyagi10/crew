@@ -1910,6 +1910,31 @@ render verbatim instead of disappearing.
   to the raw source and back. **Cmd/Ctrl+click** on a rendered link opens it
   (hit-testing maps display columns through character widths, so links after
   emoji still click correctly).
+
+  What the smith pane draws, construct by construct:
+  - **Headings** — an `h1` leads with an accent badge and is ruled under, as
+    wide as its own row; `h2`/`h3` are bold accent ink.
+  - **Fenced code** as one solid field: the language as a badge on its hue,
+    keyword/type/function/number/attribute/string/comment tokens in their own
+    inks, `diff`/`patch` fences (tagged or detected) with word-level marks.
+  - **Lists** — nested bullets stepping `•`/`◦`/`▪` by depth, ordered lists
+    with their ordinals, task lists as `☐`/`✓` checklists, any of them
+    inside any other.
+  - **Tables** aligned by display width and placed by their delimiter row;
+    a table wider than the card squeezes its widest columns and wraps their
+    cells onto continuation rows under the same separators (never narrower
+    than six columns — past that it clips, as it always did).
+  - **Block quotes** with a marker bar in quote ink, and horizontal rules.
+  - **Inline** — bold, italic, `~~strike~~`, inline code, links (and bare
+    `www.` autolinks) that Cmd+click opens, and `[^n]` footnotes with their
+    notes gathered at the end.
+  - **Pictures** — `![alt](src)`: a local file (absolute, or relative to the
+    pane's working directory) is decoded off-thread and painted in a
+    twelve-row box above a muted caption row naming it; while it loads the
+    caption says `loading…`; a remote URL, a missing file or something that
+    is not a picture is the caption alone. The cache fetches nothing over
+    the network. Every cell of the box and the caption opens the file on
+    Cmd+click.
 - **`/view <file>`** (alias `/md`) opens a zoomed **file viewer** pane over
   one file — a single, read-only pane rendered by format: markdown, aligned
   CSV columns (both rendered by default — **s** toggles raw source on

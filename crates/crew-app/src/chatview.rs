@@ -23,6 +23,7 @@ impl ChatPane {
             streaming_from: self.messages.len(),
             reveals: &self.reveals,
             tools: &self.tools.blocks,
+            cwd: self.cwd.as_deref().map(std::path::Path::new),
         }
     }
 
@@ -130,9 +131,7 @@ pub(crate) fn art(
         pane.compact_view,
         pane.tools.pending(),
     );
-    // The per-agent statusline grid that used to sit here (rows 1..) was
-    // retired: its model/context/token signals are consolidated into the
-    // whole-pane summary footer drawn below the composer (see `chatsummary`).
+    let mut paint: Vec<crew_render::Paint> = Vec::new();
     // Stacked directly above the composer, innermost first: the run's progress
     // bar, then the queued-messages indicator. `chatplace::grants` decides who
     // gets a row — it is the same source `msg_rows_budget` uses, so what is
@@ -186,14 +185,17 @@ pub(crate) fn art(
     } else {
         let view = pane.view();
         let msg_rows = crate::chatplace::msg_rows_budget(pane, cols, rows);
-        cells.extend(crate::chatmsgs::message_cells(
+        let (mcells, mpaint) = crate::chatpicpaint::message_art(
             &visible,
             cols,
             msg_rows,
             top,
             pane.scroll,
             view,
-        ));
+            aspect,
+        );
+        cells.extend(mcells);
+        paint.extend(mpaint);
         // The position rides the CARD's border now, like every other pane
         // kind (`panescroll::thumb` from `Bar`), so the transcript keeps the
         // column its own scrollbar used to take.
@@ -258,14 +260,13 @@ pub(crate) fn art(
         cols,
         rows - summary_h,
     ));
-    let mut paint = Vec::new();
     if summary_h > 0 {
         // The block occupies the last `summary_h` rows, drawn top-down from
         // where the composer ends.
         let (fcells, fpaint) =
             crate::chatsummary::summary_art(pane, cols, rows - summary_h, summary_h, aspect);
         cells.extend(fcells);
-        paint = fpaint;
+        paint.extend(fpaint);
     }
     // Cmd+F find: wash the current match's substring cells (see `chatfind`).
     find_wash(pane, cols, rows, &mut cells);

@@ -1,7 +1,8 @@
 //! Message-body layout for the card view: message text renders through the
 //! shared `md` engine (headings, bold/italic, links, lists, fenced code as a
-//! bordered card — `╭─ lang` header, hard-wrapped verbatim lines on a subtly
-//! dimmed background, `╰─` footer, ...). `chatmd` maps the engine's styled,
+//! solid FIELD — one tinted rectangle with the language as a badge on its
+//! first row and a blank row closing it, see `chatfield`/`fencebadge` — a
+//! pictured image, wrapped tables, ...). `chatmd` maps the engine's styled,
 //! char-wrapped `MdLine`s to this module's display-width-wrapped `CardLine`s.
 
 pub(crate) type Color = (u8, u8, u8);
@@ -27,6 +28,11 @@ pub(crate) struct CardCell {
     /// space a soft break became — and those are exactly the places a cursor
     /// cannot go, because there is nothing there to type into.
     pub src: Option<u32>,
+    /// Row `i` of the box a chat card paints a picture into, when this blank
+    /// cell is one of that box's (see `chatimage::box_lines`); the paint pass
+    /// reads the box back off the placed lines through it. `None` for every
+    /// cell that is a character.
+    pub pic: Option<u16>,
 }
 
 /// One rendered line of a message card.
@@ -43,14 +49,28 @@ pub(crate) fn plain(c: char, fg: Color, bold: bool) -> CardCell {
         bg: None,
         link: None,
         src: None,
+        pic: None,
     }
 }
 
 /// Lay out one message body through the shared markdown engine: prose,
 /// headings, links and lists styled, fenced code blocks bordered + dimmed.
 /// Lines are indented one column under the card's `▍sender` header.
-/// When `source` is true, shows raw text without markdown rendering.
+/// When `source` is true, shows raw text without markdown rendering. No
+/// working directory: a picture named by a relative path stays a named row.
 pub(crate) fn body_lines(text: &str, cols: usize, fg: Color, source: bool) -> Vec<CardLine> {
+    body_lines_at(text, cols, fg, source, None)
+}
+
+/// [`body_lines`] for a pane whose working directory is `cwd` — where a
+/// picture's relative `src` resolves, so the card can paint it.
+pub(crate) fn body_lines_at(
+    text: &str,
+    cols: usize,
+    fg: Color,
+    source: bool,
+    cwd: Option<&std::path::Path>,
+) -> Vec<CardLine> {
     let width = cols.saturating_sub(1).max(1);
     if source {
         // Source mode: show raw text, newline-split + word-wrapped, all cells plain.
@@ -58,7 +78,7 @@ pub(crate) fn body_lines(text: &str, cols: usize, fg: Color, source: bool) -> Ve
     }
     // Markdown mode: render through the markdown engine.
     let md_lines = crate::md::render_chat(text, width);
-    crate::chatmd::map_lines(md_lines, width, fg)
+    crate::chatmd::map_chat(md_lines, width, fg, cwd)
 }
 
 /// Render text in source mode: newline-split, word-wrapped, all cells plain.
