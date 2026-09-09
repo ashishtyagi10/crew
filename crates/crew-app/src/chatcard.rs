@@ -12,6 +12,10 @@ mod tests;
 #[path = "chatfade_tests.rs"]
 mod fade_tests;
 
+#[cfg(test)]
+#[path = "chatcardbadge_tests.rs"]
+mod badge_tests;
+
 use crate::chatbody::{plain, CardCell, CardLine, Color};
 use crate::chatlayout::Message;
 
@@ -93,8 +97,9 @@ pub(crate) fn card_color(m: &Message, sender: &str) -> Color {
     }
 }
 
-/// The `▍sender · 2m ago` header line. Multi-part senders (`a → b`) colour
-/// each name separately with a muted arrow, so hand-offs read as from → to;
+/// The `▍▐ sender ▌ · 2m ago` header line: the gutter in the sender's colour,
+/// the name as a badge on it (`name_cells`). Multi-part senders (`a → b`)
+/// badge each name separately with a muted arrow, so hand-offs read as from → to;
 /// the muted tail carries only the relative time (the per-card reply latency
 /// was dropped in the reductionist pass — one signal per question).
 /// `connector` marks a follow-up card of the same task as the card above: it
@@ -118,13 +123,41 @@ pub(crate) fn header_line(m: &Message, now_ms: u64, connector: Option<char>) -> 
         if i > 0 {
             line.extend(" \u{2192} ".chars().map(|c| plain(c, muted, false)));
         }
-        line.extend(part.chars().map(|c| plain(c, card_color(m, part), true)));
+        line.extend(name_cells(m, part));
     }
     if let Some(rel) = crate::chattime::rel_time(&m.ts, now_ms) {
         let tail = format!(" \u{00b7} {rel}");
         line.extend(tail.chars().map(|c| plain(c, muted, false)));
     }
     line
+}
+
+/// Whether `part` of this card's sender draws as a badge: an agent that
+/// SAID something does, in its roster colour as a block. The user's own
+/// cards keep the plain name, so the eye separates "me" from "them" by
+/// shape before it reads a word; the system voice and a tool card keep the
+/// quiet muted name they have — a badge is for a voice, and those are the
+/// machine talking.
+pub(crate) fn is_badged(m: &Message, part: &str) -> bool {
+    part != "user" && !is_system_voice(part) && !is_tool_card(m)
+}
+
+/// One name of the header: a [`crate::segment`] badge on the agent's colour
+/// (page ink, floored on the block — the same colour the gutter keeps), or
+/// the plain bold name in the card's colour for the user, the system voice
+/// and a tool call.
+fn name_cells(m: &Message, part: &str) -> Vec<CardCell> {
+    let color = card_color(m, part);
+    if !is_badged(m, part) {
+        return part.chars().map(|c| plain(c, color, true)).collect();
+    }
+    let badge = crate::segment::badge(
+        part,
+        crate::segment::page_ink(color),
+        color,
+        crate::segment::Caps::BOTH,
+    );
+    crate::segment::to_card(&badge)
 }
 
 /// The broker's Agent-Smith startup splash — the boxed nameplate art, spotted

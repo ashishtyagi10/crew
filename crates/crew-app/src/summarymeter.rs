@@ -54,13 +54,15 @@ pub(crate) fn summary_art(
     let mut cells = Vec::new();
     for (i, line) in lines.into_iter().take(height as usize).enumerate() {
         let row = top + i as u16;
-        crate::chatwidth::place_row(1, cols, line, |x, c, fg| {
+        let line = line.into_iter().map(|(c, fg, block)| (c, (fg, block)));
+        // A badge cell carries its block; everything else sits on the page.
+        crate::chatwidth::place_row(1, cols, line, |x, c, (fg, block)| {
             cells.push(CellView {
                 col: x,
                 row,
                 c,
                 fg,
-                bg,
+                bg: block.unwrap_or(bg),
                 bold: false,
                 italic: false,
                 ..Default::default()

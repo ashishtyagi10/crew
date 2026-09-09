@@ -68,8 +68,15 @@ pub(crate) fn bar(pct: u8) -> String {
 /// `keep` is an index list into `segs`, most important first. Anything not
 /// named is treated as least important and goes first.
 pub(crate) fn budget(segs: Vec<(Seg, u8)>, cols: usize) -> Vec<Seg> {
-    let width = |v: &[(Seg, u8)]| {
-        v.iter().map(|((s, _), _)| s.chars().count()).sum::<usize>() + 3 * v.len().saturating_sub(1)
+    budget_by(segs, cols, |(s, _)| s.chars().count())
+}
+
+/// [`budget`] over any segment type, given how wide one is — the routing
+/// line's badges are cells, not strings, and measure by display column.
+/// Every joiner is three columns wide (` | ` and ` · ` alike).
+pub(crate) fn budget_by<T>(segs: Vec<(T, u8)>, cols: usize, seg_w: impl Fn(&T) -> usize) -> Vec<T> {
+    let width = |v: &[(T, u8)]| {
+        v.iter().map(|(s, _)| seg_w(s)).sum::<usize>() + 3 * v.len().saturating_sub(1)
     };
     let mut alive = segs;
     while width(&alive) > cols && alive.len() > 1 {

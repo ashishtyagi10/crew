@@ -19,27 +19,36 @@ fn newlines_split_prose_into_lines() {
 /// box, not a block.
 #[test]
 fn code_block_is_one_padded_field_with_its_language_on_top() {
+    let _off = crate::glyphs::force(false);
     let lines = body_lines("see:\n```rust\nfn x() {}\n```", 40, (9, 9, 9), false);
     let all: Vec<String> = lines.iter().map(text).collect();
     assert_eq!(all[0], " see:");
     assert_eq!(all[1], " ", "a blank row separates prose from the field");
-    assert_eq!(all[2], "  rust      ");
+    assert_eq!(
+        all[2], "  \u{2590} rust \u{258c}  ",
+        "the language, as a badge"
+    );
     assert_eq!(all[3], "  fn x() {} ");
     assert_eq!(all[4], "            ", "a blank row closes it");
     let bg = Some(crate::chatink::code_bg());
     for row in &lines[2..5] {
         assert!(
-            row[1..].iter().all(|c| c.bg == bg),
-            "every cell past the indent is on the field"
+            row[1..].iter().all(|c| c.bg.is_some()),
+            "every cell past the indent is on the field or the badge"
         );
         assert!(row[0].bg.is_none(), "the indent column keeps the page");
     }
+    assert!(
+        lines[3][1..].iter().all(|c| c.bg == bg),
+        "code rows are all field"
+    );
 }
 
 #[test]
 fn untagged_fence_is_labelled_code() {
+    let _off = crate::glyphs::force(false);
     let lines = body_lines("```\nx\n```", 40, (9, 9, 9), false);
-    assert_eq!(text(&lines[0]), "  code ");
+    assert_eq!(text(&lines[0]), "  \u{2590} code \u{258c} ");
 }
 
 #[test]
@@ -82,9 +91,18 @@ fn bold_survives_to_cardcells() {
 
 #[test]
 fn heading_is_bold() {
+    let _off = crate::glyphs::force(false);
     let lines = body_lines("# Title", 40, (9, 9, 9), false);
-    assert_eq!(text(&lines[0]), " Title");
-    assert!(lines[0][1..].iter().all(|c| c.bold));
+    assert_eq!(
+        text(&lines[0]),
+        " \u{2590} # \u{258c} Title",
+        "badge, then the title"
+    );
+    assert!(lines[0]
+        .iter()
+        .filter(|c| c.c != ' ')
+        .all(|c| c.bold || c.bg.is_none()));
+    assert!(lines[0][7..].iter().all(|c| c.bold), "the title is bold");
 }
 
 #[test]
@@ -114,7 +132,7 @@ fn numbered_list_with_fenced_code_renders_chrome() {
     );
     let all: Vec<String> = lines.iter().map(text).collect();
     assert!(
-        all.iter().any(|l| l.trim() == "bash"),
+        all.iter().any(|l| l.contains(" bash ")),
         "missing the fence's language row: {all:?}"
     );
     let cmd_row = all

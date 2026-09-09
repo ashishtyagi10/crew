@@ -55,6 +55,9 @@ fn map_lines_inner(
     // the whole run into one tinted rectangle once its widest line is known.
     let mut runs: Vec<(usize, usize)> = Vec::new();
     let mut block_start: Option<usize> = None;
+    // Whether the line above was an h1 row: the badge leads a heading's
+    // FIRST row only, not each row it wraps onto.
+    let mut in_h1 = false;
     let mut lines = md_lines.into_iter().peekable();
     while let Some(line) = lines.next() {
         if let LineKind::Picture { i, .. } = line.kind {
@@ -79,11 +82,28 @@ fn map_lines_inner(
             LineKind::Quote => chatink::quote_fg(),
             _ => fg,
         };
-        let cells: Vec<CardCell> = line
-            .spans
-            .iter()
-            .flat_map(|s| span_cells(s, line.kind, fg, muted))
-            .collect();
+        let level = crate::md::heading::level_of(&line);
+        let mut cells: Vec<CardCell> = match line.kind {
+            // The language as a badge on the field (`fencebadge`); a
+            // quote's bar, prefixed as a marker span, stays a bar.
+            LineKind::CodeHeader => line
+                .spans
+                .iter()
+                .flat_map(|s| match s.style.marker {
+                    true => span_cells(s, line.kind, fg, muted),
+                    false => crate::fencebadge::cells(&s.text),
+                })
+                .collect(),
+            _ => line
+                .spans
+                .iter()
+                .flat_map(|s| span_cells(s, line.kind, fg, muted))
+                .collect(),
+        };
+        if chat && level == 1 && !in_h1 {
+            cells.splice(0..0, crate::chatheading::badge_cells(fg));
+        }
+        in_h1 = level == 1;
         push_chunked(&mut out, &cells, width, line_fg);
         if line.kind == LineKind::CodeFooter {
             if let Some(start) = block_start.take() {
@@ -91,7 +111,6 @@ fn map_lines_inner(
             }
         }
         // The rule goes under the LAST row of a wrapped heading, not each.
-        let level = crate::md::heading::level_of(&line);
         let wraps = lines
             .peek()
             .is_some_and(|n| crate::md::heading::level_of(n) == 1);

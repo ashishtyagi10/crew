@@ -104,6 +104,22 @@ pub(crate) fn token_fg(token: Token) -> Color {
     }
 }
 
+/// The block colour a fence's language badge draws on: one of the active
+/// theme's hued classes, chosen by language family so `rust` and `python`
+/// read as different badges the way their keywords read as different
+/// inks. Every class already clears the page and the code field, so the
+/// badge stands off the field it sits in on every preset — and where a
+/// class fell back to `code`, the badge does too, still off the field.
+pub(crate) fn lang_hue(lang: &str) -> Color {
+    let h = hue();
+    match crate::glyphlang::key(lang).as_str() {
+        "python" | "py" | "go" | "golang" | "sql" => h.func,
+        "js" | "javascript" | "jsx" | "ts" | "typescript" | "tsx" | "json" | "yaml" | "yml" => h.ty,
+        "sh" | "bash" | "zsh" | "shell" | "console" | "diff" | "patch" => h.number,
+        _ => h.keyword,
+    }
+}
+
 #[cfg(test)]
 #[path = "chathue_tests.rs"]
 mod tests;

@@ -4,10 +4,15 @@ use super::*;
 use crate::chatmsgs::tests::{card_row, card_top, msg};
 use crate::chatmsgs::{card_line_count, message_cells, View};
 
+/// `▐ name ▌`: the header badge with the set off (see `badge_tests`).
+fn badge(name: &str) -> String {
+    format!("\u{2590} {name} \u{258c}")
+}
+
 #[test]
 fn card_has_header_then_indented_body() {
     let cells = message_cells(&[&msg("planner", "hello")], 40, 10, 0, 0, View::default());
-    assert_eq!(card_row(&cells, 0), format!("{GUTTER}planner"));
+    assert_eq!(card_row(&cells, 0), format!("{GUTTER}{}", badge("planner")));
     assert_eq!(card_row(&cells, 1), " hello");
 }
 
@@ -17,7 +22,7 @@ fn cards_are_separated_by_a_blank_line() {
     let refs: Vec<&Message> = m.iter().collect();
     let cells = message_cells(&refs, 40, 10, 0, 0, View::default());
     assert_eq!(card_row(&cells, 2), ""); // spacer
-    assert_eq!(card_row(&cells, 3), format!("{GUTTER}coder"));
+    assert_eq!(card_row(&cells, 3), format!("{GUTTER}{}", badge("coder")));
 }
 
 #[test]
@@ -53,13 +58,14 @@ fn handoff_sender_colours_each_name_separately() {
     );
     assert_eq!(
         card_row(&cells, 0),
-        format!("{GUTTER}planner \u{2192} coder")
+        format!("{GUTTER}{} \u{2192} {}", badge("planner"), badge("coder"))
     );
     let muted = crew_theme::theme().text_muted;
     let hdr = card_top(&cells);
     let cell_at = |col: u16| cells.iter().find(|c| c.row == hdr && c.col == col).unwrap();
     assert_ne!(cell_at(1).fg, muted, "planner keeps its agent colour");
-    assert_ne!(cell_at(11).fg, muted, "coder keeps its agent colour");
+    assert_ne!(cell_at(15).fg, muted, "coder keeps its agent colour");
+    assert_eq!(cell_at(3).bg, cell_at(1).fg, "the name sits on its block");
 }
 
 #[test]
@@ -81,7 +87,7 @@ fn agent_message_keeps_the_solid_gutter() {
     );
     assert_eq!(
         card_row(&cells, 0),
-        format!("{GUTTER}planner \u{2192} user")
+        format!("{GUTTER}{} \u{2192} user", badge("planner"))
     );
 }
 
@@ -93,7 +99,7 @@ fn count_matches_rendered_lines_and_scroll_shows_older() {
     assert_eq!(card_line_count(&refs, 40, View::default()), 5);
     // A 2-row window scrolled 3 up from the bottom shows the first card.
     let cells = message_cells(&refs, 40, 2, 0, 3, View::default());
-    assert_eq!(card_row(&cells, 0), format!("{GUTTER}a"));
+    assert_eq!(card_row(&cells, 0), format!("{GUTTER}{}", badge("a")));
 }
 
 #[test]
@@ -178,8 +184,9 @@ fn the_gutter_and_name_wear_the_senders_roster_colour() {
     let want = crate::chatroster::agent_color("planner");
     assert_eq!(line[0].c, GUTTER);
     assert_eq!(line[0].fg, want, "gutter");
-    assert_eq!(line[1].fg, want, "name");
-    assert!(line[1].bold);
+    assert_eq!(line[1].fg, want, "the badge's cap");
+    assert_eq!(line[3].bg, Some(want), "the name's block");
+    assert!(line[3].bold);
     assert_ne!(want, crew_theme::theme().text_muted);
     let tool = msg("planner", &format!("{TOOL_PREFIX}ls"));
     let t = header_line(&tool, 0, None);

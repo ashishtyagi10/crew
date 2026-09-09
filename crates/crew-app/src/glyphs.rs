@@ -56,6 +56,8 @@ pub(crate) enum Glyph<'a> {
     Footnote,
     Dir,
     File,
+    /// A top-level heading's badge mark (`#`, or a hashtag icon).
+    Hash,
     Lang(&'a str),
 }
 
@@ -88,7 +90,8 @@ pub(crate) fn nerd(g: Glyph) -> &'static str {
         Glyph::Footnote => "\u{f24a}", // nf-fa-sticky_note_o
         Glyph::Dir => "\u{f07b}",      // nf-fa-folder
         Glyph::File => "\u{f15b}",     // nf-fa-file
-        Glyph::Lang(l) => lang_nerd(l),
+        Glyph::Lang(l) => crate::glyphlang::lang_nerd(l),
+        Glyph::Hash => "\u{f292}", // nf-fa-hashtag
     }
 }
 
@@ -111,6 +114,7 @@ pub(crate) fn fallback(g: Glyph) -> &'static str {
         Glyph::Footnote => "[",
         Glyph::Dir => "\u{25b8}",  // ▸
         Glyph::File => "\u{00b7}", // ·
+        Glyph::Hash => "#",
         Glyph::Lang(_) => "",
     }
 }
@@ -146,8 +150,10 @@ pub(crate) fn spinner(now_ms: u64) -> &'static str {
     pick(Glyph::Spinner(((now_ms / 120) % frames as u64) as u8))
 }
 
-/// A fence header's text, clipped to `width`: `<icon> <label>` on a Nerd
-/// Font, the bare label otherwise (`code` for an untagged fence).
+/// A fence header's label: `<icon> <label>` on a Nerd Font, the bare label
+/// otherwise (`code` for an untagged fence). The chat card lays it into a
+/// [`crate::segment`] badge (`fencebadge`), so it is clipped to `width` less
+/// the badge's caps and pads — the badge, not the label, is what has to fit.
 pub(crate) fn fence_header(lang: &str, width: usize) -> String {
     let label = if lang.is_empty() { "code" } else { lang };
     let text = if on() {
@@ -155,7 +161,8 @@ pub(crate) fn fence_header(lang: &str, width: usize) -> String {
     } else {
         label.to_string()
     };
-    crate::chatwidth::clip_w(&text, width)
+    let chrome = crate::segment::width("", crate::segment::Caps::BOTH);
+    crate::chatwidth::clip_w(&text, width.saturating_sub(chrome))
 }
 
 /// A `[^label]` reference's mark: `<icon>label` on a Nerd Font, `[label]`
@@ -165,31 +172,6 @@ pub(crate) fn footnote_mark(label: &str) -> String {
         format!("{}{label}", nerd(Glyph::Footnote))
     } else {
         format!("[{label}]")
-    }
-}
-
-/// The dev-icon for a fence language, keyed on the info string's first word
-/// (```rust,ignore and ```sh title=… still find theirs), case-insensitive.
-fn lang_nerd(lang: &str) -> &'static str {
-    let key = lang
-        .split(|c: char| c == ',' || c.is_whitespace())
-        .next()
-        .unwrap_or("")
-        .to_ascii_lowercase();
-    match key.as_str() {
-        "rust" | "rs" => "\u{e7a8}",                               // nf-dev-rust
-        "python" | "py" => "\u{e606}",                             // nf-seti-python
-        "js" | "javascript" | "jsx" => "\u{e74e}",                 // nf-dev-javascript
-        "ts" | "typescript" | "tsx" => "\u{e628}",                 // nf-seti-typescript
-        "go" | "golang" => "\u{e626}",                             // nf-seti-go
-        "sh" | "bash" | "zsh" | "shell" | "console" => "\u{e795}", // nf-dev-terminal
-        "toml" => "\u{e6b2}",                                      // nf-seti-toml
-        "yaml" | "yml" => "\u{e6a8}",                              // nf-seti-yml
-        "json" => "\u{e60b}",                                      // nf-seti-json
-        "md" | "markdown" => "\u{f48a}",                           // nf-oct-markdown
-        "sql" => "\u{e706}",                                       // nf-dev-database
-        "diff" | "patch" => "\u{f440}",                            // nf-oct-diff
-        _ => "\u{f121}",                                           // nf-fa-code
     }
 }
 
