@@ -2214,17 +2214,20 @@ rather than by re-sending `thinking`: a tool round happens *inside* a hop, and
 clearing it the other way would have inflated the hop waterfall by one hop per
 tool call.
 
-**Tools in the transcript.** A tool call and its result are the machine
-talking, not the agent, and they read that way: both cards take the quieter
-dotted gutter and muted ink instead of the agent's roster colour, so a task
-that makes four calls no longer produces nine cards that all look like the
-agent speaking. The call announces itself as it starts — `[tool] sys:run
-curl -s wttr.in/Oslo`, subject-first — and the result lands as its own card
-whose first line is `sys:run ✓ 1.2s`: outcome, then how long it took, which is
-what separates a slow tool from a hung one while you watch. The output sits
-underneath, **folded to that one line** until you click it open. Every result
-is kept, success included: an agent's paraphrase of what an API returned is the
-one thing you cannot check an integration against.
+**Tools in the transcript.** In a swarm, a tool call is drawn live under the
+calling agent's card, not as a card of its own: a spinner and the subject
+(`fs:read src/foo.rs`, `sys:run cargo test`) with the seconds counting up
+while it runs, then `✓`/`✗` and the duration (`120 ms`, `3.2 s`) — which is
+what separates a slow tool from a hung one while you watch — and the first
+line of the result, muted. Click that line for up to twelve rows of the
+output on the code field; the copy that crosses the wire is bounded, so a
+`curl` of a large page cannot swell the pane. When the agent's reply settles
+the block folds to `▸ 4 tool calls · 2.1 s` above it, and a click reopens it.
+Every result is kept, success included: an agent's paraphrase of what an API
+returned is the one thing you cannot check an integration against. The relay
+engine (`@agent` messages) has no live events, so its calls still land as
+`[tool]` cards in the quieter dotted gutter, folded to one line until
+clicked.
 
 **`@file` mentions.** In the composer, a trailing `@<query>` pops a fuzzy file
 picker over the project tree (filename-prefix first, then path matches; ↑/↓
