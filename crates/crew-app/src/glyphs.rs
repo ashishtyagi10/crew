@@ -1,14 +1,13 @@
 //! The chat pane's icon set: a Nerd Font glyph for each mark when the active
 //! family really carries one, and the Unicode character the pane always drew
-//! otherwise. Nothing here regresses a plain font — every fallback is the
-//! glyph that was there before there was a choice.
+//! otherwise — every fallback is the glyph that was there before the choice.
 //!
 //! "On" is decided by coverage, not by name: `crew_render::has_glyph` reads
 //! [`PROBE`] off the family's own character map each time the family
-//! changes, and the answer sits in one atomic (a bool load per pick). The
-//! family reaches the renderer ONLY through [`apply_family`] — a source scan
-//! keeps every other `set_font_family` call out of crew-app, so a new setter
-//! site cannot leave the icon set describing the previous font.
+//! changes, into one atomic (a bool load per pick). The family reaches the
+//! renderer ONLY through [`apply_family`] — a source scan keeps every other
+//! `set_font_family` call out of crew-app, so no setter site can leave the
+//! icon set describing the previous font.
 use std::sync::atomic::{AtomicBool, Ordering};
 
 /// nf-dev-rust. Any Nerd Font maps it; no ordinary text face does.
@@ -17,8 +16,7 @@ pub(crate) const PROBE: char = '\u{e7a8}';
 /// Whether the active family covers the icon set ([`set_family`] writes).
 static ON: AtomicBool = AtomicBool::new(false);
 
-/// Push `family` to the renderer AND re-read icon coverage for it. The one
-/// door: see the module doc.
+/// Push `family` to the renderer AND re-read icon coverage: the one door.
 pub(crate) fn apply_family(r: &mut crew_render::Renderer, family: Option<String>) {
     set_family(family.as_deref());
     r.set_font_family(family);
@@ -39,7 +37,7 @@ pub(crate) fn on() -> bool {
 }
 
 /// One mark the pane draws. `Lang` is a fence header's language; `Spinner`
-/// is a frame index (see [`spinner`] for the count).
+/// a frame index (see [`spinner`]).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Glyph<'a> {
     Bullet1,
@@ -64,6 +62,8 @@ pub(crate) enum Glyph<'a> {
     /// A collapsed / opened tool block's mark (`▸` / `▾`, or a wrench).
     Tool,
     ToolOpen,
+    /// The queued indicator's hourglass, frame 0 or 1 (`⧗` / `⧖`).
+    Hourglass(u8),
     Lang(&'a str),
 }
 
@@ -101,12 +101,13 @@ pub(crate) fn nerd(g: Glyph) -> &'static str {
         Glyph::Pass => "\u{f00c}",                   // nf-fa-check
         Glyph::Fail => "\u{f00d}",                   // nf-fa-times
         Glyph::Tool | Glyph::ToolOpen => "\u{f0ad}", // nf-fa-wrench
+        // nf-fa-hourglass_start / nf-fa-hourglass_end
+        Glyph::Hourglass(i) => ["\u{f251}", "\u{f253}"][usize::from(i) % 2],
     }
 }
 
 /// The glyph `g` drew before there was an icon set — the Unicode mark every
-/// font has. `Lang` has none (the header is the bare label), `Image` is the
-/// `[image]` tag and `Footnote` opens `[label]` (see [`footnote_mark`]).
+/// font has. `Lang` has none, `Image` is `[image]`, `Footnote` opens `[label]`.
 pub(crate) fn fallback(g: Glyph) -> &'static str {
     match g {
         Glyph::Bullet1 => "\u{2022}",   // •
@@ -128,6 +129,7 @@ pub(crate) fn fallback(g: Glyph) -> &'static str {
         Glyph::Fail => "\u{2717}",     // ✗
         Glyph::Tool => "\u{25b8}",     // ▸
         Glyph::ToolOpen => "\u{25be}", // ▾
+        Glyph::Hourglass(i) => ["\u{29d7}", "\u{29d6}"][usize::from(i) % 2], // ⧗ ⧖
         Glyph::Lang(_) => "",
     }
 }
@@ -152,8 +154,8 @@ pub(crate) fn prompt() -> char {
     pick_char(Glyph::Prompt)
 }
 
-/// The spinner frame for `now_ms`: eight pie slices on a Nerd Font, the
-/// four ASCII strokes otherwise, either way stepping every 120ms.
+/// The spinner frame for `now_ms`: eight pie slices on a Nerd Font, else the
+/// four ASCII strokes, stepping every 120ms.
 pub(crate) fn spinner(now_ms: u64) -> &'static str {
     spinner_on(now_ms, on())
 }
@@ -168,9 +170,8 @@ pub(crate) fn spinner_on(now_ms: u64, on: bool) -> &'static str {
 }
 
 /// A fence header's label: `<icon> <label>` on a Nerd Font, the bare label
-/// otherwise (`code` for an untagged fence). The chat card lays it into a
-/// [`crate::segment`] badge (`fencebadge`), so it is clipped to `width` less
-/// the badge's caps and pads — the badge, not the label, is what has to fit.
+/// otherwise (`code` untagged). Laid into a [`crate::segment`] badge by the
+/// card, so it is clipped to `width` less the badge's caps and pads.
 pub(crate) fn fence_header(lang: &str, width: usize) -> String {
     let label = if lang.is_empty() { "code" } else { lang };
     let text = if on() {

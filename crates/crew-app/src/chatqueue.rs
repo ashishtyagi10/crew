@@ -38,23 +38,50 @@ pub(crate) fn queued_rows(pane: &ChatPane) -> u16 {
     }
 }
 
-/// The indicator's text, or `None` when the queue is empty. Grammar
-/// (message/messages) tracks the count.
-pub(crate) fn indicator_text(pane: &ChatPane) -> Option<String> {
+/// One turn of the queued hourglass, at full motion (Subtle: 1.6× slower).
+pub(crate) const HOURGLASS_MS: u64 = 600;
+
+/// The indicator's hourglass at `now_ms`: the two glyphs of the pair
+/// (`glyphs::Glyph::Hourglass`, `⧗ ⧖` on a plain font) alternate every
+/// [`HOURGLASS_MS`] while anything is queued — sand still running — and Off
+/// holds the first, still.
+pub(crate) fn hourglass(now_ms: u64, level: crate::motion::MotionLevel) -> char {
+    let period = crate::shimmer::period(HOURGLASS_MS, level);
+    let frame = now_ms
+        .checked_div(period)
+        .map_or(0, |turns| (turns % 2) as u8);
+    crate::glyphs::pick_char(crate::glyphs::Glyph::Hourglass(frame))
+}
+
+/// The indicator's text at `now_ms`, or `None` when the queue is empty.
+/// Grammar (message/messages) tracks the count.
+pub(crate) fn indicator_text(pane: &ChatPane, now_ms: u64) -> Option<String> {
     let n = pane.queued.len();
     if n == 0 {
         return None;
     }
     let noun = if n == 1 { "message" } else { "messages" };
+    let glass = hourglass(now_ms, crate::motion::level());
     Some(format!(
-        "\u{29d7} {n} {noun} queued \u{2014} sends when the crew is idle"
+        "{glass} {n} {noun} queued \u{2014} sends when the crew is idle"
     ))
 }
 
-/// Render the indicator at `row`, muted, starting one column in (matching
-/// the swarm block's left inset).
+/// Render the indicator at `row` on the animation clock — see
+/// [`indicator_cells_at`].
 pub(crate) fn indicator_cells(pane: &ChatPane, cols: u16, row: u16) -> Vec<CellView> {
-    let Some(text) = indicator_text(pane) else {
+    indicator_cells_at(pane, cols, row, crate::anim::now_ms())
+}
+
+/// Render the indicator at `row`, muted, starting one column in (matching
+/// the swarm block's left inset); `now_ms` turns the hourglass.
+pub(crate) fn indicator_cells_at(
+    pane: &ChatPane,
+    cols: u16,
+    row: u16,
+    now_ms: u64,
+) -> Vec<CellView> {
+    let Some(text) = indicator_text(pane, now_ms) else {
         return Vec::new();
     };
     let theme = crew_theme::theme();

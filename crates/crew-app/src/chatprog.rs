@@ -49,15 +49,22 @@ pub(crate) fn progress_rows(pane: &ChatPane, cols: u16) -> u16 {
 
 /// Render the bar at `row`: filled cells in the accent, the remainder muted.
 /// The `done/total` count lives on the status line above (`chatswarmview`).
-/// `now_ms` sizes the bar to that line's live-elapsed width.
+/// `now_ms` sizes the bar to that line's live-elapsed width, and drives the
+/// fill's sweep to a new count and the glow on its leading cells
+/// (`chatprogspring`) — the fill is floored from the swept fraction, so it
+/// only completes once every task has settled, and a full bar always means a
+/// finished plan.
 pub(crate) fn bar_cells(pane: &ChatPane, cols: u16, row: u16, now_ms: u64) -> Vec<CellView> {
     let Some((done, total, bar_w)) = geom(pane, cols, now_ms) else {
         return Vec::new();
     };
+    let Some(s) = pane.swarm.as_ref() else {
+        return Vec::new();
+    };
     let theme = crew_theme::theme();
-    // Integer floor: the bar only fills completely once every task has
-    // settled, so a full bar always means a finished plan.
-    let filled = (done * bar_w as usize / total) as u16;
+    let filled = crate::chatprogspring::filled(s, done, total, bar_w, now_ms);
+    let live = crate::chatprogspring::live(s, now_ms);
+    let accent = crate::palette::accent();
     let mut cells = Vec::new();
     let mut push = |col: u16, c: char, fg: (u8, u8, u8), bold: bool| {
         cells.push(CellView {
@@ -74,7 +81,8 @@ pub(crate) fn bar_cells(pane: &ChatPane, cols: u16, row: u16, now_ms: u64) -> Ve
     for i in 0..bar_w {
         let on = i < filled;
         let (c, fg) = if on {
-            ('\u{2588}', crate::palette::accent())
+            let fg = crate::chatprogspring::glow(i, filled, live, accent, theme.ink, theme.page_bg);
+            ('\u{2588}', fg)
         } else {
             ('\u{2591}', theme.text_muted)
         };

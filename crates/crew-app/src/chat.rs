@@ -49,6 +49,8 @@ pub struct ChatPane {
     /// Messages that arrived while scrolled up — the `↓ N new` pill. Cleared
     /// when the view returns to the live bottom.
     pub(crate) unread: usize,
+    /// The pill's pop each time `unread` grows (see `chatpop`).
+    pub(crate) pill_pop: crate::chatpop::Pop,
     /// Hop timings observed live from activity/reply events — the pulse
     /// block's lane sparklines and turn waterfall (see `chatpulse`).
     pub(crate) pulse: crate::chatpulse::Pulse,

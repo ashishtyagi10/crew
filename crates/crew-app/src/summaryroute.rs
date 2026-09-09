@@ -61,7 +61,8 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
     };
     let mut segs: Vec<(Vec<FCell>, u8)> = vec![(badge(&mode, accent), 1)];
     // Who is working right now, each name a badge in its roster colour so
-    // it matches the chip grid and message cards; past three names the
+    // it matches the chip grid and message cards — lit while its tokens
+    // flow, dim once they stop (`summarypulse`); past three names the
     // count is the information.
     match fc.active.as_slice() {
         [] => {}
@@ -70,10 +71,8 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
         }
         names => {
             for n in names {
-                segs.push((
-                    badge(&format!("@{n}"), crate::chatroster::agent_color(n)),
-                    2,
-                ));
+                let block = crate::summarypulse::agent_block(fc.pulse, n);
+                segs.push((badge(&format!("@{n}"), block), 2));
             }
         }
     }
