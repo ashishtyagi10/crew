@@ -231,14 +231,15 @@ pub(crate) fn resolved_provider() -> Option<ProviderKind> {
 pub(crate) fn pin_provider_for_model(model: &str) -> Option<&'static str> {
     let store = crate::credentials::load();
     let active = picked(&store);
-    // An OpenRouter-shaped id (`vendor/model`) is a routing instruction in
-    // itself and must not drag the pin somewhere else.
-    if model.contains('/') {
-        return None;
-    }
+    // Only a NATIVE catalog row names a vendor to pin. An OpenRouter alias
+    // (`anthropic/claude-sonnet-5`) or a `:free` row is a routing
+    // instruction in itself and must not drag the pin somewhere else — and
+    // that is decided by the catalog, not by the slug's shape: NVIDIA NIM's
+    // own ids carry a slash (`nvidia/nemotron-3.5-lightning-30b-a3b`), so a
+    // "contains `/`" test would leave a Nemotron pick unable to pin `nvidia`.
     let vendor = crew_hive::catalog::catalog()
         .iter()
-        .find(|m| m.slug == model)?
+        .find(|m| m.slug == model && !m.free)?
         .vendor;
     let (name, var) = match vendor {
         crew_hive::catalog::Vendor::Anthropic => ("anthropic", "ANTHROPIC_API_KEY"),
@@ -263,8 +264,10 @@ pub(crate) fn pin_provider_for_model(model: &str) -> Option<&'static str> {
 /// providers, so this names the friendliest route and points at the picker
 /// rather than reciting a list that will be wrong again by the next release.
 pub fn no_provider_advice() -> &'static str {
-    "sign in to claude, codex or opencode and crew picks them up \
-     automatically, or add a provider key from the model picker (/model)"
+    "free to start: get an NVIDIA key at build.nvidia.com (no card), open \
+     /model and paste it at a Nemotron row — or sign in to claude, codex or \
+     opencode and crew picks them up automatically, or add any provider key \
+     from the model picker (/model)"
 }
 
 /// Every provider that has a key right now, active or not, in discovery

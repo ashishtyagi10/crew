@@ -234,6 +234,7 @@ mod ipc_types;
 mod ipc_win;
 mod keychord;
 mod keyentry;
+mod keyhint;
 mod keyroute;
 mod keys;
 mod lastout;
