@@ -88,6 +88,26 @@ pub(crate) fn route_with_keys(
     }
 }
 
+/// [`route_with_keys`] plus the sign-ins the broker reports: a Claude row
+/// is serveable through a signed-in Claude Code even with no Anthropic key
+/// — picking it moves the pin there (the broker's `/model` does that), the
+/// same way a held key makes a row serveable. `signed_in` answers by
+/// provider name ("claude-code").
+pub(crate) fn route_with_signins(
+    m: &ModelInfo,
+    provider: Option<Provider>,
+    probed: bool,
+    has_key: impl Fn(&str) -> bool,
+    signed_in: impl Fn(&str) -> bool,
+) -> Route {
+    match route_with_keys(m, provider, probed, has_key) {
+        Route::Missing("ANTHROPIC_API_KEY") if signed_in("claude-code") => {
+            Route::Direct("claude-code")
+        }
+        r => r,
+    }
+}
+
 pub(crate) fn route_for(m: &ModelInfo, provider: Option<Provider>, probed: bool) -> Route {
     let Some(provider) = provider else {
         // Name the key THIS row needs, not the first one discovery happens to
@@ -108,6 +128,8 @@ pub(crate) fn route_for(m: &ModelInfo, provider: Option<Provider>, probed: bool)
     match provider {
         Provider::Mock => Route::Mock,
         Provider::Anthropic if m.vendor == Vendor::Anthropic => Route::Direct("anthropic"),
+        // A Claude Code subscription runs the same model ids through its CLI.
+        Provider::ClaudeCli if m.vendor == Vendor::Anthropic => Route::Direct("claude-code"),
         Provider::DashScope if m.vendor == Vendor::Alibaba => Route::Direct("dashscope"),
         // A table provider serves its own vendor natively — that is the whole
         // point of it existing, and why an OpenAI row no longer asks for an
@@ -153,3 +175,7 @@ fn vendor_key(v: Vendor) -> &'static str {
 #[cfg(test)]
 #[path = "modelroute_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "modelroutesub_tests.rs"]
+mod sub_tests;

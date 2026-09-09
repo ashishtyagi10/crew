@@ -50,8 +50,9 @@ fn header(label: &str) -> MenuItem {
     }
 }
 
-/// What a row says after its name.
-fn state(o: &SignInOption) -> String {
+/// What a row says after its name (the model picker's sign-in section
+/// reads it too).
+pub(crate) fn state(o: &SignInOption) -> String {
     match (o.signed_in, o.key_present, &o.install) {
         (true, _, _) if o.device => "\u{2713} signed in \u{00b7} pick to sign in again".into(),
         (true, _, _) => "\u{2713} signed in through its CLI".into(),

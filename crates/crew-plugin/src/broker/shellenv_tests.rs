@@ -48,6 +48,7 @@ fn credentials_fill_only_what_the_process_env_lacks() {
         ]
         .into_iter()
         .collect(),
+        ..Default::default()
     };
     // ANTHROPIC is already exported non-empty; DASHSCOPE is empty in the env.
     let current = |k: &str| match k {

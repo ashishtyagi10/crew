@@ -183,14 +183,11 @@ fn a_minting_cli_row_names_install_login_and_precedence() {
         text.contains("anthropic \u{2014} \u{2713} signed in (vendor CLI)"),
         "{text}"
     );
-    match pick(&[minting("anthropic", true, true, None)], "anthropic") {
-        LoginPick::Note(n) => assert!(
-            n.contains("signed in through its own CLI and serving")
-                && !n.contains("run `ant auth login`"),
-            "a signed-in pick is a status, not a second login: {n}"
-        ),
-        other => panic!("{other:?}"),
-    }
+    assert_eq!(
+        pick(&[minting("anthropic", true, true, None)], "anthropic"),
+        LoginPick::Serve("anthropic".into()),
+        "a signed-in pick makes it serve, never a second login"
+    );
 }
 
 /// The picker's rows carry every state the table prints, device flows first
@@ -233,28 +230,20 @@ fn signed_in_rows_carry_the_cli_signout() {
     assert_eq!(o[0].logout, None);
 }
 
-/// Picking a CLI row that is already signed in is a status line, never a
-/// second "run `ant auth login`" — the user just did that, and picked the
-/// row to see it took.
+/// Picking a CLI row that is already signed in makes it SERVE (the pin
+/// moves there — the last choice wins), never a second "run `ant auth
+/// login`" — the user just did that, and picked the row to use it.
 #[test]
-fn picking_a_signed_in_cli_row_reports_it_serving() {
+fn picking_a_signed_in_cli_row_makes_it_serve() {
     let rows = vec![minting("anthropic", true, false, None)];
-    let note = match pick(&rows, "anthropic") {
-        LoginPick::Note(n) => n,
-        other => panic!("{other:?}"),
-    };
     assert_eq!(
-        note,
-        "anthropic is signed in through its own CLI and serving \u{2014} `ant auth logout` signs out"
+        pick(&rows, "anthropic"),
+        LoginPick::Serve("anthropic".into())
     );
     let rows = vec![delegated("claude-code", "claude auth login", true)];
-    let note = match pick(&rows, "claude-code") {
-        LoginPick::Note(n) => n,
-        other => panic!("{other:?}"),
-    };
     assert_eq!(
-        note,
-        "claude-code is signed in through its own CLI and serving"
+        pick(&rows, "claude-code"),
+        LoginPick::Serve("claude-code".into())
     );
     // Signed out and installed: the login command, and how crew notices.
     let rows = vec![delegated("codex", "codex login", false)];

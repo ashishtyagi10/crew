@@ -45,7 +45,7 @@ fn collect_with_model(task: &str, model: &str, cancel: Arc<AtomicBool>) -> Vec<P
 /// The last `Roster` the run emitted (the post-planning re-emit).
 fn last_roster(evs: &[PluginEvent]) -> Option<&[crate::AgentInfo]> {
     evs.iter().rev().find_map(|e| match e {
-        PluginEvent::Roster { agents } => Some(agents.as_slice()),
+        PluginEvent::Roster { agents, .. } => Some(agents.as_slice()),
         _ => None,
     })
 }

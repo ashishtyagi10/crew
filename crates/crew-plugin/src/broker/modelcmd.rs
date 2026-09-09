@@ -27,9 +27,7 @@ pub(crate) fn model_cmd(
         // first so the pane's badges picked up manifest edits without a
         // restart, and inheriting the report without inheriting that would
         // have quietly dropped a live-reload path.
-        emit(PluginEvent::Roster {
-            agents: session.registry().infos(),
-        })?;
+        emit(super::rosterev::roster(session.registry().infos()))?;
         let listing = format!(
             "{}\n\nagents:\n{}",
             groups_text(&super::auth::state::snapshot()),
@@ -45,9 +43,7 @@ pub(crate) fn model_cmd(
             Pick::SignIn(name) => return super::signin::signin_cmd(session, &name, emit),
             Pick::Note(note) => note,
         };
-        emit(PluginEvent::Roster {
-            agents: session.registry().infos(),
-        })?;
+        emit(super::rosterev::roster(session.registry().infos()))?;
         return emit(msg("agent smith", note));
     }
     // `/model all <model|default>` — apply one model across the whole roster
@@ -74,9 +70,7 @@ pub(crate) fn model_cmd(
                 None => format!("all agents now run {model}"),
             }
         };
-        emit(PluginEvent::Roster {
-            agents: session.registry().infos(),
-        })?;
+        emit(super::rosterev::roster(session.registry().infos()))?;
         return emit(msg("agent smith", note));
     }
     let reg = session.registry();
@@ -106,9 +100,7 @@ pub(crate) fn model_cmd(
         session.overrides.insert(name.clone(), model.to_string());
         format!("{name} now runs {model}")
     };
-    emit(PluginEvent::Roster {
-        agents: session.registry().infos(),
-    })?;
+    emit(super::rosterev::roster(session.registry().infos()))?;
     emit(msg("agent smith", note))
 }
 

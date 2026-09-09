@@ -75,7 +75,10 @@ fn legend(cells: &[crew_render::CellView]) -> String {
 fn palette_card_title_matches_kind() {
     assert_eq!(palette_card_title(chatpalette::Kind::Slash), "commands");
     assert_eq!(palette_card_title(chatpalette::Kind::Agent), "attach");
-    assert_eq!(palette_card_title(chatpalette::Kind::Model), "models");
+    assert_eq!(
+        palette_card_title(chatpalette::Kind::Model),
+        "models \u{00b7} sign in"
+    );
 }
 
 #[test]

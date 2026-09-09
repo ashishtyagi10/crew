@@ -35,7 +35,7 @@ fn roster_event_roundtrips_and_defaults() {
     let line = r#"{"type":"roster","agents":[{"name":"planner","role":"planning","model":"m1"},{"name":"claude"}]}"#;
     let ev: PluginEvent = serde_json::from_str(line).unwrap();
     match ev {
-        PluginEvent::Roster { agents } => {
+        PluginEvent::Roster { agents, .. } => {
             assert_eq!(agents.len(), 2);
             assert_eq!(agents[0].model, "m1");
             assert_eq!(agents[1].role, ""); // role/model default to empty

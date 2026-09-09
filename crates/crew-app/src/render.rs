@@ -551,7 +551,7 @@ fn palette_card_title(kind: crate::chatpalette::Kind) -> &'static str {
     match kind {
         crate::chatpalette::Kind::Slash => "commands",
         crate::chatpalette::Kind::Agent => "attach",
-        crate::chatpalette::Kind::Model => "models",
+        crate::chatpalette::Kind::Model => "models \u{00b7} sign in",
         crate::chatpalette::Kind::Auth(a) => a.legend(),
     }
 }

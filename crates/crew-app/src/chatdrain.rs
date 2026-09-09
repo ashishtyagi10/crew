@@ -78,8 +78,18 @@ impl ChatPane {
                             }
                         }
                     }
-                    PluginEvent::Roster { agents } => {
+                    PluginEvent::Roster {
+                        agents,
+                        provider,
+                        signins,
+                    } => {
                         self.agents = agents;
+                        // The broker is the authority on who serves: its pin
+                        // (a sign-in, a model pick) reaches the picker here.
+                        if let Some(p) = &provider {
+                            crate::shellprobe::note_pin(p);
+                        }
+                        crate::modelsignin::set(signins, provider);
                     }
                     // Each picker is the broker's WHOLE answer to the bare
                     // construct — it settles the pane like a `Message` would.

@@ -28,12 +28,22 @@ pub(crate) const SECTIONS: &[(&str, &[&str])] = &[
     ("help", &["/help", "/exit"]),
 ];
 
-/// Constructs whose argument phase is a popup the BROKER opens (`/login`'s
-/// and `/logout`'s pickers ride its `SignIn`/`SignOut` events): Enter runs
-/// them, where every other row only fills the token and waits.
-const RUNS_ON_ENTER: &[&str] = &["/login", "/logout"];
+/// Constructs whose argument phase is a popup the BROKER opens (`/logout`'s
+/// picker rides its `SignOut` event): Enter runs them, where every other
+/// row only fills the token and waits.
+const RUNS_ON_ENTER: &[&str] = &["/logout"];
 
 fn row(c: &str) -> MenuItem {
+    // `/login` IS the model picker's top section now — one front door for
+    // "who serves" — so its row opens that picker rather than a second one.
+    if c == "/login" {
+        return MenuItem {
+            label: c.to_string(),
+            desc: "sign in \u{2014} the top rows of the model picker".into(),
+            fill: "/model".into(),
+            ..Default::default()
+        };
+    }
     MenuItem {
         label: c.to_string(),
         desc: describe(c).to_string(),

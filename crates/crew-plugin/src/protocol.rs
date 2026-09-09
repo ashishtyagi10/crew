@@ -40,10 +40,19 @@ pub enum PluginEvent {
         provider: String,
         channels: Vec<String>,
     },
-    /// The agents this plugin can route to (sent once after `Ready`), so the
-    /// host can show a roster with model badges.
+    /// The agents this plugin can route to (after `Ready`, and again after
+    /// every provider change), so the host can show a roster with model
+    /// badges — plus who serves the API-backed seats (`provider`, the
+    /// registry name) and every sign-in the machine offers, with its state
+    /// (`signins`), so the host's model picker can offer the sign-ins and
+    /// light the models a live sign-in serves. Both default empty for a
+    /// broker that predates them.
     Roster {
         agents: Vec<AgentInfo>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        provider: Option<String>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        signins: Vec<crate::SignInOption>,
     },
     /// A live status change: `agent` entered `state` (`"thinking"` while being
     /// called; `"idle"` with an empty agent when the turn ends). `from` names

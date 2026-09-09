@@ -45,6 +45,12 @@ pub struct Store {
     pub provider: Option<String>,
     #[serde(default)]
     pub keys: BTreeMap<String, String>,
+    /// Each CLI-owned sign-in's last DEFINITIVE verdict (`"in"` / `"out"`),
+    /// by provider name — what lets a sign-in that happened in a terminal
+    /// count as the user's latest choice (see `broker::auth::seen`). A
+    /// state, never a credential.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub seen: BTreeMap<String, String>,
 }
 
 /// Hand-written so the key VALUES can never be printed. A derived `Debug`
@@ -62,6 +68,7 @@ impl std::fmt::Debug for Store {
         f.debug_struct("Store")
             .field("provider", &self.provider)
             .field("keys", &redacted)
+            .field("seen", &self.seen)
             .finish()
     }
 }
@@ -132,8 +139,44 @@ pub fn save_pin(provider: &str) -> anyhow::Result<()> {
 
 /// [`save_pin`] at an explicit path (the testable half).
 pub fn save_pin_at(path: &Path, provider: &str) -> anyhow::Result<()> {
+    edit_at(path, |store| store.provider = Some(provider.to_string()))
+}
+
+/// Drop the provider pin, leaving every key and verdict in place, so
+/// discovery decides again. The counterpart of [`save_pin`]: a pin that
+/// named a CLI the user has since signed out of would otherwise keep
+/// routing work to a signed-out client for good.
+pub fn clear_pin() -> anyhow::Result<()> {
+    let path =
+        path().ok_or_else(|| anyhow::anyhow!("no config directory to store credentials in"))?;
+    clear_pin_at(&path)
+}
+
+/// [`clear_pin`] at an explicit path (the testable half).
+pub fn clear_pin_at(path: &Path) -> anyhow::Result<()> {
+    edit_at(path, |store| store.provider = None)
+}
+
+/// Record `verdict` (`"in"` / `"out"`) as `provider`'s last definitive
+/// CLI sign-in state — see `Store::seen`.
+pub fn save_seen(provider: &str, verdict: &str) -> anyhow::Result<()> {
+    let path =
+        path().ok_or_else(|| anyhow::anyhow!("no config directory to store credentials in"))?;
+    save_seen_at(&path, provider, verdict)
+}
+
+/// [`save_seen`] at an explicit path (the testable half).
+pub fn save_seen_at(path: &Path, provider: &str, verdict: &str) -> anyhow::Result<()> {
+    edit_at(path, |store| {
+        store.seen.insert(provider.to_string(), verdict.to_string());
+    })
+}
+
+/// Load, change, write back atomically — the one shape every non-key edit
+/// takes, so none of them can forget the directory or the atomic write.
+fn edit_at(path: &Path, change: impl FnOnce(&mut Store)) -> anyhow::Result<()> {
     let mut store = load_from(path);
-    store.provider = Some(provider.to_string());
+    change(&mut store);
     let bytes = serde_json::to_vec_pretty(&store)?;
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir)?;

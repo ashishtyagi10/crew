@@ -213,9 +213,7 @@ fn reload_cmd(
         .iter()
         .map(|i| format!("{} ({} tool(s))", i.name, i.tools.len()))
         .collect();
-    emit(PluginEvent::Roster {
-        agents: session.registry().infos(),
-    })?;
+    emit(super::rosterev::roster(session.registry().infos()))?;
     let list = |names: Vec<String>| {
         if names.is_empty() {
             "none".to_string()

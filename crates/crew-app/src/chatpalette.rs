@@ -187,13 +187,13 @@ pub(crate) fn popup_key(
     PaletteKey::Consumed
 }
 
-/// Replace the leading token's active segment with `fill`: a slash construct
-/// becomes `/cmd `; an agent becomes `@name `, preserving any `@a+` prefix.
+/// Replace the leading token with `fill`: `/cmd `, or `@name ` keeping `@a+`.
 pub(crate) fn accept(input: &str, kind: Kind, fill: &str) -> String {
     match kind {
         Kind::Slash => format!("{fill} "),
-        // The broker reads `/model <agent> <slug>`; the picker applies the
-        // pick to the whole roster, so it must send the `all` target.
+        // A sign-in row carries its whole construct (`/login <name>`); a
+        // model row is a slug, applied to the whole roster.
+        Kind::Model if fill.starts_with('/') => fill.to_string(),
         Kind::Model => format!("/model all {fill}"),
         Kind::Auth(a) => format!("/{} {fill}", a.construct()),
         Kind::Agent => match input.rfind('+') {
@@ -203,8 +203,8 @@ pub(crate) fn accept(input: &str, kind: Kind, fill: &str) -> String {
     }
 }
 
-/// The model every agent runs, or `None` when the roster disagrees (mixed
-/// pins) or reports nothing — only an unambiguous answer earns the `●` mark.
+/// The model every agent runs, or `None` when the roster disagrees or
+/// reports nothing — only an unambiguous answer earns the `●` mark.
 pub(crate) fn shared_model(agents: &[crew_plugin::AgentInfo]) -> Option<String> {
     let first = agents.iter().find(|a| !a.model.is_empty())?;
     agents

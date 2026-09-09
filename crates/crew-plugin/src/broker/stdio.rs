@@ -119,12 +119,7 @@ fn hello(out: &Out, session: &Session) -> anyhow::Result<()> {
             channels: vec!["crew".into()],
         },
     )?;
-    emit(
-        out,
-        &PluginEvent::Roster {
-            agents: reg.infos(),
-        },
-    )?;
+    emit(out, &super::rosterev::roster(reg.infos()))?;
     emit(out, &msg("agent smith", startup_banner(&reg)))?;
     // …and, if yesterday's conversation is still here, that it is. Held back
     // until after the banner so the pane's own identity reads first.
