@@ -101,70 +101,33 @@ pub(super) fn translate(
         HiveEvent::OutputChunk { agent, text } => {
             vec![msg(agent_name(agent, agent_task).as_str(), text.clone())]
         }
-        // Tool use is shown in the transcript with the SAME `[tool]` line the
-        // relay uses (`toolline::call_line` — subject-first, so a reader sees
-        // which file or which command, not 200 characters of JSON). Two
-        // engines rendering the same action two ways would read as two
-        // different features.
-        HiveEvent::ToolCall { agent, label, args } => {
-            let name = agent_name(agent, agent_task);
-            vec![
-                msg(
-                    name.as_str(),
-                    format!(
-                        "[tool] {}",
-                        crate::broker::toolline::call_line(label, args, 200)
-                    ),
-                ),
-                // …and say the agent is ON A TOOL, not thinking. The header
-                // counts up either way; only this says whose wait it is.
-                PluginEvent::Activity {
-                    agent: name,
-                    state: format!("tool {label}"),
-                    from: "hive".into(),
-                },
-            ]
+        // Tool use is NOT a transcript card any more. The app draws the live
+        // tool block (`chattool`) straight from the forwarded `Hive` event:
+        // a spinner and the subject while the call runs, `✓`/`✗` and the
+        // duration on the result, the output on a click, and the whole block
+        // folds to `▸ N tool calls` when the reply settles. Emitting a
+        // `[tool]` card here as well showed every call twice (0.21.46–50).
+        // The relay engine (`toolcall.rs`) has no hive events, so its cards
+        // stay. What this arm still owns is the ACTIVITY: the header counts
+        // up either way; only this says the agent is on a tool, and whose
+        // wait it is — and the app binds the hive agent id to a name from
+        // exactly this `from: "hive"` event.
+        HiveEvent::ToolCall { agent, label, .. } => {
+            vec![PluginEvent::Activity {
+                agent: agent_name(agent, agent_task),
+                state: format!("tool {label}"),
+                from: "hive".into(),
+            }]
         }
-        // Every result is shown, outcome and duration first, output beneath.
-        //
-        // Successful results used to be dropped, on the reasoning that pasting
-        // raw tool output into the transcript would bury the agent's own
-        // answer under a page of JSON. That was sound while a tool card was an
-        // ordinary agent card that always rendered in full — and it stopped
-        // being sound once tool cards FOLD (`chatfold`). Folded, this is one
-        // line saying what happened and how long it took; clicked open, it is
-        // what the API actually returned. Dropping it left no way to see that
-        // at all — only the agent's paraphrase, which is the one thing a
-        // person checking an integration cannot take on trust.
-        HiveEvent::ToolResult {
-            agent,
-            label,
-            ok,
-            text,
-            ms,
-        } => {
-            let head = crate::broker::toolline::result_line(label, *ok, *ms);
-            // `toolclip`, NOT `route::clip`: the latter flattens whitespace,
-            // which would fold every line of output onto the card's first
-            // line — the one line the fold shows — so a folded result would
-            // BE the whole result, and clicking it open would reveal nothing.
-            let body = crate::broker::toolclip::clip_result(text.trim_end(), RESULT_CLIP);
-            let card = if body.is_empty() {
-                format!("[tool] {head}")
-            } else {
-                format!("[tool] {head}\n{body}")
-            };
-            let name = agent_name(agent, agent_task);
-            vec![
-                msg(name.as_str(), card),
-                // Back to thinking — bare `tool` clears the label without
-                // starting a new hop (see the app's `absorb_activity`).
-                PluginEvent::Activity {
-                    agent: name,
-                    state: "tool".into(),
-                    from: String::new(),
-                },
-            ]
+        // Back to thinking — bare `tool` clears the label without starting a
+        // new hop (see the app's `absorb_activity`). The result itself rides
+        // the forwarded `Hive` event, clipped by [`forwarded`].
+        HiveEvent::ToolResult { agent, .. } => {
+            vec![PluginEvent::Activity {
+                agent: agent_name(agent, agent_task),
+                state: "tool".into(),
+                from: String::new(),
+            }]
         }
         // A task failure is chat-visible content, not a connection loss: the
         // app's chat pane treats `PluginEvent::Error` as the broker connection
@@ -176,5 +139,39 @@ pub(super) fn translate(
                 format!("\u{2717} failed: {error}"),
             )]
         }
+    }
+}
+
+/// The copy of a hive event that crosses the wire as `PluginEvent::Hive`,
+/// or `None` for one that must not.
+///
+/// `OutputDelta` fires once per SSE fragment (see `ApiAgent`), so forwarding
+/// it raw would flood the wire with exactly what `TextGate` (tick.rs) exists
+/// to coalesce — and the app ignores raw `Hive{OutputDelta}` outright. Only
+/// the coalesced `Delta` that [`translate`] derives from it may cross.
+///
+/// A `ToolResult` carries the tool's whole output, and a `curl` of a large
+/// page has no ceiling of its own; the transcript used to bound it when the
+/// result was a card, so the bound moves here now that the live block reads
+/// the event directly. `toolclip`, not `route::clip`: the latter flattens
+/// whitespace, which would fold every line of output onto the block's
+/// preview line.
+pub(super) fn forwarded(ev: &HiveEvent) -> Option<HiveEvent> {
+    match ev {
+        HiveEvent::OutputDelta { .. } => None,
+        HiveEvent::ToolResult {
+            agent,
+            label,
+            ok,
+            text,
+            ms,
+        } => Some(HiveEvent::ToolResult {
+            agent: agent.clone(),
+            label: label.clone(),
+            ok: *ok,
+            text: crate::broker::toolclip::clip_result(text.trim_end(), RESULT_CLIP),
+            ms: *ms,
+        }),
+        other => Some(other.clone()),
     }
 }

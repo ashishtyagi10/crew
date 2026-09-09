@@ -743,10 +743,17 @@ fn a_swarm_agent_calls_a_tool_and_the_transcript_shows_it() {
         })
         .collect();
     assert!(
-        texts
-            .iter()
-            .any(|t| t.starts_with("[tool] weather:current")),
-        "no tool line in transcript: {texts:?}"
+        evs.iter().any(|e| matches!(
+            e,
+            PluginEvent::Hive { event: HiveEvent::ToolCall { label, .. } } if label == "weather:current"
+        )),
+        "no tool call event for the live block: {evs:?}"
+    );
+    // …and ONLY there: a `[tool]` card beside the live block showed every
+    // call twice.
+    assert!(
+        !texts.iter().any(|t| t.starts_with("[tool]")),
+        "the swarm added a [tool] card: {texts:?}"
     );
     // A successful result is not echoed as its own message; the agent's answer
     // is what the reader gets.
@@ -890,22 +897,29 @@ fn a_swarm_agent_runs_a_real_sys_command_over_native_tool_use() {
         .collect();
     // A REAL shell command ran, through the gate, from a parallel swarm agent.
     assert!(
-        texts.iter().any(|t| t.starts_with("[tool] sys:run")),
-        "no sys:run in transcript: {texts:?}"
+        evs.iter().any(|e| matches!(
+            e,
+            PluginEvent::Hive { event: HiveEvent::ToolCall { label, .. } } if label == "sys:run"
+        )),
+        "no sys:run tool call event: {evs:?}"
+    );
+    assert!(
+        !texts.iter().any(|t| t.starts_with("[tool]")),
+        "the swarm added a [tool] card: {texts:?}"
     );
     assert!(texts.iter().any(|t| t.contains("listed it")), "{texts:?}");
 }
 
 // ---------------------------------------------------------------------------
-// Tool results are shown, not dropped
+// Tool use is the live block's, not a card's
 // ---------------------------------------------------------------------------
 
-fn tool_result_card(ok: bool, ms: u64, text: &str) -> String {
+fn tool_result_events(ok: bool, ms: u64, text: &str) -> Vec<PluginEvent> {
     let mut specialties = HashMap::new();
     specialties.insert(TaskId(0), "api-consumer".to_string());
     let mut agent_task = HashMap::new();
     agent_task.insert(1u64, TaskId(0));
-    let evs = translate(
+    translate(
         &HiveEvent::ToolResult {
             agent: AgentId(1),
             label: "sys:run".into(),
@@ -917,52 +931,90 @@ fn tool_result_card(ok: bool, ms: u64, text: &str) -> String {
         &mut agent_task,
         &mut HashMap::new(),
         0,
+    )
+}
+
+/// A result is no transcript card: the live tool block (`chattool` in the
+/// app) draws it from the forwarded hive event, so a card here showed every
+/// call twice. What the translation still owns is the activity flip back to
+/// thinking, named for the caller.
+#[test]
+fn a_tool_result_is_an_activity_flip_and_no_card() {
+    let evs = tool_result_events(true, 1_200, "Oslo: +56F\nTokyo: +78F");
+    assert!(
+        !evs.iter().any(|e| matches!(e, PluginEvent::Message { .. })),
+        "a [tool] card beside the live block: {evs:?}"
     );
-    match evs.into_iter().next() {
-        Some(PluginEvent::Message { sender, text, .. }) => {
-            assert_eq!(sender, "api-consumer", "the caller is named, not the tool");
-            text
+    match evs.as_slice() {
+        [PluginEvent::Activity { agent, state, from }] => {
+            assert_eq!(agent, "api-consumer", "the caller is named, not the tool");
+            assert_eq!(state, "tool");
+            assert!(from.is_empty());
         }
-        other => panic!("expected a Message, got {other:?}"),
+        other => panic!("expected one Activity, got {other:?}"),
     }
 }
 
-/// A successful result used to produce NOTHING, so what an API actually
-/// returned was unreachable — only the agent's paraphrase of it.
+/// A call likewise: one activity naming the tool, from the hive, and no card.
 #[test]
-fn a_successful_result_reaches_the_transcript() {
-    let card = tool_result_card(true, 1_200, "Oslo: +56F\nTokyo: +78F");
-    let mut lines = card.lines();
-    // The first line is the whole card when folded, so it has to carry the
-    // outcome and the duration.
-    assert_eq!(lines.next().unwrap(), "[tool] sys:run \u{2713} 1s");
-    // …and the output is under it, for the click.
-    assert_eq!(lines.next().unwrap(), "Oslo: +56F");
-}
-
-#[test]
-fn a_failure_keeps_its_mark_and_its_text() {
-    let card = tool_result_card(false, 300, "connection refused");
-    assert!(card.starts_with("[tool] sys:run \u{2717} 0.3s"), "{card}");
-    assert!(card.contains("connection refused"), "{card}");
-}
-
-/// A tool that returns nothing must not leave a card with a trailing blank
-/// body — one line in, one line out.
-#[test]
-fn an_empty_result_is_a_single_line() {
-    let card = tool_result_card(true, 40, "   \n\n");
-    assert_eq!(card, "[tool] sys:run \u{2713} 0.0s");
-}
-
-/// The transcript is held in memory and a `curl` of a large page has no
-/// ceiling of its own.
-#[test]
-fn a_huge_result_is_bounded() {
-    let card = tool_result_card(true, 100, &"x".repeat(super::swarmmsg::RESULT_CLIP * 3));
-    assert!(
-        card.chars().count() < super::swarmmsg::RESULT_CLIP + 200,
-        "{}",
-        card.len()
+fn a_tool_call_is_a_named_activity_and_no_card() {
+    let mut specialties = HashMap::new();
+    specialties.insert(TaskId(0), "api-consumer".to_string());
+    let mut agent_task = HashMap::new();
+    agent_task.insert(1u64, TaskId(0));
+    let evs = translate(
+        &HiveEvent::ToolCall {
+            agent: AgentId(1),
+            label: "sys:run".into(),
+            args: r#"{"cmd": "ls"}"#.into(),
+        },
+        &specialties,
+        &mut agent_task,
+        &mut HashMap::new(),
+        0,
     );
+    match evs.as_slice() {
+        [PluginEvent::Activity { agent, state, from }] => {
+            assert_eq!(agent, "api-consumer");
+            assert_eq!(state, "tool sys:run");
+            assert_eq!(from, "hive");
+        }
+        other => panic!("expected one Activity, got {other:?}"),
+    }
+}
+
+/// The transcript used to bound a tool result; now the wire copy the live
+/// block reads must be, because a `curl` of a large page has no ceiling of
+/// its own. And the per-fragment `OutputDelta` still never crosses.
+#[test]
+fn the_forwarded_result_is_bounded_and_output_deltas_never_cross() {
+    let huge = HiveEvent::ToolResult {
+        agent: AgentId(1),
+        label: "sys:run".into(),
+        ok: true,
+        text: "x".repeat(super::swarmmsg::RESULT_CLIP * 3),
+        ms: 100,
+    };
+    match super::swarmmsg::forwarded(&huge) {
+        Some(HiveEvent::ToolResult { text, label, .. }) => {
+            assert!(
+                text.chars().count() < super::swarmmsg::RESULT_CLIP + 200,
+                "{}",
+                text.len()
+            );
+            assert_eq!(label, "sys:run");
+        }
+        other => panic!("expected a clipped ToolResult, got {other:?}"),
+    }
+    let frag = HiveEvent::OutputDelta {
+        agent: AgentId(1),
+        text: "x".into(),
+    };
+    assert!(super::swarmmsg::forwarded(&frag).is_none());
+    let call = HiveEvent::ToolCall {
+        agent: AgentId(1),
+        label: "sys:run".into(),
+        args: "{}".into(),
+    };
+    assert_eq!(super::swarmmsg::forwarded(&call), Some(call.clone()));
 }

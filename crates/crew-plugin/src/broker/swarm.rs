@@ -199,20 +199,11 @@ pub(crate) fn run_with(
                             }
                             _ => {}
                         }
-                        // `OutputDelta` fires once per SSE fragment (see
-                        // `ApiAgent`), so forwarding it raw here would flood
-                        // the wire with exactly what `TextGate` (tick.rs)
-                        // exists to coalesce — and the app ignores raw
-                        // `Hive{OutputDelta}` outright (chatswarm.rs's no-op
-                        // arm), so every one of those lines is pure waste.
-                        // Only the coalesced `Delta` that `translate` derives
-                        // from it may cross the wire. Every other variant
-                        // still forwards raw below, unaffected — do not
-                        // widen this exclusion.
-                        let mut r = if matches!(ev, HiveEvent::OutputDelta { .. }) {
-                            Ok(())
-                        } else {
-                            emit(PluginEvent::Hive { event: ev.clone() })
+                        // Which variants cross the wire, and how a tool
+                        // result is bounded, is `swarmmsg::forwarded`'s call.
+                        let mut r = match swarmmsg::forwarded(&ev) {
+                            Some(event) => emit(PluginEvent::Hive { event }),
+                            None => Ok(()),
                         };
                         r = r.and_then(|()| {
                             for out in translate(

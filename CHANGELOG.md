@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.51
+
+**A swarm tool call shows once: the live block stays, the `[tool]` card goes.**
+
+Since 0.21.46 every tool call in a swarm appeared twice, as the live
+line under the agent's card and again as the broker's folded `[tool]`
+card. The swarm arm no longer emits the card; it keeps only the
+activity flip that names whose wait it is and binds the agent's name
+to the block. The bound the card used to put on a tool's output moves
+to the wire: the forwarded result is clipped before it crosses, so a
+`curl` of a large page cannot swell the pane. The relay engine has no
+live events, so its `[tool]` cards stay as they were.
+
 ## 0.21.50
 
 **Pictures paint inside chat cards, wide tables wrap, and the markdown card finally has a screenshot sweep.**
