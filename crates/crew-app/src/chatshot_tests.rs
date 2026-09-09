@@ -28,7 +28,9 @@ fn msg(sender: &str, text: &str, meta: &str, usage: Option<(u64, u64, u64)>) -> 
 }
 
 /// A session mid-conversation: prose, a heading, a bullet list, inline code, a
-/// link, a fenced block, and a reply still streaming in. Every body shape the
+/// link, a fenced block (with a keyword, a type, a call, a number, an
+/// attribute and a comment, so the PNG shows every syntax hue), and a reply
+/// still streaming in. Every body shape the
 /// markdown engine can put on a card, in one transcript, so a width sweep
 /// exercises all of them at once.
 fn live_pane() -> ChatPane {
@@ -64,8 +66,12 @@ fn live_pane() -> ChatPane {
              The fix is a signed distance field — see `plot/sdf.rs` and the note in \
              [the design doc](https://example.invalid/crew/design).\n\n\
              ```rust\n\
-             let d = sdf::arc(p, r, half_w, a0, a1);\n\
-             let cov = (0.5 - d * scale).clamp(0.0, 1.0);\n\
+             #[derive(Clone, Copy)]\n\
+             struct Cov(f32);\n\n\
+             fn cover(p: Vec2, scale: f32) -> Cov {\n\
+                 let d = sdf::arc(p, r, half_w, a0, a1); // signed\n\
+                 Cov((0.5 - d * scale).clamp(0.0, 1.0))\n\
+             }\n\
              ```\n\n\
              Sampling at `SUB = 8` is where the stepping stops; 16 is not visibly \
              better at twice the quads.",

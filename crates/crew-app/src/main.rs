@@ -55,6 +55,7 @@ mod chathdr;
 mod chatheading;
 mod chathistory;
 mod chathistsearch;
+mod chathue;
 mod chatimage;
 mod chatink;
 mod chatinput;

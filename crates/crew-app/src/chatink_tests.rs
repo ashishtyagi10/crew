@@ -161,19 +161,16 @@ fn active_theme_selects_its_own_row() {
 }
 
 /// Syntax colours are subject to the same floor as everything else: a
-/// highlighted keyword that matches body text is the v0.6.34 bug again, with
-/// four colours instead of one.
+/// highlighted comment that matches body text is the v0.6.34 bug again, with
+/// four colours instead of one. (The hued classes answer to the same floors
+/// in `chathue_tests`.)
 #[test]
 fn every_syntax_colour_separates_from_body_text() {
     let _g = crate::app::theme_test_guard();
     for id in ALL_THEMES {
         let t = id.theme();
         let d = derive(t);
-        for (what, c) in [
-            ("comment", d.comment),
-            ("string", d.string),
-            ("keyword", d.keyword),
-        ] {
+        for (what, c) in [("comment", d.comment), ("string", d.string)] {
             let got = contrast_ratio(c, t.ink);
             assert!(
                 got >= SEPARATION_FLOOR,

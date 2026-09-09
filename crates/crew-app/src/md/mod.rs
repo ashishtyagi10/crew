@@ -12,6 +12,8 @@ mod source;
 mod source_tests;
 pub(crate) mod syntax;
 mod syntaxdiff;
+mod syntaxlang;
+mod syntaxword;
 mod tasklist;
 
 /// A column's alignment, as the table's own `|---|---:|:--:|` row declares
@@ -79,6 +81,10 @@ pub(crate) struct MdStyle {
     /// — rather than authored content. The chat renderer colours markers
     /// separately from the text they introduce.
     pub marker: bool,
+    /// A cell of a table's HEADER row. The row is already bold, but so is
+    /// `**prose**`; this is what lets the chat renderer tint the header
+    /// without tinting every bold word in the table's body.
+    pub table_head: bool,
     /// What this run of a fenced code block is — comment, string, keyword —
     /// so the chat renderer can colour inside code rather than painting the
     /// whole block one colour. `Plain` everywhere outside a fence, except

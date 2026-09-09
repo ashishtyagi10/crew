@@ -69,7 +69,7 @@ const FIELD_FLOOR: f32 = 1.55;
 /// code, so it never grows past the point where it starts swallowing it —
 /// on a preset with no headroom the field stays faint rather than the code
 /// going grey-on-grey.
-const CODE_ON_FIELD_FLOOR: f32 = 4.0;
+pub(crate) const CODE_ON_FIELD_FLOOR: f32 = 4.0;
 
 /// How far a REMOVED line must sit from an added one. On the paper presets
 /// hue answers this for free — red against green — and the raw slots are
@@ -86,22 +86,23 @@ const DIFF_FLOOR: f32 = 1.7;
 /// collapsed, which is the failure this exists to avoid.
 const REMOVED_PAGE_FLOOR: f32 = 3.5;
 
-/// The four derived colours for one theme. Computed once per preset (see
+/// The derived colours for one theme. Computed once per preset (see
 /// [`table`]) rather than per span: [`separated`] walks a lerp and
 /// `contrast_ratio` calls `powf` six times a step, which is not something to
-/// run per glyph on the winit thread.
+/// run per glyph on the winit thread. The chromatic syntax classes —
+/// keyword, type, call, number, attribute — sit in `chathue`, on the same
+/// floors.
 #[derive(Clone, Copy)]
-struct Ink {
-    code: Color,
-    marker: Color,
-    quote: Color,
-    code_bg: Color,
+pub(crate) struct Ink {
+    pub(crate) code: Color,
+    pub(crate) marker: Color,
+    pub(crate) quote: Color,
+    pub(crate) code_bg: Color,
     /// A removed line, separated from an added one where hue cannot do it
     /// (see [`DIFF_FLOOR`]). Identical to `ansi[1]` on every paper preset.
-    removed: Color,
-    comment: Color,
-    string: Color,
-    keyword: Color,
+    pub(crate) removed: Color,
+    pub(crate) comment: Color,
+    pub(crate) string: Color,
 }
 
 /// Pull `c` away from body text until it is distinguishable from it.
@@ -129,7 +130,7 @@ fn separated(c: Color, t: &Theme) -> Color {
 /// guarantees "not body text" and accidentally guarantees "all alike". The
 /// classes therefore sit on a LADDER, and on a single-phosphor tube — where
 /// hue cannot vary at all — that ladder is the whole of the highlighting.
-fn separated_to(c: Color, t: &Theme, floor: f32, page_floor: f32) -> Color {
+pub(crate) fn separated_to(c: Color, t: &Theme, floor: f32, page_floor: f32) -> Color {
     if contrast_ratio(c, t.ink) >= floor {
         return c;
     }
@@ -199,7 +200,7 @@ fn code_field(t: &Theme, code: Color) -> Color {
 
 /// Derive one preset's semantic colours. Pure in `t` so the floor can be
 /// asserted for all 16 presets without touching the global theme atomic.
-fn derive(t: &Theme) -> Ink {
+pub(crate) fn derive(t: &Theme) -> Ink {
     let code = separated(t.ansi[6], t);
     Ink {
         code,
@@ -212,13 +213,10 @@ fn derive(t: &Theme) -> Ink {
         // keeps its hue for free. Each still goes through `separated`, so a
         // token colour can never collapse into body text.
         // The ladder. Comments sit furthest back, strings between, plain code
-        // nearest to prose. Keywords take no rung of their own — they draw in
-        // the code colour and are marked by WEIGHT (see `chatmd`), because a
-        // fourth rung would either crowd the other three or push a colour past
-        // the page floor on the darker tubes.
+        // nearest to prose. The hued classes (`chathue`) separate by HUE on a
+        // paper preset and fall back to this ladder on a tube.
         comment: separated_to(t.text_muted, t, COMMENT_FLOOR, COMMENT_PAGE_FLOOR),
         string: separated_to(t.ansi[2], t, STRING_FLOOR, PAGE_FLOOR),
-        keyword: separated(t.ansi[6], t),
     }
 }
 
@@ -231,7 +229,9 @@ pub(crate) fn token_fg(token: crate::md::syntax::Token) -> Color {
         Token::Plain => i.code,
         Token::Comment => i.comment,
         Token::Str => i.string,
-        Token::Keyword => i.keyword,
+        Token::Keyword | Token::Type | Token::Func | Token::Number | Token::Attr => {
+            crate::chathue::token_fg(token)
+        }
         // Diff line classes take the theme's RAW slots, matching the viewer's
         // diff rung (`viewpane::lines::diff_lines`) so a ```diff fence in
         // chat and an opened .patch file colour identically. No `separated`

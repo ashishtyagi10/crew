@@ -166,3 +166,26 @@ fn the_tool_predicate_does_not_capture_an_agent_quoting_the_marker() {
     assert!(!is_tool_card(&msg("agent smith", "[tool] sys:run x")));
     assert!(is_tool_card(&msg("coder", "[tool] sys:run x")));
 }
+
+/// The gutter bar and the name both wear the sender's roster colour — the
+/// same colour the footer's `@agent` and the pane legend use — while the
+/// muted tail does not.
+#[test]
+fn the_gutter_and_name_wear_the_senders_roster_colour() {
+    let _g = crate::app::theme_test_guard();
+    let m = msg("planner", "hello");
+    let line = header_line(&m, 0, None);
+    let want = crate::chatroster::agent_color("planner");
+    assert_eq!(line[0].c, GUTTER);
+    assert_eq!(line[0].fg, want, "gutter");
+    assert_eq!(line[1].fg, want, "name");
+    assert!(line[1].bold);
+    assert_ne!(want, crew_theme::theme().text_muted);
+    let tool = msg("planner", &format!("{TOOL_PREFIX}ls"));
+    let t = header_line(&tool, 0, None);
+    assert_eq!(
+        t[0].fg,
+        crew_theme::theme().text_muted,
+        "a tool card is muted"
+    );
+}

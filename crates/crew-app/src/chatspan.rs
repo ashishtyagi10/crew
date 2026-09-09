@@ -71,14 +71,16 @@ pub(crate) fn style(span: &MdSpan, kind: LineKind, fg: Color, muted: Color) -> S
     match kind {
         LineKind::CodeHeader | LineKind::CodeFooter | LineKind::Rule => SpanInk::flat(muted),
         // Inside a fence the SPAN decides the colour, not the line: the
-        // tokenizer split it into comment / string / keyword / plain runs at
-        // layout time (see `md::layout::code_spans`). Keywords are marked by
-        // weight, not by a colour of their own: a fourth colour would crowd
-        // the ladder the other classes sit on, and weight works on a
-        // single-phosphor screen where hue cannot.
+        // tokenizer split it into comment / string / keyword / type / call /
+        // number / attribute runs at layout time (`md::layout::code_spans`),
+        // and `chatink` + `chathue` colour them. A keyword keeps its weight
+        // on top of its hue — weight still works on a single-phosphor screen
+        // where the hue falls back to code — and an attribute slants, the
+        // way a comment would if it were one.
         LineKind::Code => SpanInk {
             fg: chatink::token_fg(span.style.token),
             bold: span.style.token == crate::md::syntax::Token::Keyword,
+            italic: span.style.token == crate::md::syntax::Token::Attr,
             bg: Some(chatink::code_bg()),
             ..SpanInk::flat(fg)
         },
@@ -92,7 +94,7 @@ pub(crate) fn style(span: &MdSpan, kind: LineKind, fg: Color, muted: Color) -> S
 
 /// Styles one prose span over `base` — the colour its plain text draws in.
 /// Precedence, highest first: footnote mark, link, heading, inline code,
-/// token, then `base`. A span can carry several at once (`# A [link](u)`),
+/// table header, token, then `base`. A span can carry several at once (`# A [link](u)`),
 /// so the order is what decides; it is checked top-down rather than
 /// accumulated, so each branch states its whole result. A strike is applied
 /// last, over whichever branch won: the rule goes through everything, and
@@ -102,8 +104,9 @@ fn body(span: &MdSpan, base: Color, muted: Color) -> SpanInk {
     let style = span.style;
     // Inline code inside a link keeps the code tint, as it did before.
     let bg = style.code.then(chatink::code_bg);
+    // The footnote mark is structure, like a bullet: the marker colour.
     let mut ink = if style.footnote {
-        SpanInk::flat(muted)
+        SpanInk::flat(chatink::marker_fg())
     } else if let Some(url) = &span.link {
         SpanInk {
             fg: chatink::link_color(),
@@ -127,6 +130,16 @@ fn body(span: &MdSpan, base: Color, muted: Color) -> SpanInk {
             bold: style.bold,
             italic: style.italic,
             bg,
+            ..SpanInk::flat(base)
+        }
+    } else if style.table_head {
+        // A table's header row: the accent, already floored against the
+        // page by `palette::accent`, so the column names read as the labels
+        // they are and the rule under them stays muted.
+        SpanInk {
+            fg: crate::palette::accent(),
+            bold: true,
+            italic: style.italic,
             ..SpanInk::flat(base)
         }
     } else {

@@ -17,11 +17,11 @@ fn fenced_code_takes_the_code_colour() {
     // 0 = the language row, 1 = code content, 2 = the closing blank row —
     // all three on the field, padded to one width (see `chatfield`).
     assert_eq!(row_text(&out[1]), "  fn x() {} ");
-    let cell = &out[1][2];
-    // The DERIVED code colour, not raw `ansi[6]`. `chatink` pushes every ink through
-    // `separated()` so it clears the card background's contrast floor, and on a theme where
-    // that floor bites, the two differ — which made this assertion depend on which theme
-    // happened to be live when the ink table was first computed.
+    let cell = &out[1][9]; // the `{`: plain code (`fn` and `x(` are hued now)
+                           // The DERIVED code colour, not raw `ansi[6]`. `chatink` pushes every ink through
+                           // `separated()` so it clears the card background's contrast floor, and on a theme where
+                           // that floor bites, the two differ — which made this assertion depend on which theme
+                           // happened to be live when the ink table was first computed.
     assert_eq!(cell.fg, crate::chatink::code_fg());
     assert_eq!(cell.bg, Some(crate::chatink::code_bg()));
 }

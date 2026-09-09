@@ -92,6 +92,7 @@ fn row_line(
                 let mut s = s.clone();
                 if bold {
                     s.style.bold = true;
+                    s.style.table_head = true;
                 }
                 spans.push(s);
             }
@@ -119,7 +120,7 @@ fn rule_line(widths: &[usize], cols: usize) -> MdLine {
     }
 }
 
-/// Lays out a table: header line (bold), a `─` rule under it, then each data
+/// Lays out a table: header line (bold, flagged `table_head`), a `─` rule under it, then each data
 /// row — all space-padded to each column's max cell width and hard-truncated
 /// at `cols` if the table is wider than that.
 pub(super) fn lines(
