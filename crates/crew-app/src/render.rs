@@ -335,13 +335,8 @@ impl CrewApp {
                             let r = pane.rect;
                             let cols = (r.w / cw).floor() as u16;
                             let mr = crate::cmdmenu::menu_rows(items.len());
-                            let comp = f32::from(crate::chatinput::composer_rows(
-                                &c.input,
-                                cols,
-                                (r.h / ch).floor() as u16,
-                            )) * ch;
                             let mh = f32::from(mr) * ch;
-                            let my = (r.y + r.h - comp - mh).max(0.0);
+                            let my = crate::popupplace::above_composer(c, r, cw, ch, mh);
                             scenes.push(PaneScene {
                                 cells: crate::cmdmenu::menu_card("attach", &items, m.sel, cols, mr),
                                 x: r.x,
@@ -373,13 +368,8 @@ impl CrewApp {
                     if let Some(entry) = &c.keyentry {
                         let r = pane.rect;
                         let cols = (r.w / cw).floor() as u16;
-                        let comp = f32::from(crate::chatinput::composer_rows(
-                            &c.input,
-                            cols,
-                            (r.h / ch).floor() as u16,
-                        )) * ch;
                         let mh = f32::from(entry.rows()) * ch;
-                        let my = (r.y + r.h - comp - mh).max(0.0);
+                        let my = crate::popupplace::above_composer(c, r, cw, ch, mh);
                         scenes.push(PaneScene {
                             cells: entry.card(cols),
                             x: r.x,
@@ -402,13 +392,8 @@ impl CrewApp {
                         let cols = (r.w / cw).floor() as u16;
                         let visible = c.visible_messages();
                         let (cells, mr) = crate::chatfind::card(f, &visible, cols);
-                        let comp = f32::from(crate::chatinput::composer_rows(
-                            &c.input,
-                            cols,
-                            (r.h / ch).floor() as u16,
-                        )) * ch;
                         let mh = f32::from(mr) * ch;
-                        let my = (r.y + r.h - comp - mh).max(0.0);
+                        let my = crate::popupplace::above_composer(c, r, cw, ch, mh);
                         scenes.push(PaneScene {
                             cells,
                             x: r.x,
@@ -429,13 +414,8 @@ impl CrewApp {
                         let r = pane.rect;
                         let cols = (r.w / cw).floor() as u16;
                         let (cells, mr) = crate::chathistsearch::card(h, cols);
-                        let comp = f32::from(crate::chatinput::composer_rows(
-                            &c.input,
-                            cols,
-                            (r.h / ch).floor() as u16,
-                        )) * ch;
                         let mh = f32::from(mr) * ch;
-                        let my = (r.y + r.h - comp - mh).max(0.0);
+                        let my = crate::popupplace::above_composer(c, r, cw, ch, mh);
                         scenes.push(PaneScene {
                             cells,
                             x: r.x,
@@ -457,13 +437,8 @@ impl CrewApp {
                         let r = pane.rect;
                         let cols = (r.w / cw).floor() as u16;
                         let mr = crate::cmdmenu::menu_rows(p.items.len());
-                        let comp = f32::from(crate::chatinput::composer_rows(
-                            &c.input,
-                            cols,
-                            (r.h / ch).floor() as u16,
-                        )) * ch;
                         let mh = f32::from(mr) * ch;
-                        let my = (r.y + r.h - comp - mh).max(0.0);
+                        let my = crate::popupplace::above_composer(c, r, cw, ch, mh);
                         scenes.push(PaneScene {
                             cells: crate::cmdmenu::menu_card(
                                 palette_card_title(p.kind),
