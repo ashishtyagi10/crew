@@ -109,7 +109,10 @@ impl CrewApp {
         // roster the footer's model segment reads) nor write a session log.
         // Session restore steers `self.cwd` to the saved project before
         // spawning, so a restored /smith pane gets its project back too.
-        match Plugin::spawn_in(cmd, args, Some(&self.cwd)) {
+        // The login-shell PATH goes with it (`hydrated_env`, the same hand-
+        // down the run panes get): a broker on launchd's PATH cannot find
+        // `ant`/`claude`/`codex` and calls a signed-in CLI "not installed".
+        match Plugin::spawn_with(cmd, args, Some(&self.cwd), &crate::spawn::hydrated_env()) {
             Ok(mut plugin) => {
                 if let Err(e) = plugin.send(&PluginCommand::Hello { v: 1 }) {
                     eprintln!("spawn_plugin_pane: plugin hello error: {e}");

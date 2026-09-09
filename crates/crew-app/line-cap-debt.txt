@@ -54,7 +54,6 @@ src/crispshot_tests.rs 352
 src/daemon/cli.rs 354
 src/daemon/mod.rs 304
 src/daemon/mod_tests.rs 295
-src/daemon/session.rs 296
 src/daemon/session_tests.rs 295
 src/daemon/task_tests.rs 369
 src/dashpane.rs 300

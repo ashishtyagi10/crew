@@ -141,3 +141,17 @@ fn a_marker_spec_ignores_the_exit_code() {
         CliAuth::Absent
     );
 }
+
+/// A sign-in holds for the process; every other verdict expires, so a user
+/// who signs in (or installs the CLI) beside the pane is noticed by the next
+/// message after the window rather than by the next pane.
+#[test]
+fn a_negative_verdict_expires_but_a_sign_in_holds() {
+    let young = Duration::from_secs(1);
+    let old = NEGATIVE_TTL;
+    for v in [CliAuth::SignedOut, CliAuth::Absent, CliAuth::Unknown] {
+        assert!(still_fresh(v, young), "{v:?} within the window");
+        assert!(!still_fresh(v, old), "{v:?} at the window expires");
+    }
+    assert!(still_fresh(CliAuth::SignedIn, old * 1000));
+}

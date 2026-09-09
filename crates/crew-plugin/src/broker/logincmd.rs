@@ -19,6 +19,11 @@ use super::session::Session;
 /// CLIs even when absent (the row says how to install — the whole point of
 /// the front door is that the path is visible). An own-auth CLI (probe
 /// `Unknown`) manages itself and has nothing to list here.
+///
+/// The CLIs are probed FRESH here, not from the cache: `/login` is the
+/// moment a user checks whether the `ant auth login` they just ran in a
+/// terminal took, and a cached "not installed" from the pane's first
+/// minute answered "no" to a machine that had it.
 pub(crate) fn rows() -> Vec<LoginRow> {
     let store = crate::credentials::load();
     let mut out = Vec::new();
@@ -36,7 +41,7 @@ pub(crate) fn rows() -> Vec<LoginRow> {
                 install: None,
             });
         } else if let Some(m) = e.mint {
-            let (signed_in, install) = match probe::state_cached(&m.cli) {
+            let (signed_in, install) = match probe::state_fresh(&m.cli) {
                 CliAuth::SignedIn => (true, None),
                 CliAuth::SignedOut => (false, None),
                 CliAuth::Absent => (false, Some(m.install)),
@@ -51,7 +56,7 @@ pub(crate) fn rows() -> Vec<LoginRow> {
                 install,
             });
         } else if let Some(cli) = e.cli {
-            let signed_in = match probe::state_cached(&cli) {
+            let signed_in = match probe::state_fresh(&cli) {
                 CliAuth::SignedIn => true,
                 CliAuth::SignedOut => false,
                 CliAuth::Absent | CliAuth::Unknown => continue,

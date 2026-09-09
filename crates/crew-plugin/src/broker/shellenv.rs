@@ -8,6 +8,16 @@
 //! always win, so explicit `CREW_PROVIDER=… crew` overrides still hold.
 //! `CREW_SHELL_ENV=0` disables the probe (the e2e harness sets it so tests
 //! never inherit a developer's real keys).
+//!
+//! PATH rides along. A Dock-launched app hands its broker launchd's
+//! `/usr/bin:/bin:/usr/sbin:/sbin`, and every CLI crew probes for a sign-in
+//! lives outside it — Homebrew's `ant`, npm's `claude`, cargo's `codex` —
+//! so `run::on_path` said "not installed" about a CLI the user had just
+//! signed in with, in the same message that told them to install it. The
+//! login shell's PATH directories are APPENDED to the process PATH (never
+//! replacing it: a terminal-launched broker keeps its venv or nix dirs in
+//! front), which is the app-side `shellprobe` rule seen from the broker.
+use std::path::PathBuf;
 use std::time::Duration;
 
 /// Provider-relevant vars worth importing: every key discovery looks for,
@@ -31,6 +41,41 @@ fn merge(output: &str, missing: impl Fn(&str) -> bool) -> Vec<(String, String)> 
         .filter(|(k, v)| !v.is_empty() && interesting(k) && missing(k))
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect()
+}
+
+/// The login shell's PATH from an `env` dump: the LAST non-blank `PATH=`
+/// line, matching the app's `shellprobe` rule — a rc file that echoes a
+/// variable can print a `PATH=` inside another value's line, and the final
+/// one is the shell's own.
+fn shell_path(output: &str) -> Option<String> {
+    output
+        .lines()
+        .filter_map(|l| l.strip_prefix("PATH="))
+        .rfind(|v| !v.trim().is_empty())
+        .map(str::to_string)
+}
+
+/// The process PATH with every login-shell directory it lacks appended, in
+/// the shell's order — or `None` when it lacks none (or the union cannot be
+/// spelled as one PATH). Pure over the two strings.
+pub(crate) fn path_union(process: &str, shell: &str) -> Option<String> {
+    // `split_paths("")` yields one empty entry; an empty PATH has none.
+    let have: Vec<PathBuf> = std::env::split_paths(process)
+        .filter(|d| !d.as_os_str().is_empty())
+        .collect();
+    let mut extra: Vec<PathBuf> = Vec::new();
+    for d in std::env::split_paths(shell) {
+        if !d.as_os_str().is_empty() && !have.contains(&d) && !extra.contains(&d) {
+            extra.push(d);
+        }
+    }
+    if extra.is_empty() {
+        return None;
+    }
+    std::env::join_paths(have.iter().chain(extra.iter()))
+        .ok()?
+        .into_string()
+        .ok()
 }
 
 /// Which stored credentials should be imported, given a reader of the current
@@ -109,6 +154,14 @@ pub(crate) fn hydrate() {
     let missing = |k: &str| std::env::var(k).map_or(true, |v| v.is_empty());
     for (k, v) in merge(&out, missing) {
         std::env::set_var(k, v);
+    }
+    // PATH last, and by union: the CLIs the sign-in probes look for live in
+    // the login shell's directories, not launchd's.
+    if let Some(shell_path) = shell_path(&out) {
+        let process = std::env::var("PATH").unwrap_or_default();
+        if let Some(merged) = path_union(&process, &shell_path) {
+            std::env::set_var("PATH", merged);
+        }
     }
 }
 
