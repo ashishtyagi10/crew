@@ -72,12 +72,22 @@ pub(crate) fn options(rows: &[LoginRow]) -> Vec<crate::SignInOption> {
         key_present: r.key_present,
         login: r.cli_login.map(str::to_string),
         install: r.install.map(str::to_string),
+        logout: registry::by_name(&r.name)
+            .and_then(|e| e.mint)
+            .map(|m| m.logout.to_string()),
     };
     rows.iter()
         .filter(|r| r.device)
         .chain(rows.iter().filter(|r| !r.device))
         .map(opt)
         .collect()
+}
+
+/// The rows `/logout` can act on (`PluginEvent::SignOut`): every signed-in
+/// provider — the grants crew removes first, then the CLI-owned sign-ins
+/// (a pick there only names the CLI's own sign-out). Pure.
+pub(crate) fn signed_in(rows: &[LoginRow]) -> Vec<crate::SignInOption> {
+    options(rows).into_iter().filter(|o| o.signed_in).collect()
 }
 
 /// What `/login <arg>` resolves to.

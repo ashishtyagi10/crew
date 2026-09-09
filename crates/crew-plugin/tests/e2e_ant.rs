@@ -9,7 +9,7 @@
 //! sweep: the token reached the stub's socket and nothing else.
 mod common;
 use common::oauthstub::{serve, sweep};
-use common::{messages, run_broker_paced, seed_specialists, unique_dir};
+use common::{messages, run_broker_paced, seed_specialists, sign_in_options, unique_dir};
 
 const TOKEN: &str = "sk-ant-oat01-e2e-minted-token-4242";
 
@@ -73,17 +73,25 @@ fn a_signed_in_ant_profile_serves_with_a_minted_bearer() {
         &[
             (&send("/model"), 800),
             (&send("/login"), 800),
+            (&send("/login list"), 800),
             (&send("say hello please"), 4000),
         ],
     );
     let msgs = messages(&events);
     let all: String = msgs.iter().map(|(s, t)| format!("{s}: {t}\n")).collect();
 
-    // The picker and the front door both read the CLI's verdict.
+    // The picker, the front door's popup rows and its text form all read
+    // the CLI's verdict.
     assert!(
         all.contains("1. anthropic \u{2014} signed in \u{00b7} OAuth profile via its CLI"),
         "{all}"
     );
+    let ant = sign_in_options(&events)
+        .into_iter()
+        .find(|o| o.name == "anthropic")
+        .expect("bare /login offers anthropic as a picker row");
+    assert!(ant.signed_in && !ant.device, "{ant:?}");
+    assert_eq!(ant.logout.as_deref(), Some("ant auth logout"));
     assert!(
         all.contains("\u{25cb} anthropic \u{2014} \u{2713} signed in (vendor CLI)"),
         "{all}"
@@ -140,6 +148,7 @@ fn a_signed_out_ant_is_the_sign_in_affordance() {
         &[("HOME", home.to_str().unwrap())],
         &[
             (&send("/login"), 800),
+            (&send("/login list"), 800),
             (&send("/logout anthropic"), 500),
             (&send("/model"), 500),
         ],
@@ -148,6 +157,12 @@ fn a_signed_out_ant_is_the_sign_in_affordance() {
         .iter()
         .map(|(s, t)| format!("{s}: {t}\n"))
         .collect();
+    let ant = sign_in_options(&events)
+        .into_iter()
+        .find(|o| o.name == "anthropic")
+        .expect("bare /login offers anthropic as a picker row");
+    assert!(!ant.signed_in && ant.install.is_none(), "{ant:?}");
+    assert_eq!(ant.login.as_deref(), Some("ant auth login"));
     assert!(
         all.contains("\u{25cb} anthropic \u{2014} signed out \u{00b7} run `ant auth login`"),
         "{all}"

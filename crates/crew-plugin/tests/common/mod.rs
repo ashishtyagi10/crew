@@ -187,6 +187,18 @@ pub fn messages(events: &[PluginEvent]) -> Vec<(String, String)> {
         .collect()
 }
 
+/// The rows of every `SignIn`/`SignOut` picker event, in order — bare
+/// `/login` and `/logout` answer with these instead of a text table.
+pub fn sign_in_options(events: &[PluginEvent]) -> Vec<crew_plugin::SignInOption> {
+    events
+        .iter()
+        .flat_map(|e| match e {
+            PluginEvent::SignIn { options } | PluginEvent::SignOut { options } => options.clone(),
+            _ => Vec::new(),
+        })
+        .collect()
+}
+
 /// Agent names from the structured `Roster` event `hello` emits — the
 /// machine-readable roster. Since the v0.6.21 splash, `hello`'s chat message
 /// is the Agent Smith nameplate alone (no roster text), so tests that care

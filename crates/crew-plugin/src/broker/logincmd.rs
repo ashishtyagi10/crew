@@ -7,7 +7,7 @@
 //! rows/listing/pick live in `loginrows`; this file gathers and runs.
 use crate::PluginEvent;
 
-pub(crate) use super::loginrows::{listing, options, pick, LoginPick, LoginRow};
+pub(crate) use super::loginrows::{listing, options, pick, signed_in, LoginPick, LoginRow};
 
 use super::auth::probe::{self, CliAuth};
 use super::auth::registry;
@@ -95,25 +95,33 @@ pub(crate) fn login_cmd(
     }
 }
 
-/// `/logout [provider]` — remove a stored OAuth grant. With a key still
-/// present the provider serves from the key again; with neither it returns
-/// to the sign-in affordance. Bare `/logout` resolves alone only when
-/// exactly one grant exists — never guess which sign-in to destroy.
+/// `/logout [provider|list]` — remove a stored OAuth grant. With a key
+/// still present the provider serves from the key again; with neither it
+/// returns to the sign-in affordance. Bare `/logout` hands the host the
+/// signed-in rows to pick from (`SignOut`) — never guess which sign-in to
+/// destroy; `list` names them as text.
 pub(crate) fn logout_cmd(
     session: &Session,
     rest: &str,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let arg = rest.trim();
-    let signed: Vec<String> = rows()
+    let rows = rows();
+    let signed: Vec<String> = rows
         .iter()
         .filter(|r| r.device && r.signed_in)
         .map(|r| r.name.clone())
         .collect();
-    let name = match (arg.is_empty(), signed.len()) {
-        (true, 1) => signed[0].clone(),
-        (true, 0) => return emit(msg("agent smith", "no stored sign-in to remove")),
+    let name = match (arg.is_empty(), arg.eq_ignore_ascii_case("list")) {
+        (true, _) | (_, true) if signed.is_empty() => {
+            return emit(msg("agent smith", "no stored sign-in to remove"))
+        }
         (true, _) => {
+            return emit(PluginEvent::SignOut {
+                options: signed_in(&rows),
+            })
+        }
+        (_, true) => {
             return emit(msg(
                 "agent smith",
                 format!(
@@ -122,7 +130,7 @@ pub(crate) fn logout_cmd(
                 ),
             ))
         }
-        (false, _) => arg.to_string(),
+        _ => arg.to_string(),
     };
     if !signed.iter().any(|s| s.eq_ignore_ascii_case(&name)) {
         // A minting CLI owns its store: crew deletes nothing there.

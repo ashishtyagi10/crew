@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.56
+
+**`/logout` opens a picker too: the stored sign-ins, pick the one to remove.**
+
+Bare `/logout` used to remove the only grant on its own, or list the names
+and wait for one typed back. Now the broker sends the signed-in rows
+(`SignOut`) and the pane opens the same popup `/login` got last release:
+the grants crew holds first (a pick removes it; where a key is also held
+the row says the key serves next), then the vendor CLIs that own their own
+sign-out, dimmed with the command to run. Enter on the `/logout` row of
+the command palette opens it straight away. `/logout <name>` still removes
+one directly, `/logout list` names them as text, and with nothing stored
+there is no popup, only the note.
+
+Also: v0.21.55's coverage job was red — three broker end-to-end tests
+still expected bare `/login` to print the table. They assert the picker
+rows now, and `/login list` for the text.
+
 ## 0.21.55
 
 **`/login` opens a picker: choose the provider, no name to type.**

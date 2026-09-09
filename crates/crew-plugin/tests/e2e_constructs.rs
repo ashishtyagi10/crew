@@ -7,6 +7,7 @@
 //! broker, which is the only thing that can prove a handler still exists.
 mod common;
 use common::{messages, run_broker, seed_specialists, unique_dir};
+use crew_plugin::PluginEvent;
 
 /// Constructs that mutate the working tree or the user's session in ways a
 /// smoke test should not trigger blindly. They are exercised by their own
@@ -33,7 +34,14 @@ fn every_advertised_construct_answers() {
         .map(|c| format!(r#"{{"type":"send","channel":"crew","text":"/{c}"}}"#))
         .collect();
     let lines: Vec<&str> = sends.iter().map(String::as_str).collect();
-    let msgs = messages(&run_broker(&dir, &[mock], &lines));
+    let events = run_broker(&dir, &[mock], &lines);
+    let msgs = messages(&events);
+    // Bare `/login` and `/logout` answer with a picker EVENT, not a message:
+    // the rows to choose from. Those are answers too.
+    let pickers = events
+        .iter()
+        .filter(|e| matches!(e, PluginEvent::SignIn { .. } | PluginEvent::SignOut { .. }))
+        .count();
 
     // "unknown construct" is the one answer that means a handler is missing.
     // A usage line is a perfectly good reply to a construct given no argument.
@@ -47,8 +55,8 @@ fn every_advertised_construct_answers() {
     );
     // …and something came back at all, so an empty run cannot pass silently.
     assert!(
-        msgs.len() >= names.len(),
-        "only {} replies for {} constructs: {msgs:?}",
+        msgs.len() + pickers >= names.len(),
+        "only {} replies + {pickers} pickers for {} constructs: {msgs:?}",
         msgs.len(),
         names.len()
     );

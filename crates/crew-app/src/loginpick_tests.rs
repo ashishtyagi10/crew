@@ -8,6 +8,7 @@ fn opt(name: &str, device: bool, signed_in: bool, key_present: bool) -> SignInOp
         key_present,
         login: (!device).then(|| format!("{name} login")),
         install: None,
+        logout: None,
     }
 }
 
@@ -84,14 +85,60 @@ fn rows_name_installs_and_re_signins() {
 #[test]
 fn open_selects_the_first_choice_and_accept_forms_the_construct() {
     let mut p = None;
-    open(&mut p, &[opt("dashscope", true, false, false)]);
+    open(&mut p, Auth::In, &[opt("dashscope", true, false, false)]);
     let p = p.expect("opened");
-    assert_eq!(p.kind, Kind::Login);
+    assert_eq!(p.kind, Kind::Auth(Auth::In));
     assert_eq!(p.items[p.sel].label, "dashscope");
+    let accept = crate::chatpalette::accept;
     assert_eq!(
-        crate::chatpalette::accept("", Kind::Login, "dashscope"),
+        accept("", Kind::Auth(Auth::In), "dashscope"),
         "/login dashscope"
     );
+    assert_eq!(
+        accept("", Kind::Auth(Auth::Out), "dashscope"),
+        "/logout dashscope"
+    );
+    assert_eq!(
+        (Auth::In.legend(), Auth::Out.legend()),
+        ("sign in", "sign out")
+    );
+}
+
+/// `/logout`'s rows: crew's grants first (a pick removes one, and a held
+/// key is named as what serves next), CLI-owned sign-ins dimmed with their
+/// own sign-out command — or the fact that the CLI owns it.
+#[test]
+fn logout_rows_lead_with_grants_and_dim_the_clis() {
+    let mut ant = opt("anthropic", false, true, false);
+    ant.logout = Some("ant auth logout".into());
+    let o = [
+        opt("dashscope", true, true, true),
+        ant,
+        opt("codex", false, true, false),
+    ];
+    let items = items_out(&o);
+    assert_eq!(
+        labels(&items),
+        [
+            "stored grants \u{00b7} pick to remove",
+            "dashscope",
+            "vendor CLIs \u{00b7} sign out at the terminal",
+            "anthropic",
+            "codex",
+        ]
+    );
+    assert!(items[1].submit && !items[1].dim);
+    assert_eq!(
+        items[1].desc,
+        "\u{2713} signed in \u{00b7} the key serves once removed"
+    );
+    assert!(items[3].dim && items[3].desc.ends_with("run `ant auth logout`"));
+    assert!(items[4].dim && items[4].desc.ends_with("it owns the sign-out"));
+    let mut p = None;
+    open(&mut p, Auth::Out, &o);
+    assert_eq!(p.as_ref().unwrap().kind, Kind::Auth(Auth::Out));
+    // No CLI rows: no CLI header either.
+    assert_eq!(items_out(&o[..1]).len(), 2);
 }
 
 /// The picker in a frame: the sign-in header, the runnable rows, the browser
@@ -118,4 +165,24 @@ fn pick_shot_login() {
     };
     assert!(rows.iter().any(|r| r.contains("dashscope")), "{rows:?}");
     assert!(rows.iter().any(|r| r.contains("vendor CLIs")), "{rows:?}");
+}
+
+/// The `/logout` picker in a frame.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn pick_shot_logout() {
+    let _g = crate::app::theme_test_guard();
+    let mut ant = opt("anthropic", false, true, false);
+    ant.logout = Some("ant auth logout".into());
+    let o = [
+        opt("dashscope", true, true, true),
+        ant,
+        opt("codex", false, true, false),
+    ];
+    let items = items_out(&o);
+    let Some(rows) = crate::pickshot_tests::menu_shot("logout", "sign out", &items, 1, 760) else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    assert!(rows.iter().any(|r| r.contains("stored grants")), "{rows:?}");
 }
