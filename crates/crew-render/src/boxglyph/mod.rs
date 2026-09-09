@@ -1,4 +1,5 @@
-//! Box-drawing and block glyphs, drawn as pixels instead of read from a font.
+//! Box-drawing, block and badge-cap glyphs, drawn as pixels instead of read
+//! from a font.
 //!
 //! Everything crew frames itself with is one of these characters: the cards'
 //! `╭─╮│╰╯`, the sidebar's section rules, the meters' `▍`, the shaded fills
@@ -28,6 +29,7 @@
 mod arms;
 mod blocks;
 mod braille;
+mod caps;
 mod doubles;
 mod marks;
 mod round;
@@ -185,6 +187,7 @@ pub(crate) fn synth(c: char, cw: u32, ch: u32, top: i32) -> Option<SwashImage> {
         && !doubles::draw(&mut m, c)
         && !blocks::draw(&mut m, c)
         && !round::draw(&mut m, c)
+        && !caps::draw(&mut m, c)
         && !braille::draw(&mut m, c)
         && !marks::draw(&mut m, c)
         && !strokes::draw(&mut m, c)
