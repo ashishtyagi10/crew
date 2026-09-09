@@ -165,10 +165,10 @@ impl ChatPane {
                 // composer — half-typed text means they moved on, and Esc
                 // should not silently throw away a plan behind it.
                 if self.plan_pending && self.input.is_empty() {
-                    self.plan_pending = false;
                     // The bare word, not a slash command: the broker's plan
-                    // gate matches it deterministically before any model call.
-                    self.submit_command("reject".to_string());
+                    // gate matches it deterministically before any model call
+                    // (`chatplanclick::answer_plan`, shared with the buttons).
+                    self.answer_plan(false);
                     return None;
                 }
                 // Esc means "interrupt the running turn" while busy (mirrors
@@ -221,9 +221,7 @@ impl ChatPane {
                 // text typed it sends that text as usual — the plan stays
                 // pending, since the user plainly had something else to say.
                 if self.plan_pending && self.input.is_empty() {
-                    self.plan_pending = false;
-                    // Same bare-word rule as Esc's "reject" above.
-                    self.submit_command("approve".to_string());
+                    self.answer_plan(true); // same bare-word rule as Esc above
                     return None;
                 }
                 (None, true, false)

@@ -12,7 +12,8 @@
 //! - the progress bar's fill sweep and the counter's digit flash
 //!   (`chatprogspring`, `chatflash`) — on the live run, which is busy anyway;
 //! - a working badge's token pulse (`summarypulse`), for
-//!   [`crate::shimmer::PULSE_MS`] after each burst.
+//!   [`crate::shimmer::PULSE_MS`] after each burst;
+//! - a pressed plan button's invert flash (`chatplanbtn::PRESS_MS`).
 //!
 //! Off is a genuine off: nothing here reports a frame at Off, since every
 //! timeline is born settled and the hourglass stands still.
@@ -28,6 +29,7 @@ impl ChatPane {
             return false;
         }
         self.pill_pop.live(now)
+            || self.press_btn.is_some_and(|(_, flash)| flash.live(now))
             || !self.queued.is_empty()
             || self
                 .swarm

@@ -174,7 +174,7 @@ impl CrewApp {
                 // and arms selection below — but an armed toggle never counts
                 // toward a double-click zoom, so folding twice can't
                 // accidentally zoom the pane (see `select::click_gesture`).
-                let fold_armed = self.fold_press_at_cursor();
+                let fold_armed = self.plan_press_at_cursor() || self.fold_press_at_cursor();
                 // Focus the surface and arm a drag selection on a terminal pane.
                 if let Some(i) = self.selection_press() {
                     self.click_gesture(i, fold_armed);
@@ -197,7 +197,7 @@ impl CrewApp {
                 // drag means the gesture was never a click, so no fold fires.
                 let swapped = self.card_drop();
                 let resized = self.nav_edge_release() || self.gutter_release();
-                self.fold_release(dragged || swapped || resized);
+                self.click_release(dragged || swapped || resized);
                 // Letting go changes what the pointer can do next, and a
                 // release moves nothing — so the shape is resolved here too.
                 self.pointer_sync();

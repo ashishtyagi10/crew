@@ -45,6 +45,8 @@ impl ChatPane {
             queued: std::collections::VecDeque::new(),
             folded: 0,
             plan_pending: false,
+            hover_btn: None,
+            press_btn: None,
             git_branch: None,
             cwd: None,
             pending_recent: None,

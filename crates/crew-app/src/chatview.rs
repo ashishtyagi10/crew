@@ -140,7 +140,9 @@ pub(crate) fn art(
     // has a grant of 0 and is SKIPPED below; the anchors used to floor at
     // `.max(top)` instead, which collapsed them onto one row and let
     // last-write-wins hide whichever drew first.
-    let bottom = g.bottom;
+    // The plan's button row sits innermost, so every surface above stacks on
+    // top of it; `rows - bottom` is then the row the buttons draw on.
+    let bottom = g.bottom + g.plan;
     let prog_rows = g.prog;
     let queued_rows = g.queued;
     let bar_row = rows.saturating_sub(bottom + prog_rows);
@@ -231,6 +233,9 @@ pub(crate) fn art(
     }
     if queued_rows > 0 {
         cells.extend(crate::chatqueue::indicator_cells(pane, cols, indicator_row));
+    }
+    if g.plan > 0 {
+        cells.extend(crate::chatplanbtn::row_cells(pane, cols, rows - bottom));
     }
     if prog_rows > 0 {
         cells.extend(crate::chatprog::bar_cells(

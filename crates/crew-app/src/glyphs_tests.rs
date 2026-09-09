@@ -33,7 +33,7 @@ pub(crate) fn force(on: bool) -> Forced {
 fn all() -> Vec<Glyph<'static>> {
     let mut v = vec![
         Bullet1, Bullet2, Bullet3, Checked, Unchecked, Quote, DotOn, DotOff, Prompt, Image,
-        Footnote, Dir, File, Hash, Pass, Fail, Tool, ToolOpen,
+        Footnote, Dir, File, Hash, Pass, Fail, Tool, ToolOpen, Play,
     ];
     v.extend((0..8).map(Spinner));
     v.extend((0..2).map(Hourglass));
