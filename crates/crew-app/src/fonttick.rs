@@ -80,7 +80,7 @@ impl CrewApp {
     /// Apply a rotated family to the renderer and status line — NEVER to config.
     pub(crate) fn apply_rotated_family(&mut self, fam: String) {
         if let Some(r) = &mut self.renderer {
-            r.set_font_family(Some(fam.clone()));
+            crate::glyphs::apply_family(r, Some(fam.clone()));
         }
         self.set_status(format!("font → {fam}"));
         self.font_rotate.current = Some(fam);
@@ -95,7 +95,7 @@ impl CrewApp {
         self.font_rotate.on = false;
         self.font_rotate.current = None;
         if let Some(r) = &mut self.renderer {
-            r.set_font_family(self.config.font_family.clone());
+            crate::glyphs::apply_family(r, self.config.font_family.clone());
         }
         self.config.font_random = false;
         self.config.save();

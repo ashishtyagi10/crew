@@ -3,10 +3,8 @@
 //! The pane's fieldset legend already names it, so the old in-pane
 //! `agent smith · <channel>` title was pure repetition and is gone. Rendered
 //! as row 0 of the pane, with the message body laid out below it.
+use crate::glyphs::{pick, spinner, Glyph};
 use crew_render::CellView;
-
-/// ASCII spinner frames for the "thinking" indicator (Nerd-Font-independent).
-const SPINNER: [char; 4] = ['|', '/', '-', '\\'];
 
 /// Append `s` at `(row, col..)` in `fg`, clipped to `max_col`; returns the
 /// next free column.
@@ -71,11 +69,12 @@ fn status_segments(
 ) -> Vec<(String, (u8, u8, u8))> {
     let t = crew_theme::theme();
     let mut segs = Vec::new();
-    let f = (crate::anim::now_ms() / 120) as usize % SPINNER.len();
+    // The spinner: ASCII strokes, or pie slices on a Nerd Font (`glyphs`).
+    let spin = spinner(crate::anim::now_ms());
     if let Some((label, secs, color)) = active {
-        segs.push((format!("{} {label} \u{00b7} {secs}s", SPINNER[f]), color));
+        segs.push((format!("{spin} {label} \u{00b7} {secs}s"), color));
     } else if awaiting {
-        segs.push((format!("{} thinking", SPINNER[f]), crate::palette::accent()));
+        segs.push((format!("{spin} thinking"), crate::palette::accent()));
     }
 
     // Compact-view chip, width-permitting — appended after the spinner,
@@ -92,9 +91,9 @@ fn status_segments(
     }
 
     let (dot, dot_c) = if connected {
-        ('\u{25cf}', t.activity) // ● connected
+        (pick(Glyph::DotOn), t.activity) // ● connected
     } else {
-        ('\u{25cb}', t.dim) // ○ connecting
+        (pick(Glyph::DotOff), t.dim) // ○ connecting
     };
     segs.push((dot.to_string(), dot_c));
     segs

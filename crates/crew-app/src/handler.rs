@@ -156,7 +156,7 @@ impl CrewApp {
         match Renderer::new(window.clone(), font_px) {
             Ok(mut renderer) => {
                 // Apply the persisted font family up front, not just on Save.
-                renderer.set_font_family(self.config.font_family.clone());
+                crate::glyphs::apply_family(&mut renderer, self.config.font_family.clone());
                 renderer.set_font_weight(Some(self.config.font_weight));
                 renderer.set_text_smoothing(Some(self.config.font_smooth));
                 renderer.set_text_gamma(Some(self.config.font_gamma));

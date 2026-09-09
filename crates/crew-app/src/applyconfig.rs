@@ -72,7 +72,7 @@ impl CrewApp {
             .map(|w| w.scale_factor() as f32)
             .unwrap_or(1.0);
         if let Some(r) = &mut self.renderer {
-            r.set_font_family(self.config.font_family.clone());
+            crate::glyphs::apply_family(r, self.config.font_family.clone());
             r.set_font_size(self.config.font_size * scale);
             r.set_leading(self.config.leading().ratio());
             r.set_font_weight(Some(self.config.font_weight));
@@ -116,7 +116,7 @@ impl CrewApp {
             }
         } else if let (true, Some(fam)) = (self.font_rotate.on, self.font_rotate.current.clone()) {
             if let Some(r) = &mut self.renderer {
-                r.set_font_family(Some(fam));
+                crate::glyphs::apply_family(r, Some(fam));
             }
         }
         // Pick up any change to the watched notification patterns on live panes.

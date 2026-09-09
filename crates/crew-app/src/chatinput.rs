@@ -123,7 +123,7 @@ fn prompt_lines(
 ) -> Vec<CellView> {
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
-    let mut cells = vec![cell(x0, first_row, '\u{276f}', accent, true)]; // ❯
+    let mut cells = vec![cell(x0, first_row, crate::glyphs::prompt(), accent, true)]; // ❯
     if input.is_empty() {
         cells.extend(placeholder_cells(x0 + 2, max, first_row));
         return cells;
