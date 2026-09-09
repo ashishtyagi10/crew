@@ -96,6 +96,9 @@ pub(crate) struct FooterCtx<'a> {
     /// The pane's animated numbers — borrowed, since the footer is rendered
     /// from an immutable pane and the counters use interior mutability.
     pub readouts: &'a crate::readout::Readouts,
+    /// Each agent's last token burst, for the working badges' pulse
+    /// (`summarypulse`); `None` renders every badge on its plain roster colour.
+    pub pulse: Option<crate::summarypulse::Pulses<'a>>,
 }
 
 /// The Claude-Code-style statusline: up to three colored lines (identity &
@@ -236,6 +239,12 @@ pub(crate) fn footer_ctx(pane: &ChatPane, now_ms: u64) -> FooterCtx<'_> {
         active: pane.active_names(),
         cwd: pane.cwd.as_deref(),
         windows: crate::usageledger::windows(now_ms),
+        // The bursts are stamped on the animation clock, not the wall clock
+        // `now_ms` carries for the usage windows.
+        pulse: Some(crate::summarypulse::Pulses {
+            map: &pane.token_pulse,
+            now: crate::anim::now_ms(),
+        }),
     }
 }
 

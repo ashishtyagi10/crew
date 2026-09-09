@@ -63,8 +63,8 @@ fn thumb_geometry_is_proportional_and_anchored() {
 
 #[test]
 fn pill_is_right_aligned_and_gated_on_unread() {
-    assert!(new_pill_cells(0, 80, 5).is_empty());
-    let cells = new_pill_cells(3, 80, 5);
+    assert!(pill_cells(0, 80, 5, false).is_empty());
+    let cells = pill_cells(3, 80, 5, false);
     let text: String = cells.iter().map(|c| c.c).collect();
     assert_eq!(text, "\u{2193} 3 new");
     assert_eq!(cells.last().unwrap().col, 78); // one column in from the edge
@@ -73,5 +73,5 @@ fn pill_is_right_aligned_and_gated_on_unread() {
 
 #[test]
 fn pill_hides_when_too_narrow() {
-    assert!(new_pill_cells(3, 6, 0).is_empty());
+    assert!(pill_cells(3, 6, 0, false).is_empty());
 }

@@ -59,16 +59,24 @@ fn a_live_run_claims_exactly_one_row() {
 
 #[test]
 fn bar_fills_as_tasks_settle() {
+    // The fill sweeps to a new count (`chatprogspring`): the first frame
+    // after a settle starts the sweep, and each reading is taken once it
+    // has landed.
+    let _g = crate::app::motion_test_guard();
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    let sweep = crate::readout::COUNT_MS;
     let mut p = pane_with_swarm(4);
     assert_eq!(filled(&bar_cells(&p, COLS, 5, 0)), 0, "nothing settled yet");
 
     settle(&mut p, 0, TaskState::Done);
-    let quarter = filled(&bar_cells(&p, COLS, 5, 0));
+    bar_cells(&p, COLS, 5, 0);
+    let quarter = filled(&bar_cells(&p, COLS, 5, sweep));
     assert!(quarter > 0, "one of four settled should light some cells");
 
     settle(&mut p, 1, TaskState::Done);
+    bar_cells(&p, COLS, 5, sweep);
     assert!(
-        filled(&bar_cells(&p, COLS, 5, 0)) > quarter,
+        filled(&bar_cells(&p, COLS, 5, 2 * sweep)) > quarter,
         "the bar must grow as more tasks settle"
     );
 }

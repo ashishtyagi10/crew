@@ -24,6 +24,7 @@ fn fc<'a>(agents: &'a [AgentInfo], ctx: &'a HashMap<String, u64>) -> FooterCtx<'
         cwd: None,
         windows: crate::usageledger::Windows::default(),
         readouts: readouts(),
+        pulse: None,
     }
 }
 

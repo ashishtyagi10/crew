@@ -83,3 +83,42 @@ fn only_a_connected_visible_idle_pane_breathes() {
         "and never the ambient one at the same time"
     );
 }
+
+/// On main the busy branch knew nothing of the chrome: a queued hourglass
+/// or a popped pill drew one frame and froze. Each registers now — and only
+/// while it moves: an idle pane with no queue, no run and no pulse is quiet.
+#[test]
+fn chrome_motion_registers_with_the_busy_branch_only_while_it_moves() {
+    let _g = crate::app::motion_test_guard();
+    set_level(MotionLevel::Full);
+    let mut p = chat_pane(true);
+    assert!(!pane_animating(&p), "idle: no queue, no motion, no pulse");
+    let PaneContent::Chat(c) = &mut p.content else {
+        unreachable!()
+    };
+    c.queued.push_back("later".into());
+    assert!(pane_animating(&p), "a queued hourglass turns");
+    let PaneContent::Chat(c) = &mut p.content else {
+        unreachable!()
+    };
+    c.queued.clear();
+    assert!(!pane_animating(&p), "drained: quiet again");
+
+    let now = crate::anim::now_ms();
+    let PaneContent::Chat(c) = &p.content else {
+        unreachable!()
+    };
+    c.pill_pop.observe(1, now);
+    assert!(c.chrome_animating(now), "a popped pill asks for frames");
+    assert!(
+        !c.chrome_animating(now + crate::chatpop::POP_MS),
+        "and stops asking once the pop has landed"
+    );
+    set_level(MotionLevel::Off);
+    let PaneContent::Chat(c) = &mut p.content else {
+        unreachable!()
+    };
+    c.queued.push_back("later".into());
+    assert!(!c.chrome_animating(now), "Off: the glass stands, no frames");
+    set_level(MotionLevel::Full);
+}

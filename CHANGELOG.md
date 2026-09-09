@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.48
+
+**The swarm's progress moves: badges pulse with tokens, the bar sweeps, the counter flashes, the hourglass turns, the pill pops.**
+
+Each working agent's footer badge brightens for a quarter second on
+its token bursts and dims once it has been quiet for two seconds, so
+the eye finds who is talking. The progress bar no longer jumps between
+task counts: the fill sweeps to the new fraction over 420 ms with the
+leading three cells glowing, and never shows a partly settled run as
+full. When a task settles, the changed digit of `3/7` flashes to ink
+and eases back. The queued indicator's hourglass alternates every
+600 ms, and the `↓ N new` pill pops to accent for 200 ms on each
+increase. All of it registers with the busy frame branch only while
+something is mid-motion, and an idle pane stays still. Reduce-motion
+makes every one of these static.
+
 ## 0.21.47
 
 **The smith pane's busy state is alive: a thinking shimmer, a name that pulses with tokens, cards that glide in, a dot that breathes.**

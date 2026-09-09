@@ -32,6 +32,10 @@ pub(crate) struct SwarmStatus {
     pub tasks: Vec<SwarmTask>,
     /// agent id → task id (from `AgentSpawned`) — `TokenDelta` only names agents.
     agent_task: HashMap<u64, TaskId>,
+    /// The progress bar's sweeping fill (`chatprogspring`); born settled.
+    pub(crate) fill: crate::readout::Counter,
+    /// The status line's counter flash (`chatflash`); born quiet.
+    pub(crate) flash: crate::chatflash::Flash,
 }
 
 impl SwarmStatus {
@@ -49,6 +53,8 @@ impl SwarmStatus {
                 })
                 .collect(),
             agent_task: HashMap::new(),
+            fill: Default::default(),
+            flash: Default::default(),
         }
     }
 
@@ -56,13 +62,9 @@ impl SwarmStatus {
         self.tasks.iter_mut().find(|t| t.id == id)
     }
 
-    /// `(settled, total)` — tasks that have reached a terminal state, over the
-    /// plan's size. Terminal means done, failed or cancelled: this counts "how
-    /// much of the plan has stopped moving", not "how much succeeded".
-    ///
-    /// Shared by the progress bar (`chatprog`) and the live status line
-    /// (`chatswarmview`) so the bar's fill and the line's `2/5` can never
-    /// disagree about the same run.
+    /// `(settled, total)` — done, failed or cancelled tasks over the plan's
+    /// size: "how much has stopped moving", not "how much succeeded". Shared by
+    /// the bar (`chatprog`) and the line (`chatswarmview`) so they never disagree.
     pub(crate) fn settled(&self) -> (usize, usize) {
         let done = self
             .tasks
@@ -115,9 +117,8 @@ impl SwarmStatus {
                     }
                 }
             }
-            // CostDelta is no longer surfaced; Failed also arrives as
-            // TaskStateChanged(Failed); chunks land in the transcript via the
-            // broker's Message translation; tool events feed `chattool`.
+            // Cost is not surfaced; Failed also arrives as a state change;
+            // chunks land via the broker's Message; tools feed `chattool`.
             HiveEvent::CostDelta { .. }
             | HiveEvent::OutputChunk { .. }
             | HiveEvent::OutputDelta { .. }
@@ -163,9 +164,8 @@ impl ChatPane {
         }
     }
 
-    /// Retire the live block when the run ends (and close the tool lines).
-    /// The run leaves no summary record behind — the per-agent replies
-    /// already streamed into the transcript. Also called on broker `Error`.
+    /// Retire the live block when the run ends (and close the tool lines); no
+    /// summary record — the replies already streamed in. Also on broker `Error`.
     pub(crate) fn fold_swarm(&mut self) {
         self.tools.abandon(crate::chattime::unix_now_ms());
         self.swarm = None;

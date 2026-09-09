@@ -36,6 +36,7 @@ fn all() -> Vec<Glyph<'static>> {
         Footnote, Dir, File, Hash, Pass, Fail, Tool, ToolOpen,
     ];
     v.extend((0..8).map(Spinner));
+    v.extend((0..2).map(Hourglass));
     let langs = [
         "rust", "python", "js", "ts", "go", "sh", "toml", "yaml", "json", "md", "sql",
     ];

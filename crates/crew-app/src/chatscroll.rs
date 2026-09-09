@@ -34,18 +34,19 @@ impl crate::chat::ChatPane {
         self.scroll = next.clamp(0, max as i64) as usize;
         if self.scroll == 0 {
             self.unread = 0; // back at the live bottom — nothing is "new"
+            self.pill_pop.reset();
         }
     }
 }
 
-fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bold: bool) -> CellView {
+fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> CellView {
     CellView {
         col,
         row,
         c,
         fg,
-        bg: crew_theme::theme().page_bg,
-        bold,
+        bg,
+        bold: true,
         italic: false,
         ..Default::default()
     }
@@ -63,8 +64,18 @@ pub(crate) fn thumb(total: usize, visible: usize, first: usize) -> Option<(usize
     Some((first * visible / total, len))
 }
 
-/// The `↓ N new` pill, right-aligned at `row`. Empty when nothing is unread.
-pub(crate) fn new_pill_cells(unread: usize, cols: u16, row: u16) -> Vec<CellView> {
+/// The pane's `↓ N new` pill, right-aligned at `row`, popped on the
+/// animation clock each time N grows (`chatpop`). Empty when nothing is
+/// unread.
+pub(crate) fn new_pill_cells(pane: &crate::chat::ChatPane, cols: u16, row: u16) -> Vec<CellView> {
+    let popped = pane.pill_pop.observe(pane.unread, crate::anim::now_ms());
+    pill_cells(pane.unread, cols, row, popped)
+}
+
+/// The `↓ N new` pill for `unread`: bold accent on the page at rest, and
+/// while `popped` the inverse — the page's ink on an accent block, walked
+/// to the text floor. Empty when nothing is unread or the pane is too narrow.
+pub(crate) fn pill_cells(unread: usize, cols: u16, row: u16, popped: bool) -> Vec<CellView> {
     if unread == 0 {
         return Vec::new();
     }
@@ -74,9 +85,14 @@ pub(crate) fn new_pill_cells(unread: usize, cols: u16, row: u16) -> Vec<CellView
         return Vec::new();
     }
     let accent = crate::palette::accent();
+    let (fg, bg) = if popped {
+        (crate::segment::page_ink(accent), accent)
+    } else {
+        (accent, crew_theme::theme().page_bg)
+    };
     (cols - w - 1..)
         .zip(label.chars())
-        .map(|(x, c)| cell(x, row, c, accent, true))
+        .map(|(x, c)| cell(x, row, c, fg, bg))
         .collect()
 }
 

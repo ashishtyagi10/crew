@@ -23,7 +23,7 @@ use std::cell::Cell;
 use crate::ease::Timeline;
 
 /// How long a readout takes to reach a new value.
-const COUNT_MS: u64 = 420;
+pub(crate) const COUNT_MS: u64 = 420;
 
 /// Differences below this are not worth animating — snapping avoids a
 /// perpetual crawl toward a value that keeps drifting by a rounding error.

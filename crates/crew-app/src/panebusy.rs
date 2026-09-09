@@ -33,14 +33,20 @@ pub(crate) fn pane_busy(p: &Pane) -> bool {
 }
 
 /// Busy or briefly animating (a message card fading in, a reply still typing
-/// itself out): the redraw-scheduling predicate for `poll` — wider than
-/// [`pane_busy`], which alone decides the card's busy sweep so a fade never
-/// reads as "working". The typewriter is bounded: it finishes within
-/// `chatreveal::CATCHUP_MS` of the last delta.
+/// itself out, a piece of chrome mid-motion — `chatmotion`): the
+/// redraw-scheduling predicate for `poll` — wider than [`pane_busy`], which
+/// alone decides the card's busy sweep so a fade never reads as "working".
+/// Every arm is bounded: the typewriter finishes within
+/// `chatreveal::CATCHUP_MS` of the last delta, the chrome within its timelines.
 pub(crate) fn pane_animating(p: &Pane) -> bool {
     pane_busy(p)
         || match &p.content {
-            PaneContent::Chat(c) => c.is_fading() || c.is_revealing() || c.tools_running(),
+            PaneContent::Chat(c) => {
+                c.is_fading()
+                    || c.is_revealing()
+                    || c.tools_running()
+                    || c.chrome_animating(crate::anim::now_ms())
+            }
             _ => false,
         }
 }

@@ -242,8 +242,9 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
     );
 
     // The words (title + parenthetical), muted — the running task's title
-    // wearing the shimmer (`shimmer::cells`), the counters never. Pre-clamped
-    // in `layout`, so the pane-edge `max_col` here is a backstop, not the clamp.
+    // wearing the shimmer (`shimmer::cells`), the counter's changed digit the
+    // settle flash (`chatflash::words`). Pre-clamped in `layout`, so the
+    // pane-edge `max_col` here is a backstop, not the clamp.
     let muted = theme.text_muted;
     let title = crate::shimmer::cells(
         &line.title,
@@ -254,10 +255,10 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         crate::shimmer::SHIMMER_MS,
         crate::motion::level(),
     );
-    let after = line.rest.chars().skip(1 + line.title.chars().count());
-    let words = std::iter::once((' ', muted))
-        .chain(title)
-        .chain(after.map(|c| (c, muted)));
+    let after = crate::chatflash::words(pane, &line.rest, now_ms)
+        .into_iter()
+        .skip(1 + line.title.chars().count());
+    let words = std::iter::once((' ', muted)).chain(title).chain(after);
     push_styled(&mut v, &mut col, top_row, words, cols);
 
     // Tokens, right-aligned at the pane edge, muted.

@@ -197,7 +197,7 @@ pub(crate) fn art(
         // column its own scrollbar used to take.
         if pane.scroll > 0 {
             let last = top + msg_rows.saturating_sub(1);
-            cells.extend(crate::chatscroll::new_pill_cells(pane.unread, cols, last));
+            cells.extend(crate::chatscroll::new_pill_cells(pane, cols, last));
         }
         // The live swarm block sits under the messages, above the composer
         // (and the queued indicator, when showing). Its start row is derived
