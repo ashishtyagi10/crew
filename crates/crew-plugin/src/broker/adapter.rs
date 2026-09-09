@@ -52,6 +52,11 @@ pub struct HopStream {
     /// no such signal (the settled reply replaces it); a thought has no
     /// settled twin, so its tail must be pushed out by hand.
     pub on_thought: std::sync::Arc<dyn Fn(&str) + Send + Sync>,
+    /// Each tool the agent's own runtime called, and each outcome, as the
+    /// hive events the pane's tool block is drawn from (`ToolCall`,
+    /// `ToolResult`). For an agent that runs its OWN tools — Claude Code
+    /// in the relay — this is the only trace of the minutes it spends.
+    pub on_tool: std::sync::Arc<dyn Fn(crew_hive::HiveEvent) + Send + Sync>,
 }
 
 impl HopStream {
@@ -62,6 +67,7 @@ impl HopStream {
             on_tokens: std::sync::Arc::new(|_| {}),
             on_text: std::sync::Arc::new(|_| {}),
             on_thought: std::sync::Arc::new(|_| {}),
+            on_tool: std::sync::Arc::new(|_| {}),
         }
     }
 }

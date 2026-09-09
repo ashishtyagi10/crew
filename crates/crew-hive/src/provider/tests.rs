@@ -503,9 +503,11 @@ fn anthropic_base_url_seam_targets_v1_messages() {
     assert_eq!(messages_url("http://h"), "http://h/v1/messages");
 }
 
-/// One request is one `claude -p` run: print mode, JSON out, Claude Code's
-/// own tools OFF (this is a model, not an agent), no session left on disk,
-/// the request's model, and the system prompt only when there is one.
+/// One request is one `claude -p` run: print mode, the STREAMED JSON
+/// envelope (`--verbose` is what lets `-p` stream; partial messages carry
+/// the deltas), Claude Code's own tools OFF (this is a model, not an
+/// agent), no session left on disk, the request's model, and the system
+/// prompt only when there is one.
 #[test]
 fn claude_cli_args_are_the_documented_headless_contract() {
     use crate::provider::ClaudeCliProvider;
@@ -518,7 +520,9 @@ fn claude_cli_args_are_the_documented_headless_contract() {
             "-p",
             "one two three",
             "--output-format",
-            "json",
+            "stream-json",
+            "--verbose",
+            "--include-partial-messages",
             "--tools",
             "",
             "--no-session-persistence",
@@ -597,8 +601,70 @@ fn claude_cli_reads_the_json_envelope() {
         Err(ProviderError::Api(body)) => assert!(body.contains("error_max_turns"), "{body}"),
         other => panic!("{other:?}"),
     }
+    // Plain text is the reply of last resort (a CLI without the stream,
+    // or a test's fake that echoes) — never a decode error.
+    assert_eq!(
+        ClaudeCliProvider::parse_result("not json at all")
+            .unwrap()
+            .text,
+        "not json at all"
+    );
     assert!(matches!(
-        ClaudeCliProvider::parse_result("not json at all"),
-        Err(ProviderError::Decode(_))
+        ClaudeCliProvider::parse_result("   \n"),
+        Err(ProviderError::Api(_))
     ));
+}
+
+/// The live run: a fake `claude` that prints the stream one line at a time
+/// — a status line, a thinking delta, two text deltas, the closing
+/// `result`. Every delta reaches `on_chunk` in its lane, and the completion
+/// carries the settled reply, the whole thought, and the usage.
+#[cfg(unix)]
+#[test]
+fn claude_cli_streams_thinking_and_text_then_settles_on_the_result() {
+    use crate::provider::ClaudeCliProvider;
+    use std::os::unix::fs::PermissionsExt;
+    let dir = std::env::temp_dir().join(format!("crew-claudecli-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let fake = dir.join("claude");
+    std::fs::write(
+        &fake,
+        concat!(
+            "#!/bin/sh\n",
+            "echo '{\"type\":\"system\",\"subtype\":\"status\",\"status\":\"requesting\"}'\n",
+            "echo '{\"type\":\"stream_event\",\"event\":{\"type\":\"content_block_delta\",\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\"weigh it\"}}}'\n",
+            "echo '{\"type\":\"stream_event\",\"event\":{\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"po\"}}}'\n",
+            "echo '{\"type\":\"stream_event\",\"event\":{\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"ng\"}}}'\n",
+            "echo '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"pong\",\"usage\":{\"input_tokens\":3,\"output_tokens\":4}}'\n",
+        ),
+    )
+    .unwrap();
+    std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+    let log = seen.clone();
+    let on_chunk: ChunkFn = std::sync::Arc::new(move |c: Chunk<'_>| {
+        log.lock().unwrap().push(match c {
+            Chunk::Text(t) => format!("text:{t}"),
+            Chunk::Thought(t) => format!("thought:{t}"),
+        });
+    });
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let p = ClaudeCliProvider::new().with_program(fake.to_str().unwrap());
+    let c = rt
+        .block_on(p.complete_streaming(test_request(), on_chunk))
+        .unwrap();
+    assert_eq!(
+        seen.lock().unwrap().as_slice(),
+        ["thought:weigh it", "text:po", "text:ng"]
+    );
+    assert_eq!((c.text.as_str(), c.thought.as_str()), ("pong", "weigh it"));
+    assert_eq!(
+        (c.input_tokens, c.output_tokens, c.cost_microusd),
+        (3, 4, 0)
+    );
+    // A CLI that prints plain text instead of the stream still answers.
+    std::fs::write(&fake, "#!/bin/sh\necho 'plain answer'\n").unwrap();
+    let c = rt.block_on(p.complete(test_request())).unwrap();
+    assert_eq!(c.text, "plain answer");
+    let _ = std::fs::remove_dir_all(&dir);
 }

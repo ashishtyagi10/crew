@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 use crate::{PluginEvent, Registry, Routing};
 
 use super::adapter::HopStream;
+use super::hoptool::hop_tooler;
 use super::relay::msg;
 use super::tick::{hop_texter, hop_thinker, hop_ticker};
 
@@ -61,6 +62,7 @@ pub(crate) fn fan_out(
                 on_tokens: hop_ticker(tick_emit.clone(), name.clone()),
                 on_text: hop_texter(tick_emit.clone(), name.clone()),
                 on_thought: hop_thinker(tick_emit.clone(), name.clone()),
+                on_tool: hop_tooler(tick_emit.clone(), name.clone()),
             };
             s.spawn(move || {
                 let t0 = Instant::now();

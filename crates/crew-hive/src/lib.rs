@@ -54,6 +54,7 @@ pub mod oauth;
 pub mod planner;
 pub mod pricing;
 pub mod provider;
+pub use provider::claudestream;
 pub mod remoteagent;
 pub mod sched;
 pub mod telemetry;

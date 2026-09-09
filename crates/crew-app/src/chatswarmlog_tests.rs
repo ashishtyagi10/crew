@@ -24,3 +24,37 @@ fn a_load_tees_one_lifecycle_line_with_its_kinds_verb() {
         Some((false, "smith: lsp rust-analyzer started".into()))
     );
 }
+
+/// A relay agent's own tool call — its id minted from its name, as the
+/// broker and the pane both mint it — is logged by name; a hive agent
+/// nobody named keeps its number.
+#[test]
+fn a_named_agents_tool_call_is_logged_by_name() {
+    let names = std::collections::HashMap::from([(
+        crew_hive::AgentId::minted("claude").0,
+        "claude".to_string(),
+    )]);
+    let call = |id: crew_hive::AgentId| HiveEvent::ToolCall {
+        agent: id,
+        label: "Read".into(),
+        args: String::new(),
+    };
+    assert_eq!(
+        log_line_named(None, &names, &call(crew_hive::AgentId::minted("claude"))),
+        Some((false, "smith: claude called Read".into()))
+    );
+    assert_eq!(
+        log_line_named(None, &names, &call(crew_hive::AgentId(3))),
+        Some((false, "smith: agent 3 called Read".into()))
+    );
+    // A roster pre-binds the same ids the broker will send.
+    let mut tools = crate::chattool::ToolLines::default();
+    tools.prebind(["claude", "codex"].into_iter());
+    assert_eq!(
+        tools
+            .names
+            .get(&crew_hive::AgentId::minted("codex").0)
+            .map(String::as_str),
+        Some("codex")
+    );
+}

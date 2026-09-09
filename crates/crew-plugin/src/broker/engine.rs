@@ -8,6 +8,7 @@ use std::time::Duration;
 use super::adapter::HopStream;
 use super::compact::{is_dup, keep_in_transcript, Compactor};
 use super::hop::{back, note, Hop, HopKind, RunStats};
+use super::hoptool::hop_tooler;
 use super::route::{clip, frame, has_directive, repair_prompt};
 use super::tick::{hop_texter, hop_thinker, hop_ticker};
 use super::{parse_routing, Envelope, Registry, Routing};
@@ -128,6 +129,7 @@ impl Broker {
                 on_tokens: hop_ticker(tick_emit.clone(), env.to.clone()),
                 on_text: hop_texter(tick_emit.clone(), env.to.clone()),
                 on_thought: hop_thinker(tick_emit.clone(), env.to.clone()),
+                on_tool: hop_tooler(tick_emit.clone(), env.to.clone()),
             };
             let (reply, mut usage) =
                 match agent.call_with_usage_ticked(&prompt, self.timeout, &stream) {
@@ -163,6 +165,7 @@ impl Broker {
                     on_tokens: hop_ticker(tick_emit.clone(), env.to.clone()),
                     on_text: hop_texter(tick_emit.clone(), env.to.clone()),
                     on_thought: hop_thinker(tick_emit.clone(), env.to.clone()),
+                    on_tool: hop_tooler(tick_emit.clone(), env.to.clone()),
                 };
                 match agent.call_with_usage_ticked(&nudge, self.timeout, &stream) {
                     Ok((r, u)) if !r.trim().is_empty() => {

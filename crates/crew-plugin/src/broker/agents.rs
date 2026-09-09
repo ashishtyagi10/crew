@@ -5,6 +5,7 @@
 //! constructor here and push it into [`known_adapters`] — the broker is
 //! untouched.
 use super::adapter::{Adapter, CliAdapter, Normalize};
+use super::claudeagent::ClaudeAgent;
 
 /// Every agent the broker knows how to drive. Discovery keeps only the ones
 /// whose CLI is actually installed (see [`append_installed`]).
@@ -66,22 +67,10 @@ fn with_model(mut args: Vec<String>, flag: &str, model: Option<String>) -> Vec<S
     args
 }
 
-fn claude() -> CliAdapter {
-    CliAdapter {
-        name: "claude".into(),
-        program: "claude".into(),
-        args: with_model(
-            vec![
-                "-p".into(),
-                "{}".into(),
-                "--output-format".into(),
-                "text".into(),
-            ],
-            "--model",
-            std::env::var("CREW_CLAUDE_MODEL").ok(),
-        ),
-        normalize: Normalize::Raw,
-    }
+/// Claude Code is the one CLI crew reads LIVE (`claudeagent`): its stream
+/// carries the thinking, the text and every tool call as they happen.
+fn claude() -> ClaudeAgent {
+    ClaudeAgent::new(std::env::var("CREW_CLAUDE_MODEL").ok())
 }
 
 fn codex() -> CliAdapter {

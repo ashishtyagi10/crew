@@ -4,6 +4,21 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct AgentId(pub u64);
 
+impl AgentId {
+    /// The id of an agent that is NOT a hive agent — a relay CLI such as
+    /// `claude` — minted from its name: FNV-1a with the top bit set, so it
+    /// can never meet a hive id (those count up from zero). The broker mints
+    /// it for the tool events it forwards and the app mints the same id from
+    /// the same roster name, so a tool line is named from its first event
+    /// with no binding round-trip.
+    pub fn minted(name: &str) -> Self {
+        let h = name.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| {
+            (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
+        });
+        AgentId(h | (1 << 63))
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum HiveEvent {
     TaskStateChanged {
