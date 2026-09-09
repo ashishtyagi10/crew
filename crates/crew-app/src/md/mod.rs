@@ -1,6 +1,8 @@
 //! Markdown model shared by the parser and the layout/render pass. Kept
 //! intentionally dumb: no wrapping, no color — just parsed structure and
 //! inline styling.
+mod footnote;
+pub(crate) mod heading;
 mod layout;
 mod parse;
 pub(crate) mod picture;
@@ -66,6 +68,11 @@ pub(crate) fn table_lines(
 pub(crate) struct MdStyle {
     pub bold: bool,
     pub italic: bool,
+    /// `~~struck~~` — drawn with a rule through it, never as italic.
+    pub strike: bool,
+    /// A `[^label]` reference — the small muted `[1]` in the prose, which the
+    /// trailing footnote block answers (see [`footnote`]).
+    pub footnote: bool,
     pub code: bool,  // inline code span
     pub heading: u8, // 0 = body text, 1..=6 = heading level
     /// A structural marker glyph — a list bullet/ordinal or a blockquote bar

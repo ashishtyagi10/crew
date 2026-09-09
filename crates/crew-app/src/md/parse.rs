@@ -53,6 +53,12 @@ pub(super) enum Block {
         rows: Vec<Vec<Vec<MdSpan>>>,
     },
     Rule,
+    /// A `[^label]: text` definition, wherever the source put it; `layout`
+    /// gathers every one into the trailing block (see `md::footnote`).
+    Footnote {
+        label: String,
+        body: Vec<Block>,
+    },
 }
 
 /// Parses `text` into blocks. Never panics. CommonMark: a soft break joins with a space.
@@ -62,7 +68,10 @@ pub(super) fn parse(text: &str) -> Vec<Block> {
 
 /// Same, but `keep_soft_breaks` keeps each line break as its own line — chat prose (`md::render_chat`).
 pub(super) fn parse_with(text: &str, keep_soft_breaks: bool) -> Vec<Block> {
-    let opts = Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH | Options::ENABLE_TASKLISTS;
+    let opts = Options::ENABLE_TABLES
+        | Options::ENABLE_STRIKETHROUGH
+        | Options::ENABLE_TASKLISTS
+        | Options::ENABLE_FOOTNOTES;
     // `into_offset_iter` is what makes the render editable: every event
     // arrives with the source range it came from, and `source::ranged` stamps
     // it where the inline fold can read it (see `md::source`).
@@ -70,10 +79,11 @@ pub(super) fn parse_with(text: &str, keep_soft_breaks: bool) -> Vec<Block> {
     collect_blocks(&mut events, 0, keep_soft_breaks)
 }
 
-/// Also used recursively for `BlockQuote` contents: a nested quote's own
-/// `Start`/`End` pair is fully consumed by its own call, so the first stray
-/// `End(BlockQuote)` seen is this call's own close. Past `MAX_NEST_DEPTH`,
-/// further quotes fold flat instead of recursing (`inert` tracks the extras).
+/// Also used recursively for `BlockQuote` and `FootnoteDefinition` contents:
+/// a nested container's own `Start`/`End` pair is fully consumed by its own
+/// call, so the first stray `End` seen is this call's own close. Past
+/// `MAX_NEST_DEPTH`, further containers fold flat instead of recursing
+/// (`inert` tracks the extras).
 fn collect_blocks<'a>(
     events: &mut impl Iterator<Item = Event<'a>>,
     depth: u8,
@@ -107,6 +117,14 @@ fn collect_blocks<'a>(
             Event::Start(Tag::BlockQuote(_)) => inert += 1,
             Event::End(TagEnd::BlockQuote(_)) if inert > 0 => inert -= 1,
             Event::End(TagEnd::BlockQuote(_)) => break,
+            Event::Start(Tag::FootnoteDefinition(label)) if depth < MAX_NEST_DEPTH => {
+                let body = collect_blocks(events, depth + 1, keep_soft_breaks);
+                let label = label.into_string();
+                blocks.push(Block::Footnote { label, body });
+            }
+            Event::Start(Tag::FootnoteDefinition(_)) => inert += 1,
+            Event::End(TagEnd::FootnoteDefinition) if inert > 0 => inert -= 1,
+            Event::End(TagEnd::FootnoteDefinition) => break,
             Event::Start(Tag::Table(aligns)) => {
                 let aligns = aligns.into_iter().map(super::ColAlign::from).collect();
                 blocks.push(collect_table(events, aligns, keep_soft_breaks))

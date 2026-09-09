@@ -197,7 +197,7 @@ fn table_splits_header_and_rows() {
 fn rule_and_strikethrough() {
     let blocks = parse("---\n\n~~gone~~");
     assert!(matches!(blocks[0], Block::Rule));
-    assert!(matches!(&blocks[1], Block::Paragraph(s) if s[0].style.italic));
+    assert!(matches!(&blocks[1], Block::Paragraph(s) if s[0].style.strike && !s[0].style.italic));
 }
 
 #[test]

@@ -17,13 +17,8 @@ pub(crate) const PAD: usize = 1;
 
 fn tinted(bg: (u8, u8, u8), fg: (u8, u8, u8)) -> CardCell {
     CardCell {
-        c: ' ',
-        fg,
-        bold: false,
-        italic: false,
         bg: Some(bg),
-        link: None,
-        src: None,
+        ..crate::chatbody::plain(' ', fg, false)
     }
 }
 

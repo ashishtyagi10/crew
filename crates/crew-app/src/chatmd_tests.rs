@@ -52,12 +52,12 @@ fn inline_code_is_coloured_but_surrounding_prose_is_not() {
 }
 
 #[test]
-fn headings_are_ink_and_bold_at_every_level() {
+fn headings_are_bold_and_take_the_ink_of_their_level() {
     let _guard = crate::app::theme_test_guard();
-    for src in ["# One", "## Two", "### Three", "###### Six"] {
-        let out = lines(src, 40, (9, 9, 9));
-        let cell = &out[0][1];
-        assert_eq!(cell.fg, crew_theme::theme().ink, "{src}");
+    for level in [1u8, 2, 3, 6] {
+        let src = format!("{} Title", "#".repeat(level as usize));
+        let cell = &lines(&src, 40, (9, 9, 9))[0][1];
+        assert_eq!(cell.fg, crate::chatspan::heading_fg(level), "{src}");
         assert!(cell.bold, "{src}");
     }
 }

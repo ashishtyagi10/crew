@@ -194,13 +194,8 @@ fn italic_cardcell_threads_through_to_cellview() {
     // even before Task 4 wires a producer for it (markdown emphasis).
     let page = crew_theme::theme().page_bg;
     let line: CardLine = vec![CardCell {
-        c: 'x',
-        fg: (1, 2, 3),
-        bold: false,
         italic: true,
-        bg: None,
-        link: None,
-        src: None,
+        ..crate::chatbody::plain('x', (1, 2, 3), false)
     }];
     let cells = line_cells(0, &line, 40, page);
     assert_eq!(cells.len(), 1);

@@ -52,8 +52,10 @@ mod chatfold;
 mod chatfont;
 mod chatghost;
 mod chathdr;
+mod chatheading;
 mod chathistory;
 mod chathistsearch;
+mod chatimage;
 mod chatink;
 mod chatinput;
 mod chatkeys;
@@ -64,6 +66,7 @@ mod chatmention;
 #[cfg(test)]
 #[path = "chatshot_tests.rs"]
 mod chatshot_tests;
+mod chatspan;
 mod completefuzzy;
 mod mentionexpand;
 

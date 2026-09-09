@@ -11,6 +11,7 @@ use crate::md::{MdSpan, MdStyle};
 pub(super) struct InlineState {
     bold: u32,
     italic: u32,
+    strike: u32,
     link: Vec<String>,
     /// Open `![…](…)` images: the source, and where this run's spans began.
     image: Vec<(String, usize)>,
@@ -31,10 +32,8 @@ impl InlineState {
         MdStyle {
             bold: self.bold > 0,
             italic: self.italic > 0,
-            code: false,
-            heading: 0,
-            marker: false,
-            token: crate::md::syntax::Token::Plain,
+            strike: self.strike > 0,
+            ..MdStyle::default()
         }
     }
 
@@ -111,10 +110,14 @@ pub(super) fn apply_inline_event(
         }),
         Event::Start(Tag::Strong) => state.bold += 1,
         Event::End(TagEnd::Strong) => state.bold = state.bold.saturating_sub(1),
-        Event::Start(Tag::Emphasis) | Event::Start(Tag::Strikethrough) => state.italic += 1,
-        Event::End(TagEnd::Emphasis) | Event::End(TagEnd::Strikethrough) => {
-            state.italic = state.italic.saturating_sub(1)
-        }
+        Event::Start(Tag::Emphasis) => state.italic += 1,
+        Event::End(TagEnd::Emphasis) => state.italic = state.italic.saturating_sub(1),
+        // Its own bit, not italic: a strike says "no longer", a slant says
+        // "stress", and a reader told the second when the writer meant the
+        // first was being lied to by the renderer.
+        Event::Start(Tag::Strikethrough) => state.strike += 1,
+        Event::End(TagEnd::Strikethrough) => state.strike = state.strike.saturating_sub(1),
+        Event::FootnoteReference(label) => spans.push(crate::md::footnote::reference(&label)),
         Event::Start(Tag::Link { dest_url, .. }) => state.link.push(dest_url.into_string()),
         Event::End(TagEnd::Link) => {
             state.link.pop();

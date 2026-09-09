@@ -21,12 +21,11 @@ src/chatfind_tests.rs 366
 src/chatflow.rs 207
 src/chatfold_tests.rs 378
 src/chathistsearch_tests.rs 246
-src/chatink.rs 299
+src/chatink.rs 291
 src/chatink_tests.rs 273
 src/chatinput.rs 287
 src/chatinput_tests.rs 285
 src/chatlayout.rs 201
-src/chatmd.rs 231
 src/chatmd_tests.rs 299
 src/chatmention.rs 208
 src/chatmention_tests.rs 367
