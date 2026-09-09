@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.50
+
+**Pictures paint inside chat cards, wide tables wrap, and the markdown card finally has a screenshot sweep.**
+
+A markdown image whose file exists, absolute or relative to the pane's
+directory, paints in the card as a block of up to twelve rows with its
+caption beneath; while the worker decodes it the caption says
+`loading…`, and a file that cannot be read keeps the one-row caption
+from 0.21.40. A table wider than the pane no longer clips its rows:
+the widest columns shrink to a cap found by search, down to six cells,
+and their text wraps onto continuation rows whose separators stay
+aligned with the header; only a table that cannot fit even then falls
+back to clipping. A new ignored shot sweep renders one fixture with
+every construct the pane knows at three widths and all twelve presets,
+and six non-ignored guards hold the same fixture's cells: no row past
+the width, every cap on its ground, every fence cell on the field, the
+h1 rule as wide as its text, table separators aligned, the image row
+carrying its source. The manual lists what the pane renders.
+
 ## 0.21.49
 
 **A pending plan gets real buttons: run and discard, drawn, hovered, clicked.**
