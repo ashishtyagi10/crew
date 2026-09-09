@@ -3,10 +3,8 @@
 use super::*;
 
 impl CrewConfig {
-    /// The height of one text row in logical pixels — the font size times the
-    /// user's `leading`. The same product `crew_render::cell_metrics` takes,
-    /// so the window-sizing math and the cell box can never disagree about
-    /// how tall a row is.
+    /// One text row in logical pixels — font size × `leading`, the same
+    /// product `crew_render::cell_metrics` takes, so sizing and cells agree.
     pub fn line_height(&self) -> f32 {
         self.font_size * self.leading().ratio()
     }
@@ -146,7 +144,7 @@ impl CrewConfig {
     }
 
     /// The configured density; an unknown name falls back to `cozy`, the
-    /// default — a typo must not silently re-space the whole canvas.
+    /// default — a typo must not re-space the whole canvas.
     pub(crate) fn density(&self) -> crate::density::Density {
         crate::density::Density::parse(&self.density).unwrap_or(crate::density::Density::Cozy)
     }
@@ -218,6 +216,8 @@ impl CrewConfig {
             glass: self.glass,
             motion: self.motion,
             density: self.density,
+            nav_card: self.nav_card,
+            weather_place: self.weather_place,
             leading: self.leading,
             contrast: self.contrast,
             shape_cues: self.shape_cues,

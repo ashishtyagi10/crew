@@ -265,7 +265,7 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`
 `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/errors`,
 `/errorsall`, `/out`, `/blocks`, `/marks`, `/name <text>`, `/pin`, `/clear`,
 `/clearall`, `/clearlog`, `/only`, `/copy`, `/dump`, `/closeall`, `/reopen`,
-`/restore`, `/blame`, `/lsp`, `/leading`, `/invisibles`, `/pwd`, `/about`, `/log`,
+`/restore`, `/blame`, `/lsp`, `/leading`, `/invisibles`, `/pwd`, `/about`, `/log`, `/nav`, `/weather`,
 `/model`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
 `/todo`, `/dash`, `/usage`, `/disk`, and the look: `/theme`, `/gradient`,
 `/font`, `/weight`, `/smooth`, `/gamma`, `/grain`, `/leading`, `/density`,

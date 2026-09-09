@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.64
+
+**The nav's LOG slot becomes two glance cards — SERVING and WAITING ON YOU
+— and the clock gets a weather strip.**
+
+The LOG card was the one nav section with more to say than room to say it,
+and what it said was font switches and update polls, each line clipped at
+twenty columns. Its slot now holds SERVING — the provider and model that
+answer smith work, and the 5h / 7d windows as drawn meters — and WAITING ON
+YOU: terminals stopped at a prompt, a plan awaiting Enter or Esc, tasks in
+flight, each row a click that focuses its pane, and "all quiet" when there is
+nothing. Both read live app state; no I/O on the frame path. On a narrow nav
+the model outlives the provider and the countdown goes before the bar. `/nav
+log` brings the tail back; `/log` still opens the full history.
+
+`/weather <place>` puts one line under the date — `☂ 24° ↑27 ↓18 ☂35%` —
+from Open-Meteo (no key: geocoder, then forecast), fetched on a worker thread,
+cached beside the config for an hour and keyed on the place, Fahrenheit for a
+US place. Crew still has no location of its own; the place is typed, as the
+`auto` theme's light hours are. `/weather off` clears it.
+
 ## 0.21.63
 
 **Fix: the sign-in tracker no longer writes the credential store from tests

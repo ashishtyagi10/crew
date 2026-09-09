@@ -22,6 +22,14 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "Switch theme — pick from the list",
     },
     Cmd {
+        name: "/nav",
+        desc: "What the nav's slot shows: glance cards or the log (/nav [glance|log])",
+    },
+    Cmd {
+        name: "/weather",
+        desc: "Weather strip under the clock for a place (/weather <place> | off)",
+    },
+    Cmd {
         name: "/crt",
         desc: "CRT tube look on/off (/crt [on|off|auto])",
     },

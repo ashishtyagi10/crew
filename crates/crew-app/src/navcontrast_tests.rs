@@ -61,7 +61,7 @@ fn every_nav_glyph_clears_the_mark_floor_on_every_theme() {
         crate::palette::set_accent(crew_theme::theme().accent_default);
         let (sp, log, panes) = fixture();
         for c in sp
-            .cells(26, 48, &panes, &log, 0)
+            .cells(26, 48, &panes, &log, 0, None, None)
             .iter()
             .filter(|c| c.c != ' ' && !FURNITURE.contains(c.c))
         {
@@ -99,7 +99,7 @@ fn a_hostile_user_accent_cannot_take_the_nav_below_the_floor() {
             crate::palette::set_accent(accent);
             let (sp, log, panes) = fixture();
             let worst = sp
-                .cells(26, 48, &panes, &log, 0)
+                .cells(26, 48, &panes, &log, 0, None, None)
                 .iter()
                 .filter(|c| c.c != ' ' && !FURNITURE.contains(c.c))
                 .map(|c| (crew_theme::contrast_ratio(c.fg, c.bg) * 100.0) as i32)
@@ -153,7 +153,7 @@ fn high_contrast_raises_the_navs_floor_too() {
         }
         let (sp, log, panes) = fixture();
         for c in sp
-            .cells(26, 48, &panes, &log, 0)
+            .cells(26, 48, &panes, &log, 0, None, None)
             .iter()
             .filter(|c| c.c != ' ' && !FURNITURE.contains(c.c))
         {

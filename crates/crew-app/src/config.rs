@@ -114,23 +114,16 @@ pub struct CrewConfig {
     /// When off, the window background is a plain flat colour.
     #[serde(default = "default_true")]
     pub paper_texture: bool,
-    /// Whether the page's gradient wash drifts while nothing is happening.
-    ///
-    /// The wash has always moved — two broad pools of pole light orbiting
-    /// under the page — but only while a pane was busy, so a quiet window sat
-    /// perfectly still. With this on it keeps drifting when idle, far slower,
-    /// and only while crew holds the OS focus: a window you are not looking at
-    /// repaints for nobody. Off restores the old behaviour exactly, and
-    /// Motion=off overrides it either way.
+    /// Whether the page's gradient wash keeps drifting while idle (far slower,
+    /// and only while crew holds the OS focus). Off restores the busy-only
+    /// wash exactly; Motion=off overrides it either way.
     #[serde(default = "default_true")]
     pub ambient_drift: bool,
     /// Grain amplitude multiplier for the paper texture (0.0 = no grain, 1.0 = default ~3%, 2.0 = double).
     #[serde(default = "default_paper_grain")]
     pub paper_grain: f32,
-    /// CRT tube post-process override. `None` (default) follows the active
-    /// theme's `crt` flag — on for the `crt-*` phosphor themes, off elsewhere.
-    /// `Some(true)`/`Some(false)` forces it via `/crt on|off` regardless of
-    /// theme.
+    /// CRT tube post-process override. `None` (default) follows the theme's
+    /// `crt` flag; `Some(_)` is `/crt on|off`, regardless of theme.
     #[serde(default)]
     pub crt: Option<bool>,
     /// Frosted-glass strength for pane cards: `off`, `low`, `medium`, `high`.
@@ -147,6 +140,12 @@ pub struct CrewConfig {
     /// between chat cards (see `density`).
     #[serde(default = "default_density")]
     pub density: String,
+    /// The nav's variable slot: `glance` (who serves, what waits on you) or `log`. `/nav`.
+    #[serde(default = "default_nav_card")]
+    pub nav_card: String,
+    /// The place the clock's weather strip reports for; empty = no strip. `/weather`.
+    #[serde(default)]
+    pub weather_place: String,
     /// How much air sits between rows of text: the cell height as a fraction
     /// of the font size (see `leading`).
     #[serde(default = "default_leading")]
@@ -242,6 +241,8 @@ impl Default for CrewConfig {
             glass: default_glass(),
             motion: default_motion(),
             density: default_density(),
+            nav_card: default_nav_card(),
+            weather_place: String::new(),
             leading: default_leading(),
             contrast: default_contrast(),
             shape_cues: default_shape_cues(),

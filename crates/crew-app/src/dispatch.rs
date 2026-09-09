@@ -94,6 +94,8 @@ impl CrewApp {
             "gamma" => self.gamma_command(""),
             "motion" => self.motion_command(""),
             "density" => self.density_command(""),
+            "nav" => self.nav_command(""),
+            "weather" => self.weather_command(""),
             "leading" => self.leading_command(""),
             "contrast" => self.contrast_command(""),
             "shapes" => self.shapes_command(""),

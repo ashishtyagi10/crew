@@ -37,13 +37,29 @@ pub const LOG_MIN: usize = 2;
 /// what `/log` is for.
 pub const LOG_MAX: usize = 20;
 
-/// Where each variable-height section of the nav starts, for one frame.
+/// What fills the nav's variable slot: the LOG tail (with its entry count)
+/// or the glance cards (with the WAITING row count) — see `navglance`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Tail {
+    Log(usize),
+    Glance(usize),
+}
+
+/// Where each variable-height section of the nav starts, for one frame.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct NavLayout {
     /// Content row the LOG section's rule sits on.
     pub log_top: u16,
     /// Entry rows the LOG gets — 0 when it has nothing to show or no room.
     pub log_lines: usize,
+    /// Content row the SERVING card's rule sits on (glance mode).
+    pub serving_top: u16,
+    /// Rows the SERVING card got: its block, or 0 when there was no room.
+    pub serving_rows: u16,
+    /// Content row the WAITING card's rule sits on (glance mode).
+    pub waiting_top: u16,
+    /// Rows the WAITING card shows — 0 when it was dropped for room.
+    pub waiting_lines: usize,
     /// Content row the PANES header sits on.
     pub panes_top: u16,
 }
@@ -76,28 +92,59 @@ pub fn fixed_rows(has_git: bool) -> u16 {
 /// to the LOG, between [`LOG_MIN`] and [`LOG_MAX`] lines and never more than
 /// there are entries to show.
 pub fn layout(rows: u16, has_git: bool, log_len: usize, panes: usize) -> NavLayout {
-    let log_top = fixed_rows(has_git);
+    layout_with(rows, has_git, Tail::Log(log_len), panes)
+}
+
+/// [`layout`] for either filling of the slot. In glance mode the SERVING
+/// card takes its fixed block first (dropped whole when even that would
+/// push a pane row off), then the WAITING card grows into the slack up to
+/// its row count and [`crate::navwaiting::WAIT_MAX`].
+pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLayout {
+    let top = fixed_rows(has_git);
     // Header + one row per pane. An empty crew costs nothing.
     let panes_block = if panes == 0 {
         0
     } else {
         1 + panes.min(usize::from(u16::MAX)) as u16
     };
-    let slack = rows
-        .saturating_sub(log_top)
-        .saturating_sub(panes_block)
-        .saturating_sub(2); // the LOG's own rule and trailing gap
-    let log_lines = log_len.min(LOG_MAX).min(slack as usize);
-    let log_lines = if log_lines < LOG_MIN { 0 } else { log_lines };
-    let out = NavLayout {
-        log_top,
-        log_lines,
-        panes_top: 0,
+    let mut out = NavLayout {
+        log_top: top,
+        serving_top: top,
+        ..Default::default()
     };
-    NavLayout {
-        panes_top: log_top + out.log_block(),
-        ..out
+    match tail {
+        Tail::Log(log_len) => {
+            let slack = rows
+                .saturating_sub(top)
+                .saturating_sub(panes_block)
+                .saturating_sub(2); // the LOG's own rule and trailing gap
+            let log_lines = log_len.min(LOG_MAX).min(slack as usize);
+            out.log_lines = if log_lines < LOG_MIN { 0 } else { log_lines };
+            out.panes_top = top + out.log_block();
+        }
+        Tail::Glance(waiting) => {
+            let serving = crate::navserving::SERVING_BLOCK;
+            if rows >= top + serving + panes_block {
+                out.serving_rows = serving;
+            }
+            out.waiting_top = top + out.serving_rows;
+            let slack = rows
+                .saturating_sub(out.waiting_top)
+                .saturating_sub(panes_block)
+                .saturating_sub(2);
+            out.waiting_lines = waiting
+                .max(1)
+                .min(crate::navwaiting::WAIT_MAX)
+                .min(slack as usize);
+            let block = if out.waiting_lines == 0 {
+                0
+            } else {
+                out.waiting_lines as u16 + 2
+            };
+            out.panes_top = out.waiting_top + block;
+        }
     }
+    out
 }
 
 #[cfg(test)]
