@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.41
+
+**Nerd Font icons in the smith pane, and plain Unicode wherever the font has none.**
+
+When the active font is a Nerd Font build, the chat pane draws icons:
+a language mark on every code fence header (rust, python, ts, go, sh,
+toml, yaml, json, md, sql, diff …), icon bullets and checkboxes, a
+quote mark, a picture mark on image rows, a footnote mark, the composer
+prompt, the header connection dot, and an eight-frame spinner. The
+switch is a real glyph-coverage check on the resolved face, memoised,
+so a frame only reads a bool; with the embedded Lilex or any plain
+face every one of these falls back to the characters it had before.
+The far pane's file icons, which drew as tofu without a Nerd Font since
+they landed, fall back the same way.
+
 ## 0.21.40
 
 **The smith pane's markdown stops lying: strike is a strike, headings have levels, footnotes and `www.` links exist, an image is one row.**
