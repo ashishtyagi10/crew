@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.45
+
+**Language servers: the crew reads real symbols, and the viewer shows real diagnostics.**
+
+A new `crew-lsp` crate speaks the Language Server Protocol over stdio
+(Content-Length framing, server notifications demuxed, requests retried
+while a server is still indexing, the process group reaped on drop).
+rust-analyzer, typescript-language-server, pyright and gopls are known
+by language; `~/.config/crew/lsp.json` adds or overrides a server. The
+swarm gains four read-tier tools, `lsp:hover`, `lsp:definition`,
+`lsp:references` and `lsp:diagnostics`, answered as `path:line:col`
+text an agent can act on, and the planner is told which servers are
+installed. A code file opened in the viewer or the document window
+starts its server off the winit thread and shows a margin mark per
+diagnostic, a curly underline over each range, and `N errors · M
+warnings` in the legend; `lsp = false` turns that off and the key sits
+in the settings form. `/lsp` prints which servers are installed and
+running. Read-only by design: the viewer still never edits code, and
+the goal doc says why that line holds.
+
 ## 0.21.44
 
 **Streamed replies type themselves out.**
