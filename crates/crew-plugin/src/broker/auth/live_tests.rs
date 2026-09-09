@@ -51,18 +51,17 @@ fn non_delegated_resolutions_decline_the_lead() {
     assert_eq!(starter_for(&delegated("codex"), names(&["scout"])), None);
 }
 
-/// The swarm's LLM planner needs an API provider; a delegated subscription
-/// cannot serve that JSON path, so a delegated-only machine degrades the
-/// swarm exactly the way keyless always has (stub planner) — while plain
-/// tasks route through the CLI relay instead. `/doctor` states this rather
-/// than any path erroring.
+/// The swarm's LLM planner needs an API-shaped provider. A signed-in Claude
+/// Code login supplies one through its own CLI since v0.21.53 (the e2e
+/// proves that path); with the subscription rung switched OFF — which the
+/// `no_provider` guard does — a keyless machine still degrades to the stub
+/// planner exactly as it always has, whatever CLI is installed.
 #[test]
-fn a_delegated_only_machine_degrades_the_swarm_like_keyless() {
+fn with_the_subscription_rung_off_a_keyless_machine_degrades_like_keyless() {
     let _g = testenv::no_provider();
     assert!(
         crate::broker::discover::provider_and_model().is_none(),
-        "no API provider must resolve for the planner on a keyless machine, \
-         whatever the subscription probes say"
+        "no API provider must resolve for the planner with the rung off"
     );
 }
 

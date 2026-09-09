@@ -180,15 +180,22 @@ pub(crate) mod testenv {
         let mut v: Vec<&'static str> = crate::credentials::VARS.to_vec();
         v.push("CREW_PROVIDER");
         v.push("CREW_CREDENTIALS_PATH");
+        // The subscription rung too: since v0.21.53 a signed-in Claude Code
+        // login IS a provider (`ProviderKind::ClaudeCli`), so a guard that
+        // cleared only keys stopped meaning "no provider" on any machine
+        // where the developer is signed in — which is every machine crew is
+        // developed on.
+        v.push("CREW_SUBSCRIPTIONS");
         v
     }
 
     /// Force `roster_with`'s provider discovery to fail, deterministically —
     /// even on a machine that exports a real key (this one has
-    /// `DASHSCOPE_API_KEY` in the login shell) or has saved a real credential
+    /// `DASHSCOPE_API_KEY` in the login shell), has saved a real credential
     /// pin through the in-app key popup (`credentials::save_key`, backed by
-    /// `~/.config/crew/credentials.json` or equivalent). Clears every
-    /// auto-discovered key and `CREW_PROVIDER` for the guard's lifetime, and
+    /// `~/.config/crew/credentials.json` or equivalent), or is signed in to
+    /// Claude Code (`CREW_SUBSCRIPTIONS=0` for the guard's lifetime). Clears
+    /// every auto-discovered key and `CREW_PROVIDER` for the guard's lifetime, and
     /// points `CREW_CREDENTIALS_PATH` at a sibling path that cannot exist, so
     /// `credentials::load()` (reached via `forced_provider()` and
     /// `shellenv::hydrate()`) reads as empty rather than the real store.
@@ -240,6 +247,7 @@ pub(crate) mod testenv {
         for k in provider_keys() {
             std::env::remove_var(k);
         }
+        std::env::set_var("CREW_SUBSCRIPTIONS", "0");
         let dir = empty_project_dir();
         std::env::set_var("CREW_PROJECT_DIR", &dir);
         let cred = store.map_or_else(|| dir.join("credentials.json"), PathBuf::from);

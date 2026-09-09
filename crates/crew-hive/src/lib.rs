@@ -87,8 +87,8 @@ pub use sched::{RunOutcome, Scheduler};
 
 // Provider
 pub use provider::{
-    AnthropicProvider, ChunkFn, Completion, CompletionRequest, MockProvider, OpenRouterProvider,
-    Provider, ProviderError, ToolDef, ToolInvocation, ToolOutcome, Turn,
+    AnthropicProvider, ChunkFn, ClaudeCliProvider, Completion, CompletionRequest, MockProvider,
+    OpenRouterProvider, Provider, ProviderError, ToolDef, ToolInvocation, ToolOutcome, Turn,
 };
 
 // Planner

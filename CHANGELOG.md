@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.53
+
+**A Claude Pro/Max plan now carries swarm planning, judges and fan-outs,
+not only plain replies.**
+
+Until now a signed-in Claude Code subscription led plain messages through
+the CLI relay while every API-shaped call (the planner, judges, fan-out
+specialists) fell through to the first key that resolved, or to nothing.
+A new provider runs each of those calls as `claude -p` under your Claude
+Code login: JSON out, Claude Code's own tools switched off (it is a model
+here, not an agent), no session left on disk, the role's system prompt
+and model passed through, `CREW_CLAUDE_MODEL` steering both this and the
+relay. Crew's tools reach it through the swarm's text convention. The
+plan covers the calls, so no cost is reported. `/doctor`'s provider line
+says "plain replies AND swarm planning" when this path is active, and a
+`claude-code` pin selects it explicitly. Codex keeps the relay-only rung.
+
 ## 0.21.52
 
 **Sign in to Anthropic with the Anthropic CLI: `ant auth login`, and crew
