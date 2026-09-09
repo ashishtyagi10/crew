@@ -162,6 +162,20 @@ pub(crate) fn open(palette: &mut Option<PaletteState>, auth: Auth, options: &[Si
     });
 }
 
+impl crate::chat::ChatPane {
+    /// The broker answered a bare `/login` or `/logout` with its rows: open
+    /// the picker, and count that as the reply. A bare construct goes out
+    /// like any line and latches `awaiting`; the old answer was a `Message`,
+    /// which clears it, but the picker event is the WHOLE answer now — no
+    /// message follows. Left latched, the pane stayed busy, so the pick
+    /// itself was queued behind a reply that was never coming: the popup
+    /// opened, and then nothing happened.
+    pub(crate) fn open_auth_picker(&mut self, auth: Auth, options: &[SignInOption]) {
+        self.awaiting = false;
+        open(&mut self.palette, auth, options);
+    }
+}
+
 #[cfg(test)]
 #[path = "loginpick_tests.rs"]
 mod tests;

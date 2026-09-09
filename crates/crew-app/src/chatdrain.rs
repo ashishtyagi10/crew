@@ -80,12 +80,10 @@ impl ChatPane {
                     PluginEvent::Roster { agents } => {
                         self.agents = agents;
                     }
-                    PluginEvent::SignIn { options } => {
-                        crate::loginpick::open(&mut self.palette, Auth::In, &options)
-                    }
-                    PluginEvent::SignOut { options } => {
-                        crate::loginpick::open(&mut self.palette, Auth::Out, &options)
-                    }
+                    // Each picker is the broker's WHOLE answer to the bare
+                    // construct — it settles the pane like a `Message` would.
+                    PluginEvent::SignIn { options } => self.open_auth_picker(Auth::In, &options),
+                    PluginEvent::SignOut { options } => self.open_auth_picker(Auth::Out, &options),
                     PluginEvent::Task { id, running, .. } => self.absorb_task(id, running),
                     PluginEvent::Plan { pending } => self.plan_pending = pending,
                     PluginEvent::Activity { agent, state, from } => {
@@ -177,3 +175,7 @@ impl ChatPane {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "chatdrain_tests.rs"]
+mod tests;

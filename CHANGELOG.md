@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.57
+
+**Fix: the `/login` and `/logout` pickers did nothing when picked.**
+
+Bare `/login` (and `/logout`) opened the popup, but choosing a row went
+nowhere. The bare construct is sent like any line and latches the pane's
+"awaiting a reply" state; the old answer was a message, which clears it,
+but since v0.21.55 the answer is the picker event alone — and nothing
+cleared the latch. The pane stayed busy, so the pick was queued behind a
+reply that was never coming. The picker event now settles the pane the way
+a message does, and the pick goes straight to the broker. Two drain tests
+hold it: each picker clears the latch, and Enter on a row sends at once.
+
 ## 0.21.56
 
 **`/logout` opens a picker too: the stored sign-ins, pick the one to remove.**
