@@ -81,6 +81,11 @@ impl ChatPane {
                     PluginEvent::Task { id, running, .. } => self.absorb_task(id, running),
                     PluginEvent::Plan { pending } => self.plan_pending = pending,
                     PluginEvent::Activity { agent, state, from } => {
+                        // The broker names the agent its last hive event
+                        // was about — the tool lines are keyed by that name.
+                        if from == "hive" {
+                            self.tools.bind(&agent);
+                        }
                         self.absorb_activity(agent, &state, from);
                     }
                     PluginEvent::Stats {

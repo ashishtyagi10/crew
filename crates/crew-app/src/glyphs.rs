@@ -58,6 +58,12 @@ pub(crate) enum Glyph<'a> {
     File,
     /// A top-level heading's badge mark (`#`, or a hashtag icon).
     Hash,
+    /// A tool call that succeeded / failed (`✓` / `✗`).
+    Pass,
+    Fail,
+    /// A collapsed / opened tool block's mark (`▸` / `▾`, or a wrench).
+    Tool,
+    ToolOpen,
     Lang(&'a str),
 }
 
@@ -91,7 +97,10 @@ pub(crate) fn nerd(g: Glyph) -> &'static str {
         Glyph::Dir => "\u{f07b}",      // nf-fa-folder
         Glyph::File => "\u{f15b}",     // nf-fa-file
         Glyph::Lang(l) => crate::glyphlang::lang_nerd(l),
-        Glyph::Hash => "\u{f292}", // nf-fa-hashtag
+        Glyph::Hash => "\u{f292}",                   // nf-fa-hashtag
+        Glyph::Pass => "\u{f00c}",                   // nf-fa-check
+        Glyph::Fail => "\u{f00d}",                   // nf-fa-times
+        Glyph::Tool | Glyph::ToolOpen => "\u{f0ad}", // nf-fa-wrench
     }
 }
 
@@ -115,6 +124,10 @@ pub(crate) fn fallback(g: Glyph) -> &'static str {
         Glyph::Dir => "\u{25b8}",  // ▸
         Glyph::File => "\u{00b7}", // ·
         Glyph::Hash => "#",
+        Glyph::Pass => "\u{2713}",     // ✓
+        Glyph::Fail => "\u{2717}",     // ✗
+        Glyph::Tool => "\u{25b8}",     // ▸
+        Glyph::ToolOpen => "\u{25be}", // ▾
         Glyph::Lang(_) => "",
     }
 }
@@ -142,12 +155,16 @@ pub(crate) fn prompt() -> char {
 /// The spinner frame for `now_ms`: eight pie slices on a Nerd Font, the
 /// four ASCII strokes otherwise, either way stepping every 120ms.
 pub(crate) fn spinner(now_ms: u64) -> &'static str {
-    let frames = if on() {
-        NF_SPINNER.len()
-    } else {
-        ASCII_SPINNER.len()
+    spinner_on(now_ms, on())
+}
+
+/// [`spinner`] for an explicit icon-set switch, for the pure renderers.
+pub(crate) fn spinner_on(now_ms: u64, on: bool) -> &'static str {
+    let (frames, table): (usize, fn(Glyph) -> &'static str) = match on {
+        true => (NF_SPINNER.len(), nerd),
+        false => (ASCII_SPINNER.len(), fallback),
     };
-    pick(Glyph::Spinner(((now_ms / 120) % frames as u64) as u8))
+    table(Glyph::Spinner(((now_ms / 120) % frames as u64) as u8))
 }
 
 /// A fence header's label: `<icon> <label>` on a Nerd Font, the bare label

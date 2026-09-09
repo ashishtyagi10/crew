@@ -29,12 +29,11 @@ pub(crate) fn force(on: bool) -> Forced {
     Forced
 }
 
-/// Every mark, so a glyph added to the enum without a row in both tables
-/// fails here rather than at the first draw.
+/// Every mark: a glyph added without a row in both tables fails here.
 fn all() -> Vec<Glyph<'static>> {
     let mut v = vec![
         Bullet1, Bullet2, Bullet3, Checked, Unchecked, Quote, DotOn, DotOff, Prompt, Image,
-        Footnote, Dir, File, Hash,
+        Footnote, Dir, File, Hash, Pass, Fail, Tool, ToolOpen,
     ];
     v.extend((0..8).map(Spinner));
     let langs = [

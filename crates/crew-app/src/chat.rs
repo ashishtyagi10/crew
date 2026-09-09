@@ -126,6 +126,9 @@ pub struct ChatPane {
     /// (provisional cards by agent, a just-settled card by its stamp). See
     /// `chatreveal` for the model, `chatrevealpane` for the bookkeeping.
     pub(crate) reveals: Vec<crate::chatreveal::CardReveal>,
+    /// The live tool-call lines of the swarm's agents (`Hive` ToolCall /
+    /// ToolResult), placed by `chattoolview`, toggled by `chattoolfold`.
+    pub(crate) tools: crate::chattool::ToolLines,
     /// The last per-reply `Stats` usage — `(agent, tok_in, tok_out,
     /// cost_microusd)` — waiting for its `Message` to land. The broker emits
     /// each reply's stat immediately before the reply itself (relay and fan

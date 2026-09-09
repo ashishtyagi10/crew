@@ -115,10 +115,9 @@ impl SwarmStatus {
                     }
                 }
             }
-            // CostDelta is no longer surfaced (the folded cost summary is gone);
-            // Failed also arrives as TaskStateChanged(Failed); chunks land in
-            // the transcript via the broker's Message translation; tool events
-            // are rendered by the broker too and change no task state here.
+            // CostDelta is no longer surfaced; Failed also arrives as
+            // TaskStateChanged(Failed); chunks land in the transcript via the
+            // broker's Message translation; tool events feed `chattool`.
             HiveEvent::CostDelta { .. }
             | HiveEvent::OutputChunk { .. }
             | HiveEvent::OutputDelta { .. }
@@ -154,6 +153,7 @@ impl ChatPane {
 
     /// Forwarded telemetry; folds the block once the run is over.
     pub(crate) fn absorb_hive(&mut self, ev: &HiveEvent) {
+        self.tools.absorb(ev, crate::chattime::unix_now_ms());
         let Some(s) = self.swarm.as_mut() else {
             return;
         };
@@ -163,11 +163,11 @@ impl ChatPane {
         }
     }
 
-    /// Retire the live block when the run ends. The run leaves no summary
-    /// record behind — the per-agent replies already streamed into the
-    /// transcript, and the token/cost/time accounting was chrome. Also called
-    /// on broker `Error`, which simply drops the frozen block.
+    /// Retire the live block when the run ends (and close the tool lines).
+    /// The run leaves no summary record behind — the per-agent replies
+    /// already streamed into the transcript. Also called on broker `Error`.
     pub(crate) fn fold_swarm(&mut self) {
+        self.tools.abandon(crate::chattime::unix_now_ms());
         self.swarm = None;
     }
 }

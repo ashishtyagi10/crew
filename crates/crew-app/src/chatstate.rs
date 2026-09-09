@@ -49,6 +49,7 @@ impl ChatPane {
             running_tasks: Vec::new(),
             streaming: Vec::new(),
             reveals: Vec::new(),
+            tools: crate::chattool::ToolLines::default(),
             pending_reply_usage: None,
             history: crate::chathistory::History::default(),
         }

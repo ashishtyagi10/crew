@@ -22,6 +22,7 @@ impl ChatPane {
             // from that boundary on is still arriving.
             streaming_from: self.messages.len(),
             reveals: &self.reveals,
+            tools: &self.tools.blocks,
         }
     }
 
@@ -38,8 +39,6 @@ impl ChatPane {
         }
     }
 
-    /// Back-compat name used by callers that only have `rows`; estimates at a
-    /// wide pane. `cells` recomputes with real `cols`.
     /// `(lines back from the bottom, total lines)` for the card's border
     /// thumb — the same shape a terminal reports, so one gutter serves every
     /// pane kind. See [`crate::viewpane`], which converts the same way.
@@ -135,6 +134,7 @@ pub(crate) fn art(
         pane.is_busy(),
         status.as_ref().map(|(l, s, c)| (l.as_str(), *s, *c)),
         pane.compact_view,
+        pane.tools.pending(),
     );
     // The per-agent statusline grid that used to sit here (rows 1..) was
     // retired: its model/context/token signals are consolidated into the
