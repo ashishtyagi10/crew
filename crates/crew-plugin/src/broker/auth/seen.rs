@@ -71,6 +71,14 @@ pub(crate) fn edits(
 /// caller re-reads it before resolving. Best-effort: a store that cannot
 /// be written changes nothing, as everywhere else.
 pub(crate) fn observe(store: &crate::credentials::Store) -> bool {
+    // Never from a test, and never under the mock provider (the harness):
+    // this is the one resolution step that WRITES the store, and a test
+    // reaching it through any roster emit would write the user's real one
+    // — or, in the e2e harness, a `credentials.json` inside the very repo
+    // whose task diff must stay quiet.
+    if cfg!(test) || std::env::var_os("CREW_BROKER_MOCK_REPLY").is_some() {
+        return false;
+    }
     let mut changed = false;
     for e in registry::entries() {
         let Some(cli) = e.cli.or(e.mint.map(|m| m.cli)) else {
