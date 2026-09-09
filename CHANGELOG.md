@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.59
+
+**The tool block shows the full arguments, and says what was loaded: a skill
+applied, an MCP server connected, a language server started.**
+
+A tool call's row used to keep only a sixty-character subject; the arguments
+the agent actually sent were thrown away on arrival. Clicking a row now opens
+the arguments first (one `key: value` per row, up to six, then `… +N more`),
+then a `→ result` divider, then the result rows with an `… +N lines` footer
+when it was cut. Alongside the calls, the same block gains lines that are born
+done: `skill rust-testing · applied` when a playbook was spliced into the
+prompt (until now that happened in silence), `mcp github · connected · 12
+tools: …` when a server answered its handshake (that reached only the LOG),
+and `lsp rust-analyzer · rust · crew` when a language server started (that
+reached nothing at all). Clicking a load line shows its detail, MCP tool names
+one per row. The summary counts them by kind: `4 tool calls · 1 skill · 2.1 s`.
+A block of loads with no agent of its own anchors above the next reply.
+
+Also: a tool call refused for going past the per-turn bound now reports itself
+as a failed result instead of vanishing; an unreadable skill file or a
+malformed agent manifest is reported as an error instead of being dropped; a
+language server that will not start is noted once. The LOG tees one line per
+load.
+
 ## 0.21.58
 
 **The smith pane shows the diff a task made — and what the language servers
