@@ -10,23 +10,6 @@ use crate::chat::ChatPane;
 use crate::chatlayout::layout_cells;
 
 impl ChatPane {
-    /// The one render `View` every transcript path draws with — scroll math,
-    /// scrollbar, link hit-tests, the unread pill and the typewriter all read
-    /// the same flags, so no two of them can disagree about what is drawn.
-    pub(crate) fn view(&self) -> crate::chatmsgs::View<'_> {
-        crate::chatmsgs::View {
-            source: self.show_source,
-            compact: self.compact_view,
-            gap_rows: crate::density::level().card_gap_rows(),
-            // `visible_messages` chains settled then streaming, so everything
-            // from that boundary on is still arriving.
-            streaming_from: self.messages.len(),
-            reveals: &self.reveals,
-            tools: &self.tools.blocks,
-            cwd: self.cwd.as_deref().map(std::path::Path::new),
-        }
-    }
-
     /// Rows consumed above the message body: just the single header row. The
     /// old per-agent statusline grid was retired in favour of the whole-pane
     /// summary footer below the composer (see `chatsummary`), so nothing but the

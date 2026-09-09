@@ -98,6 +98,23 @@ fn live_pane() -> ChatPane {
         "",
         None,
     ));
+    // Scout's reply carries a folded thought above it; smith's streaming card
+    // has one still arriving — both block shapes in the one transcript.
+    p.messages[3].ts = "1700000000000".into();
+    p.thoughts.settled.push(crate::chatthought::ThoughtBlock {
+        agent: "scout".into(),
+        anchor: Some("1700000000000".into()),
+        text: "Check the contrast of border_normal on every light preset first.".into(),
+        ms: 2_300,
+        expanded: false,
+    });
+    p.thoughts.absorb(
+        "smith",
+        "The ticks are drawn at 1px on the canvas grid, so the same floor applies.\n\
+         If I lift the scale ink to the accent floor the dial face darkens too —\n\
+         better to lift only the tick marks and leave the face as it is.",
+        crate::chattime::unix_now_ms() - 3_000,
+    );
     p.tokens = 41_820;
     p.tok_in = 36_140;
     p.tok_out = 5_680;

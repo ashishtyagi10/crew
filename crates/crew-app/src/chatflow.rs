@@ -136,6 +136,7 @@ impl crate::chat::ChatPane {
         self.pulse.end_turn();
         // A hop that never produced a Message must not strand its card.
         self.streaming.clear();
+        self.thoughts.abandon(crate::chattime::unix_now_ms());
         self.drop_stream_reveals();
     }
 

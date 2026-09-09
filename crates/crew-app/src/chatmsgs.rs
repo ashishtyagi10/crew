@@ -47,6 +47,8 @@ pub(crate) struct View<'a> {
     pub(crate) reveals: &'a [crate::chatreveal::CardReveal],
     /// The agents' tool-call blocks (see `chattool`), seated by `chattoolview`.
     pub(crate) tools: &'a [crate::chattool::ToolBlock],
+    /// The agents' thoughts (see `chatthought`), seated by `chatthoughtseat`.
+    pub(crate) thoughts: &'a crate::chatthought::Thoughts,
     /// The pane's working directory — where a picture's relative source
     /// resolves (`chatimage::fate`); `None` leaves every such picture named.
     pub(crate) cwd: Option<&'a std::path::Path>,
@@ -61,6 +63,7 @@ impl Default for View<'_> {
             gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             reveals: &[],
             tools: &[],
+            thoughts: &crate::chatthought::EMPTY,
             cwd: None,
         }
     }
@@ -188,7 +191,10 @@ pub(crate) fn card_lines_spanned(
         }
         let first = out.len();
         let streaming = i >= view.streaming_from;
-        // The agent's tool block: above a settled reply, under a streaming card.
+        // The agent's thought, then its tool block, above a settled reply (the
+        // working, what it did, what it said); a live thought above a
+        // streaming card, the live tool block under it.
+        crate::chatthoughtseat::push_above(view, m, streaming, now_ms, cols, &mut out);
         out.extend(crate::chattoolview::above(view, m, streaming, now_ms, cols));
         let splash = is_splash(m);
         if !splash {
@@ -239,6 +245,7 @@ pub(crate) fn card_lines_spanned(
     }
     // Blocks with no card of their agent's on screen stand as thin cards.
     out.extend(crate::chattoolview::orphans(view, messages, now_ms, cols));
+    crate::chatthoughtseat::push_orphans(view, messages, now_ms, cols, &mut out);
     (out, spans)
 }
 
