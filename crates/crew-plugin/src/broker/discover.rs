@@ -64,6 +64,10 @@ pub enum ProviderKind {
     DashScope,
     OpenRouter,
     Anthropic,
+    /// The Claude Code subscription, through `claude -p` — the API-shaped
+    /// seam served by the same CLI the relay drives, so a Pro/Max plan
+    /// carries swarm planning, judges and fan-outs, not only plain replies.
+    ClaudeCli,
     /// One of the [`DIRECT`] rows. Carried by reference because the table is
     /// static, so this stays `Copy` and comparisons stay cheap.
     Direct(&'static DirectProvider),
@@ -79,6 +83,7 @@ impl ProviderKind {
             ProviderKind::DashScope => "dashscope",
             ProviderKind::OpenRouter => "openrouter",
             ProviderKind::Anthropic => "anthropic",
+            ProviderKind::ClaudeCli => "claude-code",
             ProviderKind::Direct(d) => d.name,
         }
     }
@@ -137,6 +142,9 @@ fn kind_for(name: &str) -> Option<ProviderKind> {
         "dashscope" => Some(ProviderKind::DashScope),
         "openrouter" => Some(ProviderKind::OpenRouter),
         "anthropic" => Some(ProviderKind::Anthropic),
+        // The registry name and the CLI's own: a `claude-code` pin is the
+        // user's word, signed in or not (the CLI then says so itself).
+        "claude-code" | "claude" => Some(ProviderKind::ClaudeCli),
         other => direct_by_name(other).map(ProviderKind::Direct),
     }
 }
@@ -306,6 +314,16 @@ pub(crate) fn configured_providers() -> Vec<String> {
 
 /// [`resolved_provider`] over an already-loaded store.
 fn picked(store: &crate::credentials::Store) -> Option<ProviderKind> {
+    // A signed-in (or pinned) Claude Code subscription serves this seam
+    // through its own CLI — the order `auth::resolve` states, so the swarm
+    // and the relay agree on who leads. Codex has no headless provider yet
+    // and keeps falling through to keys.
+    if let super::auth::Resolved::Delegated {
+        agent: "claude", ..
+    } = super::auth::resolved_live()
+    {
+        return Some(ProviderKind::ClaudeCli);
+    }
     pick_provider_with(
         forced_provider(store).as_deref(),
         |k| key_for(store, k).is_some(),
@@ -431,6 +449,17 @@ fn provider_and_model_with(
             let provider = crew_hive::OpenRouterProvider::new(key)
                 .with_endpoint(url)
                 .with_fallbacks(chain);
+            Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
+        }
+        ProviderKind::ClaudeCli => {
+            // `CREW_CLAUDE_MODEL` is the relay adapter's knob too, so one
+            // setting steers both; else the tier's model, which the CLI
+            // accepts by full name.
+            let model = std::env::var("CREW_CLAUDE_MODEL")
+                .ok()
+                .filter(|m| !m.is_empty())
+                .unwrap_or_else(|| tier.model_id().to_string());
+            let provider = crew_hive::ClaudeCliProvider::new();
             Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
         }
         ProviderKind::Anthropic => {

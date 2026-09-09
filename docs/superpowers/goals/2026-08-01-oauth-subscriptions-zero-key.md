@@ -32,6 +32,11 @@ crew runs the flow itself: show a code, open a URL, poll, store. NEVER rung zero
 scrape another app's token store or replay tokens against provider terms — consent-based
 integration only, and a provider with no permitted path simply stays key-only and says so.
 
+RUNG ONE, COMPLETED (2026-09-09, v0.21.53): condition 3's "full construct surface intact" was only
+true for plain replies until `crew-hive/src/provider/claudecli.rs` — a `Provider` over `claude -p
+--output-format json --tools ""` — let the planner, judges and fan-out specialists run under the
+Claude Code login too (`discover::ProviderKind::ClaudeCli`). Codex still relays only.
+
 RUNG THREE, CLI-MINTED (added 2026-09-09, v0.21.52): Anthropic's own CLI (`ant auth login`) is a
 sanctioned browser OAuth against the Claude Console, and `ant auth print-credentials
 --access-token` hands any caller a short-lived bearer. Crew drives those two documented commands —

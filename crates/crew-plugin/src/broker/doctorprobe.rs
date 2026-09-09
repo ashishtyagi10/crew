@@ -53,8 +53,14 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
     // the one provider `resolved_provider` (API-shaped) cannot see — so the
     // provider line states it, degradation included, instead of reading
     // "none" on a perfectly serviceable machine.
-    let provider = match super::auth::resolved_live() {
-        super::auth::Resolved::Delegated { name, agent } => Some(format!(
+    let provider = match (super::auth::resolved_live(), active) {
+        (
+            super::auth::Resolved::Delegated { name, agent },
+            Some(super::discover::ProviderKind::ClaudeCli),
+        ) => Some(format!(
+            "{name} subscription (via the {agent} CLI \u{2014} plain replies AND swarm planning)"
+        )),
+        (super::auth::Resolved::Delegated { name, agent }, _) => Some(format!(
             "{name} subscription (via the {agent} CLI \u{2014} swarm planning degrades to the relay)"
         )),
         _ => active.map(|p| p.name().to_string()),

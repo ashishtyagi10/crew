@@ -2,6 +2,7 @@
 //! Object-safe (boxed future, no async-trait) so the mock and the real
 //! Anthropic client share one interface.
 mod anthropic;
+mod claudecli;
 mod mock;
 mod openai_http;
 mod openrouter;
@@ -9,6 +10,7 @@ mod openrouter;
 mod tests;
 
 pub use anthropic::AnthropicProvider;
+pub use claudecli::ClaudeCliProvider;
 pub use mock::MockProvider;
 pub use openrouter::OpenRouterProvider;
 

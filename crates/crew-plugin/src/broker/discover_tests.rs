@@ -591,3 +591,19 @@ fn pick_serves_a_minted_profile_before_any_key() {
     );
     assert_eq!(pick_provider_with(None, keys(&[]), |_| false), None);
 }
+
+/// The Claude Code subscription is a provider KIND now, named as the
+/// registry names it, reachable by pin under either spelling — and never
+/// by the key rung, since it has no key.
+#[test]
+fn a_claude_code_pin_picks_the_cli_provider() {
+    assert_eq!(ProviderKind::ClaudeCli.name(), "claude-code");
+    for pin in ["claude-code", "Claude", "CLAUDE-CODE"] {
+        assert_eq!(
+            pick_provider(Some(pin), keys(&["DASHSCOPE_API_KEY"])),
+            Some(ProviderKind::ClaudeCli),
+            "{pin}"
+        );
+    }
+    assert_eq!(pick_provider(None, keys(&[])), None);
+}
