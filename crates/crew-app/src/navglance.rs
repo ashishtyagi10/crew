@@ -1,9 +1,8 @@
 //! The nav's glance cards — what the LOG's slot shows instead of the log:
 //! who SERVES smith work (provider, model, the 5h / 7d windows) and what is
-//! WAITING ON YOU (panes blocked on a prompt, a plan awaiting yes or no,
-//! tasks in flight). The LOG was the one section with more to say than it
-//! had room for, and what it said was font switches and update polls; these
-//! say something about the work. `/nav log` brings the tail back.
+//! WAITING ON YOU (prompt-blocked panes, a plan awaiting yes or no, tasks
+//! in flight). The LOG said font switches and update polls; these say
+//! something about the work. `/nav log` brings the tail back.
 use crate::pane::{Pane, PaneContent};
 use crate::usageledger::Windows;
 

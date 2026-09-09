@@ -29,12 +29,11 @@ pub const CARD_BLOCK: u16 = 4;
 /// NET: rule + rates + the twin chart's two rows + gap.
 pub const NET_BLOCK: u16 = 2 + crate::nettwin::ROWS + 1;
 
-/// Fewest LOG lines worth a section. Below this the rule and its gap cost more
-/// rows than the lines they introduce, so the section is dropped entirely.
+/// Fewest LOG lines worth a section: below this the rule and gap cost more
+/// than the lines they introduce.
 pub const LOG_MIN: usize = 2;
-/// Most LOG lines the nav will show, however tall the window is: past this the
-/// section stops being a tail of recent activity and becomes a pane, which is
-/// what `/log` is for.
+/// Most LOG lines the nav shows, however tall the window: past this it is a
+/// pane, which is what `/log` is for.
 pub const LOG_MAX: usize = 20;
 
 /// What fills the nav's variable slot: the LOG tail (with its entry count)
@@ -91,7 +90,6 @@ pub fn fixed_rows(has_git: bool) -> u16 {
 /// row scrolled off it is a pane you cannot click. Whatever is left over goes
 /// to the LOG, between [`LOG_MIN`] and [`LOG_MAX`] lines and never more than
 /// there are entries to show.
-/// The LOG-mode division — the shape every existing layout test speaks.
 #[cfg(test)]
 pub fn layout(rows: u16, has_git: bool, log_len: usize, panes: usize) -> NavLayout {
     layout_with(rows, has_git, Tail::Log(log_len), panes)
