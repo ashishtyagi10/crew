@@ -23,10 +23,26 @@ impl Plugin {
     /// a Dock-launched app runs at `/` — must place the child in the pane's
     /// tracked directory instead of letting it inherit.
     pub fn spawn_in(cmd: &str, args: &[String], cwd: Option<&std::path::Path>) -> Result<Plugin> {
+        Self::spawn_with(cmd, args, cwd, &[])
+    }
+
+    /// [`Plugin::spawn_in`] with environment overrides for the child. A
+    /// Dock-launched host carries launchd's minimal PATH, and a broker that
+    /// inherits it cannot find Homebrew's `ant`, npm's `claude` or cargo's
+    /// `codex` — so it reported a CLI the user had just signed in with as
+    /// "not installed". The host already resolved the login-shell PATH for
+    /// its own command detection; this is how it hands it down.
+    pub fn spawn_with(
+        cmd: &str,
+        args: &[String],
+        cwd: Option<&std::path::Path>,
+        env: &[(String, String)],
+    ) -> Result<Plugin> {
         let mut command = Command::new(cmd);
         no_console_window(&mut command);
         command
             .args(args)
+            .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());

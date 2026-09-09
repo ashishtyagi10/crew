@@ -34,6 +34,26 @@ fn spawn_in_places_the_child_in_the_given_directory() {
     );
 }
 
+// A Dock-launched host's broker inherits launchd's PATH and then cannot find
+// the very CLI it just told the user to install. The host hands the child its
+// resolved environment; the child must actually see it.
+#[test]
+fn spawn_with_hands_the_child_its_environment() {
+    let script = r#"printf '{"type":"message","channel":"c","sender":"s","text":"%s","ts":"0"}\n' "$CREW_HOST_TEST_PATH""#;
+    let env = [(
+        "CREW_HOST_TEST_PATH".to_string(),
+        "/opt/homebrew/bin:/usr/bin".to_string(),
+    )];
+    let p = Plugin::spawn_with("/bin/sh", &["-c".into(), script.into()], None, &env).unwrap();
+    assert!(
+        drain_until(&p, |e| matches!(
+            e,
+            PluginEvent::Message { text, .. } if text == "/opt/homebrew/bin:/usr/bin"
+        )),
+        "child did not receive the env"
+    );
+}
+
 #[test]
 fn echo_roundtrip() {
     let mut p = Plugin::spawn(env!("CARGO_BIN_EXE_crew-echo-plugin"), &[]).unwrap();

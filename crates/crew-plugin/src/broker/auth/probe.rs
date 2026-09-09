@@ -183,22 +183,56 @@ fn enabled() -> bool {
     std::env::var("CREW_SUBSCRIPTIONS").map_or(true, |v| v != "0")
 }
 
-/// [`live`], probed at most once per broker process per CLI. A pane session
-/// keeps one answer for its lifetime — a login mid-session is picked up by
-/// the next pane (each pane spawns its own broker), which is also when the
-/// roster would re-probe anyway.
+/// How long a NEGATIVE verdict (signed out, absent, unknown) is trusted
+/// before the CLI is asked again. A user who runs `ant auth login` or
+/// `brew install …` in a terminal beside the pane used to need a NEW pane
+/// for crew to notice (one probe per broker process, for its whole life);
+/// now the next message after this window re-probes. A signed-in verdict
+/// holds for the process: the mint is what notices a sign-out (a failed
+/// mint arms the re-auth prompt), and a delegated CLI reports its own.
+pub(crate) const NEGATIVE_TTL: Duration = Duration::from_secs(30);
+
+/// Whether a cached verdict of `age` still stands. Pure.
+pub(crate) fn still_fresh(v: CliAuth, age: Duration) -> bool {
+    v == CliAuth::SignedIn || age < NEGATIVE_TTL
+}
+
+type Cache = Mutex<HashMap<&'static str, (CliAuth, Instant)>>;
+
+fn cache() -> &'static Cache {
+    static CACHE: OnceLock<Cache> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// [`live`], cached per broker process per CLI: a sign-in for the process's
+/// life, anything else for [`NEGATIVE_TTL`]. Off (`CREW_SUBSCRIPTIONS=0`)
+/// nothing is spawned and every CLI reads unknown.
 pub(crate) fn state_cached(spec: &CliSpec) -> CliAuth {
     if !enabled() {
         return CliAuth::Unknown;
     }
-    static CACHE: OnceLock<Mutex<HashMap<&'static str, CliAuth>>> = OnceLock::new();
-    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let mut m = cache.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some(v) = m.get(spec.bin) {
-        return *v;
+    let mut m = cache().lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((v, at)) = m.get(spec.bin) {
+        if still_fresh(*v, at.elapsed()) {
+            return *v;
+        }
     }
     let v = live(spec);
-    m.insert(spec.bin, v);
+    m.insert(spec.bin, (v, Instant::now()));
+    v
+}
+
+/// [`live`] right now, and the cache learns the answer — for the moments a
+/// user explicitly asks (`/login`, `/logout`): they may have just installed
+/// or signed in to the CLI in a terminal, and a listing that repeats a
+/// stale "not installed" reads as crew not working.
+pub(crate) fn state_fresh(spec: &CliSpec) -> CliAuth {
+    if !enabled() {
+        return CliAuth::Unknown;
+    }
+    let v = live(spec);
+    let mut m = cache().lock().unwrap_or_else(|e| e.into_inner());
+    m.insert(spec.bin, (v, Instant::now()));
     v
 }
 

@@ -123,17 +123,31 @@ pub(crate) fn pick(rows: &[LoginRow], arg: &str) -> LoginPick {
             ),
         });
     };
-    match (r.cli_login, r.install) {
-        (Some(login), Some(install)) => LoginPick::Note(format!(
-            "{} signs in through its own CLI, which is not installed \u{2014} \
-             `{install}`, then `{login}`; crew picks it up in the next pane",
+    match (r.cli_login, r.install, r.signed_in) {
+        // Already signed in through the CLI: the pick is a status, not a
+        // second sign-in — a user who has just run the login and picks the
+        // row to check must not be told to run it again.
+        (Some(_), _, true) => {
+            let out = registry::by_name(&r.name)
+                .and_then(|e| e.mint)
+                .map(|m| format!(" \u{2014} `{}` signs out", m.logout))
+                .unwrap_or_default();
+            LoginPick::Note(format!(
+                "{} is signed in through its own CLI and serving{out}",
+                r.name
+            ))
+        }
+        (Some(login), Some(install), false) => LoginPick::Note(format!(
+            "{} signs in through its own CLI, which crew can't find on its PATH \
+             \u{2014} `{install}` if it isn't installed, then `{login}`; \
+             then /login again here",
             r.name
         )),
-        (Some(login), None) => LoginPick::Note(format!(
-            "{} signs in through its own CLI \u{2014} run `{login}`; \
-             crew picks it up automatically",
+        (Some(login), None, false) => LoginPick::Note(format!(
+            "{} signs in through its own CLI \u{2014} run `{login}`, then /login \
+             again here (crew re-checks by itself within a minute)",
             r.name
         )),
-        (None, _) => LoginPick::Device(r.name.clone()),
+        (None, _, _) => LoginPick::Device(r.name.clone()),
     }
 }

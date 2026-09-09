@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.61
+
+**A signed-in `ant` is seen from the pane — no more "not installed" about a
+CLI you just logged in with, and no new pane needed for crew to notice.**
+
+The `/login` note kept saying anthropic's CLI was not installed on a machine
+where `ant auth login` had just succeeded. Two causes. A Dock-launched app
+hands its broker launchd's `/usr/bin:/bin:/usr/sbin:/sbin`, and every CLI
+crew probes for a sign-in lives outside it (Homebrew's `ant`, npm's `claude`,
+cargo's `codex`) — so the probe called them absent. The broker now appends
+the login shell's PATH directories to its own during the same startup pass
+that imports provider keys (appended, never replacing, so a terminal-launched
+broker keeps its venv or nix dirs in front), and the app hands the broker its
+resolved login-shell PATH at spawn as well, exactly as the run panes get it.
+
+Second, one probe per broker process was cached for its whole life, so
+installing or signing in beside the pane was invisible until a NEW pane —
+which is what the note told you. `/login` and `/logout` probe fresh now, a
+negative verdict (signed out, absent) expires after thirty seconds so the
+next message re-checks on its own, and a signed-in verdict still holds for
+the process. Picking a row that is already signed in reports it serving
+(with the CLI's sign-out command) instead of telling you to log in again,
+and the absent note says what crew actually found — that the CLI is not on
+its PATH — with `/login again here` as the next step.
+
 ## 0.21.60
 
 **The smith pane shows the model thinking — live, then folded above the
