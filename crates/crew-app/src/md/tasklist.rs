@@ -6,6 +6,7 @@
 use super::parse::ListItem;
 use super::syntax::Token;
 use super::{MdSpan, MdStyle};
+use crate::glyphs::{pick, Glyph};
 
 /// A never-rendered span carrying a task item's checkbox state through the
 /// inline span stream — the same convention `fold::newline_marker` uses for
@@ -60,17 +61,17 @@ fn extract(spans: Vec<MdSpan>) -> (Option<bool>, Vec<MdSpan>) {
 /// from the point above it, and an agent's plan is nested three deep by the
 /// second paragraph. This is what every prose typographer and every other
 /// markdown renderer does; the ordered levels already renumber from 1.
-const BULLETS: [char; 3] = ['\u{2022}', '\u{25e6}', '\u{25aa}']; // • ◦ ▪
+const BULLETS: [Glyph<'static>; 3] = [Glyph::Bullet1, Glyph::Bullet2, Glyph::Bullet3]; // • ◦ ▪
 
 /// The item's lead glyph: a checkbox for a task item, the usual
 /// bullet/ordinal otherwise. Same trailing space either way, so task and
 /// plain items share one hanging-indent computation in `layout::list_lines`.
 pub(super) fn bullet(task: Option<bool>, ordered_idx: Option<u64>, depth: u8) -> String {
     match (task, ordered_idx) {
-        (Some(true), _) => "\u{2713} ".into(),  // ✓
-        (Some(false), _) => "\u{2610} ".into(), // ☐
+        (Some(true), _) => format!("{} ", pick(Glyph::Checked)), // ✓
+        (Some(false), _) => format!("{} ", pick(Glyph::Unchecked)), // ☐
         (None, Some(n)) => format!("{n}. "),
-        (None, None) => format!("{} ", BULLETS[depth as usize % BULLETS.len()]),
+        (None, None) => format!("{} ", pick(BULLETS[depth as usize % BULLETS.len()])),
     }
 }
 

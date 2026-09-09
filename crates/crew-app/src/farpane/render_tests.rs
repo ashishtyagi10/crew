@@ -234,8 +234,8 @@ fn file_rows_show_a_type_glyph() {
     let _ = std::fs::remove_dir_all(&base);
     std::fs::create_dir_all(base.join("src")).unwrap();
     std::fs::write(base.join("main.rs"), b"x").unwrap();
-    let pane = FarPane::new(base);
-    let cells = render(&pane, 80, 24);
+    let _on = crate::glyphs::force(true);
+    let cells = render(&FarPane::new(base), 80, 24);
     // The rust glyph precedes a .rs file; the folder glyph precedes a dir.
     assert!(
         cells.iter().any(|c| c.c == '\u{e7a8}'),

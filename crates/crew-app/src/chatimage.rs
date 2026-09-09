@@ -4,7 +4,8 @@
 //! screenshot in it read as a message with a hole in it. Here the picture
 //! becomes ONE muted row that says what it is, `[image] alt`, and every cell
 //! of it carries the source as its link, so Cmd+click opens the file the way
-//! it opens a link. Plain glyphs only: a colour bitmap in chrome is banned.
+//! it opens a link. Plain glyphs only: a colour bitmap in chrome is banned —
+//! on a Nerd Font the tag is its picture icon (`glyphs`), still one cell.
 use std::sync::Arc;
 
 use crate::chatbody::{plain, CardCell, Color};
@@ -23,7 +24,7 @@ pub(crate) fn cells(line: &MdLine, muted: Color) -> Vec<CardCell> {
         .filter(|a| !a.is_empty())
         .unwrap_or(src);
     let link: Option<Arc<str>> = (!src.is_empty()).then(|| Arc::from(src));
-    format!("[image] {alt}")
+    format!("{} {alt}", crate::glyphs::pick(crate::glyphs::Glyph::Image))
         .chars()
         .map(|c| CardCell {
             link: link.clone(),

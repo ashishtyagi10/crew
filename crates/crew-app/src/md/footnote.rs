@@ -17,7 +17,7 @@ pub(super) type Note = (String, Vec<MdSpan>);
 /// The span a `[^label]` reference becomes.
 pub(super) fn reference(label: &str) -> MdSpan {
     MdSpan {
-        text: format!("[{label}]"),
+        text: crate::glyphs::footnote_mark(label),
         style: MdStyle {
             footnote: true,
             ..MdStyle::default()

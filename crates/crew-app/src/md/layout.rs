@@ -138,10 +138,10 @@ fn code_block_lines(lang: String, src_lines: Vec<String>, cols: usize) -> Vec<Md
     // into a padded field (`chatfield::PAD` each side), and a code line that
     // used the full width would push its own right-hand pad off the card.
     let cw = cols.saturating_sub(crate::chatfield::PAD * 2).max(1);
-    let label = if lang.is_empty() { "code" } else { &lang };
-    // The label alone: the block's edges are drawn by the tinted FIELD the
-    // chat card lays these lines into (`chatfield`), not by corner glyphs.
-    let header_text = crate::chatwidth::clip_w(label, cw);
+    // The label (with its dev-icon on a Nerd Font) alone: the block's edges
+    // are drawn by the tinted FIELD the chat card lays these lines into
+    // (`chatfield`), not by corner glyphs.
+    let header_text = crate::glyphs::fence_header(&lang, cw);
     let mut out = vec![MdLine {
         spans: vec![plain_span(header_text)],
         kind: LineKind::CodeHeader,
@@ -206,15 +206,15 @@ fn list_lines(items: Vec<ListItem>, cols: usize) -> Vec<MdLine> {
 }
 
 fn quote_lines(inner: Vec<Block>, cols: usize) -> Vec<MdLine> {
-    const PREFIX: &str = "▎ ";
-    let prefix_len = PREFIX.chars().count();
+    let prefix = format!("{} ", crate::glyphs::pick(crate::glyphs::Glyph::Quote)); // ▎
+    let prefix_len = prefix.chars().count();
     let inner_cols = cols.saturating_sub(prefix_len).max(1);
     let mut sub = lines(inner, inner_cols);
     for line in sub.iter_mut() {
         if line.kind == LineKind::Blank {
             continue;
         }
-        let mut spans = vec![marker_span(PREFIX.to_string())];
+        let mut spans = vec![marker_span(prefix.clone())];
         spans.append(&mut line.spans);
         line.spans = spans;
         // ONLY prose becomes Quote. A fenced block inside a quote keeps its

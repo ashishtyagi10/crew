@@ -1,13 +1,22 @@
 //! File-type icons for the Far panels: a Nerd Font glyph per entry, chosen by
 //! extension (directories and the parent row get folder/up glyphs). These are
-//! Private-Use-Area codepoints — they render as the intended dev-icons only
-//! when a Nerd Font is the active crew font, and as tofu otherwise (an
-//! accepted trade-off; every other font shows a placeholder box).
+//! Private-Use-Area codepoints, so they are drawn only when the active font
+//! really covers them (`glyphs::on`); any other face gets a plain Unicode
+//! mark (`▸` folder, `·` file) instead of a placeholder box.
 use super::Entry;
+use crate::glyphs::{fallback, on, Glyph};
 
 /// The Nerd Font glyph for `entry`: folder/parent glyphs for directories,
 /// else an extension-based file glyph with a generic fallback.
 pub(crate) fn icon(entry: &Entry) -> char {
+    if !on() {
+        let plain = fallback(if entry.is_dir {
+            Glyph::Dir
+        } else {
+            Glyph::File
+        });
+        return plain.chars().next().unwrap_or(' ');
+    }
     if entry.is_parent {
         return '\u{f062}'; // nf-fa-arrow_up
     }
