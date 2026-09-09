@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.43
+
+**oh-my-posh segments in the smith pane: badges with caps for the fence language, the sender, the routing mode and h1.**
+
+A code fence opens with a capped badge on its language's hue instead
+of a bare label; an agent's card names it in a badge on its roster
+colour while your own cards stay plain; the footer's routing line is a
+badge on the accent with each working agent as a small badge in its
+colour, and it still degrades in the same width order down to forty
+columns; an h1 leads with an accent badge carrying the header mark.
+With a Nerd Font the caps are powerline arcs; without one they are
+half-block cells drawn in the badge's own colour, so nothing depends on
+a glyph the font may lack. Every label is floored against its block.
+Click-to-copy still strips the header row.
+
 ## 0.21.42
 
 **Colour in the smith pane: syntax hues, agent colours that read everywhere, an accented table header.**
