@@ -80,6 +80,7 @@ fn calling(id: &str, name: &str) -> Completion {
             name: name.into(),
             input: serde_json::json!({"q": "Oslo"}),
         }],
+        thought: String::new(),
     }
 }
 
@@ -229,6 +230,7 @@ async fn an_invented_tool_name_is_answered_not_executed() {
 async fn every_call_in_a_turn_is_answered_even_past_the_per_turn_bound() {
     let many = Completion {
         text: String::new(),
+        thought: String::new(),
         input_tokens: 1,
         output_tokens: 1,
         cost_microusd: 0,
@@ -341,6 +343,7 @@ fn an_unknown_tool_is_answered_with_what_was_probably_meant() {
 async fn calls_refused_past_the_per_turn_bound_publish_a_failed_result_each() {
     let many = Completion {
         text: String::new(),
+        thought: String::new(),
         input_tokens: 1,
         output_tokens: 1,
         cost_microusd: 0,

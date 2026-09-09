@@ -21,6 +21,7 @@ impl ChatPane {
         self.plan_pending = false;
         // A stat whose reply died with the broker must not tag the next one.
         self.pending_reply_usage = None;
+        self.thoughts.drop_live(); // no broker will finish it
     }
 
     /// End an in-flight browser sign-in, and SAY SO. The single place a live
@@ -110,6 +111,7 @@ impl ChatPane {
                         self.note_tokens(&agent, crate::anim::now_ms())
                     }
                     PluginEvent::Delta { agent, text } => self.absorb_delta(agent, text),
+                    PluginEvent::Thought { agent, text } => self.absorb_thought(agent, text),
                     PluginEvent::Message {
                         sender,
                         text,

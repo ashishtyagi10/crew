@@ -54,8 +54,27 @@ impl ChatPane {
             streaming: Vec::new(),
             reveals: Vec::new(),
             tools: crate::chattool::ToolLines::default(),
+            thoughts: crate::chatthought::Thoughts::default(),
             pending_reply_usage: None,
             history: crate::chathistory::History::default(),
+        }
+    }
+
+    /// The one render `View` every transcript path draws with — scroll math,
+    /// scrollbar, link hit-tests, the unread pill and the typewriter all read
+    /// the same flags, so no two of them can disagree about what is drawn.
+    pub(crate) fn view(&self) -> crate::chatmsgs::View<'_> {
+        crate::chatmsgs::View {
+            source: self.show_source,
+            compact: self.compact_view,
+            gap_rows: crate::density::level().card_gap_rows(),
+            // `visible_messages` chains settled then streaming, so everything
+            // from that boundary on is still arriving.
+            streaming_from: self.messages.len(),
+            reveals: &self.reveals,
+            tools: &self.tools.blocks,
+            thoughts: &self.thoughts,
+            cwd: self.cwd.as_deref().map(std::path::Path::new),
         }
     }
 

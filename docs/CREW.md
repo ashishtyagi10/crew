@@ -2426,8 +2426,15 @@ sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:list_dir`, and
 `CREW_HTTP_TIMEOUT_MS` (default 120000) bounds each HTTP attempt to a provider,
 deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled endpoint names the
 transport and still leaves the model fallback chain a turn;
-`CREW_STREAM_TEXT=0` stops streamed text being forwarded at all, restoring the
-pre-streaming behaviour for a regressed run or a deterministic test;
+`CREW_STREAM_TEXT=0` stops streamed text being forwarded at all (the model's
+reasoning too), restoring the pre-streaming behaviour for a regressed run or a
+deterministic test; `CREW_THINKING=0` stops asking a provider to SHOW its
+reasoning — by default DashScope is sent `enable_thinking` and OpenRouter
+`reasoning: {enabled: true}`, and whatever comes back (those fields, NVIDIA
+NIM's `reasoning_content`, `<think>` tags in the text, an Anthropic `thinking`
+block) streams into the smith pane as a live block above the reply that folds
+to `▸ thought for 4.2 s` when the reply lands; the switch only stops the
+asking — reasoning a model shows unprompted is still shown;
 `CREW_INTENT=0` disables the intent router — every plain message then runs as
 a swarm instead of the model first choosing its execution shape (a direct
 reply, an all-agents fan-out, refinement rounds, a plan awaiting approval, or

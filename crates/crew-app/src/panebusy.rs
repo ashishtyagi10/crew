@@ -45,6 +45,7 @@ pub(crate) fn pane_animating(p: &Pane) -> bool {
                 c.is_fading()
                     || c.is_revealing()
                     || c.tools_running()
+                    || c.thinking_live()
                     || c.chrome_animating(crate::anim::now_ms())
             }
             _ => false,

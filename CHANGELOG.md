@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.60
+
+**The smith pane shows the model thinking — live, then folded above the
+reply — and tool-using turns stream instead of going dark.**
+
+Reasoning never reached the pane: the provider layer read only the reply text
+and dropped `reasoning_content`, `reasoning` and `<think>` blocks on the floor.
+Now every OpenAI-compatible provider parses all three (a `<think>` tag split
+across two frames included), DashScope and OpenRouter are asked for reasoning
+outright (`enable_thinking`, `reasoning`; a 400 retries once without it), and
+Anthropic `thinking` blocks are kept when a reply carries them. The broker
+streams the reasoning as its own event, coalesced like the reply text, and the
+pane draws it above the agent's streaming card: `∴ thinking · 3s` and the last
+four lines in the muted italic ink. When the reply lands the block folds to one
+row, `▸ thought for 4.2 s · 812 chars`, and a click opens it (to forty rows).
+`CREW_THINKING=0` stops the asking; `CREW_STREAM_TEXT=0` gates the thoughts
+too.
+
+Also: a turn that carries tools used to skip streaming entirely, so nothing
+showed until the round ended. Tool-call fragments are now assembled from the
+stream, so text and thinking stream live in tool rounds as well, with the old
+non-streamed call kept as the fallback when a server sends none.
+
 ## 0.21.59
 
 **The tool block shows the full arguments, and says what was loaded: a skill

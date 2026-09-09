@@ -152,8 +152,11 @@ impl Adapter for ApiAdapter {
     }
 
     /// Same call as `call_with_usage`, but streams the reply: reports a
-    /// running chars/4 OUTPUT-token estimate AND each raw text fragment,
-    /// through `stream`, as chunks arrive.
+    /// running chars/4 OUTPUT-token estimate, each raw text fragment AND each
+    /// fragment of reasoning, through `stream`, as chunks arrive. A provider
+    /// that hands its reasoning over whole (never streamed) has it forwarded
+    /// once, after the fact; either way the hop ends with the empty flush
+    /// `HopStream::on_thought` documents, so no tail is lost in the gate.
     fn call_with_usage_ticked(
         &self,
         body: &str,
@@ -171,7 +174,20 @@ impl Adapter for ApiAdapter {
         let counter = chars.clone();
         let on_tokens = Arc::clone(&stream.on_tokens);
         let on_text = Arc::clone(&stream.on_text);
-        let on_chunk: crew_hive::ChunkFn = Arc::new(move |s: &str| {
+        let on_thought = Arc::clone(&stream.on_thought);
+        let streamed_thought = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let seen_thought = streamed_thought.clone();
+        let on_chunk: crew_hive::ChunkFn = Arc::new(move |c: crew_hive::Chunk<'_>| {
+            let s = match c {
+                crew_hive::Chunk::Text(s) => s,
+                crew_hive::Chunk::Thought(s) => {
+                    seen_thought.store(true, std::sync::atomic::Ordering::SeqCst);
+                    if !s.is_empty() {
+                        on_thought(s);
+                    }
+                    return;
+                }
+            };
             // Text first: it is what the user sees, and the token estimate
             // must never delay it.
             on_text(s);
@@ -182,10 +198,17 @@ impl Adapter for ApiAdapter {
             on_tokens(total / 4);
         });
         let fut = self.provider.complete_streaming(req, on_chunk);
-        match self
+        let outcome = self
             .rt
-            .block_on(async move { tokio::time::timeout(timeout, fut).await })
-        {
+            .block_on(async move { tokio::time::timeout(timeout, fut).await });
+        if let Ok(Ok(c)) = &outcome {
+            if !c.thought.is_empty() && !streamed_thought.load(std::sync::atomic::Ordering::SeqCst)
+            {
+                (stream.on_thought)(&c.thought);
+            }
+        }
+        (stream.on_thought)(""); // the hop is over: flush the gate's tail
+        match outcome {
             Ok(Ok(c)) => Ok((
                 c.text.trim().to_string(),
                 super::adapter::Usage {

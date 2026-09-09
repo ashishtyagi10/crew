@@ -18,9 +18,10 @@ pub(crate) enum Target {
 impl ChatPane {
     /// The tool-block target a click at absolute `row` hits, if any. Walks
     /// the same placement `card_lines_spanned` drew with: a block above a
-    /// settled card takes the first rows of that card's span, one under a
-    /// streaming card the last rows, and the orphans stand after the last
-    /// span in `orphan_ids` order.
+    /// settled card takes the first rows of that card's span after the
+    /// agent's thought (`chatthoughtview::above`), one under a streaming
+    /// card the last rows, and the orphans stand after the last span in
+    /// `orphan_ids` order.
     pub(crate) fn tool_target(&self, cols: u16, rows: u16, row: u16) -> Option<Target> {
         let (spans, idx) = crate::chatfold::hit_line(self, cols, rows, row)?;
         let view = self.view();
@@ -37,8 +38,10 @@ impl ChatPane {
             let streaming = mi >= view.streaming_from;
             let s = &spans[mi];
             if let Some(b) = above_of(view, m, streaming) {
-                if (s.start..s.start + rows_of(b)).contains(&idx) {
-                    return resolve(b, idx - s.start);
+                let start =
+                    s.start + crate::chatthoughtseat::above(view, m, streaming, 0, width).len();
+                if (start..start + rows_of(b)).contains(&idx) {
+                    return resolve(b, idx - start);
                 }
             }
             if let Some(b) = below_of(view, m, streaming) {

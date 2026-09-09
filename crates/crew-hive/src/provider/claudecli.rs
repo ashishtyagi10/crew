@@ -116,6 +116,7 @@ impl ClaudeCliProvider {
             // bill the user never gets.
             cost_microusd: 0,
             calls: Vec::new(),
+            thought: String::new(),
         })
     }
 }

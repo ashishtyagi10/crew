@@ -853,6 +853,7 @@ impl crew_hive::Provider for NativeProvider {
                         input: serde_json::json!({"cmd": "echo native-path-works"}),
                     }]
                 },
+                thought: String::new(),
             })
         })
     }
@@ -1017,6 +1018,54 @@ fn the_forwarded_result_is_bounded_and_output_deltas_never_cross() {
         args: "{}".into(),
     };
     assert_eq!(super::swarmmsg::forwarded(&call), Some(call.clone()));
+}
+
+/// A `ThoughtDelta` crosses as a coalesced `Thought` — never raw — and the
+/// agent's reply flushes whatever the gap still held, BEFORE the reply.
+#[test]
+fn thought_deltas_translate_to_gated_thoughts_and_the_reply_flushes_the_tail() {
+    let mut specialties = HashMap::new();
+    specialties.insert(TaskId(1), "planner".to_string());
+    let mut agent_task = HashMap::new();
+    let mut gates: HashMap<u64, TextGate> = HashMap::new();
+    translate(
+        &HiveEvent::AgentSpawned {
+            agent: AgentId(10),
+            task: TaskId(1),
+        },
+        &specialties,
+        &mut agent_task,
+        &mut gates,
+        0,
+    );
+    let th = |t: &str| HiveEvent::ThoughtDelta {
+        agent: AgentId(10),
+        text: t.into(),
+    };
+    let first = translate(&th("weigh"), &specialties, &mut agent_task, &mut gates, 0);
+    assert!(
+        matches!(&first[..], [PluginEvent::Thought { agent, text }] if agent == "planner" && text == "weigh"),
+        "{first:?}"
+    );
+    let held = translate(&th("ing"), &specialties, &mut agent_task, &mut gates, 10);
+    assert!(held.is_empty(), "inside the gap: buffered, got {held:?}");
+    let done = HiveEvent::OutputChunk {
+        agent: AgentId(10),
+        text: "the answer".into(),
+    };
+    let out = translate(&done, &specialties, &mut agent_task, &mut gates, 20);
+    assert_eq!(out.len(), 2, "the held thought, then the reply: {out:?}");
+    assert!(
+        matches!(&out[0], PluginEvent::Thought { agent, text } if agent == "planner" && text == "ing"),
+        "{out:?}"
+    );
+    assert!(
+        matches!(&out[1], PluginEvent::Message { sender, text, .. } if sender == "planner" && text == "the answer")
+    );
+    assert!(
+        super::swarmmsg::forwarded(&th("x")).is_none(),
+        "a raw ThoughtDelta never crosses the wire"
+    );
 }
 
 /// A `Loaded` event crosses the wire verbatim (the pane draws it) and has no

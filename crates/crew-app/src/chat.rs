@@ -141,6 +141,9 @@ pub struct ChatPane {
     /// The live tool-call lines of the swarm's agents (`Hive` ToolCall /
     /// ToolResult), placed by `chattoolview`, toggled by `chattoolfold`.
     pub(crate) tools: crate::chattool::ToolLines,
+    /// The agents' reasoning (`Thought`): live buffers above their streaming
+    /// cards, folded blocks above their replies (see `chatthought`).
+    pub(crate) thoughts: crate::chatthought::Thoughts,
     /// The last per-reply `Stats` usage — `(agent, tok_in, tok_out,
     /// cost_microusd)` — waiting for its `Message` to land. The broker emits
     /// each reply's stat immediately before the reply itself (relay and fan

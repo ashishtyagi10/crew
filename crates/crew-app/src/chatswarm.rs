@@ -117,11 +117,12 @@ impl SwarmStatus {
                     }
                 }
             }
-            // Cost is not surfaced; Failed also arrives as a state change;
-            // chunks land via the broker's Message; tools feed `chattool`.
+            // Not this block's: cost; chunks (the broker's Message); deltas
+            // (`chatflow`/`chatthought`); tools (`chattool`); Failed (a state).
             HiveEvent::CostDelta { .. }
             | HiveEvent::OutputChunk { .. }
             | HiveEvent::OutputDelta { .. }
+            | HiveEvent::ThoughtDelta { .. }
             | HiveEvent::ToolCall { .. }
             | HiveEvent::ToolResult { .. }
             | HiveEvent::Loaded { .. }
@@ -165,10 +166,9 @@ impl ChatPane {
         }
     }
 
-    /// Retire the live block when the run ends (and close the tool lines); no
-    /// summary record — the replies already streamed in. Also on broker `Error`.
+    /// Run over (or broker gone): retire the live block, close the tool lines.
     pub(crate) fn fold_swarm(&mut self) {
-        self.tools.abandon(crate::chattime::unix_now_ms());
+        self.abandon_blocks();
         self.swarm = None;
     }
 }

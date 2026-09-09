@@ -117,14 +117,14 @@ impl ChatPane {
     /// Whether a click at absolute `row` would toggle a fold — the press-time
     /// dry run of [`ChatPane::toggle_fold_at`], for arming a release toggle.
     pub(crate) fn fold_target_at(&self, cols: u16, rows: u16, row: u16) -> bool {
-        self.tool_target_at(cols, rows, row) || toggle_target(self, cols, rows, row).is_some()
+        self.block_target_at(cols, rows, row) || toggle_target(self, cols, rows, row).is_some()
     }
 
     /// Toggle the fold of the card a click at absolute `row` hit, on a
     /// `cols` × `rows` pane. `true` when a card actually toggled.
     pub(crate) fn toggle_fold_at(&mut self, cols: u16, rows: u16, row: u16) -> bool {
-        if self.toggle_tool_at(cols, rows, row) {
-            return true; // a tool block's rows sit inside a card's span
+        if self.toggle_block_at(cols, rows, row) {
+            return true; // a block's rows sit inside a card's span
         }
         let Some(mi) = toggle_target(self, cols, rows, row) else {
             return false;

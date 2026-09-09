@@ -45,6 +45,7 @@ impl crate::chat::ChatPane {
         // above the broker's `[tool]` echo of one of its own calls.
         if !text.starts_with(crate::chatcard::TOOL_PREFIX) {
             self.tools.settle(stream_key(&sender), &ts);
+            self.thoughts.settle(stream_key(&sender), &ts, now);
         }
         self.awaiting = false; // a reply landed
         self.note_reply(&sender);

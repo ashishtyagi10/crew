@@ -68,22 +68,23 @@ pub(crate) fn text_streaming_enabled() -> bool {
 /// fragment would stay missing until the settled `Message` replaced the whole
 /// reply. `now_ms` is a parameter rather than a clock read, so this stays a
 /// pure, testable gate — the same convention as `should_tick`.
+///
+/// Two LANES on one gate — reply text and reasoning — each with its own
+/// buffer and clock, so a burst of thinking cannot delay the first word of
+/// the reply. One gate per agent rather than two maps keyed the same way:
+/// every caller that keys gates by agent keeps keying them once.
 pub(crate) struct TextGate {
+    text: Lane,
+    thought: Lane,
+}
+
+struct Lane {
     buf: String,
     last_ms: Option<u64>,
 }
 
-impl TextGate {
-    pub(crate) fn new() -> Self {
-        Self {
-            buf: String::new(),
-            last_ms: None,
-        }
-    }
-
-    /// Buffer `text`, returning the payload to send as one `Delta` when the
-    /// gap has elapsed (the first non-empty push always passes).
-    pub(crate) fn push(&mut self, text: &str, now_ms: u64) -> Option<String> {
+impl Lane {
+    fn push(&mut self, text: &str, now_ms: u64) -> Option<String> {
         self.buf.push_str(text);
         // An empty buffer must not consume the first-flush allowance, or a
         // provider's empty keep-alive frame would delay the first real text.
@@ -92,6 +93,37 @@ impl TextGate {
         }
         self.last_ms = Some(now_ms);
         Some(std::mem::take(&mut self.buf))
+    }
+}
+
+impl TextGate {
+    pub(crate) fn new() -> Self {
+        let lane = || Lane {
+            buf: String::new(),
+            last_ms: None,
+        };
+        Self {
+            text: lane(),
+            thought: lane(),
+        }
+    }
+
+    /// Buffer `text`, returning the payload to send as one `Delta` when the
+    /// gap has elapsed (the first non-empty push always passes).
+    pub(crate) fn push(&mut self, text: &str, now_ms: u64) -> Option<String> {
+        self.text.push(text, now_ms)
+    }
+
+    /// [`Self::push`] for the reasoning lane: the payload of one `Thought`.
+    pub(crate) fn push_thought(&mut self, text: &str, now_ms: u64) -> Option<String> {
+        self.thought.push(text, now_ms)
+    }
+
+    /// Whatever the reasoning lane still holds, at the end of the hop. Text
+    /// has no flush on purpose (see [`hop_texter`]); a thought is not healed
+    /// by any later event, so its tail has to be pushed out by hand.
+    pub(crate) fn flush_thought(&mut self) -> Option<String> {
+        (!self.thought.buf.is_empty()).then(|| std::mem::take(&mut self.thought.buf))
     }
 }
 
@@ -138,6 +170,44 @@ pub(crate) fn hop_texter_with(
             tick_emit(PluginEvent::Delta {
                 agent: agent.clone(),
                 text: payload,
+            });
+        }
+    })
+}
+
+/// The reasoning twin of [`hop_texter`]: fragments go through the gate's
+/// thought lane and each flush is a `PluginEvent::Thought`. An EMPTY
+/// fragment is the hop-end signal (see `HopStream::on_thought`): it flushes
+/// the lane rather than being gated, because nothing later carries a thought
+/// the gap swallowed.
+pub(crate) fn hop_thinker(
+    tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    agent: String,
+) -> std::sync::Arc<dyn Fn(&str) + Send + Sync> {
+    hop_thinker_with(tick_emit, agent, text_streaming_enabled())
+}
+
+/// [`hop_thinker`] with the switch handed in (see [`hop_texter_with`] for why).
+pub(crate) fn hop_thinker_with(
+    tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    agent: String,
+    enabled: bool,
+) -> std::sync::Arc<dyn Fn(&str) + Send + Sync> {
+    let gate = std::sync::Mutex::new(TextGate::new());
+    let hop_start = std::time::Instant::now();
+    std::sync::Arc::new(move |text: &str| {
+        if !enabled {
+            return;
+        }
+        let mut g = gate.lock().unwrap_or_else(|e| e.into_inner());
+        let payload = match text.is_empty() {
+            true => g.flush_thought(),
+            false => g.push_thought(text, hop_start.elapsed().as_millis() as u64),
+        };
+        if let Some(text) = payload {
+            tick_emit(PluginEvent::Thought {
+                agent: agent.clone(),
+                text,
             });
         }
     })

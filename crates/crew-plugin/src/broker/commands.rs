@@ -67,6 +67,8 @@ pub(crate) const HELP: &str = "constructs:\n\
     @<agent> <task> — choose who starts the relay\n\
     @<a>+<b> <task> — those agents answer in parallel\n\
     \u{2026} tip: tasks run in the background — the footer lists them, /stop #n cancels one\n\
+    \u{2026} tip: a model's reasoning streams live above its reply and folds when it lands \
+    (CREW_THINKING=0 stops asking providers for it; CREW_STREAM_TEXT=0 stops all streaming)\n\
     aliases: /h /d /m /r\n\
     ";
 

@@ -5,7 +5,9 @@
 use futures::StreamExt;
 use serde::Deserialize;
 
-use super::{ChunkFn, Completion, ProviderError};
+use super::ssecalls::{frags, parse_args, CallAsm, Frag};
+use super::thinktags::{Piece, ThinkTags};
+use super::{thinking, Chunk, ChunkFn, Completion, ProviderError};
 
 /// How many times to retry one model on a transient error before the chain
 /// advances to the next model (kept low because the fallback chain adds breadth).
@@ -46,6 +48,10 @@ pub(super) fn retry_delay(
 }
 
 /// One model's request with transient-error retry (see [`retry_delay`]).
+///
+/// A body carrying a reasoning opt-in (`thinking::opt_in`) that comes back
+/// 400 is retried ONCE without it: the field is the newest thing in the
+/// request and the one an endpoint is likeliest not to know.
 pub(super) async fn request_with_retry(
     client: &reqwest::Client,
     endpoint: &str,
@@ -53,12 +59,13 @@ pub(super) async fn request_with_retry(
     body: &serde_json::Value,
 ) -> Result<Completion, ProviderError> {
     let mut attempt = 0u32;
+    let mut body = body.clone();
     loop {
         let resp = client
             .post(endpoint)
             .header("authorization", format!("Bearer {key}"))
             .header("content-type", "application/json")
-            .json(body)
+            .json(&body)
             .send()
             .await
             .map_err(|e| ProviderError::Http(e.to_string()))?;
@@ -72,6 +79,9 @@ pub(super) async fn request_with_retry(
             .text()
             .await
             .map_err(|e| ProviderError::Http(e.to_string()))?;
+        if status == 400 && thinking::strip(&mut body) {
+            continue;
+        }
         if attempt < MAX_RETRIES {
             if let Some(wait) = retry_delay(status, retry_after_hdr, &text, attempt) {
                 attempt += 1;
@@ -91,7 +101,9 @@ pub(super) async fn request_with_retry(
 /// `stream_options.include_usage` is requested first; some OpenAI-compatible
 /// endpoints reject the field with a 400, in which case this retries once
 /// without it before falling back to the normal transient-retry loop (a 400
-/// is never itself transient — see [`retry_delay`]).
+/// is never itself transient — see [`retry_delay`]). A reasoning opt-in in
+/// `body` (`thinking::opt_in`) is dropped the same way, and FIRST: it is the
+/// newer field and the likelier stranger.
 ///
 /// `started` is flipped to `true` the moment the first visible [`SseItem::Delta`]
 /// is forwarded to `on_chunk` — the caller uses it to tell "never got a
@@ -118,6 +130,7 @@ pub(super) async fn request_with_retry_streaming(
 ) -> Result<Completion, ProviderError> {
     let mut include_usage = true;
     let mut attempt = 0u32;
+    let mut body = body.clone();
     loop {
         let mut req_body = body.clone();
         req_body["stream"] = serde_json::json!(true);
@@ -152,7 +165,7 @@ pub(super) async fn request_with_retry_streaming(
         // Usage frame (Critical-1: OpenRouter's wrapped-error shape must not
         // become a silent empty success).
         let text = if status == 200 && !is_json_ct {
-            match consume_sse(resp, body, on_chunk, started).await? {
+            match consume_sse(resp, &body, on_chunk, started).await? {
                 SseOutcome::Completion(c) => return Ok(c),
                 SseOutcome::NoContent(raw) => raw,
             }
@@ -162,8 +175,11 @@ pub(super) async fn request_with_retry_streaming(
                 .map_err(|e| ProviderError::Http(e.to_string()))?
         };
         // Same status handling as the non-streaming path (including the
-        // retry_delay integration), plus a one-shot fallback off
-        // `stream_options` on a plain 400.
+        // retry_delay integration), plus a one-shot fallback off the
+        // reasoning opt-in, then off `stream_options`, on a plain 400.
+        if status == 400 && thinking::strip(&mut body) {
+            continue;
+        }
         if include_usage && status == 400 {
             include_usage = false;
             continue;
@@ -222,11 +238,7 @@ async fn consume_sse(
     let mut stream = resp.bytes_stream();
     let mut carry: Vec<u8> = Vec::new();
     let mut raw_bytes: Vec<u8> = Vec::new();
-    let mut text = String::new();
-    let mut usage: Option<(u64, u64, u64)> = None;
-    // Any Done/Delta/Usage frame ever seen — distinguishes a genuine (if
-    // empty) stream from a non-SSE error body (Critical-1).
-    let mut any_frame = false;
+    let mut st = SseState::default();
     'read: while let Some(chunk) = stream.next().await {
         let bytes = chunk.map_err(|e| ProviderError::Http(e.to_string()))?;
         raw_bytes.extend_from_slice(&bytes);
@@ -235,14 +247,7 @@ async fn consume_sse(
             let line_bytes: Vec<u8> = carry.drain(..=pos).collect();
             let line = String::from_utf8_lossy(&line_bytes[..line_bytes.len() - 1]);
             let line = line.trim_end_matches('\r');
-            if apply_sse_line(
-                line,
-                on_chunk,
-                started,
-                &mut any_frame,
-                &mut text,
-                &mut usage,
-            ) {
+            if apply_sse_line(line, on_chunk, started, &mut st) {
                 break 'read;
             }
         }
@@ -251,21 +256,18 @@ async fn consume_sse(
     if !carry.is_empty() {
         let line = String::from_utf8_lossy(&carry);
         let line = line.trim_end_matches('\r');
-        apply_sse_line(
-            line,
-            on_chunk,
-            started,
-            &mut any_frame,
-            &mut text,
-            &mut usage,
-        );
+        apply_sse_line(line, on_chunk, started, &mut st);
     }
-    if !any_frame {
+    if !st.any_frame {
         return Ok(SseOutcome::NoContent(
             String::from_utf8_lossy(&raw_bytes).into_owned(),
         ));
     }
-    let (input_tokens, output_tokens, cost_microusd) = match usage {
+    // A `<thi` held back at the very end was never a tag.
+    for piece in st.tags.finish() {
+        st.route(piece, on_chunk, started);
+    }
+    let (input_tokens, output_tokens, cost_microusd) = match st.usage {
         Some((i, o, cost)) => (
             i.min(u32::MAX as u64) as u32,
             o.min(u32::MAX as u64) as u32,
@@ -273,17 +275,57 @@ async fn consume_sse(
         ),
         None => (
             estimate_input_tokens(req_body),
-            estimate_output_tokens(&text),
+            estimate_output_tokens(&st.text),
             0,
         ),
     };
     Ok(SseOutcome::Completion(Completion {
-        text,
+        text: st.text,
+        thought: st.thought.trim().to_string(),
         input_tokens,
         output_tokens,
         cost_microusd,
-        ..Default::default()
+        calls: st.calls.finish(),
     }))
+}
+
+/// Everything a stream accumulates between its first frame and `[DONE]`.
+#[derive(Default)]
+struct SseState {
+    text: String,
+    thought: String,
+    /// `<think>` tags inside `delta.content` (see [`ThinkTags`]).
+    tags: ThinkTags,
+    calls: CallAsm,
+    usage: Option<(u64, u64, u64)>,
+    /// Any Done/Delta/Thought/Calls/Usage frame ever seen — distinguishes a
+    /// genuine (if empty) stream from a non-SSE error body (Critical-1).
+    any_frame: bool,
+}
+
+impl SseState {
+    /// Keep one routed run and forward it.
+    fn route(&mut self, piece: Piece, on_chunk: &ChunkFn, started: &std::sync::atomic::AtomicBool) {
+        match piece {
+            Piece::Text(s) => {
+                // Unconditional: a usage frame arriving BEFORE the first
+                // delta (legal for any OpenAI-shaped backend) sets
+                // `any_frame`, and a guarded store would then never flip
+                // `started` — letting a mid-stream failure retry into
+                // another model and splice text, the exact thing this flag
+                // prevents. The store is idempotent. Reasoning does NOT set
+                // it: a fallback model splicing its own thinking under a
+                // dead one's is harmless, while the reply must stay whole.
+                started.store(true, std::sync::atomic::Ordering::SeqCst);
+                self.text.push_str(&s);
+                on_chunk(Chunk::Text(&s));
+            }
+            Piece::Thought(s) => {
+                self.thought.push_str(&s);
+                on_chunk(Chunk::Thought(&s));
+            }
+        }
+    }
 }
 
 /// Classify and apply one complete SSE line to the accumulating stream
@@ -294,34 +336,24 @@ fn apply_sse_line(
     line: &str,
     on_chunk: &ChunkFn,
     started: &std::sync::atomic::AtomicBool,
-    any_frame: &mut bool,
-    text: &mut String,
-    usage: &mut Option<(u64, u64, u64)>,
+    st: &mut SseState,
 ) -> bool {
-    match parse_sse_line(line) {
-        SseItem::Delta(s) => {
-            // Unconditional: a usage frame arriving BEFORE the first delta
-            // (legal for any OpenAI-shaped backend) sets `any_frame`, and a
-            // guarded store would then never flip `started` — letting a
-            // mid-stream failure retry into another model and splice text,
-            // the exact thing this flag prevents. The store is idempotent.
-            started.store(true, std::sync::atomic::Ordering::SeqCst);
-            *any_frame = true;
-            text.push_str(&s);
-            on_chunk(&s);
-            false
+    let mut done = false;
+    for item in parse_sse_frame(line) {
+        st.any_frame = true;
+        match item {
+            SseItem::Delta(s) => {
+                for piece in st.tags.feed(&s) {
+                    st.route(piece, on_chunk, started);
+                }
+            }
+            SseItem::Thought(s) => st.route(Piece::Thought(s), on_chunk, started),
+            SseItem::Calls(fs) => fs.into_iter().for_each(|f| st.calls.push(f)),
+            SseItem::Usage(i, o, cost) => st.usage = Some((i, o, cost)),
+            SseItem::Done => done = true,
         }
-        SseItem::Usage(i, o, cost) => {
-            *usage = Some((i, o, cost));
-            *any_frame = true;
-            false
-        }
-        SseItem::Done => {
-            *any_frame = true;
-            true
-        }
-        SseItem::Skip => false,
     }
+    done
 }
 
 /// ~4 chars/token fallback estimate for streamed output text (see
@@ -359,41 +391,79 @@ fn chars_to_tokens(chars: usize) -> u32 {
     ((chars as u64) / 4).min(u32::MAX as u64) as u32
 }
 
-/// One parsed SSE line from an OpenAI-compatible streaming response.
+/// One parsed item of an OpenAI-compatible SSE frame.
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum SseItem {
+    /// Reply text (`delta.content`).
     Delta(String),
+    /// Reasoning: DashScope/vLLM/NIM `delta.reasoning_content`, OpenRouter
+    /// `delta.reasoning` or `delta.reasoning_details[].text|summary`.
+    Thought(String),
+    /// Tool-call fragments (`delta.tool_calls`), see [`CallAsm`].
+    Calls(Vec<Frag>),
     Usage(u64, u64, u64),
     Done,
-    Skip,
 }
 
-/// Pure classifier for one SSE line: `data: [DONE]`, a delta frame, a
-/// usage frame, or noise (keep-alives, blanks, junk) → Skip. Never errors:
-/// a malformed frame is ignored and the stream carries on.
-pub(crate) fn parse_sse_line(line: &str) -> SseItem {
+/// The reasoning text a delta carries, under whichever of the three names
+/// this endpoint uses. `reasoning_details` is OpenRouter's structured form —
+/// `text` for models that show their reasoning, `summary` for ones that only
+/// summarise it; encrypted-only entries have neither and yield nothing.
+fn reasoning_of(delta: &serde_json::Value) -> String {
+    let mut out = String::new();
+    for key in ["reasoning_content", "reasoning"] {
+        if let Some(s) = delta[key].as_str() {
+            out.push_str(s);
+        }
+    }
+    if let Some(details) = delta["reasoning_details"].as_array() {
+        for d in details {
+            if let Some(s) = d["text"].as_str().or_else(|| d["summary"].as_str()) {
+                out.push_str(s);
+            }
+        }
+    }
+    out
+}
+
+/// Pure classifier for one SSE line: everything the frame carries, in the
+/// order it should apply — reasoning, then text, then tool-call fragments,
+/// then usage — or nothing for noise (keep-alives, blanks, junk). One frame
+/// CAN carry several: some endpoints put the usage on the last content
+/// frame, and a first-item-only read dropped it. Never errors: a malformed
+/// frame is ignored and the stream carries on.
+pub(crate) fn parse_sse_frame(line: &str) -> Vec<SseItem> {
     let Some(data) = line.strip_prefix("data:").map(str::trim) else {
-        return SseItem::Skip;
+        return Vec::new();
     };
     if data == "[DONE]" {
-        return SseItem::Done;
+        return vec![SseItem::Done];
     }
     let Ok(v) = serde_json::from_str::<serde_json::Value>(data) else {
-        return SseItem::Skip;
+        return Vec::new();
     };
-    if let Some(s) = v["choices"][0]["delta"]["content"].as_str() {
-        if !s.is_empty() {
-            return SseItem::Delta(s.to_string());
-        }
+    let mut out = Vec::new();
+    let delta = &v["choices"][0]["delta"];
+    let thought = reasoning_of(delta);
+    if !thought.is_empty() {
+        out.push(SseItem::Thought(thought));
+    }
+    if let Some(s) = delta["content"].as_str().filter(|s| !s.is_empty()) {
+        out.push(SseItem::Delta(s.to_string()));
+    }
+    let fs = frags(delta);
+    if !fs.is_empty() {
+        out.push(SseItem::Calls(fs));
     }
     if let Some(u) = v.get("usage").filter(|u| !u.is_null()) {
         let i = u["prompt_tokens"].as_u64().unwrap_or(0);
         let o = u["completion_tokens"].as_u64().unwrap_or(0);
         let cost = (u["cost"].as_f64().unwrap_or(0.0) * 1_000_000.0) as u64;
         if i > 0 || o > 0 {
-            return SseItem::Usage(i, o, cost);
+            out.push(SseItem::Usage(i, o, cost));
         }
     }
-    SseItem::Skip
+    out
 }
 
 #[derive(Deserialize)]
@@ -424,6 +494,13 @@ struct Msg {
     content: Option<String>,
     #[serde(default)]
     tool_calls: Vec<RawToolCall>,
+    /// The model's reasoning, under the two names the non-streamed shape
+    /// uses (DashScope/vLLM, then OpenRouter). Both `Option`: an explicit
+    /// null is common here too.
+    #[serde(default)]
+    reasoning_content: Option<String>,
+    #[serde(default)]
+    reasoning: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -461,29 +538,24 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
     if r.error.is_some() {
         return Err(ProviderError::Api(body.to_string()));
     }
-    let text = r
-        .choices
-        .first()
-        .and_then(|c| c.message.content.clone())
-        .unwrap_or_default();
-    let calls: Vec<super::ToolInvocation> = r
-        .choices
-        .first()
-        .map(|c| {
-            c.message
-                .tool_calls
+    let msg = r.choices.first().map(|c| &c.message);
+    // `<think>` tags in the body route to reasoning here exactly as they do
+    // in a stream (`ThinkTags`), so the two paths agree on what the reply IS.
+    let (text, mut thought) =
+        ThinkTags::split(msg.and_then(|m| m.content.as_deref()).unwrap_or(""));
+    if let Some(r) = msg.and_then(|m| m.reasoning_content.as_deref().or(m.reasoning.as_deref())) {
+        thought.insert_str(0, r);
+    }
+    let calls: Vec<super::ToolInvocation> = msg
+        .map(|m| {
+            m.tool_calls
                 .iter()
                 .filter_map(|tc| {
                     let f = tc.function.as_ref()?;
                     Some(super::ToolInvocation {
                         id: tc.id.clone(),
                         name: f.name.clone(),
-                        // Arguments arrive as a JSON string. An unparseable or
-                        // empty one becomes `{}` rather than failing the reply:
-                        // the tool will reject it with a message the agent can
-                        // act on, which beats losing the whole completion.
-                        input: serde_json::from_str(&f.arguments)
-                            .unwrap_or_else(|_| serde_json::json!({})),
+                        input: parse_args(&f.arguments),
                     })
                 })
                 .collect()
@@ -494,9 +566,14 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
         .ok_or_else(|| ProviderError::Decode("missing usage".into()))?;
     Ok(Completion {
         text,
+        thought: thought.trim().to_string(),
         input_tokens: usage.prompt_tokens,
         output_tokens: usage.completion_tokens,
         cost_microusd: (usage.cost.unwrap_or(0.0) * 1_000_000.0) as u64,
         calls,
     })
 }
+
+#[cfg(test)]
+#[path = "openai_http_tests.rs"]
+mod tests;

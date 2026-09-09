@@ -6,8 +6,11 @@ mod claudecli;
 mod mock;
 mod openai_http;
 mod openrouter;
+mod ssecalls;
 #[cfg(test)]
 mod tests;
+mod thinking;
+mod thinktags;
 
 pub use anthropic::AnthropicProvider;
 pub use claudecli::ClaudeCliProvider;
@@ -137,6 +140,13 @@ pub struct Completion {
     /// Tool calls the model made in this reply. Empty on every provider that
     /// does not support tools, and on every reply that simply answered.
     pub calls: Vec<ToolInvocation>,
+    /// The model's REASONING for this reply, when the provider exposed it
+    /// (`reasoning_content`, a `thinking` block, `<think>` tags in the text)
+    /// — the whole of it, so a path that never streamed still carries it.
+    /// Empty when the model showed none. Never part of `text`: the reply is
+    /// what the model SAID, and a transcript that kept the working would
+    /// read it back to the model as its own words on the next turn.
+    pub thought: String,
 }
 
 #[derive(Debug)]
@@ -213,10 +223,24 @@ fn one_line(s: &str) -> String {
     flat.chars().take(200).collect()
 }
 
-/// Callback for a streamed completion: invoked with each text delta as it
+/// One streamed fragment: reply text, or a piece of the model's reasoning.
+///
+/// Two kinds on one callback rather than two callbacks: every implementer
+/// already threads one `on_chunk`, and a provider that separates the two
+/// (DashScope's `reasoning_content`, OpenRouter's `reasoning`, a `<think>`
+/// tag in the text) can only tell the caller which is which at the moment
+/// the fragment arrives — a second channel would have to be kept in step
+/// with the first by every one of them.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Chunk<'a> {
+    Text(&'a str),
+    Thought(&'a str),
+}
+
+/// Callback for a streamed completion: invoked with each [`Chunk`] as it
 /// arrives. `Arc` (not `Box`) so callers can clone it into an async block
 /// while also holding a reference for bookkeeping.
-pub type ChunkFn = std::sync::Arc<dyn Fn(&str) + Send + Sync>;
+pub type ChunkFn = std::sync::Arc<dyn Fn(Chunk<'_>) + Send + Sync>;
 
 pub trait Provider: Send + Sync {
     /// Whether this provider speaks native tool-use — `tools` on the request
@@ -236,9 +260,10 @@ pub trait Provider: Send + Sync {
         req: CompletionRequest,
     ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>>;
 
-    /// Streamed completion: `on_chunk` receives each text delta as it
-    /// arrives. Default ignores the callback and delegates to `complete`,
-    /// so non-streaming providers work unchanged (and emit no ticks).
+    /// Streamed completion: `on_chunk` receives each text (or reasoning)
+    /// delta as it arrives. Default ignores the callback and delegates to
+    /// `complete`, so non-streaming providers work unchanged (and emit no
+    /// ticks); their reasoning, if any, still lands in `Completion::thought`.
     fn complete_streaming(
         &self,
         req: CompletionRequest,

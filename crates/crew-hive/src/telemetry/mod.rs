@@ -88,7 +88,7 @@ impl Fleet {
                 }
             }
             // Fragments are liveness only; `last_line` tracks settled output.
-            HiveEvent::OutputDelta { .. } => {}
+            HiveEvent::OutputDelta { .. } | HiveEvent::ThoughtDelta { .. } => {}
             // A waiting agent is the one a fleet view most needs to explain.
             // Between asking for a tool and getting an answer an agent
             // produces no text at all, so without this its row shows whatever

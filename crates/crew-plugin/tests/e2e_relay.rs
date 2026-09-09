@@ -82,3 +82,33 @@ fn dialing_is_streamed_as_a_live_activity() {
         "{ev:?}"
     );
 }
+
+/// The model's reasoning crosses the wire as its own `thought` event, before
+/// the reply it led to — and never inside the reply's text.
+#[test]
+fn reasoning_is_streamed_as_a_thought_before_the_reply() {
+    let dir = unique_dir("relay-thought");
+    seed_specialists(&dir, &["planner"]);
+    let mock = (
+        "CREW_BROKER_MOCK_REPLY",
+        "<think>weighing the options</think>did the work\n@done",
+    );
+    let ev = run_broker(&dir, &[mock], &[SEND]);
+    let thought = ev
+        .iter()
+        .position(|e| matches!(e, PluginEvent::Thought { agent, text } if agent == "planner" && text.contains("weighing the options")))
+        .unwrap_or_else(|| panic!("no thought event on the wire: {ev:?}"));
+    let reply = ev
+        .iter()
+        .position(
+            |e| matches!(e, PluginEvent::Message { sender, .. } if sender == "planner → user"),
+        )
+        .unwrap_or_else(|| panic!("no reply: {ev:?}"));
+    assert!(thought < reply, "the thought precedes the reply it led to");
+    let msgs = messages(&ev);
+    assert!(
+        msgs.iter()
+            .all(|(_, t)| !t.contains("weighing the options")),
+        "the working never lands in a reply card: {msgs:?}"
+    );
+}

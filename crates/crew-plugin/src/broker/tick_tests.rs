@@ -89,3 +89,58 @@ fn hop_texter_emits_nothing_when_streaming_is_off() {
         "streaming off must suppress every Delta"
     );
 }
+
+// --- the thought lane -------------------------------------------------------
+
+#[test]
+fn thought_lane_coalesces_inside_the_gap_and_flushes_on_demand() {
+    let mut g = TextGate::new();
+    assert_eq!(
+        g.push_thought("a", 0),
+        Some("a".into()),
+        "first push passes"
+    );
+    assert_eq!(g.push_thought("b", 10), None, "inside the gap: buffered");
+    assert_eq!(g.push_thought("c", 20), None);
+    assert_eq!(
+        g.flush_thought(),
+        Some("bc".into()),
+        "the end-of-hop flush hands over what the gap held"
+    );
+    assert_eq!(g.flush_thought(), None, "nothing twice");
+    assert_eq!(
+        g.push("text", 30),
+        Some("text".into()),
+        "the text lane has its own clock"
+    );
+}
+
+#[test]
+fn hop_thinker_emits_a_thought_and_an_empty_fragment_flushes_the_tail() {
+    let (emit, events) = recording_tick_emit();
+    let on_thought = hop_thinker_with(emit, "coder".to_string(), true);
+    on_thought("weigh");
+    on_thought("ing"); // inside the 80 ms gap: held
+    on_thought(""); // the hop ended: flush
+    let got = events.lock().unwrap_or_else(|e| e.into_inner());
+    let texts: Vec<&str> = got
+        .iter()
+        .map(|e| match e {
+            PluginEvent::Thought { agent, text } if agent == "coder" => text.as_str(),
+            other => panic!("wrong variant: {other:?}"),
+        })
+        .collect();
+    assert_eq!(texts, ["weigh", "ing"], "nothing of the thought is lost");
+}
+
+#[test]
+fn hop_thinker_emits_nothing_when_streaming_is_off() {
+    let (emit, events) = recording_tick_emit();
+    let on_thought = hop_thinker_with(emit, "coder".to_string(), false);
+    on_thought("hello");
+    on_thought("");
+    assert!(
+        events.lock().unwrap_or_else(|e| e.into_inner()).is_empty(),
+        "CREW_STREAM_TEXT=0 must suppress every Thought too"
+    );
+}

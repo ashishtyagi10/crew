@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+mod chunks;
 mod context;
 mod native;
 mod toolloop;
@@ -104,14 +105,7 @@ impl Agent for ApiAgent {
             if let Some(runner) = tools.clone() {
                 let specs = runner.specs_for(&ctx.task.prompt);
                 if !specs.is_empty() && provider.supports_tools() {
-                    let delta_bus = ctx.bus.clone();
-                    let delta_agent = agent_id.clone();
-                    let on_chunk: crate::provider::ChunkFn = Arc::new(move |s: &str| {
-                        delta_bus.publish(HiveEvent::OutputDelta {
-                            agent: delta_agent.clone(),
-                            text: s.to_string(),
-                        });
-                    });
+                    let sink = chunks::ChunkSink::new(ctx.bus.clone(), agent_id.clone());
                     // No tools hint in the prompt: the tools are on the wire,
                     // and advertising the text convention beside them invites
                     // a model to use both.
@@ -125,7 +119,7 @@ impl Agent for ApiAgent {
                         system,
                         prompt,
                         max_tokens,
-                        on_chunk,
+                        sink,
                     )
                     .await;
                 }
@@ -146,14 +140,7 @@ impl Agent for ApiAgent {
             // right split — the intervening rounds are published as their own
             // ToolCall/ToolResult events, so nothing is lost, and a transcript
             // built from chunks stays the answer rather than the working.
-            let delta_bus = ctx.bus.clone();
-            let delta_agent = agent_id.clone();
-            let on_chunk: crate::provider::ChunkFn = Arc::new(move |s: &str| {
-                delta_bus.publish(HiveEvent::OutputDelta {
-                    agent: delta_agent.clone(),
-                    text: s.to_string(),
-                });
-            });
+            let sink = chunks::ChunkSink::new(ctx.bus.clone(), agent_id.clone());
 
             let mut prompt = base.clone();
             let mut exchanges: Vec<String> = Vec::new();
@@ -167,7 +154,7 @@ impl Agent for ApiAgent {
                     ..Default::default()
                 };
                 let completion = match provider
-                    .complete_streaming(req, Arc::clone(&on_chunk))
+                    .complete_streaming(req, Arc::clone(&sink.on_chunk))
                     .await
                 {
                     Ok(c) => c,
@@ -183,6 +170,7 @@ impl Agent for ApiAgent {
                         };
                     }
                 };
+                sink.settle(&completion);
                 // Billed per round, as it happens: a run that spends four
                 // model calls on tools must not look like one call's worth of
                 // tokens to the budget governor watching this bus.

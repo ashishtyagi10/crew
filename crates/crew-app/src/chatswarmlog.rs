@@ -68,6 +68,7 @@ pub(crate) fn log_line(swarm: Option<&SwarmStatus>, ev: &HiveEvent) -> Option<(b
         HiveEvent::TokenDelta { .. }
         | HiveEvent::CostDelta { .. }
         | HiveEvent::OutputDelta { .. }
+        | HiveEvent::ThoughtDelta { .. }
         | HiveEvent::OutputChunk { .. } => None,
     }
 }

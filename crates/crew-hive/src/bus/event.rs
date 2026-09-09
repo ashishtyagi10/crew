@@ -32,6 +32,17 @@ pub enum HiveEvent {
         agent: AgentId,
         text: String,
     },
+    /// One streamed fragment of an agent's REASONING, as the provider showed
+    /// it (`Chunk::Thought`). Its own event, not an `OutputDelta`: the
+    /// working is not the reply, and a subscriber that appended it to the
+    /// reply card would read the model's scratch back to it as its own
+    /// words on the next turn. Unlike `OutputDelta` there is no settled twin
+    /// — the deltas are the only carrier — so `apiagent::chunks` publishes a
+    /// non-streamed completion's whole `thought` as one of these.
+    ThoughtDelta {
+        agent: AgentId,
+        text: String,
+    },
     OutputChunk {
         agent: AgentId,
         text: String,
