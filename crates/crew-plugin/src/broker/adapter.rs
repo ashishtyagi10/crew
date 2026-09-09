@@ -47,15 +47,21 @@ pub struct HopStream {
     pub on_tokens: std::sync::Arc<dyn Fn(u64) + Send + Sync>,
     /// Each raw text fragment as it arrives, already agent-scoped.
     pub on_text: std::sync::Arc<dyn Fn(&str) + Send + Sync>,
+    /// Each fragment of the model's REASONING as it arrives. An EMPTY
+    /// fragment means the hop is over: flush whatever is held. Text needs
+    /// no such signal (the settled reply replaces it); a thought has no
+    /// settled twin, so its tail must be pushed out by hand.
+    pub on_thought: std::sync::Arc<dyn Fn(&str) + Send + Sync>,
 }
 
 impl HopStream {
-    /// Discards both signals — for call paths that never dial an agent and
+    /// Discards every signal — for call paths that never dial an agent and
     /// for tests that don't care about liveness.
     pub fn noop() -> Self {
         Self {
             on_tokens: std::sync::Arc::new(|_| {}),
             on_text: std::sync::Arc::new(|_| {}),
+            on_thought: std::sync::Arc::new(|_| {}),
         }
     }
 }
@@ -86,8 +92,8 @@ pub trait Adapter: Send + Sync {
         self.call(body, timeout).map(|t| (t, Usage::default()))
     }
     /// Like `call_with_usage`, also reporting this hop's live signals — a
-    /// running OUTPUT-token estimate and each streamed text fragment — while
-    /// the reply arrives. Default: no live signals (external CLIs return one
+    /// running OUTPUT-token estimate, each streamed text fragment and each
+    /// fragment of reasoning — while the reply arrives. Default: no live signals (external CLIs return one
     /// blob and have nothing incremental to forward).
     fn call_with_usage_ticked(
         &self,

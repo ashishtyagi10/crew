@@ -80,6 +80,7 @@ fn calling(id: &str, name: &str) -> Completion {
             name: name.into(),
             input: serde_json::json!({"q": "Oslo"}),
         }],
+        thought: String::new(),
     }
 }
 
@@ -232,6 +233,7 @@ async fn every_call_in_a_turn_is_answered_even_past_the_per_turn_bound() {
         input_tokens: 1,
         output_tokens: 1,
         cost_microusd: 0,
+        thought: String::new(),
         calls: (0..MAX_CALLS_PER_TURN + 3)
             .map(|i| ToolInvocation {
                 id: format!("c{i}"),

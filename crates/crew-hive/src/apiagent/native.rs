@@ -15,7 +15,7 @@ use std::sync::Arc;
 use crate::agent::AgentContext;
 use crate::board::TaskResult;
 use crate::bus::HiveEvent;
-use crate::provider::{ChunkFn, CompletionRequest, Provider, ToolInvocation, ToolOutcome, Turn};
+use crate::provider::{CompletionRequest, Provider, ToolInvocation, ToolOutcome, Turn};
 use crate::tools::{ToolCatalog, Tools};
 
 /// Most tools one turn may fire, however many the model asked for.
@@ -56,7 +56,7 @@ pub(super) async fn run(
     system: Option<String>,
     prompt: String,
     max_tokens: u32,
-    on_chunk: ChunkFn,
+    sink: super::chunks::ChunkSink,
 ) -> TaskResult {
     let task_id = ctx.task.id;
     let agent_id = ctx.agent.clone();
@@ -74,7 +74,7 @@ pub(super) async fn run(
             tools: catalog.defs().to_vec(),
         };
         let completion = match provider
-            .complete_streaming(req, Arc::clone(&on_chunk))
+            .complete_streaming(req, Arc::clone(&sink.on_chunk))
             .await
         {
             Ok(c) => c,
@@ -90,6 +90,7 @@ pub(super) async fn run(
                 };
             }
         };
+        sink.settle(&completion);
         ctx.bus.publish(HiveEvent::TokenDelta {
             agent: agent_id.clone(),
             input: completion.input_tokens,

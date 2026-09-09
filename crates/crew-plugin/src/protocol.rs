@@ -137,6 +137,16 @@ pub enum PluginEvent {
         agent: String,
         text: String,
     },
+    /// Mid-reply REASONING: `agent` showed `text` of its working since the
+    /// previous Thought of this hop. Its own event, not a `Delta`: the
+    /// working is not the reply, and a host that appended it to the reply
+    /// card would read the model's scratch back to it as its own words next
+    /// turn. Unlike `Delta` there is no settled twin that heals a dropped
+    /// fragment, so the broker flushes its gate at the end of every hop.
+    Thought {
+        agent: String,
+        text: String,
+    },
     /// An irreversible tool call is waiting for a human. The broker is BLOCKED on
     /// this — the agent's tool call does not return until the answer arrives or
     /// the approval lapses — so a host that receives one must either carry it to

@@ -3,7 +3,7 @@ use crate::agent::{Agent, AgentContext};
 use crate::board::TaskResult;
 use crate::bus::{AgentId, EventBus, HiveEvent};
 use crate::graph::{AgentKind, ModelTier, TaskId, TaskSpec};
-use crate::provider::MockProvider;
+use crate::provider::{Completion, MockProvider, ProviderError};
 use crate::tools::MAX_TOOL_ROUNDS;
 use std::sync::Arc;
 
@@ -244,6 +244,100 @@ async fn api_agent_streams_deltas_then_one_complete_chunk() {
         vec![reply.to_string()],
         "exactly ONE OutputChunk, carrying the complete output"
     );
+}
+
+/// The mock's `<think>` fence reaches the bus as a `ThoughtDelta`, before
+/// any reply text, and the reply's chunk is the answer alone.
+#[tokio::test]
+async fn api_agent_publishes_reasoning_as_thought_deltas_not_output() {
+    let bus = EventBus::new(64);
+    let mut rx = bus.subscribe();
+    let agent = ApiAgent::new(
+        Arc::new(MockProvider {
+            reply: "<think>weigh it</think>alpha beta".into(),
+        }),
+        256,
+    );
+    let ctx = AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
+        agent: AgentId(7),
+        task: spec(1),
+        deps: vec![],
+        bus,
+    };
+    assert!(agent.run(ctx).await.success);
+    let mut order: Vec<&'static str> = Vec::new();
+    let mut thoughts: Vec<String> = Vec::new();
+    let mut chunks: Vec<String> = Vec::new();
+    while let Ok(ev) = rx.try_recv() {
+        match ev {
+            HiveEvent::ThoughtDelta { text, .. } => {
+                order.push("thought");
+                thoughts.push(text);
+            }
+            HiveEvent::OutputDelta { .. } => order.push("text"),
+            HiveEvent::OutputChunk { text, .. } => chunks.push(text),
+            _ => {}
+        }
+    }
+    assert_eq!(
+        thoughts,
+        vec!["weigh it".to_string()],
+        "once, not re-published after the fact"
+    );
+    assert_eq!(
+        order.first(),
+        Some(&"thought"),
+        "reasoning precedes text: {order:?}"
+    );
+    assert!(order[1..].iter().all(|k| *k == "text"), "{order:?}");
+    assert_eq!(
+        chunks,
+        vec!["alpha beta".to_string()],
+        "the working is not the answer"
+    );
+}
+
+/// A provider that never streams still gets its reasoning to the bus — once.
+#[tokio::test]
+async fn a_non_streamed_thought_is_published_once_after_the_fact() {
+    struct Plain;
+    impl Provider for Plain {
+        fn complete(
+            &self,
+            _req: crate::provider::CompletionRequest,
+        ) -> std::pin::Pin<
+            Box<dyn std::future::Future<Output = Result<Completion, ProviderError>> + Send>,
+        > {
+            Box::pin(async {
+                Ok(Completion {
+                    text: "answer".into(),
+                    thought: "the whole working".into(),
+                    input_tokens: 1,
+                    output_tokens: 1,
+                    ..Default::default()
+                })
+            })
+        }
+    }
+    let bus = EventBus::new(64);
+    let mut rx = bus.subscribe();
+    let agent = ApiAgent::new(Arc::new(Plain), 256);
+    let ctx = AgentContext {
+        budget: crate::tools::budget::ToolBudget::solo(),
+        agent: AgentId(7),
+        task: spec(1),
+        deps: vec![],
+        bus,
+    };
+    assert!(agent.run(ctx).await.success);
+    let mut thoughts: Vec<String> = Vec::new();
+    while let Ok(ev) = rx.try_recv() {
+        if let HiveEvent::ThoughtDelta { text, .. } = ev {
+            thoughts.push(text);
+        }
+    }
+    assert_eq!(thoughts, vec!["the whole working".to_string()]);
 }
 
 #[tokio::test]

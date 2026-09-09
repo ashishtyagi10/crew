@@ -18,8 +18,10 @@ async fn mock_streams_reply_in_chunks_then_completes() {
     };
     let chunks = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
     let sink = chunks.clone();
-    let on_chunk: ChunkFn = std::sync::Arc::new(move |s: &str| {
-        sink.lock().unwrap().push(s.to_string());
+    let on_chunk: ChunkFn = std::sync::Arc::new(move |c: Chunk<'_>| {
+        if let Chunk::Text(s) = c {
+            sink.lock().unwrap().push(s.to_string());
+        }
     });
     let done = p
         .complete_streaming(test_request(), on_chunk)
@@ -115,6 +117,54 @@ fn parse_response_extracts_text_and_usage() {
     assert_eq!(c.output_tokens, 5);
 }
 
+/// A `thinking` block is kept as the completion's thought — never as text.
+#[test]
+fn parse_response_keeps_a_thinking_block_as_thought_not_text() {
+    let body = r#"{
+        "content": [
+            {"type": "thinking", "thinking": "let me see", "signature": "abc"},
+            {"type": "text", "text": "Hello world"}
+        ],
+        "usage": {"input_tokens": 12, "output_tokens": 5}
+    }"#;
+    let c = AnthropicProvider::parse_response(body).unwrap();
+    assert_eq!(c.text, "Hello world");
+    assert_eq!(c.thought, "let me see");
+}
+
+/// The mock reasons when its reply says so, and the reasoning is not text.
+#[tokio::test]
+async fn mock_routes_a_think_fence_to_thought_before_the_text() {
+    let p = MockProvider {
+        reply: "<think>weigh it</think>alpha beta".to_string(),
+    };
+    let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::<(bool, String)>::new()));
+    let sink = seen.clone();
+    let on_chunk: ChunkFn = std::sync::Arc::new(move |c: Chunk<'_>| {
+        sink.lock().unwrap().push(match c {
+            Chunk::Text(s) => (false, s.to_string()),
+            Chunk::Thought(s) => (true, s.to_string()),
+        });
+    });
+    let done = p
+        .complete_streaming(test_request(), on_chunk)
+        .await
+        .unwrap();
+    let got = seen.lock().unwrap();
+    assert_eq!(
+        got[0],
+        (true, "weigh it".to_string()),
+        "thought first: {got:?}"
+    );
+    assert!(got[1..].iter().all(|(t, _)| !t), "then only text");
+    assert_eq!(done.text, "alpha beta");
+    assert_eq!(done.thought, "weigh it");
+    assert_eq!(
+        done.output_tokens, 2,
+        "tokens count the reply, not the working"
+    );
+}
+
 #[test]
 fn parse_response_errors_on_api_error_payload() {
     let body = r#"{"type":"error","error":{"type":"overloaded_error","message":"overloaded"}}"#;
@@ -184,34 +234,35 @@ fn parse_response_without_cost_is_zero() {
 
 #[test]
 fn sse_parser_extracts_deltas_usage_and_done() {
-    use super::openai_http::{parse_sse_line, SseItem};
-    assert!(matches!(parse_sse_line(""), SseItem::Skip));
-    assert!(matches!(parse_sse_line(": keep-alive"), SseItem::Skip));
-    assert!(matches!(parse_sse_line("data: [DONE]"), SseItem::Done));
-    match parse_sse_line(r#"data: {"choices":[{"delta":{"content":"hel"}}]}"#) {
-        SseItem::Delta(s) => assert_eq!(s, "hel"),
-        _ => panic!("delta expected"),
-    }
-    // Role-only first frame: no content → Skip, not an error.
-    assert!(matches!(
-        parse_sse_line(r#"data: {"choices":[{"delta":{"role":"assistant"}}]}"#),
-        SseItem::Skip
-    ));
+    use super::openai_http::{parse_sse_frame, SseItem};
+    let none: Vec<SseItem> = Vec::new();
+    assert_eq!(parse_sse_frame(""), none);
+    assert_eq!(parse_sse_frame(": keep-alive"), none);
+    assert_eq!(parse_sse_frame("data: [DONE]"), vec![SseItem::Done]);
+    assert_eq!(
+        parse_sse_frame(r#"data: {"choices":[{"delta":{"content":"hel"}}]}"#),
+        vec![SseItem::Delta("hel".into())]
+    );
+    // Role-only first frame: no content → nothing, not an error.
+    assert_eq!(
+        parse_sse_frame(r#"data: {"choices":[{"delta":{"role":"assistant"}}]}"#),
+        none
+    );
     // Usage frame (stream_options include_usage / final frame).
-    match parse_sse_line(
-        r#"data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":42}}"#,
-    ) {
-        SseItem::Usage(i, o, cost) => assert_eq!((i, o, cost), (10, 42, 0)),
-        _ => panic!("usage expected"),
-    }
+    assert_eq!(
+        parse_sse_frame(
+            r#"data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":42}}"#,
+        ),
+        vec![SseItem::Usage(10, 42, 0)]
+    );
     // OpenRouter usage frame with exact cost (dollars, converted to micro-USD).
-    match parse_sse_line(
-        r#"data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":42,"cost":0.000129}}"#,
-    ) {
-        SseItem::Usage(i, o, cost) => assert_eq!((i, o, cost), (10, 42, 129)),
-        _ => panic!("usage expected"),
-    }
-    assert!(matches!(parse_sse_line("data: {not json"), SseItem::Skip));
+    assert_eq!(
+        parse_sse_frame(
+            r#"data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":42,"cost":0.000129}}"#,
+        ),
+        vec![SseItem::Usage(10, 42, 129)]
+    );
+    assert_eq!(parse_sse_frame("data: {not json"), none);
 }
 
 #[test]

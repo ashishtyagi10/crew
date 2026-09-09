@@ -98,8 +98,35 @@ pub(super) fn translate(
                 None => vec![],
             }
         }
+        // Reasoning rides its own lane of the same gate (see `TextGate`).
+        HiveEvent::ThoughtDelta { agent, text } => {
+            if !text_streaming_enabled() {
+                return vec![];
+            }
+            let name = agent_name(agent, agent_task);
+            let gate = gates.entry(agent.0).or_insert_with(TextGate::new);
+            match gate.push_thought(text, now_ms) {
+                Some(payload) => vec![PluginEvent::Thought {
+                    agent: name,
+                    text: payload,
+                }],
+                None => vec![],
+            }
+        }
+        // The reply flushes the thought the gap still held, FIRST: a
+        // `Thought` has no settled twin to heal it, and one that landed after
+        // its reply would read as the agent thinking about nothing.
         HiveEvent::OutputChunk { agent, text } => {
-            vec![msg(agent_name(agent, agent_task).as_str(), text.clone())]
+            let name = agent_name(agent, agent_task);
+            let mut out = Vec::new();
+            if let Some(tail) = gates.get_mut(&agent.0).and_then(TextGate::flush_thought) {
+                out.push(PluginEvent::Thought {
+                    agent: name.clone(),
+                    text: tail,
+                });
+            }
+            out.push(msg(name.as_str(), text.clone()));
+            out
         }
         // Tool use is NOT a transcript card any more. The app draws the live
         // tool block (`chattool`) straight from the forwarded `Hive` event:
@@ -145,10 +172,11 @@ pub(super) fn translate(
 /// The copy of a hive event that crosses the wire as `PluginEvent::Hive`,
 /// or `None` for one that must not.
 ///
-/// `OutputDelta` fires once per SSE fragment (see `ApiAgent`), so forwarding
-/// it raw would flood the wire with exactly what `TextGate` (tick.rs) exists
-/// to coalesce — and the app ignores raw `Hive{OutputDelta}` outright. Only
-/// the coalesced `Delta` that [`translate`] derives from it may cross.
+/// `OutputDelta` (and `ThoughtDelta`) fires once per SSE fragment (see
+/// `ApiAgent`), so forwarding it raw would flood the wire with exactly what
+/// `TextGate` (tick.rs) exists to coalesce — and the app ignores raw
+/// `Hive{OutputDelta}` outright. Only the coalesced `Delta`/`Thought` that
+/// [`translate`] derives from it may cross.
 ///
 /// A `ToolResult` carries the tool's whole output, and a `curl` of a large
 /// page has no ceiling of its own; the transcript used to bound it when the
@@ -158,7 +186,7 @@ pub(super) fn translate(
 /// preview line.
 pub(super) fn forwarded(ev: &HiveEvent) -> Option<HiveEvent> {
     match ev {
-        HiveEvent::OutputDelta { .. } => None,
+        HiveEvent::OutputDelta { .. } | HiveEvent::ThoughtDelta { .. } => None,
         HiveEvent::ToolResult {
             agent,
             label,

@@ -11,7 +11,7 @@ use crate::{PluginEvent, Registry, Routing};
 
 use super::adapter::HopStream;
 use super::relay::msg;
-use super::tick::{hop_texter, hop_ticker};
+use super::tick::{hop_texter, hop_thinker, hop_ticker};
 
 /// Send `task` to each of `names` in parallel; every reply/error is emitted as
 /// it arrives, then a `Stats` event and a summary line close the turn.
@@ -60,6 +60,7 @@ pub(crate) fn fan_out(
             let stream = HopStream {
                 on_tokens: hop_ticker(tick_emit.clone(), name.clone()),
                 on_text: hop_texter(tick_emit.clone(), name.clone()),
+                on_thought: hop_thinker(tick_emit.clone(), name.clone()),
             };
             s.spawn(move || {
                 let t0 = Instant::now();

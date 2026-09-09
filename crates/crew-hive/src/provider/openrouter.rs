@@ -8,6 +8,7 @@ use std::future::Future;
 use std::pin::Pin;
 
 use super::openai_http::{request_with_retry, request_with_retry_streaming};
+use super::thinking;
 use super::{
     http_client, request_timeout, ChunkFn, Completion, CompletionRequest, Provider, ProviderError,
     Turn,
@@ -139,11 +140,15 @@ fn wants_cost(endpoint: &str) -> bool {
 
 /// One model attempt's base request body (before `stream`/`stream_options`
 /// are layered on for the streaming path — see `request_with_retry_streaming`).
+/// `think` is the endpoint's reasoning opt-in, if it has one
+/// (`thinking::opt_in`) — passed in, not looked up, so the body is a pure
+/// function of its arguments.
 fn build_body(
     model: &str,
     req: &CompletionRequest,
     messages: &[serde_json::Value],
     report_cost: bool,
+    think: Option<(&'static str, serde_json::Value)>,
 ) -> serde_json::Value {
     let mut body = serde_json::json!({
         "model": model,
@@ -155,6 +160,9 @@ fn build_body(
     }
     if let Some(tools) = build_tools(req) {
         body["tools"] = tools;
+    }
+    if let Some((key, value)) = think {
+        body[key] = value;
     }
     body
 }
@@ -225,7 +233,8 @@ impl Provider for OpenRouterProvider {
             // next. Only a missing key short-circuits — no model can fix that.
             let mut last_err = ProviderError::Api("no model attempted".into());
             for model in &chain {
-                let body = build_body(model, &req, &messages, report_cost);
+                let think = thinking::opt_in(&endpoint, false);
+                let body = build_body(model, &req, &messages, report_cost, think);
                 match request_with_retry(&client, &endpoint, &key, &body).await {
                     Ok(c) => return Ok(c),
                     Err(ProviderError::MissingKey(v)) => return Err(ProviderError::MissingKey(v)),
@@ -245,22 +254,18 @@ impl Provider for OpenRouterProvider {
     /// to the next model: the caller has already shown the user partial
     /// content, and resuming from a different model would splice in
     /// unrelated text under the same reply.
+    ///
+    /// Tool requests stream too: `consume_sse` reassembles the index-keyed
+    /// `tool_calls` fragments (`ssecalls`) into the same `calls` the
+    /// non-streamed parse yields. A server that does not stream them at all
+    /// ends the stream with neither text nor a call, which would read as the
+    /// model declining to use a tool rather than as a decoding gap — so THAT
+    /// result, and only that, is re-asked once without streaming.
     fn complete_streaming(
         &self,
         req: CompletionRequest,
         on_chunk: ChunkFn,
     ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>> {
-        // A TOOL REQUEST IS NOT STREAMED. In this shape `tool_calls` arrive as
-        // index-keyed fragments that have to be reassembled across frames, and
-        // `consume_sse` reads only `delta.content` — so a streamed tool reply
-        // comes back with empty text and NO CALLS, which reads as the model
-        // declining to use a tool rather than as a decoding gap. Falling back
-        // to the non-streamed path costs liveness on tool rounds (which emit
-        // little text anyway) and is the difference between working and
-        // silently doing nothing.
-        if !req.tools.is_empty() {
-            return self.complete(req);
-        }
         let client = self.client.clone();
         let key = self.api_key.clone();
         let endpoint = self.endpoint.clone();
@@ -270,13 +275,26 @@ impl Provider for OpenRouterProvider {
             let messages = build_messages(&req);
             let mut last_err = ProviderError::Api("no model attempted".into());
             for model in &chain {
-                let body = build_body(model, &req, &messages, report_cost);
+                let think = thinking::opt_in(&endpoint, true);
+                let body = build_body(model, &req, &messages, report_cost, think);
                 let started = std::sync::atomic::AtomicBool::new(false);
                 match request_with_retry_streaming(
                     &client, &endpoint, &key, &body, &on_chunk, &started,
                 )
                 .await
                 {
+                    Ok(c)
+                        if !req.tools.is_empty()
+                            && c.calls.is_empty()
+                            && c.text.trim().is_empty() =>
+                    {
+                        let think = thinking::opt_in(&endpoint, false);
+                        let body = build_body(model, &req, &messages, report_cost, think);
+                        match request_with_retry(&client, &endpoint, &key, &body).await {
+                            Ok(c) => return Ok(c),
+                            Err(e) => last_err = e,
+                        }
+                    }
                     Ok(c) => return Ok(c),
                     Err(ProviderError::MissingKey(v)) => return Err(ProviderError::MissingKey(v)),
                     Err(e) => {

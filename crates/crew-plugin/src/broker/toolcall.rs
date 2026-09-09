@@ -204,8 +204,9 @@ impl Broker {
                     Arc::new(move |t| on(base + t))
                 },
                 // Text needs NO offset — fragments are appended, not
-                // compared against a running total.
+                // compared against a running total. Nor does reasoning.
                 on_text: Arc::clone(&stream.on_text),
+                on_thought: Arc::clone(&stream.on_thought),
             };
             match agent.call_with_usage_ticked(&follow, self.timeout, &ticked) {
                 Ok((r, u)) if !r.trim().is_empty() => {

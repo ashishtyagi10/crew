@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use super::{attempt_chain, build_body, OpenRouterProvider};
 use crate::provider::openai_http::retry_delay;
-use crate::provider::{ChunkFn, CompletionRequest, Provider, ProviderError};
+use crate::provider::{Chunk, ChunkFn, CompletionRequest, Provider, ProviderError};
 
 #[test]
 fn chain_puts_requested_model_first_then_fallbacks() {
@@ -38,9 +38,9 @@ fn openrouter_body_asks_for_cost_but_custom_endpoint_does_not() {
         ..Default::default()
     };
     let messages = vec![serde_json::json!({"role": "user", "content": "hi"})];
-    let with_cost = build_body("m", &req, &messages, true);
+    let with_cost = build_body("m", &req, &messages, true, None);
     assert_eq!(with_cost["usage"]["include"], true);
-    let without_cost = build_body("m", &req, &messages, false);
+    let without_cost = build_body("m", &req, &messages, false, None);
     assert!(
         without_cost.get("usage").is_none(),
         "must not send `usage` at all when cost reporting is not requested"
@@ -143,11 +143,31 @@ fn one_shot_server(bytes: Vec<u8>, max_conns: usize) -> (std::net::SocketAddr, A
     (addr, accepted)
 }
 
+/// Collects TEXT chunks; [`collecting_chunks`] records both kinds.
 fn collecting_chunk_fn() -> (ChunkFn, Arc<Mutex<Vec<String>>>) {
     let chunks = Arc::new(Mutex::new(Vec::<String>::new()));
     let sink = chunks.clone();
-    let on_chunk: ChunkFn = Arc::new(move |s: &str| sink.lock().unwrap().push(s.to_string()));
+    let on_chunk: ChunkFn = Arc::new(move |c: Chunk<'_>| {
+        if let Chunk::Text(s) = c {
+            sink.lock().unwrap().push(s.to_string());
+        }
+    });
     (on_chunk, chunks)
+}
+
+/// Every chunk, tagged: `("text"|"thought", fragment)`.
+type Seen = Arc<Mutex<Vec<(&'static str, String)>>>;
+fn collecting_chunks() -> (ChunkFn, Seen) {
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let sink = seen.clone();
+    let on_chunk: ChunkFn = Arc::new(move |c: Chunk<'_>| {
+        let tagged = match c {
+            Chunk::Text(s) => ("text", s.to_string()),
+            Chunk::Thought(s) => ("thought", s.to_string()),
+        };
+        sink.lock().unwrap().push(tagged);
+    });
+    (on_chunk, seen)
 }
 
 /// Read one full HTTP/1.1 request (headers + `Content-Length` body) off a
@@ -555,4 +575,152 @@ async fn missing_usage_estimate_uses_chars_not_bytes_and_floors_tiny_output_at_o
         done.output_tokens, 1,
         "1 non-empty char floors to 1 (Minor-7), not chars/4 = 0"
     );
+}
+
+// --- thinking + tool calls over the stream ---------------------------------
+
+#[test]
+fn the_reasoning_opt_in_rides_the_body_when_given() {
+    let req = CompletionRequest {
+        model: "m".into(),
+        prompt: "hi".into(),
+        max_tokens: 8,
+        ..Default::default()
+    };
+    let messages = vec![serde_json::json!({"role": "user", "content": "hi"})];
+    let dash = build_body(
+        "m",
+        &req,
+        &messages,
+        false,
+        Some(("enable_thinking", serde_json::json!(true))),
+    );
+    assert_eq!(dash["enable_thinking"], true);
+    let or = build_body(
+        "m",
+        &req,
+        &messages,
+        true,
+        Some(("reasoning", serde_json::json!({"enabled": true}))),
+    );
+    assert_eq!(or["reasoning"]["enabled"], true);
+    let none = build_body("m", &req, &messages, true, None);
+    assert!(none.get("reasoning").is_none() && none.get("enable_thinking").is_none());
+}
+
+/// A tool request streams now: the `tool_calls` fragments reassemble into
+/// the same call the non-streamed parse would give, and the reasoning that
+/// preceded them reached the caller live.
+#[tokio::test]
+async fn a_tool_request_streams_its_reasoning_and_assembles_the_call() {
+    let sse_body = concat!(
+        "data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"need the file\"}}]}\n",
+        "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"c1\",\"function\":{\"name\":\"fs_read\",\"arguments\":\"\"}}]}}]}\n",
+        "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{\\\"path\\\":\"}}]}}]}\n",
+        "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"\\\"a.rs\\\"}\"}}]}}]}\n",
+        "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":9}}\n",
+        "data: [DONE]\n",
+    );
+    let head = format!(
+        "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ncontent-length: {}\r\n\r\n",
+        sse_body.len()
+    );
+    let (addr, accepted) = one_shot_server([head.as_bytes(), sse_body.as_bytes()].concat(), 2);
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"));
+    let (on_chunk, seen) = collecting_chunks();
+    let req = CompletionRequest {
+        model: "m".into(),
+        prompt: "read a.rs".into(),
+        max_tokens: 8,
+        tools: vec![crate::provider::ToolDef {
+            name: "fs_read".into(),
+            description: "read".into(),
+            input_schema: serde_json::json!({"type": "object"}),
+        }],
+        ..Default::default()
+    };
+    let done = tokio::time::timeout(Duration::from_secs(5), p.complete_streaming(req, on_chunk))
+        .await
+        .expect("must not hang")
+        .unwrap();
+    assert_eq!(
+        seen.lock().unwrap().as_slice(),
+        &[("thought", "need the file".to_string())],
+        "the reasoning streamed live"
+    );
+    assert_eq!(done.thought, "need the file");
+    assert_eq!(done.calls.len(), 1, "{:?}", done.calls);
+    assert_eq!(done.calls[0].id, "c1");
+    assert_eq!(done.calls[0].name, "fs_read");
+    assert_eq!(done.calls[0].input, serde_json::json!({"path": "a.rs"}));
+    assert_eq!(done.output_tokens, 9);
+    tokio::time::sleep(Duration::from_millis(30)).await;
+    assert_eq!(
+        accepted.load(Ordering::SeqCst),
+        1,
+        "one streamed request did the whole job — no non-streamed fallback"
+    );
+}
+
+/// A server that does not stream tool calls ends the stream empty; the one
+/// non-streamed re-ask then carries the call, so behaviour never regresses.
+#[tokio::test]
+async fn an_empty_tool_stream_falls_back_to_the_non_streamed_request_once() {
+    use tokio::io::AsyncWriteExt;
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let addr = listener.local_addr().unwrap();
+    let listener = tokio::net::TcpListener::from_std(listener).unwrap();
+    let streamed = Arc::new(Mutex::new(Vec::<bool>::new()));
+    let seen = streamed.clone();
+    tokio::spawn(async move {
+        for i in 0..2 {
+            let Ok((mut sock, _)) = listener.accept().await else {
+                break;
+            };
+            let req = read_request(&mut sock).await;
+            seen.lock()
+                .unwrap()
+                .push(String::from_utf8_lossy(&req).contains("\"stream\":true"));
+            let (ct, body) = if i == 0 {
+                ("text/event-stream", "data: {\"choices\":[{\"delta\":{\"role\":\"assistant\"},\"finish_reason\":\"tool_calls\"}]}\ndata: [DONE]\n".to_string())
+            } else {
+                ("application/json", r#"{"choices":[{"message":{"content":null,"tool_calls":[{"id":"c9","function":{"name":"fs_read","arguments":"{}"}}]}}],"usage":{"prompt_tokens":1,"completion_tokens":1}}"#.to_string())
+            };
+            let head = format!(
+                "HTTP/1.1 200 OK\r\ncontent-type: {ct}\r\ncontent-length: {}\r\n\r\n",
+                body.len()
+            );
+            let _ = sock.write_all(head.as_bytes()).await;
+            let _ = sock.write_all(body.as_bytes()).await;
+            let _ = sock.shutdown().await;
+        }
+    });
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"));
+    let (on_chunk, _chunks) = collecting_chunk_fn();
+    let req = CompletionRequest {
+        model: "m".into(),
+        prompt: "read".into(),
+        max_tokens: 8,
+        tools: vec![crate::provider::ToolDef {
+            name: "fs_read".into(),
+            description: "read".into(),
+            input_schema: serde_json::json!({"type": "object"}),
+        }],
+        ..Default::default()
+    };
+    let done = tokio::time::timeout(Duration::from_secs(5), p.complete_streaming(req, on_chunk))
+        .await
+        .expect("must not hang")
+        .unwrap();
+    assert_eq!(
+        done.calls.len(),
+        1,
+        "the fallback carried the call: {done:?}"
+    );
+    assert_eq!(done.calls[0].id, "c9");
+    let s = streamed.lock().unwrap();
+    assert_eq!(s.as_slice(), &[true, false], "streamed first, then plain");
 }

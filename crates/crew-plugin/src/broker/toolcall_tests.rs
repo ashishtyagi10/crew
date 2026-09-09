@@ -516,7 +516,8 @@ fn run_tools_follow_up_dial_reports_usage_and_emits_ticks() {
         std::sync::Arc::new(move |ev| tick_sink.lock().unwrap().push(ev));
     let stream = HopStream {
         on_tokens: crate::broker::tick::hop_ticker(tick_emit.clone(), "planner".into()),
-        on_text: crate::broker::tick::hop_texter(tick_emit, "planner".into()),
+        on_text: crate::broker::tick::hop_texter(tick_emit.clone(), "planner".into()),
+        on_thought: crate::broker::tick::hop_thinker(tick_emit, "planner".into()),
     };
 
     let mut hops = Vec::new();
@@ -604,6 +605,7 @@ fn run_tools_follow_up_dial_ticks_past_the_hops_running_estimate() {
     let stream = HopStream {
         on_tokens,
         on_text: std::sync::Arc::new(|_| {}),
+        on_thought: std::sync::Arc::new(|_| {}),
     };
     let primed = events.lock().unwrap().len(); // the priming tick recorded above
     let reply = b.run_tools(

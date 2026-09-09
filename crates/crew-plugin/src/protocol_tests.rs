@@ -204,6 +204,22 @@ fn delta_round_trips_with_type_tag() {
 }
 
 #[test]
+fn thought_round_trips_with_type_tag() {
+    let ev = PluginEvent::Thought {
+        agent: "coder".into(),
+        text: "weighing ".into(),
+    };
+    let s = serde_json::to_string(&ev).unwrap();
+    assert!(s.contains(r#""type":"thought""#), "got: {s}");
+    match serde_json::from_str::<PluginEvent>(&s).unwrap() {
+        PluginEvent::Thought { agent, text } => {
+            assert_eq!((agent.as_str(), text.as_str()), ("coder", "weighing "));
+        }
+        other => panic!("wrong variant: {other:?}"),
+    }
+}
+
+#[test]
 fn status_round_trips_and_error_flag_defaults_off() {
     let ev = PluginEvent::Status {
         error: true,

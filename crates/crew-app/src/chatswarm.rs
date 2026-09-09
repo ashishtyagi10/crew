@@ -117,11 +117,12 @@ impl SwarmStatus {
                     }
                 }
             }
-            // Cost is not surfaced; Failed also arrives as a state change;
-            // chunks land via the broker's Message; tools feed `chattool`.
+            // Not this block's: cost; chunks (the broker's Message); deltas
+            // (`chatflow`/`chatthought`); tools (`chattool`); Failed (a state).
             HiveEvent::CostDelta { .. }
             | HiveEvent::OutputChunk { .. }
             | HiveEvent::OutputDelta { .. }
+            | HiveEvent::ThoughtDelta { .. }
             | HiveEvent::ToolCall { .. }
             | HiveEvent::ToolResult { .. }
             | HiveEvent::Failed { .. } => {}
@@ -164,10 +165,9 @@ impl ChatPane {
         }
     }
 
-    /// Retire the live block when the run ends (and close the tool lines); no
-    /// summary record — the replies already streamed in. Also on broker `Error`.
+    /// Run over (or broker gone): retire the live block, close the tool lines.
     pub(crate) fn fold_swarm(&mut self) {
-        self.tools.abandon(crate::chattime::unix_now_ms());
+        self.abandon_blocks();
         self.swarm = None;
     }
 }
@@ -218,15 +218,15 @@ pub(crate) fn log_line(swarm: Option<&SwarmStatus>, ev: &HiveEvent) -> Option<(b
         HiveEvent::ToolCall { agent, label, .. } => {
             Some((false, format!("smith: agent {} called {label}", agent.0)))
         }
-        // Only failures: a successful call is already announced by its
-        // ToolCall line, and repeating every one would double the volume of
-        // the busiest thing a tool-using run does.
+        // Only failures: the ToolCall line already announced the call, and
+        // repeating every success would double the busiest run's volume.
         HiveEvent::ToolResult {
             label, ok, text, ..
         } => (!ok).then(|| (true, format!("smith: {label} failed: {text}"))),
         HiveEvent::TokenDelta { .. }
         | HiveEvent::CostDelta { .. }
         | HiveEvent::OutputDelta { .. }
+        | HiveEvent::ThoughtDelta { .. }
         | HiveEvent::OutputChunk { .. } => None,
     }
 }

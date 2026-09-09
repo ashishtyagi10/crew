@@ -52,6 +52,12 @@ struct Block {
     kind: String,
     #[serde(default)]
     text: String,
+    /// `thinking` blocks' text. Kept when a reply carries one; never asked
+    /// for: requesting extended thinking alongside tool use means echoing
+    /// the SIGNED blocks back verbatim on every later turn, which the
+    /// `Turn` history has no slot for — out of scope here, and said so.
+    #[serde(default)]
+    thinking: String,
     // `tool_use` blocks. Defaulted rather than in a second struct so one
     // `content` array parses whatever mix of blocks a reply carries.
     #[serde(default)]
@@ -156,6 +162,13 @@ impl AnthropicProvider {
             .map(|b| b.text.as_str())
             .collect::<Vec<_>>()
             .join("");
+        let thought = r
+            .content
+            .iter()
+            .filter(|b| b.kind == "thinking")
+            .map(|b| b.thinking.as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
         let calls: Vec<ToolInvocation> = r
             .content
             .iter()
@@ -171,6 +184,7 @@ impl AnthropicProvider {
             .ok_or_else(|| ProviderError::Decode("missing usage".into()))?;
         Ok(Completion {
             text,
+            thought,
             input_tokens: usage.input_tokens,
             output_tokens: usage.output_tokens,
             cost_microusd: 0,
