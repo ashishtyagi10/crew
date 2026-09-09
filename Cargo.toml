@@ -7,6 +7,7 @@ members = [
     "crates/crew-render",
     "crates/crew-app",
     "crates/crew-plugin",
+    "crates/crew-lsp",
 ]
 
 [workspace.package]

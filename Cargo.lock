@@ -717,6 +717,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "crew-lsp"
+version = "0.21.44"
+dependencies = [
+ "crew-hive",
+ "dirs",
+ "libc",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "crew-plugin"
 version = "0.21.44"
 dependencies = [
