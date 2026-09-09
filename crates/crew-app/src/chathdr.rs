@@ -60,12 +60,15 @@ const COMPACT_CHIP: &str = "\u{00b7} compact";
 /// narrow panes. `compact`, when the transcript is in compact view, adds the
 /// muted "compact" chip after the spinner (dropped first of the two —
 /// see [`COMPACT_CHIP`] — via `compact: false`).
+/// `tools` (calls in flight, see `chattool`) prefixes the hint with
+/// `· 2 tools running` — the thing Esc would actually interrupt.
 fn status_segments(
     connected: bool,
     awaiting: bool,
     active: Option<(&str, u64, (u8, u8, u8))>,
     compact: bool,
     hint: bool,
+    tools: usize,
 ) -> Vec<(String, (u8, u8, u8))> {
     let t = crew_theme::theme();
     let mut segs = Vec::new();
@@ -87,7 +90,12 @@ fn status_segments(
     // Busy hint, width-permitting (see `header_cells`) — appended after the
     // counters (and the compact chip, if shown), before the connection dot.
     if awaiting && hint {
-        segs.push((INTERRUPT_HINT.to_string(), t.text_muted));
+        let running = match tools {
+            0 => String::new(),
+            1 => "\u{00b7} 1 tool running ".to_string(),
+            n => format!("\u{00b7} {n} tools running "),
+        };
+        segs.push((format!("{running}{INTERRUPT_HINT}"), t.text_muted));
     }
 
     let (dot, dot_c) = if connected {
@@ -120,6 +128,7 @@ pub(crate) fn header_cells(
     awaiting: bool,
     active: Option<(&str, u64, (u8, u8, u8))>,
     compact: bool,
+    tools: usize,
 ) -> Vec<CellView> {
     if cols == 0 {
         return Vec::new();
@@ -151,12 +160,12 @@ pub(crate) fn header_cells(
     // essential of the two); if it still doesn't fit, the hint goes too —
     // everything else (spinner/active label, token meter, connection dot)
     // renders exactly as it would without either.
-    let mut segs = status_segments(connected, awaiting, active, compact, true);
+    let mut segs = status_segments(connected, awaiting, active, compact, true, tools);
     if segs_width(&segs) as u16 > cols {
-        segs = status_segments(connected, awaiting, active, false, true);
+        segs = status_segments(connected, awaiting, active, false, true, tools);
     }
     if segs_width(&segs) as u16 > cols {
-        segs = status_segments(connected, awaiting, active, false, false);
+        segs = status_segments(connected, awaiting, active, false, false, tools);
     }
     let gap = |i: usize| -> u16 {
         if i == 0 {

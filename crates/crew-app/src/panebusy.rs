@@ -40,7 +40,7 @@ pub(crate) fn pane_busy(p: &Pane) -> bool {
 pub(crate) fn pane_animating(p: &Pane) -> bool {
     pane_busy(p)
         || match &p.content {
-            PaneContent::Chat(c) => c.is_fading() || c.is_revealing(),
+            PaneContent::Chat(c) => c.is_fading() || c.is_revealing() || c.tools_running(),
             _ => false,
         }
 }

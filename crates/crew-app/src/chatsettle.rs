@@ -41,6 +41,11 @@ impl crate::chat::ChatPane {
         let now = crate::chattime::unix_now_ms();
         self.note_settle(&sender, &ts, text.chars().count(), now);
         let expanded = self.settle_stream(&sender);
+        // The agent's tool block anchors above the reply it led to — not
+        // above the broker's `[tool]` echo of one of its own calls.
+        if !text.starts_with(crate::chatcard::TOOL_PREFIX) {
+            self.tools.settle(stream_key(&sender), &ts);
+        }
         self.awaiting = false; // a reply landed
         self.note_reply(&sender);
         if self.scroll > 0 {

@@ -23,12 +23,10 @@ pub(crate) use crate::chatplace::placed_lines;
 /// The card-line render mode: `source` shows raw text instead of markdown
 /// (Ctrl+Shift+M, `ChatPane::show_source`); `compact` clamps each message to
 /// its header line plus first body line only (Ctrl+O,
-/// `ChatPane::compact_view`). Threaded as one value through
-/// `card_lines`/`card_line_count`/`message_cells`/`chatplace::placed_lines`
-/// so scroll math, the scrollbar, link hit-tests and the unread pill all
-/// agree on the same rendering automatically. The two flags are orthogonal —
-/// both can be on at once (raw text, one line) — so this is a plain copy
-/// struct, not an enum.
+/// `ChatPane::compact_view`). Threaded as one value through every layout
+/// entry point so scroll math, the scrollbar, link hit-tests and the unread
+/// pill all agree on the same rendering. The two flags are orthogonal — both
+/// can be on at once — so this is a plain copy struct, not an enum.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct View<'a> {
     pub(crate) source: bool,
@@ -50,6 +48,8 @@ pub(crate) struct View<'a> {
     /// The typewriter states of the cards still being typed out (see
     /// `chatreveal`); empty = every card shows its whole text.
     pub(crate) reveals: &'a [crate::chatreveal::CardReveal],
+    /// The agents' tool-call blocks (see `chattool`), seated by `chattoolview`.
+    pub(crate) tools: &'a [crate::chattool::ToolBlock],
 }
 
 impl Default for View<'_> {
@@ -60,16 +60,15 @@ impl Default for View<'_> {
             streaming_from: usize::MAX,
             gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             reveals: &[],
+            tools: &[],
         }
     }
 }
 
 /// Appends a muted ` … +N` suffix (`hidden` = number of clamped-away body
 /// lines) to a compact-clamped first body line, trimming trailing cells so
-/// the line — plus the suffix — still fits `cols` display columns. Mirrors
-/// the width-clamp rule other suffixes in this module apply at render time
-/// (`line_cells` would otherwise silently drop overflow, risking a
-/// partially-cut suffix rather than a clean truncation of the body text).
+/// the line plus the suffix still fits `cols` (`line_cells` would otherwise
+/// silently drop overflow, cutting the suffix instead of the body text).
 fn append_hidden_suffix(line: &mut CardLine, hidden: usize, cols: usize) {
     let muted = crew_theme::theme().text_muted;
     let suffix = format!(" \u{2026} +{hidden}");
@@ -105,13 +104,10 @@ fn body_at(m: &Message, cols: usize, view: View<'_>, reveal: Reveal) -> Vec<Card
     } else {
         crew_theme::theme().ink
     };
-    // The `[tool] ` marker is MACHINERY: it is how the broker tells the app
-    // what kind of card this is, and it is carried in the text because that
-    // is the only field that crosses the wire. Now that the gutter and the
-    // ink say the same thing in a glyph, printing it too is telling the
-    // reader twice. Stripped here, in the ONE place both the counting and the
-    // drawing pass read — strip it anywhere else and the two disagree about
-    // where the card wraps.
+    // The `[tool] ` marker is MACHINERY (the broker's card kind, carried in
+    // the text because that is the only field that crosses the wire); the
+    // gutter and the ink already say it. Stripped in the ONE place both the
+    // counting and the drawing pass read, so they agree on where it wraps.
     let text = match is_tool_card(m) {
         true => m.text.strip_prefix(TOOL_PREFIX).unwrap_or(&m.text),
         false => m.text.as_str(),
@@ -190,13 +186,16 @@ pub(crate) fn card_lines_spanned(
             }
         }
         let first = out.len();
+        let streaming = i >= view.streaming_from;
+        // The agent's tool block: above a settled reply, under a streaming card.
+        out.extend(crate::chattoolview::above(view, m, streaming, now_ms, cols));
         let splash = is_splash(m);
         if !splash {
             out.push(header_line(m, now_ms, connector));
         }
         // The counting pass (`now_ms == 0`) sees the whole card, like `fade_t`.
         let reveal = (now_ms > 0)
-            .then(|| crate::chatreveal::find(view.reveals, m, i >= view.streaming_from))
+            .then(|| crate::chatreveal::find(view.reveals, m, streaming))
             .flatten()
             .map(|r| (r, now_ms));
         let mut body = body_at(m, cols, view, reveal);
@@ -216,10 +215,11 @@ pub(crate) fn card_lines_spanned(
         if splash {
             splash_style(&mut body, cols);
         }
-        if i >= view.streaming_from {
+        if streaming {
             crate::chatreveal::push_caret(&mut body, now_ms, cols);
         }
         out.extend(body);
+        out.extend(crate::chattoolview::below(view, m, streaming, now_ms, cols));
         // A just-landed card fades in from the page colour (see `fade_t`) —
         // unless it was on screen typing itself out before it landed.
         let t = match reveal {
@@ -236,6 +236,8 @@ pub(crate) fn card_lines_spanned(
         }
         spans.push(first..out.len());
     }
+    // Blocks with no card of their agent's on screen stand as thin cards.
+    out.extend(crate::chattoolview::orphans(view, messages, now_ms, cols));
     (out, spans)
 }
 

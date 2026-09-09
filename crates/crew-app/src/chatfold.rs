@@ -4,14 +4,13 @@
 //! drowning the actual replies (the Claude-Code folded-noise look). A plain
 //! click on the collapsed card expands it; a click on the expanded card's
 //! header folds it back. State lives on the `Message` itself (`expanded`),
-//! so it survives `chatcompact` folds and streaming cards settling — both of
-//! which shift transcript indices out from under any index-keyed set.
+//! so it survives `chatcompact` folds and streaming cards settling.
 //!
 //! Agent replies and user messages are never auto-folded, and the pane-global
-//! compact view (Ctrl+O) wins outright: while it is on, everything is clamped
-//! and nothing here toggles. The rendering itself stays in
-//! `chatmsgs::card_lines` (one clamp code path for compact and fold alike);
-//! this module owns the fold decision and the click plumbing.
+//! compact view (Ctrl+O) wins outright. The rendering stays in
+//! `chatmsgs::card_lines` (one clamp path for compact and fold alike); this
+//! module owns the fold decision and the click plumbing, which the tool
+//! blocks (`chattoolfold`) share through [`hit_line`].
 use crate::chat::ChatPane;
 use crate::chatlayout::Message;
 use crate::chatmsgs::View;
@@ -74,38 +73,41 @@ pub(crate) fn line_index_at(
     (offset < shown).then(|| start + offset)
 }
 
-/// The visible-message index of the fold toggle a click at absolute `row`
-/// hits, if any. A folded card's whole (two-line) rendering is the expand
-/// target; an expanded card folds back only from its header line, so body
-/// clicks stay free for text selection. Re-derives the same geometry
-/// `chatplace::placed_lines` draws with, so a click can never resolve
-/// against stale layout.
-fn toggle_target(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> Option<usize> {
+/// The card-line geometry a click at absolute `row` resolves against:
+/// `(each message's line span, the line index hit)` — ONE layout for the card
+/// fold and the tool-block toggle, the exact one `chatplace::placed_lines`
+/// draws. `None` off the message area, under a popup (its rows belong to
+/// it), or in compact view (Ctrl+O wins — nothing toggles under it).
+pub(crate) fn hit_line(
+    pane: &ChatPane,
+    cols: u16,
+    rows: u16,
+    row: u16,
+) -> Option<(Vec<std::ops::Range<usize>>, usize)> {
     let visible = pane.visible_messages();
-    let top = pane.status_rows(cols, rows);
-    if cols == 0 || rows == 0 || visible.is_empty() || top == 0 {
-        return None; // tiny panes use the plain fallback layout — no cards
-    }
-    // An open popup (Ctrl+R search, Cmd+F find, palette, mention) overlays
-    // the transcript: a click on one of its rows belongs to it, never to the
-    // card invisibly beneath.
-    if pane.histsearch.is_some()
-        || pane.find.is_some()
-        || pane.palette.is_some()
-        || pane.mention.is_some()
-    {
-        return None;
-    }
+    let top = pane.status_rows(cols, rows); // 0 = the plain fallback layout
+    let popup = pane.histsearch.is_some() || pane.find.is_some();
+    let popup = popup || pane.palette.is_some() || pane.mention.is_some();
     let view = pane.view();
-    if view.compact {
-        return None; // Ctrl+O wins outright — nothing to toggle under it
+    if cols == 0 || rows == 0 || visible.is_empty() || top == 0 || popup || view.compact {
+        return None;
     }
     let budget = crate::chatplace::msg_rows_budget(pane, cols, rows);
     let (lines, spans) = crate::chatmsgs::card_lines_spanned(&visible, cols as usize, 0, view);
     let idx = line_index_at(lines.len(), budget, top, pane.scroll, row)?;
+    Some((spans, idx))
+}
+
+/// The visible-message index of the fold toggle a click at absolute `row`
+/// hits, if any. A folded card's whole (two-line) rendering is the expand
+/// target; an expanded card folds back only from its header line, so body
+/// clicks stay free for text selection.
+fn toggle_target(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> Option<usize> {
+    let (spans, idx) = hit_line(pane, cols, rows, row)?;
+    let visible = pane.visible_messages();
     let mi = spans.iter().position(|s| s.contains(&idx))?;
     let m = visible[mi];
-    if !foldable(m, cols as usize, view) {
+    if !foldable(m, cols as usize, pane.view()) {
         return None;
     }
     (!m.expanded || idx == spans[mi].start).then_some(mi)
@@ -115,12 +117,15 @@ impl ChatPane {
     /// Whether a click at absolute `row` would toggle a fold — the press-time
     /// dry run of [`ChatPane::toggle_fold_at`], for arming a release toggle.
     pub(crate) fn fold_target_at(&self, cols: u16, rows: u16, row: u16) -> bool {
-        toggle_target(self, cols, rows, row).is_some()
+        self.tool_target_at(cols, rows, row) || toggle_target(self, cols, rows, row).is_some()
     }
 
     /// Toggle the fold of the card a click at absolute `row` hit, on a
     /// `cols` × `rows` pane. `true` when a card actually toggled.
     pub(crate) fn toggle_fold_at(&mut self, cols: u16, rows: u16, row: u16) -> bool {
+        if self.toggle_tool_at(cols, rows, row) {
+            return true; // a tool block's rows sit inside a card's span
+        }
         let Some(mi) = toggle_target(self, cols, rows, row) else {
             return false;
         };
@@ -140,11 +145,9 @@ impl crate::app::CrewApp {
     /// Mouse-press arm of the fold toggle: resolve the cursor to a chat
     /// pane's card and REMEMBER the hit (`fold_click`) instead of toggling.
     /// The toggle fires on release ([`Self::fold_release`]) so starting a
-    /// drag-selection on a folded card can't expand it mid-gesture and shift
-    /// the layout under the cursor. Returns whether a candidate armed — the
-    /// caller (`events`) still focuses the pane and arms selection (the
-    /// toggle is additive), but keeps an armed click out of the double-click
-    /// zoom count.
+    /// drag-selection on a folded card can't expand it mid-gesture. Returns
+    /// whether a candidate armed — the caller (`events`) still focuses the
+    /// pane and arms selection, but keeps the click out of the zoom count.
     pub(crate) fn fold_press_at_cursor(&mut self) -> bool {
         self.fold_click = None;
         let Some(i) = self.pane_at_cursor() else {

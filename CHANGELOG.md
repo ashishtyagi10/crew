@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.46
+
+**Tool calls show up live in the smith pane, and fold away when the reply lands.**
+
+While an agent runs a tool the pane draws a line under its card: a
+spinner, the tool and its subject (`fs:read src/foo.rs`, `sys:run cargo
+test`), and the seconds counting up; on the result the line settles to
+a green check or a red cross with `120 ms` or `3.2 s`, then the first
+line of the result, muted. Click that line for up to twelve rows of
+the result on the code field. When the agent's reply settles the block
+folds to `▸ 4 tool calls · 2.1 s` above it, and a click reopens it. The
+header says `2 tools running · esc interrupts` while any is pending. A
+call whose result never returns is closed as failed when the swarm
+ends, so nothing spins forever. Reduce-motion swaps the spinner for a
+still mark and lets the counter move once a second.
+
 ## 0.21.45
 
 **Language servers: the crew reads real symbols, and the viewer shows real diagnostics.**
