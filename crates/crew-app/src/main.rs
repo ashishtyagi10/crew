@@ -87,6 +87,8 @@ mod chatcard;
 mod chatmsgs;
 mod chatpalette;
 mod chatplace;
+mod chatplanbtn;
+mod chatplanclick;
 mod chatpop;
 mod chatprobe;
 mod chatprog;

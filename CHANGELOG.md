@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.49
+
+**A pending plan gets real buttons: run and discard, drawn, hovered, clicked.**
+
+Approving a plan was Enter or Esc on an empty composer and a footer
+hint. A plan now draws two badges directly above the composer, `▶ run`
+on the accent and `✗ discard` muted, followed by `enter · esc` on panes
+wide enough; the hint goes first when the pane narrows, then the
+verbs. Hovering lifts the badge and shows the hand pointer; pressing
+inverts it for 120 ms; releasing on the same button sends exactly the
+bare word the keys send, so the broker's plan gate matches either way.
+Dragging off the button, or releasing on the other one, sends nothing.
+With reduce-motion on, the press has no invert and everything else
+still works.
+
 ## 0.21.48
 
 **The swarm's progress moves: badges pulse with tokens, the bar sweeps, the counter flashes, the hourglass turns, the pill pops.**

@@ -3,11 +3,10 @@
 //! otherwise — every fallback is the glyph that was there before the choice.
 //!
 //! "On" is decided by coverage, not by name: `crew_render::has_glyph` reads
-//! [`PROBE`] off the family's own character map each time the family
-//! changes, into one atomic (a bool load per pick). The family reaches the
-//! renderer ONLY through [`apply_family`] — a source scan keeps every other
-//! `set_font_family` call out of crew-app, so no setter site can leave the
-//! icon set describing the previous font.
+//! [`PROBE`] off the family's own character map each time the family changes,
+//! into one atomic (a bool load per pick). The family reaches the renderer
+//! ONLY through [`apply_family`] — a source scan keeps every other
+//! `set_font_family` call out of crew-app, so none can leave the set stale.
 use std::sync::atomic::{AtomicBool, Ordering};
 
 /// nf-dev-rust. Any Nerd Font maps it; no ordinary text face does.
@@ -56,9 +55,10 @@ pub(crate) enum Glyph<'a> {
     File,
     /// A top-level heading's badge mark (`#`, or a hashtag icon).
     Hash,
-    /// A tool call that succeeded / failed (`✓` / `✗`).
+    /// A tool call that succeeded / failed (`✓` / `✗`); a plan's run mark (`▶`).
     Pass,
     Fail,
+    Play,
     /// A collapsed / opened tool block's mark (`▸` / `▾`, or a wrench).
     Tool,
     ToolOpen,
@@ -100,6 +100,7 @@ pub(crate) fn nerd(g: Glyph) -> &'static str {
         Glyph::Hash => "\u{f292}",                   // nf-fa-hashtag
         Glyph::Pass => "\u{f00c}",                   // nf-fa-check
         Glyph::Fail => "\u{f00d}",                   // nf-fa-times
+        Glyph::Play => "\u{f04b}",                   // nf-fa-play
         Glyph::Tool | Glyph::ToolOpen => "\u{f0ad}", // nf-fa-wrench
         // nf-fa-hourglass_start / nf-fa-hourglass_end
         Glyph::Hourglass(i) => ["\u{f251}", "\u{f253}"][usize::from(i) % 2],
@@ -113,7 +114,6 @@ pub(crate) fn fallback(g: Glyph) -> &'static str {
         Glyph::Bullet1 => "\u{2022}",   // •
         Glyph::Bullet2 => "\u{25e6}",   // ◦
         Glyph::Bullet3 => "\u{25aa}",   // ▪
-        Glyph::Checked => "\u{2713}",   // ✓
         Glyph::Unchecked => "\u{2610}", // ☐
         Glyph::Quote => "\u{258e}",     // ▎
         Glyph::Spinner(i) => ASCII_SPINNER[usize::from(i) % ASCII_SPINNER.len()],
@@ -122,13 +122,13 @@ pub(crate) fn fallback(g: Glyph) -> &'static str {
         Glyph::Prompt => "\u{276f}", // ❯
         Glyph::Image => "[image]",
         Glyph::Footnote => "[",
-        Glyph::Dir => "\u{25b8}",  // ▸
         Glyph::File => "\u{00b7}", // ·
         Glyph::Hash => "#",
-        Glyph::Pass => "\u{2713}",     // ✓
-        Glyph::Fail => "\u{2717}",     // ✗
-        Glyph::Tool => "\u{25b8}",     // ▸
-        Glyph::ToolOpen => "\u{25be}", // ▾
+        Glyph::Checked | Glyph::Pass => "\u{2713}", // ✓
+        Glyph::Play => "\u{25b6}",                  // ▶
+        Glyph::Fail => "\u{2717}",                  // ✗
+        Glyph::Dir | Glyph::Tool => "\u{25b8}",     // ▸
+        Glyph::ToolOpen => "\u{25be}",              // ▾
         Glyph::Hourglass(i) => ["\u{29d7}", "\u{29d6}"][usize::from(i) % 2], // ⧗ ⧖
         Glyph::Lang(_) => "",
     }

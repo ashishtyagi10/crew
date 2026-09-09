@@ -109,6 +109,12 @@ pub struct ChatPane {
     /// sent as the bare words the broker's deterministic plan gate matches
     /// (`/approve` and `/reject` retired as commands).
     pub(crate) plan_pending: bool,
+    /// The plan button the pointer is over (see `chatplanclick`); `None` off
+    /// both. Published per frame so the badge brightens and the hand shows.
+    pub(crate) hover_btn: Option<crate::chatplanbtn::Btn>,
+    /// A plan button pressed and not yet released, with its invert flash
+    /// (`chatplanbtn::PRESS_MS`). Release fires it; a drag out cancels it.
+    pub(crate) press_btn: Option<(crate::chatplanbtn::Btn, crate::ease::Timeline)>,
     /// Where this pane's broker operates, mirrored in from the owning `Pane`
     /// each poll tick alongside `git_branch` — for the same reason: the footer
     /// shows it and the winit thread must never call `current_dir()` per frame

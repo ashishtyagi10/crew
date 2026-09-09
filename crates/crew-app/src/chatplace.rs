@@ -111,6 +111,8 @@ pub(crate) fn cell_at_col(line: &CardLine, col: u16) -> Option<&CardCell> {
 pub(crate) struct Grants {
     pub top: u16,
     pub bottom: u16,
+    /// The pending plan's run/discard button row, directly above the composer.
+    pub plan: u16,
     /// The whole-pane summary footer below the composer (0 or 1 row).
     pub summary: u16,
     pub swarm: u16,
@@ -137,6 +139,9 @@ pub(crate) fn grants(pane: &ChatPane, cols: u16, rows: u16) -> Grants {
         left -= got;
         got
     };
+    // First: it is the one surface addressed TO the user, and the question
+    // it asks blocks everything the rows below it report on.
+    let plan = take(crate::chatplanbtn::plan_rows(pane, cols));
     let swarm = take(crate::chatswarmview::swarm_rows(pane, cols));
     let queued = take(crate::chatqueue::queued_rows(pane));
     let prog = take(crate::chatprog::progress_rows(pane, cols));
@@ -147,6 +152,7 @@ pub(crate) fn grants(pane: &ChatPane, cols: u16, rows: u16) -> Grants {
     Grants {
         top,
         bottom,
+        plan,
         summary,
         swarm,
         queued,
