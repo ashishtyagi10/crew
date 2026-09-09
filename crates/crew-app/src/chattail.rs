@@ -63,7 +63,16 @@ pub(crate) fn tail_cells(pane: &ChatPane, cols: u16, start_row: u16) -> Vec<Cell
     let theme = crew_theme::theme();
     let muted = theme.text_muted;
     let page = theme.page_bg;
-    let body = crate::chatbody::body_lines(&card.text, cols as usize, muted, pane.show_source);
+    // What the typewriter has shown of it so far — the card's own clip, so
+    // the tail never runs ahead of the card it mirrors.
+    let text = match crate::chatreveal::find(&pane.reveals, card, true) {
+        Some(r) => {
+            let now = crate::chattime::unix_now_ms();
+            crate::chatreveal::clip_at(&card.text, r, now, crate::motion::level())
+        }
+        None => card.text.as_str(),
+    };
+    let body = crate::chatbody::body_lines(text, cols as usize, muted, pane.show_source);
     let last = body.iter().rev().take(TAIL_ROWS as usize).rev();
     let mut out = Vec::new();
     for (i, line) in last.enumerate() {

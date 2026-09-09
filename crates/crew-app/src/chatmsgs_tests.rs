@@ -218,10 +218,10 @@ fn message_cells_is_a_thin_map_over_placed_lines_in_both_modes() {
         pane.show_source = show_source;
         pane.compact_view = compact;
         let view = View {
-            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: show_source,
             compact,
             streaming_from: pane.messages.len(),
+            ..View::default()
         };
         // Both budgets from the ONE allotment, not re-derived here: a
         // transcript is bottom-anchored inside the rows it is given (see
@@ -334,10 +334,10 @@ fn compact_view_clamps_multiline_body_and_appends_hidden_suffix() {
         40,
         0,
         View {
-            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: false,
             compact: false,
             streaming_from: usize::MAX,
+            ..View::default()
         },
     );
     assert_eq!(full.len(), 4, "header + 3 body lines, no spacer (one msg)");
@@ -347,10 +347,10 @@ fn compact_view_clamps_multiline_body_and_appends_hidden_suffix() {
         40,
         0,
         View {
-            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: false,
             compact: true,
             streaming_from: usize::MAX,
+            ..View::default()
         },
     );
     assert_eq!(
@@ -381,10 +381,10 @@ fn compact_view_leaves_single_line_message_unchanged() {
         40,
         0,
         View {
-            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: false,
             compact: true,
             streaming_from: usize::MAX,
+            ..View::default()
         },
     );
     let text = |lines: &[CardLine]| -> Vec<String> {
@@ -412,10 +412,10 @@ fn compact_view_shrinks_card_line_count() {
         &refs,
         40,
         View {
-            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: false,
             compact: true,
             streaming_from: usize::MAX,
+            ..View::default()
         },
     );
     assert!(
@@ -436,10 +436,10 @@ fn compact_view_and_source_view_are_orthogonal() {
         40,
         0,
         View {
-            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: true,
             compact: true,
             streaming_from: usize::MAX,
+            ..View::default()
         },
     );
     assert_eq!(both.len(), 2, "header + clamped first line");
@@ -465,10 +465,10 @@ fn a_streaming_card_ends_in_a_caret() {
         40,
         0,
         View {
-            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: false,
             compact: false,
             streaming_from: usize::MAX,
+            ..View::default()
         },
     );
     let live = card_lines(
@@ -476,10 +476,10 @@ fn a_streaming_card_ends_in_a_caret() {
         40,
         0,
         View {
-            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: false,
             compact: false,
             streaming_from: 0,
+            ..View::default()
         },
     );
     let tail = |ls: &[CardLine]| ls.last().and_then(|l| l.last().map(|c| c.c));
@@ -500,10 +500,10 @@ fn the_caret_pulses_without_disappearing() {
             40,
             now,
             View {
-                gap_rows: crate::density::Density::Cozy.card_gap_rows(),
                 source: false,
                 compact: false,
                 streaming_from: 0,
+                ..View::default()
             },
         )
         .last()
@@ -519,10 +519,10 @@ fn the_caret_pulses_without_disappearing() {
             40,
             now,
             View {
-                gap_rows: crate::density::Density::Cozy.card_gap_rows(),
                 source: false,
                 compact: false,
                 streaming_from: 0,
+                ..View::default()
             },
         );
         assert_eq!(
@@ -545,10 +545,10 @@ fn motion_off_leaves_a_steady_caret() {
             40,
             now,
             View {
-                gap_rows: crate::density::Density::Cozy.card_gap_rows(),
                 source: false,
                 compact: false,
                 streaming_from: 0,
+                ..View::default()
             },
         )
         .last()
@@ -712,10 +712,8 @@ fn the_tool_marker_is_machinery_and_never_reaches_the_reader() {
         "[tool] sys:run \u{2713} 1.2s\nDarwin 27.0.0",
     );
     let view = View {
-        source: false,
-        compact: false,
         gap_rows: 1,
-        streaming_from: usize::MAX,
+        ..View::default()
     };
     let body = full_body(&m, 80, view);
     let first: String = body[0].iter().map(|c| c.c).collect();
@@ -736,10 +734,8 @@ fn stripping_the_marker_does_not_drift_the_line_count() {
         "[tool] sys:run \u{2713} 1.2s\nline two\nline three",
     );
     let view = View {
-        source: false,
-        compact: false,
         gap_rows: 1,
-        streaming_from: usize::MAX,
+        ..View::default()
     };
     let drawn = card_lines(&[&m], 80, 0, view).len();
     assert_eq!(drawn, card_line_count(&[&m], 80, view));

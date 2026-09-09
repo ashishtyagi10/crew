@@ -25,12 +25,7 @@ impl crate::chat::ChatPane {
         let total = if top == 0 {
             crate::chatlayout::wrapped_line_count(&self.messages, cols)
         } else {
-            let view = crate::chatmsgs::View {
-                source: self.show_source,
-                compact: self.compact_view,
-                gap_rows: crate::density::level().card_gap_rows(),
-                streaming_from: self.messages.len(),
-            };
+            let view = self.view();
             let visible = self.visible_messages();
             crate::chatmsgs::card_line_count(&visible, cols, view)
         };

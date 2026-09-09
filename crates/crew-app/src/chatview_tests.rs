@@ -639,7 +639,7 @@ fn status_line_queued_indicator_bar_and_composer_stack_without_colliding() {
 #[test]
 fn provisional_card_renders_even_with_no_settled_messages() {
     let mut pane = test_pane(vec![]);
-    pane.absorb_delta("coder".into(), "streaming live text".into());
+    pane.streaming.push(msg("coder", "streaming live text")); // whole, not typed out
     assert!(
         pane.messages.is_empty(),
         "fixture check: nothing has settled"
@@ -694,7 +694,7 @@ fn swarm_block_and_streaming_tail_never_share_a_row() {
         task: TaskId(0),
         state: TaskState::Running,
     });
-    pane.absorb_delta("coder".into(), "TAILMARKtext".into());
+    pane.streaming.push(msg("coder", "TAILMARKtext")); // whole, not typed out
     pane.scroll = 9_999; // scrolled far past the top: the newest card is off screen
 
     let (cols, rows) = (60u16, 24u16);

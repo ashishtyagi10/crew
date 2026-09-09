@@ -10,6 +10,9 @@ use crate::chatbody::{body_lines, plain, CardLine};
 use crate::chatlayout::Message;
 use crate::chatplace::{line_cells, window};
 
+/// A card's typewriter state and the clock it is read at.
+type Reveal<'a> = Option<(&'a crate::chatreveal::Reveal, u64)>;
+
 // Re-exported so this module's own tests reach it as `placed_lines` via
 // `use super::*`, even though the placement logic itself lives in
 // `chatplace` alongside the windowing helpers `message_cells` shares with it.
@@ -27,7 +30,7 @@ pub(crate) use crate::chatplace::placed_lines;
 /// both can be on at once (raw text, one line) — so this is a plain copy
 /// struct, not an enum.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct View {
+pub(crate) struct View<'a> {
     pub(crate) source: bool,
     pub(crate) compact: bool,
     /// Index at which still-streaming cards begin, in the same slice
@@ -44,42 +47,21 @@ pub(crate) struct View {
     /// path, and a per-call value is a value a test can set without reaching
     /// for a process-wide mutex.
     pub(crate) gap_rows: usize,
+    /// The typewriter states of the cards still being typed out (see
+    /// `chatreveal`); empty = every card shows its whole text.
+    pub(crate) reveals: &'a [crate::chatreveal::CardReveal],
 }
 
-impl Default for View {
+impl Default for View<'_> {
     fn default() -> Self {
         Self {
             source: false,
             compact: false,
             streaming_from: usize::MAX,
             gap_rows: crate::density::Density::Cozy.card_gap_rows(),
+            reveals: &[],
         }
     }
-}
-
-/// Period of the streaming caret's pulse. Slow enough to read as a live cursor
-/// rather than a warning light.
-const CARET_MS: u64 = 900;
-
-/// Put a pulsing block on the end of a streaming card's last line — the one
-/// unambiguous sign that text is still arriving, as distinct from a reply that
-/// simply ended mid-sentence.
-///
-/// It pulses between the muted and accent colours rather than blinking on and
-/// off: a caret that vanishes half the time reads, at a glance, like the text
-/// stopped.
-fn push_caret(lines: &mut [CardLine], now_ms: u64, cols: usize) {
-    let Some(last) = lines.last_mut() else { return };
-    if last.len() >= cols {
-        return;
-    }
-    let t = match crate::motion::level() {
-        crate::motion::MotionLevel::Off => 1.0,
-        _ => crate::anim::tri(now_ms, CARET_MS),
-    };
-    let th = crew_theme::theme();
-    let fg = crate::anim::lerp_rgb(th.text_muted, crate::palette::accent(), t);
-    last.push(crate::chatbody::plain('\u{258c}', fg, false));
 }
 
 /// Appends a muted ` … +N` suffix (`hidden` = number of clamped-away body
@@ -107,7 +89,15 @@ fn append_hidden_suffix(line: &mut CardLine, hidden: usize, cols: usize) {
 /// clamp and the auto-fold measure (`chatfold` reads its length to decide
 /// whether a card is long enough to fold), so the two can never disagree
 /// with what `card_lines` actually renders.
-pub(crate) fn full_body(m: &Message, cols: usize, view: View) -> Vec<CardLine> {
+pub(crate) fn full_body(m: &Message, cols: usize, view: View<'_>) -> Vec<CardLine> {
+    body_at(m, cols, view, None)
+}
+
+/// [`full_body`] as the typewriter shows it at `reveal` = `(state, now)`:
+/// the RAW text is clipped before markdown layout (a half-typed fence reads
+/// as text until its closing fence lands) and the newest characters ramp up
+/// from muted (`chatreveal::glow_tail`). `None` = the whole body.
+fn body_at(m: &Message, cols: usize, view: View<'_>, reveal: Reveal) -> Vec<CardLine> {
     // Body text: agents speak in ink; the system voice — and the machine
     // talking on an agent's behalf — stays muted.
     let fg = if is_system_voice(&m.sender) || is_tool_card(m) {
@@ -126,7 +116,14 @@ pub(crate) fn full_body(m: &Message, cols: usize, view: View) -> Vec<CardLine> {
         true => m.text.strip_prefix(TOOL_PREFIX).unwrap_or(&m.text),
         false => m.text.as_str(),
     };
-    let mut body = body_lines(text, cols, fg, view.source);
+    let level = crate::motion::level();
+    let shown = reveal.map_or(text, |(r, now)| {
+        crate::chatreveal::clip_at(text, r, now, level)
+    });
+    let mut body = body_lines(shown, cols, fg, view.source);
+    if let Some((r, now)) = reveal {
+        crate::chatreveal::glow_tail(&mut body, r, now, text.chars().count(), level);
+    }
     // The reply's usage trailer joins the body BEFORE the clamp in normal
     // view, so the auto-fold hides it — and counts it in ` … +N` — like any
     // body line. Compact view (Ctrl+O) excludes it entirely: it is metadata,
@@ -151,7 +148,7 @@ pub(crate) fn card_lines(
     messages: &[&Message],
     cols: usize,
     now_ms: u64,
-    view: View,
+    view: View<'_>,
 ) -> Vec<CardLine> {
     card_lines_spanned(messages, cols, now_ms, view).0
 }
@@ -164,7 +161,7 @@ pub(crate) fn card_lines_spanned(
     messages: &[&Message],
     cols: usize,
     now_ms: u64,
-    view: View,
+    view: View<'_>,
 ) -> (Vec<CardLine>, Vec<std::ops::Range<usize>>) {
     let mut out: Vec<CardLine> = Vec::new();
     let mut spans: Vec<std::ops::Range<usize>> = Vec::with_capacity(messages.len());
@@ -197,7 +194,12 @@ pub(crate) fn card_lines_spanned(
         if !splash {
             out.push(header_line(m, now_ms, connector));
         }
-        let mut body = full_body(m, cols, view);
+        // The counting pass (`now_ms == 0`) sees the whole card, like `fade_t`.
+        let reveal = (now_ms > 0)
+            .then(|| crate::chatreveal::find(view.reveals, m, i >= view.streaming_from))
+            .flatten()
+            .map(|r| (r, now_ms));
+        let mut body = body_at(m, cols, view, reveal);
         // One clamp, two triggers: pane-global compact view (Ctrl+O, which
         // wins outright), or — in normal view — a long system-voice card the
         // user hasn't clicked open (`chatfold::folded`).
@@ -215,11 +217,15 @@ pub(crate) fn card_lines_spanned(
             splash_style(&mut body, cols);
         }
         if i >= view.streaming_from {
-            push_caret(&mut body, now_ms, cols);
+            crate::chatreveal::push_caret(&mut body, now_ms, cols);
         }
         out.extend(body);
-        // A just-landed card fades in from the page colour (see `fade_t`).
-        let t = fade_t(&m.ts, now_ms);
+        // A just-landed card fades in from the page colour (see `fade_t`) —
+        // unless it was on screen typing itself out before it landed.
+        let t = match reveal {
+            Some((r, _)) if r.settled => 1.0,
+            _ => fade_t(&m.ts, now_ms),
+        };
         if t < 1.0 {
             let page = crew_theme::theme().page_bg;
             for line in &mut out[first..] {
@@ -234,7 +240,7 @@ pub(crate) fn card_lines_spanned(
 }
 
 /// Total card lines for the given width — the scroll clamp for the card view.
-pub(crate) fn card_line_count(messages: &[&Message], cols: u16, view: View) -> usize {
+pub(crate) fn card_line_count(messages: &[&Message], cols: u16, view: View<'_>) -> usize {
     if cols == 0 {
         return 0;
     }
@@ -250,7 +256,7 @@ pub(crate) fn message_cells(
     rows: u16,
     top_row: u16,
     scroll: usize,
-    view: View,
+    view: View<'_>,
 ) -> Vec<CellView> {
     if cols == 0 || rows == 0 {
         return Vec::new();

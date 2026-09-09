@@ -10,6 +10,21 @@ use crate::chat::ChatPane;
 use crate::chatlayout::layout_cells;
 
 impl ChatPane {
+    /// The one render `View` every transcript path draws with — scroll math,
+    /// scrollbar, link hit-tests, the unread pill and the typewriter all read
+    /// the same flags, so no two of them can disagree about what is drawn.
+    pub(crate) fn view(&self) -> crate::chatmsgs::View<'_> {
+        crate::chatmsgs::View {
+            source: self.show_source,
+            compact: self.compact_view,
+            gap_rows: crate::density::level().card_gap_rows(),
+            // `visible_messages` chains settled then streaming, so everything
+            // from that boundary on is still arriving.
+            streaming_from: self.messages.len(),
+            reveals: &self.reveals,
+        }
+    }
+
     /// Rows consumed above the message body: just the single header row. The
     /// old per-agent statusline grid was retired in favour of the whole-pane
     /// summary footer below the composer (see `chatsummary`), so nothing but the
@@ -37,12 +52,7 @@ impl ChatPane {
     /// are. A long transcript is walked by turn, and the border is where crew
     /// says so for every other pane kind.
     pub(crate) fn turn_rows(&self, cols: u16) -> Vec<usize> {
-        let view = crate::chatmsgs::View {
-            source: self.show_source,
-            compact: self.compact_view,
-            gap_rows: crate::density::level().card_gap_rows(),
-            streaming_from: self.messages.len(),
-        };
+        let view = self.view();
         let visible = self.visible_messages();
         let (_, spans) = crate::chatmsgs::card_lines_spanned(&visible, cols as usize, 0, view);
         visible
@@ -57,12 +67,7 @@ impl ChatPane {
 
     /// `(total rendered lines, rows the message area shows)`.
     fn transcript_extent(&self, cols: u16, rows: u16) -> (usize, usize) {
-        let view = crate::chatmsgs::View {
-            source: self.show_source,
-            compact: self.compact_view,
-            gap_rows: crate::density::level().card_gap_rows(),
-            streaming_from: self.messages.len(),
-        };
+        let view = self.view();
         let visible = self.visible_messages();
         let total = crate::chatmsgs::card_line_count(&visible, cols, view);
         let msg_rows = usize::from(crate::chatplace::msg_rows_budget(self, cols, rows));
@@ -183,12 +188,7 @@ pub(crate) fn art(
             );
         }
     } else {
-        let view = crate::chatmsgs::View {
-            source: pane.show_source,
-            compact: pane.compact_view,
-            gap_rows: crate::density::level().card_gap_rows(),
-            streaming_from: pane.messages.len(),
-        };
+        let view = pane.view();
         let msg_rows = crate::chatplace::msg_rows_budget(pane, cols, rows);
         cells.extend(crate::chatmsgs::message_cells(
             &visible,

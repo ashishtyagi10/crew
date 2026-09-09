@@ -86,6 +86,8 @@ mod chatprobe;
 mod chatprog;
 mod chatpulse;
 mod chatqueue;
+mod chatreveal;
+mod chatrevealpane;
 mod chatroster;
 mod chatscroll;
 mod chatsend;

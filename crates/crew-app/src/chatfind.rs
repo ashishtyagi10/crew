@@ -6,7 +6,6 @@
 use crate::chat::ChatPane;
 use crate::chatkeys::ChatInput;
 use crate::chatlayout::Message;
-use crate::chatmsgs::View;
 use crate::suggest::MenuItem;
 use crew_render::CellView;
 
@@ -108,19 +107,20 @@ pub(crate) fn jump(pane: &mut ChatPane, cols: u16, rows: u16) {
     };
     f.rescan(&pane.visible_messages());
     if let Some(&mi) = f.matches.get(f.sel) {
-        let view = View {
-            gap_rows: crate::density::level().card_gap_rows(),
+        let settled = pane.messages.len();
+        // `foldable` reads only the two mode flags, so a flag-only view here
+        // keeps `pane` free for the `get_mut` below.
+        let flags = crate::chatmsgs::View {
             source: pane.show_source,
             compact: pane.compact_view,
-            streaming_from: pane.messages.len(),
+            ..Default::default()
         };
-        let settled = pane.messages.len();
         let m = match mi < settled {
             true => pane.messages.get_mut(mi),
             false => pane.streaming.get_mut(mi - settled),
         };
         if let Some(m) = m {
-            if crate::chatfold::foldable(m, cols as usize, view) {
+            if crate::chatfold::foldable(m, cols as usize, flags) {
                 m.expanded = true; // the match may sit in the folded tail
             }
         }
@@ -129,7 +129,7 @@ pub(crate) fn jump(pane: &mut ChatPane, cols: u16, rows: u16) {
             let budget = crate::chatplace::msg_rows_budget(pane, cols, rows) as usize;
             let visible = pane.visible_messages();
             let (lines, spans) =
-                crate::chatmsgs::card_lines_spanned(&visible, cols as usize, 0, view);
+                crate::chatmsgs::card_lines_spanned(&visible, cols as usize, 0, pane.view());
             if let Some(span) = spans.get(mi) {
                 pane.scroll = scroll_for(lines.len(), budget, target_line(&lines, span, &f.query));
             }

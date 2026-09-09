@@ -136,6 +136,7 @@ impl crate::chat::ChatPane {
         self.pulse.end_turn();
         // A hop that never produced a Message must not strand its card.
         self.streaming.clear();
+        self.drop_stream_reveals();
     }
 
     /// One streamed fragment landed: append it to that agent's provisional
@@ -148,32 +149,28 @@ impl crate::chat::ChatPane {
         // comparing it raw against the normalized `m.sender` would never
         // match an already-open card, opening a spurious new one per delta.
         let key = stream_key(&agent);
+        let (now, added) = (crate::chattime::unix_now_ms(), text.chars().count());
         if let Some(i) = self
             .streaming
             .iter()
             .position(|m| stream_key(&m.sender) == key)
         {
             let mut card = self.streaming.remove(i);
+            let old = card.text.chars().count();
             card.text.push_str(&text);
+            self.note_delta(key, old, old + added, now);
             self.streaming.push(card);
             return;
         }
+        self.note_delta(key, 0, added, now);
         self.streaming.push(crate::chatlayout::Message {
             sender: agent,
             text,
-            ts: crate::chattime::unix_now_ms().to_string(),
+            ts: now.to_string(),
             meta: String::new(),
             usage: None,
             expanded: false,
         });
-    }
-
-    /// Whether the newest message is still fading in — keeps redraw frames
-    /// flowing for the fade's few hundred ms after a reply lands.
-    pub(crate) fn is_fading(&self) -> bool {
-        self.messages
-            .last()
-            .is_some_and(|m| crate::chatmsgs::fade_t(&m.ts, crate::chattime::unix_now_ms()) < 1.0)
     }
 
     /// The live status label: the thinking agent's name (one active) or a
