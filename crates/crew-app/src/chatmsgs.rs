@@ -8,7 +8,7 @@ use crew_render::CellView;
 
 use crate::chatbody::{body_lines, plain, CardLine};
 use crate::chatlayout::Message;
-use crate::chatplace::{line_cells, window};
+use crate::chatplace::line_cells;
 
 /// A card's typewriter state and the clock it is read at.
 type Reveal<'a> = Option<(&'a crate::chatreveal::Reveal, u64)>;
@@ -251,7 +251,8 @@ pub(crate) fn card_line_count(messages: &[&Message], cols: u16, view: View<'_>) 
 
 /// Render the card view of `messages` into `rows` rows starting at `top_row`,
 /// scrolled `scroll` lines up from the live bottom, in the given render `view`
-/// (see [`View`]).
+/// (see [`View`]). Placement — windowing plus the newest card's arrival
+/// glide — is `chatglide::place`.
 pub(crate) fn message_cells(
     messages: &[&Message],
     cols: u16,
@@ -264,13 +265,8 @@ pub(crate) fn message_cells(
         return Vec::new();
     }
     let page = crew_theme::theme().page_bg;
-    let lines = card_lines(
-        messages,
-        cols as usize,
-        crate::chattime::unix_now_ms(),
-        view,
-    );
-    window(lines, rows, top_row, scroll)
+    let now = crate::chattime::unix_now_ms();
+    crate::chatglide::place(messages, cols, rows, top_row, scroll, view, now)
         .iter()
         .flat_map(|(row, line)| line_cells(*row, line, cols, page))
         .collect()

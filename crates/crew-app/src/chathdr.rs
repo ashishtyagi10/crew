@@ -3,108 +3,29 @@
 //! The pane's fieldset legend already names it, so the old in-pane
 //! `agent smith · <channel>` title was pure repetition and is gone. Rendered
 //! as row 0 of the pane, with the message body laid out below it.
-use crate::glyphs::{pick, spinner, Glyph};
+use crate::chathdrsegs::{status_segments, Seg};
+use crate::shimmer::Color;
 use crew_render::CellView;
 
-/// Append `s` at `(row, col..)` in `fg`, clipped to `max_col`; returns the
-/// next free column.
-fn push(
-    cells: &mut Vec<CellView>,
-    row: u16,
-    col: u16,
-    max_col: u16,
-    s: &str,
-    fg: (u8, u8, u8),
-    bold: bool,
-) -> u16 {
+/// Display width of a segment (agent labels can carry wide glyphs).
+fn seg_w(s: &Seg) -> usize {
+    s.iter().map(|(c, _)| crate::chatwidth::char_w(*c)).sum()
+}
+
+/// Append `s` on row 0 at `col..`, clipped to `max_col`; returns the next
+/// free column. Width-aware through `chatwidth::place_row`.
+fn push(cells: &mut Vec<CellView>, col: u16, max_col: u16, s: &Seg) -> u16 {
     let bg = crew_theme::theme().page_bg;
-    // Width-aware (see `chatwidth`): agent labels can carry wide glyphs.
-    crate::chatwidth::place_row(col, max_col, s.chars().map(|c| (c, fg)), |x, c, fg| {
+    crate::chatwidth::place_row(col, max_col, s.iter().copied(), |x, c, fg| {
         cells.push(CellView {
             col: x,
-            row,
+            row: 0,
             c,
             fg,
             bg,
-            bold,
-            italic: false,
             ..Default::default()
         });
     })
-}
-
-/// The muted hint appended to the status while the pane is busy — Esc
-/// cancels the running turn instead of closing the pane (see the
-/// esc-interrupt design doc). Its own segment, inserted right before the
-/// connection dot, so [`header_cells`] can drop it first — before touching
-/// anything else — when the pane is too narrow for the full status.
-const INTERRUPT_HINT: &str = "\u{00b7} esc interrupts";
-
-/// The muted chip shown while the transcript is in compact view (Ctrl+O —
-/// see `ChatPane::compact_view`). Same segment family as [`INTERRUPT_HINT`]
-/// (an optional, droppable `· label` suffix), but less essential than the
-/// busy hint, so [`header_cells`] drops it first when the pane is too narrow
-/// for the full status — before touching the esc-interrupts hint.
-const COMPACT_CHIP: &str = "\u{00b7} compact";
-
-/// The right-aligned status segments as `(text, colour)`, in left-to-right order.
-/// While an agent is active the spinner names it and counts the elapsed
-/// seconds (`| coder · 12s`, in the agent's roster colour); otherwise a plain
-/// `thinking` spinner appears while a send is unanswered. The trailing
-/// connection dot keeps the tighter single-space gap it always had. Session
-/// stats (model, context, tokens) live in the below-input summary footer
-/// (`chatsummary`) — the header is identity and liveness only, never a second
-/// place the same numbers get repeated.
-/// `hint`, when the pane is busy, adds the muted "esc interrupts" segment
-/// just before the dot — callers drop it (`hint: false`) to reclaim width on
-/// narrow panes. `compact`, when the transcript is in compact view, adds the
-/// muted "compact" chip after the spinner (dropped first of the two —
-/// see [`COMPACT_CHIP`] — via `compact: false`).
-/// `tools` (calls in flight, see `chattool`) prefixes the hint with
-/// `· 2 tools running` — the thing Esc would actually interrupt.
-fn status_segments(
-    connected: bool,
-    awaiting: bool,
-    active: Option<(&str, u64, (u8, u8, u8))>,
-    compact: bool,
-    hint: bool,
-    tools: usize,
-) -> Vec<(String, (u8, u8, u8))> {
-    let t = crew_theme::theme();
-    let mut segs = Vec::new();
-    // The spinner: ASCII strokes, or pie slices on a Nerd Font (`glyphs`).
-    let spin = spinner(crate::anim::now_ms());
-    if let Some((label, secs, color)) = active {
-        segs.push((format!("{spin} {label} \u{00b7} {secs}s"), color));
-    } else if awaiting {
-        segs.push((format!("{spin} thinking"), crate::palette::accent()));
-    }
-
-    // Compact-view chip, width-permitting — appended after the spinner,
-    // ahead of the busy hint (see `header_cells`: it's the first of the two
-    // dropped on a narrow pane).
-    if compact {
-        segs.push((COMPACT_CHIP.to_string(), t.text_muted));
-    }
-
-    // Busy hint, width-permitting (see `header_cells`) — appended after the
-    // counters (and the compact chip, if shown), before the connection dot.
-    if awaiting && hint {
-        let running = match tools {
-            0 => String::new(),
-            1 => "\u{00b7} 1 tool running ".to_string(),
-            n => format!("\u{00b7} {n} tools running "),
-        };
-        segs.push((format!("{running}{INTERRUPT_HINT}"), t.text_muted));
-    }
-
-    let (dot, dot_c) = if connected {
-        (pick(Glyph::DotOn), t.activity) // ● connected
-    } else {
-        (pick(Glyph::DotOff), t.dim) // ○ connecting
-    };
-    segs.push((dot.to_string(), dot_c));
-    segs
 }
 
 /// A compact token count: `950`, then `9.5k` from a thousand up.
@@ -116,78 +37,89 @@ pub(crate) fn fmt_tokens(tokens: u64) -> String {
     }
 }
 
+/// Gap before segment `i` of `n`: none before the first, a single space
+/// before the trailing connection dot, two between the rest.
+fn gap(i: usize, n: usize) -> usize {
+    match i {
+        0 => 0,
+        _ if i + 1 == n => 1,
+        _ => 2,
+    }
+}
+
+/// The columns a run of segments takes, gaps included. Shared by the width
+/// probe and the real layout so both agree on the same gap rule.
+fn segs_width(segs: &[Seg]) -> usize {
+    let n = segs.len();
+    segs.iter()
+        .enumerate()
+        .map(|(i, s)| gap(i, n) + seg_w(s))
+        .sum()
+}
+
 /// Build the single-row header for a `cols`-wide agent smith pane — liveness
 /// only (the fieldset legend carries the identity); session stats live in the
-/// below-input summary footer.
-/// `compact` (Ctrl+O — `ChatPane::compact_view`) shows a muted "compact" chip;
-/// it's the first thing dropped on a narrow pane, ahead of the busy hint.
+/// below-input summary footer. Read at the shared animation clock; see
+/// [`header_cells_at`] for the clock as a parameter.
 pub(crate) fn header_cells(
     cols: u16,
     _channel: &str,
     connected: bool,
     awaiting: bool,
-    active: Option<(&str, u64, (u8, u8, u8))>,
+    active: Option<(&str, u64, Color)>,
     compact: bool,
     tools: usize,
+) -> Vec<CellView> {
+    let now = crate::anim::now_ms();
+    header_cells_at(cols, connected, awaiting, active, compact, tools, now)
+}
+
+/// [`header_cells`] at an explicit `now_ms` — the spinner frame, the
+/// shimmer and the breath are all functions of it.
+/// `compact` (Ctrl+O — `ChatPane::compact_view`) shows a muted "compact" chip;
+/// it's the first thing dropped on a narrow pane, ahead of the busy hint.
+pub(crate) fn header_cells_at(
+    cols: u16,
+    connected: bool,
+    awaiting: bool,
+    active: Option<(&str, u64, Color)>,
+    compact: bool,
+    tools: usize,
+    now_ms: u64,
 ) -> Vec<CellView> {
     if cols == 0 {
         return Vec::new();
     }
-    let mut cells = Vec::new();
-
-    // Right-aligned status, laid out from the right edge. Segments get the
-    // usual two-space gap, except the trailing connection dot, which sits a
-    // single space after the token meter. `segs_width` is shared by the
-    // width probe below and the real layout, so both agree on the same gap
-    // rule for whatever segment count they're given.
-    let segs_width = |segs: &[(String, (u8, u8, u8))]| -> usize {
-        let gap = |i: usize| -> u16 {
-            if i == 0 {
-                0
-            } else if i == segs.len() - 1 {
-                1 // tight gap before the trailing connection dot
-            } else {
-                2
-            }
-        };
-        segs.iter()
-            .map(|(s, _)| crate::chatwidth::str_w(s))
-            .sum::<usize>()
-            + (0..segs.len()).map(gap).sum::<u16>() as usize
-    };
     // Try with both the compact chip and the busy hint first. If it doesn't
     // fit, the compact chip is the first thing dropped (it's the less
     // essential of the two); if it still doesn't fit, the hint goes too —
-    // everything else (spinner/active label, token meter, connection dot)
-    // renders exactly as it would without either.
-    let mut segs = status_segments(connected, awaiting, active, compact, true, tools);
-    if segs_width(&segs) as u16 > cols {
-        segs = status_segments(connected, awaiting, active, false, true, tools);
+    // everything else (spinner/active label, connection dot) renders exactly
+    // as it would without either.
+    let build =
+        |chip, hint| status_segments(connected, awaiting, active, chip, hint, tools, now_ms);
+    let mut segs = build(compact, true);
+    if segs_width(&segs) > cols as usize {
+        segs = build(false, true);
     }
-    if segs_width(&segs) as u16 > cols {
-        segs = status_segments(connected, awaiting, active, false, false, tools);
+    if segs_width(&segs) > cols as usize {
+        segs = build(false, false);
     }
-    let gap = |i: usize| -> u16 {
-        if i == 0 {
-            0
-        } else if i == segs.len() - 1 {
-            1 // tight gap before the trailing connection dot
-        } else {
-            2
-        }
-    };
-    let status_w: usize = segs_width(&segs);
-    let mut x = cols.saturating_sub(status_w as u16);
-    for (i, (s, c)) in segs.iter().enumerate() {
-        x += gap(i);
+    // Right-aligned, laid out from the right edge.
+    let mut cells = Vec::new();
+    let mut x = cols.saturating_sub(segs_width(&segs) as u16);
+    for (i, s) in segs.iter().enumerate() {
+        x += gap(i, segs.len()) as u16;
         if x < cols {
-            x = push(&mut cells, 0, x, cols, s, *c, false);
+            x = push(&mut cells, x, cols, s);
         }
     }
-
     cells
 }
 
 #[cfg(test)]
 #[path = "chathdr_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "chathdrglow_tests.rs"]
+mod glow_tests;

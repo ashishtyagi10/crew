@@ -115,15 +115,9 @@ pub(crate) fn art(
             Vec::new(),
         );
     }
-    let names = pane.active_names();
-    let status = pane.active_status().map(|(label, secs)| {
-        // One agent keeps its roster colour; a parallel pack goes accent.
-        let color = match names.as_slice() {
-            [one] => crate::chatroster::agent_color(one),
-            _ => crate::palette::accent(),
-        };
-        (label, secs, color)
-    });
+    // One agent keeps its roster colour (lit while its tokens flow — see
+    // `chatliveness`); a parallel pack goes accent.
+    let status = pane.header_active(crate::anim::now_ms());
     // Session stats (model, context, tokens) live only in the below-input
     // summary footer (`chatsummary`); the header stays identity + liveness so
     // the same numbers are never repeated in two places.

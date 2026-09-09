@@ -13,6 +13,8 @@ use crew_render::CellView;
 use crate::chat::ChatPane;
 use crate::chathdr::fmt_tokens;
 use crate::chatswarm::{SwarmStatus, SwarmTask};
+use crate::chatswarmfit::{paren_bare, paren_whole, paren_with_title};
+use crate::shimmer::Color;
 use crew_hive::TaskState;
 
 /// Shown when the plan has arrived but nothing is running yet — the gap
@@ -37,30 +39,6 @@ fn fmt_elapsed_short(secs: u64) -> String {
     } else {
         format!("{secs}s")
     }
-}
-
-/// Truncate `s` to at most `max_w` display columns using the same strict rule
-/// as [`crate::chatwidth::place_row`] — a glyph that would straddle `max_w` is
-/// dropped, never forced through — and return the kept prefix with its exact
-/// display width. Pre-clamping here (rather than leaning on `place_row`'s
-/// `max_col` at draw time) is what lets [`layout`] know the left text's true
-/// width for the bar and the right-aligned tokens.
-fn clamp(s: &str, max_w: u16) -> (String, u16) {
-    let mut w = 0u16;
-    let mut out = String::new();
-    for c in s.chars() {
-        let cw = crate::chatwidth::char_w(c) as u16;
-        if cw == 0 {
-            out.push(c); // zero-width marks ride along, no column cost
-            continue;
-        }
-        if w + cw > max_w {
-            break;
-        }
-        w += cw;
-        out.push(c);
-    }
-    (out, w)
 }
 
 /// The task the line names: the oldest `Running` one, plus how many others are
@@ -99,6 +77,9 @@ fn inner(elapsed: Option<&str>, count: &str, parallel: Option<&str>) -> String {
 /// the block occupies columns `1..=left_w` and the bar can mirror it exactly.
 struct Line {
     rest: String,
+    /// The running task's title as shown (possibly clamped), for the
+    /// shimmer; empty when the words carry no title, or no task is running.
+    title: String,
     left_w: u16,
     tokens: Option<String>,
 }
@@ -163,6 +144,12 @@ fn layout(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<Line> {
         .unwrap_or_else(|| format!(" {count}")); // floor, guaranteed to fit
 
     let left_w = SPINNER_W + crate::chatwidth::str_w(&rest) as u16;
+    // What sits between the leading space and the `… (` marker — absent in
+    // the bare tiers, and `Working` is not a task, so it never shimmers.
+    let title = match (focused.is_some(), rest.find("\u{2026} (")) {
+        (true, Some(end)) => rest[1..end].to_string(),
+        _ => String::new(),
+    };
 
     // Tokens: right-aligned `(↑in ↓out)`, shown only when the run has spent
     // something and there's a clear column of gap after the left text. They're
@@ -178,43 +165,10 @@ fn layout(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<Line> {
 
     Some(Line {
         rest,
+        title,
         left_w,
         tokens,
     })
-}
-
-/// `" {title}… ({inner})"` only when the *whole* title fits `budget` — the
-/// tier that keeps a task's name intact. `None` if it would need truncating,
-/// leaving the caller to try a cheaper `inner` first (drop elapsed) before
-/// resorting to [`paren_with_title`], which does truncate.
-fn paren_whole(title: &str, inner: &str, budget: u16) -> Option<String> {
-    let s = format!(" {title}\u{2026} ({inner})");
-    (crate::chatwidth::str_w(&s) as u16 <= budget).then_some(s)
-}
-
-/// `" {title}… ({inner})"` with the title truncated to fit `budget`, or `None`
-/// when even a one-column title can't share the row with `({inner})`.
-fn paren_with_title(title: &str, inner: &str, budget: u16) -> Option<String> {
-    let inner_w = crate::chatwidth::str_w(inner) as u16;
-    // Fixed punctuation around the title: leading space + "… (" + ")" = 5 cols.
-    let fixed = 1 + 3 + 1;
-    let title_budget = budget.checked_sub(inner_w + fixed)?;
-    if title_budget == 0 {
-        return None;
-    }
-    let (title, _) = clamp(title, title_budget);
-    if title.is_empty() {
-        return None;
-    }
-    Some(format!(" {title}\u{2026} ({inner})"))
-}
-
-/// `" ({inner})"` with no title, for panes too narrow to show one. `None` when
-/// even that doesn't fit `budget`.
-fn paren_bare(inner: &str, budget: u16) -> Option<String> {
-    let inner_w = crate::chatwidth::str_w(inner) as u16;
-    // Leading space + "(" + ")" = 3 cols.
-    (inner_w + 3 <= budget).then(|| format!(" ({inner})"))
 }
 
 /// Rows the live line occupies in the message area (0 = no live run, or a pane
@@ -234,20 +188,25 @@ pub(crate) fn words_width(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<u16
     layout(pane, cols, now_ms).map(|l| l.left_w)
 }
 
-/// Places `s` on `row` starting at `*col`, advancing by display width and
-/// never emitting a cell at or beyond `max_col` — delegated to
+/// Places `s` on `row` starting at `*col` in one colour — [`push_styled`]
+/// over a plain string.
+fn push_str(v: &mut Vec<CellView>, col: &mut u16, row: u16, s: &str, fg: Color, max_col: u16) {
+    push_styled(v, col, row, s.chars().map(|c| (c, fg)), max_col);
+}
+
+/// Places styled chars on `row` starting at `*col`, advancing by display
+/// width and never emitting a cell at or beyond `max_col` — delegated to
 /// `chatwidth::place_row`, which advances by `char_w` and skips zero-width
 /// marks, so `max_col` is enforced structurally.
-fn push_str(
+fn push_styled(
     v: &mut Vec<CellView>,
     col: &mut u16,
     row: u16,
-    s: &str,
-    fg: (u8, u8, u8),
+    chars: impl IntoIterator<Item = (char, Color)>,
     max_col: u16,
 ) {
     let bg = crew_theme::theme().page_bg;
-    *col = crate::chatwidth::place_row(*col, max_col, s.chars().map(|c| (c, fg)), |x, c, fg| {
+    *col = crate::chatwidth::place_row(*col, max_col, chars, |x, c, fg| {
         v.push(CellView {
             col: x,
             row,
@@ -282,16 +241,24 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         cols,
     );
 
-    // The words (title + parenthetical), muted. Pre-clamped in `layout`, so the
-    // pane-edge `max_col` here is a backstop, not the clamp.
-    push_str(
-        &mut v,
-        &mut col,
-        top_row,
-        &line.rest,
-        theme.text_muted,
-        cols,
+    // The words (title + parenthetical), muted — the running task's title
+    // wearing the shimmer (`shimmer::cells`), the counters never. Pre-clamped
+    // in `layout`, so the pane-edge `max_col` here is a backstop, not the clamp.
+    let muted = theme.text_muted;
+    let title = crate::shimmer::cells(
+        &line.title,
+        now_ms,
+        muted,
+        crate::palette::accent(),
+        theme.page_bg,
+        crate::shimmer::SHIMMER_MS,
+        crate::motion::level(),
     );
+    let after = line.rest.chars().skip(1 + line.title.chars().count());
+    let words = std::iter::once((' ', muted))
+        .chain(title)
+        .chain(after.map(|c| (c, muted)));
+    push_styled(&mut v, &mut col, top_row, words, cols);
 
     // Tokens, right-aligned at the pane edge, muted.
     if let Some(tokens) = &line.tokens {
@@ -305,3 +272,7 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
 #[cfg(test)]
 #[path = "chatswarmview_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "chatswarmshimmer_tests.rs"]
+mod shimmer_tests;

@@ -36,6 +36,10 @@ pub struct ChatPane {
     pub(crate) cost_microusd: u64,
     /// Completed turns (turn-level `Stats` events), for the header.
     pub(crate) turns: u64,
+    /// Each agent's last token burst on the animation clock (`StatsTick`) —
+    /// the header lights the agent's name for a beat after one (see
+    /// `chatliveness`). Stale entries simply decay; nothing prunes them.
+    pub(crate) token_pulse: std::collections::HashMap<String, u64>,
     /// Per-agent totals from reply-level `Stats` events: name → (replies,
     /// total ms) — the roster chips show `n× avg` from these.
     pub(crate) agent_stats: std::collections::HashMap<String, (u32, u64)>,

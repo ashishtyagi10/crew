@@ -596,13 +596,13 @@ impl CrewApp {
             if self.tick.is_multiple_of(BUSY_ANIM_DIV) {
                 any_changed = true;
             }
-        } else if self.ambient_drift() {
+        } else if self.ambient_drift() || self.ambient_breath() {
             // Nothing transient wants a frame, but the page's wash is still
-            // turning (see `washphase`). Its own branch rather than a term in
-            // `wants_animation_frame`, so that predicate keeps meaning "some
-            // animation is in flight" — and so this, the only motion that
-            // repaints an otherwise idle window, is throttled on its own and
-            // can be found by looking for the one thing that costs battery.
+            // turning (see `washphase`), or an idle crew pane's dot breathes
+            // (`panebusy::pane_breathing`). Its own branch rather than a term
+            // in `wants_animation_frame`, so that predicate keeps meaning
+            // "some animation is in flight" — and so the only motion that
+            // repaints an otherwise idle window is throttled on its own here.
             self.tick = self.tick.wrapping_add(1);
             if self.tick.is_multiple_of(AMBIENT_ANIM_DIV) {
                 any_changed = true;

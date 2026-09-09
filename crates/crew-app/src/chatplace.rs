@@ -183,14 +183,10 @@ pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows: u16) -> Vec<(u16, C
     if budget == 0 {
         return Vec::new();
     }
-    let view = pane.view();
-    let lines = crate::chatmsgs::card_lines(
-        &visible,
-        cols as usize,
-        crate::chattime::unix_now_ms(),
-        view,
-    );
-    window(lines, budget, top, pane.scroll)
+    // Through `chatglide::place`, so a click during the newest card's
+    // arrival glide resolves against the rows the frame actually drew.
+    let now = crate::chattime::unix_now_ms();
+    crate::chatglide::place(&visible, cols, budget, top, pane.scroll, pane.view(), now)
 }
 
 #[cfg(test)]
