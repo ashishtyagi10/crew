@@ -15,6 +15,9 @@ pub struct StubServer {
     /// `http://127.0.0.1:<port>` — hand it to the env seams.
     pub base: String,
     pub seen: Seen,
+    /// Every request's raw header block, in arrival order — for asserting
+    /// WHICH credential form a call carried (a bearer vs an `x-api-key`).
+    pub heads: Arc<Mutex<Vec<String>>>,
 }
 
 /// Serve until the test process exits (the accept thread is deliberately
@@ -24,14 +27,17 @@ pub fn serve(handler: impl Fn(&str, &str) -> (u16, String) + Send + 'static) -> 
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());
     let seen: Seen = Arc::new(Mutex::new(Vec::new()));
+    let heads = Arc::new(Mutex::new(Vec::new()));
     let record = Arc::clone(&seen);
+    let record_heads = Arc::clone(&heads);
     std::thread::spawn(move || {
         for sock in listener.incoming() {
             let Ok(mut sock) = sock else { continue };
-            let Some((path, body)) = read_request(&mut sock) else {
+            let Some((path, head, body)) = read_request(&mut sock) else {
                 continue;
             };
             record.lock().unwrap().push((path.clone(), body.clone()));
+            record_heads.lock().unwrap().push(head);
             let (status, json) = handler(&path, &body);
             let reply = format!(
                 "HTTP/1.1 {status} X\r\ncontent-type: application/json\r\n\
@@ -41,12 +47,13 @@ pub fn serve(handler: impl Fn(&str, &str) -> (u16, String) + Send + 'static) -> 
             let _ = sock.write_all(reply.as_bytes());
         }
     });
-    StubServer { base, seen }
+    StubServer { base, seen, heads }
 }
 
 /// Minimal HTTP/1.1 request read: request line for the path, headers for
-/// Content-Length, then exactly that many body bytes.
-fn read_request(sock: &mut std::net::TcpStream) -> Option<(String, String)> {
+/// Content-Length, then exactly that many body bytes. Returns (path, the
+/// raw header block, body).
+fn read_request(sock: &mut std::net::TcpStream) -> Option<(String, String, String)> {
     let mut buf = Vec::new();
     let mut chunk = [0u8; 2048];
     let head_end = loop {
@@ -76,6 +83,7 @@ fn read_request(sock: &mut std::net::TcpStream) -> Option<(String, String)> {
     }
     Some((
         path,
+        head,
         String::from_utf8_lossy(&buf[head_end + 4..]).to_string(),
     ))
 }

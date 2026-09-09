@@ -165,3 +165,34 @@ fn delegated_probe_order_is_claude_then_codex() {
         }
     );
 }
+
+/// The minted rung sits between subscriptions and keys: a signed-in `ant`
+/// profile outranks every pasted key (an explicit sign-in should serve) and
+/// a signed-in Claude Code subscription still outranks it. Installed but
+/// signed out, `ant` is no relay agent: keys serve, and alone it is nothing.
+#[test]
+fn a_signed_in_minting_cli_beats_keys_and_loses_to_a_subscription() {
+    let keys = [
+        "DASHSCOPE_API_KEY",
+        "OPENROUTER_API_KEY",
+        "ANTHROPIC_API_KEY",
+    ];
+    assert_eq!(
+        resolved(false, None, &keys, &["ant"], &[]),
+        Resolved::Keyed("anthropic")
+    );
+    assert_eq!(
+        resolved(false, None, &[], &["ant", "claude"], &[]),
+        CLAUDE_SUB
+    );
+    assert_eq!(
+        resolved(false, None, &["OPENROUTER_API_KEY"], &[], &["ant"]),
+        Resolved::Keyed("openrouter")
+    );
+    assert_eq!(resolved(false, None, &[], &[], &["ant"]), Resolved::None);
+    assert_eq!(
+        resolved(false, Some("dashscope"), &keys, &["ant"], &[]),
+        Resolved::Keyed("dashscope"),
+        "the pin still wins"
+    );
+}

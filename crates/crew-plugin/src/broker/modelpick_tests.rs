@@ -8,6 +8,7 @@ fn info(name: &str, state: AuthState, login: Option<&'static str>, active: bool)
         login,
         active,
         device: false,
+        minted: false,
     }
 }
 

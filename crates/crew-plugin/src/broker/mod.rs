@@ -36,6 +36,7 @@ pub(crate) mod integration;
 mod intent;
 pub mod ledger;
 mod logincmd;
+mod loginrows;
 mod memory;
 mod modelcmd;
 mod modelpick;

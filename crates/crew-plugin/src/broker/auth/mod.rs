@@ -6,6 +6,7 @@
 
 pub(crate) mod device;
 pub(crate) mod keychain;
+pub(crate) mod mint;
 pub(crate) mod probe;
 pub(crate) mod refresh;
 pub(crate) mod registry;

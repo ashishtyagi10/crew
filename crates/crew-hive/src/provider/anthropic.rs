@@ -10,14 +10,40 @@ use super::{
 
 const ENDPOINT: &str = "https://api.anthropic.com/v1/messages";
 const VERSION: &str = "2023-06-01";
+/// The beta header an OAuth bearer must travel with (endpoint-dependent in
+/// theory; `/v1/messages` refuses the token without it).
+const OAUTH_BETA: &str = "oauth-2025-04-20";
+
+/// `<base>/v1/messages`, tolerant of a trailing slash or an already
+/// `/v1`-suffixed base.
+pub fn messages_url(base: &str) -> String {
+    let base = base.trim_end_matches('/');
+    if base.ends_with("/v1") {
+        format!("{base}/messages")
+    } else {
+        format!("{base}/v1/messages")
+    }
+}
+
+/// How a request proves who it is. An API key rides in `x-api-key` (the
+/// form every crew install has always sent); an OAuth access token — the
+/// short-lived `sk-ant-oat01-…` bearer the Anthropic CLI mints for a signed-in
+/// Console profile — rides as `Authorization: Bearer` and MUST carry the
+/// `oauth-2025-04-20` beta header, or `/v1/messages` refuses it.
+#[derive(Clone)]
+enum Auth {
+    Key(String),
+    OAuth(String),
+}
 
 /// Cloning is cheap: `reqwest::Client` is an `Arc` internally (shares one
-/// connection pool) and the key is a short `String`. Sharing one provider
-/// between the planner and the worker factory relies on this.
+/// connection pool) and the credential is a short `String`. Sharing one
+/// provider between the planner and the worker factory relies on this.
 #[derive(Clone)]
 pub struct AnthropicProvider {
     client: reqwest::Client,
-    api_key: String,
+    auth: Auth,
+    endpoint: String,
 }
 
 #[derive(Deserialize)]
@@ -55,9 +81,45 @@ struct ApiResp {
 
 impl AnthropicProvider {
     pub fn new(api_key: String) -> Self {
+        Self::with_auth(Auth::Key(api_key))
+    }
+
+    /// A provider that authenticates with an OAuth access token (bearer +
+    /// the OAuth beta header) instead of an API key.
+    pub fn with_oauth(access_token: String) -> Self {
+        Self::with_auth(Auth::OAuth(access_token))
+    }
+
+    fn with_auth(auth: Auth) -> Self {
         Self {
             client: http_client(request_timeout()),
-            api_key,
+            auth,
+            endpoint: ENDPOINT.to_string(),
+        }
+    }
+
+    /// Send requests to `<base>/v1/messages` instead of the live API — the
+    /// `ANTHROPIC_BASE_URL` seam the official SDKs honour, and the way a
+    /// test points this provider at a loopback stub.
+    pub fn with_base_url(mut self, base: &str) -> Self {
+        self.endpoint = messages_url(base);
+        self
+    }
+
+    /// The endpoint requests go to.
+    pub fn endpoint(&self) -> &str {
+        &self.endpoint
+    }
+
+    /// The auth headers one request carries — pure, so the two forms are
+    /// table-testable without a socket. Never logged.
+    pub fn auth_headers(&self) -> Vec<(&'static str, String)> {
+        match &self.auth {
+            Auth::Key(k) => vec![("x-api-key", k.clone())],
+            Auth::OAuth(t) => vec![
+                ("authorization", format!("Bearer {t}")),
+                ("anthropic-beta", OAUTH_BETA.to_string()),
+            ],
         }
     }
 
@@ -191,7 +253,8 @@ impl Provider for AnthropicProvider {
         req: CompletionRequest,
     ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>> {
         let client = self.client.clone();
-        let key = self.api_key.clone();
+        let headers = self.auth_headers();
+        let endpoint = self.endpoint.clone();
         Box::pin(async move {
             let mut body = serde_json::json!({
                 "model": req.model,
@@ -204,9 +267,11 @@ impl Provider for AnthropicProvider {
             if let Some(tools) = build_tools(&req) {
                 body["tools"] = tools;
             }
-            let resp = client
-                .post(ENDPOINT)
-                .header("x-api-key", key)
+            let mut r = client.post(&endpoint);
+            for (k, v) in headers {
+                r = r.header(k, v);
+            }
+            let resp = r
                 .header("anthropic-version", VERSION)
                 .header("content-type", "application/json")
                 .json(&body)

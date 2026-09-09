@@ -1,7 +1,7 @@
 //! The one resolution function: which provider serves smith work right now,
 //! decided rung by rung over the registry — explicit pin, then signed-in
-//! subscriptions (CLI-delegated), then API keys, then installed CLIs, then
-//! nothing. The mock (test harness) short-circuits everything, exactly as
+//! subscriptions (CLI-delegated), then signed-in minting CLIs, then API
+//! keys, then installed CLIs, then nothing. The mock (test harness) short-circuits everything, exactly as
 //! `pick_provider` has always let it. Every signal is injected, so the
 //! precedence is table-testable without a process environment, a credential
 //! store, or a real CLI on PATH.
@@ -45,8 +45,8 @@ pub(crate) struct Signals<'a> {
 }
 
 /// Resolve the discovery order over the registry. Byte-compatible with
-/// today's behavior when no subscription exists: mock first, then the pin,
-/// then keys in the historic order, then the keyless CLI relay.
+/// today's behavior when no sign-in exists: mock first, then the pin, then
+/// keys in the historic order, then the keyless CLI relay.
 pub(crate) fn resolve(s: &Signals) -> Resolved {
     if s.mock {
         return Resolved::Mock;
@@ -80,6 +80,17 @@ pub(crate) fn resolve(s: &Signals) -> Resolved {
                     name: e.name,
                     agent: cli.bin,
                 };
+            }
+        }
+    }
+    // Signed-in minting CLIs: the vendor CLI vouches for a Console sign-in
+    // and hands out the bearer, which crew's native provider presents — so
+    // the verdict is Keyed, and it sits above pasted keys for the same
+    // reason subscriptions do: an explicit sign-in should serve.
+    for e in registry::minted() {
+        if let Some(m) = e.mint {
+            if (s.signed_in)(&m.cli) {
+                return Resolved::Keyed(e.name);
             }
         }
     }
