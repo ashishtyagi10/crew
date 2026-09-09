@@ -46,6 +46,10 @@ pub(crate) const WORK: &[Cmd] = &[
         desc: "What crew can reach: every manifest, its credential, every tool's tier",
     },
     Cmd {
+        name: "/lsp",
+        desc: "Language servers: which crew knows, which are installed, which are running",
+    },
+    Cmd {
         name: "/out",
         desc: "Open the last command's output on its own, in the file viewer",
     },

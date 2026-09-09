@@ -669,6 +669,7 @@ dependencies = [
  "chrono",
  "cpal",
  "crew-hive",
+ "crew-lsp",
  "crew-plugin",
  "crew-render",
  "crew-term",
@@ -733,6 +734,7 @@ version = "0.21.44"
 dependencies = [
  "anyhow",
  "crew-hive",
+ "crew-lsp",
  "dirs",
  "libc",
  "reqwest",

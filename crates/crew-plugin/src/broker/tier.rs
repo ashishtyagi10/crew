@@ -63,6 +63,11 @@ pub fn sys_tier(tool: &str) -> Option<Tier> {
 pub fn tier_of(server: &str, tool: &str) -> Tier {
     match server {
         "sys" => sys_tier(tool).unwrap_or(Tier::Irreversible),
+        // Language intelligence is read-only by construction: hover,
+        // definition, references and diagnostics observe a project and
+        // change nothing, so an agent asking what a symbol is never has to
+        // wait on an approval prompt for it.
+        "lsp" => Tier::Read,
         _ => Tier::Irreversible,
     }
 }

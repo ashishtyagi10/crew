@@ -2668,6 +2668,45 @@ factory family is complete — `StubFactory`, `ApiFactory`, and `RemoteFactory`
 graphs through one interface. Design rationale and roadmap:
 [`docs/superpowers/specs/2026-06-27-crew-agent-swarm-design.md`](superpowers/specs/2026-06-27-crew-agent-swarm-design.md).
 
+## Language servers (LSP)
+
+crew speaks the Language Server Protocol, **read-only**: nothing here edits a
+file, refactors, or formats. Two consumers share one client (`crates/crew-lsp`):
+
+- **Agents** get four tools on the `lsp` server — `lsp:hover` (the type,
+  signature and docs of the symbol at `{file, line, col}`), `lsp:definition`
+  (where it is declared), `lsp:references` (every use across the project) and
+  `lsp:diagnostics` (a file's compiler errors and warnings, without a build).
+  Positions are 1-based; `file` is relative to the project root. Answers are
+  plain `path:line:col — text` lines. Every `lsp` tool is tier **read**, so
+  the approval gate never asks about one. A server is started per project
+  root and language on first use and kept for the pane; each request has a
+  15 s deadline and a server still indexing is re-asked rather than failed.
+- **The viewer** marks a code file's diagnostics when it opens: `●` in the
+  margin beside an error line, `▲` beside a warning, a curly underline under
+  the offending range, and the document window's legend counts them
+  (`2 errors · 1 warning`, or `lsp: rust-analyzer starting…` while it
+  indexes). The server is started off the winit thread, asked once, and shut
+  down; nothing blocks a frame. `lsp = false` in `config.toml` (or
+  **Language server diagnostics** in `/settings`) turns it off.
+
+**Servers.** By language id, from the file's extension:
+
+| language | command |
+|---|---|
+| rust | `rust-analyzer` |
+| typescript, javascript | `typescript-language-server --stdio` |
+| python | `pyright-langserver --stdio` |
+| go | `gopls` |
+
+`~/.config/crew/lsp.json` overrides or extends the table in the shape
+`{"servers": {"rust": {"command": "/opt/ra/rust-analyzer", "args": ["--log-file", "/tmp/ra.log"]}}}`
+— a language named there replaces the built-in entry; a new one is added.
+A server is only ever *found* on `PATH` (a `which`, no shell); one that is
+not installed is skipped by the viewer and answered "not installed" to an
+agent. **`/lsp`** shows the table — language, command, installed or not —
+and which servers this crew has running, by project root.
+
 ## Sidebar
 
 A docked left panel (toggle with **Cmd+G**) with stacked, line-divided sections:

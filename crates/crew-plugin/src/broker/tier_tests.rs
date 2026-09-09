@@ -80,3 +80,13 @@ fn labels_are_stable_for_the_ledger() {
     assert_eq!(Tier::Reversible.label(), "reversible");
     assert_eq!(Tier::Irreversible.label(), "irreversible");
 }
+
+/// The `lsp` server is crew's own and observes only; an unknown-server default of
+/// "ask" here would put an approval prompt in front of every hover.
+#[test]
+fn every_lsp_tool_is_a_read() {
+    for tool in ["hover", "definition", "references", "diagnostics"] {
+        assert_eq!(tier_of("lsp", tool), Tier::Read, "lsp:{tool}");
+        assert!(!tier_of("lsp", tool).needs_approval());
+    }
+}

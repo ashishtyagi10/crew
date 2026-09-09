@@ -29,6 +29,8 @@ walkdir = { workspace = true }
 pulldown-cmark = { workspace = true }
 crew-hive = { path = "../crew-hive" }
 crew-theme = { path = "../crew-theme" }
+# Viewer diagnostics (viewpane/lspjob.rs) and the `/lsp` status card.
+crew-lsp = { path = "../crew-lsp" }
 tokio = { workspace = true }
 self_update = { workspace = true }
 # Header types for the update download. `self_update` hands back GitHub's *API*

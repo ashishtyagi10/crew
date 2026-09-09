@@ -38,6 +38,9 @@ pub(crate) struct Session {
     /// The configured MCP servers, shared with worker snapshots so lazy
     /// connections and the per-server tool cache live once per pane.
     pub mcp: Arc<Mutex<crate::mcp::McpHost>>,
+    /// The language servers, shared the same way: one client per project
+    /// root and language for the life of the pane, not one per task.
+    pub lsp: Arc<Mutex<crate::lsp::LspHost>>,
     /// The plan `/plan` drafted, awaiting `/approve` or `/reject` — shared so
     /// a worker-thread draft reaches the inline `/reject`.
     pub plan: super::plan::SharedPlan,
@@ -78,6 +81,7 @@ impl Default for Session {
             turns: Arc::new(AtomicU64::new(0)),
             tokens: Arc::new(AtomicU64::new(0)),
             mcp: Arc::new(Mutex::new(crate::mcp::McpHost::from_config())),
+            lsp: Arc::new(Mutex::new(crate::lsp::LspHost::from_config())),
             plan: Arc::new(Mutex::new(None)),
             commit: Arc::new(Mutex::new(None)),
             resume: Arc::new(Mutex::new(None)),
@@ -104,6 +108,7 @@ impl Session {
             turns: Arc::clone(&self.turns),
             tokens: Arc::clone(&self.tokens),
             mcp: Arc::clone(&self.mcp),
+            lsp: Arc::clone(&self.lsp),
             plan: Arc::clone(&self.plan),
             commit: Arc::clone(&self.commit),
             resume: Arc::clone(&self.resume),
@@ -157,11 +162,16 @@ impl Session {
     /// [`Self::tools`] with the `sys` verdict handed in, so a test can build
     /// the real surface without the process-wide env that decides it.
     pub fn tools_with_sys(&self, sys: bool) -> Option<Arc<dyn crew_hive::tools::Tools>> {
-        if !sys && self.lock_mcp().is_empty() && super::integration::load().is_empty() {
+        if !sys
+            && self.lock_mcp().is_empty()
+            && self.lock_lsp().is_empty()
+            && super::integration::load().is_empty()
+        {
             return None;
         }
         Some(Arc::new(SessionTools::new(
             Arc::clone(&self.mcp),
+            Arc::clone(&self.lsp),
             sys,
             Arc::clone(&self.gate),
         )))
@@ -171,13 +181,20 @@ impl Session {
     pub fn lock_mcp(&self) -> std::sync::MutexGuard<'_, crate::mcp::McpHost> {
         self.mcp.lock().unwrap_or_else(|e| e.into_inner())
     }
+
+    /// The shared language-server host, poison-tolerant.
+    pub fn lock_lsp(&self) -> std::sync::MutexGuard<'_, crate::lsp::LspHost> {
+        self.lsp.lock().unwrap_or_else(|e| e.into_inner())
+    }
 }
 
 /// Bridges the engine's [`super::toolcall::ToolRunner`] to the built-in `sys`
-/// tools plus the session's shared [`crate::mcp::McpHost`]: one merged TOOLS
-/// hint, `sys:` dispatched locally, everything else to MCP.
+/// tools plus the session's shared [`crate::mcp::McpHost`] and
+/// [`crate::lsp::LspHost`]: one merged TOOLS hint, `sys:` and `lsp:`
+/// dispatched locally, everything else to MCP.
 struct SessionTools {
     mcp: Arc<Mutex<crate::mcp::McpHost>>,
+    lsp: Arc<Mutex<crate::lsp::LspHost>>,
     /// Whether the built-in `sys` surface is on, decided ONCE when the broker
     /// is built rather than re-read on every hint and every call.
     ///
@@ -206,11 +223,13 @@ struct SessionTools {
 impl SessionTools {
     fn new(
         mcp: Arc<Mutex<crate::mcp::McpHost>>,
+        lsp: Arc<Mutex<crate::lsp::LspHost>>,
         sys: bool,
         gate: Arc<Mutex<super::approval::Gate>>,
     ) -> Self {
         Self {
             mcp,
+            lsp,
             sys,
             requester: super::approval::Requester::from_env(),
             gate,
@@ -228,7 +247,21 @@ impl SessionTools {
     /// gate — the session-shared one is not reachable from here.
     #[cfg(test)]
     fn for_test(mcp: Arc<Mutex<crate::mcp::McpHost>>, sys: bool) -> Self {
-        Self::new(mcp, sys, Arc::new(Mutex::new(super::approval::Gate::new())))
+        Self::new(
+            mcp,
+            Arc::new(Mutex::new(crate::lsp::LspHost::default())),
+            sys,
+            Arc::new(Mutex::new(super::approval::Gate::new())),
+        )
+    }
+
+    /// [`Self::for_test`] with a language-server table handed in.
+    #[cfg(test)]
+    fn with_lsp(self, lsp: crate::lsp::LspHost) -> Self {
+        Self {
+            lsp: Arc::new(Mutex::new(lsp)),
+            ..self
+        }
     }
 
     /// [`Self::for_test`] with integrations handed in rather than read from disk. The
@@ -277,6 +310,7 @@ impl SessionTools {
             Vec::new()
         };
         tools.extend(self.mcp.lock().unwrap_or_else(|e| e.into_inner()).tools());
+        tools.extend(self.lsp.lock().unwrap_or_else(|e| e.into_inner()).tools());
         tools.extend(super::integration::tools_of(&self.integrations));
         tools
     }
@@ -314,10 +348,18 @@ impl super::toolcall::ToolRunner for SessionTools {
         super::toolcall::hint_for(&self.catalog())
     }
 
-    /// One line per integration and per MCP server, for the planner.
+    /// One line per integration and per MCP server, plus one for the
+    /// language servers, for the planner.
     fn capabilities(&self) -> Vec<String> {
         let mcp = self.mcp.lock().unwrap_or_else(|e| e.into_inner()).tools();
-        super::capabilities::lines(&self.integrations, &mcp)
+        let mut lines = super::capabilities::lines(&self.integrations, &mcp);
+        let lsp = self
+            .lsp
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .status_rows();
+        lines.extend(super::capabilities::lsp_line(&lsp));
+        lines
     }
 
     /// The tools worth naming for THIS task, plus a count of what was left out.
@@ -402,6 +444,11 @@ impl super::toolcall::ToolRunner for SessionTools {
             ))
         } else if server == "sys" && self.sys {
             super::systools::call(tool, args)
+        } else if server == "lsp" {
+            self.lsp
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .call(tool, args)
         } else if self.integration(server).is_some() {
             self.call_integration(server, tool, args)
         } else {
