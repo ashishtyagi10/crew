@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.62
+
+**Whatever you chose last is what serves — and `/model` is the one front
+door: sign in there, then pick a model the sign-in serves, in the same popup.**
+
+A signed-in Claude Code sat idle while the footer read `qwen-max`. The
+credential store held a provider pin from an earlier Qwen model pick, and a
+pin outranked a sign-in for good — nothing ever moved it. Now every way of
+choosing writes the same pin, so the latest one wins: picking a model, a
+`/login` pick of a signed-in CLI (it used to answer "signed in and serving",
+which was not true), and a sign-in or sign-out that happens in a terminal —
+the broker keeps each CLI's last definitive verdict and treats the flip as the
+choice: out→in pins that provider, in→out drops a pin that named it. A first
+sighting only records, so an install that was signed in all along cannot
+unseat a pin written after it.
+
+The `/model` picker leads with a "sign in · who serves" section — the Qwen
+device flow, OpenRouter's browser flow, and each vendor CLI with its state
+(signed in and serving, signed in and pickable, or the command to run) — and
+a Claude row lights up the moment Claude Code is signed in: picking one pins
+`claude-code` and runs that model through the CLI, with no Anthropic key. The
+slash palette's `/login` row opens that picker rather than a second one. The
+`Roster` event now carries the serving provider and the sign-in rows, so the
+pane's picker and footer follow every change without a restart.
+
 ## 0.21.61
 
 **A signed-in `ant` is seen from the pane — no more "not installed" about a

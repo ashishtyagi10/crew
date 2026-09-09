@@ -134,7 +134,7 @@ fn model_pins_an_agent_and_reemits_the_roster() {
     assert_eq!(session.overrides.get("coder").unwrap(), "qwen-turbo");
     // A fresh Roster event precedes the confirmation message.
     match &evs[0] {
-        PluginEvent::Roster { agents } => {
+        PluginEvent::Roster { agents, .. } => {
             let coder = agents.iter().find(|a| a.name == "coder").unwrap();
             assert_eq!(coder.model, "qwen-turbo");
         }
@@ -188,7 +188,7 @@ fn model_all_pins_every_agent_and_reemits_the_roster() {
         );
     }
     match &evs[0] {
-        PluginEvent::Roster { agents } => {
+        PluginEvent::Roster { agents, .. } => {
             assert!(agents.iter().all(|a| a.model == "qwen-turbo"));
         }
         ev => panic!("expected Roster first, got {ev:?}"),

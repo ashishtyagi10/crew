@@ -278,10 +278,40 @@ pub(crate) fn pin_provider_for_model(model: &str) -> Option<&'static str> {
             (d.name, d.var)
         }
     };
-    if active.map(|p| p.name()) == Some(name) || key_for(&store, var).is_none() {
-        return None;
-    }
+    let name = serves_vendor(name, var, active.map(|p| p.name()), |v| {
+        key_for(&store, v).is_some()
+    })?;
     crate::credentials::save_pin(name).ok().map(|()| name)
+}
+
+/// Pure: who to pin for a vendor whose native provider is `name` keyed by
+/// `var` — that provider when its key (or minted bearer) serves; for
+/// Anthropic, a signed-in Claude Code subscription when no key does (the
+/// CLI runs the same model ids); `None` when nothing can, or when the
+/// answer is already the active provider.
+fn serves_vendor(
+    name: &'static str,
+    var: &str,
+    active: Option<&str>,
+    has_key: impl Fn(&str) -> bool,
+) -> Option<&'static str> {
+    let pick = if has_key(var) {
+        name
+    } else if name == "anthropic" && claude_code_signed_in() {
+        "claude-code"
+    } else {
+        return None;
+    };
+    (active != Some(pick)).then_some(pick)
+}
+
+/// Whether the Claude Code CLI reports a live login (cached per process).
+fn claude_code_signed_in() -> bool {
+    super::auth::registry::by_name("claude-code")
+        .and_then(|e| e.cli)
+        .is_some_and(|c| {
+            super::auth::probe::state_cached(&c) == super::auth::probe::CliAuth::SignedIn
+        })
 }
 
 /// What to tell a user who has no provider at all — the one copy of it.

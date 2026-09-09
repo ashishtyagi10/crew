@@ -306,6 +306,7 @@ mod minstrip;
 mod modelfetch;
 mod modelpick;
 mod modelroute;
+mod modelsignin;
 mod modernring;
 mod motion;
 mod navcard;

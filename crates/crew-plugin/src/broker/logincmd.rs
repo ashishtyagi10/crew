@@ -25,6 +25,17 @@ use super::session::Session;
 /// terminal took, and a cached "not installed" from the pane's first
 /// minute answered "no" to a machine that had it.
 pub(crate) fn rows() -> Vec<LoginRow> {
+    rows_with(&probe::state_fresh)
+}
+
+/// [`rows`] from the per-process probe cache — for the roster event, which
+/// goes out after every provider change and must not spawn three CLIs
+/// each time. A negative verdict re-probes within `probe::NEGATIVE_TTL`.
+pub(crate) fn rows_cached() -> Vec<LoginRow> {
+    rows_with(&probe::state_cached)
+}
+
+fn rows_with(probe: &dyn Fn(&registry::CliSpec) -> CliAuth) -> Vec<LoginRow> {
     let store = crate::credentials::load();
     let mut out = Vec::new();
     for e in registry::entries() {
@@ -41,7 +52,7 @@ pub(crate) fn rows() -> Vec<LoginRow> {
                 install: None,
             });
         } else if let Some(m) = e.mint {
-            let (signed_in, install) = match probe::state_fresh(&m.cli) {
+            let (signed_in, install) = match probe(&m.cli) {
                 CliAuth::SignedIn => (true, None),
                 CliAuth::SignedOut => (false, None),
                 CliAuth::Absent => (false, Some(m.install)),
@@ -56,7 +67,7 @@ pub(crate) fn rows() -> Vec<LoginRow> {
                 install,
             });
         } else if let Some(cli) = e.cli {
-            let signed_in = match probe::state_fresh(&cli) {
+            let signed_in = match probe(&cli) {
                 CliAuth::SignedIn => true,
                 CliAuth::SignedOut => false,
                 CliAuth::Absent | CliAuth::Unknown => continue,
@@ -96,8 +107,30 @@ pub(crate) fn login_cmd(
     }
     match pick(&rows, arg) {
         LoginPick::Device(name) => super::signin::signin_cmd(session, &name, emit),
+        LoginPick::Serve(name) => serve(session, &name, emit),
         LoginPick::Note(note) => emit(msg("agent smith", note)),
     }
+}
+
+/// A signed-in CLI, picked: pin it, so it serves smith work from the next
+/// message — the same pin a model pick writes, so whichever the user chose
+/// LAST is the one that serves. The roster goes out again with the new
+/// provider so the pane's footer and picker follow.
+fn serve(
+    session: &Session,
+    name: &str,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
+    let note = match crate::credentials::save_pin(name) {
+        Ok(()) => format!(
+            "\u{2713} {name} now serves smith work \u{2014} signed in through its \
+             own CLI (persists across restarts; pick a model or another \
+             sign-in to switch)"
+        ),
+        Err(e) => format!("could not store the {name} pin: {e}"),
+    };
+    emit(super::rosterev::roster(session.registry().infos()))?;
+    emit(msg("agent smith", note))
 }
 
 /// `/logout [provider|list]` — remove a stored OAuth grant. With a key
@@ -149,9 +182,7 @@ pub(crate) fn logout_cmd(
         return emit(msg("agent smith", note));
     }
     super::auth::tokens::clear(&name);
-    emit(PluginEvent::Roster {
-        agents: session.registry().infos(),
-    })?;
+    emit(super::rosterev::roster(session.registry().infos()))?;
     emit(msg(
         "agent smith",
         format!(

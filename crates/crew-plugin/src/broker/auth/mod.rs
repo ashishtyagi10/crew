@@ -11,6 +11,7 @@ pub(crate) mod probe;
 pub(crate) mod refresh;
 pub(crate) mod registry;
 pub(crate) mod resolve;
+pub(crate) mod seen;
 pub(crate) mod state;
 pub(crate) mod tokens;
 
@@ -22,7 +23,12 @@ pub(crate) use resolve::{resolve, Resolved, Signals};
 /// installs. The probe closures run lazily — under the mock or a pin the
 /// resolution returns before any process is spawned.
 pub(crate) fn resolved_live() -> Resolved {
-    let store = crate::credentials::load();
+    let mut store = crate::credentials::load();
+    // A sign-in or sign-out that happened in a terminal since the last look
+    // is the user's latest choice: it moves the pin BEFORE the pin is read.
+    if seen::observe(&store) {
+        store = crate::credentials::load();
+    }
     resolve(&Signals {
         mock: super::discover::key_for(&store, "CREW_BROKER_MOCK_REPLY").is_some(),
         pin: super::discover::forced_provider(&store),

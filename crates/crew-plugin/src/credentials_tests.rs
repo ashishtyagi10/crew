@@ -21,6 +21,7 @@ fn debug_redacts_the_key_values_but_keeps_the_names() {
         )]
         .into_iter()
         .collect(),
+        ..Default::default()
     };
     let printed = format!("{s:?}");
     assert!(
@@ -155,4 +156,54 @@ fn provider_for_maps_every_var_and_nothing_else() {
     for v in VARS {
         assert!(provider_for(v).is_some(), "{v} has no provider mapping");
     }
+}
+
+/// The pin can be dropped without touching a key or a verdict, and a
+/// verdict can be recorded without touching the pin — the two edits the
+/// "last choice serves" rule makes, each leaving the rest of the store
+/// exactly as it was.
+#[test]
+fn clearing_the_pin_and_recording_a_verdict_leave_the_rest_alone() {
+    let p = scratch("pin-seen");
+    save_key_at(&p, "DASHSCOPE_API_KEY", "sk-test", Some("dashscope")).unwrap();
+    save_seen_at(&p, "claude-code", "in").unwrap();
+    let s = load_from(&p);
+    assert_eq!(
+        s.provider.as_deref(),
+        Some("dashscope"),
+        "a verdict is not a pin"
+    );
+    assert_eq!(s.seen.get("claude-code").map(String::as_str), Some("in"));
+    assert_eq!(
+        s.keys.get("DASHSCOPE_API_KEY").map(String::as_str),
+        Some("sk-test")
+    );
+
+    clear_pin_at(&p).unwrap();
+    let s = load_from(&p);
+    assert_eq!(s.provider, None, "the pin is gone");
+    assert_eq!(
+        s.seen.get("claude-code").map(String::as_str),
+        Some("in"),
+        "the verdict stays"
+    );
+    assert_eq!(s.keys.len(), 1, "the key stays");
+
+    save_seen_at(&p, "claude-code", "out").unwrap();
+    assert_eq!(
+        load_from(&p).seen.get("claude-code").map(String::as_str),
+        Some("out")
+    );
+    // An empty map never reaches the file: older builds read the store too.
+    let text = std::fs::read_to_string(&p).unwrap();
+    assert!(text.contains("\"seen\""), "{text}");
+    save_key_at(&scratch("no-seen"), "DASHSCOPE_API_KEY", "sk", None).unwrap();
+    let text = std::fs::read_to_string(
+        scratch("no-seen")
+            .parent()
+            .unwrap()
+            .join("credentials.json"),
+    )
+    .unwrap_or_default();
+    assert!(!text.contains("\"seen\""), "{text}");
 }

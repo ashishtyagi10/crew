@@ -95,6 +95,9 @@ pub(crate) fn signed_in(rows: &[LoginRow]) -> Vec<crate::SignInOption> {
 pub(crate) enum LoginPick {
     /// Run this provider's device flow (a signed-in pick re-authenticates).
     Device(String),
+    /// A CLI-owned sign-in that is live: the pick makes it SERVE — the
+    /// pin moves there, as picking a model moves it (last choice wins).
+    Serve(String),
     /// A message for the pane.
     Note(String),
 }
@@ -124,19 +127,10 @@ pub(crate) fn pick(rows: &[LoginRow], arg: &str) -> LoginPick {
         });
     };
     match (r.cli_login, r.install, r.signed_in) {
-        // Already signed in through the CLI: the pick is a status, not a
-        // second sign-in — a user who has just run the login and picks the
-        // row to check must not be told to run it again.
-        (Some(_), _, true) => {
-            let out = registry::by_name(&r.name)
-                .and_then(|e| e.mint)
-                .map(|m| format!(" \u{2014} `{}` signs out", m.logout))
-                .unwrap_or_default();
-            LoginPick::Note(format!(
-                "{} is signed in through its own CLI and serving{out}",
-                r.name
-            ))
-        }
+        // Already signed in through the CLI: the pick makes it serve — a
+        // user who has just run the login and picks the row means "use
+        // this one", never "tell me to run the login again".
+        (Some(_), _, true) => LoginPick::Serve(r.name.clone()),
         (Some(login), Some(install), false) => LoginPick::Note(format!(
             "{} signs in through its own CLI, which crew can't find on its PATH \
              \u{2014} `{install}` if it isn't installed, then `{login}`; \
@@ -148,6 +142,8 @@ pub(crate) fn pick(rows: &[LoginRow], arg: &str) -> LoginPick {
              again here (crew re-checks by itself within a minute)",
             r.name
         )),
-        (None, _, _) => LoginPick::Device(r.name.clone()),
+        // A live grant, picked, serves; signing in again is `/logout` first.
+        (None, _, true) => LoginPick::Serve(r.name.clone()),
+        (None, _, false) => LoginPick::Device(r.name.clone()),
     }
 }

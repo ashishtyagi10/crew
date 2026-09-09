@@ -159,7 +159,7 @@ pub(crate) fn run_with(
             agents.push(info);
         }
     }
-    emit(PluginEvent::Roster { agents })?;
+    emit(super::rosterev::roster(agents))?;
 
     // Execute: scheduler + optional budget governor + bus drain, all on this
     // thread's runtime (the pattern proven in crew-app/src/swarm/bridge.rs).

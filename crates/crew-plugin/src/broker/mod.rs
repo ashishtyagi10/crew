@@ -48,6 +48,7 @@ mod registry;
 mod relay;
 mod retired;
 mod review;
+mod rosterev;
 mod roundloop;
 mod route;
 mod run;

@@ -207,7 +207,9 @@ pub fn roster_names(events: &[PluginEvent]) -> Vec<String> {
     events
         .iter()
         .find_map(|e| match e {
-            PluginEvent::Roster { agents } => Some(agents.iter().map(|a| a.name.clone()).collect()),
+            PluginEvent::Roster { agents, .. } => {
+                Some(agents.iter().map(|a| a.name.clone()).collect())
+            }
             _ => None,
         })
         .unwrap_or_default()

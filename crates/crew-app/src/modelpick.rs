@@ -5,7 +5,7 @@
 //! composer's `Kind::Model` popup) render the same list.
 use crew_hive::catalog::{catalog, ModelInfo, Vendor};
 
-use crate::modelroute::{route_with_keys, Route};
+use crate::modelroute::{route_with_signins, Route};
 use crate::suggest::MenuItem;
 
 #[path = "modelbadge.rs"]
@@ -85,10 +85,22 @@ pub(crate) fn rows_with_recents(
     // What the user actually holds, so a row they can already reach is
     // neither dimmed nor turned into a prompt for a key they have.
     let held = crate::shellprobe::keys_now();
+    let signins = crate::modelsignin::now();
+    let route = |m: &ModelInfo| {
+        route_with_signins(
+            m,
+            provider,
+            probed,
+            |v| held.contains(v),
+            |n| crate::modelsignin::signed_in(&signins, n),
+        )
+    };
     let mut out = Vec::new();
     if "default".starts_with(&q) {
         out.push(default_row());
     }
+    // Who serves, first: sign in here, then pick a model it serves below.
+    out.extend(crate::modelsignin::section_now(&signins, &held, &q));
     // A shortcut, not a move: a recent model still appears in its own vendor
     // section below too. An unknown slug (a model that left the catalog) is
     // skipped rather than rendered blank; if none survive, no header either
@@ -117,9 +129,8 @@ pub(crate) fn rows_with_recents(
     if !recent.is_empty() {
         out.push(header_row("recent"));
         for m in recent {
-            let route = route_with_keys(m, provider, probed, |v| held.contains(v));
             let is_current = current.is_some_and(|c| c == m.slug || Some(c) == m.or_slug);
-            out.push(model_row(m, route, is_current));
+            out.push(model_row(m, route(m), is_current));
         }
     }
     for vendor in Vendor::ORDER {
@@ -132,9 +143,8 @@ pub(crate) fn rows_with_recents(
         }
         out.push(header_row(vendor.label()));
         for m in hits {
-            let route = route_with_keys(m, provider, probed, |v| held.contains(v));
             let is_current = current.is_some_and(|c| c == m.slug || Some(c) == m.or_slug);
-            out.push(model_row(m, route, is_current));
+            out.push(model_row(m, route(m), is_current));
         }
     }
     out
@@ -146,10 +156,6 @@ fn default_row() -> MenuItem {
         desc: "back to the provider default".to_string(),
         fill: "default".to_string(),
         submit: true,
-        header: false,
-        dim: false,
-        needs: None,
-        color: None,
         ..Default::default()
     }
 }
@@ -157,13 +163,7 @@ fn default_row() -> MenuItem {
 fn header_row(label: &str) -> MenuItem {
     MenuItem {
         label: label.to_string(),
-        desc: String::new(),
-        fill: String::new(),
-        submit: false,
         header: true,
-        dim: false,
-        needs: None,
-        color: None,
         ..Default::default()
     }
 }
@@ -181,10 +181,8 @@ fn model_row(m: &ModelInfo, route: Route, current: bool) -> MenuItem {
         desc: desc(m, price, free, context, route, current),
         fill: route.fill_slug(m),
         submit: true,
-        header: false,
         dim: route.unserveable(),
         needs: route.needs_key().map(str::to_string),
-        color: None,
         ..Default::default()
     }
 }

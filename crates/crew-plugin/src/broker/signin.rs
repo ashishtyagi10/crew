@@ -51,9 +51,7 @@ pub(crate) fn signin_cmd(
         Outcome::Stopped => "sign-in stopped".into(),
         Outcome::Failed(e) => format!("sign-in failed: {e}"),
     };
-    emit(PluginEvent::Roster {
-        agents: session.registry().infos(),
-    })?;
+    emit(super::rosterev::roster(session.registry().infos()))?;
     emit(msg("agent smith", note))
 }
 
