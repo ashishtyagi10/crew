@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.54
+
+**A badge's rounded ends are drawn, not read from the font — so a pill is
+a pill in every face.**
+
+The sender badges on a swarm hand-off (`editor → software-engineer`), the
+fence language badge, the footer's working agents and the plan row's
+buttons all end in the powerline half-circles a Nerd Font carries. A
+patched font scales those arcs to ITS cell, not crew's, so on the pane
+one end stood taller than the block and the other fell short: neither
+round nor square. The renderer now draws the two caps the way it already
+draws every frame and meter — a half-disc exactly the cell's height,
+meeting the block at full ink along every row, a true semicircle wherever
+the cell is at least half as wide as it is tall. The half-block caps used
+off the icon set were already drawn and stay square.
+
 ## 0.21.53
 
 **A Claude Pro/Max plan now carries swarm planning, judges and fan-outs,

@@ -513,3 +513,47 @@ fn an_impossible_cell_box_is_declined_not_allocated() {
     // The largest box that IS a cell still draws.
     assert!(synth('\u{2500}', 512, 512, 0).is_some());
 }
+
+/// A badge cap is the cell's own half-disc: full ink where it meets the
+/// block, rounded away to nothing at the far corners, and the two caps are
+/// mirror images — so a pill's two ends match, whatever font is loaded.
+#[test]
+fn badge_caps_are_half_discs_that_meet_the_block() {
+    let (w, h) = (8, 16);
+    let left = cell('\u{e0b6}', w, h);
+    let right = cell('\u{e0b4}', w, h);
+    // The edge on the block's side is inked down its whole height at the
+    // middle, and every row of it carries ink — a seam-free join.
+    assert_eq!(at(&left, w - 1, h / 2), 255, "left cap misses its block");
+    assert_eq!(at(&right, 0, h / 2), 255, "right cap misses its block");
+    assert!(
+        (0..h).all(|y| at(&left, w - 1, y) > 0),
+        "left cap has a gap"
+    );
+    assert!((0..h).all(|y| at(&right, 0, y) > 0), "right cap has a gap");
+    // The far corners are round: nothing there.
+    for y in [0, h - 1] {
+        assert_eq!(at(&left, 0, y), 0, "left cap is square at row {y}");
+        assert_eq!(at(&right, w - 1, y), 0, "right cap is square at row {y}");
+    }
+    // Mirror images, and symmetric top to bottom.
+    for y in 0..h {
+        for x in 0..w {
+            assert_eq!(
+                at(&left, x, y),
+                at(&right, w - 1 - x, y),
+                "not mirrored at {x},{y}"
+            );
+            assert_eq!(
+                at(&left, x, y),
+                at(&left, x, h - 1 - y),
+                "not symmetric at {x},{y}"
+            );
+        }
+    }
+    // At a wide cell the cap is a true semicircle with its bulge exactly
+    // half the height across, not stretched to fill the width.
+    let wide = cell('\u{e0b6}', 16, 16);
+    assert_eq!(at(&wide, 7, 8), 0, "a semicircle does not reach past r");
+    assert!(at(&wide, 9, 8) > 0, "a semicircle reaches its own radius");
+}

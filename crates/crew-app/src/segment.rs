@@ -10,9 +10,12 @@
 //!
 //! The caps come from [`crate::glyphs`]' switch. On a Nerd Font they are
 //! the powerline round arcs (U+E0B6 / U+E0B4), the "modern" oh-my-posh look.
-//! Off it they are half blocks (`▐` / `▌`): a cap cell draws in the block's
-//! colour on the ground behind it, so the half block IS the block's edge,
-//! painted by ink rather than by a glyph a plain font might lack.
+//! Off it they are half blocks (`▐` / `▌`). Either way a cap cell draws in
+//! the block's colour on the ground behind it, so the cap IS the block's
+//! edge — and either way the renderer DRAWS it (`crew_render`'s `boxglyph`)
+//! rather than reading it from the font: a patched face scales its arcs to
+//! its own cell, and they came back taller than the block on one end and
+//! shorter on the other, so the pill was neither round nor square.
 use crate::chatbody::{CardCell, Color};
 
 /// Powerline round left cap (nf-ple-left_half_circle_thick).

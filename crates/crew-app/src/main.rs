@@ -26,6 +26,9 @@ mod askroute;
 mod askwait;
 mod attention;
 mod autoupdate;
+#[cfg(test)]
+#[path = "badgeshot_tests.rs"]
+mod badgeshot_tests;
 mod blocked;
 mod blocks;
 mod bordermarks;
