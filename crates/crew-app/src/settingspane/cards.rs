@@ -71,6 +71,8 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     cy += 1;
     rects.push((Field::Invisibles, Rect::new(ix, cy, iw, 1)));
     cy += 1;
+    rects.push((Field::Lsp, Rect::new(ix, cy, iw, 1)));
+    cy += 1;
     rects.push((Field::PaperTexture, Rect::new(ix, cy, iw, 1)));
     cy += 1;
     rects.push((Field::AmbientDrift, Rect::new(ix, cy, iw, 1)));

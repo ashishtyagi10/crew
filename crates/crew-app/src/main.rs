@@ -410,6 +410,7 @@ mod transientshot_tests;
 #[cfg(test)]
 mod integrshot_tests;
 mod integrview;
+mod lspon;
 mod lspview;
 mod todopane;
 #[cfg(test)]

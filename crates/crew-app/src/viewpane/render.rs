@@ -4,44 +4,10 @@ use std::cell::Ref;
 use crew_render::CellView;
 
 use crate::viewpane::lines;
+use crate::viewpane::searchline::search_line;
 use crate::viewpane::sticky;
+use crate::viewpane::{lspdeco, lspgutter};
 use crate::viewpane::{ViewCache, ViewPane};
-
-/// The live search, drawn on the pane's last row: what you are typing and how
-/// many lines hold it.
-///
-/// Without it the viewer's `/` was typed blind — the needle existed only in
-/// the pane's state, so a mistyped search looked exactly like a search with no
-/// matches, and neither said which it was.
-fn search_line(out: &mut Vec<CellView>, p: &ViewPane, cols: u16, rows: u16) {
-    let Some(s) = &p.search else { return };
-    let t = crew_theme::theme();
-    let row = rows - 1;
-    let count = match (s.typing, s.hits.len()) {
-        (true, _) => String::new(),
-        (false, 0) => "  no matches".to_string(),
-        (false, n) => format!("  {n} line{}", if n == 1 { "" } else { "s" }),
-    };
-    let caret = if s.typing { "\u{2588}" } else { "" };
-    let text = format!("/{}{caret}{count}", s.needle);
-    // The row belongs to the search while it is open: clear whatever content
-    // was drawn there rather than letting the two overprint.
-    out.retain(|c| c.row != row);
-    let fg = match (s.typing, s.hits.is_empty()) {
-        (false, true) => t.bell,
-        _ => crate::findhl::hit_mark(),
-    };
-    crate::chatwidth::place_row(0, cols, text.chars().map(|c| (c, fg)), |col, c, fg| {
-        out.push(CellView {
-            col,
-            row,
-            c,
-            fg,
-            bg: t.page_bg,
-            ..Default::default()
-        });
-    });
-}
 
 impl ViewPane {
     /// Lines for `cols`, rebuilding the cache only on a width or mode change.
@@ -54,23 +20,29 @@ impl ViewPane {
             .lines()
             .and_then(|_| crate::viewpane::blame::width_for(cols as usize))
             .unwrap_or(0);
+        // …and so is the diagnostics margin, for the same reason.
+        let lsp_w = self.lsp.diags().map_or(0, |_| lspgutter::WIDTH);
         let theme = crew_theme::current_id();
         let stale = self.cache.borrow().as_ref().is_none_or(|c| {
             c.cols != cols
                 || c.raw != self.raw
                 || c.blame_w != blame_w
+                || c.lsp_w != lsp_w
                 || c.theme != theme
                 || c.invisibles != crate::invisibles::on()
                 || c.split != self.split
         });
         if stale {
-            let text_cols = (cols as usize).saturating_sub(blame_w);
+            let text_cols = (cols as usize).saturating_sub(blame_w + lsp_w);
             let invisibles = crate::invisibles::on();
             let (mut lines, marks, pictures) =
                 lines::for_state(&self.state, self.raw, text_cols, invisibles, self.split);
             if let Some(b) = self.blame.lines().filter(|_| blame_w > 0) {
                 let labels = crate::viewpane::blame::labels(b, blame_w);
                 crate::viewpane::blamegutter::apply(&mut lines, &labels, blame_w);
+            }
+            if let Some(d) = self.lsp.diags() {
+                lspgutter::apply(&mut lines, &lspgutter::marks(d), blame_w);
             }
             self.cache.replace(Some(ViewCache {
                 cols,
@@ -79,6 +51,7 @@ impl ViewPane {
                 marks,
                 pictures,
                 blame_w,
+                lsp_w,
                 invisibles,
                 split: self.split,
                 theme,
@@ -155,6 +128,14 @@ impl ViewPane {
                 }
             }
             let _ = col;
+        }
+        // What the language server flagged, underlined where it said.
+        if let (Some(d), crate::viewpane::LoadState::Ready { loaded, .. }) =
+            (self.lsp.diags(), &self.state)
+        {
+            let spans = lspdeco::spans(&loaded.text, d, crate::invisibles::on());
+            let at = cache.blame_w + cache.lsp_w;
+            lspdeco::apply(&mut out, &cache.lines, top, rows as usize, at, &spans);
         }
         // The caret, on the cell it is standing on. A beam rather than a
         // block: the character under it is the document, and a block would

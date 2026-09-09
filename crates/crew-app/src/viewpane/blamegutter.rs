@@ -19,7 +19,13 @@ use super::lines::GUTTER_W;
 /// The source line (1-based) a rendered `line` belongs to, or `None` for a
 /// wrap continuation, a banner, or anything else without a numbered gutter.
 fn source_line(line: &CardLine) -> Option<usize> {
-    let head: String = line.iter().take(GUTTER_W).map(|c| c.c).collect();
+    source_line_at(line, 0)
+}
+
+/// [`source_line`] for a row whose number gutter starts `at` cells in —
+/// after another column (this one, or the diagnostics margin) was prepended.
+pub(crate) fn source_line_at(line: &CardLine, at: usize) -> Option<usize> {
+    let head: String = line.iter().skip(at).take(GUTTER_W).map(|c| c.c).collect();
     head.trim().parse::<usize>().ok()
 }
 

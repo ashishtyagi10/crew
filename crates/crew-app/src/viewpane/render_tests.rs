@@ -36,8 +36,7 @@ fn a_zero_sized_grid_draws_nothing_and_does_not_panic() {
 }
 
 // `cells_fit_inside_the_grid` only checks `c.col < cols`, which is true even
-// for a wide glyph whose col + width overruns the edge — its fixture is
-// ASCII-only anyway, so char_w is always 1 there and the case never arises.
+// for a wide glyph whose col + width overruns the edge (its fixture is ASCII).
 // Inject a CardLine directly (bypassing `lines::for_state`, which already
 // wraps by display width and so never produces this shape on its own) so a
 // double-width glyph lands with one column of room left: four 1-wide chars
@@ -62,6 +61,7 @@ fn a_double_width_glyph_never_straddles_the_grid_edge() {
         marks: Vec::new(),
         pictures: Vec::new(),
         blame_w: 0,
+        lsp_w: 0,
         invisibles: false,
         split: false,
         theme: crew_theme::current_id(),
