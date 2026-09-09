@@ -183,14 +183,7 @@ pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows: u16) -> Vec<(u16, C
     if budget == 0 {
         return Vec::new();
     }
-    let view = crate::chatmsgs::View {
-        gap_rows: crate::density::level().card_gap_rows(),
-        source: pane.show_source,
-        compact: pane.compact_view,
-        // `visible_messages` chains settled messages then streaming ones, so
-        // everything from that boundary on is still arriving.
-        streaming_from: pane.messages.len(),
-    };
+    let view = pane.view();
     let lines = crate::chatmsgs::card_lines(
         &visible,
         cols as usize,

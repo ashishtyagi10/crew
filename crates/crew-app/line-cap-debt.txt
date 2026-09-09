@@ -33,7 +33,6 @@ src/chatmsgs.rs 281
 src/chatmsgs_tests.rs 751
 src/chatpalette.rs 222
 src/chatpalette_tests.rs 348
-src/chatplace.rs 205
 src/chatsummary.rs 296
 src/chatsummary_tests.rs 639
 src/chatswarm.rs 232

@@ -26,12 +26,7 @@ pub(crate) fn find_wash(pane: &ChatPane, cols: u16, rows: u16, cells: &mut [Cell
     }
     let budget = crate::chatplace::msg_rows_budget(pane, cols, rows) as usize;
     let visible = pane.visible_messages();
-    let view = crate::chatmsgs::View {
-        source: pane.show_source,
-        compact: pane.compact_view,
-        gap_rows: crate::density::level().card_gap_rows(),
-        streaming_from: pane.messages.len(),
-    };
+    let view = pane.view();
     let (lines, spans) = crate::chatmsgs::card_lines_spanned(&visible, cols as usize, 0, view);
     let Some(span) = spans.get(mi) else { return };
     // The drawn window, exactly as `chatplace::window` slices AND places it —

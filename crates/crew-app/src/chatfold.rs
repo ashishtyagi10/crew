@@ -51,7 +51,7 @@ pub(crate) fn folded(m: &Message, body_len: usize) -> bool {
 /// Whether the card is fold-toggleable at all — [`folded`] minus the
 /// `expanded` override, measured against the message's FULL body (the
 /// rendered, possibly clamped card no longer knows its real length).
-pub(crate) fn foldable(m: &Message, cols: usize, view: View) -> bool {
+pub(crate) fn foldable(m: &Message, cols: usize, view: View<'_>) -> bool {
     fold_threshold(m).is_some_and(|t| crate::chatmsgs::full_body(m, cols, view).len() > t)
 }
 
@@ -96,12 +96,7 @@ fn toggle_target(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> Option<usiz
     {
         return None;
     }
-    let view = View {
-        gap_rows: crate::density::level().card_gap_rows(),
-        source: pane.show_source,
-        compact: pane.compact_view,
-        streaming_from: pane.messages.len(),
-    };
+    let view = pane.view();
     if view.compact {
         return None; // Ctrl+O wins outright — nothing to toggle under it
     }

@@ -122,6 +122,10 @@ pub struct ChatPane {
     /// so `/export`, `/restore`, the session log and the swarm fold are
     /// correct here by construction instead of each needing its own filter.
     pub(crate) streaming: Vec<Message>,
+    /// The typewriter: one reveal checkpoint per card still being typed out
+    /// (provisional cards by agent, a just-settled card by its stamp). See
+    /// `chatreveal` for the model, `chatrevealpane` for the bookkeeping.
+    pub(crate) reveals: Vec<crate::chatreveal::CardReveal>,
     /// The last per-reply `Stats` usage — `(agent, tok_in, tok_out,
     /// cost_microusd)` — waiting for its `Message` to land. The broker emits
     /// each reply's stat immediately before the reply itself (relay and fan

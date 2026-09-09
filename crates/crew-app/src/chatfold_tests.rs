@@ -324,6 +324,7 @@ fn a_streaming_system_card_toggles_behind_the_settled_transcript() {
     let mut p = crate::chat::tests::pane();
     p.push_capped(msg("coder", "hi"));
     p.absorb_delta("crew".into(), LONG.into());
+    p.reveal_all(); // the typewriter is under test in `chatreveal`, not here
     let suffix_row = row_with(&p, cols, rows, "\u{2026} +4");
     assert!(p.toggle_fold_at(cols, rows, suffix_row));
     assert!(p.streaming[0].expanded, "the streaming card toggled");
@@ -356,10 +357,8 @@ fn every_folded_tool_card_is_also_clickable() {
     let m = tool_msg();
     let cols = 80;
     let view = View {
-        source: false,
-        compact: false,
         gap_rows: 1,
-        streaming_from: usize::MAX,
+        ..View::default()
     };
     let body_len = crate::chatmsgs::full_body(&m, cols, view).len();
     assert!(body_len > 1, "fixture must be long enough to fold");

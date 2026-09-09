@@ -35,6 +35,11 @@ impl crate::chat::ChatPane {
         ts: String,
         meta: String,
     ) {
+        // The typewriter carries on from what was visible (see
+        // `chatrevealpane::note_settle`) — it reads the streamed length, so
+        // it goes before `settle_stream` drops the card.
+        let now = crate::chattime::unix_now_ms();
+        self.note_settle(&sender, &ts, text.chars().count(), now);
         let expanded = self.settle_stream(&sender);
         self.awaiting = false; // a reply landed
         self.note_reply(&sender);

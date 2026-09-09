@@ -44,6 +44,7 @@ fn tail_follows_the_most_recently_updated_agent() {
     let mut p = streaming_pane(2);
     p.scroll = 5;
     p.absorb_delta("agent0".into(), " NEWEST".into());
+    p.reveal_all(); // the typewriter is under test in `chatreveal`, not here
     let cells = tail_cells(&p, 80, 0);
     let drawn: String = cells.iter().map(|c| c.c).collect();
     assert!(
@@ -64,6 +65,7 @@ fn streamed_text_never_duplicates_with_several_agents_at_the_live_bottom() {
     let mut p = crate::chat::tests::pane();
     p.absorb_delta("agent0".into(), "zeromarkerxyz".into());
     p.absorb_delta("agent1".into(), "onemarkerxyz".into());
+    p.reveal_all();
     assert_eq!(p.scroll, 0, "fixture must start at the live bottom");
 
     // Generous, roomy panes — big enough that both one-line cards comfortably
@@ -111,6 +113,7 @@ fn empty_streaming_card_does_not_panic() {
 fn a_single_word_longer_than_cols_hard_breaks_instead_of_overflowing() {
     let mut p = crate::chat::tests::pane();
     p.absorb_delta("agent0".into(), "x".repeat(100));
+    p.reveal_all();
     p.scroll = 5;
     let cols = 20u16;
     let cells = tail_cells(&p, cols, 0);
@@ -131,6 +134,7 @@ fn a_single_word_longer_than_cols_hard_breaks_instead_of_overflowing() {
 fn wide_cjk_glyphs_never_overflow_the_column_budget() {
     let mut p = crate::chat::tests::pane();
     p.absorb_delta("agent0".into(), "\u{6f22}\u{5b57}".repeat(30));
+    p.reveal_all();
     p.scroll = 5;
     let cols = 20u16;
     let cells = tail_cells(&p, cols, 0);

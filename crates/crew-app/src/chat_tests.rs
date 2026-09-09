@@ -855,10 +855,10 @@ fn show_source_false_renders_bold_markdown() {
         80,
         0,
         crate::chatmsgs::View {
-            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: p.show_source,
             compact: p.compact_view,
             streaming_from: p.messages.len(),
+            ..crate::chatmsgs::View::default()
         },
     );
     // First line is the header (▍ alice ...)
@@ -904,10 +904,10 @@ fn show_source_true_shows_literal_text() {
         80,
         0,
         crate::chatmsgs::View {
-            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: p.show_source,
             compact: p.compact_view,
             streaming_from: p.messages.len(),
+            ..crate::chatmsgs::View::default()
         },
     );
     let body_lines: Vec<_> = lines.iter().skip(1).collect();
