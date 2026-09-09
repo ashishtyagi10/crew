@@ -28,12 +28,17 @@ pub(crate) const SECTIONS: &[(&str, &[&str])] = &[
     ("help", &["/help", "/exit"]),
 ];
 
+/// Constructs whose argument phase is a popup the BROKER opens (`/login`'s
+/// picker rides its `SignIn` event): Enter runs them, where every other row
+/// only fills the token and waits for its argument.
+const RUNS_ON_ENTER: &[&str] = &["/login"];
+
 fn row(c: &str) -> MenuItem {
     MenuItem {
         label: c.to_string(),
         desc: describe(c).to_string(),
         fill: c.to_string(),
-        submit: false,
+        submit: RUNS_ON_ENTER.contains(&c),
         header: false,
         dim: false,
         needs: None,

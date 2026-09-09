@@ -15,7 +15,7 @@ use crate::goalshot_tests::dump;
 use crate::shotgpu_tests::shot_at;
 use crate::suggest::MenuItem;
 
-fn menu_shot(
+pub(crate) fn menu_shot(
     name: &str,
     legend: &str,
     items: &[MenuItem],

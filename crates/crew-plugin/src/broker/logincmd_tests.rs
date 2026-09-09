@@ -182,3 +182,24 @@ fn a_minting_cli_row_names_install_login_and_precedence() {
         other => panic!("{other:?}"),
     }
 }
+
+/// The picker's rows carry every state the table prints, device flows first
+/// (a pick can run those), CLI-owned sign-ins after with their command —
+/// and nothing that is a credential.
+#[test]
+fn options_carry_the_states_device_flows_first() {
+    let rows = vec![
+        delegated("claude-code", "claude auth login", false),
+        device("dashscope", false, true),
+        minting("anthropic", false, false, Some("brew install ant")),
+    ];
+    let o = options(&rows);
+    let names: Vec<&str> = o.iter().map(|x| x.name.as_str()).collect();
+    assert_eq!(names, ["dashscope", "claude-code", "anthropic"]);
+    assert!(o[0].device && o[0].key_present && !o[0].signed_in);
+    assert_eq!(o[1].login.as_deref(), Some("claude auth login"));
+    assert_eq!(o[1].install, None);
+    assert_eq!(o[2].install.as_deref(), Some("brew install ant"));
+    assert_eq!(o[2].login.as_deref(), Some("ant auth login"));
+    assert!(options(&[]).is_empty());
+}

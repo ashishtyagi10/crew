@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.55
+
+**`/login` opens a picker: choose the provider, no name to type.**
+
+`/login` used to print a numbered table and wait for you to type a name
+or a number back. Now the broker sends the rows (`SignIn`) and the pane
+opens the same popup every other pick in crew uses: OAuth sign-ins crew
+runs right here (the device flows, and OpenRouter's browser sign-in),
+then the vendor CLIs that own their own login, dimmed with the exact
+command to run. Arrows, Enter, Esc; Enter on the `/login` row of the
+command palette opens it straight away. Picking a device flow sends
+`/login <name>` and the code card follows; picking OpenRouter opens the
+browser with the paste prompt beneath it, as `/model` already did.
+`/login <name>` still runs directly and `/login list` prints the table.
+
 ## 0.21.54
 
 **A badge's rounded ends are drawn, not read from the font — so a pill is

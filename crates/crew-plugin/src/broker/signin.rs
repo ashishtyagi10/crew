@@ -45,11 +45,9 @@ pub(crate) fn signin_cmd(
                  (persists across restarts)"
             )
         }
-        Outcome::Expired => {
-            "the sign-in code expired \u{2014} pick it in /model to try again".into()
-        }
+        Outcome::Expired => "the sign-in code expired \u{2014} /login to try again".into(),
         Outcome::Denied => "sign-in denied at the provider \u{2014} nothing stored".into(),
-        Outcome::TimedOut => "sign-in timed out \u{2014} pick it in /model to try again".into(),
+        Outcome::TimedOut => "sign-in timed out \u{2014} /login to try again".into(),
         Outcome::Stopped => "sign-in stopped".into(),
         Outcome::Failed(e) => format!("sign-in failed: {e}"),
     };

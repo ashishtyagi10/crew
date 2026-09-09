@@ -288,3 +288,31 @@ fn tool_events_round_trip_across_the_wire() {
         }
     }
 }
+
+#[test]
+fn sign_in_event_roundtrips_and_defaults() {
+    let ev = PluginEvent::SignIn {
+        options: vec![crate::SignInOption {
+            name: "dashscope".into(),
+            device: true,
+            signed_in: false,
+            key_present: true,
+            login: None,
+            install: None,
+        }],
+    };
+    let s = serde_json::to_string(&ev).unwrap();
+    assert!(s.contains(r#""type":"sign_in""#), "got: {s}");
+    assert!(
+        !s.contains("login"),
+        "absent fields are not serialized: {s}"
+    );
+    let line = r#"{"type":"sign_in","options":[{"name":"codex","login":"codex login"}]}"#;
+    match serde_json::from_str::<PluginEvent>(line).unwrap() {
+        PluginEvent::SignIn { options } => {
+            assert_eq!(options[0].login.as_deref(), Some("codex login"));
+            assert!(!options[0].device && !options[0].signed_in);
+        }
+        _ => panic!("wrong variant"),
+    }
+}

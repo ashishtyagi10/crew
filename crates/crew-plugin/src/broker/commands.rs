@@ -23,8 +23,13 @@ pub(crate) fn is_quick(text: &str) -> bool {
     if cmd == "model" && parts.next().is_some_and(|a| a.parse::<usize>().is_ok()) {
         return false;
     }
-    // `/login <target>` runs the same poll; bare `/login` only lists.
-    if cmd == "login" && parts.next().is_some() {
+    // `/login <target>` runs the same poll; bare `/login` and `/login list`
+    // only report.
+    if cmd == "login"
+        && parts
+            .next()
+            .is_some_and(|a| !a.eq_ignore_ascii_case("list"))
+    {
         return false;
     }
     // Retired commands (`/fan`, `/goal`, `/skill`, …) are absent on purpose:
@@ -39,8 +44,8 @@ pub(crate) const HELP: &str = "constructs:\n\
     /model — the roster with each agent's model (also in the pane footer)\n\
     /model <agent> <model|default> — pin an agent to a model (mix models freely)\n\
     /model all <model|default> — set every agent's model at once\n\
-    /login — sign in to a provider with OAuth (device flow), no API key needed; \
-    /login <name|n> runs it right here\n\
+    /login — sign in to a provider with OAuth, no API key needed: pick one from the \
+    popup; /login <name|n> runs it directly, /login list prints the table\n\
     /logout [provider] — remove a stored OAuth sign-in (a key, if present, serves again)\n\
     plain language routes itself — \u{201c}have every agent take a crack at \u{2026}\u{201d} \
     fans out in parallel; \u{201c}keep refining \u{2026}\u{201d} runs improvement rounds; \

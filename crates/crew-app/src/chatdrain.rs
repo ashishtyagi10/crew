@@ -78,6 +78,9 @@ impl ChatPane {
                     PluginEvent::Roster { agents } => {
                         self.agents = agents;
                     }
+                    PluginEvent::SignIn { options } => {
+                        crate::loginpick::open(&mut self.palette, &options)
+                    }
                     PluginEvent::Task { id, running, .. } => self.absorb_task(id, running),
                     PluginEvent::Plan { pending } => self.plan_pending = pending,
                     PluginEvent::Activity { agent, state, from } => {
