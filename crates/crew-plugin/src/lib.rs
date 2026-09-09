@@ -18,6 +18,7 @@ pub mod tier {
 pub mod credentials;
 mod echo;
 mod host;
+pub mod lsp;
 pub mod mcp;
 mod orchestrator;
 mod protocol;

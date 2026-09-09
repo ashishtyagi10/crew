@@ -47,3 +47,52 @@ fn the_dirty_dot_stays_on_the_name_and_a_hint_takes_the_rest() {
         "an open field has the line"
     );
 }
+
+/// What the language server said sits between the position and the
+/// progress — and while it is still starting, the legend says that.
+#[test]
+fn the_language_servers_word_sits_after_the_position() {
+    use crate::viewpane::lspjob::Lsp;
+    use crew_lsp::{Diagnostic, Position, Range, Severity};
+    let diag = |sev| Diagnostic {
+        range: Range {
+            start: Position {
+                line: 0,
+                character: 0,
+            },
+            end: Position {
+                line: 0,
+                character: 1,
+            },
+        },
+        severity: sev,
+        message: String::new(),
+        source: None,
+    };
+    let mut p = doc();
+    p.lsp = Lsp::On(vec![
+        diag(Severity::Error),
+        diag(Severity::Error),
+        diag(Severity::Warning),
+    ]);
+    assert_eq!(
+        legend(&p, TALL, None, None),
+        "caret.md \u{b7} 2 errors \u{b7} 1 warning"
+    );
+    p.start_editing(TALL.cols);
+    assert_eq!(
+        legend(&p, TALL, None, None),
+        "caret.md \u{b7} 1:3 \u{b7} 2 errors \u{b7} 1 warning"
+    );
+    let (_tx, rx) = std::sync::mpsc::channel();
+    p.lsp = Lsp::Loading {
+        rx,
+        server: "rust-analyzer".into(),
+    };
+    assert_eq!(
+        legend(&p, TALL, None, None),
+        "caret.md \u{b7} 1:3 \u{b7} lsp: rust-analyzer starting\u{2026}"
+    );
+    p.lsp = Lsp::Skipped;
+    assert_eq!(legend(&p, TALL, None, None), "caret.md \u{b7} 1:3");
+}

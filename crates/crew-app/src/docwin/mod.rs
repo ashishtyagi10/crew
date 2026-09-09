@@ -141,8 +141,11 @@ impl DocWindow {
     /// changed — the document window's whole reason to want a frame while
     /// nobody is typing.
     pub(crate) fn poll(&mut self) -> bool {
+        // The diagnostics job starts once the file has landed and settles
+        // later; both are a change the frame wants.
+        let lsp = self.view.poll_lsp();
         if !self.view.poll() {
-            return false;
+            return lsp;
         }
         // The file has landed: if it is a document rather than a listing of
         // bytes, it opens with a cursor already in it. That IS the difference

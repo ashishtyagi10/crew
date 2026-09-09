@@ -288,6 +288,7 @@ fn edits(f: Field) -> &'static str {
         Field::Accent => "accent",
         Field::BorderMarks => "border_marks",
         Field::Invisibles => "invisibles",
+        Field::Lsp => "lsp",
         Field::PaperTexture => "paper_texture",
         Field::AmbientDrift => "ambient_drift",
         Field::PaperGrain => "paper_grain",
@@ -312,9 +313,8 @@ fn edits(f: Field) -> &'static str {
     }
 }
 
-/// Config keys the form deliberately does not carry, each with the reason.
-/// A key must be here or editable — "we forgot" is not a third option, which
-/// is how `auto_light_from` / `auto_light_to` shipped config-only.
+/// Config keys the form deliberately does not carry, each with the reason. A
+/// key must be here or editable — "we forgot" is not a third option.
 const NOT_IN_FORM: [(&str, &str); 10] = [
     ("last_seen_version", "bookkeeping: drives the version note"),
     (

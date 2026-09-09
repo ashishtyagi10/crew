@@ -343,3 +343,72 @@ mod integrations {
         assert!(err.contains("no tool"), "{err}");
     }
 }
+
+/// The `lsp` server, through the real surface: advertised when a language is served,
+/// dispatched locally, read-tier, and honest about a binary that is not there.
+mod lsp {
+    use super::*;
+
+    fn served(cmd: &str) -> crate::lsp::LspHost {
+        crate::lsp::LspHost::new(std::collections::BTreeMap::from([(
+            "rust".to_string(),
+            crew_lsp::servers::Server {
+                command: cmd.into(),
+                args: vec![],
+            },
+        )]))
+    }
+
+    #[test]
+    fn the_lsp_tools_join_the_catalog_when_a_server_is_configured() {
+        let t = SessionTools::for_test(host(), true).with_lsp(served("rust-analyzer"));
+        let names: Vec<String> = t
+            .specs()
+            .into_iter()
+            .filter(|s| s.server == "lsp")
+            .map(|s| s.tool)
+            .collect();
+        assert_eq!(names, ["hover", "definition", "references", "diagnostics"]);
+        let hint = t.hint();
+        assert!(hint.contains("lsp:diagnostics"), "{hint}");
+        // …and not otherwise: a surface with no language table offers nothing it cannot serve.
+        let none = SessionTools::for_test(host(), true);
+        assert!(!none.hint().contains("lsp:"), "{}", none.hint());
+    }
+
+    #[test]
+    fn lsp_tools_are_reads_so_nobody_is_asked_to_approve_a_hover() {
+        let t = SessionTools::for_test(host(), true).with_lsp(served("rust-analyzer"));
+        for tool in ["hover", "definition", "references", "diagnostics"] {
+            assert_eq!(t.tier_for("lsp", tool), crate::tier::Tier::Read);
+        }
+    }
+
+    #[test]
+    fn a_missing_server_is_an_error_string_that_says_not_installed() {
+        let t = SessionTools::for_test(host(), true).with_lsp(served("crew-no-such-ls"));
+        let e = t
+            .call(
+                "lsp",
+                "hover",
+                r#"{"file": "src/main.rs", "line": 1, "col": 1}"#,
+            )
+            .unwrap_err();
+        assert!(e.contains("not installed"), "{e}");
+        assert!(e.contains("crew-no-such-ls"), "{e}");
+    }
+
+    #[test]
+    fn the_planner_hears_about_installed_servers_only() {
+        let sh = if cfg!(windows) { "cmd" } else { "sh" };
+        let t = SessionTools::for_test(host(), true).with_lsp(served(sh));
+        let caps = t.capabilities();
+        assert!(
+            caps.iter()
+                .any(|l| l.starts_with("lsp (language servers for rust)")),
+            "{caps:?}"
+        );
+        let t = SessionTools::for_test(host(), true).with_lsp(served("crew-no-such-ls"));
+        assert!(!t.capabilities().iter().any(|l| l.starts_with("lsp")));
+    }
+}

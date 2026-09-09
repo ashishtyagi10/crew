@@ -40,6 +40,8 @@ impl CrewApp {
             "tools" => self.open_tools(""),
             "watching" => self.open_watching(""),
             "integrations" => self.open_integrations(),
+            // Which language servers crew knows, which are installed, which run.
+            "lsp" => self.open_lsp_status(),
             "pin" => self.toggle_pin(),
             "marks" => self.marks_command(""),
             "invisibles" => self.invisibles_command(""),

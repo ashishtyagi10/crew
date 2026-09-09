@@ -1,8 +1,7 @@
 //! Settings form rendering: a two-column bento of fieldset cards
-//! (Appearance / Window / Notifications) with boxed inputs, checkboxes and a
-//! notify-patterns text area, plus the font dropdown popup and a pinned
-//! Save/Cancel row. Built on ratatui and converted to `CellView`s; Crew
-//! draws the GPU pane border around it.
+//! (Appearance / Window / Notifications) with boxed inputs, checkboxes, a
+//! notify-patterns text area, the font dropdown popup and a pinned Save/Cancel
+//! row. Built on ratatui, converted to `CellView`s; crew draws the border.
 //!
 //! What each field is CALLED and what it SHOWS lives in `labels`, split out
 //! for the 200-line cap when `auto` gained its pairing pickers.
@@ -65,6 +64,7 @@ fn control(buf: &mut Buffer, p: &SettingsPane, f: Field, r: Rect, focused: bool)
         Field::ShowNav => check(buf, d.show_nav),
         Field::BorderMarks => check(buf, d.border_marks),
         Field::Invisibles => check(buf, d.invisibles),
+        Field::Lsp => check(buf, d.lsp),
         Field::PaperTexture => check(buf, d.paper_texture),
         Field::AmbientDrift => check(buf, d.ambient_drift),
         Field::Maximized => check(buf, d.maximized),

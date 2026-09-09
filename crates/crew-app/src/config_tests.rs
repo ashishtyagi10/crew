@@ -2,9 +2,8 @@ use super::CrewConfig;
 
 #[test]
 fn default_values() {
-    let cfg = CrewConfig::default();
-    assert_eq!(cfg.font_size, 14.0);
-    assert!(cfg.show_nav);
+    assert_eq!(CrewConfig::default().font_size, 14.0);
+    assert!(CrewConfig::default().show_nav && CrewConfig::default().lsp);
 }
 
 #[test]
@@ -107,6 +106,7 @@ fn round_trip() {
         show_nav: true,
         border_marks: false,
         invisibles: true,
+        lsp: false,
         ambient_drift: true,
         gradient: "lively".to_string(),
         density: "roomy".to_string(),

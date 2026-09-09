@@ -34,6 +34,11 @@ pub(crate) fn legend(
     if let Some((line, col)) = view.caret_line_col() {
         parts.push(format!("{line}:{col}"));
     }
+    // What the language server said — the count, or that it is still
+    // starting. Before the position readout: it is about the file.
+    if let Some(lsp) = view.lsp.status() {
+        parts.push(lsp);
+    }
     // A link's target is invisible in a render; while the cursor is inside
     // one, the frame is where it says so.
     if let Some(url) = view.caret_link(grid.cols) {

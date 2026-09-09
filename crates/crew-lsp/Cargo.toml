@@ -1,0 +1,17 @@
+[package]
+name = "crew-lsp"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+# The `~/.config/crew/lsp.json` override file lives in the user config dir.
+dirs = { workspace = true }
+# `childproc::no_console_window` — the one rule for every child crew starts.
+crew-hive = { path = "../crew-hive" }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

@@ -63,3 +63,14 @@ exists — markdown is prose and prose wants rendering, but code editing wants v
 multi-cursor, none of which this pane will ever have. Building a worse IDE is the failure mode
 here. Third: nothing pretends to be a page renderer, and Phase 2 does not start before Phase 1 has
 shipped.
+
+**Reconciliation (2026-09-09, language intelligence).** crew now speaks the Language Server
+Protocol (`crates/crew-lsp/src/client.rs`), and the viewer shows a server's diagnostics for the
+code it opens: `●`/`▲` in the margin (`crates/crew-app/src/viewpane/lspgutter.rs`), a curly
+underline over the range (`crates/crew-app/src/viewpane/lspdeco.rs`), the count on the document
+window's legend — a server started off the winit thread and shut down once it has spoken
+(`crates/crew-app/src/viewpane/lspjob.rs`). This does not reopen the second non-negotiable above.
+Diagnostics, hover and go-to-definition are READING what a compiler knows about a file, not editing
+it; the pane stays read-only, and no completion, rename, code action or edit of any kind comes
+through this door. The `$EDITOR` handoff is still how code is changed; the overlay is how it is
+understood before it is.

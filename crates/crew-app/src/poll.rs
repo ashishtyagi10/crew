@@ -330,7 +330,7 @@ impl CrewApp {
                             true
                         }
                     };
-                    v.poll() || blamed
+                    v.poll() | v.poll_lsp() | blamed
                 }
                 // True when the shared todo store's revision moved (another
                 // pane or the due ticker wrote) and this pane resynced.

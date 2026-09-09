@@ -7,6 +7,7 @@ use std::sync::mpsc::Receiver;
 use super::blamejob::Blame;
 use super::detect::Format;
 use super::load::{self, Loaded};
+use super::lspjob::Lsp;
 use super::search::Search;
 
 /// Where a pane is between "you pressed the key" and "the bytes are here".
@@ -35,6 +36,8 @@ pub(crate) struct ViewCache {
     /// key in spirit: turning blame on or off changes the width the text was
     /// wrapped at, so the cache must be rebuilt, not merely re-decorated.
     pub blame_w: usize,
+    /// Columns the diagnostics margin claimed — a cache key like `blame_w`.
+    pub lsp_w: usize,
     /// Whether this rendering is the side-by-side review. Part of the cache
     /// key for the same reason `blame_w` is: the two rungs wrap at different
     /// widths, so one cannot be turned into the other.
@@ -44,13 +47,9 @@ pub(crate) struct ViewCache {
     /// in its first column), so the rendering has to be rebuilt, not
     /// recoloured.
     pub invisibles: bool,
-    /// The theme the ink in `lines` was taken from. Part of the cache key
-    /// because these lines carry BAKED colours — `t.ink`, `text_muted`, the
-    /// whole `chatink` syntax ladder — decided once when the rendering was
-    /// built. Without it a `/theme` (or the auto theme flipping at dusk, or
-    /// the OS switching appearance) left every open viewer wearing the old
-    /// palette's ink until something else happened to resize the pane: on a
-    /// dark-to-light switch that is a file drawn in near-white on paper.
+    /// The theme the ink in `lines` was taken from — a cache key because the
+    /// lines carry BAKED colours, and a `/theme` (or dusk, or the OS) used to
+    /// leave every open viewer in the old palette until a resize.
     pub theme: crew_theme::ThemeId,
 }
 
@@ -98,11 +97,10 @@ pub(crate) struct ViewPane {
     /// pane index: indices shift the moment any pane closes.
     pub editor_born: Option<u64>,
     /// Set by `/about` and `??` (`openview::spawn_about_pane`,
-    /// `askbar::absorb_explain_result`) for the viewer they open on a
-    /// SYNTHETIC temp file — a changelog or an explanation, not something
-    /// the user asked to view. Fix 4: `session_panes`/`had_restorable` skip
-    /// these, so quitting with only one of these open can't overwrite a
-    /// saved multi-pane session with a changelog viewer.
+    /// `askbar::absorb_explain_result`) for a viewer on a SYNTHETIC temp
+    /// file — a changelog, an explanation. `session_panes`/`had_restorable`
+    /// skip these, so quitting with only one open can't overwrite a saved
+    /// multi-pane session with a changelog viewer.
     pub ephemeral: bool,
     /// Who last touched each line ([`super::blame`]), when `/blame` has been
     /// asked and the answer has arrived. `Off` — the default — is a viewer
@@ -113,6 +111,9 @@ pub(crate) struct ViewPane {
     /// exists before there is anything to scroll; this is applied when the
     /// text lands and then cleared.
     pub goto: Option<usize>,
+    /// What a language server said about this file ([`super::lspjob`]):
+    /// asked once the file lands, drawn as the margin and the underlines.
+    pub lsp: Lsp,
 }
 
 impl ViewPane {
@@ -137,15 +138,12 @@ impl ViewPane {
             ephemeral: false,
             blame: Blame::default(),
             goto: None,
+            lsp: Lsp::default(),
         }
     }
 
-    /// Test-only: `pane_tests.rs` reads this directly rather than matching
-    /// `state` itself, in every one of its load/reload/failure assertions.
-    /// Nothing in production code needs this predicate — `poll.rs`'s drain
-    /// and `render.rs`'s `for_state` both match on `state` directly instead
-    /// — so `#[cfg(test)]` makes that true rather than the dead-code lint
-    /// firing on genuinely-used test-support code.
+    /// Test-only: `pane_tests.rs` reads this rather than matching `state`;
+    /// production code matches `state` directly, so this would be dead there.
     #[cfg(test)]
     pub(crate) fn loading(&self) -> bool {
         matches!(self.state, LoadState::Loading { .. })
@@ -205,6 +203,8 @@ impl ViewPane {
         // …and so is a blame: the file is being re-read because it changed,
         // and a per-line answer about the old text would label the new one.
         self.blame = Blame::Off;
+        // …and a diagnostic: the ranges belong to the text that was.
+        self.lsp = Lsp::Off;
     }
 }
 

@@ -265,7 +265,7 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`
 `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/errors`,
 `/errorsall`, `/out`, `/blocks`, `/marks`, `/name <text>`, `/pin`, `/clear`,
 `/clearall`, `/clearlog`, `/only`, `/copy`, `/dump`, `/closeall`, `/reopen`,
-`/restore`, `/blame`, `/leading`, `/invisibles`, `/pwd`, `/about`, `/log`,
+`/restore`, `/blame`, `/lsp`, `/leading`, `/invisibles`, `/pwd`, `/about`, `/log`,
 `/model`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
 `/todo`, `/dash`, `/usage`, `/disk`, and the look: `/theme`, `/gradient`,
 `/font`, `/weight`, `/smooth`, `/gamma`, `/grain`, `/leading`, `/density`,
@@ -367,6 +367,10 @@ it.
   or note.
 - **`/integrations`** lists what crew can reach — every manifest, its credential and
   whether it is set, every tool's tier.
+- **`/lsp`** lists the language servers crew knows (rust-analyzer, typescript-language-server,
+  pyright, gopls, plus `~/.config/crew/lsp.json`), which are installed and which are running.
+  Agents get `lsp:hover` / `lsp:definition` / `lsp:references` / `lsp:diagnostics`, and the
+  viewer marks a code file's diagnostics in the margin.
 - **`/watching`** lists what crew is waiting to do on its own clock — every
   standing intent, soonest first — and `/watching cancel <id>` calls one off.
 - **`/blame`** answers who last touched each line of the file in the viewer,

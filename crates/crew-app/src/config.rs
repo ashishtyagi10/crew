@@ -1,19 +1,12 @@
 pub(crate) use crate::configdefault::*;
 use std::path::PathBuf;
 
-/// Whether the window should composite as non-opaque *right now*.
-///
-/// Not the same question as "can this window ever be translucent". That one is
-/// answered once, at creation, by `.with_transparent(true)` in `handler` — it
-/// cannot be changed later without tearing the window down, which is why crew
-/// asks for it unconditionally.
-///
-/// This is the runtime flag, and on macOS it drives `NSWindow.isOpaque`. That
-/// matters because the **title bar is drawn by the OS, not by crew**: a
-/// non-opaque window composites its title bar against whatever is behind it.
-/// Leaving the flag on at full opacity is what made the title bar show the
-/// desktop through while every pane stayed solid — `handler`'s "nothing crew
-/// draws leaves alpha below 1" is true and was never about the chrome.
+/// Whether the window should composite as non-opaque *right now* — the
+/// runtime flag (`NSWindow.isOpaque` on macOS), distinct from the one-time
+/// `.with_transparent(true)` in `handler`. It matters because the title bar
+/// is drawn by the OS: a non-opaque window composites it against whatever is
+/// behind, so leaving this on at full opacity showed the desktop through the
+/// title bar while every pane stayed solid.
 pub fn wants_window_transparency(opacity: f32) -> bool {
     opacity < 1.0
 }
@@ -113,6 +106,10 @@ pub struct CrewConfig {
     /// returns (see `invisibles`). Off by default — a diagnostic view.
     #[serde(default)]
     pub invisibles: bool,
+    /// Whether the file viewer asks a language server about the code it
+    /// opens and marks the diagnostics (see `lspon`). On by default.
+    #[serde(default = "default_true")]
+    pub lsp: bool,
     /// Whether to render the subtle paper grain + vignette background texture.
     /// When off, the window background is a plain flat colour.
     #[serde(default = "default_true")]
@@ -237,6 +234,7 @@ impl Default for CrewConfig {
             auto_light_to: default_auto_light_to(),
             border_marks: true,
             invisibles: false,
+            lsp: true,
             paper_texture: true,
             ambient_drift: true,
             paper_grain: default_paper_grain(),

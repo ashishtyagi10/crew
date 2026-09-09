@@ -7,10 +7,11 @@ members = [
     "crates/crew-render",
     "crates/crew-app",
     "crates/crew-plugin",
+    "crates/crew-lsp",
 ]
 
 [workspace.package]
-version = "0.21.44"
+version = "0.21.45"
 edition = "2021"
 authors = ["crew contributors"]
 license = "MIT OR Apache-2.0"

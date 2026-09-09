@@ -56,6 +56,10 @@ pub(crate) enum Field {
     /// returns (see `invisibles`). Beside the border marks: both are crew
     /// drawing something about content rather than the content itself.
     Invisibles,
+    /// Whether the viewer asks a language server about code it opens (see
+    /// `lspon`). Beside Invisibles: both are the viewer showing more than
+    /// the bytes.
+    Lsp,
     /// WCAG floor every derived colour is measured against: `auto` follows
     /// the OS accessibility switch (see `crew_theme::contrast`).
     Contrast,
@@ -82,7 +86,7 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 36] = [
+pub(crate) const FIELDS: [Field; 37] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -105,6 +109,7 @@ pub(crate) const FIELDS: [Field; 36] = [
     Field::Density,
     Field::Leading,
     Field::Invisibles,
+    Field::Lsp,
     Field::Contrast,
     Field::ShapeCues,
     Field::Gradient,

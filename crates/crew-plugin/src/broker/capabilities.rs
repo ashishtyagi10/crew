@@ -41,6 +41,24 @@ pub(super) fn lines(ints: &[Integration], mcp: &[McpTool]) -> Vec<String> {
     out
 }
 
+/// One line for the language servers that are actually installed — the
+/// planner routes "what does this symbol mean" to a task that can ask —
+/// or none when no server is, since a capability that answers "not
+/// installed" is not one.
+pub(super) fn lsp_line(rows: &[(String, String, bool)]) -> Option<String> {
+    let langs: Vec<&str> = rows
+        .iter()
+        .filter(|(_, _, installed)| *installed)
+        .map(|(lang, _, _)| lang.as_str())
+        .collect();
+    (!langs.is_empty()).then(|| {
+        format!(
+            "lsp (language servers for {}): hover, definition, references, diagnostics",
+            langs.join(", ")
+        )
+    })
+}
+
 /// `a, b, c, +4 more` — enough to say what kind of thing a source is.
 fn names<'a>(it: impl Iterator<Item = &'a str>) -> String {
     let all: Vec<&str> = it.collect();
