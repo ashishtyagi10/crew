@@ -51,6 +51,35 @@ pub(super) fn is_crew_artifact(path: &str) -> bool {
 /// own transcript in one place and not another.
 pub(super) const NOT_CREW: &str = ":!.crew";
 
+/// The patch for everything that differs from the tree `base` — the same
+/// comparison [`since`] makes, with the content instead of the names. One
+/// implementation behind the end-of-task note, `/diff` and the commit
+/// message's diff, so the three can never describe different work.
+///
+/// Empty (not an error) when the tree is unchanged: `diff-tree` would say the
+/// same, but a comparison of two equal ids is not worth a subprocess.
+pub(crate) fn patch(dir: &Path, base: &str) -> Result<String, String> {
+    let now = worktree_tree(dir)?;
+    if now == base {
+        return Ok(String::new());
+    }
+    git(
+        dir,
+        &["diff-tree", "-p", "-r", base, &now, "--", NOT_CREW],
+        None,
+    )
+}
+
+/// The last commit's tree, or the empty tree on an unborn branch — the base
+/// `/diff` and the commit message compare against, so the first files in a
+/// fresh repository show as additions rather than as an error. The empty tree
+/// is asked of git rather than hard-coded: the well-known `4b825dc…` is the
+/// SHA-1 value and is wrong in a SHA-256 repository.
+pub(crate) fn head_tree(dir: &Path) -> Result<String, String> {
+    git(dir, &["rev-parse", "--verify", "HEAD^{tree}"], None)
+        .or_else(|_| git(dir, &["hash-object", "-t", "tree", "/dev/null"], None))
+}
+
 /// `diff-tree --name-status` rows: a status letter, a tab, a path. Rename and
 /// copy rows carry a similarity score (`R096`) and TWO paths; the destination
 /// is the one that exists now, which is what a reader wants.

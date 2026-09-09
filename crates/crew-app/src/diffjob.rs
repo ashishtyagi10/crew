@@ -3,8 +3,11 @@
 //! The diff itself is rendered by the file viewer's diff rung — pairing,
 //! word-level marks, hunk headings — rather than by `git`'s own colours in a
 //! scrollback, so what `/diff` needs is the *text*: `git status --short`, the
-//! stat, and the full unified diff, concatenated and dropped in a temp file
-//! the viewer can open.
+//! stat, the full unified diff, and then every UNTRACKED file as an addition
+//! against nothing, concatenated and dropped in a temp file the viewer can
+//! open. The last part exists because `git diff` is index-relative: a file an
+//! agent has just created — the most likely thing in a tree after an agent
+//! ran — was a `??` line in the status and absent from the review itself.
 //!
 //! It runs on a worker thread. `git diff` takes seconds on a large or
 //! network-mounted repo, and every pane in the grid — agents included — is
@@ -43,18 +46,32 @@ pub(crate) fn temp_path(dir: &Path) -> PathBuf {
     std::env::temp_dir().join(format!("crew-diff{tail}.diff"))
 }
 
+/// Run `git <args>` in `dir`; stdout when the exit code is one of `ok`,
+/// stderr otherwise. `diff --no-index` exits 1 to mean "differs", which for a
+/// review is the answer, not a failure.
+fn git(dir: &Path, args: &[&str], ok: &[i32]) -> Result<String, String> {
+    let mut cmd = Command::new("git");
+    no_console_window(&mut cmd);
+    cmd.args(args).current_dir(dir);
+    let r = cmd.output().map_err(|e| format!("git: {e}"))?;
+    if !r.status.code().is_some_and(|c| ok.contains(&c)) {
+        return Err(String::from_utf8_lossy(&r.stderr).trim().to_string());
+    }
+    Ok(String::from_utf8_lossy(&r.stdout).into_owned())
+}
+
 /// The text of a review of `dir`, or the reason there is none.
 fn read(dir: &Path) -> Result<String, String> {
     let mut out = String::new();
     for args in PARTS {
-        let mut cmd = Command::new("git");
-        no_console_window(&mut cmd);
-        cmd.args(args).current_dir(dir);
-        let r = cmd.output().map_err(|e| format!("git: {e}"))?;
-        if !r.status.success() {
-            return Err(String::from_utf8_lossy(&r.stderr).trim().to_string());
-        }
-        out.push_str(&String::from_utf8_lossy(&r.stdout));
+        out.push_str(&git(dir, args, &[0])?);
+    }
+    // Untracked files, `.gitignore` respected, each as a diff against
+    // nothing — the shape the viewer's diff rung already reads.
+    let fresh = git(dir, &["ls-files", "--others", "--exclude-standard"], &[0])?;
+    for path in fresh.lines().filter(|p| !p.is_empty()) {
+        let args = ["--no-pager", "diff", "--no-index", "--", "/dev/null", path];
+        out.push_str(&git(dir, &args, &[0, 1])?);
     }
     Ok(out)
 }

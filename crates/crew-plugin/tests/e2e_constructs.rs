@@ -61,3 +61,48 @@ fn every_advertised_construct_answers() {
         names.len()
     );
 }
+
+/// `/diff` answers with the PATCH, in the fence the pane's diff lexer renders
+/// — not the stat alone — through the real binary, against a real repository
+/// with one edited file. The unit tests own the wording; this proves the
+/// running broker hands the pane something it will draw as a diff.
+#[test]
+fn diff_answers_with_a_fenced_patch() {
+    let dir = unique_dir("constructs-diff");
+    seed_specialists(&dir, &["planner"]);
+    for args in [
+        &["init", "-q"][..],
+        &["config", "user.email", "t@t"],
+        &["config", "user.name", "t"],
+    ] {
+        assert!(std::process::Command::new("git")
+            .args(args)
+            .current_dir(&dir)
+            .status()
+            .unwrap()
+            .success());
+    }
+    std::fs::write(dir.join("f.txt"), "one\n").unwrap();
+    for args in [&["add", "-A"][..], &["commit", "-q", "-m", "seed"]] {
+        assert!(std::process::Command::new("git")
+            .args(args)
+            .current_dir(&dir)
+            .status()
+            .unwrap()
+            .success());
+    }
+    std::fs::write(dir.join("f.txt"), "two\n").unwrap();
+
+    let mock = ("CREW_BROKER_MOCK_REPLY", "ok\n@done");
+    // `git` on PATH, or the comparison cannot run (see e2e_tasks).
+    let path = ("PATH", "/usr/bin:/bin");
+    let send = r#"{"type":"send","channel":"crew","text":"/diff"}"#;
+    let msgs = messages(&run_broker(&dir, &[mock, path], &[send]));
+    let reply = msgs
+        .iter()
+        .find(|(_, t)| t.contains("f.txt"))
+        .unwrap_or_else(|| panic!("no /diff reply names the file: {msgs:?}"));
+    assert!(reply.1.contains("```diff\n"), "no fence: {}", reply.1);
+    assert!(reply.1.contains("@@ -1 +1 @@"), "no hunk: {}", reply.1);
+    assert!(reply.1.contains("-one\n+two"), "{}", reply.1);
+}

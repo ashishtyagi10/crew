@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 use std::process::Command;
 
-use super::since;
+use super::{patch, since};
 use crate::broker::checkpoint::worktree_tree;
 
 /// A throwaway git repo with one committed file, isolated per test.
@@ -109,5 +109,33 @@ fn outside_a_repository_it_is_an_error_not_a_panic() {
     let dir = std::env::temp_dir().join(format!("crew-changed-norepo-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     assert!(since(&dir, "deadbeef").is_err());
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The patch is the same comparison as `since`, with the content: an edit to
+/// a tracked file and a brand-new untracked file both arrive as `diff --git`
+/// sections with their added lines, and crew's own transcript is not in it.
+#[test]
+fn the_patch_carries_both_the_edit_and_the_new_file() {
+    let dir = temp_repo("patch");
+    let base = worktree_tree(&dir).unwrap();
+    assert_eq!(
+        patch(&dir, &base).unwrap(),
+        "",
+        "unchanged tree, empty patch"
+    );
+
+    std::fs::write(dir.join("a.txt"), "edited").unwrap();
+    std::fs::write(dir.join("b.rs"), "fn b() {}\n").unwrap();
+    std::fs::create_dir_all(dir.join(".crew")).unwrap();
+    std::fs::write(dir.join(".crew/session-live.md"), "## a reply").unwrap();
+
+    let p = patch(&dir, &base).unwrap();
+    assert!(p.contains("diff --git a/a.txt b/a.txt"), "{p}");
+    assert!(p.contains("diff --git a/b.rs b/b.rs"), "{p}");
+    assert!(p.contains("\n+edited"), "{p}");
+    assert!(p.contains("\n+fn b() {}"), "{p}");
+    assert!(p.contains("\n-one"), "the old content of the edit: {p}");
+    assert!(!p.contains(".crew"), "{p}");
     let _ = std::fs::remove_dir_all(&dir);
 }

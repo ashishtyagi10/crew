@@ -1168,9 +1168,11 @@ longer aim at.
   the bar: toggle the master switch, add a watched output pattern, or clear
   the patterns (the full set of knobs lives in `/settings`).
 - **`/diff`** — reviews the working tree's git changes **in the file viewer**:
-  a `git status --short` summary, the `diff --stat`, then the full unified
-  diff, rendered by crew's own diff rung rather than dumped as `git`'s colours
-  into a scrollback. That means each removed line is **paired with the added
+  a `git status --short` summary, the `diff --stat`, the full unified diff,
+  then **every untracked file as an addition against nothing** (`git diff` is
+  index-relative, so a file an agent had just created was a `??` line in the
+  status and absent from the review itself), rendered by crew's own diff rung
+  rather than dumped as `git`'s colours into a scrollback. That means each removed line is **paired with the added
   line that replaced it** and only the run that actually differs is drawn at
   full strength — the text the two share recedes toward the page — so you read
   *what* changed instead of hunting for it inside two lines of near-identical
@@ -2128,8 +2130,21 @@ and a typo gets a **did-you-mean** suggestion):
 - **`/reload`** — pick up extension edits without a restart: re-reads skills
   and plugin manifests, forces MCP to re-read `mcp.json` and reconnect on
   next use, and re-emits the roster so the pane's badges update.
-- **`/diff`** — the working tree's `git diff --stat` inline in the
-  transcript; **`/doctor`** — the broker's working directory and sys-tool
+- **`/diff`** — everything different from the last commit, inline in the
+  transcript: the `--stat` block, then **the patch itself** in a fenced `diff`
+  block the pane renders (added lines green, removed red, hunk headers cyan,
+  the changed words marked), untracked files included and crew's own `.crew/`
+  transcript excluded. Bounded at 30 KB on a line boundary, with a note
+  counting the lines left out. You rarely need to ask: **every task that
+  changes files is followed by its own patch** (12 KB, then "`/diff` shows the
+  whole patch") and, when a language server for the changed files is
+  installed, a **`diagnostics after the change:`** section listing what it
+  found — one line per diagnostic, `path:line:col — severity [source]:
+  message` — or the single line `no diagnostics in the N changed files` when
+  it found nothing. Deleted files are not asked about; the pass stops after
+  8 s so a slow server never holds a task's ending hostage; and with no server
+  on the machine there is no section at all, so the diff reads the same with
+  or without LSP. **`/doctor`** — the broker's working directory and sys-tool
   sandbox mode.
 - **"commit this"** — an **AI-written commit message** (à la Aider; the
   `/commit` slash form is retired, plain language replaced it): an agent
