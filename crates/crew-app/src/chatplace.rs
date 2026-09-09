@@ -12,9 +12,8 @@ use crate::chatbody::{CardCell, CardLine, Color};
 /// A transcript shorter than its window sits on the BOTTOM of it, against the
 /// composer, and the slack goes above — the way a shell's output sits above
 /// its prompt and the way every chat reads. Anchoring it to the top instead
-/// left a session's first few turns floating with eight blank rows between
-/// the newest card and the box you answer it in, so the two things that
-/// belong together were the two furthest apart on screen.
+/// left a session's first turns floating with eight blank rows between the
+/// newest card and the box you answer it in.
 pub(crate) fn window(
     lines: Vec<CardLine>,
     rows: u16,
@@ -67,6 +66,7 @@ pub(crate) fn line_cells(row: u16, line: &CardLine, cols: u16, page: Color) -> V
             bg: cell.bg.unwrap_or(page),
             bold: cell.bold,
             italic: cell.italic,
+            deco: crate::chatspan::deco(cell.strike),
             ..Default::default()
         });
         col += w;

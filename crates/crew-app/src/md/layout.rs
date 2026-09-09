@@ -13,10 +13,8 @@ mod table;
 #[path = "wrap.rs"]
 mod wrap;
 
-/// Reaches `table::lines` for `md::table_lines` (the viewer's CSV rung).
-/// `table` is a private submodule of `layout`, not of `md` — this is the
-/// narrowest crack that exposes it to `md/mod.rs` without loosening
-/// `table::lines`'s own `pub(super)` visibility any further than needed.
+/// Reaches `table::lines` for `md::table_lines` (the viewer's CSV rung):
+/// `table` is a private submodule of `layout`, not of `md`.
 pub(super) fn table_lines(
     header: Vec<Vec<MdSpan>>,
     rows: Vec<Vec<Vec<MdSpan>>>,
@@ -29,7 +27,9 @@ pub(super) fn table_lines(
 
 /// Turns parsed blocks into drawable lines, inserting exactly one
 /// `LineKind::Blank` between top-level blocks (none leading/trailing).
+/// Footnote definitions come out of the stream and go last (see `footnote`).
 pub(super) fn lines(blocks: Vec<Block>, cols: usize) -> Vec<MdLine> {
+    let (blocks, notes) = super::footnote::split(blocks);
     let mut out = Vec::new();
     for (i, block) in blocks.into_iter().enumerate() {
         if i > 0 {
@@ -40,6 +40,8 @@ pub(super) fn lines(blocks: Vec<Block>, cols: usize) -> Vec<MdLine> {
         }
         out.extend(block_lines(block, cols));
     }
+    let after_content = !out.is_empty();
+    out.extend(super::footnote::lines(notes, cols, after_content));
     out
 }
 
@@ -49,12 +51,8 @@ fn block_lines(block: Block, cols: usize) -> Vec<MdLine> {
             Some(rows) => rows,
             None => wrap_prose_lines(spans, cols),
         },
-        Block::Heading(level, mut spans) => {
-            for s in spans.iter_mut() {
-                s.style.bold = true;
-                s.style.heading = level;
-            }
-            wrap_prose_lines(spans, cols)
+        Block::Heading(level, spans) => {
+            wrap_prose_lines(super::heading::styled(level, spans), cols)
         }
         Block::CodeBlock { lang, lines } => code_block_lines(lang, lines, cols),
         Block::List(items) => list_lines(items, cols),
@@ -68,10 +66,12 @@ fn block_lines(block: Block, cols: usize) -> Vec<MdLine> {
             spans: vec![plain_span("─".repeat(cols))],
             kind: LineKind::Rule,
         }],
+        // Never reached: `lines` split every definition out before this.
+        Block::Footnote { .. } => Vec::new(),
     }
 }
 
-fn wrap_prose_lines(spans: Vec<MdSpan>, cols: usize) -> Vec<MdLine> {
+pub(super) fn wrap_prose_lines(spans: Vec<MdSpan>, cols: usize) -> Vec<MdLine> {
     split_hardbreaks(spans)
         .into_iter()
         .flat_map(|g| wrap_group(&g, cols))

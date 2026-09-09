@@ -280,14 +280,6 @@ pub(crate) fn quote_fg() -> Color {
     ink().quote
 }
 
-/// Headings, at every level. Deliberately `ink` itself, and so deliberately
-/// exempt from [`SEPARATION_FLOOR`]: headings are separated by WEIGHT (they
-/// render bold) and by their own line. Tinting them as well would make a
-/// document with several headings read as several documents.
-pub(crate) fn heading_fg() -> Color {
-    crew_theme::theme().ink
-}
-
 /// Link tint: reuse the terminal pane's own URL-highlight colour (`linkhl`)
 /// so a link reads the same whether it's in a pane or a chat card.
 pub(crate) fn link_color() -> Color {

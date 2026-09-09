@@ -79,15 +79,7 @@ fn push_caret(lines: &mut [CardLine], now_ms: u64, cols: usize) {
     };
     let th = crew_theme::theme();
     let fg = crate::anim::lerp_rgb(th.text_muted, crate::palette::accent(), t);
-    last.push(crate::chatbody::CardCell {
-        c: '\u{258c}',
-        fg,
-        bold: false,
-        italic: false,
-        bg: None,
-        link: None,
-        src: None,
-    });
+    last.push(crate::chatbody::plain('\u{258c}', fg, false));
 }
 
 /// Appends a muted ` … +N` suffix (`hidden` = number of clamped-away body

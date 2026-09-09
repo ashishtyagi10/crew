@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.40
+
+**The smith pane's markdown stops lying: strike is a strike, headings have levels, footnotes and `www.` links exist, an image is one row.**
+
+First of the smith-pane loop. `~~gone~~` was rendered italic since the
+engine landed; it draws a real strike now, muted, and a struck link keeps
+its colour and URL. Headings were all the same bold ink: h1 is
+accent-tinted with a rule the width of its text, h2 is bold ink, h3 and
+below are bold muted. `[^1]` was literal text; footnotes parse, the mark
+is muted, the definitions lay last under a rule. `www.host` and
+`name@host` autolink. A markdown image used to reserve twelve blank rows
+in chat; it is one muted `[image] alt` row carrying the source as its
+link, while the viewer still paints the picture.
+
 ## 0.21.39
 
 **Push-to-talk: the microphone is the third way in.**

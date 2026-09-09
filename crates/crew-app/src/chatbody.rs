@@ -15,6 +15,8 @@ pub(crate) struct CardCell {
     pub fg: Color,
     pub bold: bool,
     pub italic: bool,
+    /// `~~struck~~`: a rule through the glyph (`Deco::strike` at the renderer).
+    pub strike: bool,
     pub bg: Option<Color>,
     /// The URL a markdown link span resolves to; read by `clickopen`'s click
     /// hit-test (`chatview::link_at`) to recover it without re-parsing.
@@ -37,6 +39,7 @@ pub(crate) fn plain(c: char, fg: Color, bold: bool) -> CardCell {
         fg,
         bold,
         italic: false,
+        strike: false,
         bg: None,
         link: None,
         src: None,
