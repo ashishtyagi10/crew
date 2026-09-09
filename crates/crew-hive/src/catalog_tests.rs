@@ -29,6 +29,7 @@ fn the_majors_are_all_represented() {
         Vendor::OpenAI,
         Vendor::Alibaba,
         Vendor::DeepSeek,
+        Vendor::Nvidia,
     ] {
         assert!(
             catalog().iter().any(|m| m.vendor == v),

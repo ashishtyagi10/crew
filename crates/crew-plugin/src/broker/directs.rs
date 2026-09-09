@@ -66,6 +66,24 @@ pub static DIRECT: &[DirectProvider] = &[
         base_url_env: "CREW_DEEPSEEK_BASE_URL",
         vendor: crew_hive::catalog::Vendor::DeepSeek,
     },
+    // NVIDIA NIM (build.nvidia.com): a free developer key, no card, and the
+    // Nemotron models served natively — the zero-cost first run. Ids are the
+    // NIM catalog's own (`nvidia/…`, verified live 2026-09-08), which is why
+    // a native slug may carry a slash: the OpenRouter-shape heuristic is
+    // NOT "contains `/`" anywhere a NIM row can reach.
+    DirectProvider {
+        name: "nvidia",
+        var: "NVIDIA_API_KEY",
+        endpoint: "https://integrate.api.nvidia.com/v1/chat/completions",
+        chain: &[
+            "nvidia/nemotron-3.5-lightning-30b-a3b",
+            "nvidia/nemotron-3-super-120b-a12b",
+            "nvidia/nemotron-3-ultra-550b-a55b",
+        ],
+        chain_env: "CREW_NVIDIA_MODEL",
+        base_url_env: "CREW_NVIDIA_BASE_URL",
+        vendor: crew_hive::catalog::Vendor::Nvidia,
+    },
 ];
 
 /// The `DIRECT` row named by `name`, if any.

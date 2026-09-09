@@ -35,13 +35,9 @@ pub(crate) struct KeyEntry {
     pub(crate) var: String,
     buf: String,
     /// A browser sign-in is in flight for this prompt (OpenRouter only).
-    ///
-    /// Cleared when the user TYPES a character ([`Self::key`]'s `Char` arm):
-    /// entering a key by hand means they are no longer waiting on the browser.
-    /// A real paste does NOT clear it — Cmd+V and right-click-paste are routed
-    /// to [`Self::paste`], which leaves the hint up on purpose, because the
-    /// browser flow can still land and is still the thing that will close this
-    /// prompt.
+    /// Cleared when the user TYPES ([`Self::key`]'s `Char` arm); a paste
+    /// ([`Self::paste`]) leaves it, because the browser flow can still land
+    /// and is still the thing that will close this prompt.
     waiting: bool,
 }
 
@@ -75,16 +71,20 @@ impl KeyEntry {
     }
 
     /// How tall this prompt's card is right now. The hint row only exists
-    /// while a sign-in is in flight, so an `ANTHROPIC_API_KEY` prompt (which
-    /// has no browser flow at all) must not reserve — and draw a blank —
-    /// interior row for it. The renderer sizes the card from this, so the
-    /// height and the drawn cells can never disagree.
+    /// when there is a hint (a sign-in in flight, or a free key to point
+    /// at), so an `ANTHROPIC_API_KEY` prompt must not reserve — and draw a
+    /// blank — interior row. The renderer sizes the card from this.
     pub(crate) fn rows(&self) -> u16 {
-        if self.waiting {
+        if self.hint().is_some() {
             ROWS_WAITING
         } else {
             ROWS_PLAIN
         }
+    }
+
+    /// The interior hint row's text (`keyhint`), if this prompt has one.
+    fn hint(&self) -> Option<&'static str> {
+        crate::keyhint::hint(&self.var, self.waiting)
     }
 
     /// Route one key. Enter submits a non-blank buffer, Escape cancels,
@@ -181,12 +181,11 @@ impl KeyEntry {
                 ..Default::default()
             });
         }
-        if self.waiting {
+        if let Some(hint) = self.hint() {
             // ROW 2 IS LOAD-BEARING, not decoration: the hint text contains
             // almost every character of a typical key, so drawing it on row 1
             // would make the leak assertion (which scopes itself to row 1)
             // vacuous. A test pins it here.
-            let hint = "waiting for browser · or paste the key";
             for (i, ch) in crate::chatwidth::clip_w(hint, inner).chars().enumerate() {
                 cells.push(CellView {
                     col: 1 + i as u16,

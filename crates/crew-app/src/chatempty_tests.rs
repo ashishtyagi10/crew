@@ -112,14 +112,15 @@ fn the_hint_wraps_instead_of_clipping() {
 /// where the rows end and says so.
 #[test]
 fn a_short_pane_drops_the_spacers_before_the_words() {
-    // Six rows asked (heading, spacer, four lines of advice); five given.
-    let cells = empty_cells(42, 6, 0, true, &[]);
+    // Nine rows asked (heading, spacer, seven lines of advice at 38 wide);
+    // eight given.
+    let cells = empty_cells(42, 9, 0, true, &[]);
     assert!(row_text(&cells, 1).contains("No agents"));
     assert!(
-        row_text(&cells, 2).starts_with("Sign in"),
+        row_text(&cells, 2).starts_with("Free to start"),
         "spacer dropped first"
     );
-    let last = row_text(&cells, 5);
+    let last = row_text(&cells, 8);
     assert!(
         last.contains("(/model)"),
         "every word of the advice: {last}"
@@ -130,7 +131,7 @@ fn a_short_pane_drops_the_spacers_before_the_words() {
     assert!(row_text(&cells, 1).contains("No agents"));
     let last = row_text(&cells, 2);
     assert!(
-        last.starts_with("Sign in") && last.ends_with('\u{2026}'),
+        last.starts_with("Free to start") && last.ends_with('\u{2026}'),
         "{last}"
     );
     assert!(cells.iter().all(|c| c.row < 3));

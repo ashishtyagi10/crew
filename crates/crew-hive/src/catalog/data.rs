@@ -56,12 +56,20 @@ pub(super) const MODELS: &[ModelInfo] = &[
     // Google — no verified first-party rate in-repo; enrichment fills these.
     m("Gemini 2.5 Pro", "gemini-2.5-pro", Some("google/gemini-2.5-pro"), Vendor::Google, None, false, 0),
     m("Gemini 2.5 Flash", "gemini-2.5-flash", Some("google/gemini-2.5-flash"), Vendor::Google, None, false, 0),
+    // NVIDIA NIM — native ids from `integrate.api.nvidia.com/v1/models`
+    // (2026-09-08), served by the `nvidia` direct provider; the free
+    // developer tier has no per-token rate, so no price is claimed. The
+    // OpenRouter aliases are the paid slugs (the `:free` twins are below).
+    m("Nemotron 3.5 Lightning", "nvidia/nemotron-3.5-lightning-30b-a3b", Some("nvidia/nemotron-3.5-lightning"), Vendor::Nvidia, None, false, 1_000_000),
+    m("Nemotron 3 Super", "nvidia/nemotron-3-super-120b-a12b", Some("nvidia/nemotron-3-super-120b-a12b"), Vendor::Nvidia, None, false, 1_000_000),
+    m("Nemotron 3 Ultra 550B", "nvidia/nemotron-3-ultra-550b-a55b", Some("nvidia/nemotron-3-ultra-550b-a55b"), Vendor::Nvidia, None, false, 1_000_000),
     // Free tier — verified live on OpenRouter's public `/models` endpoint
     // (2026-07-25), spanning different vendors so a provider-specific throttle
     // doesn't collapse the entire fallback chain. Unlike the `context: 0`
     // rows above (unconfirmed), these four `context` values were read
-    // straight off that live response's `context_length` field, not
-    // guessed — keep them in sync with OpenRouter if the rows are refreshed.
+    // straight off that live response's `context_length` field (the 3.5
+    // Lightning row re-read 2026-09-08), not guessed — keep them in sync with OpenRouter if the rows are refreshed.
+    m("Nemotron 3.5 Lightning", "nvidia/nemotron-3.5-lightning:free", Some("nvidia/nemotron-3.5-lightning:free"), Vendor::Nvidia, Some((0, 0)), true, 1_000_000),
     m("Nemotron 3 Ultra", "nvidia/nemotron-3-ultra-550b-a55b:free", Some("nvidia/nemotron-3-ultra-550b-a55b:free"), Vendor::Nvidia, Some((0, 0)), true, 1_000_000),
     m("GPT-OSS 20B", "openai/gpt-oss-20b:free", Some("openai/gpt-oss-20b:free"), Vendor::OpenAI, Some((0, 0)), true, 131_072),
     m("Gemma 4 31B", "google/gemma-4-31b-it:free", Some("google/gemma-4-31b-it:free"), Vendor::Google, Some((0, 0)), true, 262_144),

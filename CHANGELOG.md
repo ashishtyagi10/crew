@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.38
+
+**A free NVIDIA key is the no-cost first run, and Nemotron 3.5 is its default.**
+
+`nvidia` joins the direct-provider table: `NVIDIA_API_KEY`, NIM's
+OpenAI-compatible endpoint, and a chain of Nemotron 3.5 Lightning →
+Nemotron 3 Super → Nemotron 3 Ultra, all under NIM's own ids (verified
+live). The catalog carries those three native rows plus the OpenRouter
+`:free` twin of 3.5 Lightning, which now leads the OpenRouter free
+chain too. The no-provider advice leads with "free to start: get an
+NVIDIA key at build.nvidia.com", and the `NVIDIA_API_KEY` paste prompt
+grows the same hint row the OpenRouter browser flow has. Picking a
+Nemotron row pins `nvidia`: the old "a slash means an OpenRouter
+alias" guard is gone, the catalog decides. Crew ships no key of its
+own — one shared key would be extractable and throttled for everyone.
+
 ## 0.21.37
 
 **Intel One Mono leaves the font rotation.**

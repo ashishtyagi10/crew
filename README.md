@@ -252,7 +252,8 @@ pane, **`*<text>`** broadcasts one line to every terminal pane, and
 **`?<plain english>`** asks the AI for a command (à la Warp AI / Copilot CLI)
 — the suggestion lands back in the input bar, ready to edit or Enter, powered
 by the same provider stack as `/crew` (DashScope / OpenRouter / Anthropic, or
-a direct OpenAI / Gemini / DeepSeek key — see
+a direct OpenAI / Gemini / DeepSeek / NVIDIA key — a free
+[build.nvidia.com](https://build.nvidia.com) key is the no-cost first run — see
 [docs/CREW.md](docs/CREW.md#models--rate-limits)).
 **`??<question>`** goes the other way: the AI reads the focused terminal's
 recent output and opens its explanation in the zoomed file viewer, rendered

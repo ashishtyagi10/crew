@@ -227,7 +227,9 @@ fn default_openrouter_chain_matches_the_catalogs_free_rows_in_order() {
     // reorders, drops, or mis-tags a free row must update this literal list
     // and re-verify against OpenRouter's live `/models` endpoint — the sole
     // guard against silent id retirement.
+    // Re-verified live 2026-09-08 (3.5 Lightning added at the head).
     let expected = [
+        "nvidia/nemotron-3.5-lightning:free",
         "nvidia/nemotron-3-ultra-550b-a55b:free",
         "openai/gpt-oss-20b:free",
         "google/gemma-4-31b-it:free",
@@ -393,14 +395,15 @@ fn provider_names_read_as_names() {
 /// No invented model ids. Every slug a provider row would send must already
 /// exist in the catalog as a NATIVE slug for that vendor — free rows are
 /// excluded because their ids are OpenRouter-shaped (`openai/gpt-oss-20b:free`)
-/// and api.openai.com has never heard of them.
+/// and api.openai.com has never heard of them. A slash alone is NOT the
+/// tell: NVIDIA NIM's native ids are `nvidia/…`.
 #[test]
 fn chains_are_native_catalog_slugs() {
     for d in super::DIRECT {
         assert!(!d.chain.is_empty(), "{} has no default model", d.name);
         for slug in d.chain {
             let known = crew_hive::catalog::catalog().iter().any(|m| {
-                m.vendor == d.vendor && m.slug == *slug && !m.free && !m.slug.contains('/')
+                m.vendor == d.vendor && m.slug == *slug && !m.free && !m.slug.ends_with(":free")
             });
             assert!(
                 known,
@@ -506,4 +509,63 @@ fn crew_provider_pins_a_direct_row_by_name() {
             d.name
         );
     }
+}
+
+/// The zero-cost first run: a fresh install with nothing but a free
+/// build.nvidia.com key resolves to the `nvidia` row and its chain leads with
+/// Nemotron 3.5 Lightning — the model the user asked to be the default. It
+/// probes last, so no existing install changes provider.
+#[test]
+fn a_free_nvidia_key_alone_serves_nemotron_3_5_by_default() {
+    let nvidia = super::direct_by_name("nvidia").expect("nvidia row");
+    assert_eq!(
+        pick_provider(None, keys(&["NVIDIA_API_KEY"])),
+        Some(ProviderKind::Direct(nvidia))
+    );
+    assert_eq!(nvidia.chain[0], "nvidia/nemotron-3.5-lightning-30b-a3b");
+    assert_eq!(
+        crate::broker::auth::registry::keyed()
+            .last()
+            .map(|e| e.name),
+        Some("nvidia"),
+        "a new provider row must probe LAST"
+    );
+    // Any other key still outranks it in auto-discovery.
+    assert_ne!(
+        pick_provider(None, keys(&["NVIDIA_API_KEY", "OPENROUTER_API_KEY"])),
+        Some(ProviderKind::Direct(nvidia))
+    );
+}
+
+/// Picking a Nemotron row moves the pin to `nvidia` even though NIM's native
+/// id carries a slash — the old "contains `/` means OpenRouter alias" guard
+/// would have left the pick unable to change provider. The `:free` twin is
+/// still an OpenRouter routing instruction and pins nothing.
+#[test]
+fn picking_a_nemotron_row_pins_nvidia_despite_the_slash() {
+    let _env = crate::broker::testenv::no_provider();
+    let store = crate::credentials::path().expect("guarded store path");
+    crate::credentials::save_key_at(&store, "NVIDIA_API_KEY", "nvapi-x", Some("nvidia")).unwrap();
+    crate::credentials::save_pin_at(&store, "openrouter").unwrap();
+    assert_eq!(
+        super::pin_provider_for_model("nvidia/nemotron-3.5-lightning-30b-a3b"),
+        Some("nvidia")
+    );
+    crate::credentials::save_pin_at(&store, "openrouter").unwrap();
+    assert_eq!(
+        super::pin_provider_for_model("nvidia/nemotron-3.5-lightning:free"),
+        None
+    );
+}
+
+/// The no-provider advice names the free route first, and names it by the
+/// place a user actually goes to.
+#[test]
+fn no_provider_advice_leads_with_the_free_nvidia_route() {
+    let a = super::no_provider_advice();
+    assert!(a.starts_with("free to start"), "{a}");
+    assert!(
+        a.contains("build.nvidia.com") && a.contains("/model"),
+        "{a}"
+    );
 }

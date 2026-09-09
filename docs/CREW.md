@@ -2273,7 +2273,7 @@ prefers `DASHSCOPE_API_KEY`
 endpoint defaults to the international region, point `CREW_DASHSCOPE_BASE_URL`
 at the China host if your key lives there), then `OPENROUTER_API_KEY` (free
 models by default), then `ANTHROPIC_API_KEY`, and last a **direct vendor key**
-(see below); set `CREW_PROVIDER=dashscope|openrouter|anthropic|openai|gemini|deepseek`
+(see below); set `CREW_PROVIDER=dashscope|openrouter|anthropic|openai|gemini|deepseek|nvidia`
 to pin one explicitly — a pin works even when that vendor's key is the only one
 you hold, and even when several are set. Keys
 don't have to be in Crew's own environment: at startup the broker imports any
@@ -2303,6 +2303,18 @@ endpoint, the key and the default model chain differ:
 | `openai` | `OPENAI_API_KEY` | `gpt-5` → `gpt-4.1` | `CREW_OPENAI_MODEL` | `CREW_OPENAI_BASE_URL` |
 | `gemini` | `GEMINI_API_KEY` | `gemini-2.5-pro` → `gemini-2.5-flash` | `CREW_GEMINI_MODEL` | `CREW_GEMINI_BASE_URL` |
 | `deepseek` | `DEEPSEEK_API_KEY` | `deepseek-chat` → `deepseek-reasoner` | `CREW_DEEPSEEK_MODEL` | `CREW_DEEPSEEK_BASE_URL` |
+| `nvidia` | `NVIDIA_API_KEY` | `nvidia/nemotron-3.5-lightning-30b-a3b` → `nvidia/nemotron-3-super-120b-a12b` → `nvidia/nemotron-3-ultra-550b-a55b` | `CREW_NVIDIA_MODEL` | `CREW_NVIDIA_BASE_URL` |
+
+**Free to start.** The `nvidia` row is the zero-cost first run: a developer
+key from [build.nvidia.com](https://build.nvidia.com) is free, needs no card,
+and serves the Nemotron models natively (NIM's own ids, which carry a slash —
+that is not an OpenRouter alias). Open `/model`, pick a Nemotron row, and the
+prompt that opens says exactly this and takes the pasted key; with no other
+key set, Nemotron 3.5 Lightning is then the default model. The free tier is
+rate-limited per key (best effort, roughly 40 requests a minute per model) and
+keys expire after six months, so the chain rolls Lightning → Super → Ultra on
+a throttle. Crew never ships a key of its own: one shared key would be
+extractable from the binary and throttled for everyone at once.
 
 Chain overrides are comma-separated and tried in order, exactly like
 `CREW_OPENROUTER_MODEL`: `export CREW_GEMINI_MODEL="gemini-2.5-flash,gemini-2.5-pro"`.
