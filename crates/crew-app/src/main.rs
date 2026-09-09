@@ -69,7 +69,9 @@ mod chatmention;
 mod chatshot_tests;
 mod chatspan;
 mod completefuzzy;
+mod fencebadge;
 mod mentionexpand;
+mod segment;
 
 mod canvas;
 mod cardpaint;
@@ -196,6 +198,7 @@ mod gitfleet;
 #[path = "glassshot_tests.rs"]
 mod glassshot_tests;
 mod glide;
+mod glyphlang;
 mod glyphs;
 mod goaldocs;
 #[cfg(test)]
@@ -372,6 +375,7 @@ mod suggest;
 mod suggestvalues;
 mod summaryfit;
 mod summarymeter;
+mod summaryroute;
 mod swarm;
 mod swarmpane;
 #[cfg(test)]

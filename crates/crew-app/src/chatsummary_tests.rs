@@ -108,14 +108,12 @@ fn line3_swarm_by_default_relay_when_mentioning() {
     let empty_ctx = HashMap::new();
     let f = fc(&agents, &empty_ctx);
     let l3 = text(&footer_lines(&f, 120)[2]);
-    assert_eq!(
-        l3,
-        "\u{25b6}\u{25b6} swarm mode \u{00b7} / for constructs \u{00b7} @ to relay to an agent"
-    );
+    assert!(l3.contains("\u{25b6}\u{25b6} swarm mode"), "{l3}");
+    assert!(l3.ends_with("@ to relay to an agent"), "{l3}");
     let mut f = fc(&agents, &empty_ctx);
     f.input = "@coder fix the tests";
     let l3 = text(&footer_lines(&f, 120)[2]);
-    assert!(l3.starts_with("\u{25b6}\u{25b6} @coder relay"), "{l3}");
+    assert!(l3.contains("@coder relay \u{258c}"), "{l3}");
 }
 
 #[test]
@@ -415,15 +413,15 @@ fn active_agents_show_on_line3_in_their_roster_colours() {
     let l3 = &footer_lines(&f, 120)[2];
     let s = text(l3);
     assert!(
-        s.contains("@analyst \u{00b7} @coder"),
+        s.contains("@analyst \u{258c} \u{00b7} \u{2590} @coder"),
         "names missing or misordered: {s}"
     );
     assert!(s.contains("running #3"), "{s}");
     // Mode leads, names follow, work ids after.
     let (m, a) = (s.find("swarm mode").unwrap(), s.find("@analyst").unwrap());
     assert!(m < a && a < s.find("running #3").unwrap(), "{s}");
-    // Each name renders in ITS agent colour — the same hash-picked colour
-    // the chip grid and message cards use.
+    // Each name is a badge on ITS agent colour as its block (`summaryroute_tests`
+    // reads the blocks); here its ink is the page's, walked to the floor on it.
     let chars: Vec<char> = l3.iter().map(|(c, _)| *c).collect();
     for name in ["analyst", "coder"] {
         let chip: Vec<char> = format!("@{name}").chars().collect();
@@ -432,7 +430,8 @@ fn active_agents_show_on_line3_in_their_roster_colours() {
             .unwrap();
         let want = crate::chatroster::agent_color(name);
         for (j, cell) in l3.iter().enumerate().skip(at).take(chip.len()) {
-            assert_eq!(cell.1, want, "@{name} char {j} off-colour in: {s}");
+            let r = crew_theme::contrast_ratio(cell.1, want);
+            assert!(r >= 4.5, "{name} {j}: {s}");
         }
     }
 }
@@ -454,10 +453,11 @@ fn a_crowd_of_active_agents_collapses_to_a_count() {
 #[test]
 fn an_idle_line3_is_unchanged_by_the_active_segment() {
     let empty_ctx = HashMap::new();
+    let _off = crate::glyphs::force(false);
     let f = fc(&[], &empty_ctx);
     assert_eq!(
         text(&footer_lines(&f, 120)[2]),
-        "\u{25b6}\u{25b6} swarm mode \u{00b7} / for constructs \u{00b7} @ to relay to an agent"
+        "\u{2590} \u{25b6}\u{25b6} swarm mode \u{258c} \u{00b7} / for constructs \u{00b7} @ to relay to an agent"
     );
 }
 
@@ -612,7 +612,7 @@ fn a_dropped_meter_drops_its_fraction() {
     let ctx = ctx(&[("smith", 100_000)]);
     for cols in [60usize, 72, 84, 96, 120] {
         let mut meters = Vec::new();
-        let lines = super::footer_lines_with(&fc(&agents, &ctx), cols, &mut meters);
+        let lines = super::footer_text_lines(&fc(&agents, &ctx), cols, &mut meters);
         let runs = meter_runs(&lines[1]).len();
         assert_eq!(
             runs,

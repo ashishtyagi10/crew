@@ -48,7 +48,7 @@ fn multiline_reply_renders_each_line() {
 
 #[test]
 fn fenced_code_renders_as_bordered_card() {
-    let _g = crate::app::theme_test_guard();
+    let (_g, _off) = (crate::app::theme_test_guard(), crate::glyphs::force(false));
     let cells = message_cells(
         &[&msg("coder", "fix:\n```rust\nlet x = 1;\n```")],
         40,
@@ -59,7 +59,7 @@ fn fenced_code_renders_as_bordered_card() {
     );
     assert_eq!(card_row(&cells, 1), " fix:");
     assert_eq!(card_row(&cells, 2), " ", "a blank row before the field");
-    assert_eq!(card_row(&cells, 3), "  rust       ");
+    assert_eq!(card_row(&cells, 3), "  \u{2590} rust \u{258c}   ");
     assert_eq!(card_row(&cells, 4), "  let x = 1; ");
     assert_eq!(card_row(&cells, 5), "             ");
     // The code row sits on a bg different from the page background.
@@ -145,7 +145,7 @@ fn same_task_cards_chain_with_a_tree_connector_and_no_spacer() {
     // its header led by the muted └ connector and without a repeated #2.
     let follow = card_row(&cells, 2);
     assert!(
-        follow.starts_with("\u{2514} coder"),
+        follow.starts_with("\u{2514} ") && follow.contains(" coder "),
         "chained header connects with \u{2514}: {follow:?}"
     );
     assert!(!follow.contains("#2"), "no repeated task chip: {follow:?}");

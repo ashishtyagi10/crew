@@ -34,7 +34,7 @@ pub(crate) fn force(on: bool) -> Forced {
 fn all() -> Vec<Glyph<'static>> {
     let mut v = vec![
         Bullet1, Bullet2, Bullet3, Checked, Unchecked, Quote, DotOn, DotOff, Prompt, Image,
-        Footnote, Dir, File,
+        Footnote, Dir, File, Hash,
     ];
     v.extend((0..8).map(Spinner));
     let langs = [
@@ -126,9 +126,9 @@ fn fence_header_is_icon_space_label_on_and_bare_label_off() {
     assert_eq!(fence_header("", 40), "\u{f121} code");
     assert_eq!(fence_header("RUST,ignore", 40), "\u{e7a8} RUST,ignore");
     assert_eq!(
-        fence_header("rust", 3),
+        fence_header("rust", 3 + 4),
         "\u{e7a8} \u{2026}",
-        "clipped, cut marked"
+        "clipped to width less the badge's four chrome cells, cut marked"
     );
     drop(on);
     let _off = force(false);
@@ -145,8 +145,8 @@ fn footnote_mark_is_bracketed_off_and_iconed_on() {
     assert_eq!(footnote_mark("1"), "\u{f24a}1");
 }
 
-/// The chat card, end to end: the fence header row begins with the rust
-/// icon when the set is on, and is the bare label when it is off.
+/// The chat card, end to end: the fence header badge holds the rust icon when
+/// the set is on (powerline caps), the bare label when off (half-block caps).
 #[test]
 fn a_chat_fence_header_row_leads_with_the_language_icon_when_on() {
     let header = || -> String {
@@ -158,13 +158,13 @@ fn a_chat_fence_header_row_leads_with_the_language_icon_when_on() {
     };
     let on = force(true);
     assert!(
-        header().starts_with("  \u{e7a8} rust"),
+        header().starts_with("  \u{e0b6} \u{e7a8} rust \u{e0b4}"),
         "on: {:?}",
         header()
     );
     drop(on);
     let _off = force(false);
-    assert!(header().starts_with("  rust "), "off: {:?}", header());
+    assert!(header().starts_with("  ▐ rust ▌"), "off: {:?}", header());
 }
 
 /// The one door: every family the renderer is given passes through

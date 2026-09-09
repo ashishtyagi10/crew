@@ -26,16 +26,16 @@ fn fenced_code_takes_the_code_colour() {
     assert_eq!(cell.bg, Some(crate::chatink::code_bg()));
 }
 
-/// The language names the block from inside it, muted, on the same field the
-/// code sits on — the block's edge is the field, so a label off it would read
-/// as a stray word above a rectangle.
+/// The language names the block from inside it, as a badge on the same
+/// field the code sits on (`fencebadge`) — the block's edge is the field, so
+/// a label off it would read as a stray word above a rectangle.
 #[test]
-fn the_fences_language_sits_muted_on_the_field() {
+fn the_fences_language_sits_as_a_badge_on_the_field() {
     let _guard = crate::app::theme_test_guard();
     let out = lines("```rust\nfn x() {}\n```", 40, (9, 9, 9));
-    assert_eq!(row_text(&out[0]), "  rust      ");
-    assert_eq!(out[0][2].fg, crew_theme::theme().text_muted);
-    assert_eq!(out[0][2].bg, Some(crate::chatink::code_bg()));
+    assert!(row_text(&out[0]).contains(" rust "));
+    assert_eq!(out[0][4].bg, Some(crate::chathue::lang_hue("rust")));
+    assert_eq!(out[0][1].bg, Some(crate::chatink::code_bg()));
 }
 
 #[test]
@@ -56,7 +56,7 @@ fn headings_are_bold_and_take_the_ink_of_their_level() {
     let _guard = crate::app::theme_test_guard();
     for level in [1u8, 2, 3, 6] {
         let src = format!("{} Title", "#".repeat(level as usize));
-        let cell = &lines(&src, 40, (9, 9, 9))[0][1];
+        let cell = lines(&src, 40, (9, 9, 9))[0].last().cloned().unwrap();
         assert_eq!(cell.fg, crate::chatspan::heading_fg(level), "{src}");
         assert!(cell.bold, "{src}");
     }

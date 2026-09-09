@@ -2,15 +2,17 @@
 //! BELOW the input composer (Claude-Code footer style). Line 1 is identity &
 //! spend (model/roster · branch · $cost · token split), line 2 is the rolling
 //! 5h/7d usage windows plus budget & context bars, and line 3 is the live
-//! routing mode (swarm vs. `@agent` relay), the agents working right now, and the running-task/hint tail. The builder (`footer_lines`) is pure so it
-//! unit-tests without a live pane; `summary_rows`/`summary_art` gate the
-//! height and place the rows. The line-2 meters are drawn, not spelled — see
+//! routing mode (swarm vs. `@agent` relay) and the agents working right now
+//! as segment badges (`summaryroute`), then the running-task/hint tail. The
+//! builder (`footer_lines_with`) is pure so it unit-tests without a live
+//! pane; `summary_rows`/`summary_art` gate the height and place the rows. The line-2 meters are drawn, not spelled — see
 //! `draw_meters` and [`crate::plot::meter`].
 use crew_plugin::AgentInfo;
 use std::collections::HashMap;
 
 pub(crate) use crate::summaryfit::*;
 pub(crate) use crate::summarymeter::*;
+pub(crate) use crate::summaryroute::{lift, route_line, FCell};
 
 use crate::chat::ChatPane;
 use crate::chathdr::fmt_tokens;
@@ -101,7 +103,22 @@ pub(crate) struct FooterCtx<'a> {
 /// it shows arrives via `FooterCtx`, so it unit-tests without a live pane.
 #[cfg(test)]
 pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> {
-    footer_lines_with(fc, cols, &mut Vec::new())
+    footer_text_lines(fc, cols, &mut Vec::new())
+}
+
+/// [`footer_lines_with`] as text and ink only — the badge blocks dropped —
+/// for the tests that read what the footer SAYS. `summaryroute_tests` reads
+/// the blocks.
+#[cfg(test)]
+pub(crate) fn footer_text_lines(
+    fc: &FooterCtx,
+    cols: usize,
+    meters: &mut Vec<f32>,
+) -> Vec<Vec<(char, Fg)>> {
+    footer_lines_with(fc, cols, meters)
+        .into_iter()
+        .map(|l| l.into_iter().map(|(c, fg, _)| (c, fg)).collect())
+        .collect()
 }
 
 /// [`footer_lines`], also reporting each line-2 meter's exact fill in
@@ -114,7 +131,7 @@ pub(crate) fn footer_lines_with(
     fc: &FooterCtx,
     cols: usize,
     meters: &mut Vec<f32>,
-) -> Vec<Vec<(char, Fg)>> {
+) -> Vec<Vec<FCell>> {
     let th = crew_theme::theme();
     let (cyan, blue, green, magenta, yellow) = (
         th.ansi[14],
@@ -194,62 +211,14 @@ pub(crate) fn footer_lines_with(
         meters.truncate(l2.iter().filter(|(text, _)| text.contains(FILLED)).count());
     }
 
-    // Line 3: live routing mode, then either what is RUNNING or — when
-    // nothing is — the hints. Work in flight outranks teaching: the hints are
-    // for someone deciding what to type, and this is the line that used to
-    // require typing `/tasks` to see.
-    let mode = match crate::chatinput::relay_target(fc.input, fc.agents) {
-        Some(name) => format!("\u{25b6}\u{25b6} @{name} relay"),
-        None => "\u{25b6}\u{25b6} swarm mode".to_string(),
-    };
-    // Line 3 budgets like the others. It used to be built as one string and
-    // clipped, which on a 40-column pane cut "enter runs it · esc discards
-    // it" in half — teaching the user how to accept a plan and not how to
-    // decline it. Half an instruction is worse than none.
-    let mut l3s: Vec<(Seg, u8)> = vec![((mode, yellow), 1)];
-    // Who is working right now, each name in its roster colour so it matches
-    // the chip grid and message cards; past three names the count is the
-    // information. Priority 2: the trailing hints and the `/stop` how drop
-    // first (ties break toward the right), then the names — the mode (1) and
-    // the plan/running segments (0) always outlast them.
-    match fc.active.as_slice() {
-        [] => {}
-        names if names.len() > 3 => {
-            l3s.push(((format!("{} agents working", names.len()), green), 2));
-        }
-        names => {
-            for n in names {
-                l3s.push(((format!("@{n}"), crate::chatroster::agent_color(n)), 2));
-            }
-        }
-    }
-    if fc.plan_pending {
-        // A pending plan outranks everything else here: it is the only thing
-        // on this line addressed TO the user. The keys go compact rather than
-        // missing when the pane is narrow.
-        let keys = if cols >= 60 {
-            "enter runs it \u{00b7} esc discards it"
-        } else {
-            "enter/esc"
-        };
-        l3s.push((("plan ready".to_string(), green), 0));
-        l3s.push(((keys.to_string(), green), 0));
-    } else if let Some((what, how)) = running_seg(fc.running_tasks, cols) {
-        l3s.push(((what, green), 0));
-        if let Some(how) = how {
-            l3s.push(((how, green), 2));
-        }
-    } else if fc.active.is_empty() {
-        // Only show hints when there are no active agents and no running work.
-        l3s.push((("/ for constructs".to_string(), muted), 2));
-        l3s.push((("@ to relay to an agent".to_string(), muted), 3));
-    }
-    let l3 = join_with(&budget(l3s, cols), " \u{00b7} ");
+    // Line 3: the routing mode and who is working, as badges, then what is
+    // RUNNING or the hints — `summaryroute`.
+    let l3 = route_line(fc, cols);
 
     // Line 1 priorities: who is answering, then the spend, then the cost,
     // then the branch; the directory is the first thing to go (it is also
     // gated on width above, so on a wide pane nothing is lost at all).
-    vec![join(&l1), join(&l2), l3]
+    vec![lift(join(&l1)), lift(join(&l2)), l3]
 }
 
 pub(crate) fn footer_ctx(pane: &ChatPane, now_ms: u64) -> FooterCtx<'_> {

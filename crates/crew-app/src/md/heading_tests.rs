@@ -16,7 +16,8 @@ fn every_level_is_bold_and_keeps_its_level() {
 /// past the bar; prose and a rule are level 0.
 #[test]
 fn level_of_reads_past_wrapping_and_a_quote_bar() {
-    let wrapped = render_chat("# one two three", 8);
+    // An h1 wraps `chatheading::BADGE_W` narrower: room for its badge.
+    let wrapped = render_chat("# one two three", 8 + crate::chatheading::BADGE_W);
     assert_eq!(wrapped.len(), 2, "{wrapped:?}");
     assert!(wrapped.iter().all(|l| level_of(l) == 1));
     let quoted = render_chat("> ## inside", 40);

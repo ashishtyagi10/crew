@@ -7,7 +7,8 @@ use crate::md::render;
 /// are the very lines the pane draws.
 pub(crate) fn lines(text: &str, cols: usize) -> Vec<CardLine> {
     let fg = crew_theme::theme().ink;
-    crate::chatmd::map_lines(render(text, cols), cols, fg)
+    // The viewer's path (`mdrung`), not the chat card's: no h1 badge, no rule.
+    crate::chatmd::with_pictures(render(text, cols), cols, fg).0
 }
 
 /// The character the caret is on — `None` at a row's end stop, where the

@@ -14,6 +14,14 @@ pub(super) fn styled(level: u8, mut spans: Vec<MdSpan>) -> Vec<MdSpan> {
     spans
 }
 
+/// A heading's laid-out lines: every span bold and stamped, wrapped at the
+/// width the chat card leaves it — an h1 gives up `chatheading::BADGE_W`
+/// columns to the badge that leads its first row.
+pub(super) fn lines(level: u8, spans: Vec<MdSpan>, cols: usize) -> Vec<MdLine> {
+    let cols = crate::chatheading::wrap_cols(level, cols);
+    super::layout::wrap_prose_lines(styled(level, spans), cols)
+}
+
 /// The heading level a laid-out line is, `0` for anything that is not one.
 /// Read off the first AUTHORED span: a wrapped heading's every row carries
 /// the level, and a quote bar prefixed in front of it does not.

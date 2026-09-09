@@ -120,8 +120,10 @@ pub(crate) fn row_text_at(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> Op
 /// for links; this gives it the other thing worth acting on.
 ///
 /// A block is the run of contiguous rows laid onto the code FIELD — every
-/// cell past the indent tinted, which `chatfield` only ever does to a fence.
-/// A prose line merely carrying an inline `code` span has tinted cells among
+/// cell past the indent on a block and the row ending on the field's own
+/// tint, which `chatfield` only ever does to a fence (the header row opens
+/// with the language badge on its hue, then the field runs to the edge). A
+/// prose line merely carrying an inline `code` span has tinted cells among
 /// untinted ones and is correctly not a block; asking whether ANY cell was
 /// tinted made every such line one, and made one next to a fence extend it.
 ///
@@ -136,7 +138,9 @@ pub(crate) fn code_block_at(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> 
             .iter()
             .find(|(pr, _)| *pr == r)
             .is_some_and(|(_, line)| {
-                line.len() > 1 && line[1..].iter().all(|c: &CardCell| c.bg == code_bg)
+                line.len() > 1
+                    && line[1..].iter().all(|c: &CardCell| c.bg.is_some())
+                    && line.last().is_some_and(|c| c.bg == code_bg)
             })
     };
     if !is_field(row) {

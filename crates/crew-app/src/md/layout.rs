@@ -51,9 +51,7 @@ fn block_lines(block: Block, cols: usize) -> Vec<MdLine> {
             Some(rows) => rows,
             None => wrap_prose_lines(spans, cols),
         },
-        Block::Heading(level, spans) => {
-            wrap_prose_lines(super::heading::styled(level, spans), cols)
-        }
+        Block::Heading(level, spans) => super::heading::lines(level, spans, cols),
         Block::CodeBlock { lang, lines } => code_block_lines(lang, lines, cols),
         Block::List(items) => list_lines(items, cols),
         Block::BlockQuote(inner) => quote_lines(inner, cols),

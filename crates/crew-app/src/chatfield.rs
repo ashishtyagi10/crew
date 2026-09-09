@@ -67,7 +67,9 @@ pub(crate) fn fill(lines: &mut [CardLine], runs: &[(usize, usize)], width: usize
             for _ in 0..PAD {
                 line.insert(lead.min(line.len()), tinted(bg, fg));
             }
-            for cell in line.iter_mut().skip(lead) {
+            // A cell already on a block — the header's language badge —
+            // keeps it; the field fills in around it.
+            for cell in line.iter_mut().skip(lead).filter(|c| c.bg.is_none()) {
                 cell.bg = Some(bg);
             }
             while inner_w(line, lead) < field {

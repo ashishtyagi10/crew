@@ -768,7 +768,7 @@ fn a_click_inside_a_code_block_yields_the_whole_block() {
     assert!(got.contains("fn b() {}"), "both lines: {got:?}");
     // The fence chrome and the language tag must not come with it.
     assert!(!got.contains('╭') && !got.contains('╰'), "chrome: {got:?}");
-    assert!(!got.contains("rust"), "language tag: {got:?}");
+    assert!(!got.contains("rust") && !got.contains('▐'), "{got:?}");
     // Nothing to strip after pasting: no leading indent from placement.
     assert!(got.starts_with("fn a()"), "leading indent: {got:?}");
 }
