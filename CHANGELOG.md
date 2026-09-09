@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.47
+
+**The smith pane's busy state is alive: a thinking shimmer, a name that pulses with tokens, cards that glide in, a dot that breathes.**
+
+The header's `thinking` word and the swarm line's running title carry
+a soft highlight that sweeps left to right every 1.4 s; every cell of
+it is floored against the page on all twelve presets. When an agent's
+tokens arrive its name in the header brightens for a quarter second
+and settles back to its roster colour. A newly settled reply lands one
+row low and glides up over 220 ms while it fades in, last card only and
+only when you are at the bottom, so nothing above you moves. When the
+pane is idle and connected the header dot breathes on a 3.2 s cycle,
+registered on the ambient frame branch so an idle pane never sits in
+the 15 fps busy loop. Reduce-motion makes every one of these static.
+
 ## 0.21.46
 
 **Tool calls show up live in the smith pane, and fold away when the reply lands.**
