@@ -10,7 +10,38 @@ fn the_seed_entries_declare_the_designed_modes() {
     assert!(e("dashscope").modes.contains(&AuthMode::OauthDevice));
     assert!(e("dashscope").device.is_some());
     assert!(e("openrouter").keyed() && !e("openrouter").delegated());
+    // Anthropic: a key, or the Anthropic CLI's Console sign-in minting the
+    // bearer — never the Claude Code client.
+    assert!(e("anthropic").keyed() && e("anthropic").minted());
+    assert!(!e("anthropic").delegated());
     assert!(e("mock").modes == [AuthMode::Mock]);
+}
+
+/// Mint specs exist exactly where `CliMinted` is declared, and only on a
+/// keyed provider — the bearer stands in for that provider's key var.
+#[test]
+fn mint_specs_pair_exactly_with_the_cli_minted_mode() {
+    for e in entries() {
+        assert_eq!(
+            e.mint.is_some(),
+            e.modes.contains(&AuthMode::CliMinted),
+            "{}: mint spec and CliMinted mode must pair",
+            e.name
+        );
+        if let Some(m) = e.mint {
+            assert!(e.key_var.is_some(), "{} mints but has no key var", e.name);
+            assert!(
+                e.cli.is_none(),
+                "{} cannot be delegated AND minting",
+                e.name
+            );
+            assert!(!m.mint.is_empty() && m.cli.login.starts_with(m.cli.bin));
+        }
+    }
+    assert_eq!(
+        minted().iter().map(|e| e.name).collect::<Vec<_>>(),
+        ["anthropic"]
+    );
 }
 
 /// The keyed order IS the historic `pick_provider` order — dashscope,

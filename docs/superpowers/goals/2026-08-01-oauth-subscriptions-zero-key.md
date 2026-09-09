@@ -32,6 +32,15 @@ crew runs the flow itself: show a code, open a URL, poll, store. NEVER rung zero
 scrape another app's token store or replay tokens against provider terms — consent-based
 integration only, and a provider with no permitted path simply stays key-only and says so.
 
+RUNG THREE, CLI-MINTED (added 2026-09-09, v0.21.52): Anthropic's own CLI (`ant auth login`) is a
+sanctioned browser OAuth against the Claude Console, and `ant auth print-credentials
+--access-token` hands any caller a short-lived bearer. Crew drives those two documented commands —
+consent-based, never the profile files — and presents the bearer natively (`Authorization:
+Bearer` + the `oauth-2025-04-20` beta). Registry mode `CliMinted`, spec + cache in
+`broker/auth/mint.rs`, the status marker in `broker/auth/probe.rs` (`ant auth status` exits 0
+either way). It is Console billing, not a Pro/Max subscription: the Claude Code client id that
+omp/opencode-style tools ship stays rung zero.
+
 PROVIDERS ARE DATA, NOT FORKS: one auth registry where each entry declares its modes
 (`cli-delegated` / `oauth-device` / `api-key`), its models, and how to probe signed-in state.
 Adding a provider is a registry entry plus at most a thin adapter — the broker, planner, and

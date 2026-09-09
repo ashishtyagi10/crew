@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.52
+
+**Sign in to Anthropic with the Anthropic CLI: `ant auth login`, and crew
+serves from that profile.**
+
+A third auth rung, CLI-minted. The `ant` CLI owns the sign-in (a browser
+OAuth against the Claude Console, billed to your Console workspace) and,
+on request, prints a short-lived bearer; crew asks it through its own
+documented command, caches the token in memory for five minutes, and
+presents it as `Authorization: Bearer` with the OAuth beta header through
+the native Anthropic provider. Crew never opens `~/.config/anthropic/`.
+A signed-in profile outranks every pasted key, below a Claude Code or
+Codex subscription; `/model` lists it under your subscriptions, `/login`
+shows the install and login commands when `ant` is missing or signed
+out, `/logout anthropic` hands you `ant auth logout`, and `/doctor` names
+the source that won. `ANTHROPIC_BASE_URL` is honoured. This is the
+sanctioned third-party OAuth; the Claude Code client id that some tools
+ship is deliberately not.
+
 ## 0.21.51
 
 **A swarm tool call shows once: the live block stays, the `[tool]` card goes.**

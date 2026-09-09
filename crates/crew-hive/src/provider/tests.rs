@@ -417,3 +417,37 @@ fn the_openai_shape_survives_unparseable_arguments() {
     let c = super::openai_http::parse_response(body).unwrap();
     assert_eq!(c.calls[0].input, serde_json::json!({}));
 }
+
+/// The two credential forms send different headers: a key rides in
+/// `x-api-key` (what every install has always sent); an OAuth bearer (the
+/// Anthropic CLI's minted profile token) rides as `Authorization: Bearer`
+/// AND the OAuth beta header, without which `/v1/messages` refuses it.
+#[test]
+fn anthropic_auth_headers_follow_the_credential_form() {
+    let key = AnthropicProvider::new("sk-ant-api03-k".into());
+    assert_eq!(
+        key.auth_headers(),
+        vec![("x-api-key", "sk-ant-api03-k".to_string())]
+    );
+    let oauth = AnthropicProvider::with_oauth("sk-ant-oat01-t".into());
+    assert_eq!(
+        oauth.auth_headers(),
+        vec![
+            ("authorization", "Bearer sk-ant-oat01-t".to_string()),
+            ("anthropic-beta", "oauth-2025-04-20".to_string()),
+        ]
+    );
+}
+
+/// `ANTHROPIC_BASE_URL` rebases the endpoint onto `<base>/v1/messages`,
+/// tolerant of the two ways a base is usually spelled.
+#[test]
+fn anthropic_base_url_seam_targets_v1_messages() {
+    use super::anthropic::messages_url;
+    let live = AnthropicProvider::new("k".into());
+    assert_eq!(live.endpoint(), "https://api.anthropic.com/v1/messages");
+    let stub = AnthropicProvider::new("k".into()).with_base_url("http://127.0.0.1:9/");
+    assert_eq!(stub.endpoint(), "http://127.0.0.1:9/v1/messages");
+    assert_eq!(messages_url("http://h/v1"), "http://h/v1/messages");
+    assert_eq!(messages_url("http://h"), "http://h/v1/messages");
+}

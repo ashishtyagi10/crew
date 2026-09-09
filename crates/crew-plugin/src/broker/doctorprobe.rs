@@ -134,6 +134,7 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
 fn auth_line(p: &super::auth::state::ProviderInfo) -> (char, String, String) {
     use super::auth::state::AuthState;
     let detail = match p.state {
+        AuthState::SignedIn if p.minted => "signed in (OAuth profile via its CLI)".to_string(),
         AuthState::SignedIn => "signed in (subscription)".to_string(),
         AuthState::SignedOut => format!(
             "signed out \u{2014} sign in: run `{}`",

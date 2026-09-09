@@ -102,3 +102,42 @@ fn run_status_reports_exit_and_output_and_kills_a_hang() {
         None
     );
 }
+
+/// `ant auth status` exits 0 whether or not a profile exists, so its spec
+/// names a marker instead: the real signed-out text of ant 1.31.0 (no
+/// profile configured) reads signed OUT, the documented signed-in row reads
+/// signed IN, and a build without the subcommand is no verdict at all.
+#[test]
+fn a_marker_spec_ignores_the_exit_code() {
+    let spec = super::super::mint::ANT.cli;
+    let signed_out = "Active profile:  default (fallback \u{2014} no active_config set)\n\
+        Credentials\n  (profile \"default\" not configured \u{2014} run `ant auth login` \
+        to set it up)\n";
+    let signed_in =
+        "Credentials\n  (active) * Profile (user_oauth) [via active_config]  sk-ant-oat01-EXA...\n";
+    let say = |ok: bool, text: &str| {
+        let text = text.to_string();
+        probe_with(&spec, true, &move |_, _| Some((ok, text.clone())))
+    };
+    assert_eq!(say(true, signed_out), CliAuth::SignedOut);
+    assert_eq!(say(true, signed_in), CliAuth::SignedIn);
+    assert_eq!(
+        say(false, signed_in),
+        CliAuth::SignedIn,
+        "the exit code is no signal"
+    );
+    assert_eq!(
+        say(
+            false,
+            "Incorrect Usage: unknown command\nUSAGE:\n   ant auth"
+        ),
+        CliAuth::Unknown
+    );
+    assert_eq!(probe_with(&spec, true, &|_, _| None), CliAuth::Unknown);
+    assert_eq!(
+        probe_with(&spec, false, &|_, _| unreachable!(
+            "absent binaries are not run"
+        )),
+        CliAuth::Absent
+    );
+}

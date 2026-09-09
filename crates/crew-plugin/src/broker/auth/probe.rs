@@ -39,9 +39,21 @@ enum Verdict {
 /// signed in); output markers guard the two ways an exit code can lie —
 /// a CLI that prints `"loggedIn": false` politely (exit 0), and one that
 /// fails because the subcommand doesn't exist rather than because the user
-/// is signed out.
-fn classify(ok: bool, output: &str) -> Verdict {
+/// is signed out. A spec with a `signed_in_marker` is the third way: its
+/// exit code says nothing (`ant auth status` reports, never fails), so the
+/// marker alone decides signed-in and the not-a-command markers still guard.
+fn classify(ok: bool, output: &str, marker: Option<&str>) -> Verdict {
     let low = output.to_ascii_lowercase();
+    if let Some(m) = marker {
+        if low.contains(&m.to_ascii_lowercase()) {
+            return Verdict::SignedIn;
+        }
+        return if not_a_command(&low) {
+            Verdict::NotACommand
+        } else {
+            Verdict::SignedOut
+        };
+    }
     let signed_out = [
         "not logged in",
         "logged out",
@@ -57,14 +69,18 @@ fn classify(ok: bool, output: &str) -> Verdict {
     if ok {
         return Verdict::SignedIn;
     }
-    let not_a_command = ["unknown command", "unrecognized", "usage:"]
-        .iter()
-        .any(|m| low.contains(m));
-    if not_a_command {
+    if not_a_command(&low) {
         Verdict::NotACommand
     } else {
         Verdict::SignedOut
     }
+}
+
+/// The CLI didn't recognize the subcommand at all (`low` is lowercased).
+fn not_a_command(low: &str) -> bool {
+    ["unknown command", "unrecognized", "usage:"]
+        .iter()
+        .any(|m| low.contains(m))
 }
 
 /// A status-command runner: `(bin, args)` → `Some((exit-ok, output))`, or
@@ -79,7 +95,7 @@ pub(crate) fn probe_with(spec: &CliSpec, installed: bool, run: StatusRunner) -> 
     }
     match run(spec.bin, spec.status) {
         None => CliAuth::Unknown,
-        Some((ok, out)) => match classify(ok, &out) {
+        Some((ok, out)) => match classify(ok, &out, spec.signed_in_marker) {
             Verdict::SignedIn => CliAuth::SignedIn,
             Verdict::SignedOut => CliAuth::SignedOut,
             Verdict::NotACommand => CliAuth::Unknown,

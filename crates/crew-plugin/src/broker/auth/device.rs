@@ -12,8 +12,30 @@ use std::time::Duration;
 
 use crew_hive::deviceflow::{self, DeviceEndpoints, DevicePoll};
 
-use super::registry::{self, DeviceSpec};
+use super::registry;
 use super::tokens::{self, StoredToken};
+
+/// The native device-flow half of an `OauthDevice` entry: RFC 8628 endpoint
+/// DATA, run by `auth::device` through `crew_hive::deviceflow`. Declared
+/// only where the provider openly permits third-party device flow.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct DeviceSpec {
+    pub device_url: &'static str,
+    pub token_url: &'static str,
+    pub client_id: &'static str,
+    pub scope: &'static str,
+}
+
+/// Qwen's device flow, as the open-source qwen-code CLI publishes it (its
+/// free tier signs in exactly this way). MARKED UNCERTAIN: verify against
+/// the live docs before the first real sign-in — tests only ever reach these
+/// through the stub server (`CREW_OAUTH_BASE`), never the live URLs.
+pub(crate) const QWEN_DEVICE: DeviceSpec = DeviceSpec {
+    device_url: "https://chat.qwen.ai/api/v1/oauth2/device/code",
+    token_url: "https://chat.qwen.ai/api/v1/oauth2/token",
+    client_id: "f0304373b74a44d2b584a3fb70ca9e56",
+    scope: "openid profile email model.completion",
+};
 
 /// Hard ceiling on one sign-in wait, whatever the server's `expires_in`
 /// says: a quarter hour of polling is patience, more is a leak.

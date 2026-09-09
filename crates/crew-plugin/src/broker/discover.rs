@@ -92,6 +92,18 @@ impl ProviderKind {
 /// order — DashScope (paid Qwen) before OpenRouter (free chains) before
 /// Anthropic before any direct vendor key.
 pub fn pick_provider(force: Option<&str>, has_key: impl Fn(&str) -> bool) -> Option<ProviderKind> {
+    pick_provider_with(force, has_key, |_| false)
+}
+
+/// [`pick_provider`] with the minted rung: `minted_serves(var)` says a
+/// signed-in minting CLI stands a bearer in for `var` right now, and that
+/// provider then outranks every pasted key — the same order `auth::resolve`
+/// states, so `/doctor`'s "active" mark and the real routing agree.
+pub fn pick_provider_with(
+    force: Option<&str>,
+    has_key: impl Fn(&str) -> bool,
+    minted_serves: impl Fn(&str) -> bool,
+) -> Option<ProviderKind> {
     if has_key("CREW_BROKER_MOCK_REPLY") {
         return Some(ProviderKind::Mock);
     }
@@ -99,6 +111,13 @@ pub fn pick_provider(force: Option<&str>, has_key: impl Fn(&str) -> bool) -> Opt
     // has (a delegated pin like `claude-code` is `auth::resolve`'s business,
     // not this key-shaped path's).
     if let Some(k) = force.and_then(kind_for) {
+        return Some(k);
+    }
+    if let Some(k) = super::auth::registry::minted()
+        .into_iter()
+        .find(|e| e.key_var.is_some_and(&minted_serves))
+        .and_then(|e| kind_for(e.name))
+    {
         return Some(k);
     }
     // The registry's keyed rows, in its (historic) discovery order — new
@@ -164,7 +183,9 @@ fn resolve_forced(env: Option<String>, stored: Option<String>) -> Option<String>
 /// the user just completed. `/logout` removes the grant and the key serves
 /// again; a grant whose refresh fails falls back to the key too.
 pub(crate) fn key_for(store: &crate::credentials::Store, var: &str) -> Option<String> {
-    super::auth::refresh::key_stand_in(var).or_else(|| key_raw(store, var))
+    super::auth::refresh::key_stand_in(var)
+        .or_else(|| super::auth::mint::key_stand_in(var))
+        .or_else(|| key_raw(store, var))
 }
 
 /// [`key_for`] WITHOUT the grant rung — for the two places that must tell a
@@ -285,9 +306,11 @@ pub(crate) fn configured_providers() -> Vec<String> {
 
 /// [`resolved_provider`] over an already-loaded store.
 fn picked(store: &crate::credentials::Store) -> Option<ProviderKind> {
-    pick_provider(forced_provider(store).as_deref(), |k| {
-        key_for(store, k).is_some()
-    })
+    pick_provider_with(
+        forced_provider(store).as_deref(),
+        |k| key_for(store, k).is_some(),
+        |k| super::auth::mint::key_stand_in(k).is_some(),
+    )
 }
 
 /// The full adapter roster, in precedence order: stored specialists (see
@@ -411,8 +434,22 @@ fn provider_and_model_with(
             Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
         }
         ProviderKind::Anthropic => {
-            // Not `from_env()` — same reason as OpenRouter above.
-            let provider = crew_hive::AnthropicProvider::new(key_for(store, "ANTHROPIC_API_KEY")?);
+            // The minted bearer first — it outranks a key, as `key_for`
+            // says — with its own auth headers; else the key (not
+            // `from_env()`, same reason as OpenRouter above).
+            let provider = match super::auth::mint::key_stand_in("ANTHROPIC_API_KEY") {
+                Some(token) => crew_hive::AnthropicProvider::with_oauth(token),
+                None => crew_hive::AnthropicProvider::new(key_raw(store, "ANTHROPIC_API_KEY")?),
+            };
+            // The official SDKs' base-URL seam, and how a test reaches a
+            // loopback stub.
+            let provider = match std::env::var("ANTHROPIC_BASE_URL")
+                .ok()
+                .filter(|v| !v.is_empty())
+            {
+                Some(base) => provider.with_base_url(&base),
+                None => provider,
+            };
             Some((
                 Arc::new(provider) as Arc<dyn crew_hive::Provider>,
                 tier.model_id().to_string(),

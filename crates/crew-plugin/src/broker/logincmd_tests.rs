@@ -7,6 +7,7 @@ fn device(name: &str, signed_in: bool, key_present: bool) -> LoginRow {
         device: true,
         signed_in,
         key_present,
+        install: None,
     }
 }
 
@@ -17,6 +18,23 @@ fn delegated(name: &str, login: &'static str, signed_in: bool) -> LoginRow {
         device: false,
         signed_in,
         key_present: false,
+        install: None,
+    }
+}
+
+fn minting(
+    name: &str,
+    signed_in: bool,
+    key_present: bool,
+    install: Option<&'static str>,
+) -> LoginRow {
+    LoginRow {
+        name: name.to_string(),
+        cli_login: Some("ant auth login"),
+        device: false,
+        signed_in,
+        key_present,
+        install,
     }
 }
 
@@ -116,4 +134,51 @@ fn pick_distinguishes_keyed_only_providers_from_unknown_names() {
         panic!("unknown pick must be a note");
     };
     assert!(unknown.contains("unknown provider"), "{unknown}");
+}
+
+/// A minting CLI's row is the front door to the sanctioned Anthropic
+/// sign-in: absent, it says how to install; signed out beside a key, it
+/// says the sign-in outranks the key; signed in, it reads like any vendor
+/// CLI. Picking it by name never runs a device flow — the CLI owns the
+/// login — and says install-then-login when the CLI is missing.
+#[test]
+fn a_minting_cli_row_names_install_login_and_precedence() {
+    let brew = "brew install anthropics/tap/ant";
+    let rows = vec![
+        device("dashscope", false, false),
+        minting("anthropic", false, false, Some(brew)),
+    ];
+    let text = listing(&rows);
+    assert!(text.contains(" 1. dashscope"), "{text}");
+    assert!(
+        text.contains("\u{25cb} anthropic \u{2014} not installed \u{00b7} `brew install anthropics/tap/ant`, then `ant auth login`"),
+        "{text}"
+    );
+    let note = match pick(&rows, "anthropic") {
+        LoginPick::Note(n) => n,
+        other => panic!("{other:?}"),
+    };
+    assert!(
+        note.contains("not installed") && note.contains("then `ant auth login`"),
+        "{note}"
+    );
+    assert_eq!(
+        pick(&rows, "2"),
+        LoginPick::Note("no sign-in #2 \u{2014} the listing numbers 1..=1".into())
+    );
+
+    let text = listing(&[minting("anthropic", false, true, None)]);
+    assert!(
+        text.contains("key present \u{00b7} `ant auth login` signs in with OAuth instead"),
+        "{text}"
+    );
+    let text = listing(&[minting("anthropic", true, true, None)]);
+    assert!(
+        text.contains("anthropic \u{2014} \u{2713} signed in (vendor CLI)"),
+        "{text}"
+    );
+    match pick(&[minting("anthropic", true, true, None)], "anthropic") {
+        LoginPick::Note(n) => assert!(n.contains("run `ant auth login`"), "{n}"),
+        other => panic!("{other:?}"),
+    }
 }

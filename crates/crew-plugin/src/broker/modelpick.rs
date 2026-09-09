@@ -48,7 +48,12 @@ pub(crate) fn groups_text(states: &[ProviderInfo]) -> String {
     let mut groups: Vec<String> = Vec::new();
     let mut subs: Vec<String> = Vec::new();
     for p in states.iter().filter(|p| p.state == AuthState::SignedIn) {
-        subs.push(numbered(p, "signed in"));
+        let detail = if p.minted {
+            "signed in \u{00b7} OAuth profile via its CLI"
+        } else {
+            "signed in"
+        };
+        subs.push(numbered(p, detail));
     }
     // Device-flow sign-ins are NUMBERED: picking one runs the flow right
     // here in the pane (code card, poll, done).
@@ -85,6 +90,8 @@ pub(crate) fn groups_text(states: &[ProviderInfo]) -> String {
                     "key present \u{00b7} /login {} signs in with OAuth instead",
                     p.name
                 )
+            } else if let (true, Some(login)) = (p.minted, p.login) {
+                format!("key present \u{00b7} `{login}` signs in with OAuth instead")
             } else {
                 "key present".to_string()
             };

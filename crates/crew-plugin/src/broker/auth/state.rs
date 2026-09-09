@@ -36,6 +36,9 @@ pub(crate) struct ProviderInfo {
     /// Declares a native device flow — `SignedOut` here is the in-pane
     /// sign-in affordance (`/model <n>` runs it), not a CLI to go run.
     pub device: bool,
+    /// A minting CLI owns the sign-in: `SignedIn` is an OAuth profile the
+    /// CLI vouches for, served natively (not a subscription relay).
+    pub minted: bool,
 }
 
 /// Every registry provider's live state, in registry order, plus any
@@ -55,22 +58,31 @@ pub(crate) fn snapshot() -> Vec<ProviderInfo> {
         if e.name == "mock" {
             continue;
         }
-        let state = match e.cli {
-            Some(cli) => match probe::state_cached(&cli) {
+        let keyed = e
+            .key_var
+            .is_some_and(|v| super::super::discover::key_raw(&store, v).is_some());
+        let state = match (e.mint, e.cli) {
+            // A minting CLI: its sign-in serves first; a key serves without
+            // it; installed-but-signed-out is the sign-in affordance (the
+            // CLI's own login command); not installed with no key is no key.
+            (Some(m), _) => match probe::state_cached(&m.cli) {
+                CliAuth::SignedIn => AuthState::SignedIn,
+                _ if keyed => AuthState::KeyPresent,
+                CliAuth::SignedOut => AuthState::SignedOut,
+                CliAuth::Absent | CliAuth::Unknown => AuthState::NoKey,
+            },
+            (None, Some(cli)) => match probe::state_cached(&cli) {
                 CliAuth::SignedIn => AuthState::SignedIn,
                 CliAuth::SignedOut => AuthState::SignedOut,
                 CliAuth::Absent => AuthState::Absent,
                 CliAuth::Unknown if super::super::run::on_path(cli.bin) => AuthState::Installed,
                 CliAuth::Unknown => AuthState::Absent,
             },
-            None => {
+            (None, None) => {
                 // A stored grant is a signed-in subscription; a real key is
                 // "key present" (`key_raw`, so a grant standing in for the
                 // key cannot mislabel itself); declared device endpoints
                 // with neither is the sign-in affordance.
-                let keyed = e
-                    .key_var
-                    .is_some_and(|v| super::super::discover::key_raw(&store, v).is_some());
                 if e.device.is_some() && super::tokens::load(e.name).is_some() {
                     AuthState::SignedIn
                 } else if keyed {
@@ -85,9 +97,10 @@ pub(crate) fn snapshot() -> Vec<ProviderInfo> {
         out.push(ProviderInfo {
             name: e.name.to_string(),
             state,
-            login: e.cli.map(|c| c.login),
+            login: e.cli.map(|c| c.login).or(e.mint.map(|m| m.cli.login)),
             active: is_active(e.name),
             device: e.device.is_some(),
+            minted: e.mint.is_some(),
         });
     }
     for a in super::super::agents::known_adapters() {
@@ -98,6 +111,7 @@ pub(crate) fn snapshot() -> Vec<ProviderInfo> {
                 login: None,
                 active: false,
                 device: false,
+                minted: false,
             });
         }
     }

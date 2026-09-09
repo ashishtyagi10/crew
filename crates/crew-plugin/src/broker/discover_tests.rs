@@ -569,3 +569,25 @@ fn no_provider_advice_leads_with_the_free_nvidia_route() {
         "{a}"
     );
 }
+
+/// A signed-in minting CLI (the `ant` Console profile) outranks every key
+/// in the REAL routing order, exactly as `auth::resolve` says — the two
+/// orders must agree or `/doctor`'s "active" mark lies. A pin still wins.
+#[test]
+fn pick_serves_a_minted_profile_before_any_key() {
+    let both = || keys(&["DASHSCOPE_API_KEY", "ANTHROPIC_API_KEY"]);
+    let ant = |v: &str| v == "ANTHROPIC_API_KEY";
+    assert_eq!(
+        pick_provider_with(None, both(), ant),
+        Some(ProviderKind::Anthropic)
+    );
+    assert_eq!(
+        pick_provider_with(None, both(), |_| false),
+        Some(ProviderKind::DashScope)
+    );
+    assert_eq!(
+        pick_provider_with(Some("dashscope"), both(), ant),
+        Some(ProviderKind::DashScope)
+    );
+    assert_eq!(pick_provider_with(None, keys(&[]), |_| false), None);
+}

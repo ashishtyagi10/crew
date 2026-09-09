@@ -143,18 +143,24 @@ pub(crate) fn clear_reauth(provider: &str) {
     m.remove(provider);
 }
 
-/// The one armed re-auth line across every device-flow provider, taken at
-/// most once each — what the task worker prints before dispatch.
+/// The one armed re-auth line across every signed-in-able provider, taken
+/// at most once each — what the task worker prints before dispatch. A
+/// device provider signs in again from `/model`; a minting CLI from its own
+/// login command.
 pub(crate) fn reauth_note() -> Option<String> {
     registry::entries()
         .iter()
-        .filter(|e| e.device.is_some())
+        .filter(|e| e.device.is_some() || e.mint.is_some())
         .find(|e| take_reauth(e.name))
-        .map(|e| {
-            format!(
+        .map(|e| match e.mint {
+            Some(m) => format!(
+                "{} sign-in expired \u{2014} run `{}` to sign in again",
+                e.name, m.cli.login
+            ),
+            None => format!(
                 "{} sign-in expired \u{2014} open /model and pick it to sign in again",
                 e.name
-            )
+            ),
         })
 }
 

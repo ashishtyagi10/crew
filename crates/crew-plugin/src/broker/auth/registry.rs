@@ -5,11 +5,14 @@
 //! ask it for its state. Adding a provider is a row here plus at most a
 //! thin adapter; routing and planning code never learn provider names.
 //!
-//! Two rungs by design (see the 2026-08-01 goal doc): `CliDelegated` means
+//! Three rungs by design (see the 2026-08-01 goal doc): `CliDelegated` means
 //! the subscription is used INSIDE the vendor's own client (crew drives the
 //! CLI, never touches its token store); `OauthDevice` means the provider
 //! openly permits third-party device-code OAuth and crew may run the flow
-//! itself. A provider with neither permitted path stays `ApiKey`-only.
+//! itself; `CliMinted` means the vendor's own CLI owns the sign-in AND hands
+//! out a short-lived bearer on request (`ant auth print-credentials`), which
+//! crew's native provider then presents. A provider with no permitted path
+//! stays `ApiKey`-only.
 
 /// How a provider entry can authenticate.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -20,6 +23,9 @@ pub(crate) enum AuthMode {
     /// The provider permits third-party device-code OAuth; the entry's
     /// `device` endpoints drive the flow (`auth::device`).
     OauthDevice,
+    /// A vendor CLI owns the sign-in and mints a bearer on request; the
+    /// entry's `mint` spec drives probe and mint (`auth::mint`).
+    CliMinted,
     /// A pasted API key in `key_var`.
     ApiKey,
     /// The deterministic test provider (`CREW_BROKER_MOCK_REPLY`).
@@ -35,31 +41,15 @@ pub(crate) struct CliSpec {
     /// consent-based probe. Crew NEVER reads the CLI's token store.
     pub status: &'static [&'static str],
     /// The exact command a signed-out user runs to sign in.
-    #[allow(dead_code)] // read by /model's sign-in affordance, next commit
     pub login: &'static str,
+    /// When set, the status output SAYS signed-in by containing this marker
+    /// (case-insensitive) and the exit code is no signal at all — `ant auth
+    /// status` exits 0 signed in or out. `None`: the exit code decides.
+    pub signed_in_marker: Option<&'static str>,
 }
 
-/// The native device-flow half of an `OauthDevice` entry: RFC 8628 endpoint
-/// DATA, run by `auth::device` through `crew_hive::deviceflow`. Declared
-/// only where the provider openly permits third-party device flow.
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct DeviceSpec {
-    pub device_url: &'static str,
-    pub token_url: &'static str,
-    pub client_id: &'static str,
-    pub scope: &'static str,
-}
-
-/// Qwen's device flow, as the open-source qwen-code CLI publishes it (its
-/// free tier signs in exactly this way). MARKED UNCERTAIN: verify against
-/// the live docs before the first real sign-in — tests only ever reach these
-/// through the stub server (`CREW_OAUTH_BASE`), never the live URLs.
-const QWEN_DEVICE: DeviceSpec = DeviceSpec {
-    device_url: "https://chat.qwen.ai/api/v1/oauth2/device/code",
-    token_url: "https://chat.qwen.ai/api/v1/oauth2/token",
-    client_id: "f0304373b74a44d2b584a3fb70ca9e56",
-    scope: "openid profile email model.completion",
-};
+pub(crate) use super::device::{DeviceSpec, QWEN_DEVICE};
+pub(crate) use super::mint::MintSpec;
 
 /// One provider the registry knows.
 #[derive(Clone, Copy, Debug)]
@@ -71,7 +61,19 @@ pub(crate) struct ProviderAuth {
     pub cli: Option<CliSpec>,
     /// The device-flow endpoints (`OauthDevice` mode).
     pub device: Option<DeviceSpec>,
+    /// The minting CLI (`CliMinted` mode).
+    pub mint: Option<MintSpec>,
 }
+
+/// The all-`None` row every literal below fills in from.
+const BLANK: ProviderAuth = ProviderAuth {
+    name: "",
+    modes: &[],
+    key_var: None,
+    cli: None,
+    device: None,
+    mint: None,
+};
 
 impl ProviderAuth {
     pub(crate) fn delegated(&self) -> bool {
@@ -79,6 +81,9 @@ impl ProviderAuth {
     }
     pub(crate) fn keyed(&self) -> bool {
         self.modes.contains(&AuthMode::ApiKey)
+    }
+    pub(crate) fn minted(&self) -> bool {
+        self.modes.contains(&AuthMode::CliMinted)
     }
 }
 
@@ -92,24 +97,24 @@ static SEED: &[ProviderAuth] = &[
     ProviderAuth {
         name: "claude-code",
         modes: &[AuthMode::CliDelegated],
-        key_var: None,
         cli: Some(CliSpec {
             bin: "claude",
             status: &["auth", "status"],
             login: "claude auth login",
+            signed_in_marker: None,
         }),
-        device: None,
+        ..BLANK
     },
     ProviderAuth {
         name: "codex",
         modes: &[AuthMode::CliDelegated],
-        key_var: None,
         cli: Some(CliSpec {
             bin: "codex",
             status: &["login", "status"],
             login: "codex login",
+            signed_in_marker: None,
         }),
-        device: None,
+        ..BLANK
     },
     ProviderAuth {
         name: "dashscope",
@@ -117,29 +122,29 @@ static SEED: &[ProviderAuth] = &[
         // a pasted key stays equally valid.
         modes: &[AuthMode::ApiKey, AuthMode::OauthDevice],
         key_var: Some("DASHSCOPE_API_KEY"),
-        cli: None,
         device: Some(QWEN_DEVICE),
+        ..BLANK
     },
     ProviderAuth {
         name: "openrouter",
         modes: &[AuthMode::ApiKey],
         key_var: Some("OPENROUTER_API_KEY"),
-        cli: None,
-        device: None,
+        ..BLANK
     },
     ProviderAuth {
         name: "anthropic",
-        modes: &[AuthMode::ApiKey],
+        // A key, or the Anthropic CLI's own Console sign-in (`ant auth
+        // login`) minting the bearer — Anthropic's sanctioned OAuth for
+        // third-party clients; the Claude Code client is NOT.
+        modes: &[AuthMode::ApiKey, AuthMode::CliMinted],
         key_var: Some("ANTHROPIC_API_KEY"),
-        cli: None,
-        device: None,
+        mint: Some(super::mint::ANT),
+        ..BLANK
     },
     ProviderAuth {
         name: "mock",
         modes: &[AuthMode::Mock],
-        key_var: None,
-        cli: None,
-        device: None,
+        ..BLANK
     },
 ];
 
@@ -155,8 +160,7 @@ pub(crate) fn entries() -> Vec<ProviderAuth> {
             name: d.name,
             modes: &[AuthMode::ApiKey],
             key_var: Some(d.var),
-            cli: None,
-            device: None,
+            ..BLANK
         });
     }
     v
@@ -182,6 +186,11 @@ pub(crate) fn delegated() -> Vec<ProviderAuth> {
 /// The API-key entries, in discovery order.
 pub(crate) fn keyed() -> Vec<ProviderAuth> {
     entries().into_iter().filter(ProviderAuth::keyed).collect()
+}
+
+/// The CLI-minted entries, in discovery order.
+pub(crate) fn minted() -> Vec<ProviderAuth> {
+    entries().into_iter().filter(ProviderAuth::minted).collect()
 }
 
 /// The registry name for the provider whose key lives in `var`, if any.
