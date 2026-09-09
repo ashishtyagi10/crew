@@ -192,19 +192,34 @@ fn login_signs_in_over_a_present_key_and_the_grant_serves() {
         ],
         &[
             (&send("/login"), 500),
+            (&send("/login list"), 500),
             (&send("/login 1"), 4500),
             (&send("say hello please"), 3000),
+            (&send("/logout"), 500),
             (&send("/logout dashscope"), 500),
         ],
     );
     let msgs = messages(&events);
     let all: String = msgs.iter().map(|(s, t)| format!("{s}: {t}\n")).collect();
-    // The key did not hide the affordance: dashscope is numbered row 1.
+    // The key did not hide the affordance: dashscope is a picker row that
+    // says so, and numbered row 1 of the text form.
+    let rows = common::sign_in_options(&events);
+    let ds = rows
+        .iter()
+        .find(|o| o.name == "dashscope" && !o.signed_in)
+        .expect("bare /login offers dashscope");
+    assert!(ds.device && ds.key_present, "{ds:?}");
     assert!(
         all.contains(
             "1. dashscope \u{2014} key present \u{b7} /login 1 signs in with OAuth instead"
         ),
         "{all}"
+    );
+    // Bare /logout, once signed in, offers the grant as a picker row.
+    assert!(
+        rows.iter()
+            .any(|o| o.name == "dashscope" && o.signed_in && o.device),
+        "bare /logout must offer the stored grant: {rows:?}"
     );
     // The flow ran in-pane and landed.
     assert!(all.contains("WDJB-MJHT"), "code card must stream: {all}");

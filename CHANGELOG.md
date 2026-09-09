@@ -22,6 +22,10 @@ the command palette opens it straight away. `/logout <name>` still removes
 one directly, `/logout list` names them as text, and with nothing stored
 there is no popup, only the note.
 
+Also: v0.21.55's coverage job was red — three broker end-to-end tests
+still expected bare `/login` to print the table. They assert the picker
+rows now, and `/login list` for the text.
+
 ## 0.21.55
 
 **`/login` opens a picker: choose the provider, no name to type.**
