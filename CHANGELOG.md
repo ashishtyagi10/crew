@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.44
+
+**Streamed replies type themselves out.**
+
+The broker hands the pane a text delta at most every 80 ms, so a reply
+used to land in word-group bursts. The pane now reveals the streamed
+text at a clock-driven rate, at least 90 characters a second and
+faster whenever it falls behind, never more than a chunk and a half
+behind what has arrived, and everything pending is on screen within
+400 ms of the last delta. The caret rides the last revealed character
+and the newest dozen glow up from muted to their ink over 180 ms. When
+the settled message replaces the stream the reveal continues from
+where it was, never snapping back, and a shorter settled text shows
+whole. A card still typing keeps asking for frames after the turn has
+ended. With reduce-motion on, text appears at once and nothing glows.
+
 ## 0.21.43
 
 **oh-my-posh segments in the smith pane: badges with caps for the fence language, the sender, the routing mode and h1.**
