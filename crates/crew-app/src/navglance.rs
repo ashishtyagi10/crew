@@ -15,6 +15,7 @@ pub(crate) enum NavCard {
 }
 
 impl NavCard {
+    #[cfg(test)]
     pub(crate) const ALL: [NavCard; 2] = [NavCard::Glance, NavCard::Log];
 
     pub(crate) fn as_str(self) -> &'static str {

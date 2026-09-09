@@ -91,6 +91,8 @@ pub fn fixed_rows(has_git: bool) -> u16 {
 /// row scrolled off it is a pane you cannot click. Whatever is left over goes
 /// to the LOG, between [`LOG_MIN`] and [`LOG_MAX`] lines and never more than
 /// there are entries to show.
+/// The LOG-mode division — the shape every existing layout test speaks.
+#[cfg(test)]
 pub fn layout(rows: u16, has_git: bool, log_len: usize, panes: usize) -> NavLayout {
     layout_with(rows, has_git, Tail::Log(log_len), panes)
 }
