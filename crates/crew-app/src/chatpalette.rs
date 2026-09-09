@@ -16,6 +16,8 @@ pub(crate) enum Kind {
     Agent,
     /// The `/model ` argument phase — the grouped model picker.
     Model,
+    /// The `/login` picker, opened by the broker's `SignIn` (`loginpick`).
+    Login,
 }
 
 /// The open leading-token palette: already-filtered rows + selection, plus
@@ -26,27 +28,23 @@ pub(crate) struct PaletteState {
     pub items: Vec<MenuItem>,
     pub sel: usize,
     pub entries: Vec<crate::chatmention::MentionEntry>,
-    /// Whether Up/Down has moved the selection since the palette opened.
-    /// Only meaningful for `Kind::Model` — see `popup_key`'s Enter arm.
+    /// Up/Down moved the selection since opening (`Kind::Model`'s Enter arm).
     pub touched: bool,
 }
 
 pub(crate) enum PaletteKey {
     Consumed,
-    /// A row was accepted without running: `input` now holds the filled text
-    /// and the palette is closed. The caller MUST re-sync it against the new
-    /// input (`after_edit`) — accepting `/model` fills `/model `, which is
-    /// itself a palette token, and the model picker only opens if something
-    /// re-runs the sync. Without this the picker never appeared for the most
-    /// natural flow of all: type `/mod`, press Enter on the row.
+    /// A row was accepted without running: `input` holds the filled text and
+    /// the palette is closed. The caller MUST re-sync against the new input
+    /// (`after_edit`): `/model ` is itself a palette token, and the model
+    /// picker only opened for "type `/mod`, Enter" once something re-ran it.
     Accepted,
     /// The accepted row is a command to RUN: `input` now holds it, and the
     /// caller must submit as if Enter had been pressed on the composer.
     Submit,
     Forward,
-    /// The accepted row can't run until a provider key exists; the payload is
-    /// the variable it needs. The palette is closed and `input` is UNCHANGED —
-    /// the model is not chosen until it can actually be served.
+    /// The accepted row can't run until a provider key exists (the payload
+    /// names it). Palette closed, `input` UNCHANGED: nothing is chosen yet.
     NeedsKey(String),
 }
 
@@ -101,13 +99,14 @@ pub(crate) fn after_edit(
         Some(p) if p.kind == kind => std::mem::take(&mut p.entries),
         _ => match kind {
             Kind::Agent => scan(),
-            Kind::Slash | Kind::Model => Vec::new(),
+            Kind::Slash | Kind::Model | Kind::Login => Vec::new(),
         },
     };
     let items = match kind {
         Kind::Slash => slash_items(query),
         Kind::Agent => attach_items(query, &entries, input.contains('+')),
         Kind::Model => crate::modelpick::rows(query, current_model),
+        Kind::Login => Vec::new(), // opened by an event; any edit closes it
     };
     if items.is_empty() {
         *palette = None;
@@ -196,6 +195,7 @@ pub(crate) fn accept(input: &str, kind: Kind, fill: &str) -> String {
         // The broker reads `/model <agent> <slug>`; the picker applies the
         // pick to the whole roster, so it must send the `all` target.
         Kind::Model => format!("/model all {fill}"),
+        Kind::Login => format!("/login {fill}"),
         Kind::Agent => match input.rfind('+') {
             Some(plus) => format!("{}{fill} ", &input[..=plus]),
             None => format!("@{fill} "),

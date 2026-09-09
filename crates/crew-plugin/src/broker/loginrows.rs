@@ -61,6 +61,25 @@ pub(crate) fn listing(rows: &[LoginRow]) -> String {
     lines.join("\n")
 }
 
+/// The rows as a host sees them (`PluginEvent::SignIn`): device flows
+/// first — those are the ones a pick can run — then the CLI-owned ones with
+/// their command. Pure.
+pub(crate) fn options(rows: &[LoginRow]) -> Vec<crate::SignInOption> {
+    let opt = |r: &LoginRow| crate::SignInOption {
+        name: r.name.clone(),
+        device: r.device,
+        signed_in: r.signed_in,
+        key_present: r.key_present,
+        login: r.cli_login.map(str::to_string),
+        install: r.install.map(str::to_string),
+    };
+    rows.iter()
+        .filter(|r| r.device)
+        .chain(rows.iter().filter(|r| !r.device))
+        .map(opt)
+        .collect()
+}
+
 /// What `/login <arg>` resolves to.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum LoginPick {

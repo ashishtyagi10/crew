@@ -79,6 +79,7 @@ mod chatshot_tests;
 mod chatspan;
 mod completefuzzy;
 mod fencebadge;
+mod loginpick;
 mod mentionexpand;
 mod segment;
 

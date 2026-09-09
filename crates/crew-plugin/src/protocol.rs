@@ -81,6 +81,12 @@ pub enum PluginEvent {
         #[serde(default)]
         cost_microusd: u64,
     },
+    /// The sign-in front door as data: every provider this machine can sign
+    /// in to, so a host offers a picker instead of a table to read and a name
+    /// to type back. Bare `/login` sends it; picking sends `/login <name>`.
+    SignIn {
+        options: Vec<crate::SignInOption>,
+    },
     /// A drafted plan is waiting for a decision (`pending: true`), or that
     /// decision has been made (`false`).
     ///

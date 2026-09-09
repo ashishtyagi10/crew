@@ -7,7 +7,7 @@
 //! rows/listing/pick live in `loginrows`; this file gathers and runs.
 use crate::PluginEvent;
 
-pub(crate) use super::loginrows::{listing, pick, LoginPick, LoginRow};
+pub(crate) use super::loginrows::{listing, options, pick, LoginPick, LoginRow};
 
 use super::auth::probe::{self, CliAuth};
 use super::auth::registry;
@@ -69,8 +69,11 @@ pub(crate) fn rows() -> Vec<LoginRow> {
     out
 }
 
-/// `/login [provider|n]` — list, or run the device sign-in (the caller
-/// routes an argument form as a background task; the poll can wait minutes).
+/// `/login [provider|n|list]` — bare, hand the host the rows to pick from
+/// (`SignIn`; a machine with nothing to offer gets the advice as text);
+/// `list`, the table as text; a name or number runs the device sign-in
+/// (the caller routes that form as a background task; the poll can wait
+/// minutes).
 pub(crate) fn login_cmd(
     session: &Session,
     rest: &str,
@@ -78,8 +81,13 @@ pub(crate) fn login_cmd(
 ) -> anyhow::Result<()> {
     let arg = rest.trim();
     let rows = rows();
-    if arg.is_empty() {
+    if arg.eq_ignore_ascii_case("list") || (arg.is_empty() && rows.is_empty()) {
         return emit(msg("agent smith", listing(&rows)));
+    }
+    if arg.is_empty() {
+        return emit(PluginEvent::SignIn {
+            options: options(&rows),
+        });
     }
     match pick(&rows, arg) {
         LoginPick::Device(name) => super::signin::signin_cmd(session, &name, emit),
