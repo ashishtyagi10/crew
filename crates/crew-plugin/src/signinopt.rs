@@ -27,4 +27,8 @@ pub struct SignInOption {
     /// How to install that CLI, when it is not on this machine.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub install: Option<String>,
+    /// The command that signs OUT of a CLI-owned sign-in, when the CLI
+    /// names one (crew never touches a vendor CLI's store).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logout: Option<String>,
 }

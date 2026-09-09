@@ -46,7 +46,8 @@ pub(crate) const HELP: &str = "constructs:\n\
     /model all <model|default> — set every agent's model at once\n\
     /login — sign in to a provider with OAuth, no API key needed: pick one from the \
     popup; /login <name|n> runs it directly, /login list prints the table\n\
-    /logout [provider] — remove a stored OAuth sign-in (a key, if present, serves again)\n\
+    /logout — remove a stored OAuth sign-in: pick one from the popup (a key, if present, \
+    serves again); /logout <name> removes it directly\n\
     plain language routes itself — \u{201c}have every agent take a crack at \u{2026}\u{201d} \
     fans out in parallel; \u{201c}keep refining \u{2026}\u{201d} runs improvement rounds; \
     \u{201c}keep working until \u{2026}\u{201d} loops with a judge until it rules the goal met; \

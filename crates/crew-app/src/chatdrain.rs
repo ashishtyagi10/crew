@@ -9,6 +9,8 @@ use crate::chat::ChatPane;
 use crate::chatevents::{classify, HostAction, PollResult};
 use crew_plugin::PluginEvent;
 
+use crate::loginpick::Auth;
+
 impl ChatPane {
     /// Drop everything that belonged to one broker process: what it had
     /// running, and any plan it was holding for an answer. Called on both
@@ -79,7 +81,10 @@ impl ChatPane {
                         self.agents = agents;
                     }
                     PluginEvent::SignIn { options } => {
-                        crate::loginpick::open(&mut self.palette, &options)
+                        crate::loginpick::open(&mut self.palette, Auth::In, &options)
+                    }
+                    PluginEvent::SignOut { options } => {
+                        crate::loginpick::open(&mut self.palette, Auth::Out, &options)
                     }
                     PluginEvent::Task { id, running, .. } => self.absorb_task(id, running),
                     PluginEvent::Plan { pending } => self.plan_pending = pending,

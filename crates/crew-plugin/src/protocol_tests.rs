@@ -299,6 +299,7 @@ fn sign_in_event_roundtrips_and_defaults() {
             key_present: true,
             login: None,
             install: None,
+            logout: None,
         }],
     };
     let s = serde_json::to_string(&ev).unwrap();

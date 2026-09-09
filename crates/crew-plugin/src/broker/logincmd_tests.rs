@@ -203,3 +203,22 @@ fn options_carry_the_states_device_flows_first() {
     assert_eq!(o[2].login.as_deref(), Some("ant auth login"));
     assert!(options(&[]).is_empty());
 }
+
+/// `/logout`'s rows are the signed-in ones only, grants first, and a
+/// minting CLI's row carries its own sign-out command (crew runs nothing
+/// against a vendor's store).
+#[test]
+fn signed_in_rows_carry_the_cli_signout() {
+    let rows = vec![
+        minting("anthropic", true, false, None),
+        device("dashscope", true, false),
+        device("qwen", false, false),
+        delegated("codex", "codex login", true),
+    ];
+    let o = signed_in(&rows);
+    let names: Vec<&str> = o.iter().map(|x| x.name.as_str()).collect();
+    assert_eq!(names, ["dashscope", "anthropic", "codex"]);
+    assert_eq!(o[1].logout.as_deref(), Some("ant auth logout"));
+    assert_eq!(o[2].logout, None);
+    assert_eq!(o[0].logout, None);
+}

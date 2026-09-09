@@ -16,8 +16,8 @@ pub(crate) enum Kind {
     Agent,
     /// The `/model ` argument phase — the grouped model picker.
     Model,
-    /// The `/login` picker, opened by the broker's `SignIn` (`loginpick`).
-    Login,
+    /// The `/login`/`/logout` picker, opened by a broker event (`loginpick`).
+    Auth(crate::loginpick::Auth),
 }
 
 /// The open leading-token palette: already-filtered rows + selection, plus
@@ -99,14 +99,14 @@ pub(crate) fn after_edit(
         Some(p) if p.kind == kind => std::mem::take(&mut p.entries),
         _ => match kind {
             Kind::Agent => scan(),
-            Kind::Slash | Kind::Model | Kind::Login => Vec::new(),
+            Kind::Slash | Kind::Model | Kind::Auth(_) => Vec::new(),
         },
     };
     let items = match kind {
         Kind::Slash => slash_items(query),
         Kind::Agent => attach_items(query, &entries, input.contains('+')),
         Kind::Model => crate::modelpick::rows(query, current_model),
-        Kind::Login => Vec::new(), // opened by an event; any edit closes it
+        Kind::Auth(_) => Vec::new(), // opened by an event; any edit closes it
     };
     if items.is_empty() {
         *palette = None;
@@ -195,7 +195,7 @@ pub(crate) fn accept(input: &str, kind: Kind, fill: &str) -> String {
         // The broker reads `/model <agent> <slug>`; the picker applies the
         // pick to the whole roster, so it must send the `all` target.
         Kind::Model => format!("/model all {fill}"),
-        Kind::Login => format!("/login {fill}"),
+        Kind::Auth(a) => format!("/{} {fill}", a.construct()),
         Kind::Agent => match input.rfind('+') {
             Some(plus) => format!("{}{fill} ", &input[..=plus]),
             None => format!("@{fill} "),

@@ -87,6 +87,12 @@ pub enum PluginEvent {
     SignIn {
         options: Vec<crate::SignInOption>,
     },
+    /// The stored sign-ins a user can remove, for `/logout`'s picker: the
+    /// grants crew holds, and the CLI-owned sign-ins with their own sign-out
+    /// command. Bare `/logout` sends it; picking sends `/logout <name>`.
+    SignOut {
+        options: Vec<crate::SignInOption>,
+    },
     /// A drafted plan is waiting for a decision (`pending: true`), or that
     /// decision has been made (`false`).
     ///

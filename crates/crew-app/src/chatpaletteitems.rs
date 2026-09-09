@@ -29,9 +29,9 @@ pub(crate) const SECTIONS: &[(&str, &[&str])] = &[
 ];
 
 /// Constructs whose argument phase is a popup the BROKER opens (`/login`'s
-/// picker rides its `SignIn` event): Enter runs them, where every other row
-/// only fills the token and waits for its argument.
-const RUNS_ON_ENTER: &[&str] = &["/login"];
+/// and `/logout`'s pickers ride its `SignIn`/`SignOut` events): Enter runs
+/// them, where every other row only fills the token and waits.
+const RUNS_ON_ENTER: &[&str] = &["/login", "/logout"];
 
 fn row(c: &str) -> MenuItem {
     MenuItem {
