@@ -1,17 +1,26 @@
 //! The crew pane's per-agent colour helper, shared by the chip grid,
-//! waterfall, and message cards so every agent reads the same colour
-//! everywhere it appears.
+//! waterfall, message cards, pane legends and the footer so every agent
+//! reads the same colour everywhere it appears.
+//!
+//! The colour is `crew_theme`'s tag pool — the same twelve chromatic slots
+//! and the same contrast lift a `@project` tag gets in `/todo` — rather than
+//! a hash into the six bright ANSI slots this used to do. Six slots gave
+//! seven agents a collision by the pigeonhole principle, and a raw bright
+//! slot on a light page measured under 3.0:1: a name you could not read.
+//! The pool is lifted to the mark floor on every preset and spread by
+//! brightness on a tube, where the ANSI slots are one hue.
 
-/// Stable colour for an agent name: a small hash picks from the theme's bright
-/// ANSI palette (skipping black/white), so `planner` renders the same colour
-/// every frame and across panes, and agents are told apart at a glance.
+/// Stable colour for an agent name on the ACTIVE theme: `planner` renders
+/// the same colour every frame and across panes, and agents are told apart
+/// at a glance.
 pub(crate) fn agent_color(name: &str) -> (u8, u8, u8) {
-    // Bright red..bright cyan (ANSI 9..=14): distinct, readable on the page bg.
-    let palette = &crew_theme::theme().ansi[9..=14];
-    let h = name.bytes().fold(0xcbf2_9ce4u32, |h, b| {
-        (h ^ b as u32).wrapping_mul(0x0100_0193)
-    });
-    palette[(h as usize) % palette.len()]
+    agent_color_on(name, crew_theme::theme())
+}
+
+/// [`agent_color`] on an explicit theme, so the contract can sweep every
+/// preset without touching the global.
+pub(crate) fn agent_color_on(name: &str, t: &crew_theme::Theme) -> (u8, u8, u8) {
+    crew_theme::tag_color(name, t)
 }
 
 #[cfg(test)]

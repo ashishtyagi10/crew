@@ -22,7 +22,8 @@ fn an_image_paragraph_is_one_muted_row_naming_it_with_the_source_as_link() {
     );
     assert_eq!(row_text(&out[0]), " [image] a cat");
     let cell = &out[0][2];
-    assert_eq!(cell.fg, crew_theme::theme().text_muted);
+    // A mark, like a bullet: marker ink (was `text_muted`).
+    assert_eq!(cell.fg, crate::chatink::marker_fg());
     assert_eq!(cell.link.as_deref(), Some("https://p.io/cat.png"));
     assert!(out[0][1..].iter().all(|c| c.link.is_some()));
 }

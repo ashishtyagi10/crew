@@ -119,25 +119,18 @@ pub(crate) fn touches(a: &treemap::Tile, b: &treemap::Tile) -> bool {
 /// rescan the parent it is in; only a tile that would touch a twin steps
 /// along the pool to the next free entry.
 pub(crate) fn tile_colors(children: &[Child], tiles: &[treemap::Tile]) -> Vec<(u8, u8, u8)> {
+    // The roster's own pool (`crew_theme`'s twelve tag slots), so a tile's
+    // first choice IS the colour its name gets as an agent, by slot.
     let pool: Vec<(u8, u8, u8)> = {
         let t = crew_theme::theme();
-        let mut v: Vec<(u8, u8, u8)> = Vec::new();
-        for c in &t.ansi[9..=14] {
-            if !v.contains(c) {
-                v.push(*c);
-            }
-        }
-        v
+        (0..12).map(|s| crew_theme::slot_color(s, t)).collect()
     };
     let mut picked: Vec<Option<usize>> = vec![None; tiles.len()];
     for (i, tile) in tiles.iter().enumerate() {
         let Some(child) = children.get(tile.index) else {
             continue;
         };
-        let first = pool
-            .iter()
-            .position(|&c| c == crate::chatroster::agent_color(&child.name))
-            .unwrap_or(0);
+        let first = crew_theme::tag_slot(&child.name) % pool.len();
         // The neighbours that already have one. Tiles are visited in the
         // layout's own order, so this is deterministic for a given listing.
         let taken: Vec<usize> = tiles

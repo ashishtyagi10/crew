@@ -8,17 +8,18 @@ pub(crate) type CharPaint = ((u8, u8, u8), bool);
 
 /// A token's colour and weight. `Plain` is left on the caller's `ink` — the
 /// gutter rungs already colour identifiers and operators that way, and this
-/// only owes the three classes the lexer actually claims a colour. Those
-/// three follow the convention `chatink`/`chatmd` already establish for
-/// fenced code in chat (`chatmd::span_style`'s `LineKind::Code` arm): colour
-/// from the theme's derived syntax slots via `chatink::token_fg`, with
-/// keywords set apart by WEIGHT rather than a fourth colour of their own —
-/// `chatink`'s `keyword` slot is numerically the same as `code`, by design.
+/// only owes the classes the lexer actually claims a colour. Those follow
+/// the convention `chatink`/`chatspan` establish for fenced code in chat
+/// (`chatspan::style`'s `LineKind::Code` arm): colour from the theme's
+/// derived syntax slots via `chatink::token_fg` (the hued classes through
+/// `chathue`), with keywords carrying WEIGHT on top of their hue.
 fn token_paint(tok: Token, ink: (u8, u8, u8)) -> CharPaint {
     match tok {
         Token::Plain => (ink, false),
         Token::Keyword => (crate::chatink::token_fg(tok), true),
-        Token::Comment | Token::Str => (crate::chatink::token_fg(tok), false),
+        Token::Comment | Token::Str | Token::Type | Token::Func | Token::Number | Token::Attr => {
+            (crate::chatink::token_fg(tok), false)
+        }
         // Diff line classes never reach this path today — `detect` routes
         // .diff/.patch files to their own rung (`lines::diff_lines`), not to
         // a `Code { lang }` — but the mapping is the honest one if they ever

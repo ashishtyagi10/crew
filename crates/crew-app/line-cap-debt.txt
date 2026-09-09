@@ -89,7 +89,6 @@ src/md/fold.rs 201
 src/md/layout.rs 233
 src/md/layout_tests.rs 324
 src/md/parse_tests.rs 300
-src/md/syntax.rs 265
 src/modelroute_tests.rs 279
 src/modernring.rs 231
 src/modernring_tests.rs 301

@@ -61,13 +61,10 @@ fn map_lines_inner(
             match pics.as_deref_mut() {
                 Some(pics) => reserve(pics, &line, i, out.len()),
                 None if i > 0 => continue,
+                // The `[image]` tag is a mark, like a bullet: marker ink.
                 None => {
-                    push_chunked(
-                        &mut out,
-                        &crate::chatimage::cells(&line, muted),
-                        width,
-                        muted,
-                    );
+                    let mark = chatink::marker_fg();
+                    push_chunked(&mut out, &crate::chatimage::cells(&line, mark), width, mark);
                     continue;
                 }
             }
