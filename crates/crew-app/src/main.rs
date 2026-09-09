@@ -51,7 +51,9 @@ mod chatflow;
 mod chatfold;
 mod chatfont;
 mod chatghost;
+mod chatglide;
 mod chathdr;
+mod chathdrsegs;
 mod chatheading;
 mod chathistory;
 mod chathistsearch;
@@ -62,6 +64,7 @@ mod chatinput;
 mod chatkeys;
 mod chatkeystore;
 mod chatlayout;
+mod chatliveness;
 mod chatmd;
 mod chatmention;
 #[cfg(test)]
@@ -96,6 +99,7 @@ mod chatspawn;
 mod chatstate;
 mod chatsummary;
 mod chatswarm;
+mod chatswarmfit;
 mod chatswarmview;
 mod chattail;
 mod chattheme;
@@ -358,6 +362,7 @@ mod sessionsave;
 mod settingspane;
 mod shapecues;
 mod shellprobe;
+mod shimmer;
 #[cfg(test)]
 #[path = "shotdraw_tests.rs"]
 mod shotdraw_tests;

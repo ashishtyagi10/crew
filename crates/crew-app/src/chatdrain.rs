@@ -98,10 +98,11 @@ impl ChatPane {
                         cost_microusd,
                         ..
                     } => self.absorb_stats(tokens, agent, ms, ctx, tok_in, tok_out, cost_microusd),
-                    // Mid-reply token ticks fed only the retired per-agent tok
-                    // ease; the summary footer reads settled per-turn `ctx`, so
-                    // there's nothing live to update here now.
-                    PluginEvent::StatsTick { .. } => {}
+                    // Mid-reply token ticks: the header's agent-name pulse
+                    // (`chatliveness`); the summary footer reads settled `ctx`.
+                    PluginEvent::StatsTick { agent, .. } => {
+                        self.note_tokens(&agent, crate::anim::now_ms())
+                    }
                     PluginEvent::Delta { agent, text } => self.absorb_delta(agent, text),
                     PluginEvent::Message {
                         sender,

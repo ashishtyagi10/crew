@@ -44,3 +44,27 @@ pub(crate) fn pane_animating(p: &Pane) -> bool {
             _ => false,
         }
 }
+
+/// A connected, idle crew pane: its header's connection dot breathes
+/// (`shimmer::breath`). Deliberately NOT part of [`pane_animating`] — that
+/// is the busy branch at 15 fps, and a breath needs the ambient 6 fps the
+/// wash runs at. `poll` reads this through [`crate::app::CrewApp::ambient_breath`].
+pub(crate) fn pane_breathing(p: &Pane) -> bool {
+    !p.hidden
+        && crate::motion::level() != crate::motion::MotionLevel::Off
+        && matches!(&p.content, PaneContent::Chat(c) if c.connected)
+        && !pane_animating(p)
+}
+
+impl crate::app::CrewApp {
+    /// Whether some idle crew pane's dot is breathing — the second ambient
+    /// motion beside the wash drift, and fenced the same way on OS focus:
+    /// repainting a window nobody is looking at is the whole cost.
+    pub(crate) fn ambient_breath(&self) -> bool {
+        self.win_focus.unwrap_or(true) && self.panes.iter().any(pane_breathing)
+    }
+}
+
+#[cfg(test)]
+#[path = "panebusy_tests.rs"]
+mod tests;

@@ -27,6 +27,7 @@ impl ChatPane {
             tok_out: 0,
             cost_microusd: 0,
             turns: 0,
+            token_pulse: std::collections::HashMap::new(),
             agent_stats: std::collections::HashMap::new(),
             ctx: std::collections::HashMap::new(),
             unread: 0,
