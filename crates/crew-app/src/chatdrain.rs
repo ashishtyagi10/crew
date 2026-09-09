@@ -84,6 +84,8 @@ impl ChatPane {
                         signins,
                     } => {
                         self.agents = agents;
+                        self.tools
+                            .prebind(self.agents.iter().map(|a| a.name.as_str()));
                         // The broker is the authority on who serves: its pin
                         // (a sign-in, a model pick) reaches the picker here.
                         if let Some(p) = &provider {
@@ -133,9 +135,11 @@ impl ChatPane {
                     PluginEvent::Hive { event } => {
                         // Quiet lifecycle tee: the run's spawn/state beats
                         // land in the LOG (and /log) without flashing the bar.
-                        if let Some((error, message)) =
-                            crate::chatswarmlog::log_line(self.swarm.as_ref(), &event)
-                        {
+                        if let Some((error, message)) = crate::chatswarmlog::log_line_named(
+                            self.swarm.as_ref(),
+                            &self.tools.names,
+                            &event,
+                        ) {
                             actions.push(HostAction::Log { error, message });
                         }
                         self.absorb_hive(&event);

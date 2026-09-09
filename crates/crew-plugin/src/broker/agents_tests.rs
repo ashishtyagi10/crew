@@ -7,11 +7,16 @@ fn known_adapters_are_the_three_agents() {
 }
 
 #[test]
-fn claude_args_carry_body_and_text_format() {
+fn claude_is_the_streaming_agent_with_the_body_as_an_argument() {
     let c = claude();
     assert_eq!(c.program, "claude");
-    assert!(c.args.contains(&"-p".to_string()));
-    assert!(c.args.contains(&"text".to_string()));
+    let args = c.args("say hi");
+    assert_eq!(&args[..2], ["-p", "say hi"]);
+    assert!(args.contains(&"stream-json".to_string()));
+    assert!(
+        !args.contains(&"--tools".to_string()),
+        "the agent keeps its tools"
+    );
 }
 
 #[test]

@@ -136,17 +136,24 @@ impl ToolLines {
     }
 
     /// The id `name`'s lines file under: the hive id already bound to it,
-    /// else one minted from the name — top bit set, so it can never meet a
-    /// hive id (those count up from zero) — and bound for next time.
+    /// else the one minted from the name (`AgentId::minted` — the broker
+    /// mints the same for a relay agent's own tool calls, so they file
+    /// under the right name from the first line) — and bound for next time.
     fn id_for(&mut self, name: &str) -> u64 {
         if let Some((id, _)) = self.names.iter().find(|(_, n)| n.as_str() == name) {
             return *id;
         }
-        let id = name.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| {
-            (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
-        }) | (1 << 63);
+        let id = crew_hive::AgentId::minted(name).0;
         self.names.insert(id, name.to_string());
         id
+    }
+
+    /// Bind every roster name to its minted id ahead of any event, so a
+    /// relay agent's first tool call (and its LOG line) is already named.
+    pub(crate) fn prebind<'a>(&mut self, names: impl Iterator<Item = &'a str>) {
+        for n in names {
+            self.id_for(n);
+        }
     }
 
     /// `agent` replied with no open block of its own: the oldest open block

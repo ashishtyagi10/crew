@@ -10,7 +10,19 @@ use crate::chatswarm::SwarmStatus;
 /// The LOG line a hive event deserves, or `None` for the high-volume tiers
 /// (token/cost/output deltas — liveness, not lifecycle). `(error, text)`;
 /// titles come from the live plan so the LOG speaks task names, not ids.
+#[cfg(test)]
 pub(crate) fn log_line(swarm: Option<&SwarmStatus>, ev: &HiveEvent) -> Option<(bool, String)> {
+    log_line_named(swarm, &std::collections::HashMap::new(), ev)
+}
+
+/// [`log_line`] with the pane's agent-id → name binding: a relay agent's
+/// own tool calls (`claude` reading a file) say the agent's name, where a
+/// hive agent — numbered by the run — says its number.
+pub(crate) fn log_line_named(
+    swarm: Option<&SwarmStatus>,
+    names: &std::collections::HashMap<u64, String>,
+    ev: &HiveEvent,
+) -> Option<(bool, String)> {
     let title = |id: TaskId| -> String {
         swarm
             .and_then(|s| s.tasks.iter().find(|t| t.id == id))
@@ -47,7 +59,11 @@ pub(crate) fn log_line(swarm: Option<&SwarmStatus>, ev: &HiveEvent) -> Option<(b
         // A tool call IS lifecycle — it is the swarm touching something
         // outside crew — so it earns a LOG line where output deltas do not.
         HiveEvent::ToolCall { agent, label, .. } => {
-            Some((false, format!("smith: agent {} called {label}", agent.0)))
+            let who = names
+                .get(&agent.0)
+                .cloned()
+                .unwrap_or_else(|| format!("agent {}", agent.0));
+            Some((false, format!("smith: {who} called {label}")))
         }
         // Only failures: a successful call is already announced by its
         // ToolCall line, and repeating every one would double the volume of

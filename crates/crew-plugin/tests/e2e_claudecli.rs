@@ -1,7 +1,7 @@
 //! The Claude Code subscription serving the API-shaped seam: a clean HOME,
 //! no `*_API_KEY` anywhere, and a fake `claude` on PATH that answers its
-//! own status probe as signed in and its headless mode with the JSON
-//! envelope claude 2.x prints. The broker must build the specialist
+//! own status probe as signed in and its headless mode with the closing
+//! `result` line of the stream claude 2.x prints. The broker must build the specialist
 //! roster on the CLI provider, run a fan-out THROUGH it (Claude Code's
 //! tools switched off, the role's system prompt passed), and have
 //! `/doctor` say the subscription carries swarm planning too.
@@ -23,7 +23,7 @@ fn write_fake_claude(dir: &std::path::Path) {
          printf '%s\\n' \"$*\" > '{logs}'$$.log\n\
          case \"$*\" in\n\
            'auth status') printf '{{\"loggedIn\": true, \"authMethod\": \"claude.ai\"}}\\n' ;;\n\
-           *'--output-format json'*) printf '%s\\n' '{{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"cli answer: on the plan\\\\n@done\",\"session_id\":\"s1\",\"total_cost_usd\":0.01,\"usage\":{{\"input_tokens\":7,\"output_tokens\":9}}}}' ;;\n\
+           *'--output-format stream-json'*'--tools'*) printf '%s\\n' '{{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"cli answer: on the plan\\\\n@done\",\"session_id\":\"s1\",\"total_cost_usd\":0.01,\"usage\":{{\"input_tokens\":7,\"output_tokens\":9}}}}' ;;\n\
            *) printf 'relay answer: on the plan\\n' ;;\n\
          esac\n",
         logs = logs.display()
@@ -84,7 +84,7 @@ fn a_signed_in_claude_code_serves_the_swarm_through_its_cli() {
     let log = runs.join("\n----\n");
     let json_runs: Vec<&String> = runs
         .iter()
-        .filter(|l| l.contains("--output-format json"))
+        .filter(|l| l.contains("--output-format stream-json") && l.contains("--system-prompt"))
         .collect();
     assert!(json_runs.len() >= 2, "expected two provider runs:\n{log}");
     for run in &json_runs {

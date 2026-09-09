@@ -207,6 +207,7 @@ impl Broker {
                 // compared against a running total. Nor does reasoning.
                 on_text: Arc::clone(&stream.on_text),
                 on_thought: Arc::clone(&stream.on_thought),
+                on_tool: Arc::clone(&stream.on_tool),
             };
             match agent.call_with_usage_ticked(&follow, self.timeout, &ticked) {
                 Ok((r, u)) if !r.trim().is_empty() => {

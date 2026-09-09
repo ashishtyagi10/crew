@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.66
+
+**Claude Code answers live in the smith pane — its thinking, its text and
+every tool it calls, as they happen — and a long task is no longer killed at
+180 s.** Relaying to `claude` ran `claude -p … --output-format text` and
+waited: nothing reached the pane until the whole reply came back, and a task
+that read a repository for three minutes died as "timed out after 180s" with
+nothing shown. The relay now drives `--output-format stream-json`
+(`--verbose --include-partial-messages`) and reads it line by line: thinking
+deltas fold above the reply as every other model's do, text streams into the
+card, each Claude Code tool call is a line in the tool block (`Read src/x.rs`,
+then `✓ · 120 ms` with the output on a click) and a LOG line by name. The
+deadline is idle time — restarted by every line the CLI prints, floored at
+ten minutes because a build prints nothing until it returns — so a working
+agent is never cut off and a hung one still is. The same stream serves swarm
+planning on the Claude Code subscription (`claudecli`), so the planner's
+thinking shows too. Claude Code keeps its tools in the relay (it is an agent
+working in the pane's directory) and stays without them as the swarm's model.
+A CLI that prints plain text instead of the stream still answers.
+
 ## 0.21.65
 
 **Fix: a composer pop-up no longer covers the composer.** The `/` palette,

@@ -65,6 +65,7 @@ fn ticked_call_reports_growing_char_estimates() {
         on_tokens,
         on_text: Arc::new(|_| {}),
         on_thought: Arc::new(|_| {}),
+        on_tool: Arc::new(|_| {}),
     };
     let (text, _usage) = adapter
         .call_with_usage_ticked("task", Duration::from_secs(5), &stream)
@@ -98,6 +99,7 @@ fn ticked_estimates_count_chars_not_bytes() {
         on_tokens,
         on_text: Arc::new(|_| {}),
         on_thought: Arc::new(|_| {}),
+        on_tool: Arc::new(|_| {}),
     };
     let (text, _usage) = adapter
         .call_with_usage_ticked("task", Duration::from_secs(5), &stream)

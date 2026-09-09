@@ -3,6 +3,7 @@
 //! Anthropic client share one interface.
 mod anthropic;
 mod claudecli;
+pub mod claudestream;
 mod mock;
 mod openai_http;
 mod openrouter;
