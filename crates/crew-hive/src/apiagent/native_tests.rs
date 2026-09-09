@@ -234,7 +234,6 @@ async fn every_call_in_a_turn_is_answered_even_past_the_per_turn_bound() {
         input_tokens: 1,
         output_tokens: 1,
         cost_microusd: 0,
-        thought: String::new(),
         calls: (0..MAX_CALLS_PER_TURN + 3)
             .map(|i| ToolInvocation {
                 id: format!("c{i}"),
@@ -344,6 +343,7 @@ fn an_unknown_tool_is_answered_with_what_was_probably_meant() {
 async fn calls_refused_past_the_per_turn_bound_publish_a_failed_result_each() {
     let many = Completion {
         text: String::new(),
+        thought: String::new(),
         input_tokens: 1,
         output_tokens: 1,
         cost_microusd: 0,
