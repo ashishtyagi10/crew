@@ -28,6 +28,9 @@ impl CrewApp {
             return None;
         }
         let rel_row = ((self.cursor.1 - sb.y) / ch).floor() as u16;
+        if let Some(i) = self.waiting_pane_at(rel_row, &l) {
+            return Some(i);
+        }
         let idx = sidebar_pane_index(rel_row, l.panes_top)?;
         (idx < self.panes.len()).then_some(idx)
     }

@@ -66,6 +66,10 @@ impl CrewApp {
             self.motion_command(m.trim());
         } else if let Some(d) = other.strip_prefix("density ") {
             self.density_command(d.trim());
+        } else if let Some(d) = other.strip_prefix("nav ") {
+            self.nav_command(d.trim());
+        } else if let Some(d) = other.strip_prefix("weather ") {
+            self.weather_command(d.trim());
         } else if let Some(v) = other.strip_prefix("invisibles ") {
             self.invisibles_command(v.trim());
         } else if let Some(l) = other.strip_prefix("leading ") {

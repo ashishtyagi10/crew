@@ -21,9 +21,9 @@ fn the_drawn_log_starts_on_the_row_the_layout_reserved() {
         .collect();
     let panes = Vec::new();
     let (cols, rows) = (26u16, 48u16);
-    let l = s.layout(rows, log.len(), 0);
+    let l = s.layout(rows, crate::navlayout::Tail::Log(log.len()), 0);
     assert!(l.log_lines > 0, "the fixture has room for a LOG");
-    let cells = s.cells(cols, rows, &panes, &log, 0);
+    let cells = s.cells(cols, rows, &panes, &log, 0, None, None);
     // The `LOG` legend sits on the rule row the layout named.
     let legend: String = {
         let mut v: Vec<_> = cells.iter().filter(|c| c.row == l.log_top).collect();
@@ -92,8 +92,8 @@ fn check_seam(git: bool, log_len: usize, n: usize, rows: u16) {
         })
         .collect();
     let cols = 26u16;
-    let l = s.layout(rows, log.len(), n);
-    let cells = s.cells(cols, rows, &panes, &log, 0);
+    let l = s.layout(rows, crate::navlayout::Tail::Log(log.len()), n);
+    let cells = s.cells(cols, rows, &panes, &log, 0, None, None);
     for (k, p) in panes.iter().enumerate() {
         // The row this pane's own TITLE was drawn on, found in the frame
         // rather than recomputed from the offsets under test. The title,

@@ -110,6 +110,8 @@ fn round_trip() {
         ambient_drift: true,
         gradient: "lively".to_string(),
         density: "roomy".to_string(),
+        nav_card: "glance".into(),
+        weather_place: String::new(),
         leading: "loose".to_string(),
         contrast: "high".to_string(),
         shape_cues: "on".to_string(),
@@ -340,9 +342,8 @@ fn light_hours_falls_back_per_bound_not_per_window() {
     assert_eq!(other.light_hours(), (5 * 60 + 30, 19 * 60));
 }
 
-/// The pre-gamma default was doing two jobs; `/gamma` took one of them back,
-/// so a config still carrying that default overshoots. The heal moves it —
-/// and moves nothing a user actually chose.
+/// The pre-gamma default did two jobs; `/gamma` took one back, so a config
+/// still carrying that default overshoots. The heal moves it — and nothing chosen.
 #[test]
 fn the_smoothing_heal_moves_the_old_default_and_nothing_else() {
     let mut cfg = CrewConfig {
@@ -364,8 +365,7 @@ fn the_smoothing_heal_moves_the_old_default_and_nothing_else() {
     }
 }
 
-/// The 0.19.62 heal: a config left on the 0.19.28 pair takes the undilated
-/// one, and a chosen half of that pair pins both.
+/// The 0.19.62 heal: a config on the 0.19.28 pair takes the undilated one; a chosen half pins both.
 #[test]
 fn upgrading_adopts_the_undilated_text_pair() {
     let mut cfg = CrewConfig {

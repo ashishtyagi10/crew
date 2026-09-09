@@ -18,8 +18,9 @@ pub fn now_strings() -> (String, String) {
 }
 
 /// Render the clock section: a `TIME` rule on row 0, `time` and `date` centered
-/// on rows 1 and 2.
-pub fn clock_cells(time: &str, date: &str, cols: u16) -> Vec<CellView> {
+/// on rows 1 and 2, and the weather `strip` (see `navweather`) on row 3 —
+/// the gap row, which the strip is quiet enough to stand in for.
+pub fn clock_cells(time: &str, date: &str, strip: Option<&str>, cols: u16) -> Vec<CellView> {
     if cols < 10 {
         return Vec::new();
     }
@@ -27,6 +28,10 @@ pub fn clock_cells(time: &str, date: &str, cols: u16) -> Vec<CellView> {
     let mut out = section_header("TIME", cols, t.border_normal, accent(), t.page_bg);
     put_centered(&mut out, time, 1, cols, accent(), true, t.page_bg);
     put_centered(&mut out, date, 2, cols, t.ink, false, t.page_bg);
+    if let Some(s) = strip {
+        let s = crate::chatwidth::clip_w(s, usize::from(cols));
+        put_centered(&mut out, &s, 3, cols, t.text_muted, false, t.page_bg);
+    }
     out
 }
 

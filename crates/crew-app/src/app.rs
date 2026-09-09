@@ -210,9 +210,8 @@ pub struct CrewApp {
     /// Ring buffer of recent status messages, shown as the live LOG section in
     /// the left nav (newest last). Capped at [`crate::status::LOG_CAP`].
     pub(crate) log: Vec<crate::applog::LogEntry>,
-    /// How far back the sidebar LOG is scrolled — 0 follows the newest line.
-    /// The log is a five-row window onto a hundred buffered entries, and
-    /// until now the other ninety-five were only reachable through `/log`.
+    /// How far back the sidebar LOG is scrolled — 0 follows the newest line
+    /// (a window onto the buffer; the rest used to be reachable only via `/log`).
     pub(crate) log_back: usize,
     /// Channel background threads stream LOG lines through; drained once per
     /// poll tick into [`Self::set_status_level`]. See [`crate::applog`].
@@ -263,13 +262,14 @@ pub struct CrewApp {
     /// across a set of panes and aggregates their verdicts. See [`crate::askcast`].
     pub(crate) castings: Vec<crate::askcast::Casting>,
     /// The live OpenRouter enrichment fetch (`crate::modelfetch`), once
-    /// kicked off. `None` before the first `/model` picker open, and again
-    /// forever after that fetch lands or fails — `try_recv` on an empty,
-    /// disconnected channel is a cheap no-op either way.
+    /// kicked off; `None` before the first `/model` picker open and after it lands.
     pub(crate) model_fetch: Option<std::sync::mpsc::Receiver<Vec<crew_hive::catalog::LiveModel>>>,
-    /// Whether the enrichment fetch has been kicked off this process — a
-    /// picker reopening must not spawn a second worker.
+    /// Kicked off this process — a picker reopening must not spawn a second worker.
     pub(crate) model_fetch_started: bool,
+    /// The weather worker in flight, and when the next fetch is due
+    /// (`anim::now_ms`; 0 = now). See `navweather::tick_weather`.
+    pub(crate) weather_fetch: Option<std::sync::mpsc::Receiver<Option<crate::navweather::Weather>>>,
+    pub(crate) weather_next: u64,
     /// When the user last typed, clicked, or scrolled (on the `anim` clock).
     /// Gates blocked-pane auto-focus: focus is never stolen while the user is
     /// actively driving some other pane (see [`crate::blocked`]).

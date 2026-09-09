@@ -84,8 +84,8 @@ fn nav_shot(name: &str, w: u32) -> Option<Vec<u8>> {
         concat!("crew v", env!("CARGO_PKG_VERSION")),
         |cols, rows, aspect| {
             (
-                sp.cells(cols, rows, &panes, &entries, 0),
-                sp.chart_paint(cols, rows, aspect),
+                sp.cells(cols, rows, &panes, &entries, 0, None, None),
+                sp.chart_paint(cols, rows, aspect, None, panes.len()),
             )
         },
     )
@@ -206,8 +206,8 @@ fn sidebar_shot_fresh_launch() {
         concat!("crew v", env!("CARGO_PKG_VERSION")),
         |cols, rows, aspect| {
             (
-                sp.cells(cols, rows, &panes, &entries, 0),
-                sp.chart_paint(cols, rows, aspect),
+                sp.cells(cols, rows, &panes, &entries, 0, None, None),
+                sp.chart_paint(cols, rows, aspect, None, panes.len()),
             )
         },
     );

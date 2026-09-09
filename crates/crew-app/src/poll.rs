@@ -138,9 +138,9 @@ impl CrewApp {
         }
 
         let oauth_landed = self.drain_oauth();
-        // `/diff`'s worker: opens the review pane the tick it lands. Costs a
-        // `try_recv` on a `None` handle when nothing is in flight.
-        let diff_landed = self.drain_diff_job();
+        // `/diff`'s worker (opens the review pane the tick it lands) and the
+        // clock's weather strip (`navweather`: hourly, off-thread, cached).
+        let jobs_landed = self.drain_diff_job() | self.tick_weather(crate::anim::now_ms());
 
         // Random theme mode: rotate on its 10-minute clock. Cheap + lock-free.
         // Seeds `any_changed` so a rotation repaints every pane in the new theme.
@@ -192,7 +192,7 @@ impl CrewApp {
         // panes are polled for their side effects — `any()` would short-circuit
         // and starve later panes when an earlier one has output.
         let mut any_changed =
-            rotated || daylight_flipped || model_fetch_landed || oauth_landed || diff_landed;
+            rotated || daylight_flipped || model_fetch_landed || oauth_landed || jobs_landed;
         // Set when any pane still has buffered PTY output past this tick's read
         // budget. We then keep the loop hot (ControlFlow::Poll) so a flood drains
         // quickly across ticks instead of trickling one budget per 16 ms — while

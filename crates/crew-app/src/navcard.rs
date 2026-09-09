@@ -42,6 +42,8 @@ impl CrewApp {
         let sidebar = &self.sidebar;
         let log = &self.log;
         let log_back = self.log_back;
+        let glance = self.glance();
+        let weather = crate::navweather::now().map(|w| crate::navweather::line(&w));
         let (legend, legend_fg) = match &self.parked_update {
             Some((v, at)) => (
                 crate::restartnote::legend(v, title_max_cols(sb, cw, ch)),
@@ -58,8 +60,16 @@ impl CrewApp {
         let aspect = ch / cw;
         crate::panelcard::push_card_art(scenes, sb, cw, ch, &legend, legend_fg, |cols, rows| {
             (
-                sidebar.cells(cols, rows, &pane_rows, log, log_back),
-                sidebar.chart_paint(cols, rows, aspect),
+                sidebar.cells(
+                    cols,
+                    rows,
+                    &pane_rows,
+                    log,
+                    log_back,
+                    glance.as_ref(),
+                    weather.as_deref(),
+                ),
+                sidebar.chart_paint(cols, rows, aspect, glance.as_ref(), pane_rows.len()),
             )
         });
     }
@@ -84,7 +94,7 @@ impl CrewApp {
             self.update.as_ref().is_some_and(|u| !u.silent),
         );
         let (_, rows) = crate::layout::card_inner_cells(sb.w, sb.h, cw, ch);
-        let l = self.sidebar.layout(rows, self.log.len(), self.panes.len());
+        let l = self.sidebar.layout(rows, self.nav_tail(), self.panes.len());
         Some((sb, ch, l))
     }
 

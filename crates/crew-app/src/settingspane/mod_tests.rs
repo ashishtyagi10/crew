@@ -313,21 +313,20 @@ fn edits(f: Field) -> &'static str {
     }
 }
 
-/// Config keys the form deliberately does not carry, each with the reason. A
-/// key must be here or editable — "we forgot" is not a third option.
-const NOT_IN_FORM: [(&str, &str); 10] = [
+/// Keys the form deliberately does not carry, each with the reason — "we
+/// forgot" is not a third option.
+const NOT_IN_FORM: [(&str, &str); 12] = [
+    ("nav_card", "set live by /nav"),
+    ("weather_place", "set live by /weather"),
     ("last_seen_version", "bookkeeping: drives the version note"),
     (
         "command_recents",
-        "bookkeeping: the palette's own most-recently-run list",
+        "bookkeeping: the palette's most-recently-run list",
     ),
     ("last_dir", "bookkeeping: restored window state"),
     ("win_w", "bookkeeping: restored window state"),
     ("win_h", "bookkeeping: restored window state"),
-    (
-        "model_recents",
-        "bookkeeping: the /model picker's own history",
-    ),
+    ("model_recents", "bookkeeping: the /model picker's history"),
     (
         "font_random",
         "set by the font-rotation toggle, not a form field",

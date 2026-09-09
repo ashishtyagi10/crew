@@ -566,7 +566,7 @@ The docked command bar supports:
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
   fill, Enter to run): `/smith`, `/goal <text>`, `/batch <file>`, `/view <file>`,
   `/md <file>`, `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`,
-  `/clearlog`, `/only`, `/closeall`, `/pwd`, `/about`, `/log`, `/copy`, `/dump`,
+  `/clearlog`, `/only`, `/closeall`, `/pwd`, `/about`, `/log`, `/nav`, `/weather`, `/copy`, `/dump`,
   `/font`, `/theme`, `/notify`, `/update`, `/broadcast`, `/zoom`,
   `/sidebar`, `/keys`, `/far`, `/todo`, `/exit`. The palette is **fuzzy** — prefix
   matches rank first,

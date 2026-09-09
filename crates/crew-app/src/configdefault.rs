@@ -65,6 +65,11 @@ pub(crate) fn default_leading() -> String {
     "normal".to_string()
 }
 
+pub(crate) fn default_nav_card() -> String {
+    // The cards, not the log: the log said font switches and update polls.
+    "glance".to_string()
+}
+
 pub(crate) fn default_density() -> String {
     // The layout crew has always drawn (see `density::Density::gap_px`), so
     // the knob arriving changes nothing until someone turns it.

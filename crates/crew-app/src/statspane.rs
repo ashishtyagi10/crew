@@ -8,14 +8,14 @@ use crate::gauges::render_stats;
 use crate::git::{self, GitWatch};
 use crate::host;
 use crate::load;
-use crate::navlayout::{self, NavLayout, CHART_OFF, CHART_ROWS};
-use crate::navlog;
+use crate::navglance::Glance;
+use crate::navlayout::{self, NavLayout, Tail, CHART_OFF, CHART_ROWS};
+use crate::navslot;
 use crate::net;
 use crate::panelist::{self, PaneRow};
 use crate::stats::SysSampler;
 
-/// The smallest peak the CPU chart's axis scales to, in percent — below it the
-/// trace draws small rather than being magnified into a busy-looking minute.
+/// The smallest peak the CPU chart scales to (%): below it the trace draws small.
 const CHART_FLOOR: u64 = 25;
 
 /// The docked sidebar: a live clock card stacked above the system-stats card.
@@ -85,20 +85,27 @@ impl StatsPane {
     /// How this nav divides `rows` content rows right now — the one derivation
     /// the draw, the paint layer and both hit paths read, so a click can never
     /// land on a row the frame put something else on. See [`crate::navlayout`].
-    pub fn layout(&self, rows: u16, log_len: usize, panes: usize) -> NavLayout {
-        navlayout::layout(rows, self.git.info().is_some(), log_len, panes)
+    pub fn layout(&self, rows: u16, tail: Tail, panes: usize) -> NavLayout {
+        navlayout::layout_with(rows, self.git.info().is_some(), tail, panes)
     }
 
-    /// The sidebar's drawn layer: sub-cell [`Paint`] for the charts, in the
-    /// card interior's own cell coordinates. `aspect` is the frame's
-    /// `cell_h / cell_w`, without which a circle would come out an ellipse and
-    /// a chart's proportions would change with the font.
-    ///
-    /// Kept beside [`Self::cells`] rather than folded into it because the two
-    /// layers are drawn by different passes; both read the same section
-    /// offsets, which is what keeps a chart under the section it belongs to.
-    pub fn chart_paint(&self, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
+    /// The sidebar's drawn layer: sub-cell [`Paint`] for the charts and
+    /// meters, in the card interior's own cell coordinates (`aspect` =
+    /// `cell_h / cell_w`, so circles stay round). Reads the same section
+    /// offsets as [`Self::cells`] — a different pass, the same stack.
+    pub fn chart_paint(
+        &self,
+        cols: u16,
+        rows: u16,
+        aspect: f32,
+        glance: Option<&Glance>,
+        panes: usize,
+    ) -> Vec<Paint> {
         let mut out = self.cpu_chart(cols, rows, aspect);
+        if let Some(g) = glance {
+            let l = self.layout(rows, Tail::Glance(g.waiting.len()), panes);
+            out.extend(navslot::slot_paint(g, &l, cols, aspect));
+        }
         // The SYSTEM section's three arc gauges (their text comes from
         // `gauges::render_stats`, which yields the rings the same width test).
         if rows > clock::CLOCK_H + crate::sysdials::ROWS {
@@ -184,9 +191,12 @@ impl StatsPane {
         log: &[crate::applog::LogEntry],
         // How far back the LOG is scrolled — 0 follows the newest line.
         log_back: usize,
+        // The glance cards in the LOG's slot (`None`: the LOG); the weather strip.
+        glance: Option<&Glance>,
+        strip: Option<&str>,
     ) -> Vec<CellView> {
         let (time, date) = clock::now_strings();
-        let mut out = clock::clock_cells(&time, &date, cols);
+        let mut out = clock::clock_cells(&time, &date, strip, cols);
 
         let sys_off = clock::CLOCK_H;
         if rows > sys_off {
@@ -196,8 +206,7 @@ impl StatsPane {
                 out.push(c);
             }
         }
-        // The CPU history chart lives below the three gauges. It is *drawn*,
-        // not spelled — see `chart_paint`; nothing is emitted here.
+        // The CPU history chart below the gauges is drawn (`chart_paint`).
 
         let load_off = clock::CLOCK_H + navlayout::SYS_BLOCK;
         if rows > load_off + 1 {
@@ -238,15 +247,9 @@ impl StatsPane {
             }
         }
 
-        // LIVE LOG: recent status messages in their own section, above the
-        // panes, as many lines as the nav has rows to spare for them.
-        let l = self.layout(rows, log.len(), panes.len());
-        if l.log_lines > 0 {
-            for mut c in navlog::log_cells(log, cols, l.log_lines, log_back) {
-                c.row += l.log_top;
-                out.push(c);
-            }
-        }
+        // The variable slot: the glance cards, or the LIVE LOG tail.
+        let l = self.layout(rows, navslot::tail(glance, log.len()), panes.len());
+        out.extend(navslot::slot_cells(glance, log, log_back, &l, cols));
         let panes_off = l.panes_top;
 
         // PANES list fills the remaining height below the LOG section
@@ -255,9 +258,6 @@ impl StatsPane {
         if !panes.is_empty() && rows > panes_off + LIST_OFF {
             let limit = (rows - panes_off - LIST_OFF) as usize;
             // A busy pane's row spins; with motion off it holds one frame.
-            // The row still says "working" — the glyph is not the animation,
-            // the animation is — and a nav that spins through a reduce-motion
-            // request is spinning where it was asked not to.
             let spin = crate::update::spinner_frame(crate::anim::now_ms());
             for mut c in panelist::pane_cells(panes, cols, limit, spin) {
                 c.row += panes_off;

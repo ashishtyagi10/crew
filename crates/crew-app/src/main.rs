@@ -180,6 +180,7 @@ mod diskwalk;
 mod dispatch;
 mod dispatchargs;
 mod dispatchlook;
+mod dispatchnav;
 mod dispatchspace;
 mod dispatchtodo;
 mod dispatchtype;
@@ -313,11 +314,17 @@ mod navcard;
 #[cfg(test)]
 #[path = "navcontrast_tests.rs"]
 mod navcontrast_tests;
+mod navglance;
 mod navlayout;
 mod navlog;
 mod navlogscroll;
 mod navresize;
+mod navserving;
+mod navslot;
 mod navtext;
+mod navwaiting;
+mod navweather;
+mod navweatherfetch;
 mod net;
 mod nettwin;
 mod notify;
