@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.63
+
+**Fix: the sign-in tracker no longer writes the credential store from tests
+or under the mock provider.** v0.21.62's "last choice serves" rule records
+each CLI's sign-in verdict in `credentials.json`; that write ran on every
+roster emit, including inside the test harness, where the store lives in
+the test repo and the task diff then reported `credentials.json` as a
+changed file (Coverage went red). Observation is now skipped under
+`CREW_BROKER_MOCK_REPLY` and in the library's own tests.
+
 ## 0.21.62
 
 **Whatever you chose last is what serves — and `/model` is the one front
