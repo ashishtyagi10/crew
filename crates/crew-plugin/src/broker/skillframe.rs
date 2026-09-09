@@ -2,6 +2,7 @@
 //! inlined whole (as `/skill` always did); directory skills add a pointer to
 //! their bundled files, readable through the `@tool sys` surface.
 use super::skills::Skill;
+use crate::PluginEvent;
 
 /// Bodies over this many bytes are pointer-framed instead of inlined (~2k tokens).
 pub(crate) const INLINE_CAP: usize = 8 * 1024;
@@ -10,24 +11,72 @@ pub(crate) const INLINE_CAP: usize = 8 * 1024;
 /// happens to name half the library cannot flood its own prompt.
 const AUTO_MAX: usize = 2;
 
+/// One playbook a task pulled in — what the host is told about it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Applied {
+    pub name: String,
+    /// The skill's one-liner (frontmatter, or its first line).
+    pub description: String,
+}
+
+/// A task with its skills woven in, and WHICH skills — the frame used to be
+/// the only output, so a playbook rewrote the prompt and nothing anywhere
+/// said so; the pane draws one line per entry of `applied`.
+pub(crate) struct Framed {
+    pub body: String,
+    pub applied: Vec<Applied>,
+}
+
 /// Weave the loaded skills into `task` without any command: playbooks whose
 /// name the task mentions are framed in full ([`framed`]); when none match
 /// but skills exist, a one-line roster rides along so the model knows what it
 /// could name. No skills → the task passes through byte-identical.
-pub(crate) fn with_skills(task: &str) -> String {
-    auto_frame(task, &super::skills::load(), super::systools::enabled())
+pub(crate) fn with_skills(task: &str) -> Framed {
+    let skills = super::skills::load();
+    let applied = matched(task, &skills)
+        .into_iter()
+        .map(|s| Applied {
+            name: s.name.clone(),
+            description: s.description.clone(),
+        })
+        .collect();
+    Framed {
+        body: auto_frame(task, &skills, super::systools::enabled()),
+        applied,
+    }
 }
 
-/// Pure core of [`with_skills`].
+/// The `Loaded` events announcing `applied` to the host, one per skill,
+/// attributed to `agent` — the agent whose prompt the playbook now heads.
+pub(crate) fn loaded_events(applied: &[Applied], agent: &str) -> Vec<PluginEvent> {
+    applied
+        .iter()
+        .map(|a| PluginEvent::Hive {
+            event: crew_hive::HiveEvent::Loaded {
+                agent: agent.to_string(),
+                kind: "skill".into(),
+                name: a.name.clone(),
+                detail: format!("applied \u{b7} {}", a.description),
+            },
+        })
+        .collect()
+}
+
+/// The playbooks `task` names, in library order, at most [`AUTO_MAX`].
+fn matched<'s>(task: &str, skills: &'s [Skill]) -> Vec<&'s Skill> {
+    skills
+        .iter()
+        .filter(|s| mentioned(task, &s.name))
+        .take(AUTO_MAX)
+        .collect()
+}
+
+/// Pure core of [`with_skills`]'s body.
 pub(crate) fn auto_frame(task: &str, skills: &[Skill], sys_on: bool) -> String {
     if skills.is_empty() {
         return task.to_string();
     }
-    let matched: Vec<&Skill> = skills
-        .iter()
-        .filter(|s| mentioned(task, &s.name))
-        .take(AUTO_MAX)
-        .collect();
+    let matched = matched(task, skills);
     if matched.is_empty() {
         return format!(
             "AVAILABLE SKILLS (drop-in playbooks \u{2014} one applies itself when a \

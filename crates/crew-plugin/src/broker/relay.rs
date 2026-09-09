@@ -27,8 +27,14 @@ pub(crate) fn relay_turn(
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<Option<String>> {
     // Skills weave in first (matched on the RAW task, before any wrapper
-    // could false-match a name), then standing memory rides on top.
-    let body = super::memory::with_memory(&super::skillframe::with_skills(body));
+    // could false-match a name), then standing memory rides on top. Each
+    // applied playbook is announced under the agent being dialled — the one
+    // whose reply the pane draws the skill line above.
+    let framed = super::skillframe::with_skills(body);
+    for ev in super::skillframe::loaded_events(&framed.applied, start) {
+        emit(ev)?;
+    }
+    let body = super::memory::with_memory(&framed.body);
     let mut timing: Option<(String, Instant)> = None;
     let mut segments: Vec<(String, Duration)> = Vec::new();
     let mut answer: Option<String> = None;

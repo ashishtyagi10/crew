@@ -126,3 +126,30 @@ fn append_skips_taken_names_and_uninstalled_commands() {
     let names: Vec<&str> = agents.iter().map(|a| a.name()).collect();
     assert_eq!(names, vec!["taken", "fine"]);
 }
+
+/// A manifest that will not parse is REPORTED — the file and serde's why —
+/// while the rest of the directory still loads. It used to vanish.
+#[test]
+fn a_malformed_manifest_is_reported_and_the_rest_still_load() {
+    let d = tmpdir("malformed");
+    std::fs::write(
+        d.join("good.json"),
+        r#"{"name": "goodbot", "command": "sh", "args": ["-c", "{}"]}"#,
+    )
+    .unwrap();
+    std::fs::write(d.join("bad.json"), r#"{"name": "badbot", "command": }"#).unwrap();
+    let mut errs = Vec::new();
+    let loaded = load_dir_with(&d, &mut |e| errs.push(e));
+    assert_eq!(
+        loaded.iter().map(|a| a.name()).collect::<Vec<_>>(),
+        ["goodbot"]
+    );
+    assert_eq!(errs.len(), 1, "{errs:?}");
+    let want = format!("agent manifest {}: ", d.join("bad.json").display());
+    assert!(errs[0].starts_with(&want), "{}", errs[0]);
+    assert!(
+        errs[0].contains("expected value"),
+        "serde's why: {}",
+        errs[0]
+    );
+}

@@ -10,6 +10,10 @@ use std::collections::HashMap;
 
 use crew_hive::HiveEvent;
 
+use crate::chattoolkind::LineKind;
+
+pub(crate) use crate::chattoolblock::ToolBlock;
+
 /// A finished call's outcome.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ToolDone {
@@ -18,55 +22,31 @@ pub(crate) struct ToolDone {
     pub text: String,
 }
 
-/// One tool call, from the moment it was asked for.
+/// One tool call, from the moment it was asked for — or one load
+/// (`chattoolkind`), born done.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ToolLine {
+    pub kind: LineKind,
     pub label: String,
+    /// The arguments, whole — a click opens them (`chattoolargs`).
+    pub args: String,
+    /// The one argument the line itself shows (`chattoolline::subject`).
     pub args_short: String,
     pub started_ms: u64,
     pub done: Option<ToolDone>,
-    /// The full result text is opened under the line (click).
+    /// The arguments and result text are opened under the line (click).
     pub show_text: bool,
 }
 
 impl ToolLine {
-    /// Whether a click on the line has anything to open: a result with text.
+    /// Whether a click on the line has anything to open: arguments, a
+    /// result with text, or a load's detail.
     pub(crate) fn has_text(&self) -> bool {
-        self.done
-            .as_ref()
-            .is_some_and(|d| !d.text.trim().is_empty())
-    }
-}
-
-/// One agent's calls, in order.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct ToolBlock {
-    pub agent_id: u64,
-    /// The name the agent's cards go by (`stream_key`); `agent-N` until the
-    /// broker's `Activity` names it.
-    pub agent: String,
-    pub lines: Vec<ToolLine>,
-    /// The stamp of the settled reply the block sits above, once it landed.
-    pub anchor: Option<String>,
-    /// The block's run is over: it draws as a summary line, click to open.
-    pub settled: bool,
-    pub expanded: bool,
-}
-
-impl ToolBlock {
-    /// Calls still waiting on a result.
-    pub(crate) fn pending(&self) -> usize {
-        self.lines.iter().filter(|l| l.done.is_none()).count()
-    }
-
-    /// `(calls, failed, total ms)` for the summary line.
-    pub(crate) fn tally(&self) -> (usize, usize, u64) {
-        let (mut failed, mut ms) = (0, 0);
-        for d in self.lines.iter().filter_map(|l| l.done.as_ref()) {
-            failed += usize::from(!d.ok);
-            ms += d.ms;
-        }
-        (self.lines.len(), failed, ms)
+        !self.args.trim().is_empty()
+            || self
+                .done
+                .as_ref()
+                .is_some_and(|d| !d.text.trim().is_empty())
     }
 }
 
@@ -74,14 +54,14 @@ impl ToolBlock {
 #[derive(Default)]
 pub(crate) struct ToolLines {
     pub blocks: Vec<ToolBlock>,
-    names: HashMap<u64, String>,
+    pub(crate) names: HashMap<u64, String>,
     /// The agent the last hive event named — the one the broker's next
     /// `Activity { from: "hive" }` is about (it is emitted right after).
-    last_agent: Option<u64>,
+    pub(crate) last_agent: Option<u64>,
 }
 
 impl ToolLines {
-    fn open_block(&mut self, id: u64) -> &mut ToolBlock {
+    pub(crate) fn open_block(&mut self, id: u64) -> &mut ToolBlock {
         let open = self
             .blocks
             .iter()
@@ -113,7 +93,9 @@ impl ToolLines {
             HiveEvent::ToolCall { agent, label, args } => {
                 self.last_agent = Some(agent.0);
                 self.open_block(agent.0).lines.push(ToolLine {
+                    kind: LineKind::Tool,
                     label: label.clone(),
+                    args: args.clone(),
                     args_short: crate::chattoolline::subject(args),
                     started_ms: now_ms,
                     done: None,
@@ -140,6 +122,12 @@ impl ToolLines {
                     });
                 }
             }
+            HiveEvent::Loaded {
+                agent,
+                kind,
+                name,
+                detail,
+            } => self.absorb_loaded(agent, kind, name, detail),
             _ => {}
         }
     }
@@ -154,16 +142,20 @@ impl ToolLines {
     }
 
     /// `agent`'s reply settled as the card stamped `ts`: its open block
-    /// anchors above that card, collapsed.
+    /// anchors above that card, collapsed. No block of its own: a block of
+    /// loads alone is waiting for exactly this reply (`settle_loaded`).
     pub(crate) fn settle(&mut self, agent: &str, ts: &str) {
         let open = self
             .blocks
             .iter_mut()
             .rfind(|b| b.agent == agent && !b.settled);
-        if let Some(b) = open {
-            b.anchor = Some(ts.to_string());
-            b.settled = true;
-            b.expanded = false;
+        match open {
+            Some(b) => {
+                b.anchor = Some(ts.to_string());
+                b.settled = true;
+                b.expanded = false;
+            }
+            None => self.settle_loaded(agent, ts),
         }
     }
 

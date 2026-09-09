@@ -48,19 +48,38 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
     // MCP lifecycle notes (connecting / ready / failed / dropped) stream to
     // the host's activity LOG as `Status` events — connects are lazy and used
     // to be entirely silent, indistinguishable from a hang.
+    // A successful connect is transcript news too: a `Loaded` line in the
+    // pane's tool block, beside the calls the server then answers.
+    let status_sink: crate::mcp::StatusSink = {
+        let out = Arc::clone(&out);
+        Arc::new(move |error, message: &str| {
+            let _ = emit(
+                &out,
+                &PluginEvent::Status {
+                    error,
+                    message: message.to_string(),
+                },
+            );
+        })
+    };
+    let event_sink: crate::mcp::EventSink = {
+        let out = Arc::clone(&out);
+        Arc::new(move |event| {
+            let _ = emit(&out, &PluginEvent::Hive { event });
+        })
+    };
+    session.lock_mcp().set_sink(Arc::clone(&status_sink));
+    session.lock_mcp().set_event_sink(Arc::clone(&event_sink));
+    // Language servers the same way: a failed start is a `Status` line, a
+    // successful one a `Loaded` line — they used to start in silence.
+    session.lock_lsp().set_sinks(status_sink, event_sink);
+    // Loader notes (a skill file that will not read, a manifest that will
+    // not parse) — free functions with no emitter of their own.
     {
         let out = Arc::clone(&out);
-        session
-            .lock_mcp()
-            .set_sink(Arc::new(move |error, message: &str| {
-                let _ = emit(
-                    &out,
-                    &PluginEvent::Status {
-                        error,
-                        message: message.to_string(),
-                    },
-                );
-            }));
+        super::hostnote::set_sink(Arc::new(move |ev| {
+            let _ = emit(&out, &ev);
+        }));
     }
     // Approval questions the gate raises go out as events, like everything else the host sees.
     {

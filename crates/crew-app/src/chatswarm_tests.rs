@@ -234,7 +234,7 @@ fn cost_deltas_are_accepted_but_no_longer_tracked() {
 /// carry the error level. The delta tiers must stay silent.
 #[test]
 fn hive_events_tee_lifecycle_lines_and_only_lifecycle() {
-    use crate::chatswarm::{log_line, SwarmStatus};
+    use crate::{chatswarm::SwarmStatus, chatswarmlog::log_line};
     let swarm = SwarmStatus::new(vec![TaskSpec {
         id: TaskId(2),
         title: "scan logs".into(),

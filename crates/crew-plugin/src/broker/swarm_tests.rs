@@ -1018,3 +1018,25 @@ fn the_forwarded_result_is_bounded_and_output_deltas_never_cross() {
     };
     assert_eq!(super::swarmmsg::forwarded(&call), Some(call.clone()));
 }
+
+/// A `Loaded` event crosses the wire verbatim (the pane draws it) and has no
+/// chat-facing translation: nobody is waiting on a skill the way they wait
+/// on a tool, so it must not touch the activity header.
+#[test]
+fn a_loaded_event_is_forwarded_whole_and_translates_to_nothing() {
+    let ev = HiveEvent::Loaded {
+        agent: "coder".into(),
+        kind: "mcp".into(),
+        name: "github".into(),
+        detail: "connected \u{b7} 2 tools: a, b".into(),
+    };
+    assert_eq!(swarmmsg::forwarded(&ev), Some(ev.clone()));
+    let out = translate(
+        &ev,
+        &HashMap::new(),
+        &mut HashMap::new(),
+        &mut HashMap::<u64, TextGate>::new(),
+        0,
+    );
+    assert!(out.is_empty(), "no Activity for a load: {out:?}");
+}
