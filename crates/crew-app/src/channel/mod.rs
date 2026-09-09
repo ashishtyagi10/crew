@@ -38,6 +38,16 @@ pub(crate) trait Channel: Send {
         Vec::new()
     }
 
+    /// Somebody pushed this channel's button, if it has one. The voice channel's push-to-talk
+    /// is the only one today: a pane has a keyboard and a phone has a send key, but a microphone
+    /// has to be told when to listen. `None` from every channel that has no such control;
+    /// `Some(Ok(did))` is what the press did; `Some(Err(why))` means the button is there but the
+    /// press could not be carried out — the reason belongs to whoever pressed it, not only to
+    /// the log.
+    fn press(&mut self) -> Option<Result<&'static str, String>> {
+        None
+    }
+
     /// The one address this channel may talk to, when there is exactly one. A standing intent
     /// has to answer SOMEWHERE, and for a Telegram bot with a single allowed chat that address
     /// is a fact rather than a guess. `None` whenever it would be a guess.
@@ -88,6 +98,13 @@ impl Router {
         Ok(())
     }
 
+    /// Forget the channel owning `kind`, if one is registered. Test-only: a running daemon's
+    /// ways in are decided once, at startup, from what is configured.
+    #[cfg(test)]
+    pub(crate) fn remove(&mut self, kind: &str) {
+        self.channels.remove(kind);
+    }
+
     /// The registered kinds, in a stable order.
     pub(crate) fn kinds(&self) -> Vec<&str> {
         self.channels.keys().map(String::as_str).collect()
@@ -124,6 +141,12 @@ impl Router {
             .filter_map(|c| c.default_address());
         let first = found.next()?;
         found.next().is_none().then_some(first)
+    }
+
+    /// Push one channel's button by kind. `None` when no such channel is registered, or when it
+    /// has no button to push; otherwise what the press did, or why it could not be done.
+    pub(crate) fn press(&mut self, kind: &str) -> Option<Result<&'static str, String>> {
+        self.channels.get_mut(kind)?.press()
     }
 
     /// Send `text` to `addr`. An unroutable address is an error, never a silent drop: a reply

@@ -110,8 +110,16 @@ impl super::Daemon {
 }
 
 #[cfg(test)]
+#[path = "rig_tests.rs"]
+pub(crate) mod rig;
+
+#[cfg(test)]
 #[path = "clock_tests.rs"]
-pub(crate) mod tests;
+mod tests;
+
+#[cfg(test)]
+#[path = "channels_tests.rs"]
+mod channel_tests;
 
 #[cfg(test)]
 #[path = "clockwire_tests.rs"]

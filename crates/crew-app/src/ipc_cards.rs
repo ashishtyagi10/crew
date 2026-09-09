@@ -1,11 +1,22 @@
 //! The card types the [`crate::ipc_types`] replies are built from: one row of a roster, a
-//! session listing, a broadcast answer, a standing intent.
+//! session listing, a broadcast answer, a standing intent — and the reason an ask came back empty.
 //!
 //! Split from the envelope so the protocol file stays the protocol — every new listing adds a
 //! struct here and one variant there.
 use serde::{Deserialize, Serialize};
 
-use crate::ipc_types::NoAnswer;
+/// Why an ask returned without an answer.
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Copy)]
+pub enum NoAnswer {
+    /// Target went idle having produced nothing (no agent, or it ignored us).
+    IdleNoEngage,
+    /// Target produced output but never closed the sentinel.
+    Stalled,
+    /// Target was busy on its own work; we didn't disturb it.
+    BusyElsewhere,
+    /// No pane matched the address.
+    Unreachable,
+}
 
 /// One pane's outcome within a broadcast reply. `text` is `Some` when it
 /// answered; otherwise `no_answer` says why (both never set at once).

@@ -119,6 +119,16 @@ pub(crate) fn answer(req: &Request, d: &mut Daemon) -> Option<Reply> {
                 },
             )
         }
+        Request::Press { kind, .. } => Some(match d.channels.press(kind) {
+            Some(Ok(did)) => Reply::Pressed {
+                channel: kind.clone(),
+                did: did.to_string(),
+            },
+            Some(Err(message)) => Reply::Failed { message },
+            None => Reply::Failed {
+                message: format!("no {kind} channel with a button \u{2014} `crew daemon channels` lists the ways in"),
+            },
+        }),
         Request::Watching { .. } => Some(Reply::Watchlist {
             intents: d
                 .watch

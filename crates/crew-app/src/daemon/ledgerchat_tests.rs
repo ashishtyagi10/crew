@@ -83,7 +83,7 @@ fn a_filter_narrows_and_an_empty_ledger_says_so() {
 /// "tools" then is somebody typing, not asking, and the answer would steal the question.
 #[test]
 fn the_daemon_answers_from_its_ledger_unless_the_sender_is_mid_approval() {
-    let mut rig = crate::daemon::clock::tests::rig("ledgerchat");
+    let mut rig = crate::daemon::clock::rig::rig("ledgerchat");
     let path = std::env::temp_dir().join(format!("crew-ledgerchat-{}.jsonl", std::process::id()));
     let _ = std::fs::remove_file(&path);
     rig.d.set_ledger(&path);

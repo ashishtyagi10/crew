@@ -2455,6 +2455,23 @@ anyone can drive. Crew prints the id of any chat it turns away, so the first
 rejected message tells you what to put there. `crew daemon channels` shows every
 way in and whether it is usable.
 
+**Talking to crew (push-to-talk).** The microphone is the third way in, and it
+is a channel like the phone: a spoken task reaches the same session a typed one
+does, through the same gate, and the answer is read back aloud. It needs
+`OPENAI_API_KEY` (Whisper in, OpenAI TTS out; `OPENAI_BASE_URL` points both at
+a compatible host) and a microphone crew can open — with either missing the
+channel is registered but not ready, and `crew daemon channels` says so. There
+is no wake word: `crew daemon listen` is the button. Press it to listen, again
+to stop (or stop talking — an utterance ends at 60s regardless), and press it
+while crew is talking to cut it off mid-sentence. Silence costs nothing: a
+recording too quiet to be speech is never sent anywhere. A reply is flattened
+for the ear — code fences dropped, clipped to ~700 characters with "the rest
+is on screen" — and its address is `voice:local`, so a standing intent set by
+voice needs no `--to`. `CREW_VOICE_STT` (default `whisper-1`), `CREW_VOICE_TTS`
+(`gpt-4o-mini-tts`) and `CREW_VOICE` (`alloy`) pick the models and the voice.
+Built on macOS and Windows; on Linux the channel reports itself unavailable
+rather than adding a system audio dependency to a single-binary install.
+
 **The resident (`crew daemon`).** Crew's broker is normally a child of the
 window, so closing the window ends it. The daemon is the process that outlives
 it: no display, no window, its own local endpoint. It is **opt-in in every
@@ -2473,6 +2490,7 @@ direction** — no release, update or app launch ever installs it.
 | `crew daemon next` | the soonest of them, on one line — for a prompt or a status bar; exit 0 with nothing standing |
 | `crew daemon cancel <id>` | call one standing intent off |
 | `crew daemon snooze <id> <for>` | push its next firing back by `30m`, `2h`, `1d` — a repeat keeps its cadence |
+| `crew daemon listen` | push-to-talk: press to listen, again to stop, or to interrupt crew mid-sentence |
 
 **Standing intents — crew's own clock.** `crew daemon at "tomorrow 9am brief me
 on the calendar"` reads the time out of the sentence (the same grammar the todo

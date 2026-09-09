@@ -422,6 +422,7 @@ mod viewpane;
 #[cfg(test)]
 #[path = "viewshot_tests.rs"]
 mod viewshot_tests;
+mod voice;
 mod washfocus;
 mod washphase;
 #[cfg(test)]

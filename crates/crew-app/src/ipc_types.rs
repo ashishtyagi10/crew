@@ -4,7 +4,7 @@
 //! bytes in a future federated build (see docs/vision/sentinel-network.md).
 use serde::{Deserialize, Serialize};
 
-pub use crate::ipc_cards::{CastAnswer, IntentCard, PaneCard, SessionCard};
+pub use crate::ipc_cards::{CastAnswer, IntentCard, NoAnswer, PaneCard, SessionCard};
 
 /// Protocol version, bumped on any incompatible envelope change.
 pub const PROTOCOL_V: u32 = 1;
@@ -73,6 +73,8 @@ pub enum Request {
         fire_ms: u64,
         repeat_secs: Option<u64>,
     },
+    /// Push a channel's button (voice's push-to-talk); `kind` names the channel, whose button it is.
+    Press { v: u32, kind: String },
     /// List what the daemon is waiting to do.
     Watching { v: u32 },
     /// Call one standing intent off by id.
@@ -90,19 +92,6 @@ impl Request {
     pub fn daemon_status() -> Self {
         Request::DaemonStatus { v: PROTOCOL_V }
     }
-}
-
-/// Why an ask returned without an answer.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Copy)]
-pub enum NoAnswer {
-    /// Target went idle having produced nothing (no agent, or it ignored us).
-    IdleNoEngage,
-    /// Target produced output but never closed the sentinel.
-    Stalled,
-    /// Target was busy on its own work; we didn't disturb it.
-    BusyElsewhere,
-    /// No pane matched the address.
-    Unreachable,
 }
 
 /// The GUI's reply to a `Request`.
@@ -159,6 +148,11 @@ pub enum Reply {
     /// The request was understood but could not be carried out.
     Failed {
         message: String,
+    },
+    /// A channel's button was pushed, and what it did. `channel`, because `kind` is the serde tag.
+    Pressed {
+        channel: String,
+        did: String,
     },
     /// A standing intent was registered.
     Watched {

@@ -78,6 +78,9 @@ impl Daemon {
                 // appears the moment it is configured — rather than one the user must discover
                 // exists — is the difference between a setting and a secret.
                 let _ = r.add(Box::new(crate::channel::telegram::Telegram::from_env()));
+                // The third way in. Registered always, ready only with a key AND a microphone,
+                // and it opens nothing until somebody presses the button.
+                let _ = r.add(Box::new(crate::voice::Voice::from_env()));
                 r
             },
             watch: intentlog::Watchlist::at(intentlog::default_path()),
@@ -98,10 +101,13 @@ impl Daemon {
         self.watch = w;
     }
 
-    /// Register a channel on a running daemon. Tests use it to drive a whole round trip; a
-    /// config file will use it to add whatever the user turned on.
+    /// Register a channel on a running daemon, replacing any of the same kind. Tests use it to
+    /// drive a whole round trip, and the replacement matters: the daemon already registers a
+    /// voice channel built from the environment, and a test installing its own fake would
+    /// otherwise be silently refused as a duplicate and exercise the env one instead.
     #[cfg(test)]
     pub(crate) fn add_channel(&mut self, c: Box<dyn crate::channel::Channel>) {
+        self.channels.remove(c.kind());
         let _ = self.channels.add(c);
     }
 

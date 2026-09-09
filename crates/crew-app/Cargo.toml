@@ -39,6 +39,12 @@ reqwest = { workspace = true }
 tempfile = "3"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp", "webp"] }
 
+# Voice (crew-app/src/voice/): the microphone and the speaker. macOS and Windows only — on
+# Linux cpal needs ALSA headers at build time and crew's install is deliberately a single binary
+# with no system dependencies, so voice reports itself unavailable there instead.
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+cpal = "0.15"
+
 # setsid(2) for `--detach` (new session, so a closed terminal can't SIGHUP us).
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
