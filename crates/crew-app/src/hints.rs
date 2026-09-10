@@ -103,10 +103,10 @@ pub(crate) fn press(c: char) -> Option<Press> {
 }
 
 /// Draw the labels over one pane's cells, if that is the labelled pane.
-pub(crate) fn mark_pane(cells: &mut Vec<CellView>, pane: usize) {
-    if let Some(h) = lock().as_ref().filter(|h| h.pane == pane) {
-        h.mark(cells);
-    }
+pub(crate) fn mark_pane(cells: &mut Vec<CellView>, pane: usize) -> bool {
+    let on = lock();
+    let h = on.as_ref().filter(|h| h.pane == pane);
+    h.map(|h| h.mark(cells)).is_some()
 }
 
 /// The labels currently on screen, in the order they were handed out — the
@@ -203,7 +203,6 @@ impl Hints {
         // eye lands on — the same wash an unfocused pane wears, for the same
         // reason, and it lasts exactly as long as the mode does.
         crate::spotlight::wash(cells, 0.4);
-        let _ = t;
         for target in &self.targets {
             let done = target.label.starts_with(&self.typed);
             for (i, ch) in target.label.chars().enumerate() {
