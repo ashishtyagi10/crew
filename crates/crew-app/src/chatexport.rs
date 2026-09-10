@@ -41,11 +41,8 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> bool {
 /// The `/export` success echo: the exported message count (pluralized) and
 /// the file it was written to, so the user knows what landed on disk.
 fn success_note(n: usize, path: &Path) -> String {
-    let plural = if n == 1 { "" } else { "s" };
-    format!(
-        "transcript exported ({n} message{plural}) \u{2192} {}",
-        path.display()
-    )
+    let n = crate::wording::count(n, "message");
+    format!("transcript exported ({n}) \u{2192} {}", path.display())
 }
 
 /// Write the transcript and return the file's path. The file lands in the
@@ -74,9 +71,9 @@ pub(crate) fn transcript_markdown(
         format!("agent smith \u{00b7} {channel}")
     };
     let mut out = format!(
-        "# {title}\n\nExported {} \u{00b7} {} message(s)\n",
+        "# {title}\n\nExported {} \u{00b7} {}\n",
         now.format("%Y-%m-%d %H:%M:%S"),
-        messages.len()
+        crate::wording::count(messages.len(), "message")
     );
     for m in messages {
         let mut head = format!("\n## {}", m.sender);

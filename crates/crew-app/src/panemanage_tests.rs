@@ -147,3 +147,20 @@ fn an_unrelated_command_disarms_a_pending_confirmation() {
     app.run_slash_command("closeall");
     assert_eq!(app.panes.len(), 2, "so it has to ask again");
 }
+
+/// `/only` said `pane`; `/closeall` said `1 panes`.
+#[test]
+fn closeall_counts_one_pane_in_the_singular() {
+    let mut app = CrewApp::default();
+    app.panes.push(far_pane("a"));
+    let status = |app: &CrewApp| app.status.as_ref().map(|s| s.0.clone()).unwrap_or_default();
+    app.run_slash_command("closeall");
+    assert!(
+        status(&app).contains("close all 1 pane?"),
+        "{}",
+        status(&app)
+    );
+    app.run_slash_command("closeall");
+    assert_eq!(app.panes.len(), 0);
+    assert!(status(&app).contains("closed 1 pane"), "{}", status(&app));
+}

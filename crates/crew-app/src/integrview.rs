@@ -68,8 +68,9 @@ pub(crate) fn listing(ints: &[Integration], set: &dyn Fn(&str) -> bool) -> Strin
     let tools: usize = ints.iter().map(|i| i.tools.len()).sum();
     let w = tool_col(ints);
     out.push_str(&format!(
-        "{} integration(s) \u{b7} {tools} tool(s) \u{b7} re-read per call\n\n",
-        ints.len()
+        "{} \u{b7} {} \u{b7} re-read per call\n\n",
+        crate::wording::count(ints.len(), "integration"),
+        crate::wording::count(tools, "tool")
     ));
     for i in ints {
         out.push_str(&i.name);

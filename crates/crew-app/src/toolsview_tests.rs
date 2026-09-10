@@ -109,7 +109,7 @@ fn a_long_ledger_is_bounded_and_says_how_much_it_hid() {
         MAX_ROWS
     );
     assert!(
-        out.contains("25 older call(s) not shown"),
+        out.contains("25 older calls not shown"),
         "tail note missing"
     );
 }
@@ -180,7 +180,7 @@ fn the_title_names_the_filter_so_a_short_list_is_not_mistaken_for_the_whole_one(
 fn a_filter_that_matches_nothing_says_so_differently_from_an_empty_ledger() {
     let no_match = listing(&sample(), 0, "kubernetes", NOW);
     assert!(no_match.contains("No call matches"), "{no_match}");
-    assert!(no_match.contains("3 call(s) recorded"), "{no_match}");
+    assert!(no_match.contains("3 calls recorded"), "{no_match}");
     assert!(
         no_match.contains("/tools with no term"),
         "the way back: {no_match}"
@@ -208,7 +208,7 @@ fn the_cap_counts_matches_not_the_whole_ledger() {
 #[test]
 fn the_listing_says_it_is_a_snapshot_and_how_big() {
     let out = listing(&sample(), 0, "", NOW);
-    assert!(out.contains("3 call(s)"), "{out}");
+    assert!(out.contains("3 calls"), "{out}");
     assert!(out.contains("times as of opening"), "{out}");
     assert!(out.contains("/tools re-reads"), "the way to refresh: {out}");
 }
@@ -218,5 +218,5 @@ fn the_listing_says_it_is_a_snapshot_and_how_big() {
 #[test]
 fn the_count_follows_the_filter() {
     let out = listing(&sample(), 0, "sys:run", NOW);
-    assert!(out.contains("1 call(s)"), "{out}");
+    assert!(out.contains("1 call \u{b7}"), "{out}");
 }

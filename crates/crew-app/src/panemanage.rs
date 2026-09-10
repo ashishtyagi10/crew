@@ -101,7 +101,10 @@ impl CrewApp {
         // A closed pane takes its scrollback, its running command and its
         // agent with it, and `/closeall` is one fuzzy keystroke from `/clear`.
         if !self.pending.answered("closeall", std::time::Instant::now()) {
-            let ask = format!("close all {n} panes? /closeall again");
+            let ask = format!(
+                "close all {}? /closeall again",
+                crate::wording::count(n, "pane")
+            );
             self.pending.asking(&ask);
             self.set_status(ask);
             return;
@@ -110,7 +113,7 @@ impl CrewApp {
         while !self.panes.is_empty() {
             self.close_pane(self.panes.len() - 1);
         }
-        self.set_status(format!("closed {n} panes"));
+        self.set_status(format!("closed {}", crate::wording::count(n, "pane")));
         self.redraw();
     }
 }

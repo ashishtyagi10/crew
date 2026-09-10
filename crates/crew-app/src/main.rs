@@ -514,6 +514,7 @@ mod welcomeshot_tests;
 mod welcometext;
 mod wincon;
 mod windowtitle;
+mod wording;
 
 /// What a bare `crew <args>` invocation wants before any GUI exists.
 ///

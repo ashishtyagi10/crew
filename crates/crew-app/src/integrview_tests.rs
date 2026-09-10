@@ -66,7 +66,7 @@ fn every_tool_is_listed_with_the_tier_the_gate_will_use() {
         "{cut}"
     );
     assert!(cut.chars().count() <= ROW_W, "{cut}");
-    assert!(out.contains("1 integration(s) \u{b7} 3 tool(s)"), "{out}");
+    assert!(out.contains("1 integration \u{b7} 3 tools"), "{out}");
     // A name a tile CAN hold is held whole: the column widens to it. At
     // a fixed 22 this one was `subscribe_t…her_alerts`.
     let mut fits = weather(Auth::None);

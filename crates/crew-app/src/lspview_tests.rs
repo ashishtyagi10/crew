@@ -25,7 +25,7 @@ fn an_uninstalled_server_is_named_not_installed() {
     assert!(go.ends_with("not installed"), "{go}");
     let rust = text.lines().find(|l| l.contains("rust-analyzer")).unwrap();
     assert!(rust.ends_with("  installed"), "{rust}");
-    assert!(text.contains("2 language(s) \u{b7} 1 installed"), "{text}");
+    assert!(text.contains("2 languages \u{b7} 1 installed"), "{text}");
     assert!(text.contains("no server running"), "{text}");
 }
 

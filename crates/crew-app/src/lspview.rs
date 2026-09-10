@@ -35,8 +35,8 @@ pub(crate) fn listing(rows: &[Row], running: &[(String, PathBuf)]) -> String {
         .unwrap_or(7)
         .min(cmd_max);
     out.push_str(&format!(
-        "{} language(s) \u{b7} {installed} installed \u{b7} override: ~/.config/crew/lsp.json\n\n",
-        rows.len()
+        "{} \u{b7} {installed} installed \u{b7} override: ~/.config/crew/lsp.json\n\n",
+        crate::wording::count(rows.len(), "language")
     ));
     for (lang, cmd, ok) in rows {
         let state = if *ok { "installed" } else { "not installed" };
