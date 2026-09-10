@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.99
+
+**The footer always says how to stop what is running, and its names
+breathe.** With more than three tasks running line 3 said `5 running` and
+never named `/stop`; on a narrow pane with two it dropped the hint whole.
+It offers `/stop cancels all` past three and a compact `/stop #3` where
+the long form does not fit — the way the plan prompt already ladders to
+`enter/esc`. And line 1 joined agent names as `planner·coder·tester`, one
+word, where every other joiner on the footer is a spaced `·`.
+
 ## 0.21.98
 
 **The CLI says what it means.** `crew panes` with nothing open printed a
