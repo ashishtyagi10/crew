@@ -59,7 +59,10 @@ pub(crate) fn sections() -> [(&'static str, &'static [(&'static str, &'static st
 /// Every logical row, in order, as `(keys, description)` — with the spacers
 /// and section headings in their places.
 pub(crate) fn logical() -> Vec<(&'static str, &'static str)> {
-    let mut v: Vec<(&str, &str)> = BINDINGS.to_vec();
+    // The global table gets a heading too: every other section says where
+    // its keys work, and the first read as a list that had lost its title.
+    let mut v: Vec<(&str, &str)> = vec![("", "everywhere")];
+    v.extend_from_slice(BINDINGS);
     for (title, table) in sections() {
         v.push(("", ""));
         v.push(("", title));
@@ -78,12 +81,17 @@ pub(crate) fn widest_key() -> usize {
         .unwrap_or(KEY_COL)
 }
 
-/// Where descriptions start, at a panel `cols` cells wide. Wide enough for
-/// every key when the panel can afford it; never more than 45% of the panel,
-/// because the description is the half that teaches.
+/// Where descriptions start, at a panel `cols` cells wide: the widest key
+/// plus its gap, but never past [`KEY_COL`] — one binding is 33 columns of
+/// chord, and a column cleared for it put every other description twenty
+/// blanks from its key, a gutter the eye had to cross sixty times. The few
+/// keys wider than the column overrun it by their own two spaces
+/// ([`crate::help::help_cells`]); the rest read as a table. Never more than
+/// 45% of the panel either, because the description is the half that
+/// teaches.
 pub(crate) fn key_col(cols: u16) -> usize {
     let cap = ((cols as usize) * 45 / 100).max(6);
-    (widest_key() + 2).clamp(KEY_COL.min(cap), cap)
+    (widest_key() + 2).min(KEY_COL).min(cap)
 }
 
 /// The rows a search shows: every binding whose keys or description contain
