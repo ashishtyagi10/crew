@@ -79,9 +79,17 @@ fn inked(px: &[u8], w: u32, x0: u32, x1: u32, y0: u32, y1: u32) -> bool {
 pub(crate) fn shot(name: &str, p: &ChatPane, w: u32, popup: impl Fn(u16) -> Popup) -> Option<()> {
     let mut at = rect(w);
     let (mut cw_px, mut ch_px) = (0.0, 0.0);
-    let px = crate::shotdraw_tests::draw(w, H, 13.0, |cw, ch| {
+    let mut card_cols = 0u16;
+    // Through the tube when the theme is one: the bloom is part of what a
+    // frame looks like there, and a one-pixel rule is what a halo undoes.
+    let draw = match crew_theme::current_id().is_crt() {
+        true => crate::shotdraw_tests::draw_crt,
+        false => crate::shotdraw_tests::draw,
+    };
+    let px = draw(w, H, 13.0, |cw, ch| {
         (cw_px, ch_px) = (cw, ch);
         let pop = popup((w as f32 / cw).floor() as u16);
+        card_cols = pop.cols;
         eprintln!("--- {name} {}x{}", pop.cols, pop.rows);
         for l in dump(&pop.cells, pop.cols, pop.rows) {
             eprintln!("|{l}");
@@ -109,7 +117,7 @@ pub(crate) fn shot(name: &str, p: &ChatPane, w: u32, popup: impl Fn(u16) -> Popu
     // edge, so the corner is looked for over the card's last column plus a
     // pixel or two, on the top border row.
     let (cw, ch) = (cw_px as u32, ch_px as u32);
-    let (edge, top) = ((at.x + at.w) as u32, at.y as u32);
+    let (edge, top) = ((at.x + f32::from(card_cols) * cw_px) as u32, at.y as u32);
     assert!(
         inked(&px, w, edge - cw, edge + 2, top, top + ch),
         "{name}: the card's corner is drawn at its hugged edge"

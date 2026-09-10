@@ -84,8 +84,23 @@ fn a_popup_scene_is_as_wide_as_its_card_and_flush_left() {
         rows: 5,
     };
     let s = super::scene(&p, r, cw, ch, popup);
-    assert_eq!((s.x, s.w, s.h), (r.x, 40.0 * cw, 5.0 * ch));
+    // The card, plus one column of page as a margin against the text under it.
+    assert_eq!((s.x, s.w, s.h), (r.x, 41.0 * cw, 5.0 * ch));
     assert!(s.overlay, "held solid by the overlay pass");
     let g = crate::chatplace::grants(&p, 100, 40);
     assert_eq!(s.y + s.h, r.y + f32::from(40 - g.bottom) * ch);
+}
+
+/// The margin never pushes the scene past the pane: a card as wide as the
+/// pane gets no margin, and the scene is never narrower than the card.
+#[test]
+fn the_margin_stops_at_the_pane_edge() {
+    use super::scene_w;
+    assert_eq!(scene_w(40, 100, 8.0), 41.0 * 8.0);
+    assert_eq!(scene_w(100, 100, 8.0), 100.0 * 8.0, "no room for a margin");
+    assert_eq!(
+        scene_w(60, 50, 8.0),
+        60.0 * 8.0,
+        "never narrower than the card"
+    );
 }

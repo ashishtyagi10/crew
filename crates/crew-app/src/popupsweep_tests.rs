@@ -110,3 +110,35 @@ fn popup_shot_every_composer_popup() {
     crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
     shot("popup-model-light", &p, W, &model);
 }
+
+/// The pop-ups on the pages that are not the default dark one, and on a
+/// quarter-width tile: the focused stroke, the accent legend and the
+/// full-ink selected row are three colour roles that every theme has to
+/// carry, and a 48-column tile is where a description column gives way.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn popup_shot_themes_and_tiles() {
+    let _a = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
+    let mut p = crate::composershot_tests::folded_pane();
+    p.input = "/model claude".into();
+    let models = crate::menushot_tests::models();
+    let model = |c| crate::cmdmenu::popup(MODELS, &models, 1, c);
+    for (name, id) in [
+        ("popup-model-crt-green", crew_theme::ThemeId::CrtGreen),
+        ("popup-model-sepia", crew_theme::ThemeId::SepiaLight),
+        ("popup-model-nebula", crew_theme::ThemeId::Nebula),
+    ] {
+        crew_theme::set_theme(id);
+        crate::palette::set_accent(crew_theme::theme().accent_default);
+        if shot(name, &p, W, &model).is_none() {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        }
+    }
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+    shot("popup-commands-quarter", &p, 380, &commands_long);
+    shot("popup-attach-quarter", &p, 380, &attach);
+    shot("popup-key-quarter", &p, 380, &key);
+}

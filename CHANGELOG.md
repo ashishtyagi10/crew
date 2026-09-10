@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.69
+
+**A column of page between a pop-up and the words it stands over, and the
+pop-ups shot on every kind of page.** Cut to its own measure, a composer
+pop-up's right border touched the next word of the transcript beneath it;
+its scene now carries one column of bare page as a margin on that side
+(none when the card is as wide as the pane). The sweep that shoots every
+composer pop-up over a pane grew the pages it had not been looked at on —
+the CRT tube (through the bloom), the sepia paper, the nebula gradient — a
+quarter-width tile for the long palette, the attach picker and the key
+prompt, the slash palette with the selection deep in the list, and, for the
+first time, the input bar's own palette (`bar_popup_shot`: 65 commands,
+`2/65` on the border, `Cmd+,` at the far edge). Nothing clipped and nothing
+lost its colour on any of them.
+
 ## 0.21.68
 
 **A composer pop-up wears the keys it holds.** While the slash palette, the

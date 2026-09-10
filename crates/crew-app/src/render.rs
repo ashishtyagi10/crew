@@ -296,7 +296,7 @@ impl CrewApp {
                 cells: p.cells,
                 x: ib.x,
                 y: my,
-                w: f32::from(p.cols) * cw,
+                w: crate::popupplace::scene_w(p.cols, ic, cw),
                 h: mh,
                 focused: false,
                 bordered: false,
