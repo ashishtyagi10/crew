@@ -34,11 +34,19 @@ pub(crate) type Seg = (String, Fg);
 pub(crate) fn running_seg(ids: &[u64], cols: usize) -> Option<(String, Option<String>)> {
     match ids {
         [] => None,
-        many if many.len() > 3 => Some((format!("{} running", many.len()), None)),
+        // The way to stop them rides along at every width: the count alone
+        // named nothing to type, and a narrow pane dropped the hint whole.
+        many if many.len() > 3 => Some((
+            format!("{} running", many.len()),
+            Some("/stop cancels all".to_string()),
+        )),
         many => {
             let list: Vec<String> = many.iter().map(|i| format!("#{i}")).collect();
-            let how = (cols >= 60).then(|| format!("/stop {} to cancel", list[0]));
-            Some((format!("running {}", list.join(" ")), how))
+            let how = match cols >= 60 {
+                true => format!("/stop {} to cancel", list[0]),
+                false => format!("/stop {}", list[0]),
+            };
+            Some((format!("running {}", list.join(" ")), Some(how)))
         }
     }
 }
@@ -54,7 +62,7 @@ pub(crate) fn running_seg(ids: &[u64], cols: usize) -> Option<(String, Option<St
 /// on deck. Only when models genuinely disagree — or nobody reports one — are
 /// names the honest answer, and past three even names stop fitting and stop
 /// informing; the count does both.
-pub(crate) fn roster_seg(agents: &[AgentInfo]) -> Option<String> {
+pub(crate) fn roster_seg(agents: &[AgentInfo], cols: usize) -> Option<String> {
     if agents.is_empty() {
         return None;
     }
@@ -67,10 +75,13 @@ pub(crate) fn roster_seg(agents: &[AgentInfo]) -> Option<String> {
         });
     }
     let names: Vec<&str> = agents.iter().map(|a| a.name.as_str()).collect();
-    if names.len() > 3 {
+    let joined = names.join(" \u{00b7} ");
+    // Past three, or past half the pane, names stop fitting and stop
+    // informing; the count does both.
+    if names.len() > 3 || joined.chars().count() > cols / 2 {
         return Some(format!("{} agents", names.len()));
     }
-    Some(names.join("\u{00b7}"))
+    Some(joined)
 }
 
 pub(crate) struct FooterCtx<'a> {
@@ -153,7 +164,7 @@ pub(crate) fn footer_lines_with(
     if let Some(d) = fc.cwd.filter(|d| !d.is_empty()) {
         l1.push(((d.to_string(), muted), P_CWD));
     }
-    if let Some(r) = roster_seg(fc.agents) {
+    if let Some(r) = roster_seg(fc.agents, cols) {
         l1.push(((r, cyan), P_ROSTER));
     }
     if let Some(b) = fc.branch {
@@ -272,3 +283,7 @@ pub(crate) fn summary_rows(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
 #[cfg(test)]
 #[path = "chatsummary_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "runningseg_tests.rs"]
+mod runningseg_tests;

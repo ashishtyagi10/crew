@@ -136,7 +136,7 @@ fn a_mixed_roster_names_its_agents() {
     let agents = [agent("a", "m1"), agent("b", "m2")];
     let lines = footer_lines(&fc(&agents, &HashMap::new()), 120);
     assert!(
-        text(&lines[0]).starts_with("a\u{00b7}b | "),
+        text(&lines[0]).starts_with("a \u{00b7} b | "),
         "{}",
         text(&lines[0])
     );
@@ -154,7 +154,7 @@ fn a_modelless_cli_roster_shows_names_not_a_gap() {
     ];
     let line = text(&footer_lines(&fc(&agents, &HashMap::new()), 120)[0]);
     assert!(
-        line.starts_with("claude\u{00b7}codex\u{00b7}opencode | "),
+        line.starts_with("claude \u{00b7} codex \u{00b7} opencode | "),
         "{line}"
     );
     assert!(!line.starts_with(" |"), "empty leading segment: {line}");
@@ -249,7 +249,7 @@ fn a_crowd_of_tasks_collapses_to_a_count() {
     let mut f = fc(&[], &empty_ctx);
     f.running_tasks = &[1, 2, 3, 4];
     let l3 = text(&footer_lines(&f, 120)[2]);
-    assert!(l3.ends_with("4 running"), "{l3}");
+    assert!(l3.ends_with("/stop cancels all"), "{l3}");
 }
 
 /// The directory leads line 1 — it answers "where will this actually run",
