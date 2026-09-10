@@ -295,6 +295,7 @@ mod mdcardshot_tests;
 #[path = "mdshot_tests.rs"]
 mod mdshot_tests;
 
+mod barpopup;
 #[cfg(test)]
 #[path = "barpopupshot_tests.rs"]
 mod barpopupshot_tests;

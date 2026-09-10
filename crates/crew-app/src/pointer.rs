@@ -93,6 +93,8 @@ impl CrewApp {
             }
             (Some(_), Some(_)) => Over::Text,
             (Some(_), None) => Over::Handle,
+            // The bar's palette rows: the hand, before the bar's I-beam.
+            (None, _) if self.bar_popup_hover_on() => Over::Link,
             (None, _) if self.cursor_in_input() => Over::Text,
             _ => Over::Page,
         }

@@ -16,10 +16,14 @@ impl CrewApp {
         (i == self.focused && !self.input.focused).then_some((i, row, col))
     }
 
-    /// Left press: a click on a pop-up row picks it. `true` when it did —
-    /// the caller answers the press there and never lets it reach the pane
-    /// underneath (a pop-up is an overlay, like a toast).
+    /// Left press: a click on a pop-up row — the input bar's palette, or
+    /// the focused pane's pop-up — picks it. `true` when it did: the caller
+    /// answers the press there and never lets it reach what is underneath
+    /// (a pop-up is an overlay, like a toast).
     pub(crate) fn popup_press_at_cursor(&mut self) -> bool {
+        if self.bar_popup_click() {
+            return true;
+        }
         let Some((i, row, col)) = self.popup_cell_at_cursor() else {
             return false;
         };
@@ -37,9 +41,13 @@ impl CrewApp {
         true
     }
 
-    /// Re-publish the pop-up row under the pointer. `true` when the
-    /// selection moved — the repaint signal (`pointer::pointer_sync`).
+    /// Re-publish the pop-up row under the pointer, on the bar's palette or
+    /// the pane's pop-up. `true` when the selection moved — the repaint
+    /// signal (`pointer::pointer_sync`).
     pub(crate) fn popup_hover_sync(&mut self) -> bool {
+        if self.bar_popup_hover_sync() {
+            return true;
+        }
         let Some((i, row, col)) = self.popup_cell_at_cursor() else {
             return false;
         };

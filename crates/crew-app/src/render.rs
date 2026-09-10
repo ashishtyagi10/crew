@@ -273,20 +273,11 @@ impl CrewApp {
         // slash palette has no rows for), so this branch is only ever reached
         // for non-slash input. An overlay scene so the overlay pass backs it
         // with black — a box on the canvas, fully opaque.
-        let mut slash_matches = crate::cmdnote::rows(&self.input.text, &self.input.cwd);
-        // Which of a picker's values you are already on.
-        let cmd = self
-            .input
-            .text
-            .split_whitespace()
-            .next()
-            .unwrap_or_default();
-        let current = crate::suggestvalues::current_value(cmd, &self.config);
-        crate::suggest::mark_current(&mut slash_matches, current.as_deref());
-        let (matches, title) = if !slash_matches.is_empty() {
-            (slash_matches, "commands")
-        } else {
+        let rows = self.bar_rows();
+        let (matches, title) = if rows.is_empty() {
             (self.input_preview(), "input")
+        } else {
+            (rows, "commands")
         };
         if self.input.focused && !matches.is_empty() {
             let p = crate::cmdmenu::popup(title, &matches, self.input.menu_sel, ic);
