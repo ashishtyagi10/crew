@@ -44,7 +44,7 @@ pub fn menu_card(
     let mut cells = crate::popupchrome::card(cols, rows, title);
     // A list longer than the card shows scrolls; the border says where in
     // it the selection is, since the rows alone cannot.
-    if matches.len() > MAX_ROWS {
+    if matches.len() > usize::from(rows - 2) {
         // Counted in choices, not rows: a section title is not a thing you
         // can be on, so `13/16` with two titles above would be a lie.
         let picks = |n: usize| matches[..n].iter().filter(|i| !i.header).count();
@@ -86,8 +86,15 @@ pub(crate) fn popup_size(matches: &[MenuItem], cols: u16) -> (u16, u16) {
 /// does with a fresh `ListState` every frame, pinned here so the mouse can
 /// map a drawn row back to its item (`ChatPane::popup_item_at`).
 pub(crate) fn offset(n: usize, sel: usize) -> usize {
+    offset_in(n, sel, MAX_ROWS)
+}
+
+/// [`offset`] for a card whose interior is `visible` rows: the todo pane's
+/// `@project` pop-up is capped shorter than the palette, and its mouse map
+/// and its scroll mark both have to count the rows it was actually given.
+pub(crate) fn offset_in(n: usize, sel: usize, visible: usize) -> usize {
     sel.min(n.saturating_sub(1))
-        .saturating_sub(n.min(MAX_ROWS).saturating_sub(1))
+        .saturating_sub(n.min(visible).saturating_sub(1))
 }
 
 /// Render the command list into the card's `cols × rows` interior. Every cell is
