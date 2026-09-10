@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.96
+
+**Two clocks climb the border clock's ladder.** A `/blocks` row read
+`120m03` for a build whose pane border said `2h00`, and the chat header's
+agent clock never rolled over (`coder · 742s`) while the same pane's card
+read `12m22`. Both use `runclock::label` now — seconds, `1m04`, `2h00`,
+then days — so one command is never timed two ways on one screen.
+
 ## 0.21.95
 
 **Three more cuts are marked.** The chat pane's queued-messages row was

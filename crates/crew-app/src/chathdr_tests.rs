@@ -178,3 +178,22 @@ fn the_interrupt_hint_counts_the_tool_calls_in_flight() {
     let one = text(&header_cells(60, "c", true, true, None, false, 1), 0);
     assert!(one.contains("\u{00b7} 1 tool running \u{00b7}"), "{one:?}");
 }
+
+/// Past a minute the agent clock reads like the border clock, not `742s`.
+#[test]
+fn the_agent_clock_climbs_the_border_ladder() {
+    let line = text(
+        &header_cells(
+            60,
+            "c",
+            true,
+            true,
+            Some(("coder", 742, (9, 9, 9))),
+            false,
+            0,
+        ),
+        0,
+    );
+    assert!(line.contains("coder \u{00b7} 12m22"), "{line}");
+    assert!(!line.contains("742"), "{line}");
+}
