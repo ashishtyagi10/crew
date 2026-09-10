@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.92
+
+**Hint mode wears a legend.** `Cmd+E` labelled every URL, path and hash on
+the pane and washed the rest, and nothing on screen said what to do next —
+that a letter copies, its capital opens, and Esc leaves was in `/keys` and
+nowhere you were looking, on a mode that eats the next keystroke. One
+muted row on the pane's last line says `a copies · A opens · esc cancels`
+for as long as the mode lasts, chosen by width down to `esc`, the way the
+composer's legend and `/disk`'s hint are.
+
 ## 0.21.91
 
 **`/lsp` fits a tile, and the swarm timeline's axis is drawn only where

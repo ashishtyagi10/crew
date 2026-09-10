@@ -254,6 +254,7 @@ mod helppanes;
 mod helpshot_tests;
 mod helptable;
 mod hintact;
+mod hintlegend;
 mod hints;
 mod history;
 mod histsearch;

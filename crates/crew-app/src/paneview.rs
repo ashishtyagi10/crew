@@ -177,7 +177,7 @@ pub(crate) fn push_pane_scenes(
     crate::spotlight::wash(&mut cells, dim);
     // Hint labels, if this is the labelled pane — after the wash, because the
     // tags are the one thing on the pane that must not be dimmed.
-    crate::hints::mark_pane(&mut cells, pane);
+    crate::hintlegend::mark(&mut cells, pane, p.grid.cols, p.grid.rows);
     // The card draws itself in over its first moments. Read from the pane's own
     // birth stamp, so panes that appear together (a restored session) assemble
     // together, and one spawned later assembles on its own clock.
