@@ -41,17 +41,38 @@ pub(crate) fn curve(hours: &[i32]) -> Vec<f32> {
         .collect()
 }
 
+/// Where midnight falls across a curve of `len` hours starting at `hour`,
+/// as `0.0..1.0` of its width — `None` when the curve starts at midnight
+/// (a tick on the left edge would only underline the dot). Pure.
+pub(crate) fn midnight_at(hour: u8, len: usize) -> Option<f32> {
+    let to_go = 24 - u32::from(hour.min(23));
+    (hour > 0 && (to_go as usize) < len).then(|| to_go as f32 / len as f32)
+}
+
 /// The curve, in the nav's cell units, shifted to the card at `top`: the
-/// area chart under the two text rows, on a hairline it stands on.
+/// area chart under the two text rows, on a hairline it stands on. The
+/// dot is on *now* — the left end — and a faint tick says where the day
+/// ends: without it the curve's right end reads as the newest reading.
 pub(crate) fn weather_paint(w: &Weather, top: u16, cols: u16, aspect: f32) -> Vec<Paint> {
+    use crate::plot::area;
     let width = cols.saturating_sub(TEXT_COL + 2);
     if w.hours.len() < 2 || width == 0 {
         return Vec::new();
     }
+    let t = crew_theme::theme();
     let mut c = crate::plot::Canvas::new(width, CHART_ROWS, aspect);
     let (cw, ch) = c.size();
-    crate::plot::area::draw(&mut c, (0.0, 0.0, cw, ch), &curve(&w.hours), accent());
-    c.hairline(0.0, ch, cw, crew_theme::theme().border_normal, 0.7);
+    let series = curve(&w.hours);
+    let style = area::Style {
+        head: false,
+        ..area::Style::default()
+    };
+    if let Some(k) = midnight_at(w.hour, w.hours.len()) {
+        c.rect(k * cw, 0.0, 1.0 / 8.0, ch, t.border_normal, 0.55);
+    }
+    area::draw_styled(&mut c, (0.0, 0.0, cw, ch), &series, accent(), style);
+    area::dot(&mut c, 0.25, area::y_at(&series, 0.0, 0.0, ch), accent());
+    c.hairline(0.0, ch, cw, t.border_normal, 0.7);
     c.paint()
         .into_iter()
         .map(|p| p.shifted(f32::from(TEXT_COL), f32::from(top + CHART_OFF)))

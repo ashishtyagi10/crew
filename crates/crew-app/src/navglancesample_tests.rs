@@ -21,6 +21,7 @@ pub(crate) fn glance() -> Glance {
                     (22.5 + 4.5 * t.cos()).round() as i32
                 })
                 .collect(),
+            hour: 8,
         }),
         serving: Serving {
             provider: Some("claude-code".into()),
