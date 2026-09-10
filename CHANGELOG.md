@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.83
+
+**Clicking the `/todo` scroll thumb no longer deletes the item beside it.**
+The delete zone at a row's end was three columns wide while the `✗` sits
+on the first of them; the list's scroll gutter is drawn on the last — and
+only while the list overflows, which is exactly when a reader reaches for
+it. One misclick on the thumb threw a todo away, silently. The zone is the
+glyph and the one cell of air after it now (`measure::del_zone`), and the
+gutter column selects the row like the rest of it.
+
 ## 0.21.82
 
 **`/login` retired: `/model` is the one front door for who serves.** The

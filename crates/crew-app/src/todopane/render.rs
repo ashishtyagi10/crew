@@ -126,7 +126,7 @@ pub(crate) fn click_at(
             };
             return Some(if row == first && (BOX_COL..BOX_COL + 3).contains(&col) {
                 TodoClick::Toggle(di)
-            } else if row == del_row && col >= cols.saturating_sub(3) {
+            } else if row == del_row && del_zone(cols).contains(&col) {
                 TodoClick::Delete(di)
             } else {
                 TodoClick::Select(di)
