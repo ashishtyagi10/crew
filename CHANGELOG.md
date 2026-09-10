@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.93
+
+**The `/todo` `@project` pop-up follows the mouse.** 0.21.90 taught it a
+click; the hover still selected nothing and the pointer stayed a bar over
+its rows, while every other pop-up moves its selection under the pointer
+and wears the hand. Both now, through the one geometry the click reads
+(`measure::tag_under`), so the row the hand points at is the row a press
+picks.
+
 ## 0.21.92
 
 **Hint mode wears a legend.** `Cmd+E` labelled every URL, path and hash on

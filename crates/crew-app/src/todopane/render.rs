@@ -91,12 +91,8 @@ pub(crate) fn click_at(
     if row >= rows.saturating_sub(composer::height(p, cols, rows)) {
         return Some(TodoClick::Composer);
     }
-    let ph = popup_h(p, rows);
-    if let (Some(m), true) = (&p.tagmenu, ph > 0) {
-        let top = rows - composer::height(p, cols, rows) - ph;
-        if let Some(i) = tag_at(m, (row, col), (top, ph, popup_w(m, cols))) {
-            return Some(TodoClick::PickTag(i));
-        }
+    if let Some(i) = tag_under(p, row, col, cols, rows) {
+        return Some(TodoClick::PickTag(i));
     }
     let header = header_h(p, cols);
     if row == 0 && header > 0 {

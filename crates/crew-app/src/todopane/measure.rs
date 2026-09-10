@@ -79,6 +79,17 @@ pub(crate) fn tag_at(
     (i < m.matches.len()).then_some(i)
 }
 
+/// The tag row of the open pop-up under content cell `(row, col)` of a
+/// `cols × rows` pane, or `None` — the one geometry the click and the hover
+/// read, so the row the hand points at is the row a press picks.
+pub(crate) fn tag_under(p: &TodoPane, row: u16, col: u16, cols: u16, rows: u16) -> Option<usize> {
+    let cols = super::render::content(cols);
+    let ph = popup_h(p, rows);
+    let m = p.tagmenu.as_ref().filter(|_| ph > 0)?;
+    let top = rows - composer::height(p, cols, rows) - ph;
+    tag_at(m, (row, col), (top, ph, popup_w(m, cols)))
+}
+
 /// Rows left for the item list.
 pub(crate) fn list_height(p: &TodoPane, cols: u16, rows: u16) -> u16 {
     let cols = content(cols);

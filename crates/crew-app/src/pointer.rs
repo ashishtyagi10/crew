@@ -87,7 +87,10 @@ impl CrewApp {
         // split the mouse gestures already use, told the same way.
         match (self.pane_at_cursor(), self.cursor_any_cell()) {
             (Some(i), Some(_))
-                if crate::linkhover::any() || self.plan_hover_on(i) || self.popup_hover_on(i) =>
+                if crate::linkhover::any()
+                    || self.plan_hover_on(i)
+                    || self.popup_hover_on(i)
+                    || self.todo_hover_on(i) =>
             {
                 Over::Link
             }
@@ -107,7 +110,11 @@ impl CrewApp {
         // BEFORE the shape is asked for — and a run that moved repaints, since
         // the hovered run's weight is part of the frame.
         // Non-short-circuit: both hovers must re-sync on every move.
-        if self.plan_hover_sync() | self.link_hover_sync() | self.popup_hover_sync() {
+        if self.plan_hover_sync()
+            | self.link_hover_sync()
+            | self.popup_hover_sync()
+            | self.todo_hover_sync()
+        {
             self.redraw();
         }
         let want = icon(self.pointer_over());

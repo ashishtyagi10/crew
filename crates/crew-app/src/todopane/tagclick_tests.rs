@@ -86,3 +86,45 @@ fn clicking_a_tag_row_accepts_that_tag() {
     assert_eq!(p.input, "@p2 ");
     assert!(p.tagmenu.is_none());
 }
+
+/// The hover reads the same geometry as the click: the row the hand
+/// points at is the row a press picks, and outside the card it is nothing.
+#[test]
+fn tag_under_is_the_one_geometry_the_click_and_the_hover_share() {
+    use crate::todopane::measure::tag_under;
+    let _g = crate::app::theme_test_guard();
+    let items = (1..=4)
+        .map(|i| TodoItem {
+            id: i,
+            title: format!("t{i}"),
+            done: false,
+            done_ms: None,
+            project: Some(format!("p{i}")),
+            due_ms: None,
+            due_has_time: false,
+            created_ms: i,
+            notified: false,
+        })
+        .collect();
+    let mut p = test_pane(items);
+    assert_eq!(
+        tag_under(&p, 3, 3, 40, 20),
+        None,
+        "no pop-up, nothing under"
+    );
+    p.input = "@".into();
+    p.cursor = 1;
+    let tags = tagmenu::known_tags(&p.items);
+    tagmenu::after_edit(&mut p.tagmenu, &p.input, || tags);
+    let (cols, rows) = (40u16, 20u16);
+    let ph = crate::todopane::measure::popup_h(&p, rows);
+    let top = rows - crate::todopane::composer::height(&p, cols, rows) - ph;
+    for r in 0..rows {
+        for c in 0..cols {
+            let under = tag_under(&p, r, c, cols, rows);
+            let clicked = matches!(click_at(&p, r, c, cols, rows), Some(TodoClick::PickTag(_)));
+            assert_eq!(under.is_some(), clicked, "({r},{c})");
+        }
+    }
+    assert_eq!(tag_under(&p, top + 3, 2, cols, rows), Some(2));
+}

@@ -43,6 +43,43 @@ impl CrewApp {
     }
 }
 
+impl CrewApp {
+    /// The todo pane and tag row under the pointer, if the pointer is on
+    /// an open `@project` pop-up.
+    fn todo_tag_at_cursor(&self) -> Option<(usize, usize)> {
+        let i = self.pane_at_cursor()?;
+        let (row, col) = self.cursor_rowcol(i)?;
+        let grid = self.panes[i].grid;
+        let crate::pane::PaneContent::Todo(t) = &self.panes[i].content else {
+            return None;
+        };
+        let tag = super::measure::tag_under(t, row as u16, col as u16, grid.cols, grid.rows)?;
+        Some((i, tag))
+    }
+
+    /// Hover: the tag row under the pointer becomes the selection, as it
+    /// does on every other pop-up. `true` when it moved — the repaint signal.
+    pub(crate) fn todo_hover_sync(&mut self) -> bool {
+        let Some((i, tag)) = self.todo_tag_at_cursor() else {
+            return false;
+        };
+        let crate::pane::PaneContent::Todo(t) = &mut self.panes[i].content else {
+            return false;
+        };
+        let Some(m) = &mut t.tagmenu else {
+            return false;
+        };
+        let moved = m.sel != tag;
+        m.sel = tag;
+        moved
+    }
+
+    /// Whether pane `i` has a tag row under the pointer — the hand.
+    pub(crate) fn todo_hover_on(&self, i: usize) -> bool {
+        self.todo_tag_at_cursor().is_some_and(|(at, _)| at == i)
+    }
+}
+
 impl super::TodoPane {
     /// Accept the pop-up's `i`th tag into the composer, as Enter does on
     /// the selected one; the pop-up closes either way.
