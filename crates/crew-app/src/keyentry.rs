@@ -166,8 +166,7 @@ impl KeyEntry {
             crate::boxdraw::title_budget(cols),
         );
         let rows = self.rows();
-        let mut cells =
-            crate::modernring::gradient_card(cols, rows, &title, t.border_normal, t.legend_off, bg);
+        let mut cells = crate::popupchrome::card(cols, rows, &title);
         if cells.is_empty() {
             return Popup { cells, cols, rows };
         }

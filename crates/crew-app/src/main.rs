@@ -369,6 +369,7 @@ mod pickshot_tests;
 mod plot;
 mod pointer;
 mod poll;
+mod popupchrome;
 mod popupplace;
 #[cfg(test)]
 #[path = "popupshot_tests.rs"]

@@ -98,3 +98,60 @@ fn the_measure_is_the_widest_row_not_the_sum_of_the_widest_parts() {
     let path_only = [item("@crates/crew-app/src/render.rs", "")];
     assert_eq!(crate::cmdrow::content_w(&path_only), 2 + 30);
 }
+
+/// The selected row's description reads in the page's ink; every other
+/// row's stays muted. A row the stack cannot serve keeps its mute even
+/// when selected — that mute is the message.
+#[test]
+fn the_selected_row_reads_in_full_ink() {
+    let _g = crate::app::theme_test_guard();
+    let items = [
+        item("/dash", "Open the dashboard pane"),
+        item("/diff", "Review the working tree"),
+        MenuItem {
+            dim: true,
+            ..item("/dead", "no provider on this stack")
+        },
+    ];
+    let (ink, muted) = (crew_theme::theme().ink, crate::menuink::desc());
+    let desc_fg = |cells: &[crew_render::CellView], row: u16| {
+        cells
+            .iter()
+            .find(|c| c.row == row && c.c == 'e')
+            .map(|c| c.fg)
+    };
+    let cells = crate::cmdmenu::menu_cells(&items, 1, 60, 3);
+    assert_eq!(desc_fg(&cells, 1), Some(ink), "the selected row");
+    assert_eq!(desc_fg(&cells, 0), Some(muted), "an unselected row");
+    let cells = crate::cmdmenu::menu_cells(&items, 2, 60, 3);
+    let label = cells
+        .iter()
+        .find(|c| c.row == 2 && c.c == '/')
+        .map(|c| c.fg);
+    assert_eq!(label, Some(muted), "a dim row stays muted when selected");
+}
+
+/// A list longer than the card shows says where in it you are.
+#[test]
+fn a_scrolling_list_marks_where_the_selection_is() {
+    let _g = crate::app::theme_test_guard();
+    let items: Vec<MenuItem> = (0..14)
+        .map(|i| item(&format!("/c{i}"), "a command"))
+        .collect();
+    let top = |p: &crate::popupplace::Popup| -> String {
+        p.cells.iter().filter(|c| c.row == 0).map(|c| c.c).collect()
+    };
+    assert!(top(&popup("commands", &items, 12, 80)).contains("13/14"));
+    // Section titles are not choices: with two of them above the selection
+    // the mark counts what you can actually land on.
+    let mut titled: Vec<MenuItem> = (0..14)
+        .map(|i| item(&format!("/c{i}"), "a command"))
+        .collect();
+    titled[0].header = true;
+    titled[5].header = true;
+    assert!(top(&popup("commands", &titled, 12, 80)).contains("11/12"));
+    assert!(
+        !top(&popup("commands", &items[..5], 2, 80)).contains('/'),
+        "a short list has no mark"
+    );
+}
