@@ -1,43 +1,47 @@
-//! Offscreen shot of a composer pop-up in a crew pane — the model picker
-//! open over `/model claude` — placed by `popupplace::above_composer`, and
-//! the same frame placed the old way (composer rows subtracted, footer
-//! rows not) for the eye to compare. `#[ignore]`d: needs a GPU adapter.
+//! Offscreen shots of every composer pop-up standing on a crew pane's
+//! composer — the model picker, the slash palette, the attach picker, Cmd+F,
+//! Ctrl+R and the key prompt — each placed and sized by
+//! `popupplace::scene`: on the composer's top edge, flush left, as wide as
+//! its own rows. `#[ignore]`d: needs a GPU adapter.
 //! `cargo test -p crew-app --bin crew popup_shot -- --ignored --nocapture`;
 //! PNGs land in `$CREW_SHOT_DIR` (default `target/screenshots`).
 use crate::chat::ChatPane;
+use crate::goalshot_tests::dump;
 use crate::layout::Rect;
-use crew_plugin::Plugin;
+use crate::popupplace::Popup;
 use crew_render::PaneScene;
 
-const W: u32 = 900;
+pub(crate) const W: u32 = 900;
 const H: u32 = 520;
 
-fn pane() -> ChatPane {
-    let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
-    let mut p = ChatPane::new(plugin, "crew".into());
-    p.input = "/model claude".into();
-    p
-}
-
-/// The frame: the pane, then the picker card as an overlay at `y`.
-fn frame(
-    p: &ChatPane,
-    cw: f32,
-    ch: f32,
-    place: impl Fn(&ChatPane, Rect, f32) -> f32,
-) -> (Vec<PaneScene>, f32) {
-    let r = Rect {
+fn rect(w: u32) -> Rect {
+    Rect {
         x: 0.0,
         y: 0.0,
-        w: W as f32,
+        w: w as f32,
         h: H as f32,
-    };
+    }
+}
+
+/// The frame: the pane, then the pop-up as `popupplace::scene` places it.
+/// Returns the scenes and the overlay's rect.
+pub(crate) fn frame(
+    p: &ChatPane,
+    w: u32,
+    cw: f32,
+    ch: f32,
+    popup: Popup,
+) -> (Vec<PaneScene>, Rect) {
+    let r = rect(w);
     let cols = (r.w / cw).floor() as u16;
     let rows = (r.h / ch).floor() as u16;
-    let items = crate::menushot_tests::models();
-    let mr = crate::cmdmenu::menu_rows(items.len());
-    let mh = f32::from(mr) * ch;
-    let y = place(p, r, mh);
+    let over = crate::popupplace::scene(p, r, cw, ch, popup);
+    let at = Rect {
+        x: over.x,
+        y: over.y,
+        w: over.w,
+        h: over.h,
+    };
     let scenes = vec![
         PaneScene {
             cells: p.cells(cols, rows),
@@ -52,79 +56,71 @@ fn frame(
             overlay: false,
             paint: Vec::new(),
         },
-        PaneScene {
-            cells: crate::cmdmenu::menu_card("model", &items, 1, cols, mr),
-            x: r.x,
-            y,
-            w: r.w,
-            h: mh,
-            focused: false,
-            bordered: false,
-            glass: false,
-            scan: -1.0,
-            overlay: true,
-            paint: Vec::new(),
-        },
+        over,
     ];
-    (scenes, y + mh)
+    (scenes, at)
 }
 
-/// Whether any pixel in rows `y0..y1` of the left `x1` px differs from the
-/// page: the composer's `❯` prompt lives there.
-fn inked(px: &[u8], y0: u32, y1: u32, x1: u32) -> bool {
+/// Whether any pixel in `x0..x1` × `y0..y1` differs from the page.
+fn inked(px: &[u8], w: u32, x0: u32, x1: u32, y0: u32, y1: u32) -> bool {
     let page = &px[..4];
     (y0..y1.min(H)).any(|y| {
-        (0..x1).any(|x| {
-            let i = ((y * W + x) * 4) as usize;
+        (x0..x1.min(w)).any(|x| {
+            let i = ((y * w + x) * 4) as usize;
             let d = |k: usize| (px[i + k] as i32 - page[k] as i32).abs();
-            d(0) + d(1) + d(2) > 60
+            d(0) + d(1) + d(2) > 90
         })
     })
 }
 
-/// New placement: the pop-up's bottom edge meets the composer's top, so
-/// the prompt row under it still shows its `❯`. Old placement: the same
-/// card sits `summary` rows lower, on the composer.
-#[test]
-#[ignore]
-fn popup_shot_stands_on_the_composer() {
-    let p = pane();
-    let mut bottom = 0.0;
-    let mut ch_px = 0.0;
-    let px = crate::shotdraw_tests::draw(W, H, 13.0, |cw, ch| {
-        ch_px = ch;
-        let (scenes, b) = frame(&p, cw, ch, |p, r, mh| {
-            crate::popupplace::above_composer(p, r, cw, ch, mh)
-        });
-        bottom = b;
+/// Shoot `popup` over `p` at width `w`, dump its rows, and check the two
+/// placement rules on the pixels: the composer's `❯` still shows under the
+/// card, and the pane to the RIGHT of the card is bare page (no band).
+pub(crate) fn shot(name: &str, p: &ChatPane, w: u32, popup: impl Fn(u16) -> Popup) -> Option<()> {
+    let mut at = rect(w);
+    let (mut cw_px, mut ch_px) = (0.0, 0.0);
+    let px = crate::shotdraw_tests::draw(w, H, 13.0, |cw, ch| {
+        (cw_px, ch_px) = (cw, ch);
+        let pop = popup((w as f32 / cw).floor() as u16);
+        eprintln!("--- {name} {}x{}", pop.cols, pop.rows);
+        for l in dump(&pop.cells, pop.cols, pop.rows) {
+            eprintln!("|{l}");
+        }
+        let (scenes, r) = frame(p, w, cw, ch, pop);
+        at = r;
         scenes
-    })
-    .expect("gpu adapter");
-    crate::shotdraw_tests::write_png("popup-on-composer", &px, W, H);
+    })?;
+    crate::shotdraw_tests::write_png(name, &px, w, H);
+    let bottom = at.y + at.h;
     // The composer's bordered card: top border row, then the `❯` row.
-    let prompt_row = bottom + ch_px;
+    let prompt_row = (bottom + ch_px) as u32;
     assert!(
         inked(
             &px,
-            prompt_row as u32,
-            (prompt_row + ch_px) as u32,
-            (ch_px * 3.0) as u32
+            w,
+            0,
+            (ch_px * 3.0) as u32,
+            prompt_row,
+            prompt_row + ch_px as u32
         ),
-        "the composer prompt is hidden under the pop-up"
+        "{name}: the composer prompt is hidden under the pop-up"
     );
-
-    let old = crate::shotdraw_tests::draw(W, H, 13.0, |cw, ch| {
-        frame(&p, cw, ch, |p, r, mh| {
-            let cols = (r.w / cw).floor() as u16;
-            let comp = f32::from(crate::chatinput::composer_rows(
-                &p.input,
-                cols,
-                (r.h / ch).floor() as u16,
-            )) * ch;
-            (r.y + r.h - comp - mh).max(0.0)
-        })
-        .0
-    })
-    .expect("gpu adapter");
-    crate::shotdraw_tests::write_png("popup-old-placement", &old, W, H);
+    // The frame is DRAWN: its vertical stroke stands on the last cell's far
+    // edge, so the corner is looked for over the card's last column plus a
+    // pixel or two, on the top border row.
+    let (cw, ch) = (cw_px as u32, ch_px as u32);
+    let (edge, top) = ((at.x + at.w) as u32, at.y as u32);
+    assert!(
+        inked(&px, w, edge - cw, edge + 2, top, top + ch),
+        "{name}: the card's corner is drawn at its hugged edge"
+    );
+    // ...and NOT at the pane's edge: the old full-width band put a corner
+    // there, on every pop-up, with nothing but page between.
+    if edge + 2 * cw < w {
+        assert!(
+            !inked(&px, w, w - cw, w, top, top + ch),
+            "{name}: a band of card runs to the pane's edge"
+        );
+    }
+    Some(())
 }

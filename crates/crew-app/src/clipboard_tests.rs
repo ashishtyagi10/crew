@@ -54,6 +54,7 @@ fn paste_goes_to_an_open_key_prompt_not_the_composer() {
         .as_ref()
         .unwrap()
         .card(60)
+        .cells
         .iter()
         .filter(|cell| cell.c == '•')
         .count();

@@ -373,6 +373,9 @@ mod popupplace;
 #[cfg(test)]
 #[path = "popupshot_tests.rs"]
 mod popupshot_tests;
+#[cfg(test)]
+#[path = "popupsweep_tests.rs"]
+mod popupsweep_tests;
 mod procname;
 mod quit;
 mod readout;

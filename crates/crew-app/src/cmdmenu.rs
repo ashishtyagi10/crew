@@ -8,6 +8,7 @@ use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::widgets::{List, ListItem, ListState, StatefulWidget};
 
+use crate::popupplace::Popup;
 use crate::suggest::MenuItem;
 
 /// Most command rows shown at once; beyond this the palette scrolls to keep the
@@ -59,6 +60,20 @@ pub fn menu_card(
     cells
 }
 
+/// The card as a composer pop-up in a pane `cols` wide: as wide as its rows
+/// need ([`crate::cmdrow::content_w`]) plus one column of air before the
+/// right border, floored and clamped by [`crate::popupplace::card_cols`],
+/// as tall as [`menu_rows`] says.
+pub(crate) fn popup(title: &str, matches: &[MenuItem], sel: usize, cols: u16) -> Popup {
+    let cols = crate::popupplace::card_cols(crate::cmdrow::content_w(matches) + 1, cols);
+    let rows = menu_rows(matches.len());
+    Popup {
+        cells: menu_card(title, matches, sel, cols, rows),
+        cols,
+        rows,
+    }
+}
+
 /// Render the command list into the card's `cols × rows` interior. Every cell is
 /// transparent over the card's black backdrop — the selected row is marked by the
 /// `›` symbol and bold text, never a background bar (a bar washed out the dim
@@ -67,11 +82,12 @@ pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16)
     if cols < 2 || rows < 1 || matches.is_empty() {
         return Vec::new();
     }
-    // Laid out at the width the rows need, and CENTRED in what is left: the
-    // chord right-aligns to the row's edge, so a row as wide as the pane put
-    // it a screen away from its own command (see `cmdrow::content_w`).
+    // Laid out at the width the rows need, from the LEFT: the chord
+    // right-aligns to the row's edge, so a row as wide as the pane put it a
+    // screen away from its own command (see `cmdrow::content_w`). The card
+    // itself is cut to this measure by [`popup`]; a wider one (the todo
+    // pane's) keeps its list at the edge the eye starts from.
     let w = (crate::cmdrow::content_w(matches) as u16).clamp(MIN_ROW_W.min(cols), cols);
-    let pad = (cols - w) / 2;
     let mut buf = Buffer::empty(Rect::new(0, 0, w, rows));
     // Two columns of the row go to the selection marker; every row is laid out
     // in what is left, so the description column and the chord agree with the
@@ -93,14 +109,11 @@ pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16)
     state.select(crate::cmdnote::selectable(matches).then(|| sel.min(matches.len() - 1)));
     StatefulWidget::render(list, buf.area, &mut buf, &mut state);
     crate::tui::to_cells(&buf)
-        .into_iter()
-        .map(|mut c| {
-            c.col += pad;
-            c
-        })
-        .collect()
 }
 
+#[cfg(test)]
+#[path = "cmdmenupopup_tests.rs"]
+mod popup_tests;
 #[cfg(test)]
 #[path = "cmdmenu_tests.rs"]
 mod tests;

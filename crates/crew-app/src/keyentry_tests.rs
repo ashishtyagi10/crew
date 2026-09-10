@@ -73,7 +73,7 @@ fn the_card_masks_every_character_and_never_draws_the_secret() {
     // all-caps legend.
     let secret = "sk-SUPERSECRET";
     typed(&mut e, secret);
-    let cells = e.card(60);
+    let cells = e.card(60).cells;
 
     // The legend (row 0) is drawn text, not a leak risk by construction — the
     // buffer is only ever drawn on the first interior row (`row: 1`, see
@@ -107,7 +107,7 @@ fn a_long_key_never_overflows_the_card() {
     let mut e = KeyEntry::new("ANTHROPIC_API_KEY".into());
     typed(&mut e, &"x".repeat(500));
     let cols = 40u16;
-    let cells = e.card(cols);
+    let cells = e.card(cols).cells;
     assert!(
         cells.iter().all(|c| c.col < cols),
         "a cell escaped the card"
@@ -118,14 +118,14 @@ fn a_long_key_never_overflows_the_card() {
 fn a_waiting_prompt_says_so_and_still_masks_what_is_typed() {
     let mut e = KeyEntry::new("OPENROUTER_API_KEY".into());
     e.set_waiting(true);
-    let drawn: String = e.card(60).iter().map(|c| c.c).collect();
+    let drawn: String = e.card(60).cells.iter().map(|c| c.c).collect();
     assert!(drawn.contains("waiting for browser"), "{drawn}");
     // Pasting must still work while the browser flow is in flight — it may
     // never have opened. `paste` (not `key`) deliberately, because typing
     // clears `waiting`, and the point of this test is the two coexisting.
     let secret = "sk-typed";
     e.paste(secret);
-    let cells = e.card(60);
+    let p = e.card(60);
 
     // The hint must live on row 2 and NOWHERE else. That is what makes the
     // row-1 leak assertion below mean anything: the hint contains almost
@@ -133,16 +133,16 @@ fn a_waiting_prompt_says_so_and_still_masks_what_is_typed() {
     // "row 1 doesn't contain the secret" check by accident while hiding a
     // real leak. Assert the invariant directly, both ways round.
     let hint = "waiting for browser";
-    let row2: String = cells.iter().filter(|c| c.row == 2).map(|c| c.c).collect();
+    let row2: String = p.cells.iter().filter(|c| c.row == 2).map(|c| c.c).collect();
     assert!(
         row2.contains(hint),
         "the waiting hint belongs on row 2, alone: {row2:?}"
     );
-    // Inside the side borders only — `titled_card` draws a `│` at each end of
-    // every interior row and nothing else, so what remains is ours.
-    let row1: Vec<char> = cells
+    // Between the `❯ ` head and the right border: the field itself.
+    let row1: Vec<char> = p
+        .cells
         .iter()
-        .filter(|c| c.row == 1 && c.col > 0 && c.col + 1 < 60)
+        .filter(|c| c.row == 1 && c.col > 2 && c.col + 1 < p.cols)
         .map(|c| c.c)
         .collect();
     assert!(
@@ -170,13 +170,13 @@ fn the_card_is_only_as_tall_as_it_needs_the_hint_row_to_be() {
     let mut e = KeyEntry::new("ANTHROPIC_API_KEY".into());
     assert_eq!(e.rows(), 3, "border, input, border");
     assert_eq!(
-        e.card(60).iter().map(|c| c.row).max(),
+        e.card(60).cells.iter().map(|c| c.row).max(),
         Some(2),
         "nothing may be drawn below the bottom border"
     );
     e.set_waiting(true);
     assert_eq!(e.rows(), 4, "the hint needs an interior row of its own");
-    assert_eq!(e.card(60).iter().map(|c| c.row).max(), Some(3));
+    assert_eq!(e.card(60).cells.iter().map(|c| c.row).max(), Some(3));
 }
 
 #[test]
@@ -189,13 +189,13 @@ fn typing_clears_the_waiting_state_but_pasting_does_not() {
     let mut typing = KeyEntry::new("OPENROUTER_API_KEY".into());
     typing.set_waiting(true);
     typed(&mut typing, "s");
-    let drawn: String = typing.card(60).iter().map(|c| c.c).collect();
+    let drawn: String = typing.card(60).cells.iter().map(|c| c.c).collect();
     assert!(!drawn.contains("waiting for browser"), "{drawn}");
 
     let mut pasting = KeyEntry::new("OPENROUTER_API_KEY".into());
     pasting.set_waiting(true);
     pasting.paste("sk-pasted");
-    let drawn: String = pasting.card(60).iter().map(|c| c.c).collect();
+    let drawn: String = pasting.card(60).cells.iter().map(|c| c.c).collect();
     assert!(
         drawn.contains("waiting for browser"),
         "a paste leaves the hint up: {drawn}"
@@ -213,7 +213,7 @@ fn forgetting_the_typing_empties_the_buffer_and_restores_the_hint() {
 
     e.forget_typing();
 
-    let cells = e.card(60);
+    let cells = e.card(60).cells;
     assert_eq!(
         cells.iter().filter(|c| c.c == '•').count(),
         0,
@@ -233,7 +233,7 @@ fn a_narrow_card_keeps_the_variable_name_over_the_word_paste() {
     // convey. The variable name must survive in preference to the word
     // "paste".
     let e = KeyEntry::new("ANTHROPIC_API_KEY".into());
-    let cells = e.card(20);
+    let cells = e.card(20).cells;
     let legend: String = cells.iter().filter(|c| c.row == 0).map(|c| c.c).collect();
     assert!(
         legend.contains("API_KEY"),

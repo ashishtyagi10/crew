@@ -245,18 +245,14 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
             .iter()
             .map(|tag| crate::suggest::MenuItem {
                 label: format!("@{tag}"),
-                desc: String::new(),
-                fill: String::new(),
-                submit: false,
-                header: false,
-                dim: false,
-                needs: None,
                 color: Some(crew_theme::tag_color(tag, t)),
                 ..Default::default()
             })
             .collect();
         let top = rows - composer::height(p, cols, rows) - ph;
-        for mut c in crate::cmdmenu::menu_card("projects", &items, m.sel, cols, ph) {
+        // As wide as its tags, flush left: the shape of every composer pop-up.
+        let w = crate::popupplace::card_cols(crate::cmdrow::content_w(&items), cols);
+        for mut c in crate::cmdmenu::menu_card("projects", &items, m.sel, w, ph) {
             c.row += top;
             out.push(c);
         }

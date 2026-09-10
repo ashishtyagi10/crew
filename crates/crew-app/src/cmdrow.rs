@@ -21,30 +21,32 @@ const MAX_LABEL_SHARE: usize = 2;
 /// letter and a half, so the chord goes instead.
 const MIN_DESC: usize = 8;
 
-/// The columns this list actually needs: the marker, the widest label, the
-/// widest description and the widest chord, with the gaps between them.
+/// The columns this list actually needs: the widest ROW, each row measured
+/// as it will be drawn — the marker, the shared label column, the swatch
+/// column, its own description, its own chord, and the gaps between them.
 ///
 /// The card is drawn at this width rather than at the pane's, because the
 /// chord right-aligns to the row's far edge: on a full-window pane that put
 /// `Cmd+D` ninety columns from the `/dash` it belongs to, with nothing in
 /// between. A list has a measure; past it, it is a band.
+///
+/// Rows, not parts: the widest label and the widest description added
+/// together measured a row that did not exist. The attach picker's longest
+/// label is a file path with no description; summed with the longest agent
+/// role it made a card thirty columns wider than any row in it.
 pub(crate) fn content_w(items: &[MenuItem]) -> usize {
-    let widest = |f: fn(&MenuItem) -> usize| items.iter().map(f).max().unwrap_or(0);
-    let label = widest(|i| i.label.chars().count());
-    let desc = widest(|i| i.desc.chars().count());
-    let key = widest(|i| i.key.map_or(0, |k| k.len()));
-    let swatch = widest(|i| i.swatch.len());
-    let mut w = 2 + label;
-    if swatch > 0 {
-        w += GAP + swatch;
-    }
-    if desc > 0 {
-        w += GAP + desc;
-    }
-    if key > 0 {
-        w += GAP + key;
-    }
-    w
+    let label_w = label_col(items, usize::MAX);
+    let swatch = swatch_col(items);
+    let row = |i: &MenuItem| {
+        let key = i.key.map_or(0, |k| GAP + k.len());
+        let label = i.label.chars().count();
+        if i.header || i.desc.is_empty() {
+            return 2 + label + key;
+        }
+        let sw = if swatch > 0 { GAP + swatch } else { 0 };
+        2 + label_w.max(label) + sw + GAP + i.desc.chars().count() + key
+    };
+    items.iter().map(row).max().unwrap_or(0)
 }
 
 /// Width of the label column for `items`: the widest label, bounded by a share

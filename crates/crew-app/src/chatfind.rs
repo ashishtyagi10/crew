@@ -6,8 +6,8 @@
 use crate::chat::ChatPane;
 use crate::chatkeys::ChatInput;
 use crate::chatlayout::Message;
+use crate::popupplace::Popup;
 use crate::suggest::MenuItem;
-use crew_render::CellView;
 
 /// The open find popup: the query, the matched visible-message indices
 /// (newest first) and the selected match.
@@ -176,7 +176,7 @@ pub(crate) fn title(f: &ChatFind) -> String {
 /// as `sender: text` rows, newest first; a dim placeholder when nothing
 /// matches). Match indices are re-checked against `msgs` — the transcript
 /// may have shifted since the last key.
-pub(crate) fn card(f: &ChatFind, msgs: &[&Message], cols: u16) -> (Vec<CellView>, u16) {
+pub(crate) fn card(f: &ChatFind, msgs: &[&Message], cols: u16) -> Popup {
     let row = |label: String, header: bool| MenuItem {
         label,
         header,
@@ -192,11 +192,7 @@ pub(crate) fn card(f: &ChatFind, msgs: &[&Message], cols: u16) -> (Vec<CellView>
     if rows.is_empty() {
         rows.push(row("no matches".to_string(), true));
     }
-    let n = crate::cmdmenu::menu_rows(rows.len());
-    (
-        crate::cmdmenu::menu_card(&title(f), &rows, f.sel, cols, n),
-        n,
-    )
+    crate::cmdmenu::popup(&title(f), &rows, f.sel, cols)
 }
 
 #[cfg(test)]

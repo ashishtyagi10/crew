@@ -9,8 +9,8 @@
 //! subsequence hits, newest first within a rank — rather than inventing a
 //! third fuzzy matcher.
 use crate::chatkeys::ChatInput;
+use crate::popupplace::Popup;
 use crate::suggest::MenuItem;
-use crew_render::CellView;
 
 /// The open search popup: the query being typed, the composer text saved for
 /// Esc, the filtered matches (newest first) and the selected row.
@@ -165,13 +165,9 @@ pub(crate) fn items(h: &HistSearch) -> Vec<MenuItem> {
 
 /// The popup as a rendered `menu_card` plus its row count, so `render.rs`
 /// only places the scene (mirrors how `keyentry` exposes `card`/`rows`).
-pub(crate) fn card(h: &HistSearch, cols: u16) -> (Vec<CellView>, u16) {
+pub(crate) fn card(h: &HistSearch, cols: u16) -> Popup {
     let rows = items(h);
-    let n = crate::cmdmenu::menu_rows(rows.len());
-    (
-        crate::cmdmenu::menu_card(&title(h), &rows, h.sel, cols, n),
-        n,
-    )
+    crate::cmdmenu::popup(&title(h), &rows, h.sel, cols)
 }
 
 #[cfg(test)]

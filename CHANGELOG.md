@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.67
+
+**A composer pop-up is as wide as what it lists, and grows out of the
+prompt.** Every pop-up over the crew composer — the slash palette, the attach
+picker, the model picker, Cmd+F, Ctrl+R and the key prompt — was drawn as
+wide as the pane, its list centred in a band of nothing: on a full-window
+pane, a five-row picker was a box the width of the screen with forty
+characters in the middle. Each is now a card cut to its own measure (the
+widest row plus one column of air, floored at 36 columns so a one-word list
+is still a card), standing on the composer's top edge and flush with its
+left border, the way a dropdown opens from the field it completes. The
+input bar's palette and the todo pane's project menu follow. The attach
+picker had also been measured by its widest label and its widest
+description ADDED — a file path with no description and an agent's role on
+another row made a card thirty columns wider than any row in it; the measure
+is the widest row now. The key prompt carries a `❯` at the head of its field
+like the composer, and grows with the key you paste. `popupplace::scene`
+places every one of the seven; `popupsweep_tests` shoots all six composer
+pop-ups over one pane, on a narrow tile and a light page.
+
 ## 0.21.66
 
 **Claude Code answers live in the smith pane — its thinking, its text and

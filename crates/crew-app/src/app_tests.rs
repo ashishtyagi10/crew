@@ -702,12 +702,12 @@ fn chat(app: &mut CrewApp, i: usize) -> &mut crate::chat::ChatPane {
 }
 
 /// What the key prompt at `i` is drawing right now: `(mask glyphs, hint?)`.
-/// The buffer itself is private and stays that way — this is the only view of
-/// it anything, test included, is allowed.
+/// The buffer is private; this is the only view of it a test is allowed.
 fn card_state(app: &CrewApp, i: usize) -> (usize, bool) {
     match &app.panes[i].content {
         crate::pane::PaneContent::Chat(c) => {
-            let cells = c.keyentry.as_ref().expect("a prompt is open").card(60);
+            let entry = c.keyentry.as_ref().expect("a prompt is open");
+            let cells = entry.card(60).cells;
             let drawn: String = cells.iter().map(|c| c.c).collect();
             (
                 cells.iter().filter(|c| c.c == '•').count(),
