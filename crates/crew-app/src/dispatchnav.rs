@@ -2,7 +2,7 @@
 //! strip. Both persist through the config (`nav_card`, `weather_place`) and
 //! take effect on the next frame.
 use crate::app::CrewApp;
-use crate::navglance::NavCard;
+use crate::navmode::NavCard;
 
 impl CrewApp {
     /// `/nav [glance|log]` — what the nav shows in the LOG's old slot.

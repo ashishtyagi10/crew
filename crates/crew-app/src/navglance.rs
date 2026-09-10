@@ -6,33 +6,6 @@
 use crate::pane::{Pane, PaneContent};
 use crate::usageledger::Windows;
 
-/// What the nav's variable slot shows (`nav_card`).
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(crate) enum NavCard {
-    Glance,
-    Log,
-}
-
-impl NavCard {
-    #[cfg(test)]
-    pub(crate) const ALL: [NavCard; 2] = [NavCard::Glance, NavCard::Log];
-
-    pub(crate) fn as_str(self) -> &'static str {
-        match self {
-            NavCard::Glance => "glance",
-            NavCard::Log => "log",
-        }
-    }
-
-    pub(crate) fn parse(s: &str) -> Option<Self> {
-        match s.trim().to_ascii_lowercase().as_str() {
-            "glance" => Some(NavCard::Glance),
-            "log" => Some(NavCard::Log),
-            _ => None,
-        }
-    }
-}
-
 /// Why a row is on the WAITING card, most urgent first.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub(crate) enum Wait {
@@ -64,6 +37,8 @@ pub(crate) struct Serving {
 
 #[derive(Clone, Default, Debug)]
 pub(crate) struct Glance {
+    /// The sky over the place the user named (`/weather`), when known.
+    pub weather: Option<crate::navweather::Weather>,
     pub serving: Serving,
     pub waiting: Vec<WaitRow>,
 }
@@ -125,19 +100,12 @@ fn signal(p: &Pane, now: u64) -> Signal {
     }
 }
 
-impl crate::config::CrewConfig {
-    /// The nav's variable slot; an unknown name falls back to `glance`.
-    pub(crate) fn nav_card(&self) -> NavCard {
-        NavCard::parse(&self.nav_card).unwrap_or(NavCard::Glance)
-    }
-}
-
 impl crate::app::CrewApp {
     /// The glance cards' state this frame — `None` while the nav shows the
     /// LOG. Reads only what the app already holds: no I/O on the winit
     /// thread.
     pub(crate) fn glance(&self) -> Option<Glance> {
-        if self.config.nav_card() != NavCard::Glance {
+        if self.config.nav_card() != crate::navmode::NavCard::Glance {
             return None;
         }
         let now = crate::anim::now_ms();
@@ -160,15 +128,16 @@ impl crate::app::CrewApp {
                 .enumerate()
                 .map(|(i, p)| (i, p.title_text(), signal(p, now))),
         );
-        Some(Glance { serving, waiting })
+        Some(Glance {
+            weather: crate::navweather::now(),
+            serving,
+            waiting,
+        })
     }
 
     /// How the nav's variable slot is filled this frame, for the layout.
     pub(crate) fn nav_tail(&self) -> crate::navlayout::Tail {
-        match self.glance() {
-            Some(g) => crate::navlayout::Tail::Glance(g.waiting.len()),
-            None => crate::navlayout::Tail::Log(self.log.len()),
-        }
+        crate::navslot::tail(self.glance().as_ref(), self.log.len())
     }
 
     /// The pane a click on WAITING row `rel_row` (from the card's outer top)

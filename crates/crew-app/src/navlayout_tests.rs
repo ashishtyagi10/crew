@@ -71,3 +71,35 @@ fn a_git_repo_pushes_everything_below_it_down_one_block() {
     let (no, yes) = (layout(rows, false, 64, 2), layout(rows, true, 64, 2));
     assert_eq!(yes.log_top, no.log_top + CARD_BLOCK);
 }
+
+fn glance(rows: u16, waiting: usize, weather: bool, panes: usize) -> NavLayout {
+    layout_with(rows, true, Tail::Glance { waiting, weather }, panes)
+}
+
+/// WEATHER stands first in the slot and pushes SERVING and WAITING down by
+/// its block — but it is the first card to go: on a nav too short for all
+/// three, SERVING and WAITING keep their rows and the sky goes back to the
+/// clock's strip (`weather_rows == 0`).
+#[test]
+fn the_weather_card_stands_first_and_goes_first() {
+    let top = fixed_rows(true);
+    let tall = glance(top + 40, 2, true, 2);
+    let w = crate::navweathercard::WEATHER_BLOCK;
+    assert_eq!(tall.weather_top, top);
+    assert_eq!(tall.weather_rows, w);
+    assert_eq!(tall.serving_top, top + w);
+    assert_eq!(tall.waiting_top, tall.serving_top + tall.serving_rows);
+    let without = glance(top + 40, 2, false, 2);
+    assert_eq!(without.weather_rows, 0);
+    assert_eq!(without.serving_top, top, "no reading, no rows");
+    assert_eq!(without.panes_top + w, tall.panes_top);
+    // Room for SERVING + a one-row WAITING + 3 panes, and one row short of
+    // the WEATHER block on top of that.
+    let tight = glance(top + 5 + 3 + 4 + w - 1, 1, true, 3);
+    assert_eq!(tight.weather_rows, 0, "the sky yields");
+    assert_eq!(tight.serving_rows, 5);
+    assert_eq!(tight.waiting_lines, 1);
+    let just = glance(top + 5 + 3 + 4 + w, 1, true, 3);
+    assert_eq!(just.weather_rows, w, "and stands the row it fits");
+    assert_eq!(just.waiting_lines, 1);
+}

@@ -1,4 +1,4 @@
-//! The nav's variable slot: the glance cards (SERVING, WAITING ON YOU) or
+//! The nav's variable slot: the glance cards (WEATHER, SERVING, WAITING ON YOU) or
 //! the LOG tail, drawn at the rows `navlayout` gave them. Split from
 //! `statspane` so the stack there stays a stack — one call per section.
 use crew_render::{CellView, Paint};
@@ -10,7 +10,10 @@ use crate::navlayout::{NavLayout, Tail};
 /// How the slot is filled this frame, for the layout.
 pub(crate) fn tail(glance: Option<&Glance>, log_len: usize) -> Tail {
     match glance {
-        Some(g) => Tail::Glance(g.waiting.len()),
+        Some(g) => Tail::Glance {
+            waiting: g.waiting.len(),
+            weather: g.weather.is_some(),
+        },
         None => Tail::Log(log_len),
     }
 }
@@ -33,6 +36,12 @@ pub(crate) fn slot_cells(
         }
         return out;
     };
+    if let (Some(w), true) = (&g.weather, l.weather_rows > 0) {
+        for mut c in crate::navweathercard::weather_cells(w, cols) {
+            c.row += l.weather_top;
+            out.push(c);
+        }
+    }
     if l.serving_rows > 0 {
         let (mut cells, meters) = crate::navserving::serving_cells(&g.serving, cols);
         // The paint pass draws the meters (`slot_paint`); the glyphs that

@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.76
+
+**The weather is a card in the nav now.** `/weather Berlin` used to put one
+muted line on the clock's gap row — `☀ 24° ↑27 ↓18 ☂10%` — which said the
+numbers and nothing else, and said them for a place the row never named.
+The glance slot has a `WEATHER` card above `SERVING`: the place stands on
+its rule, the reading leads in bold accent with the sky in words after it
+(`☁ 24°C partly cloudy`), and the second row is today's range with the
+chance of rain when there is one. It is the first card to go when the nav
+runs short — SERVING and WAITING ON YOU keep their rows — and then the
+strip comes back to the clock, so the reading is never shown twice and
+never lost. `NavCard` moved to `navmode.rs` to keep `navglance` under the
+line cap.
+
 ## 0.21.75
 
 **The settings form speaks the canvas's language.** Its four cards were

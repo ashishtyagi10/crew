@@ -37,11 +37,12 @@ pub const LOG_MIN: usize = 2;
 pub const LOG_MAX: usize = 20;
 
 /// What fills the nav's variable slot: the LOG tail (with its entry count)
-/// or the glance cards (with the WAITING row count) — see `navglance`.
+/// or the glance cards (the WAITING row count, and whether there is a
+/// weather reading to make a card of) — see `navglance`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tail {
     Log(usize),
-    Glance(usize),
+    Glance { waiting: usize, weather: bool },
 }
 
 /// Where each variable-height section of the nav starts, for one frame.
@@ -51,6 +52,11 @@ pub struct NavLayout {
     pub log_top: u16,
     /// Entry rows the LOG gets — 0 when it has nothing to show or no room.
     pub log_lines: usize,
+    /// Content row the WEATHER card's rule sits on (glance mode).
+    pub weather_top: u16,
+    /// Rows the WEATHER card got: its block, or 0 when there was no reading
+    /// or no room — then the clock's gap row carries the strip instead.
+    pub weather_rows: u16,
     /// Content row the SERVING card's rule sits on (glance mode).
     pub serving_top: u16,
     /// Rows the SERVING card got: its block, or 0 when there was no room.
@@ -95,10 +101,12 @@ pub fn layout(rows: u16, has_git: bool, log_len: usize, panes: usize) -> NavLayo
     layout_with(rows, has_git, Tail::Log(log_len), panes)
 }
 
-/// [`layout`] for either filling of the slot. In glance mode the SERVING
-/// card takes its fixed block first (dropped whole when even that would
-/// push a pane row off), then the WAITING card grows into the slack up to
-/// its row count and [`crate::navwaiting::WAIT_MAX`].
+/// [`layout`] for either filling of the slot. In glance mode the WEATHER
+/// card stands first but is the first to go: it is placed only when SERVING
+/// and a one-row WAITING still fit under it. SERVING takes its fixed block
+/// next (dropped whole when even that would push a pane row off), then the
+/// WAITING card grows into the slack up to its row count and
+/// [`crate::navwaiting::WAIT_MAX`].
 pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLayout {
     let top = fixed_rows(has_git);
     // Header + one row per pane. An empty crew costs nothing.
@@ -109,7 +117,7 @@ pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLay
     };
     let mut out = NavLayout {
         log_top: top,
-        serving_top: top,
+        weather_top: top,
         ..Default::default()
     };
     match tail {
@@ -122,12 +130,23 @@ pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLay
             out.log_lines = if log_lines < LOG_MIN { 0 } else { log_lines };
             out.panes_top = top + out.log_block();
         }
-        Tail::Glance(waiting) => {
+        Tail::Glance { waiting, weather } => {
             let serving = crate::navserving::SERVING_BLOCK;
-            if rows >= top + serving + panes_block {
+            let w = if weather {
+                crate::navweathercard::WEATHER_BLOCK
+            } else {
+                0
+            };
+            // A one-row WAITING is rule + row + gap: the sky never displaces
+            // the card that says what needs you.
+            if w > 0 && rows >= top + w + serving + 3 + panes_block {
+                out.weather_rows = w;
+            }
+            out.serving_top = top + out.weather_rows;
+            if rows >= out.serving_top + serving + panes_block {
                 out.serving_rows = serving;
             }
-            out.waiting_top = top + out.serving_rows;
+            out.waiting_top = out.serving_top + out.serving_rows;
             let slack = rows
                 .saturating_sub(out.waiting_top)
                 .saturating_sub(panes_block)
