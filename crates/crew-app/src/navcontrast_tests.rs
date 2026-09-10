@@ -45,8 +45,9 @@ fn fixture() -> (StatsPane, Vec<LogEntry>, Vec<PaneRow>) {
     (sp, log, panes)
 }
 
-/// Glyphs that are frame, not content: the ramp puts them at 2.0 deliberately.
-const FURNITURE: &str = "─·";
+/// Glyphs that are frame, not content: the ramp puts them at 2.0 deliberately
+/// (`░` is the empty track of a narrow nav's bar gauge — a rule with a fill).
+const FURNITURE: &str = "─·░";
 
 /// Every glyph the nav draws clears the mark floor against the cell it is
 /// drawn on, on every theme in the set.
@@ -60,20 +61,26 @@ fn every_nav_glyph_clears_the_mark_floor_on_every_theme() {
         crew_theme::set_theme(id);
         crate::palette::set_accent(crew_theme::theme().accent_default);
         let (sp, log, panes) = fixture();
-        for c in sp
-            .cells(26, 48, &panes, &log, 0, None, None)
-            .iter()
-            .filter(|c| c.c != ' ' && !FURNITURE.contains(c.c))
-        {
-            let r = crew_theme::contrast_ratio(c.fg, c.bg);
-            if r < floor - 0.01 {
-                bad.push(format!(
-                    "{}: {:?} at r{} c{} reads {r:.2}, floor {floor}",
-                    id.as_str(),
-                    c.c,
-                    c.row,
-                    c.col
-                ));
+        // Both fillings of the slot (the LOG, the three glance cards), on a
+        // default and a narrow nav: a card's colour is a colour on screen.
+        let glance = crate::navglance::sample::glance();
+        for (cols, g) in [(26, None), (26, Some(&glance)), (17, Some(&glance))] {
+            let strip = g.is_none().then_some("\u{2600} 24\u{00b0}");
+            for c in sp
+                .cells(cols, 64, &panes, &log, 0, g, strip)
+                .iter()
+                .filter(|c| c.c != ' ' && !FURNITURE.contains(c.c))
+            {
+                let r = crew_theme::contrast_ratio(c.fg, c.bg);
+                if r < floor - 0.01 {
+                    bad.push(format!(
+                        "{} @{cols}: {:?} at r{} c{} reads {r:.2}, floor {floor}",
+                        id.as_str(),
+                        c.c,
+                        c.row,
+                        c.col
+                    ));
+                }
             }
         }
     }
