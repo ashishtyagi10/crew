@@ -96,18 +96,10 @@ pub(crate) fn put(
     fg: (u8, u8, u8),
     cols: u16,
 ) {
-    for (i, ch) in s.chars().enumerate() {
-        let col = col + i as u16;
-        if col >= cols {
-            break;
-        }
-        out.push(CellView {
-            col,
-            row,
-            c: ch,
-            fg,
-            bg: crew_theme::theme().page_bg,
-            ..Default::default()
-        });
-    }
+    // Width-aware and marked: the one clip the whole canvas cuts with.
+    crate::navtext::put_at(out, s, col, row, cols, fg);
 }
+
+#[cfg(test)]
+#[path = "cutmark_tests.rs"]
+mod cutmark_tests;

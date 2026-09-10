@@ -75,7 +75,7 @@ impl DashPane {
         let t = crew_theme::theme();
         let mut out = Vec::new();
         if cols < MIN_COLS || rows < SYS_TOP + SYS_ROWS {
-            return out;
+            return crate::toosmall::note(cols, rows);
         }
         let (host, uptime) = crate::host::host_strings();
         let (one, five, fifteen) = crate::load::load_avg();

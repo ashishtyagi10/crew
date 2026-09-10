@@ -85,6 +85,17 @@ mod tests {
         assert!(text(crate::usagepane::cells(&b, 60, 4)).contains("too small"));
     }
 
+    /// `/dash` below its minimum says so too — it was the one drawn pane
+    /// still answering a short tile with a titled empty box.
+    #[test]
+    fn dash_says_too_small() {
+        let _g = crate::app::theme_test_guard();
+        let p = crate::dashpane::DashPane::new();
+        assert!(text(p.cells(30, 20)).contains("too small"));
+        assert!(text(p.cells(80, 4)).contains("too small"));
+        assert!(p.paint(30, 20, 2.0).is_empty());
+    }
+
     /// `/disk` below its minimum says so too, and paints nothing.
     #[test]
     fn disk_says_too_small() {
