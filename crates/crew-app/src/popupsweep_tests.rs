@@ -15,6 +15,16 @@ fn commands(c: u16) -> Popup {
     crate::cmdmenu::popup("commands", &pal.items, 1, c)
 }
 
+/// Every command, the selection deep in the list: the card scrolls and
+/// its border says where you are.
+fn commands_long(c: u16) -> Popup {
+    let mut pal = None;
+    crate::chatpalette::after_edit(&mut pal, "/", None, Vec::new);
+    let pal = pal.expect("the palette opens on /");
+    assert!(pal.items.len() > 10, "{} commands", pal.items.len());
+    crate::cmdmenu::popup("commands", &pal.items, 12, c)
+}
+
 fn attach(c: u16) -> Popup {
     let agent = |n: &str, r: &str| MentionEntry::Agent {
         name: n.into(),
@@ -83,6 +93,7 @@ fn popup_shot_every_composer_popup() {
     let shots: Vec<(&str, &dyn Fn(u16) -> Popup)> = vec![
         ("popup-model", &model),
         ("popup-commands", &commands),
+        ("popup-commands-long", &commands_long),
         ("popup-attach", &attach),
         ("popup-find", &found),
         ("popup-history", &history),

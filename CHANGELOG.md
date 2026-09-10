@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.68
+
+**A composer pop-up wears the keys it holds.** While the slash palette, the
+attach picker, the model picker, Cmd+F, Ctrl+R or the key prompt is open,
+every arrow, Tab, Enter and Escape goes to it and the pane underneath waits —
+yet it was drawn in the unfocused stroke with the unfocused legend, the same
+grey frame as a pane nobody is looking at, so nothing on the canvas said
+which box the next key would land in. Each now wears what a focused pane
+wears: the focused stroke and a bold legend in the accent. The row you are on
+reads in full ink — its description and chord come up from the muted colour —
+where before only the `›` and a bold label marked it (a row the stack cannot
+serve stays muted; that mute is what it is telling you). And a list longer
+than the card shows says where in it you are on its top border (`13/24`),
+since the ten rows it scrolls through never could. `popupchrome` is the one
+place a pop-up's frame comes from.
+
 ## 0.21.67
 
 **A composer pop-up is as wide as what it lists, and grows out of the

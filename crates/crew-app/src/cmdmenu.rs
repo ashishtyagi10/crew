@@ -41,15 +41,16 @@ pub fn menu_card(
     if cols < 4 || rows < 3 || matches.is_empty() {
         return Vec::new();
     }
-    let t = crew_theme::theme();
-    let mut cells = crate::modernring::gradient_card(
-        cols,
-        rows,
-        title,
-        t.border_normal,
-        t.legend_off,
-        t.page_bg,
-    );
+    let mut cells = crate::popupchrome::card(cols, rows, title);
+    // A list longer than the card shows scrolls; the border says where in
+    // it the selection is, since the rows alone cannot.
+    if matches.len() > MAX_ROWS {
+        // Counted in choices, not rows: a section title is not a thing you
+        // can be on, so `13/16` with two titles above would be a lie.
+        let picks = |n: usize| matches[..n].iter().filter(|i| !i.header).count();
+        let k = picks(sel.min(matches.len() - 1) + 1);
+        crate::popupchrome::mark(&mut cells, &format!("{k}/{}", picks(matches.len())), cols);
+    }
     // The list fills the 1-cell-inset interior; shift it inside the border.
     for mut cell in menu_cells(matches, sel, cols - 2, rows - 2) {
         cell.col += 1;
@@ -76,8 +77,8 @@ pub(crate) fn popup(title: &str, matches: &[MenuItem], sel: usize, cols: u16) ->
 
 /// Render the command list into the card's `cols × rows` interior. Every cell is
 /// transparent over the card's black backdrop — the selected row is marked by the
-/// `›` symbol and bold text, never a background bar (a bar washed out the dim
-/// description text).
+/// `›` symbol, bold text and its description in full ink, never a background
+/// bar (a bar washed out the dim description text).
 pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16) -> Vec<CellView> {
     if cols < 2 || rows < 1 || matches.is_empty() {
         return Vec::new();
@@ -108,7 +109,19 @@ pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16)
     // A list of nothing but notes and titles has no row to mark.
     state.select(crate::cmdnote::selectable(matches).then(|| sel.min(matches.len() - 1)));
     StatefulWidget::render(list, buf.area, &mut buf, &mut state);
-    crate::tui::to_cells(&buf)
+    let mut cells = crate::tui::to_cells(&buf);
+    // The row you are on reads in full ink: its description and chord come
+    // up from the muted colour to the page's ink. A row the stack cannot
+    // serve stays muted — that mute is what it is telling you.
+    let ink = crew_theme::theme().ink;
+    let muted = crate::menuink::desc();
+    if let Some(s) = state.selected().filter(|&s| !matches[s].dim) {
+        let row = (s - state.offset()) as u16;
+        for c in cells.iter_mut().filter(|c| c.row == row && c.fg == muted) {
+            c.fg = ink;
+        }
+    }
+    cells
 }
 
 #[cfg(test)]
