@@ -5,7 +5,7 @@
 use std::sync::mpsc::{self, Receiver};
 use std::time::Duration;
 
-use crate::navweather::{self, parse_forecast, parse_geo, Weather, TTL};
+use crate::navweather::{self, parse_forecast, parse_geo, State, Weather, TTL};
 
 fn cache_path() -> Option<std::path::PathBuf> {
     dirs::config_dir().map(|d| d.join("crew").join("weather.json"))
@@ -115,10 +115,17 @@ impl crate::app::CrewApp {
         let Some(place) = crate::navweatherplace::resolve(&self.config.weather_place) else {
             return false;
         };
+        let mut changed = false;
         if now_ms >= self.weather_next {
             self.weather_fetch = Some(spawn(place.clone()));
             // Half the TTL: the cache answers the early ones for free.
             self.weather_next = now_ms + TTL.as_millis() as u64 / 2;
+            // A reading stays on the card while its refresh is in flight;
+            // only a card with nothing on it says it is looking.
+            if navweather::now().is_none() {
+                navweather::set(State::Looking(place.clone()));
+                changed = true;
+            }
         }
         let landed = self
             .weather_fetch
@@ -126,15 +133,19 @@ impl crate::app::CrewApp {
             .and_then(|rx| rx.try_recv().ok());
         match landed {
             Some(w) => {
-                let changed = w != navweather::now();
-                if w.is_none() {
-                    self.set_status(format!("weather: nothing found for {place}"));
-                }
-                navweather::set(w);
+                let next = match w {
+                    Some(w) => State::Found(w),
+                    None => {
+                        self.set_status(format!("weather: nothing found for {place}"));
+                        State::Missing(place)
+                    }
+                };
+                let changed = next != navweather::state();
+                navweather::set(next);
                 self.weather_fetch = None;
                 changed
             }
-            None => false,
+            None => changed,
         }
     }
 }

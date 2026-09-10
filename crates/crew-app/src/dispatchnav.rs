@@ -45,7 +45,7 @@ impl CrewApp {
         if arg.eq_ignore_ascii_case(OFF) {
             self.config.weather_place = OFF.to_string();
             self.config.save();
-            crate::navweather::set(None);
+            crate::navweather::set(crate::navweather::State::Off);
             self.set_status("weather: off");
             self.redraw();
             return;
@@ -62,7 +62,7 @@ impl CrewApp {
             return;
         };
         // Fetch now rather than on the hourly clock — the user just asked.
-        crate::navweather::set(None);
+        crate::navweather::set(crate::navweather::State::Looking(arg.clone()));
         self.weather_next = 0;
         self.set_status(format!("weather: looking up {arg}\u{2026}"));
     }

@@ -3,84 +3,71 @@
 //! strip said the numbers; the card has room to say the sky in words and
 //! to carry the place on its rule, so `Berlin`'s rain is never read as
 //! yours. Under the words, the next 24 hours as a temperature curve on the
-//! paint layer (the CPU chart's kind). When the layout has no room for it,
+//! paint layer (`navweathercurve`). When the layout has no room for it,
 //! the strip comes back.
-use crew_render::{CellView, Paint};
+use crew_render::CellView;
 
-use crate::navweather::{glyph, Weather};
+use crate::navweather::{glyph, State, Weather};
 use crate::palette::accent;
 
-/// Rows the card occupies: rule, now, today, and a one-row gap …
+/// Rows the card occupies: rule, now, today, and a one-row gap.
 pub const WEATHER_BLOCK: u16 = 4;
-/// … plus the curve's rows when the reading has its hours.
-pub const CHART_ROWS: u16 = 2;
-/// Row the curve starts on, from the card's rule.
-const CHART_OFF: u16 = 3;
 
-/// Rows this reading's card takes: the curve only when there is one.
-pub(crate) fn block(w: &Weather) -> u16 {
-    if w.hours.len() < 2 {
-        WEATHER_BLOCK
-    } else {
-        WEATHER_BLOCK + CHART_ROWS
+/// Column the text (and the curve) starts on, under the rule's own indent.
+pub(crate) const TEXT_COL: u16 = 2;
+/// Rows the card takes for this state: nothing when off, one quiet row
+/// (rule, row, gap) while looking or when the place is not found, and the
+/// reading's rows — with the curve only when there is one.
+pub(crate) fn block(s: &State) -> u16 {
+    match s {
+        State::Off => 0,
+        State::Looking(_) | State::Missing(_) => QUIET_BLOCK,
+        State::Found(w) if w.hours.len() < 2 => WEATHER_BLOCK,
+        State::Found(_) => WEATHER_BLOCK + crate::navweathercurve::CHART_ROWS,
     }
 }
 
-/// The hours as `0.0..=1.0` over the day's span — a span floored at four
-/// degrees, so a flat day is a flat line at mid-height and not noise
-/// stretched to fill the box. Pure.
-pub(crate) fn curve(hours: &[i32]) -> Vec<f32> {
-    let (lo, hi) = hours
-        .iter()
-        .fold((i32::MAX, i32::MIN), |(lo, hi), &t| (lo.min(t), hi.max(t)));
-    let span = (hi - lo).max(4) as f32;
-    let floor = (lo + hi) as f32 / 2.0 - span / 2.0;
-    hours
-        .iter()
-        .map(|&t| ((t as f32 - floor) / span).clamp(0.0, 1.0))
-        .collect()
-}
+/// Rows a quiet state's card takes: rule, one muted row, gap.
+pub const QUIET_BLOCK: u16 = 3;
 
-/// Where midnight falls across a curve of `len` hours starting at `hour`,
-/// as `0.0..1.0` of its width — `None` when the curve starts at midnight
-/// (a tick on the left edge would only underline the dot). Pure.
-pub(crate) fn midnight_at(hour: u8, len: usize) -> Option<f32> {
-    let to_go = 24 - u32::from(hour.min(23));
-    (hour > 0 && (to_go as usize) < len).then(|| to_go as f32 / len as f32)
-}
-
-/// The curve, in the nav's cell units, shifted to the card at `top`: the
-/// area chart under the two text rows, on a hairline it stands on. The
-/// dot is on *now* — the left end — and a faint tick says where the day
-/// ends: without it the curve's right end reads as the newest reading.
-pub(crate) fn weather_paint(w: &Weather, top: u16, cols: u16, aspect: f32) -> Vec<Paint> {
-    use crate::plot::area;
-    let width = cols.saturating_sub(TEXT_COL + 2);
-    if w.hours.len() < 2 || width == 0 {
+/// The card for any state: the reading's card, or the rule with one muted
+/// row that says what the card is waiting on.
+pub(crate) fn state_cells(s: &State, cols: u16) -> Vec<CellView> {
+    let (place, note) = match s {
+        State::Off => return Vec::new(),
+        State::Found(w) => return weather_cells(w, cols),
+        State::Looking(p) => (p.as_str(), "looking up\u{2026}".to_string()),
+        State::Missing(p) => ("", format!("nothing for {p}")),
+    };
+    if cols < 8 {
         return Vec::new();
     }
     let t = crew_theme::theme();
-    let mut c = crate::plot::Canvas::new(width, CHART_ROWS, aspect);
-    let (cw, ch) = c.size();
-    let series = curve(&w.hours);
-    let style = area::Style {
-        head: false,
-        ..area::Style::default()
+    let mut out = crate::boxdraw::section_header_key(
+        "WEATHER",
+        place,
+        cols,
+        t.border_normal,
+        accent(),
+        t.text_muted,
+        t.page_bg,
+    );
+    let max_col = cols.saturating_sub(1);
+    let room = usize::from(max_col.saturating_sub(TEXT_COL));
+    // The fix rides along only where it fits whole: a clipped command is
+    // worse than none, and the status line said it already.
+    let fix = " \u{2014} /weather <place>";
+    let note = match s {
+        State::Missing(_) if crate::chatwidth::str_w(&note) + fix.len() <= room => note + fix,
+        _ => note,
     };
-    if let Some(k) = midnight_at(w.hour, w.hours.len()) {
-        c.rect(k * cw, 0.0, 1.0 / 8.0, ch, t.border_normal, 0.55);
-    }
-    area::draw_styled(&mut c, (0.0, 0.0, cw, ch), &series, accent(), style);
-    area::dot(&mut c, 0.25, area::y_at(&series, 0.0, 0.0, ch), accent());
-    c.hairline(0.0, ch, cw, t.border_normal, 0.7);
-    c.paint()
-        .into_iter()
-        .map(|p| p.shifted(f32::from(TEXT_COL), f32::from(top + CHART_OFF)))
-        .collect()
+    let row = crate::chatwidth::clip_w(&note, room)
+        .chars()
+        .map(|c| (c, t.text_muted, false))
+        .collect::<Vec<_>>();
+    put(&mut out, 1, row, max_col, t.page_bg);
+    out
 }
-
-/// Column the text starts on, under the rule's own indent (as GIT does).
-const TEXT_COL: u16 = 2;
 
 /// The sky in a word or two, for a WMO weather code.
 pub(crate) fn condition(code: u16) -> &'static str {

@@ -12,7 +12,7 @@ pub(crate) fn tail(glance: Option<&Glance>, log_len: usize) -> Tail {
     match glance {
         Some(g) => Tail::Glance {
             waiting: g.waiting.len(),
-            weather: g.weather.as_ref().map_or(0, crate::navweathercard::block),
+            weather: crate::navweathercard::block(&g.weather),
         },
         None => Tail::Log(log_len),
     }
@@ -36,8 +36,8 @@ pub(crate) fn slot_cells(
         }
         return out;
     };
-    if let (Some(w), true) = (&g.weather, l.weather_rows > 0) {
-        for mut c in crate::navweathercard::weather_cells(w, cols) {
+    if l.weather_rows > 0 {
+        for mut c in crate::navweathercard::state_cells(&g.weather, cols) {
             c.row += l.weather_top;
             out.push(c);
         }
@@ -63,8 +63,8 @@ pub(crate) fn slot_cells(
 /// the footer draws its own.
 pub(crate) fn slot_paint(g: &Glance, l: &NavLayout, cols: u16, aspect: f32) -> Vec<Paint> {
     let mut out = match &g.weather {
-        Some(w) if l.weather_rows > 0 => {
-            crate::navweathercard::weather_paint(w, l.weather_top, cols, aspect)
+        crate::navweather::State::Found(w) if l.weather_rows > 0 => {
+            crate::navweathercurve::weather_paint(w, l.weather_top, cols, aspect)
         }
         _ => Vec::new(),
     };
