@@ -289,14 +289,14 @@ impl CrewApp {
             (self.input_preview(), "input")
         };
         if self.input.focused && !matches.is_empty() {
-            let mr = crate::cmdmenu::menu_rows(matches.len());
-            let mh = mr as f32 * ch;
+            let p = crate::cmdmenu::popup(title, &matches, self.input.menu_sel, ic);
+            let mh = f32::from(p.rows) * ch;
             let my = (ib.y - mh - gap()).max(0.0);
             scenes.push(PaneScene {
-                cells: crate::cmdmenu::menu_card(title, &matches, self.input.menu_sel, ic, mr),
+                cells: p.cells,
                 x: ib.x,
                 y: my,
-                w: ib.w,
+                w: f32::from(p.cols) * cw,
                 h: mh,
                 focused: false,
                 bordered: false,
@@ -334,22 +334,8 @@ impl CrewApp {
                                 .collect();
                             let r = pane.rect;
                             let cols = (r.w / cw).floor() as u16;
-                            let mr = crate::cmdmenu::menu_rows(items.len());
-                            let mh = f32::from(mr) * ch;
-                            let my = crate::popupplace::above_composer(c, r, cw, ch, mh);
-                            scenes.push(PaneScene {
-                                cells: crate::cmdmenu::menu_card("attach", &items, m.sel, cols, mr),
-                                x: r.x,
-                                y: my,
-                                w: r.w,
-                                h: mh,
-                                focused: false,
-                                bordered: false,
-                                glass: false,
-                                scan: -1.0,
-                                overlay: true,
-                                paint: Vec::new(),
-                            });
+                            let p = crate::cmdmenu::popup("attach", &items, m.sel, cols);
+                            scenes.push(crate::popupplace::scene(c, r, cw, ch, p));
                         }
                     }
                 }
@@ -368,21 +354,8 @@ impl CrewApp {
                     if let Some(entry) = &c.keyentry {
                         let r = pane.rect;
                         let cols = (r.w / cw).floor() as u16;
-                        let mh = f32::from(entry.rows()) * ch;
-                        let my = crate::popupplace::above_composer(c, r, cw, ch, mh);
-                        scenes.push(PaneScene {
-                            cells: entry.card(cols),
-                            x: r.x,
-                            y: my,
-                            w: r.w,
-                            h: mh,
-                            focused: false,
-                            bordered: false,
-                            glass: false,
-                            scan: -1.0,
-                            overlay: true,
-                            paint: Vec::new(),
-                        });
+                        let p = entry.card(cols);
+                        scenes.push(crate::popupplace::scene(c, r, cw, ch, p));
                     } else if let Some(f) = &c.find {
                         // Cmd+F transcript find: same placement as the Ctrl+R
                         // search; the two are mutually exclusive by
@@ -390,45 +363,16 @@ impl CrewApp {
                         // the other opens), so their order here is free.
                         let r = pane.rect;
                         let cols = (r.w / cw).floor() as u16;
-                        let visible = c.visible_messages();
-                        let (cells, mr) = crate::chatfind::card(f, &visible, cols);
-                        let mh = f32::from(mr) * ch;
-                        let my = crate::popupplace::above_composer(c, r, cw, ch, mh);
-                        scenes.push(PaneScene {
-                            cells,
-                            x: r.x,
-                            y: my,
-                            w: r.w,
-                            h: mh,
-                            focused: false,
-                            bordered: false,
-                            glass: false,
-                            scan: -1.0,
-                            overlay: true,
-                            paint: Vec::new(),
-                        });
+                        let p = crate::chatfind::card(f, &c.visible_messages(), cols);
+                        scenes.push(crate::popupplace::scene(c, r, cw, ch, p));
                     } else if let Some(h) = &c.histsearch {
                         // Ctrl+R history search: same placement as the
                         // palette; before it in the chain, matching the
                         // key-routing priority in `ChatPane::on_input`.
                         let r = pane.rect;
                         let cols = (r.w / cw).floor() as u16;
-                        let (cells, mr) = crate::chathistsearch::card(h, cols);
-                        let mh = f32::from(mr) * ch;
-                        let my = crate::popupplace::above_composer(c, r, cw, ch, mh);
-                        scenes.push(PaneScene {
-                            cells,
-                            x: r.x,
-                            y: my,
-                            w: r.w,
-                            h: mh,
-                            focused: false,
-                            bordered: false,
-                            glass: false,
-                            scan: -1.0,
-                            overlay: true,
-                            paint: Vec::new(),
-                        });
+                        let p = crate::chathistsearch::card(h, cols);
+                        scenes.push(crate::popupplace::scene(c, r, cw, ch, p));
                     } else if let Some(p) = c.palette.as_ref().filter(|p| !p.items.is_empty()) {
                         // `after_edit` clears `palette` whenever it would be
                         // empty, so this is an invariant — guarded to match
@@ -436,28 +380,9 @@ impl CrewApp {
                         // changes.
                         let r = pane.rect;
                         let cols = (r.w / cw).floor() as u16;
-                        let mr = crate::cmdmenu::menu_rows(p.items.len());
-                        let mh = f32::from(mr) * ch;
-                        let my = crate::popupplace::above_composer(c, r, cw, ch, mh);
-                        scenes.push(PaneScene {
-                            cells: crate::cmdmenu::menu_card(
-                                palette_card_title(p.kind),
-                                &p.items,
-                                p.sel,
-                                cols,
-                                mr,
-                            ),
-                            x: r.x,
-                            y: my,
-                            w: r.w,
-                            h: mh,
-                            focused: false,
-                            bordered: false,
-                            glass: false,
-                            scan: -1.0,
-                            overlay: true,
-                            paint: Vec::new(),
-                        });
+                        let title = palette_card_title(p.kind);
+                        let p = crate::cmdmenu::popup(title, &p.items, p.sel, cols);
+                        scenes.push(crate::popupplace::scene(c, r, cw, ch, p));
                     }
                 }
             }

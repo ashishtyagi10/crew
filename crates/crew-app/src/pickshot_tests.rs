@@ -148,9 +148,8 @@ fn pick_shot_key_prompt() {
         }
         let h = u32::from(entry.rows()) * 20 + 8;
         let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
-            let cols = (w as f32 / cw).floor() as u16;
-            let cells = entry.card(cols);
-            let rows = entry.rows();
+            let p = entry.card((w as f32 / cw).floor() as u16);
+            let (cells, cols, rows) = (p.cells, p.cols, p.rows);
             eprintln!("--- pick-{name} {cols}x{rows}");
             for l in dump(&cells, cols, rows) {
                 eprintln!("|{l}");
@@ -159,7 +158,7 @@ fn pick_shot_key_prompt() {
                 cells,
                 x: 0.0,
                 y: 0.0,
-                w: w as f32,
+                w: f32::from(cols) * cw,
                 h: f32::from(rows) * ch,
                 focused: false,
                 bordered: false,

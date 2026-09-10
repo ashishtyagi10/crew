@@ -9,10 +9,10 @@ use crate::goalshot_tests::dump;
 use crew_render::PaneScene;
 
 /// A card that draws its own frame, at the width a pane hands it.
-fn card_shot(name: &str, w: u32, card: impl Fn(u16) -> (Vec<crew_render::CellView>, u16)) {
+fn card_shot(name: &str, w: u32, card: impl Fn(u16) -> crate::popupplace::Popup) {
     let px = crate::shotdraw_tests::draw(w, 300, 13.0, |cw, ch| {
-        let cols = (w as f32 / cw).floor() as u16;
-        let (cells, rows) = card(cols);
+        let p = card((w as f32 / cw).floor() as u16);
+        let (cells, cols, rows) = (p.cells, p.cols, p.rows);
         eprintln!("--- composer-{name} {cols}x{rows}");
         for l in dump(&cells, cols, rows) {
             eprintln!("|{l}");
@@ -21,7 +21,7 @@ fn card_shot(name: &str, w: u32, card: impl Fn(u16) -> (Vec<crew_render::CellVie
             cells,
             x: 0.0,
             y: 0.0,
-            w: w as f32,
+            w: f32::from(cols) * cw,
             h: f32::from(rows) * ch,
             focused: false,
             bordered: false,

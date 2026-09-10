@@ -22,6 +22,21 @@ pub(crate) fn hint(var: &str, waiting: bool) -> Option<&'static str> {
     }
 }
 
+/// Interior columns the prompt wants: room for a typical key from the start
+/// (a paste should not wrap a row that was sized for nothing), the hint if
+/// there is one, and every character typed so far — the card grows with the
+/// key until the pane stops it (`popupplace::card_cols`). Plus the two
+/// columns of the `❯ ` prompt at the field's head.
+pub(crate) fn want(hint: Option<&str>, typed: usize) -> usize {
+    2 + hint
+        .map_or(0, |h| h.chars().count())
+        .max(typed)
+        .max(KEY_COLS)
+}
+
+/// Columns a typical provider key fills.
+const KEY_COLS: usize = 48;
+
 #[cfg(test)]
 #[path = "keyhint_tests.rs"]
 mod tests;

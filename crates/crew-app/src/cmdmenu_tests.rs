@@ -178,11 +178,12 @@ fn unserveable_rows_render_dim_distinct_from_both_normal_and_header() {
     assert!(cells.iter().any(|c| c.row == 2 && c.c == 'n')); // "needs …"
 }
 
-/// On a pane far wider than the list, the rows keep their measure and the
-/// block centres. Laid out at the pane's width the chord right-aligned to the
-/// far edge, ninety columns from its own command.
+/// On a pane far wider than the list, the rows keep their measure and stay
+/// at the LEFT edge. Laid out at the pane's width the chord right-aligned to
+/// the far edge, ninety columns from its own command; centred, the list sat
+/// in a band of nothing.
 #[test]
-fn a_wide_card_centres_the_list_at_its_own_measure() {
+fn a_wide_card_keeps_the_list_at_its_measure_on_the_left() {
     let matches = crate::suggest::menu_items("/s");
     let wide = 200u16;
     let cells = menu_cells(&matches, 0, wide, menu_rows(matches.len()) - 2);
@@ -190,12 +191,7 @@ fn a_wide_card_centres_the_list_at_its_own_measure() {
     let right = cells.iter().map(|c| c.col).max().unwrap();
     let measure = crate::cmdrow::content_w(&matches) as u16;
     assert!(right - left < measure, "the rows kept their measure");
-    // Centred: the gutters either side agree to within a column.
-    assert!(
-        left.abs_diff(wide - 1 - right) <= 1,
-        "left {left}, right gutter {}",
-        wide - 1 - right
-    );
+    assert_eq!(left, 0, "the list starts where the eye does");
 }
 
 /// A narrow pane gets the whole of itself — the measure is a cap, not a

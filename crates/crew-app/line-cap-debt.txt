@@ -16,7 +16,6 @@ src/channel/telegram/mod_tests.rs 201
 src/chartshot_tests.rs 399
 src/chat_tests.rs 1885
 src/chatcomplete.rs 316
-src/chatfind.rs 204
 src/chatfind_tests.rs 366
 src/chatflow.rs 207
 src/chatfold_tests.rs 378
@@ -79,7 +78,6 @@ src/inputbar_tests.rs 499
 src/inputshot_tests.rs 288
 src/ipc.rs 218
 src/ipc_win.rs 215
-src/keyentry.rs 209
 src/keyentry_tests.rs 246
 src/keys.rs 228
 src/md/fold.rs 201

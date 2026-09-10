@@ -54,3 +54,38 @@ fn a_tall_popup_is_pinned_to_the_pane_top() {
     };
     assert_eq!(above_composer(&p, r, 8.0, 16.0, 20.0 * 16.0), 30.0);
 }
+
+/// The card is as wide as its rows plus the frame — floored so a one-word
+/// list is still a card, and never wider than the pane it stands in.
+#[test]
+fn card_cols_hugs_the_content_floored_and_clamped() {
+    use super::{card_cols, MIN_COLS};
+    assert_eq!(card_cols(10, 100), MIN_COLS, "floored");
+    assert_eq!(card_cols(60, 100), 62, "content plus two border columns");
+    assert_eq!(card_cols(200, 100), 100, "clamped to the pane");
+    assert_eq!(card_cols(usize::MAX, 100), 100, "no overflow");
+}
+
+/// The scene stands on the composer, flush with the pane's left edge, and
+/// is exactly as wide as the card — not the pane.
+#[test]
+fn a_popup_scene_is_as_wide_as_its_card_and_flush_left() {
+    let p = pane();
+    let (cw, ch) = (8.0, 16.0);
+    let r = Rect {
+        x: 10.0,
+        y: 20.0,
+        w: 100.0 * cw,
+        h: 40.0 * ch,
+    };
+    let popup = super::Popup {
+        cells: Vec::new(),
+        cols: 40,
+        rows: 5,
+    };
+    let s = super::scene(&p, r, cw, ch, popup);
+    assert_eq!((s.x, s.w, s.h), (r.x, 40.0 * cw, 5.0 * ch));
+    assert!(s.overlay, "held solid by the overlay pass");
+    let g = crate::chatplace::grants(&p, 100, 40);
+    assert_eq!(s.y + s.h, r.y + f32::from(40 - g.bottom) * ch);
+}
