@@ -81,4 +81,25 @@ fn sidebar_shot_glance() {
         };
         assert!(crate::shotgpu_tests::ink(&px) > 4000, "{name} drew");
     }
+    // The first frame after `/weather`: the card is there, saying so.
+    crew_theme::set_theme(ThemeId::PaperDark);
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+    let mut looking = glance.clone();
+    looking.weather = crate::navweather::State::Looking("New York".into());
+    let px = shot_at(
+        "sidebar-glance-looking",
+        210 + 24,
+        H,
+        13.0,
+        concat!("crew v", env!("CARGO_PKG_VERSION")),
+        |cols, rows, aspect| {
+            (
+                sp.cells(cols, rows, &panes, &[], 0, Some(&looking), Some(strip)),
+                sp.chart_paint(cols, rows, aspect, Some(&looking), panes.len()),
+            )
+        },
+    );
+    if let Some(px) = px {
+        assert!(crate::shotgpu_tests::ink(&px) > 4000, "looking drew");
+    }
 }

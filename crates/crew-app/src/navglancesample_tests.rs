@@ -6,7 +6,7 @@ use crate::usageledger::{WindowStat, Windows};
 
 pub(crate) fn glance() -> Glance {
     Glance {
-        weather: Some(crate::navweather::Weather {
+        weather: crate::navweather::State::Found(crate::navweather::Weather {
             place: "Berlin".into(),
             temp: 24,
             hi: 27,

@@ -37,8 +37,9 @@ pub(crate) struct Serving {
 
 #[derive(Clone, Default, Debug)]
 pub(crate) struct Glance {
-    /// The sky over the place the user named (`/weather`), when known.
-    pub weather: Option<crate::navweather::Weather>,
+    /// The sky over the place the user named (`/weather`): a reading, a
+    /// lookup in flight, a place not found, or nothing asked for.
+    pub weather: crate::navweather::State,
     pub serving: Serving,
     pub waiting: Vec<WaitRow>,
 }
@@ -129,7 +130,7 @@ impl crate::app::CrewApp {
                 .map(|(i, p)| (i, p.title_text(), signal(p, now))),
         );
         Some(Glance {
-            weather: crate::navweather::now(),
+            weather: crate::navweather::state(),
             serving,
             waiting,
         })

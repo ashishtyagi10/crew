@@ -331,6 +331,7 @@ mod navtext;
 mod navwaiting;
 mod navweather;
 mod navweathercard;
+mod navweathercurve;
 mod navweatherfetch;
 mod navweatherplace;
 mod net;

@@ -37,16 +37,37 @@ pub(crate) struct Weather {
     pub hour: u8,
 }
 
-static CURRENT: RwLock<Option<Weather>> = RwLock::new(None);
+/// What the card has to show: nothing asked for, a lookup in flight for a
+/// place, a reading, or a place the geocoder could not find. The card
+/// draws the two quiet states as one row rather than vanishing — a card
+/// that comes and goes says nothing about why.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub(crate) enum State {
+    #[default]
+    Off,
+    Looking(String),
+    Found(Weather),
+    Missing(String),
+}
 
-pub(crate) fn set(w: Option<Weather>) {
+static CURRENT: RwLock<State> = RwLock::new(State::Off);
+
+pub(crate) fn set(s: State) {
     if let Ok(mut g) = CURRENT.write() {
-        *g = w;
+        *g = s;
     }
 }
 
+pub(crate) fn state() -> State {
+    CURRENT.read().map(|g| g.clone()).unwrap_or_default()
+}
+
+/// The reading, when there is one.
 pub(crate) fn now() -> Option<Weather> {
-    CURRENT.read().ok().and_then(|g| g.clone())
+    match state() {
+        State::Found(w) => Some(w),
+        _ => None,
+    }
 }
 
 /// The strip's text. The glyph says the sky, the rest says the numbers;

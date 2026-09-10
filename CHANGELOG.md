@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.81
+
+**The WEATHER card never silently vanishes.** Between `/weather Tokyo` and
+the reading landing there was no card at all, and a place the geocoder
+could not find left nothing but a status line that had already gone. The
+reading has four states now — off, looking, found, missing — and the two
+quiet ones draw the rule with one muted row: `WEATHER New York` over
+`looking up…` for the first frame after a lookup starts (a reading already
+on the card stays through its hourly refresh), and `nothing for Nowhere`
+with `— /weather <place>` after it where that fits whole. The curve moved
+to `navweathercurve.rs`, the card having crossed the line cap.
+
 ## 0.21.80
 
 **The WEATHER curve's dot is on now.** The area chart it borrows from the
