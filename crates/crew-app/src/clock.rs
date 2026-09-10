@@ -29,7 +29,7 @@ pub fn clock_cells(time: &str, date: &str, strip: Option<&str>, cols: u16) -> Ve
     put_centered(&mut out, time, 1, cols, accent(), true, t.page_bg);
     put_centered(&mut out, date, 2, cols, t.ink, false, t.page_bg);
     if let Some(s) = strip {
-        let s = crate::chatwidth::clip_w(s, usize::from(cols));
+        let s = crate::chatwidth::clip_w(s, usize::from(cols.saturating_sub(2)));
         put_centered(&mut out, &s, 3, cols, t.text_muted, false, t.page_bg);
     }
     out
@@ -44,13 +44,12 @@ fn put_centered(
     bold: bool,
     bg: (u8, u8, u8),
 ) {
-    let w = s.chars().count() as u16;
+    // Display columns, not chars, and one column of air at the right edge —
+    // the weather strip carries glyphs the other nav rows already measure.
+    let w = crate::chatwidth::str_w(s) as u16;
     let start = if w < cols { (cols - w) / 2 } else { 0 };
-    for (i, c) in s.chars().enumerate() {
-        let col = start + i as u16;
-        if col >= cols {
-            break;
-        }
+    let styled = s.chars().map(|c| (c, ()));
+    crate::chatwidth::place_row(start, cols.saturating_sub(1), styled, |col, c, ()| {
         out.push(CellView {
             col,
             row,
@@ -58,12 +57,15 @@ fn put_centered(
             fg,
             bg,
             bold,
-            italic: false,
             ..Default::default()
         });
-    }
+    });
 }
 
 #[cfg(test)]
 #[path = "clock_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "clockstrip_tests.rs"]
+mod strip_tests;

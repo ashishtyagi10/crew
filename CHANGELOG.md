@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.1
+
+**Three small truths.** A todo due in another year showed `jan 5`, the
+same chip as one due next month and one a year overdue; it says
+`jan 5 2027`, as the done history's day headers already did. A value
+picker's miss (`no /theme value matches "wobbl"`) was a dead end where
+the command miss beside it offered `/help`; it says how to see the list.
+And the nav clock's weather strip was centred by char count and placed
+one cell per char, so a wide glyph would overlap its neighbour and drift
+off centre; it is measured and placed by display width like every other
+nav row, with a column of air at the edge.
+
 ## 0.22.0
 
 **Two hovers tell the truth.** A collapsed chat card — the one clickable

@@ -42,7 +42,11 @@ fn note_for(text: &str, cwd: &std::path::Path) -> Option<MenuItem> {
             if !closed {
                 return None;
             }
-            format!("no /{cmd} value matches \"{}\"", arg.trim())
+            // The way out rides along, as the command miss's `/help` does.
+            format!(
+                "no /{cmd} value matches \"{}\" \u{b7} clear it to see them",
+                arg.trim()
+            )
         }
     };
     Some(MenuItem {
@@ -83,7 +87,10 @@ mod tests {
         let cwd = Path::new("");
         let miss = rows("/theme wobble", cwd);
         assert_eq!(miss.len(), 1);
-        assert_eq!(miss[0].label, "no /theme value matches \"wobble\"");
+        assert_eq!(
+            miss[0].label,
+            "no /theme value matches \"wobble\" \u{b7} clear it to see them"
+        );
         // `/run <anything>` has no list, so there is nothing to be empty.
         assert!(rows("/run wobble", cwd).is_empty());
         // The bare slash lists every command; not a miss.
