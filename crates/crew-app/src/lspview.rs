@@ -24,13 +24,23 @@ pub(crate) fn listing(rows: &[Row], running: &[(String, PathBuf)]) -> String {
     let mut out = String::from("# lsp \u{b7} language servers\n");
     let installed = rows.iter().filter(|r| r.2).count();
     let lang_w = rows.iter().map(|r| r.0.chars().count()).max().unwrap_or(4);
-    let cmd_w = rows.iter().map(|r| r.1.chars().count()).max().unwrap_or(7);
+    // The command column is capped so a row fits a tile ([`toolsrow::ROW_W`],
+    // as `/tools` and `/integrations` do): one long server path under an nvm
+    // prefix used to pad every row past sixty columns and wrap the table.
+    let cmd_max = crate::toolsrow::ROW_W.saturating_sub(lang_w + 19).max(8);
+    let cmd_w = rows
+        .iter()
+        .map(|r| r.1.chars().count())
+        .max()
+        .unwrap_or(7)
+        .min(cmd_max);
     out.push_str(&format!(
         "{} language(s) \u{b7} {installed} installed \u{b7} override: ~/.config/crew/lsp.json\n\n",
         rows.len()
     ));
     for (lang, cmd, ok) in rows {
         let state = if *ok { "installed" } else { "not installed" };
+        let cmd = crate::toolsrow::fit(cmd, cmd_max);
         out.push_str(&format!("  {lang:<lang_w$}  {cmd:<cmd_w$}  {state}\n"));
     }
     out.push('\n');
