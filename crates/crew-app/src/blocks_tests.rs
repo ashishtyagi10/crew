@@ -61,7 +61,7 @@ fn the_elapsed_field_is_as_long_as_it_needs_and_no_longer() {
     assert_eq!(elapsed(1_000), "1s");
     assert_eq!(elapsed(59_999), "59s");
     assert_eq!(elapsed(60_000), "1m00");
-    assert_eq!(elapsed(3_601_000), "60m01");
+    assert_eq!(elapsed(3_601_000), "1h00");
     // Nothing ever outgrows the column the names are aligned against.
     for ms in [0u64, 1, 999, 60_000, 3_600_000, 86_400_000] {
         assert!(
@@ -77,4 +77,19 @@ fn a_pane_that_has_run_nothing_says_so() {
     let text = listing(&Spans::default(), "shell", 0);
     assert!(text.contains("Nothing yet. Run something in this pane"));
     assert!(!text.contains("/out <n>"), "no numbers to pair with");
+}
+
+/// The row's clock climbs the border clock's ladder past the hour.
+#[test]
+fn elapsed_climbs_to_hours_and_days_like_the_border_clock() {
+    assert_eq!(elapsed(400), "400ms");
+    assert_eq!(elapsed(12_000), "12s");
+    assert_eq!(elapsed(64_000), "1m04");
+    assert_eq!(elapsed(7_203_000), "2h00");
+    assert_eq!(
+        elapsed(3 * 86_400_000),
+        "72h00",
+        "days start past four, as on the border"
+    );
+    assert_eq!(elapsed(5 * 86_400_000), "5d");
 }

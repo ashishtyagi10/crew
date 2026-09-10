@@ -45,13 +45,15 @@ fn outcome(s: &Span) -> String {
     }
 }
 
-/// `1m04` / `12s` / `0.4s` — as long as it needs and no longer.
+/// `400ms` / `12s` / `1m04` / `2h00` / `3d` — as long as it needs and no
+/// longer, on the same ladder the pane border's clock climbs
+/// ([`crate::runclock::label`]): a two-hour build read `120m03` here while
+/// the border above it said `2h00`.
 fn elapsed(ms: u64) -> String {
-    let secs = ms / 1000;
-    match secs {
+    match ms / 1000 {
         0 => format!("{}ms", ms.min(999)),
-        1..=59 => format!("{secs}s"),
-        _ => format!("{}m{:02}", secs / 60, secs % 60),
+        secs => crate::runclock::label(std::time::Duration::from_secs(secs))
+            .unwrap_or_else(|| format!("{secs}s")),
     }
 }
 

@@ -60,7 +60,10 @@ pub(crate) fn status_segments(
     // The spinner: ASCII strokes, or pie slices on a Nerd Font (`glyphs`).
     let spin = spinner(now_ms);
     if let Some((label, secs, color)) = active {
-        segs.push(seg(&format!("{spin} {label} \u{00b7} {secs}s"), color));
+        // The border's ladder, so `12m22` here and `12m22` there — not `742s`.
+        let clock = crate::runclock::label(std::time::Duration::from_secs(secs))
+            .unwrap_or_else(|| format!("{secs}s"));
+        segs.push(seg(&format!("{spin} {label} \u{00b7} {clock}"), color));
     } else if awaiting {
         let mut s = seg(&format!("{spin} "), accent);
         let ms = crate::shimmer::SHIMMER_MS;
