@@ -83,10 +83,11 @@ fn the_cost_curve_never_runs_past_the_last_row() {
 }
 
 #[test]
-fn a_narrow_pane_draws_nothing_rather_than_a_mess() {
+fn a_narrow_pane_says_too_small_rather_than_a_mess() {
     let _g = crate::app::theme_test_guard();
     let d = DashPane::new();
-    assert!(d.cells(MIN_COLS - 1, 40).is_empty());
+    let text: String = d.cells(MIN_COLS - 1, 40).iter().map(|c| c.c).collect();
+    assert_eq!(text, crate::toosmall::NOTE);
     assert!(d.paint(MIN_COLS - 1, 40, 2.0).is_empty());
 }
 

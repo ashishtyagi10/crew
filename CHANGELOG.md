@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.84
+
+**`/dash` says `too small · Cmd+Z zooms` instead of a titled empty box**, as
+`/usage` and `/disk` have since 0.21.32 — it was the one drawn pane still
+answering a short tile with nothing. And the three panes' own `put`
+helpers, which broke a line at the edge by char count with no mark, now go
+through the nav's width-aware put: a host line or a tile label that does
+not fit ends in `…` like every card legend, and a wide glyph never sits
+half past the edge.
+
 ## 0.21.83
 
 **Clicking the `/todo` scroll thumb no longer deletes the item beside it.**

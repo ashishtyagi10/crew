@@ -79,21 +79,9 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
     if cols < 24 || rows < 6 {
         return crate::toosmall::note(cols, rows);
     }
+    // One column of air at the right edge; the cut is marked, not silent.
     let put = |out: &mut Vec<CellView>, s: &str, col: u16, row: u16, fg: (u8, u8, u8)| {
-        for (i, ch) in s.chars().enumerate() {
-            let col = col + i as u16;
-            if col + 1 >= cols {
-                break;
-            }
-            out.push(CellView {
-                col,
-                row,
-                c: ch,
-                fg,
-                bg: t.page_bg,
-                ..Default::default()
-            });
-        }
+        crate::navtext::put_at(out, s, col, row, cols - 1, fg);
     };
 
     // Header: the week's totals, which is what the charts below are of.
