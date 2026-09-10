@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.89
+
+**Three small words.** The footer's idle hint said `/ for constructs`
+under a card legended `commands` — internal vocabulary that had leaked
+into the one line every pane shows; it says `/ for commands` like the bar,
+the welcome and the empty chat do. `/blocks` with nothing run said
+`nothing has run in this pane yet`, a lowercase fragment beside the
+capitalised, next-step sentences its siblings `/tools`, `/watching` and
+`/integrations` use; it says `Nothing yet. Run something in this pane and
+it lands here.` And the empty bar's `type / for commands` was cut mid-word
+on a narrow window (`type / for comm`); it is a ladder now, `/ for
+commands` then `/`, chosen by the room past the caret.
+
 ## 0.21.88
 
 **The GIT card keeps the news.** `feat/weather-states ↑3 ↓1` was clipped

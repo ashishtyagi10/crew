@@ -75,6 +75,6 @@ fn the_elapsed_field_is_as_long_as_it_needs_and_no_longer() {
 #[test]
 fn a_pane_that_has_run_nothing_says_so() {
     let text = listing(&Spans::default(), "shell", 0);
-    assert!(text.contains("nothing has run in this pane yet"));
+    assert!(text.contains("Nothing yet. Run something in this pane"));
     assert!(!text.contains("/out <n>"), "no numbers to pair with");
 }
