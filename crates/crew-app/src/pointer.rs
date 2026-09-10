@@ -90,7 +90,8 @@ impl CrewApp {
                 if crate::linkhover::any()
                     || self.plan_hover_on(i)
                     || self.popup_hover_on(i)
-                    || self.todo_hover_on(i) =>
+                    || self.todo_hover_on(i)
+                    || self.fold_hover_on(i) =>
             {
                 Over::Link
             }
@@ -100,6 +101,19 @@ impl CrewApp {
             (None, _) if self.bar_popup_hover_on() => Over::Link,
             (None, _) if self.cursor_in_input() => Over::Text,
             _ => Over::Page,
+        }
+    }
+
+    /// Whether pane `i` has a foldable card row under the pointer: the one
+    /// clickable thing in a transcript, which wore the text I-beam.
+    fn fold_hover_on(&self, i: usize) -> bool {
+        let Some((row, _)) = self.cursor_rowcol(i).filter(|(r, _)| *r >= 0) else {
+            return false;
+        };
+        let grid = self.panes[i].grid;
+        match &self.panes[i].content {
+            crate::pane::PaneContent::Chat(c) => c.fold_target_at(grid.cols, grid.rows, row as u16),
+            _ => false,
         }
     }
 

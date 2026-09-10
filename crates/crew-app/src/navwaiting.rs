@@ -61,6 +61,7 @@ pub(crate) fn waiting_cells(rows: &[WaitRow], cols: u16, max_lines: usize) -> Ve
                     c,
                     fg,
                     bg: t.page_bg,
+                    bold: r.hovered,
                     ..Default::default()
                 });
             },

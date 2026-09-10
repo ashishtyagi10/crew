@@ -25,6 +25,8 @@ pub(crate) struct WaitRow {
     pub text: String,
     /// The pane a click on the row focuses.
     pub pane: Option<usize>,
+    /// Under the pointer this frame: the row lifts, and no PANES row does.
+    pub hovered: bool,
 }
 
 /// Who serves the API-backed seats right now.
@@ -62,6 +64,7 @@ pub(crate) fn rows_from(panes: impl IntoIterator<Item = (usize, String, Signal)>
             kind,
             text,
             pane: Some(i),
+            hovered: false,
         };
         if s.blocked {
             out.push(row(Wait::Blocked, format!("\u{2691} {title}")));
@@ -82,6 +85,7 @@ pub(crate) fn rows_from(panes: impl IntoIterator<Item = (usize, String, Signal)>
             kind: Wait::Quiet,
             text: "nothing \u{2014} all quiet".into(),
             pane: None,
+            hovered: false,
         });
     }
     out
@@ -123,12 +127,15 @@ impl crate::app::CrewApp {
             model,
             windows: crate::usageledger::windows(now),
         };
-        let waiting = rows_from(
+        let mut waiting = rows_from(
             self.panes
                 .iter()
                 .enumerate()
                 .map(|(i, p)| (i, p.title_text(), signal(p, now))),
         );
+        if let Some(r) = self.hovered_waiting_row().and_then(|k| waiting.get_mut(k)) {
+            r.hovered = true;
+        }
         Some(Glance {
             weather: crate::navweather::state(),
             serving,
@@ -148,16 +155,14 @@ impl crate::app::CrewApp {
         rel_row: u16,
         l: &crate::navlayout::NavLayout,
     ) -> Option<usize> {
-        if l.waiting_lines == 0 {
-            return None;
-        }
-        // +1 for the border row, +1 to skip the section rule.
-        let top = l.waiting_top + 2;
-        let i = rel_row.checked_sub(top)? as usize;
-        if i >= l.waiting_lines {
-            return None;
-        }
+        let i = crate::navwaitrow::at(rel_row, l)?;
         self.glance()?.waiting.get(i)?.pane
+    }
+
+    /// The WAITING row under the pointer, if the pointer is on the card.
+    pub(crate) fn hovered_waiting_row(&self) -> Option<usize> {
+        let (rel_row, l) = self.sidebar_row()?;
+        crate::navwaitrow::at(rel_row, &l)
     }
 }
 

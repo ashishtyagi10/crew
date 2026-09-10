@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.0
+
+**Two hovers tell the truth.** A collapsed chat card — the one clickable
+thing in a transcript — gave the text I-beam, so nothing said it opens;
+it wears the hand like links, plan buttons and pop-up rows do. And the
+pointer over a WAITING ON YOU row lit a *PANES* row further down the nav
+instead of the row under it: the sidebar hit-test answered both cards with
+one pane index, and the PANES hover read it. The WAITING row lifts now
+(`navwaitrow::at` is the one geometry its click and hover read), and the
+PANES hover only answers for the PANES list.
+
 ## 0.21.99
 
 **The footer always says how to stop what is running, and its names
