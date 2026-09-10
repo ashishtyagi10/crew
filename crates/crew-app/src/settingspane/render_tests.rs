@@ -52,7 +52,7 @@ fn every_field_renders_on_a_tall_pane() {
 #[test]
 fn cards_have_legends() {
     let all = dump(&pane().cells(80, 30), 30);
-    for t in ["APPEARANCE", "WINDOW", "NOTIFICATIONS"] {
+    for t in ["appearance", "window", "notifications"] {
         assert!(all.contains(t), "missing card '{t}' in:\n{all}");
     }
 }
@@ -83,7 +83,7 @@ fn short_pane_scrolls_to_keep_focus_visible() {
 #[test]
 fn narrow_pane_still_renders_all_cards() {
     let all = dump(&pane().cells(48, 60), 60);
-    for t in ["APPEARANCE", "WINDOW", "NOTIFICATIONS"] {
+    for t in ["appearance", "window", "notifications"] {
         assert!(all.contains(t), "missing card '{t}' in:\n{all}");
     }
 }

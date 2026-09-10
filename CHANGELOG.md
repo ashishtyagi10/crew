@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.75
+
+**The settings form speaks the canvas's language.** Its four cards were
+titled `APPEARANCE`, `WINDOW`, `NOTIFICATIONS`, `USAGE` — the sidebar's
+capitals, on a canvas where every other legend (a pane's name, a pop-up's,
+a toast's, `/keys`) is lowercase; they are `appearance`, `window`,
+`notifications` and `usage` now. The box that has the keys was told apart
+from the others by its accent colour alone, which on a page of forty boxes
+is not much to go on; its legend is bold as well, the way a focused pane's
+is. And the `Accent (#hex)` box, empty whenever the accent is the theme's
+own (which is nearly always), read as a value that had gone missing; it
+says `theme's own` in the muted ink until something is typed into it. The
+form's controls moved to `settingspane/widgets.rs`, the layout staying in
+`form.rs`, at the line cap.
+
 ## 0.21.74
 
 **`/keys` reads as a table, under the chrome every other overlay wears.**

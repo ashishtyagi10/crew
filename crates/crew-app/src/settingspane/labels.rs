@@ -63,6 +63,15 @@ pub(crate) fn label_of(f: Field) -> &'static str {
 }
 
 /// The value text shown for a field, and whether it takes a typing cursor.
+/// What an EMPTY box means, for the boxes where empty is a value: the
+/// accent falls back to the theme's own. Drawn muted until typed into.
+pub(crate) fn hint_of(f: Field) -> Option<&'static str> {
+    match f {
+        Field::Accent => Some("theme's own"),
+        _ => None,
+    }
+}
+
 pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
     let onoff = |b: bool| (if b { "on" } else { "off" }).to_string();
     match f {
