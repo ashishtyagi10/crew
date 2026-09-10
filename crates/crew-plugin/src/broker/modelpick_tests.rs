@@ -148,21 +148,21 @@ fn a_device_flow_sign_in_is_numbered_and_selected() {
 }
 
 /// A device-flow provider serving from a KEY still points at the sign-in:
-/// `/login <name>` rides the "key present" detail, so holding a key can
+/// `/model <name>` rides the "key present" detail, so holding a key can
 /// never hide the OAuth path (the v0.12.0 report). A plain keyed provider
 /// stays a bare "key present".
 #[test]
-fn a_keyed_device_provider_advertises_login() {
+fn a_keyed_device_provider_advertises_the_sign_in() {
     let mut states = full_house();
     states[2].device = true; // dashscope: KeyPresent + device flow
     let text = groups_text(&states);
     assert!(
         text.contains(
-            "dashscope \u{2014} key present \u{b7} /login dashscope signs in with OAuth instead"
+            "dashscope \u{2014} key present \u{b7} /model dashscope signs in with OAuth instead"
         ),
         "{text}"
     );
     states[2].device = false;
     let plain = groups_text(&states);
-    assert!(!plain.contains("/login"), "{plain}");
+    assert!(!plain.contains("signs in with OAuth"), "{plain}");
 }

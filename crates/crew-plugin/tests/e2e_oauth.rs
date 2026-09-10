@@ -170,14 +170,14 @@ fn route(path: &str, body: &str, me: &str) -> (u16, String) {
 }
 
 /// The v0.12.0 field report: a key in the environment hid the OAuth path
-/// entirely. `/login` must list the numbered sign-in ANYWAY, run the flow,
-/// and — because an explicit sign-in outranks a lying-around key — the
-/// GRANT must serve the chat afterward: the stub is only reachable through
-/// the grant's self-named `resource_url`, so a reply proves the decoy key
-/// (which points nowhere near the stub) was not used. `/logout` then
-/// removes the grant.
+/// entirely. `/model` must offer the sign-in ANYWAY (a roster row and a
+/// listing line), `/model dashscope` must run the flow, and — because an
+/// explicit sign-in outranks a lying-around key — the GRANT must serve the
+/// chat afterward: the stub is only reachable through the grant's
+/// self-named `resource_url`, so a reply proves the decoy key (which points
+/// nowhere near the stub) was not used. `/logout` then removes the grant.
 #[test]
-fn login_signs_in_over_a_present_key_and_the_grant_serves() {
+fn model_signs_in_over_a_present_key_and_the_grant_serves() {
     let dir = unique_dir("oauth-login-keyed");
     seed_specialists(&dir, &["scout"]);
     let home = dir.join("home");
@@ -191,9 +191,8 @@ fn login_signs_in_over_a_present_key_and_the_grant_serves() {
             ("DASHSCOPE_API_KEY", "sk-decoy-not-a-real-key"),
         ],
         &[
-            (&send("/login"), 500),
-            (&send("/login list"), 500),
-            (&send("/login 1"), 4500),
+            (&send("/model"), 500),
+            (&send("/model dashscope"), 4500),
             (&send("say hello please"), 3000),
             (&send("/logout"), 500),
             (&send("/logout dashscope"), 500),
@@ -201,25 +200,30 @@ fn login_signs_in_over_a_present_key_and_the_grant_serves() {
     );
     let msgs = messages(&events);
     let all: String = msgs.iter().map(|(s, t)| format!("{s}: {t}\n")).collect();
-    // The key did not hide the affordance: dashscope is a picker row that
-    // says so, and numbered row 1 of the text form.
-    let rows = common::sign_in_options(&events);
+    // The key did not hide the affordance: dashscope is a roster sign-in
+    // row that says so, and the `/model` listing names the way in.
+    let rows = common::roster_signins(&events);
     let ds = rows
         .iter()
         .find(|o| o.name == "dashscope" && !o.signed_in)
-        .expect("bare /login offers dashscope");
+        .expect("the roster offers dashscope as a sign-in row");
     assert!(ds.device && ds.key_present, "{ds:?}");
     assert!(
         all.contains(
-            "1. dashscope \u{2014} key present \u{b7} /login 1 signs in with OAuth instead"
+            "dashscope \u{2014} key present \u{b7} /model dashscope signs in with OAuth instead"
         ),
         "{all}"
     );
-    // Bare /logout, once signed in, offers the grant as a picker row.
     assert!(
-        rows.iter()
+        !all.contains("/login"),
+        "the retired construct is not advertised: {all}"
+    );
+    // Bare /logout, once signed in, offers the grant as a picker row.
+    let out = common::sign_out_options(&events);
+    assert!(
+        out.iter()
             .any(|o| o.name == "dashscope" && o.signed_in && o.device),
-        "bare /logout must offer the stored grant: {rows:?}"
+        "bare /logout must offer the stored grant: {out:?}"
     );
     // The flow ran in-pane and landed.
     assert!(all.contains("WDJB-MJHT"), "code card must stream: {all}");

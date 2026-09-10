@@ -187,13 +187,25 @@ pub fn messages(events: &[PluginEvent]) -> Vec<(String, String)> {
         .collect()
 }
 
-/// The rows of every `SignIn`/`SignOut` picker event, in order — bare
-/// `/login` and `/logout` answer with these instead of a text table.
-pub fn sign_in_options(events: &[PluginEvent]) -> Vec<crew_plugin::SignInOption> {
+/// The rows of every `SignOut` picker event, in order — bare `/logout`
+/// answers with these instead of a text table.
+pub fn sign_out_options(events: &[PluginEvent]) -> Vec<crew_plugin::SignInOption> {
     events
         .iter()
         .flat_map(|e| match e {
-            PluginEvent::SignIn { options } | PluginEvent::SignOut { options } => options.clone(),
+            PluginEvent::SignOut { options } => options.clone(),
+            _ => Vec::new(),
+        })
+        .collect()
+}
+
+/// The sign-in rows of every `Roster` event, in order — the `/model`
+/// picker's top section, re-sent after every provider change.
+pub fn roster_signins(events: &[PluginEvent]) -> Vec<crew_plugin::SignInOption> {
+    events
+        .iter()
+        .flat_map(|e| match e {
+            PluginEvent::Roster { signins, .. } => signins.clone(),
             _ => Vec::new(),
         })
         .collect()

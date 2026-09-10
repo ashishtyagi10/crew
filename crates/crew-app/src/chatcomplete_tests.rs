@@ -35,11 +35,10 @@ fn ambiguous_prefix_extends_to_common_prefix() {
 #[test]
 fn completes_constructs() {
     // `/goal` and `/loop` retired (the intent router answers the plain
-    // phrasing); `/login`/`/logout` arrived: `/go` fuzzy-matches /logout
-    // uniquely (g-o in order — /login has no 'o' after its 'g'), and
-    // `/lo` prefix-extends to their common "/log".
+    // phrasing); `/login` retired into `/model`'s picker, so `/lo` — once
+    // the common "/log" of two — names /logout alone, as `/go` does.
     assert_eq!(complete("/go", &[]).unwrap(), "/logout ");
-    assert_eq!(complete("/lo", &[]).unwrap(), "/log");
+    assert_eq!(complete("/lo", &[]).unwrap(), "/logout ");
     // `/standup` retired too, so '/st' now uniquely names /stop — every
     // retirement buys back a prefix — and '/sta' matches nothing at all.
     assert_eq!(complete("/st", &[]).unwrap(), "/stop ");

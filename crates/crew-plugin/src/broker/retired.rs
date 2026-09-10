@@ -1,7 +1,8 @@
-//! The retirement table: every command the intent router replaced, with the
-//! hint that teaches its plain-language phrasing. Typing an old slash form
-//! answers instantly with the replacement ask — never a silent
-//! reinterpretation, never a generic did-you-mean (`commands::handle`).
+//! The retirement table: every command the intent router replaced (and the
+//! one `/model` absorbed), with the hint that teaches where the capability
+//! went. Typing an old slash form answers instantly with the replacement —
+//! never a silent reinterpretation, never a generic did-you-mean
+//! (`commands::handle`).
 
 /// Commands retired in favor of the intent router: the capability lives on,
 /// reached by plain language, and typing the old slash form teaches the
@@ -65,5 +66,12 @@ pub(super) const RETIRED: &[(&str, &str)] = &[
     (
         "mcp",
         "/mcp is retired — /doctor lists each server and its tools; @tool still calls them",
+    ),
+    // Not the intent router's doing: the sign-in rows are the top of the
+    // `/model` picker, so a second front door only split one choice in two.
+    (
+        "login",
+        "/login is retired — /model lists every sign-in at the top; pick one there, \
+         or /model <provider> runs it directly (/logout still removes a grant)",
     ),
 ];

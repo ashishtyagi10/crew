@@ -1,12 +1,11 @@
-//! The drain's contract for the broker's picker events: a `SignIn` or
-//! `SignOut` is the broker's WHOLE answer to a bare `/login` or `/logout`,
-//! so it must settle the pane the way a `Message` does. When it did not, the
-//! popup opened over a pane still "awaiting" a reply — and the pick itself
-//! was queued behind a reply that was never going to come. Nothing happened.
+//! The drain's contract for the broker's picker event: a `SignOut` is the
+//! broker's WHOLE answer to a bare `/logout`, so it must settle the pane
+//! the way a `Message` does. When it did not, the popup opened over a pane
+//! still "awaiting" a reply — and the pick itself was queued behind a reply
+//! that was never going to come. Nothing happened.
 use crate::chat::ChatPane;
 use crate::chatkeys::ChatInput;
 use crate::chatpalette::Kind;
-use crate::loginpick::Auth;
 use crew_plugin::Plugin;
 
 /// A pane whose broker prints `line` once, then idles — right after the
@@ -42,17 +41,16 @@ fn pick_first_row(p: &mut ChatPane) {
 }
 
 #[test]
-fn the_sign_in_picker_settles_the_pane_so_the_pick_sends_at_once() {
-    let mut p = pane_emitting(r#"{"type":"sign_in","options":[{"name":"qwen","device":true}]}"#);
-    poll_until_picker(&mut p);
-    assert_eq!(
-        p.palette.as_ref().map(|s| s.kind),
-        Some(Kind::Auth(Auth::In))
+fn the_sign_out_picker_settles_the_pane_so_the_pick_sends_at_once() {
+    let mut p = pane_emitting(
+        r#"{"type":"sign_out","options":[{"name":"qwen","device":true,"signed_in":true}]}"#,
     );
-    assert!(!p.awaiting, "the picker IS the reply to a bare /login");
+    poll_until_picker(&mut p);
+    assert_eq!(p.palette.as_ref().map(|s| s.kind), Some(Kind::SignOut));
+    assert!(!p.awaiting, "the picker IS the reply to a bare /logout");
     assert!(!p.is_busy(), "an open picker is an idle pane");
 
-    pick_first_row(&mut p); // qwen — a device flow crew runs itself
+    pick_first_row(&mut p);
     assert!(
         p.queued.is_empty(),
         "the pick went straight to the broker, not the queue: {:?}",
@@ -60,35 +58,11 @@ fn the_sign_in_picker_settles_the_pane_so_the_pick_sends_at_once() {
     );
     assert_eq!(
         p.messages.last().map(|m| m.text.as_str()),
-        Some("/login qwen"),
+        Some("/logout qwen"),
         "the pick is echoed as the user's own line"
     );
     assert!(
         p.awaiting,
-        "the pick is a send of its own, awaiting the flow's first line"
-    );
-}
-
-#[test]
-fn the_sign_out_picker_settles_the_pane_too() {
-    let mut p = pane_emitting(
-        r#"{"type":"sign_out","options":[{"name":"qwen","device":true,"signed_in":true}]}"#,
-    );
-    poll_until_picker(&mut p);
-    assert_eq!(
-        p.palette.as_ref().map(|s| s.kind),
-        Some(Kind::Auth(Auth::Out))
-    );
-    assert!(!p.awaiting, "the picker IS the reply to a bare /logout");
-
-    pick_first_row(&mut p);
-    assert!(
-        p.queued.is_empty(),
-        "queued instead of sent: {:?}",
-        p.queued
-    );
-    assert_eq!(
-        p.messages.last().map(|m| m.text.as_str()),
-        Some("/logout qwen")
+        "the pick is a send of its own, awaiting the broker's answer"
     );
 }

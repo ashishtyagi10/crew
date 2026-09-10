@@ -18,19 +18,14 @@ pub(crate) fn is_quick(text: &str) -> bool {
     let line = text.trim().trim_start_matches('/');
     let mut parts = line.split_whitespace();
     let cmd = parts.next().unwrap_or("");
-    // `/model <n>` may start a device sign-in — a minutes-long poll that
-    // must run as a background task, never inline on the stdin loop.
-    if cmd == "model" && parts.next().is_some_and(|a| a.parse::<usize>().is_ok()) {
-        return false;
-    }
-    // `/login <target>` runs the same poll; bare `/login` and `/login list`
-    // only report.
-    if cmd == "login"
-        && parts
-            .next()
-            .is_some_and(|a| !a.eq_ignore_ascii_case("list"))
-    {
-        return false;
+    // `/model <n>` and `/model <provider>` may start a device sign-in — a
+    // minutes-long poll that must run as a background task, never inline on
+    // the stdin loop. `/model <agent> <model>` (two words) only pins.
+    if cmd == "model" {
+        let one = parts.next();
+        if one.is_some_and(|a| !a.eq_ignore_ascii_case("all")) && parts.next().is_none() {
+            return false;
+        }
     }
     // Retired commands (`/fan`, `/goal`, `/skill`, …) are absent on purpose:
     // they answer with an instant hint, so they must not occupy a worker slot.
@@ -44,8 +39,8 @@ pub(crate) const HELP: &str = "constructs:\n\
     /model — the roster with each agent's model (also in the pane footer)\n\
     /model <agent> <model|default> — pin an agent to a model (mix models freely)\n\
     /model all <model|default> — set every agent's model at once\n\
-    /login — sign in to a provider with OAuth, no API key needed: pick one from the \
-    popup; /login <name|n> runs it directly, /login list prints the table\n\
+    /model <provider|n> — sign in with OAuth, no API key needed (the picker's top rows), \
+    or make a signed-in provider serve\n\
     /logout — remove a stored OAuth sign-in: pick one from the popup (a key, if present, \
     serves again); /logout <name> removes it directly\n\
     plain language routes itself — \u{201c}have every agent take a crack at \u{2026}\u{201d} \
@@ -122,7 +117,7 @@ pub fn expand_alias(trimmed: &str) -> String {
 /// [`closest_construct`], and the source a host should build its palette
 /// from rather than keeping a second copy (see [`constructs`]).
 const CONSTRUCTS: &[&str] = &[
-    "help", "model", "login", "logout", "doctor", "restore", "reload", "diff", "stop",
+    "help", "model", "logout", "doctor", "restore", "reload", "diff", "stop",
 ];
 
 /// Every construct the broker answers, without the leading slash. Exposed so
@@ -172,7 +167,6 @@ pub(crate) fn handle(
     match cmd {
         "help" => emit(msg("agent smith", HELP)),
         "model" => super::modelcmd::model_cmd(session, rest, emit),
-        "login" => super::logincmd::login_cmd(session, rest, emit),
         "logout" => super::logincmd::logout_cmd(session, rest, emit),
         "restore" => super::checkpoint::restore_cmd(rest, emit),
         "diff" => super::diff::diff_cmd(emit),

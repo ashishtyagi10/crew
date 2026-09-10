@@ -9,8 +9,6 @@ use crate::chat::ChatPane;
 use crate::chatevents::{classify, HostAction, PollResult};
 use crew_plugin::PluginEvent;
 
-use crate::loginpick::Auth;
-
 impl ChatPane {
     /// Drop everything that belonged to one broker process: what it had
     /// running, and any plan it was holding for an answer. Called on both
@@ -93,10 +91,9 @@ impl ChatPane {
                         }
                         crate::modelsignin::set(signins, provider);
                     }
-                    // Each picker is the broker's WHOLE answer to the bare
+                    // The picker is the broker's WHOLE answer to the bare
                     // construct — it settles the pane like a `Message` would.
-                    PluginEvent::SignIn { options } => self.open_auth_picker(Auth::In, &options),
-                    PluginEvent::SignOut { options } => self.open_auth_picker(Auth::Out, &options),
+                    PluginEvent::SignOut { options } => self.open_sign_out_picker(&options),
                     PluginEvent::Task { id, running, .. } => self.absorb_task(id, running),
                     PluginEvent::Plan { pending } => self.plan_pending = pending,
                     PluginEvent::Activity { agent, state, from } => {

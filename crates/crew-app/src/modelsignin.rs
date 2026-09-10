@@ -3,8 +3,9 @@
 //! same popup. The rows are the broker's `SignInOption`s, which ride every
 //! `Roster` event (`chatdrain`) so the picker always shows the state the
 //! broker last saw; `serving` is the provider that event named. A pick
-//! submits `/login <name>` — the broker signs in (a device flow), or makes
+//! submits `/model <name>` — the broker signs in (a device flow), or makes
 //! an already signed-in CLI serve (the pin moves: the last choice wins).
+//! This IS the sign-in front door: `/login` retired into these rows.
 use std::sync::RwLock;
 
 use crew_plugin::SignInOption;
@@ -44,7 +45,7 @@ fn desc(o: &SignInOption, serving: bool) -> String {
     match (o.signed_in, serving) {
         (true, true) => "\u{2713} signed in \u{00b7} serving".into(),
         (true, false) => "\u{2713} signed in \u{00b7} pick to make it serve".into(),
-        (false, _) => crate::loginpick::state(o),
+        (false, _) => crate::signoutpick::state(o),
     }
 }
 
@@ -84,7 +85,7 @@ pub(crate) fn section(
         out.push(MenuItem {
             label: o.name.clone(),
             desc: desc(o, serves),
-            fill: format!("/login {}", o.name),
+            fill: format!("/model {}", o.name),
             submit: true,
             dim: !o.signed_in && !o.device,
             ..Default::default()

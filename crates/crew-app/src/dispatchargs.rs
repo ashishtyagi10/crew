@@ -107,7 +107,7 @@ impl CrewApp {
 }
 
 /// The answer for a construct the AGENT PANE's composer offers but the input
-/// bar does not — `/doctor`, `/login`, `/export` and the rest of
+/// bar does not — `/doctor`, `/logout`, `/export` and the rest of
 /// [`crate::chatcomplete::CONSTRUCTS`] that have no arm here.
 ///
 /// Without this the fuzzy matcher had the floor, and `/doctor` was answered

@@ -223,7 +223,7 @@ pub(crate) fn state_cached(spec: &CliSpec) -> CliAuth {
 }
 
 /// [`live`] right now, and the cache learns the answer — for the moments a
-/// user explicitly asks (`/login`, `/logout`): they may have just installed
+/// user explicitly asks (`/model <provider>`, `/logout`): they may have just installed
 /// or signed in to the CLI in a terminal, and a listing that repeats a
 /// stale "not installed" reads as crew not working.
 pub(crate) fn state_fresh(spec: &CliSpec) -> CliAuth {

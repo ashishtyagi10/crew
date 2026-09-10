@@ -185,7 +185,7 @@ fn resolve_forced(env: Option<String>, stored: Option<String>) -> Option<String>
 /// Never logs the value.
 ///
 /// A stored OAuth grant OUTRANKS a key (`refresh::key_stand_in` first): an
-/// explicit `/login` is the most deliberate signal a user can send — the
+/// explicit sign-in (`/model <provider>`) is the most deliberate signal a user can send — the
 /// same reasoning that puts an exported env var above the stored copy — and
 /// grant-last meant a key sitting in a shell rc silently discarded a sign-in
 /// the user just completed. `/logout` removes the grant and the key serves

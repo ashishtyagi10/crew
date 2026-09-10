@@ -8,3 +8,4 @@ target/
 
 # stray /export transcripts (an export lands in the cwd)
 crew-transcript-*.md
+target-*/

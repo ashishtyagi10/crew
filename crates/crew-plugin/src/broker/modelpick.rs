@@ -87,7 +87,7 @@ pub(crate) fn groups_text(states: &[ProviderInfo]) -> String {
             // sign-in — the key must never hide the OAuth path again.
             let detail = if p.device {
                 format!(
-                    "key present \u{00b7} /login {} signs in with OAuth instead",
+                    "key present \u{00b7} /model {} signs in with OAuth instead",
                     p.name
                 )
             } else if let (true, Some(login)) = (p.minted, p.login) {
