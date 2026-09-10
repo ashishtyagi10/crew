@@ -47,6 +47,7 @@ impl ChatPane {
             plan_pending: false,
             hover_btn: None,
             press_btn: None,
+            popup_rise: Default::default(),
             git_branch: None,
             cwd: None,
             pending_recent: None,

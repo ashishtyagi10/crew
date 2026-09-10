@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.71
+
+**A composer pop-up rises out of the composer, and its marker wears the
+accent.** The card used to appear whole on the frame its state opened — a
+card the size of a hand, there between one keystroke and the next, with
+nothing to say where it came from. Its first frames now draw it half a row
+low, inside the composer's top edge, easing up into place over 140 ms: it
+grows out of the field it completes, which is what a dropdown is. Off with
+the motion gate, like every other motion, and short enough that it never
+delays a pick. The `›` beside the selected row is in the accent — the
+composer's `❯` colour — so the two glyphs saying "here" one row apart say
+it in one voice.
+
 ## 0.21.70
 
 **A composer pop-up answers the mouse.** Its rows were keyboard-only: the

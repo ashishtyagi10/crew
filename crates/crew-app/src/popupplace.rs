@@ -61,15 +61,18 @@ pub(crate) fn scene_w(cols: u16, pane_cols: u16, cw: f32) -> f32 {
 
 /// The pop-up as an overlay scene on pane `r`: standing on the composer,
 /// flush with the pane's left edge (the composer's own left border), as
-/// wide as its cells plus [`MARGIN_COLS`] of page. Overlay, so the overlay
-/// pass backs it with an opaque page and a sheer window holds it solid.
-pub(crate) fn scene(pane: &ChatPane, r: Rect, cw: f32, ch: f32, p: Popup) -> PaneScene {
+/// wide as its cells plus [`MARGIN_COLS`] of page — and, on its first
+/// frames, still rising into place (`popuprise`, read at `now`). Overlay,
+/// so the overlay pass backs it with an opaque page and a sheer window
+/// holds it solid.
+pub(crate) fn scene(pane: &ChatPane, r: Rect, cw: f32, ch: f32, p: Popup, now: u64) -> PaneScene {
     let h = f32::from(p.rows) * ch;
     let pane_cols = (r.w / cw).floor() as u16;
+    let drop = pane.popup_rise.drop_rows(now) * ch;
     PaneScene {
         cells: p.cells,
         x: r.x,
-        y: above_composer(pane, r, cw, ch, h),
+        y: above_composer(pane, r, cw, ch, h) + drop,
         w: scene_w(p.cols, pane_cols, cw),
         h,
         focused: false,
