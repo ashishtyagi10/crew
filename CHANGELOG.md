@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.79
+
+**The WEATHER card knows where you are without being told.** It existed only
+after someone typed `/weather <place>`, which on a fresh install is a card
+nobody has seen. The machine's time zone names a city — `America/New_York`,
+`Asia/Kolkata`, `America/Argentina/Buenos_Aires` — and the geocoder
+resolves those names, so an empty `weather_place` now means that city.
+`/weather off` writes the word `off` (the one way to have no card),
+`/weather auto` empties the key again, and a bare `/weather` says which of
+the three is in force: `weather: New York — your time zone's city`. A zone
+that names no city (`UTC`, `Etc/GMT+3`) yields no card and says so when
+asked.
+
 ## 0.21.78
 
 **The nav's contrast sweep sees the glance cards.** The contract that walks

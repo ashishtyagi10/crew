@@ -332,6 +332,7 @@ mod navwaiting;
 mod navweather;
 mod navweathercard;
 mod navweatherfetch;
+mod navweatherplace;
 mod net;
 mod nettwin;
 mod notify;

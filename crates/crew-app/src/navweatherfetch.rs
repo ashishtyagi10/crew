@@ -112,10 +112,9 @@ impl crate::app::CrewApp {
     /// Once per tick: start a fetch when one is due, drain one that landed.
     /// Returns whether the strip changed. Cheap when nothing is set.
     pub(crate) fn tick_weather(&mut self, now_ms: u64) -> bool {
-        let place = self.config.weather_place.trim().to_string();
-        if place.is_empty() {
+        let Some(place) = crate::navweatherplace::resolve(&self.config.weather_place) else {
             return false;
-        }
+        };
         if now_ms >= self.weather_next {
             self.weather_fetch = Some(spawn(place.clone()));
             // Half the TTL: the cache answers the early ones for free.

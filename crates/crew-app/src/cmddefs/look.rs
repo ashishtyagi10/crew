@@ -27,7 +27,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/weather",
-        desc: "Weather strip under the clock for a place (/weather <place> | off)",
+        desc: "The nav's WEATHER card for a place (/weather <place> | auto | off)",
     },
     Cmd {
         name: "/crt",
