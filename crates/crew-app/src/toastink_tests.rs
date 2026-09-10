@@ -62,7 +62,11 @@ fn long_text_clips_on_a_cell_boundary_with_ellipsis() {
     };
     push_toasts(&mut scenes, &mut t, content, 8.0, 16.0, 2_000, None);
     let s = &scenes[0];
-    assert_eq!(s.w, (MAX_TEXT_COLS + 4) as f32 * 8.0, "card caps its width");
+    assert_eq!(
+        s.w,
+        (MAX_TEXT_COLS + crate::toast::PAD) as f32 * 8.0,
+        "card caps its width"
+    );
     assert!(
         s.cells.iter().any(|c| c.row == 2 && c.c == '…'),
         "over-wide toast text must end in an ellipsis"

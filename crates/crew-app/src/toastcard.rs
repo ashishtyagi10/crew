@@ -25,6 +25,23 @@ pub(crate) const MAX_TEXT_COLS: usize = 46;
 /// whole text is in `/log`.
 pub(crate) const MAX_TEXT_ROWS: usize = 2;
 
+/// Columns of frame and air around a card's text: the border, a column of
+/// air, the text, a column of air, the border.
+pub(crate) const PAD: usize = 4;
+
+/// The one width every card in a stack is drawn at: the widest text row in
+/// any of `texts` (each laid out at `max_cols`) plus [`PAD`], capped at
+/// `max_cols`. Cards that hugged their own texts stepped in and out down
+/// the stack's left side; one width gives them one edge.
+pub(crate) fn stack_cols<'a>(texts: impl Iterator<Item = &'a str>, max_cols: usize) -> u16 {
+    let widest = texts
+        .flat_map(|t| fit(t, max_cols.saturating_sub(PAD)))
+        .map(|l| crate::chatwidth::str_w(&l))
+        .max()
+        .unwrap_or(0);
+    (widest + PAD).min(max_cols) as u16
+}
+
 /// `text` laid out in at most [`MAX_TEXT_ROWS`] rows of `max` columns,
 /// wrapped on words; the last row marks the cut when there is more.
 pub(crate) fn fit(text: &str, max: usize) -> Vec<String> {
@@ -99,7 +116,7 @@ pub(crate) fn card_cells(c: &CardText, cols: u16, fade: f32, hovered: bool) -> V
     };
     let border = lerp_rgb(border, t.page_bg, fade);
     let legend_fg = lerp_rgb(legend_fg, t.page_bg, fade);
-    let lines = fit(text, usize::from(cols).saturating_sub(4));
+    let lines = fit(text, usize::from(cols).saturating_sub(PAD));
     let rows = (lines.len() + 2) as u16;
     let mut cells = crate::boxdraw::titled_card(cols, rows, legend, border, legend_fg, t.page_bg);
     // An ALERT toast keeps its flat bell stroke, and so does a hovered card:
@@ -113,7 +130,7 @@ pub(crate) fn card_cells(c: &CardText, cols: u16, fade: f32, hovered: bool) -> V
     }
     let fg = lerp_rgb(t.ink, t.page_bg, fade);
     for (i, line) in lines.iter().enumerate() {
-        place_row(2, cols - 1, line.chars().map(|c| (c, fg)), |col, c, fg| {
+        place_row(2, cols - 2, line.chars().map(|c| (c, fg)), |col, c, fg| {
             cells.push(CellView {
                 col,
                 row: 1 + i as u16,

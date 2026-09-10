@@ -1,7 +1,7 @@
 // The card tests share the queue fixture with the queue's own tests.
 use crate::layout::Rect;
 use crate::toast::tests::toasts_with;
-use crate::toast::{push_toasts, Toasts};
+use crate::toast::{card_cells, push_toasts, CardText, Toasts};
 
 #[test]
 fn card_geometry_is_cell_quantized_and_right_aligned() {
@@ -17,7 +17,7 @@ fn card_geometry_is_cell_quantized_and_right_aligned() {
     push_toasts(&mut scenes, &mut t, content, 8.0, 16.0, 2_000, None);
     assert_eq!(scenes.len(), 1);
     let s = &scenes[0];
-    // "toast 0" = 7 cols + 4 frame/pad = 11 cols → 88px wide, 3 rows tall.
+    // "toast 0" = 7 cols + 4 frame/air = 11 cols → 88px wide, 3 rows tall.
     assert_eq!((s.w, s.h), (88.0, 48.0));
     // Right-aligned to content minus the gap: 100 + 800 - 8 - 88.
     assert_eq!(s.x, 804.0);
@@ -120,5 +120,68 @@ fn a_long_error_wraps_to_a_second_row_and_the_stack_follows() {
     assert!(
         text.contains("(os error 2)"),
         "row two carries the tail: {text:?}"
+    );
+}
+
+/// Every card in a stack is drawn at the widest card's width, so the stack
+/// shares a left edge; the width still caps at the window's room.
+#[test]
+fn a_stack_shares_the_widest_cards_width() {
+    let texts = ["short", "a much longer card text here"];
+    let w = crate::toast::stack_cols(texts.iter().copied(), 80);
+    assert_eq!(
+        usize::from(w),
+        "a much longer card text here".len() + crate::toast::PAD
+    );
+    let solid = "x".repeat(40);
+    assert_eq!(
+        crate::toast::stack_cols([solid.as_str()].into_iter(), 20),
+        20,
+        "capped"
+    );
+    assert_eq!(
+        crate::toast::stack_cols(std::iter::empty(), 80),
+        crate::toast::PAD as u16
+    );
+    let mut t = Toasts::default();
+    t.push("short".into(), "note", false, 1_000);
+    t.push("a much longer card text here".into(), "note", false, 1_000);
+    let mut scenes = Vec::new();
+    let content = Rect {
+        x: 0.0,
+        y: 0.0,
+        w: 800.0,
+        h: 600.0,
+    };
+    push_toasts(&mut scenes, &mut t, content, 8.0, 16.0, 2_000, None);
+    assert_eq!(scenes[0].w, scenes[1].w, "one width down the stack");
+    assert_eq!(scenes[0].x, scenes[1].x, "one left edge");
+}
+
+/// A column of air on BOTH sides of the text: it starts one column in and
+/// stops one column short of the right border.
+#[test]
+fn the_text_has_air_on_both_sides() {
+    let c = CardText {
+        text: "abcdef",
+        legend: "note",
+        repeats: 1,
+        alert: false,
+        actionable: false,
+    };
+    let cells = card_cells(&c, 10, 0.0, false);
+    let text: Vec<u16> = cells
+        .iter()
+        .filter(|c| c.row == 1 && c.c.is_alphabetic())
+        .map(|c| c.col)
+        .collect();
+    assert_eq!((text.first(), text.last()), (Some(&2), Some(&7)));
+    assert!(
+        cells.iter().any(|c| c.row == 1 && c.col == 9 && c.c == '│'),
+        "the right border"
+    );
+    assert!(
+        !cells.iter().any(|c| c.row == 1 && c.col == 8),
+        "air before it"
     );
 }
