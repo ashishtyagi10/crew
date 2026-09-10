@@ -11,11 +11,14 @@ fn no_key_ever_touches_its_description() {
         let pad = col.saturating_sub(str_w(k)).max(2);
         assert!(pad >= 2, "{k:?} left no gap before its description");
     }
+    // A wide panel caps the column at KEY_COL: the few keys wider than it
+    // overrun by their own two spaces instead of pushing every description
+    // a gutter away from its key.
     assert!(
-        col >= widest_key() + 2,
-        "a wide panel aligns every key: col {col} vs widest {}",
-        widest_key()
+        widest_key() + 2 > KEY_COL,
+        "the fixture has a key wider than the column"
     );
+    assert_eq!(col, KEY_COL, "capped");
 }
 
 /// The description is the half that teaches, so the keys never take more than

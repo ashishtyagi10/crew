@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.74
+
+**`/keys` reads as a table, under the chrome every other overlay wears.**
+The key column was cleared for the widest binding there is — thirty-three
+columns of `Cmd+= / Cmd+- / Cmd+0 / Cmd+wheel` — which put every other
+description twenty blanks from its key, a gutter the eye crossed sixty
+times down the list. The column is capped at twenty-six now; the handful of
+keys wider than it overrun by their own two spaces, and the rest line up.
+The global bindings, which every other section introduced with a ruled
+heading and this one started cold, sit under `everywhere`. And the overlay's
+frame was a flat accent border of its own; it is the composer pop-ups'
+frame now — the focused stroke, the legend bold in the accent — since it,
+like them, is the box the next key lands in. The hint stays on the bottom
+edge in the muted ink.
+
 ## 0.21.73
 
 **The toast stack shares one edge.** Each card in the stack was as wide as

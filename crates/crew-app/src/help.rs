@@ -5,7 +5,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, List, ListItem, Widget};
+use ratatui::widgets::{Block, List, ListItem, Widget};
 
 use crate::palette::accent_color;
 
@@ -37,12 +37,13 @@ pub fn size() -> (u16, u16) {
         .map(|(_, table)| table.len() + 2)
         .sum::<usize>()
         + BINDINGS.len()
-        + 4;
-    // The column the keys actually get (the widest key plus its gap), then
-    // the longest description beside it. Asking for less than this is asking
-    // for the panel to wrap, which it now does gracefully — but the size it
-    // *prefers* is the one where nothing has to.
-    let col = helplayout::widest_key() + 2;
+        + 5;
+    // The column the keys get (`helplayout::key_col`, at a panel wide enough
+    // that only its own cap applies), then the longest description beside
+    // it. Asking for less than this is asking for the panel to wrap, which
+    // it does gracefully — but the size it *prefers* is one where only the
+    // few keys wider than the column push their descriptions over.
+    let col = helplayout::key_col(u16::MAX);
     let widest = BINDINGS
         .iter()
         .chain(CHAT_BINDINGS)
@@ -135,22 +136,22 @@ pub fn help_cells(cols: u16, rows: u16, scroll: usize, needle: &str) -> Vec<Cell
             ))),
         })
         .collect();
-    let block = Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(Style::new().fg(accent_color()))
+    // The list fills the interior; the frame is the composer pop-ups' —
+    // the focused stroke and a bold accent legend (`popupchrome`), since
+    // this overlay, like them, is the box the next key lands in. It was a
+    // ratatui border in flat accent: the one overlay wearing its own chrome.
+    Block::new()
         .style(Style::new().bg(panel_col))
-        .title(Span::styled(
-            match needle.is_empty() {
-                true => format!(" keys \u{b7} crew v{} ", env!("CARGO_PKG_VERSION")),
-                // What you typed, shown where the version was: a filter you
-                // cannot see is a list that looks broken.
-                false => format!(" keys \u{b7} {needle}\u{2588} "),
-            },
-            Style::new().fg(accent_color()),
-        ));
-    let inner = block.inner(buf.area);
-    block.render(buf.area, &mut buf);
-    List::new(items).render(inner, &mut buf);
+        .render(buf.area, &mut buf);
+    List::new(items).render(Rect::new(1, 1, cols - 2, rows - 2), &mut buf);
+    let title = match needle.is_empty() {
+        true => format!("keys \u{b7} crew v{}", env!("CARGO_PKG_VERSION")),
+        // What you typed, shown where the version was: a filter you cannot
+        // see is a list that looks broken.
+        false => format!("keys \u{b7} {needle}\u{2588}"),
+    };
+    let mut cells = crate::tui::to_cells_opaque(&buf);
+    cells.extend(crate::popupchrome::card(cols, rows, &title));
     // Dismissal hint on the bottom border — and, while there is more list
     // than window, how to reach the rest of it. A scrollable thing that never
     // says so is one nobody scrolls.
@@ -165,17 +166,27 @@ pub fn help_cells(cols: u16, rows: u16, scroll: usize, needle: &str) -> Vec<Cell
     let hint = crate::chatwidth::clip_w(hint, usize::from(cols.saturating_sub(2)));
     let hint_col = cols.saturating_sub(hint.chars().count() as u16 + 2);
     for (i, ch) in hint.chars().enumerate() {
-        let col = hint_col + i as u16;
-        if let Some(cell) = buf.cell_mut((col, rows - 1)) {
-            cell.set_char(ch).set_fg(dim_col);
-        }
+        cells.push(CellView {
+            col: hint_col + i as u16,
+            row: rows - 1,
+            c: ch,
+            fg: t.text_muted,
+            bg: t.page_bg,
+            bold: false,
+            italic: false,
+            ..Default::default()
+        });
     }
-    crate::tui::to_cells_opaque(&buf)
+    cells
 }
 
 #[cfg(test)]
 #[path = "help_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "helpchrome_tests.rs"]
+mod chrome_tests;
 
 #[cfg(test)]
 #[path = "helplost_tests.rs"]
