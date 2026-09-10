@@ -230,7 +230,7 @@ fn running_tasks_replace_the_hints_on_line3() {
     assert!(l3.contains("running #3 #5"), "{l3}");
     // Ids are shown because `/stop #n` needs one to name.
     assert!(l3.contains("/stop #3 to cancel"), "{l3}");
-    assert!(!l3.contains("for constructs"), "hints survived: {l3}");
+    assert!(!l3.contains("for commands"), "hints survived: {l3}");
 }
 
 #[test]
@@ -238,7 +238,7 @@ fn an_idle_pane_keeps_its_hints() {
     let empty_ctx = HashMap::new();
     let f = fc(&[], &empty_ctx);
     let l3 = text(&footer_lines(&f, 120)[2]);
-    assert!(l3.contains("for constructs"), "{l3}");
+    assert!(l3.contains("for commands"), "{l3}");
     assert!(!l3.contains("running"), "{l3}");
 }
 
@@ -457,7 +457,7 @@ fn an_idle_line3_is_unchanged_by_the_active_segment() {
     let f = fc(&[], &empty_ctx);
     assert_eq!(
         text(&footer_lines(&f, 120)[2]),
-        "\u{2590} \u{25b6}\u{25b6} swarm mode \u{258c} \u{00b7} / for constructs \u{00b7} @ to relay to an agent"
+        "\u{2590} \u{25b6}\u{25b6} swarm mode \u{258c} \u{00b7} / for commands \u{00b7} @ to relay to an agent"
     );
 }
 

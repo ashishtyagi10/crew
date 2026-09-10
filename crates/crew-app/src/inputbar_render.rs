@@ -12,7 +12,9 @@ use crate::palette::accent;
 #[path = "inputbar_render_tests.rs"]
 mod tests;
 
-const PLACEHOLDER_TEXT: &str = "type / for commands";
+/// The empty bar's hint, longest first: chosen by the room past the caret
+/// rather than cut, so a narrow window never reads `type / for comm`.
+const PLACEHOLDERS: &[&str] = &["type / for commands", "/ for commands", "/"];
 
 impl InputBar {
     /// Render the input card: a rounded border with the working directory as its
@@ -136,10 +138,16 @@ impl InputBar {
         // Faint placeholder past the cursor when the bar is empty and focused.
         if self.text.is_empty() && self.focused {
             let ph = crew_theme::theme().placeholder;
+            let room = usize::from((cols - 1).saturating_sub(tstart + 2));
+            let hint = PLACEHOLDERS
+                .iter()
+                .find(|s| s.len() <= room)
+                .copied()
+                .unwrap_or("");
             place_row(
                 tstart + 2,
                 cols - 1,
-                PLACEHOLDER_TEXT.chars().map(|c| (c, ph)),
+                hint.chars().map(|c| (c, ph)),
                 |x, ch, fg| out.push(cell(x, row, ch, fg)),
             );
         }

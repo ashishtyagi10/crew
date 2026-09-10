@@ -173,8 +173,11 @@ pub fn git_cells(info: &GitInfo, cols: u16) -> Vec<CellView> {
     let t = crew_theme::theme();
     let mut out = section_header("GIT", cols, t.border_normal, accent(), t.page_bg);
     // The ↑↓ is the news and is kept whole; the branch, which you know, gives way.
-    let arrow = |n: usize, g: char| (n > 0).then(|| format!(" {g}{n}")).unwrap_or_default();
-    let tail = arrow(info.ahead, '↑') + &arrow(info.behind, '↓');
+    let tail: String = [(info.ahead, '↑'), (info.behind, '↓')]
+        .iter()
+        .filter(|(n, _)| *n > 0)
+        .map(|(n, g)| format!(" {g}{n}"))
+        .collect();
     let room = usize::from(cols.saturating_sub(4)).saturating_sub(str_w(&tail));
     let head = format!("{}{tail}", clip_w(&info.branch, room));
     put(&mut out, &head, 1, cols, t.ink, t.page_bg);

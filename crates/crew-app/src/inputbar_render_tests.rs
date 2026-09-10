@@ -134,3 +134,19 @@ fn the_placeholder_appears_only_on_an_empty_focused_bar() {
     assert!(!shown(bar("", false)), "an unfocused bar is not prompting");
     assert!(!shown(bar("g", true)), "typing replaces the hint");
 }
+
+/// A narrow bar gets a shorter hint whole, never the long one cut.
+#[test]
+fn a_narrow_bar_shortens_the_placeholder_rather_than_cutting_it() {
+    let _g = crate::app::theme_test_guard();
+    let line =
+        |cols: u16| rows_of(&bar("", true).cells(cols, 3, None, None, None), cols, 3)[1].clone();
+    assert!(line(60).contains("type / for commands"), "{:?}", line(60));
+    assert!(line(24).contains("/ for commands"), "{:?}", line(24));
+    assert!(!line(24).contains("type"), "{:?}", line(24));
+    assert!(
+        line(16).contains('/') && !line(16).contains("for"),
+        "{:?}",
+        line(16)
+    );
+}

@@ -94,7 +94,7 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
         }
     } else if fc.active.is_empty() {
         // Only show hints when there are no active agents and no running work.
-        segs.push((plain("/ for constructs", muted), 2));
+        segs.push((plain("/ for commands", muted), 2));
         segs.push((plain("@ to relay to an agent", muted), 3));
     }
     let mut out = Vec::new();

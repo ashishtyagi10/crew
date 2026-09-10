@@ -139,3 +139,14 @@ fn a_relay_target_is_named_in_the_badge_with_powerline_caps_when_on() {
         text(l3)
     );
 }
+
+/// The hint under a card legended `commands` says commands too — the
+/// footer was the one surface still calling them constructs.
+#[test]
+fn an_idle_footer_calls_slash_commands_commands() {
+    let _g = crate::app::theme_test_guard();
+    let ctx = HashMap::new();
+    let line = text(&route_line(&fc(&[], &ctx), 80));
+    assert!(line.contains("/ for commands"), "{line:?}");
+    assert!(!line.contains("construct"), "{line:?}");
+}
