@@ -31,6 +31,10 @@ pub(crate) struct Weather {
     /// card's curve. Empty from a cache written before there was one.
     #[serde(default)]
     pub hours: Vec<i32>,
+    /// The hour of day the reading is for (0–23), so the curve can mark
+    /// where the day ends.
+    #[serde(default)]
+    pub hour: u8,
 }
 
 static CURRENT: RwLock<Option<Weather>> = RwLock::new(None);
@@ -95,8 +99,10 @@ pub(crate) fn parse_forecast(body: &str, place: &str, unit: char) -> Option<Weat
     let cur = v.get("current")?;
     let daily = v.get("daily")?;
     let first = |k: &str| daily.get(k)?.as_array()?.first()?.as_f64();
+    let now = cur.get("time").and_then(|t| t.as_str());
     Some(Weather {
-        hours: hours_from(v.get("hourly"), cur.get("time").and_then(|t| t.as_str())),
+        hours: hours_from(v.get("hourly"), now),
+        hour: now.and_then(|t| t.get(11..13)?.parse().ok()).unwrap_or(0),
         place: place.to_string(),
         temp: cur.get("temperature_2m")?.as_f64()?.round() as i32,
         hi: first("temperature_2m_max")?.round() as i32,

@@ -36,6 +36,10 @@ pub struct Style {
     /// stroke is a line, and a line crossing a word is a scribble however
     /// faint it is.
     pub outline: bool,
+    /// Whether the dot on the right-hand end is drawn. A live series is
+    /// newest on the right and the dot marks now; a forecast is *now* on
+    /// the left and its right end is tomorrow, where a dot would lie.
+    pub head: bool,
 }
 
 impl Default for Style {
@@ -44,6 +48,7 @@ impl Default for Style {
             at_curve: FILL_TOP,
             at_base: FILL_BOTTOM,
             outline: true,
+            head: true,
         }
     }
 }
@@ -112,12 +117,26 @@ pub fn draw_styled(
 
     // A dot on the newest reading: the eye lands on it first and reads the
     // series backwards from there.
-    let hx = x + w - STROKE;
-    let hy = curve(x + w);
+    if style.head {
+        dot(c, x + w - STROKE, curve(x + w), color);
+    }
+}
+
+/// The reading dot, the size the curve's head wears — a forecast puts it
+/// on its own *now* instead.
+pub fn dot(c: &mut Canvas, hx: f32, hy: f32, color: (u8, u8, u8)) {
     let r = STROKE * 1.15;
     c.fill((hx - r, hy - r, 2.0 * r, 2.0 * r), color, 1.0, |px, py| {
         (px - hx).powi(2) + (py - hy).powi(2) <= r * r
     });
+}
+
+/// Where the curve stands at `t` in `0.0..=1.0` of a box `(y, h)` — the
+/// same placement `draw` uses, so a mark on the curve lands on it.
+pub fn y_at(samples: &[f32], t: f32, y: f32, h: f32) -> f32 {
+    let base = y + h - STROKE * 0.5;
+    let top = y + STROKE * 0.5;
+    base - value_at(samples, t).clamp(0.0, 1.0) * (base - top).max(0.001)
 }
 
 /// The series' value at `t` in `0.0..=1.0`, Catmull–Rom interpolated between

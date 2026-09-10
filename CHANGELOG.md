@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.80
+
+**The WEATHER curve's dot is on now.** The area chart it borrows from the
+CPU history puts a dot on its right-hand end, because a live series is
+newest there; a forecast is *now* on the left, so the dot was marking this
+time tomorrow. The style grew a `head` switch, the card draws its dot on
+the left end where the reading is, and a faint tick stands where the day
+ends — the reading's hour is kept for it — so the shape reads as a day,
+not as a history.
+
 ## 0.21.79
 
 **The WEATHER card knows where you are without being told.** It existed only

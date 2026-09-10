@@ -22,6 +22,7 @@ fn geocoder_and_forecast_bodies_parse_into_a_reading() {
             code: 61,
             unit: 'C',
             hours: vec![21, 23, 25],
+            hour: 8,
         }
     );
     let bare = FORECAST.replace(r#""time":"2026-09-10T08:15","#, "");
@@ -55,6 +56,7 @@ fn a_dry_clear_day_reads_short_and_glyphs_follow_the_code() {
         code: 0,
         unit: 'F',
         hours: Vec::new(),
+        hour: 0,
     };
     assert_eq!(line(&w), "\u{2600} 31\u{00b0} \u{2191}33 \u{2193}22");
     assert_eq!(glyph(2), '\u{2601}');
