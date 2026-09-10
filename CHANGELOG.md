@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.2
+
+**Small corrections.** Four doc comments described the item *below* the
+one they sat on (the nav's pane rows, the Far panel legend, the channel
+`send`, and a sentence split across two files) and one named a function
+by a path it left; each sits on its own item again. `/tools`' relative
+time is capped at `999d ago` so the column it lives in never shifts. The
+viewer's search line says `no lines match` and `3 lines` with one noun.
+
 ## 0.22.1
 
 **Three small truths.** A todo due in another year showed `jan 5`, the

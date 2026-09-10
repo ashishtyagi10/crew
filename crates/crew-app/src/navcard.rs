@@ -98,12 +98,6 @@ impl CrewApp {
         Some((sb, ch, l))
     }
 
-    /// One row per open pane for the sidebar PANES list. A row carries the
-    /// `[+]` restore marker whenever its pane is NOT visible in the content
-    /// area — minimized into the nav, covered while another pane is zoomed,
-    /// or standing behind the strip's `+N` overflow tile — so the list always
-    /// says which panes are actually on screen. Clicking (or Cmd+N-focusing)
-    /// such a row brings the pane back either way.
     /// The focused pane's name, for the input bar's bottom-border legend. The
     /// same `title_text()` the PANES list and the pane's own card legend show,
     /// so one pane is never called two things on one screen. `None` when there
@@ -113,6 +107,12 @@ impl CrewApp {
         self.panes.get(self.focused).map(|p| p.title_text())
     }
 
+    /// One row per open pane for the sidebar PANES list. A row carries the
+    /// `[+]` restore marker whenever its pane is NOT visible in the content
+    /// area — minimized into the nav, covered while another pane is zoomed,
+    /// or standing behind the strip's `+N` overflow tile — so the list always
+    /// says which panes are actually on screen. Clicking (or Cmd+N-focusing)
+    /// such a row brings the pane back either way.
     pub(crate) fn pane_rows(&self) -> Vec<crate::panelist::PaneRow> {
         // Zoom draws only the focused pane (clamped like build_frame clamps).
         let zoomed_on = self.focused.min(self.panes.len().saturating_sub(1));

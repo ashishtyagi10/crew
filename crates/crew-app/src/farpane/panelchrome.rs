@@ -96,6 +96,10 @@ pub(crate) fn fmt_size(bytes: u64) -> String {
     }
 }
 
+/// Columns the path keeps for itself before the count and size are worth
+/// showing at all.
+pub(crate) const MIN_PATH: usize = 6;
+
 /// `" /path · N · size "` — `N` is the panel's entry count and `size` its
 /// total byte size (via `fmt_size`). A directory with zero entries shows
 /// `· empty` instead of the (always-zero, redundant) `· 0 · 0 B` — a plain
@@ -110,10 +114,6 @@ pub(crate) fn fmt_size(bytes: u64) -> String {
 /// unit. Three columns come off the top: the two border cells, plus one of
 /// rule after the title, which is the breath every other card in crew keeps
 /// (`boxdraw::title_budget` takes six for the same reason).
-/// Columns the path keeps for itself before the count and size are worth
-/// showing at all.
-pub(crate) const MIN_PATH: usize = 6;
-
 pub(crate) fn legend(display: &str, count: usize, total: u64, width: u16) -> String {
     let suffix = if count == 0 {
         " \u{00b7} empty ".to_string()

@@ -15,8 +15,8 @@ pub(super) fn search_line(out: &mut Vec<CellView>, p: &ViewPane, cols: u16, rows
     let row = rows - 1;
     let count = match (s.typing, s.hits.len()) {
         (true, _) => String::new(),
-        (false, 0) => "  no matches".to_string(),
-        (false, n) => format!("  {n} line{}", if n == 1 { "" } else { "s" }),
+        (false, 0) => "  no lines match".to_string(),
+        (false, n) => format!("  {}", crate::wording::count(n, "line")),
     };
     let caret = if s.typing { "\u{2588}" } else { "" };
     let text = format!("/{}{caret}{count}", s.needle);

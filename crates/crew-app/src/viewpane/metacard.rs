@@ -16,7 +16,7 @@ fn rows(s: &str, fg: (u8, u8, u8), bold: bool, cols: usize) -> Vec<CardLine> {
         .collect()
 }
 
-/// `bytes` in compact units, the same convention `farpane/render.rs::fmt_size`
+/// `bytes` in compact units, the same convention `farpane/panelchrome.rs::fmt_size`
 /// uses for directory listings — duplicated locally rather than exported
 /// across a module boundary for one function used by only one caller there.
 pub(crate) fn fmt_size(bytes: u64) -> String {

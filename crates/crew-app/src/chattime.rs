@@ -22,7 +22,8 @@ pub(crate) fn rel_time(ts: &str, now_ms: u64) -> Option<String> {
         10..=59 => format!("{secs}s ago"),
         60..=3_599 => format!("{}m ago", secs / 60),
         3_600..=86_399 => format!("{}h ago", secs / 3_600),
-        _ => format!("{}d ago", secs / 86_400),
+        // Capped so the column that holds it (`toolsrow::AGO_W`) never shifts.
+        _ => format!("{}d ago", (secs / 86_400).min(999)),
     })
 }
 
