@@ -86,7 +86,11 @@ impl CrewApp {
         // Inside a pane, content selects and the legend row carries: the same
         // split the mouse gestures already use, told the same way.
         match (self.pane_at_cursor(), self.cursor_any_cell()) {
-            (Some(i), Some(_)) if crate::linkhover::any() || self.plan_hover_on(i) => Over::Link,
+            (Some(i), Some(_))
+                if crate::linkhover::any() || self.plan_hover_on(i) || self.popup_hover_on(i) =>
+            {
+                Over::Link
+            }
             (Some(_), Some(_)) => Over::Text,
             (Some(_), None) => Over::Handle,
             (None, _) if self.cursor_in_input() => Over::Text,
@@ -101,7 +105,7 @@ impl CrewApp {
         // BEFORE the shape is asked for — and a run that moved repaints, since
         // the hovered run's weight is part of the frame.
         // Non-short-circuit: both hovers must re-sync on every move.
-        if self.plan_hover_sync() | self.link_hover_sync() {
+        if self.plan_hover_sync() | self.link_hover_sync() | self.popup_hover_sync() {
             self.redraw();
         }
         let want = icon(self.pointer_over());

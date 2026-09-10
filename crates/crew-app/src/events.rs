@@ -112,10 +112,10 @@ impl CrewApp {
                     self.redraw();
                     return;
                 }
-                // A toast is an overlay: it is drawn on top of whatever pane
-                // it rests on, so a click on it must be answered before the
-                // pane underneath ever sees the press.
-                if self.toast_click() {
+                // A toast, or a composer pop-up, is an overlay: drawn on top
+                // of whatever pane it rests on, so a click on it (a row it
+                // picks) must be answered before the pane sees the press.
+                if self.toast_click() || self.popup_press_at_cursor() {
                     self.redraw();
                     return;
                 }

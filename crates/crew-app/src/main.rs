@@ -96,6 +96,7 @@ mod chatplace;
 mod chatplanbtn;
 mod chatplanclick;
 mod chatpop;
+mod chatpopup;
 mod chatprobe;
 mod chatprog;
 mod chatprogspring;
@@ -373,6 +374,7 @@ mod plot;
 mod pointer;
 mod poll;
 mod popupchrome;
+mod popupclick;
 mod popupplace;
 #[cfg(test)]
 #[path = "popupshot_tests.rs"]

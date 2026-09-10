@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.70
+
+**A composer pop-up answers the mouse.** Its rows were keyboard-only: the
+pointer over the model picker wore the I-beam, a click on a row fell through
+to the transcript beneath and did nothing to the row. Now the row under the
+pointer becomes the selection as it does in every menu, the pointer wears
+the hand a link and a plan button get, and a click picks the row through
+the same Enter the keyboard would — a mouse pick and a key pick are one
+path, so Tab-fill, run, the model picker's key prompt and the untouched
+`/model` rule all hold. A section title is not a choice and is skipped; the
+frame, the margin and the pane beside the card are not rows. The six
+pop-ups are drawn from one place now (`ChatPane::popup`, the precedence
+their keys already had: key prompt, find, history, attach, palette), which
+is also where the mouse asks which row it is on — so a hit can never
+resolve against a row the frame did not draw. The scroll a long list draws
+with is pinned against ratatui's own.
+
 ## 0.21.69
 
 **A column of page between a pop-up and the words it stands over, and the
