@@ -167,3 +167,7 @@ mod tests;
 #[cfg(test)]
 #[path = "sidebarglanceshot_tests.rs"]
 mod shot_tests;
+
+#[cfg(test)]
+#[path = "navglancesample_tests.rs"]
+pub(crate) mod sample;

@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.78
+
+**The nav's contrast sweep sees the glance cards.** The contract that walks
+every glyph the nav draws against every theme was fed the LOG filling only,
+so WEATHER, SERVING and WAITING ON YOU had never been measured on a light
+page; it now runs both fillings at the default width and at the narrowest
+one, sharing one sample glance with the shot harness. Everything clears
+the floor. The one thing it turned up was the `░` track of the narrow
+nav's bar gauges, which stands at the border's ratio on purpose and is now
+listed with the rules as furniture. The nav is shot on the light and CRT
+themes as well as the dark one.
+
 ## 0.21.77
 
 **The WEATHER card draws the day.** Under `☁ 24°C partly cloudy` and the

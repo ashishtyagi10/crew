@@ -35,8 +35,7 @@ fn pane(index: usize, title: &str, focused: bool, busy: bool) -> crate::panelist
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn sidebar_shot_glance() {
-    use crate::navglance::{Glance, Serving, Signal};
-    use crate::usageledger::{WindowStat, Windows};
+    let _a = crate::palette::test_guard();
     let _g = crate::app::theme_test_guard();
     let mut sp = StatsPane::new();
     sp.refresh(std::path::Path::new("."));
@@ -52,65 +51,17 @@ fn sidebar_shot_glance() {
         pane(2, "cargo watch", false, true),
         pane(3, "zsh", false, false),
     ];
-    let glance = Glance {
-        weather: Some(crate::navweather::Weather {
-            place: "Berlin".into(),
-            temp: 24,
-            hi: 27,
-            lo: 18,
-            rain: 10,
-            code: 2,
-            unit: 'C',
-            // A September day: cool at eight, the peak mid-afternoon.
-            hours: (0..24)
-                .map(|h| {
-                    let t = (h as f32 + 8.0 - 15.0) / 24.0 * std::f32::consts::TAU;
-                    (22.5 + 4.5 * t.cos()).round() as i32
-                })
-                .collect(),
-        }),
-        serving: Serving {
-            provider: Some("claude-code".into()),
-            model: Some("claude-sonnet-5".into()),
-            windows: Windows {
-                five_h: Some(WindowStat {
-                    left_ms: 2 * 3_600_000 + 10 * 60_000,
-                    spent: 42,
-                    budget: 100,
-                }),
-                seven_d: Some(WindowStat {
-                    left_ms: 3 * 86_400_000 + 4 * 3_600_000,
-                    spent: 15,
-                    budget: 100,
-                }),
-            },
-        },
-        waiting: crate::navglance::rows_from(vec![
-            (
-                0,
-                "smith".to_string(),
-                Signal {
-                    blocked: false,
-                    plan: true,
-                    running: 2,
-                },
-            ),
-            (
-                2,
-                "zsh".to_string(),
-                Signal {
-                    blocked: true,
-                    plan: false,
-                    running: 0,
-                },
-            ),
-        ]),
-    };
+    let glance = crate::navglance::sample::glance();
     let strip = "\u{2600} 24\u{00b0} \u{2191}27 \u{2193}18 \u{2602}10%";
-    for (name, w) in [
-        ("sidebar-glance-narrow", 160 + 24),
-        ("sidebar-glance", 210 + 24),
+    use crew_theme::ThemeId;
+    for (name, w, theme) in [
+        ("sidebar-glance-narrow", 160 + 24, ThemeId::PaperDark),
+        ("sidebar-glance", 210 + 24, ThemeId::PaperDark),
+        ("sidebar-glance-light", 210 + 24, ThemeId::PaperLight),
+        ("sidebar-glance-crt", 210 + 24, ThemeId::CrtGreen),
     ] {
+        crew_theme::set_theme(theme);
+        crate::palette::set_accent(crew_theme::theme().accent_default);
         let px = shot_at(
             name,
             w,
