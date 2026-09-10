@@ -294,6 +294,9 @@ mod mdcardshot_tests;
 #[path = "mdshot_tests.rs"]
 mod mdshot_tests;
 
+#[cfg(test)]
+#[path = "barpopupshot_tests.rs"]
+mod barpopupshot_tests;
 mod cardchrome;
 mod mentionrange;
 mod menuink;

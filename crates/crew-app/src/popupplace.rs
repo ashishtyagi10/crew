@@ -47,17 +47,30 @@ pub(crate) fn above_composer(pane: &ChatPane, r: Rect, cw: f32, ch: f32, mh: f32
     (composer_top - mh).max(r.y)
 }
 
+/// Columns of bare page kept to the RIGHT of a card, inside its scene: the
+/// overlay pass backs the whole scene with page, so this is a margin
+/// between the frame and whatever transcript text it stands over. Without
+/// it the border touched the next word.
+pub(crate) const MARGIN_COLS: u16 = 1;
+
+/// A pop-up scene's width in px for a card `cols` wide: the card and its
+/// margin, never past the pane's `pane_cols`.
+pub(crate) fn scene_w(cols: u16, pane_cols: u16, cw: f32) -> f32 {
+    f32::from((cols + MARGIN_COLS).min(pane_cols.max(cols))) * cw
+}
+
 /// The pop-up as an overlay scene on pane `r`: standing on the composer,
 /// flush with the pane's left edge (the composer's own left border), as
-/// wide as its cells. Overlay, so the overlay pass backs it with an opaque
-/// page and a sheer window holds it solid.
+/// wide as its cells plus [`MARGIN_COLS`] of page. Overlay, so the overlay
+/// pass backs it with an opaque page and a sheer window holds it solid.
 pub(crate) fn scene(pane: &ChatPane, r: Rect, cw: f32, ch: f32, p: Popup) -> PaneScene {
     let h = f32::from(p.rows) * ch;
+    let pane_cols = (r.w / cw).floor() as u16;
     PaneScene {
         cells: p.cells,
         x: r.x,
         y: above_composer(pane, r, cw, ch, h),
-        w: f32::from(p.cols) * cw,
+        w: scene_w(p.cols, pane_cols, cw),
         h,
         focused: false,
         bordered: false,
