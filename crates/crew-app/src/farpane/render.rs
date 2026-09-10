@@ -202,7 +202,7 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
         .map(|e| {
             let width = inner.width as usize;
             let glyph = super::icons::icon(e);
-            let (mut name, fg) = if e.is_dir {
+            let (name, fg) = if e.is_dir {
                 (format!("{glyph} {}/", e.name), dir_color())
             } else {
                 (format!("{glyph} {}", e.name), text_col)
@@ -212,13 +212,7 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
             } else {
                 fmt_size(e.size)
             };
-            if !size.is_empty() && name.chars().count() + size.chars().count() >= width {
-                // Keep the size intact; truncate the name with an ellipsis
-                // (the legend truncates the same way, from the other end).
-                let keep = width.saturating_sub(size.chars().count() + 2);
-                name = name.chars().take(keep).chain(['\u{2026}']).collect();
-            }
-            let pad = width.saturating_sub(name.chars().count() + size.chars().count());
+            let (name, pad) = rowfit::fit(name, &size, width);
             let mut spans = vec![Span::styled(name, Style::new().fg(fg))];
             if !size.is_empty() {
                 spans.push(Span::styled(
@@ -243,11 +237,10 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
     StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);
 }
 
-/// The Far-style function-key bar across the bottom row: the key number in
-/// accent, a gap, then the action label on a solid accent pill. The pill's
-/// padding is half-block glyphs (`▐label▌`), not spaces — `to_cells` drops
 #[path = "bars.rs"]
 mod bars;
+#[path = "rowfit.rs"]
+mod rowfit;
 use bars::{command_bar, function_bar, prompt_bar, status_bar};
 
 #[cfg(test)]
