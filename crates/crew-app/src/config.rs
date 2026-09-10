@@ -143,7 +143,7 @@ pub struct CrewConfig {
     /// The nav's variable slot: `glance` (who serves, what waits on you) or `log`. `/nav`.
     #[serde(default = "default_nav_card")]
     pub nav_card: String,
-    /// The place the clock's weather strip reports for; empty = no strip. `/weather`.
+    /// The WEATHER card's place; empty = the time zone's city, `off` = none. `/weather`.
     #[serde(default)]
     pub weather_place: String,
     /// How much air sits between rows of text: the cell height as a fraction

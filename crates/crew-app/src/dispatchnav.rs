@@ -29,28 +29,38 @@ impl CrewApp {
     /// `/weather off` clears it. Bare, it says what is set.
     pub(crate) fn weather_command(&mut self, arg: &str) {
         let arg = arg.trim();
+        use crate::navweatherplace::{is_auto, resolve, OFF};
         if arg.is_empty() {
-            let note = if self.config.weather_place.is_empty() {
-                "weather: off (/weather <place>, e.g. /weather Berlin)".to_string()
-            } else {
-                format!(
-                    "weather: {} (/weather <place> | off)",
-                    self.config.weather_place
-                )
+            let key = &self.config.weather_place;
+            let note = match resolve(key) {
+                None => "weather: off (/weather <place> | auto)".to_string(),
+                Some(p) if is_auto(key) => {
+                    format!("weather: {p} — your time zone's city (/weather <place> | off)")
+                }
+                Some(p) => format!("weather: {p} (/weather <place> | auto | off)"),
             };
             self.set_status(note);
             return;
         }
-        if arg.eq_ignore_ascii_case("off") {
-            self.config.weather_place.clear();
+        if arg.eq_ignore_ascii_case(OFF) {
+            self.config.weather_place = OFF.to_string();
             self.config.save();
             crate::navweather::set(None);
             self.set_status("weather: off");
             self.redraw();
             return;
         }
-        self.config.weather_place = arg.to_string();
+        // `auto` empties the key: the time zone's city again.
+        self.config.weather_place = if arg.eq_ignore_ascii_case("auto") {
+            String::new()
+        } else {
+            arg.to_string()
+        };
         self.config.save();
+        let Some(arg) = resolve(&self.config.weather_place) else {
+            self.set_status("weather: your time zone names no city — /weather <place>");
+            return;
+        };
         // Fetch now rather than on the hourly clock — the user just asked.
         crate::navweather::set(None);
         self.weather_next = 0;
