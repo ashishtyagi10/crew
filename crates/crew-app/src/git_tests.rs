@@ -126,3 +126,23 @@ fn a_long_branch_is_cut_with_a_mark() {
     assert!(row.ends_with('\u{2026}'), "{row:?}");
     assert!(row.chars().count() <= 20, "{row:?}");
 }
+
+/// The `↑ahead ↓behind` is the news; a long branch name gave way to it
+/// rather than the other way round.
+#[test]
+fn the_ahead_behind_survives_a_long_branch_name() {
+    let _g = crate::app::theme_test_guard();
+    let info = GitInfo {
+        branch: "feat/weather-states-and-then-some".into(),
+        changed: 0,
+        ahead: 3,
+        behind: 1,
+    };
+    let cells = git_cells(&info, 22);
+    let mut v: Vec<&crew_render::CellView> = cells.iter().filter(|c| c.row == 1).collect();
+    v.sort_by_key(|c| c.col);
+    let head: String = v.iter().map(|c| c.c).collect();
+    assert!(head.ends_with("↑3 ↓1"), "{head:?}");
+    assert!(head.contains('\u{2026}'), "{head:?}");
+    assert!(v.iter().all(|c| c.col < 22 - 1), "{head:?}");
+}

@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.88
+
+**The GIT card keeps the news.** `feat/weather-states ↑3 ↓1` was clipped
+from the right, so on a docked nav the branch name you already knew
+survived and the ahead/behind — the only part that changes — was the part
+that vanished. The `↑ ↓` is measured first now and the branch gives way to
+it, ending in `…`. And the UPDATE card's stage lines (`v0.21.87 → v0.21.88`,
+`updated v0.21.88`) mark their cut like its notes always did, instead of
+stopping mid-version on a narrowed nav.
+
 ## 0.21.87
 
 **Two nav rules tell the truth about what they show.** The LOG's `⇡N`

@@ -68,3 +68,14 @@ fn row_text(cells: &[CellView], row: u16) -> String {
     r.sort_by_key(|c| c.col);
     r.iter().map(|c| c.c).collect()
 }
+
+/// A stage line on a narrowed nav ends in `…`, never mid-version.
+#[test]
+fn a_stage_line_marks_its_cut_on_a_narrow_card() {
+    let _g = crate::app::theme_test_guard();
+    let u = UpdateState::for_test(Stage::Downloading("9.9.9".into()));
+    let cells = update_cells(&u, 12, 2);
+    let r1 = row_text(&cells, 1);
+    assert!(r1.ends_with('\u{2026}'), "{r1:?}");
+    assert!(cells.iter().all(|c| c.col < 12), "{r1:?}");
+}
