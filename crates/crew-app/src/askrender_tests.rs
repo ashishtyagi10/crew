@@ -85,3 +85,48 @@ fn roster_reply_renders_via_render() {
     assert!(t.contains("p0") && t.contains("busy"));
     assert_eq!(c, 0);
 }
+
+/// `crew panes` with nothing open says so, instead of a bare header row.
+#[test]
+fn an_empty_roster_says_no_panes_open() {
+    assert_eq!(render_roster(&[]), "no panes open");
+}
+
+/// A long label is clipped to its column so the columns after it hold.
+#[test]
+fn a_long_label_does_not_shift_the_columns() {
+    let out = render_roster(&[PaneCard {
+        id: "1".into(),
+        label: Some("a-very-long-pane-label-indeed".into()),
+        kind: "shell".into(),
+        running: None,
+        dir: None,
+        busy: false,
+    }]);
+    let row = out.lines().nth(1).unwrap();
+    assert!(row.contains("\u{2026} shell"), "{row:?}");
+}
+
+/// A broadcast names the reason the pane gave, not `idle` for everything.
+#[test]
+fn a_cast_names_busy_and_unreachable_panes_as_such() {
+    let (t, c) = render(&Reply::Cast {
+        answers: vec![
+            CastAnswer {
+                pane: "2".into(),
+                label: Some("coder".into()),
+                text: None,
+                no_answer: Some(NoAnswer::BusyElsewhere),
+            },
+            CastAnswer {
+                pane: "3".into(),
+                label: None,
+                text: None,
+                no_answer: Some(NoAnswer::Unreachable),
+            },
+        ],
+    });
+    assert!(t.contains("[coder] no answer (busy)"), "{t}");
+    assert!(t.contains("[3] no answer (unreachable)"), "{t}");
+    assert_eq!(c, 2);
+}
