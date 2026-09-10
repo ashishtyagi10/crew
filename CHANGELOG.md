@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.90
+
+**The `/todo` `@project` pop-up answers the mouse and says when it
+scrolls.** Its band fell into the "past the list" branch of the pane's
+hit-test and returned nothing, so hover and click did nothing on the one
+pop-up that had not yet learned the mouse; a click on a tag row accepts
+that tag now, as Enter does on the selected one, and the border is inert.
+And its `k/N` scroll mark was gated on the palette's ten rows while this
+card is capped at eight, so seven tags scrolled under a card that never
+said so — the mark counts the rows the card was actually given
+(`cmdmenu::offset_in` is the one scroll the draw and the mouse share).
+
 ## 0.21.89
 
 **Three small words.** The footer's idle hint said `/ for constructs`

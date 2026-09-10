@@ -46,6 +46,39 @@ pub(crate) fn popup_h(p: &TodoPane, rows: u16) -> u16 {
     }
 }
 
+/// The open tag pop-up's rows as menu items — `@tag` in the tag's colour —
+/// read by the draw and the hit-test alike, so the card they size agrees.
+pub(crate) fn tag_items(m: &super::tagmenu::TagMenu) -> Vec<crate::suggest::MenuItem> {
+    let t = crew_theme::theme();
+    let item = |tag: &String| crate::suggest::MenuItem {
+        label: format!("@{tag}"),
+        color: Some(crew_theme::tag_color(tag, t)),
+        ..Default::default()
+    };
+    m.matches.iter().map(item).collect()
+}
+
+/// The pop-up card's width in a pane `cols` wide.
+pub(crate) fn popup_w(m: &super::tagmenu::TagMenu, cols: u16) -> u16 {
+    crate::popupplace::card_cols(crate::cmdrow::content_w(&tag_items(m)), cols)
+}
+
+/// The tag under content cell `(row, col)` when the pop-up card stands at
+/// `top`, `ph` rows tall and `w` wide: the interior only — the border is
+/// inert — mapped through the same scroll the list was drawn with.
+pub(crate) fn tag_at(
+    m: &super::tagmenu::TagMenu,
+    (row, col): (u16, u16),
+    (top, ph, w): (u16, u16, u16),
+) -> Option<usize> {
+    if ph < 3 || row <= top || row >= top + ph - 1 || col == 0 || col + 1 >= w {
+        return None;
+    }
+    let first = crate::cmdmenu::offset_in(m.matches.len(), m.sel, usize::from(ph - 2));
+    let i = first + usize::from(row - top - 1);
+    (i < m.matches.len()).then_some(i)
+}
+
 /// Rows left for the item list.
 pub(crate) fn list_height(p: &TodoPane, cols: u16, rows: u16) -> u16 {
     let cols = content(cols);

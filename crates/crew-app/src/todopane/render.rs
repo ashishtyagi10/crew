@@ -74,6 +74,8 @@ pub(crate) enum TodoClick {
     Composer,
     /// The header row's `[show N done]` / `[hide done]` button.
     ShowDone,
+    /// A row of the open `@project` pop-up.
+    PickTag(usize),
 }
 
 /// Map a content-cell click to its action; `None` falls through to the
@@ -88,6 +90,13 @@ pub(crate) fn click_at(
     let cols = content(cols);
     if row >= rows.saturating_sub(composer::height(p, cols, rows)) {
         return Some(TodoClick::Composer);
+    }
+    let ph = popup_h(p, rows);
+    if let (Some(m), true) = (&p.tagmenu, ph > 0) {
+        let top = rows - composer::height(p, cols, rows) - ph;
+        if let Some(i) = tag_at(m, (row, col), (top, ph, popup_w(m, cols))) {
+            return Some(TodoClick::PickTag(i));
+        }
     }
     let header = header_h(p, cols);
     if row == 0 && header > 0 {
@@ -240,18 +249,10 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
 
     let ph = popup_h(p, rows);
     if let (Some(m), true) = (&p.tagmenu, ph > 0) {
-        let items: Vec<crate::suggest::MenuItem> = m
-            .matches
-            .iter()
-            .map(|tag| crate::suggest::MenuItem {
-                label: format!("@{tag}"),
-                color: Some(crew_theme::tag_color(tag, t)),
-                ..Default::default()
-            })
-            .collect();
+        let items = tag_items(m);
         let top = rows - composer::height(p, cols, rows) - ph;
         // As wide as its tags, flush left: the shape of every composer pop-up.
-        let w = crate::popupplace::card_cols(crate::cmdrow::content_w(&items), cols);
+        let w = popup_w(m, cols);
         for mut c in crate::cmdmenu::menu_card("projects", &items, m.sel, w, ph) {
             c.row += top;
             out.push(c);

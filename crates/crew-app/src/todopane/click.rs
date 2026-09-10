@@ -35,9 +35,26 @@ impl CrewApp {
             TodoClick::Select(d) => t.sel = Some(d),
             TodoClick::Composer => t.sel = None,
             TodoClick::ShowDone => t.set_show_done(!t.show_done),
+            TodoClick::PickTag(i) => t.pick_tag(i),
         }
         self.focused = i;
         self.input.focused = false;
         true
     }
 }
+
+impl super::TodoPane {
+    /// Accept the pop-up's `i`th tag into the composer, as Enter does on
+    /// the selected one; the pop-up closes either way.
+    pub(crate) fn pick_tag(&mut self, i: usize) {
+        if let Some(tag) = self.tagmenu.as_ref().and_then(|m| m.matches.get(i)) {
+            self.input = super::tagmenu::accept(&self.input, tag);
+            self.cursor = self.input.chars().count();
+        }
+        self.tagmenu = None;
+    }
+}
+
+#[cfg(test)]
+#[path = "tagclick_tests.rs"]
+mod tagclick_tests;
