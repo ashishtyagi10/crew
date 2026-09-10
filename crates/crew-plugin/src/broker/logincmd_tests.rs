@@ -39,68 +39,32 @@ fn minting(
 }
 
 /// THE bug this file exists for: a device provider with an API key present
-/// must still render a NUMBERED sign-in row — the key used to hide the
-/// OAuth path entirely.
+/// must still be a pickable sign-in row — the key used to hide the OAuth
+/// path entirely. Picking it runs the device flow, key or no key.
 #[test]
-fn a_key_present_device_provider_still_offers_the_numbered_signin() {
+fn a_key_present_device_provider_still_offers_the_signin() {
     let rows = vec![device("dashscope", false, true)];
-    let text = listing(&rows);
-    assert!(text.contains("1. dashscope"), "{text}");
-    assert!(text.contains("key present"), "{text}");
-    assert!(
-        text.contains("/login 1 signs in with OAuth instead"),
-        "{text}"
+    let o = options(&rows);
+    assert!(o[0].device && o[0].key_present && !o[0].signed_in, "{o:?}");
+    assert_eq!(
+        pick(&rows, "dashscope"),
+        LoginPick::Device("dashscope".into())
     );
 }
 
+/// Numbers are `/model <n>`'s and resolve against the provider listing in
+/// `modelpick`, never here: a digit is an unknown provider name, and the
+/// note points at `/model`.
 #[test]
-fn listing_marks_grant_and_delegated_states() {
-    let rows = vec![
-        device("dashscope", true, true),
-        delegated("claude-code", "claude auth login", false),
-        delegated("codex", "codex login", true),
-    ];
-    let text = listing(&rows);
-    assert!(
-        text.contains("1. dashscope \u{2014} \u{2713} signed in"),
-        "{text}"
-    );
-    assert!(text.contains("/logout"), "{text}");
-    // Delegated rows are grayed (unnumbered) with the exact command.
-    assert!(text.contains("\u{25cb} claude-code"), "{text}");
-    assert!(text.contains("run `claude auth login`"), "{text}");
-    assert!(!text.contains(". claude-code"), "{text}");
-    assert!(
-        text.contains("\u{25cb} codex \u{2014} \u{2713} signed in (vendor CLI)"),
-        "{text}"
-    );
-}
-
-#[test]
-fn empty_rows_fall_back_to_the_shared_advice() {
-    let text = listing(&[]);
-    assert!(
-        text.contains(super::super::discover::no_provider_advice()),
-        "{text}"
-    );
-}
-
-/// The numbers `pick` resolves are exactly the ones `listing` prints:
-/// device rows only, in order — a delegated row between them must not shift
-/// the numbering.
-#[test]
-fn pick_by_number_indexes_only_the_device_rows() {
-    let rows = vec![
-        device("dashscope", false, true),
-        delegated("claude-code", "claude auth login", false),
-        device("qwen-intl", false, false),
-    ];
-    assert_eq!(pick(&rows, "1"), LoginPick::Device("dashscope".into()));
-    assert_eq!(pick(&rows, "2"), LoginPick::Device("qwen-intl".into()));
-    let LoginPick::Note(n) = pick(&rows, "3") else {
-        panic!("out of range must be a note");
+fn pick_takes_names_only_and_points_numbers_at_model() {
+    let rows = vec![device("dashscope", false, true)];
+    let LoginPick::Note(n) = pick(&rows, "1") else {
+        panic!("a number is not a name");
     };
-    assert!(n.contains("1..=2"), "{n}");
+    assert!(
+        n.contains("unknown provider") && n.contains("/model"),
+        "{n}"
+    );
 }
 
 #[test]
@@ -117,6 +81,10 @@ fn pick_by_name_is_case_insensitive_and_routes_delegated_to_their_cli() {
         panic!("delegated pick must be a note");
     };
     assert!(n.contains("claude auth login"), "{n}");
+    assert!(
+        n.contains("/model claude-code again here") && !n.contains("/login"),
+        "the way back is the construct that exists: {n}"
+    );
 }
 
 /// A registry provider with no sign-in flow (openrouter) gets pointed at
@@ -137,10 +105,10 @@ fn pick_distinguishes_keyed_only_providers_from_unknown_names() {
 }
 
 /// A minting CLI's row is the front door to the sanctioned Anthropic
-/// sign-in: absent, it says how to install; signed out beside a key, it
-/// says the sign-in outranks the key; signed in, it reads like any vendor
-/// CLI. Picking it by name never runs a device flow — the CLI owns the
-/// login — and says install-then-login when the CLI is missing.
+/// sign-in: absent, its row carries the install; picking it by name never
+/// runs a device flow — the CLI owns the login — and says
+/// install-then-login when the CLI is missing, sign-in-then-pick when it
+/// is there.
 #[test]
 fn a_minting_cli_row_names_install_login_and_precedence() {
     let brew = "brew install anthropics/tap/ant";
@@ -148,12 +116,9 @@ fn a_minting_cli_row_names_install_login_and_precedence() {
         device("dashscope", false, false),
         minting("anthropic", false, false, Some(brew)),
     ];
-    let text = listing(&rows);
-    assert!(text.contains(" 1. dashscope"), "{text}");
-    assert!(
-        text.contains("\u{25cb} anthropic \u{2014} not installed \u{00b7} `brew install anthropics/tap/ant`, then `ant auth login`"),
-        "{text}"
-    );
+    let o = options(&rows);
+    assert_eq!(o[1].install.as_deref(), Some(brew), "{o:?}");
+    assert_eq!(o[1].login.as_deref(), Some("ant auth login"), "{o:?}");
     let note = match pick(&rows, "anthropic") {
         LoginPick::Note(n) => n,
         other => panic!("{other:?}"),
@@ -161,27 +126,12 @@ fn a_minting_cli_row_names_install_login_and_precedence() {
     assert!(
         note.contains("can't find on its PATH")
             && note.contains("then `ant auth login`")
-            && note.contains("/login again here"),
+            && note.contains("/model anthropic again here"),
         "{note}"
     );
     assert!(
         !note.contains("next pane"),
         "a login is noticed in THIS pane now: {note}"
-    );
-    assert_eq!(
-        pick(&rows, "2"),
-        LoginPick::Note("no sign-in #2 \u{2014} the listing numbers 1..=1".into())
-    );
-
-    let text = listing(&[minting("anthropic", false, true, None)]);
-    assert!(
-        text.contains("key present \u{00b7} `ant auth login` signs in with OAuth instead"),
-        "{text}"
-    );
-    let text = listing(&[minting("anthropic", true, true, None)]);
-    assert!(
-        text.contains("anthropic \u{2014} \u{2713} signed in (vendor CLI)"),
-        "{text}"
     );
     assert_eq!(
         pick(&[minting("anthropic", true, true, None)], "anthropic"),
@@ -252,7 +202,7 @@ fn picking_a_signed_in_cli_row_makes_it_serve() {
         other => panic!("{other:?}"),
     };
     assert!(
-        note.contains("run `codex login`") && note.contains("/login again here"),
+        note.contains("run `codex login`") && note.contains("/model codex again here"),
         "{note}"
     );
 }

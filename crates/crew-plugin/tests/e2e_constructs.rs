@@ -36,11 +36,11 @@ fn every_advertised_construct_answers() {
     let lines: Vec<&str> = sends.iter().map(String::as_str).collect();
     let events = run_broker(&dir, &[mock], &lines);
     let msgs = messages(&events);
-    // Bare `/login` and `/logout` answer with a picker EVENT, not a message:
-    // the rows to choose from. Those are answers too.
+    // Bare `/logout` answers with a picker EVENT, not a message: the rows
+    // to choose from. That is an answer too.
     let pickers = events
         .iter()
-        .filter(|e| matches!(e, PluginEvent::SignIn { .. } | PluginEvent::SignOut { .. }))
+        .filter(|e| matches!(e, PluginEvent::SignOut { .. }))
         .count();
 
     // "unknown construct" is the one answer that means a handler is missing.

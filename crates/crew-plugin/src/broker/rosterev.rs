@@ -11,6 +11,6 @@ pub(crate) fn roster(agents: Vec<AgentInfo>) -> PluginEvent {
     PluginEvent::Roster {
         agents,
         provider: super::discover::resolved_provider().map(|p| p.name().to_string()),
-        signins: super::loginrows::options(&super::logincmd::rows_cached()),
+        signins: super::logincmd::options(&super::logincmd::rows_cached()),
     }
 }

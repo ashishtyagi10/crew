@@ -52,7 +52,7 @@ fn help_opens_the_keys_overlay() {
 #[test]
 fn a_pane_only_construct_is_pointed_at_the_pane() {
     let mut app = CrewApp::default();
-    for c in ["doctor", "login", "logout", "reload", "stop", "export"] {
+    for c in ["doctor", "logout", "reload", "stop", "export"] {
         app.run_slash_command(c);
         let s = app.status.clone().expect("a status was set").0;
         assert!(s.contains(&format!("/{c} runs in an agent pane")), "{s}");

@@ -2,9 +2,11 @@
 //! picker ("your subscriptions" / "your keys" / "installed CLIs", each entry
 //! numbered; signed-out delegated providers grayed with the exact sign-in
 //! command), `/model <n>` to switch provider (persisted through the same
-//! credential-store pin every model choice already uses), and the per-agent
-//! model pinning that has always lived here. Moved out of `commands.rs` to
-//! keep that file inside the line cap as the picker grew in.
+//! credential-store pin every model choice already uses), `/model <provider>`
+//! to sign in or make a signed-in one serve (what the pane's sign-in rows
+//! submit — `/login` retired into here), and the per-agent model pinning
+//! that has always lived here. Moved out of `commands.rs` to keep that file
+//! inside the line cap as the picker grew in.
 use crate::PluginEvent;
 
 use super::modelpick::{groups_text, select, Pick};
@@ -12,9 +14,11 @@ use super::relay::msg;
 use super::session::Session;
 
 /// `/model` — list providers + each agent's model; `/model <n>` — switch
-/// provider; `/model <agent> <model>` — pin the agent to that model for
-/// this session (`default` clears); `/model all <model|default>` — all at
-/// once. Re-emits the roster so the pane's model badges update live.
+/// provider; `/model <provider>` — sign in (a device flow) or make a
+/// signed-in provider serve; `/model <agent> <model>` — pin the agent to
+/// that model for this session (`default` clears); `/model all
+/// <model|default>` — all at once. Re-emits the roster so the pane's model
+/// badges update live.
 pub(crate) fn model_cmd(
     session: &mut Session,
     rest: &str,
@@ -72,6 +76,13 @@ pub(crate) fn model_cmd(
         };
         emit(super::rosterev::roster(session.registry().infos()))?;
         return emit(msg("agent smith", note));
+    }
+    // `/model <provider>` — a name from the sign-in rows: run its device
+    // flow, or make an already signed-in CLI serve. Checked before the
+    // agent lookup only when no model follows: `/model codex` signs in,
+    // `/model codex <model>` pins the agent of that name.
+    if model.is_none() && super::logincmd::offers(agent) {
+        return super::logincmd::signin_by_name(session, agent, emit);
     }
     let reg = session.registry();
     let Some(name) = reg

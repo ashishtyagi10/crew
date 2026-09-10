@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.82
+
+**`/login` retired: `/model` is the one front door for who serves.** The
+sign-in rows have led the `/model` picker since 0.21.62, so `/login` was a
+second door onto the same three choices — and the palette row for it
+already opened the model picker. It is gone from the router, the palette
+and tab completion; typing it answers with where the rows went. A pick in
+the picker's sign-in section submits `/model <provider>`, which runs the
+device flow or makes a signed-in CLI serve exactly as `/login <name>` did
+(`/model <n>` still picks by number, and `/model <agent> <model>` still
+pins). `/logout` stays, and its picker is the one popup the broker opens
+by event; the text listing `/login list` printed went with the command.
+
 ## 0.21.81
 
 **The WEATHER card never silently vanishes.** Between `/weather Tokyo` and

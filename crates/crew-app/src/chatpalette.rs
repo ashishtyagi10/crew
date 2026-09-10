@@ -16,8 +16,8 @@ pub(crate) enum Kind {
     Agent,
     /// The `/model ` argument phase — the grouped model picker.
     Model,
-    /// The `/login`/`/logout` picker, opened by a broker event (`loginpick`).
-    Auth(crate::loginpick::Auth),
+    /// The `/logout` picker, opened by a broker event (`signoutpick`).
+    SignOut,
 }
 
 /// The open leading-token palette: already-filtered rows + selection, plus
@@ -99,14 +99,14 @@ pub(crate) fn after_edit(
         Some(p) if p.kind == kind => std::mem::take(&mut p.entries),
         _ => match kind {
             Kind::Agent => scan(),
-            Kind::Slash | Kind::Model | Kind::Auth(_) => Vec::new(),
+            Kind::Slash | Kind::Model | Kind::SignOut => Vec::new(),
         },
     };
     let items = match kind {
         Kind::Slash => slash_items(query),
         Kind::Agent => attach_items(query, &entries, input.contains('+')),
         Kind::Model => crate::modelpick::rows(query, current_model),
-        Kind::Auth(_) => Vec::new(), // opened by an event; any edit closes it
+        Kind::SignOut => Vec::new(), // opened by an event; any edit closes it
     };
     if items.is_empty() {
         *palette = None;
@@ -191,11 +191,11 @@ pub(crate) fn popup_key(
 pub(crate) fn accept(input: &str, kind: Kind, fill: &str) -> String {
     match kind {
         Kind::Slash => format!("{fill} "),
-        // A sign-in row carries its whole construct (`/login <name>`); a
-        // model row is a slug, applied to the whole roster.
+        // A sign-in row carries its whole construct (`/model <provider>`);
+        // a model row is a slug, applied to the whole roster.
         Kind::Model if fill.starts_with('/') => fill.to_string(),
         Kind::Model => format!("/model all {fill}"),
-        Kind::Auth(a) => format!("/{} {fill}", a.construct()),
+        Kind::SignOut => format!("/logout {fill}"),
         Kind::Agent => match input.rfind('+') {
             Some(plus) => format!("{}{fill} ", &input[..=plus]),
             None => format!("@{fill} "),

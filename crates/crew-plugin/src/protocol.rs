@@ -90,12 +90,6 @@ pub enum PluginEvent {
         #[serde(default)]
         cost_microusd: u64,
     },
-    /// The sign-in front door as data: every provider this machine can sign
-    /// in to, so a host offers a picker instead of a table to read and a name
-    /// to type back. Bare `/login` sends it; picking sends `/login <name>`.
-    SignIn {
-        options: Vec<crate::SignInOption>,
-    },
     /// The stored sign-ins a user can remove, for `/logout`'s picker: the
     /// grants crew holds, and the CLI-owned sign-ins with their own sign-out
     /// command. Bare `/logout` sends it; picking sends `/logout <name>`.

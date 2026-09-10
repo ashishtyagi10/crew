@@ -13,10 +13,10 @@ fn opt(name: &str, device: bool, signed_in: bool) -> SignInOption {
 }
 
 /// The section leads with its header, carries every broker row as a
-/// `/login <name>` submit, marks who serves, dims a signed-out CLI (its
+/// `/model <name>` submit, marks who serves, dims a signed-out CLI (its
 /// desc names the command), and ends with OpenRouter's browser flow.
 #[test]
-fn rows_submit_login_and_say_who_serves() {
+fn rows_submit_model_provider_and_say_who_serves() {
     let opts = vec![
         opt("dashscope", true, false),
         opt("claude-code", false, true),
@@ -26,10 +26,10 @@ fn rows_submit_login_and_say_who_serves() {
     assert!(r[0].header && r[0].label.starts_with("sign in"));
     let labels: Vec<&str> = r[1..].iter().map(|i| i.label.as_str()).collect();
     assert_eq!(labels, ["dashscope", "claude-code", "codex", "openrouter"]);
-    assert_eq!(r[1].fill, "/login dashscope");
+    assert_eq!(r[1].fill, "/model dashscope");
     assert!(r[1].submit && !r[1].dim, "a device flow is always pickable");
     assert!(r[1].desc.contains("OAuth"), "{}", r[1].desc);
-    assert_eq!(r[2].fill, "/login claude-code");
+    assert_eq!(r[2].fill, "/model claude-code");
     assert!(r[2].desc.contains("serving"), "{}", r[2].desc);
     assert!(!r[2].dim);
     assert!(r[3].dim, "a signed-out CLI is dim");
@@ -78,11 +78,11 @@ fn the_query_filters_and_the_section_is_never_empty() {
 /// A sign-in row's fill is a whole construct, and the palette runs it as
 /// one — where a model row's slug becomes `/model all <slug>`.
 #[test]
-fn a_sign_in_pick_runs_login_where_a_model_pick_runs_model_all() {
+fn a_sign_in_pick_runs_model_provider_where_a_model_pick_runs_model_all() {
     use crate::chatpalette::{accept, Kind};
     assert_eq!(
-        accept("/model cl", Kind::Model, "/login claude-code"),
-        "/login claude-code"
+        accept("/model cl", Kind::Model, "/model claude-code"),
+        "/model claude-code"
     );
     assert_eq!(
         accept("/model cl", Kind::Model, "claude-sonnet-5"),

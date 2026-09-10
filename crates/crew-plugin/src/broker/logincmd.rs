@@ -1,13 +1,15 @@
-//! `/login` and `/logout` — the sign-in front door. `/login` lists every
+//! The sign-in rows behind `/model <provider>` and `/logout`. Every
 //! provider that offers a sign-in (crew's native device flow, or a vendor
-//! CLI's own login) and runs the device flow by name or number; `/logout`
-//! removes a stored grant. Exists because the sign-in affordance lived only
-//! inside `/model <n>` AND only rendered when no key was present — a user
-//! holding a key in a shell rc had no visible OAuth path at all. The pure
-//! rows/listing/pick live in `loginrows`; this file gathers and runs.
+//! CLI's own login) is a row; `/model <provider>` runs the device flow or
+//! makes a signed-in CLI serve, `/logout` removes a stored grant. Exists
+//! because the sign-in affordance once rendered only when no key was
+//! present — a user holding a key in a shell rc had no visible OAuth path
+//! at all. (`/login` was the front door for a while; the rows lead the
+//! `/model` picker now, so that second door retired.) The pure rows/pick
+//! live in `loginrows`; this file gathers and runs.
 use crate::PluginEvent;
 
-pub(crate) use super::loginrows::{listing, options, pick, signed_in, LoginPick, LoginRow};
+pub(crate) use super::loginrows::{options, pick, signed_in, LoginPick, LoginRow};
 
 use super::auth::probe::{self, CliAuth};
 use super::auth::registry;
@@ -20,9 +22,9 @@ use super::session::Session;
 /// the front door is that the path is visible). An own-auth CLI (probe
 /// `Unknown`) manages itself and has nothing to list here.
 ///
-/// The CLIs are probed FRESH here, not from the cache: `/login` is the
-/// moment a user checks whether the `ant auth login` they just ran in a
-/// terminal took, and a cached "not installed" from the pane's first
+/// The CLIs are probed FRESH here, not from the cache: `/model <provider>`
+/// is the moment a user checks whether the `ant auth login` they just ran
+/// in a terminal took, and a cached "not installed" from the pane's first
 /// minute answered "no" to a machine that had it.
 pub(crate) fn rows() -> Vec<LoginRow> {
     rows_with(&probe::state_fresh)
@@ -85,27 +87,26 @@ fn rows_with(probe: &dyn Fn(&registry::CliSpec) -> CliAuth) -> Vec<LoginRow> {
     out
 }
 
-/// `/login [provider|n|list]` — bare, hand the host the rows to pick from
-/// (`SignIn`; a machine with nothing to offer gets the advice as text);
-/// `list`, the table as text; a name or number runs the device sign-in
-/// (the caller routes that form as a background task; the poll can wait
-/// minutes).
-pub(crate) fn login_cmd(
+/// Whether `name` is a provider the sign-in rows offer (or the registry
+/// knows), so `/model <name>` routes here rather than to the agent lookup.
+/// Cheap on purpose — the cached rows, no fresh probe — because it runs on
+/// every `/model <word>`.
+pub(crate) fn offers(name: &str) -> bool {
+    registry::by_name(name).is_some()
+        || rows_cached()
+            .iter()
+            .any(|r| r.name.eq_ignore_ascii_case(name))
+}
+
+/// `/model <provider>` — run the device sign-in, make a signed-in CLI
+/// serve, or say what to run (the caller routes this form as a background
+/// task; the poll can wait minutes).
+pub(crate) fn signin_by_name(
     session: &Session,
-    rest: &str,
+    name: &str,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    let arg = rest.trim();
-    let rows = rows();
-    if arg.eq_ignore_ascii_case("list") || (arg.is_empty() && rows.is_empty()) {
-        return emit(msg("agent smith", listing(&rows)));
-    }
-    if arg.is_empty() {
-        return emit(PluginEvent::SignIn {
-            options: options(&rows),
-        });
-    }
-    match pick(&rows, arg) {
+    match pick(&rows(), name.trim()) {
         LoginPick::Device(name) => super::signin::signin_cmd(session, &name, emit),
         LoginPick::Serve(name) => serve(session, &name, emit),
         LoginPick::Note(note) => emit(msg("agent smith", note)),
