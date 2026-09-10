@@ -53,12 +53,23 @@ pub(crate) fn list_height(p: &TodoPane, cols: u16, rows: u16) -> u16 {
     rows.saturating_sub(composer::height(p, cols, rows) + popup_h(p, rows) + header_h(p, cols))
 }
 
-/// Column of a row's `✗`. One in from the gutter column ([`gutter`]) rather
+/// Column of a row's `✗`. Two in from the gutter column ([`gutter`]) rather
 /// than hard against it: a thumb drawn flush against the delete affordance
-/// reads as a mark ON it.
+/// reads as a mark ON it. The click zone is the glyph and the air after it
+/// ([`del_zone`]) — never the gutter, which is only drawn when the list
+/// overflows, which is exactly when a reader reaches for it.
 pub(crate) fn del_col(cols: u16) -> u16 {
     cols.saturating_sub(3)
 }
+
+/// The columns a click deletes from: the `✗` and the one cell of air after it.
+pub(crate) fn del_zone(cols: u16) -> std::ops::Range<u16> {
+    del_col(cols)..del_col(cols) + 2
+}
+
+#[cfg(test)]
+#[path = "delzone_tests.rs"]
+mod delzone_tests;
 
 /// Rows item `it` occupies at this pane width.
 pub(crate) fn item_h(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16 {
