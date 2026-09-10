@@ -8,6 +8,11 @@ fn rel_time_buckets() {
     assert_eq!(rel_time("999700000", now).unwrap(), "5m ago");
     assert_eq!(rel_time("989200000", now).unwrap(), "3h ago");
     assert_eq!(rel_time("827200000", now).unwrap(), "2d ago");
+    assert_eq!(
+        rel_time("0", 2_000 * 86_400_000).unwrap(),
+        "999d ago",
+        "capped to its column"
+    );
 }
 
 #[test]

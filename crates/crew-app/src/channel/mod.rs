@@ -149,8 +149,6 @@ impl Router {
         self.channels.get_mut(kind)?.press()
     }
 
-    /// Send `text` to `addr`. An unroutable address is an error, never a silent drop: a reply
-    /// nobody receives looks exactly like a reply that was never written.
     /// Every channel's notices, drained.
     pub(crate) fn notices(&mut self) -> Vec<String> {
         self.channels
@@ -159,6 +157,8 @@ impl Router {
             .collect()
     }
 
+    /// Send `text` to `addr`. An unroutable address is an error, never a silent drop: a reply
+    /// nobody receives looks exactly like a reply that was never written.
     pub(crate) fn send(&mut self, addr: &str, text: &str) -> Result<(), String> {
         let Some((kind, _)) = split_address(addr) else {
             return Err(format!(

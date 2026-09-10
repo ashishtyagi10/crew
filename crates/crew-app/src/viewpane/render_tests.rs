@@ -183,7 +183,7 @@ fn a_search_with_no_matches_says_so() {
     let _g = crate::app::theme_test_guard();
     let p = searching("alpha\nbeta\n", "zzz", false);
     let cells = p.cells(40, 6);
-    assert!(row_text(&cells, 5).contains("no matches"));
+    assert!(row_text(&cells, 5).contains("no lines match"));
     let fg = cells.iter().find(|c| c.row == 5).unwrap().fg;
     assert_eq!(fg, crew_theme::theme().bell);
 }
