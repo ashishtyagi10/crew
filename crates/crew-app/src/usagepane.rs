@@ -29,6 +29,11 @@ pub struct UsagePane {
 /// How often the pane re-buckets the ledger.
 const REFRESH_MS: u64 = 2_000;
 
+/// Below this width the ring's key is `in 81%` and the cost chart has no
+/// `peak`: `COST PER DAY` fills columns 1–12 and a peak put at `cols - 14`
+/// landed on the same squares; a key cut mid-number is not a key.
+const FULL_COLS: u16 = 28;
+
 impl UsagePane {
     pub fn new() -> Self {
         let now = crate::anim::now_ms();
@@ -146,34 +151,26 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
         // opposite the arc it is naming. Each is written in its slice's
         // colour: the words ARE the key, which is why the ring no longer
         // carries a pair of swatch dots beside it.
-        put(
-            &mut out,
-            &format!("in   {}  {}%", compact(b.tok_in), pct(b.tok_in)),
-            13,
-            l.split_top + RING_ROW - 1,
-            accent(),
-        );
-        put(
-            &mut out,
-            &format!("out  {}  {}%", compact(b.tok_out), pct(b.tok_out)),
-            13,
-            l.split_top + RING_ROW + 1,
-            t.ansi[13],
-        );
+        let key = |name: &str, v: u64| match cols >= FULL_COLS {
+            true => format!("{name:<4} {}  {}%", compact(v), pct(v)),
+            false => format!("{name} {}%", pct(v)),
+        };
+        let (r_in, r_out) = (l.split_top + RING_ROW - 1, l.split_top + RING_ROW + 1);
+        put(&mut out, &key("in", b.tok_in), 13, r_in, accent());
+        put(&mut out, &key("out", b.tok_out), 13, r_out, t.ansi[13]);
     }
 
     // The daily-cost chart's label and the day it peaked.
     if l.cost_rows > 0 {
         let axis = l.cost_top + 1 + l.cost_rows;
         put(&mut out, "COST PER DAY", 1, l.cost_top, t.text_muted);
-        let peak = b.daily_cost.iter().copied().max().unwrap_or(0);
-        put(
-            &mut out,
-            &format!("peak {}", money(peak)),
-            cols.saturating_sub(14),
-            l.cost_top,
-            t.text_muted,
-        );
+        if cols >= FULL_COLS {
+            let peak = format!(
+                "peak {}",
+                money(b.daily_cost.iter().copied().max().unwrap_or(0))
+            );
+            put(&mut out, &peak, cols - 14, l.cost_top, t.text_muted);
+        }
         put(&mut out, "6d ago", 1, axis, t.text_muted);
         put(
             &mut out,
@@ -275,3 +272,7 @@ pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
 #[cfg(test)]
 #[path = "usagepane_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "usagenarrow_tests.rs"]
+mod narrow_tests;

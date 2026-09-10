@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.85
+
+**`/usage` at a quarter tile no longer overprints itself.** `COST PER DAY`
+fills the first twelve columns and `peak $0.81` was put fourteen from the
+right, so between 24 and 27 columns the two landed on the same squares and
+the last writer won; the ring's `in   1.8M  81%` key at column 13 needed
+27 and was cut mid-number. Below 28 columns the key is `in 81%` / `out 18%`
+— still a key — and the peak waits for a wider pane. A sweep from 24 to 40
+columns asserts no two cells share a square.
+
 ## 0.21.84
 
 **`/dash` says `too small · Cmd+Z zooms` instead of a titled empty box**, as
