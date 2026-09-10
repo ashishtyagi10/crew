@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.97
+
+**The Far panel degrades on purpose.** Its function-key bar was eight pills
+in a row with no width check, so a `/far` tile stopped mid-pill and lost
+`F8 Delete` and `F10 Quit` — the two keys that matter most; pills leave
+from the right now and Quit is the last to go. A long directory name was
+hard-cut at the panel edge while a file of the same length ended in `…`
+(the size guard skipped directories); both mark their cut, measured in
+display columns so a CJK name never straddles the edge. The status row
+above the prompt measures the way the prompt does.
+
 ## 0.21.96
 
 **Two clocks climb the border clock's ladder.** A `/blocks` row read

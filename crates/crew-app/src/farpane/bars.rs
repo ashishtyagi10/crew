@@ -101,25 +101,43 @@ pub(super) fn status_bar(buf: &mut Buffer, area: Rect, label: Option<&str>) {
 /// the name ellipsizes (the same rule the listing rows use). A label without
 /// the separator (a directory) ellipsizes plainly from the end.
 fn ellipsize_keeping_suffix(label: &str, width: usize) -> String {
-    if label.chars().count() <= width || width == 0 {
+    use crate::chatwidth::{clip_w, str_w};
+    if str_w(label) <= width || width == 0 {
         return label.to_string();
     }
     let (name, suffix) = match label.rfind(" \u{b7} ") {
         Some(i) => label.split_at(i),
         None => (label, ""),
     };
-    let keep = width.saturating_sub(suffix.chars().count() + 1);
-    let head: String = name.chars().take(keep).collect();
-    format!("{head}\u{2026}{suffix}")
+    format!(
+        "{}{suffix}",
+        clip_w(name, width.saturating_sub(str_w(suffix)))
+    )
 }
 
-/// blank cells, so a bg-only space would never reach the GPU.
+/// The pills that fit `width` columns: dropped from the RIGHT, but never
+/// the last one — a bar that loses `F10 Quit` has lost the way out, and a
+/// bar that just stopped mid-pill on a narrow pane said nothing at all.
+pub(super) fn pills_that_fit(width: usize) -> Vec<(&'static str, &'static str)> {
+    let w = |(k, l): &(&str, &str)| k.len() + l.len() + 5;
+    let mut pills: Vec<(&str, &str)> = FKEYS.to_vec();
+    while pills.len() > 1 && pills.iter().map(w).sum::<usize>() > width {
+        pills.remove(pills.len() - 2);
+    }
+    pills
+}
+
+/// The Far-style function-key bar across the bottom row: the key number in
+/// accent, a gap, then the action label on a solid accent pill. The pill's
+/// padding is half-block glyphs (`▐label▌`), not spaces — `to_cells` drops
+/// blank cells, so a bg-only space would never reach the GPU. Pills that
+/// do not fit leave from the right ([`pills_that_fit`]).
 pub(super) fn function_bar(buf: &mut Buffer, area: Rect) {
     let t = crew_theme::theme();
     let bar_bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
     let cap = Style::new().fg(accent_color());
     let mut spans = Vec::new();
-    for (k, label) in FKEYS {
+    for (k, label) in pills_that_fit(usize::from(area.width)) {
         spans.push(Span::styled(format!("F{k} "), cap));
         spans.push(Span::styled("\u{2590}", cap)); // ▐ left pill edge
         spans.push(Span::styled(

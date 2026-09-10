@@ -30,3 +30,33 @@ fn a_wide_glyph_never_straddles_the_mark() {
     assert!(str_w(&row) <= 24, "{row:?}");
     assert!(row.ends_with('\u{258f}'));
 }
+
+/// Pills leave from the right, Quit last of all; the bar never stops
+/// mid-pill.
+#[test]
+fn the_function_bar_drops_whole_pills_and_keeps_quit() {
+    use super::pills_that_fit;
+    let all = pills_that_fit(120);
+    assert_eq!(all.len(), 8);
+    let narrow = pills_that_fit(50);
+    assert!(narrow.len() < 8 && narrow.len() > 1, "{narrow:?}");
+    assert_eq!(narrow.last(), Some(&("10", "Quit")));
+    assert_eq!(narrow[0], ("1", "Help"), "drops from the right");
+    let width = |p: &[(&str, &str)]| p.iter().map(|(k, l)| k.len() + l.len() + 5).sum::<usize>();
+    assert!(width(&narrow) <= 50, "{}", width(&narrow));
+    assert_eq!(pills_that_fit(4), vec![("10", "Quit")]);
+}
+
+/// The status row measures the way the prompt under it does.
+#[test]
+fn the_status_row_ellipsizes_by_display_width() {
+    use super::ellipsize_keeping_suffix;
+    let s = ellipsize_keeping_suffix("日本語のフォルダの名前 \u{b7} 1.2M", 14);
+    assert!(str_w(&s) <= 14, "{s:?}");
+    assert!(s.ends_with(" \u{b7} 1.2M"), "{s:?}");
+    assert!(s.contains('\u{2026}'));
+    assert_eq!(
+        ellipsize_keeping_suffix("short \u{b7} 1K", 40),
+        "short \u{b7} 1K"
+    );
+}
