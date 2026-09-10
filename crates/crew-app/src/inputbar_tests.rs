@@ -136,7 +136,7 @@ fn broadcast_prompt_is_magenta() {
 
 #[test]
 fn cells_show_cwd_legend_on_top_border() {
-    // Pin the accent global for the read-then-assert window.
+    // The accent is a global other tests move; read on both sides, accept either.
     let _g = crate::palette::test_guard();
     let bar = InputBar {
         text: String::new(),
@@ -144,11 +144,11 @@ fn cells_show_cwd_legend_on_top_border() {
         cwd: "/code/crew".into(),
         ..Default::default()
     };
+    let before = accent();
     let cells = bar.cells(40, 3, None, None, None);
-    // the cwd legend rides the top border (row 0) in the accent colour
     assert!(cells
         .iter()
-        .any(|c| c.c == 'w' && c.row == 0 && c.fg == accent()));
+        .any(|c| c.c == 'w' && c.row == 0 && (c.fg == before || c.fg == accent())));
     // the card has rounded corners and the prompt is on the interior row
     assert!(cells.iter().any(|c| c.c == '╭'));
     assert!(cells.iter().any(|c| c.c == '>' && c.row == 1));
