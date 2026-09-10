@@ -230,6 +230,7 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
         };
         for (i, hint) in hints.iter().enumerate() {
             let row = header + (lh as u16 / 2).saturating_sub(1) + i as u16;
+            let hint = crate::chatwidth::clip_w(hint, usize::from(cols - BOX_COL));
             let styled = hint.chars().map(|c| (c, ()));
             crate::chatwidth::place_row(BOX_COL, cols, styled, |x, c, ()| {
                 out.push(cell(x, row, c, t.text_muted, false))

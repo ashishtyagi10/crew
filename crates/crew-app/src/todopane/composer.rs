@@ -156,8 +156,8 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16)
         } else {
             "type a todo"
         };
-        let styled = hint.chars().map(|c| (c, ()));
-        crate::chatwidth::place_row(text_x, max, styled, |x, c, ()| {
+        let hint = crate::chatwidth::clip_w(hint, usize::from(max - text_x));
+        crate::chatwidth::place_row(text_x, max, hint.chars().map(|c| (c, ())), |x, c, ()| {
             out.push(cell(x, top + 1, c, t.text_muted, false))
         });
         return;

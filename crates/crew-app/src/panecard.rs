@@ -207,10 +207,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     // knows nothing about what else rides this border: without it a 24-column
     // card read `claude[-][x]`, the pane's name and its buttons run together.
     let label = match b.min_btn && cols >= BTNS_COLS {
-        true => label
-            .chars()
-            .take(usize::from(cols.saturating_sub(BTNS_COLS + 1)))
-            .collect(),
+        true => crate::chatwidth::clip_w(&label, usize::from(cols.saturating_sub(BTNS_COLS + 1))),
         false => label,
     };
     let mut v = titled_card(
@@ -384,6 +381,9 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     v
 }
 
+#[cfg(test)]
+#[path = "panecardlegend_tests.rs"]
+mod legend_tests;
 #[cfg(test)]
 #[path = "panecard_tests.rs"]
 mod tests;
