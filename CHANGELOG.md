@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.72
+
+**The input bar's palette answers the mouse too.** The "commands" card over
+the docked bar — the one pop-up not over a pane — took only keys: the row
+under the pointer wore the I-beam and a click on it landed on nothing. Now
+the row under the pointer becomes the selection (so hovering `/theme`'s
+rows previews each theme, as arrowing through them does), the pointer wears
+the hand, and a click picks the row through the same path Enter takes
+(`InputBar::pick_menu`, one function for both): a command runs, a
+value-picker command fills `/cmd ` and keeps the list open to choose from.
+The card's place and rows come from the two functions the frame draws with,
+so a hit can never resolve against a row the frame did not draw; the live
+preview row for plain text, which the keys never treat as a palette, is not
+a target for the mouse either.
+
 ## 0.21.71
 
 **A composer pop-up rises out of the composer, and its marker wears the

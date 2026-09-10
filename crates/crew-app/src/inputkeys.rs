@@ -95,16 +95,7 @@ impl InputBar {
         // (a command or a picked value), or expand a value-picker command into
         // its list — filling "/cmd " and keeping the palette open to choose.
         if menu_open && matches!(&key.logical_key, Key::Named(NamedKey::Enter)) {
-            let item = &menu[self.menu_sel.min(menu.len() - 1)];
-            let fill = item.fill.clone();
-            self.menu_sel = 0;
-            if !item.submit {
-                self.text = fill;
-                return None;
-            }
-            self.history.push(fill.clone());
-            self.text.clear();
-            return Some(fill);
+            return self.pick_menu(&menu);
         }
 
         let (ch, enter, backspace) = match &key.logical_key {
@@ -121,6 +112,23 @@ impl InputBar {
             }
         }
         result
+    }
+
+    /// Take the highlighted row of an open palette, as Enter does — and as a
+    /// click on the row does (`barpopup`), so both are one path: a runnable
+    /// row (a command, a picked value) is the line to submit; a value-picker
+    /// command fills `/cmd ` and keeps the palette open to choose from.
+    pub(crate) fn pick_menu(&mut self, menu: &[crate::suggest::MenuItem]) -> Option<String> {
+        let item = menu.get(self.menu_sel.min(menu.len().checked_sub(1)?))?;
+        let fill = item.fill.clone();
+        self.menu_sel = 0;
+        if !item.submit {
+            self.text = fill;
+            return None;
+        }
+        self.history.push(fill.clone());
+        self.text.clear();
+        Some(fill)
     }
 
     /// Reset transient state after a direct edit (Ctrl+W/U).

@@ -66,13 +66,19 @@ pub fn menu_card(
 /// right border, floored and clamped by [`crate::popupplace::card_cols`],
 /// as tall as [`menu_rows`] says.
 pub(crate) fn popup(title: &str, matches: &[MenuItem], sel: usize, cols: u16) -> Popup {
-    let cols = crate::popupplace::card_cols(crate::cmdrow::content_w(matches) + 1, cols);
-    let rows = menu_rows(matches.len());
+    let (cols, rows) = popup_size(matches, cols);
     Popup {
         cells: menu_card(title, matches, sel, cols, rows),
         cols,
         rows,
     }
+}
+
+/// The `(cols, rows)` [`popup`] draws `matches` at in a pane `cols` wide —
+/// the one rule, so a hit-test can size the card without drawing it.
+pub(crate) fn popup_size(matches: &[MenuItem], cols: u16) -> (u16, u16) {
+    let cols = crate::popupplace::card_cols(crate::cmdrow::content_w(matches) + 1, cols);
+    (cols, menu_rows(matches.len()))
 }
 
 /// The index of the first row the list draws: the list scrolls only as far
