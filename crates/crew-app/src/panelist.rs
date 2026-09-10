@@ -48,7 +48,7 @@ pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize, spin: char) -> Vec
     let t = crew_theme::theme();
     // The crew size rides the rule, the way the LOG's depth and the charts'
     // peaks do — and it is the one number a glance wants.
-    let key = panes.len().to_string();
+    let key = crate::navtext::depth_key(panes.len().min(limit), panes.len());
     let mut out = crate::boxdraw::section_header_key(
         "PANES",
         &key,

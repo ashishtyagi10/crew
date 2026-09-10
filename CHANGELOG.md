@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.87
+
+**Two nav rules tell the truth about what they show.** The LOG's `⇡N`
+said the offset the wheel had asked for, clamped against the widest window
+the nav can ever give the LOG, while the drawn window is usually smaller —
+so the rule read `⇡7` over a tail that was following live; it says the
+scroll actually applied now, and nothing when everything fits. And the
+PANES rule said the total alone (`PANES 12`) over a list cut to five rows,
+which read as a crew of five; it says `5/12` like the LOG beside it
+(`navtext::depth_key` is the one convention).
+
 ## 0.21.86
 
 **The `/disk` hint fits the pane and says `esc`.** One 47-column string
