@@ -40,6 +40,13 @@ pub fn timeline_cols(cols: u16) -> u16 {
     }
 }
 
+/// Whether the timeline is drawn at all on a `cols × rows` pane: the one
+/// predicate its labels, its bars and the compose step read, so an axis is
+/// never written over a chart that was not.
+pub fn timeline_on(cols: u16, rows: u16) -> bool {
+    timeline_cols(cols) > 0 && rows >= 3
+}
+
 /// The colour a task's bar takes on the timeline — the same colour its glyph
 /// wears in the list, so the two halves of the pane agree.
 pub fn state_color(state: TaskState) -> (u8, u8, u8) {
@@ -125,7 +132,7 @@ pub fn timeline_cells(cols: u16, rows: u16, axis: Option<(u64, u64)>) -> Vec<Cel
     let Some((t0, t1)) = axis else {
         return vec![];
     };
-    if w == 0 || rows == 0 {
+    if !timeline_on(cols, rows) {
         return vec![];
     }
     let t = crew_theme::theme();
@@ -171,7 +178,7 @@ pub fn timeline_paint(
     now: u64,
 ) -> Vec<crew_render::Paint> {
     let w = timeline_cols(cols);
-    if w == 0 || rows < 2 || spans.is_empty() {
+    if !timeline_on(cols, rows) || spans.is_empty() {
         return Vec::new();
     }
     let t = crew_theme::theme();

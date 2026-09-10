@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.91
+
+**`/lsp` fits a tile, and the swarm timeline's axis is drawn only where
+its bars are.** The server table padded its command column to the longest
+command, so one `typescript-language-server` under an nvm path pushed
+every row past sixty columns and the whole table wrapped in the viewer; the
+column is capped to the row width `/tools` and `/integrations` keep, and a
+long command is cut in the middle so both its ends still name it. The
+timeline's `0s … 12s` labels, its bars and the compose step each had their
+own row floor, so at one or two rows the axis stood over nothing;
+`timeline_on` is the one predicate all three read.
+
 ## 0.21.90
 
 **The `/todo` `@project` pop-up answers the mouse and says when it

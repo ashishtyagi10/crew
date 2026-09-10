@@ -52,3 +52,31 @@ fn the_state_column_is_aligned() {
     assert_eq!(at.len(), 2);
     assert_eq!(at[0], at[1], "{text}");
 }
+
+/// One long server command no longer pads every row past a tile.
+#[test]
+fn a_long_command_is_cut_in_the_middle_and_the_table_fits_a_tile() {
+    let rows: Vec<super::Row> = vec![
+        (
+            "typescript".into(),
+            "/Users/x/.nvm/versions/node/v22.1.0/bin/typescript-language-server --stdio".into(),
+            true,
+        ),
+        ("rust".into(), "rust-analyzer".into(), false),
+    ];
+    let text = super::listing(&rows, &[]);
+    let table: Vec<&str> = text
+        .lines()
+        .filter(|l| l.starts_with("  ") && l.contains("installed"))
+        .collect();
+    assert_eq!(table.len(), 2, "{text}");
+    for l in &table {
+        assert!(l.chars().count() <= crate::toolsrow::ROW_W, "{l:?}");
+    }
+    assert!(
+        table[0].contains('\u{2026}') && table[0].contains("--stdio"),
+        "{:?}",
+        table[0]
+    );
+    assert!(table[1].contains("rust-analyzer"), "{:?}", table[1]);
+}

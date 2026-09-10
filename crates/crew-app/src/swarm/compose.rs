@@ -10,7 +10,8 @@ use crew_render::{CellView, Paint};
 
 use super::timeline::Timeline;
 use super::view::{
-    cancelled_notice, state_color, swarm_cells, timeline_cells, timeline_cols, timeline_paint,
+    cancelled_notice, state_color, swarm_cells, timeline_cells, timeline_cols, timeline_on,
+    timeline_paint,
 };
 
 /// A running swarm as the view needs it.
@@ -58,7 +59,7 @@ impl Run<'_> {
         let Some(axis) = self.axis(now) else {
             return Vec::new();
         };
-        if timeline_cols(cols) == 0 || rows < 3 {
+        if !timeline_on(cols, rows) {
             return Vec::new();
         }
         let ids: Vec<_> = self.graph.tasks().iter().map(|t| t.id).collect();

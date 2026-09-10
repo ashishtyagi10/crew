@@ -110,3 +110,17 @@ fn the_bars_stop_where_the_list_does() {
     // And every listed task still has its bar: four lanes of ink.
     assert!(paint.len() >= 4, "{} paints", paint.len());
 }
+
+/// The axis labels are drawn only where the bars are: one predicate.
+#[test]
+fn no_axis_labels_where_no_bars_can_be_drawn() {
+    let _g = crate::app::theme_test_guard();
+    let axis = Some((0u64, 12_000u64));
+    assert!(crate::swarm::view::timeline_cells(60, 2, axis).is_empty());
+    assert!(!crate::swarm::view::timeline_cells(60, 3, axis).is_empty());
+    assert!(
+        crate::swarm::view::timeline_cells(40, 8, axis).is_empty(),
+        "too narrow"
+    );
+    assert!(!crate::swarm::view::timeline_on(60, 2) && crate::swarm::view::timeline_on(60, 3));
+}
