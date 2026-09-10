@@ -86,21 +86,20 @@ pub(crate) fn indicator_cells_at(
     };
     let theme = crew_theme::theme();
     let mut cells = Vec::new();
-    for (col, c) in (1u16..).zip(text.chars()) {
-        if col >= cols {
-            break;
-        }
+    // Marked and width-aware, as every other one-row notice on the canvas:
+    // a half-width tile used to read `…sends when the c` with no cut mark.
+    let text = crate::chatwidth::clip_w(&text, usize::from(cols.saturating_sub(1)));
+    let styled = text.chars().map(|c| (c, theme.text_muted));
+    crate::chatwidth::place_row(1, cols, styled, |col, c, fg| {
         cells.push(CellView {
             col,
             row,
             c,
-            fg: theme.text_muted,
+            fg,
             bg: theme.page_bg,
-            bold: false,
-            italic: false,
             ..Default::default()
-        });
-    }
+        })
+    });
     cells
 }
 

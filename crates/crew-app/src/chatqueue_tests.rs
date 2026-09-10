@@ -96,3 +96,22 @@ fn the_hourglass_turns_every_period_and_stands_still_at_off() {
     assert!(first.starts_with('\u{29d7}') && second.starts_with('\u{29d6}'));
     assert_eq!(first[3..], second[3..], "only the glass changes");
 }
+
+/// A half-width tile marks the cut and keeps a column of air at the edge.
+#[test]
+fn the_indicator_marks_its_cut_on_a_narrow_pane() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = pane();
+    p.queued.push_back("hi".into());
+    let cells = indicator_cells_at(&p, 30, 0, 0);
+    let mut v: Vec<_> = cells.iter().collect();
+    v.sort_by_key(|c| c.col);
+    let s: String = v.iter().map(|c| c.c).collect();
+    assert!(s.ends_with('\u{2026}'), "{s:?}");
+    assert!(cells.iter().all(|c| c.col < 30), "{s:?}");
+    let wide: String = indicator_cells_at(&p, 80, 0, 0)
+        .iter()
+        .map(|c| c.c)
+        .collect();
+    assert!(wide.ends_with("idle"), "{wide:?}");
+}

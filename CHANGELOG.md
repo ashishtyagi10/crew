@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.95
+
+**Three more cuts are marked.** The chat pane's queued-messages row was
+broken at the edge by char count (`…sends when the c`), the todo pane's
+empty-list hint and its done-view placeholder stopped mid-word on a narrow
+tile, and a pane card's legend giving way to its `[-][x]` buttons was cut
+under the frame's own clip so the `…` never came. All four go through the
+one width-aware clip every card legend uses.
+
 ## 0.21.94
 
 **Counts are put into words once.** `/closeall` asked `close all 1 panes?`

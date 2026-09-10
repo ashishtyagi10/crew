@@ -115,6 +115,10 @@ pub(crate) fn del_zone(cols: u16) -> std::ops::Range<u16> {
 #[path = "delzone_tests.rs"]
 mod delzone_tests;
 
+#[cfg(test)]
+#[path = "emptyhint_tests.rs"]
+mod emptyhint_tests;
+
 /// Rows item `it` occupies at this pane width.
 pub(crate) fn item_h(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16 {
     let cols = content(cols);
