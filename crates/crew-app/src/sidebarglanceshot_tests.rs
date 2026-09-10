@@ -29,9 +29,9 @@ fn pane(index: usize, title: &str, focused: bool, busy: bool) -> crate::panelist
     }
 }
 
-/// The glance cards in the LOG's slot — SERVING with two live meters,
-/// WAITING ON YOU with a blocked shell, a plan and a running task — and
-/// the weather strip under the clock: the column as v0.21.64 docks it.
+/// The glance cards in the LOG's slot — WEATHER for Berlin, SERVING with
+/// two live meters, WAITING ON YOU with a blocked shell, a plan and a
+/// running task. The strip is passed too: a placed card must silence it.
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn sidebar_shot_glance() {
@@ -53,6 +53,15 @@ fn sidebar_shot_glance() {
         pane(3, "zsh", false, false),
     ];
     let glance = Glance {
+        weather: Some(crate::navweather::Weather {
+            place: "Berlin".into(),
+            temp: 24,
+            hi: 27,
+            lo: 18,
+            rain: 10,
+            code: 2,
+            unit: 'C',
+        }),
         serving: Serving {
             provider: Some("claude-code".into()),
             model: Some("claude-sonnet-5".into()),

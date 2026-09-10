@@ -103,7 +103,7 @@ impl StatsPane {
     ) -> Vec<Paint> {
         let mut out = self.cpu_chart(cols, rows, aspect);
         if let Some(g) = glance {
-            let l = self.layout(rows, Tail::Glance(g.waiting.len()), panes);
+            let l = self.layout(rows, navslot::tail(Some(g), 0), panes);
             out.extend(navslot::slot_paint(g, &l, cols, aspect));
         }
         // The SYSTEM section's three arc gauges (their text comes from
@@ -196,6 +196,10 @@ impl StatsPane {
         strip: Option<&str>,
     ) -> Vec<CellView> {
         let (time, date) = clock::now_strings();
+        // The variable slot's division, first: a placed WEATHER card owns the
+        // reading, and the clock's gap row stays a gap under it.
+        let l = self.layout(rows, navslot::tail(glance, log.len()), panes.len());
+        let strip = strip.filter(|_| l.weather_rows == 0);
         let mut out = clock::clock_cells(&time, &date, strip, cols);
 
         let sys_off = clock::CLOCK_H;
@@ -207,7 +211,6 @@ impl StatsPane {
             }
         }
         // The CPU history chart below the gauges is drawn (`chart_paint`).
-
         let load_off = clock::CLOCK_H + navlayout::SYS_BLOCK;
         if rows > load_off + 1 {
             let (one, five, fifteen) = load::load_avg();
@@ -248,12 +251,9 @@ impl StatsPane {
         }
 
         // The variable slot: the glance cards, or the LIVE LOG tail.
-        let l = self.layout(rows, navslot::tail(glance, log.len()), panes.len());
         out.extend(navslot::slot_cells(glance, log, log_back, &l, cols));
         let panes_off = l.panes_top;
-
-        // PANES list fills the remaining height below the LOG section
-        // (header + one row per pane).
+        // PANES fills what is left (header + one row per pane).
         const LIST_OFF: u16 = 1;
         if !panes.is_empty() && rows > panes_off + LIST_OFF {
             let limit = (rows - panes_off - LIST_OFF) as usize;
