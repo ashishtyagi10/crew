@@ -155,3 +155,23 @@ fn a_scrolling_list_marks_where_the_selection_is() {
         "a short list has no mark"
     );
 }
+
+/// `offset` is what ratatui does with a fresh `ListState`: scrolls just far
+/// enough to keep the selection on the last visible row.
+#[test]
+fn the_offset_is_the_one_ratatui_draws_with() {
+    use ratatui::widgets::{List, ListItem, ListState, StatefulWidget};
+    for (n, sel) in [(14, 12), (14, 0), (14, 13), (5, 4), (30, 9), (30, 10)] {
+        let items: Vec<ListItem> = (0..n).map(|i| ListItem::new(format!("r{i}"))).collect();
+        let rows = crate::cmdmenu::menu_rows(n) - 2;
+        let mut buf = ratatui::buffer::Buffer::empty(ratatui::layout::Rect::new(0, 0, 20, rows));
+        let mut state = ListState::default();
+        state.select(Some(sel));
+        StatefulWidget::render(List::new(items), buf.area, &mut buf, &mut state);
+        assert_eq!(
+            crate::cmdmenu::offset(n, sel),
+            state.offset(),
+            "n={n} sel={sel}"
+        );
+    }
+}

@@ -91,7 +91,7 @@ impl ChatPane {
 impl CrewApp {
     /// The chat pane under the cursor and the cell the cursor is on, as
     /// `(pane, row, col)`; `None` off every chat pane's content.
-    fn chat_cell_at_cursor(&self) -> Option<(usize, u16, u16)> {
+    pub(crate) fn chat_cell_at_cursor(&self) -> Option<(usize, u16, u16)> {
         let i = self.pane_at_cursor()?;
         let (row, col) = self.cursor_rowcol(i)?;
         matches!(self.panes[i].content, PaneContent::Chat(_)).then_some((

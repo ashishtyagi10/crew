@@ -75,6 +75,15 @@ pub(crate) fn popup(title: &str, matches: &[MenuItem], sel: usize, cols: u16) ->
     }
 }
 
+/// The index of the first row the list draws: the list scrolls only as far
+/// as it must to keep the selection on its last visible row — what ratatui
+/// does with a fresh `ListState` every frame, pinned here so the mouse can
+/// map a drawn row back to its item (`ChatPane::popup_item_at`).
+pub(crate) fn offset(n: usize, sel: usize) -> usize {
+    sel.min(n.saturating_sub(1))
+        .saturating_sub(n.min(MAX_ROWS).saturating_sub(1))
+}
+
 /// Render the command list into the card's `cols × rows` interior. Every cell is
 /// transparent over the card's black backdrop — the selected row is marked by the
 /// `›` symbol, bold text and its description in full ink, never a background

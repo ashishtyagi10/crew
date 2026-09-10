@@ -307,81 +307,18 @@ impl CrewApp {
             });
         }
 
-        // Attach picker popup: an "attach" fieldset card (agents · skills · files) sitting above the focused
-        // crew pane's composer while a mention is being typed. Overlay scene, so
-        // the overlay pass backs it with an opaque page background.
+        // The composer pop-up: whichever of the six is open on the focused
+        // crew pane (`ChatPane::popup` holds the precedence — the key prompt
+        // over find over history over the attach picker over the palette,
+        // the same order their keys are routed in), standing above the
+        // composer. Never while the input bar has the keys. An overlay scene,
+        // so the overlay pass backs it with an opaque page.
         if !self.input.focused {
             if let Some(pane) = self.panes.get(self.focused) {
                 if let crate::pane::PaneContent::Chat(c) = &pane.content {
-                    // Hidden while Ctrl+R search is open — that popup has the
-                    // keys (`ChatPane::on_input`), so it must have the screen.
-                    if let Some(m) = c.mention.as_ref().filter(|_| c.histsearch.is_none()) {
-                        if !m.matches.is_empty() {
-                            let items: Vec<crate::suggest::MenuItem> = m
-                                .matches
-                                .iter()
-                                .map(|e| crate::suggest::MenuItem {
-                                    label: format!("@{}", e.token()),
-                                    desc: e.desc(),
-                                    fill: String::new(),
-                                    submit: false,
-                                    header: false,
-                                    dim: false,
-                                    needs: None,
-                                    color: None,
-                                    ..Default::default()
-                                })
-                                .collect();
-                            let r = pane.rect;
-                            let cols = (r.w / cw).floor() as u16;
-                            let p = crate::cmdmenu::popup("attach", &items, m.sel, cols);
-                            scenes.push(crate::popupplace::scene(c, r, cw, ch, p));
-                        }
-                    }
-                }
-            }
-        }
-
-        // Provider-key prompt / composer palette: sitting above the focused
-        // crew pane's composer, and mutually exclusive with each other — the
-        // key prompt takes precedence when both would otherwise apply,
-        // matching `ChatPane::on_input`, where an open `keyentry` swallows
-        // every key before the palette ever sees one. Overlay scene, so the
-        // overlay pass backs it with an opaque page background.
-        if !self.input.focused {
-            if let Some(pane) = self.panes.get(self.focused) {
-                if let crate::pane::PaneContent::Chat(c) = &pane.content {
-                    if let Some(entry) = &c.keyentry {
-                        let r = pane.rect;
-                        let cols = (r.w / cw).floor() as u16;
-                        let p = entry.card(cols);
-                        scenes.push(crate::popupplace::scene(c, r, cw, ch, p));
-                    } else if let Some(f) = &c.find {
-                        // Cmd+F transcript find: same placement as the Ctrl+R
-                        // search; the two are mutually exclusive by
-                        // construction (`ChatPane::on_input` closes one when
-                        // the other opens), so their order here is free.
-                        let r = pane.rect;
-                        let cols = (r.w / cw).floor() as u16;
-                        let p = crate::chatfind::card(f, &c.visible_messages(), cols);
-                        scenes.push(crate::popupplace::scene(c, r, cw, ch, p));
-                    } else if let Some(h) = &c.histsearch {
-                        // Ctrl+R history search: same placement as the
-                        // palette; before it in the chain, matching the
-                        // key-routing priority in `ChatPane::on_input`.
-                        let r = pane.rect;
-                        let cols = (r.w / cw).floor() as u16;
-                        let p = crate::chathistsearch::card(h, cols);
-                        scenes.push(crate::popupplace::scene(c, r, cw, ch, p));
-                    } else if let Some(p) = c.palette.as_ref().filter(|p| !p.items.is_empty()) {
-                        // `after_edit` clears `palette` whenever it would be
-                        // empty, so this is an invariant — guarded to match
-                        // the mention block and stay safe if that ever
-                        // changes.
-                        let r = pane.rect;
-                        let cols = (r.w / cw).floor() as u16;
-                        let title = palette_card_title(p.kind);
-                        let p = crate::cmdmenu::popup(title, &p.items, p.sel, cols);
+                    let r = pane.rect;
+                    let cols = (r.w / cw).floor() as u16;
+                    if let Some(p) = c.popup(cols) {
                         scenes.push(crate::popupplace::scene(c, r, cw, ch, p));
                     }
                 }
@@ -447,7 +384,7 @@ pub(crate) fn frame_hit_rects(
 }
 
 /// Card legend for the composer palette, by what it picks.
-fn palette_card_title(kind: crate::chatpalette::Kind) -> &'static str {
+pub(crate) fn palette_card_title(kind: crate::chatpalette::Kind) -> &'static str {
     match kind {
         crate::chatpalette::Kind::Slash => "commands",
         crate::chatpalette::Kind::Agent => "attach",
