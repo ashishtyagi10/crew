@@ -33,6 +33,9 @@ pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize, back: usize)
     }
     let t = crew_theme::theme();
     let (start, shown) = window(entries.len(), max_lines, back);
+    // The mark says the scroll APPLIED: `window` clamps `back`, and the
+    // caller's offset is clamped against a wider window than this one.
+    let back = back.min(max_back(entries.len(), max_lines));
     // The LOG is a window onto a buffer and scrolls under the wheel, and
     // nothing on it said either thing: a tail showing eight of sixty-four
     // looked exactly like a log with eight lines in it. The rule carries the
@@ -162,3 +165,7 @@ fn write(
 #[cfg(test)]
 #[path = "navlog_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "navlogmark_tests.rs"]
+mod mark_tests;

@@ -37,6 +37,17 @@ pub fn fit<'a>(ladder: &[&'a str], cols: u16) -> &'a str {
         .unwrap_or("")
 }
 
+/// A section rule's key for a list of `total` rows of which `shown` fit:
+/// `5/12` when the list is cut, the count alone when it is whole — the
+/// LOG's convention, now the PANES rule's too.
+pub fn depth_key(shown: usize, total: usize) -> String {
+    if total > shown {
+        format!("{shown}/{total}")
+    } else {
+        total.to_string()
+    }
+}
+
 /// Write `s` at the nav's indent on `row`, ellipsized to the row's budget.
 pub fn put(out: &mut Vec<CellView>, s: &str, row: u16, cols: u16, fg: (u8, u8, u8)) {
     put_at(out, s, INDENT, row, cols.saturating_sub(1), fg);
@@ -70,6 +81,10 @@ pub fn put_at(
         },
     );
 }
+
+#[cfg(test)]
+#[path = "depthkey_tests.rs"]
+mod depthkey_tests;
 
 #[cfg(test)]
 #[path = "navtext_tests.rs"]
