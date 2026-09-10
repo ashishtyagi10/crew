@@ -1,17 +1,19 @@
 use ratatui::layout::{Position, Rect};
 
-use super::form::{layout, scroll_for, STACK_BELOW};
+use super::form::{dim, ink, input_box, layout, scroll_for, STACK_BELOW};
 use super::{Field, FIELDS};
+use ratatui::buffer::Buffer;
+use ratatui::style::Modifier;
 
 #[test]
 fn wide_pane_lays_out_two_columns() {
     let lay = layout(80);
-    // Structural rather than a card count: APPEARANCE owns the left column
+    // Structural rather than a card count: appearance owns the left column
     // alone and everything else stacks down the right. Pinning the number
     // meant adding a card broke this test without saying anything about the
-    // layout, which is what happened when USAGE arrived.
+    // layout, which is what happened when usage arrived.
     let (appearance, right) = lay.cards.split_first().expect("at least one card");
-    assert_eq!(appearance.title, "APPEARANCE");
+    assert_eq!(appearance.title, "appearance");
     assert!(right.len() >= 2, "the right column is empty");
     for c in right {
         assert!(
@@ -83,4 +85,55 @@ fn scroll_for_keeps_the_focused_rect_visible() {
     assert_eq!(scroll_for(Rect::new(0, 0, 10, 3), 25, 10), 0);
     // Never past the end.
     assert_eq!(scroll_for(Rect::new(0, 24, 10, 1), 25, 10), 15);
+}
+
+/// The card legends are lowercase, like every legend on the canvas — the
+/// sidebar's capitals are the sidebar's idiom.
+#[test]
+fn card_legends_are_lowercase_like_the_canvas() {
+    for c in layout(80).cards.iter().chain(layout(40).cards.iter()) {
+        assert_eq!(c.title, c.title.to_lowercase(), "{:?}", c.title);
+    }
+}
+
+/// The focused box's legend is bold as well as accent; an unfocused one is
+/// neither. And an empty box shows its hint muted until it is typed into.
+#[test]
+fn the_focused_box_is_bold_and_an_empty_box_says_what_empty_means() {
+    let _g = crate::app::theme_test_guard();
+    let r = Rect::new(0, 0, 20, 3);
+    let legend_bold = |focused: bool| {
+        let mut buf = Buffer::empty(r);
+        input_box(
+            &mut buf,
+            r,
+            "Accent",
+            "",
+            focused,
+            true,
+            Some("theme's own"),
+        );
+        let bold = (0..20)
+            .any(|x| buf[(x, 0)].symbol() == "A" && buf[(x, 0)].modifier.contains(Modifier::BOLD));
+        let row: String = (1..19).map(|x| buf[(x, 1)].symbol().to_string()).collect();
+        (bold, row.trim_end().to_string(), buf[(1, 1)].fg)
+    };
+    let (bold, row, fg) = legend_bold(false);
+    assert!(!bold);
+    assert_eq!(row, "theme's own", "the hint fills the empty box");
+    assert_eq!(fg, dim(), "muted");
+    let (bold, row, _) = legend_bold(true);
+    assert!(bold, "focused: bold legend");
+    assert_eq!(row, "\u{2588}", "focused: the cursor, not the hint");
+    let mut buf = Buffer::empty(r);
+    input_box(
+        &mut buf,
+        r,
+        "Accent",
+        "#ff0000",
+        false,
+        true,
+        Some("theme's own"),
+    );
+    assert_eq!(buf[(1, 1)].fg, ink(), "a typed value is ink, hint gone");
 }

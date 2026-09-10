@@ -1,18 +1,14 @@
-//! Form controls for the settings pane: bento cards, boxed inputs with the
-//! label as a fieldset legend, checkboxes, and a multi-line text area — plus
-//! the pure two-column layout geometry shared by the renderer and tests.
+//! The settings form's layout: the pure two-column geometry shared by the
+//! renderer and the tests (the controls themselves are drawn by
+//! [`super::widgets`], re-exported here so callers say `form::input_box`).
 //!
-//! The left column is APPEARANCE alone because it is the tall one; the right
-//! stacks WINDOW, NOTIFICATIONS and USAGE, which together roughly match it.
-use ratatui::buffer::Buffer;
+//! The left column is `appearance` alone because it is the tall one; the
+//! right stacks `window`, `notifications` and `usage`, which together
+//! roughly match it.
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Widget};
 
 use super::cards::{appearance, notifications, usage, window};
 use super::Field;
-use crate::palette::focus_color;
 
 /// Pane width below which the two card columns stack vertically.
 pub(crate) const STACK_BELOW: u16 = 64;
@@ -59,9 +55,9 @@ pub(crate) fn layout(cols: u16) -> FormLayout {
     if cols >= STACK_BELOW {
         let col_w = (cols - 4) / 2; // 1-col margins + 2-col gutter
         let (lx, rx) = (1, 1 + col_w + 2);
-        let left = place(&mut rects, "APPEARANCE", appearance, lx, 0, col_w);
-        let mut right = place(&mut rects, "WINDOW", window, rx, 0, col_w);
-        for (title, build) in [("NOTIFICATIONS", notifications as Build), ("USAGE", usage)] {
+        let left = place(&mut rects, "appearance", appearance, lx, 0, col_w);
+        let mut right = place(&mut rects, "window", window, rx, 0, col_w);
+        for (title, build) in [("notifications", notifications as Build), ("usage", usage)] {
             right = place(&mut rects, title, build, rx, right + 1, col_w);
         }
         FormLayout {
@@ -73,10 +69,10 @@ pub(crate) fn layout(cols: u16) -> FormLayout {
         let w = cols.saturating_sub(2);
         let mut y = 0;
         for (title, build) in [
-            ("APPEARANCE", appearance as Build),
-            ("WINDOW", window),
-            ("NOTIFICATIONS", notifications),
-            ("USAGE", usage),
+            ("appearance", appearance as Build),
+            ("window", window),
+            ("notifications", notifications),
+            ("usage", usage),
         ] {
             y = place(&mut rects, title, build, 1, y, w) + 1;
         }
@@ -100,93 +96,4 @@ pub(crate) fn scroll_for(rect: Rect, total: u16, viewport: u16) -> u16 {
         .min(total - viewport)
 }
 
-pub(crate) fn dim() -> Color {
-    let t = crew_theme::theme();
-    Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2)
-}
-
-pub(crate) fn ink() -> Color {
-    let t = crew_theme::theme();
-    Color::Rgb(t.ink.0, t.ink.1, t.ink.2)
-}
-
-/// A bento card: rounded border, legend on the top edge (accent while the
-/// focused field lives inside it).
-pub(crate) fn card(buf: &mut Buffer, c: &Card, active: bool) {
-    let legend = if active { focus_color() } else { dim() };
-    Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(Style::new().fg(dim()))
-        .title(Span::styled(
-            format!(" {} ", c.title),
-            Style::new().fg(legend),
-        ))
-        .render(c.rect, buf);
-}
-
-/// A boxed input: rounded border with the label as legend; the focused box
-/// gets an accent border and, for typed fields, a trailing block cursor.
-pub(crate) fn input_box(
-    buf: &mut Buffer,
-    rect: Rect,
-    label: &str,
-    value: &str,
-    focused: bool,
-    cursor: bool,
-) {
-    frame(buf, rect, label, focused);
-    let mut text = value.to_string();
-    if focused && cursor {
-        text.push('\u{2588}');
-    }
-    let iw = rect.width.saturating_sub(2);
-    let line = Line::styled(tail(&text, iw as usize), Style::new().fg(ink()));
-    buf.set_line(rect.x + 1, rect.y + 1, &line, iw);
-}
-
-/// `[x] Label` single-row toggle; `› ` marker + accent bold when focused.
-pub(crate) fn checkbox(buf: &mut Buffer, rect: Rect, label: &str, on: bool, focused: bool) {
-    let mark = if on { "[x]" } else { "[ ]" };
-    let lead = if focused { "\u{203a} " } else { "  " };
-    let mut style = Style::new().fg(if focused { focus_color() } else { ink() });
-    if focused {
-        style = style.add_modifier(Modifier::BOLD);
-    }
-    let line = Line::styled(format!("{lead}{mark} {label}"), style);
-    buf.set_line(rect.x, rect.y, &line, rect.width);
-}
-
-/// Multi-line boxed text area (one entry per line); shows the tail when the
-/// content overflows, cursor on the final line while focused.
-pub(crate) fn text_area(buf: &mut Buffer, rect: Rect, label: &str, value: &str, focused: bool) {
-    frame(buf, rect, label, focused);
-    let ih = rect.height.saturating_sub(2) as usize;
-    let iw = rect.width.saturating_sub(2);
-    let mut lines: Vec<String> = value.split('\n').map(str::to_string).collect();
-    if focused {
-        if let Some(last) = lines.last_mut() {
-            last.push('\u{2588}');
-        }
-    }
-    let skip = lines.len().saturating_sub(ih);
-    for (i, l) in lines.iter().skip(skip).take(ih).enumerate() {
-        let line = Line::styled(tail(l, iw as usize), Style::new().fg(ink()));
-        buf.set_line(rect.x + 1, rect.y + 1 + i as u16, &line, iw);
-    }
-}
-
-/// Rounded input frame with the label as legend, accent while focused.
-fn frame(buf: &mut Buffer, rect: Rect, label: &str, focused: bool) {
-    let col = if focused { focus_color() } else { dim() };
-    Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(Style::new().fg(col))
-        .title(Span::styled(format!(" {label} "), Style::new().fg(col)))
-        .render(rect, buf);
-}
-
-/// The last `w` chars of `s`, so the cursor end stays visible while typing.
-fn tail(s: &str, w: usize) -> String {
-    let n = s.chars().count();
-    s.chars().skip(n.saturating_sub(w)).collect()
-}
+pub(crate) use super::widgets::*;

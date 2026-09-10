@@ -15,6 +15,7 @@ mod labels;
 mod pairing;
 mod render;
 mod tokens;
+mod widgets;
 
 use crew_render::CellView;
 #[cfg(test)]

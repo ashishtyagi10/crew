@@ -13,7 +13,7 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 
-use super::labels::{label_of, value_of};
+use super::labels::{hint_of, label_of, value_of};
 use super::{form, Field, SettingsPane};
 
 /// Render the form into a ratatui buffer, then hand the cells to the GPU.
@@ -76,7 +76,7 @@ fn control(buf: &mut Buffer, p: &SettingsPane, f: Field, r: Rect, focused: bool)
         Field::Save | Field::Cancel => {}
         _ => {
             let (value, cursor) = value_of(p, f);
-            form::input_box(buf, r, label_of(f), &value, focused, cursor);
+            form::input_box(buf, r, label_of(f), &value, focused, cursor, hint_of(f));
             swatch(buf, r, f, &value);
         }
     }
