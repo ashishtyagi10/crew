@@ -68,10 +68,20 @@ pub(crate) fn label_naive(due: NaiveDateTime, has_time: bool, now: NaiveDateTime
         1 => "tomorrow".to_string(),
         -1 => "yesterday".to_string(),
         2..=6 => DAYS[due.date().weekday().num_days_from_monday() as usize].to_string(),
+        // Another year says so: `jan 5` alone read the same for next month,
+        // next year and a year overdue.
+        _ if due.year() == now.year() => {
+            format!(
+                "{} {}",
+                MONTHS[due.date().month0() as usize],
+                due.date().day()
+            )
+        }
         _ => format!(
-            "{} {}",
-            MONTHS[due.date().month0() as usize],
-            due.date().day()
+            "{} {} {}",
+            MONTHS[due.month0() as usize],
+            due.day(),
+            due.year()
         ),
     };
     if has_time {
@@ -118,3 +128,7 @@ pub(crate) fn edit_text(due_ms: u64, has_time: bool) -> Option<String> {
         format!("{:04}-{:02}-{:02}", d.year(), d.month(), d.day())
     })
 }
+
+#[cfg(test)]
+#[path = "duelabel_tests.rs"]
+mod duelabel_tests;
