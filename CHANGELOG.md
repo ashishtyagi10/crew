@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.94
+
+**Counts are put into words once.** `/closeall` asked `close all 1 panes?`
+while `/only` beside it said `pane`; `/export`'s status line said
+`1 message` and the file it wrote said `1 message(s)`; `/tools`, `/lsp` and
+`/integrations` opened with `call(s)`, `language(s)`, `integration(s)`,
+`tool(s)` while eighteen other sites pick the ending from the number. One
+helper (`wording::count`) picks it now, and every one of those reads
+`1 call` / `3 calls`.
+
 ## 0.21.93
 
 **The `/todo` `@project` pop-up follows the mouse.** 0.21.90 taught it a

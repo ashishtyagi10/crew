@@ -67,7 +67,7 @@ pub(crate) fn summary(diags: &[Diagnostic]) -> String {
         .iter()
         .filter(|d| d.severity == crew_lsp::Severity::Warning)
         .count();
-    let word = |n: usize, one: &str| format!("{n} {one}{}", if n == 1 { "" } else { "s" });
+    let word = crate::wording::count;
     match (errors, warnings) {
         (0, 0) => "no diagnostics".into(),
         (e, 0) => word(e, "error"),

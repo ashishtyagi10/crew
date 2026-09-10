@@ -31,7 +31,7 @@ fn markdown_has_title_and_a_section_per_message() {
 fn empty_channel_titles_plain_agent_smith_and_counts_messages() {
     let md = transcript_markdown("", &[], &chrono::Local::now());
     assert!(md.starts_with("# agent smith\n"), "got: {md}");
-    assert!(md.contains("0 message(s)"), "got: {md}");
+    assert!(md.contains("0 messages"), "got: {md}");
 }
 
 #[test]
@@ -96,4 +96,15 @@ fn stray_transcripts() -> usize {
                 .count()
         })
         .unwrap_or(0)
+}
+
+/// The file says what the status line says: `1 message`, not `1 message(s)`.
+#[test]
+fn the_transcript_header_pluralizes_like_the_status_line() {
+    let one = [msg("me", "hi", "0", "")];
+    let md = transcript_markdown("", &one, &chrono::Local::now());
+    assert!(md.contains("\u{00b7} 1 message\n"), "{md}");
+    assert!(!md.contains("(s)"), "{md}");
+    let none = transcript_markdown("", &[], &chrono::Local::now());
+    assert!(none.contains("0 messages"), "{none}");
 }

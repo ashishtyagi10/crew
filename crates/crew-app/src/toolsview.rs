@@ -70,9 +70,9 @@ pub(crate) fn listing(records: &[Record], bad: usize, filter: &str, now_ms: u64)
             // Two lines, a sentence each: on one line this was the widest
             // row the listing could produce and wrapped in a 75-column pane.
             (false, _) => format!(
-                "No call matches \u{201c}{filter}\u{201d}.\n{} call(s) recorded \u{2014} \
+                "No call matches \u{201c}{filter}\u{201d}.\n{} recorded \u{2014} \
                  /tools with no term lists them.\n",
-                records.len()
+                crate::wording::count(records.len(), "call")
             ),
         });
         return out;
@@ -83,8 +83,8 @@ pub(crate) fn listing(records: &[Record], bad: usize, filter: &str, now_ms: u64)
     // agents keep working. The count is the other half: a filtered view of
     // three rows out of nine hundred should not look like the whole history.
     out.push_str(&format!(
-        "{} call(s) \u{b7} times as of opening\n/tools re-reads the ledger\n",
-        hits.len()
+        "{} \u{b7} times as of opening\n/tools re-reads the ledger\n",
+        crate::wording::count(hits.len(), "call")
     ));
     // What kind of history this is, before a line of it: the tiers in view,
     // and how many did not simply run.
@@ -111,12 +111,13 @@ pub(crate) fn listing(records: &[Record], bad: usize, filter: &str, now_ms: u64)
     }
     if hits.len() > shown {
         out.push_str(&format!(
-            "\n\u{2026} {} older call(s) not shown\n",
-            hits.len() - shown
+            "\n\u{2026} {} not shown\n",
+            crate::wording::count(hits.len() - shown, "older call")
         ));
     }
     if bad > 0 {
-        out.push_str(&format!("\n\u{26a0} {bad} unreadable line(s) skipped\n"));
+        let bad = crate::wording::count(bad, "unreadable line");
+        out.push_str(&format!("\n\u{26a0} {bad} skipped\n"));
     }
     out
 }
