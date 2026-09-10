@@ -18,8 +18,9 @@ impl CrewApp {
         None
     }
 
-    /// Which pane a click on the sidebar's PANES list targets, if any.
-    pub(crate) fn pane_at_sidebar(&self) -> Option<usize> {
+    /// The sidebar row under the cursor and the nav's layout, when the
+    /// cursor is on the sidebar at all.
+    pub(crate) fn sidebar_row(&self) -> Option<(u16, crate::navlayout::NavLayout)> {
         if !self.config.show_nav {
             return None;
         }
@@ -27,10 +28,22 @@ impl CrewApp {
         if !chrome::point_in(sb, self.cursor.0, self.cursor.1) {
             return None;
         }
-        let rel_row = ((self.cursor.1 - sb.y) / ch).floor() as u16;
-        if let Some(i) = self.waiting_pane_at(rel_row, &l) {
-            return Some(i);
-        }
+        Some((((self.cursor.1 - sb.y) / ch).floor() as u16, l))
+    }
+
+    /// Which pane a click on the sidebar targets — a WAITING row or a
+    /// PANES row — if any.
+    pub(crate) fn pane_at_sidebar(&self) -> Option<usize> {
+        let (rel_row, l) = self.sidebar_row()?;
+        self.waiting_pane_at(rel_row, &l)
+            .or_else(|| self.pane_at_panes_list())
+    }
+
+    /// Which pane's row of the PANES list is under the cursor. Only the
+    /// list: the hover that lifts a PANES row must not answer for a WAITING
+    /// row further up, which used to light the wrong row.
+    pub(crate) fn pane_at_panes_list(&self) -> Option<usize> {
+        let (rel_row, l) = self.sidebar_row()?;
         let idx = sidebar_pane_index(rel_row, l.panes_top)?;
         (idx < self.panes.len()).then_some(idx)
     }

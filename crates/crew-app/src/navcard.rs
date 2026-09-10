@@ -127,7 +127,7 @@ impl CrewApp {
         // One clock read per frame keeps every row's blink phase in step.
         let now = crate::anim::now_ms();
         // One hit-test per frame, not one per row.
-        let hovered = self.pane_at_sidebar();
+        let hovered = self.pane_at_panes_list();
         self.panes
             .iter()
             .enumerate()

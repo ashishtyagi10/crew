@@ -5,6 +5,7 @@ fn row(kind: Wait, text: &str) -> WaitRow {
         kind,
         text: text.into(),
         pane: Some(0),
+        hovered: false,
     }
 }
 
@@ -39,4 +40,21 @@ fn rows_wear_their_kind_and_the_rule_counts_them() {
     assert!(waiting_cells(&rows, 40, 0).is_empty());
     let narrow = waiting_cells(&rows, 18, 2);
     assert!(line(&narrow, 0).contains("WAITING") && !line(&narrow, 0).contains('\u{2026}'));
+}
+
+/// The row under the pointer lifts; the others stay as they were.
+#[test]
+fn the_hovered_row_is_bold_and_the_rest_are_not() {
+    let _g = crate::app::theme_test_guard();
+    let mut rows = vec![row(Wait::Blocked, "a"), row(Wait::Plan, "b")];
+    rows[1].hovered = true;
+    let cells = waiting_cells(&rows, 30, 4);
+    assert!(
+        cells.iter().filter(|c| c.row == 2).all(|c| c.bold),
+        "hovered row"
+    );
+    assert!(
+        cells.iter().filter(|c| c.row == 1).all(|c| !c.bold),
+        "the other row"
+    );
 }
