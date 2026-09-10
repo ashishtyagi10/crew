@@ -109,7 +109,9 @@ fn glyph(col: u16, row: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> Cel
     }
 }
 
-/// Write `s` at `(col, row)`, stopping before `max_col`.
+/// Write `s` at `(col, row)`, stopping before `max_col` — with the cut
+/// marked, so a stage line like `v0.21.86 → v0.21.87` on a narrowed nav
+/// ends in `…` rather than mid-version.
 fn write(
     out: &mut Vec<CellView>,
     s: &str,
@@ -119,6 +121,7 @@ fn write(
     max_col: u16,
     bg: (u8, u8, u8),
 ) {
+    let s = crate::chatwidth::clip_w(s, usize::from(max_col.saturating_sub(col)));
     for (i, c) in s.chars().enumerate() {
         let x = col + i as u16;
         if x >= max_col {

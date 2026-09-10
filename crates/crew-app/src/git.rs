@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 
+use crate::chatwidth::{clip_w, str_w};
 use crew_render::CellView;
 
 use crate::boxdraw::section_header;
@@ -171,13 +172,11 @@ fn run(dir: &Path, args: &[&str]) -> Option<String> {
 pub fn git_cells(info: &GitInfo, cols: u16) -> Vec<CellView> {
     let t = crew_theme::theme();
     let mut out = section_header("GIT", cols, t.border_normal, accent(), t.page_bg);
-    let mut head = info.branch.clone();
-    if info.ahead > 0 {
-        head.push_str(&format!(" ↑{}", info.ahead));
-    }
-    if info.behind > 0 {
-        head.push_str(&format!(" ↓{}", info.behind));
-    }
+    // The ↑↓ is the news and is kept whole; the branch, which you know, gives way.
+    let arrow = |n: usize, g: char| (n > 0).then(|| format!(" {g}{n}")).unwrap_or_default();
+    let tail = arrow(info.ahead, '↑') + &arrow(info.behind, '↓');
+    let room = usize::from(cols.saturating_sub(4)).saturating_sub(str_w(&tail));
+    let head = format!("{}{tail}", clip_w(&info.branch, room));
     put(&mut out, &head, 1, cols, t.ink, t.page_bg);
     let (marker, fg) = if info.changed > 0 {
         (format!("● {} changed", info.changed), t.status_fg)
@@ -191,15 +190,13 @@ pub fn git_cells(info: &GitInfo, cols: u16) -> Vec<CellView> {
 /// Draw `s` at `row`, indented to align under the section legend, clipped to `cols`.
 fn put(out: &mut Vec<CellView>, s: &str, row: u16, cols: u16, fg: (u8, u8, u8), bg: (u8, u8, u8)) {
     let max = cols.saturating_sub(4) as usize;
-    for (i, c) in crate::chatwidth::clip_w(s, max).chars().enumerate() {
+    for (i, c) in clip_w(s, max).chars().enumerate() {
         out.push(CellView {
             col: 3 + i as u16,
             row,
             c,
             fg,
             bg,
-            bold: false,
-            italic: false,
             ..Default::default()
         });
     }
