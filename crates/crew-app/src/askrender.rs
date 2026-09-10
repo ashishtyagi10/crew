@@ -69,23 +69,35 @@ fn render_cast(answers: &[CastAnswer]) -> (String, i32) {
                 answered += 1;
                 out.push_str(&format!("[{who}] ANSWERED: {t}\n"));
             }
-            (None, Some(NoAnswer::Stalled)) => {
-                out.push_str(&format!("[{who}] no answer (stalled)\n"))
-            }
-            (None, _) => out.push_str(&format!("[{who}] no answer (idle)\n")),
+            (None, why) => out.push_str(&format!("[{who}] no answer ({})\n", word(why))),
         }
     }
     (out.trim_end().to_string(), if answered > 0 { 0 } else { 2 })
 }
 
-/// Render the `crew panes` roster as a fixed-column table.
+/// The one word for why a pane did not answer — the same four `render`
+/// spells out, so a broadcast never calls a busy pane idle.
+fn word(reason: Option<NoAnswer>) -> &'static str {
+    match reason {
+        Some(NoAnswer::Stalled) => "stalled",
+        Some(NoAnswer::BusyElsewhere) => "busy",
+        Some(NoAnswer::Unreachable) => "unreachable",
+        Some(NoAnswer::IdleNoEngage) | None => "idle",
+    }
+}
+
+/// Render the `crew panes` roster as a fixed-column table — or say there is
+/// none, since a bare header row reads like a broken query.
 pub(crate) fn render_roster(panes: &[PaneCard]) -> String {
+    if panes.is_empty() {
+        return "no panes open".to_string();
+    }
     let mut out = String::from("id   label            kind      running   state\n");
     for c in panes {
         out.push_str(&format!(
             "{:<4} {:<16} {:<9} {:<9} {}\n",
             c.id,
-            c.label.as_deref().unwrap_or("-"),
+            crate::chatwidth::clip_w(c.label.as_deref().unwrap_or("-"), 16),
             c.kind,
             c.running.as_deref().unwrap_or("-"),
             if c.busy { "busy" } else { "idle" },

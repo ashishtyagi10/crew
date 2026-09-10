@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.98
+
+**The CLI says what it means.** `crew panes` with nothing open printed a
+bare header row and exited 0 — indistinguishable from a broken query; it
+says `no panes open`. A long pane label pushed every column after it
+sideways; it is clipped to its column. And a broadcast called every
+silent pane `idle`, including one busy on its own task and one that did
+not exist; it names the reason the pane gave — idle, stalled, busy,
+unreachable — with the same four words `crew ask` uses.
+
 ## 0.21.97
 
 **The Far panel degrades on purpose.** Its function-key bar was eight pills
