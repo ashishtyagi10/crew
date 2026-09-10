@@ -113,16 +113,8 @@ impl DiskPane {
                 );
             }
         }
-        let hint =
-            "\u{2190}\u{2192} pick \u{00b7} enter opens \u{00b7} backspace up \u{00b7} r rescans";
-        put(
-            &mut out,
-            hint,
-            1,
-            rows.saturating_sub(1),
-            t.text_muted,
-            cols,
-        );
+        let hint = crate::diskhint::hint(cols);
+        put(&mut out, hint, 1, rows - 1, t.text_muted, cols);
         out
     }
 

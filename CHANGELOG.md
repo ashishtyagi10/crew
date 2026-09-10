@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.86
+
+**The `/disk` hint fits the pane and says `esc`.** One 47-column string
+was put on the last row of a pane that draws from 20, and the put broke at
+the edge: a 30-column tile read `←→ pick · enter opens · b`, which looks
+like a rendering fault. The hint is a ladder now (`diskhint::HINTS`), the
+widest form that fits chosen whole — down to `←→ enter esc` — and every
+form names Esc, which closed the pane all along without the hint ever
+saying so.
+
 ## 0.21.85
 
 **`/usage` at a quarter tile no longer overprints itself.** `COST PER DAY`

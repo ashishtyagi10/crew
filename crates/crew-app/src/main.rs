@@ -174,6 +174,7 @@ mod detach;
 mod diffjob;
 mod diffrefine;
 mod diskdraw;
+mod diskhint;
 mod diskpane;
 mod diskscan;
 mod disktile;
