@@ -139,6 +139,13 @@ fn popup_shot_themes_and_tiles() {
     crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
     shot("popup-commands-quarter", &p, 380, &commands_long);
+    // Mid-rise: the card still a quarter row low, its bottom edge over the
+    // composer's top border — the frame the rise is made of.
+    p.popup_rise
+        .tick_at(true, 0, crate::motion::MotionLevel::Full);
+    crate::popupshot_tests::shot_at("popup-model-rising", &p, W, &model, 30);
+    p.popup_rise
+        .tick_at(false, 0, crate::motion::MotionLevel::Full);
     shot("popup-attach-quarter", &p, 380, &attach);
     shot("popup-key-quarter", &p, 380, &key);
 }

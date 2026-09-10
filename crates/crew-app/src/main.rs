@@ -376,6 +376,7 @@ mod poll;
 mod popupchrome;
 mod popupclick;
 mod popupplace;
+mod popuprise;
 #[cfg(test)]
 #[path = "popupshot_tests.rs"]
 mod popupshot_tests;

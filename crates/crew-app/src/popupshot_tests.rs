@@ -31,11 +31,12 @@ pub(crate) fn frame(
     cw: f32,
     ch: f32,
     popup: Popup,
+    now: u64,
 ) -> (Vec<PaneScene>, Rect) {
     let r = rect(w);
     let cols = (r.w / cw).floor() as u16;
     let rows = (r.h / ch).floor() as u16;
-    let over = crate::popupplace::scene(p, r, cw, ch, popup);
+    let over = crate::popupplace::scene(p, r, cw, ch, popup, now);
     let at = Rect {
         x: over.x,
         y: over.y,
@@ -77,6 +78,18 @@ fn inked(px: &[u8], w: u32, x0: u32, x1: u32, y0: u32, y1: u32) -> bool {
 /// placement rules on the pixels: the composer's `❯` still shows under the
 /// card, and the pane to the RIGHT of the card is bare page (no band).
 pub(crate) fn shot(name: &str, p: &ChatPane, w: u32, popup: impl Fn(u16) -> Popup) -> Option<()> {
+    shot_at(name, p, w, popup, 0)
+}
+
+/// [`shot`] with the frame's clock at `now` — a rising card is shot
+/// mid-rise, so the placement checks below allow for its drop.
+pub(crate) fn shot_at(
+    name: &str,
+    p: &ChatPane,
+    w: u32,
+    popup: impl Fn(u16) -> Popup,
+    now: u64,
+) -> Option<()> {
     let mut at = rect(w);
     let (mut cw_px, mut ch_px) = (0.0, 0.0);
     let mut card_cols = 0u16;
@@ -94,7 +107,7 @@ pub(crate) fn shot(name: &str, p: &ChatPane, w: u32, popup: impl Fn(u16) -> Popu
         for l in dump(&pop.cells, pop.cols, pop.rows) {
             eprintln!("|{l}");
         }
-        let (scenes, r) = frame(p, w, cw, ch, pop);
+        let (scenes, r) = frame(p, w, cw, ch, pop, now);
         at = r;
         scenes
     })?;

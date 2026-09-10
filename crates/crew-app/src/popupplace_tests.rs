@@ -83,7 +83,7 @@ fn a_popup_scene_is_as_wide_as_its_card_and_flush_left() {
         cols: 40,
         rows: 5,
     };
-    let s = super::scene(&p, r, cw, ch, popup);
+    let s = super::scene(&p, r, cw, ch, popup, 0);
     // The card, plus one column of page as a margin against the text under it.
     assert_eq!((s.x, s.w, s.h), (r.x, 41.0 * cw, 5.0 * ch));
     assert!(s.overlay, "held solid by the overlay pass");
@@ -102,5 +102,35 @@ fn the_margin_stops_at_the_pane_edge() {
         scene_w(60, 50, 8.0),
         60.0 * 8.0,
         "never narrower than the card"
+    );
+}
+
+/// On the frame a pop-up opens the scene sits half a row low and rises to
+/// its place; a settled pane's scene is exactly in place.
+#[test]
+fn a_rising_popup_starts_half_a_row_low() {
+    let mut p = pane();
+    let (cw, ch) = (8.0, 16.0);
+    let r = Rect {
+        x: 0.0,
+        y: 0.0,
+        w: 100.0 * cw,
+        h: 40.0 * ch,
+    };
+    let popup = || super::Popup {
+        cells: Vec::new(),
+        cols: 40,
+        rows: 5,
+    };
+    let settled = super::scene(&p, r, cw, ch, popup(), 5_000).y;
+    p.popup_rise
+        .tick_at(true, 5_000, crate::motion::MotionLevel::Full);
+    assert_eq!(
+        super::scene(&p, r, cw, ch, popup(), 5_000).y,
+        settled + 0.5 * ch
+    );
+    assert_eq!(
+        super::scene(&p, r, cw, ch, popup(), 5_000 + 1_000).y,
+        settled
     );
 }

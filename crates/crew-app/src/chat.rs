@@ -115,6 +115,9 @@ pub struct ChatPane {
     /// A plan button pressed and not yet released, with its invert flash
     /// (`chatplanbtn::PRESS_MS`). Release fires it; a drag out cancels it.
     pub(crate) press_btn: Option<(crate::chatplanbtn::Btn, crate::ease::Timeline)>,
+    /// The composer pop-up's rise out of the composer (`popuprise`), ticked
+    /// once per frame by the frame builder.
+    pub(crate) popup_rise: crate::popuprise::Rise,
     /// Where this pane's broker operates, mirrored in from the owning `Pane`
     /// each poll tick alongside `git_branch` — for the same reason: the footer
     /// shows it and the winit thread must never call `current_dir()` per frame

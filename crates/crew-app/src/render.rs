@@ -311,16 +311,21 @@ impl CrewApp {
         // crew pane (`ChatPane::popup` holds the precedence — the key prompt
         // over find over history over the attach picker over the palette,
         // the same order their keys are routed in), standing above the
-        // composer. Never while the input bar has the keys. An overlay scene,
-        // so the overlay pass backs it with an opaque page.
-        if !self.input.focused {
-            if let Some(pane) = self.panes.get(self.focused) {
-                if let crate::pane::PaneContent::Chat(c) = &pane.content {
-                    let r = pane.rect;
-                    let cols = (r.w / cw).floor() as u16;
-                    if let Some(p) = c.popup(cols) {
-                        scenes.push(crate::popupplace::scene(c, r, cw, ch, p));
-                    }
+        // composer and rising into place on its first frames. Never while
+        // the input bar has the keys. An overlay scene, so the overlay pass
+        // backs it with an opaque page. Every chat pane's rise is ticked,
+        // drawn or not, so one that lost the pop-up (or the focus) replays
+        // the rise when it comes back.
+        let (focused, bar_has_keys) = (self.focused, self.input.focused);
+        for (i, pane) in self.panes.iter_mut().enumerate() {
+            let r = pane.rect;
+            let cols = (r.w / cw).floor() as u16;
+            if let crate::pane::PaneContent::Chat(c) = &mut pane.content {
+                let drawn = i == focused && !bar_has_keys;
+                let popup = drawn.then(|| c.popup(cols)).flatten();
+                c.popup_rise.tick(popup.is_some(), now);
+                if let Some(p) = popup {
+                    scenes.push(crate::popupplace::scene(c, r, cw, ch, p, now));
                 }
             }
         }

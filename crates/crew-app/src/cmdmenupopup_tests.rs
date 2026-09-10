@@ -175,3 +175,12 @@ fn the_offset_is_the_one_ratatui_draws_with() {
         );
     }
 }
+
+/// The `›` marker is in the accent — the composer's `❯` colour.
+#[test]
+fn the_marker_wears_the_accent() {
+    let _g = crate::app::theme_test_guard();
+    let cells = crate::cmdmenu::menu_cells(&[item("/dash", "Open the dashboard pane")], 0, 60, 1);
+    let mark = cells.iter().find(|c| c.c == '\u{203a}').expect("a marker");
+    assert_eq!(mark.fg, crate::palette::accent());
+}

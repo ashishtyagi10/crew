@@ -130,6 +130,12 @@ pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16)
             c.fg = ink;
         }
     }
+    // The marker wears the accent, as the composer's `❯` does: the same
+    // glyph family saying "here" in the same colour, one row apart.
+    let accent = crate::palette::accent();
+    for c in cells.iter_mut().filter(|c| c.col == 0 && c.c == '\u{203a}') {
+        c.fg = accent;
+    }
     cells
 }
 

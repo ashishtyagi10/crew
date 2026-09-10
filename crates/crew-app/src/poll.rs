@@ -99,7 +99,7 @@ impl CrewApp {
             || self.panes.iter().any(|p| {
                 crate::paneview::spawn_timeline(p).live(now)
                     || match &p.content {
-                        PaneContent::Chat(c) => c.readouts.any_live(now),
+                        PaneContent::Chat(c) => c.readouts.any_live(now) || c.popup_rise.live(now),
                         _ => false,
                     }
             })
