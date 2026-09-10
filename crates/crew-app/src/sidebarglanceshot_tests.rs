@@ -61,6 +61,13 @@ fn sidebar_shot_glance() {
             rain: 10,
             code: 2,
             unit: 'C',
+            // A September day: cool at eight, the peak mid-afternoon.
+            hours: (0..24)
+                .map(|h| {
+                    let t = (h as f32 + 8.0 - 15.0) / 24.0 * std::f32::consts::TAU;
+                    (22.5 + 4.5 * t.cos()).round() as i32
+                })
+                .collect(),
         }),
         serving: Serving {
             provider: Some("claude-code".into()),

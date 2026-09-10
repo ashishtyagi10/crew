@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.77
+
+**The WEATHER card draws the day.** Under `☁ 24°C partly cloudy` and the
+range, the next twenty-four hours stand as a temperature curve on the
+paint layer — the CPU chart's kind, the accent's fill fading to a
+hairline — from the current hour on the left to this time tomorrow. The
+forecast is asked for its hourly series (two days, so the curve crosses
+midnight), a cache written before there was one is fetched again once,
+and a reading without hours keeps the shorter card rather than an empty
+box. The curve is scaled over the day's own range, floored at four
+degrees, so a flat day is a flat line at mid-height and not noise.
+
 ## 0.21.76
 
 **The weather is a card in the nav now.** `/weather Berlin` used to put one

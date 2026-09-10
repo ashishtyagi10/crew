@@ -21,7 +21,8 @@ pub(crate) fn read_cache_at(path: &std::path::Path, place: &str, ttl: Duration) 
     // The cache remembers what was ASKED, so a new place never serves the
     // old place's sky for an hour.
     let asked = std::fs::read_to_string(path.with_extension("place")).ok()?;
-    (asked == place).then_some(w)
+    // A reading without its hours is from before the card drew them: fetch.
+    (asked == place && !w.hours.is_empty()).then_some(w)
 }
 
 fn write_cache(place: &str, w: &Weather) {
@@ -64,12 +65,13 @@ async fn fetch(place: &str) -> Option<Weather> {
             ("latitude", lat.to_string()),
             ("longitude", lon.to_string()),
             ("current", "temperature_2m,weather_code".into()),
+            ("hourly", "temperature_2m".into()),
             (
                 "daily",
                 "temperature_2m_max,temperature_2m_min,precipitation_probability_max".into(),
             ),
             ("timezone", "auto".into()),
-            ("forecast_days", "1".into()),
+            ("forecast_days", "2".into()),
             ("temperature_unit", temperature_unit.into()),
         ])
         .send()

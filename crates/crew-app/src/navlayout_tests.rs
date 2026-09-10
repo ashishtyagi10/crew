@@ -73,6 +73,11 @@ fn a_git_repo_pushes_everything_below_it_down_one_block() {
 }
 
 fn glance(rows: u16, waiting: usize, weather: bool, panes: usize) -> NavLayout {
+    let weather = if weather {
+        crate::navweathercard::WEATHER_BLOCK
+    } else {
+        0
+    };
     layout_with(rows, true, Tail::Glance { waiting, weather }, panes)
 }
 

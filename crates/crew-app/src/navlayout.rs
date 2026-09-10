@@ -37,12 +37,12 @@ pub const LOG_MIN: usize = 2;
 pub const LOG_MAX: usize = 20;
 
 /// What fills the nav's variable slot: the LOG tail (with its entry count)
-/// or the glance cards (the WAITING row count, and whether there is a
-/// weather reading to make a card of) — see `navglance`.
+/// or the glance cards (the WAITING row count, and the WEATHER card's block
+/// — 0 without a reading; see `navweathercard::block`) — see `navglance`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tail {
     Log(usize),
-    Glance { waiting: usize, weather: bool },
+    Glance { waiting: usize, weather: u16 },
 }
 
 /// Where each variable-height section of the nav starts, for one frame.
@@ -130,13 +130,11 @@ pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLay
             out.log_lines = if log_lines < LOG_MIN { 0 } else { log_lines };
             out.panes_top = top + out.log_block();
         }
-        Tail::Glance { waiting, weather } => {
+        Tail::Glance {
+            waiting,
+            weather: w,
+        } => {
             let serving = crate::navserving::SERVING_BLOCK;
-            let w = if weather {
-                crate::navweathercard::WEATHER_BLOCK
-            } else {
-                0
-            };
             // A one-row WAITING is rule + row + gap: the sky never displaces
             // the card that says what needs you.
             if w > 0 && rows >= top + w + serving + 3 + panes_block {

@@ -2,14 +2,61 @@
 //! standing in the nav's glance slot above SERVING. The clock's one-line
 //! strip said the numbers; the card has room to say the sky in words and
 //! to carry the place on its rule, so `Berlin`'s rain is never read as
-//! yours. When the layout has no room for it, the strip comes back.
-use crew_render::CellView;
+//! yours. Under the words, the next 24 hours as a temperature curve on the
+//! paint layer (the CPU chart's kind). When the layout has no room for it,
+//! the strip comes back.
+use crew_render::{CellView, Paint};
 
 use crate::navweather::{glyph, Weather};
 use crate::palette::accent;
 
-/// Rows the card occupies: rule, now, today, and a one-row gap.
+/// Rows the card occupies: rule, now, today, and a one-row gap …
 pub const WEATHER_BLOCK: u16 = 4;
+/// … plus the curve's rows when the reading has its hours.
+pub const CHART_ROWS: u16 = 2;
+/// Row the curve starts on, from the card's rule.
+const CHART_OFF: u16 = 3;
+
+/// Rows this reading's card takes: the curve only when there is one.
+pub(crate) fn block(w: &Weather) -> u16 {
+    if w.hours.len() < 2 {
+        WEATHER_BLOCK
+    } else {
+        WEATHER_BLOCK + CHART_ROWS
+    }
+}
+
+/// The hours as `0.0..=1.0` over the day's span — a span floored at four
+/// degrees, so a flat day is a flat line at mid-height and not noise
+/// stretched to fill the box. Pure.
+pub(crate) fn curve(hours: &[i32]) -> Vec<f32> {
+    let (lo, hi) = hours
+        .iter()
+        .fold((i32::MAX, i32::MIN), |(lo, hi), &t| (lo.min(t), hi.max(t)));
+    let span = (hi - lo).max(4) as f32;
+    let floor = (lo + hi) as f32 / 2.0 - span / 2.0;
+    hours
+        .iter()
+        .map(|&t| ((t as f32 - floor) / span).clamp(0.0, 1.0))
+        .collect()
+}
+
+/// The curve, in the nav's cell units, shifted to the card at `top`: the
+/// area chart under the two text rows, on a hairline it stands on.
+pub(crate) fn weather_paint(w: &Weather, top: u16, cols: u16, aspect: f32) -> Vec<Paint> {
+    let width = cols.saturating_sub(TEXT_COL + 2);
+    if w.hours.len() < 2 || width == 0 {
+        return Vec::new();
+    }
+    let mut c = crate::plot::Canvas::new(width, CHART_ROWS, aspect);
+    let (cw, ch) = c.size();
+    crate::plot::area::draw(&mut c, (0.0, 0.0, cw, ch), &curve(&w.hours), accent());
+    c.hairline(0.0, ch, cw, crew_theme::theme().border_normal, 0.7);
+    c.paint()
+        .into_iter()
+        .map(|p| p.shifted(f32::from(TEXT_COL), f32::from(top + CHART_OFF)))
+        .collect()
+}
 
 /// Column the text starts on, under the rule's own indent (as GIT does).
 const TEXT_COL: u16 = 2;

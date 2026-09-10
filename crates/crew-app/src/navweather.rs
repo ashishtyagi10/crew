@@ -27,6 +27,10 @@ pub(crate) struct Weather {
     pub code: u16,
     /// `'C'` or `'F'` — Fahrenheit for a place in the US, Celsius elsewhere.
     pub unit: char,
+    /// The next 24 hours' temperatures from the current hour, for the
+    /// card's curve. Empty from a cache written before there was one.
+    #[serde(default)]
+    pub hours: Vec<i32>,
 }
 
 static CURRENT: RwLock<Option<Weather>> = RwLock::new(None);
@@ -92,6 +96,7 @@ pub(crate) fn parse_forecast(body: &str, place: &str, unit: char) -> Option<Weat
     let daily = v.get("daily")?;
     let first = |k: &str| daily.get(k)?.as_array()?.first()?.as_f64();
     Some(Weather {
+        hours: hours_from(v.get("hourly"), cur.get("time").and_then(|t| t.as_str())),
         place: place.to_string(),
         temp: cur.get("temperature_2m")?.as_f64()?.round() as i32,
         hi: first("temperature_2m_max")?.round() as i32,
@@ -102,6 +107,34 @@ pub(crate) fn parse_forecast(body: &str, place: &str, unit: char) -> Option<Weat
         code: cur.get("weather_code")?.as_u64()? as u16,
         unit,
     })
+}
+
+/// The hourly series from the current hour on, 24 readings: Open-Meteo's
+/// `hourly.time` is local ISO minutes (`2026-09-10T08:00`) and `current.time`
+/// the same shape, so the current hour is the entry sharing its first 13
+/// characters. Empty when either is missing.
+fn hours_from(hourly: Option<&serde_json::Value>, now: Option<&str>) -> Vec<i32> {
+    let (Some(h), Some(now)) = (hourly, now) else {
+        return Vec::new();
+    };
+    let (Some(times), Some(temps)) = (
+        h.get("time").and_then(|t| t.as_array()),
+        h.get("temperature_2m").and_then(|t| t.as_array()),
+    ) else {
+        return Vec::new();
+    };
+    let hour = now.get(..13).unwrap_or(now);
+    let start = times
+        .iter()
+        .position(|t| t.as_str().is_some_and(|t| t.starts_with(hour)))
+        .unwrap_or(0);
+    temps
+        .iter()
+        .skip(start)
+        .take(24)
+        .filter_map(|t| t.as_f64())
+        .map(|t| t.round() as i32)
+        .collect()
 }
 
 #[cfg(test)]

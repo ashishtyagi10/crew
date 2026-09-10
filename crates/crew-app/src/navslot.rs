@@ -12,7 +12,7 @@ pub(crate) fn tail(glance: Option<&Glance>, log_len: usize) -> Tail {
     match glance {
         Some(g) => Tail::Glance {
             waiting: g.waiting.len(),
-            weather: g.weather.is_some(),
+            weather: g.weather.as_ref().map_or(0, crate::navweathercard::block),
         },
         None => Tail::Log(log_len),
     }
@@ -59,14 +59,24 @@ pub(crate) fn slot_cells(
     out
 }
 
-/// The SERVING card's two meters, drawn as the footer draws its own.
+/// The WEATHER card's curve and the SERVING card's two meters, drawn as
+/// the footer draws its own.
 pub(crate) fn slot_paint(g: &Glance, l: &NavLayout, cols: u16, aspect: f32) -> Vec<Paint> {
+    let mut out = match &g.weather {
+        Some(w) if l.weather_rows > 0 => {
+            crate::navweathercard::weather_paint(w, l.weather_top, cols, aspect)
+        }
+        _ => Vec::new(),
+    };
     if l.serving_rows == 0 {
-        return Vec::new();
+        return out;
     }
     let (mut cells, meters) = crate::navserving::serving_cells(&g.serving, cols);
     for c in &mut cells {
         c.row += l.serving_top;
     }
-    crate::summarymeter::draw_meters(&mut cells, &meters, aspect)
+    out.extend(crate::summarymeter::draw_meters(
+        &mut cells, &meters, aspect,
+    ));
+    out
 }
