@@ -1,13 +1,10 @@
 //! Off-screen render of the toast stack — the notification card that docks at
 //! the top-right of the content area.
 //!
-//! Toasts are the one surface nobody can hold still to inspect: each card is
-//! on screen for 4.8 seconds and then gone. Everything about them was
-//! therefore only ever asserted on — the legend's `×N` repeat count, the
-//! alert stroke, the hover affordance, the clip of a message too long for the
-//! card, and four of them stacked. This shoots the whole stack at once.
-//!
-//! `#[ignore]`d (needs a GPU adapter, writes PNGs):
+//! Toasts are the one surface nobody can hold still to inspect (4.8 s and
+//! gone), so everything about them was only ever asserted on — the `×N`
+//! count, the alert stroke, the hover, the clip, four stacked. This shoots
+//! the whole stack. `#[ignore]`d (needs a GPU adapter, writes PNGs):
 //! `CREW_SHOT_DIR=<dir> cargo test -p crew-app --bin crew toast_shot -- --ignored`
 use crate::layout::Rect;
 use crate::toast::Toasts;
@@ -44,6 +41,9 @@ fn toast_shot(
         };
         let mut scenes = Vec::new();
         // `now` a little past birth: the slide has landed, nothing is exiting.
+        // Twice: the hover hit-tests the PREVIOUS frame's rects.
+        crate::toast::push_toasts(&mut scenes, &mut toasts, content, cw, ch, 1_400, cursor);
+        scenes.clear();
         crate::toast::push_toasts(&mut scenes, &mut toasts, content, cw, ch, 1_400, cursor);
         scenes
     })?;
@@ -111,15 +111,15 @@ fn toast_shot_hovered() {
         Some("claude"),
         1,
     )];
-    for (name, cursor) in [
-        ("toast-rest", None),
-        ("toast-hover", Some((W as f32 - 120.0, 28.0))),
+    for (name, cursor, lit) in [
+        ("toast-rest", None, false),
+        ("toast-hover", Some((W as f32 - 120.0, 28.0)), true),
     ] {
         let Some(px) = toast_shot(name, &one, cursor) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         };
-        assert!(crate::shotgpu_tests::ink(&px) > 300, "{name} drew");
+        assert_eq!(crate::shotgpu_tests::accent_px(&px) > 40, lit, "{name}");
     }
 }
 

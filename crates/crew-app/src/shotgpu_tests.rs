@@ -67,3 +67,17 @@ pub fn ink(px: &[u8]) -> usize {
         })
         .count()
 }
+
+/// Pixels within a short distance of the accent colour — "did the accent
+/// get drawn at all" (a hovered toast's stroke, a legend that lit).
+pub fn accent_px(px: &[u8]) -> usize {
+    let a = crate::palette::accent();
+    px.chunks_exact(4)
+        .filter(|p| {
+            (p[0] as i32 - a.0 as i32).abs()
+                + (p[1] as i32 - a.1 as i32).abs()
+                + (p[2] as i32 - a.2 as i32).abs()
+                < 60
+        })
+        .count()
+}

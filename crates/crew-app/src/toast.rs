@@ -26,7 +26,6 @@
 pub(crate) use crate::toastcard::*;
 use crew_render::PaneScene;
 
-use crate::chatwidth::str_w;
 use crate::ease::Timeline;
 use crate::layout::Rect;
 
@@ -241,11 +240,12 @@ pub(crate) fn push_toasts(
     let hovered = cursor.and_then(|(x, y)| toasts.index_at(x, y));
     toasts.rects.clear();
     let gap = crate::app::gap();
-    let max_cols = (((content.w - 2.0 * gap) / cw).floor() as usize).min(MAX_TEXT_COLS + 4);
+    let max_cols = (((content.w - 2.0 * gap) / cw).floor() as usize).min(MAX_TEXT_COLS + PAD);
+    // One width for the whole stack (the widest card's): one shared left edge.
+    let cols = stack_cols(toasts.items.iter().map(|t| t.text.as_str()), max_cols);
     let mut y = content.y + gap;
     for (i, t) in toasts.items.iter().enumerate() {
-        let lines = crate::toastcard::fit(&t.text, max_cols.saturating_sub(4));
-        let cols = (lines.iter().map(|l| str_w(l)).max().unwrap_or(0) + 4).min(max_cols) as u16;
+        let lines = crate::toastcard::fit(&t.text, usize::from(cols).saturating_sub(PAD));
         if cols < 6 {
             continue;
         }

@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.21.73
+
+**The toast stack shares one edge.** Each card in the stack was as wide as
+its own text, so four cards stepped in and out down the left side of the
+stack — right-aligned, ragged. Every card is now drawn at the widest card's
+width: one left edge, one column of notifications. And the shot that was
+meant to show a hovered toast — the accent stroke and the `→ open` in its
+legend — had shown a resting one since it was written: the hover hit-tests
+the rects the previous frame drew, and a single frame has none. The shot
+draws two frames and now shows what the pointer sees, and asserts it.
+
 ## 0.21.72
 
 **The input bar's palette answers the mouse too.** The "commands" card over
