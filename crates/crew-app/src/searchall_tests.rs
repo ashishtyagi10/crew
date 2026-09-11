@@ -3,6 +3,13 @@ use crate::app::CrewApp;
 use crate::pane::{spawn_pane, PaneContent};
 use crew_term::GridSize;
 
+/// How long the three shell-spawning tests below wait for a real `sh` to
+/// echo their marker. Five seconds was enough on a quiet machine and not
+/// on a loaded CI runner — all three went red on one Windows run whose
+/// code touched none of this. The wait is a liveness bound, not the
+/// claim: a shell that never echoes still fails, just later.
+const MARKER_WAIT: std::time::Duration = std::time::Duration::from_secs(30);
+
 #[test]
 fn count_lines_counts_non_overlapping_occurrences() {
     let lines = vec!["error error".to_string(), "no".into(), "error".into()];
@@ -35,7 +42,7 @@ fn findall_focuses_the_first_matching_pane_from_the_bottom() {
     }
     // No event loop here: pump the reader channel into the model the way
     // poll_panes does each tick, until the marker lands in the grid.
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    let deadline = std::time::Instant::now() + MARKER_WAIT;
     let mut found = false;
     while std::time::Instant::now() < deadline {
         if let PaneContent::Terminal(t) = &mut app.panes[1].content {
@@ -77,7 +84,7 @@ fn count_scrollback_is_smart_case_like_find() {
     };
     use std::io::Write;
     let _ = t.input.write_all(b"echo CrewCaseMarker\n");
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    let deadline = std::time::Instant::now() + MARKER_WAIT;
     loop {
         t.pty.try_read();
         // Lowercase term: case-insensitive — sees the mixed-case output.
@@ -113,7 +120,7 @@ fn repeating_findall_cycles_matching_panes_and_wraps() {
             let _ = t.input.write_all(b"echo crewcyclemarker\n");
         }
     }
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    let deadline = std::time::Instant::now() + MARKER_WAIT;
     loop {
         let mut ready = 0;
         for i in [0usize, 2] {

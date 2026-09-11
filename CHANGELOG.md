@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.16
+
+Three tests that spawn a real shell and wait for it to echo a marker gave
+it five seconds, which a loaded CI runner does not always meet — all three
+went red on a Windows run whose code touched none of them. They wait
+thirty seconds now; a shell that never echoes still fails the test.
+
 ## 0.22.15
 
 **Crew says what it is bringing to a run.** After the routing line and
