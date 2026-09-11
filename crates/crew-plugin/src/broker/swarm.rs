@@ -32,17 +32,16 @@ pub(crate) fn run_task(
     session: &Session,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    // A pending resume folds the previous session's tail in as restored
-    // context (consumed once) — mirroring `relay_counting` — and skills
-    // weave in first, matched on the raw task, exactly as on the relay path.
-    // Each applied playbook is announced under the run's lead: the frame is
-    // run-level (it heads the task the planner reads), and "agent smith" is
-    // the sender of the plan line the pane anchors it above.
+    // Skills weave in first (matched on the raw task), standing memory rides
+    // on top — the `relay_turn` frame, so a `#note` reaches the planner on
+    // the shape most messages take — and a pending resume folds in last,
+    // consumed once. Each applied playbook is announced under the run's
+    // lead, "agent smith": the sender of the plan line the pane anchors it above.
     let framed = super::skillframe::with_skills(task);
     for ev in super::skillframe::loaded_events(&framed.applied, SWARM_LEAD) {
         emit(ev)?;
     }
-    let task_owned = fold_resume(session, &framed.body);
+    let task_owned = fold_resume(session, &super::memory::with_memory(&framed.body));
     super::sessionlog::append("user", task);
     let (planner, factory, budget, model, replan) = backend(session.tools());
     run_with(
@@ -108,9 +107,8 @@ pub(crate) fn run_with(
     };
 
     let tasks: Vec<crew_hive::TaskSpec> = graph.tasks().to_vec();
-    // Titles are not collected here: `HivePlan` already carries them to the
-    // app, and `translate` names agents by specialty. Handing it titles too is
-    // what let an agent be named after its task.
+    // Titles are not collected here: `HivePlan` already carries them, and
+    // handing `translate` titles is what let an agent be named after its task.
     let specialties: HashMap<TaskId, String> =
         tasks.iter().map(|t| (t.id, t.specialty.clone())).collect();
     emit(PluginEvent::HivePlan {
@@ -253,13 +251,11 @@ pub(crate) fn run_with(
         emit(msg("agent smith", lagged_note(lagged_total)))?;
     }
 
-    // Final aggregate: a status line only. Sink tasks' outputs already
-    // streamed live as their own per-task Messages the moment they completed
-    // (OutputChunk -> `translate` -> `msg`), so repeating them here would
-    // duplicate the same answer back-to-back in the transcript.
-    // A clean run says nothing — the sink tasks' answers already streamed
-    // live, so a "swarm done" line is just chrome. Only a cancellation or a
-    // failure gets an aggregate note, since those aren't otherwise obvious.
+    // Final aggregate: a status line only, and only on a cancellation or a
+    // failure — those aren't otherwise obvious. A clean run says nothing:
+    // the sink tasks' answers already streamed live as their own per-task
+    // Messages (OutputChunk -> `translate` -> `msg`), so a "swarm done" line
+    // is chrome and repeating the outputs would duplicate the answer.
     let cancelled = cancel.load(std::sync::atomic::Ordering::Relaxed);
     let summary = if cancelled {
         Some(format!(
@@ -315,3 +311,7 @@ mod tests;
 #[cfg(test)]
 #[path = "swarmreplan_tests.rs"]
 mod replan_tests;
+
+#[cfg(test)]
+#[path = "swarmmemory_tests.rs"]
+mod memory_tests;

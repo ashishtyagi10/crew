@@ -62,7 +62,9 @@ impl ApiAdapter {
     /// A planner-invented specialist: `name` is its `@`-handle (a slug),
     /// `role` its craft hint (possibly empty). The system prompt is derived
     /// here rather than stored, so a persisted specialist never pins stale
-    /// prompt text.
+    /// prompt text. Its opening line is the hive's own (`persona::identity`),
+    /// the same one a swarm worker gets, so the two paths introduce the same
+    /// specialist the same way.
     pub fn specialist(
         name: impl Into<String>,
         role: impl Into<String>,
@@ -70,17 +72,15 @@ impl ApiAdapter {
         provider: Arc<dyn Provider>,
     ) -> std::io::Result<Self> {
         let (name, role) = (name.into(), role.into());
-        let system = if role.is_empty() {
-            format!(
-                "You are the {name}. Do the work the task asks for, in your own \
-                 specialty. Be concise."
-            )
+        let from = if role.is_empty() {
+            "in your own specialty"
         } else {
-            format!(
-                "You are the {name}. Your specialty is {role}. Do the work the \
-                 task asks for, from that expertise. Be concise."
-            )
+            "from that expertise"
         };
+        let system = format!(
+            "{} Do the work the task asks for, {from}. Be concise.",
+            crew_hive::planner::persona::identity(&name, &role)
+        );
         Self::new(name, model, role, Some(system), provider)
     }
 }

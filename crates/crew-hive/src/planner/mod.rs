@@ -8,57 +8,18 @@
 mod tests;
 
 mod capabilities;
+mod error;
+pub mod persona;
 
 use std::future::Future;
 use std::pin::Pin;
 
 use serde::Deserialize;
 
-use crate::graph::{AgentKind, GraphError, ModelTier, TaskGraph, TaskId, TaskSpec};
-use crate::provider::{CompletionRequest, Provider, ProviderError};
+pub use error::PlanError;
 
-// ---------------------------------------------------------------------------
-// PlanError
-// ---------------------------------------------------------------------------
-
-#[derive(Debug)]
-pub enum PlanError {
-    Provider(ProviderError),
-    Parse(String),
-    Graph(GraphError),
-}
-
-impl std::fmt::Display for PlanError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PlanError::Provider(e) => write!(f, "provider error: {e}"),
-            PlanError::Parse(s) => write!(f, "parse error: {s}"),
-            PlanError::Graph(e) => write!(f, "graph error: {e}"),
-        }
-    }
-}
-
-impl std::error::Error for PlanError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            PlanError::Provider(e) => Some(e),
-            PlanError::Graph(e) => Some(e),
-            PlanError::Parse(_) => None,
-        }
-    }
-}
-
-impl From<ProviderError> for PlanError {
-    fn from(e: ProviderError) -> Self {
-        PlanError::Provider(e)
-    }
-}
-
-impl From<GraphError> for PlanError {
-    fn from(e: GraphError) -> Self {
-        PlanError::Graph(e)
-    }
-}
+use crate::graph::{AgentKind, ModelTier, TaskGraph, TaskId, TaskSpec};
+use crate::provider::{CompletionRequest, Provider};
 
 // ---------------------------------------------------------------------------
 // Planner trait
@@ -251,24 +212,38 @@ struct PlanNode {
 /// `debug_assert!` and `parse_plan_*` tests fail loudly if it ever regresses.
 ///
 /// `specialty` and `expertise` are model-authored but inert: a display label,
-/// an `@`-handle, and a role hint fed into the specialist's system prompt.
-/// Neither selects an executor, so neither can reach that sink. `specialty` is
-/// still slugged, because it becomes an addressable handle and the `@`
-/// tokenizers assume `^[a-z0-9-]+$` without enforcing it.
+/// an `@`-handle, and the worker's persona (see [`persona::worker`]). Neither
+/// selects an executor, so neither can reach that sink. `specialty` is still
+/// slugged, because it becomes an addressable handle and the `@` tokenizers
+/// assume `^[a-z0-9-]+$` without enforcing it.
 pub(crate) fn parse_plan(json: &str) -> Result<TaskGraph, PlanError> {
     let nodes: Vec<PlanNode> =
         serde_json::from_str(json).map_err(|e| PlanError::Parse(e.to_string()))?;
     let tasks: Vec<TaskSpec> = nodes
         .into_iter()
-        .map(|n| TaskSpec {
-            id: TaskId(n.id),
-            title: n.title,
-            agent: AgentKind::Api { system: None },
-            model: ModelTier::Standard,
-            deps: n.deps.into_iter().map(TaskId).collect(),
-            prompt: n.prompt,
-            specialty: crate::agentname::slug_or(n.specialty.as_deref().unwrap_or(""), n.id),
-            expertise: crate::agentname::role_clamp(n.expertise.as_deref().unwrap_or("")),
+        .map(|n| {
+            let raw = n.specialty.as_deref().unwrap_or("");
+            let specialty = crate::agentname::slug_or(raw, n.id);
+            let expertise = crate::agentname::role_clamp(n.expertise.as_deref().unwrap_or(""));
+            // The identity the planner invented is what the worker runs as.
+            // Only a NAMED specialty earns one: the `specialist-N` fallback
+            // is a handle, not a persona, and a nameless task keeps
+            // `system: None` byte-for-byte (the stub/keyless shapes rely on
+            // it). The prompt is model-authored text but inert — it is a
+            // system prompt, never a command — so the forcing below holds.
+            let system = crate::agentname::slug(raw)
+                .is_some()
+                .then(|| persona::worker(&specialty, &expertise, &n.title));
+            TaskSpec {
+                id: TaskId(n.id),
+                title: n.title,
+                agent: AgentKind::Api { system },
+                model: ModelTier::Standard,
+                deps: n.deps.into_iter().map(TaskId).collect(),
+                prompt: n.prompt,
+                specialty,
+                expertise,
+            }
         })
         .collect();
     debug_assert!(

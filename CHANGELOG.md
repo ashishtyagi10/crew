@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.6
+
+**Swarm workers know who they are, and the swarm reads your notes.** The
+planner invents a specialist for every task — `code-reviewer`, `data
+wrangler` — but the worker itself ran with no system prompt at all; the
+name was a label on the card. Each planned task now carries a persona built
+from its specialty, expertise and title (one worker in a larger plan, reply
+with the deliverable, no commentary), and a re-planned replacement gets the
+same. The relay's specialists open with the same line, so the two engines
+speak with one voice.
+
+`#note` memory reached the relay and the fan but never the swarm — the
+default shape — so a standing preference was silently ignored where it
+mattered most. The swarm's planner sees it now.
+
 ## 0.22.5
 
 **Agent smith says how it routed you.** A plain message used to vanish into
