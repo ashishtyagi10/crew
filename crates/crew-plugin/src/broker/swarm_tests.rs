@@ -811,7 +811,7 @@ fn the_mock_arm_gets_no_tools_even_when_the_session_has_them() {
 
 /// The native path, end to end through `run_with`: a tool-speaking provider
 /// plus the session's real tool surface. The text convention never appears.
-struct NativeProvider;
+pub(super) struct NativeProvider;
 
 impl crew_hive::Provider for NativeProvider {
     fn supports_tools(&self) -> bool {

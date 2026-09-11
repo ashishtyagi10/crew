@@ -1,4 +1,5 @@
 use super::*;
+use crate::broker::session::toolmemo::Picker;
 
 use super::super::approval::Requester;
 use super::super::toolcall::ToolRunner;
@@ -241,25 +242,9 @@ mod retrieval {
         assert!(out.contains("no tool matches"), "{out}");
     }
 
-    /// A manifest with more tools than the budget and none of crew's own: the shape in which
-    /// the native path used to hide tools without saying so, and without the door.
+    /// The crowded fixture (`sessiontest::crowded`) with the scorer deciding.
     fn crowded(sys: bool) -> SessionTools {
-        let tools: Vec<String> = (0..crate::broker::toolpick::BUDGET + 8)
-            .map(|i| {
-                format!(
-                    r#"{{"name": "thing{i}", "description": "does an unrelated thing",
-                        "path": "/t/{i}", "tier": "read"}}"#
-                )
-            })
-            .collect();
-        let manifest = format!(
-            r#"{{"name": "noise", "base_url": "https://api.example.com",
-                "auth": {{"kind": "bearer", "env": "CREW_TEST_NOISE_TOKEN"}},
-                "tools": [{}]}}"#,
-            tools.join(",")
-        );
-        let int = crate::broker::integration::parse(&manifest).expect("a valid manifest");
-        SessionTools::with_integrations(sys, vec![int])
+        super::super::sessiontest::crowded(sys, Arc::new(Picker::off()))
     }
 
     /// The native list carries the door even with the `sys` surface off: a search of the
@@ -298,6 +283,38 @@ mod retrieval {
         let note = crowded(false).note_for("x").expect("8 tools were left out");
         assert!(note.contains("8 more tool(s)"), "{note}");
         assert!(note.contains("sys__find_tools"), "{note}");
+    }
+
+    /// The model's choice reaches BOTH paths: the prose hint and the native schemas name
+    /// exactly what it chose, plus the door, and nothing the scorer would have picked.
+    #[test]
+    fn a_crowded_catalog_with_a_chooser_shows_the_chosen_names_on_both_paths() {
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let n = Arc::clone(&calls);
+        let picker = Picker::fixed(Box::new(move |_p: &str| {
+            n.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Ok("TOOLS: noise:thing9, noise:thing5".into())
+        }));
+        let t = super::super::sessiontest::crowded(false, Arc::new(picker));
+        let specs: Vec<String> = t.specs_for("x").iter().map(|s| s.label()).collect();
+        assert_eq!(specs, ["noise:thing5", "noise:thing9", "sys:find_tools"]);
+        let hint = t.hint_for("x");
+        for name in &specs {
+            assert!(
+                hint.contains(name.as_str()),
+                "{name} not in the hint: {hint}"
+            );
+        }
+        assert!(
+            !hint.contains("noise:thing0"),
+            "the scorer's pick is not blended in"
+        );
+        assert!(hint.contains("30 more tool(s)"), "{hint}");
+        assert_eq!(
+            calls.load(std::sync::atomic::Ordering::SeqCst),
+            1,
+            "two reads of one task are one decision"
+        );
     }
 }
 

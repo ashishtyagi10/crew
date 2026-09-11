@@ -2465,7 +2465,10 @@ the swarm); `CREW_SWARM_TIER=cheap` runs the swarm's planner and workers on
 the provider's cheap tier (the swarm serves at the standard tier by default,
 the same tier the relay uses — the knob can only make a run cheaper, never
 dearer; the small structured one-shots such as routing stay cheap either
-way); `CREW_SWARM_CONCURRENCY=<n>` (1–16) pins how many swarm tasks run at
+way); `CREW_TOOL_PICK=0` stops the model choosing which tools a task is shown
+when more than 24 are connected — the word scorer decides alone (the model's
+choice is announced as `tools: chose 6 of 41 — …`, and with the switch off
+nothing is); `CREW_SWARM_CONCURRENCY=<n>` (1–16) pins how many swarm tasks run at
 once — by default the scheduler follows the plan's own width (the tasks
 ready at the start, clamped to 2–8), and every permit is one request in
 flight against the provider at the same moment, so a value above its rate

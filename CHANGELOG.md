@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.13
+
+**Agent smith chooses the tools.** With more than two dozen tools connected
+a worker is shown only the ones its task seems to need, and "seems" was a
+bag-of-words scorer counting how often a tool's name appeared in the task.
+Smith now asks the model: one bounded call sees the task and the whole
+catalog and names the tools this task could plausibly need (`TOOLS: a:b,
+c:d`, or `none`); the process tools and the search door always ride along;
+the scorer is the fallback when the call is off, fails, or answers off the
+grammar. One call per task text — the three reads a worker makes share it,
+a retried worker pays nothing. The pane says what was chosen, once per run:
+`tools: chose 6 of 41 — sys:run, lsp:hover, …`. `CREW_TOOL_PICK=0` keeps
+the scorer.
+
+A relay-thread test compared an exact word count that depends on whether
+the machine has a skills directory; it now asserts the block arrives.
+
 ## 0.22.12
 
 **The smith pane remembers the conversation.** Every message used to start

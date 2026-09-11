@@ -74,6 +74,10 @@ pub(crate) struct Session {
     /// reported; "and /diff shows them" is a lesson, and a lesson repeated
     /// after every task is noise — the same rule as `announced_ckpt`.
     pub announced_changes: Arc<AtomicBool>,
+    /// Who decides which tools a crowded task is shown (`toolchoice`): the
+    /// chooser and its per-task memo, one per pane so every surface this
+    /// session builds shares one answer per task.
+    pub toolpick: Arc<toolmemo::Picker>,
 }
 
 impl Default for Session {
@@ -93,6 +97,7 @@ impl Default for Session {
             gate: Arc::new(Mutex::new(super::approval::Gate::new())),
             announced_ckpt: Arc::new(AtomicBool::new(false)),
             announced_changes: Arc::new(AtomicBool::new(false)),
+            toolpick: Arc::new(toolmemo::Picker::live()),
         }
     }
 }
@@ -121,6 +126,7 @@ impl Session {
             gate: Arc::clone(&self.gate),
             announced_ckpt: Arc::clone(&self.announced_ckpt),
             announced_changes: Arc::clone(&self.announced_changes),
+            toolpick: Arc::clone(&self.toolpick),
         }
     }
 
@@ -176,6 +182,7 @@ impl Session {
             Arc::clone(&self.lsp),
             sys,
             Arc::clone(&self.gate),
+            Arc::clone(&self.toolpick),
         )))
     }
 
@@ -218,6 +225,8 @@ struct SessionTools {
     /// built fresh per hop, so dropping a file in `~/.config/crew/integrations/` takes effect on
     /// the next task with no restart — the same hot-reload skills and `mcp.json` have.
     integrations: Vec<super::integration::Integration>,
+    /// The session's tool decider — see [`Session::toolpick`].
+    picker: Arc<toolmemo::Picker>,
 }
 
 impl SessionTools {
@@ -226,6 +235,7 @@ impl SessionTools {
         lsp: Arc<Mutex<crate::lsp::LspHost>>,
         sys: bool,
         gate: Arc<Mutex<super::approval::Gate>>,
+        picker: Arc<toolmemo::Picker>,
     ) -> Self {
         Self {
             mcp,
@@ -240,54 +250,7 @@ impl SessionTools {
             // someone reading it later cannot tell which lines were a person.
             ledger: (!cfg!(test)).then(|| super::ledger::Ledger::at(super::ledger::default_path())),
             integrations: super::integration::load(),
-        }
-    }
-
-    /// A runner with a gate of its own, for tests that do not care which
-    /// gate — the session-shared one is not reachable from here.
-    #[cfg(test)]
-    fn for_test(mcp: Arc<Mutex<crate::mcp::McpHost>>, sys: bool) -> Self {
-        Self::new(
-            mcp,
-            Arc::new(Mutex::new(crate::lsp::LspHost::default())),
-            sys,
-            Arc::new(Mutex::new(super::approval::Gate::new())),
-        )
-    }
-
-    /// [`Self::for_test`] with a language-server table handed in.
-    #[cfg(test)]
-    fn with_lsp(self, lsp: crate::lsp::LspHost) -> Self {
-        Self {
-            lsp: Arc::new(Mutex::new(lsp)),
-            ..self
-        }
-    }
-
-    /// [`Self::for_test`] with integrations handed in rather than read from disk. The
-    /// discovery path is tested in `integration::tests`; wiring it through `CREW_PROJECT_DIR`
-    /// here would put a process-global env var in a suite that runs in parallel — the exact
-    /// flake the `sys` field's comment above records.
-    #[cfg(test)]
-    fn with_integrations(sys: bool, integrations: Vec<super::integration::Integration>) -> Self {
-        Self {
-            integrations,
-            ..Self::for_test(Arc::new(Mutex::new(crate::mcp::McpHost::default())), sys)
-        }
-    }
-
-    /// The same runner answering to somebody who is NOT at the keyboard. Unused until a channel
-    /// exists to carry the question; it is the reason the gate is wired now rather than later.
-    #[cfg(test)]
-    fn for_requester(
-        mcp: Arc<Mutex<crate::mcp::McpHost>>,
-        sys: bool,
-        requester: super::approval::Requester,
-    ) -> Self {
-        Self {
-            requester,
-            ledger: None,
-            ..Self::for_test(mcp, sys)
+            picker,
         }
     }
 
@@ -315,10 +278,11 @@ impl SessionTools {
         tools
     }
 
-    /// The tools shown for one task on EITHER path: the picker's choice and, when it left
-    /// anything out, the door to the rest (`toolselect::select`).
+    /// The tools shown for one task on EITHER path: the model's choice when the catalog is
+    /// crowded (`toolchoice`, memoised per task), the scorer's otherwise, and the door to
+    /// the rest whenever anything was left out.
     fn picked_for(&self, task: &str) -> (Vec<crate::mcp::McpTool>, usize) {
-        toolselect::select(self.catalog(), task)
+        self.picker.pick(self.catalog(), task)
     }
 
     /// The integration owning `server`, if one does.
@@ -482,8 +446,16 @@ impl super::toolcall::ToolRunner for SessionTools {
     }
 }
 
+#[path = "toolchoice.rs"]
+pub(crate) mod toolchoice;
+#[path = "toolmemo.rs"]
+pub(crate) mod toolmemo;
 #[path = "toolselect.rs"]
 mod toolselect;
+
+#[cfg(test)]
+#[path = "sessiontest.rs"]
+pub(crate) mod sessiontest;
 
 #[cfg(test)]
 #[path = "session_tests.rs"]

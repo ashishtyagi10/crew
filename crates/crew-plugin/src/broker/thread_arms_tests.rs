@@ -86,9 +86,18 @@ fn the_relays_first_hop_carries_the_block_and_its_done_body_becomes_the_turn() {
     }
     let block = lock(&session.thread).context(CONTEXT_CAP).unwrap();
     let after = relay_ctx(&session, "@helper summarize the crates");
-    // The mock counts prompt words: the block's, plus the `Now:` label.
+    // The mock counts prompt words. The block reaches the model at least
+    // once (the framed task); the hop's transcript keeps a 400-char copy of
+    // the task too, so on a machine with no `~/.claude/skills` — the CI
+    // runners — the block sits inside that copy and is counted twice, while
+    // a machine whose skills frame pushes it past the clip counts it once.
+    // Either is the block arriving; the exact multiple is not the claim.
     let words = block.split_whitespace().count() as u64 + 1;
-    assert_eq!(after - before, words, "block:\n{block}");
+    assert!(
+        after - before >= words && after - before <= 2 * words,
+        "block:\n{block}\n(delta {})",
+        after - before
+    );
     assert_eq!(lock(&session.thread).len(), 2);
 }
 

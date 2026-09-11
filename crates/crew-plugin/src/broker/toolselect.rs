@@ -18,7 +18,13 @@ use crate::mcp::McpTool;
 /// [`pick`] at the budget, plus the door when anything was left out. Below the budget nothing
 /// changes: a crew with `sys` off and ten tools sees exactly its ten, as it always did.
 pub(super) fn select(tools: Vec<McpTool>, task: &str) -> (Vec<McpTool>, usize) {
-    let (mut kept, left_out) = pick(tools, task, BUDGET);
+    let (kept, left_out) = pick(tools, task, BUDGET);
+    with_door(kept, left_out)
+}
+
+/// `kept` plus the door when anything was left out — the invariant, applied to whichever
+/// decider made the cut: the scorer's ([`select`]) or the model's (`toolchoice`).
+pub(super) fn with_door(mut kept: Vec<McpTool>, left_out: usize) -> (Vec<McpTool>, usize) {
     if left_out > 0
         && !kept
             .iter()

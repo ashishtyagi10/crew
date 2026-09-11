@@ -34,8 +34,7 @@ pub(crate) fn run_task(
 ) -> anyhow::Result<()> {
     // Skills first (matched on the raw task), the thread's recent turns next,
     // standing memory on top, a pending resume last (consumed once): freshest
-    // and most specific nearest the goal, so "the same" reads against the turn
-    // it means. Each applied playbook is announced under the lead, "agent smith".
+    // and most specific nearest the goal. Each playbook is announced by the lead.
     let framed = super::skillframe::with_skills(task);
     for ev in super::skillframe::loaded_events(&framed.applied, SWARM_LEAD) {
         emit(ev)?;
@@ -48,6 +47,8 @@ pub(crate) fn run_task(
     // and mock runs get neither, and the pane sees exactly what it saw before.
     let synth = swarmanswer::live();
     let judge = swarmverify::live(verify);
+    // The lead's tools line rides on the emitter, said once per run.
+    let mut emit = swarmcast::announcing(&session.toolpick, emit);
     let reply = run_with_synth(
         &task_owned,
         planner,
@@ -58,16 +59,15 @@ pub(crate) fn run_task(
         replan,
         synth.as_deref(),
         judge.as_deref().map(swarmverify::Judge::new),
-        emit,
+        &mut emit,
     )?;
     // What the user read, kept for the next turn (`None` = failed/cancelled).
     super::thread::record(&session.thread, task, reply);
     Ok(())
 }
 
-/// [`run_with_synth`] with no closing call — the keyless shape, and the one
-/// every test that pins the per-task event stream drives. Test-only because
-/// production always goes through `run_task`, which decides the call itself.
+/// [`run_with_synth`] with no closing call — the keyless shape, and the one every
+/// test that pins the per-task event stream drives (production runs `run_task`).
 #[cfg(test)]
 #[allow(clippy::too_many_arguments)] // see `run_with_synth`
 pub(crate) fn run_with(

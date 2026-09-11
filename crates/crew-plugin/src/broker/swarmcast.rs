@@ -1,12 +1,13 @@
-//! A run's cast, said and stored: the plan line, the specialist record, and
-//! the roster re-emit. Split from `swarm.rs` so the verification pass could
-//! land there without the file growing past its debt — nothing here changed
-//! in the move. A child of `swarm`, so `broker` items are reached through
-//! `crate::broker::`.
+//! A run's cast, said and stored: the plan line, the specialist record, the
+//! roster re-emit — and the lead's one line about tools. Split from `swarm.rs`
+//! so the verification pass could land there without the file growing past
+//! its debt — nothing here changed in the move. A child of `swarm`, so
+//! `broker` items are reached through `crate::broker::`.
 use crew_hive::TaskSpec;
 
 use super::SWARM_LEAD;
 use crate::broker::relay::msg;
+use crate::broker::session::toolmemo::Picker;
 use crate::protocol::PluginEvent;
 
 /// Say the plan, persist its cast, then re-emit the roster: `Roster` is
@@ -59,3 +60,32 @@ pub(super) fn announce(
     }
     emit(crate::broker::rosterev::roster(agents))
 }
+
+/// The lead's one line about tools, wrapped around a run's emitter: the first
+/// event after the model has chosen a crowded task's tools is preceded by
+/// `tools: chose 6 of 41 — …`, once per run. Under the budget nothing is
+/// chosen, so nothing is said. The choice is made INSIDE a worker
+/// (`Tools::hint_for`), which has no emitter; the picker records it and this
+/// reads the record — the least invasive seam between the two. The worker's
+/// own events (its first word) come after its tools were chosen, so the line
+/// lands before it speaks.
+pub(super) fn announcing<'a>(
+    picker: &'a Picker,
+    emit: &'a mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> impl FnMut(PluginEvent) -> anyhow::Result<()> + 'a {
+    picker.reset();
+    let mut said = false;
+    move |ev| {
+        if !said {
+            if let Some(c) = picker.take_chosen() {
+                said = true;
+                emit(msg(SWARM_LEAD, c.line()))?;
+            }
+        }
+        emit(ev)
+    }
+}
+
+#[cfg(test)]
+#[path = "swarmcast_tests.rs"]
+mod tests;
