@@ -183,10 +183,7 @@ pub(crate) fn run_with_synth(
     // `translate` has neither, so both are threaded in (see its doc comment).
     let mut gates: HashMap<u64, crate::broker::tick::TextGate> = HashMap::new();
     let run_start = std::time::Instant::now();
-    let mut tokens_total: u64 = 0;
-    let mut in_total: u64 = 0;
-    let mut out_total: u64 = 0;
-    let mut cost_total: u64 = 0;
+    let mut tally = swarmtally::Tally::new(tasks.len());
     let mut lagged_total: u64 = 0;
     let mut emit_err: Option<anyhow::Error> = None;
     let outcome = rt.block_on(async {
@@ -197,25 +194,20 @@ pub(crate) fn run_with_synth(
                         if emit_err.is_some() {
                             continue; // keep consuming so the scheduler finishes
                         }
-                        match &ev {
-                            HiveEvent::TokenDelta { input, output, .. } => {
-                                let in_count = u64::from(*input);
-                                let out_count = u64::from(*output);
-                                tokens_total += in_count + out_count;
-                                in_total += in_count;
-                                out_total += out_count;
-                            }
-                            HiveEvent::CostDelta { micros_usd, .. } => {
-                                cost_total += micros_usd;
-                            }
-                            _ => {}
-                        }
-                        // Which variants cross the wire, and how a tool
-                        // result is bounded, is `swarmmsg::forwarded`'s call.
-                        let mut r = match swarmmsg::forwarded(&ev) {
-                            Some(event) => emit(PluginEvent::Hive { event }),
+                        // Sums for the aggregate Stats, and the one note the
+                        // tally speaks (the tool pool ran dry) — said BEFORE
+                        // the event that emptied it is forwarded, so the
+                        // pane reads the why above the refused call.
+                        let mut r = match tally.observe(&ev) {
+                            Some(note) => emit(note),
                             None => Ok(()),
                         };
+                        // Which variants cross the wire, and how a tool
+                        // result is bounded, is `swarmmsg::forwarded`'s call.
+                        r = r.and_then(|()| match swarmmsg::forwarded(&ev) {
+                            Some(event) => emit(PluginEvent::Hive { event }),
+                            None => Ok(()),
+                        });
                         r = r.and_then(|()| {
                             for out in translate(
                                 &ev,
@@ -270,13 +262,14 @@ pub(crate) fn run_with_synth(
     // and stdio's per-task counter aren't left empty for swarm runs.
     emit(PluginEvent::Stats {
         exchanges: outcome.done.len() as u32,
-        tokens: tokens_total,
+        tokens: tally.tokens,
         agent: String::new(),
         ms: 0,
         ctx: 0,
-        tok_in: in_total,
-        tok_out: out_total,
-        cost_microusd: cost_total,
+        tok_in: tally.tok_in,
+        tok_out: tally.tok_out,
+        cost_microusd: tally.cost,
+        tools: Some(outcome.tool_rounds),
     })?;
     if let Some(summary) = summary {
         emit(msg("agent smith", summary))?;
@@ -300,9 +293,16 @@ use swarmmsg::translate;
 #[path = "swarmanswer.rs"]
 mod swarmanswer;
 
+#[path = "swarmtally.rs"]
+mod swarmtally;
+
 #[cfg(test)]
 #[path = "swarm_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "swarmbudget_tests.rs"]
+mod budget_tests;
 
 #[cfg(test)]
 #[path = "swarmreplan_tests.rs"]

@@ -254,6 +254,7 @@ fn the_closing_line_names_a_cancellation_or_a_failure_and_nothing_on_a_clean_run
         done: vec![TaskId(0)],
         failed: vec![TaskId(1)],
         cancelled: vec![TaskId(2)],
+        tool_rounds: (0, 12),
     };
     assert_eq!(
         closing_line(&outcome, true).as_deref(),
@@ -267,6 +268,7 @@ fn the_closing_line_names_a_cancellation_or_a_failure_and_nothing_on_a_clean_run
         done: vec![TaskId(0), TaskId(1)],
         failed: vec![],
         cancelled: vec![],
+        tool_rounds: (0, 8),
     };
     assert_eq!(closing_line(&clean, false), None);
 }

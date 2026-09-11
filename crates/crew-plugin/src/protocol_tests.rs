@@ -89,6 +89,7 @@ fn stats_roundtrips_cost_fields_and_defaults_when_missing() {
         tok_in: 900,
         tok_out: 50,
         cost_microusd: 12_345,
+        tools: None,
     };
     let s = serde_json::to_string(&ev).unwrap();
     match serde_json::from_str::<PluginEvent>(&s).unwrap() {
@@ -332,4 +333,46 @@ fn sign_out_event_roundtrips_and_defaults() {
         }
         _ => panic!("wrong variant"),
     }
+}
+
+#[test]
+fn stats_without_the_tools_field_decodes_to_none_and_carries_the_pool_when_set() {
+    // A broker from before the pool existed sends no `tools`; the host must
+    // read that as unknown, not as a zero pool.
+    let old = r#"{"type":"stats","exchanges":3,"tokens":950}"#;
+    match serde_json::from_str::<PluginEvent>(old).unwrap() {
+        PluginEvent::Stats { tools, .. } => assert_eq!(tools, None),
+        other => panic!("wrong variant: {other:?}"),
+    }
+    let ev = PluginEvent::Stats {
+        exchanges: 3,
+        tokens: 950,
+        agent: String::new(),
+        ms: 0,
+        ctx: 0,
+        tok_in: 900,
+        tok_out: 50,
+        cost_microusd: 0,
+        tools: Some((5, 12)),
+    };
+    let s = serde_json::to_string(&ev).unwrap();
+    assert!(s.contains(r#""tools":[5,12]"#), "{s}");
+    match serde_json::from_str::<PluginEvent>(&s).unwrap() {
+        PluginEvent::Stats { tools, .. } => assert_eq!(tools, Some((5, 12))),
+        other => panic!("wrong variant: {other:?}"),
+    }
+    // And `None` stays off the wire, so an older host's parser never sees it.
+    let bare = serde_json::to_string(&PluginEvent::Stats {
+        exchanges: 0,
+        tokens: 0,
+        agent: String::new(),
+        ms: 0,
+        ctx: 0,
+        tok_in: 0,
+        tok_out: 0,
+        cost_microusd: 0,
+        tools: None,
+    })
+    .unwrap();
+    assert!(!bare.contains("tools"), "{bare}");
 }

@@ -76,9 +76,9 @@ fn agent_spawned_marks_running_and_token_deltas_accumulate_via_agent_map() {
 }
 
 #[test]
-fn run_completion_clears_the_block_and_leaves_no_summary() {
-    // Every task terminal → the live block is retired, but no summary record
-    // is pushed: the per-agent replies already streamed into the transcript.
+fn run_completion_clears_the_block_and_leaves_one_record() {
+    // Every task terminal → the live block is retired into ONE transcript
+    // record (`chatswarmrec`), the count over the rows it was showing.
     let mut p = pane();
     p.absorb_hive_plan(vec![spec(0, "research"), spec(1, "merge")]);
     p.absorb_hive(&HiveEvent::TaskStateChanged {
@@ -90,12 +90,13 @@ fn run_completion_clears_the_block_and_leaves_no_summary() {
         task: TaskId(1),
         state: TaskState::Failed,
     });
-    // All terminal: block cleared, and nothing appended to the transcript.
+    // All terminal: block cleared, one record appended to the transcript.
     assert!(p.swarm.is_none());
+    assert_eq!(p.messages.len(), 1, "exactly one record");
+    let head = p.messages[0].text.clone();
     assert!(
-        p.messages.is_empty(),
-        "fold must not push a summary message: {:?}",
-        p.messages.last().map(|m| &m.text)
+        head.starts_with("swarm \u{b7} 2 tasks \u{b7} 1 done \u{b7} 1 failed"),
+        "{head}"
     );
 }
 
@@ -126,11 +127,11 @@ fn swarm_in_flight_keeps_the_pane_busy() {
 }
 
 #[test]
-fn folding_leaves_the_existing_transcript_untouched() {
-    // The fold no longer pushes anything, so a full transcript neither grows
-    // nor drains when a run ends.
+fn folding_appends_the_record_and_leaves_the_existing_transcript_untouched() {
+    // The fold pushes its one record through the capped path like any other
+    // message; nothing already there moves.
     let mut p = pane();
-    for i in 0..500 {
+    for i in 0..400 {
         p.messages.push(crate::chatlayout::Message {
             sender: "agent smith".into(),
             text: format!("m{i}"),
@@ -140,19 +141,17 @@ fn folding_leaves_the_existing_transcript_untouched() {
             expanded: false,
         });
     }
-    assert_eq!(p.messages.len(), 500);
+    assert_eq!(p.messages.len(), 400);
     p.absorb_hive_plan(vec![spec(0, "research")]);
     p.absorb_hive(&HiveEvent::TaskStateChanged {
         task: TaskId(0),
         state: TaskState::Done,
     });
-    assert_eq!(
-        p.messages.len(),
-        500,
-        "fold must not push or drain messages"
-    );
+    assert_eq!(p.messages.len(), 401, "the fold pushed its record");
     assert_eq!(p.messages.first().unwrap().text, "m0");
-    assert_eq!(p.messages.last().unwrap().text, "m499");
+    assert_eq!(p.messages[399].text, "m399");
+    let last = &p.messages.last().unwrap().text;
+    assert!(last.starts_with("swarm \u{b7} 1 task"), "{last}");
 }
 
 #[test]

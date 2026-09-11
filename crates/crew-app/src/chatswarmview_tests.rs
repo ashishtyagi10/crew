@@ -64,12 +64,10 @@ fn no_swarm_no_rows() {
 }
 
 #[test]
-fn a_live_run_claims_exactly_one_row_whatever_the_plan_size() {
-    // The block used to grow a row per task and cap at 8. It now says what
-    // crew is doing, which is always one thing.
-    assert_eq!(swarm_rows(&pane_with_swarm(1), 40), 1);
-    assert_eq!(swarm_rows(&pane_with_swarm(5), 40), 1);
-    assert_eq!(swarm_rows(&pane_with_swarm(20), 40), 1);
+fn a_live_run_claims_the_line_plus_a_row_per_task_and_caps_the_rows_at_eight() {
+    assert_eq!(swarm_rows(&pane_with_swarm(1), 40), 2);
+    assert_eq!(swarm_rows(&pane_with_swarm(8), 40), 9);
+    assert_eq!(swarm_rows(&pane_with_swarm(20), 40), 9); // seven rows and a tail
 }
 
 #[test]
@@ -90,8 +88,7 @@ fn only_the_running_task_is_named_not_the_whole_plan() {
     assert!(l.contains("task-1"), "{l}");
     assert!(!l.contains("task-0"), "{l}");
     assert!(!l.contains("task-2"), "{l}");
-    // One row only.
-    assert!(block_cells(&p, 80, 10, 0).iter().all(|c| c.row == 10));
+    assert!(block_cells(&p, 80, 10, 0).iter().any(|c| c.row == 11)); // the plan's rows follow
 }
 
 #[test]
@@ -211,24 +208,27 @@ fn the_plus_suffix_survives_a_title_clamp() {
 /// neighbour: it occupies `col` AND `col+1` while emitting a single
 /// `CellView`, so two cells at adjacent `col`s can still be a real overlap.
 fn assert_no_collisions(cells: &[CellView], cols: u16, ctx: &str) {
-    let mut ranges: Vec<(u16, u16)> = cells
-        .iter()
-        .map(|c| (c.col, c.col + crate::chatwidth::char_w(c.c) as u16))
-        .collect();
-    ranges.sort_unstable();
-    for w in ranges.windows(2) {
+    let rows: std::collections::BTreeSet<u16> = cells.iter().map(|c| c.row).collect();
+    let on = |r: u16| cells.iter().filter(move |c| c.row == r);
+    for row in rows {
+        let mut ranges: Vec<(u16, u16)> = on(row)
+            .map(|c| (c.col, c.col + crate::chatwidth::char_w(c.c) as u16))
+            .collect();
+        ranges.sort_unstable();
+        for w in ranges.windows(2) {
+            assert!(
+                w[0].1 <= w[1].0,
+                "{ctx}: cells overlap at cols={cols}: {:?} vs {:?} (all: {:?})",
+                w[0],
+                w[1],
+                ranges
+            );
+        }
         assert!(
-            w[0].1 <= w[1].0,
-            "{ctx}: cells overlap at cols={cols}: {:?} vs {:?} (all: {:?})",
-            w[0],
-            w[1],
-            ranges
+            ranges.iter().all(|&(_, end)| end <= cols),
+            "{ctx}: a cell escaped the pane at cols={cols}: {ranges:?}"
         );
     }
-    assert!(
-        ranges.iter().all(|&(_, end)| end <= cols),
-        "{ctx}: a cell escaped the pane at cols={cols}: {ranges:?}"
-    );
 }
 
 fn cjk_plan(n: u64) -> Vec<TaskSpec> {
@@ -316,7 +316,7 @@ fn swarm_rows_and_block_cells_agree_across_widths() {
     for (label, p) in [("running task", &running), ("Working… line", &working)] {
         for cols in 0..=80u16 {
             assert_eq!(
-                swarm_rows(p, cols) == 1,
+                swarm_rows(p, cols) >= 1,
                 !block_cells(p, cols, 10, 5_000).is_empty(),
                 "{label}: claimed row and drawn row disagree at cols={cols}"
             );
@@ -452,7 +452,7 @@ fn the_words_are_narrower_than_a_wide_pane() {
     let cells = block_cells(&p, 80, 10, 5_000);
     let left_extent = cells
         .iter()
-        .filter(|c| c.c != '\u{2191}' && c.c != '\u{2193}')
+        .filter(|c| c.row == 10 && c.c != '\u{2191}' && c.c != '\u{2193}')
         .map(|c| c.col + crate::chatwidth::char_w(c.c) as u16 - 1)
         .max()
         .unwrap();

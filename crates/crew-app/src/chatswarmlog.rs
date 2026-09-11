@@ -82,6 +82,7 @@ pub(crate) fn log_line_named(
             Some((false, format!("smith: {kind} {name} {verb}")))
         }
         HiveEvent::TokenDelta { .. }
+        | HiveEvent::ToolBudget { .. }
         | HiveEvent::CostDelta { .. }
         | HiveEvent::OutputDelta { .. }
         | HiveEvent::ThoughtDelta { .. }

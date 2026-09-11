@@ -54,7 +54,7 @@ fn msg_rows_budget_reserves_the_swarm_row_by_width_not_height() {
 
     let by_width = crate::chatswarmview::swarm_rows(&p, cols);
     let by_height = crate::chatswarmview::swarm_rows(&p, rows);
-    assert_eq!(by_width, 1, "fixture must actually claim a row at cols=80");
+    assert!(by_width >= 1, "fixture must actually claim rows at cols=80");
     assert_ne!(
         by_width, by_height,
         "fixture must make swarm_rows(pane, cols) and swarm_rows(pane, rows) \
@@ -105,11 +105,11 @@ fn a_short_pane_drops_surfaces_instead_of_piling_them() {
             // Priority: the bar is the first to go — the status line carries
             // the done/total counter the bar's label used to.
             if g.prog == 1 {
-                assert_eq!(g.swarm, 1, "bar kept while the status line was dropped");
+                assert!(g.swarm >= 1, "bar kept while the status line was dropped");
             }
             if g.queued == 1 {
-                assert_eq!(
-                    g.swarm, 1,
+                assert!(
+                    g.swarm >= 1,
                     "indicator kept while the status line was dropped"
                 );
             }
@@ -137,7 +137,7 @@ fn granted_surfaces_never_share_a_row() {
             if g.queued == 1 {
                 used.push(ind);
             }
-            if g.swarm == 1 {
+            if g.swarm >= 1 {
                 used.push(blk);
             }
             let n = used.len();

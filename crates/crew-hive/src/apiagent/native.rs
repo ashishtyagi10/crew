@@ -113,7 +113,7 @@ pub(super) async fn run(
             };
         }
 
-        if ctx.budget.take(round).is_none() {
+        if ctx.take_round(round).is_none() {
             // Unlike the text path there is no directive to strip — a
             // structured call never lands in the output — so the answer is
             // whatever the model said, plus a note that it stopped early.

@@ -63,22 +63,22 @@ fn empty_state_card_never_collides_with_a_live_runs_rows() {
             // Rows the live run owns: the status line, the bar, and the
             // queued indicator when showing. Nothing from the empty-state
             // card may share a row with them.
-            let bottom = bottom_rows(&pane, cols, rows);
-            let prog = crate::chatprog::progress_rows(&pane, cols);
-            let block_max = rows.saturating_sub(bottom + prog);
-            let line_rows: std::collections::HashSet<u16> =
-                crate::chatswarmview::block_cells(&pane, cols, block_max.saturating_sub(1), 0)
-                    .iter()
-                    .map(|c| c.row)
-                    .collect();
+            let g = crate::chatplace::grants(&pane, cols, rows);
+            let block_max = rows.saturating_sub(bottom_rows(&pane, cols, rows) + g.prog);
+            let start = block_max.saturating_sub(g.swarm);
+            let live = crate::chatswarmview::block_cells(&pane, cols, start, 0);
+            let line_rows: std::collections::HashSet<u16> = live
+                .iter()
+                .map(|c| c.row)
+                .filter(|r| *r < block_max)
+                .collect();
             if line_rows.is_empty() {
                 continue; // pane too narrow for the line at all
             }
             // The empty card's own glyphs: everything the pane draws that the
             // status line and bar did not.
-            let bar_row = rows.saturating_sub(bottom + prog);
             for c in &cells {
-                let on_live = line_rows.contains(&c.row) || c.row == bar_row;
+                let on_live = line_rows.contains(&c.row) || c.row == block_max;
                 if on_live {
                     // '❯' is the composer/card prompt cursor — it never belongs
                     // on a live-run row, whatever the row.
@@ -90,7 +90,7 @@ fn empty_state_card_never_collides_with_a_live_runs_rows() {
                         c.row
                     );
                 }
-                if c.row == bar_row {
+                if c.row == block_max {
                     // The bar is block glyphs only, so a '·' here is a foreign
                     // surface. (On the status line the '·' is now the swarm
                     // parenthetical's own separator, so it's checked there by
@@ -560,22 +560,21 @@ fn status_line_queued_indicator_bar_and_composer_stack_without_colliding() {
     // `.max(top)`. `chatplace::grants` now drops what it cannot seat, so the
     // ones that DO draw still each own a row. Sizes where the status line is
     // dropped entirely are skipped by the guard below.
+    let mut exercised = 0;
     for cols in [20u16, 40, 80] {
         for rows in [8u16, 10, 12, 20, 40] {
             let bottom = bottom_rows(&pane, cols, rows);
-            let prog_rows = crate::chatprog::progress_rows(&pane, cols);
-            let queued_rows = crate::chatqueue::queued_rows(&pane);
-            let swarm_rows = crate::chatswarmview::swarm_rows(&pane, cols);
-            assert!(
-                prog_rows > 0 && queued_rows > 0 && swarm_rows > 0,
-                "fixture must actually exercise all three bottom surfaces at cols={cols} rows={rows}"
-            );
+            let g = crate::chatplace::grants(&pane, cols, rows);
+            if g.prog == 0 || g.queued == 0 || g.swarm == 0 {
+                continue; // too short to seat every surface (the plan's rows come first)
+            }
+            exercised += 1;
 
             let top = pane.status_rows(cols, rows);
             let msg_rows = crate::chatplace::msg_rows_budget(&pane, cols, rows);
             let status_row = top + msg_rows;
-            let indicator_row = rows - bottom - prog_rows - queued_rows;
-            let bar_row = rows - bottom - prog_rows;
+            let indicator_row = rows - bottom - g.prog - g.queued;
+            let bar_row = rows - bottom - g.prog;
             let composer_row = rows - bottom;
 
             // Stacking order, message body toward composer: status line,
@@ -627,6 +626,7 @@ fn status_line_queued_indicator_bar_and_composer_stack_without_colliding() {
             );
         }
     }
+    assert!(exercised > 0, "no size seated every surface");
 }
 
 /// The exact gap Finding 1 caught: `messages` is empty on a fresh hop's first

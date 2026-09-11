@@ -75,3 +75,30 @@ fn factory_makes_agents() {
         args: vec![],
     });
 }
+
+#[tokio::test]
+async fn take_round_publishes_the_pools_state_on_every_draw_including_the_refused_one() {
+    let bus = EventBus::new(32);
+    let mut rx = bus.subscribe();
+    let ctx = AgentContext {
+        budget: crate::tools::budget::ToolBudget::for_run(1),
+        agent: AgentId(0),
+        task: spec(1),
+        deps: vec![],
+        bus: bus.clone(),
+    };
+    let mut seen = Vec::new();
+    for used in 0..=4 {
+        let left = ctx.take_round(used);
+        assert_eq!(left.is_some(), used < 4, "four rounds for one task");
+        match rx.try_recv() {
+            Ok(HiveEvent::ToolBudget { used, total }) => seen.push((used, total)),
+            other => panic!("expected a ToolBudget event, got {other:?}"),
+        }
+    }
+    assert_eq!(
+        seen,
+        vec![(1, 4), (2, 4), (3, 4), (4, 4), (4, 4)],
+        "the pool as it drains, and once more for the draw that was refused"
+    );
+}

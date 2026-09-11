@@ -71,16 +71,7 @@ pub(crate) fn relay_turn(
     werr?;
     if let Some((agent, t0)) = timing.take() {
         let d = t0.elapsed();
-        emit(PluginEvent::Stats {
-            exchanges: 0,
-            tokens: 0,
-            agent: agent.clone(),
-            ms: d.as_millis() as u64,
-            ctx: 0,
-            tok_in: 0,
-            tok_out: 0,
-            cost_microusd: 0,
-        })?;
+        emit(super::zerostat::latency_only(&agent, d))?;
         segments.push((agent, d));
     }
     // The turn total: real usage when every backend reported it, else approx.
@@ -98,6 +89,7 @@ pub(crate) fn relay_turn(
         tok_in: stats.tok_in,
         tok_out: stats.tok_out,
         cost_microusd: stats.cost_microusd,
+        tools: None,
     })?;
     emit(msg(
         "agent smith",
@@ -123,6 +115,7 @@ fn reply_stat(agent: &str, d: Duration, hop: &Hop) -> PluginEvent {
         tok_in: u64::from(hop.usage.input_tokens),
         tok_out: u64::from(hop.usage.output_tokens),
         cost_microusd: hop.usage.cost_microusd,
+        tools: None,
     }
 }
 

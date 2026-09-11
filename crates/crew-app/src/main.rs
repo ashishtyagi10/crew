@@ -77,6 +77,9 @@ mod chatmotion;
 #[path = "chatshot_tests.rs"]
 mod chatshot_tests;
 mod chatspan;
+#[cfg(test)]
+#[path = "chatswarmshot_tests.rs"]
+mod chatswarmshot_tests;
 mod completefuzzy;
 mod fencebadge;
 mod mentionexpand;
@@ -112,8 +115,12 @@ mod chatspawn;
 mod chatstate;
 mod chatsummary;
 mod chatswarm;
+mod chatswarmcell;
 mod chatswarmfit;
 mod chatswarmlog;
+mod chatswarmrec;
+mod chatswarmrows;
+mod chatswarmspan;
 mod chatswarmview;
 mod chattail;
 mod chattheme;

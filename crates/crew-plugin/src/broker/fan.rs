@@ -96,6 +96,7 @@ pub(crate) fn fan_out(
                         tok_in: u64::from(u.input_tokens),
                         tok_out: u64::from(u.output_tokens),
                         cost_microusd: u.cost_microusd,
+                        tools: None,
                     };
                     (reply_msg(&name, &reply, dt), Some(stat))
                 }
@@ -104,16 +105,7 @@ pub(crate) fn fan_out(
                     // zero-usage Stats so the tok display reconciles and the
                     // reply lifecycle doesn't stay open — mirroring how
                     // relay.rs closes every hop, including HopKind::Error.
-                    let stat = PluginEvent::Stats {
-                        exchanges: 0,
-                        tokens: 0,
-                        agent: name.clone(),
-                        ms: dt.as_millis() as u64,
-                        ctx: 0,
-                        tok_in: 0,
-                        tok_out: 0,
-                        cost_microusd: 0,
-                    };
+                    let stat = super::zerostat::latency_only(&name, dt);
                     (
                         msg(&format!("{name} \u{2192} user"), format!("[error] {e}")),
                         Some(stat),
@@ -155,6 +147,7 @@ pub(crate) fn fan_out(
         tok_in,
         tok_out,
         cost_microusd,
+        tools: None,
     })?;
     emit(msg(
         "agent smith",

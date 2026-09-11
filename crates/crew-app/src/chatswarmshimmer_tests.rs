@@ -3,6 +3,7 @@
 use super::*;
 use crate::chat::ChatPane;
 use crate::motion::{set_level, MotionLevel};
+use crate::shimmer::Color;
 use crew_hive::{AgentKind, HiveEvent, ModelTier, TaskId, TaskSpec, TaskState};
 use crew_plugin::Plugin;
 

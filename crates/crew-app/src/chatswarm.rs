@@ -1,20 +1,22 @@
-//! Live swarm-run status for the chat pane: `HivePlan` opens the run's status
-//! line, `Hive` telemetry updates it, and when every task reaches a terminal
-//! state the line simply disappears — the per-agent replies already streamed
-//! into the transcript, so no summary record is left behind. Live rendering
-//! (one status line: spinner, focused task, elapsed, settled count) lives in
-//! `chatswarmview`; the LOG tee of the same events in `chatswarmlog`.
+//! Live swarm-run status for the chat pane: `HivePlan` opens the run's block,
+//! `Hive` telemetry updates it, and when every task reaches a terminal state
+//! the block folds into one transcript record (`chatswarmrec`). Live
+//! rendering — the status line (`chatswarmview`) over one row per task with
+//! its span on a shared clock (`chatswarmrows`, `chatswarmspan`) — reads this
+//! model; the LOG tee of the same events is `chatswarmlog`.
 use std::collections::HashMap;
 use std::time::Instant;
 
 use crew_hive::{HiveEvent, TaskId, TaskSpec, TaskState};
 
-use crate::chat::ChatPane;
-
 /// One planned task's live state in the block.
 pub(crate) struct SwarmTask {
     pub id: TaskId,
     pub title: String,
+    /// The `@`-handle of the specialist the plan gave the task; may be empty.
+    pub specialty: String,
+    /// What it waits on, as the plan said it — the rows point at these.
+    pub deps: Vec<TaskId>,
     pub state: TaskState,
     /// Input tokens spent by the agent running this task.
     pub tokens_in: u64,
@@ -25,6 +27,20 @@ pub(crate) struct SwarmTask {
     /// then (and forever, if the task is cancelled before either arrives).
     /// Drives the live line's focused-task ordering and elapsed readout.
     pub started: Option<Instant>,
+    /// The same moment on the frame clock (`anim::now_ms`), for the span bar
+    /// — an `Instant` cannot be placed on a frame's axis, and tests stamp
+    /// this one by hand.
+    pub started_ms: Option<u64>,
+    /// When it left `Running`, on the same clock; `None` while it runs.
+    pub ended_ms: Option<u64>,
+}
+
+/// Done, failed or cancelled: the task has stopped moving.
+pub(crate) fn terminal(state: TaskState) -> bool {
+    matches!(
+        state,
+        TaskState::Done | TaskState::Failed | TaskState::Cancelled
+    )
 }
 
 /// The whole run's live state, built from `HivePlan` and fed by `Hive` events.
@@ -36,6 +52,9 @@ pub(crate) struct SwarmStatus {
     pub(crate) fill: crate::readout::Counter,
     /// The status line's counter flash (`chatflash`); born quiet.
     pub(crate) flash: crate::chatflash::Flash,
+    /// The run's tool pool, `(used, total)`, as of the latest draw
+    /// (`HiveEvent::ToolBudget`) or the aggregate Stats; `None` until either.
+    pub tools: Option<(u32, u32)>,
 }
 
 impl SwarmStatus {
@@ -46,15 +65,20 @@ impl SwarmStatus {
                 .map(|t| SwarmTask {
                     id: t.id,
                     title: t.title,
+                    specialty: t.specialty,
+                    deps: t.deps,
                     state: TaskState::Pending,
                     tokens_in: 0,
                     tokens_out: 0,
                     started: None,
+                    started_ms: None,
+                    ended_ms: None,
                 })
                 .collect(),
             agent_task: HashMap::new(),
             fill: Default::default(),
             flash: Default::default(),
+            tools: None,
         }
     }
 
@@ -66,16 +90,7 @@ impl SwarmStatus {
     /// size: "how much has stopped moving", not "how much succeeded". Shared by
     /// the bar (`chatprog`) and the line (`chatswarmview`) so they never disagree.
     pub(crate) fn settled(&self) -> (usize, usize) {
-        let done = self
-            .tasks
-            .iter()
-            .filter(|t| {
-                matches!(
-                    t.state,
-                    TaskState::Done | TaskState::Failed | TaskState::Cancelled
-                )
-            })
-            .count();
+        let done = self.tasks.iter().filter(|t| terminal(t.state)).count();
         (done, self.tasks.len())
     }
 
@@ -88,13 +103,21 @@ impl SwarmStatus {
             .fold((0, 0), |(i, o), t| (i + t.tokens_in, o + t.tokens_out))
     }
 
+    /// [`Self::apply_at`] on the frame clock.
     pub(crate) fn apply(&mut self, ev: &HiveEvent) {
+        self.apply_at(ev, crate::anim::now_ms());
+    }
+
+    /// Fold one event in, stamping any start or end it implies at `now_ms`.
+    pub(crate) fn apply_at(&mut self, ev: &HiveEvent, now_ms: u64) {
         match ev {
             HiveEvent::AgentSpawned { agent, task } => {
                 self.agent_task.insert(agent.0, *task);
                 if let Some(t) = self.task_mut(*task) {
                     t.state = TaskState::Running;
                     t.started.get_or_insert_with(Instant::now);
+                    t.started_ms.get_or_insert(now_ms);
+                    t.ended_ms = None;
                 }
             }
             HiveEvent::TaskStateChanged { task, state } => {
@@ -102,6 +125,10 @@ impl SwarmStatus {
                     t.state = *state;
                     if *state == TaskState::Running {
                         t.started.get_or_insert_with(Instant::now);
+                        t.started_ms.get_or_insert(now_ms);
+                        t.ended_ms = None;
+                    } else if terminal(*state) && t.started_ms.is_some() && t.ended_ms.is_none() {
+                        t.ended_ms = Some(now_ms);
                     }
                 }
             }
@@ -117,6 +144,7 @@ impl SwarmStatus {
                     }
                 }
             }
+            HiveEvent::ToolBudget { used, total } => self.tools = Some((*used, *total)),
             // Not this block's: cost; chunks (the broker's Message); deltas
             // (`chatflow`/`chatthought`); tools (`chattool`); Failed (a state).
             HiveEvent::CostDelta { .. }
@@ -132,44 +160,7 @@ impl SwarmStatus {
 
     /// Every task reached a terminal state.
     pub(crate) fn finished(&self) -> bool {
-        self.tasks.iter().all(|t| {
-            matches!(
-                t.state,
-                TaskState::Done | TaskState::Failed | TaskState::Cancelled
-            )
-        })
-    }
-}
-
-impl ChatPane {
-    /// A swarm plan landed: open (or reset) the live block.
-    pub(crate) fn absorb_hive_plan(&mut self, tasks: Vec<TaskSpec>) {
-        // A zero-task plan has no telemetry to fold it — never open a block
-        // for one, or is_busy() would stay latched forever. The broker's
-        // plan-summary and swarm-done messages already tell the story.
-        if tasks.is_empty() {
-            self.swarm = None;
-            return;
-        }
-        self.swarm = Some(SwarmStatus::new(tasks));
-    }
-
-    /// Forwarded telemetry; folds the block once the run is over.
-    pub(crate) fn absorb_hive(&mut self, ev: &HiveEvent) {
-        self.tools.absorb(ev, crate::chattime::unix_now_ms());
-        let Some(s) = self.swarm.as_mut() else {
-            return;
-        };
-        s.apply(ev);
-        if s.finished() {
-            self.fold_swarm();
-        }
-    }
-
-    /// Run over (or broker gone): retire the live block, close the tool lines.
-    pub(crate) fn fold_swarm(&mut self) {
-        self.abandon_blocks();
-        self.swarm = None;
+        self.tasks.iter().all(|t| terminal(t.state))
     }
 }
 

@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.10
+
+**The swarm block shows the plan.** While agent smith's workers run, the
+/smith pane used to show one status line and a row of dots. It now lists
+every planned task — number, state glyph, specialist, title, what it waits
+on — with a thin span on a shared time axis showing when each ran; the
+specialist column goes first when the pane is narrow, the bar next, and a
+plan longer than seven rows ends in `… +N more tasks`. A finished run folds
+into one record card that opens to every row.
+
+**The tool budget is visible.** A run pools four tool calls per task and
+nothing said so; a worker that hit the ceiling got a note nobody else saw.
+The status line's trailer now carries `tools 5/20`, the record keeps it,
+and the moment the pool runs dry agent smith says it once in the pane.
+
 ## 0.22.9
 
 **The model sizes the work; the numbers are backstops now.** "Keep refining

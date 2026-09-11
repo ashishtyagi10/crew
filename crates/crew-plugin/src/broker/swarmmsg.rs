@@ -169,7 +169,7 @@ pub(super) fn translate(
         // Rides the forwarded `Hive` event alone: the pane draws it as a
         // line in the tool block, and it is nobody's activity — no agent is
         // waiting on a skill the way it waits on a tool.
-        HiveEvent::Loaded { .. } => vec![],
+        HiveEvent::Loaded { .. } | HiveEvent::ToolBudget { .. } => vec![],
     }
 }
 

@@ -89,6 +89,12 @@ pub enum PluginEvent {
         tok_out: u64,
         #[serde(default)]
         cost_microusd: u64,
+        /// A swarm run's tool pool at the end: `(used, total)` rounds. Only
+        /// the aggregate Stats of a swarm carries it; per-agent stats and the
+        /// relay's turn-total leave it `None`, and an old payload without the
+        /// field decodes to `None` too.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        tools: Option<(u32, u32)>,
     },
     /// The stored sign-ins a user can remove, for `/logout`'s picker: the
     /// grants crew holds, and the CLI-owned sign-ins with their own sign-out

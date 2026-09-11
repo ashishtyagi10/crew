@@ -123,7 +123,7 @@ impl Fleet {
             }
             // Named by agent NAME, not id, and not an outcome of any task —
             // the pane's tool block shows it; the fleet table has no row for it.
-            HiveEvent::Loaded { .. } => {}
+            HiveEvent::Loaded { .. } | HiveEvent::ToolBudget { .. } => {}
             HiveEvent::TaskStateChanged { task, state } => {
                 // Update the first agent whose task matches; duplicate task
                 // assignments are not expected but we handle gracefully.

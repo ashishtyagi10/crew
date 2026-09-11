@@ -112,8 +112,12 @@ impl ChatPane {
                         tok_in,
                         tok_out,
                         cost_microusd,
+                        tools,
                         ..
-                    } => self.absorb_stats(tokens, agent, ms, ctx, tok_in, tok_out, cost_microusd),
+                    } => {
+                        self.absorb_stats(tokens, agent, ms, ctx, tok_in, tok_out, cost_microusd);
+                        self.note_swarm_tools(tools);
+                    }
                     // Mid-reply token ticks: the header's agent-name pulse
                     // (`chatliveness`); the summary footer reads settled `ctx`.
                     PluginEvent::StatsTick { agent, .. } => {

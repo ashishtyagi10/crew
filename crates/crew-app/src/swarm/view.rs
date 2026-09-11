@@ -54,7 +54,7 @@ pub fn state_color(state: TaskState) -> (u8, u8, u8) {
 }
 
 /// Glyph, colour, and bold flag for a task state.
-fn state_style(state: TaskState) -> (char, (u8, u8, u8), bool) {
+pub(crate) fn state_style(state: TaskState) -> (char, (u8, u8, u8), bool) {
     let t = crew_theme::theme();
     match state {
         TaskState::Pending | TaskState::Ready => ('\u{25cb}', t.text_muted, false), // ○

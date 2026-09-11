@@ -188,7 +188,7 @@ impl Agent for ApiAgent {
                         success: true,
                     };
                 };
-                let Some(rounds_left) = ctx.budget.take(round) else {
+                let Some(rounds_left) = ctx.take_round(round) else {
                     // Asked for one more with the budget gone. Say so in the
                     // output rather than returning an unrun directive that
                     // reads like a call which happened.

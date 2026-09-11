@@ -2,8 +2,8 @@
 //! area: one row saying what crew is doing right now — a spinner, the running
 //! task's title, and a Claude-style `(elapsed · settled · +parallel)`
 //! parenthetical, with the run's `(↑in ↓out)` token spend right-aligned at the
-//! pane edge. The plan itself is not shown live; it lands in the transcript
-//! when the run folds (`chatswarmrec`). State lives in `chatswarm`.
+//! pane edge, and the run's tool pool (`tools 5/12`) beside it. The plan's
+//! rows sit under it (`chatswarmrows`); state lives in `chatswarm`.
 //!
 //! The row's left text — spinner through the closing paren — is the "words"
 //! the progress bar (`chatprog`) sizes itself to, so [`words_width`] is the
@@ -13,8 +13,8 @@ use crew_render::CellView;
 use crate::chat::ChatPane;
 use crate::chathdr::fmt_tokens;
 use crate::chatswarm::{SwarmStatus, SwarmTask};
+use crate::chatswarmcell::{push_str, push_styled};
 use crate::chatswarmfit::{paren_bare, paren_whole, paren_with_title};
-use crate::shimmer::Color;
 use crew_hive::TaskState;
 
 /// Shown when the plan has arrived but nothing is running yet — the gap
@@ -33,7 +33,7 @@ const SPINNER_W: u16 = 1;
 /// The elapsed piece: `4m 12s` past a minute, else `12s`. Terser than the
 /// folded record's `fmt_elapsed` (which keeps a decimal) — the live line wants
 /// a glanceable clock, not a precise one.
-fn fmt_elapsed_short(secs: u64) -> String {
+pub(crate) fn fmt_elapsed_short(secs: u64) -> String {
     if secs >= 60 {
         format!("{}m {}s", secs / 60, secs % 60)
     } else {
@@ -151,13 +151,22 @@ fn layout(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<Line> {
         _ => String::new(),
     };
 
-    // Tokens: right-aligned `(↑in ↓out)`, shown only when the run has spent
-    // something and there's a clear column of gap after the left text. They're
-    // the first thing to drop on a busy pane — the bar deliberately ignores
-    // them and mirrors only the left words.
+    // The trailer: right-aligned `(↑in ↓out · tools 5/12)`, shown only when
+    // the run has spent something and there's a clear column of gap after the
+    // left text. It's the first thing to drop on a busy pane — the bar
+    // deliberately ignores it and mirrors only the left words.
     let (ti, to) = s.token_totals();
-    let tokens = (ti > 0 || to > 0)
-        .then(|| format!("(\u{2191}{} \u{2193}{})", fmt_tokens(ti), fmt_tokens(to)))
+    let mut trail: Vec<String> = Vec::new();
+    if ti > 0 || to > 0 {
+        trail.push(format!(
+            "\u{2191}{} \u{2193}{}",
+            fmt_tokens(ti),
+            fmt_tokens(to)
+        ));
+    }
+    trail.extend(crate::chatswarmrec::tools_words(s.tools));
+    let tokens = (!trail.is_empty())
+        .then(|| format!("({})", trail.join(" \u{b7} ")))
         .filter(|t| {
             let tw = crate::chatwidth::str_w(t) as u16;
             cols >= tw && cols - tw >= left_w + 2
@@ -171,13 +180,17 @@ fn layout(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<Line> {
     })
 }
 
-/// Rows the live line occupies in the message area (0 = no live run, or a pane
-/// too narrow to show even the counter floor — see [`layout`]). `now_ms` is
-/// irrelevant to *whether* the row exists (only the counter floor decides
-/// that, and it's clock-independent), so this passes 0 and stays deterministic
-/// for the layout budget in `chatplace`.
+/// Rows the block occupies in the message area: the status line plus the
+/// task rows under it (`chatswarmrows::rows_wanted`), or 0 with no live run
+/// or a pane too narrow to show even the counter floor — see [`layout`].
+/// `now_ms` is irrelevant to *whether* the rows exist (only the counter floor
+/// decides that, and it's clock-independent), so this passes 0 and stays
+/// deterministic for the layout budget in `chatplace`.
 pub(crate) fn swarm_rows(pane: &ChatPane, cols: u16) -> u16 {
-    layout(pane, cols, 0).is_some() as u16
+    match (layout(pane, cols, 0), pane.swarm.as_ref()) {
+        (Some(_), Some(s)) => 1 + crate::chatswarmrows::rows_wanted(s),
+        _ => 0,
+    }
 }
 
 /// The left text's display width — the columns the "words" occupy, from the
@@ -188,39 +201,7 @@ pub(crate) fn words_width(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<u16
     layout(pane, cols, now_ms).map(|l| l.left_w)
 }
 
-/// Places `s` on `row` starting at `*col` in one colour — [`push_styled`]
-/// over a plain string.
-fn push_str(v: &mut Vec<CellView>, col: &mut u16, row: u16, s: &str, fg: Color, max_col: u16) {
-    push_styled(v, col, row, s.chars().map(|c| (c, fg)), max_col);
-}
-
-/// Places styled chars on `row` starting at `*col`, advancing by display
-/// width and never emitting a cell at or beyond `max_col` — delegated to
-/// `chatwidth::place_row`, which advances by `char_w` and skips zero-width
-/// marks, so `max_col` is enforced structurally.
-fn push_styled(
-    v: &mut Vec<CellView>,
-    col: &mut u16,
-    row: u16,
-    chars: impl IntoIterator<Item = (char, Color)>,
-    max_col: u16,
-) {
-    let bg = crew_theme::theme().page_bg;
-    *col = crate::chatwidth::place_row(*col, max_col, chars, |x, c, fg| {
-        v.push(CellView {
-            col: x,
-            row,
-            c,
-            fg,
-            bg,
-            bold: false,
-            italic: false,
-            ..Default::default()
-        });
-    });
-}
-
-/// Render the status line at `top_row`. `now_ms` drives the spinner (0 in
+/// Render the block at `top_row`: the status line, then the task rows. `now_ms` drives the spinner (0 in
 /// tests = first frame, and suppresses elapsed so tests stay deterministic).
 pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64) -> Vec<CellView> {
     let Some(line) = layout(pane, cols, now_ms) else {
@@ -259,7 +240,7 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         .into_iter()
         .skip(1 + line.title.chars().count());
     let words = std::iter::once((' ', muted)).chain(title).chain(after);
-    push_styled(&mut v, &mut col, top_row, words, cols);
+    push_styled(&mut v, &mut col, top_row, words, cols, false);
 
     // Tokens, right-aligned at the pane edge, muted.
     if let Some(tokens) = &line.tokens {
@@ -267,6 +248,8 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         let mut tcol = cols - tw;
         push_str(&mut v, &mut tcol, top_row, tokens, theme.text_muted, cols);
     }
+    // The plan's rows, under the line.
+    v.extend(crate::chatswarmrows::cells(pane, cols, top_row + 1, now_ms));
     v
 }
 

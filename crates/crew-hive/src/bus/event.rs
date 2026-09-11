@@ -95,6 +95,17 @@ pub enum HiveEvent {
         agent: AgentId,
         error: String,
     },
+    /// The run's tool pool after an agent drew from it (`tools::budget`):
+    /// `used` of `total` rounds gone. Published on every draw — the one
+    /// that empties the pool included — so a pane can show the pool live
+    /// and the broker can say ONCE that it ran dry, instead of every agent
+    /// learning it privately from a refused call.
+    ToolBudget {
+        #[serde(default)]
+        used: u32,
+        #[serde(default)]
+        total: u32,
+    },
     /// Something the run reached for came in — a skill playbook was spliced
     /// into a prompt, an MCP server answered its handshake, a language server
     /// started. Not a tool call (nothing ran, nothing to approve) yet the same

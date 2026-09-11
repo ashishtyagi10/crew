@@ -8,6 +8,7 @@
 //! the flag is set, the scheduler stops spawning new tasks, marks all
 //! unstarted tasks `Cancelled`, and drains in-flight agents to completion.
 mod cancel;
+mod outcome;
 mod replan;
 #[cfg(test)]
 mod tests;
@@ -29,12 +30,7 @@ use cancel::{
     cascade_cancel, mark_all_unstarted_cancelled, record_cancelled, record_result, sorted,
 };
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct RunOutcome {
-    pub done: Vec<TaskId>,
-    pub failed: Vec<TaskId>,
-    pub cancelled: Vec<TaskId>,
-}
+pub use outcome::RunOutcome;
 
 pub struct Scheduler {
     graph: TaskGraph,
@@ -233,6 +229,7 @@ impl Scheduler {
             done: sorted(done),
             failed: sorted(failed),
             cancelled: sorted(cancelled),
+            tool_rounds: (budget.total() - budget.left(), budget.total()),
         }
     }
 }
