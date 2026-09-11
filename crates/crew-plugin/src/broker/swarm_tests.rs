@@ -200,13 +200,13 @@ fn fold_resume_consumes_pending_context_once() {
     let session = Session::new();
     *session.resume.lock().unwrap() = Some("previous turn: it was the cache".into());
 
-    let first = fold_resume(&session, "now fix the docs");
+    let first = crate::broker::sessionlog::fold_resume(&session, "now fix the docs");
     assert!(first.contains("previous turn: it was the cache"));
     assert!(first.contains("now fix the docs"));
     assert!(first.to_uppercase().contains("PREVIOUS SESSION"));
 
     // Consumed: a second task sees no pending resume.
-    let second = fold_resume(&session, "another task");
+    let second = crate::broker::sessionlog::fold_resume(&session, "another task");
     assert_eq!(second, "another task");
 }
 

@@ -49,6 +49,9 @@ pub(crate) struct Session {
     pub commit: super::gitmsg::SharedCommit,
     /// Restored context set by `/resume`, consumed by the next task.
     pub resume: super::sessionlog::SharedResume,
+    /// The recent turns a follow-up builds on (see `thread`); shared, since
+    /// a turn is recorded ON the worker that answered it.
+    pub thread: super::thread::SharedThread,
     /// The working tree as of the last automatic checkpoint, so a task that
     /// changed nothing does not write an identical restore point. Shared with
     /// worker snapshots because the checkpoint is taken ON the worker.
@@ -85,6 +88,7 @@ impl Default for Session {
             plan: Arc::new(Mutex::new(None)),
             commit: Arc::new(Mutex::new(None)),
             resume: Arc::new(Mutex::new(None)),
+            thread: Arc::new(Mutex::new(super::thread::Thread::default())),
             last_tree: Arc::new(Mutex::new(None)),
             gate: Arc::new(Mutex::new(super::approval::Gate::new())),
             announced_ckpt: Arc::new(AtomicBool::new(false)),
@@ -112,6 +116,7 @@ impl Session {
             plan: Arc::clone(&self.plan),
             commit: Arc::clone(&self.commit),
             resume: Arc::clone(&self.resume),
+            thread: Arc::clone(&self.thread),
             last_tree: Arc::clone(&self.last_tree),
             gate: Arc::clone(&self.gate),
             announced_ckpt: Arc::clone(&self.announced_ckpt),
@@ -145,16 +150,13 @@ impl Session {
     }
 
     /// This session's tool surface, or `None` when there is nothing to call.
-    ///
-    /// Built fresh per use rather than cached, because `systools::enabled()`
-    /// and the MCP host both change under the session's feet — `mcp.json`
-    /// hot-reloads — and a cached `None` from before a server was configured
-    /// would be a tool surface that never appears until the pane is reopened.
-    /// The GATE is what persists (a session field), not this wrapper.
-    ///
-    /// The relay reaches this through [`Self::broker`]; the swarm attaches the
-    /// same value to its agent factory, so both engines call the same tools
-    /// through the same gate into the same ledger.
+    /// Built fresh per use, not cached: `systools::enabled()` and the MCP
+    /// host change under the session's feet (`mcp.json` hot-reloads), and a
+    /// cached `None` would be a surface that never appears until the pane is
+    /// reopened. The GATE persists (a session field), not this wrapper. The
+    /// relay reaches it through [`Self::broker`]; the swarm attaches the same
+    /// value to its factory — both engines call the same tools through the
+    /// same gate into the same ledger.
     pub fn tools(&self) -> Option<Arc<dyn crew_hive::tools::Tools>> {
         self.tools_with_sys(super::systools::enabled())
     }
@@ -199,12 +201,10 @@ struct SessionTools {
     /// is built rather than re-read on every hint and every call.
     ///
     /// `systools::enabled()` reads two process-global env vars, one of which
-    /// (`CREW_BROKER_MOCK_REPLY`) the mock test harness sets and clears while
-    /// other tests are running. Two tests here asserted `sys` was on because
-    /// "under cargo test no gate is set" — true of a suite running alone, and
-    /// false roughly one run in six against a concurrent mocked test, which
-    /// is exactly the flake that turned up. It also makes the surface stable
-    /// for the life of a session, which is what it was always meant to be.
+    /// (`CREW_BROKER_MOCK_REPLY`) the mock harness sets and clears while other
+    /// tests run: two tests that asserted `sys` was on flaked about one run
+    /// in six against a concurrent mocked test. Deciding once also keeps the
+    /// surface stable for the life of a session, as it was always meant to be.
     sys: bool,
     /// Who this session's tool calls are made on behalf of.
     requester: super::approval::Requester,

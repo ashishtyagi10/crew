@@ -36,6 +36,10 @@ pub(crate) struct World {
     pub(crate) dirty: Option<usize>,
     /// One capability line per tool source (`Tools::capabilities`).
     pub(crate) tools: Vec<String>,
+    /// What the user asked last turn (`thread::RECENT_CAP` chars), so the
+    /// router can tell a follow-up ("shorter", "now the tests too") from a
+    /// fresh request; `None` on the first turn.
+    pub(crate) recent: Option<String>,
 }
 
 impl World {
@@ -52,6 +56,7 @@ impl World {
                 .tools()
                 .map(|t| t.capabilities())
                 .unwrap_or_default(),
+            recent: crate::broker::thread::lock(&session.thread).recent(),
         }
     }
 
@@ -74,6 +79,9 @@ impl World {
                 "tools: {}",
                 clip(&self.tools.join("; "), TOOLS_MAX)
             ));
+        }
+        if let Some(asked) = &self.recent {
+            lines.push(format!("last turn: {asked}"));
         }
         if lines.is_empty() {
             return String::new();

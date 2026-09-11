@@ -32,23 +32,23 @@ pub(crate) fn run_task(
     session: &Session,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    // Skills weave in first (matched on the raw task), standing memory rides
-    // on top — the `relay_turn` frame, so a `#note` reaches the planner on
-    // the shape most messages take — and a pending resume folds in last,
-    // consumed once. Each applied playbook is announced under the run's
-    // lead, "agent smith": the sender of the plan line the pane anchors it above.
+    // Skills first (matched on the raw task), the thread's recent turns next,
+    // standing memory on top, a pending resume last (consumed once): freshest
+    // and most specific nearest the goal, so "the same" reads against the turn
+    // it means. Each applied playbook is announced under the lead, "agent smith".
     let framed = super::skillframe::with_skills(task);
     for ev in super::skillframe::loaded_events(&framed.applied, SWARM_LEAD) {
         emit(ev)?;
     }
-    let task_owned = fold_resume(session, &super::memory::with_memory(&framed.body));
+    let body = super::thread::with_context(&session.thread, &framed.body);
+    let task_owned = super::sessionlog::fold_resume(session, &super::memory::with_memory(&body));
     super::sessionlog::append("user", task);
     let (planner, factory, budget, model, replan) = backend(session.tools());
     // The lead's closing call and the judge run on routing's gates: keyless
     // and mock runs get neither, and the pane sees exactly what it saw before.
     let synth = swarmanswer::live();
     let judge = swarmverify::live(verify);
-    run_with_synth(
+    let reply = run_with_synth(
         &task_owned,
         planner,
         factory,
@@ -59,7 +59,10 @@ pub(crate) fn run_task(
         synth.as_deref(),
         judge.as_deref().map(swarmverify::Judge::new),
         emit,
-    )
+    )?;
+    // What the user read, kept for the next turn (`None` = failed/cancelled).
+    super::thread::record(&session.thread, task, reply);
+    Ok(())
 }
 
 /// [`run_with_synth`] with no closing call — the keyless shape, and the one
@@ -80,6 +83,7 @@ pub(crate) fn run_with(
     run_with_synth(
         task, planner, factory, budget, model, cancel, replan, None, None, emit,
     )
+    .map(|_| ())
 }
 
 /// Injectable core: plan `task`, execute the graph, translate events.
@@ -91,6 +95,7 @@ pub(crate) fn run_with(
 /// call (`swarmanswer`): `None` means no answer line, ever. `verify` is the
 /// judge (`swarmverify`): `None` means the run ends unjudged; a `NOT MET`
 /// verdict runs this same function once more on the revision it names.
+/// Returns the answer the pane showed (`swarmturn`); `None` = failed/cancelled.
 #[allow(clippy::too_many_arguments)] // the run's full configuration, injected by tests piecewise
 pub(crate) fn run_with_synth(
     task: &str,
@@ -103,7 +108,7 @@ pub(crate) fn run_with_synth(
     synth: swarmanswer::Synth<'_>,
     verify: swarmverify::Verify<'_>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Option<String>> {
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
@@ -224,6 +229,7 @@ pub(crate) fn run_with_synth(
     // obvious. Never a "swarm done": that would be chrome.
     let cancelled = cancel.load(std::sync::atomic::Ordering::Relaxed);
     let mut revise = None;
+    let mut reply = None;
     if !cancelled && outcome.failed.is_empty() {
         let results = rt.block_on(board.gather(&outcome.done));
         let answer = swarmanswer::combine(task, &graph, &results, synth, emit)?;
@@ -231,6 +237,7 @@ pub(crate) fn run_with_synth(
             let answer = answer.as_deref();
             revise = swarmverify::verdict(task, &graph, &results, answer, judge, emit)?;
         }
+        reply = swarmturn::reply(answer, &graph, &results);
     }
     let summary = swarmanswer::closing_line(&outcome, cancelled);
     // One aggregate Stats for the whole run (empty `agent` = turn-total, per
@@ -262,44 +269,37 @@ pub(crate) fn run_with_synth(
         state: "idle".into(),
         from: String::new(),
     })?;
-    Ok(())
+    Ok(reply)
 }
 
 #[path = "swarmconf.rs"]
 mod swarmconf;
-use swarmconf::{backend, degraded, fold_resume, lagged_note};
-
+use swarmconf::{backend, degraded, lagged_note};
 #[path = "swarmmsg.rs"]
 mod swarmmsg;
 use swarmmsg::translate;
-
 #[path = "swarmanswer.rs"]
 mod swarmanswer;
-
 #[path = "swarmcast.rs"]
 mod swarmcast;
-
-#[path = "swarmverify.rs"]
-mod swarmverify;
-
-#[path = "swarmwidth.rs"]
-mod swarmwidth;
-
 #[path = "swarmtally.rs"]
 mod swarmtally;
-
-#[cfg(test)]
-#[path = "swarm_tests.rs"]
-mod tests;
+#[path = "swarmturn.rs"]
+mod swarmturn;
+#[path = "swarmverify.rs"]
+mod swarmverify;
+#[path = "swarmwidth.rs"]
+mod swarmwidth;
 
 #[cfg(test)]
 #[path = "swarmbudget_tests.rs"]
 mod budget_tests;
-
-#[cfg(test)]
-#[path = "swarmreplan_tests.rs"]
-mod replan_tests;
-
 #[cfg(test)]
 #[path = "swarmmemory_tests.rs"]
 mod memory_tests;
+#[cfg(test)]
+#[path = "swarmreplan_tests.rs"]
+mod replan_tests;
+#[cfg(test)]
+#[path = "swarm_tests.rs"]
+mod tests;

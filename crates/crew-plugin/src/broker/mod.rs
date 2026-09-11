@@ -70,6 +70,7 @@ mod systools;
 mod taskdiag;
 mod taskdiff;
 mod tasks;
+mod thread;
 mod tick;
 pub mod tier;
 mod toolcall;

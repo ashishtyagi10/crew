@@ -25,6 +25,7 @@ mod hints;
 mod world;
 
 pub(crate) use classify::{live_call, live_classifier};
+pub(crate) use fanout::fan_recorded;
 pub(crate) use hints::Hints;
 pub(crate) use world::World;
 

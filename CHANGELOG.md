@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.12
+
+**The smith pane remembers the conversation.** Every message used to start
+the swarm from nothing: "now do the same for the tests" or "shorter" met a
+planner that had never seen the answer before it. The broker now keeps the
+last six turns of the session in memory — what you asked and what crew
+answered, whichever arm answered it (swarm, a direct reply, a fan-out) —
+and hands them forward: the router sees the last request so it can tell a
+follow-up from a fresh ask, the swarm's planner and the relay's first hop
+get an `Earlier in this conversation:` block, newest last, held to a
+budget with a visible clip marker. Failed and cancelled turns are not
+remembered; `/stop` forgets everything; `/doctor` says how many turns are
+held.
+
 ## 0.22.11
 
 **Agent smith checks its own work when you gave it something to check.**

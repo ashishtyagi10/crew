@@ -2202,6 +2202,19 @@ and a typo gets a **did-you-mean** suggestion):
   fresh pane folds that file's tail (2 KB) into your **next task** as a
   PREVIOUS SESSION context block — consumed once — so the crew picks up
   where the last pane left off, even after a crash.
+- **the pane remembers the turn before** — within one pane, no command
+  needed: the broker keeps the last few turns (6 turns / 6 KB, oldest
+  dropped) in memory — what you asked and the answer the pane showed (the
+  swarm's closing answer or its sink's reply, a relay's `@done` body, a fan's
+  combined replies) — and every following message carries them as an
+  `Earlier in this conversation:` block (2 KB, newest turns kept first, a
+  visible `… [clipped N chars]` marker when cut) in front of the task, after
+  the skills frame and before standing memory, so "now do the same for the
+  tests" or "shorter" builds on the last answer instead of starting from
+  nothing; the router sees the last request too (`last turn:` in its world)
+  to tell a follow-up from a fresh request. Failed and stopped turns are not
+  kept; bare `/stop` or a broker restart clears it (the session log above
+  remains the durable record); `/doctor` reports `thread: N turns remembered`.
 - **`/export`** — write the pane's transcript to
   `crew-transcript-<stamp>.md` in the working directory (à la OpenCode),
   one `## sender · time · latency` section per message. The transcript folds

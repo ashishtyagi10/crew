@@ -24,6 +24,7 @@ fn healthy() -> DoctorInputs {
         turns: 4,
         tokens: 950,
         budget: 0,
+        thread_turns: 0,
     }
 }
 
@@ -238,4 +239,16 @@ fn other_configured_providers_are_named() {
     let plain = render(&healthy());
     assert!(plain.contains("provider: dashscope"), "{plain}");
     assert!(!plain.contains("also keyed"), "{plain}");
+}
+
+/// The pane's thread is state the user cannot otherwise see: the line reads
+/// its count, a dash while nothing is remembered yet.
+#[test]
+fn the_thread_line_reads_zero_turns_then_one() {
+    let mut i = healthy();
+    let r = render(&i);
+    assert!(r.contains("\u{2013} thread: 0 turns remembered"), "{r}");
+    i.thread_turns = 1;
+    let r = render(&i);
+    assert!(r.contains("\u{2713} thread: 1 turn remembered"), "{r}");
 }

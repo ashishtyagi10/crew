@@ -15,7 +15,8 @@ use super::relay::msg;
 use super::tick::{hop_texter, hop_thinker, hop_ticker};
 
 /// Send `task` to each of `names` in parallel; every reply/error is emitted as
-/// it arrives, then a `Stats` event and a summary line close the turn.
+/// it arrives, then a `Stats` event and a summary line close the turn. Returns
+/// the replies that landed, `(agent, text)`, in arrival order — errors excluded.
 pub(crate) fn fan_out(
     reg: &Registry,
     names: &[String],
@@ -23,7 +24,7 @@ pub(crate) fn fan_out(
     timeout: Duration,
     tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Vec<(String, String)>> {
     // Standing memory rides fan tasks too (see relay_turn).
     let task = &super::memory::with_memory(task);
     // Every agent starts thinking at once, each on the user's behalf.
@@ -44,6 +45,7 @@ pub(crate) fn fan_out(
     let mut tok_out = 0u64;
     let mut cost_microusd = 0u64;
     let mut timings: Vec<(String, Duration)> = Vec::new();
+    let mut replies: Vec<(String, String)> = Vec::new();
     let mut werr: anyhow::Result<()> = Ok(());
     std::thread::scope(|s| {
         let (tx, rx) = mpsc::channel();
@@ -98,7 +100,9 @@ pub(crate) fn fan_out(
                         cost_microusd: u.cost_microusd,
                         tools: None,
                     };
-                    (reply_msg(&name, &reply, dt), Some(stat))
+                    let clean = clean_reply(&reply);
+                    replies.push((name.clone(), clean.clone()));
+                    (reply_msg(&name, clean, dt), Some(stat))
                 }
                 Err(e) => {
                     // Even on failure, close this agent's dial with a
@@ -162,32 +166,25 @@ pub(crate) fn fan_out(
         agent: String::new(),
         state: "idle".into(),
         from: String::new(),
-    })
+    })?;
+    Ok(replies)
 }
 
-/// An agent's fan reply as a chat message, control lines stripped, latency in
-/// the metadata.
-fn reply_msg(name: &str, reply: &str, dt: Duration) -> PluginEvent {
-    let clean = match crate::parse_routing(reply) {
+/// A fan reply with its control line stripped — the text the pane shows.
+fn clean_reply(reply: &str) -> String {
+    match crate::parse_routing(reply) {
         Routing::Done(body) | Routing::Relay { body, .. } if !body.is_empty() => body,
         _ => reply.trim().to_string(),
-    };
-    match msg(&format!("{name} \u{2192} user"), clean) {
-        PluginEvent::Message {
-            channel,
-            sender,
-            text,
-            ts,
-            ..
-        } => PluginEvent::Message {
-            channel,
-            sender,
-            text,
-            ts,
-            meta: format!("{:.1}s", dt.as_secs_f32()),
-        },
-        ev => ev,
     }
+}
+
+/// An agent's cleaned fan reply as a chat message, latency in the metadata.
+fn reply_msg(name: &str, clean: String, dt: Duration) -> PluginEvent {
+    let mut ev = msg(&format!("{name} \u{2192} user"), clean);
+    if let PluginEvent::Message { meta, .. } = &mut ev {
+        *meta = format!("{:.1}s", dt.as_secs_f32());
+    }
+    ev
 }
 
 #[cfg(test)]

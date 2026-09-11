@@ -9,7 +9,7 @@ use crew_hive::{
     AgentFactory, Budget, LlmPlanner, ModelTier, PlanError, Planner, StubPlanner, TaskGraph, TaskId,
 };
 
-use super::{Session, STUB_FANOUT, WORK_MAX_TOKENS};
+use super::{STUB_FANOUT, WORK_MAX_TOKENS};
 use crate::protocol::PluginEvent;
 
 #[path = "swarmtier.rs"]
@@ -154,21 +154,6 @@ pub(super) fn degraded(
         expertise: String::new(),
     };
     Ok(TaskGraph::new(vec![single]).expect("single task graph is valid"))
-}
-
-/// Consume a pending `/resume` context (if any) and fold it into `task` as
-/// restored context for the planner/execution prompt. The session log still
-/// records the user's original, unfolded `task` text.
-pub(super) fn fold_resume(session: &Session, task: &str) -> String {
-    let resumed = session
-        .resume
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .take();
-    match resumed {
-        Some(prev) => crate::broker::sessionlog::with_resume(&prev, task),
-        None => task.to_string(),
-    }
 }
 
 /// Transcript note for a telemetry overflow: the run finished, but `n`

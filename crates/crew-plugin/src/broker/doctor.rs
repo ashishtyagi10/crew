@@ -9,9 +9,9 @@
 pub(crate) struct DoctorInputs {
     /// The provider that will back the inbuilt agents, if any.
     pub provider: Option<String>,
-    /// Providers that ALSO have a key but are not the active one. With six
-    /// providers and a fixed discovery order, a key that appears to do
-    /// nothing is a mystery worth answering before it is reported as a bug.
+    /// Providers that ALSO have a key but are not the active one: with a fixed
+    /// discovery order, a key that seems to do nothing is a mystery worth
+    /// answering here before it is reported as a bug.
     pub others: Vec<String>,
     /// Per-provider auth state, one line each: (mark, name, detail) —
     /// signed in / signed out (+ sign-in command) / key present / absent.
@@ -31,12 +31,10 @@ pub(crate) struct DoctorInputs {
     /// integration that will fail on its first call should say so here rather than there.
     pub integrations: Vec<String>,
     /// The out-of-process engine, if `CREW_SIDECAR` names one: the command, and whether it can
-    /// actually be run. A machine with no Python must learn that here, in one line, rather than
-    /// from a task that failed at the end of a long graph.
+    /// run — a machine with no Python learns it here, not from a task that failed at graph's end.
     pub sidecar: Option<(String, bool)>,
-    /// Per-server detail (name, tools or failure), one line each — what the
-    /// retired `/mcp` construct used to list, folded in here so the
-    /// information kept a home.
+    /// Per-server detail (name, tools or failure), one line each — the
+    /// retired `/mcp` listing, folded in here so the information kept a home.
     pub mcp_detail: Vec<String>,
     /// Bytes of standing memory loaded, if any.
     pub memory: Option<usize>,
@@ -44,14 +42,14 @@ pub(crate) struct DoctorInputs {
     pub resumable: bool,
     pub sys_tools: bool,
     pub sys_mode: &'static str,
-    /// Turns taken and approximate tokens spent this session, plus the relay
-    /// token budget. Inherited from the deleted `/status`: everything else it
-    /// reported is visible in the pane footer, but these three were nowhere
-    /// else, and a construct's deletion must not take the only copy of its
-    /// information with it.
+    /// Turns taken, approximate tokens spent, and the relay token budget —
+    /// inherited from the deleted `/status`: its other readings live in the
+    /// pane footer, these three were nowhere else.
     pub turns: u64,
     pub tokens: u64,
     pub budget: usize,
+    /// Recent turns the pane's thread holds for a follow-up (`thread.rs`).
+    pub thread_turns: usize,
 }
 
 /// One report line: `✓` when healthy, `✗` when broken, `–` for "absent but
@@ -169,6 +167,8 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
         Some(n) => line('✓', "memory", &format!("{n} bytes standing (#<note> adds)")),
         None => line('–', "memory", "none (#<note> starts one)"),
     });
+    let (mark, detail) = super::thread::doctor_line(i.thread_turns);
+    out.push(line(mark, "thread", &detail));
     out.push(if i.resumable {
         line(
             '✓',

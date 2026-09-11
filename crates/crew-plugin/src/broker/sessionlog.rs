@@ -156,6 +156,22 @@ pub(crate) fn resume_cmd(
     emit(super::relay::msg("agent smith", m))
 }
 
+/// Consume a pending `/resume` context (if any) and fold it into `task` as
+/// restored context — the one fold every arm (relay, swarm) shares, so none
+/// can silently drop what the user asked to restore. The session log still
+/// records the user's original, unfolded `task` text.
+pub(crate) fn fold_resume(session: &super::session::Session, task: &str) -> String {
+    let resumed = session
+        .resume
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .take();
+    match resumed {
+        Some(prev) => with_resume(&prev, task),
+        None => task.to_string(),
+    }
+}
+
 /// Wrap the next task with restored context (the resume payload).
 pub(crate) fn with_resume(prev: &str, task: &str) -> String {
     format!(

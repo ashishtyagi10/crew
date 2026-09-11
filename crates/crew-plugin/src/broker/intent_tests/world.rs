@@ -13,6 +13,7 @@ fn world(agents: &[&str], dirty: Option<usize>, tools: &[&str]) -> World {
         agents: agents.iter().map(|s| s.to_string()).collect(),
         dirty,
         tools: tools.iter().map(|s| s.to_string()).collect(),
+        recent: None,
     }
 }
 
@@ -160,4 +161,29 @@ fn gather_reads_the_sessions_roster_names_in_order() {
     let _g = testenv::mock_with_specialists("ok", testenv::TRIO);
     let w = World::gather(&Session::new());
     assert_eq!(w.agents, vec!["planner", "coder", "reviewer"]);
+}
+
+/// The thread's last request is one more fact — after the tools line, and
+/// only once there is a turn to speak of.
+#[test]
+fn the_last_turn_line_appears_only_when_set_and_after_the_tools_line() {
+    let mut w = world(&[], None, &["x: one"]);
+    assert!(!w.section().contains("last turn"), "{}", w.section());
+    w.recent = Some("make it shorter".into());
+    assert_eq!(
+        w.section(),
+        format!("{HEAD}\ntools: x: one\nlast turn: make it shorter\n\n")
+    );
+}
+
+#[test]
+fn gather_reads_the_last_request_off_the_sessions_thread() {
+    let _env = testenv::mock("unused");
+    let session = Session::new();
+    assert_eq!(World::gather(&session).recent, None);
+    crate::broker::thread::lock(&session.thread).record("list the crates", "three of them");
+    assert_eq!(
+        World::gather(&session).recent.as_deref(),
+        Some("list the crates")
+    );
 }

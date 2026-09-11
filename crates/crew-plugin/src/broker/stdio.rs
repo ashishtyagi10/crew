@@ -14,7 +14,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use super::relay::{dialed_target, msg, multi_targets, relay_turn, split_target};
-use super::session::{call_timeout, Session};
+use super::session::Session;
 use crate::{PluginCommand, PluginEvent, Registry};
 
 static THREAD_SEQ: AtomicU64 = AtomicU64::new(1);
@@ -211,6 +211,7 @@ fn send(
     if trimmed == "/stop" || trimmed.starts_with("/stop ") {
         let arg = trimmed.strip_prefix("/stop").unwrap().trim();
         if arg.is_empty() {
+            super::thread::lock(&session.thread).clear(); // a fresh start, not a follow-up
             let n = tasks.cancel_all();
             let m = if n == 0 {
                 "nothing is running".to_string()
@@ -565,19 +566,11 @@ pub(crate) fn relay_counting(
             "agent smith",
             format!("fanning out to {} in parallel\u{2026}", names.join("+")),
         ))?;
-        return super::fan::fan_out(&reg, &names, &body, call_timeout(), tick_emit, emit);
+        return super::intent::fan_recorded(session, &reg, &names, &body, tick_emit, emit);
     }
     // A `/resume` before this task folds the previous session's tail in as
     // restored context (consumed once).
-    let resumed = session
-        .resume
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .take();
-    let task_owned = match resumed {
-        Some(prev) => super::sessionlog::with_resume(&prev, task),
-        None => task.to_string(),
-    };
+    let task_owned = super::sessionlog::fold_resume(session, task);
     super::sessionlog::append("user", task);
     // A genuine `@name` dial (not `split_target`'s first-agent fallback for
     // an unaddressed/typo'd task) defers this specialist's LRU eviction, the
@@ -589,13 +582,19 @@ pub(crate) fn relay_counting(
         super::specialists::touch(&name);
     }
     let (start, body) = split_target(&task_owned, &reg);
+    // The thread's recent turns ride in front of the first hop's task — after
+    // the split, so a leading `@name` still dials; `relay_turn` carries on.
+    let body = super::thread::with_context(&session.thread, &body);
     let tid = format!("t{}", THREAD_SEQ.fetch_add(1, Ordering::Relaxed));
     emit(msg(
         "agent smith",
         format!("starting with {start} — relaying until an agent says @done"),
     ))?;
     let broker = session.broker(reg);
-    relay_turn(&broker, &start, &body, &tid, tick_emit, emit).map(|_| ())
+    let answer = relay_turn(&broker, &start, &body, &tid, tick_emit, emit)?;
+    let kept = answer.filter(|_| !session.cancelled()); // a stopped turn is no turn
+    super::thread::record(&session.thread, task, kept);
+    Ok(())
 }
 
 #[cfg(test)]
