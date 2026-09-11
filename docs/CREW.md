@@ -1492,10 +1492,13 @@ longer aim at.
   plus `#priya` is one person's work on one project), and `]`/`[` on the
   list cycle the project filter through the known tags — no
   typing, "no filter" is one stop on the ring.
-- **Running a team off it** — `g` on the list (or **`/todo by who`**, and
-  `/todo by flat` to undo it) **bands** the rows under each `#assignee`,
-  alphabetically, with everything nobody has picked up in a named
-  `unassigned` bucket at the foot. Each band header carries a live roll-up —
+- **Running a team off it** — the moment anybody is named, the list
+  **bands** the rows under each `#assignee`, alphabetically, with everything
+  nobody has picked up in a named `unassigned` bucket at the foot: one
+  person's work, then the next. That is the default, not a mode — `g` on the
+  list (or **`/todo by flat`**) lays it flat again for the session, and `g`
+  again (or `/todo by who`) bands it back. A list with nobody on it never
+  bands at all. Each band header carries a live roll-up —
   `#priya  2 open · 1 overdue · 1 done today` — counted over the whole store
   rather than the visible rows, so "done today" shows work the list has
   already hidden. That is a standup: who has what, what has slipped, what

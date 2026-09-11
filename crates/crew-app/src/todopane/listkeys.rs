@@ -40,7 +40,8 @@ pub(crate) fn on_row(p: &mut TodoPane, sel: usize, input: TodoInput, cols: u16, 
         // items. Hiding clamps a selection left stranded past the shorter
         // list.
         Char('h') => p.set_show_done(!p.show_done),
-        // `g`: band the list under each `#assignee` — the standup view.
+        // `g`: the standup bands under each `#assignee` off and back on —
+        // they are the default, so this is the way to one flat list.
         Char('g') => p.set_grouped(!p.grouped),
         // Any other printable jumps back to the composer and types.
         Char(c) => {

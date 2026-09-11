@@ -3,8 +3,10 @@
 //!
 //! A flat list sorted by due date answers "what is next"; running a team
 //! asks a different question — "where is everyone" — and that one is a
-//! per-person question. So `g` bands the same items under their owner with
-//! a live tally beside the name, and the ungrouped list is untouched.
+//! per-person question. So the moment anybody is named, the list bands the
+//! same items under their owner with a live tally beside the name: one
+//! person's work, then the next, unassigned last. `g` lays it flat again,
+//! and a list with nobody on it never bands at all.
 
 use super::item::{Filters, TodoItem};
 use super::TodoPane;
@@ -55,6 +57,32 @@ pub(crate) fn order(items: &[TodoItem], f: Filters, show_done: bool) -> Vec<usiz
             .unwrap_or(names.len())
     });
     order
+}
+
+impl TodoPane {
+    /// The header bands between the rows: the history's day buckets win —
+    /// it is already a per-day log — else `#assignee` groups, which need
+    /// somebody named to mean anything. THE band decision: the order, the
+    /// draw and the hit-test all come through here.
+    pub(crate) fn bands(&self) -> Bands {
+        match (self.done_view, self.grouped && self.anyone_named()) {
+            (true, _) => Bands::Days,
+            (false, true) => Bands::People,
+            (false, false) => Bands::None,
+        }
+    }
+
+    /// Whether any row the list is about to draw names somebody. Bands are
+    /// `#assignee` bands: with nobody named the whole list would sit under
+    /// one `unassigned` header, a heading that says nothing — so a solo
+    /// list stays flat until the first `#name` is typed, and needs no
+    /// setting to keep it that way.
+    fn anyone_named(&self) -> bool {
+        let f = self.filters();
+        self.items
+            .iter()
+            .any(|it| it.assignee.is_some() && (self.show_done || !it.done) && f.matches(it))
+    }
 }
 
 /// Whether display row `di` opens a band — its header row rides on this

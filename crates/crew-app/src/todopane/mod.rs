@@ -9,8 +9,10 @@
 //! ([`item::display_order`] — the store keeps done items as history);
 //! Space/Enter toggles, `d`/Backspace deletes, `e` re-opens an item in the
 //! composer. `@tag` alone filters the list to one project and `#name` to
-//! one person (a bare `@`/`#` clears that axis); `g` bands the list under
-//! each `#assignee` with a live roll-up — see [`group`].
+//! one person (a bare `@`/`#` clears that axis). As soon as anybody is
+//! named the list BANDS under each `#assignee` with a live roll-up — one
+//! person's work, then the next — and `g` lays it flat again; see
+//! [`group`].
 //!
 //! State lives in the process-wide [`store`] (persisted `todos.toml`), so
 //! every todo pane shows the same list and [`store::take_due`] can toast
@@ -91,8 +93,10 @@ pub struct TodoPane {
     /// Active `#assignee` list filter — the other axis, AND-ed with
     /// `filter`: `@crew` + `#priya` is one person's work on one project.
     pub(crate) who: Option<String>,
-    /// Band the list by `#assignee` (`g`, `/todo by who`). Ignored in the
-    /// done history, which already bands by day.
+    /// Band the list by `#assignee` — ON by default, because a list with
+    /// people on it is read per person; `g` / `/todo by flat` turns it off
+    /// for the session. Ignored while nobody is named (see
+    /// [`group::bands`]) and in the done history, which bands by day.
     pub(crate) grouped: bool,
     /// Show done items (sunk, dimmed) — `h` in the list toggles. Off by
     /// default: done auto-hides (0.15.1), this is the way back.
@@ -117,7 +121,7 @@ impl TodoPane {
             tagmenu: None,
             filter: None,
             who: None,
-            grouped: false,
+            grouped: true,
             show_done: false,
             done_view: false,
             scroll: 0,
@@ -146,16 +150,6 @@ impl TodoPane {
         }
     }
 
-    /// The header bands between the rows: the history's day buckets win —
-    /// it is already a per-day log — else `#assignee` groups when on.
-    pub(crate) fn bands(&self) -> Bands {
-        match (self.done_view, self.grouped) {
-            (true, _) => Bands::Days,
-            (false, true) => Bands::People,
-            (false, false) => Bands::None,
-        }
-    }
-
     /// Paste inserts at the cursor (newlines become spaces — one line).
     pub(crate) fn paste(&mut self, text: &str) {
         let flat: String = text
@@ -180,7 +174,7 @@ pub(crate) fn test_pane(items: Vec<TodoItem>) -> TodoPane {
         tagmenu: None,
         filter: None,
         who: None,
-        grouped: false,
+        grouped: true,
         show_done: false,
         done_view: false,
         scroll: 0,

@@ -40,6 +40,8 @@ impl CrewApp {
 
     /// `/todo by who` / `/todo by flat`: band the list under each
     /// `#assignee`, or lay it flat again — the typed way to the list's `g`.
+    /// Banding is already the default once anybody is named, so `who` is
+    /// mostly a way back from `flat`.
     /// Acts on the same pane `/todo show` does, spawning one if none is open.
     fn todo_group(&mut self, on: bool) {
         let i = self.todo_target();
