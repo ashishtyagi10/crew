@@ -53,7 +53,7 @@ pub(crate) fn find(input: &str, now: NaiveDateTime) -> Option<DueHit> {
                 best = Some((
                     key,
                     DueHit {
-                        start: window[0].0,
+                        start: super::leadin::start(&toks, s),
                         end: window[len - 1].1,
                         due,
                         has_time,

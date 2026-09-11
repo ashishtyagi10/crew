@@ -29,6 +29,7 @@ mod gutter;
 mod headrow;
 pub(crate) mod item;
 mod keys;
+mod leadin;
 mod legend;
 mod listkeys;
 pub(crate) mod measure;
