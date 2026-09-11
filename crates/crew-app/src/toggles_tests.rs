@@ -44,6 +44,30 @@ fn toggle_broadcast_flips_and_mirrors_input() {
     assert!(!app.broadcast && !app.input.broadcast);
 }
 
+/// Cmd+S is "save" in every editor on the machine. Pressed by habit inside
+/// a terminal it used to arm broadcast, and the keystrokes that followed
+/// went to every shell. The chord now saves a settings form or does
+/// nothing — the mode is only reached by name.
+#[test]
+fn cmd_s_never_arms_broadcast() {
+    let mut app = CrewApp::default();
+    assert!(!app.handle_super_chord("s"));
+    assert!(!app.broadcast && !app.input.broadcast);
+    assert!(!app.handle_super_chord("s"));
+    assert!(!app.broadcast && !app.input.broadcast);
+}
+
+/// Turning broadcast ON is the one toggle that changes where keystrokes go,
+/// so it lands as a toast that stays, and the line says how to leave.
+#[test]
+fn arming_broadcast_raises_a_toast_naming_the_way_out() {
+    let mut app = CrewApp::default();
+    app.toggle_broadcast();
+    let last = app.log.last().expect("the toggle is logged");
+    assert!(last.text.contains("/broadcast"), "{}", last.text);
+    assert_eq!(last.level, crate::applog::LogLevel::Error);
+}
+
 #[test]
 fn toggle_zoom_flips() {
     let mut app = CrewApp::default();

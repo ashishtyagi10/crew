@@ -27,7 +27,7 @@ impl CrewApp {
             return false;
         }
         // `*text` broadcasts one line to every terminal pane, explicitly — the
-        // bar's replacement for depending on Cmd+S broadcast mode.
+        // bar's replacement for depending on `/broadcast` mode.
         if let Some(cmd) = star_command(&line) {
             if cmd.is_empty() {
                 self.set_status("usage: *<text> — sends to every terminal");

@@ -332,7 +332,7 @@ pub(crate) fn bang_command(line: &str) -> Option<&str> {
 /// If `line` is a `*text` broadcast, return the trimmed payload (empty when
 /// just `*`); else `None`. The payload is sent to EVERY terminal pane —
 /// broadcast is an explicit prefix, not a mode, so nothing else the bar does
-/// depends on Cmd+S state.
+/// depends on `/broadcast` state.
 pub(crate) fn star_command(line: &str) -> Option<&str> {
     line.strip_prefix('*').map(str::trim)
 }

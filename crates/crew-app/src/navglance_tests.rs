@@ -38,7 +38,11 @@ fn rows_are_ordered_by_urgency_and_never_empty() {
 /// live renderer to run.
 #[test]
 fn layout_and_click_read_the_cards_before_the_hover() {
-    let src = include_str!("navglance.rs");
+    // A Windows checkout carries CRLF; the brace search below is on LF.
+    // Without this the test found no closing brace and unwrapped a None,
+    // which kept the Windows job red for a release.
+    let src = include_str!("navglance.rs").replace("\r\n", "\n");
+    let src = src.as_str();
     let body = |name: &str| {
         let at = src.find(&format!("fn {name}(")).expect(name);
         let open = src[at..].find('{').unwrap() + at;

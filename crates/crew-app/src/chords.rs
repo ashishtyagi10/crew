@@ -1,10 +1,12 @@
 //! Super-chord (Cmd/Ctrl + key) dispatch and pane reordering.
 use crate::app::CrewApp;
 
-/// Status label flashed when toggling broadcast (input → all panes).
+/// Status label when toggling broadcast (input → all panes). The on-label
+/// names the way out: the mode has no chord, so nothing you press by
+/// reflex will undo it either.
 pub(crate) fn broadcast_label(on: bool) -> &'static str {
     if on {
-        "broadcast: all panes"
+        "broadcast: typing goes to every terminal \u{2014} /broadcast turns it off"
     } else {
         "broadcast: off"
     }
@@ -140,11 +142,14 @@ impl CrewApp {
             // Cmd+.: jump to the next pane waiting on the user (see `blocked`).
             "." => self.focus_next_blocked(),
             "c" => self.copy_screen(),
-            // Cmd+S saves a focused settings form; otherwise toggles broadcast.
+            // Cmd+S saves a focused settings form, and does nothing anywhere
+            // else. It used to toggle broadcast — the chord every editor
+            // uses for "save", pressed by habit inside a terminal, silently
+            // mirrored the keystrokes that followed into every other shell
+            // (a Claude Code session typed itself into its neighbour). A
+            // mode that copies your typing is reached by name: `/broadcast`.
             "s" => {
-                if !self.save_focused_settings() {
-                    self.toggle_broadcast()
-                }
+                self.save_focused_settings();
             }
             "v" => self.paste(),
             // Font zoom: Cmd+= / Cmd+- grow/shrink, Cmd+0 resets to default.

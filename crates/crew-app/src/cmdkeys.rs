@@ -11,7 +11,6 @@ const KEYS: &[(&str, &str)] = &[
     ("/sidebar", "Cmd+G"),
     ("/clear", "Cmd+K"),
     ("/zoom", "Cmd+Z"),
-    ("/broadcast", "Cmd+S"),
 ];
 
 /// The chord that runs `cmd`, if one does.

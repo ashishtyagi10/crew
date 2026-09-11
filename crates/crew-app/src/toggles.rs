@@ -1,16 +1,24 @@
-//! Palette-discoverable toggles that mirror the Cmd-chord shortcuts: `/broadcast`
-//! (Cmd+S), `/zoom` (Cmd+Z), `/sidebar` (Cmd+G). The fuzzy command palette
-//! surfaces them by name when you can't recall the chord. The chords call the
-//! same methods, so behaviour stays in lockstep.
+//! Palette-discoverable toggles that mirror the Cmd-chord shortcuts: `/zoom`
+//! (Cmd+Z), `/sidebar` (Cmd+G) — and `/broadcast`, which has NO chord on
+//! purpose (see `chords.rs`). The fuzzy command palette surfaces them by name
+//! when you can't recall the chord. The chords call the same methods, so
+//! behaviour stays in lockstep.
 use crate::app::CrewApp;
 use crate::chords::broadcast_label;
 
 impl CrewApp {
-    /// Toggle broadcast — mirror typed input to every terminal pane.
+    /// Toggle broadcast — mirror typed input to every terminal pane. Turning
+    /// it on is announced at error level: it is the one mode that changes
+    /// where your keystrokes GO, so it gets the toast that stays on the
+    /// canvas, not the flash on the bar that is gone before you look.
     pub(crate) fn toggle_broadcast(&mut self) {
         self.broadcast = !self.broadcast;
         self.input.broadcast = self.broadcast;
-        self.set_status(broadcast_label(self.broadcast));
+        if self.broadcast {
+            self.set_status_err(broadcast_label(true));
+        } else {
+            self.set_status(broadcast_label(false));
+        }
         self.redraw();
     }
 

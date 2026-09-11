@@ -25,7 +25,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+, / Cmd+J", "Settings / chat pane"),
     ("Cmd+O", "Open agent smith (same as /smith)"),
     ("Cmd+G / Cmd+Z", "Toggle sidebar / zoom focused pane"),
-    ("Cmd+S", "Broadcast to all panes \u{b7} save a focused settings form"),
+    ("Cmd+S", "Save a focused settings form (typing to every pane is /broadcast)"),
     (
         "Cmd+= / Cmd+- / Cmd+0 / Cmd+wheel",
         "Font size + / - / reset",

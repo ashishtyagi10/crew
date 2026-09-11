@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.4
+
+**Cmd+S no longer mirrors your typing into every shell.** The chord that
+means "save" in every editor also toggled *broadcast* — the mode that
+copies keystrokes from the focused terminal into all the others. Pressed
+by habit inside a Claude Code pane, it silently typed that session into
+its neighbour. Cmd+S now saves a focused settings form and does nothing
+anywhere else; broadcast is reached only by name (`/broadcast`, or `*text`
+for one line). Turning it on lands as a toast that stays on the canvas and
+says how to turn it off. A test holds the chord off the mode.
+
 ## 0.22.3
 
 **The app aborted on its first frame.** Since 0.22.0 the WAITING card's

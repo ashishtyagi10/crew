@@ -39,7 +39,7 @@ impl CrewApp {
         count
     }
 
-    /// Keystrokes typed while a terminal pane is focused: honors Cmd+S broadcast
+    /// Keystrokes typed while a terminal pane is focused: honors `/broadcast`
     /// (synchronized typing). The input bar does NOT come through here — its
     /// routing never consults the mode.
     pub(crate) fn write_to_terminals(&mut self, bytes: &[u8]) -> usize {

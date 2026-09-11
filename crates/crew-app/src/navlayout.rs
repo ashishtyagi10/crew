@@ -150,8 +150,7 @@ pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLay
                 .saturating_sub(panes_block)
                 .saturating_sub(2);
             out.waiting_lines = waiting
-                .max(1)
-                .min(crate::navwaiting::WAIT_MAX)
+                .clamp(1, crate::navwaiting::WAIT_MAX)
                 .min(slack as usize);
             let block = if out.waiting_lines == 0 {
                 0

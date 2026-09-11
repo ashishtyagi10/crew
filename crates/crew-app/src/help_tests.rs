@@ -219,10 +219,10 @@ fn typing_filters_the_list_to_what_matches() {
     let zoom = text("zoom");
     assert!(zoom.contains("zoom"), "{zoom}");
     assert!(
-        !zoom.contains("Broadcast"),
+        !zoom.contains("Reopen"),
         "an unmatched row survived:\n{zoom}"
     );
-    assert!(all.contains("Broadcast"), "the fixture never had that row");
+    assert!(all.contains("Reopen"), "the fixture never had that row");
     // The window is a fixed height, so what shrinks is the number of rows
     // with anything written on them.
     let written = |s: &str| {

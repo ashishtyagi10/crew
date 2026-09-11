@@ -2,7 +2,10 @@ use super::{broadcast_label, next_active_index, swap_target};
 
 #[test]
 fn broadcast_label_reflects_state() {
-    assert_eq!(broadcast_label(true), "broadcast: all panes");
+    assert_eq!(
+        broadcast_label(true),
+        "broadcast: typing goes to every terminal \u{2014} /broadcast turns it off"
+    );
     assert_eq!(broadcast_label(false), "broadcast: off");
 }
 

@@ -376,7 +376,7 @@ a letter, a space or Backspace), and the filter is forgotten on the way out.
 | Toggle sidebar | **Cmd+G** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — type to filter, ↑↓ to scroll, Esc to close |
 | Zoom focused pane | **Cmd+Z** (or double-click its top border) |
-| Broadcast input to all panes | **Cmd+S** |
+| Save a focused settings form | **Cmd+S** |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy visible screen / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |
@@ -537,7 +537,7 @@ The docked command bar supports:
 - **`!<command>`** — always runs the command in its own new pane, regardless
   of focus (the explicit form of the old `/run`).
 - **`*<text>`** — broadcasts one line to **every terminal pane** — a one-shot
-  alternative to the persistent Cmd+S broadcast mode.
+  alternative to the persistent `/broadcast` mode.
 - **`?<plain english>`** — ask the AI for a command (à la Warp AI / GitHub
   Copilot CLI): `?kill whatever is on port 8080` sends the request to the same
   provider stack `/smith`'s inbuilt agents use (DashScope → OpenRouter →
@@ -621,8 +621,10 @@ The docked command bar supports:
   read as one list. (`/shell` and
   `/run <cmd>` still dispatch if typed, but bare text and `!` replaced their
   palette rows.)
-- **`/broadcast`, `/zoom`, `/sidebar`** — palette-discoverable toggles that mirror
-  the `Cmd+S` / `Cmd+Z` / `Cmd+G` chords, for when the chord slips your mind.
+- **`/broadcast`, `/zoom`, `/sidebar`** — palette-discoverable toggles; the last
+  two mirror the `Cmd+Z` / `Cmd+G` chords, for when the chord slips your mind.
+  `/broadcast` has no chord on purpose: it changes where your keystrokes go,
+  and it used to sit on Cmd+S — the "save" reflex — which armed it by accident.
 - **`/font <n>`** — sets the font size to an exact value (clamped 12–32), unlike
   the `Cmd+=`/`Cmd+-` chords that step by one; no argument reports the current size
   (and rotation state, if on). **`/font random`** toggles a 10-minute rotation
