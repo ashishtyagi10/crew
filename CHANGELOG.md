@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.8
+
+**A swarm ends with an answer.** A clean multi-task run used to stop at the
+last worker's reply — three specialists, three replies, and the merging was
+left to you. When the plan does not already end in one merge task, agent
+smith now reads every worker's output and closes the run with one answer
+to what you asked, in its own voice, before the stats line. A keyless run
+is byte-for-byte what it was; a failed closing call is one quiet line, not
+a failed run.
+
+**Native tool-use learns about the tools it was not shown.** Above two
+dozen connected tools, crew sends a model only the ones the task seems to
+need. The text `@tool` path always said how many were left out and named
+the search tool; the native path (Anthropic, OpenRouter) said nothing and
+did not even list the search tool when the process tools were off. The
+door is now always on the list and the model is told what is behind it.
+
 ## 0.22.7
 
 **The swarm serves on the same model as the relay, and bills honestly.**

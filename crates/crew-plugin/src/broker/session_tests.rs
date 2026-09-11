@@ -240,6 +240,65 @@ mod retrieval {
         let out = t.call("sys", "find_tools", "not json").expect("no error");
         assert!(out.contains("no tool matches"), "{out}");
     }
+
+    /// A manifest with more tools than the budget and none of crew's own: the shape in which
+    /// the native path used to hide tools without saying so, and without the door.
+    fn crowded(sys: bool) -> SessionTools {
+        let tools: Vec<String> = (0..crate::broker::toolpick::BUDGET + 8)
+            .map(|i| {
+                format!(
+                    r#"{{"name": "thing{i}", "description": "does an unrelated thing",
+                        "path": "/t/{i}", "tier": "read"}}"#
+                )
+            })
+            .collect();
+        let manifest = format!(
+            r#"{{"name": "noise", "base_url": "https://api.example.com",
+                "auth": {{"kind": "bearer", "env": "CREW_TEST_NOISE_TOKEN"}},
+                "tools": [{}]}}"#,
+            tools.join(",")
+        );
+        let int = crate::broker::integration::parse(&manifest).expect("a valid manifest");
+        SessionTools::with_integrations(sys, vec![int])
+    }
+
+    /// The native list carries the door even with the `sys` surface off: a search of the
+    /// catalog is not a process tool, and a hidden list with no way in is no list.
+    #[test]
+    fn the_native_list_carries_the_door_with_the_sys_surface_off() {
+        let specs = crowded(false).specs_for("anything at all");
+        let sys: Vec<String> = specs
+            .iter()
+            .filter(|s| s.server == "sys")
+            .map(|s| s.label())
+            .collect();
+        assert_eq!(sys, vec!["sys:find_tools".to_string()], "{specs:?}");
+        let hint = crowded(false).hint_for("anything at all");
+        for s in &specs {
+            assert!(hint.contains(&s.label()), "{} not in the hint", s.label());
+        }
+    }
+
+    #[test]
+    fn find_tools_answers_with_the_sys_surface_off_and_the_rest_of_sys_does_not() {
+        let t = crowded(false);
+        let out = t
+            .call("sys", "find_tools", r#"{"q": "thing3"}"#)
+            .expect("a catalog search needs no sys surface");
+        assert!(out.contains("noise:thing3"), "{out}");
+        assert!(
+            t.call("sys", "run", r#"{"cmd": "true"}"#).is_err(),
+            "the switch still keeps a shell away from the agent"
+        );
+    }
+
+    #[test]
+    fn the_native_note_is_none_under_the_budget_and_counts_what_is_over_it() {
+        assert_eq!(SessionTools::for_test(host(), true).note_for("x"), None);
+        let note = crowded(false).note_for("x").expect("8 tools were left out");
+        assert!(note.contains("8 more tool(s)"), "{note}");
+        assert!(note.contains("sys__find_tools"), "{note}");
+    }
 }
 
 /// Integrations: a manifest is a tool surface, with no Rust and no restart.

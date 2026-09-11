@@ -8,8 +8,8 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 use crew_hive::{
-    budget_governor, AgentFactory, AgentId, Blackboard, Budget, EventBus, HiveEvent, ModelTier,
-    Planner, Scheduler, TaskGraph, TaskId, TaskState,
+    budget_governor, AgentFactory, AgentId, Blackboard, Budget, EventBus, HiveEvent, Planner,
+    Scheduler, TaskId, TaskState,
 };
 
 use crate::protocol::PluginEvent;
@@ -44,7 +44,10 @@ pub(crate) fn run_task(
     let task_owned = fold_resume(session, &super::memory::with_memory(&framed.body));
     super::sessionlog::append("user", task);
     let (planner, factory, budget, model, replan) = backend(session.tools());
-    run_with(
+    // The lead's closing call runs on routing's gates: keyless and mock runs
+    // get no call, and the pane sees exactly what it saw before.
+    let synth = swarmanswer::live();
+    run_with_synth(
         &task_owned,
         planner,
         factory,
@@ -52,17 +55,16 @@ pub(crate) fn run_task(
         &model,
         Arc::clone(&session.cancel),
         replan,
+        synth.as_deref(),
         emit,
     )
 }
 
-/// Injectable core: plan `task`, execute the graph, translate events.
-/// `model` is the slug serving this run's API agents (empty when unknown —
-/// stub/keyless runs); it stamps the re-emitted roster so the host's footer
-/// can show what is serving right now. `replan`, when set (real-provider
-/// runs — see `swarmconf::backend`), lets the scheduler re-plan the
-/// remainder once on the first task failure.
-#[allow(clippy::too_many_arguments)] // the run's full configuration, injected by tests piecewise
+/// [`run_with_synth`] with no closing call — the keyless shape, and the one
+/// every test that pins the per-task event stream drives. Test-only because
+/// production always goes through `run_task`, which decides the call itself.
+#[cfg(test)]
+#[allow(clippy::too_many_arguments)] // see `run_with_synth`
 pub(crate) fn run_with(
     task: &str,
     planner: Arc<dyn Planner>,
@@ -73,6 +75,30 @@ pub(crate) fn run_with(
     replan: Option<Arc<dyn Planner>>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
+    run_with_synth(
+        task, planner, factory, budget, model, cancel, replan, None, emit,
+    )
+}
+
+/// Injectable core: plan `task`, execute the graph, translate events.
+/// `model` is the slug serving this run's API agents (empty when unknown —
+/// stub/keyless runs); it stamps the re-emitted roster so the host's footer
+/// can show what is serving right now. `replan`, when set (real-provider
+/// runs — see `swarmconf::backend`), lets the scheduler re-plan the
+/// remainder once on the first task failure. `synth` is the lead's closing
+/// call (`swarmanswer`): `None` means no answer line, ever.
+#[allow(clippy::too_many_arguments)] // the run's full configuration, injected by tests piecewise
+pub(crate) fn run_with_synth(
+    task: &str,
+    planner: Arc<dyn Planner>,
+    factory: Arc<dyn AgentFactory>,
+    budget: Option<Budget>,
+    model: &str,
+    cancel: Arc<AtomicBool>,
+    replan: Option<Arc<dyn Planner>>,
+    synth: swarmanswer::Synth<'_>,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
@@ -81,29 +107,7 @@ pub(crate) fn run_with(
     // graph pane on the very first event of a swarm run (see `run_with` tests).
     let graph = match rt.block_on(planner.plan(task)) {
         Ok(g) => g,
-        Err(e) => {
-            emit(msg(
-                "agent smith",
-                format!("planning failed ({e}) — answering directly"),
-            ))?;
-            emit(PluginEvent::Activity {
-                agent: String::new(),
-                state: "idle".into(),
-                from: String::new(),
-            })?;
-            // Degrade to a single-task graph so chat never dead-ends.
-            let single = crew_hive::TaskSpec {
-                id: TaskId(0),
-                title: "reply".into(),
-                agent: crew_hive::AgentKind::Api { system: None },
-                model: ModelTier::Standard,
-                deps: vec![],
-                prompt: task.to_owned(),
-                specialty: String::new(),
-                expertise: String::new(),
-            };
-            TaskGraph::new(vec![single]).expect("single task graph is valid")
-        }
+        Err(e) => degraded(task, &e, emit)?,
     };
 
     let tasks: Vec<crew_hive::TaskSpec> = graph.tasks().to_vec();
@@ -251,27 +255,16 @@ pub(crate) fn run_with(
         emit(msg("agent smith", lagged_note(lagged_total)))?;
     }
 
-    // Final aggregate: a status line only, and only on a cancellation or a
-    // failure — those aren't otherwise obvious. A clean run says nothing:
-    // the sink tasks' answers already streamed live as their own per-task
-    // Messages (OutputChunk -> `translate` -> `msg`), so a "swarm done" line
-    // is chrome and repeating the outputs would duplicate the answer.
+    // The lead's closing word. On a clean run it is the ONE answer, when the
+    // sinks' own replies are not already it (`swarmanswer` decides); on a
+    // cancellation or a failure it is the status line, since neither is
+    // otherwise obvious. Never a "swarm done": that would be chrome.
     let cancelled = cancel.load(std::sync::atomic::Ordering::Relaxed);
-    let summary = if cancelled {
-        Some(format!(
-            "swarm cancelled (budget or /stop) — {} done, {} failed, {} cancelled",
-            outcome.done.len(),
-            outcome.failed.len(),
-            outcome.cancelled.len()
-        ))
-    } else if !outcome.failed.is_empty() {
-        Some(format!(
-            "swarm finished with {} failed task(s)",
-            outcome.failed.len()
-        ))
-    } else {
-        None
-    };
+    if !cancelled && outcome.failed.is_empty() {
+        let results = rt.block_on(board.gather(&outcome.done));
+        swarmanswer::combine(task, &graph, &results, synth, emit)?;
+    }
+    let summary = swarmanswer::closing_line(&outcome, cancelled);
     // One aggregate Stats for the whole run (empty `agent` = turn-total, per
     // the field docs in protocol.rs) so the chat header's token/cost meter
     // and stdio's per-task counter aren't left empty for swarm runs.
@@ -298,11 +291,14 @@ pub(crate) fn run_with(
 
 #[path = "swarmconf.rs"]
 mod swarmconf;
-use swarmconf::{backend, fold_resume, lagged_note};
+use swarmconf::{backend, degraded, fold_resume, lagged_note};
 
 #[path = "swarmmsg.rs"]
 mod swarmmsg;
 use swarmmsg::translate;
+
+#[path = "swarmanswer.rs"]
+mod swarmanswer;
 
 #[cfg(test)]
 #[path = "swarm_tests.rs"]

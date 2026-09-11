@@ -5,9 +5,12 @@
 use std::sync::Arc;
 
 use crew_hive::agent::StubFactory;
-use crew_hive::{AgentFactory, Budget, LlmPlanner, ModelTier, Planner, StubPlanner};
+use crew_hive::{
+    AgentFactory, Budget, LlmPlanner, ModelTier, PlanError, Planner, StubPlanner, TaskGraph, TaskId,
+};
 
 use super::{Session, STUB_FANOUT, WORK_MAX_TOKENS};
+use crate::protocol::PluginEvent;
 
 #[path = "swarmtier.rs"]
 pub(super) mod swarmtier;
@@ -120,6 +123,37 @@ pub(super) fn backend(tools: Option<Arc<dyn crew_hive::tools::Tools>>) -> Backen
             )
         }
     }
+}
+
+/// The graph a run falls back to when planning fails: one task carrying the
+/// whole message, so chat never dead-ends. Says so in the pane first — the
+/// failure is the user's to know — and settles the turn's activity, since the
+/// planner's own never fires.
+pub(super) fn degraded(
+    task: &str,
+    err: &PlanError,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<TaskGraph> {
+    emit(crate::broker::relay::msg(
+        "agent smith",
+        format!("planning failed ({err}) — answering directly"),
+    ))?;
+    emit(PluginEvent::Activity {
+        agent: String::new(),
+        state: "idle".into(),
+        from: String::new(),
+    })?;
+    let single = crew_hive::TaskSpec {
+        id: TaskId(0),
+        title: "reply".into(),
+        agent: crew_hive::AgentKind::Api { system: None },
+        model: ModelTier::Standard,
+        deps: vec![],
+        prompt: task.to_owned(),
+        specialty: String::new(),
+        expertise: String::new(),
+    };
+    Ok(TaskGraph::new(vec![single]).expect("single task graph is valid"))
 }
 
 /// Consume a pending `/resume` context (if any) and fold it into `task` as

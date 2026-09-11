@@ -99,7 +99,9 @@ pub(crate) fn pick(tools: Vec<McpTool>, task: &str, budget: usize) -> (Vec<McpTo
 /// The line that admits what was left out. Empty when nothing was.
 ///
 /// It says the NUMBER, because "some tools are hidden" is a sentence a model cannot act on, and
-/// it names the way back to them.
+/// it names the way back to them. It may name `sys:find_tools` unconditionally because
+/// `session::toolselect::select` puts that tool on the list whenever this line is not empty —
+/// with the `sys` surface off too. Before that, it advertised a door the switch had removed.
 pub(crate) fn omitted_note(left_out: usize) -> String {
     if left_out == 0 {
         return String::new();

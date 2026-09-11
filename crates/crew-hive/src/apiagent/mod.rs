@@ -8,6 +8,7 @@ mod chunks;
 mod context;
 mod cost;
 mod native;
+mod note;
 mod toolloop;
 
 pub(crate) use context::build_prompt;
@@ -22,10 +23,6 @@ use crate::bus::HiveEvent;
 use crate::graph::AgentKind;
 use crate::provider::{CompletionRequest, Provider};
 use crate::tools::{self, ToolCatalog, Tools};
-
-// ---------------------------------------------------------------------------
-// ApiAgent
-// ---------------------------------------------------------------------------
 
 pub struct ApiAgent {
     provider: Arc<dyn Provider>,
@@ -95,8 +92,13 @@ impl Agent for ApiAgent {
                     let sink = chunks::ChunkSink::new(ctx.bus.clone(), agent_id.clone());
                     // No tools hint in the prompt: the tools are on the wire,
                     // and advertising the text convention beside them invites
-                    // a model to use both.
-                    let prompt = build_prompt(&ctx.task.prompt, &ctx.deps);
+                    // a model to use both. What was left OFF the wire is the
+                    // one thing said in prose (`Tools::note_for`, `note.rs`).
+                    let (system, prompt) = note::noted(
+                        system,
+                        build_prompt(&ctx.task.prompt, &ctx.deps),
+                        runner.note_for(&ctx.task.prompt),
+                    );
                     return native::run(
                         ctx,
                         provider,
@@ -255,10 +257,6 @@ impl Agent for ApiAgent {
         })
     }
 }
-
-// ---------------------------------------------------------------------------
-// ApiFactory
-// ---------------------------------------------------------------------------
 
 use crate::agent::AgentFactory;
 
