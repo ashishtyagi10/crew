@@ -2,12 +2,15 @@
 //!
 //! Enter on the composer creates an item; a natural-language date fragment
 //! (`tomorrow`, `fri 5pm`, `aug 15` — see [`duedate`]) is tinted live and
-//! becomes the due on save, and an `@project` token becomes a free-form tag
-//! (autocompleted from tags already in use — see [`tagmenu`]). The list
-//! sorts overdue → due → undated with done auto-hidden
+//! becomes the due on save; an `@project` token becomes a free-form tag and
+//! a `#assignee` token names who it is for (both autocompleted from tags
+//! already in use — see [`tagmenu`]). The list sorts overdue → due → undated
+//! with done auto-hidden
 //! ([`item::display_order`] — the store keeps done items as history);
 //! Space/Enter toggles, `d`/Backspace deletes, `e` re-opens an item in the
-//! composer. `@tag` alone filters the list to one project; `@` clears.
+//! composer. `@tag` alone filters the list to one project and `#name` to
+//! one person (a bare `@`/`#` clears that axis); `g` bands the list under
+//! each `#assignee` with a live roll-up — see [`group`].
 //!
 //! State lives in the process-wide [`store`] (persisted `todos.toml`), so
 //! every todo pane shows the same list and [`store::take_due`] can toast
@@ -21,16 +24,22 @@ pub(crate) mod duedate;
 pub(crate) mod duetext;
 mod edit;
 pub(crate) mod fitline;
+pub(crate) mod group;
 mod gutter;
+mod headrow;
 pub(crate) mod item;
 mod keys;
+mod legend;
+mod listkeys;
 pub(crate) mod measure;
 mod mutate;
+pub(crate) mod parse;
 pub(crate) mod render;
 mod scrollpos;
 pub(crate) mod store;
 mod tagmenu;
 
+pub(crate) use group::Bands;
 pub(crate) use keys::TodoAction;
 pub(crate) use render::TodoClick;
 
@@ -78,6 +87,12 @@ pub struct TodoPane {
     pub(crate) tagmenu: Option<TagMenu>,
     /// Active `@project` list filter.
     pub(crate) filter: Option<String>,
+    /// Active `#assignee` list filter — the other axis, AND-ed with
+    /// `filter`: `@crew` + `#priya` is one person's work on one project.
+    pub(crate) who: Option<String>,
+    /// Band the list by `#assignee` (`g`, `/todo by who`). Ignored in the
+    /// done history, which already bands by day.
+    pub(crate) grouped: bool,
     /// Show done items (sunk, dimmed) — `h` in the list toggles. Off by
     /// default: done auto-hides (0.15.1), this is the way back.
     pub(crate) show_done: bool,
@@ -100,6 +115,8 @@ impl TodoPane {
             editing: None,
             tagmenu: None,
             filter: None,
+            who: None,
+            grouped: false,
             show_done: false,
             done_view: false,
             scroll: 0,
@@ -120,6 +137,24 @@ impl TodoPane {
         render::cells(self, cols, rows)
     }
 
+    /// The two filters as the list reads them.
+    pub(crate) fn filters(&self) -> item::Filters<'_> {
+        item::Filters {
+            project: self.filter.as_deref(),
+            who: self.who.as_deref(),
+        }
+    }
+
+    /// The header bands between the rows: the history's day buckets win —
+    /// it is already a per-day log — else `#assignee` groups when on.
+    pub(crate) fn bands(&self) -> Bands {
+        match (self.done_view, self.grouped) {
+            (true, _) => Bands::Days,
+            (false, true) => Bands::People,
+            (false, false) => Bands::None,
+        }
+    }
+
     /// Paste inserts at the cursor (newlines become spaces — one line).
     pub(crate) fn paste(&mut self, text: &str) {
         let flat: String = text
@@ -128,12 +163,6 @@ impl TodoPane {
             .collect();
         self.insert_at_cursor(&flat);
     }
-
-    // --- display order ---------------------------------------------------
-
-    // --- composer editing -------------------------------------------------
-
-    // --- item ops (shared by keys and clicks) -----------------------------
 }
 
 /// A pane over explicit items, bypassing the shared store — for tests that
@@ -149,30 +178,14 @@ pub(crate) fn test_pane(items: Vec<TodoItem>) -> TodoPane {
         editing: None,
         tagmenu: None,
         filter: None,
+        who: None,
+        grouped: false,
         show_done: false,
         done_view: false,
         scroll: 0,
     }
 }
 
-/// Split the first `@token` out of `text`: (title without it, the tag).
-/// Later `@tokens` stay title text — one project per item.
-pub(crate) fn extract_tag(text: &str) -> (String, Option<String>) {
-    let mut title: Vec<&str> = Vec::new();
-    let mut tag: Option<String> = None;
-    for w in text.split_whitespace() {
-        match (tag.is_none(), w.strip_prefix('@')) {
-            (true, Some(t)) if !t.is_empty() => tag = Some(t.to_string()),
-            _ => title.push(w),
-        }
-    }
-    (title.join(" "), tag)
-}
-
-impl crate::app::CrewApp {}
-
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;
-
-impl crate::app::CrewApp {}

@@ -6,7 +6,7 @@
 //! beyond it — and returns its char range so the composer can tint the
 //! fragment live and [`strip`] can remove exactly what was highlighted on
 //! save. Unrecognised words are never eaten: a bare month name (`may`),
-//! bare digits (`pay 5 bills`) and `@tokens` don't parse.
+//! bare digits (`pay 5 bills`) and `@`/`#` tokens don't parse.
 //!
 //! The grammar: `today` · `tomorrow` · weekday names (next occurrence,
 //! today included) · `in N days|weeks` · `MMM D` / `D MMM` (next
@@ -39,9 +39,9 @@ pub(crate) fn find(input: &str, now: NaiveDateTime) -> Option<DueHit> {
     for s in 0..toks.len() {
         for len in 1..=MAX_WINDOW.min(toks.len() - s) {
             let window = &toks[s..s + len];
-            // `@project` tokens never take part in a date window (and a
-            // window may not straddle one — stripping would eat the tag).
-            if window.iter().any(|t| t.2.starts_with('@')) {
+            // `@project`/`#assignee` tokens never take part in a date window,
+            // nor may one straddle them: `#fri` is a person, not a weekday.
+            if window.iter().any(|t| super::parse::tagged(&t.2)) {
                 continue;
             }
             let words: Vec<&str> = window.iter().map(|t| t.2.as_str()).collect();

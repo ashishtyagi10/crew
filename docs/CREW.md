@@ -1461,11 +1461,18 @@ longer aim at.
   its composer and press `Enter` to add an item; a **natural-language due
   date** anywhere in the text (`tomorrow`, `fri 5pm`, `aug 15`, `in 2 weeks`,
   `17:30`) is tinted live as you type — the composer's legend previews the
-  parse (`due fri 17:00`) — and is stripped from the title on save, and an
-  **`@project`** token becomes a free-form tag (a popup completes tags
-  already in use; a new word after `@` creates one). The list sorts overdue
+  parse exactly as the row will print it (`fri sep 18 17:00`) — and is
+  stripped from the title on save. Two tag tokens name the other two things
+  about a task: an **`@project`** and a **`#assignee`** — who it is for —
+  both free-form and created on first use (a popup completes names already
+  in use, from that sigil's own axis; a new word after `@` or `#` creates
+  one). `#123` is left in the title: nobody is called 966, and a team that
+  tracks tickets types their numbers all day. The list sorts overdue
   (bell-coloured) → upcoming by due → undated, with done items sunk and
-  dimmed. The composer has a real cursor: `←`/`→` move by char,
+  dimmed, and every due label names the **calendar date** as well as the
+  humane word (`today sep 11`, `sat aug 15`) — `sat` alone is a different
+  Saturday depending on when you last looked.
+  The composer has a real cursor: `←`/`→` move by char,
   `Alt+Left` / `Alt+Right` hop words, `Ctrl+A` / `Ctrl+E` (or bare
   `Home`/`End`) jump to the draft's ends, typing/paste insert at the
   cursor and forward-Delete deletes at it; on a wrapped multi-row draft
@@ -1474,24 +1481,40 @@ longer aim at.
   `PageUp`/`PageDown` hop a whole visible page of items and `Home`/`End`
   jump to the first/last (all filter-aware); on a row
   `Space`/`Enter` toggle done, `d`/`Backspace` delete, `e` re-opens the item
-  in the composer for editing, `+`/`-` postpone/advance its due a calendar
+  in the composer for editing (every tag and the due come back with it),
+  `+`/`-` postpone/advance its due a calendar
   day (`+` on an undated item starts it at tomorrow); the mouse works too — click the `[ ]`
   checkbox to toggle, the `✗` at the row's end to delete. Done items
   auto-hide; `h` on the list shows them again — sunk, dimmed, `[x]`,
   newest completion first — so `Space` can un-do one (`h` again hides). A lone `@tag` +
-  `Enter` filters the list to that project (`@` alone clears the filter),
-  and `]`/`[` on the list cycle the filter through the known tags — no
+  `Enter` filters the list to that project and a lone `#name` to that person
+  (a bare `@` or `#` clears **that axis** — the two are AND-ed, so `@crew`
+  plus `#priya` is one person's work on one project), and `]`/`[` on the
+  list cycle the project filter through the known tags — no
   typing, "no filter" is one stop on the ring.
+- **Running a team off it** — `g` on the list (or **`/todo by who`**, and
+  `/todo by flat` to undo it) **bands** the rows under each `#assignee`,
+  alphabetically, with everything nobody has picked up in a named
+  `unassigned` bucket at the foot. Each band header carries a live roll-up —
+  `#priya  2 open · 1 overdue · 1 done today` — counted over the whole store
+  rather than the visible rows, so "done today" shows work the list has
+  already hidden. That is a standup: who has what, what has slipped, what
+  moved since yesterday. `/todo done #priya` opens the history log filtered
+  to one person, under its day headers. The bands are ignored inside the
+  history view, which already bands by day.
   When an item's due time passes while crew runs, a one-time **`due` toast**
   fires (persisted, so restarts don't re-toast). `Esc` walks back one layer
   at a time — popup, draft, then the pane. Restored by `/restore`.
   The list reads its own size: when it is taller than the rows the tile has,
   a **scroll thumb** rides the list's rightmost column (proportional, and
   drawn only while there is something off-screen — a list that fits has no
-  gutter). On a **narrow** tile, where the right-hand `@project` and due
+  gutter). On a **narrow** tile, where the right-hand chips and due
   would leave the title only a few columns, the row **stacks** instead: the
-  title takes the full width and its chips (and the `✗`) drop to a row of
-  their own beneath it, so a task title is never broken mid-word.
+  title takes the full width and beneath it the `#who @project` chips read
+  from the left with the due and the `✗` right-aligned, so a task title is
+  never broken mid-word and a chip is never cut in half (one that will not
+  fit is dropped whole — a clipped `@cre` claims a project that does not
+  exist).
 - **`/smith`** — opens **agent smith**, a **multi-agent pane** where the
   installed CLI coding agents (claude, codex, opencode) message each other to
   work a task. See [Multi-agent relay](#multi-agent-relay-smith-alias-crew) below.

@@ -80,11 +80,15 @@ pub(crate) const TODO_BINDINGS: &[(&str, &str)] = &[
     ("e · d · Backspace/Delete", "Edit it \u{b7} delete it"),
     ("] / [", "Cycle the filter forward / back"),
     ("+ / -", "Push the due date later / earlier"),
+    ("g", "Band the list under each #assignee, with a roll-up"),
     (
         "h · H",
         "Show done items (or the [show N done] button) \u{b7} the history log",
     ),
-    ("Tab", "Complete an @project tag in the composer"),
+    (
+        "Tab",
+        "Complete an @project / #assignee tag in the composer",
+    ),
     (
         "Ctrl+A / Ctrl+E · Alt+Left / Alt+Right",
         "Composer: jump to either end \u{b7} by a word",

@@ -25,10 +25,11 @@ const WIDTHS: [(&str, u32, u32); 5] = [
 
 const DAY: u64 = 86_400_000;
 
+/// `who` is the `#assignee`; `project` the `@project`.
 fn item(
     id: u64,
     title: &str,
-    project: Option<&str>,
+    (project, who): (Option<&str>, Option<&str>),
     due_days: Option<i64>,
     done: bool,
 ) -> TodoItem {
@@ -39,6 +40,7 @@ fn item(
         done,
         done_ms: done.then_some(now - DAY),
         project: project.map(str::to_string),
+        assignee: who.map(str::to_string),
         due_ms: due_days.map(|d| now.saturating_add_signed(d * DAY as i64)),
         due_has_time: due_days.is_some_and(|d| d == 0),
         created_ms: 1_700_000_000_000 + id,
@@ -47,23 +49,26 @@ fn item(
 }
 
 /// A real week's list: something overdue, something due today, a long title
-/// that has to wrap, an untagged scratch note, and finished work underneath.
+/// that has to wrap, an untagged scratch note, work owned by three different
+/// people and some owned by nobody, and finished work underneath.
 fn week() -> Vec<TodoItem> {
+    let (admin, crew, home) = (Some("admin"), Some("crew"), Some("home"));
+    let (priya, sam) = (Some("priya"), Some("sam"));
     vec![
-        item(1, "renew the domain", Some("admin"), Some(-2), false),
-        item(2, "ship the release notes", Some("crew"), Some(0), false),
+        item(1, "renew the domain", (admin, sam), Some(-2), false),
+        item(2, "ship the release notes", (crew, priya), Some(0), false),
         item(
             3,
             "work out why the atlas grows on the first Retina frame and reverts the smoothing",
-            Some("crew"),
+            (crew, priya),
             Some(1),
             false,
         ),
-        item(4, "book the dentist", Some("home"), Some(6), false),
-        item(5, "read the wgpu 24 changelog", None, None, false),
-        item(6, "reply to the invoice thread", Some("admin"), None, false),
-        item(7, "cut v0.19.73", Some("crew"), Some(-1), true),
-        item(8, "clear the target dir", None, None, true),
+        item(4, "book the dentist", (home, None), Some(6), false),
+        item(5, "read the wgpu 24 changelog", (None, None), None, false),
+        item(6, "reply to the invoice thread", (admin, sam), None, false),
+        item(7, "cut v0.19.73", (crew, priya), Some(-1), true),
+        item(8, "clear the target dir", (None, None), None, true),
     ]
 }
 
@@ -87,6 +92,10 @@ fn sweep_at(suffix: &str, w: u32, h: u32) -> Vec<(String, usize)> {
     let mut typing = test_pane(week());
     typing.insert_at_cursor("pay the hosting bill @adm");
     take(format!("todo-tag-{suffix}"), &typing);
+
+    let mut banded = test_pane(week());
+    banded.grouped = true;
+    take(format!("todo-by-who-{suffix}"), &banded);
 
     let mut done = test_pane(week());
     done.set_done_view(true);

@@ -28,12 +28,22 @@ pub(crate) fn done_chip_zone(p: &TodoPane, cols: u16) -> Option<(u16, u16)> {
     (start > TITLE_COL).then_some((start, end))
 }
 
-/// The dim info row above the list: the `@project` filter's summary, the
-/// done button, or both.
+/// The dim info row above the list: the filters' summary, the done button,
+/// or both.
 pub(crate) fn header_h(p: &TodoPane, cols: u16) -> u16 {
     // A button too wide for the pane isn't drawn, so it must not reserve the
     // row either — a narrow pane keeps every line for the list.
-    u16::from(p.filter.is_some() || done_chip_zone(p, cols).is_some())
+    u16::from(filter_text(p).is_some() || done_chip_zone(p, cols).is_some())
+}
+
+/// The header row's filter summary as `(@project, #who)` — whichever axes
+/// are set, each drawn in its own tag colour. `None` when neither is.
+pub(crate) fn filter_text(p: &TodoPane) -> Option<(Option<String>, Option<String>)> {
+    let pair = (
+        p.filter.as_ref().map(|f| format!("@{f}")),
+        p.who.as_ref().map(|w| format!("#{w}")),
+    );
+    (pair.0.is_some() || pair.1.is_some()).then_some(pair)
 }
 
 /// Rows the open tag popup occupies (0 when closed or the pane is short).
@@ -46,12 +56,14 @@ pub(crate) fn popup_h(p: &TodoPane, rows: u16) -> u16 {
     }
 }
 
-/// The open tag pop-up's rows as menu items — `@tag` in the tag's colour —
-/// read by the draw and the hit-test alike, so the card they size agrees.
+/// The open tag pop-up's rows as menu items — the tag under its own sigil,
+/// in the tag's colour — read by the draw and the hit-test alike, so the
+/// card they size agrees.
 pub(crate) fn tag_items(m: &super::tagmenu::TagMenu) -> Vec<crate::suggest::MenuItem> {
     let t = crew_theme::theme();
-    let item = |tag: &String| crate::suggest::MenuItem {
-        label: format!("@{tag}"),
+    let sigil = m.sigil;
+    let item = move |tag: &String| crate::suggest::MenuItem {
+        label: format!("{sigil}{tag}"),
         color: Some(crew_theme::tag_color(tag, t)),
         ..Default::default()
     };
@@ -135,30 +147,11 @@ pub(crate) fn done_day(it: &TodoItem) -> Option<chrono::NaiveDate> {
         .map(|d| d.date())
 }
 
-/// Whether display row `di` opens a new day bucket in the done history —
-/// its day-header row rides on this item, so every height sum stays a
-/// per-item sum. Never true outside the view.
-pub(crate) fn starts_day_group(
-    items: &[TodoItem],
-    done_view: bool,
-    order: &[usize],
-    di: usize,
-) -> bool {
-    done_view && (di == 0 || done_day(&items[order[di]]) != done_day(&items[order[di - 1]]))
-}
-
-/// Rows display entry `di` occupies: the item's wrapped title plus, in the
-/// done view, the day header it opens. THE height truth for scroll, page
-/// and click math — they must all sum this, or they disagree.
-pub(crate) fn row_h(
-    items: &[TodoItem],
-    done_view: bool,
-    order: &[usize],
-    di: usize,
-    cols: u16,
-    now_ms: u64,
-) -> u16 {
+/// Rows display entry `di` occupies: the item's wrapped title plus the band
+/// header it opens, if any ([`super::group::starts`]). THE height truth for
+/// scroll, page and click math — they must all sum this, or they disagree.
+pub(crate) fn row_h(p: &TodoPane, order: &[usize], di: usize, cols: u16, now_ms: u64) -> u16 {
     let cols = content(cols);
-    item_h(&items[order[di]], cols, now_ms, done_view)
-        + u16::from(starts_day_group(items, done_view, order, di))
+    item_h(&p.items[order[di]], cols, now_ms, p.done_view)
+        + u16::from(super::group::starts(p, order, di))
 }

@@ -66,17 +66,19 @@ impl TodoPane {
         self.refresh();
     }
 
-    /// `e`: reload the item into the composer for an in-place edit. The due
-    /// is appended as round-trippable text ([`super::duedate::edit_text`]) so
-    /// resubmitting unchanged keeps it.
+    /// `e`: reload the item into the composer for an in-place edit. Every
+    /// tag comes back under its own sigil and the due as round-trippable
+    /// text ([`super::duedate::edit_text`]), so resubmitting unchanged keeps
+    /// the item exactly as it was.
     pub(crate) fn edit_at(&mut self, display_idx: usize) {
         let Some(&idx) = self.order().get(display_idx) else {
             return;
         };
         let it = &self.items[idx];
         let mut s = it.title.clone();
-        if let Some(p) = &it.project {
-            s.push_str(&format!(" @{p}"));
+        for chip in super::render::chips(it) {
+            s.push(' ');
+            s.push_str(&chip);
         }
         if let Some(txt) = it
             .due_ms

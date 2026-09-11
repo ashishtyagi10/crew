@@ -39,12 +39,13 @@ pub(crate) fn input_lines(p: &TodoPane, cols: u16) -> Vec<(usize, usize)> {
     wrap_ranges(&chars, w, w)
 }
 
-/// The bordered composer at the bottom: legend carries live feedback (a
-/// recognised due date, an edit in progress, the active filter), the
-/// interior the `❯ input▏` prompt — wrapping onto further rows as the text
-/// fills the width ([`input_lines`]), the last rows kept once the cap is
-/// hit (editing happens at the end) — with the date fragment and `@tags`
-/// tinted as they're typed. Very short panes get one bare tail-follow row.
+/// The bordered composer at the bottom: the legend carries live feedback
+/// ([`super::legend`] — a recognised due date, an edit in progress, the
+/// active filters), the interior the `❯ input▏` prompt — wrapping onto
+/// further rows as the text fills the width ([`input_lines`]), the last rows
+/// kept once the cap is hit (editing happens at the end) — with the date
+/// fragment and `@`/`#` tags tinted as they're typed. Very short panes get
+/// one bare tail-follow row.
 pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16) {
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
@@ -56,10 +57,11 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16)
     let chars: Vec<char> = p.input.chars().collect();
     let in_date = |i: usize| hit.as_ref().is_some_and(|h| i >= h.start && i < h.end);
     // Each span carries its tag's own color (one hash per tag per redraw),
-    // so typing `@crew` tints live in the same color its row chip will get.
-    let tag_tints: Vec<(usize, usize, (u8, u8, u8))> = tag_spans(&chars)
+    // so typing `@crew` or `#priya` tints live in the same color its row
+    // chip will get.
+    let tag_tints: Vec<(usize, usize, (u8, u8, u8))> = super::parse::tag_spans(&chars)
         .into_iter()
-        .map(|(s, e)| {
+        .map(|(s, e, _)| {
             let name: String = chars[s + 1..e].iter().collect();
             (s, e, crew_theme::tag_color(&name, t))
         })
@@ -111,36 +113,7 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16)
         return;
     }
 
-    let legend = if p.done_view {
-        match &p.filter {
-            Some(f) => format!("done @{f}"),
-            None => "done".to_string(),
-        }
-    } else if p.editing.is_some() {
-        "edit".to_string()
-    } else if let Some(h) = &hit {
-        format!("due {}", duedate::label_naive(h.due, h.has_time, now))
-    } else if let Some(f) = &p.filter {
-        format!("@{f}")
-    } else {
-        "new".to_string()
-    };
-    // Color follows what the legend actually says: due dates in accent, an
-    // active `@filter` in that tag's color, edit/new in the resting tone.
-    let legend_fg = if p.done_view {
-        match &p.filter {
-            Some(f) => crew_theme::tag_color(f, t),
-            None => t.legend_off,
-        }
-    } else if p.editing.is_some() {
-        t.legend_off
-    } else if hit.is_some() {
-        accent
-    } else if let Some(f) = &p.filter {
-        crew_theme::tag_color(f, t)
-    } else {
-        t.legend_off
-    };
+    let (legend, legend_fg) = super::legend::text(p, hit.as_ref());
     for mut c in
         crate::boxdraw::titled_card(cols, ch, &legend, t.border_normal, legend_fg, t.page_bg)
     {
@@ -152,7 +125,7 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16)
     out.push(cell(2, top + 1, '\u{276f}', accent, true)); // ❯
     if p.input.is_empty() {
         let hint = if p.done_view {
-            "filter with @project \u{b7} esc leaves"
+            "filter with @project or #who \u{b7} esc leaves"
         } else {
             "type a todo"
         };
@@ -202,24 +175,4 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16)
     // Drawn last, over the glyph it sits on — a beam at the cursor. The
     // wrap budget leaves the end column free ([`input_lines`]).
     out.push(cell(bar_x, bar_row, '\u{258f}', accent, false)); // ▏
-}
-
-/// Char ranges of every `@tag` token (length ≥ 2) in the composer.
-fn tag_spans(chars: &[char]) -> Vec<(usize, usize)> {
-    let mut spans = Vec::new();
-    let mut i = 0;
-    while i < chars.len() {
-        if chars[i].is_whitespace() {
-            i += 1;
-            continue;
-        }
-        let start = i;
-        while i < chars.len() && !chars[i].is_whitespace() {
-            i += 1;
-        }
-        if chars[start] == '@' && i - start > 1 {
-            spans.push((start, i));
-        }
-    }
-    spans
 }

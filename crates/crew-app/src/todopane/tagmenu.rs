@@ -1,28 +1,42 @@
-//! `@project` completion in the todo composer: detect the trailing `@token`
-//! being typed (leading position included — a todo has no `@agent` routing,
-//! unlike the chat composer), rank the tags already in the store against it,
-//! and splice the accepted one back. Pure string-in/string-out, modelled on
-//! `chatmention`.
+//! `@project` / `#assignee` completion in the todo composer: detect the
+//! trailing tag token being typed (leading position included — a todo has no
+//! `@agent` routing, unlike the chat composer), rank the tags already in the
+//! store against it, and splice the accepted one back. Pure
+//! string-in/string-out, modelled on `chatmention`.
+//!
+//! One path for both sigils: the popup completes whichever one you typed,
+//! from that axis's own names.
 use super::item::TodoItem;
+use super::parse;
 
-/// The query of a tag being typed: the trailing token starts with `@`
-/// (`pay rent @ho` → `Some("ho")`, `@` → `Some("")`).
-pub(crate) fn pending_tag(input: &str) -> Option<&str> {
-    let cut = input
+/// The trailing token's char offset — where a completion splices in.
+fn token_start(input: &str) -> usize {
+    input
         .char_indices()
         .rev()
         .find(|(_, c)| c.is_whitespace())
         .map(|(i, c)| i + c.len_utf8())
-        .unwrap_or(0);
-    input[cut..].strip_prefix('@')
+        .unwrap_or(0)
 }
 
-/// Distinct project tags in use, most-used first (ties alphabetical) —
+/// The tag being typed at the end of `input`, as `(sigil, query)`
+/// (`pay rent @ho` → `('@', "ho")`, `#` → `('#', "")`).
+pub(crate) fn pending_tag(input: &str) -> Option<(char, &str)> {
+    let tok = &input[token_start(input)..];
+    let sigil = tok.chars().next().filter(|&c| parse::is_sigil(c))?;
+    Some((sigil, &tok[1..]))
+}
+
+/// Distinct names in use on one axis, most-used first (ties alphabetical) —
 /// case-insensitively deduped, keeping the first-seen spelling.
-pub(crate) fn known_tags(items: &[TodoItem]) -> Vec<String> {
+pub(crate) fn known_tags(items: &[TodoItem], sigil: char) -> Vec<String> {
     let mut counts: Vec<(String, usize)> = Vec::new();
     for it in items {
-        let Some(p) = &it.project else { continue };
+        let field = match sigil {
+            parse::WHO => &it.assignee,
+            _ => &it.project,
+        };
+        let Some(p) = field else { continue };
         match counts.iter_mut().find(|(t, _)| t.eq_ignore_ascii_case(p)) {
             Some((_, c)) => *c += 1,
             None => counts.push((p.clone(), 1)),
@@ -59,20 +73,16 @@ pub(crate) fn filter_tags(tags: &[String], q: &str) -> Vec<String> {
     scored.into_iter().map(|(_, t)| t.clone()).collect()
 }
 
-/// Replace the trailing `@query` token with `@tag ` (the trailing space
+/// Replace the trailing tag token with `<sigil>tag ` (the trailing space
 /// ends the mention, so the popup closes).
-pub(crate) fn accept(input: &str, tag: &str) -> String {
-    let cut = input
-        .char_indices()
-        .rev()
-        .find(|(_, c)| c.is_whitespace())
-        .map(|(i, c)| i + c.len_utf8())
-        .unwrap_or(0);
-    format!("{}@{tag} ", &input[..cut])
+pub(crate) fn accept(input: &str, sigil: char, tag: &str) -> String {
+    format!("{}{sigil}{tag} ", &input[..token_start(input)])
 }
 
-/// The open tag popup: current matches and the selected row.
+/// The open tag popup: which axis it is completing, its current matches and
+/// the selected row.
 pub(crate) struct TagMenu {
+    pub sigil: char,
     pub matches: Vec<String>,
     pub sel: usize,
 }
@@ -84,13 +94,13 @@ pub(crate) struct TagMenu {
 pub(crate) fn after_edit(
     menu: &mut Option<TagMenu>,
     input: &str,
-    tags: impl FnOnce() -> Vec<String>,
+    tags: impl FnOnce(char) -> Vec<String>,
 ) {
-    let Some(q) = pending_tag(input) else {
+    let Some((sigil, q)) = pending_tag(input) else {
         *menu = None;
         return;
     };
-    let matches = filter_tags(&tags(), q);
+    let matches = filter_tags(&tags(sigil), q);
     if matches.is_empty() {
         *menu = None;
         return;
@@ -98,7 +108,11 @@ pub(crate) fn after_edit(
     let sel = menu
         .as_ref()
         .map_or(0, |m| m.sel.min(matches.len().saturating_sub(1)));
-    *menu = Some(TagMenu { matches, sel });
+    *menu = Some(TagMenu {
+        sigil,
+        matches,
+        sel,
+    });
 }
 
 #[cfg(test)]

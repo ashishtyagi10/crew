@@ -133,23 +133,6 @@ fn a_lone_tag_filters_and_a_lone_at_clears() {
 }
 
 #[test]
-fn extract_tag_takes_the_first_token_only() {
-    assert_eq!(
-        extract_tag("pay rent @home @extra"),
-        ("pay rent @extra".to_string(), Some("home".to_string()))
-    );
-    assert_eq!(
-        extract_tag("no tags here"),
-        ("no tags here".to_string(), None)
-    );
-    // A bare `@` is not a tag.
-    assert_eq!(
-        extract_tag("weird @ thing"),
-        ("weird @ thing".to_string(), None)
-    );
-}
-
-#[test]
 fn poll_resyncs_when_another_pane_writes() {
     let _g = store::test_guard(vec![]);
     let mut a = TodoPane::new();
@@ -199,6 +182,23 @@ fn typing_at_opens_the_known_tag_popup() {
     }
     let m = p.tagmenu.as_ref().expect("popup open while typing @c");
     assert_eq!(m.matches, vec!["crew"]);
+}
+
+#[test]
+fn each_sigil_completes_from_its_own_axis() {
+    let _g = store::test_guard(vec![]);
+    let mut p = TodoPane::new();
+    p.paste("one @crew #priya");
+    p.submit();
+    for c in "two #p".chars() {
+        p.type_char(c);
+    }
+    let m = p.tagmenu.as_ref().expect("popup open while typing #p");
+    assert_eq!(m.matches, vec!["priya"], "people, not projects");
+    assert_eq!(m.sigil, '#');
+    // And accepting splices the name back under the sigil it was typed with.
+    crate::todopane::keys::apply(&mut p, crate::todopane::keys::TodoInput::Tab, 60, 20);
+    assert_eq!(p.input, "two #priya ");
 }
 
 // --- done history (v0.17: `/todo done`) -----------------------------------

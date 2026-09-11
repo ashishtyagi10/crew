@@ -1,5 +1,13 @@
 use super::*;
 
+/// A `@project`-only filter — what most of these cases are about.
+fn proj(name: &str) -> Filters<'_> {
+    Filters {
+        project: Some(name),
+        who: None,
+    }
+}
+
 fn item(id: u64, due: Option<u64>, done: bool, project: Option<&str>, created: u64) -> TodoItem {
     TodoItem {
         id,
@@ -7,6 +15,7 @@ fn item(id: u64, due: Option<u64>, done: bool, project: Option<&str>, created: u
         done,
         done_ms: None,
         project: project.map(str::to_string),
+        assignee: None,
         due_ms: due,
         due_has_time: false,
         created_ms: created,
@@ -26,7 +35,7 @@ fn overdue_then_due_then_undated_and_done_hidden() {
         item(5, Some(NOW - 100), false, None, 50), // overdue, later than 3
         item(6, Some(NOW + 100), false, None, 60), // upcoming, sooner than 2
     ];
-    let order = display_order(&items, None, false);
+    let order = display_order(&items, Filters::default(), false);
     let ids: Vec<u64> = order.iter().map(|&i| items[i].id).collect();
     assert_eq!(ids, vec![3, 5, 6, 2, 1]);
 }
@@ -38,7 +47,7 @@ fn undated_items_keep_creation_order() {
         item(2, None, false, None, 100),
         item(3, None, false, None, 200),
     ];
-    let order = display_order(&items, None, false);
+    let order = display_order(&items, Filters::default(), false);
     let ids: Vec<u64> = order.iter().map(|&i| items[i].id).collect();
     assert_eq!(ids, vec![2, 3, 1]);
 }
@@ -49,14 +58,18 @@ fn done_items_are_hidden_regardless_of_due_or_filter() {
         item(1, Some(NOW - 999), true, Some("crew"), 10),
         item(2, None, false, Some("crew"), 20),
     ];
-    let ids = |filter| -> Vec<u64> {
+    let ids = |filter: Filters| -> Vec<u64> {
         display_order(&items, filter, false)
             .iter()
             .map(|&i| items[i].id)
             .collect()
     };
-    assert_eq!(ids(None), vec![2], "a done overdue item is hidden");
-    assert_eq!(ids(Some("crew")), vec![2], "hidden under a filter too");
+    assert_eq!(
+        ids(Filters::default()),
+        vec![2],
+        "a done overdue item is hidden"
+    );
+    assert_eq!(ids(proj("crew")), vec![2], "hidden under a filter too");
 }
 
 #[test]
@@ -67,7 +80,7 @@ fn the_project_filter_is_case_insensitive_and_drops_untagged() {
         item(3, None, false, None, 30),
         item(4, None, false, Some("crew"), 40),
     ];
-    let order = display_order(&items, Some("crew"), false);
+    let order = display_order(&items, proj("crew"), false);
     let ids: Vec<u64> = order.iter().map(|&i| items[i].id).collect();
     assert_eq!(ids, vec![1, 4]);
 }
@@ -84,17 +97,17 @@ fn show_done_sinks_done_items_newest_completion_first() {
         item(4, None, true, Some("home"), 40), // done, tagged
     ];
     assert_eq!(
-        display_order(&items, None, false),
+        display_order(&items, Filters::default(), false),
         vec![0],
         "hidden by default"
     );
     assert_eq!(
-        display_order(&items, None, true),
+        display_order(&items, Filters::default(), true),
         vec![0, 3, 2, 1],
         "open first, then done newest-first"
     );
     assert_eq!(
-        display_order(&items, Some("home"), true),
+        display_order(&items, proj("home"), true),
         vec![3],
         "the filter still governs done rows"
     );
@@ -117,7 +130,7 @@ fn done_order_is_newest_stamp_first_then_legacy_by_creation() {
         done_at(4, None, 999),          // legacy tick (pre-stamp), newer created
         done_at(5, None, 100),          // legacy tick, older created
     ];
-    let ids: Vec<u64> = done_order(&items, None)
+    let ids: Vec<u64> = done_order(&items, Filters::default())
         .iter()
         .map(|&i| items[i].id)
         .collect();
@@ -134,7 +147,7 @@ fn done_order_honours_the_project_filter() {
     a.project = Some("crew".into());
     let b = done_at(2, Some(200), 2);
     let items = vec![a, b];
-    let ids: Vec<u64> = done_order(&items, Some("CREW"))
+    let ids: Vec<u64> = done_order(&items, proj("CREW"))
         .iter()
         .map(|&i| items[i].id)
         .collect();
@@ -150,7 +163,7 @@ fn show_done_rank_prefers_the_completion_stamp_over_creation() {
         done_at(2, Some(500), 999),
         item(3, None, false, None, 5), // open stays above the sunk rows
     ];
-    let ids: Vec<u64> = display_order(&items, None, true)
+    let ids: Vec<u64> = display_order(&items, Filters::default(), true)
         .iter()
         .map(|&i| items[i].id)
         .collect();
@@ -168,13 +181,17 @@ fn done_count_is_filter_aware() {
         item(3, None, true, Some("home"), 30),
         item(4, None, true, Some("HOME"), 40),
     ];
-    assert_eq!(done_count(&items, None), 3, "every ticked item");
-    assert_eq!(done_count(&items, Some("home")), 2, "case-insensitive tag");
-    assert_eq!(done_count(&items, Some("crew")), 0, "no ticks over there");
-    assert_eq!(done_count(&[], None), 0);
+    assert_eq!(
+        done_count(&items, Filters::default()),
+        3,
+        "every ticked item"
+    );
+    assert_eq!(done_count(&items, proj("home")), 2, "case-insensitive tag");
+    assert_eq!(done_count(&items, proj("crew")), 0, "no ticks over there");
+    assert_eq!(done_count(&[], Filters::default()), 0);
     // Open items never count, however they are tagged.
     assert_eq!(
-        done_count(&items[..1], None),
+        done_count(&items[..1], Filters::default()),
         0,
         "an open item is not history"
     );

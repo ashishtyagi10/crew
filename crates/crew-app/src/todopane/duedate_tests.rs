@@ -142,18 +142,18 @@ fn strip_normalises_the_leftover_whitespace() {
 }
 
 #[test]
-fn labels_read_humane() {
-    let n = now();
-    assert_eq!(label_naive(at(2026, 8, 12, 17, 0), true, n), "today 17:00");
-    assert_eq!(label_naive(at(2026, 8, 12, 9, 0), false, n), "today");
-    assert_eq!(label_naive(at(2026, 8, 13, 9, 0), false, n), "tomorrow");
-    // Saturday is three days out → weekday shorthand.
-    assert_eq!(label_naive(at(2026, 8, 15, 9, 0), false, n), "sat");
-    assert_eq!(label_naive(at(2026, 8, 15, 8, 30), true, n), "sat 08:30");
-    // A week+ out → month-day.
-    assert_eq!(label_naive(at(2026, 9, 11, 9, 0), false, n), "sep 11");
-    assert_eq!(label_naive(at(2026, 8, 11, 9, 0), false, n), "yesterday");
-    assert_eq!(label_naive(at(2026, 8, 1, 9, 0), false, n), "aug 1");
+fn labels_read_humane_and_always_name_the_day() {
+    let n = now(); // Wednesday 2026-08-12
+    let l = |y, m, d, h, mi, t| label_naive(at(y, m, d, h, mi), t, n);
+    assert_eq!(l(2026, 8, 12, 17, 0, true), "today aug 12 17:00");
+    assert_eq!(l(2026, 8, 13, 9, 0, false), "tomorrow aug 13");
+    // Three days out → weekday shorthand + the date it means; a week+ out,
+    // the date alone (no relative word is shorter than it).
+    assert_eq!(l(2026, 8, 15, 9, 0, false), "sat aug 15");
+    assert_eq!(l(2026, 8, 15, 8, 30, true), "sat aug 15 08:30");
+    assert_eq!(l(2026, 9, 11, 9, 0, false), "sep 11");
+    assert_eq!(l(2026, 8, 11, 9, 0, false), "yesterday aug 11");
+    assert_eq!(l(2026, 8, 1, 9, 0, false), "aug 1");
 }
 
 #[test]

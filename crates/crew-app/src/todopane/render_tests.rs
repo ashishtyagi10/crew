@@ -9,13 +9,8 @@ fn item(id: u64, title: &str) -> TodoItem {
     TodoItem {
         id,
         title: title.to_string(),
-        done: false,
-        done_ms: None,
-        project: None,
-        due_ms: None,
-        due_has_time: false,
         created_ms: id,
-        notified: false,
+        ..Default::default()
     }
 }
 
@@ -230,7 +225,11 @@ fn the_composer_legend_previews_a_recognised_due() {
     p.cursor = p.input.chars().count();
     let cells = cells(&p, COLS, ROWS);
     let border = row_text(&cells, ROWS - 3);
-    assert!(border.contains("due tomorrow"), "{border:?}");
+    assert!(
+        border.contains("tomorrow sep"),
+        "the legend previews the parse as the ROW will print it, with the \
+         date and without a `due` the row never says: {border:?}"
+    );
     // And the fragment itself is tinted accent in the prompt row.
     let accent = crate::palette::accent();
     let prompt = ROWS - 2;
@@ -261,6 +260,7 @@ fn list_height_accounts_for_composer_popup_and_header() {
     p.filter = Some("crew".into());
     assert_eq!(list_height(&p, COLS, ROWS), ROWS - 4);
     p.tagmenu = Some(crate::todopane::tagmenu::TagMenu {
+        sigil: '@',
         matches: vec!["crew".into()],
         sel: 0,
     });
