@@ -394,11 +394,11 @@ pub(crate) fn roster_with(
     agents
 }
 
-/// [`provider_and_model`] with an explicit tier. Only Anthropic maps a tier to
-/// a model id — DashScope and OpenRouter default to their chain head
-/// (`chain[0]`), so `tier` is ignored there. Serves both the Far pane's
-/// one-shot `!` command suggestion (via `provider_and_model`, pinned to
-/// `Cheap`) and the specialist roster (`roster_with`, pinned to `Standard`).
+/// [`provider_and_model`] with an explicit tier. Only Anthropic and the
+/// Claude CLI map a tier to a model id — DashScope and OpenRouter default to
+/// their chain head (`chain[0]`), so `tier` is ignored there. Serves the
+/// one-shot asks (via `provider_and_model`, pinned to `Cheap`), the specialist
+/// roster (`roster_with`, `Standard`) and the swarm (`swarmconf::backend`).
 pub(crate) fn provider_and_model_for(
     tier: crew_hive::ModelTier,
 ) -> Option<(Arc<dyn crew_hive::Provider>, String)> {

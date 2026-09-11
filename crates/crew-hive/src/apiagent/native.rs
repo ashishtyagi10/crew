@@ -98,7 +98,7 @@ pub(super) async fn run(
         });
         ctx.bus.publish(HiveEvent::CostDelta {
             agent: agent_id.clone(),
-            micros_usd: super::cost_micros(tier, completion.input_tokens, completion.output_tokens),
+            micros_usd: super::cost::billed(&model_id, tier, &completion),
         });
 
         if completion.calls.is_empty() {

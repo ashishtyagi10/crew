@@ -38,19 +38,6 @@ fn build_prompt_no_deps_returns_prompt_unchanged() {
     assert_eq!(p, "just this");
 }
 
-#[test]
-fn cost_micros_standard() {
-    // Standard: 3 in + 15 out; 10 input + 2 output → 30 + 30 = 60
-    let c = cost_micros(ModelTier::Standard, 10, 2);
-    assert_eq!(c, 30 + 30);
-}
-
-#[test]
-fn cost_micros_cheap() {
-    let c = cost_micros(ModelTier::Cheap, 100, 10);
-    assert_eq!(c, 100 + 50);
-}
-
 #[tokio::test]
 async fn api_agent_completes_and_emits() {
     let bus = EventBus::new(32);
@@ -372,11 +359,11 @@ async fn api_agent_bills_at_the_tasks_own_tier() {
         }
         cost
     }
-    // 1 input token, 2 output tokens ("a b").
-    // Cheap: 1*1 + 5*2 = 11.  Standard: 3*1 + 15*2 = 33.  Capable: 15*1 + 75*2 = 165.
+    // 1 input token, 2 output tokens ("a b"), at each tier's own model's LIST
+    // price (`pricing`): Haiku 1*1 + 5*2 = 11; Sonnet 3*1 + 15*2 = 33; Opus 5*1 + 25*2 = 55.
     assert_eq!(cost_for(ModelTier::Cheap).await, 11);
     assert_eq!(cost_for(ModelTier::Standard).await, 33);
-    assert_eq!(cost_for(ModelTier::Capable).await, 165);
+    assert_eq!(cost_for(ModelTier::Capable).await, 55);
 }
 
 // ---------------------------------------------------------------------------

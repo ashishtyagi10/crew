@@ -6,6 +6,7 @@ mod tests;
 
 mod chunks;
 mod context;
+mod cost;
 mod native;
 mod toolloop;
 
@@ -18,24 +19,9 @@ use std::sync::Arc;
 use crate::agent::{Agent, AgentContext};
 use crate::board::TaskResult;
 use crate::bus::HiveEvent;
-use crate::graph::{AgentKind, ModelTier};
+use crate::graph::AgentKind;
 use crate::provider::{CompletionRequest, Provider};
 use crate::tools::{self, ToolCatalog, Tools};
-
-// ---------------------------------------------------------------------------
-// Cost table — micros-USD per token (input / output)
-// ---------------------------------------------------------------------------
-
-/// Approximate Anthropic pricing in micros-USD per token.
-/// Cheap ≈ $1/$5 per 1M; Standard ≈ $3/$15; Capable ≈ $15/$75.
-fn cost_micros(tier: ModelTier, input: u32, output: u32) -> u64 {
-    let (in_rate, out_rate): (u64, u64) = match tier {
-        ModelTier::Cheap => (1, 5),
-        ModelTier::Standard => (3, 15),
-        ModelTier::Capable => (15, 75),
-    };
-    in_rate * u64::from(input) + out_rate * u64::from(output)
-}
 
 // ---------------------------------------------------------------------------
 // ApiAgent
@@ -91,7 +77,8 @@ impl Agent for ApiAgent {
             let agent_id = ctx.agent.clone();
             // Honour the per-task model tier the planner assigned, not a fixed
             // factory tier — this is what lets a plan mix cheap and capable
-            // models, and bills each task at its own rate.
+            // models. The BILL follows the model id that actually answered
+            // (`cost::billed`); the tier is only its fallback.
             let tier = ctx.task.model;
             let system = match &ctx.task.agent {
                 AgentKind::Api { system } => system.clone(),
@@ -181,11 +168,7 @@ impl Agent for ApiAgent {
                 });
                 ctx.bus.publish(HiveEvent::CostDelta {
                     agent: agent_id.clone(),
-                    micros_usd: cost_micros(
-                        tier,
-                        completion.input_tokens,
-                        completion.output_tokens,
-                    ),
+                    micros_usd: cost::billed(&model_id, tier, &completion),
                 });
 
                 let call = tools

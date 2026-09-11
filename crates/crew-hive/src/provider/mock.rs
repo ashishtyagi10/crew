@@ -11,6 +11,7 @@ use super::{Chunk, ChunkFn, Completion, CompletionRequest, Provider, ProviderErr
 /// is the completion's `thought` (streamed as one `Chunk::Thought` before any
 /// text) and the rest is the reply — the same split the real OpenAI-shaped
 /// path makes, so a test of the thinking pipeline needs no second mock.
+#[derive(Clone)]
 pub struct MockProvider {
     pub reply: String,
 }

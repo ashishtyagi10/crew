@@ -1,7 +1,7 @@
 //! Task planner: decomposes a goal string into a [`TaskGraph`].
 //!
 //! - [`StubPlanner`] — deterministic, no LLM; used by scheduler tests.
-//! - [`LlmPlanner`] — prompts a [`Provider`] for a JSON task array.
+//! - [`LlmPlanner`] — prompts a [`Provider`] for a JSON task array (`repair` re-asks once).
 //! - [`parse_plan`] — pure JSON → [`TaskGraph`] converter; unit-testable.
 
 #[cfg(test)]
@@ -9,7 +9,9 @@ mod tests;
 
 mod capabilities;
 mod error;
+mod extract;
 pub mod persona;
+mod repair;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -158,7 +160,8 @@ impl<P: Provider> LlmPlanner<P> {
     }
 }
 
-impl<P: Provider> Planner for LlmPlanner<P> {
+// `Clone + 'static`: the re-ask needs the provider inside the boxed future, past `&self`.
+impl<P: Provider + Clone + 'static> Planner for LlmPlanner<P> {
     fn plan(
         &self,
         goal: &str,
@@ -173,11 +176,7 @@ impl<P: Provider> Planner for LlmPlanner<P> {
             max_tokens: 2048,
             ..Default::default()
         };
-        let fut = self.provider.complete(req);
-        Box::pin(async move {
-            let completion = fut.await?;
-            parse_plan(&completion.text)
-        })
+        Box::pin(repair::plan_with_repair(self.provider.clone(), req))
     }
 }
 

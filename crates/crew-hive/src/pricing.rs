@@ -32,14 +32,21 @@ const RATES: &[(&str, u64, u64)] = &[
     ("kimi-k2", 600_000, 2_500_000),
 ];
 
-/// Approximate cost of one reply in micro-USD; 0 when the model is unknown.
-pub fn cost_microusd(model: &str, input_tokens: u32, output_tokens: u32) -> u64 {
+/// The (input, output) µ$/Mtok rates for `model`, or `None` when the list
+/// has never heard of it — which is a different answer from "free", and the
+/// one a caller with a fallback estimate needs.
+pub fn rate(model: &str) -> Option<(u64, u64)> {
     let m = model.to_ascii_lowercase();
-    let Some((_, in_rate, out_rate)) = RATES
+    RATES
         .iter()
         .filter(|(pat, _, _)| m.contains(pat))
         .max_by_key(|(pat, _, _)| pat.len())
-    else {
+        .map(|(_, i, o)| (*i, *o))
+}
+
+/// Approximate cost of one reply in micro-USD; 0 when the model is unknown.
+pub fn cost_microusd(model: &str, input_tokens: u32, output_tokens: u32) -> u64 {
+    let Some((in_rate, out_rate)) = rate(model) else {
         return 0;
     };
     (in_rate * u64::from(input_tokens) + out_rate * u64::from(output_tokens)) / 1_000_000

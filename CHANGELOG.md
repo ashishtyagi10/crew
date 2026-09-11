@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.7
+
+**The swarm serves on the same model as the relay, and bills honestly.**
+Since the swarm was born its planner, every worker and the re-planner ran
+on the provider's *cheap* tier (Haiku on Anthropic) while a plain relay
+turn used the standard one — the most-used shape got the weakest model,
+and the cost meter charged it at the standard rate. The swarm now resolves
+at the standard tier; `CREW_SWARM_TIER=cheap` takes it back down (the knob
+only ever makes a run cheaper). Cost is billed at the price of the model
+that actually answered, a provider-reported exact cost outranks every
+estimate, and the hand-typed tier table that priced Opus at three times
+its list price is gone.
+
+**A sloppy plan no longer collapses the swarm.** A planner reply wrapped in
+a ```json fence, preceded by a sentence, or ending in a trailing comma used
+to fail outright and degrade the whole run to a single reply ("planning
+failed"). The outermost array is now lifted out of whatever surrounds it,
+the one unambiguous slip is undone, and a reply that still fails is asked
+for ONCE more with the error shown back before the swarm gives up.
+
 ## 0.22.6
 
 **Swarm workers know who they are, and the swarm reads your notes.** The

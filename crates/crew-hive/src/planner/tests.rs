@@ -242,7 +242,7 @@ async fn llm_planner_model_override_reaches_request() {
     }
     let seen = Arc::new(Mutex::new(String::new()));
     let planner = LlmPlanner {
-        provider: Probe(seen.clone()),
+        provider: Arc::new(Probe(seen.clone())),
         tier: crate::graph::ModelTier::Standard,
         model: None,
         capabilities: Vec::new(),
@@ -316,7 +316,7 @@ async fn the_capabilities_reach_the_request() {
     }
     let seen = Arc::new(Mutex::new(String::new()));
     let planner = LlmPlanner {
-        provider: Probe(seen.clone()),
+        provider: Arc::new(Probe(seen.clone())),
         tier: crate::graph::ModelTier::Standard,
         model: None,
         capabilities: vec!["weather: forecasts".into()],

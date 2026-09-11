@@ -2440,7 +2440,11 @@ asking — reasoning a model shows unprompted is still shown;
 `CREW_INTENT=0` disables the intent router — every plain message then runs as
 a swarm instead of the model first choosing its execution shape (a direct
 reply, an all-agents fan-out, refinement rounds, a plan awaiting approval, or
-the swarm); `CREW_SIDECAR` names an out-of-process engine to run swarm TASKS
+the swarm); `CREW_SWARM_TIER=cheap` runs the swarm's planner and workers on
+the provider's cheap tier (the swarm serves at the standard tier by default,
+the same tier the relay uses — the knob can only make a run cheaper, never
+dearer; the small structured one-shots such as routing stay cheap either
+way); `CREW_SIDECAR` names an out-of-process engine to run swarm TASKS
 (`python3 /path/to/crew_sidecar.py`) — see **An engine crew did not compile in**
 below; unset by default, and a command crew cannot find is ignored;
 `CREW_SUBSCRIPTIONS=0` disables the signed-in-subscription rung —

@@ -9,8 +9,12 @@ use crew_hive::{AgentFactory, Budget, LlmPlanner, ModelTier, Planner, StubPlanne
 
 use super::{Session, STUB_FANOUT, WORK_MAX_TOKENS};
 
+#[path = "swarmtier.rs"]
+pub(super) mod swarmtier;
+
 /// Pick planner/factory/budget/replanner from provider discovery: real LLM
-/// planning on a discovered provider; deterministic stubs when keyless. The
+/// planning on a discovered provider, serving at [`swarmtier::swarm_tier`]
+/// (Standard, unlike the one-shot asks); deterministic stubs when keyless. The
 /// mock provider (GUI harness) plans with stubs but executes through the
 /// mock, so replies stay deterministic while the full pipeline runs. The
 /// REPLANNER is `Some` only on the real-provider arm — keyless and mock runs
@@ -60,7 +64,7 @@ fn sidecar_factory(
 }
 
 pub(super) fn backend(tools: Option<Arc<dyn crew_hive::tools::Tools>>) -> Backend {
-    match crate::broker::discover::provider_and_model() {
+    match crate::broker::discover::provider_and_model_for(swarmtier::swarm_tier()) {
         None => (
             Arc::new(StubPlanner {
                 fanout: STUB_FANOUT,
