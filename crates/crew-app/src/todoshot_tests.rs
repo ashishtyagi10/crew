@@ -93,9 +93,12 @@ fn sweep_at(suffix: &str, w: u32, h: u32) -> Vec<(String, usize)> {
     typing.insert_at_cursor("pay the hosting bill @adm");
     take(format!("todo-tag-{suffix}"), &typing);
 
-    let mut banded = test_pane(week());
-    banded.grouped = true;
-    take(format!("todo-by-who-{suffix}"), &banded);
+    // The plain list above already bands — `week()` has people on it and
+    // that is the default. This is the other shape: `g` pressed, one flat
+    // list sorted by due alone.
+    let mut flat = test_pane(week());
+    flat.grouped = false;
+    take(format!("todo-flat-{suffix}"), &flat);
 
     let mut done = test_pane(week());
     done.set_done_view(true);

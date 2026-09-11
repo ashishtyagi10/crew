@@ -147,9 +147,11 @@ impl TodoPane {
         self.sel = (self.visible_len() > 0).then_some(0);
     }
 
-    /// `g` on the list (and `/todo by who`): band the rows under each
-    /// `#assignee`. The selection re-enters at the top — the row it was on
-    /// has moved to wherever its owner's band is.
+    /// `g` on the list (and `/todo by who` / `/todo by flat`): band the
+    /// rows under each `#assignee`, or lay them flat. Banding is the
+    /// default once anybody is named, so this is mostly the way OUT of it.
+    /// The selection re-enters at the top — the row it was on has moved to
+    /// wherever its owner's band is.
     pub(crate) fn set_grouped(&mut self, on: bool) {
         if self.grouped == on {
             return;

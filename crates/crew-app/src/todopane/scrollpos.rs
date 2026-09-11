@@ -17,13 +17,15 @@ impl TodoPane {
 
     /// Item indices in display order under the active filters — the done
     /// history's own ordering when that view is on, banded by `#assignee`
-    /// when the list is grouped, else flat.
+    /// when the list is banded, else flat. Keyed off [`Self::bands`], the
+    /// one band truth, so the order can't disagree with the headers drawn
+    /// over it.
     pub(crate) fn order(&self) -> Vec<usize> {
         let f = self.filters();
-        match (self.done_view, self.grouped) {
-            (true, _) => super::item::done_order(&self.items, f),
-            (false, true) => super::group::order(&self.items, f, self.show_done),
-            (false, false) => super::item::display_order(&self.items, f, self.show_done),
+        match self.bands() {
+            super::Bands::Days => super::item::done_order(&self.items, f),
+            super::Bands::People => super::group::order(&self.items, f, self.show_done),
+            super::Bands::None => super::item::display_order(&self.items, f, self.show_done),
         }
     }
 

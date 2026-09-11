@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.19
+
+**A todo list with people on it bands under them, unasked.** The
+`#assignee` groups shipped in 0.22.17 behind `g`, off until you pressed it —
+but a list you run a team from is read per person every time you open it,
+and a view you have to switch into each session is one you mostly forget to
+switch into. So the bands are the list now: the moment anybody is named, the
+rows sit under their owner — one person's work, then the next,
+alphabetically, with `unassigned` at the foot — each band carrying its live
+`N open · N overdue · N done today`. `g` (or `/todo by flat`) lays it flat
+for the session and `g` again bands it back.
+
+A list with nobody on it never bands at all: one `unassigned` header over
+the whole thing is a heading that says nothing, so a solo list stays exactly
+as flat as it was until the first `#name` is typed. Nothing to configure in
+either direction — the list follows what is in it.
+
+## 0.22.18
+
+**The word in front of a date leaves the title with the date.** `pay rent
+due friday` files "pay rent", not "pay rent due" — `due`, `by`, `on`, `at`,
+`before`, or a run of them, tinted live in the composer as part of the date
+fragment. Only a lead-in sitting immediately before the parse counts, so
+`turn on the lights tomorrow` keeps its `on`.
+
 ## 0.22.17
 
 **The todo list can run a team.** A second tag sigil rides beside
