@@ -8,6 +8,7 @@ use super::duedate;
 use super::item::TodoItem;
 pub(crate) use super::measure::*;
 pub(crate) use super::render::*;
+use super::rowchips::{has_chips, row_chips, RowCtx};
 use crew_render::CellView;
 
 /// Mirror of [`place_right`]'s arithmetic without the cells: the next free
@@ -24,16 +25,17 @@ pub(crate) fn place_w(end: u16, w: u16) -> u16 {
 
 /// Column the title's first line stops before when the chips ride beside it:
 /// where the right-side chips (due, `@tag`, `#who`, `✗`; in the done view
-/// the tick time instead of the due) begin, minus the two-column gap the chips
+/// the tick time instead of the due — see [`row_chips`] for which of them
+/// this row actually carries) begin, minus the two-column gap the chips
 /// keep between each other.
 ///
 /// Two, not one. At one the title and the chip beside it read as one phrase
 /// the moment a title happens to fill its budget — `…and reverts @crew` — and
 /// every other gap on the row was already two, so the one place it mattered
 /// was the tightest.
-pub(crate) fn inline_max(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16 {
+pub(crate) fn inline_max(it: &TodoItem, cols: u16, now_ms: u64, ctx: RowCtx) -> u16 {
     let mut right = del_col(cols).saturating_sub(2);
-    if done_view {
+    if ctx.done_view {
         if it.done_ms.is_some() {
             right = place_w(right, 5); // "HH:MM"
         }
@@ -41,36 +43,10 @@ pub(crate) fn inline_max(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool)
         let lbl = duedate::label(due, it.due_has_time, now_ms);
         right = place_w(right, crate::chatwidth::str_w(&lbl) as u16);
     }
-    for chip in chips(it) {
+    for chip in row_chips(it, ctx) {
         right = place_w(right, crate::chatwidth::str_w(&chip) as u16);
     }
     right
-}
-
-/// The tag chips a row carries, in PLACEMENT order — and the right side is
-/// laid right to left, so this is outermost first: `@project`, then
-/// `#assignee` inside it. The owner therefore lands nearest the title, which
-/// is the column the eye runs down on a list you read by person.
-pub(crate) fn chips(it: &TodoItem) -> Vec<String> {
-    let mut out = Vec::new();
-    if let Some(tag) = &it.project {
-        out.push(format!("@{tag}"));
-    }
-    if let Some(w) = &it.assignee {
-        out.push(format!("#{w}"));
-    }
-    out
-}
-
-/// Whether the item carries anything on its right side at all.
-pub(crate) fn has_chips(it: &TodoItem, done_view: bool) -> bool {
-    it.project.is_some()
-        || it.assignee.is_some()
-        || if done_view {
-            it.done_ms.is_some()
-        } else {
-            it.due_ms.is_some()
-        }
 }
 
 /// Most of a first line the row will fight for before it STACKS — chips off
@@ -88,11 +64,11 @@ pub(crate) const MIN_TITLE_W: u16 = 20;
 /// has eight cells of title and sixteen to put them in, and moving that down
 /// a row would buy nothing. Never for an item with nothing on its right —
 /// there is nothing to move down.
-pub(crate) fn stacked(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> bool {
-    if !has_chips(it, done_view) {
+pub(crate) fn stacked(it: &TodoItem, cols: u16, now_ms: u64, ctx: RowCtx) -> bool {
+    if !has_chips(it, ctx) {
         return false;
     }
-    let budget = inline_max(it, cols, now_ms, done_view).saturating_sub(TITLE_COL);
+    let budget = inline_max(it, cols, now_ms, ctx).saturating_sub(TITLE_COL);
     let want = (crate::chatwidth::str_w(&it.title) as u16).min(MIN_TITLE_W);
     budget < want
 }
@@ -104,14 +80,14 @@ pub(crate) fn title_lines(
     it: &TodoItem,
     cols: u16,
     now_ms: u64,
-    done_view: bool,
+    ctx: RowCtx,
 ) -> Vec<(usize, usize)> {
     let chars: Vec<char> = it.title.chars().collect();
     let wc = (cols.saturating_sub(2 + TITLE_COL)).max(1) as usize;
-    let w0 = if stacked(it, cols, now_ms, done_view) {
+    let w0 = if stacked(it, cols, now_ms, ctx) {
         wc
     } else {
-        (inline_max(it, cols, now_ms, done_view).saturating_sub(TITLE_COL)).max(1) as usize
+        (inline_max(it, cols, now_ms, ctx).saturating_sub(TITLE_COL)).max(1) as usize
     };
     wrap_ranges(&chars, w0, wc)
 }

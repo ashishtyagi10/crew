@@ -622,7 +622,8 @@ fn a_stacked_row_takes_its_delete_target_down_with_it() {
         Some(TodoClick::Select(0)),
         "the first row's right end is no longer the ✗"
     );
-    let last = item_h(&p.items[0], cols, crate::chattime::unix_now_ms(), false) - 1;
+    let now = crate::chattime::unix_now_ms();
+    let last = item_h(&p.items[0], cols, now, p.rowctx()) - 1;
     assert_eq!(
         click_at(&p, last, cols - 3, cols, ROWS),
         Some(TodoClick::Delete(0))
@@ -637,8 +638,6 @@ fn a_short_title_never_stacks_just_because_the_pane_is_narrowish() {
     it.project = Some("home".into());
     it.due_ms = Some(1_000);
     let p = test_pane(vec![it]);
-    assert_eq!(
-        item_h(&p.items[0], 40, crate::chattime::unix_now_ms(), false),
-        1
-    );
+    let now = crate::chattime::unix_now_ms();
+    assert_eq!(item_h(&p.items[0], 40, now, p.rowctx()), 1);
 }

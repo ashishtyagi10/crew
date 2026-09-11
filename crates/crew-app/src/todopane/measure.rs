@@ -9,6 +9,7 @@
 //! and the drawing pass read these, so they cannot disagree about the layout.
 pub(crate) use super::fitline::*;
 use super::item::TodoItem;
+use super::rowchips::RowCtx;
 use super::{composer, duedate, TodoPane};
 
 /// Cap on visible popup rows (incl. its 2 border rows).
@@ -132,11 +133,10 @@ mod delzone_tests;
 mod emptyhint_tests;
 
 /// Rows item `it` occupies at this pane width.
-pub(crate) fn item_h(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16 {
+pub(crate) fn item_h(it: &TodoItem, cols: u16, now_ms: u64, ctx: RowCtx) -> u16 {
     let cols = content(cols);
 
-    title_lines(it, cols, now_ms, done_view).len() as u16
-        + u16::from(stacked(it, cols, now_ms, done_view))
+    title_lines(it, cols, now_ms, ctx).len() as u16 + u16::from(stacked(it, cols, now_ms, ctx))
 }
 
 /// Local calendar day of a done item's tick; `None` groups every legacy
@@ -152,6 +152,6 @@ pub(crate) fn done_day(it: &TodoItem) -> Option<chrono::NaiveDate> {
 /// scroll, page and click math — they must all sum this, or they disagree.
 pub(crate) fn row_h(p: &TodoPane, order: &[usize], di: usize, cols: u16, now_ms: u64) -> u16 {
     let cols = content(cols);
-    item_h(&p.items[order[di]], cols, now_ms, p.done_view)
+    item_h(&p.items[order[di]], cols, now_ms, p.rowctx())
         + u16::from(super::group::starts(p, order, di))
 }

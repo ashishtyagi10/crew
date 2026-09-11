@@ -76,7 +76,9 @@ impl TodoPane {
         };
         let it = &self.items[idx];
         let mut s = it.title.clone();
-        for chip in super::render::chips(it) {
+        // The FULL chip list, not the row's: an item edited from under its
+        // own band must not come back belonging to nobody.
+        for chip in super::rowchips::chips(it) {
             s.push(' ');
             s.push_str(&chip);
         }
