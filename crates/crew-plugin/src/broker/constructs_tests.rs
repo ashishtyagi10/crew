@@ -61,20 +61,14 @@ fn loop_rejects_bad_counts_and_missing_tasks() {
     }
 }
 
+/// A goal under the default cap, the judge elected by the mock's fallback.
 fn run_goal(rest: &str) -> Vec<PluginEvent> {
-    let mut session = Session::new();
-    let mut evs = Vec::new();
-    goal_cmd(
-        &mut session,
-        rest,
-        &crate::broker::tick::noop_tick_emit(),
-        &mut |ev| {
-            evs.push(ev);
-            Ok(())
-        },
-    )
-    .unwrap();
-    evs
+    run_goal_on(rest, None)
+}
+
+/// A goal with the judge-election call injected.
+fn run_goal_with(rest: &str, elector: crate::broker::intent::Classifier) -> Vec<PluginEvent> {
+    run_goal_on(rest, Some(elector))
 }
 
 #[test]
@@ -129,18 +123,19 @@ fn parse_verdict_reads_met_and_not_met() {
     assert!(!parse_verdict("hard to say").0);
 }
 
-fn run_goal_with(rest: &str, elector: crate::broker::intent::Classifier) -> Vec<PluginEvent> {
+fn run_goal_on(rest: &str, elector: Option<crate::broker::intent::Classifier>) -> Vec<PluginEvent> {
     let mut session = Session::new();
     let mut evs = Vec::new();
     goal_cmd_with(
         &mut session,
         rest,
+        GOAL_ROUNDS,
         &crate::broker::tick::noop_tick_emit(),
         &mut |ev| {
             evs.push(ev);
             Ok(())
         },
-        Some(elector),
+        elector,
     )
     .unwrap();
     evs

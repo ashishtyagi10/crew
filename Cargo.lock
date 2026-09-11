@@ -662,7 +662,7 @@ dependencies = [
 
 [[package]]
 name = "crew-app"
-version = "0.22.8"
+version = "0.22.9"
 dependencies = [
  "anyhow",
  "arboard",
@@ -705,7 +705,7 @@ dependencies = [
 
 [[package]]
 name = "crew-hive"
-version = "0.22.8"
+version = "0.22.9"
 dependencies = [
  "anyhow",
  "base64",
@@ -720,7 +720,7 @@ dependencies = [
 
 [[package]]
 name = "crew-lsp"
-version = "0.22.8"
+version = "0.22.9"
 dependencies = [
  "crew-hive",
  "dirs",
@@ -731,7 +731,7 @@ dependencies = [
 
 [[package]]
 name = "crew-plugin"
-version = "0.22.8"
+version = "0.22.9"
 dependencies = [
  "anyhow",
  "crew-hive",
@@ -746,7 +746,7 @@ dependencies = [
 
 [[package]]
 name = "crew-render"
-version = "0.22.8"
+version = "0.22.9"
 dependencies = [
  "anyhow",
  "crew-theme",
@@ -760,7 +760,7 @@ dependencies = [
 
 [[package]]
 name = "crew-term"
-version = "0.22.8"
+version = "0.22.9"
 dependencies = [
  "alacritty_terminal",
  "anyhow",
@@ -771,7 +771,7 @@ dependencies = [
 
 [[package]]
 name = "crew-theme"
-version = "0.22.8"
+version = "0.22.9"
 
 [[package]]
 name = "crossbeam-deque"

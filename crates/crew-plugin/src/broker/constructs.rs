@@ -8,30 +8,36 @@ use super::route::clip;
 use super::session::{call_timeout, Session};
 use super::stdio::roster;
 
-/// Rounds `/goal` tries before giving up.
+/// Rounds a goal tries before giving up when the router's model gave no
+/// `ROUNDS:` of its own — a backstop, not the driver.
 pub(crate) const GOAL_ROUNDS: u32 = 5;
 
-/// `/goal <text>`: relay rounds until a judge agent rules the goal met, or the
-/// round cap trips. The MODEL elects the judge from the roster (someone other
-/// than the worker, so the crew doesn't grade its own homework); keyless and
-/// mock runs fall back to the first non-worker deterministically.
-pub(crate) fn goal_cmd(
+/// `goal <text>` for up to `rounds` rounds (the router's model picks the
+/// count; `roundloop::MAX_ROUNDS` stays the ceiling): relay rounds until a
+/// judge agent rules the goal met, or the cap trips. The MODEL elects the
+/// judge from the roster (someone other than the worker, so the crew doesn't
+/// grade its own homework); keyless and mock runs fall back to the first
+/// non-worker deterministically.
+pub(crate) fn goal_rounds(
     session: &mut Session,
     rest: &str,
+    rounds: u32,
     tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
+    let rounds = rounds.clamp(1, super::roundloop::MAX_ROUNDS);
     match crate::broker::intent::live_classifier() {
-        Some(c) => goal_cmd_with(session, rest, tick_emit, emit, Some(&c)),
-        None => goal_cmd_with(session, rest, tick_emit, emit, None),
+        Some(c) => goal_cmd_with(session, rest, rounds, tick_emit, emit, Some(&c)),
+        None => goal_cmd_with(session, rest, rounds, tick_emit, emit, None),
     }
 }
 
-/// [`goal_cmd`] with the judge-election call injected — the test seam,
+/// [`goal_rounds`] with the judge-election call injected — the test seam,
 /// mirroring `intent::route_with`.
 pub(crate) fn goal_cmd_with(
     session: &mut Session,
     rest: &str,
+    rounds: u32,
     tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
     elector: Option<crate::broker::intent::Classifier>,
@@ -57,13 +63,13 @@ pub(crate) fn goal_cmd_with(
     let timeout = call_timeout();
     let broker = session.broker(reg);
     let mut answer: Option<String> = None;
-    for round in 1..=GOAL_ROUNDS {
+    for round in 1..=rounds {
         if session.cancelled() {
             return emit(msg("agent smith", "goal cancelled by /stop"));
         }
         emit(msg(
             "agent smith",
-            format!("goal round {round}/{GOAL_ROUNDS} \u{2014} {start} works, {judge} judges"),
+            format!("goal round {round}/{rounds} \u{2014} {start} works, {judge} judges"),
         ))?;
         let body = round_body(&goal, answer.as_deref());
         answer = relay_turn(
@@ -125,7 +131,7 @@ pub(crate) fn goal_cmd_with(
     }
     emit(msg(
         "agent smith",
-        format!("goal not met after {GOAL_ROUNDS} rounds \u{2014} stopping (last answer above)"),
+        format!("goal not met after {rounds} rounds \u{2014} stopping (last answer above)"),
     ))
 }
 

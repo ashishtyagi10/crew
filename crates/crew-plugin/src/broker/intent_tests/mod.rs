@@ -2,16 +2,32 @@
 //! the `SHAPE:`/`WHY:` parser and the injected-classifier seam; `routing`
 //! proves each shape reaches its own capability path, the fallbacks, and the
 //! plain-language parity for retired commands; `announce` proves the pane is
-//! told the decision before the arm speaks. Shared fixtures live here.
-use super::decision::{decide, parse_decision, Decision, Routing};
+//! told the decision before the arm speaks; `hints` proves the model's
+//! sizing lines reach the arms and the constants are backstops; `world`
+//! proves the classifier is shown the room it routes in. Shared fixtures
+//! live here.
+use super::decision::{decide_in, parse_decision_on, Decision, Routing};
 use super::*;
 use crate::broker::testenv;
 
 mod announce;
 mod capability;
 mod grammar;
+mod hints;
 mod plangate;
 mod routing;
+mod world;
+
+/// [`parse_decision_on`] with no roster — the bare grammar, where an
+/// `AGENTS:` line can name nobody.
+fn parse_decision(reply: &str) -> Option<Decision> {
+    parse_decision_on(reply, &[])
+}
+
+/// [`decide_in`] with nothing known about the world.
+fn decide(task: &str, classifier: Option<Classifier>) -> Routing {
+    decide_in(task, &World::default(), classifier)
+}
 
 fn text_of(ev: &PluginEvent) -> &str {
     match ev {
@@ -24,12 +40,14 @@ fn any_text(evs: &[PluginEvent], needle: &str) -> bool {
     evs.iter().any(|e| text_of(e).contains(needle))
 }
 
-/// Run `dispatch` for `shape` on a fresh session, collecting every event.
+/// Run `dispatch` for `shape` with no sizing hints on a fresh session,
+/// collecting every event.
 fn dispatch_collect(shape: Shape, task: &str) -> (Vec<PluginEvent>, Session) {
     let mut session = Session::new();
     let mut evs = Vec::new();
     dispatch(
         shape,
+        &Hints::default(),
         task,
         &mut session,
         &crate::broker::tick::noop_tick_emit(),

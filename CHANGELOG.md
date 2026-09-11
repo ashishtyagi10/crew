@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.9
+
+**The model sizes the work; the numbers are backstops now.** "Keep refining
+it" always ran three rounds and "keep working until…" always five, and a
+fan-out always went to every agent — counts chosen once, applied to
+everything. The router's grammar grew two optional lines: `ROUNDS: n`
+(loop and goal, clamped to the ceiling of ten) and `AGENTS: a, b` (fan,
+exact roster names only). The routing line says what was chosen when it
+differs from the default — `routing: loop ×5 — polish until it reads
+well`, `routing: fan → coder, reviewer — two views wanted`.
+
+**The classifier sees the world it routes in.** It used to see only the
+message: it chose *fan* with one agent on the roster and *commit* with a
+clean tree. The prompt now carries the roster's names, whether the tree is
+dirty and how many files, and the connected tool surface — each line only
+when known, after the invariant grammar so the cache prefix stays warm.
+
 ## 0.22.8
 
 **A swarm ends with an answer.** A clean multi-task run used to stop at the

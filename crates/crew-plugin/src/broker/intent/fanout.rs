@@ -9,10 +9,12 @@ use crate::PluginEvent;
 use crate::broker::relay::msg;
 use crate::broker::session::Session;
 
-/// Fan `task` out to the whole roster, streaming replies fastest-first.
+/// Fan `task` out to `only` — the model's chosen subset, already filtered
+/// to roster names — or to the whole roster, streaming replies fastest-first.
 pub(super) fn fan_cmd(
     session: &mut Session,
     task: &str,
+    only: Option<&[String]>,
     tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
@@ -24,10 +26,18 @@ pub(super) fn fan_cmd(
     if reg.is_empty() {
         return emit(msg("agent smith", crate::broker::stdio::roster(&reg)));
     }
-    let names = reg.names();
+    let names = match only {
+        Some(subset) if !subset.is_empty() => subset.to_vec(),
+        _ => reg.names(),
+    };
+    let to = if only.is_some_and(|s| !s.is_empty()) {
+        names.join(", ")
+    } else {
+        format!("{} agents", names.len())
+    };
     emit(msg(
         "agent smith",
-        format!("fanning out to {} agents in parallel\u{2026}", names.len()),
+        format!("fanning out to {to} in parallel\u{2026}"),
     ))?;
     crate::broker::fan::fan_out(
         &reg,

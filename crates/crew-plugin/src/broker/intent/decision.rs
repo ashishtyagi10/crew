@@ -7,13 +7,16 @@
 //! can stop (off, error, off-grammar) is said just as plainly instead of
 //! silently becoming the swarm.
 //!
-//! The grammar grows an OPTIONAL second line, `WHY: <one short clause>`.
-//! [`parse_decision`] is exactly as conservative as `parse_shape`: a bad or
-//! missing WHY only drops the reason, never changes the shape.
+//! The grammar grows an OPTIONAL second line, `WHY: <one short clause>`,
+//! and two optional sizing lines after it (`ROUNDS:`, `AGENTS:` — see
+//! `hints`). [`parse_decision_on`] is exactly as conservative as `parse_shape`:
+//! a bad or missing extra line only drops that extra, never the shape.
 use crate::broker::relay::msg;
 use crate::broker::route::clip;
 use crate::PluginEvent;
 
+use super::hints::Hints;
+use super::world::World;
 use super::{classify, parse_shape, Classifier, Shape};
 
 /// The routing line's sender — the same voice as the swarm's plan line, so
@@ -24,12 +27,21 @@ const SMITH: &str = "agent smith";
 /// gets cut, not a wrapped card.
 const WHY_MAX: usize = 80;
 
-/// A parsed classifier reply: the shape, plus the model's reason when the
-/// optional second line carried one.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// A parsed classifier reply: the shape, the model's reason when the
+/// optional second line carried one, and its sizing hints when it gave any.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct Decision {
     pub(crate) shape: Shape,
     pub(crate) why: Option<String>,
+    pub(crate) hints: Hints,
+}
+
+impl Decision {
+    /// The shape as the pane names it, sized: `loop ×5`, `fan → coder,
+    /// reviewer`, or the bare name when the defaults apply.
+    pub(crate) fn label(&self) -> String {
+        format!("{}{}", self.shape.name(), self.hints.suffix())
+    }
 }
 
 /// How the router arrived at its shape. Every variant that is not `Chosen`
@@ -47,18 +59,19 @@ pub(crate) enum Routing {
 }
 
 impl Routing {
-    /// The shape to dispatch — the pre-router swarm for every stop.
-    pub(crate) fn shape(&self) -> Shape {
+    /// The whole decision to dispatch: the model's, or a default-sized swarm
+    /// for every stop.
+    pub(crate) fn decision(&self) -> Decision {
         match self {
-            Routing::Chosen(d) => d.shape,
-            _ => Shape::Swarm,
+            Routing::Chosen(d) => d.clone(),
+            _ => Decision::default(),
         }
     }
 
     /// The pane line: `routing: <shape>`, then ` — <reason>` when there is
     /// one to give (the model's clause, or the honest name of the stop).
     pub(crate) fn line(&self) -> String {
-        let shape = self.shape().name();
+        let shape = self.decision().label();
         match self {
             Routing::Chosen(Decision { why: Some(why), .. }) => format!("routing: {shape} — {why}"),
             Routing::Chosen(_) => format!("routing: {shape}"),
@@ -89,48 +102,55 @@ impl Shape {
     }
 }
 
-/// Classify `task` and say the decision: a `thinking` activity for agent
-/// smith while the classifier runs (the pane's header pulse — the only state
-/// it draws live), the routing line, then smith's own idle. The idle is ours
-/// to send: no dispatch arm ever settles agent smith, and the turn-level idle
-/// comes minutes later.
+/// Classify `task` in `world` and say the decision: a `thinking` activity
+/// for agent smith while the classifier runs (the pane's header pulse — the
+/// only state it draws live), the routing line, then smith's own idle. The
+/// idle is ours to send: no dispatch arm ever settles agent smith, and the
+/// turn-level idle comes minutes later.
 pub(crate) fn announce(
     task: &str,
+    world: &World,
     classifier: Option<Classifier>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<Shape> {
+) -> anyhow::Result<Decision> {
     emit(PluginEvent::Activity {
         agent: SMITH.into(),
         state: "thinking".into(),
         from: "user".into(),
     })?;
-    let routing = decide(task, classifier);
+    let routing = decide_in(task, world, classifier);
     emit(msg(SMITH, routing.line()))?;
     emit(PluginEvent::Activity {
         agent: SMITH.into(),
         state: "idle".into(),
         from: String::new(),
     })?;
-    Ok(routing.shape())
+    Ok(routing.decision())
 }
 
 /// Run the classifier and keep the WHOLE outcome, not just the shape: the
-/// line needs to tell a call error from an off-grammar reply.
-pub(crate) fn decide(task: &str, classifier: Option<Classifier>) -> Routing {
+/// line needs to tell a call error from an off-grammar reply. The world's
+/// roster is also the set an `AGENTS:` line may name — the model can pick
+/// only from what it was shown.
+pub(crate) fn decide_in(task: &str, world: &World, classifier: Option<Classifier>) -> Routing {
     let Some(call) = classifier else {
         return Routing::Off;
     };
-    match call(&classify::prompt(task)) {
-        Ok(reply) => parse_decision(&reply).map_or(Routing::OffGrammar, Routing::Chosen),
+    match call(&classify::prompt(task, world)) {
+        Ok(reply) => {
+            parse_decision_on(&reply, &world.agents).map_or(Routing::OffGrammar, Routing::Chosen)
+        }
         Err(e) => Routing::Failed(e),
     }
 }
 
-/// Parse the reply against the two-line grammar: `SHAPE:` on the first line
-/// (via `parse_shape`, so the shape rules are defined once) and an optional
-/// `WHY: <clause>` on the second. A second line that is not a WHY, or an
-/// empty one, drops the reason and nothing else.
-pub(crate) fn parse_decision(reply: &str) -> Option<Decision> {
+/// Parse the reply against the grammar: `SHAPE:` on the first line (via
+/// `parse_shape`, so the shape rules are defined once), an optional
+/// `WHY: <clause>` on the second, and the optional sizing lines anywhere
+/// after (see `Hints::parse`; `roster` is the set an `AGENTS:` line may
+/// name — empty, and it names nobody). A second line that is not a WHY, or
+/// an empty one, drops the reason and nothing else.
+pub(crate) fn parse_decision_on(reply: &str, roster: &[String]) -> Option<Decision> {
     let shape = parse_shape(reply)?;
     let why = reply
         .trim()
@@ -140,5 +160,6 @@ pub(crate) fn parse_decision(reply: &str) -> Option<Decision> {
         .filter(|(head, _)| head.trim().eq_ignore_ascii_case("why"))
         .map(|(_, tail)| clip(tail.trim().trim_end_matches('.'), WHY_MAX))
         .filter(|w| !w.is_empty());
-    Some(Decision { shape, why })
+    let hints = Hints::parse(reply, roster).relevant_to(shape);
+    Some(Decision { shape, why, hints })
 }

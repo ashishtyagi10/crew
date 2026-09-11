@@ -2093,12 +2093,20 @@ and a typo gets a **did-you-mean** suggestion):
   to every agent **in parallel** (one thread per call; replies stream back
   fastest-first with per-agent latency, and the turn closes with combined
   stats); "keep refining it over a few rounds" runs relay rounds, each handed
-  the previous round's answer to improve on. `CREW_INTENT=0` restores
-  plain-swarm routing. **`@a+b <task>`** still fans out to just that subset.
+  the previous round's answer to improve on. The router's model also SIZES
+  the work: it may say how many rounds a loop or goal deserves (`ROUNDS:`,
+  1–10; 3 for a loop when it says nothing) and which agents a fan should go
+  to (`AGENTS:`, a subset of the roster it was shown; everyone when it says
+  nothing) — the pane line says what was chosen (`routing: loop ×5 — …`,
+  `routing: fan → coder, reviewer — …`). The classifier sees the room it
+  routes in: the roster's names, whether the tree is dirty, and the tool
+  surface. `CREW_INTENT=0` restores plain-swarm routing. **`@a+b <task>`**
+  still fans out to just that subset by hand.
 - **"keep working until …"** — relay rounds until a judge agent (elected by
   the model) rules `MET:`/`NOT MET:` on the goal; NOT-MET reasons feed
-  the next round. Caps at 5 rounds (a backstop — the model's own `@done` or
-  the judge's MET ends a healthy run first; the `/goal` slash form is
+  the next round. The router's model picks the round count (`ROUNDS:`); 5
+  when it gives none, 10 at most — backstops, since the model's own `@done`
+  or the judge's MET ends a healthy run first (the `/goal` slash form is
   retired). The **command bar's** `/goal` is a different engine: there the
   goal is planned into a task graph and run as a
   [swarm](#swarm-orchestration-crew-hive) under a cost ceiling.

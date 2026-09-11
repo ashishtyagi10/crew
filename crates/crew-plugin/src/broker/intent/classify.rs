@@ -4,9 +4,10 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-/// Output-token ceiling for the classification call: the grammar is two
-/// short lines (a shape, and an optional one-clause reason).
-const INTENT_MAX_TOKENS: u32 = 96;
+/// Output-token ceiling for the classification call: the grammar is four
+/// short lines at most (a shape, an optional one-clause reason, and the
+/// optional sizing lines).
+const INTENT_MAX_TOKENS: u32 = 128;
 
 /// Round-trip ceiling for classification — deliberately far below
 /// `call_timeout()` (3 min): the router is overhead before the real work, so
@@ -68,8 +69,12 @@ fn complete_once(
 
 /// The classification prompt: one flat grammar over the execution shapes and
 /// the capability intents; first match wins. The reason line is optional
-/// and short on purpose — it is repeated verbatim in the pane.
-pub(super) fn prompt(task: &str) -> String {
+/// and short on purpose — it is repeated verbatim in the pane. The order is
+/// cache-aware, as `route::frame`'s is: the invariant grammar first, then
+/// the world (changes per session), then the message (changes per call).
+pub(super) fn prompt(task: &str, world: &super::world::World) -> String {
+    let world = world.section();
+    let max = crate::broker::roundloop::MAX_ROUNDS;
     format!(
         "You route a user's message to ONE execution shape:\n\
          reply — a single agent answers or does it directly in one turn\n\
@@ -86,7 +91,10 @@ pub(super) fn prompt(task: &str) -> String {
          The FIRST line of your reply must be exactly \
          `SHAPE: <reply|fan|loop|plan|goal|swarm|commit|review|standup|resume>`.\n\
          An optional second line `WHY: <one short clause>` says why, in ten words \
-         or fewer. Nothing else.\n\n\
-         Message: {task}"
+         or fewer. Two more optional lines size the work: `ROUNDS: <1-{max}>` \
+         (loop or goal only — how many rounds it deserves; omit it for the \
+         default) and `AGENTS: <name, name>` (fan only — a subset of the agents \
+         listed below, when fewer clearly fit). Nothing else.\n\n\
+         {world}Message: {task}"
     )
 }

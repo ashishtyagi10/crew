@@ -69,6 +69,29 @@ fn a_shape_with_no_reason_is_said_bare() {
 }
 
 #[test]
+fn a_sized_loop_says_its_count_on_the_routing_line() {
+    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
+    let call = |_: &str| Ok("SHAPE: loop\nWHY: polish until it reads well\nROUNDS: 5".to_string());
+    let evs = route_stubbed("keep polishing the intro", &call);
+    assert_eq!(
+        routing_line(&evs),
+        "routing: loop \u{d7}5 — polish until it reads well"
+    );
+}
+
+#[test]
+fn a_subset_fan_names_its_agents_on_the_routing_line() {
+    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
+    let call =
+        |_: &str| Ok("SHAPE: fan\nWHY: two views wanted\nAGENTS: coder, reviewer".to_string());
+    let evs = route_stubbed("what do the builders think?", &call);
+    assert_eq!(
+        routing_line(&evs),
+        "routing: fan \u{2192} coder, reviewer — two views wanted"
+    );
+}
+
+#[test]
 fn no_classifier_says_classifier_off_and_swarms() {
     let _g = testenv::mock("ok");
     // `route` under the mock provider resolves to no classifier at all.

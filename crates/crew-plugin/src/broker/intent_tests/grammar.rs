@@ -61,7 +61,8 @@ fn a_why_line_rides_along_with_the_shape() {
         parse_decision("SHAPE: loop\nWHY: iterate until polished"),
         Some(Decision {
             shape: Shape::Loop,
-            why: Some("iterate until polished".into())
+            why: Some("iterate until polished".into()),
+            hints: Hints::default(),
         })
     );
 }
@@ -84,7 +85,8 @@ fn a_bad_second_line_keeps_the_shape_and_drops_the_why() {
             parse_decision(reply),
             Some(Decision {
                 shape: Shape::Fan,
-                why: None
+                why: None,
+                hints: Hints::default(),
             }),
             "{reply:?}"
         );
@@ -98,7 +100,8 @@ fn the_why_line_is_as_tolerant_as_the_shape_line() {
         d,
         Some(Decision {
             shape: Shape::Plan,
-            why: Some("needs sign-off first".into())
+            why: Some("needs sign-off first".into()),
+            hints: Hints::default(),
         })
     );
 }
@@ -125,7 +128,8 @@ fn decide_sends_the_task_and_both_grammar_lines_to_the_model() {
         decide("refactor the config parser", Some(&call)),
         Routing::Chosen(Decision {
             shape: Shape::Plan,
-            why: Some("needs sign-off".into())
+            why: Some("needs sign-off".into()),
+            hints: Hints::default(),
         })
     );
     let p = seen.lock().unwrap();
@@ -153,6 +157,7 @@ fn every_stop_dispatches_as_the_swarm() {
         Routing::Failed("boom".into()),
         Routing::OffGrammar,
     ] {
-        assert_eq!(r.shape(), Shape::Swarm, "{r:?}");
+        assert_eq!(r.decision(), Decision::default(), "{r:?}");
+        assert_eq!(r.decision().shape, Shape::Swarm);
     }
 }

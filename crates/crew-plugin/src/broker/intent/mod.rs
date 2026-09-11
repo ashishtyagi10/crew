@@ -7,7 +7,10 @@
 //! guard those paths enforce (hop cap, token budget, tool rounds) applies
 //! unchanged. Anything that stops the classifier — `CREW_INTENT=0`, no API
 //! key, the mock provider, a parse failure — falls back to today's behavior:
-//! the swarm. Whatever it decides, the pane is told (see `decision`).
+//! the swarm. Whatever it decides, the pane is told (see `decision`). The
+//! model also sizes the work (`hints`: rounds, a fan subset) and sees the
+//! room it routes in (`world`: roster, dirty tree, tools); the round
+//! constants here and in `constructs` are backstops, not the drivers.
 use std::sync::Arc;
 
 use crate::PluginEvent;
@@ -18,11 +21,15 @@ mod classify;
 mod decision;
 mod fanout;
 mod gate;
+mod hints;
+mod world;
 
 pub(crate) use classify::{live_call, live_classifier};
+pub(crate) use hints::Hints;
+pub(crate) use world::World;
 
-/// Relay rounds when the router picks `loop` — the user never typed a count,
-/// so a modest default well inside `roundloop::MAX_ROUNDS`.
+/// Relay rounds when the router picks `loop` and the model gave no
+/// `ROUNDS:` — a modest backstop well inside `roundloop::MAX_ROUNDS`.
 pub(crate) const LOOP_ROUNDS: u32 = 3;
 
 /// A classification call: full prompt in, raw model reply out. A borrowed
@@ -31,7 +38,7 @@ pub(crate) type Classifier<'a> = &'a dyn Fn(&str) -> Result<String, String>;
 
 /// The execution shapes a plain message can take. Every variant dispatches to
 /// a capability path that already exists — the router adds no execution logic.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum Shape {
     /// One agent answers directly (the relay).
     Reply,
@@ -44,7 +51,8 @@ pub(crate) enum Shape {
     /// Relay rounds until a judge agent rules a stated goal met (the `/goal`
     /// body — the round cap stays a backstop).
     Goal,
-    /// Decompose into a task graph (today's default).
+    /// Decompose into a task graph (today's default, and every stop's).
+    #[default]
     Swarm,
     /// Draft a commit message for the working diff (the `/commit` body).
     /// Drafts ONLY: creating the commit takes the user's own "apply", matched
@@ -98,17 +106,22 @@ pub(crate) fn route_with(
             return super::plan::reject_cmd(session, emit);
         }
     }
-    // Classify AND say so — the routing line lands before the arm's first
-    // event, so the pane never has to guess why it got what it got.
-    let shape = decision::announce(task, classifier, emit)?;
-    dispatch(shape, task, session, tick_emit, emit)
+    // Classify in the world the session can see, AND say so — the routing
+    // line lands before the arm's first event, so the pane never has to
+    // guess why it got what it got.
+    let world = World::gather(session);
+    let d = decision::announce(task, &world, classifier, emit)?;
+    dispatch(d.shape, &d.hints, task, session, tick_emit, emit)
 }
 
-/// Send `task` down `shape`'s existing capability path. Each arm is the same
-/// function the equivalent construct/relay route calls, so the hop cap, token
-/// budget and tool-round guards all apply unchanged.
+/// Send `task` down `shape`'s existing capability path, sized by `hints`
+/// where the shape has a size (loop/goal rounds, the fan subset) and by the
+/// backstop constants otherwise. Each arm is the same function the
+/// equivalent construct/relay route calls, so the hop cap, token budget and
+/// tool-round guards all apply unchanged.
 pub(crate) fn dispatch(
     shape: Shape,
+    hints: &Hints,
     task: &str,
     session: &mut Session,
     tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
@@ -116,12 +129,16 @@ pub(crate) fn dispatch(
 ) -> anyhow::Result<()> {
     match shape {
         Shape::Reply => super::stdio::relay_counting(task, session, tick_emit, emit),
-        Shape::Fan => fanout::fan_cmd(session, task, tick_emit, emit),
+        Shape::Fan => fanout::fan_cmd(session, task, hints.agents.as_deref(), tick_emit, emit),
         Shape::Loop => {
-            super::roundloop::loop_cmd(session, &format!("{LOOP_ROUNDS} {task}"), tick_emit, emit)
+            let n = hints.rounds.unwrap_or(LOOP_ROUNDS);
+            super::roundloop::loop_cmd(session, &format!("{n} {task}"), tick_emit, emit)
         }
         Shape::Plan => super::plan::plan_cmd(session, task, emit),
-        Shape::Goal => super::constructs::goal_cmd(session, task, tick_emit, emit),
+        Shape::Goal => {
+            let n = hints.rounds.unwrap_or(super::constructs::GOAL_ROUNDS);
+            super::constructs::goal_rounds(session, task, n, tick_emit, emit)
+        }
         Shape::Swarm => super::swarm::run_task(task, session, emit),
         Shape::Commit => super::gitmsg::commit_cmd(session, "", emit),
         Shape::Review => super::review::review_cmd(session, emit),
