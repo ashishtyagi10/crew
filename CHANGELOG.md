@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.14
+
+**The plan you approved is the plan that runs.** "Draft a plan first"
+produced steps for you to read, and "approve" then handed the whole text
+to ONE relay agent to walk — on one line, because the clip that framed it
+folded the newlines. Approval now runs the swarm: the steps you read
+become the task breakdown one-to-one (the planner is told the plan is the
+spec, not a suggestion), the run gets the plan's own parallelism, and a
+routing that asked for a check (`VERIFY: yes`) judges the result when it
+ends. The pane says `running the approved plan as a swarm`.
+
+**Skills are chosen, not matched.** A playbook used to apply only when
+its name appeared in the task, hyphens and all. With two or more loaded,
+one bounded call now reads the task and the skills' one-liners and names
+the ones that fit (`skill code-review · chose · …`); the name match is the
+fallback. `CREW_SKILL_PICK=0` keeps the old matching.
+
+Two Linux-only test races fixed for the coverage job.
+
 ## 0.22.13
 
 **Agent smith chooses the tools.** With more than two dozen tools connected

@@ -119,10 +119,12 @@ fn loaded_events_name_each_applied_skill_for_the_agent() {
         Applied {
             name: "review".into(),
             description: "strict Rust review".into(),
+            chosen: false,
         },
         Applied {
             name: "deploy".into(),
             description: "ship safely".into(),
+            chosen: true,
         },
     ];
     let evs = loaded_events(&applied, "coder");
@@ -136,7 +138,7 @@ fn loaded_events_name_each_applied_skill_for_the_agent() {
             agent: "coder".into(),
             kind: "skill".into(),
             name: "deploy".into(),
-            detail: "applied \u{b7} ship safely".into(),
+            detail: "chose \u{b7} ship safely".into(),
         }
     );
     assert!(loaded_events(&[], "coder").is_empty());

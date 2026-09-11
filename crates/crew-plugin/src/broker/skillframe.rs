@@ -1,15 +1,13 @@
 //! Skill framing: how a playbook is presented to the relay. Small bodies are
 //! inlined whole (as `/skill` always did); directory skills add a pointer to
-//! their bundled files, readable through the `@tool sys` surface.
+//! their bundled files, readable through the `@tool sys` surface. WHICH
+//! playbooks a task gets is `skillchoice`'s decision (the model's, with the
+//! name match as its fallback); this file only frames what was chosen.
 use super::skills::Skill;
 use crate::PluginEvent;
 
 /// Bodies over this many bytes are pointer-framed instead of inlined (~2k tokens).
 pub(crate) const INLINE_CAP: usize = 8 * 1024;
-
-/// How many matched playbooks one task may pull in — a bound, so a task that
-/// happens to name half the library cannot flood its own prompt.
-const AUTO_MAX: usize = 2;
 
 /// One playbook a task pulled in — what the host is told about it.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -17,6 +15,8 @@ pub(crate) struct Applied {
     pub name: String,
     /// The skill's one-liner (frontmatter, or its first line).
     pub description: String,
+    /// The model chose it (`chose`), or the task named it (`applied`).
+    pub chosen: bool,
 }
 
 /// A task with its skills woven in, and WHICH skills — the frame used to be
@@ -27,21 +27,24 @@ pub(crate) struct Framed {
     pub applied: Vec<Applied>,
 }
 
-/// Weave the loaded skills into `task` without any command: playbooks whose
-/// name the task mentions are framed in full ([`framed`]); when none match
-/// but skills exist, a one-line roster rides along so the model knows what it
+/// Weave the loaded skills into `task` without any command: the playbooks
+/// the decider picked are framed in full ([`framed`]); when none are but
+/// skills exist, a one-line roster rides along so the model knows what it
 /// could name. No skills → the task passes through byte-identical.
 pub(crate) fn with_skills(task: &str) -> Framed {
     let skills = super::skills::load();
-    let applied = matched(task, &skills)
-        .into_iter()
+    let pick = super::skillchoice::decider().pick(task, &skills);
+    let applied = pick
+        .skills
+        .iter()
         .map(|s| Applied {
             name: s.name.clone(),
             description: s.description.clone(),
+            chosen: pick.by_model,
         })
         .collect();
     Framed {
-        body: auto_frame(task, &skills, super::systools::enabled()),
+        body: frame_with(task, &skills, &pick.skills, super::systools::enabled()),
         applied,
     }
 }
@@ -56,46 +59,40 @@ pub(crate) fn loaded_events(applied: &[Applied], agent: &str) -> Vec<PluginEvent
                 agent: agent.to_string(),
                 kind: "skill".into(),
                 name: a.name.clone(),
-                detail: format!("applied \u{b7} {}", a.description),
+                detail: format!(
+                    "{} \u{b7} {}",
+                    if a.chosen { "chose" } else { "applied" },
+                    a.description
+                ),
             },
         })
         .collect()
 }
 
-/// The playbooks `task` names, in library order, at most [`AUTO_MAX`].
-fn matched<'s>(task: &str, skills: &'s [Skill]) -> Vec<&'s Skill> {
-    skills
-        .iter()
-        .filter(|s| mentioned(task, &s.name))
-        .take(AUTO_MAX)
-        .collect()
+/// [`frame_with`] on the name match alone — the keyless/mock body; the tests' seam.
+#[cfg(test)]
+pub(crate) fn auto_frame(task: &str, skills: &[Skill], sys_on: bool) -> String {
+    let named = super::skillchoice::matched(task, skills);
+    frame_with(task, skills, &named, sys_on)
 }
 
-/// Pure core of [`with_skills`]'s body.
-pub(crate) fn auto_frame(task: &str, skills: &[Skill], sys_on: bool) -> String {
+/// Pure core of [`with_skills`]'s body: `task` under the `chosen` playbooks.
+fn frame_with(task: &str, skills: &[Skill], chosen: &[&Skill], sys_on: bool) -> String {
     if skills.is_empty() {
         return task.to_string();
     }
-    let matched = matched(task, skills);
-    if matched.is_empty() {
+    if chosen.is_empty() {
         return format!(
-            "AVAILABLE SKILLS (drop-in playbooks \u{2014} one applies itself when a \
-             task names it):\n{}\n\nTASK:\n{task}",
+            "AVAILABLE SKILLS (drop-in playbooks \u{2014} none chosen for this \
+             task):\n{}\n\nTASK:\n{task}",
             list_report(skills)
         );
     }
-    if let [only] = matched.as_slice() {
+    if let [only] = chosen {
         return framed(only, task, sys_on);
     }
-    let blocks: Vec<String> = matched.iter().map(|s| block(s, sys_on)).collect();
+    let blocks: Vec<String> = chosen.iter().map(|s| block(s, sys_on)).collect();
     format!("{}\nTASK:\n{task}", blocks.join("\n"))
-}
-
-/// Whether `task` names the skill: the normalized name, with hyphens also
-/// matching spaces ("code-review" ↔ "code review"), case-insensitively.
-fn mentioned(task: &str, name: &str) -> bool {
-    let low = task.to_lowercase();
-    low.contains(name) || low.contains(&name.replace('-', " "))
 }
 
 /// The relay body for a skill run: playbook first, then the task. Oversized

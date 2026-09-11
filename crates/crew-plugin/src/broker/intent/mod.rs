@@ -101,7 +101,7 @@ pub(crate) fn route_with(
     }
     if gate::pending_plan(session) {
         if gate::approves_plan(task) {
-            return super::plan::approve_cmd(session, tick_emit, emit);
+            return super::plan::approve_cmd(session, emit);
         }
         if gate::rejects_plan(task) {
             return super::plan::reject_cmd(session, emit);
@@ -135,7 +135,7 @@ pub(crate) fn dispatch(
             let n = hints.rounds.unwrap_or(LOOP_ROUNDS);
             super::roundloop::loop_cmd(session, &format!("{n} {task}"), tick_emit, emit)
         }
-        Shape::Plan => super::plan::plan_cmd(session, task, emit),
+        Shape::Plan => super::plan::plan_cmd(session, task, hints.verify, emit),
         Shape::Goal => {
             let n = hints.rounds.unwrap_or(super::constructs::GOAL_ROUNDS);
             super::constructs::goal_rounds(session, task, n, tick_emit, emit)

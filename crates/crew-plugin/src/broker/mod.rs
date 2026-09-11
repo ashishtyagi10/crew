@@ -58,6 +58,7 @@ mod session;
 mod sessionlog;
 mod shellenv;
 mod signin;
+mod skillchoice;
 mod skillframe;
 mod skills;
 pub(crate) mod specialists;

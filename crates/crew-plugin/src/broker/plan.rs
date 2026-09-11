@@ -1,23 +1,30 @@
 //! Plan mode (à la Claude Code): a plan-shaped ask has an agent draft a
 //! numbered plan without executing anything; the draft then waits until the
-//! user says "approve" (the crew executes it) or "reject" (it is discarded) —
-//! the conversational gate in `intent::gate`, or the pane's enter/esc. The
-//! pending plan is shared session state, so a draft made on the worker thread
-//! is visible to a verdict arriving on another send.
+//! user says "approve" or "reject" — the conversational gate in
+//! `intent::gate`, or the pane's enter/esc. An approved plan runs as the
+//! SWARM, with its steps as the task breakdown (`approved_goal`): the plan the
+//! user read is the plan that runs, task for step, not a relay's paraphrase
+//! of it. The pending plan is shared session state, so a draft made on the
+//! worker thread is visible to a verdict arriving on another send.
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::PluginEvent;
 
-use super::relay::{msg, relay_turn, split_target};
-use super::route::clip;
+use super::relay::{msg, split_target};
 use super::session::{call_timeout, Session};
 use super::stdio::roster;
+
+/// Chars of the plan carried into the approved goal — a plan is short by
+/// construction (steps, not code), so this only bounds a runaway draft.
+const PLAN_CAP: usize = 6_000;
 
 /// A drafted plan awaiting the user's verdict.
 pub(crate) struct PendingPlan {
     pub task: String,
     pub plan: String,
-    pub author: String,
+    /// The router's `VERIFY: yes` at draft time: the run that follows the
+    /// approval is judged against the request when it ends (`swarmverify`).
+    pub verify: bool,
 }
 
 /// The session's pending plan, shared between the stdin loop and the worker.
@@ -29,9 +36,11 @@ fn lock(plan: &SharedPlan) -> MutexGuard<'_, Option<PendingPlan>> {
 
 /// The plan shape: an agent (`@agent` selects who) drafts a numbered plan —
 /// steps only, no execution — and the session holds it for the verdict.
+/// `verify` is the router's `VERIFY: yes`, kept with the draft for the run.
 pub(crate) fn plan_cmd(
     session: &mut Session,
     rest: &str,
+    verify: bool,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let task = rest.trim();
@@ -80,7 +89,7 @@ pub(crate) fn plan_cmd(
         ));
     }
     emit(msg(&format!("{author} \u{2192} user"), plan.clone()))?;
-    *lock(&session.plan) = Some(PendingPlan { task, plan, author });
+    *lock(&session.plan) = Some(PendingPlan { task, plan, verify });
     // The host turns this into the decision affordance. The message stays for
     // hosts that render text only (the broker is driven over stdio by more
     // than the crew pane), but it no longer has to teach two constructs.
@@ -95,10 +104,13 @@ pub(crate) fn plan_cmd(
     ))
 }
 
-/// "approve": execute the pending plan as a relay turn led by its author.
+/// "approve": run the pending plan as the swarm. The approved steps head the
+/// goal (`approved_goal`) and the planner is told to mirror them one-to-one
+/// (`PLANNER_SYSTEM`), so the graph the crew runs IS the plan the user read.
+/// Keyless and mock runs take the same path: their stub planner ignores the
+/// text, but the shape of the run — plan, cast, tasks — is the one shape.
 pub(crate) fn approve_cmd(
     session: &mut Session,
-    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let Some(p) = lock(&session.plan).take() else {
@@ -107,31 +119,9 @@ pub(crate) fn approve_cmd(
             "no plan pending \u{2014} ask for one first (\u{201c}draft a plan for \u{2026}\u{201d})",
         ));
     };
-    let reg = session.registry();
-    if reg.is_empty() {
-        return emit(msg("agent smith", roster(&reg)));
-    }
-    // The author leads execution while it is still on the roster.
-    let start = if reg.get(&p.author).is_some() {
-        p.author.clone()
-    } else {
-        reg.names().into_iter().next().unwrap_or_default()
-    };
     emit(PluginEvent::Plan { pending: false })?;
-    emit(msg(
-        "agent smith",
-        format!("plan approved \u{2014} {start} leads execution"),
-    ))?;
-    let broker = session.broker(reg);
-    relay_turn(
-        &broker,
-        &start,
-        &execute_body(&p.task, &p.plan),
-        "plan",
-        tick_emit,
-        emit,
-    )?;
-    Ok(())
+    emit(msg("agent smith", "running the approved plan as a swarm"))?;
+    super::swarm::run_task(&approved_goal(&p.task, &p.plan), p.verify, session, emit)
 }
 
 /// "reject": drop the pending plan without running it.
@@ -161,12 +151,19 @@ pub(crate) fn plan_prompt(task: &str) -> String {
     )
 }
 
-/// The execution instruction handed to the relay after `/approve`.
-pub(crate) fn execute_body(task: &str, plan: &str) -> String {
+/// The swarm's goal after an approval: the plan first, under the header the
+/// planner's prompt names, then the request it was drafted for. The plan's
+/// lines are kept — `route::clip` would fold its steps into one line, and a
+/// numbered list is what the planner mirrors — so the bound is a byte cut.
+pub(crate) fn approved_goal(task: &str, plan: &str) -> String {
+    let mut cut = plan.len().min(PLAN_CAP);
+    while !plan.is_char_boundary(cut) {
+        cut -= 1;
+    }
     format!(
-        "Execute this approved plan.\n\nTask: {task}\n\nApproved plan:\n{}\n\n\
-         Follow the steps in order; call out any deviation from the plan.",
-        clip(plan, 1500)
+        "APPROVED PLAN \u{2014} follow these steps as the task breakdown; keep their \
+         order and dependencies:\n{}\n\nGOAL:\n{task}",
+        &plan[..cut]
     )
 }
 

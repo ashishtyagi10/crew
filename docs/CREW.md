@@ -2113,7 +2113,10 @@ and a typo gets a **did-you-mean** suggestion):
 - **"draft a plan for …"** — plan mode (à la Claude Code; `/plan` retired):
   an agent (prefix `@agent` to pick who) drafts a numbered
   plan and **nothing executes** until you approve. Enter — or saying
-  "approve" / "run it" — hands the plan to the relay; esc — or "reject" /
+  "approve" / "run it" — runs the approved plan **as the swarm**: the steps
+  you read become the task breakdown one-to-one (the planner is told the
+  plan is the spec, not a suggestion), and a routing that asked for a check
+  (`VERIFY: yes`) judges the result when the run ends. Esc — or "reject" /
   "drop it" — discards it. The verdict words are matched exactly, before
   any model call, so a misrouted message can never run or drop a plan; any
   other message leaves the draft pending on the session.
@@ -2126,10 +2129,12 @@ and a typo gets a **did-you-mean** suggestion):
   snapshot's files back and removes the files that appeared after it, naming
   each one it deleted. Ignored files (build output, secrets) are never
   candidates, and neither is anything that predates the snapshot.
-- **skills, no command** — a task that names a loaded playbook picks it up
-  by itself, and when skills are loaded but unmatched the relay carries a
-  one-line roster of them; asking "what skills are loaded?" lists them (the
-  `/skill` slash form is retired — see *Extending* below).
+- **skills, no command** — the model chooses which loaded playbooks a task
+  follows (at most two, announced as `skill <name> · chose · …`); a task
+  that names one picks it up by itself when the model cannot be asked, and
+  when skills are loaded but none chosen the relay carries a one-line
+  roster of them; asking "what skills are loaded?" lists them
+  (the `/skill` slash form is retired — see *Extending* below).
 - **`#<note>`** — standing **project memory** (à la Claude
   Code's `#` shortcut): `#always run tests with --workspace` appends the note
   to `./.crew/memory.md`, and from then on **every task** carries the merged
@@ -2319,9 +2324,13 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   8 KB are inlined whole, while an oversized playbook is framed as its
   description + heading outline + path, and agents pull the sections they
   need with chunked `sys:read_file` calls instead of drowning the prompt.
-  There is no command: a relay or swarm task that **names a skill** gets its
-  playbook woven in automatically (at most two per task), and when skills
-  are loaded but unmatched the prompt carries a one-line roster (origin,
+  There is no command: with two or more skills loaded, one bounded model
+  call **chooses** which playbooks a relay or swarm task follows (at most
+  two per task, from the task and the skills' one-liners — a name appearing
+  in the task is not by itself a reason); a task that **names a skill** gets
+  its playbook when no call can run (keyless, mock, `CREW_SKILL_PICK=0`, a
+  failed or off-grammar reply) or when only one skill is loaded, and when
+  skills are loaded but none chosen the prompt carries a one-line roster (origin,
   directory marker, and `N KB → outline` for the framed ones), so every
   agent in the thread knows what it could ask for.
 - **Plugin agents** join the roster from JSON manifests in
@@ -2468,7 +2477,10 @@ dearer; the small structured one-shots such as routing stay cheap either
 way); `CREW_TOOL_PICK=0` stops the model choosing which tools a task is shown
 when more than 24 are connected — the word scorer decides alone (the model's
 choice is announced as `tools: chose 6 of 41 — …`, and with the switch off
-nothing is); `CREW_SWARM_CONCURRENCY=<n>` (1–16) pins how many swarm tasks run at
+nothing is); `CREW_SKILL_PICK=0` stops the model choosing which skills a task
+follows when two or more are loaded — a task pulls in the playbooks it names,
+as it always did (the model's choice is announced as `skill <name> · chose ·
+…`, the name match's as `· applied ·`); `CREW_SWARM_CONCURRENCY=<n>` (1–16) pins how many swarm tasks run at
 once — by default the scheduler follows the plan's own width (the tasks
 ready at the start, clamped to 2–8), and every permit is one request in
 flight against the provider at the same moment, so a value above its rate

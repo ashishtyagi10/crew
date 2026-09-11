@@ -118,7 +118,7 @@ fn the_memo_is_bounded() {
     for i in 0..MEMO_CAP + 1 {
         picker.pick(catalog(BUDGET + 8), &format!("task {i}"));
     }
-    assert_eq!(picker.lock_memo().len(), MEMO_CAP);
+    assert_eq!(picker.memo.len(), MEMO_CAP);
     picker.pick(catalog(BUDGET + 8), "task 0");
     assert_eq!(
         calls.load(Ordering::SeqCst),

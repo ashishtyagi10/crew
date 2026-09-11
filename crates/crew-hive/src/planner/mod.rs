@@ -5,6 +5,9 @@
 //! - [`parse_plan`] — pure JSON → [`TaskGraph`] converter; unit-testable.
 
 #[cfg(test)]
+#[path = "approved_tests.rs"]
+mod approved_tests;
+#[cfg(test)]
 mod tests;
 
 mod capabilities;
@@ -12,6 +15,7 @@ mod error;
 mod extract;
 pub mod persona;
 mod repair;
+mod stub;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -19,6 +23,7 @@ use std::pin::Pin;
 use serde::Deserialize;
 
 pub use error::PlanError;
+pub use stub::StubPlanner;
 
 use crate::graph::{AgentKind, ModelTier, TaskGraph, TaskId, TaskSpec};
 use crate::provider::{CompletionRequest, Provider};
@@ -32,52 +37,6 @@ pub trait Planner: Send + Sync {
         &self,
         goal: &str,
     ) -> Pin<Box<dyn Future<Output = Result<TaskGraph, PlanError>> + Send>>;
-}
-
-// ---------------------------------------------------------------------------
-// StubPlanner
-// ---------------------------------------------------------------------------
-
-/// Deterministic planner for tests: builds `fanout` leaf tasks plus one merge
-/// task that depends on all of them. No LLM required.
-pub struct StubPlanner {
-    pub fanout: usize,
-}
-
-impl Planner for StubPlanner {
-    fn plan(
-        &self,
-        goal: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<TaskGraph, PlanError>> + Send>> {
-        let fanout = self.fanout;
-        let goal = goal.to_owned();
-        Box::pin(async move {
-            let mut tasks: Vec<TaskSpec> = (0..fanout)
-                .map(|i| TaskSpec {
-                    id: TaskId(i as u64),
-                    title: format!("leaf-{i}"),
-                    agent: AgentKind::Api { system: None },
-                    model: ModelTier::Standard,
-                    deps: vec![],
-                    prompt: goal.clone(),
-                    specialty: format!("leaf-{i}"),
-                    expertise: String::new(),
-                })
-                .collect();
-            let merge = TaskSpec {
-                id: TaskId(fanout as u64),
-                title: "merge".into(),
-                agent: AgentKind::Api { system: None },
-                model: ModelTier::Standard,
-                deps: (0..fanout).map(|i| TaskId(i as u64)).collect(),
-                prompt: goal,
-                specialty: "merge".into(),
-                expertise: String::new(),
-            };
-            tasks.push(merge);
-            Ok(TaskGraph::new(tasks)?)
-        })
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -99,7 +58,9 @@ impl Planner for StubPlanner {
 /// anti-anchoring clause exists because naming flavourful examples turned
 /// them into a word bank (one revision assigned "epidemiologist" to packing a
 /// suitcase). There is deliberately no character limit here — the model
-/// ignored one — so length is enforced in `agentname::slug` instead.
+/// ignored one — so length is enforced in `agentname::slug` instead. The
+/// APPROVED PLAN clause is the plan gate's: the steps a user approved are the
+/// breakdown, so the planner mirrors them instead of decomposing afresh.
 const PLANNER_SYSTEM: &str = "\
 You are a task planner. Decompose the user's goal into a JSON array of tasks. \
 Each task is an object with integer `id` (0-based), short `title`, a `prompt` \
@@ -125,6 +86,11 @@ genuinely fit the goal at hand is worse than a plain one.\n\
 \n\
 `expertise` is a short comma-separated phrase naming that specialist's craft, \
 e.g. \"records, retrieval, provenance\".\n\
+\n\
+When the goal contains an APPROVED PLAN section, the tasks must mirror its \
+steps one-to-one: one task per step, ids in the steps' order, and each step's \
+`deps` the step before it unless the plan says steps are independent \u{2014} \
+the plan is the spec, not a suggestion.\n\
 \n\
 Return ONLY the JSON array, no prose.";
 

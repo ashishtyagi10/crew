@@ -121,18 +121,23 @@ fn a_refusal_reads_as_its_sentence_and_plain_text_still_answers() {
         .call("hi", Duration::from_secs(5))
         .unwrap_err();
     assert!(err.ends_with("claude: Not logged in"), "{err}");
-    std::fs::write(&path, "#!/bin/sh\necho 'claude here'\n").unwrap();
+    // A second fake at its own path: rewriting the first one in place raced
+    // the exiting child on Linux ("Text file busy") and failed the coverage
+    // job on a run whose code never touched this file.
+    let (dir2, path2) = fake("#!/bin/sh\necho 'claude here'\n");
     assert_eq!(
-        agent(&path, Duration::ZERO)
+        agent(&path2, Duration::ZERO)
             .call("hi", Duration::from_secs(5))
             .unwrap(),
         "claude here"
     );
-    std::fs::write(&path, "#!/bin/sh\necho 'please log in first' >&2\n").unwrap();
-    let err = agent(&path, Duration::ZERO)
+    let _ = std::fs::remove_dir_all(&dir2);
+    let (dir3, path3) = fake("#!/bin/sh\necho 'please log in first' >&2\n");
+    let err = agent(&path3, Duration::ZERO)
         .call("hi", Duration::from_secs(5))
         .unwrap_err();
     assert!(err.contains("not signed in"), "{err}");
+    let _ = std::fs::remove_dir_all(&dir3);
     let _ = std::fs::remove_dir_all(&dir);
 }
 

@@ -556,8 +556,9 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew):
   supporting files, and oversized playbooks disclose **progressively**: past
   8 KB the relay gets the description + heading outline + path, and agents
   read sections on demand with chunked `sys:read_file` calls. There is no
-  command: a task that names a skill picks its playbook up by itself, and
-  when skills are loaded but unmatched the crew sees a one-line roster of
+  command: the model chooses which loaded playbooks a task follows (a task
+  that names one picks it up by itself when the model cannot be asked), and
+  when skills are loaded but none chosen the crew sees a one-line roster of
   them.
 - **Plugin agents** — a JSON manifest in `~/.config/crew/agents/` or
   `./.crew/agents/` (`{"name", "command", "args": […, "{}"], "role"}`) turns

@@ -18,6 +18,44 @@ use crate::mcp::McpTool;
 /// Memo entries kept per session.
 const MEMO_CAP: usize = 16;
 
+/// A small bounded memo keyed on text: the newest `cap` answers, oldest out
+/// first. Shared with `skillchoice`, whose decision costs the same kind of
+/// call and must likewise be made once per question, not once per read.
+pub(crate) struct Memo<V> {
+    cap: usize,
+    entries: Mutex<Vec<(String, V)>>,
+}
+
+impl<V: Clone> Memo<V> {
+    pub(crate) fn new(cap: usize) -> Self {
+        Memo {
+            cap,
+            entries: Mutex::new(Vec::new()),
+        }
+    }
+    pub(crate) fn get(&self, key: &str) -> Option<V> {
+        self.lock()
+            .iter()
+            .find(|(k, _)| k == key)
+            .map(|(_, v)| v.clone())
+    }
+    pub(crate) fn put(&self, key: String, v: V) {
+        let mut e = self.lock();
+        if e.len() >= self.cap {
+            e.remove(0);
+        }
+        e.push((key, v));
+    }
+    /// Entries held — the cap's proof.
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.lock().len()
+    }
+    fn lock(&self) -> MutexGuard<'_, Vec<(String, V)>> {
+        self.entries.lock().unwrap_or_else(|e| e.into_inner())
+    }
+}
+
 /// Who decides. `Live` resolves the provider at the moment of need: a session is built long
 /// before its first crowded task, and most sessions never have one. The other two are the
 /// test seams — every production session is `Live`, and the switch is read at pick time.
@@ -33,7 +71,7 @@ enum Mode {
 /// session builds, so a retried worker or a follow-up turn on the same text pays nothing.
 pub(crate) struct Picker {
     mode: Mode,
-    memo: Mutex<Vec<(String, Vec<McpTool>, usize)>>,
+    memo: Memo<(Vec<McpTool>, usize)>,
     last: Mutex<Option<Chosen>>,
 }
 
@@ -54,7 +92,7 @@ impl Picker {
     fn with(mode: Mode) -> Self {
         Self {
             mode,
-            memo: Mutex::new(Vec::new()),
+            memo: Memo::new(MEMO_CAP),
             last: Mutex::new(None),
         }
     }
@@ -66,8 +104,8 @@ impl Picker {
             return super::toolselect::select(catalog, task);
         }
         let key = memo_key(&catalog, task);
-        if let Some((_, kept, left)) = self.lock_memo().iter().find(|(k, _, _)| *k == key) {
-            return (kept.clone(), *left);
+        if let Some(hit) = self.memo.get(&key) {
+            return hit;
         }
         let chosen = match &self.mode {
             Mode::Off => None,
@@ -84,11 +122,7 @@ impl Picker {
             }
             None => super::toolselect::select(catalog, task),
         };
-        let mut memo = self.lock_memo();
-        if memo.len() >= MEMO_CAP {
-            memo.remove(0);
-        }
-        memo.push((key, result.0.clone(), result.1));
+        self.memo.put(key, result.clone());
         result
     }
 
@@ -99,9 +133,6 @@ impl Picker {
     /// Forget the last decision: a run's start, so an earlier turn's is never announced.
     pub(crate) fn reset(&self) {
         *self.lock_last() = None;
-    }
-    fn lock_memo(&self) -> MutexGuard<'_, Vec<(String, Vec<McpTool>, usize)>> {
-        self.memo.lock().unwrap_or_else(|e| e.into_inner())
     }
     fn lock_last(&self) -> MutexGuard<'_, Option<Chosen>> {
         self.last.lock().unwrap_or_else(|e| e.into_inner())
