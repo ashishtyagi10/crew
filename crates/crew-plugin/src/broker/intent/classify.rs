@@ -4,9 +4,9 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-/// Output-token ceiling for the classification call: the grammar is four
-/// short lines at most (a shape, an optional one-clause reason, and the
-/// optional sizing lines).
+/// Output-token ceiling for the classification call: the grammar is five
+/// short lines at most (a shape, an optional one-clause reason, the
+/// optional sizing lines, and the optional verify line).
 const INTENT_MAX_TOKENS: u32 = 128;
 
 /// Round-trip ceiling for classification — deliberately far below
@@ -94,7 +94,11 @@ pub(super) fn prompt(task: &str, world: &super::world::World) -> String {
          or fewer. Two more optional lines size the work: `ROUNDS: <1-{max}>` \
          (loop or goal only — how many rounds it deserves; omit it for the \
          default) and `AGENTS: <name, name>` (fan only — a subset of the agents \
-         listed below, when fewer clearly fit). Nothing else.\n\n\
+         listed below, when fewer clearly fit). One more optional line \
+         `VERIFY: yes` (swarm or plan only) says the message states a checkable \
+         success condition — tests passing, a build compiling, \"so that X\" — so \
+         the result should be judged against it when the work ends; omit it when \
+         there is nothing to check. Nothing else.\n\n\
          {world}Message: {task}"
     )
 }

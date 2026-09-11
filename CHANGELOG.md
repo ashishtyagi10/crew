@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.11
+
+**Agent smith checks its own work when you gave it something to check.**
+"Make the tests pass", "until it compiles", "so that X" — a request with a
+success condition used to end when the workers stopped, met or not. The
+router's grammar grew `VERIFY: yes`, said by the model when the message
+states a condition; the routing line reads `routing: swarm · verified —
+tests must pass`. When such a run ends clean, smith judges the result
+against the request (`verified — …` or `not yet — …`) and on a miss runs
+ONE revision framed around what the judge found missing. One revision is
+a named cap, a backstop; the judge is the driver.
+
+**The scheduler's width follows the plan.** Four workers at a time,
+whatever the plan looked like; now the plan's own initial width, held to
+two through eight. `CREW_SWARM_CONCURRENCY=<n>` overrides it.
+
 ## 0.22.10
 
 **The swarm block shows the plan.** While agent smith's workers run, the

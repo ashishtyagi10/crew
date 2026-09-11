@@ -60,6 +60,7 @@ fn run(specs: Vec<TaskSpec>, cancelled: bool, synth: Synth<'_>) -> Vec<PluginEve
         Arc::new(AtomicBool::new(cancelled)),
         None,
         synth,
+        None,
         &mut |ev| {
             evs.push(ev);
             Ok(())

@@ -3,7 +3,8 @@
 //! proves each shape reaches its own capability path, the fallbacks, and the
 //! plain-language parity for retired commands; `announce` proves the pane is
 //! told the decision before the arm speaks; `hints` proves the model's
-//! sizing lines reach the arms and the constants are backstops; `world`
+//! sizing lines reach the arms and the constants are backstops; `verify`
+//! proves the `VERIFY:` line reaches the swarm and no other shape; `world`
 //! proves the classifier is shown the room it routes in. Shared fixtures
 //! live here.
 use super::decision::{decide_in, parse_decision_on, Decision, Routing};
@@ -16,6 +17,7 @@ mod grammar;
 mod hints;
 mod plangate;
 mod routing;
+mod verify;
 mod world;
 
 /// [`parse_decision_on`] with no roster — the bare grammar, where an

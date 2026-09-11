@@ -115,10 +115,10 @@ pub(crate) fn route_with(
 }
 
 /// Send `task` down `shape`'s existing capability path, sized by `hints`
-/// where the shape has a size (loop/goal rounds, the fan subset) and by the
-/// backstop constants otherwise. Each arm is the same function the
-/// equivalent construct/relay route calls, so the hop cap, token budget and
-/// tool-round guards all apply unchanged.
+/// where the shape has a size (loop/goal rounds, the fan subset, whether the
+/// swarm's result is judged) and by the backstop constants otherwise. Each
+/// arm is the same function the equivalent construct/relay route calls, so
+/// the hop cap, token budget and tool-round guards all apply unchanged.
 pub(crate) fn dispatch(
     shape: Shape,
     hints: &Hints,
@@ -139,7 +139,7 @@ pub(crate) fn dispatch(
             let n = hints.rounds.unwrap_or(super::constructs::GOAL_ROUNDS);
             super::constructs::goal_rounds(session, task, n, tick_emit, emit)
         }
-        Shape::Swarm => super::swarm::run_task(task, session, emit),
+        Shape::Swarm => super::swarm::run_task(task, hints.verify, session, emit),
         Shape::Commit => super::gitmsg::commit_cmd(session, "", emit),
         Shape::Review => super::review::review_cmd(session, emit),
         Shape::Standup => super::standup::standup_cmd(session, "", emit),

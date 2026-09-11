@@ -17,8 +17,6 @@ use crate::protocol::PluginEvent;
 use super::relay::msg;
 use super::session::Session;
 
-/// Parallel worker agents per run.
-const CONCURRENCY: usize = 4;
 /// Per-task output token cap for worker agents.
 const WORK_MAX_TOKENS: u32 = 2048;
 /// Fan-out for the offline stub planner.
@@ -26,9 +24,11 @@ const STUB_FANOUT: usize = 2;
 /// The name a run-level `Loaded` event carries — the plan line's own sender.
 const SWARM_LEAD: &str = "agent smith";
 
-/// Entry point for a plain (unaddressed) chat task.
+/// Entry point for a plain (unaddressed) chat task. `verify` is the router's
+/// `VERIFY: yes`: the result is judged against the request when it ends.
 pub(crate) fn run_task(
     task: &str,
+    verify: bool,
     session: &Session,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
@@ -44,9 +44,10 @@ pub(crate) fn run_task(
     let task_owned = fold_resume(session, &super::memory::with_memory(&framed.body));
     super::sessionlog::append("user", task);
     let (planner, factory, budget, model, replan) = backend(session.tools());
-    // The lead's closing call runs on routing's gates: keyless and mock runs
-    // get no call, and the pane sees exactly what it saw before.
+    // The lead's closing call and the judge run on routing's gates: keyless
+    // and mock runs get neither, and the pane sees exactly what it saw before.
     let synth = swarmanswer::live();
+    let judge = swarmverify::live(verify);
     run_with_synth(
         &task_owned,
         planner,
@@ -56,6 +57,7 @@ pub(crate) fn run_task(
         Arc::clone(&session.cancel),
         replan,
         synth.as_deref(),
+        judge.as_deref().map(swarmverify::Judge::new),
         emit,
     )
 }
@@ -76,7 +78,7 @@ pub(crate) fn run_with(
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     run_with_synth(
-        task, planner, factory, budget, model, cancel, replan, None, emit,
+        task, planner, factory, budget, model, cancel, replan, None, None, emit,
     )
 }
 
@@ -86,7 +88,9 @@ pub(crate) fn run_with(
 /// can show what is serving right now. `replan`, when set (real-provider
 /// runs — see `swarmconf::backend`), lets the scheduler re-plan the
 /// remainder once on the first task failure. `synth` is the lead's closing
-/// call (`swarmanswer`): `None` means no answer line, ever.
+/// call (`swarmanswer`): `None` means no answer line, ever. `verify` is the
+/// judge (`swarmverify`): `None` means the run ends unjudged; a `NOT MET`
+/// verdict runs this same function once more on the revision it names.
 #[allow(clippy::too_many_arguments)] // the run's full configuration, injected by tests piecewise
 pub(crate) fn run_with_synth(
     task: &str,
@@ -97,6 +101,7 @@ pub(crate) fn run_with_synth(
     cancel: Arc<AtomicBool>,
     replan: Option<Arc<dyn Planner>>,
     synth: swarmanswer::Synth<'_>,
+    verify: swarmverify::Verify<'_>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -118,50 +123,7 @@ pub(crate) fn run_with_synth(
     emit(PluginEvent::HivePlan {
         tasks: tasks.clone(),
     })?;
-    emit(msg(
-        "agent smith",
-        format!(
-            "planned {} task(s): {}",
-            tasks.len(),
-            tasks
-                .iter()
-                .map(|t| t.title.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-    ))?;
-
-    // Persist this run's cast, then re-emit the roster: `Roster` is otherwise
-    // only sent from `hello()`, so without this the app never learns about a
-    // specialist invented mid-session and the new names never appear.
-    // First-wins on a duplicate name: one name is one specialist.
-    let mut seen: Vec<(String, String)> = Vec::new();
-    for t in &tasks {
-        if !seen.iter().any(|(n, _)| n == &t.specialty) {
-            seen.push((t.specialty.clone(), t.expertise.clone()));
-        }
-    }
-    super::specialists::record(&seen);
-    // The roster leads with the run's own cast, stamped with the model
-    // serving it, built from memory: `record` above is best-effort (a broker
-    // launched from Finder/Dock runs at `/`, where `.crew/` is unwritable),
-    // and a disk re-read would come back empty exactly then — taking the
-    // footer's model segment with it. Discovery still appends everyone the
-    // cast doesn't name (CLI agents, manifest plugins, stored specialists).
-    let mut agents: Vec<crate::AgentInfo> = seen
-        .iter()
-        .map(|(name, role)| crate::AgentInfo {
-            name: name.clone(),
-            role: role.clone(),
-            model: model.to_string(),
-        })
-        .collect();
-    for info in super::Registry::discover().infos() {
-        if !agents.iter().any(|a| a.name == info.name) {
-            agents.push(info);
-        }
-    }
-    emit(super::rosterev::roster(agents))?;
+    swarmcast::announce(&tasks, model, emit)?;
 
     // Execute: scheduler + optional budget governor + bus drain, all on this
     // thread's runtime (the pattern proven in crew-app/src/swarm/bridge.rs).
@@ -169,10 +131,18 @@ pub(crate) fn run_with_synth(
     let bus = EventBus::new(EventBus::DEFAULT_CAPACITY);
     let mut sub = bus.subscribe();
     let governor = budget.map(|b| budget_governor(bus.clone(), b, Arc::clone(&cancel)));
-    let mut sched = Scheduler::new(graph.clone(), board.clone(), bus, factory, CONCURRENCY)
-        .with_cancel(Arc::clone(&cancel));
-    if let Some(rp) = replan {
-        sched = sched.with_replan(task, rp);
+    // The width follows the plan (see `swarmwidth`), not a constant.
+    let width = swarmwidth::concurrency_for(&graph);
+    let mut sched = Scheduler::new(
+        graph.clone(),
+        board.clone(),
+        bus,
+        Arc::clone(&factory),
+        width,
+    )
+    .with_cancel(Arc::clone(&cancel));
+    if let Some(rp) = &replan {
+        sched = sched.with_replan(task, Arc::clone(rp));
     }
 
     // Drain the bus and emit LIVE while the scheduler runs — join! interleaves
@@ -248,13 +218,19 @@ pub(crate) fn run_with_synth(
     }
 
     // The lead's closing word. On a clean run it is the ONE answer, when the
-    // sinks' own replies are not already it (`swarmanswer` decides); on a
-    // cancellation or a failure it is the status line, since neither is
-    // otherwise obvious. Never a "swarm done": that would be chrome.
+    // sinks' own replies are not already it (`swarmanswer` decides), and
+    // then the verdict when a judge sits (`swarmverify`); on a cancellation
+    // or a failure it is the status line, since neither is otherwise
+    // obvious. Never a "swarm done": that would be chrome.
     let cancelled = cancel.load(std::sync::atomic::Ordering::Relaxed);
+    let mut revise = None;
     if !cancelled && outcome.failed.is_empty() {
         let results = rt.block_on(board.gather(&outcome.done));
-        swarmanswer::combine(task, &graph, &results, synth, emit)?;
+        let answer = swarmanswer::combine(task, &graph, &results, synth, emit)?;
+        if let Some(judge) = verify {
+            let answer = answer.as_deref();
+            revise = swarmverify::verdict(task, &graph, &results, answer, judge, emit)?;
+        }
     }
     let summary = swarmanswer::closing_line(&outcome, cancelled);
     // One aggregate Stats for the whole run (empty `agent` = turn-total, per
@@ -274,6 +250,13 @@ pub(crate) fn run_with_synth(
     if let Some(summary) = summary {
         emit(msg("agent smith", summary))?;
     }
+    // A `NOT MET` verdict sends the crew back once, through the same planner,
+    // factory and closing call; that pass settles the turn's activity itself.
+    if let Some((revised, verify)) = revise {
+        return run_with_synth(
+            &revised, planner, factory, budget, model, cancel, replan, synth, verify, emit,
+        );
+    }
     emit(PluginEvent::Activity {
         agent: String::new(),
         state: "idle".into(),
@@ -292,6 +275,15 @@ use swarmmsg::translate;
 
 #[path = "swarmanswer.rs"]
 mod swarmanswer;
+
+#[path = "swarmcast.rs"]
+mod swarmcast;
+
+#[path = "swarmverify.rs"]
+mod swarmverify;
+
+#[path = "swarmwidth.rs"]
+mod swarmwidth;
 
 #[path = "swarmtally.rs"]
 mod swarmtally;

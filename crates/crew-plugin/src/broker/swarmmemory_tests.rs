@@ -11,7 +11,7 @@ use crate::broker::testenv;
 fn planned_prompt(task: &str) -> String {
     let session = Session::new();
     let mut evs = Vec::new();
-    run_task(task, &session, &mut |ev| {
+    run_task(task, false, &session, &mut |ev| {
         evs.push(ev);
         Ok(())
     })
