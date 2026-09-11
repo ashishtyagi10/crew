@@ -7,7 +7,7 @@
 //! guard those paths enforce (hop cap, token budget, tool rounds) applies
 //! unchanged. Anything that stops the classifier — `CREW_INTENT=0`, no API
 //! key, the mock provider, a parse failure — falls back to today's behavior:
-//! the swarm.
+//! the swarm. Whatever it decides, the pane is told (see `decision`).
 use std::sync::Arc;
 
 use crate::PluginEvent;
@@ -15,6 +15,7 @@ use crate::PluginEvent;
 use super::session::Session;
 
 mod classify;
+mod decision;
 mod fanout;
 mod gate;
 
@@ -97,10 +98,9 @@ pub(crate) fn route_with(
             return super::plan::reject_cmd(session, emit);
         }
     }
-    let shape = match classifier {
-        Some(call) => classify_with(task, call).unwrap_or(Shape::Swarm),
-        None => Shape::Swarm,
-    };
+    // Classify AND say so — the routing line lands before the arm's first
+    // event, so the pane never has to guess why it got what it got.
+    let shape = decision::announce(task, classifier, emit)?;
     dispatch(shape, task, session, tick_emit, emit)
 }
 
@@ -128,14 +128,6 @@ pub(crate) fn dispatch(
         Shape::Standup => super::standup::standup_cmd(session, "", emit),
         Shape::Resume => super::sessionlog::resume_cmd(session, emit),
     }
-}
-
-/// Classify `task` through `call`: `None` on a call error or a reply outside
-/// the grammar — the caller decides the fallback.
-pub(crate) fn classify_with(task: &str, call: Classifier) -> Option<Shape> {
-    call(&classify::prompt(task))
-        .ok()
-        .and_then(|r| parse_shape(&r))
 }
 
 /// `CREW_INTENT=0` — the escape hatch back to the old always-swarm routing.

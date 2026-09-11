@@ -1,10 +1,13 @@
 //! Intent-router tests, split along responsibility lines: `grammar` covers
-//! the `SHAPE:` parser and the injected-classifier seam; `routing` proves
-//! each shape reaches its own capability path, the fallbacks, and the
-//! plain-language parity for retired commands. Shared fixtures live here.
+//! the `SHAPE:`/`WHY:` parser and the injected-classifier seam; `routing`
+//! proves each shape reaches its own capability path, the fallbacks, and the
+//! plain-language parity for retired commands; `announce` proves the pane is
+//! told the decision before the arm speaks. Shared fixtures live here.
+use super::decision::{decide, parse_decision, Decision, Routing};
 use super::*;
 use crate::broker::testenv;
 
+mod announce;
 mod capability;
 mod grammar;
 mod plangate;

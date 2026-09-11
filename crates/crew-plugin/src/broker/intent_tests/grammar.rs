@@ -53,16 +53,80 @@ fn garbage_parses_to_none_never_a_guess() {
     }
 }
 
+// ── the optional second line ───────────────────────────────────────────────
+
 #[test]
-fn classify_sends_the_task_and_the_grammar_to_the_model() {
+fn a_why_line_rides_along_with_the_shape() {
+    assert_eq!(
+        parse_decision("SHAPE: loop\nWHY: iterate until polished"),
+        Some(Decision {
+            shape: Shape::Loop,
+            why: Some("iterate until polished".into())
+        })
+    );
+}
+
+#[test]
+fn a_why_without_a_shape_is_none_never_a_guess() {
+    assert_eq!(parse_decision("WHY: iterate until polished"), None);
+    assert_eq!(parse_decision("WHY: many takes\nSHAPE: fan"), None);
+}
+
+#[test]
+fn a_bad_second_line_keeps_the_shape_and_drops_the_why() {
+    for reply in [
+        "SHAPE: fan",
+        "SHAPE: fan\nbecause everyone should weigh in",
+        "SHAPE: fan\nWHY:",
+        "SHAPE: fan\nWHY: .",
+    ] {
+        assert_eq!(
+            parse_decision(reply),
+            Some(Decision {
+                shape: Shape::Fan,
+                why: None
+            }),
+            "{reply:?}"
+        );
+    }
+}
+
+#[test]
+fn the_why_line_is_as_tolerant_as_the_shape_line() {
+    let d = parse_decision("  shape: PLAN.  \n  why:  needs sign-off first.  \nmore prose");
+    assert_eq!(
+        d,
+        Some(Decision {
+            shape: Shape::Plan,
+            why: Some("needs sign-off first".into())
+        })
+    );
+}
+
+#[test]
+fn a_rambling_why_is_cut_to_one_line() {
+    let long = "x".repeat(200);
+    let d = parse_decision(&format!("SHAPE: reply\nWHY: {long}")).unwrap();
+    let why = d.why.unwrap();
+    assert!(why.chars().count() < 100, "{}", why.chars().count());
+    assert!(why.ends_with('\u{2026}'), "{why}");
+}
+
+// ── the injected-classifier seam ───────────────────────────────────────────
+
+#[test]
+fn decide_sends_the_task_and_both_grammar_lines_to_the_model() {
     let seen = std::sync::Mutex::new(String::new());
     let call = |p: &str| {
         *seen.lock().unwrap() = p.to_string();
-        Ok("SHAPE: plan".to_string())
+        Ok("SHAPE: plan\nWHY: needs sign-off".to_string())
     };
     assert_eq!(
-        classify_with("refactor the config parser", &call),
-        Some(Shape::Plan)
+        decide("refactor the config parser", Some(&call)),
+        Routing::Chosen(Decision {
+            shape: Shape::Plan,
+            why: Some("needs sign-off".into())
+        })
     );
     let p = seen.lock().unwrap();
     assert!(p.contains("refactor the config parser"), "{p}");
@@ -70,16 +134,25 @@ fn classify_sends_the_task_and_the_grammar_to_the_model() {
         p.contains("SHAPE: <reply|fan|loop|plan|goal|swarm|commit|review|standup|resume>"),
         "{p}"
     );
+    assert!(p.contains("WHY: <one short clause>"), "{p}");
 }
 
 #[test]
-fn classify_call_error_is_none() {
-    let call = |_: &str| Err("boom".to_string());
-    assert_eq!(classify_with("x", &call), None);
+fn decide_keeps_a_call_error_apart_from_an_off_grammar_reply() {
+    let err = |_: &str| Err("boom".to_string());
+    assert_eq!(decide("x", Some(&err)), Routing::Failed("boom".into()));
+    let prose = |_: &str| Ok("I'd fan out for this one".to_string());
+    assert_eq!(decide("x", Some(&prose)), Routing::OffGrammar);
+    assert_eq!(decide("x", None), Routing::Off);
 }
 
 #[test]
-fn classify_off_grammar_reply_is_none() {
-    let call = |_: &str| Ok("I'd fan out for this one".to_string());
-    assert_eq!(classify_with("x", &call), None);
+fn every_stop_dispatches_as_the_swarm() {
+    for r in [
+        Routing::Off,
+        Routing::Failed("boom".into()),
+        Routing::OffGrammar,
+    ] {
+        assert_eq!(r.shape(), Shape::Swarm, "{r:?}");
+    }
 }

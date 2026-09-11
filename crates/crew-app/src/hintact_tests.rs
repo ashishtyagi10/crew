@@ -4,10 +4,25 @@ use crate::hints::Hints;
 use crate::pane::{Pane, PaneContent};
 use crate::viewpane::{LoadState, ViewPane};
 
-/// The tests share one process-wide mode (as the app does), so each starts
-/// from a known one.
-fn app_with_view(text: &str) -> CrewApp {
+/// The tests share one process-wide mode (as the app does), so they run one
+/// at a time: the fixture hands back the lock with the app. Without it a
+/// test's `close()` landed between another's `open` and its Escape, which
+/// the Windows job hit (v0.22.4) and this machine's scheduling never did.
+static SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn serial() -> std::sync::MutexGuard<'static, ()> {
+    SERIAL.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// Each test starts from a known mode, holding the lock until it drops the
+/// guard (the second tuple element).
+fn app_with_view(text: &str) -> (CrewApp, std::sync::MutexGuard<'static, ()>) {
+    let g = serial();
     crate::hints::close();
+    (app_with_view_unlocked(text), g)
+}
+
+fn app_with_view_unlocked(text: &str) -> CrewApp {
     let mut app = CrewApp::default();
     let mut v = ViewPane::open(std::env::temp_dir().join("hints.txt"));
     v.state = LoadState::Ready {
@@ -51,7 +66,7 @@ fn esc() -> HintKey {
 
 #[test]
 fn the_chord_labels_the_focused_pane() {
-    let mut app = app_with_view("see docs/CREW.md and https://example.invalid/x\n");
+    let (mut app, _g) = app_with_view("see docs/CREW.md and https://example.invalid/x\n");
     app.open_hints();
     assert!(crate::hints::active(), "the mode opened");
 }
@@ -60,7 +75,7 @@ fn the_chord_labels_the_focused_pane() {
 /// next key you pressed and give nothing back for it.
 #[test]
 fn a_pane_with_nothing_to_reach_opens_no_mode() {
-    let mut app = app_with_view("all quiet here\nnothing to see\n");
+    let (mut app, _g) = app_with_view("all quiet here\nnothing to see\n");
     app.open_hints();
     assert!(!crate::hints::active());
     crate::hints::close();
@@ -70,7 +85,7 @@ fn a_pane_with_nothing_to_reach_opens_no_mode() {
 /// letter mean "that one".
 #[test]
 fn every_key_is_consumed_while_the_mode_is_on() {
-    let mut app = app_with_view("docs/CREW.md\n");
+    let (mut app, _g) = app_with_view("docs/CREW.md\n");
     assert!(!app.hint_input(key("a")), "off, keys belong to the pane");
     app.open_hints();
     assert!(app.hint_input(key("z")), "on, the mode takes them");
@@ -79,7 +94,7 @@ fn every_key_is_consumed_while_the_mode_is_on() {
 
 #[test]
 fn escape_ends_the_mode_and_the_keys_go_back_to_the_pane() {
-    let mut app = app_with_view("docs/CREW.md\n");
+    let (mut app, _g) = app_with_view("docs/CREW.md\n");
     app.open_hints();
     assert!(app.hint_input(esc()));
     assert!(!crate::hints::active());
@@ -90,7 +105,7 @@ fn escape_ends_the_mode_and_the_keys_go_back_to_the_pane() {
 /// eating keys.
 #[test]
 fn a_miss_ends_the_mode() {
-    let mut app = app_with_view("docs/CREW.md\n");
+    let (mut app, _g) = app_with_view("docs/CREW.md\n");
     app.open_hints();
     let label = crate::hints::labels_snapshot()
         .first()
@@ -107,7 +122,7 @@ fn a_miss_ends_the_mode() {
 /// labels can never be left over a pane that has since scrolled.
 #[test]
 fn picking_a_label_ends_the_mode() {
-    let mut app = app_with_view("docs/CREW.md\n");
+    let (mut app, _g) = app_with_view("docs/CREW.md\n");
     app.open_hints();
     let label = crate::hints::labels_snapshot()
         .first()
@@ -125,7 +140,7 @@ fn only_what_the_pane_is_showing_gets_a_label() {
     for i in 0..40 {
         lines.push_str(&format!("file{i}.txt\n"));
     }
-    let mut app = app_with_view(&lines);
+    let (mut app, _g) = app_with_view(&lines);
     app.open_hints();
     let n = crate::hints::labels_snapshot().len();
     crate::hints::close();

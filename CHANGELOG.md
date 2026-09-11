@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.5
+
+**Agent smith says how it routed you.** A plain message used to vanish into
+the classifier for up to thirty seconds and then an arm just started, so a
+mis-route looked like a bug and a slow classifier like a hang. Now smith is
+seen thinking while it decides, and one quiet line lands before anything
+runs — `routing: swarm — multi-part work` — naming the shape and, when the
+model gave one, its reason (the grammar grew an optional `WHY:` line). The
+ways the classifier can stop are said as plainly: `classifier off`,
+`classifier failed: …`, `classifier reply was off-grammar`.
+
+The hint-mode tests share one process-wide mode and raced each other on the
+Windows job; they run one at a time now.
+
 ## 0.22.4
 
 **Cmd+S no longer mirrors your typing into every shell.** The chord that
