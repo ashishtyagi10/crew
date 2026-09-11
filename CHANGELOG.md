@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.3
+
+**The app aborted on its first frame.** Since 0.22.0 the WAITING card's
+hover read the nav's geometry, and the geometry's layout read the card
+back, hover included — the two called each other until the stack ran
+out (`nav_hit_geometry` ↔ `glance`, ~9,000 deep in the crash report).
+The layout and the click now read the cards *before* the pointer is
+applied (`glance_base`); only the drawn frame applies the hover. A
+source-pinned test keeps the layout off the hovered path.
+
 ## 0.22.2
 
 **Small corrections.** Four doc comments described the item *below* the

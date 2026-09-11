@@ -106,10 +106,26 @@ fn signal(p: &Pane, now: u64) -> Signal {
 }
 
 impl crate::app::CrewApp {
-    /// The glance cards' state this frame — `None` while the nav shows the
-    /// LOG. Reads only what the app already holds: no I/O on the winit
-    /// thread.
+    /// The glance cards' state this frame, the pointer applied — `None`
+    /// while the nav shows the LOG.
     pub(crate) fn glance(&self) -> Option<Glance> {
+        let mut g = self.glance_base()?;
+        // The hover reads the nav's geometry, whose layout sizes the slot
+        // from `glance_base` — never from here, or the two recurse until the
+        // stack is gone (v0.22.0–v0.22.2 aborted on the first frame).
+        if let Some(r) = self
+            .hovered_waiting_row()
+            .and_then(|k| g.waiting.get_mut(k))
+        {
+            r.hovered = true;
+        }
+        Some(g)
+    }
+
+    /// The cards before the pointer is applied: what the layout (`nav_tail`)
+    /// and a click read. Reads only what the app already holds: no I/O on
+    /// the winit thread.
+    pub(crate) fn glance_base(&self) -> Option<Glance> {
         if self.config.nav_card() != crate::navmode::NavCard::Glance {
             return None;
         }
@@ -127,15 +143,12 @@ impl crate::app::CrewApp {
             model,
             windows: crate::usageledger::windows(now),
         };
-        let mut waiting = rows_from(
+        let waiting = rows_from(
             self.panes
                 .iter()
                 .enumerate()
                 .map(|(i, p)| (i, p.title_text(), signal(p, now))),
         );
-        if let Some(r) = self.hovered_waiting_row().and_then(|k| waiting.get_mut(k)) {
-            r.hovered = true;
-        }
         Some(Glance {
             weather: crate::navweather::state(),
             serving,
@@ -145,7 +158,7 @@ impl crate::app::CrewApp {
 
     /// How the nav's variable slot is filled this frame, for the layout.
     pub(crate) fn nav_tail(&self) -> crate::navlayout::Tail {
-        crate::navslot::tail(self.glance().as_ref(), self.log.len())
+        crate::navslot::tail(self.glance_base().as_ref(), self.log.len())
     }
 
     /// The pane a click on WAITING row `rel_row` (from the card's outer top)
@@ -156,7 +169,7 @@ impl crate::app::CrewApp {
         l: &crate::navlayout::NavLayout,
     ) -> Option<usize> {
         let i = crate::navwaitrow::at(rel_row, l)?;
-        self.glance()?.waiting.get(i)?.pane
+        self.glance_base()?.waiting.get(i)?.pane
     }
 
     /// The WAITING row under the pointer, if the pointer is on the card.

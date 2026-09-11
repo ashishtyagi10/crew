@@ -29,3 +29,27 @@ fn rows_are_ordered_by_urgency_and_never_empty() {
     assert_eq!(quiet[0].pane, None);
     assert_eq!(rows_from(Vec::new())[0].kind, Wait::Quiet);
 }
+
+/// The layout (`nav_tail`) and the click (`waiting_pane_at`) read the cards
+/// BEFORE the pointer is applied. The hover walks `sidebar_row` →
+/// `nav_hit_geometry` → `nav_tail`; if `nav_tail` read `glance()` the two
+/// would recurse until the stack was gone — v0.22.0 to v0.22.2 aborted on
+/// the first frame that way. Pinned at the source, since the cycle needs a
+/// live renderer to run.
+#[test]
+fn layout_and_click_read_the_cards_before_the_hover() {
+    let src = include_str!("navglance.rs");
+    let body = |name: &str| {
+        let at = src.find(&format!("fn {name}(")).expect(name);
+        let open = src[at..].find('{').unwrap() + at;
+        let close = src[open..].find("\n    }\n").unwrap() + open;
+        &src[open..close]
+    };
+    for f in ["nav_tail", "waiting_pane_at", "glance_base"] {
+        assert!(
+            !body(f).contains("self.glance()") && !body(f).contains("hovered_waiting_row"),
+            "{f} must not read the hovered cards"
+        );
+    }
+    assert!(body("nav_tail").contains("self.glance_base()"));
+}
