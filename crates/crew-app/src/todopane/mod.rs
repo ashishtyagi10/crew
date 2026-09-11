@@ -38,6 +38,7 @@ pub(crate) mod measure;
 mod mutate;
 pub(crate) mod parse;
 pub(crate) mod render;
+pub(crate) mod rowchips;
 mod scrollpos;
 pub(crate) mod store;
 mod tagmenu;

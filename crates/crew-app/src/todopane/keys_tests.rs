@@ -233,7 +233,7 @@ fn a_page_is_a_row_sum_not_an_item_count() {
     let mut p = pane_with(&refs);
     let rows = 10; // composer 3 → 7 list rows
     assert_eq!(
-        crate::todopane::render::item_h(&p.items[0], COLS, 0, false),
+        crate::todopane::render::item_h(&p.items[0], COLS, 0, p.rowctx()),
         2,
         "premise: titles wrap to two rows"
     );

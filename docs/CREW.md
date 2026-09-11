@@ -1501,7 +1501,10 @@ longer aim at.
   bands at all. Each band header carries a live roll-up —
   `#priya  2 open · 1 overdue · 1 done today` — counted over the whole store
   rather than the visible rows, so "done today" shows work the list has
-  already hidden. That is a standup: who has what, what has slipped, what
+  already hidden. A row inside a band does not repeat its band's name: it
+  draws its `@project` and its due, and the header keeps the `#who`. Flat,
+  the owner comes back — nothing else is saying it there — and the done
+  history keeps it too, since those headers band by day. That is a standup: who has what, what has slipped, what
   moved since yesterday. `/todo done #priya` opens the history log filtered
   to one person, under its day headers. The bands are ignored inside the
   history view, which already bands by day.

@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.20
+
+**A row under a band stops repeating its band's name.** `#sam` on the header
+and again on every row beneath it is the same word three times, and it was
+the chip that cost the width: on a narrow tile the owner is what pushed a
+row into stacking, and when something had to be dropped for want of room it
+took `@project` — the one thing the band does NOT tell you — with it. So
+inside an `#assignee` band the row draws its project and its due, and the
+header keeps the name. Lay the list flat with `g` and the owner comes
+straight back, because then nothing else is saying it; the done history
+keeps it too, since its headers band by day.
+
+`e` still reloads the whole item. The chips a row DRAWS and the chips it
+round-trips are now two questions with two answers — editing a task from
+under its own band must not file it back belonging to nobody.
+
 ## 0.22.19
 
 **A todo list with people on it bands under them, unasked.** The

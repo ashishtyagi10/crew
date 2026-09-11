@@ -3,6 +3,7 @@
 //! bottom. All layout arithmetic lives here so `cells` and [`click_at`] can
 //! never disagree about what sits on a row.
 pub(crate) use super::fitline::*;
+use super::rowchips::row_chips;
 use crew_render::CellView;
 
 use super::{composer, duedate, gutter, headrow, TodoPane};
@@ -113,7 +114,7 @@ pub(crate) fn click_at(
             break;
         }
         let head = u16::from(super::group::starts(p, &order, di));
-        let h = item_h(&p.items[idx], cols, now_ms, p.done_view) + head;
+        let h = item_h(&p.items[idx], cols, now_ms, p.rowctx()) + head;
         if row < top + h {
             // A band header is not a row of the item it rides on.
             if head == 1 && row == top {
@@ -124,7 +125,7 @@ pub(crate) fn click_at(
             // row the chips are on — the same row on a wide pane, the item's
             // last one where the row stacked. Everything else just selects.
             let it = &p.items[idx];
-            let del_row = if stacked(it, cols, now_ms, p.done_view) {
+            let del_row = if stacked(it, cols, now_ms, p.rowctx()) {
                 top + h - 1
             } else {
                 first
@@ -172,7 +173,7 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
         }
         let selected = p.sel == Some(di);
         row_cells(&mut out, p, idx, (row, cols, bottom), selected, now_ms);
-        row += item_h(&p.items[idx], cols, now_ms, p.done_view);
+        row += item_h(&p.items[idx], cols, now_ms, p.rowctx());
     }
     if order.is_empty() && lh >= 2 {
         headrow::empty(&mut out, p, header, lh as u16, cols);
@@ -238,11 +239,13 @@ pub(crate) fn row_cells(
 
     // The title's lines, then the right side beside the first of them — or,
     // on a pane too narrow to share a line, on a row of its own below.
-    let lines = title_lines(it, cols, now_ms, p.done_view);
-    let stack = stacked(it, cols, now_ms, p.done_view);
+    let ctx = p.rowctx();
+    let lines = title_lines(it, cols, now_ms, ctx);
+    let stack = stacked(it, cols, now_ms, ctx);
     let chip_row = row + if stack { lines.len() as u16 } else { 0 };
 
-    // Right side, laid right-to-left: ✗, due, then the chips ([`chips`]).
+    // Right side, laid right-to-left: ✗, due, then the chips
+    // ([`row_chips`] — under a band the owner is already overhead).
     let del_col = del_col(cols);
     let mut right = del_col.saturating_sub(2);
     if chip_row < bottom {
@@ -281,12 +284,12 @@ pub(crate) fn row_cells(
             // every dated task, which is the one thing the row is for.
             // Reversed, so the row reads `#who @project` either way round.
             let mut x = TITLE_COL;
-            for chip in chips(it).into_iter().rev() {
+            for chip in row_chips(it, ctx).into_iter().rev() {
                 let fg = crew_theme::tag_color(&chip[1..], t);
                 x = place_left(out, &chip, (x, right), chip_row, fg);
             }
         } else {
-            for chip in chips(it) {
+            for chip in row_chips(it, ctx) {
                 let fg = crew_theme::tag_color(&chip[1..], t);
                 right = place_right(out, &chip, right, chip_row, fg, false);
             }
@@ -294,9 +297,7 @@ pub(crate) fn row_cells(
     }
     // `right` is the last column the title's first line may use when the
     // chips ride beside it — a two-column gap before their text.
-    debug_assert!(
-        stack || chip_row >= bottom || right == inline_max(it, cols, now_ms, p.done_view)
-    );
+    debug_assert!(stack || chip_row >= bottom || right == inline_max(it, cols, now_ms, ctx));
     let chars: Vec<char> = it.title.chars().collect();
     for (li, &(s, e)) in lines.iter().enumerate() {
         let r = row + li as u16;
