@@ -67,11 +67,15 @@ impl CrewApp {
     }
 
     /// Spawn a todo pane already open on the done-history view (`/todo
-    /// done`), optionally pre-filtered to one `@project`.
-    pub(crate) fn spawn_todo_pane_done(&mut self, filter: Option<String>) {
+    /// done`), optionally pre-filtered to one `@project` or one `#assignee`.
+    pub(crate) fn spawn_todo_pane_done(&mut self, filter: Option<(char, String)>) {
         self.spawn_todo_pane();
         if let Some(PaneContent::Todo(t)) = self.panes.last_mut().map(|p| &mut p.content) {
-            t.filter = filter;
+            match filter {
+                Some((crate::todopane::parse::WHO, name)) => t.who = Some(name),
+                Some((_, name)) => t.filter = Some(name),
+                None => {}
+            }
             t.set_done_view(true);
         }
     }

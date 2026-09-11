@@ -8,6 +8,42 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.17
+
+**The todo list can run a team.** A second tag sigil rides beside
+`@project`: **`#assignee`** names who a task is for, free-form and created
+on first use, completed from the people already on the list, filtered by a
+lone `#name` and carried back into the composer by `e`. The two axes are
+independent and AND-ed — `@crew` plus `#priya` is one person's work on one
+project, and a bare `@` or `#` clears only its own. `#123` stays in the
+title where it was typed: nobody is called 966, and a team that tracks
+tickets types their numbers all day.
+
+`g` on the list (or `/todo by who`; `/todo by flat` undoes it) **bands** the
+rows under each person, alphabetically, with everything nobody has picked up
+in a named `unassigned` bucket at the foot. Each band carries a live roll-up
+— `#priya  2 open · 1 overdue · 1 done today` — counted over the whole store
+rather than the visible rows, so it reports work the list has already
+hidden. That is the standup: who has what, what has slipped, what moved
+since yesterday. `/todo done #priya` opens the history filtered to one
+person.
+
+Two things the longer rows forced, both improvements on their own. Every due
+label now names the **calendar date** as well as the humane word (`today
+sep 11`, `sat aug 15`, `tomorrow sep 12`): `sat` alone is a different
+Saturday depending on when you last looked at the list, and a board a team
+works off has to say which day without anyone counting forward. And the
+composer's legend previews that parse with no `due` in front of it — it
+shows exactly the label the row will wear, and a word the row does not carry
+only made the two read as different things.
+
+On a narrow tile, where the row stacks, the chips now read from the LEFT of
+the row the title vacated instead of right-aligning behind the due label —
+that space was empty, and the old layout silently dropped the owner of every
+dated task, which is the one thing the row is for. A chip that still will
+not fit is dropped whole rather than clipped: `@cre` claims a project that
+does not exist.
+
 ## 0.22.16
 
 Three tests that spawn a real shell and wait for it to echo a marker gave

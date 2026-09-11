@@ -50,9 +50,14 @@ pub(crate) const MONTHS: [&str; 12] = [
 
 pub(crate) const DAYS: [&str; 7] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
-/// Humane row label for a due instant: `today` / `tomorrow` / `yesterday`,
-/// a weekday within the next six days, else `aug 15` — plus `HH:MM` when
-/// the user typed an explicit time.
+/// Humane row label for a due instant: `today aug 12` / `tomorrow aug 13` /
+/// `yesterday aug 11`, a weekday within the next six days (`sat aug 15`),
+/// else `aug 15` — plus `HH:MM` when the user typed an explicit time.
+///
+/// The relative word and the calendar date, not one or the other. The word
+/// alone is what you plan by — but `sat` is a different Saturday depending
+/// on when you last looked at the list, and a board a team works off has to
+/// say WHICH day without anyone counting forward from today.
 pub(crate) fn label(due_ms: u64, has_time: bool, now_ms: u64) -> String {
     match (from_epoch_ms(due_ms), from_epoch_ms(now_ms)) {
         (Some(d), Some(n)) => label_naive(d, has_time, n),
@@ -63,26 +68,22 @@ pub(crate) fn label(due_ms: u64, has_time: bool, now_ms: u64) -> String {
 /// [`label`] on naive datetimes — the testable half.
 pub(crate) fn label_naive(due: NaiveDateTime, has_time: bool, now: NaiveDateTime) -> String {
     let dd = (due.date() - now.date()).num_days();
-    let date = match dd {
-        0 => "today".to_string(),
-        1 => "tomorrow".to_string(),
-        -1 => "yesterday".to_string(),
-        2..=6 => DAYS[due.date().weekday().num_days_from_monday() as usize].to_string(),
-        // Another year says so: `jan 5` alone read the same for next month,
-        // next year and a year overdue.
-        _ if due.year() == now.year() => {
-            format!(
-                "{} {}",
-                MONTHS[due.date().month0() as usize],
-                due.date().day()
-            )
-        }
-        _ => format!(
-            "{} {} {}",
-            MONTHS[due.month0() as usize],
-            due.day(),
-            due.year()
-        ),
+    let word = match dd {
+        0 => Some("today".to_string()),
+        1 => Some("tomorrow".to_string()),
+        -1 => Some("yesterday".to_string()),
+        2..=6 => Some(DAYS[due.date().weekday().num_days_from_monday() as usize].to_string()),
+        _ => None,
+    };
+    // Another year says so: `jan 5` alone read the same for next month,
+    // next year and a year overdue.
+    let mut date = format!("{} {}", MONTHS[due.month0() as usize], due.day());
+    if due.year() != now.year() {
+        date = format!("{date} {}", due.year());
+    }
+    let date = match word {
+        Some(w) => format!("{w} {date}"),
+        None => date,
     };
     if has_time {
         format!("{date} {:02}:{:02}", due.time().hour(), due.time().minute())

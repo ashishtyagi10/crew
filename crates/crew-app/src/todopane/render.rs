@@ -1,11 +1,11 @@
 //! Rendering (and the matching click geometry) for the todo pane: the item
-//! list from the top, the `@project` popup and the bordered composer at the
+//! list from the top, the tag popup and the bordered composer at the
 //! bottom. All layout arithmetic lives here so `cells` and [`click_at`] can
 //! never disagree about what sits on a row.
 pub(crate) use super::fitline::*;
 use crew_render::CellView;
 
-use super::{composer, duedate, gutter, TodoPane};
+use super::{composer, duedate, gutter, headrow, TodoPane};
 
 /// Column where the `[ ]` checkbox starts; the title follows two past it.
 pub(crate) const BOX_COL: u16 = 2;
@@ -51,7 +51,7 @@ pub(crate) fn done_chip(p: &TodoPane) -> Option<String> {
     if p.done_view {
         return None;
     }
-    let n = super::item::done_count(&p.items, p.filter.as_deref());
+    let n = super::item::done_count(&p.items, p.filters());
     (n > 0).then(|| {
         if p.show_done {
             "[hide done]".to_string()
@@ -74,7 +74,7 @@ pub(crate) enum TodoClick {
     Composer,
     /// The header row's `[show N done]` / `[hide done]` button.
     ShowDone,
-    /// A row of the open `@project` pop-up.
+    /// A row of the open tag pop-up.
     PickTag(usize),
 }
 
@@ -112,10 +112,10 @@ pub(crate) fn click_at(
         if top >= bottom {
             break;
         }
-        let head = u16::from(starts_day_group(&p.items, p.done_view, &order, di));
+        let head = u16::from(super::group::starts(p, &order, di));
         let h = item_h(&p.items[idx], cols, now_ms, p.done_view) + head;
         if row < top + h {
-            // A day header is not a row of the item it rides on.
+            // A band header is not a row of the item it rides on.
             if head == 1 && row == top {
                 return None;
             }
@@ -149,55 +149,22 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
     if cols < 8 || rows < 2 {
         return Vec::new();
     }
-    let t = crew_theme::theme();
     let now_ms = crate::chattime::unix_now_ms();
     let order = p.order();
     let mut out = Vec::new();
 
-    if let Some(f) = &p.filter {
-        let n = order.len();
-        // The `@tag` leads in its own color; the ` · 3 items` tail stays muted.
-        let head = format!("@{f}");
-        let tag_fg = crew_theme::tag_color(f, t);
-        let x = crate::chatwidth::place_row(
-            BOX_COL,
-            cols,
-            head.chars().map(|c| (c, ())),
-            |x, c, ()| out.push(cell(x, 0, c, tag_fg, false)),
-        );
-        let tail = format!(" · {n} item{}", if n == 1 { "" } else { "s" });
-        crate::chatwidth::place_row(x, cols, tail.chars().map(|c| (c, ())), |x, c, ()| {
-            out.push(cell(x, 0, c, t.text_muted, false))
-        });
-    }
-    // The done button rides the same header row, right-aligned like the pane
-    // card's own [-] and [x]. Accent, because it is the one thing on that row
-    // you can click.
-    if let (Some(chip), Some((start, _))) = (done_chip(p), done_chip_zone(p, cols)) {
-        let styled = chip.chars().map(|c| (c, ()));
-        crate::chatwidth::place_row(start, cols, styled, |x, c, ()| {
-            out.push(cell(x, 0, c, crate::palette::accent(), false))
-        });
-    }
+    headrow::cells(&mut out, p, cols, order.len());
 
     let header = header_h(p, cols);
     let lh = list_height(p, cols, rows) as usize;
     let bottom = header + lh as u16;
-    let today = duedate::now_local().date();
     let mut row = header;
     for (di, &idx) in order.iter().enumerate().skip(p.scroll) {
         if row >= bottom {
             break;
         }
-        if starts_day_group(&p.items, p.done_view, &order, di) {
-            let label = match done_day(&p.items[idx]) {
-                Some(d) => duedate::day_label_naive(d, today),
-                None => "earlier".to_string(),
-            };
-            let styled = label.chars().map(|c| (c, ()));
-            crate::chatwidth::place_row(BOX_COL, cols, styled, |x, c, ()| {
-                out.push(cell(x, row, c, t.text_muted, true))
-            });
+        if super::group::starts(p, &order, di) {
+            headrow::band(&mut out, p, idx, row, cols);
             row += 1;
             if row >= bottom {
                 break;
@@ -208,38 +175,11 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
         row += item_h(&p.items[idx], cols, now_ms, p.done_view);
     }
     if order.is_empty() && lh >= 2 {
-        // An all-done list must not read as a fresh one. With every item
-        // ticked there are no rows left, so `H` (a list key) can't even be
-        // reached from here — Tab has nothing to select. The way in from an
-        // empty pane is the command, so that is what the hint names.
-        let done = super::item::done_count(&p.items, p.filter.as_deref());
-        let all_done = format!("all done · {done} in the history");
-        let none_here = p.filter.as_deref().map(|f| format!("nothing done in @{f}"));
-        let hints: [&str; 2] = if p.done_view {
-            [
-                none_here.as_deref().unwrap_or("nothing done yet"),
-                "tick an item on the list — it lands here",
-            ]
-        } else if done > 0 {
-            [&all_done, "/todo done opens the log"]
-        } else {
-            [
-                "no todos",
-                "type one below — try: pay rent tomorrow 5pm @home",
-            ]
-        };
-        for (i, hint) in hints.iter().enumerate() {
-            let row = header + (lh as u16 / 2).saturating_sub(1) + i as u16;
-            let hint = crate::chatwidth::clip_w(hint, usize::from(cols - BOX_COL));
-            let styled = hint.chars().map(|c| (c, ()));
-            crate::chatwidth::place_row(BOX_COL, cols, styled, |x, c, ()| {
-                out.push(cell(x, row, c, t.text_muted, false))
-            });
-        }
+        headrow::empty(&mut out, p, header, lh as u16, cols);
     }
 
     // The list's own scroll reading, over the rows the list was given.
-    let row_of = |di: usize| row_h(&p.items, p.done_view, &order, di, cols, now_ms);
+    let row_of = |di: usize| row_h(p, &order, di, cols, now_ms);
     let total: u16 = (0..order.len()).map(row_of).sum();
     let above: u16 = (0..p.scroll.min(order.len())).map(row_of).sum();
     out.extend(gutter::cells(above, total, header, lh as u16, cols - 1));
@@ -250,7 +190,12 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
         let top = rows - composer::height(p, cols, rows) - ph;
         // As wide as its tags, flush left: the shape of every composer pop-up.
         let w = popup_w(m, cols);
-        for mut c in crate::cmdmenu::menu_card("projects", &items, m.sel, w, ph) {
+        let legend = if m.sigil == super::parse::WHO {
+            "people"
+        } else {
+            "projects"
+        };
+        for mut c in crate::cmdmenu::menu_card(legend, &items, m.sel, w, ph) {
             c.row += top;
             out.push(c);
         }
@@ -260,9 +205,11 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
     out
 }
 
-/// One item: `› [ ] title … @tag due ✗` on its first row, the title
+/// One item: `› [ ] title … #who @project due ✗` on its first row, the title
 /// wrapping onto full-width continuation rows below ([`title_lines`]);
-/// rows at or past `bottom` are clipped.
+/// rows at or past `bottom` are clipped. On a narrow pane the row STACKS
+/// ([`stacked`]) and the right side moves to a row of its own beneath the
+/// title, chips left and due right across the full width.
 /// `(row, cols, bottom)`: where this item's first row sits, how wide it may
 /// draw, and the row it must stop before.
 type RowBox = (u16, u16, u16);
@@ -295,7 +242,7 @@ pub(crate) fn row_cells(
     let stack = stacked(it, cols, now_ms, p.done_view);
     let chip_row = row + if stack { lines.len() as u16 } else { 0 };
 
-    // Right side, laid right-to-left: ✗, due, @tag.
+    // Right side, laid right-to-left: ✗, due, then the chips ([`chips`]).
     let del_col = del_col(cols);
     let mut right = del_col.saturating_sub(2);
     if chip_row < bottom {
@@ -326,10 +273,23 @@ pub(crate) fn row_cells(
             };
             right = place_right(out, &lbl, right, chip_row, fg, overdue);
         }
-        if let Some(tag) = &it.project {
-            let chip = format!("@{tag}");
-            let fg = crew_theme::tag_color(tag, t);
-            right = place_right(out, &chip, right, chip_row, fg, false);
+        if stack {
+            // On a stacked row the chips read from the LEFT, into the space
+            // the title has just vacated. Right-aligning them there put them
+            // behind the due label and `place_right` dropped whichever one
+            // no longer fitted — so a narrow pane silently lost the owner of
+            // every dated task, which is the one thing the row is for.
+            // Reversed, so the row reads `#who @project` either way round.
+            let mut x = TITLE_COL;
+            for chip in chips(it).into_iter().rev() {
+                let fg = crew_theme::tag_color(&chip[1..], t);
+                x = place_left(out, &chip, (x, right), chip_row, fg);
+            }
+        } else {
+            for chip in chips(it) {
+                let fg = crew_theme::tag_color(&chip[1..], t);
+                right = place_right(out, &chip, right, chip_row, fg, false);
+            }
         }
     }
     // `right` is the last column the title's first line may use when the

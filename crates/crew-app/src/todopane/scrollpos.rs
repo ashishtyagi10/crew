@@ -15,13 +15,15 @@ impl TodoPane {
         self.clamp_scroll(cols, rows);
     }
 
-    /// Item indices in display order under the active filter — the done
-    /// history's own ordering when the view is on.
+    /// Item indices in display order under the active filters — the done
+    /// history's own ordering when that view is on, banded by `#assignee`
+    /// when the list is grouped, else flat.
     pub(crate) fn order(&self) -> Vec<usize> {
-        if self.done_view {
-            super::item::done_order(&self.items, self.filter.as_deref())
-        } else {
-            super::item::display_order(&self.items, self.filter.as_deref(), self.show_done)
+        let f = self.filters();
+        match (self.done_view, self.grouped) {
+            (true, _) => super::item::done_order(&self.items, f),
+            (false, true) => super::group::order(&self.items, f, self.show_done),
+            (false, false) => super::item::display_order(&self.items, f, self.show_done),
         }
     }
 
@@ -49,8 +51,7 @@ impl TodoPane {
                 (false, a) if a > 0 => a - 1,
                 _ => break,
             };
-            acc += super::render::row_h(&self.items, self.done_view, &order, next, cols, now_ms)
-                as usize;
+            acc += super::render::row_h(self, &order, next, cols, now_ms) as usize;
             if acc > h && at != sel.min(n - 1) {
                 break;
             }
@@ -72,7 +73,6 @@ impl TodoPane {
         }
         let order = self.order();
         let now_ms = crate::chattime::unix_now_ms();
-        let dv = self.done_view;
         if let Some(s) = self.sel.filter(|&s| s < order.len()) {
             if s < self.scroll {
                 self.scroll = s;
@@ -82,14 +82,14 @@ impl TodoPane {
                 // are per display row — a day header rides on its item.
                 let span = |from: usize| -> usize {
                     (from..=s)
-                        .map(|di| {
-                            super::render::row_h(&self.items, dv, &order, di, cols, now_ms) as usize
-                        })
+                        .map(|di| super::render::row_h(self, &order, di, cols, now_ms) as usize)
                         .sum()
                 };
-                while self.scroll < s && span(self.scroll) > h {
-                    self.scroll += 1;
+                let mut at = self.scroll;
+                while at < s && span(at) > h {
+                    at += 1;
                 }
+                self.scroll = at;
             }
         }
         self.clamp_scroll(cols, rows);
@@ -104,8 +104,7 @@ impl TodoPane {
         let mut used = 0;
         let mut s = order.len();
         while s > 0 {
-            let ih = super::render::row_h(&self.items, self.done_view, &order, s - 1, cols, now_ms)
-                as usize;
+            let ih = super::render::row_h(self, &order, s - 1, cols, now_ms) as usize;
             if used + ih > h {
                 break;
             }

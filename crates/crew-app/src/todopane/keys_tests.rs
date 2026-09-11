@@ -592,11 +592,8 @@ fn history_pages_count_day_headers_as_rows() {
                 title: format!("t{i}"),
                 done: true,
                 done_ms: crate::todopane::duedate::to_epoch_ms(d.and_hms_opt(10, 0, 0).unwrap()),
-                project: None,
-                due_ms: None,
-                due_has_time: false,
                 created_ms: i as u64,
-                notified: false,
+                ..Default::default()
             }
         })
         .collect();

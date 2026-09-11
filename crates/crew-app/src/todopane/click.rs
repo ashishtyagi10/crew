@@ -45,7 +45,7 @@ impl CrewApp {
 
 impl CrewApp {
     /// The todo pane and tag row under the pointer, if the pointer is on
-    /// an open `@project` pop-up.
+    /// an open tag pop-up.
     fn todo_tag_at_cursor(&self) -> Option<(usize, usize)> {
         let i = self.pane_at_cursor()?;
         let (row, col) = self.cursor_rowcol(i)?;
@@ -84,8 +84,12 @@ impl super::TodoPane {
     /// Accept the pop-up's `i`th tag into the composer, as Enter does on
     /// the selected one; the pop-up closes either way.
     pub(crate) fn pick_tag(&mut self, i: usize) {
-        if let Some(tag) = self.tagmenu.as_ref().and_then(|m| m.matches.get(i)) {
-            self.input = super::tagmenu::accept(&self.input, tag);
+        if let Some((sigil, tag)) = self
+            .tagmenu
+            .as_ref()
+            .and_then(|m| Some((m.sigil, m.matches.get(i)?.clone())))
+        {
+            self.input = super::tagmenu::accept(&self.input, sigil, &tag);
             self.cursor = self.input.chars().count();
         }
         self.tagmenu = None;

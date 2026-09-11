@@ -17,6 +17,7 @@ fn item(id: u64, title: &str) -> TodoItem {
         done: false,
         done_ms: None,
         project: None,
+        assignee: None,
         due_ms: None,
         due_has_time: false,
         created_ms: id,

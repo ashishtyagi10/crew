@@ -11,6 +11,7 @@ use crate::todopane::test_pane;
 
 fn menu(n: usize, sel: usize) -> TagMenu {
     TagMenu {
+        sigil: '@',
         matches: (1..=n).map(|i| format!("p{i}")).collect(),
         sel,
     }
@@ -57,6 +58,7 @@ fn clicking_a_tag_row_accepts_that_tag() {
             done: false,
             done_ms: None,
             project: Some(format!("p{i}")),
+            assignee: None,
             due_ms: None,
             due_has_time: false,
             created_ms: i,
@@ -66,8 +68,8 @@ fn clicking_a_tag_row_accepts_that_tag() {
     let mut p = test_pane(items);
     p.input = "@".into();
     p.cursor = 1;
-    let tags = tagmenu::known_tags(&p.items);
-    tagmenu::after_edit(&mut p.tagmenu, &p.input, || tags);
+    let tags = tagmenu::known_tags(&p.items, '@');
+    tagmenu::after_edit(&mut p.tagmenu, &p.input, |_| tags);
     assert_eq!(p.tagmenu.as_ref().map(|m| m.matches.len()), Some(9));
     let (cols, rows) = (40u16, 20u16);
     let ph = crate::todopane::measure::popup_h(&p, rows);
@@ -100,6 +102,7 @@ fn tag_under_is_the_one_geometry_the_click_and_the_hover_share() {
             done: false,
             done_ms: None,
             project: Some(format!("p{i}")),
+            assignee: None,
             due_ms: None,
             due_has_time: false,
             created_ms: i,
@@ -114,8 +117,8 @@ fn tag_under_is_the_one_geometry_the_click_and_the_hover_share() {
     );
     p.input = "@".into();
     p.cursor = 1;
-    let tags = tagmenu::known_tags(&p.items);
-    tagmenu::after_edit(&mut p.tagmenu, &p.input, || tags);
+    let tags = tagmenu::known_tags(&p.items, '@');
+    tagmenu::after_edit(&mut p.tagmenu, &p.input, |_| tags);
     let (cols, rows) = (40u16, 20u16);
     let ph = crate::todopane::measure::popup_h(&p, rows);
     let top = rows - crate::todopane::composer::height(&p, cols, rows) - ph;

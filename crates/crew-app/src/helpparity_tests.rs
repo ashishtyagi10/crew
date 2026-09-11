@@ -112,8 +112,13 @@ fn every_pane_key_is_in_the_overlay() {
             8,
         ),
         (
+            // Two files, one keyboard: the composer's chords and the list's
+            // letters ([`todopane::listkeys`]).
             "the /todo pane",
-            include_str!("todopane/keys.rs"),
+            concat!(
+                include_str!("todopane/keys.rs"),
+                include_str!("todopane/listkeys.rs")
+            ),
             TODO_BINDINGS,
             8,
         ),

@@ -23,8 +23,8 @@ pub(crate) fn place_w(end: u16, w: u16) -> u16 {
 }
 
 /// Column the title's first line stops before when the chips ride beside it:
-/// where the right-side chips (due, `@tag`, `✗`; in the done view the tick
-/// time instead of the due) begin, minus the same two-column gap the chips
+/// where the right-side chips (due, `@tag`, `#who`, `✗`; in the done view
+/// the tick time instead of the due) begin, minus the two-column gap the chips
 /// keep between each other.
 ///
 /// Two, not one. At one the title and the chip beside it read as one phrase
@@ -41,15 +41,31 @@ pub(crate) fn inline_max(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool)
         let lbl = duedate::label(due, it.due_has_time, now_ms);
         right = place_w(right, crate::chatwidth::str_w(&lbl) as u16);
     }
-    if let Some(tag) = &it.project {
-        right = place_w(right, crate::chatwidth::str_w(&format!("@{tag}")) as u16);
+    for chip in chips(it) {
+        right = place_w(right, crate::chatwidth::str_w(&chip) as u16);
     }
     right
+}
+
+/// The tag chips a row carries, in PLACEMENT order — and the right side is
+/// laid right to left, so this is outermost first: `@project`, then
+/// `#assignee` inside it. The owner therefore lands nearest the title, which
+/// is the column the eye runs down on a list you read by person.
+pub(crate) fn chips(it: &TodoItem) -> Vec<String> {
+    let mut out = Vec::new();
+    if let Some(tag) = &it.project {
+        out.push(format!("@{tag}"));
+    }
+    if let Some(w) = &it.assignee {
+        out.push(format!("#{w}"));
+    }
+    out
 }
 
 /// Whether the item carries anything on its right side at all.
 pub(crate) fn has_chips(it: &TodoItem, done_view: bool) -> bool {
     it.project.is_some()
+        || it.assignee.is_some()
         || if done_view {
             it.done_ms.is_some()
         } else {
@@ -129,6 +145,28 @@ pub(super) fn wrap_ranges(chars: &[char], w0: usize, wc: usize) -> Vec<(usize, u
             return lines;
         }
     }
+}
+
+/// Place `s` starting at `x` on `row`, or not at all when it would reach
+/// `limit` — the leftward twin of [`place_right`], for the stacked chip row.
+/// Never clips: a chip cut to `@cre` claims a project that does not exist,
+/// which is worse than the chip being absent.
+pub(crate) fn place_left(
+    out: &mut Vec<CellView>,
+    s: &str,
+    (x, limit): (u16, u16),
+    row: u16,
+    fg: (u8, u8, u8),
+) -> u16 {
+    let w = crate::chatwidth::str_w(s) as u16;
+    if x + w > limit {
+        return x;
+    }
+    let styled = s.chars().map(|c| (c, ()));
+    crate::chatwidth::place_row(x, limit, styled, |x, c, ()| {
+        out.push(cell(x, row, c, fg, false))
+    });
+    x + w + 2
 }
 
 /// Place `s` ending at `end` (exclusive of the following gap) on `row`;

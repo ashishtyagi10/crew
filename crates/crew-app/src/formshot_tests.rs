@@ -106,6 +106,7 @@ fn todos() -> TodoPane {
             done,
             done_ms: done.then_some(now - day),
             project: project.map(str::to_string),
+            assignee: None,
             due_ms: due,
             due_has_time: due.is_some(),
             created_ms: now - 3 * day,
