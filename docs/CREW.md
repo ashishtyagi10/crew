@@ -2087,6 +2087,17 @@ and a typo gets a **did-you-mean** suggestion):
   session. Pins apply per agent, so **planner, coder, and reviewer can run
   three different models side by side**; every change re-emits the roster so
   the pane's model badges update live.
+- **what agent smith decides** — every plain message runs one decision
+  loop: **routing** (the model picks the shape and says so — `routing: swarm
+  · verified — multi-part work`), **context** (one line says what the run
+  starts with — `context: 2 earlier turns · a note · skill code-review · 41
+  tools · tree dirty (3 files)` — and nothing at all when a fresh session on
+  a clean tree has nothing to bring), **plan** (the swarm's task graph, or
+  the plan you approved), **workers** (each with a persona, the tools and
+  skills the model chose for its task, and the last six turns in front of
+  it), **answer** (one closing reply from agent smith when several workers
+  produced one), and **verify** (a judge and one revision, when the routing
+  asked for a check). The entries below say how each shape is asked for.
 - **fan-out and loops, in plain language** — the former fan and loop commands
   are retired: the intent router classifies each plain message and picks its
   execution shape. "Have every agent take a crack at this" sends the same task

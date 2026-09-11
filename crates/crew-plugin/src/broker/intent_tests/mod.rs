@@ -3,7 +3,8 @@
 //! proves each shape reaches its own capability path, the fallbacks, and the
 //! plain-language parity for retired commands; `announce` proves the pane is
 //! told the decision before the arm speaks; `hints` proves the model's
-//! sizing lines reach the arms and the constants are backstops; `verify`
+//! sizing lines reach the arms and the constants are backstops; `context`
+//! proves the run says what it brings, after the routing line; `verify`
 //! proves the `VERIFY:` line reaches the swarm and no other shape; `world`
 //! proves the classifier is shown the room it routes in. Shared fixtures
 //! live here.
@@ -13,6 +14,7 @@ use crate::broker::testenv;
 
 mod announce;
 mod capability;
+mod context;
 mod grammar;
 mod hints;
 mod plangate;

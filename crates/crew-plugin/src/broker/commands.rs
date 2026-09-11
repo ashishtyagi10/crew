@@ -33,39 +33,10 @@ pub(crate) fn is_quick(text: &str) -> bool {
     is_command(text) && cmd != "restore"
 }
 
-/// One-line summaries of every construct, shown by `/help`.
-pub(crate) const HELP: &str = "constructs:\n\
-    /help — this list\n\
-    /model — the roster with each agent's model (also in the pane footer)\n\
-    /model <agent> <model|default> — pin an agent to a model (mix models freely)\n\
-    /model all <model|default> — set every agent's model at once\n\
-    /model <provider|n> — sign in with OAuth, no API key needed (the picker's top rows), \
-    or make a signed-in provider serve\n\
-    /logout — remove a stored OAuth sign-in: pick one from the popup (a key, if present, \
-    serves again); /logout <name> removes it directly\n\
-    plain language routes itself — \u{201c}have every agent take a crack at \u{2026}\u{201d} \
-    fans out in parallel; \u{201c}keep refining \u{2026}\u{201d} runs improvement rounds; \
-    \u{201c}keep working until \u{2026}\u{201d} loops with a judge until it rules the goal met; \
-    \u{201c}draft a plan for \u{2026}\u{201d} waits for your \u{201c}approve\u{201d} or \
-    \u{201c}reject\u{201d} before anything runs; \
-    \u{201c}commit this\u{201d} drafts a commit message (say \u{201c}apply\u{201d} to create it); \
-    \u{201c}look over my changes\u{201d}, \u{201c}what did I ship this week\u{201d} and \
-    \u{201c}pick up where we left off\u{201d} reach code review, a standup and the last session\n\
-    /restore [n] — list the automatic snapshots, or put snapshot n's files back\n\
-    /diff — everything different from the last commit as a patch, new files included \
-    (every task that changes files shows its own patch and the diagnostics after it)\n\
-    /doctor — health-check the AI stack (provider, CLIs, MCP servers and tools, memory, session)\n\
-    #<note> — remember a preference (ask \u{201c}what do you remember?\u{201d} to see them)\n\
-    skills: drop .md playbooks into .crew/skills — a task that names one applies it by itself\n\
-    /reload — re-read skills, plugin agents, integrations and mcp.json without a restart\n\
-    /stop [#n] — cancel all background tasks, or just task #n\n\
-    @<agent> <task> — choose who starts the relay\n\
-    @<a>+<b> <task> — those agents answer in parallel\n\
-    \u{2026} tip: tasks run in the background — the footer lists them, /stop #n cancels one\n\
-    \u{2026} tip: a model's reasoning streams live above its reply and folds when it lands \
-    (CREW_THINKING=0 stops asking providers for it; CREW_STREAM_TEXT=0 stops all streaming)\n\
-    aliases: /h /d /m /r\n\
-    ";
+/// The `/help` text lives in its own file (see `helptext`).
+#[path = "helptext.rs"]
+mod helptext;
+pub(crate) use helptext::HELP;
 
 /// The one-line summary `/help` gives for `name` (no leading slash), if it has
 /// one: the text after the em dash on the first `HELP` line naming it.

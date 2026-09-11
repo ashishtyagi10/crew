@@ -73,8 +73,13 @@ pub(crate) fn log_line_named(
         } => (!ok).then(|| (true, format!("smith: {label} failed: {text}"))),
         // A load is lifecycle too — the run reaching for something outside
         // itself — said the way the pane's line says it.
-        HiveEvent::Loaded { kind, name, .. } => {
+        HiveEvent::Loaded {
+            kind, name, detail, ..
+        } => {
+            // The detail's first word is the frame's verdict: the model
+            // chose the playbook, or the task named it.
             let verb = match kind.as_str() {
+                "skill" if detail.split_whitespace().next() == Some("chose") => "chosen",
                 "skill" => "applied",
                 "mcp" => "connected",
                 _ => "started",

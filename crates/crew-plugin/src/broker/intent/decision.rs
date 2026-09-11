@@ -21,7 +21,7 @@ use super::{classify, parse_shape, Classifier, Shape};
 
 /// The routing line's sender — the same voice as the swarm's plan line, so
 /// the pane draws it as a muted status line, not an agent speaking.
-const SMITH: &str = "agent smith";
+pub(super) const SMITH: &str = "agent smith";
 
 /// The reason clause is one short line in the pane; a model that rambles
 /// gets cut, not a wrapped card.

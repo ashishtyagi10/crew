@@ -18,6 +18,7 @@ use crate::PluginEvent;
 use super::session::Session;
 
 mod classify;
+mod context;
 mod decision;
 mod fanout;
 mod gate;
@@ -108,10 +109,11 @@ pub(crate) fn route_with(
         }
     }
     // Classify in the world the session can see, AND say so — the routing
-    // line lands before the arm's first event, so the pane never has to
-    // guess why it got what it got.
+    // line, then what the run brings (`context`), both before the arm's
+    // first event, so the pane never has to guess why it got what it got.
     let world = World::gather(session);
     let d = decision::announce(task, &world, classifier, emit)?;
+    context::announce(d.shape, task, session, &world, emit)?;
     dispatch(d.shape, &d.hints, task, session, tick_emit, emit)
 }
 

@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.15
+
+**Crew says what it is bringing to a run.** After the routing line and
+before anything starts, one quiet line names the context agent smith is
+carrying: `context: 2 earlier turns · a note · skill code-review · 41
+tools · tree dirty (3 files)`. Only the parts that exist are said, and a
+fresh session with nothing to bring says nothing at all.
+
+`/help` now describes what smith actually decides — the shape of a plain
+message, how many rounds, which agents, whether a judge checks the
+result, which tools and skills a task gets, the memory of the last six
+turns, and that an approved plan runs as the swarm. The empty pane
+suggests two asks that exercise it. A skill the model chose is logged as
+*chosen*, not *applied*.
+
 ## 0.22.14
 
 **The plan you approved is the plan that runs.** "Draft a plan first"

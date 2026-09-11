@@ -91,8 +91,20 @@ fn block(cols: u16, connected: bool, agents: &[AgentInfo]) -> Vec<Row> {
     let hint = format!(
         "Type a task and press Enter \u{2014} @agent to pick who starts (e.g. @{first}), / for commands."
     );
-    wrap_to(&hint, cols).into_iter().map(muted).collect()
+    let mut rows: Vec<Row> = wrap_to(&hint, cols).into_iter().map(muted).collect();
+    // Two asks that show what agent smith decides now (a spacer between,
+    // the first row to go on a short tile): a swarm that checks its own
+    // result, and a plan that runs only once approved.
+    rows.push(muted(String::new()));
+    rows.extend(wrap_to(EXAMPLES, cols).into_iter().map(muted));
+    rows
 }
+
+/// The example asks under the hint — each exercises a decision the brain
+/// makes, not a command.
+const EXAMPLES: &str = "Try \u{201c}make the tests pass\u{201d} \u{2014} a swarm that \
+    verifies its own result \u{2014} or \u{201c}draft a plan first\u{201d} \u{2014} \
+    nothing runs until you approve.";
 
 /// Fit `block` into `avail` rows: the blank spacers go first, and if the
 /// words still do not fit the last row that does is cut and marked.

@@ -58,3 +58,29 @@ fn a_named_agents_tool_call_is_logged_by_name() {
         Some("codex")
     );
 }
+
+/// A playbook the MODEL chose is logged as chosen; one the task named, as
+/// applied — the verb the pane's own `Loaded` line leads its detail with.
+#[test]
+fn a_skill_the_model_chose_is_logged_as_chosen_and_a_named_one_as_applied() {
+    let ev = |detail: &str| HiveEvent::Loaded {
+        agent: String::new(),
+        kind: "skill".into(),
+        name: "code-review".into(),
+        detail: detail.into(),
+    };
+    assert_eq!(
+        log_line(None, &ev("chose \u{b7} reads a diff for bugs")),
+        Some((false, "smith: skill code-review chosen".into()))
+    );
+    assert_eq!(
+        log_line(None, &ev("applied \u{b7} reads a diff for bugs")),
+        Some((false, "smith: skill code-review applied".into()))
+    );
+    // Only the leading word decides: a description that mentions choosing
+    // does not.
+    assert_eq!(
+        log_line(None, &ev("applied \u{b7} chose wisely")),
+        Some((false, "smith: skill code-review applied".into()))
+    );
+}

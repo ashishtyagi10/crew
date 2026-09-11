@@ -70,25 +70,63 @@ fn advice_wraps_without_losing_words() {
 }
 
 #[test]
-fn ready_state_is_a_single_minimal_hint() {
+fn ready_state_is_the_hint_and_two_example_asks() {
     // Claude-Code-style: no "ready" heading, no roster dump, no keybind table —
-    // just one muted hint row. The first agent's name seeds the @-example.
+    // the muted hint, a spacer, and two asks that show what smith decides.
+    // The first agent's name seeds the @-example.
     let a = agents(&[("planner", "planning"), ("coder", "implementation")]);
     let cells = empty_cells(80, 20, 2, true, &a);
     let hint = row_text(&cells, 3);
     assert!(hint.contains("Type a task"), "hint missing: {hint}");
     assert!(hint.contains("@planner"), "@-example missing: {hint}");
-    // The onboarding no longer spends rows on a roster or a quick-start table:
-    // the one sentence, wrapped (two rows at 80 columns), and nothing else.
-    assert!(
-        cells.iter().all(|c| c.row <= 4),
-        "ready onboarding must be the hint alone",
-    );
+    // The hint wraps to two rows at 80 columns; the spacer is row 5; the
+    // examples take two more; nothing else follows.
     let all: String = (3..=4).map(|r| row_text(&cells, r) + " ").collect();
     assert!(
         all.contains("/ for commands."),
         "the sentence is whole: {all}"
     );
+    assert!(
+        row_text(&cells, 5).is_empty(),
+        "a spacer row separates them"
+    );
+    let examples: String = (6..=7).map(|r| row_text(&cells, r) + " ").collect();
+    assert!(examples.starts_with("Try "), "{examples}");
+    assert!(examples.contains("make the tests pass"), "{examples}");
+    assert!(examples.contains("draft a plan first"), "{examples}");
+    assert!(
+        cells.iter().all(|c| c.row <= 7),
+        "the hint and the examples, nothing else",
+    );
+}
+
+/// The example asks wrap to every width the advice is swept at, whole, and
+/// never paint past the pane. (Under ~16 columns the wrap floor is wider
+/// than the pane and every row is clipped — the sweep starts where the
+/// existing wrapping test starts.)
+#[test]
+fn the_example_asks_fit_every_swept_width() {
+    let a = agents(&[("smith", "lead")]);
+    for cols in [20u16, 40, 42, 80] {
+        let cells = empty_cells(cols, 40, 0, true, &a);
+        assert!(
+            cells.iter().all(|c| c.col < cols),
+            "{cols}: painted past the pane"
+        );
+        let rows: Vec<String> = (1..40).map(|r| row_text(&cells, r)).collect();
+        let joined = rows.join(" ");
+        for phrase in [
+            "make the tests pass",
+            "draft a plan first",
+            "until you approve.",
+        ] {
+            assert!(joined.contains(phrase), "{cols}: lost {phrase:?}: {rows:?}");
+        }
+        assert!(
+            !joined.contains('\u{2026}'),
+            "{cols}: cut, not wrapped: {rows:?}"
+        );
+    }
 }
 
 /// `Type a task … / for comm` was the whole hint on a half tile, cut by the
