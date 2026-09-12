@@ -59,7 +59,7 @@ src/dashpane.rs 300
 src/diskpane_tests.rs 266
 src/docshot_tests.rs 365
 src/docwin/event.rs 371
-src/events.rs 323
+src/events.rs 316
 src/farpane/keys.rs 321
 src/farpane/mod_tests.rs 590
 src/farpane/remote.rs 357

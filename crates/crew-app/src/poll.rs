@@ -567,13 +567,13 @@ impl CrewApp {
                 return;
             }
         }
-        // Keep the nav legend blinking while a parked install's reminder is
-        // still inside its pulse window — settles to a steady accent (and
-        // stops costing frames) once the window elapses.
-        if let Some((_, at)) = &self.parked_update {
-            if crate::restartnote::animating(crate::anim::now_ms(), *at) {
-                any_changed = true;
-            }
+        // Keep the nav's RESTART button blinking for as long as the install
+        // sits unclaimed. It does not settle after a pulse the way a passive
+        // marker does: this one is a button, it is the only thing asking, and
+        // it stops costing frames the moment it is pressed (or motion is off,
+        // which `animating` honours).
+        if self.parked_update.is_some() && crate::restartnote::animating() {
+            any_changed = true;
         }
         // Clear a status message once it has aged out, repainting the border.
         if self.expire_status() {

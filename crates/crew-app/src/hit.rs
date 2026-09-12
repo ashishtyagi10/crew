@@ -31,6 +31,25 @@ impl CrewApp {
         Some((((self.cursor.1 - sb.y) / ch).floor() as u16, l))
     }
 
+    /// True when the cursor is over the nav's RESTART card — the button an
+    /// auto-installed update leaves behind. The whole card is the target: it
+    /// exists only to be clicked, so there is no part of it that should do
+    /// nothing. Only when an install is actually parked, and never while a
+    /// LOUD update is drawing its own card in the same slot.
+    pub(crate) fn restart_btn_at_cursor(&self) -> bool {
+        if !self.config.show_nav || self.parked_update.is_none() {
+            return false;
+        }
+        if self.update.as_ref().is_some_and(|u| !u.silent) {
+            return false;
+        }
+        let Some((_cw, ch, _sw, sh, scale)) = self.frame_geometry() else {
+            return false;
+        };
+        let top = chrome::top_card_rect(sh, self.nav_px(scale), gap(), ch);
+        chrome::point_in(top, self.cursor.0, self.cursor.1)
+    }
+
     /// Which pane a click on the sidebar targets — a WAITING row or a
     /// PANES row — if any.
     pub(crate) fn pane_at_sidebar(&self) -> Option<usize> {

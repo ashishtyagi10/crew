@@ -96,7 +96,7 @@ fn note_lines(msg: &str, w: u16, rows: u16) -> Vec<String> {
     out
 }
 
-fn glyph(col: u16, row: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> CellView {
+pub(crate) fn glyph(col: u16, row: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> CellView {
     CellView {
         col,
         row,
@@ -112,7 +112,7 @@ fn glyph(col: u16, row: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> Cel
 /// Write `s` at `(col, row)`, stopping before `max_col` — with the cut
 /// marked, so a stage line like `v0.21.86 → v0.21.87` on a narrowed nav
 /// ends in `…` rather than mid-version.
-fn write(
+pub(crate) fn write(
     out: &mut Vec<CellView>,
     s: &str,
     col: u16,

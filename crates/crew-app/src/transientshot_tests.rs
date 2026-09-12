@@ -15,9 +15,9 @@ use crate::shotgpu_tests::shot_at;
 use crate::update::{Stage, UpdateState};
 
 /// The nav's default width in logical pixels (`Settings → Nav width`).
-const NAV_W: u32 = 210;
+pub(crate) const NAV_W: u32 = 210;
 
-fn card_shot(
+pub(crate) fn card_shot(
     name: &str,
     legend: &str,
     w: u32,
