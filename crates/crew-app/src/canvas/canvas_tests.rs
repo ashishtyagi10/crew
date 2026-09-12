@@ -72,10 +72,10 @@ fn closing_a_canvas_is_a_flag_not_an_exit() {
 /// at the old font size and then saves the old value over yours.
 #[test]
 fn a_config_change_in_one_canvas_reaches_the_others() {
+    let _g = crate::app::theme_test_guard(); // share_config -> apply_config -> global knobs
     let mut c = crew();
     c.canvases.push(CrewApp::default());
     assert_eq!(c.canvases[1].config.font_size, c.config.font_size);
-
     c.active = 0;
     c.canvases[0].config.font_size = 21.0;
     c.share_config();

@@ -11,6 +11,7 @@ mod activitylog;
 mod altscroll;
 mod anim;
 mod app;
+mod appearanceguard;
 mod applog;
 mod applyconfig;
 mod apppane;

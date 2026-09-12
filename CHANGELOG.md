@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.21
+
+**A test that writes a global look knob now has to say so.** `cargo test`
+failed about two runs in three on `motion_off_schedules_nothing…`, and the
+test it failed in was never the test at fault. The motion level is a process
+global; the appearance guard serialised everyone who remembered to take it,
+but the writes that actually raced came from two tests with no interest in
+motion at all — a canvas `share_config` test and a font-resize wheel test —
+because `apply_config` publishes the theme AND the motion level in one call,
+and `share_config`, `/leading`, `/density` and `apply_settings` all reach it.
+A convention that has to be remembered by tests that do not know they are
+involved is not a contract.
+
+So it is enforced now: the guard marks its thread, `motion::set_level`
+asserts on that mark, and a write from outside fails immediately, in the test
+that forgot, with a message naming the fix. Both offenders are fixed, and the
+guard restores the motion level on drop the way it already restored the theme
+— so a guarded test starts from a known level instead of inheriting whatever
+the last one left. Eight consecutive full-suite runs clean, from two in three
+failing. No shipped behaviour changes; the guard is test-only.
+
 ## 0.22.20
 
 **A row under a band stops repeating its band's name.** `#sam` on the header
