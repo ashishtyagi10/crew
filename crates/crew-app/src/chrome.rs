@@ -70,6 +70,18 @@ pub fn solid_chrome(opacity: f32, input_bar: Rect, nav: Option<Rect>) -> Vec<[f3
 /// + 2 content rows).
 pub const UPDATE_CARD_ROWS: f32 = 4.0;
 
+/// The nav's top slot: the rect the UPDATE card and the RESTART button share.
+/// The same rect `stats_card_rect` shrinks below, and the one the restart
+/// click is tested against — one definition, so the button cannot be drawn
+/// somewhere the pointer is not looking.
+pub fn top_card_rect(sh: f32, nav_px: f32, gap: f32, ch: f32) -> Rect {
+    let sb = sidebar_rect(sh, nav_px, gap);
+    Rect {
+        h: (UPDATE_CARD_ROWS * ch).min(sb.h),
+        ..sb
+    }
+}
+
 /// The sidebar stats card's rect: the full column from [`sidebar_rect`],
 /// shrunk below the UPDATE card (plus a gap) while an update runs. Shared by
 /// drawing (`navcard`) and PANES-row hit-testing (`hit`) so the drawn rows

@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.22
+
+**Updates install themselves, and the restart is a button.** `/update` failed
+three times in a row with `error decoding response body: operation timed out`,
+and it was not the network: `self_update`'s downloader builds its client with a
+bare `reqwest::blocking::ClientBuilder::new()`, and reqwest's *blocking* client
+defaults to a 30-second timeout that covers the body read (the async one has no
+such default). The macOS archive is 11 MB, so an update had to sustain about
+375 KB/s or fail — deterministically, on every retry, which is why three tries
+looked identical. The silent 6-hourly background check was failing the same way
+and saying nothing, so the auto-update nobody had to ask for had been dead too.
+
+crew now streams the archive itself (`updatedl`): no deadline on the transfer,
+a connect timeout and a stall timeout instead, so it gives up on a connection
+that is dead and never on one that is merely slow. The regression test dribbles
+a body over 35 seconds and asserts it lands.
+
+With that fixed there is nothing left to type. An update installs in the
+background, and the one step crew cannot take for you — swapping the running
+process for the binary already on disk — is now a **RESTART card in the left
+nav** that blinks until you press it, rather than a line of legend text naming
+a command for something that already happened. The whole card is the target;
+motion off holds it steady and costs no frames.
+
 ## 0.22.21
 
 **A test that writes a global look knob now has to say so.** `cargo test`

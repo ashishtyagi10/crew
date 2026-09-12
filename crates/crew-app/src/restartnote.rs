@@ -1,45 +1,31 @@
-//! The parked-update reminder: legend text and blink styling for the nav
-//! stats card while a newer installed binary waits for the `/update` that
-//! restarts into it. Pure helpers — state lives on CrewApp.parked_update,
-//! painting in navcard.
+//! The parked-update reminder: the stats-card legend naming the version a
+//! background install already put on disk, and the blink clock the RESTART
+//! card (see [`crate::restartcard`]) runs on. Pure helpers — the state lives
+//! on `CrewApp.parked_update`, the painting in `navcard`.
 
-/// `crew v<current> → v<new> · /update` when it fits in `max_cols` title
-/// columns; otherwise the compact `→ v<new> · /update` form that keeps the
-/// actionable half (the new version and the `/update` call-to-action) —
-/// the narrow nav sidebar rarely has room for the full form. Even the
-/// compact form is prefix-truncated by `titled_card` if it still overflows
-/// (acceptable — the version and `/update` lead the string).
+/// `crew v<current> \u{2192} v<new>` when it fits in `max_cols` title columns;
+/// otherwise the compact `\u{2192} v<new>`, which keeps the half that is news.
+/// Even the compact form is prefix-truncated by `titled_card` if it still
+/// overflows — acceptable, the new version leads the string.
+///
+/// There is no `/update` call-to-action any more: the update has already
+/// installed itself, and the thing left to do is a button, not a command.
 pub(crate) fn legend(new_version: &str, max_cols: usize) -> String {
     let full = format!(
-        concat!(
-            "crew v",
-            env!("CARGO_PKG_VERSION"),
-            " \u{2192} v{} \u{b7} /update"
-        ),
+        concat!("crew v", env!("CARGO_PKG_VERSION"), " \u{2192} v{}"),
         new_version
     );
     if full.chars().count() <= max_cols {
         return full;
     }
-    format!("\u{2192} v{} \u{b7} /update", new_version)
+    format!("\u{2192} v{}", new_version)
 }
 
-/// Accent↔dim alternation on the attention clock for the first PULSE_MS,
-/// then steady accent — same cost model as pane attention markers.
-pub(crate) fn legend_fg(now_ms: u64, parked_at_ms: u64) -> (u8, u8, u8) {
-    let t = crew_theme::theme();
-    let dt = now_ms.saturating_sub(parked_at_ms);
-    if dt < crate::attention::PULSE_MS && (dt / crate::attention::BLINK_MS) % 2 == 1 {
-        return t.legend_off;
-    }
-    crate::palette::accent()
-}
-
-/// True only inside the blink window (the elapsed time since `parked_at_ms`
-/// is under `PULSE_MS`) — never panics or wraps if `now_ms` precedes
-/// `parked_at_ms`, since the elapsed time is computed with `saturating_sub`.
-pub(crate) fn animating(now_ms: u64, parked_at_ms: u64) -> bool {
-    now_ms.saturating_sub(parked_at_ms) < crate::attention::PULSE_MS
+/// Whether the restart button is currently blinking — true whenever an
+/// install is parked, unless motion is off, in which case it is drawn
+/// steady and costs no frames.
+pub(crate) fn animating() -> bool {
+    crate::motion::level() != crate::motion::MotionLevel::Off
 }
 
 #[cfg(test)]

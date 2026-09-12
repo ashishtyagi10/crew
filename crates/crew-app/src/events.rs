@@ -137,20 +137,13 @@ impl CrewApp {
                     self.redraw();
                     return;
                 }
-                // The [x] border button closes the pane outright; like [-] it
-                // must win over focus/drag so the click does nothing else.
-                if let Some(i) = self.close_btn_at_cursor() {
-                    self.close_pane(i);
-                    self.redraw();
-                    return;
-                }
-                // The [-] border button minimizes the pane into the left nav. It
-                // must win over the focus path so the click neither focuses
-                // the pane nor arms a drag selection.
-                if let Some(i) = self.min_btn_at_cursor() {
-                    self.minimize_pane(i);
-                    self.redraw();
-                    return;
+                // A press on one of crew's own docked buttons — the nav's
+                // RESTART card, a tile's [x] or [-] — wins over the focus and
+                // drag paths below, so the click does nothing else.
+                match self.docked_press() {
+                    crate::btnpress::Press::Exit => return event_loop.exit(),
+                    crate::btnpress::Press::Done => return,
+                    crate::btnpress::Press::Miss => {}
                 }
                 // A click inside a todo pane acts where it lands (checkbox
                 // toggles, ✗ deletes, a row selects, the composer refocuses)

@@ -34,6 +34,7 @@ mod blocked;
 mod blocks;
 mod bordermarks;
 mod boxdraw;
+mod btnpress;
 mod channel;
 mod charrain;
 #[cfg(test)]
@@ -407,7 +408,11 @@ mod relay;
 mod render;
 mod reopen;
 mod restart;
+mod restartcard;
 mod restartnote;
+#[cfg(test)]
+#[path = "restartshot_tests.rs"]
+mod restartshot_tests;
 mod route;
 mod runclock;
 mod runpane;
@@ -500,6 +505,7 @@ mod tui;
 mod unread;
 mod update;
 mod updatecard;
+mod updatedl;
 mod updatefetch;
 mod usagelayout;
 mod usageledger;

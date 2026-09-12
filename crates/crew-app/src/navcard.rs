@@ -21,23 +21,26 @@ impl CrewApp {
         if !self.config.show_nav {
             return;
         }
-        let full = chrome::sidebar_rect(sh, self.nav_px(scale), gap());
         // While a LOUD `/update` runs, dock a distinct UPDATE card on top of the
         // stats card, shrinking the stats card below it (chrome::stats_card_rect —
         // the same rect the PANES hit-test uses). A silent background run (see
         // `crate::autoupdate`) stays invisible — no card, no reserved space —
         // until a manual `/update` upgrades it to loud.
         let loud = self.update.as_ref().filter(|u| !u.silent);
+        let top = chrome::top_card_rect(sh, self.nav_px(scale), gap(), ch);
         if let Some(u) = loud {
-            let top = Rect {
-                h: (chrome::UPDATE_CARD_ROWS * ch).min(full.h),
-                ..full
-            };
             crate::panelcard::push_card(scenes, top, cw, ch, "UPDATE", |cols, rows| {
                 crate::updatecard::update_cells(u, cols, rows)
             });
+        } else if let Some((v, _)) = &self.parked_update {
+            // A background install has already landed; the slot the running
+            // update would have used carries the restart button instead.
+            let now_ms = crate::anim::now_ms();
+            crate::panelcard::push_card(scenes, top, cw, ch, "RESTART", |cols, rows| {
+                crate::restartcard::restart_cells(v, now_ms, cols, rows)
+            });
         }
-        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), gap(), ch, loud.is_some());
+        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), gap(), ch, self.nav_top_card());
         let pane_rows = self.pane_rows();
         let sidebar = &self.sidebar;
         let log = &self.log;
@@ -45,9 +48,11 @@ impl CrewApp {
         let glance = self.glance();
         let weather = crate::navweather::now().map(|w| crate::navweather::line(&w));
         let (legend, legend_fg) = match &self.parked_update {
-            Some((v, at)) => (
+            // The RESTART card above is the call to action and the thing that
+            // blinks; the legend just states the pair of versions, steadily.
+            Some((v, _)) => (
                 crate::restartnote::legend(v, title_max_cols(sb, cw, ch)),
-                crate::restartnote::legend_fg(crate::anim::now_ms(), *at),
+                crate::palette::accent(),
             ),
             None => (
                 concat!("crew v", env!("CARGO_PKG_VERSION")).to_string(),
@@ -86,16 +91,19 @@ impl CrewApp {
             return None;
         }
         let (cw, ch, _sw, sh, scale) = self.frame_geometry()?;
-        let sb = chrome::stats_card_rect(
-            sh,
-            self.nav_px(scale),
-            gap(),
-            ch,
-            self.update.as_ref().is_some_and(|u| !u.silent),
-        );
+        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), gap(), ch, self.nav_top_card());
         let (_, rows) = crate::layout::card_inner_cells(sb.w, sb.h, cw, ch);
         let l = self.sidebar.layout(rows, self.nav_tail(), self.panes.len());
         Some((sb, ch, l))
+    }
+
+    /// Whether the nav's top slot carries a card — a LOUD update's progress,
+    /// or the restart button a parked install left behind. The stats card
+    /// below it shifts by exactly this much, so drawing and hit-testing must
+    /// ask one question, not two: a silent background run draws no card, and
+    /// counting it would offset every nav row by a card that isn't there.
+    pub(crate) fn nav_top_card(&self) -> bool {
+        self.update.as_ref().is_some_and(|u| !u.silent) || self.parked_update.is_some()
     }
 
     /// The focused pane's name, for the input bar's bottom-border legend. The

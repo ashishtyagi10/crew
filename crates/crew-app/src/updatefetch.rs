@@ -127,21 +127,14 @@ pub(crate) fn install(current: &str) -> Result<String> {
     let archive_path = staging.path().join(&asset.name);
     let mut archive = std::fs::File::create(&archive_path)?;
 
-    let mut download = self_update::Download::from_url(&asset.download_url);
-    let mut headers = reqwest::header::HeaderMap::new();
-    headers.insert(
-        reqwest::header::ACCEPT,
-        "application/octet-stream".parse().unwrap(),
-    );
-    headers.insert(
-        reqwest::header::USER_AGENT,
-        format!("crew/{current}").parse().unwrap(),
-    );
-    download.set_headers(headers);
-    download.show_progress(false);
-    download
-        .download_to(&mut archive)
-        .with_context(|| format!("downloading {}", asset.name))?;
+    // Our own streaming download, not `self_update::Download` — see
+    // [`crate::updatedl`] for the 30-second ceiling that cost.
+    crate::updatedl::download_to(
+        &asset.download_url,
+        &format!("crew/{current}"),
+        &mut archive,
+    )
+    .with_context(|| format!("downloading {}", asset.name))?;
     drop(archive);
 
     // `crew` on Unix, `crew.exe` on Windows — the name inside the archive.
