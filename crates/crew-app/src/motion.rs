@@ -41,6 +41,20 @@ pub(crate) fn os_reduce() -> bool {
 /// changes settings (Save, session restore, an external config edit) lands
 /// here without having to know about motion.
 pub(crate) fn set_level(level: MotionLevel) {
+    // The knob is process-global and the test runner is parallel, so a write
+    // from outside the appearance guard lands in somebody else's critical
+    // section. It reached here through `apply_config` more often than through
+    // anything named "motion" — `/leading`, `/density`, `share_config` — which
+    // is exactly why remembering the guard could not be the contract.
+    #[cfg(test)]
+    assert!(
+        crate::app::holds_appearance_guard(),
+        "motion::set_level outside the appearance guard: add \
+         `let _g = crate::app::theme_test_guard();` to this test. Anything \
+         that reaches apply_config (share_config, /leading, /density, \
+         apply_settings) writes this knob, whether or not the test mentions \
+         motion."
+    );
     LEVEL.store(level as u8, Ordering::Relaxed);
 }
 

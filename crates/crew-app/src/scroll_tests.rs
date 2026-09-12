@@ -50,6 +50,8 @@ fn line_delta_notches_still_scroll_whole_lines() {
 /// or every scroll in the app would resize the type.
 #[test]
 fn only_a_modified_wheel_resizes_the_font() {
+    // A font resize applies the whole config, motion level included.
+    let _g = crate::app::theme_test_guard();
     use winit::event::Modifiers;
     use winit::keyboard::ModifiersState;
     let mut app = crate::app::CrewApp::default();
