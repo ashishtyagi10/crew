@@ -8,6 +8,58 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.42
+
+**The rail says something on the rows the pane list does not use.** Collapsed,
+the nav held one row per pane and nothing else — three rows of ink on a column
+forty rows tall. A sidebar that costs the same edge of screen and spends it on
+nothing is worse than no sidebar.
+
+So the readings that survive five columns are drawn along the BOTTOM of it: the
+clock in full and the sky over the place `/weather` was pointed at, the three
+system readings as drawn capsules in the gauges' own tier colours, the two net
+rates in a rail-sized unit, and what git has to say about the tree.
+
+    ╭─ › ─╮
+    │▸1  ◓│
+    │ 2  ●│
+    │     │
+    │09:41│
+    │☁12° │
+    │     │
+    │C ▰▰▱│
+    │M ▰▰▱│
+    │D ▰▰▰│
+    │     │
+    │↓1.2M│
+    │↑4K  │
+    │     │
+    │● 9  │
+    │↑1   │
+    ╰─────╯
+
+The meters are the same capsules the summary footer draws and the same tier
+colours the open nav's gauges wear, off the same sampler — the rail and the
+dashboard can never disagree about what the machine is doing. `C`, `M` and `D`
+have no room for their numbers, which is the point: a meter says "how full" in
+one look, and the band is said twice, by length and by hue.
+
+It is anchored to the bottom rather than stacked under the panes: a reading
+that moves every time a pane opens is a reading you have to find again, and the
+pane list is the one section here that changes height. A short column gives up
+the sky first, then the rates, then git, then the meters — the clock is what a
+rail with one row left still shows.
+
+Nothing is clipped into a smaller-looking number. A changed-file count that
+will not fit whole tightens (`● 9` → `●9`) and then says `●…`; `1234` files
+are never drawn as `● 123`, which is a different number told all day.
+
+The collapsed nav is now shot off-screen like every other surface
+(`navrail_shot`, dark / light / phosphor). Nothing about the old rail was
+*wrong* — every row it drew was correct, and no unit test could have said
+otherwise. What was wrong was the forty rows it drew nothing on, and that is a
+thing you have to look at.
+
 ## 0.22.41
 
 **The left nav starts as a rail.** The full nav is a dashboard — clock, dials,

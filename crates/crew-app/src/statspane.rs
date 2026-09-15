@@ -20,11 +20,11 @@ const CHART_FLOOR: u64 = 25;
 
 /// The docked sidebar: a live clock card stacked above the system-stats card.
 pub struct StatsPane {
-    sampler: SysSampler,
+    pub(crate) sampler: SysSampler,
     /// Last wall-clock second shown, so the clock repaints once per second.
     last_sec: u64,
     /// Git status for the working directory, queried off the main thread.
-    git: GitWatch,
+    pub(crate) git: GitWatch,
     cpu_hist: crate::spark::History, // recent CPU %, drawn as a moving sparkline
 }
 

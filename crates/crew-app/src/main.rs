@@ -337,6 +337,11 @@ mod navlog;
 mod navlogscroll;
 mod navmode;
 mod navrail;
+mod navrailfoot;
+mod navrailrow;
+#[cfg(test)]
+#[path = "navrailshot_tests.rs"]
+mod navrailshot_tests;
 mod navresize;
 mod navserving;
 mod navslot;
@@ -452,6 +457,7 @@ mod spotlight;
 mod spring;
 pub mod stats;
 mod statspane;
+mod statsread;
 mod status;
 mod suggest;
 mod suggestvalues;
