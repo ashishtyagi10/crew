@@ -14,6 +14,7 @@ fn world(agents: &[&str], dirty: Option<usize>, tools: &[&str]) -> World {
         dirty,
         tools: tools.iter().map(|s| s.to_string()).collect(),
         recent: None,
+        known: None,
     }
 }
 
@@ -186,4 +187,36 @@ fn gather_reads_the_last_request_off_the_sessions_thread() {
         World::gather(&session).recent.as_deref(),
         Some("list the crates")
     );
+}
+
+/// What the graph already holds about the message is a fact the router gets,
+/// because "we have been here three times" and "this is new" want different
+/// shapes — and until this, the classifier ran before the recall block and
+/// could not tell them apart.
+#[test]
+fn the_world_says_what_crew_has_seen_before_about_this_message() {
+    let session = Session::default();
+    crate::broker::recall::lock(&session.recall).record(
+        "why does the linecap ratchet fail in crates/crew-app/src/nav.rs",
+        "because a file on the debt list grew",
+    );
+    let w = World::gather_about(&session, "the linecap ratchet is red again");
+    let (n, files) = w.known.clone().expect("the graph knows this subject");
+    assert_eq!(n, 1);
+    assert!(files.iter().any(|f| f.contains("nav.rs")), "{files:?}");
+    assert!(
+        w.section()
+            .contains("seen before: 1 earlier turn about this"),
+        "{}",
+        w.section()
+    );
+}
+
+#[test]
+fn a_subject_the_graph_has_never_seen_leaves_the_prompt_as_it_was() {
+    let session = Session::default();
+    crate::broker::recall::lock(&session.recall).record("the linecap ratchet", "a debt file grew");
+    let w = World::gather_about(&session, "what is the weather in berlin");
+    assert_eq!(w.known, None);
+    assert!(!w.section().contains("seen before"), "{}", w.section());
 }

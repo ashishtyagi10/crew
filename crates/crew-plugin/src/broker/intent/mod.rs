@@ -102,7 +102,7 @@ pub(crate) fn route_with(
     // Classify in the world the session can see, AND say so — the routing
     // line, then what the run brings (`context`), both before the arm's
     // first event, so the pane never has to guess why it got what it got.
-    let world = World::gather(session);
+    let world = World::gather_about(session, task);
     // Plan-first skips the classifier entirely: the shape is already decided,
     // and asking a model to choose one it cannot have is a call for nothing.
     let d = match super::planfirst::on(session) {

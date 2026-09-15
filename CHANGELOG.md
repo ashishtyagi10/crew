@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.38
+
+**The router knows whether it has been here before.** The recall graph rode in
+front of the WORKERS; the routing decision happened before it. So the
+classifier — which picks whether a message is a reply, a fan, a plan or a
+swarm — was the one part of the run that could not tell "we have worked on
+this three times" from "this is new", and those two want different shapes: the
+first is usually a follow-up to finish, the second a graph to decompose.
+
+Its world gains one line: `seen before: 3 earlier turns about this, in
+src/route.rs` — the graph's own count for the message being routed, with the
+two files that subject most reaches. A subject crew has never seen adds
+nothing at all, so the prompt on a cold project is exactly what it was.
+
+The graph's read side moved into `recall/ask.rs` on the way (the facade was
+about to cross the 200-line cap), which leaves `mod.rs` telling the store's
+story and `ask.rs` the reading one.
+
 ## 0.22.37
 
 **The left column is one verb, and so is the output list.** Three more names
