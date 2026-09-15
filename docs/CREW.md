@@ -2184,6 +2184,18 @@ and a typo gets a **did-you-mean** suggestion):
   end a coding task by running something, for the same reason: a model's own
   account of what it did is the least reliable signal available, and the diff
   and the language server can both look fine on code that does not build.
+  **And it takes one pass at its own breakage.** When the check fails, crew
+  hands the command, the output and one instruction ("fix the cause, change as
+  little as possible, do not weaken the check, do not commit") back to the
+  crew that caused it, runs the check again, and says how that went — an agent
+  that breaks the build and stops is an agent you have to babysit, and
+  everything needed to fix it is already on the screen. Bounded hard: ONE pass
+  (a repair changes files, which would run the check, which could fail, which
+  would start another pass — a loop that spends money while you sleep is not
+  autonomy), never a commit, and always undoable, since the checkpoint taken
+  before the breaking task puts both changes back with “undo that”. Say
+  **“don't fix it yourself”** to turn the pass off for the session, and “fix it
+  yourself” to turn it back on.
   The command is DECLARED rather than guessed, because it spends your CPU and
   can take minutes; when crew can see what it would probably be (a
   `Cargo.toml`, a `package.json`, a `Makefile`) it says so once and leaves the

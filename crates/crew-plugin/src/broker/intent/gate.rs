@@ -32,6 +32,9 @@ pub(crate) fn human_gates(
     if let Some(done) = crate::broker::recallask::gate(task, session, emit) {
         return Some(done);
     }
+    if let Some(done) = crate::broker::selfrepair::gate(task, session, emit) {
+        return Some(done);
+    }
     if confirms_apply(task) && pending_commit(session) {
         return Some(crate::broker::gitmsg::commit_cmd(session, "apply", emit));
     }

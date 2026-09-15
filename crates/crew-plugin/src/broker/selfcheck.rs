@@ -105,6 +105,7 @@ pub(crate) fn note(cmd: &str) -> String {
 pub(crate) fn after_task(
     session: &Session,
     changed: bool,
+    repair: super::selfrepair::Repair<'_>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     if !changed {
@@ -138,17 +139,21 @@ pub(crate) fn after_task(
         })
         .as_deref(),
     );
-    emit(msg("agent smith", line(&cmd, &o)))
+    emit(msg("agent smith", line(&cmd, &o)))?;
+    if o.ok {
+        return Ok(());
+    }
+    super::selfrepair::take_one_pass(session, &cmd, &o, repair, emit)
 }
 
 #[cfg(unix)]
-fn run(cmd: &str) -> Result<String, String> {
+pub(crate) fn run(cmd: &str) -> Result<String, String> {
     super::sysrun::run(cmd)
 }
 
 /// No `/bin/sh`, no check — `sys:run` says the same on Windows.
 #[cfg(not(unix))]
-fn run(cmd: &str) -> Result<String, String> {
+pub(crate) fn run(cmd: &str) -> Result<String, String> {
     super::sysrun::run(cmd)
 }
 
