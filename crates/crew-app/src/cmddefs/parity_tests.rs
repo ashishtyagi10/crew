@@ -93,7 +93,9 @@ fn the_readme_advertises_nothing_either_palette_lacks() {
     // they are answered without being offered.
     let look: Vec<String> = crate::lookcmd::SUBJECTS
         .iter()
-        .map(|(s, _)| format!("/{s}"))
+        .map(|(s, _)| *s)
+        .chain(crate::verbs::FOLDED.iter().copied())
+        .map(|s| format!("/{s}"))
         .collect();
     let stale: Vec<String> = names(&readme)
         .into_iter()

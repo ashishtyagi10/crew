@@ -13,12 +13,35 @@ impl CrewApp {
     pub(crate) fn run_slash_with_arg(&mut self, other: &str) {
         if let Some(a) = other.strip_prefix("look ") {
             self.look_command(a.trim());
+        } else if let Some(a) = other.strip_prefix("clear ") {
+            match a.trim() {
+                "all" => self.clear_all_scrollback(),
+                "log" => self.clear_log(),
+                x => self.set_status(format!("/clear has no \u{201c}{x}\u{201d} — all, log")),
+            }
+        } else if let Some(a) = other.strip_prefix("close ") {
+            match a.trim() {
+                "all" => self.close_all_panes(),
+                "others" => self.close_other_panes(),
+                x => self.set_status(format!("/close has no \u{201c}{x}\u{201d} — all, others")),
+            }
+        } else if let Some(a) = other.strip_prefix("errors ") {
+            match a.trim() {
+                "all" => self.find_errors_everywhere(),
+                x => self.set_status(format!("/errors has no \u{201c}{x}\u{201d} — all")),
+            }
         } else if let Some(a) = other.strip_prefix("todo ") {
             self.todo_command(a.trim());
         } else if let Some(term) = other.strip_prefix("findall ") {
             self.find_all(term);
         } else if let Some(term) = other.strip_prefix("find ") {
-            self.find_in_terminal(term.trim());
+            // `/find all <text>` is the folded `/findall`; a search FOR the
+            // word "all" is still reachable as `/find all` with nothing
+            // after it meaning the hint, and `/findall all` meaning it.
+            match term.trim().strip_prefix("all ") {
+                Some(t) => self.find_all(t.trim()),
+                None => self.find_in_terminal(term.trim()),
+            }
         } else if let Some(n) = other.strip_prefix("name ") {
             self.name_focused_pane(n.trim());
         } else if let Some(c) = other.strip_prefix("run ") {

@@ -263,8 +263,8 @@ formatted post-mortem.
 Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`
 (`/smith`), `/goal <text>`, `/batch <file>`, `/view <file>`, `/md <file>`,
 `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/errors`,
-`/errorsall`, `/out`, `/blocks`, `/marks`, `/name <text>`, `/pin`, `/clear`,
-`/clearall`, `/clearlog`, `/only`, `/copy`, `/dump`, `/closeall`, `/reopen`,
+`/out`, `/blocks`, `/marks`, `/name <text>`, `/pin`, `/clear`, `/close`,
+`/copy`, `/dump`, `/reopen`,
 `/restore`, `/blame`, `/lsp`, `/pwd`, `/about`, `/log`, `/nav`, `/weather`,
 `/model`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
 `/todo`, `/dash`, `/usage`, `/disk`, `/focus`, `/notify` — then `/exit`.
@@ -278,6 +278,14 @@ you are on marked. Fifteen rows became one, which is fourteen fewer names to
 know and fourteen fewer rows between you and `/find`. The old spellings
 (`/theme dark`, `/gamma medium`, …) still run exactly as before — muscle
 memory is a feature — they are simply no longer things you have to learn.
+
+**The `all` variants are arguments, not names.** `/clear` clears this pane,
+`/clear all` every pane, `/clear log` the activity log; `/find <text>` searches
+here and `/find all <text>` everywhere; `/errors` walks this pane's failures
+and `/errors all` counts every pane's; `/close all` and `/close others` replace
+`/closeall` and `/only`. Six rows fewer, and the variants are visible the
+moment you type the verb instead of being names you had to know. Every folded
+spelling still runs.
 
 Commands with a fixed value set (like `/look theme`) expand into an
 arrow-selectable **value picker**. Fish-style autosuggest from history, `cd`
@@ -357,7 +365,7 @@ it.
 - **`/out [n]`** opens a command's output on its own in the file viewer — the
   last one, or the one *n* commands back. **`/copy out`** puts the same slice on
   the clipboard.
-- **`/errors`** walks back to the most recent failure in a pane; **`/errorsall`**
+- **`/errors`** walks back to the most recent failure in a pane; **`/errors all`**
   says which panes have failures and how many, then lands on the first.
 - **`/diff`** reviews the working tree in the viewer, pairing each removed line
   with the added line that replaced it and drawing only the run that actually
@@ -386,7 +394,7 @@ it.
   collapsed to the boundaries where one commit's work ends and the next begins.
 - **`/reopen`** (**Cmd+Shift+T**) undoes the last pane close: a shell in the
   directory that one was standing in, the viewer back on its file. The last
-  eight, so a `/only` walks back a pane at a time.
+  eight, so a `/close others` walks back a pane at a time.
 - **`/pin`** keeps a pane on the grid when the LRU would demote it.
 
 ## The cursor

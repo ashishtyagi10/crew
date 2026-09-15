@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.29
+
+**The `all` variants are arguments now, not names.** `/clear`, `/clearall`,
+`/clearlog`; `/find`, `/findall`; `/errors`, `/errorsall`; `/closeall`,
+`/only` — nine rows in a palette you scroll, for four things, distinguished by
+a word glued onto the end of a name. The word belongs in the argument, where
+you can SEE the variants the moment you type the verb instead of having to
+know they exist.
+
+So: `/clear` (this pane), `/clear all`, `/clear log`; `/find <text>`, `/find
+all <text>`; `/errors`, `/errors all`; and a new `/close all` / `/close
+others` replacing `/closeall` and `/only`. Six rows left the palette and one
+arrived: 53 → 48, and the subject picker lists each verb's variants with a
+line saying what each does.
+
+This is `/look`'s shape generalised (v0.22.25). `verbs.rs` owns the table of
+folded verbs — one-step ones whose subject IS the answer, and `/look`, whose
+subjects open pickers of their own — and the palette, the ghost completion,
+the typo note and the input bar's ink all read it. Every folded spelling still
+runs when typed, uncorrected: what shrank is what you have to know.
+
 ## 0.22.28
 
 **The agents can read a web page.** Crew's tools could run your shell, read

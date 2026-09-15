@@ -47,17 +47,6 @@ fn a_half_typed_subject_still_lists_subjects() {
 }
 
 #[test]
-fn every_subject_is_a_step_and_every_value_is_a_choice() {
-    assert!(nested("/look", "grain"));
-    assert!(!nested("/look", "grainy"));
-    assert!(!nested("/look grain", "medium"));
-    assert!(
-        !nested("/grain", "medium"),
-        "the old spelling has no second step"
-    );
-}
-
-#[test]
 fn the_bar_marks_the_value_a_subject_is_already_on() {
     assert_eq!(current_key("/look gamma medium"), "/gamma");
     assert_eq!(current_key("/look gamma"), "/gamma");

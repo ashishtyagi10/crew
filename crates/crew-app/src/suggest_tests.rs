@@ -65,13 +65,6 @@ fn slash_completes_restore_and_restart_is_gone() {
 }
 
 #[test]
-fn slash_completes_only() {
-    assert_eq!(suggest("/onl", &[]).as_deref(), Some("y"));
-    let names: Vec<&str> = matches("/onl").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/only"));
-}
-
-#[test]
 fn edit_and_open_were_dropped_for_far() {
     // File operations live in Far (F3/F4/Enter) and Cmd+click now; the old
     // /edit and /open input-bar commands are gone from the palette.
@@ -222,15 +215,6 @@ fn agent_cli_aliases_removed_in_favor_of_run() {
         );
     }
     assert!(all.contains(&"/smith"));
-}
-
-#[test]
-fn slash_completes_clearlog() {
-    // /clear is the shortest match, so it ghosts first; /clearlog is reached by
-    // typing past it, and both appear in the palette.
-    assert_eq!(suggest("/clearl", &[]).as_deref(), Some("og"));
-    let names: Vec<&str> = matches("/clear").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/clear") && names.contains(&"/clearlog"));
 }
 
 #[test]

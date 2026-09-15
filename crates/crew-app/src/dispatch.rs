@@ -74,6 +74,9 @@ impl CrewApp {
             // suggest /restore — a different action entirely.
             "restart" => self.set_status("/restart merged into /update — it installs and restarts"),
             "clear" => self.clear_focused_scrollback(),
+            // The folded verbs' bare forms; their subjects are arguments now
+            // (`dispatchargs`), and the old one-word spellings still answer.
+            "close" => self.set_status("/close all — every pane; /close others — all but this one"),
             "clearall" => self.clear_all_scrollback(),
             "clearlog" => self.clear_log(),
             "only" => self.close_other_panes(),
