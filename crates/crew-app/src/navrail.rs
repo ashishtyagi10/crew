@@ -143,9 +143,11 @@ impl CrewApp {
         chrome::point_in(hit, self.cursor.0, self.cursor.1)
     }
 
-    /// Push the collapsed nav. It takes the column's full height — the UPDATE
-    /// and RESTART cards want words and have nowhere to put them at seven
-    /// columns, so they wait for the nav to be opened (`nav_top_card`).
+    /// Push the collapsed nav: the pane list at the top, the readings that
+    /// survive five columns along the bottom (`navrailfoot`). It takes the
+    /// column's full height — the UPDATE and RESTART cards want words and have
+    /// nowhere to put them here, so they wait for the nav to be opened
+    /// (`nav_top_card`).
     pub(crate) fn push_rail(
         &self,
         scenes: &mut Vec<PaneScene>,
@@ -158,8 +160,22 @@ impl CrewApp {
         let rows = self.pane_rows();
         let spin = crate::update::spinner_frame(crate::anim::now_ms());
         let legend = legend(true, "");
-        crate::panelcard::push_card(scenes, sb, cw, ch, &legend, |cols, irows| {
-            rail_cells(&rows, cols, irows, spin)
+        let foot = crate::navrailfoot::Foot {
+            time: crate::clock::now_strings().0.chars().take(5).collect(),
+            sky: crate::navweather::now().map(|w| crate::navrailrow::sky(&w)),
+            stats: self.sidebar.stats(),
+            git: self.sidebar.git_info().cloned(),
+        };
+        // `ch / cw` goes with the meters so a capsule stays a capsule when the
+        // font changes (see `crate::plot::Canvas`).
+        let aspect = ch / cw;
+        let fg = crew_theme::theme().legend_off;
+        crate::panelcard::push_card_art(scenes, sb, cw, ch, &legend, fg, |cols, irows| {
+            let mut cells = rail_cells(&rows, cols, irows, spin);
+            let used = rows.len().min(usize::from(irows)) as u16;
+            let (foot, paint) = crate::navrailfoot::foot(&foot, cols, irows, used, aspect);
+            cells.extend(foot);
+            (cells, paint)
         });
     }
 }

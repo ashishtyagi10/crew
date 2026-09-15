@@ -170,7 +170,9 @@ or drag it to move through the buffer. **Cmd+wheel** resizes the font, and a
 wheel over the sidebar's LOG scrolls back through its buffered lines.
 
 The **left nav starts collapsed**: a seven-column rail with one row per pane —
-focus caret, number, and the mark that says what the pane is doing. The
+focus caret, number, and the mark that says what the pane is doing — and, along
+the bottom, the readings that survive five columns: the clock, the sky, the
+three system meters, the net rates, and what git has to say about the tree. The
 **chevron** on its top border opens the full dashboard (clock, dials, load,
 host, net, git, the LOG or the glance cards) and puts it away again: `›` on the
 rail, `‹` in front of the legend when it is open. **Cmd+G** is the other

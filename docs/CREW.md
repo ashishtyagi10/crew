@@ -441,6 +441,41 @@ A collapsed nav has no width to argue about, so its edge is not a handle and
 the UPDATE and RESTART cards wait for it to be opened — neither has anywhere to
 put a sentence at seven columns.
 
+**What the rail says besides the panes.** A pane list is three rows, so a rail
+that held only one stood forty rows tall and said nothing on most of them. The
+readings that survive five columns are drawn along the BOTTOM of the column:
+the clock in full and the sky over your place, the three system readings as
+drawn capsules in the gauges' own tier colours (`C`, `M`, `D` — the number is
+what gives at this width; the shape and the colour are what you read), the two
+net rates in a rail-sized unit, and what git has to say — `● N` changed or a
+`✓`, with `↑↓` under it when the branch is not level.
+
+    ╭─ › ─╮
+    │▸1  ◓│
+    │ 2  ●│
+    │     │
+    │     │
+    │09:41│
+    │☁12° │
+    │     │
+    │C ▰▰▱│
+    │M ▰▰▱│
+    │D ▰▰▰│
+    │     │
+    │↓1.2M│
+    │↑4K  │
+    │     │
+    │● 9  │
+    │↑1   │
+    ╰─────╯
+
+It is anchored to the bottom, not stacked under the pane list: a reading that
+moves every time a pane opens is a reading you have to find again. A short
+column gives up the sky first, then the rates, then git, then the meters — the
+clock is what a rail with one row left still shows. Nothing is ever clipped
+into a smaller-looking number: a count that will not fit whole tightens (`● 9`
+to `●9`) and then says `●…` rather than draw its leading digits.
+
 **Resizing the sidebar.** Open it first, then drag its inner edge. The width was
 a figure in the
 Settings form and nowhere else; it is now also a handle, clamped to the same
