@@ -32,6 +32,10 @@ pub(crate) struct ContextLine {
     pub(crate) turns: usize,
     /// Non-blank lines of standing memory (user file + project file).
     pub(crate) notes: usize,
+    /// Whether plan-first is on for this session (`planfirst`): the run is
+    /// a draft whatever the task says, which is the most important thing the
+    /// line can tell you about what is ABOUT to happen.
+    pub(crate) plan_first: bool,
     /// The repo's own instruction files, by name (`AGENTS.md`), carried in
     /// front of every task. Named rather than counted: which file a rule
     /// came from is the thing you need to know to change it.
@@ -74,6 +78,7 @@ impl ContextLine {
             .map(|r| (r.turns, r.oldest_ms));
         ContextLine {
             recalled,
+            plan_first: crate::broker::planfirst::on(session),
             instructions: crate::broker::agentsmd::block()
                 .map(|(_, n)| n)
                 .unwrap_or_default(),
@@ -102,6 +107,9 @@ impl ContextLine {
                 plural(n, "turn"),
                 crate::broker::recall::ago_now(oldest_ms)
             ));
+        }
+        if self.plan_first {
+            parts.push("plan first".into());
         }
         if !self.instructions.is_empty() {
             parts.push(self.instructions.join(", "));

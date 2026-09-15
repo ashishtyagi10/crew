@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.30
+
+**Plan first, for a stretch of work.** Crew could already draft a plan and
+wait — "draft a plan for …" routes to the plan gate, which holds until you say
+approve — but it was a PER-MESSAGE phrasing. On a run of related tasks you had
+to remember to ask for it every single time, and the one you forgot was the
+one that edited four files. Claude Code puts this on shift-tab and Codex on a
+mode flag; both are answering the same want: think before you touch anything,
+for a while, not for one message.
+
+Say **"plan first"** (or "plan mode") and every plain task from then on is
+drafted and waits, however it was phrased; **"stop planning"** ends it.
+Nothing else changes — the same plan gate, the same approve and reject words,
+the same swarm running an approved plan.
+
+While the mode is on the classifier is not called at all: the shape is already
+decided, and asking a model to choose one it cannot have is a call for
+nothing. The routing line says `routing: plan — plan first is on`, so a forced
+plan never reads as the model's own idea, and the `context:` line carries
+`plan first` for as long as it lasts. Both switches are matched exactly and
+before any model call, so "plan first, then write the migration" is still a
+task.
+
 ## 0.22.29
 
 **The `all` variants are arguments now, not names.** `/clear`, `/clearall`,

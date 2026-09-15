@@ -2163,6 +2163,19 @@ and a typo gets a **did-you-mean** suggestion):
   "drop it" — discards it. The verdict words are matched exactly, before
   any model call, so a misrouted message can never run or drop a plan; any
   other message leaves the draft pending on the session.
+- **plan first, for a stretch of work** — say **“plan first”** (or “plan
+  mode”) and every plain task from then on is drafted as a plan and waits for
+  your “approve”, however it was phrased; **“stop planning”** ends the mode.
+  Claude Code puts this on shift-tab and Codex on a mode flag, and both are
+  answering the same want: think before you touch anything, for a run of
+  related tasks rather than for one message. Crew had the shape already (“draft
+  a plan for …”) but it was per-message, so the one you forgot to ask for was
+  the one that edited four files. While the mode is on the classifier is not
+  called at all — the shape is already decided — and the routing line says
+  `routing: plan — plan first is on` so a forced plan never looks like the
+  model's own idea. The `context:` line carries `plan first` for as long as it
+  lasts. Both switches are matched EXACTLY, before any model call: “plan first,
+  then write the migration” is a task.
 - **automatic checkpoints** — Cline-style workspace snapshot before every task
   that can change files: the working
   tree (tracked + untracked, `.gitignore` respected) is committed through a

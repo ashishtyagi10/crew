@@ -47,6 +47,10 @@ pub(crate) struct Session {
     /// The commit message `/commit` drafted, awaiting `/commit apply` —
     /// shared for the same worker-vs-inline reason as the plan.
     pub commit: super::gitmsg::SharedCommit,
+    /// Plan-first mode (`planfirst`): while it is set every plain task is
+    /// drafted as a plan and waits. Shared, since the task that reads it runs
+    /// on a worker and the word that set it arrived on another.
+    pub plan_first: super::planfirst::SharedPlanFirst,
     /// The undo crew offered and is waiting on a word for (`undo`) — shared,
     /// because the offer is made on the worker that answered the request and
     /// the confirm arrives on the next one.
@@ -99,6 +103,7 @@ impl Default for Session {
             lsp: Arc::new(Mutex::new(crate::lsp::LspHost::from_config())),
             plan: Arc::new(Mutex::new(None)),
             commit: Arc::new(Mutex::new(None)),
+            plan_first: Arc::new(AtomicBool::new(false)),
             undo: Arc::new(Mutex::new(None)),
             resume: Arc::new(Mutex::new(None)),
             thread: Arc::new(Mutex::new(super::thread::Thread::default())),
@@ -134,6 +139,7 @@ impl Session {
             lsp: Arc::clone(&self.lsp),
             plan: Arc::clone(&self.plan),
             commit: Arc::clone(&self.commit),
+            plan_first: Arc::clone(&self.plan_first),
             undo: Arc::clone(&self.undo),
             resume: Arc::clone(&self.resume),
             thread: Arc::clone(&self.thread),
