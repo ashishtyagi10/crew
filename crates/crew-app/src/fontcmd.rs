@@ -99,28 +99,48 @@ impl CrewApp {
             .or_else(|| self.config.font_family.clone())
     }
 
-    /// The first family in `prefs` that is actually installed.
+    /// The installed family answering the first entry in `prefs` the machine
+    /// has, matched by TYPEFACE rather than by exact name.
     ///
     /// Themes state a preference, not a font: a family that isn't installed
     /// makes fontdb substitute a proportional face and cell rounding then
     /// mangles every glyph. `None` = none of them are here, and the caller
     /// must leave the font alone rather than guess.
+    ///
+    /// Matching by key is what keeps that promise now the pool holds one
+    /// spelling per typeface (`fontlist::one_per_typeface`). A machine with
+    /// `Lilex Nerd Font` installed lists it INSTEAD of plain `Lilex` — and
+    /// every preference list ends in plain `Lilex`, the face crew embeds, so
+    /// an exact match would have resolved nothing there and left the theme's
+    /// font unset on exactly the machines that had the better copy.
     pub(crate) fn resolve_family(&mut self, prefs: &[&str]) -> Option<String> {
         let pool = self.font_pool();
-        prefs
-            .iter()
-            .find(|want| pool.iter().any(|have| have == *want))
-            .map(|s| s.to_string())
+        prefs.iter().find_map(|want| {
+            let key = crew_theme::typeface_key(want);
+            pool.iter()
+                .find(|have| crew_theme::typeface_key(have) == key)
+                .cloned()
+        })
     }
 }
 
-/// Keep only families in [`crew_theme::FONT_ALLOWLIST`]. If a machine has none
-/// of them installed, fall back to the full set so the app still has a font
-/// rather than none at all.
-fn allowed_pool(installed: Vec<String>) -> Vec<String> {
+/// Keep only the typefaces in [`crew_theme::FONT_ALLOWLIST`]. If a machine has
+/// none of them installed, fall back to the full set so the app still has a
+/// font rather than none at all.
+///
+/// Matched by [`crew_theme::typeface_key`], not by exact name: the allowlist
+/// names one spelling per face and the machine offers whichever it has, so
+/// `Comic Mono` on the list answers for an installed `ComicMono Nerd Font
+/// Mono`. Spelled-out matching meant a face was in the pool only under the
+/// names somebody had remembered to write down.
+pub(crate) fn allowed_pool(installed: Vec<String>) -> Vec<String> {
+    let keys: Vec<String> = crew_theme::FONT_ALLOWLIST
+        .iter()
+        .map(|f| crew_theme::typeface_key(f))
+        .collect();
     let allowed: Vec<String> = installed
         .iter()
-        .filter(|f| crew_theme::FONT_ALLOWLIST.contains(&f.as_str()))
+        .filter(|f| keys.contains(&crew_theme::typeface_key(f)))
         .cloned()
         .collect();
     if allowed.is_empty() {

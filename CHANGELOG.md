@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.44
+
+**One row per typeface.** The font picker listed this machine's JetBrains Mono
+four times — `JetBrainsMono NF`, `JetBrainsMono NFM`, `JetBrainsMono Nerd Font`
+and `JetBrainsMono Nerd Font Mono` — plus FiraCode twice, RobotoMono twice, and
+`.SF NS Mono`, which is macOS's private copy of a face you already have by
+name. Twenty-one rows for fifteen fonts.
+
+The list now offers each typeface once, under its best spelling: the
+icon-bearing `Nerd Font Mono` build where the machine has one, since its marks
+are a single cell wide and this is a cell grid. Private OS faces (any family
+whose name starts with a dot — macOS hides them from every font menu it draws)
+are gone. That one list feeds the `/settings` picker, `crew --list-fonts` and
+the `/font` rotation pool alike.
+
+**And the allowlist stopped spelling things out.** `FONT_ALLOWLIST` carried
+every variant by hand — five JetBrains entries, three Comic Mono, three
+FiraCode — which meant a face was reachable only in the spellings somebody had
+thought to write down. It names one canonical spelling per typeface now (30
+entries down to 18) and is matched by `typeface_key`, so `Comic Mono` on the
+list answers for an installed `ComicMono Nerd Font Mono`. Theme preference
+lists resolve the same way, which let the CRT themes drop the `Lilex Nerd Font`
+alias they carried purely to avoid leading with the embedded `Lilex` — the same
+face, written twice.
+
+That last change fixed a bug the collapsing would otherwise have introduced: a
+machine with `Lilex Nerd Font` installed no longer lists plain `Lilex`, and
+every preference list ends in plain `Lilex`, so an exact-name match would have
+resolved nothing on exactly the machines with the better copy.
+
 ## 0.22.43
 
 **Six favourite faces, and the rotation now leans on them.** Comic Mono,

@@ -27,23 +27,49 @@ pub const FAVORITES: &[&str] = &[
 pub const FAVORITE_WEIGHT: usize = 3;
 
 /// One key per TYPEFACE, however it is spelled: lowercased with the `nerd`,
-/// `font`, `nf` and `mono` decorations and every separator removed.
+/// `font`, `nfm`, `nf` and `mono` decorations and every separator removed.
 ///
-/// `JetBrains Mono`, `JetBrainsMono NF` and `JetBrainsMono Nerd Font Mono` are
-/// one face installed three ways, and a machine can carry all three. Counted
-/// as three families they take three times the tickets in a weighted rotation,
-/// and — worse — the rotation "changes" the font to a spelling of the face
-/// already on screen, which looks exactly like a rotation that did nothing.
+/// `JetBrains Mono`, `JetBrainsMono NF`, `JetBrainsMono NFM` and
+/// `JetBrainsMono Nerd Font Mono` are one face installed four ways, and this
+/// machine carries all four. Listed as four families they fill the picker with
+/// rows that change nothing, take four times the tickets in a weighted
+/// rotation, and let the rotation "change" the font to the face already on
+/// screen. `nfm` is stripped before `nf` — taking `nf` out of `nfm` leaves a
+/// stray `m` and a key that matches nothing.
 ///
 /// `MonoLisa` keys as `lisa` and `Cascadia Mono` as `cascadia`, which are
 /// unlovely but unique, and unique is the whole requirement.
 pub fn typeface_key(family: &str) -> String {
     let mut k = family.to_ascii_lowercase();
-    for word in ["nerd", "font", "nf", "mono"] {
+    for word in ["nerd", "font", "nfm", "nf", "mono"] {
         k = k.replace(word, "");
     }
     k.retain(|c| c.is_ascii_alphanumeric());
     k
+}
+
+/// How wanted one SPELLING of a typeface is, when a machine has several.
+///
+/// The icon-bearing builds win — a Nerd Font spelling is the same outlines
+/// plus the glyphs crew's marks are drawn from — and among those the `Mono`
+/// build, whose icons are one cell wide, which is what a cell grid wants. The
+/// written-out name beats the abbreviation at equal rank, since this is what
+/// the status line says out loud when the font changes.
+pub fn spelling_rank(family: &str) -> u8 {
+    let f = family.to_ascii_lowercase();
+    let nerd = f.contains("nerd font");
+    match (
+        nerd,
+        f.ends_with("mono"),
+        f.ends_with(" nfm"),
+        f.ends_with(" nf"),
+    ) {
+        (true, true, _, _) => 4,
+        (_, _, true, _) => 3,
+        (true, false, _, _) => 2,
+        (_, _, _, true) => 1,
+        _ => 0,
+    }
 }
 
 /// Whether `family` is one of the [`FAVORITES`], in any spelling.

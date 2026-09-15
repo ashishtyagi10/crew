@@ -685,12 +685,17 @@ The docked command bar supports:
   run it again to stop and return to the pinned family. Rotation only ever
   touches the live renderer, never the pinned `font_family` in Settings, and
   a manual family pick there also turns rotation back off.
-  The rotation moves between TYPEFACES, not spellings: a machine with
-  `JetBrainsMono Nerd Font` and `JetBrainsMono Nerd Font Mono` installed has one
-  face under two names, and swapping one for the other announced a new font and
-  changed nothing on the page. One face, one ticket — and the icon-bearing
-  `Nerd Font Mono` spelling is the one asked for, since its marks are one cell
-  wide. **Favourites** (`crew-theme`'s `FAVORITES`: Comic Mono, JetBrains Mono,
+  Everything here speaks in TYPEFACES, not spellings. A machine can carry
+  `JetBrainsMono NF`, `JetBrainsMono NFM`, `JetBrainsMono Nerd Font` and
+  `JetBrainsMono Nerd Font Mono` — one face under four names, which filled the
+  picker with rows that changed nothing, took four tickets in the rotation, and
+  let the rotation "change" the font to the face already on screen. The family
+  list now offers each typeface once, under its best spelling (the icon-bearing
+  `Nerd Font Mono` build where there is one, since its marks are one cell wide),
+  and hides the OS's own private faces (`.SF NS Mono`). `FONT_ALLOWLIST` names
+  one canonical spelling per face and is matched by key, so `Comic Mono` on the
+  list answers for an installed `ComicMono Nerd Font Mono`; theme preference
+  lists are matched the same way. **Favourites** (`crew-theme`'s `FAVORITES`: Comic Mono, JetBrains Mono,
   SF Mono, IBM Plex Mono, MonoLisa, Lilex) get three tickets instead of one, so
   they come up about three times as often without retiring the rest of the
   pool. Every theme also LEADS with one of them, which is what decides the face

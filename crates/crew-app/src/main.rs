@@ -224,6 +224,9 @@ mod fileindex;
 mod findhl;
 mod focusmode;
 mod fontcmd;
+#[cfg(test)]
+#[path = "fontpool_tests.rs"]
+mod fontpool_tests;
 mod fontrotate;
 mod fonttick;
 #[cfg(test)]
