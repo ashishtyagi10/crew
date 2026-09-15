@@ -54,3 +54,82 @@ fn proportional_and_symbol_noise_is_excluded() {
         );
     }
 }
+
+#[test]
+fn one_typeface_takes_one_row_however_many_names_it_is_installed_under() {
+    let names = one_per_typeface(
+        [
+            "JetBrainsMono NF",
+            "JetBrainsMono NFM",
+            "JetBrainsMono Nerd Font",
+            "JetBrainsMono Nerd Font Mono",
+            "FiraCode Nerd Font",
+            "FiraCode Nerd Font Mono",
+            "MonoLisa",
+        ]
+        .map(String::from)
+        .to_vec(),
+    );
+    assert_eq!(
+        names,
+        vec![
+            "FiraCode Nerd Font Mono".to_string(),
+            "JetBrainsMono Nerd Font Mono".to_string(),
+            "MonoLisa".to_string(),
+        ],
+        "four JetBrains rows and two FiraCode rows are three faces"
+    );
+}
+
+#[test]
+fn the_row_that_survives_is_the_icon_bearing_one() {
+    // A Nerd Font Mono build is the same outlines plus one-cell marks, so it
+    // is the name worth offering when the machine has both.
+    for (names, want) in [
+        (vec!["Lilex", "Lilex Nerd Font"], "Lilex Nerd Font"),
+        (
+            vec!["Comic Mono", "ComicMono Nerd Font Mono"],
+            "ComicMono Nerd Font Mono",
+        ),
+        (vec!["IBM Plex Mono"], "IBM Plex Mono"),
+    ] {
+        let got = one_per_typeface(names.iter().map(|s| s.to_string()).collect());
+        assert_eq!(got, vec![want.to_string()], "from {names:?}");
+    }
+}
+
+#[test]
+fn two_unrelated_faces_are_never_folded_into_one_row() {
+    let names = [
+        "Cascadia Code",
+        "Cascadia Mono",
+        "Geist Mono",
+        "Google Sans Code",
+        "IBM Plex Mono",
+        "Menlo",
+        "MonoLisa",
+        "Operator Mono",
+        "SF Mono",
+    ]
+    .map(String::from)
+    .to_vec();
+    assert_eq!(
+        one_per_typeface(names.clone()).len(),
+        names.len(),
+        "a distinct face was swallowed"
+    );
+}
+
+#[test]
+fn the_os_private_faces_are_not_offered() {
+    // macOS hides `.SF NS Mono` from every font menu it draws: it is the
+    // system's own copy, and the user already has SF Mono by name.
+    assert!(is_private(".SF NS Mono"));
+    assert!(!is_private("SF Mono"));
+    let mut fs = crate::embedfont::font_system();
+    let names = monospace_families(&mut fs);
+    assert!(
+        !names.iter().any(|n| n.starts_with('.')),
+        "a private system face was listed: {names:?}"
+    );
+}

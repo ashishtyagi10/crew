@@ -80,13 +80,40 @@ fn nothing_is_listed_after_the_embedded_family() {
 fn every_pref_is_in_the_allowlist() {
     // A theme must never auto-resolve to a face outside the curated
     // allowlist (that is how a stray Courier/typewriter face crept in).
+    //
+    // By TYPEFACE, as the pool itself is filtered: the allowlist names one
+    // spelling per face, and `Lilex Nerd Font` in a list is the allowlisted
+    // `Lilex` in the spelling a machine with the icon build would have it.
     for id in ALL_THEMES {
         for fam in font_prefs(id) {
             assert!(
-                FONT_ALLOWLIST.contains(fam),
+                FONT_ALLOWLIST
+                    .iter()
+                    .any(|a| crate::typeface_key(a) == crate::typeface_key(fam)),
                 "{id:?} lists {fam:?}, which is not in FONT_ALLOWLIST"
             );
         }
+    }
+}
+
+#[test]
+fn the_allowlist_names_each_typeface_once() {
+    // It used to carry every spelling by hand — `JetBrains Mono`,
+    // `JetBrainsMono NF`, `JetBrainsMono Nerd Font`, `…Nerd Font Mono` — which
+    // made a face reachable only in the spellings somebody had thought of, and
+    // gave it that many tickets in a weighted rotation. The match is by key
+    // now, so one name is the whole entry.
+    let mut keys: Vec<(String, &str)> = FONT_ALLOWLIST
+        .iter()
+        .map(|f| (crate::typeface_key(f), *f))
+        .collect();
+    keys.sort();
+    for pair in keys.windows(2) {
+        assert_ne!(
+            pair[0].0, pair[1].0,
+            "{:?} and {:?} are the same typeface listed twice",
+            pair[0].1, pair[1].1
+        );
     }
 }
 
@@ -124,7 +151,9 @@ fn allowlist_has_no_typewriter_or_legacy_system_faces() {
         "IntoneMono Nerd Font Mono",
     ] {
         assert!(
-            !FONT_ALLOWLIST.contains(&banned),
+            !FONT_ALLOWLIST
+                .iter()
+                .any(|f| crate::typeface_key(f) == crate::typeface_key(banned)),
             "{banned} must not be auto-selectable"
         );
     }
@@ -133,18 +162,19 @@ fn allowlist_has_no_typewriter_or_legacy_system_faces() {
 /// Menlo ships with macOS and earns its keep as the never-fail tail of a
 /// preference list, but it is a 2009 face — no theme should *lead* with
 /// it (nor with any other OS-stock fallback; leads are designer picks).
+///
+/// [`EMBEDDED_FAMILY`] used to be on this list too, on the reasoning that a
+/// face which always resolves would make every theme look alike if every
+/// theme led with it. That is what `theme_leads_are_diverse` measures
+/// directly, and the tubes *want* Lilex — they were leading with a
+/// `Lilex Nerd Font` alias purely to satisfy this assertion, which is the
+/// same face written twice.
 #[test]
 fn no_theme_leads_with_a_stock_fallback_face() {
     for id in ALL_THEMES {
         let lead = font_prefs(id)[0];
         assert!(
-            ![
-                "Menlo",
-                "Noto Sans Mono",
-                "DejaVu Sans Mono",
-                EMBEDDED_FAMILY
-            ]
-            .contains(&lead),
+            !["Menlo", "Noto Sans Mono", "DejaVu Sans Mono"].contains(&lead),
             "{id:?} leads with the fallback face {lead:?}"
         );
     }
@@ -152,9 +182,11 @@ fn no_theme_leads_with_a_stock_fallback_face() {
 
 #[test]
 fn no_list_repeats_a_family() {
+    // By typeface: two spellings of one face in a list are one preference
+    // stated twice, and the second can never be reached.
     for id in ALL_THEMES {
         let prefs = font_prefs(id);
-        let mut seen: Vec<&str> = prefs.to_vec();
+        let mut seen: Vec<String> = prefs.iter().map(|f| crate::typeface_key(f)).collect();
         seen.sort_unstable();
         let before = seen.len();
         seen.dedup();

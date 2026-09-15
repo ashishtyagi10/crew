@@ -16,7 +16,7 @@ use std::sync::Mutex;
 
 mod favorite;
 mod fonts;
-pub use favorite::{is_favorite, typeface_key, FAVORITES, FAVORITE_WEIGHT};
+pub use favorite::{is_favorite, spelling_rank, typeface_key, FAVORITES, FAVORITE_WEIGHT};
 pub use fonts::{font_prefs, EMBEDDED_FAMILY, FONT_ALLOWLIST};
 
 /// Every colour the UI draws with. RGB triples; `ansi` is the 16-slot terminal

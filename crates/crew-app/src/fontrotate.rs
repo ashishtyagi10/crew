@@ -79,22 +79,10 @@ pub(crate) fn pick(pool: &[String], current: Option<&str>, seed: u64) -> Option<
 }
 
 /// Whether `cand` is a better name to ask for than `held`, for one typeface.
-///
-/// The icon-bearing builds first — a Nerd Font spelling is the same face plus
-/// the glyphs crew's marks are drawn from — and the `Mono` build of those
-/// first of all, since its icons are one cell wide and this is a cell grid.
+/// The one rule ([`crew_theme::spelling_rank`]) the picker's own list is
+/// collapsed by, so the two can never prefer different names for one face.
 fn better_spelling(cand: &str, held: &str) -> bool {
-    rank(cand) > rank(held)
-}
-
-fn rank(family: &str) -> u8 {
-    let f = family.to_ascii_lowercase();
-    let nerd = f.contains("nerd font") || f.ends_with(" nf");
-    match (nerd, f.ends_with("mono")) {
-        (true, true) => 3,
-        (true, false) => 2,
-        (false, _) => 1,
-    }
+    crew_theme::spelling_rank(cand) > crew_theme::spelling_rank(held)
 }
 
 #[cfg(test)]

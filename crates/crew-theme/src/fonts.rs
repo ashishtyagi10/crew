@@ -47,9 +47,10 @@ pub const EMBEDDED_FAMILY: &str = "Lilex";
 /// The only monospace families crew will *auto*-select — both theme
 /// resolution (`font_prefs` below) and the `/font` rotation draw from this
 /// set, intersected with what's actually installed (see `crew-app`'s
-/// `font_pool`). It lists canonical names *and* the Nerd Font / installed
-/// variants people really have (`ComicMono Nerd Font Mono`, `JetBrainsMono
-/// NF`, …) so the intersection matches whichever spelling is present.
+/// `font_pool`). ONE canonical name per typeface: the intersection is taken by
+/// [`typeface_key`], so `Comic Mono` here answers for `ComicMono Nerd Font
+/// Mono` on the machine. It used to list every spelling by hand, which meant a
+/// face was reachable only in the spellings somebody had thought to add.
 ///
 /// Deliberately excludes typewriter/legacy faces (Courier, Courier New, PT
 /// Mono, Andale, Consolas, and pre-Retina Monaco — SF Mono is the modern
@@ -62,34 +63,22 @@ pub const EMBEDDED_FAMILY: &str = "Lilex";
 /// the safety net either ([`EMBEDDED_FAMILY`] is).
 pub const FONT_ALLOWLIST: &[&str] = &[
     "JetBrains Mono",
-    "JetBrainsMono NF",
-    "JetBrainsMono Nerd Font",
-    "JetBrainsMono Nerd Font Mono",
     "Menlo",
     "Berkeley Mono",
     "Cascadia Code",
     "Cascadia Mono",
     "Comic Mono",
-    "ComicMono Nerd Font Mono",
-    "ComicMono Nerd Font",
     "Commit Mono",
-    "CommitMono Nerd Font",
     "Fira Code",
-    "FiraCode Nerd Font",
-    "FiraCode Nerd Font Mono",
     "Geist Mono",
-    "GeistMono Nerd Font",
     "Google Sans Code",
     "IBM Plex Mono",
     "Lilex",
-    "Lilex Nerd Font",
     "Martian Mono",
     "MonoLisa",
     "Noto Sans Mono",
     "Operator Mono",
     "Roboto Mono",
-    "RobotoMono Nerd Font",
-    "RobotoMono Nerd Font Mono",
     "SF Mono",
 ];
 
@@ -104,13 +93,13 @@ pub const FONT_ALLOWLIST: &[&str] = &[
 /// of it (see the module docs). Every entry is in [`FONT_ALLOWLIST`].
 pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
     match id {
-        // Paper: a book face — humanist, generous counters. The icon-bearing
-        // spelling of a face always leads its plain one: same typeface, plus
-        // the glyphs crew's marks are drawn from.
+        // Paper: a book face — humanist, generous counters. Every list names
+        // typefaces, not spellings: `resolve_family` matches by
+        // `typeface_key`, and the pool holds the best installed spelling of
+        // each (the icon-bearing build where there is one).
         ThemeId::PaperDark | ThemeId::PaperLight => &[
             "MonoLisa",
             "IBM Plex Mono",
-            "ComicMono Nerd Font Mono",
             "Comic Mono",
             "SF Mono",
             "Menlo",
@@ -119,7 +108,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // Sepia: warm and typewritten — friendly rounded shapes suit it, so
         // this is where the Comic Mono lead lives on.
         ThemeId::SepiaDark | ThemeId::SepiaLight => &[
-            "ComicMono Nerd Font Mono",
             "Comic Mono",
             "IBM Plex Mono",
             "MonoLisa",
@@ -133,9 +121,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // which is the tie-breaker between it and Google's own. Google Sans
         // Code and Geist stay behind it.
         ThemeId::Nebula | ThemeId::Blossom => &[
-            "JetBrainsMono Nerd Font Mono",
-            "JetBrainsMono Nerd Font",
-            "JetBrainsMono NF",
             "JetBrains Mono",
             "SF Mono",
             "Google Sans Code",
@@ -162,10 +147,11 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // The light twins share their dark parents' faces — a palette flip
         // must not also change the typeface under the user.
         ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => &[
-            // The Nerd Font variant first: crew now *embeds* plain Lilex, so
-            // leading with it would mean the built-in copy always beat an
-            // installed icon-bearing one.
-            "Lilex Nerd Font",
+            // One entry, and it is the face crew embeds. That used to be
+            // spelled `["Lilex Nerd Font", "Lilex"]` so an installed icon
+            // build would beat the built-in copy — resolution matches by
+            // typeface now and the pool already holds the better spelling, so
+            // the second name was the same face written twice.
             "Lilex",
         ],
     }

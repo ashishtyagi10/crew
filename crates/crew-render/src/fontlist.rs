@@ -55,8 +55,41 @@ fn fixed_pitch_latin(font_system: &mut FontSystem, id: fontdb::ID, weight: fontd
     widths.all(|w| matches!(w, Some(x) if (x - first).abs() < 0.5))
 }
 
-/// Sorted, de-duplicated names of installed families that pass the policy:
-/// candidate by flag or name, verified fixed-pitch by measurement.
+/// Whether a family is one the OS keeps to itself. macOS names its private
+/// system faces with a leading dot (`.SF NS Mono`) and hides them from every
+/// font menu it draws; they are not a choice anyone made, and offering one is
+/// offering a second row for a face the user already has under its real name.
+pub(crate) fn is_private(name: &str) -> bool {
+    name.starts_with('.')
+}
+
+/// One entry per TYPEFACE, keeping the best spelling of it.
+///
+/// A machine can carry `JetBrainsMono NF`, `JetBrainsMono NFM`, `JetBrainsMono
+/// Nerd Font` and `JetBrainsMono Nerd Font Mono` — four names, one face, four
+/// rows in the picker that all do the same thing, and four tickets in the
+/// `/font` rotation for a face with no more claim than any other.
+/// `crew_theme::spelling_rank` decides which name survives.
+fn one_per_typeface(names: Vec<String>) -> Vec<String> {
+    let mut best: Vec<(String, String)> = Vec::new();
+    for name in names {
+        let key = crew_theme::typeface_key(&name);
+        match best.iter_mut().find(|(k, _)| *k == key) {
+            Some((_, held)) => {
+                if crew_theme::spelling_rank(&name) > crew_theme::spelling_rank(held) {
+                    *held = name;
+                }
+            }
+            None => best.push((key, name)),
+        }
+    }
+    let mut out: Vec<String> = best.into_iter().map(|(_, name)| name).collect();
+    out.sort();
+    out
+}
+
+/// Sorted names of the installed families that pass the policy: candidate by
+/// flag or name, verified fixed-pitch by measurement, one row per typeface.
 pub(crate) fn monospace_families(font_system: &mut FontSystem) -> Vec<String> {
     let mut cand: Vec<(String, fontdb::ID, fontdb::Weight)> = font_system
         .db()
@@ -65,14 +98,16 @@ pub(crate) fn monospace_families(font_system: &mut FontSystem) -> Vec<String> {
             let (mono, id, weight) = (f.monospaced, f.id, f.weight);
             f.families
                 .iter()
-                .filter(move |(name, _)| (mono || sounds_monospace(name)) && !is_blocked(name))
+                .filter(move |(name, _)| {
+                    (mono || sounds_monospace(name)) && !is_blocked(name) && !is_private(name)
+                })
                 .map(move |(name, _)| (name.clone(), id, weight))
         })
         .collect();
     cand.sort_by(|a, b| a.0.cmp(&b.0));
     cand.dedup_by(|a, b| a.0 == b.0);
     cand.retain(|(_, id, weight)| fixed_pitch_latin(font_system, *id, *weight));
-    cand.into_iter().map(|(name, _, _)| name).collect()
+    one_per_typeface(cand.into_iter().map(|(name, _, _)| name).collect())
 }
 
 #[cfg(test)]
