@@ -293,15 +293,12 @@ pub struct CrewApp {
     /// frame from the layout and handed to the renderer — transparency is for
     /// the canvas, not for the bar you type into.
     pub(crate) solid_chrome: Vec<[f32; 4]>,
+    /// The compositor has this window hidden: no frame is asked for until it
+    /// says otherwise (`WindowEvent::Occluded`).
+    pub(crate) occluded: bool,
 }
 
 impl CrewApp {
-    pub(crate) fn redraw(&self) {
-        if let Some(w) = &self.window {
-            w.request_redraw();
-        }
-    }
-
     /// The CRT style that should be active right now, if any: the user's
     /// `/crt` override if set, otherwise the active theme's own style (the
     /// phosphor themes each ship one). `/crt on` over a paper theme still

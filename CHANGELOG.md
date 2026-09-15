@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.40
+
+**The night crew ate 75 GB.** A self-improvement loop ran for ten hours in a
+crew pane with the display asleep, and by morning the app had grown past the
+machine's memory and taken the machine with it. The leak was one line of
+ordering in the frame path.
+
+Every frame uploads before it presents: four instance buffers in `set_scene`,
+glyphon's vertices in `prepare`. Handing the previous frame's buffers to wgpu
+does not free them — wgpu reclaims a dropped buffer when the device is next
+maintained, and the only thing that maintained it here was the `submit` at the
+bottom of the same function. A frame that bailed out in between freed nothing.
+
+Which is exactly what a sleeping display does. The surface answers `Occluded`
+or `Timeout` for hours while the panes below keep streaming and asking for
+redraws, and each of those frames allocated a fresh set of buffers that nothing
+would ever reclaim. Thousands of frames an hour, all night.
+
+So the surface is asked FIRST, before a single byte is uploaded: a frame that
+cannot be presented now costs one question and nothing else. And any path that
+returns without submitting drains the device itself (`PollType::Poll` — a
+check, never a wait, since the winit thread is every pane's thread). Two tests
+read the shape back off the source, because neither invariant can be exercised
+without turning a display off for a night.
+
+Crew also stops asking. A window the compositor has hidden — another window
+over it, a minimise, a display asleep — no longer drives layout and shaping for
+frames nobody can see; the first frame back is requested the moment it is
+visible again.
+
 ## 0.22.39
 
 **Crew knows when it has broken this way before.** Every check verdict has

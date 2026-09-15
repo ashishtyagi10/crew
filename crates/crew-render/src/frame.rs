@@ -35,6 +35,34 @@ pub(crate) fn render(
     wash_focus: ((f32, f32), f32),
     panes: &[PaneScene],
 ) {
+    // The surface is asked FIRST, before a single byte is uploaded.
+    //
+    // Everything below this line allocates on the GPU — four instance buffers
+    // in `set_scene`, glyphon's vertex upload in `prepare` — and hands last
+    // frame's buffers to wgpu's destruction queue. That queue is only drained
+    // when the device is maintained, and the only thing that maintains it on
+    // this path is the `submit` at the bottom. So a frame that allocated and
+    // then bailed out before submitting freed NOTHING.
+    //
+    // Which is exactly what a sleeping display does: the surface answers
+    // Occluded or Timeout for hours while the panes below keep streaming and
+    // asking for redraws, and every one of those frames used to allocate a
+    // fresh set of buffers that nothing would ever reclaim. One night of that
+    // took 75 GB and the machine with it.
+    let frame = match gpu.surface.get_current_texture() {
+        wgpu::CurrentSurfaceTexture::Success(t) => t,
+        wgpu::CurrentSurfaceTexture::Suboptimal(t) => t,
+        wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
+            return drain(gpu)
+        }
+        wgpu::CurrentSurfaceTexture::Outdated
+        | wgpu::CurrentSurfaceTexture::Lost
+        | wgpu::CurrentSurfaceTexture::Validation => {
+            eprintln!("surface lost/outdated/validation — skipping frame");
+            return drain(gpu);
+        }
+    };
+
     cell_grid.set_scene(gpu.device(), panes);
     cell_grid.prepare(
         gpu.device(),
@@ -42,18 +70,6 @@ pub(crate) fn render(
         gpu.config.width,
         gpu.config.height,
     );
-
-    let frame = match gpu.surface.get_current_texture() {
-        wgpu::CurrentSurfaceTexture::Success(t) => t,
-        wgpu::CurrentSurfaceTexture::Suboptimal(t) => t,
-        wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => return,
-        wgpu::CurrentSurfaceTexture::Outdated
-        | wgpu::CurrentSurfaceTexture::Lost
-        | wgpu::CurrentSurfaceTexture::Validation => {
-            eprintln!("surface lost/outdated/validation — skipping frame");
-            return;
-        }
-    };
 
     let view = frame.texture.create_view(&Default::default());
     let mut enc = gpu
@@ -151,6 +167,17 @@ pub(crate) fn render(
     frame.present();
 }
 
+/// Maintain the device on a path that will not submit.
+///
+/// wgpu reclaims a dropped buffer's memory when the device is maintained, and
+/// `Queue::submit` is what normally does it. A frame that returns early never
+/// submits, so it has to say so itself — otherwise the last frame's buffers
+/// (and every frame's before it) sit in the destruction queue for as long as
+/// the surface stays unavailable. Non-blocking: a single check, no wait.
+fn drain(gpu: &Gpu) {
+    let _ = gpu.device().poll(wgpu::PollType::Poll);
+}
+
 /// Encode the scene into `scene_view`. With CRT off this IS the whole frame
 /// — the original single-pass path drawing straight onto the surface.
 fn encode_scene(
@@ -197,3 +224,7 @@ fn encode_scene(
         solid.draw(&mut pass);
     }
 }
+
+#[cfg(test)]
+#[path = "frame_tests.rs"]
+mod tests;
