@@ -2316,6 +2316,11 @@ and a typo gets a **did-you-mean** suggestion):
   finds the turn that answered it a month ago. A turn already quoted from the
   thread is never quoted twice; a request about something the graph has never
   seen adds nothing at all, so a cold project sends byte-identical prompts.
+  The graph also learns which files **travel together**: after a task that
+  changed more than one file, those paths (up to six) are cross-linked, so a
+  later question about any one of them reaches the others. That is knowledge
+  the turn's TEXT does not carry — the model talks about one file and edits
+  three — and it is exactly what someone new to a tree cannot know.
   The log compacts itself (the oldest turns past 400 are dropped with their
   orphaned topics); `CREW_RECALL=0` turns the whole thing off — no read, no
   write; `/doctor` reports `recall: N turn(s), N topic(s), N file(s) in the

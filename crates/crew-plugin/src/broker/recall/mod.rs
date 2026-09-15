@@ -168,6 +168,11 @@ pub(crate) fn ahead(session: &crate::broker::session::Session, task: &str) -> St
     }
 }
 
+/// The files a task actually changed, cross-linked (see `ingest`).
+pub(crate) fn record_changes(r: &SharedRecall, paths: &[String]) {
+    lock(r).record_changes(paths);
+}
+
 /// The arms' one recording call: `None` (failed or cancelled) records nothing.
 pub(crate) fn record(r: &SharedRecall, asked: &str, answered: Option<&str>) {
     if let Some(a) = answered {

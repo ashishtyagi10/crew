@@ -55,6 +55,45 @@ impl Recall {
     }
 }
 
+/// Files a task changed, cross-linked so the graph knows they travel
+/// together.
+///
+/// A turn's TEXT names the files the model talked about; this names the ones
+/// it actually wrote. They are rarely the same list, and the difference is
+/// the useful part: after a task edits `nav.rs` and `linecap-debt.txt`, a
+/// later question about either one recalls the other, because in this project
+/// they change together — which is exactly the thing a newcomer to a tree
+/// (and a model starting a fresh session) has no way to know.
+impl Recall {
+    pub(crate) fn record_changes(&mut self, paths: &[String]) {
+        if !self.on || paths.len() < 2 {
+            return; // one file changing alone says nothing about any other
+        }
+        let now = now_ms();
+        let mut w = Writer::default();
+        let ids: Vec<NodeId> = paths
+            .iter()
+            .take(CHANGED_MAX)
+            .map(|p| w.node(self, Kind::File, p, p, now))
+            .collect();
+        for (i, a) in ids.iter().enumerate() {
+            for b in ids.iter().skip(i + 1) {
+                w.edge(self, *a, *b, Rel::With);
+            }
+        }
+        if let Some(turn) = self.prev {
+            for id in &ids {
+                w.edge(self, turn, *id, Rel::Mentions);
+            }
+        }
+        w.flush(self);
+    }
+}
+
+/// Files cross-linked per task. Six is fifteen edges; a sweeping refactor
+/// that touches forty files says nothing about any particular pair.
+const CHANGED_MAX: usize = 6;
+
 /// The lines one `record` will append, collected as it touches the graph.
 #[derive(Default)]
 struct Writer {

@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.32
+
+**The graph learns which files travel together.** A turn's text names the
+files the model TALKED about; the checkpoint diff names the ones it actually
+wrote, and they are rarely the same list. The difference is the useful part:
+in this tree `nav.rs` and `line-cap-debt.txt` change together, `session.rs`
+and every snapshot test change together, and nothing in any transcript says
+so.
+
+After a task that changed more than one file, those paths (up to six, so a
+sweeping rename does not cross-link forty things) are joined in the recall
+graph. A later question about any one of them reaches the others — through
+the same two-hop walk everything else uses — and the `files that came up`
+line starts naming the file you were about to forget.
+
+One file changing alone still says nothing about any other, and none of this
+costs a model call: it is the diff crew already computed to tell you what
+changed.
+
 ## 0.22.31
 
 **"What do you remember about the router?" — answered by crew, not by a

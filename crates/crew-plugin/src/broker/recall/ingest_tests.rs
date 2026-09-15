@@ -93,3 +93,37 @@ fn only_what_changed_is_appended_not_the_whole_graph() {
     assert_eq!(store::load(&store::path_at(&dir)).count(Kind::Turn), 6);
     std::fs::remove_dir_all(&dir).ok();
 }
+
+#[test]
+fn files_changed_by_one_task_reach_each_other_afterwards() {
+    let mut r = Recall::default();
+    r.record("fix the ratchet", "done");
+    r.record_changes(&[
+        "crates/crew-app/src/nav.rs".into(),
+        "crates/crew-app/line-cap-debt.txt".into(),
+    ]);
+    // Asking about one file's path should now reach the other, which no
+    // amount of reading the turn's TEXT could have told us.
+    let block = r
+        .context("what else changes with crates/crew-app/src/nav.rs", &[])
+        .expect("a recall");
+    assert!(block.contains("line-cap-debt.txt"), "{block}");
+}
+
+#[test]
+fn one_file_changing_alone_says_nothing_about_any_other() {
+    let mut r = Recall::default();
+    r.record("a task", "done");
+    let before = r.stats().2;
+    r.record_changes(&["src/only.rs".into()]);
+    assert_eq!(r.stats().2, before, "a lone file was filed as a co-change");
+}
+
+#[test]
+fn a_sweeping_refactor_does_not_cross_link_everything_it_touched() {
+    let mut r = Recall::default();
+    r.record("rename everything", "done");
+    let many: Vec<String> = (0..40).map(|i| format!("src/f{i}.rs")).collect();
+    r.record_changes(&many);
+    assert_eq!(r.stats().2, CHANGED_MAX, "the cap did not hold");
+}
