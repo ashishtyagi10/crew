@@ -45,6 +45,7 @@ mod memory;
 mod modelcmd;
 mod modelpick;
 mod normalize;
+mod opening;
 mod plan;
 mod planfirst;
 mod plugins;

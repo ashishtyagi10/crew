@@ -87,6 +87,12 @@ impl Recall {
         self.recalled(task, skip).map(|r| r.text)
     }
 
+    /// The newest remembered turn whose request starts with `prefix`, and
+    /// how long ago it landed — what a pane opening asks of memory.
+    pub(crate) fn latest(&self, prefix: &str) -> Option<(String, u64)> {
+        self.on.then(|| query::latest(&self.g, prefix)).flatten()
+    }
+
     /// `(turns, topics, files)` — `/doctor`'s counts.
     pub(crate) fn stats(&self) -> (usize, usize, usize) {
         (
