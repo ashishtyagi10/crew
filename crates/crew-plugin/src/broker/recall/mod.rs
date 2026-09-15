@@ -24,6 +24,7 @@ mod graph;
 mod ingest;
 mod node;
 mod query;
+mod repeats;
 mod store;
 
 pub(crate) use block::{Recalled, RECALL_CAP};
@@ -158,6 +159,22 @@ pub(crate) fn ahead(session: &crate::broker::session::Session, task: &str) -> St
 /// The files a task actually changed, cross-linked (see `ingest`).
 pub(crate) fn record_changes(r: &SharedRecall, paths: &[String]) {
     lock(r).record_changes(paths);
+}
+
+/// Has this check broken this way before? The sentence the pane says and the
+/// repair pass is handed, or `None` the first time — a repeat is worth a line,
+/// a first failure is already fully described by the failure itself.
+pub(crate) fn seen_failing(r: &SharedRecall, cmd: &str, output: &str) -> Option<String> {
+    let g = lock(r);
+    let p = g.seen_failing(cmd, output)?;
+    let ago = block::ago(p.last_ms, now_ms());
+    Some(repeats::sentence(&p, &ago))
+}
+
+/// What the check stores about a failure: the same digest the repeat lookup
+/// compares, so what is written and what is matched can never drift apart.
+pub(crate) fn failure_digest(output: &str) -> String {
+    repeats::digest(output)
 }
 
 /// The arms' one recording call: `None` (failed or cancelled) records nothing.

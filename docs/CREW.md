@@ -2211,6 +2211,16 @@ and a typo gets a **did-you-mean** suggestion):
   `Cargo.toml`, a `package.json`, a `Makefile`) it says so once and leaves the
   choice alone. Each result is also written to the recall graph, so "the tests
   fail on this" survives the session that found out.
+  **And a failure crew has met before says so.** Because every verdict is in
+  the graph, a break can be compared against the ones that came before it: two
+  failures are the same failure when their first lines match with the numbers
+  taken out (a line number moves with every edit above it; the error does
+  not). On a repeat the failure carries one more line —
+  `seen before: this check failed the same way 2d ago — the 3rd time, last in
+  crates/crew-app/src/nav.rs` — and the same sentence rides into the repair
+  pass, so it starts from where the project broke last time instead of from
+  nothing. A first failure says nothing extra: it is already fully described
+  by itself. `CREW_RECALL=0` turns the memory, and this with it, off.
 - **automatic checkpoints** — Cline-style workspace snapshot before every task
   that can change files: the working
   tree (tracked + untracked, `.gitignore` respected) is committed through a

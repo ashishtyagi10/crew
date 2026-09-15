@@ -5,6 +5,7 @@
 //! carries, the counts the pane says, the newest turn a pane opening quotes,
 //! the files the router is told about. Same module tree, so the private
 //! fields are still in reach.
+use super::repeats::{self, Prior, PRIOR_FILES};
 use super::{block, now_ms, query, Recall, Recalled, RECALL_CAP};
 
 /// Files named in the router's world line. Two is a hint; the whole list
@@ -30,6 +31,14 @@ impl Recall {
     /// how long ago it landed — what a pane opening asks of memory.
     pub(crate) fn latest(&self, prefix: &str) -> Option<(String, u64)> {
         self.on.then(|| query::latest(&self.g, prefix)).flatten()
+    }
+
+    /// An earlier failure of `cmd` with this output. Off means no memory at
+    /// all, so a silenced graph cannot claim to have seen anything.
+    pub(crate) fn seen_failing(&self, cmd: &str, output: &str) -> Option<Prior> {
+        self.on
+            .then(|| repeats::prior(&self.g, cmd, output, PRIOR_FILES))
+            .flatten()
     }
 
     /// The files `task` activates, strongest first — the router's world.

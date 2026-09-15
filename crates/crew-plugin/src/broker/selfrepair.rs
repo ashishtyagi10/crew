@@ -43,6 +43,7 @@ pub(crate) fn take_one_pass(
     session: &Session,
     cmd: &str,
     o: &Outcome,
+    seen: Option<&str>,
     repair: Repair<'_>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
@@ -53,7 +54,7 @@ pub(crate) fn take_one_pass(
         "agent smith",
         "taking one pass at it \u{2014} say \u{201c}don't fix it yourself\u{201d} to stop this",
     ))?;
-    let asked = repair(&repair_task(cmd, o));
+    let asked = repair(&repair_task(cmd, o, seen));
     let after = outcome(run(cmd));
     session.repairing.store(false, Ordering::Relaxed);
     asked?;
@@ -68,11 +69,15 @@ pub(crate) fn take_one_pass(
 
 /// The prompt the repair pass gets: the command, what it said, and the one
 /// instruction that keeps the pass honest.
-pub(crate) fn repair_task(cmd: &str, o: &Outcome) -> String {
+pub(crate) fn repair_task(cmd: &str, o: &Outcome, seen: Option<&str>) -> String {
     let head: Vec<&str> = o.text.lines().take(REPAIR_LINES).collect();
+    // The repeat goes in the prompt, not just the pane: a pass that knows the
+    // project has broken this way before — and where it was last time — is
+    // the whole reason the graph holds the verdicts at all.
+    let memory = seen.map_or(String::new(), |s| format!("\n\nWhat crew remembers: {s}."));
     format!(
         "The project's own check failed after the change you just made.\n\n\
-         Command: {cmd}\nOutput:\n{}\n\n\
+         Command: {cmd}\nOutput:\n{}{memory}\n\n\
          Fix the cause. Change as little as possible, do not weaken or delete \
          the check itself, and do not commit anything.",
         head.join("\n")

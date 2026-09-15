@@ -92,6 +92,15 @@ pub(crate) fn line(cmd: &str, o: &Outcome) -> String {
     format!("check: {cmd} \u{2014} FAILED\n{}", head.join("\n"))
 }
 
+/// The whole verdict: how the run went, and — only on a repeat — what the
+/// graph remembers about the last time it went that way.
+pub(crate) fn said(cmd: &str, o: &Outcome, seen: Option<&str>) -> String {
+    match seen {
+        Some(s) => format!("{}\n{s}", line(cmd, o)),
+        None => line(cmd, o),
+    }
+}
+
 /// The one-time note, when there is a command to suggest and none declared.
 pub(crate) fn note(cmd: &str) -> String {
     format!(
@@ -124,6 +133,12 @@ pub(crate) fn after_task(
         };
     };
     let o = outcome(run(&cmd));
+    // Asked BEFORE the verdict is written, or this failure would find itself
+    // in the graph and report that it has happened before.
+    let seen = match o.ok {
+        true => None,
+        false => super::recall::seen_failing(&session.recall, &cmd, &o.text),
+    };
     // What the check said, into the graph: "the tests fail on this" is a
     // fact about this project, and the next session should not have to
     // rediscover it.
@@ -132,18 +147,15 @@ pub(crate) fn after_task(
         &format!("check: {cmd}"),
         Some(match o.ok {
             true => "passed".to_string(),
-            false => format!(
-                "failed: {}",
-                o.text.lines().take(2).collect::<Vec<_>>().join(" ")
-            ),
+            false => format!("failed: {}", super::recall::failure_digest(&o.text)),
         })
         .as_deref(),
     );
-    emit(msg("agent smith", line(&cmd, &o)))?;
+    emit(msg("agent smith", said(&cmd, &o, seen.as_deref())))?;
     if o.ok {
         return Ok(());
     }
-    super::selfrepair::take_one_pass(session, &cmd, &o, repair, emit)
+    super::selfrepair::take_one_pass(session, &cmd, &o, seen.as_deref(), repair, emit)
 }
 
 #[cfg(unix)]

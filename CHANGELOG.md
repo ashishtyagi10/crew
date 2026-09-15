@@ -8,6 +8,33 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.39
+
+**Crew knows when it has broken this way before.** Every check verdict has
+been going into the recall graph since 0.22.33, and nothing ever read them
+back. So the fifth time a project failed on the same missing import, crew
+reported it exactly as it had reported the first — the same six lines, no
+sense at all that this was a rut rather than news.
+
+A failing check is now compared against the ones already on disk. Two failures
+are the same failure when their first lines match with the numbers taken out,
+because a line number moves with every edit above it while the error does not.
+On a repeat the verdict carries one more line:
+
+    check: cargo test --workspace — FAILED
+    error[E0432]: unresolved import `crate::route::plan`
+    seen before: this check failed the same way 2d ago — the 3rd time, last in
+    crates/crew-plugin/src/broker/route.rs
+
+and the same sentence goes into the repair pass's prompt, so the one pass crew
+takes at its own breakage starts from where the project broke last time
+instead of from nothing.
+
+A first failure says nothing extra — it is already fully described by itself —
+and a cold graph, or `CREW_RECALL=0`, costs not one comparison. The idea is
+Cline's and Codex's test step grown a memory: the interesting fact about a
+broken build is rarely the error, it is whether you have been here before.
+
 ## 0.22.38
 
 **The router knows whether it has been here before.** The recall graph rode in

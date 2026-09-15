@@ -92,3 +92,23 @@ fn the_tip_is_said_once_and_only_when_it_can_name_the_command() {
     assert!(note("cargo check --workspace").contains(".crew/check"));
     assert!(note("cargo check --workspace").contains("cargo check --workspace"));
 }
+
+#[test]
+fn the_repeat_is_one_extra_line_under_the_failure_and_nothing_when_it_is_new() {
+    let o = outcome(Ok("exit 1\nerror[E0308]: mismatched types\n".into()));
+    let alone = said("cargo check", &o, None);
+    assert_eq!(alone, line("cargo check", &o), "a new failure said more");
+    let repeat = said("cargo check", &o, Some("seen before: twice now"));
+    assert_eq!(
+        repeat.lines().count(),
+        alone.lines().count() + 1,
+        "the repeat cost more than its one line: {repeat}"
+    );
+    assert!(repeat.ends_with("seen before: twice now"), "{repeat}");
+}
+
+#[test]
+fn a_pass_is_never_told_it_has_been_seen_before() {
+    let o = outcome(Ok("exit 0\n".into()));
+    assert_eq!(said("cargo check", &o, None), "check: cargo check — passed");
+}
