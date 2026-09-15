@@ -46,6 +46,7 @@ mod modelpick;
 mod normalize;
 mod plan;
 mod plugins;
+mod recall;
 mod registry;
 mod relay;
 mod retired;

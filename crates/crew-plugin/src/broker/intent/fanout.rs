@@ -55,10 +55,11 @@ pub(crate) fn fan_recorded(
     tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    let body = crate::broker::thread::with_context(&session.thread, task);
+    let body = crate::broker::recall::ahead(session, task);
     let timeout = crate::broker::session::call_timeout();
     let replies = crate::broker::fan::fan_out(reg, names, &body, timeout, tick_emit, emit)?;
     let answer = crate::broker::thread::combined(replies).filter(|_| !session.cancelled());
+    crate::broker::recall::record(&session.recall, task, answer.as_deref());
     crate::broker::thread::record(&session.thread, task, answer);
     Ok(())
 }

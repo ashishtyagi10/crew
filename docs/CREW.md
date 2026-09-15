@@ -2260,6 +2260,25 @@ and a typo gets a **did-you-mean** suggestion):
   to tell a follow-up from a fresh request. Failed and stopped turns are not
   kept; bare `/stop` or a broker restart clears it (the session log above
   remains the durable record); `/doctor` reports `thread: N turns remembered`.
+- **crew remembers the projects it worked on** — also no command: every
+  finished turn is written into a **recall graph** on disk
+  (`./.crew/recall.jsonl`, project-scoped like the session log) as a node
+  joined to the topics and file paths that turn was about — an embedded,
+  append-only graph store replayed into memory when the pane opens, with no
+  server and no new dependency. The next request walks those joins (two hops,
+  spreading activation) and carries back the two or three earlier turns that
+  bear on it as a `From earlier work in this project:` block (1 KB), newest
+  first, each line stamped `3d ago`, with the files that came up on a trailing
+  line. Unlike the thread above it survives a restart and reaches back to
+  every session ever run in that tree, and unlike the session log it is
+  ordered by RELEVANCE, not by time — "why did we make the router re-plan?"
+  finds the turn that answered it a month ago. A turn already quoted from the
+  thread is never quoted twice; a request about something the graph has never
+  seen adds nothing at all, so a cold project sends byte-identical prompts.
+  The log compacts itself (the oldest turns past 400 are dropped with their
+  orphaned topics); `CREW_RECALL=0` turns the whole thing off — no read, no
+  write; `/doctor` reports `recall: N turn(s), N topic(s), N file(s) in the
+  recall graph`.
 - **`/export`** — write the pane's transcript to
   `crew-transcript-<stamp>.md` in the working directory (à la OpenCode),
   one `## sender · time · latency` section per message. The transcript folds

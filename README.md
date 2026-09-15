@@ -550,6 +550,14 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew):
   appends to `./.crew/memory.md`, and every task from then on carries the
   merged memory (user + project files, 2 KB cap) as a standing block the
   agents follow; ask "what do you remember?" to see it.
+- **Recall graph** — what the pane learned in earlier sessions, without a
+  command and without an index step. Every finished turn is written to
+  `./.crew/recall.jsonl` as a node joined to the topics and files it was
+  about (an embedded append-only graph store — no server, no new dependency),
+  and the next request walks those joins to carry back the earlier turns that
+  bear on it: `From earlier work in this project: - 3d ago — you asked …`.
+  Relevance, not recency, so a month-old answer comes back when it is the one
+  that fits; `CREW_RECALL=0` turns it off.
 - **Skills** — markdown prompt playbooks in `~/.config/crew/skills/` or
   `./.crew/skills/` (optional `name:`/`description:` frontmatter; project
   overrides user). A skill can also be a **directory with a `SKILL.md`** plus

@@ -50,6 +50,8 @@ pub(crate) struct DoctorInputs {
     pub budget: usize,
     /// Recent turns the pane's thread holds for a follow-up (`thread.rs`).
     pub thread_turns: usize,
+    /// `(turns, topics, files)` in the recall graph on disk (`recall/`).
+    pub recall: (usize, usize, usize),
 }
 
 /// One report line: `✓` when healthy, `✗` when broken, `–` for "absent but
@@ -169,6 +171,8 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
     });
     let (mark, detail) = super::thread::doctor_line(i.thread_turns);
     out.push(line(mark, "thread", &detail));
+    let (mark, detail) = super::recall::doctor_line(i.recall.0, i.recall.1, i.recall.2);
+    out.push(line(mark, "recall", &detail));
     out.push(if i.resumable {
         line(
             '✓',
