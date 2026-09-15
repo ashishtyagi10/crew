@@ -493,6 +493,10 @@ fn report_changes(session: &Session, id: u64, out: &Out) {
     if changes.is_empty() {
         return;
     }
+    // What changed TOGETHER, into the graph: the model's next question about
+    // any one of these files reaches the others (`recall::ingest`).
+    let paths: Vec<String> = changes.iter().map(|(_, p)| p.clone()).collect();
+    super::recall::record_changes(&session.recall, &paths);
     let hint = !session
         .announced_changes
         .swap(true, std::sync::atomic::Ordering::Relaxed);
