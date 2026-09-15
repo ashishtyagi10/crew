@@ -80,6 +80,8 @@ mod toolcall;
 mod toolclip;
 mod toolline;
 mod toolpick;
+mod undo;
+mod undoask;
 mod zerostat;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};

@@ -125,23 +125,25 @@ fn the_plan_hints_teach_the_conversational_gate() {
 fn retired_commands_left_the_construct_list() {
     for gone in [
         "fan", "loop", "commit", "review", "standup", "resume", "goal", "plan", "approve",
-        "reject", "skill", "memory", "mcp", "login",
+        "reject", "skill", "memory", "mcp", "login", "restore",
     ] {
         assert!(
             !broker_constructs().contains(&gone),
             "{gone} still a construct"
         );
     }
-    assert_eq!(broker_constructs().len(), 8, "{:?}", broker_constructs());
+    assert_eq!(broker_constructs().len(), 7, "{:?}", broker_constructs());
 }
 
-/// The eight that remain: session machinery the model cannot or must not
+/// The seven that remain: session machinery the model cannot or must not
 /// decide. Pinned as a list, not just a count, so a rename can't hide.
-/// (`/login` folded into `/model`: the sign-in rows lead its picker.)
+/// (`/login` folded into `/model`: the sign-in rows lead its picker.
+/// `/restore` became a sentence — "undo that", gated on a confirm word —
+/// which leaves nothing here that touches your files.)
 #[test]
-fn the_surviving_constructs_are_the_infrastructure_eight() {
+fn the_surviving_constructs_are_the_infrastructure_seven() {
     assert_eq!(
         broker_constructs(),
-        &["help", "model", "logout", "doctor", "restore", "reload", "diff", "stop"]
+        &["help", "model", "logout", "doctor", "reload", "diff", "stop"]
     );
 }

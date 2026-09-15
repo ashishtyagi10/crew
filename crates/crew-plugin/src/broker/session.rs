@@ -47,6 +47,10 @@ pub(crate) struct Session {
     /// The commit message `/commit` drafted, awaiting `/commit apply` —
     /// shared for the same worker-vs-inline reason as the plan.
     pub commit: super::gitmsg::SharedCommit,
+    /// The undo crew offered and is waiting on a word for (`undo`) — shared,
+    /// because the offer is made on the worker that answered the request and
+    /// the confirm arrives on the next one.
+    pub undo: super::undo::SharedUndo,
     /// Restored context set by `/resume`, consumed by the next task.
     pub resume: super::sessionlog::SharedResume,
     /// The recent turns a follow-up builds on (see `thread`); shared, since
@@ -95,6 +99,7 @@ impl Default for Session {
             lsp: Arc::new(Mutex::new(crate::lsp::LspHost::from_config())),
             plan: Arc::new(Mutex::new(None)),
             commit: Arc::new(Mutex::new(None)),
+            undo: Arc::new(Mutex::new(None)),
             resume: Arc::new(Mutex::new(None)),
             thread: Arc::new(Mutex::new(super::thread::Thread::default())),
             // Default is the OFF-DISK graph: `Session::default()` is what
@@ -129,6 +134,7 @@ impl Session {
             lsp: Arc::clone(&self.lsp),
             plan: Arc::clone(&self.plan),
             commit: Arc::clone(&self.commit),
+            undo: Arc::clone(&self.undo),
             resume: Arc::clone(&self.resume),
             thread: Arc::clone(&self.thread),
             recall: Arc::clone(&self.recall),

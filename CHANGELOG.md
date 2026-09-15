@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.27
+
+**"undo that."** Crew has taken a checkpoint before every file-touching task
+since v0.6.44, and getting one back meant knowing `/restore`, asking it to
+list, reading ordinals and typing `/restore 2` — four steps, all of them about
+crew's bookkeeping rather than about your files, at the exact moment you are
+least inclined to read a list: right after an agent did something you did not
+want.
+
+It is a sentence now. "undo that", "revert that", "put it back", "roll it
+back" — and crew answers with the snapshot it would restore and the files that
+would change, then waits for your own "yes". The offer writes nothing. "undo
+#3" reaches further back through the list, and "no" drops the offer and leaves
+the tree as it is.
+
+The match is EXACT and happens before any model call — ahead of every other
+gate, because this is the only path that writes over your work. "undo the nav
+change" is still a task for the agents; a misclassification cannot reach your
+files; and it works with no API key at all, since no model is asked. A "yes"
+held over an undo offer can never land on a commit draft instead: the order is
+stated in the router rather than left to chance.
+
+`/restore` is retired into the phrasing (it answers with it, and does
+nothing), which leaves the broker's construct list at SEVEN — and nothing in
+it that touches your files.
+
 ## 0.22.26
 
 **The repo's own instructions are followed.** Every agentic tool before crew

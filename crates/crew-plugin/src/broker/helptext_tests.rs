@@ -50,8 +50,8 @@ fn the_construct_list_is_intact_around_the_paragraph() {
     assert_eq!(
         construct_lines(),
         [
-            "help", "model", "model", "model", "model", "logout", "restore", "diff", "doctor",
-            "reload", "stop"
+            "help", "model", "model", "model", "model", "logout", "diff", "doctor", "reload",
+            "stop"
         ]
     );
     assert_eq!(super::super::construct_summary("help"), Some("this list"));
