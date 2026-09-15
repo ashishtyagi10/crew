@@ -122,11 +122,20 @@ pub(crate) fn latest(g: &Graph, prefix: &str) -> Option<(String, u64)> {
 /// The request a stored turn opens with, for matching against the thread.
 /// A turn is stored as `you asked: …\ncrew answered: …`; anything else is
 /// matched whole, which simply never equals a request.
-fn asked_of(text: &str) -> &str {
+pub(crate) fn asked_of(text: &str) -> &str {
     text.lines()
         .next()
         .map(|l| l.strip_prefix("you asked: ").unwrap_or(l))
         .unwrap_or(text)
+        .trim()
+}
+
+/// The answer half of a stored turn, empty when there is only a request.
+pub(crate) fn answered_of(text: &str) -> &str {
+    text.lines()
+        .nth(1)
+        .map(|l| l.strip_prefix("crew answered: ").unwrap_or(l))
+        .unwrap_or("")
         .trim()
 }
 

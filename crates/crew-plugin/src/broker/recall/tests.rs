@@ -118,3 +118,37 @@ mod ahead_of_a_task {
         );
     }
 }
+
+#[test]
+fn a_check_that_broke_this_way_before_is_recognised_in_the_next_session() {
+    let dir = temp("repeat");
+    {
+        let mut first = Recall::open_at(&dir);
+        let d = failure_digest("exit 1\nerror[E0308]: mismatched types\n --> src/a.rs:12:5\n");
+        first.record("check: cargo test", &format!("failed: {d}"));
+    } // the session ends; only the log survives
+    let second = Recall::open_at(&dir);
+    let p = second
+        .seen_failing(
+            "cargo test",
+            "exit 1\nerror[E0308]: mismatched types\n --> src/a.rs:481:9\n",
+        )
+        .expect("the same failure was not recognised across the session boundary");
+    assert_eq!(p.times, 1, "the earlier failure was not counted");
+    assert!(
+        second
+            .seen_failing("cargo test", "exit 1\nerror[E0425]: cannot find `x`\n")
+            .is_none(),
+        "a different error was read as the same one"
+    );
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn a_graph_that_is_off_never_claims_to_have_seen_a_failure_before() {
+    let mut r = Recall::disabled();
+    r.record("check: cargo test", "failed: error: boom");
+    assert!(r
+        .seen_failing("cargo test", "exit 1\nerror: boom\n")
+        .is_none());
+}

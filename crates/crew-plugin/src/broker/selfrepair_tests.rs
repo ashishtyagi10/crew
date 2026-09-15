@@ -25,7 +25,7 @@ fn failed() -> Outcome {
 
 #[test]
 fn the_pass_is_handed_the_command_the_output_and_one_instruction() {
-    let task = repair_task("cargo test", &failed());
+    let task = repair_task("cargo test", &failed(), None);
     assert!(task.contains("Command: cargo test"), "{task}");
     assert!(task.contains("error[E0308]"), "{task}");
     assert!(task.contains("do not weaken or delete"), "{task}");
@@ -49,7 +49,7 @@ fn a_pass_runs_once_and_never_starts_another_from_inside_itself() {
     // `false` as the command, not a real build: the pass re-runs the check
     // itself, and a test that shells out to `cargo test` would run this
     // suite inside itself.
-    take_one_pass(&session, "false", &failed(), &mut repair, &mut emit).unwrap();
+    take_one_pass(&session, "false", &failed(), None, &mut repair, &mut emit).unwrap();
     assert_eq!(asked.lock().unwrap().len(), 1, "more than one pass ran");
     assert!(!session.repairing.load(Ordering::Relaxed), "the flag stuck");
     let text = said.lock().unwrap().join("\n");
@@ -66,7 +66,7 @@ fn a_session_already_repairing_takes_no_pass_at_all() {
     session.repairing.store(true, Ordering::Relaxed);
     let (said, mut emit) = capture();
     let mut repair = |_: &str| panic!("a second pass was started");
-    take_one_pass(&session, "false", &failed(), &mut repair, &mut emit).unwrap();
+    take_one_pass(&session, "false", &failed(), None, &mut repair, &mut emit).unwrap();
     assert!(said.lock().unwrap().is_empty());
 }
 
@@ -87,9 +87,26 @@ fn the_user_can_say_no_and_then_say_yes_again() {
         .unwrap();
     assert!(!autofix(&session));
     let mut repair = |_: &str| panic!("a pass ran after the user said not to");
-    take_one_pass(&session, "false", &failed(), &mut repair, &mut emit).unwrap();
+    take_one_pass(&session, "false", &failed(), None, &mut repair, &mut emit).unwrap();
     gate("fix it yourself", &session, &mut emit)
         .unwrap()
         .unwrap();
     assert!(autofix(&session));
+}
+
+#[test]
+fn what_crew_remembers_rides_in_the_repair_prompt_only_when_there_is_something_to_remember() {
+    let seen = "seen before: this check failed the same way 2d ago \u{2014} the 2nd time, \
+                last in crates/crew-app/src/nav.rs";
+    let with = repair_task("cargo test", &failed(), Some(seen));
+    assert!(with.contains(seen), "the pass was not told: {with}");
+    assert!(
+        with.contains("Fix the cause"),
+        "the instruction was lost: {with}"
+    );
+    let without = repair_task("cargo test", &failed(), None);
+    assert!(
+        !without.contains("remembers"),
+        "a first failure invented a history: {without}"
+    );
 }
