@@ -2197,6 +2197,13 @@ and a typo gets a **did-you-mean** suggestion):
   when skills are loaded but none chosen the relay carries a one-line
   roster of them; asking "what skills are loaded?" lists them
   (the `/skill` slash form is retired — see *Extending* below).
+- **“what do you remember?”** — the memory, read out rather than inferred.
+  Asking (with or without a subject — “what do you know about the router?”,
+  “do you remember the nav crash?”) is answered by crew itself, with **no
+  model call**: the recall graph's turns and files for that subject, the size
+  of the graph, your standing notes, and the project's instruction files. It
+  works with no provider signed in, it never paraphrases, and a question about
+  memory can never be mistaken for a task — nothing it does writes anything.
 - **`#<note>`** — standing **project memory** (à la Claude
   Code's `#` shortcut): `#always run tests with --workspace` appends the note
   to `./.crew/memory.md`, and from then on **every task** carries the merged

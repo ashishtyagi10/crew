@@ -50,9 +50,7 @@ fn quick_commands_answer_inline_but_constructs_do_not() {
     }
     // Nothing left here needs a worker: the one construct that touched
     // files ("/restore") is a sentence now, so only a plain task is long.
-    for long in ["a plain task"] {
-        assert!(!is_quick(long), "{long}");
-    }
+    assert!(!is_quick("a plain task"));
     assert!(is_quick("/restore 2"), "a retired name answers instantly");
 }
 
