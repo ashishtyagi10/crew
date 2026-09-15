@@ -191,3 +191,19 @@ fn skills_are_named_only_for_the_arms_that_frame_the_raw_task() {
         "{line:?}"
     );
 }
+
+#[test]
+fn the_project_instruction_files_are_named_on_the_line() {
+    assert_eq!(
+        with(|c| c.instructions = vec!["AGENTS.md".into()]).as_deref(),
+        Some("context: AGENTS.md")
+    );
+    let both = with(|c| {
+        c.instructions = vec!["AGENTS.md".into(), "CLAUDE.md".into()];
+        c.notes = 1;
+    });
+    assert_eq!(
+        both.as_deref(),
+        Some("context: AGENTS.md, CLAUDE.md \u{b7} a note")
+    );
+}

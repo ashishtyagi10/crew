@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.26
+
+**The repo's own instructions are followed.** Every agentic tool before crew
+taught projects to write their conventions into a file at the root — Codex
+reads `AGENTS.md`, Claude Code reads `CLAUDE.md` — and crew read neither. It
+asked you to retype the same rules as `#notes`, which is the one thing those
+files exist to prevent.
+
+Now a task finds them on the way up from the working directory — to the repo
+root (`.git`), at most eight levels — and carries what it finds as PROJECT
+INSTRUCTIONS in front of the task, above your standing memory: the repo says
+how the repo is worked on, you say what you want, and when they disagree the
+nearer voice is yours. Both names are read when both exist, a subdirectory's
+file comes after the root's so the nearer rules have the last word, and the
+whole block is capped at 4 KB with a visible clip marker.
+
+A project with no such file sends the task byte-identical. The `context:`
+line names the files it is carrying, and `/doctor` gained a `project
+instructions` row, so a rule arriving from a file you forgot about is a rule
+you can see arriving.
+
 ## 0.22.25
 
 **Fifteen commands became one.** The input bar offered sixty-seven slash

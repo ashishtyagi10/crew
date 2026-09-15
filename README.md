@@ -559,6 +559,11 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew):
   appends to `./.crew/memory.md`, and every task from then on carries the
   merged memory (user + project files, 2 KB cap) as a standing block the
   agents follow; ask "what do you remember?" to see it.
+- **`AGENTS.md` / `CLAUDE.md`** — the conventions your repo already wrote
+  down are followed without being retold. Crew finds them from the working
+  directory up to the repo root and carries them in front of every task,
+  under your own standing memory; both names are read, the nearer file wins,
+  and the whole block is capped at 4 KB.
 - **Recall graph** — what the pane learned in earlier sessions, without a
   command and without an index step. Every finished turn is written to
   `./.crew/recall.jsonl` as a node joined to the topics and files it was

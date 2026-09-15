@@ -32,6 +32,10 @@ pub(crate) struct ContextLine {
     pub(crate) turns: usize,
     /// Non-blank lines of standing memory (user file + project file).
     pub(crate) notes: usize,
+    /// The repo's own instruction files, by name (`AGENTS.md`), carried in
+    /// front of every task. Named rather than counted: which file a rule
+    /// came from is the thing you need to know to change it.
+    pub(crate) instructions: Vec<String>,
     /// The playbooks the arm will frame, by name.
     pub(crate) skills: Vec<String>,
     /// Tools on the table — said only past the choosing budget, where the
@@ -70,6 +74,9 @@ impl ContextLine {
             .map(|r| (r.turns, r.oldest_ms));
         ContextLine {
             recalled,
+            instructions: crate::broker::agentsmd::block()
+                .map(|(_, n)| n)
+                .unwrap_or_default(),
             turns: crate::broker::thread::lock(&session.thread).len(),
             notes: crate::broker::memory::load()
                 .map_or(0, |m| m.lines().filter(|l| !l.trim().is_empty()).count()),
@@ -95,6 +102,9 @@ impl ContextLine {
                 plural(n, "turn"),
                 crate::broker::recall::ago_now(oldest_ms)
             ));
+        }
+        if !self.instructions.is_empty() {
+            parts.push(self.instructions.join(", "));
         }
         match self.notes {
             0 => {}
