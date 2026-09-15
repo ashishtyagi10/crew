@@ -3,7 +3,7 @@ use super::*;
 use crate::broker::systools;
 
 /// The guard that matters: every tool crew ships on the `sys` surface has an explicit tier. Add
-/// a fifth sys tool without classifying it and this fails — which is the only way the gate can
+/// a sys tool without classifying it and this fails — which is the only way the gate can
 /// promise it saw every action before it fired.
 #[test]
 fn every_built_in_tool_is_classified() {
@@ -19,8 +19,9 @@ fn every_built_in_tool_is_classified() {
     );
     assert_eq!(
         systools::tools().len(),
-        5,
-        "the sys surface is five tools: four that act, and `find_tools` to reach the rest"
+        6,
+        "the sys surface is six tools: four that act on this machine, `fetch` for the \
+         world outside it, and `find_tools` to reach the rest"
     );
 }
 

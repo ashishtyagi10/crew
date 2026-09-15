@@ -513,8 +513,10 @@ transcript and jumps to each match.
 
 Agents can also touch the workspace through built-in **sys tools** — bounded
 `sys:run` (non-interactive shell, 30s/64KB caps), `sys:read_file` (chunked
-64KB reads), `sys:write_file`, and `sys:list_dir` — callable mid-relay the
-same way as MCP tools. `CREW_SYS_MODE=readonly` blocks the mutating ones,
+64KB reads), `sys:write_file`, `sys:list_dir`, and `sys:fetch` (an http(s)
+page as readable text — markup and scripts stripped, 24 KB cap, private and
+link-local addresses refused) — callable mid-relay the same way as MCP
+tools. `CREW_SYS_MODE=readonly` blocks the mutating ones,
 `CREW_SYS_TOOLS=0` turns the surface off, and `/doctor` shows the working
 directory and sandbox mode. An optional token budget
 (`CREW_BROKER_TOKEN_BUDGET`) hard-stops a runaway thread.
