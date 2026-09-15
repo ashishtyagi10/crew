@@ -102,6 +102,22 @@ impl Shape {
     }
 }
 
+/// A shape the session already decided (plan-first): said on the same
+/// routing line, with the reason naming the mode, and no classifier call.
+pub(crate) fn forced(
+    shape: Shape,
+    why: &str,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<Decision> {
+    let d = Decision {
+        shape,
+        why: Some(why.to_string()),
+        ..Default::default()
+    };
+    emit(msg(SMITH, Routing::Chosen(d.clone()).line()))?;
+    Ok(d)
+}
+
 /// Classify `task` in `world` and say the decision: a `thinking` activity
 /// for agent smith while the classifier runs (the pane's header pulse — the
 /// only state it draws live), the routing line, then smith's own idle. The

@@ -23,7 +23,7 @@ use super::session::Session;
 
 mod classify;
 mod context;
-mod decision;
+pub(crate) mod decision;
 mod fanout;
 pub(crate) mod gate;
 mod hints;
@@ -105,6 +105,9 @@ pub(crate) fn route_with(
     if let Some(done) = super::undo::gate(task, session, emit) {
         return done;
     }
+    if let Some(done) = super::planfirst::gate(task, session, emit) {
+        return done;
+    }
     if gate::confirms_apply(task) && gate::pending_commit(session) {
         return super::gitmsg::commit_cmd(session, "apply", emit);
     }
@@ -120,7 +123,12 @@ pub(crate) fn route_with(
     // line, then what the run brings (`context`), both before the arm's
     // first event, so the pane never has to guess why it got what it got.
     let world = World::gather(session);
-    let d = decision::announce(task, &world, classifier, emit)?;
+    // Plan-first skips the classifier entirely: the shape is already decided,
+    // and asking a model to choose one it cannot have is a call for nothing.
+    let d = match super::planfirst::on(session) {
+        true => decision::forced(Shape::Plan, super::planfirst::WHY, emit)?,
+        false => decision::announce(task, &world, classifier, emit)?,
+    };
     context::announce(d.shape, task, session, &world, emit)?;
     dispatch(d.shape, &d.hints, task, session, tick_emit, emit)
 }

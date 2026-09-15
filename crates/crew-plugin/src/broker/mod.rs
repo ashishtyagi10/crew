@@ -46,6 +46,7 @@ mod modelcmd;
 mod modelpick;
 mod normalize;
 mod plan;
+mod planfirst;
 mod plugins;
 mod recall;
 mod registry;

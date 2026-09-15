@@ -207,3 +207,17 @@ fn the_project_instruction_files_are_named_on_the_line() {
         Some("context: AGENTS.md, CLAUDE.md \u{b7} a note")
     );
 }
+
+#[test]
+fn plan_first_is_the_first_thing_the_context_line_says() {
+    let line = with(|c| {
+        c.plan_first = true;
+        c.turns = 2;
+    });
+    assert_eq!(
+        line.as_deref(),
+        Some("context: 2 earlier turns \u{b7} plan first"),
+        "the mode must be on the line when it is on"
+    );
+    assert_eq!(with(|c| c.plan_first = false), None);
+}

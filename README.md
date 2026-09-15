@@ -537,7 +537,9 @@ as nine agent replies.
 
 It also borrows the flagship moves of the big coding agents: **plan mode**
 (ask for "a plan for …" and nothing runs until you approve it — enter or
-"approve" runs it, esc or "reject" discards — à la Claude Code),
+"approve" runs it, esc or "reject" discards — à la Claude Code; say **"plan
+first"** and it becomes the session's MODE, so every task is drafted and waits
+until you say "stop planning"),
 **workspace checkpoints**
 (a checkpoint is taken automatically before every task that can change files,
 as a hidden commit under
