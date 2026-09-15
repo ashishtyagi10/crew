@@ -209,9 +209,8 @@ impl CrewApp {
                 let lines = self.wheel_lines_boosted(delta);
                 self.scroll_at_cursor(lines);
             }
-            WindowEvent::KeyboardInput { event, .. } => {
-                self.on_key_event(event_loop, &event);
-            }
+            WindowEvent::KeyboardInput { event, .. } => self.on_key_event(event_loop, &event),
+            WindowEvent::Occluded(hidden) => self.set_occluded(hidden),
             WindowEvent::Resized(size) => {
                 if let Some(renderer) = &mut self.renderer {
                     renderer.resize(size.width, size.height);
