@@ -64,6 +64,7 @@ pub const FONT_ALLOWLIST: &[&str] = &[
     "JetBrains Mono",
     "JetBrainsMono NF",
     "JetBrainsMono Nerd Font",
+    "JetBrainsMono Nerd Font Mono",
     "Menlo",
     "Berkeley Mono",
     "Cascadia Code",
@@ -103,12 +104,14 @@ pub const FONT_ALLOWLIST: &[&str] = &[
 /// of it (see the module docs). Every entry is in [`FONT_ALLOWLIST`].
 pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
     match id {
-        // Paper: a book face — humanist, generous counters.
+        // Paper: a book face — humanist, generous counters. The icon-bearing
+        // spelling of a face always leads its plain one: same typeface, plus
+        // the glyphs crew's marks are drawn from.
         ThemeId::PaperDark | ThemeId::PaperLight => &[
             "MonoLisa",
             "IBM Plex Mono",
-            "Comic Mono",
             "ComicMono Nerd Font Mono",
+            "Comic Mono",
             "SF Mono",
             "Menlo",
             "Lilex",
@@ -116,32 +119,48 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // Sepia: warm and typewritten — friendly rounded shapes suit it, so
         // this is where the Comic Mono lead lives on.
         ThemeId::SepiaDark | ThemeId::SepiaLight => &[
-            "Comic Mono",
             "ComicMono Nerd Font Mono",
+            "Comic Mono",
             "IBM Plex Mono",
             "MonoLisa",
             "SF Mono",
             "Menlo",
             "Lilex",
         ],
-        // CRT: a terminal face with squared-off shoulders — straight modern
-        // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
-        // contemporary take on that IBM-terminal DNA).
-        // Modern (aurora/nebula): the Gemini look wants Google's own coding
-        // face; Geist is the contemporary geometric fallback.
-        // The light twins share their dark parents' faces — a palette flip
-        // must not also change the typeface under the user.
-        // Harbor and Fern share the modern family's list: they are the same
-        // kind of page, cooled.
-        ThemeId::Nebula | ThemeId::Blossom | ThemeId::Harbor | ThemeId::Fern => &[
-            "Google Sans Code",
-            "Geist Mono",
-            "GeistMono Nerd Font",
+        // Modern (aurora/nebula): the Gemini look wants a contemporary
+        // geometric coding face, and JetBrains Mono is that face — it also
+        // happens to be one the user asked to see more of (`FAVORITES`),
+        // which is the tie-breaker between it and Google's own. Google Sans
+        // Code and Geist stay behind it.
+        ThemeId::Nebula | ThemeId::Blossom => &[
+            "JetBrainsMono Nerd Font Mono",
+            "JetBrainsMono Nerd Font",
+            "JetBrainsMono NF",
             "JetBrains Mono",
             "SF Mono",
+            "Google Sans Code",
+            "Geist Mono",
             "Menlo",
             "Lilex",
         ],
+        // Harbor and Fern are the modern page COOLED, and they used to share
+        // Nebula's list outright. They lead with IBM Plex Mono instead: an
+        // engineered, level face for the cooler page, and a lead of their own
+        // is a font change when the rotation moves between the two halves of
+        // the modern family.
+        ThemeId::Harbor | ThemeId::Fern => &[
+            "IBM Plex Mono",
+            "SF Mono",
+            "Google Sans Code",
+            "Geist Mono",
+            "Menlo",
+            "Lilex",
+        ],
+        // CRT: a terminal face with squared-off shoulders — straight modern
+        // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
+        // contemporary take on that IBM-terminal DNA).
+        // The light twins share their dark parents' faces — a palette flip
+        // must not also change the typeface under the user.
         ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => &[
             // The Nerd Font variant first: crew now *embeds* plain Lilex, so
             // leading with it would mean the built-in copy always beat an

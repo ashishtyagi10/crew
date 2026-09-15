@@ -8,6 +8,38 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.43
+
+**Six favourite faces, and the rotation now leans on them.** Comic Mono,
+JetBrains Mono, SF Mono, IBM Plex Mono, MonoLisa and Lilex are named in
+`crew-theme`'s `FAVORITES`, and two things follow from that.
+
+The `/font random` rotation gives a favourite three tickets instead of one, so
+one comes up about three times as often as any other installed face. It is a
+weighting, not a shortlist: every allowlisted family on the machine is still in
+the draw, because a favourite list that quietly retired the rest would be a
+different feature.
+
+And every theme now LEADS with one of them — MonoLisa on paper, Comic Mono on
+sepia, JetBrains Mono on the aurora pages, IBM Plex Mono on the cooled ones
+(Harbor and Fern, which used to share Nebula's list outright), Lilex on the
+tubes. That is the half of this that is actually visible: with a rotating
+theme, the theme's own preference lands on top of the rotation's pick every
+tenth minute (`tick_theme_font` runs last, deliberately), so the lead is what
+you read all day. Weighting the rotation alone would have been a change you
+could not see.
+
+**One face, one ticket, whatever it is called.** `JetBrains Mono`,
+`JetBrainsMono NF`, `JetBrainsMono Nerd Font` and `JetBrainsMono Nerd Font
+Mono` are one typeface installed four ways, and a machine can carry several.
+Counted as separate families they took several times the tickets — and worse,
+the rotation would "change" the font to another spelling of the face already on
+screen: a new name in the status line and not one different pixel. Rotation now
+groups by typeface (`crew_theme::typeface_key`), drops the whole current face
+from the draw in every spelling, and asks for the icon-bearing `Nerd Font Mono`
+build when the machine has it, since its marks are one cell wide and this is a
+cell grid.
+
 ## 0.22.42
 
 **The rail says something on the rows the pane list does not use.** Collapsed,
