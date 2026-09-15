@@ -2263,6 +2263,18 @@ and a typo gets a **did-you-mean** suggestion):
   to tell a follow-up from a fresh request. Failed and stopped turns are not
   kept; bare `/stop` or a broker restart clears it (the session log above
   remains the durable record); `/doctor` reports `thread: N turns remembered`.
+- **the repo's own instructions are followed** — no command, no import: on
+  every task crew looks for an **`AGENTS.md`** or **`CLAUDE.md`**, from the
+  working directory up to the repository root (`.git`, at most eight levels),
+  and folds what it finds in front of the task as PROJECT INSTRUCTIONS —
+  above your own standing memory, so when the repo's conventions and your
+  `#notes` disagree, the thing you typed into crew wins. Both names are read
+  when both exist, and a subdirectory's file comes after the root's, so the
+  nearer rules have the last word. The block is capped at 4 KB (shared
+  between the files, each cut with a visible marker); a project with no such
+  file sends the task byte-identical, exactly as before. The `context:` line
+  names the files it is carrying, and `/doctor` reports them under `project
+  instructions`.
 - **crew remembers the projects it worked on** — also no command: every
   finished turn is written into a **recall graph** on disk
   (`./.crew/recall.jsonl`, project-scoped like the session log) as a node

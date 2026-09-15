@@ -12,6 +12,7 @@
 //! hop limit so a thread can never loop forever.
 mod adapter;
 mod agents;
+mod agentsmd;
 mod apiadapter;
 pub mod approval;
 mod ask;

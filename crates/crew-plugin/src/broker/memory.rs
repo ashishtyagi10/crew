@@ -89,13 +89,27 @@ pub(crate) fn load_from(user: Option<&Path>, project: &Path) -> Option<String> {
     Some(merged)
 }
 
-/// Prepend the loaded memory to a task prompt; the task passes through
-/// untouched when no memory exists.
+/// Prepend the project's instructions and the loaded memory to a task
+/// prompt; the task passes through untouched when there is neither.
 pub(crate) fn with_memory(task: &str) -> String {
-    prepend(load(), task)
+    prepend_all(super::agentsmd::block().map(|(b, _)| b), load(), task)
 }
 
-/// Testable core of [`with_memory`].
+/// Testable core of [`with_memory`]. The repo's instructions come first and
+/// the user's memory second: both are standing rules, and when they disagree
+/// the one the user typed into THIS crew is the one that was meant.
+pub(crate) fn prepend_all(project: Option<String>, mem: Option<String>, task: &str) -> String {
+    let task = prepend(mem, task);
+    match project {
+        None => task,
+        Some(p) => format!(
+            "PROJECT INSTRUCTIONS (this repository's own AGENTS.md/CLAUDE.md \
+             — follow them):\n{p}\n\n{task}"
+        ),
+    }
+}
+
+/// Testable core of [`with_memory`]'s memory half.
 pub(crate) fn prepend(mem: Option<String>, task: &str) -> String {
     match mem {
         None => task.to_string(),

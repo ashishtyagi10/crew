@@ -26,6 +26,7 @@ fn healthy() -> DoctorInputs {
         budget: 0,
         thread_turns: 0,
         recall: (0, 0, 0),
+        instructions: Vec::new(),
     }
 }
 

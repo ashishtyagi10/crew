@@ -134,6 +134,7 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
         budget: super::session::token_budget(),
         thread_turns: super::thread::lock(&session.thread).len(),
         recall: super::recall::lock(&session.recall).stats(),
+        instructions: super::agentsmd::block().map(|(_, n)| n).unwrap_or_default(),
     }
 }
 

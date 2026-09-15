@@ -52,6 +52,8 @@ pub(crate) struct DoctorInputs {
     pub thread_turns: usize,
     /// `(turns, topics, files)` in the recall graph on disk (`recall/`).
     pub recall: (usize, usize, usize),
+    /// The project's own instruction files, by name (`agentsmd`).
+    pub instructions: Vec<String>,
 }
 
 /// One report line: `✓` when healthy, `✗` when broken, `–` for "absent but
@@ -173,6 +175,8 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
     out.push(line(mark, "thread", &detail));
     let (mark, detail) = super::recall::doctor_line(i.recall.0, i.recall.1, i.recall.2);
     out.push(line(mark, "recall", &detail));
+    let (mark, detail) = super::agentsmd::doctor_line(&i.instructions);
+    out.push(line(mark, "project instructions", &detail));
     out.push(if i.resumable {
         line(
             '✓',
