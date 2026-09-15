@@ -69,3 +69,37 @@ fn the_verbs_complete_and_the_folded_spellings_still_answer() {
         assert!(crate::cmddefs::answered(folded), "{folded} stopped running");
     }
 }
+
+#[test]
+fn the_left_column_is_one_verb_with_the_weather_under_it() {
+    let rows = menu_items("/nav ");
+    let labels: Vec<&str> = rows.iter().map(|r| r.label.as_str()).collect();
+    assert_eq!(labels, vec!["glance", "log", "weather"]);
+    assert!(
+        crate::cmddefs::answered("/weather"),
+        "the old spelling runs on"
+    );
+    let names: Vec<&str> = crate::cmddefs::commands().map(|c| c.name).collect();
+    assert!(
+        !names.contains(&"/weather"),
+        "and is no longer a row of its own"
+    );
+}
+
+#[test]
+fn the_command_block_list_is_a_subject_of_the_output_it_lists() {
+    let rows = menu_items("/out ");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].fill, "/out list");
+    assert!(crate::cmddefs::answered("/blocks"));
+}
+
+#[test]
+fn the_document_window_has_one_name_and_answers_to_two() {
+    let names: Vec<&str> = crate::cmddefs::commands().map(|c| c.name).collect();
+    assert!(names.contains(&"/doc") && !names.contains(&"/md"));
+    assert!(
+        crate::cmddefs::answered("/md"),
+        "/md still opens a document"
+    );
+}

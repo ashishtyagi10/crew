@@ -233,9 +233,11 @@ fn slash_completes_far() {
 
 #[test]
 fn slash_completes_md() {
-    assert_eq!(suggest("/m", &[]).as_deref(), Some("d"));
+    // `/md` folded into `/doc` (one document window, two spellings), so `/m`
+    // completes the model picker now and `/md` runs without being offered.
+    assert_eq!(suggest("/mod", &[]).as_deref(), Some("el"));
     let names: Vec<&str> = matches("/m").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/md"));
+    assert!(!names.contains(&"/md") && crate::cmddefs::answered("/md"));
 }
 
 #[test]

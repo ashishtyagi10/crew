@@ -5,18 +5,22 @@ use crate::app::CrewApp;
 use crate::navmode::NavCard;
 
 impl CrewApp {
-    /// `/nav [glance|log]` — what the nav shows in the LOG's old slot.
+    /// `/nav [glance|log]`, and `/nav weather <place>` — the whole left
+    /// column under one verb (`crate::verbs`). `/weather` still answers.
     pub(crate) fn nav_command(&mut self, arg: &str) {
         let arg = arg.trim();
+        if let Some(rest) = arg.strip_prefix("weather") {
+            return self.weather_command(rest.trim());
+        }
         if arg.is_empty() {
             self.set_status(format!(
-                "nav card: {} (/nav [glance|log])",
+                "nav card: {} (/nav [glance|log|weather <place>])",
                 self.config.nav_card().as_str()
             ));
             return;
         }
         let Some(card) = NavCard::parse(arg) else {
-            self.set_status("usage: /nav [glance|log]");
+            self.set_status("usage: /nav [glance|log|weather <place>]");
             return;
         };
         self.config.nav_card = card.as_str().to_string();

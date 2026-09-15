@@ -25,11 +25,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/nav",
-        desc: "What the nav's slot shows: glance cards or the log (/nav [glance|log])",
-    },
-    Cmd {
-        name: "/weather",
-        desc: "The nav's WEATHER card for a place (/weather <place> | auto | off)",
+        desc: "The left column: /nav glance, /nav log, /nav weather <place>",
     },
     Cmd {
         name: "/focus",
@@ -102,10 +98,6 @@ pub(crate) const LOOK: &[Cmd] = &[
     Cmd {
         name: "/doc",
         desc: "open a file in a window of its own \u{2014} a document, not a tile (/doc <path>)",
-    },
-    Cmd {
-        name: "/md",
-        desc: "view a file \u{2014} alias for /view (/md <path>)",
     },
     Cmd {
         name: "/exit",

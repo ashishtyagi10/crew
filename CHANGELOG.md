@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.37
+
+**The left column is one verb, and so is the output list.** Three more names
+that were arguments wearing a command's clothes: `/weather <place>` sets a
+card in the nav, so it is `/nav weather <place>`; `/blocks` lists the command
+blocks `/out` opens, so it is `/out list`; and `/md` opened the document
+window `/doc` opens, so there is one row for it and two spellings.
+
+43 palette rows, down from 67 four releases ago, and nothing lost: every
+folded spelling still runs, uncorrected, and each verb's picker names its
+variants the moment you type it. `/nav ` now lists `glance`, `log` and
+`weather` with a line saying what each is for — which is the first time the
+nav's own options have been visible anywhere but the manual.
+
 ## 0.22.36
 
 **A pane opens knowing where you left off.** It opened on a nameplate and a

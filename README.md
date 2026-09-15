@@ -18,7 +18,7 @@ It reads the terminal it is: the whole underline family, dim and conceal, OSC 8
 hyperlinks, DECSCUSR cursor shapes, program-requested notifications and progress
 (OSC 9 / 9;4), and OSC 133 semantic prompt marks where a shell offers them —
 and it derives **command blocks without shell integration**, so `/out` can open
-the last command's output on its own, `/blocks` can list what you ran and how
+the last command's output on its own, `/out list` can show what you ran and how
 long each took, and every card can mark where its commands began, where its
 errors are, and which command you are currently scrolled back into.
 
@@ -263,9 +263,9 @@ formatted post-mortem.
 Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`
 (`/smith`), `/goal <text>`, `/batch <file>`, `/view <file>`, `/md <file>`,
 `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/errors`,
-`/out`, `/blocks`, `/marks`, `/name <text>`, `/pin`, `/clear`, `/close`,
+`/out`, `/marks`, `/name <text>`, `/pin`, `/clear`, `/close`,
 `/copy`, `/dump`, `/reopen`,
-`/restore`, `/blame`, `/lsp`, `/pwd`, `/about`, `/log`, `/nav`, `/weather`,
+`/restore`, `/blame`, `/lsp`, `/pwd`, `/about`, `/log`, `/nav`,
 `/model`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
 `/todo`, `/dash`, `/usage`, `/disk`, `/focus`, `/notify` — then `/exit`.
 
@@ -278,6 +278,10 @@ you are on marked. Fifteen rows became one, which is fourteen fewer names to
 know and fourteen fewer rows between you and `/find`. The old spellings
 (`/theme dark`, `/gamma medium`, …) still run exactly as before — muscle
 memory is a feature — they are simply no longer things you have to learn.
+
+The left column is one verb too: `/nav glance`, `/nav log`, `/nav weather
+<place>`; the command block list is `/out list`; and `/doc <file>` owns the
+document window (`/md` still opens one).
 
 **The `all` variants are arguments, not names.** `/clear` clears this pane,
 `/clear all` every pane, `/clear log` the activity log; `/find <text>` searches
@@ -294,7 +298,7 @@ completion with `$VAR` expansion, and `Up`/`Down` history recall persisted to
 colored git diff (status, stat, full diff) in its own pane — Codex-style
 change review beside your shells; `/view <file>` opens a zoomed **file
 viewer** pane — code, markdown (rendered), CSV, diffs and more, one pane, read
-only (`/md` is kept as an alias); `/todo` opens a **todo list** pane — type
+only; `/todo` opens a **todo list** pane — type
 `pay rent tomorrow 5pm @home` and the due date and `@project` tag are
 recognised as you type (tinted live, stripped from the title on Enter),
 overdue items surface to the top, and a toast fires when an item comes due.
@@ -373,9 +377,9 @@ it.
   lines marked. `]` and `[` walk files and hunks, **`v` lays it out side by
   side** (each half carrying its own file's line numbers), and the same
   treatment applies to a fenced diff in an agent's reply.
-- **`/blocks`** lists what you ran in the pane, newest first: how long each
+- **`/out list`** lists what you ran in the pane, newest first: how long each
   took, which of them failed, and the number `/out` counts back with — so
-  `/blocks` says what you ran and `/out 2` opens the output of the third one
+  `/out list` says what you ran and `/out 2` opens the output of the third one
   back.
 - **`/tools`** lists what the agents ran through the tool gate — tier, outcome,
   who asked and how it ended — newest first. Every tool call already appended a
@@ -463,7 +467,7 @@ cards, links):
   backend), so a plot or a screenshot arrives inside the output: anchored to
   the line it came in on, scrolling with it, clipped to the pane, decoded off
   the frame thread and drawn on the sub-cell paint layer.
-- **`/view <file>`** (alias `/md`) opens a zoomed **file viewer** pane — a
+- **`/view <file>`** opens a zoomed **file viewer** pane — a
   single, read-only pane over the file, rendered by format: markdown
   (headings/lists/links/code fences), a numbered-gutter code view, aligned
   CSV columns, colored diffs, or a metadata card for anything else. Arrows/

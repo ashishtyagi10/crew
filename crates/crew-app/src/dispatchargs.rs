@@ -84,7 +84,10 @@ impl CrewApp {
         } else if let Some(a) = other.strip_prefix("watching ") {
             self.open_watching(a.trim());
         } else if let Some(n) = other.strip_prefix("out ") {
-            self.open_last_output(n.trim());
+            match n.trim() {
+                "list" => self.open_blocks(),
+                arg => self.open_last_output(arg),
+            }
         } else if let Some(m) = other.strip_prefix("marks ") {
             self.marks_command(m.trim());
         } else if let Some(m) = other.strip_prefix("motion ") {
