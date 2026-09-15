@@ -32,6 +32,24 @@ pub(crate) fn run_task(
     session: &Session,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
+    run_task_on(
+        task,
+        verify,
+        swarmconf::swarmtier::swarm_tier(),
+        session,
+        emit,
+    )
+}
+
+/// [`run_task`] on a stated tier: the router passes the one the MODEL asked
+/// for (`TIER: cheap`), already reconciled with the env knob's veto.
+pub(crate) fn run_task_on(
+    task: &str,
+    verify: bool,
+    tier: crew_hive::ModelTier,
+    session: &Session,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
     // Skills first (matched on the raw task), the thread's recent turns next,
     // standing memory on top, a pending resume last (consumed once): freshest
     // and most specific nearest the goal. Each playbook is announced by the lead.
@@ -42,7 +60,7 @@ pub(crate) fn run_task(
     let body = super::recall::ahead(session, &framed.body);
     let task_owned = super::sessionlog::fold_resume(session, &super::memory::with_memory(&body));
     super::sessionlog::append("user", task);
-    let (planner, factory, budget, model, replan) = backend(session.tools());
+    let (planner, factory, budget, model, replan) = backend_at(session.tools(), tier);
     // The lead's closing call and the judge run on routing's gates: keyless
     // and mock runs get neither, and the pane sees exactly what it saw before.
     let synth = swarmanswer::live();
@@ -275,8 +293,8 @@ pub(crate) fn run_with_synth(
 }
 
 #[path = "swarmconf.rs"]
-mod swarmconf;
-use swarmconf::{backend, degraded, lagged_note};
+pub(crate) mod swarmconf;
+use swarmconf::{backend_at, degraded, lagged_note};
 #[path = "swarmmsg.rs"]
 mod swarmmsg;
 use swarmmsg::translate;

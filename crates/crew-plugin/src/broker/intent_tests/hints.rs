@@ -186,3 +186,25 @@ fn an_unknown_only_agents_hint_fans_to_everyone() {
         "{evs:?}"
     );
 }
+
+#[test]
+fn the_model_can_ask_for_the_cheap_tier_and_only_the_cheap_tier() {
+    let cheap = Hints::parse("SHAPE: swarm\nTIER: cheap", &[]);
+    assert_eq!(cheap.tier, Some(crew_hive::ModelTier::Cheap));
+    assert!(cheap.suffix().contains("cheap"), "{}", cheap.suffix());
+    // `standard` is the default, so saying it is saying nothing — and it is
+    // not an error either.
+    assert_eq!(Hints::parse("SHAPE: swarm\nTIER: standard", &[]).tier, None);
+    assert_eq!(Hints::parse("SHAPE: swarm\nTIER: fastest", &[]).tier, None);
+    assert!(Hints::parse("SHAPE: swarm", &[]).suffix().is_empty());
+}
+
+#[test]
+fn the_tier_is_dropped_for_a_shape_that_has_no_swarm_behind_it() {
+    let asked = || Hints::parse("SHAPE: reply\nTIER: cheap", &[]);
+    assert_eq!(asked().relevant_to(Shape::Reply).tier, None);
+    assert_eq!(
+        asked().relevant_to(Shape::Swarm).tier,
+        Some(crew_hive::ModelTier::Cheap)
+    );
+}

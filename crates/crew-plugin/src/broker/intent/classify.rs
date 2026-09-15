@@ -98,7 +98,10 @@ pub(super) fn prompt(task: &str, world: &super::world::World) -> String {
          `VERIFY: yes` (swarm or plan only) says the message states a checkable \
          success condition — tests passing, a build compiling, \"so that X\" — so \
          the result should be judged against it when the work ends; omit it when \
-         there is nothing to check. Nothing else.\n\n\
+         there is nothing to check. A last optional line `TIER: cheap` (swarm, \
+         plan or goal) asks for the small fast model instead of the standard \
+         one — say it for mechanical breadth (rename, list, collect, summarise) \
+         and omit it for anything needing judgement. Nothing else.\n\n\
          {world}Message: {task}"
     )
 }

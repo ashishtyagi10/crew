@@ -72,7 +72,7 @@ fn the_backend_serves_at_standard_by_default_and_at_cheap_only_when_asked() {
     let (dir, store) = anthropic_store("swarm-tier");
     let env = testenv::no_provider_with_store(&store);
     std::env::remove_var("CREW_SWARM_TIER");
-    let (_, _, budget, model, replan) = backend(None);
+    let (_, _, budget, model, replan) = backend_at(None, swarmtier::swarm_tier());
     assert_eq!(model, ModelTier::Standard.model_id(), "the default tier");
     assert!(
         budget.is_some() && replan.is_some(),
@@ -80,7 +80,7 @@ fn the_backend_serves_at_standard_by_default_and_at_cheap_only_when_asked() {
     );
 
     std::env::set_var("CREW_SWARM_TIER", "cheap");
-    let (_, _, _, model, _) = backend(None);
+    let (_, _, _, model, _) = backend_at(None, swarmtier::swarm_tier());
     std::env::remove_var("CREW_SWARM_TIER");
     assert_eq!(model, ModelTier::Cheap.model_id(), "the escape hatch");
     drop(env);

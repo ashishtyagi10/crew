@@ -138,7 +138,13 @@ pub(crate) fn dispatch(
             let n = hints.rounds.unwrap_or(super::constructs::GOAL_ROUNDS);
             super::constructs::goal_rounds(session, task, n, tick_emit, emit)
         }
-        Shape::Swarm => super::swarm::run_task(task, hints.verify, session, emit),
+        Shape::Swarm => super::swarm::run_task_on(
+            task,
+            hints.verify,
+            super::swarm::swarmconf::swarmtier::effective(hints.tier),
+            session,
+            emit,
+        ),
         Shape::Commit => super::gitmsg::commit_cmd(session, "", emit),
         Shape::Review => super::review::review_cmd(session, emit),
         Shape::Standup => super::standup::standup_cmd(session, "", emit),

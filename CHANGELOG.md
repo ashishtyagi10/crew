@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.34
+
+**The model says what a task is worth spending.** Every swarm ran at the
+standard tier — the right default, and the wrong answer for "rename this in
+forty files" or "list the TODOs", where the work is mechanical and the bill is
+three times what it needs to be. The knob that existed (`CREW_SWARM_TIER`) is
+a session-wide decision made before anyone knows what the session contains.
+
+The routing grammar gains one optional line: `TIER: cheap`, for the shapes
+that run a swarm behind them (swarm, plan, goal). The model asks for the small
+fast model when the work is breadth rather than judgement, and the pane says
+so — `routing: swarm · cheap` — so a cheap run never happens quietly.
+
+It can only ever make a run CHEAPER. `TIER: standard` is read as no choice at
+all (it is the default), an unknown word is dropped like every other
+off-grammar hint, and `CREW_SWARM_TIER=cheap` still outranks the model
+downward: the knob's old promise — it can make crew cheaper, never dearer —
+survives the model being given a say.
+
 ## 0.22.33
 
 **Crew runs the project's own check.** A task that edits four files ended with
