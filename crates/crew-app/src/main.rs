@@ -336,6 +336,7 @@ mod navlayout;
 mod navlog;
 mod navlogscroll;
 mod navmode;
+mod navrail;
 mod navresize;
 mod navserving;
 mod navslot;

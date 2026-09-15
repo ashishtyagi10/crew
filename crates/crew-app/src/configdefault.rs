@@ -17,6 +17,13 @@ pub(crate) fn default_show_nav() -> bool {
     true
 }
 
+/// The nav starts as a rail. A fresh crew, and an upgraded one: the column
+/// people actually keep open is the pane list, and the rest of the dashboard
+/// is one click away rather than always there.
+pub(crate) fn default_nav_collapsed() -> bool {
+    true
+}
+
 pub(crate) fn default_true() -> bool {
     true
 }

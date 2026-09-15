@@ -25,6 +25,12 @@ impl CrewApp {
     /// pane-row path, and it is the only one of the three whose outcome is to
     /// stop being this process.
     pub(crate) fn docked_press(&mut self) -> Press {
+        // The nav's chevron first: it sits on the card's legend row, above
+        // every row the sidebar answers for.
+        if self.nav_chevron_at_cursor() {
+            self.toggle_nav_collapsed();
+            return Press::Done;
+        }
         if self.restart_btn_at_cursor() && self.restart_crew() {
             return Press::Exit;
         }

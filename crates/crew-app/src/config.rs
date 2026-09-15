@@ -24,6 +24,11 @@ pub struct CrewConfig {
     pub nav_width: f32,
     #[serde(default = "default_show_nav")]
     pub show_nav: bool,
+    /// The nav is a RAIL: panes and the chevron, nothing else. On by default
+    /// — the dashboard is worth its width while you read it and not while you
+    /// work, so the nav opens when you ask it to and not before.
+    #[serde(default = "default_nav_collapsed")]
+    pub nav_collapsed: bool,
     /// Chosen font family; `None`/empty uses the system monospace.
     #[serde(default)]
     pub font_family: Option<String>,
@@ -213,6 +218,7 @@ impl Default for CrewConfig {
             font_size: default_font_size(),
             nav_width: default_nav_width(),
             show_nav: default_show_nav(),
+            nav_collapsed: default_nav_collapsed(),
             font_family: None,
             font_random: false,
             accent: None,
@@ -275,37 +281,6 @@ pub const SMOOTH_AFTER_GAMMA: u8 = 70;
 pub const GAMMA_WITH_DILATION: u8 = 130;
 
 impl CrewConfig {
-    /// One-shot upgrade heal: a config still carrying the pre-gamma default
-    /// takes the rebalanced one, because `/gamma` now does the half of the
-    /// job that strength was silently doing and the two together overshoot.
-    /// A strength the user actually chose is left alone. Returns true when
-    /// anything changed.
-    pub fn adopt_rebalanced_smoothing(&mut self) -> bool {
-        if self.font_smooth == SMOOTH_BEFORE_GAMMA {
-            self.font_smooth = crew_render::DEFAULT_SMOOTH;
-            return true;
-        }
-        false
-    }
-
-    /// One-shot upgrade heal for 0.19.62: a config still carrying the pair
-    /// the 0.19.28 rebalance left behind takes the undilated one. Swept over
-    /// eight glyphs at two sizes, that pair delivered 98% of the outline's
-    /// light on a dark page but **145%** on a bright one, and needed 45% more
-    /// inked pixels to do it; the curve alone lands on 100% both ways up.
-    ///
-    /// Both keys must still be at their old defaults — someone who chose a
-    /// strength, or an amount, chose the pair, and neither half moves under
-    /// them. Returns true when anything changed.
-    pub fn adopt_undilated_text(&mut self) -> bool {
-        if self.font_smooth != SMOOTH_AFTER_GAMMA || self.font_gamma != GAMMA_WITH_DILATION {
-            return false;
-        }
-        self.font_smooth = crew_render::DEFAULT_SMOOTH;
-        self.font_gamma = crew_render::DEFAULT_TEXT_GAMMA;
-        true
-    }
-
     /// Clear the look-killing overrides so the newly chosen theme shows as
     /// designed: a `/crt on|off` pin returns to auto (follow the theme), and a
     /// glass strength of `off` returns to the frosted default. A deliberate
@@ -330,8 +305,12 @@ impl CrewConfig {
     }
 }
 
+#[path = "configclamp.rs"]
+mod configclamp;
 #[path = "configio.rs"]
 mod configio;
+#[path = "configmigrate.rs"]
+mod configmigrate;
 #[path = "configread.rs"]
 mod configread;
 

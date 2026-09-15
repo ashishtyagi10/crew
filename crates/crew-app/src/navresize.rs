@@ -39,9 +39,11 @@ impl CrewApp {
     }
 
     /// Whether the pointer is on the sidebar's resize edge. `false` with the
-    /// nav hidden — there is no edge to take hold of.
+    /// nav hidden, and on the rail — its width is its contents, not a
+    /// preference, so there is no edge to take hold of.
     pub(crate) fn cursor_on_nav_edge(&self) -> bool {
         self.config.show_nav
+            && !self.config.nav_collapsed
             && self
                 .cursor_logical_x()
                 .is_some_and(|x| on_edge(x, self.config.nav_width))

@@ -37,7 +37,7 @@ impl CrewApp {
     /// nothing. Only when an install is actually parked, and never while a
     /// LOUD update is drawing its own card in the same slot.
     pub(crate) fn restart_btn_at_cursor(&self) -> bool {
-        if !self.config.show_nav || self.parked_update.is_none() {
+        if !self.nav_top_card() || self.parked_update.is_none() {
             return false;
         }
         if self.update.as_ref().is_some_and(|u| !u.silent) {
@@ -53,6 +53,9 @@ impl CrewApp {
     /// Which pane a click on the sidebar targets — a WAITING row or a
     /// PANES row — if any.
     pub(crate) fn pane_at_sidebar(&self) -> Option<usize> {
+        if self.config.nav_collapsed {
+            return self.pane_at_rail();
+        }
         let (rel_row, l) = self.sidebar_row()?;
         self.waiting_pane_at(rel_row, &l)
             .or_else(|| self.pane_at_panes_list())
@@ -62,6 +65,9 @@ impl CrewApp {
     /// list: the hover that lifts a PANES row must not answer for a WAITING
     /// row further up, which used to light the wrong row.
     pub(crate) fn pane_at_panes_list(&self) -> Option<usize> {
+        if self.config.nav_collapsed {
+            return self.pane_at_rail();
+        }
         let (rel_row, l) = self.sidebar_row()?;
         let idx = sidebar_pane_index(rel_row, l.panes_top)?;
         (idx < self.panes.len()).then_some(idx)

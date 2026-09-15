@@ -21,6 +21,10 @@ impl CrewApp {
         if !self.config.show_nav {
             return;
         }
+        // Collapsed: the rail is the whole column, and it is the whole card.
+        if self.config.nav_collapsed {
+            return self.push_rail(scenes, sh, scale, cw, ch);
+        }
         // While a LOUD `/update` runs, dock a distinct UPDATE card on top of the
         // stats card, shrinking the stats card below it (chrome::stats_card_rect —
         // the same rect the PANES hit-test uses). A silent background run (see
@@ -47,11 +51,15 @@ impl CrewApp {
         let log_back = self.log_back;
         let glance = self.glance();
         let weather = crate::navweather::now().map(|w| crate::navweather::line(&w));
+        // The chevron leads whatever the legend says, in every state: it is
+        // the one control that has to be findable without reading the words
+        // beside it. Its two columns come out of the legend's budget.
+        let chev = crate::navrail::CHEVRON_COLS as usize;
         let (legend, legend_fg) = match &self.parked_update {
             // The RESTART card above is the call to action and the thing that
             // blinks; the legend just states the pair of versions, steadily.
             Some((v, _)) => (
-                crate::restartnote::legend(v, title_max_cols(sb, cw, ch)),
+                crate::restartnote::legend(v, title_max_cols(sb, cw, ch).saturating_sub(chev)),
                 crate::palette::accent(),
             ),
             None => (
@@ -59,6 +67,7 @@ impl CrewApp {
                 crew_theme::theme().legend_off,
             ),
         };
+        let legend = crate::navrail::legend(false, &legend);
         // The card carries two layers: the cells, and the sub-cell paint its
         // charts are drawn on. `ch / cw` goes with them so a chart's circles
         // stay round and its proportions survive a font change.
@@ -87,7 +96,9 @@ impl CrewApp {
     /// shift included: a silent background run draws no card, so counting it
     /// would offset every row by the height of a card that isn't on screen.
     pub(crate) fn nav_hit_geometry(&self) -> Option<(Rect, f32, crate::navlayout::NavLayout)> {
-        if !self.config.show_nav {
+        // The rail has no NavLayout: no clock, no dials, no sections to
+        // divide. Its rows are answered by `navrail::pane_at_row` instead.
+        if !self.config.show_nav || self.config.nav_collapsed {
             return None;
         }
         let (cw, ch, _sw, sh, scale) = self.frame_geometry()?;
@@ -103,6 +114,9 @@ impl CrewApp {
     /// ask one question, not two: a silent background run draws no card, and
     /// counting it would offset every nav row by a card that isn't there.
     pub(crate) fn nav_top_card(&self) -> bool {
+        if self.config.nav_collapsed {
+            return false;
+        }
         self.update.as_ref().is_some_and(|u| !u.silent) || self.parked_update.is_some()
     }
 

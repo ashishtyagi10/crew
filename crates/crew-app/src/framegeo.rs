@@ -28,11 +28,21 @@ impl CrewApp {
     }
 
     /// Sidebar width in physical px (0 when hidden).
+    ///
+    /// Collapsed it is the RAIL, and the rail is measured in cells rather
+    /// than in logical px: what it holds is a little fixed table — caret,
+    /// number, mark — and a column sized in px would lose the mark the first
+    /// time someone raised the font.
     pub(crate) fn nav_px(&self, scale: f32) -> f32 {
-        if self.config.show_nav {
-            self.config.nav_width * scale
-        } else {
-            0.0
+        if !self.config.show_nav {
+            return 0.0;
+        }
+        if !self.config.nav_collapsed {
+            return self.config.nav_width * scale;
+        }
+        match self.renderer.as_ref().map(|r| r.cell_size().0) {
+            Some(cw) if cw > 0.0 => crate::navrail::px(cw),
+            _ => crate::navrail::FALLBACK_W * scale,
         }
     }
 

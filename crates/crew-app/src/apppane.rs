@@ -128,4 +128,11 @@ impl CrewApp {
         self.config.save();
         self.redraw();
     }
+
+    /// Open the nav, or put it back to the rail. What the chevron does.
+    pub(crate) fn toggle_nav_collapsed(&mut self) {
+        self.config.nav_collapsed = !self.config.nav_collapsed;
+        self.config.save();
+        self.redraw();
+    }
 }

@@ -174,6 +174,9 @@ impl SettingsPane {
 mod tests;
 
 #[cfg(test)]
+#[path = "coverage_tests.rs"]
+mod coverage_tests;
+#[cfg(test)]
 #[path = "family_tests.rs"]
 mod family_tests;
 #[cfg(test)]
