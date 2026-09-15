@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.31
+
+**"What do you remember about the router?" — answered by crew, not by a
+model.** The recall graph rides in front of every task, so a model *could*
+answer this: it would cost a call, it would paraphrase what it was handed,
+and with no provider signed in it would not answer at all. Memory is a thing
+crew HAS, not a thing it infers, and a question about it should be answered by
+reading it out.
+
+So it is. Asking — with a subject ("what do you know about linecap?", "do you
+remember the nav crash?") or without ("what do you remember?") — gets the
+graph's own answer: the turns that subject reaches and the files that came up
+in them, the size of the store, your standing notes from `.crew/memory.md`,
+and the project's instruction files. No model call, no paraphrase, and a
+subject the graph has never seen is told plainly rather than guessed at.
+
+The gates in front of the classifier are one list in one place now
+(`intent::gate::human_gates`), in the order that makes them safe: undo first
+because it is the only one that writes over files, then the session switches
+(plan-first, this), then the commit confirm, then the plan verdict.
+
 ## 0.22.30
 
 **Plan first, for a stretch of work.** Crew could already draft a plan and

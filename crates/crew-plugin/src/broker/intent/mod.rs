@@ -96,28 +96,8 @@ pub(crate) fn route_with(
     tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    // The HUMAN GATES (see `gate`), checked before any model call. Undo
-    // first: it is the only one that writes over your files, so a "yes" it
-    // is holding must never reach a draft. Then commit — on the overlapping
-    // confirm words ("yes", "do it") a pending commit outranks a pending
-    // plan — then the plan verdict; anything else falls through and the
-    // draft stays pending.
-    if let Some(done) = super::undo::gate(task, session, emit) {
+    if let Some(done) = gate::human_gates(task, session, emit) {
         return done;
-    }
-    if let Some(done) = super::planfirst::gate(task, session, emit) {
-        return done;
-    }
-    if gate::confirms_apply(task) && gate::pending_commit(session) {
-        return super::gitmsg::commit_cmd(session, "apply", emit);
-    }
-    if gate::pending_plan(session) {
-        if gate::approves_plan(task) {
-            return super::plan::approve_cmd(session, emit);
-        }
-        if gate::rejects_plan(task) {
-            return super::plan::reject_cmd(session, emit);
-        }
     }
     // Classify in the world the session can see, AND say so — the routing
     // line, then what the run brings (`context`), both before the arm's

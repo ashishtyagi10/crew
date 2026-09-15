@@ -49,6 +49,7 @@ mod plan;
 mod planfirst;
 mod plugins;
 mod recall;
+mod recallask;
 mod registry;
 mod relay;
 mod retired;

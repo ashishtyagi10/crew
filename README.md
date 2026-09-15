@@ -571,7 +571,10 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew):
 - **Memory** — Claude Code-style `#` shortcut: `#always use pnpm` in the pane
   appends to `./.crew/memory.md`, and every task from then on carries the
   merged memory (user + project files, 2 KB cap) as a standing block the
-  agents follow; ask "what do you remember?" to see it.
+  agents follow; ask "what do you remember?" (or "what do you know about the
+  router?") and crew reads it back itself — the notes, the recall graph's
+  turns and files for that subject, and the project's instruction files — with
+  no model call, so it answers with no provider signed in.
 - **`AGENTS.md` / `CLAUDE.md`** — the conventions your repo already wrote
   down are followed without being retold. Crew finds them from the working
   directory up to the repo root and carries them in front of every task,
