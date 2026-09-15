@@ -265,12 +265,21 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`
 `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/errors`,
 `/errorsall`, `/out`, `/blocks`, `/marks`, `/name <text>`, `/pin`, `/clear`,
 `/clearall`, `/clearlog`, `/only`, `/copy`, `/dump`, `/closeall`, `/reopen`,
-`/restore`, `/blame`, `/lsp`, `/leading`, `/invisibles`, `/pwd`, `/about`, `/log`, `/nav`, `/weather`,
+`/restore`, `/blame`, `/lsp`, `/pwd`, `/about`, `/log`, `/nav`, `/weather`,
 `/model`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
-`/todo`, `/dash`, `/usage`, `/disk`, and the look: `/theme`, `/gradient`,
-`/font`, `/weight`, `/smooth`, `/gamma`, `/grain`, `/leading`, `/density`,
-`/opacity`, `/crt`, `/motion`, `/contrast`, `/shapes`, `/focus`, `/notify` — then
-`/exit`. Commands with a fixed value set (like `/theme`) expand into an
+`/todo`, `/dash`, `/usage`, `/disk`, `/focus`, `/notify` — then `/exit`.
+
+**How crew looks is one command.** `/look` owns the whole appearance family
+as SUBJECTS — `theme`, `font`, `weight`, `leading`, `density`, `motion`,
+`contrast`, `shapes`, `crt`, `gradient`, `opacity`, `grain`, `smooth`,
+`gamma`, `invisibles` — and the palette walks them in two steps: `/look `
+lists the subjects, `/look gamma ` lists that subject's ladder with the value
+you are on marked. Fifteen rows became one, which is fourteen fewer names to
+know and fourteen fewer rows between you and `/find`. The old spellings
+(`/theme dark`, `/gamma medium`, …) still run exactly as before — muscle
+memory is a feature — they are simply no longer things you have to learn.
+
+Commands with a fixed value set (like `/look theme`) expand into an
 arrow-selectable **value picker**. Fish-style autosuggest from history, `cd`
 completion with `$VAR` expansion, and `Up`/`Down` history recall persisted to
 `$XDG_CONFIG/crew/history` round it out. `/diff` opens the working tree's

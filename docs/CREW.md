@@ -3042,6 +3042,32 @@ bare page goes sheer. `100` is opaque; the value floors at **35%**, because a
 window dialled any sheerer is one you can't find again. Works with the CRT
 post-process too — the tube shapes light, not transparency.
 
+## `/look` — one command for how crew looks
+
+Crew's appearance knobs were fifteen top-level commands. They are one now:
+`/look`, whose subjects are exactly those commands, and whose palette walks
+subject then value.
+
+```text
+/look                     the subjects, and one line saying what there is
+/look gamma               the ladder for one subject (its current value marked)
+/look gamma medium        set it
+```
+
+The subjects are `theme`, `font`, `weight`, `leading`, `density`, `motion`,
+`contrast`, `shapes`, `crt`, `gradient`, `opacity`, `grain`, `smooth`,
+`gamma` and `invisibles` — each one the command it used to be, with the same
+values, the same ladders and the same live application. The picker reads its
+values from that command's own table (`crate::lookcmd::canon`), so a subject
+can never drift from what it stands for.
+
+**The old spellings still run.** `/theme dark`, `/gamma medium`, `/grain off`
+— every one of them, unchanged. What the diet removed is the fifteen palette
+ROWS, because what a palette offers is what a user has to know, and a family
+belongs there once. Typing an old name is not a mistake and is not corrected:
+the input bar still paints it as a real command (`cmddefs::answered`), which
+is the difference between retiring a command and folding one.
+
 ## Themes
 
 Crew offers **four themes** — **`dark`**, **`light`**, **`crt`**, and

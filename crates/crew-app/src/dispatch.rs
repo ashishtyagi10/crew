@@ -86,6 +86,7 @@ impl CrewApp {
             "dump" => self.dump_focused_pane(""),
             "diff" => self.diff_in_pane(),
             "run" => self.run_in_pane(""), // show usage hint
+            "look" => self.look_command(""),
             "font" => self.set_font_cmd(""),
             "theme" => self.set_theme_cmd(""),
             "crt" => self.crt_command(""),

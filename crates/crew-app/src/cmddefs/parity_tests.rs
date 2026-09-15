@@ -86,9 +86,18 @@ fn the_readme_advertises_nothing_either_palette_lacks() {
     // merged into `/update`, which is exactly the sentence the README is
     // quoting it in.
     real.extend(["/crew", "/m", "/restart"]);
+    // The look family: fifteen commands became `/look`'s subjects, and all
+    // fifteen still run when typed (`cmddefs::answered`). The manuals name
+    // them in their own sections, which is where the diet is explained —
+    // this is not an exemption from documenting them, it is the record that
+    // they are answered without being offered.
+    let look: Vec<String> = crate::lookcmd::SUBJECTS
+        .iter()
+        .map(|(s, _)| format!("/{s}"))
+        .collect();
     let stale: Vec<String> = names(&readme)
         .into_iter()
-        .filter(|n| !real.contains(n.as_str()))
+        .filter(|n| !real.contains(n.as_str()) && !look.contains(n))
         .collect();
     assert!(
         stale.is_empty(),

@@ -1,13 +1,19 @@
 //! The commands that change how crew looks and behaves, plus the file
 //! viewer's — the second half of the palette's priority order, continued
 //! from [`super::work`].
+//!
+//! Fifteen of these rows were one family — `/theme`, `/gamma`, `/grain`,
+//! `/leading` and the rest — and they are one row now: `/look`, whose picker
+//! walks subject then value (`crate::lookcmd`). They still RUN when typed;
+//! what the palette offers is what a user has to know, and a family belongs
+//! there once.
 use super::Cmd;
 
 /// Palette rows, continuing `work::WORK`.
 pub(crate) const LOOK: &[Cmd] = &[
     Cmd {
-        name: "/font",
-        desc: "Set the font size (/font <n>) or toggle rotation (/font random)",
+        name: "/look",
+        desc: "How crew looks — theme, font, weight, motion, grain and the rest (/look [subject] [value])",
     },
     Cmd {
         name: "/reopen",
@@ -18,10 +24,6 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "Reopen last session's shells in their directories",
     },
     Cmd {
-        name: "/theme",
-        desc: "Switch theme — pick from the list",
-    },
-    Cmd {
         name: "/nav",
         desc: "What the nav's slot shows: glance cards or the log (/nav [glance|log])",
     },
@@ -30,56 +32,8 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "The nav's WEATHER card for a place (/weather <place> | auto | off)",
     },
     Cmd {
-        name: "/crt",
-        desc: "CRT tube look on/off (/crt [on|off|auto])",
-    },
-    Cmd {
-        name: "/weight",
-        desc: "Text weight — thicker/lighter font (/weight [medium|semibold|bold|…])",
-    },
-    Cmd {
-        name: "/smooth",
-        desc: "Font smoothing — CoreText-style stem darkening (/smooth [off|light|medium|heavy|<0-255>])",
-    },
-    Cmd {
-        name: "/gamma",
-        desc: "Text gamma — take back the ink the encoded blend eats (/gamma [off|light|medium|full|<0-255>])",
-    },
-    Cmd {
-        name: "/grain",
-        desc: "Paper grain — how much newsprint texture the page carries (/grain [off|light|medium|heavy|<0-2>])",
-    },
-    Cmd {
-        name: "/motion",
-        desc: "How much crew moves — auto follows the OS Reduce Motion switch (/motion [auto|off|subtle|full])",
-    },
-    Cmd {
-        name: "/shapes",
-        desc: "Say it with a shape as well as a colour \u{2014} auto follows the OS Differentiate Without Color switch (/shapes [auto|off|on])",
-    },
-    Cmd {
-        name: "/contrast",
-        desc: "WCAG floor every derived colour is held to \u{2014} auto follows the OS Increase Contrast switch (/contrast [auto|normal|high])",
-    },
-    Cmd {
         name: "/focus",
         desc: "Focus mode \u{2014} hold every notification, never steal focus, deepen the spotlight (/focus)",
-    },
-    Cmd {
-        name: "/leading",
-        desc: "Line spacing: air between rows of text (tight|normal|relaxed|loose)",
-    },
-    Cmd {
-        name: "/density",
-        desc: "How tightly the canvas packs \u{2014} pane gutter and chat-card spacing (/density [compact|cozy|roomy])",
-    },
-    Cmd {
-        name: "/gradient",
-        desc: "Canvas gradient — how far its colour breathes, or poles of your own (/gradient [off|subtle|lively|<#a> <#b>|reset])",
-    },
-    Cmd {
-        name: "/opacity",
-        desc: "How much desktop shows through \u{2014} the card you read and the bar you type in stay solid (/opacity [off|subtle|medium|sheer|<35-100>])",
     },
     Cmd {
         name: "/notify",
@@ -136,10 +90,6 @@ pub(crate) const LOOK: &[Cmd] = &[
     Cmd {
         name: "/batch",
         desc: "Run a file of jobs (one per line) as a parallel swarm (/batch <file>)",
-    },
-    Cmd {
-        name: "/invisibles",
-        desc: "Reveal tabs, trailing spaces and CRs in the file viewer (on|off)",
     },
     Cmd {
         name: "/blame",

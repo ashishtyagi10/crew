@@ -297,6 +297,7 @@ mod linecap;
 mod linkhl;
 mod linkhover;
 mod load;
+mod lookcmd;
 mod md;
 #[cfg(test)]
 mod mdcardcells_tests;

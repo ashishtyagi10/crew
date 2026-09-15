@@ -28,6 +28,37 @@ pub(crate) fn commands() -> impl Iterator<Item = &'static Cmd> {
     GROUPS.iter().copied().flatten()
 }
 
+/// Whether the dispatcher answers `name` — the palette's rows PLUS the
+/// spellings it no longer advertises.
+///
+/// The two are not the same list any more. `/look` folded fifteen appearance
+/// commands into one row (`crate::lookcmd`), and every one of them still runs:
+/// they are in every doc, every script and everyone's fingers. What the
+/// palette offers is what you must KNOW; what the dispatcher answers is what
+/// works. Surfaces that ask "is this real?" — the input bar's ink, the typo
+/// note, the doc guards — must ask this, or typing `/theme dark` is marked as
+/// a mistake while it runs perfectly.
+pub(crate) fn answered(name: &str) -> bool {
+    commands().any(|c| c.name == name) || unadvertised(name)
+}
+
+/// The names that run without a palette row of their own.
+pub(crate) fn unadvertised(name: &str) -> bool {
+    name.strip_prefix('/')
+        .is_some_and(crate::lookcmd::is_subject)
+}
+
+/// Whether any answered name STARTS with `part` — "you are on your way to
+/// something", the middle state the input bar's ink draws. Unadvertised
+/// names count here too: `/them` is on its way to `/theme` whether or not
+/// the palette lists it.
+pub(crate) fn answers_prefix(part: &str) -> bool {
+    commands().any(|c| c.name.starts_with(part))
+        || crate::lookcmd::SUBJECTS
+            .iter()
+            .any(|(s, _)| format!("/{s}").starts_with(part))
+}
+
 #[cfg(test)]
 #[path = "parity_tests.rs"]
 mod parity_tests;
