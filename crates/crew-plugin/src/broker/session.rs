@@ -81,6 +81,9 @@ pub(crate) struct Session {
     /// knows about is an undo nobody uses, and a note on every task would be
     /// the noise the silence was protecting against.
     pub announced_ckpt: Arc<AtomicBool>,
+    /// Whether this session has already mentioned that a check command can
+    /// be declared (`selfcheck`). Once, like the checkpoint note.
+    pub announced_check: Arc<AtomicBool>,
     /// Whether this session has already said where to go with a file-change
     /// summary. The LIST is new information after every task and always
     /// reported; "and /diff shows them" is a lesson, and a lesson repeated
@@ -116,6 +119,7 @@ impl Default for Session {
             gate: Arc::new(Mutex::new(super::approval::Gate::new())),
             announced_ckpt: Arc::new(AtomicBool::new(false)),
             announced_changes: Arc::new(AtomicBool::new(false)),
+            announced_check: Arc::new(AtomicBool::new(false)),
             toolpick: Arc::new(toolmemo::Picker::live()),
         }
     }
@@ -148,6 +152,7 @@ impl Session {
             gate: Arc::clone(&self.gate),
             announced_ckpt: Arc::clone(&self.announced_ckpt),
             announced_changes: Arc::clone(&self.announced_changes),
+            announced_check: Arc::clone(&self.announced_check),
             toolpick: Arc::clone(&self.toolpick),
         }
     }

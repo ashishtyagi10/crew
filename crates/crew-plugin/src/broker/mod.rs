@@ -58,6 +58,7 @@ mod rosterev;
 mod roundloop;
 mod route;
 mod run;
+mod selfcheck;
 mod session;
 mod sessionlog;
 mod shellenv;
