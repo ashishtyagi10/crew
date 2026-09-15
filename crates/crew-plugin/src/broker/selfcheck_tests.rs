@@ -82,7 +82,8 @@ fn nothing_is_said_when_a_task_changed_nothing() {
         }
         Ok(())
     };
-    after_task(&session, false, &mut emit).unwrap();
+    let mut repair = |_: &str| panic!("a check that never ran cannot fail");
+    after_task(&session, false, &mut repair, &mut emit).unwrap();
     assert!(said.is_empty());
 }
 

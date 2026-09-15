@@ -515,8 +515,14 @@ fn report_changes(session: &Session, id: u64, out: &Out) {
     // …and last, the project's own check, if it declared one: the diff says
     // what changed and the language server what is malformed; this is the
     // only thing that says whether it still WORKS.
+    // The repair pass, when the check fails: the same swarm that answers a
+    // plain task, on the same session, with the failure as its task.
+    let mut repair = |task: &str| {
+        let mut send = |ev: PluginEvent| emit(out, &ev);
+        super::swarm::run_task(task, false, session, &mut send)
+    };
     let mut send = |ev: PluginEvent| emit(out, &ev);
-    let _ = super::selfcheck::after_task(session, true, &mut send);
+    let _ = super::selfcheck::after_task(session, true, &mut repair, &mut send);
 }
 
 /// Whether this session has already mentioned checkpoints; marks it as told.

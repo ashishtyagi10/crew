@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.35
+
+**Crew takes one pass at its own breakage.** v0.22.33 taught crew to run the
+project's check after a task that changed files. It reported the failure and
+stopped — which is an agent you have to babysit, holding every piece of
+information needed to fix the thing: the command, the output, and the diff it
+just made.
+
+Now a failing check is handed straight back: the command, the first forty
+lines of output, and one instruction — fix the cause, change as little as
+possible, do not weaken or delete the check, do not commit. Then the check
+runs again and the pane says `passed after one pass`, or repeats the failure
+with `(one pass was not enough)`.
+
+Bounded where it matters. ONE pass, never re-entered — a repair changes files,
+which runs the check, which can fail, which would start another pass, and a
+loop that spends money while you are asleep is not autonomy. Never a commit.
+And always undoable: the checkpoint taken before the breaking task puts the
+original change and the repair back together, with "undo that".
+
+Off with a sentence — **"don't fix it yourself"** — because whether a machine
+may act unasked is the user's call, not a config file's.
+
 ## 0.22.34
 
 **The model says what a task is worth spending.** Every swarm ran at the

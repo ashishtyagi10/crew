@@ -84,6 +84,11 @@ pub(crate) struct Session {
     /// Whether this session has already mentioned that a check command can
     /// be declared (`selfcheck`). Once, like the checkpoint note.
     pub announced_check: Arc<AtomicBool>,
+    /// Whether a repair pass is running right now (`selfrepair`), so the
+    /// check the pass itself trips cannot start another one.
+    pub repairing: Arc<AtomicBool>,
+    /// Whether the user has told crew not to fix its own breakage.
+    pub no_autofix: Arc<AtomicBool>,
     /// Whether this session has already said where to go with a file-change
     /// summary. The LIST is new information after every task and always
     /// reported; "and /diff shows them" is a lesson, and a lesson repeated
@@ -120,6 +125,8 @@ impl Default for Session {
             announced_ckpt: Arc::new(AtomicBool::new(false)),
             announced_changes: Arc::new(AtomicBool::new(false)),
             announced_check: Arc::new(AtomicBool::new(false)),
+            repairing: Arc::new(AtomicBool::new(false)),
+            no_autofix: Arc::new(AtomicBool::new(false)),
             toolpick: Arc::new(toolmemo::Picker::live()),
         }
     }
@@ -153,6 +160,8 @@ impl Session {
             announced_ckpt: Arc::clone(&self.announced_ckpt),
             announced_changes: Arc::clone(&self.announced_changes),
             announced_check: Arc::clone(&self.announced_check),
+            repairing: Arc::clone(&self.repairing),
+            no_autofix: Arc::clone(&self.no_autofix),
             toolpick: Arc::clone(&self.toolpick),
         }
     }

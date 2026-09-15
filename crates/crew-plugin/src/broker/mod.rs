@@ -59,6 +59,7 @@ mod roundloop;
 mod route;
 mod run;
 mod selfcheck;
+mod selfrepair;
 mod session;
 mod sessionlog;
 mod shellenv;
