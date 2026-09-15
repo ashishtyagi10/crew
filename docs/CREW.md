@@ -566,7 +566,7 @@ The docked command bar supports:
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
   fill, Enter to run): `/smith`, `/goal <text>`, `/batch <file>`, `/view <file>`,
   `/md <file>`, `/diff`, `/settings`, `/find <text>` (`/find all <text>`), `/name <text>`, `/clear`
-  (`/clear all`, `/clear log`), `/close all`, `/close others`, `/pwd`, `/about`, `/log`, `/nav`, `/weather`, `/copy`, `/dump`,
+  (`/clear all`, `/clear log`), `/close all`, `/close others`, `/pwd`, `/about`, `/log`, `/nav` (`/nav weather <place>`), `/copy`, `/dump`,
   `/font`, `/theme`, `/notify`, `/update`, `/broadcast`, `/zoom`,
   `/sidebar`, `/keys`, `/far`, `/todo`, `/exit`. The palette is **fuzzy** — prefix
   matches rank first,
@@ -953,10 +953,10 @@ longer aim at.
   back into your shell), so Crew can tell "a command is running" from "a
   prompt is waiting" — that signal is what makes bare input divert away from
   a busy pane instead of typing into a running program.
-- **`/view <file>`** (alias `/md`) — opens a zoomed **file viewer** pane: a
+- **`/view <file>`** — opens a zoomed **file viewer** pane: a
   single, read-only pane over the file, rendered by format (markdown,
   numbered-gutter code, plain un-numbered text for `.txt` and the listings
-  crew writes itself — `/out`, `/blocks`, `/tools` — aligned CSV, colored
+  crew writes itself — `/out`, `/out list`, `/tools` — aligned CSV, colored
   diffs, or a metadata card for anything else). ↑/↓ and PageUp/PageDown/Home/End scroll, `r` reloads from
   disk — a **wrapped row says it is one**, with a `↪` in the gutter where its
   line number would be, since a blank gutter beside a wrapped line and a blank
@@ -1145,7 +1145,7 @@ longer aim at.
 
   This is one `read_dir` of one directory per keystroke, never a walk: it runs
   on the thread every pane is drawn from, and a stall there freezes the whole
-  grid. `/view`, `/md` and `/batch` had shipped as commands you type a path
+  grid. `/view`, `/doc` and `/batch` had shipped as commands you type a path
   into with **no completion at all** — the ghost knew only about `/dump` — so
   the palette's descriptions and the completion list are now held against each
   other by a test.
@@ -1256,7 +1256,7 @@ longer aim at.
   asked for it. Every tool call an agent makes passes one gate and appends one
   line to `~/.config/crew/ledger.jsonl` — that has been true since the gate
   landed, and until now nothing could open it. A call that never returned
-  shows `·` rather than a tick, for the same reason `/blocks` does: the gate
+  shows `·` rather than a tick, for the same reason `/out list` does: the gate
   writes the decision when it makes it and the outcome when the call ends, so a
   crash between the two leaves a real row with nothing after it, and drawing
   that as success would invent an answer. Under the heading, two rows tally

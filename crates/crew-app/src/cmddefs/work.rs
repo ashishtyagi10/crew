@@ -30,10 +30,6 @@ pub(crate) const WORK: &[Cmd] = &[
         desc: "Keep the focused pane on the grid (never demoted to the strip)",
     },
     Cmd {
-        name: "/blocks",
-        desc: "What you ran in this pane, how long each took and which failed",
-    },
-    Cmd {
         name: "/tools",
         desc: "What agents ran through the tool gate \u{b7} /tools <term> narrows it",
     },
@@ -51,7 +47,7 @@ pub(crate) const WORK: &[Cmd] = &[
     },
     Cmd {
         name: "/out",
-        desc: "Open the last command's output on its own, in the file viewer",
+        desc: "The last command\'s output in a pane (/out <n> for an earlier one, /out list for all)",
     },
     Cmd {
         name: "/errors",

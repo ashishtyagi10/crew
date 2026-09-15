@@ -52,6 +52,26 @@ pub(crate) const VERBS: &[Verb] = &[
         two_step: false,
     },
     Verb {
+        name: "/nav",
+        subjects: &[
+            (
+                "glance",
+                "the glance cards: serving, waiting on you, weather",
+            ),
+            ("log", "the live activity log"),
+            (
+                "weather",
+                "the clock's weather strip (/nav weather <place>)",
+            ),
+        ],
+        two_step: false,
+    },
+    Verb {
+        name: "/out",
+        subjects: &[("list", "every command block, to open one by number")],
+        two_step: false,
+    },
+    Verb {
         name: "/find",
         subjects: &[("all", "search every pane's scrollback (/find all <text>)")],
         two_step: false,
@@ -103,6 +123,9 @@ pub(crate) fn current_key(text: &str) -> String {
 /// The spellings that were folded into a verb and still answer, though no
 /// palette row offers them (`cmddefs::answered`).
 pub(crate) const FOLDED: &[&str] = &[
+    "weather",
+    "blocks",
+    "md",
     "findall",
     "errorsall",
     "clearall",
