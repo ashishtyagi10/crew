@@ -774,7 +774,8 @@ fn the_mock_arm_gets_no_tools_even_when_the_session_has_them() {
     let calls = Arc::new(std::sync::Mutex::new(Vec::new()));
     let tools: Arc<dyn crew_hive::Tools> = Arc::new(CountingTools(Arc::clone(&calls)));
 
-    let (_planner, factory, _budget, model, _replan) = super::swarmconf::backend(Some(tools));
+    let (_planner, factory, _budget, model, _replan) =
+        super::swarmconf::backend_at(Some(tools), swarmconf::swarmtier::swarm_tier());
     assert_eq!(
         model, "mock",
         "this test is only meaningful on the mock arm"

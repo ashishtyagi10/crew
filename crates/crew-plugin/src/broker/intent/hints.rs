@@ -15,6 +15,8 @@
 //! hint and nothing else, an over-large count is clamped to the ceiling, an
 //! unknown agent is dropped (exact name match against the roster the model
 //! was shown — never fuzzy), and no line can ever change the shape.
+use crew_hive::ModelTier;
+
 use crate::broker::roundloop::MAX_ROUNDS;
 
 use super::Shape;
@@ -29,6 +31,11 @@ pub(crate) struct Hints {
     pub(crate) agents: Option<Vec<String>>,
     /// The swarm's result is judged against the request when it finishes.
     pub(crate) verify: bool,
+    /// The model tier the work deserves — `None` is the session default
+    /// (Standard). The model asks for `Cheap` on mechanical breadth; it can
+    /// only ever make a run CHEAPER, never dearer, and `CREW_SWARM_TIER`
+    /// still outranks it downward (`swarmtier::effective`).
+    pub(crate) tier: Option<ModelTier>,
 }
 
 impl Hints {
@@ -45,6 +52,7 @@ impl Hints {
                 "rounds" => hints.rounds = parse_rounds(tail),
                 "agents" => hints.agents = parse_agents(tail, roster),
                 "verify" => hints.verify = parse_yes(tail),
+                "tier" => hints.tier = parse_tier(tail),
                 _ => {}
             }
         }
@@ -62,6 +70,9 @@ impl Hints {
                 .filter(|_| matches!(shape, Shape::Loop | Shape::Goal)),
             agents: self.agents.filter(|_| shape == Shape::Fan),
             verify: self.verify && matches!(shape, Shape::Swarm | Shape::Plan),
+            tier: self
+                .tier
+                .filter(|_| matches!(shape, Shape::Swarm | Shape::Plan | Shape::Goal)),
         }
     }
 
@@ -79,6 +90,11 @@ impl Hints {
         if self.verify {
             s.push_str(" \u{00b7} verified");
         }
+        // Only the cheap choice is said: Standard is the default, and naming
+        // the default on every line is noise.
+        if self.tier == Some(ModelTier::Cheap) {
+            s.push_str(" \u{00b7} cheap");
+        }
         s
     }
 }
@@ -90,6 +106,19 @@ fn parse_yes(tail: &str) -> bool {
         .next()
         .map(|t| t.trim_matches(|c: char| !c.is_ascii_alphabetic()))
         .is_some_and(|t| t.eq_ignore_ascii_case("yes"))
+}
+
+/// `cheap` and nothing else — the one direction the model may move the
+/// spend. A `TIER: standard` is not an error; it simply says the default,
+/// and is read as no choice at all.
+fn parse_tier(tail: &str) -> Option<ModelTier> {
+    let token = tail
+        .split_whitespace()
+        .next()?
+        .trim_matches(|c: char| !c.is_ascii_alphabetic());
+    token
+        .eq_ignore_ascii_case("cheap")
+        .then_some(ModelTier::Cheap)
 }
 
 /// The first integer token, clamped into the loop's legal range. `0` becomes

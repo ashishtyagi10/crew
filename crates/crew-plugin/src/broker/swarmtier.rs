@@ -30,6 +30,16 @@ pub(crate) fn parse(raw: Option<&str>) -> ModelTier {
     }
 }
 
+/// The tier a run actually serves on: the model's choice, unless the env
+/// knob already said cheap. The knob can only make crew cheaper — that was
+/// true of it before the model had a say, and it stays true now.
+pub(crate) fn effective(chosen: Option<ModelTier>) -> ModelTier {
+    match swarm_tier() {
+        ModelTier::Cheap => ModelTier::Cheap,
+        _ => chosen.unwrap_or(ModelTier::Standard),
+    }
+}
+
 #[cfg(test)]
 #[path = "swarmtier_tests.rs"]
 mod tests;

@@ -2605,7 +2605,12 @@ asking — reasoning a model shows unprompted is still shown;
 `CREW_INTENT=0` disables the intent router — every plain message then runs as
 a swarm instead of the model first choosing its execution shape (a direct
 reply, an all-agents fan-out, refinement rounds, a plan awaiting approval, or
-the swarm); `CREW_SWARM_TIER=cheap` runs the swarm's planner and workers on
+the swarm); The model also chooses the TIER a run deserves: an optional `TIER: cheap`
+line on the routing reply puts the planner and workers on the small fast
+model for mechanical breadth (rename, list, collect, summarise) and leaves
+judgement work on the standard one — said on the routing line as
+`routing: swarm · cheap`. It can only ever make a run CHEAPER.
+`CREW_SWARM_TIER=cheap` runs the swarm's planner and workers on
 the provider's cheap tier (the swarm serves at the standard tier by default,
 the same tier the relay uses — the knob can only make a run cheaper, never
 dearer; the small structured one-shots such as routing stay cheap either
