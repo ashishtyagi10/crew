@@ -16,6 +16,7 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
 
+mod ask;
 mod block;
 mod codec;
 mod extract;
@@ -71,26 +72,6 @@ impl Recall {
             prev: None,
             on,
         }
-    }
-
-    /// What `task` recalls — the block and its counts — or `None` when the
-    /// graph has nothing to say about it.
-    pub(crate) fn recalled(&self, task: &str, skip: &[String]) -> Option<Recalled> {
-        if !self.on {
-            return None;
-        }
-        block::block(&self.g, task, skip, now_ms(), RECALL_CAP)
-    }
-
-    /// The block alone, for the arms that only put it in front of a task.
-    pub(crate) fn context(&self, task: &str, skip: &[String]) -> Option<String> {
-        self.recalled(task, skip).map(|r| r.text)
-    }
-
-    /// The newest remembered turn whose request starts with `prefix`, and
-    /// how long ago it landed — what a pane opening asks of memory.
-    pub(crate) fn latest(&self, prefix: &str) -> Option<(String, u64)> {
-        self.on.then(|| query::latest(&self.g, prefix)).flatten()
     }
 
     /// `(turns, topics, files)` — `/doctor`'s counts.

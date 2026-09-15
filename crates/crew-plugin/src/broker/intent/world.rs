@@ -40,14 +40,32 @@ pub(crate) struct World {
     /// router can tell a follow-up ("shorter", "now the tests too") from a
     /// fresh request; `None` on the first turn.
     pub(crate) recent: Option<String>,
+    /// How many earlier turns the recall graph holds about THIS message's
+    /// subject, and the files they touched.
+    ///
+    /// The difference between "we have been here before" and "this is new"
+    /// changes the right shape: a request crew has worked on three times is
+    /// usually a follow-up to finish, not a graph to decompose from scratch,
+    /// and one it has never seen in a tree full of tools is usually the
+    /// opposite. The router could not tell the two apart — the recall block
+    /// rides in front of the WORKERS, and the classifier ran before it.
+    pub(crate) known: Option<(usize, Vec<String>)>,
 }
 
 impl World {
     /// The facts this session can give cheaply: the registry's names, one
     /// bounded `git status` in the project dir, the tool surface the planner
     /// already sees.
+    #[cfg(test)]
     pub(crate) fn gather(session: &Session) -> World {
+        Self::gather_about(session, "")
+    }
+
+    /// [`Self::gather`] for a specific message, so the recall fact is about
+    /// what is being routed rather than about the project in general.
+    pub(crate) fn gather_about(session: &Session, task: &str) -> World {
         World {
+            known: known_about(session, task),
             agents: session.registry().names(),
             dirty: crate::broker::gitmsg::project_dir()
                 .ok()
@@ -83,11 +101,33 @@ impl World {
         if let Some(asked) = &self.recent {
             lines.push(format!("last turn: {asked}"));
         }
+        if let Some((n, files)) = &self.known {
+            let s = if *n == 1 { "" } else { "s" };
+            lines.push(match files.is_empty() {
+                true => format!("seen before: {n} earlier turn{s} about this"),
+                false => format!(
+                    "seen before: {n} earlier turn{s} about this, in {}",
+                    files.join(", ")
+                ),
+            });
+        }
         if lines.is_empty() {
             return String::new();
         }
         format!("The world you route in:\n{}\n\n", lines.join("\n"))
     }
+}
+
+/// What the recall graph already holds about `task` — `None` when it holds
+/// nothing, so a fresh subject leaves the prompt exactly as it was.
+fn known_about(session: &Session, task: &str) -> Option<(usize, Vec<String>)> {
+    if task.trim().is_empty() {
+        return None;
+    }
+    let skip = crate::broker::thread::lock(&session.thread).asks();
+    let recall = crate::broker::recall::lock(&session.recall);
+    let turns = recall.recalled(task, &skip)?.turns;
+    (turns > 0).then(|| (turns, recall.files_about(task)))
 }
 
 /// Changed paths under `dir`, or `None` outside a repository, on any git

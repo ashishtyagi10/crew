@@ -2116,6 +2116,16 @@ and a typo gets a **did-you-mean** suggestion):
   session. Pins apply per agent, so **planner, coder, and reviewer can run
   three different models side by side**; every change re-emits the roster so
   the pane's model badges update live.
+- **the router knows whether it has been here before** — the classifier's
+  world (roster, dirty tree, tool surface, last turn) gained one more line:
+  `seen before: 3 earlier turns about this, in src/route.rs`, read out of the
+  recall graph for the message being routed. "We have worked on this three
+  times" and "this is new" want different shapes — the first is usually a
+  follow-up to finish, the second a graph to decompose — and until this the
+  classifier could not tell them apart, because the recall block rode in
+  front of the WORKERS and the routing decision happened before it. A subject
+  the graph has never seen adds nothing, so the prompt is unchanged on a cold
+  project.
 - **what agent smith decides** — every plain message runs one decision
   loop: **routing** (the model picks the shape and says so — `routing: swarm
   · verified — multi-part work`), **context** (one line says what the run
