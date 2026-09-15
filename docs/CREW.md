@@ -424,7 +424,25 @@ border buttons, the nav rows and the `+N` tile, an open hand over a card's
 legend row (the handle it is carried by) that closes while one is in hand, and
 a column-resize arrow on the sidebar's edge.
 
-**Resizing the sidebar.** Drag its inner edge. The width was a figure in the
+**The rail, and the chevron.** The nav starts COLLAPSED: seven columns holding
+one row per pane — the focus caret, the pane's number, and the same mark its
+full row would carry (a raised attention, then a spinner while it works, then
+a dot for lines you have not read, in the same three colours). It is the
+section people actually keep the nav open for, and it costs a fortieth of the
+screen instead of a fifth.
+
+The **chevron** on the card's top border opens it and puts it away: `›` on the
+rail, `‹ crew v0.22.41` in front of the legend when the nav is open. It is the
+first thing the legend says in both states, so the control never moves. Click
+it; the choice persists. **Cmd+G** (or `/sidebar`) is still the other question
+— whether there is a column at all.
+
+A collapsed nav has no width to argue about, so its edge is not a handle and
+the UPDATE and RESTART cards wait for it to be opened — neither has anywhere to
+put a sentence at seven columns.
+
+**Resizing the sidebar.** Open it first, then drag its inner edge. The width was
+a figure in the
 Settings form and nowhere else; it is now also a handle, clamped to the same
 160–320 px the form clamps to. The nav is chrome, not a pane, so the grid never
 changes shape — it is handed a narrower content rect exactly as it is when the

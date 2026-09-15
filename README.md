@@ -169,9 +169,16 @@ While a pane is scrolled back, its right border is a live scroll gutter — pres
 or drag it to move through the buffer. **Cmd+wheel** resizes the font, and a
 wheel over the sidebar's LOG scrolls back through its buffered lines.
 
+The **left nav starts collapsed**: a seven-column rail with one row per pane —
+focus caret, number, and the mark that says what the pane is doing. The
+**chevron** on its top border opens the full dashboard (clock, dials, load,
+host, net, git, the LOG or the glance cards) and puts it away again: `›` on the
+rail, `‹` in front of the legend when it is open. **Cmd+G** is the other
+question — whether there is a column at all.
+
 The pointer changes shape to say what it can do: an I-beam over text, a hand
 over a button or a nav row, an open hand over a card's legend row, a resize
-arrow on the sidebar's edge — **drag that edge** to widen or narrow the nav.
+arrow on an open sidebar's edge — **drag that edge** to widen or narrow the nav.
 
 Inside a pane, **double-click selects a word** and **triple-click the line** —
 the gesture every terminal has, and each selection copies. On a card's top

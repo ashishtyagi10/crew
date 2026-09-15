@@ -8,6 +8,50 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.41
+
+**The left nav starts as a rail.** The full nav is a dashboard — clock, dials,
+load, host, net, git, then the LOG or the glance cards, then the pane list —
+and it is a fifth of a laptop screen whether or not anyone is reading it. What
+people keep it open for is the last section.
+
+So that is the rail, and nothing else: seven columns, one row per pane, the
+focus caret and the pane's number and the same mark its full row would carry —
+a raised attention, then the spinner while it works, then the dot for lines not
+yet read, in the same three colours, so the two readings can never disagree
+about what a pane is doing.
+
+    ╭─ › ─╮
+    │ 1  ●│
+    │▸2   │
+    │ 3  ◓│
+    │ 4  ●│
+    │ 5  !│
+
+The chevron is the control, and it is the first character of the card's own
+legend — `›` on the rail, `‹ crew v0.22.41` when the nav is open — so it sits
+in one place in both states and points the way the edge will move. Click it;
+the choice persists. **Cmd+G** and `/sidebar` still answer the other question,
+whether there is a column at all.
+
+The rail is measured in CELLS, not logical pixels: what it holds is a little
+fixed table, and a column sized in px loses the mark the first time someone
+raises the font. It has no width to argue about, so its edge is not a drag
+handle, and the UPDATE and RESTART cards wait for the nav to be opened —
+neither has anywhere to put a sentence at seven columns.
+
+**This changes an existing layout**: crew comes up collapsed after this
+upgrade, not just on a fresh install. One click on the chevron puts it back,
+and it stays back.
+
+Three ratchets went off on the way and each was right: `config.rs` and
+`configread.rs` could not carry another field, so the one-shot upgrade heals
+moved to `configmigrate.rs` and `clamped()` — the rebuild of the whole struct
+that silently resets any field left out of it — moved to `configclamp.rs`,
+where the eye can hold all of it at once. The settings form's coverage check
+moved to `coverage_tests.rs`, and `configread.rs` came in under the 200-line
+cap for the first time, so its debt row is gone.
+
 ## 0.22.40
 
 **The night crew ate 75 GB.** A self-improvement loop ran for ten hours in a

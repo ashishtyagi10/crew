@@ -46,9 +46,8 @@ src/cmdmenu_tests.rs 208
 src/cmdrow_tests.rs 223
 src/cmdspan.rs 211
 src/cmdspan_tests.rs 332
-src/config.rs 341
-src/config_tests.rs 395
-src/configread.rs 246
+src/config.rs 319
+src/config_tests.rs 344
 src/crispshot_tests.rs 352
 src/daemon/cli.rs 354
 src/daemon/mod.rs 304
@@ -106,7 +105,7 @@ src/sessionrestore.rs 259
 src/sessionrestore_tests.rs 260
 src/sessionsave.rs 269
 src/sessionsave_tests.rs 244
-src/settingspane/mod_tests.rs 640
+src/settingspane/mod_tests.rs 514
 src/settingspane/render.rs 203
 src/settingspane/render_tests.rs 288
 src/shellprobe.rs 298
