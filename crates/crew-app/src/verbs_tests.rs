@@ -1,0 +1,71 @@
+use super::*;
+
+use crate::suggest::menu_items;
+
+#[test]
+fn every_folded_spelling_left_the_palette_and_still_answers() {
+    let names: Vec<&str> = crate::cmddefs::commands().map(|c| c.name).collect();
+    for folded in FOLDED {
+        let old = format!("/{folded}");
+        assert!(
+            !names.contains(&old.as_str()),
+            "{old} is still a palette row"
+        );
+        assert!(crate::cmddefs::answered(&old), "{old} stopped answering");
+    }
+}
+
+#[test]
+fn a_verb_lists_its_subjects_and_each_row_runs() {
+    let rows = menu_items("/clear ");
+    let labels: Vec<&str> = rows.iter().map(|r| r.label.as_str()).collect();
+    assert_eq!(labels, vec!["all", "log"]);
+    assert_eq!(rows[0].fill, "/clear all");
+    assert!(rows[0].submit, "a one-step subject IS the answer");
+}
+
+#[test]
+fn only_the_two_step_verb_inserts_instead_of_running() {
+    assert!(nested("/look", "gamma"), "a look subject opens its ladder");
+    assert!(!nested("/clear", "all"), "clear all is the whole answer");
+    assert_eq!(fill("/look", "gamma"), "/look gamma ");
+    assert_eq!(fill("/clear", "all"), "/clear all");
+}
+
+#[test]
+fn the_palette_lost_six_rows_and_gained_one() {
+    let names: Vec<&str> = crate::cmddefs::commands().map(|c| c.name).collect();
+    assert!(names.contains(&"/close"), "the new verb is missing");
+    for verb in ["/clear", "/find", "/errors", "/look"] {
+        assert!(names.contains(&verb), "{verb} must stay a row");
+    }
+}
+
+#[test]
+fn every_verb_offers_subjects_and_nothing_else_does() {
+    for v in VERBS {
+        let rows = options(v.name).unwrap_or_default();
+        assert_eq!(rows.len(), v.subjects.len(), "{} lost subjects", v.name);
+        assert!(rows.iter().all(|(s, d)| !s.is_empty() && !d.is_empty()));
+    }
+    assert!(options("/settings").is_none());
+}
+
+/// The completion side, moved here from `suggest_tests` when the family
+/// folded: the verb completes, the folded spellings do not, and both run.
+#[test]
+fn the_verbs_complete_and_the_folded_spellings_still_answer() {
+    assert_eq!(crate::suggest::suggest("/clos", &[]).as_deref(), Some("e"));
+    let names: Vec<&str> = crate::suggest::matches("/cl")
+        .iter()
+        .map(|c| c.name)
+        .collect();
+    assert!(
+        names.contains(&"/close") && names.contains(&"/clear"),
+        "{names:?}"
+    );
+    for folded in ["/only", "/clearlog", "/clearall", "/closeall"] {
+        assert!(!names.contains(&folded), "{folded} is still offered");
+        assert!(crate::cmddefs::answered(folded), "{folded} stopped running");
+    }
+}

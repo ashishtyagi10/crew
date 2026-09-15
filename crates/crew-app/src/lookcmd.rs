@@ -14,6 +14,10 @@
 //! the palette walks them in two steps: `/look ` lists the subjects, `/look
 //! gamma ` lists that subject's ladder with the current value marked.
 //!
+//! The picker plumbing is `crate::verbs`, which owns every folded verb —
+//! this file owns the `/look` family: its subjects, and the command each one
+//! forwards to.
+//!
 //! The old spellings still run. Muscle memory is a feature, `/theme dark` is
 //! in every doc and script anyone has written, and the point of the diet is
 //! to shrink what you have to KNOW — which is the palette — not to punish
@@ -44,17 +48,6 @@ pub(crate) fn is_subject(name: &str) -> bool {
     SUBJECTS.iter().any(|(s, _)| *s == name)
 }
 
-/// The rows for `/look ` itself: one per subject. `None` for every other
-/// command, so the caller falls through to the value pickers.
-pub(crate) fn options(cmd: &str) -> Option<Vec<(String, String)>> {
-    (cmd == "/look").then(|| {
-        SUBJECTS
-            .iter()
-            .map(|(s, d)| (s.to_string(), d.to_string()))
-            .collect()
-    })
-}
-
 /// Read a typed command and argument as the picker needs them:
 /// `(command to look values up under, the argument, the text a row fills)`.
 ///
@@ -76,21 +69,6 @@ pub(crate) fn canon(cmd: &str, arg: &str) -> (String, String, String) {
         }
     }
     (cmd.to_string(), arg, cmd.to_string())
-}
-
-/// Whether a row is a subject that itself opens a picker — those INSERT
-/// (with the space that opens the next step) instead of running.
-pub(crate) fn nested(prefix: &str, value: &str) -> bool {
-    prefix == "/look" && is_subject(value)
-}
-
-/// What a row types into the bar: a subject leaves the trailing space its
-/// own picker needs, a value does not.
-pub(crate) fn fill(prefix: &str, value: &str) -> String {
-    match nested(prefix, value) {
-        true => format!("{prefix} {value} "),
-        false => format!("{prefix} {value}"),
-    }
 }
 
 /// The command whose CURRENT value the bar should mark for `text` — the

@@ -44,8 +44,7 @@ pub(crate) fn answered(name: &str) -> bool {
 
 /// The names that run without a palette row of their own.
 pub(crate) fn unadvertised(name: &str) -> bool {
-    name.strip_prefix('/')
-        .is_some_and(crate::lookcmd::is_subject)
+    name.strip_prefix('/').is_some_and(crate::verbs::is_folded)
 }
 
 /// Whether any answered name STARTS with `part` — "you are on your way to
@@ -56,7 +55,9 @@ pub(crate) fn answers_prefix(part: &str) -> bool {
     commands().any(|c| c.name.starts_with(part))
         || crate::lookcmd::SUBJECTS
             .iter()
-            .any(|(s, _)| format!("/{s}").starts_with(part))
+            .map(|(s, _)| *s)
+            .chain(crate::verbs::FOLDED.iter().copied())
+            .any(|s| format!("/{s}").starts_with(part))
 }
 
 #[cfg(test)]

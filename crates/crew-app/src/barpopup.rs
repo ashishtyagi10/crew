@@ -44,7 +44,7 @@ impl CrewApp {
         let mut rows = crate::cmdnote::rows(&self.input.text, &self.input.cwd);
         // `/look gamma …` marks the value `/gamma` is on: one ladder, two
         // spellings, and the picker must mark the same row for both.
-        let cmd = crate::lookcmd::current_key(&self.input.text);
+        let cmd = crate::verbs::current_key(&self.input.text);
         let current = crate::suggestvalues::current_value(&cmd, &self.config);
         crate::suggest::mark_current(&mut rows, current.as_deref());
         rows

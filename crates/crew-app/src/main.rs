@@ -511,6 +511,7 @@ mod updatefetch;
 mod usagelayout;
 mod usageledger;
 mod usagepane;
+mod verbs;
 mod viewpane;
 #[cfg(test)]
 #[path = "viewshot_tests.rs"]

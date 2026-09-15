@@ -19,7 +19,7 @@ pub(crate) const WORK: &[Cmd] = &[
     },
     Cmd {
         name: "/find",
-        desc: "Search scrollback, highlighting matches (/find <text>)",
+        desc: "Search scrollback, highlighting matches (/find <text>, /find all <text>)",
     },
     Cmd {
         name: "/marks",
@@ -54,16 +54,8 @@ pub(crate) const WORK: &[Cmd] = &[
         desc: "Open the last command's output on its own, in the file viewer",
     },
     Cmd {
-        name: "/errorsall",
-        desc: "Which panes have errors, and how many (then land on the first)",
-    },
-    Cmd {
         name: "/errors",
-        desc: "Scroll back to the most recent error in this pane (repeat for the one before)",
-    },
-    Cmd {
-        name: "/findall",
-        desc: "Search every pane's scrollback (/findall <text>)",
+        desc: "Back to the most recent error here (repeat for the one before; /errors all counts every pane)",
     },
     Cmd {
         name: "/name",
@@ -71,23 +63,11 @@ pub(crate) const WORK: &[Cmd] = &[
     },
     Cmd {
         name: "/clear",
-        desc: "Clear the focused pane's scrollback",
+        desc: "Clear scrollback — this pane, or /clear all, or /clear log",
     },
     Cmd {
-        name: "/clearall",
-        desc: "Clear every pane's scrollback",
-    },
-    Cmd {
-        name: "/clearlog",
-        desc: "Clear the live activity log in the sidebar",
-    },
-    Cmd {
-        name: "/only",
-        desc: "Close all panes except the focused one",
-    },
-    Cmd {
-        name: "/closeall",
-        desc: "Close every pane",
+        name: "/close",
+        desc: "Close panes — /close all, or /close others (keeps the focused one)",
     },
     Cmd {
         name: "/pwd",

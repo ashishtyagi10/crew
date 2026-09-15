@@ -108,8 +108,8 @@ pub(crate) fn menu_items_in(text: &str, cwd: &std::path::Path) -> Vec<MenuItem> 
         return Vec::new();
     }
     if let Some(sp) = text.find(' ') {
-        let (cmd, arg, prefix) = crate::lookcmd::canon(&text[..sp], &text[sp + 1..]);
-        let opts = crate::lookcmd::options(&cmd).or_else(|| options_for(&cmd));
+        let (cmd, arg, prefix) = crate::verbs::canon(&text[..sp], &text[sp + 1..]);
+        let opts = crate::verbs::options(&cmd).or_else(|| options_for(&cmd));
         let Some(opts) = opts else {
             // A path argument has no closed set of values, but it does have a
             // directory to list — the one argument you are least likely to be
@@ -131,9 +131,9 @@ pub(crate) fn menu_items_in(text: &str, cwd: &std::path::Path) -> Vec<MenuItem> 
                     ..Default::default()
                 },
                 false => MenuItem {
-                    fill: crate::lookcmd::fill(&prefix, &v),
+                    fill: crate::verbs::fill(&prefix, &v),
                     swatch: crate::swatch::for_value(&cmd, &v),
-                    submit: !crate::lookcmd::nested(&prefix, &v),
+                    submit: !crate::verbs::nested(&prefix, &v),
                     label: v,
                     desc,
                     ..Default::default()
@@ -157,7 +157,7 @@ pub(crate) fn menu_items_in(text: &str, cwd: &std::path::Path) -> Vec<MenuItem> 
     matches(text)
         .into_iter()
         .map(|c| {
-            let exp = expands(c.name) || crate::lookcmd::options(c.name).is_some();
+            let exp = expands(c.name) || crate::verbs::options(c.name).is_some();
             MenuItem {
                 label: c.name.to_string(),
                 desc: c.desc.to_string(),
@@ -317,8 +317,8 @@ mod closest_tests {
     #[test]
     fn near_misses_get_a_suggestion_and_nonsense_does_not() {
         assert_eq!(super::closest_command("setings"), Some("/settings"));
-        assert_eq!(super::closest_command("clearal"), Some("/clearall"));
-        // Two characters is not enough to guess from.
+        assert_eq!(super::closest_command("clearal"), Some("/clear")); // folded
+                                                                       // Two characters is not enough to guess from.
         assert_eq!(super::closest_command("zx"), None);
         assert_eq!(super::closest_command("wobble"), None);
         // An argument must not confuse the match.

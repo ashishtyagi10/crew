@@ -565,8 +565,8 @@ The docked command bar supports:
   characters is decoration rather than information.
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
   fill, Enter to run): `/smith`, `/goal <text>`, `/batch <file>`, `/view <file>`,
-  `/md <file>`, `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`,
-  `/clearlog`, `/only`, `/closeall`, `/pwd`, `/about`, `/log`, `/nav`, `/weather`, `/copy`, `/dump`,
+  `/md <file>`, `/diff`, `/settings`, `/find <text>` (`/find all <text>`), `/name <text>`, `/clear`
+  (`/clear all`, `/clear log`), `/close all`, `/close others`, `/pwd`, `/about`, `/log`, `/nav`, `/weather`, `/copy`, `/dump`,
   `/font`, `/theme`, `/notify`, `/update`, `/broadcast`, `/zoom`,
   `/sidebar`, `/keys`, `/far`, `/todo`, `/exit`. The palette is **fuzzy** — prefix
   matches rank first,
@@ -933,7 +933,7 @@ longer aim at.
   lattice and the paper grain inside the focused card are exactly what they
   would be in an opaque window.
 
-- **`/only`** — closes every pane except the focused one (a quick "focus mode");
+- **`/close others`** — closes every pane except the focused one (a quick "focus mode");
   a no-op when only one pane is open.
 - **File operations live in Far and Cmd+click**, not slash commands: the old
   `/edit` and `/open` were dropped. `/far` browses/views/edits/copies files
@@ -1354,14 +1354,14 @@ longer aim at.
   starts — the block structure other terminals need shell integration for,
   drawn as chrome rather than in the program's own columns. An error bar on the
   same row wins it: "this failed" outranks "this began".
-- **`/closeall`** and **`/only`** **ask once**: the first run says what it
+- **`/close all`** and **`/close others`** **ask once**: the first run says what it
   would close and the same command again does it. A closed pane takes its
   scrollback, its running command and its agent with it, and both commands sit
   one fuzzy keystroke from `/clear` in the palette. A different command in
   between replaces the question rather than answering it, and a question older
   than ten seconds is asked again.
-- **`/errorsall`** — the fleet-wide version: counts the errors in **every**
-  terminal pane's scrollback (bounded and paged, like `/findall`), reports
+- **`/errors all`** — the fleet-wide version: counts the errors in **every**
+  terminal pane's scrollback (bounded and paged, like `/find all`), reports
   which panes have them and how many — `4 errors in 2 panes: →#3 (3) #5 (1)` —
   and lands on the first, walked to its most recent one. With six agents
   running, "which of these went wrong" is the question you have before you go
