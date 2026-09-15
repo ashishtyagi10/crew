@@ -8,6 +8,42 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.23
+
+**crew remembers the projects it worked on.** The pane had two memories and
+neither could answer the question that actually comes up. The thread holds the
+last six turns and a restart empties it; the session log holds everything in
+order and only `/resume` folds it in, once. Both are ordered by time, and
+"why did we make the router re-plan?" is a question ordered by relevance — so
+the answer from three weeks ago was on disk, in a file nothing would ever read
+again, and the crew started from nothing.
+
+Every finished turn is now also written into a **recall graph**:
+`./.crew/recall.jsonl`, project-scoped, one JSON record per line, appended as
+the turn lands and replayed into memory when the broker opens. The turn is a
+node; the topics it kept using and the file paths it named are nodes; the
+joins between them are edges, including the co-occurrence edges that let two
+turns be related through a word neither of them shares with the request. The
+next task activates the graph from its own topics and files and spreads two
+hops, and what comes back rides in front of it as `From earlier work in this
+project:` — up to four turns, 1 KB, newest first, each stamped `3d ago`, with
+the files that came up on a trailing line. It is an embedded store, not a
+database: no server, no daemon, no new dependency.
+
+What it costs when it has nothing to say is nothing: a request the graph has
+never seen renders no block and the task passes through byte-identical, and a
+turn already quoted from the thread is never quoted twice from disk. The log
+prunes itself past 400 turns and rewrites through a temp file and a rename, so
+a crash mid-compaction leaves the old graph intact and a torn append costs its
+own line and no other. `CREW_RECALL=0` turns off the read and the write.
+`/doctor` gained a `recall:` line saying how much is remembered.
+
+Four bugs the tests found before the feature shipped: a path at the end of a
+sentence was filed as `src/a.rs).`, two turns answered inside one millisecond
+merged into one node (the clock was the key), the first writer dumped the
+whole graph after every turn, and a second-hop recall needed the co-occurrence
+edge that only the ingest path was drawing.
+
 ## 0.22.22
 
 **Updates install themselves, and the restart is a button.** `/update` failed

@@ -45,6 +45,9 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
     let stdin = std::io::stdin();
     let out: Out = Arc::new(Mutex::new(std::io::stdout()));
     let mut session = Session::new();
+    // The one place the recall graph is opened from disk: a live broker, in
+    // the project it serves (`Session::default` stays off-disk for tests).
+    session.recall = std::sync::Arc::new(std::sync::Mutex::new(super::recall::Recall::open()));
     // MCP lifecycle notes (connecting / ready / failed / dropped) stream to
     // the host's activity LOG as `Status` events — connects are lazy and used
     // to be entirely silent, indistinguishable from a hang.
@@ -584,7 +587,7 @@ pub(crate) fn relay_counting(
     let (start, body) = split_target(&task_owned, &reg);
     // The thread's recent turns ride in front of the first hop's task — after
     // the split, so a leading `@name` still dials; `relay_turn` carries on.
-    let body = super::thread::with_context(&session.thread, &body);
+    let body = super::recall::ahead(session, &body);
     let tid = format!("t{}", THREAD_SEQ.fetch_add(1, Ordering::Relaxed));
     emit(msg(
         "agent smith",
@@ -593,6 +596,7 @@ pub(crate) fn relay_counting(
     let broker = session.broker(reg);
     let answer = relay_turn(&broker, &start, &body, &tid, tick_emit, emit)?;
     let kept = answer.filter(|_| !session.cancelled()); // a stopped turn is no turn
+    super::recall::record(&session.recall, task, kept.as_deref());
     super::thread::record(&session.thread, task, kept);
     Ok(())
 }

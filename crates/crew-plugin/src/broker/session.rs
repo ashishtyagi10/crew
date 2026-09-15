@@ -52,6 +52,10 @@ pub(crate) struct Session {
     /// The recent turns a follow-up builds on (see `thread`); shared, since
     /// a turn is recorded ON the worker that answered it.
     pub thread: super::thread::SharedThread,
+    /// What crew learned in every session before this one (see `recall`):
+    /// the same turns, joined to their topics and files, on disk. Shared for
+    /// the same reason the thread is — the worker records the turn.
+    pub recall: super::recall::SharedRecall,
     /// The working tree as of the last automatic checkpoint, so a task that
     /// changed nothing does not write an identical restore point. Shared with
     /// worker snapshots because the checkpoint is taken ON the worker.
@@ -93,6 +97,11 @@ impl Default for Session {
             commit: Arc::new(Mutex::new(None)),
             resume: Arc::new(Mutex::new(None)),
             thread: Arc::new(Mutex::new(super::thread::Thread::default())),
+            // Default is the OFF-DISK graph: `Session::default()` is what
+            // every test builds, and a default that opened the log would have
+            // each of them replaying (and, once a turn is recorded, writing)
+            // the crate's own `.crew/`. The broker opens the real one.
+            recall: Arc::new(Mutex::new(super::recall::Recall::default())),
             last_tree: Arc::new(Mutex::new(None)),
             gate: Arc::new(Mutex::new(super::approval::Gate::new())),
             announced_ckpt: Arc::new(AtomicBool::new(false)),
@@ -122,6 +131,7 @@ impl Session {
             commit: Arc::clone(&self.commit),
             resume: Arc::clone(&self.resume),
             thread: Arc::clone(&self.thread),
+            recall: Arc::clone(&self.recall),
             last_tree: Arc::clone(&self.last_tree),
             gate: Arc::clone(&self.gate),
             announced_ckpt: Arc::clone(&self.announced_ckpt),

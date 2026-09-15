@@ -133,6 +133,7 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
         tokens: session.tokens.load(Ordering::Relaxed),
         budget: super::session::token_budget(),
         thread_turns: super::thread::lock(&session.thread).len(),
+        recall: super::recall::lock(&session.recall).stats(),
     }
 }
 

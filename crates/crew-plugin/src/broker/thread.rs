@@ -73,6 +73,12 @@ impl Thread {
         self.turns.iter()
     }
 
+    /// The requests in the thread, for the recall graph's skip list: what is
+    /// already quoted here must not be quoted again from disk.
+    pub(crate) fn asks(&self) -> Vec<String> {
+        self.turns.iter().map(|t| t.asked.clone()).collect()
+    }
+
     pub(crate) fn clear(&mut self) {
         self.turns.clear();
     }

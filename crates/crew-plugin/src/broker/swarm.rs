@@ -39,7 +39,7 @@ pub(crate) fn run_task(
     for ev in super::skillframe::loaded_events(&framed.applied, SWARM_LEAD) {
         emit(ev)?;
     }
-    let body = super::thread::with_context(&session.thread, &framed.body);
+    let body = super::recall::ahead(session, &framed.body);
     let task_owned = super::sessionlog::fold_resume(session, &super::memory::with_memory(&body));
     super::sessionlog::append("user", task);
     let (planner, factory, budget, model, replan) = backend(session.tools());
@@ -61,7 +61,9 @@ pub(crate) fn run_task(
         judge.as_deref().map(swarmverify::Judge::new),
         &mut emit,
     )?;
-    // What the user read, kept for the next turn (`None` = failed/cancelled).
+    // What the user read, kept for the next turn (`None` = failed/cancelled)
+    // and, past this session, joined into the recall graph.
+    super::recall::record(&session.recall, task, reply.as_deref());
     super::thread::record(&session.thread, task, reply);
     Ok(())
 }
