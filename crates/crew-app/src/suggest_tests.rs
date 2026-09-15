@@ -45,10 +45,11 @@ fn slash_completes_toggles() {
 }
 
 #[test]
-fn slash_completes_font() {
-    assert_eq!(suggest("/fo", &[]).as_deref(), Some("nt"));
-    let names: Vec<&str> = matches("/fo").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/font"));
+fn slash_completes_look_and_font_is_answered_unadvertised() {
+    assert_eq!(suggest("/loo", &[]).as_deref(), Some("k"));
+    let names: Vec<&str> = matches("/lo").iter().map(|c| c.name).collect();
+    assert!(names.contains(&"/look") && !names.contains(&"/font"));
+    assert!(crate::cmddefs::answered("/font"));
 }
 
 #[test]
@@ -91,14 +92,12 @@ fn slash_completes_copy() {
 
 #[test]
 fn theme_command_expands_into_a_value_picker() {
-    // Typing the command name: the /theme row fills "/theme " (a trailing space)
-    // and does NOT submit — selecting it opens the value list.
-    let theme = menu_items("/theme")
+    let look = menu_items("/look")
         .into_iter()
-        .find(|m| m.label == "/theme")
-        .expect("/theme in palette");
-    assert_eq!(theme.fill, "/theme ");
-    assert!(!theme.submit, "picker command expands, doesn't run");
+        .find(|m| m.label == "/look")
+        .expect("/look in palette");
+    assert_eq!(look.fill, "/look ");
+    assert!(!look.submit, "picker command expands, doesn't run");
 }
 
 #[test]
@@ -354,13 +353,13 @@ fn recently_run_commands_lead_among_equal_matches() {
     // A bare `/` matches everything as a prefix, so nothing but the tie-break
     // is deciding the order here.
     let cold: Vec<&str> = matches_with("/", &[]).iter().map(|c| c.name).collect();
-    let warm_list = vec!["/gradient".to_string(), "/density".to_string()];
+    let warm_list = vec!["/disk".to_string(), "/todo".to_string()];
     let warm: Vec<&str> = matches_with("/", &warm_list)
         .iter()
         .map(|c| c.name)
         .collect();
 
-    assert_eq!(&warm[..2], &["/gradient", "/density"], "recents lead");
+    assert_eq!(&warm[..2], &["/disk", "/todo"], "recents lead");
     assert_ne!(cold[0], warm[0], "the list must actually reorder");
     // Nothing is lost or duplicated — this is a sort, not a filter.
     let mut a = cold.clone();
@@ -376,25 +375,26 @@ fn recently_run_commands_lead_among_equal_matches() {
 /// you can aim at — you would have to read it every time.
 #[test]
 fn recency_never_promotes_a_fuzzy_match_over_a_prefix_match() {
-    // `/de` is a prefix of /density and a subsequence of several others.
-    let prefixed: Vec<&str> = matches_with("/de", &[])
+    // `/lo` prefixes /log and /look, and is a subsequence of several others.
+    let all = matches_with("/lo", &[]);
+    let prefixed: Vec<&str> = all
         .iter()
         .map(|c| c.name)
-        .filter(|n| n[1..].starts_with("de"))
+        .filter(|n| n[1..].starts_with("lo"))
         .collect();
     assert!(!prefixed.is_empty(), "the fixture needs a prefix match");
 
     // Make every NON-prefix match maximally recent.
-    let hot: Vec<String> = matches_with("/de", &[])
+    let hot: Vec<String> = all
         .iter()
         .map(|c| c.name.to_string())
-        .filter(|n| !n[1..].starts_with("de"))
+        .filter(|n| !n[1..].starts_with("lo"))
         .collect();
     assert!(!hot.is_empty(), "the fixture needs a fuzzy match too");
 
-    let got: Vec<&str> = matches_with("/de", &hot).iter().map(|c| c.name).collect();
+    let got: Vec<&str> = matches_with("/lo", &hot).iter().map(|c| c.name).collect();
     for (i, name) in got.iter().enumerate() {
-        if !name[1..].starts_with("de") {
+        if !name[1..].starts_with("lo") {
             // Everything before the first fuzzy match must be a prefix match.
             assert_eq!(
                 i,

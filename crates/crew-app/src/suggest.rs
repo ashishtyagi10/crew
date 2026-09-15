@@ -108,9 +108,9 @@ pub(crate) fn menu_items_in(text: &str, cwd: &std::path::Path) -> Vec<MenuItem> 
         return Vec::new();
     }
     if let Some(sp) = text.find(' ') {
-        let cmd = &text[..sp];
-        let arg = text[sp + 1..].trim_start().to_lowercase();
-        let Some(opts) = options_for(cmd) else {
+        let (cmd, arg, prefix) = crate::lookcmd::canon(&text[..sp], &text[sp + 1..]);
+        let opts = crate::lookcmd::options(&cmd).or_else(|| options_for(&cmd));
+        let Some(opts) = opts else {
             // A path argument has no closed set of values, but it does have a
             // directory to list — the one argument you are least likely to be
             // able to type from memory (see `pathmenu`).
@@ -131,11 +131,11 @@ pub(crate) fn menu_items_in(text: &str, cwd: &std::path::Path) -> Vec<MenuItem> 
                     ..Default::default()
                 },
                 false => MenuItem {
-                    fill: format!("{cmd} {v}"),
-                    swatch: crate::swatch::for_value(cmd, &v),
+                    fill: crate::lookcmd::fill(&prefix, &v),
+                    swatch: crate::swatch::for_value(&cmd, &v),
+                    submit: !crate::lookcmd::nested(&prefix, &v),
                     label: v,
                     desc,
-                    submit: true,
                     ..Default::default()
                 },
             })
@@ -157,7 +157,7 @@ pub(crate) fn menu_items_in(text: &str, cwd: &std::path::Path) -> Vec<MenuItem> 
     matches(text)
         .into_iter()
         .map(|c| {
-            let exp = expands(c.name);
+            let exp = expands(c.name) || crate::lookcmd::options(c.name).is_some();
             MenuItem {
                 label: c.name.to_string(),
                 desc: c.desc.to_string(),

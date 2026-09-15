@@ -218,7 +218,7 @@ mod doc_drift {
                 let bare = expanded.trim_start_matches('/');
                 let known = crew_plugin::broker_constructs().contains(&bare)
                     || super::CONSTRUCTS.contains(&expanded.as_str())
-                    || crate::cmddefs::commands().any(|c| c.name == expanded)
+                    || crate::cmddefs::answered(&expanded)
                     || app_local.contains(&bare);
                 assert!(
                     known,

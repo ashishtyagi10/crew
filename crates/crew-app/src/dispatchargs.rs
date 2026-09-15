@@ -11,7 +11,9 @@ impl CrewApp {
     /// Run a slash command that carries an argument, or say no such command
     /// exists — with the closest match, when there is one.
     pub(crate) fn run_slash_with_arg(&mut self, other: &str) {
-        if let Some(a) = other.strip_prefix("todo ") {
+        if let Some(a) = other.strip_prefix("look ") {
+            self.look_command(a.trim());
+        } else if let Some(a) = other.strip_prefix("todo ") {
             self.todo_command(a.trim());
         } else if let Some(term) = other.strip_prefix("findall ") {
             self.find_all(term);

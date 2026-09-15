@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.25
+
+**Fifteen commands became one.** The input bar offered sixty-seven slash
+commands and fifteen of them were the same thing: `/theme`, `/font`,
+`/weight`, `/leading`, `/density`, `/motion`, `/contrast`, `/shapes`, `/crt`,
+`/gradient`, `/opacity`, `/grain`, `/smooth`, `/gamma`, `/invisibles`. Fifteen
+names to remember, fifteen rows to scroll past on the way to `/find`, and
+nothing in the list saying they were a family.
+
+`/look` is the family. The palette walks it in two steps — `/look ` lists the
+subjects, `/look gamma ` lists that subject's ladder with the value you are
+already on marked — and each subject reads its values from the command it
+stands for, so a subject can never drift from the thing it sets. Picking a
+subject inserts it with the space its own picker needs; picking a value runs
+it. Fifty-three rows now, and the fourteen that left were the ones you never
+needed to see at the top level.
+
+**The old spellings still run.** `/theme dark` and `/gamma medium` work
+exactly as before, unchanged and uncorrected: the input bar still paints them
+as real commands, `/them` still reads as on its way to something, and the typo
+note still finds them. That is the difference between FOLDING a command and
+retiring one — what shrank is what you have to know, not what works. The
+palette's table and the dispatcher's answer are two lists now
+(`cmddefs::answered`), and every surface that asks "is this real?" asks the
+second one.
+
 ## 0.22.24
 
 **A memory that arrives silently is a memory you cannot check.** v0.22.23 gave

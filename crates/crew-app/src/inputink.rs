@@ -9,7 +9,6 @@
 //! Three things are marked, and nothing else. The bar is one row and the text
 //! in it is short; a syntax highlighter's worth of colour on twelve
 //! characters is decoration, not information.
-use crate::cmddefs::commands;
 
 /// How the leading `/token` resolves.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -26,10 +25,10 @@ pub(crate) enum Cmd {
 /// Classify `word` (with its leading slash) against the command table.
 pub(crate) fn classify(word: &str) -> Cmd {
     let w = word.to_lowercase();
-    if commands().any(|c| c.name == w) {
+    if crate::cmddefs::answered(&w) {
         return Cmd::Known;
     }
-    match commands().any(|c| c.name.starts_with(&w)) {
+    match crate::cmddefs::answers_prefix(&w) {
         true => Cmd::Partial,
         false => Cmd::Unknown,
     }

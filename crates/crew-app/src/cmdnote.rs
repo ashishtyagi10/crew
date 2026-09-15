@@ -76,10 +76,10 @@ mod tests {
         assert!(miss[0].label.contains("no command matches \"/xyzzy\""));
         assert!(miss[0].label.contains("/help"), "{}", miss[0].label);
         assert!(!selectable(&miss));
-        let hit = rows("/the", cwd);
-        assert!(hit.iter().any(|i| i.label == "/theme"));
+        let hit = rows("/set", cwd);
+        assert!(hit.iter().any(|i| i.label == "/settings"));
         assert!(selectable(&hit));
-        assert_eq!(hit.len(), crate::suggest::menu_items_in("/the", cwd).len());
+        assert_eq!(hit.len(), crate::suggest::menu_items_in("/set", cwd).len());
     }
 
     #[test]
