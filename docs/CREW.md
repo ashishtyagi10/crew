@@ -2326,6 +2326,13 @@ and a typo gets a **did-you-mean** suggestion):
   file sends the task byte-identical, exactly as before. The `context:` line
   names the files it is carrying, and `/doctor` reports them under `project
   instructions`.
+- **the pane opens knowing where you left off** — under the nameplate, one
+  line: `last time (2d ago): finish the recall graph · the check was FAILING ·
+  3 files uncommitted`. All three come off disk (the recall graph's newest
+  turn, the last verdict the project's check recorded, git's own diff), so it
+  costs no model call and appears before you type anything. A tree crew has
+  never worked in says nothing at all — an opening line that reads "nothing
+  yet" on every first run is noise.
 - **crew remembers the projects it worked on** — also no command: every
   finished turn is written into a **recall graph** on disk
   (`./.crew/recall.jsonl`, project-scoped like the session log) as a node

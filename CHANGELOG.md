@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.36
+
+**A pane opens knowing where you left off.** It opened on a nameplate and a
+quote — true to the aesthetic, and silent about the only two things you want
+when you sit back down: what were we doing, and is it broken?
+
+Both were already on disk. Under the banner there is now one line —
+`last time (2d ago): finish the recall graph · the check was FAILING · 3 files
+uncommitted` — built from the recall graph's newest turn, the last verdict the
+project's check recorded there, and git's own diff against HEAD. No model
+call, nothing to ask for, and it is there before you type.
+
+A tree crew has never worked in still says nothing: an opening line that reads
+"nothing yet" on every first run is the kind of noise that teaches people to
+stop reading opening lines.
+
 ## 0.22.35
 
 **Crew takes one pass at its own breakage.** v0.22.33 taught crew to run the

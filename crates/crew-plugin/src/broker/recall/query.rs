@@ -107,6 +107,18 @@ pub(crate) fn files(g: &Graph, text: &str, max: usize) -> Vec<String> {
     hits.into_iter().map(|(p, _)| p).collect()
 }
 
+/// The newest turn whose request starts with `prefix` (empty matches any):
+/// `(text, when)`. Time order, not relevance — this is what a pane opening
+/// asks ("what were we doing?"), which is the one question memory answers
+/// chronologically.
+pub(crate) fn latest(g: &Graph, prefix: &str) -> Option<(String, u64)> {
+    g.nodes()
+        .filter(|(_, n)| n.kind == Kind::Turn)
+        .filter(|(_, n)| asked_of(&n.text).starts_with(prefix))
+        .max_by_key(|(_, n)| n.last_ms)
+        .map(|(_, n)| (n.text.clone(), n.last_ms))
+}
+
 /// The request a stored turn opens with, for matching against the thread.
 /// A turn is stored as `you asked: …\ncrew answered: …`; anything else is
 /// matched whole, which simply never equals a request.
