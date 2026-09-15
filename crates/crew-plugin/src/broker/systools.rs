@@ -128,6 +128,20 @@ pub(crate) fn tools() -> Vec<McpTool> {
             }),
         ),
         mk(
+            "fetch",
+            "read a web page as text: {\"url\": \"https://doc.rust-lang.org/std/\"}",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "an http(s) URL; the page is fetched with GET and returned as readable text",
+                    },
+                },
+                "required": ["url"],
+            }),
+        ),
+        mk(
             "list_dir",
             "list a directory (default .): {\"path\": \"src\"}",
             serde_json::json!({
@@ -154,8 +168,9 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "read_file" => super::sysread::read_file(str_arg(&v, "path")?, super::sysread::offset_arg(&v)?),
         "write_file" => write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
         "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),
+        "fetch" => super::sysfetch::fetch(str_arg(&v, "url")?),
         other => Err(format!(
-            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, list_dir, find_tools"
+            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, list_dir, fetch, find_tools"
         )),
     }
 }

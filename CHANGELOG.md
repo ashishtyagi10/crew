@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.28
+
+**The agents can read a web page.** Crew's tools could run your shell, read
+and write your disk and call any MCP server you had installed, and could not
+open a URL. "What do the release notes say", "read the issue I linked", "check
+the docs page for that flag" — every one of them needed `sys:run curl` (the
+blank cheque, gated as irreversible, output as raw HTML) or a server you had
+to install first. Grok's whole trick is that the model can see what is live;
+this is the bounded version of it.
+
+`sys:fetch {"url": …}` GETs an http(s) page and hands back READABLE TEXT.
+Script, style and markup are dropped before the model is charged a token for
+them, entities that appear in prose are decoded, whitespace collapses; the
+body is capped at 2 MB on the wire and 24 KB of text after, with the usual
+visible clip marker. Five redirects, a 20-second deadline, GET only — no body,
+no caller-chosen headers.
+
+It is classified `read` (a GET changes nothing out there) and stays available
+under `CREW_SYS_MODE=readonly`, with one guard that is not about size: a URL
+naming **localhost, a private network, or a link-local address** — the cloud
+metadata endpoint among them — is refused outright. The broker sits inside
+your network, among printers, routers and endpoints that trust anyone who can
+talk to them. The agent asking is usually not an attacker; the page that told
+it to ask might be.
+
 ## 0.22.27
 
 **"undo that."** Crew has taken a checkpoint before every file-touching task

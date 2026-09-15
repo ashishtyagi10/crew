@@ -2318,16 +2318,29 @@ and a typo gets a **did-you-mean** suggestion):
   `/doctor` answer immediately while tasks are in flight.
 
 **Built-in sys tools.** Agents can touch the workspace without any MCP server:
-four bounded tools ride the same `@tool` surface — **`sys:run`** (one
+five bounded tools ride the same `@tool` surface — **`sys:run`** (one
 non-interactive shell command via `/bin/sh -c`, 120s deadline —
 `CREW_SYS_TIMEOUT_MS` overrides, and the timeout message says so — 64 KB per pipe,
 its whole process group reaped on timeout so backgrounded children can't
 linger), **`sys:read_file`** (UTF-8, 64 KB per call; a truncation note carries
 the byte `offset` to continue with, so agents read big files in chunks),
-**`sys:write_file`** (create/overwrite), and **`sys:list_dir`** (≤500 entries,
-sizes shown). `CREW_SYS_MODE=readonly` blocks the mutating pair (`run`,
-`write_file`), `CREW_SYS_TOOLS=0` turns the surface off entirely, and `/doctor`
-shows the active mode. An approximate per-thread **token budget**
+**`sys:write_file`** (create/overwrite), **`sys:list_dir`** (≤500 entries,
+sizes shown), and **`sys:fetch`** — the one that reaches off this machine.
+
+`sys:fetch {"url": …}` GETs an http(s) page and returns it as READABLE TEXT:
+script, style and markup are stripped before the model sees a token of it,
+the body is capped at 2 MB on the wire and 24 KB of text after extraction
+(with a visible clip marker), redirects are followed five deep and the whole
+request has a 20-second deadline. It is classified `read` — a GET changes
+nothing out there — with one guard that is not about size: a URL naming
+**localhost, a private network or a link-local address** (`169.254.x`, the
+cloud metadata endpoint) is REFUSED. The broker sits inside your network,
+among things that answer anyone who can talk to them, and the agent asking is
+usually not the attacker — the page that told it to ask might be.
+
+`CREW_SYS_MODE=readonly` blocks the mutating pair (`run`, `write_file`) and
+leaves `fetch` available, `CREW_SYS_TOOLS=0` turns the surface off entirely,
+and `/doctor` shows the active mode. An approximate per-thread **token budget**
 (`CREW_BROKER_TOKEN_BUDGET`, default unlimited) terminates a thread that blows
 past it.
 
@@ -2536,8 +2549,9 @@ approximate token spend; `CREW_BROKER_TIMEOUT_MS` (default 180000) bounds each
 agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request;
 `CREW_MAX_TASKS` (default 4) caps concurrent background tasks;
 `CREW_SYS_TOOLS=0` / `CREW_SYS_MODE=readonly` disable or sandbox the built-in
-sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:list_dir`, and
-`sys:find_tools`, which searches every connected tool by name and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
+sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:list_dir`,
+`sys:fetch`, and `sys:find_tools`, which searches every connected tool by name
+and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
 `CREW_HTTP_TIMEOUT_MS` (default 120000) bounds each HTTP attempt to a provider,
 deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled endpoint names the
 transport and still leaves the model fallback chain a turn;

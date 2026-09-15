@@ -48,6 +48,10 @@ impl Tier {
 pub fn sys_tier(tool: &str) -> Option<Tier> {
     Some(match tool {
         "read_file" | "list_dir" | "find_tools" => Tier::Read,
+        // A GET changes nothing out there, and the private-network guard
+        // (`sysfetch::is_private`) is what keeps "nothing" true on a machine
+        // that sits inside a network of things that answer anyone.
+        "fetch" => Tier::Read,
         "write_file" => Tier::Reversible,
         "run" => Tier::Irreversible,
         _ => return None,
