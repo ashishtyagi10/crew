@@ -4,13 +4,16 @@
 //! it, that a playbook was chosen, that forty tools are on the table, that the
 //! tree it may touch already differs from HEAD. Each of those changes what the
 //! model sees, and each was invisible until the run did something surprising.
-//! So one quiet line after the routing line — `context: 2 earlier turns · a
-//! note · skill code-review · 41 tools · tree dirty (3 files)` — only the
-//! parts that are non-empty, and NOTHING when all are: a fresh session on a
-//! clean tree with a small tool surface says nothing.
+//! So one quiet line after the routing line — `context: 2 earlier turns ·
+//! recalled 2 turns from 3w ago · a note · skill code-review · 41 tools ·
+//! tree dirty (3 files)` — only the parts that are non-empty, and NOTHING
+//! when all are: a fresh session on a clean tree with a small tool surface
+//! says nothing.
 //!
 //! This file REPORTS; it decides nothing. Every fact is read from where the
-//! run itself reads it: the thread, the memory files, the skill decider (the
+//! run itself reads it: the thread, the recall graph (the same query the arm
+//! makes, so the line cannot claim a memory the run does not carry), the
+//! memory files, the skill decider (the
 //! same pick the arm will make on the same text, so its memo answers and the
 //! model is asked once), the tool catalog against `toolpick::BUDGET`, and the
 //! router's `World`.
@@ -36,17 +39,37 @@ pub(crate) struct ContextLine {
     pub(crate) tools: usize,
     /// Paths that differ from HEAD.
     pub(crate) dirty: usize,
+    /// What the recall graph put in front of this task: how many earlier
+    /// turns, and how long ago the oldest of them was. `None` when the graph
+    /// recalled nothing, which is also what a task on a cold project gets.
+    ///
+    /// Said out loud because memory that arrives silently is memory you
+    /// cannot check: the run is carrying a paragraph from a session the user
+    /// may not remember having, and the line is how they find out which one.
+    pub(crate) recalled: Option<(usize, u64)>,
 }
 
 impl ContextLine {
     /// The line for this session and world, or `None` when there is nothing
     /// to say. `skills` is the arm's pick, decided by [`skills_for`].
-    pub(crate) fn gather(session: &Session, world: &World, skills: &[String]) -> Option<String> {
-        Self::read(session, world, skills).line()
+    pub(crate) fn gather(
+        task: &str,
+        session: &Session,
+        world: &World,
+        skills: &[String],
+    ) -> Option<String> {
+        Self::read(task, session, world, skills).line()
     }
 
-    fn read(session: &Session, world: &World, skills: &[String]) -> Self {
+    fn read(task: &str, session: &Session, world: &World, skills: &[String]) -> Self {
+        // The same question the arm will ask, on the same text and the same
+        // skip list, so the line cannot claim a recall the run does not get.
+        let skip = crate::broker::thread::lock(&session.thread).asks();
+        let recalled = crate::broker::recall::lock(&session.recall)
+            .recalled(task, &skip)
+            .map(|r| (r.turns, r.oldest_ms));
         ContextLine {
+            recalled,
             turns: crate::broker::thread::lock(&session.thread).len(),
             notes: crate::broker::memory::load()
                 .map_or(0, |m| m.lines().filter(|l| !l.trim().is_empty()).count()),
@@ -64,6 +87,13 @@ impl ContextLine {
                 "{} earlier {}",
                 self.turns,
                 plural(self.turns, "turn")
+            ));
+        }
+        if let Some((n, oldest_ms)) = self.recalled.filter(|(n, _)| *n > 0) {
+            parts.push(format!(
+                "recalled {n} {} from {}",
+                plural(n, "turn"),
+                crate::broker::recall::ago_now(oldest_ms)
             ));
         }
         match self.notes {
@@ -132,7 +162,7 @@ pub(crate) fn announce(
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let skills = skills_for(shape, task, session);
-    match ContextLine::gather(session, world, &skills) {
+    match ContextLine::gather(task, session, world, &skills) {
         Some(line) => emit(msg(SMITH, line)),
         None => Ok(()),
     }

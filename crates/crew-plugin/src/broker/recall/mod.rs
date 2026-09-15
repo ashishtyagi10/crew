@@ -25,7 +25,7 @@ mod node;
 mod query;
 mod store;
 
-pub(crate) use block::RECALL_CAP;
+pub(crate) use block::{Recalled, RECALL_CAP};
 
 use graph::Graph;
 use node::{Kind, NodeId};
@@ -73,12 +73,18 @@ impl Recall {
         }
     }
 
-    /// The block for `task`, or `None` when nothing is recalled.
-    pub(crate) fn context(&self, task: &str, skip: &[String]) -> Option<String> {
+    /// What `task` recalls — the block and its counts — or `None` when the
+    /// graph has nothing to say about it.
+    pub(crate) fn recalled(&self, task: &str, skip: &[String]) -> Option<Recalled> {
         if !self.on {
             return None;
         }
         block::block(&self.g, task, skip, now_ms(), RECALL_CAP)
+    }
+
+    /// The block alone, for the arms that only put it in front of a task.
+    pub(crate) fn context(&self, task: &str, skip: &[String]) -> Option<String> {
+        self.recalled(task, skip).map(|r| r.text)
     }
 
     /// `(turns, topics, files)` — `/doctor`'s counts.
@@ -131,6 +137,13 @@ fn now_ms() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis() as u64)
         .unwrap_or_default()
+}
+
+/// How long ago `then_ms` was, against the clock now — the pane's phrasing
+/// for a recall's reach, shared with the block so one line cannot say `3d`
+/// where the other says `2d`.
+pub(crate) fn ago_now(then_ms: u64) -> String {
+    block::ago(then_ms, now_ms())
 }
 
 /// The shared slot, poison-tolerant (mirrors `thread::lock`).

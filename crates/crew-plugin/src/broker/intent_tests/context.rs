@@ -46,9 +46,51 @@ fn each_part_appears_only_when_present_with_its_own_plural() {
 }
 
 #[test]
+fn a_recall_is_said_with_how_far_back_it_reached() {
+    let day_ms = 86_400_000;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    assert_eq!(
+        with(|c| c.recalled = Some((1, now - 2 * day_ms))).as_deref(),
+        Some("context: recalled 1 turn from 2d ago")
+    );
+    assert_eq!(
+        with(|c| c.recalled = Some((3, now - 30 * day_ms))).as_deref(),
+        Some("context: recalled 3 turns from 4w ago")
+    );
+}
+
+#[test]
+fn a_session_with_a_graph_announces_the_recall_the_task_will_carry() {
+    let session = crate::broker::session::Session::default();
+    crate::broker::recall::lock(&session.recall).record(
+        "why does the linecap ratchet fail",
+        "because a file on the debt list grew",
+    );
+    let line = ContextLine::gather(
+        "the linecap ratchet is red again",
+        &session,
+        &World::default(),
+        &[],
+    )
+    .expect("a session that remembers says so");
+    assert!(line.contains("recalled 1 turn from just now"), "{line}");
+}
+
+#[test]
+fn a_recall_that_quoted_nothing_is_not_announced() {
+    // The graph answered, but the budget left no room for a turn: the line
+    // must not say a memory rode in front of the task when none did.
+    assert_eq!(with(|c| c.recalled = Some((0, 0))), None);
+}
+
+#[test]
 fn every_part_together_is_one_line_in_a_fixed_order() {
     let line = with(|c| {
         c.turns = 2;
+        c.recalled = None;
         c.notes = 1;
         c.skills = vec!["code-review".into()];
         c.tools = 41;
@@ -137,7 +179,12 @@ fn skills_are_named_only_for_the_arms_that_frame_the_raw_task() {
     crate::broker::thread::lock(&session.thread).record("earlier", "answer");
     assert!(skills_for(Shape::Reply, task, &session).is_empty());
     // The line carries the pick.
-    let line = ContextLine::gather(&session, &World::default(), &["ship-notes".into()]);
+    let line = ContextLine::gather(
+        "ship it",
+        &session,
+        &World::default(),
+        &["ship-notes".into()],
+    );
     assert!(
         line.as_deref()
             .is_some_and(|l| l.contains("skill ship-notes")),
