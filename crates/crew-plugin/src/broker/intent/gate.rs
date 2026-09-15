@@ -56,6 +56,18 @@ pub(super) fn rejects_plan(task: &str) -> bool {
     .contains(&normalize(task).as_str())
 }
 
+/// The confirm and reject vocabulary for a gate that lives outside this
+/// module (`crate::broker::undo`): one set of yes-words and no-words for
+/// every pending thing in the pane, so "yes" never means one thing to a
+/// commit draft and another to an undo offer.
+pub(crate) fn confirm_word(task: &str) -> bool {
+    confirms_apply(task) || approves_plan(task)
+}
+
+pub(crate) fn reject_word(task: &str) -> bool {
+    rejects_plan(task)
+}
+
 fn normalize(task: &str) -> String {
     task.trim()
         .trim_end_matches(['.', '!'])

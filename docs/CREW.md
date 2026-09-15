@@ -1194,8 +1194,8 @@ longer aim at.
   that thread freezes every pane, agents included); the pane opens the moment
   they land, and the viewer's scrolling, search and `r`-reload all apply. A
   clean tree says so instead of opening an empty pane. Pairs with the crew
-  pane's automatic checkpoints (`/restore` lists them) for reviewing what
-  agents changed.
+  pane's automatic checkpoints (say “undo that” to put one back) for
+  reviewing what agents changed.
 
   **`v` splits the review into two columns**: what was there on the left, what
   is there now on the right, on the same row. A unified diff is a compression —
@@ -2168,10 +2168,16 @@ and a typo gets a **did-you-mean** suggestion):
   tree (tracked + untracked, `.gitignore` respected) is committed through a
   temporary index and pinned under `refs/crew/` — HEAD, your index, and
   branches are never touched, and snapshots survive broker restarts.
-  bare **`/restore`** lists them oldest-first; **`/restore <n>`** puts that
-  snapshot's files back and removes the files that appeared after it, naming
-  each one it deleted. Ignored files (build output, secrets) are never
-  candidates, and neither is anything that predates the snapshot.
+  Putting one back is a sentence, not a command: say **“undo that”** (or
+  “revert that”, “put it back”, “roll it back”) and crew names the snapshot
+  and the files that would change, then waits for your own **“yes”** — the
+  offer writes nothing until you give it. “undo #3” reaches further back
+  through the list. The restore removes files that appeared after the
+  snapshot and names each one it deleted. Ignored files (build output,
+  secrets) are never candidates, and neither is anything that predates the
+  snapshot. The match is EXACT and made before any model call, so “undo the
+  nav change” is still a task for the agents and no misclassification can
+  reach your tree; `/restore` answers with the phrasing and does nothing.
 - **skills, no command** — the model chooses which loaded playbooks a task
   follows (at most two, announced as `skill <name> · chose · …`); a task
   that names one picks it up by itself when the model cannot be asked, and

@@ -29,8 +29,9 @@ pub(crate) fn is_quick(text: &str) -> bool {
     }
     // Retired commands (`/fan`, `/goal`, `/skill`, …) are absent on purpose:
     // they answer with an instant hint, so they must not occupy a worker slot.
-    // `/restore` is the one construct left that touches files.
-    is_command(text) && cmd != "restore"
+    // Nothing left here touches files: putting a checkpoint back is a
+    // sentence now ("undo that"), gated on the user's own confirm word.
+    is_command(text)
 }
 
 /// The `/help` text lives in its own file (see `helptext`).
@@ -88,7 +89,7 @@ pub fn expand_alias(trimmed: &str) -> String {
 /// [`closest_construct`], and the source a host should build its palette
 /// from rather than keeping a second copy (see [`constructs`]).
 const CONSTRUCTS: &[&str] = &[
-    "help", "model", "logout", "doctor", "restore", "reload", "diff", "stop",
+    "help", "model", "logout", "doctor", "reload", "diff", "stop",
 ];
 
 /// Every construct the broker answers, without the leading slash. Exposed so
@@ -139,7 +140,6 @@ pub(crate) fn handle(
         "help" => emit(msg("agent smith", HELP)),
         "model" => super::modelcmd::model_cmd(session, rest, emit),
         "logout" => super::logincmd::logout_cmd(session, rest, emit),
-        "restore" => super::checkpoint::restore_cmd(rest, emit),
         "diff" => super::diff::diff_cmd(emit),
         "doctor" => emit(msg(
             "agent smith",

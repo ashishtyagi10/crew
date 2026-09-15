@@ -8,9 +8,9 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, and `/exit` (see `chatexport` / `chattheme` /
 /// `chat`). Folding the transcript is automatic (`ChatPane::push_capped`).
-pub(crate) const CONSTRUCTS: [&str; 11] = [
-    "/help", "/model", "/logout", "/restore", "/diff", "/doctor", "/reload", "/stop", "/export",
-    "/theme", "/exit",
+pub(crate) const CONSTRUCTS: [&str; 10] = [
+    "/help", "/model", "/logout", "/diff", "/doctor", "/reload", "/stop", "/export", "/theme",
+    "/exit",
 ];
 
 /// Hints that belong to the PANE rather than to the broker, and so are written

@@ -141,9 +141,12 @@ fn fuzzy_fallback_is_none_when_ambiguous() {
 
 #[test]
 fn prefix_match_still_wins_over_fuzzy() {
-    // "/re" is a shared prefix (/restore, /reload) already at its common
-    // prefix, and a fuzzy subsequence of more — stays ambiguous.
-    assert_eq!(complete("/re", &[]), None);
+    // "/d" is a shared prefix (/diff, /doctor) already at its common prefix,
+    // and a fuzzy subsequence of more — stays ambiguous. ("/re" was this
+    // test's example until /restore became a sentence and left /reload
+    // alone.)
+    assert_eq!(complete("/d", &[]), None);
+    assert_eq!(complete("/dif", &[]).as_deref(), Some("/diff "));
 }
 
 #[test]

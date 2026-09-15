@@ -1,5 +1,9 @@
 //! Intent router — the model decides the execution shape of a plain message.
 //!
+//! Except where it must not: putting files back ("undo that") is matched
+//! deterministically ahead of every model call, offered with a preview, and
+//! applied only on the user's own confirm word (`super::undo`).
+//!
 //! A plain (non-slash, non-`@`) message used to go straight to the swarm.
 //! Here one cheap completion classifies it into a shape first — `reply`,
 //! `fan`, `loop`, `plan` or `swarm` — and dispatch reuses the EXISTING
@@ -21,7 +25,7 @@ mod classify;
 mod context;
 mod decision;
 mod fanout;
-mod gate;
+pub(crate) mod gate;
 mod hints;
 mod world;
 
@@ -92,11 +96,15 @@ pub(crate) fn route_with(
     tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    // The HUMAN GATES (see `gate`), checked before any model call. Commit
-    // first — on the overlapping confirm words ("yes", "do it") a pending
-    // commit outranks a pending plan. Then the plan verdict: with a plan
-    // pending, the user's own word runs or discards it; anything else falls
-    // through and the plan stays pending.
+    // The HUMAN GATES (see `gate`), checked before any model call. Undo
+    // first: it is the only one that writes over your files, so a "yes" it
+    // is holding must never reach a draft. Then commit — on the overlapping
+    // confirm words ("yes", "do it") a pending commit outranks a pending
+    // plan — then the plan verdict; anything else falls through and the
+    // draft stays pending.
+    if let Some(done) = super::undo::gate(task, session, emit) {
+        return done;
+    }
     if gate::confirms_apply(task) && gate::pending_commit(session) {
         return super::gitmsg::commit_cmd(session, "apply", emit);
     }

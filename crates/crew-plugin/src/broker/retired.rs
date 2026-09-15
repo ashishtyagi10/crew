@@ -30,6 +30,11 @@ pub(super) const RETIRED: &[(&str, &str)] = &[
         "/standup is retired — just ask: \u{201c}what did I ship this week?\u{201d}",
     ),
     (
+        "restore",
+        "/restore is retired \u{2014} just say \u{201c}undo that\u{201d}; crew shows what would \
+         come back and waits for your \u{201c}yes\u{201d} (\u{201c}undo #3\u{201d} goes further back)",
+    ),
+    (
         "resume",
         "/resume is retired — just ask: \u{201c}pick up where we left off\u{201d}",
     ),

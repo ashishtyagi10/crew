@@ -1,9 +1,12 @@
 //! Cline-style workspace checkpoints, taken AUTOMATICALLY: every task that
 //! reaches a worker pins the working tree first as a hidden commit under
-//! `refs/crew/` (see `stdio::auto_checkpoint`), `/checkpoints` lists them and
-//! `/restore <n>` puts one back. Snapshots use a temporary index, so they
-//! never touch HEAD, the user's index, or any branch — and the refs survive
-//! broker restarts.
+//! `refs/crew/` (see `stdio::auto_checkpoint`). Snapshots use a temporary
+//! index, so they never touch HEAD, the user's index, or any branch — and
+//! the refs survive broker restarts.
+//!
+//! Putting one back is not a command either: `super::undo` matches "undo
+//! that", shows what would come back and waits for a confirm word. This file
+//! is the store — take, list, restore — and says nothing to anybody.
 //!
 //! There is no `/checkpoint` construct any more. Asking a user to predict
 //! which task is the one worth protecting is asking them to be right in
@@ -12,9 +15,6 @@
 use std::path::Path;
 use std::process::Command;
 
-use crate::PluginEvent;
-
-use super::relay::msg;
 use crew_hive::childproc::no_console_window;
 
 const REF_SPACE: &str = "refs/crew/";
@@ -290,86 +290,10 @@ fn prune_empty_dirs(root: &Path, mut at: Option<&Path>) {
     }
 }
 
-/// `/checkpoints` — list the saved snapshots.
-pub(crate) fn list_cmd(
-    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<()> {
-    let dir = match std::env::current_dir() {
-        Ok(d) => d,
-        Err(e) => return emit(msg("agent smith", format!("checkpoints failed: {e}"))),
-    };
-    match list(&dir) {
-        Ok(items) if items.is_empty() => emit(msg(
-            "agent smith",
-            // Checkpoints are automatic since v0.6.44; there is no
-            // /checkpoint to point at any more.
-            "no checkpoints yet \u{2014} one is taken before every task that \
-             changes files, in a git repository",
-        )),
-        Ok(items) => {
-            let lines: Vec<String> = items
-                .iter()
-                .enumerate()
-                .map(|(i, (sha, label))| format!("#{} \u{00b7} {sha} \u{00b7} {label}", i + 1))
-                .collect();
-            emit(msg(
-                "agent smith",
-                format!(
-                    "checkpoints (put one back with /restore <n>):\n{}",
-                    lines.join("\n")
-                ),
-            ))
-        }
-        Err(e) => emit(msg("agent smith", format!("checkpoints failed: {e}"))),
-    }
-}
-
-/// `/restore <n>` — put checkpoint `n`'s files back into the working tree.
-/// `/restore` — bare, it LISTS the snapshots; with an ordinal it puts one
-/// back. Two constructs for one subject is one too many: `/checkpoints` did
-/// nothing `/restore` could not say for itself, exactly as `/agents` did
-/// nothing bare `/model` could not.
-pub(crate) fn restore_cmd(
-    rest: &str,
-    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<()> {
-    if rest.trim().is_empty() {
-        return list_cmd(emit);
-    }
-    let dir = match std::env::current_dir() {
-        Ok(d) => d,
-        Err(e) => return emit(msg("agent smith", format!("restore failed: {e}"))),
-    };
-    let items = match list(&dir) {
-        Ok(items) => items,
-        Err(e) => return emit(msg("agent smith", format!("restore failed: {e}"))),
-    };
-    let n: Option<usize> = rest.trim().parse().ok();
-    let Some((sha, label)) = n.and_then(|n| n.checked_sub(1)).and_then(|i| items.get(i)) else {
-        return emit(msg(
-            "agent smith",
-            format!(
-                "usage: /restore <1-{}> \u{2014} bare /restore lists them",
-                items.len().max(1)
-            ),
-        ));
-    };
-    match restore(&dir, sha) {
-        Ok(removed) => emit(msg(
-            "agent smith",
-            format!(
-                "restored \u{201c}{label}\u{201d} ({sha}){}",
-                removed_note(&removed)
-            ),
-        )),
-        Err(e) => emit(msg("agent smith", format!("restore failed: {e}"))),
-    }
-}
-
 /// What to say about deleted files. Every one is named up to a few, then
 /// counted — a restore that removed something must never read like one that
 /// only put files back.
-fn removed_note(removed: &[String]) -> String {
+pub(crate) fn removed_note(removed: &[String]) -> String {
     const NAMED: usize = 4;
     if removed.is_empty() {
         return String::new();

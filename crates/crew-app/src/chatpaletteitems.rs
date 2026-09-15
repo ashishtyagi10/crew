@@ -17,7 +17,7 @@ pub(crate) const SECTIONS: &[(&str, &[&str])] = &[
     // `/commit`, `/review`, `/standup` and `/resume` are retired: plain
     // language reaches each capability through the broker's intent router,
     // so the palette no longer teaches them.
-    ("changes", &["/diff", "/restore"]),
+    ("changes", &["/diff"]),
     ("session", &["/export", "/stop"]),
     (
         "setup",

@@ -531,8 +531,9 @@ It also borrows the flagship moves of the big coding agents: **plan mode**
 **workspace checkpoints**
 (a checkpoint is taken automatically before every task that can change files,
 as a hidden commit under
-`refs/crew/` without touching HEAD or your index, bare `/restore` lists,
-`/restore <n>` brings a snapshot's files back — à la Cline),
+`refs/crew/` without touching HEAD or your index; say "undo that" and crew
+names what would come back and waits for your "yes" — à la Cline's
+checkpoints and Claude Code's rewind, with no command to remember),
 **transcript export** (`/export` writes the conversation to
 `crew-transcript-<stamp>.md` — à la OpenCode), **AI commit messages**
 (say "commit this" and the crew drafts a Conventional Commits message for

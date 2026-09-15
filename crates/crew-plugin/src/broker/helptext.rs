@@ -34,7 +34,8 @@ pub(crate) const HELP: &str = "constructs:\n\
     remembers the last six turns, so \u{201c}shorter\u{201d} and \u{201c}now the tests \
     too\u{201d} mean what you meant, and an approved plan runs as the swarm. A context line \
     before each run says what it brings: earlier turns, notes, skills, tools, a dirty tree\n\
-    /restore [n] — list the automatic snapshots, or put snapshot n's files back\n\
+    \u{201c}undo that\u{201d} — put the last task's files back: crew names what would \
+    come back and waits for your \u{201c}yes\u{201d} (\u{201c}undo #3\u{201d} goes further back)\n\
     /diff — everything different from the last commit as a patch, new files included \
     (every task that changes files shows its own patch and the diagnostics after it)\n\
     /doctor — health-check the AI stack (provider, CLIs, MCP servers and tools, memory, session)\n\
