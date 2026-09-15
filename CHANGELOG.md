@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.24
+
+**A memory that arrives silently is a memory you cannot check.** v0.22.23 gave
+the pane a recall graph, and its first run showed the problem with it: the
+answer was better and nothing said why. A paragraph from a session three weeks
+old was steering the reply, and the only way to find that out was to read the
+prompt crew sent.
+
+The `context:` line — the one that already says what a run starts with — now
+names the recall too: `context: 2 earlier turns · recalled 2 turns from 3w ago
+· a note · skill code-review`. The reach is the OLDEST turn quoted, because
+that is the part worth knowing: a memory from this morning needs no
+announcement, and one from last month does.
+
+The count comes from the block the run actually carries, not from a second
+query that might rank differently, so the line cannot claim a memory the task
+never got — and a recall the budget left no room to quote says nothing at all.
+Nothing is said on a cold project, which is still the whole line's rule.
+
 ## 0.22.23
 
 **crew remembers the projects it worked on.** The pane had two memories and

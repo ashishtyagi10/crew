@@ -2119,9 +2119,12 @@ and a typo gets a **did-you-mean** suggestion):
 - **what agent smith decides** — every plain message runs one decision
   loop: **routing** (the model picks the shape and says so — `routing: swarm
   · verified — multi-part work`), **context** (one line says what the run
-  starts with — `context: 2 earlier turns · a note · skill code-review · 41
-  tools · tree dirty (3 files)` — and nothing at all when a fresh session on
-  a clean tree has nothing to bring), **plan** (the swarm's task graph, or
+  starts with — `context: 2 earlier turns · recalled 2 turns from 3w ago ·
+  a note · skill code-review · 41 tools · tree dirty (3 files)` — and nothing
+  at all when a fresh session on a clean tree has nothing to bring; the
+  `recalled` part is the recall graph below, counted from the block the run
+  actually carries, so the line can never claim a memory the task did not
+  get), **plan** (the swarm's task graph, or
   the plan you approved), **workers** (each with a persona, the tools and
   skills the model chose for its task, and the last six turns in front of
   it), **answer** (one closing reply from agent smith when several workers
@@ -2278,7 +2281,10 @@ and a typo gets a **did-you-mean** suggestion):
   The log compacts itself (the oldest turns past 400 are dropped with their
   orphaned topics); `CREW_RECALL=0` turns the whole thing off — no read, no
   write; `/doctor` reports `recall: N turn(s), N topic(s), N file(s) in the
-  recall graph`.
+  recall graph`, and every run that carries one says so on its `context:`
+  line — `recalled 2 turns from 3w ago`, the reach being the OLDEST turn
+  quoted, so a memory arriving from a session you have forgotten announces
+  itself rather than quietly steering the answer.
 - **`/export`** — write the pane's transcript to
   `crew-transcript-<stamp>.md` in the working directory (à la OpenCode),
   one `## sender · time · latency` section per message. The transcript folds

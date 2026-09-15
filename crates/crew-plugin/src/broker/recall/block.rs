@@ -19,6 +19,22 @@ const TURNS_MAX: usize = 4;
 const FILES_MAX: usize = 4;
 const HEAD: &str = "From earlier work in this project:";
 
+/// What a recall came to: the block itself and the counts the pane says out
+/// loud (`context: … recalled 2 turns (up to 3w ago)`). One value, because a
+/// line that reports a recall the run did not actually carry is worse than
+/// no line — the counts are taken from the rendered block, not from a second
+/// query that might rank differently.
+pub(crate) struct Recalled {
+    pub text: String,
+    pub turns: usize,
+    /// Epoch-ms of the OLDEST turn quoted — "from 3w ago" is about reach.
+    ///
+    /// Only the turns are counted. The files line is part of the block and
+    /// not part of the claim: the pane says how far back the MEMORY reached,
+    /// and a count of paths would read like a promise the run touched them.
+    pub oldest_ms: u64,
+}
+
 /// The block, or `None` when the graph has nothing to say about `text` — in
 /// which case the task passes through byte-identical, which is what the test
 /// for a cold start asserts.
@@ -28,9 +44,11 @@ pub(crate) fn block(
     skip: &[String],
     now_ms: u64,
     budget: usize,
-) -> Option<String> {
+) -> Option<Recalled> {
     let mut left = budget.checked_sub(HEAD.len() + 8)?;
     let mut lines: Vec<String> = Vec::new();
+    let mut oldest_ms = u64::MAX;
+    let mut quoted = 0usize;
     let hits = query::turns(g, text, skip, TURNS_MAX);
     for h in &hits {
         let Some(n) = g.node(h.id) else { continue };
@@ -46,6 +64,8 @@ pub(crate) fn block(
             clip_chars(&body, room - 24)
         );
         left = left.saturating_sub(line.chars().count() + 1);
+        oldest_ms = oldest_ms.min(n.last_ms);
+        quoted += 1;
         lines.push(line);
     }
     let files = query::files(g, text, FILES_MAX);
@@ -58,7 +78,11 @@ pub(crate) fn block(
     if lines.is_empty() {
         return None;
     }
-    Some(format!("{HEAD}\n{}", lines.join("\n")))
+    Some(Recalled {
+        text: format!("{HEAD}\n{}", lines.join("\n")),
+        turns: quoted,
+        oldest_ms: oldest_ms.min(now_ms),
+    })
 }
 
 /// A turn is stored over two lines; in the block it is one.
