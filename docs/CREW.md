@@ -2176,6 +2176,19 @@ and a typo gets a **did-you-mean** suggestion):
   model's own idea. The `context:` line carries `plan first` for as long as it
   lasts. Both switches are matched EXACTLY, before any model call: “plan first,
   then write the migration” is a task.
+- **crew runs the project's own check** — a file at **`.crew/check`** holding
+  one command (`cargo test --workspace`, `npm test`, `make lint`) is run after
+  every task that changed files, and the result is one line:
+  `check: cargo test --workspace — passed`, or `FAILED` with the first six
+  lines of the output — the part that names the error. Codex and Cline both
+  end a coding task by running something, for the same reason: a model's own
+  account of what it did is the least reliable signal available, and the diff
+  and the language server can both look fine on code that does not build.
+  The command is DECLARED rather than guessed, because it spends your CPU and
+  can take minutes; when crew can see what it would probably be (a
+  `Cargo.toml`, a `package.json`, a `Makefile`) it says so once and leaves the
+  choice alone. Each result is also written to the recall graph, so "the tests
+  fail on this" survives the session that found out.
 - **automatic checkpoints** — Cline-style workspace snapshot before every task
   that can change files: the working
   tree (tracked + untracked, `.gitignore` respected) is committed through a

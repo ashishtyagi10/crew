@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.33
+
+**Crew runs the project's own check.** A task that edits four files ended with
+a diff and the language server's diagnostics — accurate about syntax, silent
+about whether the thing still builds. Codex and Cline both end a coding task
+by running something, for the same reason: a model's own account of what it
+did is the least reliable signal in the room.
+
+Put one command in **`.crew/check`** — `cargo test --workspace`, `npm test`,
+`make lint` — and it runs after every task that changed files. The result is
+one line: `check: cargo test --workspace — passed`, or `FAILED` with the first
+six lines of output, which is the part that names the error. A command that
+RAN and exited non-zero is a failure, not a pass: `sys:run` answers `Ok("exit
+3 …")` for that, and reading the Result alone would have called it green.
+
+Declared, not guessed — the command spends your CPU and can take minutes, and
+a tool that starts doing that unasked is a tool people turn off. When crew can
+see what it would probably be (a `Cargo.toml`, a `package.json`, a `Makefile`)
+it says so ONCE and leaves the decision alone. Each result is written into the
+recall graph, so "the tests fail on this" outlives the session that found out.
+
 ## 0.22.32
 
 **The graph learns which files travel together.** A turn's text names the

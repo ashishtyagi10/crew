@@ -512,6 +512,11 @@ fn report_changes(session: &Session, id: u64, out: &Out) {
     if let Some(body) = super::taskdiff::report(&dir, &base, &changes, diagnostics) {
         let _ = emit(out, &msg("agent smith", body));
     }
+    // …and last, the project's own check, if it declared one: the diff says
+    // what changed and the language server what is malformed; this is the
+    // only thing that says whether it still WORKS.
+    let mut send = |ev: PluginEvent| emit(out, &ev);
+    let _ = super::selfcheck::after_task(session, true, &mut send);
 }
 
 /// Whether this session has already mentioned checkpoints; marks it as told.
