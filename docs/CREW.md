@@ -685,6 +685,18 @@ The docked command bar supports:
   run it again to stop and return to the pinned family. Rotation only ever
   touches the live renderer, never the pinned `font_family` in Settings, and
   a manual family pick there also turns rotation back off.
+  The rotation moves between TYPEFACES, not spellings: a machine with
+  `JetBrainsMono Nerd Font` and `JetBrainsMono Nerd Font Mono` installed has one
+  face under two names, and swapping one for the other announced a new font and
+  changed nothing on the page. One face, one ticket — and the icon-bearing
+  `Nerd Font Mono` spelling is the one asked for, since its marks are one cell
+  wide. **Favourites** (`crew-theme`'s `FAVORITES`: Comic Mono, JetBrains Mono,
+  SF Mono, IBM Plex Mono, MonoLisa, Lilex) get three tickets instead of one, so
+  they come up about three times as often without retiring the rest of the
+  pool. Every theme also LEADS with one of them, which is what decides the face
+  while the theme rotates: MonoLisa on paper, Comic Mono on sepia, JetBrains
+  Mono on the aurora pages, IBM Plex Mono on the cooled ones (Harbor, Fern),
+  Lilex on the tubes.
   The font *family* is picked in `/settings` — a type-to-search dropdown over
   every installed monospace family (the active one carries a `✓`; arrowing
   into the field opens the whole list with the cursor on the family you have,
