@@ -91,6 +91,22 @@ fn a_favourite_is_recognised_in_whatever_spelling_is_installed() {
 }
 
 #[test]
+fn a_favourite_can_be_weighted_without_becoming_a_theme_preference() {
+    // Noto Sans Mono is a favourite by request and belongs in NO theme's
+    // preference list. The rotation is a thing the user switches on; the
+    // preference lists are what crew picks with nobody asking, and a generic
+    // face at the front of those is both Windows bugs in the 0.17.x notes.
+    // If this ever needs deleting, delete it knowing that.
+    assert!(is_favorite("Noto Sans Mono"));
+    for id in crate::ALL_THEMES {
+        assert!(
+            !crate::font_prefs(id).contains(&"Noto Sans Mono"),
+            "{id:?} would auto-resolve to the generic fallback"
+        );
+    }
+}
+
+#[test]
 fn a_nameless_family_is_not_a_favourite_by_keying_to_nothing() {
     // "Mono" alone keys as the empty string, and an empty key must not match
     // every other empty key and turn an unknown face into a favourite.

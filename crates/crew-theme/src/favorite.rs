@@ -13,6 +13,12 @@
 /// that is installed. They simply come up [`FAVORITE_WEIGHT`] times as often
 /// as the rest, which is what "more often" means when the answer has to leave
 /// room for the others.
+///
+/// This list weights the ROTATION, which is a thing the user turns on. It is
+/// not `font_prefs`, which is what crew picks with nobody asking — `Noto Sans
+/// Mono` is here by request (2026-09-15) and still appears in no theme's
+/// preference list, because the two Windows bugs in the 0.17.x notes were
+/// exactly a generic face standing at the front of those.
 pub const FAVORITES: &[&str] = &[
     "Comic Mono",
     "JetBrains Mono",
@@ -20,6 +26,7 @@ pub const FAVORITES: &[&str] = &[
     "IBM Plex Mono",
     "MonoLisa",
     "Lilex",
+    "Noto Sans Mono",
 ];
 
 /// How many times more often a favourite comes up in the `/font random`

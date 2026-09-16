@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.45
+
+**Noto Sans Mono joins the favourites.** Seven faces now carry three tickets in
+the `/font random` draw instead of one.
+
+It is the first favourite that is in no theme's preference list, and that is
+deliberate rather than an oversight: the rotation is something you switch on,
+while `font_prefs` is what crew picks with nobody asking — and a generic
+always-resolves face at the front of those lists is precisely both Windows bugs
+in the 0.17.x notes. Weighted in the draw, absent from the automatic answer,
+and a test says so in those words.
+
 ## 0.22.44
 
 **One row per typeface.** The font picker listed this machine's JetBrains Mono
