@@ -84,6 +84,36 @@ pub(crate) fn layout(cols: u16) -> FormLayout {
     }
 }
 
+/// The focus order at `cols`: the fields in the order the eye meets them.
+///
+/// WHY derived rather than declared: it used to be a hand-written list beside
+/// the `Field` enum, whose own doc said it "follows the eye down the cards".
+/// It had stopped — `Paper grain` is drawn third, beside `Font size`, and was
+/// tabbed seventeenth; `Nav width` sits in the *window* card and was tabbed
+/// fifth, so Tab left the appearance card, crossed the form and came back.
+///
+/// A second list can always drift from the first. This one cannot, and it is
+/// also the only thing that can be right at every width: above `STACK_BELOW`
+/// the form is two columns of cards, and `pair` stacks its two fields on a
+/// narrow pane and sits them side by side on a wide one, so the reading order
+/// genuinely CHANGES with the width. No static list is correct at both.
+///
+/// [`layout`] already builds the rects in reading order — card by card in
+/// placement order, and within a card `pair` pushes left-then-right or
+/// top-then-bottom — so this is that order, with any field the layout somehow
+/// did not place appended rather than dropped. A field that cannot be reached
+/// by Tab is a field that cannot be changed.
+pub(crate) fn tab_order(cols: u16) -> Vec<Field> {
+    let mut order: Vec<Field> = layout(cols).rects.iter().map(|(f, _)| *f).collect();
+    let missed: Vec<Field> = super::fields::FIELDS
+        .iter()
+        .copied()
+        .filter(|f| !order.contains(f))
+        .collect();
+    order.extend(missed);
+    order
+}
+
 /// Scroll offset keeping `rect` fully inside a `viewport`-row window over
 /// `total` virtual rows (0 when everything fits).
 pub(crate) fn scroll_for(rect: Rect, total: u16, viewport: u16) -> u16 {

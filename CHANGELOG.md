@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.55
+
+**Tab walks the settings form the way it is drawn.** Reported: "navigation on
+settings pane is confusing, it should go from top to bottom." It did not. The
+Tab order was a hand-written list beside the field enum, and it had drifted
+from the layout: `Paper grain` is drawn third, right beside `Font size`, and
+was tabbed seventeenth; `Nav width` lives in the *window* card and was tabbed
+fifth — so Tab left the appearance card halfway down, crossed the form, and
+came back.
+
+The order is read off the layout now. Not a corrected second list — no list at
+all, because a second list can always drift from the first, and because no
+static list could have been right in any case: above the two-column threshold
+the form is two columns of cards, and `pair` stacks its two fields on a narrow
+pane and sits them side by side on a wide one. **The reading order genuinely
+changes with the width**, so the walk follows the width the form was last drawn
+at.
+
+"Top to bottom" in a two-column form means down one card and on to the next,
+which is exactly what the layout already builds: card by card, and within a
+card left-to-right or top-to-bottom as `pair` decided. Sorting the fields by
+their row would have interleaved the two columns instead.
+
+One thing the tests found on the way: `Save` and `Cancel` are drawn by the
+renderer and never placed by the layout, so they arrive through the fallback
+that appends anything the layout missed — which makes that fallback
+load-bearing rather than theoretical. Without it, Tab could not reach Save.
+
 ## 0.22.54
 
 **`sys:edit` takes several edits at once.** A change that touched five places
