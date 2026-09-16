@@ -19,6 +19,12 @@
 /// Mono` is here by request (2026-09-15) and still appears in no theme's
 /// preference list, because the two Windows bugs in the 0.17.x notes were
 /// exactly a generic face standing at the front of those.
+///
+/// `Operator Mono` (2026-09-16) is out of the preference lists for the
+/// opposite reason: it is a face you buy, so on most machines it is simply
+/// not there — and a preference list is crew guessing for you, where a guess
+/// that resolves nothing costs a fallback. In the rotation, which only runs
+/// on the machine that turned it on, it comes up as often as the rest.
 pub const FAVORITES: &[&str] = &[
     "Comic Mono",
     "JetBrains Mono",
@@ -27,6 +33,7 @@ pub const FAVORITES: &[&str] = &[
     "MonoLisa",
     "Lilex",
     "Noto Sans Mono",
+    "Operator Mono",
 ];
 
 /// How many times more often a favourite comes up in the `/font random`

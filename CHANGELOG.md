@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.58
+
+**Operator Mono joins the favourites.** Requested. It was already on
+`FONT_ALLOWLIST`, so `/font` and the rotation could always reach it; now it
+carries three tickets in the `/font random` draw like the other seven.
+
+It stays out of every theme's preference list, which makes it the second
+favourite to do so — and for the opposite reason to the first. `Noto Sans Mono`
+is out because a generic, always-resolving face at the front of those lists is
+precisely both Windows bugs in the 0.17.x notes. `Operator Mono` is out because
+it is a face you *buy*: on most machines it is not installed at all, and a
+preference list is crew choosing with nobody asking, where a guess that
+resolves nothing costs a fallback. The rotation is the other thing — it only
+runs on the machine that switched it on, and there the face is either installed
+or not in the pool.
+
 ## 0.22.57
 
 **Heavy smoothing is darker ink now, not wider ink.** Reported: "even with

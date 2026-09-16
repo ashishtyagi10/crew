@@ -731,13 +731,20 @@ The docked command bar supports:
   one canonical spelling per face and is matched by key, so `Comic Mono` on the
   list answers for an installed `ComicMono Nerd Font Mono`; theme preference
   lists are matched the same way. **Favourites** (`crew-theme`'s `FAVORITES`: Comic Mono, JetBrains Mono,
-  SF Mono, IBM Plex Mono, MonoLisa, Lilex, Noto Sans Mono) get three tickets
+  SF Mono, IBM Plex Mono, MonoLisa, Lilex, Noto Sans Mono, Operator Mono) get three tickets
   instead of one, so
   they come up about three times as often without retiring the rest of the
   pool. Every theme also LEADS with one of them, which is what decides the face
   while the theme rotates: MonoLisa on paper, Comic Mono on sepia, JetBrains
   Mono on the aurora pages, IBM Plex Mono on the cooled ones (Harbor, Fern),
   Lilex on the tubes.
+  Two favourites are deliberately in no theme's preference list, for opposite
+  reasons: `Noto Sans Mono` because a generic always-resolving face at the
+  front of those lists is exactly both Windows bugs in the 0.17.x notes, and
+  `Operator Mono` because it is a face you buy — on most machines it is simply
+  not installed, and a preference list is crew guessing for you, where a guess
+  that resolves nothing costs a fallback. The rotation is different: it only
+  runs on the machine that turned it on.
   The font *family* is picked in `/settings` — a type-to-search dropdown over
   every installed monospace family (the active one carries a `✓`; arrowing
   into the field opens the whole list with the cursor on the family you have,
