@@ -14,10 +14,25 @@ fn mask_1x1(alpha: u8) -> SwashImage {
 }
 
 #[test]
-fn full_strength_dilation_of_a_lone_pixel() {
+fn a_lone_pixel_keeps_its_own_footprint_at_every_strength() {
+    // Smoothing FILLS a stroke, it does not spread one. A pixel the outline
+    // never reached stays empty however hard the knob is turned — the halo
+    // those pixels used to make is what made heavy smoothing read grey
+    // instead of dark (see `heavier_smoothing_is_denser_ink_not_wider_ink`).
+    for strength in [100u8, 180, 255] {
+        let out = smooth_mask(&mask_1x1(255), strength);
+        #[rustfmt::skip]
+        let expected = vec![
+            0,   0, 0,
+            0, 255, 0,
+            0,   0, 0,
+        ];
+        assert_eq!(out.data, expected, "at strength {strength}");
+    }
+    // The bitmap still grows by a pixel with the placement shifted to
+    // compensate — one column left (left 3→2) and one row up (top 5→6, top
+    // counts upward) — so glyphs do not move.
     let out = smooth_mask(&mask_1x1(255), 255);
-    // 1×1 grows to 3×3 with the placement shifted to compensate: one column
-    // left (left 3→2) and one row up (top 5→6, top counts upward).
     assert_eq!(
         (
             out.placement.left,
@@ -27,28 +42,20 @@ fn full_strength_dilation_of_a_lone_pixel() {
         ),
         (2, 6, 3, 3)
     );
-    // Max strength spills 0.70 px horizontally (SPILL_SCALE) and half that
-    // vertically; diagonals get nothing — the spill runs over a
-    // 4-neighbourhood.
-    #[rustfmt::skip]
-    let expected = vec![
-          0,  90,   0,
-        179, 255, 179,
-          0,  90,   0,
-    ];
-    assert_eq!(out.data, expected);
 }
 
 #[test]
-fn dilation_scales_linearly_with_strength() {
-    let out = smooth_mask(&mask_1x1(255), 100);
-    #[rustfmt::skip]
-    let expected = vec![
-          0,  35,   0,
-         70, 255,  70,
-          0,  35,   0,
-    ];
-    assert_eq!(out.data, expected);
+fn a_covered_pixel_deepens_with_strength_and_a_full_one_cannot() {
+    // Where the ink is, more strength means more of it; full coverage is
+    // already everything the pixel has to give.
+    let lift = |strength| smooth_mask(&mask_1x1(128), strength).data[4];
+    assert_eq!(lift(0), 128, "off changes nothing");
+    let (light, medium, heavy) = (lift(40), lift(70), lift(120));
+    assert!(
+        128 < light && light < medium && medium < heavy,
+        "{light} {medium} {heavy}"
+    );
+    assert_eq!(smooth_mask(&mask_1x1(255), 255).data[4], 255);
 }
 
 #[test]
@@ -272,5 +279,120 @@ fn the_default_pair_delivers_the_outlines_light() {
             inked <= outline_px,
             "the defaults ink {inked} pixels where the outline reached {outline_px}"
         );
+    }
+}
+
+#[test]
+fn heavier_smoothing_is_denser_ink_not_wider_ink() {
+    use crate::cellgrid::CellView;
+    use crate::celltext::{build_pane_buffer, cell_metrics, FontParams, CELL_H_RATIO};
+    use glyphon::cosmic_text::SwashCache;
+
+    let mut fs = crate::embedfont::font_system();
+    let mut swash = SwashCache::new();
+    let (cell_w, cell_h) = cell_metrics(14.0, CELL_H_RATIO);
+    let asked = |d: &[u8]| d.iter().map(|&a| f64::from(a) / 255.0).sum::<f64>();
+    let delivered = |d: &[u8], dark: bool| {
+        d.iter()
+            .map(|&a| {
+                let a = f64::from(a) / 255.0;
+                if dark {
+                    a.powf(2.2)
+                } else {
+                    1.0 - (1.0 - a).powf(2.2)
+                }
+            })
+            .sum::<f64>()
+    };
+    for dark in [true, false] {
+        let mut prev: Option<(f64, f64)> = None;
+        let page = if dark { "dark" } else { "bright" };
+        for smooth in [0u8, 40, 70, 120] {
+            let (mut want, mut got, mut inked, mut outline_px) = (0.0, 0.0, 0usize, 0usize);
+            for c in ['l', 'o', 'e', 'H', 'n', 'a', 's', 't'] {
+                let (fg, bg) = if dark {
+                    ((255, 255, 255), (0, 0, 0))
+                } else {
+                    ((0, 0, 0), (255, 255, 255))
+                };
+                let cells = [CellView {
+                    col: 0,
+                    row: 0,
+                    c,
+                    fg,
+                    bg,
+                    ..Default::default()
+                }];
+                let p = FontParams {
+                    font_size: 14.0,
+                    line_height: cell_h,
+                    cell_w,
+                    family: None,
+                    weight: 500,
+                    smooth,
+                    gamma: crate::textgamma::DEFAULT_TEXT_GAMMA,
+                    dark,
+                    body: ((255, 255, 255), (0, 0, 0)),
+                };
+                let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cell_w, cell_h, &p);
+                let key = buf
+                    .layout_runs()
+                    .flat_map(|r| r.glyphs.to_vec())
+                    .next()
+                    .expect("one glyph")
+                    .physical((0.0, 0.0), 1.0)
+                    .cache_key;
+                let raw = swash.get_image_uncached(&mut fs, key).expect("rasterizes");
+                want += asked(&raw.data);
+                let strength = crate::sizeramp::strength_at(smooth, 14.0);
+                let mut img = if strength > 0 {
+                    smooth_mask(&raw, strength)
+                } else {
+                    raw.clone()
+                };
+                crate::textgamma::Curve::new().apply(
+                    &mut img.data,
+                    dark,
+                    crate::textgamma::DEFAULT_TEXT_GAMMA,
+                );
+                outline_px += raw.data.iter().filter(|a| **a > 0).count();
+                got += delivered(&img.data, dark);
+                inked += img.data.iter().filter(|a| **a > 0).count();
+            }
+            let density = got / inked as f64;
+            let light = got * 100.0 / want;
+            if let Some((dense, lit)) = prev {
+                // More ink than the step below it...
+                assert!(
+                    light > lit,
+                    "on a {page} page smooth {smooth} delivers less light than the step \
+                     below it ({light:.1}% vs {lit:.1}%)"
+                );
+                // The whole point of the user's report: turning the knob up
+                // must make the ink MORE present, not merely wider. It used
+                // to do the opposite — every level spread the same ink over
+                // 1.7x the pixels, so density fell from 0.54 to 0.36 the
+                // moment smoothing was switched on at all, and heavy never
+                // climbed back to what `off` already had.
+                assert!(
+                    density > dense,
+                    "on a {page} page smooth {smooth} is thinner ink than the step below \
+                     it ({density:.3} vs {dense:.3})"
+                );
+                // ...and more of it PER PIXEL, which is the half that was
+                // missing: 137% of the light spread over 1.7x the pixels is
+                // not darker ink, it is greyer ink.
+            }
+            // And it must not smear to do it. This invariant used to hold
+            // only at `off`: every other level inked ~1.7x the outline's
+            // pixels, and every extra one was a fraction of a stem's
+            // coverage sitting a pixel out from the stem.
+            assert!(
+                inked <= outline_px,
+                "on a {page} page smooth {smooth} inks {inked} px where the outline reached \
+                 {outline_px}"
+            );
+            prev = Some((density, light));
+        }
     }
 }

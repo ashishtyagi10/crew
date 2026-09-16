@@ -16,8 +16,35 @@
 //! what its neighbour lends it — which is every pixel on a curve's or a
 //! diagonal's flank — so `o` and `/` kept their thin rasterized weight while
 //! `l` and `H` took the full widening. Accumulating is monotone (it never
-//! dims a pixel), never exceeds full coverage, and is identical to the old
-//! kernel wherever a pixel starts empty.
+//! dims a pixel) and never exceeds full coverage.
+//!
+//! # Filling the stroke, not spreading it
+//!
+//! Reported (2026-09-16): "even with heavy smoothing font should be darker,
+//! or brighter on dark." It was not, and the measurement said why. The spill
+//! used to land on EMPTY pixels too, so every level of the ladder painted a
+//! faint halo one pixel out from every stroke: the same eight glyphs went
+//! from 373 inked pixels at `off` to 620 at `light`, and while the total ink
+//! rose, the ink *per pixel* fell from 0.54 to 0.36 — and `heavy` only
+//! climbed back to 0.43, still short of what `off` already had. More ink,
+//! spread thinner, is not darker. It is greyer, and it is what the report
+//! was describing.
+//!
+//! So the spill no longer reaches a pixel the outline never touched, and a
+//! covered pixel now also deepens in proportion to the strength. Density
+//! climbs with the knob instead of falling off it (0.54 → 0.59 → 0.63 →
+//! 0.70), the footprint stays exactly the outline's, and the invariant that
+//! held only at `off` — nothing inks a pixel the outline did not reach —
+//! now holds the whole way up.
+//!
+//! This is the same finding [`crate::smoothing::DEFAULT_SMOOTH`] made when it
+//! turned the darkening off by default: those extra pixels were "a soft edge
+//! with nothing bought for it". Turning it off avoided them; this stops
+//! making them, which gives the ladder something to be for again.
+//!
+//! Both polarities come out right from one change, and they have to: coverage
+//! is how much INK a pixel holds, and ink is dark on a bright page and light
+//! on a dark one. Denser ink is darker one way up and brighter the other.
 use glyphon::cosmic_text::{Placement, SwashImage};
 
 /// Vertical spill as a 0–255 fraction of the horizontal spill. Apple's
@@ -65,8 +92,17 @@ pub(crate) fn smooth_mask(image: &SwashImage, strength: u8) -> SwashImage {
             let horiz = mul255(src(sx - 1, sy).max(src(sx + 1, sy)), s);
             let vert = mul255(src(sx, sy - 1).max(src(sx, sy + 1)), sv);
             let own = src(sx, sy);
-            let spill = horiz.max(vert);
-            data[y * nw + x] = (own + mul255(spill, 255 - own)).min(255) as u8;
+            // A pixel the outline never reached takes nothing: the stroke is
+            // filled, not spread (see the module docs).
+            let spill = match own {
+                0 => 0,
+                _ => horiz.max(vert),
+            };
+            let out = (own + mul255(spill, 255 - own)).min(255);
+            // And what the ink already covers deepens with the strength, so
+            // the knob has somewhere to go once the rim is full. Full
+            // coverage is already everything a pixel has to give.
+            data[y * nw + x] = (out + mul255(mul255(out, s), 255 - out)).min(255) as u8;
         }
     }
     SwashImage {
