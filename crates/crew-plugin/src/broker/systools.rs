@@ -219,7 +219,7 @@ fn str_arg<'a>(v: &'a serde_json::Value, key: &str) -> Result<&'a str, String> {
 }
 
 fn write_file(path: &str, content: &str) -> Result<String, String> {
-    std::fs::write(path, content).map_err(|e| format!("write {path}: {e}"))?;
+    std::fs::write(path, content).map_err(|e| super::syspath::with_hint("write", path, e))?;
     Ok(format!("wrote {} bytes to {path}", content.len()))
 }
 
@@ -227,7 +227,7 @@ fn write_file(path: &str, content: &str) -> Result<String, String> {
 const MAX_ENTRIES: usize = 500;
 
 fn list_dir(path: &str) -> Result<String, String> {
-    let rd = std::fs::read_dir(path).map_err(|e| format!("list {path}: {e}"))?;
+    let rd = std::fs::read_dir(path).map_err(|e| super::syspath::with_hint("list", path, e))?;
     let mut lines: Vec<String> = Vec::new();
     for entry in rd.flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();

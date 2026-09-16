@@ -2519,6 +2519,19 @@ cloud metadata endpoint) is REFUSED. The broker sits inside your network,
 among things that answer anyone who can talk to them, and the agent asking is
 usually not the attacker — the page that told it to ask might be.
 
+**A path that is not there says what is.** Every sys tool that takes a path —
+`read_file`, `write_file`, `edit`, `list_dir` — used to answer a wrong one with
+`No such file or directory (os error 2)`, which is true and narrows nothing, so
+the model's next move was another guess. Since 0.22.50 the error carries the
+fact that would have stopped the guessing, because it is sitting on the disk
+one `read_dir` away: `read src/mian.rs: No such file or directory (os error 2)
+— "src" has no "mian.rs" — did you mean "main.rs"?`. A name near nothing gets
+the directory's contents instead (`it holds "a.rs", "b.rs" … +11`), and a path
+that invented two levels is told where it stopped being real — `"proj" has no
+"src"` — rather than being told about the leaf. Dotfiles are left out, a deep
+directory is named by its last two components, and when there is genuinely
+nothing useful to say the plain error stands alone.
+
 `sys:edit {"path": …, "old": …, "new": …}` changes PART of a file. Before it,
 the only way to change a file was `sys:write_file`, which takes the whole
 thing: to fix one line of a 200-line source file the model had to reproduce

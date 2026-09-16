@@ -39,7 +39,8 @@ fn is_utf8_boundary(bytes: &[u8], idx: usize) -> bool {
 
 pub(super) fn read_file(path: &str, offset: usize) -> Result<String, String> {
     // Bound the I/O itself: at most CAP+1 bytes, so a huge/never-EOF file can't blow up memory or hang.
-    let mut f = std::fs::File::open(path).map_err(|e| format!("read {path}: {e}"))?;
+    let mut f =
+        std::fs::File::open(path).map_err(|e| super::syspath::with_hint("read", path, e))?;
     let total = f.metadata().map_err(|e| format!("read {path}: {e}"))?.len() as usize;
     if offset > 0 {
         f.seek(SeekFrom::Start(offset as u64))
