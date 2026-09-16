@@ -34,8 +34,15 @@ pub(crate) fn indicator_text(pane: &ChatPane, now_ms: u64) -> Option<String> {
     }
     let noun = if n == 1 { "message" } else { "messages" };
     let glass = hourglass(now_ms, crate::motion::level());
+    // The way back out, said only while the key would do something: with
+    // anything typed, backspace is deleting that instead, and a hint you
+    // cannot act on is the noise this surface is trying not to be.
+    let back = match pane.input.is_empty() {
+        true => " \u{b7} backspace takes one back",
+        false => "",
+    };
     Some(format!(
-        "{glass} {n} {noun} queued \u{2014} sends when the crew is idle"
+        "{glass} {n} {noun} queued \u{2014} sends when the crew is idle{back}"
     ))
 }
 

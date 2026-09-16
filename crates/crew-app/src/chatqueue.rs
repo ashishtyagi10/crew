@@ -72,6 +72,37 @@ pub(crate) fn listed(pane: &ChatPane) -> Vec<String> {
     out
 }
 
+/// Take the last queued message back into the composer, if the composer is
+/// empty and anything is waiting. True when it took one.
+///
+/// WHY here and not a key of its own: 0.22.51 made the queue visible, and
+/// seeing a message you no longer want is worse than not seeing it if the
+/// only way to remove it is Esc — which cancels the RUN as well and drops
+/// every other message with it. This is the missing half.
+///
+/// Backspace, and into the COMPOSER rather than into nothing, because the
+/// gesture people already have for "unsend that" is the one that un-types:
+/// the text comes back where it was typed, so it can be edited and sent
+/// again, or cleared. Nothing is destroyed by a keystroke.
+///
+/// The LAST one, for the same reason backspace deletes the last character —
+/// and only on an empty composer, so it can never eat something half-typed.
+/// (Called from a match guard in `chattype`, where the arms are already the
+/// place a key means something different when there is nothing typed: Enter
+/// on an empty composer answers a pending plan.)
+pub(crate) fn take_back(pane: &mut ChatPane) -> bool {
+    if !pane.input.is_empty() {
+        return false;
+    }
+    match pane.queued.pop_back() {
+        Some(text) => {
+            pane.input = text;
+            true
+        }
+        None => false,
+    }
+}
+
 /// A queued message as one line. A pasted block is still one thing waiting,
 /// and it claims one row like everything else here.
 fn flatten(text: &str) -> String {

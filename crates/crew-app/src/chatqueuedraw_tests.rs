@@ -113,11 +113,21 @@ fn the_indicator_marks_its_cut_on_a_narrow_pane() {
     let s: String = v.iter().map(|c| c.c).collect();
     assert!(s.ends_with('\u{2026}'), "{s:?}");
     assert!(cells.iter().all(|c| c.col < 30), "{s:?}");
-    let wide: String = indicator_cells_at(&p, 80, 0, 1, 0)
-        .iter()
-        .map(|c| c.c)
-        .collect();
-    assert!(wide.ends_with("idle"), "{wide:?}");
+    let wide = |p: &ChatPane| -> String {
+        indicator_cells_at(p, 100, 0, 1, 0)
+            .iter()
+            .map(|c| c.c)
+            .collect()
+    };
+    assert!(
+        wide(&p).ends_with("backspace takes one back"),
+        "{:?}",
+        wide(&p)
+    );
+    // With something typed, backspace is deleting THAT, and a hint you
+    // cannot act on is exactly the noise this surface avoids.
+    p.input.push_str("half a thought");
+    assert!(wide(&p).ends_with("idle"), "{:?}", wide(&p));
 }
 
 #[test]
