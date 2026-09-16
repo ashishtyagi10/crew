@@ -55,7 +55,9 @@ impl CrewApp {
             "blame" => self.blame_command(),
             "smith" | "crew" => self.spawn_crew_pane(), // /crew kept as an alias
             "settings" => self.spawn_settings_pane(),
-            "todo" => self.spawn_todo_pane(),
+            "todo" => {
+                self.spawn_todo_pane();
+            }
             "usage" => self.spawn_usage_pane(),
             "disk" => self.spawn_disk_pane(None),
             "dash" => self.spawn_dash_pane(),

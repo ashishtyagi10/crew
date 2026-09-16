@@ -1,6 +1,10 @@
 //! Opening one of crew's own panes — settings, todo, usage, disk, dash, far,
-//! goal, batch, swarm — each of which focuses an existing one rather than
-//! opening a second.
+//! goal, batch, swarm.
+//!
+//! Only the TODO list refuses to open twice, and that is a consequence rather
+//! than a rule: Esc minimizes it instead of closing it, so a `/todo` that
+//! pushed a fresh one would strand the pane you put away. The rest are visits
+//! — open, do a thing, leave.
 //!
 //! Split from [`crate::spawn`] for the line cap, along the line between
 //! spawning a TERMINAL (a process, a PTY, a shell) and opening a pane crew
@@ -42,8 +46,21 @@ impl CrewApp {
         self.focus_new_pane();
     }
 
-    /// Spawn the todo-list pane (the shared store loads on open) and focus it.
-    pub(crate) fn spawn_todo_pane(&mut self) {
+    /// Open the todo list and focus it — or bring back the one already open,
+    /// since Esc MINIMIZES this pane (`TodoAction::Minimize`) and opening is
+    /// how you get it back. Returns its index: `spawn_todo_pane_done` can no
+    /// longer assume the pane it wants is the last one.
+    pub(crate) fn spawn_todo_pane(&mut self) -> usize {
+        if let Some(i) = self
+            .panes
+            .iter()
+            .position(|p| matches!(p.content, PaneContent::Todo(_)))
+        {
+            // Focusing is what restores a minimized pane (`reconcile_grid`).
+            self.focused = i;
+            self.input.focused = false;
+            return i;
+        }
         let grid = self
             .renderer
             .as_ref()
@@ -64,13 +81,14 @@ impl CrewApp {
             born_ms: crate::anim::now_ms(),
         });
         self.focus_new_pane();
+        self.panes.len() - 1
     }
 
     /// Spawn a todo pane already open on the done-history view (`/todo
     /// done`), optionally pre-filtered to one `@project` or one `#assignee`.
     pub(crate) fn spawn_todo_pane_done(&mut self, filter: Option<(char, String)>) {
-        self.spawn_todo_pane();
-        if let Some(PaneContent::Todo(t)) = self.panes.last_mut().map(|p| &mut p.content) {
+        let i = self.spawn_todo_pane();
+        if let Some(PaneContent::Todo(t)) = self.panes.get_mut(i).map(|p| &mut p.content) {
             match filter {
                 Some((crate::todopane::parse::WHO, name)) => t.who = Some(name),
                 Some((_, name)) => t.filter = Some(name),
@@ -176,3 +194,7 @@ impl CrewApp {
         self.redraw();
     }
 }
+
+#[cfg(test)]
+#[path = "spawnpanes_tests.rs"]
+mod tests;

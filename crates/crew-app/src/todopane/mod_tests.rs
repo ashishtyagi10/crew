@@ -161,13 +161,13 @@ fn slash_todo_opens_a_pane_and_escape_closes_it() {
     assert_eq!(saved.len(), 1);
     assert_eq!(saved[0].kind, "todo");
     assert!(saved[0].restorable_with(|_| false), "no dir needed");
-    // Escape with an empty composer asks the app to close the pane.
+    // Escape with an empty composer asks the app to put the pane away.
     let crate::pane::PaneContent::Todo(t) = &mut app.panes[0].content else {
         panic!("a todo pane was spawned");
     };
     assert!(matches!(
         crate::todopane::keys::apply(t, crate::todopane::keys::TodoInput::Close, 40, 20),
-        Some(TodoAction::Close)
+        Some(TodoAction::Minimize)
     ));
 }
 

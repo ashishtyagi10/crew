@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.59
+
+**Esc puts the todo list away instead of throwing it out.** Requested, and it
+draws a line the pane surface needed: the todo list is the one crew-drawn
+surface you keep OPEN while you work. The others are visits — settings, far,
+disk: open, do a thing, leave — and closing them on Esc is right. Closing the
+todo list threw away a pane you meant to keep.
+
+So the last layer Esc peels is the pane's place on the grid, not the pane. It
+minimizes into the nav's PANES list with its filter and its history view
+intact, and `/todo` — or clicking its row — brings it back. The peeling above
+that is unchanged: Esc still cancels an edit first, then leaves the done-view,
+and only then puts the pane away.
+
+**Which is why `/todo` no longer opens a second list.** It could not stay the
+way it was: a `/todo` that pushed a fresh pane would strand the one you had
+just put away, still hidden, still filtered, unreachable except through the
+nav. Opening is how you get it back. The visit surfaces are untouched and
+still stack — two disk maps rooted at two directories is a reasonable thing to
+want.
+
+One correction while here: `spawnpanes.rs` has claimed since it was written
+that each of these panes "focuses an existing one rather than opening a
+second". None of them did — `/far` twice has always made two panes, and a test
+relies on it. The comment now says what the code does.
+
 ## 0.22.58
 
 **Operator Mono joins the favourites.** Requested. It was already on

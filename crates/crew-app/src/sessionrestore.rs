@@ -151,7 +151,7 @@ impl CrewApp {
             "shell" => self.spawn_new_pane(),
             "far" => self.spawn_far_pane(),
             "crew" => self.spawn_crew_pane(),
-            "todo" => self.spawn_todo_pane(),
+            "todo" => drop(self.spawn_todo_pane()),
             "usage" => self.spawn_usage_pane(),
             "disk" => self.spawn_disk_pane(None),
             "dash" => self.spawn_dash_pane(),
