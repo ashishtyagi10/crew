@@ -112,3 +112,22 @@ fn a_pass_is_never_told_it_has_been_seen_before() {
     let o = outcome(Ok("exit 0\n".into()));
     assert_eq!(said("cargo check", &o, None), "check: cargo check — passed");
 }
+
+#[test]
+fn a_command_from_the_repo_is_named_with_its_source_and_one_typed_here_is_not() {
+    // The verdict is the only place a user sees what ran. A command nobody
+    // on this machine wrote must say where it came from.
+    assert_eq!(
+        named("cargo test", Some("AGENTS.md")),
+        "cargo test (from AGENTS.md)"
+    );
+    assert_eq!(named("cargo test", None), "cargo test");
+    let o = Outcome {
+        ok: true,
+        text: "exit 0\n".into(),
+    };
+    assert_eq!(
+        line(&named("cargo test", Some("CLAUDE.md")), &o),
+        "check: cargo test (from CLAUDE.md) \u{2014} passed"
+    );
+}

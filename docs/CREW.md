@@ -2280,7 +2280,28 @@ and a typo gets a **did-you-mean** suggestion):
   The command is DECLARED rather than guessed, because it spends your CPU and
   can take minutes; when crew can see what it would probably be (a
   `Cargo.toml`, a `package.json`, a `Makefile`) it says so once and leaves the
-  choice alone. Each result is also written to the recall graph, so "the tests
+  choice alone.
+  **A repo that wrote its command down counts as having declared it.** Since
+  0.22.49, if there is no `.crew/check`, crew reads the command out of the
+  project's own `AGENTS.md` / `CLAUDE.md` — the file it has been folding in
+  front of every task since 0.22.26, while ignoring the one line in it that is
+  executable. "Run `cargo test --workspace` before pushing" IS a declaration;
+  it was just made to every contributor rather than to crew. This is not
+  guessing from the shape of a project: nothing runs because a `Cargo.toml`
+  exists, only because a sentence said to run it. What is believed is
+  deliberately narrow — the first word must be a known build runner (`cargo`,
+  `npm`, `pytest`, `make`, `go`, …), shell chaining, redirection and
+  substitution (`&&`, `;`, `|`, `>`, `$(`) are refused outright so a repo
+  cannot talk crew into running a script, and the line has to be ABOUT testing
+  or checking, so a `git clone` in a setup section is never mistaken for a
+  gate. A file naming both a test and a build command gets its TEST command
+  run. `.crew/check` always wins when it exists — it is the more specific
+  answer and the one a human here typed, so a repo naming a twenty-minute
+  suite can still be pointed at something quicker. Whatever is used, the
+  verdict names its source — `check: cargo test --workspace (from AGENTS.md)
+  — passed` — because a command nobody on this machine wrote must never be one
+  nobody can trace. `CREW_CHECK=0` turns the check off entirely, which matters
+  now that deleting `.crew/check` is no longer the off switch. Each result is also written to the recall graph, so "the tests
   fail on this" survives the session that found out.
   **And a failure crew has met before says so.** Because every verdict is in
   the graph, a break can be compared against the ones that came before it: two

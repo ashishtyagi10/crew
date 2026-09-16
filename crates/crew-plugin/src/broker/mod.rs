@@ -19,6 +19,7 @@ mod ask;
 pub(crate) mod auth;
 mod capabilities;
 mod changed;
+mod checkcmd;
 mod checkpoint;
 mod claudeagent;
 mod commands;

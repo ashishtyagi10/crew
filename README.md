@@ -562,9 +562,11 @@ as a hidden commit under
 `refs/crew/` without touching HEAD or your index; say "undo that" and crew
 names what would come back and waits for your "yes" — à la Cline's
 checkpoints and Claude Code's rewind, with no command to remember),
-**a check on its own work** (put one command in `.crew/check` and crew runs it
+**a check on its own work** (put one command in `.crew/check` — or let crew
+read the one your `AGENTS.md` already tells contributors to run — and it runs
 after every task that changes files, reporting `passed` or the first lines of
-the failure — à la Codex's test step, declared rather than guessed; a failure
+the failure, naming its source when you did not type it here — à la Codex's
+test step, declared rather than guessed; `CREW_CHECK=0` turns it off; a failure
 it has met before adds `seen before: … the 3rd time, last in <file>`, and the
 repair pass is told the same),
 **transcript export** (`/export` writes the conversation to

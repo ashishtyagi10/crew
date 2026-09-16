@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.49
+
+**A repo that wrote its test command down gets it run.** Crew has been folding
+`AGENTS.md` and `CLAUDE.md` in front of every task since 0.22.26, and ignoring
+the one line in them that is executable. "Run `cargo test --workspace` before
+pushing" is a declaration — it was just made to every contributor instead of
+to crew. With no `.crew/check`, that is now the check.
+
+This is not the guessing the module has always refused. Nothing runs because a
+`Cargo.toml` exists; something runs because a sentence said to run it. What
+gets believed is deliberately narrow: the first word must be a known build
+runner, shell chaining, redirection and substitution are refused outright so an
+instruction file can never talk crew into running a script rather than a build
+tool, and the line has to be ABOUT testing or checking — a `git clone` in a
+setup section is not a gate. A file that names both a test and a build command
+gets its TEST command run.
+
+`.crew/check` still wins wherever it exists. It is the more specific answer and
+the one a human on this machine typed, so a repo naming a twenty-minute suite
+can still be pointed at something quicker.
+
+And the verdict says where the command came from:
+`check: cargo test --workspace (from AGENTS.md) — passed`. A command nobody
+here wrote must never be a command nobody can trace. It is said once, when the
+check runs — the repair pass that follows a failure does not repeat it.
+
+**`CREW_CHECK=0` turns the check off.** While the only command was one you
+wrote into `.crew/check`, deleting that file was the off switch. It is not any
+more, so there is a real one.
+
 ## 0.22.48
 
 **Crew remembers what it read.** Two releases ago it learned to search the web
