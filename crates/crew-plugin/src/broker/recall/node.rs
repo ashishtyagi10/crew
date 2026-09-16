@@ -9,12 +9,14 @@
 use std::fmt;
 
 /// What a node stands for. `Topic` is a word the conversation kept using,
-/// `File` a path that came up, `Turn` one exchange — the only kind that
-/// carries text, because it is the only kind worth quoting back.
+/// `File` a path that came up, `Page` a URL crew read, `Turn` one exchange —
+/// the only kind that carries text, because it is the only kind worth quoting
+/// back.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum Kind {
     Topic,
     File,
+    Page,
     Turn,
 }
 
@@ -23,6 +25,7 @@ impl Kind {
         match self {
             Kind::Topic => "topic",
             Kind::File => "file",
+            Kind::Page => "page",
             Kind::Turn => "turn",
         }
     }
@@ -31,6 +34,7 @@ impl Kind {
         match s {
             "topic" => Some(Kind::Topic),
             "file" => Some(Kind::File),
+            "page" => Some(Kind::Page),
             "turn" => Some(Kind::Turn),
             _ => None,
         }

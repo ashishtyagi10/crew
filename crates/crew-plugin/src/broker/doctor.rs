@@ -50,8 +50,8 @@ pub(crate) struct DoctorInputs {
     pub budget: usize,
     /// Recent turns the pane's thread holds for a follow-up (`thread.rs`).
     pub thread_turns: usize,
-    /// `(turns, topics, files)` in the recall graph on disk (`recall/`).
-    pub recall: (usize, usize, usize),
+    /// `(turns, topics, files, pages)` in the recall graph on disk (`recall/`).
+    pub recall: (usize, usize, usize, usize),
     /// The project's own instruction files, by name (`agentsmd`).
     pub instructions: Vec<String>,
 }
@@ -173,7 +173,7 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
     });
     let (mark, detail) = super::thread::doctor_line(i.thread_turns);
     out.push(line(mark, "thread", &detail));
-    let (mark, detail) = super::recall::doctor_line(i.recall.0, i.recall.1, i.recall.2);
+    let (mark, detail) = super::recall::doctor_line(i.recall.0, i.recall.1, i.recall.2, i.recall.3);
     out.push(line(mark, "recall", &detail));
     let (mark, detail) = super::agentsmd::doctor_line(&i.instructions);
     out.push(line(mark, "project instructions", &detail));

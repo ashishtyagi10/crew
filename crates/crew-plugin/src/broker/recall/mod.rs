@@ -75,12 +75,13 @@ impl Recall {
         }
     }
 
-    /// `(turns, topics, files)` — `/doctor`'s counts.
-    pub(crate) fn stats(&self) -> (usize, usize, usize) {
+    /// `(turns, topics, files, pages)` — `/doctor`'s counts.
+    pub(crate) fn stats(&self) -> (usize, usize, usize, usize) {
         (
             self.g.count(Kind::Turn),
             self.g.count(Kind::Topic),
             self.g.count(Kind::File),
+            self.g.count(Kind::Page),
         )
     }
 
@@ -185,11 +186,23 @@ pub(crate) fn record(r: &SharedRecall, asked: &str, answered: Option<&str>) {
 }
 
 /// `/doctor`'s line: the mark and the detail.
-pub(crate) fn doctor_line(turns: usize, topics: usize, files: usize) -> (char, String) {
+pub(crate) fn doctor_line(
+    turns: usize,
+    topics: usize,
+    files: usize,
+    pages: usize,
+) -> (char, String) {
     let mark = if turns > 0 { '\u{2713}' } else { '\u{2013}' };
+    // Pages are named only once there are some. Every project has files; a
+    // project that has never sent crew to the web should not read as one
+    // missing something.
+    let pages = match pages {
+        0 => String::new(),
+        n => format!(", {n} page(s)"),
+    };
     (
         mark,
-        format!("{turns} turn(s), {topics} topic(s), {files} file(s) in the recall graph"),
+        format!("{turns} turn(s), {topics} topic(s), {files} file(s){pages} in the recall graph"),
     )
 }
 
