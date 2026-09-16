@@ -139,12 +139,23 @@ pub(crate) fn refresh_bufs(p: &mut SettingsPane) {
 /// Move focus to the next/previous field, closing the dropdown and refreshing
 /// the display buffers from the draft.
 pub(crate) fn move_focus(p: &mut SettingsPane, back: bool) {
-    let n = FIELDS.len();
-    p.focus = if back {
-        (p.focus + n - 1) % n
-    } else {
-        (p.focus + 1) % n
+    // Step through the order the form is DRAWN in (`form::tab_order`), not
+    // the order the fields were declared in. `p.focus` still indexes `FIELDS`,
+    // which is the set; the walk is over the layout, which is the sequence.
+    let order = super::form::tab_order(p.cols.get());
+    let here = order.iter().position(|f| *f == p.focused_field());
+    let n = order.len();
+    let next = match here {
+        Some(i) if back => (i + n - 1) % n,
+        Some(i) => (i + 1) % n,
+        // Focused on something the layout does not place: start at the top
+        // rather than refusing to move.
+        None => 0,
     };
+    p.focus = FIELDS
+        .iter()
+        .position(|f| *f == order[next])
+        .unwrap_or(p.focus);
     p.family_open = false;
     p.family_sel = 0;
     refresh_bufs(p);
@@ -163,3 +174,7 @@ pub(crate) fn escape(p: &mut SettingsPane) -> Option<SettingsAction> {
         Some(SettingsAction::Cancel)
     }
 }
+
+#[cfg(test)]
+#[path = "commit_tests.rs"]
+mod tests;

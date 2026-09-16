@@ -2,14 +2,18 @@
 //! for the 200-line cap when `auto`'s pairing pickers joined the Appearance
 //! card.
 //!
-//! `FIELDS` is the Tab order and `Field` is the set; they are separate because
-//! the declaration order groups related settings while the tab order follows
-//! the eye down the cards. `every_config_key_is_editable_or_listed_as_absent`
+//! `FIELDS` is the SET of focusable fields; the Tab ORDER is no longer here.
+//! It was a second list beside this one, whose own comment said it "follows
+//! the eye down the cards" — and it had stopped: `Paper grain` is drawn third,
+//! beside `Font size`, and was tabbed seventeenth. `form::tab_order` reads the
+//! sequence off the layout now, so the two cannot drift again, and so it can
+//! be right at a width where `pair` stacks and a width where it does not. `every_config_key_is_editable_or_listed_as_absent`
 //! holds this list against `CrewConfig` — a config key must be editable here
 //! or listed as deliberately absent, which is how the `auto` settings came to
 //! be here at all.
 
-/// Focusable elements of the form, in Tab order.
+/// Focusable elements of the form. The ORDER they are reached in comes from
+/// the layout (`form::tab_order`), not from this list.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum Field {
     FontFamily,
@@ -86,6 +90,8 @@ pub(crate) enum Field {
     Cancel,
 }
 
+/// Every focusable field, for the coverage guards and as `tab_order`'s
+/// backstop — a field the layout does not place still has to be reachable.
 pub(crate) const FIELDS: [Field; 37] = [
     Field::FontFamily,
     Field::FontSize,

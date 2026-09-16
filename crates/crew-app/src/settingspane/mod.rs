@@ -68,6 +68,11 @@ pub struct SettingsPane {
     /// number typed is the number said rather than eight digits.
     pub(crate) budget5h_buf: String,
     pub(crate) budget7d_buf: String,
+    /// The width the form was last DRAWN at, so key handling can ask the
+    /// layout what order the fields are in (`form::tab_order`). A `Cell`
+    /// because rendering takes `&self` — and the frame always precedes the
+    /// keystroke, so it is current by the time anything reads it.
+    pub(crate) cols: std::cell::Cell<u16>,
 }
 
 impl SettingsPane {
@@ -104,10 +109,13 @@ impl SettingsPane {
             patterns_buf,
             budget5h_buf,
             budget7d_buf,
+            cols: std::cell::Cell::new(0),
         }
     }
 
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
+        // The width key handling asks the layout about (`form::tab_order`).
+        self.cols.set(cols);
         render::render(self, cols, rows)
     }
 
