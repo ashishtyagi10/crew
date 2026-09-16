@@ -696,7 +696,8 @@ The docked command bar supports:
   one canonical spelling per face and is matched by key, so `Comic Mono` on the
   list answers for an installed `ComicMono Nerd Font Mono`; theme preference
   lists are matched the same way. **Favourites** (`crew-theme`'s `FAVORITES`: Comic Mono, JetBrains Mono,
-  SF Mono, IBM Plex Mono, MonoLisa, Lilex) get three tickets instead of one, so
+  SF Mono, IBM Plex Mono, MonoLisa, Lilex, Noto Sans Mono) get three tickets
+  instead of one, so
   they come up about three times as often without retiring the rest of the
   pool. Every theme also LEADS with one of them, which is what decides the face
   while the theme rotates: MonoLisa on paper, Comic Mono on sepia, JetBrains
