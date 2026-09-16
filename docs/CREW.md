@@ -3344,6 +3344,28 @@ bare page goes sheer. `100` is opaque; the value floors at **35%**, because a
 window dialled any sheerer is one you can't find again. Works with the CRT
 post-process too — the tube shapes light, not transparency.
 
+## `/view` — one command for the file viewer
+
+Three commands each described themselves as opening the file viewer — `/diff`
+("the working tree's changes **in the file viewer**"), `/blame` ("who last
+touched each line of the file **in the viewer**") and `/log` ("this session's
+full activity log **in the viewer**") — which is `/view`'s entire job. Their
+own descriptions had been admitting for a long time that they were one command
+with three arguments.
+
+```text
+/view <path>              any file — code, markdown, data, csv, diffs
+/view diff                the working tree's changes
+/view blame               who last touched each line (again turns it off)
+/view log                 this session's full activity log
+```
+
+The subjects match the bare word only, so a path keeps winning the moment it
+looks like one: a file really called `diff` is `/view ./diff`. And `/diff`,
+`/blame` and `/log` all still run when typed — they are in every doc, every
+script and everyone's fingers — they simply no longer take three of the
+palette's rows to say what one verb says. 40 rows, down from 67.
+
 ## `/look` — one command for how crew looks
 
 Crew's appearance knobs were fifteen top-level commands. They are one now:

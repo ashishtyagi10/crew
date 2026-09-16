@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.53
+
+**Command diet, round five: the viewer owns its own contents.** Three commands
+had been describing themselves as the same command for a long time, and the
+evidence was sitting in their own palette descriptions:
+
+- `/diff` — "the working tree's changes **in the file viewer**"
+- `/blame` — "who last touched each line of the file **in the viewer**"
+- `/log` — "this session's full activity log **in the viewer**"
+
+All three open the file viewer, which is `/view`'s whole job. They are its
+subjects now:
+
+```text
+/view <path>              any file — code, markdown, data, csv, diffs
+/view diff                the working tree's changes
+/view blame               who last touched each line
+/view log                 this session's full activity log
+```
+
+The subjects match the bare word only, so a path keeps winning the moment it
+looks like one — a file really called `diff` is `/view ./diff`, and the test
+that says so is the one that would catch `/view diff` quietly starting to treat
+its subject as a filename.
+
+Folded, not retired: `/diff`, `/blame` and `/log` all still run when typed.
+They are in every doc, every script and everyone's fingers. They simply no
+longer spend three of the palette's rows saying what one verb says. **40 rows,
+down from 67** when the diet started.
+
 ## 0.22.52
 
 **And you can take one back.** 0.22.51 made the queue visible, which made a
