@@ -30,7 +30,8 @@ pub(crate) fn edit(path: &str, old: &str, new: &str) -> Result<String, String> {
     if old == new {
         return Err("edit: `old` and `new` are identical \u{2014} nothing to do".into());
     }
-    let body = std::fs::read_to_string(path).map_err(|e| format!("edit {path}: {e}"))?;
+    let body =
+        std::fs::read_to_string(path).map_err(|e| super::syspath::with_hint("edit", path, e))?;
     let edited = replace(&body, old, new).map_err(|e| format!("edit {path}: {e}"))?;
     std::fs::write(path, &edited).map_err(|e| format!("edit {path}: {e}"))?;
     Ok(report(path, &body, old, new))

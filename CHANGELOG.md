@@ -8,6 +8,37 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.50
+
+**A path that is not there now says what is.** `read src/mian.rs: No such file
+or directory (os error 2)` is true and useless: nothing in it narrows anything,
+so the model's next move is another guess, and the one after that. The fact
+that would have ended it — what is actually in that directory — was sitting on
+the disk the whole time, one `read_dir` away.
+
+Every sys tool that takes a path carries it now:
+
+    read src/mian.rs: No such file or directory (os error 2)
+      — "src" has no "mian.rs" — did you mean "main.rs"?
+
+Two shapes of wrongness, because the fix differs. A file missing from a
+directory that exists is a misspelling, so the nearest names are offered; a
+name near nothing gets the directory's contents instead, since what IS there is
+the fact that narrows the next guess. A path that invented two levels is a
+wrong branch, and is told where it stopped being real — `"proj" has no "src"` —
+rather than being told about a leaf that was never the problem.
+
+Kept to one line: dotfiles are left out, six entries with a count of the rest,
+and a deep directory is named by its last two components rather than the
+machine's whole filesystem. The root directory never gets listed — that would
+be a sentence about the machine, not about the mistake — and when there is
+genuinely nothing useful to say the plain error stands alone, because a clause
+that narrows nothing is worse than no clause.
+
+This is `sys:edit`'s lesson from 0.22.47 applied to the commonest miss there
+is: an error that says WHICH KIND of miss it was turns three blind retries into
+one corrected call.
+
 ## 0.22.49
 
 **A repo that wrote its test command down gets it run.** Crew has been folding
