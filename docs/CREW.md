@@ -2473,7 +2473,8 @@ its whole process group reaped on timeout so backgrounded children can't
 linger), **`sys:read_file`** (UTF-8, 64 KB per call; a truncation note carries
 the byte `offset` to continue with, so agents read big files in chunks),
 **`sys:write_file`** (create/overwrite), **`sys:list_dir`** (≤500 entries,
-sizes shown), and **`sys:fetch`** — the one that reaches off this machine.
+sizes shown), and the two that reach off this machine — **`sys:fetch`** and
+**`sys:search`**.
 
 `sys:fetch {"url": …}` GETs an http(s) page and returns it as READABLE TEXT:
 script, style and markup are stripped before the model sees a token of it,
@@ -2486,8 +2487,22 @@ cloud metadata endpoint) is REFUSED. The broker sits inside your network,
 among things that answer anyone who can talk to them, and the agent asking is
 usually not the attacker — the page that told it to ask might be.
 
+`sys:search {"q": …}` is the step BEFORE a fetch: a fetch can only open a URL
+somebody already knew, and "what is the current version of X" needs finding
+the page first. It asks DuckDuckGo's no-JavaScript endpoint — keyless on
+purpose, because a search needing an API key is one most installs cannot run —
+and returns up to 8 ranked results as a numbered list of title, URL and a
+240-char snippet, with the model told to open one with `sys:fetch` and cite
+the URL it used. Each result's real URL is unwrapped from DuckDuckGo's
+`uddg=` redirector, so the model never spends a fetch on a hop or cites a link
+no reader can check; when the endpoint answers with nothing recognisable the
+tool says `no results for …` rather than handing back half-parsed markup. It
+goes out through `sys:fetch`'s door, so the private-address refusal, the
+redirect limit, the 20-second deadline and the size caps all hold here too,
+and it is classified `read` for the same reason.
+
 `CREW_SYS_MODE=readonly` blocks the mutating pair (`run`, `write_file`) and
-leaves `fetch` available, `CREW_SYS_TOOLS=0` turns the surface off entirely,
+leaves `fetch` and `search` available, `CREW_SYS_TOOLS=0` turns the surface off entirely,
 and `/doctor` shows the active mode. An approximate per-thread **token budget**
 (`CREW_BROKER_TOKEN_BUDGET`, default unlimited) terminates a thread that blows
 past it.
@@ -2698,7 +2713,7 @@ agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request;
 `CREW_MAX_TASKS` (default 4) caps concurrent background tasks;
 `CREW_SYS_TOOLS=0` / `CREW_SYS_MODE=readonly` disable or sandbox the built-in
 sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:list_dir`,
-`sys:fetch`, and `sys:find_tools`, which searches every connected tool by name
+`sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
 and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
 `CREW_HTTP_TIMEOUT_MS` (default 120000) bounds each HTTP attempt to a provider,
 deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled endpoint names the

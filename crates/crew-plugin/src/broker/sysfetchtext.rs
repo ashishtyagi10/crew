@@ -55,6 +55,11 @@ pub(crate) fn readable(html: &str) -> String {
 
 /// The handful of entities that appear in prose. Anything else is left as it
 /// is: a literal `&copy;` in the text is odd, and a wrong guess is worse.
+///
+/// `&#x27;` earns its place by being the ONLY numeric form seen in the wild
+/// here — a search result titled `You&#x27;ll Understand Lifetimes` is a title
+/// the model reads aloud and cites, so the apostrophe is worth spelling three
+/// ways.
 fn entities(s: &str) -> String {
     s.replace("&nbsp;", " ")
         .replace("&amp;", "&")
@@ -62,6 +67,7 @@ fn entities(s: &str) -> String {
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
+        .replace("&#x27;", "'")
         .replace("&apos;", "'")
 }
 

@@ -25,6 +25,8 @@ fn the_entities_that_appear_in_prose_are_decoded() {
         readable("<p>a&nbsp;b &amp; c &lt;d&gt; &#39;e&#39;</p>"),
         "a b & c <d> 'e'"
     );
+    // The hex apostrophe is what search results are titled with.
+    assert_eq!(readable("<p>You&#x27;ll see</p>"), "You'll see");
     // Anything else is left alone rather than guessed at.
     assert_eq!(readable("<p>&copy; 2026</p>"), "&copy; 2026");
 }

@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.22.45"
+version = "0.22.46"
 edition = "2021"
 authors = ["crew contributors"]
 license = "MIT OR Apache-2.0"
@@ -33,6 +33,9 @@ toml = "0.8"
 
 # HTTP / AI
 reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"], default-features = false }
+# `sys:search` builds one query string and unwraps DuckDuckGo's `uddg=`
+# redirects. Already in the tree under reqwest/url, so this costs no build.
+percent-encoding = "2"
 
 # Filesystem
 walkdir = "2"

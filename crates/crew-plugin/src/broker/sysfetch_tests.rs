@@ -59,7 +59,8 @@ fn fetched(url: &str) -> Result<String, String> {
         .enable_all()
         .build()
         .unwrap();
-    rt.block_on(get(url))
+    let (kind, body) = rt.block_on(get(url))?;
+    Ok(readable_body(&kind, body))
 }
 
 #[test]
