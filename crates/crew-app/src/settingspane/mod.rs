@@ -4,6 +4,7 @@
 //! navigation, a type-to-search font-family dropdown, and Save (Cmd+S /
 //! Alt+S) / Cancel (Esc).
 mod cards;
+pub(crate) mod click;
 mod commit;
 mod cycle;
 mod dropdown;
@@ -13,6 +14,7 @@ mod form;
 mod keys;
 mod labels;
 mod pairing;
+mod press;
 mod render;
 mod tokens;
 mod widgets;
@@ -127,27 +129,6 @@ impl SettingsPane {
     pub fn save(&mut self) -> SettingsAction {
         commit::commit_field(self);
         SettingsAction::Apply(Box::new(commit::build_config(self)))
-    }
-
-    /// Mouse-wheel / page scroll: move the open font dropdown's selection, or
-    /// otherwise step field focus (committing each field on the way). Positive
-    /// `lines` moves toward the top.
-    pub fn scroll(&mut self, lines: i32) {
-        if self.family_open {
-            let n = self.filtered().len() as i64;
-            if n > 0 {
-                self.family_sel = (self.family_sel as i64 - lines as i64).clamp(0, n - 1) as usize;
-            }
-            return;
-        }
-        let up = lines > 0;
-        for _ in 0..lines.unsigned_abs().min(FIELDS.len() as u32) {
-            if (up && self.focus == 0) || (!up && self.focus == FIELDS.len() - 1) {
-                break;
-            }
-            commit::commit_field(self);
-            commit::move_focus(self, up);
-        }
     }
 
     pub(crate) fn focused_field(&self) -> Field {

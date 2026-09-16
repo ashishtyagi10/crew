@@ -1,7 +1,7 @@
 //! Focus movement: the walk Tab takes through the form.
 use super::move_focus;
 use crate::config::CrewConfig;
-use crate::settingspane::{Field, SettingsPane};
+use crate::settingspane::SettingsPane;
 
 #[test]
 fn tab_walks_the_form_the_way_it_is_drawn() {
@@ -47,4 +47,17 @@ fn the_walk_follows_the_width_it_was_drawn_at() {
         let order = crate::settingspane::form::tab_order(p.cols.get());
         assert!(order.contains(&p.focused_field()));
     }
+}
+
+#[test]
+fn the_wheel_stops_at_the_ends_of_the_walk_rather_than_wrapping() {
+    // The end-stop used to compare against the declaration list's ends, which
+    // since 0.22.55 are not the fields the form begins and ends with.
+    let order = crate::settingspane::form::tab_order(160);
+    let mut p = SettingsPane::new(CrewConfig::default(), vec![]);
+    p.cols.set(160);
+    p.scroll(-(order.len() as i32 + 10)); // wheel down, past the foot
+    assert_eq!(p.focused_field(), order[order.len() - 1]);
+    p.scroll(order.len() as i32 + 10); // and back up, past the head
+    assert_eq!(p.focused_field(), order[0]);
 }

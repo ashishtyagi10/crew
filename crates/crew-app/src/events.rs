@@ -153,9 +153,10 @@ impl CrewApp {
                     self.redraw();
                     return;
                 }
-                // A click on a disk map picks the tile under the pointer, and
-                // a second click on the same tile walks into it.
-                if self.disk_click_at_cursor() {
+                // A click in a settings form or on a disk map acts where it
+                // lands — a checkbox flips, a chevron steps, a tile is picked
+                // (and a second click on the same tile walks into it).
+                if self.settings_click_at_cursor() || self.disk_click_at_cursor() {
                     self.redraw();
                     return;
                 }
