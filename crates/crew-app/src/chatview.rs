@@ -217,7 +217,12 @@ pub(crate) fn art(
         }
     }
     if queued_rows > 0 {
-        cells.extend(crate::chatqueue::indicator_cells(pane, cols, indicator_row));
+        cells.extend(crate::chatqueuedraw::indicator_cells(
+            pane,
+            cols,
+            indicator_row,
+            queued_rows,
+        ));
     }
     if g.plan > 0 {
         cells.extend(crate::chatplanbtn::row_cells(pane, cols, rows - bottom));

@@ -107,6 +107,7 @@ mod chatprog;
 mod chatprogspring;
 mod chatpulse;
 mod chatqueue;
+mod chatqueuedraw;
 mod chatreveal;
 mod chatrevealpane;
 mod chatroster;
