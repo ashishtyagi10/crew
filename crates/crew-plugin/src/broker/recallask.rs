@@ -65,9 +65,13 @@ pub(crate) fn answer(session: &Session, subject: &str) -> String {
             None => out.push("  nothing in the recall graph reaches it yet".into()),
         }
     }
-    let (turns, topics, files) = recall.stats();
+    let (turns, topics, files, pages) = recall.stats();
+    let pages = match pages {
+        0 => String::new(),
+        n => format!(" \u{b7} {n} page(s)"),
+    };
     out.push(format!(
-        "  graph: {turns} turn(s) \u{b7} {topics} topic(s) \u{b7} {files} file(s)"
+        "  graph: {turns} turn(s) \u{b7} {topics} topic(s) \u{b7} {files} file(s){pages}"
     ));
     drop(recall);
     match super::memory::load() {

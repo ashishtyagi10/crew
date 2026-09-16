@@ -94,12 +94,22 @@ pub(crate) fn turns(g: &Graph, text: &str, skip: &[String], max: usize) -> Vec<H
 /// The files `text` activated, strongest first — the "we were in these files"
 /// line, which is often the useful half of a recall.
 pub(crate) fn files(g: &Graph, text: &str, max: usize) -> Vec<String> {
+    named(g, text, Kind::File, max)
+}
+
+/// The pages `text` activated: URLs a past turn cited, strongest first.
+pub(crate) fn pages(g: &Graph, text: &str, max: usize) -> Vec<String> {
+    named(g, text, Kind::Page, max)
+}
+
+/// The nodes of one kind that `text` activated, strongest first.
+fn named(g: &Graph, text: &str, kind: Kind, max: usize) -> Vec<String> {
     let score = activate(g, text);
     let mut hits: Vec<(String, f32)> = score
         .into_iter()
         .filter_map(|(id, s)| {
             let n = g.node(id)?;
-            (n.kind == Kind::File).then(|| (n.text.clone(), s))
+            (n.kind == kind).then(|| (n.text.clone(), s))
         })
         .collect();
     hits.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));

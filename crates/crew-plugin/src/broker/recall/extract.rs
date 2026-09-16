@@ -168,6 +168,53 @@ pub(crate) fn paths(text: &str) -> Vec<String> {
     out
 }
 
+/// Pages kept from one turn. A search answers with eight results; what the
+/// turn CITED is the interesting few, and a model that pasted all eight was
+/// listing, not reading.
+const URLS_MAX: usize = 4;
+
+/// Longer than this and it is a tracking blob, not something to recall.
+const URL_MAX_LEN: usize = 300;
+
+/// The http(s) URLs in `text`.
+///
+/// WHY this is separate from [`paths`], which has always skipped anything
+/// starting with `http`: a URL is not a file, and until crew could reach the
+/// web there was nothing to do with one but drop it. Now that `sys:fetch` and
+/// `sys:search` exist, the page a turn cited is the most specific thing that
+/// turn knows — "we read THIS" outlives "we talked about that".
+///
+/// Taken from the turn's text rather than from the tool call, which is not
+/// the cheap way round but the honest one: `sys:search` tells the model to
+/// cite the URL it used, so what lands here is what the answer actually stood
+/// on, not every page a run happened to open and discard.
+pub(crate) fn urls(text: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for raw in text.split_whitespace() {
+        let Some(start) = raw.find("http") else {
+            continue;
+        };
+        let t = &raw[start..];
+        if !(t.starts_with("http://") || t.starts_with("https://")) {
+            continue;
+        }
+        // Prose punctuation that ends a sentence, not a URL. A trailing `/`
+        // stays: it is the one mark that is part of the address.
+        let t = t.trim_end_matches(|c: char| ".,;:!?\u{201d}\u{2019}\")]}>'".contains(c));
+        // Shorter than this is a scheme and not much else.
+        if t.len() < "https://a.bc".len() || t.len() > URL_MAX_LEN {
+            continue;
+        }
+        if !out.iter().any(|u| u == t) {
+            out.push(t.to_owned());
+        }
+        if out.len() == URLS_MAX {
+            break;
+        }
+    }
+    out
+}
+
 /// The topic words of `text`: lowercased, four letters or more, off the stop
 /// list, ranked by how often they appear and then by where they first did.
 pub(crate) fn topics(text: &str) -> Vec<String> {

@@ -43,6 +43,10 @@ impl Recall {
             let id = w.node(self, Kind::File, &p, &p, now);
             w.edge(self, turn, id, Rel::Mentions);
         }
+        for u in extract::urls(&both) {
+            let id = w.node(self, Kind::Page, &u, &u, now);
+            w.edge(self, turn, id, Rel::Mentions);
+        }
         for (i, a) in topics.iter().take(CROSS_LINKED).enumerate() {
             for b in topics.iter().take(CROSS_LINKED).skip(i + 1) {
                 w.edge(self, *a, *b, Rel::With);

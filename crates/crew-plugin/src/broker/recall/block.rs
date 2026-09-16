@@ -17,6 +17,9 @@ pub(crate) const RECALL_CAP: usize = 1024;
 const TURNS_MAX: usize = 4;
 /// Files named on the trailing line.
 const FILES_MAX: usize = 4;
+/// Pages named on the trailing line. Fewer than the files, because a URL is
+/// four times the width of a path and the block is paying by the char.
+const PAGES_MAX: usize = 2;
 const HEAD: &str = "From earlier work in this project:";
 
 /// What a recall came to: the block itself and the counts the pane says out
@@ -71,6 +74,19 @@ pub(crate) fn block(
     let files = query::files(g, text, FILES_MAX);
     if !files.is_empty() {
         let line = format!("- files that came up: {}", files.join(", "));
+        if line.chars().count() < left {
+            // Charged against the budget, which it did not have to be while
+            // it was the last line in the block. It is not any more.
+            left -= line.chars().count();
+            lines.push(line);
+        }
+    }
+    // After the files, because a path is where work happened and a URL is
+    // only where an answer came from — and last in means first cut when the
+    // budget is tight.
+    let pages = query::pages(g, text, PAGES_MAX);
+    if !pages.is_empty() {
+        let line = format!("- pages read: {}", pages.join(", "));
         if line.chars().count() < left {
             lines.push(line);
         }

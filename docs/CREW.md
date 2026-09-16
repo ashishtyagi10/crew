@@ -2316,8 +2316,8 @@ and a typo gets a **did-you-mean** suggestion):
 - **“what do you remember?”** — the memory, read out rather than inferred.
   Asking (with or without a subject — “what do you know about the router?”,
   “do you remember the nav crash?”) is answered by crew itself, with **no
-  model call**: the recall graph's turns and files for that subject, the size
-  of the graph, your standing notes, and the project's instruction files. It
+  model call**: the recall graph's turns, files and pages for that subject, the
+  size of the graph, your standing notes, and the project's instruction files. It
   works with no provider signed in, it never paraphrases, and a question about
   memory can never be mistaken for a task — nothing it does writes anything.
 - **`#<note>`** — standing **project memory** (à la Claude
@@ -2427,13 +2427,14 @@ and a typo gets a **did-you-mean** suggestion):
 - **crew remembers the projects it worked on** — also no command: every
   finished turn is written into a **recall graph** on disk
   (`./.crew/recall.jsonl`, project-scoped like the session log) as a node
-  joined to the topics and file paths that turn was about — an embedded,
+  joined to the topics, file paths and **pages** that turn was about — an
+  embedded,
   append-only graph store replayed into memory when the pane opens, with no
   server and no new dependency. The next request walks those joins (two hops,
   spreading activation) and carries back the two or three earlier turns that
   bear on it as a `From earlier work in this project:` block (1 KB), newest
-  first, each line stamped `3d ago`, with the files that came up on a trailing
-  line. Unlike the thread above it survives a restart and reaches back to
+  first, each line stamped `3d ago`, with the files that came up — and any
+  pages read — on trailing lines. Unlike the thread above it survives a restart and reaches back to
   every session ever run in that tree, and unlike the session log it is
   ordered by RELEVANCE, not by time — "why did we make the router re-plan?"
   finds the turn that answered it a month ago. A turn already quoted from the
@@ -2444,10 +2445,19 @@ and a typo gets a **did-you-mean** suggestion):
   later question about any one of them reaches the others. That is knowledge
   the turn's TEXT does not carry — the model talks about one file and edits
   three — and it is exactly what someone new to a tree cannot know.
+  Since 0.22.48 it also remembers **what crew read**: an http(s) URL in a
+  finished turn becomes a `page` node, so `- pages read: …` rides in the block
+  and "what do you remember about X" answers with the sources, not only the
+  conversation. The URLs are taken from the turn's TEXT rather than from the
+  tool call, which is the honest way round rather than the cheap one:
+  `sys:search` tells the model to cite the URL it used, so what is kept is
+  what the answer actually stood on, not every page a run opened and
+  discarded. Four per turn at most, and a project that has never sent crew to
+  the web says nothing about pages anywhere.
   The log compacts itself (the oldest turns past 400 are dropped with their
   orphaned topics); `CREW_RECALL=0` turns the whole thing off — no read, no
-  write; `/doctor` reports `recall: N turn(s), N topic(s), N file(s) in the
-  recall graph`, and every run that carries one says so on its `context:`
+  write; `/doctor` reports `recall: N turn(s), N topic(s), N file(s), N page(s) in the
+  recall graph` (the pages only once there are some), and every run that carries one says so on its `context:`
   line — `recalled 2 turns from 3w ago`, the reach being the OLDEST turn
   quoted, so a memory arriving from a session you have forgotten announces
   itself rather than quietly steering the answer.

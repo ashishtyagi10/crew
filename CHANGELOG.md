@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.48
+
+**Crew remembers what it read.** Two releases ago it learned to search the web
+and fetch a page; nothing kept what it found. Ask it tomorrow what the lifetime
+elision rules are and it would go and look them up again, having already read
+the answer and forgotten where.
+
+An http(s) URL in a finished turn is now a `page` node in the recall graph,
+beside the topics and the file paths that were already there — so a later task
+about the same subject carries `- pages read: https://doc.rust-lang.org/…` in
+its `From earlier work in this project:` block, and "what do you remember about
+X" answers with the sources rather than only the conversation.
+
+The URLs come out of the turn's TEXT, not out of the tool call, and that is the
+honest way round rather than the cheap one. `sys:search` ends by telling the
+model to cite the URL it used; taking the citation means what gets remembered
+is what the answer actually stood on, instead of every page a run happened to
+open and discard. Four per turn at most — a model that pasted all eight search
+results was listing, not reading.
+
+`paths` has skipped anything starting with `http` since the graph was written,
+because a URL is not a file and there was nothing to do with one. There is now.
+Neither extractor claims the other's tokens, so one turn never remembers the
+same thing twice.
+
+A project that has never sent crew to the web is unchanged everywhere: no
+`pages read` line, and `/doctor` and the memory answer name pages only once
+there are some — every project has files, and a project with no pages should
+not read as one missing something.
+
 ## 0.22.47
 
 **Crew can change part of a file.** Until now the only way an agent could edit

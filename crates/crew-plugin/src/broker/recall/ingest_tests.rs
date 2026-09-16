@@ -127,3 +127,29 @@ fn a_sweeping_refactor_does_not_cross_link_everything_it_touched() {
     r.record_changes(&many);
     assert_eq!(r.stats().2, CHANGED_MAX, "the cap did not hold");
 }
+
+#[test]
+fn a_page_a_turn_cited_is_remembered_and_reached_from_the_topic() {
+    let mut r = Recall::default();
+    r.record(
+        "what are rust's lifetime elision rules",
+        "Three of them \u{2014} see https://doc.rust-lang.org/reference/lifetime-elision.html",
+    );
+    assert_eq!(r.stats().3, 1, "the cited page was not recorded");
+    // And a later task about the same subject reaches it.
+    let block = r.context("lifetime elision", &[]).expect("a recall");
+    assert!(
+        block.contains("https://doc.rust-lang.org/reference/lifetime-elision.html"),
+        "{block}"
+    );
+    assert!(block.contains("pages read:"), "{block}");
+}
+
+#[test]
+fn a_turn_that_cited_nothing_adds_no_pages_and_no_pages_line() {
+    let mut r = Recall::default();
+    r.record("rename the linecap ratchet", "done, in linecap.rs");
+    assert_eq!(r.stats().3, 0);
+    let block = r.context("linecap", &[]).expect("a recall");
+    assert!(!block.contains("pages read:"), "{block}");
+}

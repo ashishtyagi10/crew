@@ -58,3 +58,21 @@ fn a_node_line_missing_its_counters_still_loads_with_a_first_sighting() {
     };
     assert_eq!((n.hits, n.last_ms, n.text.as_str()), (1, 0, ""));
 }
+
+#[test]
+fn every_kind_survives_the_round_trip_to_disk_and_back() {
+    // A kind that cannot be read back is a kind that only exists until the
+    // broker restarts — which is the one thing the graph is for.
+    for kind in [Kind::Topic, Kind::File, Kind::Page, Kind::Turn] {
+        let key = match kind {
+            Kind::Page => "https://doc.rust-lang.org/std/",
+            _ => "something",
+        };
+        let line = node_line(&node(kind, key));
+        let Some(Rec::Node(back)) = decode(&line) else {
+            panic!("{kind} did not decode: {line}");
+        };
+        assert_eq!(back.kind, kind, "{line}");
+        assert_eq!(back.key, key, "{line}");
+    }
+}
