@@ -1582,7 +1582,8 @@ longer aim at.
   follows the ledger while it is open, so a request landing now moves the
   charts. Everything it shows comes from `usage.jsonl` beside your config,
   which crew was already keeping for the chat footer's rolling 5h/7d windows.
-- **`/todo`** — opens a **todo list** pane over one global list (stored in
+- **`/todo`** — opens (or brings back) a **todo list** pane over one global
+  list (stored in
   `$XDG_CONFIG/crew/todos.toml`, shared by every window and pane). Type into
   its composer and press `Enter` to add an item; a **natural-language due
   date** anywhere in the text (`tomorrow`, `fri 5pm`, `aug 15`, `in 2 weeks`,
@@ -1593,7 +1594,14 @@ longer aim at.
   both free-form and created on first use (a popup completes names already
   in use, from that sigil's own axis; a new word after `@` or `#` creates
   one). `#123` is left in the title: nobody is called 966, and a team that
-  tracks tickets types their numbers all day. The list sorts overdue
+  tracks tickets types their numbers all day.
+  **Esc minimizes this pane rather than closing it.** It is the one
+  crew-drawn surface you keep open while you work — the others are visits
+  (settings, far, disk: open, do a thing, leave) — so the last layer Esc peels
+  is the pane's place on the grid, not the pane. Its filter and its history
+  view survive, it waits in the nav's PANES list, and `/todo` (or clicking the
+  row) brings it straight back. That is also why `/todo` never opens a second
+  list, where the visit surfaces still stack. The list sorts overdue
   (bell-coloured) → upcoming by due → undated, with done items sunk and
   dimmed, and every due label names the **calendar date** as well as the
   humane word (`today sep 11`, `sat aug 15`) — `sat` alone is a different

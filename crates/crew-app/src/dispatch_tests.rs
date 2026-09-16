@@ -180,10 +180,15 @@ fn the_viewer_subjects_route_and_a_real_path_still_wins() {
             !status.contains("no such file") && !status.contains("unknown command"),
             "/view {subject} was treated as a path: {status}"
         );
-        // And the old spelling still answers, identically.
-        let mut old = CrewApp::default();
-        old.run_slash_command(subject);
-        assert_eq!(old.status.map(|s| s.0), app.status.map(|s| s.0));
+        // And the old spelling still answers, identically. Not `log`: it
+        // reports on the PROCESS-WIDE activity log, which another test can
+        // write to between these two apps being built — comparing the two
+        // answers there is comparing two different moments.
+        if subject != "log" {
+            let mut old = CrewApp::default();
+            old.run_slash_command(subject);
+            assert_eq!(old.status.map(|s| s.0), app.status.map(|s| s.0));
+        }
     }
     // A file really called `diff` is reachable — the subjects match the bare
     // word only, so a path keeps winning the moment it looks like one.

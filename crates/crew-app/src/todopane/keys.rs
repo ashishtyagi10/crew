@@ -41,11 +41,18 @@ pub(crate) enum TodoInput {
 
 /// An action the pane asks the app to take.
 pub(crate) enum TodoAction {
-    Close,
+    /// Esc on the bare list: put the pane back in the nav, do not close it.
+    ///
+    /// The todo list is the one crew-drawn surface you keep OPEN while you
+    /// work — the others are visits (settings, far, disk: go, do a thing,
+    /// leave). Closing it on Esc threw away a pane you meant to keep, so the
+    /// last layer Esc peels is the pane's place on the grid, not the pane.
+    /// `/todo` brings it straight back.
+    Minimize,
 }
 
 /// Classify a key press. Only presses act; Escape walks back one layer
-/// (popup → edit/text → pane close, see [`apply`]). `alt` turns the arrows
+/// (popup → edit/text → minimize, see [`apply`]). `alt` turns the arrows
 /// into word jumps (macOS Alt mangles `Key::Character`, so word-jump must
 /// key off the named arrow + flag); `ctrl` maps the terminal line idioms
 /// `Ctrl+A`/`Ctrl+E` onto Home/End and swallows other Ctrl-letters.
@@ -132,7 +139,7 @@ pub(crate) fn apply(
                 // One more layer to walk back: the history view itself.
                 p.set_done_view(false);
             } else {
-                return Some(TodoAction::Close);
+                return Some(TodoAction::Minimize);
             }
         }
         Enter => p.submit(),

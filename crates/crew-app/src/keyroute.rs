@@ -109,8 +109,8 @@ impl CrewApp {
                 }
             }
         }
-        if let Some(crate::todopane::TodoAction::Close) = todo_action {
-            self.close_pane(focused);
+        if let Some(crate::todopane::TodoAction::Minimize) = todo_action {
+            self.minimize_pane(focused);
         }
         if is_terminal {
             if let Some(bytes) = key_to_bytes(event, mstate.control_key(), shift) {

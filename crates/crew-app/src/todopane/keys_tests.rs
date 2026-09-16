@@ -75,10 +75,10 @@ fn escape_walks_back_one_layer_at_a_time() {
     // Layer 2: draft text.
     assert!(apply(&mut p, TodoInput::Close, COLS, ROWS).is_none());
     assert_eq!(p.input, "");
-    // Layer 1: an empty composer → close the pane.
+    // Layer 1: an empty composer → the pane leaves the GRID, not the session.
     assert!(matches!(
         apply(&mut p, TodoInput::Close, COLS, ROWS),
-        Some(TodoAction::Close)
+        Some(TodoAction::Minimize)
     ));
 }
 
@@ -512,10 +512,10 @@ fn esc_leaves_the_history_before_it_ever_closes_the_pane() {
                         // Composer zone: Esc exits the view, NOT the pane.
     assert!(apply(&mut p, TodoInput::Close, COLS, ROWS).is_none());
     assert!(!p.done_view);
-    // Now an empty composer in the normal view: Esc closes the pane.
+    // Now an empty composer in the normal view: Esc puts the pane away.
     assert!(matches!(
         apply(&mut p, TodoInput::Close, COLS, ROWS),
-        Some(TodoAction::Close)
+        Some(TodoAction::Minimize)
     ));
 
     // And from the list zone of the history: same exit, selection intact
