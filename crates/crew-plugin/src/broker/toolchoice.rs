@@ -171,16 +171,36 @@ pub(crate) struct Chosen {
 impl Chosen {
     /// `tools: chose 6 of 41 — sys:run, gcal:events, … +3`: one line, cut where the names
     /// stop fitting.
+    ///
+    /// What gets cut is chosen before what gets kept is ordered. The `sys:`
+    /// tools are in EVERY run, so they say nothing about this one; listing
+    /// them first cost the line the only part that was news the moment the
+    /// surface grew past the cap. They lose their place first now, and the
+    /// names that survive are still printed in the order they were picked.
     pub(crate) fn line(&self) -> String {
-        let mut shown: Vec<&str> = Vec::new();
-        let mut len = 0;
-        for n in &self.names {
-            if len + n.len() + 2 > LINE_CAP && !shown.is_empty() {
-                break;
+        let mut room = LINE_CAP;
+        let mut keep = vec![false; self.names.len()];
+        for always_on in [false, true] {
+            for (i, n) in self.names.iter().enumerate() {
+                if n.starts_with("sys:") != always_on {
+                    continue;
+                }
+                let cost = n.len() + 2;
+                // At least one name is always shown, however long it is.
+                if cost > room && keep.iter().any(|k| *k) {
+                    continue;
+                }
+                room = room.saturating_sub(cost);
+                keep[i] = true;
             }
-            len += n.len() + 2;
-            shown.push(n);
         }
+        let shown: Vec<&str> = self
+            .names
+            .iter()
+            .zip(&keep)
+            .filter(|(_, k)| **k)
+            .map(|(n, _)| n.as_str())
+            .collect();
         let rest = self.names.len() - shown.len();
         let tail = if rest > 0 {
             format!(", \u{2026} +{rest}")

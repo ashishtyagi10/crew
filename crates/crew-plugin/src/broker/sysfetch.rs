@@ -32,11 +32,36 @@ const TIMEOUT: Duration = Duration::from_secs(20);
 const REDIRECTS: usize = 5;
 
 /// Fetch `url` and return its readable text.
+pub(crate) fn fetch(url: &str) -> Result<String, String> {
+    let (kind, body) = raw(url)?;
+    Ok(readable_body(&kind, body))
+}
+
+/// A body as the model should read it: markup reduced to prose, the whole
+/// thing capped.
+///
+/// Named rather than inlined into [`fetch`] so the tests can drive it over a
+/// loopback server — which [`check`] refuses to let `fetch` itself reach, and
+/// should.
+fn readable_body(kind: &str, body: String) -> String {
+    let text = match kind.contains("html") || body.trim_start().starts_with('<') {
+        true => super::sysfetchtext::readable(&body),
+        false => body,
+    };
+    super::sysfetchtext::capped(&text, TEXT_CAP)
+}
+
+/// The body as it arrived, with its content type, for the one caller that
+/// needs the MARKUP rather than the prose: [`super::syssearch`] reads result
+/// hrefs out of it, and `readable` would have thrown those away.
+///
+/// Same guard, client, deadline and size cap as [`fetch`] — there is one door
+/// off this machine and this is the inside of it.
 ///
 /// Runs on a thread of its own with a runtime of its own: tool calls arrive
 /// from inside the swarm's runtime, where a nested `block_on` is a panic
 /// rather than a wait (the same reason `toolchoice` spawns).
-pub(crate) fn fetch(url: &str) -> Result<String, String> {
+pub(crate) fn raw(url: &str) -> Result<(String, String), String> {
     let url = check(url)?;
     std::thread::scope(|s| {
         s.spawn(|| {
@@ -103,7 +128,7 @@ fn is_private(host: &str) -> bool {
     }
 }
 
-async fn get(url: &str) -> Result<String, String> {
+async fn get(url: &str) -> Result<(String, String), String> {
     let client = reqwest::Client::builder()
         .timeout(TIMEOUT)
         .redirect(reqwest::redirect::Policy::limited(REDIRECTS))
@@ -127,12 +152,7 @@ async fn get(url: &str) -> Result<String, String> {
     }
     let body = res.bytes().await.map_err(|e| format!("fetch: {e}"))?;
     let body = &body[..body.len().min(BYTES_CAP)];
-    let text = String::from_utf8_lossy(body).to_string();
-    let text = match kind.contains("html") || text.trim_start().starts_with('<') {
-        true => super::sysfetchtext::readable(&text),
-        false => text,
-    };
-    Ok(super::sysfetchtext::capped(&text, TEXT_CAP))
+    Ok((kind, String::from_utf8_lossy(body).to_string()))
 }
 
 #[cfg(test)]

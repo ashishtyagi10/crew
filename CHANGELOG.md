@@ -8,6 +8,42 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.46
+
+**Crew can look something up.** `sys:fetch` shipped in 0.22.28 and could only
+ever open a URL somebody already knew — which meant every question shaped like
+"what is the current version of", "which crate does", "did that API change"
+was answered out of training data, confidently, as of whenever the model
+stopped reading. `sys:search {"q": …}` is the step before the fetch: up to
+eight ranked results as a numbered list of title, URL and snippet, with the
+model told in the same breath to open one with `sys:fetch` and cite the URL it
+used.
+
+Keyless, deliberately. A search that needs an API key is a search most installs
+cannot run, and a feature only the author can use is not a feature — so this
+asks DuckDuckGo's no-JavaScript endpoint for HTML, exactly as a reader without
+scripts would.
+
+It adds no reach. The request goes out through `sys:fetch`'s door, so the
+refusal to name localhost or a private address, the five-redirect limit, the
+20-second deadline and the size caps are all still the only ones there are,
+rather than a second set written out beside them. Classified `read`, so
+`CREW_SYS_MODE=readonly` keeps it.
+
+Two things the parsing gets right and would be easy to get wrong. Every result
+links back through `//duckduckgo.com/l/?uddg=<the real URL>`, a redirector
+carrying a signature: handing that to the model would spend a whole fetch
+arriving where we already knew we were going, and cite a URL no reader can
+check, so the destination is unwrapped before the model sees it. And a result
+with no snippet still counts — dropping it would silently renumber every
+result below it. When the endpoint stops looking like itself, search comes back
+`no results for …` rather than half-parsed markup, and the tests beside the
+parser fail with the fixture that day.
+
+One thing fell out of reading real pages: `&#x27;` was coming through
+undecoded, so a result titled `You&#x27;ll Finally Understand Lifetimes` was
+what the model read and repeated. `sys:fetch` decodes it now too.
+
 ## 0.22.45
 
 **Noto Sans Mono joins the favourites.** Seven faces now carry three tickets in

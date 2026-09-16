@@ -52,6 +52,10 @@ pub fn sys_tier(tool: &str) -> Option<Tier> {
         // (`sysfetch::is_private`) is what keeps "nothing" true on a machine
         // that sits inside a network of things that answer anyone.
         "fetch" => Tier::Read,
+        // A search reads a public index and changes nothing, so read-only
+        // mode keeps it — the URL guard that makes that true for `fetch`
+        // covers this too, since it goes out through the same door.
+        "search" => Tier::Read,
         "write_file" => Tier::Reversible,
         "run" => Tier::Irreversible,
         _ => return None,

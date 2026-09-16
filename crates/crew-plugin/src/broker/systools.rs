@@ -128,6 +128,20 @@ pub(crate) fn tools() -> Vec<McpTool> {
             }),
         ),
         mk(
+            "search",
+            "find pages on the web: {\"q\": \"rust lifetime elision rules\"} \u{2014} returns ranked titles, URLs and snippets to fetch and cite",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "q": {
+                        "type": "string",
+                        "description": "what to look for, as you would type it into a search box",
+                    },
+                },
+                "required": ["q"],
+            }),
+        ),
+        mk(
             "fetch",
             "read a web page as text: {\"url\": \"https://doc.rust-lang.org/std/\"}",
             serde_json::json!({
@@ -169,8 +183,9 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "write_file" => write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
         "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),
         "fetch" => super::sysfetch::fetch(str_arg(&v, "url")?),
+        "search" => super::syssearch::search(str_arg(&v, "q")?),
         other => Err(format!(
-            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, list_dir, fetch, find_tools"
+            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, list_dir, fetch, search, find_tools"
         )),
     }
 }

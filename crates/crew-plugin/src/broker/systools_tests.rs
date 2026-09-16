@@ -19,6 +19,7 @@ fn tools_lists_the_sys_surface() {
             "read_file",
             "write_file",
             "find_tools",
+            "search",
             "fetch",
             "list_dir"
         ]

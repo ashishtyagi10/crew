@@ -76,6 +76,8 @@ mod sysfetch;
 mod sysfetchtext;
 mod sysread;
 mod sysrun;
+mod syssearch;
+mod syssearchparse;
 mod systools;
 mod taskdiag;
 mod taskdiff;

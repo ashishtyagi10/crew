@@ -173,3 +173,42 @@ fn the_pane_line_names_what_was_chosen_and_cuts_a_long_list() {
     );
     assert!(!line.contains('\n'));
 }
+
+#[test]
+fn an_overflowing_line_cuts_the_always_on_tools_not_the_chosen_one() {
+    // The `sys:` tools are in every run; the one the model picked out of the
+    // catalog is the whole reason the line is printed. When they cannot all
+    // fit, the news must survive and the furniture must go.
+    let chosen = Chosen {
+        of: 39,
+        names: vec![
+            "sys:run".into(),
+            "sys:read_file".into(),
+            "sys:write_file".into(),
+            "sys:find_tools".into(),
+            "sys:search".into(),
+            "sys:fetch".into(),
+            "sys:list_dir".into(),
+            "noise:thing4".into(),
+        ],
+    };
+    let line = chosen.line();
+    assert!(line.starts_with("tools: chose 8 of 39 \u{2014} "), "{line}");
+    assert!(line.contains("noise:thing4"), "the choice was cut: {line}");
+    assert!(
+        line.contains(", \u{2026} +"),
+        "nothing was cut at all: {line}"
+    );
+    // Survivors keep the order they were picked in, not the order they were
+    // rescued in.
+    let names: Vec<&str> = line
+        .split(" \u{2014} ")
+        .nth(1)
+        .unwrap()
+        .split(", ")
+        .filter(|n| n.contains(':'))
+        .collect();
+    let mut sorted = names.clone();
+    sorted.sort_by_key(|n| chosen.names.iter().position(|x| x == n).unwrap());
+    assert_eq!(names, sorted, "{line}");
+}
