@@ -295,7 +295,7 @@ fn msg_rows_budget_matches_view_math() {
 }
 
 #[test]
-fn msg_rows_budget_shrinks_by_one_when_a_message_is_queued() {
+fn msg_rows_budget_shrinks_by_the_indicators_rows_when_a_message_is_queued() {
     // The queued-messages indicator claims a row above the composer exactly
     // like the live swarm block does — `msg_rows_budget` must reserve it.
     let messages: Vec<Message> = (0..30)
@@ -308,18 +308,19 @@ fn msg_rows_budget_shrinks_by_one_when_a_message_is_queued() {
     pane.queued.push_back("queued while busy".into());
     let budget_after = crate::chatplace::msg_rows_budget(&pane, cols, rows);
 
-    assert_eq!(
-        budget_after,
-        budget_before - 1,
-        "the indicator's row comes out of the message budget"
-    );
+    // The summary line and the message itself both come out of the budget.
+    let want = crate::chatqueue::queued_rows(&pane);
+    assert_eq!((budget_after, want), (budget_before - want, 2));
 
-    pane.queued.push_back("another one".into());
-    assert_eq!(
-        crate::chatplace::msg_rows_budget(&pane, cols, rows),
-        budget_after,
-        "queue depth beyond 1 doesn't claim more rows"
-    );
+    // A deeper queue claims one more row per message it can name, then stops:
+    // past SHOWN the rest collapse into a count, so the waiting can never
+    // push the conversation off the top.
+    for i in 0..10 {
+        pane.queued.push_back(format!("m{i}"));
+    }
+    let deep = crate::chatplace::msg_rows_budget(&pane, cols, rows);
+    assert_eq!(budget_before - deep, crate::chatqueue::queued_rows(&pane));
+    assert!(deep >= budget_after - 3, "a deep queue ate the transcript");
 }
 
 // -- Compact transcript view (Ctrl+O) ---------------------------------------

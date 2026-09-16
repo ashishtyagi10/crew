@@ -575,6 +575,31 @@ config and plugins load.
 
 The docked command bar supports:
 
+- **Typing while the crew is busy** — a message sent mid-run is not lost and
+  does not interrupt: it **queues**, and is sent the moment the turn settles,
+  one at a time. `/stop` is the one exception — it bypasses the queue, because
+  it has to reach the broker mid-run to cancel anything.
+  Since 0.22.51 the indicator above the composer says **what** is waiting, not
+  only how much of it:
+
+      ⧗ 5 messages queued — sends when the crew is idle
+        1. fix the nav crash in glance()
+        2. then run the tests
+        3. and bump the version
+        … +2 more
+
+  It used to say the count alone, which meant a message typed five minutes ago
+  behind a long run was invisible until it sent itself — you could not tell
+  whether the thing you meant to ask was in there. The list is numbered
+  because the ORDER is the point: that is what the crew will be asked next,
+  and next after that. Three are named and the rest become one count, so a
+  deep queue can never push the conversation off the top; a pasted block is
+  one thing waiting and claims one row like everything else. On a pane with
+  only one row to spare the summary survives alone, which is exactly what this
+  surface drew before it had a list. Esc cancels the run AND drops everything
+  queued behind it (each was written on the premise that the interrupted work
+  was going fine), and says how many it dropped.
+
 - **Smart bare-input routing** — plain text (not a slash command, `cd`, or a
   prefix below) routes by context: if the focused pane is a **visible, idle
   shell** (its prompt is waiting), the text is typed into it — the shell is

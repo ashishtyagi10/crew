@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.51
+
+**The queue says what is waiting, not just how much.** Type while the crew is
+busy and the message queues rather than interrupting — it has worked that way
+for a long time, and the indicator above the composer said `⧗ 2 messages
+queued` and nothing else. So a message typed five minutes ago behind a long run
+was invisible until it sent itself: you could not tell whether the thing you
+meant to ask was in there, or what order it would go in.
+
+    ⧗ 5 messages queued — sends when the crew is idle
+      1. fix the nav crash in glance()
+      2. then run the tests
+      3. and bump the version
+      … +2 more
+
+Numbered, because the order is the point — that is what the crew will be asked
+next, and next after that. Three are named and the rest become one count, so a
+deep queue can never push the conversation off the top, and a pasted block is
+one thing waiting and claims one row like everything else on this surface.
+
+The summary line comes FIRST, which is what makes it safe: `chatplace::grants`
+clamps every surface to the rows actually left, so a pane with one row to spare
+draws exactly what this indicator drew before it had a list, and a pane with
+none draws nothing rather than overrunning the composer.
+
+`chatqueue` split while this was built: that file now answers "what is waiting
+and how much room does it need", `chatqueuedraw` answers "what does it look
+like", and the two were only ever one because the answer used to be short
+enough not to matter.
+
 ## 0.22.50
 
 **A path that is not there now says what is.** `read src/mian.rs: No such file

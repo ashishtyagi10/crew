@@ -376,7 +376,7 @@ fn queued_indicator_renders_directly_above_the_composer() {
     pane.queued.push_back("later".into());
     let (cols, rows) = (60u16, 20u16);
     let bottom = bottom_rows(&pane, cols, rows);
-    let indicator_row = rows - bottom - 1;
+    let indicator_row = rows - bottom - crate::chatqueue::queued_rows(&pane);
 
     let cells_out = cells(&pane, cols, rows);
     let text = row_text(&cells_out, indicator_row);
@@ -459,13 +459,12 @@ fn queued_indicator_renders_on_the_empty_messages_branch_too() {
     pane.queued.push_back("b".into());
     let (cols, rows) = (60u16, 20u16);
     let bottom = bottom_rows(&pane, cols, rows);
-    let indicator_row = rows - bottom - 1;
-
+    let indicator_row = rows - bottom - crate::chatqueue::queued_rows(&pane);
     let cells_out = cells(&pane, cols, rows);
     let text = row_text(&cells_out, indicator_row);
     assert!(
         text.contains("2 messages queued"),
-        "indicator row {indicator_row}: {text}"
+        "{indicator_row}: {text}"
     );
 }
 
@@ -524,7 +523,8 @@ fn progress_bar_and_queued_indicator_stack_without_colliding() {
 
     // Bar innermost (directly above the composer), queued indicator above it.
     let bar = row_text(&cells_out, rows - bottom - 1);
-    let queued = row_text(&cells_out, rows - bottom - 2);
+    let above = 1 + crate::chatqueue::queued_rows(&pane);
+    let queued = row_text(&cells_out, rows - bottom - above);
     assert!(bar.contains('\u{2588}'), "bar: {bar}");
     assert!(queued.contains("1 message queued"), "queued: {queued}");
 }

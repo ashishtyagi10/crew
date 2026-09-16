@@ -5,8 +5,6 @@
 //! bypass check and the one-line "N queued" indicator that claims a row
 //! above the composer, mirroring how `chatswarmview::swarm_rows` claims rows
 //! for the live swarm block.
-use crew_render::CellView;
-
 use crate::chat::ChatPane;
 
 /// Whether `text` is (or starts) a `/stop` command — the one send that must
@@ -28,79 +26,56 @@ pub(crate) fn is_stop_all(text: &str) -> bool {
     text.trim() == "/stop"
 }
 
-/// Rows the queued-indicator claims in the message area: 0 when empty, else
-/// exactly 1 (a single summary line, regardless of queue depth).
+/// Queued messages listed under the summary before the rest become a count.
+/// Three is what fits above a composer without the waiting outgrowing the
+/// conversation it is waiting for.
+pub(crate) const SHOWN: usize = 3;
+
+/// Rows the queued-indicator claims: 0 when empty, else the summary line plus
+/// one per message waiting (to [`SHOWN`], then a line for the remainder).
+///
+/// The summary comes FIRST so that a pane too short for the list degrades to
+/// exactly what this surface drew before it had one: `chatplace::grants`
+/// clamps every surface to the rows left, and the row it can always afford is
+/// the one that says how many.
 pub(crate) fn queued_rows(pane: &ChatPane) -> u16 {
-    if pane.queued.is_empty() {
-        0
-    } else {
-        1
-    }
-}
-
-/// One turn of the queued hourglass, at full motion (Subtle: 1.6× slower).
-pub(crate) const HOURGLASS_MS: u64 = 600;
-
-/// The indicator's hourglass at `now_ms`: the two glyphs of the pair
-/// (`glyphs::Glyph::Hourglass`, `⧗ ⧖` on a plain font) alternate every
-/// [`HOURGLASS_MS`] while anything is queued — sand still running — and Off
-/// holds the first, still.
-pub(crate) fn hourglass(now_ms: u64, level: crate::motion::MotionLevel) -> char {
-    let period = crate::shimmer::period(HOURGLASS_MS, level);
-    let frame = now_ms
-        .checked_div(period)
-        .map_or(0, |turns| (turns % 2) as u8);
-    crate::glyphs::pick_char(crate::glyphs::Glyph::Hourglass(frame))
-}
-
-/// The indicator's text at `now_ms`, or `None` when the queue is empty.
-/// Grammar (message/messages) tracks the count.
-pub(crate) fn indicator_text(pane: &ChatPane, now_ms: u64) -> Option<String> {
     let n = pane.queued.len();
     if n == 0 {
-        return None;
+        return 0;
     }
-    let noun = if n == 1 { "message" } else { "messages" };
-    let glass = hourglass(now_ms, crate::motion::level());
-    Some(format!(
-        "{glass} {n} {noun} queued \u{2014} sends when the crew is idle"
-    ))
+    let listed = n.min(SHOWN) + usize::from(n > SHOWN);
+    1 + listed as u16
 }
 
-/// Render the indicator at `row` on the animation clock — see
-/// [`indicator_cells_at`].
-pub(crate) fn indicator_cells(pane: &ChatPane, cols: u16, row: u16) -> Vec<CellView> {
-    indicator_cells_at(pane, cols, row, crate::anim::now_ms())
+/// The waiting messages, in the order they will be sent, as the lines that go
+/// under the summary.
+///
+/// WHY they are worth the rows: the queue could say how MANY were waiting and
+/// never what, so a message typed five minutes ago behind a long run was
+/// invisible until it sent itself. You could not tell whether the thing you
+/// meant to ask was in there, and the only way to take one back was Esc,
+/// which cancels the run as well and drops all of them.
+pub(crate) fn listed(pane: &ChatPane) -> Vec<String> {
+    let n = pane.queued.len();
+    let mut out: Vec<String> = pane
+        .queued
+        .iter()
+        .take(SHOWN)
+        .enumerate()
+        // Numbered, because the order is the whole point: this is what the
+        // crew will be asked next, and next after that.
+        .map(|(i, t)| format!("{}. {}", i + 1, flatten(t)))
+        .collect();
+    if n > SHOWN {
+        out.push(format!("\u{2026} +{} more", n - SHOWN));
+    }
+    out
 }
 
-/// Render the indicator at `row`, muted, starting one column in (matching
-/// the swarm block's left inset); `now_ms` turns the hourglass.
-pub(crate) fn indicator_cells_at(
-    pane: &ChatPane,
-    cols: u16,
-    row: u16,
-    now_ms: u64,
-) -> Vec<CellView> {
-    let Some(text) = indicator_text(pane, now_ms) else {
-        return Vec::new();
-    };
-    let theme = crew_theme::theme();
-    let mut cells = Vec::new();
-    // Marked and width-aware, as every other one-row notice on the canvas:
-    // a half-width tile used to read `…sends when the c` with no cut mark.
-    let text = crate::chatwidth::clip_w(&text, usize::from(cols.saturating_sub(1)));
-    let styled = text.chars().map(|c| (c, theme.text_muted));
-    crate::chatwidth::place_row(1, cols, styled, |col, c, fg| {
-        cells.push(CellView {
-            col,
-            row,
-            c,
-            fg,
-            bg: theme.page_bg,
-            ..Default::default()
-        })
-    });
-    cells
+/// A queued message as one line. A pasted block is still one thing waiting,
+/// and it claims one row like everything else here.
+fn flatten(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 #[cfg(test)]
