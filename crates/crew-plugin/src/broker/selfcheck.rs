@@ -77,6 +77,16 @@ pub(crate) fn outcome(result: Result<String, String>) -> Outcome {
     }
 }
 
+/// How the command is named in the verdict: with its source, when the user
+/// did not type it here. A command nobody on this machine wrote must never be
+/// one nobody can trace.
+pub(crate) fn named(cmd: &str, from: Option<&str>) -> String {
+    match from {
+        Some(f) => format!("{cmd} (from {f})"),
+        None => cmd.to_string(),
+    }
+}
+
 /// The line for a finished run: passed in one line, failed with the head of
 /// the output — the part that names the first error.
 pub(crate) fn line(cmd: &str, o: &Outcome) -> String {
@@ -120,8 +130,11 @@ pub(crate) fn after_task(
     if !changed {
         return Ok(());
     }
+    if !super::checkcmd::enabled() {
+        return Ok(());
+    }
     let base = base_dir();
-    let Some(cmd) = command_at(&base) else {
+    let Some(d) = super::checkcmd::declared_at(&base) else {
         // Say once that this is possible, and only when we can name the
         // command — an unsolicited tip that cannot be acted on is noise.
         let told = session
@@ -132,6 +145,8 @@ pub(crate) fn after_task(
             _ => Ok(()),
         };
     };
+    let said_as = named(&d.cmd, d.from.as_deref());
+    let cmd = d.cmd;
     let o = outcome(run(&cmd));
     // Asked BEFORE the verdict is written, or this failure would find itself
     // in the graph and report that it has happened before.
@@ -151,7 +166,7 @@ pub(crate) fn after_task(
         })
         .as_deref(),
     );
-    emit(msg("agent smith", said(&cmd, &o, seen.as_deref())))?;
+    emit(msg("agent smith", said(&said_as, &o, seen.as_deref())))?;
     if o.ok {
         return Ok(());
     }
