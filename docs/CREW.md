@@ -1529,8 +1529,8 @@ longer aim at.
   path — with the line count and size — is shown on the input bar. With no argument it writes a timestamped
   `crew-dump-YYYYMMDD-HHMMSS.txt` in the working directory; with an argument it
   writes there (a relative path resolves against the working directory).
-- **`/far`** — opens a Far Manager-style **dual-pane file manager** as a pane in
-  the grid (like `/shell`): two side-by-side directory listings with a Far
+- **`/far`** — opens a Far Manager-style **dual-pane file manager**, **zoomed**
+  (see below): two side-by-side directory listings with a Far
   function-key bar and a **command line** at the bottom. `Tab` switches the active
   panel **only while the command line is empty**; `↑`/`↓`/`PgUp`/`PgDn`/`Home`/`End`
   move the cursor, `Enter` descends into a folder (or `..`) or opens a file with
@@ -3259,6 +3259,20 @@ under the pointer brightens to say so. The panel's **card legend shows the runni
 (`crew vX.Y.Z`), so the build is always visible at a glance.
 
 ## Settings
+
+`/settings` and `/far` open **zoomed**, because they are visits: you open one,
+do a thing, and leave. A visit wants the window — far is a dual-pane file
+manager with two panes of its own to fit, and the settings form is a column of
+boxes to read down, and neither is much use as a quarter tile beside the work
+it is interrupting. Nothing new gets you out again: **Esc** already means
+"leave" in every pane crew draws, and closing a pane already clears the zoom,
+so you land back on exactly the grid you left. `Cmd+Z` still un-zooms if you
+would rather keep the pane and shrink it into its tile — useful for running
+far *beside* a shell. (`/view` has opened this way since it was written.)
+
+The todo list is the exception, and deliberately: it is the one crew-drawn
+surface you keep open while you work, so it opens as a normal tile and **Esc
+minimizes it** rather than closing it.
 
 
 The form takes the **mouse** as well as the keyboard: a click focuses the field

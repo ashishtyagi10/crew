@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.60
+
+**Settings and far open zoomed.** They are visits — you open one, do a thing,
+and leave — and a visit wants the window. Far is a dual-pane file manager with
+two panes of its own to fit; the settings form is a column of boxes to read
+down. Neither is much use as a quarter tile beside the work it is interrupting.
+
+Nothing new was bound to get you out again, and that is the point: **Esc
+already means "leave" in every pane crew draws** — todo minimizes, disk and
+swarm close, settings cancels-and-closes, and far peels its drive-select, then
+its make-folder prompt, then its command line, then the pane. And `close_pane`
+already clears the zoom. So you land back on exactly the grid you left, with
+one key that already did that. `Cmd+Z` still un-zooms for anyone who would
+rather keep the pane and shrink it into its tile, which is how you run far
+*beside* a shell.
+
+`/view` has opened this way since it was written, so this makes three surfaces
+that agree rather than one that was odd.
+
+Restoring a session is deliberately not affected: a restored `far` comes back
+tiled, because `reopen` has always argued that putting a workspace back is not
+the same as asking to look at something now, and should never land you zoomed
+on a grid you did not ask to leave.
+
+`spawnpanes` split while this was built — the line cap found a real boundary.
+That file opens a surface for you to LOOK at (settings, the todo list, a file
+manager); the new `spawnswarm` starts something RUNNING and shows it happening
+(`/goal` plans a task graph, `/batch` runs a file of jobs, both landing in the
+swarm pane it pushes).
+
 ## 0.22.59
 
 **Esc puts the todo list away instead of throwing it out.** Requested, and it
