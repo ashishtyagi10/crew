@@ -2585,7 +2585,19 @@ miss is never a write, and the errors say WHY the match failed: text present
 with different indentation reads differently from text that is not there at
 all, because the model's next move differs. On success it answers
 `edited main.rs at line 2 (1 line → 2, +1)` — the line, and whether the file
-grew. It is classified `reversible`, like the write it replaces, and the
+grew. **Several at once.** `{"path": …, "edits": [{"old": …, "new": …}, …]}` makes
+every replacement in one call, applied in order so one swap can rewrite a line
+a later swap then matches — a change touching five places in a file was five
+round trips, each with its own chance for the model to lose track of what it
+had already done. It is **all-or-nothing**: every swap is applied to a buffer
+and only a complete set reaches the disk, because a partial edit is the worst
+outcome available — half a rename does not compile, and the model sent to fix
+it is reading a file that matches neither what it read nor what it meant to
+write. A failure names which one (`edit 2 of 3: … — nothing was written`), and
+a single edit still reports exactly as it always did, since "edit 1 of 1" is
+noise.
+
+It is classified `reversible`, like the write it replaces, and the
 automatic checkpoint taken before every task can put it back.
 
 `sys:search {"q": …}` is the step BEFORE a fetch: a fetch can only open a URL

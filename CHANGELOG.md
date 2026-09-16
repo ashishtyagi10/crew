@@ -8,6 +8,33 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.54
+
+**`sys:edit` takes several edits at once.** A change that touched five places
+in one file was five tool calls — five round trips, and five chances for the
+model to lose track of which ones it had already made. It can pass them
+together now:
+
+    sys:edit {"path": "src/nav.rs", "edits": [
+      {"old": "fn glance(", "new": "fn glance_base("},
+      {"old": "glance(&self)", "new": "glance_base(&self)"}
+    ]}
+
+Applied in order, each against the result of the last, which is what lets one
+swap rewrite a line a later swap then matches.
+
+**All-or-nothing**, because a partial edit is the worst outcome available: half
+a rename does not compile, and the model sent to fix it is reading a file that
+matches neither what it read nor what it meant to write. Every swap is applied
+to a buffer and only a complete set reaches the disk, so a batch that fails
+leaves the file byte-identical — and says which edit failed and that nothing
+was written.
+
+The single form is untouched and goes through the same call, so the batch is
+not a second code path that can drift from the contract the single edit
+promises. A lone edit still answers `edited main.rs at line 2 (1 line → 2, +1)`
+with no numbering, since "edit 1 of 1" is noise.
+
 ## 0.22.53
 
 **Command diet, round five: the viewer owns its own contents.** Three commands
