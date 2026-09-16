@@ -599,6 +599,16 @@ The docked command bar supports:
   surface drew before it had a list. Esc cancels the run AND drops everything
   queued behind it (each was written on the premise that the interrupted work
   was going fine), and says how many it dropped.
+  **Backspace on an empty composer takes the last one back** — into the
+  composer, where it was typed, so it can be edited and sent again or simply
+  cleared. Seeing a message you no longer want is worse than not seeing it if
+  the only way to remove it is Esc, which cancels the run as well and takes
+  every other message with it; this is the missing half. The LAST one, for the
+  same reason backspace deletes the last character, and only on an empty
+  composer, so it can never eat something half-typed. The indicator says so
+  while the key would do something (`· backspace takes one back`) and stops
+  saying it the moment you type, because a hint you cannot act on is exactly
+  the noise this surface is trying not to be.
 
 - **Smart bare-input routing** — plain text (not a slash command, `cd`, or a
   prefix below) routes by context: if the focused pane is a **visible, idle

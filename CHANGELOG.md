@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.52
+
+**And you can take one back.** 0.22.51 made the queue visible, which made a
+gap visible with it: seeing a message you no longer want is worse than not
+seeing it, if the only way to remove it is Esc — and Esc cancels the RUN as
+well and drops every other message with it.
+
+**Backspace on an empty composer takes the last queued message back**, into
+the composer, where it was typed. So it can be edited and sent again, or
+cleared, and nothing is destroyed by a keystroke. The last one, for the same
+reason backspace deletes the last character; only on an empty composer, so it
+can never eat something half-typed.
+
+No new key and no new command: it is the gesture people already have for
+"unsend that", and it joins the rule this composer already had — Enter on an
+empty composer answers a pending plan, because a key is allowed to mean
+something more when there is nothing typed.
+
+The indicator teaches it, and only while the key would do something:
+`⧗ 3 messages queued — sends when the crew is idle · backspace takes one back`,
+with the hint gone the moment you type, because a hint you cannot act on is
+the noise this surface is trying not to be.
+
 ## 0.22.51
 
 **The queue says what is waiting, not just how much.** Type while the crew is

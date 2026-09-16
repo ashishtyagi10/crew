@@ -226,6 +226,8 @@ impl ChatPane {
                 }
                 (None, true, false)
             }
+            // On an empty composer it takes the last queued message back.
+            ChatInput::Backspace if crate::chatqueue::take_back(self) => return None,
             ChatInput::Backspace => (None, false, true),
         };
         if let Some(text) = input_reduce(&mut self.input, ch, enter, backspace) {
