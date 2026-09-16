@@ -166,3 +166,29 @@ fn a_bad_todo_arg_teaches_the_usage_instead_of_spawning() {
     let s = app.status.clone().expect("a status was set").0;
     assert!(s.contains("usage: /todo"), "{s}");
 }
+
+/// The folded viewer subjects must REACH their old handlers. The palette
+/// rows are gone, so nothing else would notice if `/view diff` quietly
+/// started treating "diff" as a filename.
+#[test]
+fn the_viewer_subjects_route_and_a_real_path_still_wins() {
+    for subject in ["diff", "blame", "log"] {
+        let mut app = CrewApp::default();
+        app.run_slash_command(&format!("view {subject}"));
+        let status = app.status.clone().map(|s| s.0).unwrap_or_default();
+        assert!(
+            !status.contains("no such file") && !status.contains("unknown command"),
+            "/view {subject} was treated as a path: {status}"
+        );
+        // And the old spelling still answers, identically.
+        let mut old = CrewApp::default();
+        old.run_slash_command(subject);
+        assert_eq!(old.status.map(|s| s.0), app.status.map(|s| s.0));
+    }
+    // A file really called `diff` is reachable — the subjects match the bare
+    // word only, so a path keeps winning the moment it looks like one.
+    let mut app = CrewApp::default();
+    app.run_slash_command("view ./diff");
+    let s = app.status.clone().map(|st| st.0).unwrap_or_default();
+    assert!(!s.is_empty(), "a missing path should say something");
+}

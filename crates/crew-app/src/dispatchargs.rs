@@ -61,7 +61,15 @@ impl CrewApp {
             // `/out` all want.
             self.queue_doc_window(f.trim());
         } else if let Some(f) = other.strip_prefix("view ") {
-            self.open_view(f.trim());
+            // The three subjects are the viewer's own contents rather than a
+            // path, so they are matched before anything is treated as one —
+            // a file really called `diff` is still `/view ./diff`.
+            match f.trim() {
+                "diff" => self.diff_in_pane(),
+                "blame" => self.blame_command(),
+                "log" => self.open_log(),
+                path => self.open_view(path),
+            }
         } else if let Some(f) = other.strip_prefix("doc ") {
             // The window is opened on the next tick: only a winit
             // callback holding the ACTIVE event loop can make one,

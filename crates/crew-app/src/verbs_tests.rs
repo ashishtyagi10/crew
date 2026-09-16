@@ -103,3 +103,20 @@ fn the_document_window_has_one_name_and_answers_to_two() {
         "/md still opens a document"
     );
 }
+
+#[test]
+fn the_viewer_owns_its_own_contents() {
+    // `/diff`, `/blame` and `/log` each described themselves as opening the
+    // file viewer, which is `/view`'s whole job — three rows for one command.
+    let rows = menu_items("/view ");
+    let labels: Vec<&str> = rows.iter().map(|r| r.label.as_str()).collect();
+    assert_eq!(labels, vec!["diff", "blame", "log"]);
+    assert!(rows[0].submit, "a subject IS the answer");
+    assert_eq!(rows[0].fill, "/view diff");
+    let names: Vec<&str> = crate::cmddefs::commands().map(|c| c.name).collect();
+    assert!(names.contains(&"/view"), "the verb itself must stay a row");
+    for gone in ["/diff", "/blame", "/log"] {
+        assert!(!names.contains(&gone), "{gone} is still a palette row");
+        assert!(crate::cmddefs::answered(gone), "{gone} stopped answering");
+    }
+}

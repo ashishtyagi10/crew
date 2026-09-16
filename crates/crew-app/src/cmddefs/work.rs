@@ -14,10 +14,6 @@ pub(crate) const WORK: &[Cmd] = &[
         desc: "Open agent smith — the multi-agent relay pane (alias: /crew)",
     },
     Cmd {
-        name: "/diff",
-        desc: "Review the working tree's changes in the file viewer",
-    },
-    Cmd {
         name: "/find",
         desc: "Search scrollback, highlighting matches (/find <text>, /find all <text>)",
     },
@@ -72,10 +68,6 @@ pub(crate) const WORK: &[Cmd] = &[
     Cmd {
         name: "/about",
         desc: "Show the Crew version",
-    },
-    Cmd {
-        name: "/log",
-        desc: "Open this session's full activity log in the viewer",
     },
     Cmd {
         name: "/copy",

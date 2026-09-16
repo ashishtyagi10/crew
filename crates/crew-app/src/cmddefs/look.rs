@@ -88,12 +88,8 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "Run a file of jobs (one per line) as a parallel swarm (/batch <file>)",
     },
     Cmd {
-        name: "/blame",
-        desc: "Who last touched each line of the file in the viewer (again turns it off)",
-    },
-    Cmd {
         name: "/view",
-        desc: "view any file — code, markdown, data, csv, diffs (/view <path>)",
+        desc: "The file viewer: /view <path>, or /view diff | blame | log",
     },
     Cmd {
         name: "/doc",
