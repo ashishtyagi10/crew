@@ -57,6 +57,10 @@ pub fn sys_tier(tool: &str) -> Option<Tier> {
         // covers this too, since it goes out through the same door.
         "search" => Tier::Read,
         "write_file" => Tier::Reversible,
+        // Same tier as the whole-file write it replaces: it changes a file
+        // that was already there, and the checkpoint that can undo one can
+        // undo the other.
+        "edit" => Tier::Reversible,
         "run" => Tier::Irreversible,
         _ => return None,
     })

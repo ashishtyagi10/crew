@@ -72,6 +72,7 @@ pub(crate) mod specialists;
 mod standup;
 mod stdio;
 mod swarm;
+mod sysedit;
 mod sysfetch;
 mod sysfetchtext;
 mod sysread;
