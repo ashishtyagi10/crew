@@ -806,8 +806,21 @@ The docked command bar supports:
   sitting one pixel out from the stem, which is a soft edge with nothing bought
   for it. A config still carrying either old default is moved once on upgrade,
   and only when both halves are untouched; a strength you chose is left alone.
-  The ladder is unchanged for anyone who wants the fuller Terminal.app look
-  back — `medium` is still the strength that look was calibrated at. The darkening *accumulates* coverage rather than
+  **Since 0.22.57 the ladder makes ink DENSER rather than wider.** Reported:
+  "even with heavy smoothing font should be darker, or brighter on dark." It
+  was not — the spill landed on empty pixels as well as inked ones, so every
+  level painted a faint halo a pixel out from every stroke, and while the
+  total ink rose the ink *per pixel* fell: 0.538 at `off`, 0.364 at `light`,
+  and only 0.427 at `heavy`, still short of what `off` already had. More ink
+  spread thinner is not darker; it is greyer, which is what the report was
+  describing. The spill no longer reaches a pixel the outline never touched —
+  the stroke is filled, not spread — and a pixel already holding ink deepens
+  with the strength, so the knob has somewhere to go once the rim is full.
+  The same sweep now reads 0.538 → 0.590 → 0.632 → **0.702**, on exactly the
+  outline's own pixels at every level, so *nothing inks a pixel the outline
+  did not reach* now holds the whole way up the ladder instead of only at
+  `off`. Both polarities come right from the one change: coverage is how much
+  ink a pixel holds, and ink is dark on a bright page and light on a dark one. The darkening *accumulates* coverage rather than
   taking the brighter of a pixel and its neighbour's spill, so the letters
   built from curves take the same widening as the ones built from stems — a
   saturating dilation cannot darken a pixel whose own coverage already beats

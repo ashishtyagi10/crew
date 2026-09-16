@@ -8,6 +8,47 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.57
+
+**Heavy smoothing is darker ink now, not wider ink.** Reported: "even with
+heavy smoothing font should be darker, or brighter on dark." It was not, and
+measuring it said exactly why.
+
+The stem-darkening spill landed on EMPTY pixels as well as inked ones, so every
+level of the ladder painted a faint halo a pixel out from every stroke. Over
+eight glyphs at body size:
+
+| smooth | light delivered | inked px | ink per pixel |
+|--------|-----------------|----------|---------------|
+| off    | 100%            | 373      | **0.538**     |
+| light  | 112%            | 620      | 0.364         |
+| medium | 122%            | 633      | 0.386         |
+| heavy  | 137%            | 645      | 0.427         |
+
+More total ink at every step — and *less* of it per pixel than `off` had, at
+every step. That is not darker. It is greyer, spread wider, which is precisely
+what the report was describing: the knob made text fatter and softer, and never
+made it more present.
+
+So the spill no longer reaches a pixel the outline never touched — the stroke
+is FILLED rather than spread — and a pixel that already holds ink now also
+deepens in proportion to the strength, so the knob has somewhere to go once the
+rim is full. The same sweep now reads 0.538 → 0.590 → 0.632 → **0.702**, with
+the footprint staying exactly the outline's 373 pixels at every level.
+
+One invariant got stronger on the way: *nothing may ink a pixel the outline did
+not reach* held only at `off` before, since every other level inked about 1.7×
+the outline's pixels. It holds the whole way up the ladder now.
+
+This is the same finding that turned the darkening off by default in 0.19.28 —
+those extra pixels were "a soft edge with nothing bought for it". That release
+avoided them; this one stops making them, which gives the ladder something to
+be for again.
+
+Both polarities come right from the one change, and they have to: coverage is
+how much ink a pixel holds, and ink is dark on a bright page and light on a
+dark one. Denser ink is darker one way up and brighter the other.
+
 ## 0.22.56
 
 **The settings form answers the mouse.** Reported: "we should also be able to
