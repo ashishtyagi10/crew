@@ -146,3 +146,21 @@ fn the_theme_families_do_not_all_lead_with_the_same_favourite() {
         leads.len()
     );
 }
+
+#[test]
+fn operator_mono_is_weighted_but_never_guessed_for_you() {
+    // Added by request (2026-09-16). It is a face you BUY, so on most
+    // machines it is not installed — which is fine in the rotation, a thing
+    // you switch on, and wrong in a preference list, which is crew choosing
+    // with nobody asking.
+    assert!(is_favorite("Operator Mono"));
+    assert!(is_favorite("OperatorMono Nerd Font"), "any spelling counts");
+    for id in crate::ALL_THEMES {
+        assert!(
+            !crate::fonts::font_prefs(id)
+                .iter()
+                .any(|f| typeface_key(f) == typeface_key("Operator Mono")),
+            "{id:?} would guess Operator Mono, which most machines lack"
+        );
+    }
+}
