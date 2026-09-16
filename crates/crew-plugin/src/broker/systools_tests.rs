@@ -313,3 +313,34 @@ fn read_file_mid_codepoint_offset_still_reports_truncation() {
     );
     let _ = std::fs::remove_file(&p);
 }
+
+#[test]
+fn sys_edit_takes_one_pair_or_a_list_of_them() {
+    let dir = std::env::temp_dir().join(format!("crew-systools-edit-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("a.rs");
+    std::fs::write(&path, "let a = 1;\nlet b = 2;\n").unwrap();
+    let p = path.to_str().unwrap();
+
+    let args = format!(r#"{{"path": "{p}", "old": "let a = 1;", "new": "let a = 9;"}}"#);
+    assert!(call("edit", &args).unwrap().contains("at line 1"));
+
+    let args = format!(
+        r#"{{"path": "{p}", "edits": [{{"old": "let a = 9;", "new": "let a = 0;"}}, {{"old": "let b = 2;", "new": "let b = 3;"}}]}}"#
+    );
+    assert_eq!(call("edit", &args).unwrap(), "edited a.rs in 2 places");
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        "let a = 0;\nlet b = 3;\n"
+    );
+
+    // A malformed entry names which one, and writes nothing.
+    let args = format!(r#"{{"path": "{p}", "edits": [{{"old": "let a = 0;"}}]}}"#);
+    let err = call("edit", &args).unwrap_err();
+    assert!(err.contains("edits[0]") && err.contains("new"), "{err}");
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        "let a = 0;\nlet b = 3;\n"
+    );
+    std::fs::remove_dir_all(&dir).ok();
+}

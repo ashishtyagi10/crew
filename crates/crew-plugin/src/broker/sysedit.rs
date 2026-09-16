@@ -22,19 +22,63 @@
 //! a near-miss on indentation is a different next move from no match at all.
 use std::path::Path;
 
+/// One replacement to make.
+pub(crate) struct Swap<'a> {
+    pub old: &'a str,
+    pub new: &'a str,
+}
+
 /// Replace the one occurrence of `old` in `path` with `new`.
 pub(crate) fn edit(path: &str, old: &str, new: &str) -> Result<String, String> {
-    if old.is_empty() {
-        return Err("edit: `old` is empty \u{2014} to create a file use sys:write_file".into());
+    edit_all(path, &[Swap { old, new }])
+}
+
+/// Make every `swaps` replacement in `path`, or none of them.
+///
+/// WHY a batch at all: a change touching five places in one file was five tool
+/// calls, each with its own round trip and its own chance for the model to
+/// lose track of what it had already done. Claude Code grew `MultiEdit` for
+/// exactly this.
+///
+/// WHY all-or-nothing: a partial edit is the worst outcome available. Half a
+/// rename does not compile, and the model sent to fix it is working from a
+/// file matching neither what it read nor what it meant to write. So every
+/// swap is applied to a BUFFER and only a complete set reaches the disk.
+///
+/// Applied in order, each against the result of the last: that is what lets
+/// one swap rewrite a line a later swap then matches.
+pub(crate) fn edit_all(path: &str, swaps: &[Swap]) -> Result<String, String> {
+    if swaps.is_empty() {
+        return Err("edit: no edits \u{2014} pass {\"old\": …, \"new\": …}".into());
     }
-    if old == new {
-        return Err("edit: `old` and `new` are identical \u{2014} nothing to do".into());
+    for (i, s) in swaps.iter().enumerate() {
+        let why = if s.old.is_empty() {
+            "`old` is empty \u{2014} to create a file use sys:write_file"
+        } else if s.old == s.new {
+            "`old` and `new` are identical \u{2014} nothing to do"
+        } else {
+            continue;
+        };
+        return Err(format!("edit: {}", numbered(swaps.len(), i, why)));
     }
     let body =
         std::fs::read_to_string(path).map_err(|e| super::syspath::with_hint("edit", path, e))?;
-    let edited = replace(&body, old, new).map_err(|e| format!("edit {path}: {e}"))?;
+    let mut edited = body.clone();
+    for (i, s) in swaps.iter().enumerate() {
+        edited = replace(&edited, s.old, s.new)
+            .map_err(|e| format!("edit {path}: {}", numbered(swaps.len(), i, &e)))?;
+    }
     std::fs::write(path, &edited).map_err(|e| format!("edit {path}: {e}"))?;
-    Ok(report(path, &body, old, new))
+    Ok(report_all(path, &body, swaps))
+}
+
+/// A failure, saying WHICH edit failed and that the file is untouched — but
+/// only when there was more than one, since "edit 1 of 1" is noise.
+fn numbered(total: usize, i: usize, why: &str) -> String {
+    match total {
+        1 => why.to_string(),
+        n => format!("edit {} of {n}: {why} \u{2014} nothing was written", i + 1),
+    }
 }
 
 /// The file with its one occurrence of `old` replaced, or why it could not be.
@@ -73,6 +117,22 @@ fn miss(body: &str, old: &str) -> String {
 /// What changed, said in the units a reader checks: which line, and whether
 /// the file grew or shrank. A byte count alone never told anyone whether the
 /// right thing happened.
+fn report_all(path: &str, before: &str, swaps: &[Swap]) -> String {
+    let [one] = swaps else {
+        let lines: isize = swaps
+            .iter()
+            .map(|s| s.new.lines().count() as isize - s.old.lines().count() as isize)
+            .sum();
+        let delta = match lines {
+            0 => String::new(),
+            d if d > 0 => format!(", +{d} lines"),
+            d => format!(", {d} lines"),
+        };
+        return format!("edited {} in {} places{delta}", name(path), swaps.len());
+    };
+    report(path, before, one.old, one.new)
+}
+
 fn report(path: &str, before: &str, old: &str, new: &str) -> String {
     // Newlines BEFORE the match, not lines: a prefix ending in `\n` has
     // finished its last line, and the match starts on the one after it.
@@ -80,9 +140,7 @@ fn report(path: &str, before: &str, old: &str, new: &str) -> String {
         .matches('\n')
         .count()
         + 1;
-    let name = Path::new(path)
-        .file_name()
-        .map_or(path, |n| n.to_str().unwrap_or(path));
+    let name = name(path);
     let (was, now) = (old.lines().count(), new.lines().count());
     let delta = match now as isize - was as isize {
         0 => format!("{was} line{}", plural(was)),
@@ -90,6 +148,13 @@ fn report(path: &str, before: &str, old: &str, new: &str) -> String {
         d => format!("{was} line{} \u{2192} {now}, {d}", plural(was)),
     };
     format!("edited {name} at line {at} ({delta})")
+}
+
+/// The file's own name: the path is the caller's, the name is the reader's.
+fn name(path: &str) -> &str {
+    Path::new(path)
+        .file_name()
+        .map_or(path, |n| n.to_str().unwrap_or(path))
 }
 
 fn plural(n: usize) -> &'static str {

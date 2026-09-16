@@ -115,7 +115,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
         ),
         mk(
             "edit",
-            "change PART of a file, leaving the rest alone: {\"path\": …, \"old\": \"the exact text to replace\", \"new\": …} \u{2014} prefer this to write_file on a file that already exists",
+            "change PART of a file, leaving the rest alone: {\"path\": …, \"old\": \"the exact text to replace\", \"new\": …}, or several at once with {\"path\": …, \"edits\": [{\"old\": …, \"new\": …}, …]} \u{2014} prefer this to write_file on a file that already exists",
             serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -125,8 +125,20 @@ pub(crate) fn tools() -> Vec<McpTool> {
                         "description": "the exact text to replace, copied from the file including its indentation; it must appear EXACTLY ONCE, so include surrounding lines if it would not",
                     },
                     "new": {"type": "string", "description": "what to put in its place"},
+                    "edits": {
+                        "type": "array",
+                        "description": "several replacements in one call, applied in order; if ANY of them does not match exactly once the file is left untouched",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "old": {"type": "string"},
+                                "new": {"type": "string"},
+                            },
+                            "required": ["old", "new"],
+                        },
+                    },
                 },
-                "required": ["path", "old", "new"],
+                "required": ["path"],
             }),
         ),
         mk(
@@ -197,11 +209,7 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "run" => super::sysrun::run(str_arg(&v, "cmd")?),
         "read_file" => super::sysread::read_file(str_arg(&v, "path")?, super::sysread::offset_arg(&v)?),
         "write_file" => write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
-        "edit" => super::sysedit::edit(
-            str_arg(&v, "path")?,
-            str_arg(&v, "old")?,
-            str_arg(&v, "new")?,
-        ),
+        "edit" => edit(&v),
         "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),
         "fetch" => super::sysfetch::fetch(str_arg(&v, "url")?),
         "search" => super::syssearch::search(str_arg(&v, "q")?),
@@ -209,6 +217,32 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
             "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, fetch, search, find_tools"
         )),
     }
+}
+
+/// `sys:edit`, in either shape: one `old`/`new` pair, or an `edits` array of
+/// them. Both end in the same all-or-nothing call, so the batch is not a
+/// second code path that can drift from the single edit's contract.
+fn edit(v: &serde_json::Value) -> Result<String, String> {
+    let path = str_arg(v, "path")?;
+    let Some(edits) = v.get("edits").and_then(|e| e.as_array()) else {
+        return super::sysedit::edit(path, str_arg(v, "old")?, str_arg(v, "new")?);
+    };
+    let swaps: Result<Vec<_>, String> = edits
+        .iter()
+        .enumerate()
+        .map(|(i, e)| {
+            let at = |k: &str| {
+                e.get(k)
+                    .and_then(|x| x.as_str())
+                    .ok_or_else(|| format!("edits[{i}] has no string \u{201c}{k}\u{201d}"))
+            };
+            Ok(super::sysedit::Swap {
+                old: at("old")?,
+                new: at("new")?,
+            })
+        })
+        .collect();
+    super::sysedit::edit_all(path, &swaps?)
 }
 
 /// A required string argument, with an agent-readable error.
