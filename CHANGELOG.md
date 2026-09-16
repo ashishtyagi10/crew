@@ -8,6 +8,40 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.47
+
+**Crew can change part of a file.** Until now the only way an agent could edit
+anything was `sys:write_file`, which takes THE WHOLE FILE and overwrites it —
+so fixing one line of a 200-line source file meant reproducing 199 lines it had
+no opinion about. That is slow, it is expensive, and it is the single commonest
+way a model silently deletes code, because a line it forgets to re-emit is
+simply gone. Claude Code's `Edit`, Codex's `apply_patch` and Cline's
+`replace_in_file` all exist for that one reason, and now so does `sys:edit`.
+
+`sys:edit {"path": …, "old": …, "new": …}` replaces an exact, unique fragment.
+Both halves of that are load-bearing. **Exact**, because a matcher that
+forgives whitespace is a matcher that sometimes edits a line you did not mean;
+the model can always read the file first, but it cannot always tell which of
+two near-misses it hit. **Unique**, because `old` appearing twice means the
+edit has no single answer — editing the first is a coin flip, and a coin flip
+that succeeds silently is the worst of the three available outcomes.
+
+So a miss is never a write, and the errors go to some trouble to say WHY,
+because the next move depends on it: text that is present with different
+indentation ("copy the indentation exactly") is a different problem from an
+`old` whose first line matches and whose rest does not ("the rest does not
+match what follows it"), which is different again from text that simply is not
+there. On success it answers in the units a reader checks —
+`edited main.rs at line 2 (1 line → 2, +1)` — rather than a byte count, which
+never told anyone whether the right thing happened.
+
+It is classified `reversible`, like the write it replaces, so
+`CREW_SYS_MODE=readonly` still blocks it and the checkpoint taken
+automatically before every task can still put it back. `sys:write_file` now
+says in its own description to prefer `sys:edit` on a file that already
+exists, since that is where the model is looking at the moment it is about to
+overwrite one.
+
 ## 0.22.46
 
 **Crew can look something up.** `sys:fetch` shipped in 0.22.28 and could only

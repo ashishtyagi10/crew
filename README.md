@@ -534,7 +534,9 @@ transcript and jumps to each match.
 
 Agents can also touch the workspace through built-in **sys tools** — bounded
 `sys:run` (non-interactive shell, 30s/64KB caps), `sys:read_file` (chunked
-64KB reads), `sys:write_file`, `sys:list_dir`, `sys:fetch` (an http(s)
+64KB reads), `sys:write_file`, `sys:edit` (replace an exact, unique fragment
+— part of a file without rewriting the whole of it), `sys:list_dir`,
+`sys:fetch` (an http(s)
 page as readable text — markup and scripts stripped, 24 KB cap, private and
 link-local addresses refused), and `sys:search` (a keyless web search: ranked
 titles, real URLs and snippets to fetch and cite) — callable mid-relay the

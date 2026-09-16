@@ -103,7 +103,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
         ),
         mk(
             "write_file",
-            "create/overwrite a text file: {\"path\": …, \"content\": …}",
+            "create a file, or replace ALL of one: {\"path\": …, \"content\": …} \u{2014} to change part of a file that already exists, use sys:edit instead",
             serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -111,6 +111,22 @@ pub(crate) fn tools() -> Vec<McpTool> {
                     "content": {"type": "string", "description": "the WHOLE file; it is overwritten, not appended"},
                 },
                 "required": ["path", "content"],
+            }),
+        ),
+        mk(
+            "edit",
+            "change PART of a file, leaving the rest alone: {\"path\": …, \"old\": \"the exact text to replace\", \"new\": …} \u{2014} prefer this to write_file on a file that already exists",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "old": {
+                        "type": "string",
+                        "description": "the exact text to replace, copied from the file including its indentation; it must appear EXACTLY ONCE, so include surrounding lines if it would not",
+                    },
+                    "new": {"type": "string", "description": "what to put in its place"},
+                },
+                "required": ["path", "old", "new"],
             }),
         ),
         mk(
@@ -181,11 +197,16 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "run" => super::sysrun::run(str_arg(&v, "cmd")?),
         "read_file" => super::sysread::read_file(str_arg(&v, "path")?, super::sysread::offset_arg(&v)?),
         "write_file" => write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
+        "edit" => super::sysedit::edit(
+            str_arg(&v, "path")?,
+            str_arg(&v, "old")?,
+            str_arg(&v, "new")?,
+        ),
         "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),
         "fetch" => super::sysfetch::fetch(str_arg(&v, "url")?),
         "search" => super::syssearch::search(str_arg(&v, "q")?),
         other => Err(format!(
-            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, list_dir, fetch, search, find_tools"
+            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, fetch, search, find_tools"
         )),
     }
 }

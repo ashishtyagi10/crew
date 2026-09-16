@@ -2472,7 +2472,8 @@ non-interactive shell command via `/bin/sh -c`, 120s deadline —
 its whole process group reaped on timeout so backgrounded children can't
 linger), **`sys:read_file`** (UTF-8, 64 KB per call; a truncation note carries
 the byte `offset` to continue with, so agents read big files in chunks),
-**`sys:write_file`** (create/overwrite), **`sys:list_dir`** (≤500 entries,
+**`sys:write_file`** (create, or replace all of one), **`sys:edit`** (replace
+part of one — below), **`sys:list_dir`** (≤500 entries,
 sizes shown), and the two that reach off this machine — **`sys:fetch`** and
 **`sys:search`**.
 
@@ -2486,6 +2487,27 @@ nothing out there — with one guard that is not about size: a URL naming
 cloud metadata endpoint) is REFUSED. The broker sits inside your network,
 among things that answer anyone who can talk to them, and the agent asking is
 usually not the attacker — the page that told it to ask might be.
+
+`sys:edit {"path": …, "old": …, "new": …}` changes PART of a file. Before it,
+the only way to change a file was `sys:write_file`, which takes the whole
+thing: to fix one line of a 200-line source file the model had to reproduce
+199 lines it had no opinion about — slow, expensive, and the commonest way a
+model silently deletes code, since a line it forgets to re-emit is simply
+gone. Claude Code's `Edit`, Codex's `apply_patch` and Cline's
+`replace_in_file` all exist for that reason.
+
+The contract is an **exact, unique** match, and both halves are deliberate.
+Exact, because a matcher that forgives whitespace is one that sometimes edits
+a line you did not mean — the model can always read the file first, but it
+cannot always tell which of two near-misses it hit. Unique, because `old`
+appearing twice means the edit has no single answer, and a guess that
+succeeds silently is worse than a failure that says what to do instead. So a
+miss is never a write, and the errors say WHY the match failed: text present
+with different indentation reads differently from text that is not there at
+all, because the model's next move differs. On success it answers
+`edited main.rs at line 2 (1 line → 2, +1)` — the line, and whether the file
+grew. It is classified `reversible`, like the write it replaces, and the
+automatic checkpoint taken before every task can put it back.
 
 `sys:search {"q": …}` is the step BEFORE a fetch: a fetch can only open a URL
 somebody already knew, and "what is the current version of X" needs finding
@@ -2501,7 +2523,8 @@ goes out through `sys:fetch`'s door, so the private-address refusal, the
 redirect limit, the 20-second deadline and the size caps all hold here too,
 and it is classified `read` for the same reason.
 
-`CREW_SYS_MODE=readonly` blocks the mutating pair (`run`, `write_file`) and
+`CREW_SYS_MODE=readonly` blocks the mutating three (`run`, `write_file`,
+`edit`) and
 leaves `fetch` and `search` available, `CREW_SYS_TOOLS=0` turns the surface off entirely,
 and `/doctor` shows the active mode. An approximate per-thread **token budget**
 (`CREW_BROKER_TOKEN_BUDGET`, default unlimited) terminates a thread that blows
@@ -2712,7 +2735,7 @@ approximate token spend; `CREW_BROKER_TIMEOUT_MS` (default 180000) bounds each
 agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request;
 `CREW_MAX_TASKS` (default 4) caps concurrent background tasks;
 `CREW_SYS_TOOLS=0` / `CREW_SYS_MODE=readonly` disable or sandbox the built-in
-sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:list_dir`,
+sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:edit`, `sys:list_dir`,
 `sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
 and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
 `CREW_HTTP_TIMEOUT_MS` (default 120000) bounds each HTTP attempt to a provider,
