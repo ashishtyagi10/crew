@@ -8,6 +8,41 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.56
+
+**The settings form answers the mouse.** Reported: "we should also be able to
+use mouse in the settings pane." It was keyboard-only — and every control in it
+*looks* like something you press: bordered boxes, `[x]` checkboxes, `‹ value ›`
+pickers with a chevron at each end, and two buttons drawn as `[ Save ⌘S ]` and
+`[ Cancel esc ]`. A control that looks like a button and ignores a click is
+worse than one that looks like text.
+
+Now a click acts where it lands:
+
+- a **box** focuses that field;
+- a **checkbox** flips — a one-row `[x] Label` exists to be pressed, and a
+  click that only focused it would visibly do nothing;
+- a picker's **chevrons** step its value, `‹` back and `›` forward, while a
+  click between them only focuses: the value is not a button, and pressing the
+  middle of a picker to read it must not change it;
+- the **font family** box opens its list, and a row in the list picks that
+  font;
+- **Save** and **Cancel** do what they say.
+
+Focus always moves first, because every control commits through the focused
+field — pressing one without focusing it would have written the previous
+field's buffer into the draft.
+
+The hit test reads its geometry back out of `form::layout`, the same call the
+renderer draws from, including the scroll offset it blits with. Nothing
+re-derives where anything is: a hit test that computes its own layout is a
+second layout, and second layouts drift — which is exactly what 0.22.55 was
+about.
+
+**And the wheel stops where the form stops.** It moves focus, and its
+end-stop was still comparing against the declaration list's ends, which since
+0.22.55 are not the fields the form begins and ends with.
+
 ## 0.22.55
 
 **Tab walks the settings form the way it is drawn.** Reported: "navigation on
