@@ -457,6 +457,7 @@ mod spark;
 mod spawn;
 mod spawndata;
 mod spawnpanes;
+mod spawnswarm;
 mod spotlight;
 mod spring;
 pub mod stats;
