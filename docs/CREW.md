@@ -726,6 +726,14 @@ The docked command bar supports:
   two mirror the `Cmd+Z` / `Cmd+G` chords, for when the chord slips your mind.
   `/broadcast` has no chord on purpose: it changes where your keystrokes go,
   and it used to sit on Cmd+S — the "save" reflex — which armed it by accident.
+  **While it is on, it says so for as long as it is on**: every terminal pane
+  it reaches wears the broadcast colour on its whole frame (the focus brackets
+  still mark which pane you are in), and the input bar's legend reads
+  `» every terminal · ~/code/crew`, taking that slot ahead of focus mode's
+  tag because a mode that redirects keystrokes outranks one that only hides
+  panes. It used to say it once, in a toast, and then stand there looking like
+  any other prompt with one glyph changed — which is how "I typed in one pane
+  and it showed up in another" gets reported as a bug.
 - **`/font <n>`** — sets the font size to an exact value (clamped 12–32), unlike
   the `Cmd+=`/`Cmd+-` chords that step by one; no argument reports the current size
   (and rotation state, if on). **`/font random`** toggles a 10-minute rotation

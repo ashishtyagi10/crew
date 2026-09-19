@@ -47,7 +47,7 @@ impl InputBar {
 
         // The card frame with the cwd riding the top border as its legend
         // (and the focus-mode tag in front of it) — see `inputlegend`.
-        let legend = crate::inputlegend::top(&self.cwd, cols, reserved);
+        let legend = crate::inputlegend::top(&self.cwd, cols, reserved, self.broadcast);
         let border = if self.focused {
             crate::panecardglow::focused_stroke(crew_theme::theme())
         } else {

@@ -72,7 +72,7 @@ fn a_narrow_bar_keeps_a_readable_tag() {
 #[test]
 fn the_top_legend_keeps_the_current_directory() {
     let deep = PathBuf::from("/one/two/three/four/five/six/seven/eight/settingspane");
-    let legend = top(&deep, 40, 0);
+    let legend = top(&deep, 40, 0, false);
     assert!(
         legend.ends_with("settingspane"),
         "the tail survived: {legend:?}"
@@ -143,8 +143,8 @@ fn the_path_makes_room_for_the_tag() {
     let cols = 44u16;
     let (tag, _) = history_tag(&[String::from("x")], "", Some(0), cols).unwrap();
     let reserved = crate::chatwidth::str_w(&tag) + 1;
-    let with = top(&deep, cols, reserved);
-    let without = top(&deep, cols, 0);
+    let with = top(&deep, cols, reserved, false);
+    let without = top(&deep, cols, 0, false);
     assert!(
         crate::chatwidth::str_w(&with) < crate::chatwidth::str_w(&without),
         "the legend did not give way: {with:?}"
