@@ -16,7 +16,7 @@ fn fill_color_thresholds() {
     let drawn = crate::metertrack::as_drawn(track, page);
     let r = crew_theme::contrast_ratio(drawn, page);
     assert!(
-        r >= crate::metertrack::FLOOR - 0.01,
+        r >= crate::metertrack::floor() - 0.01,
         "a ghost track: {r:.2}"
     );
     assert!(

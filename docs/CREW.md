@@ -948,7 +948,18 @@ longer aim at.
   the background the ink sits on and has only 4–16% headroom over it. Both
   drop to a third of their strength rather than to zero — the spotlight is the
   cue that says which pane has focus, and losing that is itself an
-  accessibility loss. Live and persisted (the same `contrast` key as
+  accessibility loss.
+
+  And it reaches **the two quiet things it used to miss**: a `@project` tag's
+  colour, which was held to a fixed 3.0 and is now on the mark floor like
+  every other mark, and a **meter's empty track**, which is lifted to that
+  floor *and drawn solid* (its 55% alpha is its own ceiling — past a point no
+  colour can clear a raised floor through it, and the mode that says "I cannot
+  see faint things" is exactly the mode where a groove stops being faint).
+  The code-ink ladder (`chatink`) is deliberately left alone: its floors are a
+  ladder of *relationships* between syntax classes, cached per theme, and
+  moving one rung moves the rest — that is its own iteration, not a footnote
+  to this one. Live and persisted (the same `contrast` key as
   **Settings → APPEARANCE → Contrast**); no argument reports the setting and
   the band it resolved to.
 
