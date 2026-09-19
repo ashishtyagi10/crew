@@ -12,8 +12,14 @@ use crate::{contrast_ratio, Theme};
 const CHROMATIC: [usize; 12] = [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14];
 
 /// Pool entries are lifted (never dropped) to this WCAG floor against the
-/// page — the crew-term fg/bg answer floor, reused shape and number.
-const FLOOR: f32 = 3.0;
+/// page — the crew-term fg/bg answer floor, reused shape and number, and
+/// RAISED with the rest of them when the OS asks for more contrast (a tag is
+/// a mark you have to see; see [`crate::contrast::mark_floor`]). It was a
+/// fixed 3.0, so "increase contrast" reached the text and the marks and
+/// stopped at the one colour a person picks projects out by.
+fn floor() -> f32 {
+    crate::contrast::mark_floor()
+}
 
 /// SplitMix-style fold of the lowercased name (the charrain hash shape —
 /// deterministic stand-in for RNG; `DefaultHasher` is seed-random on some
@@ -93,7 +99,7 @@ fn tube_rung(slot: usize, t: &Theme) -> (u8, u8, u8) {
         t.page_bg,
         peak.h,
         peak.c,
-        FLOOR,
+        floor(),
         crate::oklch::Toward::for_page(t.page_bg),
     );
     let lo = crate::oklch::from_srgb(dim).l;
@@ -123,7 +129,7 @@ fn lift(c: (u8, u8, u8), t: &Theme) -> (u8, u8, u8) {
             mix(c.1, t.ink.1, k),
             mix(c.2, t.ink.2, k),
         );
-        if contrast_ratio(cand, t.page_bg) >= FLOOR {
+        if contrast_ratio(cand, t.page_bg) >= floor() {
             return cand;
         }
     }

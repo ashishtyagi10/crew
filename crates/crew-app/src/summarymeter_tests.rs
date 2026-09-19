@@ -1,5 +1,5 @@
 use super::*;
-use crate::metertrack::{as_drawn, FLOOR as TROUGH_FLOOR};
+use crate::metertrack::{as_drawn, floor as trough_floor};
 
 /// The trough is a groove, not a decoration: it says how long the meter is,
 /// which is what makes a fill a fraction of something. A fixed fade toward
@@ -16,7 +16,7 @@ fn the_trough_reads_on_every_page() {
         crate::palette::set_accent(crew_theme::theme().accent_default);
         let page = crew_theme::theme().page_bg;
         let r = crew_theme::contrast_ratio(as_drawn(meter_track(), page), page);
-        if r < TROUGH_FLOOR - 0.01 {
+        if r < trough_floor() - 0.01 {
             thin.push(format!("{id:?}: {r:.2}"));
         }
     }

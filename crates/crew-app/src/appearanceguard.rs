@@ -38,6 +38,9 @@ pub(crate) struct ThemeGuard {
     /// The motion level in force when the guard was taken — put back on drop
     /// so each guarded test starts from the same place.
     motion: crate::motion::MotionLevel,
+    /// The high-contrast flag in force when the guard was taken — the
+    /// third appearance global, and the one that moves every derived role.
+    contrast: bool,
 }
 
 thread_local! {
@@ -67,6 +70,7 @@ impl Drop for ThemeGuard {
         // the level the last one happened to leave. Restored BEFORE the flag
         // drops, because `set_level` asserts on it.
         crate::motion::set_level(self.motion);
+        crew_theme::contrast::set_high_contrast(self.contrast);
         HOLDS_APPEARANCE.with(|h| h.set(false));
     }
 }
@@ -77,16 +81,23 @@ pub(crate) fn theme_test_guard() -> ThemeGuard {
     let prev = crew_theme::current_id();
     let poles = crew_theme::poleshift::custom();
     let motion = crate::motion::level();
+    // The high-contrast flag is the third global `apply_config` writes in
+    // one call, and it moves every derived role in the theme — so it is
+    // saved, defaulted and restored with the other two rather than being a
+    // flag one test can leave switched on behind the rest.
+    let contrast = crew_theme::contrast::high_contrast();
     // The default. A test wanting another theme still sets one after taking the guard; this
     // only decides what a test that never mentions a theme gets, which used to be "whatever the
     // previous test left behind". The poles get the same treatment: the theme's own.
     crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
     crew_theme::poleshift::set_custom(None);
+    crew_theme::contrast::set_high_contrast(false);
     ThemeGuard {
         _lock: lock,
         prev,
         poles,
         motion,
+        contrast,
     }
 }
 

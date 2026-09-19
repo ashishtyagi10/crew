@@ -8,6 +8,37 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.72
+
+**"Increase contrast" reaches the two quiet things it used to miss.** Crew
+derives its readable roles against a floor that rises when the OS asks for
+more — text 4.5 → 7.0, marks 3.0 → 4.5 — and two colours were holding fixed
+numbers where that switch could not reach them:
+
+- **A `@project` tag.** The pool is lifted to 3.0 against the page, written as
+  a constant. A tag is the one colour a person picks a project out of a list
+  by; it is on `mark_floor()` now, so the switch moves it.
+- **A meter's empty track**, which v0.22.71 had just given a floor of its own
+  — and a fixed one, by the same reflex. It answers the switch too.
+
+The track needed one more thing: it could not *reach* the raised floor. A
+groove drawn at 55% alpha has a ceiling — past a point no colour choice
+clears, because the alpha is what is eating it — so in high contrast the
+track is **drawn solid**. The mode that says "I cannot see faint things" is
+exactly the mode where a track stops being faint.
+
+Found while writing the test for it, which is the point: the raised floor
+failed on twenty of twenty-four (theme, meter) pairs before the alpha moved.
+
+The code-ink ladder is deliberately not in this: `chatink`'s floors are a
+ladder of relationships between syntax classes, cached per theme, and moving
+one rung moves the others. That is its own iteration.
+
+Also: **`theme_test_guard` now owns the high-contrast flag** along with the
+theme, the poles and the motion level. It is the third global `apply_config`
+writes in one call, and the first test to flip it found the other three
+already had a keeper and it did not.
+
 ## 0.22.71
 
 **A meter's empty track survives being drawn.** The track behind a fill is

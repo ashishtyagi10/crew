@@ -30,6 +30,9 @@ fn exotic_names_map_in_range_without_panicking() {
 /// every tag, but never reshuffles which tag is which.
 #[test]
 fn a_tags_slot_is_the_same_on_every_theme() {
+    // The high-contrast flag moves every pool colour; one lock for all
+    // the cases that read one (see `contrast::test_lock`).
+    let _lock = crate::contrast::test_lock();
     for name in ["crew", "home", "work", "errands", "日本語"] {
         let slot = tag_slot(name);
         for id in ALL_THEMES {
@@ -58,6 +61,9 @@ fn pool(t: &Theme) -> Vec<(u8, u8, u8)> {
 /// different projects were the same colour.
 #[test]
 fn no_two_tags_render_the_same_colour() {
+    // The high-contrast flag moves every pool colour; one lock for all
+    // the cases that read one (see `contrast::test_lock`).
+    let _lock = crate::contrast::test_lock();
     const FLOOR_D: f32 = 0.035;
     for id in ALL_THEMES {
         let t = id.theme();
@@ -105,14 +111,18 @@ fn no_two_tags_render_the_same_colour() {
 /// the file).
 #[test]
 fn every_pool_entry_clears_the_contrast_floor_on_every_theme() {
+    // The high-contrast flag moves every pool colour; one lock for all
+    // the cases that read one (see `contrast::test_lock`).
+    let _lock = crate::contrast::test_lock();
     for id in ALL_THEMES {
         let t = id.theme();
         for slot in 0..CHROMATIC.len() {
             let c = slot_color(slot, t);
             let ratio = contrast_ratio(c, t.page_bg);
+            let want = floor();
             assert!(
-                ratio >= FLOOR - 0.02,
-                "{} slot {slot} is {c:?} at {ratio:.2} vs page {:?} (< {FLOOR})",
+                ratio >= want - 0.02,
+                "{} slot {slot} is {c:?} at {ratio:.2} vs page {:?} (< {want})",
                 id.as_str(),
                 t.page_bg
             );
@@ -123,7 +133,33 @@ fn every_pool_entry_clears_the_contrast_floor_on_every_theme() {
 /// Lifting must preserve an already-passing color untouched.
 #[test]
 fn lift_is_identity_when_the_color_already_passes() {
+    // The high-contrast flag moves every pool colour; one lock for all
+    // the cases that read one (see `contrast::test_lock`).
+    let _lock = crate::contrast::test_lock();
     let t = crate::PAPER_DARK;
     let ink = t.ink;
     assert_eq!(lift(ink, &t), ink);
+}
+
+/// …and when the OS asks for more contrast, the pool is lifted with
+/// everything else. A tag is the one colour a person picks a project out by,
+/// and it used to be the one floor "increase contrast" could not reach.
+#[test]
+fn the_pool_answers_the_high_contrast_switch() {
+    let _lock = crate::contrast::test_lock();
+    crate::contrast::set_high_contrast(true);
+    let raised = floor();
+    let mut thin: Vec<String> = Vec::new();
+    for id in ALL_THEMES {
+        let t = id.theme();
+        for slot in 0..CHROMATIC.len() {
+            let r = contrast_ratio(slot_color(slot, t), t.page_bg);
+            if r < raised - 0.02 {
+                thin.push(format!("{} slot {slot}: {r:.2}", id.as_str()));
+            }
+        }
+    }
+    crate::contrast::set_high_contrast(false);
+    assert!(raised > 3.0, "the switch did not raise the floor");
+    assert!(thin.is_empty(), "tags under the raised floor: {thin:?}");
 }

@@ -12,7 +12,7 @@ const HEADER: &str = "SYSTEM";
 /// CRT phosphor themes instead of a fixed grey.
 ///
 /// Lifted until it survives being DRAWN: a capsule lays its track down at
-/// `plot::meter::TRACK_ALPHA`, which took the border shade from a readable
+/// `plot::meter::track_alpha`, which took the border shade from a readable
 /// colour to a 1.4:1 ghost on every theme in the set (see
 /// [`crate::metertrack`]).
 pub(crate) fn track_color() -> (u8, u8, u8) {

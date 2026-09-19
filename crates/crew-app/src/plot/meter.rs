@@ -12,8 +12,18 @@ const HEIGHT: f32 = 0.30;
 /// How solidly the empty track is laid down. Public because it is half of
 /// what the track's colour ends up being: a caller choosing that colour
 /// against the page has to blend at this alpha to know what it will read as
-/// (see `summarymeter::meter_track`).
-pub const TRACK_ALPHA: f32 = 0.55;
+/// (see `crate::metertrack`).
+///
+/// **Solid when the OS asks for more contrast.** A groove at 55% alpha has a
+/// ceiling: past a point no colour choice can clear the raised mark floor,
+/// because the alpha is what is eating it. The mode that says "I cannot see
+/// faint things" is exactly the mode where a track stops being faint.
+pub fn track_alpha() -> f32 {
+    match crew_theme::contrast::high_contrast() {
+        true => 1.0,
+        false => 0.55,
+    }
+}
 
 /// Draw a meter filling `frac` of `(x, y, w)` — one text row tall, centred in
 /// it. `shade` gives the fill's colour along its length (`0.0..=1.0`), so a
@@ -38,7 +48,7 @@ pub fn capsule(
     }
     // The track: the full length, so the eye has something to read the fill
     // against even at 0%.
-    rounded(c, x, top, w, h, r, |_| track, TRACK_ALPHA);
+    rounded(c, x, top, w, h, r, |_| track, track_alpha());
 
     let frac = frac.clamp(0.0, 1.0);
     if frac <= 0.0 {
