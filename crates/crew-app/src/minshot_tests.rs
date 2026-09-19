@@ -19,9 +19,13 @@ fn thumb_shot(
     title: &str,
     marker: Option<(char, (u8, u8, u8))>,
     unread: usize,
+    preview: Option<&str>,
 ) -> Option<Vec<u8>> {
     shot_at(name, w, 74, 13.0, title, |cols, _rows, _| {
-        (crate::minstrip::strip_row(cols, marker, unread), Vec::new())
+        (
+            crate::minstrip::strip_row(cols, marker, unread, preview),
+            Vec::new(),
+        )
     })
 }
 
@@ -32,14 +36,15 @@ fn thumb_shot(
 fn min_shot_thumbnails() {
     let _g = crate::app::theme_test_guard();
     let t = crew_theme::theme();
-    for (name, w, title, marker, unread) in [
-        ("min-quiet", 240, "3 zsh", None, 0),
+    for (name, w, title, marker, unread, preview) in [
+        ("min-quiet", 240, "3 zsh", None, 0, Some("~/code/crew $")),
         (
             "min-active",
             240,
             "4 cargo watch",
             Some((crate::shapecues::dot(false), t.activity)),
             12,
+            Some("test result: FAILED. 1 failed"),
         ),
         (
             "min-attention",
@@ -47,6 +52,7 @@ fn min_shot_thumbnails() {
             "5 crew \u{b7} claude",
             Some(('\u{25c9}', t.bell)),
             999,
+            Some("Do you want to make this edit? (y/n)"),
         ),
         (
             "min-narrow",
@@ -54,9 +60,10 @@ fn min_shot_thumbnails() {
             "6 a-very-long-pane-title-nobody-can-fit",
             Some((crate::shapecues::dot(true), t.activity)),
             7,
+            Some("building crew-app v0.22.61"),
         ),
     ] {
-        let Some(px) = thumb_shot(name, w, title, marker, unread) else {
+        let Some(px) = thumb_shot(name, w, title, marker, unread, preview) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         };

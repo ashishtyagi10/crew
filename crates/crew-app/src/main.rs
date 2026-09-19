@@ -321,6 +321,7 @@ mod menuink;
 #[cfg(test)]
 #[path = "menushot_tests.rs"]
 mod menushot_tests;
+mod minpreview;
 #[cfg(test)]
 #[path = "minshot_tests.rs"]
 mod minshot_tests;

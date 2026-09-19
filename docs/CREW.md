@@ -230,12 +230,19 @@ nothing once the work finishes.
 **Capacity & visibility.** Crew displays up to **6 panes as full tiles** in the
 auto-tiling grid. Additional panes are demoted to a **minimized thumbnail strip**
 along the bottom of the content area, each showing the pane's **number** and
-title, an activity marker on the left, and — on the right — **how many lines
-arrived while it was down there**, ordered least-recently-active first. The
-strip is where a pane goes when you have not touched it for a while, which is
-exactly where "what did I miss?" is loudest; the marker alone could only ever
-answer "something". A thumbnail with no room for both keeps the marker, which
-is the one that says the pane is alive. The focused pane is protected
+title, an activity marker on the left, **the line the pane is currently
+showing** across the middle, and — on the right — **how many lines arrived
+while it was down there**, ordered least-recently-active first. The strip is
+where a pane goes when you have not touched it for a while, which is exactly
+where "what did I miss?" is loudest; the marker alone could only ever answer
+"something". The line is the pane's own bottom-most written row, tidied to one
+row (runs of a TUI's column padding closed up, control bytes dropped); a chat
+pane waiting on an agent names the agent and the tool it is in instead, and a
+pane crew draws itself (settings, the todo list, a file viewer) shows nothing
+rather than guessing. A thumbnail with no room for both a marker and a count
+keeps the marker, which is the one that says the pane is alive, and one with
+fewer than six columns left in the middle leaves the middle empty rather than
+drawing a syllable and an ellipsis. The focused pane is protected
 from demotion. To restore a minimized pane to the full grid, click its thumbnail,
 click its entry in the sidebar's PANES list, or use **Cmd+1 … 9** to jump to it.
 

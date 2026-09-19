@@ -44,7 +44,7 @@ fn a_thumbnail_never_draws_two_glyphs_in_one_cell() {
     let marker = Some(('\u{25cf}', crew_theme::theme().activity));
     for cols in 0..=40u16 {
         for unread in [0usize, 7, 128] {
-            let cells = strip_row(cols, marker, unread);
+            let cells = strip_row(cols, marker, unread, Some("cargo test"));
             assert!(
                 cells.iter().all(|c| c.col < cols.max(1)),
                 "{cols}: a cell escaped a thumbnail"
@@ -92,11 +92,11 @@ fn marker_blinks_off_mid_pulse() {
 fn a_thumbnail_shows_the_count_of_what_arrived_while_it_was_away() {
     let _g = crate::app::theme_test_guard();
     let marker = Some(('\u{25cf}', crew_theme::theme().activity));
-    let row = strip_row(12, marker, 7);
+    let row = strip_row(12, marker, 7, None);
     let at = |col: u16| row.iter().find(|c| c.col == col).map(|c| c.c);
     assert_eq!(at(0), Some('\u{25cf}'), "the marker lost its column");
     assert_eq!(at(11), Some('7'), "the count is not at the right edge");
-    let many = strip_row(12, marker, 4000);
+    let many = strip_row(12, marker, 4000, None);
     let text: String = {
         let mut v: Vec<&CellView> = many.iter().filter(|c| c.col > 0).collect();
         v.sort_by_key(|c| c.col);
@@ -111,13 +111,13 @@ fn a_thumbnail_shows_the_count_of_what_arrived_while_it_was_away() {
 fn a_quiet_or_tiny_thumbnail_draws_no_count() {
     let _g = crate::app::theme_test_guard();
     let marker = Some(('\u{25cf}', crew_theme::theme().activity));
-    assert_eq!(strip_row(12, marker, 0).len(), 1);
+    assert_eq!(strip_row(12, marker, 0, None).len(), 1);
     assert_eq!(
-        strip_row(2, marker, 7).len(),
+        strip_row(2, marker, 7, None).len(),
         1,
         "the count crowded out the marker"
     );
-    assert!(strip_row(0, marker, 7).is_empty());
+    assert!(strip_row(0, marker, 7, None).is_empty());
 }
 
 #[test]
