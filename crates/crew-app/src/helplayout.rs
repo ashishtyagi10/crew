@@ -31,8 +31,9 @@ pub(crate) const KEY_COL: usize = 26;
 pub(crate) enum Row {
     /// The blank between two sections.
     Spacer,
-    /// A section title (`in an agent pane`).
-    Head(&'static str),
+    /// A section title (`in an agent pane`), and whether it is the section
+    /// for the pane the panel was opened from — the one you are in.
+    Head(&'static str, bool),
     /// A binding: keys in the left column, the first line of its description.
     Bind(&'static str, String),
     /// A wrapped continuation, drawn indented under the description.
@@ -132,6 +133,12 @@ pub(crate) fn filtered(needle: &str) -> Vec<(&'static str, &'static str)> {
 /// *display* line, so scroll positions and `max_scroll` count what is on
 /// screen rather than what is in the table.
 pub(crate) fn rows(needle: &str, cols: u16) -> Vec<Row> {
+    rows_for(needle, cols, None)
+}
+
+/// The rows, with `mine` naming the section for the pane the panel was opened
+/// from (see [`crate::helphere`]) so its heading can say so.
+pub(crate) fn rows_for(needle: &str, cols: u16, mine: Option<&str>) -> Vec<Row> {
     let col = key_col(cols);
     // Two border columns, then the key column; the rest is the description.
     let width = (cols as usize).saturating_sub(2 + col).max(8);
@@ -139,7 +146,7 @@ pub(crate) fn rows(needle: &str, cols: u16) -> Vec<Row> {
     for (k, d) in filtered(needle) {
         match (k, d) {
             ("", "") => out.push(Row::Spacer),
-            ("", head) => out.push(Row::Head(head)),
+            ("", head) => out.push(Row::Head(head, Some(head) == mine)),
             (k, d) => {
                 let chars: Vec<char> = d.chars().collect();
                 for (i, (a, b)) in wrap_indices(&chars, width).into_iter().enumerate() {

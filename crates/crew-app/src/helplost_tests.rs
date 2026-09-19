@@ -27,7 +27,7 @@ fn the_bar_keys_and_the_lost_chords_are_listed() {
 #[test]
 fn the_hint_marks_its_cut_on_a_narrow_overlay() {
     let _g = crate::app::theme_test_guard();
-    let cells = crate::help::help_cells(30, 12, 0, "");
+    let cells = crate::help::help_cells(30, 12, 0, "", None);
     let last = cells.iter().map(|c| c.row).max().expect("rows");
     let hint: String = cells
         .iter()

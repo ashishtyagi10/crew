@@ -222,7 +222,10 @@ no matter where its pane went.
 ## Keyboard shortcuts
 
 Press **`/keys`** in the input bar for the full list in-app — it scrolls with
-the arrow and page keys, and any other key closes it.
+the arrow and page keys, and any other key closes it. It **opens on the
+section for the pane you are in** (`in a /far file panel · this pane`), with
+the global chords one scroll up; a pane whose keys are the global ones opens
+at the top, as before.
 
 | Action | Keys |
 |--------|------|

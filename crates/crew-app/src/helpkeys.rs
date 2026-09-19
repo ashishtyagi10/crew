@@ -8,11 +8,19 @@ use crate::help::{max_scroll, size};
 const PAGE: i32 = 8;
 
 impl crate::app::CrewApp {
-    /// Show the keys overlay, from the top of an unfiltered list.
+    /// Show the keys overlay — on the section for the pane you are in, when
+    /// that pane has one. Opening at the top of a seventy-line table put `in
+    /// a /far file panel` four sections below the fold, which crew knew and
+    /// made you find anyway. The global chords are one scroll up, which is
+    /// the right way round: they work here too.
     pub(crate) fn open_help(&mut self) {
         self.help_open = true;
-        self.help_scroll = 0;
         self.help_filter.clear();
+        self.help_scroll = self
+            .panes
+            .get(self.focused)
+            .and_then(|p| crate::helphere::section_for(&p.content))
+            .map_or(0, |title| crate::helphere::scroll_to(title, size().0));
     }
 
     /// Put it away, forgetting where it was read to and what was typed into

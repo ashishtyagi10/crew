@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.70
+
+**`/keys` opens on the pane you are in.** The panel lists every binding crew
+has: the global chords, then a section per pane kind. Opening it from a Far
+panel dropped you at the top of a seventy-line table with `in a /far file
+panel` four sections below the fold — crew knew which pane you were in and
+made you go and find it anyway.
+
+It now scrolls to that section as it opens, and the heading says so: `in a
+/far file panel · this pane`. The global chords are one scroll UP, which is
+the right way round — they work here too, and you already know where the top
+is. A pane whose keys are the global ones (a terminal passes everything
+through) opens at the top exactly as before, and a typed filter still resets
+to the first match.
+
+The mark is read live from the focused pane rather than remembered when the
+panel opened: the overlay does not move focus, so the two can never disagree.
+A test holds every section title a pane can name against the sections the
+panel really draws, because a title that drifts would silently scroll to the
+top and say nothing about it.
+
+`help.rs` split its row drawing into `helpitem` on the way.
+
 ## 0.22.69
 
 **The two places crew has nothing to show now say the way out, in whole

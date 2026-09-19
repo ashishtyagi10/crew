@@ -1,5 +1,11 @@
 use super::*;
 
+/// The panel's cells, with no pane-of-your-own section marked: every test
+/// here is about the table itself, not about where it was opened from.
+fn panel(w: u16, h: u16, scroll: usize, needle: &str) -> Vec<CellView> {
+    crate::help::help_cells(w, h, scroll, needle, None)
+}
+
 /// The overlay rebuilt row by row, which is how it is actually read.
 /// `to_cells_opaque` fills every cell — blanks included — so scanning a
 /// flat character stream matches text that never appears on one line.
@@ -26,7 +32,7 @@ fn shows(cells: &[CellView], needle: &str) -> bool {
 #[test]
 fn renders_bindings_with_border() {
     let (w, h) = size();
-    let cells = help_cells(w, h, 0, "");
+    let cells = panel(w, h, 0, "");
     assert!(cells.iter().any(|c| c.c == '╭'));
     assert!(shows(&cells, "Ctrl+Tab"), "app bindings listed");
     assert!(shows(&cells, "in an agent pane"), "chat section listed");
@@ -37,7 +43,7 @@ fn renders_bindings_with_border() {
 #[test]
 fn the_chat_pane_keys_are_documented() {
     let (w, h) = size();
-    let cells = help_cells(w, h, 0, "");
+    let cells = panel(w, h, 0, "");
     for needle in [
         "Enter",
         "Esc",
@@ -73,7 +79,7 @@ fn every_binding_is_reachable_even_when_the_list_outgrows_the_window() {
     let last = *crate::helplayout::logical()
         .last()
         .expect("a non-empty list");
-    let cells = help_cells(w, h, max_scroll(h, w, ""), "");
+    let cells = panel(w, h, max_scroll(h, w, ""), "");
     assert!(
         shows(&cells, last.1),
         "the last row ({:?}) is unreachable at max scroll",
@@ -81,7 +87,7 @@ fn every_binding_is_reachable_even_when_the_list_outgrows_the_window() {
     );
     // …and the first row is still there before you scroll.
     let first = BINDINGS[0];
-    assert!(shows(&help_cells(w, h, 0, ""), first.1), "the first row");
+    assert!(shows(&panel(w, h, 0, ""), first.1), "the first row");
 }
 
 /// Scrolling stops where the list does. Running past the end into blank
@@ -89,26 +95,24 @@ fn every_binding_is_reachable_even_when_the_list_outgrows_the_window() {
 #[test]
 fn scrolling_stops_at_the_end_of_the_list() {
     let (w, h) = (size().0, 24u16);
-    let at_end = rows_of(&help_cells(w, h, max_scroll(h, w, ""), ""));
+    let at_end = rows_of(&panel(w, h, max_scroll(h, w, ""), ""));
     assert_eq!(
-        rows_of(&help_cells(w, h, max_scroll(h, w, "") + 50, "")),
+        rows_of(&panel(w, h, max_scroll(h, w, "") + 50, "")),
         at_end,
         "scrolling past the end must draw the same thing"
     );
     let last = *crate::helplayout::logical()
         .last()
         .expect("a non-empty list");
-    assert!(shows(&help_cells(w, h, max_scroll(h, w, ""), ""), last.1));
+    assert!(shows(&panel(w, h, max_scroll(h, w, ""), ""), last.1));
 }
 
 /// A scrollable thing that never says so is one nobody scrolls.
 #[test]
 fn the_overlay_says_when_there_is_more_below() {
     let (w, h) = (size().0, 24u16);
-    assert!(rows_of(&help_cells(w, h, 0, ""))
-        .join("")
-        .contains('\u{2193}'));
-    let end = rows_of(&help_cells(w, h, max_scroll(h, w, ""), "")).join("");
+    assert!(rows_of(&panel(w, h, 0, "")).join("").contains('\u{2193}'));
+    let end = rows_of(&panel(w, h, max_scroll(h, w, ""), "")).join("");
     assert!(!end.contains('\u{2193}'), "nothing more below at the end");
     assert!(end.contains('\u{2191}'), "but there is more above");
 }
@@ -120,7 +124,7 @@ fn the_overlay_says_when_there_is_more_below() {
 #[test]
 fn no_description_is_clipped() {
     let (w, h) = size();
-    let cells = help_cells(w, h, 0, "");
+    let cells = panel(w, h, 0, "");
     for (k, d) in BINDINGS.iter().chain(CHAT_BINDINGS) {
         assert!(shows(&cells, d), "clipped description for {k}: {d}");
     }
@@ -128,7 +132,7 @@ fn no_description_is_clipped() {
 
 #[test]
 fn tiny_renders_nothing() {
-    assert!(help_cells(8, 3, 0, "").is_empty());
+    assert!(panel(8, 3, 0, "").is_empty());
 }
 
 /// The manual says `/keys` shows "this list in-app". It did not:
@@ -211,7 +215,7 @@ fn typing_filters_the_list_to_what_matches() {
     let (w, h) = (super::size().0, 24);
     // `rows_of` stands blank cells in as `█`; the words are what matter here.
     let text = |needle: &str| -> String {
-        rows_of(&help_cells(w, h, 0, needle))
+        rows_of(&panel(w, h, 0, needle))
             .join("\n")
             .replace('\u{2588}', " ")
     };
@@ -248,7 +252,7 @@ fn typing_filters_the_list_to_what_matches() {
 fn a_search_matches_the_chord_as_well_as_the_words() {
     let _g = crate::app::theme_test_guard();
     let (w, h) = (super::size().0, 24);
-    let by_key = rows_of(&help_cells(w, h, 0, "ctrl+tab"))
+    let by_key = rows_of(&panel(w, h, 0, "ctrl+tab"))
         .join("\n")
         .replace('\u{2588}', " ");
     assert!(by_key.to_lowercase().contains("ctrl+tab"), "{by_key}");
@@ -259,7 +263,7 @@ fn a_search_matches_the_chord_as_well_as_the_words() {
 fn a_search_with_no_match_says_so_rather_than_emptying() {
     let _g = crate::app::theme_test_guard();
     let (w, h) = (super::size().0, 24);
-    let text = rows_of(&help_cells(w, h, 0, "zzzznope"))
+    let text = rows_of(&panel(w, h, 0, "zzzznope"))
         .join("\n")
         .replace('\u{2588}', " ");
     assert!(text.contains("no binding matches"), "{text}");
@@ -270,11 +274,11 @@ fn a_search_with_no_match_says_so_rather_than_emptying() {
 fn a_section_heading_survives_only_with_its_rows() {
     let _g = crate::app::theme_test_guard();
     let (w, h) = (super::size().0, 24);
-    let chat = rows_of(&help_cells(w, h, 0, "reverse-search"))
+    let chat = rows_of(&panel(w, h, 0, "reverse-search"))
         .join("\n")
         .replace('\u{2588}', " ");
     assert!(chat.contains("in an agent pane"), "{chat}");
-    let global = rows_of(&help_cells(w, h, 0, "zoom"))
+    let global = rows_of(&panel(w, h, 0, "zoom"))
         .join("\n")
         .replace('\u{2588}', " ");
     assert!(
@@ -289,11 +293,11 @@ fn a_section_heading_survives_only_with_its_rows() {
 fn the_overlay_shows_what_was_typed_and_offers_the_filter() {
     let _g = crate::app::theme_test_guard();
     let (w, h) = (super::size().0, 24);
-    let all = rows_of(&help_cells(w, h, 0, ""))
+    let all = rows_of(&panel(w, h, 0, ""))
         .join("\n")
         .replace('\u{2588}', " ");
     assert!(all.contains("type to filter"), "{all}");
-    let filtered = rows_of(&help_cells(w, h, 0, "zoom"))
+    let filtered = rows_of(&panel(w, h, 0, "zoom"))
         .join("\n")
         .replace('\u{2588}', " ");
     assert!(filtered.contains("keys \u{b7} zoom"), "{filtered}");
