@@ -116,9 +116,13 @@ fn pane(text: &str) -> ViewPane {
 /// Every drawn row is a whole line of the listing, or a piece of one that
 /// was broken between words: the plain rung wraps prose on words, and the
 /// rows a listing builds to fit the tile must not wrap at all.
+///
+/// A continued row wears the rung's `↪`, which is the viewer's mark and not
+/// the listing's text — it is taken off before the row is looked for.
 pub(crate) fn intact(rows: &[String], text: &str, name: &str) {
     for row in rows.iter().map(|r| r.trim_end()).filter(|r| !r.is_empty()) {
-        let piece = row.trim_start();
+        let bare = row.trim_start();
+        let piece = bare.strip_prefix('\u{21aa}').map_or(bare, str::trim_start);
         let at = text
             .find(piece)
             .unwrap_or_else(|| panic!("{name}: row {row:?} is not a piece of the listing"));

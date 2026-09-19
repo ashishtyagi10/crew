@@ -1099,7 +1099,15 @@ longer aim at.
   diffs, or a metadata card for anything else). ↑/↓ and PageUp/PageDown/Home/End scroll, `r` reloads from
   disk — a **wrapped row says it is one**, with a `↪` in the gutter where its
   line number would be, since a blank gutter beside a wrapped line and a blank
-  gutter beside an empty line are the same blank — `s` toggles raw text
+  gutter beside an empty line are the same blank. **The plain rung says it
+  too**, at the head of the row: it is the one rung with no gutter to put the
+  mark in, so a wrapped listing row had nothing at all to its left and
+  `/watching`'s `w1 … brief me on the` was followed by `calendar` in column
+  zero, which is what the next standing intent looks like. The mark keeps the
+  line's own indent (a detail row's continuation stays under its detail) and
+  is dropped on a pane too narrow to pay for it in words — under twelve
+  columns of text it would start hard-cutting words that used to fit whole.
+  `s` toggles raw text
   (markdown and CSV), `/` searches (`n`/`N` for
   next/previous hit — the needle is drawn on the pane's **last row** as you
   type it, with a caret while typing and the tally once confirmed, or "no
