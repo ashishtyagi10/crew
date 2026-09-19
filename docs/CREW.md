@@ -1567,7 +1567,11 @@ longer aim at.
   looking at. Three **ring gauges** (CPU, memory, disk) beside a four-minute
   **CPU curve**; the **network** with both directions on one axis (down above
   the line, up below); a **heatmap** of the last seven days of token use by
-  hour; and an **area chart** of what each day cost. Bands are drawn in
+  hour; and an **area chart** of what each day cost. Both spend charts carry
+  **the same axes `/usage` draws** — `00 / 06 / 12 / 18` under the heatmap's
+  bands and `6d ago … today` under the curve — since seven unlabelled bands
+  cannot say whether a stripe is your morning, and a curve with a peak and no
+  dates says something happened rather than when. Bands are drawn in
   priority order, so a short pane keeps the machine and loses the history, and
   everything follows its own clock — the sampler's second, the ledger's five.
 - **`/disk`** — opens the **disk** pane: the current directory as a
@@ -1584,7 +1588,10 @@ longer aim at.
   seven days, drawn rather than totalled. A **heatmap** of tokens by hour (a
   row per day, a column per hour, shaded against the week's own peak, so a
   quiet week reads as clearly as a busy one), a **donut** splitting the tokens
-  sent from the tokens received, and an **area chart** of what each day cost —
+  sent from the tokens received (two percentages that **add to 100** — each was
+  floored on its own, so a 1.92M/0.43M split used to read `81% / 18%` in a card
+  whose whole job is to account for something), and an **area chart** of what
+  each day cost —
   with the week's spend, token split and peak day named above them. The pane
   follows the ledger while it is open, so a request landing now moves the
   charts. Everything it shows comes from `usage.jsonl` beside your config,
