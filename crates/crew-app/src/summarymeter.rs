@@ -19,9 +19,13 @@ pub(crate) fn meter_shade(t: f32) -> (u8, u8, u8) {
     crate::modernring::pole_mix(t).unwrap_or_else(|| crew_theme::theme().text_muted)
 }
 
-/// The track colour under it — the same ramp, pulled toward the page.
+/// The track colour under it — the same ramp, pulled toward the page, and
+/// then no further than the meter-track floor once it is DRAWN (see
+/// [`crate::metertrack`], which is where the alpha half of that sum lives).
 pub(crate) fn meter_track() -> (u8, u8, u8) {
-    crate::anim::lerp_rgb(meter_shade(0.5), crew_theme::theme().page_bg, TROUGH_FADE)
+    let page = crew_theme::theme().page_bg;
+    let shade = meter_shade(0.5);
+    crate::metertrack::lift(crate::anim::lerp_rgb(shade, page, TROUGH_FADE), shade, page)
 }
 
 /// The most rows the footer ever claims (identity/spend, windows/bars,
@@ -129,3 +133,7 @@ pub(crate) fn draw_meters(cells: &mut [CellView], meters: &[f32], aspect: f32) -
     }
     out
 }
+
+#[cfg(test)]
+#[path = "summarymeter_tests.rs"]
+mod tests;

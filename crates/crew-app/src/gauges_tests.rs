@@ -7,7 +7,22 @@ fn fill_color_thresholds() {
     assert_eq!(fill_color(0.5), crate::palette::accent());
     assert_eq!(fill_color(0.8), t.status_fg);
     assert_eq!(fill_color(0.95), t.ansi[9]);
-    assert_eq!(track_color(), t.border_normal);
+    // The track STARTS at the border shade and is lifted off it only as far
+    // as being drawn at the capsule's alpha demands (`metertrack`): recessed,
+    // but never a ghost, and never all the way to the ink.
+    let track = track_color();
+    assert_ne!(track, t.ink, "walked all the way to the ink");
+    let page = t.page_bg;
+    let drawn = crate::metertrack::as_drawn(track, page);
+    let r = crew_theme::contrast_ratio(drawn, page);
+    assert!(
+        r >= crate::metertrack::FLOOR - 0.01,
+        "a ghost track: {r:.2}"
+    );
+    assert!(
+        r < crew_theme::contrast_ratio(t.ink, page),
+        "a track as loud as the ink"
+    );
 }
 
 #[test]

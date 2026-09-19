@@ -316,6 +316,9 @@ mod barpopup;
 #[cfg(test)]
 #[path = "barpopupshot_tests.rs"]
 mod barpopupshot_tests;
+#[cfg(test)]
+#[path = "cardchartshot_tests.rs"]
+mod cardchartshot_tests;
 mod cardchrome;
 #[cfg(test)]
 #[path = "lspshot_tests.rs"]
@@ -325,6 +328,7 @@ mod menuink;
 #[cfg(test)]
 #[path = "menushot_tests.rs"]
 mod menushot_tests;
+mod metertrack;
 mod minpreview;
 #[cfg(test)]
 #[path = "minshot_tests.rs"]
@@ -382,6 +386,9 @@ mod panecard;
 mod panecard_budget_tests;
 mod panecardglow;
 mod panecardink;
+#[cfg(test)]
+#[path = "panechartshot_tests.rs"]
+mod panechartshot_tests;
 mod panedir;
 mod panedrag;
 mod panefit;

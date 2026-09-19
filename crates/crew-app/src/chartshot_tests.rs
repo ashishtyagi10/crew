@@ -18,7 +18,7 @@ const W: u32 = 760;
 const H: u32 = 560;
 
 /// Render and write `chart-<name>.png`, returning the pixels for assertions.
-fn shot(
+pub(crate) fn shot(
     name: &str,
     legend: &str,
     content: impl FnOnce(u16, u16, f32) -> (Vec<CellView>, Vec<Paint>),
@@ -127,8 +127,30 @@ fn chart_shot_net_twin() {
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn chart_shot_footer_meters() {
+    let _a = crate::palette::test_guard();
     let _g = crate::app::theme_test_guard();
-    let px = shot("meters", "crew", |_cols, _rows, aspect| {
+    // On a light page as well as a dark one: the trough is the ramp pulled
+    // toward the page and then drawn at 55% alpha, which is a different
+    // reading on every page — and the light ones were where it stopped being
+    // a groove at all (`summarymeter::TROUGH_FLOOR`).
+    for (name, id) in [
+        ("meters", crew_theme::ThemeId::PaperDark),
+        ("meters-light", crew_theme::ThemeId::PaperLight),
+        ("meters-crt", crew_theme::ThemeId::CrtGreen),
+    ] {
+        crew_theme::set_theme(id);
+        crate::palette::set_accent(crew_theme::theme().accent_default);
+        if meters_shot(name).is_none() {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        }
+    }
+}
+
+/// The footer's second line, as it is placed: countdowns, then the two
+/// reserved meter runs with their labels.
+fn meters_shot(name: &str) -> Option<Vec<u8>> {
+    let px = shot(name, "crew", |_cols, _rows, aspect| {
         let t = crew_theme::theme();
         let mut cells: Vec<CellView> = Vec::new();
         let mut put = |text: &str, col: u16, row: u16, fg: (u8, u8, u8)| {
@@ -143,8 +165,6 @@ fn chart_shot_footer_meters() {
                 });
             }
         };
-        // The footer's line 2, as it is placed: countdowns, then the two
-        // reserved meter runs with their labels.
         put("5h:2h14m \u{00b7} 7d:5d02h \u{00b7} ", 1, 1, t.ansi[12]);
         put(
             "\u{2591}\u{2591}\u{2591}\u{2591}\u{2591}\u{2591}\u{2591}\u{2591} 34% (5h) \u{00b7} ",
@@ -160,240 +180,8 @@ fn chart_shot_footer_meters() {
         );
         let paint = crate::chatsummary::draw_meters(&mut cells, &[0.34, 0.71], aspect);
         (cells, paint)
-    });
-    let Some(px) = px else {
-        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
-        return;
-    };
+    })?;
     let ink = ink(&px);
-    assert!(ink > 500, "the meters drew something: {ink} ink pixels");
-}
-
-#[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
-fn chart_shot_usage_pane() {
-    let _g = crate::app::theme_test_guard();
-    // A plausible week: work in office hours, a quiet weekend, one long
-    // evening session.
-    let mut hourly = vec![0u64; crate::usageledger::DAYS * crate::usageledger::HOURS];
-    for d in 0..crate::usageledger::DAYS {
-        for h in 0..crate::usageledger::HOURS {
-            let weekend = d == 2 || d == 3;
-            let work = (9..19).contains(&h);
-            let v = match (weekend, work) {
-                (true, _) => 0,
-                (false, true) => 4_000 + (d * 900 + h * 700) as u64 % 9_000,
-                (false, false) => (h as u64 % 5) * 400,
-            };
-            hourly[d * crate::usageledger::HOURS + h] = v;
-        }
-    }
-    hourly[5 * crate::usageledger::HOURS + 22] = 26_000;
-    let b = crate::usageledger::Buckets {
-        hourly,
-        daily_cost: vec![120_000, 340_000, 0, 20_000, 810_000, 430_000, 260_000],
-        tok_in: 1_840_000,
-        tok_out: 410_000,
-        cost_microusd: 1_980_000,
-    };
-    let px = shot("usage", "usage", |cols, rows, aspect| {
-        (
-            crate::usagepane::cells(&b, cols, rows),
-            crate::usagepane::paint(&b, cols, rows, aspect),
-        )
-    });
-    let Some(px) = px else {
-        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
-        return;
-    };
-    let ink = ink(&px);
-    assert!(
-        ink > 3000,
-        "the usage pane drew something: {ink} ink pixels"
-    );
-}
-
-#[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
-fn chart_shot_swarm_timeline() {
-    let _g = crate::app::theme_test_guard();
-    use crate::plot::gantt::Span;
-    let t = crew_theme::theme();
-    let acc = crate::palette::accent();
-    // A swarm that fanned out four ways, then joined: the shape a task list
-    // cannot show.
-    let spans: Vec<Option<Span>> = vec![
-        Some(Span {
-            start_ms: 0,
-            end_ms: 1_200,
-            color: t.ansi[2],
-        }),
-        Some(Span {
-            start_ms: 1_300,
-            end_ms: 5_400,
-            color: t.ansi[2],
-        }),
-        Some(Span {
-            start_ms: 1_320,
-            end_ms: 6_100,
-            color: t.ansi[2],
-        }),
-        Some(Span {
-            start_ms: 1_340,
-            end_ms: 3_900,
-            color: t.ansi[9],
-        }),
-        Some(Span {
-            start_ms: 1_360,
-            end_ms: 8_800,
-            color: acc,
-        }),
-        None,
-    ];
-    let px = shot("timeline", "swarm", |cols, rows, aspect| {
-        let mut cells: Vec<CellView> = Vec::new();
-        let names = [
-            " \u{2713} read the crate",
-            " \u{2713} map the render path",
-            " \u{2713} map the theme path",
-            " \u{2717} bench the atlas",
-            " \u{25cf} write the report",
-            " \u{25cb} review",
-        ];
-        let put = |cells: &mut Vec<CellView>, s: &str, row: u16, fg: (u8, u8, u8)| {
-            for (i, ch) in s.chars().enumerate() {
-                cells.push(CellView {
-                    col: i as u16,
-                    row,
-                    c: ch,
-                    fg,
-                    bg: t.page_bg,
-                    ..Default::default()
-                });
-            }
-        };
-        put(&mut cells, " live:1 done:3 failed:1 cost:$0.0421", 0, t.ink);
-        for (i, n) in names.iter().enumerate() {
-            let fg = match i {
-                3 => t.ansi[9],
-                4 => acc,
-                5 => t.text_muted,
-                _ => t.ansi[2],
-            };
-            put(&mut cells, n, i as u16 + 1, fg);
-        }
-        cells.extend(crate::swarm::view::timeline_cells(
-            cols,
-            rows,
-            Some((0, 8_800)),
-        ));
-        let paint =
-            crate::swarm::view::timeline_paint(&spans, cols, rows, aspect, (0, 8_800), 8_800);
-        (cells, paint)
-    });
-    let Some(px) = px else {
-        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
-        return;
-    };
-    let ink = ink(&px);
-    assert!(ink > 1000, "the timeline drew something: {ink} ink pixels");
-}
-
-#[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
-fn chart_shot_disk_treemap() {
-    let _g = crate::app::theme_test_guard();
-    // A repo's own shape: target dominating, then the crates, then the small
-    // stuff that a `du | sort` would have you reading line by line.
-    let mut p = crate::diskpane::DiskPane::new(std::env::temp_dir());
-    p.set_children_for_test(
-        &[
-            ("target", 4_509_715_660, true),
-            ("crates", 812_000_000, true),
-            (".git", 402_000_000, true),
-            ("vendor", 121_000_000, true),
-            ("docs", 24_000_000, true),
-            ("Cargo.lock", 310_000, false),
-            ("CHANGELOG.md", 96_000, false),
-            ("README.md", 12_000, false),
-        ],
-        1,
-    );
-    let px = shot("treemap", "disk", |cols, rows, aspect| {
-        (p.cells(cols, rows), p.paint(cols, rows, aspect))
-    });
-    let Some(px) = px else {
-        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
-        return;
-    };
-    let ink = ink(&px);
-    assert!(ink > 5000, "the treemap drew something: {ink} ink pixels");
-}
-
-#[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
-fn chart_shot_card_indicators() {
-    let _g = crate::app::theme_test_guard();
-    let px = shot("card", "build \u{00b7} cargo", |cols, rows, aspect| {
-        // The card's own frame, with a program reporting 34% and a buffer
-        // scrolled a third of the way back.
-        let bar = crate::panecard::Bar {
-            index: Some(1),
-            title: "build \u{00b7} cargo",
-            focused: true,
-            scroll: 4_000,
-            total: 12_000,
-            activity: false,
-            bell: false,
-            broadcast: false,
-            min_btn: true,
-            assemble_t: 1.0,
-            focus_t: 1.0,
-            git: None,
-            ticks: &[],
-            hits: &[],
-            progress: Some(crew_term::Progress {
-                percent: Some(34),
-                alarm: false,
-            }),
-            elapsed: Some("12s".into()),
-            pinned: false,
-            at_cmd: None,
-            fail_rows: &[],
-            cmd_rows: &[],
-            err_rows: &[],
-            unread: 0,
-            doc: false,
-        };
-        (
-            crate::panecard::pane_card(cols.saturating_sub(2), rows.saturating_sub(2), &bar),
-            crate::cardpaint::card_paint(cols, rows, &bar, aspect, 0),
-        )
-    });
-    let Some(px) = px else {
-        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
-        return;
-    };
-    let ink = ink(&px);
-    assert!(
-        ink > 500,
-        "the card indicators drew something: {ink} ink pixels"
-    );
-}
-
-#[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
-fn chart_shot_dashboard() {
-    let _g = crate::app::theme_test_guard();
-    let mut d = crate::dashpane::DashPane::new();
-    d.seed_for_test();
-    let px = shot("dash", "dash", |cols, rows, aspect| {
-        (d.cells(cols, rows), d.paint(cols, rows, aspect))
-    });
-    let Some(px) = px else {
-        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
-        return;
-    };
-    let ink = ink(&px);
-    assert!(ink > 4000, "the dashboard drew something: {ink} ink pixels");
+    assert!(ink > 500, "{name}: the meters drew something: {ink} pixels");
+    Some(px)
 }
