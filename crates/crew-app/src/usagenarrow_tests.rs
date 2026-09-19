@@ -59,6 +59,6 @@ fn the_narrow_pane_keeps_the_key_and_drops_the_peak() {
     }
     assert!(!narrow.contains("peak"), "{narrow}");
     let wide = all(&super::cells(&buckets(), 40, 30));
-    assert!(wide.contains("in   1.8M  81%"), "{wide}");
+    assert!(wide.contains("in   1.8M  82%"), "{wide}");
     assert!(wide.contains("peak $0.81"), "{wide}");
 }

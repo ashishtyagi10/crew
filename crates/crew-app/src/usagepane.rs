@@ -122,16 +122,7 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
         }
         // Hour ticks under the grid, at midnight / 06 / 12 / 18.
         let grid_w = cols.saturating_sub(LABEL_W + RIGHT_PAD);
-        let hour_col = |h: usize| LABEL_W + (h as u16 * grid_w) / HOURS as u16;
-        for h in [0usize, 6, 12, 18] {
-            put(
-                &mut out,
-                &format!("{h:02}"),
-                hour_col(h),
-                heat_end,
-                t.text_muted,
-            );
-        }
+        crate::usageaxis::hour_ticks(&mut out, LABEL_W, grid_w, heat_end, cols);
     }
 
     // The in/out donut's legend and the total in its hole.
@@ -143,21 +134,25 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
             .round()
             .max(0.0) as u16;
         put(&mut out, &hole, start, l.split_top + RING_ROW, t.ink);
-        let pct = |v: u64| match total {
-            0 => 0,
-            _ => (v * 100 / total).min(100),
-        };
+        // Floored on their own, the two read `81% / 18%` — see `usageaxis`.
+        let (pct_in, pct_out) = crate::usageaxis::split_pct(b.tok_in, b.tok_out);
         // The two readings flank the ring's own centre row, so each sits
         // opposite the arc it is naming. Each is written in its slice's
         // colour: the words ARE the key, which is why the ring no longer
         // carries a pair of swatch dots beside it.
-        let key = |name: &str, v: u64| match cols >= FULL_COLS {
-            true => format!("{name:<4} {}  {}%", compact(v), pct(v)),
-            false => format!("{name} {}%", pct(v)),
+        let key = |name: &str, v: u64, pct: u64| match cols >= FULL_COLS {
+            true => format!("{name:<4} {}  {pct}%", compact(v)),
+            false => format!("{name} {pct}%"),
         };
         let (r_in, r_out) = (l.split_top + RING_ROW - 1, l.split_top + RING_ROW + 1);
-        put(&mut out, &key("in", b.tok_in), 13, r_in, accent());
-        put(&mut out, &key("out", b.tok_out), 13, r_out, t.ansi[13]);
+        put(&mut out, &key("in", b.tok_in, pct_in), 13, r_in, accent());
+        put(
+            &mut out,
+            &key("out", b.tok_out, pct_out),
+            13,
+            r_out,
+            t.ansi[13],
+        );
     }
 
     // The daily-cost chart's label and the day it peaked.
@@ -171,14 +166,7 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
             );
             put(&mut out, &peak, cols - 14, l.cost_top, t.text_muted);
         }
-        put(&mut out, "6d ago", 1, axis, t.text_muted);
-        put(
-            &mut out,
-            "today",
-            cols.saturating_sub(RIGHT_PAD + 5),
-            axis,
-            t.text_muted,
-        );
+        crate::usageaxis::week_ends(&mut out, axis, cols, RIGHT_PAD);
     }
     out
 }

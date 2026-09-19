@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.64
+
+**The dashboard's two spend charts say what their axes are.** `/dash` and
+`/usage` draw the same pair of pictures from the same buckets — a week of
+tokens by hour, and what each day of it cost — and only `/usage` was naming
+them. On the dashboard the heatmap was seven unlabelled bands, which cannot
+tell you whether a stripe is your morning or your evening, and the cost curve
+was a shape with a peak and no dates under it: it said something happened, not
+when. Both had the row to spare — the height division already leaves one under
+each chart — so both now carry `00 / 06 / 12 / 18` and `6d ago … today`, drawn
+from the grid's own geometry rather than a guess at it (the two panes inset
+their grids differently).
+
+**And the token donut's two shares add up.** Each was floored on its own, so a
+1.92M in / 0.43M out split read `in 81%` and `out 18%` — 99, in the one card
+whose whole job is to account for something. Largest remainder now: the point
+left over goes to the share that was cut by more.
+
+The axes and the split live in `usageaxis`, which is what made them shareable;
+`dashpane` split its words into `dashtext` on the way, along the line between
+what the dashboard says and what it draws.
+
 ## 0.22.63
 
 **A wrapped line of code in a chat card says that it wrapped.** A fenced block

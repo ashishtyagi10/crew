@@ -522,6 +522,7 @@ mod update;
 mod updatecard;
 mod updatedl;
 mod updatefetch;
+mod usageaxis;
 mod usagelayout;
 mod usageledger;
 mod usagepane;

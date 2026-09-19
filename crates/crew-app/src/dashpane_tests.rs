@@ -123,3 +123,29 @@ fn the_dashboard_draws_something_on_a_real_pane() {
     assert!(!d.cells(110, 36).is_empty());
     assert!(!d.paint(110, 36, 2.0).is_empty(), "the widgets drew");
 }
+
+/// The dashboard draws the same two charts `/usage` does, and it was the one
+/// drawing them unlabelled: seven bands with no hours under them cannot say
+/// whether a stripe is your morning, and a cost curve with no dates says
+/// something happened rather than when.
+#[test]
+fn both_charts_carry_their_axes() {
+    let _g = crate::app::theme_test_guard();
+    let mut d = DashPane::new();
+    d.seed_for_test();
+    let (cols, rows) = (100u16, 40u16);
+    let cells = d.cells(cols, rows);
+    let text = |row: u16| -> String {
+        let mut v: Vec<&crew_render::CellView> = cells.iter().filter(|c| c.row == row).collect();
+        v.sort_by_key(|c| c.col);
+        v.iter().map(|c| c.c).collect()
+    };
+    let l = layout(rows);
+    let ticks = text(USE_TOP + crate::usageledger::DAYS as u16 * l.heat_h);
+    assert_eq!(ticks, "00061218", "the hours under the heatmap: {ticks:?}");
+    let axis = text(l.cost_top + l.cost_rows);
+    assert!(axis.starts_with("6d ago"), "{axis:?}");
+    assert!(axis.ends_with("today"), "{axis:?}");
+    // And inside the pane: an axis drawn past the last row is not drawn.
+    assert!(cells.iter().all(|c| c.row < rows && c.col < cols));
+}
