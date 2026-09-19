@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.71
+
+**A meter's empty track survives being drawn.** The track behind a fill is
+what says how long the meter is — a fill is only a fraction of something you
+can see the whole of — and both meter families picked a recessed colour
+against the page and handed it to a capsule that lays it down at **55%
+alpha**. That alpha is the other half of how visible the thing ends up, and
+nobody was counting it: a colour chosen at 1.9:1 arrives at 1.3:1.
+
+Measured on the pixels, the footer's trough read 1.35–1.57:1 across the twelve
+themes — worst on the light pages, where it stopped being a groove at all —
+and the sidebar's gauge track read 1.36–1.48:1 on every one of them. Both now
+lift until they clear **1.6:1 as drawn**, and stop the moment they do: a track
+walked further than that reads as a full bar.
+
+The new `metertrack` is that rule and the alpha it has to account for, shared
+by `summarymeter` and `gauges`, with a test holding both against every theme.
+
+**The test is the point of this one.** The first version of it measured the
+COLOUR against the page, passed on all twelve themes, and was still passing
+with the bug fully in place — the same vacuous shape this project has caught
+before. Reverting the fix and watching the test go green is what found it.
+The footer meters had also only ever been shot on a dark page; they are shot
+on a light one and on a tube now, which is where the 1.34 came from.
+
+`chartshot_tests` split into widget shots, whole-pane shots
+(`panechartshot_tests`) and in-a-card shots (`cardchartshot_tests`); its debt
+row is gone.
+
 ## 0.22.70
 
 **`/keys` opens on the pane you are in.** The panel lists every binding crew

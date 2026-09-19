@@ -10,8 +10,14 @@ const HEADER: &str = "SYSTEM";
 /// Empty-track colour: the theme's recessed border shade, so the track sits
 /// back like an unfocused card edge — and stays in-palette on the monochrome
 /// CRT phosphor themes instead of a fixed grey.
+///
+/// Lifted until it survives being DRAWN: a capsule lays its track down at
+/// `plot::meter::TRACK_ALPHA`, which took the border shade from a readable
+/// colour to a 1.4:1 ghost on every theme in the set (see
+/// [`crate::metertrack`]).
 pub(crate) fn track_color() -> (u8, u8, u8) {
-    crew_theme::theme().border_normal
+    let t = crew_theme::theme();
+    crate::metertrack::lift(t.border_normal, t.ink, t.page_bg)
 }
 
 /// Bar (and ring) colour by load: accent when low, the theme's status amber past 70%,

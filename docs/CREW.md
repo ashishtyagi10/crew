@@ -3432,6 +3432,17 @@ new values instead of snapping, and the 5h-budget and context meters fill rather
 than jumping a cell at a time. Each pane animates its own numbers. A value seen
 for the first time is simply shown — only a value that *changes* sweeps.
 
+**And a meter keeps its groove.** The empty track behind a fill is what says
+how long the meter is — a fill is only a fraction of something you can see the
+whole of — and it was chosen as a colour against the page and then *drawn at
+55% alpha*, which is the other half of how visible it ends up. Measured on
+screen, every theme's track came out between 1.35:1 and 1.57:1 and the light
+pages were the worst of it. Both meter families (the footer's rolling windows
+and the sidebar's system gauges) now lift their track until it clears **1.6:1
+as drawn** — the least a groove can be and still be one — and stop there,
+because a track walked any further reads as a full bar. `metertrack` is that
+one rule, and a test holds both families to it on all twelve themes.
+
 **Cards assemble.** A new pane doesn't appear — its frame draws itself outward
 from the four corners, so the card is *built* in front of you. Only the frame
 stroke animates: the legend is there from the first frame, because a pane you

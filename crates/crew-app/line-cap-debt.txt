@@ -13,7 +13,6 @@ src/canvas/canvas_tests.rs 208
 src/cardshot_tests.rs 210
 src/channel/telegram/mod.rs 286
 src/channel/telegram/mod_tests.rs 201
-src/chartshot_tests.rs 399
 src/chat_tests.rs 1885
 src/chatcomplete.rs 316
 src/chatfind_tests.rs 366

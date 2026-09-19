@@ -9,6 +9,12 @@ use crate::plot::{sdf, Canvas};
 /// How tall the capsule is inside its row, as a fraction of the row.
 const HEIGHT: f32 = 0.30;
 
+/// How solidly the empty track is laid down. Public because it is half of
+/// what the track's colour ends up being: a caller choosing that colour
+/// against the page has to blend at this alpha to know what it will read as
+/// (see `summarymeter::meter_track`).
+pub const TRACK_ALPHA: f32 = 0.55;
+
 /// Draw a meter filling `frac` of `(x, y, w)` — one text row tall, centred in
 /// it. `shade` gives the fill's colour along its length (`0.0..=1.0`), so a
 /// meter can walk a gradient; `track` is the unfilled remainder, which is
@@ -32,7 +38,7 @@ pub fn capsule(
     }
     // The track: the full length, so the eye has something to read the fill
     // against even at 0%.
-    rounded(c, x, top, w, h, r, |_| track, 0.55);
+    rounded(c, x, top, w, h, r, |_| track, TRACK_ALPHA);
 
     let frac = frac.clamp(0.0, 1.0);
     if frac <= 0.0 {
