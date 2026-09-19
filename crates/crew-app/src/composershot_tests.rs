@@ -112,7 +112,14 @@ fn composer_shot_folds() {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         };
-        assert!(rows.iter().any(|r| r.contains("\u{2026} +7")), "{rows:?}");
+        // The SHAPE, not the number: how many lines a folded card hides is
+        // how many its body wrapped to, which is a function of the width —
+        // the same card folds `… +7` at 760 and `… +9` at 380.
+        assert!(
+            rows.iter().any(|r| r.contains("\u{2026} +")
+                && r.chars().last().is_some_and(|c| c.is_ascii_digit())),
+            "{rows:?}"
+        );
     }
 }
 
