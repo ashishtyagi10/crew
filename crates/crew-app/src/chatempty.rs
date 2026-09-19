@@ -49,7 +49,7 @@ pub(crate) fn empty_cells(
 ) -> Vec<CellView> {
     let avail = max_row.saturating_sub(top + 1) as usize;
     let mut cells = Vec::new();
-    for (i, (s, fg, bold)) in fit(block(cols, connected, agents), avail, cols)
+    for (i, (s, fg, bold)) in fit(block(cols, connected, agents, avail), avail, cols)
         .into_iter()
         .enumerate()
     {
@@ -59,7 +59,7 @@ pub(crate) fn empty_cells(
 }
 
 /// The rows the state asks for, before any budget is applied.
-fn block(cols: u16, connected: bool, agents: &[AgentInfo]) -> Vec<Row> {
+fn block(cols: u16, connected: bool, agents: &[AgentInfo], avail: usize) -> Vec<Row> {
     let t = crew_theme::theme();
     let muted = |s: String| (s, t.text_muted, false);
     if !connected {
@@ -72,15 +72,17 @@ fn block(cols: u16, connected: bool, agents: &[AgentInfo]) -> Vec<Row> {
             ("No agents available.".to_string(), t.ink, true),
             muted(String::new()),
         ];
-        // The same words the broker uses (`crew_plugin::no_provider_advice`),
+        // The same words the broker uses (`crew_plugin::no_provider_forms`),
         // wrapped to the pane. Four wordings of this advice existed across the
         // two processes and two of them went stale for two releases; there is
         // one copy now, and this is a view of it.
-        rows.extend(
-            wrap_to(crew_plugin::no_provider_advice(), cols)
-                .into_iter()
-                .map(muted),
-        );
+        //
+        // …at the LENGTH that fits. This is the first thing crew says to
+        // someone with no provider, and on a quarter tile the long form was
+        // cut at `paste it at a Nemotron row…` — a shorter true sentence beats
+        // a longer cut one. The headline and its blank row cost two of the
+        // rows the advice is measured against.
+        rows.extend(advice(cols, avail.saturating_sub(rows.len())));
         return rows;
     }
     // Minimal, Claude-Code-style: a single muted hint. No roster dump and no
@@ -105,6 +107,22 @@ fn block(cols: u16, connected: bool, agents: &[AgentInfo]) -> Vec<Row> {
 const EXAMPLES: &str = "Try \u{201c}make the tests pass\u{201d} \u{2014} a swarm that \
     verifies its own result \u{2014} or \u{201c}draft a plan first\u{201d} \u{2014} \
     nothing runs until you approve.";
+
+/// The longest form of the no-provider advice that fits `avail` rows at this
+/// width, wrapped — the shortest one if none of them do, since something
+/// whole and too long beats something cut.
+fn advice(cols: u16, avail: usize) -> Vec<Row> {
+    let t = crew_theme::theme();
+    let forms = crew_plugin::no_provider_forms();
+    let mut wrapped = forms.iter().map(|f| wrap_to(f, cols));
+    // The shortest is the floor: something whole and too long beats something
+    // cut, so a pane with room for none of them still gets a sentence.
+    let shortest = || forms.last().map(|f| wrap_to(f, cols)).unwrap_or_default();
+    let pick = wrapped
+        .find(|rows| rows.len() <= avail)
+        .unwrap_or_else(shortest);
+    pick.into_iter().map(|s| (s, t.text_muted, false)).collect()
+}
 
 /// Fit `block` into `avail` rows: the blank spacers go first, and if the
 /// words still do not fit the last row that does is cut and marked.

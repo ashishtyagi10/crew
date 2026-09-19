@@ -2848,7 +2848,15 @@ endpoint, the key and the default model chain differ:
 | `deepseek` | `DEEPSEEK_API_KEY` | `deepseek-chat` → `deepseek-reasoner` | `CREW_DEEPSEEK_MODEL` | `CREW_DEEPSEEK_BASE_URL` |
 | `nvidia` | `NVIDIA_API_KEY` | `nvidia/nemotron-3.5-lightning-30b-a3b` → `nvidia/nemotron-3-super-120b-a12b` → `nvidia/nemotron-3-ultra-550b-a55b` | `CREW_NVIDIA_MODEL` | `CREW_NVIDIA_BASE_URL` |
 
-**Free to start.** The `nvidia` row is the zero-cost first run: a developer
+**Free to start.** A chat pane with no provider says this itself, in **the
+longest form that fits the rows it has** — three lengths of the same advice
+(`crew_plugin::no_provider_forms`, longest first), down to `/model: sign in,
+or paste a key.` on a quarter tile. It used to wrap the long form and cut it
+at the row budget, so the one sentence telling a new user how to start ended
+mid-clause at `paste it at a Nemotron row…`; a shorter true sentence beats a
+longer cut one, and every route out is the same picker anyway.
+
+The `nvidia` row is the zero-cost first run: a developer
 key from [build.nvidia.com](https://build.nvidia.com) is free, needs no card,
 and serves the Nemotron models natively (NIM's own ids, which carry a slash —
 that is not an OpenRouter alias). Open `/model`, pick a Nemotron row, and the

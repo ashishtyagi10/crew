@@ -101,8 +101,8 @@ pub use agents::known_adapters;
 pub use ask::{explain_output, suggest_command, suggest_far_command};
 pub use commands::{broker_constructs, construct_summary, expand_alias};
 pub use discover::{
-    direct_by_name, no_provider_advice, pick_provider as active_provider, DirectProvider,
-    ProviderKind as Provider, DIRECT,
+    direct_by_name, no_provider_advice, no_provider_forms, pick_provider as active_provider,
+    DirectProvider, ProviderKind as Provider, DIRECT,
 };
 pub use engine::Broker;
 pub use hop::{Hop, HopKind, RunStats};

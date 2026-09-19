@@ -145,34 +145,36 @@ fn the_hint_wraps_instead_of_clipping() {
     assert!(cells.iter().all(|c| c.col < 42));
 }
 
-/// The block is fitted to the rows the composer and footer leave it. A blank
-/// spacer is the first thing to go; a sentence that still does not fit is cut
-/// where the rows end and says so.
+/// The advice comes at three lengths and the pane takes the longest that
+/// fits, so what a new user reads is a whole sentence rather than a cut one.
+/// A blank spacer is still the first thing to go when even that is too much.
 #[test]
-fn a_short_pane_drops_the_spacers_before_the_words() {
-    // Nine rows asked (heading, spacer, seven lines of advice at 38 wide);
-    // eight given.
-    let cells = empty_cells(42, 9, 0, true, &[]);
-    assert!(row_text(&cells, 1).contains("No agents"));
+fn a_short_pane_takes_a_shorter_sentence_rather_than_a_cut_one() {
+    let rows_of = |max_row: u16| -> Vec<String> {
+        let cells = empty_cells(42, max_row, 0, true, &[]);
+        (0..max_row).map(|r| row_text(&cells, r)).collect()
+    };
+    // Room for everything: the long form, every word of it.
+    let tall = rows_of(12);
+    assert!(tall[1].contains("No agents"));
+    assert!(tall.join(" ").contains("(/model)"), "{tall:?}");
+    // Eight rows: the long form (seven lines at 38 wide) does not fit, so a
+    // shorter one arrives WHOLE — the old behaviour cut it at the row budget.
+    let short = rows_of(9);
+    let text = short.join(" ");
+    assert!(short[1].contains("No agents"));
+    assert!(text.contains("crew picks it up."), "{short:?}");
     assert!(
-        row_text(&cells, 2).starts_with("Free to start"),
-        "spacer dropped first"
+        !short.iter().any(|r| r.ends_with('\u{2026}')),
+        "nothing was cut: {short:?}"
     );
-    let last = row_text(&cells, 8);
+    // Three rows: the shortest form, still whole, still naming the door.
+    let tiny = rows_of(4);
+    assert!(tiny.join(" ").contains("/model"), "{tiny:?}");
     assert!(
-        last.contains("(/model)"),
-        "every word of the advice: {last}"
+        !tiny.iter().any(|r| r.ends_with('\u{2026}')),
+        "nothing was cut: {tiny:?}"
     );
-    assert!(!last.ends_with('\u{2026}'), "nothing was cut: {last}");
-    // Two given: heading and the first line of advice, marked as cut.
-    let cells = empty_cells(42, 3, 0, true, &[]);
-    assert!(row_text(&cells, 1).contains("No agents"));
-    let last = row_text(&cells, 2);
-    assert!(
-        last.starts_with("Free to start") && last.ends_with('\u{2026}'),
-        "{last}"
-    );
-    assert!(cells.iter().all(|c| c.row < 3));
 }
 
 #[test]
