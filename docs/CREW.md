@@ -3280,7 +3280,11 @@ file, refactors, or formats. Two consumers share one client (`crates/crew-lsp`):
   margin beside an error line, `▲` beside a warning, a curly underline under
   the offending range, and the document window's legend counts them
   (`2 errors · 1 warning`, or `lsp: rust-analyzer starting…` while it
-  indexes). **And it says what the server said**: a note row under the line,
+  indexes) — **and so does a `/view` tile**, as a banner over the file: the
+  count it found, `lsp: rust-analyzer starting…` while it indexes, or the
+  reason it never answered, since a margin that never appears cannot explain
+  itself. A clean file spends no row on saying so; the absence of marks is the
+  answer. **And it says what the server said**: a note row under the line,
   `↑ cannot find function ‘unresolved_helper’ in this scope`, in the
   severity's own colour taken down toward the page. Under the line rather
   than after it, the way a compiler answers, because a line long enough to be

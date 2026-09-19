@@ -73,6 +73,27 @@ fn row(text: &str, fg: (u8, u8, u8), gutter: usize, text_cols: usize) -> CardLin
     line
 }
 
+/// The server's word on the FILE, as a banner over it — the count it found,
+/// that it is still starting, or why it never answered.
+///
+/// Only the document window said any of this: its legend has the room, and a
+/// `/view` pane in the grid had margin marks with no total and — worse — no
+/// way at all to explain a margin that never appeared, which is exactly what
+/// `Lsp::Failed` is. A clean file still says nothing: the absence of marks is
+/// the answer, and a pane does not spend a row on it.
+pub(crate) fn top_banner(lsp: &crate::viewpane::lspjob::Lsp, cols: usize) -> Option<CardLine> {
+    let say = match lsp {
+        crate::viewpane::lspjob::Lsp::On(d) if !d.iter().any(marked) => return None,
+        other => other.status()?,
+    };
+    Some(crate::viewpane::lines::banner(&say, cols))
+}
+
+/// Whether a diagnostic is one the margin marks — the two the summary counts.
+fn marked(d: &Diagnostic) -> bool {
+    matches!(d.severity, Severity::Error | Severity::Warning)
+}
+
 /// Put a note row under the last row of every flagged line, and move any
 /// search marks below each insertion down with it.
 ///
@@ -118,3 +139,7 @@ pub(crate) fn insert(
 #[cfg(test)]
 #[path = "lspmsg_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "lspbanner_tests.rs"]
+mod banner_tests;
