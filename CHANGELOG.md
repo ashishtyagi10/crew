@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.75
+
+**The key prompt's hint fits the card it is in.** The masked paste prompt is a
+pop-up over the composer, so the pane clamps it — and its hint was one string,
+clipped: `waiting for browser · or pa…`, which is the browser sign-in flow's
+only sign that it is still live, ending in an ellipsis on any tile.
+
+Three lengths now, longest first, and the card takes the longest that fits the
+width it was ALLOWED rather than the width it asked for (`keyhint::want` asks
+for the longest; `popupplace` may say no). `waiting for browser · or paste the
+key` → `waiting for browser` → `waiting…`, and NVIDIA's free-key hint the same
+way down to `build.nvidia.com`. The same rule v0.22.69 gave the no-provider
+advice: a shorter whole sentence beats a longer cut one.
+
+`keyentry` split its card into `keycard` on the way — the state and the keys
+on one side, the drawing on the other.
+
 ## 0.22.74
 
 **A `/view` pane says what the server found about the file, not just where.**

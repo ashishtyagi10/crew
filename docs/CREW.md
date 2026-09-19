@@ -2875,7 +2875,14 @@ The `nvidia` row is the zero-cost first run: a developer
 key from [build.nvidia.com](https://build.nvidia.com) is free, needs no card,
 and serves the Nemotron models natively (NIM's own ids, which carry a slash —
 that is not an OpenRouter alias). Open `/model`, pick a Nemotron row, and the
-prompt that opens says exactly this and takes the pasted key; with no other
+prompt that opens says exactly this and takes the pasted key — at **the
+longest of three lengths that fits the card the pane allowed** (`free at
+build.nvidia.com · no card` → `free at build.nvidia.com` →
+`build.nvidia.com`), since the card is placed over a composer and clamped, and
+a hint cut in half is worse than a shorter one whole. The browser sign-in's
+`waiting for browser · or paste the key` has the same ladder, and it is the
+one that mattered: it is the flow's only sign of life, and on a tile it read
+`waiting for browser · or pa…`. With no other
 key set, Nemotron 3.5 Lightning is then the default model. The free tier is
 rate-limited per key (best effort, roughly 40 requests a minute per model) and
 keys expire after six months, so the chain rolls Lightning → Super → Ultra on

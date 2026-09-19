@@ -1,4 +1,4 @@
-use super::hint;
+use super::{fitting, forms, hint};
 
 /// A key nobody hands out for free gets no hint row; the browser flow's hint
 /// outranks a variable's own.
@@ -41,4 +41,42 @@ fn the_prompt_wants_room_for_a_key_its_hint_and_what_was_typed() {
         "a long hint widens it"
     );
     assert_eq!(want(None, 100), 2 + 100, "a long paste widens it");
+}
+
+/// A card clamped by a narrow pane takes a shorter WHOLE hint rather than a
+/// cut one. The sign-in flow's only sign of life used to read `waiting for
+/// browser · or pa…`.
+#[test]
+fn a_narrow_card_gets_a_shorter_hint_not_a_cut_one() {
+    let long = fitting("", true, 60).expect("a hint");
+    assert_eq!(long, "waiting for browser \u{b7} or paste the key");
+    let short = fitting("", true, 24).expect("a hint");
+    assert_eq!(short, "waiting for browser");
+    for inner in 1..60usize {
+        let f = fitting("NVIDIA_API_KEY", false, inner).expect("a hint");
+        assert!(!f.ends_with('\u{2026}') || f == "waiting\u{2026}", "{f:?}");
+        // Either it fits, or it is the shortest there is — never a middle
+        // form that does not fit.
+        let shortest = forms("NVIDIA_API_KEY", false).last().copied().unwrap();
+        assert!(
+            crate::chatwidth::str_w(f) <= inner || f == shortest,
+            "{inner}: {f:?}"
+        );
+    }
+}
+
+/// Every ladder is written longest-first, which is what makes "the first that
+/// fits" the best that fits.
+#[test]
+fn every_ladder_is_longest_first() {
+    for (var, waiting) in [("NVIDIA_API_KEY", false), ("", true)] {
+        let widths: Vec<usize> = forms(var, waiting)
+            .iter()
+            .map(|f| crate::chatwidth::str_w(f))
+            .collect();
+        assert!(
+            widths.windows(2).all(|w| w[0] > w[1]),
+            "{var} {waiting}: {widths:?}"
+        );
+    }
 }
