@@ -323,10 +323,28 @@ fn claude_code_signed_in() -> bool {
 /// providers, so this names the friendliest route and points at the picker
 /// rather than reciting a list that will be wrong again by the next release.
 pub fn no_provider_advice() -> &'static str {
-    "free to start: get an NVIDIA key at build.nvidia.com (no card), open \
-     /model and paste it at a Nemotron row — or sign in to claude, codex or \
-     opencode and crew picks them up automatically, or add any provider key \
-     from the model picker (/model)"
+    no_provider_forms()[0]
+}
+
+/// The same advice at three lengths, longest first — for a surface with a
+/// budget in ROWS rather than a stream to print to.
+///
+/// The chat pane's first screen has whatever rows the composer and footer
+/// leave it, and on a quarter tile that is three: the long form was wrapped,
+/// cut and marked, so the one sentence telling a new user how to start ended
+/// mid-clause at `paste it at a Nemotron row…`. A shorter TRUE sentence beats
+/// a longer cut one, and the way out of every one of these is the same
+/// picker, so the short forms drop the routes and keep the door.
+pub fn no_provider_forms() -> &'static [&'static str] {
+    &[
+        "free to start: get an NVIDIA key at build.nvidia.com (no card), open \
+         /model and paste it at a Nemotron row — or sign in to claude, codex or \
+         opencode and crew picks them up automatically, or add any provider key \
+         from the model picker (/model)",
+        "free to start: paste an NVIDIA key (build.nvidia.com, no card) into \
+         /model, or sign in to claude or codex and crew picks it up.",
+        "/model: sign in, or paste a key.",
+    ]
 }
 
 /// Every provider that has a key right now, active or not, in discovery

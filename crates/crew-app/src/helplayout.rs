@@ -153,7 +153,17 @@ pub(crate) fn rows(needle: &str, cols: u16) -> Vec<Row> {
         }
     }
     if out.is_empty() {
-        out.push(Row::Note(format!("no binding matches \"{needle}\"")));
+        // The way back, the way the palette's own miss says it
+        // (`cmdnote`): a filter that matched nothing has emptied the panel,
+        // and the panel is then the one surface that cannot show you what it
+        // holds. How many it holds is the other half of the answer.
+        out.push(Row::Note(format!(
+            "no binding matches \"{needle}\" \u{b7} clear it to see all {}",
+            crate::wording::count(
+                logical().iter().filter(|(k, _)| !k.is_empty()).count(),
+                "binding"
+            )
+        )));
     }
     out
 }

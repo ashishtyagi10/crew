@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.69
+
+**The two places crew has nothing to show now say the way out, in whole
+sentences.**
+
+**A chat pane with no provider** is the first thing a new user sees, and it was
+cut. The advice is one long sentence with three routes in it; the pane gets
+whatever rows the composer and the footer leave it, which on a quarter tile is
+three, so it wrapped, ran out, and ended `…paste it at a Nemotron row…`. The
+advice comes at **three lengths now** (`crew_plugin::no_provider_forms`,
+longest first), and the pane takes the longest that FITS — down to `/model:
+sign in, or paste a key.` A shorter true sentence beats a longer cut one, and
+every route out of this is the same picker anyway. One copy still, shared with
+the broker, which keeps using the long form where it has a stream to print to.
+
+**`/keys` filtered to nothing** said `no binding matches "zzz"` into an empty
+panel — the one surface that, having emptied itself, can no longer show you
+what it holds. It says `· clear it to see all 97 bindings` now, the way the
+command palette's own miss has since v0.22.1, and the count is read off the
+table rather than written down beside it.
+
 ## 0.22.68
 
 **Broadcast says so for as long as it is on.** The mode that sends your typing
