@@ -8,6 +8,49 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.76
+
+**Eight agents died of one timeout, and all eight blamed "error decoding
+response body".** A fan-out to the roster came back as eight identical
+`[error] http error: error decoding response body` lines, a sentence that
+names neither what failed nor where — and two separate bugs were hiding
+behind it.
+
+The per-attempt HTTP budget (`CREW_HTTP_TIMEOUT_MS`, 120s) was a TOTAL
+deadline, and reqwest carries a total deadline into the body read: a streamed
+answer still arriving at 120s was cut off mid-sentence. Every agent in a fan
+writes a long answer at the same time, so they all crossed it together — a
+minute before the broker's own 180s cap would have said anything useful about
+it. The budget is SILENCE now (`read_timeout`): the wait for the first byte,
+and each gap between two frames, with every frame that lands resetting it. A
+dead endpoint still fails on its own well inside the outer cap and still
+leaves the model fallback chain a turn; an answer that keeps arriving is
+never cut off.
+
+Then the sentence itself. `reqwest::Error`'s `Display` is its KIND and
+nothing else — every failure reading a body prints those same six words, the
+cause sits in `source()` which `to_string()` never walks, and a body error
+carries no URL at all. `provider::wire` turns one into
+`dashscope.aliyuncs.com went quiet — read timed out (operation timed out)`,
+or `could not connect to …`, or `… dropped the response mid-stream`.
+
+**Every subagent's reply is its own section now, collapsed.** Eleven agents
+answering one fanned-out task landed eleven full answers in the pane: the
+last agent's first line sat two screens below the first agent's, nothing said
+how much more there was, and the `fan done —` line you actually wanted had
+scrolled past before the fan finished. Each subagent card now renders like a
+tool card — badge, `├`/`└` connector, one line, ` … +N` — and a click opens
+the one you want, exactly as any other folded card opens. Its thought and its
+tool block keep their own collapsed rows above the header, so the section
+still says what the agent DID without saying it at length.
+
+The broker marks those cards (`metatag::SUB`, a tag in the message's `meta`);
+the pane never guesses from the sender, because `planner → user` is equally
+the shape of a fan reply and of the only reply in an ordinary turn — and
+folding that one would collapse the answer you are waiting for. A one-line
+card (a fan error) is not folded into nothing, an exported transcript never
+sees the tag, and a host that does not know it shows what it showed before.
+
 ## 0.22.75
 
 **The key prompt's hint fits the card it is in.** The masked paste prompt is a

@@ -7,6 +7,7 @@ use serde::Deserialize;
 
 use super::ssecalls::{frags, parse_args, CallAsm, Frag};
 use super::thinktags::{Piece, ThinkTags};
+use super::wire::wire_error;
 use super::{thinking, Chunk, ChunkFn, Completion, ProviderError};
 
 /// How many times to retry one model on a transient error before the chain
@@ -68,7 +69,7 @@ pub(super) async fn request_with_retry(
             .json(&body)
             .send()
             .await
-            .map_err(|e| ProviderError::Http(e.to_string()))?;
+            .map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))?;
         let status = resp.status().as_u16();
         let retry_after_hdr = resp
             .headers()
@@ -78,7 +79,7 @@ pub(super) async fn request_with_retry(
         let text = resp
             .text()
             .await
-            .map_err(|e| ProviderError::Http(e.to_string()))?;
+            .map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))?;
         if status == 400 && thinking::strip(&mut body) {
             continue;
         }
@@ -144,7 +145,7 @@ pub(super) async fn request_with_retry_streaming(
             .json(&req_body)
             .send()
             .await
-            .map_err(|e| ProviderError::Http(e.to_string()))?;
+            .map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))?;
         let status = resp.status().as_u16();
         let retry_after_hdr = resp
             .headers()
@@ -165,14 +166,14 @@ pub(super) async fn request_with_retry_streaming(
         // Usage frame (Critical-1: OpenRouter's wrapped-error shape must not
         // become a silent empty success).
         let text = if status == 200 && !is_json_ct {
-            match consume_sse(resp, &body, on_chunk, started).await? {
+            match consume_sse(resp, endpoint, &body, on_chunk, started).await? {
                 SseOutcome::Completion(c) => return Ok(c),
                 SseOutcome::NoContent(raw) => raw,
             }
         } else {
             resp.text()
                 .await
-                .map_err(|e| ProviderError::Http(e.to_string()))?
+                .map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))?
         };
         // Same status handling as the non-streaming path (including the
         // retry_delay integration), plus a one-shot fallback off the
@@ -231,6 +232,7 @@ enum SseOutcome {
 /// to `on_chunk` (see [`request_with_retry_streaming`]'s doc comment).
 async fn consume_sse(
     resp: reqwest::Response,
+    endpoint: &str,
     req_body: &serde_json::Value,
     on_chunk: &ChunkFn,
     started: &std::sync::atomic::AtomicBool,
@@ -240,7 +242,7 @@ async fn consume_sse(
     let mut raw_bytes: Vec<u8> = Vec::new();
     let mut st = SseState::default();
     'read: while let Some(chunk) = stream.next().await {
-        let bytes = chunk.map_err(|e| ProviderError::Http(e.to_string()))?;
+        let bytes = chunk.map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))?;
         raw_bytes.extend_from_slice(&bytes);
         carry.extend_from_slice(&bytes);
         while let Some(pos) = carry.iter().position(|&b| b == b'\n') {

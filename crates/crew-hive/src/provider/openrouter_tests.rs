@@ -104,6 +104,102 @@ async fn stalled_server_fails_fast_instead_of_hanging() {
     );
 }
 
+/// A slow but STEADY stream must outlive the per-attempt budget. That budget
+/// used to be a total deadline, which covers the body read too, so a stream
+/// still arriving when it expired was killed mid-sentence — and reqwest
+/// reports a body failure as the kind-only `error decoding response body`,
+/// so eight fan agents cut off by one 120s deadline reported eight identical
+/// sentences that named neither a timeout nor a host. The budget is silence
+/// now: every frame that lands resets it.
+#[tokio::test]
+async fn a_slow_but_steady_stream_outlives_the_per_attempt_budget() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        use tokio::io::AsyncWriteExt;
+        let (mut sock, _) = listener.accept().await.unwrap();
+        read_request(&mut sock).await;
+        let head = "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\n\
+                    transfer-encoding: chunked\r\n\r\n";
+        let _ = sock.write_all(head.as_bytes()).await;
+        // Ten deltas, 40ms apart: 400ms of stream through a 150ms budget,
+        // with no single gap longer than it.
+        for i in 0..10 {
+            let delta = format!("data: {{\"choices\":[{{\"delta\":{{\"content\":\"{i}\"}}}}]}}\n");
+            let framed = format!("{:x}\r\n{}\r\n", delta.len(), delta);
+            let _ = sock.write_all(framed.as_bytes()).await;
+            let _ = sock.flush().await;
+            tokio::time::sleep(Duration::from_millis(40)).await;
+        }
+        let done = "data: [DONE]\n";
+        let framed = format!("{:x}\r\n{}\r\n0\r\n\r\n", done.len(), done);
+        let _ = sock.write_all(framed.as_bytes()).await;
+        let _ = sock.flush().await;
+    });
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"))
+        .with_timeout(Duration::from_millis(150));
+    let (on_chunk, chunks) = collecting_chunk_fn();
+    let req = CompletionRequest {
+        model: "m".into(),
+        system: None,
+        prompt: "hi".into(),
+        max_tokens: 8,
+        ..Default::default()
+    };
+    let done = tokio::time::timeout(Duration::from_secs(10), p.complete_streaming(req, on_chunk))
+        .await
+        .expect("must not hang")
+        .expect("a stream that keeps arriving must not be cut off");
+    assert_eq!(done.text, "0123456789");
+    assert_eq!(chunks.lock().unwrap().concat(), "0123456789");
+}
+
+/// The other half of that contract: a stream that goes QUIET for longer than
+/// the budget still fails on its own, mid-body, rather than hanging until the
+/// broker's outer per-call cap — and says so in words.
+#[tokio::test]
+async fn a_stream_that_goes_quiet_midbody_still_fails_fast() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        use tokio::io::AsyncWriteExt;
+        let (mut sock, _) = listener.accept().await.unwrap();
+        read_request(&mut sock).await;
+        let head = "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\n\
+                    transfer-encoding: chunked\r\n\r\n";
+        let delta = "data: {\"choices\":[{\"delta\":{\"content\":\"partial\"}}]}\n";
+        let framed = format!("{:x}\r\n{}\r\n", delta.len(), delta);
+        let _ = sock.write_all(head.as_bytes()).await;
+        let _ = sock.write_all(framed.as_bytes()).await;
+        let _ = sock.flush().await;
+        // …and then nothing, holding the socket open.
+        tokio::time::sleep(Duration::from_secs(30)).await;
+    });
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"))
+        .with_timeout(Duration::from_millis(150));
+    let (on_chunk, _chunks) = collecting_chunk_fn();
+    let req = CompletionRequest {
+        model: "m".into(),
+        system: None,
+        prompt: "hi".into(),
+        max_tokens: 8,
+        ..Default::default()
+    };
+    let res = tokio::time::timeout(Duration::from_secs(5), p.complete_streaming(req, on_chunk))
+        .await
+        .expect("provider hung: a silent stream must trip the budget on its own");
+    let Err(ProviderError::Http(said)) = res else {
+        panic!("expected an http error, got {res:?}");
+    };
+    assert!(said.contains("timed out"), "{said}");
+    assert!(
+        !said.contains("error decoding response body"),
+        "the reqwest kind is not a diagnosis: {said}"
+    );
+}
+
 #[test]
 fn does_not_retry_hard_errors() {
     assert_eq!(

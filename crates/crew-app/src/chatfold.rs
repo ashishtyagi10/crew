@@ -31,12 +31,14 @@ pub(crate) const FOLD_LINES: usize = 3;
 /// says everything a summary needs (`sys:run ✓ 1.2s`) and every line under it
 /// is raw output — three lines of a JSON body is not a preview, it is three
 /// lines of a JSON body. The splash nameplate never folds; clamping box art to
-/// its `╔` line would destroy it.
+/// its `╔` line would destroy it. A SUBAGENT SECTION ([`crate::chatsub`])
+/// folds at one line for the same reason at a different scale: eleven full
+/// answers is not a transcript, it is eleven transcripts.
 fn fold_threshold(m: &Message) -> Option<usize> {
     if crate::chatmsgs::is_splash(m) {
         return None;
     }
-    if crate::chatmsgs::is_tool_card(m) {
+    if crate::chatmsgs::is_tool_card(m) || crate::chatsub::is_section(m) {
         return Some(1);
     }
     crate::chatmsgs::is_system_voice(&m.sender).then_some(FOLD_LINES)

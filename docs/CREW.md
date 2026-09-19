@@ -2268,7 +2268,17 @@ bill, formatted exactly like the summary footer's totals. **Long
 system/telemetry cards auto-fold**: a system-voice card past three body lines
 (turn summaries, `/doctor` output, roster dumps) renders as its header + first
 line + ` … +N`; a plain click expands it, a click on its header folds it back
-(a drag-selection never toggles, and Ctrl+O's compact view wins outright). The composer on the bottom rows shows an
+(a drag-selection never toggles, and Ctrl+O's compact view wins outright).
+**Every subagent's reply is its own folded section**: when a turn fans the
+same task out to the roster, each agent's answer lands under its badge and
+its `├`/`└` tree connector as one line plus ` … +N`, collapsed until you
+click the one you want open — eleven full answers is not a transcript, it is
+eleven transcripts, and the summary line that closes the turn used to scroll
+past before the fan had finished. The agent's thought and its tool block sit
+above that header as their own one-line rows and open on their own click.
+The reply of an ordinary one-agent turn is never folded; the broker marks the
+cards that are subagent work (`metatag::SUB`), so the pane never has to guess
+from the sender. The composer on the bottom rows shows an
 affordance bar (`@agent` chips in roster colours, `Enter send · Esc close`
 hints) above a `❯` prompt that highlights a valid leading `@mention` in that
 agent's colour. **Ctrl+R** opens a shell-style **reverse search** over what
@@ -2928,9 +2938,12 @@ agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request;
 sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:edit`, `sys:list_dir`,
 `sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
 and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
-`CREW_HTTP_TIMEOUT_MS` (default 120000) bounds each HTTP attempt to a provider,
-deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled endpoint names the
-transport and still leaves the model fallback chain a turn;
+`CREW_HTTP_TIMEOUT_MS` (default 120000) is how long a provider may say
+NOTHING — the wait for the first byte, and each gap between two frames of a
+streamed reply — deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled
+endpoint names the transport and still leaves the model fallback chain a turn;
+it is not a budget for the whole call, so a long answer that keeps arriving is
+never cut off mid-sentence;
 `CREW_STREAM_TEXT=0` stops streamed text being forwarded at all (the model's
 reasoning too), restoring the pre-streaming behaviour for a regressed run or a
 deterministic test; `CREW_THINKING=0` stops asking a provider to SHOW its

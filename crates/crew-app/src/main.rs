@@ -116,6 +116,10 @@ mod chatsend;
 mod chatsettle;
 mod chatspawn;
 mod chatstate;
+mod chatsub;
+#[cfg(test)]
+#[path = "chatsubshot_tests.rs"]
+mod chatsubshot_tests;
 mod chatsummary;
 mod chatswarm;
 mod chatswarmcell;
