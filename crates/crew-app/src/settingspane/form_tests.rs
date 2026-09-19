@@ -1,49 +1,65 @@
 use ratatui::layout::{Position, Rect};
 
-use super::form::{dim, ink, input_box, layout, scroll_for, tab_order, STACK_BELOW};
+use super::form::{dim, ink, input_box, layout, scroll_for};
 use super::{Field, FIELDS};
 use ratatui::buffer::Buffer;
 use ratatui::style::Modifier;
 
 #[test]
-fn wide_pane_lays_out_two_columns() {
-    let lay = layout(80);
-    // Structural rather than a card count: appearance owns the left column
-    // alone and everything else stacks down the right. Pinning the number
-    // meant adding a card broke this test without saying anything about the
-    // layout, which is what happened when usage arrived.
-    let (appearance, right) = lay.cards.split_first().expect("at least one card");
-    assert_eq!(appearance.title, "appearance");
-    assert!(right.len() >= 2, "the right column is empty");
-    for c in right {
-        assert!(
-            c.rect.x > appearance.rect.x,
-            "{} is not in the right column",
-            c.title
-        );
-        assert_eq!(c.rect.x, right[0].rect.x, "{} broke the column", c.title);
-    }
-    for w in right.windows(2) {
-        assert!(
-            w[1].rect.y >= w[0].rect.y + w[0].rect.height,
-            "{} overlaps {}",
-            w[1].title,
-            w[0].title
-        );
-    }
-    assert_eq!(
-        lay.height,
+fn a_wide_pane_deals_the_cards_into_balanced_columns() {
+    let lay = layout(160);
+    let mut xs: Vec<u16> = lay.cards.iter().map(|c| c.rect.x).collect();
+    xs.sort_unstable();
+    xs.dedup();
+    assert!(xs.len() > 1, "a whole window still drew one column: {xs:?}");
+    // Balanced: no column is taller than the shortest one plus the tallest
+    // card, which is the most a shortest-column deal can be out by.
+    let bottom = |x: u16| -> u16 {
         lay.cards
             .iter()
+            .filter(|c| c.rect.x == x)
             .map(|c| c.rect.y + c.rect.height)
             .max()
-            .unwrap()
+            .unwrap_or(0)
+    };
+    let tallest = lay.cards.iter().map(|c| c.rect.height).max().unwrap();
+    let (lo, hi) = (
+        xs.iter().map(|&x| bottom(x)).min().unwrap(),
+        xs.iter().map(|&x| bottom(x)).max().unwrap(),
     );
+    assert!(hi <= lo + tallest, "columns {lo} and {hi} are not balanced");
+    assert_eq!(lay.height, hi, "the form is as tall as its tallest column");
+    // Within a column the cards stack in order and never overlap.
+    for x in xs {
+        let col: Vec<&super::form::Card> = lay.cards.iter().filter(|c| c.rect.x == x).collect();
+        for w in col.windows(2) {
+            assert!(
+                w[1].rect.y >= w[0].rect.y + w[0].rect.height,
+                "{} overlaps {}",
+                w[1].title,
+                w[0].title
+            );
+        }
+    }
+}
+
+/// The point of the split and the deal: a whole window's worth of settings
+/// fits a whole window, rather than scrolling one tall column past a column
+/// of empty page.
+#[test]
+fn a_whole_window_does_not_have_to_scroll() {
+    let one = layout(40).height;
+    let wide = layout(160).height;
+    assert!(
+        wide * 2 < one,
+        "160 columns saved nothing: {wide} vs {one} stacked"
+    );
+    assert!(wide <= 30, "a whole window still scrolls at {wide} rows");
 }
 
 #[test]
 fn narrow_pane_stacks_single_column() {
-    let lay = layout(STACK_BELOW - 1);
+    let lay = layout(48);
     let xs: Vec<u16> = lay.cards.iter().map(|c| c.rect.x).collect();
     assert!(xs.iter().all(|&x| x == xs[0]), "same x: {xs:?}");
     for w in lay.cards.windows(2) {
@@ -136,53 +152,4 @@ fn the_focused_box_is_bold_and_an_empty_box_says_what_empty_means() {
         Some("theme's own"),
     );
     assert_eq!(buf[(1, 1)].fg, ink(), "a typed value is ink, hint gone");
-}
-
-#[test]
-fn the_tab_order_is_the_order_the_form_is_drawn_in() {
-    // It used to be a hand-written list that had drifted: `Paper grain` is
-    // drawn third, beside `Font size`, and was tabbed seventeenth; `Nav width`
-    // sits in the WINDOW card and was tabbed fifth, so Tab left the appearance
-    // card, crossed the form and came back.
-    for cols in [60, 100, 160] {
-        let drawn: Vec<Field> = layout(cols).rects.iter().map(|(f, _)| *f).collect();
-        let order = tab_order(cols);
-        assert_eq!(order[..drawn.len()], drawn[..], "at {cols} cols");
-        // The buttons are drawn by `render`, not placed by `layout`, so they
-        // arrive through the fallback — which is therefore load-bearing, not
-        // theoretical: without it Tab could never reach Save.
-        assert_eq!(order[drawn.len()..], [Field::Save, Field::Cancel]);
-    }
-}
-
-#[test]
-fn every_field_is_reachable_by_tab_at_every_width() {
-    // A field Tab cannot reach is a field that cannot be changed.
-    for cols in [40, 60, 80, 100, 160, 240] {
-        let order = tab_order(cols);
-        for f in FIELDS {
-            assert!(order.contains(&f), "{f:?} unreachable at {cols} cols");
-        }
-        let mut seen = order.clone();
-        seen.sort_by_key(|f| format!("{f:?}"));
-        seen.dedup();
-        assert_eq!(seen.len(), order.len(), "a field is tabbed twice at {cols}");
-    }
-}
-
-#[test]
-fn tab_walks_each_card_down_before_moving_to_the_next() {
-    // Above STACK_BELOW the form is TWO COLUMNS of cards, so "top to bottom"
-    // means down a card and on to the next — not across the two columns, row
-    // by row, which is what sorting the rects by y would have given.
-    let order = tab_order(160);
-    let pos = |f: Field| order.iter().position(|x| *x == f).unwrap();
-    // The whole appearance card comes before anything in the window card.
-    assert!(pos(Field::Gradient) < pos(Field::NavWidth), "{order:?}");
-    // And within a card, the eye's order: font family, then size beside grain.
-    assert!(pos(Field::FontFamily) < pos(Field::FontSize));
-    assert!(pos(Field::FontSize) < pos(Field::PaperGrain));
-    assert!(pos(Field::PaperGrain) < pos(Field::Smooth));
-    // Save and Cancel are last, as the last thing you reach.
-    assert_eq!(order[order.len() - 2..], [Field::Save, Field::Cancel]);
 }

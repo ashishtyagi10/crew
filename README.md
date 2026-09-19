@@ -712,8 +712,12 @@ trips. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 
 ## Settings
 
-`/settings` opens a **two-column bento form** covering every configurable
-property: font family/size, font smoothing (the `/smooth` ladder), text gamma
+`/settings` opens a **bento form** of fieldset cards — APPEARANCE, CANVAS,
+NOTIFICATIONS, WINDOW and USAGE — **dealt into one, two or three balanced
+columns**, whichever makes the form shortest at the pane's width. On a whole
+window that is three columns and no scrolling at all. It covers every
+configurable property: font family/size, font smoothing (the `/smooth`
+ladder), text gamma
 (the `/gamma` ladder), line spacing
 (`/leading`), density, nav width + visibility, theme, accent, paper texture +
 grain, card border marks, revealed invisibles, launch-maximized, and the whole

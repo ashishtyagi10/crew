@@ -3288,12 +3288,23 @@ between them only focuses — the value is not a button), the font-family box
 opens its list and a row in it picks that font, and Save / Cancel do what they
 say. The wheel walks the fields and stops at the ends rather than wrapping.
 Tab walks the form in the order it is DRAWN, which at a width where the cards
-sit in two columns means down one card and on to the next.
+sit in columns means down one card and on to the next.
 
-`/settings` opens a **two-column bento form** covering **every configurable
-property** — an APPEARANCE card in the left column, WINDOW and NOTIFICATIONS
-stacked on the right (collapsing to one column on a narrow pane); Tab/wheel
-move focus, Enter commits a field, **Cmd+S / Alt+S** saves and closes.
+`/settings` opens a **bento form** covering **every configurable property**,
+its cards **dealt into balanced columns**: each card goes to whichever column
+is shortest so far, and the form uses the number of columns (one, two or
+three) that makes it shortest at that width — measured rather than
+thresholded, because a third column only helps while its cards are still wide
+enough to sit their fields in pairs. On a whole window that is three columns
+and no scrolling at all; on a narrow pane it is one column, stacked.
+
+The cards are APPEARANCE (the typeface and the colours the page is made of),
+CANVAS (how crew draws them: glass, motion, density, line spacing, contrast,
+shape cues, gradient and the marks a card wears), NOTIFICATIONS, WINDOW and
+USAGE. Appearance and canvas were one card until the balancer arrived — twenty
+fields in one card is one column that cannot be balanced against anything, and
+they were always two subjects. Tab/wheel move focus, Enter commits a field,
+**Cmd+S / Alt+S** saves and closes.
 
 The **accent** field also says how its colour *reads*: `4.6:1` beside the
 swatch, drawn in the alarm colour when it falls below `3.0` — the same floor

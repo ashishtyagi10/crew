@@ -171,3 +171,6 @@ mod family_tests;
 #[cfg(test)]
 #[path = "form_tests.rs"]
 mod form_tests;
+#[cfg(test)]
+#[path = "formtab_tests.rs"]
+mod formtab_tests;
