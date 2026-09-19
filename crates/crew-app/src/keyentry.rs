@@ -9,10 +9,8 @@
 //!
 //! The buffer is NEVER rendered in plaintext, logged, exported or written
 //! anywhere but the credential store.
-use crew_render::CellView;
 
 use crate::chatkeys::ChatInput;
-use crate::popupplace::Popup;
 
 /// Height without the waiting hint: top border, input row, bottom border.
 const ROWS_PLAIN: u16 = 3;
@@ -136,63 +134,10 @@ impl KeyEntry {
     pub(crate) fn paste(&mut self, text: &str) {
         self.buf.push_str(&text.replace(['\n', '\r'], ""));
     }
-
-    /// The prompt as a composer pop-up: a fieldset card with the variable
-    /// named in the legend, one interior row of mask glyphs (one per typed
-    /// character, clipped to the card), as wide as `keyhint::want` says in
-    /// a pane `cols` wide — it grows with the pasted key.
-    pub(crate) fn card(&self, cols: u16) -> Popup {
-        let t = crew_theme::theme();
-        let bg = t.page_bg;
-        let put = |col: u16, row: u16, c: char, fg: (u8, u8, u8), bold: bool| CellView {
-            col,
-            row,
-            c,
-            fg,
-            bg,
-            bold,
-            italic: false,
-            ..Default::default()
-        };
-        let typed = self.buf.chars().count();
-        let cols = crate::popupplace::card_cols(crate::keyhint::want(self.hint(), typed), cols);
-        // Lowercase, matching every other composer-overlay legend. The legend
-        // is never a leak risk: the secret is drawn on its own interior row
-        // (row 1) and the leak test scopes its assertion to that row alone.
-        // `fit_legend` keeps the tail (the variable name) over the head (the
-        // word "paste") when the card is too narrow for both.
-        let title = crate::cwd::fit_legend(
-            &format!("paste {}", self.var),
-            crate::boxdraw::title_budget(cols),
-        );
-        let rows = self.rows();
-        let mut cells = crate::popupchrome::card(cols, rows, &title);
-        if cells.is_empty() {
-            return Popup { cells, cols, rows };
-        }
-        // A `❯` at the field's head, as on the composer: this row is typed
-        // into. The mask and the hint start one column past it.
-        let inner = cols.saturating_sub(4) as usize;
-        cells.push(put(
-            1,
-            1,
-            crate::glyphs::prompt(),
-            crate::palette::accent(),
-            true,
-        ));
-        cells.extend((0..typed.min(inner)).map(|i| put(3 + i as u16, 1, '•', t.ink, false)));
-        if let Some(hint) = self.hint() {
-            // ROW 2 IS LOAD-BEARING, not decoration: the hint text contains
-            // almost every character of a typical key, so drawing it on row 1
-            // would make the leak assertion (which scopes itself to row 1)
-            // vacuous. A test pins it here.
-            let hint = crate::chatwidth::clip_w(hint, inner);
-            let row = hint.chars().enumerate();
-            cells.extend(row.map(|(i, c)| put(3 + i as u16, 2, c, t.text_muted, false)));
-        }
-        Popup { cells, cols, rows }
-    }
 }
+
+#[path = "keycard.rs"]
+mod keycard;
 
 #[cfg(test)]
 #[path = "keyentry_tests.rs"]
