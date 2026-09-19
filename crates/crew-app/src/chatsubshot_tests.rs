@@ -78,6 +78,26 @@ fn fanned_pane() -> ChatPane {
     p
 }
 
+/// The same fan WHILE IT RUNS: four agents streaming at once, each live
+/// card folded to one line with its thinking head over it, and one agent
+/// that has already landed. This is the pane at its noisiest.
+fn live_fan_shot(name: &str, w: u32) -> Option<Vec<u8>> {
+    let mut pane = fanned_pane();
+    pane.messages.truncate(4); // the user, the fan note, two landed replies
+    for agent in ["communicator", "analyst", "documenter", "software-engineer"] {
+        pane.absorb_delta(agent.to_string(), BODY.into(), true);
+    }
+    let now = crate::chattime::unix_now_ms();
+    pane.thoughts.absorb(
+        "analyst",
+        "weighing the four items\nagainst what is half built",
+        now,
+    );
+    shot_at(name, w, H, 13.0, "crew", |cols, rows, aspect| {
+        crate::chatview::art(&pane, cols, rows, aspect)
+    })
+}
+
 fn fan_shot(name: &str, w: u32, open: bool) -> Option<Vec<u8>> {
     let mut pane = fanned_pane();
     if open {
@@ -102,6 +122,18 @@ fn fan_shot_sections_are_collapsed() {
         };
         assert!(crate::shotgpu_tests::ink(&px) > 4000, "{name} drew");
     }
+}
+
+/// The fan mid-flight: four live streams, four folded lines.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn fan_shot_live_streams_are_folded() {
+    let _g = crate::app::theme_test_guard();
+    let Some(px) = live_fan_shot("fan-live", 700) else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    assert!(crate::shotgpu_tests::ink(&px) > 4000, "fan-live drew");
 }
 
 /// …and the same turn with one section clicked open, which is the only way

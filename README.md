@@ -564,7 +564,9 @@ Both take the quiet dotted gutter, so a task that calls four tools doesn't read
 as nine agent replies. A turn that fans the same task out to the whole roster
 folds the same way: **each subagent's answer is its own section**, one line
 under that agent's badge with ` … +N` for the rest, open on a click — eleven
-full answers is eleven transcripts, not one.
+full answers is eleven transcripts, not one, live or landed — a fanned
+agent's card is folded from its first streamed fragment, not after it has
+already filled the pane.
 
 It also borrows the flagship moves of the big coding agents: **plan mode**
 (ask for "a plan for …" and nothing runs until you approve it — enter or

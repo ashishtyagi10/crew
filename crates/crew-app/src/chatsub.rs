@@ -33,6 +33,18 @@ pub(crate) fn is_section(m: &Message) -> bool {
     crew_plugin::metatag::has(&m.meta, crew_plugin::metatag::SUB)
 }
 
+/// The `meta` a LIVE card opens with: the mark when the broker said this
+/// stream is one subagent's ([`crew_plugin::metatag::SUB`] on the `Delta`),
+/// nothing when it did not. The live card is written with the same tag the
+/// settled card will carry, so one predicate folds both and the section does
+/// not pop open as the turn settles.
+pub(crate) fn live_meta(sub: bool) -> String {
+    match sub {
+        true => crew_plugin::metatag::SUB.to_string(),
+        false => String::new(),
+    }
+}
+
 #[cfg(test)]
 #[path = "chatsub_tests.rs"]
 mod tests;

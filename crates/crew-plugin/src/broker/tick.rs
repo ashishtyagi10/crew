@@ -140,7 +140,19 @@ pub(crate) fn hop_texter(
     tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     agent: String,
 ) -> std::sync::Arc<dyn Fn(&str) + Send + Sync> {
-    hop_texter_with(tick_emit, agent, text_streaming_enabled())
+    hop_texter_with(tick_emit, agent, text_streaming_enabled(), false)
+}
+
+/// [`hop_texter`] for one agent of a PARALLEL fan: every Delta says it is a
+/// subagent's, so the host can seat the live card as its own collapsed
+/// section (`chatsub`) from the first fragment rather than at settle time —
+/// eight streams typing into one pane at once is the noise, and it is at its
+/// worst while the fan is still running.
+pub(crate) fn hop_texter_sub(
+    tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    agent: String,
+) -> std::sync::Arc<dyn Fn(&str) + Send + Sync> {
+    hop_texter_with(tick_emit, agent, text_streaming_enabled(), true)
 }
 
 /// [`hop_texter`] with the switch handed in rather than read from the
@@ -157,6 +169,7 @@ pub(crate) fn hop_texter_with(
     tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     agent: String,
     enabled: bool,
+    sub: bool,
 ) -> std::sync::Arc<dyn Fn(&str) + Send + Sync> {
     let gate = std::sync::Mutex::new(TextGate::new());
     let hop_start = std::time::Instant::now();
@@ -170,6 +183,7 @@ pub(crate) fn hop_texter_with(
             tick_emit(PluginEvent::Delta {
                 agent: agent.clone(),
                 text: payload,
+                sub,
             });
         }
     })

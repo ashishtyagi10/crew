@@ -144,7 +144,9 @@ impl crate::chat::ChatPane {
     /// card, opening one on the hop's first delta. The touched card moves to
     /// the END of `streaming`, so the last entry is always the most recently
     /// updated one. Advisory — `settle_stream` discards whatever accumulated.
-    pub(crate) fn absorb_delta(&mut self, agent: String, text: String) {
+    /// `sub` (one subagent's stream of many) decides the card's `meta` —
+    /// see [`crate::chatsub::live_meta`].
+    pub(crate) fn absorb_delta(&mut self, agent: String, text: String, sub: bool) {
         // `stream_key` normalizes BOTH sides, matching `settle_stream`: no
         // current caller sends an arrow-form `agent`, but if one ever did,
         // comparing it raw against the normalized `m.sender` would never
@@ -168,7 +170,7 @@ impl crate::chat::ChatPane {
             sender: agent,
             text,
             ts: now.to_string(),
-            meta: String::new(),
+            meta: crate::chatsub::live_meta(sub),
             usage: None,
             expanded: false,
         });

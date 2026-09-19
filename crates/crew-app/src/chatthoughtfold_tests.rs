@@ -65,7 +65,7 @@ fn a_thought_with_no_card_yet_stands_at_the_end_under_the_agents_badge() {
 fn the_streaming_card_seats_the_thought_above_itself() {
     let _g = crate::app::motion_test_guard();
     let mut p = thinking();
-    p.absorb_delta("coder".into(), "Short answer:".into());
+    p.absorb_delta("coder".into(), "Short answer:".into(), false);
     let r = rows(&p);
     let head = r
         .iter()

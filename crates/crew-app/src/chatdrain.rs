@@ -123,7 +123,7 @@ impl ChatPane {
                     PluginEvent::StatsTick { agent, .. } => {
                         self.note_tokens(&agent, crate::anim::now_ms())
                     }
-                    PluginEvent::Delta { agent, text } => self.absorb_delta(agent, text),
+                    PluginEvent::Delta { agent, text, sub } => self.absorb_delta(agent, text, sub),
                     PluginEvent::Thought { agent, text } => self.absorb_thought(agent, text),
                     PluginEvent::Message {
                         sender,

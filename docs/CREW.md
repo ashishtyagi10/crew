@@ -2274,7 +2274,11 @@ same task out to the roster, each agent's answer lands under its badge and
 its `├`/`└` tree connector as one line plus ` … +N`, collapsed until you
 click the one you want open — eleven full answers is not a transcript, it is
 eleven transcripts, and the summary line that closes the turn used to scroll
-past before the fan had finished. The agent's thought and its tool block sit
+past before the fan had finished. It folds WHILE IT RUNS too: the broker's
+`Delta` carries the same mark, so a live card is a section from its first
+fragment (and its live thought keeps only its shimmering `thinking · 4s`
+head) rather than typing a full answer into the pane and collapsing when it
+lands. The agent's thought and its tool block sit
 above that header as their own one-line rows and open on their own click.
 The reply of an ordinary one-agent turn is never folded; the broker marks the
 cards that are subagent work (`metatag::SUB`), so the pane never has to guess

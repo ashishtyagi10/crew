@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.77
+
+**The fan folds while it runs, not just after.** v0.22.76 gave every
+subagent's reply its own collapsed section, but only once it had landed: the
+live cards still typed their full answers into the pane, four and eight at a
+time, which is the pane at its noisiest — and the moment you most want to
+watch the `fan done` line rather than eight streams racing each other.
+
+The mark now rides the stream. `PluginEvent::Delta` carries a `sub` flag (a
+serde default, so an older broker still decodes), `hop_texter_sub` sets it
+for every agent of a fan, and the host writes it into the live card's `meta`
+exactly as the settled card will carry it. So the card folds from its FIRST
+fragment and keeps folding when the reply lands — one predicate, one look, no
+pop as the turn settles. An ordinary one-agent turn is untouched: that stream
+IS the answer you are waiting for.
+
+A folded section's live thought keeps its head row — the shimmering
+`thinking · 4s` — and drops the rows of working under it. Eight agents each
+trailing their scratch over a card folded to one line puts the machinery
+louder than the voice; the head already says the one thing a folded section
+owes you, which is that this agent is still going. A settled thought block is
+left alone at any fold: collapsed it is one row already, and open it is open
+because someone clicked it.
+
 ## 0.22.76
 
 **Eight agents died of one timeout, and all eight blamed "error decoding

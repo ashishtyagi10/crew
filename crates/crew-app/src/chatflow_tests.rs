@@ -29,8 +29,8 @@ fn turn_total_accumulates_split_and_cost() {
 #[test]
 fn absorb_delta_normalizes_arrow_form_agent_name_like_settle_stream_does() {
     let mut pane = test_pane();
-    pane.absorb_delta("coder".into(), "Hello".into());
-    pane.absorb_delta("coder \u{2192} user".into(), ", world".into());
+    pane.absorb_delta("coder".into(), "Hello".into(), false);
+    pane.absorb_delta("coder \u{2192} user".into(), ", world".into(), false);
     assert_eq!(
         pane.streaming.len(),
         1,
@@ -74,7 +74,7 @@ fn streaming_cards_carry_no_usage() {
     // while a reply stat is stashed must not pick it up.
     let mut pane = test_pane();
     pane.absorb_stats(950, "coder".into(), 1_200, 900, 900, 50, 12_000);
-    pane.absorb_delta("coder".into(), "Hel".into());
+    pane.absorb_delta("coder".into(), "Hel".into(), false);
     assert_eq!(pane.streaming[0].usage, None);
 }
 

@@ -91,9 +91,13 @@ pub(super) fn translate(
             let name = agent_name(agent, agent_task);
             let gate = gates.entry(agent.0).or_insert_with(TextGate::new);
             match gate.push(text, now_ms) {
+                // Not a subagent SECTION: a swarm's cards are not marked
+                // either (it has its own view), and marking only the live
+                // half would fold a card that unfolds when it settles.
                 Some(payload) => vec![PluginEvent::Delta {
                     agent: name,
                     text: payload,
+                    sub: false,
                 }],
                 None => vec![],
             }
