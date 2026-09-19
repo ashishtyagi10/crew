@@ -193,12 +193,14 @@ fn delta_round_trips_with_type_tag() {
     let ev = PluginEvent::Delta {
         agent: "coder".into(),
         text: "partial ".into(),
+        sub: true,
     };
     let s = serde_json::to_string(&ev).unwrap();
     assert!(s.contains(r#""type":"delta""#), "got: {s}");
     match serde_json::from_str::<PluginEvent>(&s).unwrap() {
-        PluginEvent::Delta { agent, text } => {
+        PluginEvent::Delta { agent, text, sub } => {
             assert_eq!((agent.as_str(), text.as_str()), ("coder", "partial "));
+            assert!(sub, "the subagent mark rides the wire");
         }
         other => panic!("wrong variant: {other:?}"),
     }

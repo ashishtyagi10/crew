@@ -119,7 +119,7 @@ fn a_card_still_typing_keeps_the_frames_coming_after_the_pane_goes_idle() {
     let _g = crate::app::motion_test_guard();
     set_level(Full);
     let mut p = pane();
-    p.absorb_delta("coder".into(), "x".repeat(N)); // the real clock: just now
+    p.absorb_delta("coder".into(), "x".repeat(N), false); // the real clock
     assert!(
         !p.is_busy(),
         "fixture: no hop is open, so `pane_busy` is false"

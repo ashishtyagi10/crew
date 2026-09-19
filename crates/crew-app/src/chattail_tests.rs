@@ -3,7 +3,7 @@ use super::*;
 fn streaming_pane(n: usize) -> crate::chat::ChatPane {
     let mut p = crate::chat::tests::pane();
     for i in 0..n {
-        p.absorb_delta(format!("agent{i}"), "some streamed text".into());
+        p.absorb_delta(format!("agent{i}"), "some streamed text".into(), false);
     }
     p
 }
@@ -43,7 +43,7 @@ fn no_tail_without_any_streaming_card() {
 fn tail_follows_the_most_recently_updated_agent() {
     let mut p = streaming_pane(2);
     p.scroll = 5;
-    p.absorb_delta("agent0".into(), " NEWEST".into());
+    p.absorb_delta("agent0".into(), " NEWEST".into(), false);
     p.reveal_all(); // the typewriter is under test in `chatreveal`, not here
     let cells = tail_cells(&p, 80, 0);
     let drawn: String = cells.iter().map(|c| c.c).collect();
@@ -63,8 +63,8 @@ fn tail_follows_the_most_recently_updated_agent() {
 #[test]
 fn streamed_text_never_duplicates_with_several_agents_at_the_live_bottom() {
     let mut p = crate::chat::tests::pane();
-    p.absorb_delta("agent0".into(), "zeromarkerxyz".into());
-    p.absorb_delta("agent1".into(), "onemarkerxyz".into());
+    p.absorb_delta("agent0".into(), "zeromarkerxyz".into(), false);
+    p.absorb_delta("agent1".into(), "onemarkerxyz".into(), false);
     p.reveal_all();
     assert_eq!(p.scroll, 0, "fixture must start at the live bottom");
 
@@ -101,7 +101,7 @@ fn streamed_text_never_duplicates_with_several_agents_at_the_live_bottom() {
 #[test]
 fn empty_streaming_card_does_not_panic() {
     let mut p = crate::chat::tests::pane();
-    p.absorb_delta("agent0".into(), String::new());
+    p.absorb_delta("agent0".into(), String::new(), false);
     p.scroll = 5;
     assert_eq!(tail_rows(&p, 80), TAIL_ROWS);
     // Must not panic, and whatever it draws must stay in bounds.
@@ -112,7 +112,7 @@ fn empty_streaming_card_does_not_panic() {
 #[test]
 fn a_single_word_longer_than_cols_hard_breaks_instead_of_overflowing() {
     let mut p = crate::chat::tests::pane();
-    p.absorb_delta("agent0".into(), "x".repeat(100));
+    p.absorb_delta("agent0".into(), "x".repeat(100), false);
     p.reveal_all();
     p.scroll = 5;
     let cols = 20u16;
@@ -133,7 +133,7 @@ fn a_single_word_longer_than_cols_hard_breaks_instead_of_overflowing() {
 #[test]
 fn wide_cjk_glyphs_never_overflow_the_column_budget() {
     let mut p = crate::chat::tests::pane();
-    p.absorb_delta("agent0".into(), "\u{6f22}\u{5b57}".repeat(30));
+    p.absorb_delta("agent0".into(), "\u{6f22}\u{5b57}".repeat(30), false);
     p.reveal_all();
     p.scroll = 5;
     let cols = 20u16;

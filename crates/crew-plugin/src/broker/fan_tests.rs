@@ -135,3 +135,46 @@ fn a_failing_agent_still_emits_a_zero_usage_per_agent_stat() {
         "per-agent Stats for the errored agent must precede the fan totals: {evs:?}"
     );
 }
+
+/// Every card a fan produces — the replies AND the errors — is marked as one
+/// subagent's work, so the host can seat each one as its own section. The
+/// turn's own narration (`agent smith`) is not: it is the turn talking.
+#[test]
+fn every_agents_card_is_marked_as_a_subagent_section() {
+    let reg = Registry::new(vec![Box::new(Slow("ok", 1)), Box::new(Failing)]);
+    let evs = run_fan(&reg, &["ok", "broken"]);
+    let marked: Vec<(String, bool)> = evs
+        .iter()
+        .filter_map(|e| match e {
+            PluginEvent::Message { sender, meta, .. } => Some((
+                sender.clone(),
+                crate::metatag::has(meta, crate::metatag::SUB),
+            )),
+            _ => None,
+        })
+        .collect();
+    for (sender, is_sub) in &marked {
+        let want = sender != "agent smith";
+        assert_eq!(*is_sub, want, "{sender} marked={is_sub}, wanted {want}");
+    }
+    assert!(marked.iter().any(|(s, m)| s.starts_with("ok") && *m));
+    assert!(marked.iter().any(|(s, m)| s.starts_with("broken") && *m));
+}
+
+/// The latency survives the mark — `meta` is a tag list, not a flag field.
+#[test]
+fn the_mark_rides_in_front_of_the_latency() {
+    let reg = Registry::new(vec![Box::new(Slow("ok", 1))]);
+    let evs = run_fan(&reg, &["ok"]);
+    let meta = evs
+        .iter()
+        .find_map(|e| match e {
+            PluginEvent::Message { sender, meta, .. } if sender.starts_with("ok") => {
+                Some(meta.clone())
+            }
+            _ => None,
+        })
+        .expect("no reply from ok");
+    assert!(meta.starts_with("sub \u{00b7} "), "{meta}");
+    assert!(meta.ends_with('s'), "the latency is still there: {meta}");
+}

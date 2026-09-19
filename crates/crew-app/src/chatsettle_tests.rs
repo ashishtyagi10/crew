@@ -7,7 +7,7 @@ const LONG: &str = "one\ntwo\nthree\nfour\nfive"; // > chatfold::FOLD_LINES
 #[test]
 fn a_clicked_open_streaming_card_settles_expanded() {
     let mut p = pane();
-    p.absorb_delta("crew".into(), LONG.into());
+    p.absorb_delta("crew".into(), LONG.into(), false);
     p.streaming[0].expanded = true; // the click (see `chatfold`)
     p.absorb_message("crew".into(), LONG.into(), "1".into(), String::new());
     assert!(p.streaming.is_empty(), "the provisional card is replaced");
@@ -20,7 +20,7 @@ fn a_clicked_open_streaming_card_settles_expanded() {
 #[test]
 fn an_unclicked_streaming_card_settles_folded() {
     let mut p = pane();
-    p.absorb_delta("crew".into(), LONG.into());
+    p.absorb_delta("crew".into(), LONG.into(), false);
     p.absorb_message("crew".into(), LONG.into(), "1".into(), String::new());
     assert!(
         !p.messages[0].expanded,
@@ -33,7 +33,7 @@ fn an_arrow_form_sender_settles_the_bare_name_card_and_keeps_its_click() {
     // `stream_key` normalizes both sides: the relay's `"crew → user"` reply
     // replaces (and inherits from) a card streamed under the bare `"crew"`.
     let mut p = pane();
-    p.absorb_delta("crew".into(), LONG.into());
+    p.absorb_delta("crew".into(), LONG.into(), false);
     p.streaming[0].expanded = true;
     p.absorb_message(
         "crew \u{2192} user".into(),

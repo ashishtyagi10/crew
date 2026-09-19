@@ -59,8 +59,8 @@ pub(crate) fn pane() -> ChatPane {
 #[test]
 fn delta_opens_a_provisional_card_then_appends_to_it() {
     let mut p = pane();
-    p.absorb_delta("coder".into(), "Hello".into());
-    p.absorb_delta("coder".into(), ", world".into());
+    p.absorb_delta("coder".into(), "Hello".into(), false);
+    p.absorb_delta("coder".into(), ", world".into(), false);
     assert!(
         p.messages.is_empty(),
         "nothing settled reaches the transcript"
@@ -75,7 +75,7 @@ fn delta_opens_a_provisional_card_then_appends_to_it() {
 #[test]
 fn settled_message_replaces_the_provisional_card() {
     let mut p = pane();
-    p.absorb_delta("coder".into(), "Hel".into());
+    p.absorb_delta("coder".into(), "Hel".into(), false);
     p.settle_stream("coder \u{2192} user");
     p.push_capped(Message {
         sender: "coder \u{2192} user".into(),
@@ -101,9 +101,9 @@ fn settled_message_replaces_the_provisional_card() {
 #[test]
 fn two_agents_stream_into_separate_cards() {
     let mut p = pane();
-    p.absorb_delta("planner".into(), "plan".into());
-    p.absorb_delta("coder".into(), "code".into());
-    p.absorb_delta("planner".into(), "ning".into());
+    p.absorb_delta("planner".into(), "plan".into(), false);
+    p.absorb_delta("coder".into(), "code".into(), false);
+    p.absorb_delta("planner".into(), "ning".into(), false);
     assert_eq!(p.streaming.len(), 2);
     let texts: Vec<&str> = p.streaming.iter().map(|m| m.text.as_str()).collect();
     assert!(
@@ -121,11 +121,11 @@ fn two_agents_stream_into_separate_cards() {
 #[test]
 fn absorb_delta_moves_the_touched_card_to_the_end() {
     let mut p = pane();
-    p.absorb_delta("planner".into(), "plan".into());
-    p.absorb_delta("coder".into(), "code".into());
+    p.absorb_delta("planner".into(), "plan".into(), false);
+    p.absorb_delta("coder".into(), "code".into(), false);
     // `planner` is the OLDER card (opened first); touching it again must move
     // it to the end, ahead of `coder`, which is untouched since.
-    p.absorb_delta("planner".into(), "ning".into());
+    p.absorb_delta("planner".into(), "ning".into(), false);
     assert_eq!(
         p.streaming
             .iter()
@@ -141,14 +141,14 @@ fn absorb_delta_moves_the_touched_card_to_the_end() {
 fn provisional_card_never_bumps_the_unread_pill() {
     let mut p = pane();
     p.scroll = 5; // scrolled up: a settled reply WOULD count as unread
-    p.absorb_delta("coder".into(), "text".into());
+    p.absorb_delta("coder".into(), "text".into(), false);
     assert_eq!(p.unread, 0, "only settled replies are 'new'");
 }
 
 #[test]
 fn turn_end_clears_a_stranded_provisional_card() {
     let mut p = pane();
-    p.absorb_delta("coder".into(), "half a reply".into());
+    p.absorb_delta("coder".into(), "half a reply".into(), false);
     // The empty-agent idle: the turn is over and no Message ever arrived.
     p.absorb_activity(String::new(), "idle", String::new());
     assert!(
@@ -168,7 +168,7 @@ fn export_never_contains_a_provisional_card() {
         usage: None,
         expanded: false,
     });
-    p.absorb_delta("coder".into(), "HALFWRITTEN".into());
+    p.absorb_delta("coder".into(), "HALFWRITTEN".into(), false);
     let md = crate::chatexport::transcript_markdown("c", &p.messages, &chrono::Local::now());
     assert!(md.contains("SETTLED"));
     assert!(

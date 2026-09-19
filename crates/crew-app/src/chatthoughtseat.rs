@@ -49,6 +49,16 @@ fn lines_of(view: View<'_>, seat: Seat, now_ms: u64, cols: usize) -> Vec<CardLin
 }
 
 /// The rows to put above card `m`'s header (before its tool block).
+///
+/// A folded SUBAGENT SECTION (`chatsub`) keeps only the first row of a LIVE
+/// block — its `∴ thinking · 4s` head. Eight agents in a fan each trailing
+/// three rows of live working over a card folded to one line puts the
+/// machinery louder than the voice, and the head already says the one thing
+/// a folded section owes you: this agent is still going. Clicking the card
+/// open brings the working back with it.
+///
+/// A SETTLED block is left alone at any fold: collapsed it is one row
+/// already, and open it is open because someone clicked it.
 pub(crate) fn above(
     view: View<'_>,
     m: &Message,
@@ -56,7 +66,13 @@ pub(crate) fn above(
     now: u64,
     cols: usize,
 ) -> Vec<CardLine> {
-    above_of(view, m, streaming).map_or(Vec::new(), |s| lines_of(view, s, now, cols))
+    let seat = above_of(view, m, streaming);
+    let mut rows = seat.map_or(Vec::new(), |s| lines_of(view, s, now, cols));
+    let folded_section = !m.expanded && crate::chatsub::is_section(m);
+    if folded_section && matches!(seat, Some(Seat::Live(_))) {
+        rows.truncate(1);
+    }
+    rows
 }
 
 /// [`above`], appended to `out` — the one-line form `card_lines_spanned`

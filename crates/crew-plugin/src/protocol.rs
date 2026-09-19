@@ -145,6 +145,13 @@ pub enum PluginEvent {
     Delta {
         agent: String,
         text: String,
+        /// This stream is ONE subagent's work inside a bigger turn — the
+        /// same thing [`crate::metatag::SUB`] says about the settled card,
+        /// said early enough for the host to seat the live card as its own
+        /// collapsed section instead of pouring eight streams into a pane.
+        /// Defaulted, so an older broker's payload still decodes.
+        #[serde(default)]
+        sub: bool,
     },
     /// Mid-reply REASONING: `agent` showed `text` of its working since the
     /// previous Thought of this hop. Its own event, not a `Delta`: the

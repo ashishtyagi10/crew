@@ -65,23 +65,43 @@ fn recording_tick_emit() -> (TickEmit, Arc<Mutex<Vec<PluginEvent>>>) {
 #[test]
 fn hop_texter_emits_exactly_one_delta_carrying_the_fragment() {
     let (emit, events) = recording_tick_emit();
-    let on_text = hop_texter_with(emit, "coder".to_string(), true);
+    let on_text = hop_texter_with(emit, "coder".to_string(), true, false);
     on_text("hello");
 
     let got = events.lock().unwrap_or_else(|e| e.into_inner());
     assert_eq!(got.len(), 1, "expected exactly one Delta, got {got:?}");
     match &got[0] {
-        PluginEvent::Delta { agent, text } => {
+        PluginEvent::Delta { agent, text, sub } => {
             assert_eq!((agent.as_str(), text.as_str()), ("coder", "hello"));
+            assert!(!sub, "an ordinary hop's stream is not a subagent section");
         }
         other => panic!("wrong variant: {other:?}"),
+    }
+}
+
+/// A fan's texter marks every fragment, so the host can fold the live card
+/// from the FIRST one — the flood is at its worst while the fan is running,
+/// which is exactly when the settled card's mark does not exist yet.
+#[test]
+fn a_fans_texter_marks_its_stream_as_a_subagent_section() {
+    let (emit, events) = recording_tick_emit();
+    let on_text = super::hop_texter_sub(emit, "code-analyst".to_string());
+    on_text("hello");
+
+    let got = events.lock().unwrap_or_else(|e| e.into_inner());
+    match &got[..] {
+        [PluginEvent::Delta { agent, text, sub }] => {
+            assert_eq!((agent.as_str(), text.as_str()), ("code-analyst", "hello"));
+            assert!(sub, "a fan agent's stream is a subagent section");
+        }
+        other => panic!("expected one marked Delta, got {other:?}"),
     }
 }
 
 #[test]
 fn hop_texter_emits_nothing_when_streaming_is_off() {
     let (emit, events) = recording_tick_emit();
-    let on_text = hop_texter_with(emit, "coder".to_string(), false);
+    let on_text = hop_texter_with(emit, "coder".to_string(), false, false);
     on_text("hello");
 
     assert!(

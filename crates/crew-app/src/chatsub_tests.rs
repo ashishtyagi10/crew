@@ -100,3 +100,74 @@ fn the_mark_never_reaches_an_exported_transcript() {
     );
     assert_eq!(crate::chattime::strip_task_tag("sub \u{00b7} 3.2s"), "3.2s");
 }
+
+/// A fan's LIVE card is a section from its first fragment — the pane is at
+/// its noisiest while eight agents are typing, which is exactly when the
+/// settled card's mark does not exist yet.
+#[test]
+fn a_marked_delta_opens_a_folded_live_card() {
+    let plugin =
+        crew_plugin::Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()])
+            .unwrap();
+    let mut p = crate::chat::ChatPane::new(plugin, "crew".into());
+    p.absorb_delta("code-analyst".into(), LONG.into(), true);
+    let card = p.streaming.last().expect("a live card opened");
+    assert!(is_section(card), "meta carries the mark: {:?}", card.meta);
+
+    let view = crate::chatmsgs::View {
+        streaming_from: 0,
+        ..View::default()
+    };
+    let lines = card_lines(&[card], 40, 0, view);
+    // Header + the clamped first line (the live caret rides that line).
+    assert_eq!(
+        lines.len(),
+        2,
+        "the live card folds too: {:?}",
+        lines.iter().map(line).collect::<Vec<_>>()
+    );
+}
+
+/// An ordinary turn's live card is untouched: one agent typing IS the answer
+/// you are waiting for.
+#[test]
+fn an_unmarked_delta_still_streams_in_full() {
+    let plugin =
+        crew_plugin::Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()])
+            .unwrap();
+    let mut p = crate::chat::ChatPane::new(plugin, "crew".into());
+    p.absorb_delta("coder".into(), LONG.into(), false);
+    let card = p.streaming.last().expect("a live card opened");
+    assert!(!is_section(card));
+    let view = crate::chatmsgs::View {
+        streaming_from: 0,
+        ..View::default()
+    };
+    assert_eq!(card_lines(&[card], 40, 0, view).len(), 6);
+}
+
+/// A folded section's LIVE thought keeps its head row and nothing else, so
+/// the machinery never reads louder than the voice it sits over.
+#[test]
+fn a_folded_sections_live_thought_is_its_head_row_only() {
+    let plugin =
+        crew_plugin::Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()])
+            .unwrap();
+    let mut p = crate::chat::ChatPane::new(plugin, "crew".into());
+    p.absorb_delta("code-analyst".into(), LONG.into(), true);
+    p.thoughts.absorb(
+        "code-analyst",
+        "first I check the focus logic\nthen the glance card\nthen the tests",
+        crate::chattime::unix_now_ms(),
+    );
+    let card = p.streaming.last().unwrap();
+    let view = crate::chatmsgs::View {
+        streaming_from: 0,
+        thoughts: &p.thoughts,
+        ..View::default()
+    };
+    let rows = crate::chatthoughtseat::above(view, card, true, 0, 40);
+    assert_eq!(rows.len(), 1, "head only: {:?}", rows.len());
+    let head: String = rows[0].iter().map(|c| c.c).collect();
+    assert!(head.contains("thinking"), "{head}");
+}

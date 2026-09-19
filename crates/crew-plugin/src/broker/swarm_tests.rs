@@ -520,7 +520,7 @@ fn output_delta_coalesces_per_agent_and_never_crosses_agents() {
         text: t.into(),
     };
     let one = |evs: &[PluginEvent]| match evs {
-        [PluginEvent::Delta { agent, text }] => (agent.clone(), text.clone()),
+        [PluginEvent::Delta { agent, text, .. }] => (agent.clone(), text.clone()),
         other => panic!("expected exactly one Delta, got {other:?}"),
     };
 
@@ -596,7 +596,7 @@ fn output_delta_gates_stay_separate_even_when_two_agents_share_a_specialty() {
         text: t.into(),
     };
     let one = |evs: &[PluginEvent]| match evs {
-        [PluginEvent::Delta { agent, text }] => (agent.clone(), text.clone()),
+        [PluginEvent::Delta { agent, text, .. }] => (agent.clone(), text.clone()),
         other => panic!("expected exactly one Delta, got {other:?}"),
     };
 
