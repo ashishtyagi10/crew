@@ -162,8 +162,11 @@ pane has a near-white border and a bright block cursor.
 
 Crew displays up to **6 panes as full tiles**. Additional panes are demoted to a
 minimized thumbnail strip along the bottom of the content area, ordered
-least-recently-active first. Click a thumbnail, use the sidebar, or press
-**Cmd+1 … 9** to focus a pane and restore it to the full grid.
+least-recently-active first. Each thumbnail carries **the line its pane is
+currently showing** — a failing test, an agent's question, a shell back at its
+prompt — beside the activity marker and the count of what arrived. Click a
+thumbnail, use the sidebar, or press **Cmd+1 … 9** to focus a pane and restore
+it to the full grid.
 
 While a pane is scrolled back, its right border is a live scroll gutter — press
 or drag it to move through the buffer. **Cmd+wheel** resizes the font, and a

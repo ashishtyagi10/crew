@@ -35,6 +35,9 @@ pub trait TermModel {
     fn feed(&mut self, bytes: &[u8]);
     /// Render cells; `focused` brightens the block cursor (dim otherwise).
     fn cells(&self, focused: bool) -> Vec<RenderCell>;
+    /// The bottom-most viewport row with anything on it (see `modellast`) —
+    /// one line of text without building the screen.
+    fn last_line(&self) -> Option<String>;
     fn resize(&mut self, size: GridSize);
 }
 
@@ -310,6 +313,8 @@ mod cursorpos;
 mod headless;
 #[path = "modelcells.rs"]
 mod modelcells;
+#[path = "modellast.rs"]
+mod modellast;
 #[path = "modelsel.rs"]
 mod modelsel;
 pub use headless::HeadlessTerm;

@@ -36,13 +36,19 @@ pub fn strip_marker(
     activity.then_some((crate::shapecues::dot(false), t.activity))
 }
 
-/// The thumbnail's one content row: the marker on the left, and on the right
-/// how many lines arrived while the pane was out of the grid.
+/// The thumbnail's one content row: the marker on the left, what the pane is
+/// currently showing across the middle ([`crate::minpreview`]), and on the
+/// right how many lines arrived while it was out of the grid.
 ///
 /// The strip is where a pane goes when it has not been touched for a while,
 /// which is exactly where the question "what did I miss?" is loudest — and
 /// the marker alone could only ever answer "something".
-pub fn strip_row(cols: u16, marker: Option<(char, (u8, u8, u8))>, unread: usize) -> Vec<CellView> {
+pub fn strip_row(
+    cols: u16,
+    marker: Option<(char, (u8, u8, u8))>,
+    unread: usize,
+    preview: Option<&str>,
+) -> Vec<CellView> {
     let mut v = Vec::new();
     let bg = crew_theme::theme().page_bg;
     if let Some((c, fg)) = marker {
@@ -59,7 +65,12 @@ pub fn strip_row(cols: u16, marker: Option<(char, (u8, u8, u8))>, unread: usize)
     }
     // The count needs a column of air after the marker, or a one-cell card
     // would draw the two on top of each other.
-    if let Some(n) = crate::unread::badge(unread) {
+    let badge = crate::unread::badge(unread);
+    if let Some(text) = preview {
+        let w = badge.as_deref().map_or(0, str::len);
+        v.extend(crate::minpreview::cells(text, cols, w));
+    }
+    if let Some(n) = badge {
         let w = n.chars().count() as u16;
         if cols > w + 1 {
             for (i, ch) in n.chars().enumerate() {
@@ -169,8 +180,11 @@ pub fn push_min_strip(
             }
             _ => 0,
         };
+        // Read once here, not per frame per cell: `last_line` walks the
+        // pane's display and keeps one string (see `crew_term::modellast`).
+        let preview = crate::minpreview::of(p);
         push_card(scenes, rect, cw, ch, &title, move |cols, _rows| {
-            strip_row(cols, marker, unread)
+            strip_row(cols, marker, unread, preview.as_deref())
         });
     }
 }

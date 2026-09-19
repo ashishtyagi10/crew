@@ -118,6 +118,10 @@ impl TermModel for HeadlessTerm {
         self.core.cells(focused)
     }
 
+    fn last_line(&self) -> Option<String> {
+        self.core.last_line()
+    }
+
     fn resize(&mut self, size: GridSize) {
         self.core.resize(size);
     }

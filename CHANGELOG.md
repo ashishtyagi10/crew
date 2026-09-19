@@ -8,6 +8,39 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.61
+
+**A minimized thumbnail says what its pane is doing.** The strip a pane is
+demoted to has said three things since it was written: which pane it is (the
+title on its border), that something arrived while you were away (the count on
+the right), and that it is alive (the dot on the left). All three are ways of
+saying *something*, and the row between the dot and the count — the only row a
+thumbnail has — was empty.
+
+The answer was already on screen. A pane keeps the grid it had when it was a
+full tile, so its last written line is sitting right there: `test result:
+FAILED. 1 failed`, `Do you want to make this edit? (y/n)`, `~/code/crew $`.
+That line is now the middle of the row, in the muted ink, under the title that
+names the pane — which is exactly what you would restore the pane to read.
+
+Reading it costs one pass over the pane's display and one `String`
+(`crew_term::modellast`), not the screenful of `RenderCell`s `cells()` builds
+and throws away; a thumbnail is drawn for a pane nobody is looking at, and it
+should not be the expensive one. A chat pane has no grid to read, so it answers
+from what it knows: the agent it is waiting on and the tool that agent is in
+(`scout · sys:run`), else the last thing said. A pane crew draws itself —
+settings, the todo list, a file viewer — has no one line that stands for it and
+says nothing rather than guessing.
+
+Room is settled in that order: the marker keeps column 0, the count keeps the
+right edge, and the middle takes what is left. Under six columns the middle
+stays empty, because three characters and an ellipsis is noise and the title is
+already the better answer.
+
+Also: `tools_shot_wide_and_as_a_tile` had been asserting `9 call(s)` since
+v0.21.94 folded that wording into `wording::count`. An `#[ignore]`d shot does
+not run in the gate, so it rotted quietly — it reads `9 calls` now.
+
 ## 0.22.60
 
 **Settings and far open zoomed.** They are visits — you open one, do a thing,

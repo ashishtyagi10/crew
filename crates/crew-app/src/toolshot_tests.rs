@@ -156,7 +156,7 @@ fn tools_shot_wide_and_as_a_tile() {
             return;
         };
         let all = rows.join("\n");
-        assert!(all.contains("9 call(s)"), "{name}:\n{all}");
+        assert!(all.contains("9 calls"), "{name}:\n{all}");
         assert!(all.contains("2 unreadable"), "{name}:\n{all}");
         assert!(
             all.contains("4 read \u{b7} 1 reversible \u{b7} 4 irreversible"),
