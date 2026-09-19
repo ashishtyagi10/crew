@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.74
+
+**A `/view` pane says what the server found about the file, not just where.**
+The diagnostics summary — `2 errors · 1 warning`, `lsp: rust-analyzer
+starting…`, or the reason a server never answered — was read by exactly one
+surface: the document window's legend, which has the room for it. A `/view`
+tile in the grid showed the margin marks and the notes under the lines and
+never the total, and had no way at all to explain the case that matters most:
+a margin that never appears. `Lsp::Failed`'s own doc said "a failure is said
+too", and it was, in one of the two places that can say it.
+
+It rides a banner over the file now, the same row the viewer already uses to
+say a file is empty or truncated. A clean file gets nothing — the absence of
+marks is the answer, and a pane does not spend a row on it — and hints and
+information say nothing here for the same reason they mark nothing.
+
+A **minimized** viewer says it too: what the server found outranks where you
+were reading, because three errors is why you would go back to that pane.
+
 ## 0.22.73
 
 **Every minimized pane says what it is doing, not just the two with a grid.**

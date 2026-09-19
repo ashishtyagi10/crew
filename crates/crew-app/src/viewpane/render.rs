@@ -43,6 +43,13 @@ impl ViewPane {
             if let Some(d) = self.lsp.diags() {
                 super::lspmsg::insert(&mut lines, &mut marks, d, text_cols);
             }
+            // …and the server's word on the file as a whole, over it.
+            if let Some(b) = super::lspmsg::top_banner(&self.lsp, text_cols) {
+                lines.insert(0, b);
+                for m in marks.iter_mut() {
+                    m.row += 1;
+                }
+            }
             if let Some(b) = self.blame.lines().filter(|_| blame_w > 0) {
                 let labels = crate::viewpane::blame::labels(b, blame_w);
                 crate::viewpane::blamegutter::apply(&mut lines, &labels, blame_w);

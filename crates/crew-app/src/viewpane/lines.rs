@@ -11,7 +11,7 @@ use crate::viewpane::outline::Mark;
 use crate::viewpane::rendercap::{cap_render_lines, MAX_RENDER_LINES};
 use crate::viewpane::LoadState;
 
-fn banner(msg: &str, cols: usize) -> CardLine {
+pub(super) fn banner(msg: &str, cols: usize) -> CardLine {
     let t = crew_theme::theme();
     let mut s = crate::chatwidth::clip_w(msg, cols.max(1));
     while s.chars().count() < cols {

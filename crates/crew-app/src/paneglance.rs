@@ -49,6 +49,15 @@ fn todo(t: &crate::todopane::TodoPane) -> Option<String> {
 
 /// Where you are in the file, since the file's NAME is already the legend.
 fn view(v: &crate::viewpane::ViewPane) -> Option<String> {
+    // What the server found outranks where you were reading: a file with
+    // three errors in it is why you would go back to the pane.
+    if let Some(say) = v
+        .lsp
+        .status()
+        .filter(|_| v.lsp.diags().is_some_and(has_marks))
+    {
+        return Some(say);
+    }
     let crate::viewpane::LoadState::Ready { loaded, .. } = &v.state else {
         return None;
     };
@@ -69,6 +78,16 @@ fn far(f: &crate::farpane::FarPane) -> Option<String> {
         f.active_panel_folder(),
         crate::wording::count(entries, "entry")
     ))
+}
+
+/// Whether a server's answer has anything the margin would mark.
+fn has_marks(d: &[crew_lsp::Diagnostic]) -> bool {
+    d.iter().any(|d| {
+        matches!(
+            d.severity,
+            crew_lsp::Severity::Error | crew_lsp::Severity::Warning
+        )
+    })
 }
 
 /// What the swarm is at: the goal while it plans, the tally while it runs,
