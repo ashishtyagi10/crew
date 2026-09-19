@@ -338,7 +338,9 @@ Every part of it answers to the width you give it (drag the inner edge):
   number. The LOAD rule's key names exactly the averages that survived.
 - **The LOG grows into whatever the column has spare**, up to twenty lines, and
   its rule says how much of the buffer is showing (`─ LOG 8/64 ──`). A wheel
-  over it scrolls back.
+  over it scrolls back. On a **narrow rail it drops the `23:12` stamps** and
+  gives those six columns to the message — a clock beside eight columns of
+  `crew v0…` is a column of timestamps next to a column of nothing.
 - **The rings spread and then centre** rather than staying pinned left, and the
   two network rates go to opposite ends of the row once there is room.
 

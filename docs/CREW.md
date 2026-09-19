@@ -512,6 +512,12 @@ Inside that:
   to opposite ends of the row** once there is real room for it.
 - LOG lines from the same minute **print their stamp once**, so the stamps read
   as a scale rather than a stack of identical `23:12`s.
+- And below **23 columns the stamps go entirely**, because the clock is a value
+  and the rail's rule is that values drop whole. Six fixed columns of `23:12`
+  beside eight of message turned every line into `crew v0…`, `restored…`,
+  `shell pr…` — a column of timestamps next to a column of nothing. The docked
+  nav (27 columns by default) keeps its clock; the collapsed rail spends the
+  six on words, and the app bar's clock is two cards up.
 
 **SYSTEM reads as three instrument dials.** Each is a needle on a fixed 240°
 scale — eight o'clock round to four — with the reading in the open bottom of

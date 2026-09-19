@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.65
+
+**On a narrow rail the LOG gives the message the width.** Every line in the
+sidebar's log carries a `23:12 ` stamp — six fixed columns of furniture — and
+on the collapsed rail that left eight for the line itself. The whole section
+read:
+
+```
+23:11 crew v0…
+23:12 restored…
+      shell pr…
+23:13 mcp serv…
+```
+
+which is a column of timestamps beside a column of nothing. The rail already
+has a rule for this, and the log was not following it: **prose ellipsizes, a
+row of values drops whole values** — a narrow nav shows two load averages
+rather than two and a half. The clock is a value. Below 23 columns it drops,
+and the same lines read `crew v0.19.38 …`, `restored 4 pan…`, `shell probe:
+z…`, `build failed: …` — which is the question you look at a log to answer.
+
+Dropped, not blanked: the six columns go to the message, unlike the
+same-minute repeat rule (v0.21.x), which keeps the column so the messages stay
+aligned under a clock that is still there. A docked nav is 27 columns by
+default and keeps its clock; the rail's own clock card is two sections up
+either way.
+
+`navlog` split its stamp rules into `navlogstamp` on the way — what the
+section draws, and what it knows about the six columns down its left.
+
 ## 0.22.64
 
 **The dashboard's two spend charts say what their axes are.** `/dash` and

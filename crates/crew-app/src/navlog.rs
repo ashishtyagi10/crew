@@ -5,6 +5,7 @@
 use crew_render::CellView;
 
 use crate::applog::{LogEntry, LogLevel};
+use stamp::{split_stamp, stamps_fit, BLANK_STAMP, TEXT_COL};
 
 use crate::palette::accent;
 
@@ -68,6 +69,9 @@ pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize, back: usize)
             t.page_bg,
         );
     }
+    // Whether the stamps are drawn at all, decided ONCE for the whole
+    // section: a clock on some rows and not others is not a column.
+    let stamps = stamps_fit(cols);
     let mut last_stamp = "";
     for (k, e) in entries[start..start + shown].iter().enumerate() {
         let fg = match e.level {
@@ -81,7 +85,13 @@ pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize, back: usize)
         // repeats turns the column into a scale you can see the minutes on.
         let repeat = !stamp.is_empty() && stamp == last_stamp;
         last_stamp = stamp;
-        let stamp = if repeat { BLANK_STAMP } else { stamp };
+        let stamp = match (stamps, repeat) {
+            // Dropped, not blanked: a rail with no clock must give the six
+            // columns to the message rather than to six spaces.
+            (false, _) => "",
+            (true, true) => BLANK_STAMP,
+            (true, false) => stamp,
+        };
         // The stamp is fixed furniture on every line — same six columns, same
         // shape — so it is dimmed out of the way and the message keeps the
         // ink. What is left after it is the message's clip budget, and the
@@ -110,32 +120,6 @@ pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize, back: usize)
     out
 }
 
-/// Column the entry text starts on, under the `LOG` rule's own indent.
-const TEXT_COL: u16 = 2;
-/// What a repeated stamp leaves behind: the same six columns, empty, so the
-/// messages beside it stay in one column.
-const BLANK_STAMP: &str = "      ";
-
-/// Split a buffered entry into its `HH:MM ` stamp and the message. The stamp
-/// is prepended when the line is buffered, so it is a prefix of the text
-/// rather than a field — recognised by shape, and absent (`""`) on any line
-/// that does not carry one.
-fn split_stamp(s: &str) -> (&str, &str) {
-    let b = s.as_bytes();
-    let stamped = b.len() > 6
-        && b[0].is_ascii_digit()
-        && b[1].is_ascii_digit()
-        && b[2] == b':'
-        && b[3].is_ascii_digit()
-        && b[4].is_ascii_digit()
-        && b[5] == b' ';
-    if stamped {
-        s.split_at(6)
-    } else {
-        ("", s)
-    }
-}
-
 /// Write `s` at `(col, row)`, stopping before `max_col`.
 fn write(
     out: &mut Vec<CellView>,
@@ -161,6 +145,9 @@ fn write(
         });
     });
 }
+
+#[path = "navlogstamp.rs"]
+mod stamp;
 
 #[cfg(test)]
 #[path = "navlog_tests.rs"]
