@@ -31,30 +31,6 @@ fn heading_line_is_marked_and_bold() {
 /// lines into (`chatfield`), so corner glyphs here would be a second, worse
 /// one drawn on top of it.
 #[test]
-fn code_block_chrome_lines() {
-    let lines = render("```rust\nfn x() {}\n```", 40);
-    let kinds: Vec<LineKind> = lines.iter().map(|l| l.kind).collect();
-    assert_eq!(
-        kinds,
-        vec![LineKind::CodeHeader, LineKind::Code, LineKind::CodeFooter]
-    );
-    assert_eq!(flat(&lines[0]), "rust");
-    assert_eq!(flat(&lines[1]), "fn x() {}");
-    assert_eq!(flat(&lines[2]), "");
-}
-
-#[test]
-fn code_hard_chunks_verbatim() {
-    let lines = render("```\nlet a = 1;\n```", 6);
-    let code: String = lines
-        .iter()
-        .filter(|l| l.kind == LineKind::Code)
-        .map(flat)
-        .collect();
-    assert_eq!(code, "let a = 1;");
-}
-
-#[test]
 fn lists_indent_and_number() {
     let lines = render("- a\n  - b\n\n1. one", 40);
     let texts: Vec<String> = lines
@@ -115,20 +91,6 @@ fn byte_soup_never_panics_and_respects_cols() {
                     assert!(flat(&l).chars().count() <= cols.max(1));
                 }
             }
-        }
-    }
-}
-
-#[test]
-fn code_chrome_lines_respect_cols() {
-    for cols in [1usize, 4, 6] {
-        for l in render("```averylonglanguagetag\nx\n```", cols) {
-            assert!(
-                flat(&l).chars().count() <= cols,
-                "kind {:?} overflows at cols={cols}: {:?}",
-                l.kind,
-                flat(&l)
-            );
         }
     }
 }

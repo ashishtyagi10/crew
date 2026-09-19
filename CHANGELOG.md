@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.63
+
+**A wrapped line of code in a chat card says that it wrapped.** A fenced block
+was cut with `chars.chunks(cw)` and each piece laid out flush, so the tail of a
+long line looked exactly like the next line of the program:
+
+```
+let d = sdf::arc(p, r, half_w, a0, a1); // signed
+Cov((0.5 - d * scale).clamp(0.0, 1.0))
+```
+
+is two statements; the same two rows with the second one wrapped are one. The
+file viewer has answered this since it was written — a `↪` on the continuation
+row — so that is the glyph here, in the comment colour, inside the field's own
+tint. (Not in the marker colour, which `chatfield::field_start` reads as
+"outside the field": that is how a blockquote's bar stays out of the code tint,
+and a mark that belongs to the code must not trip it.)
+
+**And the cut is by display width now.** `chunks` counts characters, so a code
+line carrying CJK or an emoji took two columns per character and ran past the
+tinted field — the one edge a code block has. The mark costs a continued row
+two columns, which is taken out of the wrap width rather than out of the card;
+a field too narrow for both keeps the code and drops the mark, because the
+characters cannot be inferred and the mark can.
+
+The block's rows moved into `md/codeblock.rs` on the way — `md/layout.rs` was
+two lines from its ceiling, and is now 135 lines with its debt row deleted.
+
 ## 0.22.62
 
 **The settings form deals its cards into balanced columns.** The layout was
