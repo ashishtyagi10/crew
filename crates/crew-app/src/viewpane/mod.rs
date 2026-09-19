@@ -30,6 +30,7 @@ pub(crate) mod load;
 pub(crate) mod lspdeco;
 pub(crate) mod lspgutter;
 pub(crate) mod lspjob;
+mod lspmsg;
 pub(crate) mod mdedit;
 pub(crate) mod mdrung;
 mod metacard;

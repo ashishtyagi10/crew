@@ -8,6 +8,44 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.67
+
+**The viewer says what the language server said.** It has marked WHERE the
+diagnostics are since the LSP client landed — `●` in the margin, `▲` for a
+warning, a curly underline under the range — and never what they were. A red
+dot beside `unresolved_helper(d)` tells you there is something wrong with a
+line you can already see is a line; the sentence rustc wrote is the part you
+opened the file for, and it was on the wire, parsed, and thrown away at the
+margin.
+
+The note goes **under** the line, on a row of its own, pointing up at it:
+
+```
+●   4     let inside = sdf::arc(d, scale, half_w, a0, a1) + unresolved_helper(d) * scale;
+      ↑ cannot find function `unresolved_helper` in this scope  +1
+```
+
+Under, rather than after the code where an editor's inline lens puts it,
+because that is the one place it does not fit: a line long enough to be wrong
+is a line with no room left. This file at 107 columns left fifteen columns to
+say fifty in, and at a tile width it left none — which is how the first
+version of this was built and then shot, and the shot is why it is a row.
+
+The worst diagnostic on a line speaks and the rest are counted (`+2`); a
+message that is a paragraph gives its first line; information and hints say
+nothing, exactly as they already mark nothing. The rows are inserted before
+the margins prepend their columns, so a note is given the same blank margin
+every other row has, and any search mark below one moves down with its row.
+
+**This surface had never been shot.** It was built on unit tests over the span
+arithmetic, which say a squiggle lands on the right cells and nothing about
+what the pane looks like with a server's real output on it. `lspshot_tests` is
+that shot now — a file with an error and two warnings, at a window and at a
+tile.
+
+Also: `composer_shot_folds` had pinned `… +7`, which is how many lines that
+card hides at 760 columns and not at 380. It asserts the shape now.
+
 ## 0.22.66
 
 **A wrapped row in the viewer's plain rung says it is one.** The numbered

@@ -3249,7 +3249,15 @@ file, refactors, or formats. Two consumers share one client (`crates/crew-lsp`):
   margin beside an error line, `▲` beside a warning, a curly underline under
   the offending range, and the document window's legend counts them
   (`2 errors · 1 warning`, or `lsp: rust-analyzer starting…` while it
-  indexes). The server is started off the winit thread, asked once, and shut
+  indexes). **And it says what the server said**: a note row under the line,
+  `↑ cannot find function ‘unresolved_helper’ in this scope`, in the
+  severity's own colour taken down toward the page. Under the line rather
+  than after it, the way a compiler answers, because a line long enough to be
+  wrong is a line with no room left — at 107 columns that error had fifteen
+  to say fifty in, and on a tile it had none. The worst diagnostic on a line
+  speaks and the others are counted (`+2`); a message that is a paragraph
+  gives its first line; information and hints say nothing, exactly as they
+  mark nothing. The server is started off the winit thread, asked once, and shut
   down; nothing blocks a frame. `lsp = false` in `config.toml` (or
   **Language server diagnostics** in `/settings`) turns it off.
 

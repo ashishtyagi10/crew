@@ -35,8 +35,14 @@ impl ViewPane {
         if stale {
             let text_cols = (cols as usize).saturating_sub(blame_w + lsp_w);
             let invisibles = crate::invisibles::on();
-            let (mut lines, marks, pictures) =
+            let (mut lines, mut marks, pictures) =
                 lines::for_state(&self.state, self.raw, text_cols, invisibles, self.split);
+            // What the server said, on a row of its own under the line it is
+            // about — before the margins prepend their columns, so the note
+            // rows are given the same blank margin as every other row.
+            if let Some(d) = self.lsp.diags() {
+                super::lspmsg::insert(&mut lines, &mut marks, d, text_cols);
+            }
             if let Some(b) = self.blame.lines().filter(|_| blame_w > 0) {
                 let labels = crate::viewpane::blame::labels(b, blame_w);
                 crate::viewpane::blamegutter::apply(&mut lines, &labels, blame_w);

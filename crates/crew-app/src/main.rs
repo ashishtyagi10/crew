@@ -316,6 +316,9 @@ mod barpopup;
 #[path = "barpopupshot_tests.rs"]
 mod barpopupshot_tests;
 mod cardchrome;
+#[cfg(test)]
+#[path = "lspshot_tests.rs"]
+mod lspshot_tests;
 mod mentionrange;
 mod menuink;
 #[cfg(test)]

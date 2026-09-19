@@ -90,13 +90,13 @@ pub(crate) fn spans(text: &str, diags: &[Diagnostic], reveal: bool) -> Vec<Span>
 
 /// What a rendered row is: the source line it starts, a wrap continuation
 /// of the previous row's line, or something else (a banner).
-enum Row {
+pub(super) enum Row {
     Starts(usize),
     Continues,
     Other,
 }
 
-fn kind(line: &CardLine, at: usize) -> Row {
+pub(super) fn kind(line: &CardLine, at: usize) -> Row {
     if let Some(n) = super::blamegutter::source_line_at(line, at) {
         return Row::Starts(n);
     }
@@ -106,7 +106,7 @@ fn kind(line: &CardLine, at: usize) -> Row {
     }
 }
 
-fn text_len(line: &CardLine, at: usize) -> usize {
+pub(super) fn text_len(line: &CardLine, at: usize) -> usize {
     line.len().saturating_sub(at + GUTTER_W)
 }
 
