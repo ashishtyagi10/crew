@@ -34,17 +34,22 @@ pub(crate) fn task_tag(meta: &str) -> Option<u64> {
     rest.split_whitespace().next()?.parse().ok()
 }
 
-/// `meta` with any leading `task:<id>` tag removed — i.e. just the latency the
-/// header tail should show (`"task:3 \u{00b7} 0.0s"` -> `"0.0s"`;
+/// `meta` with its tags removed — i.e. just the latency the header tail and
+/// the export should show (`"task:3 \u{00b7} 0.0s"` -> `"0.0s"`;
 /// `"task:3"` -> `""`; an untagged `"4.2s"` is returned unchanged).
+///
+/// The `sub` mark ([`crew_plugin::metatag::SUB`], which `chatsub` reads to
+/// fold a subagent's section) goes with them: it is addressed to the
+/// renderer, not to the reader of a transcript.
 pub(crate) fn strip_task_tag(meta: &str) -> &str {
     let Some(rest) = meta.strip_prefix("task:") else {
-        return meta;
+        return crew_plugin::metatag::strip_sub(meta);
     };
-    match rest.split_once(" \u{00b7} ") {
+    let latency = match rest.split_once(" \u{00b7} ") {
         Some((_id, latency)) => latency,
         None => "",
-    }
+    };
+    crew_plugin::metatag::strip_sub(latency)
 }
 
 #[cfg(test)]

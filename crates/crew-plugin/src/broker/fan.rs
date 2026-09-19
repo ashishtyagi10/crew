@@ -110,10 +110,9 @@ pub(crate) fn fan_out(
                     // reply lifecycle doesn't stay open — mirroring how
                     // relay.rs closes every hop, including HopKind::Error.
                     let stat = super::zerostat::latency_only(&name, dt);
-                    (
-                        msg(&format!("{name} \u{2192} user"), format!("[error] {e}")),
-                        Some(stat),
-                    )
+                    let mut ev = msg(&format!("{name} \u{2192} user"), format!("[error] {e}"));
+                    crate::metatag::mark(&mut ev, crate::metatag::SUB);
+                    (ev, Some(stat))
                 }
             };
             if werr.is_ok() {
@@ -178,12 +177,21 @@ fn clean_reply(reply: &str) -> String {
     }
 }
 
-/// An agent's cleaned fan reply as a chat message, latency in the metadata.
+/// An agent's cleaned fan reply as a chat message, latency in the metadata,
+/// marked as ONE agent's work in this fan rather than the turn's answer.
+///
+/// Eleven agents answer at once here and each reply can be hundreds of
+/// lines, so eleven of them used to land as one wall of text with no way
+/// back to the top. The mark rides in `meta` ([`crate::metatag::SUB`]); what
+/// the host makes of it — a section of its own, collapsed until clicked — is
+/// the host's call, and a host that does not know the tag shows exactly what
+/// it showed before.
 fn reply_msg(name: &str, clean: String, dt: Duration) -> PluginEvent {
     let mut ev = msg(&format!("{name} \u{2192} user"), clean);
     if let PluginEvent::Message { meta, .. } = &mut ev {
         *meta = format!("{:.1}s", dt.as_secs_f32());
     }
+    crate::metatag::mark(&mut ev, crate::metatag::SUB);
     ev
 }
 

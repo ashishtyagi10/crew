@@ -3,6 +3,7 @@ use std::pin::Pin;
 
 use serde::Deserialize;
 
+use super::wire::wire_error;
 use super::{
     http_client, request_timeout, Completion, CompletionRequest, Provider, ProviderError,
     ToolInvocation, Turn,
@@ -291,11 +292,11 @@ impl Provider for AnthropicProvider {
                 .json(&body)
                 .send()
                 .await
-                .map_err(|e| ProviderError::Http(e.to_string()))?;
+                .map_err(|e| ProviderError::Http(wire_error(&e, &endpoint)))?;
             let text = resp
                 .text()
                 .await
-                .map_err(|e| ProviderError::Http(e.to_string()))?;
+                .map_err(|e| ProviderError::Http(wire_error(&e, &endpoint)))?;
             AnthropicProvider::parse_response(&text)
         })
     }

@@ -561,7 +561,10 @@ Tool use shows in the transcript as its own voice: the call announces itself
 subject-first, the result card leads with `sys:run ✓ 1.2s` — outcome and
 duration — and its output is folded to that one line until you click it open.
 Both take the quiet dotted gutter, so a task that calls four tools doesn't read
-as nine agent replies.
+as nine agent replies. A turn that fans the same task out to the whole roster
+folds the same way: **each subagent's answer is its own section**, one line
+under that agent's badge with ` … +N` for the rest, open on a click — eleven
+full answers is eleven transcripts, not one.
 
 It also borrows the flagship moves of the big coding agents: **plan mode**
 (ask for "a plan for …" and nothing runs until you approve it — enter or

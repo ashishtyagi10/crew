@@ -12,6 +12,7 @@ mod ssecalls;
 mod tests;
 mod thinking;
 mod thinktags;
+mod wire;
 
 pub use anthropic::AnthropicProvider;
 pub use claudecli::ClaudeCliProvider;
@@ -22,13 +23,21 @@ use std::future::Future;
 use std::pin::Pin;
 use std::time::Duration;
 
-/// Per-attempt HTTP timeout: `CREW_HTTP_TIMEOUT_MS`, default 120s. Kept below
-/// the broker's per-call cap (180s default) so when one endpoint stalls the
-/// error names the transport and the model fallback chain still gets a turn,
-/// instead of the outer cap killing the whole attempt with no diagnosis.
-/// Non-streamed completions arrive in one final read, so this bounds the whole
-/// silent generation wait — the observed worst case (2048 tokens on qwen-max)
-/// is ~30s, leaving 4× headroom.
+/// Per-attempt HTTP SILENCE budget: `CREW_HTTP_TIMEOUT_MS`, default 120s.
+/// How long the endpoint may say NOTHING — the wait for the first byte, and
+/// each gap between two frames of a streamed body. Kept below the broker's
+/// per-call cap (180s default) so when one endpoint stalls the error names
+/// the transport and the model fallback chain still gets a turn, instead of
+/// the outer cap killing the whole attempt with no diagnosis.
+///
+/// It is NOT a budget for the whole call, and used to be: a total deadline
+/// covers the body read too, so a stream still arriving at 120s — eight fan
+/// agents writing a long answer each — died mid-sentence, every one of them
+/// reporting reqwest's kind-only `error decoding response body`. A healthy
+/// stream is never silent; a dead one is silent immediately. Non-streamed
+/// completions arrive in one final read, so this still bounds their whole
+/// silent generation wait (worst case observed: ~30s for 2048 tokens on
+/// qwen-max, 4× headroom).
 pub(crate) fn request_timeout() -> Duration {
     let ms = std::env::var("CREW_HTTP_TIMEOUT_MS")
         .ok()
@@ -38,15 +47,17 @@ pub(crate) fn request_timeout() -> Duration {
 }
 
 /// The HTTP client every provider shares: bounded at each network layer so a
-/// dead path fails fast with a reqwest error (which names the URL) rather than
-/// hanging until the caller's outer timeout. Idle pooled sockets are dropped
-/// after 30s — NAT boxes and VPNs silently kill longer-idle connections, and
-/// reusing one of those corpses is exactly the "no response at all" hang;
-/// keepalive probes cover the gap under 30s.
+/// dead path fails fast with a reqwest error rather than hanging until the
+/// caller's outer timeout, and so a LIVE path is never cut off (`timeout` is
+/// `read_timeout`, a per-read silence bound that every arriving frame resets
+/// — see [`request_timeout`] — not a deadline on the whole call). Idle pooled
+/// sockets are dropped after 30s — NAT boxes and VPNs silently kill
+/// longer-idle connections, and reusing one of those corpses is exactly the
+/// "no response at all" hang; keepalive probes cover the gap under 30s.
 pub(crate) fn http_client(timeout: Duration) -> reqwest::Client {
     reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(10))
-        .timeout(timeout)
+        .read_timeout(timeout)
         .tcp_keepalive(Duration::from_secs(15))
         .pool_idle_timeout(Duration::from_secs(30))
         .build()

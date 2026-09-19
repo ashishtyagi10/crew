@@ -20,6 +20,7 @@ mod echo;
 mod host;
 pub mod lsp;
 pub mod mcp;
+pub mod metatag;
 mod orchestrator;
 mod protocol;
 mod signinopt;
