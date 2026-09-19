@@ -108,11 +108,18 @@ fn wide_characters_take_their_two_columns() {
     assert!(used.iter().all(|&c| c < 16), "spilled past the card");
 }
 
-/// A pane crew draws itself (settings, a file viewer) has no one line that
-/// stands for it, and says so rather than guessing.
+/// A pane crew draws itself answers from its own state, through
+/// `paneglance` — the strip asks every kind, not just the two with a grid.
 #[test]
-fn a_drawn_pane_has_no_preview() {
-    let p = pane_with(PaneContent::Todo(crate::todopane::test_pane(Vec::new())));
+fn a_drawn_pane_answers_from_its_own_state() {
+    let content = PaneContent::Todo(crate::todopane::test_pane(Vec::new()));
+    let want = crate::paneglance::of(&content);
+    assert!(want.is_some(), "the todo list said nothing");
+    assert_eq!(of(&pane_with(content)), want);
+    // …and a settings form still says nothing: the form IS its state.
+    let p = pane_with(PaneContent::Settings(
+        crate::settingspane::SettingsPane::new(crate::config::CrewConfig::default(), Vec::new()),
+    ));
     assert_eq!(of(&p), None);
 }
 

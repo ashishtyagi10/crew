@@ -237,9 +237,13 @@ where a pane goes when you have not touched it for a while, which is exactly
 where "what did I miss?" is loudest; the marker alone could only ever answer
 "something". The line is the pane's own bottom-most written row, tidied to one
 row (runs of a TUI's column padding closed up, control bytes dropped); a chat
-pane waiting on an agent names the agent and the tool it is in instead, and a
-pane crew draws itself (settings, the todo list, a file viewer) shows nothing
-rather than guessing. A thumbnail with no room for both a marker and a count
+pane waiting on an agent names the agent and the tool it is in instead. **A
+pane crew draws itself answers from its own state** (`paneglance`): the todo
+list says `4 open items · 1 overdue`, a viewer says `line 3 of 210`, Far says
+the folder and how much is in it, `/disk` its root and total, `/usage` the
+week's spend, `/dash` the machine, and a swarm `3 of 5 done`. Each is a number
+the pane's own header already works out. A settings form still says nothing —
+the form IS its state, and its legend already says so. A thumbnail with no room for both a marker and a count
 keeps the marker, which is the one that says the pane is alive, and one with
 fewer than six columns left in the middle leaves the middle empty rather than
 drawing a syllable and an ellipsis. The focused pane is protected

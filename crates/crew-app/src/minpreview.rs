@@ -26,13 +26,15 @@ const LEFT: u16 = 2;
 const MIN_ROOM: usize = 6;
 
 /// The line a thumbnail shows for `p`, or `None` when the pane has nothing to
-/// say (an empty screen, a chat with no messages, a pane kind whose whole
-/// content is a picture nobody can fit on one row).
+/// say (an empty screen, a chat with no messages, a viewer still loading).
 pub(crate) fn of(p: &Pane) -> Option<String> {
     match &p.content {
         PaneContent::Terminal(t) => tidy(&t.pty.last_line()?),
         PaneContent::Chat(c) => chat(c),
-        _ => None,
+        // Every pane crew DRAWS answers for itself (`paneglance`): its whole
+        // state is the handful of numbers on its own header row, and a
+        // thumbnail is exactly the place to repeat one of them.
+        drawn => crate::paneglance::of(drawn),
     }
 }
 

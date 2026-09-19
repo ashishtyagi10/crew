@@ -62,6 +62,16 @@ fn min_shot_thumbnails() {
             7,
             Some("building crew-app v0.22.61"),
         ),
+        // A pane crew DRAWS, answering from its own state (`paneglance`) —
+        // the half of the strip that said nothing until it did.
+        (
+            "min-drawn",
+            240,
+            "7 todo",
+            None,
+            0,
+            Some("4 open items \u{b7} 1 overdue"),
+        ),
     ] {
         let Some(px) = thumb_shot(name, w, title, marker, unread, preview) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");

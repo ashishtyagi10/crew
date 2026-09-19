@@ -71,6 +71,13 @@ fn wall_ms() -> u64 {
 }
 
 impl DashPane {
+    /// The machine in one line, for a thumbnail of this pane.
+    pub(crate) fn glance(&self) -> String {
+        let s = self.sampler.stats();
+        let pct = |f: f32| (f.clamp(0.0, 1.0) * 100.0).round() as u32;
+        format!("cpu {}% \u{b7} mem {}%", pct(s.cpu), pct(s.mem))
+    }
+
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
         dashtext::cells(self, cols, rows)
     }
