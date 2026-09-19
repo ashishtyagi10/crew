@@ -249,6 +249,12 @@ impl CrewApp {
                     hh.min((sh / ch) as u16),
                     self.help_scroll,
                     &self.help_filter,
+                    // Read live rather than remembered: the panel does not
+                    // move focus, so the pane you are in is the pane you
+                    // opened it from, and the mark cannot go stale.
+                    self.panes
+                        .get(self.focused)
+                        .and_then(|p| crate::helphere::section_for(&p.content)),
                 ),
                 x: hx,
                 y: hy,

@@ -13,8 +13,15 @@ use crew_render::PaneScene;
 
 const PAD: f32 = 12.0;
 
-fn help_shot(name: &str, w: u32, h: u32, scroll: usize, needle: &str) -> Option<Vec<u8>> {
-    help_shot_at(name, w, h, 13.0, scroll, needle)
+fn help_shot(
+    name: &str,
+    w: u32,
+    h: u32,
+    scroll: usize,
+    needle: &str,
+    mine: Option<&str>,
+) -> Option<Vec<u8>> {
+    help_shot_at(name, w, h, 13.0, scroll, needle, mine)
 }
 
 fn help_shot_at(
@@ -24,6 +31,7 @@ fn help_shot_at(
     font: f32,
     scroll: usize,
     needle: &str,
+    mine: Option<&str>,
 ) -> Option<Vec<u8>> {
     let px = crate::shotdraw_tests::draw(w, h, font, |cw, ch| {
         let iw = w as f32 - 2.0 * PAD;
@@ -31,7 +39,7 @@ fn help_shot_at(
         let cols = (iw / cw).floor() as u16;
         let rows = (ih / ch).floor() as u16;
         vec![PaneScene {
-            cells: crate::help::help_cells(cols, rows, scroll, needle),
+            cells: crate::help::help_cells(cols, rows, scroll, needle, mine),
             x: PAD,
             y: PAD,
             w: cols as f32 * cw,
@@ -61,7 +69,7 @@ fn help_shot_width_sweep() {
         ("help-narrow", 620, 760),
         ("help-short", 1000, 420),
     ] {
-        let Some(px) = help_shot(name, w, h, 0, "") else {
+        let Some(px) = help_shot(name, w, h, 0, "", None) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         };
@@ -75,15 +83,24 @@ fn help_shot_width_sweep() {
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn help_shot_states() {
     let _g = crate::app::theme_test_guard();
-    for (name, scroll, needle) in [
-        ("help-scrolled", 14usize, ""),
+    // The last is the panel as `/keys` opens it from a Far panel: scrolled to
+    // that pane's own section, which says it is yours.
+    let here = "in a /far file panel";
+    for (name, scroll, needle, mine) in [
+        ("help-scrolled", 14usize, "", None),
         // The last section — the document window's — is the one a fresh
         // shot at scroll 0 never reaches.
-        ("help-tail", usize::MAX, ""),
-        ("help-filtered", 0, "pane"),
-        ("help-nomatch", 0, "zzz"),
+        ("help-tail", usize::MAX, "", None),
+        ("help-filtered", 0, "pane", None),
+        ("help-nomatch", 0, "zzz", None),
+        (
+            "help-here",
+            crate::helphere::scroll_to(here, crate::help::size().0),
+            "",
+            Some(here),
+        ),
     ] {
-        let Some(px) = help_shot(name, 1000, 620, scroll, needle) else {
+        let Some(px) = help_shot(name, 1000, 620, scroll, needle, mine) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         };
@@ -103,7 +120,7 @@ fn help_shot_themes() {
     ] {
         crew_theme::set_theme(id);
         crate::palette::set_accent(crew_theme::theme().accent_default);
-        let Some(px) = help_shot(name, 1000, 620, 0, "") else {
+        let Some(px) = help_shot(name, 1000, 620, 0, "", None) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         };
@@ -125,7 +142,7 @@ fn help_shot_font_sweep() {
     let _g = crate::app::theme_test_guard();
     for font in [10.0f32, 13.0, 16.0, 19.0, 22.0, 26.0] {
         let name = format!("help-font-{font:.0}");
-        if help_shot_at(&name, 900, 460, font, 0, "").is_none() {
+        if help_shot_at(&name, 900, 460, font, 0, "", None).is_none() {
             eprintln!("no GPU adapter — skipped");
             return;
         }

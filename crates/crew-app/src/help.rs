@@ -4,12 +4,9 @@ use crew_render::CellView;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, List, ListItem, Widget};
+use ratatui::widgets::{Block, List, Widget};
 
-use crate::palette::accent_color;
-
-use crate::helplayout::{self, sections, Row, KEY_COL};
+use crate::helplayout::{self, sections, KEY_COL};
 use crate::helppanes::{
     DISK_BINDINGS, DOC_BINDINGS, FAR_BINDINGS, SETTINGS_BINDINGS, TODO_BINDINGS, VIEW_BINDINGS,
 };
@@ -83,59 +80,24 @@ pub fn max_scroll(rows: u16, cols: u16, needle: &str) -> usize {
 /// binding was added. Three times in one release the fix was to *merge two
 /// rows* to make room — losing detail from bindings that had nothing to do
 /// with the new one. A list that scrolls has no budget to spend.
-pub fn help_cells(cols: u16, rows: u16, scroll: usize, needle: &str) -> Vec<CellView> {
+pub fn help_cells(
+    cols: u16,
+    rows: u16,
+    scroll: usize,
+    needle: &str,
+    mine: Option<&str>,
+) -> Vec<CellView> {
     if cols < 12 || rows < 4 {
         return Vec::new();
     }
     let scroll = scroll.min(max_scroll(rows, cols, needle));
     let t = crew_theme::theme();
-    let text_col = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
-    let dim_col = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
-    let rule_col = Color::Rgb(t.border_normal.0, t.border_normal.1, t.border_normal.2);
     let panel_col = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
     let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
     let col = helplayout::key_col(cols);
     let inner_w = (cols as usize).saturating_sub(2);
-    let all = helplayout::rows(needle, cols);
-    let items: Vec<ListItem> = all[scroll.min(all.len())..]
-        .iter()
-        .map(|row| match row {
-            Row::Spacer => ListItem::new(Line::from("")),
-            // A heading used to be one more dim row at the same indent as the
-            // keys — nothing about it said "new section". It now carries a
-            // rule to the panel's edge, the same way every card in crew
-            // states a boundary.
-            Row::Head(h) => {
-                let used = crate::chatwidth::str_w(h) + 1;
-                let rule = "\u{2500}".repeat(inner_w.saturating_sub(used));
-                ListItem::new(Line::from(vec![
-                    Span::styled(format!("{h} "), Style::new().fg(dim_col)),
-                    Span::styled(rule, Style::new().fg(rule_col)),
-                ]))
-            }
-            // Pad to the key column — and when a key is wider than it, give
-            // it two spaces of its own rather than letting the description
-            // run into it.
-            Row::Bind(k, d) => {
-                let w = crate::chatwidth::str_w(k);
-                let pad = " ".repeat(col.saturating_sub(w).max(2));
-                ListItem::new(Line::from(vec![
-                    Span::styled(format!("{k}{pad}"), Style::new().fg(accent_color())),
-                    Span::styled(d.clone(), Style::new().fg(text_col)),
-                ]))
-            }
-            Row::Cont(d) => ListItem::new(Line::from(vec![
-                Span::raw(" ".repeat(col)),
-                Span::styled(d.clone(), Style::new().fg(text_col)),
-            ])),
-            // A search that matches nothing must say so; an empty panel reads
-            // as a rendering fault.
-            Row::Note(n) => ListItem::new(Line::from(Span::styled(
-                n.clone(),
-                Style::new().fg(dim_col),
-            ))),
-        })
-        .collect();
+    let all = helplayout::rows_for(needle, cols, mine);
+    let items = helpitem::items(&all[scroll.min(all.len())..], col, inner_w);
     // The list fills the interior; the frame is the composer pop-ups' —
     // the focused stroke and a bold accent legend (`popupchrome`), since
     // this overlay, like them, is the box the next key lands in. It was a
@@ -179,6 +141,9 @@ pub fn help_cells(cols: u16, rows: u16, scroll: usize, needle: &str) -> Vec<Cell
     }
     cells
 }
+
+#[path = "helpitem.rs"]
+mod helpitem;
 
 #[cfg(test)]
 #[path = "help_tests.rs"]

@@ -24,7 +24,7 @@ fn row(cells: &[CellView], r: u16) -> String {
 fn the_overlay_wears_the_popup_chrome() {
     let _g = crate::app::theme_test_guard();
     let (w, h) = size();
-    let cells = help_cells(w, h, 0, "");
+    let cells = help_cells(w, h, 0, "", None);
     let frame = crate::popupchrome::card(w, h, "keys");
     let corner = |v: &[CellView]| {
         v.iter()
@@ -57,7 +57,7 @@ fn the_overlay_wears_the_popup_chrome() {
 fn the_hint_rides_the_bottom_border_at_the_right() {
     let _g = crate::app::theme_test_guard();
     let (w, _) = size();
-    let cells = help_cells(w, 24, 0, "");
+    let cells = help_cells(w, 24, 0, "", None);
     let bottom = row(&cells, 23);
     let hint = " \u{2191}\u{2193} for more \u{b7} type to filter \u{b7} esc ";
     let at = bottom.find(hint).expect("the hint is on the bottom row");
@@ -79,7 +79,7 @@ fn the_hint_rides_the_bottom_border_at_the_right() {
 fn the_global_keys_have_a_ruled_heading() {
     let _g = crate::app::theme_test_guard();
     let (w, h) = size();
-    let cells = help_cells(w, h, 0, "");
+    let cells = help_cells(w, h, 0, "", None);
     let first = row(&cells, 1);
     assert!(first.starts_with("\u{2502}everywhere"), "{first:?}");
     assert!(

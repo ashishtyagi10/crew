@@ -259,6 +259,7 @@ mod gridrows;
 mod gridsel;
 mod handler;
 mod help;
+mod helphere;
 mod helpkeys;
 mod helplayout;
 mod helppanes;

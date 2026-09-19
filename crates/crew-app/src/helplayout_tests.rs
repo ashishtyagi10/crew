@@ -90,7 +90,7 @@ fn a_filtered_list_keeps_only_the_headings_it_needs() {
     let heads: Vec<&str> = laid
         .iter()
         .filter_map(|r| match r {
-            Row::Head(h) => Some(*h),
+            Row::Head(h, _) => Some(*h),
             _ => None,
         })
         .collect();
