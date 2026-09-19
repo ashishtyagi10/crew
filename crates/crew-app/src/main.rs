@@ -392,6 +392,7 @@ mod panechartshot_tests;
 mod panedir;
 mod panedrag;
 mod panefit;
+mod paneglance;
 mod panegutter;
 mod panehover;
 mod panelcard;

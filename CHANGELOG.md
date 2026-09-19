@@ -8,6 +8,33 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.73
+
+**Every minimized pane says what it is doing, not just the two with a grid.**
+v0.22.61 gave a thumbnail the pane's own last line, which a terminal has and a
+chat pane has. The six panes crew DRAWS had nothing to hand over and said
+nothing — so half the strip stayed exactly as empty as it was before, and
+those are the panes whose entire state is a handful of numbers their own
+header row already works out.
+
+Each answers for itself now:
+
+- `/todo` — `4 open items · 1 overdue` (`nothing open` when there is nothing)
+- `/view` — `line 3 of 210`, since the legend already says which file
+- `/far` — the active panel's folder and how much is in it
+- `/disk` — the root and the bytes the walk has found so far
+- `/usage` — `$1.98 · 7 days`
+- `/dash` — `cpu 28% · mem 61%`
+- the swarm pane — `3 of 5 done`, the goal while it is still planning, the
+  reason when it failed
+
+A settings form still says nothing, and deliberately: the form IS its state,
+and the legend already says which one it is.
+
+`paneglance` is where all of them live — one module that asks each pane kind
+rather than a match reaching into everyone's internals — and `swarmpane`
+handed it an accessor rather than growing past its own line ceiling.
+
 ## 0.22.72
 
 **"Increase contrast" reaches the two quiet things it used to miss.** Crew

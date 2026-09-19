@@ -35,6 +35,12 @@ const REFRESH_MS: u64 = 2_000;
 const FULL_COLS: u16 = 28;
 
 impl UsagePane {
+    /// What this pane says in one line, for a thumbnail of it: the week's
+    /// spend, which is the number the pane exists to show.
+    pub(crate) fn glance(&self) -> String {
+        format!("{} \u{b7} 7 days", money(self.buckets.cost_microusd))
+    }
+
     pub fn new() -> Self {
         let now = crate::anim::now_ms();
         Self {

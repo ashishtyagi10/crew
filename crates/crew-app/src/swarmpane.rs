@@ -60,6 +60,11 @@ pub struct SwarmPane {
 }
 
 impl SwarmPane {
+    /// What the pane is at, for the thumbnail line `paneglance` builds.
+    pub(crate) fn state(&self) -> &SwarmState {
+        &self.state
+    }
+
     /// Run a batch of independent `jobs` as one all-parallel swarm — no planning
     /// step, since the jobs already are the task list. Uses the real API backend
     /// (capped) when a key is set, else the offline stub backend.
