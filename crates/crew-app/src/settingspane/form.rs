@@ -1,17 +1,28 @@
-//! The settings form's layout: the pure two-column geometry shared by the
-//! renderer and the tests (the controls themselves are drawn by
-//! [`super::widgets`], re-exported here so callers say `form::input_box`).
+//! The settings form's layout: the pure bento geometry shared by the renderer
+//! and the tests (the controls themselves are drawn by [`super::widgets`],
+//! re-exported here so callers say `form::input_box`).
 //!
-//! The left column is `appearance` alone because it is the tall one; the
-//! right stacks `window`, `notifications` and `usage`, which together
-//! roughly match it.
+//! The columns BALANCE. It used to be `appearance` on the left and everything
+//! else stacked on the right, which was true of the card list when it was
+//! written and had stopped being true: appearance had grown to twenty fields,
+//! so a whole-window form scrolled a 43-row left column past a right column
+//! that ran out after 29 and left the rest of the pane empty.
+//!
+//! So the cards are a LIST now, each one placed into whichever column is
+//! shortest, and the number of columns is the one that makes the form
+//! shortest — measured, not thresholded, because a third column is only a win
+//! while its cards are still wide enough to sit their fields in pairs. On a
+//! whole window that is three columns and no scrolling at all.
 use ratatui::layout::Rect;
 
-use super::cards::{appearance, notifications, usage, window};
+use super::cards::{appearance, canvas, notifications, usage, window};
 use super::Field;
 
-/// Pane width below which the two card columns stack vertically.
-pub(crate) const STACK_BELOW: u16 = 64;
+/// Columns a card column needs before it is worth having: narrower than this
+/// and `pair` stacks every row, which costs more height than the column saves.
+const COL_MIN: u16 = 30;
+/// The most columns the form will use. Past three, a card is all border.
+const MAX_COLS: u16 = 3;
 /// Content rows inside the notify-patterns text area.
 pub(crate) const TEXTAREA_ROWS: u16 = 4;
 
@@ -37,50 +48,67 @@ impl FormLayout {
     }
 }
 
-/// Bento layout: two columns when the pane is wide enough (Appearance left;
-/// Window + Notifications + Usage right), otherwise one stacked column.
+/// The cards, longest first — which is both the order a stacked form reads in
+/// and what makes the shortest-column rule below pack well (a tall card placed
+/// last can only stick out).
+const CARDS: [(&str, Build); 5] = [
+    ("appearance", appearance),
+    ("canvas", canvas),
+    ("notifications", notifications),
+    ("window", window),
+    ("usage", usage),
+];
+
+/// Width of one column when the form uses `n` of them: a one-column margin
+/// each side and a two-column gutter between.
+fn col_width(cols: u16, n: u16) -> u16 {
+    cols.saturating_sub(2 + 2 * (n - 1)) / n
+}
+
+/// Bento layout: the cards dealt into the column count that makes the form
+/// shortest, each card going to whichever column is shortest so far.
 pub(crate) fn layout(cols: u16) -> FormLayout {
-    let mut rects = Vec::new();
+    let mut best = deal(cols, 1);
+    for n in 2..=MAX_COLS {
+        if col_width(cols, n) < COL_MIN {
+            break;
+        }
+        let try_n = deal(cols, n);
+        if try_n.height < best.height {
+            best = try_n;
+        }
+    }
+    best
+}
+
+/// Place every card into `n` columns, shortest column first.
+fn deal(cols: u16, n: u16) -> FormLayout {
+    let w = col_width(cols, n);
     let mut cards = Vec::new();
-    // Place one card and report the row after it, so adding a card is one
-    // line rather than the five-line push-and-measure dance this repeated.
-    let mut place = |rects: &mut Vec<(Field, Rect)>, title, build: Build, x, y, w| {
-        let h = build(rects, x, y, w);
+    // Per column so the rects come out in reading order — down one column,
+    // then down the next. Tab reads this order ([`tab_order`]).
+    let mut cols_rects: Vec<Vec<(Field, Rect)>> = vec![Vec::new(); usize::from(n)];
+    let mut next_y = vec![0u16; usize::from(n)];
+    for (title, build) in CARDS {
+        let (i, &y) = next_y
+            .iter()
+            .enumerate()
+            .min_by_key(|&(i, &y)| (y, i))
+            .expect("at least one column");
+        let x = 1 + i as u16 * (w + 2);
+        // A blank row between cards in a column, none above the first.
+        let y = if y == 0 { 0 } else { y + 1 };
+        let h = build(&mut cols_rects[i], x, y, w);
         cards.push(Card {
             title,
             rect: Rect::new(x, y, w, h),
         });
-        y + h
-    };
-    if cols >= STACK_BELOW {
-        let col_w = (cols - 4) / 2; // 1-col margins + 2-col gutter
-        let (lx, rx) = (1, 1 + col_w + 2);
-        let left = place(&mut rects, "appearance", appearance, lx, 0, col_w);
-        let mut right = place(&mut rects, "window", window, rx, 0, col_w);
-        for (title, build) in [("notifications", notifications as Build), ("usage", usage)] {
-            right = place(&mut rects, title, build, rx, right + 1, col_w);
-        }
-        FormLayout {
-            cards,
-            rects,
-            height: left.max(right),
-        }
-    } else {
-        let w = cols.saturating_sub(2);
-        let mut y = 0;
-        for (title, build) in [
-            ("appearance", appearance as Build),
-            ("window", window),
-            ("notifications", notifications),
-            ("usage", usage),
-        ] {
-            y = place(&mut rects, title, build, 1, y, w) + 1;
-        }
-        FormLayout {
-            cards,
-            rects,
-            height: y - 1,
-        }
+        next_y[i] = y + h;
+    }
+    FormLayout {
+        height: next_y.iter().copied().max().unwrap_or(0),
+        rects: cols_rects.concat(),
+        cards,
     }
 }
 
@@ -93,10 +121,11 @@ pub(crate) fn layout(cols: u16) -> FormLayout {
 /// fifth, so Tab left the appearance card, crossed the form and came back.
 ///
 /// A second list can always drift from the first. This one cannot, and it is
-/// also the only thing that can be right at every width: above `STACK_BELOW`
-/// the form is two columns of cards, and `pair` stacks its two fields on a
-/// narrow pane and sits them side by side on a wide one, so the reading order
-/// genuinely CHANGES with the width. No static list is correct at both.
+/// also the only thing that can be right at every width: the form is one, two
+/// or three columns of cards depending on what fits, and `pair` stacks its two
+/// fields on a narrow card and sits them side by side on a wide one, so the
+/// reading order genuinely CHANGES with the width. No static list is correct
+/// at all of them.
 ///
 /// [`layout`] already builds the rects in reading order — card by card in
 /// placement order, and within a card `pair` pushes left-then-right or

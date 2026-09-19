@@ -35,7 +35,8 @@ fn pair(rects: &mut Vec<(Field, Rect)>, ix: u16, iw: u16, cy: u16, a: Field, b: 
     6
 }
 
-/// Appearance card fields; returns the card height (content + border).
+/// Appearance card fields — the typeface and the colours the page is made of;
+/// returns the card height (content + border).
 pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
     let (ix, iw) = inner(x, w);
     let mut cy = y + 1;
@@ -57,6 +58,17 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     cy += pair(rects, ix, iw, cy, Field::LightFrom, Field::LightTo);
     rects.push((Field::Accent, Rect::new(ix, cy, iw, 3)));
     cy += 3;
+    cy + 1 - y
+}
+
+/// Canvas card fields — how crew DRAWS what the appearance card coloured:
+/// the depth of a card, how it moves, how tightly it is packed, and the marks
+/// it wears. Split out of `appearance` when the form learned to balance its
+/// columns: one card holding twenty fields is one column that cannot be
+/// balanced against anything, and these were always a second subject.
+pub(super) fn canvas(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
+    let (ix, iw) = inner(x, w);
+    let mut cy = y + 1;
     cy += pair(rects, ix, iw, cy, Field::Glass, Field::Motion);
     cy += pair(rects, ix, iw, cy, Field::Density, Field::Leading);
     rects.push((Field::Contrast, Rect::new(ix, cy, iw, 3)));
@@ -67,16 +79,16 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     // and its values are words rather than numbers.
     rects.push((Field::Gradient, Rect::new(ix, cy, iw, 3)));
     cy += 3;
-    rects.push((Field::BorderMarks, Rect::new(ix, cy, iw, 1)));
-    cy += 1;
-    rects.push((Field::Invisibles, Rect::new(ix, cy, iw, 1)));
-    cy += 1;
-    rects.push((Field::Lsp, Rect::new(ix, cy, iw, 1)));
-    cy += 1;
-    rects.push((Field::PaperTexture, Rect::new(ix, cy, iw, 1)));
-    cy += 1;
-    rects.push((Field::AmbientDrift, Rect::new(ix, cy, iw, 1)));
-    cy += 1;
+    for f in [
+        Field::BorderMarks,
+        Field::Invisibles,
+        Field::Lsp,
+        Field::PaperTexture,
+        Field::AmbientDrift,
+    ] {
+        rects.push((f, Rect::new(ix, cy, iw, 1)));
+        cy += 1;
+    }
     cy + 1 - y
 }
 

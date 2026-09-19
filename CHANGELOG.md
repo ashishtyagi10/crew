@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.62
+
+**The settings form deals its cards into balanced columns.** The layout was
+`appearance` on the left and everything else stacked on the right, which was
+true of the card list the day it was written and had quietly stopped being
+true: appearance had grown to twenty fields. On a whole window that meant
+scrolling a 43-row left column past a right column that ran out after 29 and
+left the rest of the page empty — a form that did not fit a screen it was not
+filling.
+
+Two changes, and they need each other. **Appearance split into `appearance`
+and `canvas`**: the typeface and the colours the page is made of, then how
+crew draws them (glass, motion, density, line spacing, contrast, shape cues,
+gradient and the marks a card wears). One card holding twenty fields is one
+column that cannot be balanced against anything, and those were always two
+subjects. Then **the cards became a list**, each one placed into whichever
+column is shortest so far, longest card first.
+
+The **number of columns is measured, not thresholded**: the form is laid out
+at one, two and three columns and keeps the shortest result. That matters
+because a third column is only a win while its cards are still wide enough for
+`pair` to sit two fields on one row — below that every pair stacks and the
+narrow columns cost more height than they save. At a whole window it comes out
+three columns, 28 rows, and **nothing to scroll**; at a half tile, two; on a
+narrow pane, one, as before.
+
+Tab and the mouse needed no changes, which is the point of v0.22.55 and
+v0.22.56: both read `form::layout`, so the walk goes down the new columns and
+a click lands on the card it looks like it landed on.
+
 ## 0.22.61
 
 **A minimized thumbnail says what its pane is doing.** The strip a pane is

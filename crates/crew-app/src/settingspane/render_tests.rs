@@ -31,13 +31,10 @@ fn dump(cells: &[CellView], rows: u16) -> String {
 #[test]
 fn every_field_renders_on_a_tall_pane() {
     // Tall enough for the whole form plus the gap and pinned button row,
-    // computed rather than pinned at a number: this used to be a literal 30,
-    // which the form outgrew the moment `auto` gained its pairing pickers —
-    // and a test that fails because the form got bigger says nothing about
-    // whether the new fields render.
+    // computed rather than pinned: a test that fails because the form got
+    // bigger says nothing about whether the new fields render.
     let rows = form::layout(80).height + 2;
-    let cells = pane().cells(80, rows);
-    let all = dump(&cells, rows);
+    let all = dump(&pane().cells(80, rows), rows);
     for f in FIELDS.iter().take(FIELDS.len() - 2) {
         assert!(
             all.contains(label_of(*f)),
@@ -49,12 +46,19 @@ fn every_field_renders_on_a_tall_pane() {
     assert!(all.contains("[ Cancel esc ]"), "cancel button: {all}");
 }
 
+/// Every card's legend, at a height that holds the whole form: which cards
+/// sit below the fold is the balancer's business, not this test's.
+fn legends_at(cols: u16) {
+    let rows = form::layout(cols).height + 2;
+    let all = dump(&pane().cells(cols, rows), rows);
+    for t in ["appearance", "canvas", "window", "notifications", "usage"] {
+        assert!(all.contains(t), "missing card '{t}' at {cols} in:\n{all}");
+    }
+}
+
 #[test]
 fn cards_have_legends() {
-    let all = dump(&pane().cells(80, 30), 30);
-    for t in ["appearance", "window", "notifications"] {
-        assert!(all.contains(t), "missing card '{t}' in:\n{all}");
-    }
+    legends_at(80); // two columns
 }
 
 #[test]
@@ -71,8 +75,7 @@ fn short_pane_scrolls_to_keep_focus_visible() {
         .iter()
         .position(|&f| f == Field::NotifyPatterns)
         .unwrap();
-    let cells = p.cells(80, 12);
-    let all = dump(&cells, 12);
+    let all = dump(&p.cells(80, 12), 12);
     assert!(
         all.contains("Watch patterns"),
         "focused field visible:\n{all}"
@@ -82,10 +85,7 @@ fn short_pane_scrolls_to_keep_focus_visible() {
 
 #[test]
 fn narrow_pane_still_renders_all_cards() {
-    let all = dump(&pane().cells(48, 60), 60);
-    for t in ["appearance", "window", "notifications"] {
-        assert!(all.contains(t), "missing card '{t}' in:\n{all}");
-    }
+    legends_at(48);
 }
 
 #[test]
