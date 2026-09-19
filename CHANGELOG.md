@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.66
+
+**A wrapped row in the viewer's plain rung says it is one.** The numbered
+rungs have marked their wraps since they were written — a `↪` in the gutter
+where the line number would be — and a fenced block in a chat card started
+doing it in v0.22.63. The plain rung is the one with NO gutter, and it had
+nothing at all to its left: in `/watching` at a tile width,
+
+```
+w1   in 2h    daily      brief me on the
+calendar
+```
+
+where `calendar` in column zero is exactly what the next standing intent looks
+like. Every listing crew writes itself lands on this rung — `/watching`,
+`/tools`, `/out`, `/log`, `/integrations` — and every one of them was reading
+as one row more than it had.
+
+With no gutter to put it in, the mark goes at the head of the row, and it
+keeps the line's own indent: a detail row's continuation stays under its
+detail rather than jumping to the margin. It costs two columns, which come out
+of the wrap rather than off the edge of the card, and a pane with fewer than
+twelve columns left for words does not pay them — below that the mark starts
+hard-cutting words that used to fit whole, and a wrap you can see is not worth
+a word you cannot read.
+
+Also: a first row that was only the line's own indent is gone. An unbreakable
+word after four spaces wrapped as a blank row and then the word, which reads
+as a gap in the listing.
+
 ## 0.22.65
 
 **On a narrow rail the LOG gives the message the width.** Every line in the

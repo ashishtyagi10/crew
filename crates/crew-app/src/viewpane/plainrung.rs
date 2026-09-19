@@ -5,11 +5,29 @@ use super::linepaint::{row, row_paint};
 use crate::chatbody::{plain, CardLine};
 use crate::viewpane::codepaint::{line_paint, CharPaint};
 
+/// The mark a continued row wears, and the columns it costs.
+///
+/// The plain rung is the one rung with NO gutter, so a wrapped row had
+/// nothing to its left saying it was one: in `/watching` at a tile width,
+/// `w1  in 2h  daily  brief me on the` was followed by `calendar` in column
+/// zero, which reads as the next standing intent rather than the end of this
+/// one. The numbered rungs have answered this since they were written — a
+/// `↪` where the line number would be — and so does a fenced block in a chat
+/// card; with no gutter to put it in, it goes at the head of the row.
+const MARK: char = '\u{21aa}';
+const MARK_W: usize = 2;
+
+/// Columns a continued row needs for its words before the mark is worth
+/// paying for. Under this the mark starts hard-cutting words that used to fit
+/// whole, and a wrap you can see is not worth a word you cannot read.
+const MIN_TEXT: usize = 12;
+
 /// Plain rows with no gutter at all, for text that is not source: a note, a
 /// listing crew wrote itself. Wrapped at the full width and ON WORDS — a
 /// sentence broken mid-word is how source is shown, because a line of code
 /// has no words to break on; prose does — with a continuation keeping the
-/// line's own indent, so a detail line stays under its row.
+/// line's own indent and wearing a [`MARK`], so a detail line stays under its
+/// row and a row that wrapped cannot be read as the next one.
 pub(crate) fn unnumbered(
     text: &str,
     cols: usize,
@@ -31,11 +49,31 @@ pub(crate) fn unnumbered(
             .take_while(|c| **c == ' ')
             .count()
             .min(cols / 2);
+        // The mark is paid for out of the row's words, so it is only worn
+        // where there are still words enough to read (see [`MIN_TEXT`]).
+        let marked = cols.saturating_sub(lead + MARK_W) >= MIN_TEXT;
+        let cont = lead + if marked { MARK_W } else { 0 };
+        let mut pieces = hanging(&chars, cols, cont);
+        // A first piece that is only the line's indent is not a row: an
+        // unbreakable word after four spaces wrapped as a blank row and then
+        // the word, which reads as a gap in the listing.
+        if pieces.len() > 1 && chars[pieces[0].0..pieces[0].1].iter().all(|c| *c == ' ') {
+            pieces.remove(0);
+        }
         let mut first = true;
-        for (s, e) in hanging(&chars, cols, lead) {
-            let indent = if first { 0 } else { lead };
+        for (s, e) in pieces {
             let (s, e) = (s.min(chars.len()), e.min(chars.len()).max(s));
-            let mut row = row(&" ".repeat(indent), ink, false);
+            let mut row = match first {
+                true => row("", ink, false),
+                false => {
+                    let mut r = row(&" ".repeat(lead), ink, false);
+                    if marked {
+                        r.push(plain(MARK, muted, false));
+                        r.push(plain(' ', muted, false));
+                    }
+                    r
+                }
+            };
             let body = &chars[s..e];
             match row_paint(&paints, i + 1, s, body.len()) {
                 Some(paint) => row.extend(
