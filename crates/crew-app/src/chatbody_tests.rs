@@ -62,9 +62,11 @@ fn long_code_lines_hard_wrap_verbatim() {
     );
     // Every character — including the spaces — survives the wrap. Read
     // from inside the field: column 0 is the indent, then the pad, then
-    // the code itself, which is the card's width less both pads.
+    // the code itself, which is the card's width less both pads. A
+    // continued row leads with the `↪` that says it is one, which is the
+    // mark and not the code.
     let code_w = 6 - 1 - crate::chatfield::PAD * 2;
-    let joined: String = lines[1..lines.len() - 1]
+    let rows: Vec<String> = lines[1..lines.len() - 1]
         .iter()
         .map(|l| {
             l[1 + crate::chatfield::PAD..]
@@ -74,6 +76,11 @@ fn long_code_lines_hard_wrap_verbatim() {
                 .collect::<String>()
         })
         .collect();
+    assert!(
+        rows[1..].iter().all(|r| r.starts_with('\u{21aa}')),
+        "{rows:?}"
+    );
+    let joined: String = rows.join("").replace("\u{21aa} ", "");
     assert_eq!(joined.trim_end(), "let a = 1;");
 }
 

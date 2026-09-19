@@ -70,7 +70,7 @@ fn live_pane() -> ChatPane {
              struct Cov(f32);\n\n\
              fn cover(p: Vec2, scale: f32) -> Cov {\n\
                  let d = sdf::arc(p, r, half_w, a0, a1); // signed\n\
-                 Cov((0.5 - d * scale).clamp(0.0, 1.0))\n\
+                 Cov((0.5 - d * scale).clamp(0.0, 1.0)) // wraps on a tile, and says so\n\
              }\n\
              ```\n\n\
              Sampling at `SUB = 8` is where the stepping stops; 16 is not visibly \

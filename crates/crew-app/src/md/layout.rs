@@ -4,7 +4,6 @@
 use super::parse::{Block, ListItem};
 #[cfg(test)]
 use super::render;
-use super::MdStyle;
 use super::{LineKind, MdLine, MdSpan};
 use wrap::{marker_span, plain_span, split_hardbreaks, wrap_group};
 
@@ -52,7 +51,7 @@ fn block_lines(block: Block, cols: usize) -> Vec<MdLine> {
             None => wrap_prose_lines(spans, cols),
         },
         Block::Heading(level, spans) => super::heading::lines(level, spans, cols),
-        Block::CodeBlock { lang, lines } => code_block_lines(lang, lines, cols),
+        Block::CodeBlock { lang, lines } => super::codeblock::lines(lang, lines, cols),
         Block::List(items) => list_lines(items, cols),
         Block::BlockQuote(inner) => quote_lines(inner, cols),
         Block::Table {
@@ -78,101 +77,6 @@ pub(super) fn wrap_prose_lines(spans: Vec<MdSpan>, cols: usize) -> Vec<MdLine> {
             kind: LineKind::Body,
         })
         .collect()
-}
-
-/// One wrapped row's worth of spans, taken from `runs` starting at `cursor`
-/// (a character offset into the whole line) and advancing it by `width`.
-///
-/// The cursor lives across rows because a token may straddle a wrap: the two
-/// halves become two spans carrying the same token, which is what keeps a long
-/// string one colour all the way down.
-fn code_spans(
-    runs: &[(String, super::syntax::Token)],
-    cursor: &mut usize,
-    width: usize,
-) -> Vec<MdSpan> {
-    let (start, end) = (*cursor, *cursor + width);
-    *cursor = end;
-    let mut out: Vec<MdSpan> = Vec::new();
-    let mut at = 0usize;
-    for (text, token) in runs {
-        let len = text.chars().count();
-        let (from, to) = (at.max(start), (at + len).min(end));
-        at += len;
-        if from >= to {
-            continue;
-        }
-        let slice: String = text
-            .chars()
-            .skip(from - (at - len))
-            .take(to - from)
-            .collect();
-        out.push(MdSpan {
-            text: slice,
-            style: MdStyle {
-                token: *token,
-                ..MdStyle::default()
-            },
-            link: None,
-            src: None,
-        });
-    }
-    if out.is_empty() {
-        out.push(plain_span(String::new()));
-    }
-    out
-}
-
-fn code_block_lines(lang: String, src_lines: Vec<String>, cols: usize) -> Vec<MdLine> {
-    // An untagged fence whose body reads as a diff is treated as one — the
-    // same sniff family as `viewpane::detect::by_content` — so ```diff and a
-    // bare paste of `git diff` output colour alike.
-    let lang = if lang.is_empty() && super::syntaxdiff::looks_like_diff(&src_lines) {
-        "diff".to_string()
-    } else {
-        lang
-    };
-    // Two columns narrower than the card: the chat renderer lays these lines
-    // into a padded field (`chatfield::PAD` each side), and a code line that
-    // used the full width would push its own right-hand pad off the card.
-    let cw = cols.saturating_sub(crate::chatfield::PAD * 2).max(1);
-    // The label (with its dev-icon on a Nerd Font) alone: the block's edges
-    // are drawn by the tinted FIELD the chat card lays these lines into
-    // (`chatfield`), not by corner glyphs.
-    let header_text = crate::glyphs::fence_header(&lang, cw);
-    let mut out = vec![MdLine {
-        spans: vec![plain_span(header_text)],
-        kind: LineKind::CodeHeader,
-    }];
-    for line in src_lines {
-        let chars: Vec<char> = line.chars().collect();
-        if chars.is_empty() {
-            out.push(MdLine {
-                spans: vec![plain_span(String::new())],
-                kind: LineKind::Code,
-            });
-        } else {
-            // Tokenize the WHOLE source line, then cut it into `cw`-wide
-            // rows. Doing it the other way round would lex each wrapped chunk
-            // independently, and a string or comment that crossed a wrap
-            // boundary would change colour mid-token.
-            let runs = super::syntax::tokenize(&line, &lang);
-            let mut cursor = 0usize;
-            for chunk in chars.chunks(cw) {
-                out.push(MdLine {
-                    spans: code_spans(&runs, &mut cursor, chunk.len()),
-                    kind: LineKind::Code,
-                });
-            }
-        }
-    }
-    // Closed by a blank row of the field rather than a corner — see the
-    // header above.
-    out.push(MdLine {
-        spans: vec![plain_span(String::new())],
-        kind: LineKind::CodeFooter,
-    });
-    out
 }
 
 fn list_lines(items: Vec<ListItem>, cols: usize) -> Vec<MdLine> {

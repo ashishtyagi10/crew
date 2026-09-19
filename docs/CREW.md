@@ -2208,8 +2208,13 @@ drain, the skipped count is reported in the transcript — `telemetry gap: N
 events dropped (bus overflow)`.
 
 Message bodies are newline-aware, and fenced ```code``` blocks render as
-bordered cards — a muted `╭─ lang` header, verbatim hard-wrapped lines on a
-dimmed background, `╰─` footer; ```` ```diff ````/```` ```patch ```` fences
+bordered cards — a muted `╭─ lang` header, verbatim wrapped lines on a
+dimmed background, `╰─` footer. A line too long for the field **wraps behind a
+`↪`** — the same mark the file viewer uses — because a tail laid out flush
+reads as the next statement rather than as the rest of this one, and the wrap
+is measured in **display columns**, so a line carrying CJK or an emoji stops
+at the field's edge instead of two columns past it per wide character. A field
+too narrow for both keeps the code and drops the mark. ```` ```diff ````/```` ```patch ```` fences
 (and untagged fences that read as a diff) colour added/removed/hunk lines in
 place (see [Markdown](#markdown)). A just-landed card **fades in** from the page
 colour over ~400ms (the fade drives redraws without reading as "busy"). A
