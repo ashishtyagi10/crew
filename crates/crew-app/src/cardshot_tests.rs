@@ -23,26 +23,10 @@ fn quiet(title: &'static str, focused: bool) -> Bar<'static> {
         index: Some(2),
         title,
         focused,
-        scroll: 0,
-        total: 0,
-        activity: false,
-        bell: false,
-        broadcast: false,
         min_btn: true,
         focus_t: if focused { 1.0 } else { 0.0 },
         assemble_t: 1.0,
-        git: None,
-        ticks: &[],
-        hits: &[],
-        progress: None,
-        elapsed: None,
-        pinned: false,
-        at_cmd: None,
-        fail_rows: &[],
-        cmd_rows: &[],
-        err_rows: &[],
-        unread: 0,
-        doc: false,
+        ..Default::default()
     }
 }
 
@@ -138,8 +122,19 @@ fn card_shot_everything_at_once() {
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn card_shot_focus_hierarchy() {
     let _g = crate::app::theme_test_guard();
-    for (name, focused) in [("card-focused", true), ("card-quiet", false)] {
-        let Some(px) = card_shot(name, 700, 300, &quiet("zsh", focused)) else {
+    // The last pair is the mode that changes where your keystrokes GO: BOTH
+    // cards wear it, so a grid in broadcast reads as one group.
+    for (name, foc, cast) in [
+        ("card-focused", true, false),
+        ("card-quiet", false, false),
+        ("card-cast-focused", true, true),
+        ("card-cast-quiet", false, true),
+    ] {
+        let b = Bar {
+            broadcast: cast,
+            ..quiet("zsh", foc)
+        };
+        let Some(px) = card_shot(name, 700, 300, &b) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         };

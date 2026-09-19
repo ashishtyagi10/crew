@@ -180,22 +180,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     // roster row read as one colour. Focus stays legible via bold + the
     // focused border; the unfocused legend recedes toward `legend_off`.
     let hue = crate::chatroster::agent_color(b.title);
-    // A card carried over this one lights its whole frame: the drop lands
-    // here, and a swap is worth saying before it happens (see `panedrag`).
-    let drop_target = crate::panedrag::is_drop_target(b.index.unwrap_or(0) as u16);
-    let (border, legend) = if drop_target {
-        (crate::palette::accent(), crate::palette::accent())
-    } else if b.focused {
-        (
-            crate::panecardglow::focused_stroke(crew_theme::theme()),
-            hue,
-        )
-    } else {
-        (
-            crew_theme::theme().border_normal,
-            crate::anim::lerp_rgb(hue, crew_theme::theme().legend_off, 0.55),
-        )
-    };
+    let (border, legend) = crate::panecardink::stroke(b, hue);
     let label = match b.index {
         Some(n) => format!("{n} {}", b.title),
         None => b.title.to_string(),

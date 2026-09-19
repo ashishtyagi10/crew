@@ -380,6 +380,7 @@ mod panecard;
 #[path = "panecard_budget_tests.rs"]
 mod panecard_budget_tests;
 mod panecardglow;
+mod panecardink;
 mod panedir;
 mod panedrag;
 mod panefit;

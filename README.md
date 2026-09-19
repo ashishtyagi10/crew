@@ -158,7 +158,11 @@ crew --no-detach   # or: crew --foreground
 Panes auto-tile into a near-square grid. Each pane has a title bar showing its
 index, the program-set title (often the cwd), and right-aligned status glyphs
 (`⇡N` scrollback, `●` new output, `!` bell, `»` broadcast input). The focused
-pane has a near-white border and a bright block cursor.
+pane has a near-white border and a bright block cursor. In **broadcast** mode
+every terminal pane's whole frame takes the broadcast colour and the input
+bar's legend reads `» every terminal` — a mode that changes where your
+keystrokes go should be visible for as long as it is on, not only when you
+switch it on.
 
 Crew displays up to **6 panes as full tiles**. Additional panes are demoted to a
 minimized thumbnail strip along the bottom of the content area, ordered

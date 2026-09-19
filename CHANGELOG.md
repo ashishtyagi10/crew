@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.68
+
+**Broadcast says so for as long as it is on.** The mode that sends your typing
+to every terminal announced itself once — an error-level toast when you turned
+it on — and then left two marks behind: a `»` glyph on each pane's top border,
+and the input bar's prompt changed from `>` to `»`. One glyph, in a corner, on
+a surface you are not looking at while you type into a pane. It has been
+reported as "I typed in one pane and it showed up in another", which is a bug
+report about an invisible mode.
+
+Now **every terminal pane it reaches wears the broadcast colour on its whole
+frame**. A grid in broadcast reads as one group rather than as a focused pane
+beside three ordinary ones, and the focus brackets still say which one you are
+in. And **the input bar's legend reads `» every terminal · ~/code/crew`** — the
+same slot focus mode's `◉ focus` tag uses, taken ahead of it, because a mode
+that redirects every keystroke outranks one that only hides panes. On a bar too
+narrow for both, the mode keeps the slot: the path is on the pane's own legend
+anyway, and an invisible mode is the thing being fixed.
+
+The card's colour ranking moved into `panecardink` on the way — a drop target
+first (a swap is one release away), then broadcast, then focus — which is the
+first time those three have been written down in one place.
+
 ## 0.22.67
 
 **The viewer says what the language server said.** It has marked WHERE the

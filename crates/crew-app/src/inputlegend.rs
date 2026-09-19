@@ -19,13 +19,20 @@ pub(crate) fn tag_budget(cols: u16) -> usize {
     ((cols as usize) / 3).clamp(TAG_MIN, TAG_MAX)
 }
 
-/// The top-border legend: the working directory, with a standing `focus` tag
-/// in front of it while focus mode is on (a mode owes the user a sign it is
-/// on, and this legend is the only chrome always on screen).
+/// The top-border legend: the working directory, with a standing mode tag in
+/// front of it (a mode owes the user a sign it is on, and this legend is the
+/// only chrome always on screen).
 /// `reserved` is what something else has already claimed on this rule — the
 /// history tag at its right end. Without it a deep path fills the budget all
 /// the way to the corner and the tag, drawn after, silently eats its tail.
-pub(crate) fn top(cwd: &std::path::Path, cols: u16, reserved: usize) -> String {
+///
+/// **Broadcast outranks focus.** Focus mode changes what you can SEE;
+/// broadcast changes where your keystrokes GO, and the bar you are typing
+/// into is the place to say so. It used to say it once, in a toast, and then
+/// stand there looking like any other prompt with one glyph changed — which
+/// is how "I typed in one pane and it showed up in another" gets reported as
+/// a bug.
+pub(crate) fn top(cwd: &std::path::Path, cols: u16, reserved: usize, cast: bool) -> String {
     let budget = crate::boxdraw::title_budget(cols).saturating_sub(reserved);
     let path = if cwd.as_os_str().is_empty() {
         String::new()
@@ -33,15 +40,21 @@ pub(crate) fn top(cwd: &std::path::Path, cols: u16, reserved: usize) -> String {
         // Keep the tail (current dir) when the path is deeper than the card.
         crate::cwd::fit_legend(&crate::cwd::display(cwd), budget)
     };
-    if !crate::focusmode::on() {
-        return path;
-    }
-    let tag = "\u{25c9} focus";
+    let tag = match (cast, crate::focusmode::on()) {
+        (true, _) => "\u{bb} every terminal",
+        (false, true) => "\u{25c9} focus",
+        (false, false) => return path,
+    };
     if path.is_empty() {
         return tag.to_string();
     }
     let room = budget.saturating_sub(tag.chars().count() + 3);
-    format!("{tag} \u{b7} {}", crate::cwd::fit_legend(&path, room))
+    // A bar too narrow for both keeps the MODE: the path is on the pane's own
+    // legend too, and a mode nobody can see is the thing being fixed here.
+    match crate::cwd::fit_legend(&path, room) {
+        p if p.trim_matches('\u{2026}').is_empty() => tag.to_string(),
+        p => format!("{tag} \u{b7} {p}"),
+    }
 }
 
 /// The bottom-border tag, right-aligned: a transient status while one is
