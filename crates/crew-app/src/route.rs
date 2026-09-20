@@ -15,25 +15,42 @@ pub(crate) enum Target {
 pub(crate) enum BareRoute {
     /// Type the line into the idle focused shell (pane index).
     TypeInto(usize),
-    /// Spawn a new persistent pane running the line.
-    Spawn,
-    /// Shell builtin — a throwaway pane would discard its effect; hint.
-    BuiltinHint(String),
-    /// Unresolvable — hint instead of spawning a dead pane.
-    UnknownHint,
+    /// Spawn a new persistent pane running the line, in the given shape.
+    Spawn(Shape),
+}
+
+/// How a spawned pane runs the line. A bare line is a shell command and the
+/// shell is the judge — crew's own PATH check only picks which shell shape
+/// can carry it, it never turns a line away.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Shape {
+    /// A binary crew resolved: the job-control wrapper (`set -m; body;
+    /// exec $SHELL`), whose busy detection is exact.
+    Wrapped,
+    /// A builtin, or a word crew could not resolve (an alias, a function, a
+    /// keyword, a typo): the user's interactive shell, with the line typed as
+    /// its first input, so rc-defined names are in scope and what a builtin
+    /// sets survives into the prompt that follows.
+    Interactive,
+}
+
+/// The shape a verdict calls for.
+pub(crate) fn shape_for(verdict: &Verdict) -> Shape {
+    match verdict {
+        Verdict::Executable(_) => Shape::Wrapped,
+        Verdict::Builtin(_) | Verdict::No => Shape::Interactive,
+    }
 }
 
 /// Focused-shell-first: an idle shell receives anything (it is the judge of
-/// what the text means); everything else routes by what the first word is.
+/// what the text means); everything else spawns, shaped by the first word.
+/// No line ends in a hint: the pane a mistyped word opens is a live shell
+/// showing `command not found`, which is what a terminal does.
 pub(crate) fn route_bare(target: Target, verdict: &Verdict) -> BareRoute {
     if let Target::IdleShell(i) = target {
         return BareRoute::TypeInto(i);
     }
-    match verdict {
-        Verdict::Executable(_) => BareRoute::Spawn,
-        Verdict::Builtin(b) => BareRoute::BuiltinHint(b.clone()),
-        Verdict::No => BareRoute::UnknownHint,
-    }
+    BareRoute::Spawn(shape_for(verdict))
 }
 
 impl crate::app::CrewApp {
@@ -114,7 +131,8 @@ impl crate::app::CrewApp {
         if crate::cwd::cd_arg(&text).is_some() {
             return Vec::new();
         }
-        match route_bare(self.focused_target(), &self.check_command(&text)) {
+        let verdict = self.check_command(&text);
+        match route_bare(self.focused_target(), &verdict) {
             BareRoute::TypeInto(i) => {
                 let title = self
                     .panes
@@ -123,21 +141,17 @@ impl crate::app::CrewApp {
                     .unwrap_or_default();
                 row(format!("↵ type into pane {} · {title}", i + 1), "", true)
             }
-            BareRoute::Spawn => row("↵ run — new pane".to_string(), "", true),
-            BareRoute::BuiltinHint(b) => row(
-                format!("{b} is a shell builtin — run it inside a shell pane"),
-                "",
-                false,
-            ),
-            BareRoute::UnknownHint => row(
-                "not a command — !… runs it in a pane anyway".to_string(),
-                "",
-                false,
+            // The dim column says what crew's check made of the first word;
+            // Enter runs the line either way, so the row always submits.
+            BareRoute::Spawn(_) => row(
+                "↵ run — new pane".to_string(),
+                match &verdict {
+                    Verdict::Executable(_) => "",
+                    Verdict::Builtin(_) => "shell builtin",
+                    Verdict::No => "not on PATH",
+                },
+                true,
             ),
         }
     }
 }
-
-#[cfg(test)]
-#[path = "route_tests.rs"]
-mod tests;

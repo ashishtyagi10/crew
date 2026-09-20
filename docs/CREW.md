@@ -630,15 +630,20 @@ The docked command bar supports:
 - **Smart bare-input routing** — plain text (not a slash command, `cd`, or a
   prefix below) routes by context: if the focused pane is a **visible, idle
   shell** (its prompt is waiting), the text is typed into it — the shell is
-  the judge of what it means. Otherwise, if the first word resolves to an
-  executable on your **login shell's `$PATH`** (hydrated in the background via
-  `$SHELL -lc`, so Dock launches see the same commands your terminal does;
-  `CREW_SHELL_ENV=0` skips it), the command **spawns in its own pane**.
-  A shell builtin (`export`, `source`, …) or an unresolvable word gets a
-  status **hint** instead of a mis-fire. While you type, the palette shows a
-  one-row **preview** of exactly where Enter will send the line ("↵ type into
-  pane 2 · zsh", "↵ run — new pane", …); it stays silent for `/`-led text
-  and `cd`.
+  the judge of what it means. Otherwise the line **spawns in its own pane** —
+  every line, no hint. A first word that resolves to an executable on your
+  **login shell's `$PATH`** (hydrated in the background via `$SHELL -lc`, so
+  Dock launches see the same commands your terminal does; `CREW_SHELL_ENV=0`
+  skips it) runs under the job-control wrapper; a shell builtin (`export`,
+  `source`, `alias`, …), shell syntax (`for`, `if`, a pipeline led by a
+  function) or a word crew cannot resolve is typed into a **fresh interactive
+  shell**, so your aliases, functions and rc-set PATH are in scope and what a
+  builtin sets is still there at the prompt that follows. A typo opens a live
+  shell showing `command not found`, focused, so the corrected line goes into
+  that same pane. While you type, the palette shows a one-row **preview** of
+  exactly where Enter will send the line ("↵ type into pane 2 · zsh",
+  "↵ run — new pane", with a dim `not on PATH` or `shell builtin` note when
+  that is what crew saw); it stays silent for `/`-led text and `cd`.
 - **`!<command>`** — always runs the command in its own new pane, regardless
   of focus (the explicit form of the old `/run`).
 - **`*<text>`** — broadcasts one line to **every terminal pane** — a one-shot

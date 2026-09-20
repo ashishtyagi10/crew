@@ -1,6 +1,9 @@
-//! `/run <cmd>`: launch a command in its own tiled pane that stays open after
-//! the command exits (it re-execs the shell), so builds, tests, and long jobs
-//! sit alongside your shells instead of blocking one.
+//! `/run <cmd>` (and `!cmd`, and a bare line with no idle shell): launch a
+//! command in its own tiled pane that stays open after the command exits, so
+//! builds, tests, and long jobs sit alongside your shells instead of blocking
+//! one. Two shapes: a resolved binary runs under the job-control wrapper
+//! below and re-execs the shell; anything else is typed into a fresh
+//! interactive shell, which is the judge of what it means.
 use crate::app::CrewApp;
 use crate::spawn::default_shell;
 use std::path::Path;
@@ -115,16 +118,52 @@ impl CrewApp {
         }
     }
 
-    /// Spawn a pane running `cmd` in the user's shell and focus it.
+    /// Spawn a pane running `cmd` and focus it — `!cmd`, `/run cmd`, and a
+    /// bare line with no idle shell to type into all come here. The shape
+    /// follows crew's reading of the first word ([`crate::route::shape_for`]);
+    /// the line runs whatever that reading was.
     pub(crate) fn run_in_pane(&mut self, cmd: &str) {
         let cmd = cmd.trim();
         if cmd.is_empty() {
             self.set_status("usage: /run <command>");
             return;
         }
-        let shell = default_shell();
-        let (label, program, script) = run_parts(cmd, &shell, bash_path());
-        self.spawn_labeled_terminal(&program, &["-c".to_string(), script], label);
+        let shape = crate::route::shape_for(&self.check_command(cmd));
+        self.spawn_command(cmd, shape);
+    }
+
+    /// Spawn a pane running `cmd` in `shape` and focus it.
+    pub(crate) fn spawn_command(&mut self, cmd: &str, shape: crate::route::Shape) {
+        let cmd = cmd.trim();
+        match shape {
+            crate::route::Shape::Wrapped => {
+                let shell = default_shell();
+                let (label, program, script) = run_parts(cmd, &shell, bash_path());
+                self.spawn_labeled_terminal(&program, &["-c".to_string(), script], label);
+            }
+            crate::route::Shape::Interactive => self.run_in_shell(cmd),
+        }
+    }
+
+    /// Open the user's interactive shell in a new pane and type `cmd` as its
+    /// first line. The bytes sit in the pty's input queue until the shell
+    /// reaches its prompt — ordinary typeahead — so the shell echoes the line
+    /// and runs it with every alias, function and rc-set PATH entry in scope,
+    /// and what a builtin sets (`export`, `alias`, `source`) is still there at
+    /// the prompt that follows. Labelled by the first word, like a wrapped run.
+    fn run_in_shell(&mut self, cmd: &str) {
+        let before = self.panes.len();
+        self.spawn_new_pane();
+        if self.panes.len() == before {
+            return; // the spawn failed and said so in the status
+        }
+        let label = cmd.split_whitespace().next().unwrap_or("run").to_string();
+        if let Some(p) = self.panes.get_mut(self.focused) {
+            p.label = Some(label);
+        }
+        if self.write_terminal_targets(&crate::app::submit_bytes(cmd), false) == 0 {
+            self.set_status("couldn't type into the new shell");
+        }
     }
 }
 

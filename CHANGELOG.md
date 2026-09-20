@@ -8,6 +8,39 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.78
+
+**Any command typed in the input box runs.** The bar has routed a bare line
+since the smart input bar shipped: an idle focused shell receives it, and
+otherwise crew looked the first word up on PATH and opened a pane when it
+found a binary. Three kinds of line ended in a grey status hint and nothing
+ran: a builtin (`export FOO=1`, `source .env`, `alias ll='ls -l'`), shell
+syntax whose first word is no binary (`for f in *.md; do …`, `time cargo
+test`, `(cd x && make)`), and anything crew's check could not see — a
+function or alias from your rc, a binary the hydrated PATH had not arrived
+for, a typo. The hint's premise was that the pane a bare line opens is junk.
+It is not: the wrapper `exec`s your shell after the command, so a typo leaves
+a live prompt showing `command not found`, which is what a terminal does.
+
+The rule is one sentence now: **a bare line is a shell command and the shell
+is the judge.** `route_bare` has two arms, type-into and spawn, and no hint.
+Crew's PATH check picks the pane's shape instead of gating the line: a
+resolved binary runs under the job-control wrapper as before; a builtin or an
+unresolved word opens your interactive shell and is typed as its first line —
+ordinary typeahead — so aliases, functions and the rc-set PATH are in scope,
+and what `export` or `alias` set is still there at the prompt that follows.
+The wrapper could not do that: what a builtin sets dies when `exec` replaces
+bash with your shell. The pane is labelled by the first word either way and
+takes focus, so the corrected line after a typo goes into the same pane, not
+a third one. `!cmd` and `/run cmd` take the same shape decision.
+
+The preview row stays honest and still warns: `↵ run — new pane` with a dim
+`not on PATH` or `shell builtin` beside it, and Enter does what the row says
+in every case. Proof is a real-shell test that exports a variable in one line
+and reads it back in the next, typed into the same pane, plus a `for` loop
+that runs with no binary as its first word. Goal document:
+`docs/superpowers/goals/2026-09-19-any-command-runs.md`.
+
 ## 0.22.77
 
 **The fan folds while it runs, not just after.** v0.22.76 gave every
