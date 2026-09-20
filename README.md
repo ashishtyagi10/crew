@@ -320,7 +320,9 @@ viewer** pane — code, markdown (rendered), CSV, diffs and more, one pane, read
 only; `/todo` opens a **todo list** pane — type
 `pay rent tomorrow 5pm @home` and the due date and `@project` tag are
 recognised as you type (tinted live, stripped from the title on Enter),
-overdue items surface to the top, and a toast fires when an item comes due.
+overdue items surface to the top, a toast fires when an item comes due, and
+`r` on a row hands it to a coding agent (claude, codex, opencode or agent
+smith) in a new pane in the `@project`'s directory.
 
 ## Sidebar
 

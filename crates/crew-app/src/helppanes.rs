@@ -80,6 +80,10 @@ pub(crate) const TODO_BINDINGS: &[(&str, &str)] = &[
     ("e · d · Backspace/Delete", "Edit it \u{b7} delete it"),
     ("] / [", "Cycle the filter forward / back"),
     ("+ / -", "Push the due date later / earlier"),
+    (
+        "r",
+        "Run it: an agent in a new pane in its @project's directory",
+    ),
     ("g", "Band the list under each #assignee, with a roll-up"),
     (
         "h · H",

@@ -8,6 +8,45 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.79
+
+**A todo tagged `@project` can run itself.** The `/todo` list knew three
+things about a task — its words, its date, and which `@project` and
+`#assignee` it belonged to — and every one of them was for a human to read.
+Nothing in the pane could DO a task, while the rest of crew could: a bare
+line runs in a shell, the smith pane runs a swarm, and the broker drives
+`claude`, `codex` and `opencode` as agents with their own sign-ins. A user
+who wrote `fix the flaky motion test @crew` had told crew everything an
+agent needs — the work and where it is — and then had to open a shell,
+`cd`, and type the sentence again into a coding agent.
+
+`r` on a row (or `/todo run [@project]`) does the hand-off. The `@project`
+resolves to a directory by three rungs the user can see — a binding made
+with `/todo project <name> <dir>` (kept in `projects.toml` beside the list),
+a pane already open in a directory of that name or in a checkout whose git
+root has it, or a same-named sibling of one — and a project crew cannot
+place never runs: the status says so and names the binding command. The
+agent is a deterministic ladder, not a model call, and it prints its reason
+in the status and the activity log: a `#claude`/`#codex`/`#opencode`/
+`#smith` assignee wins outright (any other `#name` stays a person; a named
+CLI that is not installed is a refusal, not a quiet swap), else the
+project's own marker file (`CLAUDE.md`, `opencode.json`, `AGENTS.md`), else
+a signed-in CLI over an installed one with the serving provider first, else
+agent smith. The pane opens IN that directory under the same persistent
+wrapper `/run` uses, labelled `@project · agent`, with the item's title as
+the agent's opening prompt — the way the user would type it, and with NO
+skip-permissions flag. "Autonomous" means crew does not wait for you to
+type the task; the agent's own permission model stays in force and a
+waiting agent surfaces through the WAITING ON YOU card. The row then wears
+a `▶agent` chip; an agent's exit is not the task's completion, so nothing
+ticks the item but you. Borrowed from Linear's "start work from the issue"
+and Claude Code's positional opening prompt.
+
+Proof: a ladder table, the resolver on a temp tree, the registry round trip,
+and a real-shell test that runs a stand-in agent and reads the project
+directory back off the pane it opened. Goal document:
+`docs/superpowers/goals/2026-09-20-todo-runs-itself.md`.
+
 ## 0.22.78
 
 **Any command typed in the input box runs.** The bar has routed a bare line

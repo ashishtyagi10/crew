@@ -17,6 +17,7 @@ fn item(id: u64, who: Option<&str>) -> TodoItem {
         due_has_time: false,
         created_ms: id,
         notified: false,
+        run: None,
     }
 }
 

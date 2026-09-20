@@ -20,6 +20,7 @@
 use crew_render::CellView;
 
 mod act;
+pub(crate) mod agentpick;
 mod click;
 mod composer;
 pub(crate) mod duedate;
@@ -37,6 +38,7 @@ mod listkeys;
 pub(crate) mod measure;
 mod mutate;
 pub(crate) mod parse;
+pub(crate) mod projectdir;
 pub(crate) mod render;
 pub(crate) mod rowchips;
 mod scrollpos;

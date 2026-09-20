@@ -45,6 +45,7 @@ fn item(
         due_has_time: due_days.is_some_and(|d| d == 0),
         created_ms: 1_700_000_000_000 + id,
         notified: false,
+        run: None,
     }
 }
 
