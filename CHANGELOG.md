@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.80
+
+**A todo's run chip says whether the agent is still at work — and no
+longer crashes the pane.** Two things about v0.22.79's `▶claude` chip. It
+was drawn from a byte slice — `&chip[1..]` picked the tag colour, which is
+fine for `@crew` and lands inside the three-byte `▶` — so the first row
+that had run panicked the todo pane on its first draw. Nothing shipped
+had drawn one: the run tests proved the pane opened in the right
+directory and never rendered the list afterwards. The colour is looked
+up by CHAR now, and a render test draws a row that ran in both states.
+
+And the chip was a stamp, not a state: `▶claude` forever, whether the
+agent was working, had exited, or its pane had been closed. The panes
+knew — a terminal knows its foreground process (the same fact the idle-
+shell rule reads) and a chat pane knows when it is busy — and the list
+never asked. It asks on the poll tick now, only while some row has run,
+and hands every todo pane the set of pane labels whose agent is running:
+`▶claude` while it works, `▷claude` once it has exited or the pane is
+gone. Still not a tick: an agent's exit is not the task's completion.
+Proof is a real-pty test that watches the label enter the live set while
+a two-second command runs and leave it when the wrapper drops to the
+prompt. Borrowed from Linear's in-progress state on an issue.
+
 ## 0.22.79
 
 **A todo tagged `@project` can run itself.** The `/todo` list knew three
