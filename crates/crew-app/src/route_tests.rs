@@ -12,18 +12,19 @@ fn idle_shell_wins_over_everything() {
 }
 
 #[test]
-fn busy_or_nonterminal_focus_diverts_by_verdict() {
+fn busy_or_nonterminal_focus_spawns_shaped_by_verdict() {
+    // No hint arm exists: every verdict spawns, and only the shape differs.
     assert!(matches!(
         route_bare(Target::Other, &Verdict::Executable("claude".into())),
-        BareRoute::Spawn
+        BareRoute::Spawn(Shape::Wrapped)
     ));
     assert!(matches!(
         route_bare(Target::Other, &Verdict::Builtin("export".into())),
-        BareRoute::BuiltinHint(b) if b == "export"
+        BareRoute::Spawn(Shape::Interactive)
     ));
     assert!(matches!(
         route_bare(Target::Other, &Verdict::No),
-        BareRoute::UnknownHint
+        BareRoute::Spawn(Shape::Interactive)
     ));
 }
 
@@ -61,26 +62,30 @@ fn far_pane(name: &str) -> crate::pane::Pane {
 // Windows this asserts the platform's command set, not crew's routing.
 #[cfg(unix)]
 #[test]
-fn preview_labels_spawn_and_hint_rows() {
+fn preview_labels_every_spawn_as_a_submit_row() {
     let mut app = crate::app::CrewApp::default();
     app.panes.push(far_pane("files"));
     app.focused = 0;
-    // Resolvable → a submit row naming the new pane destination.
+    // Resolvable → a submit row naming the new pane destination, no note.
     app.input.text = "ls".into();
     let rows = app.input_preview();
     assert_eq!(rows.len(), 1);
     assert!(rows[0].label.contains("new pane"), "got: {}", rows[0].label);
     assert!(rows[0].submit);
-    // Unresolvable → a dim non-submit hint row.
+    assert_eq!(rows[0].desc, "");
+    // Unresolvable → STILL a submit row (Enter runs it; the shell is the
+    // judge), with the dim column saying what crew's check made of it.
     app.input.text = "definitely-not-a-command-xyz".into();
     let rows = app.input_preview();
     assert_eq!(rows.len(), 1);
-    assert!(!rows[0].submit);
-    assert!(
-        rows[0].label.contains("not a command"),
-        "got: {}",
-        rows[0].label
-    );
+    assert!(rows[0].submit, "a typo still runs — the pane shows the error");
+    assert!(rows[0].label.contains("new pane"), "got: {}", rows[0].label);
+    assert_eq!(rows[0].desc, "not on PATH");
+    // A builtin likewise.
+    app.input.text = "export FOO=1".into();
+    let rows = app.input_preview();
+    assert!(rows[0].submit);
+    assert_eq!(rows[0].desc, "shell builtin");
 }
 
 #[test]
@@ -158,4 +163,31 @@ fn bare_prefixes_show_usage_hint_not_submit_row() {
     assert_eq!(rows.len(), 1);
     assert!(!rows[0].submit);
     assert_eq!(rows[0].label, "usage: *<text> — sends to every terminal");
+}
+
+#[cfg(unix)]
+#[test]
+fn bare_builtin_with_a_far_pane_focused_opens_a_shell() {
+    // Target::Other arising the other way: a focused pane that exists but is
+    // not a terminal. A builtin cannot ride the wrapper (its effect would die
+    // at the exec), so it opens an interactive shell and is typed into it.
+    let mut app = crate::app::CrewApp::default();
+    app.panes.push(far_pane("files")); // focused pane is Far, not a terminal
+    app.focused = 0;
+    app.submit_input("export CREW_T=1".into());
+    assert_eq!(
+        app.panes.len(),
+        2,
+        "a shell pane opened beside the Far pane"
+    );
+    assert_eq!(
+        app.focused, 1,
+        "and took focus, so the next line goes into it"
+    );
+    assert_eq!(app.panes[1].label.as_deref(), Some("export"));
+    assert!(
+        app.active_status().is_none(),
+        "got: {:?}",
+        app.active_status()
+    );
 }

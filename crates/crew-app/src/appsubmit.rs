@@ -5,8 +5,9 @@
 use crate::app::{bang_command, slash_command, star_command, submit_bytes, CrewApp};
 
 impl CrewApp {
-    /// Handle a submitted input line: `/command`s are run; everything else is
-    /// written (with a newline) to the focused Terminal pane. Returns `true` if the
+    /// Handle a submitted input line: `/command`s are run; a prefixed line
+    /// does what its prefix says; everything else is a shell command, typed
+    /// into the idle focused shell or run in a new pane. Returns `true` if the
     /// app should exit (e.g. `/exit`).
     pub(crate) fn submit_input(&mut self, line: String) -> bool {
         if line.is_empty() {
@@ -57,22 +58,16 @@ impl CrewApp {
         if self.try_change_dir(&line) {
             return false;
         }
+        // A bare line is a shell command and the shell is the judge: an idle
+        // focused shell receives it as keystrokes, anything else opens a
+        // pane and runs it. Nothing here ends in a hint.
         match crate::route::route_bare(self.focused_target(), &self.check_command(&line)) {
             crate::route::BareRoute::TypeInto(_) => {
-                // The focused idle shell receives the line as keystrokes.
                 if self.write_terminal_targets(&submit_bytes(&line), false) == 0 {
                     self.set_status("no shell here — press Cmd+T to open one");
                 }
             }
-            crate::route::BareRoute::Spawn => self.run_in_pane(&line),
-            crate::route::BareRoute::BuiltinHint(b) => {
-                self.set_status(format!(
-                    "{b} is a shell builtin — run it inside a shell pane"
-                ));
-            }
-            crate::route::BareRoute::UnknownHint => {
-                self.set_status(format!("not a command — !{line} runs it in a pane anyway"));
-            }
+            crate::route::BareRoute::Spawn(shape) => self.spawn_command(&line, shape),
         }
         false
     }

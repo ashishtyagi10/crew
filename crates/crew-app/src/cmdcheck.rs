@@ -1,7 +1,8 @@
-//! Is this line a runnable command? Powers the input bar's smart routing:
-//! the first word must resolve to a real executable (hydrated login-shell
-//! PATH, explicit path) or a shell builtin before crew will spawn a pane
-//! for it — so typos hint instead of littering dead panes.
+//! What is the first word of this line? Advice for the input bar's routing:
+//! a word that resolves to a real executable (hydrated login-shell PATH,
+//! explicit path) runs under the job-control wrapper; a builtin or an
+//! unresolved word runs in an interactive shell instead, and the preview row
+//! says which it saw. The verdict shapes the pane, it never turns a line away.
 use std::path::{Path, PathBuf};
 
 /// What the first word of an input line turned out to be.
@@ -9,14 +10,15 @@ use std::path::{Path, PathBuf};
 pub(crate) enum Verdict {
     /// Resolves to an executable (name is the bare first word).
     Executable(String),
-    /// A shell builtin that would be pointless in a throwaway pane.
+    /// A shell builtin: its effect must outlive the command, so it needs an
+    /// interactive shell rather than the wrapper.
     Builtin(String),
     /// Not something we can run.
     No,
 }
 
-/// State-mutating builtins: running them in a fresh pane silently does
-/// nothing useful (the pane's shell exits with the state). `cd` is handled
+/// State-mutating builtins: under the wrapper, what they set dies when
+/// `exec` replaces the wrapper with the user's shell. `cd` is handled
 /// earlier in submit_input, `echo`/`printf` etc. exist as real binaries.
 const BUILTINS: &[&str] = &[
     "export", "set", "unset", "source", ".", "alias", "unalias", "eval",
