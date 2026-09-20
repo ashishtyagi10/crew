@@ -62,3 +62,21 @@ fn every_command_that_takes_a_path_completes_one() {
         );
     }
 }
+
+#[test]
+fn a_binding_takes_a_directory_the_way_cd_does() {
+    use super::dir_arg;
+    assert_eq!(dir_arg("cd al"), Some("al"));
+    assert_eq!(dir_arg("/todo project crew ~/co"), Some("~/co"));
+    assert_eq!(dir_arg("/todo project crew "), Some(""));
+    assert_eq!(dir_arg("/todo project crew"), None, "no path yet");
+    assert_eq!(dir_arg("/todo project  x"), None, "no name");
+    assert_eq!(dir_arg("/todo run @crew"), None);
+    assert_eq!(dir_arg("ls al"), None);
+    let t = tempfile::tempdir().unwrap();
+    std::fs::create_dir(t.path().join("alpha")).unwrap();
+    assert_eq!(
+        crate::suggest::dir_suggest("/todo project crew al", t.path()).as_deref(),
+        Some("pha/")
+    );
+}

@@ -286,11 +286,11 @@ pub(crate) fn suggest(text: &str, history: &[String]) -> Option<String> {
         .map(|past| past[text.len()..].to_string())
 }
 
-/// Completion suffix for a `cd <partial>` line: completes the final path
-/// component to the first matching subdirectory of `base` (with a trailing `/`),
-/// or `None`. Delegates to [`crate::pathcomplete`] (directories only).
+/// Completion suffix for a line taking one directory (`cd <partial>`,
+/// `/todo project <name> <partial>` — see [`crate::pathcomplete::dir_arg`]):
+/// the final path component to the first matching subdirectory of `base`.
 pub(crate) fn dir_suggest(text: &str, base: &Path) -> Option<String> {
-    let arg = text.strip_prefix("cd ")?;
+    let arg = crate::pathcomplete::dir_arg(text)?;
     crate::pathcomplete::complete_path(arg, base, false)
 }
 
