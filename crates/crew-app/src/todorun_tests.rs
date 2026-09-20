@@ -37,19 +37,26 @@ fn an_item_with_no_project_says_so_and_opens_nothing() {
 }
 
 #[test]
-fn a_project_crew_cannot_place_stops_with_the_binding_command() {
+fn a_project_crew_cannot_place_fills_the_bar_with_the_binding_command() {
     let _g = store::test_guard(vec![item(1, "fix it", Some("nowhere-such"))]);
     let mut app = CrewApp {
         cwd: std::env::temp_dir(),
         ..Default::default()
     };
     app.run_todo(1);
-    let s = status(&app);
-    assert!(
-        s.contains("no directory") && s.contains("/todo project nowhere-such"),
-        "{s}"
-    );
+    assert_eq!(app.input.text, "/todo project nowhere-such ");
+    assert!(app.input.focused, "the path is the one thing left to type");
+    assert!(status(&app).contains("no directory"), "{}", status(&app));
     assert!(app.panes.is_empty());
+    // A bar with the user's own text in it is never clobbered.
+    app.input.text = "git st".into();
+    app.run_todo(1);
+    assert_eq!(app.input.text, "git st");
+    assert!(
+        status(&app).contains("/todo project nowhere-such ~/path/to/it"),
+        "{}",
+        status(&app)
+    );
 }
 
 #[test]

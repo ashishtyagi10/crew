@@ -1657,7 +1657,9 @@ longer aim at.
   directory of that name (or in a checkout whose git root has it), else a
   same-named sibling of one; the first success is written to
   `projects.toml` beside the list, and a project crew cannot place never
-  runs (the status says so and names the binding command). It then picks
+  runs: `r` on it fills the input bar with `/todo project <name> ` and
+  focuses it, so the path is the one thing left to type — Tab completes
+  directories there as it does after `cd`, Enter binds, and `r` again runs. It then picks
   the agent by a ladder that prints its reason: a `#claude`, `#codex`,
   `#opencode` or `#smith` assignee wins outright (any other `#name` is a
   person, as before, and a named CLI that is not installed is a refusal,

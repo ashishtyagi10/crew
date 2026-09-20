@@ -52,6 +52,20 @@ pub(crate) fn complete_path(arg: &str, base: &Path, files_too: bool) -> Option<S
 /// offering it files.
 pub(crate) const PATH_COMMANDS: [&str; 5] = ["/dump", "/view", "/md", "/doc", "/batch"];
 
+/// The directory partial of a line that takes ONE directory: `cd <dir>`,
+/// and `/todo project <name> <dir>` — the binding `r` on an unplaced
+/// project fills the bar with, so the path it asks for completes the way
+/// `cd`'s does. Directories only, for the same reason `cd` is not in
+/// [`PATH_COMMANDS`].
+pub(crate) fn dir_arg(text: &str) -> Option<&str> {
+    if let Some(arg) = text.strip_prefix("cd ") {
+        return Some(arg);
+    }
+    let rest = text.strip_prefix("/todo project ")?;
+    let (name, arg) = rest.split_once(' ')?;
+    (!name.is_empty()).then_some(arg)
+}
+
 /// Path completion for a `<command> <partial>` line (files and directories),
 /// or `None` when `text` is not one of [`PATH_COMMANDS`].
 pub(crate) fn path_suggest(text: &str, base: &Path) -> Option<String> {

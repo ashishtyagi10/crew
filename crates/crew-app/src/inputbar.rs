@@ -86,7 +86,7 @@ impl InputBar {
             return name.strip_prefix(self.text.as_str()).map(str::to_string);
         }
         if !self.cwd.as_os_str().is_empty() {
-            if self.text.starts_with("cd ") {
+            if crate::pathcomplete::dir_arg(&self.text).is_some() {
                 return crate::suggest::dir_suggest(&self.text, &self.cwd);
             }
             // Every command whose argument is a path completes files and

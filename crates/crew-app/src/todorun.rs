@@ -61,9 +61,7 @@ impl CrewApp {
         let dirs = self.pane_dirs();
         let dir = projectdir::resolve(&project, &projectdir::bound(), &dirs).filter(|d| d.is_dir());
         let Some(dir) = dir else {
-            self.set_status(format!(
-                "@{project} · no directory — /todo project {project} ~/path/to/it"
-            ));
+            self.ask_where(&project);
             return;
         };
         projectdir::bind(&project, &dir);
@@ -115,6 +113,24 @@ impl CrewApp {
                 });
             }
         });
+    }
+
+    /// A project crew cannot place: the answer is one path away, so the
+    /// bar is filled with the binding command up to that path and focused
+    /// — Tab completes directories there as it does after `cd`. A bar the
+    /// user is already typing in is never clobbered (the ask-bar rule); the
+    /// status carries the command instead.
+    fn ask_where(&mut self, project: &str) {
+        let cmd = format!("/todo project {project} ");
+        if self.input.text.is_empty() {
+            self.input.text = cmd;
+            self.input.focused = true;
+            self.set_status(format!(
+                "@{project} · no directory — type its path, Tab completes, Enter binds"
+            ));
+        } else {
+            self.set_status(format!("@{project} · no directory — {cmd}~/path/to/it"));
+        }
     }
 
     /// A CLI agent in a terminal pane at `dir`: the wrapper keeps the pane

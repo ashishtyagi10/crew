@@ -4,8 +4,10 @@
 built the same day.** Done-means 1–5 and 7 hold in the tree (`todorun.rs`,
 `todoruncmd.rs`, `todopane/projectdir.rs`, `todopane/agentpick.rs`,
 `todopane/runlive.rs`), with two honest gaps: the tag popup has no
-`bind…` row (the binding is `/todo project`), and the row has no `▶` chip
-BEFORE a run and no `no directory` column (the status says both on `r`).
+`bind…` row — `r` on an unplaced project fills the bar with the binding
+command instead (v0.22.81), which is the one-keystroke ask the doc wanted
+by another door — and the row has no `▶` chip BEFORE a run and no
+`no directory` column (the status says it on `r`).
 The run chip is `▶agent` while the agent runs and `▷agent` after, with
 no exit time. v0.22.79's chip panicked the pane on its first draw (a byte
 slice through `▶`); v0.22.80 fixed it. Done-means 6 holds as written. Not

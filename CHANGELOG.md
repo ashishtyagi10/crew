@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.81
+
+**`r` on a project crew cannot place asks for its path in the bar.** The
+run stopped with a status line telling you to type `/todo project <name>
+<dir>` yourself — the whole command, name included, retyped from a flash
+that had already faded. Now `r` on an unplaced project fills the input
+bar with the command up to the path and focuses it, so the path is the one
+thing left to type; the bar's directory completion, which only `cd` had,
+knows this shape too, so Tab finishes each component the way it does after
+`cd`. Enter binds, `r` again runs. A bar you are already typing in is never
+clobbered — the ask-bar rule — and the status carries the command instead.
+Every ask is one keystroke to answer; this one was a whole line. Borrowed
+from Claude Code's suggested-command fill.
+
 ## 0.22.80
 
 **A todo's run chip says whether the agent is still at work — and no
