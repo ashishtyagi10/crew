@@ -43,6 +43,23 @@ pub(crate) struct TodoItem {
     /// doesn't re-toast the backlog.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub notified: bool,
+    /// The last time this item was handed to an agent (`r` on the row):
+    /// who, when, and the pane label it went to. Never cleared by crew —
+    /// an agent's exit is not the task's completion, so the record stays
+    /// until the user ticks the item or runs it again.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run: Option<TodoRun>,
+}
+
+/// One hand-off of a todo to an agent (see [`super::agentpick`]).
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+pub(crate) struct TodoRun {
+    #[serde(default)]
+    pub agent: String,
+    #[serde(default)]
+    pub started_ms: u64,
+    #[serde(default)]
+    pub pane: String,
 }
 
 /// The list's two independent filters: `@project` and `#assignee`. They are

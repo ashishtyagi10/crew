@@ -1651,6 +1651,25 @@ longer aim at.
   in use, from that sigil's own axis; a new word after `@` or `#` creates
   one). `#123` is left in the title: nobody is called 966, and a team that
   tracks tickets types their numbers all day.
+  **A todo can run itself.** Select a row and press `r` (or type `/todo run
+  [@project]`): crew resolves the `@project` to a directory — a binding you
+  made with `/todo project <name> <dir>`, else a pane already open in a
+  directory of that name (or in a checkout whose git root has it), else a
+  same-named sibling of one; the first success is written to
+  `projects.toml` beside the list, and a project crew cannot place never
+  runs (the status says so and names the binding command). It then picks
+  the agent by a ladder that prints its reason: a `#claude`, `#codex`,
+  `#opencode` or `#smith` assignee wins outright (any other `#name` is a
+  person, as before, and a named CLI that is not installed is a refusal,
+  not a fall-through); else the project's own marker file (`CLAUDE.md` or
+  `.claude/` → claude, `opencode.json` or `.opencode/` → opencode,
+  `AGENTS.md` alone → codex); else a signed-in CLI over a merely installed
+  one, the serving provider first; else agent smith. The pane opens IN that
+  directory, labelled `@project · agent`, with the item's title as the
+  agent's opening prompt and NO skip-permissions flag — the agent asks
+  exactly as it would at a prompt, and the pane surfaces as WAITING ON YOU
+  when it does. The row then wears a `▶agent` chip. An agent's exit is not
+  the task's completion, so nothing ticks the item but you.
   **Esc minimizes this pane rather than closing it.** It is the one
   crew-drawn surface you keep open while you work — the others are visits
   (settings, far, disk: open, do a thing, leave) — so the last layer Esc peels
@@ -1673,7 +1692,8 @@ longer aim at.
   `Space`/`Enter` toggle done, `d`/`Backspace` delete, `e` re-opens the item
   in the composer for editing (every tag and the due come back with it),
   `+`/`-` postpone/advance its due a calendar
-  day (`+` on an undated item starts it at tomorrow); the mouse works too — click the `[ ]`
+  day (`+` on an undated item starts it at tomorrow), `r` hands it to an
+  agent in a new pane in its `@project`'s directory (below); the mouse works too — click the `[ ]`
   checkbox to toggle, the `✗` at the row's end to delete. Done items
   auto-hide; `h` on the list shows them again — sunk, dimmed, `[x]`,
   newest completion first — so `Space` can un-do one (`h` again hides). A lone `@tag` +

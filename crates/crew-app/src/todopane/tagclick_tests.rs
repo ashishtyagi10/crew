@@ -63,6 +63,7 @@ fn clicking_a_tag_row_accepts_that_tag() {
             due_has_time: false,
             created_ms: i,
             notified: false,
+            run: None,
         })
         .collect();
     let mut p = test_pane(items);
@@ -107,6 +108,7 @@ fn tag_under_is_the_one_geometry_the_click_and_the_hover_share() {
             due_has_time: false,
             created_ms: i,
             notified: false,
+            run: None,
         })
         .collect();
     let mut p = test_pane(items);

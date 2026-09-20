@@ -12,6 +12,7 @@ fn tagged(project: Option<&str>) -> TodoItem {
         due_has_time: false,
         created_ms: 0,
         notified: false,
+        run: None,
     }
 }
 

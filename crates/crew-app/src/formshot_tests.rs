@@ -111,6 +111,7 @@ fn todos() -> TodoPane {
             due_has_time: due.is_some(),
             created_ms: now - 3 * day,
             notified: false,
+            run: None,
         };
     p.items = vec![
         item(

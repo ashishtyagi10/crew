@@ -50,7 +50,7 @@ fn persistent_wrapper(body: &str, user_shell: &str, bash: Option<&str>) -> (Stri
 /// Probes for a bash binary to use as the job-control wrapper. macOS and
 /// Linux always ship `/bin/bash`; this is the only host check — everything
 /// else in this module stays pure and injectable for tests.
-fn bash_path() -> Option<&'static str> {
+pub(crate) fn bash_path() -> Option<&'static str> {
     Path::new("/bin/bash").exists().then_some("/bin/bash")
 }
 

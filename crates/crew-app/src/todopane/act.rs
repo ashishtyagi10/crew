@@ -111,6 +111,7 @@ impl TodoPane {
                     // Born already-past (e.g. `today 5am` typed at noon):
                     // it renders overdue — a toast on top would be noise.
                     notified: due_ms.is_some_and(|d| d <= now_ms),
+                    run: None,
                 });
             }),
         }

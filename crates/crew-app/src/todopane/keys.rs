@@ -49,6 +49,9 @@ pub(crate) enum TodoAction {
     /// last layer Esc peels is the pane's place on the grid, not the pane.
     /// `/todo` brings it straight back.
     Minimize,
+    /// `r` on a row: hand the item (by id) to an agent in its project's
+    /// directory — the app owns panes and PATH, the pane only knows the item.
+    Run(u64),
 }
 
 /// Classify a key press. Only presses act; Escape walks back one layer
@@ -126,9 +129,9 @@ pub(crate) fn apply(
         }
     }
     if let Some(sel) = p.sel {
-        super::listkeys::on_row(p, sel, input, cols, rows);
+        let action = super::listkeys::on_row(p, sel, input, cols, rows);
         p.ensure_visible(cols, rows);
-        return None;
+        return action;
     }
     // Composer.
     match input {

@@ -61,7 +61,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/todo",
-        desc: "Todo list — due dates (tomorrow 5pm) & @project while typing; /todo show|hide = ticked items, /todo done = the log",
+        desc: "Todo list — due dates (tomorrow 5pm) & @project while typing; r runs a row in its project with the best agent; /todo run|project|show|hide|done",
     },
     Cmd {
         name: "/usage",

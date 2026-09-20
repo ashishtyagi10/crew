@@ -3,12 +3,19 @@
 //! Split out of [`super::keys`] for the line cap, along a seam the pane
 //! already has: the composer's keys edit text, the list's keys act on the
 //! item under the cursor and on what the list shows.
-use super::keys::TodoInput;
+use super::keys::{TodoAction, TodoInput};
 use super::TodoPane;
 
 /// Apply `input` to selected row `sel`. `cols`/`rows` are the pane's grid,
-/// needed by the paging keys — a page is however many rows fit.
-pub(crate) fn on_row(p: &mut TodoPane, sel: usize, input: TodoInput, cols: u16, rows: u16) {
+/// needed by the paging keys — a page is however many rows fit. Returns the
+/// one action the pane cannot take itself.
+pub(crate) fn on_row(
+    p: &mut TodoPane,
+    sel: usize,
+    input: TodoInput,
+    cols: u16,
+    rows: u16,
+) -> Option<TodoAction> {
     use TodoInput::*;
     match input {
         // In the done history Esc leaves the VIEW (the pane stays);
@@ -28,8 +35,10 @@ pub(crate) fn on_row(p: &mut TodoPane, sel: usize, input: TodoInput, cols: u16, 
         // interleaves done rows a done-only view already shows, and `g`
         // bands by a person the history bands by day instead: all three
         // inert in there (and NOT composer-jump printables).
-        Char('e') | Char('h') | Char('g') if p.done_view => {}
+        Char('e') | Char('h') | Char('g') | Char('r') if p.done_view => {}
         Char('e') => p.edit_at(sel),
+        // `r`: hand the item to an agent in its project (see `todorun`).
+        Char('r') => return p.id_at(sel).map(TodoAction::Run),
         // `H`: flip into (or out of) the done-history log.
         Char('H') => p.set_done_view(!p.done_view),
         Char(']') => p.cycle_filter(true),
@@ -50,6 +59,7 @@ pub(crate) fn on_row(p: &mut TodoPane, sel: usize, input: TodoInput, cols: u16, 
         }
         Ignore => {}
     }
+    None
 }
 
 #[cfg(test)]

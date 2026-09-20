@@ -22,6 +22,7 @@ fn item(id: u64, title: &str) -> TodoItem {
         due_has_time: false,
         created_ms: id,
         notified: false,
+        run: None,
     }
 }
 

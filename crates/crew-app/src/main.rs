@@ -315,6 +315,8 @@ mod mdcardshot_tests;
 #[cfg(test)]
 #[path = "mdshot_tests.rs"]
 mod mdshot_tests;
+mod todorun;
+mod todoruncmd;
 
 mod barpopup;
 #[cfg(test)]

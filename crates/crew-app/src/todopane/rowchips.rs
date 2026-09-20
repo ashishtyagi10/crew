@@ -58,10 +58,20 @@ pub(crate) fn chips(it: &TodoItem) -> Vec<String> {
 }
 
 /// The chips a row DRAWS: the same tags, minus the owner a band overhead
-/// has already named.
+/// has already named — plus `▶agent` when the item has been handed to an
+/// agent. The run chip is a fact about what happened, not a tag the user
+/// typed, so it is here and not in [`chips`]: `e` must not carry it back
+/// into the composer.
 pub(crate) fn row_chips(it: &TodoItem, ctx: RowCtx) -> Vec<String> {
-    tag_chips(it, !ctx.banded)
+    let mut out = tag_chips(it, !ctx.banded);
+    if let Some(run) = &it.run {
+        out.push(format!("{RUN}{}", run.agent));
+    }
+    out
 }
+
+/// The sigil the run chip wears: `▶claude`.
+pub(crate) const RUN: char = '\u{25b6}';
 
 /// Whether the row carries anything on its right side at all.
 pub(crate) fn has_chips(it: &TodoItem, ctx: RowCtx) -> bool {

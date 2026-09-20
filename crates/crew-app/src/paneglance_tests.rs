@@ -13,6 +13,7 @@ fn item(title: &str, done: bool, due_ms: Option<u64>) -> TodoItem {
         due_has_time: false,
         created_ms: 0,
         notified: false,
+        run: None,
     }
 }
 
