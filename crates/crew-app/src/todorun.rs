@@ -105,7 +105,13 @@ impl CrewApp {
                 it.run = Some(TodoRun {
                     agent: agent.name().to_string(),
                     started_ms,
-                    pane: label.clone(),
+                    // The pane the run can be found in later: the smith
+                    // pane keeps its routing label whatever it was asked.
+                    pane: if agent == Agent::Smith {
+                        "crew".to_string()
+                    } else {
+                        label.clone()
+                    },
                 });
             }
         });

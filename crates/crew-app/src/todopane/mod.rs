@@ -41,6 +41,7 @@ pub(crate) mod parse;
 pub(crate) mod projectdir;
 pub(crate) mod render;
 pub(crate) mod rowchips;
+mod runlive;
 mod scrollpos;
 pub(crate) mod store;
 mod tagmenu;
@@ -110,6 +111,9 @@ pub struct TodoPane {
     pub(crate) done_view: bool,
     /// First visible display-order index of the list.
     pub(crate) scroll: usize,
+    /// Labels of the panes whose agent is running right now — what turns
+    /// a row's `▷agent` into `▶agent`. Fed by [`runlive`] on the poll tick.
+    pub(crate) live: std::collections::BTreeSet<String>,
 }
 
 impl TodoPane {
@@ -128,6 +132,7 @@ impl TodoPane {
             show_done: false,
             done_view: false,
             scroll: 0,
+            live: Default::default(),
         }
     }
 
@@ -181,6 +186,7 @@ pub(crate) fn test_pane(items: Vec<TodoItem>) -> TodoPane {
         show_done: false,
         done_view: false,
         scroll: 0,
+        live: Default::default(),
     }
 }
 

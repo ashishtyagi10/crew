@@ -70,8 +70,38 @@ pub(crate) fn row_chips(it: &TodoItem, ctx: RowCtx) -> Vec<String> {
     out
 }
 
-/// The sigil the run chip wears: `▶claude`.
+/// The sigil the run chip wears while the agent runs: `▶claude`.
 pub(crate) const RUN: char = '\u{25b6}';
+/// …and once it has exited or its pane is gone: `▷claude`. The list is not
+/// told the task is done — an agent's exit is not that — only that nobody
+/// is working on it right now.
+pub(crate) const RAN: char = '\u{25b7}';
+
+/// The name behind a chip's sigil: `@crew` → `crew`, `▶claude` → `claude`.
+/// By CHAR, not byte — `▶` is three bytes, and `&chip[1..]` on it panicked
+/// the first time a run chip was drawn (v0.22.79).
+pub(crate) fn chip_name(chip: &str) -> &str {
+    chip.char_indices().nth(1).map_or("", |(i, _)| &chip[i..])
+}
+
+impl TodoPane {
+    /// Whether the agent this item was handed to is still at work.
+    pub(crate) fn running(&self, it: &TodoItem) -> bool {
+        it.run.as_ref().is_some_and(|r| self.live.contains(&r.pane))
+    }
+
+    /// [`row_chips`] as the row DRAWS them: the run chip's sigil follows the
+    /// agent's state. Same width either way, so the fit is measured once.
+    pub(crate) fn live_chips(&self, it: &TodoItem) -> Vec<String> {
+        let mut chips = row_chips(it, self.rowctx());
+        if let Some(last) = chips.last_mut().filter(|c| c.starts_with(RUN)) {
+            if !self.running(it) {
+                *last = format!("{RAN}{}", chip_name(last));
+            }
+        }
+        chips
+    }
+}
 
 /// Whether the row carries anything on its right side at all.
 pub(crate) fn has_chips(it: &TodoItem, ctx: RowCtx) -> bool {

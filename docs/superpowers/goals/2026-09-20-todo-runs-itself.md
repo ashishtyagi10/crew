@@ -1,12 +1,14 @@
 # Goal — a todo tagged `@project` can run itself: crew picks the agent, opens a pane in the project, and the agent does the work
 
-**Status: SHIPPED v0.22.79. Set 2026-09-20, built the same day.** Done-means
-1–5 and 7 hold in the tree (`todorun.rs`, `todoruncmd.rs`,
-`todopane/projectdir.rs`, `todopane/agentpick.rs`), with three honest
-gaps: the tag popup has no `bind…` row (the binding is `/todo project`),
-the row has no `▶` chip BEFORE a run and no `no directory` column (the
-status says both on `r`), and the run chip reads `▶agent` without the
-live running/exited state. Done-means 6 holds as written. Not
+**Status: SHIPPED v0.22.79, chip made live in v0.22.80. Set 2026-09-20,
+built the same day.** Done-means 1–5 and 7 hold in the tree (`todorun.rs`,
+`todoruncmd.rs`, `todopane/projectdir.rs`, `todopane/agentpick.rs`,
+`todopane/runlive.rs`), with two honest gaps: the tag popup has no
+`bind…` row (the binding is `/todo project`), and the row has no `▶` chip
+BEFORE a run and no `no directory` column (the status says both on `r`).
+The run chip is `▶agent` while the agent runs and `▷agent` after, with
+no exit time. v0.22.79's chip panicked the pane on its first draw (a byte
+slice through `▶`); v0.22.80 fixed it. Done-means 6 holds as written. Not
 GUI-verified: the evidence is the ladder table, the resolver on a temp
 tree, the registry round trip and a real-shell test that reads the project
 directory back off the pane a run opened.

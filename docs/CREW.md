@@ -1668,7 +1668,9 @@ longer aim at.
   directory, labelled `@project · agent`, with the item's title as the
   agent's opening prompt and NO skip-permissions flag — the agent asks
   exactly as it would at a prompt, and the pane surfaces as WAITING ON YOU
-  when it does. The row then wears a `▶agent` chip. An agent's exit is not
+  when it does. The row then wears a `▶agent` chip while the agent is at
+  work and `▷agent` once it has exited or its pane is gone — read off the
+  panes on every tick, only while some row has run. An agent's exit is not
   the task's completion, so nothing ticks the item but you.
   **Esc minimizes this pane rather than closing it.** It is the one
   crew-drawn surface you keep open while you work — the others are visits

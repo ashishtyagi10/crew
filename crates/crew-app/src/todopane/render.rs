@@ -3,7 +3,7 @@
 //! bottom. All layout arithmetic lives here so `cells` and [`click_at`] can
 //! never disagree about what sits on a row.
 pub(crate) use super::fitline::*;
-use super::rowchips::row_chips;
+use super::rowchips::chip_name;
 use crew_render::CellView;
 
 use super::{composer, duedate, gutter, headrow, TodoPane};
@@ -284,13 +284,13 @@ pub(crate) fn row_cells(
             // every dated task, which is the one thing the row is for.
             // Reversed, so the row reads `#who @project` either way round.
             let mut x = TITLE_COL;
-            for chip in row_chips(it, ctx).into_iter().rev() {
-                let fg = crew_theme::tag_color(&chip[1..], t);
+            for chip in p.live_chips(it).into_iter().rev() {
+                let fg = crew_theme::tag_color(chip_name(&chip), t);
                 x = place_left(out, &chip, (x, right), chip_row, fg);
             }
         } else {
-            for chip in row_chips(it, ctx) {
-                let fg = crew_theme::tag_color(&chip[1..], t);
+            for chip in p.live_chips(it) {
+                let fg = crew_theme::tag_color(chip_name(&chip), t);
                 right = place_right(out, &chip, right, chip_row, fg, false);
             }
         }
