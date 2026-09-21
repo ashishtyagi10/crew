@@ -7,9 +7,12 @@
 //! can see: a binding they made (`/todo project crew ~/code/crew`, kept in
 //! `projects.toml` beside `todos.toml`); a pane already open in a directory
 //! of that name, or in a checkout whose git root has that name; a sibling
-//! of such a directory (`~/code/crew` when a pane sits in `~/code/hive`).
-//! The first success is written back as a binding, so the next resolution
-//! is a lookup and the file is the one place to correct a wrong one.
+//! of such a directory (`~/code/crew` when a pane sits in `~/code/hive`);
+//! and a directory of that name under a root projects live in — the parent
+//! of every project already bound, or one of the conventional home folders
+//! (`~/code`, `~/src`, …). The first success is written back as a binding,
+//! so the next resolution is a lookup and the file is the one place to
+//! correct a wrong one.
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -113,9 +116,42 @@ pub(crate) fn candidates(name: &str, dirs: &[PathBuf]) -> Vec<PathBuf> {
     out
 }
 
+/// The folders a home directory conventionally keeps checkouts in, in the
+/// order tried. A short list on purpose: one more rung than this and a
+/// name would be a guess.
+const HOME_ROOTS: [&str; 6] = ["code", "src", "projects", "dev", "repos", "work"];
+
+/// The roots a project could live under: the parent of every bound project
+/// first (where one checkout is, its siblings are — the user showed crew
+/// the layout by binding once), then the conventional home folders.
+pub(crate) fn roots(bound: &BTreeMap<String, PathBuf>) -> Vec<PathBuf> {
+    let mut out: Vec<PathBuf> = Vec::new();
+    let learned = bound
+        .values()
+        .filter_map(|p| p.parent().map(Path::to_path_buf));
+    let home = dirs::home_dir()
+        .into_iter()
+        .flat_map(|h| HOME_ROOTS.map(|r| h.join(r)));
+    for r in learned.chain(home) {
+        if !out.contains(&r) {
+            out.push(r);
+        }
+    }
+    out
+}
+
+/// A directory named `name` directly under one of `roots`, first root wins.
+pub(crate) fn under_roots(name: &str, roots: &[PathBuf]) -> Option<PathBuf> {
+    roots
+        .iter()
+        .map(|r| r.join(name))
+        .find(|p| p.is_dir() && base_is(p, name))
+}
+
 /// The directory `name` resolves to: a binding first, then the first
-/// candidate. `None` is an honest "crew cannot place this project", and the
-/// caller says so rather than running anywhere.
+/// candidate near an open pane, then a root's child. `None` is an honest
+/// "crew cannot place this project", and the caller says so rather than
+/// running anywhere.
 pub(crate) fn resolve(
     name: &str,
     bound: &BTreeMap<String, PathBuf>,
@@ -128,7 +164,10 @@ pub(crate) fn resolve(
     {
         return Some(p);
     }
-    candidates(name, dirs).into_iter().next()
+    candidates(name, dirs)
+        .into_iter()
+        .next()
+        .or_else(|| under_roots(name, &roots(bound)))
 }
 
 #[cfg(test)]
