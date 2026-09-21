@@ -1652,7 +1652,9 @@ longer aim at.
   one). `#123` is left in the title: nobody is called 966, and a team that
   tracks tickets types their numbers all day.
   **A todo can run itself.** Select a row and press `r` (or type `/todo run
-  [@project]`) — or end the draft with **`&`**: `fix the flaky test @crew &`
+  [@project]`, which runs the open item due soonest — of that project, or
+  of any project when no tag is given: the due date is the priority, and
+  what runs next is what the list shows first) — or end the draft with **`&`**: `fix the flaky test @crew &`
   adds the item and runs it on the same Enter, the shell's own spelling for
   "start this and give me the prompt back" (the legend reads `▶ runs on
   enter` and the mark is tinted before you commit; only the LAST non-blank
@@ -1671,7 +1673,8 @@ longer aim at.
   directories there as it does after `cd`, and Enter binds AND continues
   the run that asked (a bind for some other project drops it). It then picks
   the agent by a ladder that prints its reason: a `#claude`, `#codex`,
-  `#opencode` or `#smith` assignee wins outright (any other `#name` is a
+  `#opencode` or `#smith` assignee wins outright — the `#` popup offers
+  the four after the people already named (any other `#name` is a
   person, as before, and a named CLI that is not installed is a refusal,
   not a fall-through); else the project's own marker file (`CLAUDE.md` or
   `.claude/` → claude, `opencode.json` or `.opencode/` → opencode,

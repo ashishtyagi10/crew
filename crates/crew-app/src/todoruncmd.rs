@@ -3,33 +3,32 @@
 //! from [`crate::todorun`] for the line cap, along the line between doing
 //! the run and naming which item, or which directory.
 use crate::app::CrewApp;
-use crate::todopane::{projectdir, store};
+use crate::todopane::{item, projectdir, store};
 
 impl CrewApp {
-    /// `/todo run [@project]`: the selected row of the focused todo pane,
-    /// or the first open item of `@project`.
+    /// `/todo run [@project]`: the selected row of the focused todo pane
+    /// wins; else the open item that is due soonest — of `@project`, or of
+    /// any project at all. The due date is the priority: the list already
+    /// orders overdue first, then by due, then undated by age, and what
+    /// runs next is what the list shows first ([`item::display_order`]).
     pub(crate) fn todo_run_command(&mut self, tag: Option<&str>) {
-        let items = store::snapshot();
-        let id = match tag {
-            Some(t) => {
-                let name = t.trim_start_matches('@');
-                items
-                    .iter()
-                    .find(|it| {
-                        !it.done
-                            && it
-                                .project
-                                .as_deref()
-                                .is_some_and(|p| p.eq_ignore_ascii_case(name))
-                    })
-                    .map(|it| it.id)
+        let selected = match self.panes.get(self.focused).map(|p| &p.content) {
+            Some(crate::pane::PaneContent::Todo(t)) if tag.is_none() => {
+                t.sel.and_then(|s| t.id_at(s))
             }
-            None => match self.panes.get(self.focused).map(|p| &p.content) {
-                Some(crate::pane::PaneContent::Todo(t)) => t.sel.and_then(|s| t.id_at(s)),
-                _ => None,
-            },
+            _ => None,
         };
-        match id {
+        let items = store::snapshot();
+        let filter = item::Filters {
+            project: tag.map(|t| t.trim_start_matches('@')),
+            who: None,
+        };
+        let soonest = item::display_order(&items, filter, false)
+            .into_iter()
+            .map(|i| &items[i])
+            .find(|it| it.project.is_some())
+            .map(|it| it.id);
+        match selected.or(soonest) {
             Some(id) => self.run_todo(id),
             None => self.set_status("usage: /todo run [@project] — or select a row and press r"),
         }

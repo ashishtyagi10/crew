@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.84
+
+**The due date decides what runs next, and `#claude` is offered where it
+is chosen.** `/todo run @crew` ran the first item of the project in file
+order — the oldest — while the list itself has always put the overdue
+first, then the soonest due, then the undated by age. Now the command
+runs what the list shows first: `/todo run @crew` the soonest-due open
+item of that project, `/todo run` alone the soonest-due item of any
+project (a selected row still wins). And the four words that pick the
+agent — `#claude`, `#codex`, `#opencode`, `#smith` — were known only to
+the docs; the `#` popup now offers them after the people already named,
+so the tool is chosen where the item is typed. A named CLI that is not
+installed still refuses aloud rather than falling through. Borrowed from
+Linear's due-ordered triage.
+
 ## 0.22.83
 
 **`@crew` finds `~/code/crew` from anywhere.** The project resolver knew

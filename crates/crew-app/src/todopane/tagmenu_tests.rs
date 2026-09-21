@@ -73,3 +73,18 @@ fn after_edit_opens_narrows_and_closes() {
     after_edit(&mut menu, "pay @home ", tags);
     assert!(menu.is_none(), "a finished token closes the popup");
 }
+
+#[test]
+fn the_hash_popup_offers_the_agents_after_the_people() {
+    let mut priya = tagged(None);
+    priya.assignee = Some("priya".into());
+    let mut claude = tagged(None);
+    claude.assignee = Some("Claude".into());
+    let got = offered(&[priya, claude.clone(), claude], '#');
+    assert_eq!(got, ["Claude", "priya", "codex", "opencode", "smith"]);
+    assert_eq!(
+        offered(&[tagged(Some("crew"))], '@'),
+        ["crew"],
+        "the project axis offers no agents"
+    );
+}

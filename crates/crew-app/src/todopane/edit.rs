@@ -126,7 +126,7 @@ impl TodoPane {
     pub(crate) fn sync_menu(&mut self) {
         let items = &self.items;
         super::tagmenu::after_edit(&mut self.tagmenu, &self.input, |sigil| {
-            super::tagmenu::known_tags(items, sigil)
+            super::tagmenu::offered(items, sigil)
         });
     }
 

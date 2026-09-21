@@ -154,3 +154,33 @@ fn a_bind_for_another_project_drops_the_pending_run() {
         "nothing ran for a bind it did not ask for"
     );
 }
+
+/// Which item `/todo run` picked is read off the ask it stops at: an
+/// unplaceable project asks, and the ask remembers the id.
+#[test]
+fn todo_run_picks_the_item_due_soonest_not_the_oldest() {
+    let mut late = item(1, "old, due later", Some("nowhere-such"));
+    late.due_ms = Some(2_000_000);
+    let mut soon = item(2, "new, due sooner", Some("nowhere-such"));
+    soon.due_ms = Some(1_000_000);
+    let undated = item(3, "no date at all", Some("nowhere-such"));
+    let mut other = item(4, "another project", Some("elsewhere-such"));
+    other.due_ms = Some(500);
+    let mut done = item(5, "done already", Some("nowhere-such"));
+    done.done = true;
+    done.due_ms = Some(1);
+    let _g = store::test_guard(vec![late, soon, undated, other, done]);
+    let mut app = CrewApp {
+        cwd: std::env::temp_dir(),
+        ..Default::default()
+    };
+    app.todo_run_command(Some("@nowhere-such"));
+    assert_eq!(app.todo_pending_run, Some(2), "soonest due of the project");
+    app.todo_run_command(None);
+    assert_eq!(
+        app.todo_pending_run,
+        Some(4),
+        "no tag: soonest due anywhere"
+    );
+    assert!(app.panes.is_empty());
+}
