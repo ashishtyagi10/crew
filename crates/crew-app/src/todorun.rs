@@ -54,6 +54,10 @@ impl CrewApp {
         let Some(it) = store::snapshot().into_iter().find(|it| it.id == id) else {
             return;
         };
+        if it.done {
+            self.set_status("that item is done — un-tick it, then run");
+            return;
+        }
         let Some(project) = it.project.clone() else {
             self.set_status("no @project on this item — tag it, then r");
             return;
@@ -61,6 +65,8 @@ impl CrewApp {
         let dirs = self.pane_dirs();
         let dir = projectdir::resolve(&project, &projectdir::bound(), &dirs).filter(|d| d.is_dir());
         let Some(dir) = dir else {
+            // The bind that answers the ask picks this run back up.
+            self.todo_pending_run = Some(id);
             self.ask_where(&project);
             return;
         };
@@ -113,24 +119,6 @@ impl CrewApp {
                 });
             }
         });
-    }
-
-    /// A project crew cannot place: the answer is one path away, so the
-    /// bar is filled with the binding command up to that path and focused
-    /// — Tab completes directories there as it does after `cd`. A bar the
-    /// user is already typing in is never clobbered (the ask-bar rule); the
-    /// status carries the command instead.
-    fn ask_where(&mut self, project: &str) {
-        let cmd = format!("/todo project {project} ");
-        if self.input.text.is_empty() {
-            self.input.text = cmd;
-            self.input.focused = true;
-            self.set_status(format!(
-                "@{project} · no directory — type its path, Tab completes, Enter binds"
-            ));
-        } else {
-            self.set_status(format!("@{project} · no directory — {cmd}~/path/to/it"));
-        }
     }
 
     /// A CLI agent in a terminal pane at `dir`: the wrapper keeps the pane

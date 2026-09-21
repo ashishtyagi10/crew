@@ -322,7 +322,8 @@ only; `/todo` opens a **todo list** pane — type
 recognised as you type (tinted live, stripped from the title on Enter),
 overdue items surface to the top, a toast fires when an item comes due, and
 `r` on a row hands it to a coding agent (claude, codex, opencode or agent
-smith) in a new pane in the `@project`'s directory.
+smith) in a new pane in the `@project`'s directory — or end the line with `&`
+and it runs the moment it is added.
 
 ## Sidebar
 

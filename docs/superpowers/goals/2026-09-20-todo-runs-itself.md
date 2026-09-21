@@ -1,7 +1,9 @@
 # Goal — a todo tagged `@project` can run itself: crew picks the agent, opens a pane in the project, and the agent does the work
 
-**Status: SHIPPED v0.22.79, chip made live in v0.22.80. Set 2026-09-20,
-built the same day.** Done-means 1–5 and 7 hold in the tree (`todorun.rs`,
+**Status: SHIPPED v0.22.79, chip made live in v0.22.80; v0.22.82 added
+the `&` door (a draft ending in `&` runs on add — the user's first live
+test expected exactly that, and `r` was invisible). Set 2026-09-20, built
+the same day.** Done-means 1–5 and 7 hold in the tree (`todorun.rs`,
 `todoruncmd.rs`, `todopane/projectdir.rs`, `todopane/agentpick.rs`,
 `todopane/runlive.rs`), with two honest gaps: the tag popup has no
 `bind…` row — `r` on an unplaced project fills the bar with the binding

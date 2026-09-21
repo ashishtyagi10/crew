@@ -42,15 +42,11 @@ pub(crate) enum TodoInput {
 /// An action the pane asks the app to take.
 pub(crate) enum TodoAction {
     /// Esc on the bare list: put the pane back in the nav, do not close it.
-    ///
     /// The todo list is the one crew-drawn surface you keep OPEN while you
-    /// work — the others are visits (settings, far, disk: go, do a thing,
-    /// leave). Closing it on Esc threw away a pane you meant to keep, so the
-    /// last layer Esc peels is the pane's place on the grid, not the pane.
-    /// `/todo` brings it straight back.
+    /// work; Esc peels its place on the grid, not the pane you meant to keep.
     Minimize,
-    /// `r` on a row: hand the item (by id) to an agent in its project's
-    /// directory — the app owns panes and PATH, the pane only knows the item.
+    /// `r` on a row, or Enter on a draft ending in `&`: hand the item (by id)
+    /// to an agent in its project's directory — the app owns panes and PATH.
     Run(u64),
 }
 
@@ -145,7 +141,11 @@ pub(crate) fn apply(
                 return Some(TodoAction::Minimize);
             }
         }
-        Enter => p.submit(),
+        Enter => {
+            let run = p.submit();
+            p.ensure_visible(cols, rows);
+            return run.map(TodoAction::Run);
+        }
         Backspace => p.backspace(),
         DeleteKey => p.delete_forward(),
         Char(c) => p.type_char(c),

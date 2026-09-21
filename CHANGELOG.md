@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.82
+
+**A todo ending in `&` runs the moment it is added.** The first real test
+of "a todo runs itself" added `fix … @crew` and waited: nothing opened,
+because a run was `r` on the row and nothing on screen said so — Enter on
+the row marked it done instead. The row key stays; the draft gets a second
+door, spelled the way every shell already spells "start this and give me
+the prompt back": a trailing `&`. `fix the flaky test @crew &` is added
+AND handed to the agent on one Enter; the legend reads `▶ runs on enter`
+and the mark is tinted before you commit, so the draft says what Enter is
+about to do. Only the last non-blank char is the mark — `a && b` and `R&D`
+keep their ampersands. And when the project cannot be placed, the ask in
+the bar now finishes the job: `/todo project crew ~/code/crew` binds and
+continues the run that asked, rather than leaving you to press `r` again.
+A done item never runs. Borrowed from the Bourne shell's `&`.
+
 ## 0.22.81
 
 **`r` on a project crew cannot place asks for its path in the bar.** The

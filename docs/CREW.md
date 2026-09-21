@@ -1652,14 +1652,20 @@ longer aim at.
   one). `#123` is left in the title: nobody is called 966, and a team that
   tracks tickets types their numbers all day.
   **A todo can run itself.** Select a row and press `r` (or type `/todo run
-  [@project]`): crew resolves the `@project` to a directory — a binding you
+  [@project]`) — or end the draft with **`&`**: `fix the flaky test @crew &`
+  adds the item and runs it on the same Enter, the shell's own spelling for
+  "start this and give me the prompt back" (the legend reads `▶ runs on
+  enter` and the mark is tinted before you commit; only the LAST non-blank
+  char is the mark, so `a && b` and `R&D` keep their ampersands). Either
+  way crew resolves the `@project` to a directory — a binding you
   made with `/todo project <name> <dir>`, else a pane already open in a
   directory of that name (or in a checkout whose git root has it), else a
   same-named sibling of one; the first success is written to
   `projects.toml` beside the list, and a project crew cannot place never
   runs: `r` on it fills the input bar with `/todo project <name> ` and
   focuses it, so the path is the one thing left to type — Tab completes
-  directories there as it does after `cd`, Enter binds, and `r` again runs. It then picks
+  directories there as it does after `cd`, and Enter binds AND continues
+  the run that asked (a bind for some other project drops it). It then picks
   the agent by a ladder that prints its reason: a `#claude`, `#codex`,
   `#opencode` or `#smith` assignee wins outright (any other `#name` is a
   person, as before, and a named CLI that is not installed is a refusal,

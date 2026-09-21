@@ -32,6 +32,11 @@ pub(crate) fn text(p: &TodoPane, hit: Option<&duedate::DueHit>) -> (String, (u8,
         let head = std::iter::once("done".to_string()).chain(tags.iter().cloned());
         return (head.collect::<Vec<_>>().join(" "), tag_fg);
     }
+    // The run mark outranks the date preview: a run is the more consequential
+    // thing Enter is about to do, and the date was previewed before the `&`.
+    if super::runmark::strip(&p.input).1 {
+        return ("\u{25b6} runs on enter".to_string(), accent);
+    }
     if p.editing.is_some() {
         return ("edit".to_string(), t.legend_off);
     }

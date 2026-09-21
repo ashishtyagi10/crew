@@ -72,8 +72,9 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16)
             .find(|&&(s, e, _)| i >= s && i < e)
             .map(|&(_, _, fg)| fg)
     };
+    let mark = super::runmark::at(&chars);
     let style = |i: usize| {
-        if in_date(i) {
+        if in_date(i) || mark == Some(i) {
             (accent, true)
         } else if let Some(fg) = in_tag(i) {
             (fg, false)
