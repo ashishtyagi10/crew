@@ -1660,7 +1660,11 @@ longer aim at.
   way crew resolves the `@project` to a directory — a binding you
   made with `/todo project <name> <dir>`, else a pane already open in a
   directory of that name (or in a checkout whose git root has it), else a
-  same-named sibling of one; the first success is written to
+  same-named sibling of one, else a directory of that name under a root
+  projects live in — the parent of every project already bound (bind one
+  checkout and its neighbours are known), then the conventional home
+  folders `~/code`, `~/src`, `~/projects`, `~/dev`, `~/repos`, `~/work` —
+  so `@crew` finds `~/code/crew` from anywhere; the first success is written to
   `projects.toml` beside the list, and a project crew cannot place never
   runs: `r` on it fills the input bar with `/todo project <name> ` and
   focuses it, so the path is the one thing left to type — Tab completes

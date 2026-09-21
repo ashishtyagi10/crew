@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use super::{candidates, git_root, load_at, resolve, save_at};
+use super::{candidates, git_root, load_at, resolve, roots, save_at, under_roots};
 
 /// A throwaway tree: `<tmp>/code/{crew,hive}` with `crew` a checkout, and
 /// `<tmp>/code/hive/deep` a directory inside the other project.
@@ -85,4 +85,38 @@ fn the_registry_round_trips_and_a_missing_file_is_empty() {
     save_at(Some(&p), &m);
     assert_eq!(load_at(Some(&p)), m);
     assert!(load_at(None).is_empty());
+}
+
+#[test]
+fn a_root_learned_from_one_binding_places_its_siblings() {
+    let (_t, code) = tree();
+    let mut bound = BTreeMap::new();
+    bound.insert("hive".to_string(), code.join("hive"));
+    // No pane anywhere near: crew is found as a child of hive's parent.
+    assert_eq!(
+        resolve("crew", &bound, &[]),
+        Some(code.join("crew")),
+        "the user bound one project; the layout is now known"
+    );
+    assert_eq!(resolve("nowhere", &bound, &[]), None);
+    assert_eq!(roots(&bound)[0], code, "a learned root outranks ~/code");
+}
+
+#[test]
+fn under_roots_wants_a_directory_of_exactly_that_name() {
+    let (_t, code) = tree();
+    std::fs::write(code.join("notes"), "x").unwrap();
+    let r = vec![code.join("missing"), code.clone()];
+    assert_eq!(under_roots("crew", &r), Some(code.join("crew")));
+    assert_eq!(under_roots("notes", &r), None, "a file is not a project");
+    assert_eq!(under_roots("crew", &[]), None);
+}
+
+#[test]
+fn the_conventional_home_folders_are_the_last_rung() {
+    let r = roots(&BTreeMap::new());
+    let home = dirs::home_dir().unwrap();
+    assert_eq!(r[0], home.join("code"));
+    assert!(r.contains(&home.join("src")));
+    assert_eq!(r.len(), 6, "a short list on purpose");
 }

@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.83
+
+**`@crew` finds `~/code/crew` from anywhere.** The project resolver knew
+three places to look — a binding, an open pane's directory or checkout,
+and a sibling of one — so a todo added from a shell in `~/Downloads` with
+no crew pane open stopped to ask for a path the machine could have
+answered. A fourth rung: a directory of that name under a root projects
+live in. The roots are learned before they are assumed — the parent of
+every project already bound comes first (bind one checkout and its
+neighbours are known), then the conventional home folders `~/code`,
+`~/src`, `~/projects`, `~/dev`, `~/repos`, `~/work`. Still never a
+guess: the name has to BE a directory there, the hit is bound and printed
+on the run's first line, and an unknown name asks as before. Borrowed from
+VS Code's project-manager roots.
+
 ## 0.22.82
 
 **A todo ending in `&` runs the moment it is added.** The first real test
