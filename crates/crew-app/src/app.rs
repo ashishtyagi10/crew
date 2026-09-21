@@ -158,6 +158,9 @@ pub struct CrewApp {
     /// [`crate::focusmode`]). Reset every time the mode is entered, reported
     /// and cleared on the way out.
     pub(crate) held: crate::focusmode::Held,
+    /// The todo whose run stopped to ask where its project is (the bar
+    /// filled with `/todo project <name> `): the bind that answers runs it.
+    pub(crate) todo_pending_run: Option<u64>,
     /// Last OS window title set, to avoid redundant `set_title` calls.
     pub(crate) win_title: String,
     /// Mirror input to every terminal pane (tmux-style synchronized input).

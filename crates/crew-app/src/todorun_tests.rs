@@ -115,3 +115,42 @@ fn a_run_opens_its_pane_in_the_project_directory() {
     let marker = format!("RUN_{}_END", dir.display());
     wait_for(&mut app, &marker);
 }
+
+#[test]
+fn the_bind_that_answers_the_ask_runs_the_item_that_asked() {
+    let t = tempfile::tempdir().unwrap();
+    let dir = t.path().to_string_lossy().to_string();
+    let _g = store::test_guard(vec![item(1, "fix it", Some("nowhere-such"))]);
+    let mut app = CrewApp {
+        cwd: std::env::temp_dir(),
+        ..Default::default()
+    };
+    app.run_todo(1);
+    assert_eq!(app.todo_pending_run, Some(1), "the ask remembers the item");
+    // Tick it done first, so the continued run is provable without a CLI
+    // launching: the done guard is the first thing `run_todo` says.
+    store::mutate(|items| items[0].done = true);
+    app.todo_project_command("nowhere-such", &dir);
+    assert!(status(&app).contains("is done"), "{}", status(&app));
+    assert_eq!(app.todo_pending_run, None, "consumed by the bind");
+    assert!(app.panes.is_empty());
+}
+
+#[test]
+fn a_bind_for_another_project_drops_the_pending_run() {
+    let t = tempfile::tempdir().unwrap();
+    let dir = t.path().to_string_lossy().to_string();
+    let _g = store::test_guard(vec![item(1, "fix it", Some("nowhere-such"))]);
+    let mut app = CrewApp {
+        cwd: std::env::temp_dir(),
+        ..Default::default()
+    };
+    app.run_todo(1);
+    app.todo_project_command("elsewhere", &dir);
+    assert!(status(&app).starts_with("@elsewhere"), "{}", status(&app));
+    assert_eq!(app.todo_pending_run, None);
+    assert!(
+        app.panes.is_empty(),
+        "nothing ran for a bind it did not ask for"
+    );
+}

@@ -42,6 +42,7 @@ pub(crate) mod projectdir;
 pub(crate) mod render;
 pub(crate) mod rowchips;
 mod runlive;
+mod runmark;
 mod scrollpos;
 pub(crate) mod store;
 mod tagmenu;

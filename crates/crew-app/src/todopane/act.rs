@@ -42,11 +42,14 @@ impl TodoPane {
     /// and a bare `@`/`#` clears it; anything else becomes (or, while
     /// editing, replaces) an item — the highlighted date fragment stripped
     /// into the due, the first `@token` into the project and the first
-    /// `#token` into the assignee.
-    pub(crate) fn submit(&mut self) {
-        let trimmed = self.input.trim();
+    /// `#token` into the assignee. Returns the item's id when the draft
+    /// ended with the run mark (`&`, see [`super::runmark`]) — the one
+    /// thing the pane cannot do itself is hand it to an agent.
+    pub(crate) fn submit(&mut self) -> Option<u64> {
+        let (draft, run) = super::runmark::strip(&self.input);
+        let trimmed = draft.trim();
         if trimmed.is_empty() {
-            return;
+            return None;
         }
         if self.editing.is_none() {
             if let Some((sigil, name)) = parse::lone_tag(trimmed) {
@@ -58,31 +61,31 @@ impl TodoPane {
                 self.reset_input();
                 self.scroll = 0;
                 self.sel = None;
-                return;
+                return None;
             }
         }
         if self.done_view {
             // The history's composer is a filter box: `@tag`/`@` above
             // acted, anything else must not mint an item out of the log.
-            return;
+            return None;
         }
         // Parse the RAW input so what was highlighted is exactly what is
         // stripped (find/strip share char indices with the composer tint).
-        let hit = super::duedate::find(&self.input, super::duedate::now_local());
+        let hit = super::duedate::find(draft, super::duedate::now_local());
         let rest = match &hit {
-            Some(h) => super::duedate::strip(&self.input, h.start, h.end),
+            Some(h) => super::duedate::strip(draft, h.start, h.end),
             None => trimmed.split_whitespace().collect::<Vec<_>>().join(" "),
         };
         let (title, project, assignee) = parse::extract_tags(&rest);
         if title.is_empty() {
-            return; // a due date or tag alone is not an item
+            return None; // a due date or tag alone is not an item
         }
         let due_ms = hit
             .as_ref()
             .and_then(|h| super::duedate::to_epoch_ms(h.due));
         let has_time = hit.as_ref().is_some_and(|h| h.has_time);
         let now_ms = crate::chattime::unix_now_ms();
-        match self.editing {
+        let id = match self.editing {
             Some(id) => super::store::mutate(|items| {
                 if let Some(it) = items.iter_mut().find(|it| it.id == id) {
                     it.title = title;
@@ -95,6 +98,7 @@ impl TodoPane {
                     it.due_ms = due_ms;
                     it.due_has_time = has_time;
                 }
+                id
             }),
             None => super::store::mutate(|items| {
                 let id = now_ms.max(items.iter().map(|i| i.id).max().map_or(0, |m| m + 1));
@@ -113,10 +117,12 @@ impl TodoPane {
                     notified: due_ms.is_some_and(|d| d <= now_ms),
                     run: None,
                 });
+                id
             }),
-        }
+        };
         self.reset_input();
         self.refresh();
+        run.then_some(id)
     }
 
     /// `[`/`]` on the list: cycle the `@project` filter through the known
