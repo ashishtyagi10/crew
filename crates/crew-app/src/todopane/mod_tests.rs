@@ -194,7 +194,7 @@ fn each_sigil_completes_from_its_own_axis() {
         p.type_char(c);
     }
     let m = p.tagmenu.as_ref().expect("popup open while typing #p");
-    assert_eq!(m.matches, vec!["priya"], "people, not projects");
+    assert_eq!(m.matches, vec!["priya", "opencode"], "people, then agents");
     assert_eq!(m.sigil, '#');
     // And accepting splices the name back under the sigil it was typed with.
     crate::todopane::keys::apply(&mut p, crate::todopane::keys::TodoInput::Tab, 60, 20);

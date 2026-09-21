@@ -28,6 +28,9 @@ pub(crate) enum Agent {
 /// The CLI rungs in tie-break order.
 const CLIS: [Agent; 3] = [Agent::Claude, Agent::Codex, Agent::Opencode];
 
+/// Every agent, in the order the `#` popup offers them.
+pub(crate) const AGENTS: [Agent; 4] = [Agent::Claude, Agent::Codex, Agent::Opencode, Agent::Smith];
+
 impl Agent {
     /// The word the chip, the label and the reason use.
     pub(crate) fn name(self) -> &'static str {
@@ -52,7 +55,7 @@ impl Agent {
     /// at run time.
     pub(crate) fn from_assignee(who: &str) -> Option<Agent> {
         let who = who.to_ascii_lowercase();
-        [Agent::Claude, Agent::Codex, Agent::Opencode, Agent::Smith]
+        AGENTS
             .into_iter()
             .find(|a| a.name() == who || (*a == Agent::Claude && who == "claude-code"))
     }

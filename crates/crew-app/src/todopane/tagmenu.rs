@@ -46,6 +46,23 @@ pub(crate) fn known_tags(items: &[TodoItem], sigil: char) -> Vec<String> {
     counts.into_iter().map(|(t, _)| t).collect()
 }
 
+/// What the popup offers on one axis: the names in use, then — on the
+/// `#` axis — the four agents a run can be handed to (`#claude`, `#codex`,
+/// `#opencode`, `#smith`) that nobody has typed yet. A word that changes
+/// meaning at run time has to be offered where the meaning is chosen, or
+/// only the docs know it; people stay first because they are typed more.
+pub(crate) fn offered(items: &[TodoItem], sigil: char) -> Vec<String> {
+    let mut tags = known_tags(items, sigil);
+    if sigil == parse::WHO {
+        for a in super::agentpick::AGENTS {
+            if !tags.iter().any(|t| t.eq_ignore_ascii_case(a.name())) {
+                tags.push(a.name().to_string());
+            }
+        }
+    }
+    tags
+}
+
 /// Tags matching `q`: prefix beats substring beats subsequence; an empty
 /// query keeps the usage ordering of [`known_tags`].
 pub(crate) fn filter_tags(tags: &[String], q: &str) -> Vec<String> {
