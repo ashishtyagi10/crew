@@ -3477,6 +3477,11 @@ value.
   **bell**, **pane exit**), the **min secs** threshold, and the watched
   output **patterns** as a one-per-line text area.
 
+Number fields (**Font size**, **Grain**, **Opacity %**, **Nav width**, **Min
+secs**, the two budgets) step with **↑ / ↓** — one notch each (opacity 5%,
+grain 0.1, nav width 10), **Shift** for ten — clamped to the same range a
+typed value is. Typing a number still sets it exactly.
+
 Settings persist to `$XDG_CONFIG/crew/config.toml` and apply live on Save.
 
 ### Motion

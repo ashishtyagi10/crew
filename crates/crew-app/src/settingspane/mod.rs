@@ -16,6 +16,7 @@ mod labels;
 mod pairing;
 mod press;
 mod render;
+mod stepper;
 mod tokens;
 mod widgets;
 
