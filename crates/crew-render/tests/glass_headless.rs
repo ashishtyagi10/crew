@@ -63,6 +63,7 @@ fn card(alpha_top: f32, alpha_bottom: f32, highlight_alpha: f32, shadow_alpha: f
         scan: -1.0,
         edge_glow: 0.0,
         lift: 0.0,
+        glint: -1.0,
     }
 }
 
@@ -224,6 +225,7 @@ fn glass_edge_glow_headless() {
     let flat = |glow: f32| GlassCard {
         edge_glow: glow,
         lift: 0.0,
+        glint: -1.0,
         ..card(0.30, 0.30, 0.0, 0.0)
     };
     let none = render(&device, &queue, &[flat(0.0)]);
@@ -447,5 +449,39 @@ fn glass_well_headless() {
     assert!(
         (under - base).abs() <= 1.0,
         "a well cast a shadow outside ({under:.1})"
+    );
+}
+
+/// The focus glint brightens the top rim where it has run to, and only there.
+#[test]
+fn glass_glint_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("glass_glint_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let at = |glint: f32| GlassCard {
+        glint,
+        ..card(0.10, 0.10, 0.20, 0.0)
+    };
+    let rest = render(&device, &queue, &[at(-1.0)]);
+    let mid = render(&device, &queue, &[at(0.5)]);
+    let (top_rest, top_mid) = (block_r(&rest, 32, 17, 0), block_r(&mid, 32, 17, 0));
+    let (low_rest, low_mid) = (block_r(&rest, 32, 40, 1), block_r(&mid, 32, 40, 1));
+    eprintln!("glass_glint_headless: top {top_rest:.1} -> {top_mid:.1}; body {low_rest:.1} -> {low_mid:.1}");
+    assert!(
+        top_mid > top_rest + 10.0,
+        "the glint did not light the top rim"
+    );
+    assert!(
+        (low_mid - low_rest).abs() < 1.0,
+        "the glint leaked into the body"
     );
 }

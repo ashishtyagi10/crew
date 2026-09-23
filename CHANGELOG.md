@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.97
+
+**Focus lands with a glint.** When a pane takes the keys, a soft specular
+runs once along the top of its rim, left to right, as light runs across
+glass when it tilts — fading in as it starts and out as it arrives, on the
+same 600 ms ignition clock the frame already lights up on. It happens once
+per focus move and never at rest, and with motion off it never runs at all.
+
 ## 0.22.96
 
 **The input bar is pressed into the glass.** Cards rise off the page; the

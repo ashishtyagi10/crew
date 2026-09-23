@@ -165,6 +165,7 @@ fn pick_shot_key_prompt() {
                 glass: false,
                 scan: -1.0,
                 lift: 0.0,
+                glint: -1.0,
                 overlay: true,
                 paint: Vec::new(),
             }]

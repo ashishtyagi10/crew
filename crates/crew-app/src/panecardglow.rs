@@ -52,6 +52,13 @@ fn ignite_t() -> f32 {
     f32::from_bits(IGNITE_T.load(Ordering::Relaxed))
 }
 
+/// Where the focus glint has run to along the focused card's rim: the
+/// ignition clock while it runs, none once it settles (and none at all with
+/// motion off, where ignition never runs).
+pub(crate) fn glint() -> f32 {
+    Some(ignite_t()).filter(|t| *t < 1.0).unwrap_or(-1.0)
+}
+
 impl CrewApp {
     /// `build_frame`'s per-frame focus bookkeeping: diff the drawn focus
     /// (here, once per frame, so every `self.focused = …` site is caught

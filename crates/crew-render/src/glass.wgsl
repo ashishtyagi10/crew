@@ -48,6 +48,10 @@ const MAX_LIFT: f32 = 2.0;
 const WELL_DROP: f32 = 2.0;
 const WELL_BLUR: f32 = 7.0;
 const WELL_SHADOW: f32 = 1.4;
+// The focus glint: a soft specular GLINT_PX wide that runs once along the top
+// rim as focus lands, fading in and out over its run so it never pops.
+const GLINT_PX: f32 = 90.0;
+const GLINT_GAIN: f32 = 0.85;
 // Edge antialiasing width.
 const AA: f32 = 1.0;
 // Inner edge-glow reach (px): how far the frame's light bleeds into the fill.
@@ -60,7 +64,7 @@ struct VsOut {
   @location(2) params: vec4<f32>,  // radius, alpha_top, alpha_bottom, noise
   @location(3) tint: vec4<f32>,    // tint.rgb, highlight_alpha
   @location(4) hl: vec4<f32>,      // highlight.rgb, shadow_alpha
-  @location(5) extra: vec4<f32>,   // scan position, edge_glow, lift, unused
+  @location(5) extra: vec4<f32>,   // scan position, edge_glow, lift, glint
 };
 
 // Half-height of the scan band, as a fraction of the card. Wide enough to read
@@ -222,7 +226,15 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let facing = dot(n, LIGHT) * select(1.0, -1.0, well > 0.0);
     let key = pow(clamp(facing, 0.0, 1.0), 1.5);
     let bounce = BOUNCE * pow(clamp(-facing, 0.0, 1.0), 2.0);
-    let a = clamp(hl_alpha * (1.0 + LIFT_RIM * lift), 0.0, 1.0) * band * (key + bounce);
+    var a = clamp(hl_alpha * (1.0 + LIFT_RIM * lift), 0.0, 1.0) * band * (key + bounce);
+    let glint = in.extra.w;
+    if (glint >= 0.0) {
+      let at = -in.hsize.x + glint * 2.0 * in.hsize.x;
+      let dx = (in.local.x - at) / GLINT_PX;
+      let up = clamp(-n.y, 0.0, 1.0);
+      let envelope = sin(3.14159265 * clamp(glint, 0.0, 1.0));
+      a = clamp(a + GLINT_GAIN * envelope * exp(-dx * dx * 2.0) * band * up, 0.0, 1.0);
+    }
     // Composite the highlight over the fill (both are "source" here).
     let out_a = a + alpha * (1.0 - a);
     if (out_a > 0.0001) {

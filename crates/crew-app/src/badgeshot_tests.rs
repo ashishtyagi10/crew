@@ -76,6 +76,7 @@ fn scene(w: u32, h: u32, cw: f32, ch: f32) -> Vec<PaneScene> {
         glass: false,
         scan: -1.0,
         lift: 0.0,
+        glint: -1.0,
         overlay: false,
         paint: Vec::new(),
     }]
