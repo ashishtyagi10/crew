@@ -331,6 +331,7 @@ mod cardchrome;
 #[cfg(test)]
 #[path = "frameshot_tests.rs"]
 mod frameshot_tests;
+mod hoverlift;
 #[cfg(test)]
 #[path = "lspshot_tests.rs"]
 mod lspshot_tests;

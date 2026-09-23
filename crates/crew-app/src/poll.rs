@@ -85,7 +85,7 @@ impl CrewApp {
                 _ => false,
             })
             || self.wash_focus.moving()
-            || self.pointer_light.moving()
+            || self.pointer_gliding()
             // 150ms grace past expiry: the crossfade draws at whatever
             // strength the LAST frame sampled, so one more frame must land
             // after the timeline dies to clear it (and let the renderer

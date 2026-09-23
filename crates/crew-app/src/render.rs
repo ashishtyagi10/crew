@@ -216,6 +216,11 @@ impl CrewApp {
         if let Some(r) = self.renderer.as_mut() {
             r.set_glass_light(self.pointer_light.tilt());
         }
+        // …and the card under it rises a little.
+        let hovered = self.cursor_in.then(|| self.pane_at_cursor()).flatten();
+        self.hover_lift.aim(hovered);
+        self.hover_lift.step(glide_dt, crate::motion::level());
+        self.hover_lift.apply(&mut scenes, &self.panes);
 
         // The solidity pass holds only overlays (collected below, once they are
         // placed): the panes, the nav and the input bar are all the same

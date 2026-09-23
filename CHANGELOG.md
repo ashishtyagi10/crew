@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.0
+
+**The card under the pointer rises.** Resting the pointer on a pane lifts
+it a little on its glass — two-fifths of the focused lift, enough to say
+"this is the one you would be clicking", never enough to be taken for focus.
+Moving between cards hands the lift over the way focus does: the new card
+rises as the old one settles, each on its own glide, so a pointer crossing
+the grid leaves a soft wake instead of a row of flickers. Once the pointer
+rests, nothing is left moving and nothing repaints.
+
 ## 0.22.99
 
 **The glass answers the pointer.** A light that never moves is a painted

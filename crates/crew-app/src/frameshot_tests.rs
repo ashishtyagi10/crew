@@ -76,3 +76,25 @@ fn frame_shot_every_family() {
         );
     }
 }
+
+/// The pointer resting on an unfocused card: it rises a little on its glass
+/// (a softer, lower shadow than the focused card's), set beside
+/// `frame-paper-light.png`.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn frame_shot_hover_lift() {
+    let _g = crate::app::theme_test_guard();
+    let shot = frame_shot("frame-paper-light-hover", ThemeId::PaperLight, |app| {
+        for cmd in ["/far", "/far", "/dash"] {
+            app.submit_input(cmd.to_string());
+        }
+        app.zoomed = false;
+        app.focused = 1;
+        app.input.focused = false;
+        app.cursor = (300.0, 150.0);
+        app.cursor_in = true;
+    });
+    if shot.is_none() {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+    }
+}
