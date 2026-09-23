@@ -7,7 +7,6 @@ use crate::chat::ChatPane;
 use crate::chatkeys::ChatInput;
 use crate::chatlayout::Message;
 use crate::popupplace::Popup;
-use crate::suggest::MenuItem;
 
 /// The open find popup: the query, the matched visible-message indices
 /// (newest first) and the selected match.
@@ -173,25 +172,12 @@ pub(crate) fn title(f: &ChatFind) -> String {
 }
 
 /// The popup as a rendered `menu_card` plus its row count (matched messages
-/// as `sender: text` rows, newest first; a dim placeholder when nothing
+/// as `sender: text` rows windowed on the match and marked — `findsnip` —
+/// newest first; a dim placeholder when nothing
 /// matches). Match indices are re-checked against `msgs` — the transcript
 /// may have shifted since the last key.
 pub(crate) fn card(f: &ChatFind, msgs: &[&Message], cols: u16) -> Popup {
-    let row = |label: String, header: bool| MenuItem {
-        label,
-        header,
-        ..MenuItem::default()
-    };
-    let flat = |m: &&Message| format!("{}: {}", m.sender, m.text.replace('\n', " \u{23ce} "));
-    let mut rows: Vec<MenuItem> = f
-        .matches
-        .iter()
-        .filter_map(|&i| msgs.get(i))
-        .map(|m| row(flat(m), false))
-        .collect();
-    if rows.is_empty() {
-        rows.push(row("no matches".to_string(), true));
-    }
+    let rows = crate::findsnip::items(f, msgs, cols);
     crate::cmdmenu::popup(&title(f), &rows, f.sel, cols)
 }
 

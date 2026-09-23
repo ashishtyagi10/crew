@@ -227,6 +227,7 @@ mod farshot_tests;
 mod filedrop;
 mod fileindex;
 mod findhl;
+mod findsnip;
 mod focusmode;
 mod fontcmd;
 #[cfg(test)]

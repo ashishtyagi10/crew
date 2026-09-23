@@ -29,11 +29,14 @@ fn card_bg_uniform_no_highlight_bar() {
     let _g = crate::app::theme_test_guard();
     let matches = crate::suggest::menu_items("/s");
     let cells = menu_card("commands", &matches, 0, 40, menu_rows(matches.len()));
-    // No selection bar that could wash out text: every cell background is
-    // uniform (the theme page_bg), so the description stays legible on any row.
+    // No selection bar washing out text: every background is the page, bar
+    // a matched glyph (`/s` marks the `s`) in the search wash — never a bar.
     let bg = crew_theme::theme().page_bg;
+    let hl = crew_theme::theme().find_hl_bg;
     assert!(
-        cells.iter().all(|c| c.bg == bg),
+        cells
+            .iter()
+            .all(|c| c.bg == bg || (c.bg == hl && c.c != ' ')),
         "menu background must be uniform (no highlight bar)"
     );
 }
