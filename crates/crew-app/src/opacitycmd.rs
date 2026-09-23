@@ -14,7 +14,7 @@
 //! competing with the work on it, and the ladder is where a first `/opacity`
 //! lands. Someone who wants the aquarium look can still type the number.
 //!
-//! The knob is the one Settings has always had (WINDOW → Opacity %); this is
+//! The knob is the one Settings has always had (CANVAS → Opacity %); this is
 //! the same value, reachable from the input bar and applied live.
 //!
 //! **What goes sheer is the glass: the panes, the nav and the input bar.** The

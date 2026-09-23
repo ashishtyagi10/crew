@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.88
+
+**Opacity % moved to the CANVAS card in Settings, beside Glass.** It is
+about how the page looks — how much of the desktop shows through — like
+Glass, and not about the window's shape, which is what the WINDOW card
+(nav width, show nav, launch maximized) is for. It is the same setting with
+the same key; only its place in the form changed.
+
 ## 0.22.87
 
 **Frame lines stay whole on a sheer window.** With opacity below 100% the

@@ -1,5 +1,5 @@
-//! Per-card field placement for the settings form — the Appearance / Window /
-//! Notifications builders behind `form::layout`. Split from `form.rs` for the
+//! Per-card field placement for the settings form — the Appearance / Canvas /
+//! Window / Notifications builders behind `form::layout`. Split from `form.rs` for the
 //! 200-line cap when the Smoothing picker grew the Appearance card.
 use ratatui::layout::Rect;
 
@@ -69,10 +69,13 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
 pub(super) fn canvas(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
     let (ix, iw) = inner(x, w);
     let mut cy = y + 1;
-    cy += pair(rects, ix, iw, cy, Field::Glass, Field::Motion);
-    cy += pair(rects, ix, iw, cy, Field::Density, Field::Leading);
-    rects.push((Field::Contrast, Rect::new(ix, cy, iw, 3)));
-    cy += 3;
+    // Opacity beside Glass: both say how much of what is behind a card
+    // shows through it — Glass the page under the card, Opacity the desktop
+    // under the window. It lived in WINDOW, with the nav width and the
+    // maximize switch, which are about the window's shape, not its look.
+    cy += pair(rects, ix, iw, cy, Field::Glass, Field::WindowOpacity);
+    cy += pair(rects, ix, iw, cy, Field::Motion, Field::Density);
+    cy += pair(rects, ix, iw, cy, Field::Leading, Field::Contrast);
     rects.push((Field::ShapeCues, Rect::new(ix, cy, iw, 3)));
     cy += 3;
     // Full width: its legend is longer than a half-width border can carry,
@@ -96,7 +99,8 @@ pub(super) fn canvas(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> 
 pub(super) fn window(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
     let (ix, iw) = inner(x, w);
     let mut cy = y + 1;
-    cy += pair(rects, ix, iw, cy, Field::NavWidth, Field::WindowOpacity);
+    lone(rects, ix, iw, cy, Field::NavWidth);
+    cy += 3;
     for f in [Field::ShowNav, Field::Maximized] {
         rects.push((f, Rect::new(ix, cy, iw, 1)));
         cy += 1;

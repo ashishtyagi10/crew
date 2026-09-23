@@ -1077,7 +1077,7 @@ longer aim at.
   is not headroom a colour picker gets to spend. You choose the colour; crew
   chooses how bright it is.
 - **`/opacity [off|subtle|medium|sheer|<35-100>]`** — how much of the desktop
-  shows through crew. The same knob as **Settings → WINDOW → Opacity %**, on
+  shows through crew. The same knob as **Settings → CANVAS → Opacity %**, on
   the input bar and applied live; the ladder's rungs are `off` (100%),
   `subtle` (94%), `medium` (90%) and `sheer` (85%), and any percent down to
   the **35% floor** works too (`/opacity 60`). A window that could be dialled
@@ -3471,7 +3471,8 @@ value.
   `off · low · medium · high`), **Motion** (`off · subtle · full`),
   **Gradient colour** (`off · subtle · lively`), **Paper texture** (on/off),
   **Drifting background** (on/off).
-- **WINDOW** — **Nav width**, **Opacity %**, **Show nav**, **Launch maximized**.
+- **CANVAS** also carries **Opacity %**, beside **Glass**.
+- **WINDOW** — **Nav width**, **Show nav**, **Launch maximized**.
 - **NOTIFICATIONS** — the master switch plus per-event toggles (**cmd done**,
   **bell**, **pane exit**), the **min secs** threshold, and the watched
   output **patterns** as a one-per-line text area.
@@ -3566,7 +3567,7 @@ faintest" restraint is gone). `medium` is the default; `off` restores flat
 cards and costs nothing to draw. Overlay popups (the command menu, the attach
 picker, the key prompt) stay opaque by design.
 
-**Opacity %** (WINDOW) makes the **window itself** translucent, so your desktop
+**Opacity %** (CANVAS) makes the **window itself** translucent, so your desktop
 shows through the page. Text, pane fills and selections stay solid — only the
 bare page goes sheer. `100` is opaque; the value floors at **35%**, because a
 window dialled any sheerer is one you can't find again. Works with the CRT

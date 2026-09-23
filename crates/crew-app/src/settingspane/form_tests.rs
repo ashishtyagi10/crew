@@ -153,3 +153,22 @@ fn the_focused_box_is_bold_and_an_empty_box_says_what_empty_means() {
     );
     assert_eq!(buf[(1, 1)].fg, ink(), "a typed value is ink, hint gone");
 }
+
+/// Opacity is a look, not a window shape: it sits in the canvas card beside
+/// Glass (both say how much shows through a card), not in WINDOW with the
+/// nav width and the maximize switch.
+#[test]
+fn opacity_lives_in_the_canvas_card() {
+    for cols in [40, 80, 160] {
+        let lay = layout(cols);
+        let r = lay
+            .rect_of(Field::WindowOpacity)
+            .expect("opacity is placed");
+        let card = lay
+            .cards
+            .iter()
+            .find(|c| c.rect.contains(Position::new(r.x, r.y)))
+            .expect("opacity sits in a card");
+        assert_eq!(card.title.to_lowercase(), "canvas", "at {cols} cols");
+    }
+}

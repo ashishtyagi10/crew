@@ -112,7 +112,7 @@ pub(crate) fn default_glass() -> String {
 pub const MIN_WINDOW_OPACITY: f32 = 0.35;
 
 pub(crate) fn default_window_opacity() -> f32 {
-    // Opaque. Window translucency is opt-in via Settings → WINDOW → Opacity % — a
+    // Opaque. Window translucency is opt-in via Settings → CANVAS → Opacity % — a
     // see-through terminal is a taste, not a default.
     1.0
 }
