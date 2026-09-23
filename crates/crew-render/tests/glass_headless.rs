@@ -68,9 +68,18 @@ fn card(alpha_top: f32, alpha_bottom: f32, highlight_alpha: f32, shadow_alpha: f
 }
 
 fn render(device: &wgpu::Device, queue: &wgpu::Queue, cards: &[GlassCard]) -> Vec<u8> {
+    render_lit(device, queue, cards, (0.0, 0.0))
+}
+
+fn render_lit(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    cards: &[GlassCard],
+    tilt: (f32, f32),
+) -> Vec<u8> {
     let mut layer = GlassLayer::new(device, wgpu::TextureFormat::Rgba8Unorm);
     layer.set_cards(device, cards);
-    layer.set_viewport(queue, SIZE as f32, SIZE as f32);
+    layer.set_view(queue, SIZE as f32, SIZE as f32, tilt);
 
     let tex = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("glass_test_tex"),
@@ -484,4 +493,30 @@ fn glass_glint_headless() {
         (low_mid - low_rest).abs() < 1.0,
         "the glint leaked into the body"
     );
+}
+
+/// The pointer's tilt leans the rim light: a pointer at the lower right
+/// brightens the right edge's rim and dims the left's.
+#[test]
+fn glass_tilt_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("glass_tilt_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let cards = [card(0.10, 0.10, 0.60, 0.0)];
+    let rest = render_lit(&device, &queue, &cards, (0.0, 0.0));
+    let lit = render_lit(&device, &queue, &cards, (1.0, 1.0));
+    let (l0, l1) = (block_r(&rest, 17, 32, 0), block_r(&lit, 17, 32, 0));
+    let (r0, r1) = (block_r(&rest, 46, 32, 0), block_r(&lit, 46, 32, 0));
+    eprintln!("glass_tilt_headless: left {l0:.1} -> {l1:.1}; right {r0:.1} -> {r1:.1}");
+    assert!(r1 > r0 + 5.0, "the tilt did not light the right rim");
+    assert!(l1 < l0 - 5.0, "the tilt did not dim the left rim");
 }

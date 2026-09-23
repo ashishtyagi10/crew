@@ -61,7 +61,6 @@ fn is_restorable_pane(p: &Pane) -> bool {
 }
 
 impl CrewApp {
-    /// One poll cycle. Schedules the next wake-up before returning.
     /// Whether anything on screen still has a frame left to draw.
     ///
     /// This predicate IS the "an idle crew never repaints" invariant, and it is
@@ -86,6 +85,7 @@ impl CrewApp {
                 _ => false,
             })
             || self.wash_focus.moving()
+            || self.pointer_light.moving()
             // 150ms grace past expiry: the crossfade draws at whatever
             // strength the LAST frame sampled, so one more frame must land
             // after the timeline dies to clear it (and let the renderer

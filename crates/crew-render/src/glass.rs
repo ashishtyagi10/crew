@@ -98,7 +98,7 @@ impl GlassLayer {
             label: Some("glass_bgl"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
+                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -184,9 +184,18 @@ impl GlassLayer {
         );
     }
 
-    /// Update the viewport uniform (call on resize).
+    /// Update the viewport uniform (call on resize), with the light at rest.
     pub fn set_viewport(&self, queue: &wgpu::Queue, width: f32, height: f32) {
-        queue.write_buffer(&self.vp_buf, 0, f32s_as_bytes(&[width, height, 0.0, 0.0]));
+        self.set_view(queue, width, height, (0.0, 0.0));
+    }
+
+    /// The viewport plus the rims' light tilt, `-1..=1` per axis.
+    pub fn set_view(&self, queue: &wgpu::Queue, width: f32, height: f32, tilt: (f32, f32)) {
+        queue.write_buffer(
+            &self.vp_buf,
+            0,
+            f32s_as_bytes(&[width, height, tilt.0, tilt.1]),
+        );
     }
 
     /// Record draw commands into an active render pass.

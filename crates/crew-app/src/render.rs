@@ -208,6 +208,15 @@ impl CrewApp {
             paint: Vec::new(),
         });
 
+        // The rims' light: aimed home once the pointer has left the window,
+        // glided on the grid's frame clock, handed to the glass pass.
+        let pointer = self.cursor_in.then_some(self.cursor);
+        self.pointer_light.aim(pointer, (sw, sh));
+        self.pointer_light.step(glide_dt, crate::motion::level());
+        if let Some(r) = self.renderer.as_mut() {
+            r.set_glass_light(self.pointer_light.tilt());
+        }
+
         // The solidity pass holds only overlays (collected below, once they are
         // placed): the panes, the nav and the input bar are all the same
         // frosted glass in a sheer window.
