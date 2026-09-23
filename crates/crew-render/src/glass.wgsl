@@ -41,6 +41,13 @@ const LIFT_RIM: f32 = 0.35;
 // The highest a card rides: 1 is the focused pane, 2 a floating card (a
 // pop-up, `/keys`, a toast) over everything.
 const MAX_LIFT: f32 = 2.0;
+// A NEGATIVE lift sinks the card into the page instead: a well, the way a
+// text field is pressed into a sheet of glass. No shadow falls outside it;
+// one falls INSIDE, under its top lip, and the light catches the lower lip
+// instead of the upper one. -1 is a full well.
+const WELL_DROP: f32 = 2.0;
+const WELL_BLUR: f32 = 7.0;
+const WELL_SHADOW: f32 = 1.4;
 // Edge antialiasing width.
 const AA: f32 = 1.0;
 // Inner edge-glow reach (px): how far the frame's light bleeds into the fill.
@@ -132,8 +139,9 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // interior — enough that a white sheet over a grey page came out DARKER than
   // the page it was supposed to be lifting off (caught by `glass_headless`).
   let lift = clamp(in.extra.z, 0.0, MAX_LIFT);
+  let well = clamp(-in.extra.z, 0.0, 1.0);
   var shadow = 0.0;
-  if (sh_alpha > 0.0) {
+  if (sh_alpha > 0.0 && well == 0.0) {
     let dc = sd_round_box(in.local - vec2<f32>(0.0, CONTACT_DROP), in.hsize, radius);
     let da = sd_round_box(in.local - vec2<f32>(0.0, AMBIENT_DROP + LIFT_DROP * lift),
                           in.hsize, radius);
@@ -186,6 +194,22 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // whole top edge unevenly.
   var rgb = in.tint.xyz;
   var alpha = fill_a;
+
+  // --- well: the inner shadow -----------------------------------------------
+  // The page's edge, dropped a couple of px and blurred, seen from inside: a
+  // band hugging the top lip that fades down into the field. Black over the
+  // fill, so it deepens whatever tint the sheet has.
+  if (well > 0.0 && sh_alpha > 0.0) {
+    let lip = sd_round_box(in.local - vec2<f32>(0.0, WELL_DROP), in.hsize, radius);
+    let a = clamp(sh_alpha * WELL_SHADOW * well, 0.0, 1.0)
+      * smoothstep(-WELL_BLUR, WELL_DROP, lip) * inside;
+    let out_a = a + alpha * (1.0 - a);
+    if (out_a > 0.0001) {
+      rgb = rgb * alpha * (1.0 - a) / out_a;
+    }
+    alpha = out_a;
+  }
+
   if (hl_alpha > 0.0) {
     let band = smoothstep(-HL_W, 0.0, d) * inside;
     let e = 0.5;
@@ -194,7 +218,8 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         - sd_round_box(in.local - vec2<f32>(e, 0.0), in.hsize, radius),
       sd_round_box(in.local + vec2<f32>(0.0, e), in.hsize, radius)
         - sd_round_box(in.local - vec2<f32>(0.0, e), in.hsize, radius)) + vec2<f32>(1e-5, 1e-5));
-    let facing = dot(n, LIGHT);
+    // A well's lit wall is the one facing AWAY from the light: its lower lip.
+    let facing = dot(n, LIGHT) * select(1.0, -1.0, well > 0.0);
     let key = pow(clamp(facing, 0.0, 1.0), 1.5);
     let bounce = BOUNCE * pow(clamp(-facing, 0.0, 1.0), 2.0);
     let a = clamp(hl_alpha * (1.0 + LIFT_RIM * lift), 0.0, 1.0) * band * (key + bounce);

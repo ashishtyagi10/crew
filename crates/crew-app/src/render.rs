@@ -201,7 +201,8 @@ impl CrewApp {
             bordered: false,
             glass: true,
             scan: -1.0,
-            lift: 0.0,
+            // Pressed INTO the glass: the one place you type is a well.
+            lift: -1.0,
             overlay: false,
             paint: Vec::new(),
         });
