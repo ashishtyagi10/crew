@@ -142,7 +142,9 @@ fn a_wide_cell_wears_its_marks_across_both_columns() {
         line: crew_theme::deco::DecoLine::Single,
         ..crew_theme::deco::Deco::NONE
     };
-    let narrow = cell(2, 0, 'x', (10, 20, 30));
+    // A different colour, so the two stay separate runs (a shared colour
+    // would merge them into one quad, which covers both columns too).
+    let narrow = cell(2, 0, 'x', (40, 50, 60));
     let panes = vec![pane(vec![wide, narrow], false, false)];
     let (quads, _b, _s, _bd, _c) = build(&panes, &mut fs, false, no_glass());
     let bg_at = |x: f32| {
