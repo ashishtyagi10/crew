@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.95
+
+**Pop-ups, toasts and `/keys` float.** Everything drawn over the panes now
+rides highest of all — twice the focused pane's lift — and casts the deeper,
+wider shadow that goes with it, so a picker opening over a transcript reads
+as a card held above the page rather than a box printed onto it. A pop-up's
+shadow hugs its frame, not the margin of page it keeps beside it, and falls
+across that margin. Floating cards keep only the shadow: they are opaque and
+their own sheet, and a rim drawn over them would strike through the legend.
+
 ## 0.22.94
 
 **The focused pane lifts off the page.** The pane you are working in rises

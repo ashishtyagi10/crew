@@ -22,7 +22,7 @@ fn card_geometry_is_cell_quantized_and_right_aligned() {
     // Right-aligned to content minus the gap: 100 + 800 - 8 - 88.
     assert_eq!(s.x, 804.0);
     assert!(s.overlay, "toasts must ride the opaque overlay pass");
-    assert!(!s.glass);
+    assert!(s.glass, "a toast casts its own floating shadow");
 }
 
 #[test]

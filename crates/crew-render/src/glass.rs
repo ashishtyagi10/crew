@@ -29,8 +29,9 @@ pub struct GlassCard {
     pub scan: f32,
     /// Inner edge-glow strength; 0 (paper) must leave the fill untouched.
     pub edge_glow: f32,
-    /// Elevation, `0.0..=1.0`: 0 rests on the page, 1 is the focused lift —
-    /// a deeper, wider ambient shadow and a brighter rim.
+    /// Elevation, `0.0..=2.0`: 0 rests on the page, 1 is the focused lift,
+    /// 2 a floating card — each a deeper, wider ambient shadow and a brighter
+    /// rim.
     pub lift: f32,
 }
 
