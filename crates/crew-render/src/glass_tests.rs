@@ -16,6 +16,7 @@ fn card() -> GlassCard {
         shadow_alpha: 0.3,
         scan: -1.0,
         edge_glow: 0.35,
+        lift: 0.75,
     }
 }
 
@@ -38,8 +39,8 @@ fn packing_matches_the_shader_layout() {
     );
     assert_eq!(
         &p[16..20],
-        &[-1.0, 0.35, 0.0, 0.0],
-        "scan + edge_glow + pad"
+        &[-1.0, 0.35, 0.75, 0.0],
+        "scan + edge_glow + lift + pad"
     );
 }
 
@@ -52,8 +53,9 @@ fn stride_matches_the_packed_size() {
 
 /// The quad is expanded by PAD in the shader so the blurred shadow is not
 /// clipped to a hard square. Keep that padding ahead of the falloff each
-/// shadow layer has to contain — its drop plus a quarter past its blur, where
-/// the Gaussian is down to under 2% — asserted against the shader source.
+/// shadow layer has to contain at FULL lift — its drop plus a quarter past its
+/// blur, where the Gaussian is down to under 2% — asserted against the shader
+/// source.
 #[test]
 fn shadow_padding_covers_its_falloff() {
     let src = include_str!("glass.wgsl");
@@ -66,8 +68,13 @@ fn shadow_padding_covers_its_falloff() {
         rest[..end].trim().parse().expect("non-numeric const")
     };
     let pad = num("PAD");
-    for layer in ["CONTACT", "AMBIENT"] {
-        let (blur, drop) = (num(&format!("{layer}_BLUR")), num(&format!("{layer}_DROP")));
+    let lifted = [
+        ("CONTACT", 0.0, 0.0),
+        ("AMBIENT", num("LIFT_BLUR"), num("LIFT_DROP")),
+    ];
+    for (layer, more_blur, more_drop) in lifted {
+        let blur = num(&format!("{layer}_BLUR")) + more_blur;
+        let drop = num(&format!("{layer}_DROP")) + more_drop;
         assert!(
             pad >= 1.25 * blur + drop,
             "PAD {pad} cannot contain the {layer} layer's {blur}px blur dropped {drop}px"

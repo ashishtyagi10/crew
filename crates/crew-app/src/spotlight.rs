@@ -33,6 +33,21 @@ pub(crate) fn dim_for(i: usize, spot: usize, prev: usize, t: f32) -> f32 {
     }
 }
 
+/// How far pane `i`'s card has lifted off the page this frame — the glass
+/// sheet's elevation. The same choreography as [`dim_for`], on the same clock:
+/// the spotlit pane rises as `t` goes to 1, the one it left settles back, and
+/// everyone else rests on the page. Not derived from the dim: focus mode can
+/// zero the resting wash, and a card must still rise when it does.
+pub(crate) fn lift_for(i: usize, spot: usize, prev: usize, t: f32) -> f32 {
+    if i == spot {
+        t
+    } else if i == prev {
+        1.0 - t
+    } else {
+        0.0
+    }
+}
+
 /// Apply the wash: every cell's ink leans `dim` toward the page. Backgrounds
 /// stay put — a selection or status band keeps its shape, only its text dims.
 pub(crate) fn wash(cells: &mut [CellView], dim: f32) {

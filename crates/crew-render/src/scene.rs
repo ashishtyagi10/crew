@@ -51,6 +51,11 @@ pub struct PaneScene {
     /// pane already repaints (see the app's `poll`), so the sweep costs no
     /// extra frames, and an idle crew never draws it at all.
     pub scan: f32,
+    /// How far this card has lifted off the page, `0.0..=1.0`: the focused
+    /// pane rises to 1 and the one it left sinks back, on the focus clock.
+    /// Deepens the glass sheet's shadow and brightens its rim; a card with no
+    /// sheet ignores it.
+    pub lift: f32,
     /// Sub-cell vector rectangles drawn between this pane's cell backgrounds
     /// and its text — the layer charts are painted on. Cell units; see
     /// [`Paint`].
@@ -59,6 +64,27 @@ pub struct PaneScene {
     /// backgrounds and text are rendered in a second pass *after* base panes, so
     /// nothing behind them can bleed through — they are fully opaque.
     pub overlay: bool,
+}
+
+/// An empty, unfocused, frameless scene with no scan and no lift — what a
+/// literal spells out field by field, so one can name only what it sets.
+impl Default for PaneScene {
+    fn default() -> Self {
+        Self {
+            cells: Vec::new(),
+            x: 0.0,
+            y: 0.0,
+            w: 0.0,
+            h: 0.0,
+            focused: false,
+            bordered: false,
+            glass: false,
+            scan: -1.0,
+            lift: 0.0,
+            paint: Vec::new(),
+            overlay: false,
+        }
+    }
 }
 
 const BORDER_RADIUS: f32 = 10.0;
@@ -259,6 +285,7 @@ pub(crate) fn build_scene(
                 shadow_alpha: glass_style.shadow_alpha,
                 scan: pane.scan,
                 edge_glow: glass_style.edge_glow,
+                lift: pane.lift,
             });
         }
 

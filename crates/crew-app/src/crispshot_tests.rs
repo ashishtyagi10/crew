@@ -94,12 +94,7 @@ fn card_scene(w: u32, h: u32, cw: f32, ch: f32) -> Vec<PaneScene> {
             y: PAD,
             w: cols as f32 * cw,
             h: rows as f32 * ch,
-            focused: false,
-            bordered: false,
-            glass: false,
-            scan: -1.0,
-            overlay: false,
-            paint: Vec::new(),
+            ..Default::default()
         }]
     }
 }
@@ -161,12 +156,7 @@ fn text_px(w: u32, h: u32, c: char, rows: u16) -> Option<Vec<u8>> {
             y: PAD,
             w: cw * 4.0,
             h: ch * rows as f32,
-            focused: false,
-            bordered: false,
-            glass: false,
-            scan: -1.0,
-            overlay: false,
-            paint: Vec::new(),
+            ..Default::default()
         }]
     })
 }
@@ -250,12 +240,7 @@ fn specimen_of_every_drawn_glyph() {
             y: PAD,
             w: w as f32 - 2.0 * PAD,
             h: h as f32 - 2.0 * PAD,
-            focused: false,
-            bordered: false,
-            glass: false,
-            scan: -1.0,
-            overlay: false,
-            paint: Vec::new(),
+            ..Default::default()
         }]
     }) else {
         eprintln!("no GPU adapter — skipped");

@@ -131,11 +131,7 @@ fn render(pane: &ChatPane) -> Option<(Vec<u8>, u16, u16, f32)> {
             w: W as f32,
             h: H as f32,
             focused: true,
-            bordered: false,
-            glass: false,
-            scan: -1.0,
-            overlay: false,
-            paint: Vec::new(),
+            ..Default::default()
         }],
     );
     grid.prepare(&device, &queue, W, H);

@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.94
+
+**The focused pane lifts off the page.** The pane you are working in rises
+on its glass: its ambient shadow drops a little further and spreads a little
+wider, the whole shadow deepens, and its rim catches more light. Move focus
+and the lift hands over on the same clock the spotlight already runs — the
+new pane rises as the old one settles back — so at every instant of the move
+exactly one lift is shared between the two cards. The contact shadow stays
+put: it is where the card's edge meets the page, lifted or not.
+
 ## 0.22.93
 
 **Panes sit on liquid glass.** Every pane, the nav and the input bar rest on

@@ -10,7 +10,7 @@ struct Vp { size: vec2<f32>, pad: vec2<f32> };
 
 // How far outside the card the quad is expanded to give the shadow room. Must
 // stay >= the shadow's blur + offset or the falloff is visibly clipped square.
-const PAD: f32 = 32.0;
+const PAD: f32 = 40.0;
 // Width (px) of the specular rim just inside the card edge. The frame's stroke
 // sits on the edge itself and covers the outer part of it, so what shows is a
 // bright line tucked just inside the frame.
@@ -30,6 +30,14 @@ const CONTACT_W: f32 = 0.55;
 const AMBIENT_BLUR: f32 = 18.0;
 const AMBIENT_DROP: f32 = 6.0;
 const AMBIENT_W: f32 = 0.45;
+// What a full lift adds: the ambient shadow drops further and spreads wider
+// (a card higher off the page throws a softer, more distant shadow), the whole
+// shadow darkens, and the rim catches more light. The contact shadow stays
+// put — it is where the card's edge meets its own shadow, lifted or not.
+const LIFT_DROP: f32 = 4.0;
+const LIFT_BLUR: f32 = 6.0;
+const LIFT_SHADOW: f32 = 0.8;
+const LIFT_RIM: f32 = 0.35;
 // Edge antialiasing width.
 const AA: f32 = 1.0;
 // Inner edge-glow reach (px): how far the frame's light bleeds into the fill.
@@ -42,7 +50,7 @@ struct VsOut {
   @location(2) params: vec4<f32>,  // radius, alpha_top, alpha_bottom, noise
   @location(3) tint: vec4<f32>,    // tint.rgb, highlight_alpha
   @location(4) hl: vec4<f32>,      // highlight.rgb, shadow_alpha
-  @location(5) extra: vec4<f32>,   // scan position, edge_glow, unused
+  @location(5) extra: vec4<f32>,   // scan position, edge_glow, lift, unused
 };
 
 // Half-height of the scan band, as a fraction of the card. Wide enough to read
@@ -120,12 +128,15 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // that, the shadow shows through the translucent sheet and darkens the card's
   // interior — enough that a white sheet over a grey page came out DARKER than
   // the page it was supposed to be lifting off (caught by `glass_headless`).
+  let lift = clamp(in.extra.z, 0.0, 1.0);
   var shadow = 0.0;
   if (sh_alpha > 0.0) {
     let dc = sd_round_box(in.local - vec2<f32>(0.0, CONTACT_DROP), in.hsize, radius);
-    let da = sd_round_box(in.local - vec2<f32>(0.0, AMBIENT_DROP), in.hsize, radius);
-    let s = CONTACT_W * falloff(dc, CONTACT_BLUR) + AMBIENT_W * falloff(da, AMBIENT_BLUR);
-    shadow = sh_alpha * s * (1.0 - inside);
+    let da = sd_round_box(in.local - vec2<f32>(0.0, AMBIENT_DROP + LIFT_DROP * lift),
+                          in.hsize, radius);
+    let s = CONTACT_W * falloff(dc, CONTACT_BLUR)
+      + AMBIENT_W * falloff(da, AMBIENT_BLUR + LIFT_BLUR * lift);
+    shadow = clamp(sh_alpha * (1.0 + LIFT_SHADOW * lift), 0.0, 1.0) * s * (1.0 - inside);
   }
 
   // --- frosted fill ---------------------------------------------------------
@@ -183,7 +194,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let facing = dot(n, LIGHT);
     let key = pow(clamp(facing, 0.0, 1.0), 1.5);
     let bounce = BOUNCE * pow(clamp(-facing, 0.0, 1.0), 2.0);
-    let a = hl_alpha * band * (key + bounce);
+    let a = clamp(hl_alpha * (1.0 + LIFT_RIM * lift), 0.0, 1.0) * band * (key + bounce);
     // Composite the highlight over the fill (both are "source" here).
     let out_a = a + alpha * (1.0 - a);
     if (out_a > 0.0001) {

@@ -48,6 +48,7 @@ fn help_shot_at(
             bordered: false,
             glass: true,
             scan: -1.0,
+            lift: 0.0,
             overlay: true,
             paint: Vec::new(),
         }]

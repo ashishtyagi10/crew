@@ -29,6 +29,9 @@ pub struct GlassCard {
     pub scan: f32,
     /// Inner edge-glow strength; 0 (paper) must leave the fill untouched.
     pub edge_glow: f32,
+    /// Elevation, `0.0..=1.0`: 0 rests on the page, 1 is the focused lift —
+    /// a deeper, wider ambient shadow and a brighter rim.
+    pub lift: f32,
 }
 
 /// 20 × f32 per instance: rect(4), params(4), tint(4), highlight(4), extra(4).
@@ -70,7 +73,7 @@ fn pack(c: &GlassCard) -> [f32; INSTANCE_FLOATS] {
         c.shadow_alpha,
         c.scan,
         c.edge_glow,
-        0.0,
+        c.lift,
         0.0,
     ]
 }

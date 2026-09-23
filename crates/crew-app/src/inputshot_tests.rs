@@ -61,11 +61,8 @@ fn input_shot_at(
             w: bw,
             h: bh,
             focused: b.focused,
-            bordered: false,
             glass: true,
-            scan: -1.0,
-            overlay: false,
-            paint: Vec::new(),
+            ..Default::default()
         }]
     })?;
     crate::shotdraw_tests::write_png(name, &px, w, h);

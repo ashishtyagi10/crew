@@ -62,6 +62,7 @@ fn card(alpha_top: f32, alpha_bottom: f32, highlight_alpha: f32, shadow_alpha: f
         // the glow gets its own test below.
         scan: -1.0,
         edge_glow: 0.0,
+        lift: 0.0,
     }
 }
 
@@ -222,6 +223,7 @@ fn glass_edge_glow_headless() {
 
     let flat = |glow: f32| GlassCard {
         edge_glow: glow,
+        lift: 0.0,
         ..card(0.30, 0.30, 0.0, 0.0)
     };
     let none = render(&device, &queue, &[flat(0.0)]);
@@ -369,5 +371,40 @@ fn glass_headless() {
     assert!(
         corner < edge_mid,
         "D1: corners are not rounded (corner {corner:.1} vs edge {edge_mid:.1})"
+    );
+}
+
+/// Lift must reach the pixels: a focused (lifted) card throws a deeper shadow
+/// below itself than the same card at rest, and a brighter rim.
+#[test]
+fn glass_lift_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("glass_lift_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let at = |lift: f32| GlassCard {
+        lift,
+        ..card(0.40, 0.15, 0.40, 0.30)
+    };
+    let rest = render(&device, &queue, &[at(0.0)]);
+    let up = render(&device, &queue, &[at(1.0)]);
+    let (under_rest, under_up) = (block_r(&rest, 32, 55, 1), block_r(&up, 32, 55, 1));
+    let (rim_rest, rim_up) = (block_r(&rest, 32, 17, 0), block_r(&up, 32, 17, 0));
+    eprintln!("glass_lift_headless: under {under_rest:.1} -> {under_up:.1}; rim {rim_rest:.1} -> {rim_up:.1}");
+    assert!(
+        under_up < under_rest - 2.0,
+        "lift did not deepen the shadow ({under_rest:.1} -> {under_up:.1})"
+    );
+    assert!(
+        rim_up > rim_rest + 1.0,
+        "lift did not brighten the rim ({rim_rest:.1} -> {rim_up:.1})"
     );
 }

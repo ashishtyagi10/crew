@@ -25,7 +25,9 @@ pub(crate) fn push_pane_scenes(
     sel: Option<&CellSel>,
     min_btn: bool,
     focus_t: f32,
-    dim: f32,
+    // The spotlight's wash on this pane's ink, and how far its card has
+    // lifted (see `spotlight`).
+    (dim, lift): (f32, f32),
     cw: f32,
     ch: f32,
     git: &crate::gitfleet::GitFleet,
@@ -202,10 +204,7 @@ pub(crate) fn push_pane_scenes(
         w: (r.w - 2.0 * cw).max(0.0),
         h: (r.h - 2.0 * ch).max(0.0),
         focused: foc,
-        bordered: false,
-        glass: false,
-        scan: -1.0,
-        overlay: false,
+        ..Default::default()
     });
     // Border card: the rounded frame + legend + status, drawn over the rect.
     let title = p.title_text();
@@ -248,12 +247,12 @@ pub(crate) fn push_pane_scenes(
         w: r.w,
         h: r.h,
         focused: foc,
-        bordered: false,
         // The card scene spans the whole pane rect, so the frosted sheet goes
         // here rather than on the cell-inset content above.
         glass: true,
         scan,
-        overlay: false,
+        lift,
+        ..Default::default()
     });
 }
 
