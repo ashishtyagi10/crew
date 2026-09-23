@@ -15,7 +15,7 @@ use crew_render::{CellView, Paint};
 use crate::boxdraw::section_header;
 use crate::palette::accent;
 use crate::plot::pie::{self, Slice};
-use crate::plot::{bars, heatmap, Canvas};
+use crate::plot::{heatmap, Canvas};
 use crate::usageledger::{Buckets, DAYS, HOURS};
 
 pub struct UsagePane {
@@ -172,7 +172,9 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
             );
             put(&mut out, &peak, cols - 14, l.cost_top, t.text_muted);
         }
-        crate::usageaxis::week_ends(&mut out, axis, cols, RIGHT_PAD);
+        let w = cols.saturating_sub(2 + RIGHT_PAD);
+        let top = l.cost_top + 1;
+        crate::costbars::labels(&mut out, &b.daily_cost, 1, w, top, l.cost_rows, axis, cols);
     }
     out
 }
@@ -244,19 +246,10 @@ pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
 
     // Cost per day, over whatever rows the division left it.
     if l.cost_rows > 0 {
-        let peak = b.daily_cost.iter().copied().max().unwrap_or(0).max(1);
-        let samples: Vec<f32> = b
-            .daily_cost
-            .iter()
-            .map(|&v| (v as f32 / peak as f32).clamp(0.0, 1.0))
-            .collect();
-        let w_cells = cols.saturating_sub(2 + RIGHT_PAD);
-        let mut c = Canvas::new(w_cells, l.cost_rows, aspect);
-        let (w, h) = c.size();
-        bars::draw(&mut c, (0.0, 0.0, w, h), &samples, t.ansi[11]);
+        let w = cols.saturating_sub(2 + RIGHT_PAD);
+        let bars = crate::costbars::paint(&b.daily_cost, w, l.cost_rows, aspect);
         out.extend(
-            c.paint()
-                .into_iter()
+            bars.into_iter()
                 .map(|p| p.shifted(1.0, f32::from(l.cost_top + 1))),
         );
     }

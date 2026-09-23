@@ -171,6 +171,7 @@ mod composershot_tests;
 pub mod config;
 mod configdefault;
 mod confirm;
+mod costbars;
 mod crashlog;
 #[cfg(test)]
 #[path = "crispshot_tests.rs"]

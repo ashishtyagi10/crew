@@ -83,7 +83,6 @@ impl DashPane {
     }
 
     pub fn paint(&self, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
-        let t = crew_theme::theme();
         let mut out = Vec::new();
         if cols < MIN_COLS || rows < SYS_TOP + SYS_ROWS {
             return out;
@@ -152,26 +151,10 @@ impl DashPane {
 
         // What each day cost, over whatever rows the division left it.
         if l.cost_rows > 0 {
-            let peak = self
-                .buckets
-                .daily_cost
-                .iter()
-                .copied()
-                .max()
-                .unwrap_or(0)
-                .max(1);
-            let samples: Vec<f32> = self
-                .buckets
-                .daily_cost
-                .iter()
-                .map(|&v| (v as f32 / peak as f32).clamp(0.0, 1.0))
-                .collect();
-            let mut c = Canvas::new(cols.saturating_sub(2), l.cost_rows, aspect);
-            let (w, h) = c.size();
-            crate::plot::bars::draw(&mut c, (0.0, 0.0, w, h), &samples, t.ansi[11]);
+            let w = cols.saturating_sub(2);
+            let bars = crate::costbars::paint(&self.buckets.daily_cost, w, l.cost_rows, aspect);
             out.extend(
-                c.paint()
-                    .into_iter()
+                bars.into_iter()
                     .map(|p| p.shifted(1.0, f32::from(l.cost_top))),
             );
         }
