@@ -5,7 +5,8 @@
 // composited in the fragment shader so the shadow and the sheet cost a single
 // pass.
 
-struct Vp { size: vec2<f32>, pad: vec2<f32> };
+// `tilt`: where the pointer sits in the window, -1..=1 per axis (0 at rest).
+struct Vp { size: vec2<f32>, tilt: vec2<f32> };
 @group(0) @binding(0) var<uniform> vp: Vp;
 
 // How far outside the card the quad is expanded to give the shadow room. Must
@@ -21,6 +22,9 @@ const HL_W: f32 = 3.5;
 // the opposite edge.
 const LIGHT: vec2<f32> = vec2<f32>(-0.45, -0.89);
 const BOUNCE: f32 = 0.35;
+// How far the pointer leans that light: at a window corner the light swings
+// well round toward it, but never all the way — the look stays the look.
+const TILT: f32 = 0.6;
 // Two shadows, as a real object casts: a tight, dark CONTACT shadow that says
 // where the card touches the page, and a wide, faint AMBIENT one that says how
 // far it has lifted. One wide shadow alone reads as a smudge around the card.
@@ -223,7 +227,8 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
       sd_round_box(in.local + vec2<f32>(0.0, e), in.hsize, radius)
         - sd_round_box(in.local - vec2<f32>(0.0, e), in.hsize, radius)) + vec2<f32>(1e-5, 1e-5));
     // A well's lit wall is the one facing AWAY from the light: its lower lip.
-    let facing = dot(n, LIGHT) * select(1.0, -1.0, well > 0.0);
+    let light = normalize(LIGHT + TILT * vp.tilt);
+    let facing = dot(n, light) * select(1.0, -1.0, well > 0.0);
     let key = pow(clamp(facing, 0.0, 1.0), 1.5);
     let bounce = BOUNCE * pow(clamp(-facing, 0.0, 1.0), 2.0);
     var a = clamp(hl_alpha * (1.0 + LIFT_RIM * lift), 0.0, 1.0) * band * (key + bounce);

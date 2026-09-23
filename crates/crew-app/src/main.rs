@@ -426,6 +426,7 @@ mod pathmenu;
 mod pickshot_tests;
 mod plot;
 mod pointer;
+mod pointerlight;
 mod poll;
 mod popupchrome;
 mod popupclick;

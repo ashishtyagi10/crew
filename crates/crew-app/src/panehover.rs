@@ -111,7 +111,11 @@ impl CrewApp {
     pub(crate) fn hover_moved(&mut self) {
         let btn = publish(self.hover_btn());
         let nav = publish_nav(self.pane_at_sidebar());
-        if btn || nav {
+        // The rims' light follows the pointer: a whole step of travel is a
+        // frame owed to it (the glide itself is stepped in `build_frame`).
+        let size = self.frame_geometry().map_or((0.0, 0.0), |g| (g.2, g.3));
+        let light = self.pointer_light.aim(Some(self.cursor), size);
+        if btn || nav || light {
             self.redraw();
         }
     }

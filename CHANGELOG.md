@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.99
+
+**The glass answers the pointer.** A light that never moves is a painted
+highlight. The rims' light now leans toward the pointer — at the right edge
+of the window it swings round toward the right, near the bottom it lowers —
+the desktop version of glass answering the hand that tilts it. It only ever
+leans the fixed upper-left light, never flips it, and it glides (slower than
+a pane moves, so it reads as light rather than a cursor effect). A pointer
+jittering on one card asks for no frames; one that leaves the window lets
+the light drift home.
+
 ## 0.22.98
 
 **Highlights are capsules.** A selected row, a key hint, a block cursor, a

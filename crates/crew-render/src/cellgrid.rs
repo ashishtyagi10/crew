@@ -77,6 +77,8 @@ pub struct CellGrid {
     overlay_glass_layer: GlassLayer,
     /// How strong the glass is; `Off` builds no cards at all.
     glass_level: crew_theme::GlassLevel,
+    /// The rims' light tilt (see `Renderer::set_glass_light`).
+    glass_light: (f32, f32),
     pub(crate) cell_w: f32,
     pub(crate) cell_h: f32,
     font_size: f32,
@@ -155,6 +157,7 @@ impl CellGrid {
             glass_layer,
             overlay_glass_layer,
             glass_level: crew_theme::GlassLevel::Medium,
+            glass_light: (0.0, 0.0),
             cell_w,
             cell_h,
             font_size,
@@ -269,6 +272,10 @@ impl CellGrid {
         self.glass_level = level;
     }
 
+    pub fn set_glass_light(&mut self, tilt: (f32, f32)) {
+        self.glass_light = tilt;
+    }
+
     /// Sorted, de-duplicated names of all installed monospace font families
     /// (verified fixed-pitch — `&mut` because verification loads the faces).
     ///
@@ -354,8 +361,9 @@ impl CellGrid {
         self.quad_layer.set_viewport(queue, w, h);
         self.overlay_quad_layer.set_viewport(queue, w, h);
         self.round_border_layer.set_viewport(queue, w, h);
-        self.glass_layer.set_viewport(queue, w, h);
-        self.overlay_glass_layer.set_viewport(queue, w, h);
+        self.glass_layer.set_view(queue, w, h, self.glass_light);
+        self.overlay_glass_layer
+            .set_view(queue, w, h, self.glass_light);
         self.viewport.update(queue, Resolution { width, height });
 
         prepare_renderer(

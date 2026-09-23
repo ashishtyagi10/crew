@@ -136,6 +136,12 @@ impl Renderer {
         self.cell_grid.set_glass(level);
     }
 
+    /// Lean the glass rims' light toward a tilt in `-1..=1` per axis (the
+    /// pointer's place in the window); `(0, 0)` is the resting light.
+    pub fn set_glass_light(&mut self, tilt: (f32, f32)) {
+        self.cell_grid.set_glass_light(tilt);
+    }
+
     /// Set the window's opacity (1.0 = fully opaque). Below 1.0 the desktop
     /// shows through everything crew draws.
     pub fn set_window_opacity(&mut self, opacity: f32) {
