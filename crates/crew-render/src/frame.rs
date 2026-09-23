@@ -129,9 +129,9 @@ pub(crate) fn render(
     }
 
     // Where the window stops being see-through, and only while it IS sheer:
-    // the chrome the app holds solid (the input bar and every overlay — see
-    // `solidcard`). The panes and the nav are NOT on the list: they are what
-    // the opacity is for, frosted by the window server behind them. At full
+    // the overlays the app holds solid (see `solidcard`). The panes, the nav
+    // and the input bar are NOT on the list: they are what the opacity is
+    // for, frosted by the window server behind them. At full
     // opacity there is nothing to hand back and the pass never runs. The CRT
     // chain carries `scene.a` through its composite, so this reads the same
     // through the tube.

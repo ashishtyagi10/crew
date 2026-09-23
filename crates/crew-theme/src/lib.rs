@@ -97,6 +97,7 @@ pub mod contrast;
 mod crtstyle;
 pub mod deco;
 mod glass;
+pub mod glassborder;
 pub mod gradients;
 pub mod highlight;
 mod modernstyle;
@@ -370,7 +371,14 @@ pub fn current_id() -> ThemeId {
 
 /// The active theme. Read every frame on the winit thread — lock-free.
 pub fn theme() -> &'static Theme {
-    current_id().theme()
+    let id = current_id();
+    // A sheer window serves the palette with its frames lifted (see
+    // `glassborder`); an opaque one, the palette as written.
+    if glassborder::sheer() {
+        glassborder::lifted(id)
+    } else {
+        id.theme()
+    }
 }
 
 /// Rotation mode: when set, the active theme changes every [`ROTATE_MS`]

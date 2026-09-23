@@ -17,14 +17,14 @@
 //! The knob is the one Settings has always had (WINDOW → Opacity %); this is
 //! the same value, reachable from the input bar and applied live.
 //!
-//! **What goes sheer is the glass: the panes and the nav.** The window's alpha
-//! rides the page colour, so text and cell backgrounds blend on top of it and
-//! stay solid, while the page under every pane and the nav lets the desktop
+//! **What goes sheer is the glass: the panes, the nav and the input bar.** The
+//! window's alpha rides the page colour, so text and cell backgrounds blend on
+//! top of it and stay solid, while the page under them lets the desktop
 //! through — FROSTED, never raw: the window server blurs what is behind (see
-//! [`crate::titlebar::apply_window`]). The input bar and overlays are
-//! solidified outright (crew-render's `solidcard`, fed by
-//! [`crate::chrome::solid_chrome`]), and the OS title bar is painted solid
-//! ([`crate::titlebar`]) — it is never see-through.
+//! [`crate::titlebar::apply_window`]). Every frame is brightened while sheer
+//! (crew-theme's `glassborder`) so cards stay distinct over the glass.
+//! Overlays are solidified outright (crew-render's `solidcard`), and the OS
+//! title bar is painted solid ([`crate::titlebar`]) — never see-through.
 use crate::app::CrewApp;
 use crate::config::MIN_WINDOW_OPACITY;
 
@@ -96,7 +96,7 @@ impl CrewApp {
         self.set_status(match o >= 1.0 {
             true => "opacity 100% — solid".to_string(),
             false => format!(
-                "opacity {} — panes and nav are frosted glass; the title bar and input bar stay solid",
+                "opacity {} — frosted glass with brighter frames; the title bar stays solid",
                 percent(o)
             ),
         });

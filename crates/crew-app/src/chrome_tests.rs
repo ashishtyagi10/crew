@@ -122,33 +122,3 @@ fn point_in_bounds() {
     assert!(point_in(r, 5.0, 5.0));
     assert!(!point_in(r, 100.0, 5.0));
 }
-
-/// Crew's furniture stays solid however sheer the window is — and costs
-/// nothing at all when the window is opaque.
-mod solid_chrome {
-    use super::*;
-
-    fn bar() -> Rect {
-        Rect {
-            x: 8.0,
-            y: 700.0,
-            w: 1000.0,
-            h: 48.0,
-        }
-    }
-
-    #[test]
-    fn an_opaque_window_asks_for_nothing() {
-        assert!(super::super::solid_chrome(1.0, bar()).is_empty());
-    }
-
-    /// The nav is glass like the panes: only the bar you type into is held
-    /// solid.
-    #[test]
-    fn a_sheer_window_holds_only_the_bar() {
-        assert_eq!(
-            super::super::solid_chrome(0.9, bar()),
-            vec![[8.0, 700.0, 1000.0, 48.0]]
-        );
-    }
-}

@@ -1088,15 +1088,16 @@ longer aim at.
   competing with the work on it, and the ladder is where a first `/opacity`
   lands. The aquarium look is still one typed number away.
 
-  **What goes sheer is the glass: the panes and the left nav**, at the one
-  opacity you dialled. The window's alpha rides the page colour and text,
+  **What goes sheer is the glass: the panes, the left nav and the input
+  bar**, at the one opacity you dialled. The window's alpha rides the page colour and text,
   cell backgrounds and frames blend on top of it and stay solid — and what
   shows through is **frosted, never raw**: macOS blurs the desktop behind the
   window, so a sheer crew reads as frosted glass rather than a hole. The
   **title bar is never see-through** (it is painted solid in the page
-  colour while the window is sheer), and the input bar and every overlay are
-  solidified outright — the bar you type into and the popup you are choosing
-  from never have a wallpaper behind their text. Alpha is all that changes,
+  colour while the window is sheer), every **frame is brightened** — pushed
+  to a text-grade contrast against the page, the focused one further — so
+  cards stay distinct over the glass, and overlays are solidified outright:
+  the popup you are choosing from never has a wallpaper behind its text. Alpha is all that changes,
   so the gradient wash, the dot lattice and the paper grain are exactly what
   they would be in an opaque window, just tinted glass now.
 
