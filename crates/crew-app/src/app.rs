@@ -297,6 +297,8 @@ pub struct CrewApp {
     pub(crate) wash_focus: crate::washfocus::WashFocus,
     /// The glass rims' light, leaning toward the pointer (`pointerlight`).
     pub(crate) pointer_light: crate::pointerlight::PointerLight,
+    /// The card under the pointer, risen a little (`hoverlift`).
+    pub(crate) hover_lift: crate::hoverlift::HoverLift,
     /// Crew's own furniture, in physical px: the rects a sheer window keeps
     /// solid whatever has focus (the input bar, the left nav). Rebuilt each
     /// frame from the layout and handed to the renderer — transparency is for

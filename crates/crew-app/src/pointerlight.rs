@@ -84,6 +84,14 @@ impl PointerLight {
     }
 }
 
+impl crate::app::CrewApp {
+    /// Whether anything that follows the pointer — the rims' light, the
+    /// hovered card's lift — is still gliding (`wants_animation_frame`).
+    pub(crate) fn pointer_gliding(&self) -> bool {
+        self.pointer_light.moving() || self.hover_lift.moving()
+    }
+}
+
 #[cfg(test)]
 #[path = "pointerlight_tests.rs"]
 mod tests;
