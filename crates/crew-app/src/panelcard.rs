@@ -61,6 +61,7 @@ pub fn push_ghost(
         // rather than shedding its glass first.
         glass: true,
         scan: -1.0,
+        lift: 0.0,
         overlay: false,
         paint: Vec::new(),
     });
@@ -110,6 +111,7 @@ pub fn push_card_art(
         bordered: false,
         glass: false,
         scan: -1.0,
+        lift: 0.0,
         overlay: false,
     });
     scenes.push(PaneScene {
@@ -132,6 +134,7 @@ pub fn push_card_art(
         // scenes and stay opaque by design — the glass pass skips them.
         glass: true,
         scan: -1.0,
+        lift: 0.0,
         overlay: false,
         paint: Vec::new(),
     });

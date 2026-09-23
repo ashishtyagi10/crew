@@ -201,6 +201,7 @@ impl CrewApp {
             bordered: false,
             glass: true,
             scan: -1.0,
+            lift: 0.0,
             overlay: false,
             paint: Vec::new(),
         });
@@ -259,6 +260,7 @@ impl CrewApp {
                 bordered: false,
                 glass: false,
                 scan: -1.0,
+                lift: 0.0,
                 overlay: true,
                 paint: Vec::new(),
             });
@@ -294,6 +296,7 @@ impl CrewApp {
                 bordered: false,
                 glass: false,
                 scan: -1.0,
+                lift: 0.0,
                 overlay: true,
                 paint: Vec::new(),
             });

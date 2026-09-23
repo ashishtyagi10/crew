@@ -57,6 +57,7 @@ fn card_scene(w: u32, h: u32, cw: f32, ch: f32, b: &Bar) -> Vec<PaneScene> {
         bordered: false,
         glass: true,
         scan: -1.0,
+        lift: 0.0,
         overlay: false,
         // The thumb and the progress bar are Paint, not cells — a card shot
         // without its paint layer is missing two of the readings it exists to

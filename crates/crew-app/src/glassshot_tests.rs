@@ -338,7 +338,7 @@ fn glass_shot_every_theme_family() {
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn modern_shot_every_palette() {
     let _g = crate::app::theme_test_guard();
-    use crew_theme::ThemeId as T;
+    use crew_theme::{GlassLevel as G, ThemeId as T};
     let out_dir = std::env::var("CREW_SHOT_DIR").unwrap_or_else(|_| "target/screenshots".into());
     std::fs::create_dir_all(&out_dir).unwrap();
     // Every palette, once — this loop used to list `Nebula` four times and
@@ -360,8 +360,9 @@ fn modern_shot_every_palette() {
         // 350 and start at 370): the old 8px sample started 5px off the left
         // pane's right border, which is inside that border's bloom halo once
         // the card is drawn at all — and until this harness stopped
-        // photographing half-assembled cards, it never was.
-        let gap = mean_lum(&px, 358, 60, 4, 180);
+        // photographing half-assembled cards, it never was. Measured with the
+        // glass OFF: the cards' shadows fall into that gap by design.
+        let gap = mean_lum(&render_full(G::Off, 1.0, true).unwrap(), 358, 60, 4, 180);
         let want = crew_theme::theme().page_bg;
         let page =
             0.2126 * f64::from(want.0) + 0.7152 * f64::from(want.1) + 0.0722 * f64::from(want.2);
@@ -445,9 +446,9 @@ fn glass_shot_crt_is_flat() {
 }
 
 /// Paper themes must not inherit the CRT edge-glow: `edge_glow = 0` has to be
-/// a true no-op, so a paper-dark sheet stays FLAT along x — the same delta at
-/// the border strip as at the card centre (the vertical ramp cancels because
-/// both blocks share the y-range; the frost grain is deterministic per pixel).
+/// a true no-op, so a paper-dark sheet stays FLAT along x — the same delta
+/// 14..22px inside the frame (within the glow's reach, past the rim) as at the
+/// card centre (the vertical ramp cancels because both blocks share the y-range).
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn glass_shot_paper_has_no_edge_glow() {
@@ -459,7 +460,7 @@ fn glass_shot_paper_has_no_edge_glow() {
     };
     let off = render(crew_theme::GlassLevel::Off, 1.0).expect("adapter was available above");
     let centre_delta = mean_lum(&on, 60, 120, 200, 60) - mean_lum(&off, 60, 120, 200, 60);
-    let edge_delta = mean_lum(&on, 34, 120, 8, 60) - mean_lum(&off, 34, 120, 8, 60);
+    let edge_delta = mean_lum(&on, 44, 120, 8, 60) - mean_lum(&off, 44, 120, 8, 60);
     println!("paper-dark: edge Δ{edge_delta:.1} vs centre Δ{centre_delta:.1}");
     assert!(
         (edge_delta - centre_delta).abs() < 1.5,

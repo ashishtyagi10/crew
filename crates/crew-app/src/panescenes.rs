@@ -33,6 +33,7 @@ pub fn build_scenes(
         let foc = focused == Some(i);
         // Slice-rebased (zoom, harnesses): pane 0 is the spotlit one.
         let dim = crate::spotlight::dim_for(i, 0, 0, focus_t);
+        let lift = crate::spotlight::lift_for(i, 0, 0, focus_t);
         // This slice is index-rebased (zoom renders a 1-pane slice), so the
         // selection — keyed by absolute index — is matched to the focused pane.
         // The minimize button rides the zoomed border too: hit-testing shares
@@ -49,7 +50,7 @@ pub fn build_scenes(
             foc.then_some(sel).flatten(),
             true,
             focus_t,
-            dim,
+            (dim, lift),
             cw,
             ch,
             git,
@@ -86,6 +87,7 @@ pub fn full_scenes(
         let p = &panes[idx];
         let foc = focused == Some(idx);
         let dim = crate::spotlight::dim_for(idx, spot.0, spot.1, focus_t);
+        let lift = crate::spotlight::lift_for(idx, spot.0, spot.1, focus_t);
         push_pane_scenes(
             &mut scenes,
             p,
@@ -97,7 +99,7 @@ pub fn full_scenes(
             sel.filter(|s| s.pane == idx),
             true,
             focus_t,
-            dim,
+            (dim, lift),
             cw,
             ch,
             git,

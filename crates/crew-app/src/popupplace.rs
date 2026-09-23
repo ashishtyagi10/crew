@@ -79,6 +79,7 @@ pub(crate) fn scene(pane: &ChatPane, r: Rect, cw: f32, ch: f32, p: Popup, now: u
         bordered: false,
         glass: false,
         scan: -1.0,
+        lift: 0.0,
         overlay: true,
         paint: Vec::new(),
     }

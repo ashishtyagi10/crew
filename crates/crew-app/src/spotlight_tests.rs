@@ -48,3 +48,22 @@ fn wash_moves_ink_toward_the_page_but_leaves_backgrounds() {
     wash(&mut cells, 0.0);
     assert_eq!(cells[0].fg, unwashed);
 }
+
+/// The spotlit card rises on the focus clock, the one it left settles on the
+/// same clock, and the rest never leave the page — so at every instant of a
+/// focus move exactly one full lift is shared between two cards.
+#[test]
+fn lift_hands_over_between_the_two_cards_on_one_clock() {
+    for t in [0.0, 0.3, 0.7, 1.0] {
+        let (spot, prev, other) = (
+            lift_for(2, 2, 0, t),
+            lift_for(0, 2, 0, t),
+            lift_for(1, 2, 0, t),
+        );
+        assert_eq!(spot, t);
+        assert_eq!(spot + prev, 1.0, "one lift shared at t={t}");
+        assert_eq!(other, 0.0, "a bystander rests at t={t}");
+    }
+    // Focus never moved (spot == prev): the card is simply up.
+    assert_eq!(lift_for(1, 1, 1, 1.0), 1.0);
+}
