@@ -2,16 +2,16 @@
 //! in the scene pass.
 //!
 //! A sheer window is cleared at the user's opacity and everything crew draws
-//! blends over it, so the desktop comes through EVERYTHING at once — the card
-//! being read and crew's own furniture along with it. This pass hands the
-//! opacity back where it is not wanted: it writes `alpha = 1` inside each rect
-//! the frame names and touches nothing else, with `ColorWrites::ALPHA` and no
-//! blend state.
+//! blends over it, so the desktop comes through EVERYTHING at once — the
+//! panes and the nav, which is the point, and crew's input bar and overlays
+//! along with them, which is not. This pass hands the opacity back where it is
+//! not wanted: it writes `alpha = 1` inside each rect the frame names and
+//! touches nothing else, with `ColorWrites::ALPHA` and no blend state.
 //!
-//! The rects are the focused card (see [`crate::scene::focused_card_rect`])
-//! and crew's chrome — the input bar and the left nav, handed over by the app,
-//! which is where the layout lives. Transparency is for the canvas and the
-//! cards you are not reading; the bar you type into is not scenery.
+//! The rects are handed over by the app, which is where the layout lives: the
+//! input bar and every overlay on screen. The panes and the nav are the glass
+//! (frosted by the window server behind them); the bar you type into and the
+//! popup you are choosing from are not scenery.
 //!
 //! Alpha-only is the whole point. A page-coloured sheet under the cells would
 //! have worked on a flat theme and flattened the modern family's backdrop on
@@ -26,8 +26,8 @@ fn f32s_as_bytes(data: &[f32]) -> &[u8] {
     unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) }
 }
 
-/// How many rects one frame may solidify. The frame asks for the focused
-/// card, the input bar, the nav, and every overlay on screen — a full toast
+/// How many rects one frame may solidify. The frame asks for the input bar
+/// and every overlay on screen — a full toast
 /// stack plus an open palette is nine on a busy frame; the slack above that is
 /// for a look that wants a couple more without a shader change. Keep in step
 /// with the array length in `solidcard.wgsl`.

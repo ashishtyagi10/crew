@@ -205,15 +205,12 @@ impl CrewApp {
             paint: Vec::new(),
         });
 
-        // Crew's furniture, for the solidity pass: the bar you type into and
-        // the nav beside it stay opaque however sheer the window is (the
-        // renderer ignores this list at full opacity). Collected here because
-        // this is where the layout is known.
-        let nav = self
-            .config
-            .show_nav
-            .then(|| chrome::sidebar_rect(sh, self.nav_px(scale), gap()));
-        self.solid_chrome = chrome::solid_chrome(self.config.window_opacity, ib, nav);
+        // Crew's furniture, for the solidity pass: the bar you type into stays
+        // opaque however sheer the window is (the renderer ignores this list
+        // at full opacity). The nav is NOT furniture here — it wears the same
+        // frosted glass as the panes. Collected here because this is where the
+        // layout is known.
+        self.solid_chrome = chrome::solid_chrome(self.config.window_opacity, ib);
 
         // The page's light follows the focused card. Stepped HERE, after the
         // panes have been glided, so it chases the rect a pane is drawn at

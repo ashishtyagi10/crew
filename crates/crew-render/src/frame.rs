@@ -129,23 +129,18 @@ pub(crate) fn render(
     }
 
     // Where the window stops being see-through, and only while it IS sheer:
-    // the card being read, plus the chrome the app holds solid (the input bar
-    // and the nav — see `solidcard`). At full opacity there is nothing to hand
-    // back and the pass never runs. The CRT chain carries `scene.a` through
-    // its composite, so this reads the same through the tube.
-    // The focused card goes FIRST: `set_rects` clamps at `MAX_SOLID_RECTS`,
-    // and if the list ever outgrows it the surface being read is the last one
-    // that should be dropped.
-    let mut solid: Vec<[f32; 4]> = Vec::new();
-    if window_opacity < 1.0 {
-        solid.extend(crate::scene::focused_card_rect(
-            panes,
-            cell_grid.cell_w,
-            cell_grid.cell_h,
-        ));
-        solid.extend_from_slice(solid_chrome);
-    }
-    solid_card.set_rects(gpu.queue(), &solid, (w, h));
+    // the chrome the app holds solid (the input bar and every overlay — see
+    // `solidcard`). The panes and the nav are NOT on the list: they are what
+    // the opacity is for, frosted by the window server behind them. At full
+    // opacity there is nothing to hand back and the pass never runs. The CRT
+    // chain carries `scene.a` through its composite, so this reads the same
+    // through the tube.
+    let solid: &[[f32; 4]] = if window_opacity < 1.0 {
+        solid_chrome
+    } else {
+        &[]
+    };
+    solid_card.set_rects(gpu.queue(), solid, (w, h));
     let solid_card = (!solid_card.is_empty()).then_some(&*solid_card);
 
     let scene_view = if use_crt { crt.scene_view() } else { &view };

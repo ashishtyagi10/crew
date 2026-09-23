@@ -137,34 +137,17 @@ mod solid_chrome {
         }
     }
 
-    fn nav() -> Rect {
-        Rect {
-            x: 8.0,
-            y: 8.0,
-            w: 210.0,
-            h: 784.0,
-        }
-    }
-
     #[test]
     fn an_opaque_window_asks_for_nothing() {
-        assert!(super::super::solid_chrome(1.0, bar(), Some(nav())).is_empty());
+        assert!(super::super::solid_chrome(1.0, bar()).is_empty());
     }
 
+    /// The nav is glass like the panes: only the bar you type into is held
+    /// solid.
     #[test]
-    fn a_sheer_window_holds_the_bar_and_the_nav() {
+    fn a_sheer_window_holds_only_the_bar() {
         assert_eq!(
-            super::super::solid_chrome(0.9, bar(), Some(nav())),
-            vec![[8.0, 700.0, 1000.0, 48.0], [8.0, 8.0, 210.0, 784.0]]
-        );
-    }
-
-    /// `Cmd+G` hides the nav; a rect for a column that is not drawn would
-    /// solidify a strip of bare page down the left of the window.
-    #[test]
-    fn a_hidden_nav_is_not_solidified() {
-        assert_eq!(
-            super::super::solid_chrome(0.9, bar(), None),
+            super::super::solid_chrome(0.9, bar()),
             vec![[8.0, 700.0, 1000.0, 48.0]]
         );
     }

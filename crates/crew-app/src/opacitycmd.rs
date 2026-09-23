@@ -3,9 +3,9 @@
 //! ```text
 //! /opacity            what it is now, and how to change it
 //! /opacity off        solid again (100%)
-//! /opacity subtle     97% — a breath of desktop, no more
-//! /opacity medium     93%
-//! /opacity sheer      88% — as far as the named steps go
+//! /opacity subtle     94% — a breath of frosted desktop
+//! /opacity medium     90%
+//! /opacity sheer      85% — as far as the named steps go
 //! /opacity 60         any percent down to the floor (35%)
 //! ```
 //!
@@ -17,13 +17,14 @@
 //! The knob is the one Settings has always had (WINDOW → Opacity %); this is
 //! the same value, reachable from the input bar and applied live.
 //!
-//! **What goes sheer is the page, not the work.** The window's alpha rides the
-//! page colour, so cell backgrounds and text blend on top of it and stay
-//! solid, and the card you are reading — with the input bar and the nav, which
-//! are crew's furniture rather than scenery — is solidified outright
-//! (crew-render's `solidcard`, fed by [`crate::chrome::solid_chrome`]). The
-//! desktop shows through the canvas around your panes and through every card
-//! you are NOT reading.
+//! **What goes sheer is the glass: the panes and the nav.** The window's alpha
+//! rides the page colour, so text and cell backgrounds blend on top of it and
+//! stay solid, while the page under every pane and the nav lets the desktop
+//! through — FROSTED, never raw: the window server blurs what is behind (see
+//! [`crate::titlebar::apply_window`]). The input bar and overlays are
+//! solidified outright (crew-render's `solidcard`, fed by
+//! [`crate::chrome::solid_chrome`]), and the OS title bar is painted solid
+//! ([`crate::titlebar`]) — it is never see-through.
 use crate::app::CrewApp;
 use crate::config::MIN_WINDOW_OPACITY;
 
@@ -32,9 +33,9 @@ use crate::config::MIN_WINDOW_OPACITY;
 /// the air; any percent still works.
 pub(crate) const LADDER: &[(&str, f32, &str)] = &[
     ("off", 1.0, "solid — no desktop at all"),
-    ("subtle", 0.97, "97% — a breath of desktop, no more"),
-    ("medium", 0.93, "93% — the default when you ask for glass"),
-    ("sheer", 0.88, "88% — as far as the named steps go"),
+    ("subtle", 0.94, "94% — a breath of frosted desktop"),
+    ("medium", 0.90, "90% — the default when you ask for glass"),
+    ("sheer", 0.85, "85% — as far as the named steps go"),
 ];
 
 /// Parse an opacity argument into a window alpha.
@@ -55,7 +56,7 @@ pub(crate) fn parse(arg: &str) -> Option<f32> {
     // `on` is the friendly alias for "some glass, you pick how much" — the
     // same word `/glass on` takes, and it means the ladder's middle.
     if arg == "on" {
-        return Some(0.93);
+        return Some(0.90);
     }
     let n: f32 = arg.trim_end_matches('%').parse().ok()?;
     if !n.is_finite() {
@@ -95,7 +96,7 @@ impl CrewApp {
         self.set_status(match o >= 1.0 {
             true => "opacity 100% — solid".to_string(),
             false => format!(
-                "opacity {} — the card you are reading, the input bar and the nav stay solid",
+                "opacity {} — panes and nav are frosted glass; the title bar and input bar stay solid",
                 percent(o)
             ),
         });

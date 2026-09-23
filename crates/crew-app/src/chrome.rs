@@ -46,24 +46,20 @@ pub fn sidebar_rect(sh: f32, nav_px: f32, gap: f32) -> Rect {
     }
 }
 
-/// The rects a sheer window keeps SOLID whatever has focus: crew's own
-/// furniture — the input bar and, when it is shown, the left nav.
+/// The rects a sheer window keeps SOLID whatever has focus: the input bar.
 ///
-/// Transparency is for the canvas and for the cards you are not reading. The
-/// bar you type into is not scenery: a status line, a cwd and a command draft
-/// read over a wallpaper are worse in every window than they are in an opaque
-/// one, and the nav's cards are the same reading job. At full opacity the list
-/// is empty — there is nothing to hand back — which is also what keeps an
-/// opaque window's frame byte-identical to the one before this existed.
-pub fn solid_chrome(opacity: f32, input_bar: Rect, nav: Option<Rect>) -> Vec<[f32; 4]> {
+/// Transparency is for the panes and the nav — the glass, frosted by the
+/// window server behind them, at the one opacity the user dialled. The bar you
+/// type into is not scenery: a status line, a cwd and a command draft read
+/// over a wallpaper are worse in every window than in an opaque one. At full
+/// opacity the list is empty — there is nothing to hand back — which is also
+/// what keeps an opaque window's frame byte-identical to the one before this
+/// existed.
+pub fn solid_chrome(opacity: f32, input_bar: Rect) -> Vec<[f32; 4]> {
     if opacity >= 1.0 {
         return Vec::new();
     }
-    [Some(input_bar), nav]
-        .into_iter()
-        .flatten()
-        .map(|r| [r.x, r.y, r.w, r.h])
-        .collect()
+    vec![[input_bar.x, input_bar.y, input_bar.w, input_bar.h]]
 }
 
 /// Cell rows the docked UPDATE card occupies while a `/update` runs (2 border

@@ -26,7 +26,7 @@ impl CrewApp {
             r.set_window_opacity(opacity);
         }
         if let Some(w) = &self.window {
-            w.set_transparent(crate::config::wants_window_transparency(opacity));
+            crate::titlebar::apply_window(w, opacity);
         }
     }
 

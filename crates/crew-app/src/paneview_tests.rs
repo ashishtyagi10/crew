@@ -31,11 +31,9 @@ fn every_pane_gets_exactly_one_glass_card() {
     }
 }
 
-/// The card scene is what a sheer window solidifies (crew-render's
-/// `focused_card_rect` looks for `glass && focused && !overlay`), so
-/// exactly one card per frame may carry focus — and it must be the FOCUSED
-/// pane's, spanning its whole rect. Focus living only on the cell-inset
-/// content scene would leave the frame see-through around solid content.
+/// Exactly one card per frame may carry focus — and it must be the FOCUSED
+/// pane's, spanning its whole rect, so the focused frame and the content
+/// inside it agree on which pane is lit.
 #[test]
 fn exactly_one_card_carries_focus() {
     let scenes = build_scenes(
