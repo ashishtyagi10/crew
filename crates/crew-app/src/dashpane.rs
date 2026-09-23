@@ -168,7 +168,7 @@ impl DashPane {
                 .collect();
             let mut c = Canvas::new(cols.saturating_sub(2), l.cost_rows, aspect);
             let (w, h) = c.size();
-            crate::plot::area::draw(&mut c, (0.0, 0.0, w, h), &samples, t.ansi[11]);
+            crate::plot::bars::draw(&mut c, (0.0, 0.0, w, h), &samples, t.ansi[11]);
             out.extend(
                 c.paint()
                     .into_iter()

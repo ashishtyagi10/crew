@@ -90,7 +90,7 @@ pub(crate) fn layout(rows: u16) -> Layout {
     let slack = slack.saturating_sub((heat_h - 1) * DAYS as u16);
     let split_top = HEAT_TOP + DAYS as u16 * heat_h + 2;
     let cost_top = split_top + SPLIT_ROWS + 1;
-    // …and the cost curve takes what is left of it, between its own floor and
+    // …and the cost bars take what is left of it, between its own floor and
     // cap, never past what the pane has under the legend.
     let cost_rows = match rows.checked_sub(cost_top + 2) {
         Some(room) if room >= COST_MIN => (COST_MIN + slack).min(COST_MAX).min(room),

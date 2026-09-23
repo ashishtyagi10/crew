@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.91
+
+**Cost per day is a bar per day.** `/dash` and `/usage` drew the week's
+daily spend as a smooth curve, which made seven separate totals look like
+one quantity flowing between them: a zero day became the floor of a
+gentle valley and the peak a rounded hill whose top fell between two
+dates. Each day is now its own bar — count them, compare their heights,
+and a day that cost nothing is a faint stub rather than a dip in a line.
+Also: `/keys` now lists the ↑/↓ number stepping Settings learned in
+0.22.89.
+
 ## 0.22.90
 
 **Search results show the match, and mark it.** The chat find pop-up

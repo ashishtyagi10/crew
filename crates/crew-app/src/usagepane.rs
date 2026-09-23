@@ -15,7 +15,7 @@ use crew_render::{CellView, Paint};
 use crate::boxdraw::section_header;
 use crate::palette::accent;
 use crate::plot::pie::{self, Slice};
-use crate::plot::{area, heatmap, Canvas};
+use crate::plot::{bars, heatmap, Canvas};
 use crate::usageledger::{Buckets, DAYS, HOURS};
 
 pub struct UsagePane {
@@ -253,7 +253,7 @@ pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
         let w_cells = cols.saturating_sub(2 + RIGHT_PAD);
         let mut c = Canvas::new(w_cells, l.cost_rows, aspect);
         let (w, h) = c.size();
-        area::draw(&mut c, (0.0, 0.0, w, h), &samples, t.ansi[11]);
+        bars::draw(&mut c, (0.0, 0.0, w, h), &samples, t.ansi[11]);
         out.extend(
             c.paint()
                 .into_iter()
