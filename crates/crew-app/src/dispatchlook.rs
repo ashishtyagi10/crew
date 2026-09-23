@@ -25,6 +25,8 @@ impl CrewApp {
             r.set_glass(level);
             r.set_window_opacity(opacity);
         }
+        // Frames brighten over glass (crew-theme's `glassborder`).
+        crew_theme::glassborder::set_sheer(crate::config::wants_window_transparency(opacity));
         if let Some(w) = &self.window {
             crate::titlebar::apply_window(w, opacity);
         }

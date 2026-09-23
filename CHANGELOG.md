@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.86
+
+**The input bar is glass too, and every frame brightens over it.** In a
+sheer window the input bar now shares the panes' and the nav's frosted
+opacity instead of being held solid, and every frame — unfocused cards,
+the nav's glance cards, the input bar, gauges — is lifted to a text-grade
+contrast against the page while the window is sheer (about 2:1 → 4.7:1
+for unfocused frames; the focused frame goes to at least 7:1), same hue,
+so cards stay distinct with a blurred wallpaper behind them. At 100%
+opacity every palette is exactly as written. Overlays stay solid and the
+title bar is still never see-through.
+
 ## 0.22.85
 
 **Opacity is for the panes now, frosted — and the title bar is never
