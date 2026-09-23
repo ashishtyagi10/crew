@@ -33,6 +33,8 @@ pub struct GlassCard {
     /// 2 a floating card — each a deeper, wider ambient shadow and a brighter
     /// rim. Down to -1: a well, shadowed inside under its top lip.
     pub lift: f32,
+    /// Focus glint position along the rim, `0.0..=1.0`; negative draws none.
+    pub glint: f32,
 }
 
 /// 20 × f32 per instance: rect(4), params(4), tint(4), highlight(4), extra(4).
@@ -75,7 +77,7 @@ fn pack(c: &GlassCard) -> [f32; INSTANCE_FLOATS] {
         c.scan,
         c.edge_glow,
         c.lift,
-        0.0,
+        c.glint,
     ]
 }
 

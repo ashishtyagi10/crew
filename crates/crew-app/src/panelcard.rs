@@ -62,6 +62,7 @@ pub fn push_ghost(
         glass: true,
         scan: -1.0,
         lift: 0.0,
+        glint: -1.0,
         overlay: false,
         paint: Vec::new(),
     });
@@ -112,6 +113,7 @@ pub fn push_card_art(
         glass: false,
         scan: -1.0,
         lift: 0.0,
+        glint: -1.0,
         overlay: false,
     });
     scenes.push(PaneScene {
@@ -135,6 +137,7 @@ pub fn push_card_art(
         glass: true,
         scan: -1.0,
         lift: 0.0,
+        glint: -1.0,
         overlay: false,
         paint: Vec::new(),
     });

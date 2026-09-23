@@ -17,6 +17,7 @@ fn card() -> GlassCard {
         scan: -1.0,
         edge_glow: 0.35,
         lift: 0.75,
+        glint: 0.5,
     }
 }
 
@@ -39,8 +40,8 @@ fn packing_matches_the_shader_layout() {
     );
     assert_eq!(
         &p[16..20],
-        &[-1.0, 0.35, 0.75, 0.0],
-        "scan + edge_glow + lift + pad"
+        &[-1.0, 0.35, 0.75, 0.5],
+        "scan + edge_glow + lift + glint"
     );
 }
 

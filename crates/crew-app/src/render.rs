@@ -203,6 +203,7 @@ impl CrewApp {
             scan: -1.0,
             // Pressed INTO the glass: the one place you type is a well.
             lift: -1.0,
+            glint: -1.0,
             overlay: false,
             paint: Vec::new(),
         });
@@ -263,6 +264,7 @@ impl CrewApp {
                 glass: true,
                 scan: -1.0,
                 lift: crate::popupplace::FLOAT,
+                glint: -1.0,
                 overlay: true,
                 paint: Vec::new(),
             });
@@ -301,6 +303,7 @@ impl CrewApp {
                 glass: false,
                 scan: -1.0,
                 lift: 0.0,
+                glint: -1.0,
                 overlay: true,
                 paint: Vec::new(),
             });

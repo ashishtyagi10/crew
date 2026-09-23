@@ -187,12 +187,13 @@ pub(crate) fn push_pane_scenes(
     let assemble_t = spawn_timeline(p).eased(now, crate::ease::out_cubic);
     // A working pane's sheet carries a scan sweeping down it. Gated on `busy`
     // and nothing else: a busy pane already repaints at ~15fps, so this costs
-    // no extra frames, and an idle crew never draws a scan at all — which is
-    // how an always-moving surface stays compatible with never repainting.
+    // no extra frames, and an idle crew never draws a scan at all. The pane
+    // with the keys carries the focus glint while its ignition runs.
     let scan = match pane_busy(p) && crate::motion::level() != crate::motion::MotionLevel::Off {
         true => crate::anim::tri(now, SCAN_MS),
         false => -1.0,
     };
+    let glint = foc.then(crate::panecardglow::glint).unwrap_or(-1.0);
     let r = p.rect;
     // Content: its own buffer, inset one cell past the top-left border so it
     // starts exactly on the grid (no leading border glyph to push it).
@@ -247,11 +248,11 @@ pub(crate) fn push_pane_scenes(
         w: r.w,
         h: r.h,
         focused: foc,
-        // The card scene spans the whole pane rect, so the frosted sheet goes
-        // here rather than on the cell-inset content above.
+        // The card spans the whole pane rect, so the glass sheet goes here.
         glass: true,
         scan,
         lift,
+        glint,
         ..Default::default()
     });
 }

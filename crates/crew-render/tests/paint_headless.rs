@@ -44,6 +44,7 @@ fn scene(alpha: f32, cols: u16, rows: u16) -> Vec<PaneScene> {
         glass: false,
         scan: -1.0,
         lift: 0.0,
+        glint: -1.0,
         overlay: false,
         paint: vec![Paint::solid(
             0.0,

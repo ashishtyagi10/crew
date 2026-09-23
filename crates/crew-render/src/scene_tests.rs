@@ -72,6 +72,7 @@ fn pane(cells: Vec<CellView>, bordered: bool, overlay: bool) -> PaneScene {
         glass: false,
         scan: -1.0,
         lift: 0.0,
+        glint: -1.0,
         overlay,
         paint: Vec::new(),
     }
@@ -85,6 +86,7 @@ fn card(cells: Vec<CellView>, bordered: bool, overlay: bool) -> PaneScene {
         glass: true,
         scan: -1.0,
         lift: 0.0,
+        glint: -1.0,
         ..pane(cells, bordered, overlay)
     }
 }

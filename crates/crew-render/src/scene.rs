@@ -58,6 +58,11 @@ pub struct PaneScene {
     /// Deepens the glass sheet's shadow and brightens its rim; a card with no
     /// sheet ignores it.
     pub lift: f32,
+    /// Where the focus glint has reached along the card's rim, `0.0..=1.0`
+    /// (left to right), or negative for none: a soft specular that sweeps
+    /// once along the edge as focus lands on a card, as light runs across
+    /// glass when it tilts.
+    pub glint: f32,
     /// Sub-cell vector rectangles drawn between this pane's cell backgrounds
     /// and its text — the layer charts are painted on. Cell units; see
     /// [`Paint`].
@@ -83,6 +88,7 @@ impl Default for PaneScene {
             glass: false,
             scan: -1.0,
             lift: 0.0,
+            glint: -1.0,
             paint: Vec::new(),
             overlay: false,
         }
@@ -295,6 +301,7 @@ pub(crate) fn build_scene(
                 scan: pane.scan,
                 edge_glow: glass_style.edge_glow,
                 lift: pane.lift,
+                glint: pane.glint,
             });
         }
 
