@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.96
+
+**The input bar is pressed into the glass.** Cards rise off the page; the
+one place you type now sinks into it. The input bar is a well: no shadow
+falls outside it, a soft one falls inside, under its top lip, and the light
+catches its lower lip instead of its upper one — the same light, from the
+same upper left, meeting a surface that faces the other way. Raised cards
+and a recessed field read as one lit object rather than a stack of boxes.
+
+Behind it, a new whole-window shot (`frameshot_tests`) runs the app's real
+`build_frame` offscreen — nav, grid, input bar — so the look is judged as a
+composition, not one card at a time.
+
 ## 0.22.95
 
 **Pop-ups, toasts and `/keys` float.** Everything drawn over the panes now

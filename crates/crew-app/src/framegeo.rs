@@ -10,6 +10,10 @@ use crate::render::frame_hit_rects;
 impl CrewApp {
     /// `(cell_w, cell_h, surface_w, surface_h, scale)` when the renderer is ready.
     pub(crate) fn frame_geometry(&self) -> Option<(f32, f32, f32, f32, f32)> {
+        #[cfg(test)]
+        if let Some(g) = self.geo_override {
+            return Some(g);
+        }
         let r = self.renderer.as_ref()?;
         let (cw, ch) = r.cell_size();
         if cw <= 0.0 || ch <= 0.0 {

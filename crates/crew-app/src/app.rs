@@ -27,6 +27,10 @@ pub(crate) fn gap() -> f32 {
 
 #[derive(Default)]
 pub struct CrewApp {
+    /// A frame's geometry without a window or a GPU surface — how the
+    /// whole-window shots (`frameshot_tests`) run `build_frame` offscreen.
+    #[cfg(test)]
+    pub(crate) geo_override: Option<(f32, f32, f32, f32, f32)>,
     pub(crate) window: Option<Arc<Window>>,
     pub(crate) renderer: Option<Renderer>,
     /// Documents opened into windows of their own ([`crate::docwin`]). Not

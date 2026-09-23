@@ -408,3 +408,44 @@ fn glass_lift_headless() {
         "lift did not brighten the rim ({rim_rest:.1} -> {rim_up:.1})"
     );
 }
+
+/// A well (negative lift) casts nothing onto the page and shades its own top
+/// lip instead: dark just inside the top edge, clean page below the card.
+#[test]
+fn glass_well_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("glass_well_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let base = CLEAR * 255.0;
+    let well = render(
+        &device,
+        &queue,
+        &[GlassCard {
+            lift: -1.0,
+            ..card(0.0, 0.0, 0.0, 0.30)
+        }],
+    );
+    let (lip, mid, under) = (
+        block_r(&well, 32, 19, 1),
+        block_r(&well, 32, 36, 1),
+        block_r(&well, 32, 55, 1),
+    );
+    eprintln!("glass_well_headless: lip={lip:.1} mid={mid:.1} under={under:.1}");
+    assert!(
+        lip < mid - 4.0,
+        "no inner shadow under the lip ({lip:.1} vs {mid:.1})"
+    );
+    assert!(
+        (under - base).abs() <= 1.0,
+        "a well cast a shadow outside ({under:.1})"
+    );
+}

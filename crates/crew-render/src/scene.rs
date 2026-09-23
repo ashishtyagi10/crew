@@ -53,7 +53,8 @@ pub struct PaneScene {
     pub scan: f32,
     /// How far this card has lifted off the page, `0.0..=2.0`: the focused
     /// pane rises to 1 and the one it left sinks back, on the focus clock;
-    /// a floating card (pop-up, toast) rides at 2.
+    /// a floating card (pop-up, toast) rides at 2. Negative sinks it into the
+    /// page as a well (the input bar, at -1).
     /// Deepens the glass sheet's shadow and brightens its rim; a card with no
     /// sheet ignores it.
     pub lift: f32,

@@ -329,6 +329,9 @@ mod barpopupshot_tests;
 mod cardchartshot_tests;
 mod cardchrome;
 #[cfg(test)]
+#[path = "frameshot_tests.rs"]
+mod frameshot_tests;
+#[cfg(test)]
 #[path = "lspshot_tests.rs"]
 mod lspshot_tests;
 mod mentionrange;
