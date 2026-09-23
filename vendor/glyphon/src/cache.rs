@@ -232,7 +232,14 @@ impl Cache {
                         entry_point: Some("fs_main"),
                         targets: &[Some(ColorTargetState {
                             format,
-                            blend: Some(BlendState::ALPHA_BLENDING),
+                            // CREW PATCH (4, see the root Cargo.toml): alpha
+                            // composites "over", not ALPHA_BLENDING's sa·sa —
+                            // that thinned the page alpha under every glyph's
+                            // anti-aliased rim on a sheer window.
+                            blend: Some(BlendState {
+                                color: BlendState::ALPHA_BLENDING.color,
+                                alpha: wgpu::BlendComponent::OVER,
+                            }),
                             write_mask: ColorWrites::default(),
                         })],
                         compilation_options: PipelineCompilationOptions::default(),

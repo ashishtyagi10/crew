@@ -138,7 +138,7 @@ impl GlassLayer {
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    blend: Some(crate::blend::STRAIGHT_OVER),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
