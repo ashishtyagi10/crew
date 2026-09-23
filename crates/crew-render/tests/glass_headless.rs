@@ -520,3 +520,28 @@ fn glass_tilt_headless() {
     assert!(r1 > r0 + 5.0, "the tilt did not light the right rim");
     assert!(l1 < l0 - 5.0, "the tilt did not dim the left rim");
 }
+
+/// The bevel: with a shadow to scale it, the edge facing away from the light
+/// (the bottom) is shaded darker than the same card casting none.
+#[test]
+fn glass_bevel_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("glass_bevel_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let flat = render(&device, &queue, &[card(0.4, 0.4, 0.5, 0.0)]);
+    let bevel = render(&device, &queue, &[card(0.4, 0.4, 0.5, 0.4)]);
+    let (b0, b1) = (block_r(&flat, 40, 46, 0), block_r(&bevel, 40, 46, 0));
+    let (m0, m1) = (block_r(&flat, 32, 32, 1), block_r(&bevel, 32, 32, 1));
+    eprintln!("glass_bevel_headless: bottom lip {b0:.1} -> {b1:.1}; centre {m0:.1} -> {m1:.1}");
+    assert!(b1 < b0 - 4.0, "no shade on the far lip");
+    assert!((m1 - m0).abs() < 1.0, "the shade reached the centre");
+}

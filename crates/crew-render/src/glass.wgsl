@@ -56,6 +56,13 @@ const WELL_SHADOW: f32 = 1.4;
 // rim as focus lands, fading in and out over its run so it never pops.
 const GLINT_PX: f32 = 90.0;
 const GLINT_GAIN: f32 = 0.85;
+// The bevel's shade: the edges facing AWAY from the light darken a touch, as
+// the underside of a thick lens does. A white rim on a white sheet is all but
+// invisible, so on a light page this is what says the top is lit and the
+// bottom is not. Scaled by the card's shadow, so it deepens with the lift and
+// never exists where no shadow does (the tubes, a floating card's shadow-only
+// overlay has no rim at all).
+const SHADE_GAIN: f32 = 0.6;
 // Edge antialiasing width.
 const AA: f32 = 1.0;
 // Inner edge-glow reach (px): how far the frame's light bleeds into the fill.
@@ -246,6 +253,15 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
       rgb = (in.hl.xyz * a + rgb * alpha * (1.0 - a)) / out_a;
     }
     alpha = out_a;
+
+    // The shade, black over all of that, on the far side from the light.
+    let shade = clamp(sh_alpha * SHADE_GAIN * (1.0 + LIFT_SHADOW * lift), 0.0, 1.0)
+      * band * pow(clamp(-facing, 0.0, 1.0), 1.5);
+    if (shade > 0.0) {
+      let sa = shade + alpha * (1.0 - shade);
+      rgb = rgb * alpha * (1.0 - shade) / max(sa, 0.0001);
+      alpha = sa;
+    }
   }
 
   // --- fill over shadow -----------------------------------------------------

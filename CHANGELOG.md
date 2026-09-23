@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.1
+
+**The glass has a bevel.** A white rim on a white sheet is all but
+invisible, so on a light page the only thing saying a card was lit from
+above was its shadow. Now the edges facing away from the light shade a
+touch darker, as the underside of a thick lens does: the top of a card
+catches the light, the bottom turns from it. It deepens with the lift, so
+the focused card's bevel is the strongest, and the input bar's well —
+which faces the other way — shades its upper lip instead.
+
 ## 0.23.0
 
 **The card under the pointer rises.** Resting the pointer on a pane lifts
