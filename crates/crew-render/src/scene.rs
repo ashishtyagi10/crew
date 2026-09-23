@@ -63,6 +63,16 @@ pub struct PaneScene {
 
 const BORDER_RADIUS: f32 = 10.0;
 
+/// Where a frame rule's stroke centre falls inside a cell `extent` px across —
+/// the same whole-pixel placement `boxglyph` draws `─` and `│` at, so the
+/// glass sheet's edge lands under the line rather than beside it. `cell_h`
+/// sizes the stroke, as it does for the glyphs.
+fn stroke_centre(extent: f32, cell_h: f32) -> f32 {
+    let t = crate::boxglyph::light_thickness(cell_h.round() as u32);
+    let (lo, _) = crate::boxglyph::centre(extent.round() as u32, t);
+    lo as f32 + t as f32 / 2.0
+}
+
 /// One built pass: quads, buffers (with this frame's signatures), borders and
 /// the frosted-glass cards drawn beneath them.
 type ScenePass = (
@@ -226,12 +236,20 @@ pub(crate) fn build_scene(
             // frames are cell-quantized (`floor(px/cell)` per axis), so a
             // full-rect sheet overhangs the border by up to a cell — a bright
             // edge outside the frame that reads as a second, misaligned box.
+            //
+            // And not the drawn card's OUTER edge either, but the frame's
+            // STROKE: the `─`/`│` rules sit mid-cell, so a sheet out to the
+            // cell edge left half a cell of glass — and its shadow — outside
+            // the line, which is the "second, misaligned box" all over again.
+            // Inset to the stroke's centre and rounded like the `╭` arc, the
+            // sheet's edge runs under the frame and the frame hides it.
+            let (ix, iy) = (stroke_centre(cell_w, cell_h), stroke_centre(cell_h, cell_h));
             cards.push(GlassCard {
-                x: pane.x,
-                y: pane.y,
-                w: cols as f32 * cell_w,
-                h: rows as f32 * cell_h,
-                radius: BORDER_RADIUS,
+                x: pane.x + ix,
+                y: pane.y + iy,
+                w: (cols as f32 * cell_w - 2.0 * ix).max(0.0),
+                h: (rows as f32 * cell_h - 2.0 * iy).max(0.0),
+                radius: (cell_w.min(cell_h) / 2.0 - 1.0).max(1.0),
                 alpha_top: glass_style.alpha_top,
                 alpha_bottom: glass_style.alpha_bottom,
                 noise: glass_style.noise,

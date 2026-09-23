@@ -51,8 +51,9 @@ fn stride_matches_the_packed_size() {
 }
 
 /// The quad is expanded by PAD in the shader so the blurred shadow is not
-/// clipped to a hard square. Keep that padding ahead of the falloff it has
-/// to contain (blur + drop), which this asserts against the shader source.
+/// clipped to a hard square. Keep that padding ahead of the falloff each
+/// shadow layer has to contain — its drop plus a quarter past its blur, where
+/// the Gaussian is down to under 2% — asserted against the shader source.
 #[test]
 fn shadow_padding_covers_its_falloff() {
     let src = include_str!("glass.wgsl");
@@ -64,9 +65,12 @@ fn shadow_padding_covers_its_falloff() {
         let end = rest.find(';').expect("unterminated const");
         rest[..end].trim().parse().expect("non-numeric const")
     };
-    let (pad, blur, drop) = (num("PAD"), num("SH_BLUR"), num("SH_DROP"));
-    assert!(
-        pad >= blur + drop,
-        "PAD {pad} cannot contain a {blur}px blur dropped {drop}px"
-    );
+    let pad = num("PAD");
+    for layer in ["CONTACT", "AMBIENT"] {
+        let (blur, drop) = (num(&format!("{layer}_BLUR")), num(&format!("{layer}_DROP")));
+        assert!(
+            pad >= 1.25 * blur + drop,
+            "PAD {pad} cannot contain the {layer} layer's {blur}px blur dropped {drop}px"
+        );
+    }
 }

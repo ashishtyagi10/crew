@@ -1,18 +1,17 @@
-//! Glass: the (retired) frosted sheet each pane card sat on.
+//! Glass: the liquid-glass sheet each pane card sits on.
 //!
-//! Every family is flat now. Paper went first (2026-08-06, morning): the
+//! Brought back 2026-09-23 on paper and modern pages ([`style_for`]); the
+//! tubes stay flat. History, kept because the look below is built against it:
+//! every family went flat on 2026-08-06. Paper went first (2026-08-06, morning): the
 //! derived sheets' drop shadow read as a rendering bug on a light page, not
 //! depth. CRT followed the same day: the holographic sheet — a ramped
 //! phosphor fill with a specular hairline and inner edge-glow — read as a
 //! drop shadow around every pane and made the cards look adrift on the page,
 //! floating farther apart than the same grid on paper-dark. A tube differs
 //! from paper-dark by its bloom, its heavier frame and its typeface — not by
-//! depth. The card's depth is its border and nothing else.
+//! depth.
 //!
-//! The derivation (`style_for`) and the GPU plumbing stay: the shader, the
-//! `/glass` level knob and the `GlassStyle` contract are the mechanism by
-//! which a future look could bring a sheet back, and the renderer skips
-//! invisible styles for free.
+//! The `/glass` level scales it; `off` skips the pass outright.
 use crate::Theme;
 
 /// How much glass to apply. `Off` disables the pass outright.
@@ -70,9 +69,8 @@ pub struct GlassStyle {
     /// says "glass".
     pub highlight: (u8, u8, u8),
     pub highlight_alpha: f32,
-    /// Soft drop shadow beneath the card. Zero everywhere since 2026-08-06:
-    /// paper themes are flat and a CRT light construct casts none. The
-    /// plumbing stays for the shader's sake.
+    /// Soft two-layer shadow beneath the card (contact + ambient). Zero on
+    /// the tubes: a CRT light construct casts none.
     pub shadow_alpha: f32,
     /// Frost grain amplitude (0.0 = a clean sheet).
     pub noise: f32,
@@ -106,22 +104,57 @@ impl GlassStyle {
     }
 }
 
-/// The base (Medium-strength) glass for a theme: flat for every family.
-/// All-zero alphas make `visible()` false, so the renderer skips the cards
-/// entirely — on paper because the sheet's shadow read as a misaligned
-/// duplicate border, on CRT because the luminous sheet read as a drop shadow
-/// that set the panes adrift (the tube's identity lives in bloom, border
-/// weight and typeface instead).
+/// The base (Medium-strength) glass for a theme: LIQUID GLASS on every page
+/// that is paper or modern, flat on the tubes.
+///
+/// The 2026-08-06 flat decree retired a sheet for two faults, and this look
+/// is built around both rather than repeating them. The old sheet ran to the
+/// cell edge — half a cell outside the frame's stroke — so its shadow drew a
+/// second, misaligned box; the sheet now sits under the stroke (crew-render's
+/// `stroke_centre`). And its one wide 14px shadow read as panes adrift; the
+/// shadow now has a tight contact layer that says where the card rests.
+///
+/// Light pages: a white lens over the paper — brighter at the top — with a
+/// white rim and a soft grey shadow. Dark pages: the faintest white lift, a
+/// rim at a third of the light one (a bright rim on a dark page reads as a
+/// neon outline), and a shadow strong enough to see on a near-black page.
+/// A CRT tube is a light construct and casts nothing: its identity is bloom,
+/// frame weight and typeface.
 pub fn style_for(t: &Theme) -> GlassStyle {
-    GlassStyle {
-        tint: t.page_bg,
-        alpha_top: 0.0,
-        alpha_bottom: 0.0,
-        highlight: t.page_bg,
-        highlight_alpha: 0.0,
-        shadow_alpha: 0.0,
-        noise: 0.0,
-        edge_glow: 0.0,
+    if t.is_tube() {
+        return GlassStyle {
+            tint: t.page_bg,
+            alpha_top: 0.0,
+            alpha_bottom: 0.0,
+            highlight: t.page_bg,
+            highlight_alpha: 0.0,
+            shadow_alpha: 0.0,
+            noise: 0.0,
+            edge_glow: 0.0,
+        };
+    }
+    let white = (255, 255, 255);
+    match t.dark {
+        false => GlassStyle {
+            tint: white,
+            alpha_top: 0.30,
+            alpha_bottom: 0.14,
+            highlight: white,
+            highlight_alpha: 0.85,
+            shadow_alpha: 0.12,
+            noise: 0.0,
+            edge_glow: 0.0,
+        },
+        true => GlassStyle {
+            tint: white,
+            alpha_top: 0.05,
+            alpha_bottom: 0.015,
+            highlight: white,
+            highlight_alpha: 0.28,
+            shadow_alpha: 0.45,
+            noise: 0.0,
+            edge_glow: 0.0,
+        },
     }
 }
 

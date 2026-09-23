@@ -101,9 +101,8 @@ pub(crate) fn default_auto_light_to() -> String {
 }
 
 pub(crate) fn default_glass() -> String {
-    // Strength only; the look is derived per-theme (see `crew_theme::glass`).
-    // Since 2026-08-06 paper themes derive a flat (invisible) sheet, so this
-    // dial only shows on CRT themes — `off` kills even the holographic sheet.
+    // Strength only; the look is derived per-theme (see `crew_theme::glass`):
+    // liquid glass on paper and modern pages, flat on the tubes.
     "medium".to_string()
 }
 
