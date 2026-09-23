@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.92
+
+**Every cost bar says what it cost, and which day it was.** The cost-per-day
+bars in `/dash` and `/usage` carried one number — the peak in the legend —
+so every other day was a height to estimate against it, and the axis named
+only the two ends of the week. Each bar now wears its amount just above it
+(`$0.42`), and each day is named under its bar with the same `6d … now` the
+heatmap above uses. A day that cost nothing stays an unlabelled stub. On a
+pane too narrow for the words, the axis goes back to naming the ends of the
+week and the amounts stay in the legend.
+
 ## 0.22.91
 
 **Cost per day is a bar per day.** `/dash` and `/usage` drew the week's

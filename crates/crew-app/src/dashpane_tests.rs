@@ -144,8 +144,8 @@ fn both_charts_carry_their_axes() {
     let ticks = text(USE_TOP + crate::usageledger::DAYS as u16 * l.heat_h);
     assert_eq!(ticks, "00061218", "the hours under the heatmap: {ticks:?}");
     let axis = text(l.cost_top + l.cost_rows);
-    assert!(axis.starts_with("6d ago"), "{axis:?}");
-    assert!(axis.ends_with("today"), "{axis:?}");
+    // Wide enough to name every day under its bar (see `costbars`).
+    assert_eq!(axis, "6d5d4d3d2d1dnow", "{axis:?}");
     // And inside the pane: an axis drawn past the last row is not drawn.
     assert!(cells.iter().all(|c| c.row < rows && c.col < cols));
 }

@@ -106,7 +106,9 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
         // says something happened, not when.
         let axis = l.cost_top + l.cost_rows;
         if axis < rows {
-            crate::usageaxis::week_ends(&mut out, axis, cols, 1);
+            let (w, top) = (cols.saturating_sub(2), l.cost_top);
+            let daily = &d.buckets.daily_cost;
+            crate::costbars::labels(&mut out, daily, 1, w, top, l.cost_rows, axis, cols);
         }
     }
     out
