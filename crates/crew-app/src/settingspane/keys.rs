@@ -25,7 +25,7 @@ pub(crate) fn reduce(p: &mut SettingsPane, key: &KeyEvent, shift: bool) -> Optio
         Field::FontFamily => family_key(p, key),
         Field::Save => button_key(p, key, true),
         Field::Cancel => button_key(p, key, false),
-        f if buf_of(p, f).is_some() => edit_key(p, key),
+        f if buf_of(p, f).is_some() => edit_key(p, key, shift),
         _ => cycle_key(p, key),
     }
 }
@@ -71,10 +71,17 @@ pub(super) fn allowed(f: Field, buf: &str, c: char) -> bool {
 }
 
 /// Shared editor for every buffered field: Enter commits and advances,
-/// Backspace deletes, and permitted characters append.
-fn edit_key(p: &mut SettingsPane, key: &KeyEvent) -> Option<SettingsAction> {
+/// Backspace deletes, permitted characters append, and ↑/↓ step a number.
+fn edit_key(p: &mut SettingsPane, key: &KeyEvent, shift: bool) -> Option<SettingsAction> {
     let f = p.focused_field();
     match &key.logical_key {
+        // A number field steps (Shift: ten notches); see `stepper`.
+        Key::Named(NamedKey::ArrowUp) => {
+            super::stepper::step(p, true, shift);
+        }
+        Key::Named(NamedKey::ArrowDown) => {
+            super::stepper::step(p, false, shift);
+        }
         Key::Named(NamedKey::Enter) if f == Field::NotifyPatterns => {
             // The patterns field is a text area: Enter starts a new pattern.
             if let Some(buf) = buf_of(p, f) {

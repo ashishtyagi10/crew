@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.89
+
+**Number fields in Settings step with ↑ / ↓.** Font size, grain, opacity,
+nav width, min secs and the usage budgets used to ignore the arrow keys: to
+try 80% opacity instead of 85 you backspaced and retyped. Now ↑/↓ move
+the focused number one notch (opacity 5%, grain 0.1, nav width 10, the
+rest 1) and Shift+↑/↓ move ten, stopping at the same bounds a typed value
+is clamped to. Typing still sets an exact value.
+
 ## 0.22.88
 
 **Opacity % moved to the CANVAS card in Settings, beside Glass.** It is
