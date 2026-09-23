@@ -106,6 +106,11 @@ fn vendored_glyphon_patches_are_applied() {
         atlas_src.contains("Kind::Mask => 1024") && atlas_src.contains("Kind::Color { .. } => 256"),
         "per-kind initial atlas sizes are gone from text_atlas.rs"
     );
+    let cache_src = include_str!("../../../vendor/glyphon/src/cache.rs");
+    assert!(
+        cache_src.contains("alpha: wgpu::BlendComponent::OVER"),
+        "the text pipeline's alpha no longer composites over (cache.rs)"
+    );
     for (name, src) in [("text_atlas.rs", atlas_src), ("text_render.rs", render_src)] {
         assert!(
             src.contains("CREW PATCH"),

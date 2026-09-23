@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.87
+
+**Frame lines stay whole on a sheer window.** With opacity below 100% the
+borders looked broken — the frosted desktop showed through the anti-aliased
+edge of every frame line (and every glyph). The blend every pipeline used
+lowered the window's alpha wherever something only partly covered a pixel,
+so a line's soft rim ended up MORE see-through than the bare glass beside
+it. Alpha now composites "over" (never below what was already there), so a
+line is at least as solid as the glass under it. Colours are unchanged, and
+at 100% opacity nothing looks different.
+
 ## 0.22.86
 
 **The input bar is glass too, and every frame brightens over it.** In a
