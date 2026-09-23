@@ -507,6 +507,7 @@ mod termwrite;
 mod themefade;
 mod themepeek;
 mod themereport;
+mod titlebar;
 mod toast;
 mod toastcard;
 #[cfg(test)]

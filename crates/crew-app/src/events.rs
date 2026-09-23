@@ -245,9 +245,8 @@ impl CrewApp {
                     self.set_status(note);
                 }
                 let scenes = self.build_frame();
-                // CRT state, refreshed per frame so it tracks live theme changes.
-                // Flicker rides the existing busy-anim redraws (poll_panes drives
-                // ~15 fps while a pane animates); idle → flicker 0 → static tube.
+                // CRT state, per frame so it tracks live theme changes. Flicker
+                // rides the busy-anim redraws (~15 fps); idle → static tube.
                 let crt = self.effective_crt();
                 let busy = self.panes.iter().any(crate::paneview::pane_animating);
                 let crt_active = crt.is_some() && busy;
@@ -289,6 +288,7 @@ impl CrewApp {
                     r.set_solid_chrome(chrome);
                     r.frame(&scenes);
                 }
+                self.sync_titlebar();
             }
             // One event per dropped file; routing (and why it targets the
             // FOCUSED pane, not the cursor) lives in `filedrop`.

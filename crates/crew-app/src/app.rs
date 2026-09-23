@@ -296,6 +296,9 @@ pub struct CrewApp {
     /// frame from the layout and handed to the renderer — transparency is for
     /// the canvas, not for the bar you type into.
     pub(crate) solid_chrome: Vec<[f32; 4]>,
+    /// What the title bar was last painted ([`crate::titlebar`]): `None`
+    /// is the OS's own bar. Kept so a frame only talks to AppKit on a change.
+    pub(crate) titlebar_paint: Option<[u8; 3]>,
     /// The compositor has this window hidden: no frame is asked for until it
     /// says otherwise (`WindowEvent::Occluded`).
     pub(crate) occluded: bool,

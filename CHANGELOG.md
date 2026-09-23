@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.85
+
+**Opacity is for the panes now, frosted — and the title bar is never
+see-through.** `/opacity` (and Settings → WINDOW → Opacity %) used to turn
+the macOS title bar glassy while every pane you looked at stayed solid: the
+focused card and the left nav were held opaque, and a non-opaque window
+lets the OS title bar show the desktop. Now the panes and the nav share the
+one opacity you dialled, and what shows through is blurred by the window
+server — frosted glass, never a raw wallpaper. The title bar is painted
+solid in the page colour while the window is sheer (and handed back to the
+OS at 100%); the input bar and overlays stay solid. The named steps moved
+to 94 / 90 / 85% since frosted glass reads at a lower opacity.
+
 ## 0.22.84
 
 **The due date decides what runs next, and `#claude` is offered where it
