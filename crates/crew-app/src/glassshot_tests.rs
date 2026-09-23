@@ -293,9 +293,8 @@ fn shot(
     // left pane. The old assertion was on-card vs the gap between panes, which
     // a pane's own cell backgrounds satisfy whether or not any glass is drawn —
     // it passed at full strength with the sheet disabled entirely. The only
-    // honest question is whether the glass level moves the pixels — and since
-    // the 2026-08-06 flat decree covered every family, whether it moves them
-    // at all: on any theme a delta is the phantom shadow-box bug coming back.
+    // honest question is whether the glass level moves the pixels: it must on
+    // every liquid-glass page, and must not on a tube.
     let flat = render(crew_theme::GlassLevel::Off, opacity).expect("adapter was available above");
     let on = mean_lum(&px, 60, 120, 200, 60);
     let bare = mean_lum(&flat, 60, 120, 200, 60);
@@ -311,7 +310,7 @@ fn shot(
     } else {
         assert!(
             (on - bare).abs() < 0.5,
-            "{name}: paper must render flat — glass {on:.1} vs off {bare:.1}"
+            "{name}: a tube must render flat — glass {on:.1} vs off {bare:.1}"
         );
     }
 }
@@ -321,11 +320,11 @@ fn shot(
 fn glass_shot_every_theme_family() {
     let _g = crate::app::theme_test_guard();
     use crew_theme::{GlassLevel as G, ThemeId as T};
-    shot("light", T::PaperLight, G::Medium, 1.0, false);
-    shot("dark", T::PaperDark, G::Medium, 1.0, false);
+    shot("light", T::PaperLight, G::Medium, 1.0, true);
+    shot("dark", T::PaperDark, G::Medium, 1.0, true);
     shot("crt", T::CrtGreen, G::Medium, 1.0, false);
-    shot("light-high", T::PaperLight, G::High, 1.0, false);
-    shot("dark-high", T::PaperDark, G::High, 1.0, false);
+    shot("light-high", T::PaperLight, G::High, 1.0, true);
+    shot("dark-high", T::PaperDark, G::High, 1.0, true);
 }
 
 /// The MODERN family through the whole stack — wash + lattice under the

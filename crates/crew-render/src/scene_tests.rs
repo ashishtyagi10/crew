@@ -224,17 +224,22 @@ fn focused_border_is_brighter_than_unfocused() {
 /// 8×16 cells an 80×40 pane draws floor(40/16) = 2 rows, so the card is
 /// 80×32. A full-rect sheet overhung the frame by up to a cell — the
 /// "misaligned input bar" phantom edge.
+///
+/// And inside that, it runs along the frame's STROKE, not the card's outer
+/// edge: at a 16px cell the rule is 1px thick, centred on whole pixels at
+/// 3..4 across an 8px cell and 7..8 down a 16px one, so the sheet's edge sits
+/// at 3.5 and 7.5 on every side — under the line, where the frame hides it.
+/// Its corner is the `╭` arc's: half the narrower cell side, less the one
+/// pixel of straight tail `boxglyph::round` keeps.
 #[test]
-fn glass_card_matches_the_drawn_frame_and_border_radius() {
+fn glass_card_runs_along_the_frame_stroke() {
     let mut fs = crate::embedfont::font_system();
-    let (_q, _b, _s, borders, cards) =
+    let (_q, _b, _s, _borders, cards) =
         build(&[card(vec![], true, false)], &mut fs, false, test_glass());
     assert_eq!(cards.len(), 1);
     let c = &cards[0];
-    assert_eq!((c.x, c.y, c.w, c.h), (0.0, 0.0, 80.0, 32.0));
-    // The sheet must share the border's radius exactly, or the frost and the
-    // stroke drift apart at the corners.
-    assert_eq!(c.radius, borders[0].radius);
+    assert_eq!((c.x, c.y, c.w, c.h), (3.5, 7.5, 80.0 - 7.0, 32.0 - 15.0));
+    assert_eq!(c.radius, 8.0 / 2.0 - 1.0);
 }
 
 #[test]

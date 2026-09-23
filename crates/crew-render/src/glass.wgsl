@@ -1,19 +1,35 @@
-// Frosted-glass pane card: soft drop shadow, tinted fill with a top-lit
-// vertical ramp, a specular hairline arcing along the upper edge, and a whisper
-// of frost grain. One instance per pane, one draw, composited in the fragment
-// shader so the shadow and the sheet cost a single pass.
+// Liquid-glass pane card: a two-layer shadow (a tight contact shadow plus a
+// wide ambient one), a tinted fill with a top-lit vertical ramp, a specular
+// rim lit from the upper left with a fainter refracted bounce along the lower
+// right, and a whisper of frost grain. One instance per pane, one draw,
+// composited in the fragment shader so the shadow and the sheet cost a single
+// pass.
 
 struct Vp { size: vec2<f32>, pad: vec2<f32> };
 @group(0) @binding(0) var<uniform> vp: Vp;
 
 // How far outside the card the quad is expanded to give the shadow room. Must
 // stay >= the shadow's blur + offset or the falloff is visibly clipped square.
-const PAD: f32 = 24.0;
-// Width (px) of the specular band just inside the card edge.
-const HL_W: f32 = 1.75;
-// Shadow blur radius and downward offset, in px.
-const SH_BLUR: f32 = 14.0;
-const SH_DROP: f32 = 4.0;
+const PAD: f32 = 32.0;
+// Width (px) of the specular rim just inside the card edge. The frame's stroke
+// sits on the edge itself and covers the outer part of it, so what shows is a
+// bright line tucked just inside the frame.
+const HL_W: f32 = 3.5;
+// The light: from the upper left, as every lit surface on a desktop is. The
+// rim burns where the edge faces it and a refracted bounce — the look that
+// reads as a thick lens rather than a pane of window glass — glows faintly on
+// the opposite edge.
+const LIGHT: vec2<f32> = vec2<f32>(-0.45, -0.89);
+const BOUNCE: f32 = 0.35;
+// Two shadows, as a real object casts: a tight, dark CONTACT shadow that says
+// where the card touches the page, and a wide, faint AMBIENT one that says how
+// far it has lifted. One wide shadow alone reads as a smudge around the card.
+const CONTACT_BLUR: f32 = 4.0;
+const CONTACT_DROP: f32 = 1.5;
+const CONTACT_W: f32 = 0.55;
+const AMBIENT_BLUR: f32 = 18.0;
+const AMBIENT_DROP: f32 = 6.0;
+const AMBIENT_W: f32 = 0.45;
 // Edge antialiasing width.
 const AA: f32 = 1.0;
 // Inner edge-glow reach (px): how far the frame's light bleeds into the fill.
@@ -35,7 +51,7 @@ const SCAN_W: f32 = 0.18;
 // How much the scan lifts the sheet at its centre. Deliberately slight — this
 // runs while a pane is working, and a bright bar crossing the card every second
 // would be the most annoying thing crew does.
-const SCAN_GAIN: f32 = 0.5;
+const SCAN_GAIN: f32 = 0.35;
 
 @vertex
 fn vs(@builtin(vertex_index) vi: u32,
@@ -71,6 +87,13 @@ fn sd_round_box(p: vec2<f32>, b: vec2<f32>, r: f32) -> f32 {
   return min(max(q.x, q.y), 0.0) + length(max(q, vec2<f32>(0.0, 0.0))) - r;
 }
 
+// A soft shadow's falloff past the edge: Gaussian-shaped, so it has no hard
+// outer ring the way a linear or exponential tail does.
+fn falloff(d: f32, blur: f32) -> f32 {
+  let x = max(d, 0.0) / blur;
+  return exp(-2.5 * x * x);
+}
+
 // Cheap value hash for the frost grain.
 fn hash21(p: vec2<f32>) -> f32 {
   let h = dot(p, vec2<f32>(127.1, 311.7));
@@ -99,8 +122,10 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // the page it was supposed to be lifting off (caught by `glass_headless`).
   var shadow = 0.0;
   if (sh_alpha > 0.0) {
-    let ds = sd_round_box(in.local - vec2<f32>(0.0, SH_DROP), in.hsize, radius);
-    shadow = sh_alpha * exp(-max(ds, 0.0) / SH_BLUR) * (1.0 - inside);
+    let dc = sd_round_box(in.local - vec2<f32>(0.0, CONTACT_DROP), in.hsize, radius);
+    let da = sd_round_box(in.local - vec2<f32>(0.0, AMBIENT_DROP), in.hsize, radius);
+    let s = CONTACT_W * falloff(dc, CONTACT_BLUR) + AMBIENT_W * falloff(da, AMBIENT_BLUR);
+    shadow = sh_alpha * s * (1.0 - inside);
   }
 
   // --- frosted fill ---------------------------------------------------------
@@ -138,18 +163,27 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     fill_a = clamp(fill_a + band * SCAN_GAIN * mix(a_top, a_bot, t) * inside, 0.0, 1.0);
   }
 
-  // --- specular hairline ----------------------------------------------------
-  // A band hugging the inside of the border, weighted by how much the surface
-  // normal points up — so it burns brightest across the top and dies out down
-  // the sides. This single arc is what most reads as "glass".
+  // --- specular rim --------------------------------------------------------
+  // A band hugging the inside of the border, weighted by how squarely the edge
+  // faces the light — so it burns along the top and the left, rounds the
+  // upper-left corner, and dies out down the far sides, where a faint bounce
+  // picks it up again. The normal is the SDF's own gradient: the old
+  // `local / hsize` normal pointed at the corners of a wide card and lit the
+  // whole top edge unevenly.
   var rgb = in.tint.xyz;
   var alpha = fill_a;
   if (hl_alpha > 0.0) {
     let band = smoothstep(-HL_W, 0.0, d) * inside;
-    let n = normalize(vec2<f32>(in.local.x / max(in.hsize.x, 1.0),
-                                in.local.y / max(in.hsize.y, 1.0)));
-    let up = clamp(-n.y, 0.0, 1.0);
-    let a = hl_alpha * band * up;
+    let e = 0.5;
+    let n = normalize(vec2<f32>(
+      sd_round_box(in.local + vec2<f32>(e, 0.0), in.hsize, radius)
+        - sd_round_box(in.local - vec2<f32>(e, 0.0), in.hsize, radius),
+      sd_round_box(in.local + vec2<f32>(0.0, e), in.hsize, radius)
+        - sd_round_box(in.local - vec2<f32>(0.0, e), in.hsize, radius)) + vec2<f32>(1e-5, 1e-5));
+    let facing = dot(n, LIGHT);
+    let key = pow(clamp(facing, 0.0, 1.0), 1.5);
+    let bounce = BOUNCE * pow(clamp(-facing, 0.0, 1.0), 2.0);
+    let a = hl_alpha * band * (key + bounce);
     // Composite the highlight over the fill (both are "source" here).
     let out_a = a + alpha * (1.0 - a);
     if (out_a > 0.0001) {

@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.93
+
+**Panes sit on liquid glass.** Every pane, the nav and the input bar rest on
+a sheet again — a white lens over light pages, the faintest lift over dark
+ones — lit from the upper left: a bright rim runs along the top and left
+edges, rounds the corner, and a faint refracted bounce picks it up along the
+bottom and right. Beneath it, two shadows, as a real object casts: a tight
+contact shadow where the card rests and a wide, soft ambient one. The old
+sheet was retired because it ran half a cell outside the frame and drew a
+second, misaligned box; this one runs exactly under the frame's stroke and
+takes the `╭` arc's radius, so the frame hides its edge. The tubes stay flat.
+Settings → Glass (`low`/`medium`/`high`/`off`) sets how strong it is.
+
 ## 0.22.92
 
 **Every cost bar says what it cost, and which day it was.** The cost-per-day
