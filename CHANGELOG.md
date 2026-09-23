@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.90
+
+**Search results show the match, and mark it.** The chat find pop-up
+(Cmd+F in a chat pane) listed each hit as `sender: text` from the start,
+cut at the card's edge — so a long message that matched on a word past the
+edge was a row that did not visibly contain what you typed. Each row now
+brings its match into view (the text before it gives way to `…`, with a
+little lead-in kept) and every occurrence of the query in the row is
+marked. Marks in the command palette and every other list pop-up now wear
+the same highlight wash `/find` uses in a pane instead of bold alone,
+which vanished on the selected row (it is bold too) and was hard to see
+anywhere else.
+
 ## 0.22.89
 
 **Number fields in Settings step with ↑ / ↓.** Font size, grain, opacity,

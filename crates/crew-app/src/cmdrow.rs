@@ -1,7 +1,7 @@
 //! One row of the command palette: `› /clear    Clear the pane      Cmd+K`.
 //!
 //! Three things happen here that a `label + "  " + desc` concatenation cannot
-//! do. The **matched characters are marked**, so a fuzzy hit explains itself
+//! do. The **matched characters are marked** (the search wash), so a fuzzy hit explains itself
 //! (`/dmp` finding `/dump` looks like a bug until you can see which letters
 //! matched). The **descriptions line up in a column**, so the list is read
 //! down rather than scanned. And the **chord**, where one exists, is
@@ -100,9 +100,10 @@ pub(crate) fn spans(
     // A card can be narrower than the command it is listing.
     let label = crate::chatwidth::clip_w(&item.label, avail);
     let mut out: Vec<Span> = Vec::new();
+    let hit_style = hit_style(fg);
     for (i, c) in label.chars().enumerate() {
         let style = match item.hit.contains(&i) {
-            true => Style::new().fg(fg).add_modifier(Modifier::BOLD),
+            true => hit_style,
             false => Style::new().fg(fg),
         };
         out.push(Span::styled(c.to_string(), style));
@@ -159,9 +160,34 @@ pub(crate) fn spans(
     Line::from(out)
 }
 
+/// How a matched character is marked: the search wash `/find` puts behind a
+/// match in a pane (`findhl`), its ink re-floored against the wash. Bold
+/// alone was the mark until the find pop-up started using it too — and bold
+/// is also how the SELECTED row is drawn, so on the one row you were looking
+/// at the marks vanished, and elsewhere a bold `d` in `/dump` was a weight
+/// change you had to squint for.
+fn hit_style(fg: Color) -> Style {
+    let hl = crew_theme::theme().find_hl_bg;
+    let ink = match fg {
+        Color::Rgb(r, g, b) => {
+            let (r, g, b) =
+                crew_theme::readable::enforced((r, g, b), hl, crew_theme::contrast::text_floor());
+            Color::Rgb(r, g, b)
+        }
+        other => other,
+    };
+    Style::new()
+        .fg(ink)
+        .bg(Color::Rgb(hl.0, hl.1, hl.2))
+        .add_modifier(Modifier::BOLD)
+}
+
 #[cfg(test)]
 #[path = "cmdrowcol_tests.rs"]
 mod col_tests;
+#[cfg(test)]
+#[path = "cmdrowhit_tests.rs"]
+mod hit_tests;
 #[cfg(test)]
 #[path = "cmdrow_tests.rs"]
 mod tests;
