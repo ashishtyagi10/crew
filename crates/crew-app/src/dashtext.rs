@@ -102,7 +102,7 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
             t.text_muted,
             cols,
         );
-        // Which days those are. A curve with a peak and no dates under it
+        // Which days those are. Bars with a peak and no dates under them
         // says something happened, not when.
         let axis = l.cost_top + l.cost_rows;
         if axis < rows {

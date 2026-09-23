@@ -13,6 +13,7 @@
 //! inside/outside tests: the canvas can sample either, but only a distance
 //! anti-aliases a twenty-pixel arc without a staircase on it.
 pub mod area;
+pub mod bars;
 pub mod canvas;
 pub mod device;
 pub mod dial;

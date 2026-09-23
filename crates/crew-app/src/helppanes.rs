@@ -111,6 +111,10 @@ pub(crate) const SETTINGS_BINDINGS: &[(&str, &str)] = &[
         "Left / Right · Space",
         "Step a picker's value \u{b7} toggle a checkbox",
     ),
+    (
+        "Up / Down \u{b7} Shift",
+        "Step a number field one notch \u{b7} ten notches",
+    ),
     ("Enter", "Take the value and move on"),
     ("Cmd+S / Alt+S", "Save and apply"),
     ("Esc", "Close without saving"),
