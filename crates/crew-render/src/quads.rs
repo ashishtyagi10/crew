@@ -7,6 +7,23 @@ pub struct Quad {
     pub w: f32,
     pub h: f32,
     pub color: [f32; 4],
+    /// Corner radii in px — top-left, top-right, bottom-right, bottom-left.
+    /// All zero is a plain rectangle, drawn exactly as before radii existed.
+    pub radii: [f32; 4],
+}
+
+impl Quad {
+    /// A square-cornered quad.
+    pub fn rect(x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) -> Self {
+        Self {
+            x,
+            y,
+            w,
+            h,
+            color,
+            radii: [0.0; 4],
+        }
+    }
 }
 
 /// GPU layer that draws instanced colored rectangles.
@@ -66,7 +83,7 @@ impl QuadLayer {
             immediate_size: 0,
         });
 
-        let inst_attrs = wgpu::vertex_attr_array![0 => Float32x4, 1 => Float32x4];
+        let inst_attrs = wgpu::vertex_attr_array![0 => Float32x4, 1 => Float32x4, 2 => Float32x4];
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("quads_pipeline"),
             layout: Some(&layout),
@@ -75,7 +92,7 @@ impl QuadLayer {
                 entry_point: Some("vs"),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
                 buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: 8 * 4,
+                    array_stride: 12 * 4,
                     step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &inst_attrs,
                 }],
@@ -109,7 +126,7 @@ impl QuadLayer {
         }
     }
 
-    /// Upload quads as instance data. Each quad becomes 8 × f32.
+    /// Upload quads as instance data. Each quad becomes 12 × f32.
     pub fn set_quads(&mut self, device: &wgpu::Device, quads: &[Quad]) {
         self.count = quads.len() as u32;
         if quads.is_empty() {
@@ -117,10 +134,11 @@ impl QuadLayer {
             return;
         }
 
-        let mut data: Vec<f32> = Vec::with_capacity(quads.len() * 8);
+        let mut data: Vec<f32> = Vec::with_capacity(quads.len() * 12);
         for q in quads {
             data.extend_from_slice(&[q.x, q.y, q.w, q.h]);
             data.extend_from_slice(&q.color);
+            data.extend_from_slice(&q.radii);
         }
 
         self.inst_buf = Some(

@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.22.98
+
+**Highlights are capsules.** A selected row, a key hint, a block cursor, a
+status band — every cell background is now drawn as one quad per run of a
+colour instead of one hard rectangle per cell, and its ends round softly
+where they sit on bare page, the way a highlight sits on glass. Only corners
+on the page round: a block several rows tall rounds its outer corners and
+nothing between its rows, and colours that abut — a powerline prompt, a
+heatmap's squares, a TUI's painted panels — keep their square seams.
+
 ## 0.22.97
 
 **Focus lands with a glint.** When a pane takes the keys, a soft specular

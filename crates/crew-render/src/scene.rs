@@ -198,12 +198,26 @@ pub(crate) fn build_scene(
         // their colour is the default, and base text would still show through.
         if pane.overlay {
             let bg = crew_theme::theme().page_bg;
+            let color = crate::color::target_rgba(bg, 1.0, srgb);
+            quads.push(Quad::rect(pane.x, pane.y, pane.w, pane.h, color));
+        }
+
+        // Cell backgrounds, as runs: one quad per horizontal run of a colour,
+        // its corners rounded wherever they sit on bare page (`bgruns`).
+        let (gcols, grows) = pane.cells.iter().fold((cols, rows), |(c, r), cell| {
+            let end = usize::from(cell.col) + cell_cols(cell.c) as usize;
+            (c.max(end), r.max(usize::from(cell.row) + 1))
+        });
+        let rad = crate::bgruns::radius(cell_w, cell_h);
+        for run in crate::bgruns::runs(&pane.cells, gcols, grows, default_bg()) {
+            let radii = run.round.map(|r| if r { rad } else { 0.0 });
             quads.push(Quad {
-                x: pane.x,
-                y: pane.y,
-                w: pane.w,
-                h: pane.h,
-                color: crate::color::target_rgba(bg, 1.0, srgb),
+                x: pane.x + f32::from(run.col) * cell_w,
+                y: pane.y + f32::from(run.row) * cell_h,
+                w: f32::from(run.cols) * cell_w,
+                h: cell_h,
+                color: crate::color::target_rgba(run.bg, 1.0, srgb),
+                radii,
             });
         }
 
@@ -224,26 +238,17 @@ pub(crate) fn build_scene(
             // underline broke under every wide glyph, and a TUI's painted
             // status bar came out perforated.
             let w = cell_cols(cell.c) * cell_w;
-            if cell.bg != default_bg() {
-                quads.push(Quad {
-                    x,
-                    y,
-                    w,
-                    h: cell_h,
-                    color: crate::color::target_rgba(cell.bg, 1.0, srgb),
-                });
-            }
             if !cell.deco.is_blank() {
                 let rgb = crate::deco::color(&cell.deco, cell.fg);
                 let color = crate::color::target_rgba(rgb, 1.0, srgb);
                 for (x, y, w, h) in crate::deco::rects(&cell.deco, x, y, w, cell_h) {
-                    quads.push(Quad { x, y, w, h, color });
+                    quads.push(Quad::rect(x, y, w, h, color));
                 }
             }
             if cell.cursor.is_rule() {
                 let color = crate::color::target_rgba(cell.cursor.color, 1.0, srgb);
                 for (x, y, w, h) in crate::deco::cursor_rects(&cell.cursor, x, y, w, cell_h) {
-                    quads.push(Quad { x, y, w, h, color });
+                    quads.push(Quad::rect(x, y, w, h, color));
                 }
             }
         }
@@ -252,13 +257,13 @@ pub(crate) fn build_scene(
         // cell size. After the cell backgrounds so a chart is not buried by the
         // page it sits on, and before the text pass so labels read on top of it.
         for p in pane.paint.iter().filter(|p| p.visible()) {
-            quads.push(Quad {
-                x: pane.x + p.x * cell_w,
-                y: pane.y + p.y * cell_h,
-                w: p.w * cell_w,
-                h: p.h * cell_h,
-                color: crate::color::target_rgba(p.color, p.alpha, srgb),
-            });
+            quads.push(Quad::rect(
+                pane.x + p.x * cell_w,
+                pane.y + p.y * cell_h,
+                p.w * cell_w,
+                p.h * cell_h,
+                crate::color::target_rgba(p.color, p.alpha, srgb),
+            ));
         }
 
         // The frosted sheet this pane sits on. Only card scenes get one — a
