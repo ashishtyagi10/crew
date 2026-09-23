@@ -10,7 +10,7 @@ struct Vp { size: vec2<f32>, pad: vec2<f32> };
 
 // How far outside the card the quad is expanded to give the shadow room. Must
 // stay >= the shadow's blur + offset or the falloff is visibly clipped square.
-const PAD: f32 = 40.0;
+const PAD: f32 = 52.0;
 // Width (px) of the specular rim just inside the card edge. The frame's stroke
 // sits on the edge itself and covers the outer part of it, so what shows is a
 // bright line tucked just inside the frame.
@@ -38,6 +38,9 @@ const LIFT_DROP: f32 = 4.0;
 const LIFT_BLUR: f32 = 6.0;
 const LIFT_SHADOW: f32 = 0.8;
 const LIFT_RIM: f32 = 0.35;
+// The highest a card rides: 1 is the focused pane, 2 a floating card (a
+// pop-up, `/keys`, a toast) over everything.
+const MAX_LIFT: f32 = 2.0;
 // Edge antialiasing width.
 const AA: f32 = 1.0;
 // Inner edge-glow reach (px): how far the frame's light bleeds into the fill.
@@ -128,7 +131,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // that, the shadow shows through the translucent sheet and darkens the card's
   // interior — enough that a white sheet over a grey page came out DARKER than
   // the page it was supposed to be lifting off (caught by `glass_headless`).
-  let lift = clamp(in.extra.z, 0.0, 1.0);
+  let lift = clamp(in.extra.z, 0.0, MAX_LIFT);
   var shadow = 0.0;
   if (sh_alpha > 0.0) {
     let dc = sd_round_box(in.local - vec2<f32>(0.0, CONTACT_DROP), in.hsize, radius);

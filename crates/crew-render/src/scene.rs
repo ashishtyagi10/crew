@@ -51,8 +51,9 @@ pub struct PaneScene {
     /// pane already repaints (see the app's `poll`), so the sweep costs no
     /// extra frames, and an idle crew never draws it at all.
     pub scan: f32,
-    /// How far this card has lifted off the page, `0.0..=1.0`: the focused
-    /// pane rises to 1 and the one it left sinks back, on the focus clock.
+    /// How far this card has lifted off the page, `0.0..=2.0`: the focused
+    /// pane rises to 1 and the one it left sinks back, on the focus clock;
+    /// a floating card (pop-up, toast) rides at 2.
     /// Deepens the glass sheet's shadow and brightens its rim; a card with no
     /// sheet ignores it.
     pub lift: f32,
@@ -257,7 +258,13 @@ pub(crate) fn build_scene(
         // pane contributes several scenes (content, frame) and one sheet per
         // pane is the point — and overlay popups are deliberately opaque so
         // nothing behind them bleeds through (see `PaneScene::overlay`).
-        if pane.glass && !pane.overlay && glass_style.visible() {
+        //
+        // An overlay gets one too — but only its shadow: a floating card is
+        // opaque, it is its own sheet, and the overlay pass draws the glass
+        // OVER its backgrounds (see `CellGrid::draw`) so the shadow can fall
+        // across the page margin a pop-up keeps beside its frame. Drawn over
+        // them, a rim would strike through the legend's own backing.
+        if pane.glass && glass_style.visible() {
             // The sheet spans the *drawn* card, not the raw rect: fieldset
             // frames are cell-quantized (`floor(px/cell)` per axis), so a
             // full-rect sheet overhangs the border by up to a cell — a bright
@@ -270,18 +277,19 @@ pub(crate) fn build_scene(
             // Inset to the stroke's centre and rounded like the `╭` arc, the
             // sheet's edge runs under the frame and the frame hides it.
             let (ix, iy) = (stroke_centre(cell_w, cell_h), stroke_centre(cell_h, cell_h));
+            let sheet = if pane.overlay { 0.0 } else { 1.0 };
             cards.push(GlassCard {
                 x: pane.x + ix,
                 y: pane.y + iy,
                 w: (cols as f32 * cell_w - 2.0 * ix).max(0.0),
                 h: (rows as f32 * cell_h - 2.0 * iy).max(0.0),
                 radius: (cell_w.min(cell_h) / 2.0 - 1.0).max(1.0),
-                alpha_top: glass_style.alpha_top,
-                alpha_bottom: glass_style.alpha_bottom,
+                alpha_top: glass_style.alpha_top * sheet,
+                alpha_bottom: glass_style.alpha_bottom * sheet,
                 noise: glass_style.noise,
                 tint: crate::color::target_rgba(glass_style.tint, 1.0, srgb),
                 highlight: crate::color::target_rgba(glass_style.highlight, 1.0, srgb),
-                highlight_alpha: glass_style.highlight_alpha,
+                highlight_alpha: glass_style.highlight_alpha * sheet,
                 shadow_alpha: glass_style.shadow_alpha,
                 scan: pane.scan,
                 edge_glow: glass_style.edge_glow,

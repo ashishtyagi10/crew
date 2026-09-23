@@ -286,6 +286,9 @@ pub(crate) fn push_toasts(
             y,
             w,
             h,
+            // Exactly its frame's size, so the card casts its own shadow.
+            glass: true,
+            lift: crate::popupplace::FLOAT,
             overlay: true,
             ..Default::default()
         });

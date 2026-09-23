@@ -36,7 +36,7 @@ pub(crate) fn frame(
     let r = rect(w);
     let cols = (r.w / cw).floor() as u16;
     let rows = (r.h / ch).floor() as u16;
-    let over = crate::popupplace::scene(p, r, cw, ch, popup, now);
+    let [shadow, over] = crate::popupplace::floating(p, r, cw, ch, popup, now);
     let at = Rect {
         x: over.x,
         y: over.y,
@@ -58,6 +58,7 @@ pub(crate) fn frame(
             overlay: false,
             paint: Vec::new(),
         },
+        shadow,
         over,
     ];
     (scenes, at)

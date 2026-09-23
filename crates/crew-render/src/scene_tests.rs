@@ -263,12 +263,25 @@ fn non_card_scenes_get_no_glass() {
 }
 
 /// Overlay popups are deliberately opaque so nothing behind them bleeds
-/// through — glass under one would undo that.
+/// through — a sheet under one would undo that, and a rim drawn over its
+/// backgrounds would strike through its legend. What a floating card keeps
+/// is its SHADOW, at whatever lift it rides.
 #[test]
-fn overlay_panes_get_no_glass() {
+fn overlay_panes_cast_a_shadow_and_nothing_else() {
     let mut fs = crate::embedfont::font_system();
-    let (_q, _b, _s, _bd, cards) = build(&[card(vec![], true, true)], &mut fs, true, test_glass());
-    assert!(cards.is_empty());
+    let mut over = card(vec![], true, true);
+    over.lift = 2.0;
+    let style = GlassStyle {
+        shadow_alpha: 0.2,
+        ..test_glass()
+    };
+    let (_q, _b, _s, _bd, cards) = build(&[over], &mut fs, true, style);
+    let c = cards.first().expect("a floating card casts a shadow");
+    assert_eq!(
+        (c.alpha_top, c.alpha_bottom, c.highlight_alpha),
+        (0.0, 0.0, 0.0)
+    );
+    assert_eq!((c.shadow_alpha, c.lift), (0.2, 2.0));
 }
 
 /// The user's `/glass` level scales the style before it reaches this layer;

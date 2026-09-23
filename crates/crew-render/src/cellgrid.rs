@@ -73,6 +73,8 @@ pub struct CellGrid {
     round_border_layer: RoundBorderLayer,
     /// Frosted sheets drawn beneath everything else in the base pass.
     glass_layer: GlassLayer,
+    /// Floating cards' shadows and rims, drawn over the overlay backgrounds.
+    overlay_glass_layer: GlassLayer,
     /// How strong the glass is; `Off` builds no cards at all.
     glass_level: crew_theme::GlassLevel,
     pub(crate) cell_w: f32,
@@ -136,6 +138,7 @@ impl CellGrid {
         let overlay_quad_layer = QuadLayer::new(device, format);
         let round_border_layer = RoundBorderLayer::new(device, format);
         let glass_layer = GlassLayer::new(device, format);
+        let overlay_glass_layer = GlassLayer::new(device, format);
 
         Self {
             font_system,
@@ -150,6 +153,7 @@ impl CellGrid {
             overlay_quad_layer,
             round_border_layer,
             glass_layer,
+            overlay_glass_layer,
             glass_level: crew_theme::GlassLevel::Medium,
             cell_w,
             cell_h,
@@ -296,22 +300,24 @@ impl CellGrid {
     pub fn set_scene(&mut self, device: &wgpu::Device, panes: &[PaneScene]) {
         let params = self.font_params();
         let (cw, ch) = (self.cell_w, self.cell_h);
-        let ((quads, buffers, sigs, borders, cards), (oquads, obuffers, osigs, _, _)) = build_both(
-            panes,
-            cw,
-            ch,
-            &mut self.font_system,
-            &params,
-            self.srgb,
-            // Theme-derived, per-frame: `/theme` and `/glass` both land here.
-            crew_theme::glass_style().scaled(self.glass_level),
-            self.base.take_prev(),
-            self.overlay.take_prev(),
-        );
+        let ((quads, buffers, sigs, borders, cards), (oquads, obuffers, osigs, _, ocards)) =
+            build_both(
+                panes,
+                cw,
+                ch,
+                &mut self.font_system,
+                &params,
+                self.srgb,
+                // Theme-derived, per-frame: `/theme` and `/glass` both land here.
+                crew_theme::glass_style().scaled(self.glass_level),
+                self.base.take_prev(),
+                self.overlay.take_prev(),
+            );
         self.quad_layer.set_quads(device, &quads);
         self.overlay_quad_layer.set_quads(device, &oquads);
         self.round_border_layer.set_borders(device, &borders);
         self.glass_layer.set_cards(device, &cards);
+        self.overlay_glass_layer.set_cards(device, &ocards);
         self.base.set(sigs, buffers);
         self.overlay.set(osigs, obuffers);
     }
@@ -349,6 +355,7 @@ impl CellGrid {
         self.overlay_quad_layer.set_viewport(queue, w, h);
         self.round_border_layer.set_viewport(queue, w, h);
         self.glass_layer.set_viewport(queue, w, h);
+        self.overlay_glass_layer.set_viewport(queue, w, h);
         self.viewport.update(queue, Resolution { width, height });
 
         prepare_renderer(
@@ -374,7 +381,7 @@ impl CellGrid {
     }
 
     /// Draw base panes (glass → backgrounds → borders → text), then overlay
-    /// popups (backgrounds → text) on top, so overlays are fully opaque — no
+    /// popups (backgrounds → glass → text) on top, so overlays are fully opaque — no
     /// pane text behind them can bleed through.
     ///
     /// Glass goes first, over the paper background but under everything the
@@ -388,6 +395,9 @@ impl CellGrid {
             .render(&self.atlas, &self.viewport, pass)
             .expect("glyphon render failed");
         self.overlay_quad_layer.draw(pass);
+        // Over the overlay backgrounds, not under: a floating card's shadow
+        // must darken the page margin its own scene paints opaque.
+        self.overlay_glass_layer.draw(pass);
         self.overlay_renderer
             .render(&self.atlas, &self.viewport, pass)
             .expect("glyphon overlay render failed");
