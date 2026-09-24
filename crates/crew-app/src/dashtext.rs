@@ -63,10 +63,8 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
         put(
             &mut out,
             &format!(
-                "USAGE  \u{00b7}  {}  \u{00b7}  {} in / {} out  \u{00b7}  7 days",
-                crate::usagepane::money(b.cost_microusd),
-                crate::usagepane::compact(b.tok_in),
-                crate::usagepane::compact(b.tok_out),
+                "USAGE  \u{00b7}  {}",
+                crate::usagelayout::week_line(b, "  \u{00b7}  ")
             ),
             1,
             USE_TOP - 1,

@@ -134,6 +134,21 @@ pub fn money(microusd: u64) -> String {
     }
 }
 
+/// The week's totals as the header says them, parts joined by `sep`. A week
+/// with nothing in it says so: `$0.00 · 0 in · 0 out · 7 days` over an
+/// empty grid read as a meter reading zero, not as nothing to show yet.
+pub(crate) fn week_line(b: &crate::usageledger::Buckets, sep: &str) -> String {
+    if b.cost_microusd == 0 && b.tok_in == 0 && b.tok_out == 0 {
+        return "nothing used in the last 7 days".to_string();
+    }
+    let (spend, tin, tout) = (
+        money(b.cost_microusd),
+        compact(b.tok_in),
+        compact(b.tok_out),
+    );
+    format!("{spend}{sep}{tin} in{sep}{tout} out{sep}7 days")
+}
+
 /// Day labels, oldest first, ending in `today`.
 pub(crate) fn day_labels() -> Vec<String> {
     // Weekday names would need a calendar; "6d" … "now" needs none, and says
@@ -145,3 +160,7 @@ pub(crate) fn day_labels() -> Vec<String> {
         })
         .collect()
 }
+
+#[cfg(test)]
+#[path = "usageweek_tests.rs"]
+mod week_tests;

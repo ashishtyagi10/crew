@@ -99,12 +99,7 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
     // already names the pane.
     put(
         &mut out,
-        &format!(
-            "{} \u{00b7} {} in \u{00b7} {} out \u{00b7} 7 days",
-            money(b.cost_microusd),
-            compact(b.tok_in),
-            compact(b.tok_out),
-        ),
+        &crate::usagelayout::week_line(b, " \u{00b7} "),
         1,
         0,
         t.ink,
