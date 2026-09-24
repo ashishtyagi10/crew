@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.29
+
+**A dark title on a light page.** While the window is translucent, crew
+paints the title bar in its own page colour, but the title and traffic
+lights kept following macOS. On a Mac in Dark mode under a light crew
+theme, that drew a white title on the light strip. The title bar now wears
+the page's own appearance (light or dark). Only the title bar's view gets
+it, not the window, so `auto` still hears the system switch.
+
 ## 0.23.28
 
 **The main page rises off the page.** 0.23.27 gave the welcome card a
