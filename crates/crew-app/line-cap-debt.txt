@@ -62,7 +62,6 @@ src/farpane/keys.rs 321
 src/farpane/mod_tests.rs 590
 src/farpane/remote.rs 357
 src/farpane/remote_tests.rs 432
-src/farpane/render.rs 255
 src/farpane/render_tests.rs 652
 src/fontcmd_tests.rs 370
 src/git.rs 210

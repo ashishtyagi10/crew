@@ -207,7 +207,7 @@ impl Pane {
             PaneContent::Terminal(t) => to_cellviews(&t.pty.cells(focused)),
             PaneContent::Chat(c) => c.cells(self.grid.cols, self.grid.rows),
             PaneContent::Settings(s) => s.cells(self.grid.cols, self.grid.rows),
-            PaneContent::Far(f) => f.cells(self.grid.cols, self.grid.rows),
+            PaneContent::Far(f) => f.cells_in(self.grid.cols, self.grid.rows, focused),
             PaneContent::Swarm(s) => s.cells(self.grid.cols, self.grid.rows),
             PaneContent::View(v) => v.cells(self.grid.cols, self.grid.rows),
             PaneContent::Todo(t) => t.cells(self.grid.cols, self.grid.rows),

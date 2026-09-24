@@ -155,8 +155,14 @@ impl FarPane {
         }
     }
 
+    #[cfg(test)]
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
         render::render(self, cols, rows)
+    }
+
+    /// [`Self::cells`] as the pane draws it: quiet when not `focused`.
+    pub fn cells_in(&self, cols: u16, rows: u16, focused: bool) -> Vec<CellView> {
+        render::render_in(self, cols, rows, focused)
     }
 
     pub fn on_key(&mut self, key: &KeyEvent, alt: bool) -> Option<FarAction> {
