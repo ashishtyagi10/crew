@@ -141,7 +141,7 @@ impl crate::app::CrewApp {
         let serving = Serving {
             provider: crate::modelsignin::serving(),
             model,
-            windows: crate::usageledger::windows(now),
+            windows: crate::usageledger::windows(),
         };
         let waiting = rows_from(
             self.panes
