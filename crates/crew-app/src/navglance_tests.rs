@@ -57,3 +57,24 @@ fn layout_and_click_read_the_cards_before_the_hover() {
     }
     assert!(body("nav_tail").contains("self.glance_base()"));
 }
+
+/// SERVING's countdown is on the wall clock the ledger stamps with. Read
+/// against the animation clock (ms since launch) a turn just now looked
+/// ~56 years away from rolling over — the card said `5h ▬ 20716d1h`.
+#[test]
+fn serving_counts_down_on_the_wall_clock() {
+    crate::usageledger::record(120, 80, 0);
+    let g = crate::app::CrewApp::default()
+        .glance_base()
+        .expect("glance is the default card");
+    let five = g
+        .serving
+        .windows
+        .five_h
+        .expect("a turn opened the 5h window");
+    assert!(
+        five.left_ms <= 5 * 60 * 60 * 1000,
+        "5h window rolls over in {} ms",
+        five.left_ms
+    );
+}

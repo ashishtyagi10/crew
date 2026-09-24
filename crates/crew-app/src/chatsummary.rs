@@ -235,7 +235,7 @@ pub(crate) fn footer_lines_with(
     vec![lift(join(&l1)), lift(join(&l2)), l3]
 }
 
-pub(crate) fn footer_ctx(pane: &ChatPane, now_ms: u64) -> FooterCtx<'_> {
+pub(crate) fn footer_ctx(pane: &ChatPane) -> FooterCtx<'_> {
     FooterCtx {
         readouts: &pane.readouts,
         agents: &pane.agents,
@@ -249,9 +249,9 @@ pub(crate) fn footer_ctx(pane: &ChatPane, now_ms: u64) -> FooterCtx<'_> {
         plan_pending: pane.plan_pending,
         active: pane.active_names(),
         cwd: pane.cwd.as_deref(),
-        windows: crate::usageledger::windows(now_ms),
+        windows: crate::usageledger::windows(),
         // The bursts are stamped on the animation clock, not the wall clock
-        // `now_ms` carries for the usage windows.
+        // the usage windows read.
         pulse: Some(crate::summarypulse::Pulses {
             map: &pane.token_pulse,
             now: crate::anim::now_ms(),

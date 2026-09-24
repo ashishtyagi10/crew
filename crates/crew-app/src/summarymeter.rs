@@ -48,12 +48,8 @@ pub(crate) fn summary_art(
     if height == 0 {
         return (Vec::new(), Vec::new());
     }
-    let now_ms = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0);
     let mut meters: Vec<f32> = Vec::new();
-    let lines = footer_lines_with(&footer_ctx(pane, now_ms), cols as usize, &mut meters);
+    let lines = footer_lines_with(&footer_ctx(pane), cols as usize, &mut meters);
     let bg = crew_theme::theme().page_bg;
     let mut cells = Vec::new();
     for (i, line) in lines.into_iter().take(height as usize).enumerate() {

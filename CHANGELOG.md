@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.6
+
+**SERVING counts down in hours again, not decades.** The nav's SERVING
+card read the usage windows against the animation clock — milliseconds
+since crew launched — while the ledger stamps turns on the wall clock, so
+the 5h meter's countdown said `20716d1h` (the age of the Unix epoch) and a
+spent window never expired. The ledger now reads its own wall clock; no
+caller can hand it the wrong one.
+
 ## 0.23.5
 
 **The input bar floats.** It was a well — pressed into the glass, with an

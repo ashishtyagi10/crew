@@ -230,8 +230,6 @@ pub(crate) fn record(tok_in: u64, tok_out: u64, cost_microusd: u64) {
     }
 }
 
-/// The current rolling windows, for the footer. Cheap: a scan over ≤7d of
-/// per-turn entries under a mutex — fine on the render path.
 /// The process-wide ledger's [`Ledger::buckets`].
 pub(crate) fn buckets(now_ms: u64) -> Buckets {
     LEDGER
@@ -247,11 +245,13 @@ pub(crate) fn buckets(now_ms: u64) -> Buckets {
         })
 }
 
-pub(crate) fn windows(now_ms: u64) -> Windows {
+/// The rolling windows NOW, on the wall clock the entries carry — never a
+/// caller's clock (the nav passed ms-since-launch and counted down 56 years).
+pub(crate) fn windows() -> Windows {
     let guard = LEDGER.lock().unwrap_or_else(|e| e.into_inner());
     guard
         .as_ref()
-        .map(|l| l.windows(now_ms))
+        .map(|l| l.windows(now_ms()))
         .unwrap_or_default()
 }
 
