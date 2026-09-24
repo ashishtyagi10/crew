@@ -75,7 +75,10 @@ pub fn welcome_cells_animated(
         // The rain fills the box and fades out toward its edges — bounded
         // by light, not by a ruled rectangle inside the card — and the CREW
         // nameplate sits over its centre, glyphs streaming around it.
-        rain(&mut cells, top, left, w, h, tick, t.ink, t.text_muted, bg);
+        // Its heads stop short of the ink the name is set in: the field is
+        // ambience, and the word it surrounds is the one thing to read.
+        let trail = crate::anim::lerp_rgb(t.text_muted, bg, 0.35);
+        rain(&mut cells, top, left, w, h, tick, t.text_muted, trail, bg);
         nameplate(&mut cells, top, left, w, h, t.ink, bg);
 
         let tl_row = top + h + 1;
