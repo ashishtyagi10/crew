@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.28
+
+**The main page rises off the page.** 0.23.27 gave the welcome card a
+focused terminal's lit stroke but left its glass flat on the page — no
+lift, no deeper shadow, no brighter rim, and the page's light following
+nobody, since there was no pane to follow. It now rides at a focused
+pane's elevation with the light under it, the same card a lone Cmd+T
+terminal is.
+
 ## 0.23.27
 
 **The main page has an edge again.** The welcome card was framed in the

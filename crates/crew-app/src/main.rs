@@ -567,6 +567,7 @@ mod watchshot_tests;
 mod watchview;
 mod welcome;
 mod welcomeart;
+mod welcomecard;
 #[cfg(test)]
 #[path = "welcomeshot_tests.rs"]
 mod welcomeshot_tests;

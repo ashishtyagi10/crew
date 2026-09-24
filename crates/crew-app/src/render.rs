@@ -163,7 +163,7 @@ impl CrewApp {
                 // redraws to every ANIM_DIV ticks), so motion stays smooth at 20 fps.
                 let tick = self.tick / welcome::ANIM_DIV;
                 let hint = self.restore_hint;
-                crate::panelcard::push_card_lit(&mut scenes, r, cw, ch, "crew", |cols, rows| {
+                crate::welcomecard::push_card_lit(&mut scenes, r, cw, ch, "crew", |cols, rows| {
                     welcome::welcome_cells_animated(cols, rows, tick, hint)
                 });
             }
@@ -237,6 +237,13 @@ impl CrewApp {
         // clock for the same reason.
         let focus_rect = if self.input.focused {
             Some(ib)
+        } else if self.panes.is_empty() {
+            // The welcome is the lit card on an empty canvas, so the light
+            // sits under it as it would under the lone terminal it stands in
+            // for — with no pane to follow, the page went unlit.
+            pane_rects_at(1, content.x, content.y, content.w, content.h, self.gutter())
+                .first()
+                .copied()
         } else {
             self.panes
                 .get(self.focused)

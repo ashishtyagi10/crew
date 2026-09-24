@@ -71,3 +71,40 @@ fn welcome_shot_themes() {
     }
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
 }
+
+/// The card the welcome wears — lit ring, risen sheet — on the light pages,
+/// where a quiet stroke left the main page with no edge at all.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn welcome_shot_lit_card() {
+    let _a = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
+    let (w, h) = (1100u32, 760u32);
+    for (name, id) in [
+        ("welcome-lit-paper", crew_theme::ThemeId::PaperLight),
+        ("welcome-lit-sepia", crew_theme::ThemeId::SepiaLight),
+        ("welcome-lit-blossom", crew_theme::ThemeId::Blossom),
+    ] {
+        crew_theme::set_theme(id);
+        crate::palette::set_accent(crew_theme::theme().accent_default);
+        let Some(px) = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
+            let r = crate::layout::Rect {
+                x: 14.0,
+                y: 14.0,
+                w: w as f32 - 28.0,
+                h: h as f32 - 28.0,
+            };
+            let mut s = Vec::new();
+            crate::welcomecard::push_card_lit(&mut s, r, cw, ch, "crew", |cols, rows| {
+                crate::welcome::welcome_cells_animated(cols, rows, 7, Some(1))
+            });
+            s
+        }) else {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        };
+        crate::shotdraw_tests::write_png(name, &px, w, h);
+        assert!(crate::shotgpu_tests::ink(&px) > 1000, "{name} drew");
+    }
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+}
