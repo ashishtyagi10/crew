@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.9
+
+**`/far`'s key bar is quiet type.** The function-key row was eight solid
+accent pills — the loudest thing on the canvas, louder than the listing it
+serves — with every key number butted against the pill before it
+(`HelpF3`). It now reads the way a menu shows its shortcuts: the key in the
+accent, its label in ink, and open page between one pair and the next.
+Pairs that do not fit still leave from the right, `F10 Quit` last.
+
 ## 0.23.8
 
 **The welcome rain falls like light, not line noise.** The field around the

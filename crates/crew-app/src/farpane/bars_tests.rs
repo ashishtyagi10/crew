@@ -60,3 +60,29 @@ fn the_status_row_ellipsizes_by_display_width() {
         "short \u{b7} 1K"
     );
 }
+
+/// The key bar is quiet type, not a row of neon blocks: no cell carries a
+/// fill or a half-block pill edge, every key is followed by its label after
+/// one space, and two labels never touch the next key (`HelpF3`).
+#[test]
+fn the_function_bar_is_type_not_pills() {
+    let _g = crate::app::theme_test_guard();
+    let area = ratatui::layout::Rect::new(0, 0, 120, 1);
+    let mut buf = ratatui::buffer::Buffer::empty(area);
+    super::function_bar(&mut buf, area);
+    let page = crew_theme::theme().page_bg;
+    let row: String = (0..120).map(|x| buf[(x, 0)].symbol().to_string()).collect();
+    for x in 0..120 {
+        let c = &buf[(x, 0)];
+        let bg = match c.bg {
+            ratatui::style::Color::Rgb(r, g, b) => Some((r, g, b)),
+            _ => None,
+        };
+        assert!(bg.is_none() || bg == Some(page), "a fill at {x}: {row:?}");
+        assert!(
+            !"\u{2590}\u{258c}".contains(c.symbol()),
+            "a pill edge: {row:?}"
+        );
+    }
+    assert!(row.contains("F1 Help   F3 View"), "{row:?}");
+}

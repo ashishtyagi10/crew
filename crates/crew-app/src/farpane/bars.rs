@@ -115,7 +115,7 @@ fn ellipsize_keeping_suffix(label: &str, width: usize) -> String {
     )
 }
 
-/// The pills that fit `width` columns: dropped from the RIGHT, but never
+/// The key/label pairs that fit `width` columns: dropped from the RIGHT, but never
 /// the last one — a bar that loses `F10 Quit` has lost the way out, and a
 /// bar that just stopped mid-pill on a narrow pane said nothing at all.
 pub(super) fn pills_that_fit(width: usize) -> Vec<(&'static str, &'static str)> {
@@ -127,24 +127,26 @@ pub(super) fn pills_that_fit(width: usize) -> Vec<(&'static str, &'static str)> 
     pills
 }
 
-/// The Far-style function-key bar across the bottom row: the key number in
-/// accent, a gap, then the action label on a solid accent pill. The pill's
-/// padding is half-block glyphs (`▐label▌`), not spaces — `to_cells` drops
-/// blank cells, so a bg-only space would never reach the GPU. Pills that
-/// do not fit leave from the right ([`pills_that_fit`]).
+/// The function-key bar: quiet type, as a menu shows shortcuts — key in the
+/// accent, label in ink, open page between pairs (it was a row of solid
+/// accent pills, keys butted against them: `HelpF3`). See [`pills_that_fit`].
 pub(super) fn function_bar(buf: &mut Buffer, area: Rect) {
     let t = crew_theme::theme();
     let bar_bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
-    let cap = Style::new().fg(accent_color());
+    let key = Style::new().fg(accent_color()).bg(bar_bg);
+    let label = Style::new()
+        .fg(Color::Rgb(t.ink.0, t.ink.1, t.ink.2))
+        .bg(bar_bg);
     let mut spans = Vec::new();
-    for (k, label) in pills_that_fit(usize::from(area.width)) {
-        spans.push(Span::styled(format!("F{k} "), cap));
-        spans.push(Span::styled("\u{2590}", cap)); // ▐ left pill edge
-        spans.push(Span::styled(
-            label,
-            Style::new().fg(bar_bg).bg(accent_color()),
-        ));
-        spans.push(Span::styled("\u{258c}", cap)); // ▌ right pill edge
+    for (i, (k, l)) in pills_that_fit(usize::from(area.width))
+        .into_iter()
+        .enumerate()
+    {
+        if i > 0 {
+            spans.push(Span::styled("   ", label));
+        }
+        spans.push(Span::styled(format!("F{k} "), key));
+        spans.push(Span::styled(l, label));
     }
     Paragraph::new(Line::from(spans))
         .style(Style::new().bg(bar_bg))
