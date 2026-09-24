@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.17
+
+**`/todo` ticks like Reminders.** An item's checkbox was `[ ]`, and `[x]`
+once done — bracketed text again. It is now crew's own drawn mark, centred
+where the brackets stood: an open ring `○` for a to-do, a disc `●` in the
+accent once it is done, the same size in any font. The header's
+`[show N done]` is a small capsule on a tint of the accent, as wide as the
+brackets were, so neither click target has moved.
+
 ## 0.23.16
 
 **Save and Cancel are buttons.** The foot of `/settings` read

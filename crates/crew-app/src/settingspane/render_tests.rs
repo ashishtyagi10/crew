@@ -42,10 +42,7 @@ fn every_field_renders_on_a_tall_pane() {
             label_of(*f)
         );
     }
-    assert!(
-        all.contains("Save") && all.contains("Cancel"),
-        "buttons: {all}"
-    );
+    assert!(all.contains("Save") && all.contains("Cancel"), "{all}");
 }
 
 /// Every card's legend, at a height that holds the whole form: which cards

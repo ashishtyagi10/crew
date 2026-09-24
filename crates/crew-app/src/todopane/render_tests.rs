@@ -91,7 +91,7 @@ fn rows_render_checkbox_title_tag_due_and_delete_affordance() {
     let p = test_pane(vec![it]);
     let cells = cells(&p, COLS, ROWS);
     let row = row_text(&cells, 0);
-    assert!(row.contains("[ ] pay rent"), "{row:?}");
+    assert!(row.contains("\u{25cb}  pay rent"), "{row:?}");
     assert!(row.contains("@home"), "{row:?}");
     assert!(row.contains('\u{2717}'), "the delete ✗ is present: {row:?}");
     // The overdue label renders in the bell color.
@@ -112,9 +112,9 @@ fn a_long_title_wraps_and_shows_every_word() {
     for w in LONG.split_whitespace() {
         assert!(rows.iter().any(|r| r.contains(w)), "{w} missing: {rows:?}");
     }
-    assert!(rows[0].contains("[ ] alpha"), "{rows:?}");
+    assert!(rows[0].contains("\u{25cb}  alpha"), "{rows:?}");
     // At 40 cols the title takes three rows; "second" starts right below.
-    assert!(rows[3].contains("[ ] second"), "{rows:?}");
+    assert!(rows[3].contains("\u{25cb}  second"), "{rows:?}");
 }
 
 #[test]
@@ -183,15 +183,16 @@ fn the_header_carries_a_done_button() {
     let open = item(2, "open");
     let mut p = test_pane(vec![done, open]);
     let header = |p: &_| row_text(&cells(p, COLS, ROWS), 0);
-    assert!(header(&p).contains("[show 1 done]"), "{}", header(&p));
+    let (nb, h) = ('\u{a0}', header(&p));
+    assert!(h.contains(&format!("show{nb}1{nb}done")), "{h}");
     p.set_show_done(true);
-    assert!(header(&p).contains("[hide done]"), "{}", header(&p));
-    // No button when there is nothing ticked, and none in the history view
-    // (which is done-only already).
-    let plain = test_pane(vec![item(3, "open")]);
-    assert!(!header(&plain).contains("done]"), "{}", header(&plain));
+    assert!(header(&p).contains(&format!("hide{nb}done")));
+    // None with nothing ticked, nor in the (done-only) history view.
+    let plain = header(&test_pane(vec![item(3, "open")]));
+    assert!(!plain.contains(&format!("{nb}done")), "{plain}");
     p.set_done_view(true);
-    assert!(!header(&p).contains("done]"), "{}", header(&p));
+    let h = header(&p);
+    assert!(!h.contains(&format!("{nb}done")), "{h}");
 }
 
 /// And it is a button, not a label: the click lands on the chip's columns
@@ -201,7 +202,7 @@ fn clicking_the_done_button_toggles_the_done_items() {
     let mut done = item(1, "ticked");
     done.done = true;
     let mut p = test_pane(vec![done, item(2, "open")]);
-    let chip_col = COLS - 4; // inside "[show 1 done]", short of the last column
+    let chip_col = COLS - 4; // inside the "show 1 done" capsule, short of the last column
     assert_eq!(
         click_at(&p, 0, chip_col, COLS, ROWS),
         Some(TodoClick::ShowDone)
@@ -488,21 +489,21 @@ fn the_history_groups_under_day_headers_with_tick_times() {
         row_text(&cells, 0)
     );
     let r1 = row_text(&cells, 1);
-    assert!(r1.contains("[x] new") && r1.contains("14:30"), "{r1}");
+    assert!(r1.contains("\u{25cf}  new") && r1.contains("14:30"), "{r1}");
     assert!(
         row_text(&cells, 2).contains("yesterday"),
         "{}",
         row_text(&cells, 2)
     );
     let r3 = row_text(&cells, 3);
-    assert!(r3.contains("[x] old") && r3.contains("09:15"), "{r3}");
+    assert!(r3.contains("\u{25cf}  old") && r3.contains("09:15"), "{r3}");
     assert!(
         row_text(&cells, 4).contains("earlier"),
         "legacy ticks group under a stampless header: {}",
         row_text(&cells, 4)
     );
     let r5 = row_text(&cells, 5);
-    assert!(r5.contains("[x] ancient"), "{r5}");
+    assert!(r5.contains("\u{25cf}  ancient"), "{r5}");
     assert!(!r5.contains(':'), "no fake time on a stampless row: {r5}");
 }
 
