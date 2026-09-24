@@ -98,3 +98,21 @@ fn frame_shot_hover_lift() {
         eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
     }
 }
+
+/// The first thing a session shows: the welcome pane, the glance nav and
+/// the input bar with its cwd legend, on a dark and a light page.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn frame_shot_welcome() {
+    let _g = crate::app::theme_test_guard();
+    for id in [ThemeId::PaperDark, ThemeId::Nebula, ThemeId::PaperLight] {
+        let shot = frame_shot(&format!("frame-welcome-{}", id.as_str()), id, |app| {
+            app.input.cwd = "~/code/crew".into();
+            app.input.focused = true;
+        });
+        if shot.is_none() {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        }
+    }
+}

@@ -12,6 +12,9 @@ use crate::palette::accent;
 #[path = "inputbar_render_tests.rs"]
 mod tests;
 
+/// The caret: a text field's I-beam where the next character lands, not a block.
+pub(crate) const CARET: char = '\u{258e}';
+
 /// The empty bar's hint, longest first: chosen by the room past the caret
 /// rather than cut, so a narrow window never reads `type / for comm`.
 const PLACEHOLDERS: &[&str] = &["type / for commands", "/ for commands", "/"];
@@ -87,8 +90,6 @@ impl InputBar {
         let tstart = pstart + 2;
         // Keep text clear of the right border at `cols - 1`.
         let text_area = (cols.saturating_sub(tstart + 1)) as usize;
-        // Typed text (bright), then either the ghost suggestion (dim) or the
-        // block cursor when there's nothing to suggest.
         // What you have typed, coloured by what it MEANS: a command that
         // resolves, one still being typed, one that never will, plus flags
         // and quoted runs (see `inputink`).
@@ -99,7 +100,7 @@ impl InputBar {
             .collect();
         match &self.ghost() {
             Some(g) => body.extend(g.chars().map(|c| (c, crew_theme::theme().dim))),
-            None if self.focused => body.push(('█', accent())),
+            None if self.focused => body.push((CARET, accent())),
             None => {}
         }
         // Follow the cursor: when the body overflows the field, show its tail
@@ -138,14 +139,15 @@ impl InputBar {
         // Faint placeholder past the cursor when the bar is empty and focused.
         if self.text.is_empty() && self.focused {
             let ph = crew_theme::theme().placeholder;
-            let room = usize::from((cols - 1).saturating_sub(tstart + 2));
+            // The slim caret leaves its cell open: the hint starts past it.
+            let room = usize::from((cols - 1).saturating_sub(tstart + 1));
             let hint = PLACEHOLDERS
                 .iter()
                 .find(|s| s.len() <= room)
                 .copied()
                 .unwrap_or("");
             place_row(
-                tstart + 2,
+                tstart + 1,
                 cols - 1,
                 hint.chars().map(|c| (c, ph)),
                 |x, ch, fg| out.push(cell(x, row, ch, fg)),

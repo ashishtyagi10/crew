@@ -69,17 +69,11 @@ fn function_bar_highlights_actions_far_style() {
     let cells = render(&fixture_pane("fbar"), 80, 24);
     let bar_row = cells.iter().map(|c| c.row).max().unwrap();
     let bar: Vec<_> = cells.iter().filter(|c| c.row == bar_row).collect();
-    let mut v: Vec<(u16, char)> = bar.iter().map(|c| (c.col, c.c)).collect();
-    v.sort_unstable();
     // Blank cells are not emitted: lay the glyphs out by column.
     let mut row = vec![' '; 80];
-    for (col, c) in v {
-        row[usize::from(col)] = c;
-    }
+    bar.iter().for_each(|c| row[usize::from(c.col)] = c.c);
     let s: String = row.into_iter().collect();
-    // The key in the accent, its label in ink, no fill under either.
-    assert!(s.contains("F1 Help"), "key then label: {s}");
-    assert!(s.contains("F10 Quit"), "F10 keeps its number: {s}");
+    assert!(s.contains("F1 Help") && s.contains("F10 Quit"), "{s}");
     let f = bar.iter().find(|c| c.c == 'F').unwrap();
     let h = bar.iter().find(|c| c.c == 'H').unwrap();
     assert_ne!(h.fg, f.fg, "the label reads apart from its key");
