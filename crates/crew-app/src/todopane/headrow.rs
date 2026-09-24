@@ -109,12 +109,17 @@ pub(crate) fn empty(out: &mut Vec<CellView>, p: &TodoPane, header: u16, lh: u16,
             "type one below — try: pay rent tomorrow 5pm @home #me",
         ]
     };
+    // Centred on the list, not hung off its left edge: an empty pane is
+    // a page with one thing to say, and the statement leads in ink.
+    let room = usize::from(cols - BOX_COL);
     for (i, hint) in hints.iter().enumerate() {
         let row = header + (lh / 2).saturating_sub(1) + i as u16;
-        let hint = crate::chatwidth::clip_w(hint, usize::from(cols - BOX_COL));
+        let hint = crate::chatwidth::clip_w(hint, room);
+        let x = BOX_COL + (room - crate::chatwidth::str_w(&hint)) as u16 / 2;
+        let fg = if i == 0 { t.ink } else { t.text_muted };
         let styled = hint.chars().map(|c| (c, ()));
-        crate::chatwidth::place_row(BOX_COL, cols, styled, |x, c, ()| {
-            out.push(cell(x, row, c, t.text_muted, false))
+        crate::chatwidth::place_row(x, cols, styled, |x, c, ()| {
+            out.push(cell(x, row, c, fg, false))
         });
     }
 }

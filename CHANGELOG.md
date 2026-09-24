@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.38
+
+**An empty list, centred.** An empty `/todo` pane put its `no todos` note
+in the vertical middle but against the left edge, so it looked like a list
+that had lost its rows rather than a blank page. The note is now centred
+across the list, above the composer. Its first line (`no todos`,
+`all done …`) is in ink and the hint under it is muted.
+
 ## 0.23.37
 
 **Keys that line up.** A few bindings in `/keys` are wider than the key
