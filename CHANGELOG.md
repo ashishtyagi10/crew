@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.39
+
+**Badges without the rule through them.** A busy card's top border read
+`main─●3─1m02s─8─●`: the status badges were stamped onto the frame one cell
+apart, so the stroke ran between every reading. They now follow the
+legend's style: a space on each side of the group, a `·` between badges
+(`main ●3·1m02s·8·●`), and a plain space inside the git badge, where
+`main ●3` is a single reading.
+
 ## 0.23.38
 
 **An empty list, centred.** An empty `/todo` pane put its `no todos` note

@@ -226,15 +226,12 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     }
     // Everything that rides this border shares one floor: the legend's own
     // last column plus two. Computed HERE, before a single token is stamped
-    // on, for two reasons. The `[-][x]` buttons are drawn in the legend's own
-    // colour at the far right, so scanning after them put the legend's "end"
-    // three columns from the corner — the workaround this replaces. And a
-    // token that had already overwritten part of the legend would make the
-    // scan report the shortened legend as the real one, so the NEXT token
-    // would happily eat the rest.
+    // on: the `[-][x]` buttons wear the legend's colour at the far right, and
+    // a token that overwrote part of the legend would shorten what the scan
+    // reports, so the NEXT token would happily eat the rest.
     //
-    // Plus two, not one: every other pair of neighbours here is separated by
-    // a cell of frame, because the leftward cursor steps by two. Floored at
+    // Plus two, not one: neighbours here sit a cell apart (the leftward
+    // cursor steps by two; `borderseat` puts a `·` there). Floored at
     // plus one, a card just wide enough for the command name read
     // `claude╶ cargo build…` — the pane's name and the command run together
     // into one word.
@@ -248,6 +245,11 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     // Status glyphs ride the top-right border, stepping left from the corner.
     let mut rx = cols.saturating_sub(3);
     // The [-][x] buttons claim the corner slots; status glyphs step past them.
+    let last = if b.min_btn && cols >= BTNS_COLS {
+        cols - 10
+    } else {
+        rx
+    };
     if b.min_btn && cols >= BTNS_COLS {
         // The pointer lights the button it is on — the one card on the canvas
         // whose legend number matches what `panehover` published this frame.
@@ -363,6 +365,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     if let Some(g) = b.git {
         crate::gitbadge::draw(&mut v, rx, floor, g);
     }
+    crate::borderseat::seat(&mut v, floor, last, crew_theme::theme().legend_off);
     v
 }
 
