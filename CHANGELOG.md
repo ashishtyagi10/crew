@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.48
+
+**No router suffix on the machine's name.** 0.23.31 dropped the mDNS
+`.local`, but a home router's names came through as `Mac.lan`. The HOST card
+and `/dash` now also drop `.lan`, `.home` and `.localdomain`. A real domain
+(`ci.example.com`) is left as it is.
+
 ## 0.23.47
 
 **A toast says its kind once.** An error toast wore `error` as its legend

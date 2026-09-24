@@ -36,7 +36,7 @@ fn a_long_host_name_ellipsizes() {
     );
 }
 
-/// `name.local` is every Mac's mDNS name; the suffix is noise on a card.
+/// `name.local` (mDNS) and a router's `.lan` are noise on a card.
 #[test]
 fn the_mdns_suffix_and_the_kernel_name_are_dropped() {
     assert_eq!(
@@ -45,6 +45,13 @@ fn the_mdns_suffix_and_the_kernel_name_are_dropped() {
     );
     assert_eq!(plain_host(".local"), ".local", "never an empty name");
     assert_eq!(plain_host("build01"), "build01");
+    assert_eq!(plain_host("Mac.lan"), "Mac");
+    assert_eq!(plain_host("nas.localdomain"), "nas");
+    assert_eq!(
+        plain_host("ci.example.com"),
+        "ci.example.com",
+        "a real domain stays"
+    );
     assert_eq!(plain_os("Darwin"), "macOS");
     assert_eq!(plain_os("Ubuntu"), "Ubuntu");
 }
