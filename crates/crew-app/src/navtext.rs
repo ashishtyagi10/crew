@@ -18,6 +18,18 @@ use crew_render::CellView;
 /// Column the nav's section content starts on, aligned under the rule's legend.
 pub const INDENT: u16 = 3;
 
+/// The column a row of `text` starts on: [`INDENT`], so its words stand
+/// under the rule's legend like every card's — unless it opens with an icon
+/// and a space (`⚑ zsh`, `☁ 24°`), which hangs in the margin two columns out
+/// so the words after it still start on the indent.
+pub fn lead(text: &str) -> u16 {
+    let mut cs = text.chars();
+    match (cs.next(), cs.next()) {
+        (Some(c), Some(' ')) if !c.is_alphanumeric() => INDENT - 2,
+        _ => INDENT,
+    }
+}
+
 /// Display columns a section's content row has at `cols` wide: the indent, and
 /// one column of air before the card's right border.
 pub fn budget(cols: u16) -> usize {

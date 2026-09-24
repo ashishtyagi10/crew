@@ -58,3 +58,19 @@ fn the_hovered_row_is_bold_and_the_rest_are_not() {
         "the other row"
     );
 }
+
+/// Every row's WORDS start under the rule's legend, as every other nav
+/// card's do; a row's icon hangs in the margin before them.
+#[test]
+fn words_start_under_the_legend_and_icons_hang() {
+    let rows = vec![
+        row(Wait::Blocked, "\u{2691} zsh"),
+        row(Wait::Quiet, "nothing \u{2014} all quiet"),
+    ];
+    let cells = waiting_cells(&rows, 40, 2);
+    let at = |r: u16, c: char| cells.iter().find(|x| x.row == r && x.c == c).map(|x| x.col);
+    let indent = crate::navtext::INDENT;
+    assert_eq!(at(1, 'z'), Some(indent), "the pane's name");
+    assert_eq!(at(1, '\u{2691}'), Some(indent - 2), "the flag hangs");
+    assert_eq!(at(2, 'n'), Some(indent), "the quiet row");
+}

@@ -107,6 +107,9 @@ fn frame_shot_welcome() {
     let _g = crate::app::theme_test_guard();
     for id in [ThemeId::PaperDark, ThemeId::Nebula, ThemeId::PaperLight] {
         let shot = frame_shot(&format!("frame-welcome-{}", id.as_str()), id, |app| {
+            // The nav open at its default width, glance cards in its slot.
+            app.config.nav_collapsed = false;
+            app.config.nav_width = 224.0;
             app.input.cwd = "~/code/crew".into();
             app.input.focused = true;
         });

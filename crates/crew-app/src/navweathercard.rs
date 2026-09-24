@@ -14,7 +14,7 @@ use crate::palette::accent;
 pub const WEATHER_BLOCK: u16 = 4;
 
 /// Column the text (and the curve) starts on, under the rule's own indent.
-pub(crate) const TEXT_COL: u16 = 2;
+pub(crate) const TEXT_COL: u16 = crate::navtext::INDENT;
 /// Rows the card takes for this state: nothing when off, one quiet row
 /// (rule, row, gap) while looking or when the place is not found, and the
 /// reading's rows — with the curve only when there is one.
@@ -111,23 +111,25 @@ pub(crate) fn weather_cells(w: &Weather, cols: u16) -> Vec<CellView> {
     let max_col = cols.saturating_sub(1);
     let room = usize::from(max_col.saturating_sub(TEXT_COL));
     // Row 1: the reading leads and never goes; the words go when the nav is
-    // narrow, then the unit.
+    // narrow, then the unit. Its glyph hangs, so it has the margin's room.
     let head = format!("{} {}\u{00b0}", glyph(w.code), w.temp);
+    let lead = crate::navtext::lead(&head);
+    let room1 = usize::from(max_col.saturating_sub(lead));
     let mut now = format!("{head}{} {}", w.unit, condition(w.code));
-    if crate::chatwidth::str_w(&now) > room {
+    if crate::chatwidth::str_w(&now) > room1 {
         now = format!("{head} {}", condition(w.code));
     }
-    if crate::chatwidth::str_w(&now) > room {
+    if crate::chatwidth::str_w(&now) > room1 {
         now = format!("{head}{}", w.unit);
     }
     // The reading is the card's one bold thing; the words stand in plain ink.
     let head_n = head.chars().count() + 1;
-    let styled: Vec<(char, (u8, u8, u8), bool)> = crate::chatwidth::clip_w(&now, room)
+    let styled: Vec<(char, (u8, u8, u8), bool)> = crate::chatwidth::clip_w(&now, room1)
         .chars()
         .enumerate()
         .map(|(i, c)| (c, if i < head_n { accent() } else { t.ink }, i < head_n))
         .collect();
-    put(&mut out, 1, styled, max_col, t.page_bg);
+    put_at(&mut out, lead, 1, styled, max_col, t.page_bg);
     // Row 2: today's range, and the chance of rain when there is one.
     let mut today = vec![('\u{2191}', t.text_muted)];
     let mut push = |s: &str, fg| today.extend(s.chars().map(|c| (c, fg)));
@@ -154,8 +156,19 @@ fn put(
     max_col: u16,
     bg: (u8, u8, u8),
 ) {
+    put_at(out, TEXT_COL, row, styled, max_col, bg);
+}
+
+fn put_at(
+    out: &mut Vec<CellView>,
+    col: u16,
+    row: u16,
+    styled: impl IntoIterator<Item = (char, (u8, u8, u8), bool)>,
+    max_col: u16,
+    bg: (u8, u8, u8),
+) {
     let styled = styled.into_iter().map(|(c, fg, b)| (c, (fg, b)));
-    crate::chatwidth::place_row(TEXT_COL, max_col, styled, |x, c, (fg, bold)| {
+    crate::chatwidth::place_row(col, max_col, styled, |x, c, (fg, bold)| {
         out.push(CellView {
             col: x,
             row,

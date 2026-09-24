@@ -42,7 +42,7 @@ fn the_hours_draw_a_curve_under_the_words() {
     // right end, where a live chart's head would.
     let solid = |p: &&Paint| p.alpha >= 0.99 && p.color == crate::palette::accent();
     assert!(
-        paint.iter().filter(solid).any(|p| p.x < 3.0),
+        paint.iter().filter(solid).any(|p| p.x < 4.0),
         "a dot at now"
     );
     assert!(
