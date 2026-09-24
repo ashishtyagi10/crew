@@ -60,3 +60,14 @@ fn save_and_cancel_are_filled_buttons() {
     let (save, cancel) = (button(SAVE, false, true), button(CANCEL, false, false));
     assert_ne!(save.style.bg, cancel.style.bg, "Save is the primary one");
 }
+
+/// A label too wide for its card ends in `…`, never mid-word.
+#[test]
+fn a_clipped_checkbox_label_says_so() {
+    let _g = crate::app::theme_test_guard();
+    let area = Rect::new(0, 0, 12, 1);
+    let mut buf = Buffer::empty(area);
+    checkbox(&mut buf, area, "Drifting background", true, false);
+    let row: String = (0..12).map(|x| buf[(x, 0)].symbol().to_string()).collect();
+    assert_eq!(row, "  \u{25a0} Driftin\u{2026}");
+}
