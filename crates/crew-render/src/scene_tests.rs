@@ -73,6 +73,7 @@ fn pane(cells: Vec<CellView>, bordered: bool, overlay: bool) -> PaneScene {
         scan: -1.0,
         lift: 0.0,
         glint: -1.0,
+        stretch: false,
         overlay,
         paint: Vec::new(),
     }
@@ -235,6 +236,9 @@ fn focused_border_is_brighter_than_unfocused() {
 /// edge: at a 16px cell the rule is 1px thick, centred on whole pixels at
 /// 3..4 across an 8px cell and 7..8 down a 16px one, so the sheet's edge sits
 /// at 3.5 and 7.5 on every side — under the line, where the frame hides it.
+/// On the far sides too: the last column's rule is 3.5 into ITS cell, so the
+/// sheet ends at `9 * 8 + 3.5`, not `3.5` short of the frame's outer edge
+/// (which put the rim a pixel beside the right-hand and bottom rules).
 /// Its corner is the `╭` arc's: half the narrower cell side, less the one
 /// pixel of straight tail `boxglyph::round` keeps.
 #[test]
@@ -244,7 +248,7 @@ fn glass_card_runs_along_the_frame_stroke() {
         build(&[card(vec![], true, false)], &mut fs, false, test_glass());
     assert_eq!(cards.len(), 1);
     let c = &cards[0];
-    assert_eq!((c.x, c.y, c.w, c.h), (3.5, 7.5, 80.0 - 7.0, 32.0 - 15.0));
+    assert_eq!((c.x, c.y, c.w, c.h), (3.5, 7.5, 9.0 * 8.0, 16.0));
     assert_eq!(c.radius, 8.0 / 2.0 - 1.0);
 }
 

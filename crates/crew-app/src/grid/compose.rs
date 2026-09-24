@@ -1,5 +1,5 @@
 use crate::grid::state::{GridLayout, MAX_FULL_TILES};
-use crate::layout::{pane_rects_at, Rect};
+use crate::layout::{pane_rects_at, Gutter, Rect};
 
 /// Cell rows reserved for the minimized thumbnail strip when any pane is
 /// minimized.
@@ -53,8 +53,9 @@ pub fn compose_grid(
     layout: &GridLayout,
     cell_w: f32,
     cell_h: f32,
-    gap: f32,
+    gap: impl Into<Gutter>,
 ) -> GridRects {
+    let g: Gutter = gap.into();
     let mut full_ids = layout.full();
     let min_lru = layout.minimized();
     if full_ids.is_empty() && min_lru.is_empty() {
@@ -67,11 +68,11 @@ pub fn compose_grid(
     let strip_h = if min_lru.is_empty() {
         0.0
     } else {
-        (MINIMIZED_STRIP_ROWS * cell_h + 2.0 * gap).min(content.h)
+        (MINIMIZED_STRIP_ROWS * cell_h + g.y + g.my).min(content.h)
     };
     let grid_h = (content.h - strip_h).max(0.0);
 
-    let full_rects = pane_rects_at(full_ids.len(), content.x, content.y, content.w, grid_h, gap);
+    let full_rects = pane_rects_at(full_ids.len(), content.x, content.y, content.w, grid_h, g);
     let full = full_ids.into_iter().zip(full_rects).collect();
 
     let (minimized, overflow) = if min_lru.is_empty() {
@@ -82,7 +83,7 @@ pub fn compose_grid(
         // shrinking them into slivers. Membership follows the LRU (the
         // most-recently-active minimized panes stay visible), display order
         // stays sorted by pane index like everything else on the canvas.
-        let cap = strip_cap(content.w, cell_w, gap);
+        let cap = strip_cap(content.w, cell_w, g.x);
         let (shown, hidden) = if min_lru.len() <= cap {
             (&min_lru[..], 0)
         } else {
@@ -93,7 +94,7 @@ pub fn compose_grid(
         let mut min_ids = shown.to_vec();
         min_ids.sort_unstable();
         let slots = min_ids.len() + usize::from(hidden > 0);
-        let mut rects = strip_row(slots, content.x, strip_y, content.w, strip_h, gap);
+        let mut rects = strip_row(slots, content.x, strip_y, content.w, strip_h, g);
         // The overflow tile owns the last slot (strip_row returned `slots`
         // rects, so the pop can't miss).
         let overflow = if hidden > 0 {
@@ -122,20 +123,22 @@ fn strip_cap(w: f32, cell_w: f32, gap: f32) -> usize {
 }
 
 /// Lay `n` equal-width tiles left-to-right across one strip row. Like the
-/// main grid, interior seams take half the gap per side; the strip's outer
-/// edges keep the full gap.
-fn strip_row(n: usize, x: f32, y: f32, w: f32, h: f32, gap: f32) -> Vec<Rect> {
+/// main grid, interior seams take half the gutter per side and the outer
+/// edges keep the margin — except the top, which is the seam under the grid
+/// (the grid's own bottom margin already counts toward it): one gutter.
+fn strip_row(n: usize, x: f32, y: f32, w: f32, h: f32, g: Gutter) -> Vec<Rect> {
     let tile_w = w / n as f32;
-    let half = gap / 2.0;
+    let half = g.x / 2.0;
+    let top = g.y - g.my;
     (0..n)
         .map(|i| {
-            let left = if i == 0 { gap } else { half };
-            let right = if i == n - 1 { gap } else { half };
+            let left = if i == 0 { g.mx } else { half };
+            let right = if i == n - 1 { g.mx } else { half };
             Rect {
                 x: x + i as f32 * tile_w + left,
-                y: y + gap,
+                y: y + top,
                 w: (tile_w - left - right).max(0.0),
-                h: h - 2.0 * gap,
+                h: h - top - g.my,
             }
             .snapped()
         })

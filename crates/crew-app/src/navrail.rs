@@ -18,7 +18,7 @@
 //! will move.
 use crew_render::{CellView, PaneScene};
 
-use crate::app::{gap, CrewApp};
+use crate::app::CrewApp;
 use crate::chrome;
 use crate::layout::Rect;
 use crate::palette::accent;
@@ -120,7 +120,7 @@ impl CrewApp {
     /// no NavLayout to divide: row 1 of the card is the first pane.
     pub(crate) fn pane_at_rail(&self) -> Option<usize> {
         let (cw, ch, _sw, sh, scale) = self.frame_geometry()?;
-        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), gap(), ch, false);
+        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), self.gutter(), ch, false);
         if !chrome::point_in(sb, self.cursor.0, self.cursor.1) {
             return None;
         }
@@ -138,7 +138,13 @@ impl CrewApp {
         let Some((cw, ch, _sw, sh, scale)) = self.frame_geometry() else {
             return false;
         };
-        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), gap(), ch, self.nav_top_card());
+        let sb = chrome::stats_card_rect(
+            sh,
+            self.nav_px(scale),
+            self.gutter(),
+            ch,
+            self.nav_top_card(),
+        );
         let hit = crate::navrail::chevron_rect(sb, cw, ch);
         chrome::point_in(hit, self.cursor.0, self.cursor.1)
     }
@@ -156,7 +162,7 @@ impl CrewApp {
         cw: f32,
         ch: f32,
     ) {
-        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), gap(), ch, false);
+        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), self.gutter(), ch, false);
         let rows = self.pane_rows();
         let spin = crate::update::spinner_frame(crate::anim::now_ms());
         let legend = legend(true, "");

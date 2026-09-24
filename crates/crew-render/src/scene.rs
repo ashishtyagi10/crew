@@ -67,6 +67,12 @@ pub struct PaneScene {
     /// and its text — the layer charts are painted on. Cell units; see
     /// [`Paint`].
     pub paint: Vec<Paint>,
+    /// A card's FRAME scene: its drawing fills the rect exactly, the sub-cell
+    /// remainder spent inside the frame rather than left as gap beside it
+    /// (see [`crate::stretch`]). Only scenes whose last column and row are
+    /// the frame's own set this — content split off the far edge would read
+    /// as a gap in the text.
+    pub stretch: bool,
     /// Overlay popups (command palette, help) drawn on top of everything. Their
     /// backgrounds and text are rendered in a second pass *after* base panes, so
     /// nothing behind them can bleed through — they are fully opaque.
@@ -90,6 +96,7 @@ impl Default for PaneScene {
             lift: 0.0,
             glint: -1.0,
             paint: Vec::new(),
+            stretch: false,
             overlay: false,
         }
     }
@@ -105,6 +112,11 @@ fn stroke_centre(extent: f32, cell_h: f32) -> f32 {
     let t = crate::boxglyph::light_thickness(cell_h.round() as u32);
     let (lo, _) = crate::boxglyph::centre(extent.round() as u32, t);
     lo as f32 + t as f32 / 2.0
+}
+
+/// [`stroke_centre`] on both axes of a `cell_w`×`cell_h` cell.
+pub(crate) fn stroke_inset(cell_w: f32, cell_h: f32) -> (f32, f32) {
+    (stroke_centre(cell_w, cell_h), stroke_centre(cell_h, cell_h))
 }
 
 /// One built pass: quads, buffers (with this frame's signatures), borders and
@@ -190,6 +202,7 @@ pub(crate) fn build_scene(
         }
         let cols = ((pane.w / cell_w).floor() as usize).max(1);
         let rows = ((pane.h / cell_h).floor() as usize).max(1);
+        let split = crate::stretch::split(pane, cell_w, cell_h);
 
         // Overlay popups get a solid black backdrop spanning the whole pane,
         // drawn before their cell quads. The overlay pass runs after all base
@@ -200,70 +213,6 @@ pub(crate) fn build_scene(
             let bg = crew_theme::theme().page_bg;
             let color = crate::color::target_rgba(bg, 1.0, srgb);
             quads.push(Quad::rect(pane.x, pane.y, pane.w, pane.h, color));
-        }
-
-        // Cell backgrounds, as runs: one quad per horizontal run of a colour,
-        // its corners rounded wherever they sit on bare page (`bgruns`).
-        let (gcols, grows) = pane.cells.iter().fold((cols, rows), |(c, r), cell| {
-            let end = usize::from(cell.col) + cell_cols(cell.c) as usize;
-            (c.max(end), r.max(usize::from(cell.row) + 1))
-        });
-        let rad = crate::bgruns::radius(cell_w, cell_h);
-        for run in crate::bgruns::runs(&pane.cells, gcols, grows, default_bg()) {
-            let radii = run.round.map(|r| if r { rad } else { 0.0 });
-            quads.push(Quad {
-                x: pane.x + f32::from(run.col) * cell_w,
-                y: pane.y + f32::from(run.row) * cell_h,
-                w: f32::from(run.cols) * cell_w,
-                h: cell_h,
-                color: crate::color::target_rgba(run.bg, 1.0, srgb),
-                radii,
-            });
-        }
-
-        // Background quads for cells with non-default bg colour, then the
-        // rules the cell wears (underline family, strikethrough). The rules go
-        // after the cell's own background so they are never buried by it, and
-        // before the text pass so a descender crosses them the way it does in
-        // print.
-        for cell in &pane.cells {
-            let x = pane.x + f32::from(cell.col) * cell_w;
-            let y = pane.y + f32::from(cell.row) * cell_h;
-            // Everything a cell wears has to cover every column the cell
-            // occupies. A full-width character owns TWO, and the second
-            // carries no `CellView` of its own — the terminal drops
-            // alacritty's spacer and every widget places one cell per
-            // character — so a mark measured in one cell left a gap on the
-            // other: a selection over Japanese was a row of stripes, an
-            // underline broke under every wide glyph, and a TUI's painted
-            // status bar came out perforated.
-            let w = cell_cols(cell.c) * cell_w;
-            if !cell.deco.is_blank() {
-                let rgb = crate::deco::color(&cell.deco, cell.fg);
-                let color = crate::color::target_rgba(rgb, 1.0, srgb);
-                for (x, y, w, h) in crate::deco::rects(&cell.deco, x, y, w, cell_h) {
-                    quads.push(Quad::rect(x, y, w, h, color));
-                }
-            }
-            if cell.cursor.is_rule() {
-                let color = crate::color::target_rgba(cell.cursor.color, 1.0, srgb);
-                for (x, y, w, h) in crate::deco::cursor_rects(&cell.cursor, x, y, w, cell_h) {
-                    quads.push(Quad::rect(x, y, w, h, color));
-                }
-            }
-        }
-
-        // The pane's vector paint: cell-unit rectangles scaled by this frame's
-        // cell size. After the cell backgrounds so a chart is not buried by the
-        // page it sits on, and before the text pass so labels read on top of it.
-        for p in pane.paint.iter().filter(|p| p.visible()) {
-            quads.push(Quad::rect(
-                pane.x + p.x * cell_w,
-                pane.y + p.y * cell_h,
-                p.w * cell_w,
-                p.h * cell_h,
-                crate::color::target_rgba(p.color, p.alpha, srgb),
-            ));
         }
 
         // The frosted sheet this pane sits on. Only card scenes get one — a
@@ -290,11 +239,36 @@ pub(crate) fn build_scene(
             // sheet's edge runs under the frame and the frame hides it.
             let (ix, iy) = (stroke_centre(cell_w, cell_h), stroke_centre(cell_h, cell_h));
             let sheet = if pane.overlay { 0.0 } else { 1.0 };
+            // A stretched frame reaches its rect's far edges, and so does
+            // its sheet.
+            //
+            // Edge to edge from the first column's stroke to the LAST
+            // column's — each `ix` into its own cell — not to `ix` short of
+            // the frame's far edge: a cell is rarely `2 * ix` wide, and the
+            // difference drew the rim a pixel beside the right-hand rule.
+            let (fw, fh, fcols, frows) = match split {
+                Some(s) => (
+                    f32::from(s.lc) * cell_w + s.sx + 2.0 * ix,
+                    f32::from(s.lr) * cell_h + s.sy + 2.0 * iy,
+                    usize::from(s.lc) + 1,
+                    usize::from(s.lr) + 1,
+                ),
+                None => (
+                    (cols - 1) as f32 * cell_w + 2.0 * ix,
+                    (rows - 1) as f32 * cell_h + 2.0 * iy,
+                    cols,
+                    rows,
+                ),
+            };
+            let mut notch = crate::notch::notch(&pane.cells, fcols, frows, cell_w, cell_h, ix, iy);
+            if let Some(s) = split {
+                crate::notch::shift(&mut notch, f32::from(s.lc) * cell_w - ix, s.sx);
+            }
             cards.push(GlassCard {
                 x: pane.x + ix,
                 y: pane.y + iy,
-                w: (cols as f32 * cell_w - 2.0 * ix).max(0.0),
-                h: (rows as f32 * cell_h - 2.0 * iy).max(0.0),
+                w: (fw - 2.0 * ix).max(0.0),
+                h: (fh - 2.0 * iy).max(0.0),
                 radius: (cell_w.min(cell_h) / 2.0 - 1.0).max(1.0),
                 alpha_top: glass_style.alpha_top * sheet,
                 alpha_bottom: glass_style.alpha_bottom * sheet,
@@ -307,7 +281,7 @@ pub(crate) fn build_scene(
                 edge_glow: glass_style.edge_glow,
                 lift: pane.lift,
                 glint: pane.glint,
-                notch: crate::notch::notch(&pane.cells, cols, rows, cell_w, cell_h, ix, iy),
+                notch,
             });
         }
 
@@ -331,22 +305,145 @@ pub(crate) fn build_scene(
             });
         }
 
-        // One text Buffer per pane — last frame's, when the signature matches
-        // (position is not part of the signature; a moved pane reuses too).
-        let sig = pane_sig(pane, cols, rows, params);
-        let slot = buffers.len();
-        let buf = match prev_sigs.get(slot) == Some(&sig) {
-            true => prev_bufs.get_mut(slot).and_then(Option::take),
-            false => None,
-        };
-        let buf = buf.map(|b| b.0).unwrap_or_else(|| {
-            build_pane_buffer(font_system, &pane.cells, cols, rows, pane.w, pane.h, params)
-        });
-        sigs.push(sig);
-        buffers.push((buf, pane.x, pane.y, pane.w, pane.h));
+        // The cells themselves — once, or once per slice of a stretched
+        // frame, with the rules carried across the stretch.
+        let parts = split.map(|s| crate::stretch::parts(pane, &s, cell_w, cell_h));
+        for part in parts.as_deref().unwrap_or(std::slice::from_ref(pane)) {
+            emit_cells(
+                part,
+                cell_w,
+                cell_h,
+                font_system,
+                params,
+                srgb,
+                &prev_sigs,
+                &mut prev_bufs,
+                &mut Out {
+                    quads: &mut quads,
+                    buffers: &mut buffers,
+                    sigs: &mut sigs,
+                },
+            );
+        }
+        if let Some(s) = split {
+            for (x, y, w, h, fg) in crate::stretch::bridges(pane, &s, cell_w, cell_h) {
+                quads.push(Quad::rect(
+                    x,
+                    y,
+                    w,
+                    h,
+                    crate::color::target_rgba(fg, 1.0, srgb),
+                ));
+            }
+        }
     }
 
     (quads, buffers, sigs, borders, cards)
+}
+
+/// Where [`emit_cells`] writes: the pass's quads, and its text buffers with
+/// their signatures, slot for slot.
+struct Out<'a> {
+    quads: &'a mut Vec<Quad>,
+    buffers: &'a mut Vec<PaneBuffer>,
+    sigs: &'a mut Vec<u64>,
+}
+
+/// One scene's cells into quads and a text buffer: backgrounds as runs, the
+/// rules each cell wears, the vector paint, then the shaped text — last
+/// frame's buffer when the slot's signature matches.
+#[allow(clippy::too_many_arguments)]
+fn emit_cells(
+    pane: &PaneScene,
+    cell_w: f32,
+    cell_h: f32,
+    font_system: &mut glyphon::FontSystem,
+    params: &FontParams,
+    srgb: bool,
+    prev_sigs: &[u64],
+    prev_bufs: &mut [Option<PaneBuffer>],
+    out: &mut Out<'_>,
+) {
+    let cols = ((pane.w / cell_w).floor() as usize).max(1);
+    let rows = ((pane.h / cell_h).floor() as usize).max(1);
+    let quads = &mut *out.quads;
+    // Cell backgrounds, as runs: one quad per horizontal run of a colour,
+    // its corners rounded wherever they sit on bare page (`bgruns`).
+    let (gcols, grows) = pane.cells.iter().fold((cols, rows), |(c, r), cell| {
+        let end = usize::from(cell.col) + cell_cols(cell.c) as usize;
+        (c.max(end), r.max(usize::from(cell.row) + 1))
+    });
+    let rad = crate::bgruns::radius(cell_w, cell_h);
+    for run in crate::bgruns::runs(&pane.cells, gcols, grows, default_bg()) {
+        let radii = run.round.map(|r| if r { rad } else { 0.0 });
+        quads.push(Quad {
+            x: pane.x + f32::from(run.col) * cell_w,
+            y: pane.y + f32::from(run.row) * cell_h,
+            w: f32::from(run.cols) * cell_w,
+            h: cell_h,
+            color: crate::color::target_rgba(run.bg, 1.0, srgb),
+            radii,
+        });
+    }
+
+    // Background quads for cells with non-default bg colour, then the
+    // rules the cell wears (underline family, strikethrough). The rules go
+    // after the cell's own background so they are never buried by it, and
+    // before the text pass so a descender crosses them the way it does in
+    // print.
+    for cell in &pane.cells {
+        let x = pane.x + f32::from(cell.col) * cell_w;
+        let y = pane.y + f32::from(cell.row) * cell_h;
+        // Everything a cell wears has to cover every column the cell
+        // occupies. A full-width character owns TWO, and the second
+        // carries no `CellView` of its own — the terminal drops
+        // alacritty's spacer and every widget places one cell per
+        // character — so a mark measured in one cell left a gap on the
+        // other: a selection over Japanese was a row of stripes, an
+        // underline broke under every wide glyph, and a TUI's painted
+        // status bar came out perforated.
+        let w = cell_cols(cell.c) * cell_w;
+        if !cell.deco.is_blank() {
+            let rgb = crate::deco::color(&cell.deco, cell.fg);
+            let color = crate::color::target_rgba(rgb, 1.0, srgb);
+            for (x, y, w, h) in crate::deco::rects(&cell.deco, x, y, w, cell_h) {
+                quads.push(Quad::rect(x, y, w, h, color));
+            }
+        }
+        if cell.cursor.is_rule() {
+            let color = crate::color::target_rgba(cell.cursor.color, 1.0, srgb);
+            for (x, y, w, h) in crate::deco::cursor_rects(&cell.cursor, x, y, w, cell_h) {
+                quads.push(Quad::rect(x, y, w, h, color));
+            }
+        }
+    }
+
+    // The pane's vector paint: cell-unit rectangles scaled by this frame's
+    // cell size. After the cell backgrounds so a chart is not buried by the
+    // page it sits on, and before the text pass so labels read on top of it.
+    for p in pane.paint.iter().filter(|p| p.visible()) {
+        quads.push(Quad::rect(
+            pane.x + p.x * cell_w,
+            pane.y + p.y * cell_h,
+            p.w * cell_w,
+            p.h * cell_h,
+            crate::color::target_rgba(p.color, p.alpha, srgb),
+        ));
+    }
+
+    // One text Buffer per pane — last frame's, when the signature matches
+    // (position is not part of the signature; a moved pane reuses too).
+    let sig = pane_sig(pane, cols, rows, params);
+    let slot = out.buffers.len();
+    let buf = match prev_sigs.get(slot) == Some(&sig) {
+        true => prev_bufs.get_mut(slot).and_then(Option::take),
+        false => None,
+    };
+    let buf = buf.map(|b| b.0).unwrap_or_else(|| {
+        build_pane_buffer(font_system, &pane.cells, cols, rows, pane.w, pane.h, params)
+    });
+    out.sigs.push(sig);
+    out.buffers.push((buf, pane.x, pane.y, pane.w, pane.h));
 }
 
 #[cfg(test)]

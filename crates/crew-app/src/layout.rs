@@ -36,6 +36,55 @@ pub fn card_inner_cells(w: f32, h: f32, cell_w: f32, cell_h: f32) -> (u16, u16) 
     (cols, rows)
 }
 
+/// The space around cards, per axis: `x`/`y` between two cards' rects, and
+/// `mx`/`my` between a card's rect and the window's edge.
+///
+/// Spaced by rects, a gutter is not what the eye measures. It measures the
+/// LINES, and a frame's `│` sits half a cell WIDTH inside its rect while its
+/// `─` sits half a cell HEIGHT inside — twice as far — so one gap between
+/// rects drew a seam twice as wide between stacked cards as between side-by-
+/// side ones. [`Gutter::between_strokes`] solves for the rect gaps that put
+/// one gutter between every pair of lines and one margin at every window
+/// edge. A bare `f32` is the old even gap, all four the same.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Gutter {
+    pub x: f32,
+    pub y: f32,
+    pub mx: f32,
+    pub my: f32,
+}
+
+impl From<f32> for Gutter {
+    fn from(g: f32) -> Self {
+        Self {
+            x: g,
+            y: g,
+            mx: g,
+            my: g,
+        }
+    }
+}
+
+impl Gutter {
+    /// Rect gaps for frames whose strokes sit `inset` px inside their rects:
+    /// the stroke-to-stroke gutter is `gap` plus the two side insets — the
+    /// seam two side-by-side cards always had — on BOTH axes, and the window
+    /// margin, line to edge, is that same gutter. A stacked pair's rects then
+    /// overlap slightly when a row is more than twice as tall as it is wide
+    /// ... and the rows they overlap on are the empty halves beyond each
+    /// card's rule.
+    pub fn between_strokes(gap: f32, inset: (f32, f32)) -> Self {
+        let (ix, iy) = inset;
+        let g = gap + 2.0 * ix;
+        Self {
+            x: gap,
+            y: g - 2.0 * iy,
+            mx: g - ix,
+            my: g - iy,
+        }
+    }
+}
+
 /// Pack `n` tiles into `w`x`h` offset by `(ox, oy)` as a **vertical split**:
 /// the area is divided into `ceil(sqrt(n))` equal-width columns, and a column
 /// is split into rows only when it must hold more than one pane. When `n`
@@ -43,10 +92,17 @@ pub fn card_inner_cells(w: f32, h: f32, cell_w: f32, cell_h: f32) -> (u16, u16) 
 /// (left) columns, so the later columns stay full height — e.g. three panes
 /// give two columns, the first split in two and the second full height.
 ///
-/// Outer edges keep the full `gap`; interior edges take half each, so the seam
-/// between two adjacent panes is one `gap` — tiles sit closer to each other
-/// than to the window chrome.
-pub fn pane_rects_at(n: usize, ox: f32, oy: f32, w: f32, h: f32, gap: f32) -> Vec<Rect> {
+/// Outer edges keep the margin (`mx`/`my`); interior edges take half the
+/// gutter each, so the seam between two adjacent panes is one gutter.
+pub fn pane_rects_at(
+    n: usize,
+    ox: f32,
+    oy: f32,
+    w: f32,
+    h: f32,
+    gap: impl Into<Gutter>,
+) -> Vec<Rect> {
+    let g: Gutter = gap.into();
     if n == 0 {
         return Vec::new();
     }
@@ -54,16 +110,16 @@ pub fn pane_rects_at(n: usize, ox: f32, oy: f32, w: f32, h: f32, gap: f32) -> Ve
     let base = n / cols; // rows in the shortest (right-hand) columns
     let extra = n % cols; // the first `extra` columns carry one more pane
     let tile_w = w / cols as f32;
-    let half = gap / 2.0;
+    let (hx, hy) = (g.x / 2.0, g.y / 2.0);
     let mut out = Vec::with_capacity(n);
     for c in 0..cols {
         let col_n = base + if c < extra { 1 } else { 0 };
         let tile_h = h / col_n as f32;
-        let left = if c == 0 { gap } else { half };
-        let right = if c == cols - 1 { gap } else { half };
+        let left = if c == 0 { g.mx } else { hx };
+        let right = if c == cols - 1 { g.mx } else { hx };
         for r in 0..col_n {
-            let top = if r == 0 { gap } else { half };
-            let bottom = if r == col_n - 1 { gap } else { half };
+            let top = if r == 0 { g.my } else { hy };
+            let bottom = if r == col_n - 1 { g.my } else { hy };
             out.push(
                 Rect {
                     x: ox + c as f32 * tile_w + left,
@@ -85,3 +141,7 @@ mod snap_tests;
 #[cfg(test)]
 #[path = "layout_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "layout_gutter_tests.rs"]
+mod gutter_tests;

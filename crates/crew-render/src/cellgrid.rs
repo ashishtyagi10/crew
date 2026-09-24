@@ -36,7 +36,7 @@ pub(crate) fn atlas_color_mode(srgb: bool) -> ColorMode {
 /// `..Default::default()` and keep compiling when a new cell attribute lands —
 /// there are eighty of them. Clippy's `needless_update` guards the other
 /// direction: a literal that does name every field is told to drop the update.
-#[derive(Hash, Default)]
+#[derive(Clone, Hash, Default)]
 pub struct CellView {
     pub col: u16,
     pub row: u16,

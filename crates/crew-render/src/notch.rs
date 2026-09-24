@@ -111,6 +111,18 @@ pub fn notch(
     }
 }
 
+/// Move every span edge past `at` (card-left px) out by `by` — a stretched
+/// frame's last column has moved, and a legend in it with it.
+pub fn shift(n: &mut Notch, at: f32, by: f32) {
+    for span in n.top.iter_mut().chain(n.bottom.iter_mut()) {
+        if span[1] > span[0] {
+            for x in span.iter_mut().filter(|x| **x > at + 1e-3) {
+                *x += by;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 #[path = "notch_tests.rs"]
 mod tests;

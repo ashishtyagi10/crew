@@ -174,6 +174,27 @@ pub(crate) fn centre(extent: u32, t: u32) -> (u32, u32) {
     (lo, lo + t)
 }
 
+/// The arms `[up, right, down, left]` a frame character reaches out along
+/// (`0` none, `1` light, `2` heavy) — the straight set and the round
+/// corners — or `None` for anything else. What a stretched frame reads to
+/// know which rules continue across the stretch.
+pub(crate) fn arms(c: char) -> Option<[u8; 4]> {
+    arms::arms_of(c).or(match c {
+        '\u{256D}' => Some([0, 1, 1, 0]),
+        '\u{256E}' => Some([0, 0, 1, 1]),
+        '\u{256F}' => Some([1, 0, 0, 1]),
+        '\u{2570}' => Some([1, 1, 0, 0]),
+        _ => None,
+    })
+}
+
+/// The `[lo, hi)` pixel span a stroke of `weight` occupies across a cell
+/// `extent` px wide, in a cell `ch` px tall — the band a rule drawn by this
+/// module fills, so a quad can continue it seamlessly.
+pub(crate) fn band(extent: u32, weight: u8, ch: u32) -> (u32, u32) {
+    arms::span(extent, weight, light_thickness(ch))
+}
+
 /// Draw `c` into a `cw`×`ch` cell, or `None` when this module has nothing to
 /// say about it and the font should answer. `top` is the placement's baseline
 /// offset — the caller measures it from the layout run so the mask covers

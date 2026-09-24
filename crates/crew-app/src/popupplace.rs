@@ -81,6 +81,7 @@ pub(crate) fn scene(pane: &ChatPane, r: Rect, cw: f32, ch: f32, p: Popup, now: u
         scan: -1.0,
         lift: 0.0,
         glint: -1.0,
+        stretch: false,
         overlay: true,
         paint: Vec::new(),
     }
@@ -117,6 +118,7 @@ pub(crate) fn float_shadow(x: f32, y: f32, w: f32, h: f32) -> PaneScene {
         h,
         glass: true,
         lift: FLOAT,
+        stretch: false,
         overlay: true,
         ..Default::default()
     }

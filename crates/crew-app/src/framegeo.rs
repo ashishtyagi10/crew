@@ -56,10 +56,28 @@ impl CrewApp {
     /// reports a real cell size.
     pub(crate) fn placed_grid(&self) -> Option<(Rect, crate::grid::GridRects)> {
         let (cw, ch, sw, sh, scale) = self.frame_geometry()?;
-        let ih = chrome::bottom_chrome_h(sh, ch, gap());
-        let content =
-            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), gap(), ih);
-        Some((content, compose_grid(content, &self.grid, cw, ch, gap())))
+        let ih = chrome::bottom_chrome_h(sh, ch, self.gutter());
+        let content = chrome::content_rect(
+            sw,
+            sh,
+            self.config.show_nav,
+            self.nav_px(scale),
+            self.gutter(),
+            ih,
+        );
+        Some((
+            content,
+            compose_grid(content, &self.grid, cw, ch, self.gutter()),
+        ))
+    }
+
+    /// The canvas's spacing at this frame's cell size (see
+    /// [`crate::layout::Gutter`]); the bare gap before there is a frame.
+    pub(crate) fn gutter(&self) -> crate::layout::Gutter {
+        match self.frame_geometry() {
+            Some((cw, ch, ..)) => crate::density::gutter(cw, ch),
+            None => gap().into(),
+        }
     }
 
     /// Returns the actual on-screen rect for every rendered pane, as
@@ -71,7 +89,14 @@ impl CrewApp {
         let Some((content, placed)) = self.placed_grid() else {
             return Vec::new();
         };
-        frame_hit_rects(self.zoomed, self.focused, self.panes.len(), content, placed)
+        frame_hit_rects(
+            self.zoomed,
+            self.focused,
+            self.panes.len(),
+            content,
+            placed,
+            self.gutter(),
+        )
     }
 
     /// Take down any provider-key prompt this frame will NOT draw. `render.rs`

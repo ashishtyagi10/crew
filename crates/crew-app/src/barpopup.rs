@@ -5,7 +5,7 @@
 //! takes (`InputBar::pick_menu`), the pointer wears the hand. The rows and
 //! the card's place come from the same two functions `render.rs` draws
 //! with, so a hit can never resolve against a row the frame did not draw.
-use crate::app::{gap, CrewApp};
+use crate::app::CrewApp;
 use crate::chrome;
 use crate::layout::Rect;
 use crate::suggest::MenuItem;
@@ -61,16 +61,22 @@ impl CrewApp {
         if rows.is_empty() {
             return None;
         }
-        let ih = chrome::bottom_chrome_h(sh, ch, gap());
-        let content =
-            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), gap(), ih);
-        let ib = chrome::inputbar_rect(content, sh, ch, gap());
+        let ih = chrome::bottom_chrome_h(sh, ch, self.gutter());
+        let content = chrome::content_rect(
+            sw,
+            sh,
+            self.config.show_nav,
+            self.nav_px(scale),
+            self.gutter(),
+            ih,
+        );
+        let ib = chrome::inputbar_rect(content, sh, ch, self.gutter());
         let ic = (ib.w / cw).floor() as u16;
         let (cols, card_rows) = crate::cmdmenu::popup_size(&rows, ic);
         let h = f32::from(card_rows) * ch;
         let card = Rect {
             x: ib.x,
-            y: (ib.y - h - gap()).max(0.0),
+            y: (ib.y - h - self.gutter().y).max(0.0),
             w: f32::from(cols) * cw,
             h,
         };

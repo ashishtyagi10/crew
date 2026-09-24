@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.4
+
+**One gutter between every two cards.** A card's frame is drawn in cells and
+its rect is rarely a whole number of them, so each frame stopped short of
+its rect by the remainder — and the space between cards wandered with the
+window size and the font (15 px in one place, 32 in another, in the same
+window). Frames now stretch to fill their rect exactly, the way a resizable
+image does: the last column and row move out to the far edges and the rules
+are carried across the seam. The layout measures its gaps stroke to stroke,
+so nav, panes and the input bar sit one even gutter apart, with the same
+margin at every window edge.
+
 ## 0.23.3
 
 **The glass rim no longer runs through a pane's title.** The sheet's
