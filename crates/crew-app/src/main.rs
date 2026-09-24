@@ -41,6 +41,7 @@ mod charrain;
 #[cfg(test)]
 #[path = "chartshot_tests.rs"]
 mod chartshot_tests;
+mod codefield;
 
 mod chat;
 mod chataction;

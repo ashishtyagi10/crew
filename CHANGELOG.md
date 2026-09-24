@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.41
+
+**Code blocks on paper, a step off the page.** On light themes, fenced code
+and inline `code` sat on a mid-grey slab. Its contrast floor (1.55:1) was set
+for CRT themes, where scanlines and bloom wash out a faint field, and on
+paper that same floor made comments and strings look muddy. Light pages now
+use a quieter field (1.2:1), a step off the page like the selection wash.
+Dark themes and CRT themes are unchanged.
+
 ## 0.23.40
 
 **An update failure shows its reason.** The nav's UPDATE card spent its
