@@ -122,3 +122,20 @@ fn chrome_motion_registers_with_the_busy_branch_only_while_it_moves() {
     assert!(!c.chrome_animating(now), "Off: the glass stands, no frames");
     set_level(MotionLevel::Full);
 }
+
+/// The busy sheen crosses once, upper left to lower right, then rests: it
+/// never runs backwards (a bounce read as a scanner, not as light).
+#[test]
+fn the_sheen_crosses_once_then_rests() {
+    let pass: Vec<f32> = (0..SCAN_MS).step_by(50).map(sheen).collect();
+    let moving: Vec<f32> = pass.iter().copied().filter(|p| *p >= 0.0).collect();
+    assert!(moving.windows(2).all(|w| w[1] > w[0]), "one way only");
+    assert!(moving[0] == 0.0 && *moving.last().unwrap() > 0.9);
+    let resting = pass.len() - moving.len();
+    assert!(
+        resting * 3 > pass.len(),
+        "a real rest between passes: {resting} of {}",
+        pass.len()
+    );
+    assert_eq!(sheen(SCAN_MS), 0.0, "and the next pass starts over");
+}

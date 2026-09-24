@@ -190,7 +190,7 @@ pub(crate) fn push_pane_scenes(
     // no extra frames, and an idle crew never draws a scan at all. The pane
     // with the keys carries the focus glint while its ignition runs.
     let scan = match pane_busy(p) && crate::motion::level() != crate::motion::MotionLevel::Off {
-        true => crate::anim::tri(now, SCAN_MS),
+        true => sheen(now),
         false => -1.0,
     };
     let glint = foc.then(crate::panecardglow::glint).unwrap_or(-1.0);
