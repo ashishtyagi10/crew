@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.37
+
+**Keys that line up.** A few bindings in `/keys` are wider than the key
+column (`Cmd+= / Cmd+- / Cmd+0 / Cmd+wheel`, `Double-click / Triple-click`),
+so their descriptions started wherever the key ended, out of line with the
+rest. A key like that now has its own row, and its description goes on the
+next row, lined up with the others (the way a man page lays out a long
+flag). Those descriptions also wrap to the right width now; before, they
+were wrapped as if they started in the column. `Cmd+Click`'s description is
+capitalized like the rest.
+
 ## 0.23.36
 
 **A settings label that fits.** The canvas card's checkbox read

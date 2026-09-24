@@ -65,15 +65,32 @@ fn a_description_too_wide_to_fit_wraps_instead_of_vanishing() {
     );
 }
 
-/// A panel wide enough for everything wraps nothing.
+/// A panel wide enough for everything wraps nothing: the only continuation
+/// rows are the descriptions of keys too wide for the column, each on the
+/// row under its key, in line with every other description.
 #[test]
 fn the_preferred_width_wraps_nothing() {
-    let laid = rows("", crate::help::size().0);
-    assert!(
-        !laid.iter().any(|r| matches!(r, Row::Cont(_))),
-        "the preferred width had to wrap"
-    );
-    assert_eq!(laid.len(), logical().len());
+    let cols = crate::help::size().0;
+    let laid = rows("", cols);
+    let col = key_col(cols);
+    for (i, r) in laid.iter().enumerate() {
+        match r {
+            Row::Cont(_) => assert!(
+                matches!(&laid[i - 1], Row::Bind(k, d) if d.is_empty() && str_w(k) + 2 > col),
+                "row {i} wrapped at the preferred width"
+            ),
+            Row::Bind(k, d) if d.is_empty() => {
+                assert!(str_w(k) + 2 > col, "{k:?} fits yet stands alone")
+            }
+            _ => {}
+        }
+    }
+    let alone = laid
+        .iter()
+        .filter(|r| matches!(r, Row::Bind(_, d) if d.is_empty()))
+        .count();
+    assert!(alone > 0, "some key is wider than the column");
+    assert_eq!(laid.len(), logical().len() + alone);
 }
 
 /// A search that matches nothing says so rather than showing a blank panel.

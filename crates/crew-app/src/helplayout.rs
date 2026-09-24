@@ -7,8 +7,8 @@
 //!   it does not guarantee a *gap*. Five bindings are wider than 26, so their
 //!   descriptions ran straight into the keys: `Cmd+wheelFont size + / - /
 //!   reset`, `Triple-clickSelect the word`. The column is now measured from
-//!   the widest key there is, and a key that still overruns gets two spaces
-//!   of its own.
+//!   the widest key there is, and a key that still overruns takes a row of
+//!   its own, its description under the column on the next.
 //! * Descriptions were handed to ratatui, which clips a `Line` without a word
 //!   of complaint. At any window narrower than [`crate::help::size`] asks for,
 //!   half the panel read "Find: in a chat transcript, or /find in the ba".
@@ -148,12 +148,20 @@ pub(crate) fn rows_for(needle: &str, cols: u16, mine: Option<&str>) -> Vec<Row> 
             ("", "") => out.push(Row::Spacer),
             ("", head) => out.push(Row::Head(head, Some(head) == mine)),
             (k, d) => {
+                // A key wider than the column takes its row alone and its
+                // description starts under the column on the next, the way
+                // a man page lays out a long flag: overrunning, it pushed
+                // its words out of line with every other row's.
+                let alone = str_w(k) + 2 > col;
+                if alone {
+                    out.push(Row::Bind(k, String::new()));
+                }
                 let chars: Vec<char> = d.chars().collect();
                 for (i, (a, b)) in wrap_indices(&chars, width).into_iter().enumerate() {
                     let text: String = chars[a..b].iter().collect();
-                    match i {
-                        0 => out.push(Row::Bind(k, text)),
-                        _ => out.push(Row::Cont(text)),
+                    match i == 0 && !alone {
+                        true => out.push(Row::Bind(k, text)),
+                        false => out.push(Row::Cont(text)),
                     }
                 }
             }
