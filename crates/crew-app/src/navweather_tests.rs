@@ -33,7 +33,7 @@ fn geocoder_and_forecast_bodies_parse_into_a_reading() {
     );
     assert_eq!(
         line(&w),
-        "\u{2602} 24\u{00b0} \u{2191}27 \u{2193}18 \u{2602}35%"
+        "\u{2602} 24\u{00b0} \u{2191}27 \u{2193}18 \u{2602} 35%"
     );
     assert_eq!(
         parse_geo(r#"{"results":[]}"#),

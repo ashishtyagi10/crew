@@ -137,7 +137,7 @@ pub(crate) fn weather_cells(w: &Weather, cols: u16) -> Vec<CellView> {
     push(" \u{2193}", t.text_muted);
     push(&w.lo.to_string(), t.ink);
     if w.rain > 0 {
-        push("  \u{2602}", t.text_muted);
+        push("  \u{2602} ", t.text_muted);
         push(&format!("{}%", w.rain), t.ink);
     }
     let today: Vec<_> = today
