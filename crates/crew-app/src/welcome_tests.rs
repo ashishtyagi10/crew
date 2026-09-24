@@ -22,19 +22,6 @@ fn hint_present() {
 }
 
 #[test]
-fn version_stamp_present() {
-    let _g = crate::app::theme_test_guard();
-    let cells = welcome_cells_animated(80, 24, 0, None);
-    let dim = crew_theme::theme().dim;
-    assert!(
-        cells
-            .iter()
-            .any(|c| c.c == 'v' && c.row == 23 && c.fg == dim),
-        "no version stamp on bottom row"
-    );
-}
-
-#[test]
 fn tiny_size_no_panic_and_in_bounds() {
     let cells = welcome_cells_animated(2, 1, 0, None);
     assert!(cells.iter().all(|c| c.col < 2 && c.row < 1));

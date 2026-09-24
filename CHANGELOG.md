@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.34
+
+**The version, said once.** The welcome named the build three times: in the
+open nav's header, in the `new in …` line under the hints, and again as a
+stamp in the card's bottom-right corner. The corner stamp now appears only
+when the news line doesn't fit, so a narrow window still shows the build.
+
 ## 0.23.33
 
 **Only the focused file manager looks live.** With two `/far` panes open,

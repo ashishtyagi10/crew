@@ -67,7 +67,7 @@ pub fn rain_box(cols: u16, rows: u16, restore: bool) -> Option<(u16, u16, u16, u
 
 /// Render one animation frame: the rain field centred, tagline + hint below
 /// it (plus a `/restore` hint when a session snapshot exists), version stamp
-/// bottom-right. Falls back to a spaced single-line "CREW" when nothing
+/// bottom-right unless the news line already named the build. Falls back to a spaced single-line "CREW" when nothing
 /// rain-sized fits. All cells stay within `cols × rows`.
 // rustfmt::skip preserves compact inline struct literals.
 #[rustfmt::skip]
@@ -83,6 +83,9 @@ pub fn welcome_cells_animated(
     let mut cells = Vec::new();
     let t = crew_theme::theme();
     let bg = t.page_bg;
+    // Whether the news line named the build — then the stamp would only
+    // repeat it (and the open nav's header says it a third time).
+    let mut said = false;
 
     if let Some((top, left, w, h)) = rain_box(cols, rows, restore.is_some()) {
         // The rain fills the box and fades out toward its edges — bounded
@@ -121,6 +124,7 @@ pub fn welcome_cells_animated(
                 // build rather than part of the welcome itself — and the
                 // rain is told apart from the text below it by colour.
                 push_str(&mut cells, news_row, (cols - w) / 2, &line, t.dim, bg);
+                said = true;
             }
         }
         if let Some(n) = restore {
@@ -162,10 +166,10 @@ pub fn welcome_cells_animated(
         }
     }
 
-    // Version stamp bottom-right.
+    // Version stamp bottom-right, when nothing above already said it.
     let ver = concat!("v", env!("CARGO_PKG_VERSION"));
     let vw = ver.chars().count() as u16;
-    if vw + 1 < cols {
+    if !said && vw + 1 < cols {
         push_str(&mut cells, rows - 1, cols - vw - 1, ver, t.dim, bg);
     }
     cells
@@ -174,3 +178,7 @@ pub fn welcome_cells_animated(
 #[cfg(test)]
 #[path = "welcome_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "welcomever_tests.rs"]
+mod ver_tests;
