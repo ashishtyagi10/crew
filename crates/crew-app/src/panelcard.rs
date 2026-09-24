@@ -101,7 +101,63 @@ pub fn push_card_art(
     content: impl FnOnce(u16, u16) -> (Vec<CellView>, Vec<Paint>),
 ) {
     let (icols, irows) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
-    let (cells, paint) = content(icols, irows);
+    let frame = crate::modernring::gradient_card(
+        icols + 2,
+        irows + 2,
+        legend,
+        crew_theme::theme().border_normal,
+        title_fg,
+        crew_theme::theme().page_bg,
+    );
+    push_framed(scenes, rect, cw, ch, frame, content(icols, irows));
+}
+
+/// [`push_card`] wearing the FOCUSED ring instead of the quiet stroke — for
+/// the welcome, the one card on an empty canvas. It occupies exactly the rect
+/// a lone Cmd+T terminal would, and that terminal is drawn lit; drawn in
+/// `border_normal` instead, the modern light pages (a ~2:1 stroke, whitened
+/// further by the quiet gradient) left the main page with no visible edge at
+/// all.
+pub fn push_card_lit(
+    scenes: &mut Vec<PaneScene>,
+    rect: Rect,
+    cw: f32,
+    ch: f32,
+    legend: &str,
+    content: impl FnOnce(u16, u16) -> Vec<CellView>,
+) {
+    let t = crew_theme::theme();
+    let (icols, irows) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
+    let (cols, rows) = (icols + 2, irows + 2);
+    let mut frame = crate::boxdraw::titled_card(
+        cols,
+        rows,
+        legend,
+        crate::panecardglow::focused_stroke(t),
+        t.ink,
+        t.page_bg,
+    );
+    crate::modernring::ring(&mut frame, cols, rows, false, 1.0, 0);
+    push_framed(
+        scenes,
+        rect,
+        cw,
+        ch,
+        frame,
+        (content(icols, irows), Vec::new()),
+    );
+}
+
+/// The two scenes every panel card is: the inset interior, then its `frame`
+/// over the full rect on the frosted sheet.
+fn push_framed(
+    scenes: &mut Vec<PaneScene>,
+    rect: Rect,
+    cw: f32,
+    ch: f32,
+    frame: Vec<CellView>,
+    (cells, paint): (Vec<CellView>, Vec<Paint>),
+) {
     scenes.push(PaneScene {
         cells,
         paint,
@@ -119,14 +175,7 @@ pub fn push_card_art(
         overlay: false,
     });
     scenes.push(PaneScene {
-        cells: crate::modernring::gradient_card(
-            icols + 2,
-            irows + 2,
-            legend,
-            crew_theme::theme().border_normal,
-            title_fg,
-            crew_theme::theme().page_bg,
-        ),
+        cells: frame,
         x: rect.x,
         y: rect.y,
         w: rect.w,

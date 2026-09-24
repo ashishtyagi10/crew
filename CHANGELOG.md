@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.27
+
+**The main page has an edge again.** The welcome card was framed in the
+quiet stroke every unfocused panel wears. On the modern light pages that
+stroke sits about 2:1 against the page, and the quiet gradient whitens it
+further, so the card had no visible border, and at a translucent window
+opacity none at all. The welcome occupies exactly the rect a lone Cmd+T
+terminal would, so it now wears that terminal's lit gradient ring and
+an ink legend.
+
 ## 0.23.26
 
 **Closer cards, fieldset titles, a selection you can read.** Three fixes
