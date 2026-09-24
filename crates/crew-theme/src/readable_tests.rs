@@ -171,34 +171,34 @@ fn every_role_clears_the_raised_floor_too() {
 #[test]
 fn asking_for_contrast_actually_moves_the_derived_colours() {
     let _g = crate::contrast::test_lock();
+    let mut stuck: Vec<String> = Vec::new();
     let mut moved = 0;
-    let mut checked = 0;
     for id in ALL_THEMES {
         let t = id.theme();
         // Each role against the background it is actually measured on —
         // `link` lands on the terminal page, `selection_bg` under the
-        // terminal's own ink, the rest on the app page.
+        // terminal's own ink, the rest on the app page — with its raised
+        // floor.
+        let roles = |t| {
+            [
+                ("link", link(t), t.term_bg, 7.0),
+                ("selection", selection_bg(t), t.term_fg, 7.0),
+                ("warn", warn(t), t.page_bg, 7.0),
+                ("danger", danger(t), t.page_bg, 7.0),
+                ("spark", spark(t), t.page_bg, 4.5),
+            ]
+        };
         crate::contrast::set_high_contrast(false);
-        let aa = [
-            (link(t), t.term_bg),
-            (selection_bg(t), t.term_fg),
-            (warn(t), t.page_bg),
-            (danger(t), t.page_bg),
-            (spark(t), t.page_bg),
-        ];
+        let aa = roles(t);
         crate::contrast::set_high_contrast(true);
-        let aaa = [
-            (link(t), t.term_bg),
-            (selection_bg(t), t.term_fg),
-            (warn(t), t.page_bg),
-            (danger(t), t.page_bg),
-            (spark(t), t.page_bg),
-        ];
-        for (&(a, bg), &(b, _)) in aa.iter().zip(aaa.iter()) {
-            checked += 1;
-            if a != b {
-                moved += 1;
+        let aaa = roles(t);
+        for (&(name, a, bg, floor), &(_, b, _, _)) in aa.iter().zip(aaa.iter()) {
+            // A role under the raised floor at AA must move to meet it; one
+            // already over it may stay put.
+            if contrast_ratio(a, bg) < floor && a == b {
+                stuck.push(format!("{}: {name}", id.as_str()));
             }
+            moved += usize::from(a != b);
             // Never the wrong way: the raised floor may leave a colour alone
             // (it already cleared AAA) but must never make it read worse.
             assert!(
@@ -210,9 +210,11 @@ fn asking_for_contrast_actually_moves_the_derived_colours() {
     }
     crate::contrast::set_high_contrast(false);
     assert!(
-        moved * 2 > checked,
-        "only {moved} of {checked} roles moved — the floor is not reaching them"
+        stuck.is_empty(),
+        "the floor is not reaching:\n  {}",
+        stuck.join("\n  ")
     );
+    assert!(moved > 0, "no role moved — the switch is a no-op");
 }
 
 /// `secondary` never out-reads what it ranks below, and never falls under the
@@ -300,4 +302,30 @@ fn enforced_clears_the_floor_even_where_against_cannot() {
     // …and the test is testing something: `against` really does give up on
     // some of these, which is the whole reason `enforced` exists.
     assert!(gave_up > 0, "no case here actually defeats `against`");
+}
+
+/// On a light page the selection is a pale wash, not a mid-tone: plain ink
+/// reads on it at AAA, and it still stands off the page it was drawn on.
+#[test]
+fn a_light_pages_selection_is_pale() {
+    let _g = crate::contrast::test_lock();
+    crate::contrast::set_high_contrast(false);
+    for id in ALL_THEMES {
+        let t = id.theme();
+        if oklch::from_srgb(t.term_bg).l <= 0.5 {
+            continue;
+        }
+        let s = selection_bg(t);
+        let (ink, page) = (contrast_ratio(t.term_fg, s), contrast_ratio(s, t.term_bg));
+        assert!(
+            ink >= 9.0,
+            "{}: ink on the selection is {ink:.2}",
+            id.as_str()
+        );
+        assert!(
+            page >= 1.2,
+            "{}: the selection vanishes ({page:.2})",
+            id.as_str()
+        );
+    }
 }

@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.26
+
+**Closer cards, fieldset titles, a selection you can read.** Three fixes
+from a look at the live app:
+
+- The gutter between two cards (and every window margin) was the density
+  gap plus a whole cell of air — 16 px at 1×. It is now the gap plus half
+  a cell: about 12 px, the same on every seam.
+- A card's title no longer sits on a folder tab of glass raised above the
+  card's edge. It stands in the frame's top rule like a fieldset's legend:
+  the rule is cut where the words are, the sheet stays whole under them.
+- Selected terminal text on a light theme sat on a mid-blue (dark ink at
+  4.6:1, coloured and dim text pushed to mud). The selection is now a pale
+  blue a step below a light page — ink at ~11:1 — and a deeper blue a step
+  above a dark one (white at 8–11:1, was 6–7).
+
 ## 0.23.25
 
 **Windows builds again.** 0.23.24's `⌘` hint added a constant only the
