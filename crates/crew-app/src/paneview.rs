@@ -234,9 +234,7 @@ pub(crate) fn push_pane_scenes(
         unread,
         doc: matches!(p.content, PaneContent::View(_) | PaneContent::Chat(_)),
     };
-    // The card's own grid: the pane's content grid plus its border ring —
-    // the same `(cols + 2, rows + 2)` `pane_card` lays its cells out on, so
-    // the drawing and the frame agree about where the borders are.
+    // The card's grid: the content grid plus the ring `pane_card` lays out.
     let (ccols, crows) = (p.grid.cols + 2, p.grid.rows + 2);
     scenes.push(PaneScene {
         cells: crate::panecardglow::pane_card_glowing(p, &bar),
@@ -248,8 +246,10 @@ pub(crate) fn push_pane_scenes(
         w: r.w,
         h: r.h,
         focused: foc,
-        // The card spans the whole pane rect, so the glass sheet goes here.
+        // The card spans the whole pane rect: the sheet goes here, and the
+        // frame stretches to fill it to the pixel.
         glass: true,
+        stretch: true,
         scan,
         lift,
         glint,

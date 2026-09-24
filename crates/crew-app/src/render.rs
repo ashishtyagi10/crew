@@ -1,8 +1,8 @@
 use crew_render::PaneScene;
 
-use crate::app::{gap, CrewApp};
+use crate::app::CrewApp;
 use crate::chrome;
-use crate::layout::{pane_rects_at, Rect};
+use crate::layout::{pane_rects_at, Gutter, Rect};
 use crate::panefit::{relayout, relayout_one};
 use crate::paneview::{build_scenes, full_scenes};
 use crate::welcome;
@@ -86,7 +86,7 @@ impl CrewApp {
         let mut scenes = if self.zoomed && !self.panes.is_empty() {
             // Zoom: render only the focused pane, expanded to the full content area.
             let i = self.focused.min(self.panes.len() - 1);
-            if let Some(r) = zoom_tile(content) {
+            if let Some(r) = zoom_tile(content, self.gutter()) {
                 // Travel out of the tile the pane occupied: at t=0 the zoomed
                 // pane is exactly its old self, at t=1 it fills the area.
                 let t = self.zoom_anim.eased(now, crate::ease::out_cubic);
@@ -154,9 +154,10 @@ impl CrewApp {
         if self.panes.is_empty() {
             // Use the SAME rect a single grid pane would occupy (gap-inset) so the
             // welcome area matches a Cmd+T terminal exactly.
-            if let Some(r) = pane_rects_at(1, content.x, content.y, content.w, content.h, gap())
-                .first()
-                .copied()
+            if let Some(r) =
+                pane_rects_at(1, content.x, content.y, content.w, content.h, self.gutter())
+                    .first()
+                    .copied()
             {
                 // Advance the animation one frame per *rendered* frame (poll throttles
                 // redraws to every ANIM_DIV ticks), so motion stays smooth at 20 fps.
@@ -179,7 +180,7 @@ impl CrewApp {
 
         self.push_sidebar(&mut scenes, sh, scale, cw, ch);
 
-        let ib = chrome::inputbar_rect(content, sh, ch, gap());
+        let ib = chrome::inputbar_rect(content, sh, ch, self.gutter());
         let ic = (ib.w / cw).floor() as u16;
         let ir = (ib.h / ch).round() as u16;
         scenes.push(PaneScene {
@@ -204,6 +205,9 @@ impl CrewApp {
             // Pressed INTO the glass: the one place you type is a well.
             lift: -1.0,
             glint: -1.0,
+            // Its frame is its last column and row: it fills the rect, so
+            // the seam above it is the gutter and nothing more.
+            stretch: true,
             overlay: false,
             paint: Vec::new(),
         });
@@ -279,6 +283,7 @@ impl CrewApp {
                 scan: -1.0,
                 lift: crate::popupplace::FLOAT,
                 glint: -1.0,
+                stretch: false,
                 overlay: true,
                 paint: Vec::new(),
             });
@@ -303,7 +308,7 @@ impl CrewApp {
         if self.input.focused && !matches.is_empty() {
             let p = crate::cmdmenu::popup(title, &matches, self.input.menu_sel, ic);
             let mh = f32::from(p.rows) * ch;
-            let my = (ib.y - mh - gap()).max(0.0);
+            let my = (ib.y - mh - self.gutter().y).max(0.0);
             let fw = f32::from(p.cols) * cw;
             scenes.push(crate::popupplace::float_shadow(ib.x, my, fw, mh));
             scenes.push(PaneScene {
@@ -318,6 +323,7 @@ impl CrewApp {
                 scan: -1.0,
                 lift: 0.0,
                 glint: -1.0,
+                stretch: false,
                 overlay: true,
                 paint: Vec::new(),
             });
@@ -377,8 +383,8 @@ fn overlay_rects(scenes: &[PaneScene], opacity: f32) -> Vec<[f32; 4]> {
 /// The one full-content tile the zoomed view draws — the same gap-inset rect
 /// a single grid pane would get. Shared by drawing (`build_frame`) and
 /// hit-testing (`frame_hit_rects`) so they can never disagree.
-fn zoom_tile(content: Rect) -> Option<Rect> {
-    pane_rects_at(1, content.x, content.y, content.w, content.h, gap())
+fn zoom_tile(content: Rect, g: Gutter) -> Option<Rect> {
+    pane_rects_at(1, content.x, content.y, content.w, content.h, g)
         .into_iter()
         .next()
 }
@@ -394,10 +400,13 @@ pub(crate) fn frame_hit_rects(
     n_panes: usize,
     content: Rect,
     placed: crate::grid::GridRects,
+    gap: impl Into<Gutter>,
 ) -> Vec<(usize, Rect)> {
     if zoomed && n_panes > 0 {
         let i = focused.min(n_panes - 1);
-        return zoom_tile(content).map(|r| vec![(i, r)]).unwrap_or_default();
+        return zoom_tile(content, gap.into())
+            .map(|r| vec![(i, r)])
+            .unwrap_or_default();
     }
     let mut rects = placed.full;
     rects.extend(placed.minimized);

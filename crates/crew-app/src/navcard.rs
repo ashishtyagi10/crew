@@ -4,7 +4,7 @@
 //! the left nav (replacing the old `/about` status flash).
 use crew_render::PaneScene;
 
-use crate::app::{gap, CrewApp};
+use crate::app::CrewApp;
 use crate::chrome;
 use crate::layout::Rect;
 
@@ -31,7 +31,7 @@ impl CrewApp {
         // `crate::autoupdate`) stays invisible — no card, no reserved space —
         // until a manual `/update` upgrades it to loud.
         let loud = self.update.as_ref().filter(|u| !u.silent);
-        let top = chrome::top_card_rect(sh, self.nav_px(scale), gap(), ch);
+        let top = chrome::top_card_rect(sh, self.nav_px(scale), self.gutter(), ch);
         if let Some(u) = loud {
             crate::panelcard::push_card(scenes, top, cw, ch, "UPDATE", |cols, rows| {
                 crate::updatecard::update_cells(u, cols, rows)
@@ -44,7 +44,8 @@ impl CrewApp {
                 crate::restartcard::restart_cells(v, now_ms, cols, rows)
             });
         }
-        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), gap(), ch, self.nav_top_card());
+        let (nav, g) = (self.nav_px(scale), self.gutter());
+        let sb = chrome::stats_card_rect(sh, nav, g, ch, self.nav_top_card());
         let pane_rows = self.pane_rows();
         let sidebar = &self.sidebar;
         let log = &self.log;
@@ -102,7 +103,8 @@ impl CrewApp {
             return None;
         }
         let (cw, ch, _sw, sh, scale) = self.frame_geometry()?;
-        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), gap(), ch, self.nav_top_card());
+        let (nav, g) = (self.nav_px(scale), self.gutter());
+        let sb = chrome::stats_card_rect(sh, nav, g, ch, self.nav_top_card());
         let (_, rows) = crate::layout::card_inner_cells(sb.w, sb.h, cw, ch);
         let l = self.sidebar.layout(rows, self.nav_tail(), self.panes.len());
         Some((sb, ch, l))

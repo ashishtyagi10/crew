@@ -1,4 +1,5 @@
 use super::*;
+use crate::app::gap;
 use crate::chatpalette;
 use crate::grid::compose_grid;
 use crate::grid::GridLayout;
@@ -19,7 +20,7 @@ fn zoomed_hit_rects_are_the_one_drawn_tile_over_the_full_content() {
         grid.add(i);
     }
     let placed = compose_grid(content, &grid, 8.0, 16.0, gap());
-    let hits = frame_hit_rects(true, 1, 3, content, placed);
+    let hits = frame_hit_rects(true, 1, 3, content, placed, gap());
     let drawn = pane_rects_at(1, content.x, content.y, content.w, content.h, gap())[0];
     assert_eq!(hits, vec![(1, drawn)]);
 }
@@ -36,7 +37,7 @@ fn zoomed_hit_rects_clamp_a_stale_focus_index() {
     grid.add(0);
     grid.add(1);
     let placed = compose_grid(content, &grid, 8.0, 16.0, gap());
-    let hits = frame_hit_rects(true, 9, 2, content, placed);
+    let hits = frame_hit_rects(true, 9, 2, content, placed, gap());
     assert_eq!(hits[0].0, 1, "focus past the end clamps like build_frame");
 }
 
@@ -53,7 +54,7 @@ fn grid_hit_rects_cover_full_tiles_and_strip_thumbnails() {
         grid.add(i); // 6 full tiles + 2 minimized thumbnails
     }
     let placed = compose_grid(content, &grid, 8.0, 16.0, gap());
-    let hits = frame_hit_rects(false, 0, 8, content, placed);
+    let hits = frame_hit_rects(false, 0, 8, content, placed, gap());
     assert_eq!(hits.len(), 8, "every pane keeps a hit rect in grid view");
 }
 
@@ -156,6 +157,7 @@ fn scene(x: f32, y: f32, w: f32, h: f32, overlay: bool) -> crew_render::PaneScen
         scan: -1.0,
         lift: 0.0,
         glint: -1.0,
+        stretch: false,
         overlay,
         paint: Vec::new(),
     }

@@ -56,6 +56,7 @@ pub(crate) fn frame(
             scan: -1.0,
             lift: 0.0,
             glint: -1.0,
+            stretch: false,
             overlay: false,
             paint: Vec::new(),
         },

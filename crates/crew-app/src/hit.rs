@@ -1,5 +1,5 @@
 //! Cursor hit-testing: which docked surface or pane sits under the pointer.
-use crate::app::{gap, CrewApp};
+use crate::app::CrewApp;
 use crate::chrome;
 
 impl CrewApp {
@@ -46,7 +46,7 @@ impl CrewApp {
         let Some((_cw, ch, _sw, sh, scale)) = self.frame_geometry() else {
             return false;
         };
-        let top = chrome::top_card_rect(sh, self.nav_px(scale), gap(), ch);
+        let top = chrome::top_card_rect(sh, self.nav_px(scale), self.gutter(), ch);
         chrome::point_in(top, self.cursor.0, self.cursor.1)
     }
 
@@ -83,7 +83,14 @@ impl CrewApp {
         let (cw, ch, _sw, _sh, _scale) = self.frame_geometry()?;
         let (content, placed) = self.placed_grid()?;
         let tiles = if self.zoomed {
-            crate::render::frame_hit_rects(true, self.focused, self.panes.len(), content, placed)
+            crate::render::frame_hit_rects(
+                true,
+                self.focused,
+                self.panes.len(),
+                content,
+                placed,
+                self.gutter(),
+            )
         } else {
             placed.full
         };
@@ -139,10 +146,16 @@ impl CrewApp {
         let Some((_cw, ch, sw, sh, scale)) = self.frame_geometry() else {
             return false;
         };
-        let ih = chrome::bottom_chrome_h(sh, ch, gap());
-        let content =
-            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), gap(), ih);
-        let ib = chrome::inputbar_rect(content, sh, ch, gap());
+        let ih = chrome::bottom_chrome_h(sh, ch, self.gutter());
+        let content = chrome::content_rect(
+            sw,
+            sh,
+            self.config.show_nav,
+            self.nav_px(scale),
+            self.gutter(),
+            ih,
+        );
+        let ib = chrome::inputbar_rect(content, sh, ch, self.gutter());
         chrome::point_in(ib, self.cursor.0, self.cursor.1)
     }
 
@@ -151,8 +164,15 @@ impl CrewApp {
     /// both full-size tiles and minimized strip thumbnails.
     pub(crate) fn pane_at_cursor(&self) -> Option<usize> {
         let (_cw, ch, sw, sh, scale) = self.frame_geometry()?;
-        let ih = chrome::bottom_chrome_h(sh, ch, gap());
-        let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), gap(), ih);
+        let ih = chrome::bottom_chrome_h(sh, ch, self.gutter());
+        let c = chrome::content_rect(
+            sw,
+            sh,
+            self.config.show_nav,
+            self.nav_px(scale),
+            self.gutter(),
+            ih,
+        );
         if !chrome::point_in(c, self.cursor.0, self.cursor.1) {
             return None;
         }

@@ -48,6 +48,13 @@ pub(crate) fn gap() -> f32 {
     level().gap_px()
 }
 
+/// The canvas's spacing for frames drawn in `cell_w`×`cell_h` cells: one
+/// gutter between every two cards' lines and the same margin at the window's
+/// edges (see [`crate::layout::Gutter`]).
+pub(crate) fn gutter(cell_w: f32, cell_h: f32) -> crate::layout::Gutter {
+    crate::layout::Gutter::between_strokes(gap(), crew_render::stroke_inset(cell_w, cell_h))
+}
+
 /// How tightly crew packs the canvas.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]

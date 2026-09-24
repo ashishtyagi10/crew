@@ -63,6 +63,7 @@ pub fn push_ghost(
         scan: -1.0,
         lift: 0.0,
         glint: -1.0,
+        stretch: true,
         overlay: false,
         paint: Vec::new(),
     });
@@ -114,6 +115,7 @@ pub fn push_card_art(
         scan: -1.0,
         lift: 0.0,
         glint: -1.0,
+        stretch: false,
         overlay: false,
     });
     scenes.push(PaneScene {
@@ -138,6 +140,9 @@ pub fn push_card_art(
         scan: -1.0,
         lift: 0.0,
         glint: -1.0,
+        // The frame fills its rect to the pixel, so the nav's cards keep the
+        // same gutter as every other card.
+        stretch: true,
         overlay: false,
         paint: Vec::new(),
     });

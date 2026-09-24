@@ -32,9 +32,17 @@ mod sizeramp;
 mod smoothing;
 mod smoothmask;
 mod solidcard;
+mod stretch;
 mod textgamma;
 mod textprep;
 pub use cellgrid::CellGrid;
+
+/// How far in from a card's rect its frame's `│` and `─` strokes are
+/// centred, per axis — what a layout needs to space cards by their LINES
+/// rather than their rects.
+pub fn stroke_inset(cell_w: f32, cell_h: f32) -> (f32, f32) {
+    scene::stroke_inset(cell_w, cell_h)
+}
 pub use cellgrid::CellView;
 pub use celltext::CELL_H_RATIO;
 pub use crtchain::CrtChain;
