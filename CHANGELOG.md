@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.33
+
+**Only the focused file manager looks live.** With two `/far` panes open,
+both drew an accent cursor bar, an accent path tab, an accent frame and a
+text caret on the command line, so it was hard to tell which one your keys
+would go to. An unfocused `/far` pane now drops its caret, and its cursor bar
+and path tab turn to the pale selection wash (the way a Mac greys the
+selection in a window you're not using), with a muted frame. It still shows
+where you were, and turns back to accent when you focus it.
+
 ## 0.23.32
 
 **Room for the umbrella.** The weather card's rain chance read `☂35%`, and

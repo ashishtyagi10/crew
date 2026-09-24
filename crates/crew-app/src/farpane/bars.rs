@@ -16,7 +16,7 @@ const FKEYS: [(&str, &str); 8] = [
 ];
 
 /// The Far command line: `<cwd> $ <typed>▏`, the directory dimmed and the typed
-/// command in the ink colour with a cursor bar. While a command runs, a dimmed
+/// command in the ink colour (the caller appends the caret, focused only). While a command runs, a dimmed
 /// `⟳ <cmd>` note follows the prompt. Truncated from the left to fit.
 #[allow(clippy::too_many_arguments)] // one bar, eight independent knobs
 pub(super) fn command_bar(
@@ -44,7 +44,7 @@ pub(super) fn command_bar(
     let mut spans = vec![
         Span::styled(format!("{folder} "), Style::new().fg(dim).bg(bg)),
         Span::styled("$ ", Style::new().fg(accent_color()).bg(bg)),
-        Span::styled(format!("{cmdline}▏"), cmd_style),
+        Span::styled(cmdline.to_string(), cmd_style),
     ];
     if let Some(g) = ghost {
         spans.push(Span::styled(g.to_string(), Style::new().fg(dim).bg(bg)));

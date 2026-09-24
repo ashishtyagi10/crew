@@ -5,7 +5,7 @@ pub(crate) use super::panelchrome::*;
 use crew_render::CellView;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, List, ListItem, ListState, Paragraph, StatefulWidget, Widget,
@@ -15,7 +15,16 @@ use super::{FarPane, Panel, Side};
 
 use crate::palette::accent_color;
 
+#[cfg(test)]
 pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
+    render_in(p, cols, rows, true)
+}
+
+/// A pane that is not focused shows where it was, not that it is listening:
+/// no caret on its command line, and its cursor bar and path tab in the
+/// selection wash instead of the accent (the way a Mac's inactive window
+/// greys its selection) — with two `/far` panes open both used to look live.
+pub(crate) fn render_in(p: &FarPane, cols: u16, rows: u16, focused: bool) -> Vec<CellView> {
     if cols < 16 || rows < 6 {
         return Vec::new();
     }
@@ -31,14 +40,19 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
     ])
     .split(area);
     let (larea, rarea) = split_panels(split[0]);
-    panel(&mut buf, larea, &p.left, p.active == Side::Left);
-    panel(&mut buf, rarea, &p.right, p.active == Side::Right);
-    merge_divider(&mut buf, split[0], rarea.x);
+    panel(&mut buf, larea, &p.left, p.active == Side::Left, focused);
+    panel(&mut buf, rarea, &p.right, p.active == Side::Right, focused);
+    merge_divider(&mut buf, split[0], rarea.x, focused);
     // Scroll thumbs paint last: the left panel's border is the shared middle
     // column, which the right panel's block render and merge_divider both
     // overwrite — so a thumb drawn inside panel() would be lost.
-    scroll_thumb(&mut buf, larea, &p.left, p.active == Side::Left);
-    scroll_thumb(&mut buf, rarea, &p.right, p.active == Side::Right);
+    scroll_thumb(&mut buf, larea, &p.left, focused && p.active == Side::Left);
+    scroll_thumb(
+        &mut buf,
+        rarea,
+        &p.right,
+        focused && p.active == Side::Right,
+    );
     // A Tab-cycle already shows its candidate in `cmdline` directly; the
     // ghost slot carries the candidate strip instead (`CycleState::hint`),
     // so the next Tab is a choice, not a guess.
@@ -77,7 +91,7 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
         &mut buf,
         split[2],
         &p.active_panel_folder(),
-        &p.cmdline,
+        &format!("{}{}", p.cmdline, if focused { "\u{258f}" } else { "" }),
         ghost.as_deref(),
         ask_hint.as_deref(),
         suggested,
@@ -146,96 +160,9 @@ fn drive_select_overlay(buf: &mut Buffer, area: Rect, ds: &super::remote::DriveS
     StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);
 }
 
-/// Render one directory panel: a rounded box (path as legend) with the listing.
-fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
-    let t = crew_theme::theme();
-    let dim_col = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
-    let text_col = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
-    let page_col = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
-    let edge = if active { accent_color() } else { dim_col };
-    // The active panel's legend is a FILLED accent tab (the F-key bar's pill
-    // language) — the accent border alone was too subtle to tell which side
-    // keys act on (user feedback, v0.6.23). Inactive stays plain dim text.
-    let legend_style = if active {
-        Style::new()
-            .fg(page_col)
-            .bg(accent_color())
-            .add_modifier(Modifier::BOLD)
-    } else {
-        Style::new().fg(dim_col)
-    };
-    let block = Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(Style::new().fg(edge))
-        .title(Span::styled(
-            legend(
-                &panel.loc.display(),
-                panel.entries.len(),
-                panel.entries.iter().map(|e| e.size).sum::<u64>(),
-                area.width,
-            ),
-            legend_style,
-        ));
-    let inner = block.inner(area);
-    block.render(area, buf);
-    let h = inner.height.max(1) as usize;
-    // Scroll so the cursor stays visible (bottom-anchored once it passes `h`).
-    let start = panel.sel.saturating_sub(h.saturating_sub(1)).min(panel.sel);
-    // A remote listing in flight (and nothing to show yet): one dim row
-    // instead of an empty panel, so the pane doesn't look inert while the
-    // `rclone lsjson` worker (see `remote.rs`) is still running.
-    if panel.loading && panel.entries.is_empty() {
-        let items = vec![ListItem::new(Line::from(Span::styled(
-            "\u{27f3} listing\u{2026}",
-            Style::new().fg(dim_col),
-        )))];
-        let mut state = ListState::default();
-        state.select(Some(0));
-        StatefulWidget::render(List::new(items), inner, buf, &mut state);
-        return;
-    }
-    let items: Vec<ListItem> = panel
-        .entries
-        .iter()
-        .skip(start)
-        .take(h)
-        .map(|e| {
-            let width = inner.width as usize;
-            let glyph = super::icons::icon(e);
-            let (name, fg) = if e.is_dir {
-                (format!("{glyph} {}/", e.name), dir_color())
-            } else {
-                (format!("{glyph} {}", e.name), text_col)
-            };
-            let size = if e.is_dir {
-                String::new()
-            } else {
-                fmt_size(e.size)
-            };
-            let (name, pad) = rowfit::fit(name, &size, width);
-            let mut spans = vec![Span::styled(name, Style::new().fg(fg))];
-            if !size.is_empty() {
-                spans.push(Span::styled(
-                    format!("{}{size}", " ".repeat(pad)),
-                    Style::new().fg(dim_col),
-                ));
-            }
-            ListItem::new(Line::from(spans))
-        })
-        .collect();
-    // Only the ACTIVE panel gets a filled cursor bar — with a fill on both
-    // sides it was ambiguous which panel keys would act on (the inactive
-    // side's bar often sits on `../` and reads as "selected"). The inactive
-    // panel remembers its place with a bold row instead of a bar.
-    let hl = if active {
-        Style::new().fg(page_col).bg(accent_color())
-    } else {
-        Style::new().add_modifier(Modifier::BOLD)
-    };
-    let mut state = ListState::default();
-    state.select(Some(panel.sel - start));
-    StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);
-}
+#[path = "panellist.rs"]
+mod panellist;
+use panellist::panel;
 
 #[path = "bars.rs"]
 mod bars;
@@ -246,3 +173,7 @@ use bars::{command_bar, function_bar, prompt_bar, status_bar};
 #[cfg(test)]
 #[path = "render_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "blur_tests.rs"]
+mod blur_tests;
