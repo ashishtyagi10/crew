@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.8
+
+**The welcome rain falls like light, not line noise.** The field around the
+CREW nameplate was a wall of glyphs — a quarter of it lit at once, and a
+good share of that `$#%&\{}` — so the first thing crew showed looked like a
+corrupted terminal. Each column is now a streak: a letter or digit at the
+head, a short fading tail that dissolves into dots and then into the page,
+and a rest before the next one, so the field is mostly open page with a few
+streaks falling through it. The frame around it has rounded corners, like
+every card.
+
 ## 0.23.7
 
 **A card's buttons are marks, not typed text.** The minimize and close

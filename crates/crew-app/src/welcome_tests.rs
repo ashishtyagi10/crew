@@ -161,8 +161,8 @@ fn restore_hint_never_shares_the_version_stamp_row() {
 fn rain_box_is_framed_with_an_inner_crew_nameplate() {
     let cells = welcome_cells_animated(80, 30, 0, None);
     let chars: std::collections::HashSet<char> = cells.iter().map(|c| c.c).collect();
-    // The rectangular frame's corners…
-    for c in ['\u{250c}', '\u{2510}', '\u{2514}', '\u{2518}'] {
+    // The frame's corners, rounded like every card's…
+    for c in ['\u{256d}', '\u{256e}', '\u{2570}', '\u{256f}'] {
         assert!(chars.contains(&c), "frame corner {c} missing");
     }
     // …and the double-line CREW nameplate over the rain, letters in bold.
