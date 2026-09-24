@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.10
+
+**The input bar has a text field's caret.** The caret was a solid block
+(`█`) in the accent — a terminal's cursor, the heaviest mark in the bar. It
+is now a slim I-beam at the left of the cell the next character lands in,
+and the placeholder starts a letter's width after it rather than two. Also:
+the plot tests no longer race each other over the shared cell width (the
+Windows check job caught one reading the other's clamp), and a new
+whole-window shot frames the welcome screen the way a session opens.
+
 ## 0.23.9
 
 **`/far`'s key bar is quiet type.** The function-key row was eight solid

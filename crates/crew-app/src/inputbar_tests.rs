@@ -1,4 +1,5 @@
 use super::*;
+use crate::inputbar_render::CARET;
 use crate::palette::accent;
 
 #[test]
@@ -40,8 +41,8 @@ fn cells_focused_shows_accent_prompt_and_text() {
     assert!(cells.iter().any(|c| c.c == 's'));
     let prompt = cells.iter().find(|c| c.c == '>').unwrap();
     assert_eq!(prompt.fg, accent());
-    // a block cursor is shown while focused with no suggestion
-    assert!(cells.iter().any(|c| c.c == '█'));
+    // an I-beam caret while focused with no suggestion, not a block
+    assert!(cells.iter().any(|c| c.c == CARET) && cells.iter().all(|c| c.c != '█'));
 }
 
 #[test]
@@ -54,7 +55,7 @@ fn cells_long_text_follows_cursor_tail() {
     };
     let cells = bar.cells(20, 3, None, None, None);
     assert!(cells.iter().any(|c| c.c == 'E'));
-    assert!(cells.iter().any(|c| c.c == '█'));
+    assert!(cells.iter().any(|c| c.c == CARET));
     assert!(!cells.iter().any(|c| c.c == 'S'));
 }
 
@@ -70,7 +71,7 @@ fn cells_shows_dim_ghost_suggestion() {
     assert!(cells
         .iter()
         .any(|c| c.c == 't' && c.fg == crew_theme::theme().dim));
-    assert!(!cells.iter().any(|c| c.c == '█'));
+    assert!(!cells.iter().any(|c| c.c == CARET));
 }
 
 #[test]
@@ -80,10 +81,8 @@ fn cells_unfocused_has_no_cursor() {
         focused: false,
         ..Default::default()
     };
-    assert!(!bar
-        .cells(40, 3, None, None, None)
-        .iter()
-        .any(|c| c.c == '█'));
+    let cells = bar.cells(40, 3, None, None, None);
+    assert!(!cells.iter().any(|c| c.c == CARET));
 }
 
 #[test]
