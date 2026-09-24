@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.25
+
+**Windows builds again.** 0.23.24's `⌘` hint added a constant only the
+tests read, which the Windows check (warnings as errors) rejected as dead
+code. The chord detector now reads it too — one definition of how the
+command modifier is written, used by the hint and by what colours it.
+
 ## 0.23.24
 
 **On a Mac, the welcome writes chords the Mac way.** The first screen's

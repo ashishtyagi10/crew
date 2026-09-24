@@ -94,7 +94,7 @@ pub(crate) fn hint_spans(
 /// starting with `/` — the bare slash that opens the palette, and the
 /// `/restore` on the offer line, which is a thing to type like any other.
 fn is_chord(token: &str) -> bool {
-    token.starts_with(['/', '\u{2318}']) || token.starts_with("Cmd+") || token.starts_with("Ctrl+")
+    token.starts_with('/') || token.starts_with(CMD) || token.starts_with("Ctrl+")
 }
 
 /// The accent the hint's chords wear.
