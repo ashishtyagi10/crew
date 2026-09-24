@@ -633,6 +633,14 @@ fn glass_notch_headless() {
         (off_tab - base).abs() <= 2.0,
         "the tab spilled past the legend ({off_tab:.1})"
     );
+    // …and it is the same glass as the card: its top corners round, as the
+    // card's own do, where a square tab read as a sticker on the sheet.
+    let (corner, top) = (block_r(&cut, 26, 11, 0), block_r(&cut, 31, 11, 0));
+    assert!(top > base + 5.0, "the tab's top is glass ({top:.1})");
+    assert!(
+        corner < top - 5.0,
+        "the tab's corner is square ({corner:.1} vs {top:.1})"
+    );
     // Below the legend's row the sheet is whole again.
     let under = block_r(&cut, 31, 28, 1);
     assert!(under > base + 10.0, "the notch ate the card ({under:.1})");

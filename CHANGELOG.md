@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.13
+
+**A title's tab is the same glass as its card.** The tab of glass a legend
+sits on (0.23.11) had square top corners on a card whose own corners are
+round, so it read as a sticker laid on the sheet. It is now a rounded box,
+its top corners at the card's own radius, tucked a few pixels under the
+card's edge so the two read as one piece of glass.
+
 ## 0.23.12
 
 **An idle hour is a dot.** The usage heatmaps in `/dash` and `/usage` drew
