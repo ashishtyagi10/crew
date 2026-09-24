@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.45
+
+**The picker names what it lists.** Typing `/theme ` or `/model ` in the
+input bar pops up a card of that command's values, but its legend still
+said `commands`. Once a command is followed by a space, the card is now
+named for that command (`theme`, `model`, `cd`). While you're still typing
+the command name, it stays `commands`.
+
 ## 0.23.44
 
 **A goal's status line, in words.** The goal pane's status line read

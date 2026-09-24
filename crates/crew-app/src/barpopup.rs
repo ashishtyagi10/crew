@@ -50,6 +50,13 @@ impl CrewApp {
         rows
     }
 
+    /// The palette card's legend: `commands` while a command is being
+    /// named, then the command itself once its values are listed — under
+    /// `/theme ` the card is a list of themes, and it said `commands`.
+    pub(crate) fn bar_legend(&self) -> String {
+        legend_for(&self.input.text)
+    }
+
     /// Where the bar's palette card is drawn this frame, with its rows —
     /// `None` when it is not (bar unfocused, nothing to list, no renderer).
     fn bar_popup_geometry(&self) -> Option<(Rect, Vec<MenuItem>)> {
@@ -135,3 +142,15 @@ impl CrewApp {
 #[cfg(test)]
 #[path = "barpopup_tests.rs"]
 mod tests;
+
+/// [`CrewApp::bar_legend`], pure: the command word once a space follows it.
+pub(crate) fn legend_for(text: &str) -> String {
+    match text
+        .trim_start()
+        .strip_prefix('/')
+        .and_then(|t| t.split_once(' '))
+    {
+        Some((cmd, _)) if !cmd.is_empty() => cmd.to_string(),
+        _ => "commands".to_string(),
+    }
+}

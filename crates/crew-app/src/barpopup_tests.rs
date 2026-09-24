@@ -78,3 +78,14 @@ fn pick_menu_is_the_enter_path() {
     assert_eq!(bar.text, "/theme ");
     assert_eq!(bar.pick_menu(&[]), None, "nothing to pick");
 }
+
+/// The card names what it lists: commands while one is being typed, the
+/// command itself once its values are showing.
+#[test]
+fn the_card_is_named_for_what_it_lists() {
+    assert_eq!(super::legend_for("/th"), "commands");
+    assert_eq!(super::legend_for("/"), "commands");
+    assert_eq!(super::legend_for("/theme "), "theme");
+    assert_eq!(super::legend_for("/model qw"), "model");
+    assert_eq!(super::legend_for("ls -la"), "commands");
+}
