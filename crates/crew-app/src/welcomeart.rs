@@ -38,8 +38,8 @@ pub(crate) fn push_hint(
     push_spans(cells, row, (cols - spans.len() as u16) / 2, &spans, bg);
 }
 
-/// The rectangular frame on the rain box's outer ring: a muted single-line
-/// border, so the rain reads as a bounded field rather than loose glyphs.
+/// The frame on the rain box's outer ring: a muted single-line border with
+/// rounded corners like every card's, so the rain reads as a bounded field rather than loose glyphs.
 #[rustfmt::skip]
 pub(crate) fn frame(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16, fg: (u8,u8,u8), bg: (u8,u8,u8)) {
     if w < 2 || h < 2 { return; }
@@ -55,10 +55,10 @@ pub(crate) fn frame(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u
         put(r, left, '\u{2502}');
         put(r, right, '\u{2502}');
     }
-    put(top, left, '\u{250c}');
-    put(top, right, '\u{2510}');
-    put(bot, left, '\u{2514}');
-    put(bot, right, '\u{2518}');
+    put(top, left, '\u{256d}');
+    put(top, right, '\u{256e}');
+    put(bot, left, '\u{2570}');
+    put(bot, right, '\u{256f}');
 }
 
 /// The internal `C R E W` nameplate centred in the rain box — the same

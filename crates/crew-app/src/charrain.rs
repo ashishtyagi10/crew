@@ -17,9 +17,18 @@ pub const RAIN_MIN_H: u16 = RAIN_MIN_W / 4;
 
 /// Trail length in cells behind each falling head.
 const TRAIL: u16 = 6;
-/// Glyph alphabet — ASCII/symbol only (single-width, font-safe; no CJK, which
-/// has advance-width hazards on some fonts).
-const GLYPHS: &[u8] = b"01<>[]{}()/\\|=+*-_#%&$?!:abcdefhkmnrsvyz3579";
+/// Glyph alphabet — ASCII only (single-width, font-safe; no CJK, which has
+/// advance-width hazards on some fonts). Letters and digits, and a few quiet
+/// marks the trail may wear: the `$#%&\\{}` the field once rained read as a
+/// corrupted terminal, not as light.
+const GLYPHS: &[u8] = b"0123456789abcdefhkmnrsvxyz<>/=+:";
+/// The leading run of [`GLYPHS`] a head may be: letters and digits only.
+const HEADS: usize = 26;
+/// Trail cells from this depth on are dots: the streak dissolves as it fades.
+const DOTS_FROM: u16 = 3;
+/// A column rests between streaks for up to this many cells' fall, so the
+/// field is a few streaks at a time and mostly page.
+const REST: u64 = 12;
 
 /// A fast integer hash (SplitMix-style) — the deterministic stand-in for RNG.
 fn hash(a: u64, b: u64) -> u64 {
@@ -44,21 +53,26 @@ fn lerp_rgb(a: (u8, u8, u8), b: (u8, u8, u8), t: f32) -> (u8, u8, u8) {
 pub fn rain(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16,
             tick: u64, head: (u8,u8,u8), trail: (u8,u8,u8), bg: (u8,u8,u8)) {
     if w == 0 || h == 0 { return; }
-    let period = h as u64 + TRAIL as u64;
     let fall = tick / 2;   // how far heads have dropped
     let flick = tick / 6;  // glyph re-roll clock (slower than the fall)
+    // The tail's last cells lean on into the page, so a streak fades out
+    // rather than stopping at a muted wall.
+    let tail = lerp_rgb(trail, bg, 0.45);
     for col in 0..w {
         let seed = hash(col as u64, 0x51);
         let delay = 1 + seed % 3; // columns take 1..=3 fall-ticks per cell dropped
+        let period = h as u64 + TRAIL as u64 + h as u64 / 2 + seed % REST;
         let headrow = ((fall / delay + seed % period) % period) as i64;
         for d in 0..TRAIL {
             let r = headrow - d as i64;
             if r < 0 || r >= h as i64 { continue; }
             let bright = 1.0 - d as f32 / TRAIL as f32;
-            let gi = (hash(col as u64, (r as u64) ^ flick) % GLYPHS.len() as u64) as usize;
+            let n = if d == 0 { HEADS } else { GLYPHS.len() } as u64;
+            let gi = (hash(col as u64, (r as u64) ^ flick) % n) as usize;
+            let c = if d >= DOTS_FROM { '\u{00b7}' } else { GLYPHS[gi] as char };
             cells.push(CellView {
-                col: left + col, row: top + r as u16, c: GLYPHS[gi] as char,
-                fg: lerp_rgb(trail, head, bright), bg, bold: d == 0, italic: false,
+                col: left + col, row: top + r as u16, c,
+                fg: lerp_rgb(tail, head, bright), bg, bold: d == 0, italic: false,
                 ..Default::default()
             });
         }

@@ -55,3 +55,38 @@ fn deterministic_in_tick_but_animates() {
 fn zero_size_emits_nothing() {
     assert!(frame(0, 10, 3).is_empty() && frame(10, 0, 3).is_empty());
 }
+
+/// A streak of light, not line noise: the head is a glyph, the tail
+/// dissolves into dots as it fades, and none of the field is the shouting
+/// punctuation (`$#%&\{}`…) that made it read as a corrupted terminal.
+#[test]
+fn a_streak_dissolves_into_dots() {
+    for tick in [0, 7, 31, 90] {
+        let cells = frame(RAIN_W, RAIN_H, tick);
+        let heads = cells.iter().filter(|c| c.bold);
+        assert!(
+            heads.clone().all(|c| c.c.is_ascii_alphanumeric()),
+            "heads are letters or digits"
+        );
+        let dots = cells.iter().filter(|c| c.c == '\u{00b7}').count();
+        assert!(
+            dots * 3 >= cells.len(),
+            "a third of a streak is its dotted tail: {dots}/{}",
+            cells.len()
+        );
+        assert!(
+            cells.iter().all(|c| !"$#%&\\{}[]()|!?_*".contains(c.c)),
+            "noise glyphs in the field"
+        );
+    }
+}
+
+/// Mostly page: the field is a few falling streaks, not a wall of glyphs.
+#[test]
+fn the_field_is_mostly_page() {
+    let area = usize::from(RAIN_W) * usize::from(RAIN_H);
+    for tick in [0, 7, 31, 90] {
+        let lit = frame(RAIN_W, RAIN_H, tick).len();
+        assert!(lit * 4 <= area, "tick {tick}: {lit} of {area} cells lit");
+    }
+}
