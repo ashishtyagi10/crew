@@ -185,3 +185,14 @@ fn the_text_has_air_on_both_sides() {
         "air before it"
     );
 }
+
+/// The card's legend is not said again at the head of its text.
+#[test]
+fn the_legend_is_not_repeated_in_the_text() {
+    let un = |t: &str, l| super::unlabel(t.to_string(), l);
+    assert_eq!(un("error: no such file", "error"), "no such file");
+    assert_eq!(un("Error: no such file", "error"), "no such file");
+    assert_eq!(un("error:", "error"), "error:", "never an empty card");
+    assert_eq!(un("errors: 3 found", "error"), "errors: 3 found");
+    assert_eq!(un("done", "error"), "done");
+}

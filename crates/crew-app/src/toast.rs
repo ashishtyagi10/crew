@@ -95,6 +95,7 @@ impl Toasts {
         now: u64,
         pane: Option<String>,
     ) {
+        let text = crate::toastcard::unlabel(text, legend);
         self.prune(now);
         // The same thing said twice is one thing that happened twice. A
         // watched pattern that matches every line, or an agent that finishes

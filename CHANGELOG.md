@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.47
+
+**A toast says its kind once.** An error toast wore `error` as its legend
+and then started its text with `error: failed to spawn shell…`, so the word
+appeared twice, one above the other, using up a narrow card's first line. A
+toast whose text starts with its own legend (in any case) now drops that
+prefix, so the card reads `failed to spawn shell…` under `error`.
+
 ## 0.23.46
 
 **`/far` writes home as `~`.** A file panel's header spelled out
