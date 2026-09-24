@@ -105,7 +105,7 @@ fn chevron(p: &SettingsPane, f: Field, r: Rect, row: u16, col: u16) -> Option<bo
 
 /// Save or Cancel, matching the row `render::buttons` draws.
 fn buttons(cols: u16, col: u16) -> Option<Hit> {
-    let (save, cancel) = ("[ Save \u{2318}S ]", "[ Cancel esc ]");
+    let (save, cancel) = (super::widgets::SAVE, super::widgets::CANCEL);
     let (sw, cw) = (save.chars().count() as u16, cancel.chars().count() as u16);
     let x0 = cols.saturating_sub(sw + 3 + cw + 2);
     match col {

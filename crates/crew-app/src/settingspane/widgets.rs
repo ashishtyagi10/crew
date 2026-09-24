@@ -84,6 +84,42 @@ pub(crate) fn checkbox(buf: &mut Buffer, rect: Rect, label: &str, on: bool, focu
     buf.set_line(rect.x, rect.y, &line, rect.width);
 }
 
+/// The form's two buttons, as drawn: the label padded inside its own fill,
+/// the same width `[ Save ⌘S ]` was, so the click targets did not move. The
+/// pads are no-break spaces: a bare space with a fill is emitted as a `█`
+/// glyph, which squares the capsule's ends off.
+pub(crate) const SAVE: &str = "\u{a0}\u{a0}Save\u{a0}\u{2318}S\u{a0}\u{a0}";
+pub(crate) const CANCEL: &str = "\u{a0}\u{a0}Cancel\u{a0}esc\u{a0}\u{a0}";
+
+/// A button: `text` on a filled capsule (the renderer rounds a run of fill
+/// bordered by page). The primary one sits on the accent; the other on a
+/// quiet tint of the ink. Focus bolds the label (and deepens Cancel's); the
+/// label is walked to the text floor on whatever fill it lands on.
+pub(crate) fn button(text: &str, focused: bool, primary: bool) -> Span<'static> {
+    let t = crew_theme::theme();
+    let rgb = |c: Color| match c {
+        Color::Rgb(r, g, b) => (r, g, b),
+        _ => t.ink,
+    };
+    let bg = match (primary, focused) {
+        (true, _) => rgb(focus_color()),
+        (false, f) => crate::anim::lerp_rgb(t.page_bg, t.ink, if f { 0.3 } else { 0.14 }),
+    };
+    let fg = crate::segment::page_ink(bg);
+    let fg = if primary {
+        fg
+    } else {
+        crew_theme::readable::enforced(t.ink, bg, crew_theme::contrast::text_floor())
+    };
+    let mut style = Style::new()
+        .fg(Color::Rgb(fg.0, fg.1, fg.2))
+        .bg(Color::Rgb(bg.0, bg.1, bg.2));
+    if focused {
+        style = style.add_modifier(Modifier::BOLD);
+    }
+    Span::styled(text.to_string(), style)
+}
+
 /// Multi-line boxed text area (one entry per line); shows the tail when the
 /// content overflows, cursor on the final line while focused.
 pub(crate) fn text_area(buf: &mut Buffer, rect: Rect, label: &str, value: &str, focused: bool) {

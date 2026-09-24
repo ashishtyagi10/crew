@@ -7,10 +7,9 @@
 //! for the 200-line cap when `auto` gained its pairing pickers.
 use crew_render::CellView;
 
-use crate::palette::focus_color;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 
 use super::labels::{hint_of, label_of, value_of};
@@ -178,24 +177,14 @@ fn hints(buf: &mut Buffer, cols: u16, viewport: u16, off: u16, total: u16) {
 
 /// `[ Save ⌘S ]   [ Cancel esc ]`, pinned bottom-right, focused accent+bold.
 fn buttons(buf: &mut Buffer, cols: u16, rows: u16, f: Field) {
-    let (save, cancel) = ("[ Save \u{2318}S ]", "[ Cancel esc ]");
-    let w = (save.chars().count() + 3 + cancel.chars().count()) as u16;
+    use super::widgets::{button, CANCEL, SAVE};
+    let w = (SAVE.chars().count() + 3 + CANCEL.chars().count()) as u16;
     let line = Line::from(vec![
-        button_span(save, f == Field::Save),
+        button(SAVE, f == Field::Save, true),
         Span::raw("   "),
-        button_span(cancel, f == Field::Cancel),
+        button(CANCEL, f == Field::Cancel, false),
     ]);
     buf.set_line(cols.saturating_sub(w + 2), rows - 1, &line, w);
-}
-
-fn button_span(text: &str, focused: bool) -> Span<'static> {
-    let t = crew_theme::theme();
-    let dim_col = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
-    let mut style = Style::new().fg(if focused { focus_color() } else { dim_col });
-    if focused {
-        style = style.add_modifier(Modifier::BOLD);
-    }
-    Span::styled(text.to_string(), style)
 }
 
 #[cfg(test)]
