@@ -304,10 +304,11 @@ impl CrewApp {
         // for non-slash input. An overlay scene so the overlay pass backs it
         // with black — a box on the canvas, fully opaque.
         let rows = self.bar_rows();
+        let legend = self.bar_legend();
         let (matches, title) = if rows.is_empty() {
             (self.input_preview(), "input")
         } else {
-            (rows, "commands")
+            (rows, legend.as_str())
         };
         if self.input.focused && !matches.is_empty() {
             let p = crate::cmdmenu::popup(title, &matches, self.input.menu_sel, ic);
