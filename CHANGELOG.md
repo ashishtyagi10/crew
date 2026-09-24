@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.49
+
+**No empty meters in SERVING.** With no provider signed in, or one without
+rolling limits, the nav's SERVING card still drew two empty 5h/7d meters
+ending in `—`, measuring nothing. When neither window has a reading, the card
+now shows only its provider line (`no provider — /model`). When one window is
+live, the other still shows its `—` while it fills.
+
 ## 0.23.48
 
 **No router suffix on the machine's name.** 0.23.31 dropped the mDNS

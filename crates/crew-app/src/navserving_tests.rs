@@ -83,3 +83,12 @@ fn narrow_keeps_the_model_and_drops_the_countdown() {
     assert_eq!(text(&cells, 1), "claude-code \u{00b7} claude-sonnet-5");
     assert!(text(&cells, 2).ends_with("1h00m"));
 }
+
+/// With no window to read, the card is the provider line alone: no empty
+/// meters, no dashes.
+#[test]
+fn no_readings_draw_no_meters() {
+    let (cells, meters) = serving_cells(&Serving::default(), 40);
+    assert!(meters.is_empty());
+    assert!(text(&cells, 2).is_empty() && text(&cells, 3).is_empty());
+}
