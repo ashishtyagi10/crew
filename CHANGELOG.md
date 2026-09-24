@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.15
+
+**Settings' checkboxes are drawn boxes.** Every toggle in `/settings` was
+`[x]` or `[ ]` typed into the form — the same bracketed text the pane
+buttons were. A toggle is now crew's own drawn box, the same size and
+weight in any font: filled `■` in the accent when on, an empty `□` in the
+muted ink when off, so which settings are on reads down the column at a
+glance. Clicking anywhere on the row still flips it.
+
 ## 0.23.14
 
 **The nav's words share one left edge.** The system cards and SERVING set

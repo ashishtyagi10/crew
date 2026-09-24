@@ -62,15 +62,25 @@ pub(crate) fn input_box(
     buf.set_line(rect.x + 1, rect.y + 1, &line, iw);
 }
 
-/// `[x] Label` single-row toggle; `› ` marker + accent bold when focused.
+/// `■ Label` single-row toggle — crew's drawn box, filled in the accent when
+/// on, empty and quiet when off (it was `[x]`, typed text); `› ` marker +
+/// accent bold when focused.
 pub(crate) fn checkbox(buf: &mut Buffer, rect: Rect, label: &str, on: bool, focused: bool) {
-    let mark = if on { "[x]" } else { "[ ]" };
+    let (mark, mark_fg) = if on {
+        ("\u{25a0}", focus_color())
+    } else {
+        ("\u{25a1}", dim())
+    };
     let lead = if focused { "\u{203a} " } else { "  " };
     let mut style = Style::new().fg(if focused { focus_color() } else { ink() });
     if focused {
         style = style.add_modifier(Modifier::BOLD);
     }
-    let line = Line::styled(format!("{lead}{mark} {label}"), style);
+    let line = Line::from(vec![
+        Span::styled(lead, style),
+        Span::styled(mark, style.fg(mark_fg)),
+        Span::styled(format!(" {label}"), style),
+    ]);
     buf.set_line(rect.x, rect.y, &line, rect.width);
 }
 
@@ -114,3 +124,7 @@ fn tail(s: &str, w: usize) -> String {
     let n = s.chars().count();
     s.chars().skip(n.saturating_sub(w)).collect()
 }
+
+#[cfg(test)]
+#[path = "widgets_tests.rs"]
+mod tests;
