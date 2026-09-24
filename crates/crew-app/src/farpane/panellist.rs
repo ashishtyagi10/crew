@@ -45,7 +45,7 @@ pub(super) fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool, f
         .border_style(Style::new().fg(edge))
         .title(Span::styled(
             legend(
-                &panel.loc.display(),
+                &panel.loc.shown(),
                 panel.entries.len(),
                 panel.entries.iter().map(|e| e.size).sum::<u64>(),
                 area.width,
