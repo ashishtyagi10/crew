@@ -27,6 +27,13 @@ pub(crate) fn update_cells(u: &UpdateState, cols: u16, rows: u16) -> Vec<CellVie
         let failed = msg.starts_with(FAILED);
         let fg = if failed { t.bell } else { t.ink };
         out.push(glyph(0, 0, if failed { '!' } else { '·' }, fg, t.page_bg));
+        // The card's legend already says UPDATE: `update failed:` spent a
+        // narrow card's first row on the word it is titled with, and the
+        // reason — the part worth reading — was what the ellipsis took.
+        let msg = msg
+            .strip_prefix("update ")
+            .filter(|_| failed)
+            .unwrap_or(msg);
         for (i, line) in note_lines(msg, max.saturating_sub(2), rows)
             .iter()
             .enumerate()
@@ -79,11 +86,16 @@ fn note_lines(msg: &str, w: u16, rows: u16) -> Vec<String> {
             out.push(format!("{head}\u{2026}"));
             return out;
         }
-        let brk = chars[..fit]
-            .iter()
-            .rposition(|c| c.is_whitespace())
-            .filter(|&i| i > 0)
-            .unwrap_or(fit);
+        // A row that fills exactly to a word's end breaks THERE, not at the
+        // space before that word (`failed:` alone over `connection reset`).
+        let brk = match chars[fit].is_whitespace() {
+            true => fit,
+            false => chars[..fit]
+                .iter()
+                .rposition(|c| c.is_whitespace())
+                .filter(|&i| i > 0)
+                .unwrap_or(fit),
+        };
         out.push(
             chars[..brk]
                 .iter()

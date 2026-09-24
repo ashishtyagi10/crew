@@ -79,3 +79,28 @@ fn a_stage_line_marks_its_cut_on_a_narrow_card() {
     assert!(r1.ends_with('\u{2026}'), "{r1:?}");
     assert!(cells.iter().all(|c| c.col < 12), "{r1:?}");
 }
+
+/// Under an UPDATE legend a failure starts `failed:`, not `update failed:` —
+/// the row it saves goes to the reason.
+#[test]
+fn a_failure_does_not_repeat_the_card_title() {
+    let _g = crate::app::theme_test_guard();
+    let cells = stage_cells(Stage::Note("update failed: connection reset".into()));
+    let mut r0: Vec<_> = cells.iter().filter(|c| c.row == 0).collect();
+    r0.sort_by_key(|c| c.col);
+    let r0: String = r0.iter().map(|c| c.c).collect();
+    assert!(r0.starts_with("!failed:"), "{r0:?}");
+    assert!(
+        !cells.iter().any(|c| c.c == 'u' && c.col == 2),
+        "no `update` lead"
+    );
+}
+
+/// A word that ends exactly at the edge stays on its row.
+#[test]
+fn a_row_that_fills_to_a_word_end_keeps_the_word() {
+    assert_eq!(
+        note_lines("failed: connection reset by peer", 18, 2),
+        vec!["failed: connection", "reset by peer"]
+    );
+}
