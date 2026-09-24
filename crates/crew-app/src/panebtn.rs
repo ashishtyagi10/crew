@@ -15,6 +15,9 @@ use crate::panehover::Btn;
 /// multiplication sign — every monospace face carries both.
 const GLYPHS: &str = " \u{2013}  \u{00d7} ";
 
+/// How far a hovered button's capsule leans from the page toward its colour.
+const HOVER_FILL: f32 = 0.22;
+
 /// Where the pair starts, counted back from the card's right edge.
 const FROM_RIGHT: u16 = 8;
 
@@ -42,7 +45,16 @@ pub(crate) fn draw(v: &mut Vec<CellView>, cols: u16, legend: (u8, u8, u8), hover
         let which = if i < 3 { Btn::Min } else { Btn::Close };
         let lit = hover == Some(which);
         let col = cols - FROM_RIGHT + i as u16;
-        put(v, col, 0, ch, btn_color(which, lit, legend), lit);
+        let fg = btn_color(which, lit, legend);
+        put(v, col, 0, ch, fg, lit);
+        // Under the pointer the button sits on a soft capsule of its own
+        // colour (the renderer rounds a run of fill bordered by page).
+        if lit {
+            let page = crew_theme::theme().page_bg;
+            if let Some(c) = v.iter_mut().find(|c| c.col == col && c.row == 0) {
+                c.bg = crate::anim::lerp_rgb(page, fg, HOVER_FILL);
+            }
+        }
     }
 }
 
