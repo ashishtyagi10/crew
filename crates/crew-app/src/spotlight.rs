@@ -48,6 +48,20 @@ pub(crate) fn lift_for(i: usize, spot: usize, prev: usize, t: f32) -> f32 {
     }
 }
 
+/// How far the input bar floats off the page. It is the one control every
+/// session starts from, so it never lies flat: at rest it rides as high as a
+/// focused card, and while you type in it it rises a half-step above every
+/// pane — the composer is the thing in front. (It was a well once, pressed
+/// into the glass; on a dark page an inner shadow on a near-black sheet drew
+/// nothing, and the bar read as a flat outline.)
+pub(crate) fn composer_lift(typing: bool) -> f32 {
+    if typing {
+        1.5
+    } else {
+        1.0
+    }
+}
+
 /// Apply the wash: every cell's ink leans `dim` toward the page. Backgrounds
 /// stay put — a selection or status band keeps its shape, only its text dims.
 pub(crate) fn wash(cells: &mut [CellView], dim: f32) {

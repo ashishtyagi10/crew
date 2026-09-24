@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.5
+
+**The input bar floats.** It was a well — pressed into the glass, with an
+inner shadow under its top lip — and on a dark page an inner shadow on a
+near-black sheet draws nothing, so the bar read as a flat outline. It now
+rides off the page like a focused card, and while you type in it it rises
+half a step above every pane: a lit top lip, a shaded lower one, a shadow
+beneath. Lifted glass also thickens now — a card nearer the light reads a
+little brighter, the elevation cue a dark page can actually show — so the
+focused pane stands out on dark themes too.
+
 ## 0.23.4
 
 **One gutter between every two cards.** A card's frame is drawn in cells and

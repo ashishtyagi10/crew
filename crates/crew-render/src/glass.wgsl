@@ -42,6 +42,10 @@ const LIFT_DROP: f32 = 4.0;
 const LIFT_BLUR: f32 = 6.0;
 const LIFT_SHADOW: f32 = 0.8;
 const LIFT_RIM: f32 = 0.35;
+// …and the sheet itself thickens: a surface nearer the light reads brighter.
+// On a dark page a shadow on near-black draws nothing, so this is what says a
+// card has lifted there — the elevation overlay every dark UI uses.
+const LIFT_FILL: f32 = 0.6;
 // The highest a card rides: 1 is the focused pane, 2 a floating card (a
 // pop-up, `/keys`, a toast) over everything.
 const MAX_LIFT: f32 = 2.0;
@@ -220,7 +224,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // 0 at the card's top edge, 1 at the bottom: the ramp that makes the sheet
   // read as lit from above rather than a flat wash of colour.
   let t = clamp((in.local.y + in.hsize.y) / max(in.hsize.y * 2.0, 1.0), 0.0, 1.0);
-  var fill_a = mix(a_top, a_bot, t) * inside * (1.0 - cut);
+  var fill_a = mix(a_top, a_bot, t) * (1.0 + LIFT_FILL * lift) * inside * (1.0 - cut);
 
   // Frost grain, signed so it neither only-lightens nor only-darkens.
   if (noise_amt > 0.0) {
