@@ -48,3 +48,16 @@ fn local_parent_matches_path_parent() {
     assert!(loc.has_parent());
     assert_eq!(loc.parent().unwrap().local_path().unwrap(), Path::new("/a"));
 }
+
+/// A panel header writes home as `~`, like every other legend.
+#[test]
+fn a_local_header_abbreviates_home() {
+    let Some(home) = dirs::home_dir() else { return };
+    let loc = Location::local(&home.join("code").join("crew"));
+    let sep = std::path::MAIN_SEPARATOR;
+    assert_eq!(loc.shown(), format!("~{sep}code{sep}crew"));
+    assert!(
+        loc.display().starts_with(&*home.to_string_lossy()),
+        "display stays full"
+    );
+}

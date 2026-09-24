@@ -67,6 +67,16 @@ impl Location {
         }
     }
 
+    /// [`Self::display`] for a panel's header: a local path abbreviated
+    /// under home (`~/code/crew`), as every other legend in crew writes it.
+    /// The full `/Users/me/…` spent a tile's header on the part you know.
+    pub(crate) fn shown(&self) -> String {
+        match &self.backend {
+            Backend::Local => crate::cwd::display(std::path::Path::new(&self.path)),
+            Backend::Rclone { .. } => self.display(),
+        }
+    }
+
     /// Descend into `name`.
     pub(crate) fn child(&self, name: &str) -> Self {
         match &self.backend {

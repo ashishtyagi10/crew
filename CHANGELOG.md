@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.46
+
+**`/far` writes home as `~`.** A file panel's header spelled out
+`/Users/you/code/crew/crates/crew-app` in full, while the input bar, the
+panes and the nav all write `~/code/crew`. On a tile, the part of the path
+you already know used up the header and the folder you're in was cut. The
+headers now abbreviate home the same way. Remote (rclone) panels are
+unchanged.
+
 ## 0.23.45
 
 **The picker names what it lists.** Typing `/theme ` or `/model ` in the
