@@ -34,7 +34,11 @@ fn head_cells_are_bold_and_brightest() {
     let heads: Vec<_> = cells.iter().filter(|c| c.bold).collect();
     assert!(!heads.is_empty(), "each active column has a bold head");
     let mid = |c: &&&CellView| {
-        c.col > 5 + 3 && c.col < 5 + RAIN_W - 4 && c.row > 3 + 3 && c.row < 3 + RAIN_H - 4
+        c.col > 5 + 3
+            && c.col < 5 + RAIN_W - 4
+            && c.row > 3 + 3
+            && c.row < 3 + RAIN_H - 4
+            && calm(c.col - 5, c.row - 3, RAIN_W, RAIN_H) == 1.0
     };
     assert!(
         heads.iter().filter(mid).all(|c| c.fg == (0, 255, 0)),
@@ -132,5 +136,26 @@ fn the_field_fades_toward_its_edges() {
         "edge {} vs mid {}",
         max(&edge),
         max(&mid)
+    );
+}
+
+/// The centre, where the name sits, is calm at every tick: no glyph within
+/// the calm's inner ellipse, and the field is still full at the edges.
+#[test]
+fn the_centre_is_calm() {
+    for tick in 0..60 {
+        let cells = frame(RAIN_W, RAIN_H, tick);
+        let (cx, cy) = (5 + RAIN_W / 2, 3 + RAIN_H / 2);
+        assert!(
+            cells
+                .iter()
+                .all(|c| c.col.abs_diff(cx) > 8 || c.row.abs_diff(cy) > 1),
+            "tick {tick}: a glyph by the name"
+        );
+    }
+    assert_eq!(
+        calm(0, 0, RAIN_W, RAIN_H),
+        1.0,
+        "the corners keep all their light"
     );
 }
