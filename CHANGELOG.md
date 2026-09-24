@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.24
+
+**On a Mac, the welcome writes chords the Mac way.** The first screen's
+hint spelled its shortcuts out — `Cmd+T shell · Cmd+J agents` — while the
+rest of crew already writes `Save ⌘S` and `⌘V again to paste`. On macOS it
+now reads `⌘T shell · ⌘J agents · / commands`, the chords still in the
+accent and every narrower rung of the ladder written the same way. Other
+platforms keep the text they had.
+
 ## 0.23.23
 
 **A card's buttons show their target.** Under the pointer the `–` and `×`

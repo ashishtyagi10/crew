@@ -24,6 +24,17 @@ pub(crate) const TAGLINE: &str = "fast terminals. clean flow.";
 /// Chosen by width rather than dropped: the whole line used to vanish on a
 /// narrow window, which is the wrong trade for the one piece of guidance a
 /// new user gets.
+///
+/// A Mac writes its chords the Mac way, `⌘T` (as `Save ⌘S` already is).
+#[cfg(target_os = "macos")]
+const HINTS: &[&str] = &[
+    "\u{2318}T  shell    \u{00b7}    \u{2318}J  agents    \u{00b7}    /  commands",
+    "\u{2318}T  shell  \u{00b7}  \u{2318}J  agents  \u{00b7}  /  commands",
+    "\u{2318}T shell \u{00b7} \u{2318}J agents \u{00b7} / commands",
+    "\u{2318}J  agents    \u{00b7}    /  commands",
+    "\u{2318}J agents",
+];
+#[cfg(not(target_os = "macos"))]
 const HINTS: &[&str] = &[
     "Cmd+T  shell    \u{00b7}    Cmd+J  agents    \u{00b7}    /  commands",
     "Cmd+T  shell  \u{00b7}  Cmd+J  agents  \u{00b7}  /  commands",
@@ -31,6 +42,13 @@ const HINTS: &[&str] = &[
     "Cmd+J  agents    \u{00b7}    /  commands",
     "Cmd+J agents",
 ];
+
+/// How the hint writes the command modifier, before the key.
+pub(crate) const CMD: &str = if cfg!(target_os = "macos") {
+    "\u{2318}"
+} else {
+    "Cmd+"
+};
 
 /// Columns of air a centred line keeps between itself and the card's frame.
 /// Without it a line whose width is `cols - 1` sits against the stroke, and
@@ -76,7 +94,7 @@ pub(crate) fn hint_spans(
 /// starting with `/` — the bare slash that opens the palette, and the
 /// `/restore` on the offer line, which is a thing to type like any other.
 fn is_chord(token: &str) -> bool {
-    token.starts_with('/') || token.starts_with("Cmd+") || token.starts_with("Ctrl+")
+    token.starts_with(['/', '\u{2318}']) || token.starts_with("Cmd+") || token.starts_with("Ctrl+")
 }
 
 /// The accent the hint's chords wear.
