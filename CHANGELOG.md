@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.14
+
+**The nav's words share one left edge.** The system cards and SERVING set
+their text under the rule's legend; WEATHER and WAITING ON YOU started a
+column or two to the left of it, so `nothing — all quiet` and the day's
+range stood out of line with everything above them. Every glance card now
+starts its words on the same column, and a row that opens with an icon —
+`☁ 24°`, `⚑ zsh`, `↵ plan` — hangs the icon in the margin so the words
+after it still line up. The weather curve moved in with the text.
+
 ## 0.23.13
 
 **A title's tab is the same glass as its card.** The tab of glass a legend

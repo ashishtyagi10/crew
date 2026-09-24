@@ -10,8 +10,6 @@ use crate::palette::accent;
 /// and the pane list below is the list.
 pub const WAIT_MAX: usize = 6;
 
-const TEXT_COL: u16 = 2;
-
 /// Render the card: the rule (with the count when something is waiting),
 /// then up to `max_lines` rows. Empty when there is no room.
 pub(crate) fn waiting_cells(rows: &[WaitRow], cols: u16, max_lines: usize) -> Vec<CellView> {
@@ -41,7 +39,6 @@ pub(crate) fn waiting_cells(rows: &[WaitRow], cols: u16, max_lines: usize) -> Ve
         t.page_bg,
     );
     let max_col = cols.saturating_sub(1);
-    let room = usize::from(max_col.saturating_sub(TEXT_COL));
     for (k, r) in rows.iter().take(max_lines).enumerate() {
         let fg = match r.kind {
             Wait::Blocked => t.bell,
@@ -49,23 +46,19 @@ pub(crate) fn waiting_cells(rows: &[WaitRow], cols: u16, max_lines: usize) -> Ve
             Wait::Running => accent(),
             Wait::Quiet => t.text_muted,
         };
-        let body = crate::chatwidth::clip_w(&r.text, room);
-        crate::chatwidth::place_row(
-            TEXT_COL,
-            max_col,
-            body.chars().map(|c| (c, fg)),
-            |x, c, fg| {
-                out.push(CellView {
-                    col: x,
-                    row: 1 + k as u16,
-                    c,
-                    fg,
-                    bg: t.page_bg,
-                    bold: r.hovered,
-                    ..Default::default()
-                });
-            },
-        );
+        let col = crate::navtext::lead(&r.text);
+        let body = crate::chatwidth::clip_w(&r.text, usize::from(max_col.saturating_sub(col)));
+        crate::chatwidth::place_row(col, max_col, body.chars().map(|c| (c, fg)), |x, c, fg| {
+            out.push(CellView {
+                col: x,
+                row: 1 + k as u16,
+                c,
+                fg,
+                bg: t.page_bg,
+                bold: r.hovered,
+                ..Default::default()
+            });
+        });
     }
     out
 }

@@ -73,7 +73,8 @@ fn a_narrow_nav_keeps_the_reading_and_drops_the_words() {
     };
     let wide = weather_cells(&w, 40);
     assert_eq!(line(&wide, 1), "\u{2601} 24\u{00b0}C partly cloudy");
-    let mid = weather_cells(&w, 22);
+    // The glyph hangs in the margin, so the row has two columns more.
+    let mid = weather_cells(&w, 21);
     assert_eq!(line(&mid, 1), "\u{2601} 24\u{00b0} partly cloudy");
     let narrow = weather_cells(&w, 14);
     assert_eq!(line(&narrow, 1), "\u{2601} 24\u{00b0}C");
@@ -133,4 +134,20 @@ fn every_wmo_family_has_words() {
     assert_eq!(condition(0), "clear");
     assert_eq!(condition(63), "rain");
     assert_eq!(condition(99), "thunder, hail");
+}
+
+/// The reading and the range start under the rule's legend, as every other
+/// nav card's words do; the sky's glyph hangs in the margin before them.
+#[test]
+fn words_start_under_the_legend_and_the_glyph_hangs() {
+    let cells = weather_cells(&berlin(), 32);
+    let first = |r: u16| cells.iter().filter(|c| c.row == r).map(|c| c.col).min();
+    let indent = crate::navtext::INDENT;
+    assert_eq!(first(1), Some(indent - 2), "the glyph hangs");
+    let digit = cells
+        .iter()
+        .find(|c| c.row == 1 && c.c.is_ascii_digit())
+        .map(|c| c.col);
+    assert_eq!(digit, Some(indent), "the reading");
+    assert_eq!(first(2), Some(indent), "the range");
 }
