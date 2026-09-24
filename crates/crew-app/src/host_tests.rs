@@ -35,3 +35,16 @@ fn a_long_host_name_ellipsizes() {
         "the head still names it: {row:?}"
     );
 }
+
+/// `name.local` is every Mac's mDNS name; the suffix is noise on a card.
+#[test]
+fn the_mdns_suffix_and_the_kernel_name_are_dropped() {
+    assert_eq!(
+        plain_host("Ashishs-MacBook-Pro-2.local"),
+        "Ashishs-MacBook-Pro-2"
+    );
+    assert_eq!(plain_host(".local"), ".local", "never an empty name");
+    assert_eq!(plain_host("build01"), "build01");
+    assert_eq!(plain_os("Darwin"), "macOS");
+    assert_eq!(plain_os("Ubuntu"), "Ubuntu");
+}

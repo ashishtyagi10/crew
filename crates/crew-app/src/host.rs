@@ -8,14 +8,52 @@ use crate::palette::accent;
 
 /// Current `(name, uptime)` display strings, e.g. `("mbp · macOS", "up 3h 12m")`.
 pub fn host_strings() -> (String, String) {
-    let host = sysinfo::System::host_name().unwrap_or_else(|| "crew".to_string());
-    let os = sysinfo::System::name().unwrap_or_default();
+    let (host, os, up) = host_parts();
     let name = if os.is_empty() {
         host
     } else {
         format!("{host} · {os}")
     };
-    (name, fmt_uptime(sysinfo::System::uptime()))
+    (name, up)
+}
+
+/// The nav card's two lines: the name alone, then `macOS · up 3h 12m`.
+pub fn card_lines() -> (String, String) {
+    let (host, os, up) = host_parts();
+    match os.is_empty() {
+        true => (host, up),
+        false => (host, format!("{os} · {up}")),
+    }
+}
+
+/// The machine as three words: `("mbp", "macOS", "up 3h 12m")`. The nav's
+/// narrow card puts the OS beside the uptime rather than after the name,
+/// where a MacBook's default hostname pushed it past the ellipsis.
+pub fn host_parts() -> (String, String, String) {
+    let host = sysinfo::System::host_name().unwrap_or_else(|| "crew".to_string());
+    let os = sysinfo::System::name().unwrap_or_default();
+    (
+        plain_host(&host).to_string(),
+        plain_os(&os).to_string(),
+        fmt_uptime(sysinfo::System::uptime()),
+    )
+}
+
+/// The name without its mDNS suffix: every Mac answers `name.local`, so the
+/// suffix says nothing and costs six columns of a narrow card.
+fn plain_host(host: &str) -> &str {
+    match host.strip_suffix(".local") {
+        Some(h) if !h.is_empty() => h,
+        _ => host,
+    }
+}
+
+/// `Darwin` is the kernel; the person at the keyboard runs macOS.
+fn plain_os(os: &str) -> &str {
+    match os {
+        "Darwin" => "macOS",
+        o => o,
+    }
 }
 
 /// Format seconds of uptime compactly: `up 2d 3h`, `up 3h 12m`, or `up 12m`.

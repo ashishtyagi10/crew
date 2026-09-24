@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.31
+
+**The machine, named plainly.** The HOST card read `Ashishs-MacBook-Pro-2…`
+and never reached the OS: every Mac's hostname carries an mDNS `.local`
+suffix, and the kernel name `Darwin` came after it. The suffix is dropped,
+the OS reads `macOS`, and the nav card puts it beside the uptime
+(`macOS · up 22h 10m`) so the name gets its own line. `/dash`'s machine line
+is six columns shorter, enough for the third load average.
+
 ## 0.23.30
 
 **The rain sits on glass.** The welcome's matrix rain, name and hints now
