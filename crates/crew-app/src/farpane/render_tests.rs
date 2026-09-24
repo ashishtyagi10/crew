@@ -71,14 +71,19 @@ fn function_bar_highlights_actions_far_style() {
     let bar: Vec<_> = cells.iter().filter(|c| c.row == bar_row).collect();
     let mut v: Vec<(u16, char)> = bar.iter().map(|c| (c.col, c.c)).collect();
     v.sort_unstable();
-    let s: String = v.into_iter().map(|(_, c)| c).collect();
-    // Key number outside the block, a gap, then the action on a solid pill.
-    assert!(s.contains("▐Help▌"), "label block caps missing: {s}");
-    assert!(s.contains("F10▐Quit▌"), "F10 keeps its number: {s}");
+    // Blank cells are not emitted: lay the glyphs out by column.
+    let mut row = vec![' '; 80];
+    for (col, c) in v {
+        row[usize::from(col)] = c;
+    }
+    let s: String = row.into_iter().collect();
+    // The key in the accent, its label in ink, no fill under either.
+    assert!(s.contains("F1 Help"), "key then label: {s}");
+    assert!(s.contains("F10 Quit"), "F10 keeps its number: {s}");
     let f = bar.iter().find(|c| c.c == 'F').unwrap();
     let h = bar.iter().find(|c| c.c == 'H').unwrap();
-    assert_eq!(h.bg, f.fg, "label must sit on an accent block");
-    assert_ne!(h.bg, h.fg, "label text must contrast with its block");
+    assert_ne!(h.fg, f.fg, "the label reads apart from its key");
+    assert!(bar.iter().all(|c| c.c != '\u{2588}'), "no filled pill: {s}");
 }
 
 #[test]
