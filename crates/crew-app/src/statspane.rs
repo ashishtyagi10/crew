@@ -222,7 +222,7 @@ impl StatsPane {
 
         let host_off = load_off + navlayout::LOAD_BLOCK;
         if rows > host_off + 3 {
-            let (name, uptime) = host::host_strings();
+            let (name, uptime) = host::card_lines();
             for mut c in host::host_cells(&name, &uptime, cols) {
                 c.row += host_off;
                 out.push(c);
