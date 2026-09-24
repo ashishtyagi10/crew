@@ -109,54 +109,20 @@ pub fn push_card_art(
         title_fg,
         crew_theme::theme().page_bg,
     );
-    push_framed(scenes, rect, cw, ch, frame, content(icols, irows));
-}
-
-/// [`push_card`] wearing the FOCUSED ring instead of the quiet stroke — for
-/// the welcome, the one card on an empty canvas. It occupies exactly the rect
-/// a lone Cmd+T terminal would, and that terminal is drawn lit; drawn in
-/// `border_normal` instead, the modern light pages (a ~2:1 stroke, whitened
-/// further by the quiet gradient) left the main page with no visible edge at
-/// all.
-pub fn push_card_lit(
-    scenes: &mut Vec<PaneScene>,
-    rect: Rect,
-    cw: f32,
-    ch: f32,
-    legend: &str,
-    content: impl FnOnce(u16, u16) -> Vec<CellView>,
-) {
-    let t = crew_theme::theme();
-    let (icols, irows) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
-    let (cols, rows) = (icols + 2, irows + 2);
-    let mut frame = crate::boxdraw::titled_card(
-        cols,
-        rows,
-        legend,
-        crate::panecardglow::focused_stroke(t),
-        t.ink,
-        t.page_bg,
-    );
-    crate::modernring::ring(&mut frame, cols, rows, false, 1.0, 0);
-    push_framed(
-        scenes,
-        rect,
-        cw,
-        ch,
-        frame,
-        (content(icols, irows), Vec::new()),
-    );
+    push_framed(scenes, rect, cw, ch, frame, content(icols, irows), 0.0);
 }
 
 /// The two scenes every panel card is: the inset interior, then its `frame`
-/// over the full rect on the frosted sheet.
-fn push_framed(
+/// over the full rect on the frosted sheet, raised `lift` off the page (0
+/// rests on it; 1 is a focused pane's rise, and marks the card focused).
+pub(crate) fn push_framed(
     scenes: &mut Vec<PaneScene>,
     rect: Rect,
     cw: f32,
     ch: f32,
     frame: Vec<CellView>,
     (cells, paint): (Vec<CellView>, Vec<Paint>),
+    lift: f32,
 ) {
     scenes.push(PaneScene {
         cells,
@@ -180,14 +146,14 @@ fn push_framed(
         y: rect.y,
         w: rect.w,
         h: rect.h,
-        focused: false,
+        focused: lift >= 1.0,
         bordered: false,
         // Panels are cards on the same canvas as panes, so they get the same
         // sheet. The popups (command menu, attach, key prompt) are `overlay`
         // scenes and stay opaque by design — the glass pass skips them.
         glass: true,
         scan: -1.0,
-        lift: 0.0,
+        lift,
         glint: -1.0,
         // The frame fills its rect to the pixel, so the nav's cards keep the
         // same gutter as every other card.
@@ -196,3 +162,7 @@ fn push_framed(
         paint: Vec::new(),
     });
 }
+
+#[cfg(test)]
+#[path = "panelcard_tests.rs"]
+mod tests;
