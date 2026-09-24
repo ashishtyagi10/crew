@@ -53,3 +53,18 @@ fn the_pair_sits_where_the_hit_rects_look_for_it() {
     assert_eq!((at(0), at(2)), (cols - 8, cols - 6), "[-] columns");
     assert_eq!((at(3), at(5)), (cols - 5, cols - 3), "[x] columns");
 }
+
+/// Each button is ONE mark centred in its three-cell slot, with open rule
+/// either side — not a glyph fenced in ASCII brackets, which read as
+/// `[-][x]` typed text rather than a control.
+#[test]
+fn each_button_is_one_centred_mark() {
+    let v = cells(None);
+    for (slot, name) in [(0, "minimize"), (3, "close")] {
+        let s: Vec<char> = v[slot..slot + 3].iter().map(|c| c.c).collect();
+        assert!(
+            s[0] == ' ' && s[2] == ' ' && !s[1].is_ascii_punctuation() && s[1] != ' ',
+            "{name} is {s:?}"
+        );
+    }
+}

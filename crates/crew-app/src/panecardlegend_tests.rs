@@ -44,7 +44,7 @@ fn a_legend_that_gives_way_to_the_buttons_marks_its_cut() {
     let _g = crate::app::theme_test_guard();
     let top = top_row(&pane_card(24, 5, &bar("cargo test --workspace")));
     assert!(top.contains('\u{2026}'), "{top:?}");
-    assert!(top.contains("[-]") && top.contains("[x]"), "{top:?}");
+    assert!(top.contains(" \u{2013}  \u{00d7} "), "{top:?}");
     assert!(!top.contains("workspace"), "{top:?}");
     let wide = top_row(&pane_card(60, 5, &bar("cargo test --workspace")));
     assert!(wide.contains("2 cargo test --workspace"), "{wide:?}");
