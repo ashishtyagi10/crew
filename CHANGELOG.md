@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.22
+
+**Dark type on a bright bar survives the glow.** On the glowing themes
+(harbor, nebula, the tubes) a selected row — thin dark letters on a wide
+accent fill — was washed out by the bloom: its kernel sums well past 1 so a
+stroke's halo reaches far, and over a whole bar that is the bar's light
+several times over poured onto the letters inside it. `/far`'s cursor row
+on harbor read green on cyan at about 1.6:1. The glow a single pixel takes
+is now capped: a stroke's halo sits far under the cap and is unchanged to
+the byte, while the letters on a bar keep their contrast (≈9:1).
+
 ## 0.23.21
 
 **Old messages say when, not how many days.** A message card's age — and
