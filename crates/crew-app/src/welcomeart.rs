@@ -38,39 +38,25 @@ pub(crate) fn push_hint(
     push_spans(cells, row, (cols - spans.len() as u16) / 2, &spans, bg);
 }
 
-/// The internal `C R E W` nameplate centred in the rain box — the same
-/// double-line box the smith splash wears. Every cell (borders, padding,
-/// letters) is pushed, so the plate occludes the rain behind it
-/// (crew-render's last-write-wins merge) and the glyphs fall AROUND it.
+/// The `C R E W` wordmark centred in the rain: bold ink letters standing in
+/// a clearing — every cell of it pushed, blanks included, so it occludes
+/// the rain behind it (crew-render's last-write-wins merge) and the glyphs
+/// fall AROUND the name. It was a double-ruled plate; the name needs no box.
 /// Skipped when the box hasn't the room to hold it with a rain margin.
 #[rustfmt::skip]
 pub(crate) fn nameplate(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16, ink: (u8,u8,u8), bg: (u8,u8,u8)) {
     const PLATE: &str = "C R E W";
-    const PAD: u16 = 3;
-    let inner = PLATE.len() as u16 + PAD * 2;
-    let (bw, bh) = (inner + 2, 3u16);
+    const PAD: u16 = 4;
+    let (bw, bh) = (PLATE.len() as u16 + PAD * 2, 3u16);
     if w < bw + 4 || h < bh + 2 { return; }
-    let ptop = top + (h - bh) / 2;
-    let pleft = left + (w - bw) / 2;
-    let mut put = |row: u16, col: u16, c: char, bold: bool| {
-        cells.push(CellView { col, row, c, fg: ink, bg, bold, italic: false, ..Default::default() });
-    };
-    for i in 0..inner {
-        put(ptop, pleft + 1 + i, '\u{2550}', false);
-        put(ptop + 2, pleft + 1 + i, '\u{2550}', false);
-        let c = if (PAD..PAD + PLATE.len() as u16).contains(&i) {
-            PLATE.as_bytes()[(i - PAD) as usize] as char
-        } else {
-            ' '
-        };
-        put(ptop + 1, pleft + 1 + i, c, c != ' ');
-    }
-    for (row, l, r) in [
-        (ptop, '\u{2554}', '\u{2557}'),
-        (ptop + 1, '\u{2551}', '\u{2551}'),
-        (ptop + 2, '\u{255a}', '\u{255d}'),
-    ] {
-        put(row, pleft, l, false);
-        put(row, pleft + bw - 1, r, false);
+    let (ptop, pleft) = (top + (h - bh) / 2, left + (w - bw) / 2);
+    for row in ptop..ptop + bh {
+        for i in 0..bw {
+            let c = match row == ptop + 1 && (PAD..PAD + PLATE.len() as u16).contains(&i) {
+                true => PLATE.as_bytes()[(i - PAD) as usize] as char,
+                false => ' ',
+            };
+            cells.push(CellView { col: pleft + i, row, c, fg: ink, bg, bold: c != ' ', ..Default::default() });
+        }
     }
 }

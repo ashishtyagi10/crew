@@ -158,25 +158,24 @@ fn restore_hint_never_shares_the_version_stamp_row() {
 }
 
 #[test]
-fn rain_box_is_framed_with_an_inner_crew_nameplate() {
+fn the_rain_has_no_frame_and_the_name_leads_it() {
+    let _g = crate::app::theme_test_guard();
     let cells = welcome_cells_animated(80, 30, 0, None);
     let chars: std::collections::HashSet<char> = cells.iter().map(|c| c.c).collect();
-    // No ruled box: the rain is bounded by its own fade…
-    for c in ['\u{256d}', '\u{256e}', '\u{2570}', '\u{256f}'] {
-        assert!(!chars.contains(&c), "a frame corner {c} is back");
+    // No ruled box round the rain, no double-ruled plate round the name…
+    for c in [
+        '\u{256d}', '\u{256e}', '\u{2570}', '\u{256f}', '\u{2554}', '\u{2550}',
+    ] {
+        assert!(!chars.contains(&c), "a frame {c} is back");
     }
-    // …and the double-line CREW nameplate over the rain, letters in bold.
-    for c in ['\u{2554}', '\u{255d}'] {
-        assert!(chars.contains(&c), "nameplate corner {c} missing");
-    }
+    // …the name, bold, is the only thing in the field wearing the ink.
+    let ink = crew_theme::theme().ink;
+    let inked = cells.iter().filter(|c| c.fg == ink && c.bold);
+    assert!(inked.clone().all(|c| "CREW".contains(c.c)));
     for l in ['C', 'R', 'E', 'W'] {
-        assert!(
-            cells.iter().any(|c| c.c == l && c.bold),
-            "nameplate letter {l} missing"
-        );
+        assert!(inked.clone().any(|c| c.c == l), "letter {l} missing");
     }
-    // The rain stays inside the frame: no glyph cells on the frame's ring is
-    // hard to assert cheaply, but everything must stay in bounds.
+    // Everything stays in bounds.
     assert!(cells.iter().all(|c| c.row < 30 && c.col < 80));
 }
 

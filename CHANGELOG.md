@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.20
+
+**The name leads the welcome.** CREW sat in a double-ruled `╔═╗` plate,
+and the rain's heads were set in the same bold ink as the name, so the eye
+had nowhere to land. The plate is gone: the wordmark stands on type alone
+in a clearing the rain falls around, and the rain is set in the muted ink
+with tails that sink toward the page — ambience around the one word to
+read, rather than competing with it.
+
 ## 0.23.19
 
 **The welcome rain is bounded by light.** The field around the CREW
