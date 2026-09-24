@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.40
+
+**An update failure shows its reason.** The nav's UPDATE card spent its
+first row on `update failed:`, repeating its own title, so the reason (the
+part worth reading) was what got cut off. A failure now reads
+`! failed: connection reset by peer…`, still with the red `!`. A wrap bug is
+also fixed: a line that filled exactly to the end of a word broke one word
+early, which left `failed:` alone on a row.
+
 ## 0.23.39
 
 **Badges without the rule through them.** A busy card's top border read
