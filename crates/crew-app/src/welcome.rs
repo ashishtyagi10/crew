@@ -4,7 +4,7 @@
 use crew_render::CellView;
 
 use crate::charrain::{rain, RAIN_H, RAIN_MIN_H, RAIN_MIN_W, RAIN_W};
-use crate::welcomeart::{frame, nameplate, push_hint, push_spans, push_str};
+use crate::welcomeart::{nameplate, push_hint, push_spans, push_str};
 use crate::welcometext::{chord_fg, fits, hint_spans, restore_hint, whats_new, TAGLINE};
 
 /// Poll ticks per rendered frame. The tick doubles as the rain's clock, so this
@@ -72,20 +72,10 @@ pub fn welcome_cells_animated(
         let h = w / ASPECT;
         let top = (rows - (h + 3)) / 2;
         let left = (cols - w) / 2;
-        // The rain falls INSIDE the frame (the box's outer ring), and the
-        // CREW nameplate sits over its centre — glyphs stream around it.
-        rain(
-            &mut cells,
-            top + 1,
-            left + 1,
-            w - 2,
-            h - 2,
-            tick,
-            t.ink,
-            t.text_muted,
-            bg,
-        );
-        frame(&mut cells, top, left, w, h, t.text_muted, bg);
+        // The rain fills the box and fades out toward its edges — bounded
+        // by light, not by a ruled rectangle inside the card — and the CREW
+        // nameplate sits over its centre, glyphs streaming around it.
+        rain(&mut cells, top, left, w, h, tick, t.ink, t.text_muted, bg);
         nameplate(&mut cells, top, left, w, h, t.ink, bg);
 
         let tl_row = top + h + 1;

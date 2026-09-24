@@ -33,9 +33,12 @@ fn head_cells_are_bold_and_brightest() {
     let cells = frame(RAIN_W, RAIN_H, 7);
     let heads: Vec<_> = cells.iter().filter(|c| c.bold).collect();
     assert!(!heads.is_empty(), "each active column has a bold head");
+    let mid = |c: &&&CellView| {
+        c.col > 5 + 3 && c.col < 5 + RAIN_W - 4 && c.row > 3 + 3 && c.row < 3 + RAIN_H - 4
+    };
     assert!(
-        heads.iter().all(|c| c.fg == (0, 255, 0)),
-        "head is head colour"
+        heads.iter().filter(mid).all(|c| c.fg == (0, 255, 0)),
+        "mid-field head is head colour"
     );
 }
 
@@ -89,4 +92,45 @@ fn the_field_is_mostly_page() {
         let lit = frame(RAIN_W, RAIN_H, tick).len();
         assert!(lit * 4 <= area, "tick {tick}: {lit} of {area} cells lit");
     }
+}
+
+/// The field is bounded by light, not a ruled box: a glyph at the edge of
+/// the rect burns fainter than the same glyph mid-field, so the rain fades
+/// out into the page instead of stopping at a line.
+#[test]
+fn the_field_fades_toward_its_edges() {
+    let (bright, dim) = ((0, 255, 0), (0, 60, 0));
+    let heads = |cells: &[CellView], edge: bool| -> Vec<u8> {
+        cells
+            .iter()
+            .filter(|c| c.bold && ((c.col == 5 || c.col == 5 + RAIN_W - 1) == edge))
+            .map(|c| c.fg.1)
+            .collect()
+    };
+    let mut edge = Vec::new();
+    let mut mid = Vec::new();
+    for tick in 0..200 {
+        let mut cells = Vec::new();
+        rain(
+            &mut cells,
+            3,
+            5,
+            RAIN_W,
+            RAIN_H,
+            tick,
+            bright,
+            dim,
+            (0, 0, 0),
+        );
+        edge.extend(heads(&cells, true));
+        mid.extend(heads(&cells, false));
+    }
+    let max = |v: &[u8]| v.iter().copied().max().unwrap_or(0);
+    assert!(!edge.is_empty(), "edge columns rain too");
+    assert!(
+        max(&edge) < max(&mid),
+        "edge {} vs mid {}",
+        max(&edge),
+        max(&mid)
+    );
 }

@@ -29,6 +29,11 @@ const DOTS_FROM: u16 = 3;
 /// A column rests between streaks for up to this many cells' fall, so the
 /// field is a few streaks at a time and mostly page.
 const REST: u64 = 12;
+/// Cells from the rect's edge over which the field fades out: the rain is
+/// bounded by light, not by a ruled box around it.
+const FADE: f32 = 3.0;
+/// How much of its light a glyph ON the edge keeps.
+const EDGE: f32 = 0.3;
 
 /// A fast integer hash (SplitMix-style) — the deterministic stand-in for RNG.
 fn hash(a: u64, b: u64) -> u64 {
@@ -70,9 +75,11 @@ pub fn rain(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16,
             let n = if d == 0 { HEADS } else { GLYPHS.len() } as u64;
             let gi = (hash(col as u64, (r as u64) ^ flick) % n) as usize;
             let c = if d >= DOTS_FROM { '\u{00b7}' } else { GLYPHS[gi] as char };
+            let e = (col + 1).min(w - col).min(r as u16 + 1).min(h - r as u16) as f32;
+            let fade = EDGE + (1.0 - EDGE) * ((e - 1.0) / FADE).clamp(0.0, 1.0);
             cells.push(CellView {
                 col: left + col, row: top + r as u16, c,
-                fg: lerp_rgb(tail, head, bright), bg, bold: d == 0, italic: false,
+                fg: lerp_rgb(bg, lerp_rgb(tail, head, bright), fade), bg, bold: d == 0, italic: false,
                 ..Default::default()
             });
         }

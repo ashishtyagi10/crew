@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.19
+
+**The welcome rain is bounded by light.** The field around the CREW
+nameplate sat inside a ruled rectangle — a frame drawn inside a card that
+already has one. The frame is gone; the rain fills its box and fades out
+over its last three cells on every side, so it ends softly in the page
+instead of stopping at a line. The nameplate is unchanged.
+
 ## 0.23.18
 
 **One prompt mark everywhere.** The chat composer, `/todo`'s composer and
