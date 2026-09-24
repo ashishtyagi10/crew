@@ -136,14 +136,11 @@ fn border_buttons_draw_minus_then_x_and_shift_status_glyphs() {
         ..bar(true)
     };
     let cells = pane_card(38, 10, &b);
-    // The buttons: [-] at cols 32..=34, [x] at cols 35..=37 (cols = 38 + 2 = 40)
+    // The buttons: – at cols 32..=34, × at cols 35..=37 (cols = 38 + 2 = 40)
     let at = |col: u16| cells.iter().find(|c| c.row == 0 && c.col == col).unwrap().c;
-    assert_eq!(at(32), '[');
-    assert_eq!(at(33), '-');
-    assert_eq!(at(34), ']');
-    assert_eq!(at(35), '[');
-    assert_eq!(at(36), 'x');
-    assert_eq!(at(37), ']');
+    assert_eq!(at(33), '\u{2013}');
+    assert_eq!(at(36), '\u{00d7}');
+    assert_eq!((at(32), at(34), at(35), at(37)), (' ', ' ', ' ', ' '));
     // Status glyphs still render, stepping further left of the buttons.
     let scroll_col = cells
         .iter()

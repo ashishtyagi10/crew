@@ -115,7 +115,7 @@ fn zoomed_scenes_carry_the_minimize_button() {
         &Default::default(),
         &[],
     );
-    // scenes[1] is the border card; the [-][x] buttons sit at card columns
+    // scenes[1] is the border card; the – × buttons sit at card columns
     // cols-8..=cols-6 and cols-5..=cols-3 on row 0 (cols = grid cols + 2 border cells).
     let cols = 80 + 2;
     let border = &scenes[1].cells;
@@ -125,12 +125,7 @@ fn zoomed_scenes_carry_the_minimize_button() {
             .find(|c| c.row == 0 && c.col == col)
             .map(|c| c.c)
     };
-    // The [-] minimize button
-    assert_eq!(at(cols - 8), Some('['));
-    assert_eq!(at(cols - 7), Some('-'));
-    assert_eq!(at(cols - 6), Some(']'));
-    // The [x] close button
-    assert_eq!(at(cols - 5), Some('['));
-    assert_eq!(at(cols - 4), Some('x'));
-    assert_eq!(at(cols - 3), Some(']'));
+    // The minimize and close marks, each centred in its slot.
+    assert_eq!(at(cols - 7), Some('\u{2013}'));
+    assert_eq!(at(cols - 4), Some('\u{00d7}'));
 }

@@ -1,4 +1,4 @@
-//! The `[-]` `[x]` buttons on a pane card's top border: how they are drawn,
+//! The minimize `–` and close `×` buttons on a pane card's top border: how they are drawn,
 //! and how they answer the pointer.
 //!
 //! Split out of [`crate::panecard`] (which was over the file cap) so the one
@@ -9,8 +9,11 @@ use crew_render::CellView;
 
 use crate::panehover::Btn;
 
-/// The glyph pair, in the order they sit on the border.
-const GLYPHS: &str = "[-][x]";
+/// The glyph pair, in the order they sit on the border: one mark in each
+/// three-cell slot, open rule either side, so they read as controls set
+/// into the frame and not as `[-][x]` typed into it. An en dash and a
+/// multiplication sign — every monospace face carries both.
+const GLYPHS: &str = " \u{2013}  \u{00d7} ";
 
 /// Where the pair starts, counted back from the card's right edge.
 const FROM_RIGHT: u16 = 8;
@@ -35,7 +38,7 @@ fn btn_color(which: Btn, hovered: bool, legend: (u8, u8, u8)) -> (u8, u8, u8) {
 pub(crate) fn draw(v: &mut Vec<CellView>, cols: u16, legend: (u8, u8, u8), hover: Option<Btn>) {
     use crate::panecard::put;
     for (i, ch) in GLYPHS.chars().enumerate() {
-        // The first three glyphs are `[-]`, the last three `[x]`.
+        // The first three cells are minimize, the last three close.
         let which = if i < 3 { Btn::Min } else { Btn::Close };
         let lit = hover == Some(which);
         let col = cols - FROM_RIGHT + i as u16;

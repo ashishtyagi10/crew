@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.7
+
+**A card's buttons are marks, not typed text.** The minimize and close
+buttons on every pane's top border were `[-][x]` — ASCII fenced in
+brackets, the one thing on the frame that read as characters instead of
+chrome. Each is now a single mark centred in its slot with open rule either
+side: an en dash `–` and a multiplication sign `×`, resting in the legend's
+colour and lighting (accent, and the bell colour for close) under the
+pointer exactly as before. The click targets have not moved.
+
 ## 0.23.6
 
 **SERVING counts down in hours again, not decades.** The nav's SERVING
