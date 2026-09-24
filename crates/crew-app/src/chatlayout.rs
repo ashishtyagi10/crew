@@ -74,7 +74,7 @@ pub fn wrapped_line_count(messages: &[Message], cols: u16) -> usize {
 ///
 /// - Rows `0..rows-1`: most recent messages, top-down, wrapped to `cols`.
 ///   Sender chars in ACCENT_FG, rest in TEXT_FG.
-/// - Row `rows-1`: `"> " + input` in INPUT_FG.
+/// - Row `rows-1`: `"› " + input` in INPUT_FG.
 /// - All cells use DEFAULT_BG.
 pub fn layout_cells(
     messages: &[Message],
@@ -95,7 +95,7 @@ pub fn layout_cells(
     crate::chatwidth::place_row(
         0,
         cols,
-        format!("> {}", input).chars().map(|c| (c, ink)),
+        format!("\u{203a} {}", input).chars().map(|c| (c, ink)),
         |x, c, fg| {
             cells.push(CellView {
                 col: x,

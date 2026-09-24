@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.18
+
+**One prompt mark everywhere.** The chat composer, `/todo`'s composer and
+the settings focus marker all use the typographic chevron `›`; the input
+bar still opened with an ASCII `>`. It now wears `›` too — the single
+guillemet that the magenta broadcast prompt `»` doubles — so every place
+you type starts the same way.
+
 ## 0.23.17
 
 **`/todo` ticks like Reminders.** An item's checkbox was `[ ]`, and `[x]`
