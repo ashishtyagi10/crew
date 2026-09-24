@@ -13,7 +13,8 @@ pub(crate) fn unix_now_ms() -> u64 {
 }
 
 /// A compact relative timestamp for epoch-ms `ts` at `now` — `now`, `42s ago`,
-/// `5m ago`, `3h ago`, `2d ago`. `None` when `ts` isn't epoch milliseconds.
+/// `5m ago`, `3h ago`, `2d ago`, then the date (`sep 12`). `None` when `ts`
+/// isn't epoch milliseconds.
 pub(crate) fn rel_time(ts: &str, now_ms: u64) -> Option<String> {
     let t: u64 = ts.parse().ok()?;
     let secs = now_ms.saturating_sub(t) / 1000;
@@ -22,8 +23,23 @@ pub(crate) fn rel_time(ts: &str, now_ms: u64) -> Option<String> {
         10..=59 => format!("{secs}s ago"),
         60..=3_599 => format!("{}m ago", secs / 60),
         3_600..=86_399 => format!("{}h ago", secs / 3_600),
-        // Capped so the column that holds it (`toolsrow::AGO_W`) never shifts.
-        _ => format!("{}d ago", (secs / 86_400).min(999)),
+        86_400..=604_799 => format!("{}d ago", secs / 86_400),
+        // Past a week a count of days is arithmetic, not an answer: the
+        // date, and the year once it is another one — within the column
+        // that holds it (`toolsrow::AGO_W`).
+        _ => dated(t, now_ms)?,
+    })
+}
+
+/// `sep 12`, or `sep 2024` in another year, for epoch-ms `t` (local time).
+fn dated(t: u64, now_ms: u64) -> Option<String> {
+    use chrono::Datelike;
+    let at = crate::todopane::duetext::from_epoch_ms(t)?;
+    let now = crate::todopane::duetext::from_epoch_ms(now_ms)?;
+    let month = crate::todopane::duetext::MONTHS[at.month0() as usize];
+    Some(match at.year() == now.year() {
+        true => format!("{month} {}", at.day()),
+        false => format!("{month} {}", at.year()),
     })
 }
 
