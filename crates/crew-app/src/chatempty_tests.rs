@@ -78,10 +78,10 @@ fn ready_state_is_the_hint_and_two_example_asks() {
     let cells = empty_cells(80, 20, 2, true, &a);
     let hint = row_text(&cells, 3);
     assert!(hint.contains("Type a task"), "hint missing: {hint}");
-    assert!(hint.contains("@planner"), "@-example missing: {hint}");
     // The hint wraps to two rows at 80 columns; the spacer is row 5; the
     // examples take two more; nothing else follows.
     let all: String = (3..=4).map(|r| row_text(&cells, r) + " ").collect();
+    assert!(all.contains("@planner"), "@-example missing: {all}");
     assert!(
         all.contains("/ for commands."),
         "the sentence is whole: {all}"
@@ -182,4 +182,19 @@ fn everything_clips_to_bounds() {
     let a = agents(&[("planner", "a-very-long-role-description")]);
     let cells = empty_cells(12, 6, 2, true, &a);
     assert!(cells.iter().all(|c| c.col < 12 && c.row < 6));
+}
+
+/// Balanced, not greedy: no lone last word, and no more rows than greedy.
+#[test]
+fn wrapped_rows_are_balanced() {
+    let text = "Type a task and press Enter \u{2014} @agent to pick who starts (e.g. @smith), / for commands.";
+    for cols in [60u16, 80, 100] {
+        let rows = wrap_to(text, cols);
+        assert_eq!(rows.len(), greedy(text, wrap_width(cols)).len(), "{cols}");
+        let w: Vec<usize> = rows.iter().map(|r| r.chars().count()).collect();
+        assert!(
+            w.len() == 1 || w[w.len() - 1] * 3 >= w[0],
+            "{cols}: {rows:?}"
+        );
+    }
 }

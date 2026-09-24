@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.42
+
+**Balanced onboarding lines.** A fresh agent pane's hint filled each line to
+the edge, which left `commands.` alone on the second line under a full one.
+The hint, the example tasks and the no-provider advice now wrap to even
+lines: the same number of lines, just narrower, so each paragraph's last
+line ends close to where the others do.
+
 ## 0.23.41
 
 **Code blocks on paper, a step off the page.** On light themes, fenced code
