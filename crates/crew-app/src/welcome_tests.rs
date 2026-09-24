@@ -192,7 +192,8 @@ fn the_welcome_hint_names_the_agent_pane() {
             "{cols}: hint is {} wide: {hint}",
             hint.chars().count()
         );
-        assert!(hint.contains("Cmd+J"), "{cols}: agents unmentioned: {hint}");
+        let j = format!("{}J", crate::welcometext::CMD);
+        assert!(hint.contains(&j), "{cols}: agents unmentioned: {hint}");
     }
 }
 

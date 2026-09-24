@@ -53,8 +53,11 @@ fn the_chords_are_the_only_coloured_thing_on_the_first_screen() {
         .filter(|&&(_, fg)| fg == key)
         .map(|&(c, _)| c)
         .collect();
-    assert!(coloured.contains("Cmd+T"), "the shell chord: {coloured:?}");
-    assert!(coloured.contains("Cmd+J"), "the agents chord: {coloured:?}");
+    let (t, j) = (format!("{}T", super::CMD), format!("{}J", super::CMD));
+    assert!(
+        coloured.contains(&t) && coloured.contains(&j),
+        "{coloured:?}"
+    );
     assert!(coloured.contains('/'), "the palette chord: {coloured:?}");
     assert!(
         !coloured.contains("shell") && !coloured.contains("agents"),
@@ -85,4 +88,19 @@ fn the_restore_command_is_a_chord_too() {
 fn the_restore_offer_counts_its_panes() {
     assert!(restore_hint(1).contains("1 pane from"));
     assert!(restore_hint(4).contains("4 panes from"));
+}
+
+/// On a Mac the chords are written the way the Mac writes them — `⌘T`,
+/// as the settings' `Save ⌘S` already is — not spelled out as `Cmd+T`.
+#[test]
+fn a_mac_writes_its_chords_as_the_mac_does() {
+    let hint = hint_for(80).expect("a hint fits");
+    if cfg!(target_os = "macos") {
+        assert!(
+            hint.contains("\u{2318}T") && !hint.contains("Cmd+"),
+            "{hint}"
+        );
+    } else {
+        assert!(hint.contains("Cmd+T"), "{hint}");
+    }
 }
