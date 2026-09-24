@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.21
+
+**Old messages say when, not how many days.** A message card's age — and
+the tools list's — counted up in days forever, capped at `999d ago`, so a
+transcript from last month read `43d ago` and left the arithmetic to you.
+Past a week it now says the date, `sep 12`, and the month and year once it
+is another year (`nov 2023`); under a week it still counts (`6d ago`). It
+fits the same column, so nothing beside it moves.
+
 ## 0.23.20
 
 **The name leads the welcome.** CREW sat in a double-ruled `╔═╗` plate,

@@ -8,11 +8,27 @@ fn rel_time_buckets() {
     assert_eq!(rel_time("999700000", now).unwrap(), "5m ago");
     assert_eq!(rel_time("989200000", now).unwrap(), "3h ago");
     assert_eq!(rel_time("827200000", now).unwrap(), "2d ago");
-    assert_eq!(
-        rel_time("0", 2_000 * 86_400_000).unwrap(),
-        "999d ago",
-        "capped to its column"
+    assert_eq!(rel_time("481600000", now).unwrap(), "6d ago");
+}
+
+/// Past a week a count of days is arithmetic, not an answer: the card says
+/// the date (`sep 12`), and the month and year once it is another year —
+/// never `999d ago`. Both fit the column the age sits in.
+#[test]
+fn past_a_week_it_says_the_date() {
+    let day = 86_400_000u64;
+    let now = 1_790_000_000_000; // September 2026
+    let month = rel_time(&(now - 30 * day).to_string(), now).unwrap();
+    let (m, d) = month.split_once(' ').expect("`mon d`");
+    assert!(
+        crate::todopane::duetext::MONTHS.contains(&m) && d.parse::<u8>().is_ok(),
+        "{month}"
     );
+    let old = rel_time(&(now - 800 * day).to_string(), now).unwrap();
+    assert!(old.ends_with("2024"), "{old}");
+    for s in [month, old] {
+        assert!(s.chars().count() <= crate::toolsrow::AGO_W, "{s}");
+    }
 }
 
 #[test]
