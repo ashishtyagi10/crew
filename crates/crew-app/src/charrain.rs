@@ -35,6 +35,24 @@ const FADE: f32 = 3.0;
 /// How much of its light a glyph ON the edge keeps.
 const EDGE: f32 = 0.3;
 
+/// How far the rain stays back from the field's centre, where the welcome
+/// sets its name: the fraction of the box's width and height the calm spans
+/// before the glyphs start to come back (they are fully back at `CALM_OUT`×
+/// that). A plate of blanks the size of the word let streaks run right up to
+/// its letters, and the name read as four more glyphs of the field.
+const CALM_W: f32 = 0.17;
+const CALM_H: f32 = 0.16;
+const CALM_OUT: f32 = 1.8;
+
+/// How much of its light a glyph at `(col, row)` keeps for being near the
+/// centre: 0 inside the calm, easing to 1 at its outer edge.
+fn calm(col: u16, row: u16, w: u16, h: u16) -> f32 {
+    let dx = (col as f32 + 0.5 - w as f32 / 2.0) / (w as f32 * CALM_W).max(9.0);
+    let dy = (row as f32 + 0.5 - h as f32 / 2.0) / (h as f32 * CALM_H).max(2.0);
+    let k = (((dx * dx + dy * dy).sqrt() - 1.0) / (CALM_OUT - 1.0)).clamp(0.0, 1.0);
+    k * k * (3.0 - 2.0 * k)
+}
+
 /// A fast integer hash (SplitMix-style) — the deterministic stand-in for RNG.
 fn hash(a: u64, b: u64) -> u64 {
     let mut x = a.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ b.wrapping_mul(0xC2B2_AE3D_27D4_EB4F);
@@ -77,6 +95,8 @@ pub fn rain(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16,
             let c = if d >= DOTS_FROM { '\u{00b7}' } else { GLYPHS[gi] as char };
             let e = (col + 1).min(w - col).min(r as u16 + 1).min(h - r as u16) as f32;
             let fade = EDGE + (1.0 - EDGE) * ((e - 1.0) / FADE).clamp(0.0, 1.0);
+            let fade = fade * calm(col, r as u16, w, h);
+            if fade < 0.08 { continue; }
             cells.push(CellView {
                 col: left + col, row: top + r as u16, c,
                 fg: lerp_rgb(bg, lerp_rgb(tail, head, bright), fade), bg, bold: d == 0, italic: false,

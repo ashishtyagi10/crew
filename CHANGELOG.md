@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.35
+
+**A clearing for the name.** The welcome's `C R E W` sat in a blank patch
+exactly the size of the word, so streaks ran right up to its letters and
+the name looked like part of the rain. The rain now fades out in a soft oval
+around the middle of the field, so the name sits in open space and the
+glyphs thin out as they get closer.
+
 ## 0.23.34
 
 **The version, said once.** The welcome named the build three times: in the
