@@ -67,17 +67,18 @@ impl From<f32> for Gutter {
 
 impl Gutter {
     /// Rect gaps for frames whose strokes sit `inset` px inside their rects:
-    /// the stroke-to-stroke gutter is `gap` plus the two side insets — the
-    /// seam two side-by-side cards always had — on BOTH axes, and the window
-    /// margin, line to edge, is that same gutter. A stacked pair's rects then
-    /// overlap slightly when a row is more than twice as tall as it is wide
-    /// ... and the rows they overlap on are the empty halves beyond each
-    /// card's rule.
+    /// the stroke-to-stroke gutter is `gap` plus ONE side inset, on BOTH
+    /// axes, and the window margin, line to edge, is that same gutter.
+    /// (`gap` plus both insets — a whole cell of air on top of the gap — was
+    /// the seam two side-by-side cards once had; as the one gutter
+    /// everywhere it read as cards drifting apart.) Neighbouring rects then
+    /// overlap slightly ... and the px they overlap on are the empty halves
+    /// beyond each card's rule.
     pub fn between_strokes(gap: f32, inset: (f32, f32)) -> Self {
         let (ix, iy) = inset;
-        let g = gap + 2.0 * ix;
+        let g = gap + ix;
         Self {
-            x: gap,
+            x: g - 2.0 * ix,
             y: g - 2.0 * iy,
             mx: g - ix,
             my: g - iy,

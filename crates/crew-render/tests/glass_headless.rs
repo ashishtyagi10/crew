@@ -580,9 +580,9 @@ fn glass_bevel_headless() {
 }
 
 /// A legend's notch cuts the rim where the words stand and nowhere else —
-/// and the words stand ON the glass: the sheet stays whole under them and
-/// rises past its own edge into a tab the legend's row tall. Clearing it to
-/// bare page left every title in a dark hole punched in the sheet.
+/// a fieldset's legend. The sheet stays whole under the words (clearing it
+/// left every title in a dark hole) and stops at its own edge (a tab of
+/// glass raised over them read as a folder tab stuck on the card).
 #[test]
 fn glass_notch_headless() {
     let instance = wgpu::Instance::default();
@@ -613,9 +613,9 @@ fn glass_notch_headless() {
         }],
     );
     let (gap, beside) = (block_r(&cut, 31, 17, 0), block_r(&cut, 42, 17, 0));
-    let (tab, off_tab) = (block_r(&cut, 31, 13, 0), block_r(&cut, 42, 13, 0));
+    let (over, off) = (block_r(&cut, 31, 13, 0), block_r(&cut, 42, 13, 0));
     eprintln!(
-        "glass_notch_headless: gap {gap:.1} beside {beside:.1} tab {tab:.1} off {off_tab:.1} page {base:.1}"
+        "glass_notch_headless: gap {gap:.1} beside {beside:.1} over {over:.1} off {off:.1} page {base:.1}"
     );
     assert!(
         gap > base + 5.0,
@@ -625,21 +625,10 @@ fn glass_notch_headless() {
         gap < beside - 10.0,
         "the rim still crosses the legend ({gap:.1} vs {beside:.1})"
     );
+    // Above the edge, over the legend or beside it, is page: no tab.
     assert!(
-        tab > base + 5.0,
-        "no tab of glass above the edge ({tab:.1})"
-    );
-    assert!(
-        (off_tab - base).abs() <= 2.0,
-        "the tab spilled past the legend ({off_tab:.1})"
-    );
-    // …and it is the same glass as the card: its top corners round, as the
-    // card's own do, where a square tab read as a sticker on the sheet.
-    let (corner, top) = (block_r(&cut, 26, 11, 0), block_r(&cut, 31, 11, 0));
-    assert!(top > base + 5.0, "the tab's top is glass ({top:.1})");
-    assert!(
-        corner < top - 5.0,
-        "the tab's corner is square ({corner:.1} vs {top:.1})"
+        (over - off).abs() <= 2.0,
+        "the sheet rose over the legend ({over:.1} vs {off:.1})"
     );
     // Below the legend's row the sheet is whole again.
     let under = block_r(&cut, 31, 28, 1);

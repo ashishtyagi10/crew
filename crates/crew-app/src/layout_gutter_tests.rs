@@ -16,7 +16,7 @@ fn every_seam_and_margin_is_one_gutter() {
     for (cw, ch) in [(7.8_f32, 16.0_f32), (8.4, 17.5), (12.6, 26.0), (16.8, 34.0)] {
         let inset = (cw / 2.0, ch / 2.0);
         let g = Gutter::between_strokes(8.0, inset);
-        let want = 8.0 + cw;
+        let want = 8.0 + cw / 2.0;
         let (sw, sh, nav) = (1512.0_f32, 945.0_f32, 60.0_f32);
         let sb = strokes(sidebar_rect(sh, nav, g), inset);
         let content = content_rect(sw, sh, true, nav, g, bottom_chrome_h(sh, ch, g));

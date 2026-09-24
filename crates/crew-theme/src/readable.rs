@@ -189,10 +189,26 @@ pub fn link(t: &Theme) -> (u8, u8, u8) {
     against(LINK_HUE, t.term_bg, crate::contrast::text_floor())
 }
 
-/// The mouse-selection wash behind terminal text.
+/// The mouse-selection wash behind terminal text: the selection blue a step
+/// off the page — pale on a light page, deep on a dark one. Walking the one
+/// deep blue up only until the dark ink cleared it stopped at a mid-tone
+/// (4.6:1 for plain ink) where every coloured or dim word a program prints
+/// was pushed to mud — a selection you could see and not read.
 pub fn selection_bg(t: &Theme) -> (u8, u8, u8) {
-    against(SELECTION_HUE, t.term_fg, crate::contrast::text_floor())
+    let page = oklch::from_srgb(t.term_bg);
+    let l = match page.l > 0.5 {
+        true => page.l - SELECTION_STEP.0,
+        false => page.l + SELECTION_STEP.1,
+    };
+    let want = oklch::from_srgb(SELECTION_HUE).with_l(l).to_srgb();
+    against(want, t.term_fg, crate::contrast::text_floor())
 }
+
+/// How far the selection wash sits from the page's L (below a light page,
+/// above a dark one): plainly there against the page, and near enough to it
+/// that any ink still reads. The dark step is the larger because the eye
+/// separates dark tones less.
+const SELECTION_STEP: (f32, f32) = (0.12, 0.2);
 
 /// A gauge crossing into "watch this" (load average, disk).
 pub fn warn(t: &Theme) -> (u8, u8, u8) {
