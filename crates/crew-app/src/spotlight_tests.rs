@@ -67,3 +67,36 @@ fn lift_hands_over_between_the_two_cards_on_one_clock() {
     // Focus never moved (spot == prev): the card is simply up.
     assert_eq!(lift_for(1, 1, 1, 1.0), 1.0);
 }
+
+/// The input bar's scene in a real frame: raised, never sunk, and higher
+/// while you type than any pane — the focused one included.
+#[test]
+fn the_input_bar_floats_above_the_panes() {
+    let lift_of = |typing: bool| {
+        let mut app = crate::app::CrewApp {
+            geo_override: Some((8.0, 17.0, 1280.0, 720.0, 1.0)),
+            ..Default::default()
+        };
+        app.submit_input("/far".to_string());
+        app.input.focused = typing;
+        let scenes = app.build_frame();
+        let bar = scenes
+            .iter()
+            .filter(|s| s.glass && s.stretch && !s.bordered && !s.overlay)
+            .max_by(|a, b| a.y.total_cmp(&b.y))
+            .expect("an input bar scene");
+        let panes = scenes.iter().filter(|s| s.bordered).map(|s| s.lift);
+        (bar.lift, panes.fold(0.0_f32, f32::max))
+    };
+    let (rest, _) = lift_of(false);
+    let (typing, pane) = lift_of(true);
+    assert!(
+        rest >= 1.0,
+        "at rest the bar rides like a focused card: {rest}"
+    );
+    assert!(typing > rest, "typing lifts it further: {typing} vs {rest}");
+    assert!(
+        typing > pane,
+        "above every pane while typing: {typing} vs {pane}"
+    );
+}

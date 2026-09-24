@@ -202,8 +202,7 @@ impl CrewApp {
             bordered: false,
             glass: true,
             scan: -1.0,
-            // Pressed INTO the glass: the one place you type is a well.
-            lift: -1.0,
+            lift: crate::spotlight::composer_lift(self.input.focused),
             glint: -1.0,
             // Its frame is its last column and row: it fills the rect, so
             // the seam above it is the gutter and nothing more.

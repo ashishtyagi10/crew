@@ -423,6 +423,36 @@ fn glass_lift_headless() {
     );
 }
 
+/// Lift thickens the sheet: a white tint at a dark theme's faint alpha comes
+/// out brighter mid-card when the card has lifted — the one depth cue a dark
+/// page shows, since a shadow on near-black draws nothing.
+#[test]
+fn glass_lift_thickens_the_sheet_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("glass_lift_thickens_the_sheet_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let at = |lift: f32| GlassCard {
+        lift,
+        ..card(0.10, 0.10, 0.0, 0.0)
+    };
+    let rest = block_r(&render(&device, &queue, &[at(0.0)]), 32, 36, 1);
+    let up = block_r(&render(&device, &queue, &[at(1.5)]), 32, 36, 1);
+    eprintln!("glass_lift_thickens_the_sheet_headless: mid {rest:.1} -> {up:.1}");
+    assert!(
+        up > rest + 5.0,
+        "lift left the sheet as thin ({rest:.1} -> {up:.1})"
+    );
+}
+
 /// A well (negative lift) casts nothing onto the page and shades its own top
 /// lip instead: dark just inside the top edge, clean page below the card.
 #[test]
