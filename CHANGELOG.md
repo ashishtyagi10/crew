@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.16
+
+**Save and Cancel are buttons.** The foot of `/settings` read
+`[ Save ⌘S ]   [ Cancel esc ]` — two lines of bracketed text in the muted
+ink. They are now capsules: Save filled with the accent, the one to press,
+and Cancel on a quiet tint of the ink, each label walked to the text floor
+on its fill; focus bolds the label. They are the same width the brackets
+were, so the click targets have not moved.
+
 ## 0.23.15
 
 **Settings' checkboxes are drawn boxes.** Every toggle in `/settings` was

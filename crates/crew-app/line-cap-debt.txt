@@ -104,7 +104,6 @@ src/sessionrestore_tests.rs 260
 src/sessionsave.rs 269
 src/sessionsave_tests.rs 244
 src/settingspane/mod_tests.rs 514
-src/settingspane/render.rs 203
 src/settingspane/render_tests.rs 288
 src/shellprobe.rs 298
 src/shellprobe_tests.rs 397
