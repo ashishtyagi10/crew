@@ -114,3 +114,17 @@ fn a_short_values_slice_leaves_the_rest_at_zero() {
     let cold = alpha_at(&c, x3, y3);
     assert!((0.05..0.2).contains(&cold), "the rest are cold: {cold}");
 }
+
+/// An idle hour is a dot at its cell's centre, a busy one fills its tile:
+/// a quiet week reads as a calm dot grid, not a slab of 168 empty tiles.
+#[test]
+fn an_idle_cell_is_a_dot_and_a_busy_one_a_tile() {
+    let c = grid(&[0, 9], 1, 2);
+    let (w, h) = c.size();
+    let near_edge = |k: usize| {
+        let (x, y) = centre(&c, 1, 2, 0, k);
+        alpha_at(&c, x - 0.3 * w / 2.0, y - 0.3 * h)
+    };
+    assert_eq!(near_edge(0), 0.0, "the idle cell's edge is open page");
+    assert!(near_edge(1) > 0.5, "the busy cell fills its tile");
+}
