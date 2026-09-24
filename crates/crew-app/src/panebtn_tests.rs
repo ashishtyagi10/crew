@@ -68,3 +68,21 @@ fn each_button_is_one_centred_mark() {
         );
     }
 }
+
+/// Under the pointer a button sits on a soft capsule of its own colour —
+/// the target shows before the click, as a toolbar button's does — and at
+/// rest there is no fill at all.
+#[test]
+fn a_hovered_button_sits_on_a_capsule() {
+    let _g = crate::app::theme_test_guard();
+    let page = crew_theme::theme().page_bg;
+    assert!(cells(None).iter().all(|c| c.bg == page), "no fill at rest");
+    let v = cells(Some(Btn::Close));
+    let (rest, lit) = v.split_at(3);
+    assert!(rest.iter().all(|c| c.bg == page), "minimize stays bare");
+    let fill = lit[0].bg;
+    assert!(
+        fill != page && lit.iter().all(|c| c.bg == fill),
+        "one capsule"
+    );
+}

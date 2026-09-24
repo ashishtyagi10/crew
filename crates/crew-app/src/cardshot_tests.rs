@@ -125,9 +125,9 @@ fn card_shot_everything_at_once() {
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn card_shot_focus_hierarchy() {
     let _g = crate::app::theme_test_guard();
-    // The last pair is the mode that changes where your keystrokes GO: BOTH
-    // cards wear it, so a grid in broadcast reads as one group.
+    // First a hovered ×; last the broadcast pair, worn by BOTH cards.
     for (name, foc, cast) in [
+        ("card-hover-close", true, false),
         ("card-focused", true, false),
         ("card-quiet", false, false),
         ("card-cast-focused", true, true),
@@ -137,6 +137,8 @@ fn card_shot_focus_hierarchy() {
             broadcast: cast,
             ..quiet("zsh", foc)
         };
+        let close = name.ends_with("close");
+        crate::panehover::publish(close.then_some((2, crate::panehover::Btn::Close)));
         let Some(px) = card_shot(name, 700, 300, &b) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;

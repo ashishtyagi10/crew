@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.23
+
+**A card's buttons show their target.** Under the pointer the `–` and `×`
+on a pane's top border only changed colour. A hovered button now also sits
+on a soft capsule of its own colour — the accent's for minimize, the
+bell's for close — the way a toolbar button shows where it is before the
+click. At rest there is no fill at all.
+
 ## 0.23.22
 
 **Dark type on a bright bar survives the glow.** On the glowing themes
