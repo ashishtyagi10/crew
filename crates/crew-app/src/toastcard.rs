@@ -3,6 +3,17 @@
 //!
 //! Split from [`crate::toast`] for the line cap, along the line between the
 //! queue of toasts and the drawing of one.
+/// `text` without a lead that repeats the card's `legend`: under an `error`
+/// legend, `error: failed to spawn shell` said the word twice, one above the
+/// other, and spent a narrow card's first row doing it.
+pub(crate) fn unlabel(text: String, legend: &str) -> String {
+    let lead = text.get(..legend.len() + 1).unwrap_or("");
+    match lead.eq_ignore_ascii_case(&format!("{legend}:")) && text.len() > lead.len() {
+        true => text[lead.len()..].trim_start().to_string(),
+        false => text,
+    }
+}
+
 #[cfg(test)]
 #[path = "toastcard_tests.rs"]
 mod tests;
