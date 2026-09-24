@@ -9,14 +9,17 @@
 //! within a picture, not between pictures.
 use crate::plot::Canvas;
 
+/// An idle cell's dot, as a share of its tile's shorter side.
+const DOT: f32 = 0.3;
+
 /// A cell's colour, given its value's share of the peak (`0.0..=1.0`).
 pub type Shade<'a> = &'a dyn Fn(f32) -> ((u8, u8, u8), f32);
 
 /// Draw `values` (`rows` × `cols` of them, row-major) as a grid filling
 /// `(x, y, w, h)` in canvas units, with `gap` units of air between cells.
 ///
-/// An all-zero grid still draws: every cell takes the shade of zero, so an
-/// idle week reads as an empty grid rather than as a missing widget.
+/// An all-zero grid still draws: every cell is a dot in the shade of zero,
+/// so an idle week reads as an empty grid rather than as a missing widget.
 pub fn draw(
     c: &mut Canvas,
     rect: (f32, f32, f32, f32),
@@ -44,6 +47,13 @@ pub fn draw(
                 continue;
             }
             let (bx, by) = (x + k as f32 * cw, y + r as f32 * ch);
+            if v == 0 {
+                // An idle hour is a dot at the cell's centre: a quiet week
+                // is a calm dot grid, not a slab of empty tiles.
+                let d = DOT * bw.min(bh);
+                c.rect(bx + (bw - d) / 2.0, by + (bh - d) / 2.0, d, d, color, alpha);
+                continue;
+            }
             // Rounded corners at this size would cost more than they show;
             // the gap already separates the cells.
             c.rect(bx, by, bw, bh, color, alpha);

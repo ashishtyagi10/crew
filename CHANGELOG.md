@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.12
+
+**An idle hour is a dot.** The usage heatmaps in `/dash` and `/usage` drew
+every empty hour as a full tile at a tenth of the accent — so a quiet week,
+the common case, was a grey slab of 168 tiles charting nothing. An idle
+hour is now a small dot at its cell's centre, and only hours with work fill
+their tile: an empty week reads as a calm dot grid, and the first busy
+evening stands out of it.
+
 ## 0.23.11
 
 **A card's title sits on its glass, not in a hole.** Since 0.23.3 a legend
