@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.43
+
+**One name per pane.** `/usage` and `/disk` each put a second title under
+their card's legend: a `USAGE` or `DISK` rule sitting right below `usage` or
+`disk`. That rule is gone. The week's totals and the disk path with its
+total now sit on the first row, and the heatmap and treemap get the row
+back.
+
 ## 0.23.42
 
 **Balanced onboarding lines.** A fresh agent pane's hint filled each line to

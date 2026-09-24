@@ -8,7 +8,7 @@ use crate::usageledger::DAYS;
 
 /// Row the heatmap's first day sits on. Everything below it moves with the
 /// height the pane actually has — see [`layout`].
-pub(crate) const HEAT_TOP: u16 = 2;
+pub(crate) const HEAT_TOP: u16 = 1;
 
 /// The TOKENS band: its legend row, then [`RING_ROWS`] the donut is drawn on.
 /// The ring used to share the legend's row with it — at radius 3.6 canvas

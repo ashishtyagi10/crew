@@ -231,7 +231,7 @@ fn the_header_keeps_its_reading_however_narrow_the_pane() {
             let mut v: Vec<_> = p
                 .cells(cols, 30)
                 .into_iter()
-                .filter(|c| c.row == 1)
+                .filter(|c| c.row == 0)
                 .collect();
             v.sort_by_key(|c| c.col);
             v.iter().map(|c| c.c).collect()

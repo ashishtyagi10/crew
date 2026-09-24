@@ -1,12 +1,10 @@
 //! Drawing the `/disk` pane: the treemap and the row of tiles under it.
 //!
 //! Split out of [`crate::diskpane`] for the line cap.
-use crate::boxdraw::section_header;
 use crate::diskpane::{
     bytes, label_ink, put, short_path, tile_alpha, tile_bg, tile_colors, tiles, DiskPane,
     MIN_PATH_W,
 };
-use crate::palette::accent;
 use crate::plot::Canvas;
 use crew_render::{CellView, Paint};
 
@@ -17,13 +15,8 @@ impl DiskPane {
         if cols < 20 || rows < 6 {
             return crate::toosmall::note(cols, rows);
         }
-        out.extend(section_header(
-            "DISK",
-            cols,
-            t.border_normal,
-            accent(),
-            t.page_bg,
-        ));
+        // No `DISK` rule of its own: the card's legend already says `disk`,
+        // and a second title under the first cost the map a row.
         // The reading is placed first and the path takes what is left. Both
         // used to be one string clipped at the pane's edge, so a narrow tile
         // showed a path cut mid-component and no total at all — the two
@@ -50,7 +43,7 @@ impl DiskPane {
                     &mut out,
                     &format!("{path}{sep}{reading}"),
                     1,
-                    1,
+                    0,
                     t.ink,
                     cols,
                 );
@@ -58,12 +51,12 @@ impl DiskPane {
             // Too narrow to say both: the reading wins. A path you cannot
             // read is not a path, and the map under it already says where
             // you are by what is in it.
-            None => put(&mut out, &reading, 1, 1, t.ink, cols),
+            None => put(&mut out, &reading, 1, 0, t.ink, cols),
         }
         // A scanned directory with nothing in it: the map has no tiles to
         // draw, and a header over a blank read as a map that had not come.
         if !self.scanning && self.children.is_empty() {
-            put(&mut out, "empty directory", 1, 3, t.text_muted, cols);
+            put(&mut out, "empty directory", 1, 2, t.text_muted, cols);
         }
 
         // A label per tile that has the room for one: name on the first row,
