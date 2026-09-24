@@ -4,10 +4,10 @@ use crate::chatwidth::str_w;
 #[test]
 fn the_hud_drops_its_cost_before_it_cuts_a_number() {
     let wide = hud_text(1, 3, 1, 42_000, 60);
-    assert_eq!(wide, " live:1 done:3 failed:1 cost:$0.0420");
+    assert_eq!(wide, " 1 live \u{b7} 3 done \u{b7} 1 failed \u{b7} $0.04");
     // 32 columns held `cost:$0.` before — a price cut mid-number.
     let mid = hud_text(1, 3, 1, 42_000, 32);
-    assert_eq!(mid, " live:1 done:3 failed:1");
+    assert_eq!(mid, " 1 live \u{b7} 3 done \u{b7} 1 failed");
     let tight = hud_text(1, 3, 1, 42_000, 12);
     assert_eq!(tight, " \u{25cf}1 \u{2713}3 \u{2717}1");
     for cols in [12u16, 16, 24, 32, 40, 60] {

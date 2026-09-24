@@ -13,10 +13,12 @@ pub const GLYPH_COLS: usize = 3;
 /// The HUD, in the widest form that fits `cols`: with the cost, without it,
 /// then the glyph form the list rows already use.
 pub fn hud_text(live: usize, done: usize, failed: usize, micros_usd: u64, cols: u16) -> String {
-    let cost = micros_usd as f64 / 1_000_000.0;
+    // Counts before their nouns, parted by `·` like every other reading in
+    // crew: `live:1 done:3 failed:1 cost:$0.0420` read as a debug print.
+    let cost = crate::usagepane::money(micros_usd);
     let forms = [
-        format!(" live:{live} done:{done} failed:{failed} cost:${cost:.4}"),
-        format!(" live:{live} done:{done} failed:{failed}"),
+        format!(" {live} live \u{b7} {done} done \u{b7} {failed} failed \u{b7} {cost}"),
+        format!(" {live} live \u{b7} {done} done \u{b7} {failed} failed"),
         format!(" \u{25cf}{live} \u{2713}{done} \u{2717}{failed}"),
     ];
     let cols = cols as usize;

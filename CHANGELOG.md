@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.44
+
+**A goal's status line, in words.** The goal pane's status line read
+`live:1 done:3 failed:1 cost:$0.0420`, like a debug print. It now reads
+`1 live · 3 done · 1 failed · $0.04`, with the same `·` separators and money
+format crew uses everywhere else. On narrow panes it still drops the cost
+first, then shortens to the `●1 ✓3 ✗1` form.
+
 ## 0.23.43
 
 **One name per pane.** `/usage` and `/disk` each put a second title under
