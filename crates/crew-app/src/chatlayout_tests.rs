@@ -19,7 +19,9 @@ fn find(cells: &[CellView], ch: char, row: u16) -> bool {
 #[test]
 fn layout_cells_prompt_on_last_row() {
     let cells = layout_cells(&[msg("a", "hi")], "xy", 20, 5, 0, true);
-    assert!(cells.iter().any(|c| c.c == '>' && c.row == 4 && c.col == 0));
+    assert!(cells
+        .iter()
+        .any(|c| c.c == '\u{203a}' && c.row == 4 && c.col == 0));
 }
 
 #[test]
@@ -76,7 +78,7 @@ fn layout_cells_sender_in_accent_fg() {
 #[test]
 fn layout_cells_empty_msgs_prompt_only() {
     let cells = layout_cells(&[], "", 10, 2, 0, true);
-    assert!(cells.iter().any(|c| c.c == '>' && c.row == 1));
+    assert!(cells.iter().any(|c| c.c == '\u{203a}' && c.row == 1));
 }
 
 #[test]

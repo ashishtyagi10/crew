@@ -36,10 +36,10 @@ fn cells_focused_shows_accent_prompt_and_text() {
         ..Default::default()
     };
     let cells = bar.cells(40, 3, None, None, None);
-    assert!(cells.iter().any(|c| c.c == '>'));
+    assert!(cells.iter().any(|c| c.c == '\u{203a}'));
     assert!(cells.iter().any(|c| c.c == 'l'));
     assert!(cells.iter().any(|c| c.c == 's'));
-    let prompt = cells.iter().find(|c| c.c == '>').unwrap();
+    let prompt = cells.iter().find(|c| c.c == '\u{203a}').unwrap();
     assert_eq!(prompt.fg, accent());
     // an I-beam caret while focused with no suggestion, not a block
     assert!(cells.iter().any(|c| c.c == CARET) && cells.iter().all(|c| c.c != '█'));
@@ -96,7 +96,7 @@ fn cells_unfocused_prompt_is_dim() {
     let prompt = bar
         .cells(40, 3, None, None, None)
         .into_iter()
-        .find(|c| c.c == '>')
+        .find(|c| c.c == '\u{203a}')
         .unwrap();
     assert_eq!(prompt.fg, crew_theme::theme().dim);
 }
@@ -150,7 +150,7 @@ fn cells_show_cwd_legend_on_top_border() {
         .any(|c| c.c == 'w' && c.row == 0 && (c.fg == before || c.fg == accent())));
     // the card has rounded corners and the prompt is on the interior row
     assert!(cells.iter().any(|c| c.c == '╭'));
-    assert!(cells.iter().any(|c| c.c == '>' && c.row == 1));
+    assert!(cells.iter().any(|c| c.c == '\u{203a}' && c.row == 1));
 }
 
 #[test]
@@ -465,7 +465,7 @@ fn a_scrolled_line_says_its_head_is_off_screen() {
         ..InputBar::default()
     };
     let plain = row_text(&short.cells(cols, 3, None, None, None), 1);
-    assert!(plain.contains("\u{2502}> ls"), "plain gutter: {plain:?}");
+    assert!(plain.contains("\u{2502}\u{203a} ls"), "gutter: {plain:?}");
 }
 
 /// Focus is a property of the whole card. The legend is the loudest mark on

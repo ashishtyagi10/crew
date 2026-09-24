@@ -74,11 +74,11 @@ impl InputBar {
             crew_theme::theme().page_bg,
         );
 
-        // A distinct magenta "» " prompt signals broadcast (input → all panes).
+        // `›` as every crew prompt; a magenta `»` for broadcast (→ all panes).
         let (prompt, base) = if self.broadcast {
             ("» ", crew_theme::theme().broadcast)
         } else {
-            ("> ", accent())
+            ("\u{203a} ", accent())
         };
         let prompt_fg = if self.focused {
             base
