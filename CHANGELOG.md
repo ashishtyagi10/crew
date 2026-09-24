@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.3
+
+**The glass rim no longer runs through a pane's title.** The sheet's
+specular rim lies along the frame's top rule, and it did not know where the
+legend stood, so a bright line crossed every title and every `[-][x]`. The
+sheet now reads the frame's own cells: wherever the rule stops for a legend
+(top or bottom edge), the rim stops too, tapering off over two pixels, and
+the fill leaves the words' middle on clear page and fades back in beneath
+them — the gap a fieldset legend is supposed to stand in.
+
 ## 0.23.2
 
 **A working pane's glass catches the light once, then rests.** With the

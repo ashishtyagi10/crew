@@ -76,7 +76,32 @@ struct VsOut {
   @location(3) tint: vec4<f32>,    // tint.rgb, highlight_alpha
   @location(4) hl: vec4<f32>,      // highlight.rgb, shadow_alpha
   @location(5) extra: vec4<f32>,   // scan position, edge_glow, lift, glint
+  @location(6) nmeta: vec4<f32>,   // notch depth, -, -, -
+  @location(7) nt0: vec4<f32>,     // top notch spans 0-1 (x0, x1, x0, x1)
+  @location(8) nt1: vec4<f32>,     // top notch spans 2-3
+  @location(9) nb0: vec4<f32>,     // bottom notch spans 0-1
+  @location(10) nb1: vec4<f32>,    // bottom notch spans 2-3
 };
+
+// How soft a notch's ends are (px): the rim tapers into the gap round the
+// legend rather than stopping square, as light does off a cut edge.
+const NOTCH_FEATHER: f32 = 2.0;
+// The share of a legend's row, from the edge in, left bare before the fill
+// starts fading back: the words' middle stands on clear page, as they do in
+// the rule's gap, and the sheet returns under their feet.
+const NOTCH_CLEAR: f32 = 0.35;
+
+// 1 inside one span `s` (x0, x1) of card-left x `x`, 0 outside, feathered.
+// An empty slot is x1 <= x0 and covers nothing.
+fn in_span(x: f32, a: f32, b: f32) -> f32 {
+  if (b <= a) { return 0.0; }
+  return smoothstep(a - NOTCH_FEATHER, a, x) * (1.0 - smoothstep(b, b + NOTCH_FEATHER, x));
+}
+
+fn in_spans(x: f32, s0: vec4<f32>, s1: vec4<f32>) -> f32 {
+  return max(max(in_span(x, s0.x, s0.y), in_span(x, s0.z, s0.w)),
+             max(in_span(x, s1.x, s1.y), in_span(x, s1.z, s1.w)));
+}
 
 // Half-width of the busy sheen, as a fraction of the card's diagonal. Wide
 // enough to read as light rather than a line.
@@ -92,7 +117,12 @@ fn vs(@builtin(vertex_index) vi: u32,
       @location(1) params: vec4<f32>,
       @location(2) tint: vec4<f32>,
       @location(3) hl: vec4<f32>,
-      @location(4) extra: vec4<f32>) -> VsOut {
+      @location(4) extra: vec4<f32>,
+      @location(5) nmeta: vec4<f32>,
+      @location(6) nt0: vec4<f32>,
+      @location(7) nt1: vec4<f32>,
+      @location(8) nb0: vec4<f32>,
+      @location(9) nb1: vec4<f32>) -> VsOut {
   var corners = array<vec2<f32>,6>(
     vec2<f32>(0.0,0.0), vec2<f32>(1.0,0.0), vec2<f32>(0.0,1.0),
     vec2<f32>(0.0,1.0), vec2<f32>(1.0,0.0), vec2<f32>(1.0,1.0));
@@ -112,6 +142,11 @@ fn vs(@builtin(vertex_index) vi: u32,
   out.tint = tint;
   out.hl = hl;
   out.extra = extra;
+  out.nmeta = nmeta;
+  out.nt0 = nt0;
+  out.nt1 = nt1;
+  out.nb0 = nb0;
+  out.nb1 = nb1;
   return out;
 }
 
@@ -145,6 +180,22 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   let d = sd_round_box(in.local, in.hsize, radius);
   let inside = 1.0 - smoothstep(0.0, AA, d);
 
+  // --- legend notches -------------------------------------------------------
+  // Where a legend stands in the frame's rule, the rim is cut (the stroke is
+  // too) and the fill fades in below the words instead of starting under the
+  // middle of them: 1 in a notch's row at the edge, 0 a legend row in.
+  let depth = max(in.nmeta.x, 1.0);
+  let lx = in.local.x + in.hsize.x;
+  let from_top = in.local.y + in.hsize.y;
+  let from_bot = in.hsize.y - in.local.y;
+  let cut = max(
+    in_spans(lx, in.nt0, in.nt1) * (1.0 - smoothstep(NOTCH_CLEAR * depth, depth, from_top)),
+    in_spans(lx, in.nb0, in.nb1) * (1.0 - smoothstep(NOTCH_CLEAR * depth, depth, from_bot)));
+  // The rim and shade live in a band a few px deep; there the cut is total.
+  let rim_cut = max(
+    in_spans(lx, in.nt0, in.nt1) * step(from_top, depth),
+    in_spans(lx, in.nb0, in.nb1) * step(from_bot, depth));
+
   // --- soft drop shadow -----------------------------------------------------
   // Offset downward and smeared: an exponential falloff outside the shape gives
   // a far softer edge than a smoothstep of the same width.
@@ -169,11 +220,11 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // 0 at the card's top edge, 1 at the bottom: the ramp that makes the sheet
   // read as lit from above rather than a flat wash of colour.
   let t = clamp((in.local.y + in.hsize.y) / max(in.hsize.y * 2.0, 1.0), 0.0, 1.0);
-  var fill_a = mix(a_top, a_bot, t) * inside;
+  var fill_a = mix(a_top, a_bot, t) * inside * (1.0 - cut);
 
   // Frost grain, signed so it neither only-lightens nor only-darkens.
   if (noise_amt > 0.0) {
-    fill_a = fill_a + (hash21(floor(in.local)) - 0.5) * noise_amt * inside;
+    fill_a = fill_a + (hash21(floor(in.local)) - 0.5) * noise_amt * inside * (1.0 - cut);
   }
   fill_a = clamp(fill_a, 0.0, 1.0);
 
@@ -186,7 +237,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   let edge_glow = in.extra.y;
   if (edge_glow > 0.0) {
     let bleed = 1.0 - smoothstep(0.0, GLOW_W, -d);
-    fill_a = clamp(fill_a + edge_glow * bleed * inside, 0.0, 1.0);
+    fill_a = clamp(fill_a + edge_glow * bleed * inside * (1.0 - cut), 0.0, 1.0);
   }
 
   // --- busy sheen -----------------------------------------------------------
@@ -201,7 +252,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let centre = -SCAN_W + scan_pos * (1.0 + 2.0 * SCAN_W);
     let d_scan = abs((across + t) * 0.5 - centre);
     let band = 1.0 - smoothstep(0.0, SCAN_W, d_scan);
-    fill_a = clamp(fill_a + band * SCAN_GAIN * mix(a_top, a_bot, t) * inside, 0.0, 1.0);
+    fill_a = clamp(fill_a + band * SCAN_GAIN * mix(a_top, a_bot, t) * inside * (1.0 - cut), 0.0, 1.0);
   }
 
   // --- specular rim --------------------------------------------------------
@@ -221,7 +272,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   if (well > 0.0 && sh_alpha > 0.0) {
     let lip = sd_round_box(in.local - vec2<f32>(0.0, WELL_DROP), in.hsize, radius);
     let a = clamp(sh_alpha * WELL_SHADOW * well, 0.0, 1.0)
-      * smoothstep(-WELL_BLUR, WELL_DROP, lip) * inside;
+      * smoothstep(-WELL_BLUR, WELL_DROP, lip) * inside * (1.0 - cut);
     let out_a = a + alpha * (1.0 - a);
     if (out_a > 0.0001) {
       rgb = rgb * alpha * (1.0 - a) / out_a;
@@ -230,7 +281,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   }
 
   if (hl_alpha > 0.0) {
-    let band = smoothstep(-HL_W, 0.0, d) * inside;
+    let band = smoothstep(-HL_W, 0.0, d) * inside * (1.0 - rim_cut);
     let e = 0.5;
     let n = normalize(vec2<f32>(
       sd_round_box(in.local + vec2<f32>(e, 0.0), in.hsize, radius)

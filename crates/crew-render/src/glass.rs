@@ -35,10 +35,13 @@ pub struct GlassCard {
     pub lift: f32,
     /// Focus glint position along the rim, `0.0..=1.0`; negative draws none.
     pub glint: f32,
+    /// Where the frame's legends break the rim (see [`crate::notch`]).
+    pub notch: crate::notch::Notch,
 }
 
-/// 20 × f32 per instance: rect(4), params(4), tint(4), highlight(4), extra(4).
-const INSTANCE_FLOATS: usize = 20;
+/// 40 × f32 per instance: rect(4), params(4), tint(4), highlight(4), extra(4),
+/// then the notch — depth(4), top spans(8), bottom spans(8).
+const INSTANCE_FLOATS: usize = 40;
 
 /// GPU layer drawing rounded translucent cards via a signed-distance field.
 pub struct GlassLayer {
@@ -57,6 +60,8 @@ fn f32s_as_bytes(data: &[f32]) -> &[u8] {
 /// Pack one card into its instance floats. Split out so the layout the shader
 /// depends on can be asserted without a GPU.
 fn pack(c: &GlassCard) -> [f32; INSTANCE_FLOATS] {
+    let n = &c.notch;
+    let (t, b) = (n.top, n.bottom);
     [
         c.x,
         c.y,
@@ -78,6 +83,26 @@ fn pack(c: &GlassCard) -> [f32; INSTANCE_FLOATS] {
         c.edge_glow,
         c.lift,
         c.glint,
+        n.depth,
+        0.0,
+        0.0,
+        0.0,
+        t[0][0],
+        t[0][1],
+        t[1][0],
+        t[1][1],
+        t[2][0],
+        t[2][1],
+        t[3][0],
+        t[3][1],
+        b[0][0],
+        b[0][1],
+        b[1][0],
+        b[1][1],
+        b[2][0],
+        b[2][1],
+        b[3][0],
+        b[3][1],
     ]
 }
 
@@ -124,7 +149,8 @@ impl GlassLayer {
         });
 
         let inst_attrs = wgpu::vertex_attr_array![
-            0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4, 4 => Float32x4];
+            0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4, 4 => Float32x4,
+            5 => Float32x4, 6 => Float32x4, 7 => Float32x4, 8 => Float32x4, 9 => Float32x4];
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("glass_pipeline"),
             layout: Some(&layout),
