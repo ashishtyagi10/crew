@@ -307,6 +307,7 @@ pub(crate) fn build_scene(
                 edge_glow: glass_style.edge_glow,
                 lift: pane.lift,
                 glint: pane.glint,
+                notch: crate::notch::notch(&pane.cells, cols, rows, cell_w, cell_h, ix, iy),
             });
         }
 

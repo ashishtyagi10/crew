@@ -64,6 +64,7 @@ fn card(alpha_top: f32, alpha_bottom: f32, highlight_alpha: f32, shadow_alpha: f
         edge_glow: 0.0,
         lift: 0.0,
         glint: -1.0,
+        notch: Default::default(),
     }
 }
 
@@ -546,4 +547,51 @@ fn glass_bevel_headless() {
     eprintln!("glass_bevel_headless: bottom lip {b0:.1} -> {b1:.1}; centre {m0:.1} -> {m1:.1}");
     assert!(b1 < b0 - 4.0, "no shade on the far lip");
     assert!((m1 - m0).abs() < 1.0, "the shade reached the centre");
+}
+
+/// A legend's notch cuts the rim where the words stand and nowhere else: the
+/// top edge under the notch is bare page, the top edge beside it still lit.
+/// This is the line that ran through every pane's title.
+#[test]
+fn glass_notch_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("glass_notch_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let base = CLEAR * 255.0;
+    let mut notch = crew_render::notch::Notch {
+        depth: 6.0,
+        ..Default::default()
+    };
+    // Card-left px 10..20 is the legend: page x 26..36.
+    notch.top[0] = [10.0, 20.0];
+    let cut = render(
+        &device,
+        &queue,
+        &[GlassCard {
+            notch,
+            ..card(0.30, 0.30, 0.60, 0.0)
+        }],
+    );
+    let (gap, beside) = (block_r(&cut, 31, 17, 0), block_r(&cut, 42, 17, 0));
+    eprintln!("glass_notch_headless: gap {gap:.1} beside {beside:.1} page {base:.1}");
+    assert!(
+        (gap - base).abs() <= 2.0,
+        "the rim or the sheet's edge still crosses the legend ({gap:.1} vs page {base:.1})"
+    );
+    assert!(
+        beside > base + 20.0,
+        "the rim beside the legend went out too"
+    );
+    // Below the legend's row the sheet is whole again.
+    let under = block_r(&cut, 31, 28, 1);
+    assert!(under > base + 10.0, "the notch ate the card ({under:.1})");
 }

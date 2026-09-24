@@ -18,6 +18,7 @@ fn card() -> GlassCard {
         edge_glow: 0.35,
         lift: 0.75,
         glint: 0.5,
+        notch: Default::default(),
     }
 }
 
@@ -43,6 +44,14 @@ fn packing_matches_the_shader_layout() {
         &[-1.0, 0.35, 0.75, 0.5],
         "scan + edge_glow + lift + glint"
     );
+    let mut c = card();
+    c.notch.depth = 9.0;
+    c.notch.top[1] = [3.0, 4.0];
+    c.notch.bottom[3] = [5.0, 6.0];
+    let p = pack(&c);
+    assert_eq!(p[20], 9.0, "notch depth");
+    assert_eq!(&p[26..28], &[3.0, 4.0], "second top span");
+    assert_eq!(&p[38..40], &[5.0, 6.0], "last bottom span");
 }
 
 /// The vertex buffer stride must match what `pack` produces, or every

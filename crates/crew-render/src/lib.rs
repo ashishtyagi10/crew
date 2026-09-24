@@ -17,6 +17,7 @@ mod frame;
 mod glass;
 mod glyphmap;
 mod gpu;
+pub mod notch;
 mod paint;
 mod paperbg;
 mod postfx;
