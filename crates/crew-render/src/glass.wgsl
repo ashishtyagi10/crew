@@ -90,10 +90,6 @@ struct VsOut {
 // How soft a notch's ends are (px): the rim tapers into the gap round the
 // legend rather than stopping square, as light does off a cut edge.
 const NOTCH_FEATHER: f32 = 2.0;
-// The share of a legend's row, from the edge in, left bare before the fill
-// starts fading back: the words' middle stands on clear page, as they do in
-// the rule's gap, and the sheet returns under their feet.
-const NOTCH_CLEAR: f32 = 0.35;
 
 // 1 inside one span `s` (x0, x1) of card-left x `x`, 0 outside, feathered.
 // An empty slot is x1 <= x0 and covers nothing.
@@ -186,19 +182,23 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
 
   // --- legend notches -------------------------------------------------------
   // Where a legend stands in the frame's rule, the rim is cut (the stroke is
-  // too) and the fill fades in below the words instead of starting under the
-  // middle of them: 1 in a notch's row at the edge, 0 a legend row in.
+  // too) — and the words stand ON the glass: the sheet stays whole under
+  // them and rises past its own edge into a tab the legend's row tall, so a
+  // title reads as set on the card, not in a hole punched through it.
   let depth = max(in.nmeta.x, 1.0);
   let lx = in.local.x + in.hsize.x;
   let from_top = in.local.y + in.hsize.y;
   let from_bot = in.hsize.y - in.local.y;
-  let cut = max(
-    in_spans(lx, in.nt0, in.nt1) * (1.0 - smoothstep(NOTCH_CLEAR * depth, depth, from_top)),
-    in_spans(lx, in.nb0, in.nb1) * (1.0 - smoothstep(NOTCH_CLEAR * depth, depth, from_bot)));
   // The rim and shade live in a band a few px deep; there the cut is total.
   let rim_cut = max(
     in_spans(lx, in.nt0, in.nt1) * step(from_top, depth),
     in_spans(lx, in.nb0, in.nb1) * step(from_bot, depth));
+  // The tab: past the edge by up to `depth`, inside a span, soft on top.
+  let side = abs(in.local.x) - in.hsize.x;
+  let tab = select(0.0, 1.0, side <= 0.0) * max(
+    in_spans(lx, in.nt0, in.nt1) * step(from_top, 0.0) * smoothstep(-depth - AA, -depth + AA, from_top),
+    in_spans(lx, in.nb0, in.nb1) * step(from_bot, 0.0) * smoothstep(-depth - AA, -depth + AA, from_bot));
+  let body = max(inside, tab);
 
   // --- soft drop shadow -----------------------------------------------------
   // Offset downward and smeared: an exponential falloff outside the shape gives
@@ -217,18 +217,18 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
                           in.hsize, radius);
     let s = CONTACT_W * falloff(dc, CONTACT_BLUR)
       + AMBIENT_W * falloff(da, AMBIENT_BLUR + LIFT_BLUR * lift);
-    shadow = clamp(sh_alpha * (1.0 + LIFT_SHADOW * lift), 0.0, 1.0) * s * (1.0 - inside);
+    shadow = clamp(sh_alpha * (1.0 + LIFT_SHADOW * lift), 0.0, 1.0) * s * (1.0 - body);
   }
 
   // --- frosted fill ---------------------------------------------------------
   // 0 at the card's top edge, 1 at the bottom: the ramp that makes the sheet
   // read as lit from above rather than a flat wash of colour.
   let t = clamp((in.local.y + in.hsize.y) / max(in.hsize.y * 2.0, 1.0), 0.0, 1.0);
-  var fill_a = mix(a_top, a_bot, t) * (1.0 + LIFT_FILL * lift) * inside * (1.0 - cut);
+  var fill_a = mix(a_top, a_bot, t) * (1.0 + LIFT_FILL * lift) * body;
 
   // Frost grain, signed so it neither only-lightens nor only-darkens.
   if (noise_amt > 0.0) {
-    fill_a = fill_a + (hash21(floor(in.local)) - 0.5) * noise_amt * inside * (1.0 - cut);
+    fill_a = fill_a + (hash21(floor(in.local)) - 0.5) * noise_amt * body;
   }
   fill_a = clamp(fill_a, 0.0, 1.0);
 
@@ -241,7 +241,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   let edge_glow = in.extra.y;
   if (edge_glow > 0.0) {
     let bleed = 1.0 - smoothstep(0.0, GLOW_W, -d);
-    fill_a = clamp(fill_a + edge_glow * bleed * inside * (1.0 - cut), 0.0, 1.0);
+    fill_a = clamp(fill_a + edge_glow * bleed * inside, 0.0, 1.0);
   }
 
   // --- busy sheen -----------------------------------------------------------
@@ -256,7 +256,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let centre = -SCAN_W + scan_pos * (1.0 + 2.0 * SCAN_W);
     let d_scan = abs((across + t) * 0.5 - centre);
     let band = 1.0 - smoothstep(0.0, SCAN_W, d_scan);
-    fill_a = clamp(fill_a + band * SCAN_GAIN * mix(a_top, a_bot, t) * inside * (1.0 - cut), 0.0, 1.0);
+    fill_a = clamp(fill_a + band * SCAN_GAIN * mix(a_top, a_bot, t) * inside, 0.0, 1.0);
   }
 
   // --- specular rim --------------------------------------------------------
@@ -276,7 +276,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   if (well > 0.0 && sh_alpha > 0.0) {
     let lip = sd_round_box(in.local - vec2<f32>(0.0, WELL_DROP), in.hsize, radius);
     let a = clamp(sh_alpha * WELL_SHADOW * well, 0.0, 1.0)
-      * smoothstep(-WELL_BLUR, WELL_DROP, lip) * inside * (1.0 - cut);
+      * smoothstep(-WELL_BLUR, WELL_DROP, lip) * inside * (1.0 - rim_cut);
     let out_a = a + alpha * (1.0 - a);
     if (out_a > 0.0001) {
       rgb = rgb * alpha * (1.0 - a) / out_a;

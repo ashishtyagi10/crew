@@ -579,9 +579,10 @@ fn glass_bevel_headless() {
     assert!((m1 - m0).abs() < 1.0, "the shade reached the centre");
 }
 
-/// A legend's notch cuts the rim where the words stand and nowhere else: the
-/// top edge under the notch is bare page, the top edge beside it still lit.
-/// This is the line that ran through every pane's title.
+/// A legend's notch cuts the rim where the words stand and nowhere else —
+/// and the words stand ON the glass: the sheet stays whole under them and
+/// rises past its own edge into a tab the legend's row tall. Clearing it to
+/// bare page left every title in a dark hole punched in the sheet.
 #[test]
 fn glass_notch_headless() {
     let instance = wgpu::Instance::default();
@@ -612,14 +613,25 @@ fn glass_notch_headless() {
         }],
     );
     let (gap, beside) = (block_r(&cut, 31, 17, 0), block_r(&cut, 42, 17, 0));
-    eprintln!("glass_notch_headless: gap {gap:.1} beside {beside:.1} page {base:.1}");
-    assert!(
-        (gap - base).abs() <= 2.0,
-        "the rim or the sheet's edge still crosses the legend ({gap:.1} vs page {base:.1})"
+    let (tab, off_tab) = (block_r(&cut, 31, 13, 0), block_r(&cut, 42, 13, 0));
+    eprintln!(
+        "glass_notch_headless: gap {gap:.1} beside {beside:.1} tab {tab:.1} off {off_tab:.1} page {base:.1}"
     );
     assert!(
-        beside > base + 20.0,
-        "the rim beside the legend went out too"
+        gap > base + 5.0,
+        "the legend stands on bare page ({gap:.1})"
+    );
+    assert!(
+        gap < beside - 10.0,
+        "the rim still crosses the legend ({gap:.1} vs {beside:.1})"
+    );
+    assert!(
+        tab > base + 5.0,
+        "no tab of glass above the edge ({tab:.1})"
+    );
+    assert!(
+        (off_tab - base).abs() <= 2.0,
+        "the tab spilled past the legend ({off_tab:.1})"
     );
     // Below the legend's row the sheet is whole again.
     let under = block_r(&cut, 31, 28, 1);

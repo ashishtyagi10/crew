@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.11
+
+**A card's title sits on its glass, not in a hole.** Since 0.23.3 a legend
+cut the sheet as well as the rim: the fill was cleared under the words to
+leave them on bare page — and with lifted glass brighter now, every title,
+every `~/code/crew`, read as a dark tab punched out of its card. The rim is
+still cut where a legend stands, but the sheet stays whole under it and
+rises past its own edge into a tab the legend's row tall, so the words are
+set on the card the way a label sits on a folder.
+
 ## 0.23.10
 
 **The input bar has a text field's caret.** The caret was a solid block
