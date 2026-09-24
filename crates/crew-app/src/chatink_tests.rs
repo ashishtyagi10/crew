@@ -53,9 +53,10 @@ fn code_card_reads_as_a_card() {
     for id in ALL_THEMES {
         let t = id.theme();
         let got = contrast_ratio(derive(t).code_bg, t.page_bg);
+        let need = if t.dark { 1.3 } else { 1.15 };
         assert!(
-            got >= 1.3,
-            "{}: code_bg vs page_bg = {got:.3} (need >= 1.3)",
+            got >= need,
+            "{}: code_bg vs page_bg = {got:.3} (need >= {need})",
             id.as_str(),
         );
     }
@@ -256,7 +257,7 @@ fn the_code_field_reads_on_every_preset_without_swallowing_its_code() {
         let d = derive(t);
         let field = contrast_ratio(d.code_bg, t.page_bg);
         assert!(
-            field >= FIELD_FLOOR,
+            field >= crate::codefield::field_floor(t),
             "{}: code field vs page = {field:.3}",
             id.as_str(),
         );

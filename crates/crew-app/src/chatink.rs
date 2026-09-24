@@ -56,14 +56,14 @@ const COMMENT_PAGE_FLOOR: f32 = 3.5;
 /// presets — nothing survives scanlines and bloom at that distance. The field
 /// is the second half of "this is code": foreground separation alone is a
 /// thin signal for a one-line snippet.
-const CODE_BG_MIX: f32 = 0.18;
+pub(crate) const CODE_BG_MIX: f32 = 0.18;
 
 /// How far the field must sit from the page. A fixed mix is not a floor: the
 /// same 0.18 measured 1.65:1 on sepia-dark and 1.39:1 on the tubes, and the
 /// tubes are exactly where bloom and scanlines eat the difference — so the
 /// preset that needed the field most had the faintest one. Walked up per
 /// preset instead, to the level the dark papers already reached on their own.
-const FIELD_FLOOR: f32 = 1.55;
+pub(crate) const FIELD_FLOOR: f32 = 1.55;
 
 /// How readable code stays on its own field. The field is a backdrop for
 /// code, so it never grows past the point where it starts swallowing it —
@@ -182,22 +182,6 @@ fn diff_removed(t: &Theme) -> Color {
     best
 }
 
-/// The code field's background: the page walked toward `ink` until it clears
-/// [`FIELD_FLOOR`], stopping early if `code` would stop reading on it.
-fn code_field(t: &Theme, code: Color) -> Color {
-    let mut best = crate::anim::lerp_rgb(t.page_bg, t.ink, CODE_BG_MIX);
-    let mut mix = CODE_BG_MIX;
-    while mix < 1.0 && contrast_ratio(best, t.page_bg) < FIELD_FLOOR {
-        mix += 0.01;
-        let cand = crate::anim::lerp_rgb(t.page_bg, t.ink, mix);
-        if contrast_ratio(code, cand) < CODE_ON_FIELD_FLOOR {
-            break;
-        }
-        best = cand;
-    }
-    best
-}
-
 /// Derive one preset's semantic colours. Pure in `t` so the floor can be
 /// asserted for all 16 presets without touching the global theme atomic.
 pub(crate) fn derive(t: &Theme) -> Ink {
@@ -206,7 +190,7 @@ pub(crate) fn derive(t: &Theme) -> Ink {
         code,
         marker: separated(t.ansi[3], t),
         quote: separated(t.text_muted, t),
-        code_bg: code_field(t, code),
+        code_bg: crate::codefield::code_field(t, code),
         removed: diff_removed(t),
         // Syntax classes, from the theme's own slots for the same reason the
         // rest are: 16 presets already tune them, and a single-phosphor tube
