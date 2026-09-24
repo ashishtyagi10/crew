@@ -153,10 +153,29 @@ fn wrap_width(cols: u16) -> usize {
 #[path = "chatempty_tests.rs"]
 mod tests;
 
-/// Wrap `advice` to the pane's width, on spaces, with a sentence capital.
+/// Wrap `advice` to the pane's width, on spaces, with a sentence capital —
+/// BALANCED: the fewest rows the width allows, at the narrowest measure that
+/// still needs no more. Greedy filling left `commands.` alone under a full
+/// row; text that reads as a paragraph ends near where it started.
 /// Pure so the wrapping is testable without a pane.
 fn wrap_to(advice: &str, cols: u16) -> Vec<String> {
     let width = wrap_width(cols);
+    let rows = greedy(advice, width).len();
+    let even = (width / 2..width)
+        .find(|&w| greedy(advice, w).len() == rows)
+        .unwrap_or(width);
+    let mut out = greedy(advice, even);
+    if let Some(first) = out.first_mut() {
+        let mut c = first.chars();
+        if let Some(f) = c.next() {
+            *first = f.to_uppercase().collect::<String>() + c.as_str();
+        }
+    }
+    out
+}
+
+/// `advice` filled word by word into rows of at most `width` columns.
+fn greedy(advice: &str, width: usize) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     let mut line = String::new();
     for word in advice.split_whitespace() {
@@ -170,12 +189,6 @@ fn wrap_to(advice: &str, cols: u16) -> Vec<String> {
     }
     if !line.is_empty() {
         out.push(line);
-    }
-    if let Some(first) = out.first_mut() {
-        let mut c = first.chars();
-        if let Some(f) = c.next() {
-            *first = f.to_uppercase().collect::<String>() + c.as_str();
-        }
     }
     out
 }
