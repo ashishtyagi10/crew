@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.2
+
+**A working pane's glass catches the light once, then rests.** With the
+glass sheet back, the busy scan had returned as a band bouncing up and down
+every working card without pause — a scanner, not light. It is now a soft
+diagonal sheen that crosses the card once, upper left to lower right (the
+way the light falls), and then rests for a breath before the next pass. It
+starts and ends off the card, so it never pops in, and it is narrower and
+fainter than the band it replaces.
+
 ## 0.23.1
 
 **The glass has a bevel.** A white rim on a white sheet is all but

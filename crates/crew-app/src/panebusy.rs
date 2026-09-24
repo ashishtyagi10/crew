@@ -9,8 +9,24 @@ use crate::pane::{Pane, PaneContent};
 /// How long a card takes to draw itself in.
 pub(crate) const ASSEMBLE_MS: u64 = 380;
 
-/// Period of the busy scan's round trip down a working card and back.
+/// Period of the busy sheen: one pass across a working card, then a rest.
 pub(crate) const SCAN_MS: u64 = 2_600;
+
+/// The share of [`SCAN_MS`] the sheen spends crossing; the rest is stillness.
+/// A band that bounced back and forth without pause read as a scanner, not
+/// as light — a pass and a breath reads as light catching the glass.
+const SHEEN_SHARE: f32 = 0.55;
+
+/// Where the busy sheen is across a working card at `now`, `0.0..=1.0` from
+/// the upper left to the lower right, or negative while it rests.
+pub(crate) fn sheen(now: u64) -> f32 {
+    let phase = (now % SCAN_MS) as f32 / SCAN_MS as f32;
+    if phase < SHEEN_SHARE {
+        phase / SHEEN_SHARE
+    } else {
+        -1.0
+    }
+}
 
 /// This pane's assemble timeline. Scaled by the Motion setting, which is read
 /// here rather than threaded through every scene call — at `off` the timeline

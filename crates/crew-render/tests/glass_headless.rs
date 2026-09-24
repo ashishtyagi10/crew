@@ -192,8 +192,10 @@ fn glass_scan_headless() {
         ..card(0.30, 0.30, 0.0, 0.0)
     };
     let none = render(&device, &queue, &[flat(-1.0)]);
-    // Sweep centred a quarter of the way down the card.
-    let swept = render(&device, &queue, &[flat(0.25)]);
+    // The diagonal sheen centred on the card's middle column a quarter of the
+    // way down: there `(across + down) / 2` is 0.375, which the sheen's
+    // off-card-to-off-card travel (-0.12 → 1.12) reaches at 0.4.
+    let swept = render(&device, &queue, &[flat(0.4)]);
 
     let y_band = (CARD_Y + CARD_H * 0.25) as usize;
     let y_far = (CARD_Y + CARD_H * 0.85) as usize;

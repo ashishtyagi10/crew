@@ -78,13 +78,13 @@ struct VsOut {
   @location(5) extra: vec4<f32>,   // scan position, edge_glow, lift, glint
 };
 
-// Half-height of the scan band, as a fraction of the card. Wide enough to read
-// as a sweep of light rather than a line.
-const SCAN_W: f32 = 0.18;
-// How much the scan lifts the sheet at its centre. Deliberately slight — this
-// runs while a pane is working, and a bright bar crossing the card every second
-// would be the most annoying thing crew does.
-const SCAN_GAIN: f32 = 0.35;
+// Half-width of the busy sheen, as a fraction of the card's diagonal. Wide
+// enough to read as light rather than a line.
+const SCAN_W: f32 = 0.12;
+// How much the sheen lifts the sheet at its centre. Deliberately slight — it
+// runs while a pane is working, and a bright bar crossing the card would be
+// the most annoying thing crew does.
+const SCAN_GAIN: f32 = 0.28;
 
 @vertex
 fn vs(@builtin(vertex_index) vi: u32,
@@ -189,13 +189,17 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     fill_a = clamp(fill_a + edge_glow * bleed * inside, 0.0, 1.0);
   }
 
-  // --- scan sweep -----------------------------------------------------------
-  // A soft band of extra fill travelling down the card while the pane works.
-  // It rides the fill alpha rather than adding a colour of its own, so it stays
-  // in whatever palette the theme declared.
+  // --- busy sheen -----------------------------------------------------------
+  // A soft diagonal band of extra fill crossing the card once, upper left to
+  // lower right — the way the light falls — while the pane works; the app
+  // rests it between passes. It starts and ends off the card, so it never
+  // pops in, and it rides the fill alpha rather than adding a colour of its
+  // own, so it stays in whatever palette the theme declared.
   let scan_pos = in.extra.x;
   if (scan_pos >= 0.0) {
-    let d_scan = abs(t - scan_pos);
+    let across = clamp((in.local.x + in.hsize.x) / max(in.hsize.x * 2.0, 1.0), 0.0, 1.0);
+    let centre = -SCAN_W + scan_pos * (1.0 + 2.0 * SCAN_W);
+    let d_scan = abs((across + t) * 0.5 - centre);
     let band = 1.0 - smoothstep(0.0, SCAN_W, d_scan);
     fill_a = clamp(fill_a + band * SCAN_GAIN * mix(a_top, a_bot, t) * inside, 0.0, 1.0);
   }
