@@ -163,9 +163,7 @@ impl CrewApp {
                 // redraws to every ANIM_DIV ticks), so motion stays smooth at 20 fps.
                 let tick = self.tick / welcome::ANIM_DIV;
                 let hint = self.restore_hint;
-                crate::welcomecard::push_card_lit(&mut scenes, r, cw, ch, "crew", |cols, rows| {
-                    welcome::welcome_cells_animated(cols, rows, tick, hint)
-                });
+                crate::welcomecard::push_welcome(&mut scenes, r, cw, ch, tick, hint);
             }
         }
 

@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.30
+
+**The rain sits on glass.** The welcome's matrix rain, name and hints now
+sit on their own card: a lit ring on a glass sheet risen above the
+welcome's own, with its shadow on the page. Before, the field was glyphs
+printed straight onto the page with no edge of its own. The whole stack,
+including the news line and the restore offer, is now centred, so the
+card sits in the middle.
+
 ## 0.23.29
 
 **A dark title on a light page.** While the window is translucent, crew
