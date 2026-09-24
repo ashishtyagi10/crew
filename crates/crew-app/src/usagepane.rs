@@ -12,7 +12,6 @@
 pub(crate) use crate::usagelayout::*;
 use crew_render::{CellView, Paint};
 
-use crate::boxdraw::section_header;
 use crate::palette::accent;
 use crate::plot::pie::{self, Slice};
 use crate::plot::{heatmap, Canvas};
@@ -95,14 +94,9 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
         crate::navtext::put_at(out, s, col, row, cols - 1, fg);
     };
 
-    // Header: the week's totals, which is what the charts below are of.
-    out.extend(section_header(
-        "USAGE",
-        cols,
-        t.border_normal,
-        accent(),
-        t.page_bg,
-    ));
+    // Header: the week's totals, which is what the charts below are of —
+    // on the first row, with no `USAGE` rule over them: the card's legend
+    // already names the pane.
     put(
         &mut out,
         &format!(
@@ -112,7 +106,7 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
             compact(b.tok_out),
         ),
         1,
-        1,
+        0,
         t.ink,
     );
 

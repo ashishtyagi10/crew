@@ -226,12 +226,12 @@ fn no_band_is_ever_laid_out_past_the_last_row() {
 /// to its floor now and is only given up when even that will not fit.
 #[test]
 fn a_short_pane_shrinks_the_cost_band_before_it_drops_it() {
-    // 22 rows is the pane's own floor: every band at its minimum, no
+    // 21 rows is the pane's own floor: every band at its minimum, no
     // slack for anything to grow into.
-    let l = layout(22);
+    let l = layout(21);
     assert!(
         l.cost_rows > 0,
-        "a 22-row pane still costs something: {l:?}"
+        "a 21-row pane still costs something: {l:?}"
     );
     assert_eq!(l.cost_rows, COST_MIN, "at its floor: {l:?}");
     // And a pane with no room under the donut at all gives it up rather

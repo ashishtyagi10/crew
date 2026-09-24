@@ -27,7 +27,7 @@ pub fn bytes(n: u64) -> String {
 }
 
 /// Rows the header claims above the map.
-pub(crate) const HEAD: u16 = 2;
+pub(crate) const HEAD: u16 = 1;
 
 /// The map's rect inside a `cols`×`rows` pane, in cells.
 pub(crate) fn map_rect(cols: u16, rows: u16) -> (f32, f32, f32, f32) {

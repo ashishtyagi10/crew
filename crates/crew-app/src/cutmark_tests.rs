@@ -48,10 +48,10 @@ fn usage_totals_line_marks_its_cut_at_the_narrowest_pane() {
         cost_microusd: 1_980_000,
     };
     let cells = crate::usagepane::cells(&b, 24, 12);
-    let s = text(&cells, 1);
+    let s = text(&cells, 0);
     assert!(s.ends_with('\u{2026}'), "{s:?}");
     assert!(
-        cells.iter().filter(|c| c.row == 1).all(|c| c.col < 23),
+        cells.iter().filter(|c| c.row == 0).all(|c| c.col < 23),
         "{s:?}"
     );
 }
