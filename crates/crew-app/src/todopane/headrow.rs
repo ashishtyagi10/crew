@@ -30,9 +30,15 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, shown: usi
         });
     }
     if let (Some(chip), Some((start, _))) = (done_chip(p), done_chip_zone(p, cols)) {
+        // A button, on a tint of the accent, its label walked to the floor.
+        let bg = crate::anim::lerp_rgb(t.page_bg, crate::palette::accent(), 0.22);
+        let fg = crew_theme::readable::enforced(crate::palette::accent(), bg, 4.5);
         let styled = chip.chars().map(|c| (c, ()));
         crate::chatwidth::place_row(start, cols, styled, |x, c, ()| {
-            out.push(cell(x, 0, c, crate::palette::accent(), false))
+            out.push(CellView {
+                bg,
+                ..cell(x, 0, c, fg, false)
+            })
         });
     }
 }

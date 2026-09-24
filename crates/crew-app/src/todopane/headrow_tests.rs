@@ -70,7 +70,7 @@ fn a_grouped_list_bands_every_person_with_a_roll_up() {
     // them per person however many items that person carries.
     let heads: Vec<&String> = rows
         .iter()
-        .filter(|r| r.contains("#priya") && !r.contains("[ ]"))
+        .filter(|r| r.contains("#priya") && !r.contains('\u{25cb}'))
         .collect();
     assert_eq!(heads.len(), 1, "one band per person: {joined}");
 }

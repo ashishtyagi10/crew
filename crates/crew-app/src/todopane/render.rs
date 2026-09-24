@@ -8,7 +8,8 @@ use crew_render::CellView;
 
 use super::{composer, duedate, gutter, headrow, TodoPane};
 
-/// Column where the `[ ]` checkbox starts; the title follows two past it.
+/// Column where the checkbox (a ring, a disc when done) starts; the title
+/// follows two past its three cells.
 pub(crate) const BOX_COL: u16 = 2;
 pub(crate) const TITLE_COL: u16 = 6;
 
@@ -54,18 +55,21 @@ pub(crate) fn done_chip(p: &TodoPane) -> Option<String> {
     }
     let n = super::item::done_count(&p.items, p.filters());
     (n > 0).then(|| {
-        if p.show_done {
-            "[hide done]".to_string()
+        // A capsule as wide as the `[show N done]` it was, padded with
+        // no-break spaces (a bare space with a fill squares its ends).
+        let label = if p.show_done {
+            "hide done".into()
         } else {
-            format!("[show {n} done]")
-        }
+            format!("show {n} done")
+        };
+        format!("\u{a0}{}\u{a0}", label.replace(' ', "\u{a0}"))
     })
 }
 
 /// What a click on pane-content cell (`row`, `col`) means.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum TodoClick {
-    /// The `[ ]` checkbox of the visible row at this display index.
+    /// The checkbox of the visible row at this display index.
     Toggle(usize),
     /// The `✗` at the row's end.
     Delete(usize),
@@ -232,10 +236,14 @@ pub(crate) fn row_cells(
     if selected {
         out.push(cell(0, row, '\u{203a}', accent, true)); // ›
     }
-    let boxes = if it.done { "[x]" } else { "[ ]" };
-    for (i, c) in boxes.chars().enumerate() {
-        out.push(cell(BOX_COL + i as u16, row, c, ink, selected));
-    }
+    // Reminders' grammar in crew's drawn marks: an open ring to do, a disc
+    // in the accent once done — centred in the three cells `[ ]` held.
+    let (mark, fg) = if it.done {
+        ('\u{25cf}', accent)
+    } else {
+        ('\u{25cb}', ink)
+    };
+    out.push(cell(BOX_COL + 1, row, mark, fg, selected));
 
     // The title's lines, then the right side beside the first of them — or,
     // on a pane too narrow to share a line, on a row of its own below.
