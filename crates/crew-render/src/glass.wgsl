@@ -90,12 +90,33 @@ struct VsOut {
 // How soft a notch's ends are (px): the rim tapers into the gap round the
 // legend rather than stopping square, as light does off a cut edge.
 const NOTCH_FEATHER: f32 = 2.0;
+// A legend tab's corner radius, and how far it tucks under the card's edge
+// so the two read as one sheet.
+const TAB_R: f32 = 4.0;
+const TAB_TUCK: f32 = 3.0;
 
 // 1 inside one span `s` (x0, x1) of card-left x `x`, 0 outside, feathered.
 // An empty slot is x1 <= x0 and covers nothing.
 fn in_span(x: f32, a: f32, b: f32) -> f32 {
   if (b <= a) { return 0.0; }
   return smoothstep(a - NOTCH_FEATHER, a, x) * (1.0 - smoothstep(b, b + NOTCH_FEATHER, x));
+}
+
+// A legend's tab over span (a, b): a box from `depth` px past the card's
+// edge to a little inside it, top corners rounded like the card's own. `x`
+// is card-left px, `e` px in from the edge (negative past it). 0 for an
+// empty slot.
+fn tab_over(x: f32, e: f32, a: f32, b: f32, depth: f32) -> f32 {
+  if (b <= a) { return 0.0; }
+  let hh = (depth + TAB_TUCK) * 0.5;
+  let p = vec2<f32>(x - (a + b) * 0.5, e - (TAB_TUCK - depth) * 0.5);
+  let r = min(TAB_R, hh);
+  return 1.0 - smoothstep(0.0, AA, sd_round_box(p, vec2<f32>((b - a) * 0.5, hh), r));
+}
+
+fn tabs(x: f32, e: f32, s0: vec4<f32>, s1: vec4<f32>, depth: f32) -> f32 {
+  return max(max(tab_over(x, e, s0.x, s0.y, depth), tab_over(x, e, s0.z, s0.w, depth)),
+             max(tab_over(x, e, s1.x, s1.y, depth), tab_over(x, e, s1.z, s1.w, depth)));
 }
 
 fn in_spans(x: f32, s0: vec4<f32>, s1: vec4<f32>) -> f32 {
@@ -193,11 +214,11 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   let rim_cut = max(
     in_spans(lx, in.nt0, in.nt1) * step(from_top, depth),
     in_spans(lx, in.nb0, in.nb1) * step(from_bot, depth));
-  // The tab: past the edge by up to `depth`, inside a span, soft on top.
+  // The tab: past the edge by up to `depth` over each span, rounded on top.
   let side = abs(in.local.x) - in.hsize.x;
   let tab = select(0.0, 1.0, side <= 0.0) * max(
-    in_spans(lx, in.nt0, in.nt1) * step(from_top, 0.0) * smoothstep(-depth - AA, -depth + AA, from_top),
-    in_spans(lx, in.nb0, in.nb1) * step(from_bot, 0.0) * smoothstep(-depth - AA, -depth + AA, from_bot));
+    tabs(lx, from_top, in.nt0, in.nt1, depth) * step(from_top, TAB_TUCK),
+    tabs(lx, from_bot, in.nb0, in.nb1, depth) * step(from_bot, TAB_TUCK));
   let body = max(inside, tab);
 
   // --- soft drop shadow -----------------------------------------------------
