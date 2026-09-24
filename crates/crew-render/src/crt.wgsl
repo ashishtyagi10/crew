@@ -45,6 +45,9 @@ fn hash1(x: f32) -> f32 {
     return fract(sin(x * 12.9898) * 43758.5453);
 }
 
+// Most glow one pixel takes (see the composite).
+const GLOW_CAP: f32 = 0.18;
+
 @fragment
 fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // Screen UV in [0, 1], origin top-left.
@@ -61,7 +64,14 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // gaussian chain) scaled by the theme's glow. This is what replaced the
     // old two-ring neighbour tap — the halo now carries tens of pixels with a
     // gaussian falloff instead of dying ~8px from the stroke.
-    col += textureSample(bloom_tex, samp, warped).rgb * u.glow;
+    //
+    // Capped per pixel. The kernel sums well past 1 so a stroke's halo
+    // reaches far, which over a wide FILL is the fill's light several times
+    // over — poured onto the dark letters of a selected row until they read
+    // as the bar's own colour. A stroke's halo sits well under the cap; a
+    // flooded field does not.
+    col += clamp(textureSample(bloom_tex, samp, warped).rgb * u.glow,
+                 vec3<f32>(-GLOW_CAP), vec3<f32>(GLOW_CAP));
 
     // Glow can push col past 1.0 on bright/saturated fields (e.g. a uniform
     // bright field with two rings summing in). Clamp here, before the

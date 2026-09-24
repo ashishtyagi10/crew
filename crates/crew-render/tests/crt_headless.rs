@@ -308,3 +308,55 @@ fn crt_headless() {
 
     eprintln!("crt_headless: flat geometry, scanlines, wide bloom halo, ink halo, static-flicker verified");
 }
+
+/// Dark type on a bright bar survives the glow. A selected row is thin dark
+/// letters on a wide accent fill; the bloom kernel sums well past 1 so a
+/// stroke's halo reaches far — and over a FILL that is the fill's brightness
+/// several times over, poured onto the letters inside it (harbor's `/far`
+/// cursor row read green-on-cyan, about 1.6:1). The glow a pixel takes is
+/// capped: a stroke's halo is well under the cap, a flooded field is not.
+#[test]
+fn crt_dark_type_on_a_bright_bar_stays_readable() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("crt_dark_type_on_a_bright_bar_stays_readable: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let mut chain = CrtChain::new(&device, wgpu::TextureFormat::Rgba8Unorm, N as u32, N as u32);
+    upload(&queue, &chain, |x, y| {
+        let bar = (8..56).contains(&x) && (24..40).contains(&y);
+        match (bar, (31..33).contains(&x)) {
+            (true, true) => [13, 18, 25, 255],
+            (true, false) => [0, 255, 220, 255],
+            _ => [13, 18, 25, 255],
+        }
+    });
+    chain.set_style(Some(CrtStyle {
+        scanline: 0.0,
+        glow: 0.80,
+        glow_radius: 11.0,
+        flicker: 0.0,
+    }));
+    chain.set_anim(0.0, 0.0);
+    chain.update_uniforms(&queue, N as f32, N as f32, false);
+    let px = render(&device, &queue, &chain);
+    let lum = |x: usize, y: usize| {
+        let o = y * STRIDE + x * 4;
+        let lin = |v: u8| (v as f64 / 255.0).powf(2.2);
+        0.2126 * lin(px[o]) + 0.7152 * lin(px[o + 1]) + 0.0722 * lin(px[o + 2])
+    };
+    let (field, stroke) = (lum(20, 32), lum(31, 32));
+    let ratio = (field + 0.05) / (stroke + 0.05);
+    eprintln!("crt bar: field {field:.3} stroke {stroke:.3} ratio {ratio:.2}");
+    assert!(
+        ratio >= 3.0,
+        "the letters drowned in the bar's glow ({ratio:.2}:1)"
+    );
+}
