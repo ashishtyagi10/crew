@@ -39,13 +39,16 @@ pub fn host_parts() -> (String, String, String) {
     )
 }
 
-/// The name without its mDNS suffix: every Mac answers `name.local`, so the
-/// suffix says nothing and costs six columns of a narrow card.
+/// The name without its local-network suffix: every Mac answers
+/// `name.local` (mDNS), and a home router hands out `.lan`, `.home` or
+/// `.localdomain`. None of them says anything about the machine, and each
+/// costs a narrow card its columns.
 fn plain_host(host: &str) -> &str {
-    match host.strip_suffix(".local") {
-        Some(h) if !h.is_empty() => h,
-        _ => host,
-    }
+    const SUFFIXES: [&str; 4] = [".local", ".lan", ".home", ".localdomain"];
+    SUFFIXES
+        .iter()
+        .find_map(|s| host.strip_suffix(s).filter(|h| !h.is_empty()))
+        .unwrap_or(host)
 }
 
 /// `Darwin` is the kernel; the person at the keyboard runs macOS.
