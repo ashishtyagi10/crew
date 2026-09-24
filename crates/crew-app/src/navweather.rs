@@ -1,4 +1,4 @@
-//! The clock's weather strip: one line — `☀ 24° ↑27 ↓18 ☂10%` — for a place
+//! The clock's weather strip: one line — `☀ 24° ↑27 ↓18 ☂ 10%` — for a place
 //! the user names (`/weather Berlin`). Open-Meteo answers without a key:
 //! its geocoder turns the name into a point, its forecast gives the current
 //! reading, today's range and the chance of rain. Fetched on a worker
@@ -81,7 +81,7 @@ pub(crate) fn line(w: &Weather) -> String {
         w.lo
     );
     if w.rain > 0 {
-        s.push_str(&format!(" \u{2602}{}%", w.rain));
+        s.push_str(&format!(" \u{2602} {}%", w.rain));
     }
     s
 }

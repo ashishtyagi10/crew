@@ -34,7 +34,7 @@ fn the_card_says_the_place_the_sky_and_the_range() {
         line(&cells, 0)
     );
     assert_eq!(line(&cells, 1), "\u{2600} 24\u{00b0}C clear");
-    assert_eq!(line(&cells, 2), "\u{2191}27 \u{2193}18  \u{2602}10%");
+    assert_eq!(line(&cells, 2), "\u{2191}27 \u{2193}18  \u{2602} 10%");
     assert!(
         cells.iter().all(|c| c.row < WEATHER_BLOCK - 1),
         "rows + gap"

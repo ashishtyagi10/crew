@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.32
+
+**Room for the umbrella.** The weather card's rain chance read `☂35%`, and
+macOS draws the umbrella as a two-cell emoji, so it sat on top of the first
+digit. It now has a space after it (`☂ 35%`), both in the WEATHER card and
+in the collapsed nav's one-line strip.
+
 ## 0.23.31
 
 **The machine, named plainly.** The HOST card read `Ashishs-MacBook-Pro-2…`
