@@ -3361,7 +3361,7 @@ file, refactors, or formats. Two consumers share one client (`crates/crew-lsp`):
   gives its first line; information and hints say nothing, exactly as they
   mark nothing. The server is started off the winit thread, asked once, and shut
   down; nothing blocks a frame. `lsp = false` in `config.toml` (or
-  **Language server diagnostics** in `/settings`) turns it off.
+  **Code diagnostics (LSP)** in `/settings`) turns it off.
 
 **Servers.** By language id, from the file's extension:
 

@@ -29,7 +29,7 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::Accent => "Accent (#hex)",
         Field::BorderMarks => "Card border marks",
         Field::Invisibles => "Reveal invisibles",
-        Field::Lsp => "Language server diagnostics",
+        Field::Lsp => "Code diagnostics (LSP)",
         Field::PaperTexture => "Paper texture",
         Field::AmbientDrift => "Drifting background",
         Field::PaperGrain => "Grain (0-2)",

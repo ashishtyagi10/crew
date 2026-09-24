@@ -79,7 +79,15 @@ pub(crate) fn checkbox(buf: &mut Buffer, rect: Rect, label: &str, on: bool, focu
     let line = Line::from(vec![
         Span::styled(lead, style),
         Span::styled(mark, style.fg(mark_fg)),
-        Span::styled(format!(" {label}"), style),
+        // A label wider than its card says so with `…` rather than
+        // stopping mid-word (`Language server diagnosti`).
+        Span::styled(
+            format!(
+                " {}",
+                crate::chatwidth::clip_w(label, usize::from(rect.width.saturating_sub(4)))
+            ),
+            style,
+        ),
     ]);
     buf.set_line(rect.x, rect.y, &line, rect.width);
 }

@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.36
+
+**A settings label that fits.** The canvas card's checkbox read
+`Language server diagnosti`, cut off mid-word by the card's edge. It is now
+**Code diagnostics (LSP)**, which fits. Any checkbox label that is still too
+wide for its card now ends in `…` instead of stopping mid-word.
+
 ## 0.23.35
 
 **A clearing for the name.** The welcome's `C R E W` sat in a blank patch
