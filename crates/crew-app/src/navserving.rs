@@ -57,6 +57,12 @@ pub(crate) fn serving_cells(s: &Serving, cols: u16) -> (Vec<CellView>, Vec<f32>)
         }
     };
     put(&mut out, 1, who, max_col, t.page_bg);
+    // Neither window has a reading (no provider yet, or one with no rolling
+    // limit): two empty capsules ending in `—` measured nothing. One live
+    // window keeps its sibling's `—` — that one is still filling.
+    if s.windows.five_h.is_none() && s.windows.seven_d.is_none() {
+        return (out, meters);
+    }
     for (row, label, w) in [(2, "5h", s.windows.five_h), (3, "7d", s.windows.seven_d)] {
         let (pct, left) = match w {
             Some(w) => (
