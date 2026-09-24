@@ -106,3 +106,25 @@ fn a_flat_list_draws_no_bands_at_all() {
     assert!(!joined.contains("open \u{b7}"), "no roll-up: {joined}");
     assert!(!joined.contains("unassigned"), "no buckets: {joined}");
 }
+
+/// An empty list's note sits in the middle of the list, not on its left
+/// edge, and its statement is ink while the hint under it is muted.
+#[test]
+fn the_empty_note_is_centred() {
+    let _g = crate::app::theme_test_guard();
+    let p = test_pane(vec![]);
+    let all = cells(&p, COLS, ROWS);
+    let t = crew_theme::theme();
+    let n = all
+        .iter()
+        .filter(|c| c.c == 'n' && c.fg == t.ink)
+        .map(|c| c.col)
+        .min()
+        .unwrap();
+    let span = "no todos".len() as u16;
+    let (left, right) = (n, COLS - (n + span));
+    assert!(
+        left.abs_diff(right) <= super::BOX_COL + 1,
+        "{left} | {right}"
+    );
+}
