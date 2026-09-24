@@ -49,6 +49,22 @@ fn rain_width(cols: u16, rows: u16) -> Option<u16> {
     None
 }
 
+/// Where the rain field sits in a `cols × rows` welcome, as `(top, left, w,
+/// h)`, or `None` when only the single-line banner fits. The whole stack —
+/// rain, tagline, hint, and the news/restore lines when they are shown — is
+/// centred, so the card drawn round it (`welcomecard`) sits in the middle of
+/// the page rather than riding low by the lines hanging under the rain.
+pub fn rain_box(cols: u16, rows: u16, restore: bool) -> Option<(u16, u16, u16, u16)> {
+    let w = rain_width(cols, rows)?;
+    let h = w / ASPECT;
+    // Rows under the rain: blank, tagline, hint — then the news line, or a
+    // blank and the restore offer under it.
+    let news = whats_new(usize::from(cols)).is_some();
+    let below = 3 + if restore { 3 } else { u16::from(news) };
+    let stack = if h + below < rows { h + below } else { h + 3 };
+    Some(((rows - stack) / 2, (cols - w) / 2, w, h))
+}
+
 /// Render one animation frame: the rain field centred, tagline + hint below
 /// it (plus a `/restore` hint when a session snapshot exists), version stamp
 /// bottom-right. Falls back to a spaced single-line "CREW" when nothing
@@ -68,10 +84,7 @@ pub fn welcome_cells_animated(
     let t = crew_theme::theme();
     let bg = t.page_bg;
 
-    if let Some(w) = rain_width(cols, rows) {
-        let h = w / ASPECT;
-        let top = (rows - (h + 3)) / 2;
-        let left = (cols - w) / 2;
+    if let Some((top, left, w, h)) = rain_box(cols, rows, restore.is_some()) {
         // The rain fills the box and fades out toward its edges — bounded
         // by light, not by a ruled rectangle inside the card — and the CREW
         // nameplate sits over its centre, glyphs streaming around it.

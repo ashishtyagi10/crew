@@ -72,8 +72,8 @@ fn welcome_shot_themes() {
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
 }
 
-/// The card the welcome wears — lit ring, risen sheet — on the light pages,
-/// where a quiet stroke left the main page with no edge at all.
+/// The welcome's cards — the lit outer ring, and the rain block on its own
+/// risen glass — on the light pages, where the block had no edge at all.
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn welcome_shot_lit_card() {
@@ -95,9 +95,7 @@ fn welcome_shot_lit_card() {
                 h: h as f32 - 28.0,
             };
             let mut s = Vec::new();
-            crate::welcomecard::push_card_lit(&mut s, r, cw, ch, "crew", |cols, rows| {
-                crate::welcome::welcome_cells_animated(cols, rows, 7, Some(1))
-            });
+            crate::welcomecard::push_welcome(&mut s, r, cw, ch, 7, Some(1));
             s
         }) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
