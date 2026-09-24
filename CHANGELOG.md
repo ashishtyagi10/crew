@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.50
+
+**An empty week says so.** With no usage recorded, `/dash` and `/usage`
+headed their empty charts with `$0.00 · 0 in / 0 out · 7 days`, which looks
+like a meter reading zero rather than nothing to show yet. They now say
+`nothing used in the last 7 days`. A week with usage reads
+`$1.98 · 1.8M in · 410k out · 7 days` in both panes (the dashboard used to
+write `in / out`).
+
 ## 0.23.49
 
 **No empty meters in SERVING.** With no provider signed in, or one without
