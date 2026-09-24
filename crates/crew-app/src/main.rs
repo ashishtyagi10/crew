@@ -33,6 +33,7 @@ mod badgeshot_tests;
 mod blocked;
 mod blocks;
 mod bordermarks;
+mod borderseat;
 mod boxdraw;
 mod btnpress;
 mod channel;

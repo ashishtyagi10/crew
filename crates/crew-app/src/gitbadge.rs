@@ -76,6 +76,8 @@ pub(crate) fn draw(v: &mut Vec<CellView>, rx: u16, min_col: u16, info: &GitInfo)
     let start = col;
     for (i, (text, fg)) in segs.iter().enumerate() {
         if i > 0 {
+            // A space, not a cell of rule: `main ●3` is one badge.
+            put(v, col, 0, ' ', *fg, false);
             col += 1;
         }
         for ch in text.chars() {
