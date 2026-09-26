@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.82
+
+**A binary file is not an empty file.** The viewer showed `(empty file)` for
+every file it couldn't display: binaries, files that aren't valid UTF-8,
+formats with no extractor installed, and unreadable files. A 4.5 MB
+`crew.dylib` said it was empty. This happened because the check for a
+zero-byte file ran first, and these files have no text by design. The check
+now skips them, so they get the card that was written for them: `binary
+file — nothing to render`, `binary · 4.5M · modified 3h ago` and
+`press o to open in the default app`, or `no extractor: install poppler` for
+a PDF.
+
 ## 0.23.81
 
 **Palette descriptions made consistent.** A few rows in the command palette
