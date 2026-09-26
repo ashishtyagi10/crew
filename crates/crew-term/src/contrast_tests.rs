@@ -56,3 +56,15 @@ fn colorfgbg_matches_background_lightness() {
     assert_eq!(colorfgbg_for((8, 8, 8)), "15;0");
     assert_eq!(colorfgbg_for((3, 10, 5)), "15;0");
 }
+
+/// Dim reads alike on a light page and a dark one. Mixed in linear light it
+/// was ~10:1 on dark and pinned to the floor on every light page.
+#[test]
+fn dim_is_the_same_step_on_a_light_page_and_a_dark_one() {
+    let light = dimmed((40, 38, 35), (242, 240, 235));
+    let dark = dimmed((220, 218, 210), (26, 22, 20));
+    let (l, d) = (ratio(light, (242, 240, 235)), ratio(dark, (26, 22, 20)));
+    assert!(l >= 3.3, "light dim {light:?} reads at {l:.2}");
+    assert!(d >= 3.3 && d < 8.0, "dark dim {dark:?} reads at {d:.2}");
+    assert!((l / d).max(d / l) < 1.6, "light {l:.2} vs dark {d:.2}");
+}
