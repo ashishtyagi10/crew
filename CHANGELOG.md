@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.87
+
+**/dash's CPU label matches the graph.** The CPU graph on `/dash` was always
+labelled `CPU · 4 min`, which is the most history it keeps, not what it
+shows. On a half-width tile the graph covers about 80 seconds, and a `/dash`
+opened moments ago showed the label with no graph at all. The label now
+gives the time the graph actually covers, one sample per second up to what
+fits its width, written like the pane-border timers (`CPU · 1m22`,
+`CPU · 4m00`), and it stays hidden until there is a graph to label.
+
 ## 0.23.86
 
 **Pickers show commands without backticks.** The sign-in and sign-out
