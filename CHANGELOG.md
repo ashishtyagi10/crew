@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.90
+
+**Narrow /todo rows keep who and which project.** On a pane too narrow to
+put an item's tags beside its title, `/todo` moves them to the line below,
+where they share space with the due date. A long due label such as
+`today sep 25 23:04` took so much of that line that the `#priya @crew` tags
+were dropped with no indication. Now the due label gets shorter first: it
+drops the relative word (`sep 25 23:04`), then the time (`sep 25`), so the
+tags fit. Wide rows show the full label as before.
+
 ## 0.23.89
 
 **Dim text is readable on light themes.** Terminal text a program marks as
