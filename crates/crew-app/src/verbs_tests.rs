@@ -120,3 +120,11 @@ fn the_viewer_owns_its_own_contents() {
         assert!(crate::cmddefs::answered(gone), "{gone} stopped answering");
     }
 }
+
+/// `/find all` is where the search goes, not the search: the row fills the
+/// bar and waits for the words rather than running a search for "all".
+#[test]
+fn find_all_waits_for_its_words() {
+    assert!(nested("/find", "all"));
+    assert_eq!(fill("/find", "all"), "/find all ");
+}
