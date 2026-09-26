@@ -178,3 +178,14 @@ fn table_layout_cost_is_bounded_by_the_column_budget_not_cell_size() {
          size again, not the column budget"
     );
 }
+
+/// Each `│` crosses the header rule as `┼`, in the same column.
+#[test]
+fn the_separators_cross_the_header_rule() {
+    let text = |l: &MdLine| l.spans.iter().map(|s| s.text.as_str()).collect::<String>();
+    let out = crate::md::render("| a | bb |\n|---|---|\n| 1 | 2 |", 40);
+    let (head, rule) = (text(&out[0]), text(&out[1]));
+    let bar = head.chars().position(|c| c == '│').unwrap();
+    assert_eq!(rule.chars().nth(bar), Some('┼'), "{head:?}\n{rule:?}");
+    assert_eq!(rule.chars().count(), head.chars().count(), "{rule:?}");
+}

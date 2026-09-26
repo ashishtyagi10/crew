@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.65
+
+**A table's column lines cross its header rule.** Markdown tables in agent
+replies, and CSV files in the viewer, draw a line under the header row. That
+line was a plain row of `─`, so each column's `│` stopped above it and
+started again below it, and the table looked like two tables stacked. The
+rule now has a `┼` in each column line's position, so the separators run
+from the header through to the last row. The rule's width is unchanged.
+
 ## 0.23.64
 
 **An empty week has no peak.** 0.23.50 changed the USAGE heading on an
