@@ -15,6 +15,9 @@ const KEYS: &[(&str, &str)] = &[
     ("/clear", "Cmd+K"),
     ("/zoom", "Cmd+Z"),
     ("/reopen", "Cmd+Shift+T"),
+    ("/smith", "Cmd+O"),
+    ("/keys", "Cmd+/"),
+    ("/focus", "Ctrl+Shift+F"),
 ];
 
 /// The chord that runs `cmd`, if one does.
