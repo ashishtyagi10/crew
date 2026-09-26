@@ -13,7 +13,7 @@
 use crew_render::CellView;
 use crew_term::TermModel;
 
-use crate::chatwidth::{clip_w, str_w};
+use crate::chatwidth::str_w;
 use crate::pane::{Pane, PaneContent};
 
 /// Column the preview starts on: the marker owns column 0, and a glyph and a
@@ -96,7 +96,7 @@ pub(crate) fn cells(text: &str, cols: u16, badge: usize) -> Vec<CellView> {
     let t = crew_theme::theme();
     let mut col = LEFT;
     let mut out = Vec::new();
-    for c in clip_w(text, room).chars() {
+    for c in crate::chatwidth::clip_words(text, room).chars() {
         out.push(CellView {
             col,
             row: 0,

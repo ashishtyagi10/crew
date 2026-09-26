@@ -59,6 +59,27 @@ pub(crate) fn clip_w(s: &str, max: usize) -> String {
     out
 }
 
+/// [`clip_w`] for prose: the cut drops a partial ` · ` segment whole, else a
+/// partial word, when that boundary lies in the back half — `4 open items ·
+/// 1 overd…` said a word that does not exist and half a count; `4 open
+/// items…` says less, and all of it true. A single long token still cuts at a
+/// letter.
+pub(crate) fn clip_words(s: &str, max: usize) -> String {
+    let cut = clip_w(s, max);
+    let Some(body) = cut.strip_suffix('\u{2026}').filter(|_| str_w(s) > max) else {
+        return cut;
+    };
+    let half = body.len() / 2;
+    let at = |sep: &str| body.rfind(sep).filter(|&i| i >= half);
+    match at(" \u{b7} ").or_else(|| at(" ")) {
+        Some(i) => format!(
+            "{}\u{2026}",
+            body[..i].trim_end_matches([' ', ',', ';', ':'])
+        ),
+        None => cut,
+    }
+}
+
 /// Pull a hard wrap at `end` back to a word boundary: just after a space, or
 /// after a `,` `;` `(`, when one lies in the back half of `start..end` — so
 /// wrapped code breaks where an editor would, not mid-token (`a0: f3` /

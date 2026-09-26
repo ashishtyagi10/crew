@@ -60,3 +60,18 @@ fn the_last_row_and_a_near_start_space_are_left_alone() {
     );
     assert_eq!(soft_end(&chars, 0, chars.len()), chars.len());
 }
+
+/// A glance cut to its room drops the partial segment, then the partial word.
+#[test]
+fn clip_words_drops_a_partial_segment_then_a_partial_word() {
+    use crate::chatwidth::clip_words;
+    let s = "4 open items \u{b7} 1 overdue";
+    assert_eq!(clip_words(s, 22), "4 open items\u{2026}");
+    assert_eq!(clip_words(s, 10), "4 open\u{2026}");
+    assert_eq!(clip_words(s, 40), s, "fits: whole");
+    assert_eq!(
+        clip_words("/Users/me/code/crew/crates", 10),
+        "/Users/me\u{2026}",
+        "one token: a letter cut"
+    );
+}

@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.93
+
+**Minimized panes' summaries are cut between words.** A minimized pane
+shows one line summarising what it is doing, shortened to fit its tile by
+character count, so a `/todo` pane showed `4 open items · 1 overd…`, with a
+partial word and a count missing its label. The cut now removes an
+incomplete `·`-separated part entirely (`4 open items…`), or otherwise an
+incomplete word, as long as that doesn't remove more than half the text.
+A single long word such as a path is still cut mid-word.
+
 ## 0.23.92
 
 **Long code lines wrap between words.** Code in the file viewer and in chat
