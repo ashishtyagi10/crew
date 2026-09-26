@@ -30,6 +30,7 @@ mod autoupdate;
 #[cfg(test)]
 #[path = "badgeshot_tests.rs"]
 mod badgeshot_tests;
+mod balancewrap;
 mod blocked;
 mod blocks;
 mod bordermarks;
