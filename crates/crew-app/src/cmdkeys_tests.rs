@@ -38,16 +38,23 @@ fn a_command_with_no_chord_has_no_hint() {
 /// dispatch itself rather than trusting this table.
 #[test]
 fn every_chord_is_one_the_dispatch_actually_handles() {
-    let dispatch = include_str!("chords.rs");
+    // Cmd chords are `handle_super_chord`'s arms (`"k" =>`, `"/" | "?" =>`);
+    // the Ctrl+Shift walks are tested key by key in `keys.rs`.
+    let (cmd_arms, ctrl_keys) = (include_str!("chords.rs"), include_str!("keys.rs"));
     for (cmd, chord) in KEYS {
-        let letter = chord
-            .rsplit('+')
-            .next()
-            .expect("a chord ends in its key")
-            .to_lowercase();
-        assert!(
-            dispatch.contains(&format!("\"{letter}\" =>")),
-            "{chord} ({cmd}) is not handled in chords.rs"
-        );
+        let key = chord.rsplit('+').next().expect("a chord ends in its key");
+        let handled = match chord.starts_with("Ctrl+") {
+            true => {
+                ctrl_keys.contains(&format!("eq_ignore_ascii_case(\"{}\")", key.to_lowercase()))
+            }
+            // `Cmd+Shift+T` is its own shifted arm (`"T" =>`); a plain
+            // letter's arm is lower-case.
+            false => [key.to_string(), key.to_lowercase()].iter().any(|k| {
+                [format!("\"{k}\" =>"), format!("\"{k}\" |")]
+                    .iter()
+                    .any(|arm| cmd_arms.contains(arm.as_str()))
+            }),
+        };
+        assert!(handled, "{chord} ({cmd}) is not handled");
     }
 }

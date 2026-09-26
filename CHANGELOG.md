@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.5
+
+**The palette shows three more shortcuts.** The command palette shows a
+command's keyboard shortcut at the right of its row, but three commands that
+have one showed nothing: `/smith` (⌘O), `/keys` (⌘/) and `/focus` (⌃⇧F).
+Ctrl+Shift+F was also missing from `/keys` and the README until 0.24.2. The
+test that checks each listed shortcut is actually handled now also
+recognises `"/" | "?"` style bindings and the Ctrl+Shift shortcuts, so a
+shortcut that stops working can't stay listed.
+
 ## 0.24.4
 
 **The window title uses the pane's name.** With agent smith focused, the
