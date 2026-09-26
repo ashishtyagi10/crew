@@ -155,6 +155,7 @@ fn rows(line: &str, lang: &str, cw: usize) -> Vec<MdLine> {
         let mark = !first && cw > CONT_W;
         let room = if mark { cw - CONT_W } else { cw };
         let take = fit(&chars[cursor..], room);
+        let take = crate::chatwidth::soft_end(&chars[cursor..], 0, take);
         let mut spans = mark.then(cont_span).into_iter().collect::<Vec<_>>();
         spans.extend(code_spans(&runs, &mut cursor, take));
         out.push(MdLine {
