@@ -29,11 +29,16 @@ fn push(cells: &mut Vec<CellView>, col: u16, max_col: u16, s: &Seg) -> u16 {
 }
 
 /// A compact token count: `950`, then `9.5k` from a thousand up.
+///
+/// Past a million it climbs to `M` (then `G`): a long session read
+/// `4123.5k in` on the footer while `/usage` beside it said `4.1M in`.
 pub(crate) fn fmt_tokens(tokens: u64) -> String {
-    if tokens < 1_000 {
-        tokens.to_string()
-    } else {
-        format!("{:.1}k", tokens as f64 / 1_000.0)
+    let t = tokens as f64;
+    match tokens {
+        0..=999 => tokens.to_string(),
+        1_000..=999_949 => format!("{:.1}k", t / 1e3),
+        999_950..=999_949_999 => format!("{:.1}M", t / 1e6),
+        _ => format!("{:.1}G", t / 1e9),
     }
 }
 
@@ -123,3 +128,7 @@ mod tests;
 #[cfg(test)]
 #[path = "chathdrglow_tests.rs"]
 mod glow_tests;
+
+#[cfg(test)]
+#[path = "chathdrtokens_tests.rs"]
+mod tokens_tests;
