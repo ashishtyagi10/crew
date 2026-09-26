@@ -13,6 +13,7 @@ pub(crate) fn tail(glance: Option<&Glance>, log_len: usize) -> Tail {
         Some(g) => Tail::Glance {
             waiting: g.waiting.len(),
             weather: crate::navweathercard::block(&g.weather),
+            serving: crate::navserving::block(&g.serving),
         },
         None => Tail::Log(log_len),
     }

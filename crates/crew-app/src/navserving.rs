@@ -11,6 +11,23 @@ use crate::summaryfit::{bar, fmt_left};
 /// Rows the card occupies: rule, who, 5h, 7d, and a one-row gap.
 pub const SERVING_BLOCK: u16 = 5;
 
+/// Rows the card takes for `s`: [`SERVING_BLOCK`], less the two meter rows
+/// when neither window has a reading and no meter is drawn. The card kept
+/// them after 0.23.49 stopped drawing the empty meters, which left a two-row
+/// hole between `no provider — /model` and WAITING ON YOU.
+pub(crate) fn block(s: &Serving) -> u16 {
+    match unmetered(s) {
+        true => SERVING_BLOCK - 2,
+        false => SERVING_BLOCK,
+    }
+}
+
+/// Neither window has a reading (no provider yet, or one with no rolling
+/// limit).
+fn unmetered(s: &Serving) -> bool {
+    s.windows.five_h.is_none() && s.windows.seven_d.is_none()
+}
+
 /// Column the text starts on, under the rule's own indent (as GIT does).
 const TEXT_COL: u16 = 3;
 
@@ -57,10 +74,9 @@ pub(crate) fn serving_cells(s: &Serving, cols: u16) -> (Vec<CellView>, Vec<f32>)
         }
     };
     put(&mut out, 1, who, max_col, t.page_bg);
-    // Neither window has a reading (no provider yet, or one with no rolling
-    // limit): two empty capsules ending in `—` measured nothing. One live
+    // Unmetered: two empty capsules ending in `—` measured nothing. One live
     // window keeps its sibling's `—` — that one is still filling.
-    if s.windows.five_h.is_none() && s.windows.seven_d.is_none() {
+    if unmetered(s) {
         return (out, meters);
     }
     for (row, label, w) in [(2, "5h", s.windows.five_h), (3, "7d", s.windows.seven_d)] {
@@ -109,3 +125,7 @@ fn put(
 #[cfg(test)]
 #[path = "navserving_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "navservingblock_tests.rs"]
+mod block_tests;
