@@ -24,14 +24,14 @@ fn labels(items: &[MenuItem]) -> Vec<String> {
 fn state_names_installs_keys_commands_and_re_signins() {
     let mut ant = opt("anthropic", false, false, false);
     ant.install = Some("brew install ant".into());
-    assert_eq!(state(&ant), "not installed \u{00b7} `brew install ant`");
+    assert_eq!(state(&ant), "not installed \u{00b7} brew install ant");
     assert_eq!(
         state(&opt("dashscope", true, false, true)),
         "key present \u{00b7} sign in with OAuth instead"
     );
     assert_eq!(
         state(&opt("codex", false, false, false)),
-        "signs in through its CLI \u{00b7} run `codex login`"
+        "signs in through its CLI \u{00b7} run codex login"
     );
     assert_eq!(
         state(&opt("codex", false, true, false)),
@@ -91,7 +91,7 @@ fn logout_rows_lead_with_grants_and_dim_the_clis() {
         items[1].desc,
         "\u{2713} signed in \u{00b7} the key serves once removed"
     );
-    assert!(items[3].dim && items[3].desc.ends_with("run `ant auth logout`"));
+    assert!(items[3].dim && items[3].desc.ends_with("run ant auth logout"));
     assert!(items[4].dim && items[4].desc.ends_with("it owns the sign-out"));
     let mut p = None;
     open(&mut p, &o);

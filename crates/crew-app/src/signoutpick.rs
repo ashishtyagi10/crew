@@ -25,15 +25,16 @@ fn header(label: &str) -> MenuItem {
 }
 
 /// What a sign-in row says after its name (the model picker's sign-in
-/// section reads it).
+/// section reads it). A command is written bare, last on the row after
+/// `run`: backticks are how markdown marks code, and a picker draws them.
 pub(crate) fn state(o: &SignInOption) -> String {
     match (o.signed_in, o.key_present, &o.install) {
         (true, _, _) if o.device => "\u{2713} signed in \u{00b7} pick to sign in again".into(),
         (true, _, _) => "\u{2713} signed in through its CLI".into(),
-        (false, _, Some(install)) => format!("not installed \u{00b7} `{install}`"),
+        (false, _, Some(install)) => format!("not installed \u{00b7} {install}"),
         (false, true, None) if o.device => "key present \u{00b7} sign in with OAuth instead".into(),
         (false, _, None) => match &o.login {
-            Some(login) => format!("signs in through its CLI \u{00b7} run `{login}`"),
+            Some(login) => format!("signs in through its CLI \u{00b7} run {login}"),
             None => "sign in with OAuth".into(),
         },
     }
@@ -65,7 +66,7 @@ pub(crate) fn items_out(options: &[SignInOption]) -> Vec<MenuItem> {
         out.push(MenuItem {
             label: o.name.clone(),
             desc: match &o.logout {
-                Some(cmd) => format!("signed in through its CLI \u{00b7} run `{cmd}`"),
+                Some(cmd) => format!("signed in through its CLI \u{00b7} run {cmd}"),
                 None => "signed in through its CLI \u{00b7} it owns the sign-out".into(),
             },
             fill: o.name.clone(),

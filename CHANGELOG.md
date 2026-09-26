@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.86
+
+**Pickers show commands without backticks.** The sign-in and sign-out
+pickers wrote shell commands wrapped in Markdown backticks, and those
+backticks appeared on screen: ``anthropic  signed in through its CLI · run
+`ant auth logout` ``, ``not installed · `brew install ant` ``. Commands now
+appear without them, at the end of the row after `run`: `… · run ant auth
+logout`. `/far`'s rclone message does the same: `rclone not found — install
+it, then run rclone config`.
+
 ## 0.23.85
 
 **One space before a `·` in the chat header.** The status at the top of an

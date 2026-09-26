@@ -278,7 +278,7 @@ impl FarPane {
     pub(crate) fn open_drive_select(&mut self, side: Side) -> FarAction {
         if !rclone::available() {
             return FarAction::Status(
-                "rclone not found — install it and run `rclone config`".into(),
+                "rclone not found — install it, then run rclone config".into(),
             );
         }
         if self.pending.is_some() {
