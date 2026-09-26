@@ -58,19 +58,43 @@ pub(crate) fn note(diags: &[Diagnostic], n: usize) -> Option<(String, (u8, u8, u
 
 /// One note row: a blank gutter, then `↑ message` in the severity's quiet
 /// colour, clipped to the text column's width.
+///
+/// The names a server quotes (rustc's ``cannot find function `helper` ``)
+/// lose their ticks and stand upright in fuller ink: backticks are how a
+/// plain-text message marks code, and a canvas that can draw the difference
+/// was drawing the ticks instead.
 fn row(text: &str, fg: (u8, u8, u8), gutter: usize, text_cols: usize) -> CardLine {
     let mut line: CardLine = " "
         .repeat(gutter)
         .chars()
         .map(|c| plain(c, fg, false))
         .collect();
-    let body = format!("{POINT} {text}");
-    for c in clip_w(&body, text_cols.max(1)).chars() {
-        let mut cell = plain(c, fg, false);
-        cell.italic = true;
+    let body = spans(&format!("{POINT} {text}"));
+    let flat: String = body.iter().map(|s| s.0).collect();
+    let code_fg = crate::anim::lerp_rgb(fg, crew_theme::theme().ink, 0.5);
+    let codes = body.iter().map(|s| s.1).chain(std::iter::repeat(false));
+    for (c, code) in clip_w(&flat, text_cols.max(1)).chars().zip(codes) {
+        let mut cell = plain(c, if code { code_fg } else { fg }, false);
+        cell.italic = !code;
         line.push(cell);
     }
     line
+}
+
+/// `text` as `(char, in code)`, the backticks dropped. Unbalanced ticks are
+/// left as written: a lone one is punctuation, not a span.
+fn spans(text: &str) -> Vec<(char, bool)> {
+    let balanced = text.matches('`').count() % 2 == 0;
+    let mut code = false;
+    let mut out = Vec::new();
+    for c in text.chars() {
+        if c == '`' && balanced {
+            code = !code;
+        } else {
+            out.push((c, code));
+        }
+    }
+    out
 }
 
 /// The server's word on the FILE, as a banner over it — the count it found,
@@ -143,3 +167,7 @@ mod tests;
 #[cfg(test)]
 #[path = "lspbanner_tests.rs"]
 mod banner_tests;
+
+#[cfg(test)]
+#[path = "lspcode_tests.rs"]
+mod code_tests;

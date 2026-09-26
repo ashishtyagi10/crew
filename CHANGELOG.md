@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.55
+
+**Diagnostics show code as code.** The note under a flagged line showed the
+language server's message exactly as sent, including its backticks:
+``↑ cannot find function `unresolved_helper` in this scope``. Backticks are
+how plain text marks code. The name now loses them and is drawn upright in
+brighter text within the italic note: `↑ cannot find function
+unresolved_helper in this scope`. A single unmatched backtick (``expected
+`)``) is left as written, and a note cut to fit is measured without the
+backticks.
+
 ## 0.23.54
 
 **A failed agent says so with a ✗.** When an agent in a fan or relay
