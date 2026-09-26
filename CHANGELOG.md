@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.54
+
+**A failed agent says so with a ✗.** When an agent in a fan or relay
+failed, its card read `[error] opencode: timed out after 180s` in ordinary
+reply ink. It was the last bracketed label left in the chat pane. The
+broker's `[error] ` prefix is now removed, as its `[tool] ` prefix already
+was, and the card reads `✗ opencode: timed out after 180s` in the same red
+as a failed tool call's `✗`. Only a prefix at the very start is removed; an
+agent writing "[error]" inside a sentence is shown as written.
+
 ## 0.23.53
 
 **One way to write a duration in the chat.** The chat pane used three

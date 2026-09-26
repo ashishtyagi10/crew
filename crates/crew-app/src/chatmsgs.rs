@@ -83,21 +83,8 @@ pub(crate) fn full_body(m: &Message, cols: usize, view: View<'_>) -> Vec<CardLin
 /// as text until its closing fence lands) and the newest characters ramp up
 /// from muted (`chatreveal::glow_tail`). `None` = the whole body.
 fn body_at(m: &Message, cols: usize, view: View<'_>, reveal: Reveal) -> Vec<CardLine> {
-    // Body text: agents speak in ink; the system voice — and the machine
-    // talking on an agent's behalf — stays muted.
-    let fg = if is_system_voice(&m.sender) || is_tool_card(m) {
-        crew_theme::theme().text_muted
-    } else {
-        crew_theme::theme().ink
-    };
-    // The `[tool] ` marker is MACHINERY (the broker's card kind, carried in
-    // the text because that is the only field that crosses the wire); the
-    // gutter and the ink already say it. Stripped in the ONE place both the
-    // counting and the drawing pass read, so they agree on where it wraps.
-    let text = match is_tool_card(m) {
-        true => m.text.strip_prefix(TOOL_PREFIX).unwrap_or(&m.text),
-        false => m.text.as_str(),
-    };
+    let (fg, text) = crate::chatvoice::body_voice(m);
+    let text = text.as_ref();
     let level = crate::motion::level();
     let shown = reveal.map_or(text, |(r, now)| {
         crate::chatreveal::clip_at(text, r, now, level)
