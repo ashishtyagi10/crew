@@ -381,7 +381,7 @@ a letter, a space or Backspace), and the filter is forgotten on the way out.
 | Recall a line you typed before | **↑** / **↓** — filtered by what is already in the bar; the top border says `hist 2/5 · git` |
 | Find: in a chat transcript, or `/find` in the bar | **Cmd+F** |
 | New shell pane | **Cmd+T** |
-| Settings / chat pane | **Cmd+,** / **Cmd+J** |
+| Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | Accept the ghost text, or fill the highlighted palette row | **Tab** / **→** (in the input bar) |
 | Toggle sidebar | **Cmd+G** |
@@ -2166,7 +2166,7 @@ same — agents rarely tag their patches. Nesting
 depth is capped so pathological input can't blow the stack, and HTML blocks
 render verbatim instead of disappearing.
 
-- **Chat panes** (the `/smith` pane, Cmd+J chat) render message bodies as
+- **Chat panes** (the `/smith` pane) render message bodies as
   formatted markdown by default; single line breaks are preserved, since
   agent replies rely on them. **`Ctrl+Shift+M`** flips the focused chat pane
   to the raw source and back. **Cmd/Ctrl+click** on a rendered link opens it
@@ -3219,7 +3219,7 @@ first, then a sibling of the running executable. `CREW_BROKER_PLUGIN` replaces
 the `/smith` broker — which by default is **this** binary re-invoked with
 `--broker-plugin`, so `/smith` works wherever Crew is installed with no second
 binary to ship. `CREW_CHAT_PLUGIN` does the same
-for the echo plugin (Cmd+J). Point one at a debug build to run a
+for the echo plugin (Cmd+J in a dev build; a release without it opens agent smith). Point one at a debug build to run a
 pane against uncommitted work while the rest of the app stays on the installed
 release. `CREW_PANE` names the sending pane in an inter-pane `crew ask`
 message (default `an agent`); Crew sets it for panes it spawns.

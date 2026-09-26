@@ -22,7 +22,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ),
     ("Cmd+I / Cmd+T", "Focus the input bar / new shell pane"),
     ("Cmd+F", "Find: in a chat transcript, or /find in the bar"),
-    ("Cmd+, / Cmd+J", "Settings / chat pane"),
+    ("Cmd+,", "Settings"),
     ("Cmd+O", "Open agent smith (same as /smith)"),
     ("Cmd+G / Cmd+Z", "Toggle sidebar / zoom focused pane"),
     ("Cmd+S", "Save a focused settings form (typing to every pane is /broadcast)"),

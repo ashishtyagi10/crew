@@ -28,19 +28,19 @@ pub(crate) const TAGLINE: &str = "fast terminals. clean flow.";
 /// A Mac writes its chords the Mac way, `⌘T` (as `Save ⌘S` already is).
 #[cfg(target_os = "macos")]
 const HINTS: &[&str] = &[
-    "\u{2318}T  shell    \u{00b7}    \u{2318}J  agents    \u{00b7}    /  commands",
-    "\u{2318}T  shell  \u{00b7}  \u{2318}J  agents  \u{00b7}  /  commands",
-    "\u{2318}T shell \u{00b7} \u{2318}J agents \u{00b7} / commands",
-    "\u{2318}J  agents    \u{00b7}    /  commands",
-    "\u{2318}J agents",
+    "\u{2318}T  shell    \u{00b7}    \u{2318}O  agents    \u{00b7}    /  commands",
+    "\u{2318}T  shell  \u{00b7}  \u{2318}O  agents  \u{00b7}  /  commands",
+    "\u{2318}T shell \u{00b7} \u{2318}O agents \u{00b7} / commands",
+    "\u{2318}O  agents    \u{00b7}    /  commands",
+    "\u{2318}O agents",
 ];
 #[cfg(not(target_os = "macos"))]
 const HINTS: &[&str] = &[
-    "Cmd+T  shell    \u{00b7}    Cmd+J  agents    \u{00b7}    /  commands",
-    "Cmd+T  shell  \u{00b7}  Cmd+J  agents  \u{00b7}  /  commands",
-    "Cmd+T shell \u{00b7} Cmd+J agents \u{00b7} / commands",
-    "Cmd+J  agents    \u{00b7}    /  commands",
-    "Cmd+J agents",
+    "Cmd+T  shell    \u{00b7}    Cmd+O  agents    \u{00b7}    /  commands",
+    "Cmd+T  shell  \u{00b7}  Cmd+O  agents  \u{00b7}  /  commands",
+    "Cmd+T shell \u{00b7} Cmd+O agents \u{00b7} / commands",
+    "Cmd+O  agents    \u{00b7}    /  commands",
+    "Cmd+O agents",
 ];
 
 /// How the hint writes the command modifier, before the key.

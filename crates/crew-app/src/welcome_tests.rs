@@ -179,8 +179,10 @@ fn the_welcome_hint_names_the_agent_pane() {
             "{cols}: hint is {} wide: {hint}",
             hint.chars().count()
         );
-        let j = format!("{}J", crate::welcometext::CMD);
-        assert!(hint.contains(&j), "{cols}: agents unmentioned: {hint}");
+        // Cmd+O — agent smith. Cmd+J opened the echo test pane, which a
+        // release does not ship: the welcome pointed first-timers at an error.
+        let o = format!("{}O", crate::welcometext::CMD);
+        assert!(hint.contains(&o), "{cols}: agents unmentioned: {hint}");
     }
 }
 

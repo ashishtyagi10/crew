@@ -53,7 +53,7 @@ fn the_chords_are_the_only_coloured_thing_on_the_first_screen() {
         .filter(|&&(_, fg)| fg == key)
         .map(|&(c, _)| c)
         .collect();
-    let (t, j) = (format!("{}T", super::CMD), format!("{}J", super::CMD));
+    let (t, j) = (format!("{}T", super::CMD), format!("{}O", super::CMD));
     assert!(
         coloured.contains(&t) && coloured.contains(&j),
         "{coloured:?}"

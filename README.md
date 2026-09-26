@@ -241,7 +241,7 @@ spelling, and typing `cmd` or `shift` still filters the list.
 | Recall a line you typed before | **↑** / **↓** — filtered by what is already in the bar; the top border says `hist 2/5 · git` |
 | New shell pane | **Cmd+T** |
 | Reopen last session's panes (shells, Far, /crew) | `/restore` |
-| Settings / chat pane | **Cmd+,** / **Cmd+J** |
+| Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | Toggle sidebar | **Cmd+G** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — type to filter, ↑↓ to scroll, Esc to close |
