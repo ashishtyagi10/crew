@@ -147,7 +147,7 @@ impl CrewApp {
     pub(crate) fn find_all(&mut self, term: &str) {
         let term = term.trim();
         if term.is_empty() {
-            self.set_status("usage: /findall <text>".to_string());
+            self.set_status("usage: /find all <text>".to_string());
             return;
         }
         let mut hits: Vec<(usize, usize)> = Vec::new();

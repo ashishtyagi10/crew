@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.98
+
+**/find all waits for what to search.** Choosing `/find all` in the palette
+("search every pane's scrollback") ran it immediately, which searched the
+focused pane for the word "all". That also happened after Cmd+F then Enter,
+or typing `/find al` and pressing Enter. The row now fills in `/find all `
+and waits for your search text, as `/look theme` waits for a theme.
+Running `/find all` with no text now says `usage: /find all <text>` instead
+of the old spelling `/findall`.
+
 ## 0.23.97
 
 **/close all can be confirmed.** `/close all` and `/close others` ask for

@@ -83,7 +83,10 @@ pub(crate) const VERBS: &[Verb] = &[
     Verb {
         name: "/find",
         subjects: &[("all", "search every pane's scrollback (/find all <text>)")],
-        two_step: false,
+        // `all` is not a search, it is where the search goes: the row fills
+        // `/find all ` and waits for the words. Submitting it on pick ran a
+        // search for the word "all" in the focused pane.
+        two_step: true,
     },
 ];
 
