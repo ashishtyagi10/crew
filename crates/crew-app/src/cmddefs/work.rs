@@ -67,7 +67,7 @@ pub(crate) const WORK: &[Cmd] = &[
     },
     Cmd {
         name: "/about",
-        desc: "Show the Crew version",
+        desc: "What's new — the changelog, newest release first",
     },
     Cmd {
         name: "/copy",
