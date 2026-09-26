@@ -95,8 +95,14 @@ pub(crate) fn checkbox(buf: &mut Buffer, rect: Rect, label: &str, on: bool, focu
 /// The form's two buttons, as drawn: the label padded inside its own fill,
 /// the same width `[ Save ⌘S ]` was, so the click targets did not move. The
 /// pads are no-break spaces: a bare space with a fill is emitted as a `█`
-/// glyph, which squares the capsule's ends off.
-pub(crate) const SAVE: &str = "\u{a0}\u{a0}Save\u{a0}\u{2318}S\u{a0}\u{a0}";
+/// glyph, which squares the capsule's ends off. Save names its chord the way
+/// `/keys` does on this platform: the `⌘` it wore on Windows and Linux named
+/// a key those keyboards do not have.
+pub(crate) const SAVE: &str = if cfg!(target_os = "macos") {
+    "\u{a0}\u{a0}Save\u{a0}\u{2318}S\u{a0}\u{a0}"
+} else {
+    "\u{a0}\u{a0}Save\u{a0}Cmd+S\u{a0}\u{a0}"
+};
 pub(crate) const CANCEL: &str = "\u{a0}\u{a0}Cancel\u{a0}esc\u{a0}\u{a0}";
 
 /// A button: `text` on a filled capsule (the renderer rounds a run of fill

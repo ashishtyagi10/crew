@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.63
+
+**Save names a key the keyboard has.** The Settings form's Save button showed
+`Save ⌘S` on every platform, but Windows and Linux keyboards have no `⌘` key,
+and `/keys` on those systems calls the same key `Cmd+S`. The button now
+matches `/keys` on each platform: `Save ⌘S` on macOS and `Save Cmd+S`
+elsewhere. The button's width and click area are taken from the same text,
+so they stay in step.
+
 ## 0.23.62
 
 **Status messages and toasts use the Mac symbols too.** After 0.23.60,
