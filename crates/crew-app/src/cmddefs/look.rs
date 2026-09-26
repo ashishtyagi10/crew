@@ -29,7 +29,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/focus",
-        desc: "Focus mode \u{2014} hold every notification, never steal focus, deepen the spotlight (/focus)",
+        desc: "Focus mode \u{2014} hold every notification, never steal focus, deepen the spotlight",
     },
     Cmd {
         name: "/notify",
@@ -45,11 +45,11 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/zoom",
-        desc: "Toggle zoom of the focused pane",
+        desc: "Zoom the focused pane to fill the grid, or put it back",
     },
     Cmd {
         name: "/sidebar",
-        desc: "Toggle the stats sidebar",
+        desc: "Show or hide the left nav",
     },
     Cmd {
         name: "/keys",
@@ -93,7 +93,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/doc",
-        desc: "open a file in a window of its own \u{2014} a document, not a tile (/doc <path>)",
+        desc: "Open a file in a window of its own \u{2014} a document, not a tile (/doc <path>)",
     },
     Cmd {
         name: "/exit",

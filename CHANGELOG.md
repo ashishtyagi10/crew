@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.81
+
+**Palette descriptions made consistent.** A few rows in the command palette
+had fallen out of step with the rest:
+
+- `/sidebar` said "Toggle the stats sidebar". The column it toggles is the
+  left nav, which has held much more than stats for a long time. It now
+  says "Show or hide the left nav".
+- `/zoom` said "Toggle zoom of the focused pane". It now describes what
+  happens: "Zoom the focused pane to fill the grid, or put it back".
+- `/doc` was the only description starting with a lowercase letter.
+- `/focus` ended with `(/focus)`, repeating the command name shown right
+  next to it.
+
 ## 0.23.80
 
 **/about says what it opens.** The palette described `/about` as "Show the
