@@ -75,3 +75,17 @@ fn clip_words_drops_a_partial_segment_then_a_partial_word() {
         "one token: a letter cut"
     );
 }
+
+/// A cut that already lands on a word's end keeps that word.
+#[test]
+fn clip_words_keeps_a_word_the_cut_did_not_split() {
+    use crate::chatwidth::clip_words;
+    assert_eq!(
+        clip_words("macOS \u{b7} up 2d 4h", 14),
+        "macOS \u{b7} up 2d\u{2026}"
+    );
+    assert_eq!(
+        clip_words("4 open items \u{b7} 1 overdue", 14),
+        "4 open items\u{2026}"
+    );
+}

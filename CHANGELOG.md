@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.94
+
+**A cut that already falls between words keeps the last word.** The
+word-aware cut added in 0.23.93 for minimized-pane summaries also removed
+the last word when the cut already fell at the end of that word:
+`macOS · up 2d 4h` became `macOS · up…` when `macOS · up 2d…` fits. When the
+text continues with a space right after the cut, the cut is now kept as is.
+
 ## 0.23.93
 
 **Minimized panes' summaries are cut between words.** A minimized pane
