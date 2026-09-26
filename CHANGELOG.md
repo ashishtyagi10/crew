@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.96
+
+**The welcome card shows the right shortcut for agents.** The first screen
+said `⌘T shell · ⌘J agents · / commands`. But Cmd+J opens an echo test pane
+from a separate `crew-echo-plugin` binary that releases don't include, so a
+new user following the hint got `could not start chat pane: no such file or
+directory`. The agent pane (agent smith) is Cmd+O. The welcome card now
+shows `⌘O agents`. `/keys`, the README and the manual stop listing Cmd+J as
+"chat pane". In an installed release, Cmd+J now opens agent smith instead of
+failing. Development builds, which do include the echo plugin, still open
+it.
+
 ## 0.23.95
 
 **Error messages drop the OS error code.** When an operating-system call

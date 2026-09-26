@@ -95,9 +95,17 @@ impl CrewApp {
             // Cmd+Shift+T, the browser's undo-close — the shifted character
             // arrives as its own logical key, exactly like `{` and `}` above.
             "T" => self.reopen_pane(),
+            // The echo test pane where it is installed (a dev build); a
+            // release ships only `crew`, and there Cmd+J opens agent smith
+            // rather than an error toast about a binary it never had.
             "j" => {
                 let cmd = Self::echo_plugin_cmd();
-                self.spawn_chat_pane(&cmd);
+                match std::path::Path::new(&cmd).is_absolute()
+                    && !std::path::Path::new(&cmd).exists()
+                {
+                    true => self.spawn_crew_pane(),
+                    false => self.spawn_chat_pane(&cmd),
+                }
             }
             // Cmd+O: agent smith. This used to spawn a chat pane on a
             // `crew-orchestrator-plugin` binary nothing builds any more — a
