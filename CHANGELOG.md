@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.58
+
+**A line never starts with a dash.** The welcome text in an empty crew pane
+broke its example sentence after `its own result`, so the next line started
+with the dash that belonged to it: `— or "draft a plan first" — nothing
+runs…`. A dash surrounded by spaces now stays attached to the word before
+it, so a line can end with `result —` but no longer starts with `—`. The
+wrapping code moved into its own file (`balancewrap.rs`) because
+`chatempty.rs` had reached the 200-line limit.
+
 ## 0.23.57
 
 **A peak is only written when one was measured.** The nav's SYSTEM and NET

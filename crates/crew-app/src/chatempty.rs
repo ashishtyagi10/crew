@@ -5,6 +5,10 @@
 use crew_plugin::AgentInfo;
 use crew_render::CellView;
 
+#[cfg(test)]
+use crate::balancewrap::greedy;
+use crate::balancewrap::{wrap_to, wrap_width};
+
 /// A text row at `(row, col..)`, clipped to `cols`.
 fn line(
     out: &mut Vec<CellView>,
@@ -144,51 +148,6 @@ fn fit(mut block: Vec<Row>, avail: usize, cols: u16) -> Vec<Row> {
     block
 }
 
-/// Columns a wrapped onboarding line may take.
-fn wrap_width(cols: u16) -> usize {
-    (cols.saturating_sub(4)).max(12) as usize
-}
-
 #[cfg(test)]
 #[path = "chatempty_tests.rs"]
 mod tests;
-
-/// Wrap `advice` to the pane's width, on spaces, with a sentence capital —
-/// BALANCED: the fewest rows the width allows, at the narrowest measure that
-/// still needs no more. Greedy filling left `commands.` alone under a full
-/// row; text that reads as a paragraph ends near where it started.
-/// Pure so the wrapping is testable without a pane.
-fn wrap_to(advice: &str, cols: u16) -> Vec<String> {
-    let width = wrap_width(cols);
-    let rows = greedy(advice, width).len();
-    let even = (width / 2..width)
-        .find(|&w| greedy(advice, w).len() == rows)
-        .unwrap_or(width);
-    let mut out = greedy(advice, even);
-    if let Some(first) = out.first_mut() {
-        let mut c = first.chars();
-        if let Some(f) = c.next() {
-            *first = f.to_uppercase().collect::<String>() + c.as_str();
-        }
-    }
-    out
-}
-
-/// `advice` filled word by word into rows of at most `width` columns.
-fn greedy(advice: &str, width: usize) -> Vec<String> {
-    let mut out: Vec<String> = Vec::new();
-    let mut line = String::new();
-    for word in advice.split_whitespace() {
-        if !line.is_empty() && line.chars().count() + 1 + word.chars().count() > width {
-            out.push(std::mem::take(&mut line));
-        }
-        if !line.is_empty() {
-            line.push(' ');
-        }
-        line.push_str(word);
-    }
-    if !line.is_empty() {
-        out.push(line);
-    }
-    out
-}
