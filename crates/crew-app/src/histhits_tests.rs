@@ -36,3 +36,21 @@ fn the_popup_rows_carry_their_marks() {
     let rows = crate::chathistsearch::items(&h);
     assert_eq!(rows[0].hit, [0, 1, 2]);
 }
+
+/// A mid-sentence `@` mention marks its rows too, past the `@` and a skill's
+/// `skill:` prefix.
+#[test]
+fn a_mention_row_marks_its_label_past_the_prefix() {
+    use crate::chatmention::MentionEntry;
+    let skill = MentionEntry::Skill {
+        name: "verify".into(),
+        desc: String::new(),
+    };
+    assert_eq!(
+        mention_hits(&skill, "ri"),
+        [9, 10],
+        "`ri` in `@skill:verify`"
+    );
+    let file = MentionEntry::File("src/main.rs".into());
+    assert_eq!(mention_hits(&file, "main"), [5, 6, 7, 8]);
+}

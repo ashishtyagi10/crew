@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.75
+
+**The mid-sentence `@` picker highlights matches too.** 0.23.71 added
+match highlighting to the attach picker that opens for an `@` at the start
+of a message. Typing `@` later in a sentence (`hey @sr`) opens a separate
+picker, and that one still highlighted nothing. Both now use the same
+matching code, so a file, agent or skill is highlighted where the query
+matched it, including inside `verify` for `@skill:verify`.
+
 ## 0.23.74
 
 **The font list hides the fields it covers.** Opening Settings' font-family

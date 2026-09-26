@@ -11,13 +11,16 @@ use crate::chat::ChatPane;
 use crate::popupplace::Popup;
 use crate::suggest::MenuItem;
 
-/// The attach picker's rows: `@token` and what it is.
-fn attach_items(m: &crate::chatmention::MentionState) -> Vec<MenuItem> {
+/// The attach picker's rows: `@token`, what it is, and where the `@query`
+/// being typed matched it — marked as the leading `@`'s picker marks it.
+fn attach_items(m: &crate::chatmention::MentionState, input: &str) -> Vec<MenuItem> {
+    let query = crate::chatmention::pending_mention(input).unwrap_or("");
     m.matches
         .iter()
         .map(|e| MenuItem {
             label: format!("@{}", e.token()),
             desc: e.desc(),
+            hit: crate::histhits::mention_hits(e, query),
             ..Default::default()
         })
         .collect()
@@ -38,7 +41,7 @@ impl ChatPane {
             return Some(crate::chathistsearch::card(h, cols));
         }
         if let Some(m) = self.mention.as_ref().filter(|m| !m.matches.is_empty()) {
-            let items = attach_items(m);
+            let items = attach_items(m, &self.input);
             return Some(crate::cmdmenu::popup("attach", &items, m.sel, cols));
         }
         let p = self.palette.as_ref().filter(|p| !p.items.is_empty())?;
