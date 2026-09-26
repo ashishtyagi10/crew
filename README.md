@@ -233,7 +233,7 @@ spelling, and typing `cmd` or `shift` still filters the list.
 |--------|------|
 | Next / previous pane | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also Cmd+] / Cmd+[) |
 | Jump to pane N | **Cmd+1 … 9** |
-| Jump to next active pane | **Cmd+A** |
+| Jump to next active / waiting pane | **Cmd+A** / **Cmd+.** |
 | Move pane left / right | **Cmd+{** / **Cmd+}** |
 | Focus the pane that way on the grid | **Cmd+←↑→↓** |
 | Swap the focused pane with that neighbour | **Cmd+Shift+←↑→↓** |
@@ -250,8 +250,12 @@ spelling, and typing `cmd` or `shift` still filters the list.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy visible screen / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path) |
 | Open URL / file / dir under cursor | **Cmd+Click** |
+| Label every URL, file and hash on the pane (a letter copies, its capital opens) | **Cmd+E** |
+| Open another crew window | **Cmd+N** |
 | Cycle the theme rotations (dark → light → crt → auto) | **Ctrl+Shift+L** |
+| Step the canvas gradient (… → the theme's own) | **Ctrl+Shift+G** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
+| Compact chat transcript (one line per message) | **Ctrl+O** |
 | Reverse-search the chat composer's send history | **Ctrl+R** |
 | Find: the chat transcript, or `/find` in the bar | **Cmd+F** (or **Ctrl+F**) |
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |
@@ -266,7 +270,9 @@ spelling, and typing `cmd` or `shift` still filters the list.
 The docked command bar routes **bare text smartly**: if the focused pane is an
 idle shell, what you type is typed into it; otherwise a first word that
 resolves on your login shell's `$PATH` spawns the command in its own pane, and
-anything else gets a hint instead of a mis-fire. The palette shows a **preview
+anything else — a builtin (`export`, `cd -`), an alias, a `for` loop — opens
+your interactive shell with the line typed into it, so the shell is the judge
+of what it means. The palette shows a **preview
 row** telling you where the line will go before you press Enter. Three
 prefixes make the bar explicit: **`!<cmd>`** always runs the command in a new
 pane, **`*<text>`** broadcasts one line to every terminal pane, and

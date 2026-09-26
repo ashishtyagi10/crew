@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.73
+
+**/keys lists all four theme stops.** `/keys` said Ctrl+Shift+L cycles
+`dark → light → crt`, but it also stops at `auto`, which follows the OS
+between light and dark. It now reads `dark → light → crt → auto`.
+
+The README had drifted from the app as well. Its input-bar section still
+said an unrecognised first word "gets a hint instead of a mis-fire". Since
+0.22.78 such a line (a builtin, an alias, a `for` loop) opens your
+interactive shell with the line typed in. Its keys table was missing
+**Cmd+.** (next waiting pane), **Cmd+E** (label everything on the pane),
+**Cmd+N** (another window), **Ctrl+Shift+G** (step the gradient) and
+**Ctrl+O** (compact chat transcript). All five are now listed.
+
 ## 0.23.72
 
 **The palette no longer says Cmd+S broadcasts.** Cmd+S stopped turning on

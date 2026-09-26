@@ -45,7 +45,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+K", "Clear focused pane scrollback"),
     (
         "Ctrl+Shift+L",
-        "Cycle themes (dark \u{2192} light \u{2192} crt)",
+        "Cycle themes (dark \u{2192} light \u{2192} crt \u{2192} auto)",
     ),
     (
         "Ctrl+Shift+G",
