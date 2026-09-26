@@ -52,3 +52,19 @@ fn shown_follows_the_platform() {
     assert_eq!(shown("Cmd+Shift+T"), want);
     assert_eq!(shown("Esc"), "Esc");
 }
+
+/// A status or toast sentence keeps its words and rewrites only its chords.
+#[test]
+fn prose_rewrites_only_the_chords() {
+    let s = "unsaved changes \u{2014} Cmd+S to save, Esc again to discard";
+    let want = match cfg!(target_os = "macos") {
+        true => "unsaved changes \u{2014} \u{2318}S to save, Esc again to discard",
+        false => s,
+    };
+    assert_eq!(prose(s), want);
+    assert_eq!(prose("no pane is waiting"), "no pane is waiting");
+    assert_eq!(
+        mac("press Cmd+T to open one"),
+        "press \u{2318}T to open one"
+    );
+}

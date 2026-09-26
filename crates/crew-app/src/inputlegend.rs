@@ -97,7 +97,8 @@ pub(crate) fn bottom(
             crew_theme::theme().legend_off,
         ),
     };
-    Some((format!(" {} ", clip_w(text, budget)), fg))
+    let text = crate::chordglyph::prose(text);
+    Some((format!(" {} ", clip_w(&text, budget)), fg))
 }
 
 /// Where you are while browsing the bar's history with Up/Down — the one

@@ -35,6 +35,16 @@ pub(crate) fn shown(k: &'static str) -> &'static str {
         .or_insert_with(|| Box::leak(mac(k).into_boxed_str()))
 }
 
+/// A sentence as this platform writes the chords in it — a status flash or
+/// a toast (`no shell here — press ⌘T to open one`). Borrowed untouched off
+/// a Mac, and wherever there is no chord to rewrite.
+pub(crate) fn prose(s: &str) -> std::borrow::Cow<'_, str> {
+    match cfg!(target_os = "macos") && s.contains('+') {
+        true => std::borrow::Cow::Owned(mac(s)),
+        false => std::borrow::Cow::Borrowed(s),
+    }
+}
+
 /// Every chord in `s` in a Mac's glyphs: `Cmd+Shift+T` → `⇧⌘T`,
 /// `Ctrl+Tab / Ctrl+Shift+Tab` → `⌃Tab / ⌃⇧Tab`. Words that are not chords
 /// (`/`, `…`, `(in input)`) are left as they are.

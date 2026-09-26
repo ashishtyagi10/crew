@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.62
+
+**Status messages and toasts use the Mac symbols too.** After 0.23.60,
+`/keys` said `⌘T` while the input bar's status message still said
+`no shell here — press Cmd+T to open one`. The status message on the input
+bar's bottom border and the text of every toast now show key combinations
+the way `/keys` does on macOS: `unsaved changes — ⌘S to save, Esc again to
+discard`. Only key combinations are changed; other words stay as they are.
+The activity log keeps the original wording, and Windows and Linux are
+unchanged.
+
 ## 0.23.61
 
 **The Coverage job stops failing at random.** A `crew-plugin` test writes a
