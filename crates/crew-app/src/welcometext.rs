@@ -148,16 +148,28 @@ pub(crate) fn whats_new(cols: usize) -> Option<String> {
     if room < 12 {
         return None;
     }
-    let head = match head.chars().count() > room {
-        true => format!(
-            "{}\u{2026}",
-            head.chars().take(room - 1).collect::<String>()
-        ),
-        false => head.to_string(),
-    };
+    let head = fit_head(head, room);
     Some(format!("{lead}{head}"))
+}
+
+/// `head` in `room` columns, cut between words the way a folded reply is
+/// (`chathidden`): `Every picker shows what y…` read as a typo, not a cut.
+fn fit_head(head: &str, room: usize) -> String {
+    if head.chars().count() <= room {
+        return head.to_string();
+    }
+    let cut: String = head.chars().take(room - 1).collect();
+    let word = cut
+        .rfind(' ')
+        .filter(|&i| i > 0)
+        .map_or(cut.as_str(), |i| &cut[..i]);
+    format!("{}\u{2026}", word.trim_end_matches([',', ';', ':', ' ']))
 }
 
 #[cfg(test)]
 #[path = "welcometext_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "welcomecut_tests.rs"]
+mod cut_tests;

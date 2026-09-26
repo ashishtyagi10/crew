@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.84
+
+**The welcome headline is cut between words.** When the welcome card was
+narrow, the `new in …` line shortened the release headline by dropping
+characters, so it could end mid-word: `new in 0.23.71 · Every picker shows
+what y…`. It now drops whole words (`…shows what…`), as folded replies have
+done since 0.23.51. `/keys` also no longer describes the `/todo` done button
+as `[show N done]`; that button has been a filled `show N done` button for
+a while.
+
 ## 0.23.83
 
 **Chat find shows what the transcript shows.** The Cmd+F pop-up in a chat

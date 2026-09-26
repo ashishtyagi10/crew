@@ -87,7 +87,7 @@ pub(crate) const TODO_BINDINGS: &[(&str, &str)] = &[
     ("g", "Band the list under each #assignee, with a roll-up"),
     (
         "h · H",
-        "Show done items (or the [show N done] button) \u{b7} the history log",
+        "Show done items (or click show N done) \u{b7} the history log",
     ),
     (
         "Tab",
