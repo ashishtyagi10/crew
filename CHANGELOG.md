@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.67
+
+**The network chart's axis is dotted.** When the network was idle, the nav's
+NET chart showed only its centre line, a thin solid line in the border
+colour. That is exactly how a section divider looks, so the card seemed to
+end early, with a divider and two empty rows before GIT. The axis is now
+dotted, like the dots the usage heatmap shows for idle hours, so it reads as
+an empty chart rather than a divider. With traffic, the download and upload
+areas grow from it as before.
+
 ## 0.23.66
 
 **The fallback spinner is braille.** Without a Nerd Font, crew's font here
