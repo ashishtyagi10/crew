@@ -126,7 +126,10 @@ pub(crate) fn render_stats(stats: Stats, cols: u16, rows: u16, peak: Option<u64>
     // 0-100 — that is what lets a machine idling under 10% draw a shape at
     // all. A chart with a moving ceiling and no ceiling written down is a
     // chart you cannot read a number off, so the rule carries it.
-    let key = peak.map(|p| format!("peak {p}%")).unwrap_or_default();
+    let key = peak
+        .and_then(|p| crate::spark::written_peak(p, crate::statspane::CHART_FLOOR))
+        .map(|p| format!("peak {p}%"))
+        .unwrap_or_default();
     out.extend(boxdraw::section_header_key(
         HEADER,
         &key,

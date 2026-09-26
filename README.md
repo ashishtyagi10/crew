@@ -342,7 +342,8 @@ Every part of it answers to the width you give it (drag the inner edge):
   scaled to its own rolling minute and the network twin to the louder
   direction, so a machine idling under 10% still draws a shape — and each
   section's rule carries the scale it is drawn against (`─ SYSTEM peak 55% ──`,
-  `─ NET peak 64 KB/s ──`).
+  `─ NET peak 822 KB/s ──`). Below the axis's floor (25%, 64 KB/s) the rule
+  says nothing: the floor is a minimum, not a reading.
 - **Prose ellipsizes; a row of values drops whole values.** A narrow nav shows
   two load averages, or the busier network direction, whole — never half a
   number. The LOAD rule's key names exactly the averages that survived.

@@ -49,6 +49,14 @@ impl History {
     }
 }
 
+/// The peak a section rule writes down: a chart's `ceiling`, but only once
+/// the history has risen past the axis's `floor`. At the floor the ceiling
+/// is the axis's minimum, not a reading — the nav wrote `peak 64 KB/s` over
+/// `↓ 0 B/s ↑ 0 B/s`, and `peak 25%` over a machine idling at 4%.
+pub fn written_peak(ceiling: u64, floor: u64) -> Option<u64> {
+    (ceiling > floor).then_some(ceiling)
+}
+
 #[cfg(test)]
 #[path = "spark_tests.rs"]
 mod tests;

@@ -59,8 +59,8 @@ fn the_rule_names_the_scale_the_chart_is_drawn_against() {
         v.sort_by_key(|c| c.col);
         v.iter().map(|c| c.c).collect::<String>().trim().to_string()
     };
-    assert_eq!(rule(64 * 1024), "NET peak 64 KB/s");
     assert_eq!(rule(9_000_000), "NET peak 8.6 MB/s");
+    assert_eq!(rule(64 * 1024), "NET", "the axis's floor is not a peak");
 }
 
 /// Dragged wide, the two rates go to opposite ends of the row — they are

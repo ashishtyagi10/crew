@@ -17,7 +17,7 @@ pub const ROWS: u16 = 2;
 
 /// The smallest peak the axis will scale to, in bytes per second. Anything
 /// quieter draws small rather than full.
-const FLOOR: u64 = 64 * 1024;
+pub(crate) const FLOOR: u64 = 64 * 1024;
 
 /// Samples of each history the chart at `cols` wide draws from.
 fn span(cols: u16) -> usize {

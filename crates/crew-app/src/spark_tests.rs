@@ -29,3 +29,11 @@ fn tail_returns_at_most_width() {
     }
     assert_eq!(h.tail(2), vec![30, 40]);
 }
+
+/// A rule writes a peak only when the history rose past the axis's floor.
+#[test]
+fn only_a_ceiling_above_the_floor_is_written_as_a_peak() {
+    assert_eq!(written_peak(25, 25), None);
+    assert_eq!(written_peak(26, 25), Some(26));
+    assert_eq!(written_peak(0, 25), None);
+}
