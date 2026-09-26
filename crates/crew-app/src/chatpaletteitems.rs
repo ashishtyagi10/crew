@@ -68,8 +68,14 @@ pub(super) fn slash_items(query: &str) -> Vec<MenuItem> {
     // Headers only while BROWSING. Once the user is filtering they have
     // already said what they want, and section labels between one or two
     // survivors are chrome in the way of the answer.
+    // …and a filtered row marks the prefix that kept it, as the input bar's
+    // palette does.
     if !query.is_empty() {
-        return hits.into_iter().map(row).collect();
+        let marked = |c: &str| MenuItem {
+            hit: crate::suggest::hit_positions(c, query),
+            ..row(c)
+        };
+        return hits.into_iter().map(marked).collect();
     }
     let mut out = Vec::new();
     let mut placed: Vec<&str> = Vec::new();
@@ -114,6 +120,14 @@ pub(crate) fn attach_items(
         .into_iter()
         .filter(|e| !multi || matches!(e, MentionEntry::Agent { .. }))
         .map(|e| MenuItem {
+            // Where the query matched, as the filter matched it: on the
+            // label, which ends the shown token (`@skill:verify` filters on
+            // `verify`) — the run when a substring, the letters when not.
+            hit: {
+                let pad = 1 + e.token().chars().count() - e.label().chars().count();
+                let at = crate::histhits::hits(e.label(), query);
+                at.into_iter().map(|i| i + pad).collect()
+            },
             label: format!("@{}", e.token()),
             desc: e.desc(),
             fill: e.token(),
@@ -138,3 +152,7 @@ pub(crate) fn attach_items(
     }
     out
 }
+
+#[cfg(test)]
+#[path = "chatpalettehit_tests.rs"]
+mod hit_tests;
