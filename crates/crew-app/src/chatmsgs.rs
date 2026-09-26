@@ -3,7 +3,7 @@
 //! the body beneath it (newline-aware prose, bordered code blocks — see
 //! `chatbody`) and a blank spacer line between messages. Hand-off senders
 //! (`planner → coder`) keep a per-name colour on each side.
-use crate::chatbody::{plain, CardLine};
+use crate::chatbody::CardLine;
 pub(crate) use crate::chatcard::*;
 use crate::chatlayout::Message;
 
@@ -67,24 +67,6 @@ impl Default for View<'_> {
             cwd: None,
         }
     }
-}
-
-/// Appends a muted ` … +N` suffix (`hidden` = number of clamped-away body
-/// lines) to a compact-clamped first body line, trimming trailing cells so
-/// the line plus the suffix still fits `cols` (`line_cells` would otherwise
-/// silently drop overflow, cutting the suffix instead of the body text).
-fn append_hidden_suffix(line: &mut CardLine, hidden: usize, cols: usize) {
-    let muted = crew_theme::theme().text_muted;
-    let suffix = format!(" \u{2026} +{hidden}");
-    let suffix_w: usize = suffix.chars().map(crate::chatwidth::char_w).sum();
-    let mut w: usize = line.iter().map(|c| crate::chatwidth::char_w(c.c)).sum();
-    while w + suffix_w > cols {
-        match line.pop() {
-            Some(cell) => w -= crate::chatwidth::char_w(cell.c),
-            None => break,
-        }
-    }
-    line.extend(suffix.chars().map(|c| plain(c, muted, false)));
 }
 
 /// The full (unclamped) body of one message — markdown or raw per
@@ -217,7 +199,7 @@ pub(crate) fn card_lines_spanned(
         if clamp {
             let hidden = body.len() - 1;
             body.truncate(1);
-            append_hidden_suffix(&mut body[0], hidden, cols);
+            crate::chathidden::append_hidden_suffix(&mut body[0], hidden, cols);
         }
         if splash {
             splash_style(&mut body, cols);
