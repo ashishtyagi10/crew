@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.70
+
+**History search shows why each row matched.** The composer's Ctrl+R pop-up
+listed `cargo clippy --workspace` under the query `car` without highlighting
+anything. It also includes rows where the typed letters appear in order but
+not next to each other, so a row like `why is the sidebar chart a smear…`
+came up with nothing to explain it. Each row now highlights its match the
+same way the command palette does: a single block when the query appears as
+typed (`car`go), and the individual letters otherwise (`c`h`ar`t).
+
 ## 0.23.69
 
 **/keys highlights what you typed.** Typing `pane` in `/keys` narrowed the

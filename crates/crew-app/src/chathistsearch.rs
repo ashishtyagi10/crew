@@ -157,9 +157,17 @@ pub(crate) fn items(h: &HistSearch) -> Vec<MenuItem> {
     if h.matches.is_empty() {
         return vec![row("no matches".to_string(), true)];
     }
+    // Each row marks where the query matched (`histhits`).
     h.matches
         .iter()
-        .map(|l| row(l.replace('\n', " \u{23ce} "), false))
+        .map(|l| {
+            let label = l.replace('\n', " \u{23ce} ");
+            let hit = crate::histhits::hits(&label, &h.query);
+            MenuItem {
+                hit,
+                ..row(label, false)
+            }
+        })
         .collect()
 }
 

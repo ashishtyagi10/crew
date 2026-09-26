@@ -90,6 +90,7 @@ mod chatswarmshot_tests;
 mod completefuzzy;
 mod fencebadge;
 mod helpmark;
+mod histhits;
 mod mentionexpand;
 mod segment;
 mod signoutpick;
