@@ -47,7 +47,7 @@ impl CrewApp {
     }
 
     pub(crate) fn set_status_level(&mut self, level: LogLevel, msg: impl Into<String>) {
-        let msg = msg.into();
+        let msg = crate::oserr::plain(msg.into());
         self.log_line(level, &msg);
         // Errors also step onto the canvas as an alert toast; routine statuses
         // ("copied 12 lines") stay a quiet flash on the bar.

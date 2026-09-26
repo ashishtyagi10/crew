@@ -93,6 +93,7 @@ mod gaugebars;
 mod helpmark;
 mod histhits;
 mod mentionexpand;
+mod oserr;
 mod segment;
 mod signoutpick;
 
