@@ -286,7 +286,8 @@ pointer across the canvas costs one frame per thing it crosses.
 **Minimize to nav.** Every full tile carries a **`–` button** on its top
 border. Clicking it hides the pane into the left nav: the pane keeps running
 (its process is untouched) but leaves the grid, focus moves to the nearest
-visible pane, and its sidebar PANES row gains a right-aligned **`+`**. A
+visible pane, and its nav row gains a right-aligned **`+`** — on the collapsed
+rail too, in its one mark column, under a raised attention mark. A
 row's markers — the dot slot, the `+`, the unread count — are placed from
 the right edge inward with a column of air between them, and a title cut to
 fit keeps that air too, rather than running into its own marker.

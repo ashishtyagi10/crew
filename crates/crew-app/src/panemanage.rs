@@ -32,7 +32,13 @@ impl CrewApp {
                 None => self.input.focused = true,
             }
         }
-        self.set_status("minimized to nav — click its PANES row to restore");
+        // True of the rail (the default) and the open nav alike: both list
+        // the pane by number and mark it `+`; neither is a PANES heading on
+        // the rail.
+        self.set_status(match idx + 1 {
+            n @ 1..=9 => format!("minimized — click its row in the nav, or press Cmd+{n}"),
+            _ => "minimized — click its row in the nav to restore".to_string(),
+        });
         self.redraw();
     }
 

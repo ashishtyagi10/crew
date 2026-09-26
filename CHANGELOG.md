@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.3
+
+**Minimizing a pane tells you where it went.** Minimizing a pane showed
+`minimized to nav — click its PANES row to restore`. The nav starts
+collapsed to a narrow rail, which has no PANES heading, and the rail didn't
+mark a minimized pane at all, so it appeared as just a number. The rail now
+shows the same accent `+` the full list uses (a pane that needs attention
+still shows that instead). The message now reads
+`minimized — click its row in the nav, or press ⌘2`, which is true whether
+the nav is open or collapsed and names the key that brings the pane back.
+
 ## 0.24.2
 
 **/keys describes what each key does.** A pass over the shortcut list against

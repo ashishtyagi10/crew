@@ -100,12 +100,14 @@ pub(crate) fn rail_cells(panes: &[PaneRow], cols: u16, rows: u16, spin: char) ->
         let budget = cols.saturating_sub(2);
         crate::navtext::put_at(&mut out, &head, 0, row, budget, head_fg);
         // The mark keeps the full list's priority and colours: a raised
-        // attention wins, then work in progress, then lines not yet read.
+        // attention wins, then work in progress, then lines not yet read —
+        // then the full list's `+` for a pane off the grid, which the rail
+        // did not carry, so a minimized pane was a bare number here.
         let mark = match (p.attention, p.busy, p.activity || p.unread > 0) {
             (Some((glyph, on)), _, _) => on.then_some((glyph, t.bell)),
             (None, true, _) => Some((spin, accent())),
             (None, false, true) => Some(('\u{25cf}', t.activity)),
-            _ => None,
+            _ => p.minimized.then_some(('+', accent())),
         };
         if let Some((glyph, fg)) = mark {
             let at = cols.saturating_sub(1);
@@ -189,3 +191,7 @@ impl CrewApp {
 #[cfg(test)]
 #[path = "navrail_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "navrailmin_tests.rs"]
+mod min_tests;

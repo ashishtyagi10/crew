@@ -208,7 +208,7 @@ sidebar PANES row under it brightens, because the whole row is a click target.
 
 Any full tile can also be **minimized into the left nav**: click the `–`
 button on its top border and the pane keeps running but leaves the grid; its
-sidebar PANES row gains a `+` — click the row (or jump to it with
+row in the nav gains a `+` (the collapsed rail marks it too) — click the row (or jump to it with
 **Cmd+1 … 9**) to restore it. Focusing a hidden pane always restores it.
 
 Background panes can still flag you down: when a pane you're not looking at
