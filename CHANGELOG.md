@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.76
+
+**A /todo band header leaves out its zeros.** Each person's heading in
+`/todo` showed three counts, and on most rows two of them were zero:
+`#sam  2 open · 0 overdue · 0 done today`. A count of zero is now left out,
+so the header reads `#sam  2 open` or `#priya  2 open · 1 overdue`. The
+open count is always shown. A person with nothing open and nothing done
+today shows `nothing open`.
+
 ## 0.23.75
 
 **The mid-sentence `@` picker highlights matches too.** 0.23.71 added

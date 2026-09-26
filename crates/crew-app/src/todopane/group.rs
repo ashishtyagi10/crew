@@ -109,6 +109,10 @@ pub(crate) fn starts(p: &TodoPane, order: &[usize], di: usize) -> bool {
 /// Counted over the whole store, not the visible rows: done items are
 /// hidden by default and "done today" is the half of a standup the list
 /// otherwise cannot show.
+///
+/// A count of nothing is left out — `2 open · 0 overdue · 0 done today` said
+/// two zeros on nearly every band — except `open`, which is the band's
+/// subject; a band with nothing open and nothing done says so in words.
 pub(crate) fn tally(items: &[TodoItem], f: Filters, key: Option<&str>, now_ms: u64) -> String {
     let today = super::duedate::from_epoch_ms(now_ms).map(|d| d.date());
     let mine = items
@@ -126,7 +130,13 @@ pub(crate) fn tally(items: &[TodoItem], f: Filters, key: Option<&str>, now_ms: u
             }
         }
     }
-    format!("{open} open \u{b7} {overdue} overdue \u{b7} {done} done today")
+    let mut parts = vec![format!("{open} open")];
+    parts.extend((overdue > 0).then(|| format!("{overdue} overdue")));
+    parts.extend((done > 0).then(|| format!("{done} done today")));
+    match (open, done) {
+        (0, 0) => "nothing open".to_string(),
+        _ => parts.join(" \u{b7} "),
+    }
 }
 
 #[cfg(test)]
