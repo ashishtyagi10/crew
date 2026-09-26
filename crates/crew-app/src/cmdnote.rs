@@ -33,7 +33,9 @@ fn note_for(text: &str, cwd: &std::path::Path) -> Option<MenuItem> {
         return None;
     }
     let words = match rest.split_once(' ') {
-        None => format!("no command matches \"/{rest}\" \u{b7} /help"),
+        // A name that runs is not a miss, row or no row (`/help`, `/crew`).
+        None if crate::cmddefs::answered(&format!("/{rest}")) => return None,
+        None => format!("no command matches \"/{rest}\" \u{b7} clear it to see them all"),
         Some((cmd, arg)) => {
             // A picker with a closed set lists it on a bare `/cmd `; a
             // freeform argument lists nothing there either, and is not a
@@ -42,7 +44,7 @@ fn note_for(text: &str, cwd: &std::path::Path) -> Option<MenuItem> {
             if !closed {
                 return None;
             }
-            // The way out rides along, as the command miss's `/help` does.
+            // The way out rides along, as the command miss's does.
             format!(
                 "no /{cmd} value matches \"{}\" \u{b7} clear it to see them",
                 arg.trim()
@@ -74,7 +76,11 @@ mod tests {
         assert_eq!(miss.len(), 1);
         assert!(miss[0].header, "a note is a header: never selected");
         assert!(miss[0].label.contains("no command matches \"/xyzzy\""));
-        assert!(miss[0].label.contains("/help"), "{}", miss[0].label);
+        assert!(miss[0].label.contains("clear it"), "{}", miss[0].label);
+        assert!(
+            rows("/help", cwd).is_empty(),
+            "an alias that runs is no miss"
+        );
         assert!(!selectable(&miss));
         let hit = rows("/set", cwd);
         assert!(hit.iter().any(|i| i.label == "/settings"));

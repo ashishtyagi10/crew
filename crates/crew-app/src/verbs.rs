@@ -147,6 +147,13 @@ pub(crate) const FOLDED: &[&str] = &[
     "clearlog",
     "closeall",
     "only",
+    // Aliases the dispatcher answers with no row of their own: `/help` is
+    // `/keys`, `/crew` is `/smith`, `/shell` is Cmd+T, `/run` is `!`. The
+    // bar coloured them as typos while they ran.
+    "help",
+    "crew",
+    "shell",
+    "run",
 ];
 
 pub(crate) fn is_folded(name: &str) -> bool {
