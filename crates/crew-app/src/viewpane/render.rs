@@ -79,9 +79,13 @@ impl ViewPane {
         }
         let page_bg = crew_theme::theme().page_bg;
         // A zero-byte file drew nothing at all: a titled empty box, with no
-        // way to tell it from a load still in flight.
-        if let crate::viewpane::LoadState::Ready { loaded, .. } = &self.state {
-            if loaded.text.is_empty() && loaded.image.is_none() {
+        // way to tell it from a load still in flight. An OPAQUE file has no
+        // text either — by design, it is the rung for what cannot be shown —
+        // and caught here it read `(empty file)` for a 4.5 MB dylib, so its
+        // card ("binary file — nothing to render") could never be drawn.
+        if let crate::viewpane::LoadState::Ready { loaded, format } = &self.state {
+            let opaque = matches!(format, crate::viewpane::detect::Format::Opaque { .. });
+            if loaded.text.is_empty() && loaded.image.is_none() && !opaque {
                 return crate::toosmall::row("(empty file)", cols);
             }
         }
@@ -182,3 +186,7 @@ impl ViewPane {
 #[cfg(test)]
 #[path = "render_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "opaqueempty_tests.rs"]
+mod opaque_tests;
