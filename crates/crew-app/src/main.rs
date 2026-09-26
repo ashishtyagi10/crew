@@ -63,6 +63,7 @@ mod chatglide;
 mod chathdr;
 mod chathdrsegs;
 mod chatheading;
+mod chathidden;
 mod chathistory;
 mod chathistsearch;
 mod chathue;

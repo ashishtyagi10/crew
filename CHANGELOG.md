@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.51
+
+**A folded reply is cut between words.** A folded agent reply shows its
+first line followed by ` … +N`. When that line already filled the row,
+characters were dropped from the end to make room, so every fan reply read
+`…you already started, touche … +9`, which looks like a typo. The line now
+drops whole words: `…you already started, … +9`. A line that is a single
+long word, such as a path, is still cut mid-word because there is nowhere
+else to cut.
+
 ## 0.23.50
 
 **An empty week says so.** With no usage recorded, `/dash` and `/usage`
