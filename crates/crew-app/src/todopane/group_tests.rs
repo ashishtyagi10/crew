@@ -102,7 +102,7 @@ fn the_tally_counts_open_overdue_and_todays_ticks() {
     );
     assert_eq!(
         tally(&items, Filters::default(), None, now),
-        "0 open \u{b7} 0 overdue \u{b7} 0 done today",
+        "nothing open",
         "nothing is unassigned here"
     );
 }
@@ -118,7 +118,7 @@ fn the_tally_stays_inside_an_active_project_filter() {
     };
     assert_eq!(
         tally(&items, f, Some("priya"), now),
-        "1 open \u{b7} 0 overdue \u{b7} 0 done today",
-        "the other project's item is not on this board"
+        "1 open",
+        "the other project's item is not on this board — and no zeros"
     );
 }

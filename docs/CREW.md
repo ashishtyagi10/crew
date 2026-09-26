@@ -1729,7 +1729,8 @@ longer aim at.
   bands at all. Each band header carries a live roll-up —
   `#priya  2 open · 1 overdue · 1 done today` — counted over the whole store
   rather than the visible rows, so "done today" shows work the list has
-  already hidden. A row inside a band does not repeat its band's name: it
+  already hidden. A zero is left out (`#sam  1 open`), and a band with
+  nothing open or done today says `nothing open`. A row inside a band does not repeat its band's name: it
   draws its `@project` and its due, and the header keeps the `#who`. Flat,
   the owner comes back — nothing else is saying it there — and the done
   history keeps it too, since those headers band by day. That is a standup: who has what, what has slipped, what

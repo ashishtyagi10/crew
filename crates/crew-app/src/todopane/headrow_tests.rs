@@ -54,14 +54,12 @@ fn a_grouped_list_bands_every_person_with_a_roll_up() {
     let out = cells(&p, COLS, ROWS);
     let rows: Vec<String> = (0..8).map(|r| row_text(&out, r)).collect();
     let joined = rows.join("\n");
-    assert!(
-        joined.contains("#priya  2 open \u{b7} 1 overdue \u{b7} 0 done today"),
-        "{joined}"
+    let band = |who: &str| rows.iter().map(|r| r.trim()).find(|r| r.starts_with(who));
+    assert_eq!(
+        band("#priya").as_deref(),
+        Some("#priya  2 open \u{b7} 1 overdue")
     );
-    assert!(
-        joined.contains("#sam  1 open \u{b7} 0 overdue \u{b7} 0 done today"),
-        "{joined}"
-    );
+    assert_eq!(band("#sam"), Some("#sam  1 open"), "no zeros");
     // The bucket nobody has picked up is NAMED, or a grouped list just
     // stops having headers at the bottom and reads as having ended.
     assert!(joined.contains("unassigned  1 open"), "{joined}");
