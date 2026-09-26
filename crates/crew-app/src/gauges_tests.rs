@@ -166,4 +166,6 @@ fn the_system_rule_names_the_curves_ceiling() {
     // No history yet: the section is still itself, without a claim about a
     // ceiling it has not measured.
     assert_eq!(rule(None), "SYSTEM");
+    // At the axis's floor the ceiling is its minimum, not a reading.
+    assert_eq!(rule(Some(crate::statspane::CHART_FLOOR)), "SYSTEM");
 }

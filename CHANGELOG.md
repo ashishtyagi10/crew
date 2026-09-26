@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.57
+
+**A peak is only written when one was measured.** The nav's SYSTEM and NET
+section titles show the scale of the chart underneath (`peak 55%`,
+`peak 822 KB/s`). When the machine was idle, that scale was the chart's
+minimum, so the title showed `peak 64 KB/s` above `↓ 0 B/s ↑ 0 B/s` and
+`peak 25%` over a CPU running at 4%, which are numbers nothing measured. Below
+the minimum (25% CPU, 64 KB/s network) the title now shows just `SYSTEM` or
+`NET`, and the peak appears once the history rises above it.
+
 ## 0.23.56
 
 **No hole under an unmetered SERVING card.** Since 0.23.49 the nav's SERVING

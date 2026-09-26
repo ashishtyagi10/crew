@@ -16,7 +16,7 @@ use crate::panelist::{self, PaneRow};
 use crate::stats::SysSampler;
 
 /// The smallest peak the CPU chart scales to (%): below it the trace draws small.
-const CHART_FLOOR: u64 = 25;
+pub(crate) const CHART_FLOOR: u64 = 25;
 
 /// The docked sidebar: a live clock card stacked above the system-stats card.
 pub struct StatsPane {

@@ -46,9 +46,10 @@ pub fn net_cells(rx: u64, tx: u64, ceiling: u64, cols: u16) -> Vec<CellView> {
     // The twin chart under these rates shares one moving scale between its two
     // halves; the rule writes that scale down, so the shape can be read as a
     // value and not only as a shape.
+    let key = crate::spark::written_peak(ceiling, crate::nettwin::FLOOR);
     let mut out = crate::boxdraw::section_header_key(
         "NET",
-        &format!("peak {}", rate(ceiling)),
+        &key.map(|c| format!("peak {}", rate(c))).unwrap_or_default(),
         cols,
         t.border_normal,
         accent(),
