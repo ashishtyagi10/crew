@@ -120,14 +120,8 @@ pub(crate) fn attach_items(
         .into_iter()
         .filter(|e| !multi || matches!(e, MentionEntry::Agent { .. }))
         .map(|e| MenuItem {
-            // Where the query matched, as the filter matched it: on the
-            // label, which ends the shown token (`@skill:verify` filters on
-            // `verify`) — the run when a substring, the letters when not.
-            hit: {
-                let pad = 1 + e.token().chars().count() - e.label().chars().count();
-                let at = crate::histhits::hits(e.label(), query);
-                at.into_iter().map(|i| i + pad).collect()
-            },
+            // Where the query matched, as the filter matched it.
+            hit: crate::histhits::mention_hits(&e, query),
             label: format!("@{}", e.token()),
             desc: e.desc(),
             fill: e.token(),

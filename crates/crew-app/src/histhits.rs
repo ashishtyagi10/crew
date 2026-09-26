@@ -30,6 +30,17 @@ pub(crate) fn hits(label: &str, query: &str) -> Vec<usize> {
     out
 }
 
+/// [`hits`] for an attach-picker row drawn `@{token}`: matched as the filter
+/// matches it, on the entry's label, which ends the token (`@skill:verify`
+/// filters on `verify`) — shifted past the `@` and any prefix.
+pub(crate) fn mention_hits(e: &crate::chatmention::MentionEntry, query: &str) -> Vec<usize> {
+    let pad = 1 + e.token().chars().count() - e.label().chars().count();
+    hits(e.label(), query)
+        .into_iter()
+        .map(|i| i + pad)
+        .collect()
+}
+
 #[cfg(test)]
 #[path = "histhits_tests.rs"]
 mod tests;
