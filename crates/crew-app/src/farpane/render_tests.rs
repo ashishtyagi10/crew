@@ -190,7 +190,7 @@ fn overflowing_panel_paints_a_scroll_thumb_on_its_border() {
     // (col 20 for a 40-wide pane); the right panel's is the far-right (col 39).
     let thumb_cols: std::collections::BTreeSet<u16> = cells
         .iter()
-        .filter(|c| c.c == '\u{2588}')
+        .filter(|c| c.c == '\u{2503}')
         .map(|c| c.col)
         .collect();
     assert!(
@@ -218,7 +218,7 @@ fn short_listing_paints_no_scroll_thumb() {
     let edges = [cols / 2, cols - 1];
     let stray: Vec<(u16, u16)> = cells
         .iter()
-        .filter(|c| c.c == '\u{2588}' && edges.contains(&c.col))
+        .filter(|c| c.c == '\u{2503}' && edges.contains(&c.col))
         .map(|c| (c.col, c.row))
         .collect();
     assert!(
