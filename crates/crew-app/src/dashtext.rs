@@ -88,18 +88,17 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
     }
 
     if l.cost_rows > 0 {
+        // A week with nothing spent has no peak: `peak $0.00` read as a
+        // meter reading zero, the way the USAGE line did before it said so.
         let peak = d.buckets.daily_cost.iter().copied().max().unwrap_or(0);
-        put(
-            &mut out,
-            &format!(
+        let head = match peak {
+            0 => "COST PER DAY".to_string(),
+            p => format!(
                 "COST PER DAY  \u{00b7}  peak {}",
-                crate::usagepane::money(peak)
+                crate::usagepane::money(p)
             ),
-            1,
-            l.cost_top - 1,
-            t.text_muted,
-            cols,
-        );
+        };
+        put(&mut out, &head, 1, l.cost_top - 1, t.text_muted, cols);
         // Which days those are. Bars with a peak and no dates under them
         // says something happened, not when.
         let axis = l.cost_top + l.cost_rows;

@@ -154,11 +154,9 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
     if l.cost_rows > 0 {
         let axis = l.cost_top + 1 + l.cost_rows;
         put(&mut out, "COST PER DAY", 1, l.cost_top, t.text_muted);
-        if cols >= FULL_COLS {
-            let peak = format!(
-                "peak {}",
-                money(b.daily_cost.iter().copied().max().unwrap_or(0))
-            );
+        let peak = b.daily_cost.iter().copied().max().unwrap_or(0);
+        if cols >= FULL_COLS && peak > 0 {
+            let peak = format!("peak {}", money(peak));
             put(&mut out, &peak, cols - 14, l.cost_top, t.text_muted);
         }
         let w = cols.saturating_sub(2 + RIGHT_PAD);

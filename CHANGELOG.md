@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.64
+
+**An empty week has no peak.** 0.23.50 changed the USAGE heading on an
+empty week to `nothing used in the last 7 days`, but the cost bars below it
+were still headed `COST PER DAY · peak $0.00` on `/dash`, and `/usage` put
+`peak $0.00` at the right end of the same row, which looks like a meter
+reading zero. With nothing spent, both now show only `COST PER DAY`. The
+peak (`peak $0.90`) appears once any day has a cost.
+
 ## 0.23.63
 
 **Save names a key the keyboard has.** The Settings form's Save button showed
