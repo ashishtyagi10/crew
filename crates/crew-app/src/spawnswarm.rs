@@ -46,7 +46,10 @@ impl CrewApp {
         match crate::swarmpane::SwarmPane::for_batch(jobs) {
             Ok(swarm) => {
                 self.push_swarm_pane(swarm);
-                self.set_status(format!("batch: running {n} jobs"));
+                self.set_status(format!(
+                    "batch: running {}",
+                    crate::wording::count(n, "job")
+                ));
             }
             Err(e) => self.set_status(format!("batch: {e}")),
         }

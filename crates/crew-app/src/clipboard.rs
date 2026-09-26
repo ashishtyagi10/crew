@@ -185,7 +185,7 @@ impl CrewApp {
             Ok(mut cb) => {
                 let lines = text.lines().count();
                 let _ = cb.set_text(text);
-                self.set_status(format!("copied {lines} lines"));
+                self.set_status(crate::wording::copied(lines, ""));
             }
             Err(_) => self.set_status("clipboard unavailable"),
         }
@@ -212,7 +212,7 @@ impl CrewApp {
         if let Ok(mut cb) = arboard::Clipboard::new() {
             let lines = text.lines().count();
             let _ = cb.set_text(text);
-            self.set_status(format!("copied {lines} lines (scrollback)"));
+            self.set_status(crate::wording::copied(lines, " (scrollback)"));
         }
     }
 
@@ -231,7 +231,7 @@ impl CrewApp {
         match arboard::Clipboard::new() {
             Ok(mut cb) => {
                 let _ = cb.set_text(text);
-                self.set_status(format!("copied {lines} lines ({name})"));
+                self.set_status(crate::wording::copied(lines, &format!(" ({name})")));
             }
             Err(_) => self.set_status("clipboard unavailable"),
         }

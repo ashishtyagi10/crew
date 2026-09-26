@@ -139,7 +139,7 @@ impl CrewApp {
         let n = text.chars().count();
         if let Ok(mut cb) = arboard::Clipboard::new() {
             let _ = cb.set_text(text);
-            self.set_status(format!("copied {n} chars"));
+            self.set_status(format!("copied {}", crate::wording::count(n, "char")));
         }
     }
 }

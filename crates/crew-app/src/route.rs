@@ -101,7 +101,11 @@ impl crate::app::CrewApp {
                 .iter()
                 .filter(|p| matches!(p.content, crate::pane::PaneContent::Terminal(_)))
                 .count();
-            return row(format!("↵ broadcast to {n} terminals"), "", true);
+            return row(
+                format!("↵ broadcast to {}", crate::wording::count(n, "terminal")),
+                "",
+                true,
+            );
         }
         if let Some(cmd) = crate::app::bang_command(&text) {
             if cmd.is_empty() {

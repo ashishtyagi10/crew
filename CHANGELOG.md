@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.0
+
+**Counts agree with their number.** Several status messages always used
+the plural, so the common case of one read wrong: `copied 1 lines`,
+`cleared 1 panes` (`/clear all` with a single terminal), `copied 1 chars`,
+`/out`'s `ls: 1 lines`, `batch: running 1 jobs`, and the input bar's
+`↵ broadcast to 1 terminals`. `/notify`'s summary also said `2 pattern(s)`.
+All of them now use crew's existing plural helper: `copied 1 line`,
+`cleared 1 pane`, `1 pattern`, `2 patterns`.
+
 ## 0.23.99
 
 **Working aliases aren't treated as typos.** `/help` (the same as `/keys`),
