@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.80
+
+**/about says what it opens.** The palette described `/about` as "Show the
+Crew version", but it opens the full changelog in a pane titled
+`what's new · 0.23.80`. The palette row now reads "What's new — the
+changelog, newest release first".
+
 ## 0.23.79
 
 **Token counts go up to M.** The chat footer, per-reply usage lines and the
