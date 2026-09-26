@@ -96,3 +96,20 @@ fn a_directory_that_is_not_there_lists_nothing_rather_than_failing() {
     let base = fixture("missing");
     assert!(rows("/view nowhere/x", &base).is_none());
 }
+
+/// The typed leaf is marked on every row it kept, after any folder part.
+#[test]
+fn the_typed_leaf_is_marked() {
+    let base = fixture("marks");
+    let rows = rows("/view alpha/../REA", &base).expect("a path command");
+    let row = rows
+        .iter()
+        .find(|r| r.label.ends_with("readme.md"))
+        .unwrap();
+    let marked: String = row
+        .hit
+        .iter()
+        .map(|&i| row.label.chars().nth(i).unwrap())
+        .collect();
+    assert_eq!(marked, "rea", "{:?}", row.label);
+}

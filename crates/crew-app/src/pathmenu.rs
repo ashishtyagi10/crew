@@ -66,7 +66,11 @@ pub(crate) fn rows(text: &str, base: &Path) -> Option<Vec<MenuItem>> {
             .into_iter()
             .map(|(is_dir, name)| {
                 let path = format!("{dir_part}{name}{}", if is_dir { "/" } else { "" });
+                // The typed leaf is the name's prefix: mark it, as the
+                // palette marks a command's.
+                let at = dir_part.chars().count();
                 MenuItem {
+                    hit: (at..at + leaf.chars().count()).collect(),
                     fill: format!("{cmd} {path}"),
                     label: path,
                     desc: if is_dir {

@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.71
+
+**Every picker shows what you typed.** Only the input bar's command palette
+highlighted the matching letters in its results. The chat pane's own `/`
+palette, the `@` attach picker and the input bar's path completion
+(`/view`, `/cd`, …) filtered what they showed but highlighted nothing. They
+now all use the same highlight:
+
+- The `/` palette highlights the typed prefix.
+- The `@` picker highlights the match inside the name it filtered on. For a
+  skill that is inside `verify`, not the `skill:` prefix in front of it.
+  Consecutive letters are highlighted as one block, and scattered letters
+  individually.
+- Path completion highlights the typed start of the file name, after any
+  folder part.
+
+The model picker is unchanged, because it also matches on vendor and badge
+text that isn't shown in the row.
+
 ## 0.23.70
 
 **History search shows why each row matched.** The composer's Ctrl+R pop-up
