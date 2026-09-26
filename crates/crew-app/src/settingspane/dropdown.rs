@@ -13,7 +13,9 @@ use ratatui::widgets::{
 use super::{SettingsPane, DEFAULT_FAMILY_LABEL};
 use crate::palette::accent_color;
 
-pub(crate) fn dropdown(buf: &mut Buffer, p: &SettingsPane, anchor: Rect) {
+/// `cards` are the form's field rects in `buf`'s coordinates: any the list
+/// cuts through has its remainder blanked ([`hide_cut`]).
+pub(crate) fn dropdown(buf: &mut Buffer, p: &SettingsPane, anchor: Rect, cards: &[Rect]) {
     let names = p.filtered();
     let want = names.len() as u16 + 2;
     let y0 = anchor.y + anchor.height; // just below the family row
@@ -24,6 +26,7 @@ pub(crate) fn dropdown(buf: &mut Buffer, p: &SettingsPane, anchor: Rect) {
     let height = want.clamp(3, max);
     let area = Rect::new(anchor.x, y0, anchor.width, height);
     Clear.render(area, buf);
+    hide_cut(buf, area, cards);
     let current = p.draft.font_family.clone().unwrap_or_default();
     let items: Vec<ListItem> = names
         .into_iter()
@@ -51,6 +54,20 @@ pub(crate) fn dropdown(buf: &mut Buffer, p: &SettingsPane, anchor: Rect) {
     let mut state = ListState::default();
     state.select(Some(p.family_sel));
     StatefulWidget::render(list, area, buf, &mut state);
+}
+
+/// Blank what the list left of each card it cut through. A card whose top it
+/// covers and whose bottom it does not showed that bottom as a stray `╰──╯`
+/// under the list — two cards' worth of fragments beneath `fonts`, read as
+/// broken frames rather than as something the list is covering.
+fn hide_cut(buf: &mut Buffer, list: Rect, cards: &[Rect]) {
+    for c in cards {
+        let cut = (list.y..list.bottom()).contains(&c.y) && c.bottom() > list.bottom();
+        if cut && c.x < list.right() && c.right() > list.x {
+            let rest = Rect::new(c.x, list.bottom(), c.width, c.bottom() - list.bottom());
+            Clear.render(rest.intersection(buf.area), buf);
+        }
+    }
 }
 
 #[cfg(test)]

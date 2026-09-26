@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.74
+
+**The font list hides the fields it covers.** Opening Settings' font-family
+list drew it over the fields below. When the list ended partway down a
+field, that field's bottom border was left showing below the list as a
+stray `╰──╯` in each column, which looked like broken frames. Any field the
+list partly covers now has its remaining part blanked too, leaving a clean
+space between the list and the next full field. Fields the list doesn't
+reach are unchanged.
+
 ## 0.23.73
 
 **/keys lists all four theme stops.** `/keys` said Ctrl+Shift+L cycles

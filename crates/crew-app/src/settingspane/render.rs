@@ -44,11 +44,12 @@ pub(crate) fn render(p: &SettingsPane, cols: u16, rows: u16) -> Vec<CellView> {
     if p.family_open {
         if let Some(r) = lay.rect_of(Field::FontFamily) {
             if r.y >= off {
-                super::dropdown::dropdown(
-                    &mut out,
-                    p,
-                    Rect::new(r.x, r.y - off, r.width, r.height),
-                );
+                let form = Rect::new(0, 0, cols, viewport);
+                let cards: Vec<Rect> = (lay.rects.iter().filter(|(_, c)| c.y >= off))
+                    .map(|&(_, c)| Rect::new(c.x, c.y - off, c.width, c.height).intersection(form))
+                    .collect();
+                let at = Rect::new(r.x, r.y - off, r.width, r.height);
+                super::dropdown::dropdown(&mut out, p, at, &cards);
             }
         }
     }
