@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.61
+
+**The Coverage job stops failing at random.** A `crew-plugin` test writes a
+fake `claude` script and runs it. If another test thread started a process
+while this one still had the script open for writing, the new process
+inherited that open file handle, and Linux refused to run the script
+(`Text file busy`). It failed on runs that didn't touch that code, most
+recently 0.23.58 and 0.23.59. The fake is now copied into place by `cp`, so
+the test process never has the file open for writing, and the test that
+used to overwrite a script in place writes a new one instead. No change to
+the app.
+
 ## 0.23.60
 
 **Mac chords look like Mac chords.** On macOS the welcome card and the
