@@ -149,3 +149,38 @@ fn both_charts_carry_their_axes() {
     // And inside the pane: an axis drawn past the last row is not drawn.
     assert!(cells.iter().all(|c| c.row < rows && c.col < cols));
 }
+
+/// A week with nothing spent heads its bars `COST PER DAY` and stops there:
+/// `peak $0.00` read as a meter showing zero. `/usage` says the same.
+#[test]
+fn an_empty_week_names_no_peak() {
+    use crate::usageledger::{Buckets, DAYS, HOURS};
+    let _g = crate::app::theme_test_guard();
+    let mut b = Buckets {
+        hourly: vec![0; DAYS * HOURS],
+        daily_cost: vec![0; DAYS],
+        tok_in: 0,
+        tok_out: 0,
+        cost_microusd: 0,
+    };
+    let text = |mut v: Vec<crew_render::CellView>| {
+        v.sort_by_key(|c| (c.row, c.col));
+        v.iter().map(|c| c.c).collect::<String>()
+    };
+    let mut d = DashPane::new();
+    d.buckets = b.clone();
+    let empty = text(d.cells(100, 40));
+    assert!(
+        empty.contains("COST PER DAY") && !empty.contains("peak"),
+        "{empty}"
+    );
+    let usage = text(crate::usagepane::cells(&b, 100, 40));
+    assert!(
+        usage.contains("COST PER DAY") && !usage.contains("peak"),
+        "{usage}"
+    );
+    b.daily_cost[3] = 900_000;
+    d.buckets = b.clone();
+    assert!(text(d.cells(100, 40)).contains("peak $0.90"));
+    assert!(text(crate::usagepane::cells(&b, 100, 40)).contains("peak $0.90"));
+}
