@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.77
+
+**The /goal summary leaves out its zeros.** The summary line at the top of a
+`/goal` pane showed every count, so a healthy run always said `0 failed` and
+a finished one said `0 live`: `0 live · 4 done · 0 failed · $0.04`. A count
+of zero is now left out, so it reads `4 done · $0.04`, or
+`2 live · 3 done · 1 failed · $0.12` while there is more to report. When
+every count is zero, `done` is still shown (`0 done · $0.00`) so the line
+isn't just a price. The narrow `●2 ✓3` form follows the same rule. The
+`/todo` headings got the same change in 0.23.76.
+
 ## 0.23.76
 
 **A /todo band header leaves out its zeros.** Each person's heading in

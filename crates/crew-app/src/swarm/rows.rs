@@ -12,14 +12,39 @@ pub const GLYPH_COLS: usize = 3;
 
 /// The HUD, in the widest form that fits `cols`: with the cost, without it,
 /// then the glyph form the list rows already use.
+///
+/// A count of zero is not said: `0 failed` sat on every healthy run and
+/// `0 live` on every finished one (the `/todo` bands drop theirs the same
+/// way). `done` stays while nothing else is left to say.
 pub fn hud_text(live: usize, done: usize, failed: usize, micros_usd: u64, cols: u16) -> String {
     // Counts before their nouns, parted by `·` like every other reading in
     // crew: `live:1 done:3 failed:1 cost:$0.0420` read as a debug print.
     let cost = crate::usagepane::money(micros_usd);
+    let said = |n: usize, keep: bool| n > 0 || keep;
+    let keep_done = live == 0 && failed == 0;
+    let words: Vec<String> = [
+        (live, "live", false),
+        (done, "done", keep_done),
+        (failed, "failed", false),
+    ]
+    .into_iter()
+    .filter(|&(n, _, keep)| said(n, keep))
+    .map(|(n, w, _)| format!("{n} {w}"))
+    .collect();
+    let glyphs: String = [
+        (live, '\u{25cf}', false),
+        (done, '\u{2713}', keep_done),
+        (failed, '\u{2717}', false),
+    ]
+    .into_iter()
+    .filter(|&(n, _, keep)| said(n, keep))
+    .map(|(n, g, _)| format!(" {g}{n}"))
+    .collect();
+    let counts = words.join(" \u{b7} ");
     let forms = [
-        format!(" {live} live \u{b7} {done} done \u{b7} {failed} failed \u{b7} {cost}"),
-        format!(" {live} live \u{b7} {done} done \u{b7} {failed} failed"),
-        format!(" \u{25cf}{live} \u{2713}{done} \u{2717}{failed}"),
+        format!(" {counts} \u{b7} {cost}"),
+        format!(" {counts}"),
+        glyphs,
     ];
     let cols = cols as usize;
     let last = forms[forms.len() - 1].clone();
