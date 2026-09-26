@@ -42,7 +42,11 @@ pub const LOG_MAX: usize = 20;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tail {
     Log(usize),
-    Glance { waiting: usize, weather: u16 },
+    Glance {
+        waiting: usize,
+        weather: u16,
+        serving: u16,
+    },
 }
 
 /// Where each variable-height section of the nav starts, for one frame.
@@ -133,8 +137,8 @@ pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLay
         Tail::Glance {
             waiting,
             weather: w,
+            serving,
         } => {
-            let serving = crate::navserving::SERVING_BLOCK;
             // A one-row WAITING is rule + row + gap: the sky never displaces
             // the card that says what needs you.
             if w > 0 && rows >= top + w + serving + 3 + panes_block {

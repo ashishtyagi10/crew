@@ -78,7 +78,13 @@ fn glance(rows: u16, waiting: usize, weather: bool, panes: usize) -> NavLayout {
     } else {
         0
     };
-    layout_with(rows, true, Tail::Glance { waiting, weather }, panes)
+    let serving = crate::navserving::SERVING_BLOCK;
+    let tail = Tail::Glance {
+        waiting,
+        weather,
+        serving,
+    };
+    layout_with(rows, true, tail, panes)
 }
 
 /// WEATHER stands first in the slot and pushes SERVING and WAITING down by

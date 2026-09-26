@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.56
+
+**No hole under an unmetered SERVING card.** Since 0.23.49 the nav's SERVING
+card has not drawn its two usage meters when neither window has a reading
+(no provider signed in yet, or one without rolling limits). The card still
+reserved rows for them, so `no provider — /model` was followed by two blank
+rows and then the usual gap before WAITING ON YOU. The card now uses three
+rows when it has no meters and five when it does, so the next card follows
+after the normal one-row gap.
+
 ## 0.23.55
 
 **Diagnostics show code as code.** The note under a flagged line showed the
