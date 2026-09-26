@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.95
+
+**Error messages drop the OS error code.** When an operating-system call
+failed, crew's status bar, error toast and log showed the raw system text:
+`failed to spawn shell: No such file or directory (os error 2)`, with a
+capital letter mid-sentence and an error number that isn't useful to the
+person reading it. All status messages now go through one cleanup step that
+removes `(os error N)` and lower-cases the start of the system's sentence:
+`failed to spawn shell: no such file or directory`. All-caps words such as
+`EOF` keep their capitals, and messages without an OS error code are
+unchanged.
+
 ## 0.23.94
 
 **A cut that already falls between words keeps the last word.** The
