@@ -132,7 +132,7 @@ impl CrewApp {
     }
 
     /// One row per open pane for the sidebar PANES list. A row carries the
-    /// `[+]` restore marker whenever its pane is NOT visible in the content
+    /// `+` restore marker whenever its pane is NOT visible in the content
     /// area — minimized into the nav, covered while another pane is zoomed,
     /// or standing behind the strip's `+N` overflow tile — so the list always
     /// says which panes are actually on screen. Clicking (or Cmd+N-focusing)
@@ -142,7 +142,7 @@ impl CrewApp {
         let zoomed_on = self.focused.min(self.panes.len().saturating_sub(1));
         // Panes standing behind the strip's `+N` overflow tile have no
         // thumbnail — not visible anywhere in the content area — so their
-        // rows get the [+] marker too. Same placement derivation the frame
+        // rows get the + marker too. Same placement derivation the frame
         // draws from; before the renderer reports geometry the set is empty.
         let strip_hidden = self
             .placed_grid()

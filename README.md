@@ -202,13 +202,13 @@ pane 2 sits *below* pane 1, not beside it. Hold **Shift** and the focused pane
 comes with you, swapping places with whichever card is that way. Neither wraps
 at the edge of the grid.
 
-The chrome answers the pointer: the `[-]` / `[x]` button under the cursor
-lights up (`[x]` in the bell colour — it ends a running program), and the
+The chrome answers the pointer: the `–` / `×` button under the cursor
+lights up (`×` in the bell colour — it ends a running program), and the
 sidebar PANES row under it brightens, because the whole row is a click target.
 
-Any full tile can also be **minimized into the left nav**: click the `[-]`
+Any full tile can also be **minimized into the left nav**: click the `–`
 button on its top border and the pane keeps running but leaves the grid; its
-sidebar PANES row gains a `[+]` — click the row (or jump to it with
+sidebar PANES row gains a `+` — click the row (or jump to it with
 **Cmd+1 … 9**) to restore it. Focusing a hidden pane always restores it.
 
 Background panes can still flag you down: when a pane you're not looking at

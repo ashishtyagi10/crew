@@ -19,9 +19,10 @@ pub struct PaneRow {
     pub focused: bool,
     pub activity: bool,
     /// Not visible in the content area — minimized into the nav (the pane's
-    /// `[-]` border button) or covered while another pane is zoomed: drawn with
-    /// a right-aligned `[+]`; clicking the row focuses the pane, which brings
-    /// it back on screen.
+    /// `–` border button) or covered while another pane is zoomed: drawn with
+    /// a right-aligned `+`, the inverse of that `–` (it was `[+]` until the
+    /// border buttons shed their brackets); clicking the row focuses the pane,
+    /// which brings it back on screen.
     pub minimized: bool,
     /// A raised "needs you" marker: `(glyph, visible)`. The glyph names the
     /// event (`!` bell · `⚑` pattern · `✓` command done); `visible` is the
@@ -82,7 +83,7 @@ pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize, spin: char) -> Vec
         // title — invisible in a screenshot, since the last writer wins.
         //
         // The order is the priority: the dot slot is reserved by the row
-        // itself, then the `[+]` (it is the row's only control), then the
+        // itself, then the `+` (it is the row's only control), then the
         // count.
         const MIN_TITLE: u16 = 3;
         // `claim(w)` takes `w` columns immediately left of the free edge,
@@ -97,7 +98,7 @@ pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize, spin: char) -> Vec
                 start
             })
         };
-        let plus = p.minimized.then(|| claim(3)).flatten();
+        let plus = p.minimized.then(|| claim(1)).flatten();
         let count = crate::unread::badge(p.unread)
             .filter(|_| !p.focused)
             .and_then(|n| claim(n.chars().count() as u16).map(|x| (x, n)));
@@ -107,9 +108,9 @@ pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize, spin: char) -> Vec
         // like a pane that is called that.
         //
         // And one column of air before whatever sits at `rx` — the dot slot,
-        // the `[+]`, the count — the same air `claim` keeps between those.
+        // the `+`, the count — the same air `claim` keeps between those.
         // Without it a title cut to fit ran straight into its own marker
-        // (`cargo wat…12 ●`, `far ~/co…[+]`). A row with nothing at its
+        // (`cargo wat…12 ●`, `far ~/co…+`). A row with nothing at its
         // right keeps the column for its title; a blinking marker counts as
         // there in both phases, or the title would jitter with it.
         let occupied =
@@ -118,7 +119,7 @@ pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize, spin: char) -> Vec
         let fit = crate::chatwidth::clip_w(&p.title, room as usize);
         write(&mut out, &fit, tstart, row, title_fg, rx, t.page_bg);
         if let Some(x) = plus {
-            write(&mut out, "[+]", x, row, accent(), cols, t.page_bg);
+            write(&mut out, "+", x, row, accent(), cols, t.page_bg);
         }
         if let Some((x, n)) = count {
             write(&mut out, &n, x, row, t.activity, cols, t.page_bg);

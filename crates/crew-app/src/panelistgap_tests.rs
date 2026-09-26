@@ -45,7 +45,7 @@ fn a_cut_title_keeps_a_column_of_air_before_the_spinner_and_the_restore_button()
     let mut hidden = row("far ~/code/crew/crates");
     hidden.minimized = true;
     let line = text(&[hidden], 21);
-    assert!(line.contains("\u{2026} [+]"), "{line:?}");
+    assert!(line.ends_with("\u{2026} +"), "{line:?}");
 }
 
 /// A title that fits with its column of air is not touched.
