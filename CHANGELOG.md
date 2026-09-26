@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.88
+
+**Shortened paths start at a folder boundary.** When a path was too long to
+fit, it was shortened from the left by character count, so it usually began
+partway through a folder name: `…rew/crates/crew-app`, or `…s/crew-app` in
+one `/far` panel beside `…/crew-app` in the other. Shortened paths now begin
+at a slash, `…/crates/crew-app`. A single folder name too long to fit on
+its own is still cut mid-name. This applies everywhere a path is shortened
+this way: `/far`'s panel headers, the `/disk` header, the input bar's
+directory title and the key card.
+
 ## 0.23.87
 
 **/dash's CPU label matches the graph.** The CPU graph on `/dash` was always
