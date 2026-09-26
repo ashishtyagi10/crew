@@ -89,6 +89,7 @@ mod chatspan;
 mod chatswarmshot_tests;
 mod completefuzzy;
 mod fencebadge;
+mod gaugebars;
 mod helpmark;
 mod histhits;
 mod mentionexpand;

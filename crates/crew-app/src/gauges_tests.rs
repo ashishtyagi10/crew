@@ -61,8 +61,9 @@ fn render_stats_legend_and_gauges() {
     assert!(!cells.iter().any(|c| matches!(c.c, '╭' | '╮' | '╰' | '╯')));
     // SYSTEM legend on the divider row
     assert!(cells.iter().any(|c| c.c == 'S' && c.row == 0));
-    // gauge bars present, stacked on rows 1/2/3
-    assert!(cells.iter().any(|c| c.c == '█' || c.c == '░'));
+    // gauge rows present, stacked on rows 1/2/3 — the bars are drawn
+    // (`gaugebars`), so their columns are left blank here.
+    assert!(!cells.iter().any(|c| c.c == '█' || c.c == '░'));
     let rows: std::collections::HashSet<u16> = cells.iter().map(|c| c.row).collect();
     assert!(rows.contains(&1) && rows.contains(&2) && rows.contains(&3));
 }

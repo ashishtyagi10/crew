@@ -194,7 +194,7 @@ impl Dials {
     /// The three faces.
     pub fn paint(&self, stats: Stats, cols: u16, row0: u16, aspect: f32) -> Vec<Paint> {
         if !fits(cols) {
-            return Vec::new();
+            return crate::gaugebars::paint(self.rows, stats, cols, row0, aspect);
         }
         let t = crew_theme::theme();
         let (track, track_dim) = scale_colors();
