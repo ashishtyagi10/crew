@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.69
+
+**/keys highlights what you typed.** Typing `pane` in `/keys` narrowed the
+list to the rows containing it but didn't show where the word was in each
+row. Every match, in any capitalisation and in both the key and the
+description, is now highlighted with the same background the command
+palette and the find pop-up use. The unfiltered list looks the same as
+before.
+
+Also: the glass screenshot tests now use Motion off, so each card is drawn
+fully assembled. Run on their own, they previously captured a half-drawn
+card and failed on the light theme.
+
 ## 0.23.68
 
 **/far's scroll thumb is part of the frame.** When a `/far` panel's listing
