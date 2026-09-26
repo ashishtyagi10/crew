@@ -99,7 +99,7 @@ fn the_reply_settling_collapses_the_thought_to_a_row_above_the_card_that_opens_o
         .iter()
         .position(|l| l.contains("thought for"))
         .expect("summary");
-    assert_eq!(r[sum], "  \u{25b8} thought for 4.2 s \u{00b7} 48 chars");
+    assert_eq!(r[sum], "  \u{25b8} thought for 4.2s \u{00b7} 48 chars");
     assert!(r[sum + 1].contains("coder"), "right above the reply: {r:?}");
     assert!(
         !r.iter().any(|l| l.contains("sidebar")),

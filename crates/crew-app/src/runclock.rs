@@ -19,17 +19,21 @@ pub(crate) const MIN_SECS: u64 = 5;
 /// glyphs.
 pub(crate) fn label(d: Duration) -> Option<String> {
     let secs = d.as_secs();
-    if secs < MIN_SECS {
-        return None;
-    }
-    Some(match secs {
+    (secs >= MIN_SECS).then(|| ladder(secs))
+}
+
+/// [`label`]'s ladder without its threshold: `12s`, `4m12`, `2h00`, `3d`. The
+/// one way crew writes a duration, so the chat's tool rows and swarm clock
+/// read like the border above them (they said `1m 04s` and `4m 12s`).
+pub(crate) fn ladder(secs: u64) -> String {
+    match secs {
         0..=59 => format!("{secs}s"),
         60..=3599 => format!("{}m{:02}", secs / 60, secs % 60),
         // Past four days the number stops being a duration anyone reads and
         // starts being a width problem on a shared border.
         3600..=345_599 => format!("{}h{:02}", secs / 3600, (secs % 3600) / 60),
         _ => format!("{}d", (secs / 86_400).min(99)),
-    })
+    }
 }
 
 #[cfg(test)]

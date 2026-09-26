@@ -48,13 +48,13 @@ fn the_summary_counts_calls_time_and_failures() {
     b.settled = true;
     assert_eq!(
         text(&summary(&b, 60, false)),
-        "  \u{25b8} 2 tool calls \u{00b7} 2.1 s \u{00b7} 1 failed"
+        "  \u{25b8} 2 tool calls \u{00b7} 2.1s \u{00b7} 1 failed"
     );
     b.expanded = true;
     b.lines.pop();
     assert_eq!(
         text(&summary(&b, 60, false)),
-        "  \u{25be} 1 tool call \u{00b7} 2.0 s"
+        "  \u{25be} 1 tool call \u{00b7} 2.0s"
     );
     assert!(
         text(&summary(&b, 60, true)).contains('\u{f0ad}'),

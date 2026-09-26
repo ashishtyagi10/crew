@@ -68,7 +68,7 @@ pub(crate) fn bar(
     cells
 }
 
-/// `12s` / `4m 12s` — the block's elapsed wording (`chatswarmview` uses the
+/// `12s` / `4m12` — the block's elapsed wording (`chatswarmview` uses the
 /// same shape on the status line).
 pub(crate) fn fmt_ms(ms: u64) -> String {
     crate::chatswarmview::fmt_elapsed_short(ms / 1000)

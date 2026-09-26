@@ -132,7 +132,7 @@ fn the_summary_counts_calls_then_loads_by_kind_and_times_only_the_calls() {
     assert_eq!(b.tally(), (2, 1, 2_100), "loads are not calls");
     assert_eq!(
         summary_text(b),
-        "2 tool calls \u{b7} 1 skill \u{b7} 1 mcp server \u{b7} 2.1 s"
+        "2 tool calls \u{b7} 1 skill \u{b7} 1 mcp server \u{b7} 2.1s"
     );
     let mut only = ToolLines::default();
     only.absorb(&loaded("coder", "skill", "a", ""), 0);
@@ -140,6 +140,6 @@ fn the_summary_counts_calls_then_loads_by_kind_and_times_only_the_calls() {
     assert_eq!(summary_text(&only.blocks[0]), "2 skills", "nothing to time");
     assert_eq!(
         summary_text(&ToolLines::default().open_block(9).clone()),
-        "0 tool calls \u{b7} 0 ms"
+        "0 tool calls \u{b7} 0ms"
     );
 }

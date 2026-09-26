@@ -74,7 +74,7 @@ fn a_call_draws_a_pending_line_and_its_result_a_done_one() {
     let r = rows(&p);
     assert_eq!(
         r.last().unwrap(),
-        "  \u{2713} fs:read src/foo.rs \u{00b7} 120 ms  use std;",
+        "  \u{2713} fs:read src/foo.rs \u{00b7} 120ms  use std;",
         "{r:?}"
     );
 }
@@ -115,7 +115,7 @@ fn the_reply_settling_collapses_the_block_to_a_summary_above_the_card() {
         .iter()
         .position(|l| l.contains("tool call"))
         .expect("summary");
-    assert_eq!(r[sum], "  \u{25b8} 1 tool call \u{00b7} 120 ms");
+    assert_eq!(r[sum], "  \u{25b8} 1 tool call \u{00b7} 120ms");
     assert!(r[sum + 1].contains("coder"), "right above the reply: {r:?}");
     assert!(
         !r.iter().any(|l| l.contains("\u{2713} fs:read")),

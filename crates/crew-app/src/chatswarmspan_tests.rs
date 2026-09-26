@@ -106,5 +106,5 @@ fn an_instant_task_still_paints_one_cell() {
 #[test]
 fn elapsed_words_are_seconds_then_minutes() {
     assert_eq!(fmt_ms(12_400), "12s");
-    assert_eq!(fmt_ms(252_000), "4m 12s");
+    assert_eq!(fmt_ms(252_000), "4m12");
 }
