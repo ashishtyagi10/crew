@@ -35,7 +35,15 @@ fn a_checkbox_is_a_drawn_box_filled_when_on() {
 fn save_and_cancel_are_filled_buttons() {
     let _g = crate::app::theme_test_guard();
     use super::{button, CANCEL, SAVE};
-    assert_eq!(SAVE.chars().count(), "[ Save \u{2318}S ]".chars().count());
+    let chord = crate::chordglyph::prose("Cmd+S");
+    assert_eq!(
+        SAVE.chars().count(),
+        format!("[ Save {chord} ]").chars().count()
+    );
+    assert!(
+        SAVE.contains(chord.as_ref()),
+        "{SAVE:?} names the chord as /keys does"
+    );
     assert_eq!(CANCEL.chars().count(), "[ Cancel esc ]".chars().count());
     assert!(!SAVE.contains('[') && !CANCEL.contains('['));
     assert!(

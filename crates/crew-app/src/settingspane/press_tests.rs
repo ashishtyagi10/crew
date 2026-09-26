@@ -94,7 +94,7 @@ fn clicking_the_family_box_opens_its_list_and_a_row_picks_a_font() {
 
 #[test]
 fn the_buttons_answer_on_the_row_they_are_drawn_on() {
-    let save = "[ Save \u{2318}S ]".chars().count() as u16;
+    let save = crate::settingspane::widgets::SAVE.chars().count() as u16;
     let cancel = "[ Cancel esc ]".chars().count() as u16;
     let x0 = COLS - (save + 3 + cancel + 2);
 
