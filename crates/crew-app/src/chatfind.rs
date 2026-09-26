@@ -62,7 +62,11 @@ pub(crate) fn filter(msgs: &[&Message], query: &str) -> Vec<usize> {
     let q = query.to_lowercase();
     (0..msgs.len())
         .rev()
-        .filter(|&i| msgs[i].text.to_lowercase().contains(&q))
+        .filter(|&i| {
+            // What the card shows, not the broker's hidden `[tool] ` marker.
+            let (_, shown) = crate::chatvoice::body_voice(msgs[i]);
+            shown.to_lowercase().contains(&q)
+        })
         .collect()
 }
 

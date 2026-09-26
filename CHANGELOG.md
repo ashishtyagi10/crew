@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.83
+
+**Chat find shows what the transcript shows.** The Cmd+F pop-up in a chat
+pane quoted each message's raw text, including the internal `[tool] ` label
+the transcript never shows: `scout: [tool] sys:run ✓ 1.2s…` sat just above
+a message reading `sys:run ✓ 1.2s`. Searching for `tool` also matched every
+tool call through that hidden label. Find now searches and quotes the text
+as displayed, with the same `[tool] ` and `[error] ` handling the transcript
+uses (0.23.54).
+
 ## 0.23.82
 
 **A binary file is not an empty file.** The viewer showed `(empty file)` for
