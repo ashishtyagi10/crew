@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.2
+
+**/keys describes what each key does.** A pass over the shortcut list against
+the key handlers:
+
+- **Ctrl+Shift+F** (focus mode) worked and was in the manual, but `/keys`
+  and the README's key table didn't list it. Both do now.
+- **Cmd+] / Cmd+[** were described as moving "in index order". Ctrl+Tab
+  does that too. What's different is that Cmd+]/[ skip minimized panes,
+  and the description now says so.
+- **Cmd+C** said "Copy screen", but a selection takes priority. It now reads
+  "Copy the selection (or the screen)".
+- **Cmd+G** and the LOG's scroll row called the left column "the sidebar",
+  while the palette, Settings and status messages call it "the nav". They
+  now say "nav" too, in `/keys` and the README/manual tables.
+- The `! · * · ? · ??` row said "ask ai a command". It now reads "ask the
+  ai for a command".
+
 ## 0.24.1
 
 **Palette descriptions match what the commands do.** Five rows in the command

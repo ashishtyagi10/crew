@@ -243,17 +243,18 @@ spelling, and typing `cmd` or `shift` still filters the list.
 | Reopen last session's panes (shells, Far, /crew) | `/restore` |
 | Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
-| Toggle sidebar | **Cmd+G** |
+| Toggle the nav | **Cmd+G** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — type to filter, ↑↓ to scroll, Esc to close |
 | Zoom focused pane | **Cmd+Z** (or double-click its top border) |
 | Broadcast input to all panes | `/broadcast` (by name only — **Cmd+S** saves a focused settings form) |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
-| Copy visible screen / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path) |
+| Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path) |
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Label every URL, file and hash on the pane (a letter copies, its capital opens) | **Cmd+E** |
 | Open another crew window | **Cmd+N** |
 | Cycle the theme rotations (dark → light → crt → auto) | **Ctrl+Shift+L** |
 | Step the canvas gradient (… → the theme's own) | **Ctrl+Shift+G** |
+| Focus mode: hold notifications, never steal focus | **Ctrl+Shift+F** (or `/focus`) |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Compact chat transcript (one line per message) | **Ctrl+O** |
 | Reverse-search the chat composer's send history | **Ctrl+R** |

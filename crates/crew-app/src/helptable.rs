@@ -8,7 +8,7 @@
 /// `(keys, description)` rows shown in the overlay.
 pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ("Ctrl+Tab / Ctrl+Shift+Tab", "Next / previous pane"),
-    ("Cmd+] / Cmd+[", "Next / previous pane, in index order"),
+    ("Cmd+] / Cmd+[", "Next / previous pane, skipping minimized ones"),
     ("Cmd+1 … 9", "Jump to pane N"),
     ("Cmd+A / Cmd+.", "Jump to next active / waiting pane"),
     ("Cmd+{ / Cmd+}", "Move pane left / right"),
@@ -24,13 +24,13 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+F", "Find: in a chat transcript, or /find in the bar"),
     ("Cmd+,", "Settings"),
     ("Cmd+O", "Open agent smith (same as /smith)"),
-    ("Cmd+G / Cmd+Z", "Toggle sidebar / zoom focused pane"),
+    ("Cmd+G / Cmd+Z", "Toggle the nav / zoom focused pane"),
     ("Cmd+S", "Save a focused settings form (typing to every terminal is /broadcast)"),
     (
         "Cmd+= / Cmd+- / Cmd+0 / Cmd+wheel",
         "Font size + / - / reset",
     ),
-    ("Cmd+C / Cmd+V", "Copy screen / paste"),
+    ("Cmd+C / Cmd+V", "Copy the selection (or the screen) / paste"),
     (
         "Cmd+E",
         "Label every URL, file and hash on the pane \u{00b7} a letter copies it, its capital opens it",
@@ -51,13 +51,17 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
         "Ctrl+Shift+G",
         "Step the canvas gradient (aurora \u{2192} tide \u{2192} \u{2026} \u{2192} the theme's own)",
     ),
+    (
+        "Ctrl+Shift+F",
+        "Focus mode \u{2014} hold notifications, never steal focus (/focus)",
+    ),
     ("Ctrl+Shift+M", "Chat: markdown preview \u{2194} raw source"),
     ("Ctrl+O", "Chat: compact transcript view"),
     ("Shift+PageUp / Shift+PageDown", "Scroll the focused pane"),
     ("Shift+Home / Shift+End", "Scroll to top / bottom"),
     (
         "Drag a card's right border",
-        "Scroll it \u{b7} the sidebar's LOG scrolls with the wheel",
+        "Scroll it \u{b7} the nav's LOG scrolls with the wheel",
     ),
     ("Double-click / Triple-click", "Select the word / the line"),
     (
@@ -76,7 +80,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ),
     (
         "! · * · ? · ?? (in input)",
-        "New pane / broadcast / ask ai a command / explain this pane",
+        "New pane / broadcast / ask the ai for a command / explain this pane",
     ),
     ("Cmd+Q", "Quit"),
 ];

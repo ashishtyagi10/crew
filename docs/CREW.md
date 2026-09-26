@@ -370,7 +370,7 @@ a letter, a space or Backspace), and the filter is forgotten on the way out.
 
 | Action | Keys |
 |--------|------|
-| Next / previous pane | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also **Cmd+]** / **Cmd+[**, in index order) |
+| Next / previous pane | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also **Cmd+]** / **Cmd+[**, which skip minimized panes) |
 | Jump to pane N | **Cmd+1 … 9** |
 | Jump to next active pane | **Cmd+A** |
 | Jump to next pane waiting on you | **Cmd+.** |
@@ -384,12 +384,12 @@ a letter, a space or Backspace), and the filter is forgotten on the way out.
 | Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | Accept the ghost text, or fill the highlighted palette row | **Tab** / **→** (in the input bar) |
-| Toggle sidebar | **Cmd+G** |
+| Toggle the nav | **Cmd+G** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — opens on the section for the pane you are in; type to filter, ↑↓ to scroll, Esc to close |
 | Zoom focused pane | **Cmd+Z** (or double-click its top border) |
 | Save a focused settings form | **Cmd+S** |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
-| Copy visible screen / paste | **Cmd+C** / **Cmd+V** |
+| Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Cycle themes (dark → light → crt → auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
