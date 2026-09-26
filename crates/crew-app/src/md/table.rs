@@ -114,10 +114,22 @@ fn row_line(
     }
 }
 
+/// The rule under the header, crossed `┼` where each column's `│` runs
+/// through it. An unbroken `─` stopped every separator at the header and
+/// started it again under the rule, so the grid read as two tables.
 fn rule_line(widths: &[usize], cols: usize) -> MdLine {
-    // Never materialize more dashes than could ever be visible.
-    let n = total_width(widths).min(cols);
-    let spans = vec![super::wrap::plain_span("─".repeat(n))];
+    let mut rule = String::new();
+    for (i, &w) in widths.iter().enumerate() {
+        // Never materialize more dashes than could ever be visible.
+        if rule.chars().count() >= cols {
+            break;
+        }
+        rule.push_str(&"─".repeat(w.min(cols)));
+        if i + 1 < widths.len() {
+            rule.push_str("─┼─");
+        }
+    }
+    let spans = vec![super::wrap::plain_span(rule)];
     MdLine {
         spans: super::wrap::truncate_spans(spans, cols),
         kind: LineKind::Rule,
