@@ -19,13 +19,33 @@ fn fake(script: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     ));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("claude");
-    std::fs::write(&path, script).unwrap();
+    put(&path, script);
+    (dir, path)
+}
+
+/// Write `script` to `path` as an executable — through `cp` on Unix. A test
+/// thread that forks while THIS process holds the script open for writing
+/// hands the child that descriptor, and exec'ing the script fails with
+/// ETXTBSY ("Text file busy") until the child execs in turn: the coverage
+/// job's recurring red, on runs whose code never touched this file. The
+/// write descriptor lives only in `cp`, which has exited before the script
+/// runs.
+fn put(path: &std::path::Path, script: &str) {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let src = path.with_extension("src");
+        std::fs::write(&src, script).unwrap();
+        std::fs::set_permissions(&src, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let cp = std::process::Command::new("cp")
+            .arg("-p")
+            .arg(&src)
+            .arg(path)
+            .status();
+        assert!(cp.unwrap().success(), "cp {src:?}");
     }
-    (dir, path)
+    #[cfg(not(unix))]
+    std::fs::write(path, script).unwrap();
 }
 
 fn agent(path: &std::path::Path, idle_floor: Duration) -> ClaudeAgent {
@@ -121,9 +141,8 @@ fn a_refusal_reads_as_its_sentence_and_plain_text_still_answers() {
         .call("hi", Duration::from_secs(5))
         .unwrap_err();
     assert!(err.ends_with("claude: Not logged in"), "{err}");
-    // A second fake at its own path: rewriting the first one in place raced
-    // the exiting child on Linux ("Text file busy") and failed the coverage
-    // job on a run whose code never touched this file.
+    // A second fake at its own path: rewriting the first one in place would
+    // race the exiting child for the file (see `put`).
     let (dir2, path2) = fake("#!/bin/sh\necho 'claude here'\n");
     assert_eq!(
         agent(&path2, Duration::ZERO)
@@ -158,7 +177,7 @@ fn the_deadline_restarts_on_every_line_and_kills_a_silent_cli() {
         .unwrap();
     assert_eq!(reply, "xxxxxx");
 
-    std::fs::write(&path, "#!/bin/sh\nsleep 30\n").unwrap();
+    let (dir2, path) = fake("#!/bin/sh\nsleep 30\n");
     let mut a = agent(&path, Duration::ZERO);
     a.model = Some("claude-fable-5".into());
     assert!(a
@@ -168,5 +187,6 @@ fn the_deadline_restarts_on_every_line_and_kills_a_silent_cli() {
     let err = a.call("go", Duration::from_millis(300)).unwrap_err();
     assert!(err.contains("no output for"), "{err}");
     assert!(t0.elapsed() < Duration::from_secs(5), "{:?}", t0.elapsed());
+    let _ = std::fs::remove_dir_all(&dir2);
     let _ = std::fs::remove_dir_all(&dir);
 }
