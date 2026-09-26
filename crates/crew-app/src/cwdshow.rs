@@ -88,11 +88,20 @@ pub(crate) fn abbreviate(path: &str, home: &str, sep: char) -> String {
 /// Truncate `s` from the left to at most `max` columns, keeping the tail (the
 /// most specific path component) behind a leading `…`. Used so a deep cwd legend
 /// shows the current directory rather than being clipped at the root.
+///
+/// The cut lands on a separator: `…/crates/crew-app`, never
+/// `…rew/crates/crew-app` — a component cut at a letter reads as a folder
+/// that is called that. Only a last component too long to fit alone is cut
+/// mid-name.
 pub(crate) fn fit_legend(s: &str, max: usize) -> String {
     let n = s.chars().count();
     if n <= max || max == 0 {
         return s.to_string();
     }
     let tail: String = s.chars().skip(n - max.saturating_sub(1)).collect();
+    let tail = match tail.find(['/', '\\']) {
+        Some(i) if i > 0 && i + 1 < tail.len() => &tail[i..],
+        _ => tail.as_str(),
+    };
     format!("…{tail}")
 }

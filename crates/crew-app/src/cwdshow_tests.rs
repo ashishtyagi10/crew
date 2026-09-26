@@ -115,3 +115,20 @@ fn cd_home_resolves_without_a_posix_home_variable() {
         canon
     );
 }
+
+/// The cut lands on a separator — `…/crates/crew-app`, not
+/// `…rew/crates/crew-app` — unless the last component alone is too long.
+#[test]
+fn fit_legend_cuts_on_a_separator() {
+    let p = "~/code/crew/crates/crew-app";
+    for max in 12..p.len() {
+        let fit = fit_legend(p, max);
+        assert!(fit.chars().count() <= max, "{max}: {fit:?}");
+        assert!(fit.starts_with("\u{2026}/"), "{max}: {fit:?} cut mid-name");
+    }
+    assert_eq!(fit_legend(p, 12), "\u{2026}/crew-app");
+    assert_eq!(
+        fit_legend("~/an-extremely-long-folder-name", 10),
+        "\u{2026}lder-name"
+    );
+}

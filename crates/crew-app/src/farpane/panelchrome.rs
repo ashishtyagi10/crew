@@ -144,13 +144,6 @@ pub(crate) fn legend(display: &str, count: usize, total: u64, width: u16) -> Str
     if display.chars().count() <= max {
         return format!(" {display}{suffix}");
     }
-    let tail: String = display
-        .chars()
-        .rev()
-        .take(max.saturating_sub(1))
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-        .collect();
-    format!(" …{tail}{suffix}")
+    // Cut on a separator, as every path legend is (`cwd::fit_legend`).
+    format!(" {}{suffix}", crate::cwd::fit_legend(display, max))
 }
