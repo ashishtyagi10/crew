@@ -21,7 +21,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/restore",
-        desc: "Reopen last session's shells in their directories",
+        desc: "Reopen last session's panes \u{2014} shells in their directories, /far, agent smith, /todo, the drawn panes and open files",
     },
     Cmd {
         name: "/nav",
@@ -37,11 +37,11 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/update",
-        desc: "Update Crew to the latest release and restart into it (left-nav progress)",
+        desc: "Update crew to the latest release and restart into it (progress shows in the open nav)",
     },
     Cmd {
         name: "/broadcast",
-        desc: "Toggle synchronized input to all panes",
+        desc: "Type into every terminal at once, or stop",
     },
     Cmd {
         name: "/zoom",
@@ -69,7 +69,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/dash",
-        desc: "One screen of the machine and the week — ring gauges, the CPU curve, both directions of the network, and a heatmap of token usage",
+        desc: "One screen of the machine and the week — CPU, memory and disk dials, the CPU curve, both directions of the network, and a heatmap of token usage",
     },
     Cmd {
         name: "/disk",
@@ -81,7 +81,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/goal",
-        desc: "Plan a goal into a task graph and run it as a swarm (in agent smith, /goal judges rounds instead)",
+        desc: "Plan a goal into a task graph and run it as a swarm (/goal <text>)",
     },
     Cmd {
         name: "/batch",
@@ -97,6 +97,6 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/exit",
-        desc: "Quit Crew",
+        desc: "Quit crew",
     },
 ];

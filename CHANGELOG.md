@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.1
+
+**Palette descriptions match what the commands do.** Five rows in the command
+palette described behaviour that had since changed:
+
+- `/restore` said it reopens "last session's shells". It also reopens
+  `/far`, agent smith, `/todo`, the drawn panes and open files.
+- `/broadcast` said it types into "all panes". It types into every
+  **terminal**, which is what its own mode label says. `/keys` said "every
+  pane" too.
+- `/dash` promised "ring gauges". It has drawn needle dials for a while. The
+  README and the manual said the same and are corrected.
+- `/goal` described "in agent smith, /goal judges rounds instead", but agent
+  smith's `/goal` is retired (it now replies "just ask…").
+- `/update` promised "left-nav progress". The nav starts collapsed to the
+  rail, where that progress doesn't show until you open it; the row now
+  says so. It and `/exit` were also the only rows spelling the app "Crew"
+  rather than "crew".
+
 ## 0.24.0
 
 **Counts agree with their number.** Several status messages always used

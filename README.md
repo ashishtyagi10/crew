@@ -336,7 +336,7 @@ and it runs the moment it is added.
 ## Sidebar
 
 A docked left panel (toggle with **Cmd+G**) with a live clock, CPU/MEM/DISK
-**ring gauges**, a moving **CPU curve** under them, load average, host info,
+**dials** (drawn capsules on a narrow nav), a moving **CPU curve** under them, load average, host info,
 network rates over a **twin chart** that draws the two directions apart, a git
 section for the working directory, a **LOG** tail, and a list of open panes
 (click a row to focus it) headed by the **crew mix** — one chip per pane on a
