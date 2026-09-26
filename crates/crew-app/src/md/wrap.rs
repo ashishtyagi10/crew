@@ -96,7 +96,11 @@ fn wrap_ranges(full: &[char], cols: usize) -> Vec<(usize, usize)> {
             ranges.push((start, n));
             break;
         }
-        match full[start..max_end].iter().rposition(|&c| c == ' ') {
+        match crate::md::dashbreak::dash_safe(
+            full,
+            start,
+            full[start..max_end].iter().rposition(|&c| c == ' '),
+        ) {
             Some(p) if p > 0 => {
                 ranges.push((start, start + p));
                 start += p + 1;

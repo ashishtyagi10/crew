@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.59
+
+**A reply's lines never start with a dash either.** 0.23.58 kept an empty
+pane's welcome text from starting a line with `—`. Agent replies use a
+different wrapping path, the Markdown renderer, which had the same problem:
+a sentence like `…already started — touches only…` could leave a line
+starting with `— touches`. When a break would put a spaced dash at the
+start of the next line, it now moves back one word, so the dash stays on
+the same line as the word before it. A dash inside a word (`well—known`)
+and a dash with no word before it on the line are left as they are.
+
 ## 0.23.58
 
 **A line never starts with a dash.** The welcome text in an empty crew pane

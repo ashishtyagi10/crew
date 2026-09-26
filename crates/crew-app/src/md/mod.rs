@@ -2,6 +2,10 @@
 //! intentionally dumb: no wrapping, no color — just parsed structure and
 //! inline styling.
 mod codeblock;
+mod dashbreak;
+#[cfg(test)]
+#[path = "dashwrap_tests.rs"]
+mod dashwrap_tests;
 mod footnote;
 pub(crate) mod heading;
 mod layout;
