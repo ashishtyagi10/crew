@@ -17,11 +17,14 @@ impl CrewApp {
     /// Run a `/command` typed in the input bar. Returns `true` if the app should exit.
     pub(crate) fn run_slash_command(&mut self, cmd: &str) -> bool {
         self.note_command_run(cmd);
-        // A confirmation you have moved on from is not still armed. `/only`
-        // and `/close all` re-arm themselves below; anything else in between
+        // A confirmation you have moved on from is not still armed. `/close
+        // all` and `/close others` (and their old spellings `/closeall`,
+        // `/only`) re-arm themselves below; anything else in between
         // means you went and did something else, and a `/closeall` typed
         // after that should ask again rather than fire on the first press.
-        if self.pending.armed() && !matches!(cmd, "only" | "closeall") {
+        if self.pending.armed()
+            && !matches!(cmd, "only" | "closeall" | "close all" | "close others")
+        {
             self.pending.clear();
         }
         match cmd {

@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.97
+
+**/close all can be confirmed.** `/close all` and `/close others` ask for
+confirmation, but the question told you to repeat the old spellings
+(`close all 4 panes? /closeall again`, `/only again`). Worse, repeating the
+spelling the palette actually offers didn't confirm: any command other than
+`/closeall` or `/only` cancelled the pending question, so a second
+`/close all` asked again every time. The questions now say
+`close all 4 panes? /close all again` and
+`close the other 3 panes? /close others again`, and repeating either
+spelling confirms.
+
 ## 0.23.96
 
 **The welcome card shows the right shortcut for agents.** The first screen

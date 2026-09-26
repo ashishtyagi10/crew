@@ -85,7 +85,7 @@ fn the_top_legend_keeps_the_current_directory() {
 #[test]
 fn a_pending_confirmation_owns_the_slot_and_wears_the_bell() {
     let _g = crate::app::theme_test_guard();
-    let ask = "close all 4 panes? /closeall again";
+    let ask = "close all 4 panes? /close all again";
     let (label, fg) = bottom(Some(ask), Some("copied 4 lines"), Some("zsh"), 60).unwrap();
     assert!(label.contains(ask), "the question is what shows: {label:?}");
     assert_eq!(fg, crew_theme::theme().bell, "a warning wears the bell");
