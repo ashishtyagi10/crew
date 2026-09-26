@@ -34,7 +34,7 @@ fn renders_bindings_with_border() {
     let (w, h) = size();
     let cells = panel(w, h, 0, "");
     assert!(cells.iter().any(|c| c.c == '╭'));
-    assert!(shows(&cells, "Ctrl+Tab"), "app bindings listed");
+    assert!(shows(&cells, crate::chordglyph::shown("Ctrl+Tab")));
     assert!(shows(&cells, "in an agent pane"), "chat section listed");
 }
 
@@ -48,7 +48,7 @@ fn the_chat_pane_keys_are_documented() {
         "Enter",
         "Esc",
         "pending plan",
-        "Shift+Enter",
+        crate::chordglyph::shown("Shift+Enter"),
         "Tab",
         "Recall a prompt",
         "Attach just those lines",

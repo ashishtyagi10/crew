@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.60
+
+**Mac chords look like Mac chords.** On macOS the welcome card and the
+Settings form already wrote `⌘T` and `⌘S`, while `/keys` and the command
+palette next to them wrote `Cmd+T`, so the same key appeared two ways on one
+screen. Both now use the menu bar's symbols in the menu bar's order:
+`⇧⌘T`, `⌃⇧L`, `⌘W / ⌘M`, `⌃Tab / ⌃⇧Tab`. The key column in `/keys` gets
+narrower as a result. The key tables still store the portable spelling:
+Windows and Linux show them unchanged, the README parity tests read them,
+and typing `cmd` or `shift` still filters the list. The palette now measures
+a chord by its on-screen width rather than its byte length, which a
+multi-byte `⌘` would have got wrong.
+
 ## 0.23.59
 
 **A reply's lines never start with a dash either.** 0.23.58 kept an empty

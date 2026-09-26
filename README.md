@@ -225,7 +225,9 @@ Press **`/keys`** in the input bar for the full list in-app — it scrolls with
 the arrow and page keys, and any other key closes it. It **opens on the
 section for the pane you are in** (`in a /far file panel · this pane`), with
 the global chords one scroll up; a pane whose keys are the global ones opens
-at the top, as before.
+at the top, as before. On macOS it and the command palette write chords the
+way the menu bar does (`⇧⌘T`, `⌃⇧L`); the table below keeps the portable
+spelling, and typing `cmd` or `shift` still filters the list.
 
 | Action | Keys |
 |--------|------|
