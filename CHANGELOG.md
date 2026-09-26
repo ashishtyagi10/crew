@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.85
+
+**One space before a `·` in the chat header.** The status at the top of an
+agent pane put two spaces before each extra part, and those parts begin with
+their own `·`: `thinking  · esc interrupts ●`,
+`coder · 12s  · compact  · esc interrupts`. Anywhere else in crew that reads
+`a · b`. A part that begins with `·` now gets one space before it, so the
+header reads `thinking · compact · esc interrupts ●`, and the two columns
+saved let a narrower pane fit all of it before anything is dropped.
+
 ## 0.23.84
 
 **The welcome headline is cut between words.** When the welcome card was

@@ -147,7 +147,7 @@ fn compact_chip_is_dropped_before_the_esc_hint_when_narrow() {
 
     // Mid-width: room for the hint but not both — the compact chip is the
     // first of the two dropped (it's the less essential signal).
-    let mid = text(&header_cells(40, "c", true, true, None, true, 0), 0);
+    let mid = text(&header_cells(37, "c", true, true, None, true, 0), 0);
     assert!(
         !mid.contains("compact"),
         "chip should be dropped first when narrow: {mid}"

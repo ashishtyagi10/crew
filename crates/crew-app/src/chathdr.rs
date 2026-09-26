@@ -42,12 +42,16 @@ pub(crate) fn fmt_tokens(tokens: u64) -> String {
     }
 }
 
-/// Gap before segment `i` of `n`: none before the first, a single space
-/// before the trailing connection dot, two between the rest.
-fn gap(i: usize, n: usize) -> usize {
+/// Gap before segment `i` of `segs`: none before the first, a single space
+/// before the trailing connection dot and before a segment that opens with
+/// its own `·` (the hint, the compact chip — two spaces there read
+/// `thinking  · esc interrupts`, where every other reading in crew is
+/// `a · b`), two between the rest.
+fn gap(i: usize, segs: &[Seg]) -> usize {
+    let dotted = segs[i].first().is_some_and(|&(c, _)| c == '\u{00b7}');
     match i {
         0 => 0,
-        _ if i + 1 == n => 1,
+        _ if i + 1 == segs.len() || dotted => 1,
         _ => 2,
     }
 }
@@ -55,10 +59,9 @@ fn gap(i: usize, n: usize) -> usize {
 /// The columns a run of segments takes, gaps included. Shared by the width
 /// probe and the real layout so both agree on the same gap rule.
 fn segs_width(segs: &[Seg]) -> usize {
-    let n = segs.len();
     segs.iter()
         .enumerate()
-        .map(|(i, s)| gap(i, n) + seg_w(s))
+        .map(|(i, s)| gap(i, segs) + seg_w(s))
         .sum()
 }
 
@@ -113,7 +116,7 @@ pub(crate) fn header_cells_at(
     let mut cells = Vec::new();
     let mut x = cols.saturating_sub(segs_width(&segs) as u16);
     for (i, s) in segs.iter().enumerate() {
-        x += gap(i, segs.len()) as u16;
+        x += gap(i, &segs) as u16;
         if x < cols {
             x = push(&mut cells, x, cols, s);
         }
