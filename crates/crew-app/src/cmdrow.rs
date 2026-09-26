@@ -167,7 +167,7 @@ pub(crate) fn spans(
 /// is also how the SELECTED row is drawn, so on the one row you were looking
 /// at the marks vanished, and elsewhere a bold `d` in `/dump` was a weight
 /// change you had to squint for.
-fn hit_style(fg: Color) -> Style {
+pub(crate) fn hit_style(fg: Color) -> Style {
     let hl = crew_theme::theme().find_hl_bg;
     let ink = match fg {
         Color::Rgb(r, g, b) => {

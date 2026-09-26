@@ -97,7 +97,7 @@ pub fn help_cells(
     let col = helplayout::key_col(cols);
     let inner_w = (cols as usize).saturating_sub(2);
     let all = helplayout::rows_for(needle, cols, mine);
-    let items = helpitem::items(&all[scroll.min(all.len())..], col, inner_w);
+    let items = helpitem::items(&all[scroll.min(all.len())..], col, inner_w, needle);
     // The list fills the interior; the frame is the composer pop-ups' —
     // the focused stroke and a bold accent legend (`popupchrome`), since
     // this overlay, like them, is the box the next key lands in. It was a

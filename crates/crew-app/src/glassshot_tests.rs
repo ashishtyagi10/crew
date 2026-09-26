@@ -39,6 +39,9 @@ const FOCUSED_X: f32 = 30.0;
 const UNFOCUSED_X: f32 = 370.0;
 
 fn panes(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
+    // A still: Motion off births the timeline settled. `born_ms: 0` is "long
+    // ago" only once the process outlives the assembly (run alone: half-built).
+    crate::motion::set_level(crate::motion::MotionLevel::Off);
     let pane_w = PANE_W;
     let pane_h = PANE_H;
     let pane_at = |x: f32| crate::pane::Pane {
@@ -61,13 +64,10 @@ fn panes(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         bell: false,
         hidden: false,
         attention: None,
-        // Born long ago, so `assemble_t` is 1.0 and the card is FULLY drawn.
-        // With `now_ms()` here every one of these shots photographed a card
-        // in its first frames of assembly — which draws outward from the four
-        // corners, i.e. corner brackets and no edges at all. That is why
-        // `crt_shot_grayscale_focus_hierarchy` measured page background where
-        // it expected a bottom border, and why every glass and modern PNG in
-        // this harness was a picture of a half-built frame.
+        // Born long ago (and see Motion off above): the card is FULLY drawn.
+        // With `now_ms()` here every shot was a card in its first frames of
+        // assembly — corner brackets, no edges — so the CRT focus test
+        // measured page background where it expected a bottom border.
         born_ms: 0,
     };
     crate::paneview::build_scenes(

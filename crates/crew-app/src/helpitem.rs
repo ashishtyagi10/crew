@@ -6,9 +6,15 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::ListItem;
 
 use crate::helplayout::Row;
+use crate::helpmark::marked as mark;
 use crate::palette::accent_color;
 
-pub(super) fn items(rows: &[Row], col: usize, inner_w: usize) -> Vec<ListItem<'static>> {
+pub(super) fn items(
+    rows: &[Row],
+    col: usize,
+    inner_w: usize,
+    needle: &str,
+) -> Vec<ListItem<'static>> {
     let t = crew_theme::theme();
     let text_col = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
     let dim_col = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
@@ -38,18 +44,20 @@ pub(super) fn items(rows: &[Row], col: usize, inner_w: usize) -> Vec<ListItem<'s
             // Pad to the key column — and when a key is wider than it, give
             // it two spaces of its own rather than letting the description
             // run into it.
+            // The filter's match is washed where it landed (`helpmark`).
             Row::Bind(k, d) => {
                 let w = crate::chatwidth::str_w(k);
                 let pad = " ".repeat(col.saturating_sub(w).max(2));
-                ListItem::new(Line::from(vec![
-                    Span::styled(format!("{k}{pad}"), Style::new().fg(accent_color())),
-                    Span::styled(d.clone(), Style::new().fg(text_col)),
-                ]))
+                let mut line = mark(k, needle, Style::new().fg(accent_color()));
+                line.push(Span::raw(pad));
+                line.extend(mark(d, needle, Style::new().fg(text_col)));
+                ListItem::new(Line::from(line))
             }
-            Row::Cont(d) => ListItem::new(Line::from(vec![
-                Span::raw(" ".repeat(col)),
-                Span::styled(d.clone(), Style::new().fg(text_col)),
-            ])),
+            Row::Cont(d) => {
+                let mut line = vec![Span::raw(" ".repeat(col))];
+                line.extend(mark(d, needle, Style::new().fg(text_col)));
+                ListItem::new(Line::from(line))
+            }
             // A search that matches nothing must say so; an empty panel reads
             // as a rendering fault.
             Row::Note(n) => ListItem::new(Line::from(Span::styled(
