@@ -16,7 +16,8 @@ pub(crate) fn note(cols: u16, rows: u16) -> Vec<CellView> {
         return Vec::new();
     }
     let t = crew_theme::theme();
-    crate::chatwidth::clip_w(NOTE, usize::from(cols - 2))
+    let note = crate::chordglyph::prose(NOTE);
+    crate::chatwidth::clip_w(&note, usize::from(cols - 2))
         .chars()
         .enumerate()
         .map(|(i, c)| CellView {
@@ -56,7 +57,7 @@ mod tests {
     fn the_note_fits_the_card_and_marks_its_cut() {
         let _g = crate::app::theme_test_guard();
         let text = |cells: &[CellView]| cells.iter().map(|c| c.c).collect::<String>();
-        assert_eq!(text(&note(40, 4)), NOTE);
+        assert_eq!(text(&note(40, 4)), crate::chordglyph::prose(NOTE));
         let cut = text(&note(12, 4));
         assert!(cut.ends_with('\u{2026}'), "{cut:?}");
         assert!(note(12, 4).iter().all(|c| c.col < 11));

@@ -246,7 +246,7 @@ spelling, and typing `cmd` or `shift` still filters the list.
 | Toggle sidebar | **Cmd+G** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — type to filter, ↑↓ to scroll, Esc to close |
 | Zoom focused pane | **Cmd+Z** (or double-click its top border) |
-| Broadcast input to all panes | **Cmd+S** |
+| Broadcast input to all panes | `/broadcast` (by name only — **Cmd+S** saves a focused settings form) |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy visible screen / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path) |
 | Open URL / file / dir under cursor | **Cmd+Click** |
