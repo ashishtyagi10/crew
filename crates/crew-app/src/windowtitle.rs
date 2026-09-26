@@ -4,9 +4,14 @@ use crate::pane::PaneContent;
 
 impl CrewApp {
     /// The OS window title for the focused pane (terminal title, or a label),
-    /// falling back to "Crew".
+    /// falling back to "Crew". A pane that has a name — agent smith, or one
+    /// you gave with `/name` — is called that: the smith pane read `Chat —
+    /// Crew`, a word its own legend never uses.
     pub(crate) fn focused_title(&self) -> String {
         match self.panes.get(self.focused) {
+            Some(p) if p.name.is_some() && !matches!(p.content, PaneContent::Terminal(_)) => {
+                format!("{} — Crew", p.title_text())
+            }
             Some(p) => match &p.content {
                 PaneContent::Terminal(t) => {
                     let ti = t.pty.title();
@@ -41,3 +46,7 @@ impl CrewApp {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "windowtitle_tests.rs"]
+mod tests;
