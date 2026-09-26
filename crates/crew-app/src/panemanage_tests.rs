@@ -182,3 +182,18 @@ fn the_spelling_the_palette_offers_confirms() {
     app.run_slash_command("close all");
     assert_eq!(app.panes.len(), 0, "and so does /close all");
 }
+
+/// The status names what both nav forms show — the rail has no PANES heading
+/// — and the chord that restores.
+#[test]
+fn minimizing_says_how_to_restore_in_words_the_rail_can_keep() {
+    let mut app = CrewApp::default();
+    app.panes.push(far_pane("a"));
+    app.panes.push(far_pane("b"));
+    app.minimize_pane(1);
+    let s = app.status.as_ref().map(|s| s.0.clone()).unwrap_or_default();
+    assert!(
+        s.contains("row in the nav") && s.contains("Cmd+2") && !s.contains("PANES"),
+        "{s}"
+    );
+}
