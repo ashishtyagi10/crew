@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.72
+
+**The palette no longer says Cmd+S broadcasts.** Cmd+S stopped turning on
+broadcast (typing into every pane) a while ago. It now only saves a focused
+Settings form, because pressing it out of habit was copying keystrokes into
+other shells. But the palette's `/broadcast` row still said `(Cmd+S)`, and
+the README's key table still listed Cmd+S as "Broadcast input to all panes",
+so anyone who trusted either would be surprised. Both now say broadcast is
+turned on only with `/broadcast`.
+
+A few other palette descriptions repeated a shortcut in brackets that the
+row's right-hand column already shows (`/zoom … (Cmd+Z)`, `/sidebar …
+(Cmd+G)`). The brackets are gone, and `/reopen` gets its `⇧⌘T` in that
+column like the others. The "too small · ⌘Z zooms" note on an undersized
+pane also uses the Mac symbols now.
+
 ## 0.23.71
 
 **Every picker shows what you typed.** Only the input bar's command palette

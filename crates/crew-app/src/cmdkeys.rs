@@ -5,12 +5,16 @@
 //! and next time you press it. The bindings themselves live in
 //! [`crate::keychord`] — this is the mapping from a slash command to the chord
 //! that does the same thing, which is a smaller set than either list.
-/// `(command, chord)`. A command with no chord is simply absent.
+/// `(command, chord)`. A command with no chord is simply absent — and its
+/// description does not carry one either: `/zoom (Cmd+Z)` said the chord
+/// twice on one row, and `/broadcast (Cmd+S)` went on naming a chord that
+/// had become Save.
 const KEYS: &[(&str, &str)] = &[
     ("/settings", "Cmd+,"),
     ("/sidebar", "Cmd+G"),
     ("/clear", "Cmd+K"),
     ("/zoom", "Cmd+Z"),
+    ("/reopen", "Cmd+Shift+T"),
 ];
 
 /// The chord that runs `cmd`, if one does.

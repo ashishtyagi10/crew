@@ -17,7 +17,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/reopen",
-        desc: "Reopen the pane you just closed (Cmd+Shift+T)",
+        desc: "Reopen the pane you just closed",
     },
     Cmd {
         name: "/restore",
@@ -41,15 +41,15 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/broadcast",
-        desc: "Toggle synchronized input to all panes (Cmd+S)",
+        desc: "Toggle synchronized input to all panes",
     },
     Cmd {
         name: "/zoom",
-        desc: "Toggle zoom of the focused pane (Cmd+Z)",
+        desc: "Toggle zoom of the focused pane",
     },
     Cmd {
         name: "/sidebar",
-        desc: "Toggle the stats sidebar (Cmd+G)",
+        desc: "Toggle the stats sidebar",
     },
     Cmd {
         name: "/keys",
