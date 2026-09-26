@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.89
+
+**Dim text is readable on light themes.** Terminal text a program marks as
+dim, such as a compiler's `--> src/…:25:28`, git's `HEAD is now at…` and
+about half of what agent CLIs print, was barely legible on light themes. It
+measured about 2:1 against the page, compared with about 10:1 on dark
+themes. Dimming blended the text toward the background in linear light,
+which fades far more toward white than toward black. It now blends in sRGB,
+as most terminals do, so dim text is equally quiet on light and dark pages
+(about 3.5 to 5:1), and the minimum contrast went from 2.0 to 3.0. Dim text
+on dark themes is a little quieter than before. The colour of dimmed text
+is still kept.
+
 ## 0.23.88
 
 **Shortened paths start at a folder boundary.** When a path was too long to
