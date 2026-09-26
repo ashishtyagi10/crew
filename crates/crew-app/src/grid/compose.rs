@@ -29,7 +29,7 @@ pub struct GridRects {
 impl GridRects {
     /// Pane indices minimized by the LRU but given NO thumbnail — the panes
     /// the `+N` overflow tile stands in for. They are not visible anywhere in
-    /// the content area, so the sidebar marks their rows restorable (`[+]`)
+    /// the content area, so the sidebar marks their rows restorable (`+`)
     /// like every other off-screen pane. `all_minimized` is the layout's full
     /// LRU tail ([`crate::grid::GridLayout::minimized`]).
     pub fn strip_hidden(&self, all_minimized: &[usize]) -> Vec<usize> {

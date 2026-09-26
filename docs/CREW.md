@@ -275,19 +275,19 @@ neighbour in that direction. Neither wraps at the grid's edge — a wrap in a
 spatial gesture reads as the whole canvas jumping. Zoomed, where there is no
 geometry to navigate, Cmd+Arrow falls back to stepping through the panes.
 
-**Pointer feedback.** The `[-]` and `[x]` on a card's border light under the
-cursor — `[-]` in the accent, `[x]` in the bell colour, so the control that
+**Pointer feedback.** The `–` and `×` on a card's border light under the
+cursor — `–` in the accent, `×` in the bell colour, so the control that
 ends a running program says so before it is clicked. A hovered sidebar PANES
 row lifts its ink to full contrast rather than washing a background behind it:
 the page's contrast budget is spent on the theme's own wash, so hover buys its
 emphasis with ink. Both repaint only when the target changes, so sweeping the
 pointer across the canvas costs one frame per thing it crosses.
 
-**Minimize to nav.** Every full tile carries a **`[-]` button** on its top
+**Minimize to nav.** Every full tile carries a **`–` button** on its top
 border. Clicking it hides the pane into the left nav: the pane keeps running
 (its process is untouched) but leaves the grid, focus moves to the nearest
-visible pane, and its sidebar PANES row gains a right-aligned **`[+]`**. A
-row's markers — the dot slot, the `[+]`, the unread count — are placed from
+visible pane, and its sidebar PANES row gains a right-aligned **`+`**. A
+row's markers — the dot slot, the `+`, the unread count — are placed from
 the right edge inward with a column of air between them, and a title cut to
 fit keeps that air too, rather than running into its own marker.
 Click the row — or focus the pane any other way (Cmd+1 … 9) — and it
@@ -1711,9 +1711,9 @@ longer aim at.
   in the composer for editing (every tag and the due come back with it),
   `+`/`-` postpone/advance its due a calendar
   day (`+` on an undated item starts it at tomorrow), `r` hands it to an
-  agent in a new pane in its `@project`'s directory (below); the mouse works too — click the `[ ]`
-  checkbox to toggle, the `✗` at the row's end to delete. Done items
-  auto-hide; `h` on the list shows them again — sunk, dimmed, `[x]`,
+  agent in a new pane in its `@project`'s directory (below); the mouse works too — click the `○`
+  checkbox to toggle, the `×` at the row's end to delete. Done items
+  auto-hide; `h` on the list shows them again — sunk, dimmed, `●`,
   newest completion first — so `Space` can un-do one (`h` again hides). A lone `@tag` +
   `Enter` filters the list to that project and a lone `#name` to that person
   (a bare `@` or `#` clears **that axis** — the two are AND-ed, so `@crew`
@@ -1766,7 +1766,7 @@ longer aim at.
 - **Working directory** — the bar's legend shows Crew's current directory
   (`~`-abbreviated). Type **`cd <path>`** (or bare `cd` for home) to move it; new
   shells (**Cmd+T** / `/shell`) open in that directory.
-- **`/reopen`** (**Cmd+Shift+T**) undoes the last close. `Cmd+W` and the `[x]`
+- **`/reopen`** (**Cmd+Shift+T**) undoes the last close. `Cmd+W` and the `×`
   button take a pane in one keystroke and never ask first — that is the point of
   them — so the pane they take is written down instead. A reopened pane is a
   *new* pane in the same place: a shell in the directory that one was standing
@@ -3552,7 +3552,7 @@ to full size, and collapses back into it.
 **Focus brackets.** The focused pane carries HUD corner marks: short accent runs
 down the card's edges from each of the four corners, which grow out as focus
 arrives and travel with it when you move between panes. They stay clear of the
-top border, where the legend and the `[-][x]` buttons live.
+top border, where the legend and the `–` `×` buttons live.
 
 ### Glass
 

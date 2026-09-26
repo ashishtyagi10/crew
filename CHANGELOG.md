@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.52
+
+**The nav's restore mark lost its brackets.** A pane minimized into the
+nav, or hidden behind a zoom, showed `[+]` at the end of its PANES row. That
+was the last bracketed control left after the pane border's `[-][x]` became
+`–` and `×` in 0.23.7. It is now a single accent `+`, the opposite of the
+border's `–`. Clicking the row still restores the pane, and on a narrow nav
+the title gets back the two columns the brackets used.
+
 ## 0.23.51
 
 **A folded reply is cut between words.** A folded agent reply shows its

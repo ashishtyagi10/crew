@@ -88,7 +88,7 @@ fn nothing_in_a_sidebar_row_is_drawn_half_over() {
         let mut line: Vec<&crew_render::CellView> = cells.iter().filter(|c| c.row == 2).collect();
         line.sort_by_key(|c| c.col);
         let text: String = line.iter().map(|c| c.c).collect();
-        for tok in ["99+", "[+]"] {
+        for tok in ["99+"] {
             let head: String = tok.chars().take(tok.chars().count() - 1).collect();
             assert!(
                 text.contains(tok) || !text.contains(&head),
@@ -149,18 +149,17 @@ fn pane_cells_marks_minimized_panes_with_a_restore_button() {
         },
     ];
     let cells = cells_of(&panes, 24, 10);
-    // The minimized pane's row carries a right-aligned [+] restore button
-    // ending one cell left of the activity-dot slot: cols 18..=20. Pane
-    // rows start under the header and the crew mix.
+    // The minimized pane's row carries a right-aligned `+` restore mark one
+    // cell left of the activity-dot slot: col 20, with no brackets round it.
+    // Pane rows start under the header and the crew mix.
     let at = |col: u16, row: u16| {
         cells
             .iter()
             .find(|c| c.row == row && c.col == col)
             .map(|c| c.c)
     };
-    assert_eq!(at(18, R0 + 1), Some('['));
-    assert_eq!(at(19, R0 + 1), Some('+'));
-    assert_eq!(at(20, R0 + 1), Some(']'));
+    assert_eq!(at(20, R0 + 1), Some('+'));
+    assert!(!cells.iter().any(|c| "[]".contains(c.c)), "no brackets");
     // …and only on minimized rows.
     assert!(!cells.iter().any(|c| c.c == '+' && c.row == R0));
 }
