@@ -14,7 +14,8 @@ pub(crate) fn row(s: &str, fg: (u8, u8, u8), bold: bool) -> CardLine {
     s.chars().map(|c| plain(c, fg, bold)).collect()
 }
 
-/// Hard-wrap `text` at `w` display columns, tagging each row with its 1-based
+/// Wrap `text` at `w` display columns (at a word boundary when one is near —
+/// `chatwidth::soft_end`), tagging each row with its 1-based
 /// source line (continuations repeat it so the gutter can blank them).
 pub(crate) fn wrap(text: &str, w: usize) -> Vec<(usize, Vec<char>)> {
     let mut out = Vec::new();
@@ -28,6 +29,7 @@ pub(crate) fn wrap(text: &str, w: usize) -> Vec<(usize, Vec<char>)> {
         let mut s = 0;
         while s < chars.len() {
             let e = crate::chatwidth::fit_end(&chars, s, w);
+            let e = crate::chatwidth::soft_end(&chars, s, e);
             out.push((n, chars[s..e].to_vec()));
             s = e;
         }

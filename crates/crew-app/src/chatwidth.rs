@@ -59,6 +59,26 @@ pub(crate) fn clip_w(s: &str, max: usize) -> String {
     out
 }
 
+/// Pull a hard wrap at `end` back to a word boundary: just after a space, or
+/// after a `,` `;` `(`, when one lies in the back half of `start..end` — so
+/// wrapped code breaks where an editor would, not mid-token (`a0: f3` /
+/// `2, a1`, an arrow split into `-` and `>`). The row keeps its break
+/// character, so the rows still partition the line exactly — the paint, the
+/// copy and the offsets read it verbatim. Unchanged when `end` is the line's
+/// end or no boundary is near enough.
+pub(crate) fn soft_end(full: &[char], start: usize, end: usize) -> usize {
+    if end >= full.len() || end <= start + 1 {
+        return end;
+    }
+    let floor = start + (end - start).div_ceil(2);
+    let after = |ok: fn(char) -> bool| (floor + 1..=end).rev().find(|&k| ok(full[k - 1]));
+    // A space first — the next row then opens on a word, not on the space
+    // after a comma — then the punctuation code breaks after.
+    after(char::is_whitespace)
+        .or_else(|| after(|c| matches!(c, ',' | ';' | '(')))
+        .unwrap_or(end)
+}
+
 /// Place styled chars on one row from `start`, advancing by display width and
 /// stopping before `max_col`; zero-width marks are skipped. Calls
 /// `put(col, ch, style)` per placed char and returns the next free column.
@@ -86,3 +106,7 @@ pub(crate) fn place_row<S: Copy>(
 #[cfg(test)]
 #[path = "chatwidth_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "softwrap_tests.rs"]
+mod softwrap_tests;

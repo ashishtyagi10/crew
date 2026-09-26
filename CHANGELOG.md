@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.92
+
+**Long code lines wrap between words.** Code in the file viewer and in chat
+code blocks wrapped at an exact column, often in the middle of a name or a
+symbol: `a0: f3` / `↪ 2, a1`, `nega` / `tive`, or a `->` split across two
+lines. A chat code line could also continue with a leading space
+(`↪  a tile`). Lines now wrap where an editor would: after a space if one
+falls in the second half of the line, otherwise after a `,`, `;` or `(`,
+and only when there is none of those at an exact column. Every character
+stays in place, so syntax colours, selection, copy and line positions are
+unchanged.
+
 ## 0.23.91
 
 **A narrow nav's system bars are drawn.** When the nav is too narrow for
