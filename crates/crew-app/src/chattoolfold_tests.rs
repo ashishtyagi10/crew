@@ -59,11 +59,9 @@ fn a_call_draws_a_pending_line_and_its_result_a_done_one() {
     let mut p = calling();
     let r = rows(&p);
     let line = r.last().unwrap();
+    let frame = line.chars().nth(2).unwrap_or(' ');
     assert!(
-        line.starts_with("  | fs:read src/foo.rs")
-            || line.starts_with("  / fs:read src/foo.rs")
-            || line.starts_with("  - fs:read src/foo.rs")
-            || line.starts_with("  \\ fs:read src/foo.rs"),
+        crate::update::SPINNER.contains(&frame) && line[2..].contains(" fs:read src/foo.rs"),
         "a spinning line under the agent's thin card: {r:?}"
     );
     assert!(
