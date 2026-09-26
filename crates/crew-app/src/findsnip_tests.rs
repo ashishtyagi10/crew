@@ -44,3 +44,29 @@ fn no_match_is_the_plain_row() {
     assert_eq!(label, "a: nothing here");
     assert!(hits.is_empty());
 }
+
+/// The pop-up quotes what the card shows: the broker's `[tool] ` marker is
+/// never drawn, so it is neither in the snippet nor something `tool` finds.
+#[test]
+fn the_broker_markers_are_neither_quoted_nor_found() {
+    let m = crate::chatmsgs::tests::msg("scout", "[tool] sys:run git log");
+    let msgs = [&m];
+    assert!(
+        crate::chatfind::filter(&msgs, "tool").is_empty(),
+        "a hidden marker is not a match"
+    );
+    let hits = crate::chatfind::filter(&msgs, "git");
+    assert_eq!(hits, [0]);
+    let f = crate::chatfind::ChatFind {
+        query: "git".into(),
+        matches: hits,
+        sel: 0,
+    };
+    let rows = items(&f, &msgs, 60);
+    assert!(!rows[0].label.contains("[tool]"), "{}", rows[0].label);
+    assert!(
+        rows[0].label.contains("sys:run git log"),
+        "{}",
+        rows[0].label
+    );
+}

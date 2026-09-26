@@ -62,7 +62,12 @@ pub(crate) fn items(f: &ChatFind, msgs: &[&Message], cols: u16) -> Vec<MenuItem>
         .iter()
         .filter_map(|&i| msgs.get(i))
         .map(|m| {
-            let (label, hit) = crate::findsnip::snippet(&m.sender, &m.text, &f.query, room);
+            // The text the card SHOWS: the broker's `[tool] ` / `[error] `
+            // markers are machinery the transcript strips (`chatvoice`), and
+            // the snippet quoting them read `scout: [tool] sys:run…` over a
+            // card that says `sys:run`.
+            let (_, text) = crate::chatvoice::body_voice(m);
+            let (label, hit) = crate::findsnip::snippet(&m.sender, &text, &f.query, room);
             MenuItem {
                 label,
                 hit,
