@@ -36,10 +36,10 @@ fn is_pua(c: char) -> bool {
 
 #[test]
 fn durations_read_as_ms_then_seconds_then_minutes() {
-    assert_eq!(fmt_ms(120), "120 ms");
-    assert_eq!(fmt_ms(3_200), "3.2 s");
-    assert_eq!(fmt_ms(64_000), "1m 04s");
-    assert_eq!(fmt_ms(0), "0 ms");
+    assert_eq!(fmt_ms(120), "120ms");
+    assert_eq!(fmt_ms(3_200), "3.2s");
+    assert_eq!(fmt_ms(64_000), "1m04");
+    assert_eq!(fmt_ms(0), "0ms");
 }
 
 #[test]
@@ -86,10 +86,10 @@ fn motion_off_pins_the_spinner_and_the_clock_moves_once_a_second() {
 fn done_lines_carry_the_mark_in_the_added_or_removed_ink() {
     let _g = crate::app::motion_test_guard();
     let ok = render(&done(true, 120, ""), 0, 60, false);
-    assert_eq!(text(&ok), "  \u{2713} fs:read src/foo.rs \u{00b7} 120 ms");
+    assert_eq!(text(&ok), "  \u{2713} fs:read src/foo.rs \u{00b7} 120ms");
     assert_eq!(ok[2].fg, crate::chatink::token_fg(Token::Added));
     let bad = render(&done(false, 3_200, ""), 0, 60, false);
-    assert_eq!(text(&bad), "  \u{2717} fs:read src/foo.rs \u{00b7} 3.2 s");
+    assert_eq!(text(&bad), "  \u{2717} fs:read src/foo.rs \u{00b7} 3.2s");
     assert_eq!(bad[2].fg, crate::chatink::token_fg(Token::Removed));
     let nerd = render(&done(true, 1, ""), 0, 60, true);
     assert!(is_pua(nerd[2].c) && nerd[2].c != ok[2].c);
@@ -101,7 +101,7 @@ fn the_subject_is_clipped_so_the_timing_always_fits() {
     let l = done(true, 120, "");
     let s = text(&render(&l, 0, 20, false));
     assert_eq!(s.chars().count(), 20, "{s:?}");
-    assert!(s.ends_with(" \u{00b7} 120 ms"), "{s:?}");
+    assert!(s.ends_with(" \u{00b7} 120ms"), "{s:?}");
     assert!(s.contains('\u{2026}'), "the subject took the cut: {s:?}");
 }
 
@@ -113,7 +113,7 @@ fn a_result_with_text_previews_its_first_line_muted_after_the_timing() {
     let s = text(&r);
     assert_eq!(
         s,
-        "  \u{2713} fs:read src/foo.rs \u{00b7} 120 ms  fn main() {}"
+        "  \u{2713} fs:read src/foo.rs \u{00b7} 120ms  fn main() {}"
     );
     assert_eq!(r.last().unwrap().fg, crew_theme::theme().text_muted);
     assert!(text_rows(&l, 60).is_empty(), "closed until clicked");

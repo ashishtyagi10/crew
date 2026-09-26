@@ -30,15 +30,11 @@ const ELAPSED_MIN_COLS: u16 = 16;
 /// it. The spinner is asserted single-column in the tests.
 const SPINNER_W: u16 = 1;
 
-/// The elapsed piece: `4m 12s` past a minute, else `12s`. Terser than the
-/// folded record's `fmt_elapsed` (which keeps a decimal) — the live line wants
-/// a glanceable clock, not a precise one.
+/// The elapsed piece: `12s`, then `4m12` — the border clock's ladder
+/// ([`crate::runclock::ladder`]). Terser than the folded record's
+/// `fmt_elapsed` (which keeps a decimal): the live line wants a glance.
 pub(crate) fn fmt_elapsed_short(secs: u64) -> String {
-    if secs >= 60 {
-        format!("{}m {}s", secs / 60, secs % 60)
-    } else {
-        format!("{secs}s")
-    }
+    crate::runclock::ladder(secs)
 }
 
 /// The task the line names: the oldest `Running` one, plus how many others are

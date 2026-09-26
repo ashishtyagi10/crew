@@ -375,8 +375,8 @@ fn elapsed_formats_minutes_past_sixty_seconds() {
     assert_eq!(fmt_elapsed_short(0), "0s");
     assert_eq!(fmt_elapsed_short(12), "12s");
     assert_eq!(fmt_elapsed_short(59), "59s");
-    assert_eq!(fmt_elapsed_short(60), "1m 0s");
-    assert_eq!(fmt_elapsed_short(252), "4m 12s");
+    assert_eq!(fmt_elapsed_short(60), "1m00");
+    assert_eq!(fmt_elapsed_short(252), "4m12");
 }
 
 #[test]

@@ -42,12 +42,13 @@ pub(crate) fn subject(args: &str) -> String {
     flat(args)
 }
 
-/// `120 ms` under a second, `3.2 s` under a minute, `1m 04s` past one.
+/// `120ms` under a second, `3.2s` under a minute, then the border clock's
+/// ladder (`1m04`) — see [`crate::runclock::ladder`].
 pub(crate) fn fmt_ms(ms: u64) -> String {
     match ms {
-        0..=999 => format!("{ms} ms"),
-        1000..=59_999 => format!("{:.1} s", ms as f64 / 1000.0),
-        _ => format!("{}m {:02}s", ms / 60_000, (ms / 1000) % 60),
+        0..=999 => format!("{ms}ms"),
+        1000..=59_999 => format!("{:.1}s", ms as f64 / 1000.0),
+        _ => crate::runclock::ladder(ms / 1000),
     }
 }
 

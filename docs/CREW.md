@@ -2774,7 +2774,7 @@ tool call.
 **Tools in the transcript.** In a swarm, a tool call is drawn live under the
 calling agent's card, not as a card of its own: a spinner and the subject
 (`fs:read src/foo.rs`, `sys:run cargo test`) with the seconds counting up
-while it runs, then `✓`/`✗` and the duration (`120 ms`, `3.2 s`) — which is
+while it runs, then `✓`/`✗` and the duration (`120ms`, `3.2s`) — which is
 what separates a slow tool from a hung one while you watch — and the first
 line of the result, muted. Click that line and the ARGUMENTS open first —
 one `key: value` row per argument when they are a JSON object, the raw text
@@ -2783,7 +2783,7 @@ twelve rows of the output on the code field (`… +N lines` past that), all
 on the code field; the copy that crosses the wire is bounded, so a `curl` of
 a large page cannot swell the pane. A pending line opens too: while a call
 runs, what it was asked is already worth reading. When the agent's reply
-settles the block folds to `▸ 4 tool calls · 2.1 s` above it, and a click
+settles the block folds to `▸ 4 tool calls · 2.1s` above it, and a click
 reopens it. Every result is kept, success included: an agent's paraphrase of
 what an API returned is the one thing you cannot check an integration
 against. The relay engine (`@agent` messages) has no live events, so its
@@ -2801,7 +2801,7 @@ nothing ran: `✦ skill rust-testing · applied · <its one-liner>`,
 `λ lsp rust-analyzer · rust · crew` (the icon set draws a bolt, a plug and a
 language mark). A click opens the detail one segment per row, an MCP
 server's tool names one to a row. The summary counts them by kind —
-`▸ 4 tool calls · 1 skill · 2.1 s` — and times only the calls. A skill
+`▸ 4 tool calls · 1 skill · 2.1s` — and times only the calls. A skill
 applied to a swarm task is run-level, so its line sits above the plan line;
 one applied on `@agent` sits above that agent's reply; a server that connected
 under nobody's name joins the block of the call that forced it, or heads the
@@ -2998,7 +2998,7 @@ reasoning — by default DashScope is sent `enable_thinking` and OpenRouter
 `reasoning: {enabled: true}`, and whatever comes back (those fields, NVIDIA
 NIM's `reasoning_content`, `<think>` tags in the text, an Anthropic `thinking`
 block) streams into the smith pane as a live block above the reply that folds
-to `▸ thought for 4.2 s` when the reply lands; the switch only stops the
+to `▸ thought for 4.2s` when the reply lands; the switch only stops the
 asking — reasoning a model shows unprompted is still shown;
 `CREW_INTENT=0` disables the intent router — every plain message then runs as
 a swarm instead of the model first choosing its execution shape (a direct

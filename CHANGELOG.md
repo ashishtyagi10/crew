@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.53
+
+**One way to write a duration in the chat.** The chat pane used three
+formats: tool calls and thoughts wrote `120 ms`, `3.2 s` and `1m 04s`; the
+swarm line wrote `4m 12s` (and `1m 0s` at exactly a minute); the fan summary
+and the pane border wrote `2.2s` and `4m12`. They all now follow the
+border's format: `120ms`, `3.2s`, `4m12`, `1h02`. A folded thought reads
+`▸ thought for 4.2s · 812 chars`.
+
 ## 0.23.52
 
 **The nav's restore mark lost its brackets.** A pane minimized into the

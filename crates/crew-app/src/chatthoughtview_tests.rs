@@ -63,14 +63,14 @@ fn the_settled_row_says_how_long_and_how_much_and_opens_to_the_capped_text() {
     let mut b = block(&"w".repeat(812), 4_200);
     assert_eq!(
         text(&summary(&b, 60)),
-        "  \u{25b8} thought for 4.2 s \u{00b7} 812 chars"
+        "  \u{25b8} thought for 4.2s \u{00b7} 812 chars"
     );
     assert_eq!(block_lines(&b, 60).len(), 1, "collapsed: the row alone");
     b.expanded = true;
     let rows = block_lines(&b, 60);
     assert_eq!(
         text(&rows[0]),
-        "  \u{25be} thought for 4.2 s \u{00b7} 812 chars"
+        "  \u{25be} thought for 4.2s \u{00b7} 812 chars"
     );
     assert!(rows.len() > 2 && rows.len() <= 1 + THOUGHT_ROWS);
     let instant = block("hm", 0);
