@@ -150,6 +150,7 @@ mod chattranscript;
 mod chattype;
 mod chatusage;
 mod chatview;
+mod chatvoice;
 mod chatwidth;
 mod chords;
 pub mod chrome;
