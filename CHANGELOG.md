@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.66
+
+**The fallback spinner is braille.** Without a Nerd Font, crew's font here
+(Lilex) among them, the chat's running tool lines and the swarm status used
+the old ASCII spinner `| / - \`, while the nav's busy panes and `/update`
+already used the braille `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏`. crew draws braille itself instead of
+taking it from the font, so it looks right in any font. The fallback
+spinner is now the same ten braille frames, so every spinner in crew
+matches. A Nerd Font still gets its pie-slice spinner.
+
 ## 0.23.65
 
 **A table's column lines cross its header rule.** Markdown tables in agent

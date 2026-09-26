@@ -83,8 +83,11 @@ const NF_SPINNER: [&str; 8] = [
     "\u{f0aa4}",
     "\u{f0aa5}",
 ];
-/// The ASCII spinner every font has.
-const ASCII_SPINNER: [&str; 4] = ["|", "/", "-", "\\"];
+/// The spinner every font has: braille, which crew's renderer DRAWS rather
+/// than asking the font for (`crew_render::boxglyph::braille`), so it needs
+/// no Nerd Font — and it is the spinner the nav's busy rows and `/update`
+/// already turn. The fallback was `| / - \\`, a teletype's spinner, beside them.
+const PLAIN_SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 /// The Nerd Font glyph for `g`.
 pub(crate) fn nerd(g: Glyph) -> &'static str {
@@ -124,7 +127,7 @@ pub(crate) fn fallback(g: Glyph) -> &'static str {
         Glyph::Bullet3 => "\u{25aa}",   // ▪
         Glyph::Unchecked => "\u{2610}", // ☐
         Glyph::Quote => "\u{258e}",     // ▎
-        Glyph::Spinner(i) => ASCII_SPINNER[usize::from(i) % ASCII_SPINNER.len()],
+        Glyph::Spinner(i) => PLAIN_SPINNER[usize::from(i) % PLAIN_SPINNER.len()],
         Glyph::DotOn => "\u{25cf}",  // ●
         Glyph::DotOff => "\u{25cb}", // ○
         Glyph::Prompt => "\u{276f}", // ❯
@@ -168,7 +171,7 @@ pub(crate) fn prompt() -> char {
 }
 
 /// The spinner frame for `now_ms`: eight pie slices on a Nerd Font, else the
-/// four ASCII strokes, stepping every 120ms.
+/// ten braille frames, stepping every 120ms.
 pub(crate) fn spinner(now_ms: u64) -> &'static str {
     spinner_on(now_ms, on())
 }
@@ -177,7 +180,7 @@ pub(crate) fn spinner(now_ms: u64) -> &'static str {
 pub(crate) fn spinner_on(now_ms: u64, on: bool) -> &'static str {
     let (frames, table): (usize, fn(Glyph) -> &'static str) = match on {
         true => (NF_SPINNER.len(), nerd),
-        false => (ASCII_SPINNER.len(), fallback),
+        false => (PLAIN_SPINNER.len(), fallback),
     };
     table(Glyph::Spinner(((now_ms / 120) % frames as u64) as u8))
 }

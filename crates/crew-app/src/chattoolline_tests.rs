@@ -47,16 +47,22 @@ fn a_pending_line_spins_and_counts_whole_seconds_up() {
     let _g = crate::app::motion_test_guard();
     set_level(Full);
     let l = line("fs:read", "src/foo.rs", 1_000);
+    let f = |ms: u64| crate::update::SPINNER[(ms / 120 % 10) as usize];
     let at0 = text(&render(&l, 1_000, 60, false));
-    assert_eq!(at0, "  | fs:read src/foo.rs", "no clock under a second");
     assert_eq!(
-        text(&render(&l, 1_120, 60, false)),
-        "  / fs:read src/foo.rs",
-        "the next spinner frame"
+        at0,
+        format!("  {} fs:read src/foo.rs", f(1_000)),
+        "no clock yet"
     );
     assert_eq!(
+        text(&render(&l, 1_120, 60, false)),
+        format!("  {} fs:read src/foo.rs", f(1_120)),
+        "the next spinner frame"
+    );
+    assert_ne!(f(1_000), f(1_120));
+    assert_eq!(
         text(&render(&l, 4_300, 60, false)),
-        "  \\ fs:read src/foo.rs \u{00b7} 3s"
+        format!("  {} fs:read src/foo.rs \u{00b7} 3s", f(4_300))
     );
     let nerd = render(&l, 1_000, 60, true);
     assert!(is_pua(nerd[2].c), "a pie-slice frame on the icon set");

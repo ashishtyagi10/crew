@@ -107,7 +107,7 @@ fn pick_follows_the_switch() {
 }
 
 #[test]
-fn the_spinner_has_eight_frames_on_a_nerd_font_and_four_ascii_ones_off() {
+fn the_spinner_has_eight_frames_on_a_nerd_font_and_ten_braille_ones_off() {
     let on = force(true);
     let nf: Vec<&str> = (0..8).map(|i| spinner(i * 120)).collect();
     assert!(nf.iter().all(|f| f.chars().all(is_pua)));
@@ -115,8 +115,8 @@ fn the_spinner_has_eight_frames_on_a_nerd_font_and_four_ascii_ones_off() {
     assert_eq!(spinner(8 * 120), nf[0], "wraps after eight frames");
     drop(on);
     let _off = force(false);
-    let ascii: Vec<&str> = (0..5).map(|i| spinner(i * 120)).collect();
-    assert_eq!(ascii, ["|", "/", "-", "\\", "|"]);
+    let plain: String = (0..11u64).map(|i| spinner(i * 120)).collect();
+    assert_eq!(plain, "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏⠋", "braille, wrapping after ten");
 }
 
 #[test]
