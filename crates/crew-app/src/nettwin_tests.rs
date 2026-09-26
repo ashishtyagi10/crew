@@ -94,9 +94,13 @@ fn an_idle_network_draws_its_axis_and_nothing_else() {
     // than a canvas pixel and never rendered at all.
     let rule: Vec<_> = p.iter().filter(|r| r.color == axis).collect();
     assert!(!rule.is_empty(), "the centre line is drawn: {p:?}");
+    let lo = rule.iter().map(|r| r.x).fold(f32::MAX, f32::min);
+    let hi = rule.iter().map(|r| r.x + r.w).fold(0.0, f32::max);
+    assert!(hi - lo >= 19.0, "and spans the chart: {rule:?}");
+    // Dotted: a solid line in the border colour is a section rule.
     assert!(
-        rule.iter().any(|r| r.w >= 19.0),
-        "and spans the chart: {rule:?}"
+        rule.len() > 20 && rule.iter().all(|r| r.w < 0.5),
+        "{rule:?}"
     );
     let mid = f32::from(ROWS) / 2.0;
     assert!(

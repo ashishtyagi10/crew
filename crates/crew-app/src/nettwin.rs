@@ -19,6 +19,10 @@ pub const ROWS: u16 = 2;
 /// quieter draws small rather than full.
 pub(crate) const FLOOR: u64 = 64 * 1024;
 
+/// The centre axis's dots: this long, one every [`AXIS_PERIOD`] (units).
+const AXIS_DOT: f32 = 0.2;
+const AXIS_PERIOD: f32 = 0.5;
+
 /// Samples of each history the chart at `cols` wide draws from.
 fn span(cols: u16) -> usize {
     cols.saturating_sub(4) as usize * 2
@@ -115,7 +119,22 @@ pub fn paint(
     // it was thinner than a canvas pixel and fell between the coverage
     // samples, so what looked like an axis on an idle link was really the two
     // flat curves' own strokes lying on top of each other.
-    c.hairline(0.0, half, w, crew_theme::theme().border_normal, 0.7);
+    //
+    // DOTTED: a solid hairline in the border colour is a section rule, and on
+    // an idle link — the axis alone on its rows — the NET card read as ending
+    // early, a rule and two blank rows before GIT. Dots are the canvas's word
+    // for "nothing measured" (the heatmap's idle hours).
+    let mut x = 0.0;
+    while x < w {
+        c.hairline(
+            x,
+            half,
+            AXIS_DOT.min(w - x),
+            crew_theme::theme().border_normal,
+            0.7,
+        );
+        x += AXIS_PERIOD;
+    }
 
     c.paint()
         .into_iter()
