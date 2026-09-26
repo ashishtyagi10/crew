@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.68
+
+**/far's scroll thumb is part of the frame.** When a `/far` panel's listing
+is longer than the panel, the scroll position was shown as a solid `█`
+block stamped over the panel's right border, which looked like a brick
+sitting on the frame. Pane cards show their scroll position as a thin bar
+on the border itself. `/far` now does the same using a heavy border line
+(`┃`) for the length of the thumb, which crew draws sharply at any size.
+The thumb's colour and size still follow focus and scroll position.
+
 ## 0.23.67
 
 **The network chart's axis is dotted.** When the network was idle, the nav's

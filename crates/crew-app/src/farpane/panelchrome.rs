@@ -55,7 +55,10 @@ pub(crate) fn merge_divider(buf: &mut Buffer, area: Rect, x: u16, lit: bool) {
 }
 
 /// Paint the proportional scroll thumb over `panel`'s right border while its
-/// listing overflows. Called from `render` AFTER both panels and the divider
+/// listing overflows: the border's own line, heavy (`┃`) for the thumb's
+/// run. A full `█` block stood on the frame like a brick — the pane cards'
+/// thumbs are a slim bar ON the border, and this is the same idea in a
+/// glyph the renderer draws crisp. Called from `render` AFTER both panels and the divider
 /// are drawn, since the left panel's border is the shared middle column.
 pub(crate) fn scroll_thumb(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
     let inner_h = area.height.saturating_sub(2) as usize; // minus top/bottom border
@@ -75,7 +78,7 @@ pub(crate) fn scroll_thumb(buf: &mut Buffer, area: Rect, panel: &Panel, active: 
     let x = area.x + area.width - 1;
     for i in 0..len {
         if let Some(cell) = buf.cell_mut((x, area.y + 1 + (top + i) as u16)) {
-            cell.set_symbol("\u{2588}"); // █
+            cell.set_symbol("\u{2503}"); // ┃
             cell.set_fg(edge);
         }
     }
