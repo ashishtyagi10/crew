@@ -164,3 +164,21 @@ fn closeall_counts_one_pane_in_the_singular() {
     assert_eq!(app.panes.len(), 0);
     assert!(status(&app).contains("closed 1 pane"), "{}", status(&app));
 }
+
+/// The palette offers `/close all` and `/close others`, and the question
+/// says to run THAT again — running it again closes. It used to disarm
+/// itself (only `/closeall` and `/only` counted) and ask forever.
+#[test]
+fn the_spelling_the_palette_offers_confirms() {
+    let mut app = CrewApp::default();
+    app.panes.push(far_pane("a"));
+    app.panes.push(far_pane("b"));
+    app.run_slash_command("close others");
+    let ask = app.status.as_ref().map(|s| s.0.clone()).unwrap_or_default();
+    assert!(ask.contains("/close others again"), "{ask}");
+    app.run_slash_command("close others");
+    assert_eq!(app.panes.len(), 1, "the second /close others closes");
+    app.run_slash_command("close all");
+    app.run_slash_command("close all");
+    assert_eq!(app.panes.len(), 0, "and so does /close all");
+}

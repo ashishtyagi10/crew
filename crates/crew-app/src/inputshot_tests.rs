@@ -166,7 +166,7 @@ fn input_shot_states() {
         (
             "input-pending",
             bar("", "/Users/me/code/crew"),
-            Some("close all 4 panes? /closeall again"),
+            Some("close all 4 panes? /close all again"),
             None,
             Some("zsh"),
         ),

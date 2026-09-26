@@ -60,10 +60,10 @@ fn the_question_stands_as_long_as_the_answer_does() {
     assert!(p.question(now).is_none(), "nothing asked, nothing shown");
 
     p.answered("closeall", now);
-    p.asking("close all 4 panes? /closeall again");
+    p.asking("close all 4 panes? /close all again");
     // Five seconds in — past the status flash, still inside the window.
     let mid = now + Duration::from_secs(5);
-    assert_eq!(p.question(mid), Some("close all 4 panes? /closeall again"));
+    assert_eq!(p.question(mid), Some("close all 4 panes? /close all again"));
     // …and it is still answerable at that moment, which is the point.
     let mut q = Pending::default();
     q.answered("closeall", now);
@@ -81,7 +81,7 @@ fn answering_clears_the_question() {
     let mut p = Pending::default();
     let now = Instant::now();
     p.answered("only", now);
-    p.asking("close the other 3 panes? /only again");
+    p.asking("close the other 3 panes? /close others again");
     assert!(p.question(now).is_some());
     assert!(p.answered("only", now));
     assert!(p.question(now).is_none());

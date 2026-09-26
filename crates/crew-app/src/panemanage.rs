@@ -64,8 +64,8 @@ impl CrewApp {
     pub(crate) fn close_other_panes(&mut self) {
         let others = self.panes.len().saturating_sub(1);
         if others > 0 && !self.pending.answered("only", std::time::Instant::now()) {
-            let s = if others == 1 { "" } else { "s" };
-            let ask = format!("close the other {others} pane{s}? /only again");
+            let panes = crate::wording::count(others, "pane");
+            let ask = format!("close the other {panes}? /close others again");
             self.pending.asking(&ask);
             self.set_status(ask);
             return;
@@ -102,7 +102,7 @@ impl CrewApp {
         // agent with it, and `/closeall` is one fuzzy keystroke from `/clear`.
         if !self.pending.answered("closeall", std::time::Instant::now()) {
             let ask = format!(
-                "close all {}? /closeall again",
+                "close all {}? /close all again",
                 crate::wording::count(n, "pane")
             );
             self.pending.asking(&ask);
