@@ -68,7 +68,7 @@ fn block(cols: u16, connected: bool, agents: &[AgentInfo], avail: usize) -> Vec<
     let muted = |s: String| (s, t.text_muted, false);
     if !connected {
         return vec![muted(
-            "\u{25cb} connecting to the crew broker\u{2026}".to_string(),
+            "\u{25cb} connecting to the agents\u{2026}".to_string(),
         )];
     }
     if agents.is_empty() {

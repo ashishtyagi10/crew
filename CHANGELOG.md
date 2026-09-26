@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.4
+
+**The window title uses the pane's name.** With agent smith focused, the
+macOS window title (the menu bar, Mission Control, ⌘Tab previews) said
+`Chat — Crew`, a name agent smith's own title never uses. A pane with a
+name, such as agent smith or one you've named with `/name`, now puts that
+name in the window title: `agent smith — Crew`. Unnamed panes keep their
+kind (`Far — Crew`), and terminals keep the running program's title. An
+agent pane that is still starting now says `connecting to the agents…`
+instead of `connecting to the crew broker…`, which named an internal part
+of crew.
+
 ## 0.24.3
 
 **Minimizing a pane tells you where it went.** Minimizing a pane showed
