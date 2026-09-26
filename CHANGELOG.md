@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.99
+
+**Working aliases aren't treated as typos.** `/help` (the same as `/keys`),
+`/crew` (the same as `/smith`), `/shell` and `/run` all work, but none has
+its own palette row. The input bar coloured them as unknown commands, and
+typing `/help` made the palette say `no command matches "/help" · /help`,
+pointing back at itself. The bar now recognises them like any other command
+and the palette shows no error for them. For a genuine typo, the message now
+ends `· clear it to see them all`, since `/help` opens the keyboard shortcuts
+rather than a list of commands.
+
 ## 0.23.98
 
 **/find all waits for what to search.** Choosing `/find all` in the palette

@@ -128,3 +128,12 @@ fn find_all_waits_for_its_words() {
     assert!(nested("/find", "all"));
     assert_eq!(fill("/find", "all"), "/find all ");
 }
+
+/// The aliases the dispatcher runs are answered names: the bar must not ink
+/// `/help` or `/crew` as a typo while they work.
+#[test]
+fn the_aliases_that_run_are_answered() {
+    for name in ["/help", "/crew", "/shell", "/run"] {
+        assert!(crate::cmddefs::answered(name), "{name}");
+    }
+}
