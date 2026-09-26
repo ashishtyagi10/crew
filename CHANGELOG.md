@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.91
+
+**A narrow nav's system bars are drawn.** When the nav is too narrow for
+the three dials, SYSTEM falls back to one bar each for CPU, MEM and DISK.
+Those bars were rows of `█`/`░` characters, and three rows of solid blocks
+stacked directly on top of each other merged into one white `L` shape.
+They are now drawn as separate rounded meters like the SERVING card's
+5h/7d meters and the rail's C/M/D, each in its load colour (accent, amber
+above 70%, red above 90%), with the label and percentage unchanged.
+
 ## 0.23.90
 
 **Narrow /todo rows keep who and which project.** On a pane too narrow to

@@ -161,9 +161,13 @@ pub(crate) fn render_stats(stats: Stats, cols: u16, rows: u16, peak: Option<u64>
         if row >= rows {
             break;
         }
+        // The bar itself is drawn (`gaugebars`): its glyphs are left blank.
         for mut g in gauge_cells(label, frac, 0, inner) {
             g.col += cstart;
             g.row = row;
+            if g.c == '\u{2588}' || g.c == '\u{2591}' {
+                g.c = ' ';
+            }
             out.push(g);
         }
     }
