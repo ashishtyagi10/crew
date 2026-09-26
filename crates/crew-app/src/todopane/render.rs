@@ -272,7 +272,18 @@ pub(crate) fn row_cells(
                 right = place_right(out, &lbl, right, chip_row, t.text_muted, false);
             }
         } else if let Some(due) = it.due_ms {
-            let lbl = duedate::label(due, it.due_has_time, now_ms);
+            // Stacked, the chips share this line from the left: the due
+            // gives up words before it pushes them off (`duetext::fit_label`).
+            let chips: usize = match stack {
+                true => p
+                    .live_chips(it)
+                    .iter()
+                    .map(|c| crate::chatwidth::str_w(c) + 2)
+                    .sum(),
+                false => 0,
+            };
+            let room = usize::from(right.saturating_sub(TITLE_COL)).saturating_sub(chips + 1);
+            let lbl = duedate::fit_label(due, it.due_has_time, now_ms, room);
             let overdue = due <= now_ms;
             let today = duedate::days_from_now(due, now_ms) == Some(0);
             let fg = if overdue {

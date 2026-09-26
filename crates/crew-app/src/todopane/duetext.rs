@@ -92,6 +92,29 @@ pub(crate) fn label_naive(due: NaiveDateTime, has_time: bool, now: NaiveDateTime
     }
 }
 
+/// [`label`] in at most `room` columns: whole if it fits, then without its
+/// relative word (`sep 25 21:15` — the date is what a board must name),
+/// then without the time. For the stacked row, where the due shares its
+/// line with the `#who @project` chips and was crowding them off it.
+pub(crate) fn fit_label(due_ms: u64, has_time: bool, now_ms: u64, room: usize) -> String {
+    let full = label(due_ms, has_time, now_ms);
+    let relative = |w: &str| ["today", "tomorrow", "yesterday"].contains(&w) || DAYS.contains(&w);
+    let dated = match full.split_once(' ') {
+        Some((w, rest)) if relative(w) => rest.to_string(),
+        _ => full.clone(),
+    };
+    let bare = match has_time {
+        true => dated
+            .rsplit_once(' ')
+            .map_or(dated.clone(), |(d, _)| d.to_string()),
+        false => dated.clone(),
+    };
+    [full, dated, bare.clone()]
+        .into_iter()
+        .find(|l| l.chars().count() <= room)
+        .unwrap_or(bare)
+}
+
 /// Day-header label for the done-history view: `today` / `yesterday`, else
 /// `aug 10` — with the year appended when it isn't this year.
 pub(crate) fn day_label_naive(d: NaiveDate, today: NaiveDate) -> String {
@@ -133,3 +156,7 @@ pub(crate) fn edit_text(due_ms: u64, has_time: bool) -> Option<String> {
 #[cfg(test)]
 #[path = "duelabel_tests.rs"]
 mod duelabel_tests;
+
+#[cfg(test)]
+#[path = "stackdue_tests.rs"]
+mod stack_tests;
