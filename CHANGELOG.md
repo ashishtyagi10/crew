@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.79
+
+**Token counts go up to M.** The chat footer, per-reply usage lines and the
+swarm line wrote token counts only as thousands, so a long session showed
+`4123.5k in / 612.0k out` while `/usage` next to it said `4.1M in`. Counts
+now switch to `M` at a million (and `G` at a billion) with one decimal, like
+the `k` counts: `4.1M in / 612.0k out`. A count just under a million shows
+as `1.0M` rather than `1000.0k`.
+
 ## 0.23.78
 
 **/disk's header uses the same separator as the rest.** The `/disk` header
