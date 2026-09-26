@@ -111,10 +111,10 @@ impl CrewApp {
         match arg {
             "" => {
                 let state = if self.config.notify { "on" } else { "off" };
+                let patterns = crate::wording::count(self.config.notify_patterns.len(), "pattern");
+                let recent = self.notifier.len();
                 self.set_status(format!(
-                    "notifications {state} · {} pattern(s) · {} recent",
-                    self.config.notify_patterns.len(),
-                    self.notifier.len()
+                    "notifications {state} · {patterns} · {recent} recent"
                 ));
             }
             "on" => {

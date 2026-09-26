@@ -10,6 +10,12 @@ pub(crate) fn count(n: usize, one: &str) -> String {
     format!("{n} {one}{}", if n == 1 { "" } else { "s" })
 }
 
+/// `copied 1 line{tail}` / `copied 12 lines{tail}` — the copy confirmations,
+/// which said `copied 1 lines`.
+pub(crate) fn copied(lines: usize, tail: &str) -> String {
+    format!("copied {}{tail}", count(lines, "line"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::count;
@@ -19,5 +25,14 @@ mod tests {
         assert_eq!(count(1, "pane"), "1 pane");
         assert_eq!(count(0, "pane"), "0 panes");
         assert_eq!(count(2, "message"), "2 messages");
+    }
+
+    #[test]
+    fn a_copy_of_one_line_is_one_line() {
+        assert_eq!(super::copied(1, ""), "copied 1 line");
+        assert_eq!(
+            super::copied(12, " (scrollback)"),
+            "copied 12 lines (scrollback)"
+        );
     }
 }

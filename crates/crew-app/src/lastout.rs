@@ -112,7 +112,7 @@ impl CrewApp {
         self.open_view(&path.to_string_lossy());
         self.name_last_view(&format!("out \u{b7} {name}"));
         self.mark_last_view_ephemeral(before);
-        self.set_status(format!("{name}: {lines} lines"));
+        self.set_status(format!("{name}: {}", crate::wording::count(lines, "line")));
     }
 
     /// `0:cargo · 1:ls · 2:git` — what this pane has run lately, newest

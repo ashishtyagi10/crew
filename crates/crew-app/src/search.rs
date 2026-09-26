@@ -88,7 +88,7 @@ impl CrewApp {
             }
         }
         if n > 0 {
-            self.set_status(format!("cleared {n} panes"));
+            self.set_status(format!("cleared {}", crate::wording::count(n, "pane")));
         } else {
             self.set_status("nothing to clear");
         }
