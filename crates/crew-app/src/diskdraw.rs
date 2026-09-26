@@ -31,7 +31,9 @@ impl DiskPane {
             ),
             false => format!("{} in {} entries", bytes(self.total), self.children.len()),
         };
-        let sep = "  \u{2014}  ";
+        // `·`, like every other header in crew (`/dash`, the NET rule, the
+        // goal HUD); an em-dash here was the one reading that said it differently.
+        let sep = "  \u{b7}  ";
         let reading_w = crate::chatwidth::str_w(&reading) as u16;
         let path_room = (cols.saturating_sub(2))
             .checked_sub(reading_w + sep.chars().count() as u16)

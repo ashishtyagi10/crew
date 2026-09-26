@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.23.78
+
+**/disk's header uses the same separator as the rest.** The `/disk` header
+put an em dash between the folder path and its size
+(`~/code/crew  —  5.5G in 8 entries`), while every other heading in crew,
+such as `/dash`, the nav's section titles and the `/goal` summary, uses a
+middle dot. It now reads `~/code/crew  ·  5.5G in 8 entries`.
+
 ## 0.23.77
 
 **The /goal summary leaves out its zeros.** The summary line at the top of a
