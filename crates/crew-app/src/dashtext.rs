@@ -27,10 +27,20 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
     // puts the CPU curve beside them, so they spread inside that width
     // rather than across the whole pane.
     out.extend(crate::sysdials::DASH.cells(d.sampler.stats(), ring_w(cols), SYS_TOP));
-    if cols > ring_w(cols) + 12 {
+    // The span the curve actually draws — one sample a second, as many as
+    // its width holds — not the history's capacity: `CPU · 4 min` sat over
+    // eighty seconds of curve on a half tile, and over no curve at all on a
+    // dash just opened.
+    let drawn = d
+        .cpu
+        .len()
+        .min(usize::from(cols.saturating_sub(ring_w(cols) + 2)) * 2);
+    if cols > ring_w(cols) + 12 && drawn > 1 {
+        let span = crate::runclock::ladder(drawn as u64);
+        let label = format!("CPU \u{00b7} {span}");
         put(
             &mut out,
-            "CPU \u{00b7} 4 min",
+            &label,
             ring_w(cols) + 1,
             SYS_TOP,
             t.text_muted,
@@ -110,3 +120,7 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
     }
     out
 }
+
+#[cfg(test)]
+#[path = "dashlabel_tests.rs"]
+mod label_tests;

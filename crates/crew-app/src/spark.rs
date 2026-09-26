@@ -31,6 +31,11 @@ impl History {
         self.data.push_back(v);
     }
 
+    /// Samples held (at most the capacity).
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
