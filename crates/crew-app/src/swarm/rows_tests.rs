@@ -17,6 +17,22 @@ fn the_hud_drops_its_cost_before_it_cuts_a_number() {
     assert!(hud_text(12, 345, 6, 0, 6).ends_with('\u{2026}'));
 }
 
+/// A zero is not said — except `done`, when it is all there is to say.
+#[test]
+fn the_hud_leaves_out_its_zeros() {
+    assert_eq!(
+        hud_text(2, 3, 0, 0, 60),
+        " 2 live \u{b7} 3 done \u{b7} $0.00"
+    );
+    assert_eq!(
+        hud_text(0, 4, 1, 0, 60),
+        " 4 done \u{b7} 1 failed \u{b7} $0.00"
+    );
+    assert_eq!(hud_text(1, 0, 0, 0, 60), " 1 live \u{b7} $0.00");
+    assert_eq!(hud_text(0, 0, 0, 0, 60), " 0 done \u{b7} $0.00");
+    assert_eq!(hud_text(2, 3, 0, 0, 10), " \u{25cf}2 \u{2713}3");
+}
+
 #[test]
 fn a_task_row_marks_its_cut_and_loses_the_tail_before_it_loses_sense() {
     let (title, tail) = task_row("bench the atlas", "error: atlas overflow", 60);
