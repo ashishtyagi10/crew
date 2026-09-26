@@ -434,7 +434,7 @@ fn palette_rows_carry_their_marks_and_their_chord() {
         .find(|i| i.label == "/clear")
         .expect("/clear is in the palette");
     assert_eq!(row.hit, vec![1, 2, 3, 4, 5]);
-    assert_eq!(row.key, Some("Cmd+K"));
+    assert_eq!(row.key, Some(crate::chordglyph::shown("Cmd+K")));
     let plain = items
         .iter()
         .find(|i| i.label != "/clear" && i.key.is_none())

@@ -10,6 +10,7 @@
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 
+use crate::chatwidth::str_w;
 use crate::suggest::MenuItem;
 
 /// Gap between the label column and the descriptions.
@@ -38,7 +39,7 @@ pub(crate) fn content_w(items: &[MenuItem]) -> usize {
     let label_w = label_col(items, usize::MAX);
     let swatch = swatch_col(items);
     let row = |i: &MenuItem| {
-        let key = i.key.map_or(0, |k| GAP + k.len());
+        let key = i.key.map_or(0, |k| GAP + str_w(k));
         let label = i.label.chars().count();
         if i.header || i.desc.is_empty() {
             return 2 + label + key;
@@ -139,11 +140,11 @@ pub(crate) fn spans(
     // already read; the description is what the row is FOR, so a chord never
     // squeezes it below something readable.
     let need = |k: &str| match item.desc.is_empty() {
-        true => k.len() + GAP,
-        false => k.len() + GAP + MIN_DESC,
+        true => str_w(k) + GAP,
+        false => str_w(k) + GAP + MIN_DESC,
     };
     let key = item.key.filter(|k| room >= need(k));
-    let desc_w = room.saturating_sub(key.map_or(0, |k| k.len() + GAP));
+    let desc_w = room.saturating_sub(key.map_or(0, |k| str_w(k) + GAP));
     if desc_w > 0 && !item.desc.is_empty() {
         out.push(Span::raw(" ".repeat(desc_col - col)));
         // Ellipsized, not cut: "Write the frame's cells to a fi" reads as a
@@ -154,7 +155,7 @@ pub(crate) fn spans(
         out.push(Span::styled(desc, Style::new().fg(dim)));
     }
     if let Some(k) = key {
-        out.push(Span::raw(" ".repeat(avail - col - k.len())));
+        out.push(Span::raw(" ".repeat(avail - col - str_w(k))));
         out.push(Span::styled(k.to_string(), Style::new().fg(dim)));
     }
     Line::from(out)

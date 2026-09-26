@@ -168,7 +168,7 @@ pub(crate) fn menu_items_in(text: &str, cwd: &std::path::Path) -> Vec<MenuItem> 
                 },
                 submit: !exp,
                 hit: hit_positions(c.name, &text[1..].to_lowercase()),
-                key: crate::cmdkeys::key_for(c.name),
+                key: crate::cmdkeys::key_for(c.name).map(crate::chordglyph::shown),
                 ..Default::default()
             }
         })

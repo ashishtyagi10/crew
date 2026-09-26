@@ -77,7 +77,7 @@ pub(crate) fn widest_key() -> usize {
     logical()
         .iter()
         .filter(|(k, _)| !k.is_empty())
-        .map(|(k, _)| str_w(k))
+        .map(|(k, _)| str_w(crate::chordglyph::shown(k)))
         .max()
         .unwrap_or(KEY_COL)
 }
@@ -148,6 +148,7 @@ pub(crate) fn rows_for(needle: &str, cols: u16, mine: Option<&str>) -> Vec<Row> 
             ("", "") => out.push(Row::Spacer),
             ("", head) => out.push(Row::Head(head, Some(head) == mine)),
             (k, d) => {
+                let k = crate::chordglyph::shown(k);
                 // A key wider than the column takes its row alone and its
                 // description starts under the column on the next, the way
                 // a man page lays out a long flag: overrunning, it pushed
