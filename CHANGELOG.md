@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.43
+
+**The nav's older load averages are readable on light themes.** LOAD shows
+the 1-minute average in the load colour and the 5- and 15-minute ones pulled
+back toward the page. They were pulled back as far as a 3:1 contrast, which
+measured about 3.1:1 on the light themes, too faint for numbers. They now
+stop at the text-contrast floor. On a light page that leaves no room below
+the 1-minute figure's own colour, so there all three share a colour, and the
+1-minute figure is drawn bold to keep it first. A test checks, on every
+theme, that the older figures stay readable and never outrank the current
+one.
+
 ## 0.24.42
 
 **An idle network chart says "no traffic".** When a machine is barely using

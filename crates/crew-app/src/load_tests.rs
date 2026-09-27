@@ -101,7 +101,35 @@ fn only_the_one_minute_figure_carries_the_load_colour() {
     let cells = load_cells(9.0, 8.0, 7.0, 4.0, 26); // oversubscribed: red
     let at = |col: u16| cells.iter().find(|c| c.row == 1 && c.col == col);
     assert_eq!(at(3).map(|c| c.fg), Some(red()));
-    let past = crew_theme::readable::secondary(red(), t.page_bg);
+    let past = super::history_ink(red(), t.page_bg);
     assert_eq!(at(9).map(|c| c.fg), Some(past), "the 5-minute steps back");
     assert_ne!(past, red(), "and on this page that is a real difference");
+    assert!(
+        at(3).is_some_and(|c| c.bold) && !at(9).is_some_and(|c| c.bold),
+        "weight ranks too"
+    );
+}
+
+/// On every page the history is still TEXT: at least the text floor, and
+/// never louder than the 1-minute figure beside it.
+#[test]
+fn the_history_is_readable_on_every_page_and_never_outranks_now() {
+    let _g = crate::app::theme_test_guard();
+    let floor = crew_theme::contrast::text_floor();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let page = crew_theme::theme().page_bg;
+        for fg in [crate::palette::accent(), amber(), red()] {
+            let past = super::history_ink(fg, page);
+            let (p, f) = (
+                crew_theme::contrast_ratio(past, page),
+                crew_theme::contrast_ratio(fg, page),
+            );
+            assert!(p <= f + 1e-3, "{id:?}: history {p:.2} outranks now {f:.2}");
+            assert!(
+                p >= floor.min(f) - 0.05,
+                "{id:?}: history {p:.2} under the floor"
+            );
+        }
+    }
 }
