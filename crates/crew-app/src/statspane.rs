@@ -158,7 +158,7 @@ impl StatsPane {
         // Indented under the section legend like the gauges above it, one
         // column of air kept on the right.
         let (col0, width) = (3u16, cols.saturating_sub(4));
-        if width == 0 || rows < row0 + CHART_ROWS || self.cpu_hist.is_empty() {
+        if width == 0 || rows < row0 + CHART_ROWS {
             return Vec::new();
         }
         let span = width as usize * 2;
@@ -176,7 +176,7 @@ impl StatsPane {
         crate::plot::area::draw(&mut c, (0.0, 0.0, w, h), &samples, crate::palette::accent());
         // The line the curve stands on. Without it a flat trace and an empty
         // block look the same, and the section ends in what reads as a gap.
-        c.hairline(0.0, h, w, crew_theme::theme().border_normal, 0.7);
+        crate::nettwin::baseline(&mut c, h, w, samples.is_empty());
         c.paint()
             .into_iter()
             .map(|p| p.shifted(f32::from(col0), f32::from(row0)))

@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.46
+
+**The nav's CPU chart shows its baseline before the first sample.** Until
+crew had a first CPU reading, which is what the welcome screen shows, the
+chart under the SYSTEM dials drew nothing, leaving a two-row gap before
+LOAD. It now draws a dotted baseline, the same mark the NET chart uses for
+"nothing measured yet". Once readings arrive, the curve and its solid
+baseline take over as before.
+
 ## 0.24.45
 
 **No stray dot before a scrolled-back pane's command name.** Scrolled back
