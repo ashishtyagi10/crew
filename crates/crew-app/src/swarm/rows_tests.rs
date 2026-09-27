@@ -38,18 +38,21 @@ fn a_task_row_marks_its_cut_and_loses_the_tail_before_it_loses_sense() {
     let (title, tail) = task_row("bench the atlas", "error: atlas overflow", 60);
     assert_eq!(title, "bench the atlas");
     assert_eq!(tail, " \u{2014} error: atlas overflow");
-    // 32 columns: title whole, tail cut with the mark (was `error: atla`).
+    // 32 columns: title whole, tail cut on a word with the mark (was
+    // `error: atla`, then `error: atl…` — half a word either way).
     let (title, tail) = task_row("bench the atlas", "error: atlas overflow", 32);
     assert_eq!(title, "bench the atlas");
-    assert_eq!(tail, " \u{2014} error: atl\u{2026}");
-    assert_eq!(str_w(&title) + str_w(&tail), 29);
+    assert_eq!(tail, " \u{2014} error\u{2026}");
+    // 36: room for the word the cut used to halve.
+    let (_, tail) = task_row("bench the atlas", "error: atlas overflow", 36);
+    assert_eq!(tail, " \u{2014} error: atlas\u{2026}");
     // 22 columns: four columns left after the title — no word fits, so no tail.
     let (title, tail) = task_row("bench the atlas", "error: atlas overflow", 22);
     assert_eq!(title, "bench the atlas");
     assert_eq!(tail, "");
-    // 12 columns: the title itself is cut, and says so.
+    // 12 columns: the title itself is cut, on a word, and says so.
     let (title, tail) = task_row("bench the atlas", "error", 12);
-    assert_eq!(title, "bench th\u{2026}");
+    assert_eq!(title, "bench\u{2026}");
     assert_eq!(tail, "");
 }
 
