@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.49
+
+**The Windows build is green again.** Since 0.24.41 the Windows CI check
+failed: the hint scanner's old row-by-row entry point was now called only by
+tests, and that job treats the resulting "never used" warning as an error.
+It's now compiled only for tests. A type that clippy flagged in the
+renderer's background runs is also named. The release gate now fails on any
+compiler warning, so a warning can't reach the Windows job again.
+
 ## 0.24.48
 
 **A swarm's status line only shows "…" when the title is cut.** The live

@@ -29,10 +29,13 @@ pub(crate) struct Run {
     pub mark: bool,
 }
 
+/// One grid cell's background and whether it is a [`CellView::mark`].
+type Paintable = Option<((u8, u8, u8), bool)>;
+
 /// The runs `cells` paint on a `cols`×`rows` grid, skipping `page` (the
 /// default background, which draws nothing).
 pub(crate) fn runs(cells: &[CellView], cols: usize, rows: usize, page: (u8, u8, u8)) -> Vec<Run> {
-    let mut grid: Vec<Option<((u8, u8, u8), bool)>> = vec![None; cols * rows];
+    let mut grid: Vec<Paintable> = vec![None; cols * rows];
     for c in cells.iter().filter(|c| c.bg != page) {
         let (row, col) = (usize::from(c.row), usize::from(c.col));
         let wide = match UnicodeWidthChar::width(c.c) {
