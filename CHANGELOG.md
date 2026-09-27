@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.14
+
+**The README names the commands the palette shows.** Its slash-command list
+still had `/findall <text>`, which the same README says was replaced by
+`/find all <text>` a few paragraphs later. It also led with `/crew`, which is
+now only a hidden alias for `/smith`, and listed `/md` where the palette
+shows `/doc`. The list now reads `/smith` (alias `/crew`), `/doc <file>`,
+`/find [all] <text>`. The multi-agent section is headed `/smith`, a broken
+link into docs/CREW.md points at the heading's current anchor, and
+docs/CREW.md's search section says `/find all`.
+
 ## 0.24.13
 
 **agent smith stops pointing at retired commands.** Asking for a fan-out or

@@ -240,7 +240,7 @@ spelling, and typing `cmd` or `shift` still filters the list.
 | Focus the input bar | **Cmd+I** |
 | Recall a line you typed before | **↑** / **↓** — filtered by what is already in the bar; the top border says `hist 2/5 · git` |
 | New shell pane | **Cmd+T** |
-| Reopen last session's panes (shells, Far, /crew) | `/restore` |
+| Reopen last session's panes (shells, Far, agent smith) | `/restore` |
 | Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | Toggle the nav | **Cmd+G** |
@@ -279,7 +279,7 @@ prefixes make the bar explicit: **`!<cmd>`** always runs the command in a new
 pane, **`*<text>`** broadcasts one line to every terminal pane, and
 **`?<plain english>`** asks the AI for a command (à la Warp AI / Copilot CLI)
 — the suggestion lands back in the input bar, ready to edit or Enter, powered
-by the same provider stack as `/crew` (DashScope / OpenRouter / Anthropic, or
+by the same provider stack as agent smith (DashScope / OpenRouter / Anthropic, or
 a direct OpenAI / Gemini / DeepSeek / NVIDIA key — a free
 [build.nvidia.com](https://build.nvidia.com) key is the no-cost first run — see
 [docs/CREW.md](docs/CREW.md#models--rate-limits)).
@@ -288,9 +288,9 @@ recent output and opens its explanation in the zoomed file viewer, rendered
 as markdown — `??why did this fail` after a broken build gets you a
 formatted post-mortem.
 
-Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`
-(`/smith`), `/goal <text>`, `/batch <file>`, `/view <file>`, `/md <file>`,
-`/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/errors`,
+Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
+(alias `/crew`), `/goal <text>`, `/batch <file>`, `/view <file>`, `/doc <file>`,
+`/diff`, `/settings`, `/find [all] <text>`, `/errors`,
 `/out`, `/marks`, `/name <text>`, `/pin`, `/clear`, `/close`,
 `/copy`, `/dump`, `/reopen`,
 `/restore`, `/blame`, `/lsp`, `/pwd`, `/about`, `/log`, `/nav`,
@@ -513,9 +513,9 @@ cards, links):
   sub-cell paint layer, fitted to the pane and centred, decoded off the winit
   thread; transparent pixels let the page through.
 
-## Multi-agent panes (`/crew`)
+## Multi-agent panes (`/smith`)
 
-`/crew` opens a pane that lets independent CLI coding agents — **claude**,
+`/smith` (alias `/crew`) opens a pane that lets independent CLI coding agents — **claude**,
 **codex**, and **opencode** — message each other to work a task. On open, the
 pane probes which agent CLIs are installed and lists the ones it found (missing
 ones are skipped). Type a task and press Enter; prefix `@<agent>` to choose who
@@ -619,7 +619,7 @@ pane or the input bar) completes the loop with Codex-style change review.
 
 The pane is extensible the way other coding tools are — three drop-in
 surfaces, no rebuild, edits picked up live (`/reload` forces it; no restart
-needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew):
+needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-smith-alias-crew):
 
 - **Memory** — Claude Code-style `#` shortcut: `#always use pnpm` in the pane
   appends to `./.crew/memory.md`, and every task from then on carries the
@@ -654,7 +654,7 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew):
 - **Plugin agents** — a JSON manifest in `~/.config/crew/agents/` or
   `./.crew/agents/` (`{"name", "command", "args": […, "{}"], "role"}`) turns
   any headless CLI into a roster agent; installed manifests appear in
-  the roster and make `/crew` usable with **no API key at all**.
+  the roster and make agent smith usable with **no API key at all**.
 - **MCP** — servers declared in `~/.config/crew/mcp.json` or `./.crew/mcp.json`
   (the standard `mcpServers` schema) connect lazily over stdio; `/doctor`
   lists each server with its tools, relay prompts advertise them, and agents
@@ -697,7 +697,7 @@ constructor in `crates/crew-plugin/src/broker/agents.rs` and register it in
 
 ## Swarm orchestration (`crew-hive`)
 
-Beyond the `/crew` relay (a few CLI agents talking turn-by-turn), Crew includes a
+Beyond the agent smith relay (a few CLI agents talking turn-by-turn), Crew includes a
 full orchestration **engine**, the `crew-hive` crate — the substrate for running
 *many* agents toward one goal:
 
@@ -804,7 +804,7 @@ Crew is a Cargo workspace with six crates:
 | `crew-app` | Window, panes, input, in-pane UI |
 | `crew-render` | GPU rendering (`wgpu` + `glyphon`) |
 | `crew-term` | PTY + terminal grid (`alacritty_terminal` + `portable-pty`) |
-| `crew-plugin` | Chat / agent plugins (the `/crew` relay broker) |
+| `crew-plugin` | Chat / agent plugins (the agent smith relay broker) |
 | `crew-theme` | Theme presets + palette contracts (13 themes, rotation modes, contrast thresholds) |
 | `crew-hive` | Swarm orchestration engine (planner, scheduler, agents, blackboard, telemetry) |
 
