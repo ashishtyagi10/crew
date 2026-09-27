@@ -56,7 +56,14 @@ fn a_row_says_when_how_often_and_what_and_the_detail_says_where_and_since() {
     assert!(out.contains("2 standing"), "{out}");
     assert!(out.contains("/watching cancel <id>"), "{out}");
     let w1 = out.lines().find(|l| l.starts_with("w1")).expect("w1 row");
-    assert_eq!(w1, "w1   in 2h     daily       brief me on the calendar");
+    // Fitted to a tile: the task wraps inside its own column.
+    assert_eq!(w1, "w1   in 2h     daily       brief me on the");
+    let hang = out
+        .lines()
+        .skip_while(|l| !l.starts_with("w1"))
+        .nth(1)
+        .unwrap();
+    assert_eq!(hang, format!("{:27}calendar", ""));
     let detail = out
         .lines()
         .find(|l| l.contains("telegram:42"))
@@ -73,7 +80,8 @@ fn a_row_says_when_how_often_and_what_and_the_detail_says_where_and_since() {
         .skip_while(|l| !l.starts_with("w2"))
         .nth(1)
         .unwrap_or("");
-    assert_eq!(after_w2, "     standing 3d");
+    // …its words under the words of a `→ channel` detail, not two left.
+    assert_eq!(after_w2, "       standing 3d");
 }
 
 /// A cancel from the app is an append to the same log the daemon folds.
@@ -150,15 +158,22 @@ fn a_row_says_what_it_has_already_done() {
         &history,
         NOW,
     );
-    let detail = out.lines().find(|l| l.contains("telegram:42")).unwrap();
+    // Broken between parts, never inside one, the second line hanging
+    // under the first's words.
+    let lines: Vec<&str> = out.lines().collect();
+    let at = lines
+        .iter()
+        .position(|l| l.contains("telegram:42"))
+        .unwrap();
+    assert_eq!(lines[at], "     \u{2192} telegram:42 \u{b7} standing 3d");
     assert_eq!(
-        detail,
-        "     \u{2192} telegram:42 \u{b7} standing 3d \u{b7} fired 40\u{d7} \u{b7} last 22h ago \u{b7} 3 missed"
+        lines[at + 1],
+        "       fired 40\u{d7} \u{b7} last 22h ago \u{b7} 3 missed"
     );
     let w2 = out
         .lines()
         .skip_while(|l| !l.starts_with("w2"))
         .nth(1)
         .unwrap();
-    assert_eq!(w2, "     standing 3d", "never fired: nothing extra");
+    assert_eq!(w2, "       standing 3d", "never fired: nothing extra");
 }

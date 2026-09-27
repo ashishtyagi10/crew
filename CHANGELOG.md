@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.38
+
+**`/watching` keeps its columns in a tile.** Each row of the list was one
+long line, so in a tiled viewer a long task wrapped back to the first
+column, under the id ("brief me on the" / "↪ calendar"), and a detail line
+broke inside a part ("fired 40× ·" / "last 16h ago"). Rows are now laid out
+to a tile's width, as `/tools` and `/blocks` already are. A task wraps
+inside its own column, and a detail line breaks only between parts. A
+detail line with no "→ channel" in front now indents to line up with the
+others, where before it sat two columns to their left.
+
 ## 0.24.37
 
 **Weather icons are drawn at text size.** The nav's WEATHER card and the
