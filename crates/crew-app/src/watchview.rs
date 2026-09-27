@@ -37,10 +37,11 @@ pub(crate) fn listing(
     if intents.is_empty() {
         // A headline and ONE paragraph: the viewer wraps prose on words at
         // the pane's width, and a hint broken by hand at the tile's read as
-        // a ragged poem in a wide pane.
+        // a ragged poem in a wide pane. Plain text, so no backticks: the
+        // viewer prints them. The straight quotes are the shell's own.
         out.push_str(
-            "Nothing standing.\n`crew daemon at \"tomorrow 9am the forecast\"` sets one, \
-             and so does \u{201c}remind me \u{2026}\u{201d} said over a channel.\n",
+            "Nothing standing.\nRun crew daemon at \"tomorrow 9am the forecast\" in a shell \
+             to set one, or say \u{201c}remind me \u{2026}\u{201d} over a channel.\n",
         );
         return out;
     }

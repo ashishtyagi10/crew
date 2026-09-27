@@ -24,7 +24,10 @@ fn the_rows_are_numbered_the_way_out_counts_back() {
     assert!(rows[0].contains("ls"), "{rows:?}");
     assert!(rows[1].contains("cargo test"), "{rows:?}");
     assert!(rows[2].contains("cargo build"), "{rows:?}");
-    assert!(text.contains("/out <n>"), "the pairing is said out loud");
+    assert!(
+        text.contains("/out <n>") && !text.contains('`'),
+        "the pairing, said plainly"
+    );
 }
 
 /// A block with no reported status is `·`, not `✓`. Crew only knows how a

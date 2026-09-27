@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.22
+
+**The `/watching` and `/blocks` listings don't print raw backticks.** Both
+are plain-text pages in the viewer, which shows backticks as they are, so the
+empty `/watching` page read "`crew daemon at "tomorrow 9am the forecast"`
+sets one" and `/blocks` ended "the number is `/out <n>`: …". They now say
+"Run crew daemon at "tomorrow 9am the forecast" in a shell to set one, or
+say “remind me …” over a channel" and "/out <n> opens the output of command
+n, on its own." The straight quotes left in the first one are the shell
+command's own.
+
 ## 0.24.21
 
 **The cost chart states its peak once.** `/dash` and `/usage` headed the
