@@ -33,7 +33,11 @@ fn a_cut_title_keeps_a_column_of_air_before_its_count() {
     p.unread = 12;
     p.activity = true;
     let line = text(&[p], 21);
-    assert!(line.contains("\u{2026} 12 \u{25cf}"), "{line:?}");
+    // Cut on a word (`cargo…`, not `cargo wat…`), with air before the count.
+    assert!(
+        line.contains("cargo\u{2026} ") && line.ends_with(" 12 \u{25cf}"),
+        "{line:?}"
+    );
 }
 
 #[test]
@@ -41,7 +45,11 @@ fn a_cut_title_keeps_a_column_of_air_before_the_spinner_and_the_restore_button()
     let mut busy = row("claude \u{2014} crew session");
     busy.busy = true;
     let line = text(&[busy], 21);
-    assert!(line.ends_with("\u{2026} \u{280b}"), "{line:?}");
+    // `claude…`: the dash the word cut left hanging goes with it.
+    assert!(
+        line.contains("claude\u{2026} ") && line.ends_with(" \u{280b}"),
+        "{line:?}"
+    );
     let mut hidden = row("far ~/code/crew/crates");
     hidden.minimized = true;
     let line = text(&[hidden], 21);

@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.20
+
+**Pane names in the nav are cut on a word.** On a narrow nav, the PANES rows
+cut titles at a letter, which gave "claude —…" and "cargo wa…". They now cut
+on a word, the way the thumbnails, the welcome text and the glance cards
+already do: "claude…", "cargo…". A single long word, like a path, still cuts
+at a letter. Every word-boundary cut in crew (`clip_words`) now also drops a
+dash left hanging at the cut, so nothing ends in "—…".
+
 ## 0.24.19
 
 **Wrapped listings don't end a row on a stray `·`.** `/tools` and
