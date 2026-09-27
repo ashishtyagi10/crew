@@ -59,7 +59,7 @@ pub(crate) fn opaque_card(why: Opaque, meta: Option<&FileMeta>, cols: usize) -> 
         Opaque::Binary => "binary file — nothing to render".to_string(),
         Opaque::NotUtf8 => "not valid UTF-8 — nothing to render".to_string(),
         Opaque::NoExtractor(e) => format!("no extractor: install {}", e.install_hint()),
-        Opaque::Unreadable => "can't read this file — nothing to render".to_string(),
+        Opaque::Unreadable => "cannot read this file — nothing to render".to_string(),
     };
     let kind = match why {
         Opaque::Binary => "binary",

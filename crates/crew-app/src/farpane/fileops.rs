@@ -16,7 +16,7 @@ pub(crate) fn copy(p: &mut FarPane) -> FarAction {
         return FarAction::Status("nothing to copy".into());
     };
     if entry.is_parent {
-        return FarAction::Status("can't copy the ‘..’ entry".into());
+        return FarAction::Status("cannot copy the ‘..’ entry".into());
     }
     let name = entry.name.clone();
     let is_dir = entry.is_dir;
@@ -60,7 +60,7 @@ pub(crate) fn rename_move(p: &mut FarPane) -> FarAction {
         return FarAction::Status("nothing to move".into());
     };
     if entry.is_parent {
-        return FarAction::Status("can't move the ‘..’ entry".into());
+        return FarAction::Status("cannot move the ‘..’ entry".into());
     }
     let name = entry.name.clone();
     let is_dir = entry.is_dir;
@@ -114,7 +114,7 @@ pub(crate) fn delete(p: &mut FarPane) -> FarAction {
             return FarAction::Status("nothing to delete".into());
         };
         if entry.is_parent {
-            return FarAction::Status("can't delete the ‘..’ entry".into());
+            return FarAction::Status("cannot delete the ‘..’ entry".into());
         }
         let target = panel.loc.child(&entry.name);
         let is_dir = entry.is_dir;
@@ -131,7 +131,7 @@ pub(crate) fn delete(p: &mut FarPane) -> FarAction {
         return FarAction::Status("nothing to delete".into());
     };
     if entry.is_parent {
-        return FarAction::Status("can't delete the ‘..’ entry".into());
+        return FarAction::Status("cannot delete the ‘..’ entry".into());
     }
     let name = entry.name.clone();
     let Some(dir) = panel.loc.local_path() else {
@@ -141,7 +141,7 @@ pub(crate) fn delete(p: &mut FarPane) -> FarAction {
     match trash::delete(&path) {
         Ok(()) => {
             p.reload_both();
-            FarAction::Status(format!("deleted ‘{name}’ to trash"))
+            FarAction::Status(format!("moved ‘{name}’ to the trash"))
         }
         Err(e) => FarAction::Status(format!("delete failed: {e}")),
     }

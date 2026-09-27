@@ -325,7 +325,7 @@ fn an_unknown_theme_name_is_an_error_not_a_whisper() {
 
 /// The shells a Windows pane opens must actually be spawnable on the host —
 /// this is the regression that made the platform build but not run: every
-/// pane tried `/bin/sh`, failed, and reported "couldn't open shell".
+/// pane tried `/bin/sh`, failed, and reported "could not open a shell".
 /// Spawning them for real (rather than asserting a string) is the only form
 /// of this test that would have caught it.
 #[cfg(windows)]

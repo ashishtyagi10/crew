@@ -93,7 +93,7 @@ impl CrewApp {
                 self.apply_notify_patterns();
             }
             // Surface the failure in the UI — stderr is invisible in the GUI.
-            Err(e) => self.set_status(format!("couldn't open shell: {e}")),
+            Err(e) => self.set_status(format!("could not open a shell: {e}")),
         }
     }
 
@@ -155,7 +155,7 @@ impl CrewApp {
                 self.redraw();
             }
             // Surface the failure in the UI — stderr is invisible in the GUI.
-            Err(e) => self.set_status(format!("couldn't run {command}: {e}")),
+            Err(e) => self.set_status(format!("could not run {command}: {e}")),
         }
     }
 

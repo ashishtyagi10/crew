@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.15
+
+**Failures are worded the same way everywhere.** The status line said
+"couldn't open shell" next to fifteen "could not …" messages, and Far,
+the hint labels and the viewer said "can't …" where eleven others said
+"cannot …". All of them use the long form now. `??`'s save failure gets the
+colon before the reason that its six siblings have ("explain: cannot write:
+…"). Far's F8 says "moved ‘x’ to the trash", matching its own help, where it
+said "deleted ‘x’ to trash". The agent pane's `/theme` row says "colour",
+like the other sixteen places. A test keeps the contractions and the missing
+colon out.
+
 ## 0.24.14
 
 **The README names the commands the palette shows.** Its slash-command list

@@ -175,7 +175,7 @@ impl CrewApp {
                         self.open_view(&path.to_string_lossy());
                         self.mark_last_view_ephemeral(before);
                     }
-                    Err(e) => self.set_status(format!("explain: cannot write {e}")),
+                    Err(e) => self.set_status(format!("explain: cannot write: {e}")),
                 }
             }
             Err(e) => self.set_status(format!("ask failed: {e}")),

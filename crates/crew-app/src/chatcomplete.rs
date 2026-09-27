@@ -28,7 +28,7 @@ const PANE_WORDS: &[(&str, &str)] = &[
         "who serves: sign in, pick a provider or model (set one agent's: /model <agent> <model>)",
     ),
     ("/export", "export the transcript"),
-    ("/theme", "list or switch the color theme"),
+    ("/theme", "list or switch the colour theme"),
     ("/exit", "close this pane"),
 ];
 
