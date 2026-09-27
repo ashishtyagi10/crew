@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.29
+
+**`/disk` labels stay inside their own tile.** Treemap tiles have
+fractional edges, and each label was placed on the row containing the
+tile's top edge. When that edge fell partway through a row, the name's upper
+half sat on the tile above: `.git` straddled the `crates` tile. Labels now
+go on the tile's first whole row, and the size line under a name only draws
+when there's a second whole row for it. A tile with no whole row inside it
+gets no label, as a tile too narrow for its name already did.
+
 ## 0.24.28
 
 **A fan-out's replies hang from one trunk.** When several agents answer the

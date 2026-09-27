@@ -74,7 +74,12 @@ impl DiskPane {
             let Some(child) = self.children.get(tile.index) else {
                 continue;
             };
-            if tile.w < 5.0 || tile.h < 1.0 {
+            // The label sits on the tile's first WHOLE row: a fractional top
+            // floored put the name's upper half on the tile above (`.git`
+            // straddling `crates`). A tile with no whole row gets none.
+            let top = tile.y.ceil();
+            let whole = |n: f32| top + n <= tile.y + tile.h + 0.01;
+            if tile.w < 5.0 || !whole(1.0) {
                 continue;
             }
             // Ink chosen against the TILE, not against the page. It used to
@@ -97,16 +102,16 @@ impl DiskPane {
                 &mut out,
                 &name,
                 tile.x as u16 + 1,
-                tile.y as u16,
+                top as u16,
                 fg,
                 cols.saturating_sub(1),
             );
-            if tile.h >= 2.0 {
+            if whole(2.0) {
                 put(
                     &mut out,
                     &bytes(child.bytes),
                     tile.x as u16 + 1,
-                    tile.y as u16 + 1,
+                    top as u16 + 1,
                     fg,
                     cols.saturating_sub(1),
                 );
