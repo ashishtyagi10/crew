@@ -164,8 +164,19 @@ pub(super) fn lines(
     };
     let mut out = tablewrap::row_lines(&header, &widths, &aligns, true, cols);
     out.push(rule_line(&widths, cols));
-    for row in &rows {
-        out.extend(tablewrap::row_lines(row, &widths, &aligns, false, cols));
+    let body: Vec<Vec<MdLine>> = rows
+        .iter()
+        .map(|row| tablewrap::row_lines(row, &widths, &aligns, false, cols))
+        .collect();
+    // Once any row wraps, rows are set apart by an empty one (separators
+    // kept): continuation lines ran straight into the next row, and `the
+    // smallest / of the three` then `lua config,` read as one cell.
+    let tall = body.iter().any(|r| r.len() > 1);
+    for (i, r) in body.into_iter().enumerate() {
+        if tall && i > 0 {
+            out.push(row_line(&[], &widths, &aligns, false, cols));
+        }
+        out.extend(r);
     }
     out
 }

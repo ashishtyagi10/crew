@@ -48,8 +48,17 @@ fn a_wide_table_wraps_its_long_cell_onto_aligned_continuation_rows() {
         .iter()
         .take_while(|r| !r.contains("ghostty"))
         .map(|r| r.rsplit('\u{2502}').next().unwrap_or("").trim())
+        .filter(|t| !t.is_empty())
         .collect::<Vec<_>>()
         .join(" ");
+    // A wrapped row is set apart from the next by an empty one, separators
+    // kept, so its last continuation line cannot read as the next row's.
+    let at = body.iter().position(|r| r.contains("ghostty")).unwrap();
+    assert!(
+        body[at - 1].chars().all(|c| c == ' ' || c == '\u{2502}'),
+        "{rows:#?}"
+    );
+    assert_eq!(seps(body[at - 1]), seps(header));
     assert_eq!(
         notes,
         "a terminal whose markdown tables used to be cut off at the card edge"
