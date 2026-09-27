@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.13
+
+**agent smith stops pointing at retired commands.** Asking for a fan-out or
+a goal without saying what it's for answered `usage: /fan <task>` or
+`usage: /goal …`, but both slash forms are retired: typing either one tells
+you to just ask. Those replies now say what's missing, in the words that
+work: "say what every agent should take a crack at" and "say what must be
+true when it's done". Also: the context line says "skills a, b" when two
+skills are picked (it said "skill a, b"), and the longest no-provider
+sentence ends with a full stop like its two shorter forms.
+
 ## 0.24.12
 
 **The palette calls the nav the nav.** `/clear log` was described as "the

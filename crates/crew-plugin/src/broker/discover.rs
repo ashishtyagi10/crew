@@ -340,7 +340,7 @@ pub fn no_provider_forms() -> &'static [&'static str] {
         "free to start: get an NVIDIA key at build.nvidia.com (no card), open \
          /model and paste it at a Nemotron row — or sign in to claude, codex or \
          opencode and crew picks them up automatically, or add any provider key \
-         from the model picker (/model)",
+         from the model picker (/model).",
         "free to start: paste an NVIDIA key (build.nvidia.com, no card) into \
          /model, or sign in to claude or codex and crew picks it up.",
         "/model: sign in, or paste a key.",

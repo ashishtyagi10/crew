@@ -120,7 +120,11 @@ impl ContextLine {
             n => parts.push(format!("{n} notes")),
         }
         if !self.skills.is_empty() {
-            parts.push(format!("skill {}", self.skills.join(", ")));
+            parts.push(format!(
+                "{} {}",
+                plural(self.skills.len(), "skill"),
+                self.skills.join(", ")
+            ));
         }
         if self.tools > crate::broker::toolpick::BUDGET {
             parts.push(format!("{} tools", self.tools));

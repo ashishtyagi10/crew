@@ -32,7 +32,7 @@ fn each_part_appears_only_when_present_with_its_own_plural() {
     assert_eq!(with(|c| c.notes = 3).as_deref(), Some("context: 3 notes"));
     assert_eq!(
         with(|c| c.skills = vec!["a".into(), "b".into()]).as_deref(),
-        Some("context: skill a, b")
+        Some("context: skills a, b")
     );
     assert_eq!(with(|c| c.tools = 41).as_deref(), Some("context: 41 tools"));
     assert_eq!(
