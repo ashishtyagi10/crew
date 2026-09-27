@@ -122,6 +122,10 @@ impl TermModel for HeadlessTerm {
         self.core.last_line()
     }
 
+    fn wrapped_rows(&self) -> Vec<bool> {
+        self.core.wrapped_rows()
+    }
+
     fn resize(&mut self, size: GridSize) {
         self.core.resize(size);
     }

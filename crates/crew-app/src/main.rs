@@ -104,6 +104,7 @@ mod helpmark;
 #[cfg(test)]
 #[path = "helpsection_tests.rs"]
 mod helpsection_tests;
+mod hintscan;
 mod histhits;
 mod mentionexpand;
 mod oserr;

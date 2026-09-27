@@ -72,8 +72,8 @@ static MODE: Mutex<Option<Hints>> = Mutex::new(None);
 
 /// Label `pane`'s rows, if there is anything on them to label. Returns
 /// whether the mode opened.
-pub(crate) fn open(pane: usize, rows: &[Vec<char>]) -> bool {
-    let mut h = Hints::scan(rows);
+pub(crate) fn open(pane: usize, rows: &[Vec<char>], wraps: &[bool]) -> bool {
+    let mut h = Hints::scan_wrapped(rows, wraps);
     if let Some(h) = &mut h {
         h.pane = pane;
     }
@@ -128,30 +128,13 @@ impl Hints {
     /// label — a mode with no targets is worse than no mode, because it eats
     /// the next key you press.
     pub(crate) fn scan(rows: &[Vec<char>]) -> Option<Self> {
-        let mut found: Vec<(u16, u16, String, Kind)> = Vec::new();
-        for (r, line) in rows.iter().enumerate() {
-            let mut spans: Vec<(usize, usize, Kind)> = crate::openurl::url_spans(line)
-                .into_iter()
-                .map(|(a, b)| (a, b, Kind::Url))
-                .collect();
-            for (a, b) in crate::pathhl::path_spans(line) {
-                // A URL is also, textually, a path with slashes in it. It was
-                // found first and it is the more specific answer.
-                if !spans.iter().any(|&(x, y, _)| a < y && x < b) {
-                    spans.push((a, b, Kind::Path));
-                }
-            }
-            for (a, b) in hash_spans(line) {
-                if !spans.iter().any(|&(x, y, _)| a < y && x < b) {
-                    spans.push((a, b, Kind::Hash));
-                }
-            }
-            spans.sort_by_key(|&(a, _, _)| a);
-            for (a, b, kind) in spans {
-                let text: String = line[a..b].iter().collect();
-                found.push((r as u16, a as u16, text, kind));
-            }
-        }
+        Self::scan_wrapped(rows, &[])
+    }
+
+    /// [`Self::scan`] with each row's soft-wrap flag, so a path the pane broke
+    /// across rows is one target (`hintscan`).
+    pub(crate) fn scan_wrapped(rows: &[Vec<char>], wraps: &[bool]) -> Option<Self> {
+        let mut found = crate::hintscan::found(rows, wraps);
         if found.is_empty() {
             return None;
         }
@@ -228,7 +211,7 @@ impl Hints {
 }
 
 /// Spans of hex long enough to be an object id — a commit, a blob, a digest.
-fn hash_spans(chars: &[char]) -> Vec<(usize, usize)> {
+pub(crate) fn hash_spans(chars: &[char]) -> Vec<(usize, usize)> {
     let mut out = Vec::new();
     let mut i = 0;
     while i < chars.len() {

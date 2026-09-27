@@ -28,7 +28,12 @@ impl CrewApp {
         };
         let cells = pane.cells(true);
         let rows = crate::gridrows::grid_lines(&cells, pane.grid.cols, pane.grid.rows);
-        match crate::hints::open(i, &rows) {
+        // A path the terminal wrapped is one target, not two halves.
+        let wraps = match &pane.content {
+            crate::pane::PaneContent::Terminal(t) => crew_term::TermModel::wrapped_rows(&t.pty),
+            _ => Vec::new(),
+        };
+        match crate::hints::open(i, &rows, &wraps) {
             true => self.input.focused = false,
             false => self.set_status("nothing on this pane to reach"),
         }
