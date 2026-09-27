@@ -104,3 +104,17 @@ fn clip_words_drops_a_dangling_dash() {
     );
     assert_eq!(clip_words("build \u{2013} step two", 9), "build\u{2026}");
 }
+
+/// A cut right before a word's full stop kept the word: `FAILED…`, not
+/// `test result…` — the one word the glance existed to show.
+#[test]
+fn clip_words_keeps_a_word_ended_by_punctuation() {
+    use crate::chatwidth::clip_words;
+    assert_eq!(
+        clip_words("test result: FAILED. 1 failed", 20),
+        "test result: FAILED\u{2026}"
+    );
+    assert_eq!(clip_words("done, then more words", 5), "done\u{2026}");
+    // A stop inside a token is not a word's end.
+    assert_eq!(clip_words("version 3.5 is out now", 10), "version\u{2026}");
+}
