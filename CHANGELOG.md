@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.36
+
+**A pop-up no longer leaves half-lines beside it.** The command palette,
+Ctrl+R history, the attach and model pickers, Cmd+F and the key prompt sit
+above an agent pane's composer, over the start of the transcript rows
+behind them. The rest of those rows still showed to the right of the card,
+a line with its beginning covered: "ice-pixel canvas, and the gantt's
+now-rule…". While a pop-up is open, those rows are now blank from the card's
+edge to the pane's, so the transcript picks up whole above it. The
+transcript's glyphs are removed rather than covered with a page-coloured
+strip, so a frosted pane shows its own background there.
+
 ## 0.24.35
 
 **The token total fits inside the `/usage` donut.** The donut's hole was 4.4

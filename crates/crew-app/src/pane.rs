@@ -180,7 +180,7 @@ impl Pane {
     /// drawing would advance them twice a frame.
     pub fn art(&self, focused: bool, aspect: f32) -> (Vec<CellView>, Vec<crew_render::Paint>) {
         match &self.content {
-            PaneContent::Chat(c) => crate::chatview::art(c, self.grid.cols, self.grid.rows, aspect),
+            PaneContent::Chat(c) => crate::popupband::art(c, focused, self.grid, aspect),
             PaneContent::Swarm(sw) => (
                 sw.cells(self.grid.cols, self.grid.rows),
                 sw.paint(self.grid.cols, self.grid.rows, aspect),

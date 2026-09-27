@@ -107,6 +107,7 @@ mod helpsection_tests;
 mod histhits;
 mod mentionexpand;
 mod oserr;
+mod popupband;
 #[cfg(test)]
 #[path = "quotestyle_tests.rs"]
 mod quotestyle_tests;
