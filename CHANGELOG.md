@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.48
+
+**A swarm's status line only shows "…" when the title is cut.** The live
+line read "Review Project Overview… (0s · 1/3 · +1)" even though the title
+was complete, while everywhere else in crew "…" means text was cut. The
+spinner at the start of the line already says the run is going, so a whole
+title now reads "Review Project Overview (0s · 1/3 · +1)", and "…" appears
+only when a narrow pane cuts the title. "Working" before the first task
+starts loses its "…" too. The title's shimmer still finds the title in both
+cases.
+
 ## 0.24.47
 
 **A quiet day in the usage heatmap is a row of dots, not a gap.** `/dash`
