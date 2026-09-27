@@ -156,7 +156,7 @@ fn format_message(kind: NotifyKind, pane: &str, detail: &str) -> String {
         NotifyKind::AgentDone => format!("✓ {detail} finished in {pane}"),
         NotifyKind::Failed => format!("✗ {detail} failed in {pane}"),
         NotifyKind::Bell => format!("● bell in {pane}"),
-        NotifyKind::Pattern => format!("⚑ matched \"{detail}\" in {pane}"),
+        NotifyKind::Pattern => format!("⚑ matched \u{201c}{detail}\u{201d} in {pane}"),
         NotifyKind::Exited => format!("⊗ {pane} exited"),
         NotifyKind::Waiting => format!("⧗ {pane} is waiting for you"),
         // The program wrote the words; the pane says where they came from.

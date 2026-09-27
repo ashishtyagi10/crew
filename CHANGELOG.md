@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.8
+
+**What you typed comes back in one kind of quote.** Status lines quoted your
+words four ways: `'term'` for search and theme names, `"pattern"` for
+`/watch`, notifications and the `/keys` filter, and “x” for `/clear`,
+`/look` and `/tools`. They all use curly double quotes now — `no match for
+“needle”`, `unknown theme “modern-lite”`. A test scans the sources so a
+straight-quoted value can't slip back into the status line. Far's ‘file’
+names stay as they are: those quote a file name, not something you typed.
+
 ## 0.24.7
 
 **One is singular in four more places.** The `/disk` header said a folder

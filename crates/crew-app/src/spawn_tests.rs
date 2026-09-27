@@ -310,7 +310,7 @@ fn an_unknown_theme_name_is_an_error_not_a_whisper() {
     let last = app.log.last().expect("the miss is logged");
     assert_eq!(last.level, crate::applog::LogLevel::Error);
     assert!(
-        last.text.contains("unknown theme 'modern-lite'"),
+        last.text.contains("unknown theme “modern-lite”"),
         "{last:?}"
     );
     // …and it names the modes that DO exist, all four of them.

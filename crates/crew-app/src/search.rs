@@ -133,11 +133,11 @@ impl CrewApp {
         // scroll never showed); report the in-view match count, or a miss.
         if searched {
             if found {
-                let plural = if count == 1 { "" } else { "es" };
-                self.set_status(format!("{count} match{plural} for '{term}' in view"));
+                let n = crate::wording::count_as(count, "match", "matches");
+                self.set_status(format!("{n} for \u{201c}{term}\u{201d} in view"));
                 self.redraw();
             } else {
-                self.set_status(format!("no match for '{term}'"));
+                self.set_status(format!("no match for \u{201c}{term}\u{201d}"));
             }
         }
     }

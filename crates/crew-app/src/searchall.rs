@@ -162,7 +162,7 @@ impl CrewApp {
         }
         if hits.is_empty() {
             self.last_findall = None;
-            self.set_status(format!("no match for '{term}' in any pane"));
+            self.set_status(format!("no match for \u{201c}{term}\u{201d} in any pane"));
             return;
         }
         // Repeating the same term cycles: land on the matching pane AFTER
@@ -199,7 +199,7 @@ impl CrewApp {
             })
             .collect();
         self.set_status(format!(
-            "{total} match{} for '{term}' in {} pane{} ({})",
+            "{total} match{} for \u{201c}{term}\u{201d} in {} pane{} ({})",
             if total == 1 { "" } else { "es" },
             hits.len(),
             if hits.len() == 1 { "" } else { "s" },
