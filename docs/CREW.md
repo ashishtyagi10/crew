@@ -1900,12 +1900,12 @@ back to the most recent line containing the text (smart case: case-insensitive
 unless the term has an uppercase letter), **highlights every match** in the
 viewport with an amber wash, and reports the in-view match count on the status
 line (a miss reports too). Returning to the live bottom clears the highlight.
-**`/findall <text>`** searches **every terminal pane's full scrollback**
+**`/find all <text>`** searches **every terminal pane's full scrollback**
 (hidden panes included, bounded per pane), focuses the first matching pane
 (restoring it if minimized), scrolls it to the most recent match, and reports
-the fleet-wide tally — `12 matches for 'error' in 3 panes (#2 #4 #7)` — using
+the fleet-wide tally — `12 matches for “error” in 3 panes (#2 #4 #7)` — using
 the same pane numbers as Cmd+1..9 and the tile badges (the landed pane is
-arrow-marked: `(#2 →#4 #7)`). **Repeating `/findall`** with the same term
+arrow-marked: `(#2 →#4 #7)`). **Repeating `/find all`** with the same term
 **cycles to the next matching pane**, wrapping — n/N stepping at fleet
 granularity — while a follow-up `/find <text>` steps upward through the
 focused pane's matches as usual.
