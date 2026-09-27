@@ -37,6 +37,42 @@ pub fn ceiling(rx: &crate::spark::History, tx: &crate::spark::History, cols: u16
     rx.peak(s).max(tx.peak(s)).max(FLOOR)
 }
 
+/// Below this, in bytes per second, a direction is not moving at all: the
+/// chart draws nothing but its axis, and says so (`Reading::quiet`).
+pub(crate) const QUIET: u64 = 1024;
+
+/// What the NET rule and the chart's caption need from the two histories:
+/// the shared scale, and whether both directions have stayed quiet across
+/// everything the chart shows — when they have, the chart is only its dotted
+/// axis, and an axis with nothing on it and no word read as a broken chart.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct Reading {
+    pub ceiling: u64,
+    pub quiet: bool,
+}
+
+impl From<u64> for Reading {
+    fn from(ceiling: u64) -> Self {
+        Reading {
+            ceiling,
+            quiet: false,
+        }
+    }
+}
+
+/// [`ceiling`], and whether the chart at `cols` has anything to draw.
+pub(crate) fn reading(
+    rx: &crate::spark::History,
+    tx: &crate::spark::History,
+    cols: u16,
+) -> Reading {
+    let s = span(cols);
+    Reading {
+        ceiling: ceiling(rx, tx, cols),
+        quiet: rx.peak(s).max(tx.peak(s)) < QUIET,
+    }
+}
+
 /// Draw the twin chart across `cols` starting at `row0`, indented under the
 /// section legend like the rates above it. `rx`/`tx` are the two histories.
 pub fn paint(

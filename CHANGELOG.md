@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.42
+
+**An idle network chart says "no traffic".** When a machine is barely using
+the network, the NET chart in the nav and on `/dash` draws nothing but its
+dotted centre line. That's deliberate, since a flat trickle drawn at full
+strength read as a saturated link, but with no words it looked like a chart
+that had failed to draw. When both directions have stayed under 1 KB/s
+across everything the chart shows, a muted "no traffic" now sits above the
+line. Any traffic worth drawing removes it.
+
 ## 0.24.41
 
 **Cmd+E labels a wrapped path as one target.** A path or URL longer than

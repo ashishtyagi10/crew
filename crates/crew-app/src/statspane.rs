@@ -233,7 +233,7 @@ impl StatsPane {
         if rows > net_off + 3 {
             let s = self.sampler.stats();
             let (rxh, txh) = self.sampler.net_dirs();
-            let ceiling = crate::nettwin::ceiling(rxh, txh, cols);
+            let ceiling = crate::nettwin::reading(rxh, txh, cols);
             for mut c in net::net_cells(s.net_rx, s.net_tx, ceiling, cols) {
                 c.row += net_off;
                 out.push(c);

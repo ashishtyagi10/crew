@@ -3,6 +3,7 @@
 //! down growing up out of a centre line, up growing down from it.
 use crew_render::CellView;
 
+use crate::nettwin::Reading;
 use crate::palette::accent;
 /// Blue-cyan for the throughput chart (distinct from the green CPU chart).
 /// The throughput trace's blue, lightened or darkened until the page it sits
@@ -38,10 +39,11 @@ pub fn up_color() -> (u8, u8, u8) {
 /// The rates are values, so a nav too narrow for both gives up a whole one
 /// (the quieter direction) rather than half of one: `↑ 0 B` is not a smaller
 /// reading than `↑ 0 B/s`, it is a different unit.
-pub fn net_cells(rx: u64, tx: u64, ceiling: u64, cols: u16) -> Vec<CellView> {
+pub fn net_cells(rx: u64, tx: u64, reading: impl Into<Reading>, cols: u16) -> Vec<CellView> {
     if cols < 10 {
         return Vec::new();
     }
+    let Reading { ceiling, quiet } = reading.into();
     let t = crew_theme::theme();
     // The twin chart under these rates shares one moving scale between its two
     // halves; the rule writes that scale down, so the shape can be read as a
@@ -73,6 +75,11 @@ pub fn net_cells(rx: u64, tx: u64, ceiling: u64, cols: u16) -> Vec<CellView> {
     // instead of trailing the down rate, so a wide nav reads as two readings
     // on one row rather than one short run and a lot of nothing. The two are
     // opposite directions — putting them at opposite ends says so.
+    // A chart that has had nothing to draw says so on its upper row, above
+    // the dotted axis it is otherwise only.
+    if quiet {
+        caption(&mut out, 2, cols);
+    }
     let split = crate::navtext::budget(cols) >= shown.chars().count() + SPREAD_AIR;
     if split && shown.starts_with('↓') && shown.contains('↑') {
         let (d, u) = (format!("↓ {down}"), format!("↑ {up}"));
@@ -86,6 +93,17 @@ pub fn net_cells(rx: u64, tx: u64, ceiling: u64, cols: u16) -> Vec<CellView> {
     out
 }
 
+/// `no traffic`, centred and muted on `row` — the quiet NET chart's caption,
+/// in the nav and on `/dash` alike.
+pub(crate) fn caption(out: &mut Vec<CellView>, row: u16, cols: u16) {
+    const WORDS: &str = "no traffic";
+    let w = WORDS.chars().count() as u16;
+    if cols >= w + 4 {
+        let at = (cols - w) / 2;
+        crate::navtext::put_at(out, WORDS, at, row, cols, crew_theme::theme().text_muted);
+    }
+}
+
 /// Extra columns beyond the tight form before the two rates move apart. Below
 /// this they are close enough that spreading them looks like a mistake.
 const SPREAD_AIR: usize = 6;
@@ -93,3 +111,7 @@ const SPREAD_AIR: usize = 6;
 #[cfg(test)]
 #[path = "net_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "netquiet_tests.rs"]
+mod quiet_tests;
