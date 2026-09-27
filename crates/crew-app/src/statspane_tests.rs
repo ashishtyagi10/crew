@@ -127,3 +127,25 @@ fn check_seam(git: bool, log_len: usize, n: usize, rows: u16) {
         );
     }
 }
+
+/// Before the first CPU sample the chart is still a chart: its dotted
+/// baseline, not a two-row gap under the dials.
+#[test]
+fn an_empty_cpu_history_draws_a_dotted_baseline() {
+    let _g = crate::app::theme_test_guard();
+    let s = StatsPane::new();
+    assert!(s.cpu_hist.is_empty(), "a fresh pane has no history");
+    let paint = s.chart_paint(28, 60, 2.0, None, 0);
+    let row0 = f32::from(clock::CLOCK_H + CHART_OFF);
+    let base: Vec<_> = paint
+        .iter()
+        .filter(|p| p.y >= row0 && p.y <= row0 + f32::from(CHART_ROWS))
+        .collect();
+    assert!(base.len() > 4, "a row of dots: {}", base.len());
+    // Dots, not a solid rule: every one short of the width.
+    assert!(
+        base.iter().all(|p| p.w < 1.0),
+        "dotted: {:?}",
+        base.iter().map(|p| p.w).collect::<Vec<_>>()
+    );
+}

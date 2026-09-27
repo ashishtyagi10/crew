@@ -37,6 +37,22 @@ pub fn ceiling(rx: &crate::spark::History, tx: &crate::spark::History, cols: u16
     rx.peak(s).max(tx.peak(s)).max(FLOOR)
 }
 
+/// A chart's axis at height `y` across `w` units: solid under a trace, dotted
+/// where nothing has been measured yet — the canvas's word for "no reading"
+/// (the heatmap's idle hours, this chart's idle link). The SYSTEM chart drew
+/// nothing at all before its first sample, and the section ended in a gap.
+pub(crate) fn baseline(c: &mut Canvas, y: f32, w: f32, dotted: bool) {
+    let ink = crew_theme::theme().border_normal;
+    if !dotted {
+        return c.hairline(0.0, y, w, ink, 0.7);
+    }
+    let mut x = 0.0;
+    while x < w {
+        c.hairline(x, y, AXIS_DOT.min(w - x), ink, 0.7);
+        x += AXIS_PERIOD;
+    }
+}
+
 /// Below this, in bytes per second, a direction is not moving at all: the
 /// chart draws nothing but its axis, and says so (`Reading::quiet`).
 pub(crate) const QUIET: u64 = 1024;
@@ -160,17 +176,7 @@ pub fn paint(
     // an idle link — the axis alone on its rows — the NET card read as ending
     // early, a rule and two blank rows before GIT. Dots are the canvas's word
     // for "nothing measured" (the heatmap's idle hours).
-    let mut x = 0.0;
-    while x < w {
-        c.hairline(
-            x,
-            half,
-            AXIS_DOT.min(w - x),
-            crew_theme::theme().border_normal,
-            0.7,
-        );
-        x += AXIS_PERIOD;
-    }
+    baseline(&mut c, half, w, true);
 
     c.paint()
         .into_iter()
