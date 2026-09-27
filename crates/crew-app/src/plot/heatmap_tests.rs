@@ -26,6 +26,17 @@ fn alpha_at(c: &Canvas, x: f32, y: f32) -> f32 {
         .fold(0.0f32, f32::max)
 }
 
+/// The colour painted at `(x, y)`, if any.
+fn color_at(c: &Canvas, x: f32, y: f32) -> Option<(u8, u8, u8)> {
+    c.paint()
+        .iter()
+        .find(|p| {
+            let (py, ph) = (p.y * c.row_units(), p.h * c.row_units());
+            x >= p.x && x < p.x + p.w && y >= py && y < py + ph
+        })
+        .map(|p| p.color)
+}
+
 /// Centre of cell `(row, col)` of an `rows`×`cols` grid on this canvas.
 fn centre(c: &Canvas, rows: usize, cols: usize, r: usize, k: usize) -> (f32, f32) {
     let (w, h) = c.size();
@@ -37,8 +48,9 @@ fn centre(c: &Canvas, rows: usize, cols: usize, r: usize, k: usize) -> (f32, f32
 
 #[test]
 fn a_hotter_cell_is_drawn_stronger() {
+    // The used hours: an idle one is a neutral dot, off the scale (below).
     let c = grid(&[0, 1, 5, 10], 1, 4);
-    let a: Vec<f32> = (0..4)
+    let a: Vec<f32> = (1..4)
         .map(|k| {
             let (x, y) = centre(&c, 1, 4, 0, k);
             alpha_at(&c, x, y)
@@ -48,7 +60,7 @@ fn a_hotter_cell_is_drawn_stronger() {
         a.windows(2).all(|w| w[0] <= w[1] + 1e-3),
         "alpha rises with value: {a:?}"
     );
-    assert!(a[3] - a[0] > 0.5, "and by a lot: {a:?}");
+    assert!(a[2] - a[0] > 0.5, "and by a lot: {a:?}");
 }
 
 #[test]
@@ -107,12 +119,16 @@ fn every_cell_stays_inside_the_rect() {
 fn a_short_values_slice_leaves_the_rest_at_zero() {
     // Fewer readings than cells is normal (a week that started on
     // Wednesday); the missing ones are cold, not absent.
+    let _g = crate::app::theme_test_guard();
     let c = grid(&[9, 9], 1, 4);
     let (x0, y0) = centre(&c, 1, 4, 0, 0);
     let (x3, y3) = centre(&c, 1, 4, 0, 3);
     assert!(alpha_at(&c, x0, y0) > 0.9, "the readings are hot");
-    let cold = alpha_at(&c, x3, y3);
-    assert!((0.05..0.2).contains(&cold), "the rest are cold: {cold}");
+    assert_eq!(
+        color_at(&c, x3, y3),
+        Some(crew_theme::theme().border_normal),
+        "the rest are idle dots"
+    );
 }
 
 /// An idle hour is a dot at its cell's centre, a busy one fills its tile:
@@ -127,4 +143,23 @@ fn an_idle_cell_is_a_dot_and_a_busy_one_a_tile() {
     };
     assert_eq!(near_edge(0), 0.0, "the idle cell's edge is open page");
     assert!(near_edge(1) > 0.5, "the busy cell fills its tile");
+}
+
+/// An idle hour's dot is drawn strong enough to see, in the neutral the
+/// axes' dots use: a quiet day is a row of dots, not a row missing from the
+/// grid, and not a reading on the heat scale either.
+#[test]
+fn an_idle_row_is_dots_you_can_see() {
+    let _g = crate::app::theme_test_guard();
+    let (rows, cols) = (2, 6);
+    let mut v = vec![0u64; rows * cols];
+    v[3] = 50; // one busy hour on the first day; the second day is idle
+    let c = grid(&v, rows, cols);
+    let (x, y) = centre(&c, rows, cols, 1, 2);
+    assert!(
+        alpha_at(&c, x, y) >= 0.6,
+        "idle dot at {}",
+        alpha_at(&c, x, y)
+    );
+    assert_eq!(color_at(&c, x, y), Some(crew_theme::theme().border_normal));
 }

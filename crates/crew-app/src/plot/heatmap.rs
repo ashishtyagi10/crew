@@ -12,6 +12,14 @@ use crate::plot::Canvas;
 /// An idle cell's dot, as a share of its tile's shorter side.
 const DOT: f32 = 0.3;
 
+/// An idle cell's dot is not a reading on the heat scale, so it is not drawn
+/// in the scale's colour: it is the border's neutral, at the strength the
+/// chart axes' dots use — the canvas's one mark for "nothing measured". In
+/// the scale's zero (a tenth-strength dot a third of a tile wide) it vanished
+/// on a dark page next to the quietest used hour's whole tile, and a day with
+/// nothing in it read as a row missing from the grid.
+const IDLE_ALPHA: f32 = 0.7;
+
 /// A cell's colour, given its value's share of the peak (`0.0..=1.0`).
 pub type Shade<'a> = &'a dyn Fn(f32) -> ((u8, u8, u8), f32);
 
@@ -51,7 +59,15 @@ pub fn draw(
                 // An idle hour is a dot at the cell's centre: a quiet week
                 // is a calm dot grid, not a slab of empty tiles.
                 let d = DOT * bw.min(bh);
-                c.rect(bx + (bw - d) / 2.0, by + (bh - d) / 2.0, d, d, color, alpha);
+                let idle = crew_theme::theme().border_normal;
+                c.rect(
+                    bx + (bw - d) / 2.0,
+                    by + (bh - d) / 2.0,
+                    d,
+                    d,
+                    idle,
+                    IDLE_ALPHA,
+                );
                 continue;
             }
             // Rounded corners at this size would cost more than they show;
