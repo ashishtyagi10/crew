@@ -67,6 +67,10 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
             t.text_muted,
             cols.saturating_sub(2),
         );
+        let (rx, tx) = d.sampler.net_dirs();
+        if crate::nettwin::reading(rx, tx, cols).quiet {
+            crate::net::caption(&mut out, NET_TOP + (NET_ROWS - 1) / 2, cols);
+        }
     }
 
     let l = layout(rows);
