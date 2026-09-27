@@ -25,6 +25,10 @@ mod tests;
 const ID_W: usize = 3;
 const UNTIL_W: usize = 8;
 const REPEAT_W: usize = 10;
+/// Where the task starts, and the column its wrapped lines hang from.
+const TASK_AT: usize = ID_W + 2 + UNTIL_W + 2 + REPEAT_W + 2;
+/// Where a detail line's words start: past the id, and past a `→ ` lead.
+const DETAIL_AT: usize = ID_W + 2 + 2;
 
 /// The listing for `intents` (soonest first, as the log folds them), as viewer text.
 /// `history` is what each has already done, by id — the fold that `live()` drops.
@@ -53,20 +57,30 @@ pub(crate) fn listing(
          /watching cancel <id> calls one off \u{b7} /watching snooze <id> 30m pushes one back\n\n",
         intents.len()
     ));
+    // Fitted to a tile, the way `/tools` and `/blocks` fit theirs: laid out
+    // as one line each, a tile's viewer wrapped the task back to column 0
+    // under the id, and a detail line broke inside a part (`fired 40× ·` /
+    // `last 16h ago`).
+    let task_w = crate::toolsrow::ROW_W.saturating_sub(TASK_AT);
     for i in intents {
-        out.push_str(&format!(
-            "{:<ID_W$}  {:<UNTIL_W$}  {:<REPEAT_W$}  {}\n",
-            i.id,
-            until(i.fire_ms, now_ms),
-            i.repeat.label(),
-            i.text.trim(),
-        ));
+        let task = crate::toolsrow::wrap(i.text.trim(), task_w);
+        for (k, line) in task.iter().enumerate() {
+            match k {
+                0 => out.push_str(&format!(
+                    "{:<ID_W$}  {:<UNTIL_W$}  {:<REPEAT_W$}  {line}\n",
+                    i.id,
+                    until(i.fire_ms, now_ms),
+                    i.repeat.label(),
+                )),
+                _ => out.push_str(&format!("{:TASK_AT$}{line}\n", "")),
+            }
+        }
         // Where the answer goes, when it goes somewhere other than the pane,
         // and how long this has been standing — the two things a row does
         // not already say.
         let mut parts = Vec::new();
         if !i.to.is_empty() {
-            parts.push(format!("\u{2192} {}", i.to));
+            parts.push(i.to.clone());
         }
         if let Some(ms) = now_ms.checked_sub(i.created_ms) {
             parts.push(format!("standing {}", spell(ms / 1000)));
@@ -77,13 +91,28 @@ pub(crate) fn listing(
         if let Some(f) = history.get(&i.id) {
             parts.push(intenthistory::note(f, now_ms));
         }
-        if !parts.is_empty() {
-            out.push_str(&format!(
-                "{:indent$}{}\n",
-                "",
-                parts.join(" \u{b7} "),
-                indent = ID_W + 2
-            ));
+        // The words line up whether or not the first part is a `→ channel`.
+        let lead = if i.to.is_empty() { "  " } else { "\u{2192} " };
+        for (k, line) in detail_lines(&parts).iter().enumerate() {
+            let mark = if k == 0 { lead } else { "  " };
+            out.push_str(&format!("{:w$}{mark}{line}\n", "", w = DETAIL_AT - 2));
+        }
+    }
+    out
+}
+
+/// `parts` joined by ` · ` onto as few tile-wide lines as hold them, breaking
+/// only BETWEEN parts.
+fn detail_lines(parts: &[String]) -> Vec<String> {
+    let room = crate::toolsrow::ROW_W.saturating_sub(DETAIL_AT);
+    let mut out: Vec<String> = Vec::new();
+    for p in parts {
+        match out.last_mut() {
+            Some(cur) if cur.chars().count() + 3 + p.chars().count() <= room => {
+                cur.push_str(" \u{b7} ");
+                cur.push_str(p);
+            }
+            _ => out.push(p.clone()),
         }
     }
     out
