@@ -143,7 +143,7 @@ impl CrewApp {
                     self.config.notify_patterns.push(p.to_string());
                     self.config.save();
                     self.apply_notify_patterns();
-                    self.set_status(format!("watching output for \"{p}\""));
+                    self.set_status(format!("watching output for \u{201c}{p}\u{201d}"));
                 } else {
                     self.set_status("usage: /notify [on|off|add <text>|clear]");
                 }

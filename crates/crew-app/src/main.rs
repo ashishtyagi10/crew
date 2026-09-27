@@ -94,6 +94,9 @@ mod helpmark;
 mod histhits;
 mod mentionexpand;
 mod oserr;
+#[cfg(test)]
+#[path = "quotestyle_tests.rs"]
+mod quotestyle_tests;
 mod segment;
 mod signoutpick;
 

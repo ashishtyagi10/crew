@@ -101,7 +101,10 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> ThemeIntercept {
             }
         }
         ThemeCmd::Unknown(name) => {
-            format!("unknown theme '{name}' \u{2014} try: {}", theme_names())
+            format!(
+                "unknown theme \u{201c}{name}\u{201d} \u{2014} try: {}",
+                theme_names()
+            )
         }
     };
     let ts = chrono::Local::now().timestamp_millis().to_string();

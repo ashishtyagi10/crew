@@ -156,7 +156,7 @@ impl CrewApp {
             // a three-second flash on the input bar's border the reason was
             // routinely missed — "/theme modern-light" on a build predating
             // that theme looked precisely like a theme that does nothing.
-            self.set_status_err(format!("unknown theme '{arg}' ({names})"));
+            self.set_status_err(format!("unknown theme \u{201c}{arg}\u{201d} ({names})"));
             return;
         };
         crew_theme::apply_selection(sel, crate::chattime::unix_now_ms());

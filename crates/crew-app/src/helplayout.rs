@@ -174,7 +174,7 @@ pub(crate) fn rows_for(needle: &str, cols: u16, mine: Option<&str>) -> Vec<Row> 
         // and the panel is then the one surface that cannot show you what it
         // holds. How many it holds is the other half of the answer.
         out.push(Row::Note(format!(
-            "no binding matches \"{needle}\" \u{b7} clear it to see all {}",
+            "no binding matches \u{201c}{needle}\u{201d} \u{b7} clear it to see all {}",
             crate::wording::count(
                 logical().iter().filter(|(k, _)| !k.is_empty()).count(),
                 "binding"
