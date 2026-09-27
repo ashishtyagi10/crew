@@ -155,7 +155,7 @@ pub(crate) fn fan_out(
     emit(msg(
         "agent smith",
         format!(
-            "fan done \u{2014} {} of {} replied \u{2225} {} \u{00b7} {cost}",
+            "fan done \u{2014} {} of {} replied: {} \u{00b7} {cost}",
             timings.len(),
             names.len(),
             order.join(" \u{00b7} "),

@@ -92,11 +92,12 @@ fn every_agent_thinks_then_goes_idle_and_stats_close_the_turn() {
         evs.last().unwrap(),
         PluginEvent::Activity { agent, state, .. } if agent.is_empty() && state == "idle"
     ));
-    // The summary names both agents with timings, joined in parallel notation.
+    // The summary names both agents with timings, after a plain colon.
     let msgs = messages(&evs);
     let summary = &msgs.last().unwrap().1;
     assert!(summary.contains("fan done"), "{summary}");
-    assert!(summary.contains("2 of 2 replied"), "{summary}");
+    assert!(summary.contains("2 of 2 replied: "), "{summary}");
+    assert!(!summary.contains('\u{2225}'), "{summary}");
 }
 
 #[test]

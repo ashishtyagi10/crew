@@ -194,6 +194,12 @@ pub(crate) fn card_lines_spanned(
         if streaming {
             crate::chatreveal::push_caret(&mut body, now_ms, cols);
         }
+        // A reply with more of its thread below carries the trunk down its
+        // body's indent column, so the `├`s join into one line instead of
+        // floating over text that starts beside them.
+        if chained && continues {
+            crate::chattrunk::hang(&mut body);
+        }
         out.extend(body);
         out.extend(crate::chattoolview::below(view, m, streaming, now_ms, cols));
         // A just-landed card fades in from the page colour (see `fade_t`) —
@@ -248,3 +254,7 @@ pub(crate) fn message_cells(
 #[cfg(test)]
 #[path = "chatmsgs_tests.rs"]
 pub(crate) mod tests;
+
+#[cfg(test)]
+#[path = "chattrunk_tests.rs"]
+mod trunk_tests;

@@ -67,7 +67,7 @@ fn fanned_pane() -> ChatPane {
         ),
         plain(
             "agent smith",
-            "fan done \u{2014} 7 of 8 replied \u{2225} analyst 2.2s \u{00b7} \
+            "fan done \u{2014} 7 of 8 replied: analyst 2.2s \u{00b7} \
              editor 3.9s \u{00b7} writer 34.7s \u{00b7} 2274 tok",
             "task:7",
         ),

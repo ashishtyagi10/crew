@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.28
+
+**A fan-out's replies hang from one trunk.** When several agents answer the
+same task, their replies chain under the first card with tree marks: `├`
+while more follow and `└` on the last. Each reply's text started right next
+to its mark, so the `├`s stood alone with nothing joining them. A reply with
+more of the thread below it now draws a `│` down its body's indent column,
+and the marks join into one line. The body keeps its width and wrapping, and
+Cmd+click on a code block inside one still copies just the code.
+
+The fan-out's closing line also drops its `∥` separator: it reads "fan done
+— 7 of 8 replied: analyst 2.2s · editor 3.9s · …".
+
 ## 0.24.27
 
 **A word followed by punctuation counts as whole when text is cut.** Text
