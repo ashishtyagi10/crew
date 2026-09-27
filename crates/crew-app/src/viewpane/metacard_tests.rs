@@ -54,7 +54,7 @@ fn a_metadata_card_without_a_stat_omits_the_metadata_line_but_keeps_the_offer() 
     let ls = card(Opaque::Unreadable, None, 60);
     let body: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
     assert!(!body.contains("modified"), "nothing to report: {body}");
-    assert!(body.contains("press"), "still offers o: {body}");
+    assert!(body.contains("o opens it"), "still offers o: {body}");
 }
 
 #[test]
@@ -97,7 +97,13 @@ fn each_opaque_reason_gets_a_distinct_head_line() {
 fn the_card_still_offers_o_for_every_reason() {
     let ls = card(Opaque::NoExtractor(Extractor::PdfToText), None, 60);
     let body: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
-    assert!(body.contains("press") && body.contains('o'), "got {body}");
+    assert!(body.contains("o opens it in the default app"), "got {body}");
+    let key = &ls.last().unwrap()[0];
+    assert_eq!(
+        (key.c, key.fg),
+        ('o', crate::palette::accent()),
+        "the key is drawn as one"
+    );
 }
 
 /// A narrow viewer wraps the card's sentences rather than cutting them.
@@ -115,4 +121,11 @@ fn a_narrow_card_wraps_every_line_and_loses_no_word() {
     assert!(body.contains("default app"), "{body}");
     assert!(body.contains("ago"), "{body}");
     assert!(ls.len() > 4, "wrapped onto more rows: {}", ls.len());
+    // The reading breaks between its parts, never inside one.
+    let rows: Vec<String> = ls.iter().map(text).collect();
+    assert!(
+        rows.iter()
+            .any(|r| r.contains("modified") && r.contains("ago")),
+        "{rows:?}"
+    );
 }

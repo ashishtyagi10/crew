@@ -16,6 +16,29 @@ fn rows(s: &str, fg: (u8, u8, u8), bold: bool, cols: usize) -> Vec<CardLine> {
         .collect()
 }
 
+/// `parts` joined by ` · ` on as few rows as fit, breaking only BETWEEN
+/// them: word-wrapped as one string, a narrow card read `modified 3h` / `ago`.
+/// A part wider than the card still wraps on its own words.
+fn segment_rows(parts: &[String], fg: (u8, u8, u8), cols: usize) -> Vec<CardLine> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    for p in parts {
+        let joined = format!("{cur}  \u{00b7}  {p}");
+        match cur.is_empty() {
+            true => cur = p.clone(),
+            false if crate::chatwidth::str_w(&joined) <= cols => cur = joined,
+            false => out.extend(rows(
+                &std::mem::replace(&mut cur, p.clone()),
+                fg,
+                false,
+                cols,
+            )),
+        }
+    }
+    out.extend(rows(&cur, fg, false, cols));
+    out
+}
+
 /// `bytes` in compact units, the same convention `farpane/panelchrome.rs::fmt_size`
 /// uses for directory listings — duplicated locally rather than exported
 /// across a module boundary for one function used by only one caller there.
@@ -70,23 +93,20 @@ pub(crate) fn opaque_card(why: Opaque, meta: Option<&FileMeta>, cols: usize) -> 
     let mut lines = rows(&head, t.ink, true, cols);
     lines.push(Vec::new());
     if let Some(m) = meta {
-        lines.extend(rows(
-            &format!(
-                "{kind}  \u{00b7}  {}  \u{00b7}  modified {}",
-                fmt_size(m.size),
-                mtime_str(m.modified)
-            ),
-            t.text_muted,
-            false,
-            cols,
-        ));
+        let parts = [
+            kind.to_string(),
+            fmt_size(m.size),
+            format!("modified {}", mtime_str(m.modified)),
+        ];
+        lines.extend(segment_rows(&parts, t.text_muted, cols));
     }
-    lines.extend(rows(
-        "press  o  to open in the default app",
-        t.text_muted,
-        false,
-        cols,
-    ));
+    // The key in the accent, the way every other key crew names is drawn —
+    // not padded with spaces to stand in for a keycap (`press  o  to`).
+    let mut hint = rows("o opens it in the default app", t.text_muted, false, cols);
+    if let Some(key) = hint.first_mut().and_then(|l| l.first_mut()) {
+        *key = plain('o', crate::palette::accent(), true);
+    }
+    lines.extend(hint);
     lines
 }
 
