@@ -138,7 +138,7 @@ pub(crate) fn whats_new(cols: usize) -> Option<String> {
         .join(" ");
     let version = rest[..rest.find('\n')?].trim();
     let lead = format!("new in {version} \u{b7} ");
-    let head = head.trim_end_matches('.');
+    let head = lowered(head.trim_end_matches('.'));
     // The window has to hold the version and something worth reading of the
     // headline; below that there is nothing useful to say. A headline longer
     // than the window is the changelog's doing, not the window's, so it is
@@ -148,8 +148,30 @@ pub(crate) fn whats_new(cols: usize) -> Option<String> {
     if room < 12 {
         return None;
     }
-    let head = fit_head(head, room);
+    let head = fit_head(&head, room);
     Some(format!("{lead}{head}"))
+}
+
+/// Names that keep their capital when they open a headline.
+const PROPER: &[&str] = &[
+    "Far", "Mac", "Windows", "Linux", "Claude", "Codex", "Google", "Qwen",
+];
+
+/// The welcome screen speaks in lowercase (`fast terminals. clean flow.`), so
+/// a headline opening `The palette…` was the one capital on it. Only a plain
+/// capitalised word is lowered: `AI`, `README`, `/far` and a name keep theirs.
+fn lowered(head: &str) -> String {
+    let word = head
+        .split(|c: char| !c.is_alphanumeric())
+        .next()
+        .unwrap_or("");
+    let mut rest = word.chars();
+    let plain =
+        rest.next().is_some_and(|c| c.is_ascii_uppercase()) && rest.all(|c| c.is_ascii_lowercase());
+    match plain && !PROPER.contains(&word) {
+        true => head[..1].to_ascii_lowercase() + &head[1..],
+        false => head.to_string(),
+    }
 }
 
 /// `head` in `room` columns, cut between words the way a folded reply is
