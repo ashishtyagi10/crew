@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.26
+
+**Goal rows are cut on a word.** A goal's task rows fitted the title and its
+" — detail" by cutting at a letter, so a narrow pane read "bench the atlas —
+error: atl…" and "while packing t…". Both parts are now cut on a word, as
+the rest of crew's prose is: "— error…", or "— error: atlas…" when there's
+room for one more word. A detail cut back to nothing but its dash is
+dropped.
+
 ## 0.24.25
 
 **A `/todo` title the pane can't finish says so.** When a long title wraps

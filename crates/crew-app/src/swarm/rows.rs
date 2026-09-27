@@ -5,7 +5,7 @@
 //! before it cuts a number in half, a title that is cut with a mark rather
 //! than mid-word, a tail that goes missing before it goes meaningless —
 //! because a number sliced by the frame reads as a different number.
-use crate::chatwidth::{clip_w, str_w};
+use crate::chatwidth::{clip_w, clip_words, str_w};
 
 /// Columns the state glyph takes at the start of a task row: ` ● `.
 pub const GLYPH_COLS: usize = 3;
@@ -59,13 +59,20 @@ pub fn hud_text(live: usize, done: usize, failed: usize, micros_usd: u64, cols: 
 /// when the remainder could not hold a word.
 pub fn task_row(title: &str, tail: &str, cols: u16) -> (String, String) {
     let room = (cols as usize).saturating_sub(GLYPH_COLS);
-    let title = clip_w(title, room);
+    // Both cut on a word: `error: atl…` named half of something, and a
+    // half-word reads as a typo in a status line, not a cut.
+    let title = clip_words(title, room);
     let left = room - str_w(&title);
     // ` — ` is three columns; below three more there is no word to show.
     let tail = if tail.is_empty() || left < 6 {
         String::new()
     } else {
-        clip_w(&format!(" \u{2014} {tail}"), left)
+        clip_words(&format!(" \u{2014} {tail}"), left)
+    };
+    // A tail cut back to its dash says nothing.
+    let tail = match tail.chars().any(char::is_alphanumeric) {
+        true => tail,
+        false => String::new(),
     };
     (title, tail)
 }
