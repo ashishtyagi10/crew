@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.35
+
+**The token total fits inside the `/usage` donut.** The donut's hole was 4.4
+columns across and the total written in it is four characters wide
+("2.2M"), so the number touched the ring on both sides. The ring is now
+larger, with the same band thickness, so the hole is 5.6 columns across and
+the total has most of a column of space on each side. The legend beside it
+is still clear of the ring. The test now requires half a column of space,
+where before it only required no overlap.
+
 ## 0.24.34
 
 **A picture that can't be drawn is marked with a drawn frame, not
