@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.19
+
+**Wrapped listings don't end a row on a stray `·`.** `/tools` and
+`/watching` join their parts with " · ", and when the viewer wrapped one of
+those lines right after a separator, the row ended in a dot that separated
+it from nothing ("calls one off ·", "fired 40× ·"). The viewer now leaves
+that dot blank on screen when it lands at the end of a wrapped row. Only the
+drawing changes: the rows keep their lengths, and a selection still copies
+the dot from the file. A dot that ends the line itself, sits inside a row,
+or is attached to a word is left as it is.
+
 ## 0.24.18
 
 **A swarm's task titles line up.** Each task row put its title two spaces
