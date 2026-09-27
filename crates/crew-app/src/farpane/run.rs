@@ -117,7 +117,7 @@ pub(crate) fn submit_ask(p: &mut FarPane, desc: &str) -> FarAction {
         started: std::time::Instant::now(),
         rx,
     });
-    FarAction::Status(format!("asking ai — {desc}"))
+    FarAction::Status(format!("asking AI — {desc}"))
 }
 
 /// `cd <path>` from the command line: point the active panel at the target

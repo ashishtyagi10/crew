@@ -78,7 +78,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ),
     (
         "! · * · ? · ?? (in input)",
-        "New pane / broadcast / ask the ai for a command / explain this pane",
+        "New pane / broadcast / ask the AI for a command / explain this pane",
     ),
     ("Cmd+Q", "Quit"),
 ];
