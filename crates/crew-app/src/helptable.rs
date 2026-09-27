@@ -40,7 +40,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
         "Open URL/file/dir · copy a code block in an agent pane",
     ),
     ("Cmd+N", "Open another crew window \u{2014} a whole second canvas"),
-    ("Cmd+W / Cmd+M", "Close pane / maximize"),
+    ("Cmd+W / Cmd+M", "Close pane / maximize the window"),
     ("Cmd+Shift+T", "Reopen the pane you just closed"),
     ("Cmd+K", "Clear focused pane scrollback"),
     (
@@ -55,8 +55,6 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
         "Ctrl+Shift+F",
         "Focus mode \u{2014} hold notifications, never steal focus (/focus)",
     ),
-    ("Ctrl+Shift+M", "Chat: markdown preview \u{2194} raw source"),
-    ("Ctrl+O", "Chat: compact transcript view"),
     ("Shift+PageUp / Shift+PageDown", "Scroll the focused pane"),
     ("Shift+Home / Shift+End", "Scroll to top / bottom"),
     (
@@ -101,6 +99,8 @@ pub(crate) const CHAT_BINDINGS: &[(&str, &str)] = &[
     ("Tab", "Complete the leading @agent or /construct"),
     ("Ctrl+R", "Reverse-search prompts you've sent"),
     ("Cmd+F / Ctrl+F", "Find in the transcript, jump per match"),
+    ("Ctrl+Shift+M", "Markdown preview \u{2194} raw source"),
+    ("Ctrl+O", "Compact transcript \u{2014} one line per message"),
     (
         "Up / Down",
         "Recall a prompt you already sent · navigate an open popup",

@@ -94,6 +94,9 @@ mod completefuzzy;
 mod fencebadge;
 mod gaugebars;
 mod helpmark;
+#[cfg(test)]
+#[path = "helpsection_tests.rs"]
+mod helpsection_tests;
 mod histhits;
 mod mentionexpand;
 mod oserr;
