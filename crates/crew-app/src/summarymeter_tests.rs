@@ -46,3 +46,31 @@ fn the_trough_never_outshines_the_fill() {
         }
     }
 }
+
+/// Every footer segment is whole: budgeted to the room the rows are placed
+/// in, not the pane's full width, the idle hint never loses its last letter.
+#[test]
+fn the_footer_never_cuts_a_segment() {
+    let _g = crate::app::theme_test_guard();
+    let plugin =
+        crew_plugin::Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()])
+            .unwrap();
+    let pane = crate::chat::ChatPane::new(plugin, "crew".into());
+    for cols in 30u16..90 {
+        let (cells, _) = summary_art(&pane, cols, 0, MAX_BLOCK, 2.0);
+        assert!(
+            cells.iter().all(|c| c.col >= 1 && c.col + 1 < cols),
+            "{cols}: past the margin"
+        );
+        let mut row: Vec<_> = cells.iter().filter(|c| c.row == 2).collect();
+        row.sort_by_key(|c| c.col);
+        let text: String = row.iter().map(|c| c.c).collect();
+        // A badge's end cap is part of the badge.
+        let text = text.trim_end_matches(|c: char| c == ' ' || c == '\u{258c}');
+        let whole = ["agent", "commands", "mode", "relay"];
+        assert!(
+            whole.iter().any(|w| text.ends_with(w)),
+            "{cols}: cut {text:?}"
+        );
+    }
+}

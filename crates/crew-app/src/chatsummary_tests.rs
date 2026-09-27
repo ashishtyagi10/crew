@@ -471,12 +471,12 @@ fn a_narrow_pane_drops_the_names_before_the_mode() {
         f.active = vec!["analyst", "coder"];
         f.running_tasks = &[3];
         let l3 = text(&footer_lines(&f, cols)[2]);
-        assert!(l3.chars().count() <= cols, "{cols}: {l3}");
+        assert!(l3.chars().count() + 2 <= cols, "{cols}: {l3}");
         // The work ids are the last thing standing; the mode outlasts the
-        // names but yields to the ids on the tightest panes (24 cols fits
-        // `running #3` alone, not `▶▶ swarm mode · running #3` at 26 wide).
+        // names but yields to the ids on the tightest panes (30 cols has 28
+        // of room: `running #3` alone, not `▶▶ swarm mode · running #3`).
         assert!(l3.contains("#3"), "work ids lost at {cols}: {l3}");
-        if cols >= 30 {
+        if cols >= 40 {
             assert!(l3.contains("swarm mode"), "mode lost at {cols}: {l3}");
         }
         if cols >= 120 {
