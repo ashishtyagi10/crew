@@ -99,7 +99,7 @@ impl CrewApp {
     /// repaints, and flashes a status when there's no match.
     pub(crate) fn find_in_terminal(&mut self, term: &str) {
         if term.is_empty() {
-            return;
+            return self.set_status("usage: /find <text> \u{2014} or /find all <text>");
         }
         // Repeating the same term continues upward from the current match.
         let repeat = self.last_find.as_deref() == Some(term);

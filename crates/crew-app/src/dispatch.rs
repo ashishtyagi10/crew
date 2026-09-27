@@ -52,7 +52,8 @@ impl CrewApp {
             "goal" => self.spawn_goal_pane(""), // show usage hint
             "model" => self.set_model_cmd(""),  // show usage hint
             "batch" => self.spawn_batch_pane(""), // show usage hint
-            "md" | "view" => self.open_view(""), // show usage hint
+            "md" => self.set_status("usage: /md <path>"),
+            "view" => self.open_view(""), // show usage hint
             "doc" => self.set_status("usage: /doc <path>"),
             // Who last touched each line of the file in the viewer.
             "blame" => self.blame_command(),
@@ -118,6 +119,7 @@ impl CrewApp {
             "sidebar" => self.toggle_sidebar(),
             "name" => self.name_focused_pane(""), // clear the pane's name
             "findall" => self.find_all(""),       // show usage hint
+            "find" => self.find_in_terminal(""),  // show usage hint
             // Everything that carries an argument. The chain moved WHOLE
             // rather than by subject: its order is load-bearing (`find ` must
             // be tried after `findall `, or `/findall x` routes to `/find`),
