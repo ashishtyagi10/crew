@@ -94,7 +94,7 @@ impl CrewApp {
             },
             Kind::Path => {
                 if !self.open_hint_path(&t.text) {
-                    self.set_status(format!("can't open {}", t.text));
+                    self.set_status(format!("cannot open {}", t.text));
                 }
             }
             Kind::Hash => self.copy_text(t.text.clone()),

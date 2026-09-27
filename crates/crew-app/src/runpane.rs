@@ -162,7 +162,7 @@ impl CrewApp {
             p.label = Some(label);
         }
         if self.write_terminal_targets(&crate::app::submit_bytes(cmd), false) == 0 {
-            self.set_status("couldn't type into the new shell");
+            self.set_status("could not type into the new shell");
         }
     }
 }

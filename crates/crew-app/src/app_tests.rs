@@ -326,7 +326,7 @@ fn spawn_labeled_terminal_failure_is_shown_in_status() {
         .as_ref()
         .map(|(m, _)| m.clone())
         .unwrap_or_default();
-    assert!(msg.contains("couldn't run"), "failure shown, got {msg:?}");
+    assert!(msg.contains("could not run"), "failure shown, got {msg:?}");
 }
 
 #[test]

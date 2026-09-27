@@ -94,6 +94,9 @@ mod chatspan;
 #[path = "chatswarmshot_tests.rs"]
 mod chatswarmshot_tests;
 mod completefuzzy;
+#[cfg(test)]
+#[path = "errwording_tests.rs"]
+mod errwording_tests;
 mod fencebadge;
 mod gaugebars;
 mod helpmark;
