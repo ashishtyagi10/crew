@@ -30,11 +30,28 @@ pub(crate) fn wrap(text: &str, w: usize) -> Vec<(usize, Vec<char>)> {
         while s < chars.len() {
             let e = crate::chatwidth::fit_end(&chars, s, w);
             let e = crate::chatwidth::soft_end(&chars, s, e);
-            out.push((n, chars[s..e].to_vec()));
+            let mut row = chars[s..e].to_vec();
+            if e < chars.len() {
+                strand_dot(&mut row);
+            }
+            out.push((n, row));
             s = e;
         }
     }
     out
+}
+
+/// Blank a ` · ` separator the wrap left at the end of a row. The listings
+/// join their parts with it (`/tools`, `/watching`), and a row ending in a
+/// dot that separates it from nothing reads as a stray mark. Paint only: the
+/// row keeps its length, so the offsets still partition the line, and a
+/// selection copies from the source, dot included.
+fn strand_dot(row: &mut [char]) {
+    let n = row.len();
+    let lone = n >= 2 && row[n - 1] == ' ' && row[n - 2] == '\u{b7}';
+    if lone && (n == 2 || row[n - 3] == ' ') {
+        row[n - 2] = ' ';
+    }
 }
 
 /// The paint for source line `n` (1-based), columns `[pos, pos + len)`.
@@ -156,3 +173,7 @@ pub(crate) fn renumber(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "linepaintdot_tests.rs"]
+mod dot_tests;
