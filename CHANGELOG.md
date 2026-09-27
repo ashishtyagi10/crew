@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.31
+
+**The viewer's "nothing to render" card is tidier.** Opening a binary or
+unreadable file shows a card with the file's kind, size and age, and how to
+open it elsewhere. That last line padded its key with spaces to fake a
+keycap ("press  o  to open in the default app"). It now reads "o opens it in
+the default app", with the key in the accent colour like other keys crew
+names. On a narrow viewer the "binary · 4.5M · modified 3h ago" line broke
+inside a part ("modified 3h" / "ago"); it now breaks only between parts.
+
 ## 0.24.30
 
 **Flags you type no longer look like a suggestion.** The input bar draws a
