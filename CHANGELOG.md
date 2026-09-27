@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.30
+
+**Flags you type no longer look like a suggestion.** The input bar draws a
+command's flags (`--hidden`, `-40`) more quietly than the rest of the line,
+but it used the same dim colour as the ghost text it suggests, so flags you
+had typed looked like something waiting for Tab. They now use the muted text
+colour, which stands back from the command without looking untyped. A test
+checks that on every theme a typed flag is easier to read than ghost text.
+
 ## 0.24.29
 
 **`/disk` labels stay inside their own tile.** Treemap tiles have

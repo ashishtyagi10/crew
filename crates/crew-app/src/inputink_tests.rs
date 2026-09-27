@@ -60,7 +60,7 @@ fn flags_recede_and_only_at_the_start_of_a_word() {
     let s = "grep -rn thing a-b";
     let p = paint(s);
     let at = |sub: &str| p[s.find(sub).unwrap()];
-    assert_eq!(at("-rn"), t.dim);
+    assert_eq!(at("-rn"), t.text_muted, "typed, so not the ghost's dim");
     assert_eq!(at("thing"), t.ink, "the argument was dimmed with the flag");
     assert_eq!(at("a-b"), t.ink, "a hyphen inside a word is not a flag");
 }
@@ -99,5 +99,18 @@ fn every_character_gets_exactly_one_colour() {
     let _g = guard();
     for s in ["", "/", "/theme dark", "a\u{1f600}b", "\"", "--", "  "] {
         assert_eq!(paint(s).len(), s.chars().count(), "{s:?}");
+    }
+}
+
+/// On every theme a typed flag reads louder than the ghost text beside it.
+#[test]
+fn a_typed_flag_outreads_the_ghost_on_every_page() {
+    let _g = guard();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let t = crew_theme::theme();
+        let flag = crew_theme::contrast_ratio(t.text_muted, t.page_bg);
+        let ghost = crew_theme::contrast_ratio(t.dim, t.page_bg);
+        assert!(flag > ghost, "{id:?}: flag {flag:.2} vs ghost {ghost:.2}");
     }
 }
