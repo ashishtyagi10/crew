@@ -23,8 +23,8 @@ const ROW_W: usize = crate::toolsrow::ROW_W;
 const TOOL_W_MIN: usize = 22;
 
 /// The widest it goes: what a tile holds beside the widest tier —
-/// two of indent, the name, a space and `irreversible`.
-const TOOL_W_MAX: usize = crate::toolsrow::ROW_W - 2 - 1 - 12;
+/// two of indent, the name, a two-column gutter and `irreversible`.
+const TOOL_W_MAX: usize = crate::toolsrow::ROW_W - 2 - 2 - 12;
 
 /// Columns the tool column takes: the longest name across every
 /// integration, so nothing a tile can hold whole is cut in the middle.
@@ -84,12 +84,16 @@ pub(crate) fn listing(ints: &[Integration], set: &dyn Fn(&str) -> bool) -> Strin
         if !i.description.trim().is_empty() {
             out.push_str(&format!("  {}\n", i.description.trim()));
         }
+        // A name wider than the column is not cut — `subscribe_to_sev…
+        // _weather_alerts` hid the part that says what it does — it takes
+        // its own row and the tier drops under the tier column, the way
+        // `/keys` lists a key too long for its column.
         for t in &i.tools {
-            out.push_str(&format!(
-                "  {:<w$} {}\n",
-                crate::toolsrow::fit(&t.name, w),
-                i.tier_of(&t.name).label()
-            ));
+            let tier = i.tier_of(&t.name).label();
+            match crate::chatwidth::str_w(&t.name) > w {
+                true => out.push_str(&format!("  {}\n  {:w$}  {tier}\n", t.name, "")),
+                false => out.push_str(&format!("  {:<w$}  {tier}\n", t.name)),
+            }
         }
         out.push('\n');
     }

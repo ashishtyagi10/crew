@@ -51,21 +51,41 @@ fn the_credential_is_named_and_its_absence_is_said_out_loud() {
 fn every_tool_is_listed_with_the_tier_the_gate_will_use() {
     let out = listing(&[weather(Auth::None)], &|_| false);
     let row = |name: &str| out.lines().find(|l| l.contains(name)).unwrap().to_string();
-    assert!(row("forecast").ends_with(" read"), "{}", row("forecast"));
+    assert!(row("forecast").ends_with("  read"), "{}", row("forecast"));
     assert!(
         row("unsubscribe").ends_with(" reversible"),
         "{}",
         row("unsubscribe")
     );
     // The fixture's 34-column name is more than a tile holds beside
-    // `irreversible`: cut in the middle, marked, the row no wider than
-    // the tile.
-    let cut = row("subscribe_t");
-    assert!(
-        cut.contains('\u{2026}') && cut.ends_with(" irreversible"),
-        "{cut}"
+    // `irreversible`: whole on its own row, the tier under the tier column
+    // on the next — nothing cut, and no row wider than the tile.
+    let lines: Vec<&str> = out.lines().collect();
+    let at = lines
+        .iter()
+        .position(|l| l.contains("subscribe_to_severe_weather_alerts"))
+        .unwrap();
+    assert_eq!(
+        lines[at].trim(),
+        "subscribe_to_severe_weather_alerts",
+        "{out}"
     );
-    assert!(cut.chars().count() <= ROW_W, "{cut}");
+    assert_eq!(lines[at + 1].trim(), "irreversible", "{out}");
+    let tier_col = |l: &str| l.len() - l.trim_start().len();
+    assert_eq!(
+        tier_col(lines[at + 1]),
+        row("forecast").find("read").unwrap(),
+        "{out}"
+    );
+    for l in [
+        lines[at],
+        lines[at + 1],
+        &row("forecast"),
+        &row("unsubscribe"),
+    ] {
+        assert!(l.chars().count() <= ROW_W, "{l:?}");
+    }
+    assert!(!out.contains('\u{2026}'), "{out}");
     assert!(out.contains("1 integration \u{b7} 3 tools"), "{out}");
     // A name a tile CAN hold is held whole: the column widens to it. At
     // a fixed 22 this one was `subscribe_t…her_alerts`.
