@@ -42,7 +42,7 @@ fn a_finished_run_folds_into_one_record_card_with_the_count_and_every_row() {
         lines[0]
     );
     assert_eq!(lines.len(), 4, "header and three rows: {:?}", lines);
-    assert_eq!(lines[1], " 1 \u{2713} scout  research the topic");
+    assert_eq!(lines[1], " 1 \u{2713} scout   research the topic");
     assert_eq!(
         lines[3],
         " 3 \u{2717} critic  review the draft \u{2190} 1,2"

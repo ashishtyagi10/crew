@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.18
+
+**A swarm's task titles line up.** Each task row put its title two spaces
+after its specialist's name, so a plan with "scout", "bench", "critic",
+"writer" and "reviewer" started its five titles in five different columns.
+The specialist column is now padded to the widest name on screen, so every
+title starts in the same place, both in the live block and in the record
+card a finished run folds into. Under width pressure the rows still give up
+the specialist column together, as before.
+
 ## 0.24.17
 
 **The agent pane's footer never cuts a hint mid-word.** The footer's three
