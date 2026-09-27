@@ -98,7 +98,9 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
         segs.push((plain("@ to relay to an agent", muted), 3));
     }
     let mut out = Vec::new();
-    for (i, seg) in budget_by(segs, cols, |s| width(s)).into_iter().enumerate() {
+    // Budgeted to the room between the one-column margins, like lines 1–2.
+    let room = cols.saturating_sub(2);
+    for (i, seg) in budget_by(segs, room, |s| width(s)).into_iter().enumerate() {
         if i > 0 {
             out.extend(plain(" \u{00b7} ", muted));
         }

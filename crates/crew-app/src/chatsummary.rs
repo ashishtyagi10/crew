@@ -216,11 +216,15 @@ pub(crate) fn footer_lines_with(
         }
     }
 
-    let l1 = budget(l1, cols);
+    // The rows sit one column in from each edge (`summary_art`), so that is
+    // the room they are budgeted to. Measured against the full width, the
+    // last segment ran a column past it and lost a letter (`to an agen`).
+    let room = cols.saturating_sub(2);
+    let l1 = budget(l1, room);
     // The budget drops the meters first on a narrow pane. Their fractions go
     // with them, or the drawn meters would be paired with the wrong runs.
     let kept = l2.len();
-    let l2 = budget(l2, cols);
+    let l2 = budget(l2, room);
     if l2.len() < kept {
         meters.truncate(l2.iter().filter(|(text, _)| text.contains(FILLED)).count());
     }

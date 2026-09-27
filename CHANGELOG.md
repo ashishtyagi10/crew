@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.17
+
+**The agent pane's footer never cuts a hint mid-word.** The footer's three
+rows start one column in from the left edge, but their segments were fitted
+to the pane's full width. So at some widths the last one ran a column past
+the room and lost its final letter: "· @ to relay to an agen". The rows are
+now fitted to the space they're drawn in, with one column of margin on each
+side. Segments that don't fit are dropped whole, which is what the fitting
+was already meant to do. A test sweeps widths 30–90 and checks that the last
+segment is always complete.
+
 ## 0.24.16
 
 **`/far` shows one caret, where your keys go.** With F7's "Create folder:"

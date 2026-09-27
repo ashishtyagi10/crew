@@ -56,7 +56,7 @@ pub(crate) fn summary_art(
         let row = top + i as u16;
         let line = line.into_iter().map(|(c, fg, block)| (c, (fg, block)));
         // A badge cell carries its block; everything else sits on the page.
-        crate::chatwidth::place_row(1, cols, line, |x, c, (fg, block)| {
+        crate::chatwidth::place_row(1, cols.saturating_sub(1), line, |x, c, (fg, block)| {
             cells.push(CellView {
                 col: x,
                 row,
