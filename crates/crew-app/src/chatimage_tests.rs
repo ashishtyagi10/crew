@@ -21,7 +21,7 @@ fn an_image_paragraph_is_one_muted_row_naming_it_with_the_source_as_link() {
         "{:?}",
         out.iter().map(row_text).collect::<Vec<_>>()
     );
-    assert_eq!(row_text(&out[0]), " [image] a cat");
+    assert_eq!(row_text(&out[0]), " \u{25a3} a cat");
     let cell = &out[0][2];
     // A mark, like a bullet: marker ink (was `text_muted`).
     assert_eq!(cell.fg, crate::chatink::marker_fg());
@@ -34,7 +34,7 @@ fn an_image_paragraph_is_one_muted_row_naming_it_with_the_source_as_link() {
 fn an_image_without_alt_is_named_by_its_source() {
     let _guard = crate::app::theme_test_guard();
     let out = lines("![](shot.png)", 40, (9, 9, 9));
-    assert_eq!(row_text(&out[0]), " [image] shot.png");
+    assert_eq!(row_text(&out[0]), " \u{25a3} shot.png");
 }
 
 /// The row is chunked to the card like any other line, and the prose
@@ -50,10 +50,10 @@ fn the_image_row_wraps_and_sits_between_its_paragraphs() {
     let rows: Vec<String> = out.iter().map(row_text).collect();
     assert_eq!(rows[0], " before");
     assert_eq!(rows[1], " ");
-    assert_eq!(rows[2], " [image] a lo");
-    assert_eq!(rows[3], " ng alt text ");
+    assert_eq!(rows[2], " \u{25a3} a long alt");
+    assert_eq!(rows[3], "  text here");
     assert_eq!(rows.last().map(String::as_str), Some(" after"));
-    assert_eq!(rows.len(), 7, "{rows:?}");
+    assert_eq!(rows.len(), 6, "{rows:?}");
 }
 
 /// The VIEWER still gets its picture box: `with_pictures` reserves the rows
@@ -133,7 +133,7 @@ fn a_picture_the_cache_holds_gets_its_box_above_the_caption() {
         assert_eq!(box_row(row), Some((i as u16, "cat.png")), "row {i}");
         assert_eq!(row.len(), 41, "the box fills the card, to a click");
     }
-    assert_eq!(row_text(&out[12]), " [image] a cat");
+    assert_eq!(row_text(&out[12]), " \u{25a3} a cat");
     assert_eq!(box_row(&out[12]), None, "the caption is not a box row");
 }
 
@@ -149,7 +149,7 @@ fn a_picture_still_being_read_says_so_under_its_caption() {
     let md = crate::md::render_chat("![slow](slow.png)", 40);
     let out = crate::chatmd::map_chat(md.clone(), 40, (9, 9, 9), Some(&dir));
     let rows: Vec<String> = out.iter().map(row_text).collect();
-    assert_eq!(rows, vec![" [image] slow", " loading\u{2026}"]);
+    assert_eq!(rows, vec![" \u{25a3} slow", " loading\u{2026}"]);
     let muted = crew_theme::theme().text_muted;
     assert!(out[1][1..].iter().all(|c| c.fg == muted));
     settle(&img);
@@ -169,7 +169,7 @@ fn a_picture_that_fails_to_decode_is_only_named() {
     let md = crate::md::render_chat("![notes](notes.png)", 40);
     let out = crate::chatmd::map_chat(md, 40, (9, 9, 9), Some(&dir));
     assert_eq!(out.len(), 1);
-    assert_eq!(row_text(&out[0]), " [image] notes");
+    assert_eq!(row_text(&out[0]), " \u{25a3} notes");
 }
 
 /// A box row that grew a suffix — the compact clamp's ` … +N` — is no

@@ -74,7 +74,6 @@ fn every_fallback_is_the_plain_glyph_the_pane_always_drew() {
         );
         match g {
             Lang(_) => assert_eq!(s, "", "a fence header falls back to its bare label"),
-            Image => assert_eq!(s, "[image]"),
             _ => assert_eq!(s.width(), 1, "{g:?}: fallback {s:?} is not one cell"),
         }
     }

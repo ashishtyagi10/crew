@@ -119,7 +119,9 @@ pub(crate) fn nerd(g: Glyph) -> &'static str {
 }
 
 /// The glyph `g` drew before there was an icon set — the Unicode mark every
-/// font has. `Lang` has none, `Image` is `[image]`, `Footnote` opens `[label]`.
+/// font has. `Lang` has none, `Image` is `▣` (drawn by the renderer, like the
+/// other geometric marks — it was the bracketed word `[image]`), `Footnote`
+/// opens `[label]`.
 pub(crate) fn fallback(g: Glyph) -> &'static str {
     match g {
         Glyph::Bullet1 => "\u{2022}",   // •
@@ -131,7 +133,7 @@ pub(crate) fn fallback(g: Glyph) -> &'static str {
         Glyph::DotOn => "\u{25cf}",  // ●
         Glyph::DotOff => "\u{25cb}", // ○
         Glyph::Prompt => "\u{276f}", // ❯
-        Glyph::Image => "[image]",
+        Glyph::Image => "\u{25a3}",  // ▣
         Glyph::Footnote => "[",
         Glyph::File => "\u{00b7}", // ·
         Glyph::Hash => "#",
