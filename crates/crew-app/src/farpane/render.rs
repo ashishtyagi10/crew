@@ -86,12 +86,15 @@ pub(crate) fn render_in(p: &FarPane, cols: u16, rows: u16, focused: bool) -> Vec
         &p.right
     };
     let sel_label = bars::selected_label(active);
+    // One caret, where the keys go: the F7 prompt and the drive list each
+    // take them while open, so the command line then shows none.
+    let typing = focused && p.prompt.is_none() && p.drive_select.is_none();
     status_bar(&mut buf, split[1], sel_label.as_deref());
     command_bar(
         &mut buf,
         split[2],
         &p.active_panel_folder(),
-        &format!("{}{}", p.cmdline, if focused { "\u{258f}" } else { "" }),
+        &format!("{}{}", p.cmdline, if typing { "\u{258f}" } else { "" }),
         ghost.as_deref(),
         ask_hint.as_deref(),
         suggested,
@@ -99,7 +102,7 @@ pub(crate) fn render_in(p: &FarPane, cols: u16, rows: u16, focused: bool) -> Vec
     );
     // The make-folder prompt takes over the function-key row while it's open.
     match &p.prompt {
-        Some(prompt) => prompt_bar(&mut buf, split[3], prompt),
+        Some(prompt) => prompt_bar(&mut buf, split[3], prompt, focused),
         None => function_bar(&mut buf, split[3]),
     }
     if let Some(ds) = &p.drive_select {
@@ -168,7 +171,10 @@ use panellist::panel;
 mod bars;
 #[path = "rowfit.rs"]
 mod rowfit;
-use bars::{command_bar, function_bar, prompt_bar, status_bar};
+use bars::{command_bar, function_bar, status_bar};
+#[path = "promptbar.rs"]
+mod promptbar;
+use promptbar::prompt_bar;
 
 #[cfg(test)]
 #[path = "render_tests.rs"]

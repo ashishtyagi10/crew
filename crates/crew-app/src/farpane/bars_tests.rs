@@ -1,4 +1,4 @@
-use super::prompt_text;
+use super::super::promptbar::prompt_text;
 use crate::chatwidth::str_w;
 
 #[test]

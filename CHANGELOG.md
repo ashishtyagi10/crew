@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.16
+
+**`/far` shows one caret, where your keys go.** With F7's "Create folder:"
+prompt open, the command line above it kept its caret too, so the pane
+showed two places to type. Only the prompt shows it now, and the command
+line's caret also steps aside while the Alt+F1/F2 drive list is open. The
+prompt's caret hides when the pane loses focus, like the command line's
+already did. The prompt now has its own file, `farpane/promptbar.rs`,
+because `bars.rs` was at the 200-line cap.
+
 ## 0.24.15
 
 **Failures are worded the same way everywhere.** The status line said
