@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.23
+
+**The welcome screen's news line is lowercase like the rest of it.**
+Everything on the welcome screen is lowercase ("fast terminals. clean
+flow.", "shell · agents · commands"), except the release headline under it,
+which kept the changelog's capital: "new in 0.24.5 · The palette shows…".
+The headline's first word is now lowercased when it's an ordinary
+capitalised word. Initialisms ("AI", "README"), commands (`/far`) and names
+(Far, Claude, Mac…) keep their capitals.
+
 ## 0.24.22
 
 **The `/watching` and `/blocks` listings don't print raw backticks.** Both

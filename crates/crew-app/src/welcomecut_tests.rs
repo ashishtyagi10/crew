@@ -22,3 +22,50 @@ fn the_headline_is_cut_between_words() {
         "a headline that fits is whole"
     );
 }
+
+// The "new in" line speaks in the welcome screen's lowercase.
+
+#[test]
+fn a_plain_opening_word_is_lowered() {
+    assert_eq!(
+        super::lowered("The palette shows three more shortcuts"),
+        "the palette shows three more shortcuts"
+    );
+    assert_eq!(
+        super::lowered("A swarm's task titles line up"),
+        "a swarm's task titles line up"
+    );
+    assert_eq!(
+        super::lowered("Failures are worded the same way"),
+        "failures are worded the same way"
+    );
+}
+
+#[test]
+fn initialisms_commands_and_names_keep_their_capitals() {
+    for head in [
+        "AI is written in capitals everywhere",
+        "README names the commands",
+        "`/far` shows one caret",
+        "\"AI\" is written in capitals",
+        "Far's F8 says moved",
+        "Claude Code relays live",
+        "agent smith stops pointing at retired commands",
+    ] {
+        assert_eq!(super::lowered(head), head);
+    }
+}
+
+#[test]
+fn the_welcome_line_is_lowercase_after_its_lead() {
+    let line = super::whats_new(200).expect("room for the news");
+    let head = line.split(" \u{b7} ").nth(1).unwrap();
+    let first = head.split(|c: char| !c.is_alphanumeric()).next().unwrap();
+    let plain = first.chars().skip(1).all(|c| c.is_ascii_lowercase());
+    assert!(
+        !(plain
+            && first.starts_with(|c: char| c.is_ascii_uppercase())
+            && !super::PROPER.contains(&first)),
+        "{line}"
+    );
+}
