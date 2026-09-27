@@ -38,6 +38,8 @@ pub trait TermModel {
     /// The bottom-most viewport row with anything on it (see `modellast`) —
     /// one line of text without building the screen.
     fn last_line(&self) -> Option<String>;
+    /// Per viewport row, whether it soft-wraps onto the next (see `modelwrap`).
+    fn wrapped_rows(&self) -> Vec<bool>;
     fn resize(&mut self, size: GridSize);
 }
 
@@ -317,6 +319,8 @@ mod modelcells;
 mod modellast;
 #[path = "modelsel.rs"]
 mod modelsel;
+#[path = "modelwrap.rs"]
+mod modelwrap;
 pub use headless::HeadlessTerm;
 
 #[cfg(test)]

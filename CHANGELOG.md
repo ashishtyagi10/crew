@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.41
+
+**Cmd+E labels a wrapped path as one target.** A path or URL longer than
+the terminal is drawn across two rows, and the hint scanner read each row
+on its own. It saw "crates/crew-app/src/md/" and "fold.rs:25" as two
+things, and the label on the second opened a `fold.rs` that doesn't exist.
+The terminal now reports which rows continue onto the next, and those rows
+are joined before anything is looked for. A wrapped path gets one label, at
+the cell where it starts, and picking it copies or opens the whole path.
+
 ## 0.24.40
 
 **Settings' scroll arrows sit clear of the cards.** When the Settings form
