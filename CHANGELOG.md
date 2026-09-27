@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.25
+
+**A `/todo` title the pane can't finish says so.** When a long title wraps
+and its next line falls below a short pane, the row just stopped: "work out
+why the atlas grows on the first" looked like the whole task. The last row
+the title gets now ends in "…", cut on a word, so you can tell there's more
+and make the pane taller to read it. Titles that fit are unchanged.
+
 ## 0.24.24
 
 **The palette's "no match" note never ends in half an instruction.** Typing
