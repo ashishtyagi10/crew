@@ -49,7 +49,7 @@ fn load_color(one: f64, cores: f64) -> (u8, u8, u8) {
 pub fn load_cells(one: f64, five: f64, fifteen: f64, cores: f64, cols: u16) -> Vec<CellView> {
     let t = crew_theme::theme();
     let fg = load_color(one, cores);
-    let past = crew_theme::readable::secondary(fg, t.page_bg);
+    let past = history_ink(fg, t.page_bg);
     // Longest first. A narrow nav gives up the oldest average whole rather
     // than cutting the last one in half — `3.` used to be what the docked nav
     // showed at the narrow end of the resize range, and `3.` is not a smaller
@@ -97,7 +97,32 @@ pub fn load_cells(one: f64, five: f64, fifteen: f64, cores: f64, cols: u16) -> V
         );
         col += word.chars().count() as u16 + sep;
     }
+    // The 1-minute figure is also the heavier one: where the page leaves no
+    // room for the history to be quieter in colour, weight still ranks them.
+    let first_end = crate::navtext::INDENT
+        + shown
+            .split_whitespace()
+            .next()
+            .map_or(0, |w| w.chars().count()) as u16;
+    for c in out.iter_mut().filter(|c| c.row == 1 && c.col < first_end) {
+        c.bold = true;
+    }
     out
+}
+
+/// The 5- and 15-minute averages' ink: the load colour stepped back toward
+/// the page, but no further than the TEXT floor. Held at the mark floor it
+/// measured 3.0–3.2 on the light pages, a number too faint to read, and a
+/// number is text. Where the page has no headroom under that floor this is
+/// the load colour itself, and the weight (`load_cells`) keeps the rank.
+fn history_ink(fg: (u8, u8, u8), page: (u8, u8, u8)) -> (u8, u8, u8) {
+    let floor = crew_theme::contrast::text_floor();
+    let past = crew_theme::readable::secondary(fg, page);
+    let lifted = crew_theme::readable::against(past, page, floor);
+    match crew_theme::contrast_ratio(lifted, page) > crew_theme::contrast_ratio(fg, page) {
+        true => fg,
+        false => lifted,
+    }
 }
 
 #[cfg(test)]
