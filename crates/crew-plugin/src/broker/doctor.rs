@@ -114,7 +114,8 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
         line(
             '–',
             "git",
-            "not a repository — /checkpoint, /commit, /review need one",
+            "not a repository — \u{201c}undo that\u{201d}, \u{201c}commit this\u{201d} and \
+             \u{201c}look over my changes\u{201d} need one",
         )
     });
     let opt = |n: usize, what: &str, hint: &str| {

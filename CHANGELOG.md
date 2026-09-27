@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.6
+
+**`/doctor` outside a repository names things that still work.** Its git
+line said "/checkpoint, /commit, /review need one", but `/checkpoint` never
+existed and `/commit` and `/review` were retired in favour of plain
+language. It now says what actually needs a repository: "undo that",
+"commit this" and "look over my changes". A test checks that no `/doctor`
+hint names a retired command.
+
 ## 0.24.5
 
 **The palette shows three more shortcuts.** The command palette shows a
