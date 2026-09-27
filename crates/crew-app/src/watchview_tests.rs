@@ -24,13 +24,13 @@ fn nothing_standing_says_how_to_set_one() {
     // The advice is one paragraph, not lines broken by hand to a tile.
     assert_eq!(out.lines().count(), 3, "{out}");
     assert!(
-        out.lines()
-            .nth(2)
-            .unwrap()
-            .ends_with("said over a channel."),
+        out.lines().nth(2).unwrap().ends_with("over a channel."),
         "{out}"
     );
-    assert!(out.contains("crew daemon at"), "{out}");
+    assert!(
+        out.contains("crew daemon at") && !out.contains('`'),
+        "{out}"
+    );
     assert!(
         !out.contains("standing \u{b7}"),
         "no count row for no rows: {out}"

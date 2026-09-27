@@ -83,7 +83,7 @@ pub(crate) fn listing(spans: &Spans, title: &str, now: u64) -> String {
         out.push_str("Nothing yet. Run something in this pane and it lands here.\n");
         return out;
     }
-    out.push_str("\nthe number is `/out <n>`: the output of that command, on its own.\n");
+    out.push_str("\n/out <n> opens the output of command n, on its own.\n");
     out
 }
 
