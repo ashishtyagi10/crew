@@ -74,10 +74,12 @@ pub(crate) fn paint(text: &str) -> Vec<(u8, u8, u8)> {
             continue;
         }
         // A flag is a `-` at the start of a word, and runs to the next space.
+        // It recedes to the muted TEXT colour, not `dim`: `dim` is the ghost
+        // suggestion's, and a flag you typed is not one you have yet to accept.
         let starts_word = i == 0 || chars[i - 1].is_whitespace();
         if c == '-' && starts_word {
             while i < chars.len() && !chars[i].is_whitespace() {
-                out[i] = t.dim;
+                out[i] = t.text_muted;
                 i += 1;
             }
             continue;
