@@ -89,3 +89,18 @@ fn clip_words_keeps_a_word_the_cut_did_not_split() {
         "4 open items\u{2026}"
     );
 }
+
+/// A cut that leaves a dash hanging drops it: `claude —…` names nothing.
+#[test]
+fn clip_words_drops_a_dangling_dash() {
+    use crate::chatwidth::clip_words;
+    assert_eq!(
+        clip_words("claude \u{2014} crew session", 10),
+        "claude\u{2026}"
+    );
+    assert_eq!(
+        clip_words("claude \u{2014} crew session", 12),
+        "claude\u{2026}"
+    );
+    assert_eq!(clip_words("build \u{2013} step two", 9), "build\u{2026}");
+}
