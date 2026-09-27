@@ -131,12 +131,13 @@ fn the_total_sits_inside_the_hole_not_on_the_ring() {
     let right = band.iter().fold(0.0f32, |a, p| a.max(p.x + p.w));
     let centre = (left + right) / 2.0;
     // A cell is claimed from its left edge, so the character at `col`
-    // spans `col..col+1`; both of its edges must clear the inner wall.
+    // spans `col..col+1`; both of its edges must clear the inner wall — by
+    // half a column, or `2.2M` sits touching the ring on both sides.
     for &(col, _) in &hole {
         let lo = f32::from(col) - centre;
         let hi = lo + 1.0;
         assert!(
-            lo.abs() < RING_R_IN && hi.abs() < RING_R_IN,
+            lo.abs() < RING_R_IN - 0.5 && hi.abs() < RING_R_IN - 0.5,
             "column {col} of {text:?} is on the ring, not in its hole: \
              the ring runs {left}..{right}, so the hole spans {RING_R_IN} \
              either side of {centre}"

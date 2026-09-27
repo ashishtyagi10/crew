@@ -40,10 +40,13 @@ pub(crate) const HEAT_ROW_MAX: u16 = 3;
 /// is the whole margin.
 pub(crate) const RING_CX: f32 = 7.0;
 
-/// Radii of the ring, in canvas units (one unit = one cell width).
-pub(crate) const RING_R_OUT: f32 = 3.6;
+/// Radii of the ring, in canvas units (one unit = one cell width). The hole
+/// was 4.4 across for a four-character total (`2.2M`), which touched the
+/// ring on both sides; at 5.6 it has most of a column of air each way, and
+/// the ring keeps its 1.4 band and stays clear of the legend at column 13.
+pub(crate) const RING_R_OUT: f32 = 4.2;
 
-pub(crate) const RING_R_IN: f32 = 2.2;
+pub(crate) const RING_R_IN: f32 = 2.8;
 
 /// Row, within the band, the ring is centred on — the middle of [`RING_ROWS`],
 /// which is a row's centre because the count is odd, so the hole's label lands
