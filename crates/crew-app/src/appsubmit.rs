@@ -48,7 +48,7 @@ impl CrewApp {
         // lands back in the input bar, ready to edit or Enter.
         if let Some(query) = crate::askbar::qmark_command(&line) {
             if query.is_empty() {
-                self.set_status("usage: ?<what you want> — ask ai for a command");
+                self.set_status("usage: ?<what you want> — ask AI for a command");
             } else {
                 self.start_ask(query);
             }

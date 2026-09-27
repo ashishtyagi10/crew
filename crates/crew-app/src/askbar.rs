@@ -77,7 +77,7 @@ impl CrewApp {
             rx,
             kind: AskKind::Command,
         });
-        self.set_status(format!("asking ai for a command — {query}"));
+        self.set_status(format!("asking AI for a command — {query}"));
     }
 
     /// Kick off a `??` explain of the focused terminal's recent output on a
@@ -112,7 +112,7 @@ impl CrewApp {
             rx,
             kind: AskKind::Explain,
         });
-        self.set_status("asking ai about this pane…");
+        self.set_status("asking AI about this pane…");
     }
 
     /// Poll the in-flight ask (called every tick). Returns true when something

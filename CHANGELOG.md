@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.11
+
+**"AI" is written in capitals everywhere.** The `?` prefix in the input bar
+said "ask ai for a command", "asking ai…" and "explain this pane's output
+with ai", Far's command line said "asking ai —", and a `/keys` row said
+"ask the ai", while other `/keys` rows, the broker's `/help` and the README
+all said "AI". They all say "AI" now, and a test scans the app's strings so
+the lowercase spelling can't come back.
+
 ## 0.24.10
 
 **`/keys` lists the agent-pane keys with the agent pane.** Ctrl+Shift+M

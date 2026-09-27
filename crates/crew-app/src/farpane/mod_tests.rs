@@ -444,7 +444,7 @@ fn submit_ask_starts_thinking_and_keeps_the_bang_text() {
     p.cmdline = "! list files".into();
     let action = submit_ask(&mut p, "list files");
     std::env::remove_var("CREW_BROKER_MOCK_REPLY");
-    assert!(matches!(action, FarAction::Status(ref s) if s.contains("asking ai")));
+    assert!(matches!(action, FarAction::Status(ref s) if s.contains("asking AI")));
     assert!(matches!(p.ask, Some(AskState::Thinking { .. })));
     assert_eq!(p.cmdline, "! list files", "the ! text stays while thinking");
 }

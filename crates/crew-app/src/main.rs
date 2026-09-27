@@ -8,6 +8,9 @@
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
 mod activitylog;
+#[cfg(test)]
+#[path = "aicaps_tests.rs"]
+mod aicaps_tests;
 mod altscroll;
 mod anim;
 mod app;

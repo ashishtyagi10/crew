@@ -123,7 +123,7 @@ fn preview_shows_the_ask_row_for_qmark_text() {
     let rows = app.input_preview();
     assert_eq!(rows.len(), 1);
     assert!(rows[0].submit, "a filled ?query submits");
-    assert!(rows[0].label.contains("ask ai"), "got: {}", rows[0].label);
+    assert!(rows[0].label.contains("ask AI"), "got: {}", rows[0].label);
     // Bare `?` mirrors the usage hint, like bare `!` and `*`.
     app.input.text = "?".into();
     let rows = app.input_preview();

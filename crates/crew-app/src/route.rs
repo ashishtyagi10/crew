@@ -119,18 +119,18 @@ impl crate::app::CrewApp {
         if crate::askbar::explain_command(&text).is_some() {
             // `??` with or without a question submits (a default question
             // stands in), so the preview always shows a submit row.
-            return row("↵ explain this pane's output with ai".to_string(), "", true);
+            return row("↵ explain this pane's output with AI".to_string(), "", true);
         }
         if let Some(query) = crate::askbar::qmark_command(&text) {
             if query.is_empty() {
                 // Bare `?` submits to a usage hint, mirroring `!` and `*`.
                 return row(
-                    "usage: ?<what you want> — ask ai for a command".to_string(),
+                    "usage: ?<what you want> — ask AI for a command".to_string(),
                     "",
                     false,
                 );
             }
-            return row("↵ ask ai for a command".to_string(), "", true);
+            return row("↵ ask AI for a command".to_string(), "", true);
         }
         if crate::cwd::cd_arg(&text).is_some() {
             return Vec::new();
