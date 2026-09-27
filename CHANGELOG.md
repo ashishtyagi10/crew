@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.24
+
+**The palette's "no match" note never ends in half an instruction.** Typing
+a command that matches nothing shows "no command matches “/xyzzy” · clear
+it to see them all", but on a narrow card it was cut at a letter and read
+"· clear it …". Palette notes and section titles are now cut on a word, so a
+narrow card says "no command matches “/xyzzy”…" and leaves out the part it
+can't fit whole. Both of the palette's notes also switch to curly quotes,
+and the quote-style test now catches values like `"/{rest}"` that it missed
+before.
+
 ## 0.24.23
 
 **The welcome screen's news line is lowercase like the rest of it.**

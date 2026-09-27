@@ -91,9 +91,11 @@ pub(crate) fn spans(
         .map(|(r, g, b)| Color::Rgb(r, g, b))
         .unwrap_or_else(crate::palette::accent_color);
     if item.header {
-        // A card can be narrower than its section title, too.
+        // A card can be narrower than its section title, too — and a note
+        // cut at a letter ended `· clear it …`, half an instruction; cut on
+        // a word it drops the part it cannot say whole.
         return Line::from(Span::styled(
-            crate::chatwidth::clip_w(&item.label, avail),
+            crate::chatwidth::clip_words(&item.label, avail),
             Style::new().fg(dim).add_modifier(Modifier::BOLD),
         ));
     }

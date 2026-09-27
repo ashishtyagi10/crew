@@ -20,8 +20,19 @@ fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
     }
 }
 
-/// `'{name}'` or `\"{name}\"` inside a string literal.
+/// `'{name}'`, or `\"…\"` holding a `{name}` and no space (`\"/{rest}\"`),
+/// inside a string literal.
 fn straight_quoted(line: &str) -> bool {
+    let esc: Vec<&str> = line.split("\\\"").collect();
+    let placeholder = |s: &&str| s.contains('{') && s.contains('}') && !s.contains(' ');
+    if esc.len() >= 3
+        && esc[1..esc.len() - 1]
+            .iter()
+            .step_by(2)
+            .any(|s| placeholder(&s))
+    {
+        return true;
+    }
     let mut rest = line;
     while let Some(i) = rest.find('{') {
         let before = &rest[..i];
@@ -74,6 +85,12 @@ fn typed_values_are_quoted_curly() {
 fn the_scan_sees_both_straight_styles() {
     assert!(straight_quoted(r#"format!("no match for '{term}'")"#));
     assert!(straight_quoted(r#"format!("watching \"{p}\"")"#));
+    assert!(straight_quoted(
+        r#"format!("no command matches \"/{rest}\" · x")"#
+    ));
+    assert!(!straight_quoted(
+        r#"format!("run \"tomorrow 9am\" in {place}")"#
+    ));
     assert!(!straight_quoted(
         r#"format!("no match for \u{201c}{term}\u{201d}")"#
     ));
