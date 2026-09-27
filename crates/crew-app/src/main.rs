@@ -48,6 +48,7 @@ mod charrain;
 #[cfg(test)]
 #[path = "chartshot_tests.rs"]
 mod chartshot_tests;
+mod chattrunk;
 mod chordglyph;
 mod codefield;
 

@@ -158,7 +158,12 @@ pub(crate) fn code_block_at(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> 
         placed
             .iter()
             .find(|(pr, _)| *pr == r)
-            .map(|(_, line)| line.iter().map(|c| c.c).collect::<String>())
+            // From the field's first tinted cell: the placement indent (a
+            // chained reply's trunk rides in it) is the pane's, not the agent's.
+            .map(|(_, line)| {
+                let field = line.iter().skip_while(|c| c.bg.is_none());
+                field.map(|c| c.c).collect::<String>()
+            })
             .unwrap_or_default()
             .trim_end()
             .to_string()
