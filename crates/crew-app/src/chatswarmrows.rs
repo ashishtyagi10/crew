@@ -68,10 +68,15 @@ pub(crate) fn words(s: &SwarmStatus, i: usize, w: usize, level: u8) -> (String, 
     } else {
         format!(" \u{2190} {}", deps.join(","))
     };
-    let spec = if t.specialty.is_empty() || level >= 1 {
-        String::new()
-    } else {
-        format!("{}  ", t.specialty)
+    // Padded to the widest specialist on screen: every title starts in one
+    // column, not wherever its own specialist's name happened to end.
+    let col = s.tasks[..shown(s.tasks.len()).0]
+        .iter()
+        .map(|t| str_w(&t.specialty))
+        .max();
+    let spec = match col.unwrap_or(0) {
+        c if c == 0 || level >= 1 => String::new(),
+        c => format!("{}{}  ", t.specialty, " ".repeat(c - str_w(&t.specialty))),
     };
     let title = clip_w(&t.title, w.saturating_sub(str_w(&spec) + str_w(&deps)));
     (spec, title, deps)

@@ -74,7 +74,10 @@ pub(crate) fn rows(p: &ChatPane, cols: u16, now: u64) -> Vec<String> {
 fn every_task_gets_a_numbered_row_with_its_specialist_title_and_deps() {
     let p = pane_with(diamond());
     let r = rows(&p, 100, 0);
-    assert_eq!(r[0], " 1 \u{25cb} scout  research the topic");
+    assert_eq!(
+        r[0], " 1 \u{25cb} scout   research the topic",
+        "titles share a column"
+    );
     assert_eq!(r[1], " 2 \u{25cb} writer  draft the answer \u{2190} 1");
     assert_eq!(r[2], " 3 \u{25cb} critic  review the draft \u{2190} 1,2");
     assert_eq!(
