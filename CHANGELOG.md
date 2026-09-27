@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.33
+
+**Wrapped table rows are kept apart.** A markdown table too wide for its
+card squeezes its columns and wraps long cells onto extra rows. With no gap
+between one row's last line and the next row, "the smallest / of the three"
+ran straight into "lua config, / multiplexer", so two rows read as one
+cell. When any row of a table wraps, its rows are now separated by an empty
+row with the column separators kept. Tables that fit without wrapping look
+the same as before.
+
 ## 0.24.32
 
 **`/integrations` never cuts a tool's name.** The tool column is capped so
