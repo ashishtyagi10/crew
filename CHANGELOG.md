@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.34
+
+**A picture that can't be drawn is marked with a drawn frame, not
+`[image]`.** In a markdown reply, an image crew can't display showed its alt
+text after the bracketed word "[image]" when no Nerd Font was installed.
+That was the one ASCII placeholder among drawn marks. It's now `▣`, a frame
+around a small picture, drawn by the renderer like crew's other geometric
+marks, so it has the same size and weight and takes the theme's colour on
+any font.
+
 ## 0.24.33
 
 **Wrapped table rows are kept apart.** A markdown table too wide for its

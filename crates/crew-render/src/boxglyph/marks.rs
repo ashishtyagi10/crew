@@ -129,9 +129,19 @@ pub(super) fn draw(m: &mut Mask, c: char) -> bool {
         '\u{25A1}' => square(m, 0.72, true),
         '\u{25AA}' => square(m, 0.46, false),
         '\u{25AB}' => square(m, 0.46, true),
+        // A frame holding a picture: crew's image mark, where a font gave
+        // nothing and the fallback was the bracketed word `[image]`.
+        '\u{25A3}' => {
+            square(m, 0.72, true);
+            square(m, 0.30, false);
+        }
         '\u{25C6}' => diamond(m, 0.92, false),
         '\u{25C7}' => diamond(m, 0.92, true),
         _ => return false,
     }
     true
 }
+
+#[cfg(test)]
+#[path = "marksimage_tests.rs"]
+mod image_tests;
