@@ -31,6 +31,9 @@ mod autoupdate;
 #[path = "badgeshot_tests.rs"]
 mod badgeshot_tests;
 mod balancewrap;
+#[cfg(test)]
+#[path = "bareusage_tests.rs"]
+mod bareusage_tests;
 mod blocked;
 mod blocks;
 mod bordermarks;

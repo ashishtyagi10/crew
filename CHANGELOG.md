@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.9
+
+**`/md` and `/find` on their own say how to use them.** Typing just `/md`
+answered `usage: /view <path>`, but `/md <path>` opens a document window,
+not the viewer, so it now says `usage: /md <path>`. Typing just `/find`
+wasn't handled at all and got the typo check's `unknown command /find — did
+you mean /find?`. It now says `usage: /find <text> — or /find all <text>`,
+and so does `/find ` with only a space after it, which used to do nothing.
+
 ## 0.24.8
 
 **What you typed comes back in one kind of quote.** Status lines quoted your
