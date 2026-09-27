@@ -50,6 +50,11 @@ pub struct CellView {
     pub deco: crew_theme::deco::Deco,
     /// The cursor, when this is the cell it sits on.
     pub cursor: crew_theme::deco::CursorMark,
+    /// A highlight that belongs to its row alone — a search hit's wash. Its
+    /// background is its own capsule, inset a pixel top and bottom and never
+    /// merged with the same colour on the row above or below (`bgruns`):
+    /// `car` matched on two rows read as one 3×2 slab.
+    pub mark: bool,
 }
 
 /// Renders a scene of panes: per-cell bg quads, rounded borders, per-pane text.

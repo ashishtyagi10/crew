@@ -63,6 +63,10 @@ fn convert(buf: &Buffer, opaque: bool) -> Vec<CellView> {
                 bg: bg_opt.unwrap_or_else(|| crew_theme::theme().page_bg),
                 bold: cell.modifier.contains(Modifier::BOLD),
                 italic: cell.modifier.contains(Modifier::ITALIC),
+                // `RAPID_BLINK` is how a widget says "this wash is a mark"
+                // (`cmdrow::hit_style`): nothing in crew blinks, and ratatui
+                // has no other bit to carry it through a `Buffer`.
+                mark: cell.modifier.contains(Modifier::RAPID_BLINK),
                 ..Default::default()
             });
         }

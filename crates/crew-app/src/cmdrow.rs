@@ -183,6 +183,9 @@ pub(crate) fn hit_style(fg: Color) -> Style {
         .fg(ink)
         .bg(Color::Rgb(hl.0, hl.1, hl.2))
         .add_modifier(Modifier::BOLD)
+        // A MARK, not a band: two rows matching in the same columns keep
+        // apart instead of merging into one slab (`CellView::mark`).
+        .add_modifier(Modifier::RAPID_BLINK)
 }
 
 #[cfg(test)]

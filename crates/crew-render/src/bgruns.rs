@@ -24,12 +24,15 @@ pub(crate) struct Run {
     pub bg: (u8, u8, u8),
     /// Which corners round: top-left, top-right, bottom-right, bottom-left.
     pub round: [bool; 4],
+    /// A [`CellView::mark`] run: a capsule of its own, all four corners
+    /// round, inset from its row's edges so a mark above or below stays apart.
+    pub mark: bool,
 }
 
 /// The runs `cells` paint on a `cols`×`rows` grid, skipping `page` (the
 /// default background, which draws nothing).
 pub(crate) fn runs(cells: &[CellView], cols: usize, rows: usize, page: (u8, u8, u8)) -> Vec<Run> {
-    let mut grid: Vec<Option<(u8, u8, u8)>> = vec![None; cols * rows];
+    let mut grid: Vec<Option<((u8, u8, u8), bool)>> = vec![None; cols * rows];
     for c in cells.iter().filter(|c| c.bg != page) {
         let (row, col) = (usize::from(c.row), usize::from(c.col));
         let wide = match UnicodeWidthChar::width(c.c) {
@@ -38,26 +41,30 @@ pub(crate) fn runs(cells: &[CellView], cols: usize, rows: usize, page: (u8, u8, 
         };
         for x in col..(col + wide).min(cols) {
             if row < rows {
-                grid[row * cols + x] = Some(c.bg);
+                grid[row * cols + x] = Some((c.bg, c.mark));
             }
         }
     }
+    // A mark is its own layer: to every other run it is page, so a band
+    // under one still rounds as if the mark were not there.
     let at = |r: isize, c: isize| -> Option<(u8, u8, u8)> {
         let inside = r >= 0 && c >= 0 && (r as usize) < rows && (c as usize) < cols;
         inside
             .then(|| grid[r as usize * cols + c as usize])
             .flatten()
+            .filter(|&(_, mark)| !mark)
+            .map(|(bg, _)| bg)
     };
     let mut out = Vec::new();
     for r in 0..rows {
         let mut c = 0;
         while c < cols {
-            let Some(bg) = grid[r * cols + c] else {
+            let Some((bg, mark)) = grid[r * cols + c] else {
                 c += 1;
                 continue;
             };
             let start = c;
-            while c < cols && grid[r * cols + c] == Some(bg) {
+            while c < cols && grid[r * cols + c] == Some((bg, mark)) {
                 c += 1;
             }
             let (ri, first, last) = (r as isize, start as isize, c as isize - 1);
@@ -67,12 +74,16 @@ pub(crate) fn runs(cells: &[CellView], cols: usize, rows: usize, page: (u8, u8, 
                 col: start as u16,
                 cols: (c - start) as u16,
                 bg,
-                round: [
-                    left && at(ri - 1, first).is_none(),
-                    right && at(ri - 1, last).is_none(),
-                    right && at(ri + 1, last).is_none(),
-                    left && at(ri + 1, first).is_none(),
-                ],
+                round: match mark {
+                    true => [true; 4],
+                    false => [
+                        left && at(ri - 1, first).is_none(),
+                        right && at(ri - 1, last).is_none(),
+                        right && at(ri + 1, last).is_none(),
+                        left && at(ri + 1, first).is_none(),
+                    ],
+                },
+                mark,
             });
         }
     }

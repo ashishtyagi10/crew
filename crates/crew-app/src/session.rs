@@ -118,6 +118,8 @@ pub fn to_cellviews(cells: &[RenderCell]) -> Vec<crew_render::CellView> {
             italic: c.italic,
             deco: c.deco,
             cursor: c.cursor,
+            // A terminal's own highlights are bands: SGR has no "mark".
+            mark: false,
         })
         .collect()
 }
