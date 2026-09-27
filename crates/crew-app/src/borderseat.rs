@@ -26,7 +26,13 @@ pub(crate) fn seat(v: &mut Vec<CellView>, floor: u16, last: u16, dot: (u8, u8, u
     };
     for col in lo..=hi {
         if at(v, col).is_none_or(is_frame_glyph) {
-            put(v, col, 0, '\u{b7}', dot, false);
+            // The command badge's `╶` is already a mark between readings: a
+            // `·` in front of it read `↓1·╶ cargo`, a dot and a stray dash.
+            let c = match at(v, col + 1) == Some(crate::cmdhead::TICK) {
+                true => ' ',
+                false => '\u{b7}',
+            };
+            put(v, col, 0, c, dot, false);
         }
     }
     for col in [lo.saturating_sub(1), hi + 1] {

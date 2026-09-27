@@ -27,7 +27,7 @@ use crate::panecard::put;
 /// The tick the name hangs off — the same glyph the left border marks a
 /// command's first row with, so the two read as one marking rather than two
 /// features that happen to be about commands.
-const TICK: char = '\u{2576}';
+pub(crate) const TICK: char = '\u{2576}';
 
 /// Narrowest useful badge: the tick, a space, and three characters of name.
 /// Under this the name is initials, and an unreadable name on a border is

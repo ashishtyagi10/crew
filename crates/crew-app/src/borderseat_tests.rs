@@ -44,3 +44,26 @@ fn a_quiet_card_keeps_its_rule() {
     };
     assert!(!top(&b, 40).contains('\u{b7}'));
 }
+
+/// The command badge's tick is its own mark: no `·` in front of it, which
+/// read as a dot and a stray dash (`↓1·╶ cargo`).
+#[test]
+fn no_dot_stands_before_the_command_tick() {
+    let _g = crate::app::theme_test_guard();
+    let git = crate::git::GitInfo {
+        branch: "main".into(),
+        changed: 3,
+        ahead: 0,
+        behind: 1,
+    };
+    let b = Bar {
+        title: "crew",
+        git: Some(&git),
+        at_cmd: Some("cargo test"),
+        elapsed: Some("2m14s".into()),
+        ..Default::default()
+    };
+    let row = top(&b, 90);
+    assert!(row.contains("\u{2576} cargo test"), "{row:?}");
+    assert!(!row.contains("\u{b7}\u{2576}"), "{row:?}");
+}

@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.45
+
+**No stray dot before a scrolled-back pane's command name.** Scrolled back
+in a terminal, the card's top border names the command whose output you're
+reading, behind a `╶` tick (the same mark the left border uses where each
+command began). The border puts a `·` between its readings, and one landed
+right in front of the tick, so it read "↓1·╶ cargo test": a dot and a stray
+dash. The tick already separates the name from what comes before it, so the
+cell in front of it is now a space.
+
 ## 0.24.44
 
 **Search in the file viewer shows its matches.** Typing `/sdf` in the
