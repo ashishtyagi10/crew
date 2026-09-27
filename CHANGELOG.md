@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.47
+
+**A quiet day in the usage heatmap is a row of dots, not a gap.** `/dash`
+and `/usage` draw each idle hour as a small dot. The dot used the heat
+scale's colour at a tenth of its strength, so on a dark page it disappeared
+next to the quietest used hour's full tile, and a day with no use looked
+like a row missing from the grid. Idle dots are now drawn in the neutral
+border colour, at the same strength as the charts' dotted baselines: the
+canvas's one mark for "nothing measured", and not a reading on the heat
+scale.
+
 ## 0.24.46
 
 **The nav's CPU chart shows its baseline before the first sample.** Until
