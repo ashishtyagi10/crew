@@ -35,7 +35,9 @@ fn note_for(text: &str, cwd: &std::path::Path) -> Option<MenuItem> {
     let words = match rest.split_once(' ') {
         // A name that runs is not a miss, row or no row (`/help`, `/crew`).
         None if crate::cmddefs::answered(&format!("/{rest}")) => return None,
-        None => format!("no command matches \"/{rest}\" \u{b7} clear it to see them all"),
+        None => {
+            format!("no command matches \u{201c}/{rest}\u{201d} \u{b7} clear it to see them all")
+        }
         Some((cmd, arg)) => {
             // A picker with a closed set lists it on a bare `/cmd `; a
             // freeform argument lists nothing there either, and is not a
@@ -46,7 +48,7 @@ fn note_for(text: &str, cwd: &std::path::Path) -> Option<MenuItem> {
             }
             // The way out rides along, as the command miss's does.
             format!(
-                "no /{cmd} value matches \"{}\" \u{b7} clear it to see them",
+                "no /{cmd} value matches \u{201c}{}\u{201d} \u{b7} clear it to see them",
                 arg.trim()
             )
         }
@@ -75,7 +77,9 @@ mod tests {
         let miss = rows("/xyzzy", cwd);
         assert_eq!(miss.len(), 1);
         assert!(miss[0].header, "a note is a header: never selected");
-        assert!(miss[0].label.contains("no command matches \"/xyzzy\""));
+        assert!(miss[0]
+            .label
+            .contains("no command matches \u{201c}/xyzzy\u{201d}"));
         assert!(miss[0].label.contains("clear it"), "{}", miss[0].label);
         assert!(
             rows("/help", cwd).is_empty(),
@@ -95,11 +99,20 @@ mod tests {
         assert_eq!(miss.len(), 1);
         assert_eq!(
             miss[0].label,
-            "no /theme value matches \"wobble\" \u{b7} clear it to see them"
+            "no /theme value matches \u{201c}wobble\u{201d} \u{b7} clear it to see them"
         );
         // `/run <anything>` has no list, so there is nothing to be empty.
         assert!(rows("/run wobble", cwd).is_empty());
         // The bare slash lists every command; not a miss.
         assert!(selectable(&rows("/", cwd)));
+    }
+
+    /// On a card too narrow for the whole note, the way out goes whole —
+    /// never `· clear it …`, half an instruction (`cmdrow` cuts headers so).
+    #[test]
+    fn a_narrow_note_keeps_what_it_can_say_whole() {
+        let note = &rows("/xyzzy", Path::new(""))[0].label;
+        let cut = crate::chatwidth::clip_words(note, 38);
+        assert_eq!(cut, "no command matches \u{201c}/xyzzy\u{201d}\u{2026}");
     }
 }
