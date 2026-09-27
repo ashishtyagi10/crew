@@ -164,15 +164,17 @@ fn blit(dst: &mut Buffer, src: &Buffer, off: u16, viewport: u16) {
     }
 }
 
-/// `↑` / `↓` markers at the right edge when the form overflows the viewport.
+/// `↑` / `↓` at the right edge when the form overflows the viewport, in the
+/// margin outside the cards: one column in, they stood ON a card's border.
 fn hints(buf: &mut Buffer, cols: u16, viewport: u16, off: u16, total: u16) {
     let style = Style::new().fg(form::dim());
+    let x = cols.saturating_sub(1);
     if off > 0 {
-        buf.set_line(cols - 2, 0, &Line::styled("\u{2191}", style), 1);
+        buf.set_line(x, 0, &Line::styled("\u{2191}", style), 1);
     }
     if off + viewport < total {
         let y = viewport.saturating_sub(1);
-        buf.set_line(cols - 2, y, &Line::styled("\u{2193}", style), 1);
+        buf.set_line(x, y, &Line::styled("\u{2193}", style), 1);
     }
 }
 
@@ -191,3 +193,7 @@ fn buttons(buf: &mut Buffer, cols: u16, rows: u16, f: Field) {
 #[cfg(test)]
 #[path = "render_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "hints_tests.rs"]
+mod hints_tests;

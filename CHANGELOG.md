@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.40
+
+**Settings' scroll arrows sit clear of the cards.** When the Settings form
+is taller than its pane, `↑` and `↓` mark that there's more. They were drawn
+in the same column as the section cards' right borders, so the `↓` looked
+like an arrowhead on the end of a card's border line, and the `↑` replaced a
+card's top-right corner. Both now sit one column further right, in the
+margin outside the cards.
+
 ## 0.24.39
 
 **Match marks on neighbouring rows stay separate.** The palette, Ctrl+R
