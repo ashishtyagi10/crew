@@ -19,7 +19,8 @@ use crew_hive::TaskState;
 
 /// Shown when the plan has arrived but nothing is running yet — the gap
 /// before the first `AgentSpawned`, and the gap between one task settling and
-/// the next spawning. The `…` is added by the layout, not carried here.
+/// the next spawning. No `…` after it: the spinner leading the line says
+/// the run is going, and crew's `…` means a cut.
 const WORKING: &str = "Working";
 /// Below this width the elapsed piece is dropped from the parenthetical (the
 /// title and counter need the room). The counter is never dropped: it's the
@@ -126,8 +127,8 @@ fn layout(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<Line> {
     // the title truncates (the title is worth more than a live clock), then the
     // title truncates before parallel drops (`+N` is the only signal other work
     // is running), then the title goes entirely, then parallel, and the bare
-    // counter is the last resort — it never drops. `…` marks the title Claude-
-    // style.
+    // counter is the last resort — it never drops. `…` marks a CUT title
+    // only; the spinner says the run is going.
     let inner_full = inner(elapsed.as_deref(), &count, parallel.as_deref());
     let inner_no_elapsed = inner(None, &count, parallel.as_deref());
     let inner_count = count.clone();
@@ -140,10 +141,11 @@ fn layout(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<Line> {
         .unwrap_or_else(|| format!(" {count}")); // floor, guaranteed to fit
 
     let left_w = SPINNER_W + crate::chatwidth::str_w(&rest) as u16;
-    // What sits between the leading space and the `… (` marker — absent in
-    // the bare tiers, and `Working` is not a task, so it never shimmers.
-    let title = match (focused.is_some(), rest.find("\u{2026} (")) {
-        (true, Some(end)) => rest[1..end].to_string(),
+    // What sits between the leading space and the ` (` of the counter, its
+    // cut mark trimmed — absent in the bare tiers, and `Working` is not a
+    // task, so it never shimmers.
+    let title = match (focused.is_some(), rest.rfind(" (")) {
+        (true, Some(end)) if end > 1 => rest[1..end].trim_end_matches('\u{2026}').to_string(),
         _ => String::new(),
     };
 

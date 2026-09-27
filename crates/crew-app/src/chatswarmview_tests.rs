@@ -381,7 +381,7 @@ fn elapsed_formats_minutes_past_sixty_seconds() {
 
 #[test]
 fn the_parenthetical_wraps_elapsed_count_and_parallel() {
-    // Claude-style: `{title}… (elapsed · done/total · +N)`. Two tasks run, so
+    // `{title} (elapsed · done/total · +N)` — no `…` after a whole title. Two tasks run, so
     // the oldest holds the line and the other shows as +1.
     let mut p = pane_with_swarm(5);
     run(&mut p, 0);

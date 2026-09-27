@@ -1,5 +1,5 @@
 //! The tiers that fit the swarm status line's words to the pane: the
-//! `" {title}… ({inner})"` shapes `chatswarmview::layout` tries in its
+//! `" {title} ({inner})"` shapes `chatswarmview::layout` tries in its
 //! sacrifice order, and the strict display-width clamp they share. Split
 //! from `chatswarmview` along that line for the 200-line cap.
 
@@ -27,12 +27,15 @@ pub(crate) fn clamp(s: &str, max_w: u16) -> (String, u16) {
     (out, w)
 }
 
-/// `" {title}… ({inner})"` only when the *whole* title fits `budget` — the
+/// `" {title} ({inner})"` only when the *whole* title fits `budget` — the
 /// tier that keeps a task's name intact. `None` if it would need truncating,
 /// leaving the caller to try a cheaper `inner` first (drop elapsed) before
 /// resorting to [`paren_with_title`], which does truncate.
+///
+/// No `…` after a whole title: everywhere else in crew `…` means cut, and
+/// the spinner leading the line already says the run is still going.
 pub(crate) fn paren_whole(title: &str, inner: &str, budget: u16) -> Option<String> {
-    let s = format!(" {title}\u{2026} ({inner})");
+    let s = format!(" {title} ({inner})");
     (crate::chatwidth::str_w(&s) as u16 <= budget).then_some(s)
 }
 
@@ -46,11 +49,13 @@ pub(crate) fn paren_with_title(title: &str, inner: &str, budget: u16) -> Option<
     if title_budget == 0 {
         return None;
     }
-    let (title, _) = clamp(title, title_budget);
-    if title.is_empty() {
+    let (kept, _) = clamp(title, title_budget);
+    if kept.is_empty() {
         return None;
     }
-    Some(format!(" {title}\u{2026} ({inner})"))
+    // The `…` marks a cut, so a title that survived whole goes without one.
+    let mark = if kept == title { "" } else { "\u{2026}" };
+    Some(format!(" {kept}{mark} ({inner})"))
 }
 
 /// `" ({inner})"` with no title, for panes too narrow to show one. `None` when
@@ -59,4 +64,21 @@ pub(crate) fn paren_bare(inner: &str, budget: u16) -> Option<String> {
     let inner_w = crate::chatwidth::str_w(inner) as u16;
     // Leading space + "(" + ")" = 3 cols.
     (inner_w + 3 <= budget).then(|| format!(" ({inner})"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{paren_whole, paren_with_title};
+
+    /// `…` is crew's mark for a cut: a whole title goes without one, and a
+    /// cut one keeps it.
+    #[test]
+    fn only_a_cut_title_wears_the_ellipsis() {
+        let whole = paren_whole("Review Project Overview", "0s \u{b7} 1/3", 60).unwrap();
+        assert_eq!(whole, " Review Project Overview (0s \u{b7} 1/3)");
+        let cut = paren_with_title("Review Project Overview", "1/3", 16).unwrap();
+        assert!(cut.contains("\u{2026} (1/3)"), "{cut:?}");
+        let fits = paren_with_title("Review", "1/3", 40).unwrap();
+        assert_eq!(fits, " Review (1/3)", "whole even on the clamping tier");
+    }
 }
