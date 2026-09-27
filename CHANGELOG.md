@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.37
+
+**Weather icons are drawn at text size.** The nav's WEATHER card and the
+clock's weather strip lead with a sun, cloud, umbrella, snowflake or
+lightning bolt. The bundled font has none of these, so each came from
+whatever fallback font the system found: the cloud was a flat blob a third
+the height of the "24°C" beside it, and the umbrella a speck. crew now draws
+all five itself, as it already does its other marks: as wide as a cell, as
+tall as a capital letter, in the theme's colour, and the same on every
+machine.
+
 ## 0.24.36
 
 **A pop-up no longer leaves half-lines beside it.** The command palette,

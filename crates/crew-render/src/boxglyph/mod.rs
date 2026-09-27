@@ -35,6 +35,7 @@ mod marks;
 mod round;
 mod sextants;
 mod strokes;
+mod weather;
 
 use glyphon::cosmic_text::{Placement, SwashImage};
 
@@ -211,6 +212,7 @@ pub(crate) fn synth(c: char, cw: u32, ch: u32, top: i32) -> Option<SwashImage> {
         && !caps::draw(&mut m, c)
         && !braille::draw(&mut m, c)
         && !marks::draw(&mut m, c)
+        && !weather::draw(&mut m, c)
         && !strokes::draw(&mut m, c)
         && !sextants::draw(&mut m, c)
     {
