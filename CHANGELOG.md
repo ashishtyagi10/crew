@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.32
+
+**`/integrations` never cuts a tool's name.** The tool column is capped so
+rows fit a tiled viewer, and a longer name was cut in the middle, even in a
+wide pane: "subscribe_to_sev…_weather_alerts" hid the words that say what it
+does. A name too long for the column now takes its own row, with its tier
+under the tier column on the next row, the way `/keys` lists a key too long
+for its column. The gap before the tier column is also widened from one
+space to two, so a name that fills its column no longer runs into its tier.
+
 ## 0.24.31
 
 **The viewer's "nothing to render" card is tidier.** Opening a binary or
