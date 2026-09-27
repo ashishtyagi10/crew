@@ -255,8 +255,8 @@ spelling, and typing `cmd` or `shift` still filters the list.
 | Cycle the theme rotations (dark → light → crt → auto) | **Ctrl+Shift+L** |
 | Step the canvas gradient (… → the theme's own) | **Ctrl+Shift+G** |
 | Focus mode: hold notifications, never steal focus | **Ctrl+Shift+F** (or `/focus`) |
-| Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
-| Compact chat transcript (one line per message) | **Ctrl+O** |
+| Agent pane: markdown preview ↔ raw source | **Ctrl+Shift+M** |
+| Agent pane: compact transcript (one line per message) | **Ctrl+O** |
 | Reverse-search the chat composer's send history | **Ctrl+R** |
 | Find: the chat transcript, or `/find` in the bar | **Cmd+F** (or **Ctrl+F**) |
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |

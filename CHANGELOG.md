@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.10
+
+**`/keys` lists the agent-pane keys with the agent pane.** Ctrl+Shift+M
+(markdown preview ↔ raw source) and Ctrl+O (compact transcript) only work in
+an agent pane, but they were listed under "everywhere" with a "Chat:" label
+standing in for the section. They now sit under "in an agent pane", and
+Ctrl+O says what it does: one line per message. Cmd+M's row says it
+maximizes *the window*, which is what the README already said, so it no
+longer reads as the pane zoom listed next to it.
+
 ## 0.24.9
 
 **`/md` and `/find` on their own say how to use them.** Typing just `/md`
