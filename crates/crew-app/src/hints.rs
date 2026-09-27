@@ -127,6 +127,7 @@ impl Hints {
     /// Label everything on these rows, or `None` when there is nothing to
     /// label — a mode with no targets is worse than no mode, because it eats
     /// the next key you press.
+    #[cfg(test)]
     pub(crate) fn scan(rows: &[Vec<char>]) -> Option<Self> {
         Self::scan_wrapped(rows, &[])
     }
