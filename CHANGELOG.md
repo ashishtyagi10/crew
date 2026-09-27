@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.44
+
+**Search in the file viewer shows its matches.** Typing `/sdf` in the
+viewer said "2 lines" on the bottom row, but nothing on screen showed which
+two lines or where the matches were. Every match on screen is now washed in
+the same highlight colour the terminal's `/find` uses. The search line
+itself was drawn in a faint olive meant for small marks, and is now drawn in
+the normal text colour. A search with no match still shows in the alert
+colour.
+
 ## 0.24.43
 
 **The nav's older load averages are readable on light themes.** LOAD shows
