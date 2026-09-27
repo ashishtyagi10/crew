@@ -75,6 +75,20 @@ fn render_flags_the_broken_bits_with_hints() {
 }
 
 #[test]
+fn no_hint_names_a_retired_command() {
+    // Outside a repository the git line once sent people to /checkpoint,
+    // /commit and /review — none of which answer any more.
+    let mut i = healthy();
+    i.git = false;
+    let r = render(&i);
+    for (name, _) in crate::broker::retired::RETIRED {
+        assert!(!r.contains(&format!("/{name}")), "/{name} is retired: {r}");
+    }
+    assert!(!r.contains("/checkpoint"), "{r}");
+    assert!(r.contains("\u{201c}commit this\u{201d}"), "{r}");
+}
+
+#[test]
 fn absent_extras_read_as_dashes_not_failures() {
     let mut i = healthy();
     i.skills = 0;
