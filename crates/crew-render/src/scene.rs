@@ -376,11 +376,13 @@ fn emit_cells(
     let rad = crate::bgruns::radius(cell_w, cell_h);
     for run in crate::bgruns::runs(&pane.cells, gcols, grows, default_bg()) {
         let radii = run.round.map(|r| if r { rad } else { 0.0 });
+        // A mark keeps a pixel of its row's edge either side (`bgruns::Run`).
+        let inset = if run.mark { 1.0 } else { 0.0 };
         quads.push(Quad {
             x: pane.x + f32::from(run.col) * cell_w,
-            y: pane.y + f32::from(run.row) * cell_h,
+            y: pane.y + f32::from(run.row) * cell_h + inset,
             w: f32::from(run.cols) * cell_w,
-            h: cell_h,
+            h: cell_h - 2.0 * inset,
             color: crate::color::target_rgba(run.bg, 1.0, srgb),
             radii,
         });

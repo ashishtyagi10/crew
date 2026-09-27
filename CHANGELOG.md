@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.39
+
+**Match marks on neighbouring rows stay separate.** The palette, Ctrl+R
+history, `/keys` and the pickers mark what matched your typing with a
+highlight behind the letters. When two rows matched in the same columns,
+"car" in "cargo clippy" and "cargo test", the two highlights merged into one
+solid block, because stacked backgrounds of one colour are drawn as a single
+shape so selections and status bars don't show seams. Match marks are now
+flagged as marks: each is its own rounded shape, inset a pixel top and
+bottom, so stacked matches read as two. Selections, status bars and
+terminal highlights still merge as before.
+
 ## 0.24.38
 
 **`/watching` keeps its columns in a tile.** Each row of the list was one

@@ -29,7 +29,8 @@ fn a_lone_highlight_is_one_capsule() {
             col: 2,
             cols: 5,
             bg: A,
-            round: [true; 4]
+            round: [true; 4],
+            mark: false,
         }]
     );
 }
@@ -87,4 +88,52 @@ fn page_cells_break_runs_and_wide_chars_span_two() {
 #[test]
 fn cells_off_the_grid_are_ignored() {
     assert!(runs(&[cell(9, 0, 'x', A), cell(0, 5, 'x', A)], 4, 2, PAGE).is_empty());
+}
+
+/// Two marks stacked in the same columns — `car` matched on two rows — stay
+/// two capsules; the same colour as a plain band still merges into one block.
+#[test]
+fn stacked_marks_stay_apart_and_stacked_bands_still_merge() {
+    let mark = |row| -> Vec<CellView> {
+        row_of(row, 2, 5, A)
+            .into_iter()
+            .map(|c| CellView { mark: true, ..c })
+            .collect()
+    };
+    let got = runs(&[mark(1), mark(2)].concat(), 10, 4, PAGE);
+    assert_eq!(got.len(), 2);
+    assert!(
+        got.iter().all(|r| r.mark && r.round == [true; 4]),
+        "{got:?}"
+    );
+    let band = runs(
+        &[row_of(1, 2, 5, A), row_of(2, 2, 5, A)].concat(),
+        10,
+        4,
+        PAGE,
+    );
+    assert_eq!(
+        band[0].round,
+        [true, true, false, false],
+        "no seam rounded mid-block"
+    );
+    assert!(band.iter().all(|r| !r.mark));
+}
+
+/// A mark sitting on a band is its own layer: the band rounds as if it were
+/// not there, and the mark splits it into runs only where it covers it.
+#[test]
+fn a_mark_on_a_band_does_not_square_the_band() {
+    let mut cells = row_of(1, 0, 8, A);
+    cells.extend(row_of(2, 0, 8, A));
+    cells.push(CellView {
+        mark: true,
+        ..cell(0, 0, 'x', B)
+    });
+    let got = runs(&cells, 10, 4, PAGE);
+    let top = got.iter().find(|r| r.row == 1 && r.col == 0).unwrap();
+    assert!(
+        top.round[0],
+        "the band's corner under row 0's mark still rounds: {got:?}"
+    );
 }
