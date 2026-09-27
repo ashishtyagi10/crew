@@ -20,7 +20,7 @@ pub(super) fn fan_cmd(
 ) -> anyhow::Result<()> {
     let task = task.trim();
     if task.is_empty() {
-        return emit(msg("agent smith", "usage: /fan <task>"));
+        return emit(msg("agent smith", "say what every agent should take a crack at \u{2014} \u{201c}have every agent take a crack at \u{2026}\u{201d}"));
     }
     let reg = session.registry();
     if reg.is_empty() {

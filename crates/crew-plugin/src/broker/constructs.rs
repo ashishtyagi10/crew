@@ -46,7 +46,7 @@ pub(crate) fn goal_cmd_with(
     if goal.is_empty() {
         return emit(msg(
             "agent smith",
-            "usage: /goal <what must be true when done>",
+            "say what must be true when it's done \u{2014} \u{201c}keep working until \u{2026}\u{201d}",
         ));
     }
     let reg = session.registry();

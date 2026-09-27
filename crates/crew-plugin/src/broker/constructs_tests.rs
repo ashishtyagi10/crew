@@ -105,10 +105,12 @@ fn goal_gives_up_at_the_round_cap_when_never_met() {
 }
 
 #[test]
-fn goal_without_text_prints_usage() {
+fn goal_without_text_asks_for_the_goal() {
+    // Not `usage: /goal …` — /goal is retired; a goal arrives as plain words.
     let _g = testenv::mock("ok\n@done");
     let ts = texts(&run_goal("   "));
-    assert!(ts[0].starts_with("usage:"), "{ts:?}");
+    assert!(ts[0].starts_with("say what must be true"), "{ts:?}");
+    assert!(!ts[0].contains("/goal"), "{ts:?}");
 }
 
 #[test]
