@@ -10,6 +10,11 @@ pub(crate) fn count(n: usize, one: &str) -> String {
     format!("{n} {one}{}", if n == 1 { "" } else { "s" })
 }
 
+/// `n` and a noun whose plural is not just `+s`: `1 entry`, `3 entries`.
+pub(crate) fn count_as(n: usize, one: &str, many: &str) -> String {
+    format!("{n} {}", if n == 1 { one } else { many })
+}
+
 /// `copied 1 line{tail}` / `copied 12 lines{tail}` — the copy confirmations,
 /// which said `copied 1 lines`.
 pub(crate) fn copied(lines: usize, tail: &str) -> String {
@@ -25,6 +30,13 @@ mod tests {
         assert_eq!(count(1, "pane"), "1 pane");
         assert_eq!(count(0, "pane"), "0 panes");
         assert_eq!(count(2, "message"), "2 messages");
+    }
+
+    #[test]
+    fn an_irregular_plural_is_named_whole() {
+        assert_eq!(super::count_as(1, "entry", "entries"), "1 entry");
+        assert_eq!(super::count_as(0, "entry", "entries"), "0 entries");
+        assert_eq!(super::count_as(7, "entry", "entries"), "7 entries");
     }
 
     #[test]

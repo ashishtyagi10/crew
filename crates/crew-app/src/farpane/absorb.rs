@@ -126,9 +126,9 @@ impl FarPane {
                 panel.entries = entries;
                 panel.sel = 0;
                 format!(
-                    "{} — {} items",
+                    "{} — {}",
                     loc.rclone_addr(),
-                    self.panel(side).entries.len()
+                    crate::wording::count(self.panel(side).entries.len(), "item")
                 )
             }
             Err(e) => format!("rclone: bad listing: {e}"),
