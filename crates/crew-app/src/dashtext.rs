@@ -11,16 +11,19 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
     if cols < MIN_COLS || rows < SYS_TOP + SYS_ROWS {
         return crate::toosmall::note(cols, rows);
     }
-    let (host, uptime) = crate::host::host_strings();
+    // One separator for the whole line: the name and OS were joined with
+    // ` · ` inside a line spaced `  ·  `, so `Mac · macOS  ·  up 3d` read as
+    // two kinds of break.
+    let (host, os, uptime) = crate::host::host_parts();
     let (one, five, fifteen) = crate::load::load_avg();
-    put(
-        &mut out,
-        &format!("{host}  \u{00b7}  {uptime}  \u{00b7}  load {one:.2} {five:.2} {fifteen:.2}",),
-        1,
-        0,
-        t.ink,
-        cols,
-    );
+    let load = format!("load {one:.2} {five:.2} {fifteen:.2}");
+    let parts = [host, os, uptime, load];
+    let line: Vec<&str> = parts
+        .iter()
+        .map(String::as_str)
+        .filter(|s| !s.is_empty())
+        .collect();
+    put(&mut out, &line.join("  \u{00b7}  "), 1, 0, t.ink, cols);
 
     // SYSTEM: the three dials, plus the CPU curve's own label.
     // `ring_w`, not `cols`: the dash gives the dials their own block and
@@ -101,8 +104,10 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
         // A week with nothing spent has no peak: `peak $0.00` read as a
         // meter reading zero, the way the USAGE line did before it said so.
         let peak = d.buckets.daily_cost.iter().copied().max().unwrap_or(0);
+        let (w, top) = (cols.saturating_sub(2), l.cost_top);
+        let said = crate::costbars::peak_labelled(&d.buckets.daily_cost, w, l.cost_rows);
         let head = match peak {
-            0 => "COST PER DAY".to_string(),
+            p if p == 0 || said => "COST PER DAY".to_string(),
             p => format!(
                 "COST PER DAY  \u{00b7}  peak {}",
                 crate::usagepane::money(p)
@@ -113,7 +118,6 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
         // says something happened, not when.
         let axis = l.cost_top + l.cost_rows;
         if axis < rows {
-            let (w, top) = (cols.saturating_sub(2), l.cost_top);
             let daily = &d.buckets.daily_cost;
             crate::costbars::labels(&mut out, daily, 1, w, top, l.cost_rows, axis, cols);
         }

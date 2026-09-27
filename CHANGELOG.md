@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.21
+
+**The cost chart states its peak once.** `/dash` and `/usage` headed the
+cost chart "COST PER DAY · peak $0.90" while the tallest bar already had
+"$0.90" printed over it. The legend now shows the peak only when the chart
+is too narrow or too short for a bar to carry its own label, which is the
+fallback that legend was for.
+
+**The `/dash` host line uses one separator.** It read "Mac · macOS  ·  up
+3d 13h  ·  load …": a tight dot inside a line of wide ones, so it looked
+like two kinds of break. Every part is now joined the same way.
+
 ## 0.24.20
 
 **Pane names in the nav are cut on a word.** On a narrow nav, the PANES rows

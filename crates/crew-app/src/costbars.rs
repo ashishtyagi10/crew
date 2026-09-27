@@ -76,6 +76,15 @@ pub(crate) fn labels(
     }
 }
 
+/// Whether [`labels`] writes the tallest bar's value over it — when it does,
+/// a `peak $0.90` in the legend says the same number twice, so the legend
+/// keeps it only for a chart too narrow (or too short) to label its bars.
+pub(crate) fn peak_labelled(daily: &[u64], w_cells: u16, rows: u16) -> bool {
+    let peak = daily.iter().copied().max().unwrap_or(0);
+    let slot = f32::from(w_cells) / daily.len().max(1) as f32;
+    rows >= 2 && peak > 0 && money(peak).chars().count() as f32 + 1.0 <= slot
+}
+
 #[cfg(test)]
 #[path = "costbars_tests.rs"]
 mod tests;
