@@ -324,7 +324,16 @@ pub(crate) fn row_cells(
             break;
         }
         let max = if li == 0 && !stack { right } else { cols - 2 };
-        let styled = chars[s..e].iter().map(|&c| (c, ()));
+        // The last row a title gets when the rest falls below the pane says
+        // so: cut there, it read as a whole title that just stopped.
+        let text: String = match li + 1 < lines.len() && r + 1 >= bottom {
+            true => {
+                let rest: String = chars[s..].iter().collect();
+                crate::chatwidth::clip_words(&rest, usize::from(max.saturating_sub(TITLE_COL)))
+            }
+            false => chars[s..e].iter().collect(),
+        };
+        let styled = text.chars().map(|c| (c, ()));
         crate::chatwidth::place_row(TITLE_COL, max, styled, |x, c, ()| {
             out.push(cell(x, r, c, ink, selected))
         });
@@ -334,3 +343,7 @@ pub(crate) fn row_cells(
 #[cfg(test)]
 #[path = "render_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "rendercut_tests.rs"]
+mod cut_tests;
