@@ -6,17 +6,6 @@ use crate::boxdraw::section_header;
 
 use crate::palette::accent;
 
-/// Current `(name, uptime)` display strings, e.g. `("mbp · macOS", "up 3h 12m")`.
-pub fn host_strings() -> (String, String) {
-    let (host, os, up) = host_parts();
-    let name = if os.is_empty() {
-        host
-    } else {
-        format!("{host} · {os}")
-    };
-    (name, up)
-}
-
 /// The nav card's two lines: the name alone, then `macOS · up 3h 12m`.
 pub fn card_lines() -> (String, String) {
     let (host, os, up) = host_parts();

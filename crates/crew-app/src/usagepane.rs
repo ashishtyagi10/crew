@@ -155,11 +155,12 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
         let axis = l.cost_top + 1 + l.cost_rows;
         put(&mut out, "COST PER DAY", 1, l.cost_top, t.text_muted);
         let peak = b.daily_cost.iter().copied().max().unwrap_or(0);
-        if cols >= FULL_COLS && peak > 0 {
+        let w = cols.saturating_sub(2 + RIGHT_PAD);
+        let said = crate::costbars::peak_labelled(&b.daily_cost, w, l.cost_rows);
+        if cols >= FULL_COLS && peak > 0 && !said {
             let peak = format!("peak {}", money(peak));
             put(&mut out, &peak, cols - 14, l.cost_top, t.text_muted);
         }
-        let w = cols.saturating_sub(2 + RIGHT_PAD);
         let top = l.cost_top + 1;
         crate::costbars::labels(&mut out, &b.daily_cost, 1, w, top, l.cost_rows, axis, cols);
     }

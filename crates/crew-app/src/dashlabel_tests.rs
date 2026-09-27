@@ -33,8 +33,40 @@ fn an_empty_week_names_no_peak() {
     );
     b.daily_cost[3] = 900_000;
     d.buckets = b.clone();
-    assert!(text(d.cells(100, 40)).contains("peak $0.90"));
-    assert!(text(crate::usagepane::cells(&b, 100, 40)).contains("peak $0.90"));
+    // Wide, the tallest bar wears its own `$0.90`: said once is enough.
+    let wide = text(d.cells(100, 40));
+    assert!(wide.contains("$0.90") && !wide.contains("peak"), "{wide}");
+    let usage = text(crate::usagepane::cells(&b, 100, 40));
+    assert!(
+        usage.contains("$0.90") && !usage.contains("peak"),
+        "{usage}"
+    );
+    // Too narrow for a bar to wear its label, the legend keeps the number.
+    d.buckets.daily_cost[3] = 12_400_000;
+    let narrow = text(d.cells(super::super::MIN_COLS, 40));
+    assert!(narrow.contains("peak $12"), "{narrow}");
+}
+
+/// The host line has one kind of break: `Mac  ·  macOS  ·  up …`, not a
+/// tight ` · ` inside a line spaced `  ·  `.
+#[test]
+fn the_host_line_spaces_every_separator_alike() {
+    let _g = crate::app::theme_test_guard();
+    let mut v = DashPane::new().cells(160, 40);
+    v.retain(|c| c.row == 0);
+    v.sort_by_key(|c| c.col);
+    let mut line = String::new();
+    let mut x = 0;
+    for c in v {
+        while x < c.col {
+            line.push(' ');
+            x += 1;
+        }
+        line.push(c.c);
+        x += 1;
+    }
+    let tight = line.replace("  \u{b7}  ", "");
+    assert!(!tight.contains('\u{b7}'), "{line:?}");
 }
 
 /// The CPU label names the span the curve draws, not the history's capacity,
