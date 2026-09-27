@@ -70,8 +70,13 @@ pub(crate) fn clip_words(s: &str, max: usize) -> String {
     let Some(body) = cut.strip_suffix('\u{2026}').filter(|_| str_w(s) > max) else {
         return cut;
     };
-    // Cut already on a word's end (`macOS · up 2d…` of `… 2d 4h`): keep it.
-    if s[body.len()..].starts_with(' ') {
+    // Cut already on a word's end (`macOS · up 2d…` of `… 2d 4h`), or on
+    // the stop after one (`FAILED…` of `FAILED. 1 failed`, not `3…` of
+    // `3.5`): keep it.
+    let next = &s[body.len()..];
+    let stop = next.starts_with(['.', ',', ';', ':', '!', '?', ')'])
+        && next[1..].chars().next().is_none_or(char::is_whitespace);
+    if next.starts_with(' ') || stop {
         return format!("{}\u{2026}", body.trim_end_matches(LOOSE));
     }
     let half = body.len() / 2;

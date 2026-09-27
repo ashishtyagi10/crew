@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.27
+
+**A word followed by punctuation counts as whole when text is cut.** Text
+that crew cuts on a word stepped back a whole word whenever the cut fell just
+before a full stop or comma. A minimized pane's preview of "test result:
+FAILED. 1 failed" showed "test result…" and dropped the one word the preview
+was there for. A cut just before `.`, `,`, `;`, `:`, `!`, `?` or `)` now
+keeps the word ("test result: FAILED…"), as long as that punctuation ends
+the word; "3.5" still isn't cut as "3…".
+
 ## 0.24.26
 
 **Goal rows are cut on a word.** A goal's task rows fitted the title and its
