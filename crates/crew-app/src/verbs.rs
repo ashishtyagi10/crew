@@ -34,7 +34,7 @@ pub(crate) const VERBS: &[Verb] = &[
         name: "/clear",
         subjects: &[
             ("all", "every pane's scrollback, not just this one"),
-            ("log", "the live activity log in the sidebar"),
+            ("log", "the live activity log in the nav"),
         ],
         two_step: false,
     },
@@ -61,7 +61,7 @@ pub(crate) const VERBS: &[Verb] = &[
             ("log", "the live activity log"),
             (
                 "weather",
-                "the clock's weather strip (/nav weather <place>)",
+                "where the WEATHER card reports for (/nav weather <place>)",
             ),
         ],
         two_step: false,

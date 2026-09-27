@@ -29,7 +29,7 @@ impl CrewApp {
         self.redraw();
     }
 
-    /// `/weather <place>` sets the place the clock's strip reports for;
+    /// `/weather <place>` sets the place the WEATHER card reports for;
     /// `/weather off` clears it. Bare, it says what is set.
     pub(crate) fn weather_command(&mut self, arg: &str) {
         let arg = arg.trim();

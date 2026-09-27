@@ -169,12 +169,12 @@ minimized thumbnail strip along the bottom of the content area, ordered
 least-recently-active first. Each thumbnail carries **the line its pane is
 currently showing** — a failing test, an agent's question, a shell back at its
 prompt — beside the activity marker and the count of what arrived. Click a
-thumbnail, use the sidebar, or press **Cmd+1 … 9** to focus a pane and restore
+thumbnail, use the nav, or press **Cmd+1 … 9** to focus a pane and restore
 it to the full grid.
 
 While a pane is scrolled back, its right border is a live scroll gutter — press
 or drag it to move through the buffer. **Cmd+wheel** resizes the font, and a
-wheel over the sidebar's LOG scrolls back through its buffered lines.
+wheel over the nav's LOG scrolls back through its buffered lines.
 
 The **left nav starts collapsed**: a seven-column rail with one row per pane —
 focus caret, number, and the mark that says what the pane is doing — and, along
@@ -187,7 +187,7 @@ question — whether there is a column at all.
 
 The pointer changes shape to say what it can do: an I-beam over text, a hand
 over a button or a nav row, an open hand over a card's legend row, a resize
-arrow on an open sidebar's edge — **drag that edge** to widen or narrow the nav.
+arrow on an open nav's edge — **drag that edge** to widen or narrow the nav.
 
 Inside a pane, **double-click selects a word** and **triple-click the line** —
 the gesture every terminal has, and each selection copies. On a card's top
@@ -204,7 +204,7 @@ at the edge of the grid.
 
 The chrome answers the pointer: the `–` / `×` button under the cursor
 lights up (`×` in the bell colour — it ends a running program), and the
-sidebar PANES row under it brightens, because the whole row is a click target.
+nav PANES row under it brightens, because the whole row is a click target.
 
 Any full tile can also be **minimized into the left nav**: click the `–`
 button on its top border and the pane keeps running but leaves the grid; its
@@ -334,7 +334,7 @@ overdue items surface to the top, a toast fires when an item comes due, and
 smith) in a new pane in the `@project`'s directory — or end the line with `&`
 and it runs the moment it is added.
 
-## Sidebar
+## The left nav
 
 A docked left panel (toggle with **Cmd+G**) with a live clock, CPU/MEM/DISK
 **dials** (drawn capsules on a narrow nav), a moving **CPU curve** under them, load average, host info,
@@ -343,7 +343,7 @@ section for the working directory, a **LOG** tail, and a list of open panes
 (click a row to focus it) headed by the **crew mix** — one chip per pane on a
 row per state, working / waiting / idle, with the crew total on the section
 rule. The charts scroll on the
-sidebar's once-a-second refresh, so they animate at no extra redraw cost.
+nav's once-a-second refresh, so they animate at no extra redraw cost.
 
 Every part of it answers to the width you give it (drag the inner edge):
 
@@ -375,7 +375,7 @@ it.
   UI.
 - **How long** the foreground command has been running (`9s`, `2m14`, `1h05`),
   past five seconds.
-- **What arrived while you were away**: a count on the border, in the sidebar
+- **What arrived while you were away**: a count on the border, in the nav
   and on the minimized thumbnail. It clears when you type into the pane or
   scroll back to the live bottom.
 - **Where each command began** (a tick) and **where the errors are** (a red
