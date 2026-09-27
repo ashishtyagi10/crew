@@ -137,3 +137,14 @@ fn the_aliases_that_run_are_answered() {
         assert!(crate::cmddefs::answered(name), "{name}");
     }
 }
+
+#[test]
+fn subjects_call_things_what_the_ui_calls_them() {
+    // The left column is "the nav" on every other surface, and the weather
+    // is a card now — the strip only returns when the card has no room.
+    let subjects = VERBS.iter().flat_map(|v| v.subjects.iter());
+    for (s, d) in subjects {
+        assert!(!d.contains("sidebar"), "{s}: {d}");
+        assert!(!d.contains("weather strip"), "{s}: {d}");
+    }
+}

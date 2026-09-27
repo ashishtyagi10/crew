@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.12
+
+**The palette calls the nav the nav.** `/clear log` was described as "the
+live activity log in the sidebar", and `/nav weather` as "the clock's
+weather strip". Everywhere else that column is called the nav, and the
+weather is now a WEATHER card (the one-line strip only comes back when there
+isn't room for the card). The two rows now read "the live activity log in
+the nav" and "where the WEATHER card reports for". The README's "Sidebar"
+section is now "The left nav", and its prose says nav too. The `/sidebar`
+command keeps its name.
+
 ## 0.24.11
 
 **"AI" is written in capitals everywhere.** The `?` prefix in the input bar
