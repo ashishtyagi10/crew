@@ -89,9 +89,9 @@ impl CrewApp {
         let path = dump_path(arg, &dir, &stamp);
         match std::fs::write(&path, &text) {
             Ok(()) => {
-                let lines = text.lines().count();
+                let lines = crate::wording::count(text.lines().count(), "line");
                 self.set_status(format!(
-                    "dumped {lines} lines ({}) → {}",
+                    "dumped {lines} ({}) → {}",
                     fmt_bytes(text.len()),
                     path.display()
                 ));

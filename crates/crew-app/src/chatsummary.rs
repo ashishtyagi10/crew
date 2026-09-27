@@ -79,7 +79,7 @@ pub(crate) fn roster_seg(agents: &[AgentInfo], cols: usize) -> Option<String> {
     // Past three, or past half the pane, names stop fitting and stop
     // informing; the count does both.
     if names.len() > 3 || joined.chars().count() > cols / 2 {
-        return Some(format!("{} agents", names.len()));
+        return Some(crate::wording::count(names.len(), "agent"));
     }
     Some(joined)
 }

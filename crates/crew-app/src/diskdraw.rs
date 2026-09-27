@@ -25,11 +25,15 @@ impl DiskPane {
         // directory you are in, the head is the road you took to it.
         let reading = match self.scanning {
             true => format!(
-                "{} so far, {} files scanned\u{2026}",
+                "{} so far, {} scanned\u{2026}",
                 bytes(self.total),
-                self.files
+                crate::wording::count(self.files as usize, "file")
             ),
-            false => format!("{} in {} entries", bytes(self.total), self.children.len()),
+            false => format!(
+                "{} in {}",
+                bytes(self.total),
+                crate::wording::count_as(self.children.len(), "entry", "entries")
+            ),
         };
         // `·`, like every other header in crew (`/dash`, the NET rule, the
         // goal HUD); an em-dash here was the one reading that said it differently.
@@ -149,3 +153,7 @@ impl DiskPane {
         c.paint()
     }
 }
+
+#[cfg(test)]
+#[path = "diskcount_tests.rs"]
+mod count_tests;

@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.7
+
+**One is singular in four more places.** The `/disk` header said a folder
+holding one thing was "in 1 entries" (and "1 files scanned" while scanning),
+a Google Drive listing in `/far` said "1 items", `/dump` said "dumped 1
+lines", and the chat header could read "1 agents" when one agent's name was
+too long to show. They now choose the word from the number, through a new
+`wording::count_as` for plurals that aren't just `+s` ("entry" / "entries").
+
 ## 0.24.6
 
 **`/doctor` outside a repository names things that still work.** Its git
