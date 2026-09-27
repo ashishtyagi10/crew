@@ -31,3 +31,29 @@ fn a_blurred_pane_has_no_caret_and_no_accent_bar() {
         "blurred: the place is kept, in the wash"
     );
 }
+
+/// One caret, where the keys go. With F7's prompt open the command line
+/// kept its caret too, so the pane showed two places to type.
+#[test]
+fn an_open_prompt_owns_the_only_caret() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = pane();
+    p.prompt = Some(crate::farpane::Prompt {
+        kind: crate::farpane::PromptKind::MkDir,
+        input: "shots".into(),
+    });
+    let carets =
+        |cells: &[crew_render::CellView]| cells.iter().filter(|c| c.c == '\u{258f}').count();
+    let live = super::render_in(&p, 80, 24, true);
+    assert_eq!(carets(&live), 1, "focused: the prompt's caret only");
+    let last = live.iter().map(|c| c.row).max().unwrap();
+    assert!(
+        live.iter().any(|c| c.c == '\u{258f}' && c.row == last),
+        "on the prompt row"
+    );
+    assert_eq!(
+        carets(&super::render_in(&p, 80, 24, false)),
+        0,
+        "blurred: none"
+    );
+}
