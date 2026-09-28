@@ -23,6 +23,7 @@ mod note;
 mod toolloop;
 
 pub(crate) use context::build_prompt;
+pub(crate) use cost::billed;
 pub(crate) use failure::reason;
 
 use std::future::Future;

@@ -16,6 +16,7 @@ use std::collections::HashSet;
 use crate::board::Blackboard;
 use crate::graph::{AgentKind, ModelTier, TaskGraph, TaskId, TaskSpec};
 use crate::planner::Planner;
+use crate::spent::Spent;
 
 /// Re-plans allowed per run — a hard constant, not a knob: one failure gets
 /// one fresh look at the remainder; a second failure cascade-cancels as
@@ -33,6 +34,8 @@ pub(super) struct Replan {
 /// failed) and swap `graph` for it. On a planner error nothing changes and
 /// the failure cascade-cancels exactly as before. The scheduler awaits this
 /// before its next spawn pass, so ready-dispatch is paused throughout.
+/// Returns what the re-plan cost, for the run's outcome: the planner is no
+/// agent, so no bus event carries it.
 #[allow(clippy::too_many_arguments)] // the scheduler loop's working set, borrowed piecewise
 pub(super) async fn attempt(
     rp: &Replan,
@@ -45,17 +48,20 @@ pub(super) async fn attempt(
     started: &HashSet<TaskId>,
     failed_task: TaskId,
     failure: &str,
-) {
-    if let Some(g2) = replacement(rp, graph, done, failed_task, failure, board).await {
+) -> Spent {
+    let (g2, spent) = replacement(rp, graph, done, failed_task, failure, board).await;
+    if let Some(g2) = g2 {
         super::cancel::mark_all_unstarted_cancelled(graph, bus, done, failed, cancelled, started);
         *graph = g2;
     }
+    spent
 }
 
 /// Ask the planner for a replacement sub-graph after `failed_task` failed.
 /// `None` on any planner/graph error — the caller falls back to
 /// cascade-cancel. Replacement task ids are remapped past the old graph's
-/// maximum so they can never collide with (or resurrect) an old task.
+/// maximum so they can never collide with (or resurrect) an old task. The
+/// call's cost comes back either way.
 pub(super) async fn replacement(
     rp: &Replan,
     graph: &TaskGraph,
@@ -63,7 +69,7 @@ pub(super) async fn replacement(
     failed_task: TaskId,
     failure: &str,
     board: &Blackboard,
-) -> Option<TaskGraph> {
+) -> (Option<TaskGraph>, Spent) {
     let completed = board.gather(&done_sorted(done)).await;
     let failed_title = graph
         .get(failed_task)
@@ -85,7 +91,10 @@ pub(super) async fn replacement(
         rp.goal
     );
     let prompt = crate::apiagent::build_prompt(&header, &context);
-    let plan = rp.planner.plan(&prompt).await.ok()?;
+    let (plan, spent) = rp.planner.plan_spent(&prompt).await;
+    let Ok(plan) = plan else {
+        return (None, spent);
+    };
     let offset = graph.tasks().iter().map(|t| t.id.0).max().unwrap_or(0) + 1;
     let specs: Vec<TaskSpec> = plan
         .tasks()
@@ -105,7 +114,7 @@ pub(super) async fn replacement(
         !specs.iter().any(|t| t.agent.is_pty()),
         "a re-plan must never yield a process-executing Pty task"
     );
-    TaskGraph::new(specs).ok()
+    (TaskGraph::new(specs).ok(), spent)
 }
 
 /// The `parse_plan` forcing, applied again at the trust boundary: a re-plan
@@ -127,6 +136,9 @@ fn done_sorted(done: &HashSet<TaskId>) -> Vec<TaskId> {
     v
 }
 
+#[cfg(test)]
+#[path = "replanspent_tests.rs"]
+mod spent_tests;
 #[cfg(test)]
 #[path = "replan_tests.rs"]
 mod tests;

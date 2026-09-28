@@ -17,7 +17,7 @@ use crate::provider::Completion;
 /// `tier`. One price list (`crate::pricing`) answers for both: the model
 /// that answered when it is listed, else the tier's own default model — so
 /// the estimate for an unlisted id is the tier's price, never zero.
-pub(super) fn billed(model_id: &str, tier: ModelTier, c: &Completion) -> u64 {
+pub(crate) fn billed(model_id: &str, tier: ModelTier, c: &Completion) -> u64 {
     if c.cost_microusd > 0 {
         return c.cost_microusd;
     }

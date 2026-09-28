@@ -9,8 +9,9 @@
 //! proves the classifier is shown the room it routes in; `skillhint` proves
 //! the routing call chooses the playbooks, so no arm asks again; `fallback`
 //! proves a stumbling router lands on one agent's reply, within its own
-//! tighter bound; `routereval` measures the live router, and is ignored
-//! unless asked for. Shared fixtures live here.
+//! tighter bound; `spent` proves the router's cost reaches the relay turn's
+//! total; `routereval` measures the live router, and is ignored unless asked
+//! for. Shared fixtures live here.
 use super::decision::{decide_in, parse_decision_on, Decision, Routing};
 use super::*;
 use crate::broker::testenv;
@@ -26,6 +27,7 @@ mod replypick;
 mod routereval;
 mod routing;
 mod skillhint;
+mod spent;
 mod swarmwait;
 mod verify;
 mod world;

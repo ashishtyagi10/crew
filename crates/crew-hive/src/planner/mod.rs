@@ -27,6 +27,7 @@ pub use stub::StubPlanner;
 
 use crate::graph::{AgentKind, ModelTier, TaskGraph, TaskId, TaskSpec};
 use crate::provider::{CompletionRequest, Provider};
+use crate::spent::Spent;
 
 // ---------------------------------------------------------------------------
 // Planner trait
@@ -37,7 +38,20 @@ pub trait Planner: Send + Sync {
         &self,
         goal: &str,
     ) -> Pin<Box<dyn Future<Output = Result<TaskGraph, PlanError>> + Send>>;
+
+    /// [`Planner::plan`], and what its model calls cost: the first ask and a
+    /// repair re-ask alike, spent whether or not a plan came of them. The
+    /// planner is no agent, so no bus event carries its usage, and a caller
+    /// summing the turn has only this. The default spends nothing — right for
+    /// a planner that calls no model (the stub, a test's fixed graph).
+    fn plan_spent(&self, goal: &str) -> Planned {
+        let plan = self.plan(goal);
+        Box::pin(async move { (plan.await, Spent::default()) })
+    }
 }
+
+/// A plan on its way, with what it cost ([`Planner::plan_spent`]).
+pub type Planned = Pin<Box<dyn Future<Output = (Result<TaskGraph, PlanError>, Spent)> + Send>>;
 
 // ---------------------------------------------------------------------------
 // LlmPlanner
@@ -132,6 +146,11 @@ impl<P: Provider + Clone + 'static> Planner for LlmPlanner<P> {
         &self,
         goal: &str,
     ) -> Pin<Box<dyn Future<Output = Result<TaskGraph, PlanError>> + Send>> {
+        let planned = self.plan_spent(goal);
+        Box::pin(async move { planned.await.0 })
+    }
+
+    fn plan_spent(&self, goal: &str) -> Planned {
         let req = CompletionRequest {
             model: self
                 .model
@@ -142,7 +161,11 @@ impl<P: Provider + Clone + 'static> Planner for LlmPlanner<P> {
             max_tokens: 2048,
             ..Default::default()
         };
-        Box::pin(repair::plan_with_repair(self.provider.clone(), req))
+        Box::pin(repair::plan_with_repair(
+            self.provider.clone(),
+            req,
+            self.tier,
+        ))
     }
 }
 

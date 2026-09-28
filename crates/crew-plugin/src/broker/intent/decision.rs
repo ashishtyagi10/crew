@@ -15,9 +15,13 @@ use crate::broker::relay::msg;
 use crate::broker::route::clip;
 use crate::PluginEvent;
 
+use crew_hive::Spent;
+
 use super::hints::Hints;
 use super::world::World;
-use super::{classify, parse_shape, Classifier, Shape};
+#[cfg(test)]
+use super::Classifier;
+use super::{classify, parse_shape, Shape, SpentClassifier};
 
 /// The routing line's sender — the same voice as the swarm's plan line, so
 /// the pane draws it as a muted status line, not an agent speaking.
@@ -128,19 +132,20 @@ pub(crate) fn forced(shape: Shape, why: &str) -> Routing {
 /// Classify `task` in `world`, with agent smith `thinking` while the call
 /// runs (the pane's header pulse — the only state it draws live). The line
 /// and smith's idle are the caller's to send, AFTER the context is known,
-/// so the turn gets one line from smith rather than two.
+/// so the turn gets one line from smith rather than two. Returns what the
+/// classifier's calls cost beside the routing, for the turn's total.
 pub(crate) fn classify_live(
     task: &str,
     world: &World,
-    classifier: Option<Classifier>,
+    classifier: Option<SpentClassifier>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<Routing> {
+) -> anyhow::Result<(Routing, Spent)> {
     emit(PluginEvent::Activity {
         agent: SMITH.into(),
         state: "thinking".into(),
         from: "user".into(),
     })?;
-    Ok(decide_in(task, world, classifier))
+    Ok(decide_spent(task, world, classifier))
 }
 
 /// Say the decision and what the run brings as ONE line — `routing: reply —
@@ -165,13 +170,27 @@ pub(crate) fn say(
     })
 }
 
+/// [`decide_spent`] on a plain classifier, which reports no cost — the seam
+/// the grammar tests drive.
+#[cfg(test)]
+pub(crate) fn decide_in(task: &str, world: &World, classifier: Option<Classifier>) -> Routing {
+    let counted = classifier.map(super::uncounted);
+    decide_spent(task, world, counted.as_ref().map(|c| c as SpentClassifier)).0
+}
+
 /// Run the classifier and keep the WHOLE outcome, not just the shape: the
 /// line needs to tell a call error from an off-grammar reply. The world's
 /// roster is also the set an `AGENTS:` line may name — the model can pick
-/// only from what it was shown.
-pub(crate) fn decide_in(task: &str, world: &World, classifier: Option<Classifier>) -> Routing {
+/// only from what it was shown. Beside it, what every call cost — the second
+/// ask of an off-grammar reply included, since it is billed like the first.
+pub(crate) fn decide_spent(
+    task: &str,
+    world: &World,
+    classifier: Option<SpentClassifier>,
+) -> (Routing, Spent) {
+    let mut spent = Spent::default();
     let Some(call) = classifier else {
-        return Routing::Off;
+        return (Routing::Off, spent);
     };
     let prompt = classify::prompt(task, world);
     // An off-grammar reply is asked for once more before it becomes the
@@ -181,14 +200,17 @@ pub(crate) fn decide_in(task: &str, world: &World, classifier: Option<Classifier
     let mut outcome = Routing::OffGrammar;
     for _ in 0..2 {
         outcome = match call(&prompt) {
-            Ok(reply) => read_reply(task, &reply, world),
-            Err(e) => return Routing::Failed(e),
+            Ok((reply, cost)) => {
+                spent += cost;
+                read_reply(task, &reply, world)
+            }
+            Err(e) => return (Routing::Failed(e), spent),
         };
         if outcome != Routing::OffGrammar {
             break;
         }
     }
-    outcome
+    (outcome, spent)
 }
 
 /// One classifier reply, parsed: the decision with its sizing and skill

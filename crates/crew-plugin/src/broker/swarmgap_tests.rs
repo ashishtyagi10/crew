@@ -59,7 +59,7 @@ fn judging(reply: &'static str) -> (Arc<Mutex<Vec<String>>>, Box<SynthFn>) {
     let log = Arc::clone(&seen);
     let call = move |p: &str| {
         log.lock().unwrap().push(p.to_string());
-        Ok(reply.to_string())
+        Ok((reply.to_string(), crew_hive::Spent::default()))
     };
     (seen, Box::new(call))
 }

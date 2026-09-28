@@ -109,6 +109,7 @@ mod toolclip;
 mod toolline;
 mod toolpick;
 mod toolround;
+mod turnspent;
 mod undo;
 mod undoask;
 mod zerostat;
