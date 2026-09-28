@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.65
+
+**Reading a big file no longer skips most of it.** `sys:read_file`
+returned up to 64 KB per call, but smith and the swarm both cut every tool
+result to 6,000 characters before the agent sees it, so on a 40 KB file
+the agent read the first ~5.9 K characters and was told to continue at
+byte 65,536, past the end. Now each call returns one page of up to 5,600
+bytes, ending on a whole line, which is small enough that the page and its
+note always get through that cut intact. The note says where the page sits
+and what to pass next, e.g. "lines 1–143 of 912, bytes 0–5,480 of 40,112
+— continue with {"offset": 5480}"; the idea of reading a window at a time
+comes from Claude Code's Read tool. The cost: that 40 KB file now takes
+eight calls, which is a whole turn's tool budget, and each page of a file
+up to 8 MB reads the file once to count its lines (past 8 MB the note
+gives bytes only).
+
 ## 0.24.64
 
 **A swarm's "tool budget spent" note comes before the call it explains.**

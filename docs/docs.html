@@ -265,7 +265,7 @@ cargo build --release -p crew-app
         <li><strong>Skills</strong> — markdown playbooks in <code>~/.config/crew/skills/</code> or <code>./.crew/skills/</code> (flat <code>.md</code> or a directory with a <code>SKILL.md</code>); oversized playbooks disclose progressively as an outline agents read in chunks. <code>/skill &lt;name&gt; &lt;task&gt;</code> runs the relay with the playbook prepended.</li>
         <li><strong>Plugin agents</strong> — a JSON manifest in <code>~/.config/crew/agents/</code> or <code>./.crew/agents/</code> turns any headless CLI into a roster agent.</li>
         <li><strong>MCP servers</strong> — declared in <code>mcp.json</code> (standard <code>mcpServers</code> schema), connected lazily over stdio; agents call tools mid-relay with <code>@tool server:tool {…}</code>, bounded rounds, every call visible in the transcript.</li>
-        <li><strong>Built-in sys tools</strong> — <code>sys:run</code> (bounded non-interactive shell), <code>sys:read_file</code> (chunked 64&nbsp;KB reads), <code>sys:write_file</code>, <code>sys:list_dir</code>; <code>CREW_SYS_MODE=readonly</code> blocks the mutating pair.</li>
+        <li><strong>Built-in sys tools</strong> — <code>sys:run</code> (bounded non-interactive shell), <code>sys:read_file</code> (paged, ~5&nbsp;KB of whole lines per call), <code>sys:write_file</code>, <code>sys:list_dir</code>; <code>CREW_SYS_MODE=readonly</code> blocks the mutating pair.</li>
       </ul>
       <p>All three drop-in surfaces <strong>hot-reload</strong> — edits are picked up live, and <code>/reload</code> forces it — no restart needed.</p>
 

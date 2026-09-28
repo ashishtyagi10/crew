@@ -14,6 +14,11 @@ mod tests;
 /// listing, a directory, a file read — would otherwise blow the next request
 /// past the model's context and fail the task at the exact moment the tool
 /// SUCCEEDED, which is the most confusing failure this loop can produce.
+///
+/// `sys:read_file` pages are sized to pass this whole (crew-plugin's
+/// `sysread::PAGE`, 5,600 bytes plus a one-line note, held under the relay's
+/// `toolclip::AGENT_CLIP` by a test there). This clip keeps only the head, so
+/// lowering it below ~5,800 would cut the note that says where to continue.
 pub(super) const RESULT_CAP: usize = 6_000;
 
 /// Clip to `max` chars keeping the head, with a visible marker. Counts chars,

@@ -558,8 +558,9 @@ reverse-searches what you've sent, shell-style; **Cmd+F** searches the
 transcript and jumps to each match.
 
 Agents can also touch the workspace through built-in **sys tools** — bounded
-`sys:run` (non-interactive shell, 30s/64KB caps), `sys:read_file` (chunked
-64KB reads), `sys:write_file`, `sys:edit` (replace an exact, unique fragment
+`sys:run` (non-interactive shell, 30s/64KB caps), `sys:read_file` (~5 KB
+pages of whole lines, each naming its lines and the next offset),
+`sys:write_file`, `sys:edit` (replace an exact, unique fragment
 — part of a file without rewriting the whole of it), `sys:list_dir`,
 `sys:fetch` (an http(s)
 page as readable text — markup and scripts stripped, 24 KB cap, private and
