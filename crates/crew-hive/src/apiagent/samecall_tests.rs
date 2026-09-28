@@ -90,6 +90,7 @@ async fn run(native: bool, replies: Vec<Completion>) -> (Vec<String>, Vec<Comple
     let ran = Arc::new(Mutex::new(Vec::new()));
     let bus = EventBus::new(64);
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(1),
         task: TaskSpec {

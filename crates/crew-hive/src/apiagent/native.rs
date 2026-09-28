@@ -74,6 +74,11 @@ pub(super) async fn run(
     let mut seen = Seen::default();
 
     loop {
+        // A stop pressed while the last round's tools ran: no next call
+        // (`agent::stop`). The tools already run are not undone.
+        if ctx.stopped() {
+            return Attempt::stopped(task_id);
+        }
         let req = CompletionRequest {
             model: model_id.clone(),
             system: system.clone(),
@@ -82,12 +87,12 @@ pub(super) async fn run(
             turns: turns.clone(),
             tools: catalog.defs().to_vec(),
         };
-        let completion = match provider
-            .complete_streaming(req, Arc::clone(&sink.on_chunk))
-            .await
-        {
-            Ok(c) => c,
-            Err(err) => return super::failure::failed(&ctx, &err),
+        // Raced against the stop: dropping the call aborts the request.
+        let call = provider.complete_streaming(req, Arc::clone(&sink.on_chunk));
+        let completion = match ctx.unless_stopped(call).await {
+            None => return Attempt::stopped(task_id),
+            Some(Ok(c)) => c,
+            Some(Err(err)) => return super::failure::failed(&ctx, &err),
         };
         sink.settle(&completion);
         ctx.bus.publish(HiveEvent::TokenDelta {
@@ -143,6 +148,9 @@ pub(super) async fn run(
             let answer =
                 super::lastword::ask(&ctx, &provider, &model_id, system, last, max_tokens, &sink)
                     .await;
+            if ctx.stopped() {
+                return Attempt::stopped(task_id);
+            }
             let text = super::toolloop::with_budget_note(
                 answer.as_deref().unwrap_or(&completion.text),
                 total,

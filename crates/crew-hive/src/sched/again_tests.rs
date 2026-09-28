@@ -140,6 +140,7 @@ async fn a_stop_during_the_pause_keeps_the_first_failure() {
     });
     let agent = ApiFactory::new(provider, 64).make(&AgentKind::Api { system: None });
     let ctx = AgentContext {
+        cancel: Default::default(),
         agent: crate::bus::AgentId(0),
         task: task(),
         deps: vec![],
@@ -147,7 +148,9 @@ async fn a_stop_during_the_pause_keeps_the_first_failure() {
         budget: crate::tools::budget::ToolBudget::solo(),
     };
     let stopped = AtomicBool::new(true);
-    let result = super::run(agent.as_ref() as &dyn Agent, ctx, Duration::ZERO, &stopped).await;
+    let result = super::run(agent.as_ref() as &dyn Agent, ctx, Duration::ZERO, &stopped)
+        .await
+        .expect("the agent itself was not stopped: its failure stands");
     assert!(!result.success);
     assert!(
         result.output.contains("read timed out"),

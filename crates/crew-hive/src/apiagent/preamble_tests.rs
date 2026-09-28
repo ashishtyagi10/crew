@@ -37,6 +37,7 @@ async fn system_for(persona: Option<&str>, preamble: Option<&str>) -> Option<Str
     };
     let agent = f.make(&kind);
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(1),
         task: TaskSpec {

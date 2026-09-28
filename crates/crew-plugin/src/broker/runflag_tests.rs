@@ -104,6 +104,7 @@ fn the_swarm_sends_a_non_zero_exit_to_the_provider_as_an_error() {
     let bus = crew_hive::EventBus::new(64);
     let mut rx = bus.subscribe();
     let ctx = crew_hive::AgentContext {
+        cancel: Default::default(),
         budget: crew_hive::ToolBudget::solo(),
         agent: crew_hive::AgentId(1),
         task: crew_hive::TaskSpec {

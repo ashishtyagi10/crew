@@ -25,6 +25,7 @@ async fn stub_agent_succeeds_and_emits() {
         fail_ids: HashSet::new(),
     };
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(0),
         task: spec(7),
@@ -53,6 +54,7 @@ async fn stub_agent_fails_for_configured_id() {
     ids.insert(TaskId(3));
     let agent = StubAgent { fail_ids: ids };
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(0),
         task: spec(3),
@@ -81,6 +83,7 @@ async fn take_round_publishes_the_pools_state_on_every_draw_including_the_refuse
     let bus = EventBus::new(32);
     let mut rx = bus.subscribe();
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::for_run(1),
         agent: AgentId(0),
         task: spec(1),

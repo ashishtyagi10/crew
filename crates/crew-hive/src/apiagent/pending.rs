@@ -31,7 +31,12 @@ enum Pending {
     Pointer(u32),
     /// Running on the blocking pool.
     Running(JoinHandle<Called>),
+    /// Never started: the run was stopped before its turn came.
+    Stopped,
 }
+
+/// What a call the stop kept from starting is answered with.
+const NOT_RUN_STOPPED: &str = "not run \u{2014} stopped";
 
 /// How one loop numbers its calls and spells their failures. The native loop
 /// notes every call of a round under the round; the text loop notes each under
@@ -77,8 +82,14 @@ pub(super) async fn run(
             }
             None => (rules.repeat)(seen, call),
         };
+        // Looked at before EACH start: in a batch run in turn, a stop pressed
+        // during the edit keeps the build after it from starting. A call
+        // already running is NOT killed, and is waited for: `Tools::call`
+        // takes no stop, and `sys:run` kills its child only at its own
+        // deadline. Reaching into that process is work for another day.
         let pending = match first {
             Some(round) => Pending::Pointer(round),
+            None if ctx.stopped() => Pending::Stopped,
             None => start(tools, call),
         };
         match together {
@@ -119,6 +130,7 @@ async fn finish(
 ) -> (bool, String) {
     let (ok, text, ms) = match pending {
         Pending::Pointer(first) => (true, Seen::pointer(first), 0),
+        Pending::Stopped => (false, NOT_RUN_STOPPED.to_string(), 0),
         Pending::Running(task) => {
             let (called, ms) = task
                 .await

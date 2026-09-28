@@ -89,7 +89,9 @@ impl Broker {
 
     /// Resolve any tool directives in `reply`: run the tool, show the agent
     /// the result, and take its next reply — until it answers without a tool
-    /// call or the round cap trips. Returns the reply routing should parse.
+    /// call or the round cap trips, or the thread is stopped (`/stop`), which
+    /// is looked at before each round's tools and before each follow-up
+    /// dial. Returns the reply routing should parse.
     ///
     /// `usage` is the surrounding hop's usage (the primary dial's, or the
     /// repair dial's when it ran) — each follow-up dial overwrites it with
@@ -143,6 +145,11 @@ impl Broker {
             let Some((said, calls)) = split_tool_calls(&reply) else {
                 return reply;
             };
+            // A stop pressed while the agent was dialed: what it asked for
+            // is not run.
+            if self.cancelled() {
+                return super::toolround::stopped_answer(&said, used);
+            }
             if used >= max_calls {
                 break said;
             }
@@ -168,6 +175,13 @@ impl Broker {
             }
             exchanges.push_round(round);
             used += fit as u32;
+            // A stop pressed while the tools ran: no follow-up dial. Its
+            // tools are not undone, and one still running was waited for:
+            // `ToolRunner::call` takes no stop, and `sys:run` kills its
+            // child only at its own deadline.
+            if self.cancelled() {
+                return super::toolround::stopped_answer(&said, used);
+            }
             // The agent is TOLD what it has left. A budget it cannot see is
             // one it plans straight past, and then the turn ends mid-sequence
             // with a tool call nobody ran.
@@ -263,3 +277,7 @@ mod samecall_tests;
 #[cfg(test)]
 #[path = "shrinkold_tests.rs"]
 mod shrinkold_tests;
+
+#[cfg(test)]
+#[path = "toolstop_tests.rs"]
+mod toolstop_tests;

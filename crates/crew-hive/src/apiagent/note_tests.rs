@@ -88,6 +88,7 @@ async fn request_seen(system: Option<&str>, note: Option<&str>) -> CompletionReq
     let seen = Arc::new(Mutex::new(None));
     let bus = EventBus::new(64);
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(3),
         task: TaskSpec {

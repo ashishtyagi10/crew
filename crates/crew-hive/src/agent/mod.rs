@@ -5,11 +5,15 @@ mod stub;
 #[cfg(test)]
 mod tests;
 
+pub(crate) mod stop;
+
 pub use stub::StubAgent;
 
 use std::collections::HashSet;
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 use crate::board::TaskResult;
 use crate::bus::{AgentId, EventBus};
@@ -17,8 +21,8 @@ use crate::graph::{AgentKind, TaskId, TaskSpec};
 use crate::tools::budget::ToolBudget;
 
 /// Everything an agent needs to do its task: its id, the task spec, the
-/// already-gathered results of its dependencies, the event bus, and the
-/// run's tool budget.
+/// already-gathered results of its dependencies, the event bus, the run's
+/// tool budget, and the run's stop.
 pub struct AgentContext {
     pub agent: AgentId,
     pub task: TaskSpec,
@@ -27,6 +31,11 @@ pub struct AgentContext {
     /// The run's pool of tool rounds, shared with every other agent in it.
     /// Draw through [`AgentContext::take_round`], which announces the draw.
     pub budget: ToolBudget,
+    /// The run's cancel flag, the scheduler's own (`Scheduler::with_cancel`).
+    /// An agent that honours it stops at its next look and says so with
+    /// [`Attempt::stopped`]; one that does not runs to its end, as every
+    /// agent did before (see `stop`).
+    pub cancel: Arc<AtomicBool>,
 }
 
 impl AgentContext {
@@ -42,6 +51,17 @@ impl AgentContext {
             total,
         });
         left
+    }
+
+    /// Whether the run has been stopped.
+    pub fn stopped(&self) -> bool {
+        self.cancel.load(Ordering::Relaxed)
+    }
+
+    /// `work`'s output, or `None` when the run is stopped first — `work`
+    /// dropped unfinished (see [`stop::unless`]).
+    pub async fn unless_stopped<F: Future>(&self, work: F) -> Option<F::Output> {
+        stop::unless(&self.cancel, work).await
     }
 }
 
@@ -71,6 +91,25 @@ pub struct Attempt {
     /// scheduler runs it ONCE more before anything re-plans
     /// (`sched::again`). Never set on a success.
     pub transient: bool,
+    /// The agent stopped because the run was stopped, not because the task
+    /// failed: the scheduler records it cancelled, never failed, so it earns
+    /// no second run and no re-plan, and its half-done work is no answer.
+    pub stopped: bool,
+}
+
+impl Attempt {
+    /// The attempt of an agent that saw the run's stop and quit `task`.
+    pub fn stopped(task: TaskId) -> Self {
+        Self {
+            result: TaskResult {
+                task,
+                output: "stopped".into(),
+                success: false,
+            },
+            transient: false,
+            stopped: true,
+        }
+    }
 }
 
 impl From<TaskResult> for Attempt {
@@ -79,6 +118,7 @@ impl From<TaskResult> for Attempt {
         Self {
             result,
             transient: false,
+            stopped: false,
         }
     }
 }

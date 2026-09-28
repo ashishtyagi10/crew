@@ -97,6 +97,7 @@ fn answering(text: &str) -> Completion {
 
 fn ctx(bus: &EventBus) -> AgentContext {
     AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(3),
         task: TaskSpec {

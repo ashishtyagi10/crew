@@ -789,6 +789,7 @@ fn the_mock_arm_gets_no_tools_even_when_the_session_has_them() {
         .build()
         .unwrap();
     let out = rt.block_on(agent.run(crew_hive::AgentContext {
+        cancel: Default::default(),
         budget: crew_hive::ToolBudget::solo(),
         agent: crew_hive::AgentId(0),
         task: crew_hive::TaskSpec {

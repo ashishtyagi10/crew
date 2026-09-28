@@ -82,6 +82,19 @@ pub(super) fn budget_answer(before: &str, rounds: u32) -> String {
     }
 }
 
+/// The answer of a turn stopped between tool rounds (`/stop`): `before`, the
+/// text the agent wrote above the calls it asked for last, and a line saying
+/// how far the turn got. The stop used to wait out every round left, each a
+/// whole model call; the note is what tells the reader the answer is partial.
+pub(super) fn stopped_answer(before: &str, calls: u32) -> String {
+    let s = if calls == 1 { "" } else { "s" };
+    let note = format!("stopped \u{2014} {calls} tool call{s} made");
+    match before.trim() {
+        "" => note,
+        kept => format!("{kept}\n\n{note}"),
+    }
+}
+
 #[cfg(test)]
 #[path = "toolround_tests.rs"]
 mod tests;

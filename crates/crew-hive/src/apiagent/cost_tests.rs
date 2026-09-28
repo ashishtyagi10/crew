@@ -56,6 +56,7 @@ async fn a_factory_pinned_to_haiku_bills_its_agents_at_haikus_rate_not_sonnets()
     .with_model("claude-haiku-4-5");
     let agent = factory.make(&AgentKind::Api { system: None });
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(0),
         task: TaskSpec {
