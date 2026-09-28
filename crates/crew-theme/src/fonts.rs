@@ -68,6 +68,7 @@ pub const FONT_ALLOWLIST: &[&str] = &[
     "Cascadia Code",
     "Cascadia Mono",
     "Comic Mono",
+    "Comic Shanns Mono",
     "Commit Mono",
     "Fira Code",
     "Geist Mono",
@@ -80,6 +81,7 @@ pub const FONT_ALLOWLIST: &[&str] = &[
     "Operator Mono",
     "Roboto Mono",
     "SF Mono",
+    "Serious Shanns",
 ];
 
 /// The families this theme would like, best first. Empty = no opinion.
@@ -97,7 +99,13 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // typefaces, not spellings: `resolve_family` matches by
         // `typeface_key`, and the pool holds the best installed spelling of
         // each (the icon-bearing build where there is one).
+        //
+        // Serious Shanns leads (2026-09-27, the user's pick): a humanist hand
+        // with open counters, which is what a book face is — and it keeps
+        // Comic Shanns's warmth without its bounce. MonoLisa stands behind it
+        // on every machine without it.
         ThemeId::PaperDark | ThemeId::PaperLight => &[
+            "Serious Shanns",
             "MonoLisa",
             "IBM Plex Mono",
             "Comic Mono",
@@ -106,8 +114,11 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Lilex",
         ],
         // Sepia: warm and typewritten — friendly rounded shapes suit it, so
-        // this is where the Comic Mono lead lives on.
+        // this is where the comic lead lives on: Comic Shanns Mono first (the
+        // user's pick, 2026-09-27 — the face Comic Mono was cut from, with the
+        // wider glyph set), Comic Mono right behind it where it is not.
         ThemeId::SepiaDark | ThemeId::SepiaLight => &[
+            "Comic Shanns Mono",
             "Comic Mono",
             "IBM Plex Mono",
             "MonoLisa",

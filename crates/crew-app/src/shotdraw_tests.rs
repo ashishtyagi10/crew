@@ -99,6 +99,7 @@ fn draw_with(
     });
 
     let mut grid = CellGrid::new(&device, &queue, FORMAT, font_px);
+    crate::shotfont_tests::apply(&mut grid);
     let (cw, ch) = grid.cell_size();
     grid.set_scene(&device, &scenes(cw, ch));
     grid.prepare(&device, &queue, w, h);

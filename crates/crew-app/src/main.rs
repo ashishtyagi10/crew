@@ -351,6 +351,9 @@ mod mdcardshot_tests;
 #[cfg(test)]
 #[path = "mdshot_tests.rs"]
 mod mdshot_tests;
+#[cfg(test)]
+#[path = "shotfont_tests.rs"]
+mod shotfont_tests;
 mod todorun;
 mod todoruncmd;
 

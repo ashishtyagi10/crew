@@ -25,7 +25,14 @@
 /// not there — and a preference list is crew guessing for you, where a guess
 /// that resolves nothing costs a fallback. In the rotation, which only runs
 /// on the machine that turned it on, it comes up as often as the rest.
+///
+/// `Comic Shanns Mono` and `Serious Shanns` (2026-09-27) are the user's own
+/// installs, asked for by name ("I like them very much"): Comic Shanns is the
+/// face Comic Mono was cut from, and Serious Shanns its steadier sibling. They
+/// lead the two warm theme families (see `font_prefs`).
 pub const FAVORITES: &[&str] = &[
+    "Comic Shanns Mono",
+    "Serious Shanns",
     "Comic Mono",
     "JetBrains Mono",
     "SF Mono",
@@ -95,3 +102,7 @@ pub fn is_favorite(family: &str) -> bool {
 #[cfg(test)]
 #[path = "favorite_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "shanns_tests.rs"]
+mod shanns_tests;

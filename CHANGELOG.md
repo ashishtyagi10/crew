@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.55
+
+**Comic Shanns Mono and Serious Shanns are part of crew's themes.** Both
+were already in the `/font` picker once installed; now crew picks them on
+its own too. They're on the list of faces crew may choose itself, and
+they're favourites, so the `/font random` rotation brings them up three
+times as often as other faces. Sepia's warm, rounded look leads with Comic
+Shanns Mono, the face Comic Mono was based on, with Comic Mono right
+behind it. Paper's "book face" leads with Serious Shanns, its calmer
+sibling, with MonoLisa behind it. On a machine without them, each theme
+falls back to its previous first choice. Serious Shanns is used in its
+Nerd Font build, which also carries crew's icons.
+
 ## 0.24.54
 
 **Smith's live answer no longer shows its protocol.** While an answer
