@@ -147,6 +147,7 @@ fn asks() -> Completion {
             id: "c1".into(),
             name: "fs__build".into(),
             input: serde_json::json!({}),
+            bad_args: None,
         }],
         ..Default::default()
     }

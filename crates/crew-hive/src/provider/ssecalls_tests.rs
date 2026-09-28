@@ -57,6 +57,8 @@ fn a_frame_without_an_index_takes_its_array_position_and_a_nameless_call_is_drop
         serde_json::json!({}),
         "bad JSON args become {{}}"
     );
+    let why = calls[0].bad_args.as_deref().unwrap_or_default();
+    assert!(why.ends_with("\u{2014} bad json"), "and say so: {why}");
 }
 
 #[test]

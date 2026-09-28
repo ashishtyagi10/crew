@@ -46,6 +46,7 @@ impl Provider for Rule {
                     id: format!("c{asks}"),
                     name: "weather__current".into(),
                     input: serde_json::json!({ "q": *asks }),
+                    bad_args: None,
                 };
                 said("").map(|c| Completion {
                     calls: vec![call],

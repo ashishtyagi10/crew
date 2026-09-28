@@ -79,6 +79,9 @@ pub(crate) fn repair_prompt(goal: &str, reply: &str, err: &PlanError) -> String 
 }
 
 #[cfg(test)]
+#[path = "lenient_tests.rs"]
+mod lenient_tests;
+#[cfg(test)]
 #[path = "repairspent_tests.rs"]
 mod spent_tests;
 #[cfg(test)]

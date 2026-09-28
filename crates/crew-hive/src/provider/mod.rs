@@ -19,6 +19,7 @@ mod stopreason;
 mod tests;
 mod thinking;
 mod thinktags;
+mod toolargs;
 mod utf8carry;
 mod warm;
 mod wire;
@@ -104,6 +105,13 @@ pub struct ToolInvocation {
     /// Arguments as the model produced them. Kept as `Value`, not `String`,
     /// so nothing re-parses provider-validated JSON.
     pub input: serde_json::Value,
+    /// Why `input` is not what the model sent: the argument string it wrote
+    /// did not parse (`toolargs`), so `input` is `{}`. Such a call must not
+    /// run, since a tool handed `{}` answers "missing argument" and the model
+    /// never learns its JSON was the problem; the loop answers it with this.
+    /// `None` whenever the arguments were read, which is always on a provider
+    /// that hands them over parsed (Anthropic).
+    pub bad_args: Option<String>,
 }
 
 /// The outcome of one [`ToolInvocation`], on its way back to the model.

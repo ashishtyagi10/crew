@@ -83,6 +83,7 @@ impl crew_hive::Provider for Native {
                 id: "c1".into(),
                 name: "sys__run".into(),
                 input: serde_json::json!({ "cmd": FAILING }),
+                bad_args: None,
             }],
         };
         let text = if done { "it exited 3" } else { "" }.to_string();

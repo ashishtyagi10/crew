@@ -80,6 +80,7 @@ fn calling(id: &str, name: &str) -> Completion {
             id: id.into(),
             name: name.into(),
             input: serde_json::json!({"q": "Oslo"}),
+            bad_args: None,
         }],
         thought: String::new(),
         ..Default::default()
@@ -243,6 +244,7 @@ async fn every_call_in_a_turn_is_answered_even_past_the_per_turn_bound() {
                 id: format!("c{i}"),
                 name: "weather__current".into(),
                 input: serde_json::json!({}),
+                bad_args: None,
             })
             .collect(),
         ..Default::default()
@@ -322,6 +324,7 @@ fn an_unknown_tool_is_answered_with_what_was_probably_meant() {
         id: "c1".into(),
         name: "sys_run".into(),
         input: serde_json::json!({}),
+        bad_args: None,
     };
     let few = ToolCatalog::build(&[spec("sys", "run"), spec("sys", "read_file")]);
     let o = outcome_for_unknown(&call, &few);
@@ -358,6 +361,7 @@ async fn calls_refused_past_the_per_turn_bound_publish_a_failed_result_each() {
                 id: format!("c{i}"),
                 name: "weather__current".into(),
                 input: serde_json::json!({}),
+                bad_args: None,
             })
             .collect(),
         ..Default::default()

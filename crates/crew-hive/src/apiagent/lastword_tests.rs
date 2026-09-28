@@ -9,6 +9,7 @@ fn a_transcript_writes_each_call_with_its_result() {
         id: id.into(),
         name: format!("t_{id}"),
         input: serde_json::json!({}),
+        bad_args: None,
     };
     let done = |id: &str, content: &str| ToolOutcome {
         id: id.into(),

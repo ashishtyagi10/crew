@@ -12,15 +12,14 @@ mod tests;
 
 mod capabilities;
 mod error;
-mod extract;
+pub(crate) mod extract;
+mod node;
 pub mod persona;
 mod repair;
 mod stub;
 
 use std::future::Future;
 use std::pin::Pin;
-
-use serde::Deserialize;
 
 pub use error::PlanError;
 pub use stub::StubPlanner;
@@ -173,23 +172,6 @@ impl<P: Provider + Clone + 'static> Planner for LlmPlanner<P> {
 // parse_plan
 // ---------------------------------------------------------------------------
 
-/// The shape we accept from model output. Deliberately has **no** `agent`,
-/// `command`, or `args` field: the model describes *what* work to do and *who*
-/// should do it, never *how* to execute it. serde ignores any such extra keys,
-/// so an attacker-influenced completion cannot smuggle one in. See the
-/// security note below.
-#[derive(Deserialize)]
-struct PlanNode {
-    id: u64,
-    title: String,
-    prompt: String,
-    deps: Vec<u64>,
-    #[serde(default)]
-    specialty: Option<String>,
-    #[serde(default)]
-    expertise: Option<String>,
-}
-
 /// Convert a model-produced JSON task array into a [`TaskGraph`].
 ///
 /// SECURITY INVARIANT: the JSON here is untrusted (LLM output, ultimately
@@ -205,13 +187,14 @@ struct PlanNode {
 /// slugged, because it becomes an addressable handle and the `@` tokenizers
 /// assume `^[a-z0-9-]+$` without enforcing it.
 pub(crate) fn parse_plan(json: &str) -> Result<TaskGraph, PlanError> {
-    let nodes: Vec<PlanNode> =
+    let nodes: Vec<node::PlanNode> =
         serde_json::from_str(json).map_err(|e| PlanError::Parse(e.to_string()))?;
     let tasks: Vec<TaskSpec> = nodes
         .into_iter()
         .map(|n| {
+            let (id, deps) = n.ids()?;
             let raw = n.specialty.as_deref().unwrap_or("");
-            let specialty = crate::agentname::slug_or(raw, n.id);
+            let specialty = crate::agentname::slug_or(raw, id);
             let expertise = crate::agentname::role_clamp(n.expertise.as_deref().unwrap_or(""));
             // The identity the planner invented is what the worker runs as.
             // Only a NAMED specialty earns one: the `specialist-N` fallback
@@ -222,18 +205,18 @@ pub(crate) fn parse_plan(json: &str) -> Result<TaskGraph, PlanError> {
             let system = crate::agentname::slug(raw)
                 .is_some()
                 .then(|| persona::worker(&specialty, &expertise, &n.title));
-            TaskSpec {
-                id: TaskId(n.id),
+            Ok(TaskSpec {
+                id: TaskId(id),
                 title: n.title,
                 agent: AgentKind::Api { system },
                 model: ModelTier::Standard,
-                deps: n.deps.into_iter().map(TaskId).collect(),
+                deps: deps.into_iter().map(TaskId).collect(),
                 prompt: n.prompt,
                 specialty,
                 expertise,
-            }
+            })
         })
-        .collect();
+        .collect::<Result<_, PlanError>>()?;
     debug_assert!(
         !tasks.iter().any(|t| t.agent.is_pty()),
         "parse_plan must never yield a process-executing Pty task from model output",

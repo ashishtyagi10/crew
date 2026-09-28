@@ -359,6 +359,7 @@ fn tool_req() -> CompletionRequest {
                     id: "call_1".into(),
                     name: "weather__current".into(),
                     input: serde_json::json!({"q": "Oslo"}),
+                    bad_args: None,
                 }],
             },
             Turn::ToolResults(vec![ToolOutcome {
@@ -552,6 +553,7 @@ fn claude_cli_flattens_turns_into_one_prompt() {
                 id: "c1".into(),
                 name: "read".into(),
                 input: serde_json::json!({"path": "x"}),
+                bad_args: None,
             }],
         },
         Turn::ToolResults(vec![ToolOutcome {

@@ -9,24 +9,25 @@ use super::super::toolloop::{clip, RESULT_CAP};
 use super::{label_of, outcome_for_unknown, MAX_CALLS_PER_TURN};
 use crate::agent::AgentContext;
 use crate::bus::HiveEvent;
-use crate::provider::{ToolInvocation, ToolOutcome};
+use crate::provider::{Completion, ToolInvocation, ToolOutcome};
 use crate::tools::{seen::Seen, ToolCall, ToolCatalog, Tools};
 
-/// Run `calls`, the tools one reply asked for in round `round` (from 0), and
-/// hand back one outcome per call in the order they were asked. Every call
-/// publishes its own `ToolCall` and `ToolResult`, as before.
+/// Run the tools `reply` asked for in round `round` (from 0), and hand back
+/// one outcome per call in the order they were asked. Every call publishes
+/// its own `ToolCall` and `ToolResult`, as before.
 pub(super) async fn run(
     ctx: &AgentContext,
     tools: &Arc<dyn Tools>,
     catalog: &ToolCatalog,
     seen: &mut Seen,
-    calls: &[ToolInvocation],
+    reply: &Completion,
     round: u32,
 ) -> Vec<ToolOutcome> {
+    let calls = &reply.calls;
     let mut results: Vec<Option<ToolOutcome>> = vec![None; calls.len()];
     let (mut asked, mut at, mut refused) = (Vec::new(), Vec::new(), Vec::new());
     for (i, call) in calls.iter().enumerate() {
-        match runnable(catalog, call, i) {
+        match runnable(catalog, call, i, reply.truncated) {
             Ok(c) => {
                 asked.push(c);
                 at.push(i);
@@ -72,11 +73,13 @@ pub(super) async fn run(
 }
 
 /// Call `i` of the reply as crew names it, or its answer when it will not
-/// run: past the per-turn bound, or a name nothing answers to.
+/// run: past the per-turn bound, a name nothing answers to, or arguments that
+/// were not JSON (`badargs`; `cut`, the reply stopped at the token limit).
 fn runnable(
     catalog: &ToolCatalog,
     call: &ToolInvocation,
     i: usize,
+    cut: bool,
 ) -> Result<ToolCall, ToolOutcome> {
     // EVERY call gets a result, including the ones refused for being over the
     // per-turn bound: providers reject a follow-up whose tool_call ids are not
@@ -90,14 +93,17 @@ fn runnable(
             is_error: true,
         });
     }
-    match catalog.resolve(&call.name) {
-        Some((server, tool)) => Ok(ToolCall {
-            server: server.to_string(),
-            tool: tool.to_string(),
-            args: call.input.to_string(),
-        }),
-        None => Err(outcome_for_unknown(call, catalog)),
+    let Some((server, tool)) = catalog.resolve(&call.name) else {
+        return Err(outcome_for_unknown(call, catalog));
+    };
+    if let Some(refused) = super::badargs::refusal(call, cut) {
+        return Err(refused);
     }
+    Ok(ToolCall {
+        server: server.to_string(),
+        tool: tool.to_string(),
+        args: call.input.to_string(),
+    })
 }
 
 #[cfg(test)]

@@ -81,6 +81,7 @@ async fn batch(asks: &[(&str, &str)]) -> Ran {
             id: format!("id{i}"),
             name: format!("fs__{tool}"),
             input: serde_json::json!({ "path": path }),
+            bad_args: None,
         })
         .collect();
     let replies = vec![
