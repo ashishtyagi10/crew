@@ -5,6 +5,7 @@
 //! carries, the counts the pane says, the newest turn a pane opening quotes,
 //! the files the router is told about. Same module tree, so the private
 //! fields are still in reach.
+use super::node::Kind;
 use super::repeats::{self, Prior, PRIOR_FILES};
 use super::{block, now_ms, query, Recall, Recalled, RECALL_CAP};
 
@@ -39,6 +40,20 @@ impl Recall {
         self.on
             .then(|| repeats::prior(&self.g, cmd, output, PRIOR_FILES))
             .flatten()
+    }
+
+    /// Whether the newest verdict held for `cmd` is a pass. Asked before
+    /// this run's verdict is written, it is what lets a repair be told "this
+    /// passed before your change" instead of guessing that it did.
+    pub(crate) fn passed_last(&self, cmd: &str) -> bool {
+        let asked = format!("check: {}", cmd.trim());
+        self.on
+            && self
+                .g
+                .nodes()
+                .filter(|(_, n)| n.kind == Kind::Turn && query::asked_of(&n.text) == asked)
+                .max_by_key(|(_, n)| n.last_ms)
+                .is_some_and(|(_, n)| query::answered_of(&n.text).starts_with("passed"))
     }
 
     /// The files `task` activates, strongest first — the router's world.

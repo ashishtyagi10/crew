@@ -22,7 +22,8 @@ use super::relay::msg;
 use super::session::Session;
 
 /// Lines of a failing command's output shown. Enough to name the first
-/// error; the whole thing is one `sys:run` away for whoever wants it.
+/// error and the summary; the whole thing is one `sys:run` away for whoever
+/// wants it.
 const FAIL_LINES: usize = 6;
 
 /// What a project would likely run, by the file that gives it away. Only
@@ -87,19 +88,15 @@ pub(crate) fn named(cmd: &str, from: Option<&str>) -> String {
     }
 }
 
-/// The line for a finished run: passed in one line, failed with the head of
-/// the output — the part that names the first error.
+/// The line for a finished run: passed in one line, failed with the lines
+/// that name the first error and the summary (`failexcerpt`), wherever in
+/// the output they were. The head of a build is its progress.
 pub(crate) fn line(cmd: &str, o: &Outcome) -> String {
     if o.ok {
         return format!("check: {cmd} \u{2014} passed");
     }
-    let head: Vec<&str> = o
-        .text
-        .lines()
-        .filter(|l| !l.trim().is_empty() && !l.starts_with("exit "))
-        .take(FAIL_LINES)
-        .collect();
-    format!("check: {cmd} \u{2014} FAILED\n{}", head.join("\n"))
+    let said = super::failexcerpt::headline(&o.text, FAIL_LINES);
+    format!("check: {cmd} \u{2014} FAILED\n{}", said.join("\n"))
 }
 
 /// The whole verdict: how the run went, and — only on a repeat — what the
@@ -154,6 +151,7 @@ pub(crate) fn after_task(
         true => None,
         false => super::recall::seen_failing(&session.recall, &cmd, &o.text),
     };
+    let passed_before = !o.ok && super::recall::lock(&session.recall).passed_last(&cmd);
     // What the check said, into the graph: "the tests fail on this" is a
     // fact about this project, and the next session should not have to
     // rediscover it.
@@ -170,7 +168,17 @@ pub(crate) fn after_task(
     if o.ok {
         return Ok(());
     }
-    super::selfrepair::take_one_pass(session, &cmd, &o, seen.as_deref(), repair, emit)
+    // The tree the task ran in, as `stdio::report_changes` reads it: the one
+    // its checkpoint pinned, so the diff is exactly what this task did.
+    let dir = std::env::current_dir().ok();
+    let failure = super::selfrepair::Failure {
+        cmd: &cmd,
+        o: &o,
+        seen: seen.as_deref(),
+        passed_before,
+        dir: dir.as_deref(),
+    };
+    super::selfrepair::take_one_pass(session, &failure, repair, emit)
 }
 
 #[cfg(unix)]

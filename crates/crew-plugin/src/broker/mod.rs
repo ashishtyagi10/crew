@@ -36,6 +36,7 @@ mod editrows;
 mod editshow;
 mod elect;
 mod engine;
+mod failexcerpt;
 mod fan;
 mod gitmsg;
 mod hop;

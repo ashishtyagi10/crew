@@ -1,0 +1,66 @@
+exit 101
+
+running 40 tests
+test broker::t00_an_error_line_is_kept ... ok
+test broker::t01_a_failed_command_reports_its_exit ... ok
+test broker::t02_the_expected_value_is_found ... ok
+test broker::t03_assert_the_parser_handles_empty ... ok
+test broker::t04_a_panicked_worker_is_restarted ... ok
+test broker::t05_fail_fast_stops_the_run ... ok
+test broker::t06_parses_the_header ... ok
+test broker::t07_reads_the_config ... ok
+test broker::t08_writes_the_log ... ok
+test broker::t09_counts_the_rows ... ok
+test broker::t10_an_error_line_is_kept ... ok
+test broker::t11_a_failed_command_reports_its_exit ... ok
+test broker::t12_the_expected_value_is_found ... ok
+test broker::t13_assert_the_parser_handles_empty ... ok
+test broker::t14_a_panicked_worker_is_restarted ... ok
+test broker::t15_fail_fast_stops_the_run ... ok
+test broker::t16_parses_the_header ... ok
+test broker::t17_reads_the_config ... ok
+test broker::t18_writes_the_log ... ok
+test broker::t19_counts_the_rows ... ok
+test broker::t20_an_error_line_is_kept ... ok
+test broker::t21_a_failed_command_reports_its_exit ... ok
+test broker::t22_the_expected_value_is_found ... ok
+test broker::t23_assert_the_parser_handles_empty ... ok
+test broker::t24_a_panicked_worker_is_restarted ... ok
+test broker::t25_fail_fast_stops_the_run ... ok
+test broker::t26_parses_the_header ... ok
+test broker::t27_reads_the_config ... ok
+test broker::t28_writes_the_log ... ok
+test broker::t29_counts_the_rows ... ok
+test broker::t30_an_error_line_is_kept ... ok
+test broker::y ... FAILED
+test broker::t32_the_expected_value_is_found ... ok
+test broker::t33_assert_the_parser_handles_empty ... ok
+test broker::t34_a_panicked_worker_is_restarted ... ok
+test broker::t35_fail_fast_stops_the_run ... ok
+test broker::t36_parses_the_header ... ok
+test broker::t37_reads_the_config ... ok
+test broker::t38_writes_the_log ... ok
+test broker::t39_counts_the_rows ... ok
+
+failures:
+
+---- broker::y stdout ----
+
+thread 'broker::y' panicked at src/a.rs:9:5:
+assertion `left == right` failed
+  left: 1
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    broker::y
+
+test result: FAILED. 39 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+--- stderr ---
+   Compiling app v0.1.0 (/tmp/app)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.52s
+     Running unittests src/lib.rs (target/debug/deps/app-3f2a1b9c8d7e6f50)
+error: test failed, to rerun pass `--lib`
