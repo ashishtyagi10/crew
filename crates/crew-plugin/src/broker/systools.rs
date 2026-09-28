@@ -7,6 +7,8 @@
 use crate::mcp::McpTool;
 
 /// Capture cap per `sys:run` stream. File reads page instead (`sysread::PAGE`).
+/// Only the unix `sysrun` drains pipes; Windows builds with `-D warnings`.
+#[cfg_attr(not(unix), allow(dead_code))]
 pub(crate) const CAP: usize = 64 * 1024;
 
 /// Whether the `sys` surface is on (env wrapper over [`enabled_from`]).
@@ -79,7 +81,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
                 "properties": {
                     "cmd": {
                         "type": "string",
-                        "description": "the shell command, run non-interactively with a 120s deadline",
+                        "description": "the shell command, run non-interactively with a 120s deadline; a long output comes back as its start and its end",
                     },
                 },
                 "required": ["cmd"],

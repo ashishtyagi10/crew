@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.68
+
+**A failed build reads as failed, and its error reaches the agent.** Smith and the swarm both cut every tool result to its first 6,000 characters, and `sys:run` puts stdout first and stderr after it, so `cargo build` reached the agent as `exit 101` and a screen of `Compiling` lines, with the `error[E0308]` cut off the end; and because the command had run, the call counted as a success: a ✓ card, and `is_error: false` to the model. Now a result over 5,600 bytes keeps the exit line, the first ~1,200 bytes of stdout, a line such as "… (212 lines of output cut — the end is below)", and the end of each stream (stderr gets up to two thirds of that room, since compilers write there, and stdout at least a third, since `cargo test` writes `test result: FAILED` there). Any non-zero exit is now a failed call, with its output still sent: `sys:run ✗` on the card, `is_error: true` to the provider, "failed" in the action ledger. Keeping the tail comes from Claude Code's Bash tool and flagging a non-zero exit from Codex; the cost is that the middle of a long output is gone, and a stream over 64 KB is still cut to its first 64 KB before any of this runs, so a very long test run can still lose its last lines.
+
+Also: the Windows build of 0.24.66 and 0.24.67 failed on a warning. Paging
+`sys:read_file` in 0.24.65 left the 64 KB capture cap used only by the unix
+`sys:run`, and the Windows job builds with warnings as errors. The cap and the
+new fitting code are now allowed to go unused where there is no `sys:run`.
+
 ## 0.24.67
 
 **A question relayed to opencode comes back with its answer, not its thinking aloud.** opencode answers in steps and narrates before each tool call, and crew joined every step's text, plus any `text` buried in a tool's result. So "which files would I change to add a new sys: tool to agent smith?" showed 1,500 characters of "Let me understand the context better … Wait, let me re-read" and no answer, and a reply that read `crates/crew-theme/src/lib.rs` would have carried the whole file. Now the reply is the text of the step that finished with `stop`; tool results and reasoning never count, and output from an older opencode with no steps reads as before. On a fresh capture of the same question, the reply is the file checklist that starts "Adding a `sys:` tool means adding a tool to the broker's `sys` server". The cost: anything opencode wrote before its last tool call is dropped even when it was part of the answer, and a run that ends on a tool call shows its last narration instead of nothing.

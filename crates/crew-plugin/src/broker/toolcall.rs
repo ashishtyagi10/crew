@@ -149,7 +149,11 @@ impl Broker {
             });
             let started = std::time::Instant::now();
             let called = runner.call(&call.server, &call.tool, &call.args);
-            let ok = called.is_ok();
+            // An `Ok` can still be a failure — a build that exited 101 — and
+            // only the tool surface can say so (`Tools::failed`).
+            let ok = called
+                .as_ref()
+                .is_ok_and(|t| !runner.failed(&call.server, &call.tool, t));
             let text = match called {
                 Ok(t) if t.is_empty() => "(empty result)".to_string(),
                 Ok(t) => t,

@@ -2679,7 +2679,12 @@ five bounded tools ride the same `@tool` surface — **`sys:run`** (one
 non-interactive shell command via `/bin/sh -c`, 120s deadline —
 `CREW_SYS_TIMEOUT_MS` overrides, and the timeout message says so — 64 KB per pipe,
 its whole process group reaped on timeout so backgrounded children can't
-linger), **`sys:read_file`** (UTF-8, one page per call: up to 5,600 bytes, cut at
+linger; a result over 5,600 bytes is fitted to the `exit N` line, the first
+~1,200 bytes of stdout, a line counting what was cut, and the END of each
+stream, stderr's first, so a build's `error[…]` survives the 6,000-char clip
+on tool results; and a non-zero exit is a FAILED call — `✗` on the card,
+`is_error` to the provider — whose output still reaches the agent),
+**`sys:read_file`** (UTF-8, one page per call: up to 5,600 bytes, cut at
 the last line end — sized so a page and its note pass the 6,000-char clip on
 tool results whole; the note says which lines and bytes the page holds and
 carries the byte `offset` to continue with, so agents read big files in pages),

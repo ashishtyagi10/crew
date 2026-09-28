@@ -560,7 +560,9 @@ reverse-searches what you've sent, shell-style; **Cmd+F** searches the
 transcript and jumps to each match.
 
 Agents can also touch the workspace through built-in **sys tools** — bounded
-`sys:run` (non-interactive shell, 30s/64KB caps), `sys:read_file` (~5 KB
+`sys:run` (non-interactive shell, 120s deadline; a long output reaches the
+agent as its start and its end, and a non-zero exit is a failed call),
+`sys:read_file` (~5 KB
 pages of whole lines, each naming its lines and the next offset),
 `sys:write_file`, `sys:edit` (replace an exact, unique fragment
 — part of a file without rewriting the whole of it), `sys:list_dir`,
@@ -575,7 +577,8 @@ directory and sandbox mode. An optional token budget
 
 Tool use shows in the transcript as its own voice: the call announces itself
 subject-first, the result card leads with `sys:run ✓ 1.2s` — outcome and
-duration — and its output is folded to that one line until you click it open.
+duration, `✗` for a command that exited non-zero — and its output is folded
+to that one line until you click it open.
 Both take the quiet dotted gutter, so a task that calls four tools doesn't read
 as nine agent replies. A turn that fans the same task out to the whole roster
 folds the same way: **each subagent's answer is its own section**, one line

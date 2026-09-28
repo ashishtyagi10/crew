@@ -156,7 +156,10 @@ impl Host<'_> {
             return ("this crew session has no tools".into(), false);
         };
         match tools.call(server, name, args) {
-            Ok(out) => (out, true),
+            Ok(out) => {
+                let ok = !tools.failed(server, name, &out);
+                (out, ok)
+            }
             Err(e) => (e, false),
         }
     }

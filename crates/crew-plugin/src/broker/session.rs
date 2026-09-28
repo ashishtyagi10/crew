@@ -415,6 +415,11 @@ impl super::toolcall::ToolRunner for SessionTools {
         toolselect::native_note(self.picked_for(task).1)
     }
 
+    /// A `sys:run` whose command exited non-zero (`runfit::failed`).
+    fn failed(&self, server: &str, tool: &str, output: &str) -> bool {
+        self.sys && server == "sys" && tool == "run" && super::runfit::failed(output)
+    }
+
     /// Every tool call in the running broker passes through here — `sys` and MCP alike — which
     /// is why the gate is installed at this one point rather than in each tool.
     ///
@@ -487,8 +492,11 @@ impl super::toolcall::ToolRunner for SessionTools {
         // did change something under thousands of file listings makes the ledger unreadable,
         // which is the same as not having one.
         if tier != super::tier::Tier::Read {
-            let outcome = if out.is_ok() { "ran" } else { "failed" };
-            let note = out.as_ref().err().map(String::as_str).unwrap_or("");
+            let (outcome, note) = match &out {
+                Ok(t) if self.failed(server, tool, t) => ("failed", t.lines().next().unwrap_or("")),
+                Ok(_) => ("ran", ""),
+                Err(e) => ("failed", e.as_str()),
+            };
             self.note(rec("allow", note).with_outcome(outcome));
         }
         out

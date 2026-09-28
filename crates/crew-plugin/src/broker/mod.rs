@@ -64,6 +64,7 @@ mod rosterev;
 mod roundloop;
 mod route;
 mod run;
+mod runfit;
 mod selfcheck;
 mod selfrepair;
 mod session;

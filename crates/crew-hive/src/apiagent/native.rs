@@ -196,7 +196,7 @@ pub(super) async fn run(
             let ms = started.elapsed().as_millis() as u64;
             let (ok, text) = match called {
                 Ok(v) if v.trim().is_empty() => (true, "(empty result)".to_string()),
-                Ok(v) => (true, v),
+                Ok(v) => (!tools.failed(server, tool, &v), v),
                 Err(e) => (false, e),
             };
             ctx.bus.publish(HiveEvent::ToolResult {
