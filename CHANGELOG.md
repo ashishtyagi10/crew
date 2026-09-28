@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.89
+
+**A swarm that fans out after a first step runs its fan-out in parallel.**
+The number of swarm tasks run at once came from the plan's first wave, the
+tasks with no dependencies. The most common plan shape, one survey task and
+then six tasks that each build on it, has a first wave one task wide, so it
+ran at the floor of two permits and the six waited for each other in pairs.
+The width is now the plan's widest wave, walked wave by wave: that plan runs
+six at once, still clamped to 2–8 and still overridden by
+`CREW_SWARM_CONCURRENCY`. The cost: more requests in flight at once against
+the provider when a plan is really that wide, which is what the clamp and the
+override are for.
+
 ## 0.24.88
 
 **A worker's long output keeps its conclusion, not just its opening.** A swarm worker writes its findings first and its verdict last ("…so the fix is in route.rs:412", "All 159 tests passed"), but every reader of an output over its budget kept only the first 4,000 characters (less when several outputs shared the 12,000): the task that depended on it, and agent smith's closing answer, judge and revision, all got the preamble and `… [clipped 2000 chars]`, and the answer then missed the conclusion or guessed it. Now a long output is cut from the middle: about a third of its budget comes from the top and the rest from the end, each side cut at a line end when one is near (a single huge line is cut by characters), with one line between them saying `… [2000 chars cut from the middle] …`; an output under its budget passes on exactly as before, and the budgets themselves are unchanged. The cost: the middle is what goes now, so a worker whose key finding sits halfway down a long report loses it where it used to keep it, and the opening it keeps is a third of what it was.

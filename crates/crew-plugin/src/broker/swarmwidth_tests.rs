@@ -60,3 +60,27 @@ fn the_graph_reading_counts_only_tasks_with_no_deps() {
     assert_eq!(g.ready(&HashSet::new()).len(), 3);
     assert_eq!(concurrency(g.ready(&HashSet::new()).len(), None), 3);
 }
+
+#[test]
+fn a_survey_then_a_six_way_fan_out_is_six_wide() {
+    use crew_hive::{AgentKind, ModelTier, TaskId, TaskSpec};
+    let spec = |id: u64, deps: &[u64]| TaskSpec {
+        id: TaskId(id),
+        title: format!("t{id}"),
+        agent: AgentKind::Api { system: None },
+        model: ModelTier::Standard,
+        deps: deps.iter().map(|d| TaskId(*d)).collect(),
+        prompt: String::new(),
+        specialty: String::new(),
+        expertise: String::new(),
+    };
+    // One survey, six tasks on it, one merge: the first wave is ONE wide,
+    // which the old reading clamped to two permits for six ready tasks.
+    let mut tasks = vec![spec(0, &[])];
+    tasks.extend((1..=6).map(|i| spec(i, &[0])));
+    tasks.push(spec(7, &[1, 2, 3, 4, 5, 6]));
+    let g = TaskGraph::new(tasks).unwrap();
+    assert_eq!(g.ready(&HashSet::new()).len(), 1, "the first wave");
+    assert_eq!(widest(&g), 6);
+    assert_eq!(concurrency(widest(&g), None), 6);
+}
