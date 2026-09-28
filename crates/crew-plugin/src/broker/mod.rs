@@ -47,6 +47,7 @@ mod memory;
 mod modelcmd;
 mod modelpick;
 mod normalize;
+mod opencodesteps;
 mod opening;
 mod plan;
 mod planfirst;
