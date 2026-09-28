@@ -1,0 +1,73 @@
+exit 101
+
+--- stderr ---
+   Compiling proc-macro2 v0.0.0
+   Compiling unicode-ident v1.1.1
+   Compiling libc v2.2.2
+   Compiling cfg-if v0.3.3
+   Compiling once_cell v1.4.4
+   Compiling memchr v2.5.5
+   Compiling serde v0.6.6
+   Compiling itoa v1.7.0
+   Compiling ryu v2.8.1
+   Compiling quote v0.9.2
+   Compiling syn v1.10.3
+   Compiling serde_derive v2.11.4
+   Compiling thiserror-impl v0.12.5
+   Compiling thiserror v1.13.6
+   Compiling log v2.14.0
+   Compiling smallvec v0.15.1
+   Compiling bitflags v1.16.2
+   Compiling autocfg v2.17.3
+   Compiling scopeguard v0.18.4
+   Compiling lock_api v1.19.5
+   Compiling parking_lot_core v2.20.6
+   Compiling parking_lot v0.21.0
+   Compiling bytes v1.22.1
+   Compiling pin-project-lite v2.23.2
+   Compiling futures-core v0.24.3
+   Compiling futures-sink v1.25.4
+   Compiling slab v2.26.5
+   Compiling futures-task v0.27.6
+   Compiling futures-util v1.28.0
+   Compiling tokio-macros v2.29.1
+   Compiling mio v0.30.2
+   Compiling socket2 v1.31.3
+   Compiling tokio v2.32.4
+   Compiling anyhow v0.33.5
+   Compiling quick-error v1.34.6
+   Compiling regex-syntax v2.35.0
+   Compiling aho-corasick v0.36.1
+   Compiling regex-automata v1.37.2
+   Compiling regex v2.38.3
+   Compiling either v0.39.4
+   Compiling itertools v1.40.5
+   Compiling hashbrown v2.41.6
+   Compiling equivalent v0.42.0
+   Compiling indexmap v1.43.1
+   Compiling toml_datetime v2.44.2
+   Compiling winnow v0.45.3
+   Compiling toml_edit v1.46.4
+   Compiling toml v2.47.5
+   Compiling serde_json v0.48.6
+   Compiling unicode-width v1.49.0
+   Compiling strsim v2.50.1
+   Compiling clap_lex v0.51.2
+   Compiling anstyle v1.52.3
+   Compiling clap_builder v2.53.4
+   Compiling clap_derive v0.54.5
+   Compiling clap v1.55.6
+   Compiling tracing-core v2.56.0
+   Compiling tracing v0.57.1
+   Compiling getrandom v1.58.2
+   Compiling rand_core v2.59.3
+error[E0308]: mismatched types
+ --> src/lib.rs:12:5
+   |
+11 | pub fn answer() -> i32 {
+   |                    --- expected `i32` because of return type
+12 |     "forty-two"
+   |     ^^^^^^^^^^^ expected `i32`, found `&str`
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `app` (lib) due to 1 previous error

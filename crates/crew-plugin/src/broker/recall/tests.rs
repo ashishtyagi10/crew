@@ -157,3 +157,28 @@ fn a_graph_that_is_off_never_claims_to_have_seen_a_failure_before() {
         .seen_failing("cargo test", "exit 1\nerror: boom\n")
         .is_none());
 }
+
+#[test]
+fn whether_the_check_passed_last_is_its_newest_verdict_for_that_exact_command() {
+    let mut r = Recall::default();
+    assert!(!r.passed_last("cargo test"), "no verdict is not a pass");
+    r.record("check: cargo test", "passed");
+    assert!(r.passed_last("cargo test"));
+    assert!(
+        !r.passed_last("cargo"),
+        "another command's pass was borrowed"
+    );
+    r.record("check: cargo test --workspace", "failed: error: boom");
+    assert!(
+        r.passed_last("cargo test"),
+        "a longer command's verdict leaked"
+    );
+    r.record("check: cargo test", "failed: error: boom");
+    assert!(
+        !r.passed_last("cargo test"),
+        "an older pass outranked the newest"
+    );
+    let mut off = Recall::disabled();
+    off.record("check: cargo test", "passed");
+    assert!(!off.passed_last("cargo test"));
+}
