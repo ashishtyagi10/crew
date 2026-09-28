@@ -56,6 +56,10 @@ pub fn sys_tier(tool: &str) -> Option<Tier> {
         // mode keeps it — the URL guard that makes that true for `fetch`
         // covers this too, since it goes out through the same door.
         "search" => Tier::Read,
+        // git's own looking subcommands, run without a shell and with every
+        // argument that writes a file or runs a program refused
+        // (`sysgitargs::REFUSED`) — history is read, not changed.
+        "git" => Tier::Read,
         "write_file" => Tier::Reversible,
         // Same tier as the whole-file write it replaces: it changes a file
         // that was already there, and the checkpoint that can undo one can
