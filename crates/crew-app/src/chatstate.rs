@@ -80,9 +80,17 @@ impl ChatPane {
     }
 
     /// Whether the pane is awaiting a reply (busy), for the progress sweep —
-    /// either our own send is unanswered or agents are mid-turn.
+    /// either our own send is unanswered, agents are mid-turn, or the broker
+    /// still has a task running. That last one is the broker's own word and
+    /// the only one that spans a whole turn: smith's routing line cleared
+    /// `awaiting` and its idle emptied `active`, so the pane read idle — no
+    /// sweep, a follow-up sent in parallel instead of queued — for the seconds
+    /// between the routing line and the first token.
     pub fn is_busy(&self) -> bool {
-        self.awaiting || !self.active.is_empty() || self.swarm.is_some()
+        self.awaiting
+            || !self.active.is_empty()
+            || self.swarm.is_some()
+            || !self.running_tasks.is_empty()
     }
 
     /// Render the channel as CellView cells: a status header, the agent roster

@@ -52,7 +52,7 @@ fn the_routing_activity_brackets_the_routing_line() {
     let thinking = pos_smith(&evs, "thinking").expect("smith goes thinking while routing");
     let said = pos_text(&evs, "routing: reply").unwrap();
     let idle = pos_smith(&evs, "idle").expect("smith settles after deciding");
-    let arm = pos_text(&evs, "starting with planner").expect("the relay arm ran");
+    let arm = pos_dial(&evs, "planner").expect("the relay arm ran");
     assert!(thinking < said && said < idle && idle < arm, "{evs:?}");
     assert_eq!(
         thinking, 0,

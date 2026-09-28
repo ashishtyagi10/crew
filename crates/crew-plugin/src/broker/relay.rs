@@ -70,7 +70,10 @@ pub(crate) fn relay_turn(
             }
             _ => {}
         }
-        if werr.is_ok() {
+        // A bare `@done` (an agent confirming a peer's answer) has nothing
+        // to show: an empty card would be the protocol talking.
+        let silent = hop.kind == HopKind::Done && hop.text.trim().is_empty();
+        if werr.is_ok() && !silent {
             werr = emit(hop_to_msg(&hop, latency));
         }
     });
@@ -97,10 +100,16 @@ pub(crate) fn relay_turn(
         cost_microusd: stats.cost_microusd,
         tools: None,
     })?;
-    emit(msg(
-        "agent smith",
-        turn_summary(&segments, stats.exchanges, total, approx),
-    ))?;
+    // The chain's timeline, when there WAS a chain. A turn one agent
+    // answered alone is already summed up by the answer card's own usage
+    // line — `turn done — coder 2.9s · 1 exchange(s) · 2133 tok` under it
+    // said the same thing twice.
+    if distinct_agents(&segments) > 1 {
+        emit(msg(
+            "agent smith",
+            turn_summary(&segments, stats.exchanges, total, approx),
+        ))?;
+    }
     emit(PluginEvent::Activity {
         agent: String::new(),
         state: "idle".into(),
@@ -123,6 +132,14 @@ fn reply_stat(agent: &str, d: Duration, hop: &Hop) -> PluginEvent {
         cost_microusd: hop.usage.cost_microusd,
         tools: None,
     }
+}
+
+/// How many different agents took a segment of the turn.
+fn distinct_agents(segments: &[(String, Duration)]) -> usize {
+    let mut names: Vec<&str> = segments.iter().map(|(a, _)| a.as_str()).collect();
+    names.sort_unstable();
+    names.dedup();
+    names.len()
 }
 
 /// The per-turn log line: who worked for how long, and what it cost —
@@ -175,8 +192,10 @@ pub(crate) fn hop_to_msg(hop: &Hop, latency: Option<Duration>) -> PluginEvent {
 fn hop_text(hop: &Hop) -> String {
     match hop.kind {
         HopKind::Dialing | HopKind::Reply => hop.text.clone(),
-        HopKind::Done if hop.text.is_empty() => "[done]".into(),
-        HopKind::Done => format!("[done] {}", hop.text),
+        // The answer, as the agent wrote it. `[done] ` headed every final
+        // answer in the pane — protocol, not prose; the card's own header
+        // (`coder → user`) already says who finished to whom.
+        HopKind::Done => hop.text.clone(),
         HopKind::Terminated => format!("[stopped] {}", hop.text),
         HopKind::Error => format!("[error] {}", hop.text),
     }
@@ -249,3 +268,7 @@ pub(crate) fn split_target(task: &str, reg: &Registry) -> (String, String) {
 #[cfg(test)]
 #[path = "relay_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "relaychain_tests.rs"]
+mod chain_tests;

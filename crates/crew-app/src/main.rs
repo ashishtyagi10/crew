@@ -120,6 +120,9 @@ mod cardpaint;
 #[cfg(test)]
 #[path = "cardshot_tests.rs"]
 mod cardshot_tests;
+#[cfg(test)]
+#[path = "chatbusy_tests.rs"]
+mod chatbusy_tests;
 mod chatcard;
 mod chatmsgs;
 mod chatpalette;
@@ -135,6 +138,9 @@ mod chatprogspring;
 mod chatpulse;
 mod chatqueue;
 mod chatqueuedraw;
+#[cfg(test)]
+#[path = "chatreplayshot_tests.rs"]
+mod chatreplayshot_tests;
 mod chatreveal;
 mod chatrevealpane;
 mod chatroster;

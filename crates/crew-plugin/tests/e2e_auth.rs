@@ -43,8 +43,7 @@ fn a_signed_in_cli_outranks_a_merely_installed_one() {
     write_cli(&dir, "codex", "login", true, "codex here");
     let msgs = messages(&run_broker(&dir, &[], &[SEND]));
     assert!(
-        msgs.iter()
-            .any(|(s, t)| s == "agent smith" && t.contains("starting with codex")),
+        msgs.iter().any(|(s, _)| s.starts_with("codex \u{2192}")),
         "the signed-in codex must lead the relay: {msgs:?}"
     );
     assert!(
@@ -63,8 +62,7 @@ fn all_signed_out_keeps_the_keyless_lead() {
     write_cli(&dir, "codex", "login", false, "codex here");
     let msgs = messages(&run_broker(&dir, &[], &[SEND]));
     assert!(
-        msgs.iter()
-            .any(|(s, t)| s == "agent smith" && t.contains("starting with claude")),
+        msgs.iter().any(|(s, _)| s.starts_with("claude \u{2192}")),
         "signed-out CLIs fall back to the keyless first-registered lead: {msgs:?}"
     );
 }
@@ -98,8 +96,7 @@ fn the_kill_switch_disables_the_subscription_rung() {
     write_cli(&dir, "codex", "login", true, "codex here");
     let msgs = messages(&run_broker(&dir, &[("CREW_SUBSCRIPTIONS", "0")], &[SEND]));
     assert!(
-        msgs.iter()
-            .any(|(s, t)| s == "agent smith" && t.contains("starting with claude")),
+        msgs.iter().any(|(s, _)| s.starts_with("claude \u{2192}")),
         "with the rung off, the first registered agent leads: {msgs:?}"
     );
 }

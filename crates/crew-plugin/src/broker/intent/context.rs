@@ -17,11 +17,8 @@
 //! same pick the arm will make on the same text, so its memo answers and the
 //! model is asked once), the tool catalog against `toolpick::BUDGET`, and the
 //! router's `World`.
-use crate::broker::relay::msg;
 use crate::broker::session::Session;
-use crate::PluginEvent;
 
-use super::decision::SMITH;
 use super::world::World;
 use super::Shape;
 
@@ -171,18 +168,11 @@ pub(crate) fn skills_for(shape: Shape, task: &str) -> Vec<String> {
         .collect()
 }
 
-/// Say the context line for the run `shape` is about to start, if there is
-/// one — after the routing line, before the arm's first event.
-pub(crate) fn announce(
-    shape: Shape,
-    task: &str,
-    session: &Session,
-    world: &World,
-    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<()> {
+/// What the run `shape` is about to start brings — the context line's words
+/// without its `context: ` head, for the routing line to carry — or `None`
+/// when it brings nothing worth a word.
+pub(crate) fn words(shape: Shape, task: &str, session: &Session, world: &World) -> Option<String> {
     let skills = skills_for(shape, task);
-    match ContextLine::gather(task, session, world, &skills) {
-        Some(line) => emit(msg(SMITH, line)),
-        None => Ok(()),
-    }
+    let line = ContextLine::gather(task, session, world, &skills)?;
+    Some(line.strip_prefix("context: ").unwrap_or(&line).to_string())
 }

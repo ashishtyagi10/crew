@@ -7,7 +7,7 @@ use crate::broker::testenv;
 fn reply_shape_reaches_the_relay_not_the_swarm() {
     let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
     let (evs, _) = dispatch_collect(Shape::Reply, "hello there");
-    assert!(any_text(&evs, "starting with planner"), "{evs:?}");
+    assert!(pos_dial(&evs, "planner").is_some(), "{evs:?}");
     assert!(
         !evs.iter()
             .any(|e| matches!(e, PluginEvent::HivePlan { .. })),

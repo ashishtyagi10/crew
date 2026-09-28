@@ -106,7 +106,7 @@ fn every_part_together_is_one_line_in_a_fixed_order() {
 }
 
 #[test]
-fn the_context_line_lands_after_the_routing_line_and_before_the_arm() {
+fn the_context_rides_the_routing_line_before_the_arm() {
     let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
     let mut session = Session::new();
     crate::broker::thread::lock(&session.thread).record("first ask", "first answer");
@@ -123,29 +123,22 @@ fn the_context_line_lands_after_the_routing_line_and_before_the_arm() {
         },
     )
     .unwrap();
+    // ONE line from smith: the decision, then what the run brings.
     let routing = evs
         .iter()
         .position(|e| text_of(e).starts_with("routing: "))
         .unwrap();
-    let context = evs
-        .iter()
-        .position(|e| text_of(e).starts_with("context: "))
-        .expect("a session with a turn says so");
     let arm = evs
         .iter()
         .position(|e| matches!(e, PluginEvent::HivePlan { .. }))
         .expect("the swarm arm ran");
-    assert!(routing < context && context < arm, "{evs:?}");
+    assert!(routing < arm, "{evs:?}");
+    let line = text_of(&evs[routing]);
+    assert!(line.contains(" \u{b7} 1 earlier turn"), "{line}");
     assert!(
-        text_of(&evs[context]).contains("1 earlier turn"),
-        "{}",
-        text_of(&evs[context])
+        !evs.iter().any(|e| text_of(e).starts_with("context: ")),
+        "no second line: {evs:?}"
     );
-    let lines = evs
-        .iter()
-        .filter(|e| text_of(e).starts_with("context: "))
-        .count();
-    assert_eq!(lines, 1, "said once per turn: {evs:?}");
 }
 
 /// The line names the playbooks the ARM will frame — the same pick on the

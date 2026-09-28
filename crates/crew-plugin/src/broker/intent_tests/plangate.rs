@@ -106,7 +106,7 @@ fn a_non_gate_message_routes_normally_and_the_plan_stays_pending() {
     pend(&session);
     let call = |_: &str| Ok("SHAPE: reply".to_string());
     let evs = route_on(&mut session, "also add tests please", &call);
-    assert!(any_text(&evs, "starting with planner"), "{evs:?}");
+    assert!(pos_dial(&evs, "planner").is_some(), "{evs:?}");
     assert!(!any_text(&evs, "running the approved plan"), "{evs:?}");
     assert!(!any_text(&evs, "plan discarded"), "{evs:?}");
     assert!(
@@ -122,7 +122,7 @@ fn gate_words_with_nothing_pending_are_ordinary_messages() {
         let mut session = Session::new();
         let call = |_: &str| Ok("SHAPE: reply".to_string());
         let evs = route_on(&mut session, word, &call);
-        assert!(any_text(&evs, "starting with planner"), "{word}: {evs:?}");
+        assert!(pos_dial(&evs, "planner").is_some(), "{word}: {evs:?}");
         assert!(
             !any_text(&evs, "running the approved plan"),
             "{word}: {evs:?}"
