@@ -2887,7 +2887,8 @@ as a key would. With no subscription, key discovery is unchanged and
 prefers `DASHSCOPE_API_KEY`
 (Alibaba Cloud Model Studio — Qwen commercial models, `qwen-max` →
 `qwen-plus` → `qwen-turbo`, override with `CREW_DASHSCOPE_MODEL=a,b,…`; the
-endpoint defaults to the international region, point `CREW_DASHSCOPE_BASE_URL`
+quick decisions — routing, skill and tool picks — run on `qwen-flash`, override
+with `CREW_DASHSCOPE_CHEAP_MODEL`; the endpoint defaults to the international region, point `CREW_DASHSCOPE_BASE_URL`
 at the China host if your key lives there), then `OPENROUTER_API_KEY` (free
 models by default), then `ANTHROPIC_API_KEY`, and last a **direct vendor key**
 (see below); set `CREW_PROVIDER=dashscope|openrouter|anthropic|openai|gemini|deepseek|nvidia`

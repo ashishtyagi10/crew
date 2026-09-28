@@ -232,6 +232,11 @@ fn one_shot_server(bytes: Vec<u8>, max_conns: usize) -> (std::net::SocketAddr, A
                 break;
             };
             counted.fetch_add(1, Ordering::SeqCst);
+            // Read the whole request before answering, as a real server
+            // does: answering on accept raced the client still writing it —
+            // harmless on a current-thread runtime, "unexpected message" on
+            // the provider runtime, which reads and writes in parallel.
+            let _ = read_request(&mut sock).await;
             let _ = sock.write_all(&bytes).await;
             let _ = sock.shutdown().await;
         }

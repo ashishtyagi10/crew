@@ -607,3 +607,13 @@ fn a_claude_code_pin_picks_the_cli_provider() {
     }
     assert_eq!(pick_provider(None, keys(&[])), None);
 }
+
+#[test]
+fn dashscope_cheap_work_goes_to_the_fast_model_unless_overridden() {
+    assert_eq!(super::dashscope_cheap(None), "qwen-flash");
+    assert_eq!(super::dashscope_cheap(Some("  ".into())), "qwen-flash");
+    assert_eq!(
+        super::dashscope_cheap(Some("qwen-turbo".into())),
+        "qwen-turbo"
+    );
+}
