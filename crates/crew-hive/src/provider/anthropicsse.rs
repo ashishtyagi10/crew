@@ -16,7 +16,10 @@ use super::{Chunk, ChunkFn, Completion, ProviderError};
 pub(crate) struct Fold {
     pending: String,
     pub(crate) out: Completion,
-    /// An `error` event arrived mid-stream.
+    /// An `error` event arrived mid-stream: the whole event, which is the
+    /// same `{"type":"error","error":{…}}` envelope a refused request's body
+    /// is, so the retry rule (a 2xx is an error only when it has a top-level
+    /// `error`) and `api_message` read both alike.
     pub(crate) failed: Option<String>,
     /// Any event parsed at all. A server that ignores `"stream": true` (some
     /// gateways, a test stub) answers with the ordinary JSON body, which has
@@ -78,7 +81,7 @@ impl Fold {
                     self.out.truncated = super::stopreason::anthropic(Some(why));
                 }
             }
-            "error" => self.failed = Some(v["error"].to_string()),
+            "error" => self.failed = Some(v.to_string()),
             _ => {}
         }
     }

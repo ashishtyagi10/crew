@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-type Reply = Vec<Vec<u8>>; // one response, as the writes that make it up
+pub(crate) type Reply = Vec<Vec<u8>>; // one response, as the writes that make it up
 
 const OVERLOADED: &str =
     r#"{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}"#;
@@ -18,7 +18,7 @@ const OK: &str = r#"{"type":"message","content":[{"type":"text","text":"ok"}],"u
 /// A loopback server answering the Nth request with `replies[N]`, flushing
 /// and pausing after each write so the client reads them apart. Returns the
 /// base URL and how many requests arrived.
-fn serve(replies: Vec<Reply>) -> (String, Arc<AtomicUsize>) {
+pub(crate) fn serve(replies: Vec<Reply>) -> (String, Arc<AtomicUsize>) {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     listener.set_nonblocking(true).unwrap();
     let addr = listener.local_addr().unwrap();
@@ -71,7 +71,7 @@ async fn read_request(sock: &mut tokio::net::TcpStream) {
 }
 
 /// A whole JSON response; `headers` are extra lines, each ending `\r\n`.
-fn whole(status: &str, headers: &str, body: &str) -> Reply {
+pub(crate) fn whole(status: &str, headers: &str, body: &str) -> Reply {
     let head = format!(
         "HTTP/1.1 {status}\r\ncontent-type: application/json\r\n{headers}content-length: {}\r\nconnection: close\r\n\r\n",
         body.len()

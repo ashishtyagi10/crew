@@ -15,7 +15,7 @@
 
 /// The host of `endpoint`, or the whole string when it does not parse — a
 /// diagnostic never gets to fail.
-fn host_of(endpoint: &str) -> &str {
+pub(super) fn host_of(endpoint: &str) -> &str {
     let rest = endpoint
         .split_once("://")
         .map_or(endpoint, |(_scheme, rest)| rest);
