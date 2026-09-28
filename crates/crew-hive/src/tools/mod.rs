@@ -22,6 +22,9 @@ pub mod near;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod failed_tests;
+
 /// One tool as CREW names it, before any provider gets to see it.
 ///
 /// crew's identity for a tool is `server:tool`, which no provider accepts as a
@@ -63,6 +66,17 @@ pub trait Tools: Send + Sync {
     /// Run one tool. `Err` is shown to the agent, never propagated as a task
     /// failure: a tool that refuses is information the agent can act on.
     fn call(&self, server: &str, tool: &str, args: &str) -> Result<String, String>;
+
+    /// Whether an `Ok` from [`call`](Tools::call) is a failed call all the same.
+    ///
+    /// A shell command that ran and exited 101 comes back `Ok`, because its
+    /// output is the answer — and was shown as a green card and sent to the
+    /// provider with `is_error: false`, so the model read a broken build as
+    /// data it could trust. Every engine asks here before calling a result
+    /// ok; the surface that knows its own convention answers. Defaults to no.
+    fn failed(&self, _server: &str, _tool: &str, _output: &str) -> bool {
+        false
+    }
 
     /// Structured definitions, for providers that speak native tool-use.
     ///

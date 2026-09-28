@@ -90,3 +90,12 @@ pub(super) fn crowded(sys: bool, picker: Arc<Picker>) -> SessionTools {
 pub(crate) fn crowded_tools(sys: bool, picker: Arc<Picker>) -> Arc<dyn crew_hive::tools::Tools> {
     Arc::new(crowded(sys, picker))
 }
+
+/// The real surface with only crew's own tools on, as either engine takes it — for the tests
+/// outside `session` that need what a live session decides, not a fake's idea of it.
+pub(crate) fn sys_surface() -> Arc<dyn crew_hive::tools::Tools> {
+    Arc::new(SessionTools::for_test(
+        Arc::new(Mutex::new(crate::mcp::McpHost::default())),
+        true,
+    ))
+}

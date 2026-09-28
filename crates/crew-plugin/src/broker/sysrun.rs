@@ -133,14 +133,9 @@ pub(crate) fn run_with(cmd: &str, timeout: Duration) -> Result<String, String> {
         .min(Duration::from_millis(500));
     let (stdout, out_cut) = out_rx.recv_timeout(grace).unwrap_or_default();
     let (stderr, err_cut) = err_rx.recv_timeout(grace).unwrap_or_default();
-    let mut text = format!("exit {}\n{stdout}", status.code().unwrap_or(-1));
-    if !stderr.is_empty() {
-        text.push_str(&format!("\n--- stderr ---\n{stderr}"));
-    }
-    if out_cut || err_cut {
-        text.push_str("\n\u{2026} (output truncated at 64 KB)");
-    }
-    Ok(text)
+    // A command that ran and failed is still `Ok`: `runfit::failed` reads the exit line.
+    let (code, cut) = (status.code().unwrap_or(-1), out_cut || err_cut);
+    Ok(super::runfit::fit(code, &stdout, &stderr, cut))
 }
 
 /// Best-effort termination of a whole process group (`sh` and anything it

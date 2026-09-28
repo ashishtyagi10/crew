@@ -29,3 +29,15 @@ pub(super) fn clip_result(text: &str, max: usize) -> String {
 /// swarm. `sysread::PAGE` is sized from it, so a `sys:read_file` page and
 /// its note always arrive whole; raising the page means raising this.
 pub(super) const AGENT_CLIP: usize = 6_000;
+
+/// Bytes a `sys:run` result is fitted to before it leaves `sysrun`
+/// (`runfit`), for the reason `sysread::PAGE` is 5,600: whatever is longer
+/// than [`AGENT_CLIP`] is cut by clips that keep the START, and a build or a
+/// test run says what went wrong at the END. Fitted under the clip, the
+/// verdict is chosen here rather than lost there. Bytes, not chars, so a
+/// fitted result is under the clip whatever it is written in; 400 left over
+/// for nothing to go wrong in.
+#[cfg_attr(not(unix), allow(dead_code))]
+pub(super) const RUN_FIT: usize = 5_600;
+
+const _: () = assert!(RUN_FIT < AGENT_CLIP);
