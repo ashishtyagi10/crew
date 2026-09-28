@@ -1,24 +1,14 @@
 //! Recall: which of the remembered turns bear on the request in hand.
 //!
-//! Spreading activation, two hops. The request's own topics and paths are the
-//! seeds; activation flows along edges with a decay per hop, so a turn that
-//! shares a word scores directly, and a turn that shares a word with a turn
-//! that shares a word scores a little — which is the part a keyword search
-//! cannot do and the reason this is a graph at all.
-use std::collections::HashMap;
-
-use super::extract;
+//! Spreading activation, two hops (the weighing and the floor are in
+//! [`super::score`]). The request's own topics and paths are the seeds;
+//! activation flows along edges with a decay per hop, so a turn that shares a
+//! word scores directly, and a turn that shares a word with a turn that shares
+//! a word scores a little — which is the part a keyword search cannot do and
+//! the reason this is a graph at all.
 use super::graph::Graph;
 use super::node::{Kind, NodeId};
-
-/// Activation kept per hop. Two hops at 0.45 means a second-hop turn needs
-/// roughly five times the evidence of a first-hop one to outrank it.
-const DECAY: f32 = 0.45;
-/// Hops walked from the seeds.
-const HOPS: usize = 2;
-/// Edge weight past which more repetitions stop counting: a word used forty
-/// times in one turn is not forty times the evidence.
-const WEIGHT_CAP: u32 = 3;
+use super::score;
 
 /// A hit: the node and how strongly the request activated it.
 pub(crate) struct Hit {
@@ -26,54 +16,16 @@ pub(crate) struct Hit {
     pub score: f32,
 }
 
-/// Seeds for `text`: the topic and path nodes the graph already has. A word
-/// the graph has never seen contributes nothing — there is nothing to recall.
-fn seeds(g: &Graph, text: &str) -> Vec<NodeId> {
-    let mut out = Vec::new();
-    for t in extract::topics(text) {
-        if let Some(id) = g.find(Kind::Topic, &t) {
-            out.push(id);
-        }
-    }
-    for p in extract::paths(text) {
-        if let Some(id) = g.find(Kind::File, &p) {
-            out.push(id);
-        }
-    }
-    out
-}
-
-/// Activation over the whole graph, seeded by `text`.
-fn activate(g: &Graph, text: &str) -> HashMap<NodeId, f32> {
-    let mut score: HashMap<NodeId, f32> = HashMap::new();
-    let mut front: Vec<(NodeId, f32)> = seeds(g, text).into_iter().map(|id| (id, 1.0)).collect();
-    for (id, s) in &front {
-        *score.entry(*id).or_default() += s;
-    }
-    for _ in 0..HOPS {
-        let mut next: Vec<(NodeId, f32)> = Vec::new();
-        for (id, s) in front.drain(..) {
-            for (to, w) in g.neighbors(id) {
-                let add = s * DECAY * (w.min(WEIGHT_CAP) as f32);
-                if add < 0.05 {
-                    continue;
-                }
-                *score.entry(to).or_default() += add;
-                next.push((to, add));
-            }
-        }
-        front = next;
-    }
-    score
-}
-
 /// The turns `text` should be reminded of, strongest first. `skip` holds the
 /// requests already in front of the model (the live thread): remembering them
-/// twice spends the budget on what it already has.
+/// twice spends the budget on what it already has. A turn under the floor is
+/// not one of them, however few the others are: a recall is a claim that the
+/// turn bears on the request, and one shared common word does not make it.
 pub(crate) fn turns(g: &Graph, text: &str, skip: &[String], max: usize) -> Vec<Hit> {
-    let score = activate(g, text);
-    let mut hits: Vec<Hit> = score
+    let floor = score::floor();
+    let mut hits: Vec<Hit> = score::activate(g, text)
         .into_iter()
+        .filter(|(_, s)| *s >= floor)
         .filter(|(id, _)| g.node(*id).is_some_and(|n| n.kind == Kind::Turn))
         .filter(|(id, _)| {
             let text = &g.node(*id).expect("filtered above").text;
@@ -102,11 +54,14 @@ pub(crate) fn pages(g: &Graph, text: &str, max: usize) -> Vec<String> {
     named(g, text, Kind::Page, max)
 }
 
-/// The nodes of one kind that `text` activated, strongest first.
+/// The nodes of one kind that `text` activated, strongest first — those at
+/// least one hop past the floor ([`score::trace`]), so a request that recalls
+/// no turn does not name the files that its common words passed through.
 fn named(g: &Graph, text: &str, kind: Kind, max: usize) -> Vec<String> {
-    let score = activate(g, text);
-    let mut hits: Vec<(String, f32)> = score
+    let trace = score::trace();
+    let mut hits: Vec<(String, f32)> = score::activate(g, text)
         .into_iter()
+        .filter(|(_, s)| *s >= trace)
         .filter_map(|(id, s)| {
             let n = g.node(id)?;
             (n.kind == kind).then(|| (n.text.clone(), s))

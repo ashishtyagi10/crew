@@ -25,6 +25,7 @@ mod ingest;
 mod node;
 mod query;
 mod repeats;
+mod score;
 mod store;
 
 pub(crate) use block::{Recalled, RECALL_CAP};

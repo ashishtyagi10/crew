@@ -91,3 +91,67 @@ fn pruning_keeps_the_newest_turns_and_takes_their_orphans_with_the_rest() {
     }
     assert!(g.find(Kind::Turn, "3").is_some(), "the index went stale");
 }
+
+/// A xorshift, so the property below needs no dependency and replays the
+/// same graph every run.
+struct Rng(u64);
+
+impl Rng {
+    fn below(&mut self, n: u64) -> u64 {
+        self.0 ^= self.0 << 13;
+        self.0 ^= self.0 >> 7;
+        self.0 ^= self.0 << 17;
+        self.0 % n
+    }
+}
+
+/// What `neighbors` answered before there was an index: every edge scanned.
+fn scan(g: &Graph, id: NodeId) -> Vec<(NodeId, u32)> {
+    let other = |e: &Edge| match (e.from == id, e.to == id) {
+        (true, _) => Some((e.to, e.weight)),
+        (_, true) => Some((e.from, e.weight)),
+        _ => None,
+    };
+    g.edges().iter().filter_map(other).collect()
+}
+
+fn assert_indexed(g: &Graph, when: &str) {
+    for id in 0..g.len() as NodeId {
+        let got: Vec<(NodeId, u32)> = g.neighbors(id).collect();
+        assert_eq!(got, scan(g, id), "node {id} {when}");
+    }
+}
+
+#[test]
+fn neighbours_from_the_index_are_exactly_what_a_scan_of_every_edge_finds() {
+    let mut rng = Rng(0x9e37_79b9_7f4a_7c15);
+    let mut g = Graph::default();
+    let kinds = [Kind::Topic, Kind::File, Kind::Turn];
+    let rels = [Rel::Mentions, Rel::With, Rel::Then];
+    for i in 0..40u64 {
+        g.touch(kinds[rng.below(3) as usize], &format!("n{i}"), "x", i);
+    }
+    for round in 0..400 {
+        let (a, b) = (rng.below(40) as NodeId, rng.below(40) as NodeId);
+        let rel = rels[rng.below(3) as usize];
+        if round % 5 == 0 {
+            // The load path: restored by key, over an edge or as a new one.
+            let key = |id: NodeId| g.node(id).map(|n| (n.kind, n.key.clone())).unwrap();
+            let (ka, kb) = (key(a), key(b));
+            g.put_edge(ka, kb, rel, rng.below(9) as u32 + 1);
+        } else {
+            g.link(a, b, rel);
+        }
+    }
+    let n = g.edges().len();
+    assert!(n > 300, "too few edges to prove anything: {n}");
+    assert!(
+        g.edges().iter().any(|e| e.weight > 1),
+        "no edge was ever re-linked"
+    );
+    assert_indexed(&g, "after linking");
+    // Pruning renumbers every id; the index has to follow it.
+    g.prune(4);
+    assert!(g.edges().len() < n, "the prune dropped nothing");
+    assert_indexed(&g, "after a prune");
+}
