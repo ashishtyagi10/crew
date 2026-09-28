@@ -2,6 +2,9 @@
 //! telemetry events as it goes. The default headless scale worker.
 
 #[cfg(test)]
+#[path = "preamble_tests.rs"]
+mod preamble_tests;
+#[cfg(test)]
 mod tests;
 
 mod chunks;
@@ -33,6 +36,11 @@ pub struct ApiAgent {
     /// same events, same single provider call — because that is still the
     /// configuration every keyless and mock run uses.
     tools: Option<Arc<dyn Tools>>,
+    /// Standing context every task's system prompt ends with — the host's
+    /// project card. A worker sees only its own task text, which the planner
+    /// rewrote ("Define crew-term"), so without this it cannot know the
+    /// thing it was asked about is a directory beside it.
+    preamble: Option<String>,
 }
 
 impl ApiAgent {
@@ -42,7 +50,14 @@ impl ApiAgent {
             max_tokens,
             model: None,
             tools: None,
+            preamble: None,
         }
+    }
+
+    /// End every task's system prompt with `preamble`.
+    pub fn with_preamble(mut self, preamble: impl Into<String>) -> Self {
+        self.preamble = Some(preamble.into());
+        self
     }
 
     pub fn with_model(mut self, m: impl Into<String>) -> Self {
@@ -69,6 +84,7 @@ impl Agent for ApiAgent {
         let max_tokens = self.max_tokens;
         let model = self.model.clone();
         let tools = self.tools.clone();
+        let preamble = self.preamble.clone();
         Box::pin(async move {
             let task_id = ctx.task.id;
             let agent_id = ctx.agent.clone();
@@ -81,6 +97,7 @@ impl Agent for ApiAgent {
                 AgentKind::Api { system } => system.clone(),
                 AgentKind::Pty { .. } => None,
             };
+            let system = with_preamble(system, preamble.as_deref());
             let model_id = model.unwrap_or_else(|| tier.model_id().to_owned());
             // NATIVE OR TEXT, decided once. Native needs BOTH halves — schemas
             // from the tool surface and tool support from the provider — and
@@ -271,6 +288,7 @@ pub struct ApiFactory {
     /// approval gate serve the whole swarm. Handing each agent its own would
     /// mean a person approving the same irreversible tool once per agent.
     tools: Option<Arc<dyn Tools>>,
+    preamble: Option<String>,
 }
 
 impl ApiFactory {
@@ -280,7 +298,14 @@ impl ApiFactory {
             max_tokens,
             model: None,
             tools: None,
+            preamble: None,
         }
+    }
+
+    /// End every agent's system prompt with `preamble` (see [`ApiAgent::with_preamble`]).
+    pub fn with_preamble(mut self, preamble: impl Into<String>) -> Self {
+        self.preamble = Some(preamble.into());
+        self
     }
 
     pub fn with_model(mut self, m: impl Into<String>) -> Self {
@@ -295,6 +320,15 @@ impl ApiFactory {
     }
 }
 
+/// `system` with `preamble` after it — or the preamble alone, or neither.
+fn with_preamble(system: Option<String>, preamble: Option<&str>) -> Option<String> {
+    match (system, preamble) {
+        (s, None) => s,
+        (None, Some(p)) => Some(p.to_string()),
+        (Some(s), Some(p)) => Some(format!("{s}\n\n{p}")),
+    }
+}
+
 impl AgentFactory for ApiFactory {
     fn make(&self, _kind: &AgentKind) -> Box<dyn Agent> {
         let mut agent = ApiAgent::new(Arc::clone(&self.provider), self.max_tokens);
@@ -303,6 +337,9 @@ impl AgentFactory for ApiFactory {
         }
         if let Some(t) = &self.tools {
             agent = agent.with_tools(Arc::clone(t));
+        }
+        if let Some(p) = &self.preamble {
+            agent = agent.with_preamble(p.clone());
         }
         Box::new(agent)
     }

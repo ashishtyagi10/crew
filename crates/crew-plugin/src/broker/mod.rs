@@ -50,6 +50,7 @@ mod opening;
 mod plan;
 mod planfirst;
 mod plugins;
+mod projectcard;
 mod recall;
 mod recallask;
 mod registry;

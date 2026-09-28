@@ -115,6 +115,9 @@ pub(super) fn backend_at(
                     if let Some(t) = tools {
                         f = f.with_tools(t);
                     }
+                    if let Some(card) = crate::broker::projectcard::block() {
+                        f = f.with_preamble(card);
+                    }
                     Arc::new(f)
                 }
             };

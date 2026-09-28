@@ -89,10 +89,16 @@ pub(crate) fn load_from(user: Option<&Path>, project: &Path) -> Option<String> {
     Some(merged)
 }
 
-/// Prepend the project's instructions and the loaded memory to a task
-/// prompt; the task passes through untouched when there is neither.
+/// Prepend the project card, the project's instructions and the loaded
+/// memory to a task prompt; the task passes through untouched when there is
+/// none of them. The card leads: where the agent stands comes before the
+/// rules for standing there.
 pub(crate) fn with_memory(task: &str) -> String {
-    prepend_all(super::agentsmd::block().map(|(b, _)| b), load(), task)
+    let rest = prepend_all(super::agentsmd::block().map(|(b, _)| b), load(), task);
+    match super::projectcard::block() {
+        Some(card) => format!("{card}\n\n{rest}"),
+        None => rest,
+    }
 }
 
 /// Testable core of [`with_memory`]. The repo's instructions come first and
