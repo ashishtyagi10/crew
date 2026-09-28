@@ -58,6 +58,7 @@ impl ChatPane {
             thoughts: crate::chatthought::Thoughts::default(),
             pending_reply_usage: None,
             history: crate::chathistory::History::default(),
+            warm: crate::chatwarm::WarmLatch::default(),
         }
     }
 

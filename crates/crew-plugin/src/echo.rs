@@ -14,8 +14,11 @@ pub fn respond(cmd: &PluginCommand) -> Vec<PluginEvent> {
             ts: String::new(),
             meta: String::new(),
         }],
-        // The echo plugin has no gate, so it never asks and never has to answer.
-        PluginCommand::Subscribe { .. } | PluginCommand::Approve { .. } => vec![],
+        // The echo plugin has no gate, so it never asks and never has to answer;
+        // and no provider, so there is no connection to warm.
+        PluginCommand::Subscribe { .. }
+        | PluginCommand::Approve { .. }
+        | PluginCommand::Warm {} => vec![],
     }
 }
 

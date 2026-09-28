@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.66
+
+**Smith opens the connection to your provider while you type.** The
+shared connection from 0.24.56 closes after 30 seconds idle, and reading an
+answer and typing the next question usually takes longer than that. So the
+first model call of most turns opened a new connection first, about half a
+second of TCP and TLS before the request was even sent. Now the first key
+of a message tells the broker, and it opens that connection while you are
+still typing, the way Codex and Claude Code connect early. Measured on
+DashScope, three runs each: the routing line came 1.41 s after the task
+started from a cold connection and 0.87 s after a warm one. It costs one
+small request to the provider host, with no key and no tokens, at most once
+every 20 seconds while you type and never while a task is running.
+`CREW_PREWARM=0` turns it off.
+
 ## 0.24.65
 
 **Reading a big file no longer skips most of it.** `sys:read_file`

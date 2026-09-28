@@ -104,6 +104,7 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
             // An answer to a question the gate asked. The tool call that raised it is blocked
             // on a worker thread waiting for exactly this, so it only has to reach the mailbox.
             PluginCommand::Approve { id, granted } => super::approval::deliver_answer(&id, granted),
+            PluginCommand::Warm {} => super::prewarm::on_warm(&mut tasks),
         }
     }
     // stdin closed (pane gone / EOF): let running tasks finish streaming

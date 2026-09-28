@@ -28,7 +28,7 @@ impl ChatPane {
         cwd: &std::path::Path,
     ) -> Option<ChatAction> {
         let k = chat_key(&key.logical_key, key.state.is_pressed(), shift, ctrl);
-        self.on_input(k, cwd)
+        self.on_typed(k, cwd)
     }
 
     /// Handle a decoded [`ChatInput`] — the testable half of [`on_key`], split

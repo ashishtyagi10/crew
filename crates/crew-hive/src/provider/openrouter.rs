@@ -216,6 +216,12 @@ impl Provider for OpenRouterProvider {
         true
     }
 
+    /// The endpoint every call posts to, on the client every call uses — so
+    /// the socket this opens is the one the next call reuses.
+    fn warm(&self) {
+        super::warm::warm(&self.client, &self.endpoint);
+    }
+
     fn complete(
         &self,
         req: CompletionRequest,

@@ -161,6 +161,9 @@ pub struct ChatPane {
     /// records that fold, get restored from a session log and include replies,
     /// none of which is what the arrows should walk.
     pub(crate) history: crate::chathistory::History,
+    /// When the composer last asked the broker to open the provider
+    /// connection ahead of a message (see `chatwarm`).
+    pub(crate) warm: crate::chatwarm::WarmLatch,
 }
 
 impl ChatPane {

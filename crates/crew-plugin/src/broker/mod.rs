@@ -51,6 +51,7 @@ mod opening;
 mod plan;
 mod planfirst;
 mod plugins;
+mod prewarm;
 mod projectcard;
 mod recall;
 mod recallask;

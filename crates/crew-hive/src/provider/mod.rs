@@ -14,6 +14,7 @@ mod ssecalls;
 mod tests;
 mod thinking;
 mod thinktags;
+mod warm;
 mod wire;
 
 pub use anthropic::AnthropicProvider;
@@ -274,6 +275,13 @@ pub trait Provider: Send + Sync {
         req: CompletionRequest,
     ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>>;
 
+    /// Open the connection the next call will use, and return at once — the
+    /// user started typing, and the handshake (~0.5 s measured) is better
+    /// paid while they do than when they press Enter (see `warm.rs`).
+    /// Default: nothing, for a provider with no socket of its own to open
+    /// (the CLI, the mock).
+    fn warm(&self) {}
+
     /// Streamed completion: `on_chunk` receives each text (or reasoning)
     /// delta as it arrives. Default ignores the callback and delegates to
     /// `complete`, so non-streaming providers work unchanged (and emit no
@@ -301,6 +309,10 @@ impl<P: Provider + ?Sized> Provider for std::sync::Arc<P> {
         req: CompletionRequest,
     ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>> {
         (**self).complete(req)
+    }
+
+    fn warm(&self) {
+        (**self).warm()
     }
 
     fn complete_streaming(

@@ -19,6 +19,13 @@ pub enum PluginCommand {
         id: String,
         granted: bool,
     },
+    /// The user started composing a message: open the provider connection
+    /// now, while they type, so the turn's first model call doesn't pay for
+    /// it. Measured, TCP and TLS to the provider host cost ~0.5 s, and the
+    /// pool drops an idle socket after 30 s — so a turn that follows a while
+    /// of reading or typing opened a fresh one. A hint, not a request: no
+    /// reply, and a broker that predates it skips the line it cannot parse.
+    Warm {},
 }
 
 /// One agent in a plugin's roster: its address name, a short capability role,

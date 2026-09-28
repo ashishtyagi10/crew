@@ -528,7 +528,9 @@ re-asks once if the line is missing). The broker logs every hop as `from → to`
 with the reply, so the whole conversation is visible in the pane. A hop counter
 caps each thread (default 6), an optional token budget caps spend, and every
 agent call has a timeout — a hung agent is killed and logged, never blocking the
-UI.
+UI. The provider connection opens while you type: the first key of a message
+has the broker shake hands with the provider's host, so the turn's first model
+call skips the ~0.5 s TCP and TLS open (`CREW_PREWARM=0` turns it off).
 
 The pane speaks a tiny **construct language** (seven infrastructure commands),
 and plain language does the rest: "have every agent take a crack at this"

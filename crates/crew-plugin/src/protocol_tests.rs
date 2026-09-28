@@ -378,3 +378,31 @@ fn stats_without_the_tools_field_decodes_to_none_and_carries_the_pool_when_set()
     .unwrap();
     assert!(!bare.contains("tools"), "{bare}");
 }
+
+#[test]
+fn warm_is_a_bare_tag_on_the_wire() {
+    let s = serde_json::to_string(&PluginCommand::Warm {}).unwrap();
+    assert_eq!(s, r#"{"type":"warm"}"#);
+    assert!(matches!(
+        serde_json::from_str::<PluginCommand>(&s).unwrap(),
+        PluginCommand::Warm {}
+    ));
+}
+
+/// A broker from before `Warm` must skip it, not die on it: its stdin loop
+/// `continue`s past a line that does not parse. This is that older enum,
+/// and the line must fail to parse as it.
+#[test]
+fn a_broker_that_predates_warm_cannot_parse_it_and_so_skips_it() {
+    #[derive(Deserialize)]
+    #[serde(tag = "type", rename_all = "snake_case")]
+    #[allow(dead_code)]
+    enum Before {
+        Hello { v: u32 },
+        Subscribe { channel: String },
+        Send { channel: String, text: String },
+        Approve { id: String, granted: bool },
+    }
+    let line = serde_json::to_string(&PluginCommand::Warm {}).unwrap();
+    assert!(serde_json::from_str::<Before>(&line).is_err());
+}
