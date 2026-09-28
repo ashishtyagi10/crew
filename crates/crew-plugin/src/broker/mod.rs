@@ -32,6 +32,8 @@ mod directs;
 mod discover;
 mod doctor;
 mod doctorprobe;
+mod editrows;
+mod editshow;
 mod elect;
 mod engine;
 mod fan;

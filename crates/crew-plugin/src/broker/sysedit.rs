@@ -64,12 +64,21 @@ pub(crate) fn edit_all(path: &str, swaps: &[Swap]) -> Result<String, String> {
     let body =
         std::fs::read_to_string(path).map_err(|e| super::syspath::with_hint("edit", path, e))?;
     let mut edited = body.clone();
+    let mut landed = super::editshow::Landed::default();
     for (i, s) in swaps.iter().enumerate() {
-        edited = replace(&edited, s.old, s.new)
+        let next = replace(&edited, s.old, s.new)
             .map_err(|e| format!("edit {path}: {}", numbered(swaps.len(), i, &e)))?;
+        landed.swap(&edited, s.old, s.new);
+        edited = next;
     }
     std::fs::write(path, &edited).map_err(|e| format!("edit {path}: {e}"))?;
-    Ok(report_all(path, &body, swaps))
+    // The report line, then the edited lines as they now read, so the edit
+    // can be checked without spending a round on sys:read_file.
+    let report = report_all(path, &body, swaps);
+    match landed.show(&edited) {
+        shown if shown.is_empty() => Ok(report),
+        shown => Ok(format!("{report}\n{shown}")),
+    }
 }
 
 /// A failure, saying WHICH edit failed and that the file is untouched — but
@@ -95,6 +104,11 @@ pub(crate) fn replace(body: &str, old: &str, new: &str) -> Result<String, String
 
 /// Why a match failed, in the terms the model's next move depends on.
 fn miss(body: &str, old: &str) -> String {
+    if super::editrows::carries_numbers(old) {
+        return "`old` carries the line numbers from an edit result (`41\u{2502} `) \u{2014} \
+                they are not in the file; leave them out and copy only the text"
+            .into();
+    }
     let flat = |s: &str| s.split_whitespace().collect::<String>();
     if !flat(old).is_empty() && body.lines().count() > 0 && flat(body).contains(&flat(old)) {
         return "`old` is not in the file, but the same text is there with different \

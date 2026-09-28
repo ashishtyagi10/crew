@@ -330,7 +330,8 @@ fn sys_edit_takes_one_pair_or_a_list_of_them() {
     let args = format!(
         r#"{{"path": "{p}", "edits": [{{"old": "let a = 9;", "new": "let a = 0;"}}, {{"old": "let b = 2;", "new": "let b = 3;"}}]}}"#
     );
-    assert_eq!(call("edit", &args).unwrap(), "edited a.rs in 2 places");
+    let out = call("edit", &args).unwrap();
+    assert_eq!(out.lines().next(), Some("edited a.rs in 2 places"), "{out}");
     assert_eq!(
         std::fs::read_to_string(&path).unwrap(),
         "let a = 0;\nlet b = 3;\n"
