@@ -563,7 +563,8 @@ Agents can also touch the workspace through built-in **sys tools** — bounded
 `sys:run` (non-interactive shell, 120s deadline; a long output reaches the
 agent as its start and its end, and a non-zero exit is a failed call),
 `sys:read_file` (~5 KB
-pages of whole lines, each naming its lines and the next offset),
+pages of whole lines, each naming its lines and the next offset; `line`
+starts one at a `sys:grep` hit's line),
 `sys:write_file`, `sys:edit` (replace an exact, unique fragment
 — part of a file without rewriting the whole of it), `sys:list_dir`,
 `sys:fetch` (an http(s)

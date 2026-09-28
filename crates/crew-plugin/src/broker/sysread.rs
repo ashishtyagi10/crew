@@ -23,7 +23,7 @@ pub(super) const PAGE: usize = 5_600;
 /// the whole file read on every page: 8 MB is a few milliseconds from cache,
 /// while paging a 2 GB log would read 2 GB per call, so past it the note
 /// gives bytes only.
-const LINES_UP_TO: usize = 8 * 1024 * 1024;
+pub(super) const LINES_UP_TO: usize = 8 * 1024 * 1024;
 
 /// The optional `"offset"` byte argument: a JSON number, or a numeric string
 /// (some agents quote it). Defaults to 0 when absent/null; anything else
@@ -162,7 +162,7 @@ fn note(
 
 /// `40112` → `40,112`, for the prose only: the `{"offset": N}` beside it
 /// stays bare digits, because the agent pastes that into JSON.
-fn grouped(n: usize) -> String {
+pub(super) fn grouped(n: usize) -> String {
     let s = n.to_string();
     let mut out = String::with_capacity(s.len() + s.len() / 3);
     for (i, c) in s.chars().enumerate() {

@@ -2687,7 +2687,11 @@ on tool results; and a non-zero exit is a FAILED call — `✗` on the card,
 **`sys:read_file`** (UTF-8, one page per call: up to 5,600 bytes, cut at
 the last line end — sized so a page and its note pass the 6,000-char clip on
 tool results whole; the note says which lines and bytes the page holds and
-carries the byte `offset` to continue with, so agents read big files in pages),
+carries the byte `offset` to continue with, so agents read big files in pages;
+`{"line": N}` starts the page at line N instead, the number a `sys:grep` hit
+gives, so an agent goes straight to what it found rather than paging from the
+top — `line` or `offset`, not both, and a line past the end names the file's
+line count),
 **`sys:write_file`** (create, or replace all of one), **`sys:edit`** (replace
 part of one — below), **`sys:list_dir`** (≤500 entries,
 sizes shown), the two that FIND code — **`sys:grep`** (a regex over the
