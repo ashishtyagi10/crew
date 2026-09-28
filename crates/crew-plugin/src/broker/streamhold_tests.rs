@@ -48,3 +48,40 @@ fn text_without_directives_passes_untouched_and_undelayed() {
         " uses *wgpu* @ 60fps\n  - item"
     );
 }
+
+#[test]
+fn a_fenced_call_leaves_no_empty_block_behind() {
+    let s = shown(&[
+        "Let me check.\n``",
+        "`\n@tool sys:read_file {\"path\": \"x\"}\n```\n",
+        "Found it.\n",
+    ]);
+    assert_eq!(s, "Let me check.\nFound it.\n");
+}
+
+#[test]
+fn pretty_printed_json_under_a_call_never_shows() {
+    let s = shown(&[
+        "@tool sys:edit {\n  \"path\": \"a.rs\",\n",
+        "  \"old\": \"}\",\n  \"new\": \"y\"\n}**\n",
+        "Edited.\n",
+    ]);
+    assert_eq!(s, "Edited.\n");
+    // JSON opened on the line under a bare call, inside a json fence.
+    let s = shown(&["```json\n@tool sys:read_file\n  {\n  \"path\": \"x\"\n}\n```\nRead.\n"]);
+    assert_eq!(s, "Read.\n");
+}
+
+#[test]
+fn a_code_block_that_wraps_no_call_is_shown_as_written() {
+    let text = "Run:\n```sh\ncargo test\n@dataclass\n```\nThen look.\n```\n```\n";
+    assert_eq!(shown(&[text]), text);
+    // A call right after a block does not take the block's closer for its own.
+    let s = shown(&["```\nx\n```\n@tool sys:run {}\n", "```\ny\n```\n"]);
+    assert_eq!(s, "```\nx\n```\n```\ny\n```\n");
+    // Nor does a fenced call left unclosed eat the next round's block.
+    let s = shown(&["```\n@tool a:b {}\n", "Here:\n```\ncode\n```\n"]);
+    assert_eq!(s, "Here:\n```\ncode\n```\n");
+    // A bare call followed by prose: nothing swallowed but the indent.
+    assert_eq!(shown(&["@tool sys:list_dir\n", "Listed.\n"]), "Listed.\n");
+}
