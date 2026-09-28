@@ -184,7 +184,7 @@ fn frame_output_is_whitespace_compacted() {
 fn frame_handles_no_peers_and_empty_transcript() {
     let env = Envelope::new("user", "claude", "t", "hi");
     let p = frame(&env, &[], "task", "", "");
-    assert!(p.contains("(none)"));
+    assert!(p.contains("yours alone") && !p.contains("@next"), "{p}");
     assert!(p.contains("you are first"));
 }
 

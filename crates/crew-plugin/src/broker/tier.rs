@@ -47,7 +47,7 @@ impl Tier {
 /// `curl`. It is the one built-in that can do anything at all, so it is the one that asks.
 pub fn sys_tier(tool: &str) -> Option<Tier> {
     Some(match tool {
-        "read_file" | "list_dir" | "find_tools" => Tier::Read,
+        "read_file" | "list_dir" | "grep" | "glob" | "find_tools" => Tier::Read,
         // A GET changes nothing out there, and the private-network guard
         // (`sysfetch::is_private`) is what keeps "nothing" true on a machine
         // that sits inside a network of things that answer anyone.

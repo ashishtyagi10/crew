@@ -56,6 +56,7 @@ fn relay_ctx(session: &Session, input: &str) -> u64 {
     crate::broker::stdio::relay_counting(
         input,
         None,
+        false,
         session,
         &crate::broker::tick::noop_tick_emit(),
         &mut |ev| {

@@ -74,3 +74,37 @@ fn a_bare_done_confirming_a_peer_posts_no_empty_card() {
         "{msgs:?}"
     );
 }
+
+/// A routed reply runs its one agent alone: a registry of one offers no
+/// hand-off, and the prompt says so.
+#[test]
+fn a_registry_of_one_offers_no_hand_off() {
+    let a: Box<dyn Adapter> = Box::new(Say("a", vec!["x"], Mutex::new(0)));
+    let b: Box<dyn Adapter> = Box::new(Say("b", vec!["y"], Mutex::new(0)));
+    let reg = Registry::new(vec![a, b]).only("b");
+    assert_eq!(reg.names(), vec!["b".to_string()]);
+    assert!(reg.peers_of("b").is_empty());
+    // An unknown name leaves the roster whole rather than empty.
+    let c: Box<dyn Adapter> = Box::new(Say("c", vec!["z"], Mutex::new(0)));
+    assert_eq!(
+        Registry::new(vec![c]).only("nobody").names(),
+        vec!["c".to_string()]
+    );
+}
+
+/// Handing off to a name the roster does not hold finishes the turn with
+/// the reply, instead of an "unknown agent" error.
+#[test]
+fn a_hand_off_to_nobody_is_the_answer() {
+    let a: Box<dyn Adapter> = Box::new(Say("a", vec!["here it is\n@next ghost"], Mutex::new(0)));
+    let msgs = turn(vec![a], "a");
+    assert!(
+        msgs.iter()
+            .any(|(s, t)| s == "a \u{2192} user" && t == "here it is"),
+        "{msgs:?}"
+    );
+    assert!(
+        !msgs.iter().any(|(_, t)| t.contains("unknown agent")),
+        "{msgs:?}"
+    );
+}

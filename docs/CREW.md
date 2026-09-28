@@ -2683,7 +2683,11 @@ linger), **`sys:read_file`** (UTF-8, 64 KB per call; a truncation note carries
 the byte `offset` to continue with, so agents read big files in chunks),
 **`sys:write_file`** (create, or replace all of one), **`sys:edit`** (replace
 part of one — below), **`sys:list_dir`** (≤500 entries,
-sizes shown), and the two that reach off this machine — **`sys:fetch`** and
+sizes shown), the two that FIND code — **`sys:grep`** (a regex over the
+project's files, `path:line: text`, ≤150 hits; `glob` narrows by file name,
+`ignore_case` folds) and **`sys:glob`** (files by name, or by path with `**`),
+both skipping `.git`, build output, dependency trees, hidden directories and
+binaries — and the two that reach off this machine — **`sys:fetch`** and
 **`sys:search`**.
 
 `sys:fetch {"url": …}` GETs an http(s) page and returns it as READABLE TEXT:
@@ -2986,7 +2990,7 @@ agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request;
 `CREW_MAX_TASKS` (default 4) caps concurrent background tasks;
 `CREW_SYS_TOOLS=0` / `CREW_SYS_MODE=readonly` disable or sandbox the built-in
 sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:edit`, `sys:list_dir`,
-`sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
+`sys:grep`, `sys:glob`, `sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
 and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
 `CREW_HTTP_TIMEOUT_MS` (default 120000) is how long a provider may say
 NOTHING — the wait for the first byte, and each gap between two frames of a
@@ -3003,6 +3007,9 @@ NIM's `reasoning_content`, `<think>` tags in the text, an Anthropic `thinking`
 block) streams into the smith pane as a live block above the reply that folds
 to `▸ thought for 4.2s` when the reply lands; the switch only stops the
 asking — reasoning a model shows unprompted is still shown;
+`CREW_THINKING_BUDGET` (default 512) bounds the reasoning those asks allow, in
+tokens — DashScope's `thinking_budget`, OpenRouter's `reasoning.max_tokens` —
+since an unbounded qwen3-max thought for over a minute before answering;
 `CREW_INTENT=0` disables the intent router — every plain message then runs as
 a swarm instead of the model first choosing its execution shape (a direct
 reply, an all-agents fan-out, refinement rounds, a plan awaiting approval, or

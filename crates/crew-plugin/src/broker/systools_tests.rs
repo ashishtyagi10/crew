@@ -22,6 +22,8 @@ fn tools_lists_the_sys_surface() {
             "find_tools",
             "search",
             "fetch",
+            "grep",
+            "glob",
             "list_dir"
         ]
     );

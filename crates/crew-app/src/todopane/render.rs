@@ -8,8 +8,8 @@ use crew_render::CellView;
 
 use super::{composer, duedate, gutter, headrow, TodoPane};
 
-/// Column where the checkbox (a ring, a disc when done) starts; the title
-/// follows two past its three cells.
+/// Column where the checkbox (☐, ☑ when done — `checkbox` paints it larger)
+/// starts; the title follows two past its three cells.
 pub(crate) const BOX_COL: u16 = 2;
 pub(crate) const TITLE_COL: u16 = 6;
 

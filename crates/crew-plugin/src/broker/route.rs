@@ -139,23 +139,35 @@ pub fn frame(
         .iter()
         .map(|p| p.split(" (").next().unwrap_or(p))
         .collect();
-    let names = if names.is_empty() {
-        "(none)".to_string()
+    // Alone, there is no one to hand to: the reply is the answer and the
+    // protocol is one word. With peers the hand-off is offered — for work
+    // that needs a peer, never to pass a finished answer round the table.
+    let how = if names.is_empty() {
+        "HOW TO REPLY: this turn is yours alone \u{2014} do the work, answer in \
+         full, then end with the line `@done`."
+            .to_string()
     } else {
-        names.join(", ")
+        format!(
+            "HOW TO REPLY: answer concisely, then make the FINAL line exactly one of:\n\
+             - `@next <agent>` to hand the conversation to a peer (only from: {}) \u{2014} \
+             only for work that needs THEIR specialty, never to pass a finished answer on\n\
+             - `@done` if the task is complete and no further reply is needed.",
+            names.join(", ")
+        )
+    };
+    let opening = match peers.is_empty() {
+        true => format!("You are \"{}\", a CLI coding agent.", env.to),
+        false => format!(
+            "You are \"{}\", a CLI coding agent working with peers: {peer_list}.",
+            env.to
+        ),
     };
     compact_ws(&format!(
-        "You are \"{me}\", a CLI coding agent working with peers: {peers}.\n\n\
+        "{opening}\n\n\
          TASK:\n{task}\n\n\
-         HOW TO REPLY: answer concisely, then make the FINAL line exactly one of:\n\
-         - `@next <agent>` to hand the conversation to a peer (only from: {names})\n\
-         - `@done` if the task is complete and no further reply is needed.\n\n\
+         {how}\n\n\
          CONVERSATION SO FAR:\n{convo}\n\n\
          MESSAGE FOR YOU FROM \"{from}\":\n{body}",
-        me = env.to,
-        peers = peer_list,
-        task = task,
-        convo = convo,
         from = env.from,
         body = env.body,
     ))

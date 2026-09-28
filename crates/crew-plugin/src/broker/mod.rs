@@ -79,6 +79,7 @@ mod swarm;
 mod sysedit;
 mod sysfetch;
 mod sysfetchtext;
+mod sysgrep;
 mod syspath;
 mod sysread;
 mod sysrun;

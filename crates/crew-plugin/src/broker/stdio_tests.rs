@@ -100,6 +100,7 @@ fn at_dial_of_an_existing_specialist_defers_its_eviction() {
     relay_counting(
         "@favourite do the thing",
         None,
+        false,
         &session,
         &crate::broker::tick::noop_tick_emit(),
         &mut |ev| {

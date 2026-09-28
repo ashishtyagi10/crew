@@ -147,7 +147,7 @@ fn build_body(
     req: &CompletionRequest,
     messages: &[serde_json::Value],
     report_cost: bool,
-    think: Option<(&'static str, serde_json::Value)>,
+    think: Vec<(&'static str, serde_json::Value)>,
 ) -> serde_json::Value {
     let mut body = serde_json::json!({
         "model": model,
@@ -160,7 +160,7 @@ fn build_body(
     if let Some(tools) = build_tools(req) {
         body["tools"] = tools;
     }
-    if let Some((key, value)) = think {
+    for (key, value) in think {
         body[key] = value;
     }
     body

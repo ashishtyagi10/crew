@@ -184,6 +184,32 @@ pub(crate) fn tools() -> Vec<McpTool> {
             }),
         ),
         mk(
+            "grep",
+            "search the project's files for a regex, before reading any of them: {\"pattern\": \"fn draw_box\", \"glob\": \"*.rs\"} \u{2014} matching lines as path:line: text",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "pattern": {"type": "string", "description": "a regular expression, matched per line"},
+                    "path": {"type": "string", "description": "file or directory to search (default .)"},
+                    "glob": {"type": "string", "description": "only files whose name matches, e.g. *.rs or src/**/*.ts"},
+                    "ignore_case": {"type": "boolean"},
+                },
+                "required": ["pattern"],
+            }),
+        ),
+        mk(
+            "glob",
+            "find files by name: {\"pattern\": \"*checkbox*\"} or by path: {\"pattern\": \"crates/**/mod.rs\"}",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "pattern": {"type": "string", "description": "* and ? match within a name; ** spans directories"},
+                    "path": {"type": "string", "description": "directory to search (default .)"},
+                },
+                "required": ["pattern"],
+            }),
+        ),
+        mk(
             "list_dir",
             "list a directory (default .): {\"path\": \"src\"}",
             serde_json::json!({
@@ -211,10 +237,12 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "write_file" => write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
         "edit" => edit(&v),
         "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),
+        "grep" => super::sysgrep::grep(&v),
+        "glob" => super::sysgrep::glob(&v),
         "fetch" => super::sysfetch::fetch(str_arg(&v, "url")?),
         "search" => super::syssearch::search(str_arg(&v, "q")?),
         other => Err(format!(
-            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, fetch, search, find_tools"
+            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, grep, glob, fetch, search, find_tools"
         )),
     }
 }

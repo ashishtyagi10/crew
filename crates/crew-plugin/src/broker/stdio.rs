@@ -348,11 +348,12 @@ fn send(
         let res = if is_cmd {
             super::commands::handle(&mut snap, &trimmed, &tick_emit, &mut counting)
         } else if dialled {
-            relay_counting(&trimmed, None, &snap, &tick_emit, &mut counting)
+            relay_counting(&trimmed, None, false, &snap, &tick_emit, &mut counting)
         } else if let Some(starter) = starter {
             relay_counting(
                 &format!("@{starter} {trimmed}"),
                 None,
+                false,
                 &snap,
                 &tick_emit,
                 &mut counting,
@@ -596,9 +597,15 @@ fn first_starter(names: Vec<String>) -> Option<String> {
 
 /// `pub(crate)` for the intent router: a `reply`-shaped plain message takes
 /// exactly the path an `@agent` dial takes, minus the dial.
+/// Tool rounds a routed reply's one agent may take: enough to search, read,
+/// search again and read again before answering (a relay hop among peers
+/// keeps `MAX_TOOL_ROUNDS`, since a peer can pick the work up).
+const SOLO_TOOL_ROUNDS: u32 = 8;
+
 pub(crate) fn relay_counting(
     input: &str,
     pick: Option<&str>,
+    solo: bool,
     session: &Session,
     tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
@@ -649,7 +656,16 @@ pub(crate) fn relay_counting(
     // agent's own thinking row says who is working the moment it dials, and
     // its answer card names it; the line was a third telling, and it named
     // the protocol, not the work.
-    let broker = session.broker(reg);
+    // A routed reply is ONE agent's turn: alone in the registry it has nobody
+    // to hand off to, and more tool rounds to find what it needs. Measured
+    // live: with eleven peers offered, a finished answer went round five of
+    // them, each re-reading the same file, before anyone said @done.
+    let broker = match solo {
+        true => session
+            .broker(reg.only(&start))
+            .with_tool_rounds(SOLO_TOOL_ROUNDS),
+        false => session.broker(reg),
+    };
     let answer = relay_turn(&broker, &start, &body, &request, &tid, tick_emit, emit)?;
     let kept = answer.filter(|_| !session.cancelled()); // a stopped turn is no turn
     super::recall::record(&session.recall, task, kept.as_deref());

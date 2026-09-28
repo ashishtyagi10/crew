@@ -25,28 +25,60 @@ pub(crate) fn enabled_from(var: Option<&str>) -> bool {
     !matches!(var, Some("0"))
 }
 
-/// The body field this endpoint needs to show its reasoning, if any —
-/// `(key, value)` — for a request that streams (`streaming`) or does not.
-pub(crate) fn opt_in(endpoint: &str, streaming: bool) -> Option<(&'static str, serde_json::Value)> {
-    opt_in_if(thinking_enabled(), endpoint, streaming)
+/// Reasoning tokens a request may spend before it answers: `CREW_THINKING_BUDGET`,
+/// default [`BUDGET`].
+///
+/// Measured (2026-09-27, DashScope): with thinking opted in and NO bound,
+/// qwen3-max reasoned for 107 s — 16,800 characters — before its first tool
+/// call on a one-line question, and even "is 9.11 larger than 9.9?" took
+/// 16 s. The pane shows the thinking live, but a thought that outlasts the
+/// patience of the person watching it is a hang with scenery. 512 tokens is
+/// ~15 s at the ~30 tok/s qwen3-max reasons at.
+pub(crate) fn budget() -> u32 {
+    std::env::var("CREW_THINKING_BUDGET")
+        .ok()
+        .and_then(|v| v.trim().parse().ok())
+        .filter(|n| *n > 0)
+        .unwrap_or(BUDGET)
 }
 
-/// [`opt_in`] with the switch handed in rather than read from the environment.
+/// See [`budget`].
+pub(crate) const BUDGET: u32 = 512;
+
+/// The body fields this endpoint needs to show its reasoning — and to bound
+/// it — for a request that streams (`streaming`) or does not. Empty when the
+/// endpoint needs none.
+pub(crate) fn opt_in(endpoint: &str, streaming: bool) -> Vec<(&'static str, serde_json::Value)> {
+    opt_in_if(thinking_enabled(), endpoint, streaming, budget())
+}
+
+/// [`opt_in`] with the switch and the budget handed in rather than read from
+/// the environment.
 pub(crate) fn opt_in_if(
     enabled: bool,
     endpoint: &str,
     streaming: bool,
-) -> Option<(&'static str, serde_json::Value)> {
+    budget: u32,
+) -> Vec<(&'static str, serde_json::Value)> {
     if !enabled {
-        return None;
+        return Vec::new();
     }
     if endpoint.contains("dashscope") {
-        return streaming.then_some(("enable_thinking", serde_json::json!(true)));
+        if !streaming {
+            return Vec::new();
+        }
+        return vec![
+            ("enable_thinking", serde_json::json!(true)),
+            ("thinking_budget", serde_json::json!(budget)),
+        ];
     }
     if endpoint.contains("openrouter.ai") {
-        return Some(("reasoning", serde_json::json!({"enabled": true})));
+        return vec![(
+            "reasoning",
+            serde_json::json!({"enabled": true, "max_tokens": budget}),
+        )];
     }
-    None
+    Vec::new()
 }
 
 /// Remove any reasoning opt-in from `body`, for the one retry after a 400.
@@ -57,6 +89,7 @@ pub(crate) fn strip(body: &mut serde_json::Value) -> bool {
         return false;
     };
     let had = obj.remove("enable_thinking").is_some();
+    obj.remove("thinking_budget");
     obj.remove("reasoning").is_some() || had
 }
 
