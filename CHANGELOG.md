@@ -8,6 +8,10 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.74
+
+**A busy Anthropic API is asked again, and an em dash no longer arrives as `���`.** A reply served over the Anthropic API (a key, or a signed-in `ant` profile) was sent once, so a 429 rate limit, a 5xx, or the 529 `overloaded_error` Anthropic answers with at peak hours failed the whole turn, while every OpenAI-compatible host already retried; and its stream decoded each network read on its own, so a character split between two reads (an em dash, CJK, an emoji) reached the pane as replacement marks. Now both paths share one retry rule: up to two more tries after the wait the server asks for in `Retry-After`, else 1 s and then 2 s, never more than 8 s, and the rule also knows Anthropic's `overloaded_error` and `rate_limit_error` bodies, including when one arrives as an `error` event inside a 200 stream; and both streams decode only up to where a character ends and carry the rest to the next read. A stream is retried only while nothing has reached the pane: once a fragment has been shown, a second try would type the reply out again under it, so that failure still ends the turn. The cost: a turn that is going to fail anyway takes up to about 3 s longer to say so (up to 16 s when the server asks for its longest waits), and an explicit `Retry-After: 0` is now taken as "now" on every host instead of being raised to a second.
+
 ## 0.24.73
 
 **Smith no longer sends you to `/restore`.** The first task in every pane

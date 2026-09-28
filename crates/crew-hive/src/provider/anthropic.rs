@@ -290,12 +290,12 @@ impl AnthropicProvider {
     async fn send(
         client: &reqwest::Client,
         endpoint: &str,
-        headers: Vec<(&'static str, String)>,
+        headers: &[(&'static str, String)],
         body: &serde_json::Value,
     ) -> Result<reqwest::Response, ProviderError> {
         let mut r = client.post(endpoint);
         for (k, v) in headers {
-            r = r.header(k, v);
+            r = r.header(*k, v);
         }
         r.header("anthropic-version", VERSION)
             .header("content-type", "application/json")
@@ -303,6 +303,33 @@ impl AnthropicProvider {
             .send()
             .await
             .map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))
+    }
+
+    /// The request, sent again while it fails in a way that passes — a 429,
+    /// a 5xx, Anthropic's 529 `overloaded_error` — after the wait the server
+    /// asked for ([`super::retry`]). A success comes back unread; a failure
+    /// that stands, as its body. `attempt` is the caller's, so a stream that
+    /// is retried after an in-stream error shares the one budget.
+    async fn send_retrying(
+        client: &reqwest::Client,
+        endpoint: &str,
+        headers: &[(&'static str, String)],
+        body: &serde_json::Value,
+        attempt: &mut u32,
+    ) -> Result<reqwest::Response, ProviderError> {
+        loop {
+            let resp = Self::send(client, endpoint, headers, body).await?;
+            if resp.status().is_success() {
+                return Ok(resp);
+            }
+            let status = resp.status().as_u16();
+            let hint = super::retry::retry_after(resp.headers());
+            let text = resp.text().await.unwrap_or_default();
+            match super::retry::again(status, hint, &text, attempt) {
+                Some(wait) => tokio::time::sleep(wait).await,
+                None => return Err(ProviderError::Api(text)),
+            }
+        }
     }
 }
 
@@ -326,7 +353,9 @@ impl Provider for AnthropicProvider {
         let endpoint = self.endpoint.clone();
         super::io::run(async move {
             let body = AnthropicProvider::body(&req, false);
-            let resp = AnthropicProvider::send(&client, &endpoint, headers, &body).await?;
+            let resp =
+                AnthropicProvider::send_retrying(&client, &endpoint, &headers, &body, &mut 0)
+                    .await?;
             let text = resp
                 .text()
                 .await
@@ -353,18 +382,43 @@ impl Provider for AnthropicProvider {
         super::io::run(async move {
             use futures::StreamExt;
             let body = AnthropicProvider::body(&req, true);
-            let resp = AnthropicProvider::send(&client, &endpoint, headers, &body).await?;
-            if !resp.status().is_success() {
-                let text = resp.text().await.unwrap_or_default();
-                return Err(ProviderError::Api(text));
+            let mut attempt = 0;
+            loop {
+                let resp = AnthropicProvider::send_retrying(
+                    &client,
+                    &endpoint,
+                    &headers,
+                    &body,
+                    &mut attempt,
+                )
+                .await?;
+                let mut fold = super::anthropicsse::Fold::default();
+                // Decoded where characters end, not where reads do: an em
+                // dash split across two reads reached the pane as `��`.
+                let mut utf8 = super::utf8carry::Utf8Carry::default();
+                let mut stream = resp.bytes_stream();
+                while let Some(bytes) = stream.next().await {
+                    let bytes =
+                        bytes.map_err(|e| ProviderError::Http(wire_error(&e, &endpoint)))?;
+                    fold.feed(&utf8.push(&bytes), &on_chunk);
+                }
+                fold.feed(&utf8.finish(), &on_chunk);
+                // Retried ONLY while nothing has reached the callback. A
+                // refused request (`send_retrying`) has shown nothing, and a
+                // busy host can also answer 200 and then send an `error`
+                // event (`overloaded_error`) as its first word. Once a
+                // fragment has been shown, a second try would type the
+                // reply out again under it, so that failure stands.
+                let unseen = fold.out.text.is_empty() && fold.out.thought.is_empty();
+                let wait = match &fold.failed {
+                    Some(e) if unseen => super::retry::again(200, None, e, &mut attempt),
+                    _ => None,
+                };
+                match wait {
+                    Some(wait) => tokio::time::sleep(wait).await,
+                    None => return fold.finish(&on_chunk),
+                }
             }
-            let mut fold = super::anthropicsse::Fold::default();
-            let mut stream = resp.bytes_stream();
-            while let Some(bytes) = stream.next().await {
-                let bytes = bytes.map_err(|e| ProviderError::Http(wire_error(&e, &endpoint)))?;
-                fold.feed(&String::from_utf8_lossy(&bytes), &on_chunk);
-            }
-            fold.finish(&on_chunk)
         })
     }
 }
@@ -372,3 +426,7 @@ impl Provider for AnthropicProvider {
 #[cfg(test)]
 #[path = "anthropicstream_tests.rs"]
 mod stream_tests;
+
+#[cfg(test)]
+#[path = "anthropicretry_tests.rs"]
+mod retry_tests;

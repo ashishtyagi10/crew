@@ -9,12 +9,14 @@ mod io;
 mod mock;
 mod openai_http;
 mod openrouter;
+mod retry;
 mod ssecalls;
 mod stopreason;
 #[cfg(test)]
 mod tests;
 mod thinking;
 mod thinktags;
+mod utf8carry;
 mod warm;
 mod wire;
 

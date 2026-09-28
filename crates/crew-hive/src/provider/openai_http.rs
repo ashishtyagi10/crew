@@ -1,54 +1,18 @@
 //! The OpenAI-compatible chat-completions HTTP layer shared by every
 //! provider that speaks that shape (OpenRouter, Alibaba DashScope, …):
-//! transient-error retry with Retry-After honouring, response parsing, and
-//! SSE streaming.
+//! transient-error retry (the rule itself is [`super::retry`]'s, shared with
+//! Anthropic), response parsing, and SSE streaming.
 use futures::StreamExt;
 use serde::Deserialize;
 
+use super::retry::{again, retry_after};
 use super::ssecalls::{frags, parse_args, CallAsm, Frag};
 use super::thinktags::{Piece, ThinkTags};
+use super::utf8carry::Utf8Carry;
 use super::wire::wire_error;
 use super::{stopreason, thinking, Chunk, ChunkFn, Completion, ProviderError};
 
-/// How many times to retry one model on a transient error before the chain
-/// advances to the next model (kept low because the fallback chain adds breadth).
-const MAX_RETRIES: u32 = 2;
-
-/// Seconds to wait before retrying, or `None` to not retry. A call is treated as
-/// transiently retryable when the HTTP status is 429/5xx *or* the body carries an
-/// OpenRouter-wrapped upstream rate-limit error (it returns those as a 200 with
-/// an `error` object of `"code":429`). Honors an explicit `Retry-After` header or
-/// the body's `retry_after_seconds`, else backs off exponentially; clamped so a
-/// hung retry loop can't outlast the agent call's own timeout.
-pub(super) fn retry_delay(
-    status: u16,
-    retry_after_hdr: Option<u64>,
-    body: &str,
-    attempt: u32,
-) -> Option<u64> {
-    let transient = status == 429
-        || (500..600).contains(&status)
-        || body.contains("\"code\":429")
-        || body.contains("rate-limit")
-        || body.contains("rate limit");
-    if !transient {
-        return None;
-    }
-    let body_hint = body
-        .split("retry_after_seconds\":")
-        .nth(1)
-        .and_then(|s| s.split([',', '}']).next())
-        .and_then(|s| s.trim().parse::<f64>().ok())
-        .map(|f| f.ceil() as u64);
-    Some(
-        retry_after_hdr
-            .or(body_hint)
-            .unwrap_or(1u64 << attempt)
-            .clamp(1, 8),
-    )
-}
-
-/// One model's request with transient-error retry (see [`retry_delay`]).
+/// One model's request with transient-error retry (see [`super::retry`]).
 ///
 /// A body carrying a reasoning opt-in (`thinking::opt_in`) that comes back
 /// 400 is retried ONCE without it: the field is the newest thing in the
@@ -71,11 +35,7 @@ pub(super) async fn request_with_retry(
             .await
             .map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))?;
         let status = resp.status().as_u16();
-        let retry_after_hdr = resp
-            .headers()
-            .get(reqwest::header::RETRY_AFTER)
-            .and_then(|v| v.to_str().ok())
-            .and_then(|s| s.trim().parse::<u64>().ok());
+        let retry_after_hdr = retry_after(resp.headers());
         let text = resp
             .text()
             .await
@@ -83,12 +43,9 @@ pub(super) async fn request_with_retry(
         if status == 400 && thinking::strip(&mut body) {
             continue;
         }
-        if attempt < MAX_RETRIES {
-            if let Some(wait) = retry_delay(status, retry_after_hdr, &text, attempt) {
-                attempt += 1;
-                tokio::time::sleep(std::time::Duration::from_secs(wait)).await;
-                continue;
-            }
+        if let Some(wait) = again(status, retry_after_hdr, &text, &mut attempt) {
+            tokio::time::sleep(wait).await;
+            continue;
         }
         return parse_response(&text);
     }
@@ -102,7 +59,7 @@ pub(super) async fn request_with_retry(
 /// `stream_options.include_usage` is requested first; some OpenAI-compatible
 /// endpoints reject the field with a 400, in which case this retries once
 /// without it before falling back to the normal transient-retry loop (a 400
-/// is never itself transient — see [`retry_delay`]). A reasoning opt-in in
+/// is never itself transient — see `retry::retry_delay`). A reasoning opt-in in
 /// `body` (`thinking::opt_in`) is dropped the same way, and FIRST: it is the
 /// newer field and the likelier stranger.
 ///
@@ -112,7 +69,7 @@ pub(super) async fn request_with_retry(
 /// apart from "already streamed visible text, then failed" (must NOT
 /// silently retry elsewhere, since the caller has already forwarded partial
 /// content through `on_chunk`). A 200 alone does not set it: OpenRouter's
-/// wrapped-error shape (see [`retry_delay`]'s doc comment) is also a 200,
+/// wrapped-error shape (see `retry::retry_delay`'s doc comment) is also a 200,
 /// and must remain safe to retry/fall back on.
 ///
 /// A 200 response is only ever treated as SSE when its `content-type` is not
@@ -147,11 +104,7 @@ pub(super) async fn request_with_retry_streaming(
             .await
             .map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))?;
         let status = resp.status().as_u16();
-        let retry_after_hdr = resp
-            .headers()
-            .get(reqwest::header::RETRY_AFTER)
-            .and_then(|v| v.to_str().ok())
-            .and_then(|s| s.trim().parse::<u64>().ok());
+        let retry_after_hdr = retry_after(resp.headers());
         let is_json_ct = resp
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
@@ -176,7 +129,7 @@ pub(super) async fn request_with_retry_streaming(
                 .map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))?
         };
         // Same status handling as the non-streaming path (including the
-        // retry_delay integration), plus a one-shot fallback off the
+        // shared retry rule), plus a one-shot fallback off the
         // reasoning opt-in, then off `stream_options`, on a plain 400.
         if status == 400 && thinking::strip(&mut body) {
             continue;
@@ -185,12 +138,9 @@ pub(super) async fn request_with_retry_streaming(
             include_usage = false;
             continue;
         }
-        if attempt < MAX_RETRIES {
-            if let Some(wait) = retry_delay(status, retry_after_hdr, &text, attempt) {
-                attempt += 1;
-                tokio::time::sleep(std::time::Duration::from_secs(wait)).await;
-                continue;
-            }
+        if let Some(wait) = again(status, retry_after_hdr, &text, &mut attempt) {
+            tokio::time::sleep(wait).await;
+            continue;
         }
         return parse_response(&text);
     }
@@ -200,7 +150,7 @@ pub(super) async fn request_with_retry_streaming(
 /// Completion (at least one [`SseItem::Delta`], [`SseItem::Usage`], or
 /// [`SseItem::Done`] frame was seen), or — [`SseOutcome::NoContent`] — the
 /// raw body when NONE of those ever arrived. The latter is OpenRouter's
-/// wrapped-error shape (see [`retry_delay`]'s doc comment): a 200 whose body
+/// wrapped-error shape (see `retry::retry_delay`'s doc comment): a 200 whose body
 /// is a plain JSON `error` object with no `data:` lines at all, which must
 /// not be mistaken for an empty successful stream (Critical-1).
 enum SseOutcome {
@@ -209,13 +159,12 @@ enum SseOutcome {
 }
 
 /// Consume an OpenAI-compatible SSE body: bytes arrive in arbitrary chunks
-/// (not aligned to line or even char boundaries), so a `carry: Vec<u8>`
-/// buffer holds the trailing partial line across reads — split on `b'\n'`
-/// (a UTF-8 continuation byte is never `0x0A`, so per-line splitting on raw
-/// bytes is always safe) and only then lossily decoded one complete line at
-/// a time, so a multi-byte codepoint straddling a chunk boundary is decoded
-/// correctly (Important-3) rather than mangled by a per-chunk
-/// `from_utf8_lossy`. Each complete line is classified by [`parse_sse_line`].
+/// (not aligned to line or even char boundaries), so they are decoded
+/// through a [`Utf8Carry`] — a multi-byte codepoint straddling a chunk
+/// boundary is decoded whole (Important-3) rather than mangled by a
+/// per-chunk `from_utf8_lossy` — and a `carry` string holds the trailing
+/// partial line across reads. Each complete line is classified by
+/// [`parse_sse_frame`].
 /// Deltas are forwarded to `on_chunk` and accumulated into the final text;
 /// `[DONE]` stops the read. If the stream ends (EOF, not `[DONE]`) with one
 /// final line still in `carry` (no trailing `\n` — often the usage frame),
@@ -238,27 +187,30 @@ async fn consume_sse(
     started: &std::sync::atomic::AtomicBool,
 ) -> Result<SseOutcome, ProviderError> {
     let mut stream = resp.bytes_stream();
-    let mut carry: Vec<u8> = Vec::new();
+    let mut utf8 = Utf8Carry::default();
+    let mut carry = String::new();
     let mut raw_bytes: Vec<u8> = Vec::new();
     let mut st = SseState::default();
     'read: while let Some(chunk) = stream.next().await {
         let bytes = chunk.map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))?;
         raw_bytes.extend_from_slice(&bytes);
-        carry.extend_from_slice(&bytes);
-        while let Some(pos) = carry.iter().position(|&b| b == b'\n') {
-            let line_bytes: Vec<u8> = carry.drain(..=pos).collect();
-            let line = String::from_utf8_lossy(&line_bytes[..line_bytes.len() - 1]);
-            let line = line.trim_end_matches('\r');
-            if apply_sse_line(line, on_chunk, started, &mut st) {
+        carry.push_str(&utf8.push(&bytes));
+        while let Some(pos) = carry.find('\n') {
+            let line: String = carry.drain(..=pos).collect();
+            if apply_sse_line(
+                line.trim_end_matches(['\n', '\r']),
+                on_chunk,
+                started,
+                &mut st,
+            ) {
                 break 'read;
             }
         }
     }
     // Leftover carry at EOF: a final line with no trailing `\n` (Important-2).
+    carry.push_str(&utf8.finish());
     if !carry.is_empty() {
-        let line = String::from_utf8_lossy(&carry);
-        let line = line.trim_end_matches('\r');
-        apply_sse_line(line, on_chunk, started, &mut st);
+        apply_sse_line(carry.trim_end_matches('\r'), on_chunk, started, &mut st);
     }
     if !st.any_frame {
         return Ok(SseOutcome::NoContent(
