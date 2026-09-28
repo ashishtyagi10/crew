@@ -21,6 +21,7 @@ use crew_render::CellView;
 
 mod act;
 pub(crate) mod agentpick;
+mod checkbox;
 mod click;
 mod composer;
 pub(crate) mod duedate;

@@ -25,8 +25,7 @@ pub struct TermPane {
     /// shown alongside the directory in the title. `None` when the shell is idle.
     /// Refreshed ~1×/s by `poll_panes` via [`crate::procname::ProcNames`].
     pub cmd: Option<String>,
-    /// When the current foreground command (`cmd`) started, used to gate the
-    /// "command finished" notification on a minimum runtime. `None` when idle.
+    /// When `cmd` started — gates "command finished" on a minimum runtime.
     pub cmd_since: Option<std::time::Instant>,
     /// The blocked-on-a-human detector for this pane: rendered-tail stability
     /// plus the last prompt-match verdict, stepped ~1×/s by
@@ -38,8 +37,7 @@ pub struct TermPane {
     /// (watching is reading), and is stamped whenever you type into it
     /// (answering is reading) or scroll back down to the bottom.
     pub read_at: usize,
-    /// Where each command's output started and ended in this pane's buffer
-    /// ([`crate::cmdspan`]) — what `/out` slices.
+    /// Each command's output span in the buffer ([`crate::cmdspan`]), for `/out`.
     pub spans: crate::cmdspan::Spans,
     /// Pictures this pane's program asked to show ([`crate::termimg`]).
     pub(crate) images: crate::termimg::TermImages,
@@ -165,19 +163,20 @@ impl Pane {
         }
     }
 
-    /// Render this pane to a flat list of `CellView`s. `focused` brightens the
-    /// terminal cursor (dim in unfocused panes).
+    /// This pane as text — what copy, search and previews read. `focused`
+    /// brightens the terminal cursor. A todo row keeps its `☐`/`☑` here; only
+    /// the drawn frame swaps them for painted boxes.
     pub fn cells(&self, focused: bool) -> Vec<CellView> {
-        self.art(focused, 2.0).0
+        match &self.content {
+            PaneContent::Todo(t) => t.cells(self.grid.cols, self.grid.rows),
+            _ => self.art(focused, 2.0).0,
+        }
     }
 
     /// This pane's cells *and* the sub-cell paint drawn under them (see
-    /// [`crew_render::Paint`] and [`crate::plot`]). `aspect` is the frame's
-    /// `cell_h / cell_w`; only content that draws uses it.
-    ///
-    /// One call, not two: a chat pane's footer ticks animated readouts while
-    /// it is built, so building it once for the glyphs and again for the
-    /// drawing would advance them twice a frame.
+    /// [`crew_render::Paint`] and [`crate::plot`]); `aspect` is `cell_h /
+    /// cell_w`. One call, not two: a chat pane's footer ticks animated
+    /// readouts while it is built, and two builds would tick them twice.
     pub fn art(&self, focused: bool, aspect: f32) -> (Vec<CellView>, Vec<crew_render::Paint>) {
         match &self.content {
             PaneContent::Chat(c) => crate::popupband::art(c, focused, self.grid, aspect),
@@ -198,6 +197,7 @@ impl Pane {
                 d.paint(self.grid.cols, self.grid.rows, aspect),
             ),
             PaneContent::View(v) => v.art(self.grid.cols, self.grid.rows, aspect),
+            PaneContent::Todo(t) => t.art(self.grid.cols, self.grid.rows, aspect),
             _ => (self.cells_only(focused), Vec::new()),
         }
     }

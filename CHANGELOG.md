@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.57
+
+**The todo list has real checkboxes.** Each row's done control was a small
+ring (●, filled, once done), a font character only a few pixels across in
+most fonts, so it wasn't clear where to click to finish a task. It's now a
+checkbox crew draws itself, about the height of the text (13 px at the
+default size): an open square to do, and a box filled with your accent
+colour with a bold ✔ once done. It's the same in every font, and the click
+target is unchanged (the three cells around it). Copying or searching the
+list, and a minimised pane's preview, show ☐ and ☑.
+
 ## 0.24.56
 
 **Smith's first word comes about a second sooner again.** Two causes,
