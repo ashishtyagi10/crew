@@ -122,7 +122,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
         ),
         mk(
             "edit",
-            "change PART of a file, leaving the rest alone: {\"path\": …, \"old\": \"the exact text to replace\", \"new\": …}, or several at once with {\"path\": …, \"edits\": [{\"old\": …, \"new\": …}, …]} \u{2014} prefer this to write_file on a file that already exists",
+            "change PART of a file, leaving the rest alone: {\"path\": …, \"old\": \"the exact text to replace\", \"new\": …}, or several at once with {\"path\": …, \"edits\": [{\"old\": …, \"new\": …}, …]} \u{2014} prefer this to write_file on a file that already exists; the result shows the edited lines, numbered",
             serde_json::json!({
                 "type": "object",
                 "properties": {

@@ -38,6 +38,15 @@ fn a_miss_that_starts_right_says_where_it_diverged() {
 }
 
 #[test]
+fn a_miss_copied_from_a_shown_block_names_the_line_numbers() {
+    // The edit result shows numbered rows; an `old` copied from them carries
+    // `2│ ` prefixes the file never had.
+    let err = replace(SRC, "2\u{2502}     let x = 1;", "x").unwrap_err();
+    assert!(err.contains("line numbers"), "{err}");
+    assert!(err.contains("leave them out"), "{err}");
+}
+
+#[test]
 fn a_miss_with_nothing_in_common_says_so_plainly() {
     let err = replace(SRC, "struct Nothing;", "x").unwrap_err();
     assert!(
@@ -95,7 +104,10 @@ fn an_edit_round_trips_through_a_real_file() {
     std::fs::write(&path, SRC).unwrap();
     let p = path.to_str().unwrap();
     let out = edit(p, "let x = 1;", "let x = 42;").unwrap();
-    assert_eq!(out, "edited main.rs at line 2 (1 line)");
+    assert_eq!(
+        out.lines().next(),
+        Some("edited main.rs at line 2 (1 line)")
+    );
     assert!(std::fs::read_to_string(&path)
         .unwrap()
         .contains("let x = 42;"));
@@ -137,7 +149,7 @@ fn several_edits_land_in_one_call() {
         &swaps(&[("let x = 1;", "let x = 2;"), ("fn main", "fn run")]),
     )
     .unwrap();
-    assert_eq!(out, "edited main.rs in 2 places");
+    assert_eq!(out.lines().next(), Some("edited main.rs in 2 places"));
     let after = std::fs::read_to_string(&path).unwrap();
     assert!(
         after.contains("let x = 2;") && after.contains("fn run("),
@@ -200,12 +212,16 @@ fn an_edit_whose_target_an_earlier_one_destroyed_says_so_plainly() {
 #[test]
 fn a_single_edit_still_reports_the_line_and_says_nothing_about_numbering() {
     // "edit 1 of 1" is noise, and the one-edit report is the one people read
-    // most: it must not have changed at all.
+    // most: its line must not have changed at all. The edited lines follow it.
     let path = file("single", SRC);
     let p = path.to_str().unwrap();
     assert_eq!(
         edit(p, "let x = 1;", "let x = 2;").unwrap(),
-        "edited main.rs at line 2 (1 line)"
+        "edited main.rs at line 2 (1 line)\n\
+         1\u{2502} fn main() {\n\
+         2\u{2502}     let x = 2;\n\
+         3\u{2502}     println!(\"{x}\");\n\
+         4\u{2502} }"
     );
     let err = edit(p, "nope", "y").unwrap_err();
     assert!(!err.contains("of 1"), "{err}");
