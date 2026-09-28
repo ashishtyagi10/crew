@@ -104,3 +104,20 @@ fn asking_about_everything_reports_the_store_rather_than_a_subject() {
         "{text}"
     );
 }
+
+#[test]
+fn the_readout_is_smiths_reply_not_his_status_voice() {
+    // The bare name is the chrome the pane mutes and folds to three lines;
+    // this is the answer to a question, so it goes out as a reply.
+    let session = Session::default();
+    let mut senders = Vec::new();
+    gate("what do you remember?", &session, &mut |ev| {
+        if let PluginEvent::Message { sender, .. } = ev {
+            senders.push(sender);
+        }
+        Ok(())
+    })
+    .unwrap()
+    .unwrap();
+    assert_eq!(senders, ["agent smith \u{2192} user"]);
+}

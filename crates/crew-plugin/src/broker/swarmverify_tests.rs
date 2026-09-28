@@ -2,6 +2,7 @@
 //! revision through the same planner, and every gate that stops the judge
 //! leaves the run exactly as it was.
 use super::*;
+use crate::broker::relay::SMITH_ANSWERS;
 use crate::broker::testenv;
 use crew_hive::agent::StubFactory;
 use crew_hive::{AgentKind, ModelTier, PlanError, Planner, TaskSpec};
@@ -76,12 +77,14 @@ fn run(cancelled: bool, verify: Verify<'_>) -> (Vec<PluginEvent>, Vec<String>) {
     (evs, goals)
 }
 
-/// The lead's lines, minus the plan line every pass opens with.
+/// The lead's lines — his chrome and his answers alike — minus the plan
+/// line every pass opens with.
 fn smith_lines(evs: &[PluginEvent]) -> Vec<String> {
     evs.iter()
         .filter_map(|e| match e {
             PluginEvent::Message { sender, text, .. }
-                if sender == SWARM_LEAD && !text.starts_with("planned ") =>
+                if (sender == SWARM_LEAD || sender == SMITH_ANSWERS)
+                    && !text.starts_with("planned ") =>
             {
                 Some(text.clone())
             }
@@ -275,15 +278,20 @@ fn the_judge_after_a_streamed_answer_streams_nothing() {
         },
     )
     .unwrap();
-    // The lead's live pieces and settled lines, in the order they went out.
+    // The lead's live pieces and settled lines, in the order they went out,
+    // each with the voice it went out in: the answer is his reply, the
+    // verdict his chrome.
     let lead: Vec<String> = evs
         .iter()
         .filter_map(|e| match e {
-            PluginEvent::Delta { agent, text, .. } if agent == SWARM_LEAD => {
+            PluginEvent::Delta { agent, text, .. } if agent == SMITH_ANSWERS => {
                 Some(format!("delta: {text}"))
             }
-            PluginEvent::Thought { agent, text } if agent == SWARM_LEAD => {
+            PluginEvent::Thought { agent, text } if agent == SMITH_ANSWERS => {
                 Some(format!("thought: {text}"))
+            }
+            PluginEvent::Message { sender, text, .. } if sender == SMITH_ANSWERS => {
+                Some(format!("answer: {text}"))
             }
             _ => smith_lines(std::slice::from_ref(e)).pop(),
         })
@@ -293,7 +301,7 @@ fn the_judge_after_a_streamed_answer_streams_nothing() {
         [
             "delta: Both ",
             "delta: agree.",
-            "Both agree.",
+            "answer: Both agree.",
             "verified \u{2014} fine"
         ]
     );

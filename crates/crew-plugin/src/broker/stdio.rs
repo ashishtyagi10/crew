@@ -26,9 +26,7 @@ type Out = Arc<Mutex<std::io::Stdout>>;
 fn emit(out: &Out, ev: &PluginEvent) -> anyhow::Result<()> {
     // Auto-save the conversation as it streams (see sessionlog) — every
     // emitter funnels through here, worker threads included.
-    if let PluginEvent::Message { sender, text, .. } = ev {
-        super::sessionlog::append(sender, text);
-    }
+    super::sessionlog::note(ev);
     let mut o = out.lock().unwrap_or_else(|e| e.into_inner());
     writeln!(o, "{}", serde_json::to_string(ev)?)?;
     o.flush()?;

@@ -8,6 +8,10 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.90
+
+**Agent smith's answers read as answers, not as his status lines.** Everything agent smith said went out under one name, and the pane draws that name as chrome: muted ink, a dotted gutter, folded to three lines, which is right for the routing line or "task #1: 1 file changed" and wrong for an answer. A swarm's closing answer, usually the longest thing a turn writes, arrived as three grey lines and a `… +N` to click, and so did the reply to "what do you remember about X". Now both go out as `agent smith → user`, the shape a relay reply has: a solid gutter, smith's name on a badge in the colour his pane's legend already wears, ink, never folded, and the streamed answer is drawn that way from its first word. Everything else he says stays chrome (the routing and plan lines, `/doctor`, `/diff`, the check verdict, a "could not combine" failure), and the commit draft, review, standup and plan were already their author's replies. The cost: the session log records the answer as `agent smith → user` rather than `answer`, and the memory readout now goes into it too, so a resumed session carries it.
+
 ## 0.24.89
 
 **A swarm that fans out after a first step runs its fan-out in parallel.**

@@ -116,14 +116,17 @@ fn the_answer_types_itself_out_as_the_leads_card_and_the_whole_of_it_settles_it(
         Chunk::Text("agree"),
         Chunk::Text(": X."),
     ];
+    // Every piece and the settled whole go out under the name smith ANSWERS
+    // under — a reply card from the first word; only his activity (the
+    // header's pulse) keeps the bare name his chrome speaks in.
     assert_eq!(
         closing(&*answer(pieces, false, Some(APART))),
         [
             "activity agent smith thinking",
-            "delta agent smith sub=false: Both ",
-            "delta agent smith sub=false: agree",
-            "delta agent smith sub=false: : X.",
-            "message agent smith: Both agree: X.",
+            "delta agent smith \u{2192} user sub=false: Both ",
+            "delta agent smith \u{2192} user sub=false: agree",
+            "delta agent smith \u{2192} user sub=false: : X.",
+            "message agent smith \u{2192} user: Both agree: X.",
             "activity agent smith idle",
         ]
     );
@@ -140,7 +143,7 @@ fn a_cut_answer_says_so_once_in_the_message_and_never_in_the_stream() {
     assert_eq!(
         settled,
         [&format!(
-            "message agent smith: The answer is forty\n\n{CUT_OFF}"
+            "message agent smith \u{2192} user: The answer is forty\n\n{CUT_OFF}"
         )]
     );
 }
@@ -159,10 +162,10 @@ fn reasoning_is_the_leads_thought_before_the_answer_never_answer_text() {
         evs,
         [
             "activity agent smith thinking",
-            "thought agent smith: weighing ",
-            "thought agent smith: both",
-            "delta agent smith sub=false: X.",
-            "message agent smith: X.",
+            "thought agent smith \u{2192} user: weighing ",
+            "thought agent smith \u{2192} user: both",
+            "delta agent smith \u{2192} user sub=false: X.",
+            "message agent smith \u{2192} user: X.",
             "activity agent smith idle",
         ]
     );
@@ -175,7 +178,7 @@ fn a_provider_that_cannot_stream_settles_the_pane_with_the_one_message() {
         closing(&*answer(pieces, false, None)),
         [
             "activity agent smith thinking",
-            "message agent smith: Both agree.",
+            "message agent smith \u{2192} user: Both agree.",
             "activity agent smith idle",
         ]
     );

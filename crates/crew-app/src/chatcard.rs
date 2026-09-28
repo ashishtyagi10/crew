@@ -16,6 +16,10 @@ mod fade_tests;
 #[path = "chatcardbadge_tests.rs"]
 mod badge_tests;
 
+#[cfg(test)]
+#[path = "chatsmith_tests.rs"]
+mod smith_tests;
+
 use crate::chatbody::{plain, CardCell, CardLine, Color};
 use crate::chatlayout::Message;
 
@@ -42,6 +46,10 @@ pub(crate) fn fade_t(ts: &str, now_ms: u64) -> f32 {
 /// Whether `sender` is the broker/system voice — the telemetry senders that
 /// share the dotted gutter, the muted ink and (see `chatfold`) the auto-fold.
 /// ONE predicate so the four surfaces can never drift on the sender set.
+///
+/// Asked of a card's WHOLE sender, never of one name on it: `agent smith →
+/// user` is smith answering (the broker's `relay::SMITH_ANSWERS`) and draws
+/// as any agent's reply; only his bare name is the chrome.
 pub(crate) fn is_system_voice(sender: &str) -> bool {
     matches!(sender, "agent smith" | "crew" | "system" | "broker")
 }
@@ -74,26 +82,18 @@ pub(crate) fn gutter_for(m: &Message) -> char {
     }
 }
 
-/// The colour a sender renders in: the broker/system voice is muted; every
-/// agent (and the user) gets its stable roster colour.
-pub(crate) fn sender_color(sender: &str) -> Color {
-    if is_system_voice(sender) {
+/// The colour one name on a card renders in: muted when the card is the
+/// broker/system voice or the machine talking on an agent's behalf, else the
+/// name's stable roster colour — `agent smith` included, when the card is his
+/// answer: the hue his pane legend and thought fold already wear.
+/// `text_muted` is reused rather than a new role invented: it is already
+/// contrast-checked against every page and wash in the theme system, and a
+/// fourth ink for tools would have to earn that all over again.
+pub(crate) fn card_color(m: &Message, part: &str) -> Color {
+    if is_system_voice(&m.sender) || is_tool_card(m) {
         crew_theme::theme().text_muted
     } else {
-        crate::chatroster::agent_color(sender)
-    }
-}
-
-/// …and the colour for one CARD, which is the sender's voice unless the card
-/// is the machine talking on their behalf. `text_muted` is reused rather than
-/// a new role invented: it is already contrast-checked against every page and
-/// wash in the theme system, and a fourth ink for tools would have to earn
-/// that all over again.
-pub(crate) fn card_color(m: &Message, sender: &str) -> Color {
-    if is_tool_card(m) {
-        crew_theme::theme().text_muted
-    } else {
-        sender_color(sender)
+        crate::chatroster::agent_color(part)
     }
 }
 
@@ -139,7 +139,7 @@ pub(crate) fn header_line(m: &Message, now_ms: u64, connector: Option<char>) -> 
 /// quiet muted name they have — a badge is for a voice, and those are the
 /// machine talking.
 pub(crate) fn is_badged(m: &Message, part: &str) -> bool {
-    part != "user" && !is_system_voice(part) && !is_tool_card(m)
+    part != "user" && !is_system_voice(&m.sender) && !is_tool_card(m)
 }
 
 /// One name of the header: a [`crate::segment`] badge on the agent's colour

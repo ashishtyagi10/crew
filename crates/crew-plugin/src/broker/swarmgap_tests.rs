@@ -6,6 +6,7 @@ use super::super::swarmstream::AnswerFn;
 use super::super::swarmverify::{Judge, Verify};
 use super::super::SWARM_LEAD;
 use super::*;
+use crate::broker::relay::SMITH_ANSWERS;
 use crate::broker::testenv;
 use crate::protocol::PluginEvent;
 use crew_hive::agent::FailingFactory;
@@ -100,12 +101,14 @@ fn run(
     (evs, reply)
 }
 
-/// The lead's lines, minus the plan line every pass opens with.
+/// The lead's lines — his chrome and his answers alike — minus the plan
+/// line every pass opens with.
 fn smith_lines(evs: &[PluginEvent]) -> Vec<String> {
     evs.iter()
         .filter_map(|e| match e {
             PluginEvent::Message { sender, text, .. }
-                if sender == SWARM_LEAD && !text.starts_with("planned ") =>
+                if (sender == SWARM_LEAD || sender == SMITH_ANSWERS)
+                    && !text.starts_with("planned ") =>
             {
                 Some(text.clone())
             }

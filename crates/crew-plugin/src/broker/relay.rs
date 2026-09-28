@@ -211,6 +211,21 @@ pub(crate) fn msg(sender: &str, text: impl Into<String>) -> PluginEvent {
     }
 }
 
+/// The name agent smith ANSWERS under: the `from → to` shape every relay
+/// reply has. Bare `agent smith` is the broker's chrome — the routing line,
+/// the plan line, a snapshot note — which the pane draws muted, behind a
+/// dotted gutter, and folds to three lines. An answer to the user's message
+/// sent under that name read as telemetry: the longest text of a swarm turn
+/// was the one thing on screen you had to click to read.
+pub(crate) const SMITH_ANSWERS: &str = "agent smith \u{2192} user";
+
+/// Agent smith's answer to what the user asked, as a reply card rather than
+/// a status line (see [`SMITH_ANSWERS`]). A stream of it goes out under the
+/// same name, so the live card is drawn as the reply it settles into.
+pub(crate) fn smith_answer(text: impl Into<String>) -> PluginEvent {
+    msg(SMITH_ANSWERS, text)
+}
+
 /// Parse a leading multi-target selector — `@planner+coder <task>` — into the
 /// canonical agent names and the task body. `None` unless the selector names
 /// two or more agents joined by `+` and every one of them is registered

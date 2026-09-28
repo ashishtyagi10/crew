@@ -1,4 +1,5 @@
 use super::*;
+use crate::broker::relay::SMITH_ANSWERS;
 use crate::broker::testenv;
 use crew_hive::agent::StubFactory;
 use crew_hive::{AgentKind, ModelTier, PlanError, Planner, TaskSpec};
@@ -70,18 +71,30 @@ fn run(specs: Vec<TaskSpec>, cancelled: bool, synth: Synth<'_>) -> Vec<PluginEve
     evs
 }
 
-/// The lead's lines, minus the plan line every run opens with.
+/// The lead's lines — his chrome and his answers alike — minus the plan line
+/// every run opens with.
 fn smith_lines(evs: &[PluginEvent]) -> Vec<String> {
     evs.iter()
         .filter_map(|e| match e {
             PluginEvent::Message { sender, text, .. }
-                if sender == SWARM_LEAD && !text.starts_with("planned ") =>
+                if (sender == SWARM_LEAD || sender == SMITH_ANSWERS)
+                    && !text.starts_with("planned ") =>
             {
                 Some(text.clone())
             }
             _ => None,
         })
         .collect()
+}
+
+/// The name the first message starting with `head` went out under.
+fn said_as<'a>(evs: &'a [PluginEvent], head: &str) -> Option<&'a str> {
+    evs.iter().find_map(|e| match e {
+        PluginEvent::Message { sender, text, .. } if text.starts_with(head) => {
+            Some(sender.as_str())
+        }
+        _ => None,
+    })
 }
 
 /// A closing call that keeps every brief it was handed and answers `reply`.
@@ -104,6 +117,10 @@ fn a_two_sink_run_ends_with_one_answer_from_the_lead_after_the_workers() {
     let evs = run(diamond(), false, Some(&*call));
 
     assert_eq!(smith_lines(&evs), vec!["Both agree: X.".to_string()]);
+    // The answer is smith REPLYING — the pane's reply card, never folded —
+    // while the plan line stays in the chrome voice the routing line uses.
+    assert_eq!(said_as(&evs, "Both agree"), Some(SMITH_ANSWERS));
+    assert_eq!(said_as(&evs, "planned "), Some(SWARM_LEAD));
     let answer = evs
         .iter()
         .position(|e| matches!(e, PluginEvent::Message { text, .. } if text == "Both agree: X."))
@@ -151,10 +168,18 @@ fn a_two_sink_run_ends_with_one_answer_from_the_lead_after_the_workers() {
 fn the_answer_goes_to_the_session_log_like_a_workers_reply() {
     let _env = testenv::mock("unused");
     let (_, call) = recording(Ok("Both agree: X."));
-    run(diamond(), false, Some(&*call));
+    // Every event through the funnel `stdio::emit` puts it through.
+    for ev in run(diamond(), false, Some(&*call)) {
+        crate::broker::sessionlog::note(&ev);
+    }
     let dir = std::env::var("CREW_PROJECT_DIR").unwrap();
     let log = std::fs::read_to_string(format!("{dir}/.crew/session-live.md")).unwrap();
-    assert!(log.contains("answer: Both agree: X."), "{log}");
+    assert!(
+        log.contains("agent smith \u{2192} user: Both agree: X."),
+        "{log}"
+    );
+    assert_eq!(log.matches("Both agree").count(), 1, "logged once: {log}");
+    assert!(!log.contains("planned "), "the chrome is not: {log}");
 }
 
 #[test]
@@ -202,6 +227,8 @@ fn a_failed_closing_call_is_one_quiet_line_and_the_run_still_reads_clean() {
         smith_lines(&evs),
         vec!["could not combine the workers' answers: boom".to_string()]
     );
+    // No answer was written, so this is a status line, not a reply.
+    assert_eq!(said_as(&evs, "could not combine"), Some(SWARM_LEAD));
     assert!(evs.iter().any(|e| matches!(e, PluginEvent::Stats { .. })));
 }
 
