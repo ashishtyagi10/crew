@@ -18,6 +18,7 @@
 mod around;
 pub mod budget;
 mod catalog;
+pub mod exchanges;
 mod jsondepth;
 pub mod near;
 mod parse;

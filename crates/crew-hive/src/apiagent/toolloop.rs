@@ -8,6 +8,8 @@
 #[path = "toolloop_tests.rs"]
 mod tests;
 
+use crate::tools::exchanges::{Exchange, Exchanges};
+
 /// Cap on one tool result fed back into the next prompt, in chars.
 ///
 /// Mirrors the relay's 6k. A tool that returns a 200 KB JSON page — an API
@@ -35,22 +37,19 @@ pub(super) fn clip(s: &str, max: usize) -> String {
 /// One round as the next prompt shows it to the agent: what it wrote with
 /// the call (`said`, the reply with the call cut out; see
 /// [`crate::tools::said`]), then the CALLED/RESULT pair.
-pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> String {
-    format!(
-        "{}CALLED {label} {args}\nRESULT:\n{}",
-        crate::tools::said(said),
-        clip(result, RESULT_CAP)
-    )
+pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> Exchange {
+    Exchange::new(said, label, args, clip(result, RESULT_CAP))
 }
 
 /// The prompt for the round after a tool ran: the original task (tools hint
-/// included, so a second call is still spellable) plus every exchange so far.
+/// included, so a second call is still spellable) plus every exchange so far,
+/// the older ones with their results shortened ([`Exchanges::render`]).
 ///
 /// `rounds_left` is stated to the agent rather than merely enforced. A budget
 /// an agent cannot see is one it plans straight past, and then the task ends
 /// mid-sequence with a tool call nobody ran — the relay learned this the
 /// expensive way and the wording is carried over deliberately.
-pub(super) fn follow_up(base: &str, exchanges: &[String], rounds_left: u32) -> String {
+pub(super) fn follow_up(base: &str, exchanges: &Exchanges, rounds_left: u32) -> String {
     let budget = if rounds_left == 0 {
         "This was your LAST tool call for this task: answer with what you have now.".to_string()
     } else {
@@ -59,7 +58,7 @@ pub(super) fn follow_up(base: &str, exchanges: &[String], rounds_left: u32) -> S
     format!(
         "{base}\n\nTOOL EXCHANGES SO FAR:\n{}\n\n{budget} Continue the task using these \
          results. You may call another tool, or give your final answer.",
-        exchanges.join("\n\n")
+        exchanges.render()
     )
 }
 

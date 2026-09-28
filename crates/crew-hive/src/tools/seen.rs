@@ -4,10 +4,12 @@
 //! over, and specialists re-ran the same grep. Nothing noticed. Every repeat
 //! ran, its whole result (up to 6,000 chars) went into the next prompt again,
 //! and a round of the budget was gone. A read made twice with nothing written
-//! in between cannot return anything new, and every loop already keeps the
-//! first result in front of the model (the relay and the text path rebuild the
-//! prompt from every exchange; the native path resends every turn), so the
-//! repeat is answered with a pointer to it instead.
+//! in between cannot return anything new, and the loops keep the first result
+//! in front of the model, so the repeat is answered with a pointer to it
+//! instead. The native path resends every turn whole, so its pointer is always
+//! true; the relay and the text path shorten all but their last two results
+//! (`exchanges`), and point only while the result is still shown whole
+//! (`Exchanges::repeat`).
 //!
 //! One type, used by all three loops, so the rule (what counts as the same
 //! call, and what makes an earlier one stale) exists once.
@@ -19,21 +21,25 @@ use serde_json::Value;
 use super::{ToolCall, Tools};
 
 /// Reads that succeeded since the last write, by [`key`], with the round each
-/// was first made in. One per turn (relay) or per task (swarm worker): a new
+/// was last made in. One per turn (relay) or per task (swarm worker): a new
 /// turn may follow an edit made anywhere, so nothing carries over.
 #[derive(Debug, Default)]
 pub struct Seen {
-    first: HashMap<String, u32>,
+    rounds: HashMap<String, u32>,
 }
 
 impl Seen {
-    /// The round `call` was first made in, when it is a repeat that need not
+    /// The round `call` was last made in, when it is a repeat that need not
     /// run: the same read, with nothing written since.
     pub fn check(&self, call: &ToolCall) -> Option<u32> {
-        self.first.get(&key(call)).copied()
+        self.rounds.get(&key(call)).copied()
     }
 
     /// Note a call that RAN in `round` (counted from 1).
+    ///
+    /// The LATEST round it ran in is the one kept. A read runs a second time
+    /// only when its first result has been shortened out of the prompt
+    /// (`Exchanges::repeat`), and the new round is where it is whole.
     ///
     /// Only a read the surface vouches for is remembered
     /// ([`Tools::repeatable`]). Anything else, a write, a shell command, an MCP
@@ -44,9 +50,9 @@ impl Seen {
     /// trying again after a failure is something a model is right to do.
     pub fn ran(&mut self, tools: &dyn Tools, call: &ToolCall, round: u32, ok: bool) {
         if !tools.repeatable(&call.server, &call.tool) {
-            self.first.clear();
+            self.rounds.clear();
         } else if ok {
-            self.first.entry(key(call)).or_insert(round);
+            self.rounds.insert(key(call), round);
         }
     }
 

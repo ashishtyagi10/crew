@@ -1,5 +1,14 @@
 use super::*;
 
+/// A log of `(label, result)` exchanges with no message, as the loop keeps it.
+fn log(rounds: &[(&str, &str)]) -> Exchanges {
+    let mut log = Exchanges::default();
+    for (label, result) in rounds {
+        log.push(exchange("", label, "{}", result));
+    }
+    log
+}
+
 #[test]
 fn clip_keeps_the_head_and_marks_the_cut() {
     let s = "abcdefghij";
@@ -17,7 +26,7 @@ fn clip_counts_chars_not_bytes() {
 #[test]
 fn exchange_caps_a_huge_result() {
     let huge = "x".repeat(RESULT_CAP + 500);
-    let e = exchange("", "fs:read", "{}", &huge);
+    let e = exchange("", "fs:read", "{}", &huge).to_string();
     assert!(e.starts_with("CALLED fs:read {}\nRESULT:\n"));
     assert!(e.contains("[clipped 500 chars]"));
     // The whole exchange must stay near the cap, not near the input size.
@@ -28,10 +37,7 @@ fn exchange_caps_a_huge_result() {
 fn follow_up_restates_the_base_prompt_and_every_exchange() {
     let p = follow_up(
         "TASK\n\nTOOLS: @tool sys:run",
-        &[
-            "CALLED a:b {}\nRESULT:\nfirst".into(),
-            "CALLED c:d {}\nRESULT:\nsecond".into(),
-        ],
+        &log(&[("a:b", "first"), ("c:d", "second")]),
         2,
     );
     // The tools hint must survive into the follow-up, or a second call is
@@ -44,7 +50,7 @@ fn follow_up_restates_the_base_prompt_and_every_exchange() {
 
 #[test]
 fn follow_up_tells_the_agent_when_it_is_out_of_calls() {
-    let p = follow_up("TASK", &["CALLED a:b {}\nRESULT:\nr".into()], 0);
+    let p = follow_up("TASK", &log(&[("a:b", "r")]), 0);
     assert!(p.contains("LAST tool call"));
     assert!(!p.contains("more tool call(s)"));
 }
@@ -84,7 +90,7 @@ fn budget_spent_ignores_trailing_blank_lines_when_finding_the_directive() {
 fn exchange_carries_what_the_agent_wrote_with_the_call() {
     let e = exchange("The bug is in clip().", "sys:read_file", "{}", "fn clip");
     assert_eq!(
-        e,
+        e.to_string(),
         "YOUR MESSAGE:\nThe bug is in clip().\nCALLED sys:read_file {}\nRESULT:\nfn clip"
     );
 }

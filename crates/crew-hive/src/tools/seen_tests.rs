@@ -35,9 +35,10 @@ fn a_read_that_succeeded_is_a_repeat_the_second_time() {
     );
     seen.ran(&Reads, &read, 2, true);
     assert_eq!(seen.check(&read), Some(2));
-    // The FIRST round is the one whose result stands; a later one does not move it.
+    // Run again (its first result was shortened out of the prompt), the NEW
+    // round is the one pointed at: that is where the result is whole.
     seen.ran(&Reads, &read, 5, true);
-    assert_eq!(seen.check(&read), Some(2));
+    assert_eq!(seen.check(&read), Some(5));
 }
 
 #[test]
