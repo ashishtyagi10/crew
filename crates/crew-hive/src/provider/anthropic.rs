@@ -181,6 +181,7 @@ impl AnthropicProvider {
                 id: b.id.clone(),
                 name: b.name.clone(),
                 input: b.input.clone().unwrap_or_else(|| serde_json::json!({})),
+                bad_args: None,
             })
             .collect();
         let truncated = super::stopreason::anthropic(r.stop_reason.as_deref());

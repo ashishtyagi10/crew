@@ -854,6 +854,7 @@ impl crew_hive::Provider for NativeProvider {
                         id: "c1".into(),
                         name: "sys__run".into(),
                         input: serde_json::json!({"cmd": "echo native-path-works"}),
+                        bad_args: None,
                     }]
                 },
                 thought: String::new(),

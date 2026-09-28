@@ -10,6 +10,8 @@
 #[path = "native_tests.rs"]
 mod tests;
 
+#[path = "badargs.rs"]
+mod badargs;
 #[path = "batch.rs"]
 mod batch;
 
@@ -167,7 +169,7 @@ pub(super) async fn run(
             .into();
         }
 
-        let results = batch::run(&ctx, &tools, &catalog, &mut seen, &completion.calls, round).await;
+        let results = batch::run(&ctx, &tools, &catalog, &mut seen, &completion, round).await;
 
         turns.push(Turn::Assistant {
             text: completion.text,

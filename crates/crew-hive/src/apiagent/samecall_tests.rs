@@ -73,6 +73,7 @@ fn calling(name: &str, input: serde_json::Value) -> Completion {
             id: format!("call-{name}"),
             name: name.into(),
             input,
+            bad_args: None,
         }],
         ..Default::default()
     }

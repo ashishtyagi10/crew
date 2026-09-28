@@ -6,7 +6,7 @@ use futures::StreamExt;
 use serde::Deserialize;
 
 use super::retry::{again, retry_after};
-use super::ssecalls::{frags, parse_args, CallAsm, Frag};
+use super::ssecalls::{frags, CallAsm, Frag};
 use super::status::settle;
 use super::thinktags::{Piece, ThinkTags};
 use super::utf8carry::Utf8Carry;
@@ -550,11 +550,11 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
                 .iter()
                 .filter_map(|tc| {
                     let f = tc.function.as_ref()?;
-                    Some(super::ToolInvocation {
-                        id: tc.id.clone(),
-                        name: f.name.clone(),
-                        input: parse_args(&f.arguments),
-                    })
+                    Some(super::toolargs::invocation(
+                        tc.id.clone(),
+                        f.name.clone(),
+                        &f.arguments,
+                    ))
                 })
                 .collect()
         })

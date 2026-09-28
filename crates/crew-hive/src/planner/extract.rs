@@ -48,7 +48,8 @@ pub(crate) fn array_text(reply: &str) -> Option<&str> {
 /// `json` with every trailing comma dropped — a `,` that, outside a string,
 /// has nothing but whitespace between it and a `]` or `}`. That is the one
 /// JSON slip models make that is unambiguous to undo; anything else stays
-/// the parser's verdict. Valid JSON passes through byte-for-byte.
+/// the parser's verdict. Valid JSON passes through byte-for-byte. A tool
+/// call's arguments get the same pass (`provider::toolargs`).
 pub(crate) fn without_trailing_commas(json: &str) -> String {
     let mut out = String::with_capacity(json.len());
     let mut in_str = false;

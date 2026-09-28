@@ -47,13 +47,6 @@ pub(crate) fn frags(delta: &serde_json::Value) -> Vec<Frag> {
         .collect()
 }
 
-/// Arguments as the wire sends them — a JSON *string*. An unparseable or
-/// empty one becomes `{}` rather than failing the reply: the tool rejects it
-/// with a message the agent can act on, which beats losing the completion.
-pub(crate) fn parse_args(s: &str) -> serde_json::Value {
-    serde_json::from_str(s).unwrap_or_else(|_| serde_json::json!({}))
-}
-
 /// The calls of one reply, accumulating across frames.
 #[derive(Default)]
 pub(crate) struct CallAsm {
@@ -88,11 +81,7 @@ impl CallAsm {
         self.calls
             .into_iter()
             .filter(|c| !c.2.is_empty())
-            .map(|(_, id, name, args)| ToolInvocation {
-                id,
-                name,
-                input: parse_args(&args),
-            })
+            .map(|(_, id, name, args)| super::toolargs::invocation(id, name, &args))
             .collect()
     }
 }
