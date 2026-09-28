@@ -17,7 +17,9 @@
 
 pub mod budget;
 mod catalog;
+mod jsondepth;
 pub mod near;
+mod parse;
 
 #[cfg(test)]
 mod tests;
@@ -50,6 +52,8 @@ impl ToolSpec {
 }
 
 pub use catalog::ToolCatalog;
+pub use jsondepth::JsonDepth;
+pub use parse::parse_tool_call;
 
 /// Executes tool calls on behalf of an agent.
 ///
@@ -164,26 +168,6 @@ impl ToolCall {
     pub fn label(&self) -> String {
         format!("{}:{}", self.server, self.tool)
     }
-}
-
-/// Read a tool directive off the reply's last non-empty line, tolerating the
-/// markdown wrappers models add unbidden (`**@tool …**`, a lone backtick).
-/// `None` = the agent answered instead of calling something.
-pub fn parse_tool_call(reply: &str) -> Option<ToolCall> {
-    let last = reply.lines().rev().find(|l| !l.trim().is_empty())?.trim();
-    let last = last.trim_start_matches(['*', '`', '_', ' ']);
-    if !last.to_ascii_lowercase().starts_with("@tool ") {
-        return None;
-    }
-    let rest = last[6..].trim();
-    let (target, args) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
-    let target = target.trim_matches(['`', '*', '_']);
-    let (server, tool) = target.split_once(':')?;
-    (!server.is_empty() && !tool.is_empty()).then(|| ToolCall {
-        server: server.to_string(),
-        tool: tool.to_string(),
-        args: args.trim().trim_matches('`').to_string(),
-    })
 }
 
 /// The task text an agent sees: the body, plus the tools section when there
