@@ -114,3 +114,23 @@ fn the_teens_get_their_suffix_right() {
         ["2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd"]
     );
 }
+
+/// Two different build failures behind the same progress lines are two
+/// failures, not one seen twice; the same error moved down the file is one.
+#[test]
+fn a_build_failure_is_known_by_its_error_not_its_progress() {
+    let progress: String = (0..40)
+        .map(|i| format!("   Compiling crate{i} v0.1.0\n"))
+        .collect();
+    let build = |err: &str, at: &str| {
+        format!("exit 101\n{progress}{err}\n  --> {at}\nerror: could not compile `x`\n")
+    };
+    let e0308 = "error[E0308]: mismatched types";
+    let e0425 = "error[E0425]: cannot find value `x`";
+    let a = signature(&digest(&build(e0308, "src/a.rs:12:5")));
+    let b = signature(&digest(&build(e0425, "src/a.rs:12:5")));
+    let moved = signature(&digest(&build(e0308, "src/a.rs:481:9")));
+    assert_ne!(a, b, "two errors read as one: {a}");
+    assert_eq!(a, moved, "the same error, moved, read as new");
+    assert!(!a.contains("compiling"), "progress in the digest: {a}");
+}

@@ -37,14 +37,22 @@ pub(crate) struct Prior {
     pub files: Vec<String>,
 }
 
-/// The failure boiled down to what is worth storing and comparing: the first
-/// real lines of the output, with the shell's own `exit N` line dropped —
-/// that line carries the exit code and nothing about the cause.
+/// The failure boiled down to what is worth storing and comparing: its first
+/// failure line on, as `failexcerpt` finds it (progress lines skipped),
+/// with the shell's own `exit N` line dropped — that line carries the exit
+/// code and nothing about the cause. It used to be the output's first two
+/// lines, and a `cargo build` opens with `Compiling …` whatever broke, so
+/// every build failure digested alike and "seen before" said a new error
+/// had happened three times already.
 pub(crate) fn digest(output: &str) -> String {
-    output
-        .lines()
-        .map(str::trim)
-        .filter(|l| !l.is_empty() && !l.starts_with("exit "))
+    use super::super::failexcerpt::{picks, split, useful};
+    let (_, lines) = split(output);
+    let useful = useful(&lines);
+    let from = picks(&lines, &useful).first().copied().unwrap_or(0);
+    useful[from.min(useful.len())..]
+        .iter()
+        .map(|&i| lines[i].trim())
+        .filter(|l| !l.starts_with("exit "))
         .take(DIGEST_LINES)
         .collect::<Vec<_>>()
         .join(" ")
