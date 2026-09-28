@@ -85,10 +85,12 @@ fn smith_lines(evs: &[PluginEvent]) -> Vec<String> {
 }
 
 /// A closing call that keeps every brief it was handed and answers `reply`.
-fn recording(reply: Result<&'static str, &'static str>) -> (Arc<Mutex<Vec<String>>>, Box<SynthFn>) {
+fn recording(
+    reply: Result<&'static str, &'static str>,
+) -> (Arc<Mutex<Vec<String>>>, Box<AnswerFn>) {
     let seen = Arc::new(Mutex::new(Vec::new()));
     let log = Arc::clone(&seen);
-    let call = move |p: &str| {
+    let call = move |p: &str, _: &mut dyn FnMut(crew_hive::Chunk<'_>)| {
         log.lock().unwrap().push(p.to_string());
         reply.map(str::to_string).map_err(str::to_string)
     };

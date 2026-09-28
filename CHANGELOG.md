@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.86
+
+**A swarm's closing answer types itself out as it is written.** Every other reply in the pane streams, but agent smith's closing answer after a swarm, usually the longest thing the turn writes, was one blocking call: the workers' rows settled, smith sat "thinking" through the whole generation (several seconds for a 2,048-token answer on qwen-max), and then all of it landed at once. Now it is the provider's streaming call, and the answer types into smith's card a few words at a time, paced like every other stream (one update per 80 ms at most), and the finished answer settles that card as it always did, `… (cut off at the token limit)` included when the ceiling cut it; a model that shows its reasoning shows it in smith's thinking fold above the answer, never in it. A provider that cannot stream sends the one message it always sent, and the judge's verdict still lands whole, since it is one line of chrome. The cost: the answer is held to the same 30 s bound as before, so one still being written at 30 s is replaced by the "could not combine" line, now after you have watched most of it arrive.
+
+It is also given a relay agent's time: the blocking call had 30 s for the
+whole answer, and 2,048 tokens on qwen-max take longer than that, so a long
+answer used to fail as "could not combine"; the streamed one has the 3-minute
+call bound (`CREW_BROKER_TIMEOUT_MS`), and a silent stream still ends at the
+provider's read timeout.
+
 ## 0.24.85
 
 **An edit answers with the lines it left, numbered.** `sys:edit` said where and how much (`edited main.rs at line 41 (1 line → 2, +1)`) and nothing about what the file now said there, so a doubled brace, a line joined to its neighbour or an indent one level off went unseen unless the agent spent another round on `sys:read_file`, which it mostly did not. Now that line is followed by the edited lines as they stand, two lines either side, numbered the way `sys:grep` and `sys:read_file {"line": N}` number them (`41│ …`, CRLF files alike); a batch shows each place in file order, places a few lines apart run together as one, and whole lines taken out leave a `┄ 2 lines removed` marker where they were. Past 40 rows or about 2,000 characters it shows the first places that fit and ends on `… (+162 more lines edited; sys:read_file with "line": 48 shows them)`. The cost: every edit result is a few hundred characters longer, in the agent's next prompt and in the tool card (up to about 2,000 for a big paste), a line over 200 characters is shown cut, and only models on native tool-use are told so in the tool's description, since the one-line text-mode hint already ends before it.
