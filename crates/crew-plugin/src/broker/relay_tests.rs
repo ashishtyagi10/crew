@@ -192,6 +192,7 @@ fn relay_streams_live_reply_stats_with_real_usage() {
         &broker,
         "planner",
         "task",
+        "task",
         "t1",
         &crate::broker::tick::noop_tick_emit(),
         &mut |ev| {
@@ -250,6 +251,7 @@ fn relay_emits_rate_limited_stats_ticks_between_activity_and_stats() {
     relay_turn(
         &broker,
         "planner",
+        "task",
         "task",
         "t1",
         &tick_emit,
@@ -317,6 +319,7 @@ fn relay_hop_streams_delta_text_mid_hop() {
     relay_turn(
         &broker,
         "planner",
+        "task",
         "task",
         "t1",
         &tick_emit,

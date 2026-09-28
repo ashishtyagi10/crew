@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.51
+
+**Smith starts answering 1–2 seconds sooner.** Before the answer started,
+every message waited on three model calls in a row: one to decide how to
+handle the message, then two to choose skills. The skill check ran twice:
+once on your message, then again on the same message with your earlier
+turns wrapped around it, which counted as a new question. Both usually
+answered "none". The routing call now chooses skills in the same reply, and
+every later step reuses that choice, so one call comes before the answer
+instead of three. Loops and goals also stop re-asking every round. If the
+routing call doesn't pick, skills are chosen the old way.
+
 ## 0.24.50
 
 **Smith reads your code before answering questions about it.** Asked "what

@@ -50,6 +50,9 @@ pub(crate) struct World {
     /// opposite. The router could not tell the two apart — the recall block
     /// rides in front of the WORKERS, and the classifier ran before it.
     pub(crate) known: Option<(usize, Vec<String>)>,
+    /// `(name, one-liner)` per skill when there is a choice to make, so the
+    /// routing call can pick the playbooks too (see `skillhint`).
+    pub(crate) skills: Vec<(String, String)>,
 }
 
 impl World {
@@ -75,6 +78,7 @@ impl World {
                 .map(|t| t.capabilities())
                 .unwrap_or_default(),
             recent: crate::broker::thread::lock(&session.thread).recent(),
+            skills: super::skillhint::rows(),
         }
     }
 
@@ -111,6 +115,7 @@ impl World {
                 ),
             });
         }
+        lines.extend(super::skillhint::block(&self.skills));
         if lines.is_empty() {
             return String::new();
         }

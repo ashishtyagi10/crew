@@ -36,6 +36,10 @@ pub(crate) struct Hints {
     /// only ever make a run CHEAPER, never dearer, and `CREW_SWARM_TIER`
     /// still outranks it downward (`swarmtier::effective`).
     pub(crate) tier: Option<ModelTier>,
+    /// The playbooks the router chose (`Some(empty)` = none fits); `None`
+    /// leaves the choice to the skill decider. Read against the skill roster,
+    /// so it is filled by the router (`skillhint::parse`), not by [`Self::parse`].
+    pub(crate) skills: Option<Vec<String>>,
 }
 
 impl Hints {
@@ -73,6 +77,12 @@ impl Hints {
             tier: self
                 .tier
                 .filter(|_| matches!(shape, Shape::Swarm | Shape::Plan | Shape::Goal)),
+            skills: self.skills.filter(|_| {
+                matches!(
+                    shape,
+                    Shape::Reply | Shape::Swarm | Shape::Loop | Shape::Goal
+                )
+            }),
         }
     }
 

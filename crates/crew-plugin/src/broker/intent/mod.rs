@@ -27,6 +27,7 @@ pub(crate) mod decision;
 mod fanout;
 pub(crate) mod gate;
 mod hints;
+mod skillhint;
 mod world;
 
 pub(crate) use classify::{live_call, live_classifier};
@@ -109,6 +110,9 @@ pub(crate) fn route_with(
         true => decision::forced(Shape::Plan, super::planfirst::WHY, emit)?,
         false => decision::announce(task, &world, classifier, emit)?,
     };
+    if let Some(names) = &d.hints.skills {
+        skillhint::seed(task, names);
+    }
     context::announce(d.shape, task, session, &world, emit)?;
     dispatch(d.shape, &d.hints, task, session, tick_emit, emit)
 }

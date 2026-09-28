@@ -32,8 +32,15 @@ pub(crate) struct Framed {
 /// skills exist, a one-line roster rides along so the model knows what it
 /// could name. No skills → the task passes through byte-identical.
 pub(crate) fn with_skills(task: &str) -> Framed {
+    with_skills_on(task, task)
+}
+
+/// [`with_skills`] with the choice made on `request` and the frame laid
+/// around `task` — the same text for a bare task, the user's own words for
+/// one that arrives wrapped (see `relay::relay_turn`).
+pub(crate) fn with_skills_on(request: &str, task: &str) -> Framed {
     let skills = super::skills::load();
-    let pick = super::skillchoice::decider().pick(task, &skills);
+    let pick = super::skillchoice::decider().pick(request, &skills);
     let applied = pick
         .skills
         .iter()

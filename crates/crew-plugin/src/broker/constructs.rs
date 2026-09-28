@@ -76,6 +76,7 @@ pub(crate) fn goal_cmd_with(
             &broker,
             &start,
             &body,
+            &goal,
             &format!("goal-{round}"),
             tick_emit,
             emit,

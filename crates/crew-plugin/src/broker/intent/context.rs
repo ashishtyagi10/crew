@@ -149,20 +149,17 @@ fn plural(n: usize, one: &str) -> String {
 }
 
 /// The playbooks `shape`'s arm will frame for `task`, decided now so the
-/// line can name them. It is the arm's own call on the arm's own text, so
-/// the decider's memo hands the arm the answer and the model is asked once —
-/// which is why only the arms that frame the RAW task are asked here: the
-/// swarm, a loop's or goal's first round, and a reply on an empty thread
-/// (the relay wraps the thread's turns around the task first, and a
-/// different text is a different question). The fan and the plan frame no
-/// skills; the git shapes carry no task.
-pub(crate) fn skills_for(shape: Shape, task: &str, session: &Session) -> Vec<String> {
-    let raw = match shape {
-        Shape::Swarm | Shape::Loop | Shape::Goal => true,
-        Shape::Reply => crate::broker::thread::lock(&session.thread).len() == 0,
-        _ => false,
-    };
-    if !raw {
+/// line can name them. It is the arm's own pick on the arm's own text — the
+/// swarm, the relay and every loop or goal round all choose on the user's
+/// request, however the body is wrapped — so the decider's memo (seeded by
+/// the routing call when it chose) hands the arm the answer and the model is
+/// asked at most once. The fan and the plan frame no skills; the git shapes
+/// carry no task.
+pub(crate) fn skills_for(shape: Shape, task: &str) -> Vec<String> {
+    if !matches!(
+        shape,
+        Shape::Swarm | Shape::Loop | Shape::Goal | Shape::Reply
+    ) {
         return Vec::new();
     }
     let skills = crate::broker::skills::load();
@@ -183,7 +180,7 @@ pub(crate) fn announce(
     world: &World,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    let skills = skills_for(shape, task, session);
+    let skills = skills_for(shape, task);
     match ContextLine::gather(task, session, world, &skills) {
         Some(line) => emit(msg(SMITH, line)),
         None => Ok(()),

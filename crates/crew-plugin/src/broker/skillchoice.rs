@@ -95,6 +95,19 @@ impl Decider {
         }
     }
 
+    /// Remember a choice made elsewhere — the routing call's `SKILLS:` line —
+    /// as the model's answer for `task`, so the arms' picks are memo hits.
+    pub(crate) fn seed(&self, task: &str, skills: &[Skill], names: &[String]) {
+        if skills.len() < AUTO_MAX {
+            return;
+        }
+        let known = by_name(names, skills)
+            .iter()
+            .map(|s| s.name.clone())
+            .collect();
+        self.memo.put(memo_key(task, skills), (known, true));
+    }
+
     /// The skills `task` pulls in: the memo's answer, else the model's, else
     /// the name match's. Under two skills, or with the step off, no call.
     pub(crate) fn pick<'s>(&self, task: &str, skills: &'s [Skill]) -> Pick<'s> {

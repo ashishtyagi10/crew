@@ -18,19 +18,25 @@ fn now_ts() -> String {
 /// Drive one turn of the broker over `emit`, timing each agent call. Returns
 /// the turn's final answer (the `@done` body) when the thread finished cleanly
 /// — the input to the next round of `/loop` and `/goal`.
+///
+/// `skills_on` is the text the playbook choice is made on: the user's own
+/// request, not `body` — a reply's body arrives wrapped in recalled turns
+/// and a round's in the previous answer, and each wrap made the same request
+/// a new question for the decider, one model call per wrap.
 pub(crate) fn relay_turn(
     broker: &Broker,
     start: &str,
     body: &str,
+    skills_on: &str,
     tid: &str,
     tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<Option<String>> {
-    // Skills weave in first (matched on the RAW task, before any wrapper
+    // Skills weave in first (chosen on the RAW request, before any wrapper
     // could false-match a name), then standing memory rides on top. Each
     // applied playbook is announced under the agent being dialled — the one
     // whose reply the pane draws the skill line above.
-    let framed = super::skillframe::with_skills(body);
+    let framed = super::skillframe::with_skills_on(skills_on, body);
     for ev in super::skillframe::loaded_events(&framed.applied, start) {
         emit(ev)?;
     }

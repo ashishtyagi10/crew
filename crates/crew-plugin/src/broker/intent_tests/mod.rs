@@ -6,7 +6,8 @@
 //! sizing lines reach the arms and the constants are backstops; `context`
 //! proves the run says what it brings, after the routing line; `verify`
 //! proves the `VERIFY:` line reaches the swarm and no other shape; `world`
-//! proves the classifier is shown the room it routes in. Shared fixtures
+//! proves the classifier is shown the room it routes in; `skillhint` proves
+//! the routing call chooses the playbooks, so no arm asks again. Shared fixtures
 //! live here.
 use super::decision::{decide_in, parse_decision_on, Decision, Routing};
 use super::*;
@@ -19,6 +20,7 @@ mod grammar;
 mod hints;
 mod plangate;
 mod routing;
+mod skillhint;
 mod verify;
 mod world;
 
