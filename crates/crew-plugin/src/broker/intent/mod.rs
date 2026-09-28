@@ -106,14 +106,19 @@ pub(crate) fn route_with(
     let world = World::gather_about(session, task);
     // Plan-first skips the classifier entirely: the shape is already decided,
     // and asking a model to choose one it cannot have is a call for nothing.
-    let d = match super::planfirst::on(session) {
-        true => decision::forced(Shape::Plan, super::planfirst::WHY, emit)?,
-        false => decision::announce(task, &world, classifier, emit)?,
+    let routing = match super::planfirst::on(session) {
+        true => decision::forced(Shape::Plan, super::planfirst::WHY),
+        false => decision::classify_live(task, &world, classifier, emit)?,
     };
+    let d = routing.decision();
     if let Some(names) = &d.hints.skills {
         skillhint::seed(task, names);
     }
-    context::announce(d.shape, task, session, &world, emit)?;
+    decision::say(
+        &routing,
+        context::words(d.shape, task, session, &world),
+        emit,
+    )?;
     dispatch(d.shape, &d.hints, task, session, tick_emit, emit)
 }
 

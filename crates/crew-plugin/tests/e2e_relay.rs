@@ -29,13 +29,15 @@ fn relay_runs_through_the_binary_and_finishes() {
             .any(|(s, t)| s == "planner → user" && t.contains("did the work")),
         "{msgs:?}"
     );
-    // A per-turn timeline + cost summary is surfaced at the end…
+    // One agent answered alone, so no `turn done` line repeats the answer
+    // card's usage; the cost travels on a structured Stats event for the
+    // host's token meter.
     assert!(
-        msgs.iter()
-            .any(|(s, t)| s == "agent smith" && t.starts_with("turn done") && t.contains("tok")),
+        !msgs
+            .iter()
+            .any(|(s, t)| s == "agent smith" && t.starts_with("turn done")),
         "{msgs:?}"
     );
-    // …alongside a structured Stats event for the host's token meter.
     assert!(
         ev.iter()
             .any(|e| matches!(e, PluginEvent::Stats { exchanges, tokens, .. } if *exchanges > 0 && *tokens > 0)),

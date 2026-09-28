@@ -46,6 +46,15 @@ fn any_text(evs: &[PluginEvent], needle: &str) -> bool {
     evs.iter().any(|e| text_of(e).contains(needle))
 }
 
+/// Position of the relay's dial of `agent` — its `thinking` activity, the
+/// first thing the relay arm says (it no longer announces "starting with").
+fn pos_dial(evs: &[PluginEvent], agent: &str) -> Option<usize> {
+    evs.iter().position(|e| {
+        matches!(e, PluginEvent::Activity { agent: a, state, .. }
+            if a == agent && state == "thinking")
+    })
+}
+
 /// Run `dispatch` for `shape` with no sizing hints on a fresh session,
 /// collecting every event.
 fn dispatch_collect(shape: Shape, task: &str) -> (Vec<PluginEvent>, Session) {

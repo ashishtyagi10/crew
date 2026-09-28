@@ -92,7 +92,10 @@ fn done_and_error_markers() {
         text: t.into(),
         usage: Default::default(),
     };
-    assert_eq!(text(&hop_to_msg(&mk(HopKind::Done, ""), None)).1, "[done]");
+    // The answer as written — no `[done] ` head — and a bare `@done` is
+    // empty text (the relay then emits no card for it at all).
+    assert_eq!(text(&hop_to_msg(&mk(HopKind::Done, "4"), None)).1, "4");
+    assert_eq!(text(&hop_to_msg(&mk(HopKind::Done, ""), None)).1, "");
     assert_eq!(
         text(&hop_to_msg(&mk(HopKind::Error, "x"), None)).1,
         "[error] x"
@@ -217,11 +220,12 @@ fn relay_streams_live_reply_stats_with_real_usage() {
     });
     assert!(turn_stat.is_some(), "real turn total: {events:?}");
     assert!(reply_stat < turn_stat, "reply stat streams before turn end");
-    let summary = events.iter().any(|e| {
-        matches!(e, PluginEvent::Message { text, .. }
-            if text.contains("8232 tok") && !text.contains("approx"))
-    });
-    assert!(summary, "summary shows real cost: {events:?}");
+    // One agent answered alone: its card's usage line is the summary, and
+    // no `turn done` line repeats it.
+    let summary = events
+        .iter()
+        .any(|e| matches!(e, PluginEvent::Message { text, .. } if text.starts_with("turn done")));
+    assert!(!summary, "no solo summary: {events:?}");
 }
 
 #[test]

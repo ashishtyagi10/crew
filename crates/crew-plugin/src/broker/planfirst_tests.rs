@@ -74,14 +74,10 @@ fn an_ordinary_task_is_not_a_switch() {
 #[test]
 fn while_the_mode_is_on_every_plain_task_is_routed_to_the_plan_gate() {
     let session = Session::default();
-    let (said, mut emit) = capture();
     session
         .plan_first
         .store(true, std::sync::atomic::Ordering::Relaxed);
-    let d =
-        crate::broker::intent::decision::forced(crate::broker::intent::Shape::Plan, WHY, &mut emit)
-            .unwrap();
-    assert_eq!(d.shape, crate::broker::intent::Shape::Plan);
-    let text = said.lock().unwrap().join("\n");
-    assert_eq!(text, "routing: plan — plan first is on", "{text}");
+    let r = crate::broker::intent::decision::forced(crate::broker::intent::Shape::Plan, WHY);
+    assert_eq!(r.decision().shape, crate::broker::intent::Shape::Plan);
+    assert_eq!(r.line(), "routing: plan — plan first is on");
 }

@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.53
+
+**A smith turn reads as its answer.** A three-line answer used to arrive
+with four status lines around it: "routing: …", "context: …", "starting
+with software-engineer — relaying until an agent says @done", and "turn
+done — software-engineer 2.9s · 1 exchange(s) · 2133 tok". The answer
+itself started with "[done]". Now smith says one line: the route, its
+reason, and what the run brings ("routing: reply — simple question ·
+recalled 4 turns from 41m ago"). The "starting with" line is gone, since
+the agent's thinking row and its answer card already name it. "turn done"
+only appears when several agents took turns, because a single agent's
+answer card already shows its usage. Answers no longer start with
+"[done]", and a bare "@done" from an agent confirming a peer's answer no
+longer leaves an empty card. The pane also stays busy (the header sweep
+keeps moving, and a follow-up waits its turn) for as long as the broker
+has the task running. Before, it looked idle for the seconds between the
+routing line and the first word.
+
 ## 0.24.52
 
 **Smith knows which project it's working in.** Asked "what does crew-term

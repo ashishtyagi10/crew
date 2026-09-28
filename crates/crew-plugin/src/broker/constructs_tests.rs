@@ -36,8 +36,12 @@ fn loop_runs_the_requested_rounds_and_reports_done() {
     let rounds = ts.iter().filter(|t| t.starts_with("loop round")).count();
     assert_eq!(rounds, 3, "{ts:?}");
     assert!(ts.last().unwrap().contains("loop done"), "{ts:?}");
-    // Each round actually relayed: three turn summaries.
-    assert_eq!(ts.iter().filter(|t| t.starts_with("turn done")).count(), 3);
+    // Each round actually relayed: three answers.
+    assert_eq!(
+        ts.iter().filter(|t| *t == "refined answer").count(),
+        3,
+        "{ts:?}"
+    );
 }
 
 #[test]

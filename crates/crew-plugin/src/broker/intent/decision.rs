@@ -104,44 +104,52 @@ impl Shape {
 
 /// A shape the session already decided (plan-first): said on the same
 /// routing line, with the reason naming the mode, and no classifier call.
-pub(crate) fn forced(
-    shape: Shape,
-    why: &str,
-    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<Decision> {
-    let d = Decision {
+pub(crate) fn forced(shape: Shape, why: &str) -> Routing {
+    Routing::Chosen(Decision {
         shape,
         why: Some(why.to_string()),
         ..Default::default()
-    };
-    emit(msg(SMITH, Routing::Chosen(d.clone()).line()))?;
-    Ok(d)
+    })
 }
 
-/// Classify `task` in `world` and say the decision: a `thinking` activity
-/// for agent smith while the classifier runs (the pane's header pulse — the
-/// only state it draws live), the routing line, then smith's own idle. The
-/// idle is ours to send: no dispatch arm ever settles agent smith, and the
-/// turn-level idle comes minutes later.
-pub(crate) fn announce(
+/// Classify `task` in `world`, with agent smith `thinking` while the call
+/// runs (the pane's header pulse — the only state it draws live). The line
+/// and smith's idle are the caller's to send, AFTER the context is known,
+/// so the turn gets one line from smith rather than two.
+pub(crate) fn classify_live(
     task: &str,
     world: &World,
     classifier: Option<Classifier>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<Decision> {
+) -> anyhow::Result<Routing> {
     emit(PluginEvent::Activity {
         agent: SMITH.into(),
         state: "thinking".into(),
         from: "user".into(),
     })?;
-    let routing = decide_in(task, world, classifier);
-    emit(msg(SMITH, routing.line()))?;
+    Ok(decide_in(task, world, classifier))
+}
+
+/// Say the decision and what the run brings as ONE line — `routing: reply —
+/// why · recalled 2 turns` — then settle agent smith. The idle is ours to
+/// send: no dispatch arm ever settles agent smith, and the turn-level idle
+/// comes minutes later.
+pub(crate) fn say(
+    routing: &Routing,
+    context: Option<String>,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
+    let mut line = routing.line();
+    if let Some(c) = context {
+        line.push_str(" \u{b7} ");
+        line.push_str(&c);
+    }
+    emit(msg(SMITH, line))?;
     emit(PluginEvent::Activity {
         agent: SMITH.into(),
         state: "idle".into(),
         from: String::new(),
-    })?;
-    Ok(routing.decision())
+    })
 }
 
 /// Run the classifier and keep the WHOLE outcome, not just the shape: the

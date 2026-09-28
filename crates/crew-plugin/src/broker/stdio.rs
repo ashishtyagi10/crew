@@ -611,10 +611,10 @@ pub(crate) fn relay_counting(
     // the split, so a leading `@name` still dials; `relay_turn` carries on.
     let body = super::recall::ahead(session, &request);
     let tid = format!("t{}", THREAD_SEQ.fetch_add(1, Ordering::Relaxed));
-    emit(msg(
-        "agent smith",
-        format!("starting with {start} — relaying until an agent says @done"),
-    ))?;
+    // No "starting with X — relaying until an agent says @done" line: the
+    // agent's own thinking row says who is working the moment it dials, and
+    // its answer card names it; the line was a third telling, and it named
+    // the protocol, not the work.
     let broker = session.broker(reg);
     let answer = relay_turn(&broker, &start, &body, &request, &tid, tick_emit, emit)?;
     let kept = answer.filter(|_| !session.cancelled()); // a stopped turn is no turn

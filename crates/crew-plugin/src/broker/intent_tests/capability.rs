@@ -107,7 +107,7 @@ fn apply_with_nothing_pending_is_a_plain_message_not_a_commit() {
     // other message (here: a reply), and must not touch git.
     let call = |_: &str| Ok("SHAPE: reply".to_string());
     let evs = route_on(&mut session, "apply", &call);
-    assert!(any_text(&evs, "starting with planner"), "{evs:?}");
+    assert!(pos_dial(&evs, "planner").is_some(), "{evs:?}");
     assert_eq!(commits(&dir), 1, "no proposal, so nothing to apply");
 }
 
