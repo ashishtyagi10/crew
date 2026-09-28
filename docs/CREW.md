@@ -3009,6 +3009,11 @@ streamed reply — deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled
 endpoint names the transport and still leaves the model fallback chain a turn;
 it is not a budget for the whole call, so a long answer that keeps arriving is
 never cut off mid-sentence;
+`CREW_LSP=0` turns the language servers off for smith — no `lsp:` tools, no
+server started at a task's first write, no diagnostics after a task, and no
+`diagnostics now:` note on an edit (by default a successful `sys:edit` or
+`sys:write_file` of a file a running server serves waits up to 0.7 s for NEW
+errors and lists up to five of them in the edit's own result);
 `CREW_PREWARM=0` stops the broker opening the provider connection while you
 type — by default the first key of a message sends it a `warm` hint and it
 makes one keyless HEAD to the provider's host (at most once per 20 s, never

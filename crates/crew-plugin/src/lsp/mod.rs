@@ -7,13 +7,13 @@
 //! merges into its catalog, one `call` the dispatch chain routes to. Unlike
 //! MCP the tools are crew's own, so their tier is declared here as READ
 //! (`broker/tier.rs`) rather than defaulting to "ask".
+mod settle;
 mod tools;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use crew_lsp::docsync::Synced;
 use crew_lsp::servers::{self, Server};
 use crew_lsp::{Client, Diagnostic};
 
@@ -57,9 +57,13 @@ impl LspHost {
     }
 
     /// The built-in table with `lsp.json` merged over it; empty under the
-    /// mock provider so scripted broker tests stay deterministic.
+    /// mock provider so scripted broker tests stay deterministic, and under
+    /// `CREW_LSP=0`, which turns the agents' language servers off: the `lsp`
+    /// tools, the start on a task's first write, the end-of-task report and
+    /// the errors an edit's result carries (`broker/editdiag.rs`) all go.
     pub fn from_config() -> Self {
-        if std::env::var("CREW_BROKER_MOCK_REPLY").is_ok() {
+        let off = std::env::var("CREW_LSP").is_ok_and(|v| v == "0");
+        if off || std::env::var("CREW_BROKER_MOCK_REPLY").is_ok() {
             return Self::default();
         }
         Self::new(servers::load())
@@ -224,45 +228,11 @@ impl LspHost {
         let uri = crew_lsp::uri::from_path(&path);
         self.client(lang, &root)?;
         let queued = self.drain(&key, &uri);
-        // The disk is read on every call, not just the first: an agent edits
-        // between questions, and a server answers about the copy it was last
-        // sent. A copy that moved on is resent whole, with a save.
-        let synced = {
-            let c = self.clients.get_mut(&key).expect("started above");
-            let text =
-                std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-            c.sync(&uri, lang, &text).and_then(|s| {
-                // A first look for diagnostics saves too, so rust-analyzer's
-                // `cargo check` (the type errors) runs on it; a hover does
-                // not need one.
-                if s == Synced::Opened && tool == "diagnostics" {
-                    c.did_save(&uri, &text)?;
-                }
-                Ok(s)
-            })
-        };
-        let synced = synced.inspect_err(|_| {
-            self.clients.remove(&key);
-        })?;
+        let synced = self.resync(&key, &uri, &path, tool == "diagnostics")?;
         let (line, col) = (a.line.saturating_sub(1), a.col.saturating_sub(1));
         let out = match tool {
             "diagnostics" => {
-                // Text the server has not spoken about yet waits for its
-                // word, which may be a first index. Unchanged text already
-                // has it when a publish was queued, and otherwise gives a
-                // `cargo check` still running from the last save a moment.
-                // A change waits only SETTLE: rust-analyzer re-publishes a
-                // change that moves the diagnostics within 11–180 ms
-                // (measured), and publishes NOTHING for one that leaves them
-                // as they were — so TIMEOUT made a clean edit to a clean file
-                // wait 15 s for the answer it already had.
-                let wait = match synced {
-                    Synced::Opened => Some(TIMEOUT),
-                    Synced::Changed => Some(SETTLE),
-                    Synced::Unchanged if queued => None,
-                    Synced::Unchanged => Some(SETTLE),
-                };
-                if let Some(wait) = wait {
+                if let Some(wait) = settle::diag_wait(synced, queued) {
                     self.wait_publish(&key, &uri, wait);
                 }
                 let list = self.diags.get(&uri).cloned().unwrap_or_default();

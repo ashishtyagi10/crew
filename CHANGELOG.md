@@ -8,6 +8,10 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.93
+
+**An edit that breaks the build says so in its own result.** The language servers' word on a task's files came only when the task ended, after the agent had already answered "done", and mid-task an agent that had just written a type error found out only if it thought to call `lsp:diagnostics`, which models rarely do. Now a `sys:edit` or `sys:write_file` that succeeded on a file a running language server serves ends with the errors the server found that it had not reported before the write, `diagnostics now: 1 new error` and up to five lines like `3:5 error: expected i32, found u8`, so the agent fixes its own error in the next round; warnings are left out, and an edit that left no new error adds nothing. New errors only, because rust-analyzer goes on repeating `cargo check`'s word on the old text until the check the save started finishes: measured, the first word after a fix still held the error it fixed. The cost: an edit to a served file waits for the server's word, up to 0.7 s when it brings no new error (on a small crate a type error was heard in 12 ms and a borrow error in 234 ms, and a clean edit is never answered at all, so it waits the whole 0.7 s) and never past 2 s; a server not running yet or still indexing adds nothing, the task's end still reports, and `CREW_LSP=0` turns crew's agent-side language servers off, this with them.
+
 ## 0.24.92
 
 **"Seen before" knows a build failure by its error, not its progress.**

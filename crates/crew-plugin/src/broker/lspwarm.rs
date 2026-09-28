@@ -89,7 +89,7 @@ impl WarmOnWrite {
 }
 
 /// The `path` a write named, as the tool read it.
-fn path_arg(args: &str) -> Option<PathBuf> {
+pub(super) fn path_arg(args: &str) -> Option<PathBuf> {
     let v: serde_json::Value = serde_json::from_str(args).ok()?;
     v.get("path")?.as_str().map(PathBuf::from)
 }
