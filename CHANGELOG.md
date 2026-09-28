@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.54
+
+**Smith's live answer no longer shows its protocol.** While an answer
+streamed in, the pane showed the agent's control lines as they were
+typed: `@tool sys:read_file {"path": "README.md", "offset": 0}` in the
+middle of the answer, a stray piece of that JSON (" 0}") at the start of
+the next part, and a dangling "@" at the end of every answer until the
+finished card replaced it. The broker now holds back any line that starts
+with "@" until the line is complete. If it's `@done`, `@next …` or
+`@tool …`, it's dropped; anything else (like "@editor, over to you") shows
+as usual. Other text isn't delayed at all.
+
 ## 0.24.53
 
 **A smith turn reads as its answer.** A three-line answer used to arrive

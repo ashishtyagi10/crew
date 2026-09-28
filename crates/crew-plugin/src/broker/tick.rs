@@ -171,7 +171,10 @@ pub(crate) fn hop_texter_with(
     enabled: bool,
     sub: bool,
 ) -> std::sync::Arc<dyn Fn(&str) + Send + Sync> {
-    let gate = std::sync::Mutex::new(TextGate::new());
+    // The hold spans the hop like the gate does (the texter is built once
+    // per hop and reused through its tool rounds), so a directive split
+    // across rounds is still one line to it.
+    let gate = std::sync::Mutex::new((TextGate::new(), super::streamhold::Hold::default()));
     let hop_start = std::time::Instant::now();
     std::sync::Arc::new(move |text: &str| {
         if !enabled {
@@ -179,7 +182,12 @@ pub(crate) fn hop_texter_with(
         }
         let now_ms = hop_start.elapsed().as_millis() as u64;
         let mut g = gate.lock().unwrap_or_else(|e| e.into_inner());
-        if let Some(payload) = g.push(text, now_ms) {
+        let (gate, hold) = &mut *g;
+        let visible = hold.feed(text);
+        if visible.is_empty() {
+            return;
+        }
+        if let Some(payload) = gate.push(&visible, now_ms) {
             tick_emit(PluginEvent::Delta {
                 agent: agent.clone(),
                 text: payload,
