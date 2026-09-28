@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.62
+
+**A swarm's final answer is written by the full model again, and its
+planning shows.** Since 0.24.56, DashScope's small fast model (qwen-flash)
+handles smith's quick decisions. The same path also wrote the swarm's
+closing answer (merging several workers' results into the one you read)
+and judged whether a checked run met its goal. Both are real work, so they
+use the standard model again; only routing, skill and tool picks and
+summaries stay on the fast one. While the swarm planner decides how to
+split a request (a second or more), the pane now shows "agent smith"
+thinking instead of nothing between the routing line and the plan.
+
 ## 0.24.61
 
 **Answers served through the Anthropic API now type out live.** With an
