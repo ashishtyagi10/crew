@@ -2692,7 +2692,8 @@ carries the byte `offset` to continue with, so agents read big files in pages;
 gives, so an agent goes straight to what it found rather than paging from the
 top — `line` or `offset`, not both, and a line past the end names the file's
 line count),
-**`sys:write_file`** (create, or replace all of one), **`sys:edit`** (replace
+**`sys:write_file`** (create, or replace all of one you have read —
+below), **`sys:edit`** (replace
 part of one — below), **`sys:list_dir`** (≤500 entries,
 sizes shown), the two that FIND code — **`sys:grep`** (a regex over the
 project's files, `path:line: text`; `glob` narrows by file name,
@@ -2752,6 +2753,28 @@ that invented two levels is told where it stopped being real — `"proj" has no
 "src"` — rather than being told about the leaf. Dotfiles are left out, a deep
 directory is named by its last two components, and when there is genuinely
 nothing useful to say the plain error stands alone.
+
+**A whole-file write needs a read first, and makes its own directories.**
+`sys:write_file` replaces ALL of a file, so an agent that never looked at one
+(it guessed the content, or meant to "update" it) wrote back what it imagined,
+and everything it did not reproduce was gone under a result saying the write
+succeeded. Now a task may replace an existing file only after reading it with
+`sys:read_file` (any page, or from a `line`) or writing it whole itself;
+otherwise the call is refused and the file is left as it was: `a.rs exists and
+has not been read this task — read it first (sys:read_file), or change part of
+it with sys:edit`. It is Claude Code's `Write` rule, kept per task, so the next
+task starts with nothing read, and the file is the file however it was spelled
+(`./a.rs`, a link to it, its absolute path). A file that does not exist yet is
+written freely, and `sys:edit` is not held to the rule, since it matches exact
+text and cannot clobber blind; nor does an edit count as a read, since it shows
+the lines it changed and not the file. A new file in a new directory used to
+fail as well (`src/feature/mod.rs` with no `src/feature/`) and the agent's next
+round went on a `sys:run mkdir -p`, which asks for approval; now the missing
+directories are made, as an editor makes them on save, but only inside the
+working directory. Outside it the write still goes wherever a directory already
+exists (it is not a sandbox), while a missing one is refused with the reason,
+because a mistyped absolute path would otherwise leave directories wherever it
+pointed. Symlinks and `..` are resolved before that question is asked.
 
 `sys:edit {"path": …, "old": …, "new": …}` changes PART of a file. Before it,
 the only way to change a file was `sys:write_file`, which takes the whole

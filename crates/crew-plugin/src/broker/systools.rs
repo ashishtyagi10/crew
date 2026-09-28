@@ -262,7 +262,7 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
     match tool {
         "run" => super::sysrun::run(str_arg(&v, "cmd")?),
         "read_file" => super::sysreadline::read(str_arg(&v, "path")?, &v),
-        "write_file" => write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
+        "write_file" => super::syswrite::write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
         "edit" => edit(&v),
         "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),
         "grep" => super::sysgrep::grep(&v),
@@ -307,11 +307,6 @@ fn str_arg<'a>(v: &'a serde_json::Value, key: &str) -> Result<&'a str, String> {
     v.get(key)
         .and_then(|s| s.as_str())
         .ok_or_else(|| format!("missing string argument \u{201c}{key}\u{201d}"))
-}
-
-fn write_file(path: &str, content: &str) -> Result<String, String> {
-    std::fs::write(path, content).map_err(|e| super::syspath::with_hint("write", path, e))?;
-    Ok(format!("wrote {} bytes to {path}", content.len()))
 }
 
 /// Entries at most, so a huge directory can't flood the prompt.

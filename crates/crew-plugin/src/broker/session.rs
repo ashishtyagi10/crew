@@ -44,6 +44,10 @@ pub(crate) struct Session {
     /// Which languages this task has already started a server for on its
     /// first write (`lspwarm`) — fresh in every task's snapshot.
     pub warm: Arc<super::lspwarm::WarmOnWrite>,
+    /// The files this task has read or written whole, so a whole-file write
+    /// over one it never looked at is refused (`readset`) — fresh in every
+    /// task's snapshot, like `warm`, and shared by every surface built from it.
+    pub reads: Arc<super::readset::ReadSet>,
     /// The plan `/plan` drafted, awaiting `/approve` or `/reject` — shared so
     /// a worker-thread draft reaches the inline `/reject`.
     pub plan: super::plan::SharedPlan,
@@ -117,6 +121,7 @@ impl Default for Session {
             tokens: Arc::new(AtomicU64::new(0)),
             mcp: Arc::new(Mutex::new(crate::mcp::McpHost::from_config())),
             warm: super::lspwarm::WarmOnWrite::over(&lsp),
+            reads: super::readset::ReadSet::new(),
             lsp,
             plan: Arc::new(Mutex::new(None)),
             commit: Arc::new(Mutex::new(None)),
@@ -160,6 +165,7 @@ impl Session {
             mcp: Arc::clone(&self.mcp),
             lsp: Arc::clone(&self.lsp),
             warm: self.warm.fresh(),
+            reads: super::readset::ReadSet::new(),
             plan: Arc::clone(&self.plan),
             commit: Arc::clone(&self.commit),
             plan_first: Arc::clone(&self.plan_first),
@@ -226,15 +232,18 @@ impl Session {
         {
             return None;
         }
-        Some(Arc::new(SessionTools::new(
-            Arc::clone(&self.mcp),
-            Arc::clone(&self.lsp),
-            sys,
-            Arc::clone(&self.gate),
-            Arc::clone(&self.toolpick),
-            Arc::clone(&self.ckpt),
-            Arc::clone(&self.warm),
-        )))
+        Some(Arc::new(SessionTools {
+            reads: Arc::clone(&self.reads),
+            ..SessionTools::new(
+                Arc::clone(&self.mcp),
+                Arc::clone(&self.lsp),
+                sys,
+                Arc::clone(&self.gate),
+                Arc::clone(&self.toolpick),
+                Arc::clone(&self.ckpt),
+                Arc::clone(&self.warm),
+            )
+        }))
     }
 
     /// The shared MCP host, poison-tolerant.
@@ -283,6 +292,11 @@ struct SessionTools {
     /// Told of every `sys` call that succeeded, so a task's first write
     /// starts its language server (see `lspwarm`).
     warm: Arc<super::lspwarm::WarmOnWrite>,
+    /// What this task has read, asked before every whole-file write and told
+    /// of every read and write that succeeded (see `readset`). The session's
+    /// per-task set, so a surface built for another hop of the same task sees
+    /// the same reads; a surface of its own when built bare, as tests build it.
+    reads: Arc<super::readset::ReadSet>,
     /// Asked about every write that succeeded, so an edit that broke the
     /// build says so in its own result (see `editdiag`): the session's
     /// language servers, or a fake under test.
@@ -316,6 +330,7 @@ impl SessionTools {
             picker,
             ckpt,
             warm,
+            reads: super::readset::ReadSet::new(),
         }
     }
 
@@ -501,9 +516,13 @@ impl super::toolcall::ToolRunner for SessionTools {
                 super::toolpick::BUDGET,
             ))
         } else if server == "sys" && self.sys {
-            let out = super::systools::call(tool, args);
+            let out = self
+                .reads
+                .check(tool, args)
+                .and_then(|()| super::systools::call(tool, args));
             if out.is_ok() {
                 self.warm.wrote(tool, args);
+                self.reads.saw(tool, args);
             }
             out.map(|t| super::editdiag::append(t, &self.diag, tool, args))
         } else if server == "lsp" {
