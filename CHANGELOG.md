@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.64
+
+**A swarm's "tool budget spent" note comes before the call it explains.**
+Workers in a swarm draw tool calls from one shared pool, at the same time.
+When the pool ran dry, the worker that was refused could report its
+refused call before the worker that emptied the pool reported the empty
+pool. The pane then showed the refusal first and the explanation after it.
+The note now goes with whichever arrives first, and is still said only
+once. The CI coverage job caught this race on a slow runner.
+
 ## 0.24.63
 
 **Smith works like one focused agent that can search your code.** On a

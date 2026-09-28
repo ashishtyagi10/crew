@@ -19,6 +19,8 @@ pub(super) struct Tally {
     pub cost: u64,
     tasks: usize,
     spent_said: bool,
+    /// The pool's size, from the last `ToolBudget` reading.
+    total: u32,
 }
 
 impl Tally {
@@ -31,6 +33,7 @@ impl Tally {
             cost: 0,
             tasks,
             spent_said: false,
+            total: 0,
         }
     }
 
@@ -45,9 +48,21 @@ impl Tally {
                 self.tok_out += o;
             }
             HiveEvent::CostDelta { micros_usd, .. } => self.cost += micros_usd,
-            HiveEvent::ToolBudget { used, total } if used >= total && !self.spent_said => {
+            HiveEvent::ToolBudget { used, total } => {
+                self.total = *total;
+                if used >= total && !self.spent_said {
+                    self.spent_said = true;
+                    return Some(msg("agent smith", spent_note(*total, self.tasks)));
+                }
+            }
+            // Agents draw from the pool concurrently: the one REFUSED can
+            // publish before the one whose draw emptied it, so the first
+            // refusal says the note too — whichever lands first, once.
+            HiveEvent::ToolResult {
+                ok: false, text, ..
+            } if text.contains("tool budget spent") && !self.spent_said && self.total > 0 => {
                 self.spent_said = true;
-                return Some(msg("agent smith", spent_note(*total, self.tasks)));
+                return Some(msg("agent smith", spent_note(self.total, self.tasks)));
             }
             _ => {}
         }
@@ -66,3 +81,7 @@ pub(super) fn spent_note(total: u32, tasks: usize) -> String {
         s(tasks as u64)
     )
 }
+
+#[cfg(test)]
+#[path = "swarmtally_tests.rs"]
+mod tests;
