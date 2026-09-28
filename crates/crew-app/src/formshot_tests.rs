@@ -172,8 +172,8 @@ fn form_shot_todo_width_sweep() {
         ("todo-half", 640),
         ("todo-wide", 1100),
     ] {
-        let px = shot_at(name, w, 480, 13.0, "todo", |cols, rows, _| {
-            (p.cells(cols, rows), Vec::new())
+        let px = shot_at(name, w, 480, 13.0, "todo", |cols, rows, aspect| {
+            p.art(cols, rows, aspect)
         });
         let Some(px) = px else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");

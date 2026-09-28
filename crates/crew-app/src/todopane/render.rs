@@ -236,12 +236,14 @@ pub(crate) fn row_cells(
     if selected {
         out.push(cell(0, row, '\u{203a}', accent, true)); // ›
     }
-    // Reminders' grammar in crew's drawn marks: an open ring to do, a disc
-    // in the accent once done — centred in the three cells `[ ]` held.
+    // A checkbox, centred in the three cells `[ ]` held: ☐ to do, ☑ in the
+    // accent once done. It was a ring and a disc, a font glyph a few pixels
+    // across in most faces — the user could not tell it was the thing to
+    // click. The drawn layer (`checkbox`) paints it larger still.
     let (mark, fg) = if it.done {
-        ('\u{25cf}', accent)
+        (super::checkbox::DONE, accent)
     } else {
-        ('\u{25cb}', ink)
+        (super::checkbox::OPEN, ink)
     };
     out.push(cell(BOX_COL + 1, row, mark, fg, selected));
 
