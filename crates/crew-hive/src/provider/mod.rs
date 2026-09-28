@@ -11,6 +11,7 @@ mod mock;
 mod openai_http;
 mod openrouter;
 mod retry;
+mod served;
 mod ssecalls;
 mod status;
 mod stopreason;
@@ -157,7 +158,22 @@ pub struct CompletionRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Completion {
     pub text: String,
+    /// The model that actually answered: the response's own `model` field,
+    /// else the model the answering attempt asked for. Not always the
+    /// request's — a fallback chain moves on when its first model 404s, and
+    /// a reply billed at the model that was asked for was billed wrong.
+    /// Empty when the provider cannot say (the mock, the Claude CLI).
+    pub model: String,
+    /// The WHOLE prompt, cached or not — the pane's context-fill reading.
     pub input_tokens: u32,
+    /// The part of `input_tokens` the provider served from its prompt cache
+    /// (OpenAI-shape `prompt_tokens_details.cached_tokens`, Anthropic
+    /// `cache_read_input_tokens`), billed at the cached rate, not the full one.
+    pub cached_input_tokens: u32,
+    /// The part of `input_tokens` written INTO the cache this call (Anthropic
+    /// `cache_creation_input_tokens`, DashScope's explicit cache), which
+    /// costs more than plain input.
+    pub cache_write_tokens: u32,
     pub output_tokens: u32,
     /// Exact provider-reported cost in micro-USD (OpenRouter `usage.cost`);
     /// 0 when the provider doesn't report cost.

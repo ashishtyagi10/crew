@@ -70,16 +70,16 @@ struct Block {
 }
 
 #[derive(Deserialize)]
-struct Usage {
-    input_tokens: u32,
-    output_tokens: u32,
-}
-
-#[derive(Deserialize)]
 struct ApiResp {
     #[serde(default)]
     content: Vec<Block>,
-    usage: Option<Usage>,
+    /// Read loosely (`served::anthropic_cache`): the cache fields may be
+    /// absent or null, and a surprise there must not fail the reply.
+    #[serde(default)]
+    usage: Option<serde_json::Value>,
+    /// The model that answered (`Completion::model`).
+    #[serde(default)]
+    model: Option<String>,
     /// `"max_tokens"` when the ceiling, not the model, ended the reply.
     #[serde(default)]
     stop_reason: Option<String>,
@@ -186,12 +186,17 @@ impl AnthropicProvider {
         let truncated = super::stopreason::anthropic(r.stop_reason.as_deref());
         let usage = r
             .usage
+            .filter(|u| u.is_object())
             .ok_or_else(|| ProviderError::Decode("missing usage".into()))?;
+        let (cached_input_tokens, cache_write_tokens) = super::served::anthropic_cache(&usage);
         Ok(Completion {
             text,
             thought,
-            input_tokens: usage.input_tokens,
-            output_tokens: usage.output_tokens,
+            model: r.model.unwrap_or_default().trim().to_string(),
+            input_tokens: super::served::anthropic_input(&usage),
+            cached_input_tokens,
+            cache_write_tokens,
+            output_tokens: super::served::count(&usage["output_tokens"]),
             cost_microusd: 0,
             calls,
             truncated,
@@ -363,7 +368,7 @@ impl Provider for AnthropicProvider {
                 .await
                 .map_err(|e| ProviderError::Http(wire_error(&e, &endpoint)))?;
             let parse = AnthropicProvider::parse_response;
-            super::status::settle(status, &endpoint, &text, parse)
+            super::status::settle(status, &endpoint, &text, parse).map(|c| c.served_by(&req.model))
         })
     }
 
@@ -419,7 +424,7 @@ impl Provider for AnthropicProvider {
                 };
                 match wait {
                     Some(wait) => tokio::time::sleep(wait).await,
-                    None => return fold.finish(&on_chunk),
+                    None => return fold.finish(&on_chunk).map(|c| c.served_by(&req.model)),
                 }
             }
         })

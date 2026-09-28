@@ -82,6 +82,7 @@ fn calling(id: &str, name: &str) -> Completion {
             input: serde_json::json!({"q": "Oslo"}),
         }],
         thought: String::new(),
+        ..Default::default()
     }
 }
 
@@ -243,6 +244,7 @@ async fn every_call_in_a_turn_is_answered_even_past_the_per_turn_bound() {
                 input: serde_json::json!({}),
             })
             .collect(),
+        ..Default::default()
     };
     let (_, calls, seen) = run_agent(vec![many, answering("done")], Ok("4C".into())).await;
 
@@ -357,6 +359,7 @@ async fn calls_refused_past_the_per_turn_bound_publish_a_failed_result_each() {
                 input: serde_json::json!({}),
             })
             .collect(),
+        ..Default::default()
     };
     let (provider, _) = Scripted::new(vec![many, answering("done")]);
     let tools = Arc::new(FakeTools {

@@ -245,7 +245,9 @@ impl Provider for OpenRouterProvider {
                 let think = thinking::opt_in(&endpoint, false);
                 let body = build_body(model, &req, &messages, report_cost, think);
                 match request_with_retry(&client, &endpoint, &key, &body).await {
-                    Ok(c) => return Ok(c),
+                    // Billed at the model that answered, not the one asked
+                    // for first (`Completion::model`).
+                    Ok(c) => return Ok(c.served_by(model)),
                     Err(ProviderError::MissingKey(v)) => return Err(ProviderError::MissingKey(v)),
                     Err(e) => last_err = e,
                 }
@@ -300,11 +302,11 @@ impl Provider for OpenRouterProvider {
                         let think = thinking::opt_in(&endpoint, false);
                         let body = build_body(model, &req, &messages, report_cost, think);
                         match request_with_retry(&client, &endpoint, &key, &body).await {
-                            Ok(c) => return Ok(c),
+                            Ok(c) => return Ok(c.served_by(model)),
                             Err(e) => last_err = e,
                         }
                     }
-                    Ok(c) => return Ok(c),
+                    Ok(c) => return Ok(c.served_by(model)),
                     Err(ProviderError::MissingKey(v)) => return Err(ProviderError::MissingKey(v)),
                     Err(e) => {
                         if started.load(std::sync::atomic::Ordering::SeqCst) {
@@ -322,3 +324,7 @@ impl Provider for OpenRouterProvider {
 #[cfg(test)]
 #[path = "openrouter_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "openrouterbill_tests.rs"]
+mod bill_tests;

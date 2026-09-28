@@ -103,7 +103,12 @@ fn joined(first: Completion, rest: Option<Completion>) -> Completion {
     if let Some(r) = rest {
         c.text.push_str(&r.text);
         c.input_tokens = c.input_tokens.saturating_add(r.input_tokens);
+        c.cached_input_tokens = c.cached_input_tokens.saturating_add(r.cached_input_tokens);
+        c.cache_write_tokens = c.cache_write_tokens.saturating_add(r.cache_write_tokens);
         c.output_tokens = c.output_tokens.saturating_add(r.output_tokens);
+        if c.model.is_empty() {
+            c.model = r.model;
+        }
         c.cost_microusd = c.cost_microusd.saturating_add(r.cost_microusd);
         if !r.thought.is_empty() {
             if !c.thought.is_empty() {

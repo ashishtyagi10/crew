@@ -5,7 +5,8 @@
 //! pane sat on "thinking" for the entire generation and then printed the
 //! answer at once, while every OpenAI-compatible host typed it out live. This
 //! is the event reader for `"stream": true`: `message_start` carries the
-//! input usage, `content_block_delta` the `text_delta` / `thinking_delta`
+//! input usage (cache reads and writes too) and the answering model,
+//! `content_block_delta` the `text_delta` / `thinking_delta`
 //! fragments, `message_delta` the output usage and why it stopped, `error`
 //! an in-stream failure.
 //! Pure over the bytes it is fed, so the framing is tested without a socket.
@@ -55,7 +56,11 @@ impl Fold {
         match v["type"].as_str().unwrap_or("") {
             "message_start" => {
                 let u = &v["message"]["usage"];
-                self.out.input_tokens = u["input_tokens"].as_u64().unwrap_or(0) as u32;
+                self.out.input_tokens = super::served::anthropic_input(u);
+                let (read, written) = super::served::anthropic_cache(u);
+                self.out.cached_input_tokens = read;
+                self.out.cache_write_tokens = written;
+                self.out.model = super::served::model_of(&v["message"]);
             }
             "content_block_delta" => {
                 let d = &v["delta"];
