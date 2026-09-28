@@ -131,6 +131,8 @@ impl Broker {
         // gate never swallows a short follow-up after a long primary reply.
         let mut tick_base: u64 = (reply.chars().count() as u64) / 4;
         let mut exchanges: Vec<String> = Vec::new();
+        // The reads this turn has made, so a repeat is not run again.
+        let mut seen = crew_hive::tools::seen::Seen::default();
         let max_rounds = self.tool_rounds;
         for round in 0..max_rounds {
             let Some((said, call)) = split_tool_call(&reply) else {
@@ -149,17 +151,8 @@ impl Broker {
                 usage: Default::default(),
             });
             let started = std::time::Instant::now();
-            let called = runner.call(&call.server, &call.tool, &call.args);
-            // An `Ok` can still be a failure — a build that exited 101 — and
-            // only the tool surface can say so (`Tools::failed`).
-            let ok = called
-                .as_ref()
-                .is_ok_and(|t| !runner.failed(&call.server, &call.tool, t));
-            let text = match called {
-                Ok(t) if t.is_empty() => "(empty result)".to_string(),
-                Ok(t) => t,
-                Err(e) => format!("ERROR: {e}"),
-            };
+            let (ok, text, repeat) =
+                super::toolround::run_once(runner, &mut seen, &call, round + 1);
             stats.approx_tokens += text.len() / 4;
             sink(Hop {
                 from: label.clone(),
@@ -173,8 +166,9 @@ impl Broker {
                 // brightly-coloured agent reply. One action, two looks,
                 // depending on which engine ran it.
                 text: format!(
-                    "[tool] {}\n{}",
+                    "[tool] {}{}\n{}",
                     super::toolline::result_line(&label, ok, started.elapsed().as_millis() as u64),
+                    super::toolline::same_as(repeat),
                     clip_result(text.trim_end(), RESULT_CLIP)
                 ),
                 usage: Default::default(),
@@ -270,3 +264,7 @@ impl Broker {
 #[cfg(test)]
 #[path = "toolcall_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "samecall_tests.rs"]
+mod samecall_tests;

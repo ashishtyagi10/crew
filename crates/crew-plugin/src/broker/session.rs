@@ -433,6 +433,15 @@ impl super::toolcall::ToolRunner for SessionTools {
         self.sys && server == "sys" && tool == "run" && super::runfit::failed(output)
     }
 
+    /// A read by the tier table the approval gate uses, so the loops may answer a repeat of it
+    /// from the result already in the prompt (`crew_hive::tools::seen`). Except diagnostics:
+    /// the language server publishes them on its own clock, a check can finish while the
+    /// first pass is still under way, and asking again is how an agent waits for the rest.
+    fn repeatable(&self, server: &str, tool: &str) -> bool {
+        self.tier_for(server, tool) == super::tier::Tier::Read
+            && (server, tool) != ("lsp", "diagnostics")
+    }
+
     /// Every tool call in the running broker passes through here — `sys` and MCP alike — which
     /// is why the gate is installed at this one point rather than in each tool.
     ///
