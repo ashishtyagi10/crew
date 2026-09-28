@@ -283,6 +283,10 @@ struct SessionTools {
     /// Told of every `sys` call that succeeded, so a task's first write
     /// starts its language server (see `lspwarm`).
     warm: Arc<super::lspwarm::WarmOnWrite>,
+    /// Asked about every write that succeeded, so an edit that broke the
+    /// build says so in its own result (see `editdiag`): the session's
+    /// language servers, or a fake under test.
+    diag: super::editdiag::Shared,
 }
 
 impl SessionTools {
@@ -297,6 +301,7 @@ impl SessionTools {
     ) -> Self {
         Self {
             mcp,
+            diag: Arc::clone(&lsp) as super::editdiag::Shared,
             lsp,
             sys,
             requester: super::approval::Requester::from_env(),
@@ -500,7 +505,7 @@ impl super::toolcall::ToolRunner for SessionTools {
             if out.is_ok() {
                 self.warm.wrote(tool, args);
             }
-            out
+            out.map(|t| super::editdiag::append(t, &self.diag, tool, args))
         } else if server == "lsp" {
             self.lsp
                 .lock()

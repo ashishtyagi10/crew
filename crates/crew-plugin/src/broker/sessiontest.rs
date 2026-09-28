@@ -32,6 +32,7 @@ impl SessionTools {
         let lsp = Arc::new(Mutex::new(lsp));
         Self {
             warm: WarmOnWrite::over(&lsp),
+            diag: Arc::clone(&lsp) as crate::broker::editdiag::Shared,
             lsp,
             ..self
         }
@@ -103,6 +104,18 @@ pub(crate) fn sys_surface() -> Arc<dyn crew_hive::tools::Tools> {
         Arc::new(Mutex::new(crate::mcp::McpHost::default())),
         true,
     ))
+}
+
+/// [`sys_surface`] asking `diag` about every write, as a task's surface asks its language
+/// servers — for the `editdiag` tests, which need the real dispatch to decide what a write is,
+/// whether it happened and what its result was.
+pub(crate) fn sys_surface_diagnosing(
+    diag: crate::broker::editdiag::Shared,
+) -> Arc<dyn crew_hive::tools::Tools> {
+    Arc::new(SessionTools {
+        diag,
+        ..SessionTools::for_test(Arc::new(Mutex::new(crate::mcp::McpHost::default())), true)
+    })
 }
 
 /// [`sys_surface`] telling `warm` of every call, as a task's surface does — for the

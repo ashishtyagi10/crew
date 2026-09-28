@@ -32,6 +32,7 @@ mod directs;
 mod discover;
 mod doctor;
 mod doctorprobe;
+mod editdiag;
 mod editrows;
 mod editshow;
 mod elect;
