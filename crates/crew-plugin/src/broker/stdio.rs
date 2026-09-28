@@ -348,10 +348,11 @@ fn send(
         let res = if is_cmd {
             super::commands::handle(&mut snap, &trimmed, &tick_emit, &mut counting)
         } else if dialled {
-            relay_counting(&trimmed, &snap, &tick_emit, &mut counting)
+            relay_counting(&trimmed, None, &snap, &tick_emit, &mut counting)
         } else if let Some(starter) = starter {
             relay_counting(
                 &format!("@{starter} {trimmed}"),
+                None,
                 &snap,
                 &tick_emit,
                 &mut counting,
@@ -597,6 +598,7 @@ fn first_starter(names: Vec<String>) -> Option<String> {
 /// exactly the path an `@agent` dial takes, minus the dial.
 pub(crate) fn relay_counting(
     input: &str,
+    pick: Option<&str>,
     session: &Session,
     tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
@@ -630,7 +632,15 @@ pub(crate) fn relay_counting(
     if let Some(name) = dialed_target(&task_owned, &reg) {
         super::specialists::touch(&name);
     }
-    let (start, request) = split_target(&task_owned, &reg);
+    // The router's pick answers an unaddressed task; an `@name` the user
+    // typed outranks it, and a pick the roster no longer has falls back to
+    // the relay's own default.
+    let (start, request) = match pick.filter(|p| reg.get(p).is_some()) {
+        Some(p) if dialed_target(&task_owned, &reg).is_none() => {
+            (p.to_string(), task_owned.to_string())
+        }
+        _ => split_target(&task_owned, &reg),
+    };
     // The thread's recent turns ride in front of the first hop's task — after
     // the split, so a leading `@name` still dials; `relay_turn` carries on.
     let body = super::recall::ahead(session, &request);

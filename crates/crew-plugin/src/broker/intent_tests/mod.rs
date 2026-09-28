@@ -19,6 +19,7 @@ mod context;
 mod grammar;
 mod hints;
 mod plangate;
+mod replypick;
 mod routing;
 mod skillhint;
 mod verify;

@@ -31,6 +31,10 @@ pub(crate) struct World {
     /// Roster names, in roster order — also the set an `AGENTS:` line may
     /// pick from, so the model can only name what it was shown.
     pub(crate) agents: Vec<String>,
+    /// The same roster as `name (role)`, for the prompt: the router picks the
+    /// agent that ANSWERS a reply from it, and a bare name — `editor`,
+    /// `software-engineer` — says less than the role it was invented for.
+    pub(crate) roles: Vec<String>,
     /// Paths that differ from HEAD (crew's own `.crew/` excluded), or `None`
     /// when there is no repository or the probe ran out of time.
     pub(crate) dirty: Option<usize>,
@@ -70,6 +74,7 @@ impl World {
         World {
             known: known_about(session, task),
             agents: session.registry().names(),
+            roles: session.registry().roster_excluding(""),
             dirty: crate::broker::gitmsg::project_dir()
                 .ok()
                 .and_then(|d| dirty_count(&d)),
@@ -87,8 +92,10 @@ impl World {
     /// known, so the prompt without a world is the prompt as it always was.
     pub(crate) fn section(&self) -> String {
         let mut lines: Vec<String> = Vec::new();
-        if !self.agents.is_empty() {
-            lines.push(format!("agents: {}", self.agents.join(", ")));
+        match (self.roles.is_empty(), self.agents.is_empty()) {
+            (false, _) => lines.push(format!("agents: {}", self.roles.join(", "))),
+            (true, false) => lines.push(format!("agents: {}", self.agents.join(", "))),
+            (true, true) => {}
         }
         match self.dirty {
             Some(0) => lines.push("tree: clean".to_string()),

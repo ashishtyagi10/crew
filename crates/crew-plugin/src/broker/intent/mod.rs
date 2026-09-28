@@ -136,7 +136,10 @@ pub(crate) fn dispatch(
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     match shape {
-        Shape::Reply => super::stdio::relay_counting(task, session, tick_emit, emit),
+        Shape::Reply => {
+            let pick = hints.agents.as_ref().and_then(|a| a.first());
+            super::stdio::relay_counting(task, pick.map(String::as_str), session, tick_emit, emit)
+        }
         Shape::Fan => fanout::fan_cmd(session, task, hints.agents.as_deref(), tick_emit, emit),
         Shape::Loop => {
             let n = hints.rounds.unwrap_or(LOOP_ROUNDS);
@@ -170,12 +173,29 @@ pub(crate) fn disabled() -> bool {
 /// (case-insensitive; trailing punctuation on the token and any prose after
 /// the first line are tolerated — same conservatism as
 /// `constructs::parse_verdict`). Anything else is `None`, never a guess.
+///
+/// Markdown around the line is not a different answer: a smaller router
+/// (the cheap tier is qwen-flash on DashScope) now and then fences its reply
+/// in ``` or bolds the head (`**SHAPE:** reply`), and that used to send the
+/// task down the swarm fallback as "off-grammar". Fence lines are skipped and
+/// emphasis is shed; the grammar itself is as strict as ever.
 pub(crate) fn parse_shape(reply: &str) -> Option<Shape> {
-    let first = reply.trim().lines().next().unwrap_or("").trim();
+    let first = reply
+        .trim()
+        .lines()
+        .map(str::trim)
+        .find(|l| !l.is_empty() && !l.starts_with("```"))?;
     let (head, tail) = first.split_once(':')?;
-    if !head.trim().eq_ignore_ascii_case("shape") {
+    let bare = |s: &str| {
+        s.trim()
+            .trim_matches(|c: char| matches!(c, '*' | '_' | '`'))
+            .trim()
+            .to_string()
+    };
+    if !bare(head).eq_ignore_ascii_case("shape") {
         return None;
     }
+    let tail = tail.trim_start_matches(|c: char| matches!(c, '*' | '_' | '`'));
     let token = tail
         .split_whitespace()
         .next()?

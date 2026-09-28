@@ -72,7 +72,15 @@ impl Hints {
             rounds: self
                 .rounds
                 .filter(|_| matches!(shape, Shape::Loop | Shape::Goal)),
-            agents: self.agents.filter(|_| shape == Shape::Fan),
+            agents: match shape {
+                Shape::Fan => self.agents,
+                // A reply is answered by ONE agent: the first named.
+                Shape::Reply => self.agents.map(|mut a| {
+                    a.truncate(1);
+                    a
+                }),
+                _ => None,
+            },
             verify: self.verify && matches!(shape, Shape::Swarm | Shape::Plan),
             tier: self
                 .tier

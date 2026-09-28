@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.59
+
+**The agent best suited to a question answers it.** A plain question used
+to go to whichever specialist had answered most recently. That's how an
+"editor" (proofreading) came to explain a Rust crate. The routing call now
+sees each agent's role ("code-analyst (code, deconstruction, analysis)",
+not just a name), and for a reply it names the one agent that fits. The
+routing line says who: "routing: reply → code-analyst — …". An `@name` you
+type still decides, and if the router names an agent that no longer
+exists, the old default answers. The routing call's reply is also read
+through markdown now: a smaller model sometimes wraps its answer in a code
+fence or bold text, and that used to be treated as garbled, sending the
+question down the slow swarm path.
+
 ## 0.24.58
 
 **Smith starts deciding about 0.3 seconds sooner.** Before touching
