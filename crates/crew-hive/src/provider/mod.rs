@@ -2,6 +2,7 @@
 //! Object-safe (boxed future, no async-trait) so the mock and the real
 //! Anthropic client share one interface.
 mod anthropic;
+mod anthropicsse;
 mod claudecli;
 pub mod claudestream;
 mod io;

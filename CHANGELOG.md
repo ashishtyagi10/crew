@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.61
+
+**Answers served through the Anthropic API now type out live.** With an
+Anthropic key or a signed-in `ant` profile, smith sat on "thinking" for
+the whole reply and then printed it all at once. The Anthropic provider
+never asked for a stream, while DashScope, OpenRouter and the other hosts
+did. It now streams: the answer appears as it's written, and the model's
+thinking shows live too when there is any. A gateway that ignores the
+streaming request and sends the whole reply still works. Replies that
+call tools are still fetched whole for now. Anthropic calls also use the
+shared, already-open connection added in 0.24.56.
+
 ## 0.24.60
 
 **A smith answer is never asked for twice, and its prompt is a third
