@@ -22,6 +22,7 @@ mod plangate;
 mod replypick;
 mod routing;
 mod skillhint;
+mod swarmwait;
 mod verify;
 mod world;
 

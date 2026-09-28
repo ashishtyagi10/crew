@@ -65,8 +65,28 @@ pub(crate) fn run_task_on(
     // and mock runs get neither, and the pane sees exactly what it saw before.
     let synth = swarmanswer::live();
     let judge = swarmverify::live(verify);
+    // Agent smith is visibly at work while the planner decides — a blocking
+    // call of a second or more that used to leave the pane with nothing
+    // live between the routing line and the plan. The first thing the run
+    // says (its plan, or why it had none) settles him.
+    emit(PluginEvent::Activity {
+        agent: SWARM_LEAD.into(),
+        state: "thinking".into(),
+        from: "user".into(),
+    })?;
+    let mut planning = true;
+    let mut settled = |ev: PluginEvent| -> anyhow::Result<()> {
+        if std::mem::take(&mut planning) {
+            emit(PluginEvent::Activity {
+                agent: SWARM_LEAD.into(),
+                state: "idle".into(),
+                from: String::new(),
+            })?;
+        }
+        emit(ev)
+    };
     // The lead's tools line rides on the emitter, said once per run.
-    let mut emit = swarmcast::announcing(&session.toolpick, emit);
+    let mut emit = swarmcast::announcing(&session.toolpick, &mut settled);
     let reply = run_with_synth(
         &task_owned,
         planner,

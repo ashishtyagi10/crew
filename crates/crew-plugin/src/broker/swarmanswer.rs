@@ -47,7 +47,9 @@ const ANSWER_SENDER: &str = "answer";
 
 /// The live closing call, on routing's gates: `None` keyless, mock, or off.
 pub(super) fn live() -> Option<Box<SynthFn>> {
-    let call = crate::broker::intent::live_call(SYNTH_MAX_TOKENS)?;
+    // The answer the user reads: the standard model, not the router's.
+    let call =
+        crate::broker::intent::live_call_at(SYNTH_MAX_TOKENS, crew_hive::ModelTier::Standard)?;
     let boxed: Box<SynthFn> = Box::new(call);
     Some(boxed)
 }

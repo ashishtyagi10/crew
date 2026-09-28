@@ -27,10 +27,21 @@ pub(crate) fn live_classifier() -> Option<impl Fn(&str) -> Result<String, String
 /// plumbing behind classification, election, and `compact`'s summarizer. One
 /// set of gates (`CREW_INTENT=0`, keyless, mock), one escape hatch.
 pub(crate) fn live_call(max_tokens: u32) -> Option<impl Fn(&str) -> Result<String, String>> {
+    live_call_at(max_tokens, crew_hive::ModelTier::Cheap)
+}
+
+/// [`live_call`] on a stated tier. The quick decisions — a shape, a skill, a
+/// tool, a summary — are `Cheap`; a call whose output IS the work the user
+/// reads (the swarm's closing answer, a judge's verdict) is `Standard`, since
+/// on DashScope `Cheap` became a smaller model (`discover::DASHSCOPE_CHEAP_MODEL`).
+pub(crate) fn live_call_at(
+    max_tokens: u32,
+    tier: crew_hive::ModelTier,
+) -> Option<impl Fn(&str) -> Result<String, String>> {
     if super::disabled() {
         return None;
     }
-    let (provider, model) = crate::broker::discover::provider_and_model()?;
+    let (provider, model) = crate::broker::discover::provider_and_model_for(tier)?;
     if model == "mock" {
         return None;
     }
