@@ -7,23 +7,94 @@ use std::time::{Duration, Instant};
 use serde_json::{json, Value};
 
 use crate::demux::Notification;
+use crate::docsync::{digest, OpenDoc, Synced};
 use crate::types::Diagnostic;
 use crate::Client;
 
 impl Client {
     pub fn is_open(&self, uri: &str) -> bool {
-        self.open.contains(uri)
+        self.open.contains_key(uri)
     }
 
-    /// Tell the server about a document. The text is what the caller has —
-    /// the disk's, for crew — and version 1 forever, since crew never edits.
+    /// Tell the server about a document. The text is what the caller has,
+    /// which for crew is the disk's.
     pub fn did_open(&mut self, uri: &str, language_id: &str, text: &str) -> Result<(), String> {
+        self.open_at(uri, language_id, text, 1)
+    }
+
+    fn open_at(&mut self, uri: &str, lang: &str, text: &str, version: i32) -> Result<(), String> {
         self.notify(
             "textDocument/didOpen",
-            json!({"textDocument": {"uri": uri, "languageId": language_id, "version": 1, "text": text}}),
+            json!({"textDocument": {"uri": uri, "languageId": lang, "version": version, "text": text}}),
         )?;
-        self.open.insert(uri.to_string());
+        self.remember(uri, version, text, lang.to_string());
         Ok(())
+    }
+
+    /// What the server now has for `uri`: `version`, and `text`'s digest.
+    fn remember(&mut self, uri: &str, version: i32, text: &str, lang: String) {
+        let digest = digest(text);
+        let doc = OpenDoc {
+            version,
+            digest,
+            lang,
+        };
+        self.open.insert(uri.to_string(), doc);
+    }
+
+    /// Replace the server's copy of an open document with `text`, whole.
+    /// Whole-document changes are legal whatever sync kind the server asked
+    /// for, and crew has no edit to describe anyway, only the disk's new
+    /// text. A server that takes no changes gets the document closed and
+    /// opened again, still at the next version.
+    pub fn did_change(&mut self, uri: &str, text: &str) -> Result<(), String> {
+        let doc = self
+            .open
+            .get(uri)
+            .ok_or_else(|| format!("{uri} is not open"))?;
+        let (version, lang) = (doc.version + 1, doc.lang.clone());
+        if !self.doc_sync.change {
+            self.did_close(uri)?;
+            return self.open_at(uri, &lang, text, version);
+        }
+        self.notify(
+            "textDocument/didChange",
+            json!({"textDocument": {"uri": uri, "version": version}, "contentChanges": [{"text": text}]}),
+        )?;
+        self.remember(uri, version, text, lang);
+        Ok(())
+    }
+
+    /// Say the document is saved, if the server asked to hear it, with the
+    /// text if it asked for that too. crew's text always IS the saved file,
+    /// and rust-analyzer only runs `cargo check` on a save.
+    pub fn did_save(&mut self, uri: &str, text: &str) -> Result<(), String> {
+        let Some(with_text) = self.doc_sync.save else {
+            return Ok(());
+        };
+        let mut params = json!({"textDocument": {"uri": uri}});
+        if with_text {
+            params["text"] = Value::from(text);
+        }
+        self.notify("textDocument/didSave", params)
+    }
+
+    /// Bring the server's copy of `uri` level with `text`: open it if the
+    /// server has never seen it, send the whole text and a save if it has
+    /// moved on, and send nothing if it has not. A document opened here is
+    /// not saved; whether a first look is worth a `cargo check` is the
+    /// caller's call.
+    pub fn sync(&mut self, uri: &str, language_id: &str, text: &str) -> Result<Synced, String> {
+        let Some(doc) = self.open.get(uri) else {
+            self.did_open(uri, language_id, text)?;
+            return Ok(Synced::Opened);
+        };
+        if doc.digest == digest(text) {
+            return Ok(Synced::Unchanged);
+        }
+        self.did_change(uri, text)?;
+        self.did_save(uri, text)?;
+        Ok(Synced::Changed)
     }
 
     pub fn did_close(&mut self, uri: &str) -> Result<(), String> {

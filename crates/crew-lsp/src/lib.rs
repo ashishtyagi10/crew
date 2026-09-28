@@ -9,7 +9,8 @@
 //! The wire is JSON-RPC 2.0 over the child's stdio with `Content-Length`
 //! framing ([`framing`]); a reader thread splits what arrives into responses,
 //! notifications and server-to-client requests ([`demux`]); [`Client`] owns
-//! the process, the handshake and the open documents; [`ops`] are the typed
+//! the process, the handshake and the open documents ([`docsync`] keeps
+//! the server's copy of each level with the disk); [`ops`] are the typed
 //! helpers; [`servers`] says which binary serves which language; [`root`]
 //! finds the project a file belongs to; [`running`] is the process-global
 //! list of live servers the `/lsp` status card reads.
@@ -21,6 +22,7 @@
 pub mod client;
 pub mod demux;
 pub mod docs;
+pub mod docsync;
 pub mod framing;
 pub mod ops;
 pub mod root;

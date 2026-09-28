@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
+use crew_lsp::docsync::Synced;
 use crew_lsp::servers::{self, Server};
 use crew_lsp::{Client, Diagnostic};
 
@@ -22,8 +23,9 @@ pub use tools::Args;
 /// Per-request deadline. A language server that has not answered in this
 /// long is indexing something large; the agent is told so and can retry.
 pub const TIMEOUT: Duration = Duration::from_secs(15);
-/// How long `diagnostics` waits for a publish on a file already open — the
-/// server has usually said its piece, but a fresh save may be in flight.
+/// How long `diagnostics` waits for a publish on a file already open and
+/// unchanged since — the server has usually said its piece, but its
+/// `cargo check` from the last save may still be in flight.
 const SETTLE: Duration = Duration::from_millis(1500);
 
 #[derive(Default)]
@@ -191,6 +193,25 @@ impl LspHost {
         }
     }
 
+    /// Record every publish already queued; `true` if one was about `uri`.
+    ///
+    /// Whatever is queued was said about the text the server had BEFORE this
+    /// call. rust-analyzer publishes twice per text (its own checks, then
+    /// `cargo check`'s), so the second of a pair was often still waiting when
+    /// the next question came, and a wait for the answer to a change took it:
+    /// measured, an error just written read "no diagnostics", and the fix that
+    /// followed read as the error, one edit behind throughout.
+    fn drain(&mut self, key: &(String, PathBuf), uri: &str) -> bool {
+        let Some(c) = self.clients.get(key) else {
+            return false;
+        };
+        let mut about_uri = false;
+        while let Some(n) = c.try_notification() {
+            about_uri |= Self::absorb(&mut self.diags, n).as_deref() == Some(uri);
+        }
+        about_uri
+    }
+
     /// Run one `lsp` tool. Every failure is a sentence for the agent; a
     /// failed request also drops the client so the next call starts fresh.
     pub fn call(&mut self, tool: &str, args: &str) -> Result<String, String> {
@@ -201,22 +222,49 @@ impl LspHost {
         let root = crew_lsp::root::for_file(&path);
         let key = (lang.to_string(), root.clone());
         let uri = crew_lsp::uri::from_path(&path);
-        let fresh = {
-            let c = self.client(lang, &root)?;
-            if c.is_open(&uri) {
-                false
-            } else {
-                let text = std::fs::read_to_string(&path)
-                    .map_err(|e| format!("{}: {e}", path.display()))?;
-                c.did_open(&uri, lang, &text)?;
-                true
-            }
+        self.client(lang, &root)?;
+        let queued = self.drain(&key, &uri);
+        // The disk is read on every call, not just the first: an agent edits
+        // between questions, and a server answers about the copy it was last
+        // sent. A copy that moved on is resent whole, with a save.
+        let synced = {
+            let c = self.clients.get_mut(&key).expect("started above");
+            let text =
+                std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+            c.sync(&uri, lang, &text).and_then(|s| {
+                // A first look for diagnostics saves too, so rust-analyzer's
+                // `cargo check` (the type errors) runs on it; a hover does
+                // not need one.
+                if s == Synced::Opened && tool == "diagnostics" {
+                    c.did_save(&uri, &text)?;
+                }
+                Ok(s)
+            })
         };
+        let synced = synced.inspect_err(|_| {
+            self.clients.remove(&key);
+        })?;
         let (line, col) = (a.line.saturating_sub(1), a.col.saturating_sub(1));
         let out = match tool {
             "diagnostics" => {
-                let wait = if fresh { TIMEOUT } else { SETTLE };
-                self.wait_publish(&key, &uri, wait);
+                // Text the server has not spoken about yet waits for its
+                // word, which may be a first index. Unchanged text already
+                // has it when a publish was queued, and otherwise gives a
+                // `cargo check` still running from the last save a moment.
+                // A change waits only SETTLE: rust-analyzer re-publishes a
+                // change that moves the diagnostics within 11–180 ms
+                // (measured), and publishes NOTHING for one that leaves them
+                // as they were — so TIMEOUT made a clean edit to a clean file
+                // wait 15 s for the answer it already had.
+                let wait = match synced {
+                    Synced::Opened => Some(TIMEOUT),
+                    Synced::Changed => Some(SETTLE),
+                    Synced::Unchanged if queued => None,
+                    Synced::Unchanged => Some(SETTLE),
+                };
+                if let Some(wait) = wait {
+                    self.wait_publish(&key, &uri, wait);
+                }
                 let list = self.diags.get(&uri).cloned().unwrap_or_default();
                 Ok(tools::diagnostics_text(&root, &path, &list))
             }
@@ -283,3 +331,11 @@ pub(crate) fn loaded_event(lang: &str, command: &str, root: &Path) -> crew_hive:
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "peer_tests.rs"]
+mod peer;
+
+#[cfg(test)]
+#[path = "fresh_tests.rs"]
+mod fresh_tests;

@@ -1,7 +1,7 @@
 //! One running language server: the process, its framed stdio, and the
 //! handshake. The documents it has been told about live in [`crate::docs`]. Every wait has a deadline, so a server
 //! that hangs (or never indexed) costs a timeout, never a frozen caller.
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 use serde_json::{json, Value};
 
 use crate::demux::{self, Incoming, Notification};
+use crate::docsync::{DocSync, OpenDoc};
 use crate::framing::encode;
 use crew_hive::childproc::no_console_window;
 
@@ -29,7 +30,9 @@ pub struct Client {
     next_id: u64,
     lang: String,
     root: PathBuf,
-    pub(crate) open: BTreeSet<String>,
+    pub(crate) open: BTreeMap<String, OpenDoc>,
+    /// How the server asked to hear about changes; read at `initialize`.
+    pub(crate) doc_sync: DocSync,
 }
 
 fn write_msg(stdin: &Mutex<ChildStdin>, msg: &Value) -> Result<(), String> {
@@ -85,7 +88,8 @@ impl Client {
             next_id: 0,
             lang: lang.to_string(),
             root: root.to_path_buf(),
-            open: BTreeSet::new(),
+            open: BTreeMap::new(),
+            doc_sync: DocSync::default(),
         })
     }
 
@@ -114,6 +118,7 @@ impl Client {
             },
         });
         let r = self.request("initialize", params, timeout)?;
+        self.doc_sync = DocSync::from_initialize(&r);
         self.notify("initialized", json!({}))?;
         Ok(r)
     }
