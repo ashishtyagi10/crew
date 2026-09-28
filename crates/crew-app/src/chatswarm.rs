@@ -22,6 +22,11 @@ pub(crate) struct SwarmTask {
     pub tokens_in: u64,
     /// Output tokens spent by the agent running this task.
     pub tokens_out: u64,
+    /// Why the task's agent failed, in the provider's words — its `Failed`
+    /// event, clipped by the hive to a few hundred chars — since a red ✗
+    /// alone cannot tell a timeout from a bad key. Empty until then; a
+    /// retry's spawn clears it, so a second attempt never wears the first's.
+    pub why: String,
     /// When the task started running — stamped once by whichever of
     /// `AgentSpawned`/`TaskStateChanged(Running)` arrives first. `None` until
     /// then (and forever, if the task is cancelled before either arrives).
@@ -70,6 +75,7 @@ impl SwarmStatus {
                     state: TaskState::Pending,
                     tokens_in: 0,
                     tokens_out: 0,
+                    why: String::new(),
                     started: None,
                     started_ms: None,
                     ended_ms: None,
@@ -115,6 +121,7 @@ impl SwarmStatus {
                 self.agent_task.insert(agent.0, *task);
                 if let Some(t) = self.task_mut(*task) {
                     t.state = TaskState::Running;
+                    t.why.clear();
                     t.started.get_or_insert_with(Instant::now);
                     t.started_ms.get_or_insert(now_ms);
                     t.ended_ms = None;
@@ -144,17 +151,23 @@ impl SwarmStatus {
                     }
                 }
             }
+            HiveEvent::Failed { agent, error } => {
+                if let Some(&task) = self.agent_task.get(&agent.0) {
+                    if let Some(t) = self.task_mut(task) {
+                        t.why = error.clone();
+                    }
+                }
+            }
             HiveEvent::ToolBudget { used, total } => self.tools = Some((*used, *total)),
             // Not this block's: cost; chunks (the broker's Message); deltas
-            // (`chatflow`/`chatthought`); tools (`chattool`); Failed (a state).
+            // (`chatflow`/`chatthought`); tools (`chattool`).
             HiveEvent::CostDelta { .. }
             | HiveEvent::OutputChunk { .. }
             | HiveEvent::OutputDelta { .. }
             | HiveEvent::ThoughtDelta { .. }
             | HiveEvent::ToolCall { .. }
             | HiveEvent::ToolResult { .. }
-            | HiveEvent::Loaded { .. }
-            | HiveEvent::Failed { .. } => {}
+            | HiveEvent::Loaded { .. } => {}
         }
     }
 

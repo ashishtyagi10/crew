@@ -11,7 +11,6 @@
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
-use crate::chathdr::fmt_tokens;
 use crate::chatswarm::{SwarmStatus, SwarmTask};
 use crate::chatswarmcell::{push_str, push_styled};
 use crate::chatswarmfit::{paren_bare, paren_whole, paren_with_title};
@@ -156,11 +155,7 @@ fn layout(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<Line> {
     let (ti, to) = s.token_totals();
     let mut trail: Vec<String> = Vec::new();
     if ti > 0 || to > 0 {
-        trail.push(format!(
-            "\u{2191}{} \u{2193}{}",
-            fmt_tokens(ti),
-            fmt_tokens(to)
-        ));
+        trail.push(crate::chatswarmcost::words(ti, to));
     }
     trail.extend(crate::chatswarmrec::tools_words(s.tools));
     let tokens = (!trail.is_empty())
@@ -179,14 +174,14 @@ fn layout(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<Line> {
 }
 
 /// Rows the block occupies in the message area: the status line plus the
-/// task rows under it (`chatswarmrows::rows_wanted`), or 0 with no live run
+/// task rows under it (`chatswarmplan::rows_wanted`), or 0 with no live run
 /// or a pane too narrow to show even the counter floor — see [`layout`].
 /// `now_ms` is irrelevant to *whether* the rows exist (only the counter floor
 /// decides that, and it's clock-independent), so this passes 0 and stays
 /// deterministic for the layout budget in `chatplace`.
 pub(crate) fn swarm_rows(pane: &ChatPane, cols: u16) -> u16 {
     match (layout(pane, cols, 0), pane.swarm.as_ref()) {
-        (Some(_), Some(s)) => 1 + crate::chatswarmrows::rows_wanted(s),
+        (Some(_), Some(s)) => 1 + crate::chatswarmplan::rows_wanted(s),
         _ => 0,
     }
 }

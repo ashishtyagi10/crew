@@ -94,6 +94,9 @@ mod chatspan;
 #[cfg(test)]
 #[path = "chatswarmshot_tests.rs"]
 mod chatswarmshot_tests;
+#[cfg(test)]
+#[path = "chatswarmwhyshot_tests.rs"]
+mod chatswarmwhyshot_tests;
 mod completefuzzy;
 #[cfg(test)]
 #[path = "errwording_tests.rs"]
@@ -156,12 +159,16 @@ mod chatsubshot_tests;
 mod chatsummary;
 mod chatswarm;
 mod chatswarmcell;
+mod chatswarmcost;
 mod chatswarmfit;
+mod chatswarmgeom;
 mod chatswarmlog;
+mod chatswarmplan;
 mod chatswarmrec;
 mod chatswarmrows;
 mod chatswarmspan;
 mod chatswarmview;
+mod chatswarmwhy;
 mod chattail;
 mod chattheme;
 mod chatthought;

@@ -35,7 +35,8 @@ pub(crate) fn plain(s: &SwarmStatus, i: usize) -> String {
 }
 
 /// The card's text at `now_ms`: `swarm · 3 tasks · 2 done · 1 failed · 12s
-/// · tools 5/12`, then one line per task (`chatswarmrows::plain`).
+/// · tools 5/12`, then one line per task ([`plain`]) — a failed one followed
+/// by why (`chatswarmwhy::record_line`), as the live block drew it.
 pub(crate) fn text(s: &SwarmStatus, now_ms: u64) -> String {
     let count = |state: TaskState| s.tasks.iter().filter(|t| t.state == state).count();
     let mut head = vec![
@@ -55,7 +56,9 @@ pub(crate) fn text(s: &SwarmStatus, now_ms: u64) -> String {
         head.push(crate::chatswarmspan::fmt_ms(t1 - t0));
     }
     head.extend(tools_words(s.tools));
-    let rows: Vec<String> = (0..s.tasks.len()).map(|i| plain(s, i)).collect();
+    let rows: Vec<String> = (0..s.tasks.len())
+        .flat_map(|i| std::iter::once(plain(s, i)).chain(crate::chatswarmwhy::record_line(s, i)))
+        .collect();
     format!("{LEAD}{}\n{}", head.join(" \u{b7} "), rows.join("\n"))
 }
 
