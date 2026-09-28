@@ -126,6 +126,12 @@ fn complete_once(
 /// and short on purpose — it is repeated verbatim in the pane. The order is
 /// cache-aware, as `route::frame`'s is: the invariant grammar first, then
 /// the world (changes per session), then the message (changes per call).
+///
+/// Editing files is named under `reply` and ruled out of `commit` in so many
+/// words: measured live (2026-09-28, qwen-flash), "append a line", "rename
+/// X in route.rs" and "turn guide.md into a PDF" came back `commit`, four
+/// of the eight file changes in `routereval`. `shapeguard` still holds the
+/// router to it when the prompt is not enough.
 pub(super) fn prompt(task: &str, world: &super::world::World) -> String {
     let skills = match world.skills.is_empty() {
         true => "",
@@ -135,17 +141,23 @@ pub(super) fn prompt(task: &str, world: &super::world::World) -> String {
     let max = crate::broker::roundloop::MAX_ROUNDS;
     format!(
         "You route a user's message to ONE execution shape:\n\
-         reply — a single agent answers or does it directly in one turn\n\
+         reply — a single agent answers or does it directly in one turn: questions, and \
+         editing, adding to, fixing or writing files\n\
          fan — every agent tackles the same thing independently (the user wants many takes)\n\
          loop — one result refined over several rounds (iterate/polish/keep improving)\n\
          plan — draft a plan for approval before anything runs\n\
          goal — keep working in rounds until a stated success condition is judged met\n\
-         swarm — multi-part work worth decomposing into parallel tasks\n\
-         commit — draft a git commit message for the working diff (creating the commit still \
-         waits for the user's confirm)\n\
-         review — code-review the working diff, findings worst-first\n\
-         standup — summarize recent commits as a standup update\n\
-         resume — restore the previous session's conversation as context\n\
+         swarm — multi-part work worth decomposing into parallel tasks, a large change \
+         included\n\
+         The four below act on git history or the last session and ignore the message's \
+         words, so pick one ONLY when the message asks for exactly that:\n\
+         commit — the message asks for a git commit or a commit message: draft one for the \
+         working diff (creating it still waits for the user's confirm). Editing, adding to, \
+         fixing or writing files is reply (swarm when large), never commit, dirty tree or not\n\
+         review — the message asks to review the working diff: code-review it, findings \
+         worst-first\n\
+         standup — the message asks what was done or shipped: summarize recent commits\n\
+         resume — the message asks to pick up the last session: restore its conversation\n\
          The FIRST line of your reply must be exactly \
          `SHAPE: <reply|fan|loop|plan|goal|swarm|commit|review|standup|resume>`.\n\
          An optional second line `WHY: <one short clause>` says why, in ten words \

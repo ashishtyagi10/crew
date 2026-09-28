@@ -181,7 +181,7 @@ pub(crate) fn decide_in(task: &str, world: &World, classifier: Option<Classifier
     let mut outcome = Routing::OffGrammar;
     for _ in 0..2 {
         outcome = match call(&prompt) {
-            Ok(reply) => read_reply(&reply, world),
+            Ok(reply) => read_reply(task, &reply, world),
             Err(e) => return Routing::Failed(e),
         };
         if outcome != Routing::OffGrammar {
@@ -193,15 +193,18 @@ pub(crate) fn decide_in(task: &str, world: &World, classifier: Option<Classifier
 
 /// One classifier reply, parsed: the decision with its sizing and skill
 /// lines, or off-grammar (said on stderr, clipped, so a stray reply can be
-/// diagnosed without re-running the turn).
-fn read_reply(reply: &str, world: &World) -> Routing {
-    let Some(mut d) = parse_decision_on(reply, &world.agents) else {
+/// diagnosed without re-running the turn). A git or session shape the
+/// message never asks for becomes a reply here (`shapeguard`), before the
+/// skill line is read, so the reply keeps the playbooks any reply would.
+fn read_reply(task: &str, reply: &str, world: &World) -> Routing {
+    let Some(d) = parse_decision_on(reply, &world.agents) else {
         eprintln!(
             "crew-broker: router reply off-grammar: {:?}",
             clip(reply, 300)
         );
         return Routing::OffGrammar;
     };
+    let mut d = super::shapeguard::hold(task, d);
     // Shown the roster and naming none of it IS a choice — none —
     // not a gap for the skill decider to fill with another call.
     let names: Vec<String> = world.skills.iter().map(|(n, _)| n.clone()).collect();

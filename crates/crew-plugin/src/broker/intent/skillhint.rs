@@ -42,10 +42,21 @@ pub(crate) fn rows() -> Vec<(String, String)> {
 }
 
 /// The grammar sentence the routing prompt gains when there are skills.
+///
+/// Worded against what was measured (2026-09-28, qwen-flash): a one-line
+/// doc comment drew `doc-coauthoring`, a palette tweak in a `crew-theme`
+/// path drew `theme-factory`, and "with tests and docs" drew two more. The
+/// earlier sentence already said a name appearing is no reason; the model
+/// read a word ABOUT the task as the task. So the default is said first,
+/// and the test is the description, not the name. The doc comment and the
+/// tests-and-docs work stopped drawing skills; the palette tweak still draws
+/// `theme-factory`, and `routereval` counts it a miss.
 pub(crate) const GRAMMAR: &str = " One more optional line `SKILLS: <name, name>` \
-     (reply, swarm, loop or goal) names up to two of the skills listed below \
-     whose work this message IS \u{2014} a name merely appearing in the message \
-     is not a reason \u{2014} or `SKILLS: none` when none fits.";
+     (reply, swarm, loop or goal) names up to two of the skills listed below. \
+     Most messages need none, and the line is then `SKILLS: none`. Name a \
+     skill only when the message asks for the kind of work its DESCRIPTION \
+     describes \u{2014} never because a word in the message (a file, crate or \
+     path name, or any word that looks like the skill's name) matches it.";
 
 /// The roster block for the world section: one row per skill.
 pub(crate) fn block(rows: &[(String, String)]) -> Option<String> {
