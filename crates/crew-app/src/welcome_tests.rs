@@ -115,8 +115,15 @@ fn restore_hint_renders_below_the_keyboard_hint() {
         text(&with)
     );
     assert!(text(&with).contains("/restore"));
+    // The hint's own words, not "/restore" anywhere: the news line under the
+    // hint is the top CHANGELOG headline, and a release that mentions
+    // `/restore` (0.24.73) put the word on screen with no saved panes.
     let without = welcome_cells_animated(80, 30, 0, None);
-    assert!(!text(&without).contains("/restore"));
+    assert!(
+        !text(&without).contains("panes from last session"),
+        "{}",
+        text(&without)
+    );
 }
 
 #[test]

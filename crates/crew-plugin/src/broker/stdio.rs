@@ -487,8 +487,7 @@ fn auto_checkpoint(session: &Session, label: &str, out: &Out) {
             out,
             &msg(
                 "agent smith",
-                "snapshot taken before this task \u{2014} /restore lists them, \
-                 /restore <n> puts one back",
+                "snapshot taken before this task \u{2014} say \u{201c}undo that\u{201d} to put it back",
             ),
         );
     }

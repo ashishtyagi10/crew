@@ -122,7 +122,7 @@ pub(crate) fn summary(changes: &[Change], hint: bool) -> Option<String> {
         line.push_str(&format!(", +{rest} more"));
     }
     if hint {
-        line.push_str(" \u{2014} /diff shows them, /restore puts them back");
+        line.push_str(" \u{2014} /diff shows them; \u{201c}undo that\u{201d} puts them back");
     }
     Some(line)
 }
@@ -203,9 +203,9 @@ mod tests {
     #[test]
     fn the_hint_is_the_callers_to_add() {
         let c = [('A', "a.rs".into())];
-        assert!(summary(&c, true).unwrap().contains("/restore"));
+        assert!(summary(&c, true).unwrap().contains("undo that"));
         assert!(
-            !summary(&c, false).unwrap().contains("/restore"),
+            !summary(&c, false).unwrap().contains("undo that"),
             "the second task must not repeat the lesson"
         );
     }

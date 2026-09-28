@@ -186,8 +186,8 @@ fn checkpoints_announce_themselves_exactly_once() {
     // …and it names how to use it, or it is just trivia.
     assert!(
         msgs.iter()
-            .any(|(_, t)| t.contains("snapshot taken") && t.contains("/restore")),
-        "the note must name /restore: {msgs:?}"
+            .any(|(_, t)| t.contains("snapshot taken") && t.contains("undo that")),
+        "the note must say how to undo it: {msgs:?}"
     );
 }
 
