@@ -150,15 +150,18 @@ fn decide_keeps_a_call_error_apart_from_an_off_grammar_reply() {
     assert_eq!(decide("x", None), Routing::Off);
 }
 
+/// Every stop used to dispatch as the swarm. Now only a router that may not
+/// run does (the pre-router behavior `CREW_INTENT=0` and the mock-driven
+/// tests rely on); one that ran and stumbled is one agent's reply, sized
+/// like a chosen reply with no `AGENTS:` line.
 #[test]
-fn every_stop_dispatches_as_the_swarm() {
-    for r in [
-        Routing::Off,
-        Routing::Failed("boom".into()),
-        Routing::OffGrammar,
-    ] {
-        assert_eq!(r.decision(), Decision::default(), "{r:?}");
-        assert_eq!(r.decision().shape, Shape::Swarm);
+fn only_an_off_router_dispatches_as_the_swarm() {
+    assert_eq!(Routing::Off.decision(), Decision::default());
+    assert_eq!(Routing::Off.decision().shape, Shape::Swarm);
+    for r in [Routing::Failed("boom".into()), Routing::OffGrammar] {
+        let d = r.decision();
+        assert_eq!(d.shape, Shape::Reply, "{r:?}");
+        assert_eq!((d.why, d.hints), (None, Hints::default()), "{r:?}");
     }
 }
 
@@ -175,7 +178,7 @@ fn a_fenced_or_bolded_shape_line_is_read() {
     assert_eq!(parse_shape("Sure!\nSHAPE: reply"), None);
 }
 
-/// One stray reply is asked again before it becomes the swarm fallback; two
+/// One stray reply is asked again before it becomes the reply fallback; two
 /// in a row are the fallback, and a call that FAILED is not retried.
 #[test]
 fn an_off_grammar_reply_is_asked_once_more() {

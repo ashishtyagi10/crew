@@ -9,9 +9,11 @@
 //! `fan`, `loop`, `plan` or `swarm` — and dispatch reuses the EXISTING
 //! capability paths (relay, fan-out, loop rounds, plan gate, swarm), so every
 //! guard those paths enforce (hop cap, token budget, tool rounds) applies
-//! unchanged. Anything that stops the classifier — `CREW_INTENT=0`, no API
-//! key, the mock provider, a parse failure — falls back to today's behavior:
-//! the swarm. Whatever it decides, the pane is told (see `decision`). The
+//! unchanged. A classifier that may not run — `CREW_INTENT=0`, no API key,
+//! the mock provider — leaves the pre-router behavior: the swarm. One that
+//! runs and stumbles — a failed call, a reply off-grammar twice — lands on a
+//! single agent's reply, the cheap common case (`decision::Routing`).
+//! Whatever it decides, the pane is told (see `decision`). The
 //! model also sizes the work (`hints`: rounds, a fan subset) and sees the
 //! room it routes in (`world`: roster, dirty tree, tools); the round
 //! constants here and in `constructs` are backstops, not the drivers.
@@ -58,7 +60,8 @@ pub(crate) enum Shape {
     /// Relay rounds until a judge agent rules a stated goal met (the `/goal`
     /// body — the round cap stays a backstop).
     Goal,
-    /// Decompose into a task graph (today's default, and every stop's).
+    /// Decompose into a task graph (the pre-router default, and still where
+    /// a classifier that may not run lands).
     #[default]
     Swarm,
     /// Draft a commit message for the working diff (the `/commit` body).
@@ -73,16 +76,17 @@ pub(crate) enum Shape {
     Resume,
 }
 
-/// Route one plain message: classify, then dispatch. Every way the classifier
-/// can stop — disabled, keyless, mock, call error, off-grammar reply — lands
-/// on [`Shape::Swarm`], exactly the pre-router behavior.
+/// Route one plain message: classify, then dispatch. Disabled, keyless and
+/// mock land on [`Shape::Swarm`], exactly the pre-router behavior; a call
+/// error or an off-grammar reply lands on [`Shape::Reply`] (see
+/// `decision::Routing::decision` for why the two differ).
 pub(crate) fn route(
     task: &str,
     session: &mut Session,
     tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    match classify::live_classifier() {
+    match classify::live_router() {
         Some(call) => route_with(task, Some(&call), session, tick_emit, emit),
         None => route_with(task, None, session, tick_emit, emit),
     }
