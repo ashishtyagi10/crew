@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.60
+
+**A smith answer is never asked for twice, and its prompt is a third
+smaller.** When an agent answered your question without ending on `@done`,
+crew asked it again to add the missing line. That was a second full model
+call, and the pane typed the same answer out twice. An answer to you with
+no hand-off line is now simply the answer; the re-ask only happens between
+agents, where "done" and "over to you" really are ambiguous. The prompt
+itself also stopped repeating itself. On the first hop the task and "the
+message from user" were the same text (project card, earlier turns and
+question), sent twice, and every agent's role was listed twice. Each is
+said once now: 1,466 prompt tokens for a short question, down from 2,049.
+
 ## 0.24.59
 
 **The agent best suited to a question answers it.** A plain question used

@@ -158,32 +158,38 @@ impl Broker {
                 agent, &prompt, reply, &mut stats, &mut usage, &env, &stream, sink,
             );
             // If the agent forgot its control line and a hand-off is possible,
-            // re-ask it once to add one (bounded to a single repair per thread).
-            let reply = if !repaired && !peers.is_empty() && !has_directive(&reply) {
-                repaired = true;
-                let nudge = repair_prompt(&peers, &reply);
-                let stream = HopStream {
-                    on_tokens: hop_ticker(tick_emit.clone(), env.to.clone()),
-                    on_text: hop_texter(tick_emit.clone(), env.to.clone()),
-                    on_thought: hop_thinker(tick_emit.clone(), env.to.clone()),
-                    on_tool: hop_tooler(tick_emit.clone(), env.to.clone()),
-                };
-                match agent.call_with_usage_ticked(&nudge, self.timeout, &stream) {
-                    Ok((r, u)) if !r.trim().is_empty() => {
-                        stats.exchanges += 1;
-                        stats.approx_tokens += (nudge.len() + r.len()) / 4;
-                        stats.real_tokens += (u.input_tokens + u.output_tokens) as usize;
-                        stats.tok_in += u64::from(u.input_tokens);
-                        stats.tok_out += u64::from(u.output_tokens);
-                        stats.cost_microusd += u.cost_microusd;
-                        usage = u; // the repair call's context is the latest
-                        r
+            // re-ask it once to add one (bounded to a single repair per thread)
+            // — but only mid-chain. An agent answering the USER with no
+            // directive has answered: routing already reads bare prose as
+            // done, and the re-ask cost a second full call, typing the same
+            // answer out twice, to add one word nobody reads.
+            let answering_user = env.from == "user";
+            let reply =
+                if !repaired && !answering_user && !peers.is_empty() && !has_directive(&reply) {
+                    repaired = true;
+                    let nudge = repair_prompt(&peers, &reply);
+                    let stream = HopStream {
+                        on_tokens: hop_ticker(tick_emit.clone(), env.to.clone()),
+                        on_text: hop_texter(tick_emit.clone(), env.to.clone()),
+                        on_thought: hop_thinker(tick_emit.clone(), env.to.clone()),
+                        on_tool: hop_tooler(tick_emit.clone(), env.to.clone()),
+                    };
+                    match agent.call_with_usage_ticked(&nudge, self.timeout, &stream) {
+                        Ok((r, u)) if !r.trim().is_empty() => {
+                            stats.exchanges += 1;
+                            stats.approx_tokens += (nudge.len() + r.len()) / 4;
+                            stats.real_tokens += (u.input_tokens + u.output_tokens) as usize;
+                            stats.tok_in += u64::from(u.input_tokens);
+                            stats.tok_out += u64::from(u.output_tokens);
+                            stats.cost_microusd += u.cost_microusd;
+                            usage = u; // the repair call's context is the latest
+                            r
+                        }
+                        _ => reply,
                     }
-                    _ => reply,
-                }
-            } else {
-                reply
-            };
+                } else {
+                    reply
+                };
             if self.token_budget > 0 && stats.approx_tokens > self.token_budget {
                 sink(note(
                     &env,
