@@ -124,7 +124,26 @@ pub(super) async fn run(
                     ms: 0,
                 });
             }
-            let text = super::toolloop::with_budget_note(&completion.text, total);
+            // Everything gathered goes back once more as plain text with no
+            // tools on the wire, for an answer (`lastword`); failing that,
+            // what it had written beside the ask is all there is.
+            let label = |c: &ToolInvocation| label_of(c, &catalog);
+            let asked = completion
+                .calls
+                .iter()
+                .map(|c| (label(c), c.input.to_string()));
+            let last = super::lastword::prompt(
+                &prompt,
+                &super::lastword::transcript(&turns, label),
+                &super::lastword::refused(&completion.text, asked),
+            );
+            let answer =
+                super::lastword::ask(&ctx, &provider, &model_id, system, last, max_tokens, &sink)
+                    .await;
+            let text = super::toolloop::with_budget_note(
+                answer.as_deref().unwrap_or(&completion.text),
+                total,
+            );
             ctx.bus.publish(HiveEvent::OutputChunk {
                 agent: agent_id,
                 text: text.clone(),
