@@ -1,10 +1,16 @@
-//! The in-memory graph: nodes by `(kind, key)`, edges as a flat list.
+//! The in-memory graph: nodes by `(kind, key)`, edges in one list, and per
+//! node the positions of the edges it is an end of.
 //!
-//! Flat, not indexed by node: the working set is a few thousand edges and the
-//! only read is a two-hop spread from a handful of seeds, so a scan costs
-//! microseconds and an adjacency map would cost a second invariant to keep in
-//! step with the log. When a scan stops being cheap the fix is a smaller
-//! graph (see [`Graph::prune`]), not a bigger index.
+//! The per-node list is a second copy of every edge's endpoints, and it earns
+//! the invariant it costs. Recall walks two hops out of every seed on every
+//! request, and a word like `test` sits on hundreds of edges; with the flat
+//! list alone each step of that walk scanned EVERY edge in the file, so a
+//! query cost grew with the whole history rather than with what it touched,
+//! and so did finding the edge to strengthen on every insert. Now both cost
+//! the node's own degree. The invariant — `adj[id]` holds exactly the edges
+//! with `id` at either end — is kept by routing every write through
+//! [`Graph::push_node`] and [`Graph::push_edge`], and by rebuilding it whole
+//! when [`Graph::prune`] renumbers everything.
 use std::collections::HashMap;
 
 use super::node::{Edge, Kind, Node, NodeId, Rel};
@@ -18,6 +24,8 @@ pub(crate) struct Graph {
     nodes: Vec<Node>,
     edges: Vec<Edge>,
     index: HashMap<(Kind, String), NodeId>,
+    /// Per node, the positions in `edges` it is an end of, in edge order.
+    adj: Vec<Vec<usize>>,
 }
 
 impl Graph {
@@ -32,16 +40,13 @@ impl Graph {
             n.last_ms = n.last_ms.max(ms);
             return id;
         }
-        let id = self.nodes.len() as NodeId;
-        self.nodes.push(Node {
+        self.push_node(Node {
             kind,
-            key: key.clone(),
+            key,
             text: text.trim().to_owned(),
             hits: 1,
             last_ms: ms,
-        });
-        self.index.insert((kind, key), id);
-        id
+        })
     }
 
     /// Insert or strengthen `from -rel-> to`, returning the edge as it now
@@ -52,32 +57,28 @@ impl Graph {
         if from == to {
             return None;
         }
-        if let Some(e) = self
-            .edges
-            .iter_mut()
-            .find(|e| e.from == from && e.to == to && e.rel == rel)
-        {
-            e.weight = e.weight.saturating_add(1);
-            return Some(*e);
-        }
-        let e = Edge {
-            from,
-            to,
-            rel,
-            weight: 1,
+        let at = match self.edge_at(from, to, rel) {
+            Some(at) => {
+                let e = &mut self.edges[at];
+                e.weight = e.weight.saturating_add(1);
+                at
+            }
+            None => self.push_edge(Edge {
+                from,
+                to,
+                rel,
+                weight: 1,
+            }),
         };
-        self.edges.push(e);
-        Some(e)
+        Some(self.edges[at])
     }
 
     /// Restore a node exactly as the log recorded it (load path only).
     pub(crate) fn put(&mut self, n: Node) {
-        let k = (n.kind, n.key.clone());
-        match self.index.get(&k) {
+        match self.index.get(&(n.kind, n.key.clone())) {
             Some(&id) => self.nodes[id as usize] = n,
             None => {
-                self.index.insert(k, self.nodes.len() as NodeId);
-                self.nodes.push(n);
+                self.push_node(n);
             }
         }
     }
@@ -90,18 +91,16 @@ impl Graph {
         if from == to {
             return;
         }
-        match self
-            .edges
-            .iter_mut()
-            .find(|e| e.from == from && e.to == to && e.rel == rel)
-        {
-            Some(e) => e.weight = w,
-            None => self.edges.push(Edge {
-                from,
-                to,
-                rel,
-                weight: w,
-            }),
+        match self.edge_at(from, to, rel) {
+            Some(at) => self.edges[at].weight = w,
+            None => {
+                self.push_edge(Edge {
+                    from,
+                    to,
+                    rel,
+                    weight: w,
+                });
+            }
         }
     }
 
@@ -124,15 +123,14 @@ impl Graph {
     /// Both directions: memory does not care which end of an edge you enter
     /// from — a turn leads to its topics and a topic back to its turns.
     pub(crate) fn neighbors(&self, id: NodeId) -> impl Iterator<Item = (NodeId, u32)> + '_ {
-        self.edges.iter().filter_map(move |e| {
-            if e.from == id {
-                Some((e.to, e.weight))
-            } else if e.to == id {
-                Some((e.from, e.weight))
-            } else {
-                None
-            }
-        })
+        self.adj
+            .get(id as usize)
+            .into_iter()
+            .flatten()
+            .map(move |&at| {
+                let e = &self.edges[at];
+                (if e.from == id { e.to } else { e.from }, e.weight)
+            })
     }
 
     /// Node count — what the tests measure a load or a prune by; the app
@@ -146,48 +144,47 @@ impl Graph {
         self.nodes.iter().filter(|n| n.kind == kind).count()
     }
 
-    /// Drop the oldest turns past `keep`, and any node left with no edges.
-    /// Rebuilds ids, so it may only run where the whole file is rewritten.
-    pub(crate) fn prune(&mut self, keep: usize) {
-        let mut turns: Vec<(NodeId, u64)> = self
-            .nodes()
-            .filter(|(_, n)| n.kind == Kind::Turn)
-            .map(|(id, n)| (id, n.last_ms))
-            .collect();
-        turns.sort_unstable_by_key(|(_, ms)| std::cmp::Reverse(*ms));
-        let doomed: Vec<NodeId> = turns.into_iter().skip(keep).map(|(id, _)| id).collect();
-        if doomed.is_empty() {
-            return;
-        }
-        self.edges
-            .retain(|e| !doomed.contains(&e.from) && !doomed.contains(&e.to));
-        let linked: Vec<NodeId> = self
-            .nodes()
-            .filter(|(id, _)| self.edges.iter().any(|e| e.from == *id || e.to == *id))
-            .map(|(id, _)| id)
-            .collect();
-        let kept: Vec<Node> = linked
-            .iter()
-            .filter_map(|id| self.node(*id).cloned())
-            .collect();
-        let remap: HashMap<NodeId, NodeId> = linked
-            .iter()
-            .enumerate()
-            .map(|(new, old)| (*old, new as NodeId))
-            .collect();
-        self.edges
-            .retain(|e| remap.contains_key(&e.from) && remap.contains_key(&e.to));
-        for e in &mut self.edges {
-            e.from = remap[&e.from];
-            e.to = remap[&e.to];
-        }
-        self.nodes = kept;
+    /// The position of `from -rel-> to`, looked up from `from`'s own edges.
+    fn edge_at(&self, from: NodeId, to: NodeId, rel: Rel) -> Option<usize> {
+        self.adj.get(from as usize)?.iter().copied().find(|&at| {
+            let e = &self.edges[at];
+            e.from == from && e.to == to && e.rel == rel
+        })
+    }
+
+    fn push_node(&mut self, n: Node) -> NodeId {
+        let id = self.nodes.len() as NodeId;
+        self.index.insert((n.kind, n.key.clone()), id);
+        self.nodes.push(n);
+        self.adj.push(Vec::new());
+        id
+    }
+
+    fn push_edge(&mut self, e: Edge) -> usize {
+        let at = self.edges.len();
+        self.adj[e.from as usize].push(at);
+        self.adj[e.to as usize].push(at);
+        self.edges.push(e);
+        at
+    }
+
+    /// Rebuild the key index and the per-node edge lists from `nodes` and
+    /// `edges` — the one place ids change wholesale, so the one rebuild.
+    fn reindex(&mut self) {
         self.index = self
             .nodes()
             .map(|(id, n)| ((n.kind, n.key.clone()), id))
             .collect();
+        self.adj = vec![Vec::new(); self.nodes.len()];
+        for (at, e) in self.edges.iter().enumerate() {
+            self.adj[e.from as usize].push(at);
+            self.adj[e.to as usize].push(at);
+        }
     }
 }
+
+#[path = "prune.rs"]
+mod prune;
 
 #[cfg(test)]
 #[path = "graph_tests.rs"]
