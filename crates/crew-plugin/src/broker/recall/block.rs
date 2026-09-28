@@ -101,6 +101,29 @@ pub(crate) fn block(
     })
 }
 
+/// `prompt` with the recalled block taken out, or `None` when it has none.
+///
+/// The relay drops it first when a follow-up outgrows the model's context
+/// (`toolfull`): of what rides in front of a task it is the one part that is
+/// a guess, turns a word matched, where the project card and AGENTS.md are
+/// the project's own word and stay. Read back by the shape [`block`] writes,
+/// the head on a line of its own and one `- ` line per entry, so a task that
+/// merely quotes the head keeps it.
+pub(crate) fn cut(prompt: &str) -> Option<String> {
+    let at = prompt
+        .match_indices(&format!("{HEAD}\n- "))
+        .map(|(i, _)| i)
+        .find(|&i| i == 0 || prompt[..i].ends_with('\n'))?;
+    let body = &prompt[at + HEAD.len() + 1..];
+    let end: usize = body
+        .split_inclusive('\n')
+        .take_while(|l| l.starts_with("- "))
+        .map(str::len)
+        .sum();
+    let after = body[end..].trim_start_matches('\n');
+    Some(format!("{}{after}", &prompt[..at]))
+}
+
 /// A turn is stored over two lines; in the block it is one.
 fn flatten(s: &str) -> String {
     s.replace('\n', " ")

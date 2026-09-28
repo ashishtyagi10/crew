@@ -90,3 +90,20 @@ fn how_long_ago_is_told_in_the_coarsest_unit_that_is_still_true() {
         assert_eq!(ago(NOW - secs * 1000, NOW), want);
     }
 }
+
+/// What [`block`] writes, [`cut`] takes out whole, and nothing else: the card
+/// before it and the task after it stay byte for byte.
+#[test]
+fn the_block_is_cut_out_of_a_prompt_and_only_the_block() {
+    let b = block(&seeded(), "the router again", &[], NOW, RECALL_CAP)
+        .expect("a recall")
+        .text;
+    let prompt = format!("PROJECT CARD: crew\n\nTASK:\n{b}\n\nthe router again\n- a list");
+    assert_eq!(
+        cut(&prompt).as_deref(),
+        Some("PROJECT CARD: crew\n\nTASK:\nthe router again\n- a list")
+    );
+    assert_eq!(cut("the router again"), None);
+    let quoted = format!("why does the prompt say \"{HEAD}\" there?");
+    assert_eq!(cut(&quoted), None, "a quote of the head is not the block");
+}

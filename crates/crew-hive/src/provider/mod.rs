@@ -10,6 +10,7 @@ mod io;
 mod mock;
 mod openai_http;
 mod openrouter;
+mod overflow;
 mod retry;
 mod served;
 mod ssecalls;
@@ -28,6 +29,7 @@ pub use anthropic::AnthropicProvider;
 pub use claudecli::ClaudeCliProvider;
 pub use mock::MockProvider;
 pub use openrouter::OpenRouterProvider;
+pub use overflow::says_context_overflow;
 
 use std::future::Future;
 use std::pin::Pin;

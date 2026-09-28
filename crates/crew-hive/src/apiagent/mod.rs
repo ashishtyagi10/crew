@@ -23,7 +23,9 @@ mod failure;
 mod lastword;
 mod native;
 mod note;
+mod overflow;
 mod pending;
+mod stubs;
 mod textround;
 mod toolloop;
 
@@ -173,6 +175,9 @@ impl Agent for ApiAgent {
             let mut prompt = base.clone();
             let mut exchanges = tools::exchanges::Exchanges::default();
             let mut round: u32 = 0;
+            // The rounds left after the last one, for a follow-up rebuilt to
+            // fit the model's context (`overflow`), which is done once.
+            let (mut left, mut cut) = (0, false);
             // Reads this task has made. A repeat is answered from the result
             // already in `exchanges`, while the follow-up still carries it
             // whole (`Exchanges::repeat`); once shortened, it runs again.
@@ -196,6 +201,12 @@ impl Agent for ApiAgent {
                 let completion = match ctx.unless_stopped(call).await {
                     None => return Attempt::stopped(task_id),
                     Some(Ok(c)) => c,
+                    // Too long for the model: once, the log cut to fit.
+                    Some(Err(err)) if !cut && overflow::tightened(&ctx, &err, &mut exchanges) => {
+                        cut = true;
+                        prompt = toolloop::follow_up(&base, &exchanges, left);
+                        continue;
+                    }
                     Some(Err(err)) => return failure::failed(&ctx, &err),
                 };
                 sink.settle(&completion);
@@ -281,7 +292,8 @@ impl Agent for ApiAgent {
                     }
                     .into();
                 }
-                prompt = toolloop::follow_up(&base, &exchanges, rounds_left);
+                left = rounds_left;
+                prompt = toolloop::follow_up(&base, &exchanges, left);
             }
         })
     }

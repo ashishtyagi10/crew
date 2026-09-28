@@ -28,7 +28,7 @@ mod repeats;
 mod score;
 mod store;
 
-pub(crate) use block::{Recalled, RECALL_CAP};
+pub(crate) use block::{cut, Recalled, RECALL_CAP};
 
 use graph::Graph;
 use node::{Kind, NodeId};

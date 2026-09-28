@@ -70,10 +70,11 @@ pub(super) async fn run(
     let mut round: u32 = 0;
     // Reads this task has made. A repeat is answered from the result already
     // in `turns`, which every request resends whole. So `Seen::check` alone,
-    // not `Exchanges::repeat`: the text loops shorten their older results and
-    // must stop pointing at one once it is, but nothing here is shortened yet,
-    // so the result a pointer names is always in the request beside it.
+    // not `Exchanges::repeat`: the result a pointer names is always in the
+    // request beside it, until the turns are cut to fit (`overflow::Cut`).
     let mut seen = Seen::default();
+    let label = |c: &ToolInvocation| label_of(c, &catalog);
+    let mut cut = super::overflow::Cut::new(&prompt, system.as_deref(), &label);
 
     loop {
         // A stop pressed while the last round's tools ran: no next call
@@ -81,6 +82,7 @@ pub(super) async fn run(
         if ctx.stopped() {
             return Attempt::stopped(task_id);
         }
+        cut.sending(&turns);
         let req = CompletionRequest {
             model: model_id.clone(),
             system: system.clone(),
@@ -94,8 +96,10 @@ pub(super) async fn run(
         let completion = match ctx.unless_stopped(call).await {
             None => return Attempt::stopped(task_id),
             Some(Ok(c)) => c,
+            Some(Err(err)) if cut.refused(&ctx, &err, &mut turns, &mut seen) => continue,
             Some(Err(err)) => return super::failure::failed(&ctx, &err),
         };
+        cut.answered();
         sink.settle(&completion);
         ctx.bus.publish(HiveEvent::TokenDelta {
             agent: agent_id.clone(),
@@ -137,7 +141,6 @@ pub(super) async fn run(
             // Everything gathered goes back once more as plain text with no
             // tools on the wire, for an answer (`lastword`); failing that,
             // what it had written beside the ask is all there is.
-            let label = |c: &ToolInvocation| label_of(c, &catalog);
             let asked = completion
                 .calls
                 .iter()
@@ -176,6 +179,7 @@ pub(super) async fn run(
             calls: completion.calls,
         });
         turns.push(Turn::ToolResults(results));
+        cut.after_round(&mut turns, &mut seen);
         round += 1;
     }
 }
