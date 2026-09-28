@@ -27,7 +27,7 @@ pub(super) fn has_steps(events: &[Value]) -> bool {
 /// The text of the last step that did not stop to call a tool. When every
 /// step with text was narration (the stream ended on a tool call), the
 /// latest narration beats an empty reply. None when no step has text, so
-/// the caller falls back to error events and then the raw stream.
+/// the caller falls back to error events and then [`silent_summary`].
 pub(super) fn final_step_text(events: &[Value]) -> Option<String> {
     let steps = split_steps(events);
     let spoken = || steps.iter().rev().filter(|s| !s.texts.is_empty());
@@ -35,6 +35,59 @@ pub(super) fn final_step_text(events: &[Value]) -> Option<String> {
         .find(|s| s.reason.as_deref() != Some("tool-calls"))
         .or_else(|| spoken().next())?;
     Some(step.texts.join("\n\n").trim().to_string())
+}
+
+/// One line saying what a stream that never answered did, or None when
+/// nothing in it is an event at all (only then is the raw text worth
+/// showing). A run that stopped after a `read` used to reach the pane as
+/// 1,662 characters of its own JSON, which said nothing a person could use
+/// and looked like a reply.
+pub(super) fn silent_summary(events: &[Value]) -> Option<String> {
+    if !events.iter().any(|v| kind(v).is_some()) {
+        return None;
+    }
+    let steps = events
+        .iter()
+        .filter(|v| kind(v) == Some("step_start"))
+        .count();
+    let mut line = match steps {
+        0 => "opencode ended without answering".to_string(),
+        1 => "opencode stopped after 1 step without answering".to_string(),
+        n => format!("opencode stopped after {n} steps without answering"),
+    };
+    let (ran, failed) = tools(events);
+    if !ran.is_empty() {
+        line.push_str(&format!(" (it ran: {}", ran.join(", ")));
+        if !failed.is_empty() {
+            line.push_str(&format!("; {} failed", failed.join(", ")));
+        }
+        line.push(')');
+    }
+    Some(line)
+}
+
+/// Every tool the stream called, once each in first-call order, and the
+/// ones whose call ended in an error (opencode marks a refused permission
+/// that way, as well as a tool that broke).
+fn tools(events: &[Value]) -> (Vec<&str>, Vec<&str>) {
+    let (mut ran, mut failed) = (Vec::new(), Vec::new());
+    for p in events
+        .iter()
+        .filter(|v| kind(v) == Some("tool_use"))
+        .filter_map(part)
+    {
+        let Some(name) = p.get("tool").and_then(Value::as_str) else {
+            continue;
+        };
+        if !ran.contains(&name) {
+            ran.push(name);
+        }
+        let status = p.pointer("/state/status").and_then(Value::as_str);
+        if status == Some("error") && !failed.contains(&name) {
+            failed.push(name);
+        }
+    }
+    (ran, failed)
 }
 
 fn split_steps(events: &[Value]) -> Vec<Step> {
