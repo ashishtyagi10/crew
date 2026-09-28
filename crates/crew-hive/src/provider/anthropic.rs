@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use super::wire::wire_error;
 use super::{
-    http_client, request_timeout, Completion, CompletionRequest, Provider, ProviderError,
+    request_timeout, ChunkFn, Completion, CompletionRequest, Provider, ProviderError,
     ToolInvocation, Turn,
 };
 
@@ -99,7 +99,7 @@ impl AnthropicProvider {
 
     fn with_auth(auth: Auth) -> Self {
         Self {
-            client: http_client(request_timeout()),
+            client: super::io::client(request_timeout()),
             auth,
             endpoint: ENDPOINT.to_string(),
         }
@@ -258,6 +258,46 @@ pub(crate) fn build_tools(req: &CompletionRequest) -> Option<serde_json::Value> 
     })
 }
 
+impl AnthropicProvider {
+    /// One request's body; `stream` asks for server-sent events.
+    fn body(req: &CompletionRequest, stream: bool) -> serde_json::Value {
+        let mut body = serde_json::json!({
+            "model": req.model,
+            "max_tokens": req.max_tokens,
+            "messages": build_messages(req),
+        });
+        if let Some(sys) = &req.system {
+            body["system"] = serde_json::json!(sys);
+        }
+        if let Some(tools) = build_tools(req) {
+            body["tools"] = tools;
+        }
+        if stream {
+            body["stream"] = serde_json::json!(true);
+        }
+        body
+    }
+
+    /// The request, sent — status left for the caller to read.
+    async fn send(
+        client: &reqwest::Client,
+        endpoint: &str,
+        headers: Vec<(&'static str, String)>,
+        body: &serde_json::Value,
+    ) -> Result<reqwest::Response, ProviderError> {
+        let mut r = client.post(endpoint);
+        for (k, v) in headers {
+            r = r.header(k, v);
+        }
+        r.header("anthropic-version", VERSION)
+            .header("content-type", "application/json")
+            .json(body)
+            .send()
+            .await
+            .map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))
+    }
+}
+
 impl Provider for AnthropicProvider {
     fn supports_tools(&self) -> bool {
         true
@@ -270,29 +310,9 @@ impl Provider for AnthropicProvider {
         let client = self.client.clone();
         let headers = self.auth_headers();
         let endpoint = self.endpoint.clone();
-        Box::pin(async move {
-            let mut body = serde_json::json!({
-                "model": req.model,
-                "max_tokens": req.max_tokens,
-                "messages": build_messages(&req),
-            });
-            if let Some(sys) = &req.system {
-                body["system"] = serde_json::json!(sys);
-            }
-            if let Some(tools) = build_tools(&req) {
-                body["tools"] = tools;
-            }
-            let mut r = client.post(&endpoint);
-            for (k, v) in headers {
-                r = r.header(k, v);
-            }
-            let resp = r
-                .header("anthropic-version", VERSION)
-                .header("content-type", "application/json")
-                .json(&body)
-                .send()
-                .await
-                .map_err(|e| ProviderError::Http(wire_error(&e, &endpoint)))?;
+        super::io::run(async move {
+            let body = AnthropicProvider::body(&req, false);
+            let resp = AnthropicProvider::send(&client, &endpoint, headers, &body).await?;
             let text = resp
                 .text()
                 .await
@@ -300,4 +320,41 @@ impl Provider for AnthropicProvider {
             AnthropicProvider::parse_response(&text)
         })
     }
+
+    /// The reply as it is written (`anthropicsse`). A request carrying TOOLS
+    /// is still made whole: a streamed `tool_use` arrives as `input_json_delta`
+    /// fragments to reassemble, and the text-only reply is the one a person
+    /// is watching type.
+    fn complete_streaming(
+        &self,
+        req: CompletionRequest,
+        on_chunk: ChunkFn,
+    ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>> {
+        if !req.tools.is_empty() {
+            return self.complete(req);
+        }
+        let client = self.client.clone();
+        let headers = self.auth_headers();
+        let endpoint = self.endpoint.clone();
+        super::io::run(async move {
+            use futures::StreamExt;
+            let body = AnthropicProvider::body(&req, true);
+            let resp = AnthropicProvider::send(&client, &endpoint, headers, &body).await?;
+            if !resp.status().is_success() {
+                let text = resp.text().await.unwrap_or_default();
+                return Err(ProviderError::Api(text));
+            }
+            let mut fold = super::anthropicsse::Fold::default();
+            let mut stream = resp.bytes_stream();
+            while let Some(bytes) = stream.next().await {
+                let bytes = bytes.map_err(|e| ProviderError::Http(wire_error(&e, &endpoint)))?;
+                fold.feed(&String::from_utf8_lossy(&bytes), &on_chunk);
+            }
+            fold.finish(&on_chunk)
+        })
+    }
 }
+
+#[cfg(test)]
+#[path = "anthropicstream_tests.rs"]
+mod stream_tests;
