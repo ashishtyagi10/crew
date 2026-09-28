@@ -49,18 +49,26 @@ pub(crate) fn hint_for(tools: &[McpTool]) -> String {
             format!("- {}:{} \u{2014} {}", t.server, t.name, clip(one, 100))
         })
         .collect();
+    // The LOOK FIRST line is what turns a tool list into grounded answers.
+    // Offered as merely "optional", a model asked what a crate in the repo
+    // does answered from its priors (a web framework that does not exist)
+    // with `sys:read_file` sitting right there.
     format!(
-        "TOOLS (optional): to call one, make the FINAL line of your reply exactly\n\
+        "TOOLS: to call one, make the FINAL line of your reply exactly\n\
          `@tool <server>:<tool> {{\"arg\": \u{2026}}}` (JSON arguments) \u{2014} the \
-         result is sent back to you before you answer.\nAvailable tools:\n{}",
+         result is sent back to you before you answer.\n\
+         LOOK FIRST: when the task is about this project \u{2014} its code, files, \
+         build or behaviour \u{2014} read the relevant files with these tools before \
+         you answer. Never describe code you have not read.\nAvailable tools:\n{}",
         lines.join("\n")
     )
 }
 
-/// The task text an agent sees: the body, plus the tools section when tools
-/// are attached.
-pub(crate) fn augment(body: &str, tools: Option<&dyn ToolRunner>) -> String {
-    crew_hive::tools::augment(body, &tools.map(|t| t.hint_for(body)).unwrap_or_default())
+/// The tools section for a task whose body is `body` (empty when no tools
+/// are attached). Kept apart from the body so [`super::route::frame`] can
+/// clip the one and never the other.
+pub(crate) fn hint(body: &str, tools: Option<&dyn ToolRunner>) -> String {
+    tools.map(|t| t.hint_for(body)).unwrap_or_default()
 }
 
 /// The parser, shared with the swarm for the same reason the trait is: one

@@ -82,10 +82,15 @@ fn frame_with(task: &str, skills: &[Skill], chosen: &[&Skill], sys_on: bool) -> 
         return task.to_string();
     }
     if chosen.is_empty() {
+        // Names only. The full roster — every skill's paragraph of when-to-use
+        // — ran to 9 KB with Anthropic's example set installed, sat above
+        // EVERY task that chose none, and was what pushed the tools off the
+        // end of the prompt. The descriptions are the decider's input, not
+        // the agent's: an agent that wants one reads it with its tools.
+        let names: Vec<&str> = skills.iter().map(|s| s.name.as_str()).collect();
         return format!(
-            "AVAILABLE SKILLS (drop-in playbooks \u{2014} none chosen for this \
-             task):\n{}\n\nTASK:\n{task}",
-            list_report(skills)
+            "Skills on hand (none chosen for this task): {}\n\nTASK:\n{task}",
+            names.join(", ")
         );
     }
     if let [only] = chosen {
@@ -163,31 +168,6 @@ fn support(skill: &Skill) -> String {
         ),
         None => String::new(),
     }
-}
-
-/// The skills roster: one line per skill, or where to put files.
-pub(crate) fn list_report(skills: &[Skill]) -> String {
-    if skills.is_empty() {
-        return "No skills found. Drop markdown playbooks into \
-                ~/.config/crew/skills/ or ./.crew/skills/ \
-                (optional `---` frontmatter: name, description); a task \
-                that names one applies it by itself."
-            .into();
-    }
-    let lines: Vec<String> = skills
-        .iter()
-        .map(|s| {
-            let mut tag = s.origin.to_string();
-            if s.dir.is_some() {
-                tag.push_str(", dir");
-            }
-            if s.body.len() > INLINE_CAP {
-                tag.push_str(&format!(", {} KB \u{2192} outline", s.body.len() / 1024));
-            }
-            format!("\u{25aa} {} \u{2014} {} ({tag})", s.name, s.description)
-        })
-        .collect();
-    lines.join("\n")
 }
 
 #[cfg(test)]

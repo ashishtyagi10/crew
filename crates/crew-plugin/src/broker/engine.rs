@@ -81,7 +81,7 @@ impl Broker {
         tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
         sink: &mut dyn FnMut(Hop),
     ) -> RunStats {
-        let task = super::toolcall::augment(body, self.tools.as_deref());
+        let tools = super::toolcall::hint(body, self.tools.as_deref());
         let mut transcript: Vec<String> = Vec::new();
         let mut compact = Compactor::new(self.summarizer.clone());
         let mut stats = RunStats::default();
@@ -114,7 +114,8 @@ impl Broker {
                 return stats;
             };
             let peers = self.registry.roster_excluding(&env.to);
-            let prompt = frame(&env, &peers, &task, &compact.tail(&mut transcript));
+            let tail = compact.tail(&mut transcript);
+            let prompt = frame(&env, &peers, body, &tools, &tail);
             // The dial names its real sender (`user`, or the relaying peer) so
             // the host's activity row can show who the agent is working for.
             sink(Hop {
@@ -251,3 +252,7 @@ mod tests;
 #[cfg(test)]
 #[path = "engine_budget_tests.rs"]
 mod budget_tests;
+
+#[cfg(test)]
+#[path = "toolreach_tests.rs"]
+mod toolreach_tests;

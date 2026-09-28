@@ -1,5 +1,4 @@
 use super::*;
-use crate::broker::skillframe::list_report;
 
 fn tmpdir(tag: &str) -> std::path::PathBuf {
     let d = std::env::temp_dir().join(format!(
@@ -87,17 +86,6 @@ fn merge_lets_project_override_user() {
         ("project", "project body")
     );
     assert_eq!(all.len(), 2);
-}
-
-#[test]
-fn list_report_explains_when_empty_and_lists_when_not() {
-    assert!(list_report(&[]).contains("~/.config/crew/skills/"));
-    let r = list_report(&[parse(
-        "---\nname: x\ndescription: d\n---\nbody",
-        "x",
-        "user",
-    )]);
-    assert!(r.contains("x \u{2014} d (user)"), "got: {r}");
 }
 
 #[test]

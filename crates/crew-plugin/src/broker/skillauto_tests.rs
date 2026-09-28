@@ -140,8 +140,12 @@ fn loaded_but_unmatched_skills_ride_along_as_a_roster_only() {
         "---\ndescription: ship safely\n---\nStep one: run the canary.",
     );
     let p = first_prompt("say hello");
-    assert!(p.contains("AVAILABLE SKILLS"), "{p}");
+    assert!(p.contains("Skills on hand"), "{p}");
     assert!(p.contains("deploy"), "{p}");
+    assert!(
+        !p.contains("ship safely"),
+        "names only, not the roster: {p}"
+    );
     assert!(
         !p.contains("Step one: run the canary."),
         "an unmatched playbook body must not inline: {p}"
