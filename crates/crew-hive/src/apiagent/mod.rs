@@ -13,17 +13,19 @@ mod tests;
 mod chunks;
 mod context;
 mod cost;
+mod failure;
 mod native;
 mod note;
 mod toolloop;
 
 pub(crate) use context::build_prompt;
+pub(crate) use failure::reason;
 
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use crate::agent::{Agent, AgentContext};
+use crate::agent::{Agent, AgentContext, Attempt};
 use crate::board::TaskResult;
 use crate::bus::HiveEvent;
 use crate::graph::AgentKind;
@@ -76,13 +78,19 @@ impl ApiAgent {
 }
 
 impl Agent for ApiAgent {
+    fn run(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = TaskResult> + Send>> {
+        let attempt = self.attempt(ctx);
+        Box::pin(async move { attempt.await.result })
+    }
+
     /// One task: call the provider, and while the reply asks for a tool, run
-    /// it and call the provider again with the result.
+    /// it and call the provider again with the result. A provider error ends
+    /// it, said in the output and marked passing or not (`failure`).
     ///
     /// With no tool surface attached this is exactly one provider call and the
     /// same three events it always published — the loop's first pass IS the
     /// old body, and `split_tool_call` is never even reached.
-    fn run(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = TaskResult> + Send>> {
+    fn attempt(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = Attempt> + Send>> {
         let provider = Arc::clone(&self.provider);
         let max_tokens = self.max_tokens;
         let model = self.model.clone();
@@ -170,17 +178,7 @@ impl Agent for ApiAgent {
                     .await
                 {
                     Ok(c) => c,
-                    Err(err) => {
-                        ctx.bus.publish(HiveEvent::Failed {
-                            agent: agent_id,
-                            error: err.to_string(),
-                        });
-                        return TaskResult {
-                            task: task_id,
-                            output: String::new(),
-                            success: false,
-                        };
-                    }
+                    Err(err) => return failure::failed(&ctx, &err),
                 };
                 sink.settle(&completion);
                 // Billed per round, as it happens: a run that spends four
@@ -209,7 +207,8 @@ impl Agent for ApiAgent {
                         task: task_id,
                         output: completion.text,
                         success: true,
-                    };
+                    }
+                    .into();
                 };
                 let Some(rounds_left) = ctx.take_round(round) else {
                     // Asked for one more with the budget gone. Say so in the
@@ -232,7 +231,8 @@ impl Agent for ApiAgent {
                         task: task_id,
                         output: text,
                         success: true,
-                    };
+                    }
+                    .into();
                 };
 
                 let label = call.label();
@@ -291,7 +291,7 @@ impl Agent for ApiAgent {
 use crate::agent::AgentFactory;
 
 /// Agent factory making native [`ApiAgent`]s that share one provider. Each
-/// agent reads its model tier from its task at run time (see [`ApiAgent::run`]),
+/// agent reads its model tier from its task at run time (see [`ApiAgent::attempt`]),
 /// so the factory only needs the provider and the per-task output token cap.
 pub struct ApiFactory {
     provider: Arc<dyn Provider>,

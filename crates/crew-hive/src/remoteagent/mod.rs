@@ -98,14 +98,18 @@ impl Agent for RemoteAgent {
                         success: reply.success,
                     }
                 }
+                // The reason rides the output as well as the pane's event:
+                // the scheduler hands the output to the planner as the
+                // failure, and an empty one re-plans blind (`apiagent::failure`).
                 Err(e) => {
+                    let why = crate::apiagent::reason(&e);
                     ctx.bus.publish(HiveEvent::Failed {
                         agent: ctx.agent.clone(),
-                        error: e.to_string(),
+                        error: why.clone(),
                     });
                     TaskResult {
                         task: ctx.task.id,
-                        output: String::new(),
+                        output: why,
                         success: false,
                     }
                 }
