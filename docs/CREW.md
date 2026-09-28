@@ -2706,7 +2706,8 @@ fails, they walk the tree skipping `.git`, build output, dependency trees and
 hidden directories. Binaries and files over 1 MB are passed over, and both
 answers are fitted to 5,600 bytes, cut at a whole hit or path and ending with
 a line that counts what was left out and in how many files
-— **`sys:git`** (below), and the two that reach off this machine —
+— **`sys:outline`**, which shows one file's shape (below), **`sys:git`**
+(below), and the two that reach off this machine —
 **`sys:fetch`** and **`sys:search`**.
 
 `sys:git {"cmd": …, "args": [...]}` reads the repository's history and state
@@ -2729,6 +2730,33 @@ and blame keep their start when long (the newest commits, a count of the
 rest); a long diff keeps its `--stat` head and its end, fitted under the
 5,600-byte result budget like `sys:run`'s; a non-zero git exit is a failed
 call carrying git's stderr.
+
+`sys:outline {"path": …}` answers "what is in this file, and where" in one
+call, the way Aider's repo map and an IDE's outline do: a line naming the file
+and its length, then one row per definition with its line number, indented by
+what it is inside —
+
+```
+route.rs — 240 lines
+  95  const TASK_CAP
+ 110  pub fn frame(env, intro, peers, task, tools, transcript) -> String
+```
+
+— for the agent to open with `sys:read_file {"path": …, "line": 110}` instead
+of paging from the top. It recognises definitions line by line rather than
+parsing, so it needs no language server: Rust (`fn`, `struct`, `enum`,
+`trait`, `impl`, `mod`, `const`, `static`, `type`, `macro_rules!`, behind
+`pub`/`async`/`unsafe`, nested by `impl`, `trait` and `mod` blocks, with
+strings and comments blanked first so a `fn` or `{` in either counts for
+nothing), Python (`def`, `async def`, `class`, nested by indentation),
+JavaScript/TypeScript (`function`, `class` and its methods, `const f = (…) =>`,
+interfaces, types, and exported constants), Go (`func`, `type`), and
+Markdown's headings; any other extension is an error pointing at `sys:grep`,
+and a directory one pointing at `sys:glob`. A row's parameters are cut to
+their names and the row to 100 characters, and the answer is fitted to 5,600
+bytes: past it, every top-level row is kept first, then nested ones in file
+order while they fit, and a last line counts what was left out. It reads one
+file and changes nothing, so it is classified `read`.
 
 `sys:fetch {"url": …}` GETs an http(s) page and returns it as READABLE TEXT:
 script, style and markup are stripped before the model sees a token of it,
@@ -3052,7 +3080,7 @@ agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request;
 `CREW_MAX_TASKS` (default 4) caps concurrent background tasks;
 `CREW_SYS_TOOLS=0` / `CREW_SYS_MODE=readonly` disable or sandbox the built-in
 sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:edit`, `sys:list_dir`,
-`sys:grep`, `sys:glob`, `sys:git`, `sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
+`sys:grep`, `sys:glob`, `sys:outline`, `sys:git`, `sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
 and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
 `CREW_HTTP_TIMEOUT_MS` (default 120000) is how long a provider may say
 NOTHING — the wait for the first byte, and each gap between two frames of a

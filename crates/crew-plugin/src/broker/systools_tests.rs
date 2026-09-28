@@ -25,6 +25,7 @@ fn tools_lists_the_sys_surface() {
             "fetch",
             "grep",
             "glob",
+            "outline",
             "git",
             "list_dir"
         ]

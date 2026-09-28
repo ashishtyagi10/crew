@@ -218,6 +218,20 @@ pub(crate) fn tools() -> Vec<McpTool> {
             }),
         ),
         mk(
+            "outline",
+            "a file's definitions and their line numbers, then sys:read_file with \"line\": {\"path\": \"src/lib.rs\"}",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "one source file (Rust, Python, JS/TS, Go) or Markdown file: its functions, types, impls, classes and methods, or its headings, each with the line to read it at",
+                    },
+                },
+                "required": ["path"],
+            }),
+        ),
+        mk(
             "git",
             "git status, diff, log, show or blame, needing no approval: {\"cmd\": \"log\", \"args\": [\"-n\", \"5\"]}",
             serde_json::json!({
@@ -268,10 +282,11 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "grep" => super::sysgrep::grep(&v),
         "glob" => super::sysgrep::glob(&v),
         "git" => super::sysgit::git(&v),
+        "outline" => super::sysoutline::outline(str_arg(&v, "path")?),
         "fetch" => super::sysfetch::fetch(str_arg(&v, "url")?),
         "search" => super::syssearch::search(str_arg(&v, "q")?),
         other => Err(format!(
-            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, grep, glob, git, fetch, search, find_tools"
+            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, grep, glob, outline, git, fetch, search, find_tools"
         )),
     }
 }
