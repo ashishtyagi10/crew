@@ -38,6 +38,16 @@ pub(crate) fn live_call_at(
     max_tokens: u32,
     tier: crew_hive::ModelTier,
 ) -> Option<impl Fn(&str) -> Result<String, String>> {
+    let call = live_completion_at(max_tokens, tier)?;
+    Some(move |p: &str| call(p).map(|c| c.text))
+}
+
+/// [`live_call_at`], keeping the whole reply — for a caller that has to know
+/// whether the ceiling cut it (the swarm's closing answer says so).
+pub(crate) fn live_completion_at(
+    max_tokens: u32,
+    tier: crew_hive::ModelTier,
+) -> Option<impl Fn(&str) -> Result<crew_hive::Completion, String>> {
     if super::disabled() {
         return None;
     }
@@ -56,7 +66,7 @@ fn complete_once(
     model: &str,
     prompt: &str,
     max_tokens: u32,
-) -> Result<String, String> {
+) -> Result<crew_hive::Completion, String> {
     let req = crew_hive::CompletionRequest {
         model: model.to_string(),
         system: None,
@@ -70,7 +80,7 @@ fn complete_once(
         .map_err(|e| e.to_string())?;
     let fut = provider.complete(req);
     match rt.block_on(async move { tokio::time::timeout(CLASSIFY_TIMEOUT, fut).await }) {
-        Ok(Ok(c)) => Ok(c.text),
+        Ok(Ok(c)) => Ok(c),
         Ok(Err(e)) => Err(e.to_string()),
         Err(_) => Err(format!(
             "intent classification timed out after {CLASSIFY_TIMEOUT:?}"

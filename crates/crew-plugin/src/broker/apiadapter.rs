@@ -16,9 +16,15 @@ use crew_hive::{CompletionRequest, Provider};
 
 use super::adapter::{Adapter, HopStream};
 
-/// Output token ceiling per agent reply. Bounded so a runaway reply can't blow
-/// the thread's cost; the relay favours concise hand-offs anyway.
-const MAX_TOKENS: u32 = 2048;
+/// Output token ceiling per agent reply. 2048 was too few for real work — a
+/// long answer, a `sys:write_file` of a whole file, a `sys:edit` with a big
+/// `new` string — which stopped mid-sentence or mid-JSON. Providers bill the
+/// output actually generated, not the ceiling, so a concise hand-off costs
+/// what it did; the ceiling only bounds a runaway, and a reply that still
+/// reaches it is continued once (`cutoff`). 4096, not 8192: some endpoints
+/// (NVIDIA NIM models among them) reject a request whose ceiling is over the
+/// model's own output limit, and a rejected request answers nothing at all.
+const MAX_TOKENS: u32 = 4096;
 
 /// An agent driven by an in-process LLM API call rather than an external CLI.
 pub struct ApiAdapter {
@@ -122,7 +128,7 @@ impl Adapter for ApiAdapter {
             max_tokens: MAX_TOKENS,
             ..Default::default()
         };
-        let fut = self.provider.complete(req);
+        let fut = super::cutoff::whole(Arc::clone(&self.provider), req, None, timeout);
         match self
             .rt
             .block_on(async move { tokio::time::timeout(timeout, fut).await })
@@ -197,7 +203,7 @@ impl Adapter for ApiAdapter {
             let total = counter.fetch_add(n, std::sync::atomic::Ordering::SeqCst) + n;
             on_tokens(total / 4);
         });
-        let fut = self.provider.complete_streaming(req, on_chunk);
+        let fut = super::cutoff::whole(Arc::clone(&self.provider), req, Some(on_chunk), timeout);
         let outcome = self
             .rt
             .block_on(async move { tokio::time::timeout(timeout, fut).await });

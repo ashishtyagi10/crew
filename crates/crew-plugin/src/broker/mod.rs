@@ -26,6 +26,7 @@ mod claudeagent;
 mod commands;
 mod compact;
 mod constructs;
+mod cutoff;
 mod diff;
 mod directs;
 mod discover;

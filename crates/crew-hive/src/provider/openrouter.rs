@@ -106,6 +106,9 @@ fn build_messages(req: &CompletionRequest) -> Vec<serde_json::Value> {
                     }));
                 }
             }
+            Turn::User(text) => {
+                messages.push(serde_json::json!({"role": "user", "content": text}));
+            }
         }
     }
     messages
