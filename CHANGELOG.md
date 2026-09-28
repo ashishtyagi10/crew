@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.52
+
+**Smith knows which project it's working in.** Asked "what does crew-term
+do?" in the crew repo, smith answered "a collaborative terminal for teams".
+In a swarm run the agent searched the web for the word instead. Neither
+knew crew-term is a folder in the repo, because nothing in the prompt said
+where the agent was. Every task now starts with a short project card: the
+folder, the README's opening paragraph, each workspace crate with its own
+one-line summary (from its manifest or its crate docs), and the top-level
+files. Swarm workers get the card too, in their instructions, since they
+only see their own task. The card is read from files (no extra commands, no
+extra model call), capped at about 1,800 characters, and cached for 30
+seconds. The same question now answers "the terminal model and PTY". Also:
+when the routing call has been shown the skill list and names none, that
+counts as "no skills", instead of costing another model call.
+
 ## 0.24.51
 
 **Smith starts answering 1–2 seconds sooner.** Before the answer started,

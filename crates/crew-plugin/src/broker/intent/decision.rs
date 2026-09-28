@@ -155,8 +155,11 @@ pub(crate) fn decide_in(task: &str, world: &World, classifier: Option<Classifier
     match call(&classify::prompt(task, world)) {
         Ok(reply) => match parse_decision_on(&reply, &world.agents) {
             Some(mut d) => {
+                // Shown the roster and naming none of it IS a choice — none —
+                // not a gap for the skill decider to fill with another call.
                 let names: Vec<String> = world.skills.iter().map(|(n, _)| n.clone()).collect();
-                d.hints.skills = super::skillhint::parse(&reply, &names);
+                d.hints.skills = (!names.is_empty())
+                    .then(|| super::skillhint::parse(&reply, &names).unwrap_or_default());
                 d.hints = d.hints.relevant_to(d.shape);
                 Routing::Chosen(d)
             }

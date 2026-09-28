@@ -51,6 +51,17 @@ fn the_router_s_choice_rides_on_the_decision_for_shapes_that_frame_skills() {
         panic!("chosen")
     };
     assert_eq!(d.hints.skills, Some(names(&["review"])));
+    // Shown the roster and silent about it: that is "none", not a second call.
+    let silent = |_: &str| -> Result<String, String> { Ok("SHAPE: reply\nWHY: q".into()) };
+    let Routing::Chosen(d) = decide_in("what is 2+2", &world, Some(&silent)) else {
+        panic!("chosen")
+    };
+    assert_eq!(d.hints.skills, Some(vec![]));
+    // No roster shown, no choice made: the decider keeps its say.
+    let Routing::Chosen(d) = decide_in("what is 2+2", &World::default(), Some(&silent)) else {
+        panic!("chosen")
+    };
+    assert_eq!(d.hints.skills, None);
     // A fan frames no skills, so its decision carries none.
     let fan = |_: &str| -> Result<String, String> { Ok("SHAPE: fan\nSKILLS: review".into()) };
     let Routing::Chosen(d) = decide_in("everyone: ideas", &world, Some(&fan)) else {
