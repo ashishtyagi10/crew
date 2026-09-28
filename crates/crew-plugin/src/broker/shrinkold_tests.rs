@@ -103,8 +103,7 @@ fn whole(names: &[&str], left: u32) -> String {
         .collect();
     format!(
         "base prompt\n\nTOOL EXCHANGES THIS TURN:\n{}\n\nYou may make {left} more tool \
-         call(s) this turn. Continue the task using these results. You may call another \
-         tool, or answer and end with your routing line (`@next <agent>` or `@done`).",
+         call(s) this turn, or answer now and end the answer as HOW TO REPLY says.",
         exchanges.join("\n\n")
     )
 }

@@ -71,6 +71,12 @@ impl ApiAdapter {
     /// prompt text. Its opening line is the hive's own (`persona::identity`),
     /// the same one a swarm worker gets, so the two paths introduce the same
     /// specialist the same way.
+    ///
+    /// Who it is, and nothing about how long to answer or what to do: every
+    /// prompt that reaches it says that itself (the relay frame's HOW TO
+    /// REPLY, the fan's "directly and concisely", a review's or a commit
+    /// message's format). A "Be concise." here met the relay's "answer in
+    /// full" in the same call, and a model told both hedges between them.
     pub fn specialist(
         name: impl Into<String>,
         role: impl Into<String>,
@@ -78,15 +84,11 @@ impl ApiAdapter {
         provider: Arc<dyn Provider>,
     ) -> std::io::Result<Self> {
         let (name, role) = (name.into(), role.into());
-        let from = if role.is_empty() {
-            "in your own specialty"
-        } else {
-            "from that expertise"
+        let who = crew_hive::planner::persona::identity(&name, &role);
+        let system = match role.is_empty() {
+            true => who,
+            false => format!("{who} Work from that expertise."),
         };
-        let system = format!(
-            "{} Do the work the task asks for, {from}. Be concise.",
-            crew_hive::planner::persona::identity(&name, &role)
-        );
         Self::new(name, model, role, Some(system), provider)
     }
 }
@@ -102,6 +104,10 @@ impl Adapter for ApiAdapter {
 
     fn role(&self) -> &str {
         &self.role
+    }
+
+    fn introduced(&self) -> bool {
+        self.system.is_some()
     }
 
     /// Inbuilt agents are only constructed when an API key is present, so they
@@ -260,3 +266,7 @@ pub fn specialist_agents(
 #[cfg(test)]
 #[path = "apiadapter_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "promptvoice_tests.rs"]
+mod voice_tests;

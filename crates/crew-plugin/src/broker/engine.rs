@@ -9,7 +9,7 @@ use super::adapter::HopStream;
 use super::compact::{is_dup, keep_in_transcript, Compactor};
 use super::hop::{back, note, Hop, HopKind, RunStats};
 use super::hoptool::hop_tooler;
-use super::route::{clip, frame, has_directive, repair_prompt};
+use super::route::{clip, frame, has_directive, intro_of, repair_prompt};
 use super::tick::{hop_texter, hop_thinker, hop_ticker};
 use super::{parse_routing, Envelope, Registry, Routing};
 use crate::PluginEvent;
@@ -124,7 +124,7 @@ impl Broker {
             };
             let peers = self.registry.roster_excluding(&env.to);
             let tail = compact.tail(&mut transcript);
-            let prompt = frame(&env, &peers, body, &tools, &tail);
+            let prompt = frame(&env, intro_of(agent), &peers, body, &tools, &tail);
             // The dial names its real sender (`user`, or the relaying peer) so
             // the host's activity row can show who the agent is working for.
             sink(Hop {

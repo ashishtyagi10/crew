@@ -182,22 +182,10 @@ impl Broker {
             if self.cancelled() {
                 return super::toolround::stopped_answer(&said, used);
             }
-            // The agent is TOLD what it has left. A budget it cannot see is
-            // one it plans straight past, and then the turn ends mid-sequence
-            // with a tool call nobody ran.
-            let left = max_calls - used;
-            let budget = if left == 0 {
-                "This was your LAST tool call this turn: answer with what you \
-                 have now."
-                    .to_string()
-            } else {
-                format!("You may make {left} more tool call(s) this turn.")
-            };
             let follow = format!(
-                "{base_prompt}\n\nTOOL EXCHANGES THIS TURN:\n{}\n\n{budget} Continue the \
-                 task using these results. You may call another tool, or answer and end \
-                 with your routing line (`@next <agent>` or `@done`).",
-                exchanges.render()
+                "{base_prompt}\n\nTOOL EXCHANGES THIS TURN:\n{}\n\n{}",
+                exchanges.render(),
+                super::toolround::next_step(max_calls - used)
             );
             let label = calls[fit - 1].label();
             sink(Hop {

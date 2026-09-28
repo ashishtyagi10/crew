@@ -87,6 +87,14 @@ pub trait Adapter: Send + Sync {
     fn role(&self) -> &str {
         super::agents::role_for(self.name())
     }
+    /// Whether this agent's own system prompt already says who it is and
+    /// what it is for — an API specialist's persona. The relay frame then
+    /// does not name its role again: said twice, in other words, it was a
+    /// second voice, and the frame's "a CLI coding agent" had contradicted a
+    /// persona whose specialty was proofreading.
+    fn introduced(&self) -> bool {
+        false
+    }
     /// Whether this agent's CLI is installed and usable on this machine.
     fn probe(&self) -> bool;
     /// Send `body` to the agent and return its normalized reply, or an error
