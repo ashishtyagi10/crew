@@ -73,6 +73,7 @@ mod skills;
 pub(crate) mod specialists;
 mod standup;
 mod stdio;
+mod streamhold;
 mod swarm;
 mod sysedit;
 mod sysfetch;
