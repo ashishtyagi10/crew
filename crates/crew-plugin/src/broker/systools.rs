@@ -200,6 +200,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
                     "path": {"type": "string", "description": "file or directory to search (default .)"},
                     "glob": {"type": "string", "description": "only files whose name matches, e.g. *.rs or src/**/*.ts"},
                     "ignore_case": {"type": "boolean"},
+                    "context": {"type": "integer", "description": "lines shown before and after each hit, 0 to 5 (default 0)"},
                 },
                 "required": ["pattern"],
             }),

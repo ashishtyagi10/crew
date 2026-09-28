@@ -91,6 +91,8 @@ mod sysfetchtext;
 mod sysgit;
 mod sysgitargs;
 mod sysgrep;
+mod sysgrepfiles;
+mod sysgrepfit;
 mod syspath;
 mod sysread;
 mod sysreadline;

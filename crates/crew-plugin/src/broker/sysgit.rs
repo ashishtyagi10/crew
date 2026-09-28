@@ -126,7 +126,10 @@ fn run(dir: &Path, argv: &[String]) -> Result<(String, bool), String> {
 /// Read `pipe` to its end on a thread — so git never blocks on a full one —
 /// keeping the first `cap` bytes, and send them back with whether any were
 /// dropped. Sent, not joined, so a pipe that never closes cannot hold the call.
-fn drain(pipe: Option<impl Read + Send + 'static>, cap: usize) -> mpsc::Receiver<(String, bool)> {
+pub(super) fn drain(
+    pipe: Option<impl Read + Send + 'static>,
+    cap: usize,
+) -> mpsc::Receiver<(String, bool)> {
     let (tx, rx) = mpsc::channel();
     if let Some(mut pipe) = pipe {
         std::thread::spawn(move || {
