@@ -135,6 +135,9 @@ impl Broker {
         // offset by this (and each other's) so the shared ticker's growth
         // gate never swallows a short follow-up after a long primary reply.
         let mut tick_base: u64 = (reply.chars().count() as u64) / 4;
+        // What every follow-up starts with; loses its recalled turns if one
+        // outgrows the model's context (`toolfull`).
+        let mut base = base_prompt.to_string();
         // Kept in parts, so older results can be shortened in each prompt.
         let mut exchanges = crew_hive::tools::exchanges::Exchanges::default();
         // The reads this turn has made, so a repeat is not run again.
@@ -182,36 +185,21 @@ impl Broker {
             if self.cancelled() {
                 return super::toolround::stopped_answer(&said, used);
             }
-            let follow = format!(
-                "{base_prompt}\n\nTOOL EXCHANGES THIS TURN:\n{}\n\n{}",
-                exchanges.render(),
-                super::toolround::next_step(max_calls - used)
-            );
+            // Refused for its length, the follow-up is cut and dialed once
+            // more (`toolfull`); the cut holds for the rest of the turn.
             let label = calls[fit - 1].label();
-            sink(Hop {
-                from: label,
-                to: env.to.clone(),
-                hop: env.hop,
-                kind: HopKind::Dialing,
-                text: String::new(),
-                usage: Default::default(),
-            });
-            let base = tick_base;
-            let ticked = HopStream {
-                // Tokens need the running offset (see this fn's doc): each
-                // dial restarts its own chars/4 estimate at 0, and the gate
-                // only emits on growth.
-                on_tokens: {
-                    let on = Arc::clone(&stream.on_tokens);
-                    Arc::new(move |t| on(base + t))
-                },
-                // Text needs NO offset — fragments are appended, not
-                // compared against a running total. Nor does reasoning.
-                on_text: Arc::clone(&stream.on_text),
-                on_thought: Arc::clone(&stream.on_thought),
-                on_tool: Arc::clone(&stream.on_tool),
-            };
-            match agent.call_with_usage_ticked(&follow, self.timeout, &ticked) {
+            let (follow, dialed) = self.dial_fitted(
+                agent,
+                &mut base,
+                &mut exchanges,
+                max_calls - used,
+                &label,
+                tick_base,
+                env,
+                stream,
+                sink,
+            );
+            match dialed {
                 Ok((r, u)) if !r.trim().is_empty() => {
                     stats.exchanges += 1;
                     stats.approx_tokens += (follow.len() + r.len()) / 4;

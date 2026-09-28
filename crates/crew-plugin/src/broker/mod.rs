@@ -117,6 +117,7 @@ pub mod tier;
 mod toolbatch;
 mod toolcall;
 mod toolclip;
+mod toolfull;
 mod toolline;
 mod toolpick;
 mod toolround;

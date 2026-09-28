@@ -6,8 +6,10 @@
 //! and a round of the budget was gone. A read made twice with nothing written
 //! in between cannot return anything new, and the loops keep the first result
 //! in front of the model, so the repeat is answered with a pointer to it
-//! instead. The native path resends every turn whole, so its pointer is always
-//! true; the relay and the text path shorten all but their last two results
+//! instead. The native path resends every turn whole, so its pointer is true
+//! until a request too long for the model's context has its older results
+//! cut, when it starts a new `Seen` (`apiagent::overflow`); the relay and the
+//! text path shorten all but their last two results
 //! (`exchanges`), and point only while the result is still shown whole
 //! (`Exchanges::repeat`).
 //!

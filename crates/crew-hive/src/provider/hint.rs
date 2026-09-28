@@ -101,12 +101,7 @@ const ROWS: &[Row] = &[
 /// make. `body` is the envelope `msg` came from, read for its `type` and
 /// `code`; pass `""` when there is none.
 pub(super) fn told(lead: &str, msg: &str, body: &str) -> String {
-    let hay = hay(msg, body);
-    let fix = ROWS
-        .iter()
-        .find(|r| r.when.iter().any(|all| all.iter().all(|f| has(&hay, f))))
-        .map(|r| r.fix);
-    let what = match fix {
+    let what = match fix(msg, body) {
         None => return format!("{lead}{msg}"),
         Some(Fix::Key) => {
             return format!("provider rejected the key \u{2014} {msg} (/model replaces it)")
@@ -126,6 +121,22 @@ pub(super) fn told(lead: &str, msg: &str, body: &str) -> String {
         ),
     };
     format!("{lead}{msg} \u{2014} {what}")
+}
+
+/// Whether the error is the request outgrowing the model's context: asked of
+/// the same rows, in the same order, as the hint, so the error the tool loops
+/// cut down and send again (`overflow`) is the one a person is told "no
+/// longer fits", and a key error that happens to mention a length is not.
+pub(super) fn overflows(msg: &str, body: &str) -> bool {
+    matches!(fix(msg, body), Some(Fix::Context))
+}
+
+/// The fix the first matching row calls for, if any.
+fn fix(msg: &str, body: &str) -> Option<Fix> {
+    let hay = hay(msg, body);
+    ROWS.iter()
+        .find(|r| r.when.iter().any(|all| all.iter().all(|f| has(&hay, f))))
+        .map(|r| r.fix)
 }
 
 /// The sentence and the envelope's `type`/`code` words, lowercased. A code
