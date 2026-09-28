@@ -99,7 +99,18 @@ const TASK_CAP: usize = 4000;
 /// to the same agent in a thread share a cacheable prefix; the variable parts
 /// (transcript, then the current message — already a normalized reply, never raw
 /// CLI chatter) come last, with the message most salient.
-pub fn frame(env: &Envelope, peers: &[String], task: &str, transcript: &str) -> String {
+///
+/// `tools` is the `@tool` section, laid in AFTER the clipped task and never
+/// clipped itself: it used to ride at the end of the task, where a long body
+/// (a skill roster, recalled turns) pushed it past [`TASK_CAP`] and the agent
+/// answered a question about the repo with no way to read the repo.
+pub fn frame(
+    env: &Envelope,
+    peers: &[String],
+    task: &str,
+    tools: &str,
+    transcript: &str,
+) -> String {
     let peer_list = if peers.is_empty() {
         "(none)".to_string()
     } else {
@@ -110,7 +121,7 @@ pub fn frame(env: &Envelope, peers: &[String], task: &str, transcript: &str) -> 
     } else {
         transcript.to_string()
     };
-    let task = clip(task.trim(), TASK_CAP);
+    let task = crew_hive::tools::augment(&clip(task.trim(), TASK_CAP), tools);
     compact_ws(&format!(
         "You are \"{me}\", a CLI coding agent working with peers: {peers}.\n\n\
          TASK:\n{task}\n\n\

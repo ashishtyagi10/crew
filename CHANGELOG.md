@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.50
+
+**Smith reads your code before answering questions about it.** Asked "what
+does the crew-render crate do?", smith used to describe a web framework that
+doesn't exist. The agent's instructions are cut at a fixed length, and the
+list of installed skills (about 9 KB, pasted in even when none were chosen)
+pushed the tool list past that cut, so the agent never knew it could read
+files. Now the tool list always comes after the cut. When no skill is chosen,
+the skills are one line of names. The tool list also says to read the
+relevant files before answering about the project. The same question now
+reads the README first and answers correctly. Each message's prompt is also
+about a third smaller, so it costs about half as much.
+
 ## 0.24.49
 
 **The Windows build is green again.** Since 0.24.41 the Windows CI check

@@ -93,6 +93,7 @@ fn frame_includes_task_transcript_peers_and_protocol() {
         &env,
         &["codex".into(), "opencode".into()],
         "build a parser",
+        "",
         "user → claude: start\nclaude → codex: drafted",
     );
     assert!(p.contains("\"claude\""));
@@ -134,7 +135,7 @@ fn repair_prompt_shows_reply_and_asks_for_directive() {
 #[test]
 fn frame_orders_stable_prefix_before_variable_parts() {
     let env = Envelope::new("user", "claude", "t", "the message");
-    let p = frame(&env, &["codex".into()], "the task", "user → claude: hi");
+    let p = frame(&env, &["codex".into()], "the task", "", "user → claude: hi");
     let at = |s: &str| p.find(s).unwrap();
     // task + protocol (stable) precede transcript + message (variable).
     assert!(at("TASK:") < at("HOW TO REPLY"));
@@ -171,7 +172,7 @@ fn compact_ws_preserves_single_and_double_newlines() {
 #[test]
 fn frame_output_is_whitespace_compacted() {
     let env = Envelope::new("codex", "claude", "t", "hi   ");
-    let p = frame(&env, &[], "task", "");
+    let p = frame(&env, &[], "task", "", "");
     assert_eq!(
         p,
         compact_ws(&p),
@@ -182,7 +183,7 @@ fn frame_output_is_whitespace_compacted() {
 #[test]
 fn frame_handles_no_peers_and_empty_transcript() {
     let env = Envelope::new("user", "claude", "t", "hi");
-    let p = frame(&env, &[], "task", "");
+    let p = frame(&env, &[], "task", "", "");
     assert!(p.contains("(none)"));
     assert!(p.contains("you are first"));
 }
@@ -191,7 +192,7 @@ fn frame_handles_no_peers_and_empty_transcript() {
 fn frame_leaves_a_normal_length_task_unchanged() {
     let env = Envelope::new("user", "claude", "t", "hi");
     let task = "a".repeat(TASK_CAP - 1);
-    let p = frame(&env, &[], &task, "");
+    let p = frame(&env, &[], &task, "", "");
     assert!(
         p.contains(&task),
         "task under the cap must pass through whole"
@@ -201,7 +202,7 @@ fn frame_leaves_a_normal_length_task_unchanged() {
 #[test]
 fn frame_trims_surrounding_whitespace_from_the_task() {
     let env = Envelope::new("user", "claude", "t", "hi");
-    let p = frame(&env, &[], "\n\n  do it  \n\n", "");
+    let p = frame(&env, &[], "\n\n  do it  \n\n", "", "");
     assert!(
         p.contains("TASK:\ndo it\n\n"),
         "leading/trailing blank lines must not survive: {p}"
@@ -211,7 +212,7 @@ fn frame_trims_surrounding_whitespace_from_the_task() {
 #[test]
 fn frame_leaves_a_clean_task_unchanged() {
     let env = Envelope::new("user", "claude", "t", "hi");
-    let p = frame(&env, &[], "do it", "");
+    let p = frame(&env, &[], "do it", "", "");
     assert!(p.contains("TASK:\ndo it\n\n"), "{p}");
 }
 
@@ -219,7 +220,7 @@ fn frame_leaves_a_clean_task_unchanged() {
 fn frame_caps_a_pathologically_long_task() {
     let env = Envelope::new("user", "claude", "t", "hi");
     let task = "a".repeat(TASK_CAP * 3);
-    let p = frame(&env, &[], &task, "");
+    let p = frame(&env, &[], &task, "", "");
     assert!(
         p.len() < task.len(),
         "frame output must be bounded by the task cap, not scale with it"

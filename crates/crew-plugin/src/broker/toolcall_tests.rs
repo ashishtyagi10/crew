@@ -84,7 +84,7 @@ fn parse_tool_call_rejects_non_directives() {
 }
 
 #[test]
-fn augment_appends_the_hint_only_when_tools_exist() {
+fn the_hint_is_empty_only_when_there_is_nothing_to_call() {
     struct NoTools;
     impl ToolRunner for NoTools {
         fn hint(&self) -> String {
@@ -94,10 +94,9 @@ fn augment_appends_the_hint_only_when_tools_exist() {
             unreachable!()
         }
     }
-    assert_eq!(augment("task", None), "task");
-    assert_eq!(augment("task", Some(&NoTools)), "task");
-    let with = augment("task", Some(&FakeTools(Ok("x".into()))));
-    assert!(with.starts_with("task\n\n") && with.contains("fs:read"));
+    assert_eq!(hint("task", None), "");
+    assert_eq!(hint("task", Some(&NoTools)), "");
+    assert!(hint("task", Some(&FakeTools(Ok("x".into())))).contains("fs:read"));
 }
 
 #[test]
