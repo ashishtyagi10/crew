@@ -40,13 +40,15 @@ const NOT_RUN: &str = "not run \u{2014} tool budget spent";
 
 /// The whole request text. `body` is the task WITHOUT a tools section: a
 /// syntax the model can no longer use is an invitation to use it anyway.
-pub(super) fn prompt(body: &str, done: &str, refused: &str) -> String {
+/// `list` is the task's checklist section, above the exchanges as in every
+/// follow-up, so the answer can say which steps it did not reach.
+pub(super) fn prompt(body: &str, list: &str, done: &str, refused: &str) -> String {
     let log: Vec<&str> = [done, refused]
         .into_iter()
         .filter(|s| !s.is_empty())
         .collect();
     format!(
-        "{body}\n\nTOOL EXCHANGES SO FAR:\n{}\n\n{INSTRUCTION}",
+        "{body}\n\n{list}TOOL EXCHANGES SO FAR:\n{}\n\n{INSTRUCTION}",
         log.join("\n\n")
     )
 }

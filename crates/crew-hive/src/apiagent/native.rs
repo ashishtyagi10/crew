@@ -18,10 +18,9 @@ mod batch;
 use std::sync::Arc;
 
 use crate::agent::{AgentContext, Attempt};
-use crate::board::TaskResult;
 use crate::bus::HiveEvent;
 use crate::provider::{CompletionRequest, Provider, ToolInvocation, ToolOutcome, Turn};
-use crate::tools::{seen::Seen, ToolCatalog, Tools};
+use crate::tools::{seen::Seen, todo, ToolCatalog, Tools};
 
 /// Most tools one turn may fire, however many the model asked for.
 ///
@@ -112,16 +111,7 @@ pub(super) async fn run(
         });
 
         if completion.calls.is_empty() {
-            ctx.bus.publish(HiveEvent::OutputChunk {
-                agent: agent_id,
-                text: completion.text.clone(),
-            });
-            return TaskResult {
-                task: task_id,
-                output: completion.text,
-                success: true,
-            }
-            .into();
+            return super::finish::answer(&ctx, Some(&tools), completion.text);
         }
 
         if ctx.take_round(round).is_none() {
@@ -147,6 +137,7 @@ pub(super) async fn run(
                 .map(|c| (label(c), c.input.to_string()));
             let last = super::lastword::prompt(
                 &prompt,
+                &todo::section(tools.checklist()),
                 &super::lastword::transcript(&turns, label),
                 &super::lastword::refused(&completion.text, asked),
             );
@@ -160,18 +151,10 @@ pub(super) async fn run(
                 answer.as_deref().unwrap_or(&completion.text),
                 total,
             );
-            ctx.bus.publish(HiveEvent::OutputChunk {
-                agent: agent_id,
-                text: text.clone(),
-            });
-            return TaskResult {
-                task: task_id,
-                output: text,
-                success: true,
-            }
-            .into();
+            return super::finish::answer(&ctx, Some(&tools), text);
         }
 
+        let wrote = tools.checklist().map(todo::Checklist::writes);
         let results = batch::run(&ctx, &tools, &catalog, &mut seen, &completion, round).await;
 
         turns.push(Turn::Assistant {
@@ -180,6 +163,16 @@ pub(super) async fn run(
         });
         turns.push(Turn::ToolResults(results));
         cut.after_round(&mut turns, &mut seen);
+        // The checklist as a note of its own, in the rounds that changed it
+        // and no other: every turn here is resent whole, so a note sent every
+        // round would ride in each request once per round already taken, and
+        // the one after the last change is still there to read.
+        if let Some(list) = tools.checklist().filter(|l| Some(l.writes()) != wrote) {
+            let note = list.section();
+            if !note.is_empty() {
+                turns.push(Turn::User(note.trim_end().to_string()));
+            }
+        }
         round += 1;
     }
 }

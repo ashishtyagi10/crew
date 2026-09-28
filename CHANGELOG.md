@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.7
+
+**An agent keeps a checklist for work with several steps.** Asked to "add a
+command with tests and docs", an agent planned in its first message and then
+lost the plan as rounds went by: older tool results are shortened and its
+early words scroll away, so it skipped the docs and said done. Now it has
+`sys:todo`, the way Claude Code has TodoWrite: it sends its whole list (up to
+12 steps, one in progress) whenever it changes, the list rides above the tool
+results in every later round of that task where shortening never reaches it,
+and an answer that ends with steps undone says so on its last line
+(`checklist: 3 of 5 done — not done: write the docs, add a test`). A task that
+never uses it reads exactly as before; the cost is the list's few lines in
+each follow-up of a task that keeps one.
+
 ## 0.25.6
 
 **A long task that fills the model's context is cut down, not lost.** A swarm worker on native tools resent every tool result whole each round, and a relay turn's follow-up carried its base prompt and its last two results whole, so a task that read a few big files passed qwen-max's 32K tokens, the provider refused the call (`Range of input length should be [1, 30720]`), and the task ended on that error with everything it had read thrown away. Now that one error, told apart by the same table that words its hint, gets one retry with less in it: a worker's older results become one line each (`[result of sys:read_file a.rs shortened to fit — call it again if you need it]`), or only the task and the last round go when even that is larger than the largest request already answered, while the text path and the relay keep the last round whole and every older call as its `CALLED` line, and the relay also drops the recalled turns from its base prompt (the project card and AGENTS.md stay). The pane says `context full — older results shortened, retrying` once, the task stays cut to its end, a read asked for again runs again instead of pointing at a result that is gone, a second refusal ends the task with the error as before, and any other 400 is not retried. The cost: what was cut is out of the model's view, so a file it still needed costs a round to read again; a swarm worker's note is a line in its live card, shown only while text streaming is on and gone when the answer lands; and a relay turn's first dial, before any tool has run, is not retried.

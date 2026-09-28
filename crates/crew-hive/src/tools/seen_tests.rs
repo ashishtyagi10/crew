@@ -109,3 +109,36 @@ fn the_pointer_names_the_round_and_is_one_line() {
     assert!(p.contains("round 3") && p.contains("above"), "{p}");
     assert_eq!(p.lines().count(), 1);
 }
+
+/// A surface that also calls the checklist a read, as the session's does by
+/// tier: it must still never be pointed at, nor make the reads before it stale.
+struct ReadsAndTodo;
+
+impl Tools for ReadsAndTodo {
+    fn hint(&self) -> String {
+        String::new()
+    }
+    fn call(&self, _s: &str, _t: &str, _a: &str) -> Result<String, String> {
+        unreachable!("Seen never runs a tool")
+    }
+    fn repeatable(&self, server: &str, tool: &str) -> bool {
+        matches!((server, tool), ("fs", "read") | ("sys", "todo"))
+    }
+}
+
+#[test]
+fn the_checklist_is_never_a_repeat_and_keeps_the_reads_before_it() {
+    let list = call("sys:todo", r#"{"items":[]}"#);
+    let read = call("fs:read", r#"{"path":"a.rs"}"#);
+    for tools in [&Reads as &dyn Tools, &ReadsAndTodo] {
+        let mut seen = Seen::default();
+        seen.ran(tools, &read, 1, true);
+        seen.ran(tools, &list, 2, true);
+        assert_eq!(seen.check(&list), None, "a second list is a new list");
+        assert_eq!(
+            seen.check(&read),
+            Some(1),
+            "ticking a step off wrote no file"
+        );
+    }
+}

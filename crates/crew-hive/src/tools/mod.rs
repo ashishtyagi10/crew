@@ -24,6 +24,7 @@ pub mod near;
 mod parse;
 mod said;
 pub mod seen;
+pub mod todo;
 
 #[cfg(test)]
 mod tests;
@@ -160,6 +161,13 @@ pub trait Tools: Send + Sync {
     ///
     /// [`specs_for`]: Tools::specs_for
     fn note_for(&self, _task: &str) -> Option<String> {
+        None
+    }
+
+    /// The task's checklist (`sys:todo`, [`todo`]), when this surface keeps
+    /// one: the loops head each follow-up prompt with it and name what it left
+    /// undone under the answer. Defaults to none, which leaves both as they were.
+    fn checklist(&self) -> Option<&todo::Checklist> {
         None
     }
 }

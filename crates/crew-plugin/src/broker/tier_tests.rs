@@ -19,11 +19,11 @@ fn every_built_in_tool_is_classified() {
     );
     assert_eq!(
         systools::tools().len(),
-        12,
-        "the sys surface is twelve tools: five that act on this machine, `grep` and \
+        13,
+        "the sys surface is thirteen tools: five that act on this machine, `grep` and \
          `glob` to find code in it, `outline` to see a file's shape, `git` to read \
-         its history, `fetch` and `search` for the world outside it, and \
-         `find_tools` to reach the rest"
+         its history, `fetch` and `search` for the world outside it, `find_tools` \
+         to reach the rest, and `todo` for the task's own checklist"
     );
 }
 

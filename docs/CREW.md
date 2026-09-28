@@ -2706,7 +2706,10 @@ fails, they walk the tree skipping `.git`, build output, dependency trees and
 hidden directories. Binaries and files over 1 MB are passed over, and both
 answers are fitted to 5,600 bytes, cut at a whole hit or path and ending with
 a line that counts what was left out and in how many files
-— **`sys:outline`**, which shows one file's shape (below), **`sys:git`**
+— **`sys:outline`**, which shows one file's shape (below), **`sys:todo`**, the
+agent's own checklist for a task of three or more steps (whole list per call,
+at most 12 items and one in progress, shown back above every round's tool
+results, and an answer that ends with steps undone says which), **`sys:git`**
 (below), and the two that reach off this machine —
 **`sys:fetch`** and **`sys:search`**.
 
@@ -3080,7 +3083,7 @@ agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request;
 `CREW_MAX_TASKS` (default 4) caps concurrent background tasks;
 `CREW_SYS_TOOLS=0` / `CREW_SYS_MODE=readonly` disable or sandbox the built-in
 sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:edit`, `sys:list_dir`,
-`sys:grep`, `sys:glob`, `sys:outline`, `sys:git`, `sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
+`sys:grep`, `sys:glob`, `sys:outline`, `sys:todo`, `sys:git`, `sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
 and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
 `CREW_HTTP_TIMEOUT_MS` (default 120000) is how long a provider may say
 NOTHING — the wait for the first byte, and each gap between two frames of a

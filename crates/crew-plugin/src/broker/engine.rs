@@ -217,9 +217,7 @@ impl Broker {
                     // routed reply, or a name remembered from another turn — is
                     // the answer, not an error card.
                     if next.eq_ignore_ascii_case(&env.to) || self.registry.get(&next).is_none() {
-                        let mut done = back(&env, HopKind::Done, body); // self-hand-off → finish
-                        done.usage = usage;
-                        sink(done);
+                        sink(self.done(&env, body, usage)); // self-hand-off → finish
                         return stats;
                     }
                     let trimmed = body.trim();
@@ -254,12 +252,21 @@ impl Broker {
                     env = env.advance(env.to.clone(), next, body);
                 }
                 Routing::Done(answer) => {
-                    let mut done = back(&env, HopKind::Done, answer);
-                    done.usage = usage;
-                    sink(done);
+                    sink(self.done(&env, answer, usage));
                     return stats;
                 }
             }
+        }
+    }
+
+    /// The hop that ends the thread with `answer`: the one place a relay
+    /// turn's final answer is made, so the checklist's line lands under every
+    /// answer however the thread ended (`toolround::finished`).
+    fn done(&self, env: &Envelope, answer: String, usage: super::adapter::Usage) -> Hop {
+        let answer = super::toolround::finished(self.tools.as_deref(), answer);
+        Hop {
+            usage,
+            ..back(env, HopKind::Done, answer)
         }
     }
 }

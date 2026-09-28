@@ -48,6 +48,10 @@ pub(crate) struct Session {
     /// over one it never looked at is refused (`readset`) — fresh in every
     /// task's snapshot, like `warm`, and shared by every surface built from it.
     pub reads: Arc<super::readset::ReadSet>,
+    /// The checklist this task keeps with `sys:todo` (`crew_hive::tools::todo`)
+    /// — fresh in every task's snapshot, like `reads`, and shared by every
+    /// surface built from it, so each hop of a relay sees the same list.
+    pub todo: Arc<crew_hive::tools::todo::Checklist>,
     /// The plan `/plan` drafted, awaiting `/approve` or `/reject` — shared so
     /// a worker-thread draft reaches the inline `/reject`.
     pub plan: super::plan::SharedPlan,
@@ -122,6 +126,7 @@ impl Default for Session {
             mcp: Arc::new(Mutex::new(crate::mcp::McpHost::from_config())),
             warm: super::lspwarm::WarmOnWrite::over(&lsp),
             reads: super::readset::ReadSet::new(),
+            todo: crew_hive::tools::todo::Checklist::new(),
             lsp,
             plan: Arc::new(Mutex::new(None)),
             commit: Arc::new(Mutex::new(None)),
@@ -166,6 +171,7 @@ impl Session {
             lsp: Arc::clone(&self.lsp),
             warm: self.warm.fresh(),
             reads: super::readset::ReadSet::new(),
+            todo: crew_hive::tools::todo::Checklist::new(),
             plan: Arc::clone(&self.plan),
             commit: Arc::clone(&self.commit),
             plan_first: Arc::clone(&self.plan_first),
@@ -234,6 +240,7 @@ impl Session {
         }
         Some(Arc::new(SessionTools {
             reads: Arc::clone(&self.reads),
+            todo: Arc::clone(&self.todo),
             ..SessionTools::new(
                 Arc::clone(&self.mcp),
                 Arc::clone(&self.lsp),
@@ -297,6 +304,9 @@ struct SessionTools {
     /// per-task set, so a surface built for another hop of the same task sees
     /// the same reads; a surface of its own when built bare, as tests build it.
     reads: Arc<super::readset::ReadSet>,
+    /// The task's checklist (`sys:todo`): the session's per-task list, like
+    /// `reads`, and one of its own when built bare.
+    todo: Arc<crew_hive::tools::todo::Checklist>,
     /// Asked about every write that succeeded, so an edit that broke the
     /// build says so in its own result (see `editdiag`): the session's
     /// language servers, or a fake under test.
@@ -331,6 +341,7 @@ impl SessionTools {
             ckpt,
             warm,
             reads: super::readset::ReadSet::new(),
+            todo: crew_hive::tools::todo::Checklist::new(),
         }
     }
 
@@ -457,9 +468,17 @@ impl super::toolcall::ToolRunner for SessionTools {
     /// from the result already in the prompt (`crew_hive::tools::seen`). Except diagnostics:
     /// the language server publishes them on its own clock, a check can finish while the
     /// first pass is still under way, and asking again is how an agent waits for the rest.
+    ///
+    /// Nor the checklist: it is classified a read because it touches nothing outside the task,
+    /// but a second `sys:todo` is a new list, and two in one reply must land in the order sent.
     fn repeatable(&self, server: &str, tool: &str) -> bool {
         self.tier_for(server, tool) == super::tier::Tier::Read
-            && (server, tool) != ("lsp", "diagnostics")
+            && !matches!((server, tool), ("lsp", "diagnostics") | ("sys", "todo"))
+    }
+
+    /// The task's checklist, while the `sys` surface that writes it is on.
+    fn checklist(&self) -> Option<&crew_hive::tools::todo::Checklist> {
+        self.sys.then_some(self.todo.as_ref())
     }
 
     /// Every tool call in the running broker passes through here — `sys` and MCP alike — which
@@ -515,6 +534,9 @@ impl super::toolcall::ToolRunner for SessionTools {
                 &toolselect::search_query(args),
                 super::toolpick::BUDGET,
             ))
+        } else if server == "sys" && tool == "todo" && self.sys {
+            // Kept here rather than in `systools`: the list is the task's, and this surface is.
+            self.todo.write(args)
         } else if server == "sys" && self.sys {
             let out = self
                 .reads
@@ -567,3 +589,7 @@ pub(crate) mod sessiontest;
 #[cfg(test)]
 #[path = "session_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "sessiontodo_tests.rs"]
+mod todo_tests;

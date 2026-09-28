@@ -251,6 +251,36 @@ pub(crate) fn tools() -> Vec<McpTool> {
                 "required": ["cmd"],
             }),
         ),
+        // The description is the whole of what a text-mode agent sees of it
+        // (the hint clips at 100 chars), so the shape rides in it; the enum and
+        // the limits are in the schema for the native path.
+        mk(
+            "todo",
+            "for work with 3+ steps: keep a checklist, whole each time: {\"items\":[{\"text\":\u{2026},\"status\":\"pending\"}]}",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "maxItems": crew_hive::tools::todo::MAX_ITEMS,
+                        "description": "the WHOLE list, in order: it replaces the last one, so send every item each time, ticked or not",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "text": {"type": "string", "maxLength": crew_hive::tools::todo::MAX_TEXT, "description": "one step, in a few words"},
+                                "status": {
+                                    "type": "string",
+                                    "enum": ["pending", "in_progress", "done"],
+                                    "description": "at most ONE item in_progress: the one you are on now",
+                                },
+                            },
+                            "required": ["text", "status"],
+                        },
+                    },
+                },
+                "required": ["items"],
+            }),
+        ),
         mk(
             "list_dir",
             "list a directory (default .): {\"path\": \"src\"}",
@@ -285,8 +315,11 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "outline" => super::sysoutline::outline(str_arg(&v, "path")?),
         "fetch" => super::sysfetch::fetch(str_arg(&v, "url")?),
         "search" => super::syssearch::search(str_arg(&v, "q")?),
+        // The list is the task's, so the task's surface answers it
+        // (`SessionTools::call`); here there is no task to keep it for.
+        "todo" => Err("sys:todo keeps a checklist for a task, and this call is not in one".into()),
         other => Err(format!(
-            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, grep, glob, outline, git, fetch, search, find_tools"
+            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, grep, glob, outline, git, fetch, search, find_tools, todo"
         )),
     }
 }

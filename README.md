@@ -578,6 +578,10 @@ git lists, so nothing `.gitignore` names crowds out the project's own code),
 its Markdown headings, each on a row with its line number for `sys:read_file`'s
 `line` to open, the way Aider's repo map shows a file: its shape in one call
 rather than five pages),
+`sys:todo` (a checklist of up to 12 steps the agent keeps for a task with
+three or more of them, sent whole each time, shown back to it above every
+round's tool results so shortening never drops it, and the steps left undone
+named at the end of its answer, the way Claude Code's TodoWrite does),
 `sys:git` (status, diff, log, show and blame, run without a shell and with
 any argument that writes a file or runs a program refused, so it needs no
 approval and works in read-only mode),

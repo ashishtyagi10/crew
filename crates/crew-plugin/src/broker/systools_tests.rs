@@ -27,6 +27,7 @@ fn tools_lists_the_sys_surface() {
             "glob",
             "outline",
             "git",
+            "todo",
             "list_dir"
         ]
     );
@@ -348,4 +349,26 @@ fn sys_edit_takes_one_pair_or_a_list_of_them() {
         "let a = 0;\nlet b = 3;\n"
     );
     std::fs::remove_dir_all(&dir).ok();
+}
+
+/// A text-mode agent sees only the hint line, clipped at 100 chars, so the
+/// checklist's when and its shape both have to fit in it.
+#[test]
+fn the_todo_line_reaches_a_text_mode_agent_whole() {
+    let todo = tools().into_iter().find(|t| t.name == "todo").unwrap();
+    let hint = crate::broker::toolcall::hint_for(std::slice::from_ref(&todo));
+    assert!(
+        hint.contains(&format!("- sys:todo \u{2014} {}\n", todo.description))
+            || hint.ends_with(&format!("- sys:todo \u{2014} {}", todo.description)),
+        "clipped: {hint}"
+    );
+    for part in ["3+ steps", "checklist", "\"items\"", "\"status\""] {
+        assert!(
+            todo.description.contains(part),
+            "{part}: {}",
+            todo.description
+        );
+    }
+    let e = call("todo", r#"{"items": []}"#).unwrap_err();
+    assert!(e.contains("not in one"), "{e}");
 }

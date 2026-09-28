@@ -53,7 +53,15 @@ impl Seen {
     /// failed halfway may still have written. A failed read is not
     /// remembered, because the file may appear or the server come back, and
     /// trying again after a failure is something a model is right to do.
+    ///
+    /// The checklist (`sys:todo`) is neither: a second write of it is a new
+    /// list, so it is never pointed at, and it touches nothing a read saw, so
+    /// an agent that ticks a step off after every read keeps its repeats
+    /// answered.
     pub fn ran(&mut self, tools: &dyn Tools, call: &ToolCall, round: u32, ok: bool) {
+        if super::todo::is_todo(call) {
+            return;
+        }
         if !tools.repeatable(&call.server, &call.tool) {
             self.rounds.clear();
         } else if ok {

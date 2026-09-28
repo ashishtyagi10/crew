@@ -50,6 +50,9 @@ pub fn sys_tier(tool: &str) -> Option<Tier> {
         "read_file" | "list_dir" | "grep" | "glob" | "find_tools" => Tier::Read,
         // It reads one file, as `read_file` does, and says less about it.
         "outline" => Tier::Read,
+        // The task's own checklist: it lives in crew for the length of the
+        // task and touches nothing outside it (`crew_hive::tools::todo`).
+        "todo" => Tier::Read,
         // A GET changes nothing out there, and the private-network guard
         // (`sysfetch::is_private`) is what keeps "nothing" true on a machine
         // that sits inside a network of things that answer anyone.
