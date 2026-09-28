@@ -231,7 +231,7 @@ fn one_task_or_one_sink_wants_no_answer_and_two_sinks_do() {
 fn the_brief_holds_every_output_to_the_budget() {
     let one = prompt("goal", &[("a".into(), "x".repeat(10_000))]);
     assert!(
-        one.contains("[clipped 6000 chars]"),
+        one.contains("[6000 chars cut from the middle]"),
         "one output gets OUTPUT_CAP"
     );
     let parts: Vec<(String, String)> = (0..4)
@@ -239,7 +239,7 @@ fn the_brief_holds_every_output_to_the_budget() {
         .collect();
     let four = prompt("goal", &parts);
     assert_eq!(
-        four.matches("[clipped 2000 chars]").count(),
+        four.matches("[2000 chars cut from the middle]").count(),
         4,
         "four outputs share OUTPUTS_TOTAL_CAP evenly: {}",
         &four[..200]
