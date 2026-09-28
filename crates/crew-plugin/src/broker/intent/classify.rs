@@ -9,23 +9,45 @@ use std::time::Duration;
 /// optional sizing lines, and the optional verify line).
 const INTENT_MAX_TOKENS: u32 = 128;
 
-/// Round-trip ceiling for classification — deliberately far below
-/// `call_timeout()` (3 min): the router is overhead before the real work, so
-/// a slow classifier must degrade to the swarm, not stall the task.
-const CLASSIFY_TIMEOUT: Duration = Duration::from_secs(30);
+/// Round-trip ceiling for the ROUTER's call. It answers in about a second
+/// (measured on qwen-flash, DashScope's cheap tier), so 12 s is over ten
+/// times its usual time. It was 30 s, shared with everything below, and a
+/// hung router cost that before the turn fell into a whole swarm; now it
+/// costs 12 s and lands on one agent (`decision::Routing::decision`).
+pub(super) const CLASSIFY_TIMEOUT: Duration = Duration::from_secs(12);
 
-/// The live classifier, when one may run: `None` under `CREW_INTENT=0`, with
-/// no resolvable provider, or under the mock provider (the GUI harness needs
-/// deterministic swarm replies; a mock reply would fail the grammar anyway).
-/// `pub(crate)` because `broker::elect` makes its agent-election call through
-/// the same plumbing — one bounded structured call, one escape hatch.
+/// Round-trip ceiling for every OTHER one-shot on this plumbing: election,
+/// skill and tool picks, `compact`'s summarizer, the judge, the swarm's
+/// closing answer. Far below `call_timeout()` (3 min), since each is a step
+/// around the work, but not the router's 12 s: the summarizer and the closing
+/// answer write paragraphs, and a bound sized for five short lines would
+/// fail them on an ordinary day.
+pub(super) const ONESHOT_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// The router's own call: the grammar's output ceiling on the cheap tier,
+/// under [`CLASSIFY_TIMEOUT`]. `pub(super)` so the tighter bound stays the
+/// router's — nothing outside `intent` can pick it up by accident.
+pub(super) fn live_router() -> Option<impl Fn(&str) -> Result<String, String>> {
+    let call = live_bounded(
+        INTENT_MAX_TOKENS,
+        crew_hive::ModelTier::Cheap,
+        CLASSIFY_TIMEOUT,
+    )?;
+    Some(move |p: &str| call(p).map(|c| c.text))
+}
+
+/// A grammar-sized call at the one-shot bound, when one may run: `None`
+/// under `CREW_INTENT=0`, with no resolvable provider, or under the mock
+/// provider. `broker::elect` makes its agent-election call through it — the
+/// same small structured answer as routing, without the router's bound.
 pub(crate) fn live_classifier() -> Option<impl Fn(&str) -> Result<String, String>> {
     live_call(INTENT_MAX_TOKENS)
 }
 
 /// The same bounded one-shot with a caller-chosen output ceiling — the shared
-/// plumbing behind classification, election, and `compact`'s summarizer. One
-/// set of gates (`CREW_INTENT=0`, keyless, mock), one escape hatch.
+/// plumbing behind election, skill and tool picks, and `compact`'s
+/// summarizer. One set of gates (`CREW_INTENT=0`, keyless, mock), one escape
+/// hatch.
 pub(crate) fn live_call(max_tokens: u32) -> Option<impl Fn(&str) -> Result<String, String>> {
     live_call_at(max_tokens, crew_hive::ModelTier::Cheap)
 }
@@ -48,6 +70,16 @@ pub(crate) fn live_completion_at(
     max_tokens: u32,
     tier: crew_hive::ModelTier,
 ) -> Option<impl Fn(&str) -> Result<crew_hive::Completion, String>> {
+    live_bounded(max_tokens, tier, ONESHOT_TIMEOUT)
+}
+
+/// Every call here, with its round-trip bound stated: the gates live once,
+/// and only the router passes its tighter bound.
+fn live_bounded(
+    max_tokens: u32,
+    tier: crew_hive::ModelTier,
+    timeout: Duration,
+) -> Option<impl Fn(&str) -> Result<crew_hive::Completion, String>> {
     if super::disabled() {
         return None;
     }
@@ -55,7 +87,7 @@ pub(crate) fn live_completion_at(
     if model == "mock" {
         return None;
     }
-    Some(move |p: &str| complete_once(&provider, &model, p, max_tokens))
+    Some(move |p: &str| complete_once(&provider, &model, p, max_tokens, timeout))
 }
 
 /// One bounded completion on the discovered provider — same block-on pattern
@@ -66,6 +98,7 @@ fn complete_once(
     model: &str,
     prompt: &str,
     max_tokens: u32,
+    timeout: Duration,
 ) -> Result<crew_hive::Completion, String> {
     let req = crew_hive::CompletionRequest {
         model: model.to_string(),
@@ -79,12 +112,12 @@ fn complete_once(
         .build()
         .map_err(|e| e.to_string())?;
     let fut = provider.complete(req);
-    match rt.block_on(async move { tokio::time::timeout(CLASSIFY_TIMEOUT, fut).await }) {
+    // The caller names what timed out ("classifier failed: …"), so the
+    // error is only the bound — the router's and the closing answer's alike.
+    match rt.block_on(async move { tokio::time::timeout(timeout, fut).await }) {
         Ok(Ok(c)) => Ok(c),
         Ok(Err(e)) => Err(e.to_string()),
-        Err(_) => Err(format!(
-            "intent classification timed out after {CLASSIFY_TIMEOUT:?}"
-        )),
+        Err(_) => Err(format!("timed out after {timeout:?}")),
     }
 }
 

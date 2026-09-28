@@ -5,7 +5,7 @@
 //! before dispatch — `routing: swarm — multi-part work` — naming the shape
 //! and, when the model offered one, its reason; and every way the classifier
 //! can stop (off, error, off-grammar) is said just as plainly instead of
-//! silently becoming the swarm.
+//! silently becoming a fallback.
 //!
 //! The grammar grows an OPTIONAL second line, `WHY: <one short clause>`,
 //! and two optional sizing lines after it (`ROUNDS:`, `AGENTS:` — see
@@ -45,8 +45,9 @@ impl Decision {
 }
 
 /// How the router arrived at its shape. Every variant that is not `Chosen`
-/// is the swarm — but each says WHY it is the swarm, so the fallback is
-/// never mistaken for a choice.
+/// is a fallback — `Off` the swarm, `Failed` and `OffGrammar` one agent's
+/// reply (see [`Routing::decision`]) — and each says WHY on the line, so the
+/// fallback is never mistaken for a choice.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Routing {
     Chosen(Decision),
@@ -59,12 +60,24 @@ pub(crate) enum Routing {
 }
 
 impl Routing {
-    /// The whole decision to dispatch: the model's, or a default-sized swarm
-    /// for every stop.
+    /// The whole decision to dispatch: the model's, or the stop's fallback.
+    ///
+    /// A router that ran and stumbled (the call failed, or it answered
+    /// off-grammar twice) falls back to `reply`, exactly as a chosen reply
+    /// with no `AGENTS:` line: most messages are questions one agent answers
+    /// in a few tool rounds, and the swarm spends a planning call, several
+    /// workers and a closing answer to find that out. `Off` stays a default
+    /// swarm: `CREW_INTENT=0` promises the old always-swarm routing, and the
+    /// keyless and mock runs behind the GUI harness and the e2e tests depend
+    /// on its task graph.
     pub(crate) fn decision(&self) -> Decision {
         match self {
             Routing::Chosen(d) => d.clone(),
-            _ => Decision::default(),
+            Routing::Off => Decision::default(),
+            Routing::Failed(_) | Routing::OffGrammar => Decision {
+                shape: Shape::Reply,
+                ..Default::default()
+            },
         }
     }
 
@@ -162,9 +175,9 @@ pub(crate) fn decide_in(task: &str, world: &World, classifier: Option<Classifier
     };
     let prompt = classify::prompt(task, world);
     // An off-grammar reply is asked for once more before it becomes the
-    // swarm fallback: the router is a small fast model now, a second sample
-    // costs about a second, and the fallback costs a planning call and a
-    // swarm — seconds more, for a question one agent would have answered.
+    // reply fallback: the router is a small fast model now, a second sample
+    // costs about a second, and the fallback is right only when the message
+    // wanted one agent — a fan, a plan or a swarm asked for is lost.
     let mut outcome = Routing::OffGrammar;
     for _ in 0..2 {
         outcome = match call(&prompt) {

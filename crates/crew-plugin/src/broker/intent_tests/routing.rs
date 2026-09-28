@@ -1,5 +1,6 @@
-//! Each shape reaches its own capability path; every stopped classifier is
-//! today's swarm; and retired commands keep plain-language parity.
+//! Each shape reaches its own capability path; a classifier that may not run
+//! is the pre-router swarm (a stumbling one is a reply — see `fallback`); and
+//! retired commands keep plain-language parity.
 use super::*;
 use crate::broker::testenv;
 

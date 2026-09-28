@@ -1,6 +1,6 @@
 //! The pane is told the routing decision — before the dispatched arm's first
 //! event, with the model's reason when it gave one, and with the honest name
-//! of every stop that fell back to the swarm.
+//! of every stop — whether it fell back to the swarm or to one agent's reply.
 use super::*;
 
 /// Position of the first `Message` whose text contains `needle`.
@@ -105,33 +105,43 @@ fn no_classifier_says_classifier_off_and_swarms() {
     assert!(said < plan, "{evs:?}");
 }
 
+// These two said `routing: swarm — …` and planned a task graph until
+// the fallback moved: a router that stumbles now lands on one agent's reply.
 #[test]
-fn a_failed_call_says_so_and_swarms() {
-    let _g = testenv::mock("ok");
+fn a_failed_call_says_so_and_one_agent_replies() {
+    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
     let call = |_: &str| Err("provider timed out".to_string());
     let evs = route_stubbed("do something useful", &call);
     assert_eq!(
         routing_line(&evs),
-        "routing: swarm — classifier failed: provider timed out"
+        "routing: reply — classifier failed: provider timed out"
     );
     assert!(
-        evs.iter()
+        pos_dial(&evs, "planner").is_some(),
+        "the relay ran: {evs:?}"
+    );
+    assert!(
+        !evs.iter()
             .any(|e| matches!(e, PluginEvent::HivePlan { .. })),
         "{evs:?}"
     );
 }
 
 #[test]
-fn an_off_grammar_reply_says_so_and_swarms() {
-    let _g = testenv::mock("ok");
+fn an_off_grammar_reply_says_so_and_one_agent_replies() {
+    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
     let call = |_: &str| Ok("I'd fan out for this one".to_string());
     let evs = route_stubbed("do something useful", &call);
     assert_eq!(
         routing_line(&evs),
-        "routing: swarm — classifier reply was off-grammar"
+        "routing: reply — classifier reply was off-grammar"
     );
     assert!(
-        evs.iter()
+        pos_dial(&evs, "planner").is_some(),
+        "the relay ran: {evs:?}"
+    );
+    assert!(
+        !evs.iter()
             .any(|e| matches!(e, PluginEvent::HivePlan { .. })),
         "{evs:?}"
     );

@@ -7,8 +7,9 @@
 //! proves the run says what it brings, after the routing line; `verify`
 //! proves the `VERIFY:` line reaches the swarm and no other shape; `world`
 //! proves the classifier is shown the room it routes in; `skillhint` proves
-//! the routing call chooses the playbooks, so no arm asks again. Shared fixtures
-//! live here.
+//! the routing call chooses the playbooks, so no arm asks again; `fallback`
+//! proves a stumbling router lands on one agent's reply, within its own
+//! tighter bound. Shared fixtures live here.
 use super::decision::{decide_in, parse_decision_on, Decision, Routing};
 use super::*;
 use crate::broker::testenv;
@@ -16,6 +17,7 @@ use crate::broker::testenv;
 mod announce;
 mod capability;
 mod context;
+mod fallback;
 mod grammar;
 mod hints;
 mod plangate;
