@@ -104,23 +104,18 @@ const TASK_CAP: usize = 4000;
 /// clipped itself: it used to ride at the end of the task, where a long body
 /// (a skill roster, recalled turns) pushed it past [`TASK_CAP`] and the agent
 /// answered a question about the repo with no way to read the repo.
+///
+/// `intro` is the addressed agent's role when the frame has to say it, and
+/// `None` when the agent's own system prompt already did ([`intro_of`]).
 pub fn frame(
     env: &Envelope,
+    intro: Option<&str>,
     peers: &[String],
     task: &str,
     tools: &str,
     transcript: &str,
 ) -> String {
-    let peer_list = if peers.is_empty() {
-        "(none)".to_string()
-    } else {
-        peers.join(", ")
-    };
-    let convo = if transcript.trim().is_empty() {
-        "(you are first — no replies yet)".to_string()
-    } else {
-        transcript.to_string()
-    };
+    let alone = peers.is_empty();
     // On the first hop the task IS the message below it — project card,
     // recalled turns and all — and was sent twice, once flattened. Said once,
     // at the end where it is most salient; later hops restate the task,
@@ -133,7 +128,7 @@ pub fn frame(
         ),
         false => clip(task.trim(), TASK_CAP),
     };
-    let task = crew_hive::tools::augment(&task, tools);
+    let task = format!("TASK:\n{}", crew_hive::tools::augment(&task, tools));
     // Roles once, in the opening line; the hand-off list needs only names.
     let names: Vec<&str> = peers
         .iter()
@@ -142,9 +137,13 @@ pub fn frame(
     // Alone, there is no one to hand to: the reply is the answer and the
     // protocol is one word. With peers the hand-off is offered — for work
     // that needs a peer, never to pass a finished answer round the table.
-    let how = if names.is_empty() {
+    // Either way this is the prompt's one rule on length (the specialist's
+    // system prompt says none). Alone it is "in full", not "in full but
+    // without padding": replayed, the padding clause cut the samples that
+    // read the repo before answering from 16 of 16 to 10–13.
+    let how = if alone {
         "HOW TO REPLY: this turn is yours alone \u{2014} do the work, answer in \
-         full, then end with the line `@done`."
+         full, then end your answer with the line `@done`."
             .to_string()
     } else {
         format!(
@@ -155,22 +154,47 @@ pub fn frame(
             names.join(", ")
         )
     };
-    let opening = match peers.is_empty() {
-        true => format!("You are \"{}\", a CLI coding agent.", env.to),
-        false => format!(
-            "You are \"{}\", a CLI coding agent working with peers: {peer_list}.",
-            env.to
-        ),
+    // "You are first — no replies yet" told an agent alone on its turn that
+    // replies were coming. With peers it is true, and it stays.
+    let convo = match (transcript.trim().is_empty(), alone) {
+        (false, _) => format!("CONVERSATION SO FAR:\n{transcript}"),
+        (true, false) => "CONVERSATION SO FAR:\n(you are first \u{2014} no replies yet)".into(),
+        (true, true) => String::new(),
     };
-    compact_ws(&format!(
-        "{opening}\n\n\
-         TASK:\n{task}\n\n\
-         {how}\n\n\
-         CONVERSATION SO FAR:\n{convo}\n\n\
-         MESSAGE FOR YOU FROM \"{from}\":\n{body}",
-        from = env.from,
-        body = env.body,
-    ))
+    let message = format!("MESSAGE FOR YOU FROM \"{}\":\n{}", env.from, env.body);
+    let parts = [opening(&env.to, intro, peers), task, how, convo, message];
+    let parts: Vec<&str> = parts
+        .iter()
+        .map(String::as_str)
+        .filter(|s| !s.is_empty())
+        .collect();
+    compact_ws(&parts.join("\n\n"))
+}
+
+/// The role the frame names for `agent`, or `None` when the agent's own
+/// system prompt already named it ([`super::adapter::Adapter::introduced`]).
+pub(crate) fn intro_of(agent: &dyn super::adapter::Adapter) -> Option<&str> {
+    (!agent.introduced()).then(|| agent.role())
+}
+
+/// The frame's first line: who the agent is and who it works with.
+///
+/// It called every agent "a CLI coding agent", a proofreader included, one
+/// line under a system prompt that had just named its real specialty. The
+/// role is said here only when no system prompt said it. "A CLI agent" stays:
+/// replayed against qwen-max, the same prompt opening "an agent" called a
+/// tool on 2 of 16 samples to answer a question about the repo, and "a CLI
+/// agent" on 16 of 16 — the word is what tells the model it works through
+/// the tools below, not from what it remembers.
+fn opening(to: &str, intro: Option<&str>, peers: &[String]) -> String {
+    let who = match intro {
+        None | Some("") => format!("You are \"{to}\", a CLI agent."),
+        Some(role) => format!("You are \"{to}\", a CLI agent whose specialty is {role}."),
+    };
+    match peers.is_empty() {
+        true => who,
+        false => format!("{who} Your peers: {}.", peers.join(", ")),
+    }
 }
 
 /// Collapse 3+ consecutive newlines into 2 and strip trailing spaces/tabs from

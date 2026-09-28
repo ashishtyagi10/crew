@@ -49,15 +49,21 @@ pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> Exc
 /// an agent cannot see is one it plans straight past, and then the task ends
 /// mid-sequence with a tool call nobody ran — the relay learned this the
 /// expensive way and the wording is carried over deliberately.
+///
+/// One sentence per case. "You may call another tool" used to follow every
+/// budget line, "This was your LAST tool call" included, so the last round
+/// was told both to stop calling and that it could call again.
 pub(super) fn follow_up(base: &str, exchanges: &Exchanges, rounds_left: u32) -> String {
-    let budget = if rounds_left == 0 {
-        "This was your LAST tool call for this task: answer with what you have now.".to_string()
-    } else {
-        format!("You may make {rounds_left} more tool call(s) for this task.")
+    let next = match rounds_left {
+        0 => {
+            "This was your LAST tool call for this task: answer with what you have now.".to_string()
+        }
+        n => {
+            format!("You may make {n} more tool call(s) for this task, or give your final answer.")
+        }
     };
     format!(
-        "{base}\n\nTOOL EXCHANGES SO FAR:\n{}\n\n{budget} Continue the task using these \
-         results. You may call another tool, or give your final answer.",
+        "{base}\n\nTOOL EXCHANGES SO FAR:\n{}\n\n{next}",
         exchanges.render()
     )
 }

@@ -67,6 +67,28 @@ pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> Exc
     Exchange::new(said, label, args, clip_result(result, AGENT_CLIP))
 }
 
+/// The last line of a follow-up prompt: the calls `left` this turn, and how
+/// to finish.
+///
+/// The agent is TOLD what it has left. A budget it cannot see is one it plans
+/// straight past, and then the turn ends mid-sequence with a tool call nobody
+/// ran. How to finish is pointed at, not restated: the line used to offer
+/// `@next <agent>` to an agent alone on its turn, whose frame had just said
+/// to end with `@done`, and "You may call another tool" followed "This was
+/// your LAST tool call". The frame's HOW TO REPLY, alone or with peers, is
+/// the one statement of it, so the follow-up cannot disagree with it.
+pub(super) fn next_step(left: u32) -> String {
+    match left {
+        0 => "This was your LAST tool call this turn: answer now with what you \
+              have, and end the answer as HOW TO REPLY says."
+            .to_string(),
+        n => format!(
+            "You may make {n} more tool call(s) this turn, or answer now and end \
+             the answer as HOW TO REPLY says."
+        ),
+    }
+}
+
 /// The answer of a turn whose last reply asked for a tool after the budget
 /// was spent: `before`, the text the agent wrote above that call, without
 /// the call.
