@@ -20,6 +20,7 @@
 //! - [`planner`] — goal → task-graph: [`Planner`], [`StubPlanner`], [`LlmPlanner`]
 //! - [`apiagent`] — native LLM agent (futures, no PTY): [`ApiAgent`]
 //! - [`tools`] — the tool surface both engines share: [`Tools`], [`parse_tool_call`]
+//! - [`clipmiddle`] — a long output cut from the middle, head and conclusion kept: [`clip_middle`]
 //!
 //! Scale & control:
 //! - [`batch`] — flat parallel-job graph: [`batch_graph`], [`Job`]
@@ -47,6 +48,7 @@ pub mod board;
 pub mod bus;
 pub mod catalog;
 pub mod childproc;
+pub mod clipmiddle;
 pub mod deviceflow;
 pub mod govern;
 pub mod graph;
@@ -76,6 +78,9 @@ pub use telemetry::{AgentTelemetry, Fleet, FleetTotals};
 
 // Agent
 pub use agent::{Agent, AgentContext, AgentFactory, StubAgent};
+
+// ClipMiddle
+pub use clipmiddle::clip_middle;
 
 // AgentName
 pub use agentname::{role_clamp, slug, slug_or};

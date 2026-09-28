@@ -16,7 +16,7 @@
 //! call and emit no line, so their event stream is byte-identical to before;
 //! a call that fails is one quiet line, never a failed run. A child of
 //! `swarm`, so `broker` items are reached through `crate::broker::`.
-use crew_hive::{RunOutcome, TaskGraph, TaskId, TaskResult};
+use crew_hive::{clip_middle, RunOutcome, TaskGraph, TaskId, TaskResult};
 
 use super::swarmgap::Gap;
 use super::swarmstream::{self, AnswerFn};
@@ -41,7 +41,8 @@ const SYNTH_MAX_TOKENS: u32 = 2048;
 /// Chars of the user's request carried into a brief; mirrors `route::TASK_CAP`.
 pub(super) const GOAL_CAP: usize = 4_000;
 /// Chars of any ONE worker's output carried into the brief; mirrors crew-hive's
-/// `DEP_CAP`, the budget a worker itself gets of each dependency's output.
+/// `DEP_CAP`, the budget a worker itself gets of each dependency's output, and
+/// cut the same way, from the middle, since a worker's conclusion is its end.
 const OUTPUT_CAP: usize = 4_000;
 /// Chars of ALL workers' outputs together, shared evenly when the sum would
 /// bust it; mirrors `DEPS_TOTAL_CAP`. Keeps the whole brief inside a
@@ -89,14 +90,15 @@ pub(super) fn prompt(goal: &str, parts: &[(String, String)]) -> String {
     )
 }
 
-/// The outputs half of a brief — one `## title` block per part, each held to
-/// its share of the budgets above. Shared with the judge's and the revision's
-/// briefs (`swarmverify`), so every reader of a run's outputs clips alike.
+/// The outputs half of a brief — one `## title` block per part, each cut from
+/// the middle to its share of the budgets above (`clip_middle`), so the answer
+/// sees how a worker began and what it concluded. Shared with the judge's and
+/// the revision's briefs (`swarmverify`), so every reader clips alike.
 pub(super) fn outputs(parts: &[(String, String)]) -> String {
     let each = OUTPUT_CAP.min(OUTPUTS_TOTAL_CAP / parts.len().max(1));
     parts
         .iter()
-        .map(|(title, output)| format!("\n\n## {title}\n{}", clip_head(output, each)))
+        .map(|(title, output)| format!("\n\n## {title}\n{}", clip_middle(output, each)))
         .collect()
 }
 
@@ -195,10 +197,11 @@ pub(super) fn activity(state: &str, from: &str) -> PluginEvent {
     }
 }
 
-/// The head of `s`, at most `max` chars, with a visible marker when cut.
-/// Chars, never bytes, so multi-byte text is never split; under budget it
-/// passes through byte-identical. `route::clip` is not used here because it
-/// flattens whitespace, and a worker's output is often a list.
+/// The head of `s`, at most `max` chars, with a visible marker when cut; for
+/// the REQUEST only, whose head is the request, where a worker's output ends
+/// on its conclusion and is cut from the middle (`outputs`). Chars, never
+/// bytes; under budget byte-identical. Not `route::clip`, which flattens
+/// whitespace, and a request is often a list.
 pub(super) fn clip_head(s: &str, max: usize) -> String {
     let total = s.chars().count();
     if total <= max {
@@ -208,6 +211,9 @@ pub(super) fn clip_head(s: &str, max: usize) -> String {
     format!("{head}\u{2026} [clipped {} chars]", total - max)
 }
 
+#[cfg(test)]
+#[path = "swarmanswertail_tests.rs"]
+mod tail_tests;
 #[cfg(test)]
 #[path = "swarmanswer_tests.rs"]
 mod tests;
