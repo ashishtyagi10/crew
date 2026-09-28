@@ -111,3 +111,58 @@ fn counts_are_grouped_in_threes() {
     assert_eq!(grouped(5_812), "5,812");
     assert_eq!(grouped(1_234_567), "1,234,567");
 }
+
+/// Three reads made by one reply are one round: all three reach the prompt
+/// that answers them whole, and they age together.
+#[test]
+fn the_calls_of_one_round_are_whole_together_and_shortened_together() {
+    let (a, b, c, d) = (
+        body("a", 100),
+        body("b", 100),
+        body("c", 100),
+        body("d", 100),
+    );
+    let mut three = Exchanges::default();
+    three.push_round(
+        [&a, &b, &c]
+            .iter()
+            .map(|r| Exchange::new("", "fs:read", "{}", r.to_string()))
+            .collect(),
+    );
+    assert!(!three.render().contains("shortened"), "{}", three.render());
+    assert_eq!(three.next_entry(), 4);
+    three.push(Exchange::new("", "fs:read", "{}", d.clone()));
+    assert!(
+        !three.render().contains("shortened"),
+        "two rounds are whole"
+    );
+    three.push(Exchange::new("", "fs:read", "{}", d));
+    assert_eq!(three.render().matches("shortened").count(), 3);
+}
+
+/// `Seen` records entries; the pointer names the round the entry was made
+/// in, and an entry not pushed yet is in the round being built.
+#[test]
+fn a_repeat_of_one_call_in_a_round_points_at_that_round() {
+    let long = body("a", 100);
+    let mut seen = Seen::default();
+    for (entry, path) in [(1, "a"), (2, "b"), (3, "c"), (4, "d")] {
+        seen.ran(&Reads, &read(path), entry, true);
+    }
+    let mut log = log(&[&long]);
+    log.push_round(vec![
+        Exchange::new("", "fs:read", "{}", long.clone()),
+        Exchange::new("", "fs:read", "{}", long.clone()),
+    ]);
+    assert_eq!(log.repeat(&seen, &read("c")), Some(2), "entry 3 is round 2");
+    assert_eq!(
+        log.repeat(&seen, &read("a")),
+        None,
+        "round 1 is shortened next"
+    );
+    assert_eq!(
+        log.repeat(&seen, &read("d")),
+        Some(3),
+        "entry 4 is being built"
+    );
+}

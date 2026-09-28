@@ -57,7 +57,7 @@ impl ToolSpec {
 
 pub use catalog::ToolCatalog;
 pub use jsondepth::JsonDepth;
-pub use parse::{parse_tool_call, split_tool_call};
+pub use parse::{parse_tool_call, split_tool_call, split_tool_calls};
 pub use said::said;
 
 /// Executes tool calls on behalf of an agent.

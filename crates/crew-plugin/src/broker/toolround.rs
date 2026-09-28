@@ -10,7 +10,8 @@ use super::toolclip::{clip_result, AGENT_CLIP};
 use crew_hive::tools::exchanges::{Exchange, Exchanges};
 use crew_hive::tools::{seen::Seen, ToolCall};
 
-/// Run `call` as round `round` (from 1) of this turn: `(ok, text, repeat)`.
+/// Run `call` as entry `entry` (from 1) of this turn's log: `(ok, text,
+/// repeat)`.
 ///
 /// A read this turn already made, with nothing written since, is not run
 /// while `log` still shows its result whole: its text is a pointer to the
@@ -21,24 +22,38 @@ pub(super) fn run_once(
     seen: &mut Seen,
     log: &Exchanges,
     call: &ToolCall,
-    round: u32,
+    entry: u32,
 ) -> (bool, String, Option<u32>) {
     if let Some(first) = log.repeat(seen, call) {
         return (true, Seen::pointer(first), Some(first));
     }
-    let called = runner.call(&call.server, &call.tool, &call.args);
-    // An `Ok` can still be a failure (a build that exited 101), and only the
-    // tool surface can say so (`Tools::failed`).
+    let (ok, text) = settle(
+        runner,
+        call,
+        runner.call(&call.server, &call.tool, &call.args),
+    );
+    seen.ran(runner, call, entry, ok);
+    (ok, text, None)
+}
+
+/// What a call that ran came back as: `(ok, text)`.
+///
+/// An `Ok` can still be a failure (a build that exited 101), and only the
+/// tool surface can say so (`Tools::failed`).
+pub(super) fn settle(
+    runner: &dyn ToolRunner,
+    call: &ToolCall,
+    called: Result<String, String>,
+) -> (bool, String) {
     let ok = called
         .as_ref()
         .is_ok_and(|t| !runner.failed(&call.server, &call.tool, t));
-    seen.ran(runner, call, round, ok);
     let text = match called {
         Ok(t) if t.is_empty() => "(empty result)".to_string(),
         Ok(t) => t,
         Err(e) => format!("ERROR: {e}"),
     };
-    (ok, text, None)
+    (ok, text)
 }
 
 /// One entry of the TOOL EXCHANGES log: what the agent wrote with the call

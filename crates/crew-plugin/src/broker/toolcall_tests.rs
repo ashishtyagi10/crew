@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use super::*;
 use crate::broker::adapter::HopStream;
+use crate::broker::toolclip::clip_result;
 use crate::{PluginEvent, Registry};
 use crew_hive::tools::parse_tool_call;
 

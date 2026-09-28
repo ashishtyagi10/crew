@@ -35,7 +35,51 @@ pub fn parse_tool_call(reply: &str) -> Option<ToolCall> {
 /// is the text before it, trailing whitespace trimmed.
 pub fn split_tool_call(reply: &str) -> Option<(String, ToolCall)> {
     let lines: Vec<&str> = reply.lines().collect();
+    let (at, call) = last_call(&lines)?;
+    Some((above(&lines, at), call))
+}
+
+/// Every tool call a reply ends with, in the order written, and the reply
+/// without them.
+///
+/// An agent that knows it needs three files at the start used to read them in
+/// three rounds, each one a whole model call re-sending the prompt; Claude Code
+/// and Codex ask for all three in one turn. So the calls may sit on
+/// CONSECUTIVE last lines. The last is read as leniently as [`split_tool_call`]
+/// reads it; each one above it must be whole where it stands (one line, or
+/// JSON that closes) with nothing but blank lines between it and the next. A
+/// call with prose under it is one the model was quoting, and stays text.
+pub fn split_tool_calls(reply: &str) -> Option<(String, Vec<ToolCall>)> {
+    let lines: Vec<&str> = reply.lines().collect();
+    let (mut top, last) = last_call(&lines)?;
+    let mut calls = vec![last];
+    while let Some((at, call)) = call_ending(&lines[..top]) {
+        calls.push(call);
+        top = at;
+    }
+    calls.reverse();
+    Some((above(&lines, top), calls))
+}
+
+/// The reply's last call and the line it starts on, when what follows it
+/// leaves it the reply's last word.
+fn last_call(lines: &[&str]) -> Option<(usize, ToolCall)> {
     let at = lines.iter().rposition(|l| directive(l).is_some())?;
+    let (call, used) = call_at(lines, at)?;
+    ends_the_reply(&lines[at + 1 + used..]).then_some((at, call))
+}
+
+/// The call that ends `lines` whole, and the line it starts on: only blank
+/// lines under it, and its JSON, if it opened any, closed.
+fn call_ending(lines: &[&str]) -> Option<(usize, ToolCall)> {
+    let end = lines.iter().rposition(|l| !l.trim().is_empty())? + 1;
+    let at = lines[..end].iter().rposition(|l| directive(l).is_some())?;
+    let (call, used) = call_at(&lines[..end], at)?;
+    (at + 1 + used == end && closes(&call.args)).then_some((at, call))
+}
+
+/// The call on line `at`, and how many lines under it its JSON took.
+fn call_at(lines: &[&str], at: usize) -> Option<(ToolCall, usize)> {
     let rest = directive(lines[at])?;
     let (target, head) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
     let target = target.trim_matches(['`', '*', '_']);
@@ -44,16 +88,28 @@ pub fn split_tool_call(reply: &str) -> Option<(String, ToolCall)> {
         return None;
     }
     let (args, used) = args(head, &lines[at + 1..]);
-    if !ends_the_reply(&lines[at + 1 + used..]) {
-        return None;
-    }
-    let from = fence_above(&lines[..at]).unwrap_or(at);
     let call = ToolCall {
         server: server.to_string(),
         tool: tool.to_string(),
         args,
     };
-    Some((lines[..from].join("\n").trim_end().to_string(), call))
+    Some((call, used))
+}
+
+/// The reply above the call on line `at`: the fence the call opened in goes
+/// with it, and trailing whitespace is trimmed.
+fn above(lines: &[&str], at: usize) -> String {
+    let from = fence_above(&lines[..at]).unwrap_or(at);
+    lines[..from].join("\n").trim_end().to_string()
+}
+
+/// Whether `args` is whole: not JSON at all, or JSON that closes. Args cut off
+/// mid-value are let through on the last call, where the tool refuses them and
+/// says why; above another call they mean the call was never finished.
+fn closes(args: &str) -> bool {
+    let t = args.trim_start();
+    let mut depth = JsonDepth::default();
+    !t.starts_with(['{', '[']) || t.chars().any(|c| depth.push(c))
 }
 
 /// What follows `@tool ` on `line`, when `line` is a call: past emphasis, a
@@ -119,3 +175,7 @@ fn json(first: &str, more: &[&str]) -> Option<(String, usize)> {
 #[cfg(test)]
 #[path = "parse_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "parsemany_tests.rs"]
+mod many_tests;

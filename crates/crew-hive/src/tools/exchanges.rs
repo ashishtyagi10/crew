@@ -5,10 +5,14 @@
 //! the eighth round of a solo turn that was eight results of up to 6,000 chars
 //! on top of an ~11 K base prompt, ~60 K chars re-sent, billed and waited on
 //! each round, while the model works from the last result or two and needs
-//! only a reminder of the rest. So the last [`WHOLE`] exchanges keep their
-//! results whole, and every older one keeps what the agent wrote and its
-//! CALLED line but only the head of its result, with a line saying how long it
-//! was and that the call can be made again.
+//! only a reminder of the rest. So the exchanges of the last [`WHOLE`] rounds
+//! keep their results whole, and every older one keeps what the agent wrote
+//! and its CALLED line but only the head of its result, with a line saying how
+//! long it was and that the call can be made again.
+//!
+//! Rounds, not exchanges: one reply may make several reads (`split_tool_calls`),
+//! each its own exchange, and counting those alone would shorten the first of
+//! three files in the very prompt that answers it.
 //!
 //! One type for both loops, so the rule, and what it means for a repeat that
 //! [`Seen`] would answer with a pointer, exist once. The native path is not
@@ -17,9 +21,9 @@
 use super::seen::Seen;
 use super::ToolCall;
 
-/// Exchanges at the end of the log whose results are always carried whole:
-/// the one the model is answering, and the one before, which it is often
-/// still comparing against. It is also what keeps a turn of one or two calls
+/// Rounds at the end of the log whose results are always carried whole: the
+/// one the model is answering, and the one before, which it is often still
+/// comparing against. It is also what keeps a turn of one or two calls
 /// byte-identical to what it was before anything was shortened.
 const WHOLE: usize = 2;
 
@@ -40,6 +44,8 @@ pub struct Exchange {
     head: String,
     /// The result as the loop clipped it to its own cap.
     result: String,
+    /// The round it was made in, from 1, given when it is pushed.
+    round: u32,
 }
 
 impl Exchange {
@@ -51,6 +57,7 @@ impl Exchange {
         Self {
             head: format!("{}CALLED {label} {args}\nRESULT:\n", super::said(said)),
             result,
+            round: 0,
         }
     }
 
@@ -77,25 +84,44 @@ impl std::fmt::Display for Exchange {
     }
 }
 
-/// Every exchange of one turn (relay) or one task (swarm worker), in order.
-/// Round N is the Nth entry: each round records exactly one.
+/// Every exchange of one turn (relay) or one task (swarm worker), in order:
+/// one per call, so a round that made three reads records three.
 #[derive(Debug, Default)]
 pub struct Exchanges(Vec<Exchange>);
 
 impl Exchanges {
+    /// Record a round that made one call.
     pub fn push(&mut self, e: Exchange) {
-        self.0.push(e);
+        self.push_round(vec![e]);
     }
 
-    /// The log as the next prompt shows it: the last [`WHOLE`] exchanges and
-    /// every short one whole, the rest shortened.
+    /// Record a round: every call one reply made, in the order written.
+    pub fn push_round(&mut self, calls: Vec<Exchange>) {
+        let round = self.rounds() + 1;
+        self.0
+            .extend(calls.into_iter().map(|e| Exchange { round, ..e }));
+    }
+
+    /// The number the next exchange pushed will have, from 1: what a loop
+    /// hands [`Seen::ran`], so a pointer finds the one call it stands for
+    /// when a round holds several.
+    pub fn next_entry(&self) -> u32 {
+        self.0.len() as u32 + 1
+    }
+
+    /// Rounds recorded so far.
+    fn rounds(&self) -> u32 {
+        self.0.last().map_or(0, |e| e.round)
+    }
+
+    /// The log as the next prompt shows it: the last [`WHOLE`] rounds and
+    /// every short exchange whole, the rest shortened.
     pub fn render(&self) -> String {
-        let from = self.0.len().saturating_sub(WHOLE);
+        let old = self.rounds().saturating_sub(WHOLE as u32);
         let shown: Vec<String> = self
             .0
             .iter()
-            .enumerate()
-            .map(|(i, e)| match i < from && e.long() {
+            .map(|e| match e.round <= old && e.long() {
                 true => e.shortened(),
                 false => e.to_string(),
             })
@@ -105,27 +131,28 @@ impl Exchanges {
 
     /// The round `seen` would point `call` at, while that pointer is true.
     ///
+    /// `seen` holds the entry each read was recorded under ([`next_entry`]).
     /// The pointer says the result "is above", and in the prompt that will
-    /// carry it that is only so while the round is still shown whole: one of
-    /// the last [`WHOLE`] once this call's own exchange is added, or a short
-    /// one. Past that, the repeat RUNS again, rather than being answered from
-    /// a stored copy of the whole result. Keeping one would mean holding a
-    /// second copy of every read for the turn for the one case the model asks,
-    /// and the shortened line invites exactly that call, so the answer should
-    /// be a real one: a read costs a file read, not a model call, and it sees
-    /// the file as it is now, which a copy would not if it changed behind
-    /// crew's back. [`Seen::ran`] then points later repeats at the new round.
+    /// carry it that is only so while the entry is still shown whole: in one
+    /// of the last [`WHOLE`] rounds once this call's own round is added, or a
+    /// short one; an entry not pushed yet is in the round being built, beside
+    /// this call. Past that, the repeat RUNS again, rather than being answered
+    /// from a stored copy of the whole result. Keeping one would mean holding
+    /// a second copy of every read for the turn for the one case the model
+    /// asks, and the shortened line invites exactly that call, so the answer
+    /// should be a real one: a read costs a file read, not a model call, and
+    /// it sees the file as it is now, which a copy would not if it changed
+    /// behind crew's back. [`Seen::ran`] then points later repeats at the new
+    /// round.
+    ///
+    /// [`next_entry`]: Exchanges::next_entry
     pub fn repeat(&self, seen: &Seen, call: &ToolCall) -> Option<u32> {
-        seen.check(call).filter(|&round| self.whole_next(round))
-    }
-
-    /// Whether round `round` (from 1) is still shown whole once one more
-    /// exchange is added.
-    fn whole_next(&self, round: u32) -> bool {
-        let Some(i) = (round as usize).checked_sub(1) else {
-            return false;
-        };
-        i + WHOLE > self.0.len() || self.0.get(i).is_some_and(|e| !e.long())
+        let i = (seen.check(call)? as usize).checked_sub(1)?;
+        let next = self.rounds() + 1;
+        match self.0.get(i) {
+            None => Some(next),
+            Some(e) => (e.round + WHOLE as u32 > next || !e.long()).then_some(e.round),
+        }
     }
 }
 

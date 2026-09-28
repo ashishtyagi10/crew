@@ -108,6 +108,7 @@ mod tasks;
 mod thread;
 mod tick;
 pub mod tier;
+mod toolbatch;
 mod toolcall;
 mod toolclip;
 mod toolline;
