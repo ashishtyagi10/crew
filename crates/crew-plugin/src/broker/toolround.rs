@@ -1,11 +1,43 @@
-//! One relay tool round as the agent's next prompt records it, and what a
-//! turn answers with when its tool budget runs out.
+//! One relay tool round: running the call, how the agent's next prompt
+//! records it, and what a turn answers with when its tool budget runs out.
 //!
 //! Kept beside `toolcall.rs` rather than in it: the loop there is about
 //! dialing and streaming, and these are the two places where a reply's text
 //! is cut around its `@tool` call, so they share one reading of where the call
 //! sits (`crew_hive::tools::split_tool_call`) with the swarm.
+use super::toolcall::ToolRunner;
 use super::toolclip::{clip_result, AGENT_CLIP};
+use crew_hive::tools::{seen::Seen, ToolCall};
+
+/// Run `call` as round `round` (from 1) of this turn: `(ok, text, repeat)`.
+///
+/// A read this turn already made, with nothing written since, is not run:
+/// its text is a pointer to the earlier result, which every later prompt of
+/// the turn still carries in its exchanges, and `repeat` names that round so
+/// the card can say so (`Seen`).
+pub(super) fn run_once(
+    runner: &dyn ToolRunner,
+    seen: &mut Seen,
+    call: &ToolCall,
+    round: u32,
+) -> (bool, String, Option<u32>) {
+    if let Some(first) = seen.check(call) {
+        return (true, Seen::pointer(first), Some(first));
+    }
+    let called = runner.call(&call.server, &call.tool, &call.args);
+    // An `Ok` can still be a failure (a build that exited 101), and only the
+    // tool surface can say so (`Tools::failed`).
+    let ok = called
+        .as_ref()
+        .is_ok_and(|t| !runner.failed(&call.server, &call.tool, t));
+    seen.ran(runner, call, round, ok);
+    let text = match called {
+        Ok(t) if t.is_empty() => "(empty result)".to_string(),
+        Ok(t) => t,
+        Err(e) => format!("ERROR: {e}"),
+    };
+    (ok, text, None)
+}
 
 /// One entry of the TOOL EXCHANGES log: what the agent wrote with the call
 /// (`said`, the reply with the call cut out), then the call and its result.

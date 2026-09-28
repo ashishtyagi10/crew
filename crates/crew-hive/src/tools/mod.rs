@@ -22,6 +22,7 @@ mod jsondepth;
 pub mod near;
 mod parse;
 mod said;
+pub mod seen;
 
 #[cfg(test)]
 mod tests;
@@ -82,6 +83,18 @@ pub trait Tools: Send + Sync {
     /// data it could trust. Every engine asks here before calling a result
     /// ok; the surface that knows its own convention answers. Defaults to no.
     fn failed(&self, _server: &str, _tool: &str, _output: &str) -> bool {
+        false
+    }
+
+    /// Whether `server:tool` only LOOKS, so the same call made again with
+    /// nothing written in between would answer what it answered the first time.
+    ///
+    /// A routed reply spent its turn re-reading one file, and every repeat ran,
+    /// put its whole result into the prompt again and cost a round. The loops
+    /// now answer such a repeat with a pointer to the first result
+    /// ([`seen::Seen`]), but only the surface knows which of its tools change
+    /// nothing. Defaults to no: a tool nobody classified is never skipped.
+    fn repeatable(&self, _server: &str, _tool: &str) -> bool {
         false
     }
 

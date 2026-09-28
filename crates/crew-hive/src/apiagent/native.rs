@@ -16,7 +16,7 @@ use crate::agent::AgentContext;
 use crate::board::TaskResult;
 use crate::bus::HiveEvent;
 use crate::provider::{CompletionRequest, Provider, ToolInvocation, ToolOutcome, Turn};
-use crate::tools::{ToolCatalog, Tools};
+use crate::tools::{seen::Seen, ToolCall, ToolCatalog, Tools};
 
 /// Most tools one turn may fire, however many the model asked for.
 ///
@@ -63,6 +63,9 @@ pub(super) async fn run(
     let tier = ctx.task.model;
     let mut turns: Vec<Turn> = Vec::new();
     let mut round: u32 = 0;
+    // Reads this task has made. A repeat is answered from the result already
+    // in `turns`, which every request resends whole.
+    let mut seen = Seen::default();
 
     loop {
         let req = CompletionRequest {
@@ -179,25 +182,38 @@ pub(super) async fn run(
                 continue;
             };
             let label = format!("{server}:{tool}");
-            let args = call.input.to_string();
+            let asked = ToolCall {
+                server: server.to_string(),
+                tool: tool.to_string(),
+                args: call.input.to_string(),
+            };
             ctx.bus.publish(HiveEvent::ToolCall {
                 agent: agent_id.clone(),
                 label: label.clone(),
-                args: args.clone(),
+                args: asked.args.clone(),
             });
-            // Off the runtime thread — see the note in `ApiAgent::run`; the
-            // scheduler's agents and its bus drain share one thread.
-            let runner = Arc::clone(&tools);
-            let (s, t) = (server.to_string(), tool.to_string());
-            let started = std::time::Instant::now();
-            let called = tokio::task::spawn_blocking(move || runner.call(&s, &t, &args))
-                .await
-                .unwrap_or_else(|e| Err(format!("tool task failed: {e}")));
-            let ms = started.elapsed().as_millis() as u64;
-            let (ok, text) = match called {
-                Ok(v) if v.trim().is_empty() => (true, "(empty result)".to_string()),
-                Ok(v) => (!tools.failed(server, tool, &v), v),
-                Err(e) => (false, e),
+            let (ok, text, ms) = match seen.check(&asked) {
+                Some(first) => (true, Seen::pointer(first), 0),
+                None => {
+                    // Off the runtime thread — see the note in `ApiAgent::run`;
+                    // the scheduler's agents and its bus drain share one thread.
+                    let runner = Arc::clone(&tools);
+                    let a = asked.clone();
+                    let started = std::time::Instant::now();
+                    let called = tokio::task::spawn_blocking(move || {
+                        runner.call(&a.server, &a.tool, &a.args)
+                    })
+                    .await
+                    .unwrap_or_else(|e| Err(format!("tool task failed: {e}")));
+                    let ms = started.elapsed().as_millis() as u64;
+                    let (ok, text) = match called {
+                        Ok(v) if v.trim().is_empty() => (true, "(empty result)".to_string()),
+                        Ok(v) => (!tools.failed(server, tool, &v), v),
+                        Err(e) => (false, e),
+                    };
+                    seen.ran(tools.as_ref(), &asked, round + 1, ok);
+                    (ok, text, ms)
+                }
             };
             ctx.bus.publish(HiveEvent::ToolResult {
                 agent: agent_id.clone(),

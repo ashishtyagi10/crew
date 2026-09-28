@@ -101,6 +101,14 @@ pub(crate) fn result_line(label: &str, ok: bool, ms: u64) -> String {
     format!("{label} {mark} {}", took(ms))
 }
 
+/// What a result line adds for a call that was not run because the same read
+/// was made earlier this turn: which round's result stands for it. Without
+/// it the card is a tick and a tenth of a second, and a skipped call reads as
+/// a fast one.
+pub(crate) fn same_as(repeat: Option<u32>) -> String {
+    repeat.map_or_else(String::new, |r| format!(" \u{00b7} same as round {r}"))
+}
+
 #[cfg(test)]
 mod took_tests {
     use super::*;

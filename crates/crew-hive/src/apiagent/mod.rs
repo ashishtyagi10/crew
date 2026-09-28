@@ -5,6 +5,9 @@
 #[path = "preamble_tests.rs"]
 mod preamble_tests;
 #[cfg(test)]
+#[path = "samecall_tests.rs"]
+mod samecall_tests;
+#[cfg(test)]
 mod tests;
 
 mod chunks;
@@ -151,6 +154,9 @@ impl Agent for ApiAgent {
             let mut prompt = base.clone();
             let mut exchanges: Vec<String> = Vec::new();
             let mut round: u32 = 0;
+            // Reads this task has made. A repeat is answered from the result
+            // already in `exchanges`, which every follow-up carries whole.
+            let mut seen = tools::seen::Seen::default();
             loop {
                 let req = CompletionRequest {
                     model: model_id.clone(),
@@ -242,23 +248,30 @@ impl Agent for ApiAgent {
                 // freeze every other agent in the swarm and stop events
                 // reaching the pane, so the whole run would look hung for as
                 // long as one tool took.
-                let surface = Arc::clone(runner);
-                let (server, tool, args) =
-                    (call.server.clone(), call.tool.clone(), call.args.clone());
-                let started = std::time::Instant::now();
-                let outcome =
-                    tokio::task::spawn_blocking(move || surface.call(&server, &tool, &args))
+                let (ok, text, ms) = match seen.check(&call) {
+                    Some(first) => (true, tools::seen::Seen::pointer(first), 0),
+                    None => {
+                        let surface = Arc::clone(runner);
+                        let asked = call.clone();
+                        let started = std::time::Instant::now();
+                        let outcome = tokio::task::spawn_blocking(move || {
+                            surface.call(&asked.server, &asked.tool, &asked.args)
+                        })
                         .await
                         .unwrap_or_else(|e| Err(format!("tool task failed: {e}")));
-                let ms = started.elapsed().as_millis() as u64;
-                let (ok, text) = match outcome {
-                    Ok(t) if t.trim().is_empty() => (true, "(empty result)".to_string()),
-                    Ok(t) => (!runner.failed(&call.server, &call.tool, &t), t),
-                    // A refused or failed tool is shown to the agent, not
-                    // raised as a task failure: "that server is down, use the
-                    // other one" is a decision the agent can make and this
-                    // code cannot.
-                    Err(e) => (false, format!("ERROR: {e}")),
+                        let ms = started.elapsed().as_millis() as u64;
+                        let (ok, text) = match outcome {
+                            Ok(t) if t.trim().is_empty() => (true, "(empty result)".to_string()),
+                            Ok(t) => (!runner.failed(&call.server, &call.tool, &t), t),
+                            // A refused or failed tool is shown to the agent,
+                            // not raised as a task failure: "that server is
+                            // down, use the other one" is a decision the agent
+                            // can make and this code cannot.
+                            Err(e) => (false, format!("ERROR: {e}")),
+                        };
+                        seen.ran(runner.as_ref(), &call, round + 1, ok);
+                        (ok, text, ms)
+                    }
                 };
                 ctx.bus.publish(HiveEvent::ToolResult {
                     agent: agent_id.clone(),
