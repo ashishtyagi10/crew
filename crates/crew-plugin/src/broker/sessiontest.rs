@@ -9,25 +9,30 @@ use super::toolmemo::Picker;
 use super::SessionTools;
 use crate::broker::approval::{Gate, Requester};
 use crate::broker::integration::Integration;
+use crate::broker::lspwarm::WarmOnWrite;
 
 impl SessionTools {
     /// A runner with a gate of its own, for tests that do not care which
     /// gate — the session-shared one is not reachable from here.
     pub(super) fn for_test(mcp: Arc<Mutex<crate::mcp::McpHost>>, sys: bool) -> Self {
+        let lsp = Arc::new(Mutex::new(crate::lsp::LspHost::default()));
         Self::new(
             mcp,
-            Arc::new(Mutex::new(crate::lsp::LspHost::default())),
+            Arc::clone(&lsp),
             sys,
             Arc::new(Mutex::new(Gate::new())),
             Arc::new(Picker::off()),
             crate::broker::ckptgate::CkptGate::open_now(),
+            WarmOnWrite::over(&lsp),
         )
     }
 
     /// [`Self::for_test`] with a language-server table handed in.
     pub(super) fn with_lsp(self, lsp: crate::lsp::LspHost) -> Self {
+        let lsp = Arc::new(Mutex::new(lsp));
         Self {
-            lsp: Arc::new(Mutex::new(lsp)),
+            warm: WarmOnWrite::over(&lsp),
+            lsp,
             ..self
         }
     }
@@ -98,4 +103,13 @@ pub(crate) fn sys_surface() -> Arc<dyn crew_hive::tools::Tools> {
         Arc::new(Mutex::new(crate::mcp::McpHost::default())),
         true,
     ))
+}
+
+/// [`sys_surface`] telling `warm` of every call, as a task's surface does — for the
+/// warm-on-write tests, which need the real dispatch to decide what counts as a write.
+pub(crate) fn sys_surface_warming(warm: Arc<WarmOnWrite>) -> Arc<dyn crew_hive::tools::Tools> {
+    Arc::new(SessionTools {
+        warm,
+        ..SessionTools::for_test(Arc::new(Mutex::new(crate::mcp::McpHost::default())), true)
+    })
 }

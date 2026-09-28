@@ -139,12 +139,12 @@ pub(crate) fn whats_new(cols: usize) -> Option<String> {
     let version = rest[..rest.find('\n')?].trim();
     let lead = format!("new in {version} \u{b7} ");
     let head = lowered(head.trim_end_matches('.'));
-    // The window has to hold the version and something worth reading of the
-    // headline; below that there is nothing useful to say. A headline longer
-    // than the window is the changelog's doing, not the window's, so it is
-    // clipped rather than dropped — the first clause is the part that names
-    // the release.
-    let room = cols.checked_sub(lead.chars().count() + 2 * MARGIN)?;
+    // The line sits inside the rain block's card (`welcomecard`: padding and
+    // a frame each side), so it is fitted to that, not the window: 0.24.77's
+    // full-width headline left the block no room and its card vanished. A
+    // longer headline is clipped, not dropped — the first clause names the
+    // release; under 12 cells there is nothing worth saying.
+    let room = cols.checked_sub(lead.chars().count() + 2 * (MARGIN + 2))?;
     if room < 12 {
         return None;
     }

@@ -5,15 +5,22 @@
 //! a change actually raises. The pane already renders a fenced ```diff block
 //! — added lines green, removed red, hunk headers cyan, the changed words
 //! marked — and nothing ever sent it one. This module sends it one, then asks
-//! the language servers what they make of the files it touched, because "here
-//! is the edit" and "and it no longer compiles" belong in the same breath.
+//! the language servers what they make of the files it touched, and says that
+//! in a second, short message of its own.
+//!
+//! Two messages, because the diff is ready long before the verdict can be.
+//! They used to be one body, built after the diagnostics came back, and on a
+//! freshly started rust-analyzer that meant the file summary at +42.5 s and
+//! then nothing until +54.9 s, when the diff and the verdict arrived together:
+//! the diff had been ready for twelve seconds, waiting on the index. Now the
+//! diff goes out the moment it is computed and the verdict follows it.
 //!
 //! Both halves are bounded. The patch is clipped at [`PATCH_CAP`] on a line
-//! boundary (`/diff` has the rest), and the diagnostics loop stops at
-//! [`DIAG_BUDGET`] (the loop lives in `taskdiag`): this runs on the task worker after the reply has streamed,
-//! and a user kept waiting on a language server would blame the task. No
-//! server is not an annotation either — the diff must read perfectly with no
-//! LSP on the machine at all.
+//! boundary (`/diff` has the rest), and the diagnostics stop at [`DIAG_BUDGET`]
+//! (the deadline lives in `taskdiag`): this runs on the task worker after the
+//! reply has streamed, and a user kept waiting on a language server would
+//! blame the task. No server is not an annotation either — the diff must read
+//! perfectly with no LSP on the machine at all.
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -22,7 +29,8 @@ use super::changed::Change;
 /// How much of the patch the note carries, in chars. The commit-message
 /// prompt's budget, for the same reason: past it a reader wants the file.
 pub(crate) const PATCH_CAP: usize = 12_000;
-/// Total time the diagnostics pass may take across every changed file.
+/// Total time the diagnostics pass may take across every changed file — a
+/// deadline, measured from the first ask (`taskdiag`).
 pub(crate) const DIAG_BUDGET: Duration = Duration::from_secs(8);
 /// Diagnostics named before the rest are counted.
 const DIAG_LINES: usize = 20;
@@ -97,20 +105,25 @@ pub(crate) fn fenced(patch: &str) -> String {
     format!("{fence}diff\n{patch}\n{fence}")
 }
 
-/// The message body for a finished task, or `None` when there is nothing to
-/// show. `diagnostics` is asked about the files that still exist — a deleted
-/// file has nothing left to diagnose — as absolute paths, since git names
-/// them from the repository root and the worker's cwd may be below it.
+/// Emit what a finished task changed: the diff at once, then — after asking
+/// `diagnostics` about the files that still exist — the verdict. Nothing when
+/// there were no changes or git cannot produce the patch. The files are
+/// asked about as absolute paths (a deleted file has nothing left to
+/// diagnose), since git names them from the repository root and the worker's
+/// cwd may be below it.
 pub(crate) fn report(
     dir: &Path,
     base: &str,
     changes: &[Change],
     diagnostics: impl FnOnce(&[String]) -> Diag,
-) -> Option<String> {
+    emit: &mut dyn FnMut(String),
+) {
     if changes.is_empty() {
-        return None;
+        return;
     }
-    let patch = super::changed::patch(dir, base).ok()?;
+    let Ok(patch) = super::changed::patch(dir, base) else {
+        return;
+    };
     let root = super::checkpoint::git(dir, &["rev-parse", "--show-toplevel"], None)
         .map_or_else(|_| dir.to_path_buf(), PathBuf::from);
     let files: Vec<String> = changes
@@ -118,20 +131,37 @@ pub(crate) fn report(
         .filter(|(status, _)| *status != 'D')
         .map(|(_, path)| root.join(path).to_string_lossy().into_owned())
         .collect();
-    compose(&patch, diagnostics(&files))
+    deliver(&patch, &files, diagnostics, emit);
 }
 
-/// The two sections in one body — split from [`report`] so the wording is
-/// tested without a repository.
-pub(crate) fn compose(patch: &str, diag: Diag) -> Option<String> {
-    let mut parts = Vec::new();
-    if !patch.trim().is_empty() {
-        parts.push(fenced(&clip_patch(patch)));
+/// The two messages, in the order that keeps the diff off the server's clock:
+/// the diff is emitted BEFORE `diagnostics` is asked anything. Split from
+/// [`report`] so the order is tested without a repository.
+pub(crate) fn deliver(
+    patch: &str,
+    files: &[String],
+    diagnostics: impl FnOnce(&[String]) -> Diag,
+    emit: &mut dyn FnMut(String),
+) {
+    if let Some(diff) = diff_note(patch) {
+        emit(diff);
     }
+    if let Some(said) = verdict(diagnostics(files)) {
+        emit(said);
+    }
+}
+
+/// The patch, clipped and fenced; `None` when there is nothing to show.
+fn diff_note(patch: &str) -> Option<String> {
+    (!patch.trim().is_empty()).then(|| fenced(&clip_patch(patch)))
+}
+
+/// What the language servers said, in a line or a list; `None` for silence.
+fn verdict(diag: Diag) -> Option<String> {
     match diag {
-        Diag::NoServer => {}
-        Diag::Clean(1) => parts.push("no diagnostics in the changed file".to_string()),
-        Diag::Clean(n) => parts.push(format!("no diagnostics in the {n} changed files")),
+        Diag::NoServer => None,
+        Diag::Clean(1) => Some("no diagnostics in the changed file".to_string()),
+        Diag::Clean(n) => Some(format!("no diagnostics in the {n} changed files")),
         Diag::Lines(lines) => {
             let mut s = String::from("diagnostics after the change:");
             for line in lines.iter().take(DIAG_LINES) {
@@ -141,10 +171,9 @@ pub(crate) fn compose(patch: &str, diag: Diag) -> Option<String> {
             if let Some(rest) = lines.len().checked_sub(DIAG_LINES).filter(|n| *n > 0) {
                 s.push_str(&format!("\n\u{2026} +{rest} more"));
             }
-            parts.push(s);
+            Some(s)
         }
     }
-    (!parts.is_empty()).then(|| parts.join("\n\n"))
 }
 
 #[cfg(test)]

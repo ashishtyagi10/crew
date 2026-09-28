@@ -536,15 +536,15 @@ fn report_changes(session: &Session, id: u64, out: &Out) {
     if let Some(line) = super::changed::summary(&changes, hint) {
         let _ = emit(out, &msg("agent smith", format!("task #{id}: {line}")));
     }
-    // …and WHAT changed, then what the language servers make of it. The lsp
-    // lock is held for the pass; the budget inside bounds how long.
+    // …and WHAT changed, at once, then what the language servers make of it
+    // as its own message: the diff must not wait on a server still indexing,
+    // and the budget is a deadline on the asks (`taskdiag`).
     let diagnostics = |files: &[String]| {
-        let mut lsp = session.lock_lsp();
-        super::taskdiag::lsp_diagnostics(&mut *lsp, files, super::taskdiff::DIAG_BUDGET)
+        super::taskdiag::lsp_diagnostics(&session.lsp, files, super::taskdiff::DIAG_BUDGET)
     };
-    if let Some(body) = super::taskdiff::report(&dir, &base, &changes, diagnostics) {
+    super::taskdiff::report(&dir, &base, &changes, diagnostics, &mut |body| {
         let _ = emit(out, &msg("agent smith", body));
-    }
+    });
     // …and last, the project's own check, if it declared one: the diff says
     // what changed and the language server what is malformed; this is the
     // only thing that says whether it still WORKS.

@@ -29,42 +29,44 @@ impl DiagSource for Fake {
     }
 }
 
+fn fake(delay: Duration) -> Arc<Mutex<Fake>> {
+    Arc::new(Mutex::new(Fake {
+        delay,
+        asked: vec![],
+    }))
+}
+
+fn asked(h: &Arc<Mutex<Fake>>) -> Vec<String> {
+    h.lock().unwrap().asked.clone()
+}
+
 #[test]
 fn files_nobody_serves_are_never_asked_about() {
-    let mut h = Fake {
-        delay: Duration::ZERO,
-        asked: vec![],
-    };
-    let out = lsp_diagnostics(&mut h, &["notes.md".into(), "x.toml".into()], DIAG_BUDGET);
+    let h = fake(Duration::ZERO);
+    let out = lsp_diagnostics(&h, &["notes.md".into(), "x.toml".into()], DIAG_BUDGET);
     assert_eq!(out, Diag::NoServer);
-    assert!(h.asked.is_empty());
+    assert!(asked(&h).is_empty());
 }
 
 #[test]
 fn a_clean_answer_counts_the_files_and_a_failure_is_silence() {
-    let mut h = Fake {
-        delay: Duration::ZERO,
-        asked: vec![],
-    };
+    let h = fake(Duration::ZERO);
     let files = ["ok1.rs".to_string(), "ok2.rs".into(), "broken.rs".into()];
-    assert_eq!(lsp_diagnostics(&mut h, &files, DIAG_BUDGET), Diag::Clean(2));
+    assert_eq!(lsp_diagnostics(&h, &files, DIAG_BUDGET), Diag::Clean(2));
     // Every server failing is indistinguishable from no server: say nothing
     // rather than claim "no diagnostics" about files nobody looked at.
     assert_eq!(
-        lsp_diagnostics(&mut h, &["broken.rs".to_string()], DIAG_BUDGET),
+        lsp_diagnostics(&h, &["broken.rs".to_string()], DIAG_BUDGET),
         Diag::NoServer
     );
 }
 
 #[test]
 fn diagnostics_are_collected_one_line_per_finding() {
-    let mut h = Fake {
-        delay: Duration::ZERO,
-        asked: vec![],
-    };
+    let h = fake(Duration::ZERO);
     let files = ["a.rs".to_string(), "ok.rs".into(), "b.rs".into()];
     assert_eq!(
-        lsp_diagnostics(&mut h, &files, DIAG_BUDGET),
+        lsp_diagnostics(&h, &files, DIAG_BUDGET),
         Diag::Lines(vec![
             "a.rs:1:1 \u{2014} error [rustc]: boom".into(),
             "b.rs:1:1 \u{2014} error [rustc]: boom".into(),
@@ -73,25 +75,83 @@ fn diagnostics_are_collected_one_line_per_finding() {
 }
 
 /// A slow server does not hold the task's ending hostage: the loop stops once
-/// the budget is spent and reports what it has.
+/// the budget is spent and reports what came back before it.
 #[test]
 fn the_loop_stops_at_the_budget_and_keeps_what_it_has() {
-    let mut h = Fake {
-        delay: Duration::from_millis(40),
-        asked: vec![],
-    };
+    let h = fake(Duration::from_millis(40));
     let files: Vec<String> = (0..20).map(|i| format!("f{i}.rs")).collect();
-    let started = std::time::Instant::now();
-    let out = lsp_diagnostics(&mut h, &files, Duration::from_millis(100));
+    let started = Instant::now();
+    let out = lsp_diagnostics(&h, &files, Duration::from_millis(100));
     let took = started.elapsed();
     assert!(
         took < Duration::from_millis(400),
         "ran the whole list: {took:?}"
     );
-    let n = h.asked.len();
-    assert!((1..20).contains(&n), "asked {n} of 20");
-    match out {
-        Diag::Lines(lines) => assert_eq!(lines.len(), n, "kept what it had"),
+    let lines = match out {
+        Diag::Lines(lines) => lines,
         other => panic!("{other:?}"),
+    };
+    // The ask in flight at the deadline may still finish on its thread; it is
+    // not in the report, and nothing is asked after it.
+    std::thread::sleep(Duration::from_millis(150));
+    let n = asked(&h).len();
+    assert!((1..20).contains(&lines.len()), "kept {} of 20", lines.len());
+    assert!((lines.len()..=lines.len() + 1).contains(&n), "asked {n}");
+}
+
+/// The budget is a deadline, not a check before each ask. A server still
+/// indexing after a cold start held the first ask for as long as it took —
+/// the diff and its verdict landed at +54.9 s on a task whose summary was out
+/// at +42.5 s — and a server that is not ready in time is silence.
+#[test]
+fn one_ask_slower_than_the_budget_is_cut_off_at_the_budget() {
+    let h = fake(Duration::from_secs(2));
+    let started = Instant::now();
+    let out = lsp_diagnostics(&h, &["cold.rs".to_string()], Duration::from_millis(300));
+    let took = started.elapsed();
+    assert!(
+        took < Duration::from_secs(1),
+        "waited out the server: {took:?}"
+    );
+    assert_eq!(out, Diag::NoServer);
+}
+
+// ---- the order the task's ending speaks in --------------------------------
+
+/// A host that writes the moment it is first asked into the same log the
+/// pane's messages go to.
+struct Logged(Arc<Mutex<Vec<String>>>);
+
+impl DiagSource for Logged {
+    fn serves(&self, _: &str) -> bool {
+        true
     }
+    fn diagnostics(&mut self, path: &str) -> Result<String, String> {
+        self.0.lock().unwrap().push(format!("asked {path}"));
+        Ok(format!("no diagnostics for {path}"))
+    }
+}
+
+/// The diff is on screen before the language server is asked anything, so
+/// however long the server takes, the diff does not wait for it.
+#[test]
+fn the_diff_is_emitted_before_the_server_is_asked() {
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let host = Arc::new(Mutex::new(Logged(Arc::clone(&log))));
+    let files = ["a.rs".to_string()];
+    crate::broker::taskdiff::deliver(
+        "+fn a() {}",
+        &files,
+        |f| lsp_diagnostics(&host, f, DIAG_BUDGET),
+        &mut |m| log.lock().unwrap().push(m),
+    );
+    let log = log.lock().unwrap().clone();
+    assert_eq!(
+        log,
+        vec![
+            "```diff\n+fn a() {}\n```".to_string(),
+            "asked a.rs".into(),
+            "no diagnostics in the changed file".into(),
+        ]
+    );
 }
