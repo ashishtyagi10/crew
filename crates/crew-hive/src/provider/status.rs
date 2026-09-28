@@ -66,6 +66,12 @@ fn sentence(status: u16, host: &str, body: &str) -> String {
     clip(s)
 }
 
+/// The status a [`sentence`] opens with — `HTTP 502 from …` is 502 — read
+/// back so the sentence need not carry it twice (`ProviderError::is_transient`).
+pub(super) fn code(said: &str) -> Option<u16> {
+    said.strip_prefix("HTTP ")?.split(' ').next()?.parse().ok()
+}
+
 /// The text of the page's `<title>`, when it has a non-empty one.
 fn title(body: &str) -> Option<String> {
     // ASCII lowercasing keeps every byte offset, so indices carry over.

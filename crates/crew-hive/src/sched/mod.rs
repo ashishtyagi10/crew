@@ -7,6 +7,10 @@
 //! Cooperative cancellation: call `.with_cancel(flag)` before `.run()`. When
 //! the flag is set, the scheduler stops spawning new tasks, marks all
 //! unstarted tasks `Cancelled`, and drains in-flight agents to completion.
+//!
+//! A task whose failure passes (a timeout, a 429) is run once more before it
+//! counts as failed — see [`again`].
+mod again;
 mod cancel;
 mod outcome;
 mod replan;
@@ -16,8 +20,8 @@ mod tests;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
-use futures::FutureExt as _;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
@@ -43,6 +47,9 @@ pub struct Scheduler {
     /// not-yet-run remainder (see [`replan`]); `None` — keyless, mock, or a
     /// host that never opted in — keeps pure cascade-cancel.
     replan: Option<replan::Replan>,
+    /// The wait before a passing failure's second run ([`again::PAUSE`]);
+    /// a field only so tests need not sit through it.
+    retry_pause: Duration,
 }
 
 impl Scheduler {
@@ -61,7 +68,15 @@ impl Scheduler {
             concurrency: concurrency.max(1),
             cancel: Arc::new(AtomicBool::new(false)),
             replan: None,
+            retry_pause: again::PAUSE,
         }
+    }
+
+    /// Wait `pause` before a passing failure's second run, not [`again::PAUSE`].
+    #[cfg(test)]
+    pub(crate) fn with_retry_pause(mut self, pause: Duration) -> Self {
+        self.retry_pause = pause;
+        self
     }
 
     /// Allow one mid-run re-plan (builder-style): on the first failure the
@@ -150,6 +165,7 @@ impl Scheduler {
                 let sem = sem.clone();
                 let cancel = self.cancel.clone();
                 let budget = budget.clone();
+                let pause = self.retry_pause;
                 joinset.spawn(async move {
                     let task_id = spec.id;
                     let _permit = sem.acquire_owned().await.expect("semaphore open");
@@ -180,17 +196,7 @@ impl Scheduler {
                         bus,
                         budget,
                     };
-                    let result = match std::panic::AssertUnwindSafe(agent.run(ctx))
-                        .catch_unwind()
-                        .await
-                    {
-                        Ok(r) => r,
-                        Err(_) => crate::board::TaskResult {
-                            task: task_id,
-                            output: "agent panicked".into(),
-                            success: false,
-                        },
-                    };
+                    let result = again::run(agent.as_ref(), ctx, pause, &cancel).await;
                     (task_id, Some(result))
                 });
             }

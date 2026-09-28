@@ -49,6 +49,38 @@ impl AgentContext {
 /// works without the `async-trait` crate.
 pub trait Agent: Send + Sync {
     fn run(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = TaskResult> + Send>>;
+
+    /// [`Agent::run`], saying whether a failure passes — what the scheduler
+    /// calls. Default: it never does. An agent that cannot tell a passing
+    /// failure from a lasting one (a stub, a PTY process, a remote worker)
+    /// must not earn its task a second run: for a process, that is doing the
+    /// work twice on a guess.
+    fn attempt(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = Attempt> + Send>> {
+        let run = self.run(ctx);
+        Box::pin(async move { run.await.into() })
+    }
+}
+
+/// One run of a task as the scheduler sees it: the result, and whether its
+/// failure is one that passes.
+pub struct Attempt {
+    pub result: TaskResult,
+    /// The run failed in a way that passes — a read gone quiet, a dropped
+    /// connection, a 429, a 5xx, an overload (`ProviderError::is_transient`)
+    /// — so the same task, run again in a moment, may well succeed. The
+    /// scheduler runs it ONCE more before anything re-plans
+    /// (`sched::again`). Never set on a success.
+    pub transient: bool,
+}
+
+impl From<TaskResult> for Attempt {
+    /// A result that says nothing about its failure: it lasts.
+    fn from(result: TaskResult) -> Self {
+        Self {
+            result,
+            transient: false,
+        }
+    }
 }
 
 /// Maps a task's `AgentKind` to a concrete agent.

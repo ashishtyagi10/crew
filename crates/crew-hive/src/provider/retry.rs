@@ -57,7 +57,7 @@ pub(super) fn retry_delay(
 /// rate limits ("add a rate limit to the endpoint") read as one: it was
 /// asked for again, and billed, twice more before the answer stood.
 fn transient(status: u16, body: &str) -> bool {
-    if status == 429 || (500..600).contains(&status) {
+    if transient_status(status) {
         return true;
     }
     let said: Cow<str> = if (200..300).contains(&status) {
@@ -68,6 +68,16 @@ fn transient(status: u16, body: &str) -> bool {
     } else {
         Cow::Borrowed(body)
     };
+    says_transient(&said)
+}
+
+/// A status that passes: a rate limit, or the host failing (529 included).
+fn transient_status(status: u16) -> bool {
+    status == 429 || (500..600).contains(&status)
+}
+
+/// Whether an error's words name a rate limit or an overload.
+fn says_transient(said: &str) -> bool {
     [
         "\"code\":429",
         "\"overloaded_error\"",
@@ -77,6 +87,30 @@ fn transient(status: u16, body: &str) -> bool {
     ]
     .iter()
     .any(|p| said.contains(p))
+}
+
+impl super::ProviderError {
+    /// Whether this failure passes: the same request, asked again in a
+    /// moment, may well be answered. [`again`] asks again seconds apart and
+    /// then lets the failure stand; the swarm scheduler asks this to decide
+    /// whether a failed task earns one more run before it re-plans
+    /// (`sched::again`), so the two answer from one rule, not two copies.
+    ///
+    /// The wire failing passes — a read gone quiet, a connection refused or
+    /// reset, a stream dropped mid-reply (`wire::wire_error`) — and so does
+    /// a status that passes or an envelope naming a rate limit or an
+    /// overload. A rejected or missing key, a model the host does not serve,
+    /// a request it will not take and a reply crew could not read fail the
+    /// same way every time, and a second run would only pay for that twice.
+    pub fn is_transient(&self) -> bool {
+        use super::ProviderError as E;
+        match self {
+            E::Http(_) => true,
+            E::Status(said) => super::status::code(said).is_some_and(transient_status),
+            E::Api(body) => says_transient(body),
+            E::Decode(_) | E::MissingKey(_) => false,
+        }
+    }
 }
 
 /// The top-level `error` of a JSON object body, as compact JSON text — or
@@ -119,3 +153,7 @@ mod tests;
 #[cfg(test)]
 #[path = "retryreply_tests.rs"]
 mod reply_tests;
+
+#[cfg(test)]
+#[path = "transient_tests.rs"]
+mod transient_tests;

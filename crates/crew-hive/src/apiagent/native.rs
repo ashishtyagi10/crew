@@ -12,7 +12,7 @@ mod tests;
 
 use std::sync::Arc;
 
-use crate::agent::AgentContext;
+use crate::agent::{AgentContext, Attempt};
 use crate::board::TaskResult;
 use crate::bus::HiveEvent;
 use crate::provider::{CompletionRequest, Provider, ToolInvocation, ToolOutcome, Turn};
@@ -44,9 +44,9 @@ fn outcome_for_unknown(call: &ToolInvocation, catalog: &ToolCatalog) -> ToolOutc
     }
 }
 
-/// Run one task with native tool use. Returns the task's result; every model
+/// Run one task with native tool use. Returns the task's attempt; every model
 /// call, tool call and failure publishes on `ctx.bus` as it happens.
-#[allow(clippy::too_many_arguments)] // one call site: `ApiAgent::run`'s native branch
+#[allow(clippy::too_many_arguments)] // one call site: `ApiAgent::attempt`'s native branch
 pub(super) async fn run(
     ctx: AgentContext,
     provider: Arc<dyn Provider>,
@@ -57,7 +57,7 @@ pub(super) async fn run(
     prompt: String,
     max_tokens: u32,
     sink: super::chunks::ChunkSink,
-) -> TaskResult {
+) -> Attempt {
     let task_id = ctx.task.id;
     let agent_id = ctx.agent.clone();
     let tier = ctx.task.model;
@@ -81,17 +81,7 @@ pub(super) async fn run(
             .await
         {
             Ok(c) => c,
-            Err(err) => {
-                ctx.bus.publish(HiveEvent::Failed {
-                    agent: agent_id,
-                    error: err.to_string(),
-                });
-                return TaskResult {
-                    task: task_id,
-                    output: String::new(),
-                    success: false,
-                };
-            }
+            Err(err) => return super::failure::failed(&ctx, &err),
         };
         sink.settle(&completion);
         ctx.bus.publish(HiveEvent::TokenDelta {
@@ -113,7 +103,8 @@ pub(super) async fn run(
                 task: task_id,
                 output: completion.text,
                 success: true,
-            };
+            }
+            .into();
         }
 
         if ctx.take_round(round).is_none() {
@@ -139,7 +130,8 @@ pub(super) async fn run(
                 task: task_id,
                 output: text,
                 success: true,
-            };
+            }
+            .into();
         }
 
         let mut results = Vec::with_capacity(completion.calls.len());
@@ -195,7 +187,7 @@ pub(super) async fn run(
             let (ok, text, ms) = match seen.check(&asked) {
                 Some(first) => (true, Seen::pointer(first), 0),
                 None => {
-                    // Off the runtime thread — see the note in `ApiAgent::run`;
+                    // Off the runtime thread — see the note in `ApiAgent::attempt`;
                     // the scheduler's agents and its bus drain share one thread.
                     let runner = Arc::clone(&tools);
                     let a = asked.clone();
