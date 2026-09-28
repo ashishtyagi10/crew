@@ -9,10 +9,13 @@
 //! through the same [`TextGate`] as every other stream, and the whole answer
 //! still lands as the lead's one `Message`, which the app pairs with the live
 //! card by sender name and puts in its place — so whatever the gate held back
-//! is not lost. Reasoning, when the provider tells it apart, is the lead's
-//! `Thought`, never answer text. A provider that cannot stream (the trait's
-//! default hands the call to `complete`) sends no pieces, and the pane sees
-//! the one `Message` it always did.
+//! is not lost. All of it goes out under the name smith answers under
+//! (`relay::SMITH_ANSWERS`), not his bare chrome name: the live card is drawn
+//! from its first word as the reply it becomes, not as a muted status line
+//! that turns into one when it lands. Reasoning, when the provider tells it
+//! apart, is the lead's `Thought`, never answer text. A provider that cannot
+//! stream (the trait's default hands the call to `complete`) sends no pieces,
+//! and the pane sees the one `Message` it always did.
 //!
 //! No `streamhold`: it holds back an `@`-routing line mid-stream, and the
 //! lead's answer has no routing grammar — the user is its only reader.
@@ -21,7 +24,7 @@ use std::time::Instant;
 
 use crew_hive::{Chunk, ChunkFn, Completion, CompletionRequest, Provider};
 
-use super::SWARM_LEAD;
+use crate::broker::relay::SMITH_ANSWERS;
 use crate::broker::tick::{text_streaming_enabled, TextGate};
 use crate::protocol::PluginEvent;
 
@@ -66,7 +69,7 @@ pub(super) fn said(
         if failed.is_some() {
             return;
         }
-        let agent = SWARM_LEAD.to_string();
+        let agent = SMITH_ANSWERS.to_string();
         let ev = match piece {
             Chunk::Text(t) => PluginEvent::Delta {
                 agent,

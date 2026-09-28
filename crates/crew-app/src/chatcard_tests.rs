@@ -71,8 +71,9 @@ fn handoff_sender_colours_each_name_separately() {
 #[test]
 fn system_sender_is_muted_and_agents_are_not() {
     let _g = crate::app::theme_test_guard();
-    assert_eq!(sender_color("crew"), crew_theme::theme().text_muted);
-    assert_ne!(sender_color("planner"), crew_theme::theme().text_muted);
+    let muted = crew_theme::theme().text_muted;
+    assert_eq!(card_color(&msg("crew", "x"), "crew"), muted);
+    assert_ne!(card_color(&msg("planner", "x"), "planner"), muted);
 }
 
 #[test]

@@ -69,6 +69,20 @@ fn a_shape_with_no_reason_is_said_bare() {
 }
 
 #[test]
+fn the_routing_line_is_smiths_chrome_never_his_answer() {
+    // The bare name is the voice the pane mutes and folds; what smith
+    // ANSWERS goes out as `agent smith → user`, and this is not an answer.
+    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
+    let call = |_: &str| Ok("SHAPE: reply".to_string());
+    let evs = route_stubbed("hello there", &call);
+    let said_as = evs.iter().find_map(|e| match e {
+        PluginEvent::Message { sender, text, .. } if text.starts_with("routing: ") => Some(sender),
+        _ => None,
+    });
+    assert_eq!(said_as.map(String::as_str), Some("agent smith"), "{evs:?}");
+}
+
+#[test]
 fn a_sized_loop_says_its_count_on_the_routing_line() {
     let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
     let call = |_: &str| Ok("SHAPE: loop\nWHY: polish until it reads well\nROUNDS: 5".to_string());

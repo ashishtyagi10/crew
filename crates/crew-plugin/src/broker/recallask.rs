@@ -15,7 +15,7 @@
 //! wrong answer and never a wrong action.
 use crate::PluginEvent;
 
-use super::relay::msg;
+use super::relay::smith_answer;
 use super::session::Session;
 
 /// Chars of the standing notes read back.
@@ -42,14 +42,17 @@ pub(crate) fn asks(task: &str) -> Option<String> {
     Some(rest.to_string())
 }
 
-/// The router's one call: read the memory out, or nothing.
+/// The router's one call: read the memory out, or nothing. The readout is
+/// the answer to the question the user asked, so it is smith's reply card
+/// (`relay::SMITH_ANSWERS`), not his muted status voice — which folded it to
+/// its first three lines, the graph's own contents behind a click.
 pub(crate) fn gate(
     task: &str,
     session: &Session,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> Option<anyhow::Result<()>> {
     let subject = asks(task)?;
-    Some(emit(msg("agent smith", answer(session, &subject))))
+    Some(emit(smith_answer(answer(session, &subject))))
 }
 
 /// What crew has, read out.

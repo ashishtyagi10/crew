@@ -12,7 +12,8 @@
 //! routing's gates (`intent::live_provider_at` — 30 s, `None` under
 //! keyless/mock/`CREW_INTENT=0`) writes the answer from the workers' outputs,
 //! typing into the pane as it goes (`swarmstream`), and it lands as agent
-//! smith's message after the per-task replies. Keyless and mock runs make no
+//! smith's reply (`relay::SMITH_ANSWERS`) after the per-task replies: a reply
+//! card, logged for `/resume` like any worker's, never his chrome. Keyless and mock runs make no
 //! call and emit no line, so their event stream is byte-identical to before;
 //! a call that fails is one quiet line, never a failed run. A child of
 //! `swarm`, so `broker` items are reached through `crate::broker::`.
@@ -21,7 +22,7 @@ use crew_hive::{clip_middle, RunOutcome, TaskGraph, TaskId, TaskResult};
 use super::swarmgap::Gap;
 use super::swarmstream::{self, AnswerFn};
 use super::SWARM_LEAD;
-use crate::broker::relay::msg;
+use crate::broker::relay::{msg, smith_answer};
 use crate::protocol::PluginEvent;
 
 /// A bounded one-shot that answers all at once — the judge's (`swarmverify`).
@@ -50,10 +51,6 @@ const OUTPUT_CAP: usize = 4_000;
 const OUTPUTS_TOTAL_CAP: usize = 12_000;
 /// A failure reason is one line in the pane; a provider that rambles is cut.
 const ERR_MAX: usize = 120;
-/// The session log's name for the answer. The log skips the lead's own voice —
-/// routing and plan lines are chrome — and the answer is the one thing it
-/// says that is not, so it goes in under a name the filter lets through.
-const ANSWER_SENDER: &str = "answer";
 
 /// The live closing call, on routing's gates: `None` keyless, mock, or off.
 pub(super) fn live() -> Option<Box<AnswerFn>> {
@@ -148,20 +145,24 @@ pub(super) fn combine(
         Ok(t) if !t.trim().is_empty() => Some(t.trim().to_owned()),
         _ => None,
     };
-    if let Some(text) = &answer {
-        crate::broker::sessionlog::append(ANSWER_SENDER, text);
-    }
-    let line = match (&answer, reply) {
-        (Some(text), _) => text.clone(),
-        (None, Ok(_)) => {
-            "could not combine the workers' answers: the model returned nothing".into()
-        }
-        (None, Err(e)) => format!(
-            "could not combine the workers' answers: {}",
-            crate::broker::route::clip(&e, ERR_MAX)
+    // The answer is a reply; a call that wrote none is a status line, and it
+    // settles the live card all the same — the app pairs a card with its
+    // message by the name before the arrow.
+    let said = match (&answer, reply) {
+        (Some(text), _) => smith_answer(text.clone()),
+        (None, Ok(_)) => msg(
+            SWARM_LEAD,
+            "could not combine the workers' answers: the model returned nothing",
+        ),
+        (None, Err(e)) => msg(
+            SWARM_LEAD,
+            format!(
+                "could not combine the workers' answers: {}",
+                crate::broker::route::clip(&e, ERR_MAX)
+            ),
         ),
     };
-    emit(msg(SWARM_LEAD, line))?;
+    emit(said)?;
     emit(activity("idle", ""))?;
     Ok(answer)
 }

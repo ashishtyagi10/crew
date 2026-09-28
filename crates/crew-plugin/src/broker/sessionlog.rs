@@ -53,9 +53,20 @@ pub(crate) fn rotate_at(base: &Path) {
     let _ = std::fs::remove_file(&lv);
 }
 
+/// Log one event on its way to the pane, if it is a line of conversation —
+/// the funnel every emitter goes through (`stdio::emit`), so a reply is
+/// logged once, under the name it was sent under.
+pub(crate) fn note(ev: &crate::PluginEvent) {
+    if let crate::PluginEvent::Message { sender, text, .. } = ev {
+        append(sender, text);
+    }
+}
+
 /// Append one line of conversation to the live log (best-effort — logging
-/// must never break the relay). Empty text and the `agent smith` system voice
-/// are skipped; the file is capped at [`LOG_CAP`] by folding the oldest half.
+/// must never break the relay). Empty text and the bare `agent smith` voice
+/// — his chrome — are skipped; his answers go out as `agent smith → user`
+/// and are logged like any agent's reply. The file is capped at [`LOG_CAP`]
+/// by folding the oldest half.
 pub(crate) fn append(sender: &str, text: &str) {
     append_at(&base_dir(), sender, text);
 }
