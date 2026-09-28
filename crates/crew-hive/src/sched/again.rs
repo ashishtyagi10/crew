@@ -25,13 +25,19 @@ pub(super) const PAUSE: Duration = Duration::from_millis(1500);
 /// it once more, and let the second result stand whatever it is. A stop
 /// pressed during the pause is honoured — the agent is not running then, so
 /// nothing makes the task un-cancellable yet — and the first failure stands.
+///
+/// `None` when the agent quit because the run was stopped
+/// ([`Attempt::stopped`]): the scheduler records that as cancelled, as it
+/// does a task stopped before its agent started. It is no failure, so it
+/// earns neither the second run here nor the re-plan a failure gets.
 pub(super) async fn run(
     agent: &dyn Agent,
     ctx: AgentContext,
     pause: Duration,
     cancel: &AtomicBool,
-) -> TaskResult {
+) -> Option<TaskResult> {
     let second = AgentContext {
+        cancel: ctx.cancel.clone(),
         agent: ctx.agent.clone(),
         task: ctx.task.clone(),
         deps: ctx.deps.clone(),
@@ -39,14 +45,18 @@ pub(super) async fn run(
         budget: ctx.budget.clone(),
     };
     let first = guarded(agent, ctx).await;
+    if first.stopped {
+        return None;
+    }
     if !worth_another(&first) {
-        return first.result;
+        return Some(first.result);
     }
     tokio::time::sleep(pause).await;
     if cancel.load(Ordering::Relaxed) {
-        return first.result;
+        return Some(first.result);
     }
-    guarded(agent, second).await.result
+    let again = guarded(agent, second).await;
+    (!again.stopped).then_some(again.result)
 }
 
 /// A failure that passes. A success never runs again, and neither does a

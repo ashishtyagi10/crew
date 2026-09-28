@@ -68,6 +68,7 @@ async fn task(replies: &[&str]) -> (Vec<String>, Vec<String>, String, Duration) 
     let script = replies.iter().rev().map(|r| r.to_string()).collect();
     let provider = Arc::new(Scripted(Mutex::new(script), Arc::clone(&prompts)));
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(1),
         task: TaskSpec {

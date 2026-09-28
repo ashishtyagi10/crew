@@ -33,6 +33,7 @@ pub(super) fn failed(ctx: &AgentContext, err: &ProviderError) -> Attempt {
             success: false,
         },
         transient: err.is_transient(),
+        stopped: false,
     }
 }
 

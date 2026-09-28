@@ -83,6 +83,7 @@ async fn the_text_path_publishes_a_failed_line() {
     let bus = EventBus::new(64);
     let mut rx = bus.subscribe();
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: super::budget::ToolBudget::solo(),
         agent: AgentId(1),
         task: TaskSpec {

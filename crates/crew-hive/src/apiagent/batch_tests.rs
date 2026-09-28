@@ -99,6 +99,7 @@ async fn batch(asks: &[(&str, &str)]) -> Ran {
     let bus = EventBus::new(64);
     let mut rx = bus.subscribe();
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(1),
         task: TaskSpec {

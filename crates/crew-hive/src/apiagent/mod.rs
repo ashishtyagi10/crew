@@ -11,6 +11,9 @@ mod samecall_tests;
 #[path = "shrinkold_tests.rs"]
 mod shrinkold_tests;
 #[cfg(test)]
+#[path = "stop_tests.rs"]
+mod stop_tests;
+#[cfg(test)]
 mod tests;
 
 mod chunks;
@@ -175,6 +178,11 @@ impl Agent for ApiAgent {
             // whole (`Exchanges::repeat`); once shortened, it runs again.
             let mut seen = tools::seen::Seen::default();
             loop {
+                // A stop pressed while the last round's tools ran: no next
+                // call. The tools already run are not undone (`stop`).
+                if ctx.stopped() {
+                    return Attempt::stopped(task_id);
+                }
                 let req = CompletionRequest {
                     model: model_id.clone(),
                     system: system.clone(),
@@ -182,12 +190,13 @@ impl Agent for ApiAgent {
                     max_tokens,
                     ..Default::default()
                 };
-                let completion = match provider
-                    .complete_streaming(req, Arc::clone(&sink.on_chunk))
-                    .await
-                {
-                    Ok(c) => c,
-                    Err(err) => return failure::failed(&ctx, &err),
+                // Raced against the stop: a call nobody wants any more is
+                // dropped, which aborts the request, rather than waited out.
+                let call = provider.complete_streaming(req, Arc::clone(&sink.on_chunk));
+                let completion = match ctx.unless_stopped(call).await {
+                    None => return Attempt::stopped(task_id),
+                    Some(Ok(c)) => c,
+                    Some(Err(err)) => return failure::failed(&ctx, &err),
                 };
                 sink.settle(&completion);
                 // Billed per round, as it happens: a run that spends four
@@ -251,11 +260,13 @@ impl Agent for ApiAgent {
                         &exchanges.render(),
                         &lastword::refused(said, asked),
                     );
-                    let text = match lastword::ask(
-                        &ctx, &provider, &model_id, system, last, max_tokens, &sink,
-                    )
-                    .await
-                    {
+                    let answer =
+                        lastword::ask(&ctx, &provider, &model_id, system, last, max_tokens, &sink)
+                            .await;
+                    if ctx.stopped() {
+                        return Attempt::stopped(task_id);
+                    }
+                    let text = match answer {
                         Some(answer) => toolloop::with_budget_note(&answer, total),
                         None => toolloop::budget_spent(&completion.text, total),
                     };

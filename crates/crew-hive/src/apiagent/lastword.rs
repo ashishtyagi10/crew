@@ -101,9 +101,11 @@ fn written(said: &str, rounds: impl Iterator<Item = (String, String, String)>) -
 }
 
 /// Send `prompt` once with no tools, billed like any other round. The answer,
-/// or `None` when the call failed or said nothing; either way the caller
-/// keeps the output it had. The tool directives the reply ends on are cut,
-/// as `toolloop::budget_spent` cuts them: nothing is left to run them.
+/// or `None` when the call failed or said nothing, or the run was stopped
+/// before it answered (the caller looks at `ctx.stopped()` for that one);
+/// otherwise the caller keeps the output it had. The tool directives the
+/// reply ends on are cut, as `toolloop::budget_spent` cuts them: nothing is
+/// left to run them.
 pub(super) async fn ask(
     ctx: &AgentContext,
     provider: &Arc<dyn Provider>,
@@ -120,10 +122,11 @@ pub(super) async fn ask(
         max_tokens,
         ..Default::default()
     };
-    let completion = provider
-        .complete_streaming(req, Arc::clone(&sink.on_chunk))
-        .await
-        .ok()?;
+    if ctx.stopped() {
+        return None;
+    }
+    let call = provider.complete_streaming(req, Arc::clone(&sink.on_chunk));
+    let completion = ctx.unless_stopped(call).await?.ok()?;
     sink.settle(&completion);
     ctx.bus.publish(HiveEvent::TokenDelta {
         agent: ctx.agent.clone(),

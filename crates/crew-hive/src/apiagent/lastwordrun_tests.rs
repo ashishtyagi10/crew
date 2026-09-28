@@ -117,6 +117,7 @@ async fn run(
         expertise: String::new(),
     };
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget,
         agent: AgentId(1),
         task,

@@ -6,7 +6,10 @@
 //!
 //! Cooperative cancellation: call `.with_cancel(flag)` before `.run()`. When
 //! the flag is set, the scheduler stops spawning new tasks, marks all
-//! unstarted tasks `Cancelled`, and drains in-flight agents to completion.
+//! unstarted tasks `Cancelled`, and drains in-flight agents. Each agent gets
+//! the same flag in its context: an API worker quits at its next look, a
+//! model call in flight included, and its task is recorded `Cancelled` too
+//! (`Attempt::stopped`); an agent that never looks runs to its end.
 //!
 //! A task whose failure passes (a timeout, a 429) is run once more before it
 //! counts as failed — see [`again`].
@@ -14,6 +17,9 @@ mod again;
 mod cancel;
 mod outcome;
 mod replan;
+#[cfg(test)]
+#[path = "stop_tests.rs"]
+mod stop_tests;
 #[cfg(test)]
 mod tests;
 
@@ -96,7 +102,8 @@ impl Scheduler {
 
     /// Attach a shared cancel flag (builder-style). When the flag is set,
     /// the scheduler stops spawning new tasks and cancels all unstarted
-    /// tasks, but drains the `JoinSet` so in-flight agents finish normally.
+    /// tasks, then drains the `JoinSet`: agents that honour the flag (it is
+    /// in their context) stop there, the rest finish normally.
     pub fn with_cancel(mut self, cancel: Arc<AtomicBool>) -> Self {
         self.cancel = cancel;
         self
@@ -118,8 +125,9 @@ impl Scheduler {
         let mut cancelled: HashSet<TaskId> = HashSet::new();
         let mut started: HashSet<TaskId> = HashSet::new();
         // `None` = the task was cancelled while queued for a permit, so its
-        // agent never ran: that is a cancellation, not a failure, and must not
-        // cascade to dependents as one.
+        // agent never ran, or its agent quit when the run was stopped: that is
+        // a cancellation, not a failure, and must not cascade to dependents
+        // (or earn a re-plan) as one.
         let mut joinset: JoinSet<(TaskId, Option<crate::board::TaskResult>)> = JoinSet::new();
         let mut next_agent: u64 = 0;
 
@@ -135,7 +143,8 @@ impl Scheduler {
                     &started,
                 );
                 // Drain all in-flight agents; never abort running work. Ones
-                // still queued for a permit bail out and land here as `None`.
+                // still queued for a permit bail out and land here as `None`,
+                // as do ones that saw the flag themselves and quit.
                 while let Some(joined) = joinset.join_next().await {
                     let (id, result) = joined.expect("agent task panicked");
                     match result {
@@ -191,6 +200,7 @@ impl Scheduler {
                         state: TaskState::Running,
                     });
                     let ctx = AgentContext {
+                        cancel: cancel.clone(),
                         agent: agent_id,
                         task: spec,
                         deps,
@@ -198,7 +208,7 @@ impl Scheduler {
                         budget,
                     };
                     let result = again::run(agent.as_ref(), ctx, pause, &cancel).await;
-                    (task_id, Some(result))
+                    (task_id, result)
                 });
             }
 

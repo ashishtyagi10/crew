@@ -49,6 +49,7 @@ async fn api_agent_completes_and_emits() {
         256,
     );
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(0),
         task: spec(1),
@@ -79,6 +80,7 @@ async fn api_agent_emits_output_chunk_and_cost() {
         128,
     );
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(1),
         task: spec(2),
@@ -113,6 +115,7 @@ async fn api_agent_with_deps_passes_context_in_prompt() {
         256,
     );
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(2),
         task: spec(3),
@@ -177,6 +180,7 @@ async fn api_factory_model_override_reaches_request() {
     let agent = factory.make(&crate::graph::AgentKind::Api { system: None });
     let bus = EventBus::new(32);
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(0),
         task: spec(1),
@@ -199,6 +203,7 @@ async fn api_agent_streams_deltas_then_one_complete_chunk() {
         256,
     );
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(7),
         task: spec(1),
@@ -246,6 +251,7 @@ async fn api_agent_publishes_reasoning_as_thought_deltas_not_output() {
         256,
     );
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(7),
         task: spec(1),
@@ -311,6 +317,7 @@ async fn a_non_streamed_thought_is_published_once_after_the_fact() {
     let mut rx = bus.subscribe();
     let agent = ApiAgent::new(Arc::new(Plain), 256);
     let ctx = AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(7),
         task: spec(1),
@@ -344,6 +351,7 @@ async fn api_agent_bills_at_the_tasks_own_tier() {
         let mut task = spec(1); // prompt "summarize" = 1 input token
         task.model = tier;
         let ctx = AgentContext {
+            cancel: Default::default(),
             budget: crate::tools::budget::ToolBudget::solo(),
             agent: AgentId(0),
             task,
@@ -456,6 +464,7 @@ fn fake(result: Result<String, String>) -> (Arc<FakeTools>, Arc<Mutex<Vec<String
 
 fn ctx(bus: &EventBus) -> AgentContext {
     AgentContext {
+        cancel: Default::default(),
         budget: crate::tools::budget::ToolBudget::solo(),
         agent: AgentId(7),
         task: spec(1),
