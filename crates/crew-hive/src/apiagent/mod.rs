@@ -17,6 +17,7 @@ mod chunks;
 mod context;
 mod cost;
 mod failure;
+mod lastword;
 mod native;
 mod note;
 mod toolloop;
@@ -147,8 +148,9 @@ impl Agent for ApiAgent {
             // The tools section is part of the BASE prompt, not just the first
             // request: every follow-up re-states it, or an agent that used one
             // tool would find the syntax for the second one gone.
+            let body = build_prompt(&ctx.task.prompt, &ctx.deps);
             let base = tools::augment(
-                &build_prompt(&ctx.task.prompt, &ctx.deps),
+                &body,
                 &tools
                     .as_ref()
                     .map(|t| t.hint_for(&ctx.task.prompt))
@@ -219,7 +221,6 @@ impl Agent for ApiAgent {
                     // output rather than returning an unrun directive that
                     // reads like a call which happened.
                     let total = ctx.budget.total();
-                    let text = toolloop::budget_spent(&completion.text, total);
                     ctx.bus.publish(HiveEvent::ToolResult {
                         agent: agent_id.clone(),
                         label: call.label(),
@@ -227,6 +228,22 @@ impl Agent for ApiAgent {
                         text: format!("not run — tool budget spent ({total} calls this run)"),
                         ms: 0,
                     });
+                    // What it gathered goes back once more, tools hint left
+                    // out, for an answer (`lastword`); failing that, what it
+                    // had written beside the ask is all there is.
+                    let last = lastword::prompt(
+                        &body,
+                        &exchanges.render(),
+                        &lastword::refused(&said, [(call.label(), call.args)]),
+                    );
+                    let text = match lastword::ask(
+                        &ctx, &provider, &model_id, system, last, max_tokens, &sink,
+                    )
+                    .await
+                    {
+                        Some(answer) => toolloop::with_budget_note(&answer, total),
+                        None => toolloop::budget_spent(&completion.text, total),
+                    };
                     ctx.bus.publish(HiveEvent::OutputChunk {
                         agent: agent_id,
                         text: text.clone(),
