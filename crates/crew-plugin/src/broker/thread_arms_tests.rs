@@ -55,6 +55,7 @@ fn relay_ctx(session: &Session, input: &str) -> u64 {
     let mut evs = Vec::new();
     crate::broker::stdio::relay_counting(
         input,
+        None,
         session,
         &crate::broker::tick::noop_tick_emit(),
         &mut |ev| {

@@ -99,7 +99,12 @@ fn a_hint_the_shape_cannot_use_is_dropped() {
 fn neither_sizing_line_can_change_the_shape() {
     let d = parse_decision_on("SHAPE: reply\nROUNDS: 5\nAGENTS: coder", &trio()).unwrap();
     assert_eq!(d.shape, Shape::Reply);
-    assert_eq!(d.hints, Hints::default());
+    assert_eq!(d.hints.rounds, None, "a reply has no rounds");
+    assert_eq!(
+        d.hints.agents,
+        Some(vec!["coder".to_string()]),
+        "…but names its answerer"
+    );
     assert_eq!(parse_decision_on("ROUNDS: 5\nSHAPE: loop", &trio()), None);
 }
 

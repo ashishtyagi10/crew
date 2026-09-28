@@ -99,6 +99,7 @@ fn at_dial_of_an_existing_specialist_defers_its_eviction() {
     let mut evs = Vec::new();
     relay_counting(
         "@favourite do the thing",
+        None,
         &session,
         &crate::broker::tick::noop_tick_emit(),
         &mut |ev| {

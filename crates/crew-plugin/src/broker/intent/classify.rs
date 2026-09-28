@@ -97,8 +97,9 @@ pub(super) fn prompt(task: &str, world: &super::world::World) -> String {
          An optional second line `WHY: <one short clause>` says why, in ten words \
          or fewer. Two more optional lines size the work: `ROUNDS: <1-{max}>` \
          (loop or goal only — how many rounds it deserves; omit it for the \
-         default) and `AGENTS: <name, name>` (fan only — a subset of the agents \
-         listed below, when fewer clearly fit). One more optional line \
+         default) and `AGENTS: <name, name>` (fan: a subset of the agents \
+         listed below, when fewer clearly fit; reply: the ONE agent whose role \
+         fits the message best). One more optional line \
          `VERIFY: yes` (swarm or plan only) says the message states a checkable \
          success condition — tests passing, a build compiling, \"so that X\" — so \
          the result should be judged against it when the work ends; omit it when \

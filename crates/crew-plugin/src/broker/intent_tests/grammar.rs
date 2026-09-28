@@ -161,3 +161,16 @@ fn every_stop_dispatches_as_the_swarm() {
         assert_eq!(r.decision().shape, Shape::Swarm);
     }
 }
+
+/// Markdown around the shape line is the same answer; prose is still not.
+#[test]
+fn a_fenced_or_bolded_shape_line_is_read() {
+    assert_eq!(
+        parse_shape("```\nSHAPE: reply\nWHY: q\n```"),
+        Some(Shape::Reply)
+    );
+    assert_eq!(parse_shape("**SHAPE:** swarm"), Some(Shape::Swarm));
+    assert_eq!(parse_shape("`SHAPE: loop`"), Some(Shape::Loop));
+    assert_eq!(parse_shape("I think SHAPE: reply"), None);
+    assert_eq!(parse_shape("Sure!\nSHAPE: reply"), None);
+}

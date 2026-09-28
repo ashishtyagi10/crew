@@ -11,6 +11,7 @@ const HEAD: &str = "The world you route in:";
 fn world(agents: &[&str], dirty: Option<usize>, tools: &[&str]) -> World {
     World {
         agents: agents.iter().map(|s| s.to_string()).collect(),
+        roles: Vec::new(),
         dirty,
         tools: tools.iter().map(|s| s.to_string()).collect(),
         recent: None,
