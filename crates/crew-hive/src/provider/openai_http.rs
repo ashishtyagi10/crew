@@ -7,6 +7,7 @@ use serde::Deserialize;
 
 use super::retry::{again, retry_after};
 use super::ssecalls::{frags, parse_args, CallAsm, Frag};
+use super::status::settle;
 use super::thinktags::{Piece, ThinkTags};
 use super::utf8carry::Utf8Carry;
 use super::wire::wire_error;
@@ -47,7 +48,7 @@ pub(super) async fn request_with_retry(
             tokio::time::sleep(wait).await;
             continue;
         }
-        return parse_response(&text);
+        return settle(status, endpoint, &text, parse_response);
     }
 }
 
@@ -142,7 +143,7 @@ pub(super) async fn request_with_retry_streaming(
             tokio::time::sleep(wait).await;
             continue;
         }
-        return parse_response(&text);
+        return settle(status, endpoint, &text, parse_response);
     }
 }
 

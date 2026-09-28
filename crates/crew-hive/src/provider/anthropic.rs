@@ -308,8 +308,9 @@ impl AnthropicProvider {
     /// The request, sent again while it fails in a way that passes — a 429,
     /// a 5xx, Anthropic's 529 `overloaded_error` — after the wait the server
     /// asked for ([`super::retry`]). A success comes back unread; a failure
-    /// that stands, as its body. `attempt` is the caller's, so a stream that
-    /// is retried after an in-stream error shares the one budget.
+    /// that stands, as what its body says (`status::failure`). `attempt` is
+    /// the caller's, so a stream that is retried after an in-stream error
+    /// shares the one budget.
     async fn send_retrying(
         client: &reqwest::Client,
         endpoint: &str,
@@ -327,7 +328,7 @@ impl AnthropicProvider {
             let text = resp.text().await.unwrap_or_default();
             match super::retry::again(status, hint, &text, attempt) {
                 Some(wait) => tokio::time::sleep(wait).await,
-                None => return Err(ProviderError::Api(text)),
+                None => return Err(super::status::failure(status, endpoint, &text)),
             }
         }
     }
@@ -356,11 +357,13 @@ impl Provider for AnthropicProvider {
             let resp =
                 AnthropicProvider::send_retrying(&client, &endpoint, &headers, &body, &mut 0)
                     .await?;
+            let status = resp.status().as_u16();
             let text = resp
                 .text()
                 .await
                 .map_err(|e| ProviderError::Http(wire_error(&e, &endpoint)))?;
-            AnthropicProvider::parse_response(&text)
+            let parse = AnthropicProvider::parse_response;
+            super::status::settle(status, &endpoint, &text, parse)
         })
     }
 
@@ -429,4 +432,4 @@ mod stream_tests;
 
 #[cfg(test)]
 #[path = "anthropicretry_tests.rs"]
-mod retry_tests;
+pub(super) mod retry_tests;

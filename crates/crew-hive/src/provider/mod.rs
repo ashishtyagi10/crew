@@ -5,12 +5,14 @@ mod anthropic;
 mod anthropicsse;
 mod claudecli;
 pub mod claudestream;
+mod hint;
 mod io;
 mod mock;
 mod openai_http;
 mod openrouter;
 mod retry;
 mod ssecalls;
+mod status;
 mod stopreason;
 #[cfg(test)]
 mod tests;
@@ -181,6 +183,10 @@ pub enum ProviderError {
     Http(String),
     Decode(String),
     Api(String),
+    /// An answer with no provider sentence in it (a proxy's HTML error page,
+    /// an empty body, a 2xx that is not JSON), said as its status and host:
+    /// `HTTP 502 from dashscope-intl.aliyuncs.com: Bad Gateway` (`status`).
+    Status(String),
     /// No key for the named variable. It carries the name because
     /// `OpenRouterProvider` backs six providers through different variables —
     /// a fixed string here named `ANTHROPIC_API_KEY` for all of them.
@@ -193,6 +199,7 @@ impl std::fmt::Display for ProviderError {
             ProviderError::Http(s) => write!(f, "http error: {s}"),
             ProviderError::Decode(s) => write!(f, "decode error: {s}"),
             ProviderError::Api(s) => write!(f, "{}", api_message(s)),
+            ProviderError::Status(s) => write!(f, "{}", hint::told("", s, "")),
             ProviderError::MissingKey(var) => write!(f, "{var} not set"),
         }
     }
@@ -208,25 +215,13 @@ impl std::error::Error for ProviderError {}
 /// what a person needs; the envelope is what a debugger needs, and a
 /// debugger can read the log.
 ///
-/// An authentication failure additionally gets told what to DO. It is the
-/// most common provider error there is (a typo'd, expired or revoked key)
-/// and the only one the user can always fix.
+/// An error the user can fix additionally gets told what to DO (`hint`): a
+/// rejected key first, the most common provider error there is and the only
+/// one the user can always fix, then a spent rate limit, an empty account,
+/// a thread past the model's context, and a model the host does not serve.
 pub fn api_message(body: &str) -> String {
     let msg = extract_message(body).unwrap_or_else(|| one_line(body));
-    let low = msg.to_lowercase();
-    let auth = [
-        "api key",
-        "unauthorized",
-        "invalid_api_key",
-        "authentication",
-        "401",
-    ]
-    .iter()
-    .any(|p| low.contains(p));
-    if auth {
-        return format!("provider rejected the key \u{2014} {msg} (/model replaces it)");
-    }
-    format!("api error: {msg}")
+    hint::told("api error: ", &msg, body)
 }
 
 /// The `error.message` string from a provider's JSON envelope, if it has one.

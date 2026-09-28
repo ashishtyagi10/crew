@@ -8,7 +8,7 @@ fn anthropic_busy_and_rate_limited_bodies_are_transient_under_any_status() {
     assert_eq!(retry_delay(529, None, OVERLOADED, 0), Some(1));
     // The same errors as an `error` event inside a 200 stream.
     assert_eq!(retry_delay(200, None, OVERLOADED, 1), Some(2));
-    let limited = r#"{"type":"rate_limit_error","message":"Number of requests has exceeded your per-minute rate limit"}"#;
+    let limited = r#"{"type":"error","error":{"type":"rate_limit_error","message":"Number of requests has exceeded your per-minute rate limit"}}"#;
     assert_eq!(retry_delay(200, None, limited, 0), Some(1));
     // A plain bad request is not retried.
     let bad = r#"{"type":"error","error":{"type":"invalid_request_error","message":"max_tokens: too big"}}"#;
@@ -55,4 +55,17 @@ fn retry_after_reads_whole_seconds_and_ignores_the_rest() {
         "Wed, 21 Oct 2026 07:28:00 GMT".parse().unwrap(),
     );
     assert_eq!(retry_after(&h), None);
+}
+
+/// A 2xx is a failure only when it carries a top-level `error`. The words
+/// alone used to be enough, so a reply ABOUT rate limits was asked for again.
+#[test]
+fn a_2xx_reply_that_mentions_rate_limits_is_not_retried() {
+    let reply = r#"{"choices":[{"message":{"role":"assistant","content":"add a rate limit to the endpoint"},"finish_reason":"stop","index":0}],"object":"chat.completion","usage":{"prompt_tokens":12,"completion_tokens":8,"total_tokens":20}}"#;
+    assert_eq!(retry_delay(200, None, reply, 0), None);
+    assert_eq!(retry_delay(200, None, "rate limit exceeded", 0), None);
+    let nulled = r#"{"error":null,"choices":[],"note":"rate limit"}"#;
+    assert_eq!(retry_delay(200, None, nulled, 0), None);
+    // Not a 2xx: the words are still read wherever they are.
+    assert_eq!(retry_delay(400, None, "rate limit exceeded", 0), Some(1));
 }
