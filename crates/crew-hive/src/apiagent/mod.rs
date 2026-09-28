@@ -15,11 +15,15 @@ mod shrinkold_tests;
 mod stop_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+#[path = "todo_tests.rs"]
+mod todo_tests;
 
 mod chunks;
 mod context;
 mod cost;
 mod failure;
+mod finish;
 mod lastword;
 mod native;
 mod note;
@@ -106,7 +110,8 @@ impl Agent for ApiAgent {
         let provider = Arc::clone(&self.provider);
         let max_tokens = self.max_tokens;
         let model = self.model.clone();
-        let tools = self.tools.clone();
+        // Per task, so each worker keeps a checklist of its own (`todo`).
+        let tools = self.tools.clone().map(tools::todo::per_task);
         let preamble = self.preamble.clone();
         Box::pin(async move {
             let task_id = ctx.task.id;
@@ -204,7 +209,8 @@ impl Agent for ApiAgent {
                     // Too long for the model: once, the log cut to fit.
                     Some(Err(err)) if !cut && overflow::tightened(&ctx, &err, &mut exchanges) => {
                         cut = true;
-                        prompt = toolloop::follow_up(&base, &exchanges, left);
+                        let list = tools::todo::section(tools.as_ref().and_then(|t| t.checklist()));
+                        prompt = toolloop::follow_up(&base, &list, &exchanges, left);
                         continue;
                     }
                     Some(Err(err)) => return failure::failed(&ctx, &err),
@@ -228,16 +234,7 @@ impl Agent for ApiAgent {
                     .and_then(|_| tools::split_tool_calls(&completion.text));
                 let (Some(runner), Some((said, calls))) = (tools.as_ref(), asked) else {
                     // No tool asked for: this reply is the answer.
-                    ctx.bus.publish(HiveEvent::OutputChunk {
-                        agent: agent_id,
-                        text: completion.text.clone(),
-                    });
-                    return TaskResult {
-                        task: task_id,
-                        output: completion.text,
-                        success: true,
-                    }
-                    .into();
+                    return finish::answer(&ctx, tools.as_ref(), completion.text);
                 };
                 // Every call draws its own round; the ones granted run as one
                 // batch and each becomes its own exchange (`textround`).
@@ -268,6 +265,7 @@ impl Agent for ApiAgent {
                     let asked = refused.iter().map(|c| (c.label(), c.args.clone()));
                     let last = lastword::prompt(
                         &body,
+                        &tools::todo::section(runner.checklist()),
                         &exchanges.render(),
                         &lastword::refused(said, asked),
                     );
@@ -281,19 +279,11 @@ impl Agent for ApiAgent {
                         Some(answer) => toolloop::with_budget_note(&answer, total),
                         None => toolloop::budget_spent(&completion.text, total),
                     };
-                    ctx.bus.publish(HiveEvent::OutputChunk {
-                        agent: agent_id,
-                        text: text.clone(),
-                    });
-                    return TaskResult {
-                        task: task_id,
-                        output: text,
-                        success: true,
-                    }
-                    .into();
+                    return finish::answer(&ctx, Some(runner), text);
                 }
                 left = rounds_left;
-                prompt = toolloop::follow_up(&base, &exchanges, left);
+                let list = tools::todo::section(runner.checklist());
+                prompt = toolloop::follow_up(&base, &list, &exchanges, left);
             }
         })
     }

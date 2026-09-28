@@ -37,6 +37,7 @@ fn exchange_caps_a_huge_result() {
 fn follow_up_restates_the_base_prompt_and_every_exchange() {
     let p = follow_up(
         "TASK\n\nTOOLS: @tool sys:run",
+        "",
         &log(&[("a:b", "first"), ("c:d", "second")]),
         2,
     );
@@ -50,7 +51,7 @@ fn follow_up_restates_the_base_prompt_and_every_exchange() {
 
 #[test]
 fn follow_up_tells_the_agent_when_it_is_out_of_calls() {
-    let p = follow_up("TASK", &log(&[("a:b", "r")]), 0);
+    let p = follow_up("TASK", "", &log(&[("a:b", "r")]), 0);
     assert!(p.contains("LAST tool call"));
     assert!(!p.contains("more tool call(s)"));
 }

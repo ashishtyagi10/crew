@@ -188,9 +188,11 @@ impl Broker {
             // Refused for its length, the follow-up is cut and dialed once
             // more (`toolfull`); the cut holds for the rest of the turn.
             let label = calls[fit - 1].label();
+            let list = crew_hive::tools::todo::section(runner.checklist());
             let (follow, dialed) = self.dial_fitted(
                 agent,
                 &mut base,
+                &list,
                 &mut exchanges,
                 max_calls - used,
                 &label,
@@ -257,3 +259,7 @@ mod shrinkold_tests;
 #[cfg(test)]
 #[path = "toolstop_tests.rs"]
 mod toolstop_tests;
+
+#[cfg(test)]
+#[path = "todorelay_tests.rs"]
+mod todorelay_tests;

@@ -117,6 +117,14 @@ pub(super) fn stopped_answer(before: &str, calls: u32) -> String {
     }
 }
 
+/// A turn's final answer as the user reads it: with one line under it naming
+/// what the task's checklist left undone (`crew_hive::tools::todo`), so a
+/// step the agent skipped is not hidden behind an answer that says done. The
+/// answer as written when the task kept no list or finished it.
+pub(super) fn finished(runner: Option<&dyn ToolRunner>, answer: String) -> String {
+    crew_hive::tools::todo::finished(answer, runner.and_then(|r| r.checklist()))
+}
+
 #[cfg(test)]
 #[path = "toolround_tests.rs"]
 mod tests;

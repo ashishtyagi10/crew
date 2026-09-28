@@ -20,10 +20,12 @@ use crew_hive::tools::exchanges::{Exchanges, CONTEXT_FULL};
 /// What one follow-up dial came back with, and the prompt it was sent.
 pub(super) type Dialed = (String, Result<(String, Usage), String>);
 
-/// The follow-up for a turn with `left` calls to go.
-pub(super) fn follow(base: &str, log: &Exchanges, left: u32) -> String {
+/// The follow-up for a turn with `left` calls to go. The task's checklist
+/// (`list`, empty when it keeps none) heads the exchanges, where their
+/// shortening never reaches it (`crew_hive::tools::todo`).
+pub(super) fn follow(base: &str, list: &str, log: &Exchanges, left: u32) -> String {
     format!(
-        "{base}\n\nTOOL EXCHANGES THIS TURN:\n{}\n\n{}",
+        "{base}\n\n{list}TOOL EXCHANGES THIS TURN:\n{}\n\n{}",
         log.render(),
         super::toolround::next_step(left)
     )
@@ -54,6 +56,7 @@ impl Broker {
         &self,
         agent: &dyn Adapter,
         base: &mut String,
+        list: &str,
         log: &mut Exchanges,
         left: u32,
         from: &str,
@@ -62,12 +65,12 @@ impl Broker {
         stream: &HopStream,
         sink: &mut dyn FnMut(Hop),
     ) -> Dialed {
-        let sent = follow(base, log, left);
+        let sent = follow(base, list, log, left);
         let got = self.dial_follow(agent, &sent, from, tick_base, env, stream, sink);
         match &got {
             Err(e) if crew_hive::provider::says_context_overflow(e) && shrink(base, log) => {
                 sink(note(env, HopKind::Reply, CONTEXT_FULL.into()));
-                let sent = follow(base, log, left);
+                let sent = follow(base, list, log, left);
                 let got = self.dial_follow(agent, &sent, from, tick_base, env, stream, sink);
                 (sent, got)
             }
