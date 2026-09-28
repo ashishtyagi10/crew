@@ -15,6 +15,10 @@ pub struct RunOutcome {
     /// `(used, total)` tool rounds over the whole run. `total` is never 0
     /// for a run the scheduler sized (four per task, one task minimum).
     pub tool_rounds: (u32, u32),
+    /// What the run's re-plan cost (zero when none ran). The planner is no
+    /// agent, so this is the one place its usage leaves the scheduler — a
+    /// host summing the turn from the bus alone would miss it.
+    pub replan_spent: crate::spent::Spent,
 }
 
 #[cfg(test)]

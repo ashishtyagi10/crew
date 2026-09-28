@@ -17,7 +17,7 @@
 //! call and emit no line, so their event stream is byte-identical to before;
 //! a call that fails is one quiet line, never a failed run. A child of
 //! `swarm`, so `broker` items are reached through `crate::broker::`.
-use crew_hive::{clip_middle, RunOutcome, TaskGraph, TaskId, TaskResult};
+use crew_hive::{clip_middle, RunOutcome, Spent, TaskGraph, TaskId, TaskResult};
 
 use super::swarmgap::Gap;
 use super::swarmstream::{self, AnswerFn};
@@ -25,8 +25,9 @@ use super::SWARM_LEAD;
 use crate::broker::relay::{msg, smith_answer};
 use crate::protocol::PluginEvent;
 
-/// A bounded one-shot that answers all at once — the judge's (`swarmverify`).
-pub(crate) type SynthFn = dyn Fn(&str) -> Result<String, String>;
+/// A bounded one-shot that answers all at once, with what it cost — the
+/// judge's (`swarmverify`).
+pub(crate) type SynthFn = dyn Fn(&str) -> Result<(String, Spent), String>;
 /// The closing call (`swarmstream`), or `None` when none may run (keyless,
 /// mock, `CREW_INTENT=0`).
 pub(crate) type Synth<'a> = Option<&'a AnswerFn>;
@@ -125,7 +126,7 @@ pub(super) fn parts<'a>(
 /// the gap gets said. Emits the lead thinking, the line, the lead idle — the
 /// shape `intent::decision::announce` uses, so the pane shows smith working.
 /// Returns the answer when one was written, so a judge can read it instead of
-/// the outputs it merged.
+/// the outputs it merged, and what the call cost, for the run's total.
 pub(super) fn combine(
     goal: &str,
     graph: &TaskGraph,
@@ -133,14 +134,16 @@ pub(super) fn combine(
     gap: &Gap,
     synth: Synth<'_>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<Option<String>> {
+) -> anyhow::Result<(Option<String>, Spent)> {
     let done: Vec<TaskId> = results.iter().map(|r| r.task).collect();
     let Some(call) = synth.filter(|_| !gap.is_empty() || wants_answer(graph, &done)) else {
-        return Ok(None);
+        return Ok((None, Spent::default()));
     };
     let parts = parts(graph, results.iter());
     emit(activity("thinking", "user"))?;
     let reply = swarmstream::said(call, &(prompt(goal, &parts) + &gap.brief()), emit)?;
+    let spent = reply.as_ref().map_or(Spent::default(), |(_, s)| *s);
+    let reply = reply.map(|(text, _)| text);
     let answer = match &reply {
         Ok(t) if !t.trim().is_empty() => Some(t.trim().to_owned()),
         _ => None,
@@ -164,7 +167,7 @@ pub(super) fn combine(
     };
     emit(said)?;
     emit(activity("idle", ""))?;
-    Ok(answer)
+    Ok((answer, spent))
 }
 
 /// The status line for a run that did not end clean — a cancellation or a

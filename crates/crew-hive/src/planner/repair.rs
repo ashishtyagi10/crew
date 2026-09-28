@@ -12,8 +12,9 @@
 //! when it happens, and the surfaced error naming it when it did not help —
 //! so the pane's "planning failed (…)" says how hard the planner tried.
 use super::{extract, parse_plan, PlanError};
-use crate::graph::TaskGraph;
+use crate::graph::{ModelTier, TaskGraph};
 use crate::provider::{CompletionRequest, Provider};
+use crate::spent::Spent;
 
 /// Most of the failed reply that the re-ask shows back to the model. The
 /// reply is already bounded by `max_tokens`; this only keeps a pathological
@@ -22,13 +23,22 @@ const REPLY_CAP: usize = 4000;
 
 /// Plan with `req`, and if the reply does not parse, once more with the
 /// error shown. Provider errors are not a reply and are never re-asked.
+/// Beside the plan, what both asks cost, billed at `req.model` on `tier`
+/// (`Spent::billed`): the re-ask is a whole second planning call, and a
+/// failed plan was paid for all the same.
 pub(crate) async fn plan_with_repair<P: Provider>(
     provider: P,
     req: CompletionRequest,
-) -> Result<TaskGraph, PlanError> {
-    let first = provider.complete(req.clone()).await?;
+    tier: ModelTier,
+) -> (Result<TaskGraph, PlanError>, Spent) {
+    let (model, mut spent) = (req.model.clone(), Spent::default());
+    let first = match provider.complete(req.clone()).await {
+        Ok(c) => c,
+        Err(e) => return (Err(e.into()), spent),
+    };
+    spent += Spent::billed(&model, tier, &first);
     let err = match graph_from(&first.text) {
-        Ok(graph) => return Ok(graph),
+        Ok(graph) => return (Ok(graph), spent),
         Err(e) => e,
     };
     eprintln!("crew: the planner's reply was not a task array ({err}) \u{2014} asking once more");
@@ -36,11 +46,16 @@ pub(crate) async fn plan_with_repair<P: Provider>(
         prompt: repair_prompt(&req.prompt, &first.text, &err),
         ..req
     };
-    let second = provider.complete(retry).await?;
-    graph_from(&second.text).map_err(|e| match e {
+    let second = match provider.complete(retry).await {
+        Ok(c) => c,
+        Err(e) => return (Err(e.into()), spent),
+    };
+    spent += Spent::billed(&model, tier, &second);
+    let graph = graph_from(&second.text).map_err(|e| match e {
         PlanError::Parse(s) => PlanError::Parse(format!("{s}; after one repair re-ask")),
         other => other,
-    })
+    });
+    (graph, spent)
 }
 
 /// The array inside `text`, tidied, then held to the strict parser.
@@ -63,6 +78,9 @@ pub(crate) fn repair_prompt(goal: &str, reply: &str, err: &PlanError) -> String 
     )
 }
 
+#[cfg(test)]
+#[path = "repairspent_tests.rs"]
+mod spent_tests;
 #[cfg(test)]
 #[path = "repair_tests.rs"]
 mod tests;

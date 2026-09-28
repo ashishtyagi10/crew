@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use super::plan_with_repair;
+use crate::graph::ModelTier;
 use crate::planner::PlanError;
 use crate::provider::{Completion, CompletionRequest, Provider, ProviderError};
 
@@ -61,7 +62,10 @@ fn req() -> CompletionRequest {
 async fn a_fenced_reply_with_a_sentence_before_it_plans_without_a_re_ask() {
     let reply = "Sure, here is the plan:\n```json\n[{\"id\":0,\"title\":\"t\",\"prompt\":\"p\",\"deps\":[],},]\n```";
     let p = Scripted::new(&[Ok(reply)]);
-    let graph = plan_with_repair(Arc::clone(&p), req()).await.unwrap();
+    let graph = plan_with_repair(Arc::clone(&p), req(), ModelTier::Standard)
+        .await
+        .0
+        .unwrap();
     assert_eq!(graph.len(), 1);
     assert_eq!(p.calls.load(Ordering::SeqCst), 1, "no re-ask was needed");
 }
@@ -69,7 +73,10 @@ async fn a_fenced_reply_with_a_sentence_before_it_plans_without_a_re_ask() {
 #[tokio::test]
 async fn a_reply_that_fails_once_is_re_asked_with_the_error_and_the_second_plans() {
     let p = Scripted::new(&[Ok("I would rather not."), Ok(PLAN)]);
-    let graph = plan_with_repair(Arc::clone(&p), req()).await.unwrap();
+    let graph = plan_with_repair(Arc::clone(&p), req(), ModelTier::Standard)
+        .await
+        .0
+        .unwrap();
     assert_eq!(graph.len(), 1);
     assert_eq!(p.calls.load(Ordering::SeqCst), 2);
     let prompts = p.prompts.lock().unwrap();
@@ -83,7 +90,10 @@ async fn a_reply_that_fails_once_is_re_asked_with_the_error_and_the_second_plans
 #[tokio::test]
 async fn a_reply_that_fails_twice_is_a_plan_error_after_exactly_two_calls() {
     let p = Scripted::new(&[Ok("nope"), Ok("[{\"id\":\"zero\"}]"), Ok(PLAN)]);
-    let err = plan_with_repair(Arc::clone(&p), req()).await.unwrap_err();
+    let err = plan_with_repair(Arc::clone(&p), req(), ModelTier::Standard)
+        .await
+        .0
+        .unwrap_err();
     assert_eq!(p.calls.load(Ordering::SeqCst), 2, "one re-ask, never two");
     match err {
         PlanError::Parse(s) => assert!(s.ends_with("after one repair re-ask"), "{s}"),
@@ -94,7 +104,10 @@ async fn a_reply_that_fails_twice_is_a_plan_error_after_exactly_two_calls() {
 #[tokio::test]
 async fn a_provider_error_is_surfaced_at_once_and_never_re_asked() {
     let p = Scripted::new(&[Err("overloaded"), Ok(PLAN)]);
-    let err = plan_with_repair(Arc::clone(&p), req()).await.unwrap_err();
+    let err = plan_with_repair(Arc::clone(&p), req(), ModelTier::Standard)
+        .await
+        .0
+        .unwrap_err();
     assert!(matches!(err, PlanError::Provider(_)), "{err}");
     assert_eq!(p.calls.load(Ordering::SeqCst), 1);
 }

@@ -18,7 +18,7 @@
 //! stream is byte-identical to before; a judge that errors is one quiet
 //! line, never a failed run. A child of `swarm`, so `broker` items are
 //! reached through `crate::broker::`.
-use crew_hive::{TaskGraph, TaskId, TaskResult};
+use crew_hive::{Spent, TaskGraph, TaskId, TaskResult};
 
 use super::swarmanswer::{self, SynthFn};
 use super::SWARM_LEAD;
@@ -70,7 +70,8 @@ impl<'a> Judge<'a> {
     }
 }
 
-/// The live judge, on routing's gates, when the router asked for one.
+/// The live judge, on routing's gates, when the router asked for one. Its
+/// call reports its cost, which [`verdict`] hands the run for its total.
 pub(super) fn live(wanted: bool) -> Option<Box<SynthFn>> {
     if !wanted {
         return None;
@@ -112,7 +113,8 @@ fn is_sink(graph: &TaskGraph, id: TaskId) -> bool {
 /// answer when one was written; else the sink outputs stand for the result.
 /// Returns the revision to run — its task and the judge for that pass — on
 /// `NOT MET`; `None` on met, on a judge error (one quiet line), or when no
-/// revision remains. Emits smith thinking, the line, smith idle.
+/// revision remains; and beside it what the judge's call cost, for the
+/// run's total. Emits smith thinking, the line, smith idle.
 pub(super) fn verdict<'a>(
     goal: &str,
     graph: &TaskGraph,
@@ -120,13 +122,13 @@ pub(super) fn verdict<'a>(
     answer: Option<&str>,
     judge: Judge<'a>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<Option<(String, Verify<'a>)>> {
+) -> anyhow::Result<(Option<(String, Verify<'a>)>, Spent)> {
     let sinks = swarmanswer::parts(graph, results.iter().filter(|r| is_sink(graph, r.task)));
     let outputs = swarmanswer::outputs(&sinks);
     let result = answer.map_or_else(|| outputs.trim().to_owned(), str::to_owned);
     emit(swarmanswer::activity("thinking", "user"))?;
-    let (line, revise) = match (judge.call)(&judge_prompt(goal, &result)) {
-        Ok(reply) => {
+    let (line, revise, spent) = match (judge.call)(&judge_prompt(goal, &result)) {
+        Ok((reply, spent)) => {
             let (met, why) = parse_verdict(&reply);
             let line = match (met, why.trim()) {
                 (true, w) if w.is_empty() || w.eq_ignore_ascii_case("met") => "verified".into(),
@@ -135,7 +137,7 @@ pub(super) fn verdict<'a>(
             };
             crate::broker::sessionlog::append(VERDICT_SENDER, &line);
             let revise = (!met).then(|| (revise_task(goal, why.trim(), &outputs), judge.next()));
-            (line, revise)
+            (line, revise, spent)
         }
         Err(e) => (
             format!(
@@ -143,11 +145,12 @@ pub(super) fn verdict<'a>(
                 crate::broker::route::clip(&e, ERR_MAX)
             ),
             None,
+            Spent::default(),
         ),
     };
     emit(msg(SWARM_LEAD, line))?;
     emit(swarmanswer::activity("idle", ""))?;
-    Ok(revise)
+    Ok((revise, spent))
 }
 
 #[cfg(test)]

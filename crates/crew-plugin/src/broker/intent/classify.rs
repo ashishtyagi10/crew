@@ -4,6 +4,8 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use crew_hive::Spent;
+
 /// Output-token ceiling for the classification call: the grammar is five
 /// short lines at most (a shape, an optional one-clause reason, the
 /// optional sizing lines, and the optional verify line).
@@ -26,14 +28,15 @@ pub(crate) const ONESHOT_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// The router's own call: the grammar's output ceiling on the cheap tier,
 /// under [`CLASSIFY_TIMEOUT`]. `pub(super)` so the tighter bound stays the
-/// router's — nothing outside `intent` can pick it up by accident.
-pub(super) fn live_router() -> Option<impl Fn(&str) -> Result<String, String>> {
-    let call = live_bounded(
+/// router's — nothing outside `intent` can pick it up by accident. Its cost
+/// comes back with the reply: the router is a call of the turn it routes,
+/// and the turn's total must count it (`turnspent`).
+pub(super) fn live_router() -> Option<impl Fn(&str) -> Result<(String, Spent), String>> {
+    live_bounded(
         INTENT_MAX_TOKENS,
         crew_hive::ModelTier::Cheap,
         CLASSIFY_TIMEOUT,
-    )?;
-    Some(move |p: &str| call(p).map(|c| c.text))
+    )
 }
 
 /// A grammar-sized call at the one-shot bound, when one may run: `None`
@@ -49,20 +52,22 @@ pub(crate) fn live_classifier() -> Option<impl Fn(&str) -> Result<String, String
 /// summarizer. One set of gates (`CREW_INTENT=0`, keyless, mock), one escape
 /// hatch.
 pub(crate) fn live_call(max_tokens: u32) -> Option<impl Fn(&str) -> Result<String, String>> {
-    live_call_at(max_tokens, crew_hive::ModelTier::Cheap)
+    let call = live_call_at(max_tokens, crew_hive::ModelTier::Cheap)?;
+    Some(move |p: &str| call(p).map(|(text, _)| text))
 }
 
-/// [`live_call`] on a stated tier. The quick decisions — a shape, a skill, a
-/// tool, a summary — are `Cheap`; a call whose output IS the work the user
-/// reads (a judge's verdict; the swarm's closing answer, which streams
-/// through [`live_provider_at`]) is `Standard`, since on DashScope `Cheap`
-/// became a smaller model (`discover::DASHSCOPE_CHEAP_MODEL`).
+/// [`live_call`] on a stated tier, with what the call cost beside its reply.
+/// The quick decisions — a shape, a skill, a tool, a summary — are `Cheap`;
+/// a call whose output IS the work the user reads (a judge's verdict; the
+/// swarm's closing answer, which streams through [`live_provider_at`]) is
+/// `Standard`, since on DashScope `Cheap` became a smaller model
+/// (`discover::DASHSCOPE_CHEAP_MODEL`). The judge adds the cost to its run's
+/// total; nothing else here has a total to add to.
 pub(crate) fn live_call_at(
     max_tokens: u32,
     tier: crew_hive::ModelTier,
-) -> Option<impl Fn(&str) -> Result<String, String>> {
-    let call = live_bounded(max_tokens, tier, ONESHOT_TIMEOUT)?;
-    Some(move |p: &str| call(p).map(|c| c.text))
+) -> Option<impl Fn(&str) -> Result<(String, Spent), String>> {
+    live_bounded(max_tokens, tier, ONESHOT_TIMEOUT)
 }
 
 /// The provider and model a one-shot on `tier` would run on, when one may
@@ -80,14 +85,19 @@ pub(crate) fn live_provider_at(
 }
 
 /// Every call here, with its round-trip bound stated: the gates live once,
-/// and only the router passes its tighter bound.
+/// and only the router passes its tighter bound. The reply comes with its
+/// cost, billed the way a swarm worker's round is (`Spent::billed`).
 fn live_bounded(
     max_tokens: u32,
     tier: crew_hive::ModelTier,
     timeout: Duration,
-) -> Option<impl Fn(&str) -> Result<crew_hive::Completion, String>> {
+) -> Option<impl Fn(&str) -> Result<(String, Spent), String>> {
     let (provider, model) = live_provider_at(tier)?;
-    Some(move |p: &str| complete_once(&provider, &model, p, max_tokens, timeout))
+    Some(move |p: &str| {
+        let c = complete_once(&provider, &model, p, max_tokens, timeout)?;
+        let spent = Spent::billed(&model, tier, &c);
+        Ok((c.text, spent))
+    })
 }
 
 /// One bounded completion on the discovered provider — same block-on pattern

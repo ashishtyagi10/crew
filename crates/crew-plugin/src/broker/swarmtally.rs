@@ -1,13 +1,14 @@
 //! The run-wide sums a swarm's drain loop keeps for the aggregate `Stats`
-//! (tokens, their split, cost), and the one thing it SAYS mid-run: that the
-//! tool pool ran dry.
+//! (tokens, their split, cost — the workers' from the bus, every other call
+//! of the run added by [`Tally::spend`]), and the one thing it SAYS mid-run:
+//! that the tool pool ran dry.
 //!
 //! Every agent already learns that privately — a refused call, a note in
 //! its own output — but the person watching the pane saw N workers go quiet
 //! at once with no line saying why. The pool's draws arrive as
 //! `HiveEvent::ToolBudget`; the first one that reads `used == total` earns
 //! one quiet line under the lead's name, and no later one repeats it.
-use crew_hive::HiveEvent;
+use crew_hive::{HiveEvent, Spent};
 
 use crate::broker::relay::msg;
 use crate::protocol::PluginEvent;
@@ -35,6 +36,17 @@ impl Tally {
             spent_said: false,
             total: 0,
         }
+    }
+
+    /// Add a call no worker made — the plan, a re-plan, the closing answer,
+    /// the judge — to the sums. Those calls belong to no agent, so the bus
+    /// never carries them, and a total built from the bus alone read low by
+    /// all of them.
+    pub fn spend(&mut self, s: Spent) {
+        self.tokens += s.tokens();
+        self.tok_in += s.input;
+        self.tok_out += s.output;
+        self.cost += s.micros_usd;
     }
 
     /// Fold one event into the sums; the line to emit, if this event earned

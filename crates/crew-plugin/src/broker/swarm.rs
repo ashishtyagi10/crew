@@ -155,7 +155,9 @@ pub(crate) fn run_with_synth(
 
     // NB: nothing is emitted before `HivePlan` so the host opens its companion
     // graph pane on the very first event of a swarm run (see `run_with` tests).
-    let graph = match rt.block_on(planner.plan(task)) {
+    // What planning cost is kept for the run's total: no worker made the call.
+    let (planned, planning) = rt.block_on(planner.plan_spent(task));
+    let graph = match planned {
         Ok(g) => g,
         Err(e) => degraded(task, &e, emit)?,
     };
@@ -199,6 +201,7 @@ pub(crate) fn run_with_synth(
     let mut gates: HashMap<u64, crate::broker::tick::TextGate> = HashMap::new();
     let run_start = std::time::Instant::now();
     let mut tally = swarmtally::Tally::new(tasks.len());
+    tally.spend(planning);
     let mut lost = swarmgap::Reasons::default();
     let mut lagged_total: u64 = 0;
     let mut emit_err: Option<anyhow::Error> = None;
@@ -260,6 +263,7 @@ pub(crate) fn run_with_synth(
     if let Some(e) = emit_err {
         return Err(e);
     }
+    tally.spend(outcome.replan_spent);
     if lagged_total > 0 {
         emit(msg("agent smith", lagged_note(lagged_total)))?;
     }
@@ -275,19 +279,24 @@ pub(crate) fn run_with_synth(
     let mut reply = None;
     if !cancelled && (gap.is_empty() || !outcome.done.is_empty()) {
         let results = rt.block_on(board.gather(&outcome.done));
-        let answer = swarmanswer::combine(task, &graph, &results, &gap, synth, emit)?;
+        let (answer, spent) = swarmanswer::combine(task, &graph, &results, &gap, synth, emit)?;
+        tally.spend(spent);
         // A partial run is not judged: its answer already says what is missing,
         // and a NOT MET would send the whole crew back to redo what succeeded.
         if let Some(judge) = verify.filter(|_| gap.is_empty()) {
             let answer = answer.as_deref();
-            revise = swarmverify::verdict(task, &graph, &results, answer, judge, emit)?;
+            let (next, spent) = swarmverify::verdict(task, &graph, &results, answer, judge, emit)?;
+            tally.spend(spent);
+            revise = next;
         }
         reply = swarmturn::reply(answer, &graph, &results, &gap);
     }
     let summary = swarmanswer::closing_line(&outcome, cancelled);
     // One aggregate Stats for the whole run (empty `agent` = turn-total, per
     // the field docs in protocol.rs) so the chat header's token/cost meter
-    // and stdio's per-task counter aren't left empty for swarm runs.
+    // and stdio's per-task counter aren't left empty for swarm runs. It is
+    // every call of the run: the workers' from the bus, and the plan, a
+    // re-plan, the closing answer and the verdict, which no worker made.
     emit(PluginEvent::Stats {
         exchanges: outcome.done.len() as u32,
         tokens: tally.tokens,
@@ -347,8 +356,14 @@ mod budget_tests;
 #[path = "swarmmemory_tests.rs"]
 mod memory_tests;
 #[cfg(test)]
+#[path = "swarmreplanspent_tests.rs"]
+mod replan_spent_tests;
+#[cfg(test)]
 #[path = "swarmreplan_tests.rs"]
 mod replan_tests;
+#[cfg(test)]
+#[path = "swarmspent_tests.rs"]
+mod spent_tests;
 #[cfg(test)]
 #[path = "swarm_tests.rs"]
 mod tests;

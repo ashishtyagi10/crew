@@ -46,7 +46,9 @@ fn judge(reply: Result<&'static str, &'static str>) -> (Arc<Mutex<Vec<String>>>,
     let log = Arc::clone(&seen);
     let call = move |p: &str| {
         log.lock().unwrap().push(p.to_string());
-        reply.map(str::to_string).map_err(str::to_string)
+        reply
+            .map(|r| (r.to_string(), crew_hive::Spent::default()))
+            .map_err(str::to_string)
     };
     (seen, Box::new(call))
 }
@@ -258,7 +260,7 @@ fn the_judge_after_a_streamed_answer_streams_nothing() {
     let answer = |_: &str, sink: &mut dyn FnMut(crew_hive::Chunk<'_>)| {
         sink(crew_hive::Chunk::Text("Both "));
         sink(crew_hive::Chunk::Text("agree."));
-        Ok::<String, String>("Both agree.".into())
+        Ok::<_, String>(("Both agree.".into(), crew_hive::Spent::default()))
     };
     let (_, call) = judge(Ok("MET: fine"));
     let mut evs = Vec::new();

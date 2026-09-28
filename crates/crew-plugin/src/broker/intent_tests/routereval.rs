@@ -136,7 +136,7 @@ fn router_eval() {
         let task = cols.next().unwrap();
         let last = RefCell::new(String::new());
         let seen = |p: &str| {
-            let r = call(p);
+            let r = call(p).map(|(reply, _)| reply);
             *last.borrow_mut() = r.clone().unwrap_or_else(|e| format!("ERR {e}"));
             r
         };

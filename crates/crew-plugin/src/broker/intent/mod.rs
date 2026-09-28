@@ -19,6 +19,8 @@
 //! constants here and in `constructs` are backstops, not the drivers.
 use std::sync::Arc;
 
+use crew_hive::Spent;
+
 use crate::PluginEvent;
 
 use super::session::Session;
@@ -46,6 +48,19 @@ pub(crate) const LOOP_ROUNDS: u32 = 3;
 /// closure so tests inject a deterministic, keyless model.
 pub(crate) type Classifier<'a> = &'a dyn Fn(&str) -> Result<String, String>;
 
+/// The router's call as it runs live: the reply, and what it cost. The cost
+/// is the turn's — [`routed`] adds it to the total the arm says.
+pub(crate) type SpentClassifier<'a> = &'a dyn Fn(&str) -> Result<(String, Spent), String>;
+
+/// Where a routed message goes once its shape is said: [`dispatch`] in
+/// production; a test hands in a swarm on scripted parts, so the routing
+/// half runs for real around it.
+pub(crate) type Arm<'a> = &'a mut dyn FnMut(
+    &decision::Decision,
+    &mut Session,
+    &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()>;
+
 /// The execution shapes a plain message can take. Every variant dispatches to
 /// a capability path that already exists — the router adds no execution logic.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -67,7 +82,7 @@ pub(crate) enum Shape {
     Swarm,
     /// Draft a commit message for the working diff (the `/commit` body).
     /// Drafts ONLY: creating the commit takes the user's own "apply", matched
-    /// deterministically in [`route_with`] — never by classification.
+    /// deterministically in [`routed`] — never by classification.
     Commit,
     /// Code-review the working diff (the `/review` body).
     Review,
@@ -87,19 +102,61 @@ pub(crate) fn route(
     tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    match classify::live_router() {
-        Some(call) => route_with(task, Some(&call), session, tick_emit, emit),
-        None => route_with(task, None, session, tick_emit, emit),
-    }
+    let router = classify::live_router();
+    let router = router.as_ref().map(|c| c as SpentClassifier);
+    route_counted(task, router, session, tick_emit, emit)
 }
 
 /// [`route`] with the classifier passed in — the seam the parity tests use to
 /// prove a plain phrasing reaches a capability whose slash command retired.
+/// Its classifier reports no cost, so the arm's totals pass as they are.
+#[cfg(test)]
 pub(crate) fn route_with(
     task: &str,
     classifier: Option<Classifier>,
     session: &mut Session,
     tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
+    let counted = classifier.map(uncounted);
+    let counted = counted.as_ref().map(|c| c as SpentClassifier);
+    route_counted(task, counted, session, tick_emit, emit)
+}
+
+/// [`route`] on a router that says what it cost, dispatched for real — the
+/// seam a test hands a costed router to.
+pub(crate) fn route_counted(
+    task: &str,
+    classifier: Option<SpentClassifier>,
+    session: &mut Session,
+    tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
+    let mut arm = |d: &decision::Decision,
+                   s: &mut Session,
+                   emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>| {
+        dispatch(d.shape, &d.hints, task, s, tick_emit, emit)
+    };
+    routed(task, classifier, session, &mut arm, emit)
+}
+
+/// A classifier that reports no cost, as the live router's shape — how the
+/// tests' plain closures reach the counted path.
+#[cfg(test)]
+pub(crate) fn uncounted<'a>(
+    call: Classifier<'a>,
+) -> impl Fn(&str) -> Result<(String, Spent), String> + 'a {
+    move |p: &str| call(p).map(|reply| (reply, Spent::default()))
+}
+
+/// Classify, say the decision, then run `arm` — the router's own cost folded
+/// into the turn total the arm says (`turnspent`), since the router is a
+/// call of the turn it routes and no arm counts it.
+pub(crate) fn routed(
+    task: &str,
+    classifier: Option<SpentClassifier>,
+    session: &mut Session,
+    arm: Arm,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     if let Some(done) = gate::human_gates(task, session, emit) {
@@ -111,8 +168,11 @@ pub(crate) fn route_with(
     let world = World::gather_about(session, task);
     // Plan-first skips the classifier entirely: the shape is already decided,
     // and asking a model to choose one it cannot have is a call for nothing.
-    let routing = match super::planfirst::on(session) {
-        true => decision::forced(Shape::Plan, super::planfirst::WHY),
+    let (routing, spent) = match super::planfirst::on(session) {
+        true => (
+            decision::forced(Shape::Plan, super::planfirst::WHY),
+            Spent::default(),
+        ),
         false => decision::classify_live(task, &world, classifier, emit)?,
     };
     let d = routing.decision();
@@ -124,7 +184,7 @@ pub(crate) fn route_with(
         context::words(d.shape, task, session, &world),
         emit,
     )?;
-    dispatch(d.shape, &d.hints, task, session, tick_emit, emit)
+    super::turnspent::folded(spent, emit, |emit| arm(&d, session, emit))
 }
 
 /// Send `task` down `shape`'s existing capability path, sized by `hints`

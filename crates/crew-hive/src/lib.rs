@@ -25,6 +25,7 @@
 //! Scale & control:
 //! - [`batch`] — flat parallel-job graph: [`batch_graph`], [`Job`]
 //! - [`govern`] — cost ceiling: [`Budget`], [`budget_governor`]
+//! - [`spent`] — what a call around the workers cost, returned beside its answer: [`Spent`]
 //!
 //! Auth:
 //! - [`oauth`] — OpenRouter browser sign-in (PKCE + code exchange): [`oauth::pkce`], [`oauth::exchange_openrouter_code`]
@@ -59,6 +60,7 @@ pub mod provider;
 pub use provider::claudestream;
 pub mod remoteagent;
 pub mod sched;
+pub mod spent;
 pub mod telemetry;
 pub mod tools;
 pub mod wire;
@@ -91,6 +93,9 @@ pub use apiagent::{ApiAgent, ApiFactory};
 // Scheduler
 pub use sched::{RunOutcome, Scheduler};
 
+// Spent
+pub use spent::Spent;
+
 // Provider
 pub use provider::{
     AnthropicProvider, Chunk, ChunkFn, ClaudeCliProvider, Completion, CompletionRequest,
@@ -99,7 +104,7 @@ pub use provider::{
 };
 
 // Planner
-pub use planner::{LlmPlanner, PlanError, Planner, StubPlanner};
+pub use planner::{LlmPlanner, PlanError, Planned, Planner, StubPlanner};
 
 // Batch
 pub use batch::{batch_graph, Job};

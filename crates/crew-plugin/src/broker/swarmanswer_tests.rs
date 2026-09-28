@@ -105,7 +105,9 @@ fn recording(
     let log = Arc::clone(&seen);
     let call = move |p: &str, _: &mut dyn FnMut(crew_hive::Chunk<'_>)| {
         log.lock().unwrap().push(p.to_string());
-        reply.map(str::to_string).map_err(str::to_string)
+        reply
+            .map(|r| (r.to_string(), crew_hive::Spent::default()))
+            .map_err(str::to_string)
     };
     (seen, Box::new(call))
 }
@@ -285,6 +287,7 @@ fn the_closing_line_names_a_cancellation_or_a_failure_and_nothing_on_a_clean_run
         failed: vec![TaskId(1)],
         cancelled: vec![TaskId(2)],
         tool_rounds: (0, 12),
+        replan_spent: Default::default(),
     };
     assert_eq!(
         closing_line(&outcome, true).as_deref(),
@@ -299,6 +302,7 @@ fn the_closing_line_names_a_cancellation_or_a_failure_and_nothing_on_a_clean_run
         failed: vec![],
         cancelled: vec![],
         tool_rounds: (0, 8),
+        replan_spent: Default::default(),
     };
     assert_eq!(closing_line(&clean, false), None);
 }

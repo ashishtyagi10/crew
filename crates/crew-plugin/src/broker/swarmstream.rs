@@ -22,24 +22,27 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use crew_hive::{Chunk, ChunkFn, Completion, CompletionRequest, Provider};
+use crew_hive::{Chunk, ChunkFn, Completion, CompletionRequest, ModelTier, Provider, Spent};
 
 use crate::broker::relay::SMITH_ANSWERS;
 use crate::broker::tick::{text_streaming_enabled, TextGate};
 use crate::protocol::PluginEvent;
 
 /// The closing call: the brief in, the whole answer out (marked when the
-/// ceiling cut it, `cutoff::marked`), and each paced piece of it handed to
-/// the sink on the way — reply text or reasoning, as the provider told them
-/// apart. The judge keeps `swarmanswer::SynthFn`, which has no sink: a
-/// verdict is one line of chrome, not an answer to watch being written.
-pub(crate) type AnswerFn = dyn Fn(&str, &mut dyn FnMut(Chunk<'_>)) -> Result<String, String>;
+/// ceiling cut it, `cutoff::marked`) with what the call cost, and each paced
+/// piece of it handed to the sink on the way — reply text or reasoning, as
+/// the provider told them apart. The judge keeps `swarmanswer::SynthFn`,
+/// which has no sink: a verdict is one line of chrome, not an answer to
+/// watch being written.
+pub(crate) type AnswerFn =
+    dyn Fn(&str, &mut dyn FnMut(Chunk<'_>)) -> Result<(String, Spent), String>;
 
 /// The closing call on `provider`: `max_tokens` of `model`, bounded like a
 /// relay agent's call (`session::call_timeout`, 3 min), not by the 30 s
 /// one-shot bound the blocking call had — 2,048 tokens on qwen-max run past
 /// 30 s, and a streamed answer cut there is watched half-written and then
 /// replaced by an error. The provider's read timeout still ends a SILENT one.
+/// Billed on the standard tier, the one `swarmanswer::live` resolves it on.
 pub(super) fn over(provider: Arc<dyn Provider>, model: String, max_tokens: u32) -> Box<AnswerFn> {
     Box::new(move |brief: &str, sink: &mut dyn FnMut(Chunk<'_>)| {
         let req = CompletionRequest {
@@ -49,7 +52,8 @@ pub(super) fn over(provider: Arc<dyn Provider>, model: String, max_tokens: u32) 
             ..Default::default()
         };
         let c = streamed(&provider, req, sink)?;
-        Ok(crate::broker::cutoff::marked(&c.text, c.truncated))
+        let spent = Spent::billed(&model, ModelTier::Standard, &c);
+        Ok((crate::broker::cutoff::marked(&c.text, c.truncated), spent))
     })
 }
 
@@ -63,7 +67,7 @@ pub(super) fn said(
     call: &AnswerFn,
     brief: &str,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<Result<String, String>> {
+) -> anyhow::Result<Result<(String, Spent), String>> {
     let mut failed = None;
     let reply = call(brief, &mut |piece| {
         if failed.is_some() {

@@ -112,6 +112,7 @@ impl Scheduler {
         // re-plan changes which tasks run, not how much a run may spend.
         let budget = crate::tools::budget::ToolBudget::for_run(graph.len());
         let mut replans_left = replan::REPLAN_CAP;
+        let mut replan_spent = crate::spent::Spent::default();
         let mut done: HashSet<TaskId> = HashSet::new();
         let mut failed: HashSet<TaskId> = HashSet::new();
         let mut cancelled: HashSet<TaskId> = HashSet::new();
@@ -218,11 +219,12 @@ impl Scheduler {
                             if replans_left > 0 {
                                 replans_left -= 1;
                                 #[rustfmt::skip]
-                                replan::attempt(
+                                let spent = replan::attempt(
                                     rp, &mut graph, &self.board, &self.bus,
                                     &done, &failed, &mut cancelled, &started,
                                     id, &f,
                                 ).await;
+                                replan_spent += spent;
                             }
                         }
                     }
@@ -236,6 +238,7 @@ impl Scheduler {
             failed: sorted(failed),
             cancelled: sorted(cancelled),
             tool_rounds: (budget.total() - budget.left(), budget.total()),
+            replan_spent,
         }
     }
 }
