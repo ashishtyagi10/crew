@@ -80,3 +80,7 @@ pub(super) const RETIRED: &[(&str, &str)] = &[
          or /model <provider> runs it directly (/logout still removes a grant)",
     ),
 ];
+
+#[cfg(test)]
+#[path = "retiredhint_tests.rs"]
+mod hint_tests;

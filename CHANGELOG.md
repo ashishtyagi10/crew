@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.73
+
+**Smith no longer sends you to `/restore`.** The first task in every pane
+said "snapshot taken before this task — /restore lists them, /restore <n>
+puts one back", and every task that changed files ended "/diff shows them,
+/restore puts them back". `/restore` left smith in 0.22.27, when "undo
+that" replaced it, and in the app it now reopens the panes saved at quit,
+so the advice named a different action entirely. Both lines now say "undo
+that". A test reads every string in the broker and fails if one names a
+retired command outside the table that explains the retirement. It costs
+nothing at run time.
+
 ## 0.24.72
 
 **A swarm with a failed task still answers from the tasks that finished.** Agent smith wrote the closing answer only when every task succeeded, so a run where four of five workers came back with good output ended on "swarm finished with 1 failed task(s)", and you had to read the worker rows to find out what had been learned. Now any run that finished at least one task gets the answer, and the brief behind it names each failed task with the error its worker showed (`"Run tests" (provider timeout)`) and asks for what could not be done to be said plainly; that answer is also what the thread remembers of the turn, and the status line still follows it. A run where every task failed, and a keyless or mock run that makes no closing call, reads exactly as before. The cost: a partial run always makes the closing call, even when what finished ends in the single task whose reply would have been the answer on a clean run, and a run the router asked to verify is not judged when something failed, because a NOT MET verdict would send the whole crew back to redo the work that succeeded.
