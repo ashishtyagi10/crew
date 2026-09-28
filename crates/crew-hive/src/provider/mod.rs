@@ -10,6 +10,7 @@ mod mock;
 mod openai_http;
 mod openrouter;
 mod ssecalls;
+mod stopreason;
 #[cfg(test)]
 mod tests;
 mod thinking;
@@ -123,6 +124,11 @@ pub enum Turn {
     /// Providers require these to arrive together, in one turn, covering
     /// EVERY call — a missing result is a protocol error, not a partial answer.
     ToolResults(Vec<ToolOutcome>),
+    /// Something the user says after the model has spoken. The relay needs
+    /// it to ask for the rest of a reply cut at the token limit: an assistant
+    /// turn with nothing after it is a PREFILL, which Anthropic continues but
+    /// an OpenAI-shaped endpoint answers afresh, repeating itself.
+    User(String),
 }
 
 /// `Default` is derived so a new field can be added here without touching
@@ -162,6 +168,10 @@ pub struct Completion {
     /// what the model SAID, and a transcript that kept the working would
     /// read it back to the model as its own words on the next turn.
     pub thought: String,
+    /// Generation stopped at `max_tokens`, not because the model was done
+    /// (`stopreason`). Without it a reply cut mid-sentence reads as finished,
+    /// and a tool call cut mid-JSON fails as malformed with nothing saying why.
+    pub truncated: bool,
 }
 
 #[derive(Debug)]

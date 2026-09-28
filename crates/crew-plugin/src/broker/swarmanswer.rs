@@ -27,8 +27,13 @@ pub(crate) type SynthFn = dyn Fn(&str) -> Result<String, String>;
 pub(crate) type Synth<'a> = Option<&'a SynthFn>;
 
 /// Output ceiling for the answer: a few paragraphs, not a report — the
-/// workers' replies are still in the pane above it for the long form.
-const SYNTH_MAX_TOKENS: u32 = 768;
+/// workers' replies are still in the pane above it for the long form. 768
+/// (~550 words) was short for merging several workers' lists or code, and
+/// the provider bills what is written, not the ceiling, so a short answer
+/// costs what it did. An answer that still reaches it ends with
+/// `cutoff::CUT_OFF` and is not continued: it is the last word of a run that
+/// has already paid for every worker.
+const SYNTH_MAX_TOKENS: u32 = 2048;
 /// Chars of the user's request carried into a brief; mirrors `route::TASK_CAP`.
 pub(super) const GOAL_CAP: usize = 4_000;
 /// Chars of any ONE worker's output carried into the brief; mirrors crew-hive's
@@ -48,9 +53,13 @@ const ANSWER_SENDER: &str = "answer";
 /// The live closing call, on routing's gates: `None` keyless, mock, or off.
 pub(super) fn live() -> Option<Box<SynthFn>> {
     // The answer the user reads: the standard model, not the router's.
-    let call =
-        crate::broker::intent::live_call_at(SYNTH_MAX_TOKENS, crew_hive::ModelTier::Standard)?;
-    let boxed: Box<SynthFn> = Box::new(call);
+    let call = crate::broker::intent::live_completion_at(
+        SYNTH_MAX_TOKENS,
+        crew_hive::ModelTier::Standard,
+    )?;
+    let boxed: Box<SynthFn> = Box::new(move |p: &str| {
+        call(p).map(|c| crate::broker::cutoff::marked(&c.text, c.truncated))
+    });
     Some(boxed)
 }
 

@@ -845,6 +845,7 @@ impl crew_hive::Provider for NativeProvider {
                 input_tokens: 1,
                 output_tokens: 1,
                 cost_microusd: 0,
+                truncated: false,
                 calls: if answered || !has_run {
                     vec![]
                 } else {

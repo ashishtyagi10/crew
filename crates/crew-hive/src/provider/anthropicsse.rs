@@ -6,7 +6,8 @@
 //! answer at once, while every OpenAI-compatible host typed it out live. This
 //! is the event reader for `"stream": true`: `message_start` carries the
 //! input usage, `content_block_delta` the `text_delta` / `thinking_delta`
-//! fragments, `message_delta` the output usage, `error` an in-stream failure.
+//! fragments, `message_delta` the output usage and why it stopped, `error`
+//! an in-stream failure.
 //! Pure over the bytes it is fed, so the framing is tested without a socket.
 use super::{Chunk, ChunkFn, Completion, ProviderError};
 
@@ -72,6 +73,9 @@ impl Fold {
             "message_delta" => {
                 if let Some(n) = v["usage"]["output_tokens"].as_u64() {
                     self.out.output_tokens = n as u32;
+                }
+                if let Some(why) = v["delta"]["stop_reason"].as_str() {
+                    self.out.truncated = super::stopreason::anthropic(Some(why));
                 }
             }
             "error" => self.failed = Some(v["error"].to_string()),

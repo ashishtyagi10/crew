@@ -75,6 +75,7 @@ fn calling(id: &str, name: &str) -> Completion {
         input_tokens: 1,
         output_tokens: 1,
         cost_microusd: 0,
+        truncated: false,
         calls: vec![ToolInvocation {
             id: id.into(),
             name: name.into(),
@@ -234,6 +235,7 @@ async fn every_call_in_a_turn_is_answered_even_past_the_per_turn_bound() {
         input_tokens: 1,
         output_tokens: 1,
         cost_microusd: 0,
+        truncated: false,
         calls: (0..MAX_CALLS_PER_TURN + 3)
             .map(|i| ToolInvocation {
                 id: format!("c{i}"),
@@ -347,6 +349,7 @@ async fn calls_refused_past_the_per_turn_bound_publish_a_failed_result_each() {
         input_tokens: 1,
         output_tokens: 1,
         cost_microusd: 0,
+        truncated: false,
         calls: (0..MAX_CALLS_PER_TURN + 2)
             .map(|i| ToolInvocation {
                 id: format!("c{i}"),

@@ -30,7 +30,7 @@ mod hints;
 mod skillhint;
 mod world;
 
-pub(crate) use classify::{live_call, live_call_at, live_classifier};
+pub(crate) use classify::{live_call, live_call_at, live_classifier, live_completion_at};
 pub(crate) use fanout::fan_recorded;
 pub(crate) use hints::Hints;
 pub(crate) use world::World;

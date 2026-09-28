@@ -80,6 +80,9 @@ struct ApiResp {
     #[serde(default)]
     content: Vec<Block>,
     usage: Option<Usage>,
+    /// `"max_tokens"` when the ceiling, not the model, ended the reply.
+    #[serde(default)]
+    stop_reason: Option<String>,
     #[serde(rename = "type", default)]
     kind: String,
     #[serde(default)]
@@ -180,6 +183,7 @@ impl AnthropicProvider {
                 input: b.input.clone().unwrap_or_else(|| serde_json::json!({})),
             })
             .collect();
+        let truncated = super::stopreason::anthropic(r.stop_reason.as_deref());
         let usage = r
             .usage
             .ok_or_else(|| ProviderError::Decode("missing usage".into()))?;
@@ -190,6 +194,7 @@ impl AnthropicProvider {
             output_tokens: usage.output_tokens,
             cost_microusd: 0,
             calls,
+            truncated,
         })
     }
 }
@@ -235,6 +240,9 @@ pub(crate) fn build_messages(req: &CompletionRequest) -> Vec<serde_json::Value> 
                     })
                     .collect();
                 messages.push(serde_json::json!({"role": "user", "content": content}));
+            }
+            Turn::User(text) => {
+                messages.push(serde_json::json!({"role": "user", "content": text}));
             }
         }
     }

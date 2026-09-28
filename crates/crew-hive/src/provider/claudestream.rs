@@ -43,6 +43,9 @@ pub struct RunResult {
     pub input_tokens: u32,
     pub output_tokens: u32,
     pub cost_microusd: u64,
+    /// The run's `stop_reason` was the token ceiling (`stopreason`). Older
+    /// CLIs send none, which reads as finished — the answer they always got.
+    pub truncated: bool,
 }
 
 /// Parse one stdout line. `None` for a blank line or one that is not a JSON
@@ -73,6 +76,7 @@ pub fn parse_line(line: &str) -> Option<StreamEvent> {
             input_tokens: v["usage"]["input_tokens"].as_u64().unwrap_or(0) as u32,
             output_tokens: v["usage"]["output_tokens"].as_u64().unwrap_or(0) as u32,
             cost_microusd: (v["total_cost_usd"].as_f64().unwrap_or(0.0) * 1e6).round() as u64,
+            truncated: super::stopreason::anthropic(v["stop_reason"].as_str()),
         }),
         _ => StreamEvent::Other,
     })

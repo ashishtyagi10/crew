@@ -8,7 +8,7 @@ use serde::Deserialize;
 use super::ssecalls::{frags, parse_args, CallAsm, Frag};
 use super::thinktags::{Piece, ThinkTags};
 use super::wire::wire_error;
-use super::{thinking, Chunk, ChunkFn, Completion, ProviderError};
+use super::{stopreason, thinking, Chunk, ChunkFn, Completion, ProviderError};
 
 /// How many times to retry one model on a transient error before the chain
 /// advances to the next model (kept low because the fallback chain adds breadth).
@@ -288,6 +288,7 @@ async fn consume_sse(
         output_tokens,
         cost_microusd,
         calls: st.calls.finish(),
+        truncated: st.truncated,
     }))
 }
 
@@ -300,6 +301,8 @@ struct SseState {
     tags: ThinkTags,
     calls: CallAsm,
     usage: Option<(u64, u64, u64)>,
+    /// The last `finish_reason` said the token ceiling ended it.
+    truncated: bool,
     /// Any Done/Delta/Thought/Calls/Usage frame ever seen — distinguishes a
     /// genuine (if empty) stream from a non-SSE error body (Critical-1).
     any_frame: bool,
@@ -352,6 +355,7 @@ fn apply_sse_line(
             SseItem::Thought(s) => st.route(Piece::Thought(s), on_chunk, started),
             SseItem::Calls(fs) => fs.into_iter().for_each(|f| st.calls.push(f)),
             SseItem::Usage(i, o, cost) => st.usage = Some((i, o, cost)),
+            SseItem::Stop(why) => st.truncated = stopreason::openai(Some(&why)),
             SseItem::Done => done = true,
         }
     }
@@ -403,6 +407,9 @@ pub(crate) enum SseItem {
     Thought(String),
     /// Tool-call fragments (`delta.tool_calls`), see [`CallAsm`].
     Calls(Vec<Frag>),
+    /// `finish_reason`, on the frame that ends the choice. The last one
+    /// wins, and only `"length"` matters (`stopreason`).
+    Stop(String),
     Usage(u64, u64, u64),
     Done,
 }
@@ -430,7 +437,7 @@ fn reasoning_of(delta: &serde_json::Value) -> String {
 
 /// Pure classifier for one SSE line: everything the frame carries, in the
 /// order it should apply — reasoning, then text, then tool-call fragments,
-/// then usage — or nothing for noise (keep-alives, blanks, junk). One frame
+/// then why it stopped, then usage — or nothing for noise (keep-alives, blanks, junk). One frame
 /// CAN carry several: some endpoints put the usage on the last content
 /// frame, and a first-item-only read dropped it. Never errors: a malformed
 /// frame is ignored and the stream carries on.
@@ -456,6 +463,9 @@ pub(crate) fn parse_sse_frame(line: &str) -> Vec<SseItem> {
     let fs = frags(delta);
     if !fs.is_empty() {
         out.push(SseItem::Calls(fs));
+    }
+    if let Some(why) = v["choices"][0]["finish_reason"].as_str() {
+        out.push(SseItem::Stop(why.to_string()));
     }
     if let Some(u) = v.get("usage").filter(|u| !u.is_null()) {
         let i = u["prompt_tokens"].as_u64().unwrap_or(0);
@@ -509,6 +519,9 @@ struct Msg {
 struct Choice {
     #[serde(default)]
     message: Msg,
+    /// Why generation stopped — `"length"` is the token ceiling.
+    #[serde(default)]
+    finish_reason: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -541,6 +554,7 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
         return Err(ProviderError::Api(body.to_string()));
     }
     let msg = r.choices.first().map(|c| &c.message);
+    let truncated = stopreason::openai(r.choices.first().and_then(|c| c.finish_reason.as_deref()));
     // `<think>` tags in the body route to reasoning here exactly as they do
     // in a stream (`ThinkTags`), so the two paths agree on what the reply IS.
     let (text, mut thought) =
@@ -573,6 +587,7 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
         output_tokens: usage.completion_tokens,
         cost_microusd: (usage.cost.unwrap_or(0.0) * 1_000_000.0) as u64,
         calls,
+        truncated,
     })
 }
 

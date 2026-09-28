@@ -129,6 +129,7 @@ fn finish(fold: Fold, stderr: &str) -> Result<Completion, ProviderError> {
         cost_microusd: 0,
         calls: Vec::new(),
         thought: fold.thought,
+        truncated: usage.truncated,
     })
 }
 
@@ -154,6 +155,10 @@ pub fn prompt_text(req: &CompletionRequest) -> String {
                 for r in results {
                     out.push_str(&format!("\n{}: {}", r.id, r.content));
                 }
+            }
+            Turn::User(text) => {
+                out.push_str("\n\n[user]\n");
+                out.push_str(text);
             }
         }
     }
