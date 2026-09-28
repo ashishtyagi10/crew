@@ -3045,8 +3045,8 @@ nothing is); `CREW_SKILL_PICK=0` stops the model choosing which skills a task
 follows when two or more are loaded — a task pulls in the playbooks it names,
 as it always did (the model's choice is announced as `skill <name> · chose ·
 …`, the name match's as `· applied ·`); `CREW_SWARM_CONCURRENCY=<n>` (1–16) pins how many swarm tasks run at
-once — by default the scheduler follows the plan's own width (the tasks
-ready at the start, clamped to 2–8), and every permit is one request in
+once — by default the scheduler follows the plan's own width (its widest
+wave of tasks ready together, clamped to 2–8), and every permit is one request in
 flight against the provider at the same moment, so a value above its rate
 limit turns a wide plan into a run of refusals and `1` runs any plan
 serially; `CREW_SIDECAR` names an out-of-process engine to run swarm TASKS

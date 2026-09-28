@@ -4,8 +4,10 @@
 //! has a `deps` clause whose whole point is to make plans WIDE (independent
 //! tasks side by side), and then the scheduler capped a six-wide plan at four
 //! and ran a two-wide plan with two idle permits. The plan already says how
-//! parallel the work is: its initial ready set — the tasks with no
-//! dependencies — is exactly the width the first wave wants. So that is the
+//! parallel the work is: its widest WAVE — the most tasks ever ready at the
+//! same time. Reading only the first wave (the tasks with no dependencies)
+//! held the common "survey first, then fan out six ways" plan to two permits,
+//! since its first wave is one task wide. So the widest wave is the
 //! concurrency, clamped so a one-task plan still has a permit for the merge a
 //! re-plan may add ([`MIN`]) and a twelve-wide plan does not fire twelve
 //! requests at one provider at once ([`MAX`]).
@@ -30,16 +32,36 @@ pub(crate) const MAX: usize = 8;
 pub(crate) const OVERRIDE_MAX: usize = 16;
 
 /// The concurrency for `graph`: the override when `CREW_SWARM_CONCURRENCY`
-/// holds a number, else the plan's initial width clamped to `MIN..=MAX`.
+/// holds a number, else the plan's widest wave clamped to `MIN..=MAX`.
 pub(super) fn concurrency_for(graph: &TaskGraph) -> usize {
-    let width = graph.ready(&HashSet::new()).len();
     concurrency(
-        width,
+        widest(graph),
         std::env::var("CREW_SWARM_CONCURRENCY").ok().as_deref(),
     )
 }
 
-/// [`concurrency_for`] on its inputs: `width` is the plan's initial ready
+/// The most tasks `graph` ever has ready at once, walking it wave by wave as
+/// if each wave finished together. Real tasks finish out of step, so a run can
+/// briefly hold a different mix; for a clamp of 2..=8 the waves are the
+/// estimate worth having, and they see the fan-out behind a one-task survey.
+pub(crate) fn widest(graph: &TaskGraph) -> usize {
+    let mut done = HashSet::new();
+    let mut widest = 0;
+    loop {
+        let wave: Vec<_> = graph
+            .ready(&done)
+            .into_iter()
+            .filter(|t| !done.contains(t))
+            .collect();
+        if wave.is_empty() {
+            return widest;
+        }
+        widest = widest.max(wave.len());
+        done.extend(wave);
+    }
+}
+
+/// [`concurrency_for`] on its inputs: `width` is the plan's widest wave
 /// count, `raw` the override's text (a number, clamped to `1..=OVERRIDE_MAX`;
 /// anything else is ignored, never a zero).
 pub(crate) fn concurrency(width: usize, raw: Option<&str>) -> usize {
