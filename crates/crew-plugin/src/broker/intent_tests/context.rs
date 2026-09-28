@@ -152,7 +152,7 @@ fn the_context_line_lands_after_the_routing_line_and_before_the_arm() {
 /// same text, so the decider's memo answers the arm — and nothing for an arm
 /// that frames on a different text or none at all.
 #[test]
-fn skills_are_named_only_for_the_arms_that_frame_the_raw_task() {
+fn skills_are_named_for_every_arm_that_frames_the_request() {
     let _g = testenv::mock("ok");
     let dir = std::path::PathBuf::from(std::env::var("CREW_PROJECT_DIR").unwrap());
     std::fs::create_dir_all(dir.join(".crew/skills")).unwrap();
@@ -165,19 +165,19 @@ fn skills_are_named_only_for_the_arms_that_frame_the_raw_task() {
     let task = "write the ship-notes for this release";
     for shape in [Shape::Swarm, Shape::Loop, Shape::Goal, Shape::Reply] {
         assert!(
-            skills_for(shape, task, &session).contains(&"ship-notes".to_string()),
+            skills_for(shape, task).contains(&"ship-notes".to_string()),
             "{shape:?} frames the raw task"
         );
     }
     for shape in [Shape::Fan, Shape::Plan, Shape::Commit, Shape::Review] {
         assert!(
-            skills_for(shape, task, &session).is_empty(),
+            skills_for(shape, task).is_empty(),
             "{shape:?} frames no skills on the raw task"
         );
     }
-    // A reply on a thread is framed on the thread's wrap, not the task.
+    // A reply on a thread still chooses on the request, not the thread's wrap.
     crate::broker::thread::lock(&session.thread).record("earlier", "answer");
-    assert!(skills_for(Shape::Reply, task, &session).is_empty());
+    assert!(skills_for(Shape::Reply, task).contains(&"ship-notes".to_string()));
     // The line carries the pick.
     let line = ContextLine::gather(
         "ship it",

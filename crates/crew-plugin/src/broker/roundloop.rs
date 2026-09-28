@@ -50,6 +50,7 @@ pub(crate) fn loop_cmd(
             &broker,
             &start,
             body,
+            &task,
             &format!("loop-{round}"),
             tick_emit,
             em,

@@ -153,9 +153,15 @@ pub(crate) fn decide_in(task: &str, world: &World, classifier: Option<Classifier
         return Routing::Off;
     };
     match call(&classify::prompt(task, world)) {
-        Ok(reply) => {
-            parse_decision_on(&reply, &world.agents).map_or(Routing::OffGrammar, Routing::Chosen)
-        }
+        Ok(reply) => match parse_decision_on(&reply, &world.agents) {
+            Some(mut d) => {
+                let names: Vec<String> = world.skills.iter().map(|(n, _)| n.clone()).collect();
+                d.hints.skills = super::skillhint::parse(&reply, &names);
+                d.hints = d.hints.relevant_to(d.shape);
+                Routing::Chosen(d)
+            }
+            None => Routing::OffGrammar,
+        },
         Err(e) => Routing::Failed(e),
     }
 }

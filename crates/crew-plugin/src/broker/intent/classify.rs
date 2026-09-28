@@ -73,6 +73,10 @@ fn complete_once(
 /// cache-aware, as `route::frame`'s is: the invariant grammar first, then
 /// the world (changes per session), then the message (changes per call).
 pub(super) fn prompt(task: &str, world: &super::world::World) -> String {
+    let skills = match world.skills.is_empty() {
+        true => "",
+        false => super::skillhint::GRAMMAR,
+    };
     let world = world.section();
     let max = crate::broker::roundloop::MAX_ROUNDS;
     format!(
@@ -101,7 +105,7 @@ pub(super) fn prompt(task: &str, world: &super::world::World) -> String {
          there is nothing to check. A last optional line `TIER: cheap` (swarm, \
          plan or goal) asks for the small fast model instead of the standard \
          one — say it for mechanical breadth (rename, list, collect, summarise) \
-         and omit it for anything needing judgement. Nothing else.\n\n\
+         and omit it for anything needing judgement.{skills} Nothing else.\n\n\
          {world}Message: {task}"
     )
 }

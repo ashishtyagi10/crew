@@ -606,17 +606,17 @@ pub(crate) fn relay_counting(
     if let Some(name) = dialed_target(&task_owned, &reg) {
         super::specialists::touch(&name);
     }
-    let (start, body) = split_target(&task_owned, &reg);
+    let (start, request) = split_target(&task_owned, &reg);
     // The thread's recent turns ride in front of the first hop's task — after
     // the split, so a leading `@name` still dials; `relay_turn` carries on.
-    let body = super::recall::ahead(session, &body);
+    let body = super::recall::ahead(session, &request);
     let tid = format!("t{}", THREAD_SEQ.fetch_add(1, Ordering::Relaxed));
     emit(msg(
         "agent smith",
         format!("starting with {start} — relaying until an agent says @done"),
     ))?;
     let broker = session.broker(reg);
-    let answer = relay_turn(&broker, &start, &body, &tid, tick_emit, emit)?;
+    let answer = relay_turn(&broker, &start, &body, &request, &tid, tick_emit, emit)?;
     let kept = answer.filter(|_| !session.cancelled()); // a stopped turn is no turn
     super::recall::record(&session.recall, task, kept.as_deref());
     super::thread::record(&session.thread, task, kept);

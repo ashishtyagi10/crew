@@ -61,6 +61,7 @@ fn turn(task: &str) -> (String, Vec<crate::PluginEvent>) {
         &broker,
         "claude",
         task,
+        task,
         "t1",
         &crate::broker::tick::noop_tick_emit(),
         &mut sink,

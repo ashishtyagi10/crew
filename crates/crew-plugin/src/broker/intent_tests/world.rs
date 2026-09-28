@@ -15,6 +15,7 @@ fn world(agents: &[&str], dirty: Option<usize>, tools: &[&str]) -> World {
         tools: tools.iter().map(|s| s.to_string()).collect(),
         recent: None,
         known: None,
+        skills: Vec::new(),
     }
 }
 
