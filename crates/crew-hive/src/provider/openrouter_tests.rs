@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use super::{attempt_chain, build_body, OpenRouterProvider};
-use crate::provider::openai_http::retry_delay;
+use crate::provider::retry::retry_delay;
 use crate::provider::{Chunk, ChunkFn, CompletionRequest, Provider, ProviderError};
 
 #[test]
