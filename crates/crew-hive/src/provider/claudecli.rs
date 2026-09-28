@@ -130,6 +130,7 @@ fn finish(fold: Fold, stderr: &str) -> Result<Completion, ProviderError> {
         calls: Vec::new(),
         thought: fold.thought,
         truncated: usage.truncated,
+        ..Default::default()
     })
 }
 

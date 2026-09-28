@@ -274,7 +274,7 @@ fn collecting_chunks() -> (ChunkFn, Seen) {
 /// Read one full HTTP/1.1 request (headers + `Content-Length` body) off a
 /// freshly accepted socket, for a test server that needs to inspect what the
 /// client actually sent (e.g. whether a retry dropped `stream_options`).
-async fn read_request(sock: &mut tokio::net::TcpStream) -> Vec<u8> {
+pub(super) async fn read_request(sock: &mut tokio::net::TcpStream) -> Vec<u8> {
     use tokio::io::AsyncReadExt;
     let mut buf = Vec::new();
     let mut chunk = [0u8; 4096];

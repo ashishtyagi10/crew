@@ -85,3 +85,24 @@ async fn a_factory_pinned_to_haiku_bills_its_agents_at_haikus_rate_not_sonnets()
         "sonnet"
     );
 }
+
+/// The router on DashScope's cheap tier: qwen-flash was unlisted, so it
+/// billed at the Cheap tier's Haiku — $1/$5 per M against $0.05/$0.4, 20×
+/// on the input that is nearly all of a router call.
+#[test]
+fn the_router_on_qwen_flash_bills_at_qwen_flash_not_haiku() {
+    let got = billed("qwen-flash", ModelTier::Cheap, &reply(10_000, 100));
+    assert_eq!(got, 500 + 40, "qwen-flash: 10k × $0.05 + 100 × $0.4 per M");
+    assert_eq!(
+        cost_microusd(ModelTier::Cheap.model_id(), 10_000, 100),
+        10_500
+    );
+}
+
+/// A free NVIDIA key's call reads $0, not the tier's guess.
+#[test]
+fn a_free_nim_call_bills_nothing() {
+    let c = reply(10_000, 1_000);
+    let nim = "nvidia/nemotron-3.5-lightning-30b-a3b";
+    assert_eq!(billed(nim, ModelTier::Standard, &c), 0);
+}

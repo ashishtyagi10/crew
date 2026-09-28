@@ -856,6 +856,7 @@ impl crew_hive::Provider for NativeProvider {
                     }]
                 },
                 thought: String::new(),
+                ..Default::default()
             })
         })
     }

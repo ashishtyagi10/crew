@@ -11,7 +11,7 @@ use super::status::settle;
 use super::thinktags::{Piece, ThinkTags};
 use super::utf8carry::Utf8Carry;
 use super::wire::wire_error;
-use super::{stopreason, thinking, Chunk, ChunkFn, Completion, ProviderError};
+use super::{served, stopreason, thinking, Chunk, ChunkFn, Completion, ProviderError};
 
 /// One model's request with transient-error retry (see [`super::retry`]).
 ///
@@ -237,7 +237,10 @@ async fn consume_sse(
     Ok(SseOutcome::Completion(Completion {
         text: st.text,
         thought: st.thought.trim().to_string(),
+        model: st.model,
         input_tokens,
+        cached_input_tokens: st.cached.0,
+        cache_write_tokens: st.cached.1,
         output_tokens,
         cost_microusd,
         calls: st.calls.finish(),
@@ -254,6 +257,10 @@ struct SseState {
     tags: ThinkTags,
     calls: CallAsm,
     usage: Option<(u64, u64, u64)>,
+    /// `(read, written)` prompt-cache tokens, and the answering model, both
+    /// off the usage frame.
+    cached: (u32, u32),
+    model: String,
     /// The last `finish_reason` said the token ceiling ended it.
     truncated: bool,
     /// Any Done/Delta/Thought/Calls/Usage frame ever seen — distinguishes a
@@ -308,6 +315,8 @@ fn apply_sse_line(
             SseItem::Thought(s) => st.route(Piece::Thought(s), on_chunk, started),
             SseItem::Calls(fs) => fs.into_iter().for_each(|f| st.calls.push(f)),
             SseItem::Usage(i, o, cost) => st.usage = Some((i, o, cost)),
+            SseItem::Cached(read, written) => st.cached = (read, written),
+            SseItem::Model(m) => st.model = m,
             SseItem::Stop(why) => st.truncated = stopreason::openai(Some(&why)),
             SseItem::Done => done = true,
         }
@@ -364,6 +373,11 @@ pub(crate) enum SseItem {
     /// wins, and only `"length"` matters (`stopreason`).
     Stop(String),
     Usage(u64, u64, u64),
+    /// `(read, written)` prompt-cache tokens on the usage frame
+    /// (`served::openai_cache`), when there were any.
+    Cached(u32, u32),
+    /// The model the usage frame names — the one that answered.
+    Model(String),
     Done,
 }
 
@@ -426,6 +440,14 @@ pub(crate) fn parse_sse_frame(line: &str) -> Vec<SseItem> {
         let cost = (u["cost"].as_f64().unwrap_or(0.0) * 1_000_000.0) as u64;
         if i > 0 || o > 0 {
             out.push(SseItem::Usage(i, o, cost));
+            let (read, written) = served::openai_cache(&u["prompt_tokens_details"]);
+            if read > 0 || written > 0 {
+                out.push(SseItem::Cached(read, written));
+            }
+            let model = served::model_of(&v);
+            if !model.is_empty() {
+                out.push(SseItem::Model(model));
+            }
         }
     }
     out
@@ -488,6 +510,10 @@ struct Usage {
     /// so an explicit `"cost": null` decodes instead of failing the parse.
     #[serde(default)]
     cost: Option<f64>,
+    /// `cached_tokens` and friends (`served::openai_cache`), read loosely:
+    /// its shape varies by host and a surprise in it must not fail the parse.
+    #[serde(default)]
+    prompt_tokens_details: serde_json::Value,
 }
 
 #[derive(Deserialize)]
@@ -495,6 +521,9 @@ struct ApiResp {
     #[serde(default)]
     choices: Vec<Choice>,
     usage: Option<Usage>,
+    /// The model that answered (`served`); `Option` for an explicit null.
+    #[serde(default)]
+    model: Option<String>,
     #[serde(default)]
     error: Option<serde_json::Value>,
 }
@@ -533,10 +562,15 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
     let usage = r
         .usage
         .ok_or_else(|| ProviderError::Decode("missing usage".into()))?;
+    let (cached_input_tokens, cache_write_tokens) =
+        served::openai_cache(&usage.prompt_tokens_details);
     Ok(Completion {
         text,
         thought: thought.trim().to_string(),
+        model: r.model.unwrap_or_default().trim().to_string(),
         input_tokens: usage.prompt_tokens,
+        cached_input_tokens,
+        cache_write_tokens,
         output_tokens: usage.completion_tokens,
         cost_microusd: (usage.cost.unwrap_or(0.0) * 1_000_000.0) as u64,
         calls,

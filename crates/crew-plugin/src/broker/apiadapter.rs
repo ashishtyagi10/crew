@@ -141,11 +141,7 @@ impl Adapter for ApiAdapter {
                     cost_microusd: if c.cost_microusd > 0 {
                         c.cost_microusd
                     } else {
-                        crew_hive::pricing::cost_microusd(
-                            &self.model,
-                            c.input_tokens,
-                            c.output_tokens,
-                        )
+                        crew_hive::pricing::estimate(&self.model, &c).unwrap_or(0)
                     },
                 },
             )),
@@ -223,11 +219,7 @@ impl Adapter for ApiAdapter {
                     cost_microusd: if c.cost_microusd > 0 {
                         c.cost_microusd
                     } else {
-                        crew_hive::pricing::cost_microusd(
-                            &self.model,
-                            c.input_tokens,
-                            c.output_tokens,
-                        )
+                        crew_hive::pricing::estimate(&self.model, &c).unwrap_or(0)
                     },
                 },
             )),

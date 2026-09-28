@@ -13,19 +13,19 @@
 use crate::graph::ModelTier;
 use crate::provider::Completion;
 
-/// Micro-USD for `c`, answered by `model_id` on a task the planner put at
-/// `tier`. One price list (`crate::pricing`) answers for both: the model
-/// that answered when it is listed, else the tier's own default model — so
-/// the estimate for an unlisted id is the tier's price, never zero.
+/// Micro-USD for `c`, asked of `model_id` on a task the planner put at
+/// `tier`. One price list (`crate::pricing`) answers for all three: the
+/// model that ANSWERED (`Completion::model` — a fallback chain's second
+/// model, when the first 404ed) when it is listed, else the one asked for,
+/// else the tier's own default model — so the estimate for an unlisted id
+/// is the tier's price, never zero. Cached prompt tokens are billed at the
+/// cached rate (`pricing::usage_cost`).
 pub(crate) fn billed(model_id: &str, tier: ModelTier, c: &Completion) -> u64 {
     if c.cost_microusd > 0 {
         return c.cost_microusd;
     }
-    let priced = match crate::pricing::rate(model_id) {
-        Some(_) => model_id,
-        None => tier.model_id(),
-    };
-    crate::pricing::cost_microusd(priced, c.input_tokens, c.output_tokens)
+    crate::pricing::estimate(model_id, c)
+        .unwrap_or_else(|| crate::pricing::usage_cost(tier.model_id(), c))
 }
 
 #[cfg(test)]
