@@ -2,6 +2,7 @@
 //! names what failed, and is never judged; a run where nothing finished keeps
 //! the status line alone. Stub workers; a failing one says "stub failure".
 use super::super::swarmanswer::SynthFn;
+use super::super::swarmstream::AnswerFn;
 use super::super::swarmverify::{Judge, Verify};
 use super::super::SWARM_LEAD;
 use super::*;
@@ -51,8 +52,8 @@ pub(super) fn three() -> Vec<TaskSpec> {
     ])
 }
 
-/// A call (closing answer or judge) that keeps every brief and answers `reply`.
-fn recording(reply: &'static str) -> (Arc<Mutex<Vec<String>>>, Box<SynthFn>) {
+/// A judge that keeps every brief and answers `reply`.
+fn judging(reply: &'static str) -> (Arc<Mutex<Vec<String>>>, Box<SynthFn>) {
     let seen = Arc::new(Mutex::new(Vec::new()));
     let log = Arc::clone(&seen);
     let call = move |p: &str| {
@@ -62,12 +63,19 @@ fn recording(reply: &'static str) -> (Arc<Mutex<Vec<String>>>, Box<SynthFn>) {
     (seen, Box::new(call))
 }
 
+/// The same as a closing answer, which streams nothing.
+fn recording(reply: &'static str) -> (Arc<Mutex<Vec<String>>>, Box<AnswerFn>) {
+    let (seen, judge) = judging(reply);
+    let call = move |p: &str, _: &mut dyn FnMut(crew_hive::Chunk<'_>)| judge(p);
+    (seen, Box::new(call))
+}
+
 /// Run `specs` with the tasks in `fail` failing: the events, and the turn the
 /// run hands the thread.
 fn run(
     specs: Vec<TaskSpec>,
     fail: &[u64],
-    synth: Option<&SynthFn>,
+    synth: Option<&AnswerFn>,
     verify: Verify<'_>,
 ) -> (Vec<PluginEvent>, Option<String>) {
     let _env = testenv::mock("unused");
@@ -154,7 +162,7 @@ fn a_partial_run_answers_even_when_what_finished_ends_in_one_sink() {
 #[test]
 fn a_partial_run_is_never_judged_and_never_sent_back() {
     let (_, call) = recording("Fixed; the tests could not be run.");
-    let (verdicts, judge) = recording("NOT MET: the tests did not run");
+    let (verdicts, judge) = judging("NOT MET: the tests did not run");
     let (evs, _) = run(three(), &[2], Some(&*call), Some(Judge::new(&*judge)));
     let judged = verdicts.lock().unwrap().len();
     assert_eq!(judged, 0, "no judge call on a partial run");

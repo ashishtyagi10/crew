@@ -246,3 +246,55 @@ fn the_revision_allowance_is_the_named_cap() {
     }
     assert_eq!(passes, REVISION_CAP as usize, "judged passes equal the cap");
 }
+
+#[test]
+fn the_judge_after_a_streamed_answer_streams_nothing() {
+    let _env = testenv::mock("unused");
+    // The answer types itself out in two pieces (`swarmstream`); the verdict
+    // is one line of chrome and lands whole.
+    let answer = |_: &str, sink: &mut dyn FnMut(crew_hive::Chunk<'_>)| {
+        sink(crew_hive::Chunk::Text("Both "));
+        sink(crew_hive::Chunk::Text("agree."));
+        Ok::<String, String>("Both agree.".into())
+    };
+    let (_, call) = judge(Ok("MET: fine"));
+    let mut evs = Vec::new();
+    super::super::run_with_synth(
+        "make the tests pass",
+        Arc::new(Counting(Arc::default())),
+        Arc::new(StubFactory),
+        None,
+        "",
+        Arc::new(AtomicBool::new(false)),
+        None,
+        Some(&answer),
+        Some(Judge::new(&*call)),
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
+    .unwrap();
+    // The lead's live pieces and settled lines, in the order they went out.
+    let lead: Vec<String> = evs
+        .iter()
+        .filter_map(|e| match e {
+            PluginEvent::Delta { agent, text, .. } if agent == SWARM_LEAD => {
+                Some(format!("delta: {text}"))
+            }
+            PluginEvent::Thought { agent, text } if agent == SWARM_LEAD => {
+                Some(format!("thought: {text}"))
+            }
+            _ => smith_lines(std::slice::from_ref(e)).pop(),
+        })
+        .collect();
+    assert_eq!(
+        lead,
+        [
+            "delta: Both ",
+            "delta: agree.",
+            "Both agree.",
+            "verified \u{2014} fine"
+        ]
+    );
+}

@@ -329,6 +329,8 @@ mod swarmanswer;
 mod swarmcast;
 #[path = "swarmgap.rs"]
 mod swarmgap;
+#[path = "swarmstream.rs"]
+mod swarmstream;
 #[path = "swarmtally.rs"]
 mod swarmtally;
 #[path = "swarmturn.rs"]

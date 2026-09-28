@@ -22,7 +22,7 @@ pub(super) const CLASSIFY_TIMEOUT: Duration = Duration::from_secs(12);
 /// around the work, but not the router's 12 s: the summarizer and the closing
 /// answer write paragraphs, and a bound sized for five short lines would
 /// fail them on an ordinary day.
-pub(super) const ONESHOT_TIMEOUT: Duration = Duration::from_secs(30);
+pub(crate) const ONESHOT_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// The router's own call: the grammar's output ceiling on the cheap tier,
 /// under [`CLASSIFY_TIMEOUT`]. `pub(super)` so the tighter bound stays the
@@ -54,23 +54,29 @@ pub(crate) fn live_call(max_tokens: u32) -> Option<impl Fn(&str) -> Result<Strin
 
 /// [`live_call`] on a stated tier. The quick decisions — a shape, a skill, a
 /// tool, a summary — are `Cheap`; a call whose output IS the work the user
-/// reads (the swarm's closing answer, a judge's verdict) is `Standard`, since
-/// on DashScope `Cheap` became a smaller model (`discover::DASHSCOPE_CHEAP_MODEL`).
+/// reads (a judge's verdict; the swarm's closing answer, which streams
+/// through [`live_provider_at`]) is `Standard`, since on DashScope `Cheap`
+/// became a smaller model (`discover::DASHSCOPE_CHEAP_MODEL`).
 pub(crate) fn live_call_at(
     max_tokens: u32,
     tier: crew_hive::ModelTier,
 ) -> Option<impl Fn(&str) -> Result<String, String>> {
-    let call = live_completion_at(max_tokens, tier)?;
+    let call = live_bounded(max_tokens, tier, ONESHOT_TIMEOUT)?;
     Some(move |p: &str| call(p).map(|c| c.text))
 }
 
-/// [`live_call_at`], keeping the whole reply — for a caller that has to know
-/// whether the ceiling cut it (the swarm's closing answer says so).
-pub(crate) fn live_completion_at(
-    max_tokens: u32,
+/// The provider and model a one-shot on `tier` would run on, when one may
+/// run — the gates below, without the call. The swarm's closing answer makes
+/// its own call on them, streamed (`swarmstream`), where every call here
+/// blocks until the whole reply is in.
+pub(crate) fn live_provider_at(
     tier: crew_hive::ModelTier,
-) -> Option<impl Fn(&str) -> Result<crew_hive::Completion, String>> {
-    live_bounded(max_tokens, tier, ONESHOT_TIMEOUT)
+) -> Option<(Arc<dyn crew_hive::Provider>, String)> {
+    if super::disabled() {
+        return None;
+    }
+    let (provider, model) = crate::broker::discover::provider_and_model_for(tier)?;
+    (model != "mock").then_some((provider, model))
 }
 
 /// Every call here, with its round-trip bound stated: the gates live once,
@@ -80,13 +86,7 @@ fn live_bounded(
     tier: crew_hive::ModelTier,
     timeout: Duration,
 ) -> Option<impl Fn(&str) -> Result<crew_hive::Completion, String>> {
-    if super::disabled() {
-        return None;
-    }
-    let (provider, model) = crate::broker::discover::provider_and_model_for(tier)?;
-    if model == "mock" {
-        return None;
-    }
+    let (provider, model) = live_provider_at(tier)?;
     Some(move |p: &str| complete_once(&provider, &model, p, max_tokens, timeout))
 }
 

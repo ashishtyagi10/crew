@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use crew_hive::agent::{FailingFactory, StubFactory};
 use crew_hive::{
-    AgentFactory, AgentKind, ModelTier, PlanError, Planner, StubPlanner, TaskGraph, TaskId,
+    AgentFactory, AgentKind, Chunk, ModelTier, PlanError, Planner, StubPlanner, TaskGraph, TaskId,
     TaskSpec,
 };
 
@@ -52,12 +52,15 @@ fn diamond() -> Arc<dyn Planner> {
     ]))
 }
 
+/// The closing call's shape (`swarmstream::AnswerFn`, private to the swarm).
+type Answer = dyn Fn(&str, &mut dyn FnMut(Chunk<'_>)) -> Result<String, String>;
+
 /// The injectable core, events discarded; what it returns is the turn.
 fn swarm(
     planner: Arc<dyn Planner>,
     factory: Arc<dyn AgentFactory>,
     cancelled: bool,
-    synth: Option<&(dyn Fn(&str) -> Result<String, String> + 'static)>,
+    synth: Option<&Answer>,
 ) -> Option<String> {
     run_with_synth(
         "compare the two",
@@ -98,7 +101,8 @@ fn a_failed_or_cancelled_swarm_returns_no_answer_and_records_no_turn() {
 fn a_clean_swarm_with_a_closing_answer_records_that_answer() {
     let _env = testenv::mock("unused");
     let session = Session::new();
-    let call = |_: &str| Ok::<String, String>("Both agree: X.".into());
+    let call =
+        |_: &str, _: &mut dyn FnMut(Chunk<'_>)| Ok::<String, String>("Both agree: X.".into());
     let reply = swarm(diamond(), Arc::new(StubFactory), false, Some(&call));
     assert_eq!(reply.as_deref(), Some("Both agree: X."));
     record(&session.thread, "compare the two", reply);

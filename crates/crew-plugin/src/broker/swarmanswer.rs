@@ -9,24 +9,26 @@
 //!
 //! So: after a run of two or more tasks whose graph does not already end in
 //! one sink, or any run where a task failed (`swarmgap`), ONE bounded call on
-//! the same plumbing as routing (`intent::live_call` — cheap tier, 30 s,
-//! `None` under keyless/mock/`CREW_INTENT=0`) writes the answer from the
-//! workers' outputs, and it lands as agent smith's message after the per-task
-//! replies. Keyless and mock runs make no call and emit no line, so their
-//! event stream is byte-identical to before; a call that fails is one quiet
-//! line, never a failed run. A child of `swarm`, so `broker` items are
-//! reached through `crate::broker::`.
+//! routing's gates (`intent::live_provider_at` — 30 s, `None` under
+//! keyless/mock/`CREW_INTENT=0`) writes the answer from the workers' outputs,
+//! typing into the pane as it goes (`swarmstream`), and it lands as agent
+//! smith's message after the per-task replies. Keyless and mock runs make no
+//! call and emit no line, so their event stream is byte-identical to before;
+//! a call that fails is one quiet line, never a failed run. A child of
+//! `swarm`, so `broker` items are reached through `crate::broker::`.
 use crew_hive::{RunOutcome, TaskGraph, TaskId, TaskResult};
 
 use super::swarmgap::Gap;
+use super::swarmstream::{self, AnswerFn};
 use super::SWARM_LEAD;
 use crate::broker::relay::msg;
 use crate::protocol::PluginEvent;
 
-/// A bounded one-shot the closing call may use.
+/// A bounded one-shot that answers all at once — the judge's (`swarmverify`).
 pub(crate) type SynthFn = dyn Fn(&str) -> Result<String, String>;
-/// The call, or `None` when none may run (keyless, mock, `CREW_INTENT=0`).
-pub(crate) type Synth<'a> = Option<&'a SynthFn>;
+/// The closing call (`swarmstream`), or `None` when none may run (keyless,
+/// mock, `CREW_INTENT=0`).
+pub(crate) type Synth<'a> = Option<&'a AnswerFn>;
 
 /// Output ceiling for the answer: a few paragraphs, not a report — the
 /// workers' replies are still in the pane above it for the long form. 768
@@ -53,16 +55,11 @@ const ERR_MAX: usize = 120;
 const ANSWER_SENDER: &str = "answer";
 
 /// The live closing call, on routing's gates: `None` keyless, mock, or off.
-pub(super) fn live() -> Option<Box<SynthFn>> {
+pub(super) fn live() -> Option<Box<AnswerFn>> {
     // The answer the user reads: the standard model, not the router's.
-    let call = crate::broker::intent::live_completion_at(
-        SYNTH_MAX_TOKENS,
-        crew_hive::ModelTier::Standard,
-    )?;
-    let boxed: Box<SynthFn> = Box::new(move |p: &str| {
-        call(p).map(|c| crate::broker::cutoff::marked(&c.text, c.truncated))
-    });
-    Some(boxed)
+    let tier = crew_hive::ModelTier::Standard;
+    let (provider, model) = crate::broker::intent::live_provider_at(tier)?;
+    Some(swarmstream::over(provider, model, SYNTH_MAX_TOKENS))
 }
 
 /// Whether the run needs the lead's answer: two or more tasks finished and
@@ -144,7 +141,7 @@ pub(super) fn combine(
     };
     let parts = parts(graph, results.iter());
     emit(activity("thinking", "user"))?;
-    let reply = call(&(prompt(goal, &parts) + &gap.brief()));
+    let reply = swarmstream::said(call, &(prompt(goal, &parts) + &gap.brief()), emit)?;
     let answer = match &reply {
         Ok(t) if !t.trim().is_empty() => Some(t.trim().to_owned()),
         _ => None,
