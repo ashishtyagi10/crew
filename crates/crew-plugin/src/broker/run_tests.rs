@@ -77,3 +77,30 @@ fn run_cli_times_out_on_hang() {
     let r = run_cli("sh", &args, Duration::from_millis(150));
     assert!(r.unwrap_err().contains("timed out"));
 }
+
+/// opencode reads its project from `$PWD`. A broker whose host left `PWD`
+/// behind (the app does: it sets the broker's directory, not the variable)
+/// sent opencode into the wrong project, where it refused to read the real
+/// one and stopped after a single step.
+#[test]
+fn an_agent_is_told_the_directory_it_really_runs_in() {
+    let cmd = agent_command("opencode");
+    let pwd = cmd
+        .get_envs()
+        .find(|(k, _)| *k == "PWD")
+        .and_then(|(_, v)| v);
+    let here = std::env::current_dir().unwrap();
+    assert_eq!(pwd, Some(here.as_os_str()), "PWD not set to the real cwd");
+}
+
+/// The same, through a real child that prints `PWD` without a shell in
+/// between (a shell would repair it and hide the bug). Under `cargo test`
+/// the process runs in the crate's directory while `PWD` still names the
+/// directory cargo was called from, so without the fix these differ.
+#[cfg(unix)]
+#[test]
+fn a_real_child_sees_the_real_directory_as_pwd() {
+    let out = run_cli("printenv", &["PWD".into()], Duration::from_secs(5)).unwrap();
+    let here = std::env::current_dir().unwrap();
+    assert_eq!(out.trim(), here.to_str().unwrap(), "child PWD is stale");
+}

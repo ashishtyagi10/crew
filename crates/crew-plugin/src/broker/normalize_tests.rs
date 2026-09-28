@@ -45,3 +45,13 @@ fn error_falls_back_to_name() {
 fn empty_or_unparseable_returns_trimmed_raw() {
     assert_eq!(opencode_json("  not json  "), "not json");
 }
+
+/// Events with nothing to say are still events: the raw stream is the reply
+/// only when none of it parsed as one.
+#[test]
+fn events_with_no_text_are_told_not_pasted() {
+    assert_eq!(
+        opencode_json(r#"{"type":"step","timestamp":1}"#),
+        "opencode ended without answering"
+    );
+}

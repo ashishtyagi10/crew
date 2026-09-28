@@ -38,7 +38,7 @@ fn is_exec(p: &Path) -> bool {
 /// CLI banners never leak into a reply). Returns `Err` if the process can't be
 /// spawned or doesn't finish within `timeout` (in which case it is killed).
 pub fn run_cli(program: &str, args: &[String], timeout: Duration) -> Result<String, String> {
-    let mut child = no_console_window(&mut Command::new(program))
+    let mut child = agent_command(program)
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -107,6 +107,25 @@ pub fn run_cli(program: &str, args: &[String], timeout: Duration) -> Result<Stri
             }
         }
     }
+}
+
+/// The command an agent CLI is started with, with `PWD` set to where it
+/// really runs.
+///
+/// opencode takes its project from `$PWD`, not from the directory it was
+/// started in, and a broker's `PWD` is its host's: the app starts each
+/// broker in the pane's directory and leaves `PWD` as it was. opencode then
+/// took the pane's own project for somebody else's directory, asked leave
+/// to read a file in it, and `opencode run` — which has no one to ask —
+/// refused itself and stopped after one step. A shell repairs a stale `PWD`
+/// on startup, which is why the same command typed by hand always worked.
+fn agent_command(program: &str) -> Command {
+    let mut cmd = Command::new(program);
+    no_console_window(&mut cmd);
+    if let Ok(dir) = std::env::current_dir() {
+        cmd.env("PWD", dir);
+    }
+    cmd
 }
 
 /// Why a CLI agent produced nothing, in words the user can act on.

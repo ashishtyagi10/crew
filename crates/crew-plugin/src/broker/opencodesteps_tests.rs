@@ -6,6 +6,10 @@ use super::super::normalize::opencode_json;
 const THEME: &str = include_str!("testdata/opencode_theme.jsonl");
 const SYSTOOL: &str = include_str!("testdata/opencode_systool.jsonl");
 const TASKCAP: &str = include_str!("testdata/opencode_taskcap.jsonl");
+/// A run that ended on its first tool call: the broker handed opencode a
+/// stale `PWD`, so reading the project's own file was refused and the
+/// stream is step, refused `read`, finish — no text anywhere.
+const REFUSED: &str = include_str!("testdata/opencode_refused.jsonl");
 
 const START: &str = r#"{"type":"step_start","part":{"type":"step-start"}}"#;
 const CALLS: &str = r#"{"type":"step_finish","part":{"type":"step-finish","reason":"tool-calls"}}"#;
@@ -123,5 +127,27 @@ fn real_stream_of_tool_steps_with_no_narration_answers_with_the_stop_step() {
         opencode_json(TASKCAP),
         "crates/crew-plugin/src/broker/toolchoice.rs, crates/crew-plugin/src/broker/route.rs, \
          crates/crew-plugin/src/broker/skillgrammar.rs (module-local consts, not a single definition)"
+    );
+}
+
+#[test]
+fn a_real_stream_that_never_answers_says_so_in_one_line() {
+    assert_eq!(REFUSED.lines().count(), 3, "fixture lost an event");
+    let reply = opencode_json(REFUSED);
+    assert!(!reply.contains(r#"{"type""#), "raw stream leaked: {reply}");
+    assert_eq!(
+        reply,
+        "opencode stopped after 1 step without answering (it ran: read; read failed)"
+    );
+}
+
+#[test]
+fn a_silent_stream_counts_its_steps_and_names_each_tool_once() {
+    let bash = r#"{"type":"tool_use","part":{"type":"tool","tool":"bash","state":{"status":"completed"}}}"#;
+    let read = r#"{"type":"tool_use","part":{"type":"tool","tool":"read","state":{"status":"completed"}}}"#;
+    let raw = stream(&[START, bash, CALLS, START, read, CALLS, START, bash]);
+    assert_eq!(
+        opencode_json(&raw),
+        "opencode stopped after 3 steps without answering (it ran: bash, read)"
     );
 }

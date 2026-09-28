@@ -5,13 +5,15 @@
 //! lines; [`opencode_json`] pulls the assistant text out and surfaces errors.
 use serde_json::Value;
 
-use super::opencodesteps::{final_step_text, has_steps};
+use super::opencodesteps::{final_step_text, has_steps, silent_summary};
 
 /// Extract the assistant's reply from opencode's `--format json` event stream.
 /// Non-JSON noise lines (opencode logs a few to stdout) are ignored. A stream
 /// in steps answers with its final step only (see [`super::opencodesteps`]).
 /// If the stream carries only error events, their messages are returned so the
-/// broker logs a clean explanation instead of silence.
+/// broker logs a clean explanation instead of silence. Events with neither
+/// text nor an error are told in one line; the raw stdout is the reply only
+/// when none of it was an event.
 pub fn opencode_json(raw: &str) -> String {
     let events: Vec<Value> = raw
         .lines()
@@ -32,7 +34,7 @@ pub fn opencode_json(raw: &str) -> String {
     if !errors.is_empty() {
         return format!("[opencode error] {}", errors.join("; "));
     }
-    raw.trim().to_string()
+    silent_summary(&events).unwrap_or_else(|| raw.trim().to_string())
 }
 
 /// The pre-step reading: every string under a `"text"` key, joined. Kept for
