@@ -10,13 +10,16 @@
 #[path = "native_tests.rs"]
 mod tests;
 
+#[path = "batch.rs"]
+mod batch;
+
 use std::sync::Arc;
 
 use crate::agent::{AgentContext, Attempt};
 use crate::board::TaskResult;
 use crate::bus::HiveEvent;
 use crate::provider::{CompletionRequest, Provider, ToolInvocation, ToolOutcome, Turn};
-use crate::tools::{seen::Seen, ToolCall, ToolCatalog, Tools};
+use crate::tools::{seen::Seen, ToolCatalog, Tools};
 
 /// Most tools one turn may fire, however many the model asked for.
 ///
@@ -156,93 +159,7 @@ pub(super) async fn run(
             .into();
         }
 
-        let mut results = Vec::with_capacity(completion.calls.len());
-        for (i, call) in completion.calls.iter().enumerate() {
-            // EVERY call gets a result, including the ones refused for being
-            // over the per-turn bound: providers reject a follow-up whose
-            // tool_call ids are not all answered, so skipping one would fail
-            // the next request rather than the call.
-            if i >= MAX_CALLS_PER_TURN {
-                let content =
-                    format!("not run \u{2014} at most {MAX_CALLS_PER_TURN} tools per turn");
-                // The person watching gets the refusal too: with no `ToolCall`
-                // for a dropped call, this result is the ONLY trace the pane
-                // ever sees of it (it lands as a failed line, `chattool`).
-                ctx.bus.publish(HiveEvent::ToolResult {
-                    agent: agent_id.clone(),
-                    label: label_of(call, &catalog),
-                    ok: false,
-                    text: content.clone(),
-                    ms: 0,
-                });
-                results.push(ToolOutcome {
-                    id: call.id.clone(),
-                    name: call.name.clone(),
-                    content,
-                    is_error: true,
-                });
-                continue;
-            }
-            let Some((server, tool)) = catalog.resolve(&call.name) else {
-                let o = outcome_for_unknown(call, &catalog);
-                ctx.bus.publish(HiveEvent::ToolResult {
-                    agent: agent_id.clone(),
-                    label: call.name.clone(),
-                    ok: false,
-                    text: o.content.clone(),
-                    ms: 0,
-                });
-                results.push(o);
-                continue;
-            };
-            let label = format!("{server}:{tool}");
-            let asked = ToolCall {
-                server: server.to_string(),
-                tool: tool.to_string(),
-                args: call.input.to_string(),
-            };
-            ctx.bus.publish(HiveEvent::ToolCall {
-                agent: agent_id.clone(),
-                label: label.clone(),
-                args: asked.args.clone(),
-            });
-            let (ok, text, ms) = match seen.check(&asked) {
-                Some(first) => (true, Seen::pointer(first), 0),
-                None => {
-                    // Off the runtime thread — see the note in `ApiAgent::attempt`;
-                    // the scheduler's agents and its bus drain share one thread.
-                    let runner = Arc::clone(&tools);
-                    let a = asked.clone();
-                    let started = std::time::Instant::now();
-                    let called = tokio::task::spawn_blocking(move || {
-                        runner.call(&a.server, &a.tool, &a.args)
-                    })
-                    .await
-                    .unwrap_or_else(|e| Err(format!("tool task failed: {e}")));
-                    let ms = started.elapsed().as_millis() as u64;
-                    let (ok, text) = match called {
-                        Ok(v) if v.trim().is_empty() => (true, "(empty result)".to_string()),
-                        Ok(v) => (!tools.failed(server, tool, &v), v),
-                        Err(e) => (false, e),
-                    };
-                    seen.ran(tools.as_ref(), &asked, round + 1, ok);
-                    (ok, text, ms)
-                }
-            };
-            ctx.bus.publish(HiveEvent::ToolResult {
-                agent: agent_id.clone(),
-                label,
-                ok,
-                text: text.clone(),
-                ms,
-            });
-            results.push(ToolOutcome {
-                id: call.id.clone(),
-                name: call.name.clone(),
-                content: super::toolloop::clip(&text, super::toolloop::RESULT_CAP),
-                is_error: !ok,
-            });
-        }
+        let results = batch::run(&ctx, &tools, &catalog, &mut seen, &completion.calls, round).await;
 
         turns.push(Turn::Assistant {
             text: completion.text,

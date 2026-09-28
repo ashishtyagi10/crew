@@ -1,15 +1,16 @@
 //! Mid-relay tool calls. When a [`ToolRunner`] is attached, every agent's
 //! task advertises the available tools; an agent calls one by ending its
-//! reply with `@tool <server>:<tool> {"arg": …}`. The engine executes the
-//! call and re-dials the same agent with the result — up to
-//! [`MAX_TOOL_ROUNDS`] times per hop — before routing resumes. Every call
-//! and result is logged as a hop, so tool use is visible in the pane.
+//! reply with `@tool <server>:<tool> {"arg": …}`, or several reads on
+//! consecutive last lines (`toolbatch`). The engine executes the calls and
+//! re-dials the same agent with the results — up to [`MAX_TOOL_ROUNDS`]
+//! calls per hop — before routing resumes. Every call and result is logged
+//! as a hop, so tool use is visible in the pane.
 use std::sync::Arc;
 
 use super::adapter::{Adapter, HopStream, Usage};
 use super::hop::{back, Hop, HopKind, RunStats};
 use super::route::clip;
-use super::toolclip::clip_result;
+use super::toolbatch::{call_card, refusal, result_card, Ran, PER_REPLY};
 use super::{Broker, Envelope};
 use crate::mcp::McpTool;
 
@@ -30,8 +31,9 @@ pub use crew_hive::tools::Tools as ToolRunner;
 /// most real output off mid-word.
 pub(crate) const RESULT_CLIP: usize = 4_000;
 
-/// Most tool rounds one agent may take within a single hop. Shared with the
-/// swarm so both engines stop at the same number.
+/// Most tool calls one agent may make within a single hop, each call of a
+/// batch counted. Shared with the swarm so both engines stop at the same
+/// number.
 pub(crate) use crew_hive::tools::MAX_TOOL_ROUNDS;
 
 /// The TOOLS prompt section for `tools` (empty when there are none).
@@ -56,7 +58,8 @@ pub(crate) fn hint_for(tools: &[McpTool]) -> String {
     format!(
         "TOOLS: to call one, make the FINAL line of your reply exactly\n\
          `@tool <server>:<tool> {{\"arg\": \u{2026}}}` (JSON arguments) \u{2014} the \
-         result is sent back to you before you answer.\n\
+         result is sent back to you before you answer. Several reads may go on \
+         consecutive last lines, one call per line, and run together.\n\
          LOOK FIRST: when the task is about this project \u{2014} its code, files, \
          build or behaviour \u{2014} find the relevant files (sys:grep, sys:glob) and \
          read them before you answer. Never describe code you have not read, and \
@@ -74,8 +77,8 @@ pub(crate) fn hint(body: &str, tools: Option<&dyn ToolRunner>) -> String {
 
 /// The parser, shared with the swarm for the same reason the trait is: one
 /// spelling of `@tool`, or an agent that works on one engine and not the other.
-/// The split form, because the relay needs the text around a call as well.
-pub(crate) use crew_hive::tools::split_tool_call;
+/// The split form, because the relay needs the text around the calls as well.
+pub(crate) use crew_hive::tools::split_tool_calls;
 
 impl Broker {
     /// Let agents call tools mid-relay through `runner`.
@@ -134,51 +137,41 @@ impl Broker {
         let mut exchanges = crew_hive::tools::exchanges::Exchanges::default();
         // The reads this turn has made, so a repeat is not run again.
         let mut seen = crew_hive::tools::seen::Seen::default();
-        let max_rounds = self.tool_rounds;
-        for round in 0..max_rounds {
-            let Some((said, call)) = split_tool_call(&reply) else {
+        let max_calls = self.tool_rounds;
+        let mut used: u32 = 0;
+        let before = loop {
+            let Some((said, calls)) = split_tool_calls(&reply) else {
                 return reply;
             };
-            let label = format!("{}:{}", call.server, call.tool);
-            sink(Hop {
-                from: env.to.clone(),
-                to: label.clone(),
-                hop: env.hop,
-                kind: HopKind::Reply,
-                text: format!(
-                    "[tool] {}",
-                    super::toolline::call_line(&label, &call.args, 200)
-                ),
-                usage: Default::default(),
-            });
-            let started = std::time::Instant::now();
-            let (ok, text, repeat) =
-                super::toolround::run_once(runner, &mut seen, &exchanges, &call, round + 1);
-            stats.approx_tokens += text.len() / 4;
-            sink(Hop {
-                from: label.clone(),
-                to: env.to.clone(),
-                hop: env.hop,
-                kind: HopKind::Reply,
-                // The `[tool]` marker and the outcome line, exactly as the
-                // swarm builds them. Without the marker this card was not a
-                // tool card to the app at all: the CALL was styled quiet and
-                // folded, and its RESULT rendered beside it as a full,
-                // brightly-coloured agent reply. One action, two looks,
-                // depending on which engine ran it.
-                text: format!(
-                    "[tool] {}{}\n{}",
-                    super::toolline::result_line(&label, ok, started.elapsed().as_millis() as u64),
-                    super::toolline::same_as(repeat),
-                    clip_result(text.trim_end(), RESULT_CLIP)
-                ),
-                usage: Default::default(),
-            });
-            exchanges.push(super::toolround::exchange(&said, &label, &call.args, &text));
+            if used >= max_calls {
+                break said;
+            }
+            // Each call counts, so a batch runs only as far as the budget
+            // (and the per-reply cap) reaches; the rest are answered.
+            let fit = calls.len().min(PER_REPLY).min((max_calls - used) as usize);
+            for call in &calls[..fit] {
+                sink(call_card(env, call));
+            }
+            let mut ran = super::toolbatch::run(runner, &mut seen, &exchanges, &calls[..fit]);
+            let why = refusal(fit == (max_calls - used) as usize, max_calls);
+            ran.resize_with(calls.len(), || Ran::not_run(&why));
+            let mut round = Vec::with_capacity(calls.len());
+            for (k, (call, r)) in calls.iter().zip(&ran).enumerate() {
+                stats.approx_tokens += r.text.len() / 4;
+                sink(result_card(env, call, r));
+                // The message was written once, with the first call.
+                let said = if k == 0 { said.as_str() } else { "" };
+                let label = call.label();
+                round.push(super::toolround::exchange(
+                    said, &label, &call.args, &r.text,
+                ));
+            }
+            exchanges.push_round(round);
+            used += fit as u32;
             // The agent is TOLD what it has left. A budget it cannot see is
             // one it plans straight past, and then the turn ends mid-sequence
             // with a tool call nobody ran.
-            let left = max_rounds - round - 1;
+            let left = max_calls - used;
             let budget = if left == 0 {
                 "This was your LAST tool call this turn: answer with what you \
                  have now."
@@ -192,6 +185,7 @@ impl Broker {
                  with your routing line (`@next <agent>` or `@done`).",
                 exchanges.render()
             );
+            let label = calls[fit - 1].label();
             sink(Hop {
                 from: label,
                 to: env.to.clone(),
@@ -240,25 +234,21 @@ impl Broker {
                     return reply;
                 }
             }
-        }
-        // Falling out of the loop means the last reply asked for ANOTHER tool
-        // and the budget is gone. It used to be returned as-is: the pane
-        // showed an agent's unrun `@tool` line as its answer, with nothing
-        // anywhere saying why it stopped halfway through what it was doing.
-        // Now the note says why, and the answer is the text above the call.
-        if let Some((before, _)) = split_tool_call(&reply) {
-            sink(back(
-                env,
-                HopKind::Terminated,
-                format!(
-                    "tool budget spent \u{2014} {} calls in one turn; \
-                     the last request was not run",
-                    self.tool_rounds
-                ),
-            ));
-            return super::toolround::budget_answer(&before, self.tool_rounds);
-        }
-        reply
+        };
+        // Out of the loop means the last reply asked for MORE tools and the
+        // budget is gone. It used to be returned as-is: the pane showed an
+        // agent's unrun `@tool` line as its answer, with nothing anywhere
+        // saying why it stopped halfway through what it was doing. Now the
+        // note says why, and the answer is the text above the calls.
+        sink(back(
+            env,
+            HopKind::Terminated,
+            format!(
+                "tool budget spent \u{2014} {max_calls} calls in one turn; \
+                 the last request was not run"
+            ),
+        ));
+        super::toolround::budget_answer(&before, max_calls)
     }
 }
 

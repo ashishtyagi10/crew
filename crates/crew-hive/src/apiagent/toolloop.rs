@@ -72,11 +72,11 @@ pub(super) fn follow_up(base: &str, exchanges: &Exchanges, rounds_left: u32) -> 
 /// The note that takes its place says what happened, in the output, where
 /// whoever reads the answer will see it.
 ///
-/// The WHOLE call goes, as the parser found it. Cutting the last line was
+/// The WHOLE call goes, every call of the reply, as the parser found them. Cutting the last line was
 /// enough when a call had to be one line; a fenced call with its JSON over
 /// six lines lost only its closing fence, and the rest reached the output.
 pub(super) fn budget_spent(reply: &str, max_rounds: u32) -> String {
-    let body = crate::tools::split_tool_call(reply).map_or_else(|| reply.to_owned(), |(b, _)| b);
+    let body = crate::tools::split_tool_calls(reply).map_or_else(|| reply.to_owned(), |(b, _)| b);
     with_budget_note(&body, max_rounds)
 }
 

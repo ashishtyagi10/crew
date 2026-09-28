@@ -20,10 +20,11 @@ use serde_json::Value;
 
 use super::{ToolCall, Tools};
 
-/// Reads that succeeded since the last write, by [`key`], with the round each
-/// was last made in. One per turn (relay) or per task (swarm worker): a new
-/// turn may follow an edit made anywhere, so nothing carries over.
-#[derive(Debug, Default)]
+/// Reads that succeeded since the last write, by [`key`], with where each was
+/// last made. One per turn (relay) or per task (swarm worker): a new turn may
+/// follow an edit made anywhere, so nothing carries over. Clone, so a batch of
+/// reads started together can be checked against each other before any ends.
+#[derive(Debug, Default, Clone)]
 pub struct Seen {
     rounds: HashMap<String, u32>,
 }
@@ -35,7 +36,9 @@ impl Seen {
         self.rounds.get(&key(call)).copied()
     }
 
-    /// Note a call that RAN in `round` (counted from 1).
+    /// Note a call that RAN in `round` (counted from 1): the model round on
+    /// the native path, the exchange on the text loops, where a round may
+    /// hold several (`Exchanges::next_entry`).
     ///
     /// The LATEST round it ran in is the one kept. A read runs a second time
     /// only when its first result has been shortened out of the prompt

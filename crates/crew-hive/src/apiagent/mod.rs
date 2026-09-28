@@ -20,6 +20,8 @@ mod failure;
 mod lastword;
 mod native;
 mod note;
+mod pending;
+mod textround;
 mod toolloop;
 
 pub(crate) use context::build_prompt;
@@ -94,7 +96,7 @@ impl Agent for ApiAgent {
     ///
     /// With no tool surface attached this is exactly one provider call and the
     /// same three events it always published — the loop's first pass IS the
-    /// old body, and `split_tool_call` is never even reached.
+    /// old body, and `split_tool_calls` is never even reached.
     fn attempt(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = Attempt> + Send>> {
         let provider = Arc::clone(&self.provider);
         let max_tokens = self.max_tokens;
@@ -201,10 +203,10 @@ impl Agent for ApiAgent {
                     micros_usd: cost::billed(&model_id, tier, &completion),
                 });
 
-                let call = tools
+                let asked = tools
                     .as_ref()
-                    .and_then(|_| tools::split_tool_call(&completion.text));
-                let (Some(runner), Some((said, call))) = (tools.as_ref(), call) else {
+                    .and_then(|_| tools::split_tool_calls(&completion.text));
+                let (Some(runner), Some((said, calls))) = (tools.as_ref(), asked) else {
                     // No tool asked for: this reply is the answer.
                     ctx.bus.publish(HiveEvent::OutputChunk {
                         agent: agent_id,
@@ -217,25 +219,37 @@ impl Agent for ApiAgent {
                     }
                     .into();
                 };
-                let Some(rounds_left) = ctx.take_round(round) else {
-                    // Asked for one more with the budget gone. Say so in the
+                // Every call draws its own round; the ones granted run as one
+                // batch and each becomes its own exchange (`textround`).
+                let (granted, rounds_left) = textround::draw(&ctx, &mut round, calls.len());
+                let (run, refused) = calls.split_at(granted);
+                if !run.is_empty() {
+                    textround::run(&ctx, runner, &mut seen, &mut exchanges, &said, run).await;
+                }
+                if !refused.is_empty() {
+                    // Asked for more with the budget gone. Say so in the
                     // output rather than returning an unrun directive that
                     // reads like a call which happened.
                     let total = ctx.budget.total();
-                    ctx.bus.publish(HiveEvent::ToolResult {
-                        agent: agent_id.clone(),
-                        label: call.label(),
-                        ok: false,
-                        text: format!("not run — tool budget spent ({total} calls this run)"),
-                        ms: 0,
-                    });
+                    for call in refused {
+                        ctx.bus.publish(HiveEvent::ToolResult {
+                            agent: agent_id.clone(),
+                            label: call.label(),
+                            ok: false,
+                            text: format!("not run — tool budget spent ({total} calls this run)"),
+                            ms: 0,
+                        });
+                    }
                     // What it gathered goes back once more, tools hint left
                     // out, for an answer (`lastword`); failing that, what it
-                    // had written beside the ask is all there is.
+                    // had written beside the ask is all there is. The message
+                    // is already in the log when any call of the reply ran.
+                    let said = if run.is_empty() { said.as_str() } else { "" };
+                    let asked = refused.iter().map(|c| (c.label(), c.args.clone()));
                     let last = lastword::prompt(
                         &body,
                         &exchanges.render(),
-                        &lastword::refused(&said, [(call.label(), call.args)]),
+                        &lastword::refused(said, asked),
                     );
                     let text = match lastword::ask(
                         &ctx, &provider, &model_id, system, last, max_tokens, &sink,
@@ -255,55 +269,7 @@ impl Agent for ApiAgent {
                         success: true,
                     }
                     .into();
-                };
-
-                let label = call.label();
-                ctx.bus.publish(HiveEvent::ToolCall {
-                    agent: agent_id.clone(),
-                    label: label.clone(),
-                    args: call.args.clone(),
-                });
-                // OFF THE RUNTIME THREAD. `Tools::call` is blocking — an MCP
-                // round trip, or a shell command with a two-minute deadline —
-                // and the scheduler runs its agents on ONE current-thread
-                // runtime alongside the bus drain. Awaiting it inline would
-                // freeze every other agent in the swarm and stop events
-                // reaching the pane, so the whole run would look hung for as
-                // long as one tool took.
-                let (ok, text, ms) = match exchanges.repeat(&seen, &call) {
-                    Some(first) => (true, tools::seen::Seen::pointer(first), 0),
-                    None => {
-                        let surface = Arc::clone(runner);
-                        let asked = call.clone();
-                        let started = std::time::Instant::now();
-                        let outcome = tokio::task::spawn_blocking(move || {
-                            surface.call(&asked.server, &asked.tool, &asked.args)
-                        })
-                        .await
-                        .unwrap_or_else(|e| Err(format!("tool task failed: {e}")));
-                        let ms = started.elapsed().as_millis() as u64;
-                        let (ok, text) = match outcome {
-                            Ok(t) if t.trim().is_empty() => (true, "(empty result)".to_string()),
-                            Ok(t) => (!runner.failed(&call.server, &call.tool, &t), t),
-                            // A refused or failed tool is shown to the agent,
-                            // not raised as a task failure: "that server is
-                            // down, use the other one" is a decision the agent
-                            // can make and this code cannot.
-                            Err(e) => (false, format!("ERROR: {e}")),
-                        };
-                        seen.ran(runner.as_ref(), &call, round + 1, ok);
-                        (ok, text, ms)
-                    }
-                };
-                ctx.bus.publish(HiveEvent::ToolResult {
-                    agent: agent_id.clone(),
-                    label: label.clone(),
-                    ok,
-                    text: text.clone(),
-                    ms,
-                });
-                exchanges.push(toolloop::exchange(&said, &label, &call.args, &text));
-                round += 1;
+                }
                 prompt = toolloop::follow_up(&base, &exchanges, rounds_left);
             }
         })

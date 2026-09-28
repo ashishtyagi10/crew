@@ -102,8 +102,8 @@ fn written(said: &str, rounds: impl Iterator<Item = (String, String, String)>) -
 
 /// Send `prompt` once with no tools, billed like any other round. The answer,
 /// or `None` when the call failed or said nothing; either way the caller
-/// keeps the output it had. A tool directive the reply ends on is cut, as
-/// `toolloop::budget_spent` cuts one: nothing is left to run it.
+/// keeps the output it had. The tool directives the reply ends on are cut,
+/// as `toolloop::budget_spent` cuts them: nothing is left to run them.
 pub(super) async fn ask(
     ctx: &AgentContext,
     provider: &Arc<dyn Provider>,
@@ -135,6 +135,6 @@ pub(super) async fn ask(
         micros_usd: super::cost::billed(model_id, ctx.task.model, &completion),
     });
     let text =
-        crate::tools::split_tool_call(&completion.text).map_or(completion.text, |(body, _)| body);
+        crate::tools::split_tool_calls(&completion.text).map_or(completion.text, |(body, _)| body);
     (!text.trim().is_empty()).then(|| text.trim().to_string())
 }
