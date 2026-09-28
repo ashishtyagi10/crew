@@ -74,59 +74,69 @@ fn a_patch_containing_a_fence_line_gets_a_longer_fence() {
     assert!(out.starts_with("````diff\n"), "{out}");
 }
 
-// ---- the body -----------------------------------------------------------
+// ---- the two messages ----------------------------------------------------
+
+/// Everything `deliver` emits, in order, for a patch and a verdict.
+fn delivered(patch: &str, diag: Diag) -> Vec<String> {
+    let mut out = Vec::new();
+    deliver(patch, &["x.rs".to_string()], |_| diag, &mut |m| out.push(m));
+    out
+}
 
 #[test]
 fn nothing_changed_is_no_body_at_all() {
     let dir = std::env::temp_dir();
-    assert_eq!(
-        report(&dir, "deadbeef", &[], |_| panic!("no files, no ask")),
-        None
+    let mut out = Vec::new();
+    report(
+        &dir,
+        "deadbeef",
+        &[],
+        |_| panic!("no files, no ask"),
+        &mut |m| out.push(m),
     );
+    assert!(out.is_empty(), "{out:?}");
 }
 
 #[test]
 fn an_empty_patch_with_no_server_is_nothing() {
-    assert_eq!(compose("", Diag::NoServer), None);
-    assert_eq!(compose("  \n", Diag::NoServer), None);
+    assert!(delivered("", Diag::NoServer).is_empty());
+    assert!(delivered("  \n", Diag::NoServer).is_empty());
 }
 
 #[test]
 fn no_server_means_the_patch_alone() {
-    let body = compose("+a", Diag::NoServer).unwrap();
-    assert_eq!(body, "```diff\n+a\n```");
-    assert!(!body.contains("diagnostics"), "{body}");
+    assert_eq!(delivered("+a", Diag::NoServer), vec!["```diff\n+a\n```"]);
+}
+
+/// The verdict is its own message, after the diff — not a paragraph the
+/// diff has to wait for.
+#[test]
+fn a_clean_run_says_so_in_one_line_after_the_diff() {
+    assert_eq!(
+        delivered("+a", Diag::Clean(3)),
+        vec![
+            "```diff\n+a\n```".to_string(),
+            "no diagnostics in the 3 changed files".into(),
+        ]
+    );
+    assert_eq!(
+        delivered("+a", Diag::Clean(1))[1],
+        "no diagnostics in the changed file"
+    );
 }
 
 #[test]
-fn a_clean_run_says_so_in_one_line() {
-    let body = compose("+a", Diag::Clean(3)).unwrap();
-    assert!(
-        body.ends_with("\n\nno diagnostics in the 3 changed files"),
-        "{body}"
-    );
-    let one = compose("+a", Diag::Clean(1)).unwrap();
-    assert!(
-        one.ends_with("\n\nno diagnostics in the changed file"),
-        "{one}"
-    );
-}
-
-#[test]
-fn diagnostics_are_listed_after_the_patch() {
+fn diagnostics_are_listed_one_per_line() {
     let lines = vec![
         "src/main.rs:12:8 \u{2014} error [rustc]: cannot find value `x`".to_string(),
         "src/lib.rs:1:1 \u{2014} warning [rustc]: unused import".to_string(),
     ];
-    let body = compose("+a", Diag::Lines(lines.clone())).unwrap();
+    let out = delivered("+a", Diag::Lines(lines.clone()));
     assert_eq!(
-        body,
-        format!(
-            "```diff\n+a\n```\n\ndiagnostics after the change:\n{}\n{}",
-            lines[0], lines[1]
-        )
+        out[1],
+        format!("diagnostics after the change:\n{}\n{}", lines[0], lines[1])
     );
-    assert!(!body.contains("no diagnostics"), "{body}");
+    assert!(!out[1].contains("no diagnostics"), "{}", out[1]);
 }
 
 #[test]
@@ -134,20 +144,21 @@ fn a_flood_of_diagnostics_is_capped_and_counted() {
     let lines: Vec<String> = (0..27)
         .map(|i| format!("f.rs:{i}:1 \u{2014} error: e{i}"))
         .collect();
-    let body = compose("+a", Diag::Lines(lines)).unwrap();
-    assert!(body.contains("f.rs:19:1"), "{body}");
-    assert!(!body.contains("f.rs:20:1"), "{body}");
-    assert!(body.ends_with("\n\u{2026} +7 more"), "{body}");
+    let said = verdict(Diag::Lines(lines)).unwrap();
+    assert!(said.contains("f.rs:19:1"), "{said}");
+    assert!(!said.contains("f.rs:20:1"), "{said}");
+    assert!(said.ends_with("\n\u{2026} +7 more"), "{said}");
 }
 
 /// Diagnostics with nothing else to show — a mode change, say — still stand
 /// on their own.
 #[test]
 fn diagnostics_stand_without_a_patch() {
-    let body = compose("", Diag::Lines(vec!["a.rs:1:1 \u{2014} error: x".into()])).unwrap();
+    let out = delivered("", Diag::Lines(vec!["a.rs:1:1 \u{2014} error: x".into()]));
+    assert_eq!(out.len(), 1, "{out:?}");
     assert!(
-        body.starts_with("diagnostics after the change:\n"),
-        "{body}"
+        out[0].starts_with("diagnostics after the change:\n"),
+        "{out:?}"
     );
 }
 
@@ -186,7 +197,7 @@ fn temp_repo(tag: &str) -> PathBuf {
 }
 
 /// `report` hands the diagnostics closure the files that still exist, as
-/// absolute paths, and puts the patch in the body.
+/// absolute paths, and emits the patch and then the verdict.
 #[test]
 fn report_asks_about_the_surviving_files_and_shows_the_patch() {
     let dir = temp_repo("report");
@@ -198,12 +209,17 @@ fn report_asks_about_the_surviving_files_and_shows_the_patch() {
     let mut with_deleted = changes.clone();
     with_deleted.push(('D', "gone.rs".into()));
 
-    let mut asked = Vec::new();
-    let body = report(&dir, &base, &with_deleted, |files| {
-        asked = files.to_vec();
-        Diag::Clean(files.len())
-    })
-    .unwrap();
+    let (mut asked, mut out) = (Vec::new(), Vec::new());
+    report(
+        &dir,
+        &base,
+        &with_deleted,
+        |files| {
+            asked = files.to_vec();
+            Diag::Clean(files.len())
+        },
+        &mut |m| out.push(m),
+    );
     let mut names: Vec<String> = asked
         .iter()
         .map(|f| {
@@ -220,12 +236,12 @@ fn report_asks_about_the_surviving_files_and_shows_the_patch() {
         asked.iter().all(|f| Path::new(f).is_absolute()),
         "paths must be absolute: {asked:?}"
     );
-    assert!(body.starts_with("```diff\n"), "{body}");
-    assert!(body.contains("diff --git a/b.rs b/b.rs"), "{body}");
-    assert!(body.contains("+fn a() { x }"), "{body}");
-    assert!(
-        body.ends_with("no diagnostics in the 2 changed files"),
-        "{body}"
-    );
+    let [diff, said] = &out[..] else {
+        panic!("{out:?}")
+    };
+    assert!(diff.starts_with("```diff\n"), "{diff}");
+    assert!(diff.contains("diff --git a/b.rs b/b.rs"), "{diff}");
+    assert!(diff.contains("+fn a() { x }"), "{diff}");
+    assert_eq!(said, "no diagnostics in the 2 changed files");
     let _ = std::fs::remove_dir_all(&dir);
 }

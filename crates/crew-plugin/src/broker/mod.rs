@@ -44,6 +44,7 @@ mod intent;
 pub mod ledger;
 mod logincmd;
 mod loginrows;
+mod lspwarm;
 mod memory;
 mod modelcmd;
 mod modelpick;

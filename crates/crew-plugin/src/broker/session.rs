@@ -41,6 +41,9 @@ pub(crate) struct Session {
     /// The language servers, shared the same way: one client per project
     /// root and language for the life of the pane, not one per task.
     pub lsp: Arc<Mutex<crate::lsp::LspHost>>,
+    /// Which languages this task has already started a server for on its
+    /// first write (`lspwarm`) — fresh in every task's snapshot.
+    pub warm: Arc<super::lspwarm::WarmOnWrite>,
     /// The plan `/plan` drafted, awaiting `/approve` or `/reject` — shared so
     /// a worker-thread draft reaches the inline `/reject`.
     pub plan: super::plan::SharedPlan,
@@ -106,13 +109,15 @@ pub(crate) struct Session {
 
 impl Default for Session {
     fn default() -> Self {
+        let lsp = Arc::new(Mutex::new(crate::lsp::LspHost::from_config()));
         Self {
             overrides: HashMap::new(),
             cancel: Arc::new(AtomicBool::new(false)),
             turns: Arc::new(AtomicU64::new(0)),
             tokens: Arc::new(AtomicU64::new(0)),
             mcp: Arc::new(Mutex::new(crate::mcp::McpHost::from_config())),
-            lsp: Arc::new(Mutex::new(crate::lsp::LspHost::from_config())),
+            warm: super::lspwarm::WarmOnWrite::over(&lsp),
+            lsp,
             plan: Arc::new(Mutex::new(None)),
             commit: Arc::new(Mutex::new(None)),
             plan_first: Arc::new(AtomicBool::new(false)),
@@ -144,7 +149,8 @@ impl Session {
 
     /// A worker-thread copy for one task: its own override map (reads only),
     /// the SAME shared counters (turns/tokens) and MCP/plan, but the caller's
-    /// per-task `cancel` flag so `/stop #N` reaches exactly this task.
+    /// per-task `cancel` flag so `/stop #N` reaches exactly this task — and
+    /// a record of warmed languages of its own, for the same reason.
     pub fn snapshot_with_cancel(&self, cancel: Arc<AtomicBool>) -> Self {
         Self {
             overrides: self.overrides.clone(),
@@ -153,6 +159,7 @@ impl Session {
             tokens: Arc::clone(&self.tokens),
             mcp: Arc::clone(&self.mcp),
             lsp: Arc::clone(&self.lsp),
+            warm: self.warm.fresh(),
             plan: Arc::clone(&self.plan),
             commit: Arc::clone(&self.commit),
             plan_first: Arc::clone(&self.plan_first),
@@ -226,6 +233,7 @@ impl Session {
             Arc::clone(&self.gate),
             Arc::clone(&self.toolpick),
             Arc::clone(&self.ckpt),
+            Arc::clone(&self.warm),
         )))
     }
 
@@ -272,6 +280,9 @@ struct SessionTools {
     picker: Arc<toolmemo::Picker>,
     /// The task's checkpoint gate — every call waits on it (see `ckptgate`).
     ckpt: Arc<super::ckptgate::CkptGate>,
+    /// Told of every `sys` call that succeeded, so a task's first write
+    /// starts its language server (see `lspwarm`).
+    warm: Arc<super::lspwarm::WarmOnWrite>,
 }
 
 impl SessionTools {
@@ -282,6 +293,7 @@ impl SessionTools {
         gate: Arc<Mutex<super::approval::Gate>>,
         picker: Arc<toolmemo::Picker>,
         ckpt: Arc<super::ckptgate::CkptGate>,
+        warm: Arc<super::lspwarm::WarmOnWrite>,
     ) -> Self {
         Self {
             mcp,
@@ -298,6 +310,7 @@ impl SessionTools {
             integrations: super::integration::load(),
             picker,
             ckpt,
+            warm,
         }
     }
 
@@ -474,7 +487,11 @@ impl super::toolcall::ToolRunner for SessionTools {
                 super::toolpick::BUDGET,
             ))
         } else if server == "sys" && self.sys {
-            super::systools::call(tool, args)
+            let out = super::systools::call(tool, args);
+            if out.is_ok() {
+                self.warm.wrote(tool, args);
+            }
+            out
         } else if server == "lsp" {
             self.lsp
                 .lock()

@@ -134,6 +134,21 @@ impl LspHost {
         servers::lang_of(path).is_some_and(|lang| self.server_for(lang).is_ok())
     }
 
+    /// Start the server for `path`'s language and project ahead of the first
+    /// question (`broker/lspwarm.rs`): nothing when none is configured and
+    /// installed, nothing when it is already running. Opens no file — the
+    /// server keeps the copy it was opened with, and a task that is writing
+    /// is about to change it.
+    pub fn warm(&mut self, path: &Path) {
+        let path = tools::absolute(&path.to_string_lossy());
+        let Some(lang) = servers::lang_of(&path) else {
+            return;
+        };
+        if self.server_for(lang).is_ok() {
+            let _ = self.client(lang, &crew_lsp::root::for_file(&path));
+        }
+    }
+
     /// The running client for `(lang, root)`, started on first use.
     fn client(&mut self, lang: &str, root: &Path) -> Result<&mut Client, String> {
         let key = (lang.to_string(), root.to_path_buf());

@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.77
+
+**A task that edits a file shows its diff as soon as it ends, without waiting for the language server.** Measured on a task that added one doc comment, "task #1: 1 file changed" arrived at +42.5 s and then nothing until +54.9 s, when the diff and the diagnostics arrived together. The diff had been ready the whole time, waiting on rust-analyzer's cold start, and the 8-second diagnostics budget was only checked before each file, so one slow first answer kept the task running for as long as the server took. Now the diff goes out the moment it is computed, the diagnostics follow as their own short message, and the 8 seconds are a hard deadline: a server that has not answered by then says nothing, the same as when no server is installed. The server also starts sooner: a task's first `sys:write_file` or `sys:edit` on a Rust, TypeScript, JavaScript, Python or Go file starts that language's server in the background, so it has been indexing the whole time the model was finishing its answer. The cost: a language server starts a little earlier, only in tasks that write a file it serves, and a check cut off at the deadline keeps running in the background (up to 15 s), so a question the next task asks that server waits until it finishes.
+
+Also: the "new in …" line on the welcome screen was fitted to the window,
+so a long release headline (this one) widened the rain block past its card's
+padding and the card was dropped. The line is fitted to the card now.
+
 ## 0.24.76
 
 **A provider's error says what happened, and what to do about it.** A reply whose text talked about rate limiting ("add a rate limit to the endpoint") was taken for a rate-limit error and asked for, and billed, twice more; a 502 or 503 page from the proxy in front of a host reached the error card as `decode error: expected value at line 1 column 1`; and of all the errors a person can fix, only a rejected key said how. Now a 2xx is retried only when it carries a top-level `error` object (OpenRouter's wrapped 429 still is), a body with no JSON error in it keeps its status, host and page title (`HTTP 502 from dashscope-intl.aliyuncs.com: Bad Gateway`), and a spent rate limit, an empty account, a thread past the model's context and a model the host does not serve each end with the half-line that gets round it: wait or switch with `/model`, top it up, start a fresh pane, pick another model. The key check also stopped finding "401" inside a larger number, which blamed the key for "you requested 40100 tokens". The cost: a 200 that mentions a rate limit without an `error` object (a gateway's HTML page, say) is taken at its status and not retried, and an error with a JSON message still shows the provider's sentence, not the status and host.
