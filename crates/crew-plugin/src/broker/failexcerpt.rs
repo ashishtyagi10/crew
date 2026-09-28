@@ -115,7 +115,7 @@ pub(crate) fn headline(text: &str, max: usize) -> Vec<&str> {
 }
 
 /// The `exit N` line `sys:run` opens with, and the lines after it.
-fn split(text: &str) -> (Option<&str>, Vec<&str>) {
+pub(crate) fn split(text: &str) -> (Option<&str>, Vec<&str>) {
     let mut lines: Vec<&str> = text.lines().collect();
     let exit = lines.first().copied().filter(|l| {
         l.strip_prefix("exit ")
@@ -130,7 +130,7 @@ fn split(text: &str) -> (Option<&str>, Vec<&str>) {
 /// Indices of the lines worth reading at all: not blank, not progress. An
 /// output that is ALL progress keeps its non-blank lines, so it still says
 /// something.
-fn useful(lines: &[&str]) -> Vec<usize> {
+pub(crate) fn useful(lines: &[&str]) -> Vec<usize> {
     let real = |i: &usize| !lines[*i].trim().is_empty();
     let quiet: Vec<usize> = (0..lines.len())
         .filter(|i| real(i) && !progress(lines[*i]))
@@ -143,7 +143,7 @@ fn useful(lines: &[&str]) -> Vec<usize> {
 
 /// Positions in `useful` of the failure lines, or of the warnings when
 /// nothing failed outright.
-fn picks(lines: &[&str], useful: &[usize]) -> Vec<usize> {
+pub(crate) fn picks(lines: &[&str], useful: &[usize]) -> Vec<usize> {
     let find = |f: fn(&str) -> bool| -> Vec<usize> {
         (0..useful.len()).filter(|&p| f(lines[useful[p]])).collect()
     };

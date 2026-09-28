@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.92
+
+**"Seen before" knows a build failure by its error, not its progress.**
+When the project's check fails, crew compares the failure with the verdicts
+already in its memory and says "seen before: … the 3rd time" on a repeat.
+The failure was remembered by the first two lines of its output, and a
+`cargo build` opens with `Compiling …` whatever broke, so every build failure
+looked like the same one and a brand-new error could be announced as a
+repeat. Now the failure is remembered from its first error line on, with
+progress lines skipped (the same reading the repair pass got in 0.24.91), so
+`error[E0308]: mismatched types` and `error[E0425]: cannot find value` are
+two failures, and the same error moved down the file is still one. The cost:
+failures remembered before this release were stored the old way, so the
+first repeat of each after updating is not recognised as one.
+
 ## 0.24.91
 
 **A repair pass is handed the error and the diff, not the progress.** When the project's check failed, the repair pass got the first 40 lines of its output and the pane the first 6, which on a `cargo build` or `cargo test` are `Compiling …` lines and passing tests, and the prompt said the diff was at hand without ever including it. Now both pick lines by what they say: each line naming an error, a failed test, a panic or an assertion, with the two after it (up to 60), then the last 15 lines, `…` wherever something was skipped, and the last 40 when nothing names a failure; passing tests and cargo's progress never count, however they are named, and the pane's six lines are the first errors with rustc's `-->` location and the summary (`test result: FAILED. 39 passed; 1 failed`) last. The repair prompt also carries the task's own diff against the tree pinned before it ran, clipped at 6,000 characters and introduced with "The check passed before this change:" when the check's last remembered verdict was a pass. The cost: one more `git diff` per repair pass (none when the pass is off), a prompt up to about 6,000 characters longer, and a failure that uses none of the words this looks for now shows its last lines instead of its first.
