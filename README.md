@@ -574,6 +574,10 @@ with `sys:read_file`), `sys:edit` (replace an exact, unique fragment
 `sys:grep` and `sys:glob` (a regex over the project's files, with `context`
 lines around each hit on request, and files by name or path — both over what
 git lists, so nothing `.gitignore` names crowds out the project's own code),
+`sys:outline` (one file's functions, types, impls, classes and methods, or
+its Markdown headings, each on a row with its line number for `sys:read_file`'s
+`line` to open, the way Aider's repo map shows a file: its shape in one call
+rather than five pages),
 `sys:git` (status, diff, log, show and blame, run without a shell and with
 any argument that writes a file or runs a program refused, so it needs no
 approval and works in read-only mode),
