@@ -36,7 +36,8 @@ pub(super) const AGENT_CLIP: usize = 6_000;
 /// test run says what went wrong at the END. Fitted under the clip, the
 /// verdict is chosen here rather than lost there. Bytes, not chars, so a
 /// fitted result is under the clip whatever it is written in; 400 left over
-/// for nothing to go wrong in.
+/// for nothing to go wrong in. `sys:git`, `sys:grep` and `sys:glob` fit their
+/// answers to it too, each choosing what to keep before a clip chooses for it.
 #[cfg_attr(not(unix), allow(dead_code))]
 pub(super) const RUN_FIT: usize = 5_600;
 

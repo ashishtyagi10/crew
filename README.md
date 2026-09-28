@@ -569,6 +569,9 @@ pages of whole lines, each naming its lines and the next offset; `line`
 starts one at a `sys:grep` hit's line),
 `sys:write_file`, `sys:edit` (replace an exact, unique fragment
 — part of a file without rewriting the whole of it), `sys:list_dir`,
+`sys:grep` and `sys:glob` (a regex over the project's files, with `context`
+lines around each hit on request, and files by name or path — both over what
+git lists, so nothing `.gitignore` names crowds out the project's own code),
 `sys:git` (status, diff, log, show and blame, run without a shell and with
 any argument that writes a file or runs a program refused, so it needs no
 approval and works in read-only mode),

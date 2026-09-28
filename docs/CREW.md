@@ -2695,10 +2695,17 @@ line count),
 **`sys:write_file`** (create, or replace all of one), **`sys:edit`** (replace
 part of one — below), **`sys:list_dir`** (≤500 entries,
 sizes shown), the two that FIND code — **`sys:grep`** (a regex over the
-project's files, `path:line: text`, ≤150 hits; `glob` narrows by file name,
-`ignore_case` folds) and **`sys:glob`** (files by name, or by path with `**`),
-both skipping `.git`, build output, dependency trees, hidden directories and
-binaries — **`sys:git`** (below), and the two that reach off this machine —
+project's files, `path:line: text`; `glob` narrows by file name,
+`ignore_case` folds, and `context` (0–5) adds the lines around each hit as
+`path-line- text`, grouped as `grep -C` groups them) and **`sys:glob`**
+(files by name, or by path with `**`). In a git work tree both search the
+files git lists — tracked, and untracked but not ignored — so what
+`.gitignore` names is left out, as ripgrep leaves it; elsewhere, or when git
+fails, they walk the tree skipping `.git`, build output, dependency trees and
+hidden directories. Binaries and files over 1 MB are passed over, and both
+answers are fitted to 5,600 bytes, cut at a whole hit or path and ending with
+a line that counts what was left out and in how many files
+— **`sys:git`** (below), and the two that reach off this machine —
 **`sys:fetch`** and **`sys:search`**.
 
 `sys:git {"cmd": …, "args": [...]}` reads the repository's history and state
