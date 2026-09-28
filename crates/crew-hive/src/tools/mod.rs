@@ -15,11 +15,13 @@
 //! messages and schemas this is the convention crew has. It has the virtue of
 //! already being proven in the relay against real models.
 
+mod around;
 pub mod budget;
 mod catalog;
 mod jsondepth;
 pub mod near;
 mod parse;
+mod said;
 
 #[cfg(test)]
 mod tests;
@@ -53,7 +55,8 @@ impl ToolSpec {
 
 pub use catalog::ToolCatalog;
 pub use jsondepth::JsonDepth;
-pub use parse::parse_tool_call;
+pub use parse::{parse_tool_call, split_tool_call};
+pub use said::said;
 
 /// Executes tool calls on behalf of an agent.
 ///

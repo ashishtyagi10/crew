@@ -4,6 +4,7 @@ use std::time::Duration;
 use super::*;
 use crate::broker::adapter::HopStream;
 use crate::{PluginEvent, Registry};
+use crew_hive::tools::parse_tool_call;
 
 /// An agent whose replies are scripted; repeats the last one when exhausted.
 /// Records every prompt body it was dialed with, so tests can inspect exactly
@@ -194,10 +195,14 @@ fn run_tools_stops_at_the_round_cap() {
         &mut |h| hops.push(h),
     );
     assert_eq!(stats.exchanges, MAX_TOOL_ROUNDS);
-    assert!(reply.contains("@tool"), "cap leaves the last reply as-is");
-    // …and SAYS the budget ran out. The reply left standing is an unrun tool
-    // call; without this the pane showed that as the agent's answer, with
-    // nothing anywhere explaining why it stopped mid-sequence.
+    // The unrun call is cut out of the answer; the text above it is kept.
+    assert_eq!(
+        reply, "again",
+        "the answer is the text above the unrun call"
+    );
+    // …and SAYS the budget ran out. The last request was never run; without
+    // this the turn just stopped, with nothing anywhere explaining why it
+    // ended mid-sequence.
     let note = hops
         .iter()
         .find(|h| h.kind == HopKind::Terminated)

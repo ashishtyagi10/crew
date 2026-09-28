@@ -1,0 +1,42 @@
+//! One relay tool round as the agent's next prompt records it, and what a
+//! turn answers with when its tool budget runs out.
+//!
+//! Kept beside `toolcall.rs` rather than in it: the loop there is about
+//! dialing and streaming, and these are the two places where a reply's text
+//! is cut around its `@tool` call, so they share one reading of where the call
+//! sits (`crew_hive::tools::split_tool_call`) with the swarm.
+use super::toolclip::{clip_result, AGENT_CLIP};
+
+/// One entry of the TOOL EXCHANGES log: what the agent wrote with the call
+/// (`said`, the reply with the call cut out), then the call and its result.
+///
+/// The message was not there before, and the follow-up prompt read as a bare
+/// list of calls. An agent that had written "the bug is in route.rs; reading
+/// clip() next" came back to a result with no trace of why it asked for it,
+/// and often asked for a file it had already read.
+pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> String {
+    format!(
+        "{}CALLED {label} {args}\nRESULT:\n{}",
+        crew_hive::tools::said(said),
+        clip_result(result, AGENT_CLIP)
+    )
+}
+
+/// The answer of a turn whose last reply asked for a tool after the budget
+/// was spent: `before`, the text the agent wrote above that call, without
+/// the call.
+///
+/// It used to be the reply as written, so the pane showed raw `@tool` syntax,
+/// a fence and pretty-printed JSON included, as the answer. When the call was
+/// all the agent wrote there is nothing to answer with, and an empty answer
+/// reads as a crash; one plain line says what happened instead.
+pub(super) fn budget_answer(before: &str, rounds: u32) -> String {
+    match before.trim() {
+        "" => format!("stopped before answering: the tool budget ({rounds} calls) ran out"),
+        kept => kept.to_string(),
+    }
+}
+
+#[cfg(test)]
+#[path = "toolround_tests.rs"]
+mod tests;

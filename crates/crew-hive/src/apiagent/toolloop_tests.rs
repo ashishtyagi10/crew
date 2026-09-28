@@ -17,7 +17,7 @@ fn clip_counts_chars_not_bytes() {
 #[test]
 fn exchange_caps_a_huge_result() {
     let huge = "x".repeat(RESULT_CAP + 500);
-    let e = exchange("fs:read", "{}", &huge);
+    let e = exchange("", "fs:read", "{}", &huge);
     assert!(e.starts_with("CALLED fs:read {}\nRESULT:\n"));
     assert!(e.contains("[clipped 500 chars]"));
     // The whole exchange must stay near the cap, not near the input size.
@@ -75,4 +75,27 @@ fn budget_spent_ignores_trailing_blank_lines_when_finding_the_directive() {
     let out = budget_spent("kept text\n@tool a:b {}\n\n  \n", 2);
     assert!(!out.contains("@tool"));
     assert!(out.starts_with("kept text"));
+}
+
+/// What the agent wrote with a call sits above the call in the next prompt,
+/// or the agent reads its own earlier calls without the reason for any of
+/// them and makes one again.
+#[test]
+fn exchange_carries_what_the_agent_wrote_with_the_call() {
+    let e = exchange("The bug is in clip().", "sys:read_file", "{}", "fn clip");
+    assert_eq!(
+        e,
+        "YOUR MESSAGE:\nThe bug is in clip().\nCALLED sys:read_file {}\nRESULT:\nfn clip"
+    );
+}
+
+#[test]
+fn budget_spent_strips_a_fenced_multi_line_call_whole() {
+    let reply = "Two of three cities checked.\n```json\n@tool weather:current {\n  \
+                 \"q\": \"Oslo\"\n}\n```\n@done";
+    assert_eq!(
+        budget_spent(reply, 4),
+        "Two of three cities checked.\n\n\
+         [tool budget spent — 4 calls for this run; the last request was not run]"
+    );
 }

@@ -122,3 +122,44 @@ fn depth_ignores_a_quote_before_the_value_opens() {
     assert!("{\"a\": [1]}".chars().any(|c| d.push(c)));
     assert!(d.closed() && d.push('x'));
 }
+
+/// The text a split leaves is what the model wrote before the call: nothing
+/// of the call, its JSON, its fence or what trailed it may survive.
+#[test]
+fn a_split_takes_a_fenced_multi_line_call_out_whole() {
+    let reply = "I found the clip bug.\n\n```json\n@tool sys:read_file {\n  \
+                 \"path\": \"a.rs\"\n}\n```\nReading its tests next.\n@done";
+    let (before, c) = split_tool_call(reply).unwrap();
+    assert_eq!(before, "I found the clip bug.");
+    assert_eq!(
+        c,
+        call("sys", "read_file", "{\n  \"path\": \"a.rs\"\n}").unwrap()
+    );
+}
+
+#[test]
+fn a_split_of_a_reply_that_is_only_a_call_leaves_nothing() {
+    let (before, _) = split_tool_call("```\n@tool sys:list_dir {}\n```").unwrap();
+    assert_eq!(before, "");
+    let (before, _) = split_tool_call("@tool sys:read_file\n{\"path\": \"x\"}").unwrap();
+    assert_eq!(before, "");
+}
+
+/// A fence line above the call is the call's only when the call is inside
+/// it. One that CLOSES an earlier block is the model's text, and taking it
+/// would leave that block open over everything under it.
+#[test]
+fn a_split_keeps_a_fence_that_closed_an_earlier_block() {
+    let reply = "The fix:\n```rust\nlet x = 1;\n```\n@tool sys:run {\"cmd\": \"cargo test\"}";
+    let (before, _) = split_tool_call(reply).unwrap();
+    assert_eq!(before, "The fix:\n```rust\nlet x = 1;\n```");
+}
+
+#[test]
+fn a_split_is_none_wherever_a_parse_is() {
+    assert_eq!(split_tool_call("The build passes.\n@done"), None);
+    assert_eq!(
+        split_tool_call("@tool fs:read {}\nactually, never mind"),
+        None
+    );
+}

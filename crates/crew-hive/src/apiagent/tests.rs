@@ -495,6 +495,12 @@ async fn tool_call_runs_and_its_result_reaches_the_next_prompt() {
         seen[1]
     );
     assert!(seen[1].contains("CALLED weather:current"));
+    // …under what the agent wrote with the call, so it knows why it asked.
+    assert!(
+        seen[1].contains("YOUR MESSAGE:\nchecking\nCALLED weather:current"),
+        "follow-up: {}",
+        seen[1]
+    );
 }
 
 #[tokio::test]
