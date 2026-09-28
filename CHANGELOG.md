@@ -8,6 +8,10 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.67
+
+**A question relayed to opencode comes back with its answer, not its thinking aloud.** opencode answers in steps and narrates before each tool call, and crew joined every step's text, plus any `text` buried in a tool's result. So "which files would I change to add a new sys: tool to agent smith?" showed 1,500 characters of "Let me understand the context better … Wait, let me re-read" and no answer, and a reply that read `crates/crew-theme/src/lib.rs` would have carried the whole file. Now the reply is the text of the step that finished with `stop`; tool results and reasoning never count, and output from an older opencode with no steps reads as before. On a fresh capture of the same question, the reply is the file checklist that starts "Adding a `sys:` tool means adding a tool to the broker's `sys` server". The cost: anything opencode wrote before its last tool call is dropped even when it was part of the answer, and a run that ends on a tool call shows its last narration instead of nothing.
+
 ## 0.24.66
 
 **Smith opens the connection to your provider while you type.** The

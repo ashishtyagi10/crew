@@ -5,34 +5,42 @@
 //! lines; [`opencode_json`] pulls the assistant text out and surfaces errors.
 use serde_json::Value;
 
+use super::opencodesteps::{final_step_text, has_steps};
+
 /// Extract the assistant's reply from opencode's `--format json` event stream.
-/// Non-JSON noise lines (opencode logs a few to stdout) are ignored. If the
-/// stream carries only error events, their messages are returned so the broker
-/// logs a clean explanation instead of silence.
+/// Non-JSON noise lines (opencode logs a few to stdout) are ignored. A stream
+/// in steps answers with its final step only (see [`super::opencodesteps`]).
+/// If the stream carries only error events, their messages are returned so the
+/// broker logs a clean explanation instead of silence.
 pub fn opencode_json(raw: &str) -> String {
-    let mut texts: Vec<String> = Vec::new();
-    let mut errors: Vec<String> = Vec::new();
-    for line in raw.lines() {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        let Ok(v) = serde_json::from_str::<Value>(line) else {
-            continue; // pino-style log noise, not an event
-        };
-        if v.get("type").and_then(Value::as_str) == Some("error") {
-            errors.push(error_message(&v));
-        } else {
-            collect_text(&v, &mut texts);
-        }
+    let events: Vec<Value> = raw
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .filter_map(|l| serde_json::from_str(l).ok()) // skip pino-style log noise
+        .collect();
+    let is_error = |v: &&Value| v.get("type").and_then(Value::as_str) == Some("error");
+    let reply = if has_steps(&events) {
+        final_step_text(&events)
+    } else {
+        every_text(events.iter().filter(|v| !is_error(v)))
+    };
+    if let Some(reply) = reply {
+        return reply;
     }
-    if !texts.is_empty() {
-        return texts.join("").trim().to_string();
-    }
+    let errors: Vec<String> = events.iter().filter(is_error).map(error_message).collect();
     if !errors.is_empty() {
         return format!("[opencode error] {}", errors.join("; "));
     }
     raw.trim().to_string()
+}
+
+/// The pre-step reading: every string under a `"text"` key, joined. Kept for
+/// streams with no `step_start`, where nothing marks narration apart.
+fn every_text<'a>(events: impl Iterator<Item = &'a Value>) -> Option<String> {
+    let mut texts: Vec<String> = Vec::new();
+    events.for_each(|v| collect_text(v, &mut texts));
+    (!texts.is_empty()).then(|| texts.join("").trim().to_string())
 }
 
 /// Pull a human-readable message out of an opencode `{"type":"error",...}` event.
