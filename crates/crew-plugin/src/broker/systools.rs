@@ -89,11 +89,16 @@ pub(crate) fn tools() -> Vec<McpTool> {
         ),
         mk(
             "read_file",
-            "read a text file a ~5 KB page per call; the last line names the next {\"offset\": N}: {\"path\": \"a.md\"}",
+            "read a text file, ~5 KB a page; start at a grep hit's path:line with {\"path\": \"a.rs\", \"line\": 412}",
             serde_json::json!({
                 "type": "object",
                 "properties": {
                     "path": {"type": "string", "description": "path, relative to the working directory"},
+                    "line": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "line to start the page at, counting from 1: the number in a sys:grep hit (path:line: text); give this or offset, not both",
+                    },
                     "offset": {
                         "type": "integer",
                         "minimum": 0,
@@ -235,7 +240,7 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
     };
     match tool {
         "run" => super::sysrun::run(str_arg(&v, "cmd")?),
-        "read_file" => super::sysread::read_file(str_arg(&v, "path")?, super::sysread::offset_arg(&v)?),
+        "read_file" => super::sysreadline::read(str_arg(&v, "path")?, &v),
         "write_file" => write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
         "edit" => edit(&v),
         "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),

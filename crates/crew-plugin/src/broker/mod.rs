@@ -87,6 +87,7 @@ mod sysfetchtext;
 mod sysgrep;
 mod syspath;
 mod sysread;
+mod sysreadline;
 mod sysrun;
 mod syssearch;
 mod syssearchparse;
