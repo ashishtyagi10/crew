@@ -66,13 +66,37 @@ impl Adapter for Seq {
 }
 
 #[test]
-fn missing_directive_is_repaired_once() {
-    // First reply forgets the control line; the broker re-asks claude once, and
-    // the repaired reply routes onward to codex.
+fn missing_directive_is_repaired_once_mid_chain() {
+    // Codex answers CLAUDE and forgets its control line: between two agents
+    // that is ambiguous (done, or hand it back?), so it is re-asked once.
+    let reg = Registry::new(vec![
+        agent("claude", "a draft\n@next codex"),
+        seq("codex", &["an answer with no directive", "polished\n@done"]),
+    ]);
+    let b = Broker::new(reg, 6, Duration::from_secs(1));
+    let mut hops = Vec::new();
+    let stats = b.run(
+        "user",
+        "claude",
+        "task",
+        "t",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |h| hops.push(h),
+    );
+    assert_eq!(stats.exchanges, 3); // claude + codex + codex's repair
+    assert!(hops
+        .iter()
+        .any(|h| h.from == "codex" && h.kind == HopKind::Done && h.text == "polished"));
+}
+
+#[test]
+fn a_bare_answer_to_the_user_is_the_answer() {
+    // No re-ask: routing reads bare prose as done, and a second call would
+    // type the same answer out twice to add a word nobody reads.
     let reg = Registry::new(vec![
         seq(
             "claude",
-            &["an answer with no directive", "fixed\n@next codex"],
+            &["an answer with no directive", "SHOULD NOT BE ASKED"],
         ),
         agent("codex", "done\n@done"),
     ]);
@@ -86,10 +110,10 @@ fn missing_directive_is_repaired_once() {
         &crate::broker::tick::noop_tick_emit(),
         &mut |h| hops.push(h),
     );
-    assert_eq!(stats.exchanges, 3); // claude + its repair + codex
-    assert!(hops
-        .iter()
-        .any(|h| h.from == "codex" && h.kind == HopKind::Done));
+    assert_eq!(stats.exchanges, 1);
+    assert!(hops.iter().any(|h| h.from == "claude"
+        && h.kind == HopKind::Done
+        && h.text == "an answer with no directive"));
 }
 
 #[test]

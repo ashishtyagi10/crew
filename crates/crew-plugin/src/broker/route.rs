@@ -121,12 +121,34 @@ pub fn frame(
     } else {
         transcript.to_string()
     };
-    let task = crew_hive::tools::augment(&clip(task.trim(), TASK_CAP), tools);
+    // On the first hop the task IS the message below it — project card,
+    // recalled turns and all — and was sent twice, once flattened. Said once,
+    // at the end where it is most salient; later hops restate the task,
+    // because by then the message is a peer's reply.
+    let same = task.trim() == env.body.trim();
+    let task = match same {
+        true => format!(
+            "(the message from \"{}\" at the end of this prompt)",
+            env.from
+        ),
+        false => clip(task.trim(), TASK_CAP),
+    };
+    let task = crew_hive::tools::augment(&task, tools);
+    // Roles once, in the opening line; the hand-off list needs only names.
+    let names: Vec<&str> = peers
+        .iter()
+        .map(|p| p.split(" (").next().unwrap_or(p))
+        .collect();
+    let names = if names.is_empty() {
+        "(none)".to_string()
+    } else {
+        names.join(", ")
+    };
     compact_ws(&format!(
         "You are \"{me}\", a CLI coding agent working with peers: {peers}.\n\n\
          TASK:\n{task}\n\n\
          HOW TO REPLY: answer concisely, then make the FINAL line exactly one of:\n\
-         - `@next <agent>` to hand the conversation to a peer (only from: {peers})\n\
+         - `@next <agent>` to hand the conversation to a peer (only from: {names})\n\
          - `@done` if the task is complete and no further reply is needed.\n\n\
          CONVERSATION SO FAR:\n{convo}\n\n\
          MESSAGE FOR YOU FROM \"{from}\":\n{body}",
@@ -176,3 +198,7 @@ pub(crate) fn clip(s: &str, max: usize) -> String {
 #[cfg(test)]
 #[path = "route_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "routediet_tests.rs"]
+mod diet_tests;
