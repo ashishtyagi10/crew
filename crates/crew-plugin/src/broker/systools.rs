@@ -1,12 +1,12 @@
 //! Built-in `sys` tools: shell + file access every agent gets with zero
 //! config, on the same `@tool` surface as MCP (`@tool sys:run {"cmd": …}`).
-//! Bounded (timeout, 64 KB captures), non-interactive, visible as hops.
+//! Bounded (timeout, 64 KB captures, paged reads), non-interactive, visible as hops.
 //! `CREW_SYS_TOOLS=0` disables; so does the mock provider, keeping scripted
 //! broker tests deterministic. Relative paths resolve against the broker cwd
 //! — a convention, not a sandbox.
 use crate::mcp::McpTool;
 
-/// Capture cap per stream / per file read.
+/// Capture cap per `sys:run` stream. File reads page instead (`sysread::PAGE`).
 pub(crate) const CAP: usize = 64 * 1024;
 
 /// Whether the `sys` surface is on (env wrapper over [`enabled_from`]).
@@ -87,7 +87,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
         ),
         mk(
             "read_file",
-            "read a UTF-8 text file, 64 KB per call: {\"path\": \"README.md\", \"offset\": 0}",
+            "read a text file a ~5 KB page per call; the last line names the next {\"offset\": N}: {\"path\": \"a.md\"}",
             serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -95,7 +95,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
                     "offset": {
                         "type": "integer",
                         "minimum": 0,
-                        "description": "byte offset to start at, for reading past the 64 KB cap",
+                        "description": "byte offset to start at: the one the previous page's last line names",
                     },
                 },
                 "required": ["path"],

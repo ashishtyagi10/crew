@@ -2679,8 +2679,10 @@ five bounded tools ride the same `@tool` surface — **`sys:run`** (one
 non-interactive shell command via `/bin/sh -c`, 120s deadline —
 `CREW_SYS_TIMEOUT_MS` overrides, and the timeout message says so — 64 KB per pipe,
 its whole process group reaped on timeout so backgrounded children can't
-linger), **`sys:read_file`** (UTF-8, 64 KB per call; a truncation note carries
-the byte `offset` to continue with, so agents read big files in chunks),
+linger), **`sys:read_file`** (UTF-8, one page per call: up to 5,600 bytes, cut at
+the last line end — sized so a page and its note pass the 6,000-char clip on
+tool results whole; the note says which lines and bytes the page holds and
+carries the byte `offset` to continue with, so agents read big files in pages),
 **`sys:write_file`** (create, or replace all of one), **`sys:edit`** (replace
 part of one — below), **`sys:list_dir`** (≤500 entries,
 sizes shown), the two that FIND code — **`sys:grep`** (a regex over the

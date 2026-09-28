@@ -1,4 +1,5 @@
 use super::*;
+use crate::broker::sysread::PAGE;
 
 #[test]
 fn enabled_from_defaults_on_and_respects_gates() {
@@ -67,7 +68,7 @@ fn read_file_errors_are_agent_readable() {
 }
 
 #[test]
-fn read_file_is_capped() {
+fn read_file_is_paged() {
     let dir = std::env::temp_dir().join(format!("systools-cap-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let p = dir.join("big.txt");
@@ -77,8 +78,12 @@ fn read_file_is_capped() {
         &format!(r#"{{"path":{:?}}}"#, p.display().to_string()),
     )
     .unwrap();
-    assert!(r.len() < CAP + 100, "capped, got {}", r.len());
-    assert!(r.contains("truncated at 64 KB"), "{}", &r[r.len() - 60..]);
+    assert!(r.len() < PAGE + 200, "one page, got {}", r.len());
+    assert!(
+        r.contains("(part of line 1 of 1, "),
+        "{}",
+        &r[r.len() - 90..]
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -99,14 +104,14 @@ fn list_dir_shows_kind_and_size() {
 
 #[test]
 fn read_file_truncates_at_utf8_char_boundary() {
-    // "é" is 2 bytes (0xC3 0xA9); place it straddling the CAP boundary so the
-    // truncation point falls inside the codepoint. The bounded read (File +
-    // Read::take) must still walk back to a char boundary and emit valid
-    // UTF-8, never a replacement character.
+    // "é" is 2 bytes (0xC3 0xA9); place it straddling the page end of a line
+    // longer than the page, so the cut falls inside the codepoint. The bounded
+    // read (File + Read::take) must still walk back to a char boundary and
+    // emit valid UTF-8, never a replacement character.
     let dir = std::env::temp_dir().join(format!("systools-utf8b-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let p = dir.join("multibyte.txt");
-    let mut content = "a".repeat(CAP - 1);
+    let mut content = "a".repeat(PAGE - 1);
     content.push('é');
     content.push_str(&"b".repeat(100));
     std::fs::write(&p, &content).unwrap();
@@ -115,9 +120,9 @@ fn read_file_truncates_at_utf8_char_boundary() {
         &format!(r#"{{"path":{:?}}}"#, p.display().to_string()),
     )
     .unwrap();
-    assert!(r.len() < CAP + 100, "capped, got {}", r.len());
+    assert!(r.starts_with(&"a".repeat(PAGE - 1)), "{}", &r[PAGE - 5..]);
     assert!(
-        r.contains("truncated at 64 KB"),
+        r.ends_with(&format!("continue with {{\"offset\": {}}})", PAGE - 1)),
         "{}",
         &r[r.len().saturating_sub(60)..]
     );
@@ -126,16 +131,16 @@ fn read_file_truncates_at_utf8_char_boundary() {
 }
 
 #[test]
-fn read_file_rejects_binary_with_no_boundary_near_cap() {
+fn read_file_rejects_binary_with_no_boundary_near_the_page_end() {
     // Bytes 0x80..=0xBF are all UTF-8 continuation bytes — none of them is a
-    // char boundary. If the walk-back from CAP has no lower bound, it walks
+    // char boundary. If the walk-back from PAGE has no lower bound, it walks
     // past 0 and underflows (`cut -= 1` panics in debug, spins in release).
     // The scan must be bounded to at most 3 steps and, finding no boundary,
     // return the existing agent-readable "not valid UTF-8" error instead.
     let dir = std::env::temp_dir().join(format!("systools-bin-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let p = dir.join("binary.dat");
-    std::fs::write(&p, vec![0x80u8; CAP + 16]).unwrap();
+    std::fs::write(&p, vec![0x80u8; PAGE + 16]).unwrap();
     let e = call(
         "read_file",
         &format!(r#"{{"path":{:?}}}"#, p.display().to_string()),
@@ -197,17 +202,12 @@ fn read_file_truncation_notice_names_the_next_offset() {
     std::fs::write(&p, "x".repeat(CAP + 100)).unwrap();
     let out = call("read_file", &format!("{{\"path\": \"{}\"}}", p.display())).unwrap();
     assert!(
-        out.contains("truncated at 64 KB"),
+        out.contains(" of 65,636 \u{2014} "),
         "got tail: {}",
         &out[out.len() - 120..]
     );
     assert!(
-        out.contains(&format!("file is {} bytes", CAP + 100)),
-        "got tail: {}",
-        &out[out.len() - 120..]
-    );
-    assert!(
-        out.contains(&format!("continue with {{\"offset\": {CAP}}}")),
+        out.ends_with(&format!("continue with {{\"offset\": {PAGE}}})")),
         "got tail: {}",
         &out[out.len() - 120..]
     );
@@ -304,12 +304,12 @@ fn read_file_mid_codepoint_offset_still_reports_truncation() {
         &out[..20]
     );
     assert!(
-        out.contains("truncated at 64 KB"),
+        out.contains("(part of line 1 of 1, bytes 2\u{2013}"),
         "tail: {}",
         &out[out.len() - 130..]
     );
     assert!(
-        out.contains(&format!("continue with {{\"offset\": {}}}", 1 + 1 + CAP)),
+        out.contains(&format!("continue with {{\"offset\": {}}}", 1 + 1 + PAGE)),
         "tail: {}",
         &out[out.len() - 130..]
     );

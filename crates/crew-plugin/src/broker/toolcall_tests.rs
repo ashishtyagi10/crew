@@ -403,8 +403,8 @@ fn run_tools_clips_large_results_but_keeps_newlines_and_the_final_line() {
     for i in 0..2000 {
         body.push_str(&format!("line {i}: some padding text here\n"));
     }
-    let notice =
-        "\u{2026} (truncated at 64 KB \u{2014} file is 999999 bytes; continue with {\"offset\": 65536})";
+    let notice = "\u{2026} (lines 1\u{2013}143 of 912, bytes 0\u{2013}5,480 of 40,112 \u{2014} \
+                  continue with {\"offset\": 5480})";
     body.push_str(notice);
     assert!(body.len() > 6000, "fixture must exceed the clip budget");
 

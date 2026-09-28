@@ -23,3 +23,9 @@ pub(super) fn clip_result(text: &str, max: usize) -> String {
     let head: String = text.chars().take(head_budget).collect();
     format!("{head}{MARKER}{last_line}")
 }
+
+/// Chars of one tool result the agent's next prompt carries: the relay's
+/// exchange log, and the same number as crew-hive's `RESULT_CAP` for the
+/// swarm. `sysread::PAGE` is sized from it, so a `sys:read_file` page and
+/// its note always arrive whole; raising the page means raising this.
+pub(super) const AGENT_CLIP: usize = 6_000;

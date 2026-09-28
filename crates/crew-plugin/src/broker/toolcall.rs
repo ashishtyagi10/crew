@@ -177,7 +177,7 @@ impl Broker {
             exchanges.push(format!(
                 "CALLED {label} {}\nRESULT:\n{}",
                 call.args,
-                clip_result(&text, 6000)
+                clip_result(&text, super::toolclip::AGENT_CLIP)
             ));
             // The agent is TOLD what it has left. A budget it cannot see is
             // one it plans straight past, and then the turn ends mid-sequence
