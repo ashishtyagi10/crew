@@ -10,9 +10,9 @@ use crate::shotgpu_tests::shot_at;
 use crew_hive::{AgentId, AgentKind, HiveEvent, ModelTier, TaskId, TaskSpec, TaskState};
 use crew_plugin::Plugin;
 
-const H: u32 = 520;
+pub(crate) const H: u32 = 520;
 
-fn spec(id: u64, specialty: &str, title: &str, deps: &[u64]) -> TaskSpec {
+pub(crate) fn spec(id: u64, specialty: &str, title: &str, deps: &[u64]) -> TaskSpec {
     TaskSpec {
         id: TaskId(id),
         title: title.into(),
@@ -82,7 +82,7 @@ fn live_pane() -> ChatPane {
 }
 
 /// Print the rows the block drew, so the PNG can be read against the cells.
-fn dump(pane: &ChatPane, cols: u16) {
+pub(crate) fn dump(pane: &ChatPane, cols: u16) {
     let cells = crate::chatswarmview::block_cells(pane, cols, 0, crate::anim::now_ms());
     let rows = crate::chatswarmview::swarm_rows(pane, cols);
     for r in 0..rows {

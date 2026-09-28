@@ -1,4 +1,5 @@
 use super::*;
+use crate::chatswarmplan::rows_wanted;
 use crew_hive::{AgentId, AgentKind, HiveEvent, ModelTier, TaskId, TaskSpec};
 use crew_plugin::Plugin;
 
@@ -114,14 +115,20 @@ fn the_glyphs_follow_the_states_as_hive_events_land() {
     assert!(r[2].starts_with(" 3 \u{2013}"), "cancelled: {}", r[2]);
 }
 
+/// A plan of `n` untitled, independent tasks.
+fn plan(n: u64) -> ChatPane {
+    pane_with(
+        (0..n)
+            .map(|i| spec(i, "", &format!("task {i}"), &[]))
+            .collect(),
+    )
+}
+
 #[test]
 fn twelve_tasks_show_seven_rows_and_a_tail_naming_the_other_five() {
-    let tasks: Vec<TaskSpec> = (0..12)
-        .map(|i| spec(i, "", &format!("task {i}"), &[]))
-        .collect();
-    let p = pane_with(tasks);
+    let p = plan(12);
     let s = p.swarm.as_ref().unwrap();
-    assert_eq!(shown(12), (7, 5));
+    assert_eq!(shown(s), (7, 5));
     assert_eq!(rows_wanted(s), 8, "seven rows and the tail");
     let r = rows(&p, 60, 0);
     assert_eq!(r.len(), 8);
@@ -135,6 +142,10 @@ fn twelve_tasks_show_seven_rows_and_a_tail_naming_the_other_five() {
         "\u{2026} +1 more task",
         "one hidden task is singular"
     );
-    assert_eq!(shown(8), (8, 0), "eight fit whole");
-    assert_eq!(shown(9), (7, 2));
+    assert_eq!(
+        shown(plan(8).swarm.as_ref().unwrap()),
+        (8, 0),
+        "eight fit whole"
+    );
+    assert_eq!(shown(plan(9).swarm.as_ref().unwrap()), (7, 2));
 }

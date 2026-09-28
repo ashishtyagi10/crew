@@ -1,51 +1,33 @@
 //! The task rows under the swarm block's status line: one per planned task —
-//! its number, state glyph, specialist, title, what it waits on, and its span
-//! on the run's clock (`chatswarmspan`) — so the pane shows the PLAN moving,
-//! not just how much of it has stopped.
+//! its number, state glyph, specialist, title, what it waits on, its span on
+//! the run's clock (`chatswarmspan`) and, once it finished, what it spent
+//! (`chatswarmcost`) — so the pane shows the PLAN moving, not just how much
+//! of it has stopped. A failed task says why on the line under it
+//! (`chatswarmwhy`).
 //!
 //! Rows sit in plan order, the order `swarm/compose` lists them in, and a
 //! task's dependencies are named by the numbers of the rows they are — `← 1,2`
-//! — so a reader sees the diamond without a graph. At most [`MAX_ROWS`] rows
-//! are drawn; a longer plan ends in `… +N more tasks`. Under width pressure
-//! the block gives up its bar, then every row's specialist, then every row's
-//! deps, and only then clips titles: the name of the work is the last thing
-//! to go, and the rows give things up TOGETHER — one row keeping a column
-//! its neighbour lost reads as a different layout, not a tighter one.
+//! — so a reader sees the diamond without a graph. Which rows fit is
+//! `chatswarmplan`'s; a longer plan ends in `… +N more tasks`. Under width
+//! pressure the block gives up its bar, then every row's count
+//! (`chatswarmgeom`), then every row's specialist, then every row's deps, and
+//! only then clips titles: the name of the work is the last thing to go, and
+//! the rows give things up TOGETHER — one row keeping a column its neighbour
+//! lost reads as a different layout, not a tighter one.
 use crew_hive::TaskState;
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
 use crate::chatswarm::SwarmStatus;
 use crate::chatswarmcell::push_styled;
+use crate::chatswarmgeom::INSET;
+use crate::chatswarmplan::{shown, tail, Line};
 use crate::chatwidth::{clip_w, str_w};
 use crate::shimmer::Color;
 
-/// Rows the list may take under the status line, the tail row included.
-pub(crate) const MAX_ROWS: usize = 8;
-/// Left inset, under the status line's spinner.
-const INSET: u16 = 1;
-
-/// How many of `n` tasks get a row, and how many the tail names instead:
-/// all of them when they fit, else one row fewer to make room for the tail.
-pub(crate) fn shown(n: usize) -> (usize, usize) {
-    if n > MAX_ROWS {
-        (MAX_ROWS - 1, n - (MAX_ROWS - 1))
-    } else {
-        (n, 0)
-    }
-}
-
-/// `… +3 more tasks` — the row that stands in for the ones not drawn, its
-/// mark under the numbers.
-pub(crate) fn tail(hidden: usize) -> String {
-    format!("\u{2026} +{}", crate::wording::count(hidden, "more task"))
-}
-
-/// Rows the block wants under its status line for this plan.
-pub(crate) fn rows_wanted(s: &SwarmStatus) -> u16 {
-    let (shown, hidden) = shown(s.tasks.len());
-    (shown + usize::from(hidden > 0)) as u16
-}
+/// Fewest columns a row's words are drawn in; below it the row is its
+/// number and glyph alone.
+pub(crate) const MIN_TEXT: usize = 4;
 
 /// The number the plan's `i`th task goes by on its row and in others' deps.
 fn number(s: &SwarmStatus, id: crew_hive::TaskId) -> Option<usize> {
@@ -70,7 +52,7 @@ pub(crate) fn words(s: &SwarmStatus, i: usize, w: usize, level: u8) -> (String, 
     };
     // Padded to the widest specialist on screen: every title starts in one
     // column, not wherever its own specialist's name happened to end.
-    let col = s.tasks[..shown(s.tasks.len()).0]
+    let col = s.tasks[..shown(s).0]
         .iter()
         .map(|t| str_w(&t.specialty))
         .max();
@@ -110,27 +92,40 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, top: u16, now_ms: u64) -> Vec<Ce
     };
     let t = crew_theme::theme();
     let muted = t.text_muted;
-    let (shown, hidden) = shown(s.tasks.len());
-    let numw = s.tasks.len().to_string().len() as u16;
-    let text_start = INSET + numw + 3; // `N ● ` after the inset
-    let bar_w = crate::chatswarmspan::bar_cols(cols);
-    let bar_start = cols.saturating_sub(1 + bar_w);
-    // The text ends a column short of the bar (or of the pane's margin).
-    let text_end = if bar_w > 0 {
-        bar_start - 2
-    } else {
-        cols.saturating_sub(1)
-    };
-    let text_w = usize::from(text_end.saturating_sub(text_start));
+    let numw = s.tasks.len().to_string().len();
+    let g = crate::chatswarmgeom::geom(s, shown(s).0, cols);
     let axis = crate::chatswarmspan::axis(&s.tasks, now_ms);
-    let level = level(s, shown, text_w);
     let mut v = Vec::new();
-    for i in 0..shown {
+    for (r, line) in crate::chatswarmplan::lines(s).into_iter().enumerate() {
+        let row = top + r as u16;
+        let i = match line {
+            Line::Task(i) => i,
+            Line::Why(i) => {
+                v.extend(crate::chatswarmwhy::cells(
+                    &s.tasks[i],
+                    g.text_start,
+                    cols,
+                    row,
+                ));
+                continue;
+            }
+            Line::Tail(hidden) => {
+                let (mut col, text) = (INSET, tail(hidden));
+                push_styled(
+                    &mut v,
+                    &mut col,
+                    row,
+                    text.chars().map(|c| (c, muted)),
+                    cols,
+                    false,
+                );
+                continue;
+            }
+        };
         let task = &s.tasks[i];
-        let row = top + i as u16;
         let (glyph, gc, gbold) = crate::swarm::view::state_style(task.state);
         let mut col = INSET;
-        let num = format!("{:>w$} ", i + 1, w = usize::from(numw));
+        let num = format!("{:>numw$} ", i + 1);
         push_styled(
             &mut v,
             &mut col,
@@ -140,15 +135,16 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, top: u16, now_ms: u64) -> Vec<Ce
             false,
         );
         push_styled(&mut v, &mut col, row, [(glyph, gc), (' ', gc)], cols, gbold);
-        if text_w >= 4 {
-            let (spec, title, deps) = words(s, i, text_w, level);
+        if g.text_w() >= MIN_TEXT {
+            let (spec, title, deps) = words(s, i, g.text_w(), g.level);
             let (tc, tbold) = title_color(task.state, t);
+            let end = g.text_end;
             push_styled(
                 &mut v,
                 &mut col,
                 row,
                 spec.chars().map(|c| (c, muted)),
-                text_end,
+                end,
                 false,
             );
             push_styled(
@@ -156,7 +152,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, top: u16, now_ms: u64) -> Vec<Ce
                 &mut col,
                 row,
                 title.chars().map(|c| (c, tc)),
-                text_end,
+                end,
                 tbold,
             );
             push_styled(
@@ -164,28 +160,18 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, top: u16, now_ms: u64) -> Vec<Ce
                 &mut col,
                 row,
                 deps.chars().map(|c| (c, muted)),
-                text_end,
+                end,
                 false,
             );
         }
-        if let (Some(axis), true) = (axis, bar_w > 0) {
-            let bar = crate::chatswarmspan::bar(task, axis, bar_w, now_ms, gc, t.border_normal);
-            let mut bcol = bar_start;
+        if let (Some(axis), true) = (axis, g.bar_w > 0) {
+            let bar = crate::chatswarmspan::bar(task, axis, g.bar_w, now_ms, gc, t.border_normal);
+            let mut bcol = g.bar_start;
             push_styled(&mut v, &mut bcol, row, bar, cols, false);
         }
-    }
-    if hidden > 0 {
-        let mut col = INSET;
-        let line = tail(hidden);
-        let row = top + shown as u16;
-        push_styled(
-            &mut v,
-            &mut col,
-            row,
-            line.chars().map(|c| (c, muted)),
-            cols,
-            false,
-        );
+        if g.cost_w > 0 {
+            v.extend(crate::chatswarmcost::cells(task, g.cost_end, row));
+        }
     }
     v
 }
