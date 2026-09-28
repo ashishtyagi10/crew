@@ -7,15 +7,19 @@
 use crew_hive::{TaskGraph, TaskResult};
 
 use super::swarmanswer::{outputs, parts};
+use super::swarmgap::Gap;
 
 /// The answer to record, or `None` when the run produced nothing to show —
-/// which is not a turn (a failed or cancelled run never reaches here).
+/// which is not a turn (a cancelled run, or one where nothing finished, never
+/// reaches here). A run with a `gap` is its answer or nothing: that answer
+/// names what failed, and the sinks alone would be remembered as the whole.
 pub(super) fn reply(
     answer: Option<String>,
     graph: &TaskGraph,
     results: &[TaskResult],
+    gap: &Gap,
 ) -> Option<String> {
-    if answer.is_some() {
+    if answer.is_some() || !gap.is_empty() {
         return answer;
     }
     let is_sink = |r: &&TaskResult| !graph.tasks().iter().any(|s| s.deps.contains(&r.task));

@@ -7,16 +7,18 @@
 //! gets N separate replies and the user does the merging in their head. The
 //! brain of the operation went quiet at exactly the step that needed it.
 //!
-//! So: after a clean run of two or more tasks whose graph does not already
-//! end in one sink, ONE bounded call on the same plumbing as routing
-//! (`intent::live_call` — cheap tier, 30 s, `None` under keyless/mock/
-//! `CREW_INTENT=0`) writes the answer from the workers' outputs, and it lands
-//! as agent smith's message after the per-task replies. Keyless and mock runs
-//! make no call and emit no line, so their event stream is byte-identical to
-//! before; a call that fails is one quiet line, never a failed run. A child
-//! of `swarm`, so `broker` items are reached through `crate::broker::`.
+//! So: after a run of two or more tasks whose graph does not already end in
+//! one sink, or any run where a task failed (`swarmgap`), ONE bounded call on
+//! the same plumbing as routing (`intent::live_call` — cheap tier, 30 s,
+//! `None` under keyless/mock/`CREW_INTENT=0`) writes the answer from the
+//! workers' outputs, and it lands as agent smith's message after the per-task
+//! replies. Keyless and mock runs make no call and emit no line, so their
+//! event stream is byte-identical to before; a call that fails is one quiet
+//! line, never a failed run. A child of `swarm`, so `broker` items are
+//! reached through `crate::broker::`.
 use crew_hive::{RunOutcome, TaskGraph, TaskId, TaskResult};
 
+use super::swarmgap::Gap;
 use super::SWARM_LEAD;
 use crate::broker::relay::msg;
 use crate::protocol::PluginEvent;
@@ -101,20 +103,21 @@ pub(super) fn outputs(parts: &[(String, String)]) -> String {
         .collect()
 }
 
+/// A task's title. One the graph no longer knows (re-planned in) keeps its id.
+pub(super) fn title(graph: &TaskGraph, id: TaskId) -> String {
+    graph
+        .get(id)
+        .map_or_else(|| format!("task {}", id.0), |t| t.title.clone())
+}
+
 /// Finished tasks as `(title, output)`, whole, in plan order (not completion
-/// order, so the same plan briefs the same way twice). A task the graph no
-/// longer knows (re-planned in) keeps its id as its title.
+/// order, so the same plan briefs the same way twice).
 pub(super) fn parts<'a>(
     graph: &TaskGraph,
     results: impl Iterator<Item = &'a TaskResult>,
 ) -> Vec<(String, String)> {
-    let title = |id: TaskId| {
-        graph
-            .get(id)
-            .map_or_else(|| format!("task {}", id.0), |t| t.title.clone())
-    };
     let mut parts: Vec<(TaskId, String, String)> = results
-        .map(|r| (r.task, title(r.task), r.output.clone()))
+        .map(|r| (r.task, title(graph, r.task), r.output.clone()))
         .collect();
     parts.sort_by_key(|p| p.0);
     parts.into_iter().map(|(_, t, o)| (t, o)).collect()
@@ -122,24 +125,26 @@ pub(super) fn parts<'a>(
 
 /// Say the answer, if the run needs one and a call may run. `results` are the
 /// finished tasks' outputs, whole (the board is the archive; the budget is
-/// applied here). Emits the lead thinking, the line, the lead idle — the shape
-/// `intent::decision::announce` uses, so the pane shows smith working.
+/// applied here). A run with a `gap` always needs one: the answer is where
+/// the gap gets said. Emits the lead thinking, the line, the lead idle — the
+/// shape `intent::decision::announce` uses, so the pane shows smith working.
 /// Returns the answer when one was written, so a judge can read it instead of
 /// the outputs it merged.
 pub(super) fn combine(
     goal: &str,
     graph: &TaskGraph,
     results: &[TaskResult],
+    gap: &Gap,
     synth: Synth<'_>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<Option<String>> {
     let done: Vec<TaskId> = results.iter().map(|r| r.task).collect();
-    let Some(call) = synth.filter(|_| wants_answer(graph, &done)) else {
+    let Some(call) = synth.filter(|_| !gap.is_empty() || wants_answer(graph, &done)) else {
         return Ok(None);
     };
     let parts = parts(graph, results.iter());
     emit(activity("thinking", "user"))?;
-    let reply = call(&prompt(goal, &parts));
+    let reply = call(&(prompt(goal, &parts) + &gap.brief()));
     let answer = match &reply {
         Ok(t) if !t.trim().is_empty() => Some(t.trim().to_owned()),
         _ => None,

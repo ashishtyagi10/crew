@@ -99,7 +99,7 @@ pub(crate) fn run_task_on(
         judge.as_deref().map(swarmverify::Judge::new),
         &mut emit,
     )?;
-    // What the user read, kept for the next turn (`None` = failed/cancelled)
+    // What the user read, kept for the next turn (`None` = cancelled/unanswered)
     // and, past this session, joined into the recall graph.
     super::recall::record(&session.recall, task, reply.as_deref());
     super::thread::record(&session.thread, task, reply);
@@ -135,7 +135,7 @@ pub(crate) fn run_with(
 /// call (`swarmanswer`): `None` means no answer line, ever. `verify` is the
 /// judge (`swarmverify`): `None` means the run ends unjudged; a `NOT MET`
 /// verdict runs this same function once more on the revision it names.
-/// Returns the answer the pane showed (`swarmturn`); `None` = failed/cancelled.
+/// Returns the answer the pane showed (`swarmturn`); `None` = cancelled, or failed unanswered.
 #[allow(clippy::too_many_arguments)] // the run's full configuration, injected by tests piecewise
 pub(crate) fn run_with_synth(
     task: &str,
@@ -199,6 +199,7 @@ pub(crate) fn run_with_synth(
     let mut gates: HashMap<u64, crate::broker::tick::TextGate> = HashMap::new();
     let run_start = std::time::Instant::now();
     let mut tally = swarmtally::Tally::new(tasks.len());
+    let mut lost = swarmgap::Reasons::default();
     let mut lagged_total: u64 = 0;
     let mut emit_err: Option<anyhow::Error> = None;
     let outcome = rt.block_on(async {
@@ -206,6 +207,7 @@ pub(crate) fn run_with_synth(
             loop {
                 match sub.recv().await {
                     Ok(ev) => {
+                        lost.observe(&ev); // why a task failed (`swarmgap`)
                         if emit_err.is_some() {
                             continue; // keep consuming so the scheduler finishes
                         }
@@ -262,22 +264,25 @@ pub(crate) fn run_with_synth(
         emit(msg("agent smith", lagged_note(lagged_total)))?;
     }
 
-    // The lead's closing word. On a clean run it is the ONE answer, when the
-    // sinks' own replies are not already it (`swarmanswer` decides), and
-    // then the verdict when a judge sits (`swarmverify`); on a cancellation
-    // or a failure it is the status line, since neither is otherwise
-    // obvious. Never a "swarm done": that would be chrome.
+    // The lead's closing word. On a run that finished anything it is the ONE
+    // answer, when the sinks' replies are not already it or tasks failed
+    // (`swarmanswer`, `swarmgap`), then the verdict when a judge sits
+    // (`swarmverify`); on a cancellation or a failure, the status line, since
+    // neither is otherwise obvious. Never a "swarm done": that would be chrome.
     let cancelled = cancel.load(std::sync::atomic::Ordering::Relaxed);
+    let gap = lost.gap(&graph, &outcome.failed);
     let mut revise = None;
     let mut reply = None;
-    if !cancelled && outcome.failed.is_empty() {
+    if !cancelled && (gap.is_empty() || !outcome.done.is_empty()) {
         let results = rt.block_on(board.gather(&outcome.done));
-        let answer = swarmanswer::combine(task, &graph, &results, synth, emit)?;
-        if let Some(judge) = verify {
+        let answer = swarmanswer::combine(task, &graph, &results, &gap, synth, emit)?;
+        // A partial run is not judged: its answer already says what is missing,
+        // and a NOT MET would send the whole crew back to redo what succeeded.
+        if let Some(judge) = verify.filter(|_| gap.is_empty()) {
             let answer = answer.as_deref();
             revise = swarmverify::verdict(task, &graph, &results, answer, judge, emit)?;
         }
-        reply = swarmturn::reply(answer, &graph, &results);
+        reply = swarmturn::reply(answer, &graph, &results, &gap);
     }
     let summary = swarmanswer::closing_line(&outcome, cancelled);
     // One aggregate Stats for the whole run (empty `agent` = turn-total, per
@@ -322,6 +327,8 @@ use swarmmsg::translate;
 mod swarmanswer;
 #[path = "swarmcast.rs"]
 mod swarmcast;
+#[path = "swarmgap.rs"]
+mod swarmgap;
 #[path = "swarmtally.rs"]
 mod swarmtally;
 #[path = "swarmturn.rs"]

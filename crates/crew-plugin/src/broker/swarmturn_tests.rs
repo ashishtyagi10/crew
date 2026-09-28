@@ -1,4 +1,4 @@
-use super::reply;
+use super::{reply, Gap};
 use crew_hive::{AgentKind, ModelTier, TaskGraph, TaskId, TaskResult, TaskSpec};
 
 fn spec(id: u64, title: &str, deps: &[u64]) -> TaskSpec {
@@ -37,17 +37,27 @@ fn chain() -> TaskGraph {
     TaskGraph::new(vec![spec(0, "gather", &[]), spec(1, "merge", &[0])]).unwrap()
 }
 
+/// No task failed.
+fn clean() -> Gap {
+    Gap::default()
+}
+
 #[test]
 fn the_leads_closing_answer_is_the_turn_when_one_was_written() {
     let results = [done(0, "raw"), done(1, "l"), done(2, "r")];
-    let r = reply(Some("Both agree: X.".into()), &diamond(), &results);
+    let r = reply(
+        Some("Both agree: X.".into()),
+        &diamond(),
+        &results,
+        &clean(),
+    );
     assert_eq!(r.as_deref(), Some("Both agree: X."));
 }
 
 #[test]
 fn one_sink_records_its_output_whole_and_not_the_tasks_before_it() {
     let results = [done(0, "the raw notes"), done(1, "the merged answer")];
-    let r = reply(None, &chain(), &results);
+    let r = reply(None, &chain(), &results, &clean());
     assert_eq!(r.as_deref(), Some("the merged answer"));
 }
 
@@ -58,7 +68,7 @@ fn two_sinks_record_each_under_its_title_and_skip_the_upstream_task() {
         done(1, "left says A"),
         done(2, "right says B"),
     ];
-    let r = reply(None, &diamond(), &results).unwrap();
+    let r = reply(None, &diamond(), &results, &clean()).unwrap();
     assert!(r.contains("## left\nleft says A"), "{r}");
     assert!(r.contains("## right\nright says B"), "{r}");
     assert!(!r.contains("gather") && !r.contains("raw"), "{r}");
@@ -67,7 +77,18 @@ fn two_sinks_record_each_under_its_title_and_skip_the_upstream_task() {
 
 #[test]
 fn no_results_or_a_blank_sink_is_not_a_turn() {
-    assert_eq!(reply(None, &chain(), &[]), None);
+    assert_eq!(reply(None, &chain(), &[], &clean()), None);
     let results = [done(0, "raw"), done(1, "   ")];
-    assert_eq!(reply(None, &chain(), &results), None);
+    assert_eq!(reply(None, &chain(), &results, &clean()), None);
+}
+
+#[test]
+fn a_partial_run_is_its_answer_or_nothing_never_the_sinks_alone() {
+    // `right` failed: `left` is the one finished sink, and recording it as
+    // the turn would remember half an answer as the whole of one.
+    let results = [done(0, "raw"), done(1, "left says A")];
+    let gap = super::super::swarmgap::Reasons::default().gap(&diamond(), &[TaskId(2)]);
+    assert_eq!(reply(None, &diamond(), &results, &gap), None);
+    let r = reply(Some("A; B failed.".into()), &diamond(), &results, &gap);
+    assert_eq!(r.as_deref(), Some("A; B failed."));
 }
