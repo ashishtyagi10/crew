@@ -33,15 +33,24 @@ pub fn said(text: &str) -> String {
 }
 
 /// `text` cut to at most `max` chars at the end of a line, plus a note.
-///
-/// Whole lines, because a line cut mid-word reads as a thought the model
-/// never finished. A first line longer than `max` on its own is the one case
-/// with no line to end on, and is cut at `max` chars.
 fn clip_lines(text: &str, max: usize) -> String {
     let total = text.chars().count();
     if total <= max {
         return text.to_string();
     }
+    let head = head_lines(text, max);
+    let left = total - head.chars().count();
+    format!("{head}\n[\u{2026} {left} more chars of this message not shown]")
+}
+
+/// The whole lines of `text` that fit in `max` chars, trailing space trimmed.
+///
+/// Whole lines, because a line cut mid-word reads as a thought the model
+/// never finished. A first line longer than `max` on its own is the one case
+/// with no line to end on, and is cut at `max` chars. Shared with the
+/// shortened results of older exchanges (`exchanges`), which are cut the same
+/// way for the same reason.
+pub(super) fn head_lines(text: &str, max: usize) -> String {
     let mut kept = 0;
     let mut end = 0;
     for line in text.split_inclusive('\n') {
@@ -52,13 +61,11 @@ fn clip_lines(text: &str, max: usize) -> String {
         kept += n;
         end += line.len();
     }
-    let head: String = if end == 0 {
+    if end == 0 {
         text.chars().take(max).collect()
     } else {
         text[..end].trim_end().to_string()
-    };
-    let left = total - head.chars().count();
-    format!("{head}\n[\u{2026} {left} more chars of this message not shown]")
+    }
 }
 
 #[cfg(test)]

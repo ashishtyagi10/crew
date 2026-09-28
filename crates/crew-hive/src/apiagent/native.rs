@@ -64,7 +64,10 @@ pub(super) async fn run(
     let mut turns: Vec<Turn> = Vec::new();
     let mut round: u32 = 0;
     // Reads this task has made. A repeat is answered from the result already
-    // in `turns`, which every request resends whole.
+    // in `turns`, which every request resends whole. So `Seen::check` alone,
+    // not `Exchanges::repeat`: the text loops shorten their older results and
+    // must stop pointing at one once it is, but nothing here is shortened yet,
+    // so the result a pointer names is always in the request beside it.
     let mut seen = Seen::default();
 
     loop {

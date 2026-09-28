@@ -7,21 +7,23 @@
 //! sits (`crew_hive::tools::split_tool_call`) with the swarm.
 use super::toolcall::ToolRunner;
 use super::toolclip::{clip_result, AGENT_CLIP};
+use crew_hive::tools::exchanges::{Exchange, Exchanges};
 use crew_hive::tools::{seen::Seen, ToolCall};
 
 /// Run `call` as round `round` (from 1) of this turn: `(ok, text, repeat)`.
 ///
-/// A read this turn already made, with nothing written since, is not run:
-/// its text is a pointer to the earlier result, which every later prompt of
-/// the turn still carries in its exchanges, and `repeat` names that round so
-/// the card can say so (`Seen`).
+/// A read this turn already made, with nothing written since, is not run
+/// while `log` still shows its result whole: its text is a pointer to the
+/// earlier result, and `repeat` names that round so the card can say so
+/// (`Seen`, `Exchanges::repeat`).
 pub(super) fn run_once(
     runner: &dyn ToolRunner,
     seen: &mut Seen,
+    log: &Exchanges,
     call: &ToolCall,
     round: u32,
 ) -> (bool, String, Option<u32>) {
-    if let Some(first) = seen.check(call) {
+    if let Some(first) = log.repeat(seen, call) {
         return (true, Seen::pointer(first), Some(first));
     }
     let called = runner.call(&call.server, &call.tool, &call.args);
@@ -46,12 +48,8 @@ pub(super) fn run_once(
 /// list of calls. An agent that had written "the bug is in route.rs; reading
 /// clip() next" came back to a result with no trace of why it asked for it,
 /// and often asked for a file it had already read.
-pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> String {
-    format!(
-        "{}CALLED {label} {args}\nRESULT:\n{}",
-        crew_hive::tools::said(said),
-        clip_result(result, AGENT_CLIP)
-    )
+pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> Exchange {
+    Exchange::new(said, label, args, clip_result(result, AGENT_CLIP))
 }
 
 /// The answer of a turn whose last reply asked for a tool after the budget

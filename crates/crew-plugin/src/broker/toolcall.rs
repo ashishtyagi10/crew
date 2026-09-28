@@ -130,7 +130,8 @@ impl Broker {
         // offset by this (and each other's) so the shared ticker's growth
         // gate never swallows a short follow-up after a long primary reply.
         let mut tick_base: u64 = (reply.chars().count() as u64) / 4;
-        let mut exchanges: Vec<String> = Vec::new();
+        // Kept in parts, so older results can be shortened in each prompt.
+        let mut exchanges = crew_hive::tools::exchanges::Exchanges::default();
         // The reads this turn has made, so a repeat is not run again.
         let mut seen = crew_hive::tools::seen::Seen::default();
         let max_rounds = self.tool_rounds;
@@ -152,7 +153,7 @@ impl Broker {
             });
             let started = std::time::Instant::now();
             let (ok, text, repeat) =
-                super::toolround::run_once(runner, &mut seen, &call, round + 1);
+                super::toolround::run_once(runner, &mut seen, &exchanges, &call, round + 1);
             stats.approx_tokens += text.len() / 4;
             sink(Hop {
                 from: label.clone(),
@@ -189,7 +190,7 @@ impl Broker {
                 "{base_prompt}\n\nTOOL EXCHANGES THIS TURN:\n{}\n\n{budget} Continue the \
                  task using these results. You may call another tool, or answer and end \
                  with your routing line (`@next <agent>` or `@done`).",
-                exchanges.join("\n\n")
+                exchanges.render()
             );
             sink(Hop {
                 from: label,
@@ -268,3 +269,7 @@ mod tests;
 #[cfg(test)]
 #[path = "samecall_tests.rs"]
 mod samecall_tests;
+
+#[cfg(test)]
+#[path = "shrinkold_tests.rs"]
+mod shrinkold_tests;

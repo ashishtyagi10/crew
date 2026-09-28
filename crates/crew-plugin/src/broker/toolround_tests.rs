@@ -132,7 +132,10 @@ fn a_spent_budget_on_a_bare_call_answers_with_one_plain_line() {
 #[test]
 fn a_reply_that_was_only_the_call_adds_no_message() {
     let e = exchange("", "sys:read_file", "{}", "fn clip() {}");
-    assert_eq!(e, "CALLED sys:read_file {}\nRESULT:\nfn clip() {}");
+    assert_eq!(
+        e.to_string(),
+        "CALLED sys:read_file {}\nRESULT:\nfn clip() {}"
+    );
 }
 
 #[test]

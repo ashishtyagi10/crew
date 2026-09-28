@@ -8,6 +8,9 @@ mod preamble_tests;
 #[path = "samecall_tests.rs"]
 mod samecall_tests;
 #[cfg(test)]
+#[path = "shrinkold_tests.rs"]
+mod shrinkold_tests;
+#[cfg(test)]
 mod tests;
 
 mod chunks;
@@ -160,10 +163,11 @@ impl Agent for ApiAgent {
             let sink = chunks::ChunkSink::new(ctx.bus.clone(), agent_id.clone());
 
             let mut prompt = base.clone();
-            let mut exchanges: Vec<String> = Vec::new();
+            let mut exchanges = tools::exchanges::Exchanges::default();
             let mut round: u32 = 0;
             // Reads this task has made. A repeat is answered from the result
-            // already in `exchanges`, which every follow-up carries whole.
+            // already in `exchanges`, while the follow-up still carries it
+            // whole (`Exchanges::repeat`); once shortened, it runs again.
             let mut seen = tools::seen::Seen::default();
             loop {
                 let req = CompletionRequest {
@@ -248,7 +252,7 @@ impl Agent for ApiAgent {
                 // freeze every other agent in the swarm and stop events
                 // reaching the pane, so the whole run would look hung for as
                 // long as one tool took.
-                let (ok, text, ms) = match seen.check(&call) {
+                let (ok, text, ms) = match exchanges.repeat(&seen, &call) {
                     Some(first) => (true, tools::seen::Seen::pointer(first), 0),
                     None => {
                         let surface = Arc::clone(runner);
