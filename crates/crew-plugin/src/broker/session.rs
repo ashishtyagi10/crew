@@ -98,6 +98,10 @@ pub(crate) struct Session {
     /// chooser and its per-task memo, one per pane so every surface this
     /// session builds shares one answer per task.
     pub toolpick: Arc<toolmemo::Picker>,
+    /// This task's checkpoint gate: tool calls wait here until the snapshot
+    /// taken beside the routing has landed (see `ckptgate`). Open outside a
+    /// task, so nothing built from a bare session ever waits.
+    pub ckpt: Arc<super::ckptgate::CkptGate>,
 }
 
 impl Default for Session {
@@ -128,6 +132,7 @@ impl Default for Session {
             repairing: Arc::new(AtomicBool::new(false)),
             no_autofix: Arc::new(AtomicBool::new(false)),
             toolpick: Arc::new(toolmemo::Picker::live()),
+            ckpt: super::ckptgate::CkptGate::open_now(),
         }
     }
 }
@@ -163,6 +168,7 @@ impl Session {
             repairing: Arc::clone(&self.repairing),
             no_autofix: Arc::clone(&self.no_autofix),
             toolpick: Arc::clone(&self.toolpick),
+            ckpt: Arc::clone(&self.ckpt),
         }
     }
 
@@ -219,6 +225,7 @@ impl Session {
             sys,
             Arc::clone(&self.gate),
             Arc::clone(&self.toolpick),
+            Arc::clone(&self.ckpt),
         )))
     }
 
@@ -263,6 +270,8 @@ struct SessionTools {
     integrations: Vec<super::integration::Integration>,
     /// The session's tool decider — see [`Session::toolpick`].
     picker: Arc<toolmemo::Picker>,
+    /// The task's checkpoint gate — every call waits on it (see `ckptgate`).
+    ckpt: Arc<super::ckptgate::CkptGate>,
 }
 
 impl SessionTools {
@@ -272,6 +281,7 @@ impl SessionTools {
         sys: bool,
         gate: Arc<Mutex<super::approval::Gate>>,
         picker: Arc<toolmemo::Picker>,
+        ckpt: Arc<super::ckptgate::CkptGate>,
     ) -> Self {
         Self {
             mcp,
@@ -287,6 +297,7 @@ impl SessionTools {
             ledger: (!cfg!(test)).then(|| super::ledger::Ledger::at(super::ledger::default_path())),
             integrations: super::integration::load(),
             picker,
+            ckpt,
         }
     }
 
@@ -412,6 +423,8 @@ impl super::toolcall::ToolRunner for SessionTools {
     /// BEFORE a channel can put a non-human behind it, not after.
     fn call(&self, server: &str, tool: &str, args: &str) -> Result<String, String> {
         use super::approval::Decision;
+        // Not one byte of the tree changes before the task's snapshot exists.
+        self.ckpt.wait();
         let name = format!("{server}:{tool}");
         let tier = self.tier_for(server, tool);
         let now = super::ledger::now_ms();

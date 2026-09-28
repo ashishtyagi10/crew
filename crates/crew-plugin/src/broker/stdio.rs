@@ -284,6 +284,9 @@ fn send(
     // No "task started" line: the agent's own streamed output is the
     // acknowledgment (Opencode-style). Only exceptional endings (error/stop)
     // are announced, below.
+    // The checkpoint's own gate: a routed task starts deciding while the
+    // snapshot is taken beside it (`ckptgate`); tools wait for it.
+    snap.ckpt = super::ckptgate::CkptGate::pending();
     let handle = std::thread::spawn(move || {
         let tokens = Arc::clone(&snap.tokens);
         // StatsTicks fire while an agent hop blocks this worker thread — from
@@ -322,12 +325,31 @@ fn send(
         // safety net that announced itself on every task would be noise. Not
         // being in a git repository is a normal way to run crew, so the error
         // is deliberately ignored rather than reported.
-        auto_checkpoint(&snap, &label_for_ckpt, &out_thread);
+        let ckpt = {
+            let (s, out) = (
+                snap.snapshot_with_cancel(Arc::clone(&snap.cancel)),
+                Arc::clone(&out_thread),
+            );
+            std::thread::spawn(move || {
+                auto_checkpoint(&s, &label_for_ckpt, &out);
+                s.ckpt.open();
+            })
+        };
+        // Only the router's path has a decision to make first; a command or a
+        // dialled agent may touch the tree straight away (an agent CLI edits
+        // in place, outside the tool gate), so those wait as they always did.
+        let dialled = trimmed.starts_with('@');
+        let starter = (!is_cmd && !dialled)
+            .then(|| super::auth::starter(&snap))
+            .flatten();
+        if is_cmd || dialled || starter.is_some() {
+            snap.ckpt.wait();
+        }
         let res = if is_cmd {
             super::commands::handle(&mut snap, &trimmed, &tick_emit, &mut counting)
-        } else if trimmed.starts_with('@') {
+        } else if dialled {
             relay_counting(&trimmed, &snap, &tick_emit, &mut counting)
-        } else if let Some(starter) = super::auth::starter(&snap) {
+        } else if let Some(starter) = starter {
             relay_counting(
                 &format!("@{starter} {trimmed}"),
                 &snap,
@@ -356,7 +378,9 @@ fn send(
         if let Some(done) = done {
             let _ = emit(&out_thread, &msg("agent smith", done));
         }
-        // …and then what it DID to the files, which nothing on screen said.
+        // …and then what it DID to the files, which nothing on screen said —
+        // measured from the snapshot, so it must have landed.
+        let _ = ckpt.join();
         report_changes(&snap, id, &out_thread);
         // The end of the task, emitted by the only thing that knows when that
         // is. `Tasks::reap` runs lazily on the NEXT command, so a task

@@ -20,6 +20,7 @@ impl SessionTools {
             sys,
             Arc::new(Mutex::new(Gate::new())),
             Arc::new(Picker::off()),
+            crate::broker::ckptgate::CkptGate::open_now(),
         )
     }
 

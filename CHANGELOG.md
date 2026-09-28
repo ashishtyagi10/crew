@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.58
+
+**Smith starts deciding about 0.3 seconds sooner.** Before touching
+anything, every task snapshots your working tree so `/restore` can undo
+it. That took about 0.3 seconds on the crew repo, and until it finished
+smith didn't start thinking about your message. Nothing in the deciding
+touches a file, though, so the snapshot now runs at the same time as the
+routing call. A tool call (the only way an agent changes a file) waits
+until the snapshot has landed, so the undo is exactly as safe as before.
+Commands and direct `@agent` messages still wait for the snapshot first,
+since an agent CLI can edit files right away.
+
 ## 0.24.57
 
 **The todo list has real checkboxes.** Each row's done control was a small

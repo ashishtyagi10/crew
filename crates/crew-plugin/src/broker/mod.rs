@@ -21,6 +21,7 @@ mod capabilities;
 mod changed;
 mod checkcmd;
 mod checkpoint;
+mod ckptgate;
 mod claudeagent;
 mod commands;
 mod compact;
