@@ -10,8 +10,7 @@ use std::pin::Pin;
 use super::openai_http::{request_with_retry, request_with_retry_streaming};
 use super::thinking;
 use super::{
-    http_client, request_timeout, ChunkFn, Completion, CompletionRequest, Provider, ProviderError,
-    Turn,
+    request_timeout, ChunkFn, Completion, CompletionRequest, Provider, ProviderError, Turn,
 };
 
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
@@ -170,7 +169,7 @@ fn build_body(
 impl OpenRouterProvider {
     pub fn new(api_key: String) -> Self {
         Self {
-            client: http_client(request_timeout()),
+            client: super::io::client(request_timeout()),
             api_key,
             endpoint: ENDPOINT.to_string(),
             fallbacks: Vec::new(),
@@ -186,7 +185,7 @@ impl OpenRouterProvider {
 
     /// Replace the per-attempt HTTP timeout (default: [`request_timeout`]).
     pub fn with_timeout(mut self, timeout: std::time::Duration) -> Self {
-        self.client = http_client(timeout);
+        self.client = super::io::client(timeout);
         self
     }
 
@@ -226,7 +225,8 @@ impl Provider for OpenRouterProvider {
         let endpoint = self.endpoint.clone();
         let chain = attempt_chain(&req.model, &self.fallbacks);
         let report_cost = wants_cost(&endpoint);
-        Box::pin(async move {
+        // On the provider runtime, where the pooled connection lives (`io`).
+        super::io::run(async move {
             let messages = build_messages(&req);
             // Try each model in turn; a model that stays rate-limited or is
             // unavailable (retired free slug, upstream error) hands off to the
@@ -271,7 +271,7 @@ impl Provider for OpenRouterProvider {
         let endpoint = self.endpoint.clone();
         let chain = attempt_chain(&req.model, &self.fallbacks);
         let report_cost = wants_cost(&endpoint);
-        Box::pin(async move {
+        super::io::run(async move {
             let messages = build_messages(&req);
             let mut last_err = ProviderError::Api("no model attempted".into());
             for model in &chain {

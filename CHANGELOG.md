@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.56
+
+**Smith's first word comes about a second sooner again.** Two causes,
+both measured on DashScope. First, every model call opened a new
+connection. Connecting and securing the link (TCP and TLS) took about half
+a second, longer than the request itself, and it happened twice a message:
+once for the routing decision, again for the answer. Provider requests now
+run on one shared background runtime with a shared connection pool, so the
+answer reuses the connection the routing call just opened. Cancelling a
+request still stops it. Second, the one-line routing decision (and the
+other small choices smith makes) ran on qwen-max, DashScope's largest
+model. It now uses qwen-flash, DashScope's fast one, and falls back to the
+usual chain if a key can't use it. `CREW_DASHSCOPE_CHEAP_MODEL` picks a
+different one. Time from sending to the first word of the answer, measured:
+2.7 seconds, down from 5.4 at the start of this loop.
+
 ## 0.24.55
 
 **Comic Shanns Mono and Serious Shanns are part of crew's themes.** Both

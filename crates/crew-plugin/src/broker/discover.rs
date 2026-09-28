@@ -36,6 +36,20 @@ pub(crate) fn default_openrouter_chain() -> Vec<String> {
 /// Override with a comma-separated `CREW_DASHSCOPE_MODEL=slug1,slug2,…`.
 pub(crate) const DEFAULT_DASHSCOPE_CHAIN: &[&str] = &["qwen-max", "qwen-plus", "qwen-turbo"];
 
+/// DashScope's model for [`crew_hive::ModelTier::Cheap`] work — the router's
+/// one-line decision, a skill or tool pick, a far-command hint. It used to be
+/// the chain head: qwen-max for a twelve-token `SHAPE: reply`, measured at
+/// ~1.5 s where qwen-flash answers the same prompt in ~0.95 s. The chain stays
+/// behind it as fallbacks, so a key or region without qwen-flash still gets
+/// an answer. `CREW_DASHSCOPE_CHEAP_MODEL` overrides.
+pub(crate) const DASHSCOPE_CHEAP_MODEL: &str = "qwen-flash";
+
+/// The cheap model for a DashScope chain: the override, else qwen-flash.
+pub(crate) fn dashscope_cheap(env: Option<String>) -> String {
+    env.filter(|m| !m.trim().is_empty())
+        .unwrap_or_else(|| DASHSCOPE_CHEAP_MODEL.to_string())
+}
+
 /// DashScope's OpenAI-compatible chat endpoint (international). Point
 /// `CREW_DASHSCOPE_BASE_URL` at the China-region host if your key lives there.
 const DASHSCOPE_ENDPOINT: &str =
@@ -412,9 +426,10 @@ pub(crate) fn roster_with(
     agents
 }
 
-/// [`provider_and_model`] with an explicit tier. Only Anthropic and the
-/// Claude CLI map a tier to a model id — DashScope and OpenRouter default to
-/// their chain head (`chain[0]`), so `tier` is ignored there. Serves the
+/// [`provider_and_model`] with an explicit tier. Anthropic and the Claude CLI
+/// map every tier to a model id; DashScope maps `Cheap` to
+/// [`DASHSCOPE_CHEAP_MODEL`] and everything else to its chain head; OpenRouter
+/// and the direct hosts use their chain head for every tier. Serves the
 /// one-shot asks (via `provider_and_model`, pinned to `Cheap`), the specialist
 /// roster (`roster_with`, `Standard`) and the swarm (`swarmconf::backend`).
 pub(crate) fn provider_and_model_for(
@@ -467,7 +482,12 @@ fn provider_and_model_with(
                         .flatten()
                 })
                 .unwrap_or_else(|| DASHSCOPE_ENDPOINT.to_string());
-            let model = chain.first().cloned()?;
+            let model = match tier {
+                crew_hive::ModelTier::Cheap => {
+                    dashscope_cheap(std::env::var("CREW_DASHSCOPE_CHEAP_MODEL").ok())
+                }
+                _ => chain.first().cloned()?,
+            };
             let provider = crew_hive::OpenRouterProvider::new(key)
                 .with_endpoint(url)
                 .with_fallbacks(chain);

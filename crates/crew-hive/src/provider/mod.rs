@@ -4,6 +4,7 @@
 mod anthropic;
 mod claudecli;
 pub mod claudestream;
+mod io;
 mod mock;
 mod openai_http;
 mod openrouter;
