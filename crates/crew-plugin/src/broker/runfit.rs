@@ -11,8 +11,9 @@
 //! the END of each stream — the tail, which is what Claude Code's Bash tool
 //! keeps of a long output.
 //!
-//! Only the unix `sysrun` fits (Windows has no `sys:run`), and the Windows
-//! job builds with `-D warnings`, so the fitting half is allowed to go unused there.
+//! Only the unix `sysrun` calls [`fit`] (Windows has no `sys:run`; `sys:git`
+//! uses [`ends`] everywhere), and the Windows job builds with `-D warnings`,
+//! so the `sys:run` half is allowed to go unused there.
 #![cfg_attr(not(unix), allow(dead_code))]
 
 #[cfg(test)]
@@ -120,9 +121,23 @@ fn push_end(text: &mut String, s: &str, room: usize) {
     text.push_str(end);
 }
 
+/// One stream fitted the way [`fit`] fits stdout, for a result with no exit
+/// line or stderr of its own: whole within [`RUN_FIT`], else its first `head`
+/// bytes and its end with the gap counted. `sys:git` keeps a long diff so —
+/// its start is the `--stat` naming every file, its end a whole last hunk.
+pub(super) fn ends(s: &str, head: usize) -> String {
+    if s.len() <= RUN_FIT {
+        return s.to_string();
+    }
+    let head = head_of(s, head.min(RUN_FIT - FRAME));
+    let mut text = head.to_string();
+    push_end(&mut text, &s[head.len()..], RUN_FIT - FRAME - head.len());
+    text
+}
+
 /// The longest start of `s` within `max` bytes that ends a line — or, when
 /// the first line alone is longer, as much of it as fits.
-fn head_of(s: &str, max: usize) -> &str {
+pub(super) fn head_of(s: &str, max: usize) -> &str {
     if s.len() <= max {
         return s;
     }

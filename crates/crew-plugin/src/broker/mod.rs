@@ -88,6 +88,8 @@ mod swarm;
 mod sysedit;
 mod sysfetch;
 mod sysfetchtext;
+mod sysgit;
+mod sysgitargs;
 mod sysgrep;
 mod syspath;
 mod sysread;

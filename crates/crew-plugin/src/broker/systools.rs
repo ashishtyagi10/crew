@@ -217,6 +217,26 @@ pub(crate) fn tools() -> Vec<McpTool> {
             }),
         ),
         mk(
+            "git",
+            "git status, diff, log, show or blame, needing no approval: {\"cmd\": \"log\", \"args\": [\"-n\", \"5\"]}",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "cmd": {
+                        "type": "string",
+                        "enum": ["status", "diff", "log", "show", "blame"],
+                        "description": "status (short, with the branch); diff (unstaged changes under a --stat; add \"HEAD\" for staged too); log (--oneline -n 20 unless you say otherwise); show (a commit and its --stat); blame (who last changed each line)",
+                    },
+                    "args": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "one argument per item: revisions, paths after \"--\", -n 5, --stat, --name-only, --since=2.weeks, --author=NAME, -L 10,20:path for log, -L 10,20 for blame",
+                    },
+                },
+                "required": ["cmd"],
+            }),
+        ),
+        mk(
             "list_dir",
             "list a directory (default .): {\"path\": \"src\"}",
             serde_json::json!({
@@ -246,10 +266,11 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),
         "grep" => super::sysgrep::grep(&v),
         "glob" => super::sysgrep::glob(&v),
+        "git" => super::sysgit::git(&v),
         "fetch" => super::sysfetch::fetch(str_arg(&v, "url")?),
         "search" => super::syssearch::search(str_arg(&v, "q")?),
         other => Err(format!(
-            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, grep, glob, fetch, search, find_tools"
+            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, grep, glob, git, fetch, search, find_tools"
         )),
     }
 }

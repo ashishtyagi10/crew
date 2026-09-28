@@ -2698,8 +2698,29 @@ sizes shown), the two that FIND code — **`sys:grep`** (a regex over the
 project's files, `path:line: text`, ≤150 hits; `glob` narrows by file name,
 `ignore_case` folds) and **`sys:glob`** (files by name, or by path with `**`),
 both skipping `.git`, build output, dependency trees, hidden directories and
-binaries — and the two that reach off this machine — **`sys:fetch`** and
-**`sys:search`**.
+binaries — **`sys:git`** (below), and the two that reach off this machine —
+**`sys:fetch`** and **`sys:search`**.
+
+`sys:git {"cmd": …, "args": [...]}` reads the repository's history and state
+without a shell: `status`, `diff`, `log`, `show` or `blame`, and nothing else
+— `push`, `commit`, `checkout` are refused and pointed at `sys:run`. It runs
+`git` itself in the working directory, with no pager, no colour, no fsmonitor
+hook, no external diff or text converter and no optional locks, under a
+20-second deadline. The defaults sit BEFORE the agent's arguments, so git's
+later-wins rule lets the agent override them: `status` is `--short --branch`,
+`log` is `--oneline -n 20`, and `diff`/`show` carry a `--stat` above the patch
+unless the agent chose a shape (`--stat`, `--name-only`, …). An argument that
+could write a file or run a program never reaches git — anything starting
+`--output` or `-o` (writes a file), `--exec`, `--upload-pack` (run a program),
+`--ext-diff`, `--textconv` (run a program git's config names), `-c`,
+`--config` (rewrite config for the run, which can name a program),
+`--git-dir`, `--work-tree` (point at another repository), or carrying a
+newline — and the refusal says which and why. That is what lets it be
+classified `read`: no approval, and it stays on in read-only mode. Status, log
+and blame keep their start when long (the newest commits, a count of the
+rest); a long diff keeps its `--stat` head and its end, fitted under the
+5,600-byte result budget like `sys:run`'s; a non-zero git exit is a failed
+call carrying git's stderr.
 
 `sys:fetch {"url": …}` GETs an http(s) page and returns it as READABLE TEXT:
 script, style and markup are stripped before the model sees a token of it,
@@ -3001,7 +3022,7 @@ agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request;
 `CREW_MAX_TASKS` (default 4) caps concurrent background tasks;
 `CREW_SYS_TOOLS=0` / `CREW_SYS_MODE=readonly` disable or sandbox the built-in
 sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:edit`, `sys:list_dir`,
-`sys:grep`, `sys:glob`, `sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
+`sys:grep`, `sys:glob`, `sys:git`, `sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
 and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
 `CREW_HTTP_TIMEOUT_MS` (default 120000) is how long a provider may say
 NOTHING — the wait for the first byte, and each gap between two frames of a
