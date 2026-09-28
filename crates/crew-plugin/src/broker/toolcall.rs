@@ -74,7 +74,8 @@ pub(crate) fn hint(body: &str, tools: Option<&dyn ToolRunner>) -> String {
 
 /// The parser, shared with the swarm for the same reason the trait is: one
 /// spelling of `@tool`, or an agent that works on one engine and not the other.
-pub(crate) use crew_hive::tools::parse_tool_call;
+/// The split form, because the relay needs the text around a call as well.
+pub(crate) use crew_hive::tools::split_tool_call;
 
 impl Broker {
     /// Let agents call tools mid-relay through `runner`.
@@ -132,7 +133,7 @@ impl Broker {
         let mut exchanges: Vec<String> = Vec::new();
         let max_rounds = self.tool_rounds;
         for round in 0..max_rounds {
-            let Some(call) = parse_tool_call(&reply) else {
+            let Some((said, call)) = split_tool_call(&reply) else {
                 return reply;
             };
             let label = format!("{}:{}", call.server, call.tool);
@@ -178,11 +179,7 @@ impl Broker {
                 ),
                 usage: Default::default(),
             });
-            exchanges.push(format!(
-                "CALLED {label} {}\nRESULT:\n{}",
-                call.args,
-                clip_result(&text, super::toolclip::AGENT_CLIP)
-            ));
+            exchanges.push(super::toolround::exchange(&said, &label, &call.args, &text));
             // The agent is TOLD what it has left. A budget it cannot see is
             // one it plans straight past, and then the turn ends mid-sequence
             // with a tool call nobody ran.
@@ -253,7 +250,8 @@ impl Broker {
         // and the budget is gone. It used to be returned as-is: the pane
         // showed an agent's unrun `@tool` line as its answer, with nothing
         // anywhere saying why it stopped halfway through what it was doing.
-        if parse_tool_call(&reply).is_some() {
+        // Now the note says why, and the answer is the text above the call.
+        if let Some((before, _)) = split_tool_call(&reply) {
             sink(back(
                 env,
                 HopKind::Terminated,
@@ -263,6 +261,7 @@ impl Broker {
                     self.tool_rounds
                 ),
             ));
+            return super::toolround::budget_answer(&before, self.tool_rounds);
         }
         reply
     }

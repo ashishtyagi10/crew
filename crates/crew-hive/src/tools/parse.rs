@@ -9,31 +9,8 @@
 //! the way Aider reads a malformed edit block — lenient about the wrapping,
 //! strict about what counts as the reply's last word.
 
+use super::around::{ends_the_reply, fence_above};
 use super::{JsonDepth, ToolCall};
-
-/// Prose lines a call may be followed by and still be a call.
-///
-/// A model that calls a tool often says one more thing on its way out. A
-/// model EXPLAINING the syntax — answering a question about crew, or quoting
-/// a call it made earlier — writes a paragraph after it. Past two short lines
-/// the call is an example, and running it would act on something the model
-/// was only showing.
-const TRAILING_PROSE: usize = 2;
-
-/// Longest line that still counts as an aside rather than an explanation.
-const SHORT: usize = 160;
-
-/// Phrases that take a call back. A model that writes a call and then "never
-/// mind" has changed its mind; running the tool anyway does what it just
-/// said not to.
-const RETRACTS: [&str; 6] = [
-    "never mind",
-    "nevermind",
-    "scratch that",
-    "disregard",
-    "on second thought",
-    "ignore that",
-];
 
 /// Read the tool call a reply ends with. `None` = the agent answered instead
 /// of calling something.
@@ -42,6 +19,21 @@ const RETRACTS: [&str; 6] = [
 /// model wrapped it in; its JSON runs on to the lines below until it closes;
 /// what follows must be the reply's tail (see [`ends_the_reply`]).
 pub fn parse_tool_call(reply: &str) -> Option<ToolCall> {
+    split_tool_call(reply).map(|(_, call)| call)
+}
+
+/// The tool call a reply ends with, and the reply without it.
+///
+/// Callers need both halves. The text above a call is what the model said
+/// while making it ("the bug is in clip(); reading it next"), and a
+/// follow-up prompt that drops it leaves the model to work out again why it
+/// asked. And a call that is never run must come out of the answer WHOLE:
+/// cutting only the last line left a fenced, pretty-printed call as a
+/// dangling fence and six lines of JSON. So the cut takes the `@tool` line,
+/// its JSON, everything the parser let through below it (the closing fence,
+/// a routing line, a short aside) and the fence it opened in; what is left
+/// is the text before it, trailing whitespace trimmed.
+pub fn split_tool_call(reply: &str) -> Option<(String, ToolCall)> {
     let lines: Vec<&str> = reply.lines().collect();
     let at = lines.iter().rposition(|l| directive(l).is_some())?;
     let rest = directive(lines[at])?;
@@ -52,11 +44,16 @@ pub fn parse_tool_call(reply: &str) -> Option<ToolCall> {
         return None;
     }
     let (args, used) = args(head, &lines[at + 1..]);
-    ends_the_reply(&lines[at + 1 + used..]).then(|| ToolCall {
+    if !ends_the_reply(&lines[at + 1 + used..]) {
+        return None;
+    }
+    let from = fence_above(&lines[..at]).unwrap_or(at);
+    let call = ToolCall {
         server: server.to_string(),
         tool: tool.to_string(),
         args,
-    })
+    };
+    Some((lines[..from].join("\n").trim_end().to_string(), call))
 }
 
 /// What follows `@tool ` on `line`, when `line` is a call: past emphasis, a
@@ -117,43 +114,6 @@ fn json(first: &str, more: &[&str]) -> Option<(String, usize)> {
         text.push_str(line);
     }
     None
-}
-
-/// Whether what follows a call leaves it the reply's last word: blank lines,
-/// the fence it sat in, the relay's routing line, and at most
-/// [`TRAILING_PROSE`] short asides that do not take it back.
-fn ends_the_reply(after: &[&str]) -> bool {
-    let mut prose = 0;
-    for line in after {
-        let t = line.trim();
-        if t.is_empty() || is_fence(t) || is_routing(t) {
-            continue;
-        }
-        let lower = t.to_lowercase();
-        if RETRACTS.iter().any(|r| lower.contains(r)) {
-            return false;
-        }
-        prose += 1;
-        if prose > TRAILING_PROSE || t.chars().count() > SHORT {
-            return false;
-        }
-    }
-    true
-}
-
-/// A bare code fence: the one a call was wrapped in closing behind it.
-fn is_fence(t: &str) -> bool {
-    t.len() >= 3 && t.chars().all(|c| c == '`' || c == '~')
-}
-
-/// `@done` / `@next <agent>`, read as tolerantly as the relay's own routing
-/// parser reads them. A relay agent ends every reply with one, and a call
-/// above it is still the reply's business before routing is.
-fn is_routing(t: &str) -> bool {
-    let bare = t
-        .trim_matches(|c: char| matches!(c, '*' | '`' | '_' | ' ' | '.'))
-        .to_ascii_lowercase();
-    bare.starts_with("@done") || bare.starts_with("@next")
 }
 
 #[cfg(test)]

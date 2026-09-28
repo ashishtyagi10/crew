@@ -32,10 +32,13 @@ pub(super) fn clip(s: &str, max: usize) -> String {
     format!("{head}… [clipped {} chars]", total - max)
 }
 
-/// One CALLED/RESULT pair, in the form the next prompt shows the agent.
-pub(super) fn exchange(label: &str, args: &str, result: &str) -> String {
+/// One round as the next prompt shows it to the agent: what it wrote with
+/// the call (`said`, the reply with the call cut out; see
+/// [`crate::tools::said`]), then the CALLED/RESULT pair.
+pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> String {
     format!(
-        "CALLED {label} {args}\nRESULT:\n{}",
+        "{}CALLED {label} {args}\nRESULT:\n{}",
+        crate::tools::said(said),
         clip(result, RESULT_CAP)
     )
 }
@@ -69,13 +72,13 @@ pub(super) fn follow_up(base: &str, exchanges: &[String], rounds_left: u32) -> S
 /// by the next agent — a phantom call nobody ever ran, propagating downstream.
 /// The note that takes its place says what happened, in the output, where
 /// whoever reads the answer will see it.
+///
+/// The WHOLE call goes, as the parser found it. Cutting the last line was
+/// enough when a call had to be one line; a fenced call with its JSON over
+/// six lines lost only its closing fence, and the rest reached the output.
 pub(super) fn budget_spent(reply: &str, max_rounds: u32) -> String {
-    let kept: Vec<&str> = reply.lines().collect();
-    let cut = kept
-        .iter()
-        .rposition(|l| !l.trim().is_empty())
-        .unwrap_or(kept.len());
-    with_budget_note(&kept[..cut].join("\n"), max_rounds)
+    let body = crate::tools::split_tool_call(reply).map_or_else(|| reply.to_owned(), |(b, _)| b);
+    with_budget_note(&body, max_rounds)
 }
 
 /// `body` plus the budget note. The native path uses this directly: a

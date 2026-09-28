@@ -78,7 +78,7 @@ impl Agent for ApiAgent {
     ///
     /// With no tool surface attached this is exactly one provider call and the
     /// same three events it always published — the loop's first pass IS the
-    /// old body, and `parse_tool_call` is never even reached.
+    /// old body, and `split_tool_call` is never even reached.
     fn run(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = TaskResult> + Send>> {
         let provider = Arc::clone(&self.provider);
         let max_tokens = self.max_tokens;
@@ -192,8 +192,8 @@ impl Agent for ApiAgent {
 
                 let call = tools
                     .as_ref()
-                    .and_then(|_| tools::parse_tool_call(&completion.text));
-                let (Some(runner), Some(call)) = (tools.as_ref(), call) else {
+                    .and_then(|_| tools::split_tool_call(&completion.text));
+                let (Some(runner), Some((said, call))) = (tools.as_ref(), call) else {
                     // No tool asked for: this reply is the answer.
                     ctx.bus.publish(HiveEvent::OutputChunk {
                         agent: agent_id,
@@ -267,7 +267,7 @@ impl Agent for ApiAgent {
                     text: text.clone(),
                     ms,
                 });
-                exchanges.push(toolloop::exchange(&label, &call.args, &text));
+                exchanges.push(toolloop::exchange(&said, &label, &call.args, &text));
                 round += 1;
                 prompt = toolloop::follow_up(&base, &exchanges, rounds_left);
             }

@@ -100,6 +100,7 @@ mod toolcall;
 mod toolclip;
 mod toolline;
 mod toolpick;
+mod toolround;
 mod undo;
 mod undoask;
 mod zerostat;
