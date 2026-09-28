@@ -303,6 +303,12 @@ impl Provider for AnthropicProvider {
         true
     }
 
+    /// Without [`Self::auth_headers`]: the key or bearer is for the call, and
+    /// the socket opens without it.
+    fn warm(&self) {
+        super::warm::warm(&self.client, &self.endpoint);
+    }
+
     fn complete(
         &self,
         req: CompletionRequest,

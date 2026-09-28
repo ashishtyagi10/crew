@@ -26,8 +26,11 @@ pub fn plan(cmd: &PluginCommand) -> Vec<PluginEvent> {
                 label: "agent-B".into(),
             },
         ],
-        // The orchestrator plugin has no gate: nothing here asks, so nothing answers.
-        PluginCommand::Subscribe { .. } | PluginCommand::Approve { .. } => vec![],
+        // The orchestrator plugin has no gate: nothing here asks, so nothing
+        // answers. No provider either, so nothing to warm.
+        PluginCommand::Subscribe { .. }
+        | PluginCommand::Approve { .. }
+        | PluginCommand::Warm {} => vec![],
     }
 }
 

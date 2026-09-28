@@ -49,7 +49,7 @@ pub(crate) fn system_text() -> Option<String> {
 fn paste_into_chat(c: &mut crate::chat::ChatPane, text: &str) {
     match c.keyentry.as_mut() {
         Some(entry) => entry.paste(text),
-        None => c.input.push_str(&multiline(text)),
+        None => c.paste_composer(&multiline(text)),
     }
 }
 

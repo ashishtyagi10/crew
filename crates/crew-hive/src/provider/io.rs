@@ -60,6 +60,17 @@ where
     Box::pin(Joined(handle))
 }
 
+/// Run `fut` on the provider runtime with nobody waiting for it. [`run`]
+/// cannot do this: its future aborts the work when dropped, which is right
+/// for a call and wrong for work whose only product is what it leaves in the
+/// pool — a warmed connection ([`super::warm`]).
+pub(crate) fn detach<F>(fut: F)
+where
+    F: Future<Output = ()> + Send + 'static,
+{
+    drop(runtime().spawn(fut));
+}
+
 /// A spawned request that is aborted if nobody is waiting for it any more.
 struct Joined<T>(tokio::task::JoinHandle<Result<T, ProviderError>>);
 

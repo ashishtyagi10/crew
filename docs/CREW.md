@@ -3000,6 +3000,11 @@ streamed reply — deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled
 endpoint names the transport and still leaves the model fallback chain a turn;
 it is not a budget for the whole call, so a long answer that keeps arriving is
 never cut off mid-sentence;
+`CREW_PREWARM=0` stops the broker opening the provider connection while you
+type — by default the first key of a message sends it a `warm` hint and it
+makes one keyless HEAD to the provider's host (at most once per 20 s, never
+while a task runs), so the turn's first model call reuses that socket instead
+of paying ~0.5 s for TCP and TLS, the way Codex and Claude Code connect early;
 `CREW_STREAM_TEXT=0` stops streamed text being forwarded at all (the model's
 reasoning too), restoring the pre-streaming behaviour for a regressed run or a
 deterministic test; `CREW_THINKING=0` stops asking a provider to SHOW its

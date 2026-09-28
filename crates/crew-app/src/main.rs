@@ -181,6 +181,7 @@ mod chattype;
 mod chatusage;
 mod chatview;
 mod chatvoice;
+mod chatwarm;
 mod chatwidth;
 mod chords;
 pub mod chrome;
