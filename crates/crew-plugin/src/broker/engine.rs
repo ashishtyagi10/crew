@@ -29,6 +29,8 @@ pub struct Broker {
     /// When set, transcript overflow is summarized instead of dropped
     /// (see [`super::compact`]); `None` keeps the fixed-tail clipping.
     summarizer: Option<super::compact::Summarize>,
+    /// Tool rounds one hop may take ([`MAX_TOOL_ROUNDS`] unless raised).
+    pub(crate) tool_rounds: u32,
 }
 
 impl Broker {
@@ -41,7 +43,14 @@ impl Broker {
             cancel: None,
             tools: None,
             summarizer: None,
+            tool_rounds: super::toolcall::MAX_TOOL_ROUNDS,
         }
+    }
+
+    /// Raise (or lower) the tool rounds one hop may take.
+    pub(crate) fn with_tool_rounds(mut self, n: u32) -> Self {
+        self.tool_rounds = n.max(1);
+        self
     }
 
     /// Attach a transcript summarizer (`None` = keep clipping).
@@ -203,7 +212,10 @@ impl Broker {
             }
             match parse_routing(&reply) {
                 Routing::Relay { to: next, body } => {
-                    if next.eq_ignore_ascii_case(&env.to) {
+                    // A hand-off to nobody on the roster — an agent alone on a
+                    // routed reply, or a name remembered from another turn — is
+                    // the answer, not an error card.
+                    if next.eq_ignore_ascii_case(&env.to) || self.registry.get(&next).is_none() {
                         let mut done = back(&env, HopKind::Done, body); // self-hand-off → finish
                         done.usage = usage;
                         sink(done);

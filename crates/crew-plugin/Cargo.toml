@@ -24,6 +24,10 @@ percent-encoding = { workspace = true }
 # `lsp:*` tools: hover / definition / references / diagnostics from a language
 # server, read-only, per project root and language (broker/session.rs).
 crew-lsp = { path = "../crew-lsp" }
+# `sys:grep` / `sys:glob` (broker/sysgrep.rs): search the project's code
+# without a shell, the same on every platform.
+regex = { workspace = true }
+walkdir = { workspace = true }
 
 # Integration tests (tests/) parse the broker's JSON event lines.
 [dev-dependencies]

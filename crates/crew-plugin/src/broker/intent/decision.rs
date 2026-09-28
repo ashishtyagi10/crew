@@ -160,21 +160,42 @@ pub(crate) fn decide_in(task: &str, world: &World, classifier: Option<Classifier
     let Some(call) = classifier else {
         return Routing::Off;
     };
-    match call(&classify::prompt(task, world)) {
-        Ok(reply) => match parse_decision_on(&reply, &world.agents) {
-            Some(mut d) => {
-                // Shown the roster and naming none of it IS a choice — none —
-                // not a gap for the skill decider to fill with another call.
-                let names: Vec<String> = world.skills.iter().map(|(n, _)| n.clone()).collect();
-                d.hints.skills = (!names.is_empty())
-                    .then(|| super::skillhint::parse(&reply, &names).unwrap_or_default());
-                d.hints = d.hints.relevant_to(d.shape);
-                Routing::Chosen(d)
-            }
-            None => Routing::OffGrammar,
-        },
-        Err(e) => Routing::Failed(e),
+    let prompt = classify::prompt(task, world);
+    // An off-grammar reply is asked for once more before it becomes the
+    // swarm fallback: the router is a small fast model now, a second sample
+    // costs about a second, and the fallback costs a planning call and a
+    // swarm — seconds more, for a question one agent would have answered.
+    let mut outcome = Routing::OffGrammar;
+    for _ in 0..2 {
+        outcome = match call(&prompt) {
+            Ok(reply) => read_reply(&reply, world),
+            Err(e) => return Routing::Failed(e),
+        };
+        if outcome != Routing::OffGrammar {
+            break;
+        }
     }
+    outcome
+}
+
+/// One classifier reply, parsed: the decision with its sizing and skill
+/// lines, or off-grammar (said on stderr, clipped, so a stray reply can be
+/// diagnosed without re-running the turn).
+fn read_reply(reply: &str, world: &World) -> Routing {
+    let Some(mut d) = parse_decision_on(reply, &world.agents) else {
+        eprintln!(
+            "crew-broker: router reply off-grammar: {:?}",
+            clip(reply, 300)
+        );
+        return Routing::OffGrammar;
+    };
+    // Shown the roster and naming none of it IS a choice — none —
+    // not a gap for the skill decider to fill with another call.
+    let names: Vec<String> = world.skills.iter().map(|(n, _)| n.clone()).collect();
+    d.hints.skills =
+        (!names.is_empty()).then(|| super::skillhint::parse(reply, &names).unwrap_or_default());
+    d.hints = d.hints.relevant_to(d.shape);
+    Routing::Chosen(d)
 }
 
 /// Parse the reply against the grammar: `SHAPE:` on the first line (via

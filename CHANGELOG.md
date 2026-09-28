@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.24.63
+
+**Smith works like one focused agent that can search your code.** On a
+code question, the answering agent used to hand the conversation around:
+it answered, passed it to "debug-engineer", who passed it back, five
+hand-offs in all, each re-reading the same file. It also had no way to
+search, only to guess paths ("src/gui/todos.rs", which doesn't exist).
+Now:
+
+- A routed reply is one agent's turn. It runs alone, so there's nobody to
+  hand off to, and it gets 8 tool rounds (up from 4) to search, read and
+  answer. `@name` chats between agents still hand off, but the prompt now
+  says to do that only for work that needs the other agent's specialty.
+- Two new built-in tools, available to every agent: **`sys:grep`**
+  searches the project's files with a regex (skipping `.git`, build output
+  and binaries), and **`sys:glob`** finds files by name. The instructions
+  say to find the file before reading it, and never to guess a path.
+- A hand-off to an agent that isn't in the roster finishes the turn with
+  the reply, instead of an "unknown agent" error.
+- If the routing decision comes back garbled, crew asks once more before
+  falling back to the slow swarm path.
+- Visible "thinking" is capped at 512 tokens (`CREW_THINKING_BUDGET`).
+  Qwen3 models on DashScope were reasoning for up to two minutes before
+  answering. The same question on qwen3-max now takes 41 seconds, down
+  from over four minutes.
+
 ## 0.24.62
 
 **A swarm's final answer is written by the full model again, and its

@@ -38,9 +38,9 @@ fn openrouter_body_asks_for_cost_but_custom_endpoint_does_not() {
         ..Default::default()
     };
     let messages = vec![serde_json::json!({"role": "user", "content": "hi"})];
-    let with_cost = build_body("m", &req, &messages, true, None);
+    let with_cost = build_body("m", &req, &messages, true, Vec::new());
     assert_eq!(with_cost["usage"]["include"], true);
-    let without_cost = build_body("m", &req, &messages, false, None);
+    let without_cost = build_body("m", &req, &messages, false, Vec::new());
     assert!(
         without_cost.get("usage").is_none(),
         "must not send `usage` at all when cost reporting is not requested"
@@ -694,7 +694,7 @@ fn the_reasoning_opt_in_rides_the_body_when_given() {
         &req,
         &messages,
         false,
-        Some(("enable_thinking", serde_json::json!(true))),
+        vec![("enable_thinking", serde_json::json!(true))],
     );
     assert_eq!(dash["enable_thinking"], true);
     let or = build_body(
@@ -702,10 +702,10 @@ fn the_reasoning_opt_in_rides_the_body_when_given() {
         &req,
         &messages,
         true,
-        Some(("reasoning", serde_json::json!({"enabled": true}))),
+        vec![("reasoning", serde_json::json!({"enabled": true}))],
     );
     assert_eq!(or["reasoning"]["enabled"], true);
-    let none = build_body("m", &req, &messages, true, None);
+    let none = build_body("m", &req, &messages, true, Vec::new());
     assert!(none.get("reasoning").is_none() && none.get("enable_thinking").is_none());
 }
 

@@ -19,9 +19,10 @@ fn every_built_in_tool_is_classified() {
     );
     assert_eq!(
         systools::tools().len(),
-        8,
-        "the sys surface is eight tools: five that act on this machine, `fetch` and \
-         `search` for the world outside it, and `find_tools` to reach the rest"
+        10,
+        "the sys surface is ten tools: five that act on this machine, `grep` and \
+         `glob` to find code in it, `fetch` and `search` for the world outside it, \
+         and `find_tools` to reach the rest"
     );
 }
 

@@ -34,6 +34,19 @@ impl Registry {
     }
 
     /// Registered agent names, in registration order.
+    /// This registry with only `name` in it — a turn that is one agent's
+    /// alone, with nobody to hand off to. Unchanged when `name` is absent.
+    pub fn only(mut self, name: &str) -> Self {
+        if self
+            .agents
+            .iter()
+            .any(|a| a.name().eq_ignore_ascii_case(name))
+        {
+            self.agents.retain(|a| a.name().eq_ignore_ascii_case(name));
+        }
+        self
+    }
+
     pub fn names(&self) -> Vec<String> {
         self.agents.iter().map(|a| a.name().to_string()).collect()
     }

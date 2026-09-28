@@ -58,8 +58,9 @@ pub(crate) fn hint_for(tools: &[McpTool]) -> String {
          `@tool <server>:<tool> {{\"arg\": \u{2026}}}` (JSON arguments) \u{2014} the \
          result is sent back to you before you answer.\n\
          LOOK FIRST: when the task is about this project \u{2014} its code, files, \
-         build or behaviour \u{2014} read the relevant files with these tools before \
-         you answer. Never describe code you have not read.\nAvailable tools:\n{}",
+         build or behaviour \u{2014} find the relevant files (sys:grep, sys:glob) and \
+         read them before you answer. Never describe code you have not read, and \
+         never guess a path.\nAvailable tools:\n{}",
         lines.join("\n")
     )
 }
@@ -129,7 +130,8 @@ impl Broker {
         // gate never swallows a short follow-up after a long primary reply.
         let mut tick_base: u64 = (reply.chars().count() as u64) / 4;
         let mut exchanges: Vec<String> = Vec::new();
-        for round in 0..MAX_TOOL_ROUNDS {
+        let max_rounds = self.tool_rounds;
+        for round in 0..max_rounds {
             let Some(call) = parse_tool_call(&reply) else {
                 return reply;
             };
@@ -180,7 +182,7 @@ impl Broker {
             // The agent is TOLD what it has left. A budget it cannot see is
             // one it plans straight past, and then the turn ends mid-sequence
             // with a tool call nobody ran.
-            let left = MAX_TOOL_ROUNDS - round - 1;
+            let left = max_rounds - round - 1;
             let budget = if left == 0 {
                 "This was your LAST tool call this turn: answer with what you \
                  have now."
@@ -252,8 +254,9 @@ impl Broker {
                 env,
                 HopKind::Terminated,
                 format!(
-                    "tool budget spent \u{2014} {MAX_TOOL_ROUNDS} calls in one turn; \
-                     the last request was not run"
+                    "tool budget spent \u{2014} {} calls in one turn; \
+                     the last request was not run",
+                    self.tool_rounds
                 ),
             ));
         }

@@ -174,3 +174,45 @@ fn a_fenced_or_bolded_shape_line_is_read() {
     assert_eq!(parse_shape("I think SHAPE: reply"), None);
     assert_eq!(parse_shape("Sure!\nSHAPE: reply"), None);
 }
+
+/// One stray reply is asked again before it becomes the swarm fallback; two
+/// in a row are the fallback, and a call that FAILED is not retried.
+#[test]
+fn an_off_grammar_reply_is_asked_once_more() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let n = AtomicUsize::new(0);
+    let flaky = |_: &str| -> Result<String, String> {
+        Ok(match n.fetch_add(1, Ordering::SeqCst) {
+            0 => "Sure! Here is my routing.".into(),
+            _ => "SHAPE: reply".into(),
+        })
+    };
+    let r = decide_in("hi", &World::default(), Some(&flaky));
+    assert!(
+        matches!(r, Routing::Chosen(ref d) if d.shape == Shape::Reply),
+        "{r:?}"
+    );
+    assert_eq!(n.load(Ordering::SeqCst), 2);
+
+    let m = AtomicUsize::new(0);
+    let junk = |_: &str| -> Result<String, String> {
+        m.fetch_add(1, Ordering::SeqCst);
+        Ok("no idea".into())
+    };
+    assert_eq!(
+        decide_in("hi", &World::default(), Some(&junk)),
+        Routing::OffGrammar
+    );
+    assert_eq!(m.load(Ordering::SeqCst), 2, "asked twice, no more");
+
+    let k = AtomicUsize::new(0);
+    let down = |_: &str| -> Result<String, String> {
+        k.fetch_add(1, Ordering::SeqCst);
+        Err("timeout".into())
+    };
+    assert!(matches!(
+        decide_in("hi", &World::default(), Some(&down)),
+        Routing::Failed(_)
+    ));
+    assert_eq!(k.load(Ordering::SeqCst), 1, "a failure is not retried");
+}

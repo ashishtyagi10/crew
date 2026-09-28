@@ -138,7 +138,8 @@ pub(crate) fn dispatch(
     match shape {
         Shape::Reply => {
             let pick = hints.agents.as_ref().and_then(|a| a.first());
-            super::stdio::relay_counting(task, pick.map(String::as_str), session, tick_emit, emit)
+            let pick = pick.map(String::as_str);
+            super::stdio::relay_counting(task, pick, true, session, tick_emit, emit)
         }
         Shape::Fan => fanout::fan_cmd(session, task, hints.agents.as_deref(), tick_emit, emit),
         Shape::Loop => {
