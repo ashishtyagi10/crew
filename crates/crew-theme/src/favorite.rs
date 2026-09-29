@@ -26,13 +26,12 @@
 /// that resolves nothing costs a fallback. In the rotation, which only runs
 /// on the machine that turned it on, it comes up as often as the rest.
 ///
-/// `Comic Shanns Mono` and `Serious Shanns` (2026-09-27) are the user's own
-/// installs, asked for by name ("I like them very much"): Comic Shanns is the
-/// face Comic Mono was cut from, and Serious Shanns its steadier sibling. They
-/// lead the two warm theme families (see `font_prefs`).
+/// `Comic Shanns Mono` (2026-09-27) is the user's own install, asked for by
+/// name ("I like them very much"): the face Comic Mono was cut from. It leads
+/// the Sepia family (see `font_prefs`). Its sibling `Serious Shanns` came in
+/// with it and was asked out the next day — too small beside the rest.
 pub const FAVORITES: &[&str] = &[
     "Comic Shanns Mono",
-    "Serious Shanns",
     "Comic Mono",
     "JetBrains Mono",
     "SF Mono",

@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.8
+
+**Serious Shanns is out of crew's font lists.** It came in with Comic Shanns
+Mono in 0.24.55 and led the Paper family, but at the shared font
+size it read small beside every other face the rotation shows. crew no longer
+picks it on its own: it is off the allowlist, off the favourites, and Paper
+leads with MonoLisa again, as it did before. Comic Shanns Mono is unchanged
+and still leads Sepia. A machine that has Serious Shanns installed can still
+choose it by hand in the `/font` picker.
+
 ## 0.25.7
 
 **An agent keeps a checklist for work with several steps.** Asked to "add a
