@@ -26,11 +26,14 @@ fn haystack(m: &ModelInfo) -> String {
 }
 
 fn matches(m: &ModelInfo, query: &str) -> bool {
-    if query.is_empty() {
-        return true;
-    }
     let hay = haystack(m);
-    hay.contains(query) || crate::suggest::is_subsequence(query, &hay)
+    // A badge word tests the badge: as a subsequence, "free" also spells
+    // f·r·e·e across a paid "claude fable … anthropic/claude-fable" row.
+    match query {
+        "" => true,
+        "free" | "paid" => hay.ends_with(query),
+        q => hay.contains(q) || crate::suggest::is_subsequence(q, &hay),
+    }
 }
 
 /// The dim column: slug, price, context, current-mark, and route hint. Price,

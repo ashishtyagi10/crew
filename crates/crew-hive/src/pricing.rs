@@ -14,12 +14,22 @@ use crate::provider::Completion;
 /// cached rate has been checked it repeats the input rate, so a cache hit is
 /// never billed below what the provider published.
 const RATES: &[(&str, u64, u64, u64)] = &[
-    // Anthropic list prices, 2026-07. A cache read is 0.1× input; a cache
-    // write is 1.25× ([`WRITE_NUM`]/[`WRITE_DEN`], the 5-minute cache).
+    // Anthropic list prices, 2026-09, from Anthropic's model table. A cache
+    // write is 1.25× input ([`WRITE_NUM`]/[`WRITE_DEN`], the 5-minute cache);
+    // a cache read is the table's own rate, 0.1× input on most rows but not
+    // all. The family rows price the older models; a newer model that
+    // changed price has its own, longer row, spelled both ways because
+    // OpenRouter's alias writes the version with a dot (`claude-opus-5.5`).
     ("claude-opus", 5_000_000, 25_000_000, 500_000),
+    ("claude-opus-5-5", 4_000_000, 20_000_000, 200_000),
+    ("claude-opus-5.5", 4_000_000, 20_000_000, 200_000),
     ("claude-sonnet", 3_000_000, 15_000_000, 300_000),
+    // Sonnet 5 and 5.5 (either spelling) share a price.
+    ("claude-sonnet-5", 2_000_000, 10_000_000, 200_000),
     ("claude-haiku", 1_000_000, 5_000_000, 100_000),
     ("claude-fable", 10_000_000, 50_000_000, 1_000_000),
+    ("claude-fable-5-1", 10_000_000, 50_000_000, 250_000),
+    ("claude-fable-5.1", 10_000_000, 50_000_000, 250_000),
     // Qwen / DashScope, International (Singapore) deployment — Alibaba Cloud
     // Model Studio "Model pricing",
     // https://www.alibabacloud.com/help/en/model-studio/model-pricing, read

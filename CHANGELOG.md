@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.9
+
+**crew's Claude tiers ask for the models Anthropic serves today.** The
+standard and capable tiers still named `claude-sonnet-4-6` and
+`claude-opus-4-8`, two generations back, and that one id is what the
+Anthropic provider sends, what `claude -p --model` is given, what the planner
+asks for and what an unlisted model's call is billed at. They are
+`claude-sonnet-5-5` and `claude-opus-5-5` now (cheap stays
+`claude-haiku-4-5`), both checked live through the Claude CLI. The prices
+moved with them: Sonnet 5 and 5.5 were billed at Sonnet 4's $3/$15 and are
+$2/$10, Opus 5.5 is $4/$20 rather than the family's $5/$25, and cache reads
+use each model's own rate (Opus 5.5 and Sonnet 5.x $0.20, Fable 5.1 $0.25).
+The model picker lists Opus 5.5, Sonnet 5.5 and Fable 5.1, with the
+OpenRouter aliases read off OpenRouter's public list, and the context meter
+counts 1M for every current Claude where it said 200K for all of them;
+Haiku 4.5 and older models keep 200K. Typing `free` or `paid` in the picker
+now filters on the badge, because as a fuzzy match `free` was spelled across
+a paid Fable row. The `/improve` loop's charter gained a "what is current"
+section: the models crew should default to, the request rules the Claude 5
+family enforces, and the agent techniques other tools shipped this year that
+crew does not have yet. The cost: Sonnet 5.5 thinks before it answers where
+Sonnet 4.6 did not unless asked, and that thinking counts against the same
+token limit; a reply that runs out is continued once, as any cut-off reply
+is.
+
 ## 0.25.8
 
 **Serious Shanns is out of crew's font lists.** It came in with Comic Shanns

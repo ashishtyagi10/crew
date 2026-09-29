@@ -10,10 +10,10 @@ fn longest_pattern_wins() {
 
 #[test]
 fn provider_prefix_and_case_are_ignored() {
-    // $3/Mtok in + $15/Mtok out: 10k in + 1k out = 30_000 + 15_000 µ$.
+    // $2/Mtok in + $10/Mtok out: 10k in + 1k out = 20_000 + 10_000 µ$.
     assert_eq!(
         cost_microusd("anthropic/Claude-Sonnet-5", 10_000, 1_000),
-        45_000
+        30_000
     );
 }
 
@@ -78,4 +78,74 @@ fn free_models_are_listed_at_zero() {
     );
     assert_eq!(super::rate("openai/gpt-oss-20b:free"), Some((0, 0)));
     assert_eq!(super::rate("qwen/qwen3-coder:free"), Some((0, 0)));
+}
+
+/// 900 of a 1000-token prompt read from cache, 10 tokens out, at `model`.
+fn cached_reply_cost(model: &str) -> u64 {
+    let c = crate::provider::Completion {
+        input_tokens: 1_000,
+        cached_input_tokens: 900,
+        output_tokens: 10,
+        ..Default::default()
+    };
+    super::usage_cost(model, &c)
+}
+
+/// Anthropic's model table, 2026-09: the models that changed price have rows
+/// longer than their family's, so the family's older rate cannot reach them.
+/// Each cached rate is the table's own, not 0.1× input.
+#[test]
+fn current_claude_models_bill_at_their_own_rates() {
+    assert_eq!(
+        super::rate("claude-opus-5-5"),
+        Some((4_000_000, 20_000_000))
+    );
+    // 100 × $4 + 900 × $0.20 + 10 × $20 per M.
+    assert_eq!(cached_reply_cost("claude-opus-5-5"), 400 + 180 + 200);
+    for sonnet in ["claude-sonnet-5", "claude-sonnet-5-5"] {
+        assert_eq!(super::rate(sonnet), Some((2_000_000, 10_000_000)));
+        // 100 × $2 + 900 × $0.20 + 10 × $10 per M.
+        assert_eq!(cached_reply_cost(sonnet), 200 + 180 + 100, "{sonnet}");
+    }
+    assert_eq!(
+        super::rate("claude-fable-5-1"),
+        Some((10_000_000, 50_000_000))
+    );
+    // 100 × $10 + 900 × $0.25 + 10 × $50 per M.
+    assert_eq!(cached_reply_cost("claude-fable-5-1"), 1_000 + 225 + 500);
+}
+
+/// OpenRouter spells the version with a dot; the same model costs the same.
+#[test]
+fn openrouter_aliases_bill_like_the_native_slug() {
+    for (native, alias) in [
+        ("claude-opus-5-5", "anthropic/claude-opus-5.5"),
+        ("claude-sonnet-5-5", "anthropic/claude-sonnet-5.5"),
+        ("claude-fable-5-1", "anthropic/claude-fable-5.1"),
+    ] {
+        assert_eq!(
+            cached_reply_cost(alias),
+            cached_reply_cost(native),
+            "{alias}"
+        );
+    }
+}
+
+/// The family rows still price the models that kept their price.
+#[test]
+fn older_claude_models_keep_their_family_rate() {
+    assert_eq!(
+        super::rate("claude-opus-4-8"),
+        Some((5_000_000, 25_000_000))
+    );
+    assert_eq!(super::rate("claude-opus-5"), Some((5_000_000, 25_000_000)));
+    assert_eq!(
+        super::rate("claude-sonnet-4-6"),
+        Some((3_000_000, 15_000_000))
+    );
+    assert_eq!(
+        super::rate("claude-fable-5"),
+        Some((10_000_000, 50_000_000))
+    );
+    assert_eq!(cached_reply_cost("claude-fable-5"), 1_000 + 900 + 500);
 }

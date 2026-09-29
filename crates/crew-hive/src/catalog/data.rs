@@ -1,5 +1,5 @@
 //! The curated catalog rows. Split from `catalog.rs` to keep both under the
-//! line cap. Prices are µ$/Mtok list rates, 2026-07; `None` means we don't
+//! line cap. Prices are µ$/Mtok list rates, 2026-09; `None` means we don't
 //! have a verified rate (the picker badges it `—` and live enrichment may
 //! fill it in). Free rows are OpenRouter `:free` variants.
 use super::{ModelInfo, Vendor};
@@ -29,12 +29,17 @@ const M: u64 = 1_000_000; // µ$ per $1
 // rustfmt::skip keeps each row a single scannable line.
 #[rustfmt::skip]
 pub(super) const MODELS: &[ModelInfo] = &[
-    // Anthropic — rates verified against the 2026-07 first-party card.
+    // Anthropic, newest first — rates verified against Anthropic's model
+    // table, 2026-09; OpenRouter aliases read off its public `/models` list
+    // (2026-09-29), `None` where it lists no such model.
+    m("Claude Opus 5.5", "claude-opus-5-5", Some("anthropic/claude-opus-5.5"), Vendor::Anthropic, Some((4 * M, 20 * M)), false, 1_000_000),
+    m("Claude Sonnet 5.5", "claude-sonnet-5-5", Some("anthropic/claude-sonnet-5.5"), Vendor::Anthropic, Some((2 * M, 10 * M)), false, 1_000_000),
+    m("Claude Fable 5.1", "claude-fable-5-1", Some("anthropic/claude-fable-5.1"), Vendor::Anthropic, Some((10 * M, 50 * M)), false, 1_000_000),
     m("Claude Opus 5", "claude-opus-5", Some("anthropic/claude-opus-5"), Vendor::Anthropic, Some((5 * M, 25 * M)), false, 1_000_000),
-    m("Claude Sonnet 5", "claude-sonnet-5", Some("anthropic/claude-sonnet-5"), Vendor::Anthropic, Some((3 * M, 15 * M)), false, 1_000_000),
+    m("Claude Sonnet 5", "claude-sonnet-5", Some("anthropic/claude-sonnet-5"), Vendor::Anthropic, Some((2 * M, 10 * M)), false, 1_000_000),
     m("Claude Haiku 4.5", "claude-haiku-4-5", Some("anthropic/claude-haiku-4.5"), Vendor::Anthropic, Some((M, 5 * M)), false, 200_000),
     m("Claude Opus 4.8", "claude-opus-4-8", Some("anthropic/claude-opus-4.8"), Vendor::Anthropic, Some((5 * M, 25 * M)), false, 1_000_000),
-    m("Claude Fable 5", "claude-fable-5", None, Vendor::Anthropic, Some((10 * M, 50 * M)), false, 1_000_000),
+    m("Claude Fable 5", "claude-fable-5", Some("anthropic/claude-fable-5"), Vendor::Anthropic, Some((10 * M, 50 * M)), false, 1_000_000),
     // OpenAI — rates from `pricing::RATES`; GPT-5 list rate unverified.
     m("GPT-4.1", "gpt-4.1", Some("openai/gpt-4.1"), Vendor::OpenAI, Some((2 * M, 8 * M)), false, 0),
     m("GPT-4.1 Mini", "gpt-4.1-mini", Some("openai/gpt-4.1-mini"), Vendor::OpenAI, Some((400_000, 1_600_000)), false, 0),
