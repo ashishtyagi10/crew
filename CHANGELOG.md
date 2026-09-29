@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.10
+
+**An Anthropic tool loop reads its history back from the cache.** A native
+tool loop sends the whole conversation again every round (system prompt,
+tools, the task and every call and result so far), so round eight paid full
+input price, and waited for the full prefill, on everything rounds one to
+seven had already sent. Anthropic's automatic prompt cache fixes that with
+one field, and Claude Code and every other harness built on the API use it.
+Now a request that carries tools sends `"cache_control": {"type":
+"ephemeral"}` at the top level: the API keeps a breakpoint on the last block
+and moves it forward as the loop grows, and the next round reads the shared
+prefix back at a tenth of the input rate (a twentieth on Opus 5.5). The
+statusline's cost already knew how to price a cache read and a cache write;
+a reply that carries both is now tested too. A one-shot (the router, a judge,
+the closing answer, a relay prompt rebuilt each round, a cut-off reply's
+continuation) never asks, because a cache write that is never read back is
+just a 25% surcharge. `CREW_ANTHROPIC_CACHE=0` turns it off, for a gateway
+behind `ANTHROPIC_BASE_URL` that refuses the field. The cost: the first round
+of a loop pays 1.25× input on its prefix, and a loop that ends after one
+round never earns it back; a prefix under the model's minimum (512 tokens on
+the 5.x models, 4,096 on Haiku 4.5) is simply not cached. Checked on the wire
+against a local stub; not yet measured against the live API.
+
 ## 0.25.9
 
 **crew's Claude tiers ask for the models Anthropic serves today.** The

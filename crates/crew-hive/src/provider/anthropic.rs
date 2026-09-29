@@ -274,7 +274,13 @@ pub(crate) fn build_tools(req: &CompletionRequest) -> Option<serde_json::Value> 
 
 impl AnthropicProvider {
     /// One request's body; `stream` asks for server-sent events.
-    fn body(req: &CompletionRequest, stream: bool) -> serde_json::Value {
+    pub(super) fn body(req: &CompletionRequest, stream: bool) -> serde_json::Value {
+        Self::body_if(super::anthropiccache::enabled(), req, stream)
+    }
+
+    /// [`Self::body`] with the prompt-cache switch handed in rather than read
+    /// from the environment (`anthropiccache`).
+    pub(super) fn body_if(cache: bool, req: &CompletionRequest, stream: bool) -> serde_json::Value {
         let mut body = serde_json::json!({
             "model": req.model,
             "max_tokens": req.max_tokens,
@@ -285,6 +291,9 @@ impl AnthropicProvider {
         }
         if let Some(tools) = build_tools(req) {
             body["tools"] = tools;
+        }
+        if super::anthropiccache::caches(cache, req) {
+            body["cache_control"] = super::anthropiccache::field();
         }
         if stream {
             body["stream"] = serde_json::json!(true);

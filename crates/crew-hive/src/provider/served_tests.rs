@@ -103,6 +103,40 @@ fn an_anthropic_stream_reads_cache_and_model_from_message_start() {
     assert_eq!(c.model, "claude-haiku-4-5");
 }
 
+/// A cached tool loop's later round both READS the prefix the last round
+/// wrote and WRITES the turns added since (`anthropiccache`), so one reply
+/// carries both counts. Sonnet: 50 fresh × $3 + 1800 read × $0.3 + 200
+/// written × $3.75 + 16 out × $15 per M = 150 + 540 + 750 + 240 µ$ — each
+/// part at its own rate, whole or streamed.
+#[test]
+fn a_reply_that_reads_and_writes_the_cache_prices_each_part() {
+    let body = r#"{"type":"message","model":"claude-sonnet-5-5",
+        "content":[{"type":"text","text":"hi"}],"stop_reason":"end_turn",
+        "usage":{"input_tokens":50,"cache_read_input_tokens":1800,
+        "cache_creation_input_tokens":200,"output_tokens":16}}"#;
+    let whole = AnthropicProvider::parse_response(body).unwrap();
+    let f = quiet();
+    let mut fold = Fold::default();
+    fold.feed(
+        "data: {\"type\":\"message_start\",\"message\":{\"model\":\"claude-sonnet-5-5\",\
+         \"usage\":{\"input_tokens\":50,\"cache_read_input_tokens\":1800,\
+         \"cache_creation_input_tokens\":200,\"output_tokens\":1}}}\n\
+         data: {\"type\":\"message_delta\",\"usage\":{\"output_tokens\":16}}\n",
+        &f,
+    );
+    let streamed = fold.finish(&f).unwrap();
+    for c in [whole, streamed] {
+        assert_eq!(
+            c.input_tokens, 2050,
+            "the whole prompt, both cache parts in"
+        );
+        assert_eq!((c.cached_input_tokens, c.cache_write_tokens), (1800, 200));
+        assert_eq!(c.output_tokens, 16);
+        // $2/$10, a cache read $0.20, a write 1.25× input.
+        assert_eq!(usage_cost("claude-sonnet-5-5", &c), 100 + 360 + 500 + 160);
+    }
+}
+
 /// A reply that named no model is stamped with the attempt's; one that did
 /// keeps its own word.
 #[test]

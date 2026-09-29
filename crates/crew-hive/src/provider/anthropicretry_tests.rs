@@ -43,15 +43,15 @@ pub(crate) fn serve(replies: Vec<Reply>) -> (String, Arc<AtomicUsize>) {
     (format!("http://{addr}"), asked)
 }
 
-/// The whole request — headers, then `content-length` bytes — before any
-/// answer: answering early races the client still writing it.
-async fn read_request(sock: &mut tokio::net::TcpStream) {
+/// The whole request — headers, then `content-length` bytes, returned for a
+/// wire check — before any answer: answering early races the client still writing it.
+pub(crate) async fn read_request(sock: &mut tokio::net::TcpStream) -> Vec<u8> {
     let mut buf = Vec::new();
     let mut chunk = [0u8; 4096];
     loop {
         let n = sock.read(&mut chunk).await.unwrap_or(0);
         if n == 0 {
-            return;
+            return buf;
         }
         buf.extend_from_slice(&chunk[..n]);
         let Some(end) = buf.windows(4).position(|w| w == b"\r\n\r\n") else {
@@ -65,7 +65,7 @@ async fn read_request(sock: &mut tokio::net::TcpStream) {
             .and_then(|s| s.trim().parse().ok())
             .unwrap_or(0);
         if buf.len() >= end + 4 + len {
-            return;
+            return buf;
         }
     }
 }

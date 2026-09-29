@@ -54,4 +54,8 @@ async fn a_text_reply_streams_fragment_by_fragment() {
         asked.lock().unwrap().contains("\"stream\":true"),
         "asked for a stream"
     );
+    assert!(
+        !asked.lock().unwrap().contains("cache_control"),
+        "a one-shot pays no cache-write surcharge (`anthropiccache`)"
+    );
 }
