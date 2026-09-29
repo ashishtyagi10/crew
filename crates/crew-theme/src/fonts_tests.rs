@@ -149,6 +149,8 @@ fn allowlist_has_no_typewriter_or_legacy_system_faces() {
         "Intel One Mono",
         "IntoneMono Nerd Font",
         "IntoneMono Nerd Font Mono",
+        "Serious Shanns",
+        "SeriousShanns Nerd Font Mono",
     ] {
         assert!(
             !FONT_ALLOWLIST

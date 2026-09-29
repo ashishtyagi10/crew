@@ -55,8 +55,10 @@ pub const EMBEDDED_FAMILY: &str = "Lilex";
 /// Deliberately excludes typewriter/legacy faces (Courier, Courier New, PT
 /// Mono, Andale, Consolas, and pre-Retina Monaco — SF Mono is the modern
 /// macOS face), Stelo (its lowercase `l` renders as a broken bar — user bug
-/// report 2026-07-24) and Intel One Mono with its `IntoneMono` Nerd Font
-/// builds (taste — asked out 2026-09-06): a rotation must never land on one. The *manual*
+/// report 2026-07-24), Intel One Mono with its `IntoneMono` Nerd Font
+/// builds (taste — asked out 2026-09-06) and Serious Shanns (asked out
+/// 2026-09-28, a day after it went in: it read too small at the size the
+/// other faces fill): a rotation must never land on one. The *manual*
 /// `/font` picker is unaffected — it still offers every installed coding
 /// face; this only governs what crew picks on its own. Menlo and the other
 /// OS-stock faces stay ONLY as mid-list options — never a lead, and no longer
@@ -81,7 +83,6 @@ pub const FONT_ALLOWLIST: &[&str] = &[
     "Operator Mono",
     "Roboto Mono",
     "SF Mono",
-    "Serious Shanns",
 ];
 
 /// The families this theme would like, best first. Empty = no opinion.
@@ -100,12 +101,10 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // `typeface_key`, and the pool holds the best installed spelling of
         // each (the icon-bearing build where there is one).
         //
-        // Serious Shanns leads (2026-09-27, the user's pick): a humanist hand
-        // with open counters, which is what a book face is — and it keeps
-        // Comic Shanns's warmth without its bounce. MonoLisa stands behind it
-        // on every machine without it.
+        // MonoLisa leads. Serious Shanns led for a day (2026-09-27) and was
+        // asked out the next: at the shared font size it read small beside
+        // every other face in the rotation.
         ThemeId::PaperDark | ThemeId::PaperLight => &[
-            "Serious Shanns",
             "MonoLisa",
             "IBM Plex Mono",
             "Comic Mono",
