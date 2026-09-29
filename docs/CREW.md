@@ -3113,6 +3113,12 @@ asking — reasoning a model shows unprompted is still shown;
 `CREW_THINKING_BUDGET` (default 512) bounds the reasoning those asks allow, in
 tokens — DashScope's `thinking_budget`, OpenRouter's `reasoning.max_tokens` —
 since an unbounded qwen3-max thought for over a minute before answering;
+`CREW_ANTHROPIC_CACHE=0` stops an Anthropic request asking for the prompt
+cache — by default a tool loop's round (a request that carries tools) sends
+`cache_control: {type: ephemeral}`, so the next round reads the prefix it
+shares back at 0.1× input instead of paying for all of it again, while a
+one-shot never asks, since a write it never reads is a 25% surcharge;
+turn it off for a gateway behind `ANTHROPIC_BASE_URL` that refuses the field;
 `CREW_INTENT=0` disables the intent router — every plain message then runs as
 a swarm instead of the model first choosing its execution shape (a direct
 reply, an all-agents fan-out, refinement rounds, a plan awaiting approval, or
@@ -3384,7 +3390,12 @@ goal ─► Planner ─► TaskGraph (DAG) ─► Scheduler ─► Agent pool �
   artifacts. A serializable snapshot crosses the remote boundary.
 - **Providers** (`provider`) — bring-your-own-LLM. A `Provider` trait with a
   `MockProvider` (tests) and an `AnthropicProvider` (HTTP `POST /v1/messages` via
-  `reqwest`). `ModelTier` maps cost tiers to models —
+  `reqwest`). A request that will be followed by one sharing its prefix — a
+  native tool loop's round — asks for Anthropic's
+  automatic prompt cache (`anthropiccache`, off with `CREW_ANTHROPIC_CACHE=0`),
+  so each round reads the conversation so far back from the cache instead of
+  paying full input price and prefill for it again. `ModelTier` maps cost
+  tiers to models —
   Cheap→`claude-haiku-4-5`, Standard→`claude-sonnet-5-5`, Capable→`claude-opus-5-5`.
 
 **Two modes, one engine.** Single-goal decomposition (the planner builds a DAG)
