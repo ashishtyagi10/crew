@@ -57,3 +57,39 @@ fn priced_rows_match_the_pricing_table() {
         assert_eq!(got, inp, "catalog and pricing disagree on {}", m.slug);
     }
 }
+
+/// The models Anthropic serves today (its model table, 2026-09) are rows at
+/// their list price, with the alias OpenRouter's public list gives them, and
+/// lead the Anthropic block so the picker offers the newest first.
+#[test]
+fn current_claude_models_are_listed_newest_first() {
+    let row = |slug: &str| catalog().iter().position(|m| m.slug == slug);
+    const M: u64 = 1_000_000;
+    for (slug, alias, price) in [
+        (
+            "claude-opus-5-5",
+            "anthropic/claude-opus-5.5",
+            (4 * M, 20 * M),
+        ),
+        (
+            "claude-sonnet-5-5",
+            "anthropic/claude-sonnet-5.5",
+            (2 * M, 10 * M),
+        ),
+        (
+            "claude-fable-5-1",
+            "anthropic/claude-fable-5.1",
+            (10 * M, 50 * M),
+        ),
+    ] {
+        let i = row(slug).unwrap_or_else(|| panic!("{slug} is not catalogued"));
+        let m = &catalog()[i];
+        assert_eq!(m.vendor, Vendor::Anthropic, "{slug}");
+        assert_eq!(m.or_slug, Some(alias), "{slug}");
+        assert_eq!(m.price, Some(price), "{slug}");
+        assert_eq!(m.context, 1_000_000, "{slug}");
+        assert!(i < row("claude-opus-5").unwrap(), "{slug} after Opus 5");
+    }
+    let sonnet5 = &catalog()[row("claude-sonnet-5").unwrap()];
+    assert_eq!(sonnet5.price, Some((2 * M, 10 * M)));
+}

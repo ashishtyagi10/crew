@@ -79,12 +79,15 @@ impl std::fmt::Display for GraphError {
 impl std::error::Error for GraphError {}
 
 impl ModelTier {
-    /// The default Anthropic model id for this cost tier.
+    /// The default Anthropic model id for this cost tier — the newest model
+    /// Anthropic serves in each family, because this one id is what the API
+    /// and CLI providers send, the planner asks for, and an unlisted model's
+    /// call is billed at, so a stale generation here is wrong three ways.
     pub fn model_id(&self) -> &'static str {
         match self {
             ModelTier::Cheap => "claude-haiku-4-5",
-            ModelTier::Standard => "claude-sonnet-4-6",
-            ModelTier::Capable => "claude-opus-4-8",
+            ModelTier::Standard => "claude-sonnet-5-5",
+            ModelTier::Capable => "claude-opus-5-5",
         }
     }
 }

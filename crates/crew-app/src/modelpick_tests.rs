@@ -58,9 +58,13 @@ fn the_current_model_is_marked_once() {
 
 #[test]
 fn priced_rows_badge_dollars_and_unpriced_rows_badge_a_dash() {
+    // The query also finds Sonnet 5.5, listed first; this is Sonnet 5's row.
     let r = rows("claude-sonnet-5", Some("x"));
-    let row = r.iter().find(|i| !i.header && i.fill != "default").unwrap();
-    assert!(row.desc.contains("$3/$15"), "{}", row.desc);
+    let row = r
+        .iter()
+        .find(|i| i.desc.starts_with("claude-sonnet-5 "))
+        .unwrap();
+    assert!(row.desc.contains("$2/$10"), "{}", row.desc);
     let g = rows("gemini-2.5-pro", None);
     let row = g.iter().find(|i| !i.header && i.fill != "default").unwrap();
     assert!(row.desc.contains('\u{2014}'), "{}", row.desc);

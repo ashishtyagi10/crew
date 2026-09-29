@@ -28,8 +28,8 @@ fn an_unknown_model_bills_at_the_tiers_own_model_price_not_zero() {
     let got = billed("mock", ModelTier::Cheap, &reply(100, 10));
     assert_eq!(got, cost_microusd(ModelTier::Cheap.model_id(), 100, 10));
     assert_eq!(got, 150, "haiku: 100 × $1 + 10 × $5 per Mtok");
-    // The list, not a second table: Opus at its list price.
-    assert_eq!(billed("mock", ModelTier::Capable, &reply(1, 1)), 5 + 25);
+    // The list, not a second table: Opus 5.5 at its list price.
+    assert_eq!(billed("mock", ModelTier::Capable, &reply(1, 1)), 4 + 20);
 }
 
 #[test]
@@ -82,8 +82,8 @@ async fn a_factory_pinned_to_haiku_bills_its_agents_at_haikus_rate_not_sonnets()
     assert_eq!(cost, Some(4 + 2 * 5), "haiku's rate");
     assert_ne!(
         cost,
-        Some(cost_microusd("claude-sonnet-4-6", 4, 2)),
-        "sonnet"
+        Some(cost_microusd(ModelTier::Standard.model_id(), 4, 2)),
+        "the Standard tier's sonnet"
     );
 }
 

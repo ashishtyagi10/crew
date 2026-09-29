@@ -367,11 +367,11 @@ async fn api_agent_bills_at_the_tasks_own_tier() {
         }
         cost
     }
-    // 1 input token, 2 output tokens ("a b"), at each tier's own model's LIST
-    // price (`pricing`): Haiku 1*1 + 5*2 = 11; Sonnet 3*1 + 15*2 = 33; Opus 5*1 + 25*2 = 55.
+    // 1 in, 2 out ("a b"), at each tier's own model's LIST price (`pricing`):
+    // Haiku 1*1 + 5*2 = 11; Sonnet 5.5 2*1 + 10*2 = 22; Opus 5.5 4*1 + 20*2 = 44.
     assert_eq!(cost_for(ModelTier::Cheap).await, 11);
-    assert_eq!(cost_for(ModelTier::Standard).await, 33);
-    assert_eq!(cost_for(ModelTier::Capable).await, 55);
+    assert_eq!(cost_for(ModelTier::Standard).await, 22);
+    assert_eq!(cost_for(ModelTier::Capable).await, 44);
 }
 
 // ---------------------------------------------------------------------------

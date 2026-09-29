@@ -78,8 +78,8 @@ fn line1_hides_cost_when_unpriced_but_always_shows_tokens() {
 #[test]
 fn line2_shows_countdowns_and_bars() {
     let agents = [agent("smith", "anthropic/claude-opus-4-8")];
-    // opus limit 200k, 100k used → ctx bar 50%.
-    let lines = footer_lines(&fc(&agents, &ctx(&[("smith", 100_000)])), 120);
+    // opus limit 1M, 500k used → ctx bar 50%.
+    let lines = footer_lines(&fc(&agents, &ctx(&[("smith", 500_000)])), 120);
     let l2 = text(&lines[1]);
     assert!(l2.starts_with("5h:3h52m | 7d:3d23h | "), "{l2}");
     assert!(l2.contains("3% (5h)"), "{l2}");

@@ -11,7 +11,22 @@ const LIMITS: &[(&str, u64)] = &[
     ("qwen-turbo", 131_072),
     ("qwq", 131_072),
     ("qwen", 131_072), // qwen3-* family
-    // Anthropic
+    // Anthropic: every current model reads 1M (Anthropic's model table,
+    // 2026-09) but Haiku 4.5, which falls through to the family's 200K with
+    // every older model — a meter reading too full is the safe error. The
+    // 4.x rows come in both spellings, OpenRouter's alias being dotted
+    // (`anthropic/claude-opus-4.8`); a 5.x row already matches `-5.5`.
+    ("claude-opus-4-6", 1_000_000),
+    ("claude-opus-4.6", 1_000_000),
+    ("claude-opus-4-7", 1_000_000),
+    ("claude-opus-4.7", 1_000_000),
+    ("claude-opus-4-8", 1_000_000),
+    ("claude-opus-4.8", 1_000_000),
+    ("claude-sonnet-4-6", 1_000_000),
+    ("claude-sonnet-4.6", 1_000_000),
+    ("claude-opus-5", 1_000_000),
+    ("claude-sonnet-5", 1_000_000),
+    ("claude-fable", 1_000_000),
     ("claude", 200_000),
     // OpenAI
     ("gpt-4o", 128_000),

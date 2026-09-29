@@ -3385,7 +3385,7 @@ goal ─► Planner ─► TaskGraph (DAG) ─► Scheduler ─► Agent pool �
 - **Providers** (`provider`) — bring-your-own-LLM. A `Provider` trait with a
   `MockProvider` (tests) and an `AnthropicProvider` (HTTP `POST /v1/messages` via
   `reqwest`). `ModelTier` maps cost tiers to models —
-  Cheap→`claude-haiku-4-5`, Standard→`claude-sonnet-4-6`, Capable→`claude-opus-4-8`.
+  Cheap→`claude-haiku-4-5`, Standard→`claude-sonnet-5-5`, Capable→`claude-opus-5-5`.
 
 **Two modes, one engine.** Single-goal decomposition (the planner builds a DAG)
 *and* embarrassingly-parallel batches — `batch_graph(jobs)` builds a flat
