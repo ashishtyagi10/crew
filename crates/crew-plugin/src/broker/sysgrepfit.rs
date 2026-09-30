@@ -7,6 +7,9 @@
 //! the clip had, so the agent could not tell how much of the answer it had
 //! seen. Fitted here, under [`RUN_FIT`] like a `sys:run` or `sys:git` result,
 //! the output stops at a whole hit and its last line says what was left out.
+//! What was left out is not lost: a fit made with [`Fit::spilling`] saves
+//! every item to a file (`spill`), and a last line after the count names it.
+use super::spill::{self, Spill};
 use super::toolclip::RUN_FIT;
 
 /// Bytes kept back from [`RUN_FIT`] for the closing line: two 20-digit counts
@@ -27,9 +30,28 @@ pub(super) struct Fit {
     files: usize,
     /// The file the first item not kept is in, once there is one.
     cut: Option<usize>,
+    /// The tool whose whole answer is saved when some of it is left out;
+    /// `None` for a fit that only counts.
+    tool: Option<&'static str>,
+    /// Every item, kept or not, one a line, while [`Self::recording`].
+    all: String,
 }
 
 impl Fit {
+    /// A fit that saves the whole answer when it leaves any of it out.
+    pub(super) fn spilling(tool: &'static str) -> Self {
+        Self {
+            tool: Some(tool),
+            ..Self::default()
+        }
+    }
+
+    /// Whether an item not kept is still worth formatting: it goes into the
+    /// saved whole until that is past what a spill holds.
+    pub(super) fn recording(&self) -> bool {
+        self.tool.is_some() && self.all.len() <= spill::CAP
+    }
+
     /// Whether items are still kept. Once one is not, none after it is — the
     /// output is a run from the start, never a hit here and there — so the
     /// caller need not format them.
@@ -49,6 +71,10 @@ impl Fit {
 
     /// One item: kept if everything kept so far, and it, still fit whole.
     pub(super) fn push(&mut self, text: String) {
+        if self.recording() {
+            self.all.push_str(&text);
+            self.all.push('\n');
+        }
         if self.keeping() && self.bytes + text.len() <= RUN_FIT {
             self.bytes += text.len() + 1;
             self.kept.push((text, self.files.saturating_sub(1)));
@@ -69,13 +95,18 @@ impl Fit {
     /// The kept items, one per line. When all of them fit that is the whole
     /// output, so a search that always fitted reads as it always has.
     /// Otherwise items come off the end until there is room for
-    /// `tail(items left out, files they are in)`, which ends it.
+    /// `tail(items left out, files they are in)` and the pointer to the saved
+    /// whole, which end it.
     pub(super) fn finish(mut self, tail: impl Fn(usize, usize) -> String) -> String {
         let Some(mut cut) = self.cut else {
             let kept: Vec<String> = self.kept.into_iter().map(|(t, _)| t).collect();
             return kept.join("\n");
         };
-        while self.bytes + TAIL > RUN_FIT {
+        let spill = match self.tool {
+            Some(tool) => spill::saved(tool, &self.all),
+            None => Spill::none(),
+        };
+        while self.bytes + TAIL > spill.room {
             let Some((text, file)) = self.kept.pop() else {
                 break;
             };
@@ -85,7 +116,7 @@ impl Fit {
         let left = self.items - self.kept.len();
         let mut out: String = self.kept.into_iter().map(|(t, _)| t + "\n").collect();
         out.push_str(&tail(left, self.files - cut));
-        out
+        spill.close(out)
     }
 }
 

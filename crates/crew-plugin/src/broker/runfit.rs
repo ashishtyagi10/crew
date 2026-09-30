@@ -54,16 +54,18 @@ pub(super) fn whole(code: i32, stdout: &str, stderr: &str, truncated: bool) -> S
 
 /// [`whole`], or — when that is over [`RUN_FIT`] — the exit line, stdout's
 /// first [`HEAD`] bytes, and the end of each stream, each gap marked with how
-/// many lines it holds. Cuts fall on line ends. A result that already fits
-/// comes back byte-identical, so a short command reads exactly as before.
+/// many lines it holds, and the whole saved to a file the last line names
+/// (`spill`). Cuts fall on line ends. A result that already fits comes back
+/// byte-identical, so a short command reads exactly as before.
 pub(super) fn fit(code: i32, stdout: &str, stderr: &str, truncated: bool) -> String {
     let all = whole(code, stdout, stderr, truncated);
     if all.len() <= RUN_FIT {
         return all;
     }
+    let spill = super::spill::saved("run", &all);
     let head = head_of(stdout, HEAD);
     let rest = &stdout[head.len()..];
-    let (out_room, err_room) = share(rest.len(), stderr.len(), RUN_FIT - FRAME - head.len());
+    let (out_room, err_room) = share(rest.len(), stderr.len(), spill.room - FRAME - head.len());
     let mut text = format!("exit {code}\n{head}");
     push_end(&mut text, rest, out_room);
     if !stderr.is_empty() {
@@ -73,7 +75,7 @@ pub(super) fn fit(code: i32, stdout: &str, stderr: &str, truncated: bool) -> Str
     if truncated {
         text.push_str(TRUNCATED);
     }
-    text
+    spill.close(text)
 }
 
 /// Whether a `sys:run` result is a command that ran and failed: its first
@@ -123,15 +125,17 @@ fn push_end(text: &mut String, s: &str, room: usize) {
 
 /// One stream fitted the way [`fit`] fits stdout, for a result with no exit
 /// line or stderr of its own: whole within [`RUN_FIT`], else its first `head`
-/// bytes and its end with the gap counted. `sys:git` keeps a long diff so —
-/// its start is the `--stat` naming every file, its end a whole last hunk.
-pub(super) fn ends(s: &str, head: usize) -> String {
+/// bytes and its end with the gap counted, all within `room` (less than
+/// [`RUN_FIT`] when a pointer to the saved whole follows). `sys:git` keeps a
+/// long diff so — its start is the `--stat` naming every file, its end a
+/// whole last hunk.
+pub(super) fn ends(s: &str, head: usize, room: usize) -> String {
     if s.len() <= RUN_FIT {
         return s.to_string();
     }
-    let head = head_of(s, head.min(RUN_FIT - FRAME));
+    let head = head_of(s, head.min(room - FRAME));
     let mut text = head.to_string();
-    push_end(&mut text, &s[head.len()..], RUN_FIT - FRAME - head.len());
+    push_end(&mut text, &s[head.len()..], room - FRAME - head.len());
     text
 }
 

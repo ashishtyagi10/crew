@@ -82,6 +82,7 @@ mod skillchoice;
 mod skillframe;
 mod skills;
 pub(crate) mod specialists;
+mod spill;
 mod standup;
 mod stdio;
 mod streamhold;

@@ -21,9 +21,13 @@
 //! page that told it to ask might be.
 use std::time::Duration;
 
-/// Chars of extracted text returned. Past this the tail is cut with a marker
-/// — a long page is a source to quote from, not a document to carry.
+/// Chars of extracted text returned when a long page could not be saved
+/// (`spill`). Past this the tail is cut with a marker — a long page is a
+/// source to quote from, not a document to carry.
 pub(crate) const TEXT_CAP: usize = 24 * 1024;
+/// Chars of extracted text a long page is saved with: ten times [`TEXT_CAP`]
+/// and more, since a file the agent pages through costs nothing unread.
+const SAVED_CAP: usize = 256 * 1024;
 /// Bytes read off the wire, before extraction.
 const BYTES_CAP: usize = 2 * 1024 * 1024;
 /// How long the whole fetch may take.
@@ -37,18 +41,26 @@ pub(crate) fn fetch(url: &str) -> Result<String, String> {
     Ok(readable_body(&kind, body))
 }
 
-/// A body as the model should read it: markup reduced to prose, the whole
-/// thing capped.
+/// A body as the model should read it: markup reduced to prose. Within
+/// `toolclip::RUN_FIT` that is all of it. Longer, the text is saved (`spill`)
+/// and the model gets its start, cut on a line end under `RUN_FIT` so no clip
+/// on tool results cuts off the last line naming the file. Unsaved, it is capped
+/// at [`TEXT_CAP`] as it always was, and the clip keeps a quarter of that.
 ///
 /// Named rather than inlined into [`fetch`] so the tests can drive it over a
 /// loopback server — which [`check`] refuses to let `fetch` itself reach, and
 /// should.
 fn readable_body(kind: &str, body: String) -> String {
+    use super::sysfetchtext::capped;
     let text = match kind.contains("html") || body.trim_start().starts_with('<') {
         true => super::sysfetchtext::readable(&body),
         false => body,
     };
-    super::sysfetchtext::capped(&text, TEXT_CAP)
+    let spill = super::spill::saved("fetch", &capped(&text, SAVED_CAP));
+    match spill.is_saved() {
+        true => spill.close(super::runfit::head_of(&text, spill.room).to_string()),
+        false => capped(&text, TEXT_CAP),
+    }
 }
 
 /// The body as it arrived, with its content type, for the one caller that
