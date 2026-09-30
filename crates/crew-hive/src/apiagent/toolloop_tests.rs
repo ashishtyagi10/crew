@@ -39,6 +39,7 @@ fn follow_up_restates_the_base_prompt_and_every_exchange() {
         "TASK\n\nTOOLS: @tool sys:run",
         "",
         &log(&[("a:b", "first"), ("c:d", "second")]),
+        "",
         2,
     );
     // The tools hint must survive into the follow-up, or a second call is
@@ -51,7 +52,7 @@ fn follow_up_restates_the_base_prompt_and_every_exchange() {
 
 #[test]
 fn follow_up_tells_the_agent_when_it_is_out_of_calls() {
-    let p = follow_up("TASK", "", &log(&[("a:b", "r")]), 0);
+    let p = follow_up("TASK", "", &log(&[("a:b", "r")]), "", 0);
     assert!(p.contains("LAST tool call"));
     assert!(!p.contains("more tool call(s)"));
 }
@@ -105,4 +106,16 @@ fn budget_spent_strips_a_fenced_multi_line_call_whole() {
         "Two of three cities checked.\n\n\
          [tool budget spent — 4 calls for this run; the last request was not run]"
     );
+}
+
+#[test]
+fn what_the_user_added_comes_after_the_exchanges_and_before_the_budget_line() {
+    let heard = crate::steers::section(&["also check the tests".into()], "TAIL");
+    let p = follow_up("TASK", "", &log(&[("a:b", "r")]), &heard, 1);
+    let (added, exchanges, budget) = (
+        p.find("also check the tests").unwrap(),
+        p.find("TOOL EXCHANGES SO FAR").unwrap(),
+        p.find("You may make 1 more").unwrap(),
+    );
+    assert!(exchanges < added && added < budget, "{p}");
 }

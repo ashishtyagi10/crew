@@ -646,9 +646,16 @@ The docked command bar supports:
   the last running task ends (or on `/stop`), and the copy is sent when the turn
   settles, exactly as before. Only plain words steer — a slash command, a
   `#note`, an `@agent` dial, and anything typed while a plan waits for its
-  answer are only queued. **Not yet steerable:** swarm workers and CLI agents
-  (the claude / opencode relays) run their own loops out of the broker's reach,
-  so a message typed during one stays queued as before. With several tasks
+  answer are only queued. **A swarm is steered as a crew:** its first worker
+  to reach a round takes the message into a log the whole run shares, so
+  every worker reads it at its next round (a text worker after its tool
+  exchanges, a native one as a turn after its results), a worker that starts
+  later finds it at the end of its first prompt, and the lead's closing
+  answer, the judge's verdict and a revision's plan all read the request with
+  it underneath. Workers are told it was said to the whole crew, to act on it
+  where it bears on their part. **Not yet steerable:** CLI agents (the claude
+  / opencode relays) run their own loops out of the broker's reach, so a
+  message typed during one stays queued as before. With several relay tasks
   running, the first to reach a round takes it. Backspace still takes a queued
   copy back — but a message the task already took has been read.
 

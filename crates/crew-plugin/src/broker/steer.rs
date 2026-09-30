@@ -15,10 +15,13 @@
 //! then on carries it ([`section`]).
 //!
 //! Only a thread holding a [`Taking`] takes: the worker the stdin loop spawns
-//! for a task. Swarm workers, a fan's threads and CLI agents (claude/opencode
-//! relays), which run their own loops out of reach of this one, never do —
-//! their steers go untaken, the last task out empties the inbox, and the
-//! host's queued copy is sent when the turn settles, as it always was.
+//! for a task. A swarm runs on that thread's runtime, so its workers take
+//! through a run-wide log (`crew_hive::steers`, fed by [`take`]) that every
+//! worker reads, and the lead's closing answer and the judge read what was
+//! taken ([`told`]). A fan's threads and CLI agents (claude/opencode relays),
+//! which run their own loops out of reach of this one, never do — their
+//! steers go untaken, the last task out empties the inbox, and the host's
+//! queued copy is sent when the turn settles, as it always was.
 //!
 //! One inbox per process, like `approval`'s mailbox: a broker is one session
 //! with one stdin. With several tasks running, the first to reach a round
@@ -33,8 +36,10 @@ use crate::PluginEvent;
 /// How a taking thread tells the host a steer joined.
 pub(crate) type Emit = Arc<dyn Fn(PluginEvent) + Send + Sync>;
 
-/// The heading of the follow-up section a taken steer rides in.
-pub(crate) const HEAD: &str = "THE USER ADDED WHILE YOU WORKED:";
+/// The follow-up section's heading, the swarm's too: `crew_hive::steers`
+/// formats both ([`section`]). Named here for the tests beside this file.
+#[cfg(test)]
+use crew_hive::steers::HEAD;
 
 /// The line that closes it: the later word is the one that counts.
 pub(crate) const TAIL: &str = "Take this into account from here on \u{2014} where it \
@@ -57,6 +62,8 @@ thread_local! {
     /// This thread's way to the host while it holds a [`Taking`]; `None` on
     /// every other thread, which is what keeps them from taking.
     static TAKER: RefCell<Option<Emit>> = const { RefCell::new(None) };
+    /// Everything this thread's task has taken so far ([`told`]).
+    static TAKEN: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
 }
 
 fn inbox() -> MutexGuard<'static, Inbox> {
@@ -78,6 +85,7 @@ impl Taking {
     pub(crate) fn begin(emit: Emit) -> Self {
         inbox().running += 1;
         TAKER.with(|t| *t.borrow_mut() = Some(emit));
+        TAKEN.with(|t| t.borrow_mut().clear());
         Taking {
             _thread_bound: PhantomData,
         }
@@ -118,7 +126,7 @@ pub(crate) fn take() -> Vec<String> {
         return Vec::new();
     };
     let taken: Vec<(String, String)> = inbox().offers.drain(..).collect();
-    taken
+    let texts: Vec<String> = taken
         .into_iter()
         .map(|(channel, text)| {
             emit(PluginEvent::Steered {
@@ -127,7 +135,21 @@ pub(crate) fn take() -> Vec<String> {
             });
             text
         })
-        .collect()
+        .collect();
+    TAKEN.with(|t| t.borrow_mut().extend(texts.iter().cloned()));
+    texts
+}
+
+/// What this thread's task was told mid-run, as a section to follow the
+/// request in the swarm lead's closing brief and the judge's: the answer is
+/// written, and judged, against the request as the user left it. Empty when
+/// nothing was taken — the brief is then byte for byte what it was.
+pub(crate) fn told() -> String {
+    let taken = TAKEN.with(|t| t.borrow().clone());
+    match section(&taken) {
+        s if s.is_empty() => s,
+        s => format!("\n\n{}", s.trim_end()),
+    }
 }
 
 /// The follow-up section for every steer taken this turn so far (empty when
@@ -135,19 +157,23 @@ pub(crate) fn take() -> Vec<String> {
 /// ahead of the line that says how many calls are left. A message of several
 /// lines stays one item, its later lines indented under the dash.
 pub(crate) fn section(added: &[String]) -> String {
-    if added.is_empty() {
-        return String::new();
-    }
-    let items: Vec<String> = added
-        .iter()
-        .map(|t| format!("- {}", t.trim().replace('\n', "\n  ")))
-        .collect();
-    format!("{HEAD}\n{}\n{TAIL}\n\n", items.join("\n"))
+    crew_hive::steers::section(added, TAIL)
+}
+
+/// This thread's task as told `said`, for the briefs' own tests, which run
+/// with no stdin loop to take from.
+#[cfg(test)]
+pub(crate) fn told_in_test(said: &[&str]) {
+    TAKEN.with(|t| *t.borrow_mut() = said.iter().map(|s| s.to_string()).collect());
 }
 
 #[cfg(test)]
 #[path = "steer_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "swarmsteer_tests.rs"]
+mod swarm_tests;
 
 #[cfg(test)]
 #[path = "steerround_tests.rs"]

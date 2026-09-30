@@ -1,6 +1,6 @@
 //! A worker's system prompt ends with the host's standing context.
 use super::*;
-use crate::agent::AgentContext;
+use crate::agent::{AgentContext, AgentFactory};
 use crate::bus::{AgentId, EventBus};
 use crate::graph::{AgentKind, ModelTier, TaskId, TaskSpec};
 use crate::provider::{Completion, ProviderError};

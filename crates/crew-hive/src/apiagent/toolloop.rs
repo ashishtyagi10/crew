@@ -45,7 +45,9 @@ pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> Exc
 /// included, so a second call is still spellable), the task's checklist
 /// (`list`, empty unless it keeps one), then every exchange so far, the older
 /// ones with their results shortened ([`Exchanges::render`]). The list goes
-/// ABOVE the exchanges, where no shortening reaches it.
+/// ABOVE the exchanges, where no shortening reaches it; what the user added
+/// mid-run (`heard`, `steered`) goes after them, where the newest word
+/// belongs, ahead of the budget line.
 ///
 /// `rounds_left` is stated to the agent rather than merely enforced. A budget
 /// an agent cannot see is one it plans straight past, and then the task ends
@@ -55,7 +57,13 @@ pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> Exc
 /// One sentence per case. "You may call another tool" used to follow every
 /// budget line, "This was your LAST tool call" included, so the last round
 /// was told both to stop calling and that it could call again.
-pub(super) fn follow_up(base: &str, list: &str, exchanges: &Exchanges, rounds_left: u32) -> String {
+pub(super) fn follow_up(
+    base: &str,
+    list: &str,
+    exchanges: &Exchanges,
+    heard: &str,
+    rounds_left: u32,
+) -> String {
     let next = match rounds_left {
         0 => {
             "This was your LAST tool call for this task: answer with what you have now.".to_string()
@@ -65,7 +73,7 @@ pub(super) fn follow_up(base: &str, list: &str, exchanges: &Exchanges, rounds_le
         }
     };
     format!(
-        "{base}\n\n{list}TOOL EXCHANGES SO FAR:\n{}\n\n{next}",
+        "{base}\n\n{list}TOOL EXCHANGES SO FAR:\n{}\n\n{heard}{next}",
         exchanges.render()
     )
 }

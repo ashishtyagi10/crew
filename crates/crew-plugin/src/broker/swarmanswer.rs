@@ -83,7 +83,7 @@ pub(super) fn prompt(goal: &str, parts: &[(String, String)]) -> String {
          them, resolve overlap, keep every concrete detail that answers the request and \
          drop what does not. Be concise. No preamble and no commentary about the workers \
          or the process \u{2014} the answer only.\n\nREQUEST:\n{}\n\nWORKER OUTPUTS:{}",
-        clip_head(goal, GOAL_CAP),
+        clip_head(goal, GOAL_CAP) + &crate::broker::steer::told(),
         outputs(parts)
     )
 }

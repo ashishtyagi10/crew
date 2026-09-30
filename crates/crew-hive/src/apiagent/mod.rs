@@ -22,6 +22,7 @@ mod todo_tests;
 mod chunks;
 mod context;
 mod cost;
+mod factory;
 mod failure;
 mod finish;
 mod lastword;
@@ -29,12 +30,14 @@ mod native;
 mod note;
 mod overflow;
 mod pending;
+mod steered;
 mod stubs;
 mod textround;
 mod toolloop;
 
 pub(crate) use context::build_prompt;
 pub(crate) use cost::billed;
+pub use factory::ApiFactory;
 pub(crate) use failure::reason;
 
 use std::future::Future;
@@ -46,6 +49,7 @@ use crate::board::TaskResult;
 use crate::bus::HiveEvent;
 use crate::graph::AgentKind;
 use crate::provider::{CompletionRequest, Provider};
+use crate::steers::Steers;
 use crate::tools::{self, ToolCatalog, Tools};
 
 pub struct ApiAgent {
@@ -62,6 +66,8 @@ pub struct ApiAgent {
     /// rewrote ("Define crew-term"), so without this it cannot know the
     /// thing it was asked about is a directory beside it.
     preamble: Option<String>,
+    /// What the user typed into the run, read between rounds (`steered`).
+    steers: Option<Steers>,
 }
 
 impl ApiAgent {
@@ -72,7 +78,14 @@ impl ApiAgent {
             model: None,
             tools: None,
             preamble: None,
+            steers: None,
         }
+    }
+
+    /// Read what the user types into the run at every round (`steered`).
+    pub fn with_steers(mut self, steers: Steers) -> Self {
+        self.steers = Some(steers);
+        self
     }
 
     /// End every task's system prompt with `preamble`.
@@ -113,6 +126,7 @@ impl Agent for ApiAgent {
         // Per task, so each worker keeps a checklist of its own (`todo`).
         let tools = self.tools.clone().map(tools::todo::per_task);
         let preamble = self.preamble.clone();
+        let steers = self.steers.clone();
         Box::pin(async move {
             let task_id = ctx.task.id;
             let agent_id = ctx.agent.clone();
@@ -154,6 +168,7 @@ impl Agent for ApiAgent {
                         prompt,
                         max_tokens,
                         sink,
+                        steers,
                     )
                     .await;
                 }
@@ -177,7 +192,7 @@ impl Agent for ApiAgent {
             // built from chunks stays the answer rather than the working.
             let sink = chunks::ChunkSink::new(ctx.bus.clone(), agent_id.clone());
 
-            let mut prompt = base.clone();
+            let (mut prompt, _) = steered::opening(base.clone(), steers.as_ref());
             let mut exchanges = tools::exchanges::Exchanges::default();
             let mut round: u32 = 0;
             // The rounds left after the last one, for a follow-up rebuilt to
@@ -210,7 +225,8 @@ impl Agent for ApiAgent {
                     Some(Err(err)) if !cut && overflow::tightened(&ctx, &err, &mut exchanges) => {
                         cut = true;
                         let list = tools::todo::section(tools.as_ref().and_then(|t| t.checklist()));
-                        prompt = toolloop::follow_up(&base, &list, &exchanges, left);
+                        let heard = steered::heard(steers.as_ref());
+                        prompt = toolloop::follow_up(&base, &list, &exchanges, &heard, left);
                         continue;
                     }
                     Some(Err(err)) => return failure::failed(&ctx, &err),
@@ -283,54 +299,10 @@ impl Agent for ApiAgent {
                 }
                 left = rounds_left;
                 let list = tools::todo::section(runner.checklist());
-                prompt = toolloop::follow_up(&base, &list, &exchanges, left);
+                let heard = steered::heard(steers.as_ref());
+                prompt = toolloop::follow_up(&base, &list, &exchanges, &heard, left);
             }
         })
-    }
-}
-
-use crate::agent::AgentFactory;
-
-/// Agent factory making native [`ApiAgent`]s that share one provider. Each
-/// agent reads its model tier from its task at run time (see [`ApiAgent::attempt`]),
-/// so the factory only needs the provider and the per-task output token cap.
-pub struct ApiFactory {
-    provider: Arc<dyn Provider>,
-    max_tokens: u32,
-    model: Option<String>,
-    /// Shared by every agent the factory makes, so one MCP host and ONE
-    /// approval gate serve the whole swarm. Handing each agent its own would
-    /// mean a person approving the same irreversible tool once per agent.
-    tools: Option<Arc<dyn Tools>>,
-    preamble: Option<String>,
-}
-
-impl ApiFactory {
-    pub fn new(provider: Arc<dyn Provider>, max_tokens: u32) -> Self {
-        Self {
-            provider,
-            max_tokens,
-            model: None,
-            tools: None,
-            preamble: None,
-        }
-    }
-
-    /// End every agent's system prompt with `preamble` (see [`ApiAgent::with_preamble`]).
-    pub fn with_preamble(mut self, preamble: impl Into<String>) -> Self {
-        self.preamble = Some(preamble.into());
-        self
-    }
-
-    pub fn with_model(mut self, m: impl Into<String>) -> Self {
-        self.model = Some(m.into());
-        self
-    }
-
-    /// Give every agent this factory makes the same tool surface.
-    pub fn with_tools(mut self, tools: Arc<dyn Tools>) -> Self {
-        self.tools = Some(tools);
-        self
     }
 }
 
@@ -340,21 +312,5 @@ fn with_preamble(system: Option<String>, preamble: Option<&str>) -> Option<Strin
         (s, None) => s,
         (None, Some(p)) => Some(p.to_string()),
         (Some(s), Some(p)) => Some(format!("{s}\n\n{p}")),
-    }
-}
-
-impl AgentFactory for ApiFactory {
-    fn make(&self, _kind: &AgentKind) -> Box<dyn Agent> {
-        let mut agent = ApiAgent::new(Arc::clone(&self.provider), self.max_tokens);
-        if let Some(m) = &self.model {
-            agent = agent.with_model(m.clone());
-        }
-        if let Some(t) = &self.tools {
-            agent = agent.with_tools(Arc::clone(t));
-        }
-        if let Some(p) = &self.preamble {
-            agent = agent.with_preamble(p.clone());
-        }
-        Box::new(agent)
     }
 }

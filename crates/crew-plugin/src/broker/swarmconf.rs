@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use crew_hive::agent::StubFactory;
+use crew_hive::steers::Steers;
 use crew_hive::{
     AgentFactory, Budget, LlmPlanner, ModelTier, PlanError, Planner, StubPlanner, TaskGraph, TaskId,
 };
@@ -111,7 +112,9 @@ pub(super) fn backend_at(
                 Some(f) => f,
                 None => {
                     let mut f = crew_hive::ApiFactory::new(provider, WORK_MAX_TOKENS)
-                        .with_model(model.clone());
+                        .with_model(model.clone())
+                        // What the user types mid-run, read by every worker.
+                        .with_steers(Steers::new(crate::broker::steer::take));
                     if let Some(t) = tools {
                         f = f.with_tools(t);
                     }

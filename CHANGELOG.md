@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.21
+
+**A message typed into a swarm now reaches every worker mid-run.** 0.25.13
+let a message typed while agent smith works join his next tool round, but a
+swarm's workers run their own loops, so "also report row 3" typed into a
+three-worker run sat in the queue until the run had answered without it,
+then went out as a new turn. Now the first worker to reach a round takes it
+into a log the whole run shares, and every worker reads the log at its next
+round: a text worker after its tool exchanges, a native tool-use worker as a
+turn after its results, and one that starts later at the end of its first
+prompt. Workers are told it was said to the whole crew, to act on it where
+it bears on their part. The lead's closing answer, the judge's verdict and a
+revision's plan all read the request with it underneath. The pane still
+hears once that it joined (`↳ joined the running task`) and drops its queued
+copy. Live, qwen3.8-max, three files, "Also report the number on row 3 of
+each file" typed at the first tool call: all three runs answered with every
+row 3 correct; the build before answered row 17 only. A worker whose last
+request had already gone out when the message arrived answers without it,
+and the others cover it. Claude / opencode relays still only queue. Costs
+nothing on a run nobody types into.
+
 ## 0.25.20
 
 **A `<tool_call>` block no longer types itself onto the live card.**
