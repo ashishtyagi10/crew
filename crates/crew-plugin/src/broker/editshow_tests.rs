@@ -191,5 +191,5 @@ fn a_crlf_file_numbers_the_same_and_shows_no_carriage_returns() {
             .unwrap();
     assert!(hits.contains(":41: LINE 41"), "{hits}");
     let page = crate::broker::sysreadline::read(&s.0, &serde_json::json!({"line": 41})).unwrap();
-    assert!(page.starts_with("LINE 41\r\n"), "{page:?}");
+    assert!(page.starts_with(" 41\u{2502} LINE 41\r\n"), "{page:?}");
 }

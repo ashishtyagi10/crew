@@ -1,13 +1,18 @@
 //! Paged, UTF-8-safe file reads for `sys:read_file`. Split out of
 //! `systools` to keep that file under the repo's line cap; these helpers are
-//! `pub(super)` so `systools::call` can dispatch to them.
+//! `pub(super)` so `systools::call` can dispatch to them. A page's rows carry
+//! the file's line numbers (`sysreadrows`).
 use std::io::{Read, Seek, SeekFrom};
+
+#[path = "sysreadrows.rs"]
+mod rows;
 
 #[cfg(test)]
 #[path = "sysread_tests.rs"]
 mod tests;
 
-/// Bytes of file one `sys:read_file` call hands back.
+/// Bytes one `sys:read_file` page takes, numbered rows and all; its note
+/// comes after.
 ///
 /// Sized to what the agent is SHOWN, not to what the tool can read. Both
 /// engines clip a tool result before the next prompt: the relay to
@@ -17,12 +22,14 @@ mod tests;
 /// the ~58 KB between was never seen by anyone. A byte is at most a char, so
 /// 5,600 bytes leaves 400 chars for the trailing note, which is under 200 even
 /// with 20-digit offsets; `sysread_tests` holds page + note under the clip.
+/// The numbers are paid for out of the page, not the note's 400: a page of
+/// short lines shows fewer bytes of the file, never a longer result.
 pub(super) const PAGE: usize = 5_600;
 
-/// Files up to this size get line numbers in the page note. The "of N" needs
-/// the whole file read on every page: 8 MB is a few milliseconds from cache,
-/// while paging a 2 GB log would read 2 GB per call, so past it the note
-/// gives bytes only.
+/// Files up to this size get line numbers, on the rows and in the page note.
+/// Both need the whole file read on every page: 8 MB is a few milliseconds
+/// from cache, while paging a 2 GB log would read 2 GB per call, so past it
+/// the rows go bare and the note gives bytes only.
 pub(super) const LINES_UP_TO: usize = 8 * 1024 * 1024;
 
 /// The optional `"offset"` byte argument: a JSON number, or a numeric string
@@ -89,29 +96,45 @@ pub(super) fn read_file(path: &str, offset: usize) -> Result<String, String> {
     };
     let body = &buf[start..];
     let utf8 = |b| std::str::from_utf8(b).map_err(|e| format!("read {path}: not valid UTF-8: {e}"));
-    if body.len() <= PAGE {
-        return utf8(body).map(str::to_owned);
-    }
-    // End on a whole line, the way the agent will quote and edit it. Only a
-    // line longer than the page is cut inside, at a character boundary within
-    // 3 bytes of the budget (binary may lack one).
-    let cut = match body[..PAGE].iter().rposition(|&b| b == b'\n') {
-        Some(nl) => nl + 1,
-        None => (PAGE - 3..=PAGE)
-            .rev()
-            .find(|&i| is_utf8_boundary(body, i))
-            .ok_or_else(|| {
-                format!("read {path}: not valid UTF-8: no character boundary near the page end")
-            })?,
+    // The page before numbering: all the rest, or PAGE bytes ending on a
+    // whole line, the way the agent will quote and edit it. Only a line
+    // longer than the page is cut inside, at a character boundary within 3
+    // bytes of the budget (binary may lack one). It is what is checked for
+    // UTF-8, so a binary file is refused as it always was.
+    let last = body.len() <= PAGE;
+    let cut = if last {
+        body.len()
+    } else {
+        match body[..PAGE].iter().rposition(|&b| b == b'\n') {
+            Some(nl) => nl + 1,
+            None => (PAGE - 3..=PAGE)
+                .rev()
+                .find(|&i| is_utf8_boundary(body, i))
+                .ok_or_else(|| {
+                    format!("read {path}: not valid UTF-8: no character boundary near the page end")
+                })?,
+        }
     };
     let text = utf8(&body[..cut])?;
     let from = offset + start;
-    let lines = count_lines(&mut f, total, from).map(|(before, of)| {
-        let first = before + 1;
-        let last = first + text.matches('\n').count() - usize::from(text.ends_with('\n'));
-        (first, last, of, !text.ends_with('\n'))
-    });
-    Ok(format!("{text}\n{}", note(lines, from, from + cut, total)))
+    // Numbered from the file's own count of the lines before the page; past
+    // LINES_UP_TO there is none, and a bare row beats one with a guessed number.
+    let Some((before, of)) = count_lines(&mut f, total, from) else {
+        if last {
+            return Ok(text.to_owned());
+        }
+        return Ok(format!("{text}\n{}", note(None, from, from + cut, total)));
+    };
+    let first = before + 1;
+    let shown = &text[..rows::fit(text, first, PAGE)];
+    let page = rows::number(shown, first);
+    if last && shown.len() == text.len() {
+        return Ok(page);
+    }
+    let end = rows::last_line(shown, first);
+    let lines = Some((first, end, of, !shown.ends_with('\n')));
+    let to = from + shown.len();
+    Ok(format!("{page}\n{}", note(lines, from, to, total)))
 }
 
 /// Newlines before byte `from`, and the file's line count, or None when the

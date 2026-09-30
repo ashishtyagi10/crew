@@ -52,17 +52,41 @@ pub(super) fn whole(code: i32, stdout: &str, stderr: &str, truncated: bool) -> S
     text
 }
 
+/// [`whole`] as the spill saves it: stdout first, so line N of the file is
+/// line N of the output, then stderr, then the exit line and the 64 KB note
+/// LAST. With `exit N` on top every line sat one down, and an agent that read
+/// line 1,777 of a saved run as the pointer said got the output's 1,776th.
+pub(super) fn for_spill(code: i32, stdout: &str, stderr: &str, truncated: bool) -> String {
+    let mut text = stdout.to_string();
+    let end_line = |t: &mut String| {
+        if !t.is_empty() && !t.ends_with('\n') {
+            t.push('\n');
+        }
+    };
+    if !stderr.is_empty() {
+        end_line(&mut text);
+        text.push_str("--- stderr ---\n");
+        text.push_str(stderr);
+    }
+    end_line(&mut text);
+    text.push_str(&format!("--- exit {code} ---\n"));
+    if truncated {
+        text.push_str(&format!("{}\n", TRUNCATED.trim_start()));
+    }
+    text
+}
+
 /// [`whole`], or — when that is over [`RUN_FIT`] — the exit line, stdout's
 /// first [`HEAD`] bytes, and the end of each stream, each gap marked with how
-/// many lines it holds, and the whole saved to a file the last line names
-/// (`spill`). Cuts fall on line ends. A result that already fits comes back
-/// byte-identical, so a short command reads exactly as before.
+/// many lines it holds, and the whole saved ([`for_spill`]) to a file the
+/// last line names (`spill`). Cuts fall on line ends. A result that already
+/// fits comes back byte-identical, so a short command reads exactly as before.
 pub(super) fn fit(code: i32, stdout: &str, stderr: &str, truncated: bool) -> String {
     let all = whole(code, stdout, stderr, truncated);
     if all.len() <= RUN_FIT {
         return all;
     }
-    let spill = super::spill::saved("run", &all);
+    let spill = super::spill::saved("run", &for_spill(code, stdout, stderr, truncated));
     let head = head_of(stdout, HEAD);
     let rest = &stdout[head.len()..];
     let (out_room, err_room) = share(rest.len(), stderr.len(), spill.room - FRAME - head.len());

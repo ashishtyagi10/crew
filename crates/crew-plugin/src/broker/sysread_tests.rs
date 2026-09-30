@@ -18,6 +18,24 @@ fn next_offset(result: &str) -> Option<usize> {
     v["offset"].as_u64().map(|n| n as usize)
 }
 
+/// A page with its line numbers taken off, checking on the way that they
+/// count up by one from the first row's: the file's text as the page showed
+/// it, and the first row's number.
+fn bare(page: &str) -> (String, usize) {
+    let mut first = None;
+    let text = page
+        .split_inclusive('\n')
+        .enumerate()
+        .map(|(i, r)| {
+            let (n, text) = r.split_once("\u{2502} ").expect("a numbered row");
+            let n: usize = n.trim_start().parse().expect("a line number");
+            assert_eq!(n, *first.get_or_insert(n) + i, "rows out of order: {r}");
+            text
+        })
+        .collect();
+    (text, first.unwrap_or(0))
+}
+
 #[test]
 fn the_widest_note_still_fits_beside_a_full_page() {
     // Line numbers stop at LINES_UP_TO; offsets can be any u64. Both at their
@@ -78,17 +96,32 @@ fn paging_a_file_through_the_relay_clip_loses_nothing() {
             r.chars().count()
         );
         pages += 1;
-        let Some(next) = next_offset(&r) else {
-            got.push_str(&r);
+        let next = next_offset(&r);
+        let page = match next {
+            Some(_) => r.rsplit_once('\n').unwrap().0,
+            None => r.as_str(),
+        };
+        assert!(
+            page.len() <= PAGE,
+            "a numbered page of {} bytes",
+            page.len()
+        );
+        // Numbered from the line the rows so far left off in: the next one,
+        // or the same one when the last page ended inside it.
+        let (text, first) = bare(page);
+        let line = 1 + got.matches('\n').count();
+        assert_eq!(first, line, "the page at {offset} is misnumbered");
+        let Some(next) = next else {
+            got.push_str(&text);
             break;
         };
-        let (page, note) = r.rsplit_once('\n').unwrap();
+        let note = r.rsplit('\n').next().unwrap();
         assert!(
             note.contains(&lines),
             "note counts the file's lines: {note}"
         );
-        assert!(next > offset, "{note} does not move forward from {offset}");
-        got.push_str(page);
+        assert_eq!(next, offset + text.len(), "{note} skips or repeats bytes");
+        got.push_str(&text);
         offset = next;
     }
     assert!(pages > 5, "a 40 KB file took only {pages} page(s)");
@@ -110,6 +143,11 @@ fn a_page_ends_on_a_whole_line_and_says_which_lines() {
         "page cut mid-line: \u{2026}{}",
         &page[page.len() - 40..]
     );
+    assert!(
+        page.starts_with("  1\u{2502} line 0001: "),
+        "{}",
+        &page[..40]
+    );
     let n = page.lines().count();
     assert!(
         note.starts_with(&format!(
@@ -117,11 +155,12 @@ fn a_page_ends_on_a_whole_line_and_says_which_lines() {
         )),
         "{note}"
     );
-    assert_eq!(next_offset(&first), Some(page.len()), "{note}");
+    let shown = bare(page).0.len();
+    assert_eq!(next_offset(&first), Some(shown), "{note}");
 
-    let second = read_file(&path, page.len()).unwrap();
+    let second = read_file(&path, shown).unwrap();
     assert!(
-        second.starts_with(&format!("line {:04}:", n + 1)),
+        second.starts_with(&format!("{}\u{2502} line {:04}:", n + 1, n + 1)),
         "{}",
         &second[..20]
     );
@@ -138,8 +177,11 @@ fn a_file_past_the_line_counting_limit_gets_bytes_only() {
     let content = b"0123456789abcde\n".repeat(LINES_UP_TO / 16 + 1);
     let path = temp("huge", &content);
     let r = read_file(&path, 0).unwrap();
+    // With no count to number from, the rows go bare rather than guessed.
+    assert!(r.starts_with("0123456789abcde\n0123"), "{}", &r[..40]);
     let note = r.rsplit('\n').next().unwrap();
     assert!(note.starts_with("\u{2026} (bytes 0\u{2013}"), "{note}");
+    assert_eq!(next_offset(&r), Some(PAGE), "{note}");
     assert!(!note.contains("line"), "{note}");
     assert!(next_offset(&r).is_some(), "{note}");
     let _ = std::fs::remove_file(&path);

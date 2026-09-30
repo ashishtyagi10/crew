@@ -161,8 +161,9 @@ fn pointer(rest: &[Row], edits: &[Edit]) -> Option<String> {
 
 /// Whether `old` was copied out of a shown block, prefixes and all: every
 /// non-blank line opens with a right-aligned number and `│ `. The model sees
-/// those rows after every edit, and the next `old` it writes can carry them;
-/// saying so beats the generic "not in the file".
+/// those rows after every edit and on every `sys:read_file` page
+/// (`sysreadrows`), and the next `old` it writes can carry them; saying so
+/// beats the generic "not in the file".
 pub(super) fn carries_numbers(old: &str) -> bool {
     let mut rows = old.lines().filter(|l| !l.trim().is_empty()).peekable();
     rows.peek().is_some()

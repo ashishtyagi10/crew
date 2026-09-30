@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.15
+
+**A read page numbers its rows, and a saved run's line N is line N.** The
+first live run of 0.25.11's saved outputs had an agent follow the pointer
+correctly, `sys:read_file {"line": 1777}`, and still answer with the wrong
+row. Two things stood between it and the right one. The saved file began with
+the `exit 0` line, so the output's line 1,777 was the file's 1,778: it is
+saved as stdout, then `--- stderr ---` and stderr, then `--- exit 0 ---`
+last, so the numbers agree. And a page was the file's text bare, so a model
+had to count down a screen of look-alike rows to find its line. Now every
+row of a `sys:read_file` page opens with the file's line number, `  41│ text`,
+the form `sys:edit` already shows an edited region in, the way Claude Code's
+Read numbers every line. The numbers are the ones `sys:grep` reports and
+`{"line": N}` opens at, and a row copied into `sys:edit` with its number still
+on is caught there with a message saying to leave the numbers out. A page
+still fits the same budget with its note, so a page of short lines shows
+fewer of the file's bytes than before and says where to continue as always.
+Measured honestly: the 1,777-of-3,000 probe that found this is still
+answered wrong by `qwen-max` (it reads a nearby row's number, before and
+after), while `qwen3.8-max` gets it right; the prompt it answers from is now
+exactly right, with the asked-for row first and labelled.
+
 ## 0.25.14
 
 **A tool call written the way the log writes calls now runs.** The first

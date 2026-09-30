@@ -60,7 +60,7 @@ fn write_then_read_round_trips() {
     .unwrap();
     assert!(w.contains("7 bytes"), "{w}");
     let r = call("read_file", &format!(r#"{{"path":{p:?}}}"#)).unwrap();
-    assert_eq!(r, "hi crew");
+    assert_eq!(r, "1\u{2502} hi crew");
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -110,11 +110,12 @@ fn read_file_truncates_at_utf8_char_boundary() {
     // "é" is 2 bytes (0xC3 0xA9); place it straddling the page end of a line
     // longer than the page, so the cut falls inside the codepoint. The bounded
     // read (File + Read::take) must still walk back to a char boundary and
-    // emit valid UTF-8, never a replacement character.
+    // emit valid UTF-8, never a replacement character. The page ends 5 bytes
+    // short of PAGE in the file: its one row's `1│ ` takes them.
     let dir = std::env::temp_dir().join(format!("systools-utf8b-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let p = dir.join("multibyte.txt");
-    let mut content = "a".repeat(PAGE - 1);
+    let mut content = "a".repeat(PAGE - 6);
     content.push('é');
     content.push_str(&"b".repeat(100));
     std::fs::write(&p, &content).unwrap();
@@ -123,9 +124,10 @@ fn read_file_truncates_at_utf8_char_boundary() {
         &format!(r#"{{"path":{:?}}}"#, p.display().to_string()),
     )
     .unwrap();
-    assert!(r.starts_with(&"a".repeat(PAGE - 1)), "{}", &r[PAGE - 5..]);
+    let row = format!("1\u{2502} {}\n", "a".repeat(PAGE - 6));
+    assert!(r.starts_with(&row), "{}", &r[PAGE - 10..]);
     assert!(
-        r.ends_with(&format!("continue with {{\"offset\": {}}})", PAGE - 1)),
+        r.ends_with(&format!("continue with {{\"offset\": {}}})", PAGE - 6)),
         "{}",
         &r[r.len().saturating_sub(60)..]
     );
@@ -195,7 +197,7 @@ fn read_file_offset_resumes_mid_file() {
         &format!("{{\"path\": \"{}\", \"offset\": 4}}", p.display()),
     )
     .unwrap();
-    assert_eq!(out, "efghij");
+    assert_eq!(out, "1\u{2502} efghij");
     let _ = std::fs::remove_file(&p);
 }
 
@@ -209,8 +211,9 @@ fn read_file_truncation_notice_names_the_next_offset() {
         "got tail: {}",
         &out[out.len() - 120..]
     );
+    // The one row's `1│ ` is paid for out of the page.
     assert!(
-        out.ends_with(&format!("continue with {{\"offset\": {PAGE}}})")),
+        out.ends_with(&format!("continue with {{\"offset\": {}}})", PAGE - 5)),
         "got tail: {}",
         &out[out.len() - 120..]
     );
@@ -240,7 +243,7 @@ fn read_file_offset_mid_codepoint_skips_to_a_boundary() {
         &format!("{{\"path\": \"{}\", \"offset\": 1}}", p.display()),
     )
     .unwrap();
-    assert_eq!(out, "-tail");
+    assert_eq!(out, "1\u{2502} -tail");
     let _ = std::fs::remove_file(&p);
 }
 
@@ -253,7 +256,7 @@ fn read_file_accepts_a_quoted_numeric_offset() {
         &format!("{{\"path\": \"{}\", \"offset\": \"4\"}}", p.display()),
     )
     .unwrap();
-    assert_eq!(out, "efghij");
+    assert_eq!(out, "1\u{2502} efghij");
     let _ = std::fs::remove_file(&p);
 }
 
@@ -302,7 +305,7 @@ fn read_file_mid_codepoint_offset_still_reports_truncation() {
     )
     .unwrap();
     assert!(
-        out.starts_with("xxx"),
+        out.starts_with("1\u{2502} xxx"),
         "skips the split codepoint, got: {}",
         &out[..20]
     );
@@ -312,7 +315,10 @@ fn read_file_mid_codepoint_offset_still_reports_truncation() {
         &out[out.len() - 130..]
     );
     assert!(
-        out.contains(&format!("continue with {{\"offset\": {}}}", 1 + 1 + PAGE)),
+        out.contains(&format!(
+            "continue with {{\"offset\": {}}}",
+            1 + 1 + PAGE - 5
+        )),
         "tail: {}",
         &out[out.len() - 130..]
     );

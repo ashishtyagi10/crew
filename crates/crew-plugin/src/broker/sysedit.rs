@@ -105,8 +105,8 @@ pub(crate) fn replace(body: &str, old: &str, new: &str) -> Result<String, String
 /// Why a match failed, in the terms the model's next move depends on.
 fn miss(body: &str, old: &str) -> String {
     if super::editrows::carries_numbers(old) {
-        return "`old` carries the line numbers from an edit result (`41\u{2502} `) \u{2014} \
-                they are not in the file; leave them out and copy only the text"
+        return "`old` carries the line numbers from a read or edit result (`41\u{2502} `) \
+                \u{2014} they are not in the file; leave them out and copy only the text"
             .into();
     }
     let flat = |s: &str| s.split_whitespace().collect::<String>();
