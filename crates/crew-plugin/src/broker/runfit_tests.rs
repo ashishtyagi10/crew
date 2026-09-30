@@ -143,6 +143,26 @@ fn the_64_kb_note_survives_the_fitting() {
     assert_eq!(shown(&out), out);
 }
 
+/// The saved whole numbers its lines as the output does: line N of the file
+/// is stdout's line N, and what `sys:run` adds comes after it, exit last.
+#[test]
+fn the_saved_whole_puts_stdout_first_and_the_exit_line_last() {
+    assert_eq!(for_spill(0, "1\n2\n", "", false), "1\n2\n--- exit 0 ---\n");
+    assert_eq!(
+        for_spill(101, "a\nb", "oops\n", true),
+        "a\nb\n--- stderr ---\noops\n--- exit 101 ---\n\u{2026} (output truncated at 64 KB)\n"
+    );
+    assert_eq!(
+        for_spill(1, "", "e", false),
+        "--- stderr ---\ne\n--- exit 1 ---\n"
+    );
+    // Never shorter than the result it stands for, so a result long enough to
+    // be fitted is always long enough to be saved.
+    for (out, err, cut) in [("x", "", false), ("x\n", "y", true), ("", "", false)] {
+        assert!(for_spill(-1, out, err, cut).len() >= whole(-1, out, err, cut).len());
+    }
+}
+
 #[test]
 fn failed_reads_the_exit_line_and_nothing_else() {
     assert!(failed("exit 101\n   Compiling x v0.1.0\n"));

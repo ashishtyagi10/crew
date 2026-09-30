@@ -2711,12 +2711,20 @@ on tool results, with the whole output saved to a file the last line names
 `is_error` to the provider — whose output still reaches the agent),
 **`sys:read_file`** (UTF-8, one page per call: up to 5,600 bytes, cut at
 the last line end — sized so a page and its note pass the 6,000-char clip on
-tool results whole; the note says which lines and bytes the page holds and
-carries the byte `offset` to continue with, so agents read big files in pages;
-`{"line": N}` starts the page at line N instead, the number a `sys:grep` hit
-gives, so an agent goes straight to what it found rather than paging from the
-top — `line` or `offset`, not both, and a line past the end names the file's
-line count),
+tool results whole; every row opens with its line number in the file,
+`  41│ text`, the form `sys:edit` shows an edit in, as Claude Code's `Read`
+numbers every line — an agent asked for line 1,777 of a saved run of 3,000
+look-alike numbers counted down the bare page and answered with line 2,333's,
+where now it reads the number beside the row; the numbers are paid for out of
+the 5,600, so a page of short lines holds fewer bytes of the file, a file too
+big to count (past 8 MB) gets bare rows rather than guessed numbers, and an
+`old` copied into `sys:edit` with its numbers still on is refused with a note
+to leave them out; the note says which lines and bytes the page holds and
+carries the byte `offset` of the first byte not shown, to continue with, so
+agents read big files in pages; `{"line": N}` starts the page at line N
+instead, the number a `sys:grep` hit gives, so an agent goes straight to what
+it found rather than paging from the top — `line` or `offset`, not both, and
+a line past the end names the file's line count),
 **`sys:write_file`** (create, or replace all of one you have read —
 below), **`sys:edit`** (replace
 part of one — below), **`sys:list_dir`** (≤500 entries,
@@ -2816,7 +2824,11 @@ where:
 ```
 
 — the dynamic context discovery Cursor describes. The line comes after the
-`N lines … cut` or `N more hits … left out` line, which stays. `sys:read_file`
+`N lines … cut` or `N more hits … left out` line, which stays. A saved
+`sys:run` is its stdout first, then `--- stderr ---` and stderr, then
+`--- exit N ---` (and the 64 KB note) LAST, so line N of the file is line N of
+the output and `"line": N` opens where the agent means; with the exit line on
+top every line sat one down. `sys:read_file`
 opens the file at any line and `sys:grep` searches it, by the file or by
 `.crew/out`, even where `.gitignore` names `.crew/` (an ignored path named on
 purpose is searched, and hits in a file named on its own carry its path). A

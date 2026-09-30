@@ -43,8 +43,14 @@ fn a_long_run_is_fitted_and_saved_whole() {
         out.contains("\n5000\n\u{2026} full output (5,001 lines"),
         "{out}"
     );
+    // Saved stdout first, so line N of the file is line N of the output, and
+    // the page the pointer's `"line": N` opens starts at the output's line N.
     let stdout: String = (1..=5000).map(|i| format!("{i}\n")).collect();
-    assert_eq!(body, super::super::runfit::whole(0, &stdout, "", false));
+    assert_eq!(body, format!("{stdout}--- exit 0 ---\n"));
+    assert_eq!(body, super::super::runfit::for_spill(0, &stdout, "", false));
+    let path = g.dir().join(&rel).display().to_string();
+    let page = super::super::sysreadline::read(&path, &json!({"line": 1777})).unwrap();
+    assert!(page.starts_with("1777\u{2502} 1777\n"), "{}", &page[..40]);
     // A short one reads exactly as it always has, and saves nothing.
     let short = super::super::sysrun::run_with("echo hi", t).unwrap();
     assert_eq!(short, "exit 0\nhi\n");

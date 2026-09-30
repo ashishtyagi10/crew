@@ -565,8 +565,9 @@ Agents can also touch the workspace through built-in **sys tools** — bounded
 `sys:run` (non-interactive shell, 120s deadline; a long output reaches the
 agent as its start and its end, and a non-zero exit is a failed call),
 `sys:read_file` (~5 KB
-pages of whole lines, each naming its lines and the next offset; `line`
-starts one at a `sys:grep` hit's line),
+pages of whole lines, every row numbered with its line in the file (`41│ `)
+and each page naming its lines and the next offset; `line` starts one at a
+`sys:grep` hit's line),
 `sys:write_file` (makes the directories a new file needs, inside the
 project only, and replaces an existing file only once the task has read it
 with `sys:read_file`), `sys:edit` (replace an exact, unique fragment

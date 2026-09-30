@@ -32,6 +32,12 @@ fn ends(r: &str) -> (&str, &str) {
     (first, r.rsplit('\n').next().unwrap_or(""))
 }
 
+/// A numbered row's line number and text: ` 741│ line 741` → (741, "line 741").
+fn row(r: &str) -> (usize, &str) {
+    let (n, text) = r.split_once("\u{2502} ").expect("a numbered row");
+    (n.trim_start().parse().expect("a line number"), text)
+}
+
 fn next_offset(note: &str) -> usize {
     let json = &note[note.rfind('{').unwrap()..note.len() - 1];
     serde_json::from_str::<serde_json::Value>(json).unwrap()["offset"]
@@ -44,7 +50,7 @@ fn a_page_asked_for_by_line_starts_exactly_at_that_line() {
     let path = numbered("at", "\n");
     let r = read_at(&path, json!({ "line": 412 })).unwrap();
     let (page, note) = split(&r);
-    assert_eq!(page.lines().next(), Some("line 412"), "{note}");
+    assert_eq!(page.lines().next(), Some("412\u{2502} line 412"), "{note}");
     assert!(note.starts_with("\u{2026} (lines 412\u{2013}"), "{note}");
     assert!(note.contains(" of 2,000, "), "{note}");
     let _ = std::fs::remove_file(&path);
@@ -55,17 +61,17 @@ fn the_notes_offset_goes_on_from_the_line_page_without_a_gap() {
     let path = numbered("next", "\n");
     let first = read_at(&path, json!({ "line": 412 })).unwrap();
     let (page, note) = split(&first);
-    let last: usize = page.lines().last().unwrap()["line ".len()..]
-        .parse()
-        .unwrap();
+    let (last, text) = row(page.lines().last().unwrap());
+    assert_eq!(text, format!("line {last}"));
     assert!(
         note.contains(&format!("412\u{2013}{} of", grouped(last))),
         "{note}"
     );
     let second = read_at(&path, json!({ "offset": next_offset(note) })).unwrap();
+    let next = format!("line {}", last + 1);
     assert_eq!(
-        second.lines().next(),
-        Some(format!("line {}", last + 1).as_str())
+        row(second.lines().next().unwrap()),
+        (last + 1, next.as_str())
     );
     let _ = std::fs::remove_file(&path);
 }
@@ -98,7 +104,7 @@ fn a_line_past_the_end_names_how_many_lines_there_are() {
     let path = numbered("past", "\n");
     assert_eq!(
         read_at(&path, json!({ "line": 2000 })).unwrap(),
-        "line 2000\n"
+        "2000\u{2502} line 2000\n"
     );
     let r = read_at(&path, json!({ "line": 2001 })).unwrap();
     assert_eq!(
@@ -107,7 +113,7 @@ fn a_line_past_the_end_names_how_many_lines_there_are() {
     );
     // An unterminated last line counts; an empty file has none.
     std::fs::write(&path, "a\nb").unwrap();
-    assert_eq!(read_at(&path, json!({ "line": 2 })).unwrap(), "b");
+    assert_eq!(read_at(&path, json!({ "line": 2 })).unwrap(), "2\u{2502} b");
     let r = read_at(&path, json!({ "line": 3 })).unwrap();
     assert!(r.ends_with("the file has 2 lines)"), "{r}");
     std::fs::write(&path, "").unwrap();
@@ -132,7 +138,7 @@ fn a_crlf_file_numbers_its_lines_the_same() {
     let path = numbered("crlf", "\r\n");
     let r = read_at(&path, json!({ "line": 412 })).unwrap();
     let (page, note) = split(&r);
-    assert_eq!(page.lines().next(), Some("line 412"), "{note}");
+    assert!(page.starts_with("412\u{2502} line 412\r\n"), "{note}");
     assert!(note.starts_with("\u{2026} (lines 412\u{2013}"), "{note}");
     let r = read_at(&path, json!({ "line": 2001 })).unwrap();
     assert!(r.ends_with("the file has 2,000 lines)"), "{r}");

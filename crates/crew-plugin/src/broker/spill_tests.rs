@@ -144,7 +144,10 @@ fn read_file_and_grep_reach_a_spill_in_an_ignored_dir() {
     let rel = write(g.dir(), "run", &log(3_000)).unwrap();
     let path = g.dir().join(&rel).display().to_string();
     let page = super::super::sysreadline::read(&path, &json!({"line": 2_500})).unwrap();
-    assert!(page.starts_with("line 2500 of the log\n"), "{page}");
+    assert!(
+        page.starts_with("2500\u{2502} line 2500 of the log\n"),
+        "{page}"
+    );
     let grep =
         |p: &Path| super::super::sysgrep::grep(&json!({"pattern": "^line 2718 ", "path": p}));
     let file = grep(Path::new(&path)).unwrap();
