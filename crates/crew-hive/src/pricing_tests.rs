@@ -80,6 +80,27 @@ fn free_models_are_listed_at_zero() {
     assert_eq!(super::rate("qwen/qwen3-coder:free"), Some((0, 0)));
 }
 
+/// Each provider chain's lead model at its vendor's own rate (2026-09-29),
+/// none caught by a shorter row it contains: `gpt-5.5` is not `gpt-5`,
+/// `qwen3.8-max` is not `qwen-max`, `deepseek-flash` is not `deepseek`.
+#[test]
+fn todays_default_models_bill_at_their_own_rates() {
+    for (model, rate) in [
+        ("qwen3.8-max", (2_000_000, 6_000_000)),
+        ("qwen3.8-max-0902", (2_000_000, 6_000_000)),
+        ("gpt-5.5", (5_000_000, 30_000_000)),
+        ("gpt-5", (1_250_000, 10_000_000)),
+        ("gemini-3.8-flash", (750_000, 3_750_000)),
+        ("google/gemini-3.1-pro-preview", (2_000_000, 12_000_000)),
+        ("deepseek-flash", (300_000, 1_200_000)),
+    ] {
+        assert_eq!(super::rate(model), Some(rate), "{model}");
+    }
+    // 100 × $2 + 900 × $0.25 + 10 × $6 per M: the page's cache read, not
+    // the family's 20% of input ($0.40).
+    assert_eq!(cached_reply_cost("qwen3.8-max"), 200 + 225 + 60);
+}
+
 /// 900 of a 1000-token prompt read from cache, 10 tokens out, at `model`.
 fn cached_reply_cost(model: &str) -> u64 {
     let c = crate::provider::Completion {

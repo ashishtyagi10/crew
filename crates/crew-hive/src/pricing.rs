@@ -48,6 +48,12 @@ const RATES: &[(&str, u64, u64, u64)] = &[
     ("qwen3-max", 1_200_000, 6_000_000, 240_000),
     ("qwen3-coder-plus", 1_000_000, 5_000_000, 200_000),
     ("qwen3-coder-flash", 300_000, 1_500_000, 60_000),
+    // The 3.7/3.8 rows' own model pages (…/model-studio/qwen3-8-max and
+    // siblings), 2026-09-29: one tier to 1M, and the implicit-cache read the
+    // page lists — below the 20% above for both 3.8 models.
+    ("qwen3.8-max", 2_000_000, 6_000_000, 250_000),
+    ("qwen3.8-flash", 150_000, 470_000, 16_000),
+    ("qwen3.7-max", 2_500_000, 7_500_000, 500_000),
     // Any other qwen3-coder slug, at the plus rate; its cache rate unknown.
     ("qwen3-coder", 1_000_000, 5_000_000, 1_000_000),
     // OpenAI, 2026-07 — cached rates not checked, so full input.
@@ -55,8 +61,27 @@ const RATES: &[(&str, u64, u64, u64)] = &[
     ("gpt-4o", 2_500_000, 10_000_000, 2_500_000),
     ("gpt-4.1-mini", 400_000, 1_600_000, 400_000),
     ("gpt-4.1", 2_000_000, 8_000_000, 2_000_000),
+    // OpenAI's pricing and model pages, 2026-09-29, short-context tier
+    // (a prompt past 272K costs more), with the cached rate they list.
+    ("gpt-5", 1_250_000, 10_000_000, 125_000),
+    ("gpt-5.5", 5_000_000, 30_000_000, 500_000),
+    ("gpt-6-sol", 2_000_000, 10_000_000, 200_000),
+    ("gpt-6.1-sol", 2_000_000, 10_000_000, 100_000),
+    ("gpt-6-luna", 100_000, 500_000, 10_000),
+    ("gpt-6-astra", 10_000_000, 50_000_000, 1_000_000),
+    // Google, ai.google.dev/gemini-api/docs/pricing, 2026-09-29, at the
+    // ≤200K tier. 3.8 Flash is at its introductory rate, which Google says
+    // lasts to 2026-12-31 and then doubles ($1.50 / $7.50).
+    ("gemini-3.8-flash", 750_000, 3_750_000, 75_000),
+    ("gemini-3.1-pro", 2_000_000, 12_000_000, 200_000),
+    ("gemini-2.5-pro", 1_250_000, 10_000_000, 125_000),
     // DeepSeek — cached rates not checked, so full input.
     ("deepseek-reasoner", 550_000, 2_190_000, 550_000),
+    // DeepSeek V4, api-docs.deepseek.com pricing, 2026-09-29, at the PEAK
+    // rate (weekday 01–04 and 06–10 UTC); off-peak is half, so this
+    // over-reads most of the day rather than under-read at peak.
+    ("deepseek-flash", 300_000, 1_200_000, 6_000),
+    ("deepseek-v4-pro", 1_320_000, 3_960_000, 44_000),
     ("deepseek", 270_000, 1_100_000, 270_000),
     // Moonshot / Kimi — cached rate not checked, so full input.
     ("kimi-k2", 600_000, 2_500_000, 600_000),

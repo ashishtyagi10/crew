@@ -226,10 +226,10 @@ fn the_composer_legend_previews_a_recognised_due() {
     p.cursor = p.input.chars().count();
     let cells = cells(&p, COLS, ROWS);
     let border = row_text(&cells, ROWS - 3);
+    let tomorrow = chrono::Local::now().date_naive() + chrono::Duration::days(1); // not a literal `sep`
     assert!(
-        border.contains("tomorrow sep"),
-        "the legend previews the parse as the ROW will print it, with the \
-         date and without a `due` the row never says: {border:?}"
+        border.contains(&format!("tomorrow {}", tomorrow.format("%b")).to_lowercase()),
+        "the legend previews the parse as the ROW prints it, no `due`: {border:?}"
     );
     // And the fragment itself is tinted accent in the prompt row.
     let accent = crate::palette::accent();

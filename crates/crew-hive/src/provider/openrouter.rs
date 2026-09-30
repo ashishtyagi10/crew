@@ -243,7 +243,10 @@ impl Provider for OpenRouterProvider {
             let mut last_err = ProviderError::Api("no model attempted".into());
             for model in &chain {
                 let think = thinking::opt_in(&endpoint, false);
-                let body = build_body(model, &req, &messages, report_cost, think);
+                let body = super::tokencap::for_endpoint(
+                    &endpoint,
+                    build_body(model, &req, &messages, report_cost, think),
+                );
                 match request_with_retry(&client, &endpoint, &key, &body).await {
                     // Billed at the model that answered, not the one asked
                     // for first (`Completion::model`).
@@ -287,7 +290,10 @@ impl Provider for OpenRouterProvider {
             let mut last_err = ProviderError::Api("no model attempted".into());
             for model in &chain {
                 let think = thinking::opt_in(&endpoint, true);
-                let body = build_body(model, &req, &messages, report_cost, think);
+                let body = super::tokencap::for_endpoint(
+                    &endpoint,
+                    build_body(model, &req, &messages, report_cost, think),
+                );
                 let started = std::sync::atomic::AtomicBool::new(false);
                 match request_with_retry_streaming(
                     &client, &endpoint, &key, &body, &on_chunk, &started,
@@ -300,7 +306,10 @@ impl Provider for OpenRouterProvider {
                             && c.text.trim().is_empty() =>
                     {
                         let think = thinking::opt_in(&endpoint, false);
-                        let body = build_body(model, &req, &messages, report_cost, think);
+                        let body = super::tokencap::for_endpoint(
+                            &endpoint,
+                            build_body(model, &req, &messages, report_cost, think),
+                        );
                         match request_with_retry(&client, &endpoint, &key, &body).await {
                             Ok(c) => return Ok(c.served_by(model)),
                             Err(e) => last_err = e,
