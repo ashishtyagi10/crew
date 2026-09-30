@@ -163,3 +163,28 @@ fn a_split_is_none_wherever_a_parse_is() {
         None
     );
 }
+
+/// The exchange log's own spelling of a call, copied for the next one.
+#[test]
+fn a_call_written_the_way_the_log_writes_calls_is_a_call() {
+    let reply = "It prints hello.\n\nNow, to count the lines of `notes.txt`, I will read it.\n\
+                 CALLED sys:read_file {\"path\": \"notes.txt\"}";
+    let (said, calls) = split_tool_calls(reply).expect("a call");
+    assert_eq!(
+        Some(calls[0].clone()),
+        call("sys", "read_file", "{\"path\": \"notes.txt\"}")
+    );
+    assert!(
+        !said.contains("CALLED"),
+        "the call is cut from what is said: {said:?}"
+    );
+    // Only that exact spelling: prose that says it called something is not.
+    assert_eq!(
+        parse_tool_call("I called sys:read_file and it was empty."),
+        None
+    );
+    assert_eq!(
+        parse_tool_call("Called sys:read_file {\"path\": \"a\"}"),
+        None
+    );
+}

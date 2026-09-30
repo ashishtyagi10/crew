@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.14
+
+**A tool call written the way the log writes calls now runs.** The first
+live run of 0.25.13's steering worked up to the last step: a steer ("also, how
+many lines does notes.txt have?") joined the running task, the agent answered
+the first question and set out to check the file, and wrote the call as
+`CALLED sys:read_file {"path": "notes.txt"}`, the shape its own exchange log
+uses for every earlier call, instead of `@tool …`. Nothing ran, and that raw
+line ended the answer. The parser that already reads a call through markdown,
+fences and trailing chatter now also takes that exact spelling on the call's
+line, so the same run reads the file and answers "37 lines". Only
+`CALLED ` in capitals at the start of a line counts: prose saying it called
+something is still prose.
+
 ## 0.25.13
 
 **Steer, don't queue: a message typed mid-task joins its next step.**

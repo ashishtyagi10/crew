@@ -114,6 +114,11 @@ fn closes(args: &str) -> bool {
 
 /// What follows `@tool ` on `line`, when `line` is a call: past emphasis, a
 /// code span, a list bullet or a quote marker, which models add unbidden.
+///
+/// Also what follows `CALLED `, spelled exactly so: the exchange log shows
+/// every earlier call as `CALLED <tool> <args>` (`exchanges`), and a model
+/// taking a steer mid-turn wrote its next call in that shape — it never ran,
+/// and the raw line was the answer's end (live probe, 2026-09-30).
 fn directive(line: &str) -> Option<&str> {
     let mut s = line.trim_start();
     while let Some(t) = s
@@ -121,6 +126,9 @@ fn directive(line: &str) -> Option<&str> {
         .or_else(|| s.strip_prefix(['*', '`', '_', '>', ' ', '\t']))
     {
         s = t;
+    }
+    if let Some(logged) = s.strip_prefix("CALLED ") {
+        return Some(logged.trim());
     }
     let head = s.get(..6)?;
     head.eq_ignore_ascii_case("@tool ").then(|| s[6..].trim())
