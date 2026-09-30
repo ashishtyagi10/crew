@@ -7,6 +7,11 @@ use std::io::{Read, Seek, SeekFrom};
 #[path = "sysreadrows.rs"]
 mod rows;
 
+#[path = "sysreadnote.rs"]
+mod note;
+pub(super) use note::grouped;
+use note::note;
+
 #[cfg(test)]
 #[path = "sysread_tests.rs"]
 mod tests;
@@ -64,7 +69,9 @@ fn is_utf8_boundary(bytes: &[u8], idx: usize) -> bool {
     }
 }
 
-pub(super) fn read_file(path: &str, offset: usize) -> Result<String, String> {
+/// One page from byte `offset`: at most [`PAGE`] bytes of numbered rows, and
+/// at most `most` lines when the agent passed `"lines"`.
+pub(super) fn read_file(path: &str, offset: usize, most: Option<usize>) -> Result<String, String> {
     let err = |e: std::io::Error| format!("read {path}: {e}");
     let mut f =
         std::fs::File::open(path).map_err(|e| super::syspath::with_hint("read", path, e))?;
@@ -116,6 +123,11 @@ pub(super) fn read_file(path: &str, offset: usize) -> Result<String, String> {
         }
     };
     let text = utf8(&body[..cut])?;
+    // `"lines"` ends the page early, and then it is not the file's last.
+    let (text, last) = match most.map(|n| rows::head(text, n)) {
+        Some(head) if head.len() < text.len() => (head, false),
+        _ => (text, last),
+    };
     let from = offset + start;
     // Numbered from the file's own count of the lines before the page; past
     // LINES_UP_TO there is none, and a bare row beats one with a guessed number.
@@ -123,7 +135,10 @@ pub(super) fn read_file(path: &str, offset: usize) -> Result<String, String> {
         if last {
             return Ok(text.to_owned());
         }
-        return Ok(format!("{text}\n{}", note(None, from, from + cut, total)));
+        return Ok(format!(
+            "{text}\n{}",
+            note(None, from, from + text.len(), total)
+        ));
     };
     let first = before + 1;
     let shown = &text[..rows::fit(text, first, PAGE)];
@@ -156,43 +171,4 @@ fn count_lines(f: &mut std::fs::File, total: usize, from: usize) -> Option<(usiz
         newlines(&all[..from.min(all.len())]),
         newlines(&all) + usize::from(unterminated),
     ))
-}
-
-/// The page's last line: where it sits, in lines as grep and edit results
-/// count them, and the offset to go on from. One line with `{"offset": N}`
-/// LAST, because `toolclip` keeps the final line verbatim and the agent
-/// copies that JSON straight into its next call.
-fn note(
-    lines: Option<(usize, usize, usize, bool)>,
-    from: usize,
-    to: usize,
-    total: usize,
-) -> String {
-    let n = grouped;
-    let lines = match lines {
-        Some((a, _, of, true)) => format!("part of line {} of {}, ", n(a), n(of)),
-        Some((a, b, of, _)) if a == b => format!("line {} of {}, ", n(a), n(of)),
-        Some((a, b, of, _)) => format!("lines {}\u{2013}{} of {}, ", n(a), n(b), n(of)),
-        None => String::new(),
-    };
-    format!(
-        "\u{2026} ({lines}bytes {}\u{2013}{} of {} \u{2014} continue with {{\"offset\": {to}}})",
-        n(from),
-        n(to),
-        n(total)
-    )
-}
-
-/// `40112` → `40,112`, for the prose only: the `{"offset": N}` beside it
-/// stays bare digits, because the agent pastes that into JSON.
-pub(super) fn grouped(n: usize) -> String {
-    let s = n.to_string();
-    let mut out = String::with_capacity(s.len() + s.len() / 3);
-    for (i, c) in s.chars().enumerate() {
-        if i > 0 && (s.len() - i).is_multiple_of(3) {
-            out.push(',');
-        }
-        out.push(c);
-    }
-    out
 }

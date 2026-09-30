@@ -89,24 +89,8 @@ pub(crate) fn tools() -> Vec<McpTool> {
         ),
         mk(
             "read_file",
-            "read a text file, ~5 KB a page; start at a grep hit's path:line with {\"path\": \"a.rs\", \"line\": 412}",
-            serde_json::json!({
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string", "description": "path, relative to the working directory"},
-                    "line": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "description": "line to start the page at, counting from 1: the number in a sys:grep hit (path:line: text); give this or offset, not both",
-                    },
-                    "offset": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "description": "byte offset to start at: the one the previous page's last line names",
-                    },
-                },
-                "required": ["path"],
-            }),
+            "read a text file, ~5 KB a page; start at a grep hit's path:line with {\"path\": \"a.rs\", \"line\": 412}, and add \"lines\": 20 to see only those",
+            super::sysreadline::schema(),
         ),
         mk(
             "write_file",

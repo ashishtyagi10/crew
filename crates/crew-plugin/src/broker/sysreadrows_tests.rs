@@ -88,7 +88,7 @@ fn a_row_copied_from_a_read_page_into_an_edit_is_caught() {
         .map(|i| format!("    let x{i} = {i};\n"))
         .collect();
     let path = temp("copied", &file);
-    let r = read_file(&path, 0).unwrap();
+    let r = read_file(&path, 0, None).unwrap();
     let rows: Vec<&str> = r.lines().skip(40).take(2).collect();
     assert_eq!(rows[0], " 41\u{2502}     let x41 = 41;");
     let old = rows.join("\n");
