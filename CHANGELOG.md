@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.20
+
+**A `<tool_call>` block no longer types itself onto the live card.**
+0.25.17 made a call in Qwen's trained shape run, but the stream still showed
+it being written: `<tool_call>` and its JSON sat on the smith card, then
+vanished when the settled reply replaced it, which read as a glitch. The
+stream filter that keeps `@tool` lines off the card now holds a line that
+opens with `<` the same way, and drops a `<tool_call>` block with its JSON
+lines, its closing tag and the code fence around it, if any. Since 0.25.17
+ends generation at `</tool_call>`, the tag usually never arrives, and the
+rest of the hop is dropped, which is nothing. Any other line starting with
+`<` (`<div>`) is shown whole once it ends, one line late. The filter's
+line-reading helpers moved to `streamline.rs`, taking `streamhold.rs` from
+197 to 173 lines.
+
 ## 0.25.19
 
 **Recall no longer files a quoted sed expression as a file.** The recall
