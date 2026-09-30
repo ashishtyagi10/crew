@@ -3033,7 +3033,14 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   `` `@tool <server>:<tool> {"arg": …}` `` — the broker runs the tool, logs
   the call and result as visible hops, feeds the result back to the same
   agent (up to 4 tool rounds per hop), then normal `@next`/`@done` routing
-  resumes.
+  resumes. A model that falls back to the shape it was trained on is read
+  the same way: `<tool_call>{"name": "sys:read_file", "arguments": {…}}`
+  (Qwen 3.x, Hermes; `input`/`parameters` and string-encoded arguments too)
+  and Qwen3-Coder's `<function=…><parameter=…>` XML are each taken as the
+  `@tool` line they stand for, under the same last-word rule. Requests that
+  carry no native tools ask every OpenAI-compatible host but OpenAI's own to
+  stop at `</tool_call>`, the tag those templates end a turn on: without it
+  the model re-wrote the call it was waiting on until its token cap.
 
 **Models & rate-limits.** When no agent CLIs are installed, `/smith` runs its
 inbuilt API agents — **planner** (capable tier), **coder**, and **reviewer**

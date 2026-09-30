@@ -690,7 +690,9 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-smith-alias-crew):
   lists each server with its tools, relay prompts advertise them, and agents
   call one by ending a
   reply with `` `@tool server:tool {"arg": …}` `` — the result is fed back
-  (bounded rounds, visible in the transcript) before routing resumes.
+  (bounded rounds, visible in the transcript) before routing resumes. A
+  model's own trained shape (`<tool_call>{"name": …, "arguments": …}`, or
+  Qwen3-Coder's `<function=…>` XML) is read as the same call.
 
 The pane itself reads like a multi-agent console: a header with a live status
 (`| coder · 12s` while an agent thinks, `| 3 working · 8s` during a parallel

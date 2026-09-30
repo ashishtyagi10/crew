@@ -24,7 +24,9 @@ fn every_other_host_keeps_max_tokens() {
         // A lookalike host is not OpenAI.
         "https://api.openai.com.example.net/v1/chat/completions",
     ] {
-        assert_eq!(for_endpoint(endpoint, body()), body(), "{endpoint}");
+        let b = for_endpoint(endpoint, body());
+        assert_eq!(b["max_tokens"], 4096, "{endpoint}");
+        assert!(b.get("max_completion_tokens").is_none(), "{endpoint}");
     }
 }
 

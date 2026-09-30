@@ -9,16 +9,23 @@
 //! on OpenAI's host the field is renamed; every other host still gets the
 //! `max_tokens` it documents.
 
-/// `body` with `max_tokens` renamed to `max_completion_tokens` when
-/// `endpoint` is OpenAI's own API; any other endpoint's body is untouched.
+#[path = "stopseq.rs"]
+mod stopseq;
+
+/// `body` as `endpoint` takes it: `max_tokens` renamed to
+/// `max_completion_tokens` on OpenAI's own API, and everywhere else a
+/// text-protocol request stopped at `</tool_call>` ([`stopseq`]) — the one
+/// place every chat-completions body passes on its way to a host.
 pub(crate) fn for_endpoint(endpoint: &str, mut body: serde_json::Value) -> serde_json::Value {
-    if is_openai(endpoint) {
+    let openai = is_openai(endpoint);
+    if openai {
         if let Some(obj) = body.as_object_mut() {
             if let Some(cap) = obj.remove("max_tokens") {
                 obj.insert("max_completion_tokens".into(), cap);
             }
         }
     }
+    stopseq::end_text_calls(openai, &mut body);
     body
 }
 
