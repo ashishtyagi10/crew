@@ -93,3 +93,34 @@ fn a_failure_status_is_an_error_the_agent_can_read() {
     let err = fetched(&format!("http://127.0.0.1:{port}/")).expect_err("404 is an error");
     assert!(err.contains("404"), "{err}");
 }
+
+/// A page longer than the result budget comes back as its start, under the
+/// budget, and a last line naming the file its whole text was saved to. With
+/// nowhere to save it, it is what it always was.
+#[test]
+fn a_long_page_is_saved_whole_and_its_start_is_shown() {
+    use crate::broker::toolclip::RUN_FIT;
+    let text: String = (1..=2000)
+        .map(|i| format!("paragraph {i} of the docs\n"))
+        .collect();
+    let body: &'static str = text.clone().leak();
+    let unsaved = fetched(&serve(body, "text/plain")).unwrap();
+    assert_eq!(unsaved, super::super::sysfetchtext::capped(&text, TEXT_CAP));
+    let g = crate::broker::spill::spilltest::guard("fetch");
+    let out = fetched(&serve(body, "text/plain")).unwrap();
+    assert!(out.len() <= RUN_FIT, "{} bytes", out.len());
+    assert!(out.starts_with("paragraph 1 of the docs\n"), "{out}");
+    let last = out.rsplit('\n').next().unwrap();
+    assert!(
+        last.starts_with("\u{2026} full output (2,000 lines"),
+        "{last}"
+    );
+    let rel = last
+        .split("saved to ")
+        .nth(1)
+        .unwrap()
+        .split(' ')
+        .next()
+        .unwrap();
+    assert_eq!(std::fs::read_to_string(g.dir().join(rel)).unwrap(), text);
+}

@@ -44,7 +44,8 @@ pub(super) fn git_in(dir: &Path, v: &serde_json::Value) -> Result<String, String
 /// branch line, the newest commits, the top of the file; the end of a long log
 /// is only older history. A diff or a commit is whole when it fits, else its
 /// start and end as `runfit` keeps a long command's: the start is the `--stat`
-/// header, which names every file, and the end a whole last hunk.
+/// header, which names every file, and the end a whole last hunk. Either way a
+/// cut answer is saved whole first (`spill`), and its last line says where.
 fn fitted(sub: &str, out: &str, cut: bool) -> String {
     if out.trim().is_empty() {
         return match sub {
@@ -54,22 +55,23 @@ fn fitted(sub: &str, out: &str, cut: bool) -> String {
             _ => format!("git {sub} printed nothing"),
         };
     }
+    let spill = super::spill::saved("git", out);
     let mut text = match sub {
-        "diff" | "show" => runfit::ends(out, RUN_FIT / 2),
-        _ => head(out),
+        "diff" | "show" => runfit::ends(out, RUN_FIT / 2, spill.room),
+        _ => head(out, spill.room),
     };
     if cut {
         text.push_str("\n\u{2026} (git wrote over 1 MB; the rest was not read)");
     }
-    text
+    spill.close(text)
 }
 
-/// `out`'s start within [`RUN_FIT`], and how many lines were left.
-fn head(out: &str) -> String {
+/// `out`'s start within `room`, and how many lines were left.
+fn head(out: &str, room: usize) -> String {
     if out.len() <= RUN_FIT {
         return out.to_string();
     }
-    let kept = runfit::head_of(out, RUN_FIT - 200);
+    let kept = runfit::head_of(out, room - 200);
     let n = out[kept.len()..].lines().count();
     let nl = if kept.ends_with('\n') { "" } else { "\n" };
     format!("{kept}{nl}\u{2026} ({n} more lines \u{2014} ask for fewer: -n, a path after \"--\", or -L)")

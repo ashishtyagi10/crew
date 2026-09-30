@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.11
+
+**A long tool result is saved whole where the agent can read it back.**
+Every result an agent sees is fitted to about 5,600 bytes, and what the
+fitting dropped was gone: the middle of a 3,000-line test log, the 400th
+grep hit, three quarters of a fetched docs page. The only way back was to
+run the tool again with narrower arguments, and a slow test suite costs
+minutes a run. Cursor answers this by writing long output to a file the agent
+can page and search; now crew does too. When `sys:run`, `sys:git`,
+`sys:grep`/`sys:glob` or `sys:fetch` has to leave something out, the whole
+output goes to `.crew/out/<tool>-<time>-<n>.txt` and the result's last line
+says so: `… full output (3,112 lines, 88 KB) saved to .crew/out/run-….txt —
+read it with sys:read_file {"path": …, "line": N} or search it with
+sys:grep`. The fitted result is otherwise what it was (start, end, what was
+left out), a result that fits is byte-identical, and a long page now arrives
+as its start plus the file (up to 256K characters of it) instead of a clip of
+its first quarter. `sys:grep` given a single file names it in its hits
+(`path:412:`, not `:412:`), so a hit in a saved output can be opened. The
+folder carries a `.gitignore` of `*`, so a repository that tracks `.crew/`
+never commits it, only the newest thirty files are kept, each at most 1 MB,
+and none of it counts as a changed file. `CREW_SPILL=0` turns it off. The
+cost: a pointer line in results that were already cut, and up to 30 MB of
+scratch files in the project's `.crew/out/`.
+
 ## 0.25.10
 
 **An Anthropic tool loop reads its history back from the cache.** A native

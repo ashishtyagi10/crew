@@ -11,7 +11,7 @@
 //! `sysgrepfiles`), so they need no `rg` on the machine and behave the same
 //! on Windows. Binary files and files over 1 MB are passed over, and the
 //! output is fitted to what the agent is shown (`sysgrepfit`), ending with a
-//! count of what was left out.
+//! count of what was left out and where all of it was saved (`spill`).
 use std::path::Path;
 
 use super::sysgrepfiles::files;
@@ -66,7 +66,7 @@ pub(crate) fn grep(v: &serde_json::Value) -> Result<String, String> {
     if !root.exists() {
         return Err(format!("no such path: {}", root.display()));
     }
-    let mut fit = Fit::default();
+    let mut fit = Fit::spilling("grep");
     for (rel, path) in files(root) {
         if glob.is_some_and(|g| !glob_match(g, &rel))
             || std::fs::metadata(&path).map_or(true, |m| !m.is_file() || m.len() > FILE_CAP)
@@ -89,7 +89,7 @@ pub(crate) fn grep(v: &serde_json::Value) -> Result<String, String> {
         }
         let after_another = !fit.is_empty();
         fit.file();
-        if !fit.keeping() {
+        if !fit.keeping() && !fit.recording() {
             fit.count(hits.len());
             continue;
         }
@@ -167,7 +167,7 @@ pub(crate) fn glob(v: &serde_json::Value) -> Result<String, String> {
         .and_then(|p| p.as_str())
         .ok_or("missing string argument \u{201c}pattern\u{201d}")?;
     let root = Path::new(v.get("path").and_then(|p| p.as_str()).unwrap_or("."));
-    let mut fit = Fit::default();
+    let mut fit = Fit::spilling("glob");
     for (rel, _) in files(root)
         .into_iter()
         .filter(|(rel, _)| glob_match(pattern, rel))

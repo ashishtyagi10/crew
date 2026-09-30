@@ -127,11 +127,13 @@ fn visible(e: &walkdir::DirEntry) -> bool {
     !(e.file_type().is_dir() && SKIP_DIRS.contains(&name.as_ref()))
 }
 
+/// `p` relative to `root`; a FILE passed as the root (a saved output from
+/// `spill`, say) is named as it was passed, since stripping it from itself
+/// leaves hits reading `:412: …`, with no file for `sys:read_file` to open.
 fn rel_of(root: &Path, p: &Path) -> String {
-    p.strip_prefix(root)
-        .unwrap_or(p)
-        .to_string_lossy()
-        .replace('\\', "/")
+    let rel = p.strip_prefix(root).unwrap_or(p);
+    let rel = if rel.as_os_str().is_empty() { p } else { rel };
+    rel.to_string_lossy().replace('\\', "/")
 }
 
 #[cfg(test)]

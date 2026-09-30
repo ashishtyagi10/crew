@@ -2682,7 +2682,8 @@ its whole process group reaped on timeout so backgrounded children can't
 linger; a result over 5,600 bytes is fitted to the `exit N` line, the first
 ~1,200 bytes of stdout, a line counting what was cut, and the END of each
 stream, stderr's first, so a build's `error[…]` survives the 6,000-char clip
-on tool results; and a non-zero exit is a FAILED call — `✗` on the card,
+on tool results, with the whole output saved to a file the last line names
+(below); and a non-zero exit is a FAILED call — `✗` on the card,
 `is_error` to the provider — whose output still reaches the agent),
 **`sys:read_file`** (UTF-8, one page per call: up to 5,600 bytes, cut at
 the last line end — sized so a page and its note pass the 6,000-char clip on
@@ -2705,7 +2706,8 @@ files git lists — tracked, and untracked but not ignored — so what
 fails, they walk the tree skipping `.git`, build output, dependency trees and
 hidden directories. Binaries and files over 1 MB are passed over, and both
 answers are fitted to 5,600 bytes, cut at a whole hit or path and ending with
-a line that counts what was left out and in how many files
+a line that counts what was left out and in how many files, and a line naming
+the file every hit or path was saved to (below)
 — **`sys:outline`**, which shows one file's shape (below), **`sys:todo`**, the
 agent's own checklist for a task of three or more steps (whole list per call,
 at most 12 items and one in progress, shown back above every round's tool
@@ -2731,7 +2733,8 @@ newline — and the refusal says which and why. That is what lets it be
 classified `read`: no approval, and it stays on in read-only mode. Status, log
 and blame keep their start when long (the newest commits, a count of the
 rest); a long diff keeps its `--stat` head and its end, fitted under the
-5,600-byte result budget like `sys:run`'s; a non-zero git exit is a failed
+5,600-byte result budget like `sys:run`'s; either way the whole answer is
+saved to a file (below); a non-zero git exit is a failed
 call carrying git's stderr.
 
 `sys:outline {"path": …}` answers "what is in this file, and where" in one
@@ -2763,14 +2766,42 @@ file and changes nothing, so it is classified `read`.
 
 `sys:fetch {"url": …}` GETs an http(s) page and returns it as READABLE TEXT:
 script, style and markup are stripped before the model sees a token of it,
-the body is capped at 2 MB on the wire and 24 KB of text after extraction
-(with a visible clip marker), redirects are followed five deep and the whole
-request has a 20-second deadline. It is classified `read` — a GET changes
+the body is capped at 2 MB on the wire, and a page whose text runs past 5,600
+bytes comes back as its start, cut at a line end, with its whole text (up to
+256 KB) saved to a file the last line names (below) — or, when it cannot be
+saved, capped at 24 KB with a visible clip marker; redirects are followed five
+deep and the whole request has a 20-second deadline. It is classified `read` — a GET changes
 nothing out there — with one guard that is not about size: a URL naming
 **localhost, a private network or a link-local address** (`169.254.x`, the
 cloud metadata endpoint) is REFUSED. The broker sits inside your network,
 among things that answer anyone who can talk to them, and the agent asking is
 usually not the attacker — the page that told it to ask might be.
+
+**A long result is saved whole, not cut and lost.** Fitting a result to the
+5,600-byte budget chooses what the agent sees, and what it left out used to be
+gone: the middle of a 3,000-line test log, the 400th grep hit, the second half
+of a docs page, reachable only by running the tool again, which for a slow
+test suite costs minutes. Now, whenever `sys:run`, `sys:git`, `sys:grep`,
+`sys:glob` or `sys:fetch` leaves something out, the whole answer is written to
+`.crew/out/<tool>-<UTC date>-<time>-<n>.txt` under the working directory,
+and ONE line after the fitted result, inside the same 5,600 bytes, says
+where:
+
+```
+… full output (5,001 lines, 24 KB) saved to .crew/out/run-20260929-231500-1.txt — read it with sys:read_file {"path": ".crew/out/run-20260929-231500-1.txt", "line": N} or search it with sys:grep
+```
+
+— the dynamic context discovery Cursor describes. The line comes after the
+`N lines … cut` or `N more hits … left out` line, which stays. `sys:read_file`
+opens the file at any line and `sys:grep` searches it, by the file or by
+`.crew/out`, even where `.gitignore` names `.crew/` (an ignored path named on
+purpose is searched, and hits in a file named on its own carry its path). A
+spill holds at most 1 MB, the most `sys:grep` searches, and says so when cut;
+`.crew/out/` gets a `.gitignore` of `*` the first time, so a repository that
+tracks `.crew/` never commits one; only the newest 30 are kept; and `.crew/`
+is never part of a task's changed files or its checkpoint. A result that fits
+is byte-identical to before and saves nothing, a write that fails leaves the
+result exactly as it was without this, and `CREW_SPILL=0` turns it off.
 
 **A path that is not there says what is.** Every sys tool that takes a path —
 `read_file`, `write_file`, `edit`, `list_dir` — used to answer a wrong one with
@@ -3085,6 +3116,7 @@ agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request;
 sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:edit`, `sys:list_dir`,
 `sys:grep`, `sys:glob`, `sys:outline`, `sys:todo`, `sys:git`, `sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
 and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
+`CREW_SPILL=0` stops a long sys result being saved whole to `.crew/out/`;
 `CREW_HTTP_TIMEOUT_MS` (default 120000) is how long a provider may say
 NOTHING — the wait for the first byte, and each gap between two frames of a
 streamed reply — deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled

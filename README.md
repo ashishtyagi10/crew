@@ -586,10 +586,14 @@ named at the end of its answer, the way Claude Code's TodoWrite does),
 any argument that writes a file or runs a program refused, so it needs no
 approval and works in read-only mode),
 `sys:fetch` (an http(s)
-page as readable text — markup and scripts stripped, 24 KB cap, private and
+page as readable text — markup and scripts stripped, private and
 link-local addresses refused), and `sys:search` (a keyless web search: ranked
 titles, real URLs and snippets to fetch and cite) — callable mid-relay the
-same way as MCP tools. `CREW_SYS_MODE=readonly` blocks the mutating ones,
+same way as MCP tools. A long result from `sys:run`, `sys:git`, `sys:grep`,
+`sys:glob` or `sys:fetch` is fitted to what the agent is shown and saved
+whole to `.crew/out/` (git-ignored, newest 30 kept), its last line naming the
+file for `sys:read_file` and `sys:grep` to reach what was left out;
+`CREW_SPILL=0` turns that off. `CREW_SYS_MODE=readonly` blocks the mutating ones,
 `CREW_SYS_TOOLS=0` turns the surface off, and `/doctor` shows the working
 directory and sandbox mode. An optional token budget
 (`CREW_BROKER_TOKEN_BUDGET`) hard-stops a runaway thread.
