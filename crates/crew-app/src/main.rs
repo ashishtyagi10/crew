@@ -152,6 +152,7 @@ mod chatsend;
 mod chatsettle;
 mod chatspawn;
 mod chatstate;
+mod chatsteer;
 mod chatsub;
 #[cfg(test)]
 #[path = "chatsubshot_tests.rs"]

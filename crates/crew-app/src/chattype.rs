@@ -294,14 +294,9 @@ impl ChatPane {
                         self.push_note(note);
                     }
                 }
-                // Busy: queue instead of writing to a broker that's still
-                // mid-turn — except `/stop`, which must reach it immediately
-                // to cancel. Idle: send straight away, as before.
-                if self.is_busy() && !crate::chatqueue::is_stop(&text) {
-                    self.queued.push_back(expanded);
-                } else {
-                    self.send_now(expanded);
-                }
+                // Busy: queued, and offered to the running task (`chatsteer`)
+                // — except `/stop`, which must reach it at once. Idle: sent.
+                self.submit_typed(expanded);
             }
         } else {
             // A Char/Backspace edit: the composer's text is the user's own

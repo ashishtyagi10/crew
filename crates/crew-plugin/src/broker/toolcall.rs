@@ -144,6 +144,8 @@ impl Broker {
         let mut seen = crew_hive::tools::seen::Seen::default();
         let max_calls = self.tool_rounds;
         let mut used: u32 = 0;
+        // What the user typed while this turn ran (`steer`), kept for its rest.
+        let mut steered: Vec<String> = Vec::new();
         let before = loop {
             let Some((said, calls)) = split_tool_calls(&reply) else {
                 return reply;
@@ -189,11 +191,14 @@ impl Broker {
             // more (`toolfull`); the cut holds for the rest of the turn.
             let label = calls[fit - 1].label();
             let list = crew_hive::tools::todo::section(runner.checklist());
+            steered.extend(super::steer::take());
+            let added = super::steer::section(&steered);
             let (follow, dialed) = self.dial_fitted(
                 agent,
                 &mut base,
                 &list,
                 &mut exchanges,
+                &added,
                 max_calls - used,
                 &label,
                 tick_base,

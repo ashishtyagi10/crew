@@ -627,6 +627,30 @@ The docked command bar supports:
   while the key would do something (`· backspace takes one back`) and stops
   saying it the moment you type, because a hint you cannot act on is exactly
   the noise this surface is trying not to be.
+  **Steer, don't queue.** A plain message typed mid-run is also OFFERED to the
+  running task (a `steer` line on the broker's stdin), because "also check the
+  tests" or "no, the other file" is worth nothing once the agent has answered
+  the wrong thing. agent smith's tool loop takes it between rounds: the next
+  follow-up prompt carries it after the tool exchanges, and every follow-up for
+  the rest of the turn keeps it —
+
+      THE USER ADDED WHILE YOU WORKED:
+      - also check the tests
+      Take this into account from here on — where it differs from the request above, it replaces it.
+
+  — and the broker says so before that round dials, so the pane drops the
+  queued copy and notes `↳ joined the running task: "also check the tests"`
+  under your message. The queued copy stays until then, so nothing is lost and
+  nothing is sent twice: a task with no round left to take it (a plain answer
+  with no tool call) never says it was taken, the broker drops the offer when
+  the last running task ends (or on `/stop`), and the copy is sent when the turn
+  settles, exactly as before. Only plain words steer — a slash command, a
+  `#note`, an `@agent` dial, and anything typed while a plan waits for its
+  answer are only queued. **Not yet steerable:** swarm workers and CLI agents
+  (the claude / opencode relays) run their own loops out of the broker's reach,
+  so a message typed during one stays queued as before. With several tasks
+  running, the first to reach a round takes it. Backspace still takes a queued
+  copy back — but a message the task already took has been read.
 
 - **Smart bare-input routing** — plain text (not a slash command, `cd`, or a
   prefix below) routes by context: if the focused pane is a **visible, idle

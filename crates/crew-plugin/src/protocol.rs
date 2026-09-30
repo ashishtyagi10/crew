@@ -26,6 +26,16 @@ pub enum PluginCommand {
     /// of reading or typing opened a fresh one. A hint, not a request: no
     /// reply, and a broker that predates it skips the line it cannot parse.
     Warm {},
+    /// A message typed while a task runs, offered to that task: the relay's
+    /// tool loop folds it into its next round instead of it waiting for the
+    /// whole turn to end (Amp's "steer, don't queue"). An OFFER, not a send —
+    /// the host keeps its own queued copy, and the broker ignores a steer
+    /// when nothing is running or drops it when the task ends untaken, so the
+    /// copy flushes as it always did. [`PluginEvent::Steered`] says it joined.
+    Steer {
+        channel: String,
+        text: String,
+    },
 }
 
 /// One agent in a plugin's roster: its address name, a short capability role,
@@ -184,6 +194,14 @@ pub enum PluginEvent {
         reply_to: String,
         /// A human-readable line describing what is about to happen.
         question: String,
+    },
+    /// A [`PluginCommand::Steer`] the running task took: `text` is now in
+    /// the prompt of its next tool round. Emitted BEFORE that round's dial,
+    /// so it reaches the host ahead of the task's answer — the host drops its
+    /// queued copy on this, and nothing is sent twice.
+    Steered {
+        channel: String,
+        text: String,
     },
     Message {
         channel: String,

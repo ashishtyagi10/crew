@@ -406,3 +406,47 @@ fn a_broker_that_predates_warm_cannot_parse_it_and_so_skips_it() {
     let line = serde_json::to_string(&PluginCommand::Warm {}).unwrap();
     assert!(serde_json::from_str::<Before>(&line).is_err());
 }
+
+#[test]
+fn steer_roundtrips_under_its_own_tag() {
+    let cmd = PluginCommand::Steer {
+        channel: "crew".into(),
+        text: "also check the tests".into(),
+    };
+    let s = serde_json::to_string(&cmd).unwrap();
+    assert_eq!(
+        s,
+        r#"{"type":"steer","channel":"crew","text":"also check the tests"}"#
+    );
+    match serde_json::from_str::<PluginCommand>(&s).unwrap() {
+        PluginCommand::Steer { channel, text } => {
+            assert_eq!(
+                (channel.as_str(), text.as_str()),
+                ("crew", "also check the tests")
+            );
+        }
+        other => panic!("wrong variant: {other:?}"),
+    }
+}
+
+#[test]
+fn steered_roundtrips_under_its_own_tag() {
+    let ev = PluginEvent::Steered {
+        channel: "crew".into(),
+        text: "no, the other file".into(),
+    };
+    let s = serde_json::to_string(&ev).unwrap();
+    assert_eq!(
+        s,
+        r#"{"type":"steered","channel":"crew","text":"no, the other file"}"#
+    );
+    match serde_json::from_str::<PluginEvent>(&s).unwrap() {
+        PluginEvent::Steered { channel, text } => {
+            assert_eq!(
+                (channel.as_str(), text.as_str()),
+                ("crew", "no, the other file")
+            );
+        }
+        other => panic!("wrong variant: {other:?}"),
+    }
+}

@@ -103,6 +103,8 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
             // on a worker thread waiting for exactly this, so it only has to reach the mailbox.
             PluginCommand::Approve { id, granted } => super::approval::deliver_answer(&id, granted),
             PluginCommand::Warm {} => super::prewarm::on_warm(&mut tasks),
+            // Typed while a task runs: offered to its next tool round (`steer`).
+            PluginCommand::Steer { channel, text } => super::steer::deliver(channel, text),
         }
     }
     // stdin closed (pane gone / EOF): let running tasks finish streaming
@@ -221,6 +223,7 @@ fn send(
         let arg = trimmed.strip_prefix("/stop").unwrap().trim();
         if arg.is_empty() {
             super::thread::lock(&session.thread).clear(); // a fresh start, not a follow-up
+            super::steer::clear(); // nor does a cancelled run take what was typed into it
             let n = tasks.cancel_all();
             let m = if n == 0 {
                 "nothing is running".to_string()
@@ -299,6 +302,8 @@ fn send(
             std::sync::Arc::new(move |ev| {
                 let _ = emit(&tick_out, &ev);
             });
+        // This thread is the task: its tool rounds take what is typed meanwhile.
+        let steer = super::steer::Taking::begin(Arc::clone(&tick_emit));
         // Stamp every relay Message event with this task's id, and count Stats.
         let mut counting = |mut ev: PluginEvent| {
             if let PluginEvent::Stats { tokens: t, .. } = &ev {
@@ -383,6 +388,8 @@ fn send(
         // measured from the snapshot, so it must have landed.
         let _ = ckpt.join();
         report_changes(&snap, id, &out_thread);
+        // Before the end is announced: the host sends its untaken copy on it.
+        drop(steer);
         // The end of the task, emitted by the only thing that knows when that
         // is. `Tasks::reap` runs lazily on the NEXT command, so a task
         // finishing is otherwise not an observable moment — which is why the
