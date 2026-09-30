@@ -38,7 +38,7 @@ fn scripted(replies: Vec<String>) -> (std::net::SocketAddr, Arc<Mutex<Vec<String
 
 fn http(status: &str, body: &str) -> String {
     format!(
-        "HTTP/1.1 {status}\r\ncontent-type: application/json\r\ncontent-length: {}\r\n\r\n{body}",
+        "HTTP/1.1 {status}\r\nconnection: close\r\ncontent-type: application/json\r\ncontent-length: {}\r\n\r\n{body}",
         body.len()
     )
 }

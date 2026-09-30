@@ -766,6 +766,10 @@ async fn a_tool_request_streams_its_reasoning_and_assembles_the_call() {
 
 /// A server that does not stream tool calls ends the stream empty; the one
 /// non-streamed re-ask then carries the call, so behaviour never regresses.
+/// The server says `connection: close`: it shuts each socket after one
+/// answer, and a pooled keep-alive connection sent the re-ask down a closed
+/// socket under a loaded test run ("connection closed before message
+/// completed", 1 gate in 3).
 #[tokio::test]
 async fn an_empty_tool_stream_falls_back_to_the_non_streamed_request_once() {
     use tokio::io::AsyncWriteExt;
@@ -790,7 +794,7 @@ async fn an_empty_tool_stream_falls_back_to_the_non_streamed_request_once() {
                 ("application/json", r#"{"choices":[{"message":{"content":null,"tool_calls":[{"id":"c9","function":{"name":"fs_read","arguments":"{}"}}]}}],"usage":{"prompt_tokens":1,"completion_tokens":1}}"#.to_string())
             };
             let head = format!(
-                "HTTP/1.1 200 OK\r\ncontent-type: {ct}\r\ncontent-length: {}\r\n\r\n",
+                "HTTP/1.1 200 OK\r\nconnection: close\r\ncontent-type: {ct}\r\ncontent-length: {}\r\n\r\n",
                 body.len()
             );
             let _ = sock.write_all(head.as_bytes()).await;

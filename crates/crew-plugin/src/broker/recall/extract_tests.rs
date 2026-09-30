@@ -77,3 +77,19 @@ fn a_url_is_not_filed_as_a_path_and_a_path_is_not_filed_as_a_page() {
     assert_eq!(paths(text), vec!["crates/crew-plugin/src/lib.rs"]);
     assert_eq!(urls(text), vec!["https://example.com/a/b.rs"]);
 }
+
+#[test]
+fn a_quoted_sed_expression_is_not_a_file_but_the_file_it_edits_is() {
+    // The probe's command (2026-09-30) filed `s/^/row` as a file.
+    let got = paths("ran sed 's/^/row-/' notes.txt | head, then s/a$/b/ on src/lib.rs");
+    assert_eq!(got, vec!["notes.txt", "src/lib.rs"]);
+}
+
+#[test]
+fn a_grep_hit_and_a_windows_path_are_still_files() {
+    let got = paths("see crates/crew-app/src/nav.rs:41 and crates\\crew\\x.rs");
+    assert_eq!(
+        got,
+        vec!["crates/crew-app/src/nav.rs:41", "crates\\crew\\x.rs"]
+    );
+}
