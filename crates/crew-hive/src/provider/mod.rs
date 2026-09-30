@@ -21,6 +21,7 @@ mod stopreason;
 mod tests;
 mod thinking;
 mod thinktags;
+mod tokencap;
 mod toolargs;
 mod utf8carry;
 mod warm;

@@ -5,7 +5,11 @@
 //! spans sizes; unknown models return `None` and the meter falls back to an
 //! absolute token count.
 const LIMITS: &[(&str, u64)] = &[
-    // Alibaba DashScope / Qwen
+    // Alibaba DashScope / Qwen. The 3.7/3.8 rows hold 1M (their model
+    // pages, 2026-09-29) and would otherwise read the family's 131K.
+    ("qwen3.8-max", 1_000_000),
+    ("qwen3.8-flash", 1_000_000),
+    ("qwen3.7-max", 1_000_000),
     ("qwen-max", 32_768),
     ("qwen-plus", 131_072),
     ("qwen-turbo", 131_072),
@@ -28,9 +32,12 @@ const LIMITS: &[(&str, u64)] = &[
     ("claude-sonnet-5", 1_000_000),
     ("claude-fable", 1_000_000),
     ("claude", 200_000),
-    // OpenAI
+    // OpenAI. GPT-5.5 and every GPT-6 read 1.05M (model pages, 2026-09-29);
+    // `gpt-5.5` must precede `gpt-5`, which it contains.
     ("gpt-4o", 128_000),
     ("gpt-4.1", 1_000_000),
+    ("gpt-5.5", 1_050_000),
+    ("gpt-6", 1_050_000),
     ("gpt-5", 400_000),
     ("gpt", 128_000),
     ("o3", 200_000),
@@ -39,6 +46,9 @@ const LIMITS: &[(&str, u64)] = &[
     ("gemini", 1_000_000),
     // Open-weights families common on OpenRouter
     ("llama", 131_072),
+    // DeepSeek V4 serves 1M (its pricing page); older ids stay at 131K.
+    ("deepseek-flash", 1_000_000),
+    ("deepseek-v4", 1_000_000),
     ("deepseek", 131_072),
     ("mistral", 131_072),
     ("mixtral", 32_768),

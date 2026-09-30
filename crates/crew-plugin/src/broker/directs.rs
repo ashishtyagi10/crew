@@ -20,7 +20,7 @@ pub struct DirectProvider {
     pub var: &'static str,
     pub endpoint: &'static str,
     pub chain: &'static [&'static str],
-    /// Comma-separated override, e.g. `CREW_OPENAI_MODEL=gpt-5,gpt-4.1`.
+    /// Comma-separated override, e.g. `CREW_OPENAI_MODEL=gpt-5.5,gpt-5`.
     pub chain_env: &'static str,
     pub base_url_env: &'static str,
     /// The catalog vendor this provider serves natively, so the model picker
@@ -36,12 +36,19 @@ pub struct DirectProvider {
 /// that 404s on first use is a worse first run than no provider at all. That
 /// is also why xAI, Mistral and Groq are absent despite speaking this same
 /// wire: the catalog carries no rows for them, so their ids would be guesses.
+///
+/// Each chain was re-read against its vendor's own docs on 2026-09-29, and a
+/// model leads only if it answers a TOOL request on `/v1/chat/completions` —
+/// the one wire this table speaks. That is why OpenAI's newer GPT-6 rows are
+/// catalogued but not defaults: their model pages allow function calling on
+/// Chat Completions only at `reasoning_effort: none` (Sol, Luna) or not at all
+/// (6.1 Sol, Astra), and crew's agent sends tools on every turn.
 pub static DIRECT: &[DirectProvider] = &[
     DirectProvider {
         name: "openai",
         var: "OPENAI_API_KEY",
         endpoint: "https://api.openai.com/v1/chat/completions",
-        chain: &["gpt-5", "gpt-4.1"],
+        chain: &["gpt-5.5", "gpt-5", "gpt-4.1"],
         chain_env: "CREW_OPENAI_MODEL",
         base_url_env: "CREW_OPENAI_BASE_URL",
         vendor: crew_hive::catalog::Vendor::OpenAI,
@@ -52,7 +59,15 @@ pub static DIRECT: &[DirectProvider] = &[
         // Google's own OpenAI-compatibility endpoint, so the same client
         // works — no Google SDK, no second wire format.
         endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-        chain: &["gemini-2.5-pro", "gemini-2.5-flash"],
+        // Google limited Gemini 2.5 to projects that already used it
+        // (changelog, 2026-09-18), so a new key's first call to the old head
+        // failed. 3.8 Flash is GA; the 3.1 Pro preview only backs it up, and
+        // 2.5 Pro stays last for the keys that still reach it.
+        chain: &[
+            "gemini-3.8-flash",
+            "gemini-3.1-pro-preview",
+            "gemini-2.5-pro",
+        ],
         chain_env: "CREW_GEMINI_MODEL",
         base_url_env: "CREW_GEMINI_BASE_URL",
         vendor: crew_hive::catalog::Vendor::Google,
@@ -61,7 +76,10 @@ pub static DIRECT: &[DirectProvider] = &[
         name: "deepseek",
         var: "DEEPSEEK_API_KEY",
         endpoint: "https://api.deepseek.com/chat/completions",
-        chain: &["deepseek-chat", "deepseek-reasoner"],
+        // `deepseek-chat` and `deepseek-reasoner` were retired 2026-07-24
+        // (DeepSeek's V4 release note); `deepseek-flash` is the name their
+        // pricing page says to use, the Pro model its fallback.
+        chain: &["deepseek-flash", "deepseek-v4-pro"],
         chain_env: "CREW_DEEPSEEK_MODEL",
         base_url_env: "CREW_DEEPSEEK_BASE_URL",
         vendor: crew_hive::catalog::Vendor::DeepSeek,
@@ -108,3 +126,7 @@ impl std::fmt::Debug for DirectProvider {
         write!(f, "Direct({})", self.name)
     }
 }
+
+#[cfg(test)]
+#[path = "directs_tests.rs"]
+mod tests;

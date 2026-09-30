@@ -227,11 +227,11 @@ fn default_openrouter_chain_matches_the_catalogs_free_rows_in_order() {
     // reorders, drops, or mis-tags a free row must update this literal list
     // and re-verify against OpenRouter's live `/models` endpoint — the sole
     // guard against silent id retirement.
-    // Re-verified live 2026-09-08 (3.5 Lightning added at the head).
+    // Re-verified live 2026-09-29 (GPT-OSS 20B's free slug retired).
     let expected = [
         "nvidia/nemotron-3.5-lightning:free",
         "nvidia/nemotron-3-ultra-550b-a55b:free",
-        "openai/gpt-oss-20b:free",
+        "qwen/qwen3.8-27b:free",
         "google/gemma-4-31b-it:free",
         "cohere/north-mini-code:free",
     ];

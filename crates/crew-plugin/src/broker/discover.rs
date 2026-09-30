@@ -34,6 +34,12 @@ pub(crate) fn default_openrouter_chain() -> Vec<String> {
 /// Default Qwen chain for Alibaba Cloud DashScope (`DASHSCOPE_API_KEY`): the
 /// most capable commercial alias first, rolling to cheaper tiers on limits.
 /// Override with a comma-separated `CREW_DASHSCOPE_MODEL=slug1,slug2,…`.
+/// qwen-max still leads. qwen3.8-max (catalogued, 1M window against
+/// qwen-max's 32K) was measured live on 2026-09-29: its first token came
+/// 1.5× later on a plain question and its first ANSWER token 2.2× later (it
+/// thinks first), though 4× sooner on a tool call — and a slower plain reply
+/// is the complaint smith has been fixing. `CREW_DASHSCOPE_MODEL=qwen3.8-max`
+/// or `/model` picks it.
 pub(crate) const DEFAULT_DASHSCOPE_CHAIN: &[&str] = &["qwen-max", "qwen-plus", "qwen-turbo"];
 
 /// DashScope's model for [`crew_hive::ModelTier::Cheap`] work — the router's

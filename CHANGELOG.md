@@ -8,6 +8,37 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.12
+
+**Every provider's default model is one its vendor serves today.** Three
+of crew's defaults had gone stale under it. Google closed Gemini 2.5 to new
+projects on 2026-09-18, so a fresh `GEMINI_API_KEY`'s first call failed: the
+chain is now `gemini-3.8-flash` (GA) → `gemini-3.1-pro-preview` →
+`gemini-2.5-pro` for keys that still reach it. DeepSeek retired
+`deepseek-chat` and `deepseek-reasoner` on 2026-07-24: `deepseek-flash` →
+`deepseek-v4-pro`. OpenAI leads with `gpt-5.5`, then `gpt-5`, `gpt-4.1`; the
+GPT-6 models are in the catalog but not defaults, because their model pages
+allow tool calls on Chat Completions only with reasoning off, or not at all,
+and crew's agent sends tools on every turn. OpenAI's own API now gets the
+token ceiling as `max_completion_tokens`: its reasoning models, the old
+`gpt-5` default included, refuse `max_tokens` outright, so an OpenAI key had
+never worked; every other host still gets `max_tokens`. The free OpenRouter
+chain swaps the retired `openai/gpt-oss-20b:free` for
+`qwen/qwen3.8-27b:free`. The catalog and prices gain Qwen 3.8 Max/Flash and
+3.7 Max, Gemini 3.8 Flash and 3.1 Pro, GPT-5.5 and the GPT-6 family, and
+DeepSeek Flash and V4 Pro, each read off its vendor's page on 2026-09-29, with
+context windows to match. DashScope keeps `qwen-max` at the head: measured
+live, `qwen3.8-max` (1M context against 32K) started a plain reply about
+twice as late because it thinks first, so it is one `/model` pick away rather
+than the default. What is not verified: no OpenAI, Gemini or DeepSeek key was
+at hand, and Gemini 3 and DeepSeek V4 document a reasoning token that must be
+sent back on a tool loop's next turn, which crew does not send yet, so a
+multi-round tool task on those two may still fail on its second round.
+
+Also: a todo-pane test expected the due preview to read `tomorrow sep`, which
+stopped being true on the 30th; it now reads tomorrow's month off the clock
+(0.25.11's Windows job ran after midnight UTC and caught it).
+
 ## 0.25.11
 
 **A long tool result is saved whole where the agent can read it back.**

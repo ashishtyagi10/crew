@@ -65,8 +65,12 @@ fn priced_rows_badge_dollars_and_unpriced_rows_badge_a_dash() {
         .find(|i| i.desc.starts_with("claude-sonnet-5 "))
         .unwrap();
     assert!(row.desc.contains("$2/$10"), "{}", row.desc);
-    let g = rows("gemini-2.5-pro", None);
-    let row = g.iter().find(|i| !i.header && i.fill != "default").unwrap();
+    // Gemini 2.5 Pro gained a verified rate (2026-09-29); 2.5 Flash has none.
+    let g = rows("gemini-2.5-flash", None);
+    let row = g
+        .iter()
+        .find(|i| i.desc.starts_with("gemini-2.5-flash "))
+        .unwrap();
     assert!(row.desc.contains('\u{2014}'), "{}", row.desc);
 }
 

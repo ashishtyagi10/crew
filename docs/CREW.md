@@ -3014,7 +3014,9 @@ then serves *every* model call (classify, planner, workers, judges) exactly
 as a key would. With no subscription, key discovery is unchanged and
 prefers `DASHSCOPE_API_KEY`
 (Alibaba Cloud Model Studio — Qwen commercial models, `qwen-max` →
-`qwen-plus` → `qwen-turbo`, override with `CREW_DASHSCOPE_MODEL=a,b,…`; the
+`qwen-plus` → `qwen-turbo`, override with `CREW_DASHSCOPE_MODEL=a,b,…` —
+`qwen3.8-max` is in the catalog with a 1M context against `qwen-max`'s 32K,
+but thinks before it answers, so a plain reply starts about twice as late; the
 quick decisions — routing, skill and tool picks — run on `qwen-flash`, override
 with `CREW_DASHSCOPE_CHEAP_MODEL`; the endpoint defaults to the international region, point `CREW_DASHSCOPE_BASE_URL`
 at the China host if your key lives there), then `OPENROUTER_API_KEY` (free
@@ -3033,7 +3035,7 @@ provider's limit doesn't stall the relay. Override the whole chain with a
 comma-separated list, tried in order:
 
 ```sh
-export CREW_OPENROUTER_MODEL="deepseek/deepseek-chat-v3.1:free,qwen/qwen3-235b-a22b:free"
+export CREW_OPENROUTER_MODEL="nvidia/nemotron-3.5-lightning:free,google/gemma-4-31b-it:free"
 ```
 
 Free models still share a hard account-wide daily cap; for sustained heavy use,
@@ -3046,9 +3048,9 @@ endpoint, the key and the default model chain differ:
 
 | `CREW_PROVIDER` | Key | Default chain | Override the chain | Override the endpoint |
 |---|---|---|---|---|
-| `openai` | `OPENAI_API_KEY` | `gpt-5` → `gpt-4.1` | `CREW_OPENAI_MODEL` | `CREW_OPENAI_BASE_URL` |
-| `gemini` | `GEMINI_API_KEY` | `gemini-2.5-pro` → `gemini-2.5-flash` | `CREW_GEMINI_MODEL` | `CREW_GEMINI_BASE_URL` |
-| `deepseek` | `DEEPSEEK_API_KEY` | `deepseek-chat` → `deepseek-reasoner` | `CREW_DEEPSEEK_MODEL` | `CREW_DEEPSEEK_BASE_URL` |
+| `openai` | `OPENAI_API_KEY` | `gpt-5.5` → `gpt-5` → `gpt-4.1` | `CREW_OPENAI_MODEL` | `CREW_OPENAI_BASE_URL` |
+| `gemini` | `GEMINI_API_KEY` | `gemini-3.8-flash` → `gemini-3.1-pro-preview` → `gemini-2.5-pro` | `CREW_GEMINI_MODEL` | `CREW_GEMINI_BASE_URL` |
+| `deepseek` | `DEEPSEEK_API_KEY` | `deepseek-flash` → `deepseek-v4-pro` | `CREW_DEEPSEEK_MODEL` | `CREW_DEEPSEEK_BASE_URL` |
 | `nvidia` | `NVIDIA_API_KEY` | `nvidia/nemotron-3.5-lightning-30b-a3b` → `nvidia/nemotron-3-super-120b-a12b` → `nvidia/nemotron-3-ultra-550b-a55b` | `CREW_NVIDIA_MODEL` | `CREW_NVIDIA_BASE_URL` |
 
 **Free to start.** A chat pane with no provider says this itself, in **the
@@ -3078,9 +3080,16 @@ a throttle. Crew never ships a key of its own: one shared key would be
 extractable from the binary and throttled for everyone at once.
 
 Chain overrides are comma-separated and tried in order, exactly like
-`CREW_OPENROUTER_MODEL`: `export CREW_GEMINI_MODEL="gemini-2.5-flash,gemini-2.5-pro"`.
+`CREW_OPENROUTER_MODEL`: `export CREW_GEMINI_MODEL="gemini-3.8-flash,gemini-3.1-pro-preview"`.
 Gemini is reached over Google's own OpenAI-compatibility endpoint, so no Google
 SDK is involved.
+
+Each default was re-read against its vendor's own docs on 2026-09-29. Google
+now serves Gemini 2.5 only to projects that already used it, so a new key
+starts on 3.8 Flash; DeepSeek retired `deepseek-chat` and `deepseek-reasoner`
+on 2026-07-24. OpenAI's GPT-6 models are in the picker but not the default:
+on the chat-completions wire crew speaks, OpenAI allows them function tools
+only with reasoning off, or not at all.
 
 These probe **last** in auto-discovery, deliberately: adding a vendor can never
 change which provider an existing install already resolves to. So if you also
