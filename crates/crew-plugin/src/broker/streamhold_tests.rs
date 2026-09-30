@@ -85,3 +85,35 @@ fn a_code_block_that_wraps_no_call_is_shown_as_written() {
     // A bare call followed by prose: nothing swallowed but the indent.
     assert_eq!(shown(&["@tool sys:list_dir\n", "Listed.\n"]), "Listed.\n");
 }
+
+#[test]
+fn a_tagged_call_cut_off_by_its_stop_never_shows() {
+    // The live probe's reply (2026-09-30): generation stops at `</tool_call>`.
+    let s = shown(&[
+        "I'll read the file.\n\n<tool",
+        "_call>\n{\"name\": \"sys:read_file\", \"arguments\": {\"path\": \"data/beta.txt\"}}",
+    ]);
+    assert_eq!(s, "I'll read the file.\n\n");
+}
+
+#[test]
+fn a_closed_tagged_call_goes_whole_and_what_follows_it_shows() {
+    let block = "<tool_call>\n{\"name\": \"sys:x\",\n \"arguments\": {}}\n</tool_call>\n";
+    assert_eq!(
+        shown(&["a\n", block, "The number is 4.\n"]),
+        "a\nThe number is 4.\n"
+    );
+    let one = "<tool_call>{\"name\": \"sys:x\"}</tool_call>\nok\n";
+    assert_eq!(shown(&[one]), "ok\n");
+    let fenced = "x\n```\n<tool_call>\n{}\n</tool_call>\n```\ny\n";
+    assert_eq!(shown(&[fenced]), "x\ny\n", "its fence goes with it");
+}
+
+#[test]
+fn other_markup_at_line_start_is_released_whole() {
+    assert_eq!(shown(&["<div>", " hi</div>\nnext"]), "<div> hi</div>\nnext");
+    assert_eq!(
+        shown(&["<tool_calls are fine>\n"]),
+        "<tool_calls are fine>\n"
+    );
+}

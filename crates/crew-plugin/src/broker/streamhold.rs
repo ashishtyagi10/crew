@@ -7,9 +7,10 @@
 //! gated JSON tail ` 0}` then headed the next round's text, and every answer
 //! ended on a dangling `@` until the settled card replaced it.
 //!
-//! [`Hold`] sits in front of the text gate: a line that STARTS with `@`
-//! (after indentation or markdown emphasis) is held until it ends; a control
-//! line is dropped, anything else — `@editor, over to you` — is released
+//! [`Hold`] sits in front of the text gate: a line that STARTS with `@` or
+//! `<` (after indentation or markdown emphasis) is held until it ends; a
+//! control line or a `<tool_call>` block (`streamline::Tagged`) is dropped,
+//! anything else — `@editor, over to you`, `<div>` — is released
 //! whole. Nothing else is delayed. A line still held when the hop ends is
 //! never shown; the settled reply, already stripped, arrives right after.
 //!
@@ -21,7 +22,10 @@
 //! fence and its closer go with it. A fence wrapping anything else is shown as
 //! written, one line late.
 
+#[path = "streamline.rs"]
+mod streamline;
 use crew_hive::tools::JsonDepth;
+use streamline::{control, is_fence, open_args, Tagged};
 
 /// Streaming filter for one hop's text (spanning its tool rounds).
 #[derive(Default)]
@@ -43,6 +47,8 @@ pub(crate) struct Hold {
     /// A dropped call's JSON that has not closed yet (or, with nothing fed,
     /// may still open on the line under the call).
     args: Option<JsonDepth>,
+    /// A `<tool_call>` block that has not closed yet.
+    tag: Tagged,
 }
 
 impl Hold {
@@ -50,7 +56,7 @@ impl Hold {
     pub(crate) fn feed(&mut self, frag: &str) -> String {
         let mut out = String::new();
         for c in frag.chars() {
-            if self.swallow(c) {
+            if self.swallow(c) || self.tag.swallow(c) {
                 continue;
             }
             if self.held {
@@ -66,7 +72,7 @@ impl Hold {
             }
             if !self.mid {
                 match c {
-                    '@' => {
+                    '@' | '<' => {
                         self.held = true;
                         self.line = std::mem::take(&mut self.lead);
                         self.line.push(c);
@@ -104,9 +110,10 @@ impl Hold {
 
     /// A held line is complete: drop it, hold it back as a fence, or show it.
     fn settle(&mut self, line: String, out: &mut String) {
-        if let Some(word) = control(&line) {
+        let word = control(&line);
+        if word.is_some() || self.tag.opens(&line) {
             self.closer |= !std::mem::take(&mut self.fence).is_empty();
-            if word == "@tool" {
+            if word == Some("@tool") {
                 self.args = open_args(&line);
             }
             return;
@@ -160,36 +167,6 @@ impl Hold {
         self.args = None;
         false
     }
-}
-
-/// `@done`, `@next …` or `@tool …`, however wrapped — the directives the
-/// engine parses, which are the relay's business and not the reader's.
-fn control(line: &str) -> Option<&'static str> {
-    let bare = line
-        .trim()
-        .trim_matches(|c: char| matches!(c, '`' | '*' | '_'))
-        .trim_start()
-        .to_ascii_lowercase();
-    ["@done", "@next", "@tool"].into_iter().find(|d| {
-        bare.strip_prefix(d)
-            .is_some_and(|rest| rest.is_empty() || rest.starts_with(char::is_whitespace))
-    })
-}
-
-/// A code fence line: backticks and at most a language tag.
-fn is_fence(line: &str) -> bool {
-    let t = line.trim();
-    t.starts_with("```") && !t.trim_start_matches('`').contains(['`', ' ', '\t'])
-}
-
-/// Where a dropped call's JSON stands at the end of its `@tool` line: `None`
-/// once it closed there, unfed when the line has none — it may open under it.
-fn open_args(line: &str) -> Option<JsonDepth> {
-    let mut args = JsonDepth::default();
-    let Some(i) = line.find(['{', '[']) else {
-        return Some(args);
-    };
-    (!line[i..].chars().any(|c| args.push(c))).then_some(args)
 }
 
 #[cfg(test)]

@@ -3047,7 +3047,10 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   `@tool` line they stand for, under the same last-word rule. Requests that
   carry no native tools ask every OpenAI-compatible host but OpenAI's own to
   stop at `</tool_call>`, the tag those templates end a turn on: without it
-  the model re-wrote the call it was waiting on until its token cap.
+  the model re-wrote the call it was waiting on until its token cap. While
+  the reply streams, a line opening with `<tool_call>` is held like a
+  `@tool` line, and the block, JSON and all, never types itself onto the
+  live card.
 
 **Models & rate-limits.** When no agent CLIs are installed, `/smith` runs its
 inbuilt API agents — **planner** (capable tier), **coder**, and **reviewer**
