@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.17
+
+**A tool call written in the model's own trained shape now runs.**
+qwen3.8-max, asked for line 1777 of a long output, wrote its read as
+`<tool_call>{"name": "sys:read_file", "arguments": {…}}</tool_call>` in 2 of
+4 clean runs: the shape Qwen 3.x and the Hermes fine-tunes were trained on,
+not the `@tool` line crew's prompt asks for. Nothing read it, so the raw
+block was the answer and the file was never opened. Worse, the model's
+template ends a turn at `</tool_call>` and nothing stopped it there: one run
+wrote the block, "Wait, let me format that correctly.", and the block again,
+until its token cap, 4,606 tokens and 91 s for a call that never ran.
+
+The parser now rewrites each such block as the `@tool` line it stands for,
+then reads the reply as before. It takes arguments under `arguments`,
+`input` (Anthropic's block) or `parameters` (Llama 3.1), arguments sent as a
+string of JSON (OpenAI's shape), a block whose closing tag never came,
+several blocks in a row, and Qwen3-Coder's `<function=…><parameter=…>` XML.
+Arguments keep the text they were written in, key order and all. A block
+with a paragraph under it is still an example rather than a call, and one
+naming no `server:tool` stays as written. And a request that carries no
+native tools asks every OpenAI-compatible host but OpenAI's own (whose
+reasoning models refuse the field) to stop at `</tool_call>`, so the reply
+ends on the call. Borrowed from vLLM's `hermes` and `qwen3_coder` tool
+parsers. A reply without `<tool_call>` in it costs one substring search.
+
 ## 0.25.16
 
 **F6 in `/far` asks: rename it, or move it to the other panel.** F6 moved
