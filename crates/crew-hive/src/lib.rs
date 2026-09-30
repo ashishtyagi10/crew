@@ -61,6 +61,7 @@ pub use provider::claudestream;
 pub mod remoteagent;
 pub mod sched;
 pub mod spent;
+pub mod steers;
 pub mod telemetry;
 pub mod tools;
 pub mod wire;

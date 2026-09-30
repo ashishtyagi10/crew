@@ -20,6 +20,7 @@ use std::sync::Arc;
 use crate::agent::{AgentContext, Attempt};
 use crate::bus::HiveEvent;
 use crate::provider::{CompletionRequest, Provider, ToolInvocation, ToolOutcome, Turn};
+use crate::steers::Steers;
 use crate::tools::{seen::Seen, todo, ToolCatalog, Tools};
 
 /// Most tools one turn may fire, however many the model asked for.
@@ -61,6 +62,7 @@ pub(super) async fn run(
     prompt: String,
     max_tokens: u32,
     sink: super::chunks::ChunkSink,
+    steers: Option<Steers>,
 ) -> Attempt {
     let task_id = ctx.task.id;
     let agent_id = ctx.agent.clone();
@@ -72,6 +74,9 @@ pub(super) async fn run(
     // not `Exchanges::repeat`: the result a pointer names is always in the
     // request beside it, until the turns are cut to fit (`overflow::Cut`).
     let mut seen = Seen::default();
+    // What the user said before this worker started ends its prompt; what
+    // comes after joins as a turn of its own (`steered`).
+    let (prompt, mut taken) = super::steered::opening(prompt, steers.as_ref());
     let label = |c: &ToolInvocation| label_of(c, &catalog);
     let mut cut = super::overflow::Cut::new(&prompt, system.as_deref(), &label);
 
@@ -80,6 +85,10 @@ pub(super) async fn run(
         // (`agent::stop`). The tools already run are not undone.
         if ctx.stopped() {
             return Attempt::stopped(task_id);
+        }
+        // Between rounds only: before the first, `opening` just asked.
+        if !turns.is_empty() {
+            turns.extend(super::steered::turn(steers.as_ref(), &mut taken));
         }
         cut.sending(&turns);
         let req = CompletionRequest {

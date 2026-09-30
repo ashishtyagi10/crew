@@ -9,8 +9,9 @@
 //! [`crew_plugin::PluginEvent::Steered`] that lands before the answer.
 //!
 //! The queued copy stays until then, exactly as before: a task with no round
-//! left to take it (a plain answer, a swarm, a CLI agent) never says it was
-//! taken, and the copy is sent when the pane goes idle. Nothing is lost and
+//! left to take it (a plain answer, a CLI agent) never says it was taken, and
+//! the copy is sent when the pane goes idle. A swarm takes it too: every one
+//! of its workers reads it at its next round (`crew_hive::steers`). Nothing is lost and
 //! nothing is sent twice — the only change is that the message can arrive
 //! EARLY.
 use crate::chat::ChatPane;

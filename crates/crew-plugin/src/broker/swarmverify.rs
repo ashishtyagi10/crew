@@ -90,7 +90,7 @@ pub(super) fn judge_prompt(goal: &str, result: &str) -> String {
         "You are the judge. The user asked:\n{}\n\nThe crew's result:\n{result}\n\nIs the \
          request fully met \u{2014} every stated condition satisfied, not merely attempted? \
          Reply with exactly one line: `MET: <why>` or `NOT MET: <what is missing>`.",
-        swarmanswer::clip_head(goal, swarmanswer::GOAL_CAP)
+        swarmanswer::clip_head(goal, swarmanswer::GOAL_CAP) + &crate::broker::steer::told()
     )
 }
 
@@ -100,7 +100,7 @@ pub(super) fn revise_task(goal: &str, reason: &str, outputs: &str) -> String {
     format!(
         "REVISE: the goal below was attempted; a judge found: {reason}.\n\nCompleted so \
          far:{outputs}\n\nDo only what closes the gap.\n\nGOAL:\n{}",
-        swarmanswer::clip_head(goal, swarmanswer::GOAL_CAP)
+        swarmanswer::clip_head(goal, swarmanswer::GOAL_CAP) + &crate::broker::steer::told()
     )
 }
 
@@ -156,3 +156,7 @@ pub(super) fn verdict<'a>(
 #[cfg(test)]
 #[path = "swarmverify_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "steerbrief_tests.rs"]
+mod brief_tests;
