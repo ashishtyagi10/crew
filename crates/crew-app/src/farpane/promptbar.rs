@@ -17,6 +17,8 @@ pub(super) fn prompt_bar(
     let bar_fg = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
     let label = match prompt.kind {
         super::super::PromptKind::MkDir => "Create folder: ",
+        // Drawn as a box instead (`movebox`); a label in case it ever is not.
+        super::super::PromptKind::Move { .. } => "Rename or move to: ",
     };
     let mut line = prompt_text(label, &prompt.input, area.width as usize);
     if !focused {

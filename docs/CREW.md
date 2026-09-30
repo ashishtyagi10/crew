@@ -1609,8 +1609,11 @@ longer aim at.
   function-key bar and a **command line** at the bottom. `Tab` switches the active
   panel **only while the command line is empty**; `↑`/`↓`/`PgUp`/`PgDn`/`Home`/`End`
   move the cursor, `Enter` descends into a folder (or `..`) or opens a file with
-  the OS default, `Backspace` climbs to the parent, `F5`/`F6` copy/move to the
-  other panel, `F7` makes a folder (the prompt keeps the end of a long name and
+  the OS default, `Backspace` climbs to the parent, `F5` copies to the other
+  panel, `F6` opens Far's **rename-or-move box** offering the other panel's
+  folder — `Enter` as offered moves there, a new name renames in place, a path
+  (relative to the active panel, `~` for home) moves there, `Esc` cancels, and
+  nothing is ever overwritten — `F7` makes a folder (the prompt keeps the end of a long name and
   its caret in view), `F8` trashes, `F10` closes. Type on the
   **command line** and press `Enter` to run a command against the **active
   panel** — `cd <path>` navigates that panel in place, anything else runs in

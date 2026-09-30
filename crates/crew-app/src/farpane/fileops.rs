@@ -1,9 +1,11 @@
-//! Filesystem operations behind the Far function keys: F5 copy and F6 move
-//! into the other panel, F7 make-folder, F8 delete to trash. Mutations happen
-//! in place and both panels reload so each side reflects the change.
+//! Filesystem operations behind the Far function keys: F5 copy into the other
+//! panel, F6 rename or move (its box is `moveto`), F7 make-folder, F8 delete
+//! to trash. Mutations happen in place and both panels reload so each side
+//! reflects the change.
 use std::path::Path;
 
 use super::keys::FarAction;
+use super::location::Location;
 use super::FarPane;
 
 /// F5: copy the active panel's selection into the other panel's directory —
@@ -50,22 +52,17 @@ pub(crate) fn copy(p: &mut FarPane) -> FarAction {
     }
 }
 
-/// F6: move (rename) the active panel's selection into the other panel's
-/// directory — synchronously via `std::fs` when both endpoints are local, or
-/// via `rclone move`/`moveto` (async, see `remote::begin_transfer`) when
-/// either side is a remote panel.
-pub(crate) fn rename_move(p: &mut FarPane) -> FarAction {
-    let src_panel = p.panel(p.active);
-    let Some(entry) = src_panel.entries.get(src_panel.sel) else {
-        return FarAction::Status("nothing to move".into());
-    };
-    if entry.is_parent {
-        return FarAction::Status("cannot move the ‘..’ entry".into());
+/// F6 (on confirm, `moveto`): move or rename `name` from the active panel to
+/// `dst` — synchronously via `std::fs` when both endpoints are local, or via
+/// `rclone move`/`moveto` (async, see `remote::begin_transfer`) when either
+/// side is a remote panel.
+pub(crate) fn move_entry(p: &mut FarPane, name: &str, is_dir: bool, dst: Location) -> FarAction {
+    let src = p.panel(p.active).loc.child(name);
+    if src == dst {
+        return FarAction::Status(format!(
+            "‘{name}’ is already there — type a new name to rename it"
+        ));
     }
-    let name = entry.name.clone();
-    let is_dir = entry.is_dir;
-    let src = src_panel.loc.child(&name);
-    let dst = p.panel(p.other_side()).loc.child(&name);
     if src.is_remote() || dst.is_remote() {
         let argv = super::rclone::argv_move(&src, &dst, is_dir);
         let note = format!(
@@ -77,8 +74,9 @@ pub(crate) fn rename_move(p: &mut FarPane) -> FarAction {
     }
     let src = src.local_path().expect("checked not remote above");
     let dst = dst.local_path().expect("checked not remote above");
+    let to = crate::cwd::display(&dst);
     if dst.exists() {
-        return FarAction::Status(format!("‘{name}’ already exists in the other panel"));
+        return FarAction::Status(format!("{to} already exists"));
     }
     // `rename` is atomic on the same filesystem; fall back to copy-then-remove
     // across mounts (where it fails with EXDEV).
@@ -99,7 +97,7 @@ pub(crate) fn rename_move(p: &mut FarPane) -> FarAction {
     match res {
         Ok(()) => {
             p.reload_both();
-            FarAction::Status(format!("moved ‘{name}’"))
+            FarAction::Status(format!("moved ‘{name}’ \u{2192} {to}"))
         }
         Err(e) => FarAction::Status(format!("move failed: {e}")),
     }

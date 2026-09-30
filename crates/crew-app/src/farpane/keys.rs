@@ -9,7 +9,8 @@ use winit::event::KeyEvent;
 use winit::keyboard::{Key, NamedKey};
 
 pub(crate) use super::cmdline::*;
-use super::fileops::{copy, delete, make_dir, rename_move};
+use super::fileops::{copy, delete};
+use super::moveto::{open_move, submit_prompt};
 use super::run::run_cmdline;
 use super::{FarPane, Prompt};
 
@@ -45,8 +46,8 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent, alt: bool) -> Option<FarAc
     if p.drive_select.is_some() {
         return drive_select_key(p, key);
     }
-    // A live text prompt (F7 make-folder) swallows every key until it's
-    // confirmed (Enter) or cancelled (Esc).
+    // A live text prompt (F7 make-folder, F6 rename-or-move) swallows every
+    // key until it's confirmed (Enter) or cancelled (Esc).
     if p.prompt.is_some() {
         return prompt_key(p, key);
     }
@@ -135,7 +136,7 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent, alt: bool) -> Option<FarAc
         Key::Named(NamedKey::F3) => return view_selected(p),
         Key::Named(NamedKey::F4) => return edit_selected(p),
         Key::Named(NamedKey::F5) => return Some(copy(p)),
-        Key::Named(NamedKey::F6) => return Some(rename_move(p)),
+        Key::Named(NamedKey::F6) => return open_move(p),
         Key::Named(NamedKey::F7) => p.prompt = Some(Prompt::mkdir()),
         Key::Named(NamedKey::F8) => return Some(delete(p)),
         // Printable input builds up the command line (classic Far
@@ -189,21 +190,14 @@ fn drive_select_key(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
     }
 }
 
-/// Handle a key while the make-folder prompt is open.
+/// Handle a key while a text prompt (F7 or F6's box) is open.
 fn prompt_key(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
     match &key.logical_key {
         Key::Named(NamedKey::Escape) => {
             p.prompt = None;
             None
         }
-        Key::Named(NamedKey::Enter) => {
-            let name = p.prompt.take().map(|pr| pr.input).unwrap_or_default();
-            let name = name.trim();
-            if name.is_empty() {
-                return None;
-            }
-            Some(make_dir(p, name))
-        }
+        Key::Named(NamedKey::Enter) => submit_prompt(p),
         Key::Named(NamedKey::Backspace) => {
             if let Some(pr) = p.prompt.as_mut() {
                 pr.input.pop();

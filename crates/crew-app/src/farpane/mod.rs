@@ -4,8 +4,9 @@
 //! `..`) or opens a file with the OS default. The function-key bar works as
 //! labelled: F1 help, F3 views the file in the file-viewer pane, F4 opens it
 //! in `$EDITOR` in a terminal pane — both stay inside crew, though a remote
-//! file downloads first and falls back to the OS default — F5 copy and
-//! F6 move into the other panel, F7 make-folder (a text prompt), F8 delete to
+//! file downloads first and falls back to the OS default — F5 copy into the
+//! other panel, F6 rename or move (a box offering the other panel's folder:
+//! Enter moves there, a new name renames), F7 make-folder (a text prompt), F8 delete to
 //! trash, F10/Esc close. A Far-style command line sits at the bottom: type a
 //! command and press Enter to run it in the active panel's directory — `cd`
 //! navigates that panel in place, anything else runs on a worker thread and
@@ -27,6 +28,7 @@ mod icons;
 mod keys;
 mod list;
 mod location;
+mod moveto;
 mod panelchrome;
 mod pathcomp;
 mod pollcmd;

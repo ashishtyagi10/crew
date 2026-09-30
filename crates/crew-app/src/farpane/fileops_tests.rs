@@ -55,7 +55,8 @@ fn f6_moves_selected_file_to_the_other_panel() {
     p.right.loc = Location::local(&base.join("sub"));
     p.right.reload();
     select(&mut p, "f.txt");
-    rename_move(&mut p);
+    let dst = p.right.loc.child("f.txt");
+    move_entry(&mut p, "f.txt", false, dst);
     assert!(
         base.join("sub/f.txt").exists(),
         "file moved into other panel"
