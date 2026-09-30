@@ -18,9 +18,18 @@ mod tests;
 /// `offset` a previous page named. Both at once is refused rather than one
 /// quietly winning, because the agent that sent both meant one of them and
 /// only it knows which.
+///
+/// And `lines`, the most the page shows (Claude Code `Read`'s `limit`). A
+/// page is ~5 KB of look-alike rows, and asked for line 1,777 of a saved run,
+/// qwen-max answered with row 1,877's value three runs in three — from a page
+/// that opened on the right row, numbered. `{"line": 1777, "lines": 1}` is a
+/// page with one row on it, which cannot be misread.
 pub(super) fn read(path: &str, v: &serde_json::Value) -> Result<String, String> {
+    let most = from_one(v, "lines").map_err(|()| {
+        "invalid \u{201c}lines\u{201d}: expected how many lines to show, 1 or more".to_string()
+    })?;
     let Some(line) = line_arg(v)? else {
-        return read_file(path, offset_arg(v)?);
+        return read_file(path, offset_arg(v)?, most);
     };
     if v.get("offset").is_some_and(|o| !o.is_null()) {
         return Err(
@@ -29,7 +38,7 @@ pub(super) fn read(path: &str, v: &serde_json::Value) -> Result<String, String> 
         );
     }
     match line_start(path, line)? {
-        Seek::At(at) => read_file(path, at),
+        Seek::At(at) => read_file(path, at, most),
         Seek::Past(lines) => Ok(format!(
             "\u{2026} (line {} is past the end \u{2014} the file has {} line{})",
             grouped(line),
@@ -39,11 +48,45 @@ pub(super) fn read(path: &str, v: &serde_json::Value) -> Result<String, String> 
     }
 }
 
-/// The optional `"line"` argument, counting from 1 the way grep does: a JSON
-/// number or a numeric string, like `offset`. Zero, negatives, fractions and
-/// anything else are an error the agent can read, not a page from the top.
+/// `sys:read_file`'s JSON Schema, beside the arguments it describes.
+pub(super) fn schema() -> serde_json::Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "path": {"type": "string", "description": "path, relative to the working directory"},
+            "line": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "line to start the page at, counting from 1: the number in a sys:grep hit (path:line: text); give this or offset, not both",
+            },
+            "offset": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "byte offset to start at: the one the previous page's last line names",
+            },
+            "lines": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "show at most this many lines: {\"line\": 1777, \"lines\": 1} is line 1,777 alone",
+            },
+        },
+        "required": ["path"],
+    })
+}
+
+/// The optional `"line"` argument, counting from 1 the way grep does. Zero,
+/// negatives, fractions and anything else are an error the agent can read,
+/// not a page from the top.
 fn line_arg(v: &serde_json::Value) -> Result<Option<usize>, String> {
-    let n = match v.get("line") {
+    from_one(v, "line").map_err(|()| {
+        "invalid \u{201c}line\u{201d}: expected a line number, counting from 1".into()
+    })
+}
+
+/// `key` as a whole number from 1, a JSON number or a numeric string like
+/// `offset` (agents send both); `Err` for anything else.
+fn from_one(v: &serde_json::Value, key: &str) -> Result<Option<usize>, ()> {
+    let n = match v.get(key) {
         None | Some(serde_json::Value::Null) => return Ok(None),
         Some(serde_json::Value::Number(n)) => n.as_u64().and_then(|n| usize::try_from(n).ok()),
         Some(serde_json::Value::String(s))
@@ -53,10 +96,7 @@ fn line_arg(v: &serde_json::Value) -> Result<Option<usize>, String> {
         }
         _ => None,
     };
-    match n {
-        Some(n) if n >= 1 => Ok(Some(n)),
-        _ => Err("invalid \u{201c}line\u{201d}: expected a line number, counting from 1".into()),
-    }
+    n.filter(|&n| n >= 1).map(Some).ok_or(())
 }
 
 /// Where a line starts, or, when the file ends first, how many lines it has:
@@ -109,3 +149,7 @@ fn too_big(path: &str, line: usize) -> String {
         grouped(line)
     )
 }
+
+#[cfg(test)]
+#[path = "sysreadlines_tests.rs"]
+mod lines_tests;

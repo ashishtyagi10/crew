@@ -35,6 +35,13 @@ pub(super) fn last_line(text: &str, first: usize) -> usize {
     first + text.matches('\n').count() - usize::from(text.ends_with('\n'))
 }
 
+/// The first `n` lines of `text`, each with its newline: what a page holds
+/// when the agent asked for `"lines": n`.
+pub(super) fn head(text: &str, n: usize) -> &str {
+    let end: usize = text.split_inclusive('\n').take(n).map(str::len).sum();
+    &text[..end]
+}
+
 /// How many bytes of `text`, whose first line is `first`, a page shows so its
 /// numbered rows take at most `budget` bytes: whole lines while they fit — all
 /// of `text` when it does — or, when the first line alone does not, as much

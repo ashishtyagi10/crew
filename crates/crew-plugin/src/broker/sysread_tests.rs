@@ -88,7 +88,7 @@ fn paging_a_file_through_the_relay_clip_loses_nothing() {
 
     let (mut got, mut offset, mut pages) = (String::new(), 0, 0);
     loop {
-        let r = read_file(&path, offset).unwrap();
+        let r = read_file(&path, offset, None).unwrap();
         assert_eq!(
             clip_result(&r, AGENT_CLIP),
             r,
@@ -136,7 +136,7 @@ fn a_page_ends_on_a_whole_line_and_says_which_lines() {
         .collect();
     let path = temp("lines", content.as_bytes());
 
-    let first = read_file(&path, 0).unwrap();
+    let first = read_file(&path, 0, None).unwrap();
     let (page, note) = first.rsplit_once('\n').unwrap();
     assert!(
         page.ends_with('\n'),
@@ -158,7 +158,7 @@ fn a_page_ends_on_a_whole_line_and_says_which_lines() {
     let shown = bare(page).0.len();
     assert_eq!(next_offset(&first), Some(shown), "{note}");
 
-    let second = read_file(&path, shown).unwrap();
+    let second = read_file(&path, shown, None).unwrap();
     assert!(
         second.starts_with(&format!("{}\u{2502} line {:04}:", n + 1, n + 1)),
         "{}",
@@ -176,7 +176,7 @@ fn a_page_ends_on_a_whole_line_and_says_which_lines() {
 fn a_file_past_the_line_counting_limit_gets_bytes_only() {
     let content = b"0123456789abcde\n".repeat(LINES_UP_TO / 16 + 1);
     let path = temp("huge", &content);
-    let r = read_file(&path, 0).unwrap();
+    let r = read_file(&path, 0, None).unwrap();
     // With no count to number from, the rows go bare rather than guessed.
     assert!(r.starts_with("0123456789abcde\n0123"), "{}", &r[..40]);
     let note = r.rsplit('\n').next().unwrap();

@@ -105,7 +105,7 @@ pub(super) fn pointer(body: &str, rel: &str) -> String {
     let n = body.lines().count();
     format!(
         "\u{2026} full output ({} line{}, {} KB) saved to {rel} \u{2014} read it with \
-         sys:read_file {{\"path\": \"{rel}\", \"line\": N}} or search it with sys:grep",
+         sys:read_file {{\"path\": \"{rel}\", \"line\": N, \"lines\": 40}} or search it with sys:grep",
         grouped(n),
         if n == 1 { "" } else { "s" },
         grouped(body.len().div_ceil(1024)),

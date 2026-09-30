@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.18
+
+**A saved output is read 40 lines at a time: qwen-max 0/3 → 3/3.**
+Asked for line 1,777 of a saved run of 3,000 numbers, qwen-max opened a
+numbered page on the right row and answered with row 1,877's value, three
+runs in three, before and after the rows were numbered: a page is ~5 KB of
+look-alike rows, and the model's eye slid a hundred down. `sys:read_file`
+now takes `"lines"`, the most a page shows (Claude Code `Read`'s `limit`):
+`{"line": 1777, "lines": 1}` is a page of one row whose note goes on from
+the next, and `{"lines": 20}` from the top or from an `offset` stops after
+twenty. Offered only in the tool's hint, qwen-max never used it (0/3 again);
+the pointer under a spilled output now reads
+`{"path": …, "line": N, "lines": 40}`, and the same probe went 3/3 — one run
+narrowed it to `"lines": 1` itself. The page's byte budget still caps a
+large count, and a count that is not a whole number from 1 is refused by
+name. The tool's schema moved next to the code that reads its arguments
+(`systools.rs` 387 → 371 lines). Costs nothing when `lines` is absent.
+
 ## 0.25.17
 
 **A tool call written in the model's own trained shape now runs.**

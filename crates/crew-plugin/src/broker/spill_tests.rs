@@ -74,7 +74,7 @@ fn a_long_result_is_saved_and_the_pointer_fits_beside_it() {
         closed,
         format!(
             "the fitted result\n\u{2026} full output ({lines} lines, {kb} KB) saved to {rel} \
-             \u{2014} read it with sys:read_file {{\"path\": \"{rel}\", \"line\": N}} or \
+             \u{2014} read it with sys:read_file {{\"path\": \"{rel}\", \"line\": N, \"lines\": 40}} or \
              search it with sys:grep"
         )
     );

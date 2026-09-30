@@ -2727,7 +2727,13 @@ carries the byte `offset` of the first byte not shown, to continue with, so
 agents read big files in pages; `{"line": N}` starts the page at line N
 instead, the number a `sys:grep` hit gives, so an agent goes straight to what
 it found rather than paging from the top — `line` or `offset`, not both, and
-a line past the end names the file's line count),
+a line past the end names the file's line count; `{"lines": N}` stops the
+page after N lines, Claude Code `Read`'s `limit` — asked for line 1,777 of a
+saved run, qwen-max answered with row 1,877's value from a numbered page that
+opened on the right row, and `{"line": 1777, "lines": 1}` is a page of one
+row, its note going on from the next; the byte budget still caps a large N,
+and a spilled output's pointer suggests `"lines": 40` — offered only in the
+hint, qwen-max never used it and went 0/3; suggested there, 3/3),
 **`sys:write_file`** (create, or replace all of one you have read —
 below), **`sys:edit`** (replace
 part of one — below), **`sys:list_dir`** (≤500 entries,
@@ -2823,7 +2829,7 @@ and ONE line after the fitted result, inside the same 5,600 bytes, says
 where:
 
 ```
-… full output (5,001 lines, 24 KB) saved to .crew/out/run-20260929-231500-1.txt — read it with sys:read_file {"path": ".crew/out/run-20260929-231500-1.txt", "line": N} or search it with sys:grep
+… full output (5,001 lines, 24 KB) saved to .crew/out/run-20260929-231500-1.txt — read it with sys:read_file {"path": ".crew/out/run-20260929-231500-1.txt", "line": N, "lines": 40} or search it with sys:grep
 ```
 
 — the dynamic context discovery Cursor describes. The line comes after the
