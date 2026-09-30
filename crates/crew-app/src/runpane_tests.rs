@@ -37,6 +37,25 @@ fn wait_for(app: &mut CrewApp, marker: &str) -> String {
     }
 }
 
+/// Poll until the focused pane is a shell at its prompt — what routing reads
+/// to type a bare line into it (`focused_target`) — draining its pty so the
+/// shell never blocks on a full buffer.
+#[cfg(unix)]
+fn wait_idle(app: &mut CrewApp) {
+    use crate::pane::PaneContent;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    while !matches!(app.focused_target(), crate::route::Target::IdleShell(_)) {
+        if let Some(PaneContent::Terminal(t)) = app.panes.get_mut(0).map(|p| &mut p.content) {
+            t.pty.try_read();
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "the shell never went idle"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+}
+
 /// A builtin line with no idle shell runs in a fresh interactive shell, and
 /// what it set is still there at the prompt that follows: the second line,
 /// typed into the same pane, reads the variable the first one exported.
@@ -50,7 +69,11 @@ fn a_builtin_runs_in_a_shell_and_its_state_outlives_it() {
     app.submit_input("export CREW_RUNPANE=alive; echo mark-${CREW_RUNPANE}-one".into());
     assert_eq!(app.panes.len(), 1);
     wait_for(&mut app, "mark-alive-one");
-    // The pane is focused and idle-or-soon: the next bare line types into it.
+    // The next bare line types into the pane once its shell owns the prompt
+    // again. Output is not that moment: the shell that follows the builtin is
+    // still starting (its rc files run children in the foreground), and a line
+    // sent then is routed as for a busy pane, to a second one — 1 run in 8.
+    wait_idle(&mut app);
     app.submit_input("echo mark-${CREW_RUNPANE}-two".into());
     assert_eq!(app.panes.len(), 1, "no second pane: the first is the shell");
     wait_for(&mut app, "mark-alive-two");

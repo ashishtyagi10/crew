@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.19
+
+**Recall no longer files a quoted sed expression as a file.** The recall
+graph takes a turn's file paths from its text, and anything with a slash
+passed: a probe that ran `sed 's/^/row-/' notes.txt` came back with
+"files that came up: s/^/row", and every later turn that ran sed was linked
+through that node to a file that does not exist. A path is now a token made
+only of path characters (letters, digits, `/ \ . _ - @ + ~` and the `:` of
+a grep hit such as `nav.rs:41`), so `s/^/row` and `s/a$/b` are left out
+while `notes.txt`, `src/lib.rs:12` and a Windows `crates\crew\x.rs` are
+kept. The hundred-line stop-word list moved to its own file, which takes
+`recall/extract.rs` from 252 lines back under the cap.
+Also: `runpane`'s builtin test typed its second line the moment the first
+line's output appeared, while the shell after it was still starting, so 1
+run in 8 routed the line as for a busy pane and opened a second one; it now
+waits for the shell to own its prompt, which is what routing reads.
+And a provider test whose loopback server shut each socket without saying
+`connection: close` failed 1 release gate in 3: the client kept the
+connection for reuse and, under a loaded run, sent its second request down
+the closed socket. The server now says it closes, and the billing test's
+two-request server does too.
+
 ## 0.25.18
 
 **A saved output is read 40 lines at a time: qwen-max 0/3 → 3/3.**

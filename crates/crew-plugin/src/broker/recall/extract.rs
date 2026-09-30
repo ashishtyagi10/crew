@@ -8,124 +8,9 @@
 //! ranking downstream ([`super::query`]) is what decides whether a blunt
 //! topic ever gets shown.
 
-/// Words that carry no topic. Short ones are excluded by length, so this is
-/// only the long-and-common: the ones that would otherwise link every turn to
-/// every other turn.
-const STOP: &[&str] = &[
-    "about",
-    "after",
-    "again",
-    "also",
-    "another",
-    "answer",
-    "anything",
-    "back",
-    "because",
-    "been",
-    "before",
-    "being",
-    "both",
-    "call",
-    "came",
-    "could",
-    "crew",
-    "does",
-    "doing",
-    "done",
-    "down",
-    "each",
-    "else",
-    "even",
-    "ever",
-    "every",
-    "file",
-    "files",
-    "first",
-    "from",
-    "give",
-    "going",
-    "good",
-    "have",
-    "having",
-    "here",
-    "into",
-    "just",
-    "keep",
-    "know",
-    "last",
-    "like",
-    "line",
-    "lines",
-    "long",
-    "look",
-    "made",
-    "make",
-    "many",
-    "more",
-    "most",
-    "much",
-    "must",
-    "need",
-    "never",
-    "next",
-    "note",
-    "nothing",
-    "only",
-    "other",
-    "over",
-    "part",
-    "please",
-    "really",
-    "right",
-    "said",
-    "same",
-    "says",
-    "see",
-    "should",
-    "show",
-    "side",
-    "since",
-    "some",
-    "something",
-    "still",
-    "such",
-    "sure",
-    "take",
-    "tell",
-    "than",
-    "that",
-    "them",
-    "then",
-    "there",
-    "these",
-    "they",
-    "thing",
-    "things",
-    "think",
-    "this",
-    "those",
-    "through",
-    "time",
-    "under",
-    "until",
-    "used",
-    "using",
-    "very",
-    "want",
-    "well",
-    "were",
-    "what",
-    "when",
-    "where",
-    "which",
-    "while",
-    "will",
-    "with",
-    "without",
-    "work",
-    "would",
-    "your",
-];
+#[path = "stopwords.rs"]
+mod stopwords;
+use stopwords::STOP;
 
 /// Topics returned per side of a turn. Enough to describe what it was about,
 /// few enough that one chatty turn cannot dominate the graph.
@@ -154,7 +39,7 @@ pub(crate) fn paths(text: &str) -> Vec<String> {
         }
         let looks_like_path =
             (t.contains('/') && !t.contains("//")) || CODE_EXT.iter().any(|e| t.ends_with(e));
-        if !looks_like_path || t.starts_with("http") {
+        if !looks_like_path || t.starts_with("http") || !t.chars().all(in_path) {
             continue;
         }
         let t = t.to_owned();
@@ -166,6 +51,16 @@ pub(crate) fn paths(text: &str) -> Vec<String> {
         }
     }
     out
+}
+
+/// A character a file reference is made of: letters, digits, the separators,
+/// and the `:` of a grep hit (`nav.rs:41`). A token with anything else in it
+/// is code or a command that happens to hold a slash — a quoted `sed`
+/// expression, `'s/^/row-/'`, was filed as the file `s/^/row` (live probe,
+/// 2026-09-30) and linked every later turn that ran sed to a file that does
+/// not exist.
+fn in_path(c: char) -> bool {
+    c.is_alphanumeric() || "/\\._-@+~:".contains(c)
 }
 
 /// Pages kept from one turn. A search answers with eight results; what the

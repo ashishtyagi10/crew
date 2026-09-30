@@ -2653,8 +2653,9 @@ and a typo gets a **did-you-mean** suggestion):
 - **crew remembers the projects it worked on** — also no command: every
   finished turn is written into a **recall graph** on disk
   (`./.crew/recall.jsonl`, project-scoped like the session log) as a node
-  joined to the topics, file paths and **pages** that turn was about — an
-  embedded,
+  joined to the topics, file paths and **pages** that turn was about (a
+  path is a token made of path characters, so a quoted `sed 's/^/row-/'`
+  is not filed as the file `s/^/row`) — an embedded,
   append-only graph store replayed into memory when the pane opens, with no
   server and no new dependency. The next request walks those joins (two hops,
   spreading activation) and carries back the two or three earlier turns that
