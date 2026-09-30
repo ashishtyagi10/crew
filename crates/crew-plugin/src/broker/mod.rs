@@ -85,6 +85,7 @@ pub(crate) mod specialists;
 mod spill;
 mod standup;
 mod stdio;
+mod steer;
 mod streamhold;
 mod swarm;
 mod sysedit;

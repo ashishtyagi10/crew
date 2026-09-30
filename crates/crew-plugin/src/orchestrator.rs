@@ -27,10 +27,12 @@ pub fn plan(cmd: &PluginCommand) -> Vec<PluginEvent> {
             },
         ],
         // The orchestrator plugin has no gate: nothing here asks, so nothing
-        // answers. No provider either, so nothing to warm.
+        // answers. No provider either, so nothing to warm, and no tool loop
+        // for a steer to join.
         PluginCommand::Subscribe { .. }
         | PluginCommand::Approve { .. }
-        | PluginCommand::Warm {} => vec![],
+        | PluginCommand::Warm {}
+        | PluginCommand::Steer { .. } => vec![],
     }
 }
 

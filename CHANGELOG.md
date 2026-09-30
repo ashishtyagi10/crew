@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.13
+
+**Steer, don't queue: a message typed mid-task joins its next step.**
+Anything typed into smith's pane while a task ran was held until the whole
+turn ended, so "also check the tests" or "no, the other file" arrived after
+the agent had already answered the wrong thing. Amp ("Steer, Don't Queue"),
+Cursor and Codex all moved the other way this year, and now crew does too. A
+plain message typed while a task runs is still queued as before, and is also
+offered to the running task: when that task's agent reaches its next tool
+round, the message joins the follow-up as `THE USER ADDED WHILE YOU WORKED:`,
+with a line saying the later word replaces the earlier one where they differ,
+and it stays in every later round of that turn. The pane drops the queued
+copy and says `↳ joined the running task: "…"`. A message no round takes
+(the agent answered without another tool call, or the task was a swarm or
+a claude/opencode CLI agent, which don't take steers yet) is sent when the
+turn ends, exactly as the queue always did. Slash commands, `#` notes and
+`@agent` messages only queue, `/stop` still goes at once and empties what was
+waiting, and a steer can't leak into a later task because the last task to
+finish clears it. The cost: a quiet one-line note per steer that joins.
+
 ## 0.25.12
 
 **Every provider's default model is one its vendor serves today.** Three

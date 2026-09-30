@@ -22,10 +22,12 @@ pub(super) type Dialed = (String, Result<(String, Usage), String>);
 
 /// The follow-up for a turn with `left` calls to go. The task's checklist
 /// (`list`, empty when it keeps none) heads the exchanges, where their
-/// shortening never reaches it (`crew_hive::tools::todo`).
-pub(super) fn follow(base: &str, list: &str, log: &Exchanges, left: u32) -> String {
+/// shortening never reaches it (`crew_hive::tools::todo`); what the user
+/// added meanwhile (`added`, `steer::section`) follows them, out of reach of
+/// both cuts too.
+pub(super) fn follow(base: &str, list: &str, log: &Exchanges, added: &str, left: u32) -> String {
     format!(
-        "{base}\n\n{list}TOOL EXCHANGES THIS TURN:\n{}\n\n{}",
+        "{base}\n\n{list}TOOL EXCHANGES THIS TURN:\n{}\n\n{added}{}",
         log.render(),
         super::toolround::next_step(left)
     )
@@ -58,6 +60,7 @@ impl Broker {
         base: &mut String,
         list: &str,
         log: &mut Exchanges,
+        added: &str,
         left: u32,
         from: &str,
         tick_base: u64,
@@ -65,12 +68,12 @@ impl Broker {
         stream: &HopStream,
         sink: &mut dyn FnMut(Hop),
     ) -> Dialed {
-        let sent = follow(base, list, log, left);
+        let sent = follow(base, list, log, added, left);
         let got = self.dial_follow(agent, &sent, from, tick_base, env, stream, sink);
         match &got {
             Err(e) if crew_hive::provider::says_context_overflow(e) && shrink(base, log) => {
                 sink(note(env, HopKind::Reply, CONTEXT_FULL.into()));
-                let sent = follow(base, list, log, left);
+                let sent = follow(base, list, log, added, left);
                 let got = self.dial_follow(agent, &sent, from, tick_base, env, stream, sink);
                 (sent, got)
             }
