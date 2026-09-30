@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.16
+
+**F6 in `/far` asks: rename it, or move it to the other panel.** F6 moved
+the selection into the other panel at once, with nothing asked, and `/far`
+opens with both panels on the same folder, so the first F6 most people press
+could only refuse, and there was no way to rename a file at all. Far Manager
+asks, and now crew does: F6 opens a **Rename or move** box over the panels,
+its input already holding the other panel's folder (`~/Downloads/`). Enter
+as it stands moves the file there; type a new name and Enter renames it where
+it is; type a path (relative to the active panel, `~` for home) and it moves
+there, into the folder if the path names one, under the new name if it does
+not. Esc cancels. With both panels on one folder, Enter as offered says to
+type a new name instead of failing on "already exists", and nothing is ever
+overwritten. On a remote panel a new name renames in place and the offered
+folder moves, as before, through rclone. Also: crew's own test suite was
+writing into the user's real `/far` command history (`cd nope`,
+`touch made-here`, over and over); under test the history now only writes to
+a temporary home.
+
 ## 0.25.15
 
 **A read page numbers its rows, and a saved run's line N is line N.** The

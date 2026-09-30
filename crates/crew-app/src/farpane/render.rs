@@ -100,10 +100,13 @@ pub(crate) fn render_in(p: &FarPane, cols: u16, rows: u16, focused: bool) -> Vec
         suggested,
         running,
     );
-    // The make-folder prompt takes over the function-key row while it's open.
-    match &p.prompt {
+    // F7's prompt takes over the function-key row; F6's box floats above.
+    match p.prompt.as_ref().filter(|pr| !pr.floats()) {
         Some(prompt) => prompt_bar(&mut buf, split[3], prompt, focused),
         None => function_bar(&mut buf, split[3]),
+    }
+    if let Some(prompt) = p.prompt.as_ref().filter(|pr| pr.floats()) {
+        movebox::move_box(&mut buf, area, prompt, focused);
     }
     if let Some(ds) = &p.drive_select {
         drive_select_overlay(&mut buf, area, ds);
@@ -175,6 +178,8 @@ use bars::{command_bar, function_bar, status_bar};
 #[path = "promptbar.rs"]
 mod promptbar;
 use promptbar::prompt_bar;
+#[path = "movebox.rs"]
+mod movebox;
 
 #[cfg(test)]
 #[path = "render_tests.rs"]

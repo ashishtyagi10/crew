@@ -55,7 +55,7 @@ pub(crate) const FAR_BINDINGS: &[(&str, &str)] = &[
         "F3 / F4",
         "View the selection in the file viewer / open it in $EDITOR",
     ),
-    ("F5 / F6", "Copy / move to the other panel"),
+    ("F5 / F6", "Copy to the other panel / rename or move"),
     ("F7 / F8", "Make a folder \u{b7} move to the trash"),
     (
         "F10 · Esc",

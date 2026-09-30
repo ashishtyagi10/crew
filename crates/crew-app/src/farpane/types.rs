@@ -23,15 +23,30 @@ pub(crate) struct Entry {
     pub size: u64,
 }
 
-/// An in-pane single-line text prompt — currently only "make folder" (F7).
+/// An in-pane single-line text prompt: F7's "make folder" on the bottom row,
+/// or F6's "rename or move" box over the panels.
 pub(crate) struct Prompt {
     pub kind: PromptKind,
     pub input: String,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, PartialEq, Eq)]
 pub(crate) enum PromptKind {
     MkDir,
+    /// F6 on `name`: `input` starts as `offered`, the other panel's folder —
+    /// Enter as it stands moves there, a new name renames in place (`moveto`).
+    Move {
+        name: String,
+        is_dir: bool,
+        offered: String,
+    },
+}
+
+impl Prompt {
+    /// F6's box floats over the panels; F7's prompt takes the key row.
+    pub(crate) fn floats(&self) -> bool {
+        matches!(self.kind, PromptKind::Move { .. })
+    }
 }
 
 /// One side of the dual-pane manager: a location and its sorted listing.

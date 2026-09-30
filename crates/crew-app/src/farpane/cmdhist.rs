@@ -27,7 +27,15 @@ fn path() -> Option<PathBuf> {
             return Some(PathBuf::from(p));
         }
     }
-    dirs::config_dir().map(|d| d.join("crew").join("far-history"))
+    let p = dirs::config_dir().map(|d| d.join("crew").join("far-history"))?;
+    // Under test, only a HOME a test pointed at a temp dir is written: the
+    // many far tests that run the command line without isolating it were
+    // appending `cd nope` and `touch made-here` to the user's own history.
+    #[cfg(test)]
+    if !p.starts_with(std::env::temp_dir()) {
+        return None;
+    }
+    Some(p)
 }
 
 /// Non-empty lines, oldest first (mirrors `crate::history::deserialize`).
