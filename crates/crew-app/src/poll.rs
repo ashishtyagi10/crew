@@ -12,16 +12,15 @@ use crate::pane::{Pane, PaneContent};
 /// ~62 Hz, so redrawing every 4th tick animates the sweep at ~15 fps.
 const BUSY_ANIM_DIV: u64 = 4;
 
-/// Poll ticks per rendered frame of the ambient wash drift: ~6 fps.
+/// Poll ticks per rendered frame of the ambient wash drift: ~12 fps.
 ///
-/// Deliberately far coarser than [`BUSY_ANIM_DIV`], because this is the one
-/// animation that asks for frames nothing else needed, and it can afford to.
-/// The wash is a pair of soft pools the width of the page turning once every
-/// ninety seconds; at six frames a second each frame moves them about
-/// two-thirds of a degree, which is well under what an edge that soft can
-/// show. Spending 15 fps on it would buy no visible smoothness and two and a
-/// half times the wake-ups.
-const AMBIENT_ANIM_DIV: u64 = 10;
+/// Still coarser than [`BUSY_ANIM_DIV`], because this is the one animation
+/// that asks for frames nothing else needed. It was ~6 fps while the pools
+/// turned once every ninety seconds; at a 24-second revolution with a glint
+/// crossing the page every twelve, six frames a second moved the glint's crest
+/// ~40 px a frame and the lattice under it visibly stepped. Twelve halves
+/// that, under what a band that soft can show.
+const AMBIENT_ANIM_DIV: u64 = 5;
 
 /// How long a freshly spawned `$EDITOR` pane is presumed live even before its
 /// `cmd` is populated. `TermPane.cmd` starts `None` at spawn (`spawn.rs`) and

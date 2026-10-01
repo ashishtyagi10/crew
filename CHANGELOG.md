@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.23
+
+**A stronger glint, a livelier gradient, and a background you can see
+moving.** 0.25.22's motion was there, but slow enough to miss. The glint is
+now a real band of light. The dots under its crest carry up to four times
+their strength (was 2.4×), and a sheen of pole light runs with it on the page
+itself. The sheen is held to half a pool's strength and scaled with the OS
+contrast setting like the wash, so it never costs the text more contrast than
+the wash already does. The gradient is livelier in two ways. The two pools now
+trade colour as they turn: between the quarter points each leans 35% toward
+the other's pole, so the colours themselves change, not only where they sit.
+The hue breath also comes round twice as often: every 12 s while a pane
+works, every 48 s idle (was four minutes). Idle drift is 24 s a revolution
+(was 60), so the glint crosses every 12 s. It is drawn at ~12 frames a second
+instead of ~6, so the crest moves ~20 px a frame instead of stepping 40.
+Everything is still zero at rest, Motion off and Drifting background off
+still stop it, and a new headless test proves the colour trade and the sheen
+on dark and light pages (it fails on 0.25.22).
+
 ## 0.25.22
 
 **The background moves more, on light pages and dark.** Until now the page's

@@ -137,9 +137,12 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // (`wash_focus.w`, the hue breath's): the pools lean toward each other on
     // one side of the orbit and apart on the other, and reach in and out
     // from the centre, so they meet, mix and part instead of turning as one
-    // rigid bar. Every term is a sine of a phase that is 0 at rest, so a page
-    // that has never drifted is exactly the still orbit — and the phase comes
-    // from the app, so a held frame is still a pure function of position.
+    // rigid bar. And they TRADE colour: between the cardinal points of the
+    // orbit each pool leans toward the other's pole, so the gradient itself
+    // keeps changing, not just where it lies. Every term is a sine of a phase
+    // that is 0 at rest, so a page that has never drifted is exactly the
+    // still orbit — and the phase comes from the app, so a held frame is
+    // still a pure function of position.
     let wash_amp = u.dot_grid.z;
     if (wash_amp > 0.0) {
         // Pool radius, in half-height units: wide enough that a pool covers
@@ -157,6 +160,9 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         // orbit) the pair reaches in and out.
         const WANDER_LEAN: f32 = 0.45;
         const WANDER_REACH: f32 = 0.15;
+        // How far toward the other pole a pool's colour leans at the peak of
+        // the trade (four a revolution, back to its own at every quarter).
+        const TRADE: f32 = 0.35;
         // The orbit's centre. At pull 0 it is the page centre and the pools
         // sit either side of the middle, as they always have; as the app
         // raises it the whole pair slides toward the focused card, so the
@@ -186,49 +192,56 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         let rb = WASH_R * (1.0 - BREATH_R * breath);
         let ga = pow(1.0 - smoothstep(0.0, ra, length(p + orbit_a)), 3.0);
         let gb = pow(1.0 - smoothstep(0.0, rb, length(p - orbit_b)), 3.0);
-        rgb = mix(rgb, u.dot_a.rgb, ga * wash_amp * (1.0 + BREATH_AMP * breath));
-        rgb = mix(rgb, u.dot_b.rgb, gb * wash_amp * (1.0 - BREATH_AMP * breath));
+        let trade = TRADE * (0.5 - 0.5 * cos(4.0 * ang));
+        let col_a = mix(u.dot_a.rgb, u.dot_b.rgb, trade);
+        let col_b = mix(u.dot_b.rgb, u.dot_a.rgb, trade);
+        rgb = mix(rgb, col_a, ga * wash_amp * (1.0 + BREATH_AMP * breath));
+        rgb = mix(rgb, col_b, gb * wash_amp * (1.0 - BREATH_AMP * breath));
     }
+
+    // The lattice's gradient and the GLINT, shared by the sheen below and the
+    // dots after it.
+    //
+    // The tint axis turns with the orbit — pole A's end starts at the top-left
+    // corner and follows pool A round. Projection onto it is scaled by the
+    // axis's reach to the farthest corner so every angle runs the full
+    // pole_a→pole_b span (at 45° this is exactly the old `(uv.x + uv.y) / 2`).
+    let axis = vec2<f32>(cos(ang + 0.78539816), sin(ang + 0.78539816));
+    let span = abs(axis.x) + abs(axis.y);
+    let diag = clamp(0.5 + dot(uv - vec2<f32>(0.5), axis) / span, 0.0, 1.0);
+    let tint = mix(u.dot_a.rgb, u.dot_b.rgb, diag);
+    // The glint: a band of light that sweeps the page corner to corner twice
+    // a revolution, the weave catching the light as it turns. Its crest runs
+    // −0.5 → 1.5 along the diagonal, so it enters and leaves fully off the
+    // page, the wrap is never seen, a quarter of each sweep is rest, and a
+    // page at rest (phase 0) wears none of it. Aspect-corrected, so the band
+    // runs at 45° in pixels on any window.
+    const GLINT_W: f32 = 0.22;
+    let sweep = fract(2.0 * u.dot_grid.w) * 2.0 - 0.5;
+    let along = (uv.x * asp + uv.y) / (asp + 1.0);
+    let glint = pow(1.0 - smoothstep(0.0, GLINT_W, abs(along - sweep)), 2.0);
+    // The SHEEN: the glint lights the page itself, faintly, in the lattice's
+    // colour. Keyed to the wash's own strength — which the frame has already
+    // scaled for the OS contrast setting — at half of it, so the band never
+    // spends more of the text's headroom than a pool does.
+    const SHEEN: f32 = 0.5;
+    rgb = mix(rgb, tint, glint * wash_amp * SHEEN);
 
     // The modern family's dot lattice (dot_a.a = 0 everywhere else): soft
     // round dots on a grid whose pitch rides the text-cell metrics (set by
-    // frame.rs), tinted pole_a→pole_b across the page so the backdrop carries
-    // the theme's gradient identity. A mix toward the tint (not an add) so the
-    // same strength reads on any page brightness.
-    //
-    // The lattice moves with the wash and on no clock of its own. Its tint
-    // axis turns with the orbit — pole A's end starts at the top-left corner
-    // and follows pool A round — and a GLINT, a soft 45° band of extra
-    // strength, sweeps it corner to corner twice a revolution: the weave
-    // catching the light as it turns. At phase 0 the axis is the plain
-    // diagonal and the glint is parked off the page, so a resting page is
-    // the static lattice.
+    // frame.rs), in the turning tint above so the backdrop carries the
+    // theme's gradient identity. A mix toward the tint (not an add) so the
+    // same strength reads on any page brightness. Under the glint's crest a
+    // dot carries up to four times its resting strength.
     let dot_amp = u.dot_a.a;
     if (dot_amp > 0.0) {
+        const GLINT_GAIN: f32 = 3.0;
         let pitch = u.dot_grid.xy;
         let off = (fract(in.pos.xy / pitch) - vec2<f32>(0.5)) * pitch; // px from dot centre
         let d = length(off);
         let r = u.dot_b.a;
         // ±0.8px feathered edge — soft, never a hard aliased circle.
         let mask = 1.0 - smoothstep(r - 0.8, r + 0.8, d);
-        // Projection onto the turning axis, scaled by the axis's reach to the
-        // farthest corner so every angle runs the full pole_a→pole_b span
-        // (at 45° this is exactly the old `(uv.x + uv.y) / 2`).
-        let axis = vec2<f32>(cos(ang + 0.78539816), sin(ang + 0.78539816));
-        let span = abs(axis.x) + abs(axis.y);
-        let diag = clamp(0.5 + dot(uv - vec2<f32>(0.5), axis) / span, 0.0, 1.0);
-        let tint = mix(u.dot_a.rgb, u.dot_b.rgb, diag);
-        // The glint's half-width (in page-diagonal units) and how much it
-        // multiplies the lattice at its crest.
-        const GLINT_W: f32 = 0.25;
-        const GLINT_GAIN: f32 = 1.4;
-        // Where the band's crest is: −0.5 → 1.5 along the diagonal, so it
-        // enters and leaves fully off the page, the wrap is never seen, and a
-        // quarter of each sweep is rest.
-        let sweep = fract(2.0 * u.dot_grid.w) * 2.0 - 0.5;
-        // Aspect-corrected, so the band runs at 45° in pixels on any window.
-        let along = (uv.x * asp + uv.y) / (asp + 1.0);
-        let glint = pow(1.0 - smoothstep(0.0, GLINT_W, abs(along - sweep)), 2.0);
         rgb = mix(rgb, tint, mask * min(dot_amp * (1.0 + GLINT_GAIN * glint), 1.0));
     }
     // Alpha comes from the page colour, not a hard 1.0: it carries the window

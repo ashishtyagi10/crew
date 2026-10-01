@@ -107,7 +107,7 @@ fn the_pace_is_busy_then_ambient_then_still() {
         Some(6_000),
         "busy outranks ambient"
     );
-    assert_eq!(pace(6_000, false, true), Some(60_000), "ambient");
+    assert_eq!(pace(6_000, false, true), Some(24_000), "ambient");
     assert_eq!(pace(6_000, false, false), None, "still");
 }
 
@@ -124,14 +124,14 @@ fn a_theme_with_no_drift_period_never_moves() {
     }
 }
 
-/// Ambient really is slower, not just different — the whole point is that
-/// idle motion is a texture rather than a signal.
+/// Ambient really is slower, not just different: idle motion is a texture,
+/// a working pane's the signal (4×; at 10× the idle page read as still).
 #[test]
 fn ambient_is_slower_than_busy_by_a_wide_margin() {
     let busy = pace(6_000, true, false).unwrap();
     let ambient = pace(6_000, false, true).unwrap();
     assert!(
-        ambient >= busy * 10,
+        ambient >= busy * 4,
         "ambient {ambient}ms is not far enough from busy {busy}ms"
     );
 }
@@ -261,9 +261,9 @@ fn the_hue_breathes_slower_than_the_pools_orbit() {
         "a quarter of the hue period must be full lean, got {}",
         w.hue_deg(16.0)
     );
-    // The orbit has gone round HUE_MULT/4 whole turns in that time, so it is
-    // back at the start while the colour is at its furthest.
-    assert!(orbit < 1e-3, "orbit should have wrapped home, at {orbit}");
+    // The orbit has gone HUE_MULT/4 turns in that time: further than the hue.
+    let want = (HUE_MULT as f32 / 4.0).fract();
+    assert!((orbit - want).abs() < 1e-3, "orbit {orbit}");
 }
 
 /// A sine, not a rotation: the poles lean one way, come back through the

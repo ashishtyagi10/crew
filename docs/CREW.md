@@ -3948,20 +3948,27 @@ curvature, scanlines and the bezel vignette are all zero — so they sit in the
 **The page drifts.** The wash is two broad pools of pole light on an elliptical
 orbit under the page, and they turn: one revolution every six seconds while a
 pane is working, and — with **Settings → APPEARANCE → Drifting background** on,
-the default — one every minute when nothing is happening at all. Idle motion is
-a texture, not a signal, so it is ten times slower than the busy kind and drawn
-at about six frames a second.
+the default — one every 24 seconds when nothing is happening at all. Idle
+motion is a texture, not a signal, so it is four times slower than the busy
+kind and drawn at about twelve frames a second.
 
 The pools do more than turn. They **breathe** in counter-phase, twice a
 revolution — as one widens and brightens the other narrows and dims, so the
 light moves between the poles instead of the page pulsing — and they
 **wander**, leaning toward each other on one side of the orbit and reaching in
 and out from the centre, so they meet, mix and part rather than turning as one
-rigid bar. The dot lattice moves with them: its pole-to-pole tint turns with the
-orbit, and twice a revolution a soft diagonal **glint** sweeps it corner to
-corner, the weave catching the light. All of it rides the same clock and the
-same frames, on light pages and dark alike; none of it asks for a frame of its
-own, and a page that has never drifted is the still one.
+rigid bar. They **trade colour**, too: between the quarter points of the orbit
+each pool leans toward the other's pole, so the gradient itself keeps changing,
+not only where it lies — on top of the hue breath, which now comes round every
+twelve seconds while a pane works and every 48 when idle (its width is
+**Gradient colour**: subtle ±16°, lively ±38°). The dot lattice moves with them:
+its pole-to-pole tint turns with the orbit, and twice a revolution a diagonal
+**glint** sweeps the page corner to corner — the dots under its crest carry up
+to four times their strength, and a faint sheen of pole light (half a pool's
+strength, so it never costs more contrast than the wash does) runs with it.
+All of it rides the same clock and the same frames, on light pages and dark
+alike; none of it asks for a frame of its own, and a page that has never
+drifted is the still one.
 
 This is the only animation in crew that repaints a window nothing else needed
 repainted, so it is fenced on four things, any one of which stops it: the

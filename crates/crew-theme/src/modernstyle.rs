@@ -24,8 +24,8 @@ pub struct ModernStyle {
     /// diagonal — the modern family's engineering-paper backdrop. It is a
     /// mix weight toward the pole colour, so ~0.2 reads as a whisper on a
     /// dark page. It moves only with the wash — its tint axis turns with the
-    /// pools and a glint sweeps it twice a revolution — and never requests a
-    /// frame of its own.
+    /// pools and a glint (with a sheen at half the wash's strength) sweeps it
+    /// twice a revolution — and never requests a frame of its own.
     pub dots: f32,
     /// Strength of the page's gradient wash (0 = none): two broad soft pools
     /// of `pole_a` and `pole_b` light lying under the whole page, the aurora
@@ -36,8 +36,8 @@ pub struct ModernStyle {
     /// The two pools sit on opposite sides of the page and rotate about its
     /// centre, one revolution per `drift_ms` while a pane is busy (far slower
     /// while the room is quiet, if ambient drift is on), breathing in
-    /// counter-phase and wandering toward and away from each other as they
-    /// go. The phase is advanced by the app (see crew-app's `washphase`) and
+    /// counter-phase, trading colour and wandering toward and away from each
+    /// other as they go. The phase is advanced by the app (see crew-app's `washphase`) and
     /// holds wherever it stopped when nothing moves it.
     pub wash: f32,
 }

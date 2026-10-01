@@ -2,6 +2,8 @@
 //! one, and an off-screen render of the pass read back as RGBA rows.
 use crew_render::PaperBgPass;
 
+pub mod backdrop;
+
 /// A device and queue, or `None` on a GPU-less machine (CI), where the
 /// headless tests skip rather than fail.
 pub fn gpu() -> Option<(wgpu::Device, wgpu::Queue)> {
