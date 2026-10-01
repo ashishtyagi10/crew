@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.22
+
+**The background moves more, on light pages and dark.** Until now the page's
+wash was two pools of pole light turning as one rigid bar, slowly enough that a
+quiet window read as still, and the dot lattice over it never moved at all. Now
+the pools breathe in counter-phase, twice a revolution: as one widens and
+brightens the other narrows and dims, so the light moves between the poles.
+They also wander on the slower clock that already drove the hue breath. They
+lean toward each other on one side of the orbit and reach in and out, so they
+meet, mix and part. The lattice's pole-to-pole tint turns with the orbit, and a
+soft diagonal glint sweeps it corner to corner twice a revolution. The idle
+drift is a third faster, one revolution a minute instead of every ninety
+seconds, so all of this is visible while nothing is working. It rides the
+frames the drift was already drawing (about six a second idle), so it costs no
+extra frames. Every term is zero at rest, so Motion off, Drifting background
+off, and every resting screenshot draw the same page as before. A new headless
+test reads each motion back off the GPU, on a dark page and a light one.
+
 ## 0.25.21
 
 **A message typed into a swarm now reaches every worker mid-run.** 0.25.13

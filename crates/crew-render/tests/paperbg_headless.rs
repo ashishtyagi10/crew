@@ -2,6 +2,9 @@
 ///
 /// On macOS with Metal this will find an adapter and run the real GPU render.
 /// In GPU-less CI the test gracefully skips instead of failing.
+mod common;
+
+use common::render_offscreen;
 use crew_render::{ModernPaper, PaperBgPass};
 
 /// Read the R channel of pixel (x, y) from a tightly-packed 256-byte-stride RGBA buffer.
@@ -42,128 +45,12 @@ fn render_64x64(device: &wgpu::Device, queue: &wgpu::Queue, pass: &PaperBgPass) 
     render_offscreen(device, queue, pass, 64, 64)
 }
 
-/// Render into an off-screen `w`×`h` texture and return the readback rows.
-/// `w` must keep the row stride (`w * 4`) a multiple of 256, wgpu's copy
-/// alignment — 64 and 128 both do.
-fn render_offscreen(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    pass: &PaperBgPass,
-    w: u32,
-    h: u32,
-) -> Vec<u8> {
-    // Offscreen texture.
-    let tex = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("test_tex"),
-        size: wgpu::Extent3d {
-            width: w,
-            height: h,
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm,
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
-        view_formats: &[],
-    });
-
-    // Readback buffer: w×h×4 bytes, one row per `w * 4` (a multiple of
-    // COPY_BYTES_PER_ROW_ALIGNMENT, so no padding).
-    let buf = device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("readback"),
-        size: u64::from(w * h * 4),
-        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-        mapped_at_creation: false,
-    });
-
-    let view = tex.create_view(&Default::default());
-    let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-
-    {
-        let mut rp = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("test"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
-                depth_slice: None,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-            multiview_mask: None,
-        });
-        pass.draw(&mut rp);
-    }
-
-    enc.copy_texture_to_buffer(
-        wgpu::TexelCopyTextureInfo {
-            texture: &tex,
-            mip_level: 0,
-            origin: wgpu::Origin3d::ZERO,
-            aspect: wgpu::TextureAspect::All,
-        },
-        wgpu::TexelCopyBufferInfo {
-            buffer: &buf,
-            layout: wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(w * 4),
-                rows_per_image: Some(h),
-            },
-        },
-        wgpu::Extent3d {
-            width: w,
-            height: h,
-            depth_or_array_layers: 1,
-        },
-    );
-
-    queue.submit(Some(enc.finish()));
-    device
-        .poll(wgpu::PollType::Wait {
-            submission_index: None,
-            timeout: None,
-        })
-        .expect("poll failed");
-
-    buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});
-    device
-        .poll(wgpu::PollType::Wait {
-            submission_index: None,
-            timeout: None,
-        })
-        .expect("poll failed");
-
-    let data = buf.slice(..).get_mapped_range().to_vec();
-    buf.unmap();
-    data
-}
-
 #[test]
 fn paperbg_headless() {
-    // --- adapter ---
-    let instance = wgpu::Instance::default();
-    let adapter_result =
-        pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::None,
-            compatible_surface: None,
-            force_fallback_adapter: false,
-        }));
-    let adapter = match adapter_result {
-        Ok(a) => a,
-        Err(_) => {
-            eprintln!("paperbg_headless: no GPU adapter, skipping");
-            return;
-        }
+    let Some((device, queue)) = common::gpu() else {
+        eprintln!("paperbg_headless: no GPU adapter, skipping");
+        return;
     };
-
-    let (device, queue) =
-        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
-            .expect("request_device failed");
 
     // --- build pass (also validates the WGSL via naga) ---
     let paper_bg = PaperBgPass::new(&device, wgpu::TextureFormat::Rgba8Unorm);
@@ -362,6 +249,7 @@ fn paperbg_headless() {
         // The lattice cases isolate the dots: no wash under them.
         wash: 0.0,
         phase: 0.0,
+        wander: 0.0,
         focus: [0.5, 0.5],
         focus_pull: 0.0,
     };
@@ -431,6 +319,7 @@ fn paperbg_headless() {
         // Centred orbit: the pool geometry below is measured against the page
         // centre, so the focus cases at the end move it deliberately.
         phase: 0.0,
+        wander: 0.0,
         focus: [0.5, 0.5],
         focus_pull: 0.0,
     };

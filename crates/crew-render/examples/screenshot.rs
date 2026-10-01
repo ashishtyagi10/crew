@@ -93,7 +93,7 @@ fn main() {
         // Mirrors `Renderer::frame`: effective grain = user knob × theme's
         // grain, and the modern family's backdrop — gradient wash plus the
         // dot lattice on the cell pitch. The shot is a resting frame, so the
-        // wash sits at phase 0 (the app only turns it while a pane is busy).
+        // wash sits at phase 0 with no wander: the still orbit, no glint.
         let dots = crew_theme::theme().modern.map(|m| {
             let c = |rgb| {
                 let [r, g, b, _] = crew_render::color::target_rgba(rgb, 1.0, FORMAT.is_srgb());
@@ -108,6 +108,7 @@ fn main() {
                 radius,
                 wash: m.wash,
                 phase: 0.0,
+                wander: 0.0,
                 // A resting shot has no focused card either, so the orbit
                 // stays centred on the page.
                 focus: [0.5, 0.5],

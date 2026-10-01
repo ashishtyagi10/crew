@@ -28,10 +28,15 @@ pub struct ModernPaper {
     pub wash: f32,
     /// Where the two pools sit on their orbit, in turns: 0 puts `color_a` at
     /// the left edge and `color_b` at the right, 0.25 rotates them a quarter
-    /// turn clockwise. The app advances it only while a pane is busy, so an
-    /// idle frame is a pure function of pixel position (see crew-app's
-    /// `washphase`).
+    /// turn clockwise. The same number breathes the pools, turns the
+    /// lattice's tint and sweeps its glint. The app owns the clock (see
+    /// crew-app's `washphase`), so a held frame is a pure function of pixel
+    /// position.
     pub phase: f32,
+    /// The slower second clock, in turns: how far the pools have wandered —
+    /// leaning toward each other and reaching in and out — off the rigid
+    /// orbit. `0.0` is no wander at all, which is what a resting shot draws.
+    pub wander: f32,
     /// Where the pools' orbit is CENTRED, in uv (`0.5, 0.5` = the page
     /// centre). The app hands over the focused card's centre, so the page's
     /// light gathers where the work is (see crew-app's `washfocus`).
@@ -162,6 +167,7 @@ impl PaperBgPass {
             radius: 0.0,
             wash: 0.0,
             phase: 0.0,
+            wander: 0.0,
             focus: [0.5, 0.5],
             focus_pull: 0.0,
         });
@@ -189,7 +195,7 @@ impl PaperBgPass {
             d.focus[0],
             d.focus[1],
             d.focus_pull,
-            0.0, // pad to a whole vec4
+            d.wander,
         ];
         queue.write_buffer(&self.uniform_buf, 0, f32s_as_bytes(&data));
     }
