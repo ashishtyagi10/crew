@@ -37,14 +37,13 @@ use crate::motion::MotionLevel;
 const MAX_STEP_MS: u64 = 250;
 
 /// How much slower the idle drift is than the busy one. At the themes'
-/// 6 s `drift_ms` this is a revolution every 60 seconds — 6° of orbit per
-/// second, a pool breath every 30 and a glint across the lattice every 30 —
-/// which reads as a room slowly changing light rather than anything that
-/// wants your attention. Busy motion is a signal and should be noticed;
-/// ambient motion is a texture and should not be. (It was 15, a 90-second
-/// revolution, while the orbit was the only thing moving; with the breath and
-/// the glint riding it, that pace read as a still page.)
-pub(crate) const AMBIENT_MULT: u64 = 10;
+/// 6 s `drift_ms` this is a revolution every 24 seconds — 15° of orbit per
+/// second, a pool breath and a glint across the page every 12 — which reads
+/// as a room whose light is plainly alive without anything asking for your
+/// attention. Busy motion is still the faster signal. (It was 15, a
+/// 90-second revolution, then 10; at both, the user read the page as not
+/// animating at all.)
+pub(crate) const AMBIENT_MULT: u64 = 4;
 
 /// How much slower the gradient's HUE breathes than the pools orbit.
 ///
@@ -52,11 +51,15 @@ pub(crate) const AMBIENT_MULT: u64 = 10;
 /// one set of fences and one supply of frames — the hue costs nothing that
 /// the orbit was not already paying for. They run at different rates because
 /// a colour that changed in lockstep with the position it is drawn at reads
-/// as one effect with a stutter; four to one, the pair never repeats inside a
-/// sitting. At the themes' 6 s `drift_ms` that is a 24-second breath while a
-/// pane works and a four-minute one while the room is quiet. The pools'
-/// wander rides the same clock (see [`WashPhase::wander`]).
-pub(crate) const HUE_MULT: u64 = 4;
+/// as one effect with a stutter; two to one, the colour comes back to the
+/// theme's own on every other turn of the pools, never in step with them. At
+/// the themes' 6 s `drift_ms` that is a 12-second breath while a pane works
+/// and a 48-second one while the room is quiet — slow enough to be a mood,
+/// fast enough to see it change. (It was four to one, a four-minute idle
+/// breath nobody could watch happen.) The pools' wander rides the same clock
+/// (see [`WashPhase::wander`]); NOT three, whose third harmonic would put the
+/// wander's lean in lockstep with the orbit.
+pub(crate) const HUE_MULT: u64 = 2;
 
 /// Ms per revolution this frame, or `None` to hold where it is.
 ///
