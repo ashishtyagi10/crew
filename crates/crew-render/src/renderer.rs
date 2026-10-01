@@ -40,9 +40,9 @@ pub struct Renderer {
     // theme's frames at `theme_fade` strength while a switch settles.
     fade: FadePass,
     theme_fade: Option<f32>,
-    /// The modern backdrop's wash phase, in turns — set by the app each frame
-    /// (see [`Self::set_wash_phase`]).
-    wash_phase: f32,
+    /// The modern backdrop's wash clocks, `(orbit, wander)` in turns — set by
+    /// the app each frame (see [`Self::set_wash_phase`]).
+    wash_phase: (f32, f32),
     /// The wash orbit's centre in uv and how far it has travelled there (see
     /// [`Self::set_wash_focus`]). Starts at the page centre, unmoved.
     wash_focus: ((f32, f32), f32),
@@ -81,7 +81,7 @@ impl Renderer {
             crt,
             fade,
             theme_fade: None,
-            wash_phase: 0.0,
+            wash_phase: (0.0, 0.0),
             wash_focus: ((0.5, 0.5), 0.0),
         })
     }
@@ -176,12 +176,13 @@ impl Renderer {
         self.crt.set_anim(time, flicker);
     }
 
-    /// Where the modern backdrop's gradient wash sits on its orbit, in turns.
-    /// The app owns the clock (it advances the phase only while a pane is
-    /// busy, and holds it otherwise), so the renderer just carries the value
-    /// through to the background pass.
-    pub fn set_wash_phase(&mut self, phase: f32) {
-        self.wash_phase = phase;
+    /// Where the modern backdrop's gradient wash sits on its orbit and how
+    /// far its pools have wandered off it, both in turns. The app owns both
+    /// clocks (it advances them while a pane is busy or the room drifts, and
+    /// holds them otherwise), so the renderer just carries the values through
+    /// to the background pass.
+    pub fn set_wash_phase(&mut self, phase: f32, wander: f32) {
+        self.wash_phase = (phase, wander);
     }
 
     /// Where the wash's orbit is centred — `(centre_uv, pull)`. Pull `0.0` is

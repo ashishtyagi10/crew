@@ -2,9 +2,11 @@
 //! of pole light sit on their orbit this frame.
 //!
 //! The wash itself is drawn by the background pass (see crew-render's
-//! `ModernPaper`); all that lives here is the one number it rotates by, and
-//! the rule for when that number is allowed to move — its **pace**, in ms per
-//! revolution, or `None` to hold.
+//! `ModernPaper`); all that lives here are the two numbers it moves by — the
+//! orbit, which also breathes the pools, turns the dot lattice's tint and
+//! sweeps its glint, and the slower wander/hue clock — and the rule for when
+//! they are allowed to move: their **pace**, in ms per revolution, or `None`
+//! to hold.
 //!
 //! The phase is advanced from ELAPSED TIME BETWEEN DRAWN FRAMES rather than
 //! read off the wall clock, so it never jumps: a wall-clock phase would
@@ -35,11 +37,14 @@ use crate::motion::MotionLevel;
 const MAX_STEP_MS: u64 = 250;
 
 /// How much slower the idle drift is than the busy one. At the themes'
-/// 6 s `drift_ms` this is a revolution every 90 seconds — about 4° of orbit
-/// per second, which reads as a room slowly changing light rather than
-/// anything that wants your attention. Busy motion is a signal and should be
-/// noticed; ambient motion is a texture and should not be.
-pub(crate) const AMBIENT_MULT: u64 = 15;
+/// 6 s `drift_ms` this is a revolution every 60 seconds — 6° of orbit per
+/// second, a pool breath every 30 and a glint across the lattice every 30 —
+/// which reads as a room slowly changing light rather than anything that
+/// wants your attention. Busy motion is a signal and should be noticed;
+/// ambient motion is a texture and should not be. (It was 15, a 90-second
+/// revolution, while the orbit was the only thing moving; with the breath and
+/// the glint riding it, that pace read as a still page.)
+pub(crate) const AMBIENT_MULT: u64 = 10;
 
 /// How much slower the gradient's HUE breathes than the pools orbit.
 ///
@@ -49,7 +54,8 @@ pub(crate) const AMBIENT_MULT: u64 = 15;
 /// a colour that changed in lockstep with the position it is drawn at reads
 /// as one effect with a stutter; four to one, the pair never repeats inside a
 /// sitting. At the themes' 6 s `drift_ms` that is a 24-second breath while a
-/// pane works and a six-minute one while the room is quiet.
+/// pane works and a four-minute one while the room is quiet. The pools'
+/// wander rides the same clock (see [`WashPhase::wander`]).
 pub(crate) const HUE_MULT: u64 = 4;
 
 /// Ms per revolution this frame, or `None` to hold where it is.
@@ -112,6 +118,18 @@ impl WashPhase {
     /// has never drifted wears the theme's own bytes.
     pub(crate) fn hue_deg(&self, span: f32) -> f32 {
         span * (std::f32::consts::TAU * self.hue).sin()
+    }
+
+    /// This frame's wander, in turns: how far the wash's pools have drifted
+    /// off their rigid orbit — leaning together, reaching in and out.
+    ///
+    /// It is the hue clock itself, read raw rather than as a sine, because
+    /// the shader takes its own harmonics of it. Reusing the clock rather than
+    /// adding a third keeps one set of fences and one supply of frames, and
+    /// it is `0.0` at rest, so a page that has never drifted draws the plain
+    /// orbit.
+    pub(crate) fn wander(&self) -> f32 {
+        self.hue
     }
 }
 

@@ -6,7 +6,7 @@ struct Uniform {
     dot_a: vec4<f32>,    // pole A tint; a = lattice strength (0 = no dots)
     dot_b: vec4<f32>,    // pole B tint; a = dot radius px
     dot_grid: vec4<f32>, // xy = lattice pitch px; z = wash strength (0 = no wash); w = wash phase (turns)
-    wash_focus: vec4<f32>, // xy = orbit centre in uv; z = how far it moves there (0 = page centre); w unused
+    wash_focus: vec4<f32>, // xy = orbit centre in uv; z = how far it moves there (0 = page centre); w = wander clock (turns)
 }
 @group(0) @binding(0) var<uniform> u: Uniform;
 
@@ -115,15 +115,31 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
             + vec3<f32>((n * 0.5 + n2 * 0.7) * A_DARK * dark_weight),
         vec3<f32>(0.0), vec3<f32>(1.0));
 
+    // Aspect ratio, for the wash's round pools and the glint's 45° band.
+    let asp = u.resolution.x / max(u.resolution.y, 1.0);
+    // The wash's orbit, in radians — the clock every moving part of the
+    // backdrop keys off, so the pools, the lattice's tint and the glint never
+    // drift out of step with each other.
+    let ang = 6.2831853 * u.dot_grid.w;
+
     // The modern family's gradient wash (dot_grid.z = 0 everywhere else):
     // two broad pools of pole light lying under the whole page — the aurora
     // the dot lattice is then woven on top of. Coordinates are aspect-
     // corrected (half-height units) so a pool is round on any window, and the
     // pair sits on an elliptical orbit that hugs the page: at phase 0 pole A
     // is at the left edge and pole B at the right, and a quarter turn later
-    // they have swung clockwise to the top and the bottom. The phase comes
-    // from the app and only moves while a pane is busy, so an idle frame is
-    // still a pure function of pixel position.
+    // they have swung clockwise to the top and the bottom.
+    //
+    // On that orbit the pools also BREATHE and WANDER. Breath is two swells
+    // a revolution, in counter-phase: as one pool widens and brightens the
+    // other narrows and dims, so the light moves between the poles rather
+    // than the page pulsing as a whole. Wander rides the second, slower clock
+    // (`wash_focus.w`, the hue breath's): the pools lean toward each other on
+    // one side of the orbit and apart on the other, and reach in and out
+    // from the centre, so they meet, mix and part instead of turning as one
+    // rigid bar. Every term is a sine of a phase that is 0 at rest, so a page
+    // that has never drifted is exactly the still orbit — and the phase comes
+    // from the app, so a held frame is still a pure function of position.
     let wash_amp = u.dot_grid.z;
     if (wash_amp > 0.0) {
         // Pool radius, in half-height units: wide enough that a pool covers
@@ -132,7 +148,15 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         const WASH_R: f32 = 0.95;
         // How far out the pools orbit, as a fraction of each half-axis.
         const WASH_ORBIT: f32 = 0.45;
-        let asp = u.resolution.x / max(u.resolution.y, 1.0);
+        // How much a breath widens a pool's radius and lifts its strength at
+        // the top of the swell (and narrows/dims the other pool as much).
+        const BREATH_R: f32 = 0.10;
+        const BREATH_AMP: f32 = 0.25;
+        // The wander's reach: how far (radians) each pool leans off the
+        // straight line through the centre, and how far (fraction of the
+        // orbit) the pair reaches in and out.
+        const WANDER_LEAN: f32 = 0.45;
+        const WANDER_REACH: f32 = 0.15;
         // The orbit's centre. At pull 0 it is the page centre and the pools
         // sit either side of the middle, as they always have; as the app
         // raises it the whole pair slides toward the focused card, so the
@@ -143,24 +167,42 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
             u.wash_focus.y - 0.5,
         ) * u.wash_focus.z;
         let p = vec2<f32>((uv.x - 0.5) * asp, uv.y - 0.5) - fc;
-        let ang = 6.2831853 * u.dot_grid.w;
-        let orbit = vec2<f32>(cos(ang) * WASH_ORBIT * asp, sin(ang) * WASH_ORBIT);
+        let breath = sin(2.0 * ang);
+        // Integer harmonics of the wander clock, so its wrap is seamless;
+        // three and five never line up inside a cycle, so lean and reach
+        // read as one unhurried drift rather than two metronomes.
+        let wander = 6.2831853 * u.wash_focus.w;
+        let lean = WANDER_LEAN * sin(3.0 * wander);
+        let reach = WASH_ORBIT * (1.0 + WANDER_REACH * sin(5.0 * wander));
+        let ang_a = ang + lean;
+        let ang_b = ang - lean;
+        let orbit_a = vec2<f32>(cos(ang_a) * reach * asp, sin(ang_a) * reach);
+        let orbit_b = vec2<f32>(cos(ang_b) * reach * asp, sin(ang_b) * reach);
         // Cubic falloff — a soft shoulder rather than smoothstep's linear
         // middle, so each pool reads as light with a core rather than a
         // painted disc, and the page between them dips to roughly a third of
         // a pool's lift instead of washing out flat.
-        let ga = pow(1.0 - smoothstep(0.0, WASH_R, length(p + orbit)), 3.0);
-        let gb = pow(1.0 - smoothstep(0.0, WASH_R, length(p - orbit)), 3.0);
-        rgb = mix(rgb, u.dot_a.rgb, ga * wash_amp);
-        rgb = mix(rgb, u.dot_b.rgb, gb * wash_amp);
+        let ra = WASH_R * (1.0 + BREATH_R * breath);
+        let rb = WASH_R * (1.0 - BREATH_R * breath);
+        let ga = pow(1.0 - smoothstep(0.0, ra, length(p + orbit_a)), 3.0);
+        let gb = pow(1.0 - smoothstep(0.0, rb, length(p - orbit_b)), 3.0);
+        rgb = mix(rgb, u.dot_a.rgb, ga * wash_amp * (1.0 + BREATH_AMP * breath));
+        rgb = mix(rgb, u.dot_b.rgb, gb * wash_amp * (1.0 - BREATH_AMP * breath));
     }
 
     // The modern family's dot lattice (dot_a.a = 0 everywhere else): soft
     // round dots on a grid whose pitch rides the text-cell metrics (set by
-    // frame.rs), tinted pole_a→pole_b along the page diagonal so the
-    // backdrop carries the theme's gradient identity. A mix toward the tint
-    // (not an add) so the same strength reads on any page brightness, and
-    // pure function of pixel position — static, no time term, no frames.
+    // frame.rs), tinted pole_a→pole_b across the page so the backdrop carries
+    // the theme's gradient identity. A mix toward the tint (not an add) so the
+    // same strength reads on any page brightness.
+    //
+    // The lattice moves with the wash and on no clock of its own. Its tint
+    // axis turns with the orbit — pole A's end starts at the top-left corner
+    // and follows pool A round — and a GLINT, a soft 45° band of extra
+    // strength, sweeps it corner to corner twice a revolution: the weave
+    // catching the light as it turns. At phase 0 the axis is the plain
+    // diagonal and the glint is parked off the page, so a resting page is
+    // the static lattice.
     let dot_amp = u.dot_a.a;
     if (dot_amp > 0.0) {
         let pitch = u.dot_grid.xy;
@@ -169,9 +211,25 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         let r = u.dot_b.a;
         // ±0.8px feathered edge — soft, never a hard aliased circle.
         let mask = 1.0 - smoothstep(r - 0.8, r + 0.8, d);
-        let diag = clamp((uv.x + uv.y) * 0.5, 0.0, 1.0);
+        // Projection onto the turning axis, scaled by the axis's reach to the
+        // farthest corner so every angle runs the full pole_a→pole_b span
+        // (at 45° this is exactly the old `(uv.x + uv.y) / 2`).
+        let axis = vec2<f32>(cos(ang + 0.78539816), sin(ang + 0.78539816));
+        let span = abs(axis.x) + abs(axis.y);
+        let diag = clamp(0.5 + dot(uv - vec2<f32>(0.5), axis) / span, 0.0, 1.0);
         let tint = mix(u.dot_a.rgb, u.dot_b.rgb, diag);
-        rgb = mix(rgb, tint, mask * dot_amp);
+        // The glint's half-width (in page-diagonal units) and how much it
+        // multiplies the lattice at its crest.
+        const GLINT_W: f32 = 0.25;
+        const GLINT_GAIN: f32 = 1.4;
+        // Where the band's crest is: −0.5 → 1.5 along the diagonal, so it
+        // enters and leaves fully off the page, the wrap is never seen, and a
+        // quarter of each sweep is rest.
+        let sweep = fract(2.0 * u.dot_grid.w) * 2.0 - 0.5;
+        // Aspect-corrected, so the band runs at 45° in pixels on any window.
+        let along = (uv.x * asp + uv.y) / (asp + 1.0);
+        let glint = pow(1.0 - smoothstep(0.0, GLINT_W, abs(along - sweep)), 2.0);
+        rgb = mix(rgb, tint, mask * min(dot_amp * (1.0 + GLINT_GAIN * glint), 1.0));
     }
     // Alpha comes from the page colour, not a hard 1.0: it carries the window
     // opacity, so a translucent window lets the desktop through the paper while

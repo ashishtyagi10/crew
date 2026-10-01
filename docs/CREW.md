@@ -3948,9 +3948,20 @@ curvature, scanlines and the bezel vignette are all zero — so they sit in the
 **The page drifts.** The wash is two broad pools of pole light on an elliptical
 orbit under the page, and they turn: one revolution every six seconds while a
 pane is working, and — with **Settings → APPEARANCE → Drifting background** on,
-the default — one every ninety seconds when nothing is happening at all. Idle
-motion is a texture, not a signal, so it is fifteen times slower than the busy
-kind and drawn at about six frames a second.
+the default — one every minute when nothing is happening at all. Idle motion is
+a texture, not a signal, so it is ten times slower than the busy kind and drawn
+at about six frames a second.
+
+The pools do more than turn. They **breathe** in counter-phase, twice a
+revolution — as one widens and brightens the other narrows and dims, so the
+light moves between the poles instead of the page pulsing — and they
+**wander**, leaning toward each other on one side of the orbit and reaching in
+and out from the centre, so they meet, mix and part rather than turning as one
+rigid bar. The dot lattice moves with them: its pole-to-pole tint turns with the
+orbit, and twice a revolution a soft diagonal **glint** sweeps it corner to
+corner, the weave catching the light. All of it rides the same clock and the
+same frames, on light pages and dark alike; none of it asks for a frame of its
+own, and a page that has never drifted is the still one.
 
 This is the only animation in crew that repaints a window nothing else needed
 repainted, so it is fenced on four things, any one of which stops it: the

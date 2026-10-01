@@ -107,7 +107,7 @@ fn the_pace_is_busy_then_ambient_then_still() {
         Some(6_000),
         "busy outranks ambient"
     );
-    assert_eq!(pace(6_000, false, true), Some(90_000), "ambient");
+    assert_eq!(pace(6_000, false, true), Some(60_000), "ambient");
     assert_eq!(pace(6_000, false, false), None, "still");
 }
 

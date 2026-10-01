@@ -145,9 +145,8 @@ fn render_full(glass: crew_theme::GlassLevel, opacity: f32, crt: bool) -> Option
     let paper = PaperBgPass::new(&device, FORMAT);
     let bg = crew_theme::theme().page_bg;
     let bg_f32 = crew_render::color::target_rgba(bg, opacity, FORMAT.is_srgb());
-    // Mirrors `frame.rs`: the modern family's backdrop (gradient wash at
-    // rest + dot lattice) rides the same pass, so a modern shot shows the
-    // page the app actually draws rather than a bare fill.
+    // Mirrors `frame.rs`: the modern backdrop (wash + lattice, at rest) rides
+    // the same pass, so a modern shot shows the page the app actually draws.
     let modern = crew_theme::theme().modern.map(|m| {
         let c = |rgb| {
             let [r, g, b, _] = crew_render::color::target_rgba(rgb, 1.0, FORMAT.is_srgb());
@@ -162,6 +161,7 @@ fn render_full(glass: crew_theme::GlassLevel, opacity: f32, crt: bool) -> Option
             radius,
             wash: m.wash,
             phase: 0.0,
+            wander: 0.0,
             // A shot has no focused card: the wash sits centred, which is the
             // page every other shot test in the tree was calibrated against.
             focus: [0.5, 0.5],
