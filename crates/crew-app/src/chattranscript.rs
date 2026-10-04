@@ -17,6 +17,13 @@ impl ChatPane {
             self.running_tasks.push(id);
         } else if self.running_tasks.is_empty() {
             self.asking.clear(); // nothing is left to be waiting on an answer
+                                 // A run ends with its agents idle and its swarm folded; one that
+                                 // is still showing them died mid-run (`✗ task #N crashed`), and
+                                 // would leave the pane looking busy with nothing behind it.
+            if self.swarm.is_some() || !self.active.is_empty() {
+                self.fold_swarm();
+                self.flush_active_hops();
+            }
         }
     }
 
