@@ -220,9 +220,8 @@ fn badge_on_border(cells: &mut Vec<CellView>, badge: &str, cols: u16, row: u16) 
     }
 }
 
-/// Render the composer into the bottom `composer_rows(input, cols, rows)`
-/// rows: a bordered fieldset card that grows with the wrapped input on tall
-/// panes, a bare prompt row on short ones.
+/// [`composer_cells_at`] with the caret at the end — what the tests draw.
+#[cfg(test)]
 pub(crate) fn composer_cells(
     input: &str,
     ghost: Option<&str>,
@@ -233,7 +232,8 @@ pub(crate) fn composer_cells(
     composer_cells_at(input, input.chars().count(), ghost, agents, cols, rows)
 }
 
-/// [`composer_cells`] with the caret at char index `caret` (`chatcursor`).
+/// Render the composer into its bottom rows (a card that grows with the wrapped
+/// input on tall panes, one bare row on short ones), the caret at `caret`.
 pub(crate) fn composer_cells_at(
     input: &str,
     caret: usize,
