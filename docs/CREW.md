@@ -2755,6 +2755,13 @@ composer opens the key reference. Every other Ctrl+letter does nothing; they
 used to type their letter. What Ctrl makes that is not a letter (AltGr is
 Ctrl+Alt off the Mac) still types.
 
+**`!` runs a shell command yourself.** `!cargo test` in the agent composer runs
+the command, as Claude Code's bash mode does: you typed it, so no approval mode
+asks (a read-only `CREW_SYS_MODE` still refuses it). It runs on a thread of
+its own with `sys:run`'s deadline and limits, its output lands in the
+transcript as a `shell` card, and the exchange joins agent smith's memory of
+the conversation, so the next message can say "fix that".
+
 **A fresh start and the mode in words.** `/clear` is a fresh conversation, as
 in Claude Code: anything running stops, the broker forgets every turn so far
 (and a pending plan), and the pane empties its transcript and its queue.
