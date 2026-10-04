@@ -3962,11 +3962,15 @@ each pool leans toward the other's pole, so the gradient itself keeps changing,
 not only where it lies — on top of the hue breath, which now comes round every
 twelve seconds while a pane works and every 48 when idle (its width is
 **Gradient colour**: subtle ±16°, lively ±38°). The dot lattice moves with them:
-its pole-to-pole tint turns with the orbit, and twice a revolution a diagonal
-**glint** sweeps the page corner to corner — the dots under its crest carry up
-to four times their strength, and a faint sheen of pole light (half a pool's
-strength, so it never costs more contrast than the wash does) runs with it.
-All of it rides the same clock and the same frames, on light pages and dark
+its pole-to-pole tint turns with the orbit, and twice a revolution two spiral
+arms of **glint** bloom out of the centre, pour outward as the pools turn, and
+fade — the dots under a crest carry up to four times their strength, and a
+faint sheen of pole light (half a pool's strength, so it never costs more
+contrast than the wash does) runs with them. And the whole page **swirls**: on
+the slow clock its middle turns further than its rim, so the line between the
+pools winds into a whirlpool and they trail spiral arms as they orbit, while two
+slow crossing currents ripple everything — nothing in the backdrop moves in a
+straight line. All of it rides the same clock and the same frames, on light pages and dark
 alike; none of it asks for a frame of its own, and a page that has never
 drifted is the still one.
 

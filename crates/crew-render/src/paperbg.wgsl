@@ -115,18 +115,75 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
             + vec3<f32>((n * 0.5 + n2 * 0.7) * A_DARK * dark_weight),
         vec3<f32>(0.0), vec3<f32>(1.0));
 
-    // Aspect ratio, for the wash's round pools and the glint's 45° band.
+    // Aspect ratio, for the wash's round pools and the flow's round whirl.
     let asp = u.resolution.x / max(u.resolution.y, 1.0);
     // The wash's orbit, in radians — the clock every moving part of the
     // backdrop keys off, so the pools, the lattice's tint and the glint never
     // drift out of step with each other.
     let ang = 6.2831853 * u.dot_grid.w;
+    // The second, slower clock (the hue breath's), in radians.
+    let wander = 6.2831853 * u.wash_focus.w;
+
+    // The orbit's centre. At pull 0 it is the page centre and the pools sit
+    // either side of the middle, as they always have; as the app raises it
+    // the whole pair slides toward the focused card, so the page's light
+    // gathers where the work is. Half-height units (y spans ±0.5, x ±asp/2),
+    // so a pull reads the same on any window shape.
+    let fc = vec2<f32>(
+        (u.wash_focus.x - 0.5) * asp,
+        u.wash_focus.y - 0.5,
+    ) * u.wash_focus.z;
+    let c = vec2<f32>((uv.x - 0.5) * asp, uv.y - 0.5) - fc;
+
+    // The FLOW: the page's light moves like liquid, not like a rigid card.
+    // Every moving part below — the pools, the lattice's tint, the glint —
+    // is drawn on these bent coordinates rather than the page's straight
+    // ones, so nothing in the backdrop is ever a straight line or a perfect
+    // circle while it moves.
+    //
+    // Two bends. A WHIRLPOOL: the middle of the page is turned further than
+    // its rim, so the line between the pools winds into a spiral and the
+    // pools trail arms as they orbit — the turn breathes a little on the
+    // slow clock, winding and easing. Then a CURRENT: two travelling waves
+    // crossing at right angles nudge every point along the other axis, so
+    // the spiral's arms ripple and a pool's edge never sits still.
+    //
+    // `flow` is how far the page has come from its still geometry. It keys
+    // off the slow clock alone and is zero only at its top — a page that has
+    // never drifted, and a brief exhale once a slow revolution (the eighth
+    // power keeps it brief: a tenth of the way round, the flow is half on) —
+    // so a resting shot is exactly the still orbit, and the orbit's own
+    // effects (breath, trade, tint, glint) measure at wander 0 on the page's
+    // straight coordinates. The waves' phases are whole multiples of both
+    // clocks, so every wrap is seamless.
+    const SWIRL: f32 = 1.8;
+    const SWIRL_R: f32 = 1.15;
+    const SWIRL_BREATH: f32 = 0.35;
+    const CURRENT: f32 = 0.06;
+    const CURRENT_K: f32 = 3.5;
+    let rest = pow(0.5 + 0.5 * cos(wander), 8.0);
+    let flow = 1.0 - rest;
+    let swirl_fall = 1.0 - smoothstep(0.0, SWIRL_R, length(c));
+    let twist = SWIRL * flow * (1.0 + SWIRL_BREATH * sin(3.0 * wander))
+        * swirl_fall * swirl_fall;
+    let tc = cos(twist);
+    let ts = sin(twist);
+    var q = vec2<f32>(c.x * tc - c.y * ts, c.x * ts + c.y * tc);
+    q += CURRENT * flow * vec2<f32>(
+        sin(CURRENT_K * q.y + ang + wander),
+        sin(CURRENT_K * q.x - 2.0 * ang),
+    );
+    // The same bend in uv, for the tint and the glint. Added as a
+    // displacement so a page at rest keeps its exact uv.
+    let dq = q - c;
+    let fuv = uv + vec2<f32>(dq.x / asp, dq.y);
 
     // The modern family's gradient wash (dot_grid.z = 0 everywhere else):
     // two broad pools of pole light lying under the whole page — the aurora
-    // the dot lattice is then woven on top of. Coordinates are aspect-
-    // corrected (half-height units) so a pool is round on any window, and the
-    // pair sits on an elliptical orbit that hugs the page: at phase 0 pole A
+    // the dot lattice is then woven on top of. Drawn on the flow's bent
+    // coordinates (aspect-corrected, half-height units), so a still pool is
+    // round on any window and a moving one curls; the pair sits on an
+    // elliptical orbit that hugs the page: at phase 0 pole A
     // is at the left edge and pole B at the right, and a quarter turn later
     // they have swung clockwise to the top and the bottom.
     //
@@ -163,21 +220,10 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         // How far toward the other pole a pool's colour leans at the peak of
         // the trade (four a revolution, back to its own at every quarter).
         const TRADE: f32 = 0.35;
-        // The orbit's centre. At pull 0 it is the page centre and the pools
-        // sit either side of the middle, as they always have; as the app
-        // raises it the whole pair slides toward the focused card, so the
-        // page's light gathers where the work is. Same half-height units as
-        // `p`, so a pull reads the same on any window shape.
-        let fc = vec2<f32>(
-            (u.wash_focus.x - 0.5) * asp,
-            u.wash_focus.y - 0.5,
-        ) * u.wash_focus.z;
-        let p = vec2<f32>((uv.x - 0.5) * asp, uv.y - 0.5) - fc;
         let breath = sin(2.0 * ang);
         // Integer harmonics of the wander clock, so its wrap is seamless;
         // three and five never line up inside a cycle, so lean and reach
         // read as one unhurried drift rather than two metronomes.
-        let wander = 6.2831853 * u.wash_focus.w;
         let lean = WANDER_LEAN * sin(3.0 * wander);
         let reach = WASH_ORBIT * (1.0 + WANDER_REACH * sin(5.0 * wander));
         let ang_a = ang + lean;
@@ -190,8 +236,8 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         // a pool's lift instead of washing out flat.
         let ra = WASH_R * (1.0 + BREATH_R * breath);
         let rb = WASH_R * (1.0 - BREATH_R * breath);
-        let ga = pow(1.0 - smoothstep(0.0, ra, length(p + orbit_a)), 3.0);
-        let gb = pow(1.0 - smoothstep(0.0, rb, length(p - orbit_b)), 3.0);
+        let ga = pow(1.0 - smoothstep(0.0, ra, length(q + orbit_a)), 3.0);
+        let gb = pow(1.0 - smoothstep(0.0, rb, length(q - orbit_b)), 3.0);
         let trade = TRADE * (0.5 - 0.5 * cos(4.0 * ang));
         let col_a = mix(u.dot_a.rgb, u.dot_b.rgb, trade);
         let col_b = mix(u.dot_b.rgb, u.dot_a.rgb, trade);
@@ -206,23 +252,34 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // corner and follows pool A round. Projection onto it is scaled by the
     // axis's reach to the farthest corner so every angle runs the full
     // pole_a→pole_b span (at 45° this is exactly the old `(uv.x + uv.y) / 2`).
+    // Read off the flow's bent uv, so the tint's bands bow with the current.
     let axis = vec2<f32>(cos(ang + 0.78539816), sin(ang + 0.78539816));
     let span = abs(axis.x) + abs(axis.y);
-    let diag = clamp(0.5 + dot(uv - vec2<f32>(0.5), axis) / span, 0.0, 1.0);
+    let diag = clamp(0.5 + dot(fuv - vec2<f32>(0.5), axis) / span, 0.0, 1.0);
     let tint = mix(u.dot_a.rgb, u.dot_b.rgb, diag);
-    // The glint: a band of light that sweeps the page corner to corner twice
-    // a revolution, the weave catching the light as it turns. Its crest runs
-    // −0.5 → 1.5 along the diagonal, so it enters and leaves fully off the
-    // page, the wrap is never seen, a quarter of each sweep is rest, and a
-    // page at rest (phase 0) wears none of it. Aspect-corrected, so the band
-    // runs at 45° in pixels on any window.
-    const GLINT_W: f32 = 0.22;
-    let sweep = fract(2.0 * u.dot_grid.w) * 2.0 - 0.5;
-    let along = (uv.x * asp + uv.y) / (asp + 1.0);
-    let glint = pow(1.0 - smoothstep(0.0, GLINT_W, abs(along - sweep)), 2.0);
+    // The glint: two spiral arms of light, the weave catching it as it turns.
+    // They wind out from the orbit's centre — on the bent coordinates, so
+    // the whirlpool winds them further — and turn with the pools, which at
+    // a fixed point on the page reads as the arms flowing OUTWARD, the way a
+    // hypnotic disc pours. They bloom and fade twice a revolution (`bloom`,
+    // full at the quarter turns), so a page at rest (phase 0) and the moment
+    // of the wrap wear none of it. Each arm thins to nothing at the centre,
+    // where the two would otherwise pile into a hot spot.
+    const GLINT_W: f32 = 0.08; // an arm's half-width, half-height units
+    const GLINT_WIND: f32 = 0.8; // turns an arm makes per half-height unit
+    let gr = length(q);
+    let arm = atan2(q.y, q.x) / 3.14159265 + 2.0 * GLINT_WIND * gr - 2.0 * u.dot_grid.w;
+    // Distance from here to the nearer arm's crest: how far `arm` is from a
+    // whole number, over how fast it changes across the page (its gradient
+    // is 1/πr round the circle and 2·WIND outward, at right angles).
+    let arm_rate = length(vec2<f32>(1.0 / (3.14159265 * max(gr, 1e-3)), 2.0 * GLINT_WIND));
+    let off_arm = abs(fract(arm + 0.5) - 0.5) / arm_rate;
+    let bloom = 0.5 - 0.5 * cos(2.0 * ang);
+    let glint = bloom * smoothstep(0.03, 0.25, gr)
+        * pow(1.0 - smoothstep(0.0, GLINT_W, off_arm), 2.0);
     // The SHEEN: the glint lights the page itself, faintly, in the lattice's
     // colour. Keyed to the wash's own strength — which the frame has already
-    // scaled for the OS contrast setting — at half of it, so the band never
+    // scaled for the OS contrast setting — at half of it, so an arm never
     // spends more of the text's headroom than a pool does.
     const SHEEN: f32 = 0.5;
     rgb = mix(rgb, tint, glint * wash_amp * SHEEN);

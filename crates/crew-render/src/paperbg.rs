@@ -29,13 +29,14 @@ pub struct ModernPaper {
     /// Where the two pools sit on their orbit, in turns: 0 puts `color_a` at
     /// the left edge and `color_b` at the right, 0.25 rotates them a quarter
     /// turn clockwise. The same number breathes the pools, turns the
-    /// lattice's tint and sweeps its glint. The app owns the clock (see
+    /// lattice's tint and turns its glint. The app owns the clock (see
     /// crew-app's `washphase`), so a held frame is a pure function of pixel
     /// position.
     pub phase: f32,
     /// The slower second clock, in turns: how far the pools have wandered —
     /// leaning toward each other and reaching in and out — off the rigid
-    /// orbit. `0.0` is no wander at all, which is what a resting shot draws.
+    /// orbit, and how far the page has wound into its whirlpool. `0.0` is no
+    /// wander and no whirl at all, which is what a resting shot draws.
     pub wander: f32,
     /// Where the pools' orbit is CENTRED, in uv (`0.5, 0.5` = the page
     /// centre). The app hands over the focused card's centre, so the page's

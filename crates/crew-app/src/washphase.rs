@@ -4,7 +4,8 @@
 //! The wash itself is drawn by the background pass (see crew-render's
 //! `ModernPaper`); all that lives here are the two numbers it moves by — the
 //! orbit, which also breathes the pools, turns the dot lattice's tint and
-//! sweeps its glint, and the slower wander/hue clock — and the rule for when
+//! turns its glint's spiral arms, and the slower wander/hue clock, which also
+//! winds the page's whirlpool — and the rule for when
 //! they are allowed to move: their **pace**, in ms per revolution, or `None`
 //! to hold.
 //!
@@ -38,7 +39,7 @@ const MAX_STEP_MS: u64 = 250;
 
 /// How much slower the idle drift is than the busy one. At the themes'
 /// 6 s `drift_ms` this is a revolution every 24 seconds — 15° of orbit per
-/// second, a pool breath and a glint across the page every 12 — which reads
+/// second, a pool breath and a bloom of the glint's arms every 12 — which reads
 /// as a room whose light is plainly alive without anything asking for your
 /// attention. Busy motion is still the faster signal. (It was 15, a
 /// 90-second revolution, then 10; at both, the user read the page as not
@@ -124,7 +125,8 @@ impl WashPhase {
     }
 
     /// This frame's wander, in turns: how far the wash's pools have drifted
-    /// off their rigid orbit — leaning together, reaching in and out.
+    /// off their rigid orbit — leaning together, reaching in and out — and
+    /// how far the page has wound into its whirlpool.
     ///
     /// It is the hue clock itself, read raw rather than as a sine, because
     /// the shader takes its own harmonics of it. Reusing the clock rather than
