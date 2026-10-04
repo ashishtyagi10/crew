@@ -48,6 +48,7 @@ impl ChatPane {
             approval_mode: Default::default(),
             asking: Default::default(),
             restarts: Vec::new(),
+            caret_back: 0,
             watch: Default::default(),
             hover_btn: None,
             press_btn: None,

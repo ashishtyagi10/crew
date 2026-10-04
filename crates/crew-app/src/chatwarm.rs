@@ -51,7 +51,24 @@ impl ChatPane {
     /// them is the same edge seen from outside.
     pub(crate) fn on_typed(&mut self, k: ChatInput, cwd: &std::path::Path) -> Option<ChatAction> {
         let was_empty = self.input.is_empty();
+        // A key that knows the caret edits at it; any other that changed the
+        // draft (a recalled line, Tab, a palette pick) put the caret at the end.
+        let at_caret = matches!(
+            k,
+            ChatInput::Char(_)
+                | ChatInput::Newline
+                | ChatInput::Backspace
+                | ChatInput::Enter
+                | ChatInput::Caret(_)
+                | ChatInput::Accept
+        );
+        let before = (!at_caret).then(|| self.input.clone());
         let out = self.on_input(k, cwd);
+        if before.is_some_and(|b| b != self.input) {
+            self.caret_back = 0;
+        }
+        self.caret_back = self.caret_back.min(self.input.chars().count());
+        self.follow_caret(false, cwd);
         self.warm_on_edge(was_empty, Instant::now());
         out
     }
@@ -59,7 +76,7 @@ impl ChatPane {
     /// Pasted text into the composer — the other way a message starts.
     pub(crate) fn paste_composer(&mut self, text: &str) {
         let was_empty = self.input.is_empty();
-        self.input.push_str(text);
+        self.insert_at_caret(text);
         self.warm_on_edge(was_empty, Instant::now());
     }
 

@@ -2759,6 +2759,19 @@ composer opens the key reference. Every other Ctrl+letter does nothing; they
 used to type their letter. What Ctrl makes that is not a letter (AltGr is
 Ctrl+Alt off the Mac) still types.
 
+**Editing anywhere in the draft.** The composer has a caret: **Left** and
+**Right** move it a character, **Alt+Left** and **Alt+Right** a word (Option on
+the Mac), **Home**/**End** and **Ctrl+A**/**Ctrl+E** to the start and end of the
+line. Typing, Backspace, a paste and a dropped file all land at the caret.
+**Delete** takes the character after it, **Ctrl+K** the rest of the line (at a
+line's end, the line break), **Ctrl+U** everything before it on the line, and
+**Ctrl+W** or **Alt+Backspace** the word before it. In the middle of a draft
+the caret is a beam on the character it sits before, and in a draft taller
+than the composer its line is the one kept on screen. Right at the very end
+still takes the dim suggestion, which only shows there, and so does Tab; the
+`/` and `@` pop-ups follow typing at the end. Recalling a line, Tab or a
+pop-up pick put the caret back at the end.
+
 **`!` runs a shell command yourself.** `!cargo test` in the agent composer runs
 the command, as Claude Code's bash mode does: you typed it, so no approval mode
 asks (a read-only `CREW_SYS_MODE` still refuses it). It runs on a thread of

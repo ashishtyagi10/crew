@@ -113,6 +113,8 @@ pub struct ChatPane {
     /// (see `chatapprove`).
     pub(crate) approval_mode: crew_plugin::ApprovalMode,
     pub(crate) asking: std::collections::VecDeque<crate::chatapprove::Asking>,
+    /// Chars after the composer's caret; 0 is the end (`chatcursor`).
+    pub(crate) caret_back: usize,
     /// When the broker was last restarted after stopping (`chatrevive`).
     pub(crate) restarts: Vec<u64>,
     /// The watchdog's clocks (`chatwatch`).

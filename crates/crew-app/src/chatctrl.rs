@@ -20,6 +20,9 @@ impl ChatPane {
         if let Some(done) = self.approval_key(k).or_else(|| self.slash_key(k)) {
             return Some(done);
         }
+        if let Some(done) = self.caret_key(k, cwd) {
+            return Some(done);
+        }
         if matches!(k, ChatInput::Enter) {
             self.skill_command(cwd); // `/name` → `@skill:name`, then sent as usual
         }
@@ -31,9 +34,11 @@ impl ChatPane {
                 return Some(Some(ChatAction::Close));
             }
             ChatInput::EndOfInput => {}
-            ChatInput::Enter if self.input.ends_with('\\') => {
-                self.input.pop();
-                self.input.push('\n');
+            ChatInput::Enter if self.before_caret() == Some('\\') => {
+                let mut chars: Vec<char> = self.input.chars().collect();
+                let at = crate::chatcursor::caret_at(&self.input, self.caret_back);
+                chars[at - 1] = '\n';
+                self.input = chars.into_iter().collect();
             }
             ChatInput::Char('?') if self.input.is_empty() => return Some(Some(ChatAction::Help)),
             _ => return None,

@@ -43,10 +43,11 @@ fn right_arrow_accepts_a_suggestion() {
         chat_key(&Key::Named(NamedKey::ArrowRight), true, false, false),
         ChatInput::Accept
     );
-    // Left is still nothing — the composer has no cursor to move.
+    // Left moves the composer's caret (`chatcursor`); Right only takes the
+    // suggestion at the very end, which the pane decides, not the key map.
     assert_eq!(
         chat_key(&Key::Named(NamedKey::ArrowLeft), true, false, false),
-        ChatInput::Ignore
+        ChatInput::Caret(crate::chatcursor::Op::Left)
     );
 }
 

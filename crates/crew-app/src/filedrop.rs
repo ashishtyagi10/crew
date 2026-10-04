@@ -71,13 +71,11 @@ impl CrewApp {
                 // (it never touched the composer, so nothing to restore).
                 c.find = None;
                 let token = mention_token(path, &cwd);
-                // A separating space when the composer ends mid-word: gluing
-                // the token onto "summarize" (or a half-typed "@sr") makes
-                // one broken token `expand` never resolves.
-                if !c.input.is_empty() && !c.input.ends_with(char::is_whitespace) {
-                    c.input.push(' ');
-                }
-                c.input.push_str(&token);
+                // At the caret, with a separating space when it sits right
+                // after a word: gluing the token onto "summarize" (or a
+                // half-typed "@sr") makes one broken token `expand` never resolves.
+                let glued = c.before_caret().is_some_and(|ch| !ch.is_whitespace());
+                c.insert_at_caret(&format!("{}{token}", if glued { " " } else { "" }));
                 // Same contract as a typed edit (`ChatPane::on_input`): the
                 // completed token is no pending mention, so this closes any
                 // popup left open mid-typing instead of leaving stale
