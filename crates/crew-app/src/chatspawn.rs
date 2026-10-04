@@ -118,7 +118,16 @@ impl CrewApp {
                     eprintln!("spawn_plugin_pane: plugin hello error: {e}");
                     self.set_status_err(format!("{display} handshake failed: {e}"));
                 }
-                let chat = ChatPane::new(plugin, String::new());
+                let mut chat = ChatPane::new(plugin, String::new());
+                // The approval mode `/approvals default` saved, if one was.
+                if let Some(mode) = self
+                    .config
+                    .approval_default
+                    .as_deref()
+                    .and_then(crate::chatapprove::parse)
+                {
+                    chat.start_in(mode);
+                }
                 self.panes.push(Pane {
                     glide: crate::glide::Glide::default(),
                     content: PaneContent::Chat(chat),

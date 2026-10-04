@@ -13,6 +13,10 @@ impl CrewApp {
                 self.close_pane(focused);
             }
             ChatAction::Help => self.open_help(),
+            ChatAction::DefaultMode(mode) => {
+                self.config.approval_default = Some(mode);
+                self.config.save();
+            }
             ChatAction::PersistTheme => {
                 self.config.theme = Some(crew_theme::selection_label().to_string());
                 crate::palette::set_accent(self.config.accent_rgb());

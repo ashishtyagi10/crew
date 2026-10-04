@@ -132,18 +132,20 @@ fn retired_commands_left_the_construct_list() {
             "{gone} still a construct"
         );
     }
-    assert_eq!(broker_constructs().len(), 7, "{:?}", broker_constructs());
+    assert_eq!(broker_constructs().len(), 8, "{:?}", broker_constructs());
 }
 
-/// The seven that remain: session machinery the model cannot or must not
-/// decide. Pinned as a list, not just a count, so a rename can't hide.
+/// The eight that remain: session machinery the model cannot or must not
+/// decide — `/clear` (v0.25.31) is the eighth, a fresh conversation, which no
+/// plain sentence should be able to trigger by accident. Pinned as a list,
+/// not just a count, so a rename can't hide.
 /// (`/login` folded into `/model`: the sign-in rows lead its picker.
 /// `/restore` became a sentence — "undo that", gated on a confirm word —
 /// which leaves nothing here that touches your files.)
 #[test]
-fn the_surviving_constructs_are_the_infrastructure_seven() {
+fn the_surviving_constructs_are_the_infrastructure_eight() {
     assert_eq!(
         broker_constructs(),
-        &["help", "model", "logout", "doctor", "reload", "diff", "stop"]
+        &["help", "model", "logout", "doctor", "reload", "diff", "stop", "clear"]
     );
 }

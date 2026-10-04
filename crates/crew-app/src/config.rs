@@ -107,28 +107,23 @@ pub struct CrewConfig {
     /// frame is entitled to one.
     #[serde(default = "default_true")]
     pub border_marks: bool,
-    /// Whether the file viewer reveals tabs, trailing spaces and carriage
-    /// returns (see `invisibles`). Off by default — a diagnostic view.
+    /// Whether the file viewer reveals tabs, trailing spaces and CRs (`invisibles`). Off.
     #[serde(default)]
     pub invisibles: bool,
-    /// Whether the file viewer asks a language server about the code it
-    /// opens and marks the diagnostics (see `lspon`). On by default.
+    /// Whether the file viewer marks a language server's diagnostics (`lspon`). On.
     #[serde(default = "default_true")]
     pub lsp: bool,
-    /// Whether to render the subtle paper grain + vignette background texture.
-    /// When off, the window background is a plain flat colour.
+    /// The paper grain + vignette background texture; off is a plain flat colour.
     #[serde(default = "default_true")]
     pub paper_texture: bool,
-    /// Whether the page's gradient wash keeps drifting while idle (far slower,
-    /// and only while crew holds the OS focus). Off restores the busy-only
-    /// wash exactly; Motion=off overrides it either way.
+    /// Whether the gradient wash drifts while idle (slower, only with the OS focus);
+    /// off restores the busy-only wash; Motion=off overrides it either way.
     #[serde(default = "default_true")]
     pub ambient_drift: bool,
     /// Grain amplitude multiplier for the paper texture (0.0 = no grain, 1.0 = default ~3%, 2.0 = double).
     #[serde(default = "default_paper_grain")]
     pub paper_grain: f32,
-    /// CRT tube post-process override. `None` (default) follows the theme's
-    /// `crt` flag; `Some(_)` is `/crt on|off`, regardless of theme.
+    /// CRT override: `None` follows the theme's `crt` flag; `Some(_)` is `/crt on|off`.
     #[serde(default)]
     pub crt: Option<bool>,
     /// Frosted-glass strength for pane cards: `off`, `low`, `medium`, `high`.
@@ -151,6 +146,10 @@ pub struct CrewConfig {
     /// The WEATHER card's place; empty = the time zone's city, `off` = none. `/weather`.
     #[serde(default)]
     pub weather_place: String,
+    /// The approval mode new agent panes start in (`chatapprove::parse`), set
+    /// by `/approvals default <mode>`. `None` is auto-approve.
+    #[serde(default)]
+    pub approval_default: Option<String>,
     /// How much air sits between rows of text: the cell height as a fraction
     /// of the font size (see `leading`).
     #[serde(default = "default_leading")]
@@ -249,6 +248,7 @@ impl Default for CrewConfig {
             density: default_density(),
             nav_card: default_nav_card(),
             weather_place: String::new(),
+            approval_default: None,
             leading: default_leading(),
             contrast: default_contrast(),
             shape_cues: default_shape_cues(),

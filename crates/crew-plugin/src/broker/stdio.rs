@@ -271,6 +271,21 @@ fn send(
         return emit(out, &msg("agent smith", m));
     }
 
+    // /clear — a fresh conversation, as Claude Code's: anything running
+    // stops, and the thread, a pending plan and anything typed into a run are
+    // forgotten. The pane clears its own transcript (`chatslash`).
+    if trimmed == "/clear" {
+        super::thread::lock(&session.thread).clear();
+        super::steer::clear();
+        *session.plan.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        let m = match tasks.cancel_all() {
+            0 => "a fresh start \u{2014} the conversation so far is forgotten".to_string(),
+            n => format!("a fresh start \u{2014} {n} task(s) stopped, the conversation forgotten"),
+        };
+        emit(out, &PluginEvent::Plan { pending: false })?;
+        return emit(out, &msg("agent smith", m));
+    }
+
     // `#note` — remember a standing preference (à la Claude Code's # memory):
     // appended to ./.crew/memory.md and prepended to every task from now on.
     // Answered inline; nothing dials an agent.

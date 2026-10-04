@@ -13,7 +13,7 @@ impl ChatPane {
     /// waiting approval's and Shift+Tab's first (`chatapprove`). `Some` when
     /// consumed, carrying what `on_input` returns.
     pub(crate) fn first_keys(&mut self, k: &ChatInput) -> Option<Option<ChatAction>> {
-        if let Some(done) = self.approval_key(k) {
+        if let Some(done) = self.approval_key(k).or_else(|| self.slash_key(k)) {
             return Some(done);
         }
         match k {

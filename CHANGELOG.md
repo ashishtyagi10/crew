@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.31
+
+**`/clear`, `/approvals`, and a default approval mode.**
+- **`/clear`** is a fresh conversation, as in Claude Code: anything running
+  stops, agent smith forgets every turn so far (and a pending plan), and the
+  pane empties its transcript and its queue.
+- **`/approvals <mode>`** is Shift+Tab in words: `auto`, `edits`, `ask`,
+  `plan` or `yolo`, or the names other agents use (`accept-edits`,
+  `read-only`, `bypass`…). `/approvals` alone says which mode is on. It is
+  not `/mode`, because `/mo`+Tab should still reach `/model`.
+- **`/approvals default <mode>`** also saves that mode, and every new agent
+  pane starts in it. A saved name that is not a mode is dropped on load.
+
+Both commands complete with Tab and appear in the `/` palette.
+
 ## 0.25.30
 
 **The agent pane's composer answers to the control keys terminal agents

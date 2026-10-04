@@ -89,7 +89,7 @@ pub fn expand_alias(trimmed: &str) -> String {
 /// [`closest_construct`], and the source a host should build its palette
 /// from rather than keeping a second copy (see [`constructs`]).
 const CONSTRUCTS: &[&str] = &[
-    "help", "model", "logout", "doctor", "reload", "diff", "stop",
+    "help", "model", "logout", "doctor", "reload", "diff", "stop", "clear",
 ];
 
 /// Every construct the broker answers, without the leading slash. Exposed so

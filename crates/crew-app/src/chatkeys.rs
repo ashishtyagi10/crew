@@ -50,6 +50,8 @@ pub(crate) enum ChatAction {
     Font(String),
     /// `?` on an empty composer: open the key reference (`/keys`).
     Help,
+    /// `/approvals default <mode>`: save it as where new agent panes start.
+    DefaultMode(String),
     /// The find popup moved its match target: scroll the transcript to it.
     /// App-side because the jump needs the pane's grid geometry, which the
     /// key handler doesn't have (see `chatfind::jump`).

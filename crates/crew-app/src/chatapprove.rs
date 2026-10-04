@@ -33,8 +33,39 @@ pub(crate) fn label(mode: ApprovalMode) -> &'static str {
     }
 }
 
+/// The mode a word names, as `/approvals` takes it — each mode's footer label, its
+/// one-word form, and the names other agents use for it.
+pub(crate) fn parse(word: &str) -> Option<ApprovalMode> {
+    Some(
+        match word
+            .trim()
+            .to_ascii_lowercase()
+            .replace(['-', '_'], " ")
+            .as_str()
+        {
+            "auto" | "auto approve" | "default" => ApprovalMode::Auto,
+            "edits" | "accept edits" | "accept" | "auto edit" => ApprovalMode::Edits,
+            "ask" | "ask first" | "suggest" => ApprovalMode::Ask,
+            "plan" | "plan only" | "read only" => ApprovalMode::Plan,
+            "yolo" | "bypass" | "full auto" => ApprovalMode::Yolo,
+            _ => return None,
+        },
+    )
+}
+
+/// The mode's one-word name — what `parse` reads back and the config keeps.
+pub(crate) fn word(mode: ApprovalMode) -> &'static str {
+    match mode {
+        ApprovalMode::Auto => "auto",
+        ApprovalMode::Edits => "edits",
+        ApprovalMode::Ask => "ask",
+        ApprovalMode::Plan => "plan",
+        ApprovalMode::Yolo => "yolo",
+    }
+}
+
 /// What the mode means, said once when it is chosen.
-fn meaning(mode: ApprovalMode) -> &'static str {
+pub(crate) fn meaning(mode: ApprovalMode) -> &'static str {
     match mode {
         ApprovalMode::Auto => {
             "everything runs, but a force-push, `rm -rf` outside the project or `sudo` asks first"
@@ -59,7 +90,17 @@ pub(crate) struct Footer<'a> {
 impl ChatPane {
     /// Shift+Tab: the next mode, told to the broker and said in the pane.
     pub(crate) fn cycle_mode(&mut self) {
-        let mode = self.approval_mode.next();
+        self.set_mode(self.approval_mode.next());
+    }
+
+    /// Start in `mode` (the saved default): told to the broker, nothing said.
+    pub(crate) fn start_in(&mut self, mode: ApprovalMode) {
+        self.approval_mode = mode;
+        let _ = self.plugin.send(&PluginCommand::Mode { approval: mode });
+    }
+
+    /// Switch to `mode` (Shift+Tab, `/approvals`): told to the broker, said in the pane.
+    pub(crate) fn set_mode(&mut self, mode: ApprovalMode) {
         self.approval_mode = mode;
         let _ = self.plugin.send(&PluginCommand::Mode { approval: mode });
         self.push_note(format!(
