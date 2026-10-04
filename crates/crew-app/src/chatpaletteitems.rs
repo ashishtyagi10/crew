@@ -17,8 +17,8 @@ pub(crate) const SECTIONS: &[(&str, &[&str])] = &[
     // `/commit`, `/review`, `/standup` and `/resume` are retired: plain
     // language reaches each capability through the broker's intent router,
     // so the palette no longer teaches them.
-    ("changes", &["/diff"]),
-    ("session", &["/export", "/stop"]),
+    ("changes", &["/diff", "/init"]),
+    ("session", &["/export", "/stop", "/clear", "/approvals"]),
     (
         "setup",
         &["/model", "/logout", "/reload", "/doctor", "/theme"],
@@ -59,7 +59,41 @@ fn header(label: &str) -> MenuItem {
     }
 }
 
-pub(super) fn slash_items(query: &str) -> Vec<MenuItem> {
+/// The skills (crew's and Claude Code's commands) offered as `/name`, after
+/// the constructs — a skill named like a construct stays an `@skill:`.
+fn skill_rows(query: &str, entries: &[crate::chatmention::MentionEntry]) -> Vec<MenuItem> {
+    use crate::chatmention::MentionEntry;
+    entries
+        .iter()
+        .filter_map(|e| match e {
+            MentionEntry::Skill { name, desc } => Some((format!("/{name}"), desc)),
+            _ => None,
+        })
+        .filter(|(slashed, _)| {
+            slashed[1..].starts_with(query) && !CONSTRUCTS.contains(&slashed.as_str())
+        })
+        .map(|(slashed, desc)| MenuItem {
+            desc: desc.clone(),
+            hit: crate::suggest::hit_positions(&slashed, query),
+            ..row(&slashed)
+        })
+        .collect()
+}
+
+pub(super) fn slash_items(
+    query: &str,
+    entries: &[crate::chatmention::MentionEntry],
+) -> Vec<MenuItem> {
+    let skills = skill_rows(query, entries);
+    let mut out = constructs(query);
+    if !skills.is_empty() && query.is_empty() {
+        out.push(header("skills"));
+    }
+    out.extend(skills);
+    out
+}
+
+fn constructs(query: &str) -> Vec<MenuItem> {
     let hits: Vec<&str> = CONSTRUCTS
         .iter()
         .copied()

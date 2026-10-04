@@ -98,12 +98,12 @@ pub(crate) fn after_edit(
     let entries = match palette {
         Some(p) if p.kind == kind => std::mem::take(&mut p.entries),
         _ => match kind {
-            Kind::Agent => scan(),
-            Kind::Slash | Kind::Model | Kind::SignOut => Vec::new(),
+            Kind::Agent | Kind::Slash => scan(),
+            Kind::Model | Kind::SignOut => Vec::new(),
         },
     };
     let items = match kind {
-        Kind::Slash => slash_items(query),
+        Kind::Slash => slash_items(query, &entries),
         Kind::Agent => attach_items(query, &entries, input.contains('+')),
         Kind::Model => crate::modelpick::rows(query, current_model),
         Kind::SignOut => Vec::new(), // opened by an event; any edit closes it

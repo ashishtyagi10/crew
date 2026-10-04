@@ -59,7 +59,7 @@ impl ChatPane {
                 }
             }
         }
-        if let Some(done) = self.first_keys(&k) {
+        if let Some(done) = self.first_keys(&k, cwd) {
             return done;
         }
         // Transcript find next (Cmd+F opens it app-side; Ctrl+F here): modal

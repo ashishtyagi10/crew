@@ -121,3 +121,28 @@ fn slash_init_asks_for_agents_md() {
     assert_eq!(p.input, "/init");
     let _ = std::fs::remove_file(&file);
 }
+
+/// `/name` runs a skill: the line goes out as `@skill:name …`, the playbook
+/// attached; a construct's name is never taken for a skill.
+#[test]
+fn a_skill_runs_as_a_slash_command() {
+    let root = std::env::temp_dir().join(format!("crew-slash-skill-{}", std::process::id()));
+    let skills = root.join(".crew").join("skills");
+    std::fs::create_dir_all(&skills).unwrap();
+    std::fs::write(
+        skills.join("tidy-imports.md"),
+        "Sort and dedupe the imports.",
+    )
+    .unwrap();
+    let (mut p, file) = pane("skill");
+    p.input = "/tidy-imports src/main.rs".into();
+    p.on_input(ChatInput::Enter, &root);
+    let lines = sent(&file, 1);
+    assert!(lines.contains("Sort and dedupe the imports."), "{lines}");
+    assert!(lines.contains("src/main.rs"), "{lines}");
+    p.input = "/help".into();
+    p.skill_command(&root);
+    assert_eq!(p.input, "/help", "a construct stays a construct");
+    let _ = std::fs::remove_file(&file);
+    let _ = std::fs::remove_dir_all(&root);
+}

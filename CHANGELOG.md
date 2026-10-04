@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.35
+
+**Skills run as slash commands, and Claude Code's commands are skills.** Any
+skill now runs as `/<name>`. The line goes out with that playbook attached,
+just as `@skill:<name>` would attach it, and the `/` palette lists your skills
+under their own heading. Claude Code's custom commands (`.claude/commands/*.md`,
+in the project and in your home directory) load as skills too, so a project
+that already has them can run them in crew; crew's own skill wins a name both
+use. The palette also files `/clear`, `/approvals` and `/init` into its
+sections instead of under "other".
+
 ## 0.25.34
 
 **`/init` writes the project's AGENTS.md, and GEMINI.md is read too.**
