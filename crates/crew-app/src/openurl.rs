@@ -1,9 +1,7 @@
 //! URL detection in terminal rows: powers the blue link tint (`linkhl`) and
 //! Cmd+click resolution (`clickopen`) — a clicked URL opens in the browser.
 use crate::app::CrewApp;
-use crate::dump::grid_row;
 use crate::pane::PaneContent;
-use crew_term::TermModel;
 
 /// Characters trimmed from a URL's tail (trailing punctuation in prose).
 const TRAILERS: &str = ".,);]}>\"'";
@@ -79,9 +77,8 @@ impl CrewApp {
     }
 
     /// The `(row, col)` content-grid cell under the cursor in pane `i`'s rect
-    /// (content rows only; the title bar is excluded). Shared pixel→cell math
-    /// for both the terminal Cmd+click path (`cursor_cell`, below) and the
-    /// chat-pane link hit-test in `clickopen`.
+    /// (content cells only; the card's frame is excluded). The one pixel→cell
+    /// mapping every pane click, hover and selection reads.
     pub(crate) fn cursor_rowcol(&self, i: usize) -> Option<(i32, i32)> {
         let (cw, ch, _sw, _sh, _scale) = self.frame_geometry()?;
         let rect = self
@@ -89,26 +86,16 @@ impl CrewApp {
             .into_iter()
             .find(|&(idx, _)| idx == i)
             .map(|(_, r)| r)?;
-        let col = ((self.cursor.0 - rect.x) / cw).floor() as i32;
-        // Content sits one row below the pane's title bar.
+        // Content is drawn one cell in from the card's left edge and one row
+        // down from its top — past the frame's border column and legend row
+        // (see `paneview`). Missing the column inset put every click on the
+        // character to the right of the one under the pointer.
+        let col = ((self.cursor.0 - rect.x) / cw).floor() as i32 - 1;
         let row = ((self.cursor.1 - rect.y) / ch).floor() as i32 - 1;
         if col < 0 || row < 0 {
             return None;
         }
         Some((row, col))
-    }
-
-    /// The row text and character column under the cursor in a terminal pane.
-    /// Drives Cmd+click.
-    pub(crate) fn cursor_cell(&self) -> Option<(String, usize)> {
-        let i = self.pane_at_cursor()?;
-        let (row, col) = self.cursor_rowcol(i)?;
-        let pane = &self.panes[i];
-        let PaneContent::Terminal(t) = &pane.content else {
-            return None;
-        };
-        let line = grid_row(&t.pty.cells(false), row as u16, pane.grid.cols);
-        Some((line, col as usize))
     }
 }
 

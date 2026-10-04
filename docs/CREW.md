@@ -2148,6 +2148,20 @@ and the click quietly did nothing. The line is landed at the top of the
 window, since the lines after the one you were sent to are the ones you came
 to read.
 
+**Cmd+click lands on what you clicked.** Three things kept it from doing so,
+and each made a click quietly do nothing. The hit-test read the character to
+the RIGHT of the pointer: a card's text starts one cell in from its left edge,
+and only the row inset was taken off (selection drags started a character late
+for the same reason). A file reference inside a word was read as the word:
+Claude Code writes `Update(src/main.rs)` and `Read(docs/CREW.md)`, and the
+click looked up a file called `Update(src/main.rs` — now a reference starts
+after the last `(`, `[`, `=` or quote in its word, so the mark and the click
+both cover just the path. And a relative path was looked up from crew's own
+directory rather than the pane's: an agent working in `~/code/app` cites
+`src/main.rs` from there, and that is now where it is opened from (crew's
+directory is the fallback). A URL or path longer than the pane, written across
+two rows, opens whole from either of them.
+
 ## Text decorations
 
 Crew draws the whole underline family, not just the one: **SGR 4** (single),

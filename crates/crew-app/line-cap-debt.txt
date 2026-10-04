@@ -39,7 +39,6 @@ src/chatswarmview_tests.rs 460
 src/chattype.rs 314
 src/chatview.rs 278
 src/chatview_tests.rs 788
-src/clickopen.rs 216
 src/clipboard.rs 301
 src/cmdmenu_tests.rs 208
 src/cmdrow_tests.rs 223

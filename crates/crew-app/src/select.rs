@@ -23,23 +23,12 @@ pub(crate) struct Drag {
 
 impl CrewApp {
     /// The pane and viewport cell `(col, row)` under the cursor, for *any* pane
-    /// kind, or `None` when the cursor isn't over a pane's content area. Mirrors
-    /// `cursor_cell`'s geometry, including the one-row title-bar offset.
+    /// kind, or `None` when the cursor isn't over a pane's content area — the
+    /// same cell [`Self::cursor_rowcol`] resolves for clicks and hover.
     pub(crate) fn cursor_any_cell(&self) -> Option<(usize, u16, u16)> {
         let i = self.pane_at_cursor()?;
-        let (cw, ch, _sw, _sh, _scale) = self.frame_geometry()?;
-        let rect = self
-            .pane_hit_rects()
-            .into_iter()
-            .find(|&(idx, _)| idx == i)
-            .map(|(_, r)| r)?;
-        let col = ((self.cursor.0 - rect.x) / cw).floor() as i32;
-        // Content sits one row below the pane's title bar.
-        let row = ((self.cursor.1 - rect.y) / ch).floor() as i32 - 1;
-        if col < 0 || row < 0 {
-            return None;
-        }
-        Some((i, col as u16, row as u16))
+        let (row, col) = self.cursor_rowcol(i)?;
+        Some((i, u16::try_from(col).ok()?, u16::try_from(row).ok()?))
     }
 
     /// As [`Self::cursor_any_cell`], but only when the cursor is over a terminal

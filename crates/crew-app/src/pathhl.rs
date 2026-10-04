@@ -16,6 +16,10 @@ use crew_theme::deco::DecoLine;
 const LEAD: &str = "\"'`([{<";
 /// Closing punctuation and sentence marks trimmed from the right edge.
 const TAIL: &str = "\"'`)]}>,;:.!?";
+/// Openers INSIDE a word that a reference starts after: Claude Code's
+/// `Update(src/main.rs)`, markdown's `[notes](docs/a.md)`, a flag's
+/// `--manifest-path=crates/x/Cargo.toml`.
+const INNER: &str = "\"'`([{<=";
 
 /// Character spans `[start, end)` of the file references in one row.
 pub(crate) fn path_spans(chars: &[char]) -> Vec<(usize, usize)> {
@@ -36,6 +40,10 @@ pub(crate) fn path_spans(chars: &[char]) -> Vec<(usize, usize)> {
         }
         while b > a && TAIL.contains(chars[b - 1]) {
             b -= 1;
+        }
+        // After both trims, so a closing quote is not read as an opener.
+        if let Some(k) = (a..b).rev().find(|&k| INNER.contains(chars[k])) {
+            a = k + 1;
         }
         let tok: String = chars[a..b].iter().collect();
         if is_reference(&tok) {

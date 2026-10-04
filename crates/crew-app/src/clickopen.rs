@@ -6,6 +6,7 @@
 //! cites in a reply is one click away; in the file-viewer pane, open a link
 //! on its rendered markdown rung, read off the cell under the click.
 use crate::app::CrewApp;
+use crate::linkclick::{open_external, path_at};
 use crate::openurl::{safe_link, url_at};
 use crate::pane::PaneContent;
 
@@ -72,7 +73,7 @@ impl CrewApp {
         if let Some(uri) = self.cursor_link() {
             return match safe_link(&uri) {
                 Some(uri) => {
-                    let _ = open::that_detached(uri);
+                    open_external(uri);
                     self.set_status(format!("opening {uri}"));
                     true
                 }
@@ -82,14 +83,19 @@ impl CrewApp {
                 }
             };
         }
-        if let Some((line, col)) = self.cursor_cell() {
-            if let Some(url) = url_at(&line, col) {
-                let _ = open::that_detached(&url);
+        // The logical line, so a URL or path the pane wrapped opens whole; a
+        // file reference is the span the hover marked, read against the
+        // directory of the pane that printed it (see `linkclick`).
+        if let Some((i, line, col, _)) = self.cursor_line() {
+            let text: String = line.iter().collect();
+            if let Some(url) = url_at(&text, col) {
+                open_external(&url);
                 self.set_status(format!("opening {url}"));
                 return true;
             }
-            return match token_at(&line, col) {
-                Some(tok) => self.open_path_token(&tok),
+            let dir = self.panes[i].dir.clone();
+            return match path_at(&line, col).or_else(|| token_at(&text, col)) {
+                Some(tok) => self.open_path_token(&tok, dir.as_deref()),
                 None => false,
             };
         }
@@ -128,14 +134,14 @@ impl CrewApp {
             return false;
         };
         if let Some(url) = crate::chatview::link_at(chat, grid.cols, grid.rows, row, col) {
-            let _ = open::that_detached(&url);
+            open_external(&url);
             self.set_status(format!("opening {url}"));
             return true;
         }
         let token = crate::chatview::row_text_at(chat, grid.cols, grid.rows, row)
             .and_then(|line| token_at(&line, col as usize));
         if let Some(tok) = token {
-            if self.open_path_token(&tok) {
+            if self.open_path_token(&tok, None) {
                 return true;
             }
         }
@@ -170,7 +176,7 @@ impl CrewApp {
         let Some(url) = url else {
             return false;
         };
-        let _ = open::that_detached(&url);
+        open_external(&url);
         self.set_status(format!("opening {url}"));
         true
     }
@@ -178,36 +184,7 @@ impl CrewApp {
     /// If `tok` resolves (against the cwd) to a file, show it in the viewer;
     /// to a directory, cd.
     pub(crate) fn open_hint_path(&mut self, tok: &str) -> bool {
-        self.open_path_token(tok)
-    }
-
-    fn open_path_token(&mut self, tok: &str) -> bool {
-        let base = if self.cwd.as_os_str().is_empty() {
-            std::path::PathBuf::from(".")
-        } else {
-            self.cwd.clone()
-        };
-        // `src/main.rs:42` is the shape every compiler, linter and agent
-        // prints, and it never opened anything: the position was part of the
-        // token, so the file was looked up under a name it does not have.
-        let (tok, line) = crate::pathhl::strip_position(tok);
-        let p = std::path::Path::new(tok);
-        let full = if p.is_absolute() {
-            p.to_path_buf()
-        } else {
-            base.join(p)
-        };
-        if full.is_file() {
-            self.open_view(tok);
-            if let Some(n) = line {
-                self.goto_last_view(n);
-            }
-            true
-        } else if full.is_dir() {
-            self.try_change_dir(&format!("cd {tok}"))
-        } else {
-            false
-        }
+        self.open_path_token(tok, None)
     }
 }
 

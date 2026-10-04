@@ -348,6 +348,7 @@ mod layout;
 mod leading;
 mod ledgercli;
 mod linecap;
+mod linkclick;
 mod linkhl;
 mod linkhover;
 mod load;
