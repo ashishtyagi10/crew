@@ -126,6 +126,17 @@ impl CrewApp {
                     .push_for(msg.clone(), legend, alert, crate::anim::now_ms(), target);
             }
             self.set_status(msg);
+            // Away from crew altogether: the Dock icon bounces once for news
+            // that wants you back — done, failed, waiting, or asked for.
+            let wants_you = !matches!(
+                kind,
+                NotifyKind::Bell | NotifyKind::Pattern | NotifyKind::Exited
+            );
+            if wants_you && self.win_focus == Some(false) {
+                if let Some(w) = &self.window {
+                    w.request_user_attention(Some(winit::window::UserAttentionType::Informational));
+                }
+            }
         }
     }
 

@@ -37,6 +37,7 @@ impl ChatPane {
 
     /// Drain plugin events; return PollResult with changed flag and any host actions.
     pub fn poll(&mut self) -> PollResult {
+        self.track_turn();
         let mut events = self.plugin.try_recv();
         for ev in &events {
             self.heard(ev);

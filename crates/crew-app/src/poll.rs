@@ -198,8 +198,9 @@ impl CrewApp {
         // each tick stays bounded, so input and rendering never stall.
         let mut more_pending = false;
         let mut collected_actions = Vec::new();
-        // Status flashes from Far panes whose command finished this tick
-        // (surfaced after the loop to avoid fighting the panes borrow).
+        let mut turns_done = Vec::new(); // agent turns that just ended (`turndone`)
+                                         // Status flashes from Far panes whose command finished this tick
+                                         // (surfaced after the loop to avoid fighting the panes borrow).
         let mut far_statuses: Vec<String> = Vec::new();
         // `FarAction`s a Far pane's `poll_ops` produced this tick (e.g. a
         // finished remote download's `Open`), paired with the pane index —
@@ -257,13 +258,10 @@ impl CrewApp {
                 PaneContent::Chat(c) => {
                     let result = c.poll();
                     collected_actions.extend(result.actions);
-                    // A `/model` pick this pane just noted (composer popup or
-                    // input-bar picker) → move it to the front of the recents
-                    // list, cap it, republish the process-global `rows()`
-                    // reads, and persist. Drained here rather than via a
-                    // `ChatAction` because that would end `on_input`'s call
-                    // and swallow the send — this is pure app-side
-                    // bookkeeping alongside the pane's other per-tick drains.
+                    turns_done.extend(c.watch.turn_done.take().map(|ms| (i, ms)));
+                    // A `/model` pick this pane just noted → the front of the
+                    // recents list, republished and persisted (not a `ChatAction`:
+                    // that would end `on_input`'s call and swallow the send).
                     if let Some(slug) = c.pending_recent.take() {
                         let recents = &mut self.config.model_recents;
                         recents.retain(|s| *s != slug);
@@ -624,6 +622,7 @@ impl CrewApp {
             }
             any_changed = true;
         }
+        self.chat_turns_done(turns_done);
         let actions_ran = !collected_actions.is_empty();
         for action in collected_actions {
             use crate::chat::HostAction;
