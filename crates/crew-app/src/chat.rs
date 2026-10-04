@@ -113,6 +113,10 @@ pub struct ChatPane {
     /// (see `chatapprove`).
     pub(crate) approval_mode: crew_plugin::ApprovalMode,
     pub(crate) asking: std::collections::VecDeque<crate::chatapprove::Asking>,
+    /// When the broker was last restarted after stopping (`chatrevive`).
+    pub(crate) restarts: Vec<u64>,
+    /// The watchdog's clocks (`chatwatch`).
+    pub(crate) watch: crate::chatwatch::Watch,
     /// The plan button the pointer is over (see `chatplanclick`); `None` off
     /// both. Published per frame so the badge brightens and the hand shows.
     pub(crate) hover_btn: Option<crate::chatplanbtn::Btn>,

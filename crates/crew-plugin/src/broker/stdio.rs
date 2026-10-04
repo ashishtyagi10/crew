@@ -107,6 +107,16 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
             let _ = emit(&out, &ev);
         }));
     }
+    // The heartbeat, for as long as this process can write (see `Alive`).
+    {
+        let out = Arc::clone(&out);
+        std::thread::spawn(move || loop {
+            std::thread::sleep(std::time::Duration::from_millis(crate::HEARTBEAT_MS));
+            if emit(&out, &PluginEvent::Alive {}).is_err() {
+                break;
+            }
+        });
+    }
     let mut tasks = super::tasks::Tasks::new();
     for line in stdin.lock().lines() {
         let line = line?;

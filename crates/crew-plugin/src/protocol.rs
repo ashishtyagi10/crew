@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+/// How often a broker says it is alive ([`PluginEvent::Alive`]).
+pub const HEARTBEAT_MS: u64 = 5_000;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PluginCommand {
@@ -280,6 +283,10 @@ pub enum PluginEvent {
     Error {
         message: String,
     },
+    /// The broker's heartbeat, every [`HEARTBEAT_MS`] for as long as it can
+    /// write: the pane's proof that a quiet task is still being worked on, and
+    /// its signal that a broker which stops sending these has hung.
+    Alive {},
     SpawnPane {
         command: String,
         args: Vec<String>,

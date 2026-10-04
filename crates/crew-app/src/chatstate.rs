@@ -47,6 +47,8 @@ impl ChatPane {
             plan_pending: false,
             approval_mode: Default::default(),
             asking: Default::default(),
+            restarts: Vec::new(),
+            watch: Default::default(),
             hover_btn: None,
             press_btn: None,
             popup_rise: Default::default(),

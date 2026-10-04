@@ -10,7 +10,22 @@ pub struct Plugin {
     child: Child,
     stdin: ChildStdin,
     rx: Receiver<PluginEvent>,
+    /// How it was started, so [`Plugin::restart`] can start it again.
+    how: Spawn,
 }
+
+/// Everything a spawn needs, kept for a restart.
+struct Spawn {
+    cmd: String,
+    args: Vec<String>,
+    cwd: Option<std::path::PathBuf>,
+    env: Vec<(String, String)>,
+}
+
+/// What the reader says when the broker's output ends — it exited, crashed or
+/// was killed. Without it the pane never learned: no event ever came again,
+/// and a task that died with its broker showed as running forever.
+pub const BROKER_ENDED: &str = "the broker process ended";
 
 impl Plugin {
     pub fn spawn(cmd: &str, args: &[String]) -> Result<Plugin> {
@@ -38,52 +53,28 @@ impl Plugin {
         cwd: Option<&std::path::Path>,
         env: &[(String, String)],
     ) -> Result<Plugin> {
-        let mut command = Command::new(cmd);
-        no_console_window(&mut command);
-        command
-            .args(args)
-            .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::inherit());
-        // Only an existing directory: `current_dir` on a vanished path fails
-        // the whole spawn, and a broker in the host's CWD beats no broker.
-        if let Some(dir) = cwd.filter(|d| d.is_dir()) {
-            command.current_dir(dir);
-        }
-        // Its own process group, so [`Plugin::drop`] can take the whole tree
-        // and not just the broker. Killing a parent does not kill its
-        // children: measured, a broker killed while an agent CLI was running
-        // left that CLI alive and reparented — still working, still spending.
-        #[cfg(unix)]
-        {
-            use std::os::unix::process::CommandExt;
-            command.process_group(0);
-        }
-        let mut child = command.spawn()?;
+        let how = Spawn {
+            cmd: cmd.to_string(),
+            args: args.to_vec(),
+            cwd: cwd.map(std::path::Path::to_path_buf),
+            env: env.to_vec(),
+        };
+        let (child, stdin, rx) = start(&how)?;
+        Ok(Plugin {
+            child,
+            stdin,
+            rx,
+            how,
+        })
+    }
 
-        let stdout = child.stdout.take().expect("stdout was piped");
-        let stdin = child.stdin.take().expect("stdin was piped");
-
-        let (tx, rx) = mpsc::channel::<PluginEvent>();
-
-        std::thread::spawn(move || {
-            let reader = BufReader::new(stdout);
-            for line in reader.lines() {
-                let line = match line {
-                    Ok(l) => l,
-                    Err(_) => break,
-                };
-                if let Ok(ev) = serde_json::from_str::<PluginEvent>(&line) {
-                    if tx.send(ev).is_err() {
-                        break;
-                    }
-                }
-                // unparseable lines are silently dropped
-            }
-        });
-
-        Ok(Plugin { child, stdin, rx })
+    /// Start the broker again, the way it was first started: the old process
+    /// tree is killed, and anything it still had in flight is gone with it.
+    pub fn restart(&mut self) -> Result<()> {
+        kill_tree(&mut self.child);
+        let (child, stdin, rx) = start(&self.how)?;
+        (self.child, self.stdin, self.rx) = (child, stdin, rx);
+        Ok(())
     }
 
     pub fn send(&mut self, cmd: &PluginCommand) -> Result<()> {
@@ -106,22 +97,81 @@ impl Plugin {
     }
 }
 
+fn start(how: &Spawn) -> Result<(Child, ChildStdin, Receiver<PluginEvent>)> {
+    let mut command = Command::new(&how.cmd);
+    no_console_window(&mut command);
+    command
+        .args(&how.args)
+        .envs(how.env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit());
+    // Only an existing directory: `current_dir` on a vanished path fails
+    // the whole spawn, and a broker in the host's CWD beats no broker.
+    if let Some(dir) = how.cwd.as_deref().filter(|d| d.is_dir()) {
+        command.current_dir(dir);
+    }
+    // Its own process group, so [`Plugin::drop`] can take the whole tree
+    // and not just the broker. Killing a parent does not kill its
+    // children: measured, a broker killed while an agent CLI was running
+    // left that CLI alive and reparented — still working, still spending.
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
+    }
+    let mut child = command.spawn()?;
+
+    let stdout = child.stdout.take().expect("stdout was piped");
+    let stdin = child.stdin.take().expect("stdin was piped");
+
+    let (tx, rx) = mpsc::channel::<PluginEvent>();
+
+    std::thread::spawn(move || {
+        let reader = BufReader::new(stdout);
+        for line in reader.lines() {
+            let line = match line {
+                Ok(l) => l,
+                Err(_) => break,
+            };
+            if let Ok(ev) = serde_json::from_str::<PluginEvent>(&line) {
+                if tx.send(ev).is_err() {
+                    return; // nobody is listening: the host is gone
+                }
+            }
+            // unparseable lines are silently dropped
+        }
+        // The output ended. A host still listening hears about it; one that
+        // dropped or restarted this broker has no receiver, and this is lost.
+        let _ = tx.send(PluginEvent::Error {
+            message: BROKER_ENDED.to_string(),
+        });
+    });
+
+    Ok((child, stdin, rx))
+}
+
+/// Kill the broker and everything it started.
+fn kill_tree(child: &mut Child) {
+    // The GROUP first: the broker spawns agent CLIs, and those are the
+    // expensive things to leave behind. `spawn` makes the broker a group
+    // leader, so its pid doubles as the group id.
+    #[cfg(unix)]
+    unsafe {
+        libc::kill(-(child.id() as libc::pid_t), libc::SIGKILL);
+    }
+    // Then the child itself — belt and braces on unix, and the whole
+    // mechanism everywhere else.
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
 impl Drop for Plugin {
     /// Kill the child on drop. Dropping a [`std::process::Child`] only *detaches*
     /// it — without this, closing a `/crew` pane would orphan the still-running
     /// `crew --broker-plugin` subprocess (and any agents it spawned).
     fn drop(&mut self) {
-        // The GROUP first: the broker spawns agent CLIs, and those are the
-        // expensive things to leave behind. `spawn` makes the broker a group
-        // leader, so its pid doubles as the group id.
-        #[cfg(unix)]
-        unsafe {
-            libc::kill(-(self.child.id() as libc::pid_t), libc::SIGKILL);
-        }
-        // Then the child itself — belt and braces on unix, and the whole
-        // mechanism everywhere else.
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+        kill_tree(&mut self.child);
     }
 }
 

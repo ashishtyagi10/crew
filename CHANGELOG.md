@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.29
+
+**agent smith is never left stuck.** A task now makes progress, is retried, or
+the pane says what happened:
+- **The broker's process ending is noticed.** Until now nothing listened for
+  it: a crash or a kill left the task showing as running forever, Esc wrote to
+  a dead pipe, and queued messages waited for good. The pane now says which
+  task did not finish, starts the broker again (your approval mode goes with
+  it), and offers ↑ Enter to send the message again. A broker that dies three
+  times in five minutes is left stopped, with the crash log's path, instead of
+  restarting in a loop. Events still queued from the dead broker are dropped,
+  so they cannot kill the new one.
+- **A heartbeat.** The broker says it is alive every five seconds. If those
+  stop for 20 seconds, the broker has hung, and it is restarted with a note
+  saying so.
+- **A quiet task is explained.** After 90 seconds with nothing new, a note says
+  what it is waiting on (*coder is waiting on sys:run*, or for its model) and
+  that Esc stops it, then again every three minutes.
+- **Esc always works.** If a stop has not taken within 20 seconds (a model
+  call or a tool deep in a worker cannot always be interrupted), the broker's
+  process is ended and started fresh.
+- **Requests that get no answer are retried.** Refused, reset, or timed out
+  before any reply: asked again after 1 s and then 2 s, on both the Anthropic
+  and the OpenAI-compatible paths. Nothing was shown, so a retry cannot repeat
+  a word.
+
 ## 0.25.28
 
 **YOLO mode, and an auto-approve that asks about the dangerous few.**

@@ -1104,12 +1104,9 @@ fn broker_error_event_logs_connection_lost() {
         std::thread::sleep(std::time::Duration::from_millis(5));
     }
     assert!(!p.connected, "the Error event also drops `connected`");
-    assert_eq!(
-        actions[0],
-        HostAction::Status {
-            error: true,
-            message: "broker connection lost".into(),
-        }
+    assert!(
+        matches!(&actions[0], HostAction::Status { error: true, message } if message.contains("stopped")),
+        "{actions:?}"
     );
 }
 
@@ -1193,9 +1190,8 @@ fn flush_on_idle_sends_exactly_one_and_relatches_awaiting() {
 
 #[test]
 fn queue_survives_broker_error() {
-    // awaiting stays true across an Error (nothing clears it there), so
-    // is_busy() stays true and the flush check never fires — the queue is
-    // simply left alone, as the design requires.
+    // The queue outlives its broker (it is sent to the restarted one once that
+    // says Ready), and the pane stops being busy: nothing is running any more.
     let mut p = pane_emitting(&[r#"{"type":"error","message":"broker died"}"#]);
     p.connected = true; // so we can observe the Error event actually landed
     p.awaiting = true;
@@ -1216,28 +1212,26 @@ fn queue_survives_broker_error() {
     assert_eq!(p.queued.len(), 1, "Error must not clear the queue");
     assert_eq!(p.queued[0], "still here");
     assert!(
-        p.awaiting,
-        "Error doesn't clear awaiting, so is_busy() stayed true — no flush attempted"
+        !p.awaiting,
+        "a dead broker's turn is over: the pane is not left busy"
     );
 }
 
 #[test]
 fn broker_death_mid_swarm_does_not_flush_queue_and_reconnect_unwedges() {
-    // `queue_survives_broker_error` above passes for the wrong reason: with
-    // `awaiting` as the busy signal, the Error arm never clears it, so
-    // `is_busy()` stays true and the flush check never even runs. Busy via a
-    // swarm instead: the Error arm's `fold_swarm`/`flush_active_hops` DO end
-    // that busy state in the very same event drain that flips `connected`
-    // false — the same-batch race the fix must close by also gating the
-    // flush on `self.connected`.
+    // Busy via a swarm: the Error arm ends that busy state in the very drain
+    // that flips `connected` false — the same-batch race the flush closes by
+    // also gating on `self.connected`. The broker dies on its first start
+    // only; the one the pane restarts lives, and its next event flushes.
     use crew_hive::{AgentKind, ModelTier, TaskId, TaskSpec};
-
-    let script = r#"printf '%s\n' '{"type":"error","message":"broker died"}'
-sleep 0.3
-printf '%s\n' '{"type":"roster","agents":[]}'
-cat >/dev/null
-"#;
-    let plugin = crew_plugin::Plugin::spawn("sh", &["-c".to_string(), script.to_string()]).unwrap();
+    let once = std::env::temp_dir().join(format!("crew-died-once-{}", std::process::id()));
+    let _ = std::fs::remove_file(&once);
+    let script = format!(
+        "if [ -e '{0}' ]; then sleep 0.3; printf '%s\\n' '{{\"type\":\"roster\",\"agents\":[]}}'; \
+         cat >/dev/null; fi; touch '{0}'; printf '%s\\n' '{{\"type\":\"error\",\"message\":\"died\"}}'",
+        once.display()
+    );
+    let plugin = crew_plugin::Plugin::spawn("sh", &["-c".to_string(), script]).unwrap();
     let mut p = ChatPane::new(plugin, "crew".into());
     p.connected = true;
 

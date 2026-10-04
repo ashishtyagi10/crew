@@ -334,7 +334,17 @@ impl AnthropicProvider {
         attempt: &mut u32,
     ) -> Result<reqwest::Response, ProviderError> {
         loop {
-            let resp = Self::send(client, endpoint, headers, body).await?;
+            let resp = match Self::send(client, endpoint, headers, body).await {
+                Ok(resp) => resp,
+                // Never answered: nothing was shown, so it is asked again.
+                Err(e) => match super::retry::again_unanswered(attempt) {
+                    Some(wait) => {
+                        tokio::time::sleep(wait).await;
+                        continue;
+                    }
+                    None => return Err(e),
+                },
+            };
             if resp.status().is_success() {
                 return Ok(resp);
             }
