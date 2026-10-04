@@ -286,6 +286,17 @@ fn send(
         return emit(out, &msg("agent smith", m));
     }
 
+    // `!cmd` — the person runs a shell command themselves (`bang`): shown, and
+    // kept in the thread so the next message can refer to it.
+    if let Some(cmd) = super::bang::command(&trimmed) {
+        let out = Arc::clone(out);
+        let to_pane: Arc<dyn Fn(PluginEvent) + Send + Sync> = Arc::new(move |ev| {
+            let _ = emit(&out, &ev);
+        });
+        super::bang::spawn(cmd.to_string(), Arc::clone(&session.thread), to_pane);
+        return Ok(());
+    }
+
     // `#note` — remember a standing preference (à la Claude Code's # memory):
     // appended to ./.crew/memory.md and prepended to every task from now on.
     // Answered inline; nothing dials an agent.

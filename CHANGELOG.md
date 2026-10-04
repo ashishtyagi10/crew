@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.33
+
+**`!` runs a shell command from the agent composer.** `!cargo test` runs the
+command, as Claude Code's bash mode does. You typed it, so no approval mode
+asks (a read-only `CREW_SYS_MODE` still refuses it). It runs on a thread of its
+own with `sys:run`'s deadline and limits, so the pane stays answerable. Its
+output lands in the transcript as a `shell` card, and the exchange joins agent
+smith's memory of the conversation, so your next message can say "fix that".
+
 ## 0.25.32
 
 **An agent's turn finishing while you are elsewhere says so.** Until now only
