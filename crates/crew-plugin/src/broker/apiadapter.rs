@@ -135,10 +135,16 @@ impl Adapter for ApiAdapter {
             ..Default::default()
         };
         let fut = super::cutoff::whole(Arc::clone(&self.provider), req, None, timeout);
-        match self
-            .rt
-            .block_on(async move { tokio::time::timeout(timeout, fut).await })
-        {
+        // Raced against the task's /stop (`cancelscope`): Esc ends the wait.
+        let stop = super::cancelscope::current();
+        let raced = super::cancelscope::unless(stop, async move {
+            // Built inside the runtime: a timer made outside it has no reactor.
+            tokio::time::timeout(timeout, fut).await
+        });
+        let Some(outcome) = self.rt.block_on(raced) else {
+            return Err(super::cancelscope::STOPPED.to_string());
+        };
+        match outcome {
             Ok(Ok(c)) => Ok((
                 c.text.trim().to_string(),
                 super::adapter::Usage {
@@ -206,9 +212,15 @@ impl Adapter for ApiAdapter {
             on_tokens(total / 4);
         });
         let fut = super::cutoff::whole(Arc::clone(&self.provider), req, Some(on_chunk), timeout);
-        let outcome = self
-            .rt
-            .block_on(async move { tokio::time::timeout(timeout, fut).await });
+        let stop = super::cancelscope::current();
+        let raced = super::cancelscope::unless(stop, async move {
+            // Built inside the runtime: a timer made outside it has no reactor.
+            tokio::time::timeout(timeout, fut).await
+        });
+        let Some(outcome) = self.rt.block_on(raced) else {
+            (stream.on_thought)(""); // the hop is over: flush the gate's tail
+            return Err(super::cancelscope::STOPPED.to_string());
+        };
         if let Ok(Ok(c)) = &outcome {
             if !c.thought.is_empty() && !streamed_thought.load(std::sync::atomic::Ordering::SeqCst)
             {

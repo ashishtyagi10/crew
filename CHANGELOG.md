@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.36
+
+**Esc ends an agent's model call at once.** A relay hop's model call used to
+run to its end, up to three minutes, before a stopped task noticed. Only the
+20-second watchdog restart got you out sooner. The call now races the task's
+stop and ends within a tenth of a second of Esc. The restart remains as the
+backstop for a tool that cannot be interrupted.
+
 ## 0.25.35
 
 **Skills run as slash commands, and Claude Code's commands are skills.** Any
