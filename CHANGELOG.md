@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.25
+
+**Cmd+click opens what you clicked.** Cmd+clicking a URL or a file in a
+terminal pane often quietly did nothing, for three reasons, all fixed. The
+click read the character to the right of the pointer: a card's text starts one
+cell in from its left edge, and only the row inset was taken off. Selection
+drags started a character late for the same reason, and every pane's clicks
+now share one cell mapping. A path inside a word was read as the word: Claude
+Code writes `Update(src/main.rs)`, and crew looked for a file called
+`Update(src/main.rs`. A reference now starts after the last `(`, `[`, `=` or
+quote in its word, for both the dotted mark and the click. And a relative path
+was looked up in crew's own directory, not the directory of the pane that
+printed it. It is now opened from the pane's directory, with crew's as the
+fallback. A file opens in the viewer (markdown rendered) and a directory
+becomes the working directory. A URL or path long enough to wrap onto a second
+row now opens whole from either row; it used to open only the half under the
+pointer. New tests follow a click end to end in one to four panes, side by side
+and zoomed, from the pixel the frame drew to what opens. They fail on 0.25.24.
+
 ## 0.25.24
 
 **The background swirls instead of sliding.** Until now everything in the

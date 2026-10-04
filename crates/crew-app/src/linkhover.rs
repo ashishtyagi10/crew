@@ -28,7 +28,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crew_render::CellView;
-use crew_term::TermModel;
 
 /// `(pane + 1) << 48 | row << 32 | start << 16 | end`, or 0 for "the pointer
 /// is over no link". Every field is bounded well under 16 bits by the grid
@@ -129,8 +128,15 @@ impl crate::app::CrewApp {
         let (row, col) = (u16::try_from(row).ok()?, usize::try_from(col).ok()?);
         let pane = self.panes.get(i)?;
         let line = match &pane.content {
-            crate::pane::PaneContent::Terminal(t) => {
-                crate::dump::grid_row(&t.pty.cells(false), row, pane.grid.cols)
+            // The line the click will read — soft-wrapped rows joined — with
+            // the run lit on the row under the pointer.
+            crate::pane::PaneContent::Terminal(_) => {
+                let (_, line, at, first) = self.cursor_line()?;
+                let text: String = line.iter().collect();
+                let (a, b) = span_at(&text, at)?;
+                let start = usize::from(row - first as u16) * usize::from(pane.grid.cols);
+                let end = start + usize::from(pane.grid.cols);
+                return Some((i, row, a.max(start) - start, b.min(end) - start));
             }
             crate::pane::PaneContent::Chat(c) => {
                 crate::chatview::row_text_at(c, pane.grid.cols, pane.grid.rows, row)?

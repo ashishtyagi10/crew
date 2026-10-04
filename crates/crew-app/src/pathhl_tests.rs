@@ -53,6 +53,19 @@ fn surrounding_punctuation_is_left_out_of_the_span() {
     assert_eq!(spans("`Cargo.toml`:"), ["Cargo.toml"]);
 }
 
+/// A reference inside a call, a link or a flag is the path, not the word:
+/// Claude Code writes `Update(src/main.rs)`, and the word is not a file.
+#[test]
+fn a_reference_inside_a_word_starts_after_its_opener() {
+    assert_eq!(spans("⏺ Update(src/main.rs)"), ["src/main.rs"]);
+    assert_eq!(spans("Read(docs/CREW.md)"), ["docs/CREW.md"]);
+    assert_eq!(spans("[notes](docs/a.md)."), ["docs/a.md"]);
+    assert_eq!(
+        spans("--manifest-path=crates/x/Cargo.toml"),
+        ["crates/x/Cargo.toml"]
+    );
+}
+
 #[test]
 fn a_position_suffix_is_split_off_the_path() {
     assert_eq!(strip_position("src/main.rs"), ("src/main.rs", None));
