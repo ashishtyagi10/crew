@@ -95,7 +95,16 @@ pub(crate) const CHAT_BINDINGS: &[(&str, &str)] = &[
         "Esc",
         "Refuse a tool call · discard a pending plan · interrupt a running turn · close",
     ),
-    ("Shift+Enter", "Newline instead of sending"),
+    (
+        "Shift+Enter / Ctrl+J",
+        "Newline instead of sending (so does a \\ just before Enter)",
+    ),
+    (
+        "Ctrl+C",
+        "Clear the composer · on an empty one, interrupt the running turn",
+    ),
+    ("Ctrl+D", "Close the pane (empty composer, nothing running)"),
+    ("?", "This key reference (on an empty composer)"),
     ("Tab", "Complete the leading @agent or /construct"),
     (
         "Shift+Tab",

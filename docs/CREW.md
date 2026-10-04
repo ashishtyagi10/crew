@@ -2738,6 +2738,15 @@ and a typo gets a **did-you-mean** suggestion):
   at its next checkpoint (between hops/rounds). Quick constructs and
   `/doctor` answer immediately while tasks are in flight.
 
+**The composer's control keys.** The agent pane's composer answers to the keys
+terminal agents use. **Ctrl+C** clears what is typed, and on an empty composer
+interrupts the running turn, as Esc does. **Ctrl+D** on an empty composer with
+nothing running closes the pane. **Ctrl+J**, like Shift+Enter, starts a new line
+instead of sending, and so does a `\` typed just before Enter. `?` on an empty
+composer opens the key reference. Every other Ctrl+letter does nothing; they
+used to type their letter. What Ctrl makes that is not a letter (AltGr is
+Ctrl+Alt off the Mac) still types.
+
 **Approval modes (Shift+Tab).** How freely a pane's tools run is the pane's
 own choice, stepped with **Shift+Tab** the way Claude Code's modes are:
 **auto-approve** (the default — everything runs, and the checkpoint is the
