@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.26
+
+**A smith task can no longer hang showing "running" forever.** A /smith task
+could crash five minutes in, with no message, and the pane kept showing it
+running for an hour. Crew logs the conversation as it streams. Once a long
+session's log passed its 32 KiB cap, the oldest half was summarized by a
+small model call made from inside the event path. When that happened during
+a multi-task run, the call tried to start an async runtime inside the one
+already driving the run. That panic killed the worker thread, so the task's
+end was never sent, the tasks queued after it never ran, and nothing said so.
+Two fixes. That model call now runs on a thread of its own whenever it is
+asked from inside a runtime, the same guard web fetches and tool choice
+already use. And a worker that panics for any reason now says
+`✗ task #N crashed: …` and ends its task in the pane, so a crash can never
+again look like work. A new test makes the call from inside a runtime, which
+is exactly what crashed; it fails on 0.25.25.
+
 ## 0.25.25
 
 **Cmd+click opens what you clicked.** Cmd+clicking a URL or a file in a

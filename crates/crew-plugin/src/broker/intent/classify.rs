@@ -103,6 +103,14 @@ fn live_bounded(
 /// One bounded completion on the discovered provider — same block-on pattern
 /// as `ask::suggest_far_command` (a small one-shot needs its own max_tokens,
 /// which the `Adapter` layer doesn't expose).
+///
+/// Called from inside a runtime, it runs on a thread of its own (as
+/// `sysfetch::raw` and `toolchoice` do): there a nested `block_on` is a
+/// panic, not a wait. The session log folds its overflow through this from
+/// the event path, and a swarm's events go out from inside its own
+/// `block_on` — so the first time a long session's log crossed its cap
+/// mid-swarm, the panic took the /smith worker down with its task still
+/// showing as running (2026-10-03).
 fn complete_once(
     provider: &Arc<dyn crew_hive::Provider>,
     model: &str,
@@ -110,6 +118,13 @@ fn complete_once(
     max_tokens: u32,
     timeout: Duration,
 ) -> Result<crew_hive::Completion, String> {
+    if tokio::runtime::Handle::try_current().is_ok() {
+        return std::thread::scope(|s| {
+            s.spawn(|| complete_once(provider, model, prompt, max_tokens, timeout))
+                .join()
+                .unwrap_or_else(|_| Err("the completion panicked".into()))
+        });
+    }
     let req = crew_hive::CompletionRequest {
         model: model.to_string(),
         system: None,
@@ -186,3 +201,7 @@ pub(super) fn prompt(task: &str, world: &super::world::World) -> String {
          {world}Message: {task}"
     )
 }
+
+#[cfg(test)]
+#[path = "classify_tests.rs"]
+mod tests;

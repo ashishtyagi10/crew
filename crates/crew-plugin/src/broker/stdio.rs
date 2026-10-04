@@ -33,6 +33,24 @@ fn emit(out: &Out, ev: &PluginEvent) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// End a task whose worker panicked, visibly: the crash, named in the pane
+/// (the panic hook has already written `crash.log`), then the task's end.
+fn announce_crash(out: &Out, id: u64, why: &(dyn std::any::Any + Send)) {
+    let why = why
+        .downcast_ref::<&str>()
+        .map(|s| s.to_string())
+        .or_else(|| why.downcast_ref::<String>().cloned())
+        .unwrap_or_else(|| "a panic".into());
+    let text = format!("\u{2717} task #{id} crashed: {why}");
+    let _ = emit(out, &super::relay::msg("agent smith", text));
+    let ended = PluginEvent::Task {
+        id,
+        label: String::new(),
+        running: false,
+    };
+    let _ = emit(out, &ended);
+}
+
 /// Run the broker over stdin/stdout until EOF.
 pub fn run_broker_stdio() -> anyhow::Result<()> {
     // Before anything reads the env: import provider keys the launching app
@@ -289,119 +307,129 @@ fn send(
     // The checkpoint's own gate: a routed task starts deciding while the
     // snapshot is taken beside it (`ckptgate`); tools wait for it.
     snap.ckpt = super::ckptgate::CkptGate::pending();
+    // A panic anywhere in the task would end this thread without the end
+    // below ever going out, and the pane shows a task running for as long
+    // as the broker lives: a summarizer that panicked mid-swarm left one
+    // "running" for an hour (2026-10-03). It is caught, named and ended.
+    let crash_out = Arc::clone(&out_thread);
     let handle = std::thread::spawn(move || {
-        let tokens = Arc::clone(&snap.tokens);
-        // StatsTicks fire while an agent hop blocks this worker thread — from
-        // the provider's own runtime plumbing, not this thread's `counting`
-        // closure — so they need their own writer straight to `Out` rather
-        // than sharing the `&mut` counting wrapper (ticks are advisory and
-        // deliberately skip the per-task token count: the end-of-hop `Stats`
-        // stays authoritative).
-        let tick_out = Arc::clone(&out_thread);
-        let tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync> =
-            std::sync::Arc::new(move |ev| {
-                let _ = emit(&tick_out, &ev);
-            });
-        // This thread is the task: its tool rounds take what is typed meanwhile.
-        let steer = super::steer::Taking::begin(Arc::clone(&tick_emit));
-        // Stamp every relay Message event with this task's id, and count Stats.
-        let mut counting = |mut ev: PluginEvent| {
-            if let PluginEvent::Stats { tokens: t, .. } = &ev {
-                tokens.fetch_add(*t, Ordering::Relaxed);
+        let ran = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
+            let tokens = Arc::clone(&snap.tokens);
+            // StatsTicks fire while an agent hop blocks this worker thread — from
+            // the provider's own runtime plumbing, not this thread's `counting`
+            // closure — so they need their own writer straight to `Out` rather
+            // than sharing the `&mut` counting wrapper (ticks are advisory and
+            // deliberately skip the per-task token count: the end-of-hop `Stats`
+            // stays authoritative).
+            let tick_out = Arc::clone(&out_thread);
+            let tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync> =
+                std::sync::Arc::new(move |ev| {
+                    let _ = emit(&tick_out, &ev);
+                });
+            // This thread is the task: its tool rounds take what is typed meanwhile.
+            let steer = super::steer::Taking::begin(Arc::clone(&tick_emit));
+            // Stamp every relay Message event with this task's id, and count Stats.
+            let mut counting = |mut ev: PluginEvent| {
+                if let PluginEvent::Stats { tokens: t, .. } = &ev {
+                    tokens.fetch_add(*t, Ordering::Relaxed);
+                }
+                if let PluginEvent::Message { meta, .. } = &mut ev {
+                    // Combine the task id with any existing `meta` (the hop latency,
+                    // e.g. "0.0s", which the app also renders as the log-line
+                    // latency) — an `if meta.is_empty()` guard would skip exactly
+                    // the agent replies the tag exists to disambiguate.
+                    *meta = if meta.is_empty() {
+                        format!("task:{id}")
+                    } else {
+                        format!("task:{id} \u{00b7} {meta}") // e.g. "task:3 · 0.0s"
+                    };
+                }
+                emit(&out_thread, &ev)
+            };
+            // Undo, without anyone having to remember to ask for it. Every task
+            // that reaches a worker can reach the user's files (sys tools, an
+            // agent CLI editing in place), so the working tree is pinned first.
+            // Silent by design: it writes nothing when nothing changed, and a
+            // safety net that announced itself on every task would be noise. Not
+            // being in a git repository is a normal way to run crew, so the error
+            // is deliberately ignored rather than reported.
+            let ckpt = {
+                let (s, out) = (
+                    snap.snapshot_with_cancel(Arc::clone(&snap.cancel)),
+                    Arc::clone(&out_thread),
+                );
+                std::thread::spawn(move || {
+                    auto_checkpoint(&s, &label_for_ckpt, &out);
+                    s.ckpt.open();
+                })
+            };
+            // Only the router's path has a decision to make first; a command or a
+            // dialled agent may touch the tree straight away (an agent CLI edits
+            // in place, outside the tool gate), so those wait as they always did.
+            let dialled = trimmed.starts_with('@');
+            let starter = (!is_cmd && !dialled)
+                .then(|| super::auth::starter(&snap))
+                .flatten();
+            if is_cmd || dialled || starter.is_some() {
+                snap.ckpt.wait();
             }
-            if let PluginEvent::Message { meta, .. } = &mut ev {
-                // Combine the task id with any existing `meta` (the hop latency,
-                // e.g. "0.0s", which the app also renders as the log-line
-                // latency) — an `if meta.is_empty()` guard would skip exactly
-                // the agent replies the tag exists to disambiguate.
-                *meta = if meta.is_empty() {
-                    format!("task:{id}")
-                } else {
-                    format!("task:{id} \u{00b7} {meta}") // e.g. "task:3 · 0.0s"
-                };
+            let res = if is_cmd {
+                super::commands::handle(&mut snap, &trimmed, &tick_emit, &mut counting)
+            } else if dialled {
+                relay_counting(&trimmed, None, false, &snap, &tick_emit, &mut counting)
+            } else if let Some(starter) = starter {
+                relay_counting(
+                    &format!("@{starter} {trimmed}"),
+                    None,
+                    false,
+                    &snap,
+                    &tick_emit,
+                    &mut counting,
+                )
+            } else {
+                // The intent router: the model picks the execution shape (reply/
+                // fan/loop/plan/swarm); anything that stops it falls back to the
+                // swarm, which was this branch's whole body before the router.
+                super::intent::route(&trimmed, &mut snap, &tick_emit, &mut counting)
+            };
+            // A hard token-refresh failure during this task arms EXACTLY one
+            // re-auth line (condition 5) — printed here, then silence.
+            if let Some(note) = super::auth::refresh::reauth_note() {
+                let _ = emit(&out_thread, &msg("agent smith", note));
             }
-            emit(&out_thread, &ev)
-        };
-        // Undo, without anyone having to remember to ask for it. Every task
-        // that reaches a worker can reach the user's files (sys tools, an
-        // agent CLI editing in place), so the working tree is pinned first.
-        // Silent by design: it writes nothing when nothing changed, and a
-        // safety net that announced itself on every task would be noise. Not
-        // being in a git repository is a normal way to run crew, so the error
-        // is deliberately ignored rather than reported.
-        let ckpt = {
-            let (s, out) = (
-                snap.snapshot_with_cancel(Arc::clone(&snap.cancel)),
-                Arc::clone(&out_thread),
+            // Announce only the exceptional endings — a clean finish says nothing
+            // (the streamed reply is the result). Errors and user stops must stay
+            // visible.
+            let done = match (res, snap.cancelled()) {
+                (Err(e), _) => Some(format!("\u{2717} task #{id}: {e}")),
+                (Ok(_), true) => Some(format!("\u{2717} task #{id} stopped")),
+                (Ok(_), false) => None,
+            };
+            if let Some(done) = done {
+                let _ = emit(&out_thread, &msg("agent smith", done));
+            }
+            // …and then what it DID to the files, which nothing on screen said —
+            // measured from the snapshot, so it must have landed.
+            let _ = ckpt.join();
+            report_changes(&snap, id, &out_thread);
+            // Before the end is announced: the host sends its untaken copy on it.
+            drop(steer);
+            // The end of the task, emitted by the only thing that knows when that
+            // is. `Tasks::reap` runs lazily on the NEXT command, so a task
+            // finishing is otherwise not an observable moment — which is why the
+            // pane could never show what was running and had to be asked.
+            let _ = emit(
+                &out_thread,
+                &PluginEvent::Task {
+                    id,
+                    label: String::new(),
+                    running: false,
+                },
             );
-            std::thread::spawn(move || {
-                auto_checkpoint(&s, &label_for_ckpt, &out);
-                s.ckpt.open();
-            })
-        };
-        // Only the router's path has a decision to make first; a command or a
-        // dialled agent may touch the tree straight away (an agent CLI edits
-        // in place, outside the tool gate), so those wait as they always did.
-        let dialled = trimmed.starts_with('@');
-        let starter = (!is_cmd && !dialled)
-            .then(|| super::auth::starter(&snap))
-            .flatten();
-        if is_cmd || dialled || starter.is_some() {
-            snap.ckpt.wait();
+        }));
+        if let Err(why) = ran {
+            announce_crash(&crash_out, id, why.as_ref());
         }
-        let res = if is_cmd {
-            super::commands::handle(&mut snap, &trimmed, &tick_emit, &mut counting)
-        } else if dialled {
-            relay_counting(&trimmed, None, false, &snap, &tick_emit, &mut counting)
-        } else if let Some(starter) = starter {
-            relay_counting(
-                &format!("@{starter} {trimmed}"),
-                None,
-                false,
-                &snap,
-                &tick_emit,
-                &mut counting,
-            )
-        } else {
-            // The intent router: the model picks the execution shape (reply/
-            // fan/loop/plan/swarm); anything that stops it falls back to the
-            // swarm, which was this branch's whole body before the router.
-            super::intent::route(&trimmed, &mut snap, &tick_emit, &mut counting)
-        };
-        // A hard token-refresh failure during this task arms EXACTLY one
-        // re-auth line (condition 5) — printed here, then silence.
-        if let Some(note) = super::auth::refresh::reauth_note() {
-            let _ = emit(&out_thread, &msg("agent smith", note));
-        }
-        // Announce only the exceptional endings — a clean finish says nothing
-        // (the streamed reply is the result). Errors and user stops must stay
-        // visible.
-        let done = match (res, snap.cancelled()) {
-            (Err(e), _) => Some(format!("\u{2717} task #{id}: {e}")),
-            (Ok(_), true) => Some(format!("\u{2717} task #{id} stopped")),
-            (Ok(_), false) => None,
-        };
-        if let Some(done) = done {
-            let _ = emit(&out_thread, &msg("agent smith", done));
-        }
-        // …and then what it DID to the files, which nothing on screen said —
-        // measured from the snapshot, so it must have landed.
-        let _ = ckpt.join();
-        report_changes(&snap, id, &out_thread);
-        // Before the end is announced: the host sends its untaken copy on it.
-        drop(steer);
-        // The end of the task, emitted by the only thing that knows when that
-        // is. `Tasks::reap` runs lazily on the NEXT command, so a task
-        // finishing is otherwise not an observable moment — which is why the
-        // pane could never show what was running and had to be asked.
-        let _ = emit(
-            &out_thread,
-            &PluginEvent::Task {
-                id,
-                label: String::new(),
-                running: false,
-            },
-        );
     });
     emit(
         out,
