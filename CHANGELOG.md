@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.34
+
+**`/init` writes the project's AGENTS.md, and GEMINI.md is read too.**
+`/init` does what Claude Code's does: it asks agent smith to look the project
+over and write what an agent needs to work on it (build and test commands,
+layout, conventions, pitfalls) into `AGENTS.md`, improving one that already
+exists rather than replacing it. The instruction goes out as the message
+itself, so the transcript shows exactly what was asked. Alongside `AGENTS.md`
+and `CLAUDE.md`, crew now also folds a project's `GEMINI.md` in front of every
+task.
+
 ## 0.25.33
 
 **`!` runs a shell command from the agent composer.** `!cargo test` runs the

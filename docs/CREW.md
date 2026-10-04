@@ -2676,17 +2676,20 @@ and a typo gets a **did-you-mean** suggestion):
   kept; bare `/stop` or a broker restart clears it (the session log above
   remains the durable record); `/doctor` reports `thread: N turns remembered`.
 - **the repo's own instructions are followed** — no command, no import: on
-  every task crew looks for an **`AGENTS.md`** or **`CLAUDE.md`**, from the
+  every task crew looks for an **`AGENTS.md`**, **`CLAUDE.md`** or **`GEMINI.md`**, from the
   working directory up to the repository root (`.git`, at most eight levels),
   and folds what it finds in front of the task as PROJECT INSTRUCTIONS —
   above your own standing memory, so when the repo's conventions and your
-  `#notes` disagree, the thing you typed into crew wins. Both names are read
-  when both exist, and a subdirectory's file comes after the root's, so the
+  `#notes` disagree, the thing you typed into crew wins. Every name present
+  is read, and a subdirectory's file comes after the root's, so the
   nearer rules have the last word. The block is capped at 4 KB (shared
   between the files, each cut with a visible marker); a project with no such
   file sends the task byte-identical, exactly as before. The `context:` line
   names the files it is carrying, and `/doctor` reports them under `project
-  instructions`.
+  instructions`. A project without one can ask for it: **`/init`** sends agent
+  smith the instruction to look the project over and write (or improve) its
+  `AGENTS.md`, as Claude Code's `/init` does, and the message shows exactly
+  what was asked.
 - **the pane opens knowing where you left off** — under the nameplate, one
   line: `last time (2d ago): finish the recall graph · the check was FAILING ·
   3 files uncommitted`. All three come off disk (the recall graph's newest

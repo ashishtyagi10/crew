@@ -1,4 +1,4 @@
-//! Two composer commands the pane answers itself: `/approvals` and `/clear`.
+//! The composer commands the pane answers itself: `/approvals`, `/clear`, `/init`.
 //!
 //! `/approvals` is Shift+Tab in words — `/approvals plan`, `/approvals yolo` — and `/approvals`
 //! alone says which mode is on and what the others are. `/clear` is a fresh
@@ -8,6 +8,14 @@
 use crate::chat::ChatPane;
 use crate::chatapprove::{label, meaning, parse, word};
 use crate::chatkeys::{ChatAction, ChatInput};
+
+/// What `/init` asks for: the project's AGENTS.md (which crew, Codex and
+/// others read in front of every task — `agentsmd`).
+pub(crate) const INIT: &str = "Look over this project \u{2014} its layout, how to build, test and \
+run it, its languages and conventions, and anything a newcomer would trip on \u{2014} and write \
+what an agent needs to work on it into AGENTS.md at the project root, in under 80 lines. If \
+AGENTS.md (or CLAUDE.md) already exists, read it first and improve it rather than replacing \
+what a person wrote. Then say what you put in it.";
 
 impl ChatPane {
     /// Enter on `/approvals …` or `/clear`: answered here. `Some` when consumed.
@@ -50,6 +58,14 @@ impl ChatPane {
                 }
             }
             ("/clear", "") => self.clear_conversation(),
+            // Claude Code's /init: the instruction goes out as the message, so
+            // the transcript says exactly what was asked.
+            ("/init", "") => {
+                self.history.record(&text);
+                self.input.clear();
+                self.submit_command(INIT.to_string());
+                return Some(None);
+            }
             _ => return None,
         }
         self.answered(&text, None)
