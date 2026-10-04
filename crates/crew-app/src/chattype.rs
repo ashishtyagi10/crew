@@ -59,10 +59,12 @@ impl ChatPane {
                 }
             }
         }
+        if let Some(done) = self.approval_key(&k) {
+            return done;
+        }
         // Transcript find next (Cmd+F opens it app-side; Ctrl+F here): modal
-        // while open — typed chars edit its query, never the composer. It
-        // forwards Ctrl+R so histsearch can still open (which closes find:
-        // one modal at a time).
+        // while open — typed chars edit its query, never the composer; Ctrl+R
+        // passes, so histsearch can still open (one modal at a time).
         let fk = {
             let visible: Vec<&Message> =
                 self.messages.iter().chain(self.streaming.iter()).collect();
@@ -181,9 +183,9 @@ impl ChatPane {
                 }
                 return Some(ChatAction::Close);
             }
-            // HistSearch/FindNext never reach here (their popup routing above
-            // consumes them — opening when closed), but the match must be total.
+            // Taken above (popups, `approval_key`), but the match must be total.
             ChatInput::Ignore | ChatInput::HistSearch | ChatInput::FindNext => return None,
+            ChatInput::CycleMode => return None,
             // No popup is open (both got these keys first, above), so the
             // arrows mean what they mean in every shell: walk what you already
             // sent. The palette is deliberately NOT re-synced from a recalled
@@ -232,10 +234,8 @@ impl ChatPane {
         };
         if let Some(text) = input_reduce(&mut self.input, ch, enter, backspace) {
             self.scroll = 0; // sending snaps back to the live bottom
-                             // Every submitted line, whatever happens to it next: the ones
-                             // answered locally (`/theme`, `/export`) and the ones that never
-                             // reach the broker are exactly as worth recalling as the rest, so
-                             // this records BEFORE any of the intercepts below return.
+                             // Recorded BEFORE the intercepts below: a line answered locally is as
+                             // worth recalling as one the broker got.
             self.history.record(&text);
             if text.trim() == "/exit" {
                 return Some(ChatAction::Close); // close the pane, like Escape

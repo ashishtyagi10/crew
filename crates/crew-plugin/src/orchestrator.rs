@@ -32,7 +32,8 @@ pub fn plan(cmd: &PluginCommand) -> Vec<PluginEvent> {
         PluginCommand::Subscribe { .. }
         | PluginCommand::Approve { .. }
         | PluginCommand::Warm {}
-        | PluginCommand::Steer { .. } => vec![],
+        | PluginCommand::Steer { .. }
+        | PluginCommand::Mode { .. } => vec![],
     }
 }
 

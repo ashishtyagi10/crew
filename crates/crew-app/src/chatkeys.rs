@@ -27,6 +27,8 @@ pub(crate) enum ChatInput {
     /// Ctrl+F — open the transcript find popup, or step to the next older
     /// match while it is open (see `chatfind`; Cmd+F opens it app-side).
     FindNext,
+    /// Shift+Tab — step the pane's approval mode (see `chatapprove`).
+    CycleMode,
     Ignore,
 }
 
@@ -62,6 +64,7 @@ pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool, ctrl: bool) ->
         Key::Character(s) if ctrl && s.eq_ignore_ascii_case("r") => ChatInput::HistSearch,
         Key::Character(s) if ctrl && s.eq_ignore_ascii_case("f") => ChatInput::FindNext,
         Key::Named(NamedKey::Escape) => ChatInput::Close,
+        Key::Named(NamedKey::Tab) if shift => ChatInput::CycleMode,
         Key::Named(NamedKey::Tab) => ChatInput::Complete,
         Key::Named(NamedKey::ArrowRight) => ChatInput::Accept,
         Key::Named(NamedKey::ArrowUp) => ChatInput::Up,

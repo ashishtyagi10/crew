@@ -16,9 +16,8 @@ impl ChatPane {
     /// invalidate the same state, and neither can be relied on to arrive.
     pub(crate) fn reset_broker_state(&mut self) {
         self.running_tasks.clear();
-        self.plan_pending = false;
-        // A stat whose reply died with the broker must not tag the next one.
-        self.pending_reply_usage = None;
+        (self.plan_pending, self.asking) = (false, Default::default());
+        self.pending_reply_usage = None; // it must not tag the next broker's reply
         self.thoughts.drop_live(); // no broker will finish it
     }
 
@@ -96,6 +95,7 @@ impl ChatPane {
                     PluginEvent::SignOut { options } => self.open_sign_out_picker(&options),
                     PluginEvent::Task { id, running, .. } => self.absorb_task(id, running),
                     PluginEvent::Plan { pending } => self.plan_pending = pending,
+                    PluginEvent::Approval { id, question, .. } => self.ask_user(id, question),
                     PluginEvent::Activity { agent, state, from } => {
                         // The broker names the agent its last hive event
                         // was about — the tool lines are keyed by that name.

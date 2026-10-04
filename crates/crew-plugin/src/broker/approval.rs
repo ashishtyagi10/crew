@@ -10,6 +10,7 @@
 //! if nobody answers, DENY". Silence is never consent: an assistant that treats an unanswered
 //! 3am prompt as a yes is worse than one that does nothing.
 use super::tier::Tier;
+use crate::ApprovalMode;
 
 /// How long an unanswered approval stays open before it is denied.
 pub const DEFAULT_TIMEOUT_MS: u64 = 5 * 60 * 1000;
@@ -99,6 +100,8 @@ pub struct Policy {
     pub trust_present_human: bool,
     /// How long an approval waits before it is denied.
     pub timeout_ms: u64,
+    /// What the person at the pane chose with Shift+Tab ([`mode`] is the live one).
+    pub mode: ApprovalMode,
 }
 
 impl Default for Policy {
@@ -106,8 +109,44 @@ impl Default for Policy {
         Self {
             trust_present_human: true,
             timeout_ms: DEFAULT_TIMEOUT_MS,
+            mode: ApprovalMode::Auto,
         }
     }
+}
+
+/// The pane's current mode, as its last [`crate::PluginCommand::Mode`] set it. A process
+/// global for the same reason as the mailbox below: one broker is one pane, the command arrives
+/// on the stdin loop, and the gate that reads it sits deep in a worker's tool call.
+static MODE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+/// Set the pane's mode (the stdin loop, on the pane's Shift+Tab).
+pub fn set_mode(mode: ApprovalMode) {
+    let n = match mode {
+        ApprovalMode::Auto => 0,
+        ApprovalMode::Edits => 1,
+        ApprovalMode::Ask => 2,
+        ApprovalMode::Plan => 3,
+    };
+    MODE.store(n, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// The pane's current mode.
+pub fn mode() -> ApprovalMode {
+    match MODE.load(std::sync::atomic::Ordering::Relaxed) {
+        1 => ApprovalMode::Edits,
+        2 => ApprovalMode::Ask,
+        3 => ApprovalMode::Plan,
+        _ => ApprovalMode::Auto,
+    }
+}
+
+/// What a tool call is told in plan mode — it reaches the MODEL, as the call's error, so it
+/// says what to do instead rather than only what went wrong.
+pub fn plan_refusal(tool: &str) -> String {
+    format!(
+        "plan mode is on, so {tool} did not run: nothing may be changed. Read what you need, \
+         then describe the change you would make — the user leaves plan mode with Shift+Tab"
+    )
 }
 
 /// One approval waiting for an answer.
@@ -142,8 +181,9 @@ impl Gate {
         Self::default()
     }
 
-    /// Decide one tool call. Anything below [`Tier::Irreversible`] runs; an irreversible call
-    /// runs only for a present human (when policy allows), and otherwise opens an approval.
+    /// Decide one tool call. For a person at a pane, the mode they chose says what runs (see
+    /// [`ApprovalMode`]); for anyone else, anything below [`Tier::Irreversible`] runs and an
+    /// irreversible call opens an approval.
     pub fn decide(
         &mut self,
         tool: &str,
@@ -152,10 +192,18 @@ impl Gate {
         policy: Policy,
         now_ms: u64,
     ) -> Decision {
-        if !tier.needs_approval() {
-            return Decision::Allow;
-        }
-        if requester.is_present_human() && policy.trust_present_human {
+        if requester.is_present_human() {
+            let asks = match policy.mode {
+                ApprovalMode::Auto => tier.needs_approval() && !policy.trust_present_human,
+                ApprovalMode::Edits => tier == Tier::Irreversible,
+                ApprovalMode::Ask => tier != Tier::Read,
+                ApprovalMode::Plan if tier == Tier::Read => false,
+                ApprovalMode::Plan => return Decision::Deny(plan_refusal(tool)),
+            };
+            if !asks {
+                return Decision::Allow;
+            }
+        } else if !tier.needs_approval() {
             return Decision::Allow;
         }
         // A trigger has no one to ask. Refusing is the honest answer — the alternative is
@@ -262,6 +310,45 @@ pub fn ask_host(p: &Pending) -> bool {
     true
 }
 
+/// Ask the person at a pane about `p`, saying `what` it would do — the pane draws the
+/// question with its own keys, so it carries no "reply yes" instructions. `false` when nothing
+/// can carry it.
+pub fn ask_host_about(p: &Pending, what: &str) -> bool {
+    let Some(emit) = EMITTER.get() else {
+        return false;
+    };
+    let why = match p.tier {
+        Tier::Irreversible => "it cannot be undone",
+        Tier::Reversible => "the checkpoint can undo it",
+        Tier::Read => "it only reads",
+    };
+    emit(crate::PluginEvent::Approval {
+        id: p.id.clone(),
+        tool: p.tool.clone(),
+        tier: p.tier.label().to_string(),
+        reply_to: p.requester.reply_to().to_string(),
+        question: format!("{what} \u{2014} {why}"),
+    });
+    true
+}
+
+/// What a call would do, in the words a person can judge it by: the command a `sys:run` runs,
+/// the file a write or an edit changes; otherwise the tool and its arguments, clipped.
+pub fn what(tool: &str, args: &str) -> String {
+    let v: serde_json::Value = serde_json::from_str(args).unwrap_or_default();
+    let field = |k: &str| v.get(k).and_then(|x| x.as_str()).map(str::trim);
+    let clip = |s: &str, n: usize| match s.chars().count() > n {
+        true => format!("{}\u{2026}", s.chars().take(n).collect::<String>()),
+        false => s.to_string(),
+    };
+    match (tool, field("cmd"), field("path")) {
+        ("sys:run", Some(cmd), _) => format!("run `{}`", clip(cmd, 160)),
+        ("sys:write_file", _, Some(path)) => format!("write {path}"),
+        ("sys:edit", _, Some(path)) => format!("edit {path}"),
+        _ => format!("call {tool} {}", clip(args.trim(), 120)),
+    }
+}
+
 /// The sentence a person is asked. Names the tool and why it needs asking, because "approve?"
 /// with no subject is a question nobody can answer responsibly.
 pub fn question_for(tool: &str, tier: Tier) -> String {
@@ -291,12 +378,18 @@ pub fn take_answer(id: &str) -> Option<bool> {
 /// Block until `id` is answered or `timeout_ms` passes. `None` = nobody answered, which the
 /// caller must treat as a refusal: an approval that lapses is not a quiet yes.
 pub fn wait_for_answer(id: &str, timeout_ms: u64) -> Option<bool> {
+    wait_for_answer_or(id, timeout_ms, || false)
+}
+
+/// [`wait_for_answer`], also giving up as soon as `stop` says so — a task stopped while it
+/// waits for a yes must not sit out the whole timeout first.
+pub fn wait_for_answer_or(id: &str, timeout_ms: u64, stop: impl Fn() -> bool) -> Option<bool> {
     let start = std::time::Instant::now();
     loop {
         if let Some(a) = take_answer(id) {
             return Some(a);
         }
-        if start.elapsed().as_millis() as u64 >= timeout_ms {
+        if stop() || start.elapsed().as_millis() as u64 >= timeout_ms {
             return None;
         }
         std::thread::sleep(std::time::Duration::from_millis(100));

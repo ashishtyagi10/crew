@@ -241,6 +241,7 @@ impl Session {
         Some(Arc::new(SessionTools {
             reads: Arc::clone(&self.reads),
             todo: Arc::clone(&self.todo),
+            cancel: Arc::clone(&self.cancel),
             ..SessionTools::new(
                 Arc::clone(&self.mcp),
                 Arc::clone(&self.lsp),
@@ -311,6 +312,8 @@ struct SessionTools {
     /// build says so in its own result (see `editdiag`): the session's
     /// language servers, or a fake under test.
     diag: super::editdiag::Shared,
+    /// The task's `/stop` flag — an approval it is waiting on gives up the moment it is set.
+    cancel: Arc<AtomicBool>,
 }
 
 impl SessionTools {
@@ -342,6 +345,7 @@ impl SessionTools {
             warm,
             reads: super::readset::ReadSet::new(),
             todo: crew_hive::tools::todo::Checklist::new(),
+            cancel: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -351,6 +355,45 @@ impl SessionTools {
     fn note(&self, r: super::ledger::Record) {
         if let Some(l) = &self.ledger {
             let _ = l.append(&r);
+        }
+    }
+
+    /// Put approval `id` for `name` to the person at the pane and wait for their answer.
+    /// `Ok` = they allowed it. `Err(None)` = nobody here can be asked; `Err(Some(why))` = they
+    /// refused, did not answer in time, or stopped the task — `why` is told to the model.
+    fn ask(&self, id: &str, name: &str, args: &str) -> Result<(), Option<String>> {
+        use super::approval as a;
+        let pending = self
+            .gate
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .pending()
+            .iter()
+            .find(|p| p.id == id)
+            .cloned();
+        let asked = self.requester.is_present_human()
+            && pending.is_some_and(|p| a::ask_host_about(&p, &a::what(name, args)));
+        if !asked {
+            return Err(None);
+        }
+        let answer = a::wait_for_answer_or(id, self.policy.timeout_ms, || {
+            self.cancel.load(Ordering::Relaxed)
+        });
+        self.gate
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .answer(id, answer == Some(true));
+        match answer {
+            Some(true) => Ok(()),
+            Some(false) => Err(Some(format!(
+                "the user refused {name}, so it did not run — do not try it again; say what you \
+                 wanted it for and ask how they would like to proceed"
+            ))),
+            None => Err(Some(format!(
+                "{name} did not run: nobody approved it (no answer in {} minutes, or the task \
+                 was stopped)",
+                self.policy.timeout_ms / 60_000
+            ))),
         }
     }
 }
@@ -484,9 +527,8 @@ impl super::toolcall::ToolRunner for SessionTools {
     /// Every tool call in the running broker passes through here — `sys` and MCP alike — which
     /// is why the gate is installed at this one point rather than in each tool.
     ///
-    /// With today's only requester (a person typing into a pane) the gate always allows, so
-    /// nothing about crew's behaviour changes. That is deliberate: the gate belongs in the path
-    /// BEFORE a channel can put a non-human behind it, not after.
+    /// For a person at a pane, what the gate does is the mode they chose with Shift+Tab (see
+    /// `ApprovalMode`): in the default, everything runs, as it always has.
     fn call(&self, server: &str, tool: &str, args: &str) -> Result<String, String> {
         use super::approval::Decision;
         // Not one byte of the tree changes before the task's snapshot exists.
@@ -494,11 +536,15 @@ impl super::toolcall::ToolRunner for SessionTools {
         let name = format!("{server}:{tool}");
         let tier = self.tier_for(server, tool);
         let now = super::ledger::now_ms();
+        let policy = super::approval::Policy {
+            mode: super::approval::mode(),
+            ..self.policy
+        };
         let decision = self.gate.lock().unwrap_or_else(|e| e.into_inner()).decide(
             &name,
             tier,
             &self.requester,
-            self.policy,
+            policy,
             now,
         );
 
@@ -510,15 +556,18 @@ impl super::toolcall::ToolRunner for SessionTools {
                 self.note(rec("deny", &why).with_outcome("denied"));
                 return Err(why);
             }
-            // Nothing can carry the question yet, so an approval that cannot be asked is a
-            // refusal rather than a silent wait. When a channel exists this becomes a real
-            // round trip; until then, saying no out loud beats hanging.
+            // The person at the pane asked to be asked: the question goes to them and this call
+            // waits for the answer. Anyone else has nothing that can carry it yet, so it is a
+            // refusal said out loud rather than a silent wait.
             Decision::Ask { id, reply_to } => {
-                let why = format!(
-                    "{name} needs approval from {reply_to} and no channel can ask yet                      (approval {id})"
-                );
-                self.note(rec("ask", &why).with_outcome("denied"));
-                return Err(why);
+                if let Err(why) = self.ask(&id, &name, args) {
+                    let why = why.unwrap_or_else(|| {
+                        format!("{name} needs approval from {reply_to} and no channel can ask yet (approval {id})")
+                    });
+                    self.note(rec("ask", &why).with_outcome("denied"));
+                    return Err(why);
+                }
+                self.note(rec("ask", "approved at the pane").with_outcome("granted"));
             }
             Decision::Allow => {}
         }
