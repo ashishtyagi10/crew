@@ -108,3 +108,16 @@ fn slash_approvals_default_saves_where_new_panes_start() {
     assert_eq!(cfg.clamped().approval_default, None);
     let _ = std::fs::remove_file(&file);
 }
+
+/// `/init` sends the AGENTS.md instruction as the message itself, so the
+/// transcript says what was asked; Up recalls `/init`, not the prompt.
+#[test]
+fn slash_init_asks_for_agents_md() {
+    let (mut p, file) = pane("init");
+    enter(&mut p, "/init");
+    let lines = sent(&file, 1);
+    assert!(lines.contains("AGENTS.md at the project root"), "{lines}");
+    p.history.prev(&mut p.input);
+    assert_eq!(p.input, "/init");
+    let _ = std::fs::remove_file(&file);
+}

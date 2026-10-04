@@ -1,8 +1,8 @@
-//! The instructions a repo already carries: `AGENTS.md` and `CLAUDE.md`.
+//! The instructions a repo already carries: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`.
 //!
 //! Every agentic tool that came before crew taught projects to write their
 //! conventions down in a file at the root — Codex reads `AGENTS.md`, Claude
-//! Code reads `CLAUDE.md`, and most repos that have one have it because a
+//! Code `CLAUDE.md`, Gemini CLI `GEMINI.md` — and most repos that have one have it because a
 //! human wrote it for a human. Crew ignored both and asked you to retype the
 //! same rules as `#notes`, which is the one thing the file exists to prevent.
 //!
@@ -13,9 +13,9 @@
 //! voice is yours.
 use std::path::{Path, PathBuf};
 
-/// The names, in the order a directory is searched. Both are read when both
+/// The names, in the order a directory is searched. All are read when several
 /// exist: a repo with a `CLAUDE.md` and an `AGENTS.md` meant both.
-pub(crate) const FILES: &[&str] = &["AGENTS.md", "CLAUDE.md"];
+pub(crate) const FILES: &[&str] = &["AGENTS.md", "CLAUDE.md", "GEMINI.md"];
 
 /// Chars of instructions carried in front of a task. Smaller than it sounds:
 /// a 4 KB `AGENTS.md` is about 600 words of rules, and past that the file is

@@ -5,12 +5,11 @@
 pub(crate) use crate::completefuzzy::*;
 use crew_plugin::AgentInfo;
 
-/// Every composer slash action: broker constructs plus the pane-local
-/// `/export`, `/theme`, `/exit` and `/approvals` (`chatexport`, `chattheme`, `chat`, `chatslash`).
+/// Every slash action: broker constructs plus the pane's own (see APP_LOCAL).
 #[rustfmt::skip] // packed: "/approvals" is past rustfmt's short-item width
-pub(crate) const CONSTRUCTS: [&str; 12] = [
+pub(crate) const CONSTRUCTS: [&str; 13] = [
     "/help", "/model", "/logout", "/diff", "/doctor", "/reload", "/stop", "/export", "/theme",
-    "/exit", "/clear", "/approvals",
+    "/exit", "/clear", "/approvals", "/init",
 ];
 
 /// Hints written here rather than derived: the pane-local constructs the broker
@@ -27,6 +26,7 @@ const PANE_WORDS: &[(&str, &str)] = &[
     ("/theme", "list or switch the colour theme"),
     ("/exit", "close this pane"),
     ("/approvals", "approval mode: auto/edits/ask/plan/yolo"),
+    ("/init", "write AGENTS.md for this project"),
 ];
 
 /// One-line description for each construct, shown as the dim hint in the
@@ -86,7 +86,7 @@ mod drift {
     use super::CONSTRUCTS;
 
     /// Constructs the APP answers itself: absent from the broker's router by design.
-    const APP_LOCAL: &[&str] = &["/export", "/theme", "/exit", "/approvals"];
+    const APP_LOCAL: &[&str] = &["/export", "/theme", "/exit", "/approvals", "/init"];
 
     /// Every command the broker answers is offered. (The old "withheld"
     /// class — `/approve`/`/reject`, sent by the pane's enter/esc — retired

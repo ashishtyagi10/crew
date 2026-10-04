@@ -57,10 +57,12 @@ fn both_names_are_read_and_the_nearer_file_has_the_last_word() {
     let root = tree("both");
     write(&root, "AGENTS.md", "root rule");
     write(&root, "CLAUDE.md", "claude rule");
+    write(&root, "GEMINI.md", "gemini rule");
     let sub = root.join("crates").join("app");
     write(&sub, "AGENTS.md", "subdirectory rule");
     let (block, names) = block_at(&sub).expect("instructions");
-    assert_eq!(names.len(), 3);
+    assert_eq!(names.len(), 4);
+    assert!(block.contains("gemini rule"));
     assert!(
         block.find("root rule") < block.find("subdirectory rule"),
         "the nearer file must come last: {block}"
