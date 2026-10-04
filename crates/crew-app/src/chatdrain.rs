@@ -37,11 +37,17 @@ impl ChatPane {
 
     /// Drain plugin events; return PollResult with changed flag and any host actions.
     pub fn poll(&mut self) -> PollResult {
-        let events = self.plugin.try_recv();
+        let mut events = self.plugin.try_recv();
+        for ev in &events {
+            self.heard(ev);
+        }
+        // A heartbeat is for the watchdog alone: it changes nothing drawn.
+        events.retain(|e| !matches!(e, PluginEvent::Alive {}));
         if events.is_empty() {
+            let actions: Vec<HostAction> = self.watchdog().into_iter().collect();
             return PollResult {
-                changed: false,
-                actions: vec![],
+                changed: !actions.is_empty(),
+                actions,
             };
         }
         let mut actions = Vec::new();
@@ -146,23 +152,12 @@ impl ChatPane {
                         }
                         self.absorb_hive(&event);
                     }
-                    PluginEvent::Error { .. } => {
-                        // The transcript shows the pane going dead; the LOG
-                        // keeps the record (with the attention color) even
-                        // when the user is looking at another pane.
-                        actions.push(HostAction::Status {
-                            error: true,
-                            message: "broker connection lost".to_string(),
-                        });
-                        self.fold_swarm();
-                        self.connected = false;
-                        self.flush_active_hops();
-                        // Nothing survives the broker that was running it. A
-                        // task that dies with its process never sends its end
-                        // event, so without this the footer would offer
-                        // `/stop #3` for a task that no longer exists —
-                        // forever.
-                        self.reset_broker_state();
+                    // Its output ended: nothing it was running survives it, the
+                    // pane says so and starts it again (`chatrevive`), and the
+                    // rest of this batch is the dead broker's — dropped.
+                    PluginEvent::Error { message } => {
+                        actions.push(self.broker_lost(&message));
+                        break;
                     }
                     _ => {}
                 }

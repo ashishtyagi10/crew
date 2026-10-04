@@ -16,6 +16,9 @@ impl ChatPane {
             channel: self.channel.clone(),
             text,
         };
+        if matches!(&cmd, PluginCommand::Send { text, .. } if text.trim() == "/stop") {
+            self.watch.stop_asked = Some(crate::anim::now_ms()); // `chatwatch` holds it to it
+        }
         match self.plugin.send(&cmd) {
             Ok(()) => self.awaiting = true, // wait for the reply
             Err(e) => eprintln!("crew-app: plugin send error: {e}"),

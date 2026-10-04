@@ -32,7 +32,7 @@ pub use broker::{
     RunStats, Skill, ToolRunner, DIRECT,
 };
 pub use echo::respond;
-pub use host::Plugin;
+pub use host::{Plugin, BROKER_ENDED};
 pub use orchestrator::plan;
-pub use protocol::{AgentInfo, ApprovalMode, PluginCommand, PluginEvent};
+pub use protocol::{AgentInfo, ApprovalMode, PluginCommand, PluginEvent, HEARTBEAT_MS};
 pub use signinopt::SignInOption;

@@ -33,8 +33,19 @@ pub(super) async fn request_with_retry(
             .header("content-type", "application/json")
             .json(&body)
             .send()
-            .await
-            .map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))?;
+            .await;
+        let resp = match resp {
+            Ok(resp) => resp,
+            // Never answered (refused, reset, timed out): nothing was shown,
+            // so it is asked again before the failure stands.
+            Err(e) => match super::retry::again_unanswered(&mut attempt) {
+                Some(wait) => {
+                    tokio::time::sleep(wait).await;
+                    continue;
+                }
+                None => return Err(ProviderError::Http(wire_error(&e, endpoint))),
+            },
+        };
         let status = resp.status().as_u16();
         let retry_after_hdr = retry_after(resp.headers());
         let text = resp
@@ -102,8 +113,18 @@ pub(super) async fn request_with_retry_streaming(
             .header("content-type", "application/json")
             .json(&req_body)
             .send()
-            .await
-            .map_err(|e| ProviderError::Http(wire_error(&e, endpoint)))?;
+            .await;
+        let resp = match resp {
+            Ok(resp) => resp,
+            // As above: no answer at all, so no chunk was shown either.
+            Err(e) => match super::retry::again_unanswered(&mut attempt) {
+                Some(wait) => {
+                    tokio::time::sleep(wait).await;
+                    continue;
+                }
+                None => return Err(ProviderError::Http(wire_error(&e, endpoint))),
+            },
+        };
         let status = resp.status().as_u16();
         let retry_after_hdr = retry_after(resp.headers());
         let is_json_ct = resp

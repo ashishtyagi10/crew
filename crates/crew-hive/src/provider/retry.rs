@@ -146,6 +146,18 @@ pub(super) fn again(
     Some(Duration::from_secs(wait))
 }
 
+/// [`again`] for a request that never got an answer — refused, reset or
+/// timed out before any status came back. Nothing was shown, so asking again
+/// cannot repeat a word; it shares the one budget and backs off 1 s, then 2.
+pub(super) fn again_unanswered(attempt: &mut u32) -> Option<Duration> {
+    if *attempt >= MAX_RETRIES {
+        return None;
+    }
+    let wait = 1u64 << *attempt;
+    *attempt += 1;
+    Some(Duration::from_secs(wait))
+}
+
 #[cfg(test)]
 #[path = "retry_tests.rs"]
 mod tests;
@@ -157,3 +169,7 @@ mod reply_tests;
 #[cfg(test)]
 #[path = "transient_tests.rs"]
 mod transient_tests;
+
+#[cfg(test)]
+#[path = "unanswered_tests.rs"]
+mod unanswered_tests;

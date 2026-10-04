@@ -2300,6 +2300,21 @@ the limit (default 6) the broker drops the thread and logs that it stopped, so a
 relay can never loop forever. Each agent call has a timeout (default 180s) — a
 hung agent is killed and logged, and the broker moves on.
 
+**Never left stuck.** A task either makes progress, is retried, or the pane says
+what happened, in words. A request that gets no answer at all (refused, reset,
+timed out before any reply) is asked again, 1 s and then 2 s later, before it
+fails; nothing was shown, so a retry can never repeat a word. The broker sends a
+heartbeat every five seconds, and the pane keeps three clocks on it. If a task
+has had nothing new for 90 seconds, a note says what it is waiting on (*coder is
+waiting on sys:run*) and that Esc stops it, again every three minutes. If Esc
+has not ended a task within 20 seconds (a model call or a tool deep in a worker
+cannot always be interrupted), the broker's process is ended and started fresh.
+If the heartbeats stop for 20 seconds, the broker has hung and is restarted.
+And when the broker's process ends — a crash, a kill — the pane says which task
+did not finish, starts it again with your approval mode, and offers ↑ Enter to
+send the message again. A broker that keeps dying (three times in five minutes)
+is left stopped, with the crash log's path, rather than restarted in a loop.
+
 **Observability.** Every hop is logged in the pane as `from → to` with the
 reply, so the whole conversation — including `[done]`, `[stopped]`, and
 `[error]` outcomes — is visible. The pane renders this as a multi-agent
