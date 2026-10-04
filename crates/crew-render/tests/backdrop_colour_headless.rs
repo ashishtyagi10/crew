@@ -51,12 +51,13 @@ fn backdrop_colour_headless() {
         "C2 failed: pool A at a quarter turn {aq:?} should be its rest colour {a0:?}"
     );
 
-    // S1: the sheen. At a quarter turn the glint's crest lies on the page's
-    // middle diagonal, x + y = 1, through pixel (57, 6). The pools are then
-    // at the top and bottom centres, untraded and between breaths, so the
-    // wash is mirror-symmetric left to right; (6, 6) mirrors (57, 6) but is
-    // far off the crest. Whatever separates the two is the sheen alone.
-    let (on, off) = (rgb(&quarter, 57, 6), rgb(&quarter, 6, 6));
+    // S1: the sheen. At a quarter turn one of the glint's spiral arms
+    // crosses the top-right diagonal through pixel (53, 10). The pools are
+    // then at the top and bottom centres, untraded and between breaths, so
+    // the wash is mirror-symmetric left to right — but the arms are not (they
+    // are symmetric under a half TURN), and (10, 10), the mirror of (53, 10),
+    // lies midway between them. Whatever separates the two is the sheen alone.
+    let (on, off) = (rgb(&quarter, 53, 10), rgb(&quarter, 10, 10));
     eprintln!("[sheen] crest {on:?} vs mirror {off:?}");
     assert!(
         lift(DARK, on) - lift(DARK, off) >= 30,
@@ -70,7 +71,7 @@ fn backdrop_colour_headless() {
         ..wash(0.25, 0.0)
     };
     let lq = shot(LIGHT, &light);
-    let (lon, loff) = (rgb(&lq, 57, 6), rgb(&lq, 6, 6));
+    let (lon, loff) = (rgb(&lq, 53, 10), rgb(&lq, 10, 10));
     eprintln!("[sheen light] crest {lon:?} vs mirror {loff:?}");
     assert!(
         dist(lon, loff) >= 6,

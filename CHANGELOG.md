@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.24
+
+**The background swirls instead of sliding.** Until now everything in the
+backdrop moved in straight lines: the two pools of pole light turned as a bar
+through the centre, the lattice's tint was a straight gradient, and the glint
+was a straight stripe sweeping corner to corner. Now the page moves like the
+hypnotic gradient apps. On the slow clock the middle of the page turns further
+than its rim, so the line between the pools winds into a whirlpool and each
+pool trails a spiral arm as it orbits. The turn winds and eases a little as it
+goes. Two slow currents cross the page at right angles and ripple everything,
+so a pool's edge never sits still. The glint is now two spiral arms that bloom
+out of the centre twice a revolution, pour outward as the pools turn, and
+fade. The whirl starts from nothing on a fresh page and eases out briefly once
+every slow revolution. That keeps a page that has never drifted exactly the
+still one, and Motion off and Drifting background off still stop it. New
+headless tests prove that the centre turns further than the rim, that the
+whirl's wrap is seamless and that the glint's arms pour outward. They fail on
+0.25.23.
+
 ## 0.25.23
 
 **A stronger glint, a livelier gradient, and a background you can see
