@@ -16,7 +16,8 @@ impl ChatPane {
     /// palette, which is showing the same list as a popup and would be
     /// answering the same question twice.
     pub(crate) fn ghost(&self) -> Option<String> {
-        if self.input.starts_with('/') || self.input.contains('\n') {
+        // Only at the very end: the suggestion is a continuation of the draft.
+        if self.caret_back > 0 || self.input.starts_with('/') || self.input.contains('\n') {
             return None;
         }
         crate::suggest::suggest(&self.input, self.history.lines())

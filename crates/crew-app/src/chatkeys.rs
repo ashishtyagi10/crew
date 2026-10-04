@@ -1,5 +1,6 @@
 //! Key classification for chat panes. Extracted from `chat.rs` as a pure,
 //! testable seam (winit's `KeyEvent` is `#[non_exhaustive]` and hard to build).
+use crate::chatcursor::Op;
 use winit::keyboard::{Key, NamedKey};
 
 /// What a key press means to a chat pane.
@@ -33,6 +34,8 @@ pub(crate) enum ChatInput {
     Cancel,
     /// Ctrl+D — close an idle pane from an empty composer (`chatctrl`).
     EndOfInput,
+    /// A caret move or a caret-relative delete (`chatcursor`).
+    Caret(crate::chatcursor::Op),
     Ignore,
 }
 
@@ -78,6 +81,11 @@ pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool, ctrl: bool) ->
                 "c" => ChatInput::Cancel,
                 "d" => ChatInput::EndOfInput,
                 "j" => ChatInput::Newline,
+                "a" => ChatInput::Caret(Op::LineStart),
+                "e" => ChatInput::Caret(Op::LineEnd),
+                "k" => ChatInput::Caret(Op::KillEnd),
+                "u" => ChatInput::Caret(Op::KillStart),
+                "w" => ChatInput::Caret(Op::WordBack),
                 _ => ChatInput::Ignore,
             }
         }
@@ -85,6 +93,10 @@ pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool, ctrl: bool) ->
         Key::Named(NamedKey::Tab) if shift => ChatInput::CycleMode,
         Key::Named(NamedKey::Tab) => ChatInput::Complete,
         Key::Named(NamedKey::ArrowRight) => ChatInput::Accept,
+        Key::Named(NamedKey::ArrowLeft) => ChatInput::Caret(Op::Left),
+        Key::Named(NamedKey::Home) => ChatInput::Caret(Op::LineStart),
+        Key::Named(NamedKey::End) => ChatInput::Caret(Op::LineEnd),
+        Key::Named(NamedKey::Delete) => ChatInput::Caret(Op::Delete),
         Key::Named(NamedKey::ArrowUp) => ChatInput::Up,
         Key::Named(NamedKey::ArrowDown) => ChatInput::Down,
         Key::Named(NamedKey::Enter) if shift => ChatInput::Newline,
@@ -93,6 +105,21 @@ pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool, ctrl: bool) ->
         Key::Named(NamedKey::Space) => ChatInput::Char(' '),
         Key::Character(s) => s.chars().next().map_or(ChatInput::Ignore, ChatInput::Char),
         _ => ChatInput::Ignore,
+    }
+}
+
+/// [`chat_key`] with Alt: Alt+←/→ move by word and Alt+Backspace deletes
+/// one (Option on the Mac). Everything else is [`chat_key`]'s.
+pub(crate) fn chat_key_alt(
+    logical: &Key,
+    pressed: bool,
+    (shift, ctrl, alt): (bool, bool, bool),
+) -> ChatInput {
+    match logical {
+        Key::Named(NamedKey::ArrowLeft) if alt && pressed => ChatInput::Caret(Op::WordLeft),
+        Key::Named(NamedKey::ArrowRight) if alt && pressed => ChatInput::Caret(Op::WordRight),
+        Key::Named(NamedKey::Backspace) if alt && pressed => ChatInput::Caret(Op::WordBack),
+        _ => chat_key(logical, pressed, shift, ctrl),
     }
 }
 

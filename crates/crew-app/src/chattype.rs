@@ -8,7 +8,7 @@
 //! (the field, its history, the palette) lives in its modules; this is the
 //! `ChatPane` end of it — the one place a keystroke turns into a change.
 use crate::chat::ChatPane;
-use crate::chatinput::input_reduce;
+use crate::chatcursor::reduce_at;
 use crate::chatkeys::{chat_key, ChatAction, ChatInput};
 use crate::chatlayout::Message;
 use winit::event::KeyEvent;
@@ -23,11 +23,10 @@ impl ChatPane {
     pub fn on_key(
         &mut self,
         key: &KeyEvent,
-        shift: bool,
-        ctrl: bool,
+        mods: (bool, bool, bool),
         cwd: &std::path::Path,
     ) -> Option<ChatAction> {
-        let k = chat_key(&key.logical_key, key.state.is_pressed(), shift, ctrl);
+        let k = crate::chatkeys::chat_key_alt(&key.logical_key, key.state.is_pressed(), mods);
         self.on_typed(k, cwd)
     }
 
@@ -186,6 +185,7 @@ impl ChatPane {
             // Taken above (popups, `approval_key`), but the match must be total.
             ChatInput::Ignore | ChatInput::HistSearch | ChatInput::FindNext => return None,
             ChatInput::CycleMode | ChatInput::Cancel | ChatInput::EndOfInput => return None,
+            ChatInput::Caret(_) => return None,
             // No popup is open (both got these keys first, above), so the
             // arrows mean what they mean in every shell: walk what you already
             // sent. The palette is deliberately NOT re-synced from a recalled
@@ -232,7 +232,7 @@ impl ChatPane {
             ChatInput::Backspace if crate::chatqueue::take_back(self) => return None,
             ChatInput::Backspace => (None, false, true),
         };
-        if let Some(text) = input_reduce(&mut self.input, ch, enter, backspace) {
+        if let Some(text) = reduce_at(&mut self.input, self.caret_back, ch, enter, backspace) {
             self.scroll = 0; // sending snaps back to the live bottom
                              // Recorded BEFORE the intercepts below: a line answered locally is as
                              // worth recalling as one the broker got.

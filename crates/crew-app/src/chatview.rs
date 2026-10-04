@@ -241,8 +241,9 @@ pub(crate) fn art(
     // nothing above can overdraw the footer.
     let summary_h = g.summary;
     let ghost = pane.ghost();
-    cells.extend(crate::chatinput::composer_cells(
+    cells.extend(crate::chatinput::composer_cells_at(
         &pane.input,
+        crate::chatcursor::caret_at(&pane.input, pane.caret_back),
         ghost.as_deref(),
         &pane.agents,
         cols,

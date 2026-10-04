@@ -104,6 +104,16 @@ pub(crate) const CHAT_BINDINGS: &[(&str, &str)] = &[
         "Clear the composer · on an empty one, interrupt the running turn",
     ),
     ("Ctrl+D", "Close the pane (empty composer, nothing running)"),
+    (
+        "Left / Right / Alt+Left / Alt+Right",
+        "Move the caret, a word at a time with Alt (Right at the end takes a suggestion)",
+    ),
+    ("Home / End / Ctrl+A / Ctrl+E", "The start / end of the line"),
+    (
+        "Delete / Ctrl+K / Ctrl+U",
+        "Delete after the caret · to the line's end · to its start",
+    ),
+    ("Ctrl+W / Alt+Backspace", "Delete the word before the caret"),
     ("?", "This key reference (on an empty composer)"),
     ("Tab", "Complete the leading @agent or /construct"),
     (

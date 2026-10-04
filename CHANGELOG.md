@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.37
+
+**The agent composer edits anywhere in the draft.** It used to be
+append-only: fixing a typo mid-prompt meant backspacing over everything after
+it. The composer now has a caret:
+- **Move:** Left/Right a character, Alt+Left/Right a word (Option on the
+  Mac), Home/End and Ctrl+A/E to the start and end of the line.
+- **Type:** typing, Backspace, a paste and a dropped file all land at the
+  caret.
+- **Delete:** Delete takes the character after the caret, Ctrl+K the rest
+  of the line (at a line's end, the line break), Ctrl+U everything before it
+  on the line, and Ctrl+W or Alt+Backspace the word before it.
+
+Mid-draft the caret is a beam on the character it sits before, and in a draft
+taller than the composer its line is the one kept on screen. Right at the very
+end still takes the dim suggestion, which only shows there. Recalling a line,
+Tab or a pop-up pick put the caret back at the end.
+
 ## 0.25.36
 
 **Esc ends an agent's model call at once.** A relay hop's model call used to
