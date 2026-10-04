@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.30
+
+**The agent pane's composer answers to the control keys terminal agents
+use.** Every Ctrl+letter used to type its letter into the composer: Ctrl+C
+typed a `c`. Now:
+- **Ctrl+C** clears what is typed, and on an empty composer interrupts the
+  running turn, as Esc does.
+- **Ctrl+D** closes the pane from an empty composer when nothing is running.
+- **Ctrl+J**, and a `\` typed just before Enter, start a new line instead of
+  sending.
+- **`?`** on an empty composer opens the key reference.
+
+Other Ctrl+letters do nothing, while what Ctrl makes that is not a letter
+(AltGr off the Mac) still types. Also, a task that died mid-run no longer
+leaves its swarm block and working agents showing, so the pane goes idle when
+the task ends.
+
 ## 0.25.29
 
 **agent smith is never left stuck.** A task now makes progress, is retried, or

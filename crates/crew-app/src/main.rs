@@ -58,6 +58,7 @@ mod chatapprove;
 mod chatbody;
 mod chatcompact;
 mod chatcomplete;
+mod chatctrl;
 mod chatdrain;
 mod chatempty;
 mod chatevents;

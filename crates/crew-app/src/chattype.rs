@@ -59,7 +59,7 @@ impl ChatPane {
                 }
             }
         }
-        if let Some(done) = self.approval_key(&k) {
+        if let Some(done) = self.first_keys(&k) {
             return done;
         }
         // Transcript find next (Cmd+F opens it app-side; Ctrl+F here): modal
@@ -185,7 +185,7 @@ impl ChatPane {
             }
             // Taken above (popups, `approval_key`), but the match must be total.
             ChatInput::Ignore | ChatInput::HistSearch | ChatInput::FindNext => return None,
-            ChatInput::CycleMode => return None,
+            ChatInput::CycleMode | ChatInput::Cancel | ChatInput::EndOfInput => return None,
             // No popup is open (both got these keys first, above), so the
             // arrows mean what they mean in every shell: walk what you already
             // sent. The palette is deliberately NOT re-synced from a recalled

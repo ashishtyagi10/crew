@@ -12,6 +12,7 @@ impl CrewApp {
             ChatAction::Close => {
                 self.close_pane(focused);
             }
+            ChatAction::Help => self.open_help(),
             ChatAction::PersistTheme => {
                 self.config.theme = Some(crew_theme::selection_label().to_string());
                 crate::palette::set_accent(self.config.accent_rgb());

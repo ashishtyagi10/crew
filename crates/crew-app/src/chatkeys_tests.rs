@@ -73,14 +73,14 @@ fn ctrl_r_is_the_history_search_chord() {
         chat_key(&Key::Character("R".into()), true, false, true),
         ChatInput::HistSearch
     );
-    // Plain 'r' still types; Ctrl with another letter changes nothing.
+    // Plain 'r' still types; Ctrl with an unbound letter does nothing.
     assert_eq!(
         chat_key(&Key::Character("r".into()), true, false, false),
         ChatInput::Char('r')
     );
     assert_eq!(
         chat_key(&Key::Character("x".into()), true, false, true),
-        ChatInput::Char('x')
+        ChatInput::Ignore
     );
 }
 

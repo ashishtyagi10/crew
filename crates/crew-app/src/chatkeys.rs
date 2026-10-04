@@ -29,6 +29,10 @@ pub(crate) enum ChatInput {
     FindNext,
     /// Shift+Tab — step the pane's approval mode (see `chatapprove`).
     CycleMode,
+    /// Ctrl+C — clear the composer, or interrupt a running turn (`chatctrl`).
+    Cancel,
+    /// Ctrl+D — close an idle pane from an empty composer (`chatctrl`).
+    EndOfInput,
     Ignore,
 }
 
@@ -44,6 +48,8 @@ pub(crate) enum ChatAction {
     /// input-bar font path (size set / rotation toggle needs the renderer,
     /// which the pane can't reach).
     Font(String),
+    /// `?` on an empty composer: open the key reference (`/keys`).
+    Help,
     /// The find popup moved its match target: scroll the transcript to it.
     /// App-side because the jump needs the pane's grid geometry, which the
     /// key handler doesn't have (see `chatfind::jump`).
@@ -61,8 +67,18 @@ pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool, ctrl: bool) ->
         return ChatInput::Ignore;
     }
     match logical {
-        Key::Character(s) if ctrl && s.eq_ignore_ascii_case("r") => ChatInput::HistSearch,
-        Key::Character(s) if ctrl && s.eq_ignore_ascii_case("f") => ChatInput::FindNext,
+        // A Ctrl+letter is a chord, never a letter typed; anything else Ctrl
+        // makes (AltGr is Ctrl+Alt off the Mac: `@`, `{`, `€`) still types.
+        Key::Character(s) if ctrl && s.len() == 1 && s.as_bytes()[0].is_ascii_alphabetic() => {
+            match s.to_ascii_lowercase().as_str() {
+                "r" => ChatInput::HistSearch,
+                "f" => ChatInput::FindNext,
+                "c" => ChatInput::Cancel,
+                "d" => ChatInput::EndOfInput,
+                "j" => ChatInput::Newline,
+                _ => ChatInput::Ignore,
+            }
+        }
         Key::Named(NamedKey::Escape) => ChatInput::Close,
         Key::Named(NamedKey::Tab) if shift => ChatInput::CycleMode,
         Key::Named(NamedKey::Tab) => ChatInput::Complete,
