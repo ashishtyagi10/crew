@@ -51,7 +51,9 @@ pub enum PluginCommand {
 #[serde(rename_all = "snake_case")]
 pub enum ApprovalMode {
     /// Everything runs — the person who typed the task is the approval, and
-    /// the checkpoint is the undo. What crew always did.
+    /// the checkpoint is the undo — except the few commands no checkpoint can
+    /// put back (a force-push, `rm -rf` outside the project, `sudo`…), which
+    /// ask first (`danger`).
     #[default]
     Auto,
     /// File edits run; a command that cannot be undone asks first.
@@ -61,17 +63,20 @@ pub enum ApprovalMode {
     /// Read-only: nothing that changes anything runs, and the agent is told
     /// to describe the change instead.
     Plan,
+    /// Nothing asks, ever — the dangerous few included.
+    Yolo,
 }
 
 impl ApprovalMode {
-    /// Shift+Tab's order: from trusting everything, a step stricter each
-    /// press, then round again.
+    /// Shift+Tab's order: from the default, a step stricter each press, then
+    /// YOLO, then round again.
     pub fn next(self) -> Self {
         match self {
             Self::Auto => Self::Edits,
             Self::Edits => Self::Ask,
             Self::Ask => Self::Plan,
-            Self::Plan => Self::Auto,
+            Self::Plan => Self::Yolo,
+            Self::Yolo => Self::Auto,
         }
     }
 }

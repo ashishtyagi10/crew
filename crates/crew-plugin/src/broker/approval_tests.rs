@@ -367,15 +367,15 @@ fn waiting_gives_up_and_reports_nobody_answered() {
 /// something, with a reason the model can act on.
 #[test]
 fn each_mode_runs_asks_or_refuses_by_tier() {
-    use crate::ApprovalMode::{Ask, Auto, Edits, Plan};
+    use crate::ApprovalMode::{Ask, Auto, Edits, Plan, Yolo};
     let me = Requester::LocalPane;
     let want = |mode, tier| match (mode, tier) {
-        (Auto, _) | (_, Tier::Read) => "allow",
+        (Auto | Yolo, _) | (_, Tier::Read) => "allow",
         (Edits, Tier::Reversible) => "allow",
         (Plan, _) => "deny",
         _ => "ask",
     };
-    for mode in [Auto, Edits, Ask, Plan] {
+    for mode in [Auto, Edits, Ask, Plan, Yolo] {
         for tier in [Tier::Read, Tier::Reversible, Tier::Irreversible] {
             let mut g = gate();
             let policy = Policy {
@@ -431,4 +431,24 @@ fn the_question_says_what_would_happen() {
         "write a.md"
     );
     assert!(what("gh:create_issue", r#"{"title":"x"}"#).starts_with("call gh:create_issue {"));
+}
+
+/// The few commands no checkpoint can put back ask even in auto-approve; in
+/// YOLO nothing asks, them included; and an ordinary command asks in neither.
+#[test]
+fn auto_asks_about_the_dangerous_few_and_yolo_about_nothing() {
+    use crate::ApprovalMode::{Auto, Yolo};
+    let me = Requester::LocalPane;
+    let decide = |mode, risky| {
+        let policy = Policy {
+            mode,
+            risky,
+            ..Policy::default()
+        };
+        gate().decide("sys:run", Tier::Irreversible, &me, policy, 0)
+    };
+    assert!(matches!(decide(Auto, true), Decision::Ask { .. }));
+    assert_eq!(decide(Auto, false), Decision::Allow);
+    assert_eq!(decide(Yolo, true), Decision::Allow);
+    assert_eq!(decide(Yolo, false), Decision::Allow);
 }

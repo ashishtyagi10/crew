@@ -2726,11 +2726,17 @@ and a typo gets a **did-you-mean** suggestion):
 **Approval modes (Shift+Tab).** How freely a pane's tools run is the pane's
 own choice, stepped with **Shift+Tab** the way Claude Code's modes are:
 **auto-approve** (the default — everything runs, and the checkpoint is the
-undo), **accept edits** (file edits run; a command that cannot be undone, like
-`sys:run`, asks first), **ask first** (anything that changes something asks)
-and **plan only** (read-only: a call that would change something is refused,
-and the agent is told to describe the change instead). The mode wears a badge
-on the footer's third line, except the default. When a call asks, the pane
+undo, except the few commands no checkpoint can put back: `rm -rf` outside the
+project or of the whole project, a force-push or remote branch delete, `git
+reset --hard`, `git clean -f`, `sudo`, `curl … | sh`, writing to a disk,
+publishing a package, `terraform destroy`, `DROP TABLE` — those ask first),
+**accept edits** (file edits run; a command that cannot be undone, like
+`sys:run`, asks first), **ask first** (anything that changes something asks),
+**plan only** (read-only: a call that would change something is refused, and
+the agent is told to describe the change instead) and **yolo** (nothing asks,
+ever, the dangerous few included — what auto-approve was before 0.25.28). The
+mode wears a badge on the footer's third line, except the default; yolo's is
+red. When a call asks, the pane
 names what it would do — ``run `cargo test` ``, `edit src/main.rs` — in the
 transcript and on the footer, counts as waiting for you, and on an empty
 composer **Enter** allows it and **Esc** refuses it (`y`/`n` work too). Several

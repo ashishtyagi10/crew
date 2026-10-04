@@ -99,7 +99,7 @@ pub(crate) const CHAT_BINDINGS: &[(&str, &str)] = &[
     ("Tab", "Complete the leading @agent or /construct"),
     (
         "Shift+Tab",
-        "Approval mode: auto \u{2192} accept edits \u{2192} ask first \u{2192} plan only",
+        "Approval mode: auto \u{2192} accept edits \u{2192} ask first \u{2192} plan only \u{2192} yolo",
     ),
     ("Ctrl+R", "Reverse-search prompts you've sent"),
     ("Cmd+F / Ctrl+F", "Find in the transcript, jump per match"),

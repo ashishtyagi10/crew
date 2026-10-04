@@ -66,6 +66,7 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
     if approve != crew_plugin::ApprovalMode::Auto {
         let ink = match approve {
             crew_plugin::ApprovalMode::Plan => th.ansi[14],
+            crew_plugin::ApprovalMode::Yolo => th.ansi[9],
             crew_plugin::ApprovalMode::Ask => th.ansi[12],
             _ => th.ansi[13],
         };
