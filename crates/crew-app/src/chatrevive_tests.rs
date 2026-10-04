@@ -83,3 +83,36 @@ fn a_broker_that_keeps_dying_is_left_stopped() {
     );
     let _ = std::fs::remove_file(&file);
 }
+
+/// A worker that crashed mid-swarm ends its task without its agents going
+/// idle or its swarm folding: the task's end settles both, so the pane is
+/// not left busy with nothing behind it.
+#[test]
+fn a_task_that_ended_mid_swarm_leaves_nothing_live() {
+    let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
+    let mut p = ChatPane::new(plugin, "crew".into());
+    p.absorb_task(2, true);
+    p.absorb_hive_plan(vec![crew_hive::TaskSpec {
+        id: crew_hive::TaskId(0),
+        title: "research".into(),
+        agent: crew_hive::AgentKind::Api { system: None },
+        model: crew_hive::ModelTier::Cheap,
+        deps: vec![],
+        prompt: "p".into(),
+        specialty: String::new(),
+        expertise: String::new(),
+    }]);
+    p.active.push(crate::chatflow::ActiveAgent {
+        name: "coder".into(),
+        from: String::new(),
+        since: std::time::Instant::now(),
+        tool: None,
+    });
+    assert!(p.is_busy());
+    p.absorb_task(2, false);
+    assert!(
+        p.swarm.is_none() && p.active.is_empty(),
+        "nothing live is left"
+    );
+    assert!(!p.is_busy(), "the pane is idle again");
+}
