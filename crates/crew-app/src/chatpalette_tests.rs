@@ -271,7 +271,7 @@ fn accepting_a_row_that_needs_a_key_asks_for_it_instead_of_running() {
 /// loses or duplicates a command is worse than no grouping.
 #[test]
 fn browsing_groups_every_construct_exactly_once() {
-    let items = super::chatpaletteitems::slash_items("");
+    let items = super::chatpaletteitems::slash_items("", &[]);
     let rows: Vec<&str> = items
         .iter()
         .filter(|i| !i.header)
@@ -296,7 +296,7 @@ fn browsing_groups_every_construct_exactly_once() {
 /// and labels between one or two survivors are chrome in the way.
 #[test]
 fn filtering_is_a_flat_list() {
-    let items = super::chatpaletteitems::slash_items("mo");
+    let items = super::chatpaletteitems::slash_items("mo", &[]);
     assert!(!items.is_empty());
     assert!(
         items.iter().all(|i| !i.header),

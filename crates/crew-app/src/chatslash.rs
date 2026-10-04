@@ -71,6 +71,25 @@ impl ChatPane {
         self.answered(&text, None)
     }
 
+    /// `/name rest`, where `name` is a skill (crew's own, or a Claude Code
+    /// command) and no construct: the line becomes `@skill:name rest`, so the
+    /// playbook rides along as the `@` picker's would, and is sent as usual.
+    pub(crate) fn skill_command(&mut self, cwd: &std::path::Path) {
+        let Some(line) = self.input.trim_start().strip_prefix('/') else {
+            return;
+        };
+        let (name, rest) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
+        let slashed = format!("/{name}");
+        if name.is_empty() || crate::chatcomplete::CONSTRUCTS.contains(&slashed.as_str()) {
+            return;
+        }
+        if crew_plugin::skills_list(cwd).iter().any(|s| s.name == name) {
+            self.input = format!("@skill:{name} {}", rest.trim())
+                .trim_end()
+                .to_string();
+        }
+    }
+
     /// A line answered here: recalled like any other, and gone from the composer.
     fn answered(&mut self, text: &str, action: Option<ChatAction>) -> Option<Option<ChatAction>> {
         self.history.record(text);

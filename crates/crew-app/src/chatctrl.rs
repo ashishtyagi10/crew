@@ -12,9 +12,16 @@ impl ChatPane {
     /// The keys that act before any popup or the composer sees them — a
     /// waiting approval's and Shift+Tab's first (`chatapprove`). `Some` when
     /// consumed, carrying what `on_input` returns.
-    pub(crate) fn first_keys(&mut self, k: &ChatInput) -> Option<Option<ChatAction>> {
+    pub(crate) fn first_keys(
+        &mut self,
+        k: &ChatInput,
+        cwd: &std::path::Path,
+    ) -> Option<Option<ChatAction>> {
         if let Some(done) = self.approval_key(k).or_else(|| self.slash_key(k)) {
             return Some(done);
+        }
+        if matches!(k, ChatInput::Enter) {
+            self.skill_command(cwd); // `/name` → `@skill:name`, then sent as usual
         }
         match k {
             ChatInput::Cancel if !self.input.is_empty() => self.input.clear(),

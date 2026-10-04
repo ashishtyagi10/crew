@@ -146,11 +146,25 @@ pub(crate) fn load() -> Vec<Skill> {
 /// User + project skills, the project dir rooted explicitly at
 /// `project_root` — the GUI's attach picker lists skills for a pane whose
 /// cwd is not the process cwd.
+///
+/// Claude Code's custom commands (`.claude/commands/*.md`, in the project and
+/// in the home directory) are playbooks of the same shape — a markdown file
+/// with optional frontmatter — so they load as skills too, and a project that
+/// has them can run them as `/name` in crew. Crew's own win a name they share.
 pub fn list(project_root: &Path) -> Vec<Skill> {
-    let user = dirs::config_dir()
+    let claude = |dir: Option<PathBuf>, origin| {
+        dir.map(|d| load_dir(&d.join(".claude").join("commands"), origin))
+            .unwrap_or_default()
+    };
+    let crew_user = dirs::config_dir()
         .map(|d| load_dir(&d.join("crew").join("skills"), "user"))
         .unwrap_or_default();
-    let project = load_dir(&project_root.join(".crew/skills"), "project");
+    let user = merge(claude(dirs::home_dir(), "user"), crew_user);
+    let crew_project = load_dir(&project_root.join(".crew/skills"), "project");
+    let project = merge(
+        claude(Some(project_root.to_path_buf()), "project"),
+        crew_project,
+    );
     merge(user, project)
 }
 

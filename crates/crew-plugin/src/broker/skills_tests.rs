@@ -211,3 +211,26 @@ fn an_unreadable_skill_file_is_reported_and_the_rest_still_load() {
         errs[0]
     );
 }
+
+/// Claude Code's custom commands load as skills, and crew's own skill wins a
+/// name both use.
+#[test]
+fn claude_code_commands_are_skills_and_crews_win_a_shared_name() {
+    let root = std::env::temp_dir().join(format!("crew-skills-claude-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let claude = root.join(".claude").join("commands");
+    let crew = root.join(".crew").join("skills");
+    std::fs::create_dir_all(&claude).unwrap();
+    std::fs::create_dir_all(&crew).unwrap();
+    std::fs::write(claude.join("review-pr.md"), "Review the PR: $ARGUMENTS").unwrap();
+    std::fs::write(claude.join("deploy.md"), "claude's deploy").unwrap();
+    std::fs::write(crew.join("deploy.md"), "crew's deploy").unwrap();
+    let skills = list(&root);
+    let body = |n: &str| skills.iter().find(|s| s.name == n).map(|s| s.body.clone());
+    assert_eq!(
+        body("review-pr").as_deref(),
+        Some("Review the PR: $ARGUMENTS")
+    );
+    assert_eq!(body("deploy").as_deref(), Some("crew's deploy"));
+    let _ = std::fs::remove_dir_all(&root);
+}

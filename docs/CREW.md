@@ -3101,7 +3101,12 @@ hot-reload: skills and manifests are re-read from disk on every use, and
 
 - **Skills** are markdown playbooks in `~/.config/crew/skills/` (user) or
   `./.crew/skills/` (project; wins on a name clash) — either flat `.md`
-  files or **directories with a `SKILL.md`** plus supporting files. Optional
+  files or **directories with a `SKILL.md`** plus supporting files. Claude
+  Code's custom commands (`.claude/commands/*.md`, in the project and in your
+  home directory) load as skills too, crew's own winning a shared name. Any
+  skill runs as a **slash command**: `/<name> src/main.rs` sends the line
+  with that playbook attached (it becomes `@skill:<name> …`), and the `/`
+  palette lists the skills under their own heading. Optional
   `---` frontmatter sets `name:` and `description:`; otherwise the file stem
   and first line are used. Skills disclose **progressively**: bodies up to
   8 KB are inlined whole, while an oversized playbook is framed as its
