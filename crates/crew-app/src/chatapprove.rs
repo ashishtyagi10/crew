@@ -1,8 +1,8 @@
 //! Shift+Tab's approval modes, and the questions they raise, in a chat pane.
 //!
 //! The mode is the pane's own — every pane has its own broker. Shift+Tab
-//! steps it (auto → accept edits → ask first → plan only → auto, the order
-//! Claude Code's modes run in), the broker hears it as
+//! steps it (auto → accept edits → ask first → plan only → yolo → auto, the
+//! order Claude Code's modes run in), the broker hears it as
 //! `PluginCommand::Mode`, and the footer's mode line wears it. In any mode
 //! but auto the broker may stop a tool call to ask (`PluginEvent::Approval`):
 //! the question lands in the transcript and on the footer, and on an empty
@@ -29,16 +29,20 @@ pub(crate) fn label(mode: ApprovalMode) -> &'static str {
         ApprovalMode::Edits => "accept edits",
         ApprovalMode::Ask => "ask first",
         ApprovalMode::Plan => "plan only",
+        ApprovalMode::Yolo => "yolo",
     }
 }
 
 /// What the mode means, said once when it is chosen.
 fn meaning(mode: ApprovalMode) -> &'static str {
     match mode {
-        ApprovalMode::Auto => "everything runs; the checkpoint is the undo",
+        ApprovalMode::Auto => {
+            "everything runs, but a force-push, `rm -rf` outside the project or `sudo` asks first"
+        }
         ApprovalMode::Edits => "file edits run; a command that cannot be undone asks first",
         ApprovalMode::Ask => "anything that changes something asks first",
         ApprovalMode::Plan => "read-only: nothing is changed, the agent plans instead",
+        ApprovalMode::Yolo => "nothing asks, ever: not even a force-push or `rm -rf /`",
     }
 }
 

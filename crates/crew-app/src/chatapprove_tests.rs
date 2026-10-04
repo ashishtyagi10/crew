@@ -41,7 +41,7 @@ fn footer(p: &ChatPane) -> String {
 }
 
 /// Shift+Tab is its own key — not Tab's completion — and each press steps
-/// the mode, tells the broker and says what the mode means; four presses
+/// the mode, tells the broker and says what the mode means; five presses
 /// come back round to auto.
 #[test]
 fn shift_tab_steps_the_mode_and_tells_the_broker() {
@@ -57,14 +57,14 @@ fn shift_tab_steps_the_mode_and_tells_the_broker() {
     let (mut p, file) = pane();
     let cwd = std::env::temp_dir();
     let mut seen = Vec::new();
-    for _ in 0..4 {
+    for _ in 0..5 {
         assert!(p.on_input(ChatInput::CycleMode, &cwd).is_none());
         seen.push(p.approval_mode);
     }
     use ApprovalMode::*;
-    assert_eq!(seen, [Edits, Ask, Plan, Auto]);
-    let lines = sent(&file, 4);
-    for (line, mode) in lines.iter().zip(["edits", "ask", "plan", "auto"]) {
+    assert_eq!(seen, [Edits, Ask, Plan, Yolo, Auto]);
+    let lines = sent(&file, 5);
+    for (line, mode) in lines.iter().zip(["edits", "ask", "plan", "yolo", "auto"]) {
         assert!(
             line.contains(r#""type":"mode""#) && line.contains(&format!(r#""approval":"{mode}""#)),
             "{line}"

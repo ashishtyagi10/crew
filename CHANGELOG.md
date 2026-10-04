@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.28
+
+**YOLO mode, and an auto-approve that asks about the dangerous few.**
+Shift+Tab now has a fifth stop, **yolo**, with a red badge: nothing asks,
+ever. It is exactly what auto-approve used to be. Auto-approve, still the
+default, keeps running everything, except a short list of commands no
+checkpoint can put back. Those now ask first, saying why:
+- `rm -rf` outside the project, or of the whole project;
+- a force-push or a remote branch delete;
+- `git reset --hard` and `git clean -f`;
+- `sudo`, and `curl … | sh`;
+- writing to a disk, shutting the machine down;
+- publishing a package, `terraform destroy`, `kubectl delete`, `DROP TABLE`.
+
+The list is deliberately short. `rm -rf target`, `git push` and everything
+ordinary never ask, because a prompt on those teaches people to press Enter
+without reading. The cycle is auto → accept edits → ask first → plan only →
+yolo.
+
 ## 0.25.27
 
 **Shift+Tab steps a pane's approval mode, the way Claude Code's does.** There

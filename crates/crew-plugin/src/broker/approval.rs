@@ -102,6 +102,8 @@ pub struct Policy {
     pub timeout_ms: u64,
     /// What the person at the pane chose with Shift+Tab ([`mode`] is the live one).
     pub mode: ApprovalMode,
+    /// This call is one of the few even auto-approve asks about (`danger`).
+    pub risky: bool,
 }
 
 impl Default for Policy {
@@ -110,6 +112,7 @@ impl Default for Policy {
             trust_present_human: true,
             timeout_ms: DEFAULT_TIMEOUT_MS,
             mode: ApprovalMode::Auto,
+            risky: false,
         }
     }
 }
@@ -126,6 +129,7 @@ pub fn set_mode(mode: ApprovalMode) {
         ApprovalMode::Edits => 1,
         ApprovalMode::Ask => 2,
         ApprovalMode::Plan => 3,
+        ApprovalMode::Yolo => 4,
     };
     MODE.store(n, std::sync::atomic::Ordering::Relaxed);
 }
@@ -136,6 +140,7 @@ pub fn mode() -> ApprovalMode {
         1 => ApprovalMode::Edits,
         2 => ApprovalMode::Ask,
         3 => ApprovalMode::Plan,
+        4 => ApprovalMode::Yolo,
         _ => ApprovalMode::Auto,
     }
 }
@@ -194,7 +199,10 @@ impl Gate {
     ) -> Decision {
         if requester.is_present_human() {
             let asks = match policy.mode {
-                ApprovalMode::Auto => tier.needs_approval() && !policy.trust_present_human,
+                ApprovalMode::Auto => {
+                    policy.risky || (tier.needs_approval() && !policy.trust_present_human)
+                }
+                ApprovalMode::Yolo => false,
                 ApprovalMode::Edits => tier == Tier::Irreversible,
                 ApprovalMode::Ask => tier != Tier::Read,
                 ApprovalMode::Plan if tier == Tier::Read => false,
@@ -313,11 +321,12 @@ pub fn ask_host(p: &Pending) -> bool {
 /// Ask the person at a pane about `p`, saying `what` it would do — the pane draws the
 /// question with its own keys, so it carries no "reply yes" instructions. `false` when nothing
 /// can carry it.
-pub fn ask_host_about(p: &Pending, what: &str) -> bool {
+pub fn ask_host_about(p: &Pending, what: &str, danger: Option<&str>) -> bool {
     let Some(emit) = EMITTER.get() else {
         return false;
     };
     let why = match p.tier {
+        _ if danger.is_some() => danger.unwrap_or_default(),
         Tier::Irreversible => "it cannot be undone",
         Tier::Reversible => "the checkpoint can undo it",
         Tier::Read => "it only reads",

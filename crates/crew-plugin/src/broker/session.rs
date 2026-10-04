@@ -361,7 +361,13 @@ impl SessionTools {
     /// Put approval `id` for `name` to the person at the pane and wait for their answer.
     /// `Ok` = they allowed it. `Err(None)` = nobody here can be asked; `Err(Some(why))` = they
     /// refused, did not answer in time, or stopped the task — `why` is told to the model.
-    fn ask(&self, id: &str, name: &str, args: &str) -> Result<(), Option<String>> {
+    fn ask(
+        &self,
+        id: &str,
+        name: &str,
+        args: &str,
+        danger: Option<&str>,
+    ) -> Result<(), Option<String>> {
         use super::approval as a;
         let pending = self
             .gate
@@ -372,7 +378,7 @@ impl SessionTools {
             .find(|p| p.id == id)
             .cloned();
         let asked = self.requester.is_present_human()
-            && pending.is_some_and(|p| a::ask_host_about(&p, &a::what(name, args)));
+            && pending.is_some_and(|p| a::ask_host_about(&p, &a::what(name, args), danger));
         if !asked {
             return Err(None);
         }
@@ -536,8 +542,18 @@ impl super::toolcall::ToolRunner for SessionTools {
         let name = format!("{server}:{tool}");
         let tier = self.tier_for(server, tool);
         let now = super::ledger::now_ms();
+        // The few commands even auto-approve asks about, and why (`danger`).
+        let danger = (name == "sys:run")
+            .then(|| serde_json::from_str::<serde_json::Value>(args).ok())
+            .flatten()
+            .and_then(|v| {
+                v.get("cmd")
+                    .and_then(|c| c.as_str())
+                    .and_then(super::danger::of)
+            });
         let policy = super::approval::Policy {
             mode: super::approval::mode(),
+            risky: danger.is_some(),
             ..self.policy
         };
         let decision = self.gate.lock().unwrap_or_else(|e| e.into_inner()).decide(
@@ -560,7 +576,7 @@ impl super::toolcall::ToolRunner for SessionTools {
             // waits for the answer. Anyone else has nothing that can carry it yet, so it is a
             // refusal said out loud rather than a silent wait.
             Decision::Ask { id, reply_to } => {
-                if let Err(why) = self.ask(&id, &name, args) {
+                if let Err(why) = self.ask(&id, &name, args, danger) {
                     let why = why.unwrap_or_else(|| {
                         format!("{name} needs approval from {reply_to} and no channel can ask yet (approval {id})")
                     });
