@@ -9,7 +9,7 @@
 //! `ChatPane` end of it — the one place a keystroke turns into a change.
 use crate::chat::ChatPane;
 use crate::chatcursor::reduce_at;
-use crate::chatkeys::{chat_key, ChatAction, ChatInput};
+use crate::chatkeys::{ChatAction, ChatInput};
 use crate::chatlayout::Message;
 use winit::event::KeyEvent;
 
