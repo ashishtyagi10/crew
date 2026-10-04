@@ -2747,6 +2747,14 @@ composer opens the key reference. Every other Ctrl+letter does nothing; they
 used to type their letter. What Ctrl makes that is not a letter (AltGr is
 Ctrl+Alt off the Mac) still types.
 
+**A fresh start and the mode in words.** `/clear` is a fresh conversation, as
+in Claude Code: anything running stops, the broker forgets every turn so far
+(and a pending plan), and the pane empties its transcript and its queue.
+`/approvals <mode>` is Shift+Tab in words — `auto`, `edits`, `ask`, `plan` or
+`yolo`, and the names other agents use (`accept-edits`, `read-only`,
+`bypass`…) — and `/approvals` alone says which mode is on.
+`/approvals default <mode>` also saves it as the mode new agent panes start in.
+
 **Approval modes (Shift+Tab).** How freely a pane's tools run is the pane's
 own choice, stepped with **Shift+Tab** the way Claude Code's modes are:
 **auto-approve** (the default — everything runs, and the checkpoint is the

@@ -43,6 +43,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     skills: drop .md playbooks into .crew/skills — a task that names one applies it by itself\n\
     /reload — re-read skills, plugin agents, integrations and mcp.json without a restart\n\
     /stop [#n] — cancel all background tasks, or just task #n\n\
+    /clear — a fresh conversation: stop what runs and forget every turn so far\n\
     @<agent> <task> — choose who starts the relay\n\
     @<a>+<b> <task> — those agents answer in parallel\n\
     \u{2026} tip: tasks run in the background — the footer lists them, /stop #n cancels one\n\

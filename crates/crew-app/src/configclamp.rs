@@ -53,6 +53,9 @@ impl CrewConfig {
             density: self.density,
             nav_card: self.nav_card,
             weather_place: self.weather_place,
+            approval_default: self
+                .approval_default
+                .filter(|m| crate::chatapprove::parse(m).is_some()),
             leading: self.leading,
             contrast: self.contrast,
             shape_cues: self.shape_cues,

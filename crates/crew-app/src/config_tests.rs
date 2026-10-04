@@ -113,6 +113,7 @@ fn round_trip() {
         density: "roomy".to_string(),
         nav_card: "glance".into(),
         weather_place: String::new(),
+        approval_default: Some("yolo".to_string()),
         leading: "loose".to_string(),
         contrast: "high".to_string(),
         shape_cues: "on".to_string(),
@@ -134,8 +135,7 @@ fn round_trip() {
         theme: Some("paper-light".to_string()),
         theme_dark: Some("crt".to_string()),
         theme_light: Some("sepia-light".to_string()),
-        // Deliberately non-default: `clamped()` rebuilds the struct field by
-        // field, so a field it forgets is silently reset on EVERY load.
+        // Non-default: `clamped()` rebuilds field by field; one it forgets resets on every load.
         auto_light_from: "05:30".to_string(),
         auto_light_to: "21:05".to_string(),
         paper_texture: false,

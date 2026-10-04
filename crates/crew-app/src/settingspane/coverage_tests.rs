@@ -52,7 +52,11 @@ fn edits(f: Field) -> &'static str {
 
 /// Keys the form deliberately does not carry, each with the reason — "we
 /// forgot" is not a third option.
-const NOT_IN_FORM: [(&str, &str); 13] = [
+const NOT_IN_FORM: [(&str, &str); 14] = [
+    (
+        "approval_default",
+        "set live by /approvals default <mode> in an agent pane",
+    ),
     (
         "nav_collapsed",
         "set live by the nav's own chevron, which is on screen in both states",

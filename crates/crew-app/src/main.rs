@@ -92,6 +92,7 @@ mod chatmotion;
 #[cfg(test)]
 #[path = "chatshot_tests.rs"]
 mod chatshot_tests;
+mod chatslash;
 mod chatspan;
 #[cfg(test)]
 #[path = "chatswarmshot_tests.rs"]

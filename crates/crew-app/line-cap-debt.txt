@@ -14,7 +14,7 @@ src/cardshot_tests.rs 210
 src/channel/telegram/mod.rs 286
 src/channel/telegram/mod_tests.rs 201
 src/chat_tests.rs 1885
-src/chatcomplete.rs 316
+src/chatcomplete.rs 312
 src/chatfind_tests.rs 366
 src/chatflow.rs 207
 src/chatfold_tests.rs 378

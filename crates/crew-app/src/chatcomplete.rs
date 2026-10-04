@@ -6,21 +6,17 @@ pub(crate) use crate::completefuzzy::*;
 use crew_plugin::AgentInfo;
 
 /// Every composer slash action: broker constructs plus the pane-local
-/// `/export`, `/theme`, and `/exit` (see `chatexport` / `chattheme` /
-/// `chat`). Folding the transcript is automatic (`ChatPane::push_capped`).
-pub(crate) const CONSTRUCTS: [&str; 10] = [
+/// `/export`, `/theme`, `/exit` and `/approvals` (`chatexport`, `chattheme`, `chat`, `chatslash`).
+#[rustfmt::skip] // packed: "/approvals" is past rustfmt's short-item width
+pub(crate) const CONSTRUCTS: [&str; 12] = [
     "/help", "/model", "/logout", "/diff", "/doctor", "/reload", "/stop", "/export", "/theme",
-    "/exit",
+    "/exit", "/clear", "/approvals",
 ];
 
-/// Hints that belong to the PANE rather than to the broker, and so are written
-/// here instead of derived: the three pane-local constructs the broker has
-/// never heard of, plus the two where standing in the pane changes what is
-/// worth saying — "this list" reads as nothing in a palette that IS the list.
-///
-/// Being a short, declared list is the point. Everything absent from it shows
-/// the broker's own sentence, so a hint cannot quietly contradict the command
-/// it labels — which is exactly what `/goal` once did.
+/// Hints written here rather than derived: the pane-local constructs the broker
+/// has never heard of, plus `/help` and `/model`, where the pane changes what is
+/// worth saying. Everything else shows the broker's own sentence, so a hint
+/// cannot contradict the command it labels — as `/goal`'s once did.
 const PANE_WORDS: &[(&str, &str)] = &[
     ("/help", "list the constructs"),
     (
@@ -30,6 +26,7 @@ const PANE_WORDS: &[(&str, &str)] = &[
     ("/export", "export the transcript"),
     ("/theme", "list or switch the colour theme"),
     ("/exit", "close this pane"),
+    ("/approvals", "approval mode: auto/edits/ask/plan/yolo"),
 ];
 
 /// One-line description for each construct, shown as the dim hint in the
@@ -88,9 +85,8 @@ mod tests;
 mod drift {
     use super::CONSTRUCTS;
 
-    /// Constructs the APP answers by itself — the broker has never heard of
-    /// them, so their absence from its router is correct, not drift.
-    const APP_LOCAL: &[&str] = &["/export", "/theme", "/exit"];
+    /// Constructs the APP answers itself: absent from the broker's router by design.
+    const APP_LOCAL: &[&str] = &["/export", "/theme", "/exit", "/approvals"];
 
     /// Every command the broker answers is offered. (The old "withheld"
     /// class — `/approve`/`/reject`, sent by the pane's enter/esc — retired
