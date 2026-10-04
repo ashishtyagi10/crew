@@ -34,6 +34,10 @@ pub(crate) struct Watch {
     noted: Option<u64>,
     /// When Esc (or a typed `/stop`) was sent, while it has not taken.
     pub(crate) stop_asked: Option<u64>,
+    /// When the turn running now began…
+    turn_since: Option<u64>,
+    /// …and, once it ended, how long it ran — taken by the app (`turndone`).
+    pub(crate) turn_done: Option<u64>,
 }
 
 impl ChatPane {
@@ -44,6 +48,19 @@ impl ChatPane {
         match ev {
             PluginEvent::Alive {} => self.watch.beats = true,
             _ => (self.watch.last_work, self.watch.noted) = (now, None),
+        }
+    }
+
+    /// Stamp a turn's start, and at its end how long it ran.
+    pub(crate) fn track_turn(&mut self) {
+        let now = crate::anim::now_ms();
+        match (self.is_busy(), self.watch.turn_since) {
+            (true, None) => self.watch.turn_since = Some(now),
+            (false, Some(since)) => {
+                self.watch.turn_since = None;
+                self.watch.turn_done = Some(now.saturating_sub(since));
+            }
+            _ => {}
         }
     }
 

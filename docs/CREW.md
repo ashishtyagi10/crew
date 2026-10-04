@@ -319,6 +319,14 @@ loudly it is drawn, because "it is done" and "it went wrong" are not the same
 news and only one of them is worth getting up for. A pane you were not looking
 at raises `✗` as its attention marker rather than `✓`.
 
+**An agent's turn finishing says so too.** When an agent pane's turn ends —
+agent smith answered, a swarm finished — after at least the same threshold
+(`notify_min_secs`) and while you were in another pane or another app, it
+raises the same `done` card (`✓ a 1m15 turn finished in smith`) and the pane's
+`✓` marker, on the same switch. And when crew is not the app in front at all,
+any news that wants you back — done, failed, waiting for you, or a program
+asking — bounces the Dock icon once.
+
 **Toast cards.** The same events also step onto the canvas as cards at the
 top-right of the content area, each holding one line (`done`, `failed`, `bell`,
 `waiting`, `exited`, `match`, `due`, `error` — the last two and `failed` /

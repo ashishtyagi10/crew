@@ -596,6 +596,7 @@ mod toolsrow;
 mod toolstally;
 mod toolsview;
 mod tui;
+mod turndone;
 mod unread;
 mod update;
 mod updatecard;

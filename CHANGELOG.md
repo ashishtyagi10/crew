@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.32
+
+**An agent's turn finishing while you are elsewhere says so.** Until now only
+terminal commands raised the `done` card. Now an agent pane's turn does too,
+when it ran at least `notify_min_secs` and you were in another pane or another
+app: the card reads `✓ a 1m15 turn finished in smith`, it uses the same **Agent
+done** switch, and the pane gets its `✓` marker. And when crew is not the app
+in front, any news that wants you back (done, failed, waiting for you, or a
+program asking) bounces the Dock icon once.
+
 ## 0.25.31
 
 **`/clear`, `/approvals`, and a default approval mode.**
