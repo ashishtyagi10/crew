@@ -15,6 +15,8 @@ impl ChatPane {
         self.running_tasks.retain(|t| *t != id);
         if running {
             self.running_tasks.push(id);
+        } else if self.running_tasks.is_empty() {
+            self.asking.clear(); // nothing is left to be waiting on an answer
         }
     }
 

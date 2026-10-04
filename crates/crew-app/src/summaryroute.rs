@@ -60,6 +60,17 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
         None => "\u{25b6}\u{25b6} swarm mode".to_string(),
     };
     let mut segs: Vec<(Vec<FCell>, u8)> = vec![(badge(&mode, accent), 1)];
+    // Shift+Tab's mode, beside the routing mode — unless it is the default,
+    // which says nothing, as Claude Code's does.
+    let approve = fc.approval.mode;
+    if approve != crew_plugin::ApprovalMode::Auto {
+        let ink = match approve {
+            crew_plugin::ApprovalMode::Plan => th.ansi[14],
+            crew_plugin::ApprovalMode::Ask => th.ansi[12],
+            _ => th.ansi[13],
+        };
+        segs.push((badge(crate::chatapprove::label(approve), ink), 1));
+    }
     // Who is working right now, each name a badge in its roster colour so
     // it matches the chip grid and message cards — lit while its tokens
     // flow, dim once they stop (`summarypulse`); past three names the
@@ -76,7 +87,20 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
             }
         }
     }
-    if fc.plan_pending {
+    if let Some(question) = fc.approval.asking {
+        // A tool call waiting on the user outranks everything, a plan too:
+        // the task is stopped until it is answered.
+        let keys = match cols >= 60 {
+            true => "enter allows \u{00b7} esc refuses",
+            false => "enter/esc",
+        };
+        let more = match fc.approval.more {
+            0 => String::new(),
+            n => format!(" (+{n} more)"),
+        };
+        segs.push((plain(&format!("allow? {question}{more}"), th.ansi[11]), 0));
+        segs.push((plain(keys, th.ansi[11]), 0));
+    } else if fc.plan_pending {
         // A pending plan outranks everything else here: it is the only thing
         // on this line addressed TO the user. The keys go compact rather than
         // missing when the pane is narrow.
@@ -96,6 +120,7 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
         // Only show hints when there are no active agents and no running work.
         segs.push((plain("/ for commands", muted), 2));
         segs.push((plain("@ to relay to an agent", muted), 3));
+        segs.push((plain("shift+tab: approvals", muted), 3));
     }
     let mut out = Vec::new();
     // Budgeted to the room between the one-column margins, like lines 1–2.

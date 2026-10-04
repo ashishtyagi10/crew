@@ -89,14 +89,18 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
 pub(crate) const CHAT_BINDINGS: &[(&str, &str)] = &[
     (
         "Enter",
-        "Send · answers a pending plan when the composer is empty",
+        "Send · answers a pending plan or allows a tool call when the composer is empty",
     ),
     (
         "Esc",
-        "Discard a pending plan · interrupt a running turn · close",
+        "Refuse a tool call · discard a pending plan · interrupt a running turn · close",
     ),
     ("Shift+Enter", "Newline instead of sending"),
     ("Tab", "Complete the leading @agent or /construct"),
+    (
+        "Shift+Tab",
+        "Approval mode: auto \u{2192} accept edits \u{2192} ask first \u{2192} plan only",
+    ),
     ("Ctrl+R", "Reverse-search prompts you've sent"),
     ("Cmd+F / Ctrl+F", "Find in the transcript, jump per match"),
     ("Ctrl+Shift+M", "Markdown preview \u{2194} raw source"),

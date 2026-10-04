@@ -20,6 +20,7 @@ fn fc<'a>(agents: &'a [AgentInfo], ctx: &'a HashMap<String, u64>) -> FooterCtx<'
         input: "",
         running_tasks: &[],
         plan_pending: false,
+        approval: Default::default(),
         active: Vec::new(),
         cwd: None,
         windows: crate::usageledger::Windows::default(),

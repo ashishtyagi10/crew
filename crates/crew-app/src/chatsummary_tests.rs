@@ -35,6 +35,7 @@ fn fc<'a>(agents: &'a [AgentInfo], ctxm: &'a HashMap<String, u64>) -> FooterCtx<
         input: "",
         running_tasks: &[],
         plan_pending: false,
+        approval: Default::default(),
         active: Vec::new(),
         cwd: None,
         windows: crate::usageledger::Windows {
@@ -109,7 +110,7 @@ fn line3_swarm_by_default_relay_when_mentioning() {
     let f = fc(&agents, &empty_ctx);
     let l3 = text(&footer_lines(&f, 120)[2]);
     assert!(l3.contains("\u{25b6}\u{25b6} swarm mode"), "{l3}");
-    assert!(l3.ends_with("@ to relay to an agent"), "{l3}");
+    assert!(l3.ends_with("shift+tab: approvals"), "{l3}");
     let mut f = fc(&agents, &empty_ctx);
     f.input = "@coder fix the tests";
     let l3 = text(&footer_lines(&f, 120)[2]);
@@ -448,8 +449,7 @@ fn a_crowd_of_active_agents_collapses_to_a_count() {
     assert!(!l3.contains('@'), "names leaked past the cap: {l3}");
 }
 
-/// Nobody working → the line is BYTE-IDENTICAL to today's idle line. The
-/// segment must be absent, not empty.
+/// Nobody working → the idle line, byte for byte: the segment absent, not empty.
 #[test]
 fn an_idle_line3_is_unchanged_by_the_active_segment() {
     let empty_ctx = HashMap::new();
@@ -457,7 +457,7 @@ fn an_idle_line3_is_unchanged_by_the_active_segment() {
     let f = fc(&[], &empty_ctx);
     assert_eq!(
         text(&footer_lines(&f, 120)[2]),
-        "\u{2590} \u{25b6}\u{25b6} swarm mode \u{258c} \u{00b7} / for commands \u{00b7} @ to relay to an agent"
+        "\u{2590} \u{25b6}\u{25b6} swarm mode \u{258c} \u{00b7} / for commands \u{00b7} @ to relay to an agent \u{00b7} shift+tab: approvals"
     );
 }
 

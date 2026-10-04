@@ -97,6 +97,8 @@ pub(crate) struct FooterCtx<'a> {
     pub running_tasks: &'a [u64],
     /// A drafted plan is waiting for enter/esc.
     pub plan_pending: bool,
+    /// Shift+Tab's mode, and a tool call's question if one waits.
+    pub approval: crate::chatapprove::Footer<'a>,
     /// Names of agents thinking RIGHT NOW (`ChatPane::active_names`) —
     /// `Activity` events name agents for both relay hops and swarm tasks,
     /// so this one field covers both. Empty when idle.
@@ -251,6 +253,7 @@ pub(crate) fn footer_ctx(pane: &ChatPane) -> FooterCtx<'_> {
         input: &pane.input,
         running_tasks: &pane.running_tasks,
         plan_pending: pane.plan_pending,
+        approval: pane.approval_footer(),
         active: pane.active_names(),
         cwd: pane.cwd.as_deref(),
         windows: crate::usageledger::windows(),

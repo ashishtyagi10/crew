@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.27
+
+**Shift+Tab steps a pane's approval mode, the way Claude Code's does.** There
+are four modes:
+- **Auto-approve** is the default and what crew always did: everything runs,
+  and the checkpoint is the undo.
+- **Accept edits:** file edits run, and a command that cannot be undone, like
+  `sys:run`, asks first.
+- **Ask first:** anything that changes something asks.
+- **Plan only:** read-only. A call that would change something is refused, and
+  the agent is told to describe the change instead.
+
+The mode shows as a badge on the footer (except the default), and an idle
+footer says `shift+tab: approvals`. Until now, a tool call that needed
+approval at a pane was simply refused, because nothing could carry the
+question. It now reaches you. The pane names what the call would do (``run
+`cargo test` ``, `edit src/main.rs`) in the transcript and on the footer, and
+counts as waiting for you. On an empty composer, Enter allows it and Esc
+refuses it; `y` and `n` work too. Questions asked at once by several agents
+queue. An unanswered question is refused after five minutes, and `/stop` ends
+the wait immediately; either way the agent is told it did not run. The mode
+only governs a person at a pane: a phone or a schedule keeps its stricter
+gate.
+
 ## 0.25.26
 
 **A smith task can no longer hang showing "running" forever.** A /smith task

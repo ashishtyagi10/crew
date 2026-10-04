@@ -2723,6 +2723,22 @@ and a typo gets a **did-you-mean** suggestion):
   at its next checkpoint (between hops/rounds). Quick constructs and
   `/doctor` answer immediately while tasks are in flight.
 
+**Approval modes (Shift+Tab).** How freely a pane's tools run is the pane's
+own choice, stepped with **Shift+Tab** the way Claude Code's modes are:
+**auto-approve** (the default — everything runs, and the checkpoint is the
+undo), **accept edits** (file edits run; a command that cannot be undone, like
+`sys:run`, asks first), **ask first** (anything that changes something asks)
+and **plan only** (read-only: a call that would change something is refused,
+and the agent is told to describe the change instead). The mode wears a badge
+on the footer's third line, except the default. When a call asks, the pane
+names what it would do — ``run `cargo test` ``, `edit src/main.rs` — in the
+transcript and on the footer, counts as waiting for you, and on an empty
+composer **Enter** allows it and **Esc** refuses it (`y`/`n` work too). Several
+agents asking at once queue, answered in turn. An unanswered question is
+refused after five minutes, and `/stop` ends the wait at once; either way the
+agent is told it did not run. The mode governs a person at a pane only: a
+phone or a schedule keeps the stricter gate it always had.
+
 **Built-in sys tools.** Agents can touch the workspace without any MCP server:
 five bounded tools ride the same `@tool` surface — **`sys:run`** (one
 non-interactive shell command via `/bin/sh -c`, 120s deadline —

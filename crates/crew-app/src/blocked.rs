@@ -169,7 +169,7 @@ pub(crate) fn observe(p: &mut Pane, now: u64) {
 /// keeps fresh.
 pub(crate) fn pane_blocked(p: &Pane, now: u64) -> bool {
     match &p.content {
-        PaneContent::Chat(c) => c.plan_pending,
+        PaneContent::Chat(c) => c.plan_pending || c.asking().is_some(),
         PaneContent::Terminal(t) => t.tail.waiting(now),
         _ => false,
     }

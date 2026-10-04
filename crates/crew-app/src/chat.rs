@@ -109,6 +109,10 @@ pub struct ChatPane {
     /// sent as the bare words the broker's deterministic plan gate matches
     /// (`/approve` and `/reject` retired as commands).
     pub(crate) plan_pending: bool,
+    /// Shift+Tab's approval mode, and the question a tool call is waiting on
+    /// (see `chatapprove`).
+    pub(crate) approval_mode: crew_plugin::ApprovalMode,
+    pub(crate) asking: std::collections::VecDeque<crate::chatapprove::Asking>,
     /// The plan button the pointer is over (see `chatplanclick`); `None` off
     /// both. Published per frame so the badge brightens and the hand shows.
     pub(crate) hover_btn: Option<crate::chatplanbtn::Btn>,

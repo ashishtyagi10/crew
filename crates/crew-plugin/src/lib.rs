@@ -34,5 +34,5 @@ pub use broker::{
 pub use echo::respond;
 pub use host::Plugin;
 pub use orchestrator::plan;
-pub use protocol::{AgentInfo, PluginCommand, PluginEvent};
+pub use protocol::{AgentInfo, ApprovalMode, PluginCommand, PluginEvent};
 pub use signinopt::SignInOption;

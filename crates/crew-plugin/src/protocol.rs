@@ -36,6 +36,44 @@ pub enum PluginCommand {
         channel: String,
         text: String,
     },
+    /// How freely this pane's tool calls may run from now on — the pane's
+    /// Shift+Tab. Takes effect at the next tool call, mid-task included.
+    Mode {
+        approval: ApprovalMode,
+    },
+}
+
+/// How freely a pane's tool calls run, cycled with Shift+Tab in the pane
+/// (Claude Code's permission modes, on crew's read / reversible /
+/// irreversible tiers). It only governs a person at a pane: a channel or a
+/// trigger keeps the gate it always had.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ApprovalMode {
+    /// Everything runs — the person who typed the task is the approval, and
+    /// the checkpoint is the undo. What crew always did.
+    #[default]
+    Auto,
+    /// File edits run; a command that cannot be undone asks first.
+    Edits,
+    /// Anything that changes something asks first; reads run.
+    Ask,
+    /// Read-only: nothing that changes anything runs, and the agent is told
+    /// to describe the change instead.
+    Plan,
+}
+
+impl ApprovalMode {
+    /// Shift+Tab's order: from trusting everything, a step stricter each
+    /// press, then round again.
+    pub fn next(self) -> Self {
+        match self {
+            Self::Auto => Self::Edits,
+            Self::Edits => Self::Ask,
+            Self::Ask => Self::Plan,
+            Self::Plan => Self::Auto,
+        }
+    }
 }
 
 /// One agent in a plugin's roster: its address name, a short capability role,

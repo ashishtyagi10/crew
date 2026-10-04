@@ -361,3 +361,74 @@ fn waiting_returns_an_answer_that_arrives_while_we_wait() {
 fn waiting_gives_up_and_reports_nobody_answered() {
     assert_eq!(wait_for_answer("m5-never", 150), None);
 }
+
+/// The pane's Shift+Tab modes, for a person at the keyboard: what each lets run, asks about
+/// and refuses, by tier. Auto is today's behaviour; plan refuses anything that changes
+/// something, with a reason the model can act on.
+#[test]
+fn each_mode_runs_asks_or_refuses_by_tier() {
+    use crate::ApprovalMode::{Ask, Auto, Edits, Plan};
+    let me = Requester::LocalPane;
+    let want = |mode, tier| match (mode, tier) {
+        (Auto, _) | (_, Tier::Read) => "allow",
+        (Edits, Tier::Reversible) => "allow",
+        (Plan, _) => "deny",
+        _ => "ask",
+    };
+    for mode in [Auto, Edits, Ask, Plan] {
+        for tier in [Tier::Read, Tier::Reversible, Tier::Irreversible] {
+            let mut g = gate();
+            let policy = Policy {
+                mode,
+                ..Policy::default()
+            };
+            let got = match g.decide("sys:run", tier, &me, policy, 0) {
+                Decision::Allow => "allow",
+                Decision::Ask { reply_to, .. } => {
+                    assert_eq!(reply_to, "pane", "a pane's question goes to the pane");
+                    "ask"
+                }
+                Decision::Deny(why) => {
+                    assert!(
+                        why.contains("plan mode") && why.contains("describe"),
+                        "{why}"
+                    );
+                    "deny"
+                }
+            };
+            assert_eq!(got, want(mode, tier), "{mode:?} × {tier:?}");
+        }
+    }
+}
+
+/// The mode governs a person at a pane only: a channel keeps the gate it always had, so a
+/// pane left in auto cannot wave a phone's irreversible call through.
+#[test]
+fn the_mode_does_not_loosen_the_gate_for_anyone_else() {
+    let policy = Policy {
+        mode: crate::ApprovalMode::Auto,
+        ..Policy::default()
+    };
+    assert!(matches!(
+        gate().decide("sys:run", Tier::Irreversible, &chan(), policy, 0),
+        Decision::Ask { .. }
+    ));
+}
+
+/// The question a person is shown names the thing itself.
+#[test]
+fn the_question_says_what_would_happen() {
+    assert_eq!(
+        what("sys:run", r#"{"cmd":"cargo test"}"#),
+        "run `cargo test`"
+    );
+    assert_eq!(
+        what("sys:edit", r#"{"path":"src/main.rs","old":"a","new":"b"}"#),
+        "edit src/main.rs"
+    );
+    assert_eq!(
+        what("sys:write_file", r#"{"path":"a.md","content":"x"}"#),
+        "write a.md"
+    );
+    assert!(what("gh:create_issue", r#"{"title":"x"}"#).starts_with("call gh:create_issue {"));
+}

@@ -67,7 +67,7 @@ fn the_footer_never_cuts_a_segment() {
         let text: String = row.iter().map(|c| c.c).collect();
         // A badge's end cap is part of the badge.
         let text = text.trim_end_matches(|c: char| c == ' ' || c == '\u{258c}');
-        let whole = ["agent", "commands", "mode", "relay"];
+        let whole = ["agent", "approvals", "commands", "mode", "relay"];
         assert!(
             whole.iter().any(|w| text.ends_with(w)),
             "{cols}: cut {text:?}"

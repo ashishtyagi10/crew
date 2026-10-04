@@ -54,6 +54,7 @@ mod codefield;
 
 mod chat;
 mod chataction;
+mod chatapprove;
 mod chatbody;
 mod chatcompact;
 mod chatcomplete;

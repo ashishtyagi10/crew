@@ -23,6 +23,7 @@ fn coder_block(map: &HashMap<String, u64>, now: u64) -> Color {
         input: "",
         running_tasks: &[],
         plan_pending: false,
+        approval: Default::default(),
         active: vec!["coder"],
         cwd: None,
         windows: crate::usageledger::Windows::default(),

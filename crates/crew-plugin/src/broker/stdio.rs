@@ -123,6 +123,8 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
             PluginCommand::Warm {} => super::prewarm::on_warm(&mut tasks),
             // Typed while a task runs: offered to its next tool round (`steer`).
             PluginCommand::Steer { channel, text } => super::steer::deliver(channel, text),
+            // The pane's Shift+Tab: the gate reads it at the next tool call.
+            PluginCommand::Mode { approval } => super::approval::set_mode(approval),
         }
     }
     // stdin closed (pane gone / EOF): let running tasks finish streaming
