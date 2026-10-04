@@ -2314,9 +2314,10 @@ timed out before any reply) is asked again, 1 s and then 2 s later, before it
 fails; nothing was shown, so a retry can never repeat a word. The broker sends a
 heartbeat every five seconds, and the pane keeps three clocks on it. If a task
 has had nothing new for 90 seconds, a note says what it is waiting on (*coder is
-waiting on sys:run*) and that Esc stops it, again every three minutes. If Esc
-has not ended a task within 20 seconds (a model call or a tool deep in a worker
-cannot always be interrupted), the broker's process is ended and started fresh.
+waiting on sys:run*) and that Esc stops it, again every three minutes. Esc
+ends an agent's model call at once (the call races the task's stop); if a task
+still has not ended within 20 seconds (a tool deep in a worker cannot always be
+interrupted), the broker's process is ended and started fresh.
 If the heartbeats stop for 20 seconds, the broker has hung and is restarted.
 And when the broker's process ends — a crash, a kill — the pane says which task
 did not finish, starts it again with your approval mode, and offers ↑ Enter to

@@ -352,6 +352,8 @@ fn send(
     let crash_out = Arc::clone(&out_thread);
     let handle = std::thread::spawn(move || {
         let ran = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
+            // This task's /stop, where a blocking model call can see it.
+            let _stop = super::cancelscope::enter(Arc::clone(&snap.cancel));
             let tokens = Arc::clone(&snap.tokens);
             // StatsTicks fire while an agent hop blocks this worker thread — from
             // the provider's own runtime plumbing, not this thread's `counting`

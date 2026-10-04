@@ -18,6 +18,7 @@ pub mod approval;
 mod ask;
 pub(crate) mod auth;
 mod bang;
+mod cancelscope;
 mod capabilities;
 mod changed;
 mod checkcmd;
