@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.41
+
+**The vortex flows like liquid and never replays.** Two things still gave it
+away as a machine. Its arms rippled on two clean sine waves, and with its
+clocks running two to one, the whole page repeated exactly every 48 seconds.
+- **Eddies.** A slow drift of smooth noise now bends the page on top of the
+  ripple, finer eddies curling inside coarser ones, so the bands wisp and
+  curl like smoke being drawn into a drain. Like the ripple, it calms toward
+  the eye.
+- **A third clock.** The eddies run on their own loop, about 63 seconds on a
+  quiet page, at an irrational ratio (φ²) to the other two. When the orbit
+  and the slow clock come round together, the eddies have not, so the page
+  never comes back to a frame it has drawn.
+
+A still page is unchanged.
+
 ## 0.25.40
 
 **The vortex pulls like breath and has an eye.** Its motion used to run at

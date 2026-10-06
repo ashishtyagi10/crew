@@ -7,7 +7,7 @@ struct Uniform {
     dot_b: vec4<f32>,    // pole B tint; a = dot radius px
     dot_grid: vec4<f32>, // xy = lattice pitch px; z = wash strength (0 = no wash); w = wash phase (turns)
     wash_focus: vec4<f32>, // xy = orbit centre in uv; z = how far it moves there (0 = page centre); w = wander clock (turns)
-    motion: vec4<f32>,     // x = how awake the page is (0 = the still page); yzw spare
+    motion: vec4<f32>,     // x = how awake the page is (0 = the still page); y = eddy clock (turns); zw spare
 }
 @group(0) @binding(0) var<uniform> u: Uniform;
 
@@ -31,6 +31,20 @@ fn vs(@builtin(vertex_index) vi: u32) -> VsOut {
 // Deterministic per-pixel luminance hash — pure function of pixel coordinates.
 fn grain(px: vec2<f32>) -> f32 {
     return fract(sin(dot(px, vec2<f32>(127.1, 311.7))) * 43758.5453);
+}
+
+// Smooth value noise on the grain hash: 0..1, one feature per unit. Quintic
+// easing between the lattice points, so a warp built on it bends smoothly
+// instead of creasing where the cubic's curvature jumps.
+fn vnoise(p: vec2<f32>) -> f32 {
+    let i = floor(p);
+    let f = fract(p);
+    let w = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+    let a = grain(i);
+    let b = grain(i + vec2<f32>(1.0, 0.0));
+    let c = grain(i + vec2<f32>(0.0, 1.0));
+    let d = grain(i + vec2<f32>(1.0, 1.0));
+    return mix(mix(a, b, w.x), mix(c, d, w.x), w.y);
 }
 
 @fragment
@@ -176,6 +190,24 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         sin(CURRENT_K * q.y + ang + wander),
         sin(CURRENT_K * q.x - 2.0 * ang),
     );
+    // EDDIES: on top of the current's regular waves, a slow drift of noise —
+    // smoke, not sine — so the bands' edges wisp and curl rather than
+    // rippling in step. Two octaves, the finer one warped by the coarser
+    // (a domain warp: eddies inside eddies). The noise is sampled through a
+    // window that circles round the noise plane on the third clock, so its
+    // loop is seamless, and that clock runs at an irrational ratio to the
+    // other two, so the page never comes back to a frame it has drawn.
+    // Stilled toward the centre like the current, and asleep at flow 0.
+    const EDDY: f32 = 0.05;
+    const EDDY_K: f32 = 2.0;
+    let ed = 6.2831853 * u.motion.y;
+    let lap = 1.7 * vec2<f32>(cos(ed), sin(ed));
+    let p1 = q * EDDY_K + lap;
+    let e1 = vec2<f32>(vnoise(p1), vnoise(p1 + vec2<f32>(5.2, 1.3))) - vec2<f32>(0.5);
+    let p2 = q * (2.1 * EDDY_K) + 2.5 * e1 - lap.yx;
+    let e2 = vec2<f32>(vnoise(p2 + vec2<f32>(1.7, 9.2)), vnoise(p2 + vec2<f32>(8.3, 2.8)))
+        - vec2<f32>(0.5);
+    q += EDDY * flow * smoothstep(0.05, 0.4, length(c)) * (e1 + 0.4 * e2);
     // The same bend in uv, for the tint and the glint. Added as a
     // displacement so a page at rest keeps its exact uv.
     let dq = q - c;

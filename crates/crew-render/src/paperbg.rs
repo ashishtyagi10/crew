@@ -53,6 +53,23 @@ pub struct ModernPaper {
     /// of drift and holds it there (see crew-app's `washphase`), so the
     /// motion never has to stop on a clock to keep a resting frame exact.
     pub live: f32,
+    /// The third clock, in turns: where the page's EDDIES — a slow
+    /// domain-warped drift that wisps the bands like smoke — are in their
+    /// loop. It runs at an irrational ratio to the other two, so the page
+    /// never repeats. Moves nothing on a still page (`live` 0).
+    pub eddy: f32,
+}
+
+/// The backdrop's clocks for one frame, as the app hands them over: where the
+/// wash's pools sit on their `phase` orbit and how far they have `wander`ed
+/// (both in turns), how awake the flow is (`live`, `0.0..=1.0`) and where the
+/// eddies are in their loop (`eddy`, turns). All zero is the still page.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct WashClocks {
+    pub phase: f32,
+    pub wander: f32,
+    pub live: f32,
+    pub eddy: f32,
 }
 
 impl ModernPaper {
@@ -178,6 +195,7 @@ impl PaperBgPass {
             focus: [0.5, 0.5],
             focus_pull: 0.0,
             live: 0.0,
+            eddy: 0.0,
         });
         let data: [f32; 28] = [
             page_bg[0],
@@ -205,7 +223,7 @@ impl PaperBgPass {
             d.focus_pull,
             d.wander,
             d.live,
-            0.0,
+            d.eddy,
             0.0,
             0.0,
         ];

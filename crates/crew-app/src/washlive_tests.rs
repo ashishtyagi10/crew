@@ -60,3 +60,24 @@ fn a_hold_keeps_the_page_awake() {
     w.advance(6_000, Some(6_000), MotionLevel::Off);
     assert_eq!(w.live(), 1.0);
 }
+
+/// The eddies keep their own time: when the orbit and the slow clock have
+/// both come round to where they started (48 s at a 24 s pace), the eddies
+/// have not, so the page as a whole does not replay.
+#[test]
+fn the_eddies_never_fall_into_step() {
+    let mut w = WashPhase::default();
+    let pace = Some(24_000);
+    w.advance(0, pace, MotionLevel::Full);
+    for t in (100..=48_000).step_by(100) {
+        w.advance(t, pace, MotionLevel::Full);
+    }
+    let c = w.clocks();
+    let off = |x: f32| x.min(1.0 - x);
+    assert!(
+        off(c.phase) < 1e-3 && off(c.wander) < 1e-3,
+        "both round: {c:?}"
+    );
+    assert!(off(c.eddy) > 0.1, "the eddies came round with them: {c:?}");
+    assert_eq!(c.live, 1.0);
+}
