@@ -27,6 +27,7 @@ pub fn wash(phase: f32, wander: f32) -> ModernPaper {
         wander,
         focus: [0.5, 0.5],
         focus_pull: 0.0,
+        live: 0.0,
     }
 }
 
@@ -42,8 +43,18 @@ pub fn lattice(a: [f32; 3], b: [f32; 3], phase: f32) -> ModernPaper {
     }
 }
 
+/// `m` with its flow fully awake: the whirlpool wound, the vortex turning.
+pub fn awake(m: ModernPaper) -> ModernPaper {
+    ModernPaper { live: 1.0, ..m }
+}
+
 pub fn rgb(buf: &[u8], x: usize, y: usize) -> (i32, i32, i32) {
-    let off = y * 256 + x * 4;
+    rgb_w(buf, 64, x, y)
+}
+
+/// [`rgb`] on a shot `w` pixels wide.
+pub fn rgb_w(buf: &[u8], w: usize, x: usize, y: usize) -> (i32, i32, i32) {
+    let off = (y * w + x) * 4;
     (buf[off] as i32, buf[off + 1] as i32, buf[off + 2] as i32)
 }
 

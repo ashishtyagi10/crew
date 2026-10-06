@@ -47,6 +47,12 @@ pub struct ModernPaper {
     /// gets). The app glides this to zero rather than snapping the centre
     /// home when focus leaves, so the light never teleports.
     pub focus_pull: f32,
+    /// How AWAKE the page is: `0.0` is the still page every resting shot
+    /// draws, `1.0` the page in full flow — the whirlpool wound and the
+    /// vortex's bands pouring in. The app eases it up over the first seconds
+    /// of drift and holds it there (see crew-app's `washphase`), so the
+    /// motion never has to stop on a clock to keep a resting frame exact.
+    pub live: f32,
 }
 
 impl ModernPaper {
@@ -79,7 +85,7 @@ impl PaperBgPass {
 
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("paperbg_uniform"),
-            contents: f32s_as_bytes(&[0.0f32; 24]),
+            contents: f32s_as_bytes(&[0.0f32; 28]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -171,8 +177,9 @@ impl PaperBgPass {
             wander: 0.0,
             focus: [0.5, 0.5],
             focus_pull: 0.0,
+            live: 0.0,
         });
-        let data: [f32; 24] = [
+        let data: [f32; 28] = [
             page_bg[0],
             page_bg[1],
             page_bg[2],
@@ -197,6 +204,10 @@ impl PaperBgPass {
             d.focus[1],
             d.focus_pull,
             d.wander,
+            d.live,
+            0.0,
+            0.0,
+            0.0,
         ];
         queue.write_buffer(&self.uniform_buf, 0, f32s_as_bytes(&data));
     }

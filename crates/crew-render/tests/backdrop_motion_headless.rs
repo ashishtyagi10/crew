@@ -1,7 +1,7 @@
 //! Headless GPU test for the backdrop's MOTION: the pool breath, the pools'
-//! wander, the page's whirlpool, the lattice's turning tint and its spiral
-//! glint. Each is a pure function of the two clocks the app hands the pass,
-//! so each is shot at chosen phases and read back. Skips on a GPU-less
+//! wander, the page's whirlpool, the lattice's turning tint and the vortex.
+//! Each is a pure function of the two clocks and the wake the app hands the
+//! pass, so each is shot at chosen values and read back. Skips on a GPU-less
 //! machine (CI) instead of failing.
 mod common;
 
@@ -73,10 +73,10 @@ fn backdrop_motion_headless() {
         "W1 failed: the leaning pools should light the top, {top} vs {bot}"
     );
 
-    // V1: the whirlpool. Half way round the slow clock the flow is full on
-    // and the lean and reach are both at zero, so the pools sit where they
-    // rest (A blue at the left, B rose at the right) and only the whirl has
-    // moved anything. On a ring round the centre pool A shows as the
+    // V1: the whirlpool. Awake, and half way round the slow clock, the lean
+    // and reach are both at zero, so the pools sit where they rest (A blue
+    // at the left, B rose at the right) and only the whirl has moved
+    // anything. On a ring round the centre pool A shows as the
     // bluest angle; at rest every ring finds it due left, and in the whirl
     // the inner ring finds it turned FURTHER than the outer one — the line
     // between the pools has wound into a spiral, not swung as a bar.
@@ -84,7 +84,7 @@ fn backdrop_motion_headless() {
         pass.update_uniform(&queue, DARK, (128.0, 128.0), 1.0, 0.0, Some(m));
         render_offscreen(&device, &queue, &pass, 128, 128)
     };
-    let (still, whirl) = (big(&wash(0.0, 0.0)), big(&wash(0.0, 0.5)));
+    let (still, whirl) = (big(&wash(0.0, 0.0)), big(&awake(wash(0.0, 0.5))));
     let (inner0, outer0) = (bluest_turn(&still, 0.15), bluest_turn(&still, 0.4));
     let (inner, outer) = (bluest_turn(&whirl, 0.15), bluest_turn(&whirl, 0.4));
     eprintln!("[whirl] inner/outer turn {inner0}/{outer0} -> {inner}/{outer} deg");
@@ -101,12 +101,22 @@ fn backdrop_motion_headless() {
         "V1 failed: the centre should turn further than the rim, {inner}/{outer}"
     );
 
-    // V2: and the whirl winds back to nothing as the slow clock comes round,
-    // so its wrap is never seen.
-    let wrap = shot(DARK, &wash(0.0, 0.999));
-    for (x, y) in [(12, 20), (32, 32), (50, 44)] {
-        let d = dist(rgb(&rest, x, y), rgb(&wrap, x, y));
-        assert!(d <= 6, "V2 failed: ({x},{y}) jumps {d} at the wrap");
+    // V2: the flow never stops, so it has no seam to hide: awake, the page
+    // just before either clock comes round is the page at the top of it.
+    let top = shot(DARK, &awake(wash(0.0, 0.0)));
+    let (wrap_w, wrap_p) = (
+        shot(DARK, &awake(wash(0.0, 0.999))),
+        shot(DARK, &awake(wash(0.999, 0.0))),
+    );
+    for (x, y) in [(12, 20), (32, 32), (50, 44), (20, 50)] {
+        let (dw, dp) = (
+            dist(rgb(&top, x, y), rgb(&wrap_w, x, y)),
+            dist(rgb(&top, x, y), rgb(&wrap_p, x, y)),
+        );
+        assert!(
+            dw <= 6 && dp <= 6,
+            "V2 failed: ({x},{y}) jumps {dw}/{dp} at the wraps"
+        );
     }
 
     // T1: the lattice's tint turns with the orbit. At rest pole A is the
@@ -123,43 +133,48 @@ fn backdrop_motion_headless() {
         "T1 failed: half a turn should reverse it, {tl5} -> {br5}"
     );
 
-    // G1: the glint. One pole, so the turning tint cannot move a pixel and
-    // anything that changes is the arms. At rest the lattice is uniform (the
-    // arms have not bloomed); at a quarter turn, in full bloom, one arm winds
-    // through dot (8, 40), which carries far more of the tint — while dot
-    // (8, 8), midway between the arms, is untouched.
-    let g0 = shot(DARK, &lattice(BLUE, BLUE, 0.0));
-    let g25 = shot(DARK, &lattice(BLUE, BLUE, 0.25));
-    let (mid0, mid25) = (lift(DARK, rgb(&g0, 8, 40)), lift(DARK, rgb(&g25, 8, 40)));
-    let (far0, far25) = (lift(DARK, rgb(&g0, 8, 8)), lift(DARK, rgb(&g25, 8, 8)));
-    eprintln!("[glint] crest dot {mid0} -> {mid25}, far dot {far0} -> {far25}");
+    // G1: the vortex. One pole, so the turning tint cannot move a pixel and
+    // anything that changes is the bands. Asleep the lattice is uniform;
+    // awake, the dots rise and fall band by band, the crest's carrying far
+    // more of the tint than a trough's.
+    let dots16 = |buf: &[u8]| -> Vec<i32> {
+        (0..16)
+            .map(|i| lift(DARK, rgb(buf, 8 + 16 * (i % 4), 8 + 16 * (i / 4))))
+            .collect()
+    };
+    let (asleep, vortex) = (
+        dots16(&shot(DARK, &lattice(BLUE, BLUE, 0.0))),
+        dots16(&shot(DARK, &awake(lattice(BLUE, BLUE, 0.0)))),
+    );
+    let span = |v: &[i32]| (*v.iter().min().unwrap(), *v.iter().max().unwrap());
+    let ((a_lo, a_hi), (v_lo, v_hi)) = (span(&asleep), span(&vortex));
+    eprintln!("[vortex] asleep dots {a_lo}..{a_hi}, awake {v_lo}..{v_hi}");
     assert!(
-        (mid0 - far0).abs() <= 3,
-        "G1 premise: a resting lattice should be uniform, {mid0} vs {far0}"
+        a_hi - a_lo <= 3,
+        "G1 premise: a sleeping lattice is uniform, {asleep:?}"
     );
     assert!(
-        mid25 * 10 >= mid0 * 18,
-        "G1 failed: the crest should lift its dot hard, {mid0} -> {mid25}"
-    );
-    assert!(
-        (far25 - far0).abs() <= 3,
-        "G1 failed: the arms must stay local, far dot {far0} -> {far25}"
+        v_hi * 10 >= v_lo * 25,
+        "G1 failed: the bands should lift their dots hard, {vortex:?}"
     );
 
-    // G2: the wrap is never seen. Just before the arms come round to where
-    // they started, they have faded out and the page is the resting lattice.
-    let wrap = shot(DARK, &lattice(BLUE, BLUE, 0.499));
-    for (x, y) in [(8, 8), (8, 40), (56, 24)] {
-        let (r0, rw) = (lift(DARK, rgb(&g0, x, y)), lift(DARK, rgb(&wrap, x, y)));
+    // G2: no seam. The step across the orbit's wrap (0.999 -> 0) moves each
+    // dot about as far as the same-sized step after it (0 -> 0.001) — the
+    // crest's slope differs a little either side, a seam would be a jump of
+    // hundreds: the bands just keep pouring.
+    let before = dots16(&shot(DARK, &awake(lattice(BLUE, BLUE, 0.999))));
+    let after = dots16(&shot(DARK, &awake(lattice(BLUE, BLUE, 0.001))));
+    for i in 0..16 {
+        let (seam, step) = ((vortex[i] - before[i]).abs(), (after[i] - vortex[i]).abs());
         assert!(
-            (r0 - rw).abs() <= 3,
-            "G2 failed: dot ({x},{y}) glints at the wrap, {r0} vs {rw}"
+            seam <= 2 * step + 3,
+            "G2 failed: dot {i} jumps {seam} at the wrap, {step} a step later"
         );
     }
 
     // L1: it all reads on a LIGHT page too, at the strengths the light
     // themes ship (wash 0.12, dots 0.16): the breath moves pool A's colour
-    // and the glint darkens the crest's dots by a visible step. Measured as
+    // and a vortex band darkens its dots by a visible step. Measured as
     // the change in the pixel itself — on a light page a pole can sit on
     // either side of the paper per channel, so "lift" would half-cancel.
     let light = |phase| ModernPaper {
@@ -168,13 +183,18 @@ fn backdrop_motion_headless() {
     };
     let (ls, le) = (shot(LIGHT, &light(0.125)), shot(LIGHT, &light(0.375)));
     let breath = dist(rgb(&ls, 11, 11), rgb(&le, 52, 11));
-    let dots = |phase| ModernPaper {
+    let dots = |live| ModernPaper {
         dots: 0.16,
-        ..lattice(BLUE, BLUE, phase)
+        live,
+        ..lattice(BLUE, BLUE, 0.0)
     };
-    let (lg0, lg25) = (shot(LIGHT, &dots(0.0)), shot(LIGHT, &dots(0.25)));
-    let glint = dist(rgb(&lg0, 8, 40), rgb(&lg25, 8, 40));
-    eprintln!("[light] breath moves pool A by {breath}, glint moves its dot by {glint}");
+    let (lg0, lg1) = (shot(LIGHT, &dots(0.0)), shot(LIGHT, &dots(1.0)));
+    let glint = (0..16)
+        .map(|i| (8 + 16 * (i % 4), 8 + 16 * (i / 4)))
+        .map(|(x, y)| dist(rgb(&lg0, x, y), rgb(&lg1, x, y)))
+        .max()
+        .unwrap();
+    eprintln!("[light] breath moves pool A by {breath}, a band moves its dot by {glint}");
     assert!(
         breath >= 6,
         "L1 failed: the breath should show on a light page, moved {breath}"
@@ -184,29 +204,32 @@ fn backdrop_motion_headless() {
         "L1 failed: the glint should show on a light page, moved {glint}"
     );
 
-    // G3: the arms pour OUTWARD. On a fine lattice, along the row through
-    // the centre and out to the right, the brightest dot is the arm's crest;
-    // a tenth of a turn later it has moved further out.
+    // G3: the bands pour INWARD. On a lattice fine enough to be a field,
+    // along the row through the centre and out to the right, find the band
+    // crest nearest a third of the way out; a third of a band's pour later
+    // the nearest crest to it has moved toward the centre.
     let fine = |phase| ModernPaper {
-        spacing: [4.0, 4.0],
-        radius: 1.2,
-        ..lattice(BLUE, BLUE, phase)
+        spacing: [2.0, 2.0],
+        radius: 0.9,
+        ..awake(lattice(BLUE, BLUE, phase))
     };
-    let crest = |buf: &[u8]| {
-        (36..63)
-            .step_by(4)
-            .max_by_key(|&x| lift(DARK, rgb(buf, x + 2, 30)))
+    let row = |buf: &[u8]| -> Vec<i32> {
+        (0..128)
+            .map(|x| lift(DARK, rgb_w(buf, 128, x, 64)))
+            .collect()
+    };
+    let crest_near = |v: &[i32], at: usize| {
+        (70..124)
+            .filter(|&x| v[x] >= v[x - 1] && v[x] >= v[x + 1] && v[x] > v[x - 3] && v[x] > v[x + 3])
+            .min_by_key(|&x| x.abs_diff(at))
             .unwrap()
-            + 2
     };
-    let (early, late) = (
-        crest(&shot(DARK, &fine(0.2))),
-        crest(&shot(DARK, &fine(0.3))),
-    );
+    let early = crest_near(&row(&big(&fine(0.1))), 64 + 26);
+    let late = crest_near(&row(&big(&fine(0.1 + 1.0 / 18.0))), early);
     eprintln!("[pour] crest x {early} -> {late}");
     assert!(
-        late - early >= 4,
-        "G3 failed: the arm should move outward, crest x {early} -> {late}"
+        late + 2 <= early,
+        "G3 failed: the band should sink inward, crest x {early} -> {late}"
     );
 }
 

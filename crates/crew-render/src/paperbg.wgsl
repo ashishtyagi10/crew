@@ -7,6 +7,7 @@ struct Uniform {
     dot_b: vec4<f32>,    // pole B tint; a = dot radius px
     dot_grid: vec4<f32>, // xy = lattice pitch px; z = wash strength (0 = no wash); w = wash phase (turns)
     wash_focus: vec4<f32>, // xy = orbit centre in uv; z = how far it moves there (0 = page centre); w = wander clock (turns)
+    motion: vec4<f32>,     // x = how awake the page is (0 = the still page); yzw spare
 }
 @group(0) @binding(0) var<uniform> u: Uniform;
 
@@ -148,21 +149,21 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // crossing at right angles nudge every point along the other axis, so
     // the spiral's arms ripple and a pool's edge never sits still.
     //
-    // `flow` is how far the page has come from its still geometry. It keys
-    // off the slow clock alone and is zero only at its top — a page that has
-    // never drifted, and a brief exhale once a slow revolution (the eighth
-    // power keeps it brief: a tenth of the way round, the flow is half on) —
-    // so a resting shot is exactly the still orbit, and the orbit's own
-    // effects (breath, trade, tint, glint) measure at wander 0 on the page's
-    // straight coordinates. The waves' phases are whole multiples of both
-    // clocks, so every wrap is seamless.
+    // `flow` is how far the page has come from its still geometry: how AWAKE
+    // it is (`motion.x`), which the app eases from 0 to 1 over the first
+    // seconds of drift and then holds. It never dips back on a clock — a
+    // whirlpool that unwound once a revolution read as the motion stopping
+    // and starting, which is the opposite of hypnotic — so a page that has
+    // never drifted is exactly the still orbit, and the orbit's own effects
+    // (breath, trade, tint) measure on a sleeping page's straight
+    // coordinates. The waves' phases are whole multiples of both clocks, so
+    // every wrap is seamless.
     const SWIRL: f32 = 1.8;
     const SWIRL_R: f32 = 1.15;
     const SWIRL_BREATH: f32 = 0.35;
     const CURRENT: f32 = 0.06;
     const CURRENT_K: f32 = 3.5;
-    let rest = pow(0.5 + 0.5 * cos(wander), 8.0);
-    let flow = 1.0 - rest;
+    let flow = u.motion.x;
     let swirl_fall = 1.0 - smoothstep(0.0, SWIRL_R, length(c));
     let twist = SWIRL * flow * (1.0 + SWIRL_BREATH * sin(3.0 * wander))
         * swirl_fall * swirl_fall;
@@ -257,26 +258,32 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let span = abs(axis.x) + abs(axis.y);
     let diag = clamp(0.5 + dot(fuv - vec2<f32>(0.5), axis) / span, 0.0, 1.0);
     let tint = mix(u.dot_a.rgb, u.dot_b.rgb, diag);
-    // The glint: two spiral arms of light, the weave catching it as it turns.
-    // They wind out from the orbit's centre — on the bent coordinates, so
-    // the whirlpool winds them further — and turn with the pools, which at
-    // a fixed point on the page reads as the arms flowing OUTWARD, the way a
-    // hypnotic disc pours. They bloom and fade twice a revolution (`bloom`,
-    // full at the quarter turns), so a page at rest (phase 0) and the moment
-    // of the wrap wear none of it. Each arm thins to nothing at the centre,
-    // where the two would otherwise pile into a hot spot.
-    const GLINT_W: f32 = 0.08; // an arm's half-width, half-height units
-    const GLINT_WIND: f32 = 0.8; // turns an arm makes per half-height unit
-    let gr = length(q);
-    let arm = atan2(q.y, q.x) / 3.14159265 + 2.0 * GLINT_WIND * gr - 2.0 * u.dot_grid.w;
-    // Distance from here to the nearer arm's crest: how far `arm` is from a
-    // whole number, over how fast it changes across the page (its gradient
-    // is 1/πr round the circle and 2·WIND outward, at right angles).
-    let arm_rate = length(vec2<f32>(1.0 / (3.14159265 * max(gr, 1e-3)), 2.0 * GLINT_WIND));
-    let off_arm = abs(fract(arm + 0.5) - 0.5) / arm_rate;
-    let bloom = 0.5 - 0.5 * cos(2.0 * ang);
-    let glint = bloom * smoothstep(0.03, 0.25, gr)
-        * pow(1.0 - smoothstep(0.0, GLINT_W, off_arm), 2.0);
+    // The VORTEX: a logarithmic spiral of soft bands, the weave catching the
+    // light as it turns. A log spiral looks the same at every scale, so as
+    // it turns its bands pour INWARD forever — each one sinking toward the
+    // orbit's centre and widening behind it the way a hypnotic disc draws
+    // the eye — and it never needs to stop, fade or reset to hide a seam:
+    // a whole band's turn later the page is the page it was. It is drawn on
+    // the bent coordinates, so the whirlpool winds it and the current
+    // ripples it, and it wakes with the page (`flow`), so a still page wears
+    // none of it.
+    //
+    // `s` counts bands: ARMS of them round the circle, and one more every
+    // time the radius grows by e^(1/WIND). The spin is a whole number of
+    // bands per orbit, so the wrap is seamless. The band's crest is a
+    // raised cosine, sharpened, so a band is a soft ridge of light rather
+    // than a stripe. It fades out at the very centre, where the bands crowd
+    // closer than a pixel, and eases off toward the rim so the eye is drawn
+    // in.
+    const ARMS: f32 = 5.0;
+    const WIND: f32 = 3.5;
+    const SPIN: f32 = 6.0; // bands that pour past a point per orbit
+    const SHARP: f32 = 3.0;
+    let gr = max(length(q), 1e-4);
+    let s = ARMS * atan2(q.y, q.x) / 6.2831853 + WIND * log(gr) + SPIN * u.dot_grid.w;
+    let crest = pow(0.5 + 0.5 * cos(6.2831853 * s), SHARP);
+    let glint = flow * crest * smoothstep(0.02, 0.22, gr)
+        * mix(1.0, 0.55, smoothstep(0.35, 1.1, gr));
     // The SHEEN: the glint lights the page itself, faintly, in the lattice's
     // colour. Keyed to the wash's own strength — which the frame has already
     // scaled for the OS contrast setting — at half of it, so an arm never
@@ -288,15 +295,19 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // round dots on a grid whose pitch rides the text-cell metrics (set by
     // frame.rs), in the turning tint above so the backdrop carries the
     // theme's gradient identity. A mix toward the tint (not an add) so the
-    // same strength reads on any page brightness. Under the glint's crest a
-    // dot carries up to four times its resting strength.
+    // same strength reads on any page brightness. Under a vortex band's
+    // crest a dot carries up to four times its resting strength and SWELLS,
+    // so the lattice is a halftone of the spiral: the bands pour across the
+    // weave as a wave of fattening dots. Half as hard on a light page, where
+    // a band of darkened dots sits right under dark ink.
     let dot_amp = u.dot_a.a;
     if (dot_amp > 0.0) {
-        const GLINT_GAIN: f32 = 3.0;
+        let GLINT_GAIN = 3.0 * mix(0.5, 1.0, dark_weight);
+        let SWELL = 0.9 * mix(0.6, 1.0, dark_weight);
         let pitch = u.dot_grid.xy;
         let off = (fract(in.pos.xy / pitch) - vec2<f32>(0.5)) * pitch; // px from dot centre
         let d = length(off);
-        let r = u.dot_b.a;
+        let r = u.dot_b.a * (1.0 + SWELL * glint);
         // ±0.8px feathered edge — soft, never a hard aliased circle.
         let mask = 1.0 - smoothstep(r - 0.8, r + 0.8, d);
         rgb = mix(rgb, tint, mask * min(dot_amp * (1.0 + GLINT_GAIN * glint), 1.0));
