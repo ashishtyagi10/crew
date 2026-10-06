@@ -91,7 +91,7 @@ fn a_change_of_pace_is_a_glide() {
     let (ambient, busy) = (Some(24_000), Some(6_000));
     let mut w = WashPhase::default();
     let mut t = 0;
-    let mut step = |w: &mut WashPhase, t: &mut u64, pace| {
+    let step = |w: &mut WashPhase, t: &mut u64, pace| {
         let before = w.clocks().phase;
         *t += 100;
         let after = w.advance(*t, pace, MotionLevel::Full);

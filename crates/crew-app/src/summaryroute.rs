@@ -29,6 +29,26 @@ fn plain(text: &str, fg: Fg) -> Vec<FCell> {
     text.chars().map(|c| (c, fg, None)).collect()
 }
 
+/// `text` with its markdown code spans in curly quotes: the broker writes
+/// ``run `cargo test` `` for the transcript, which renders it, but these
+/// cells would draw the ticks. An odd tick is punctuation and stays.
+fn unticked(text: &str) -> String {
+    if text.matches('`').count() % 2 != 0 {
+        return text.to_string();
+    }
+    let mut open = false;
+    let quote = |open: bool| if open { '\u{201c}' } else { '\u{201d}' };
+    text.chars()
+        .map(|c| match c {
+            '`' => {
+                open = !open;
+                quote(open)
+            }
+            c => c,
+        })
+        .collect()
+}
+
 /// `text` as a badge on `bg`, capped both ends on the page, in the page's
 /// ink walked to the text floor.
 pub(crate) fn badge(text: &str, bg: Fg) -> Vec<FCell> {
@@ -99,6 +119,7 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
             0 => String::new(),
             n => format!(" (+{n} more)"),
         };
+        let question = unticked(question);
         segs.push((plain(&format!("allow? {question}{more}"), th.ansi[11]), 0));
         segs.push((plain(keys, th.ansi[11]), 0));
     } else if fc.plan_pending {

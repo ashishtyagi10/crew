@@ -151,3 +151,20 @@ fn an_idle_footer_calls_slash_commands_commands() {
     assert!(line.contains("/ for commands"), "{line:?}");
     assert!(!line.contains("construct"), "{line:?}");
 }
+
+/// The approval question on the footer is plain cells: the broker's code
+/// span (`run `cargo test``) wears curly quotes there, not raw ticks. A lone
+/// tick is punctuation and is left as it was.
+#[test]
+fn a_code_span_reads_as_quotes_on_the_footer() {
+    assert_eq!(
+        unticked("run `cargo test` \u{2014} it cannot be undone"),
+        "run \u{201c}cargo test\u{201d} \u{2014} it cannot be undone"
+    );
+    assert_eq!(
+        unticked("call `a` then `b`"),
+        "call \u{201c}a\u{201d} then \u{201c}b\u{201d}"
+    );
+    assert_eq!(unticked("run echo it`s"), "run echo it`s");
+    assert_eq!(unticked("edit a.rs"), "edit a.rs");
+}

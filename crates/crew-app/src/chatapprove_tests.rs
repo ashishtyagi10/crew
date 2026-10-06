@@ -102,7 +102,7 @@ fn enter_allows_the_waiting_tool_call() {
         "run `cargo test` \u{2014} it cannot be undone".into(),
     );
     assert!(
-        footer(&p).contains("allow? run `cargo test`"),
+        footer(&p).contains("allow? run \u{201c}cargo test\u{201d} \u{2014}"),
         "{}",
         footer(&p)
     );
