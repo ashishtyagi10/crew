@@ -57,6 +57,7 @@ pub static PAPER_DARK: Theme = Theme {
         glow_radius: 13.0,
         flicker: 0.020,
         core: 0.0,
+        etch: 0.0,
     }),
     modern: Some(ModernStyle {
         pole_a: (123, 184, 255),
@@ -122,6 +123,7 @@ pub static PAPER_LIGHT: Theme = Theme {
         glow_radius: 12.0,
         flicker: 0.015,
         core: 0.0,
+        etch: 0.0,
     }),
     modern: Some(ModernStyle {
         pole_a: (39, 89, 146),
@@ -183,6 +185,7 @@ pub static SEPIA_DARK: Theme = Theme {
         glow_radius: 14.0,
         flicker: 0.025,
         core: 0.0,
+        etch: 0.0,
     }),
     modern: Some(ModernStyle {
         pole_a: (223, 180, 85),

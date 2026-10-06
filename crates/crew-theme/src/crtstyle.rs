@@ -27,6 +27,11 @@ pub struct CrtStyle {
     /// colours the glass around it. 0 keeps every stroke its own colour;
     /// wide fills never burn (see `crt.wgsl`).
     pub core: f32,
+    /// The tube's raster, ETCHED into its glass rather than laid over the
+    /// window: fine lines in the glass body, under the text, so the panel
+    /// carries the old tube's texture and no glyph is striped by it. The
+    /// fill alpha the lines add at their darkest; 0 is clear glass.
+    pub etch: f32,
 }
 
 impl CrtStyle {
@@ -39,5 +44,6 @@ impl CrtStyle {
         glow_radius: 6.0,
         flicker: 0.06,
         core: 0.0,
+        etch: 0.0,
     };
 }

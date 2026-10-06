@@ -14,7 +14,7 @@ const FONT_PX: f32 = 13.0;
 
 /// The theme's backdrop at rest, as `frame.rs` builds it — on a row of
 /// about `FONT_PX * 1.4` px (the lattice pitch clamps, so close is exact).
-fn backdrop() -> Option<crew_render::ModernPaper> {
+fn backdrop(clocks: crew_render::WashClocks) -> Option<crew_render::ModernPaper> {
     let c = |rgb| {
         let [r, g, b, _] = crew_render::color::target_rgba(rgb, 1.0, false);
         [r, g, b]
@@ -28,20 +28,20 @@ fn backdrop() -> Option<crew_render::ModernPaper> {
             spacing,
             radius,
             wash: m.wash,
-            clocks: Default::default(),
+            clocks,
             focus: [0.5, 0.5],
             focus_pull: 0.0,
         }
     })
 }
 
-/// Shoot the window on `id` through the tube.
-fn crt_window(name: &str, id: ThemeId) -> Option<Vec<u8>> {
+/// Shoot the window on `id` through the tube, its page at `clocks`.
+fn crt_window(name: &str, id: ThemeId, clocks: crew_render::WashClocks) -> Option<Vec<u8>> {
     crew_theme::set_theme(id);
     // An unset accent follows the theme in the app (`accent_rgb`); the shot
     // never applies a config, so say so here or every tube wears the mint.
     crate::palette::set_accent(crew_theme::theme().accent_default);
-    let px = crate::shotdraw_tests::draw_with(W, H, FONT_PX, true, backdrop(), |cw, ch| {
+    let px = crate::shotdraw_tests::draw_with(W, H, FONT_PX, true, backdrop(clocks), |cw, ch| {
         let mut app = CrewApp {
             geo_override: Some((cw, ch, W as f32, H as f32, 1.0)),
             ..Default::default()
@@ -76,7 +76,8 @@ fn crt_glass_shot() {
         ThemeId::CrtBlue,
         ThemeId::CrtViolet,
     ] {
-        let Some(px) = crt_window(&format!("crtglass-{}", id.as_str()), id) else {
+        let Some(px) = crt_window(&format!("crtglass-{}", id.as_str()), id, Default::default())
+        else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         };
@@ -85,5 +86,31 @@ fn crt_glass_shot() {
             "{}: drew",
             id.as_str()
         );
+    }
+}
+
+/// Every phosphor with its page awake — the vortex turning under the glass,
+/// mid-pull — so the page's depth can be judged where it actually moves.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn crt_glass_shot_awake() {
+    let _g = crate::app::theme_test_guard();
+    let clocks = crew_render::WashClocks {
+        phase: 0.2,
+        wander: 0.3,
+        live: 1.0,
+        eddy: 0.4,
+        ping: -1.0,
+    };
+    for id in [
+        ThemeId::CrtGreen,
+        ThemeId::CrtAmber,
+        ThemeId::CrtBlue,
+        ThemeId::CrtViolet,
+    ] {
+        if crt_window(&format!("crtglass-awake-{}", id.as_str()), id, clocks).is_none() {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        }
     }
 }

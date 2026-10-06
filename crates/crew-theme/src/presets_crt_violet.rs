@@ -49,11 +49,12 @@ pub static CRT_VIOLET: Theme = Theme {
     dark: true,
     grain: 1.2,
     crt: Some(CrtStyle {
-        scanline: 0.08,
+        scanline: 0.0,
         glow: 1.0,
         glow_radius: 14.0,
         flicker: 0.035,
         core: 0.6,
+        etch: 0.0,
     }),
     modern: Some(ModernStyle {
         pole_a: (204, 150, 240),

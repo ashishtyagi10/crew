@@ -72,6 +72,10 @@ const SHADE_GAIN: f32 = 0.6;
 // just under the top rim.
 const GLOSS_DEPTH: f32 = 150.0;
 const GLOSS_LIP: f32 = 7.0;
+// The etched raster's pitch (px). Not 2: at one cycle per 2px the cosine is
+// sampled at its zero crossing on every pixel centre and aliases flat (the
+// lesson the old full-window scanlines learned).
+const ETCH_PERIOD: f32 = 3.0;
 // Edge antialiasing width.
 const AA: f32 = 1.0;
 // Inner edge-glow reach (px): how far the frame's light bleeds into the fill.
@@ -85,7 +89,7 @@ struct VsOut {
   @location(3) tint: vec4<f32>,    // tint.rgb, highlight_alpha
   @location(4) hl: vec4<f32>,      // highlight.rgb, shadow_alpha
   @location(5) extra: vec4<f32>,   // scan position, edge_glow, lift, glint
-  @location(6) nmeta: vec4<f32>,   // notch depth, gloss, glow, -
+  @location(6) nmeta: vec4<f32>,   // notch depth, gloss, glow, etch
   @location(7) nt0: vec4<f32>,     // top notch spans 0-1 (x0, x1, x0, x1)
   @location(8) nt1: vec4<f32>,     // top notch spans 2-3
   @location(9) nb0: vec4<f32>,     // bottom notch spans 0-1
@@ -224,6 +228,16 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // read as lit from above rather than a flat wash of colour.
   let t = clamp((in.local.y + in.hsize.y) / max(in.hsize.y * 2.0, 1.0), 0.0, 1.0);
   var fill_a = mix(a_top, a_bot, t) * (1.0 + LIFT_FILL * lift) * inside;
+
+  // The ETCH: a tube's raster, cut into the glass instead of laid over the
+  // window — fine lines ETCH_PERIOD px apart in the body, under the text, so
+  // the panel carries the old tube's texture and no glyph is striped by it.
+  // Keyed to the card's own top, so the lines sit still as it moves.
+  let etch = in.nmeta.w;
+  if (etch > 0.0) {
+    let line = 0.5 + 0.5 * cos(from_top * (6.2831853 / ETCH_PERIOD));
+    fill_a = fill_a + etch * line * inside;
+  }
 
   // Frost grain, signed so it neither only-lightens nor only-darkens.
   if (noise_amt > 0.0) {

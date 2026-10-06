@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.46
+
+**The CRT themes drop the raster.** Green and amber ran a heavy raster of
+scanlines over the whole window, striping every glyph on screen. That was the
+most 1985 thing left about them. The tubes now lay no lines over the window:
+- **Etched glass.** The hot phosphors, green and amber, keep a fine raster
+  etched into the glass of each pane, under the text. The panel carries the
+  old tube's texture and no glyph is striped by it. Blue and violet run clear
+  glass.
+- **A field under the glass.** With the stripes gone, the drifting page (its
+  swirl, its dot lattice) shows through the glass as a field of phosphor
+  light.
+
+The etch is held by the same contrast check as the glass itself: every
+tube's terminal text still clears 7:1 in the worst corner of a pane at the
+High glass level. `/crt on` over a paper theme still draws the classic
+scanlines.
+
 ## 0.25.45
 
 **CRT text is electric.** A tube's glyphs and frame lines now burn like neon:

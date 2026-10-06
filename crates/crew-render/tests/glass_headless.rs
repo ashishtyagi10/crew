@@ -64,6 +64,7 @@ fn card(alpha_top: f32, alpha_bottom: f32, highlight_alpha: f32, shadow_alpha: f
         edge_glow: 0.0,
         gloss: 0.0,
         glow: 0.0,
+        etch: 0.0,
         lift: 0.0,
         glint: -1.0,
         notch: Default::default(),
@@ -707,5 +708,54 @@ fn glass_gloss_and_glow_headless() {
     assert!(
         halo > 140,
         "a glowing shadow lights it in its tint ({halo})"
+    );
+}
+
+/// The ETCH: a tube's raster cut into its glass. A card with etch shows rows
+/// alternating light and dark down its body on a 3px pitch; the page beside
+/// it carries none, and a card without etch is flat.
+#[test]
+fn glass_etch_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("glass_etch_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let etched = |etch: f32| GlassCard {
+        etch,
+        lift: 0.0,
+        glint: -1.0,
+        ..card(0.10, 0.10, 0.0, 0.0)
+    };
+    let swing = |buf: &[u8], x: usize| {
+        let rows: Vec<i32> = (24..36).map(|y| px(buf, x, y).0 as i32).collect();
+        rows.iter().max().unwrap() - rows.iter().min().unwrap()
+    };
+    let (plain, lined) = (
+        render(&device, &queue, &[etched(0.0)]),
+        render(&device, &queue, &[etched(0.3)]),
+    );
+    let (inside, beside) = ((CARD_X + CARD_W / 2.0) as usize, 6);
+    println!(
+        "etch swing: plain {} etched {} beside {}",
+        swing(&plain, inside),
+        swing(&lined, inside),
+        swing(&lined, beside)
+    );
+    assert!(
+        swing(&plain, inside) <= 2,
+        "clear glass is flat down the body"
+    );
+    assert!(swing(&lined, inside) >= 25, "the etched lines should show");
+    assert!(
+        swing(&lined, beside) <= 1,
+        "the page beside the card carries no raster"
     );
 }

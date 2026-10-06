@@ -121,15 +121,17 @@ pub use glass::{style as glass_style, style_for as glass_style_for, GlassLevel, 
 pub use modernstyle::ModernStyle;
 
 impl Theme {
-    /// Whether this palette is a phosphor tube. Scanlines are the tell: every theme carries a
-    /// [`CrtStyle`] now (the bloom chain draws the gradient ring's halo), so "has one" says
-    /// nothing, and a glowing paper theme sets them to zero.
+    /// Whether this palette is a phosphor tube. The FILAMENT is the tell ([`CrtStyle::core`]):
+    /// every theme carries a [`CrtStyle`] (the bloom chain draws the gradient ring's halo), so
+    /// "has one" says nothing, and only a tube's strokes burn white-hot. Scanlines were the tell
+    /// until the glass-tube goal (2026-10-05) moved a tube's raster off the window and into its
+    /// glass ([`CrtStyle::etch`]), leaving every tube's scanlines at zero.
     ///
     /// Lives here rather than only on [`ThemeId`] because callers that hold a `Theme` used to
     /// re-derive it — `ansi.rs` carried its own copy of the old rule and silently disagreed the
     /// moment the rule changed.
     pub fn is_tube(&self) -> bool {
-        self.crt.is_some_and(|c| c.scanline > 0.0)
+        self.crt.is_some_and(|c| c.core > 0.0)
     }
 }
 

@@ -88,6 +88,11 @@ pub struct GlassStyle {
     /// light leaking out of a lit slab onto a dark page, which a black
     /// shadow on near-black could never show.
     pub glow: f32,
+    /// A raster ETCHED into the glass body: fine horizontal lines every few
+    /// pixels, adding up to this much fill alpha. The tubes' old scanlines,
+    /// moved off the window and into the panel, under the text — zero on
+    /// clear glass.
+    pub etch: f32,
 }
 
 impl GlassStyle {
@@ -105,6 +110,7 @@ impl GlassStyle {
             noise: self.noise * (0.5 + 0.5 * k),
             edge_glow: (self.edge_glow * k).clamp(0.0, 1.0),
             gloss: (self.gloss * k).clamp(0.0, 1.0),
+            etch: (self.etch * k).clamp(0.0, 1.0),
             ..self
         }
     }
@@ -149,6 +155,7 @@ pub fn style_for(t: &Theme) -> GlassStyle {
             edge_glow: 0.0,
             gloss: 0.0,
             glow: 0.0,
+            etch: 0.0,
         },
         true => GlassStyle {
             tint: white,
@@ -161,6 +168,7 @@ pub fn style_for(t: &Theme) -> GlassStyle {
             edge_glow: 0.0,
             gloss: 0.0,
             glow: 0.0,
+            etch: 0.0,
         },
     }
 }
@@ -196,6 +204,8 @@ pub fn tube_glass(t: &Theme) -> GlassStyle {
         edge_glow: 0.05,
         gloss: 0.10,
         glow: 1.0,
+        // The tube's raster, if it keeps one, lives in its glass now.
+        etch: t.crt.map_or(0.0, |c| c.etch),
     }
 }
 

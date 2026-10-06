@@ -190,6 +190,7 @@ fn crt_headless() {
         glow_radius: 12.0,
         flicker: 0.0,
         core: 0.0,
+        etch: 0.0,
     }));
     chain.set_anim(0.0, 0.0);
     chain.update_uniforms(&queue, N as f32, N as f32, false);
@@ -252,6 +253,7 @@ fn crt_headless() {
         glow_radius: 12.0,
         flicker: 0.0,
         core: 0.0,
+        etch: 0.0,
     };
     chain.set_style(Some(light_style));
     chain.set_anim(0.0, 0.0);
@@ -346,6 +348,7 @@ fn crt_dark_type_on_a_bright_bar_stays_readable() {
         glow_radius: 11.0,
         flicker: 0.0,
         core: 0.0,
+        etch: 0.0,
     }));
     chain.set_anim(0.0, 0.0);
     chain.update_uniforms(&queue, N as f32, N as f32, false);
@@ -401,6 +404,7 @@ fn crt_thin_strokes_burn_white_and_fills_do_not() {
             glow_radius: 7.0,
             flicker: 0.0,
             core,
+            etch: 0.0,
         }));
         chain.set_anim(0.0, 0.0);
         chain.update_uniforms(&queue, N as f32, N as f32, false);

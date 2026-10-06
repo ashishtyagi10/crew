@@ -57,6 +57,7 @@ pub static NEBULA: Theme = Theme {
         glow_radius: 13.0,
         flicker: 0.03,
         core: 0.0,
+        etch: 0.0,
     }),
     modern: Some(ModernStyle {
         pole_a: (197, 138, 249),
