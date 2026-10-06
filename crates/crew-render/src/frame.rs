@@ -16,9 +16,8 @@ use crate::solidcard::SolidCardPass;
 /// `grain` is the user knob × the theme's multiplier, precomputed upstream.
 /// `fade` is the theme-crossfade strength: while `None` the finished frame is
 /// snapshotted; while `Some` the held old-theme frame draws on top instead.
-/// `wash_phase` is `(orbit, wander, live)`: where the modern backdrop's
-/// gradient pools sit on their orbit and how far they have wandered off it
-/// on the slower clock, both in turns, and how awake the page's flow is; `wash_focus` is `(centre_uv, pull)` —
+/// `wash` is the modern backdrop's clocks this frame (see
+/// [`crate::paperbg::WashClocks`]); `wash_focus` is `(centre_uv, pull)` —
 /// where that orbit is centred and how far it has travelled there from the
 /// page centre.
 #[allow(clippy::too_many_arguments)]
@@ -33,7 +32,7 @@ pub(crate) fn render(
     solid_chrome: &[[f32; 4]],
     window_opacity: f32,
     grain: f32,
-    wash_phase: (f32, f32, f32),
+    wash: crate::paperbg::WashClocks,
     wash_focus: ((f32, f32), f32),
     panes: &[PaneScene],
 ) {
@@ -90,7 +89,7 @@ pub(crate) fn render(
 
     if let Some(paper) = paper {
         // The modern family's backdrop: the gradient wash (rotated to
-        // `wash_phase`, which the app advances while a pane is busy or the
+        // `wash`, which the app advances while a pane is busy or the
         // room drifts) with the dot lattice woven on top — a fine square grid pitched off the
         // text ROW height (see `cell_geometry`), so the weave scales with font
         // size and DPI. Pole colours go through the same colour-space door as
@@ -118,11 +117,12 @@ pub(crate) fn render(
                 // what has to be given back, so the wash is scaled by the same
                 // factor the spotlight is.
                 wash: m.wash * crew_theme::contrast::effect_scale(),
-                phase: wash_phase.0,
-                wander: wash_phase.1,
+                phase: wash.phase,
+                wander: wash.wander,
                 focus: [wash_focus.0 .0, wash_focus.0 .1],
                 focus_pull: wash_focus.1,
-                live: wash_phase.2,
+                live: wash.live,
+                eddy: wash.eddy,
             }
         });
         paper.update_uniform(gpu.queue(), bg_f32, (w, h), 1.0, grain, modern.as_ref());

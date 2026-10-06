@@ -40,9 +40,9 @@ pub struct Renderer {
     // theme's frames at `theme_fade` strength while a switch settles.
     fade: FadePass,
     theme_fade: Option<f32>,
-    /// The modern backdrop's wash clocks, `(orbit, wander, live)` — set by
-    /// the app each frame (see [`Self::set_wash_phase`]).
-    wash_phase: (f32, f32, f32),
+    /// The modern backdrop's clocks — set by the app each frame (see
+    /// [`Self::set_wash_phase`]).
+    wash_phase: crate::paperbg::WashClocks,
     /// The wash orbit's centre in uv and how far it has travelled there (see
     /// [`Self::set_wash_focus`]). Starts at the page centre, unmoved.
     wash_focus: ((f32, f32), f32),
@@ -81,7 +81,7 @@ impl Renderer {
             crt,
             fade,
             theme_fade: None,
-            wash_phase: (0.0, 0.0, 0.0),
+            wash_phase: Default::default(),
             wash_focus: ((0.5, 0.5), 0.0),
         })
     }
@@ -176,14 +176,13 @@ impl Renderer {
         self.crt.set_anim(time, flicker);
     }
 
-    /// Where the modern backdrop's gradient wash sits on its orbit and how
-    /// far its pools have wandered off it, both in turns, and how awake its
-    /// flow is (`0.0` = the still page). The app owns all three (it advances
-    /// them while a pane is busy or the room drifts, and holds them
-    /// otherwise), so the renderer just carries them through to the
-    /// background pass.
-    pub fn set_wash_phase(&mut self, phase: f32, wander: f32, live: f32) {
-        self.wash_phase = (phase, wander, live);
+    /// The modern backdrop's clocks this frame: where the wash sits on its
+    /// orbit, how far its pools have wandered, how awake its flow is and
+    /// where its eddies are. The app owns them all (it advances them while a
+    /// pane is busy or the room drifts, and holds them otherwise), so the
+    /// renderer just carries them through to the background pass.
+    pub fn set_wash_phase(&mut self, clocks: crate::paperbg::WashClocks) {
+        self.wash_phase = clocks;
     }
 
     /// Where the wash's orbit is centred — `(centre_uv, pull)`. Pull `0.0` is

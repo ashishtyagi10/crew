@@ -51,7 +51,7 @@ pub use fadepass::FadePass;
 pub use glass::{GlassCard, GlassLayer};
 pub use glyphmap::has_glyph;
 pub use paint::Paint;
-pub use paperbg::{ModernPaper, PaperBgPass};
+pub use paperbg::{ModernPaper, PaperBgPass, WashClocks};
 pub use renderer::Renderer;
 pub use scene::PaneScene;
 pub use smoothing::DEFAULT_SMOOTH;

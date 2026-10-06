@@ -145,8 +145,7 @@ fn render_full(glass: crew_theme::GlassLevel, opacity: f32, crt: bool) -> Option
     let paper = PaperBgPass::new(&device, FORMAT);
     let bg = crew_theme::theme().page_bg;
     let bg_f32 = crew_render::color::target_rgba(bg, opacity, FORMAT.is_srgb());
-    // Mirrors `frame.rs`: the modern backdrop (wash + lattice, at rest) rides
-    // the same pass, so a modern shot shows the page the app actually draws.
+    // Mirrors `frame.rs`: the modern backdrop (wash + lattice) rides the same pass.
     let modern = crew_theme::theme().modern.map(|m| {
         let c = |rgb| {
             let [r, g, b, _] = crew_render::color::target_rgba(rgb, 1.0, FORMAT.is_srgb());
@@ -166,6 +165,7 @@ fn render_full(glass: crew_theme::GlassLevel, opacity: f32, crt: bool) -> Option
             focus: [0.5, 0.5],
             focus_pull: 0.0,
             live: 0.0,
+            eddy: 0.0,
         }
     });
     paper.update_uniform(

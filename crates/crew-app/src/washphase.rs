@@ -38,6 +38,13 @@ use crate::motion::MotionLevel;
 /// winit thread), and paying it back in one step would show up as a lurch.
 const MAX_STEP_MS: u64 = 250;
 
+/// How much slower the page's EDDIES loop than the pools orbit: φ², an
+/// irrational ratio, so the eddies never fall into step with the other two
+/// clocks and the page as a whole never repeats — at the themes' 6 s
+/// `drift_ms`, a loop every ~63 s while the room is quiet. The other two run
+/// two to one and alone would replay the same 48 seconds forever.
+const EDDY_MULT: f32 = 2.618_034;
+
 /// How long the page takes to wake into its full flow, in ms of drift: the
 /// whirlpool winding up and the vortex's bands brightening in from nothing,
 /// rather than a still page snapping into motion on its first drifted frame.
@@ -95,6 +102,9 @@ pub(crate) struct WashPhase {
     /// time, eased in [`Self::live`]. It only ever rises: once awake, the
     /// flow never stops on a clock, it just holds when the wash holds.
     wake: f32,
+    /// Where the eddies are in their loop, in turns — [`EDDY_MULT`] times
+    /// slower than `phase`.
+    eddy: f32,
     /// When the last DRIFTING frame was stamped. Cleared whenever the wash
     /// holds, so the first frame after a hold contributes nothing and the
     /// still time in between is never paid back.
@@ -120,6 +130,7 @@ impl WashPhase {
         let hue_pace = pace.saturating_mul(HUE_MULT);
         self.hue = (self.hue + dt as f32 / hue_pace as f32).fract();
         self.wake = (self.wake + dt as f32 / WAKE_MS).min(1.0);
+        self.eddy = (self.eddy + dt as f32 / (pace as f32 * EDDY_MULT)).fract();
         self.phase
     }
 
@@ -155,33 +166,14 @@ impl WashPhase {
     pub(crate) fn live(&self) -> f32 {
         self.wake * self.wake * (3.0 - 2.0 * self.wake)
     }
-}
 
-impl crate::app::CrewApp {
-    /// Whether the page's wash should drift on its own this frame.
-    ///
-    /// Four fences, all of which must pass. The setting, because ambient
-    /// motion is a taste and some people want a still window. Motion not off,
-    /// which is a genuine off. A theme that actually has a wash to move —
-    /// moving a phase nothing reads would buy frames for no pixels. And the
-    /// OS focus, because the whole cost of this feature is repainting a window
-    /// that would otherwise be asleep, and it is only worth paying while
-    /// someone is looking at it.
-    pub(crate) fn ambient_drift(&self) -> bool {
-        self.config.ambient_drift
-            && self.win_focus.unwrap_or(true)
-            && crate::motion::level() != MotionLevel::Off
-            && crew_theme::theme().modern.is_some_and(|m| m.wash > 0.0)
-    }
-
-    /// Poll ticks per frame while something is in flight: the vortex's own
-    /// smooth rate whenever the page drifts, so its faster busy spin is never
-    /// drawn choppier than its idle one; the progress sweep's otherwise.
-    pub(crate) fn busy_anim_div(&self) -> u64 {
-        if self.ambient_drift() {
-            crate::poll::AMBIENT_ANIM_DIV
-        } else {
-            crate::poll::BUSY_ANIM_DIV
+    /// Every clock the backdrop reads this frame, as the renderer takes them.
+    pub(crate) fn clocks(&self) -> crew_render::WashClocks {
+        crew_render::WashClocks {
+            phase: self.phase,
+            wander: self.wander(),
+            live: self.live(),
+            eddy: self.eddy,
         }
     }
 }

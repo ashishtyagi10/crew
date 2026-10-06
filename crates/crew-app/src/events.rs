@@ -257,8 +257,7 @@ impl CrewApp {
                 // ambient one, or held (see `washphase`).
                 let drift = crew_theme::theme().modern.map_or(0, |m| m.drift_ms);
                 let pace = crate::washphase::pace(drift, busy, self.ambient_drift());
-                let wash = self
-                    .wash
+                self.wash
                     .advance(crate::anim::now_ms(), pace, crate::motion::level());
                 // ... and the gradient's own colour rides the same clock: one
                 // hue offset, published to the theme layer, worn this frame by
@@ -281,7 +280,7 @@ impl CrewApp {
                     };
                     r.set_crt(crt);
                     r.set_crt_anim(crt_time, amp);
-                    r.set_wash_phase(wash, self.wash.wander(), self.wash.live());
+                    r.set_wash_phase(self.wash.clocks());
                     let (focus, pull) = self.wash_focus.uniform();
                     r.set_wash_focus(focus, pull);
                     r.set_theme_fade(fade);

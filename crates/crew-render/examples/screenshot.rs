@@ -114,6 +114,7 @@ fn main() {
                 focus: [0.5, 0.5],
                 focus_pull: 0.0,
                 live: 0.0,
+                eddy: 0.0,
             }
         });
         paper_bg.update_uniform(

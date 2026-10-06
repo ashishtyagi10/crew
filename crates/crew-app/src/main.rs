@@ -614,6 +614,7 @@ mod viewpane;
 mod viewshot_tests;
 mod voice;
 mod washfocus;
+mod washgate;
 mod washphase;
 #[cfg(test)]
 #[path = "watchshot_tests.rs"]

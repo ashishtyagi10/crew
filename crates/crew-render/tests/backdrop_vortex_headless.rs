@@ -2,7 +2,8 @@
 //! pours inward on an awake page — how hard its bands light the lattice, that
 //! it has no seam, that it pours inward, that each band wears its own colour,
 //! that its winding breathes, that a counter-spiral beads its arms, that it
-//! pulls like breath and that its bands melt into a ring of light at the eye. Each
+//! pulls like breath, that its bands melt into a ring of light at the eye and
+//! that its eddies wisp the bands on a clock of their own. Each
 //! is a pure function of the clocks and the wake the app hands the pass, so
 //! each is shot at chosen values and read back. Skips on a GPU-less machine
 //! (CI) instead of failing.
@@ -222,6 +223,39 @@ fn backdrop_vortex_headless() {
         fast >= slow + 2 && slow >= 0,
         "P2 failed: the pour should quicken on the pull, {fast} vs {slow}px"
     );
+
+    // D1: the eddies. With the orbit and the slow clock held, moving only
+    // the third clock moves the bands — on an awake page; a sleeping page
+    // wears no eddies at all.
+    let eddied = |live, eddy| {
+        dots16(&shot(&ModernPaper {
+            live,
+            eddy,
+            ..lattice(BLUE, BLUE, 0.25)
+        }))
+    };
+    let moved = |a: &[i32], b: &[i32]| a.iter().zip(b).map(|(x, y)| (x - y).abs()).max().unwrap();
+    let (calm, stirred) = (eddied(1.0, 0.0), eddied(1.0, 0.37));
+    let asleep_moved = moved(&eddied(0.0, 0.0), &eddied(0.0, 0.37));
+    eprintln!(
+        "[eddy] a dot moves {} awake, {asleep_moved} asleep",
+        moved(&calm, &stirred)
+    );
+    assert_eq!(asleep_moved, 0, "D1 premise: a sleeping page has no eddies");
+    assert!(
+        moved(&calm, &stirred) >= 40,
+        "D1 failed: the eddies should move the bands, {calm:?} -> {stirred:?}"
+    );
+
+    // D2: and their loop has no seam either.
+    let (wrap, next) = (eddied(1.0, 0.999), eddied(1.0, 0.001));
+    for i in 0..16 {
+        let (seam, step) = ((calm[i] - wrap[i]).abs(), (next[i] - calm[i]).abs());
+        assert!(
+            seam <= 2 * step + 3,
+            "D2 failed: dot {i} jumps {seam} at the eddies' wrap, {step} a step later"
+        );
+    }
 }
 
 /// A sleeping fine lattice in two poles (see the test's `fine`).

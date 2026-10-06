@@ -253,6 +253,7 @@ fn paperbg_headless() {
         focus: [0.5, 0.5],
         focus_pull: 0.0,
         live: 0.0,
+        eddy: 0.0,
     };
     paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&dots));
     let dot_pixels = render_64x64(&device, &queue, &paper_bg);
@@ -324,6 +325,7 @@ fn paperbg_headless() {
         focus: [0.5, 0.5],
         focus_pull: 0.0,
         live: 0.0,
+        eddy: 0.0,
     };
     paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&wash));
     let w0 = render_64x64(&device, &queue, &paper_bg);
