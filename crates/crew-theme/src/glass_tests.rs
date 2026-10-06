@@ -265,3 +265,53 @@ fn high_contrast_quiets_the_glass_under_the_text() {
     assert!(high.alpha_top < normal.alpha_top && high.gloss < normal.gloss);
     assert_eq!(high.highlight_alpha, normal.highlight_alpha);
 }
+
+/// A tube's QUIET text reads over a desktop, not just over the black page
+/// (2026-10-06, user: "some of the text not appearing properly … we need
+/// better color contrast"). The window is see-through, so what sits behind a
+/// legend or a "peak" key is the wallpaper through the frost. A dark-grey
+/// wallpaper is the stand-in: a phosphor that cannot clear it is darker than
+/// the glass it sits on. The reading roles clear AA there, muted text and
+/// a legend the UI floor (3:1), and the quiet roles the hint floor the glass
+/// already holds them to (2.5:1) — they were near 1.5:1 before.
+#[test]
+fn tube_quiet_text_reads_over_a_desktop() {
+    const DESKTOP: (u8, u8, u8) = (48, 48, 48);
+    let over = |under: (u8, u8, u8), top: (u8, u8, u8), a: f32| {
+        let m = |u: u8, t: u8| (f32::from(u) + (f32::from(t) - f32::from(u)) * a).round() as u8;
+        (m(under.0, top.0), m(under.1, top.1), m(under.2, top.2))
+    };
+    let mut under = Vec::new();
+    for id in ALL_THEMES.into_iter().filter(|id| id.theme().is_tube()) {
+        let t = id.theme();
+        let s = style_for(t).scaled(GlassLevel::High);
+        let glass = over(
+            DESKTOP,
+            s.tint,
+            (s.alpha_top + s.edge_glow + s.etch).min(1.0),
+        );
+        for (role, fg, floor) in [
+            ("term_fg", t.term_fg, 4.5),
+            ("ink", t.ink, 4.5),
+            ("text_muted", t.text_muted, 3.0),
+            ("legend_off", t.legend_off, 3.0),
+            ("hint_fg", t.hint_fg, 2.5),
+            ("placeholder", t.placeholder, 2.5),
+            ("dim", t.dim, 2.5),
+        ] {
+            let got = crate::contrast_ratio(fg, glass);
+            eprintln!("{}: {role} {got:.2} over {glass:?}", id.as_str());
+            if got < floor {
+                under.push(format!(
+                    "{} {role} {fg:?}: {got:.2} (need {floor})",
+                    id.as_str()
+                ));
+            }
+        }
+    }
+    assert!(
+        under.is_empty(),
+        "under the floor over a desktop through the frost:\n  {}",
+        under.join("\n  ")
+    );
+}

@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.54
+
+**CRT text casts a lighter shadow, and its quiet text reads.** Two fixes
+from a first look at the see-through tubes:
+- **A softer shadow.** The shadow behind text and lines was heavy over a
+  bright wallpaper. It is half as strong now. The text still holds against
+  the desktop, and the dark smudge around each line is gone.
+- **Quieter text you can read.** On a see-through window the background
+  is your wallpaper, and the CRT themes' quiet colours were darker than
+  the frosted glass over it. An unfocused pane's name and the "peak" keys
+  on the SYSTEM and NET charts sank into it. Those colours, and hints and
+  placeholder text, are brighter now: over a dark wallpaper, the quietest
+  went from about 1.5:1 contrast to about 2.7:1. The main text is
+  unchanged and still the brightest thing on screen.
+
 ## 0.25.53
 
 **An approval question on the footer reads plainly.** When an agent stops to

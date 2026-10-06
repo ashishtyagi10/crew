@@ -496,7 +496,13 @@ fn crt_shade_dims_the_desktop_behind_text_only() {
         a(by_line),
         a(clear)
     );
-    assert!(a(gap) >= 60, "the desktop behind text dims: +{}", a(gap));
+    // Most of the full shade between the strokes (0.4 lifted it +82 of 204).
+    let full = crew_theme::CrtStyle::TUBE_SHADE * f32::from(255 - PAGE_A);
+    assert!(
+        a(gap) as f32 >= 0.7 * full,
+        "the desktop behind text dims: +{} of {full}",
+        a(gap)
+    );
     assert!(
         a(by_line) <= 6,
         "a lone line casts no shadow: +{}",
