@@ -53,11 +53,20 @@ impl ToolBudget {
         if used >= self.per_agent {
             return None;
         }
-        let left = self
-            .left
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| n.checked_sub(1))
-            .ok()?
-            - 1;
+        // A compare-exchange loop rather than `fetch_update`: newer stable
+        // Rust deprecates that name (now `try_update`), the Windows CI denies
+        // warnings, and the toolchain here does not have the new name yet.
+        let mut n = self.left.load(Ordering::Acquire);
+        let left = loop {
+            let next = n.checked_sub(1)?;
+            match self
+                .left
+                .compare_exchange_weak(n, next, Ordering::AcqRel, Ordering::Acquire)
+            {
+                Ok(_) => break next,
+                Err(now) => n = now,
+            }
+        };
         Some(left.min(self.per_agent - used - 1))
     }
 
