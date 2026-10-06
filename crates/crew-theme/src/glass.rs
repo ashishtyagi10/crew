@@ -176,19 +176,25 @@ pub fn style_for(t: &Theme) -> GlassStyle {
 /// glossy and thick; the edge-glow brightens the band inside the frame the
 /// way a slab's edges catch light; and its shadow GLOWS — a halo of the
 /// phosphor round the card, light leaking out of the glass onto the page.
+///
+/// The strengths are held by the text on top: green ink on green glass
+/// loses contrast fastest, and at the High level the corner where the body,
+/// the edge glow and the gloss stack still keeps every tube's terminal text
+/// above 7:1 (`tube_text_reads_on_its_glass`). What says "glass" beyond
+/// that is spent where no text sits — the rim and the halo.
 pub fn tube_glass(t: &Theme) -> GlassStyle {
     let p = t.border_focused;
     let toward_white = |c: u8| (f32::from(c) + (255.0 - f32::from(c)) * 0.7).round() as u8;
     GlassStyle {
         tint: p,
-        alpha_top: 0.06,
-        alpha_bottom: 0.015,
+        alpha_top: 0.04,
+        alpha_bottom: 0.012,
         highlight: (toward_white(p.0), toward_white(p.1), toward_white(p.2)),
-        highlight_alpha: 0.6,
-        shadow_alpha: 0.14,
+        highlight_alpha: 0.7,
+        shadow_alpha: 0.16,
         noise: 0.0,
-        edge_glow: 0.12,
-        gloss: 0.16,
+        edge_glow: 0.05,
+        gloss: 0.10,
         glow: 1.0,
     }
 }

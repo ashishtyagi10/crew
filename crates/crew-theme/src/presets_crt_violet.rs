@@ -53,6 +53,7 @@ pub static CRT_VIOLET: Theme = Theme {
         glow: 1.0,
         glow_radius: 14.0,
         flicker: 0.035,
+        core: 0.6,
     }),
     modern: Some(ModernStyle {
         pole_a: (204, 150, 240),

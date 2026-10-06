@@ -189,6 +189,7 @@ fn crt_headless() {
         glow: 1.0,
         glow_radius: 12.0,
         flicker: 0.0,
+        core: 0.0,
     }));
     chain.set_anim(0.0, 0.0);
     chain.update_uniforms(&queue, N as f32, N as f32, false);
@@ -250,6 +251,7 @@ fn crt_headless() {
         glow: 0.9,
         glow_radius: 12.0,
         flicker: 0.0,
+        core: 0.0,
     };
     chain.set_style(Some(light_style));
     chain.set_anim(0.0, 0.0);
@@ -343,6 +345,7 @@ fn crt_dark_type_on_a_bright_bar_stays_readable() {
         glow: 0.80,
         glow_radius: 11.0,
         flicker: 0.0,
+        core: 0.0,
     }));
     chain.set_anim(0.0, 0.0);
     chain.update_uniforms(&queue, N as f32, N as f32, false);
@@ -358,5 +361,67 @@ fn crt_dark_type_on_a_bright_bar_stays_readable() {
     assert!(
         ratio >= 3.0,
         "the letters drowned in the bar's glow ({ratio:.2}:1)"
+    );
+}
+
+/// The FILAMENT (2026-10-05, the glass-tube goal): a thin bright stroke burns
+/// white at its core inside its coloured halo, and a wide fill of the SAME
+/// colour does not — so text and frame lines go white-hot while a selected
+/// row keeps its colour. A one-pixel green line beside a wide green field,
+/// on a near-black page: with `core` on, the line's centre gains red and blue
+/// (it whitens); the field's centre stays green; with `core` 0, neither moves.
+#[test]
+fn crt_thin_strokes_burn_white_and_fills_do_not() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("crt_thin_strokes_burn_white_and_fills_do_not: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let mut chain = CrtChain::new(&device, wgpu::TextureFormat::Rgba8Unorm, N as u32, N as u32);
+    upload(&queue, &chain, |x, y| {
+        let line = x == 12 && (8..56).contains(&y);
+        let field = (32..60).contains(&x) && (8..56).contains(&y);
+        if line || field {
+            [0, 255, 102, 255]
+        } else {
+            [2, 6, 5, 255]
+        }
+    });
+    let mut shot = |core| {
+        chain.set_style(Some(CrtStyle {
+            scanline: 0.0,
+            glow: 0.95,
+            glow_radius: 7.0,
+            flicker: 0.0,
+            core,
+        }));
+        chain.set_anim(0.0, 0.0);
+        chain.update_uniforms(&queue, N as f32, N as f32, false);
+        render(&device, &queue, &chain)
+    };
+    let (off, on) = (shot(0.0), shot(0.6));
+    let rb = |buf: &[u8], x: usize| {
+        let o = 32 * STRIDE + x * 4;
+        (buf[o] as i32, buf[o + 2] as i32)
+    };
+    let (line_off, line_on) = (rb(&off, 12), rb(&on, 12));
+    let (field_off, field_on) = (rb(&off, 46), rb(&on, 46));
+    eprintln!(
+        "filament: line r/b {line_off:?} -> {line_on:?}, field {field_off:?} -> {field_on:?}"
+    );
+    assert!(
+        line_on.0 - line_off.0 >= 60 && line_on.1 - line_off.1 >= 40,
+        "the thin line should burn toward white: {line_off:?} -> {line_on:?}"
+    );
+    assert!(
+        (field_on.0 - field_off.0).abs() <= 6 && (field_on.1 - field_off.1).abs() <= 6,
+        "a wide fill must keep its colour: {field_off:?} -> {field_on:?}"
     );
 }

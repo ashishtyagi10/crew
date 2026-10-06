@@ -194,13 +194,22 @@ pub fn link(t: &Theme) -> (u8, u8, u8) {
 /// deep blue up only until the dark ink cleared it stopped at a mid-tone
 /// (4.6:1 for plain ink) where every coloured or dim word a program prints
 /// was pushed to mud — a selection you could see and not read.
+///
+/// A tube selects in its own phosphor instead: a single-gun screen has no
+/// blue to draw a selection in, and a navy bar on a green tube read as a
+/// window from another machine.
 pub fn selection_bg(t: &Theme) -> (u8, u8, u8) {
     let page = oklch::from_srgb(t.term_bg);
     let l = match page.l > 0.5 {
         true => page.l - SELECTION_STEP.0,
         false => page.l + SELECTION_STEP.1,
     };
-    let want = oklch::from_srgb(SELECTION_HUE).with_l(l).to_srgb();
+    let hue = if t.is_tube() {
+        t.border_focused
+    } else {
+        SELECTION_HUE
+    };
+    let want = oklch::from_srgb(hue).with_l(l).to_srgb();
     against(want, t.term_fg, crate::contrast::text_floor())
 }
 

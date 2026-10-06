@@ -15,6 +15,7 @@ struct U {
     flicker: f32,
     scanline: f32,
     glow: f32,
+    core: f32,
 }
 @group(0) @binding(0) var tex: texture_2d<f32>;
 @group(0) @binding(1) var samp: sampler;
@@ -70,8 +71,23 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // over — poured onto the dark letters of a selected row until they read
     // as the bar's own colour. A stroke's halo sits well under the cap; a
     // flooded field does not.
-    col += clamp(textureSample(bloom_tex, samp, warped).rgb * u.glow,
-                 vec3<f32>(-GLOW_CAP), vec3<f32>(GLOW_CAP));
+    let bloom = textureSample(bloom_tex, samp, warped).rgb;
+    col += clamp(bloom * u.glow, vec3<f32>(-GLOW_CAP), vec3<f32>(GLOW_CAP));
+
+    // The FILAMENT: a lit stroke burns white at its core inside its coloured
+    // halo, as a neon tube's current does inside its glass — the halo above
+    // keeps the phosphor's colour, the core goes white-hot. Only THIN bright
+    // strokes burn: the bloom says how much light surrounds a pixel, and a
+    // glyph or a frame line has little around it while a wide bright fill (a
+    // selected row, a bar) is drowning in its own, so a fill keeps its
+    // colour and the dark letters on it stay dark. Zero on every theme that
+    // is not a tube.
+    if (u.core > 0.0) {
+        let peak = max(scene.r, max(scene.g, scene.b));
+        let around = dot(bloom, vec3<f32>(0.2126, 0.7152, 0.0722));
+        let hot = smoothstep(0.5, 0.9, peak) * (1.0 - smoothstep(0.3, 0.8, around));
+        col += (vec3<f32>(1.0) - col) * (u.core * hot);
+    }
 
     // Glow can push col past 1.0 on bright/saturated fields (e.g. a uniform
     // bright field with two rings summing in). Clamp here, before the

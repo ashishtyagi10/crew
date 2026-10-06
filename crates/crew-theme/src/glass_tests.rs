@@ -30,7 +30,7 @@ fn every_page_wears_liquid_glass() {
 }
 
 /// A tube is a terminal running in glass (the 2026-10-05 goal): a slab tinted
-/// by its own phosphor, clearly more glass than paper-dark's faint lift,
+/// by its own phosphor, more glass than paper-dark's faint lift,
 /// glossy across its face, lit at its edges, and haloed — its shadow is the
 /// phosphor's light, not black.
 #[test]
@@ -49,8 +49,11 @@ fn tubes_are_slabs_of_lit_glass() {
             s.tint, t.border_focused,
             "{name}: glass in its own phosphor"
         );
+        // Its body stays faint (the text on it sets that bound — see
+        // `tube_text_reads_on_its_glass`), but body and lit edge together are
+        // more glass than paper-dark's whole lift.
         assert!(
-            s.alpha_top > paper.alpha_top,
+            s.alpha_top + s.edge_glow > paper.alpha_top,
             "{name}: more glass than paper-dark"
         );
         assert!(s.gloss > 0.0, "{name}: glossy");
@@ -152,6 +155,39 @@ fn high_never_exceeds_opaque() {
             s.glow,
         ] {
             assert!((0.0..=1.0).contains(&a), "{} alpha {a}", id.as_str());
+        }
+    }
+}
+
+/// A tube's text still reads on its glass (the glass-tube goal, done-means
+/// 5). The worst place text sits is the top of a pane hard by its frame, at
+/// the High level: the body's top tint plus the edge glow, under the gloss's
+/// sheen. Every text role clears WCAG there — AAA for the terminal's own
+/// text, AA for muted text, and the hint floor the bare page already holds.
+#[test]
+fn tube_text_reads_on_its_glass() {
+    let over = |under: (u8, u8, u8), top: (u8, u8, u8), a: f32| {
+        let m = |u: u8, t: u8| (f32::from(u) + (f32::from(t) - f32::from(u)) * a).round() as u8;
+        (m(under.0, top.0), m(under.1, top.1), m(under.2, top.2))
+    };
+    for id in ALL_THEMES.into_iter().filter(|id| id.theme().is_tube()) {
+        let t = id.theme();
+        let s = style_for(t).scaled(GlassLevel::High);
+        let body = over(t.term_bg, s.tint, (s.alpha_top + s.edge_glow).min(1.0));
+        let worst = over(body, s.highlight, 0.6 * s.gloss);
+        let cr = crate::contrast_ratio;
+        for (role, fg, floor) in [
+            ("term_fg", t.term_fg, 7.0),
+            ("ink", t.ink, 7.0),
+            ("text_muted", t.text_muted, 4.5),
+            ("hint_fg", t.hint_fg, 2.5),
+        ] {
+            let got = cr(fg, worst);
+            assert!(
+                got >= floor,
+                "{}: {role} {fg:?} on its glass {worst:?} is {got:.2} (need {floor})",
+                id.as_str()
+            );
         }
     }
 }

@@ -21,6 +21,12 @@ pub struct CrtStyle {
     /// always run at 0 regardless (the static-tube determinism contract);
     /// this is only what the app dials in during activity.
     pub flicker: f32,
+    /// The FILAMENT: how far the brightest thin strokes — glyphs, frame
+    /// lines — burn toward white at their core, inside their coloured halo,
+    /// the way a neon tube's gas glows white where the current runs and
+    /// colours the glass around it. 0 keeps every stroke its own colour;
+    /// wide fills never burn (see `crt.wgsl`).
+    pub core: f32,
 }
 
 impl CrtStyle {
@@ -32,5 +38,6 @@ impl CrtStyle {
         glow: 0.55,
         glow_radius: 6.0,
         flicker: 0.06,
+        core: 0.0,
     };
 }

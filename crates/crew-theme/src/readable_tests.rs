@@ -329,3 +329,21 @@ fn a_light_pages_selection_is_pale() {
         );
     }
 }
+
+/// A tube selects in its own phosphor (2026-10-05): its selection wash wears
+/// the hue of its frame, where every other page gets the selection blue.
+#[test]
+fn a_tube_selects_in_its_own_phosphor() {
+    let hue = |c| crate::oklch::from_srgb(c).h;
+    let gap = |a: f32, b: f32| (a - b).rem_euclid(360.0).min((b - a).rem_euclid(360.0));
+    for id in crate::ALL_THEMES {
+        let t = id.theme();
+        let want = if t.is_tube() {
+            t.border_focused
+        } else {
+            SELECTION_HUE
+        };
+        let d = gap(hue(selection_bg(t)), hue(want));
+        assert!(d < 25.0, "{}: selection hue is {d:.0}° off", id.as_str());
+    }
+}
