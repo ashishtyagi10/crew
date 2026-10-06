@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.39
+
+**The vortex breathes, wears its colours and carries beads of light.** In
+v0.25.38 the spiral turned without stopping, but it was one tint and one
+fixed shape, which the eye settles into after a few turns. Three things now
+keep it moving under your gaze:
+- **It breathes.** On the slow clock the spiral winds tighter and looser, so
+  its bands crowd in toward the centre and then fan out.
+- **Every band has its own colour.** The theme's two poles cycle across the
+  bands, so colours pour in one after another (on `lively` gradients the hue
+  breath carries them further round the wheel), and the dots under a band
+  take its colour.
+- **Beads of light.** A fainter counter-spiral of the other hand turns the
+  other way and brightens each band where it crosses. Knots of light slide
+  along the arms against the inward pour.
+
+Six arms now, up from five. The bands stay within half the wash's strength,
+as before.
+
 ## 0.25.38
 
 **The page is a vortex that never stops turning.** The swirl under the panes

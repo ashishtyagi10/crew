@@ -269,48 +269,73 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // none of it.
     //
     // `s` counts bands: ARMS of them round the circle, and one more every
-    // time the radius grows by e^(1/WIND). The spin is a whole number of
-    // bands per orbit, so the wrap is seamless. The band's crest is a
-    // raised cosine, sharpened, so a band is a soft ridge of light rather
-    // than a stripe. It fades out at the very centre, where the bands crowd
-    // closer than a pixel, and eases off toward the rim so the eye is drawn
-    // in.
-    const ARMS: f32 = 5.0;
+    // time the radius grows by e^(1/wind). The band's crest is a raised
+    // cosine, sharpened, so a band is a soft ridge of light rather than a
+    // stripe. It fades out at the very centre, where the bands crowd closer
+    // than a pixel, and eases off toward the rim so the eye is drawn in.
+    //
+    // Three things keep the eye on it rather than letting it settle into a
+    // pattern. The spiral BREATHES: on the slow clock it winds tighter and
+    // looser, so the bands crowd in and fan out. Each band wears its OWN
+    // colour, the poles cycling over HUE_BANDS bands, so colours pour in
+    // one after another rather than the whole spiral being one tint. And a
+    // fainter COUNTER-spiral — the other hand, fewer arms, turning the
+    // other way — beads every band where it crosses, so knots of light
+    // slide along the arms against the pour. Every count and spin is a
+    // whole number, so both clocks and the angle wrap seamlessly.
+    const ARMS: f32 = 6.0;
     const WIND: f32 = 3.5;
+    const WIND_BREATH: f32 = 0.3;
     const SPIN: f32 = 6.0; // bands that pour past a point per orbit
     const SHARP: f32 = 3.0;
+    const HUE_BANDS: f32 = 3.0;
+    const BEAD_ARMS: f32 = 4.0;
+    const BEAD_WIND: f32 = 2.5;
+    const BEAD_SPIN: f32 = 4.0;
+    const BEAD_FLOOR: f32 = 0.55; // a band's strength between beads
     let gr = max(length(q), 1e-4);
-    let s = ARMS * atan2(q.y, q.x) / 6.2831853 + WIND * log(gr) + SPIN * u.dot_grid.w;
-    let crest = pow(0.5 + 0.5 * cos(6.2831853 * s), SHARP);
+    let turn = atan2(q.y, q.x) / 6.2831853;
+    let wind = WIND * (1.0 + WIND_BREATH * flow * sin(2.0 * wander));
+    let s = ARMS * turn + wind * log(gr) + SPIN * u.dot_grid.w;
+    let s_bead = -BEAD_ARMS * turn + BEAD_WIND * log(gr) - BEAD_SPIN * u.dot_grid.w;
+    let bead = 0.5 + 0.5 * cos(6.2831853 * s_bead);
+    let crest = pow(0.5 + 0.5 * cos(6.2831853 * s), SHARP)
+        * mix(BEAD_FLOOR, 1.0, bead * bead);
     let glint = flow * crest * smoothstep(0.02, 0.22, gr)
         * mix(1.0, 0.55, smoothstep(0.35, 1.1, gr));
-    // The SHEEN: the glint lights the page itself, faintly, in the lattice's
-    // colour. Keyed to the wash's own strength — which the frame has already
+    let band_col = mix(u.dot_a.rgb, u.dot_b.rgb, 0.5 + 0.5 * cos(6.2831853 * s / HUE_BANDS));
+    // The light a band casts: its own colour on an awake page, the lattice's
+    // tint on a still one.
+    let glow = mix(tint, band_col, flow);
+    // The SHEEN: the bands light the page itself, faintly, in their own
+    // colours. Keyed to the wash's own strength — which the frame has already
     // scaled for the OS contrast setting — at half of it, so an arm never
     // spends more of the text's headroom than a pool does.
     const SHEEN: f32 = 0.5;
-    rgb = mix(rgb, tint, glint * wash_amp * SHEEN);
+    rgb = mix(rgb, glow, glint * wash_amp * SHEEN);
 
     // The modern family's dot lattice (dot_a.a = 0 everywhere else): soft
     // round dots on a grid whose pitch rides the text-cell metrics (set by
     // frame.rs), in the turning tint above so the backdrop carries the
     // theme's gradient identity. A mix toward the tint (not an add) so the
     // same strength reads on any page brightness. Under a vortex band's
-    // crest a dot carries up to four times its resting strength and SWELLS,
-    // so the lattice is a halftone of the spiral: the bands pour across the
-    // weave as a wave of fattening dots. Half as hard on a light page, where
-    // a band of darkened dots sits right under dark ink.
+    // crest a dot carries up to four times its resting strength, takes the
+    // band's colour and SWELLS, so the lattice is a halftone of the spiral:
+    // the bands pour across the weave as a wave of fattening dots. Half as
+    // hard on a light page, where a band of darkened dots sits right under
+    // dark ink.
     let dot_amp = u.dot_a.a;
     if (dot_amp > 0.0) {
-        let GLINT_GAIN = 3.0 * mix(0.5, 1.0, dark_weight);
-        let SWELL = 0.9 * mix(0.6, 1.0, dark_weight);
+        let gain = 3.0 * mix(0.5, 1.0, dark_weight);
+        let swell = 0.9 * mix(0.6, 1.0, dark_weight);
         let pitch = u.dot_grid.xy;
         let off = (fract(in.pos.xy / pitch) - vec2<f32>(0.5)) * pitch; // px from dot centre
         let d = length(off);
-        let r = u.dot_b.a * (1.0 + SWELL * glint);
+        let r = u.dot_b.a * (1.0 + swell * glint);
         // ±0.8px feathered edge — soft, never a hard aliased circle.
         let mask = 1.0 - smoothstep(r - 0.8, r + 0.8, d);
-        rgb = mix(rgb, tint, mask * min(dot_amp * (1.0 + GLINT_GAIN * glint), 1.0));
+        let ink = mix(tint, glow, min(2.0 * glint, 1.0));
+        rgb = mix(rgb, ink, mask * min(dot_amp * (1.0 + gain * glint), 1.0));
     }
     // Alpha comes from the page colour, not a hard 1.0: it carries the window
     // opacity, so a translucent window lets the desktop through the paper while
