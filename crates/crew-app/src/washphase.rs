@@ -2,13 +2,12 @@
 //! of pole light sit on their orbit this frame.
 //!
 //! The wash itself is drawn by the background pass (see crew-render's
-//! `ModernPaper`); all that lives here are the two numbers it moves by — the
-//! orbit, which also breathes the pools, turns the dot lattice's tint and
-//! spins the vortex's bands, and the slower wander/hue clock, which also
-//! breathes the page's whirlpool; plus how awake the flow is — and the rule
-//! for when
-//! they are allowed to move: their **pace**, in ms per revolution, or `None`
-//! to hold.
+//! `ModernPaper`); all that lives here are the clocks it moves by — the
+//! orbit (which also breathes the pools, turns the lattice's tint and spins
+//! the vortex), the slower wander/hue clock, the eddies' own loop and how
+//! awake the flow is — all driven by one flywheel. The rule for when they may
+//! move, their **pace** in ms per revolution or `None` to hold, lives in
+//! [`crate::washgate`].
 //!
 //! The phase is advanced from ELAPSED TIME BETWEEN DRAWN FRAMES rather than
 //! read off the wall clock, so it never jumps: a wall-clock phase would
@@ -19,7 +18,8 @@
 //!
 //! **Busy** is the original one: a revolution per the theme's `drift_ms` (six
 //! seconds), riding frames that activity was already drawing, so it cost
-//! nothing.
+//! nothing. Stepping between the two is a glide, not a jump: the clocks'
+//! speed follows the pace through a flywheel ([`SPIN_UP_MS`]).
 //!
 //! **Ambient** is the one that makes a quiet window feel alive rather than
 //! frozen. It is [`AMBIENT_MULT`] times slower, and it is the only motion in
@@ -44,6 +44,15 @@ const MAX_STEP_MS: u64 = 250;
 /// `drift_ms`, a loop every ~63 s while the room is quiet. The other two run
 /// two to one and alone would replay the same 48 seconds forever.
 const EDDY_MULT: f32 = 2.618_034;
+
+/// How quickly the clocks' SPEED follows a change of pace, in ms: the time
+/// constant of the flywheel. A pane that starts working spins the vortex up
+/// to its busy pace over a couple of seconds rather than lurching to four
+/// times the speed in one frame, and when the work ends it coasts back down
+/// over several — slower down than up, the way a heavy wheel spins up under
+/// power and then coasts.
+const SPIN_UP_MS: f32 = 900.0;
+const SPIN_DOWN_MS: f32 = 2_800.0;
 
 /// How long the page takes to wake into its full flow, in ms of drift: the
 /// whirlpool winding up and the vortex's bands brightening in from nothing,
@@ -75,21 +84,8 @@ pub(crate) const AMBIENT_MULT: u64 = 4;
 /// wander's lean in lockstep with the orbit.
 pub(crate) const HUE_MULT: u64 = 2;
 
-/// Ms per revolution this frame, or `None` to hold where it is.
-///
-/// `busy` wins over `ambient`: a working pane's wash keeps its own faster
-/// pace, so the two never fight over one phase, and stepping between them is
-/// continuous because both accumulate onto the same number.
-pub(crate) fn pace(drift_ms: u64, busy: bool, ambient: bool) -> Option<u64> {
-    if drift_ms == 0 {
-        return None;
-    }
-    match (busy, ambient) {
-        (true, _) => Some(drift_ms),
-        (false, true) => Some(drift_ms.saturating_mul(AMBIENT_MULT)),
-        (false, false) => None,
-    }
-}
+#[cfg(test)]
+use crate::washgate::pace;
 
 /// The wash's orbital position and the gradient's hue breath, both in turns.
 #[derive(Default)]
@@ -105,6 +101,10 @@ pub(crate) struct WashPhase {
     /// Where the eddies are in their loop, in turns — [`EDDY_MULT`] times
     /// slower than `phase`.
     eddy: f32,
+    /// How fast the orbit is turning, in turns per ms — eased toward the
+    /// pace's rate (see [`SPIN_UP_MS`]). `0.0` until the first drift, which
+    /// starts at its pace outright: the wake already eases a still page in.
+    rate: f32,
     /// When the last DRIFTING frame was stamped. Cleared whenever the wash
     /// holds, so the first frame after a hold contributes nothing and the
     /// still time in between is never paid back.
@@ -113,7 +113,8 @@ pub(crate) struct WashPhase {
 
 impl WashPhase {
     /// This frame's phase. Advances by the time since the previous drawn
-    /// frame at `pace` ms per revolution ([`pace`] decides which), holds on
+    /// frame at `pace` ms per revolution ([`pace`] decides which) — reached
+    /// through the flywheel, so a change of pace is a glide — holds on
     /// `None` — and holds at Motion off, which is a genuine off and not a slow
     /// setting. The motion level is passed in rather than read from the global
     /// so the clock is a pure function of its inputs.
@@ -126,11 +127,21 @@ impl WashPhase {
             .last_ms
             .map_or(0, |last| now_ms.saturating_sub(last).min(MAX_STEP_MS));
         self.last_ms = Some(now_ms);
-        self.phase = (self.phase + dt as f32 / pace as f32).fract();
-        let hue_pace = pace.saturating_mul(HUE_MULT);
-        self.hue = (self.hue + dt as f32 / hue_pace as f32).fract();
-        self.wake = (self.wake + dt as f32 / WAKE_MS).min(1.0);
-        self.eddy = (self.eddy + dt as f32 / (pace as f32 * EDDY_MULT)).fract();
+        let (dt, target) = (dt as f32, 1.0 / pace as f32);
+        self.rate = match self.rate {
+            r if r == 0.0 => target,
+            r => {
+                let tau = if target > r { SPIN_UP_MS } else { SPIN_DOWN_MS };
+                r + (target - r) * (1.0 - (-dt / tau).exp())
+            }
+        };
+        // Every clock rides the one flywheel, so they speed up and coast
+        // together and keep their ratios.
+        let step = self.rate * dt;
+        self.phase = (self.phase + step).fract();
+        self.hue = (self.hue + step / HUE_MULT as f32).fract();
+        self.eddy = (self.eddy + step / EDDY_MULT).fract();
+        self.wake = (self.wake + dt / WAKE_MS).min(1.0);
         self.phase
     }
 
