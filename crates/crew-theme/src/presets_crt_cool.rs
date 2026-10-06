@@ -59,6 +59,7 @@ pub static CRT_BLUE: Theme = Theme {
         glow: 1.1,
         glow_radius: 12.0,
         flicker: 0.04,
+        core: 0.6,
     }),
     modern: Some(ModernStyle {
         pole_a: (0, 169, 189),

@@ -38,6 +38,9 @@ fn backdrop() -> Option<crew_render::ModernPaper> {
 /// Shoot the window on `id` through the tube.
 fn crt_window(name: &str, id: ThemeId) -> Option<Vec<u8>> {
     crew_theme::set_theme(id);
+    // An unset accent follows the theme in the app (`accent_rgb`); the shot
+    // never applies a config, so say so here or every tube wears the mint.
+    crate::palette::set_accent(crew_theme::theme().accent_default);
     let px = crate::shotdraw_tests::draw_with(W, H, FONT_PX, true, backdrop(), |cw, ch| {
         let mut app = CrewApp {
             geo_override: Some((cw, ch, W as f32, H as f32, 1.0)),

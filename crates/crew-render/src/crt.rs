@@ -23,7 +23,7 @@ impl CrtPass {
         });
         let uniform_buf = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("crt_uniform"),
-            size: 32, // 8 × f32
+            size: 32, // 7 × f32, rounded up to the struct's 8-byte alignment
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -72,8 +72,16 @@ impl CrtPass {
         flicker: f32,
         style: crew_theme::CrtStyle,
     ) {
-        // Six values, padded to the uniform's 16-byte alignment by wgpu.
-        let data: [f32; 6] = [width, height, time, flicker, style.scanline, style.glow];
+        // Seven values in the uniform's 32 bytes (WGSL rounds the struct up).
+        let data: [f32; 7] = [
+            width,
+            height,
+            time,
+            flicker,
+            style.scanline,
+            style.glow,
+            style.core,
+        ];
         queue.write_buffer(&self.uniform_buf, 0, postfx::f32s_as_bytes(&data));
     }
 

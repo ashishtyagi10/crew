@@ -63,6 +63,7 @@ pub static CRT_GREEN: Theme = Theme {
         glow: 0.95,
         glow_radius: 7.0,
         flicker: 0.07,
+        core: 0.6,
     }),
     modern: Some(ModernStyle {
         pole_a: (106, 184, 118),
@@ -124,6 +125,7 @@ pub static CRT_AMBER: Theme = Theme {
         glow: 0.85,
         glow_radius: 6.0,
         flicker: 0.08,
+        core: 0.6,
     }),
     modern: Some(ModernStyle {
         pole_a: (184, 138, 39),

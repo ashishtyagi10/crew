@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.45
+
+**CRT text is electric.** A tube's glyphs and frame lines now burn like neon:
+the core of each thin bright stroke goes white-hot, and its halo keeps the
+phosphor's colour. Wide bright fills, like a selected row, never burn, so the
+dark letters on them stay dark. The tubes also stopped borrowing another
+machine's colours: the selection wash on a CRT theme (mouse selections, the
+file manager's resting cursor) is now in the tube's own phosphor instead of
+navy blue.
+
+The glass from v0.25.44 is retuned around the text on it. Green text on
+green glass loses contrast fastest, so the pane bodies are fainter, and the
+glass shows mainly in its rim and halo, where no text sits. At the High glass
+level, every tube's terminal text still clears 7:1 in the worst corner of a
+pane.
+
 ## 0.25.44
 
 **The CRT themes run in glass.** Since 2026-08-06 a tube had been phosphor
