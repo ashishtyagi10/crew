@@ -30,12 +30,14 @@ fn every_page_wears_liquid_glass() {
 }
 
 /// A tube is a terminal running in glass (2026-10-05) over a sheer window
-/// (2026-10-06): each pane is a slab of SMOKE — the page tinted toward the
-/// tube's phosphor, dark, laid on far thicker than paper-dark's lift and
-/// frosted — glossy across its face, rimmed in its phosphor run toward
-/// white, and haloed: its shadow is the phosphor's light, not black.
+/// (2026-10-06): each pane is a thin sheet of FROST — its phosphor run most
+/// of the way to white, milky in every channel, laid on lightly enough that
+/// the desktop is what you see through it, and grained — glossy across its
+/// face, rimmed in its phosphor run toward white, and haloed: its shadow is
+/// the phosphor's light, not black. (Dark smoke at .42 was the first try and
+/// read as a dark window.)
 #[test]
-fn tubes_are_slabs_of_smoked_glass() {
+fn tubes_are_sheets_of_frost() {
     let tubes: Vec<_> = ALL_THEMES
         .into_iter()
         .filter(|id| id.theme().is_tube())
@@ -54,20 +56,17 @@ fn tubes_are_slabs_of_smoked_glass() {
         let t = id.theme();
         let s = style_for(t);
         let (name, p) = (id.as_str(), t.border_focused);
-        assert_eq!(
-            top(s.tint),
-            top(p),
-            "{name}: smoke {:?} in its own phosphor",
-            s.tint
+        let f = s.tint;
+        assert_eq!(top(f), top(p), "{name}: frost {f:?} in its own phosphor");
+        assert!(
+            f.0 >= p.0 && f.1 >= p.1 && f.2 >= p.2 && f.0.min(f.1).min(f.2) >= 128,
+            "{name}: frost {f:?} is milky, not dark"
         );
         assert!(
-            crate::contrast_ratio(s.tint, t.page_bg) < 1.6,
-            "{name}: smoke {:?} is dark",
-            s.tint
-        );
-        assert!(
-            s.alpha_top > 4.0 * paper.alpha_top,
-            "{name}: thick enough to hold text"
+            s.alpha_top > paper.alpha_top && s.alpha_top <= 0.1 && s.alpha_bottom < s.alpha_top,
+            "{name}: a thin sheet ({} .. {})",
+            s.alpha_top,
+            s.alpha_bottom
         );
         assert!(s.noise > 0.0, "{name}: frosted");
         assert!(s.gloss > 0.0, "{name}: glossy");
@@ -166,6 +165,8 @@ fn high_never_exceeds_opaque() {
 /// the High level: the body's top tint plus the edge glow and an etched
 /// line, under the gloss's sheen. Every text role clears WCAG there — AAA for the terminal's own
 /// text, AA for muted text, and the hint floor the bare page already holds.
+/// The window is sheer under a tube now, so `term_bg` stands in for a dark
+/// desktop behind the frost: the frost and gloss are the part crew owns.
 #[test]
 fn tube_text_reads_on_its_glass() {
     let over = |under: (u8, u8, u8), top: (u8, u8, u8), a: f32| {

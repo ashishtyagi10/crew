@@ -10,10 +10,12 @@ use crate::paperbg::PaperBgPass;
 use crate::scene::PaneScene;
 use crate::solidcard::SolidCardPass;
 
-/// Never let the window go so sheer that crew becomes unreadable (or, worse,
-/// unclickable-looking) — a translucency slider that can reach 0 is a way to
-/// lose the app entirely.
-const MIN_WINDOW_OPACITY: f32 = 0.35;
+/// Never let the window go so sheer that it is nothing at all — a page at 0
+/// is a way to lose the app entirely (and the window server passes clicks on
+/// fully clear pixels through to whatever is behind). The Opacity % slider
+/// stops far above this (crew-app's own floor, 0.35); only a CRT tube's
+/// frosted window (crew-app's `tubesheer`) asks for less.
+const MIN_WINDOW_OPACITY: f32 = 0.1;
 
 /// Top-level renderer: owns `Gpu` + `CellGrid` and orchestrates the full frame.
 pub struct Renderer {

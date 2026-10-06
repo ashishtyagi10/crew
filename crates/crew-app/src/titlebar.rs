@@ -19,11 +19,17 @@
 //! light strip crew had just painted. Set on the container, not the window,
 //! so the window's own appearance — the one winit reports as the OS theme,
 //! which `auto` follows — stays the system's.
+//!
+//! A CRT tube is the exception (2026-10-06): its whole window is frosted
+//! glass (`tubesheer`), and a solid page-black strip across the top was the
+//! darkest thing left on it. Its bar wears the page at the window's own
+//! opacity, so it frosts with everything else.
 use winit::window::Window;
 
-/// What the title bar wears while crew owns it: the page colour, and whether
-/// that page is dark (so its title is drawn light). `None` is the OS's bar.
-pub type Wear = Option<([u8; 3], bool)>;
+/// What the title bar wears while crew owns it: the page colour, its alpha
+/// (1.0 but under a tube), and whether that page is dark (so its title is
+/// drawn light). `None` is the OS's bar.
+pub type Wear = Option<([u8; 3], f32, bool)>;
 
 impl crate::app::CrewApp {
     /// Keep the title bar solid while the window is sheer (see
@@ -35,7 +41,7 @@ impl crate::app::CrewApp {
         // theme switch can move the opacity too: keep that in step first.
         self.sync_window_opacity();
         let t = crew_theme::theme();
-        let want = crate::titlebar::wanted(self.window_opacity(), t.page_bg, t.dark);
+        let want = crate::titlebar::wanted(self.window_opacity(), t.page_bg, t.dark, t.is_tube());
         if want == self.titlebar_paint {
             return;
         }
@@ -97,13 +103,13 @@ pub fn paint(window: &Window, wear: Wear) {
             let layer: Option<&AnyObject> = msg_send![sv, layer];
             let Some(layer) = layer else { continue };
             let cg: *const CGColor = match wear {
-                Some(([r, g, b], _)) => {
+                Some(([r, g, b], a, _)) => {
                     let c: &AnyObject = msg_send![
                         class!(NSColor),
                         colorWithSRGBRed: f64::from(r) / 255.0,
                         green: f64::from(g) / 255.0,
                         blue: f64::from(b) / 255.0,
-                        alpha: 1.0f64
+                        alpha: f64::from(a)
                     ];
                     msg_send![c, CGColor]
                 }
@@ -112,7 +118,7 @@ pub fn paint(window: &Window, wear: Wear) {
             let _: () = msg_send![layer, setBackgroundColor: cg];
             // nil hands the ink back to the window's (the OS's) appearance.
             let look: Option<&AnyObject> = match wear {
-                Some((_, dark)) => {
+                Some((_, _, dark)) => {
                     let name = objc2_foundation::NSString::from_str(if dark {
                         "NSAppearanceNameDarkAqua"
                     } else {
@@ -145,39 +151,14 @@ pub fn apply_window(window: &Window, opacity: f32) {
 }
 
 /// What the title bar should wear at `opacity`: the page colour and the
-/// page's ink while the window is sheer, the OS's own bar (`None`) while it
-/// is solid.
-pub fn wanted(opacity: f32, page_bg: (u8, u8, u8), dark: bool) -> Wear {
+/// page's ink while the window is sheer — solid, or as sheer as the page
+/// under a `tube` — and the OS's own bar (`None`) while it is solid.
+pub fn wanted(opacity: f32, page_bg: (u8, u8, u8), dark: bool, tube: bool) -> Wear {
     let (r, g, b) = page_bg;
-    crate::config::wants_window_transparency(opacity).then_some(([r, g, b], dark))
+    let alpha = if tube { opacity } else { 1.0 };
+    crate::config::wants_window_transparency(opacity).then_some(([r, g, b], alpha, dark))
 }
 
 #[cfg(test)]
-mod tests {
-    use super::wanted;
-
-    #[test]
-    fn a_solid_window_leaves_the_native_title_bar_alone() {
-        assert_eq!(wanted(1.0, (1, 2, 3), false), None);
-    }
-
-    #[test]
-    fn a_sheer_window_paints_its_title_bar_the_page_colour() {
-        assert_eq!(wanted(0.88, (1, 2, 3), true), Some(([1, 2, 3], true)));
-        assert_eq!(
-            wanted(crate::config::MIN_WINDOW_OPACITY, (9, 9, 9), true),
-            Some(([9, 9, 9], true))
-        );
-    }
-
-    /// A light page gets a dark title whatever the OS is in: on a dark Mac
-    /// the bar crew painted light carried the system's white title.
-    #[test]
-    fn the_painted_bar_carries_the_page_s_own_ink() {
-        assert_eq!(
-            wanted(0.8, (250, 250, 250), false),
-            Some(([250, 250, 250], false))
-        );
-        assert_eq!(wanted(0.8, (10, 10, 10), true), Some(([10, 10, 10], true)));
-    }
-}
+#[path = "titlebar_tests.rs"]
+mod tests;

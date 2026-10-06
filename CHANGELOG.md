@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.49
+
+**The CRT themes are actually see-through now.** 0.25.48 made the CRT window
+see-through, but it still looked dark ("still not transparent enough, I said
+frosty glass"). The window was 45% black, and each pane laid dark smoke over
+that, so only about a third of your desktop came through behind a pane. Now:
+- **A faint veil, not a black page.** A CRT window is 12% opaque, so the
+  desktop comes through almost untouched, just blurred by macOS.
+- **Frosted panes.** Each pane is a thin milky sheet of its phosphor, close to
+  white. About 80% of the desktop shows through it.
+- **No black title bar.** The title bar frosts with the rest of the window.
+- **Same glow.** The rim, the gloss and the halo keep the phosphor's own colour.
+
+Text sits straight on your wallpaper now, so a very bright wallpaper costs
+some contrast. The Glass setting thickens the frost.
+
 ## 0.25.48
 
 **The CRT themes are see-through frosted glass.** You asked for CRT mode to be

@@ -363,9 +363,13 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   if (out_a <= 0.0015) { discard; }
   // A resting sheet's shadow is pure black, so it contributes no colour —
   // only weight. A lit slab's (`glow`) is a halo of its own tint instead —
-  // light leaking out of the glass onto the page — at that hue's full
-  // brightness, so a body of dark smoke still throws its phosphor's light.
-  let lit = in.tint.xyz / max(max(in.tint.x, in.tint.y), max(in.tint.z, 0.001));
+  // light leaking out of the glass onto the page — in that hue at its full
+  // brightness and saturation: the milk is lifted out of a pale frost (its
+  // lowest channel is how much white it carries) and what is left is
+  // stretched to 1, so a milky sheet still throws its phosphor's own light.
+  let lo = min(in.tint.x, min(in.tint.y, in.tint.z));
+  let hi = max(in.tint.x, max(in.tint.y, in.tint.z));
+  let lit = select(vec3<f32>(1.0), (in.tint.xyz - lo) / max(hi - lo, 0.001), hi - lo > 0.001);
   let halo = lit * in.nmeta.z * shadow * (1.0 - alpha);
   let out_rgb = (rgb * alpha + halo) / out_a;
   return vec4<f32>(out_rgb, out_a);
