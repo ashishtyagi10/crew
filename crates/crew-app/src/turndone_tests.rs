@@ -46,7 +46,10 @@ fn a_long_turn_elsewhere_is_announced_and_marked() {
         .as_ref()
         .map(|(m, _)| m.clone())
         .unwrap_or_default();
-    assert!(said.contains("a 1m15 turn finished in smith"), "{said}");
+    assert!(
+        said.contains("\u{2713} turn (1m15) finished in smith"),
+        "{said}"
+    );
     assert!(
         app.panes[0].attention.is_some(),
         "the pane carries the marker"
