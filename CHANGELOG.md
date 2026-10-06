@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.53
+
+**An approval question on the footer reads plainly.** When an agent stops to
+ask before running a command, the footer used to show the command with its
+markdown backticks drawn as they were (``allow? run `cargo test` ``). The
+footer is plain text, so the command now sits in quotes:
+`allow? run “cargo test” — it cannot be undone`. The transcript keeps
+showing it as code.
+
 ## 0.25.52
 
 **Windows panes open PowerShell 7 when it's installed.** A new pane now
