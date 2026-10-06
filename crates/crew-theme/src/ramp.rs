@@ -134,10 +134,10 @@ pub const HOUSE: House = House {
 /// see-through (2026-10-06, user: "some of the text not appearing properly …
 /// we need better color contrast"). Behind a tube's text is the desktop, not
 /// the near-black page these ratios are taken against, and a phosphor at 3.2
-/// — `crt-blue`'s `dim` was `(0, 105, 117)` — is darker than the frost and
+/// — `crt-blue`'s `dim` was `(0, 105, 117)` — is darker than the glass and
 /// the frame's own glow over any wallpaper but a black one: the "peak" keys
 /// and an unfocused pane's legend went under. `glass_tests` holds every text
-/// role to a floor over a dark desktop through the frost.
+/// role to a floor over a dark desktop through the glass.
 pub const HOUSE_CRT: House = House {
     name: "crt (coloured phosphor)",
     ink: 13.4,

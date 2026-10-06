@@ -629,8 +629,8 @@ fn grain_is_newsprint_on_every_theme() {
     // newspaper texture reads on the dark pages too — the shader's dark
     // absolute term carries it (see paperbg.wgsl). NEBULA AND BLOSSOM are the
     // deliberate exception: their pages are glass, not newsprint — zero grain.
-    // So are the TUBES since 2026-10-06: their page is the frosted desktop
-    // behind a sheer window, and grain over it read as dirt, not frost.
+    // So are the TUBES since 2026-10-06: their page is a tinted faceplate
+    // with the desktop faintly through it, and grain over it read as dirt.
     //
     // This used to key off `modern.is_some()`, back when carrying a gradient
     // and being made of glass were the same two themes. Every theme has a
@@ -650,7 +650,7 @@ fn grain_is_newsprint_on_every_theme() {
 /// stays a whisper — a mix weight past ~0.5 would read as wallpaper.
 #[test]
 fn modern_pages_carry_the_dot_lattice() {
-    // Not a tube: its page is the frosted desktop, with nothing woven on it.
+    // Not a tube: its page is the faceplate, with nothing woven on it.
     for id in ALL_THEMES.into_iter().filter(|id| !id.is_crt()) {
         if let Some(m) = id.theme().modern {
             assert!(

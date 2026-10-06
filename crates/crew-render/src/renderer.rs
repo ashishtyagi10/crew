@@ -13,8 +13,9 @@ use crate::solidcard::SolidCardPass;
 /// Never let the window go so sheer that it is nothing at all — a page at 0
 /// is a way to lose the app entirely (and the window server passes clicks on
 /// fully clear pixels through to whatever is behind). The Opacity % slider
-/// stops far above this (crew-app's own floor, 0.35); only a CRT tube's
-/// frosted window (crew-app's `tubesheer`) asks for less.
+/// stops far above this (crew-app's own floor, 0.35). A CRT tube's window
+/// asked for 0.12 for a day; its faceplate (crew-app's `tubesheer`) sits at
+/// 0.84 now, so nothing asks for less than the slider's floor.
 const MIN_WINDOW_OPACITY: f32 = 0.1;
 
 /// Top-level renderer: owns `Gpu` + `CellGrid` and orchestrates the full frame.

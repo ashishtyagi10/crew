@@ -195,44 +195,45 @@ pub fn style_for(t: &Theme) -> GlassStyle {
 }
 
 /// A tube's glass: the panes of a terminal running in glass (the 2026-10-05
-/// goal), over a window that is itself sheer — the desktop frosted behind it
-/// (crew-app's `tubesheer`, 2026-10-06: "just the glass and borders … almost
-/// frosted glass, no black, like transparent").
+/// goal), over a window that is a TINTED FACEPLATE — mostly dark, with the
+/// desktop frosted faintly through it (crew-app's `tubesheer`).
 ///
-/// So the body is FROST: a thin milky sheet of the phosphor run most of the
-/// way to white, laid on lightly with a frost grain — the window server's
-/// blur does the frosting, the sheet only says where the pane is. It was
-/// dark SMOKE first, thick enough to hold the text off any wallpaper, and it
-/// read as a dark window (the user, the same day: "still not transparent
-/// enough, I said frosty glass, they are still dark"). Everything else is
-/// the phosphor's own light: a near-white rim, a broad GLOSS across the
-/// upper face, a fine raster ETCHED into the hot phosphors' glass, and a
-/// shadow that GLOWS — a halo of the phosphor round the card (the shader
-/// takes the milk back out of the frost's colour for it).
+/// So the body is SMOKE: the page run a little toward the phosphor, laid on
+/// over the faceplate so a pane reads as tinted glass rather than black. It
+/// was a thin milky FROST for a day (the window at a 12% veil, the user:
+/// "almost frosted glass, no black, like transparent"), and over a bright
+/// window behind crew the frost and the glow turned to fog and the text went
+/// under (the user: "this crt theme is ugly … please have proper color
+/// contrast for font vs background"). Milk ADDS light under the text; smoke
+/// takes it away, which is what a real tube's tinted faceplate is for.
+/// Everything else is the phosphor's own light: a near-white rim, a broad
+/// GLOSS across the upper face, a fine raster ETCHED into the hot phosphors'
+/// glass, and a shadow that GLOWS — a halo of the phosphor round the card.
 ///
-/// Held by the text on it over a dark desktop: `tube_text_reads_on_its_glass`
-/// keeps every tube's terminal text above 7:1 on the frost at the High
-/// level, under the gloss. A bright wallpaper costs the text contrast — the
-/// user's taste: transparency first.
+/// Held by the text on it: `tube_text_reads_on_its_glass` keeps every tube's
+/// terminal text above 7:1 on the smoke at the High level, under the gloss,
+/// and crew-app's `tubesheer` holds every text role over a WHITE desktop.
 pub fn tube_glass(t: &Theme) -> GlassStyle {
     let p = t.border_focused;
     let toward =
         |a: u8, b: u8, k: f32| (f32::from(a) + (f32::from(b) - f32::from(a)) * k).round() as u8;
-    let pale = |k: f32| {
-        (
-            toward(p.0, 255, k),
-            toward(p.1, 255, k),
-            toward(p.2, 255, k),
-        )
-    };
+    let smoke = (
+        toward(t.page_bg.0, p.0, 0.12),
+        toward(t.page_bg.1, p.1, 0.12),
+        toward(t.page_bg.2, p.2, 0.12),
+    );
     GlassStyle {
-        tint: pale(0.6),
-        alpha_top: 0.08,
-        alpha_bottom: 0.04,
-        highlight: pale(0.7),
+        tint: smoke,
+        alpha_top: 0.30,
+        alpha_bottom: 0.22,
+        highlight: (
+            toward(p.0, 255, 0.7),
+            toward(p.1, 255, 0.7),
+            toward(p.2, 255, 0.7),
+        ),
         highlight_alpha: 0.7,
         shadow_alpha: 0.16,
-        noise: 0.035,
+        noise: 0.02,
         edge_glow: 0.0,
         gloss: 0.07,
         glow: 1.0,

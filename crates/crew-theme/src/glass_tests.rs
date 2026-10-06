@@ -29,15 +29,15 @@ fn every_page_wears_liquid_glass() {
     }
 }
 
-/// A tube is a terminal running in glass (2026-10-05) over a sheer window
-/// (2026-10-06): each pane is a thin sheet of FROST — its phosphor run most
-/// of the way to white, milky in every channel, laid on lightly enough that
-/// the desktop is what you see through it, and grained — glossy across its
-/// face, rimmed in its phosphor run toward white, and haloed: its shadow is
-/// the phosphor's light, not black. (Dark smoke at .42 was the first try and
-/// read as a dark window.)
+/// A tube is a terminal running in glass (2026-10-05) over a tinted
+/// faceplate (crew-app's `tubesheer`): each pane is a sheet of SMOKED glass —
+/// the page run a little toward its phosphor, so it is tinted and not black,
+/// but dark, because milk under the text is what fogged it over a bright
+/// desktop (2026-10-06, a day of milky frost: "this crt theme is ugly") —
+/// grained, glossy across its face, rimmed in its phosphor run toward white,
+/// and haloed: its shadow is the phosphor's light, not black.
 #[test]
-fn tubes_are_sheets_of_frost() {
+fn tubes_are_sheets_of_smoked_glass() {
     let tubes: Vec<_> = ALL_THEMES
         .into_iter()
         .filter(|id| id.theme().is_tube())
@@ -56,19 +56,20 @@ fn tubes_are_sheets_of_frost() {
         let t = id.theme();
         let s = style_for(t);
         let (name, p) = (id.as_str(), t.border_focused);
-        let f = s.tint;
-        assert_eq!(top(f), top(p), "{name}: frost {f:?} in its own phosphor");
+        let (f, page) = (s.tint, t.page_bg);
+        assert_eq!(top(f), top(p), "{name}: smoke {f:?} in its own phosphor");
+        let max = |c: (u8, u8, u8)| c.0.max(c.1).max(c.2);
         assert!(
-            f.0 >= p.0 && f.1 >= p.1 && f.2 >= p.2 && f.0.min(f.1).min(f.2) >= 128,
-            "{name}: frost {f:?} is milky, not dark"
+            max(f) > max(page) + 8 && max(f) <= 64,
+            "{name}: smoke {f:?} is tinted, and dark"
         );
         assert!(
-            s.alpha_top > paper.alpha_top && s.alpha_top <= 0.1 && s.alpha_bottom < s.alpha_top,
-            "{name}: a thin sheet ({} .. {})",
+            s.alpha_top > paper.alpha_top && s.alpha_top <= 0.4 && s.alpha_bottom < s.alpha_top,
+            "{name}: a sheet ({} .. {})",
             s.alpha_top,
             s.alpha_bottom
         );
-        assert!(s.noise > 0.0, "{name}: frosted");
+        assert!(s.noise > 0.0, "{name}: grained");
         assert!(s.gloss > 0.0, "{name}: glossy");
         assert_eq!(s.glow, 1.0, "{name}: its shadow is a halo of light");
         let h = s.highlight;
@@ -165,8 +166,9 @@ fn high_never_exceeds_opaque() {
 /// the High level: the body's top tint plus the edge glow and an etched
 /// line, under the gloss's sheen. Every text role clears WCAG there — AAA for the terminal's own
 /// text, AA for muted text, and the hint floor the bare page already holds.
-/// The window is sheer under a tube now, so `term_bg` stands in for a dark
-/// desktop behind the frost: the frost and gloss are the part crew owns.
+/// A tube's window is a faceplate with the desktop faintly through it, so
+/// `term_bg` stands in for a dark desktop: the glass and gloss are the part
+/// crew owns (crew-app's `tubesheer` holds the text over a white one).
 #[test]
 fn tube_text_reads_on_its_glass() {
     let over = |under: (u8, u8, u8), top: (u8, u8, u8), a: f32| {
@@ -269,7 +271,7 @@ fn high_contrast_quiets_the_glass_under_the_text() {
 /// A tube's QUIET text reads over a desktop, not just over the black page
 /// (2026-10-06, user: "some of the text not appearing properly … we need
 /// better color contrast"). The window is see-through, so what sits behind a
-/// legend or a "peak" key is the wallpaper through the frost. A dark-grey
+/// legend or a "peak" key is the wallpaper through the glass. A dark-grey
 /// wallpaper is the stand-in: a phosphor that cannot clear it is darker than
 /// the glass it sits on. The reading roles clear AA there, muted text and
 /// a legend the UI floor (3:1), and the quiet roles the hint floor the glass
@@ -311,7 +313,7 @@ fn tube_quiet_text_reads_over_a_desktop() {
     }
     assert!(
         under.is_empty(),
-        "under the floor over a desktop through the frost:\n  {}",
+        "under the floor over a desktop through the glass:\n  {}",
         under.join("\n  ")
     );
 }
