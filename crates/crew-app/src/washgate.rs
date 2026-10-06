@@ -1,6 +1,24 @@
 //! When the page's wash may move on its own, and how often it is drawn while
 //! it does — the fences around [`crate::washphase`]'s clocks.
 use crate::motion::MotionLevel;
+use crate::washphase::AMBIENT_MULT;
+
+/// Ms per revolution this frame, or `None` to hold where it is.
+///
+/// `busy` wins over `ambient`: a working pane's wash keeps its own faster
+/// pace, so the two never fight over one phase, and stepping between them is
+/// continuous because both accumulate onto the same number — and a glide,
+/// because the clocks reach a new pace through washphase's flywheel.
+pub(crate) fn pace(drift_ms: u64, busy: bool, ambient: bool) -> Option<u64> {
+    if drift_ms == 0 {
+        return None;
+    }
+    match (busy, ambient) {
+        (true, _) => Some(drift_ms),
+        (false, true) => Some(drift_ms.saturating_mul(AMBIENT_MULT)),
+        (false, false) => None,
+    }
+}
 
 impl crate::app::CrewApp {
     /// Whether the page's wash should drift on its own this frame.

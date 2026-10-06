@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.42
+
+**The vortex spins up when work starts and coasts when it ends.** While a
+pane works, the page turns four times faster than at rest. That change used
+to happen in a single frame: the vortex lurched to speed when output started
+and dropped back to a crawl the moment it stopped. Every clock now rides one
+flywheel. When a pane starts working, the vortex spins up over a second or
+two. When the work ends, it coasts back down more slowly, the way a heavy
+wheel spins up under power and then coasts. Output that comes in bursts no
+longer jerks the page between speeds.
+
 ## 0.25.41
 
 **The vortex flows like liquid and never replays.** Two things still gave it

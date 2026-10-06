@@ -256,7 +256,7 @@ impl CrewApp {
                 // at whichever pace applies — the busy one, the far slower
                 // ambient one, or held (see `washphase`).
                 let drift = crew_theme::theme().modern.map_or(0, |m| m.drift_ms);
-                let pace = crate::washphase::pace(drift, busy, self.ambient_drift());
+                let pace = crate::washgate::pace(drift, busy, self.ambient_drift());
                 self.wash
                     .advance(crate::anim::now_ms(), pace, crate::motion::level());
                 // ... and the gradient's own colour rides the same clock: one
