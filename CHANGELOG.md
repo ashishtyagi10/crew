@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.56
+
+**The "turn finished" notice reads like a command's.** When an agent's turn
+ends while you are in another pane, crew says so. That notice used to read
+`✓ a 8m03 turn finished in agent smith`, where the article jars ("a 8m03")
+and the time reads like part of a name. It now matches the notice for a
+terminal command finishing (`✓ cargo build (1m15) finished in crew`):
+`✓ turn (8m03) finished in agent smith`.
+
 ## 0.25.55
 
 **CRT text reads over anything behind the window.** The CRT themes' window

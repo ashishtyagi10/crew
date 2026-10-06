@@ -318,7 +318,7 @@ at raises `✗` as its attention marker rather than `✓`.
 **An agent's turn finishing says so too.** When an agent pane's turn ends —
 agent smith answered, a swarm finished — after at least the same threshold
 (`notify_min_secs`) and while you were in another pane or another app, it
-raises the same `done` card (`✓ a 1m15 turn finished in smith`) and the pane's
+raises the same `done` card (`✓ turn (1m15) finished in agent smith`) and the pane's
 `✓` marker, on the same switch. And when crew is not the app in front at all,
 any news that wants you back — done, failed, waiting for you, or a program
 asking — bounces the Dock icon once.

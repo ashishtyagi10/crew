@@ -23,8 +23,10 @@ impl CrewApp {
             if i != self.focused {
                 crate::attention::raise(p, NotifyKind::AgentDone, now);
             }
+            // Worded as a command's is (`cargo build (1m15)`): the time in
+            // brackets after what finished. "a 8m03 turn" read as a typo.
             let took = crate::runclock::ladder(ms / 1000);
-            self.notify(NotifyKind::AgentDone, title, format!("a {took} turn"));
+            self.notify(NotifyKind::AgentDone, title, format!("turn ({took})"));
         }
     }
 }
