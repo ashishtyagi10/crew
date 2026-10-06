@@ -248,12 +248,9 @@ fn paperbg_headless() {
         radius: 2.0,
         // The lattice cases isolate the dots: no wash under them.
         wash: 0.0,
-        phase: 0.0,
-        wander: 0.0,
+        clocks: Default::default(),
         focus: [0.5, 0.5],
         focus_pull: 0.0,
-        live: 0.0,
-        eddy: 0.0,
     };
     paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&dots));
     let dot_pixels = render_64x64(&device, &queue, &paper_bg);
@@ -320,12 +317,9 @@ fn paperbg_headless() {
         wash: 0.6,
         // Centred orbit: the pool geometry below is measured against the page
         // centre, so the focus cases at the end move it deliberately.
-        phase: 0.0,
-        wander: 0.0,
+        clocks: Default::default(),
         focus: [0.5, 0.5],
         focus_pull: 0.0,
-        live: 0.0,
-        eddy: 0.0,
     };
     paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&wash));
     let w0 = render_64x64(&device, &queue, &paper_bg);
@@ -372,7 +366,7 @@ fn paperbg_headless() {
     // W3: a quarter turn swings the pools clockwise onto the vertical axis —
     // the left edge falls back toward the bare page and pole A's blue is now
     // at the TOP, as strong as it was at the left.
-    wash.phase = 0.25;
+    wash.clocks.phase = 0.25;
     paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&wash));
     let w25 = render_64x64(&device, &queue, &paper_bg);
     let (qlr, qlg, qlb) = wp(&w25, 3, 32);
@@ -390,7 +384,7 @@ fn paperbg_headless() {
     );
     // W4: the strength is a real dial, not a switch — halving it halves the
     // lift at the pool's centre (the mix is linear in `wash`).
-    wash.phase = 0.0;
+    wash.clocks.phase = 0.0;
     wash.wash = 0.3;
     paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&wash));
     let whalf = render_64x64(&device, &queue, &paper_bg);

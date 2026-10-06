@@ -185,6 +185,7 @@ impl WashPhase {
             wander: self.wander(),
             live: self.live(),
             eddy: self.eddy,
+            ping: crate::washping::age_s(crate::anim::now_ms()),
         }
     }
 }

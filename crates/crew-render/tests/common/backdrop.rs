@@ -5,7 +5,7 @@
 //! that do not draw the backdrop use none of it — hence the allow.
 #![allow(dead_code)]
 
-use crew_render::ModernPaper;
+use crew_render::{ModernPaper, WashClocks};
 
 /// The near-black aurora page and the light paper page.
 pub const DARK: [f32; 4] = [15.0 / 255.0, 17.0 / 255.0, 23.0 / 255.0, 1.0];
@@ -23,12 +23,13 @@ pub fn wash(phase: f32, wander: f32) -> ModernPaper {
         spacing: [16.0, 16.0],
         radius: 2.0,
         wash: 0.6,
-        phase,
-        wander,
+        clocks: WashClocks {
+            phase,
+            wander,
+            ..Default::default()
+        },
         focus: [0.5, 0.5],
         focus_pull: 0.0,
-        live: 0.0,
-        eddy: 0.0,
     }
 }
 
@@ -46,7 +47,14 @@ pub fn lattice(a: [f32; 3], b: [f32; 3], phase: f32) -> ModernPaper {
 
 /// `m` with its flow fully awake: the whirlpool wound, the vortex turning.
 pub fn awake(m: ModernPaper) -> ModernPaper {
-    ModernPaper { live: 1.0, ..m }
+    with(m, |k| k.live = 1.0)
+}
+
+/// `m` with its clocks changed by `f`.
+pub fn with(m: ModernPaper, f: impl FnOnce(&mut WashClocks)) -> ModernPaper {
+    let mut clocks = m.clocks;
+    f(&mut clocks);
+    ModernPaper { clocks, ..m }
 }
 
 pub fn rgb(buf: &[u8], x: usize, y: usize) -> (i32, i32, i32) {

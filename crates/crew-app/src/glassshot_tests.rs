@@ -159,13 +159,10 @@ fn render_full(glass: crew_theme::GlassLevel, opacity: f32, crt: bool) -> Option
             spacing,
             radius,
             wash: m.wash,
-            phase: 0.0,
-            wander: 0.0,
+            clocks: Default::default(),
             // No focused card and a still page: the calibrated resting shot.
             focus: [0.5, 0.5],
             focus_pull: 0.0,
-            live: 0.0,
-            eddy: 0.0,
         }
     });
     paper.update_uniform(

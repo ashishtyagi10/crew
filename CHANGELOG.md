@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.43
+
+**The vortex answers you.** Until now the page moved on its own clocks and
+ignored what you did. Now every line you send (Enter, in any pane) drops a
+ring of light in from the rim of the page. It falls the way the bands pour,
+gathering speed as it narrows, bends with the flow as it goes, and lands on
+the vortex's eye about a second and a half later. The eye flashes as it
+lands. Held-key repeats don't count, and a still page (one that has never
+drifted) doesn't answer.
+
 ## 0.25.42
 
 **The vortex spins up when work starts and coasts when it ends.** While a

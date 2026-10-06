@@ -3,7 +3,8 @@
 //! it has no seam, that it pours inward, that each band wears its own colour,
 //! that its winding breathes, that a counter-spiral beads its arms, that it
 //! pulls like breath, that its bands melt into a ring of light at the eye and
-//! that its eddies wisp the bands on a clock of their own. Each
+//! that its eddies wisp the bands on a clock of their own, and that a line
+//! sent drops a ring of light in to the eye. Each
 //! is a pure function of the clocks and the wake the app hands the pass, so
 //! each is shot at chosen values and read back. Skips on a GPU-less machine
 //! (CI) instead of failing.
@@ -34,11 +35,13 @@ fn backdrop_vortex_headless() {
     };
     // A lattice fine enough to read as a field: every pixel is the same
     // distance from its dot, so a band shows as a smooth ridge, not dots.
-    let fine = |a, b, phase, wander| ModernPaper {
-        spacing: [2.0, 2.0],
-        radius: 0.9,
-        wander,
-        ..awake(lattice(a, b, phase))
+    let fine = |a, b, phase, wander| {
+        let m = ModernPaper {
+            spacing: [2.0, 2.0],
+            radius: 0.9,
+            ..awake(lattice(a, b, phase))
+        };
+        with(m, |k| k.wander = wander)
     };
 
     // G1: the bands light the lattice. One pole, so the turning tint cannot
@@ -169,19 +172,16 @@ fn backdrop_vortex_headless() {
         "K1 failed: beads should make the crests uneven, {heights:?}"
     );
 
-    // E1: the eye. On a 256px page the bands melt into a ring of light about
-    // 0.11 half-heights (14px) out, round a dark centre. The current rocks
+    // E1: the eye. On a 256px page the bands melt into a ring of light 0.11
+    // of the page height (28px) out, round a dark centre. The eddies rock
     // the ring a few pixels, so each of 36 rays takes its brightest point
-    // between 8 and 22px out; the centre is the mean within 3px. A sleeping
+    // between 16 and 40px out; the centre is the mean within 3px. A sleeping
     // page is the same lattice everywhere.
     let faint = |phase| ModernPaper {
         dots: 0.1,
         ..fine(BLUE, BLUE, phase, 0.0)
     };
-    let (ring0, mid0) = eye(&huge(&ModernPaper {
-        live: 0.0,
-        ..faint(0.25)
-    }));
+    let (ring0, mid0) = eye(&huge(&with(faint(0.25), |k| k.live = 0.0)));
     let (ring, mid) = eye(&huge(&faint(0.25)));
     eprintln!("[eye] ring/centre {ring0}/{mid0} asleep -> {ring}/{mid} awake");
     assert!(
@@ -228,11 +228,9 @@ fn backdrop_vortex_headless() {
     // the third clock moves the bands — on an awake page; a sleeping page
     // wears no eddies at all.
     let eddied = |live, eddy| {
-        dots16(&shot(&ModernPaper {
-            live,
-            eddy,
-            ..lattice(BLUE, BLUE, 0.25)
-        }))
+        dots16(&shot(&with(lattice(BLUE, BLUE, 0.25), |k| {
+            (k.live, k.eddy) = (live, eddy)
+        })))
     };
     let moved = |a: &[i32], b: &[i32]| a.iter().zip(b).map(|(x, y)| (x - y).abs()).max().unwrap();
     let (calm, stirred) = (eddied(1.0, 0.0), eddied(1.0, 0.37));
@@ -256,6 +254,42 @@ fn backdrop_vortex_headless() {
             "D2 failed: dot {i} jumps {seam} at the eddies' wrap, {step} a step later"
         );
     }
+
+    // Q1: the ping. A line sent drops a ring of light in from the rim: on a
+    // 256px page, along the row out to the right, the ring is where the page
+    // most outshines the same page with no ping — about 100px out at 0.6s,
+    // half that a 0.4s later.
+    let pinged = |age, live| huge(&with(faint(0.25), |k| (k.ping, k.live) = (age, live)));
+    let calm = pinged(-1.0, 1.0);
+    let ring_at = |buf: &[u8]| {
+        (8..127)
+            .max_by_key(|&t| {
+                let at = |b: &[u8]| lift(DARK, rgb_w(b, 256, 128 + t, 128));
+                at(buf) - at(&calm)
+            })
+            .unwrap()
+    };
+    let (early, late) = (ring_at(&pinged(0.6, 1.0)), ring_at(&pinged(1.0, 1.0)));
+    eprintln!("[ping] the ring {early}px out at 0.6s, {late}px at 1.0s");
+    assert!(
+        early >= 85 && late + 30 <= early,
+        "Q1 failed: the ring should fall in toward the eye, {early} -> {late}px"
+    );
+
+    // Q2: and the eye flashes as it lands.
+    let (eye_calm, _) = eye(&calm);
+    let (eye_lit, _) = eye(&pinged(1.3, 1.0));
+    eprintln!("[ping] the eye {eye_calm} -> {eye_lit} as the ring lands");
+    assert!(
+        eye_lit * 10 >= eye_calm * 13,
+        "Q2 failed: the eye should flash, {eye_calm} -> {eye_lit}"
+    );
+
+    // Q3: a sleeping page does not answer.
+    assert!(
+        pinged(0.4, 0.0) == pinged(-1.0, 0.0),
+        "Q3 failed: a still page should wear no ping"
+    );
 }
 
 /// A sleeping fine lattice in two poles (see the test's `fine`).
@@ -307,7 +341,7 @@ fn ring_crests(v: &[i32]) -> Vec<usize> {
 }
 
 /// The eye of a 256px shot: the mean over 36 rays of each ray's brightest
-/// lift between 8 and 22px from the centre, and the mean lift within 3px.
+/// lift between 16 and 40px from the centre, and the mean lift within 3px.
 fn eye(buf: &[u8]) -> (i32, i32) {
     let at = |r: f32, a: f32| {
         let (x, y) = (128.0 + r * a.cos(), 128.0 + r * a.sin());
@@ -316,7 +350,7 @@ fn eye(buf: &[u8]) -> (i32, i32) {
     let rays = (0..36).map(|k| (10.0 * k as f32).to_radians());
     let ring: i32 = rays
         .clone()
-        .map(|a| (8..=22).map(|r| at(r as f32, a)).max().unwrap())
+        .map(|a| (16..=40).map(|r| at(r as f32, a)).max().unwrap())
         .sum::<i32>()
         / 36;
     let mid: i32 = rays
