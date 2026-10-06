@@ -146,10 +146,12 @@ fn backdrop_motion_headless() {
     };
     let (ls, le) = (shot(LIGHT, &light(0.125)), shot(LIGHT, &light(0.375)));
     let breath = dist(rgb(&ls, 11, 11), rgb(&le, 52, 11));
-    let dots = |live| ModernPaper {
-        dots: 0.16,
-        live,
-        ..lattice(BLUE, BLUE, 0.25)
+    let dots = |live| {
+        let m = ModernPaper {
+            dots: 0.16,
+            ..lattice(BLUE, BLUE, 0.25)
+        };
+        with(m, |k| k.live = live)
     };
     let (lg0, lg1) = (shot(LIGHT, &dots(0.0)), shot(LIGHT, &dots(1.0)));
     let glint = (0..16)

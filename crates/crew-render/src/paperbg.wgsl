@@ -7,7 +7,7 @@ struct Uniform {
     dot_b: vec4<f32>,    // pole B tint; a = dot radius px
     dot_grid: vec4<f32>, // xy = lattice pitch px; z = wash strength (0 = no wash); w = wash phase (turns)
     wash_focus: vec4<f32>, // xy = orbit centre in uv; z = how far it moves there (0 = page centre); w = wander clock (turns)
-    motion: vec4<f32>,     // x = how awake the page is (0 = the still page); y = eddy clock (turns); zw spare
+    motion: vec4<f32>,     // x = how awake the page is (0 = the still page); y = eddy clock (turns); z = s since Enter (<0 none); w spare
 }
 @group(0) @binding(0) var<uniform> u: Uniform;
 
@@ -350,9 +350,26 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // inhale.
     const EYE_R: f32 = 0.11;
     const EYE_W: f32 = 0.045;
-    let eye = exp(-pow((gr - EYE_R) / EYE_W, 2.0)) * mix(0.55, 1.0, inhale);
+    // The PING: every line the user sends drops a ring of light in from the
+    // rim to the eye. It falls the way the bands pour — evenly in the log of
+    // the radius, so it gathers speed as it narrows — and the eye flashes as
+    // it lands. `motion.z` is the seconds since Enter, negative for none.
+    const PING_FALL: f32 = 1.3; // seconds from the rim to the eye
+    const PING_RIM: f32 = 1.2; // where it starts, half-heights out
+    const PING_W: f32 = 0.10; // its width, in the log of the radius
+    let age = u.motion.z;
+    var ping = 0.0;
+    var flash = 0.0;
+    if (age >= 0.0) {
+        let at = PING_RIM * pow(EYE_R / PING_RIM, min(age / PING_FALL, 1.0));
+        let d = log(gr / at) / PING_W;
+        ping = exp(-d * d) * smoothstep(0.0, 0.15, age)
+            * (1.0 - smoothstep(0.85 * PING_FALL, PING_FALL, age));
+        flash = exp(-pow((age - PING_FALL) / 0.35, 2.0));
+    }
+    let eye = exp(-pow((gr - EYE_R) / EYE_W, 2.0)) * mix(0.55, 1.0, inhale) * (1.0 + 0.8 * flash);
     let bands = crest * smoothstep(0.02, 0.22, gr) * mix(1.0, 0.55, smoothstep(0.35, 1.1, gr));
-    let glint = flow * max(bands * mix(0.7, 1.0, inhale), eye);
+    let glint = flow * max(max(bands * mix(0.7, 1.0, inhale), eye), 0.9 * ping);
     let band_col = mix(u.dot_a.rgb, u.dot_b.rgb, 0.5 + 0.5 * cos(6.2831853 * s / HUE_BANDS));
     // The light a band casts: its own colour on an awake page, the lattice's
     // tint on a still one.

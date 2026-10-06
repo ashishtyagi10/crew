@@ -82,7 +82,7 @@ fn backdrop_colour_headless() {
         ..awake(one(wash(0.25, 0.0)))
     };
     let lv = ripple(&big(LIGHT, &light), LIGHT);
-    let l0 = ripple(&big(LIGHT, &ModernPaper { live: 0.0, ..light }), LIGHT);
+    let l0 = ripple(&big(LIGHT, &with(light, |k| k.live = 0.0)), LIGHT);
     eprintln!("[sheen light] ring's ripple {l0:.1} asleep -> {lv:.1} awake");
     assert!(
         lv >= 1.2 && lv >= 3.0 * l0,
@@ -90,8 +90,8 @@ fn backdrop_colour_headless() {
     );
 }
 
-/// How much the page ripples round a ring of 0.35 half-heights about the
-/// centre of a 128px shot, sampled every 2°: the RMS of what is left after
+/// How much the page ripples round a ring 22px (a sixth of the page height)
+/// about the centre of a 128px shot, sampled every 2°: the RMS of what is left after
 /// a circular moving average 60° wide, in summed-channel levels from the
 /// bare `page`.
 fn ripple(buf: &[u8], page: [f32; 4]) -> f32 {

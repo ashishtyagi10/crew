@@ -117,12 +117,9 @@ pub(crate) fn render(
                 // what has to be given back, so the wash is scaled by the same
                 // factor the spotlight is.
                 wash: m.wash * crew_theme::contrast::effect_scale(),
-                phase: wash.phase,
-                wander: wash.wander,
+                clocks: wash,
                 focus: [wash_focus.0 .0, wash_focus.0 .1],
                 focus_pull: wash_focus.1,
-                live: wash.live,
-                eddy: wash.eddy,
             }
         });
         paper.update_uniform(gpu.queue(), bg_f32, (w, h), 1.0, grain, modern.as_ref());

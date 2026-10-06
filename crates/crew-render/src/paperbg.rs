@@ -26,18 +26,9 @@ pub struct ModernPaper {
     /// Gradient wash strength (0 = no wash): the mix weight at each pool's
     /// centre, falling to nothing between them.
     pub wash: f32,
-    /// Where the two pools sit on their orbit, in turns: 0 puts `color_a` at
-    /// the left edge and `color_b` at the right, 0.25 rotates them a quarter
-    /// turn clockwise. The same number breathes the pools, turns the
-    /// lattice's tint and turns its glint. The app owns the clock (see
-    /// crew-app's `washphase`), so a held frame is a pure function of pixel
-    /// position.
-    pub phase: f32,
-    /// The slower second clock, in turns: how far the pools have wandered —
-    /// leaning toward each other and reaching in and out — off the rigid
-    /// orbit, and how far the page has wound into its whirlpool. `0.0` is no
-    /// wander and no whirl at all, which is what a resting shot draws.
-    pub wander: f32,
+    /// The backdrop's clocks this frame (see [`WashClocks`]). All zero — the
+    /// default — is the still page every resting shot draws.
+    pub clocks: WashClocks,
     /// Where the pools' orbit is CENTRED, in uv (`0.5, 0.5` = the page
     /// centre). The app hands over the focused card's centre, so the page's
     /// light gathers where the work is (see crew-app's `washfocus`).
@@ -47,29 +38,38 @@ pub struct ModernPaper {
     /// gets). The app glides this to zero rather than snapping the centre
     /// home when focus leaves, so the light never teleports.
     pub focus_pull: f32,
-    /// How AWAKE the page is: `0.0` is the still page every resting shot
-    /// draws, `1.0` the page in full flow — the whirlpool wound and the
-    /// vortex's bands pouring in. The app eases it up over the first seconds
-    /// of drift and holds it there (see crew-app's `washphase`), so the
-    /// motion never has to stop on a clock to keep a resting frame exact.
+}
+
+/// The backdrop's clocks for one frame, as the app hands them over. The app
+/// owns every one of them (see crew-app's `washphase`), so a held frame is a
+/// pure function of pixel position; all zero is the still page.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct WashClocks {
+    /// Where the two pools sit on their orbit, in turns: 0 puts `color_a` at
+    /// the left edge and `color_b` at the right, 0.25 rotates them a quarter
+    /// turn clockwise. The same number breathes the pools, turns the
+    /// lattice's tint and spins the vortex.
+    pub phase: f32,
+    /// The slower second clock, in turns: how far the pools have wandered —
+    /// leaning toward each other and reaching in and out — off the rigid
+    /// orbit, and where the whirlpool and the vortex's winding are in their
+    /// breath. `0.0` is no wander at all.
+    pub wander: f32,
+    /// How AWAKE the page is: `0.0` is the still page, `1.0` the page in
+    /// full flow — the whirlpool wound and the vortex's bands pouring in.
+    /// The app eases it up over the first seconds of drift and holds it
+    /// there, so the motion never has to stop on a clock to keep a resting
+    /// frame exact.
     pub live: f32,
     /// The third clock, in turns: where the page's EDDIES — a slow
     /// domain-warped drift that wisps the bands like smoke — are in their
     /// loop. It runs at an irrational ratio to the other two, so the page
     /// never repeats. Moves nothing on a still page (`live` 0).
     pub eddy: f32,
-}
-
-/// The backdrop's clocks for one frame, as the app hands them over: where the
-/// wash's pools sit on their `phase` orbit and how far they have `wander`ed
-/// (both in turns), how awake the flow is (`live`, `0.0..=1.0`) and where the
-/// eddies are in their loop (`eddy`, turns). All zero is the still page.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct WashClocks {
-    pub phase: f32,
-    pub wander: f32,
-    pub live: f32,
-    pub eddy: f32,
+    /// Seconds since the user last sent something (Enter), while that is
+    /// recent — the vortex draws a ring of light in from the rim to its eye
+    /// — or any negative number for none.
+    pub ping: f32,
 }
 
 impl ModernPaper {
@@ -190,13 +190,11 @@ impl PaperBgPass {
             spacing: [1.0; 2],
             radius: 0.0,
             wash: 0.0,
-            phase: 0.0,
-            wander: 0.0,
+            clocks: WashClocks::default(),
             focus: [0.5, 0.5],
             focus_pull: 0.0,
-            live: 0.0,
-            eddy: 0.0,
         });
+        let k = d.clocks;
         let data: [f32; 28] = [
             page_bg[0],
             page_bg[1],
@@ -217,14 +215,14 @@ impl PaperBgPass {
             d.spacing[0],
             d.spacing[1],
             d.wash,
-            d.phase,
+            k.phase,
             d.focus[0],
             d.focus[1],
             d.focus_pull,
-            d.wander,
-            d.live,
-            d.eddy,
-            0.0,
+            k.wander,
+            k.live,
+            k.eddy,
+            k.ping,
             0.0,
         ];
         queue.write_buffer(&self.uniform_buf, 0, f32s_as_bytes(&data));

@@ -85,6 +85,7 @@ impl CrewApp {
                 _ => false,
             })
             || self.wash_focus.moving()
+            || (self.wash.live() > 0.0 && crate::washping::age_s(now) >= 0.0)
             || self.pointer_gliding()
             // 150ms grace past expiry: the crossfade draws at whatever
             // strength the LAST frame sampled, so one more frame must land
