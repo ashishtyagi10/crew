@@ -43,8 +43,9 @@ pub struct CrtStyle {
 
 impl CrtStyle {
     /// Every tube's [`Self::shade`] (2026-10-06, after the tubes went sheer:
-    /// "add the soft text shadow too").
-    pub const TUBE_SHADE: f32 = 0.4;
+    /// "add the soft text shadow too"). 0.4 at first, halved the same day:
+    /// "Shadow behind the lines and text are very strong, reduce them".
+    pub const TUBE_SHADE: f32 = 0.2;
 
     /// Today's look before the per-theme split: a flat phosphor panel
     /// (no warp, no bezel) with moderate scanlines and glow. Used when

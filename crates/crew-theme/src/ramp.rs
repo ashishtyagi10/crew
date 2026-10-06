@@ -129,14 +129,23 @@ pub const HOUSE: House = House {
 /// *coloured* ink, and colour costs contrast: pushing `crt-amber`'s
 /// `(255, 184, 0)` up to the paper pool's 16.2 drains the chroma out of it and
 /// leaves a pale cream. Measured the same way, over the five CRT presets.
+///
+/// The quiet rungs sit higher than that measurement since the tubes went
+/// see-through (2026-10-06, user: "some of the text not appearing properly …
+/// we need better color contrast"). Behind a tube's text is the desktop, not
+/// the near-black page these ratios are taken against, and a phosphor at 3.2
+/// — `crt-blue`'s `dim` was `(0, 105, 117)` — is darker than the frost and
+/// the frame's own glow over any wallpaper but a black one: the "peak" keys
+/// and an unfocused pane's legend went under. `glass_tests` holds every text
+/// role to a floor over a dark desktop through the frost.
 pub const HOUSE_CRT: House = House {
     name: "crt (coloured phosphor)",
     ink: 13.4,
     text_muted: 8.5,
-    legend_off: 5.9,
-    dim: 3.2,
-    hint_fg: 5.1,
-    placeholder: 4.2,
+    legend_off: 7.4,
+    dim: 6.2,
+    hint_fg: 6.7,
+    placeholder: 6.4,
     border_normal: 2.4,
     page_pull: 0.0,
     max_l: 0.96,
