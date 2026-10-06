@@ -83,12 +83,8 @@ is actually generating a reply rather than a fixed timeout.
   code: 0 answered, 2 no-answer, 3 unreachable/no crew running.
 
 - **Broadcast** (v2): ask *every* pane at once instead of naming one.
-  - `crew ask --all "what's blocking you?"` — fan the question into every other
-    terminal pane, wait for them all, and print one aggregate (each pane's answer,
-    or why it stayed silent).
-  - `crew ask --any "who has the staging DB URL?"` — same fan-out, but the first
-    real answer wins and the rest are dropped. Use it as a query-by-need: don't
-    know who knows, ask the room.
+  - `crew ask --all "what's blocking you?"` — fan the question into every other terminal pane, wait for all responses, and print an aggregated result (each pane's answer or the reason it remained silent).
+  - `crew ask --any "who has the staging DB URL?"` — similar to `--all`, but only the first valid response is returned, and the rest are ignored. This is useful for queries where any single response is sufficient.
 
   ```
   [schema] ANSWERED: v2 — see api/v2/client.rs
