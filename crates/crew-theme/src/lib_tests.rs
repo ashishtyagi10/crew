@@ -629,6 +629,8 @@ fn grain_is_newsprint_on_every_theme() {
     // newspaper texture reads on the dark pages too — the shader's dark
     // absolute term carries it (see paperbg.wgsl). NEBULA AND BLOSSOM are the
     // deliberate exception: their pages are glass, not newsprint — zero grain.
+    // So are the TUBES since 2026-10-06: their page is the frosted desktop
+    // behind a sheer window, and grain over it read as dirt, not frost.
     //
     // This used to key off `modern.is_some()`, back when carrying a gradient
     // and being made of glass were the same two themes. Every theme has a
@@ -637,7 +639,7 @@ fn grain_is_newsprint_on_every_theme() {
     // well, and paper that lost its tooth would just be a flat page.
     for id in ALL_THEMES {
         let t = id.theme();
-        let glass = matches!(id, ThemeId::Nebula | ThemeId::Blossom);
+        let glass = matches!(id, ThemeId::Nebula | ThemeId::Blossom) || id.is_crt();
         let want = if glass { 0.0 } else { 1.2 };
         assert_eq!(t.grain, want, "{}: grain", id.as_str());
     }
@@ -648,7 +650,8 @@ fn grain_is_newsprint_on_every_theme() {
 /// stays a whisper — a mix weight past ~0.5 would read as wallpaper.
 #[test]
 fn modern_pages_carry_the_dot_lattice() {
-    for id in ALL_THEMES {
+    // Not a tube: its page is the frosted desktop, with nothing woven on it.
+    for id in ALL_THEMES.into_iter().filter(|id| !id.is_crt()) {
         if let Some(m) = id.theme().modern {
             assert!(
                 m.dots > 0.0 && m.dots <= 0.5,
@@ -666,7 +669,7 @@ fn modern_pages_carry_the_dot_lattice() {
 /// modern family is trying not to be.
 #[test]
 fn modern_pages_carry_the_gradient_wash() {
-    for id in ALL_THEMES {
+    for id in ALL_THEMES.into_iter().filter(|id| !id.is_crt()) {
         if let Some(m) = id.theme().modern {
             assert!(
                 m.wash > 0.0 && m.wash <= 0.35,
@@ -776,14 +779,14 @@ fn every_page_flickers_less_than_every_tube() {
 /// the bands above would let it drift a long way first.
 #[test]
 fn the_modern_backdrop_is_a_per_appearance_constant() {
-    // Three constants, not two: a tube already has bloom and its own glass
-    // doing this work, so its lattice and wash run at half strength or the
-    // page turns to soup under the panes. Paper keeps the per-appearance pair it always had.
+    // Three constants, not two: a tube carries no backdrop at all — its
+    // window is frosted glass over the desktop, and the user asked for just
+    // the glass and its borders there (2026-10-06). Paper keeps the per-appearance pair it always had.
     for id in ALL_THEMES {
         let t = id.theme();
         let Some(m) = t.modern else { continue };
         let (dots, wash) = match (id.is_crt(), t.dark) {
-            (true, _) => (0.10, 0.10),
+            (true, _) => (0.0, 0.0),
             (false, true) => (0.20, 0.15),
             (false, false) => (0.16, 0.12),
         };

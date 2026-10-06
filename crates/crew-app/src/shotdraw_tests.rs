@@ -23,25 +23,22 @@ pub fn draw(
     font_px: f32,
     scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
 ) -> Option<Vec<u8>> {
-    draw_with(w, h, font_px, false, None, scenes)
+    draw_with(w, h, font_px, false, None, 1.0, scenes)
 }
 
 /// [`draw`], but through the CRT tube — the bloom, the scanlines and the
 /// composite the real frame runs when the theme asks for them.
 ///
-/// Every shot crew has ever taken went straight from the cell grid to the
-/// readback, which is the path a NON-CRT theme takes. The tube is the look
-/// three of crew's twelve themes wear, and nothing had looked at a real frame
-/// through it: the headless chain test drives synthetic patterns, and the shot
-/// suite skipped the chain entirely. A card whose rules are now exactly one
-/// pixel is exactly the thing a halo can undo.
+/// Every shot crew had ever taken went straight from the cell grid to the readback, the path
+/// a NON-CRT theme takes; nothing had looked at a real frame through the tube (the chain test
+/// drives synthetic patterns). A card whose rules are one pixel is exactly what a halo undoes.
 pub fn draw_crt(
     w: u32,
     h: u32,
     font_px: f32,
     scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
 ) -> Option<Vec<u8>> {
-    draw_with(w, h, font_px, true, None, scenes)
+    draw_with(w, h, font_px, true, None, 1.0, scenes)
 }
 
 pub(crate) fn draw_with(
@@ -50,6 +47,7 @@ pub(crate) fn draw_with(
     font_px: f32,
     crt: bool,
     modern: Option<crew_render::ModernPaper>,
+    opacity: f32,
     scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
 ) -> Option<Vec<u8>> {
     let instance = wgpu::Instance::default();
@@ -107,7 +105,7 @@ pub(crate) fn draw_with(
 
     let paper = PaperBgPass::new(&device, FORMAT);
     let bg = crew_theme::theme().page_bg;
-    let bg_f32 = crew_render::color::target_rgba(bg, 1.0, FORMAT.is_srgb());
+    let bg_f32 = crew_render::color::target_rgba(bg, opacity, FORMAT.is_srgb());
     paper.update_uniform(
         &queue,
         bg_f32,
@@ -130,7 +128,7 @@ pub(crate) fn draw_with(
                         r: bg_f32[0] as f64,
                         g: bg_f32[1] as f64,
                         b: bg_f32[2] as f64,
-                        a: 1.0,
+                        a: bg_f32[3] as f64,
                     }),
                     store: wgpu::StoreOp::Store,
                 },

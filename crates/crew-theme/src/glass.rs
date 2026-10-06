@@ -194,38 +194,47 @@ pub fn style_for(t: &Theme) -> GlassStyle {
     }
 }
 
-/// A tube's glass (2026-10-05, the "terminal running in glass" goal): a
-/// slab of glass lit from within by its own phosphor, where the flat-tube
-/// decree had left phosphor text on a bare black page.
+/// A tube's glass: the panes of a terminal running in glass (the 2026-10-05
+/// goal), over a window that is itself sheer — the desktop frosted behind it
+/// (crew-app's `tubesheer`, 2026-10-06: "just the glass and borders … almost
+/// frosted glass, no black, like transparent").
 ///
-/// Everything is the tube's own colour — its focused frame's phosphor — so
-/// green glass for a green tube and orchid for violet with no table to keep
-/// in step. The body is a clearly visible tint, deeper at the bottom; a
-/// near-white phosphor rim and a broad GLOSS across the upper face say it is
-/// glossy and thick; the edge-glow brightens the band inside the frame the
-/// way a slab's edges catch light; and its shadow GLOWS — a halo of the
-/// phosphor round the card, light leaking out of the glass onto the page.
+/// So the body is SMOKE: the page tinted toward the tube's phosphor and laid
+/// on thick enough to hold the text off whatever wallpaper is behind, with a
+/// whisper of frost grain — the panes are where the glass is frosted, the
+/// gaps between them where it is clear. Everything else is the phosphor's
+/// own light: a near-white rim, a broad GLOSS across the upper face, a fine
+/// raster ETCHED into the hot phosphors' glass, and a shadow that GLOWS — a
+/// halo of the phosphor round the card (the shader lifts the smoke's hue to
+/// full brightness for it).
 ///
-/// The strengths are held by the text on top: green ink on green glass
-/// loses contrast fastest, and at the High level the corner where the body,
-/// the edge glow and the gloss stack still keeps every tube's terminal text
-/// above 7:1 (`tube_text_reads_on_its_glass`). What says "glass" beyond
-/// that is spent where no text sits — the rim and the halo.
+/// Held by the text on it: `tube_text_reads_on_its_glass` keeps every tube's
+/// terminal text above 7:1 on the smoke at the High level, under the gloss.
 pub fn tube_glass(t: &Theme) -> GlassStyle {
     let p = t.border_focused;
-    let toward_white = |c: u8| (f32::from(c) + (255.0 - f32::from(c)) * 0.7).round() as u8;
+    let toward =
+        |a: u8, b: u8, k: f32| (f32::from(a) + (f32::from(b) - f32::from(a)) * k).round() as u8;
+    let smoke = (
+        toward(t.page_bg.0, p.0, 0.12),
+        toward(t.page_bg.1, p.1, 0.12),
+        toward(t.page_bg.2, p.2, 0.12),
+    );
     GlassStyle {
-        tint: p,
-        alpha_top: 0.04,
-        alpha_bottom: 0.012,
-        highlight: (toward_white(p.0), toward_white(p.1), toward_white(p.2)),
+        tint: smoke,
+        alpha_top: 0.42,
+        alpha_bottom: 0.34,
+        highlight: (
+            toward(p.0, 255, 0.7),
+            toward(p.1, 255, 0.7),
+            toward(p.2, 255, 0.7),
+        ),
         highlight_alpha: 0.7,
         shadow_alpha: 0.16,
-        noise: 0.0,
-        edge_glow: 0.05,
+        noise: 0.02,
+        edge_glow: 0.0,
         gloss: 0.10,
         glow: 1.0,
-        // The tube's raster, if it keeps one, lives in its glass now.
+        // The tube's raster, if it keeps one, lives in its glass.
         etch: t.crt.map_or(0.0, |c| c.etch),
     }
 }

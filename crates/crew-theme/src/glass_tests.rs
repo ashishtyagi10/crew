@@ -29,49 +29,51 @@ fn every_page_wears_liquid_glass() {
     }
 }
 
-/// A tube is a terminal running in glass (the 2026-10-05 goal): a slab tinted
-/// by its own phosphor, more glass than paper-dark's faint lift,
-/// glossy across its face, lit at its edges, and haloed — its shadow is the
-/// phosphor's light, not black.
+/// A tube is a terminal running in glass (2026-10-05) over a sheer window
+/// (2026-10-06): each pane is a slab of SMOKE — the page tinted toward the
+/// tube's phosphor, dark, laid on far thicker than paper-dark's lift and
+/// frosted — glossy across its face, rimmed in its phosphor run toward
+/// white, and haloed: its shadow is the phosphor's light, not black.
 #[test]
-fn tubes_are_slabs_of_lit_glass() {
+fn tubes_are_slabs_of_smoked_glass() {
     let tubes: Vec<_> = ALL_THEMES
         .into_iter()
         .filter(|id| id.theme().is_tube())
         .collect();
     assert!(!tubes.is_empty(), "the filter found no tubes");
     let paper = style_for(&PAPER_DARK);
+    let top = |c: (u8, u8, u8)| {
+        [c.0, c.1, c.2]
+            .iter()
+            .enumerate()
+            .max_by_key(|x| x.1)
+            .unwrap()
+            .0
+    };
     for id in tubes {
         let t = id.theme();
         let s = style_for(t);
-        let name = id.as_str();
+        let (name, p) = (id.as_str(), t.border_focused);
         assert_eq!(
-            s.tint, t.border_focused,
-            "{name}: glass in its own phosphor"
+            top(s.tint),
+            top(p),
+            "{name}: smoke {:?} in its own phosphor",
+            s.tint
         );
-        // Its body stays faint (the text on it sets that bound — see
-        // `tube_text_reads_on_its_glass`), but body and lit edge together are
-        // more glass than paper-dark's whole lift.
         assert!(
-            s.alpha_top + s.edge_glow > paper.alpha_top,
-            "{name}: more glass than paper-dark"
+            crate::contrast_ratio(s.tint, t.page_bg) < 1.6,
+            "{name}: smoke {:?} is dark",
+            s.tint
         );
+        assert!(
+            s.alpha_top > 4.0 * paper.alpha_top,
+            "{name}: thick enough to hold text"
+        );
+        assert!(s.noise > 0.0, "{name}: frosted");
         assert!(s.gloss > 0.0, "{name}: glossy");
-        assert!(s.edge_glow > 0.0, "{name}: lit at its edges");
         assert_eq!(s.glow, 1.0, "{name}: its shadow is a halo of light");
-        // The rim is the phosphor run toward white: brighter in every
-        // channel, and still that phosphor (its brightest channel is still
-        // the brightest).
-        let (p, h) = (t.border_focused, s.highlight);
+        let h = s.highlight;
         assert!(h.0 >= p.0 && h.1 >= p.1 && h.2 >= p.2, "{name}: rim {h:?}");
-        let top = |c: (u8, u8, u8)| {
-            [c.0, c.1, c.2]
-                .iter()
-                .enumerate()
-                .max_by_key(|x| x.1)
-                .unwrap()
-                .0
-        };
         assert_eq!(top(h), top(p), "{name}: rim {h:?} left the phosphor {p:?}");
     }
 }
