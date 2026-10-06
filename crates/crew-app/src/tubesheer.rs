@@ -1,23 +1,29 @@
-//! A CRT tube is a terminal running in glass, so its window is never a black
-//! slab (2026-10-06, the user: "we don't need background swirl in the crt
-//! mode, just the glass and borders, it should be almost frosted glass, no
-//! black, like transparent").
+//! A CRT tube is a terminal running in glass, and its window is a TINTED
+//! FACEPLATE: mostly dark, the desktop frosted faintly through it by the
+//! window server's blur (`titlebar::apply_window`), the panes smoked glass on
+//! top (crew-theme's `tube_glass`).
 //!
-//! Under a tube theme the window is always SHEER — the desktop frosted behind
-//! it by the window server's blur (`titlebar::apply_window`) — whatever the
-//! Opacity % setting says (its floor sits far above a tube's veil, and the
-//! title bar frosts with it: `titlebar::wanted`). Everything that
-//! reads the window's opacity reads [`CrewApp::window_opacity`], so the page,
-//! the blur, the title bar, the solid overlays and the lifted borders all
-//! agree on it.
+//! It was a 12% veil for a day (2026-10-06, the user: "it should be almost
+//! frosted glass, no black, like transparent"), and with a bright window
+//! behind crew the desktop WAS the text's background: phosphor on white, the
+//! glow a fog over it (the user, the same day: "this crt theme is ugly …
+//! please have proper color contrast for font vs background"). A real tube's
+//! faceplate is tinted for exactly that. [`TUBE_OPACITY`] is the least the
+//! faceplate can be and hold every text role over a white desktop.
+//!
+//! Everything that reads the window's opacity reads
+//! [`CrewApp::window_opacity`], so the page, the blur, the title bar, the
+//! solid overlays and the lifted borders all agree on it. A lower Opacity %
+//! still wins — that is a choice of transparency over contrast, made in
+//! Settings.
 use crate::app::CrewApp;
 
-/// How opaque a tube's page is at most: a faint veil, so the desktop shows
-/// almost untouched (only frosted) between the panes, and the panes' own
-/// milky frost (crew-theme's `tube_glass`) is barely more. 0.45 with dark
-/// smoke on the panes still read as a dark window (2026-10-06, the user:
-/// "still not transparent enough, I said frosty glass, they are still dark").
-pub(crate) const TUBE_OPACITY: f32 = 0.12;
+/// How opaque a tube's faceplate is at most: enough that the phosphor holds
+/// its contrast over a white window behind crew with no glass at all (see
+/// `a_tube_holds_its_text_over_a_white_desktop` — 0.8 left the amber and
+/// violet terminal text just under 7:1), while a sixth of the frosted
+/// desktop still shows through.
+pub(crate) const TUBE_OPACITY: f32 = 0.84;
 
 /// The window's opacity for a `setting` under a theme that is (`tube`) or is
 /// not a tube.
@@ -55,29 +61,55 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_tube_is_always_sheer_and_other_themes_keep_the_setting() {
+    fn a_tube_caps_its_opacity_and_other_themes_keep_the_setting() {
         assert_eq!(sheer(1.0, true), TUBE_OPACITY);
-        assert_eq!(sheer(crate::config::MIN_WINDOW_OPACITY, true), TUBE_OPACITY);
+        // A lower Opacity % is transparency chosen over contrast: it wins.
+        let low = crate::config::MIN_WINDOW_OPACITY;
+        assert_eq!(sheer(low, true), low);
         assert_eq!(sheer(1.0, false), 1.0);
         assert_eq!(sheer(0.6, false), 0.6);
     }
 
-    /// What the desktop loses behind a tube's pane at its thickest — the
-    /// top of the frost, etched, at the High level — stays small. The first
-    /// sheer try (smoke at .42 over a .45 page) covered 68% and still read
-    /// as a dark window.
+    /// The text's background on a tube is the desktop through the faceplate,
+    /// and the worst desktop is a white window behind crew. With no glass at
+    /// all (the Off level), every text role still reads there: the terminal's
+    /// text and ink at AAA, muted text at AA, and the quiet roles at the UI
+    /// floor. At a 12% veil the ink was under 1.5:1 — the fog the user saw.
     #[test]
-    fn a_tube_pane_lets_most_of_the_desktop_through() {
-        let _g = crate::app::theme_test_guard();
+    fn a_tube_holds_its_text_over_a_white_desktop() {
+        let mut under = Vec::new();
         for id in crew_theme::ALL_THEMES {
-            if !id.theme().is_tube() {
+            let t = id.theme();
+            if !t.is_tube() {
                 continue;
             }
-            let s = crew_theme::glass_style_for(id.theme()).scaled(crew_theme::GlassLevel::High);
-            let a = (s.alpha_top + s.etch).min(1.0);
-            let cover = a + TUBE_OPACITY * (1.0 - a);
-            assert!(cover <= 0.3, "{}: a pane covers {cover:.2}", id.as_str());
+            // The window server composites premultiplied: the page at the
+            // faceplate's alpha, plus what it leaves of the desktop.
+            let c =
+                |p: u8| (f32::from(p) * TUBE_OPACITY + 255.0 * (1.0 - TUBE_OPACITY)).round() as u8;
+            let bg = (c(t.page_bg.0), c(t.page_bg.1), c(t.page_bg.2));
+            for (role, fg, floor) in [
+                ("term_fg", t.term_fg, 7.0),
+                ("ink", t.ink, 7.0),
+                ("text_muted", t.text_muted, 4.5),
+                ("legend_off", t.legend_off, 3.0),
+                ("hint_fg", t.hint_fg, 3.0),
+                ("placeholder", t.placeholder, 3.0),
+                ("dim", t.dim, 3.0),
+            ] {
+                let got = crew_theme::contrast_ratio(fg, bg);
+                eprintln!("{}: {role} {got:.2} over {bg:?}", id.as_str());
+                if got < floor {
+                    under.push(format!("{} {role} {got:.2} (need {floor})", id.as_str()));
+                }
+            }
         }
+        assert!(
+            under.is_empty(),
+            "over a white desktop:\n  {}",
+            under.join("\n  ")
+        );
+        assert!(TUBE_OPACITY < 1.0, "a faceplate, not a wall");
     }
 
     #[test]

@@ -62,7 +62,7 @@ pub static CRT_VIOLET: Theme = Theme {
         pole_b: (176, 150, 230),
         drift_ms: 6_000,
         // No backdrop under a tube: just the glass and its borders over the
-        // frosted desktop (see crew-app's `tubesheer`).
+        // tinted faceplate (see crew-app's `tubesheer`).
         dots: 0.0,
         wash: 0.0,
     }),

@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.55
+
+**CRT text reads over anything behind the window.** The CRT themes' window
+was a 12% veil, so whatever sat behind crew became the text's background.
+Over a white browser window the phosphor text washed out, and the glow
+turned to fog. Now:
+- **A tinted faceplate,** the way a real tube's glass is tinted. The window
+  is 84% opaque under a CRT theme. That's dark enough that over a white
+  window the main text stays above 7:1 contrast, muted text above 4.5:1
+  and every hint and label above 3:1. A sixth of your desktop still shows
+  through, frosted.
+- **Smoked glass, not milky frost.** Panes are glass tinted with the
+  phosphor's colour, darkening the background under the text instead of
+  lighting it, so the glow reads as neon again rather than haze.
+- **Your Opacity % still wins.** Set it lower in Settings if you'd rather
+  trade contrast for transparency.
+
 ## 0.25.54
 
 **CRT text casts a lighter shadow, and its quiet text reads.** Two fixes

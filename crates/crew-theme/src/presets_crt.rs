@@ -73,7 +73,7 @@ pub static CRT_GREEN: Theme = Theme {
         pole_b: (162, 242, 172),
         drift_ms: 6_000,
         // No backdrop under a tube: just the glass and its borders over the
-        // frosted desktop (see crew-app's `tubesheer`).
+        // tinted faceplate (see crew-app's `tubesheer`).
         dots: 0.0,
         wash: 0.0,
     }),
@@ -139,7 +139,7 @@ pub static CRT_AMBER: Theme = Theme {
         pole_b: (242, 193, 102),
         drift_ms: 6_000,
         // No backdrop under a tube: just the glass and its borders over the
-        // frosted desktop (see crew-app's `tubesheer`).
+        // tinted faceplate (see crew-app's `tubesheer`).
         dots: 0.0,
         wash: 0.0,
     }),
