@@ -1,5 +1,6 @@
 //! Headless GPU test for the backdrop's MOTION: the pool breath, the pools'
-//! wander, the page's whirlpool, the lattice's turning tint and the vortex.
+//! wander, the page's whirlpool and the lattice's turning tint (the vortex
+//! has its own, `backdrop_vortex_headless`).
 //! Each is a pure function of the two clocks and the wake the app hands the
 //! pass, so each is shot at chosen values and read back. Skips on a GPU-less
 //! machine (CI) instead of failing.
@@ -133,45 +134,6 @@ fn backdrop_motion_headless() {
         "T1 failed: half a turn should reverse it, {tl5} -> {br5}"
     );
 
-    // G1: the vortex. One pole, so the turning tint cannot move a pixel and
-    // anything that changes is the bands. Asleep the lattice is uniform;
-    // awake, the dots rise and fall band by band, the crest's carrying far
-    // more of the tint than a trough's.
-    let dots16 = |buf: &[u8]| -> Vec<i32> {
-        (0..16)
-            .map(|i| lift(DARK, rgb(buf, 8 + 16 * (i % 4), 8 + 16 * (i / 4))))
-            .collect()
-    };
-    let (asleep, vortex) = (
-        dots16(&shot(DARK, &lattice(BLUE, BLUE, 0.0))),
-        dots16(&shot(DARK, &awake(lattice(BLUE, BLUE, 0.0)))),
-    );
-    let span = |v: &[i32]| (*v.iter().min().unwrap(), *v.iter().max().unwrap());
-    let ((a_lo, a_hi), (v_lo, v_hi)) = (span(&asleep), span(&vortex));
-    eprintln!("[vortex] asleep dots {a_lo}..{a_hi}, awake {v_lo}..{v_hi}");
-    assert!(
-        a_hi - a_lo <= 3,
-        "G1 premise: a sleeping lattice is uniform, {asleep:?}"
-    );
-    assert!(
-        v_hi * 10 >= v_lo * 25,
-        "G1 failed: the bands should lift their dots hard, {vortex:?}"
-    );
-
-    // G2: no seam. The step across the orbit's wrap (0.999 -> 0) moves each
-    // dot about as far as the same-sized step after it (0 -> 0.001) — the
-    // crest's slope differs a little either side, a seam would be a jump of
-    // hundreds: the bands just keep pouring.
-    let before = dots16(&shot(DARK, &awake(lattice(BLUE, BLUE, 0.999))));
-    let after = dots16(&shot(DARK, &awake(lattice(BLUE, BLUE, 0.001))));
-    for i in 0..16 {
-        let (seam, step) = ((vortex[i] - before[i]).abs(), (after[i] - vortex[i]).abs());
-        assert!(
-            seam <= 2 * step + 3,
-            "G2 failed: dot {i} jumps {seam} at the wrap, {step} a step later"
-        );
-    }
-
     // L1: it all reads on a LIGHT page too, at the strengths the light
     // themes ship (wash 0.12, dots 0.16): the breath moves pool A's colour
     // and a vortex band darkens its dots by a visible step. Measured as
@@ -202,34 +164,6 @@ fn backdrop_motion_headless() {
     assert!(
         glint >= 25,
         "L1 failed: the glint should show on a light page, moved {glint}"
-    );
-
-    // G3: the bands pour INWARD. On a lattice fine enough to be a field,
-    // along the row through the centre and out to the right, find the band
-    // crest nearest a third of the way out; a third of a band's pour later
-    // the nearest crest to it has moved toward the centre.
-    let fine = |phase| ModernPaper {
-        spacing: [2.0, 2.0],
-        radius: 0.9,
-        ..awake(lattice(BLUE, BLUE, phase))
-    };
-    let row = |buf: &[u8]| -> Vec<i32> {
-        (0..128)
-            .map(|x| lift(DARK, rgb_w(buf, 128, x, 64)))
-            .collect()
-    };
-    let crest_near = |v: &[i32], at: usize| {
-        (70..124)
-            .filter(|&x| v[x] >= v[x - 1] && v[x] >= v[x + 1] && v[x] > v[x - 3] && v[x] > v[x + 3])
-            .min_by_key(|&x| x.abs_diff(at))
-            .unwrap()
-    };
-    let early = crest_near(&row(&big(&fine(0.1))), 64 + 26);
-    let late = crest_near(&row(&big(&fine(0.1 + 1.0 / 18.0))), early);
-    eprintln!("[pour] crest x {early} -> {late}");
-    assert!(
-        late + 2 <= early,
-        "G3 failed: the band should sink inward, crest x {early} -> {late}"
     );
 }
 
