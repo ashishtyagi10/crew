@@ -191,6 +191,7 @@ fn crt_headless() {
         flicker: 0.0,
         core: 0.0,
         etch: 0.0,
+        shade: 0.0,
     }));
     chain.set_anim(0.0, 0.0);
     chain.update_uniforms(&queue, N as f32, N as f32, false);
@@ -254,6 +255,7 @@ fn crt_headless() {
         flicker: 0.0,
         core: 0.0,
         etch: 0.0,
+        shade: 0.0,
     };
     chain.set_style(Some(light_style));
     chain.set_anim(0.0, 0.0);
@@ -349,6 +351,7 @@ fn crt_dark_type_on_a_bright_bar_stays_readable() {
         flicker: 0.0,
         core: 0.0,
         etch: 0.0,
+        shade: 0.0,
     }));
     chain.set_anim(0.0, 0.0);
     chain.update_uniforms(&queue, N as f32, N as f32, false);
@@ -405,6 +408,7 @@ fn crt_thin_strokes_burn_white_and_fills_do_not() {
             flicker: 0.0,
             core,
             etch: 0.0,
+            shade: 0.0,
         }));
         chain.set_anim(0.0, 0.0);
         chain.update_uniforms(&queue, N as f32, N as f32, false);
@@ -428,4 +432,82 @@ fn crt_thin_strokes_burn_white_and_fills_do_not() {
         (field_on.0 - field_off.0).abs() <= 6 && (field_on.1 - field_off.1).abs() <= 6,
         "a wide fill must keep its colour: {field_off:?} -> {field_on:?}"
     );
+}
+
+/// The SHADOW (2026-10-06, a tube's see-through window): behind a run of lit
+/// text the composite raises the window's alpha — dimming the desktop the
+/// window server lays under it — while a lone frame line, the clear page far
+/// from any ink, and every pixel's COLOUR stay exactly as they were. A sheer
+/// page (alpha .2) carrying a block of one-pixel green strokes and, apart
+/// from it, a single long line; with `shade` 0 the alpha is the scene's.
+#[test]
+fn crt_shade_dims_the_desktop_behind_text_only() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("crt_shade_dims_the_desktop_behind_text_only: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let mut chain = CrtChain::new(&device, wgpu::TextureFormat::Rgba8Unorm, N as u32, N as u32);
+    const PAGE_A: u8 = 51;
+    upload(&queue, &chain, |x, y| {
+        let text = (6..30).contains(&x) && (6..30).contains(&y) && x % 3 == 0;
+        let line = y == 52;
+        if text || line {
+            [0, 255, 102, 255]
+        } else {
+            [2, 6, 5, PAGE_A]
+        }
+    });
+    let mut shot = |shade| {
+        chain.set_style(Some(CrtStyle {
+            scanline: 0.0,
+            glow: 0.95,
+            glow_radius: 7.0,
+            flicker: 0.0,
+            core: 0.6,
+            etch: 0.0,
+            shade,
+        }));
+        chain.set_anim(0.0, 0.0);
+        chain.update_uniforms(&queue, N as f32, N as f32, false);
+        render(&device, &queue, &chain)
+    };
+    let (off, on) = (shot(0.0), shot(crew_theme::CrtStyle::TUBE_SHADE));
+    let px = |buf: &[u8], x: usize, y: usize| {
+        let o = y * STRIDE + x * 4;
+        [buf[o], buf[o + 1], buf[o + 2], buf[o + 3]]
+    };
+    // Between two strokes inside the text, beside the lone line, and clear page.
+    let (gap, by_line, clear) = ((17, 18), (40, 48), (52, 34));
+    for (x, y) in [gap, by_line, clear] {
+        assert_eq!(px(&off, x, y)[3], PAGE_A, "shade 0 left ({x},{y})'s alpha");
+    }
+    let a = |(x, y): (usize, usize)| px(&on, x, y)[3] as i32 - PAGE_A as i32;
+    eprintln!(
+        "shade: alpha lift text gap {} / by the line {} / clear {}",
+        a(gap),
+        a(by_line),
+        a(clear)
+    );
+    assert!(a(gap) >= 60, "the desktop behind text dims: +{}", a(gap));
+    assert!(
+        a(by_line) <= 6,
+        "a lone line casts no shadow: +{}",
+        a(by_line)
+    );
+    assert_eq!(a(clear), 0, "the clear page stays clear");
+    for (x, y) in [gap, by_line, clear] {
+        assert_eq!(
+            px(&off, x, y)[..3],
+            px(&on, x, y)[..3],
+            "the shadow moved ({x},{y})'s colour"
+        );
+    }
 }

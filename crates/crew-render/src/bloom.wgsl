@@ -5,6 +5,12 @@
 // `glow_radius`. The result is what crt.wgsl adds back over the scene —
 // half-res keeps the chain O(quarter the pixels) per pass, and bilinear
 // upsampling in the composite hides the resolution drop inside the blur.
+//
+// The ALPHA channel rides along as a second, colourless blur: how much of
+// each pixel is LIT INK — a solid, bright stroke: glyphs and frames, not the
+// sheer page, the frost, or a dark fill — which the composite turns into the
+// soft shadow a tube lays behind its text on a see-through window
+// (crt.wgsl's `shade`).
 
 struct U {
     // One HALF-RES texel in UV space (1 / half-res size). The blur reads and
@@ -56,20 +62,46 @@ fn vs(@builtin(vertex_index) vi: u32) -> VsOut {
 const CHROMA_DEAD: f32 = 0.25;
 const CHROMA_FULL: f32 = 0.50;
 
+// Where a pixel counts as lit ink for the shadow mask. SOLID: the sheer
+// page, the frost and its gloss sit far below SOLID_FROM, a glyph's or a
+// frame's stroke at 1. LIT: a dark fill (an unfocused selection bar) needs
+// no shadow — it is the dark already — while a hint-dim glyph does.
+const SOLID_FROM: f32 = 0.5;
+const SOLID_FULL: f32 = 0.95;
+const LIT_FROM: f32 = 0.15;
+const LIT_FULL: f32 = 0.45;
+
+// The lit-ink mask over the 2×2 full-res block this half-res texel covers,
+// by MAX: a one-pixel stroke averaged with its neighbours would fall under
+// the solid floor and drop out of the mask, and thin glyphs are the point.
+fn lit_ink(at: vec2<f32>) -> f32 {
+    let last = vec2<i32>(textureDimensions(tex)) - vec2<i32>(1);
+    let base = vec2<i32>(floor(at)) * 2;
+    var m = 0.0;
+    for (var i = 0; i < 4; i++) {
+        let p = min(base + vec2<i32>(i & 1, i >> 1u), last);
+        let t = textureLoad(tex, p, 0);
+        let peak = max(t.r, max(t.g, t.b));
+        m = max(m, smoothstep(SOLID_FROM, SOLID_FULL, t.a) * smoothstep(LIT_FROM, LIT_FULL, peak));
+    }
+    return m;
+}
+
 @fragment
 fn fs_bright(in: VsOut) -> @location(0) vec4<f32> {
     // Half-res fragment sampling the full-res scene with a bilinear sampler:
     // the fetch averages a 2×2 block, so this is the downsample too.
     let uv = in.pos.xy * u.texel;
     let c = textureSample(tex, samp, uv).rgb;
+    let solid = lit_ink(in.pos.xy);
     if (u.ink > 0.5) {
         let chroma = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
         let mask = smoothstep(CHROMA_DEAD, CHROMA_FULL, chroma);
         // The pixel's COMPLEMENT: subtracting it from a white page leaves the
         // pixel's own hue behind, so a blue ring bleeds blue rather than gray.
-        return vec4<f32>((vec3<f32>(1.0) - c) * mask, 1.0);
+        return vec4<f32>((vec3<f32>(1.0) - c) * mask, solid);
     }
-    return vec4<f32>(max(c - vec3<f32>(u.threshold), vec3<f32>(0.0)), 1.0);
+    return vec4<f32>(max(c - vec3<f32>(u.threshold), vec3<f32>(0.0)), solid);
 }
 
 // 9-tap kernel, gaussian-shaped but with lifted tails summing to 1.6 per
@@ -78,24 +110,24 @@ fn fs_bright(in: VsOut) -> @location(0) vec4<f32> {
 // weights ever touch it and the reach the goal demands (light ≥ 16 full-res
 // px from a stroke) rounds to black. The lift is the phosphor's energy —
 // bounded, because the composite clamps before the scanlines multiply.
-fn blur(uv: vec2<f32>, dir: vec2<f32>) -> vec3<f32> {
+fn blur(uv: vec2<f32>, dir: vec2<f32>) -> vec4<f32> {
     let step = dir * u.texel * (u.radius / 4.0);
     var w = array<f32, 4>(0.24, 0.18, 0.13, 0.10);
-    var acc = textureSample(tex, samp, uv).rgb * 0.30;
+    var acc = textureSample(tex, samp, uv) * 0.30;
     for (var i = 1; i <= 4; i++) {
         let o = step * f32(i);
-        acc += textureSample(tex, samp, uv + o).rgb * w[i - 1];
-        acc += textureSample(tex, samp, uv - o).rgb * w[i - 1];
+        acc += textureSample(tex, samp, uv + o) * w[i - 1];
+        acc += textureSample(tex, samp, uv - o) * w[i - 1];
     }
     return acc;
 }
 
 @fragment
 fn fs_blur_h(in: VsOut) -> @location(0) vec4<f32> {
-    return vec4<f32>(blur(in.pos.xy * u.texel, vec2<f32>(1.0, 0.0)), 1.0);
+    return blur(in.pos.xy * u.texel, vec2<f32>(1.0, 0.0));
 }
 
 @fragment
 fn fs_blur_v(in: VsOut) -> @location(0) vec4<f32> {
-    return vec4<f32>(blur(in.pos.xy * u.texel, vec2<f32>(0.0, 1.0)), 1.0);
+    return blur(in.pos.xy * u.texel, vec2<f32>(0.0, 1.0));
 }

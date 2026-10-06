@@ -1257,3 +1257,27 @@ fn the_wash_never_pushes_a_role_under_its_floor() {
         }
     }
 }
+
+/// Only a tube shades its text (2026-10-06): its window is always see-through,
+/// so the phosphor needs the soft shadow over a bright wallpaper. Every other
+/// theme's style — the one `/crt on` lays over it — keeps 0, so its frame
+/// through the tube is exactly what it was.
+#[test]
+fn only_the_tubes_shade_their_text() {
+    for id in ALL_THEMES {
+        let t = id.theme();
+        let shade = t.crt.map_or(0.0, |c| c.shade);
+        let want = if t.is_tube() {
+            CrtStyle::TUBE_SHADE
+        } else {
+            0.0
+        };
+        assert_eq!(shade, want, "{}: shade", id.as_str());
+    }
+    const { assert!(CrtStyle::TUBE_SHADE > 0.0 && CrtStyle::TUBE_SHADE <= 0.5) };
+    assert_eq!(
+        CrtStyle::DEFAULT.shade,
+        0.0,
+        "/crt on over a theme with no tube"
+    );
+}

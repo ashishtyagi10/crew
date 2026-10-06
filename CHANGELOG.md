@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.50
+
+**CRT text casts a soft shadow.** Now that the CRT window is see-through,
+text sits right on your wallpaper, and on a bright one the dimmer phosphor
+text was hard to read. Each run of text now dims the desktop a little behind
+it, in a soft cloud that fades out around the line. The glass between the
+lines stays as clear as before, and the glow and colours are unchanged. A
+lone frame line casts no shadow, so pane borders stay clean. Only the four
+CRT themes do this, and only while the window is see-through.
+
 ## 0.25.49
 
 **The CRT themes are actually see-through now.** 0.25.48 made the CRT window

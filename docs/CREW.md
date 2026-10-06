@@ -4035,7 +4035,11 @@ TRON edge. The window itself is frosted glass — your desktop shows through it,
 blurred, with no black page and no drifting background — and every pane is a
 thin milky sheet of frost in the phosphor's hue (see [Glass](#glass)); the hot
 phosphors (green, amber) keep a fine raster *etched into that glass*, under
-the text, rather than scanlines striped over the whole window. Text is
+the text, rather than scanlines striped over the whole window. Text casts a
+soft shadow onto the desktop behind it: the window dims your wallpaper a
+little around a run of text (not around a lone frame line), so the phosphor
+still reads over a bright background while the glass between the lines stays
+clear. Text is
 electric: the core of every thin bright stroke burns white-hot inside its
 coloured halo, while wide fills keep their colour. Hot pixels feed a real
 half-res gaussian bloom — a focused border *radiates* tens of pixels instead of

@@ -16,6 +16,7 @@ struct U {
     scanline: f32,
     glow: f32,
     core: f32,
+    shade: f32,
 }
 @group(0) @binding(0) var tex: texture_2d<f32>;
 @group(0) @binding(1) var samp: sampler;
@@ -48,6 +49,20 @@ fn hash1(x: f32) -> f32 {
 
 // Most glow one pixel takes (see the composite).
 const GLOW_CAP: f32 = 0.18;
+
+// The shadow's ramp over the blurred lit-ink mask (bloom's alpha; the blur's
+// lifted kernel sums to 2.56, so a solid field reads 2.56). Measured on the
+// crt-green window: a lone frame line reads ~0.2 (0.3 where two cross), so
+// it peaks under SHADE_FROM — a frame needs no shadow, and its sparse-tap
+// echoes would stripe the wallpaper — while a run of text reads 0.45-0.85.
+const SHADE_FROM: f32 = 0.25;
+const SHADE_FULL: f32 = 0.7;
+// The mask is the bloom's half-res blur, whose sparse taps leave copies of
+// each stroke a few px apart and whose texels are 2 px square: read raw, the
+// shadow is a striped, blocky smudge. So the composite reads it through a
+// 3×3 tent this many full-res px apart, which spans both and leaves a soft
+// cloud behind the text.
+const SHADE_SPAN: f32 = 3.0;
 
 @fragment
 fn fs(in: VsOut) -> @location(0) vec4<f32> {
@@ -112,7 +127,28 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // Activity flicker: a small brightness wobble, exactly 0 when idle.
     col *= 1.0 + u.flicker * (hash1(u.time) - 0.5);
 
-    // Carry the scene's alpha through untouched — the tube effects shape light,
-    // not transparency, so a translucent window stays translucent under CRT.
-    return vec4<f32>(clamp(col, vec3<f32>(0.0), vec3<f32>(1.0)), scene.a);
+    // The SHADOW (a tube on a see-through window): around what is solid —
+    // the text above all — the window takes a little more of the desktop's
+    // light away, softly, out to the blur's reach. Only the alpha moves: the
+    // window server composites crew premultiplied, so raising alpha without
+    // adding colour dims the wallpaper behind a line of text and leaves the
+    // glow, the frost and the gaps between the lines exactly as they were.
+    // An opaque window is alpha 1 already, so this is a no-op there.
+    var ink = 0.0;
+    if (u.shade > 0.0) {
+        let d = SHADE_SPAN / u.resolution;
+        for (var j = -1; j <= 1; j++) {
+            for (var i = -1; i <= 1; i++) {
+                let w = f32((2 - abs(i)) * (2 - abs(j))) / 16.0;
+                ink += w * textureSample(bloom_tex, samp, warped + d * vec2<f32>(f32(i), f32(j))).a;
+            }
+        }
+    }
+    let shadow = u.shade * smoothstep(SHADE_FROM, SHADE_FULL, ink);
+    let a = scene.a + (1.0 - scene.a) * shadow;
+
+    // Otherwise the scene's alpha passes through untouched — the tube effects
+    // shape light, not transparency, so a translucent window stays
+    // translucent under CRT.
+    return vec4<f32>(clamp(col, vec3<f32>(0.0), vec3<f32>(1.0)), a);
 }
