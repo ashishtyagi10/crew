@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.47
+
+**High contrast quiets the glass under your text.** When macOS asks for more
+contrast (or crew's high-contrast setting is on), the parts of each pane's
+glass that sit under text now step back: the tinted body, its lit edge, the
+gloss and the CRT etch drop by the same factor the page's swirl already
+does. The rim and the shadow, or the CRT halo, stay as they are, since no
+text sits on them and they are what still shows each pane as a sheet. At
+normal contrast nothing changes.
+
 ## 0.25.46
 
 **The CRT themes drop the raster.** Green and amber ran a heavy raster of

@@ -225,3 +225,40 @@ fn tubes_etch_their_raster_into_their_glass() {
     assert!(etched(crate::ThemeId::CrtGreen) && etched(crate::ThemeId::CrtAmber));
     assert!(!etched(crate::ThemeId::CrtBlue) && !etched(crate::ThemeId::CrtViolet));
 }
+
+/// When the OS asks for more contrast the glass gives back what lies under
+/// the text — the body, its lit edge, the gloss, the etch — by the page
+/// wash's own factor, and keeps its rim and halo; asked for nothing, the
+/// active style is exactly the theme's.
+#[test]
+fn high_contrast_quiets_the_glass_under_the_text() {
+    let _c = crate::contrast::test_lock();
+    let base = style_for(&CRT_GREEN);
+    let k = 0.33;
+    let q = base.quieted(k);
+    for (name, was, now) in [
+        ("body", base.alpha_top, q.alpha_top),
+        ("edge", base.edge_glow, q.edge_glow),
+        ("gloss", base.gloss, q.gloss),
+        ("etch", base.etch, q.etch),
+    ] {
+        assert!((now - was * k).abs() < 1e-6, "{name}: {was} -> {now}");
+    }
+    assert_eq!(
+        (q.highlight_alpha, q.shadow_alpha, q.glow),
+        (base.highlight_alpha, base.shadow_alpha, base.glow)
+    );
+    assert_eq!(base.quieted(1.0), base);
+    // And the active style the frame draws really does it.
+    let _t = crate::test_guard();
+    let was = crate::current_id();
+    crate::set_theme(crate::ThemeId::CrtGreen);
+    let normal = style();
+    crate::contrast::set_high_contrast(true);
+    let high = style();
+    crate::contrast::set_high_contrast(false);
+    crate::set_theme(was);
+    assert_eq!(normal, base, "asked for nothing, the style is the theme's");
+    assert!(high.alpha_top < normal.alpha_top && high.gloss < normal.gloss);
+    assert_eq!(high.highlight_alpha, normal.highlight_alpha);
+}
