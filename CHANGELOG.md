@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.52
+
+**Windows panes open PowerShell 7 when it's installed.** A new pane now
+starts `pwsh` instead of the old Windows PowerShell 5.1 (`powershell.exe`)
+whenever PowerShell 7 is on the machine. crew finds it on `PATH`, in
+`Program Files\PowerShell\7`, or where winget, the Microsoft Store, Scoop or
+the .NET tool installs it. Without it, panes open Windows PowerShell as
+before. A `SHELL` you set yourself still wins. The oh-my-posh prompt works
+the same in both.
+
 ## 0.25.51
 
 **Windows panes get oh-my-posh, the way a Mac gets oh-my-zsh.** A Windows

@@ -593,8 +593,10 @@ Shift+Tab, …) pass through to the program. **Shift+Enter** sends a line feed
 rather than submitting. Shells launch as your `$SHELL` login shell, so your full
 config and plugins load.
 
-On **Windows** a pane is PowerShell, and crew gives it the prompt oh-my-zsh
-gives a Mac: **oh-my-posh**, in crew's own theme (oh-my-zsh's default look,
+On **Windows** a pane is PowerShell — **PowerShell 7** (`pwsh`) when it is
+installed (on `PATH`, in `Program Files\PowerShell\7`, or from winget, the
+Store, Scoop or the .NET tool), else Windows PowerShell; a `$SHELL` you set
+still wins — and crew gives it the prompt oh-my-zsh gives a Mac: **oh-my-posh**, in crew's own theme (oh-my-zsh's default look,
 `➜  dir git:(branch) ✗`, coloured from crew's ANSI palette so it follows the
 theme). crew finds oh-my-posh on `PATH` or wherever winget, its own installer,
 Scoop or Chocolatey put it. If it is nowhere, the first PowerShell pane installs

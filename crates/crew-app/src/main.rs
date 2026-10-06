@@ -639,6 +639,9 @@ mod welcomeshot_tests;
 mod welcometext;
 mod wincon;
 mod windowtitle;
+// Windows program lookup (pwsh, oh-my-posh); the tests run everywhere.
+#[cfg(any(windows, test))]
+mod winexe;
 mod wording;
 
 /// What a bare `crew <args>` invocation wants before any GUI exists.
