@@ -52,20 +52,26 @@ fn backdrop_colour_headless() {
     );
 
     // S1: the sheen. Awake, the vortex's six bands light the page itself:
-    // round a ring about the centre the page rises and falls six times. The
-    // pools vary round a ring only slowly (once or twice), so the ring's
-    // SIXTH harmonic is the bands alone — next to nothing on a sleeping page.
+    // round a ring about the centre the page ripples once a band. The pools
+    // vary round a ring only slowly, so what is left after a moving average
+    // one band wide (60°) is the bands' RIPPLE — next to nothing on a
+    // sleeping page. One pole, so the bands' cycling colours cannot beat
+    // against them.
+    let one = |m: ModernPaper| ModernPaper {
+        color_b: m.color_a,
+        ..m
+    };
     let big = |page: [f32; 4], m: &ModernPaper| {
         pass.update_uniform(&queue, page, (128.0, 128.0), 1.0, 0.0, Some(m));
         render_offscreen(&device, &queue, &pass, 128, 128)
     };
     let (asleep, vortex) = (
-        sixth(&big(DARK, &wash(0.25, 0.0)), DARK),
-        sixth(&big(DARK, &awake(wash(0.25, 0.0))), DARK),
+        ripple(&big(DARK, &one(wash(0.25, 0.0))), DARK),
+        ripple(&big(DARK, &awake(one(wash(0.25, 0.0)))), DARK),
     );
-    eprintln!("[sheen] ring's sixth harmonic {asleep:.1} asleep -> {vortex:.1} awake");
+    eprintln!("[sheen] ring's ripple {asleep:.1} asleep -> {vortex:.1} awake");
     assert!(
-        vortex >= 8.0 && vortex >= 4.0 * asleep,
+        vortex >= 12.0 && vortex >= 3.0 * asleep,
         "S1 failed: the bands should light the page, {asleep:.1} -> {vortex:.1}"
     );
 
@@ -73,28 +79,31 @@ fn backdrop_colour_headless() {
     // (wash 0.12) — faint, half a pool's strength, but a visible ripple.
     let light = ModernPaper {
         wash: 0.12,
-        ..awake(wash(0.25, 0.0))
+        ..awake(one(wash(0.25, 0.0)))
     };
-    let lv = sixth(&big(LIGHT, &light), LIGHT);
-    let l0 = sixth(&big(LIGHT, &ModernPaper { live: 0.0, ..light }), LIGHT);
-    eprintln!("[sheen light] ring's sixth harmonic {l0:.1} asleep -> {lv:.1} awake");
+    let lv = ripple(&big(LIGHT, &light), LIGHT);
+    let l0 = ripple(&big(LIGHT, &ModernPaper { live: 0.0, ..light }), LIGHT);
+    eprintln!("[sheen light] ring's ripple {l0:.1} asleep -> {lv:.1} awake");
     assert!(
-        lv >= 0.4 && lv >= 4.0 * l0,
+        lv >= 1.2 && lv >= 3.0 * l0,
         "S2 failed: the sheen should show on a light page, {l0:.1} -> {lv:.1}"
     );
 }
 
-/// How strongly the page rises and falls SIX times round a ring of 0.35
-/// half-heights about the centre of a 128px shot: the magnitude of the ring's
-/// sixth harmonic, in summed-channel levels from the bare `page`.
-fn sixth(buf: &[u8], page: [f32; 4]) -> f32 {
-    let (mut re, mut im) = (0.0f32, 0.0f32);
-    for deg in (0..360).step_by(2) {
-        let a = (deg as f32).to_radians();
-        let x = (64.0 + 0.35 * 64.0 * a.cos()) as usize;
-        let y = (64.0 + 0.35 * 64.0 * a.sin()) as usize;
-        let v = lift(page, rgb_w(buf, 128, x, y)) as f32;
-        (re, im) = (re + v * (6.0 * a).cos(), im + v * (6.0 * a).sin());
-    }
-    2.0 * (re * re + im * im).sqrt() / 180.0
+/// How much the page ripples round a ring of 0.35 half-heights about the
+/// centre of a 128px shot, sampled every 2°: the RMS of what is left after
+/// a circular moving average 60° wide, in summed-channel levels from the
+/// bare `page`.
+fn ripple(buf: &[u8], page: [f32; 4]) -> f32 {
+    let v: Vec<f32> = (0..180)
+        .map(|k| {
+            let a = (2.0 * k as f32).to_radians();
+            let x = (64.0 + 0.35 * 64.0 * a.cos()) as usize;
+            let y = (64.0 + 0.35 * 64.0 * a.sin()) as usize;
+            lift(page, rgb_w(buf, 128, x, y)) as f32
+        })
+        .collect();
+    let smooth = |k: usize| (0..30).map(|d| v[(k + 180 - 15 + d) % 180]).sum::<f32>() / 30.0;
+    let ss: f32 = (0..180).map(|k| (v[k] - smooth(k)).powi(2)).sum();
+    (ss / 180.0).sqrt()
 }

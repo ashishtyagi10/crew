@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.40
+
+**The vortex pulls like breath and has an eye.** Its motion used to run at
+one constant pace and brightness, and its centre was only a fade to nothing.
+Now:
+- **It breathes.** Twice an orbit (every 12 seconds on a quiet page, about
+  the pace of a slow breath) the vortex draws in: the pour quickens on the
+  way in, eases off on the way out without ever stopping, and the bands
+  brighten with the inhale.
+- **It has an eye.** Where the bands converge they melt into a soft ring of
+  light round a dark centre: the point the whole page pours toward. The ring
+  wears the bands' colours and swells on every inhale. It sits on the
+  focused pane, like the rest of the page's light.
+- **The eye holds still.** The crossing current that ripples the bands now
+  calms toward the centre, so the eye stays put and round while the rim
+  keeps its ripple.
+
+A still page is unchanged, as before.
+
 ## 0.25.39
 
 **The vortex breathes, wears its colours and carries beads of light.** In

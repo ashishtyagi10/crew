@@ -1,7 +1,8 @@
 //! Headless GPU test for the backdrop's VORTEX: the spiral of soft bands that
 //! pours inward on an awake page — how hard its bands light the lattice, that
 //! it has no seam, that it pours inward, that each band wears its own colour,
-//! that its winding breathes and that a counter-spiral beads its arms. Each
+//! that its winding breathes, that a counter-spiral beads its arms, that it
+//! pulls like breath and that its bands melt into a ring of light at the eye. Each
 //! is a pure function of the clocks and the wake the app hands the pass, so
 //! each is shot at chosen values and read back. Skips on a GPU-less machine
 //! (CI) instead of failing.
@@ -26,6 +27,10 @@ fn backdrop_vortex_headless() {
         pass.update_uniform(&queue, DARK, (128.0, 128.0), 1.0, 0.0, Some(m));
         render_offscreen(&device, &queue, &pass, 128, 128)
     };
+    let huge = |m: &ModernPaper| {
+        pass.update_uniform(&queue, DARK, (256.0, 256.0), 1.0, 0.0, Some(m));
+        render_offscreen(&device, &queue, &pass, 256, 256)
+    };
     // A lattice fine enough to read as a field: every pixel is the same
     // distance from its dot, so a band shows as a smooth ridge, not dots.
     let fine = |a, b, phase, wander| ModernPaper {
@@ -37,8 +42,9 @@ fn backdrop_vortex_headless() {
 
     // G1: the bands light the lattice. One pole, so the turning tint cannot
     // move a pixel and anything that changes is the bands. Asleep the
-    // lattice is uniform; awake, the dots rise and fall band by band, the
-    // crest's carrying far more of the tint than a trough's.
+    // lattice is uniform; awake, at the top of the pull (a quarter turn), the
+    // dots rise and fall band by band, the crest's carrying far more of the
+    // tint than a trough's.
     let dots16 = |buf: &[u8]| -> Vec<i32> {
         (0..16)
             .map(|i| lift(DARK, rgb(buf, 8 + 16 * (i % 4), 8 + 16 * (i / 4))))
@@ -46,7 +52,7 @@ fn backdrop_vortex_headless() {
     };
     let (asleep, vortex) = (
         dots16(&shot(&lattice(BLUE, BLUE, 0.0))),
-        dots16(&shot(&awake(lattice(BLUE, BLUE, 0.0)))),
+        dots16(&shot(&awake(lattice(BLUE, BLUE, 0.25)))),
     );
     let span = |v: &[i32]| (*v.iter().min().unwrap(), *v.iter().max().unwrap());
     let ((a_lo, a_hi), (v_lo, v_hi)) = (span(&asleep), span(&vortex));
@@ -64,10 +70,11 @@ fn backdrop_vortex_headless() {
     // dot about as far as the same-sized step after it (0 -> 0.001) — the
     // crest's slope differs a little either side, a seam would be a jump of
     // hundreds: the bands just keep pouring.
+    let top = dots16(&shot(&awake(lattice(BLUE, BLUE, 0.0))));
     let before = dots16(&shot(&awake(lattice(BLUE, BLUE, 0.999))));
     let after = dots16(&shot(&awake(lattice(BLUE, BLUE, 0.001))));
     for i in 0..16 {
-        let (seam, step) = ((vortex[i] - before[i]).abs(), (after[i] - vortex[i]).abs());
+        let (seam, step) = ((top[i] - before[i]).abs(), (after[i] - top[i]).abs());
         assert!(
             seam <= 2 * step + 3,
             "G2 failed: dot {i} jumps {seam} at the wrap, {step} a step later"
@@ -160,6 +167,61 @@ fn backdrop_vortex_headless() {
         heights.len() >= 6 && lo * 100 <= hi * 85,
         "K1 failed: beads should make the crests uneven, {heights:?}"
     );
+
+    // E1: the eye. On a 256px page the bands melt into a ring of light about
+    // 0.11 half-heights (14px) out, round a dark centre. The current rocks
+    // the ring a few pixels, so each of 36 rays takes its brightest point
+    // between 8 and 22px out; the centre is the mean within 3px. A sleeping
+    // page is the same lattice everywhere.
+    let faint = |phase| ModernPaper {
+        dots: 0.1,
+        ..fine(BLUE, BLUE, phase, 0.0)
+    };
+    let (ring0, mid0) = eye(&huge(&ModernPaper {
+        live: 0.0,
+        ..faint(0.25)
+    }));
+    let (ring, mid) = eye(&huge(&faint(0.25)));
+    eprintln!("[eye] ring/centre {ring0}/{mid0} asleep -> {ring}/{mid} awake");
+    assert!(
+        ring0 - mid0 <= 6,
+        "E1 premise: no ring asleep, {ring0} vs {mid0}"
+    );
+    assert!(
+        ring >= mid * 2 && ring - mid >= 60,
+        "E1 failed: the eye should be a ring of light round a dark centre, {ring} vs {mid}"
+    );
+
+    // P1: the eye brightens on the inhale. A quarter turn is the top of the
+    // pull, the turn's top the bottom of it.
+    let (low, _) = eye(&huge(&faint(0.0)));
+    eprintln!("[pull] eye ring {low} exhaled -> {ring} inhaled");
+    assert!(
+        ring * 10 >= low * 13,
+        "P1 failed: the inhale should brighten the eye, {low} -> {ring}"
+    );
+
+    // P2: and the pour quickens on the way in. The same small step of the
+    // orbit carries a band crest further inward around an eighth of a turn
+    // (the surge's peak) than around three eighths (its trough).
+    let pour = |at: f32| {
+        let step = 1.0 / 18.0;
+        let from = nearest(
+            &crests(&right(&big(&fine(BLUE, BLUE, at - step / 2.0, 0.0)))),
+            26,
+        );
+        let to = nearest(
+            &crests(&right(&big(&fine(BLUE, BLUE, at + step / 2.0, 0.0)))),
+            from,
+        );
+        from as i32 - to as i32
+    };
+    let (fast, slow) = (pour(0.125), pour(0.375));
+    eprintln!("[surge] a band sinks {fast}px on the pull, {slow}px on the release");
+    assert!(
+        fast >= slow + 2 && slow >= 0,
+        "P2 failed: the pour should quicken on the pull, {fast} vs {slow}px"
+    );
 }
 
 /// A sleeping fine lattice in two poles (see the test's `fine`).
@@ -208,6 +270,26 @@ fn ring_crests(v: &[i32]) -> Vec<usize> {
                 && (-8..=8).map(|d| at(i, d)).min().unwrap() + 40 <= v[i]
         })
         .collect()
+}
+
+/// The eye of a 256px shot: the mean over 36 rays of each ray's brightest
+/// lift between 8 and 22px from the centre, and the mean lift within 3px.
+fn eye(buf: &[u8]) -> (i32, i32) {
+    let at = |r: f32, a: f32| {
+        let (x, y) = (128.0 + r * a.cos(), 128.0 + r * a.sin());
+        lift(DARK, rgb_w(buf, 256, x as usize, y as usize))
+    };
+    let rays = (0..36).map(|k| (10.0 * k as f32).to_radians());
+    let ring: i32 = rays
+        .clone()
+        .map(|a| (8..=22).map(|r| at(r as f32, a)).max().unwrap())
+        .sum::<i32>()
+        / 36;
+    let mid: i32 = rays
+        .map(|a| (0..=3).map(|r| at(r as f32, a)).sum::<i32>())
+        .sum::<i32>()
+        / 144;
+    (ring, mid)
 }
 
 /// The entry of `at` closest to `to`.
