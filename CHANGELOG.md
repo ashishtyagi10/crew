@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.51
+
+**Windows panes get oh-my-posh, the way a Mac gets oh-my-zsh.** A Windows
+pane used to open bare PowerShell with its plain `PS C:\>` prompt. Now:
+- **A real prompt.** PowerShell panes start oh-my-posh in crew's own theme:
+  oh-my-zsh's default look (`➜  dir git:(branch) ✗`), coloured from crew's
+  palette so it follows your theme, with no Nerd Font needed.
+- **Found or installed for you.** crew looks on `PATH` and wherever winget,
+  oh-my-posh's own installer, Scoop or Chocolatey put it. If it's nowhere,
+  the first PowerShell pane installs it with winget before its first prompt,
+  where you can watch, and crew never tries again after that.
+- **Your prompt wins.** If your PowerShell profile already sets a prompt
+  (your own oh-my-posh theme, Starship, anything), crew leaves it alone.
+- **No execution-policy trouble.** crew starts oh-my-posh in memory, so it
+  works under Windows' default policy, which blocks scripts.
+
 ## 0.25.50
 
 **CRT text casts a soft shadow.** Now that the CRT window is see-through,

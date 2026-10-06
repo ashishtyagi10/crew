@@ -593,6 +593,19 @@ Shift+Tab, …) pass through to the program. **Shift+Enter** sends a line feed
 rather than submitting. Shells launch as your `$SHELL` login shell, so your full
 config and plugins load.
 
+On **Windows** a pane is PowerShell, and crew gives it the prompt oh-my-zsh
+gives a Mac: **oh-my-posh**, in crew's own theme (oh-my-zsh's default look,
+`➜  dir git:(branch) ✗`, coloured from crew's ANSI palette so it follows the
+theme). crew finds oh-my-posh on `PATH` or wherever winget, its own installer,
+Scoop or Chocolatey put it. If it is nowhere, the first PowerShell pane installs
+it with `winget install JanDeDobbeleer.OhMyPosh` before its first prompt, where
+you can watch, and crew never tries again after that (uninstall it and it stays
+gone). Your own prompt always wins: if your PowerShell profile sets one (your
+own oh-my-posh theme, Starship, a hand-written `prompt`), crew leaves it alone,
+and that is also how to opt out. The theme lives at
+`%APPDATA%\crew\crew.omp.json`, and crew rewrites it whenever its own copy
+changes, so to restyle the prompt, start oh-my-posh from your profile instead.
+
 ## The input bar
 
 The docked command bar supports:
