@@ -136,7 +136,8 @@ fn backdrop_motion_headless() {
 
     // L1: it all reads on a LIGHT page too, at the strengths the light
     // themes ship (wash 0.12, dots 0.16): the breath moves pool A's colour
-    // and a vortex band darkens its dots by a visible step. Measured as
+    // and a vortex band (at the top of its pull) darkens its dots by a
+    // visible step. Measured as
     // the change in the pixel itself — on a light page a pole can sit on
     // either side of the paper per channel, so "lift" would half-cancel.
     let light = |phase| ModernPaper {
@@ -148,7 +149,7 @@ fn backdrop_motion_headless() {
     let dots = |live| ModernPaper {
         dots: 0.16,
         live,
-        ..lattice(BLUE, BLUE, 0.0)
+        ..lattice(BLUE, BLUE, 0.25)
     };
     let (lg0, lg1) = (shot(LIGHT, &dots(0.0)), shot(LIGHT, &dots(1.0)));
     let glint = (0..16)

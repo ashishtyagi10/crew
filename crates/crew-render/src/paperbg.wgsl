@@ -170,7 +170,9 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let tc = cos(twist);
     let ts = sin(twist);
     var q = vec2<f32>(c.x * tc - c.y * ts, c.x * ts + c.y * tc);
-    q += CURRENT * flow * vec2<f32>(
+    // The current stills toward the centre, so the vortex's eye stays where
+    // the page pours to rather than being rocked off it.
+    q += CURRENT * flow * smoothstep(0.0, 0.35, length(c)) * vec2<f32>(
         sin(CURRENT_K * q.y + ang + wander),
         sin(CURRENT_K * q.x - 2.0 * ang),
     );
@@ -274,7 +276,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // stripe. It fades out at the very centre, where the bands crowd closer
     // than a pixel, and eases off toward the rim so the eye is drawn in.
     //
-    // Three things keep the eye on it rather than letting it settle into a
+    // Three things keep the gaze on it rather than letting it settle into a
     // pattern. The spiral BREATHES: on the slow clock it winds tighter and
     // looser, so the bands crowd in and fan out. Each band wears its OWN
     // colour, the poles cycling over HUE_BANDS bands, so colours pour in
@@ -296,13 +298,29 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let gr = max(length(q), 1e-4);
     let turn = atan2(q.y, q.x) / 6.2831853;
     let wind = WIND * (1.0 + WIND_BREATH * flow * sin(2.0 * wander));
-    let s = ARMS * turn + wind * log(gr) + SPIN * u.dot_grid.w;
+    // The PULL: the vortex draws in like breath, twice an orbit (every 12 s
+    // on a quiet page, about the pace of a slow breath). Its pour quickens
+    // by up to SURGE on the way in and eases off on the way out — the
+    // surge's integral, so the bands never stop or reverse — and `inhale`
+    // swells the bands and the eye with it.
+    const SURGE: f32 = 0.45;
+    let pull = 6.2831853 * 2.0 * u.dot_grid.w;
+    let surge = flow * SURGE * SPIN / (2.0 * 6.2831853) * (1.0 - cos(pull));
+    let inhale = 0.5 - 0.5 * cos(pull);
+    let s = ARMS * turn + wind * log(gr) + SPIN * u.dot_grid.w + surge;
     let s_bead = -BEAD_ARMS * turn + BEAD_WIND * log(gr) - BEAD_SPIN * u.dot_grid.w;
     let bead = 0.5 + 0.5 * cos(6.2831853 * s_bead);
     let crest = pow(0.5 + 0.5 * cos(6.2831853 * s), SHARP)
         * mix(BEAD_FLOOR, 1.0, bead * bead);
-    let glint = flow * crest * smoothstep(0.02, 0.22, gr)
-        * mix(1.0, 0.55, smoothstep(0.35, 1.1, gr));
+    // The EYE: where the bands converge they melt into a soft ring of light
+    // round a dark centre, the focal point the whole page pours toward. It
+    // wears the bands' colours (they cycle round it) and brightens on every
+    // inhale.
+    const EYE_R: f32 = 0.11;
+    const EYE_W: f32 = 0.045;
+    let eye = exp(-pow((gr - EYE_R) / EYE_W, 2.0)) * mix(0.55, 1.0, inhale);
+    let bands = crest * smoothstep(0.02, 0.22, gr) * mix(1.0, 0.55, smoothstep(0.35, 1.1, gr));
+    let glint = flow * max(bands * mix(0.7, 1.0, inhale), eye);
     let band_col = mix(u.dot_a.rgb, u.dot_b.rgb, 0.5 + 0.5 * cos(6.2831853 * s / HUE_BANDS));
     // The light a band casts: its own colour on an awake page, the lattice's
     // tint on a still one.
