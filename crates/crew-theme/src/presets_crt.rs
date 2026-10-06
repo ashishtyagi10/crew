@@ -4,9 +4,10 @@
 //! rasters while the cool pair (`presets_crt_cool.rs`: violet, blue) runs
 //! wide, smooth, HUD-calm bloom.
 //!
-//! All four tubes run a 3.5px frame — heavier than any paper preset — since
-//! the flat-tube decree (2026-08-06): the glass sheet is retired, so border
-//! weight, bloom and typeface are the whole of what says "tube" over paper.
+//! All four tubes run a 3.5px frame — heavier than any paper preset — and,
+//! since the glass-tube goal (2026-10-05), sit on slabs of glossy glass lit
+//! by their own phosphor (`glass::tube_glass`), which the flat-tube decree
+//! (2026-08-06) had retired.
 
 use crate::{CrtStyle, ModernStyle, Theme};
 

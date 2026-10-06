@@ -69,8 +69,8 @@ pub struct GlassStyle {
     /// says "glass".
     pub highlight: (u8, u8, u8),
     pub highlight_alpha: f32,
-    /// Soft two-layer shadow beneath the card (contact + ambient). Zero on
-    /// the tubes: a CRT light construct casts none.
+    /// Soft two-layer shadow beneath the card (contact + ambient) — or, at
+    /// `glow` 1, a halo of the sheet's own light (see `glow`).
     pub shadow_alpha: f32,
     /// Frost grain amplitude (0.0 = a clean sheet).
     pub noise: f32,
@@ -78,6 +78,16 @@ pub struct GlassStyle {
     /// border, as if the pane body were lit by its own frame. Zero on paper
     /// themes (sheets, not light constructs), so zero must reach the shader.
     pub edge_glow: f32,
+    /// The GLOSS: a broad specular reflection across the upper part of the
+    /// sheet, in the highlight colour — the curved shine a thick, glossy
+    /// slab of glass throws. Zero on paper and modern pages, whose sheets
+    /// are frost, not gloss.
+    pub gloss: f32,
+    /// How far the shadow GLOWS instead of shading, `0.0..=1.0`: 0 is a black
+    /// shadow (a sheet resting on paper), 1 a halo in the sheet's tint —
+    /// light leaking out of a lit slab onto a dark page, which a black
+    /// shadow on near-black could never show.
+    pub glow: f32,
 }
 
 impl GlassStyle {
@@ -94,18 +104,21 @@ impl GlassStyle {
             // sheet reads as sandpaper instead of frost.
             noise: self.noise * (0.5 + 0.5 * k),
             edge_glow: (self.edge_glow * k).clamp(0.0, 1.0),
+            gloss: (self.gloss * k).clamp(0.0, 1.0),
             ..self
         }
     }
 
     /// Whether this style would draw anything at all.
     pub fn visible(self) -> bool {
-        self.alpha_top > 0.001 || self.alpha_bottom > 0.001 || self.highlight_alpha > 0.001
+        self.alpha_top > 0.001
+            || self.alpha_bottom > 0.001
+            || self.highlight_alpha > 0.001
+            || self.gloss > 0.001
     }
 }
 
-/// The base (Medium-strength) glass for a theme: LIQUID GLASS on every page
-/// that is paper or modern, flat on the tubes.
+/// The base (Medium-strength) glass for a theme: LIQUID GLASS on every page.
 ///
 /// The 2026-08-06 flat decree retired a sheet for two faults, and this look
 /// is built around both rather than repeating them. The old sheet ran to the
@@ -118,20 +131,10 @@ impl GlassStyle {
 /// white rim and a soft grey shadow. Dark pages: the faintest white lift, a
 /// rim at a third of the light one (a bright rim on a dark page reads as a
 /// neon outline), and a shadow strong enough to see on a near-black page.
-/// A CRT tube is a light construct and casts nothing: its identity is bloom,
-/// frame weight and typeface.
+/// Tubes: see [`tube_glass`].
 pub fn style_for(t: &Theme) -> GlassStyle {
     if t.is_tube() {
-        return GlassStyle {
-            tint: t.page_bg,
-            alpha_top: 0.0,
-            alpha_bottom: 0.0,
-            highlight: t.page_bg,
-            highlight_alpha: 0.0,
-            shadow_alpha: 0.0,
-            noise: 0.0,
-            edge_glow: 0.0,
-        };
+        return tube_glass(t);
     }
     let white = (255, 255, 255);
     match t.dark {
@@ -144,6 +147,8 @@ pub fn style_for(t: &Theme) -> GlassStyle {
             shadow_alpha: 0.12,
             noise: 0.0,
             edge_glow: 0.0,
+            gloss: 0.0,
+            glow: 0.0,
         },
         true => GlassStyle {
             tint: white,
@@ -154,7 +159,37 @@ pub fn style_for(t: &Theme) -> GlassStyle {
             shadow_alpha: 0.45,
             noise: 0.0,
             edge_glow: 0.0,
+            gloss: 0.0,
+            glow: 0.0,
         },
+    }
+}
+
+/// A tube's glass (2026-10-05, the "terminal running in glass" goal): a
+/// slab of glass lit from within by its own phosphor, where the flat-tube
+/// decree had left phosphor text on a bare black page.
+///
+/// Everything is the tube's own colour — its focused frame's phosphor — so
+/// green glass for a green tube and orchid for violet with no table to keep
+/// in step. The body is a clearly visible tint, deeper at the bottom; a
+/// near-white phosphor rim and a broad GLOSS across the upper face say it is
+/// glossy and thick; the edge-glow brightens the band inside the frame the
+/// way a slab's edges catch light; and its shadow GLOWS — a halo of the
+/// phosphor round the card, light leaking out of the glass onto the page.
+pub fn tube_glass(t: &Theme) -> GlassStyle {
+    let p = t.border_focused;
+    let toward_white = |c: u8| (f32::from(c) + (255.0 - f32::from(c)) * 0.7).round() as u8;
+    GlassStyle {
+        tint: p,
+        alpha_top: 0.06,
+        alpha_bottom: 0.015,
+        highlight: (toward_white(p.0), toward_white(p.1), toward_white(p.2)),
+        highlight_alpha: 0.6,
+        shadow_alpha: 0.14,
+        noise: 0.0,
+        edge_glow: 0.12,
+        gloss: 0.16,
+        glow: 1.0,
     }
 }
 

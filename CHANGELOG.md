@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.44
+
+**The CRT themes run in glass.** Since 2026-08-06 a tube had been phosphor
+text on a bare black page, with nothing under the panes but the bloom. Every
+CRT pane now sits on a slab of glass lit by its own phosphor: green glass for
+the green tube, amber for amber, cyan for blue, orchid for violet.
+- **Glossy.** A broad reflection runs across the upper face of each pane, with
+  a bright lip just under the top rim, and ends on a soft curve.
+- **Thick.** A near-white rim in the phosphor's colour catches the light, and
+  the band just inside the frame glows the way a slab's edges do.
+- **Lit.** Where other themes cast a shadow, the tube's glass casts a halo of
+  its phosphor onto the page, like light leaking out of the glass.
+
+The Glass setting scales it like every other theme's (`off` still gives flat
+panes), and paper and modern themes are unchanged. This is the first step of
+the goal to make the CRT family look like a terminal from the year 2300.
+
 ## 0.25.43
 
 **The vortex answers you.** Until now the page moved on its own clocks and

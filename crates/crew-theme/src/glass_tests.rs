@@ -17,11 +17,11 @@ fn level_round_trips_and_accepts_aliases() {
     assert_eq!(GlassLevel::parse("shiny"), None);
 }
 
-/// Liquid glass (2026-09-23): every page that is not a tube wears a sheet,
-/// and the sheet casts a shadow — the depth is the point of it.
+/// Liquid glass (2026-09-23): every page wears a sheet, and the sheet casts
+/// a shadow — the depth is the point of it. Tubes included since 2026-10-05.
 #[test]
 fn every_page_wears_liquid_glass() {
-    for id in ALL_THEMES.into_iter().filter(|id| !id.theme().is_tube()) {
+    for id in ALL_THEMES {
         let s = style_for(id.theme()).scaled(GlassLevel::Medium);
         assert!(s.visible(), "{}: no sheet", id.as_str());
         assert!(s.shadow_alpha > 0.0, "{}: no shadow", id.as_str());
@@ -29,25 +29,57 @@ fn every_page_wears_liquid_glass() {
     }
 }
 
-/// A tube is a light construct: no sheet, no shadow, even at High. Its
-/// holographic sheet read as a drop shadow that set the panes adrift
-/// (2026-08-06), and that verdict stands.
+/// A tube is a terminal running in glass (the 2026-10-05 goal): a slab tinted
+/// by its own phosphor, clearly more glass than paper-dark's faint lift,
+/// glossy across its face, lit at its edges, and haloed — its shadow is the
+/// phosphor's light, not black.
 #[test]
-fn tubes_stay_flat_even_at_high() {
+fn tubes_are_slabs_of_lit_glass() {
     let tubes: Vec<_> = ALL_THEMES
         .into_iter()
         .filter(|id| id.theme().is_tube())
         .collect();
     assert!(!tubes.is_empty(), "the filter found no tubes");
+    let paper = style_for(&PAPER_DARK);
     for id in tubes {
-        let s = style_for(id.theme()).scaled(GlassLevel::High);
-        assert!(!s.visible(), "{}: a tube grew a sheet", id.as_str());
+        let t = id.theme();
+        let s = style_for(t);
+        let name = id.as_str();
         assert_eq!(
-            s.shadow_alpha,
-            0.0,
-            "{}: a tube casts no shadow",
-            id.as_str()
+            s.tint, t.border_focused,
+            "{name}: glass in its own phosphor"
         );
+        assert!(
+            s.alpha_top > paper.alpha_top,
+            "{name}: more glass than paper-dark"
+        );
+        assert!(s.gloss > 0.0, "{name}: glossy");
+        assert!(s.edge_glow > 0.0, "{name}: lit at its edges");
+        assert_eq!(s.glow, 1.0, "{name}: its shadow is a halo of light");
+        // The rim is the phosphor run toward white: brighter in every
+        // channel, and still that phosphor (its brightest channel is still
+        // the brightest).
+        let (p, h) = (t.border_focused, s.highlight);
+        assert!(h.0 >= p.0 && h.1 >= p.1 && h.2 >= p.2, "{name}: rim {h:?}");
+        let top = |c: (u8, u8, u8)| {
+            [c.0, c.1, c.2]
+                .iter()
+                .enumerate()
+                .max_by_key(|x| x.1)
+                .unwrap()
+                .0
+        };
+        assert_eq!(top(h), top(p), "{name}: rim {h:?} left the phosphor {p:?}");
+    }
+}
+
+/// Frost stays frost: paper and modern sheets carry no gloss, and their
+/// shadow is a shadow.
+#[test]
+fn frost_pages_have_no_gloss_and_a_black_shadow() {
+    for id in ALL_THEMES.into_iter().filter(|id| !id.theme().is_tube()) {
+        let s = style_for(id.theme());
+        assert_eq!((s.gloss, s.glow), (0.0, 0.0), "{}", id.as_str());
     }
 }
 
@@ -87,27 +119,22 @@ fn fill_is_brightest_at_the_top() {
     }
 }
 
-/// Level scaling is monotonic, and no level can resurrect a tube's sheet.
+/// Level scaling is monotonic, gloss included.
 #[test]
 fn level_scales_alpha_monotonically() {
     let base = GlassStyle {
         alpha_top: 0.25,
         ..style_for(&CRT_GREEN)
     };
-    let low = base.scaled(GlassLevel::Low).alpha_top;
-    let med = base.scaled(GlassLevel::Medium).alpha_top;
-    let high = base.scaled(GlassLevel::High).alpha_top;
-    assert!(low < med && med < high, "{low} {med} {high}");
-    for level in [GlassLevel::Low, GlassLevel::Medium, GlassLevel::High] {
-        for id in ALL_THEMES.into_iter().filter(|id| id.theme().is_tube()) {
-            assert!(
-                !style_for(id.theme()).scaled(level).visible(),
-                "{}: {} resurrected the sheet",
-                id.as_str(),
-                level.as_str()
-            );
-        }
-    }
+    let at = |l| base.scaled(l);
+    let (low, med, high) = (
+        at(GlassLevel::Low),
+        at(GlassLevel::Medium),
+        at(GlassLevel::High),
+    );
+    assert!(low.alpha_top < med.alpha_top && med.alpha_top < high.alpha_top);
+    assert!(low.gloss < med.gloss && med.gloss < high.gloss);
+    assert_eq!(at(GlassLevel::Off).gloss, 0.0, "off is off");
 }
 
 /// High strength must not push any alpha past opaque.
@@ -121,6 +148,8 @@ fn high_never_exceeds_opaque() {
             s.highlight_alpha,
             s.shadow_alpha,
             s.edge_glow,
+            s.gloss,
+            s.glow,
         ] {
             assert!((0.0..=1.0).contains(&a), "{} alpha {a}", id.as_str());
         }

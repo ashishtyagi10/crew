@@ -62,6 +62,8 @@ fn card(alpha_top: f32, alpha_bottom: f32, highlight_alpha: f32, shadow_alpha: f
         // the glow gets its own test below.
         scan: -1.0,
         edge_glow: 0.0,
+        gloss: 0.0,
+        glow: 0.0,
         lift: 0.0,
         glint: -1.0,
         notch: Default::default(),
@@ -633,4 +635,77 @@ fn glass_notch_headless() {
     // Below the legend's row the sheet is whole again.
     let under = block_r(&cut, 31, 28, 1);
     assert!(under > base + 10.0, "the notch ate the card ({under:.1})");
+}
+
+/// The tube's glass (2026-10-05): a GLOSS across the upper face and a shadow
+/// that GLOWS. On the mid-grey page, a clear sheet (no fill, no rim) with
+/// gloss is brighter near its top than in its lower half, which is the bare
+/// page; without gloss it is the bare page everywhere. And the same card's
+/// shadow, glowing in a green tint, LIFTS the page's green below the card
+/// where a black shadow (glow 0) darkens it.
+#[test]
+fn glass_gloss_and_glow_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("glass_gloss_and_glow_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+
+    let clear = |gloss: f32| GlassCard {
+        gloss,
+        lift: 0.0,
+        glint: -1.0,
+        ..card(0.0, 0.0, 0.0, 0.0)
+    };
+    let (bare, glossy) = (
+        render(&device, &queue, &[clear(0.0)]),
+        render(&device, &queue, &[clear(0.5)]),
+    );
+    let x = (CARD_X + CARD_W / 2.0) as usize;
+    let (top, low) = ((CARD_Y + 3.0) as usize, (CARD_Y + CARD_H - 6.0) as usize);
+    let (bare_top, gloss_top, gloss_low) = (
+        block_r(&bare, x, top, 1),
+        block_r(&glossy, x, top, 1),
+        block_r(&glossy, x, low, 1),
+    );
+    println!("gloss: top {bare_top:.1} -> {gloss_top:.1}, lower half {gloss_low:.1}");
+    assert!(
+        (bare_top - 128.0).abs() < 1.5,
+        "gloss=0 still drew ({bare_top:.1})"
+    );
+    assert!(
+        gloss_top > 128.0 + 20.0,
+        "no gloss under the top rim ({gloss_top:.1})"
+    );
+    assert!(
+        (gloss_low - 128.0).abs() < 2.0,
+        "the gloss should end before the lower half ({gloss_low:.1})"
+    );
+
+    let shadowed = |glow: f32| GlassCard {
+        tint: [0.0, 1.0, 0.0, 1.0],
+        glow,
+        lift: 0.0,
+        glint: -1.0,
+        ..card(0.0, 0.0, 0.0, 0.6)
+    };
+    let below = (CARD_Y + CARD_H + 3.0) as usize;
+    let g = |buf: &[u8]| px(buf, x, below).1 as i32;
+    let (black, halo) = (
+        g(&render(&device, &queue, &[shadowed(0.0)])),
+        g(&render(&device, &queue, &[shadowed(1.0)])),
+    );
+    println!("shadow green below the card: {black} black, {halo} glowing");
+    assert!(black < 120, "a black shadow darkens the page ({black})");
+    assert!(
+        halo > 140,
+        "a glowing shadow lights it in its tint ({halo})"
+    );
 }

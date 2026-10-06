@@ -3,8 +3,8 @@
 //! to keep both files under the line cap. Where the hot phosphors (green,
 //! amber) run coarse rasters and jumpy flicker, these run wide, smooth bloom
 //! (violet, blue) or a crisp steady raster (paperwhite): projected light
-//! rather than a driven gun. Frame weight and glow follow the flat-tube
-//! decree (2026-08-06) — see `presets_crt.rs`.
+//! rather than a driven gun. Frame weight and glass follow the hot half —
+//! see `presets_crt.rs`.
 
 use crate::{CrtStyle, ModernStyle, Theme};
 

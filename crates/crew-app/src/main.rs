@@ -382,6 +382,9 @@ mod barpopupshot_tests;
 mod cardchartshot_tests;
 mod cardchrome;
 #[cfg(test)]
+#[path = "crtglassshot_tests.rs"]
+mod crtglassshot_tests;
+#[cfg(test)]
 #[path = "frameshot_tests.rs"]
 mod frameshot_tests;
 mod hoverlift;

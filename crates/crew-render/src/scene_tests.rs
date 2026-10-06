@@ -15,6 +15,8 @@ pub(super) fn no_glass() -> GlassStyle {
         shadow_alpha: 0.0,
         noise: 0.0,
         edge_glow: 0.0,
+        gloss: 0.0,
+        glow: 0.0,
     }
 }
 
@@ -30,6 +32,8 @@ fn test_glass() -> GlassStyle {
         shadow_alpha: 0.0,
         noise: 0.0,
         edge_glow: 0.35,
+        gloss: 0.0,
+        glow: 0.0,
     }
 }
 
