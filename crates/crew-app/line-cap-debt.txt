@@ -84,7 +84,7 @@ src/modernring.rs 231
 src/modernring_tests.rs 301
 src/oauth.rs 339
 src/oauth_tests.rs 293
-src/pane.rs 291
+src/pane.rs 286
 src/panecard.rs 389
 src/panecard_tests.rs 512
 src/panecardglow_tests.rs 205

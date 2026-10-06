@@ -495,6 +495,10 @@ mod popupshot_tests;
 #[cfg(test)]
 #[path = "popupsweep_tests.rs"]
 mod popupsweep_tests;
+// Only a Windows PowerShell pane starts oh-my-posh (a Mac zsh brings its own
+// prompt); the tests run everywhere.
+#[cfg(any(windows, test))]
+mod posh;
 mod procname;
 mod quit;
 mod readout;
@@ -524,6 +528,7 @@ mod sessionrestore;
 mod sessionsave;
 mod settingspane;
 mod shapecues;
+mod shellargs;
 mod shellprobe;
 mod shimmer;
 #[cfg(test)]

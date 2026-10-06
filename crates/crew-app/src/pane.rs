@@ -241,16 +241,11 @@ pub fn spawn_pane(
     grid: GridSize,
     cwd: Option<&Path>,
 ) -> anyhow::Result<Pane> {
-    // A login shell sources the user's profile, which is where PATH and the
-    // provider keys live. No Windows shell has an equivalent flag and both
-    // PowerShell and cmd.exe *reject* `-l`, so passing it there would fail
-    // every spawn; they read their profile unconditionally anyway.
-    #[cfg(unix)]
-    let login: Vec<String> = vec!["-l".to_string()];
-    #[cfg(windows)]
-    let login: Vec<String> = Vec::new();
-    let pty = PtyTerm::spawn_in(grid, shell_primary, &login, cwd)
-        .or_else(|_| PtyTerm::spawn_in(grid, shell_fallback, &login, cwd))
+    // Each shell its own start-up (`shellargs`): a login zsh, a PowerShell
+    // with oh-my-posh, a cmd.exe with nothing.
+    let args = crate::shellargs::for_pane;
+    let pty = PtyTerm::spawn_in(grid, shell_primary, &args(shell_primary), cwd)
+        .or_else(|_| PtyTerm::spawn_in(grid, shell_fallback, &args(shell_fallback), cwd))
         .with_context(|| {
             format!("failed to spawn shell (tried {shell_primary}, {shell_fallback})")
         })?;
