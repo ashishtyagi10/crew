@@ -149,6 +149,8 @@ pub(crate) fn handle(
         other => emit(msg(
             "agent smith",
             match closest_construct(other) {
+                // `/clear now`: the bare `/clear` is answered before here.
+                Some(s) if s == other => format!("/{s} takes nothing after it — send /{s} alone"),
                 Some(s) => format!("unknown construct /{other} — did you mean /{s}? (or /help)"),
                 None => format!("unknown construct /{other} — try /help"),
             },
@@ -176,7 +178,13 @@ fn reload_cmd(
     // is indistinguishable from a manifest that failed to parse.
     let integrations: Vec<String> = super::integration::load()
         .iter()
-        .map(|i| format!("{} ({} tool(s))", i.name, i.tools.len()))
+        .map(|i| {
+            format!(
+                "{} ({})",
+                i.name,
+                super::wording::count(i.tools.len(), "tool")
+            )
+        })
         .collect();
     emit(super::rosterev::roster(session.registry().infos()))?;
     let list = |names: Vec<String>| {

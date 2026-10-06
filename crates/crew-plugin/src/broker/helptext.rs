@@ -42,10 +42,13 @@ pub(crate) const HELP: &str = "constructs:\n\
     #<note> — remember a preference (ask \u{201c}what do you remember?\u{201d} to see them)\n\
     !<command> — run a shell command yourself: its output is shown, and your next message can \
     refer to it\n\
-    skills: drop .md playbooks into .crew/skills — a task that names one applies it by itself\n\
+    skills: .md playbooks in .crew/skills or .claude/commands — /<name> runs one, and a task \
+    that names one applies it by itself\n\
     /reload — re-read skills, plugin agents, integrations and mcp.json without a restart\n\
     /stop [#n] — cancel all background tasks, or just task #n\n\
     /clear — a fresh conversation: stop what runs and forget every turn so far\n\
+    in an agent pane: /approvals [default] <mode> — how much runs without asking (auto, edits, \
+    ask, plan or yolo; Shift+Tab steps through them); /init — write AGENTS.md for this project\n\
     @<agent> <task> — choose who starts the relay\n\
     @<a>+<b> <task> — those agents answer in parallel\n\
     \u{2026} tip: tasks run in the background — the footer lists them, /stop #n cancels one\n\

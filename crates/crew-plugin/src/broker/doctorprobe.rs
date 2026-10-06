@@ -40,7 +40,8 @@ fn integration_line(i: &super::integration::Integration) -> String {
             None => format!("{e} is NOT set \u{2014} calls will refuse"),
         },
     };
-    format!("\u{2013} {}: {} tool(s), {auth}", i.name, i.tools.len())
+    let tools = super::wording::count(i.tools.len(), "tool");
+    format!("\u{2013} {}: {tools}, {auth}", i.name)
 }
 
 /// Probe the live environment for the report. `session` supplies the counters

@@ -308,6 +308,18 @@ fn unknown_construct_suggests_the_closest_match() {
     assert!(t.contains("did you mean /doctor"), "{t}");
 }
 
+/// `/clear now` is a construct with something after it, not a typo of one:
+/// it used to read `unknown construct /clear — did you mean /clear?`.
+#[test]
+fn a_construct_with_a_stray_argument_says_to_send_it_alone() {
+    let evs = run("/clear now");
+    let t = text_of(&evs[0]);
+    assert_eq!(
+        t,
+        "/clear takes nothing after it \u{2014} send /clear alone"
+    );
+}
+
 /// `/help` is the THIRD copy of the construct list — the router's `CONSTRUCTS`
 /// and the host's palette are the other two — and it is the only one a
 /// stdio host ever sees. A construct missing from it is invisible to anyone

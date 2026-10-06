@@ -30,7 +30,7 @@ fn loop_shape_runs_the_default_rounds_on_the_task() {
     // Both ends of the loop: round 1 announced, and all LOOP_ROUNDS ran —
     // which also pins that the count went in as a count, not as task text.
     assert!(any_text(&evs, "loop round 1/3"), "{evs:?}");
-    assert!(any_text(&evs, "3 round(s) complete"), "{evs:?}");
+    assert!(any_text(&evs, "3 rounds complete"), "{evs:?}");
 }
 
 #[test]
@@ -114,7 +114,7 @@ fn a_natural_refine_phrasing_reaches_the_loop_capability_with_no_slash() {
     let call = |_: &str| Ok("SHAPE: loop".to_string());
     let evs = route_stubbed("keep refining the intro until it sings", &call);
     assert!(any_text(&evs, "loop round 1/3"), "{evs:?}");
-    assert!(any_text(&evs, "3 round(s) complete"), "{evs:?}");
+    assert!(any_text(&evs, "3 rounds complete"), "{evs:?}");
 }
 
 #[test]

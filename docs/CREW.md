@@ -2742,7 +2742,7 @@ and a typo gets a **did-you-mean** suggestion):
   the web says nothing about pages anywhere.
   The log compacts itself (the oldest turns past 400 are dropped with their
   orphaned topics); `CREW_RECALL=0` turns the whole thing off — no read, no
-  write; `/doctor` reports `recall: N turn(s), N topic(s), N file(s), N page(s) in the
+  write; `/doctor` reports `recall: 12 turns, 30 topics, 8 files, 2 pages in the
   recall graph` (the pages only once there are some), and every run that carries one says so on its `context:`
   line — `recalled 2 turns from 3w ago`, the reach being the OLDEST turn
   quoted, so a memory arriving from a session you have forgotten announces
@@ -3817,7 +3817,7 @@ value.
   **Drifting background** (on/off).
 - **CANVAS** also carries **Opacity %**, beside **Glass**.
 - **WINDOW** — **Nav width**, **Show nav**, **Launch maximized**.
-- **NOTIFICATIONS** — the master switch plus per-event toggles (**cmd done**,
+- **NOTIFICATIONS** — the master switch plus per-event toggles (**done** — a command or an agent's turn,
   **bell**, **pane exit**), the **min secs** threshold, and the watched
   output **patterns** as a one-per-line text area.
 

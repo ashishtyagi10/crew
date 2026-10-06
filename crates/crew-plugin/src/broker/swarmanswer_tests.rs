@@ -295,7 +295,7 @@ fn the_closing_line_names_a_cancellation_or_a_failure_and_nothing_on_a_clean_run
     );
     assert_eq!(
         closing_line(&outcome, false).as_deref(),
-        Some("swarm finished with 1 failed task(s)")
+        Some("swarm finished with 1 failed task")
     );
     let clean = RunOutcome {
         done: vec![TaskId(0), TaskId(1)],

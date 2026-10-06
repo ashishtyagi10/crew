@@ -56,3 +56,18 @@ fn the_construct_list_is_intact_around_the_paragraph() {
     );
     assert_eq!(super::super::construct_summary("help"), Some("this list"));
 }
+
+/// The pane answers `/approvals` and `/init` itself and runs a skill as
+/// `/<name>`, so the router never sees them — and `/help` never said they
+/// exist. They ride a prose line, which the construct pins above skip.
+#[test]
+fn help_names_what_the_pane_answers_itself() {
+    for word in [
+        "/approvals [default] <mode>",
+        "/init",
+        ".claude/commands",
+        "/<name>",
+    ] {
+        assert!(HELP.contains(word), "/help never mentions {word}");
+    }
+}

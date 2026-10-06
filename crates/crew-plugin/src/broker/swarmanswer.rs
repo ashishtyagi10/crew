@@ -184,8 +184,8 @@ pub(super) fn closing_line(outcome: &RunOutcome, cancelled: bool) -> Option<Stri
         ))
     } else if !outcome.failed.is_empty() {
         Some(format!(
-            "swarm finished with {} failed task(s)",
-            outcome.failed.len()
+            "swarm finished with {}",
+            crate::broker::wording::count(outcome.failed.len(), "failed task")
         ))
     } else {
         None

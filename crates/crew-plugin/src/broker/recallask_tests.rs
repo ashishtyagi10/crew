@@ -65,7 +65,7 @@ fn the_answer_reads_the_graph_out_without_a_model_call() {
     assert!(text.contains("a file on the debt list grew"), "{text}");
     assert!(text.contains("crates/crew-app/src/nav.rs"), "{text}");
     assert!(
-        text.contains("1 turn(s)"),
+        text.contains("graph: 1 turn \u{b7}"),
         "the graph's size is part of it: {text}"
     );
     assert_eq!(turns_about(&session, "linecap"), 1);

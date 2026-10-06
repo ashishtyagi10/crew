@@ -122,7 +122,10 @@ pub(crate) fn goal_cmd_with(
         if met {
             return emit(msg(
                 "agent smith",
-                format!("goal met after {round} round(s) \u{2713} \u{2014} {why}"),
+                format!(
+                    "goal met after {} \u{2713} \u{2014} {why}",
+                    super::wording::count(round as usize, "round")
+                ),
             ));
         }
         emit(msg(

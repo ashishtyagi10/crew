@@ -99,7 +99,7 @@ fn sink_notes_connect_lifecycle_once_per_generation() {
         "{text}"
     );
     assert!(
-        text.contains("false|mcp fake connected \u{b7} 1 tool(s)"),
+        text.contains("false|mcp fake connected \u{b7} 1 tool"),
         "{text}"
     );
 

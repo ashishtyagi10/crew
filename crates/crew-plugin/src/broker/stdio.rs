@@ -258,7 +258,7 @@ fn send(
             let m = if n == 0 {
                 "nothing is running".to_string()
             } else {
-                format!("stopping all {n} task(s)\u{2026}")
+                format!("stopping {}\u{2026}", super::wording::count(n, "task"))
             };
             return emit(out, &msg("agent smith", m));
         }
@@ -280,7 +280,10 @@ fn send(
         *session.plan.lock().unwrap_or_else(|e| e.into_inner()) = None;
         let m = match tasks.cancel_all() {
             0 => "a fresh start \u{2014} the conversation so far is forgotten".to_string(),
-            n => format!("a fresh start \u{2014} {n} task(s) stopped, the conversation forgotten"),
+            n => format!(
+                "a fresh start \u{2014} {} stopped, the conversation forgotten",
+                super::wording::count(n, "task")
+            ),
         };
         emit(out, &PluginEvent::Plan { pending: false })?;
         return emit(out, &msg("agent smith", m));

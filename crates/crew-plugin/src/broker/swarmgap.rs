@@ -2,7 +2,7 @@
 //!
 //! WHY: the lead wrote its closing answer only when NOTHING failed. One
 //! failed worker out of five and the turn ended on "swarm finished with 1
-//! failed task(s)"; the four good results sat in the worker rows above it,
+//! failed task"; the four good results sat in the worker rows above it,
 //! and the user did the merging, and the finding, themselves. Now a run that
 //! finished anything gets the answer (`swarmanswer::combine`), and its brief
 //! names each task that has no result and why, so the answer says what is

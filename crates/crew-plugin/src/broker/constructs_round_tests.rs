@@ -56,7 +56,7 @@ fn a_turn_declaring_done_on_round_two_ends_a_five_round_loop_early() {
     });
     assert_eq!(calls, 2, "rounds 3-5 never ran: {ts:?}");
     assert!(
-        ts.iter().any(|t| t.contains("done early after 2 round(s)")),
+        ts.iter().any(|t| t.contains("done early after 2 rounds")),
         "{ts:?}"
     );
     assert_eq!(
@@ -85,7 +85,7 @@ fn a_never_done_turn_still_stops_at_the_numeric_ceiling() {
     let (ts, calls) = run_rounds(MAX_ROUNDS, &mut |_, _| Some("keep going".into()));
     assert_eq!(calls, 10, "{ts:?}");
     assert!(
-        ts.iter().any(|t| t.contains("10 round(s) complete")),
+        ts.iter().any(|t| t.contains("10 rounds complete")),
         "{ts:?}"
     );
     assert!(!ts.iter().any(|t| t.contains("done early")), "{ts:?}");

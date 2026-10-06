@@ -62,14 +62,14 @@ fn doctor_says_what_is_remembered_and_marks_an_empty_graph_absent() {
     let (mark, detail) = doctor_line(3, 9, 2, 0);
     assert_eq!(mark, '\u{2713}');
     assert!(
-        detail.contains("3 turn(s)") && detail.contains("9 topic(s)"),
+        detail.contains("3 turns") && detail.contains("9 topics"),
         "{detail}"
     );
     // A project that has never sent crew to the web says nothing about pages
     // rather than reading as one missing something.
     assert!(!detail.contains("page"), "{detail}");
     let (_, detail) = doctor_line(3, 9, 2, 5);
-    assert!(detail.contains("5 page(s)"), "{detail}");
+    assert!(detail.contains("5 pages"), "{detail}");
 }
 
 /// The wiring: what the arms (`swarm`, `stdio`, `fanout`) actually call.

@@ -14,7 +14,7 @@ fn healthy() -> DoctorInputs {
         sidecar: None,
         mcp_servers: 3,
         mcp_detail: vec![
-            "\u{25aa} files \u{2014} 2 tool(s): read, write".into(),
+            "\u{25aa} files \u{2014} 2 tools: read, write".into(),
             "\u{25aa} search \u{2014} error: connect failed".into(),
         ],
         memory: Some(120),
@@ -49,7 +49,7 @@ fn render_reports_every_subsystem() {
 #[test]
 fn render_folds_the_mcp_server_listing_in() {
     let r = render(&healthy());
-    assert!(r.contains("files \u{2014} 2 tool(s): read, write"), "{r}");
+    assert!(r.contains("files \u{2014} 2 tools: read, write"), "{r}");
     assert!(r.contains("search \u{2014} error: connect failed"), "{r}");
     let count = r.lines().position(|l| l.contains("mcp servers")).unwrap();
     let detail = r
