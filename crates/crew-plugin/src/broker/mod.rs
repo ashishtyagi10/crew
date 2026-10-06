@@ -129,6 +129,7 @@ mod toolround;
 mod turnspent;
 mod undo;
 mod undoask;
+pub(crate) mod wording;
 mod zerostat;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};

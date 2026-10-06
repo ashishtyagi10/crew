@@ -102,15 +102,18 @@ pub(crate) fn rounds(
             return emit(msg(
                 "agent smith",
                 format!(
-                    "loop done early after {round} round(s) \u{2014} the crew \
-                     called it done"
+                    "loop done early after {} \u{2014} the crew called it done",
+                    super::wording::count(round as usize, "round")
                 ),
             ));
         }
     }
     emit(msg(
         "agent smith",
-        format!("loop done \u{2014} {n} round(s) complete"),
+        format!(
+            "loop done \u{2014} {} complete",
+            super::wording::count(n as usize, "round")
+        ),
     ))
 }
 

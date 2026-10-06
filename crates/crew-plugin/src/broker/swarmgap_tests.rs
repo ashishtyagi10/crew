@@ -122,7 +122,7 @@ fn a_partial_run_answers_once_from_what_finished_and_names_what_failed() {
     let answer = "Fixed in lib.rs; the tests could not be run.";
     let (briefs, call) = recording(answer);
     let (evs, reply) = run(three(), &[2], Some(&*call), None);
-    let status = "swarm finished with 1 failed task(s)";
+    let status = "swarm finished with 1 failed task";
     assert_eq!(
         smith_lines(&evs),
         [answer, status],
@@ -184,14 +184,14 @@ fn a_run_where_every_task_failed_has_no_answer_only_the_status_line() {
     let (briefs, call) = recording("never");
     let (evs, reply) = run(plan(&[("a", &[]), ("b", &[])]), &[0, 1], Some(&*call), None);
     assert!(briefs.lock().unwrap().is_empty(), "nothing to answer from");
-    assert_eq!(smith_lines(&evs), ["swarm finished with 2 failed task(s)"]);
+    assert_eq!(smith_lines(&evs), ["swarm finished with 2 failed tasks"]);
     assert_eq!(reply, None);
 }
 
 #[test]
 fn a_keyless_partial_run_emits_exactly_the_status_line_it_did_before() {
     let (evs, reply) = run(three(), &[2], None, None);
-    assert_eq!(smith_lines(&evs), ["swarm finished with 1 failed task(s)"]);
+    assert_eq!(smith_lines(&evs), ["swarm finished with 1 failed task"]);
     assert!(!evs
         .iter()
         .any(|e| matches!(e, PluginEvent::Activity { agent, .. } if agent == SWARM_LEAD)));

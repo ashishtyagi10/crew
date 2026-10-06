@@ -118,7 +118,7 @@ impl ChatPane {
                 Some(tool) => format!("{} is waiting on {tool}", a.name),
                 None => format!("{} is waiting for its model to reply", a.name),
             },
-            None => "waiting on the broker".to_string(),
+            None => "waiting on agent smith".to_string(),
         }
     }
 }

@@ -116,7 +116,7 @@ fn a_rounds_hint_reaches_the_loop_as_its_count() {
     let call = |_: &str| Ok("SHAPE: loop\nROUNDS: 5".to_string());
     let evs = route_stubbed("polish the intro", &call);
     assert!(any_text(&evs, "loop round 1/5"), "{evs:?}");
-    assert!(any_text(&evs, "5 round(s) complete"), "{evs:?}");
+    assert!(any_text(&evs, "5 rounds complete"), "{evs:?}");
 }
 
 #[test]
@@ -125,7 +125,7 @@ fn no_rounds_hint_means_the_loop_backstop() {
     let call = |_: &str| Ok("SHAPE: loop\nWHY: iterate".to_string());
     let evs = route_stubbed("polish the intro", &call);
     assert!(any_text(&evs, "loop round 1/3"), "{evs:?}");
-    assert!(any_text(&evs, "3 round(s) complete"), "{evs:?}");
+    assert!(any_text(&evs, "3 rounds complete"), "{evs:?}");
 }
 
 #[test]
@@ -138,7 +138,7 @@ fn an_over_large_rounds_hint_stops_at_the_ceiling() {
         "{evs:?}"
     );
     assert!(
-        any_text(&evs, &format!("{MAX_ROUNDS} round(s) complete")),
+        any_text(&evs, &format!("{MAX_ROUNDS} rounds complete")),
         "{evs:?}"
     );
     assert!(!any_text(&evs, "round 11/"), "{evs:?}");

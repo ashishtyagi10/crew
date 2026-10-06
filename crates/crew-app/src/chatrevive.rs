@@ -45,16 +45,21 @@ impl ChatPane {
             ([], true) => " What it was doing did not finish.".to_string(),
             (ids, _) => {
                 let ids: Vec<String> = ids.iter().map(|i| format!("#{i}")).collect();
-                format!(" Task {} did not finish.", ids.join(", "))
+                let noun = if ids.len() == 1 { "Task" } else { "Tasks" };
+                format!(" {noun} {} did not finish.", crate::wording::series(&ids))
             }
         };
         let now = crate::anim::now_ms();
         self.restarts.retain(|&t| now.saturating_sub(t) < WINDOW_MS);
         if self.restarts.len() >= MAX_RESTARTS {
+            // Where THIS platform keeps it: the path was written out as the
+            // Mac's, which is wrong on Windows and Linux.
+            let log = crate::crashlog::log_path()
+                .map_or_else(|| "crash.log".into(), |p| crate::cwdshow::display(&p));
             self.push_note(format!(
                 "\u{2717} {what} \u{2014} {MAX_RESTARTS} times in five minutes, so it is left \
-                 stopped.{unfinished} The last crash is in ~/Library/Application \
-                 Support/crew/crash.log; close this pane and open /smith to start fresh."
+                 stopped.{unfinished} The last crash is in {log}; close this pane and open \
+                 /smith to start fresh."
             ));
             return status("agent smith keeps stopping \u{2014} left stopped");
         }

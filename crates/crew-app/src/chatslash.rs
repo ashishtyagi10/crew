@@ -9,6 +9,9 @@ use crate::chat::ChatPane;
 use crate::chatapprove::{label, meaning, parse, word};
 use crate::chatkeys::{ChatAction, ChatInput};
 
+/// The modes, as a note lists them.
+const MODES: &str = "auto, edits, ask, plan or yolo";
+
 /// What `/init` asks for: the project's AGENTS.md (which crew, Codex and
 /// others read in front of every task — `agentsmd`).
 pub(crate) const INIT: &str = "Look over this project \u{2014} its layout, how to build, test and \
@@ -28,13 +31,14 @@ impl ChatPane {
         match (head, arg.trim()) {
             ("/approvals", "") => {
                 let mode = self.approval_mode;
-                self.push_note(format!(
+                let note = format!(
                     "approval mode: {} \u{2014} {}. /approvals auto, edits, ask, plan or yolo \
                      changes it (so does Shift+Tab); /approvals default <mode> also makes it \
                      where new agent panes start",
                     label(mode),
                     meaning(mode)
-                ));
+                );
+                self.push_note(crate::chordglyph::prose(&note).into_owned());
             }
             ("/approvals", arg) => {
                 let (default, name) = match arg.strip_prefix("default") {
@@ -42,9 +46,11 @@ impl ChatPane {
                     _ => (false, arg),
                 };
                 let Some(mode) = parse(name) else {
-                    self.push_note(format!(
-                        "no mode called \u{201c}{name}\u{201d} \u{2014} auto, edits, ask, plan or yolo"
-                    ));
+                    self.push_note(match name {
+                        // `/approvals default` alone: there is no name to quote back.
+                        "" => format!("/approvals default <mode> \u{2014} {MODES}"),
+                        _ => format!("no mode called \u{201c}{name}\u{201d} \u{2014} {MODES}"),
+                    });
                     return self.answered(&text, None);
                 };
                 self.set_mode(mode);
@@ -66,6 +72,11 @@ impl ChatPane {
                 self.submit_command(INIT.to_string());
                 return Some(None);
             }
+            // `/clear now`: sent on, it reached the broker as a construct
+            // that was not one. Neither takes anything after it.
+            ("/clear" | "/init", _) => self.push_note(format!(
+                "{head} takes nothing after it \u{2014} send {head} alone"
+            )),
             _ => return None,
         }
         self.answered(&text, None)

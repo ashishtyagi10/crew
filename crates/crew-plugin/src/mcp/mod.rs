@@ -8,6 +8,8 @@ pub(crate) mod config;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
+use crate::broker::wording::count;
+
 pub use client::McpClient;
 pub use config::ServerConfig;
 
@@ -217,7 +219,10 @@ impl McpHost {
         self.note_once(
             String::new(),
             false,
-            &format!("mcp {server} connected \u{b7} {} tool(s)", list.len()),
+            &format!(
+                "mcp {server} connected \u{b7} {}",
+                count(list.len(), "tool")
+            ),
         );
         if let Some(events) = &self.events {
             let names: Vec<&str> = list.iter().map(|(n, ..)| n.as_str()).collect();
@@ -304,8 +309,8 @@ impl McpHost {
                 Ok(list) => {
                     let tools: Vec<&str> = list.iter().map(|t| t.name.as_str()).collect();
                     lines.push(format!(
-                        "\u{25aa} {server} \u{2014} {} tool(s): {}",
-                        tools.len(),
+                        "\u{25aa} {server} \u{2014} {}: {}",
+                        count(tools.len(), "tool"),
                         tools.join(", ")
                     ));
                 }

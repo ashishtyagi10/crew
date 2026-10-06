@@ -103,11 +103,14 @@ impl ChatPane {
     pub(crate) fn set_mode(&mut self, mode: ApprovalMode) {
         self.approval_mode = mode;
         let _ = self.plugin.send(&PluginCommand::Mode { approval: mode });
-        self.push_note(format!(
-            "{} \u{2014} {} (shift+tab to change)",
+        // Spelled as `/approvals` spells it, and drawn as this platform
+        // writes the chord (⇧Tab on a Mac).
+        let note = format!(
+            "{} \u{2014} {}. Shift+Tab changes it",
             label(mode),
             meaning(mode)
-        ));
+        );
+        self.push_note(crate::chordglyph::prose(&note).into_owned());
     }
 
     /// The broker is waiting on a yes or no for `question`. Several agents of

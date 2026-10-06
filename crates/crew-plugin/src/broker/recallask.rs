@@ -17,6 +17,7 @@ use crate::PluginEvent;
 
 use super::relay::smith_answer;
 use super::session::Session;
+use super::wording::count;
 
 /// Chars of the standing notes read back.
 const NOTES_CAP: usize = 600;
@@ -71,10 +72,13 @@ pub(crate) fn answer(session: &Session, subject: &str) -> String {
     let (turns, topics, files, pages) = recall.stats();
     let pages = match pages {
         0 => String::new(),
-        n => format!(" \u{b7} {n} page(s)"),
+        n => format!(" \u{b7} {}", count(n, "page")),
     };
     out.push(format!(
-        "  graph: {turns} turn(s) \u{b7} {topics} topic(s) \u{b7} {files} file(s){pages}"
+        "  graph: {} \u{b7} {} \u{b7} {}{pages}",
+        count(turns, "turn"),
+        count(topics, "topic"),
+        count(files, "file")
     ));
     drop(recall);
     match super::memory::load() {

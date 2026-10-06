@@ -15,6 +15,15 @@ pub(crate) fn count_as(n: usize, one: &str, many: &str) -> String {
     format!("{n} {}", if n == 1 { one } else { many })
 }
 
+/// Items as a sentence lists them: `#3`, `#3 and #4`, `#3, #4 and #5`.
+pub(crate) fn series(items: &[String]) -> String {
+    match items {
+        [] => String::new(),
+        [one] => one.clone(),
+        [head @ .., last] => format!("{} and {last}", head.join(", ")),
+    }
+}
+
 /// `copied 1 line{tail}` / `copied 12 lines{tail}` — the copy confirmations,
 /// which said `copied 1 lines`.
 pub(crate) fn copied(lines: usize, tail: &str) -> String {
@@ -30,6 +39,14 @@ mod tests {
         assert_eq!(count(1, "pane"), "1 pane");
         assert_eq!(count(0, "pane"), "0 panes");
         assert_eq!(count(2, "message"), "2 messages");
+    }
+
+    #[test]
+    fn a_series_reads_as_a_sentence_lists_it() {
+        let s = |v: &[&str]| super::series(&v.iter().map(|x| x.to_string()).collect::<Vec<_>>());
+        assert_eq!(s(&["#3"]), "#3");
+        assert_eq!(s(&["#3", "#4"]), "#3 and #4");
+        assert_eq!(s(&["#3", "#4", "#5"]), "#3, #4 and #5");
     }
 
     #[test]

@@ -133,8 +133,8 @@ pub(crate) const CHAT_BINDINGS: &[(&str, &str)] = &[
         "Take the suggested rest of a prompt you sent before",
     ),
     (
-        "@ · # (in composer)",
-        "Attach an agent, skill or file · remember a note",
+        "@ · # · ! (in composer)",
+        "Attach an agent, skill or file · remember a note · run a shell command yourself",
     ),
     (
         "@file:120-180 (in composer)",

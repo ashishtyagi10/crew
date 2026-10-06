@@ -146,3 +146,37 @@ fn a_skill_runs_as_a_slash_command() {
     let _ = std::fs::remove_file(&file);
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// What a mode switch, a missing mode or a stray argument says: the chord as
+/// this platform writes it, no empty name quoted back (`no mode called “”`),
+/// and `/clear now` answered here rather than sent on as an unknown construct.
+#[test]
+fn notes_say_how_a_command_goes() {
+    let (mut p, file) = pane("usage");
+    let said = |p: &ChatPane| {
+        p.messages
+            .last()
+            .map(|m| m.text.clone())
+            .unwrap_or_default()
+    };
+    enter(&mut p, "/approvals plan");
+    let chord = crate::chordglyph::prose("Shift+Tab changes it").into_owned();
+    assert!(said(&p).ends_with(&format!(". {chord}")), "{}", said(&p));
+    enter(&mut p, "/approvals default");
+    assert_eq!(
+        said(&p),
+        "/approvals default <mode> \u{2014} auto, edits, ask, plan or yolo"
+    );
+    enter(&mut p, "/clear now");
+    assert_eq!(
+        said(&p),
+        "/clear takes nothing after it \u{2014} send /clear alone"
+    );
+    enter(&mut p, "/init please");
+    assert_eq!(
+        said(&p),
+        "/init takes nothing after it \u{2014} send /init alone"
+    );
+    assert!(p.input.is_empty(), "answered here: {}", p.input);
+    let _ = std::fs::remove_file(&file);
+}

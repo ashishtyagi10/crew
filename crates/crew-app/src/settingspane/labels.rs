@@ -45,7 +45,8 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::WindowOpacity => "Opacity %",
         Field::Maximized => "Launch maximized",
         Field::Notify => "Notifications",
-        Field::NotifyAgentDone => "Notify: cmd done",
+        // Commands AND agent turns since 0.25.32: "cmd done" undersold it.
+        Field::NotifyAgentDone => "Notify: done",
         Field::NotifyBell => "Notify: bell",
         Field::NotifyExit => "Notify: pane exit",
         Field::NotifyMinSecs => "Min secs",

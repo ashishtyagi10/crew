@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.57
+
+**Ten small pieces of text now say what they mean.** A pass over the words
+added in the last few weeks:
+- **Counts read as counts.** Agent smith's replies said `1 task(s) stopped`,
+  `3 round(s) complete` and `2 tool(s)`. They now pick the ending from the
+  number (`1 task stopped`, `3 rounds complete`), in `/stop`, `/clear`,
+  loops and goals, a swarm's plan and its failures, `/recall`, `/doctor`,
+  `/reload` and the MCP connect line.
+- **`/clear now` and `/init please`** say they take nothing after them.
+  `/clear now` used to answer `unknown construct /clear — did you mean
+  /clear?`.
+- **`/approvals default`** with no mode says how to finish it, instead of
+  `no mode called “”`.
+- **`/help` is current.** It says skills load from `.claude/commands` too
+  and run as `/<name>`, and it names `/approvals` and `/init`.
+- **`/keys` lists `!`** (run a shell command yourself) beside `@` and `#`.
+- **The settings label is `Notify: done`.** It switches commands and
+  agent turns alike, so `cmd done` undersold it.
+- **A mode switch says `Shift+Tab changes it`**, drawn `⇧Tab` on a Mac, as
+  the rest of the pane writes it.
+- **A quiet pane is "waiting on agent smith"**, not "on the broker".
+- **When agent smith keeps stopping**, the note gives the crash log's real
+  path on this machine (it named the Mac's everywhere). Several unfinished
+  tasks read `Tasks #3 and #4`.
+
 ## 0.25.56
 
 **The "turn finished" notice reads like a command's.** When an agent's turn

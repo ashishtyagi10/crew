@@ -22,8 +22,8 @@ pub(super) fn announce(
     emit(msg(
         SWARM_LEAD,
         format!(
-            "planned {} task(s): {}",
-            tasks.len(),
+            "planned {}: {}",
+            crate::broker::wording::count(tasks.len(), "task"),
             tasks
                 .iter()
                 .map(|t| t.title.as_str())

@@ -30,6 +30,7 @@ mod store;
 
 pub(crate) use block::{cut, Recalled, RECALL_CAP};
 
+use super::wording::count;
 use graph::Graph;
 use node::{Kind, NodeId};
 
@@ -199,11 +200,16 @@ pub(crate) fn doctor_line(
     // missing something.
     let pages = match pages {
         0 => String::new(),
-        n => format!(", {n} page(s)"),
+        n => format!(", {}", count(n, "page")),
     };
     (
         mark,
-        format!("{turns} turn(s), {topics} topic(s), {files} file(s){pages} in the recall graph"),
+        format!(
+            "{}, {}, {}{pages} in the recall graph",
+            count(turns, "turn"),
+            count(topics, "topic"),
+            count(files, "file")
+        ),
     )
 }
 
