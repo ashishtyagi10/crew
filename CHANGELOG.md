@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.48
+
+**The CRT themes are see-through frosted glass.** You asked for CRT mode to be
+"just the glass and borders … almost frosted glass, no black, like
+transparent". Now:
+- **No black page.** A CRT theme's window is always see-through, and macOS
+  frosts your desktop behind it. It is at most 45% opaque whatever Opacity %
+  says, and a lower setting still wins.
+- **No swirl.** The drifting background (wash, dot lattice, vortex) and the
+  paper grain are gone from the tubes. That also means an idle CRT window no
+  longer redraws for the animation.
+- **Smoked glass panes.** Each pane is a dark frosted sheet tinted with the
+  phosphor. It is dense enough to hold your text off the wallpaper, with the
+  phosphor rim, the glossy reflection and the glowing halo kept. The borders
+  stay bright, and the gaps between panes are where the glass is clearest.
+
+On a very bright wallpaper the dimmest text (hints, dashboard labels) loses
+some contrast. That's the cost of a see-through window; the Glass setting
+thickens the smoke.
+
 ## 0.25.47
 
 **High contrast quiets the glass under your text.** When macOS asks for more

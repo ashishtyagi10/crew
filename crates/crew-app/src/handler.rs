@@ -48,7 +48,7 @@ impl CrewApp {
         // Drop straight back to opaque unless the setting actually asks for
         // translucency — otherwise macOS keeps `NSWindow.isOpaque` false and
         // draws the title bar against the desktop, which is not ours to paint.
-        crate::titlebar::apply_window(&window, self.config.window_opacity);
+        crate::titlebar::apply_window(&window, self.window_opacity());
 
         // Two things can want the launch note. A crash outranks a version
         // banner — the user watched the window vanish for no stated reason, and
@@ -161,7 +161,7 @@ impl CrewApp {
                 renderer.set_paper_texture(self.config.paper_texture);
                 renderer.set_paper_grain(self.config.paper_grain);
                 renderer.set_glass(self.config.glass_level());
-                renderer.set_window_opacity(self.config.window_opacity);
+                renderer.set_window_opacity(self.window_opacity());
                 if self.config.maximized {
                     window.set_maximized(true);
                 }

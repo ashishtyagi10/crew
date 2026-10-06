@@ -20,7 +20,7 @@ impl CrewApp {
     /// what left the title bar see-through at full opacity.
     pub(crate) fn apply_glass(&mut self) {
         let level = self.config.glass_level();
-        let opacity = self.config.window_opacity;
+        let opacity = self.window_opacity();
         if let Some(r) = &mut self.renderer {
             r.set_glass(level);
             r.set_window_opacity(opacity);

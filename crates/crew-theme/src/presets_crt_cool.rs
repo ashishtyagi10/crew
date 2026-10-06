@@ -53,7 +53,7 @@ pub static CRT_BLUE: Theme = Theme {
         (228, 233, 237), // 15 bright white
     ],
     dark: true,
-    grain: 1.2,
+    grain: 0.0,
     crt: Some(CrtStyle {
         scanline: 0.0,
         glow: 1.1,
@@ -66,7 +66,9 @@ pub static CRT_BLUE: Theme = Theme {
         pole_a: (0, 169, 189),
         pole_b: (85, 227, 249),
         drift_ms: 6_000,
-        dots: 0.10,
-        wash: 0.10,
+        // No backdrop under a tube: just the glass and its borders over the
+        // frosted desktop (see crew-app's `tubesheer`).
+        dots: 0.0,
+        wash: 0.0,
     }),
 };

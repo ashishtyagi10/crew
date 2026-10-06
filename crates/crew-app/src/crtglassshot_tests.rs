@@ -41,26 +41,34 @@ fn crt_window(name: &str, id: ThemeId, clocks: crew_render::WashClocks) -> Optio
     // An unset accent follows the theme in the app (`accent_rgb`); the shot
     // never applies a config, so say so here or every tube wears the mint.
     crate::palette::set_accent(crew_theme::theme().accent_default);
-    let px = crate::shotdraw_tests::draw_with(W, H, FONT_PX, true, backdrop(clocks), |cw, ch| {
-        let mut app = CrewApp {
-            geo_override: Some((cw, ch, W as f32, H as f32, 1.0)),
-            ..Default::default()
-        };
-        for cmd in ["/far", "/far", "/dash"] {
-            app.submit_input(cmd.to_string());
-        }
-        app.zoomed = false;
-        app.focused = 1;
-        app.input.focused = false;
-        for p in &mut app.panes {
-            p.born_ms = 0;
-        }
-        app.build_frame();
-        std::thread::sleep(std::time::Duration::from_millis(350));
-        app.build_frame();
-        std::thread::sleep(std::time::Duration::from_millis(350));
-        app.build_frame()
-    })?;
+    let px = crate::shotdraw_tests::draw_with(
+        W,
+        H,
+        FONT_PX,
+        true,
+        backdrop(clocks),
+        crate::tubesheer::TUBE_OPACITY,
+        |cw, ch| {
+            let mut app = CrewApp {
+                geo_override: Some((cw, ch, W as f32, H as f32, 1.0)),
+                ..Default::default()
+            };
+            for cmd in ["/far", "/far", "/dash"] {
+                app.submit_input(cmd.to_string());
+            }
+            app.zoomed = false;
+            app.focused = 1;
+            app.input.focused = false;
+            for p in &mut app.panes {
+                p.born_ms = 0;
+            }
+            app.build_frame();
+            std::thread::sleep(std::time::Duration::from_millis(350));
+            app.build_frame();
+            std::thread::sleep(std::time::Duration::from_millis(350));
+            app.build_frame()
+        },
+    )?;
     crate::shotdraw_tests::write_png(name, &px, W, H);
     Some(px)
 }

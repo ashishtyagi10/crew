@@ -307,6 +307,9 @@ pub struct CrewApp {
     /// What the title bar was last painted ([`crate::titlebar`]): `None`
     /// is the OS's own bar. Kept so a frame only talks to AppKit on a change.
     pub(crate) titlebar_paint: crate::titlebar::Wear,
+    /// The window opacity last pushed to the renderer and AppKit
+    /// ([`crate::tubesheer`]), so a frame only re-applies it on a change.
+    pub(crate) applied_opacity: Option<f32>,
     /// The compositor has this window hidden: no frame is asked for until it
     /// says otherwise (`WindowEvent::Occluded`).
     pub(crate) occluded: bool,

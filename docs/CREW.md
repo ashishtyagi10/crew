@@ -3894,10 +3894,11 @@ whisper of frost grain. The *look* is derived from whichever theme is active
 rather than configured per palette, so **every theme** — light, dark and CRT —
 gets its own treatment automatically: dark themes lift a lighter sheet off the
 page, light themes lean on a whiter sheet plus a real shadow (a light page can't
-get lighter), and CRT runs a slab of *glossy* glass in its own phosphor — a
-tinted body, a broad glossy reflection across the upper face, a lit rim and
-edges, and a halo of phosphor light where the other themes cast a shadow, so
-the terminal reads as running inside the glass. `medium` is the default; `off`
+get lighter), and CRT runs a pane of *smoked, glossy* glass in its own
+phosphor — a dark tinted frost that holds the text, a broad glossy reflection
+across the upper face, a bright rim, and a halo of phosphor light where the
+other themes cast a shadow — so the terminal reads as running inside the
+glass. `medium` is the default; `off`
 restores flat cards and costs nothing to draw. Overlay popups (the command menu, the attach
 picker, the key prompt) stay opaque by design.
 
@@ -3905,7 +3906,9 @@ picker, the key prompt) stay opaque by design.
 shows through the page. Text, pane fills and selections stay solid — only the
 bare page goes sheer. `100` is opaque; the value floors at **35%**, because a
 window dialled any sheerer is one you can't find again. Works with the CRT
-post-process too — the tube shapes light, not transparency.
+post-process too — the tube shapes light, not transparency. A CRT theme is
+**always** sheer, at most 45% whatever this says (a lower setting still wins):
+its window is frosted glass over your desktop, never a black slab.
 
 ## `/view` — one command for the file viewer
 
@@ -4028,14 +4031,15 @@ opposite of what a picker is for.
 **The CRT tubes are terminals running in glass.** Each phosphor carries its
 own tube tuning (bloom strength and radius, streaming-flicker character, how
 hard its strokes burn), so green runs hot and driven while blue runs a cold
-TRON edge. Every pane sits on a slab of glossy glass in the phosphor's hue (see
-[Glass](#glass)); the hot phosphors (green, amber) keep a fine raster *etched
-into that glass*, under the text, rather than scanlines striped over the whole
-window. Text is electric: the core of every thin bright stroke burns white-hot
-inside its coloured halo, while wide fills keep their colour. Hot pixels feed a
-real half-res gaussian bloom — a focused border *radiates* tens of pixels
-instead of stopping at the stroke — and the drifting page (below) runs under
-the glass as a field of phosphor light. The chrome is drawn in
+TRON edge. The window itself is frosted glass — your desktop shows through it,
+blurred, with no black page and no drifting background — and every pane is a
+smoked glass sheet in the phosphor's hue (see [Glass](#glass)); the hot
+phosphors (green, amber) keep a fine raster *etched into that glass*, under
+the text, rather than scanlines striped over the whole window. Text is
+electric: the core of every thin bright stroke burns white-hot inside its
+coloured halo, while wide fills keep their colour. Hot pixels feed a real
+half-res gaussian bloom — a focused border *radiates* tens of pixels instead of
+stopping at the stroke. The chrome is drawn in
 light, TRON/JARVIS-style: a focused frame's four corners run white-hot so
 the bloom turns them into glowing nodes, gaining focus fires a ~600ms
 ignition sweep (the whole frame ignites at the node colour and decays to

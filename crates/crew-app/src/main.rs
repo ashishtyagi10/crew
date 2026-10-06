@@ -599,6 +599,7 @@ mod toolshot_tests;
 mod toolsrow;
 mod toolstally;
 mod toolsview;
+mod tubesheer;
 mod tui;
 mod turndone;
 mod unread;

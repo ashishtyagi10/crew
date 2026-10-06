@@ -364,7 +364,7 @@ impl CrewApp {
         // them solid — which is backwards. Collected here, after the scenes
         // exist, because an overlay's rect is only known once it is placed.
         self.solid_chrome
-            .extend(overlay_rects(&scenes, self.config.window_opacity));
+            .extend(overlay_rects(&scenes, self.window_opacity()));
 
         scenes
     }

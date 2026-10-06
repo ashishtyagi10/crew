@@ -31,8 +31,11 @@ impl crate::app::CrewApp {
     /// the wanted colour moves — an opacity change or a theme switch, from
     /// whichever of the several paths switched it.
     pub(crate) fn sync_titlebar(&mut self) {
+        // A tube's window is sheer whatever the setting (`tubesheer`), so a
+        // theme switch can move the opacity too: keep that in step first.
+        self.sync_window_opacity();
         let t = crew_theme::theme();
-        let want = crate::titlebar::wanted(self.config.window_opacity, t.page_bg, t.dark);
+        let want = crate::titlebar::wanted(self.window_opacity(), t.page_bg, t.dark);
         if want == self.titlebar_paint {
             return;
         }
