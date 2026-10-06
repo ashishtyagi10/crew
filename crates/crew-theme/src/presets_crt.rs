@@ -66,6 +66,7 @@ pub static CRT_GREEN: Theme = Theme {
         flicker: 0.07,
         core: 0.6,
         etch: 0.02,
+        shade: CrtStyle::TUBE_SHADE,
     }),
     modern: Some(ModernStyle {
         pole_a: (106, 184, 118),
@@ -131,6 +132,7 @@ pub static CRT_AMBER: Theme = Theme {
         flicker: 0.08,
         core: 0.6,
         etch: 0.012,
+        shade: CrtStyle::TUBE_SHADE,
     }),
     modern: Some(ModernStyle {
         pole_a: (184, 138, 39),

@@ -55,6 +55,7 @@ pub static HARBOR: Theme = Theme {
         flicker: 0.015,
         core: 0.0,
         etch: 0.0,
+        shade: 0.0,
     }),
     modern: Some(ModernStyle {
         pole_a: (59, 141, 233),

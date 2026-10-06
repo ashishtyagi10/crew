@@ -54,6 +54,7 @@ pub static SEPIA_LIGHT: Theme = Theme {
         flicker: 0.018,
         core: 0.0,
         etch: 0.0,
+        shade: 0.0,
     }),
     modern: Some(ModernStyle {
         pole_a: (108, 79, 0),

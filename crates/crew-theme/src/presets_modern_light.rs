@@ -62,6 +62,7 @@ pub static BLOSSOM: Theme = Theme {
         flicker: 0.03,
         core: 0.0,
         etch: 0.0,
+        shade: 0.0,
     }),
     modern: Some(ModernStyle {
         pole_a: (147, 51, 234),

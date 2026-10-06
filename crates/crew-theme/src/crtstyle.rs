@@ -32,9 +32,20 @@ pub struct CrtStyle {
     /// carries the old tube's texture and no glyph is striped by it. The
     /// fill alpha the lines add at their darkest; 0 is clear glass.
     pub etch: f32,
+    /// A soft SHADOW behind the tube's strokes, for a see-through window:
+    /// how much of the desktop it dims, at most, behind dense text — so the
+    /// phosphor still reads over a bright wallpaper while the glass between
+    /// the lines stays clear. It only ever raises the window's alpha around
+    /// what is already solid (glyphs, frames, fills); an opaque window has
+    /// nothing behind it to dim, so 0 and any value draw the same there.
+    pub shade: f32,
 }
 
 impl CrtStyle {
+    /// Every tube's [`Self::shade`] (2026-10-06, after the tubes went sheer:
+    /// "add the soft text shadow too").
+    pub const TUBE_SHADE: f32 = 0.4;
+
     /// Today's look before the per-theme split: a flat phosphor panel
     /// (no warp, no bezel) with moderate scanlines and glow. Used when
     /// `/crt on` forces the tube over a theme that ships no style of its own.
@@ -45,5 +56,6 @@ impl CrtStyle {
         flicker: 0.06,
         core: 0.0,
         etch: 0.0,
+        shade: 0.0,
     };
 }

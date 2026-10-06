@@ -55,6 +55,7 @@ pub static CRT_VIOLET: Theme = Theme {
         flicker: 0.035,
         core: 0.6,
         etch: 0.0,
+        shade: CrtStyle::TUBE_SHADE,
     }),
     modern: Some(ModernStyle {
         pole_a: (204, 150, 240),
