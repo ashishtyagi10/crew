@@ -4025,12 +4025,17 @@ opposite of what a picker is for.
 - **`crt-paperwhite`** — the P4 white tube (early Macintosh/VT420):
   near-white ink with a faint blue-gray cast on a true black tube.
 
-**The CRT tubes are holographic.** Each phosphor carries its own tube tuning
-(scanline weight, bloom strength and radius, streaming-flicker character), so
-green runs a hot driven-hard raster while blue runs a cold TRON edge. Hot
-pixels feed a real half-res gaussian bloom — a focused border *radiates*
-tens of pixels instead of stopping at the stroke — and pane glass becomes a
-luminous translucent sheet in the phosphor's hue. The chrome is drawn in
+**The CRT tubes are terminals running in glass.** Each phosphor carries its
+own tube tuning (bloom strength and radius, streaming-flicker character, how
+hard its strokes burn), so green runs hot and driven while blue runs a cold
+TRON edge. Every pane sits on a slab of glossy glass in the phosphor's hue (see
+[Glass](#glass)); the hot phosphors (green, amber) keep a fine raster *etched
+into that glass*, under the text, rather than scanlines striped over the whole
+window. Text is electric: the core of every thin bright stroke burns white-hot
+inside its coloured halo, while wide fills keep their colour. Hot pixels feed a
+real half-res gaussian bloom — a focused border *radiates* tens of pixels
+instead of stopping at the stroke — and the drifting page (below) runs under
+the glass as a field of phosphor light. The chrome is drawn in
 light, TRON/JARVIS-style: a focused frame's four corners run white-hot so
 the bloom turns them into glowing nodes, gaining focus fires a ~600ms
 ignition sweep (the whole frame ignites at the node colour and decays to

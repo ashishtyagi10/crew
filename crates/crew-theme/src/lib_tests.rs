@@ -776,9 +776,9 @@ fn every_page_flickers_less_than_every_tube() {
 /// the bands above would let it drift a long way first.
 #[test]
 fn the_modern_backdrop_is_a_per_appearance_constant() {
-    // Three constants, not two: a tube already has bloom and scanlines doing
-    // this work, so its lattice and wash run at half strength or the page
-    // turns to soup. Paper keeps the per-appearance pair it always had.
+    // Three constants, not two: a tube already has bloom and its own glass
+    // doing this work, so its lattice and wash run at half strength or the
+    // page turns to soup under the panes. Paper keeps the per-appearance pair it always had.
     for id in ALL_THEMES {
         let t = id.theme();
         let Some(m) = t.modern else { continue };

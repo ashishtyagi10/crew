@@ -15,8 +15,9 @@ use crate::{CrtStyle, ModernStyle, Theme};
 /// a deep cool near-black tube, with a monochrome-green ANSI palette
 /// (brightness tiers, faint hue tilts) for that single-gun terminal look.
 /// The paper-grain pass reads as a subtle glow off the grid lines.
-/// Style: the hottest raster of the four — heavy scanlines, a strong but
-/// tight bloom, and the jumpiest streaming flicker: a P1 tube driven hard.
+/// Style: the hottest tube of the four — a raster etched into its glass, a
+/// strong but tight bloom, and the jumpiest streaming flicker: a P1 tube
+/// driven hard.
 pub static CRT_GREEN: Theme = Theme {
     page_bg: (2, 6, 5),
     ink: (0, 242, 96),
@@ -59,11 +60,12 @@ pub static CRT_GREEN: Theme = Theme {
     dark: true,
     grain: 1.2,
     crt: Some(CrtStyle {
-        scanline: 0.22,
+        scanline: 0.0,
         glow: 0.95,
         glow_radius: 7.0,
         flicker: 0.07,
         core: 0.6,
+        etch: 0.02,
     }),
     modern: Some(ModernStyle {
         pole_a: (106, 184, 118),
@@ -77,9 +79,9 @@ pub static CRT_GREEN: Theme = Theme {
 /// **Neon amber phosphor** (P3, Tron-grid): saturated amber traced over a
 /// deep cool near-black tube — the phosphor still runs hot orange even
 /// though, like every CRT preset, the tube glass itself reads cool black.
-/// Style: the warmest raster — the deepest scanlines and the most nervous
-/// flicker of the family, with a modest halo: an aging P3 workhorse whose
-/// lines you can count.
+/// Style: the warmest tube — a fine raster etched into its glass and the
+/// most nervous flicker of the family, with a modest halo: a P3 workhorse
+/// whose lines you can still count.
 pub static CRT_AMBER: Theme = Theme {
     page_bg: (6, 5, 6),
     ink: (254, 202, 103),
@@ -121,11 +123,12 @@ pub static CRT_AMBER: Theme = Theme {
     dark: true,
     grain: 1.2,
     crt: Some(CrtStyle {
-        scanline: 0.26,
+        scanline: 0.0,
         glow: 0.85,
         glow_radius: 6.0,
         flicker: 0.08,
         core: 0.6,
+        etch: 0.012,
     }),
     modern: Some(ModernStyle {
         pole_a: (184, 138, 39),

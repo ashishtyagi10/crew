@@ -52,6 +52,7 @@ pub static FERN: Theme = Theme {
         glow_radius: 9.0,
         flicker: 0.010,
         core: 0.0,
+        etch: 0.0,
     }),
     modern: Some(ModernStyle {
         pole_a: (10, 128, 104),

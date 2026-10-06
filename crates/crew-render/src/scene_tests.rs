@@ -17,6 +17,7 @@ pub(super) fn no_glass() -> GlassStyle {
         edge_glow: 0.0,
         gloss: 0.0,
         glow: 0.0,
+        etch: 0.0,
     }
 }
 
@@ -34,6 +35,7 @@ fn test_glass() -> GlassStyle {
         edge_glow: 0.35,
         gloss: 0.0,
         glow: 0.0,
+        etch: 0.0,
     }
 }
 

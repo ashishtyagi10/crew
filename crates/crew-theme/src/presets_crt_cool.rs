@@ -1,9 +1,9 @@
 //! CRT-family presets, the cool half: the violet, blue and paperwhite
 //! phosphors — the cool end of the tube family, split from `presets_crt.rs`
 //! to keep both files under the line cap. Where the hot phosphors (green,
-//! amber) run coarse rasters and jumpy flicker, these run wide, smooth bloom
-//! (violet, blue) or a crisp steady raster (paperwhite): projected light
-//! rather than a driven gun. Frame weight and glass follow the hot half —
+//! amber) etch a raster into their glass and run jumpy flicker, these run
+//! clear glass and wide, smooth bloom: projected light rather than a driven
+//! gun. Frame weight and glass follow the hot half —
 //! see `presets_crt.rs`.
 
 use crate::{CrtStyle, ModernStyle, Theme};
@@ -11,8 +11,8 @@ use crate::{CrtStyle, ModernStyle, Theme};
 /// **Neon blue phosphor** (Tron light-cycle grid): electric edge-glow cyan
 /// traced over a deep near-black tube — the coolest of the four grids, page
 /// and phosphor alike.
-/// Style: the TRON light-trace — scanlines almost gone, the widest and
-/// strongest bloom of the family, and the steadiest glow: every stroke a
+/// Style: the TRON light-trace — clear glass with no raster at all, the
+/// widest and strongest bloom of the family, and the steadiest glow: every stroke a
 /// light-cycle trail.
 pub static CRT_BLUE: Theme = Theme {
     page_bg: (1, 4, 8),
@@ -55,11 +55,12 @@ pub static CRT_BLUE: Theme = Theme {
     dark: true,
     grain: 1.2,
     crt: Some(CrtStyle {
-        scanline: 0.10,
+        scanline: 0.0,
         glow: 1.1,
         glow_radius: 12.0,
         flicker: 0.04,
         core: 0.6,
+        etch: 0.0,
     }),
     modern: Some(ModernStyle {
         pole_a: (0, 169, 189),

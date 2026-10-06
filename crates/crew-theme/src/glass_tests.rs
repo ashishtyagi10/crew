@@ -161,8 +161,8 @@ fn high_never_exceeds_opaque() {
 
 /// A tube's text still reads on its glass (the glass-tube goal, done-means
 /// 5). The worst place text sits is the top of a pane hard by its frame, at
-/// the High level: the body's top tint plus the edge glow, under the gloss's
-/// sheen. Every text role clears WCAG there — AAA for the terminal's own
+/// the High level: the body's top tint plus the edge glow and an etched
+/// line, under the gloss's sheen. Every text role clears WCAG there — AAA for the terminal's own
 /// text, AA for muted text, and the hint floor the bare page already holds.
 #[test]
 fn tube_text_reads_on_its_glass() {
@@ -173,7 +173,11 @@ fn tube_text_reads_on_its_glass() {
     for id in ALL_THEMES.into_iter().filter(|id| id.theme().is_tube()) {
         let t = id.theme();
         let s = style_for(t).scaled(GlassLevel::High);
-        let body = over(t.term_bg, s.tint, (s.alpha_top + s.edge_glow).min(1.0));
+        let body = over(
+            t.term_bg,
+            s.tint,
+            (s.alpha_top + s.edge_glow + s.etch).min(1.0),
+        );
         let worst = over(body, s.highlight, 0.6 * s.gloss);
         let cr = crate::contrast_ratio;
         for (role, fg, floor) in [
@@ -183,6 +187,7 @@ fn tube_text_reads_on_its_glass() {
             ("hint_fg", t.hint_fg, 2.5),
         ] {
             let got = cr(fg, worst);
+            eprintln!("{}: {role} {got:.2}", id.as_str());
             assert!(
                 got >= floor,
                 "{}: {role} {fg:?} on its glass {worst:?} is {got:.2} (need {floor})",
@@ -190,4 +195,33 @@ fn tube_text_reads_on_its_glass() {
             );
         }
     }
+}
+
+/// A tube's raster lives in its glass (the glass-tube goal, done-means 4):
+/// no tube lays scanlines over the window any more, the hot phosphors keep a
+/// fine raster etched into their glass, and the cool pair runs clear glass.
+#[test]
+fn tubes_etch_their_raster_into_their_glass() {
+    let tubes: Vec<_> = ALL_THEMES
+        .into_iter()
+        .filter(|id| id.theme().is_tube())
+        .collect();
+    assert_eq!(
+        tubes.len(),
+        4,
+        "the four phosphors are still tubes: {tubes:?}"
+    );
+    for id in &tubes {
+        let c = id.theme().crt.unwrap();
+        assert_eq!(
+            c.scanline,
+            0.0,
+            "{}: scanlines over the window",
+            id.as_str()
+        );
+        assert_eq!(style_for(id.theme()).etch, c.etch, "{}", id.as_str());
+    }
+    let etched = |id: crate::ThemeId| id.theme().crt.unwrap().etch > 0.0;
+    assert!(etched(crate::ThemeId::CrtGreen) && etched(crate::ThemeId::CrtAmber));
+    assert!(!etched(crate::ThemeId::CrtBlue) && !etched(crate::ThemeId::CrtViolet));
 }

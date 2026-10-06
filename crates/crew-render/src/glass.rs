@@ -33,6 +33,8 @@ pub struct GlassCard {
     pub gloss: f32,
     /// How far the shadow glows in the tint instead of shading black.
     pub glow: f32,
+    /// Fill alpha of the raster etched into the glass body; 0 is clear glass.
+    pub etch: f32,
     /// Elevation, `-1.0..=2.0`: 0 rests on the page, 1 is the focused lift,
     /// 2 a floating card — each a deeper, wider ambient shadow and a brighter
     /// rim. Down to -1: a well, shadowed inside under its top lip.
@@ -44,7 +46,7 @@ pub struct GlassCard {
 }
 
 /// 40 × f32 per instance: rect(4), params(4), tint(4), highlight(4), extra(4),
-/// then the notch depth with the gloss and glow beside it (4), and the notch's
+/// then the notch depth with the gloss, glow and etch beside it (4), and the notch's
 /// top spans(8) and bottom spans(8).
 const INSTANCE_FLOATS: usize = 40;
 
@@ -91,7 +93,7 @@ fn pack(c: &GlassCard) -> [f32; INSTANCE_FLOATS] {
         n.depth,
         c.gloss,
         c.glow,
-        0.0,
+        c.etch,
         t[0][0],
         t[0][1],
         t[1][0],
