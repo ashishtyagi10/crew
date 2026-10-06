@@ -16,6 +16,8 @@ fn card() -> GlassCard {
         shadow_alpha: 0.3,
         scan: -1.0,
         edge_glow: 0.35,
+        gloss: 0.14,
+        glow: 1.0,
         lift: 0.75,
         glint: 0.5,
         notch: Default::default(),
@@ -49,7 +51,7 @@ fn packing_matches_the_shader_layout() {
     c.notch.top[1] = [3.0, 4.0];
     c.notch.bottom[3] = [5.0, 6.0];
     let p = pack(&c);
-    assert_eq!(p[20], 9.0, "notch depth");
+    assert_eq!(&p[20..23], &[9.0, 0.14, 1.0], "notch depth + gloss + glow");
     assert_eq!(&p[26..28], &[3.0, 4.0], "second top span");
     assert_eq!(&p[38..40], &[5.0, 6.0], "last bottom span");
 }

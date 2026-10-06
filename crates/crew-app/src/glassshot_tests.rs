@@ -291,7 +291,7 @@ fn shot(
     // a pane's own cell backgrounds satisfy whether or not any glass is drawn —
     // it passed at full strength with the sheet disabled entirely. The only
     // honest question is whether the glass level moves the pixels: it must on
-    // every liquid-glass page, and must not on a tube.
+    // every page, tubes included since the glass-tube goal (2026-10-05).
     let flat = render(crew_theme::GlassLevel::Off, opacity).expect("adapter was available above");
     let on = mean_lum(&px, 60, 120, 200, 60);
     let bare = mean_lum(&flat, 60, 120, 200, 60);
@@ -319,7 +319,7 @@ fn glass_shot_every_theme_family() {
     use crew_theme::{GlassLevel as G, ThemeId as T};
     shot("light", T::PaperLight, G::Medium, 1.0, true);
     shot("dark", T::PaperDark, G::Medium, 1.0, true);
-    shot("crt", T::CrtGreen, G::Medium, 1.0, false);
+    shot("crt", T::CrtGreen, G::Medium, 1.0, true);
     shot("light-high", T::PaperLight, G::High, 1.0, true);
     shot("dark-high", T::PaperDark, G::High, 1.0, true);
 }
@@ -383,18 +383,17 @@ fn mean_ch(px: &[u8], ch: usize, x0: usize, y0: usize, w: usize, h: usize) -> f6
     s / (w * h) as f64
 }
 
-/// The flat-tube contract on real pixels (2026-08-06, superseding the
-/// 2026-08-04 luminous contract): with the glass sheet retired, the glass
-/// level must not move a single region — neither the pane interior (the old
-/// phosphor tint) nor the strip hugging the border (the old inner edge-glow).
-/// Any delta is the drop-shadow/adrift-panes look coming back.
+/// The glass-tube contract on real pixels (2026-10-05, superseding the
+/// 2026-08-06 flat tube): a tube is a terminal running in glass, so the glass
+/// level LIFTS the pane — and lifts the strip hugging the border (the slab's
+/// lit edge) further than the interior.
 ///
 /// Blocks share the y-range 120..180 inside the left pane (rect 30,50
 /// 320×200): the edge strip sits 4..12px inside the left border, the centre
 /// block starts 30px in.
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
-fn glass_shot_crt_is_flat() {
+fn glass_shot_crt_is_lit_glass() {
     let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
     let Some(on) = render(crew_theme::GlassLevel::Medium, 1.0) else {
@@ -402,21 +401,20 @@ fn glass_shot_crt_is_flat() {
         return;
     };
     let off = render(crew_theme::GlassLevel::Off, 1.0).expect("adapter was available above");
-
     let centre_delta = mean_lum(&on, 60, 120, 200, 60) - mean_lum(&off, 60, 120, 200, 60);
     let edge_delta = mean_lum(&on, 34, 120, 8, 60) - mean_lum(&off, 34, 120, 8, 60);
-    println!("crt flat: centre Δ{centre_delta:.1}; edge Δ{edge_delta:.1}");
+    println!("crt glass: centre Δ{centre_delta:.1}; edge Δ{edge_delta:.1}");
     assert!(
-        centre_delta.abs() < 0.5,
-        "CRT interior is no longer flat: glass moved the centre by Δ{centre_delta:.1}"
+        centre_delta > 1.5,
+        "CRT glass should lift the pane: Δ{centre_delta:.1}"
     );
     assert!(
-        edge_delta.abs() < 0.5,
-        "CRT edge strip is no longer flat: glass moved it by Δ{edge_delta:.1}"
+        edge_delta > centre_delta + 1.0,
+        "the slab's edge should outshine its interior: edge Δ{edge_delta:.1} vs Δ{centre_delta:.1}"
     );
 
-    // The translucent-window path is unaffected by the (now invisible) glass
-    // pass: the page still carries the window opacity.
+    // The translucent-window path holds: the page still carries the window
+    // opacity, and the glass never turns the card opaque over the desktop.
     let win = render(crew_theme::GlassLevel::Medium, 0.6).expect("adapter was available above");
     let page_a = win[(10 * W as usize + 10) * 4 + 3];
     let card_a = mean_ch(&win, 3, 34, 120, 8, 60);
@@ -433,7 +431,7 @@ fn glass_shot_crt_is_flat() {
     let out_dir = std::env::var("CREW_SHOT_DIR").unwrap_or_else(|_| "target/screenshots".into());
     std::fs::create_dir_all(&out_dir).unwrap();
     image::save_buffer(
-        format!("{out_dir}/glass-crt-flat.png"),
+        format!("{out_dir}/glass-crt-lit.png"),
         &on,
         W,
         H,

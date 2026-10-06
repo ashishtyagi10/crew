@@ -3894,11 +3894,11 @@ whisper of frost grain. The *look* is derived from whichever theme is active
 rather than configured per palette, so **every theme** — light, dark and CRT —
 gets its own treatment automatically: dark themes lift a lighter sheet off the
 page, light themes lean on a whiter sheet plus a real shadow (a light page can't
-get lighter), and CRT runs the most *luminous* sheet of the family — a
-translucent phosphor-tinted panel with an inner edge-glow bleeding in from the
-frame, so each pane body reads as lit by its own border (the old "CRT stays
-faintest" restraint is gone). `medium` is the default; `off` restores flat
-cards and costs nothing to draw. Overlay popups (the command menu, the attach
+get lighter), and CRT runs a slab of *glossy* glass in its own phosphor — a
+tinted body, a broad glossy reflection across the upper face, a lit rim and
+edges, and a halo of phosphor light where the other themes cast a shadow, so
+the terminal reads as running inside the glass. `medium` is the default; `off`
+restores flat cards and costs nothing to draw. Overlay popups (the command menu, the attach
 picker, the key prompt) stay opaque by design.
 
 **Opacity %** (CANVAS) makes the **window itself** translucent, so your desktop

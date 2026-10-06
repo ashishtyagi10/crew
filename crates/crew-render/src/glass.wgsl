@@ -67,6 +67,11 @@ const GLINT_GAIN: f32 = 0.85;
 // never exists where no shadow does (the tubes, a floating card's shadow-only
 // overlay has no rim at all).
 const SHADE_GAIN: f32 = 0.6;
+// The gloss: how far down a tall card its reflection reaches (px; a short
+// card's ends at most of the way down), and the depth (px) of the bright lip
+// just under the top rim.
+const GLOSS_DEPTH: f32 = 150.0;
+const GLOSS_LIP: f32 = 7.0;
 // Edge antialiasing width.
 const AA: f32 = 1.0;
 // Inner edge-glow reach (px): how far the frame's light bleeds into the fill.
@@ -80,7 +85,7 @@ struct VsOut {
   @location(3) tint: vec4<f32>,    // tint.rgb, highlight_alpha
   @location(4) hl: vec4<f32>,      // highlight.rgb, shadow_alpha
   @location(5) extra: vec4<f32>,   // scan position, edge_glow, lift, glint
-  @location(6) nmeta: vec4<f32>,   // notch depth, -, -, -
+  @location(6) nmeta: vec4<f32>,   // notch depth, gloss, glow, -
   @location(7) nt0: vec4<f32>,     // top notch spans 0-1 (x0, x1, x0, x1)
   @location(8) nt1: vec4<f32>,     // top notch spans 2-3
   @location(9) nb0: vec4<f32>,     // bottom notch spans 0-1
@@ -263,6 +268,28 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   var rgb = in.tint.xyz;
   var alpha = fill_a;
 
+  // --- gloss ----------------------------------------------------------------
+  // A thick, glossy slab throws a broad curved reflection across its upper
+  // face: a bright lip just under the top rim, and below it a softer sheen
+  // that fades down and ends on a gentle curve — deepest mid-card, the way a
+  // reflection bows across a convex face. In the highlight colour,
+  // composited over the fill like the rim; zero on every sheet that is
+  // frost rather than gloss.
+  let gloss = in.nmeta.y;
+  if (gloss > 0.0) {
+    let across = clamp((in.local.x + in.hsize.x) / max(in.hsize.x * 2.0, 1.0), 0.0, 1.0);
+    let reach = min(GLOSS_DEPTH, in.hsize.y * 0.8) * (0.8 + 0.2 * sin(3.14159265 * across));
+    let down = from_top / max(reach, 1.0);
+    let sheen = (1.0 - smoothstep(0.7, 1.0, down)) * (0.35 + 0.65 * (1.0 - clamp(down, 0.0, 1.0)));
+    let lip = exp(-pow(from_top / GLOSS_LIP, 2.0));
+    let g = clamp(gloss * (0.6 * sheen + lip), 0.0, 1.0) * inside;
+    let ga = g + alpha * (1.0 - g);
+    if (ga > 0.0001) {
+      rgb = (in.hl.xyz * g + rgb * alpha * (1.0 - g)) / ga;
+    }
+    alpha = ga;
+  }
+
   // --- well: the inner shadow -----------------------------------------------
   // The page's edge, dropped a couple of px and blurred, seen from inside: a
   // band hugging the top lip that fades down into the field. Black over the
@@ -320,7 +347,10 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // --- fill over shadow -----------------------------------------------------
   let out_a = alpha + shadow * (1.0 - alpha);
   if (out_a <= 0.0015) { discard; }
-  // The shadow is pure black, so it contributes no colour — only weight.
-  let out_rgb = rgb * alpha / out_a;
+  // A resting sheet's shadow is pure black, so it contributes no colour —
+  // only weight. A lit slab's (`glow`) is a halo of its own tint instead:
+  // light leaking out of the glass onto the page.
+  let halo = in.tint.xyz * in.nmeta.z * shadow * (1.0 - alpha);
+  let out_rgb = (rgb * alpha + halo) / out_a;
   return vec4<f32>(out_rgb, out_a);
 }

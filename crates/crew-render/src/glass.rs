@@ -29,6 +29,10 @@ pub struct GlassCard {
     pub scan: f32,
     /// Inner edge-glow strength; 0 (paper) must leave the fill untouched.
     pub edge_glow: f32,
+    /// The broad glossy reflection across the upper face; 0 draws none.
+    pub gloss: f32,
+    /// How far the shadow glows in the tint instead of shading black.
+    pub glow: f32,
     /// Elevation, `-1.0..=2.0`: 0 rests on the page, 1 is the focused lift,
     /// 2 a floating card — each a deeper, wider ambient shadow and a brighter
     /// rim. Down to -1: a well, shadowed inside under its top lip.
@@ -40,7 +44,8 @@ pub struct GlassCard {
 }
 
 /// 40 × f32 per instance: rect(4), params(4), tint(4), highlight(4), extra(4),
-/// then the notch — depth(4), top spans(8), bottom spans(8).
+/// then the notch depth with the gloss and glow beside it (4), and the notch's
+/// top spans(8) and bottom spans(8).
 const INSTANCE_FLOATS: usize = 40;
 
 /// GPU layer drawing rounded translucent cards via a signed-distance field.
@@ -84,8 +89,8 @@ fn pack(c: &GlassCard) -> [f32; INSTANCE_FLOATS] {
         c.lift,
         c.glint,
         n.depth,
-        0.0,
-        0.0,
+        c.gloss,
+        c.glow,
         0.0,
         t[0][0],
         t[0][1],

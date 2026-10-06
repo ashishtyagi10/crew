@@ -23,7 +23,7 @@ pub fn draw(
     font_px: f32,
     scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
 ) -> Option<Vec<u8>> {
-    draw_with(w, h, font_px, false, scenes)
+    draw_with(w, h, font_px, false, None, scenes)
 }
 
 /// [`draw`], but through the CRT tube — the bloom, the scanlines and the
@@ -41,14 +41,15 @@ pub fn draw_crt(
     font_px: f32,
     scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
 ) -> Option<Vec<u8>> {
-    draw_with(w, h, font_px, true, scenes)
+    draw_with(w, h, font_px, true, None, scenes)
 }
 
-fn draw_with(
+pub(crate) fn draw_with(
     w: u32,
     h: u32,
     font_px: f32,
     crt: bool,
+    modern: Option<crew_render::ModernPaper>,
     scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
 ) -> Option<Vec<u8>> {
     let instance = wgpu::Instance::default();
@@ -113,7 +114,7 @@ fn draw_with(
         (w as f32, h as f32),
         1.0,
         1.3 * crew_theme::theme().grain,
-        None,
+        modern.as_ref(),
     );
 
     let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());

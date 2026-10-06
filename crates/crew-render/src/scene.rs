@@ -279,6 +279,8 @@ pub(crate) fn build_scene(
                 shadow_alpha: glass_style.shadow_alpha,
                 scan: pane.scan,
                 edge_glow: glass_style.edge_glow,
+                gloss: glass_style.gloss * sheet,
+                glow: glass_style.glow,
                 lift: pane.lift,
                 glint: pane.glint,
                 notch,
