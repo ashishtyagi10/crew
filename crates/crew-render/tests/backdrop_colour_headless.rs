@@ -1,5 +1,5 @@
 //! Headless GPU test for the backdrop's COLOUR in motion: the pools trading
-//! colour as they turn, and the glint's sheen lighting the page itself. Shot
+//! colour as they turn, and the vortex's sheen lighting the page itself. Shot
 //! at chosen phases and read back, like `backdrop_motion_headless`. Skips on a
 //! GPU-less machine (CI) instead of failing.
 mod common;
@@ -51,30 +51,50 @@ fn backdrop_colour_headless() {
         "C2 failed: pool A at a quarter turn {aq:?} should be its rest colour {a0:?}"
     );
 
-    // S1: the sheen. At a quarter turn one of the glint's spiral arms
-    // crosses the top-right diagonal through pixel (53, 10). The pools are
-    // then at the top and bottom centres, untraded and between breaths, so
-    // the wash is mirror-symmetric left to right — but the arms are not (they
-    // are symmetric under a half TURN), and (10, 10), the mirror of (53, 10),
-    // lies midway between them. Whatever separates the two is the sheen alone.
-    let (on, off) = (rgb(&quarter, 53, 10), rgb(&quarter, 10, 10));
-    eprintln!("[sheen] crest {on:?} vs mirror {off:?}");
+    // S1: the sheen. Awake, the vortex's five bands light the page itself:
+    // round a ring about the centre the page rises and falls five times. The
+    // pools vary round a ring only slowly (once or twice), so the ring's
+    // FIFTH harmonic is the bands alone — next to nothing on a sleeping page.
+    let big = |page: [f32; 4], m: &ModernPaper| {
+        pass.update_uniform(&queue, page, (128.0, 128.0), 1.0, 0.0, Some(m));
+        render_offscreen(&device, &queue, &pass, 128, 128)
+    };
+    let (asleep, vortex) = (
+        fifth(&big(DARK, &wash(0.25, 0.0)), DARK),
+        fifth(&big(DARK, &awake(wash(0.25, 0.0))), DARK),
+    );
+    eprintln!("[sheen] ring's fifth harmonic {asleep:.1} asleep -> {vortex:.1} awake");
     assert!(
-        lift(DARK, on) - lift(DARK, off) >= 30,
-        "S1 failed: the crest should light the page, {on:?} vs mirror {off:?}"
+        vortex >= 8.0 && vortex >= 4.0 * asleep,
+        "S1 failed: the bands should light the page, {asleep:.1} -> {vortex:.1}"
     );
 
     // S2: the sheen reads on a LIGHT page at the strength light themes ship
-    // (wash 0.12) — faint, half a pool's strength, but a visible step.
+    // (wash 0.12) — faint, half a pool's strength, but a visible ripple.
     let light = ModernPaper {
         wash: 0.12,
-        ..wash(0.25, 0.0)
+        ..awake(wash(0.25, 0.0))
     };
-    let lq = shot(LIGHT, &light);
-    let (lon, loff) = (rgb(&lq, 53, 10), rgb(&lq, 10, 10));
-    eprintln!("[sheen light] crest {lon:?} vs mirror {loff:?}");
+    let lv = fifth(&big(LIGHT, &light), LIGHT);
+    let l0 = fifth(&big(LIGHT, &ModernPaper { live: 0.0, ..light }), LIGHT);
+    eprintln!("[sheen light] ring's fifth harmonic {l0:.1} asleep -> {lv:.1} awake");
     assert!(
-        dist(lon, loff) >= 6,
-        "S2 failed: the sheen should show on a light page, {lon:?} vs {loff:?}"
+        lv >= 0.4 && lv >= 4.0 * l0,
+        "S2 failed: the sheen should show on a light page, {l0:.1} -> {lv:.1}"
     );
+}
+
+/// How strongly the page rises and falls FIVE times round a ring of 0.35
+/// half-heights about the centre of a 128px shot: the magnitude of the ring's
+/// fifth harmonic, in summed-channel levels from the bare `page`.
+fn fifth(buf: &[u8], page: [f32; 4]) -> f32 {
+    let (mut re, mut im) = (0.0f32, 0.0f32);
+    for deg in (0..360).step_by(2) {
+        let a = (deg as f32).to_radians();
+        let x = (64.0 + 0.35 * 64.0 * a.cos()) as usize;
+        let y = (64.0 + 0.35 * 64.0 * a.sin()) as usize;
+        let v = lift(page, rgb_w(buf, 128, x, y)) as f32;
+        (re, im) = (re + v * (5.0 * a).cos(), im + v * (5.0 * a).sin());
+    }
+    2.0 * (re * re + im * im).sqrt() / 180.0
 }

@@ -162,10 +162,10 @@ fn render_full(glass: crew_theme::GlassLevel, opacity: f32, crt: bool) -> Option
             wash: m.wash,
             phase: 0.0,
             wander: 0.0,
-            // A shot has no focused card: the wash sits centred, which is the
-            // page every other shot test in the tree was calibrated against.
+            // No focused card and a still page: the calibrated resting shot.
             focus: [0.5, 0.5],
             focus_pull: 0.0,
+            live: 0.0,
         }
     });
     paper.update_uniform(

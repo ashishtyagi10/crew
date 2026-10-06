@@ -113,6 +113,7 @@ fn main() {
                 // stays centred on the page.
                 focus: [0.5, 0.5],
                 focus_pull: 0.0,
+                live: 0.0,
             }
         });
         paper_bg.update_uniform(

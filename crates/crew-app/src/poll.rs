@@ -10,17 +10,18 @@ use crate::pane::{Pane, PaneContent};
 
 /// Poll ticks per rendered frame of the busy progress sweep: the loop runs at
 /// ~62 Hz, so redrawing every 4th tick animates the sweep at ~15 fps.
-const BUSY_ANIM_DIV: u64 = 4;
+pub(crate) const BUSY_ANIM_DIV: u64 = 4;
 
-/// Poll ticks per rendered frame of the ambient wash drift: ~12 fps.
+/// Poll ticks per rendered frame of the drifting backdrop: ~31 fps, busy or
+/// idle (see `CrewApp::busy_anim_div`).
 ///
-/// Still coarser than [`BUSY_ANIM_DIV`], because this is the one animation
-/// that asks for frames nothing else needed. It was ~6 fps while the pools
-/// turned once every ninety seconds; at a 24-second revolution with a glint
-/// crossing the page every twelve, six frames a second moved the glint's crest
-/// ~40 px a frame and the lattice under it visibly stepped. Twelve halves
-/// that, under what a band that soft can show.
-const AMBIENT_ANIM_DIV: u64 = 5;
+/// The page is a turning vortex whose bands pour inward without ever
+/// stopping, and the eye locks onto that kind of motion only while it is
+/// FLUID: at the old ~12 fps a band's crest hopped across the dot lattice in
+/// visible steps, which reads as a slideshow, not a whirlpool. It was ~6 fps
+/// while the pools turned once every ninety seconds. Still fenced like every
+/// ambient frame: OS focus, the setting, Motion not off, a theme with a wash.
+pub(crate) const AMBIENT_ANIM_DIV: u64 = 2;
 
 /// How long a freshly spawned `$EDITOR` pane is presumed live even before its
 /// `cmd` is populated. `TermPane.cmd` starts `None` at spawn (`spawn.rs`) and
@@ -590,7 +591,7 @@ impl CrewApp {
             // without spinning the CPU. Idle → no redraws: a settled attention
             // marker draws once and then costs nothing.
             self.tick = self.tick.wrapping_add(1);
-            if self.tick.is_multiple_of(BUSY_ANIM_DIV) {
+            if self.tick.is_multiple_of(self.busy_anim_div()) {
                 any_changed = true;
             }
         } else if self.ambient_drift() || self.ambient_breath() {

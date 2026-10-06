@@ -4,8 +4,9 @@
 //! The wash itself is drawn by the background pass (see crew-render's
 //! `ModernPaper`); all that lives here are the two numbers it moves by — the
 //! orbit, which also breathes the pools, turns the dot lattice's tint and
-//! turns its glint's spiral arms, and the slower wander/hue clock, which also
-//! winds the page's whirlpool — and the rule for when
+//! spins the vortex's bands, and the slower wander/hue clock, which also
+//! breathes the page's whirlpool; plus how awake the flow is — and the rule
+//! for when
 //! they are allowed to move: their **pace**, in ms per revolution, or `None`
 //! to hold.
 //!
@@ -37,11 +38,16 @@ use crate::motion::MotionLevel;
 /// winit thread), and paying it back in one step would show up as a lurch.
 const MAX_STEP_MS: u64 = 250;
 
+/// How long the page takes to wake into its full flow, in ms of drift: the
+/// whirlpool winding up and the vortex's bands brightening in from nothing,
+/// rather than a still page snapping into motion on its first drifted frame.
+const WAKE_MS: f32 = 3_000.0;
+
 /// How much slower the idle drift is than the busy one. At the themes'
 /// 6 s `drift_ms` this is a revolution every 24 seconds — 15° of orbit per
-/// second, a pool breath and a bloom of the glint's arms every 12 — which reads
-/// as a room whose light is plainly alive without anything asking for your
-/// attention. Busy motion is still the faster signal. (It was 15, a
+/// second, a pool breath every 12, a vortex band pouring past every 4 —
+/// which reads as a room whose light is plainly alive without anything
+/// asking for your attention. Busy motion is still the faster signal. (It was 15, a
 /// 90-second revolution, then 10; at both, the user read the page as not
 /// animating at all.)
 pub(crate) const AMBIENT_MULT: u64 = 4;
@@ -85,6 +91,10 @@ pub(crate) struct WashPhase {
     /// Where the hue breath is in its cycle, in turns — [`HUE_MULT`] times
     /// slower than `phase` and read through [`Self::hue_deg`].
     hue: f32,
+    /// How far into its wake-up the page is, `0.0..=1.0` — linear in drifted
+    /// time, eased in [`Self::live`]. It only ever rises: once awake, the
+    /// flow never stops on a clock, it just holds when the wash holds.
+    wake: f32,
     /// When the last DRIFTING frame was stamped. Cleared whenever the wash
     /// holds, so the first frame after a hold contributes nothing and the
     /// still time in between is never paid back.
@@ -109,6 +119,7 @@ impl WashPhase {
         self.phase = (self.phase + dt as f32 / pace as f32).fract();
         let hue_pace = pace.saturating_mul(HUE_MULT);
         self.hue = (self.hue + dt as f32 / hue_pace as f32).fract();
+        self.wake = (self.wake + dt as f32 / WAKE_MS).min(1.0);
         self.phase
     }
 
@@ -136,6 +147,14 @@ impl WashPhase {
     pub(crate) fn wander(&self) -> f32 {
         self.hue
     }
+
+    /// How awake the page's flow is: `0.0` for a process that has never
+    /// drifted (the still page every resting shot draws), easing up to `1.0`
+    /// over the first [`WAKE_MS`] of drift and staying there. Eased
+    /// (smoothstep) so the motion swells in rather than starting at a lurch.
+    pub(crate) fn live(&self) -> f32 {
+        self.wake * self.wake * (3.0 - 2.0 * self.wake)
+    }
 }
 
 impl crate::app::CrewApp {
@@ -154,8 +173,23 @@ impl crate::app::CrewApp {
             && crate::motion::level() != MotionLevel::Off
             && crew_theme::theme().modern.is_some_and(|m| m.wash > 0.0)
     }
+
+    /// Poll ticks per frame while something is in flight: the vortex's own
+    /// smooth rate whenever the page drifts, so its faster busy spin is never
+    /// drawn choppier than its idle one; the progress sweep's otherwise.
+    pub(crate) fn busy_anim_div(&self) -> u64 {
+        if self.ambient_drift() {
+            crate::poll::AMBIENT_ANIM_DIV
+        } else {
+            crate::poll::BUSY_ANIM_DIV
+        }
+    }
 }
 
 #[cfg(test)]
 #[path = "washphase_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "washlive_tests.rs"]
+mod live_tests;

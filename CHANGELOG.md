@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.38
+
+**The page is a vortex that never stops turning.** The swirl under the panes
+used to pause: its two glint arms faded out every 12 seconds and the
+whirlpool unwound once a revolution, so the motion kept stopping and
+starting. It is now a logarithmic spiral of five soft bands that pours inward
+without end. A log spiral looks the same at every scale, so the bands sink
+toward the centre forever and nothing resets to hide a seam.
+- **Fluid.** A drifting page draws at about 31 fps, busy or idle, up from 12
+  (and from 15 while a pane worked, when the spiral turns four times faster).
+- **Halftone.** The dot lattice carries the spiral: under a band the dots
+  swell and brighten, so the bands cross the weave as a wave of fattening
+  dots. It is half as strong on a light page, where those dots sit under dark
+  ink.
+- **Wakes gently.** A fresh window starts still and eases into the flow over
+  its first three seconds of drift. Once awake it stays awake, and a held
+  frame (focus lost, Motion off) freezes mid-swirl.
+
+The bands stay within the old glint's strength (half the wash), so the
+contrast headroom over the text is unchanged.
+
 ## 0.25.37
 
 **The agent composer edits anywhere in the draft.** It used to be
