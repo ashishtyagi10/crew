@@ -115,6 +115,27 @@ impl GlassStyle {
         }
     }
 
+    /// This style with what lies UNDER the text scaled by `k`: the body's
+    /// fill, its lit edge, the gloss and the etch all spend the text's
+    /// contrast, so when the OS asks for more contrast they give it back by
+    /// the same factor the page's wash does (`contrast::effect_scale`). The
+    /// rim and the shadow or halo stay: no text sits on them, and they are
+    /// what still says the pane is a sheet. `k == 1.0` returns the style
+    /// untouched.
+    pub fn quieted(self, k: f32) -> Self {
+        if k == 1.0 {
+            return self;
+        }
+        Self {
+            alpha_top: self.alpha_top * k,
+            alpha_bottom: self.alpha_bottom * k,
+            edge_glow: self.edge_glow * k,
+            gloss: self.gloss * k,
+            etch: self.etch * k,
+            ..self
+        }
+    }
+
     /// Whether this style would draw anything at all.
     pub fn visible(self) -> bool {
         self.alpha_top > 0.001
@@ -209,9 +230,10 @@ pub fn tube_glass(t: &Theme) -> GlassStyle {
     }
 }
 
-/// Base glass for the currently active theme.
+/// Base glass for the currently active theme — quieted when the OS asks for
+/// more contrast (see [`GlassStyle::quieted`]).
 pub fn style() -> GlassStyle {
-    style_for(crate::theme())
+    style_for(crate::theme()).quieted(crate::contrast::effect_scale())
 }
 
 #[cfg(test)]
