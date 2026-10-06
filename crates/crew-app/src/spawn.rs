@@ -45,15 +45,17 @@ pub(crate) fn fallback_shell() -> String {
 }
 
 /// The shell a new terminal pane opens first. On Windows this is PowerShell —
-/// what Windows Terminal opens and what the platform's users expect — with
-/// [`fallback_shell`]'s `cmd.exe` catching the (essentially impossible) host
-/// with no PowerShell. On Unix the user's `$SHELL` is already the right answer.
+/// what Windows Terminal opens and what the platform's users expect — 7 when
+/// it is installed (`winexe::pane_shell`), with [`fallback_shell`]'s
+/// `cmd.exe` catching the (essentially impossible) host with no PowerShell.
+/// On Unix the user's `$SHELL` is already the right answer.
 #[cfg(windows)]
 pub(crate) fn preferred_shell() -> String {
-    std::env::var("SHELL")
-        .ok()
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "powershell.exe".to_string())
+    let env = |k: &str| std::env::var(k).ok();
+    crate::winexe::pane_shell(
+        env("SHELL"),
+        crate::winexe::pwsh(env, crate::winexe::present),
+    )
 }
 
 #[cfg(unix)]

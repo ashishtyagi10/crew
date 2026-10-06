@@ -47,23 +47,13 @@ pub(crate) fn find(
     env: impl Fn(&str) -> Option<String>,
     exists: impl Fn(&Path) -> bool,
 ) -> Option<PathBuf> {
-    let on_path = env("PATH")
-        .map(|p| std::env::split_paths(&p).collect::<Vec<_>>())
-        .unwrap_or_default();
-    let under = |var: &str, rel: &[&str]| {
-        env(var).map(|root| rel.iter().fold(PathBuf::from(root), |p, r| p.join(r)))
-    };
-    let known = [
-        under("LOCALAPPDATA", &["Microsoft", "WindowsApps"]),
-        under("LOCALAPPDATA", &["Programs", "oh-my-posh", "bin"]),
-        under("USERPROFILE", &["scoop", "shims"]),
-        under("ProgramData", &["chocolatey", "bin"]),
+    let known: [(&str, &[&str]); 4] = [
+        ("LOCALAPPDATA", &["Microsoft", "WindowsApps"]),
+        ("LOCALAPPDATA", &["Programs", "oh-my-posh", "bin"]),
+        ("USERPROFILE", &["scoop", "shims"]),
+        ("ProgramData", &["chocolatey", "bin"]),
     ];
-    on_path
-        .into_iter()
-        .chain(known.into_iter().flatten())
-        .map(|dir| dir.join(EXE))
-        .find(|exe| exists(exe))
+    crate::winexe::find(EXE, &known, env, exists)
 }
 
 /// A PowerShell single-quoted literal: nothing inside is expanded, and a
@@ -161,7 +151,11 @@ pub(crate) fn args_in(
 #[cfg(windows)]
 pub(crate) fn args() -> Vec<String> {
     match dirs::config_dir() {
-        Some(d) => args_in(&d.join("crew"), |k| std::env::var(k).ok(), |p| p.is_file()),
+        Some(d) => args_in(
+            &d.join("crew"),
+            |k| std::env::var(k).ok(),
+            crate::winexe::present,
+        ),
         None => Vec::new(),
     }
 }
