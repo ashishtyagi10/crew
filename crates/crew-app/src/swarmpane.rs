@@ -190,7 +190,7 @@ impl SwarmPane {
         }
         match &self.state {
             SwarmState::Planning { goal, .. } => banner(&format!("planning: {goal}…"), cols, rows),
-            SwarmState::Failed { msg } => banner(&format!("plan failed: {msg}"), cols, rows),
+            SwarmState::Failed { msg } => crate::swarm::backend::failed_banner(msg, cols, rows),
             SwarmState::Running {
                 handle,
                 fleet,
