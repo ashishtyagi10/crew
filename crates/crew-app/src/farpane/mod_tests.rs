@@ -365,7 +365,7 @@ fn absorb_ask_result_lands_a_suggestion_and_replaces_the_bar() {
     let msg = p.absorb_ask_result(Ok("ls -la".into()));
     assert_eq!(p.cmdline, "ls -la");
     assert!(matches!(&p.ask, Some(AskState::Suggested { original }) if original == "! list files"));
-    assert!(msg.contains("Enter run"));
+    assert!(msg.contains("Enter runs · Esc discards"), "{msg}");
 }
 
 #[test]

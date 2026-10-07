@@ -266,7 +266,7 @@ fn send(
         let m = match id {
             Some(id) if tasks.cancel(id) => format!("stopping task #{id}\u{2026}"),
             Some(id) => format!("no task #{id}"),
-            None => "usage: /stop [#id]".to_string(),
+            None => "usage: /stop [#n]".to_string(),
         };
         return emit(out, &msg("agent smith", m));
     }

@@ -53,6 +53,10 @@ fn slash_approvals_sets_names_and_explains_the_mode() {
         .map(|m| m.text.clone())
         .unwrap_or_default();
     assert!(last.starts_with("approval mode: yolo"), "{last}");
+    assert!(
+        last.ends_with("sets the mode new agent panes start in"),
+        "{last}"
+    );
     enter(&mut p, "/approvals careful");
     let last = p
         .messages

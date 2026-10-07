@@ -25,7 +25,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+,", "Settings"),
     ("Cmd+O", "Open agent smith (same as /smith)"),
     ("Cmd+G / Cmd+Z", "Toggle the nav / zoom focused pane"),
-    ("Cmd+S", "Save a focused settings form (typing to every terminal is /broadcast)"),
+    ("Cmd+S", "Save the settings form (to type into every terminal, use /broadcast)"),
     (
         "Cmd+= / Cmd+- / Cmd+0 / Cmd+wheel",
         "Font size + / - / reset",
@@ -118,7 +118,7 @@ pub(crate) const CHAT_BINDINGS: &[(&str, &str)] = &[
     ("Tab", "Complete the leading @agent or /construct"),
     (
         "Shift+Tab",
-        "Approval mode: auto \u{2192} accept edits \u{2192} ask first \u{2192} plan only \u{2192} yolo",
+        "Approval mode: auto-approve \u{2192} accept edits \u{2192} ask first \u{2192} plan only \u{2192} yolo",
     ),
     ("Ctrl+R", "Reverse-search prompts you've sent"),
     ("Cmd+F / Ctrl+F", "Find in the transcript, jump per match"),

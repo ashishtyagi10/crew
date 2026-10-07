@@ -75,7 +75,7 @@ pub(crate) fn render_in(p: &FarPane, cols: u16, rows: u16, focused: bool) -> Vec
             false,
         ),
         Some(super::ask::AskState::Suggested { .. }) => (
-            Some("Enter run \u{b7} Esc discard \u{b7} keep typing to edit".to_string()),
+            Some("Enter runs \u{b7} Esc discards \u{b7} keep typing to edit".to_string()),
             true,
         ),
         None => (None, false),

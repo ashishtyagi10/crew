@@ -33,8 +33,8 @@ impl ChatPane {
                 let mode = self.approval_mode;
                 let note = format!(
                     "approval mode: {} \u{2014} {}. /approvals auto, edits, ask, plan or yolo \
-                     changes it (so does Shift+Tab); /approvals default <mode> also makes it \
-                     where new agent panes start",
+                     changes it (so does Shift+Tab); /approvals default <mode> also sets the \
+                     mode new agent panes start in",
                     label(mode),
                     meaning(mode)
                 );

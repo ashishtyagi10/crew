@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.76
+
+**Hints read as sentences.** The far pane's suggestion hint said “Enter
+run · Esc discard” beside a move box that says “Enter moves it there”;
+it is “Enter runs · Esc discards” now. Bare `/approvals` ends “also sets
+the mode new agent panes start in”, the `/keys` Shift+Tab row starts at
+“auto-approve” (the footer's name for it), the Cmd+S row reads “Save the
+settings form (to type into every terminal, use /broadcast)”, and
+`/stop`'s usage line spells its argument `[#n]`, as `/help` does.
+
 ## 0.25.75
 
 **No more “(s)”.** Agent smith said “undone — 1 file(s) back to …”,
