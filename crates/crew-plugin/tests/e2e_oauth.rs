@@ -71,7 +71,7 @@ fn zero_key_onboarding_signs_in_answers_fans_out_and_plans() {
     assert!(card.contains("waiting for approval"), "{card}");
     // The poll succeeded and the provider now serves.
     assert!(
-        all.contains("\u{2713} signed in \u{2014} dashscope now serves smith work"),
+        all.contains("\u{2713} signed in \u{2014} dashscope now serves agent smith"),
         "{all}"
     );
     // A plain message answered THROUGH the grant-backed provider.
@@ -228,7 +228,7 @@ fn model_signs_in_over_a_present_key_and_the_grant_serves() {
     // The flow ran in-pane and landed.
     assert!(all.contains("WDJB-MJHT"), "code card must stream: {all}");
     assert!(
-        all.contains("\u{2713} signed in \u{2014} dashscope now serves smith work"),
+        all.contains("\u{2713} signed in \u{2014} dashscope now serves agent smith"),
         "{all}"
     );
     // The grant serves: the reply came through the stub's chat route, which

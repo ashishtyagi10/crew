@@ -41,8 +41,8 @@ pub(crate) fn signin_cmd(
         Outcome::SignedIn => {
             let _ = crate::credentials::save_pin(name);
             format!(
-                "\u{2713} signed in \u{2014} {name} now serves smith work \
-                 (persists across restarts)"
+                "\u{2713} signed in \u{2014} {name} now serves agent smith \
+                 (kept across restarts)"
             )
         }
         Outcome::Expired => format!("the sign-in code expired \u{2014} /model {name} to try again"),

@@ -124,9 +124,9 @@ fn serve(
 ) -> anyhow::Result<()> {
     let note = match crate::credentials::save_pin(name) {
         Ok(()) => format!(
-            "\u{2713} {name} now serves smith work \u{2014} signed in through its \
-             own CLI (persists across restarts; pick a model or another \
-             sign-in to switch)"
+            "\u{2713} {name} now serves agent smith \u{2014} signed in through its \
+             own CLI (kept across restarts; pick a model or another sign-in to \
+             switch)"
         ),
         Err(e) => format!("could not store the {name} pin: {e}"),
     };

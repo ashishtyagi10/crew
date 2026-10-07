@@ -145,7 +145,7 @@ pub(crate) fn select(states: &[ProviderInfo], n: usize) -> Pick {
     }
     Pick::Note(match crate::credentials::save_pin(&p.name) {
         Ok(()) => format!(
-            "provider pinned: {} \u{2014} smith work now routes there (persists across restarts)",
+            "\u{2713} {} now serves agent smith (kept across restarts)",
             p.name
         ),
         Err(e) => format!("could not store the {} pin: {e}", p.name),

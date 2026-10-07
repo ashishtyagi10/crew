@@ -542,7 +542,7 @@ working until …" loops until a judge agent rules the goal met — the broker's
 intent router picks the execution shape (`CREW_INTENT=0` turns it off).
 `@a+b <task>` fans out to a subset, bare `/model` shows a **grouped provider
 picker** — your subscriptions (a signed-in `claude` or `codex` seat serves
-smith work with **no API key**; signed-out ones show the exact sign-in
+agent smith with **no API key**; signed-out ones show the exact sign-in
 command, and a device-flow provider like Qwen **signs in right in the pane**:
 pick its number, approve the code card in your browser, done — tokens live
 in the OS keychain and refresh themselves), your keys, and installed CLIs,
