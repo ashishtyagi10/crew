@@ -33,6 +33,9 @@ pub(crate) struct CardCell {
     /// reads the box back off the placed lines through it. `None` for every
     /// cell that is a character.
     pub pic: Option<u16>,
+    /// An inline code chip's cell: its wash is a capsule of its own on its
+    /// row (`CellView::mark`) — `w` over `/` in a table read as one tall pill.
+    pub mark: bool,
 }
 
 /// One rendered line of a message card.
@@ -50,6 +53,7 @@ pub(crate) fn plain(c: char, fg: Color, bold: bool) -> CardCell {
         link: None,
         src: None,
         pic: None,
+        mark: false,
     }
 }
 

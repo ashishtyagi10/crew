@@ -102,21 +102,18 @@ impl ViewPane {
             crate::chatwidth::place_row(
                 0,
                 cols,
-                line.iter().map(|cell| {
-                    (
-                        cell.c,
-                        (cell.fg, cell.bg.unwrap_or(page_bg), cell.bold, cell.italic),
-                    )
-                }),
-                |col, c, (fg, bg, bold, italic)| {
+                line.iter().map(|cell| (cell.c, cell)),
+                |col, c, cell| {
                     out.push(CellView {
                         col,
                         row,
                         c,
-                        fg,
-                        bg,
-                        bold,
-                        italic,
+                        fg: cell.fg,
+                        bg: cell.bg.unwrap_or(page_bg),
+                        bold: cell.bold,
+                        italic: cell.italic,
+                        // An inline code chip is a capsule of its own.
+                        mark: cell.mark,
                         ..Default::default()
                     });
                 },

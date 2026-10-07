@@ -45,8 +45,7 @@ pub(crate) fn top_pad(total: usize, rows: u16) -> u16 {
     (rows as usize).saturating_sub(total) as u16
 }
 
-/// Map one already-placed `CardLine` to its `CellView`s at `row`, clipped to
-/// `cols` (zero-width marks are dropped; wide glyphs advance two columns).
+/// One placed `CardLine` as `CellView`s at `row`, clipped to `cols` (zero-width marks dropped).
 pub(crate) fn line_cells(row: u16, line: &CardLine, cols: u16, page: Color) -> Vec<CellView> {
     let mut cells = Vec::new();
     let mut col: u16 = 0;
@@ -67,6 +66,7 @@ pub(crate) fn line_cells(row: u16, line: &CardLine, cols: u16, page: Color) -> V
             bold: cell.bold,
             italic: cell.italic,
             deco: crate::chatspan::deco(cell.strike),
+            mark: cell.mark,
             ..Default::default()
         });
         col += w;

@@ -17,6 +17,9 @@ pub(crate) struct SpanInk {
     pub strike: bool,
     pub bg: Option<Color>,
     pub link: Option<Arc<str>>,
+    /// Inline code's chip: a capsule of its own on its row
+    /// (`CellView::mark`), so two chips stacked by chance stay two.
+    pub mark: bool,
 }
 
 impl SpanInk {
@@ -28,6 +31,7 @@ impl SpanInk {
             strike: false,
             bg: None,
             link: None,
+            mark: false,
         }
     }
 }
@@ -115,6 +119,7 @@ fn body(span: &MdSpan, base: Color, muted: Color) -> SpanInk {
             bg,
             link: Some(Arc::from(url.as_str())),
             strike: false,
+            mark: false,
         }
     } else if style.heading >= 1 {
         SpanInk {
@@ -156,6 +161,7 @@ fn body(span: &MdSpan, base: Color, muted: Color) -> SpanInk {
             ..SpanInk::flat(base)
         }
     };
+    ink.mark = bg.is_some();
     if style.strike {
         ink.strike = true;
         if ink.link.is_none() {
