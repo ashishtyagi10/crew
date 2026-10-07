@@ -18,11 +18,18 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
     let (one, five, fifteen) = crate::load::load_avg();
     let load = format!("load {one:.2} {five:.2} {fifteen:.2}");
     let parts = [host, os, uptime, load];
-    let line: Vec<&str> = parts
+    let mut line: Vec<&str> = parts
         .iter()
         .map(String::as_str)
         .filter(|s| !s.is_empty())
         .collect();
+    // Shed whole parts from the end — the load, then the uptime — until the
+    // line fits with a column of air each side: a quarter tile ended on
+    // `up 20h 10m  ·  …`, a clip that kept the separator and lost the part.
+    let room = usize::from(cols.saturating_sub(2));
+    while line.len() > 1 && crate::chatwidth::str_w(&line.join("  \u{00b7}  ")) > room {
+        line.pop();
+    }
     put(&mut out, &line.join("  \u{00b7}  "), 1, 0, t.ink, cols);
 
     // SYSTEM: the three dials, plus the CPU curve's own label.
