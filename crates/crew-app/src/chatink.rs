@@ -41,7 +41,7 @@ pub(crate) const PAGE_FLOOR: f32 = 4.5;
 /// unreadable one — so on a theme with little headroom the ladder compresses
 /// rather than breaking readability.
 const STRING_FLOOR: f32 = 2.3;
-const COMMENT_FLOOR: f32 = 3.1;
+pub(crate) const COMMENT_FLOOR: f32 = 3.1;
 
 /// Comments get a lower readability floor than everything else, and only
 /// comments. They are the one class meant to recede — 4.5:1 is the threshold
@@ -49,7 +49,7 @@ const COMMENT_FLOOR: f32 = 3.1;
 /// can still read at 3.5:1. Without this the light presets ran out of
 /// headroom and the ladder collapsed there (sepia-light measured 1.17 between
 /// comment and code), which is the failure this whole ladder exists to avoid.
-const COMMENT_PAGE_FLOOR: f32 = 3.5;
+pub(crate) const COMMENT_PAGE_FLOOR: f32 = 3.5;
 
 /// Where the code field's background STARTS: the page nudged this far toward
 /// `ink`. Was 0.08, which measured 1.10-1.12:1 against the page on the CRT
@@ -131,25 +131,7 @@ fn separated(c: Color, t: &Theme) -> Color {
 /// classes therefore sit on a LADDER, and on a single-phosphor tube — where
 /// hue cannot vary at all — that ladder is the whole of the highlighting.
 pub(crate) fn separated_to(c: Color, t: &Theme, floor: f32, page_floor: f32) -> Color {
-    if contrast_ratio(c, t.ink) >= floor {
-        return c;
-    }
-    let mut best = c;
-    let mut mix = 0.0_f32;
-    while mix < 1.0 {
-        mix += 0.005;
-        let cand = crate::anim::lerp_rgb(c, t.page_bg, mix);
-        // Stop before readability goes: a preset with no room to separate
-        // keeps the last legible candidate rather than fading into the page.
-        if contrast_ratio(cand, t.page_bg) < page_floor {
-            break;
-        }
-        best = cand;
-        if contrast_ratio(cand, t.ink) >= floor {
-            break;
-        }
-    }
-    best
+    crate::codefield::separated_on(c, t, floor, page_floor, t.page_bg)
 }
 
 /// A removed line's colour. Untouched on a theme whose `ansi[1]` already
@@ -186,11 +168,12 @@ fn diff_removed(t: &Theme) -> Color {
 /// asserted for all 16 presets without touching the global theme atomic.
 pub(crate) fn derive(t: &Theme) -> Ink {
     let code = separated(t.ansi[6], t);
+    let code_bg = crate::codefield::code_field(t, code);
     Ink {
         code,
         marker: separated(t.ansi[3], t),
         quote: separated(t.text_muted, t),
-        code_bg: crate::codefield::code_field(t, code),
+        code_bg,
         removed: diff_removed(t),
         // Syntax classes, from the theme's own slots for the same reason the
         // rest are: 16 presets already tune them, and a single-phosphor tube
@@ -199,7 +182,8 @@ pub(crate) fn derive(t: &Theme) -> Ink {
         // The ladder. Comments sit furthest back, strings between, plain code
         // nearest to prose. The hued classes (`chathue`) separate by HUE on a
         // paper preset and fall back to this ladder on a tube.
-        comment: separated_to(t.text_muted, t, COMMENT_FLOOR, COMMENT_PAGE_FLOOR),
+        // Floored on the field it is drawn on (`codefield::comment`).
+        comment: crate::codefield::comment(t, code, code_bg),
         string: separated_to(t.ansi[2], t, STRING_FLOOR, PAGE_FLOOR),
     }
 }

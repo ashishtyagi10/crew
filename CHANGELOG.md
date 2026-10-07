@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.86
+
+**Comments read inside a code block.** Code comments were checked for
+contrast against the page, but they are drawn on the code block's lighter
+field, where they measured 2.7:1 on every CRT theme (3.3:1 on paper-dark).
+They are now held on the field itself: 3.5:1 on paper and modern themes,
+and over 3:1 on a tube, where the block's field also steps back a little so
+a comment can be read and still sit a clear step below the code.
+
 ## 0.25.85
 
 **Links read as links on a tube.** A markdown link in an agent pane, the
