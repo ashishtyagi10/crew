@@ -246,9 +246,7 @@ pub fn spawn_pane(
     let args = crate::shellargs::for_pane;
     let pty = PtyTerm::spawn_in(grid, shell_primary, &args(shell_primary), cwd)
         .or_else(|_| PtyTerm::spawn_in(grid, shell_fallback, &args(shell_fallback), cwd))
-        .with_context(|| {
-            format!("failed to spawn shell (tried {shell_primary}, {shell_fallback})")
-        })?;
+        .with_context(|| format!("tried {shell_primary}, then {shell_fallback}"))?;
     let input = pty.writer();
     Ok(Pane {
         glide: crate::glide::Glide::default(),
