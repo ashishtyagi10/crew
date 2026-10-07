@@ -76,7 +76,9 @@ pub(super) fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool, f
         .skip(start)
         .take(h)
         .map(|e| {
-            let width = inner.width as usize;
+            // A column short of the border: a size flush against the divider
+            // or the frame (`3.7K│`) read as part of the line.
+            let width = inner.width.saturating_sub(1) as usize;
             let glyph = super::super::icons::icon(e);
             let (name, fg) = if e.is_dir {
                 (format!("{glyph} {}/", e.name), dir_color())
@@ -116,3 +118,7 @@ pub(super) fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool, f
 fn rgb((r, g, b): (u8, u8, u8)) -> Color {
     Color::Rgb(r, g, b)
 }
+
+#[cfg(test)]
+#[path = "rowair_tests.rs"]
+mod tests;
