@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.94
+
+**The document window's caret stays put.** After an edit such as ⌘B
+(bold), a resize, or anything else that lays the document out again, the
+caret is found again from its place in the text, and that search could
+land paragraphs away (bolding a word put the caret on the next heading).
+It now always comes back to the same character.
+
 ## 0.25.93
 
 **The file viewer wraps cleanly.** Three wrap fixes:

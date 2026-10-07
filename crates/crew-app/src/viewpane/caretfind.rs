@@ -49,9 +49,13 @@ pub(crate) fn find(lines: &[CardLine], offset: u32) -> Option<Caret> {
     let mut hi = lines.len();
     while lo < hi {
         let mid = (lo + hi) / 2;
-        match key(&lines[mid]) {
-            Some(s) if s > offset => hi = mid,
-            _ => lo = mid + 1,
+        // A row with no key (a blank line, a fence's border) says nothing
+        // about where it sits: ask the next row that has one. Taking it as
+        // "before" broke the order — a caret landed two paragraphs on.
+        match (mid..hi).find_map(|k| key(&lines[k]).map(|s| (k, s))) {
+            Some((_, s)) if s > offset => hi = mid,
+            Some((k, _)) => lo = k + 1,
+            None => hi = mid,
         }
     }
     // `lo` is one past the last row that starts at or before `offset`; walk
