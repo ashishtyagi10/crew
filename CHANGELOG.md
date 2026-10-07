@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.95
+
+**Markdown keeps its shape.** Three layout fixes in agent replies, the
+viewer and document windows:
+- A blockquote keeps its bar across an empty `>` line, so an attribution
+  no longer floats detached under the quote.
+- A nested item under a numbered parent sits under the parent's text
+  (three columns in after `1. `), not under its dot.
+- A URL or path too long for the row breaks after a `/`, `?`, `=` or `.`
+  instead of mid-word (`…/that/` then `will/not/fit`).
+
 ## 0.25.94
 
 **The document window's caret stays put.** After an edit such as ⌘B

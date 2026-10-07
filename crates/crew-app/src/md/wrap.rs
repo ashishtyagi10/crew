@@ -106,9 +106,18 @@ fn wrap_ranges(full: &[char], cols: usize) -> Vec<(usize, usize)> {
                 ranges.push((start, start + p));
                 start += p + 1;
             }
+            // No space: a URL or a path. Break after its last `/ : _ - . ? & =`
+            // in the back half of the row, so `…/that/wil` + `l/not/fit` is
+            // `…/that/` + `will/not/fit`; with none, cut where the row ends.
             _ => {
-                ranges.push((start, max_end));
-                start = max_end;
+                let row = &full[start..max_end];
+                let end = row
+                    .iter()
+                    .rposition(|c| "/:_-.?&=".contains(*c))
+                    .filter(|&q| q + 1 > row.len() / 2)
+                    .map_or(max_end, |q| start + q + 1);
+                ranges.push((start, end));
+                start = end;
             }
         }
     }
