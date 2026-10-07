@@ -20,10 +20,10 @@ pub(crate) fn respond(text: &str, snap: &Snapshot) -> Option<String> {
     Some(match word.as_str() {
         "help" | "?" | "/help" | "/start" => HELP.to_string(),
         "status" | "/status" => format!(
-            "crew {} \u{2014} up {}, {} session(s)",
+            "crew {} \u{2014} up {}, {}",
             snap.version,
             human_uptime(snap.uptime_s),
-            snap.sessions.len()
+            crate::wording::count(snap.sessions.len(), "session")
         ),
         "sessions" | "/sessions" => {
             if snap.sessions.is_empty() {

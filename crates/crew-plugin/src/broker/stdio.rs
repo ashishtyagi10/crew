@@ -531,10 +531,10 @@ pub(crate) fn roster_for(reg: &Registry, provider: bool) -> String {
         };
     }
     format!(
-        "Detected {} agent(s): {}. Type a task and press Enter; prefix @<agent> \
+        "Detected {}: {}. Type a task and press Enter; prefix @<agent> \
          to choose who starts. Agents see the task + transcript and hand off with \
          a final `@next <agent>` line, or finish with `@done`.",
-        reg.len(),
+        super::wording::count(reg.len(), "agent"),
         reg.names().join(", "),
     )
 }

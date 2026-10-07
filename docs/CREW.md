@@ -2361,7 +2361,7 @@ wrapped body beneath. Live agent state flows as structured `activity` events
 (`thinking` per dial — carrying who dialed as `from` — and `idle` at turn end)
 instead of transcript spam, and each
 turn ends with a `stats` event plus a timeline summary: `turn done — planner
-4s → coder 8s · 2 exchange(s) · ~950 tok (approx)`.
+4s → coder 8s · 2 exchanges · ~950 tok (approx)`.
 
 **Swarm runs stream inline, then get out of the way.** When a plain `/smith`
 message runs as a broker-side swarm, the pane opens a **live task-list block**
@@ -3368,7 +3368,7 @@ below; unset by default, and a command crew cannot find is ignored;
 `CREW_SUBSCRIPTIONS=0` disables the signed-in-subscription rung —
 crew then never runs `claude auth status` / `codex login status` and plain
 tasks fall back to key discovery and the keyless relay exactly as before. The pane also prints a per-turn timeline + cost summary (`turn done
-— planner 4s → … · N exchange(s) · ~X tok (approx)`) at the end of every
+— planner 4s → … · N exchanges · ~X tok (approx)`) at the end of every
 task, and accumulates the spend into the header's `~N tok` meter.
 
 **An engine crew did not compile in (`CREW_SIDECAR`).** crew plans a goal into

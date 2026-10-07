@@ -226,8 +226,9 @@ pub(crate) fn run(instance: Option<&str>) -> i32 {
 pub(crate) fn run_at(path: std::path::PathBuf) -> i32 {
     if let Some(live) = probe_at(&path) {
         eprintln!(
-            "crew daemon: already running (pid {}, up {}s)",
-            live.pid, live.uptime_s
+            "crew daemon: already running (pid {}, up {})",
+            live.pid,
+            reply::human_uptime(live.uptime_s)
         );
         return 1;
     }

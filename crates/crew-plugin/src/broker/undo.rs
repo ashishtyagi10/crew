@@ -128,8 +128,8 @@ pub(crate) fn apply(
         Ok(removed) => say(
             emit,
             &format!(
-                "undone \u{2014} {} file(s) back to {}{}",
-                p.files.len(),
+                "undone \u{2014} {} back to {}{}",
+                super::wording::count(p.files.len(), "file"),
                 p.label,
                 super::checkpoint::removed_note(&removed)
             ),
