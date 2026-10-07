@@ -4092,18 +4092,17 @@ each pool leans toward the other's pole, so the gradient itself keeps changing,
 not only where it lies — on top of the hue breath, which now comes round every
 twelve seconds while a pane works and every 48 when idle (its width is
 **Gradient colour**: subtle ±16°, lively ±38°). The dot lattice moves with them:
-its pole-to-pole tint turns with the orbit. And over the whole page lies
-**silk**: long soft folds of light, about three to a window's height, lying a
-little off the horizontal. They sway on the slow clock, curving, bunching and
-opening out while the sheet slowly turns; slow eddies crumple them; and along
-its length each fold glows and fades, in the poles' colours as they drift
-across it. The dots under a fold carry up to about three times their strength,
-and a faint sheen of pole light (half a pool's strength, so it never costs more
-contrast than the wash does) runs with them. The silk has no centre, no rhythm
-and no pulse — its folds are spread evenly over the page and sway rather than
-sweep past — so it reads from the corner of the eye as a room that is alive,
-not a thing to look at. (It replaced a spiral that poured into the middle of
-the page, which was hypnotic and therefore distracting.) All of it rides the
+its pole-to-pole tint turns with the orbit. And at the middle of the page a
+**glow** beats, like a resting pulse — every six seconds when idle, every
+three while a pane works. On each beat its core swells and brightens, and a
+soft ring of light leaves it and radiates outward, widening and fading until
+it is gone near the window's edge; between beats a quiet halo holds the
+light. The glow runs from one pole at its core to the other at its rim, so a
+ring changes colour as it travels, and the dots under it carry up to about
+three times their strength. Everything in it is soft light, never a line,
+and it stays at the window's middle while the pools drift toward your work.
+(It replaced a spiral that poured into the middle of the page, and then folds
+of silk across it — both too busy to work over.) All of it rides the
 same clock and the same frames, on light pages and dark alike; none of it asks
 for a frame of its own, and a page that has never drifted is the still one.
 

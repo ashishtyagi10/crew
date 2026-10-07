@@ -48,22 +48,22 @@ pub struct WashClocks {
     /// Where the two pools sit on their orbit, in turns: 0 puts `color_a` at
     /// the left edge and `color_b` at the right, 0.25 rotates them a quarter
     /// turn clockwise. The same number breathes the pools, turns the
-    /// lattice's tint and ripples the current.
+    /// lattice's tint, ripples the current and beats the glow (four beats a
+    /// turn).
     pub phase: f32,
     /// The slower second clock, in turns: how far the pools have wandered —
     /// leaning toward each other and reaching in and out — off the rigid
-    /// orbit, and how far the silk has swayed and its folds have crept.
-    /// `0.0` is no wander at all.
+    /// orbit. `0.0` is no wander at all.
     pub wander: f32,
     /// How AWAKE the page is: `0.0` is the still page, `1.0` the page in
-    /// full flow — the current and eddies bending it and the silk's folds
-    /// lying across it.
+    /// full flow — the current and eddies bending it and the glow beating at
+    /// its middle.
     /// The app eases it up over the first seconds of drift and holds it
     /// there, so the motion never has to stop on a clock to keep a resting
     /// frame exact.
     pub live: f32,
     /// The third clock, in turns: where the page's EDDIES — a slow
-    /// domain-warped drift that crumples the silk's folds — are in their
+    /// domain-warped drift that wisps the pools' edges and the glow's ring — are in their
     /// loop. It runs at an irrational ratio to the other two, so the page
     /// never repeats. Moves nothing on a still page (`live` 0).
     pub eddy: f32,

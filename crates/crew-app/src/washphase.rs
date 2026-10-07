@@ -4,7 +4,7 @@
 //! The wash itself is drawn by the background pass (see crew-render's
 //! `ModernPaper`); all that lives here are the clocks it moves by — the
 //! orbit (which also breathes the pools and turns the lattice's tint), the
-//! slower wander/hue clock that sways the silk, the eddies' own loop and how
+//! slower wander/hue clock, the eddies' own loop and how
 //! awake the flow is — all driven by one flywheel. The rule for when they may
 //! move, their **pace** in ms per revolution or `None` to hold, lives in
 //! [`crate::washgate`].
@@ -47,8 +47,8 @@ const MAX_STEP_MS: u64 = 250;
 const EDDY_MULT: f32 = 2.618_034;
 
 /// How quickly the clocks' SPEED follows a change of pace, in ms: the time
-/// constant of the flywheel. A pane that starts working sways the silk up
-/// to its busy pace over a couple of seconds rather than lurching to twice
+/// constant of the flywheel. A pane that starts working quickens the glow's
+/// beat over a couple of seconds rather than lurching to twice
 /// the speed in one frame, and when the work ends it coasts back down
 /// over several — slower down than up, the way a heavy wheel spins up under
 /// power and then coasts.
@@ -56,7 +56,7 @@ const SPIN_UP_MS: f32 = 900.0;
 const SPIN_DOWN_MS: f32 = 2_800.0;
 
 /// How long the page takes to wake into its full flow, in ms of drift: the
-/// current and eddies bending in and the silk's folds brightening from
+/// current and eddies bending in and the glow brightening from
 /// nothing, rather than a still page snapping into motion on its first
 /// drifted frame.
 const WAKE_MS: f32 = 3_000.0;
@@ -160,8 +160,7 @@ impl WashPhase {
     }
 
     /// This frame's wander, in turns: how far the wash's pools have drifted
-    /// off their rigid orbit — leaning together, reaching in and out — and
-    /// how far the silk has swayed.
+    /// off their rigid orbit — leaning together, reaching in and out.
     ///
     /// It is the hue clock itself, read raw rather than as a sine, because
     /// the shader takes its own harmonics of it. Reusing the clock rather than

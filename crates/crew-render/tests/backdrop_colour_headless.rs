@@ -1,5 +1,5 @@
 //! Headless GPU test for the backdrop's COLOUR in motion: the pools trading
-//! colour as they turn, and the silk's sheen lighting the page itself. Shot
+//! colour as they turn, and the glow's sheen lighting the page itself. Shot
 //! at chosen phases and read back, like `backdrop_motion_headless`. Skips on a
 //! GPU-less machine (CI) instead of failing.
 mod common;
@@ -51,11 +51,11 @@ fn backdrop_colour_headless() {
         "C2 failed: pool A at a quarter turn {aq:?} should be its rest colour {a0:?}"
     );
 
-    // S1: the sheen. Awake, the silk's folds light the page itself: down the
-    // middle of the page it ripples once a fold. The pools vary down it only
-    // slowly, so what is left after a moving average about a fold wide is
-    // the folds' RIPPLE — next to nothing on a sleeping page. One pole, so
-    // the folds' colours cannot beat against them.
+    // S1: the sheen. Awake, the glow lights the page itself: down the middle
+    // of the page it rises to the core and falls away. The pools vary down
+    // it only slowly, so what is left after a moving average a quarter of
+    // the page wide is the glow's RIPPLE — next to nothing on a sleeping
+    // page. One pole, so the glow's colours cannot beat against them.
     let one = |m: ModernPaper| ModernPaper {
         color_b: m.color_a,
         ..m
@@ -64,14 +64,14 @@ fn backdrop_colour_headless() {
         pass.update_uniform(&queue, page, (128.0, 128.0), 1.0, 0.0, Some(m));
         render_offscreen(&device, &queue, &pass, 128, 128)
     };
-    let (asleep, silk) = (
+    let (asleep, glow) = (
         ripple(&big(DARK, &one(wash(0.0, 0.0))), DARK),
         ripple(&big(DARK, &awake(one(wash(0.0, 0.0)))), DARK),
     );
-    eprintln!("[sheen] the page's ripple {asleep:.1} asleep -> {silk:.1} awake");
+    eprintln!("[sheen] the page's ripple {asleep:.1} asleep -> {glow:.1} awake");
     assert!(
-        silk >= 12.0 && silk >= 3.0 * asleep,
-        "S1 failed: the folds should light the page, {asleep:.1} -> {silk:.1}"
+        glow >= 12.0 && glow >= 3.0 * asleep,
+        "S1 failed: the glow should light the page, {asleep:.1} -> {glow:.1}"
     );
 
     // S2: the sheen reads on a LIGHT page at the strength light themes ship
@@ -90,7 +90,7 @@ fn backdrop_colour_headless() {
 }
 
 /// How much the page ripples down the middle column of a 128px shot: the
-/// RMS of what is left after a moving average 31px wide (about a fold), in
+/// RMS of what is left after a moving average 31px wide, in
 /// summed-channel levels from the bare `page`.
 fn ripple(buf: &[u8], page: [f32; 4]) -> f32 {
     let v: Vec<f32> = (0..128)

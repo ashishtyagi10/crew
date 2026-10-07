@@ -15,9 +15,9 @@ pub(crate) const BUSY_ANIM_DIV: u64 = 4;
 /// Poll ticks per rendered frame of the drifting backdrop: ~31 fps, busy or
 /// idle (see `CrewApp::busy_anim_div`).
 ///
-/// The page's silk folds sway across the dot lattice without ever stopping,
-/// and that kind of motion only reads as calm while it is FLUID: at ~12 fps a
-/// crest hopped across the lattice in visible steps, which reads as a
+/// The glow's rings travel across the dot lattice without ever stopping, and
+/// that kind of motion only reads as calm while it is FLUID: at ~12 fps a
+/// ring hopped across the lattice in visible steps, which reads as a
 /// slideshow — and steps catch the eye that smooth drift does not. It was
 /// ~6 fps while the pools turned once every ninety seconds. Still fenced like
 /// every ambient frame: OS focus, the setting, Motion not off, a theme with a
