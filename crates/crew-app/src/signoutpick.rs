@@ -49,7 +49,7 @@ pub(crate) fn items_out(options: &[SignInOption]) -> Vec<MenuItem> {
         out.push(MenuItem {
             label: o.name.clone(),
             desc: if o.key_present {
-                "\u{2713} signed in \u{00b7} the key serves once removed".into()
+                "\u{2713} signed in \u{00b7} removing it falls back to the key".into()
             } else {
                 "\u{2713} signed in".into()
             },

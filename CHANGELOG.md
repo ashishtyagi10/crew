@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.97
+
+**Two lines reworded.** In the `/logout` picker a signed-in provider that
+also has a key said “the key serves once removed”; it says “removing it
+falls back to the key”. The `/blocks` listing's last line was wider than the
+listing and left “own.” alone on a tile; it now reads “/out <n> opens
+command n's output on its own.” and fits.
+
 ## 0.25.96
 
 **Two one-column misalignments.** In `/settings`, a pair of fields side by

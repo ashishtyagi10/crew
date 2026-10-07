@@ -28,6 +28,12 @@ fn the_rows_are_numbered_the_way_out_counts_back() {
         text.contains("/out <n>") && !text.contains('`'),
         "the pairing, said plainly"
     );
+    // Every line fits the listing's row: a footer past it wrapped and left
+    // its last word alone on a tile.
+    for l in text.lines() {
+        let w = crate::chatwidth::str_w(l);
+        assert!(w <= crate::toolsrow::ROW_W, "{w} > ROW_W: {l:?}");
+    }
 }
 
 /// A block with no reported status is `·`, not `✓`. Crew only knows how a
