@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.98
+
+**The input bar's path reads on light themes.** The folder path on the
+input bar's top edge is drawn in the accent, which is checked against the
+page. But it sits on the card's edge, which the glass shades a little
+darker, and there sepia-light's amber read 4.11:1 and fern's green 3.99:1.
+The legend is now held to the text floor against the row it actually
+stands on.
+
 ## 0.25.97
 
 **Two lines reworded.** In the `/logout` picker a signed-in provider that

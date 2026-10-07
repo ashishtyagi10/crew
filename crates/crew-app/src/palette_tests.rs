@@ -128,3 +128,26 @@ fn a_key_reads_apart_from_its_label_on_every_theme() {
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
     crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
 }
+
+/// The input bar's focused legend keeps the text floor over the row it
+/// stands on — the page shaded a step toward the ink by the card's glass —
+/// on every theme: sepia-light's accent read 4.11 there, fern's 3.99.
+#[test]
+fn the_legend_accent_reads_on_its_shaded_row() {
+    let _a = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let t = crew_theme::theme();
+        crate::palette::set_accent(t.accent_default);
+        let row = crate::anim::lerp_rgb(t.page_bg, t.ink, super::LEGEND_ROW_SHADE);
+        let got = crew_theme::contrast_ratio(super::legend_accent(), row);
+        assert!(
+            got >= 4.49,
+            "{}: legend accent on its row {got:.2}",
+            id.as_str()
+        );
+    }
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+}

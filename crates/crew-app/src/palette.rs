@@ -115,6 +115,19 @@ pub fn focus_accent() -> (u8, u8, u8) {
     crew_theme::readable::enforced(accent(), t.text_muted, floor)
 }
 
+/// [`accent`] as a card's legend wears it: held to the text floor over the
+/// row the legend stands on, which the card's glass shades a step off the
+/// page toward the ink. Floored against the page alone, sepia-light's accent
+/// read 4.68 there and 4.11 on the input bar's legend row (fern 3.99).
+pub fn legend_accent() -> (u8, u8, u8) {
+    let t = crew_theme::theme();
+    let row = crate::anim::lerp_rgb(t.page_bg, t.ink, LEGEND_ROW_SHADE);
+    crew_theme::readable::enforced(accent(), row, crew_theme::contrast::text_floor())
+}
+
+/// How far a card's legend row sits off the page toward the ink.
+pub(crate) const LEGEND_ROW_SHADE: f32 = 0.06;
+
 /// A key and its label, as `/keys` and the far F-key bar set them: the key
 /// in the accent, the label in ink. On a tube accent and ink are one phosphor
 /// 1.1:1 apart (1.02 on amber) and the pair read as one run of text, so there
