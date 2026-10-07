@@ -7,7 +7,6 @@ use ratatui::widgets::ListItem;
 
 use crate::helplayout::Row;
 use crate::helpmark::marked as mark;
-use crate::palette::accent_color;
 
 pub(super) fn items(
     rows: &[Row],
@@ -16,7 +15,6 @@ pub(super) fn items(
     needle: &str,
 ) -> Vec<ListItem<'static>> {
     let t = crew_theme::theme();
-    let text_col = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
     let dim_col = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
     let rule_col = Color::Rgb(t.border_normal.0, t.border_normal.1, t.border_normal.2);
     rows.iter()
@@ -48,14 +46,15 @@ pub(super) fn items(
             Row::Bind(k, d) => {
                 let w = crate::chatwidth::str_w(k);
                 let pad = " ".repeat(col.saturating_sub(w).max(2));
-                let mut line = mark(k, needle, Style::new().fg(accent_color()));
+                let (key, label) = crate::palette::key_label();
+                let mut line = mark(k, needle, key);
                 line.push(Span::raw(pad));
-                line.extend(mark(d, needle, Style::new().fg(text_col)));
+                line.extend(mark(d, needle, label));
                 ListItem::new(Line::from(line))
             }
             Row::Cont(d) => {
                 let mut line = vec![Span::raw(" ".repeat(col))];
-                line.extend(mark(d, needle, Style::new().fg(text_col)));
+                line.extend(mark(d, needle, crate::palette::key_label().1));
                 ListItem::new(Line::from(line))
             }
             // A search that matches nothing must say so; an empty panel reads

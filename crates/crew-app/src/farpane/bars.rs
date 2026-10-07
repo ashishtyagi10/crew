@@ -133,10 +133,8 @@ pub(super) fn pills_that_fit(width: usize) -> Vec<(&'static str, &'static str)> 
 pub(super) fn function_bar(buf: &mut Buffer, area: Rect) {
     let t = crew_theme::theme();
     let bar_bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
-    let key = Style::new().fg(accent_color()).bg(bar_bg);
-    let label = Style::new()
-        .fg(Color::Rgb(t.ink.0, t.ink.1, t.ink.2))
-        .bg(bar_bg);
+    let (key, label) = crate::palette::key_label();
+    let (key, label) = (key.bg(bar_bg), label.bg(bar_bg));
     let mut spans = Vec::new();
     for (i, (k, l)) in pills_that_fit(usize::from(area.width))
         .into_iter()
