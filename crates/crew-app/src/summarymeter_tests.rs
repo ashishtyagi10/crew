@@ -74,3 +74,23 @@ fn the_footer_never_cuts_a_segment() {
         );
     }
 }
+
+/// A footer badge's label is bold, as the transcript's badges are: the
+/// footer's cells dropped the weight `segment::badge` set, and on a tube the
+/// glow round the bright block washed the thin label out (3.8:1).
+#[test]
+fn a_footer_badge_keeps_its_weight() {
+    let _g = crate::app::theme_test_guard();
+    let plugin =
+        crew_plugin::Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()])
+            .unwrap();
+    let pane = crate::chat::ChatPane::new(plugin, "crew".into());
+    let page = crew_theme::theme().page_bg;
+    let (cells, _) = summary_art(&pane, 80, 0, MAX_BLOCK, 2.0);
+    let label: Vec<_> = cells
+        .iter()
+        .filter(|c| c.bg != page && c.c.is_alphanumeric())
+        .collect();
+    assert!(!label.is_empty(), "the footer wears a badge");
+    assert!(label.iter().all(|c| c.bold), "every label cell is bold");
+}

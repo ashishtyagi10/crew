@@ -63,7 +63,10 @@ pub(crate) fn summary_art(
                 c,
                 fg,
                 bg: block.unwrap_or(bg),
-                bold: false,
+                // A badge's label is bold (`segment::badge`), as in the
+                // transcript: thin strokes on a bright block were the first
+                // thing a tube's glow ate.
+                bold: block.is_some(),
                 italic: false,
                 ..Default::default()
             });
