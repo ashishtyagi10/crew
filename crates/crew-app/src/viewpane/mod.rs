@@ -37,7 +37,7 @@ mod metacard;
 mod outline;
 mod pane;
 pub(crate) mod pictures;
-mod plainrung;
+pub(crate) mod plainrung;
 mod render;
 mod rendercap;
 mod reread;

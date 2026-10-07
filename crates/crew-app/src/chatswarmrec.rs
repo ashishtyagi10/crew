@@ -65,6 +65,46 @@ pub(crate) fn text(s: &SwarmStatus, now_ms: u64) -> String {
     format!("{LEAD}{}\n{}", head.join(" \u{b7} "), rows.join("\n"))
 }
 
+/// The record laid out for a card `width` wide: the head wrapped as prose,
+/// each task row hanging its continuation under its title, each reason under
+/// itself. Through markdown a wrapped row restarted at column 0, under the
+/// numbers (`light ← 1` beneath `3 ×`), where it read as a row of its own.
+pub(crate) fn card_lines(
+    text: &str,
+    width: usize,
+    fg: (u8, u8, u8),
+) -> Vec<crate::chatbody::CardLine> {
+    let plain = |c: char| crate::chatbody::plain(c, fg, false);
+    let mut out = Vec::new();
+    for (i, line) in text.lines().enumerate() {
+        // A title's `code` keeps no ticks off the markdown path, as the
+        // footer's do not (`summaryroute::unticked`).
+        let line = crate::summaryroute::unticked(line);
+        let line = line.strip_prefix(' ').unwrap_or(&line);
+        let chars: Vec<char> = line.chars().collect();
+        // A row hangs under its title (` 12 ✓ ` is the number column, its
+        // glyph and a space); a reason under its own no-break indent; the
+        // head under nothing.
+        let glyph = chars.iter().position(|c| !c.is_ascii_digit() && *c != ' ');
+        let lead = match glyph {
+            _ if i == 0 => 0,
+            Some(g) if chars[..g].iter().any(char::is_ascii_digit) => g + 2,
+            _ => chars.iter().take_while(|c| **c == '\u{a0}').count(),
+        };
+        let lead = lead.min(width / 2);
+        for (k, (a, b)) in crate::viewpane::plainrung::hanging(&chars, width, lead)
+            .into_iter()
+            .enumerate()
+        {
+            let pad = if k == 0 { 1 } else { 1 + lead };
+            let mut row: Vec<_> = (0..pad).map(|_| plain(' ')).collect();
+            row.extend(chars[a..b].iter().map(|&c| plain(c)));
+            out.push(row);
+        }
+    }
+    out
+}
+
 impl ChatPane {
     /// A swarm plan landed: open (or reset) the live block.
     pub(crate) fn absorb_hive_plan(&mut self, tasks: Vec<TaskSpec>) {
@@ -135,3 +175,7 @@ impl ChatPane {
 #[cfg(test)]
 #[path = "chatswarmrec_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "chatswarmrechang_tests.rs"]
+mod hang_tests;

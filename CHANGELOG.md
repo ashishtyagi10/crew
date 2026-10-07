@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.3
+
+**A swarm's record keeps its table on a narrow pane.** When a swarm run
+ends it folds into one card listing every task. On a narrow pane a long
+task row wrapped back to the left edge, under the task numbers (“light ←
+1” beneath “3 ×”), where it read as a row of its own. Wrapped rows now hang
+under their title, and a failed task's reason under itself.
+
 ## 0.26.2
 
 **A tag you are typing matches its completion.** In `/todo`, a half-typed

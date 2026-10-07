@@ -32,7 +32,7 @@ fn plain(text: &str, fg: Fg) -> Vec<FCell> {
 /// `text` with its markdown code spans in curly quotes: the broker writes
 /// ``run `cargo test` `` for the transcript, which renders it, but these
 /// cells would draw the ticks. An odd tick is punctuation and stays.
-fn unticked(text: &str) -> String {
+pub(crate) fn unticked(text: &str) -> String {
     if text.matches('`').count() % 2 != 0 {
         return text.to_string();
     }
