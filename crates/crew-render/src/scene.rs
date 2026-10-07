@@ -366,6 +366,9 @@ struct Out<'a> {
     sigs: &'a mut Vec<u64>,
 }
 
+/// How far an inline mark's capsule reaches past its cells on each side (px).
+const MARK_PAD: f32 = 2.0;
+
 /// One scene's cells into quads and a text buffer: backgrounds as runs, the
 /// rules each cell wears, the vector paint, then the shaped text — last
 /// frame's buffer when the slot's signature matches.
@@ -393,12 +396,19 @@ fn emit_cells(
     let rad = crate::bgruns::radius(cell_w, cell_h);
     for run in crate::bgruns::runs(&pane.cells, gcols, grows, default_bg()) {
         let radii = run.round.map(|r| if r { rad } else { 0.0 });
-        // A mark keeps a pixel of its row's edge either side (`bgruns::Run`).
-        let inset = if run.mark { 1.0 } else { 0.0 };
+        // A mark keeps a pixel of its row's edge either side (`bgruns::Run`)
+        // and breathes MARK_PAD px past its glyphs: at the cell's own width a
+        // one-cell chip was a disc narrower than its letter, `w` and `/`
+        // clipped at the curve.
+        let (inset, pad) = if run.mark {
+            (1.0, MARK_PAD)
+        } else {
+            (0.0, 0.0)
+        };
         quads.push(Quad {
-            x: pane.x + f32::from(run.col) * cell_w,
+            x: pane.x + f32::from(run.col) * cell_w - pad,
             y: pane.y + f32::from(run.row) * cell_h + inset,
-            w: f32::from(run.cols) * cell_w,
+            w: f32::from(run.cols) * cell_w + 2.0 * pad,
             h: cell_h - 2.0 * inset,
             color: crate::color::target_rgba(run.bg, 1.0, srgb),
             radii,
