@@ -36,12 +36,21 @@ impl SpanInk {
     }
 }
 
-/// The renderer's decoration for a cell that is (or is not) struck: the one
-/// rule a chat cell can wear, in the cell's own colour.
-pub(crate) fn deco(strike: bool) -> crew_theme::deco::Deco {
-    crew_theme::deco::Deco {
-        strike,
-        ..crew_theme::deco::Deco::NONE
+/// The renderer's decoration for a chat cell: a rule through it when struck,
+/// one under it when it is a link — both in the cell's own colour.
+pub(crate) fn deco(cell: &crate::chatbody::CardCell) -> crew_theme::deco::Deco {
+    use crew_theme::deco::{Deco, DecoLine};
+    // A link is ruled, as a URL in a terminal is (`linkhl`): marked by hue
+    // alone it is not marked for a reader who cannot tell that hue from the
+    // prose — on a tube, nobody can.
+    let line = match cell.link {
+        Some(_) => DecoLine::Single,
+        None => DecoLine::None,
+    };
+    Deco {
+        line,
+        strike: cell.strike,
+        ..Deco::NONE
     }
 }
 

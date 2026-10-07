@@ -190,13 +190,21 @@ pub fn on_block(t: &Theme, block: (u8, u8, u8)) -> (u8, u8, u8) {
 /// a green screen from another machine. There it is the link's lightness
 /// and chroma in the tube's hue; the underline still says it is a link. A
 /// white phosphor shows hues, so it keeps the blue.
+///
+/// And on a tube it is lifted just past the ink: at the blue's own lightness
+/// (0.70 against a green tube's 0.85) a link sat UNDER the prose and read as
+/// muted text, the opposite of a link.
 pub fn link(t: &Theme) -> (u8, u8, u8) {
-    against(
-        in_tube_hue(t, LINK_HUE),
-        t.term_bg,
-        crate::contrast::text_floor(),
-    )
+    let mut want = in_tube_hue(t, LINK_HUE);
+    if want != LINK_HUE {
+        let (w, ink) = (oklch::from_srgb(want), oklch::from_srgb(t.ink));
+        want = w.with_l(w.l.max((ink.l + LINK_LIFT).min(0.97))).to_srgb();
+    }
+    against(want, t.term_bg, crate::contrast::text_floor())
 }
+
+/// How far past a tube's ink lightness its links sit (OKLCH L).
+const LINK_LIFT: f32 = 0.05;
 
 /// `want` as a coloured phosphor tube can draw it: its lightness and chroma
 /// in the tube's own hue. Anywhere else — a paper page, a white phosphor,

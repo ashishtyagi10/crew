@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.85
+
+**Links read as links on a tube.** A markdown link in an agent pane, the
+file viewer or a document window was marked by colour alone, and on a CRT
+theme that colour sat darker than the prose round it, so a link looked like
+muted text. Links are underlined now, as a URL in a terminal already was,
+and on a tube they are a step brighter than the text. Struck-through text
+in the viewer also keeps its line now.
+
 ## 0.25.84
 
 **Tube meters speak phosphor.** On a CRT theme the NET chart's download

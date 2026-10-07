@@ -178,3 +178,17 @@ fn inline_code_is_a_chip_of_its_own_and_a_fence_is_not() {
         "and it reaches the cell"
     );
 }
+
+/// A link is ruled, in chat and the viewer alike, as a URL in a terminal is;
+/// `~~struck~~` keeps its own rule. Hue alone was the only mark a link had,
+/// and on a tube every hue is the one phosphor.
+#[test]
+fn a_link_is_underlined_and_a_strike_still_struck() {
+    use crew_theme::deco::DecoLine;
+    let mut c = crate::chatbody::plain('x', (200, 200, 200), false);
+    assert_eq!(super::deco(&c).line, DecoLine::None);
+    c.link = Some("https://example.invalid".into());
+    assert_eq!(super::deco(&c).line, DecoLine::Single);
+    c.strike = true;
+    assert!(super::deco(&c).strike, "a struck link is both");
+}
