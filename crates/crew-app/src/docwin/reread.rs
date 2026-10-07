@@ -6,7 +6,10 @@
 /// say while asking.
 pub(crate) fn guard(dirty: bool, warned: bool) -> Result<(), &'static str> {
     match dirty && !warned {
-        true => Err("unsaved changes \u{2014} Cmd+S to save, Cmd+R again to re-read the file and discard them"),
+        // The window's own chords: plain Ctrl off a Mac (`chordglyph::shown_ctrl`).
+        true => Err(crate::chordglyph::shown_ctrl(
+            "unsaved changes \u{2014} Cmd+S to save, Cmd+R again to re-read the file and discard them",
+        )),
         false => Ok(()),
     }
 }

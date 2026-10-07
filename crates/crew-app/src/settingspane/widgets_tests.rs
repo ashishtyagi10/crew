@@ -35,7 +35,11 @@ fn a_checkbox_is_a_drawn_box_filled_when_on() {
 fn save_and_cancel_are_filled_buttons() {
     let _g = crate::app::theme_test_guard();
     use super::{button, CANCEL, SAVE};
-    let chord = crate::chordglyph::prose("Cmd+S");
+    // Off a Mac, Alt+S: the shorter of the two chords that save there.
+    let chord = match cfg!(target_os = "macos") {
+        true => crate::chordglyph::prose("Cmd+S"),
+        false => "Alt+S".into(),
+    };
     assert_eq!(
         SAVE.chars().count(),
         format!("[ Save {chord} ]").chars().count()

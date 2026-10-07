@@ -271,7 +271,9 @@ impl CrewApp {
             match d.view.dirty && !d.warned {
                 true => {
                     d.warned = true;
-                    self.set_status("unsaved changes — Cmd+S to save, Esc again to discard");
+                    self.set_status(crate::chordglyph::shown_ctrl(
+                        "unsaved changes — Cmd+S to save, Esc again to discard",
+                    ));
                     self.docs[i].window.request_redraw();
                 }
                 false => {
