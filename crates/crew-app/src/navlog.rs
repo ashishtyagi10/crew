@@ -101,7 +101,9 @@ pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize, back: usize)
         let max_col = cols.saturating_sub(1);
         let room = max_col.saturating_sub(TEXT_COL) as usize;
         let stamp_w = crate::chatwidth::str_w(stamp).min(room);
-        let body = crate::chatwidth::clip_w(msg, room - stamp_w);
+        // Cut between words, as every legend is: "restored 4 pan…" read as a
+        // word the log had mangled.
+        let body = crate::chatwidth::clip_words(msg, room - stamp_w);
         let styled = stamp
             .chars()
             .map(|c| (c, t.dim))
@@ -113,6 +115,9 @@ pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize, back: usize)
                 c,
                 fg,
                 bg: t.page_bg,
+                // An error says so by weight as well as colour: on amber the
+                // bell and the muted ink are 1.43:1 apart, one hue.
+                bold: e.level == LogLevel::Error && fg != t.dim,
                 ..Default::default()
             });
         });
@@ -156,3 +161,7 @@ mod tests;
 #[cfg(test)]
 #[path = "navlogmark_tests.rs"]
 mod mark_tests;
+
+#[cfg(test)]
+#[path = "navlogweight_tests.rs"]
+mod weight_tests;

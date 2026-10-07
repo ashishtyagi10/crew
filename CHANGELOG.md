@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.90
+
+**The nav's log marks its errors.** An error line in the left nav's LOG
+was set apart by colour alone, and on the amber tube the error colour and
+the ordinary one are the same hue (1.43:1), so “build failed” looked like
+any other line. Errors are bold now. A line too long for the nav is also
+cut between words (“restored 4 panes…”, not “restored 4 pan…”).
+
 ## 0.25.89
 
 **Tags and badges read on a tube.** A CRT theme spreads its project tags
