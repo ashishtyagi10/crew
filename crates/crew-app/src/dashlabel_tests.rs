@@ -96,3 +96,25 @@ fn the_cpu_label_names_the_span_it_draws() {
         "{half}"
     );
 }
+
+/// A narrow dash sheds whole parts of its host line rather than clipping one
+/// to a lone `…` after a separator: wherever there is an ellipsis, it is the
+/// only part left.
+#[test]
+fn a_narrow_host_line_sheds_whole_parts() {
+    let _g = crate::app::theme_test_guard();
+    for cols in super::super::MIN_COLS..=160 {
+        let mut v = DashPane::new().cells(cols, 40);
+        v.retain(|c| c.row == 0);
+        let line: String = v.iter().map(|c| c.c).collect();
+        let last = v.iter().map(|c| c.col).max().unwrap_or(0);
+        assert!(
+            !line.contains('\u{2026}') || !line.contains('\u{b7}'),
+            "{cols}: {line:?}"
+        );
+        assert!(
+            last + 1 < cols || line.contains('\u{2026}'),
+            "{cols}: no air, {line:?}"
+        );
+    }
+}

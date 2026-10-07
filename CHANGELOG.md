@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.67
+
+**`/dash` keeps its header line whole.** On a narrow dashboard the line
+naming the machine (`host · macOS · up 21h · load …`) was clipped
+mid-part, ending in `up 21h 1…` or a lone `…`. It now drops whole parts
+from the end, the load first and then the uptime, until what's left
+fits.
+
 ## 0.25.66
 
 **The page has a glowing centre that beats.** The silk lines from 0.25.60
