@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.61
+
+**Badges are smooth pills.** Every badge — agent names in chat, the
+swarm-mode chip in the footer, fan rows — had small notches of page
+showing at the four inside corners, where its rounded ends met its body.
+The body was rounding its own corners as if the ends weren't there. A
+cap drawn in the badge's own colour now carries the body on, so the
+seam is gone, with or without a Nerd Font.
+
 ## 0.25.60
 
 **The swirl is now silk.** The spiral behind your panes was easy to like
