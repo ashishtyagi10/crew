@@ -15,12 +15,13 @@ pub(crate) const BUSY_ANIM_DIV: u64 = 4;
 /// Poll ticks per rendered frame of the drifting backdrop: ~31 fps, busy or
 /// idle (see `CrewApp::busy_anim_div`).
 ///
-/// The page is a turning vortex whose bands pour inward without ever
-/// stopping, and the eye locks onto that kind of motion only while it is
-/// FLUID: at the old ~12 fps a band's crest hopped across the dot lattice in
-/// visible steps, which reads as a slideshow, not a whirlpool. It was ~6 fps
-/// while the pools turned once every ninety seconds. Still fenced like every
-/// ambient frame: OS focus, the setting, Motion not off, a theme with a wash.
+/// The page's silk folds sway across the dot lattice without ever stopping,
+/// and that kind of motion only reads as calm while it is FLUID: at ~12 fps a
+/// crest hopped across the lattice in visible steps, which reads as a
+/// slideshow — and steps catch the eye that smooth drift does not. It was
+/// ~6 fps while the pools turned once every ninety seconds. Still fenced like
+/// every ambient frame: OS focus, the setting, Motion not off, a theme with a
+/// wash.
 pub(crate) const AMBIENT_ANIM_DIV: u64 = 2;
 
 /// How long a freshly spawned `$EDITOR` pane is presumed live even before its
@@ -85,7 +86,6 @@ impl CrewApp {
                 _ => false,
             })
             || self.wash_focus.moving()
-            || (self.wash.live() > 0.0 && crate::washping::age_s(now) >= 0.0)
             || self.pointer_gliding()
             // 150ms grace past expiry: the crossfade draws at whatever
             // strength the LAST frame sampled, so one more frame must land

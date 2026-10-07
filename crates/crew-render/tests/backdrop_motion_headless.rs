@@ -1,6 +1,6 @@
 //! Headless GPU test for the backdrop's MOTION: the pool breath, the pools'
-//! wander, the page's whirlpool and the lattice's turning tint (the vortex
-//! has its own, `backdrop_vortex_headless`).
+//! wander, the flow's seamless clocks and the lattice's turning tint (the
+//! silk has its own, `backdrop_silk_headless`).
 //! Each is a pure function of the two clocks and the wake the app hands the
 //! pass, so each is shot at chosen values and read back. Skips on a GPU-less
 //! machine (CI) instead of failing.
@@ -74,34 +74,6 @@ fn backdrop_motion_headless() {
         "W1 failed: the leaning pools should light the top, {top} vs {bot}"
     );
 
-    // V1: the whirlpool. Awake, and half way round the slow clock, the lean
-    // and reach are both at zero, so the pools sit where they rest (A blue
-    // at the left, B rose at the right) and only the whirl has moved
-    // anything. On a ring round the centre pool A shows as the
-    // bluest angle; at rest every ring finds it due left, and in the whirl
-    // the inner ring finds it turned FURTHER than the outer one — the line
-    // between the pools has wound into a spiral, not swung as a bar.
-    let big = |m: &ModernPaper| {
-        pass.update_uniform(&queue, DARK, (128.0, 128.0), 1.0, 0.0, Some(m));
-        render_offscreen(&device, &queue, &pass, 128, 128)
-    };
-    let (still, whirl) = (big(&wash(0.0, 0.0)), big(&awake(wash(0.0, 0.5))));
-    let (inner0, outer0) = (bluest_turn(&still, 0.15), bluest_turn(&still, 0.4));
-    let (inner, outer) = (bluest_turn(&whirl, 0.15), bluest_turn(&whirl, 0.4));
-    eprintln!("[whirl] inner/outer turn {inner0}/{outer0} -> {inner}/{outer} deg");
-    assert!(
-        inner0.abs() <= 5 && outer0.abs() <= 5,
-        "V1 premise: a still page finds pool A due left, {inner0}/{outer0}"
-    );
-    assert!(
-        inner.signum() == outer.signum() && outer.abs() >= 15,
-        "V1 failed: the whirl should turn the whole page one way, {inner}/{outer}"
-    );
-    assert!(
-        inner.abs() - outer.abs() >= 20,
-        "V1 failed: the centre should turn further than the rim, {inner}/{outer}"
-    );
-
     // V2: the flow never stops, so it has no seam to hide: awake, the page
     // just before either clock comes round is the page at the top of it.
     let top = shot(DARK, &awake(wash(0.0, 0.0)));
@@ -136,8 +108,7 @@ fn backdrop_motion_headless() {
 
     // L1: it all reads on a LIGHT page too, at the strengths the light
     // themes ship (wash 0.12, dots 0.16): the breath moves pool A's colour
-    // and a vortex band (at the top of its pull) darkens its dots by a
-    // visible step. Measured as
+    // and a silk fold darkens its dots by a visible step. Measured as
     // the change in the pixel itself — on a light page a pole can sit on
     // either side of the paper per channel, so "lift" would half-cancel.
     let light = |phase| ModernPaper {
@@ -159,32 +130,13 @@ fn backdrop_motion_headless() {
         .map(|(x, y)| dist(rgb(&lg0, x, y), rgb(&lg1, x, y)))
         .max()
         .unwrap();
-    eprintln!("[light] breath moves pool A by {breath}, a band moves its dot by {glint}");
+    eprintln!("[light] breath moves pool A by {breath}, a fold moves its dot by {glint}");
     assert!(
         breath >= 6,
         "L1 failed: the breath should show on a light page, moved {breath}"
     );
     assert!(
-        glint >= 25,
-        "L1 failed: the glint should show on a light page, moved {glint}"
+        glint >= 12,
+        "L1 failed: a fold should show on a light page, moved {glint}"
     );
-}
-
-/// Which way the blue lies on a ring of `r` half-heights round the centre of
-/// a 128px shot, in degrees (signed) turned from due left — where pool A, the
-/// blue pole, rests. The ring's blueness (blue less red) summed as vectors:
-/// its first harmonic, so a flat stretch of ring cannot pick an arbitrary
-/// winner the way an argmax would.
-fn bluest_turn(buf: &[u8], r: f32) -> i32 {
-    let (mut sx, mut sy) = (0.0f32, 0.0f32);
-    for deg in (0..360).step_by(3) {
-        let a = (deg as f32).to_radians();
-        let x = (64.0 + r * 128.0 * a.cos()) as usize;
-        let y = (64.0 + r * 128.0 * a.sin()) as usize;
-        let off = y * 512 + x * 4;
-        let blue = (buf[off + 2] as i32 - buf[off] as i32) as f32;
-        (sx, sy) = (sx + blue * a.cos(), sy + blue * a.sin());
-    }
-    let turn = sy.atan2(sx).to_degrees() - 180.0;
-    (turn + 540.0).rem_euclid(360.0) as i32 - 180
 }

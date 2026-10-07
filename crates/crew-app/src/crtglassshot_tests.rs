@@ -97,8 +97,8 @@ fn crt_glass_shot() {
     }
 }
 
-/// Every phosphor with its page awake — the vortex turning under the glass,
-/// mid-pull — so the page's depth can be judged where it actually moves.
+/// Every phosphor with its page awake — the silk swaying under the glass —
+/// so the page's depth can be judged where it actually moves.
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn crt_glass_shot_awake() {
@@ -108,7 +108,6 @@ fn crt_glass_shot_awake() {
         wander: 0.3,
         live: 1.0,
         eddy: 0.4,
-        ping: -1.0,
     };
     for id in [
         ThemeId::CrtGreen,

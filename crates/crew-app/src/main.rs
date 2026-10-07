@@ -625,7 +625,6 @@ mod voice;
 mod washfocus;
 mod washgate;
 mod washphase;
-mod washping;
 #[cfg(test)]
 #[path = "watchshot_tests.rs"]
 mod watchshot_tests;
