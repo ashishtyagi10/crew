@@ -45,7 +45,8 @@ pub fn lattice(a: [f32; 3], b: [f32; 3], phase: f32) -> ModernPaper {
     }
 }
 
-/// `m` with its flow fully awake: the whirlpool wound, the vortex turning.
+/// `m` with its flow fully awake: the current and eddies bending it, the
+/// silk lying across it.
 pub fn awake(m: ModernPaper) -> ModernPaper {
     with(m, |k| k.live = 1.0)
 }

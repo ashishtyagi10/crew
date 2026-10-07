@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.60
+
+**The swirl is now silk.** The spiral behind your panes was easy to like
+and hard to look away from, which is the wrong thing for a background.
+It is replaced on every theme by long, soft folds of light lying across
+the page, like a sheet of satin catching a window.
+- **No centre and no pulse.** The folds are spread evenly over the page,
+  about three to a window's height. They sway, curve and bunch slowly
+  rather than pouring into a point, and nothing breathes in and out on a
+  beat. The halftone dots under a fold still swell and take its colour,
+  just less hard than under the spiral's bands.
+- **About half the motion.** A second of idle drift moves the page
+  roughly half as much as the swirl did. While a pane works, the page now
+  moves at twice its idle pace instead of four times, so it never races
+  behind the output you are reading.
+- **No ring on Enter.** Sending a line no longer drops a ring of light
+  through the page.
+- **Same rules as before.** It wakes over the first three seconds of
+  drift, follows your theme's two colours and the OS contrast setting,
+  and stops entirely with **Drifting background** off or Motion off.
+
 ## 0.25.59
 
 **The black hole is gone; the swirl is back on every theme.** The black

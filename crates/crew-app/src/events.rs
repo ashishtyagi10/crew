@@ -30,7 +30,6 @@ impl CrewApp {
         match &event {
             WindowEvent::KeyboardInput { event: k, .. } if k.state.is_pressed() => {
                 self.last_input_ms = crate::anim::now_ms();
-                crate::washping::key(k);
             }
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,

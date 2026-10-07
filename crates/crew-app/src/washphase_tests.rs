@@ -96,15 +96,15 @@ fn a_zero_drift_period_holds() {
     assert_eq!(w.advance(1_000, Some(0), MotionLevel::Full), 0.0);
 }
 
-/// The busy pace is the theme's own; ambient is [`AMBIENT_MULT`] times slower;
+/// The busy pace is twice the theme's own; ambient is [`AMBIENT_MULT`] times it;
 /// with neither, the wash holds. Busy wins when both are true, so a working
 /// pane never has its wash slowed down by the idle setting.
 #[test]
 fn the_pace_is_busy_then_ambient_then_still() {
-    assert_eq!(pace(6_000, true, false), Some(6_000), "busy");
+    assert_eq!(pace(6_000, true, false), Some(12_000), "busy");
     assert_eq!(
         pace(6_000, true, true),
-        Some(6_000),
+        Some(12_000),
         "busy outranks ambient"
     );
     assert_eq!(pace(6_000, false, true), Some(24_000), "ambient");
@@ -125,14 +125,14 @@ fn a_theme_with_no_drift_period_never_moves() {
 }
 
 /// Ambient really is slower, not just different: idle motion is a texture,
-/// a working pane's the signal (4×; at 10× the idle page read as still).
+/// a working pane's the signal — but only 2×, so busy never races (was 4×).
 #[test]
-fn ambient_is_slower_than_busy_by_a_wide_margin() {
+fn ambient_is_half_the_busy_pace() {
     let busy = pace(6_000, true, false).unwrap();
     let ambient = pace(6_000, false, true).unwrap();
     assert!(
-        ambient >= busy * 4,
-        "ambient {ambient}ms is not far enough from busy {busy}ms"
+        ambient == busy * 2,
+        "ambient {ambient}ms should be twice busy {busy}ms"
     );
 }
 

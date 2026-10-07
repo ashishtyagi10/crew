@@ -7,7 +7,7 @@ struct Uniform {
     dot_b: vec4<f32>,    // pole B tint; a = dot radius px
     dot_grid: vec4<f32>, // xy = lattice pitch px; z = wash strength (0 = no wash); w = wash phase (turns)
     wash_focus: vec4<f32>, // xy = orbit centre in uv; z = how far it moves there (0 = page centre); w = wander clock (turns)
-    motion: vec4<f32>,     // x = how awake the page is (0 = the still page); y = eddy clock (turns); z = s since Enter (<0 none); w spare
+    motion: vec4<f32>,     // x = how awake the page is (0 = the still page); y = eddy clock (turns); zw spare
 }
 @group(0) @binding(0) var<uniform> u: Uniform;
 
@@ -130,10 +130,10 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
             + vec3<f32>((n * 0.5 + n2 * 0.7) * A_DARK * dark_weight),
         vec3<f32>(0.0), vec3<f32>(1.0));
 
-    // Aspect ratio, for the wash's round pools and the flow's round whirl.
+    // Aspect ratio, for the wash's round pools.
     let asp = u.resolution.x / max(u.resolution.y, 1.0);
     // The wash's orbit, in radians — the clock every moving part of the
-    // backdrop keys off, so the pools, the lattice's tint and the glint never
+    // backdrop keys off, so the pools, the lattice's tint and the silk never
     // drift out of step with each other.
     let ang = 6.2831853 * u.dot_grid.w;
     // The second, slower clock (the hue breath's), in radians.
@@ -151,54 +151,37 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let c = vec2<f32>((uv.x - 0.5) * asp, uv.y - 0.5) - fc;
 
     // The FLOW: the page's light moves like liquid, not like a rigid card.
-    // Every moving part below — the pools, the lattice's tint, the glint —
+    // Every moving part below — the pools, the lattice's tint and the silk —
     // is drawn on these bent coordinates rather than the page's straight
-    // ones, so nothing in the backdrop is ever a straight line or a perfect
-    // circle while it moves.
+    // ones, so nothing in the backdrop moves in a straight line.
     //
-    // Two bends. A WHIRLPOOL: the middle of the page is turned further than
-    // its rim, so the line between the pools winds into a spiral and the
-    // pools trail arms as they orbit — the turn breathes a little on the
-    // slow clock, winding and easing. Then a CURRENT: two travelling waves
-    // crossing at right angles nudge every point along the other axis, so
-    // the spiral's arms ripple and a pool's edge never sits still.
+    // Two bends, both spread evenly over the page — nothing in the backdrop
+    // has a centre the eye is pulled to. A CURRENT: two travelling waves
+    // crossing at right angles nudge every point along the other axis, so a
+    // pool's edge never sits still. Then EDDIES: a slow drift of noise —
+    // smoke, not sine — so the silk's folds wander rather than rippling in
+    // step. Two octaves, the finer one warped by the coarser (a domain warp:
+    // eddies inside eddies). The noise is sampled through a window that
+    // circles round the noise plane on the third clock, so its loop is
+    // seamless, and that clock runs at an irrational ratio to the other two,
+    // so the page never comes back to a frame it has drawn.
     //
     // `flow` is how far the page has come from its still geometry: how AWAKE
     // it is (`motion.x`), which the app eases from 0 to 1 over the first
-    // seconds of drift and then holds. It never dips back on a clock — a
-    // whirlpool that unwound once a revolution read as the motion stopping
-    // and starting, which is the opposite of hypnotic — so a page that has
-    // never drifted is exactly the still orbit, and the orbit's own effects
-    // (breath, trade, tint) measure on a sleeping page's straight
-    // coordinates. The waves' phases are whole multiples of both clocks, so
-    // every wrap is seamless.
-    const SWIRL: f32 = 1.8;
-    const SWIRL_R: f32 = 1.15;
-    const SWIRL_BREATH: f32 = 0.35;
+    // seconds of drift and then holds. It never dips back on a clock, so a
+    // page that has never drifted is exactly the still orbit, and the
+    // orbit's own effects (breath, trade, tint) measure on a sleeping page's
+    // straight coordinates. The waves' phases are whole multiples of the
+    // clocks, so every wrap is seamless.
     const CURRENT: f32 = 0.06;
     const CURRENT_K: f32 = 3.5;
     let flow = u.motion.x;
-    let swirl_fall = 1.0 - smoothstep(0.0, SWIRL_R, length(c));
-    let twist = SWIRL * flow * (1.0 + SWIRL_BREATH * sin(3.0 * wander))
-        * swirl_fall * swirl_fall;
-    let tc = cos(twist);
-    let ts = sin(twist);
-    var q = vec2<f32>(c.x * tc - c.y * ts, c.x * ts + c.y * tc);
-    // The current stills toward the centre, so the vortex's eye stays where
-    // the page pours to rather than being rocked off it.
-    q += CURRENT * flow * smoothstep(0.0, 0.35, length(c)) * vec2<f32>(
+    var q = c;
+    q += CURRENT * flow * vec2<f32>(
         sin(CURRENT_K * q.y + ang + wander),
         sin(CURRENT_K * q.x - 2.0 * ang),
     );
-    // EDDIES: on top of the current's regular waves, a slow drift of noise —
-    // smoke, not sine — so the bands' edges wisp and curl rather than
-    // rippling in step. Two octaves, the finer one warped by the coarser
-    // (a domain warp: eddies inside eddies). The noise is sampled through a
-    // window that circles round the noise plane on the third clock, so its
-    // loop is seamless, and that clock runs at an irrational ratio to the
-    // other two, so the page never comes back to a frame it has drawn.
-    // Stilled toward the centre like the current, and asleep at flow 0.
-    const EDDY: f32 = 0.05;
+    const EDDY: f32 = 0.10;
     const EDDY_K: f32 = 2.0;
     let ed = 6.2831853 * u.motion.y;
     let lap = 1.7 * vec2<f32>(cos(ed), sin(ed));
@@ -207,8 +190,8 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let p2 = q * (2.1 * EDDY_K) + 2.5 * e1 - lap.yx;
     let e2 = vec2<f32>(vnoise(p2 + vec2<f32>(1.7, 9.2)), vnoise(p2 + vec2<f32>(8.3, 2.8)))
         - vec2<f32>(0.5);
-    q += EDDY * flow * smoothstep(0.05, 0.4, length(c)) * (e1 + 0.4 * e2);
-    // The same bend in uv, for the tint and the glint. Added as a
+    q += EDDY * flow * (e1 + 0.4 * e2);
+    // The same bend in uv, for the lattice's tint. Added as a
     // displacement so a page at rest keeps its exact uv.
     let dq = q - c;
     let fuv = uv + vec2<f32>(dq.x / asp, dq.y);
@@ -280,8 +263,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         rgb = mix(rgb, col_b, gb * wash_amp * (1.0 - BREATH_AMP * breath));
     }
 
-    // The lattice's gradient and the GLINT, shared by the sheen below and the
-    // dots after it.
+    // The lattice's gradient, shared by the silk's light below and the dots.
     //
     // The tint axis turns with the orbit — pole A's end starts at the top-left
     // corner and follows pool A round. Projection onto it is scaled by the
@@ -292,91 +274,45 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let span = abs(axis.x) + abs(axis.y);
     let diag = clamp(0.5 + dot(fuv - vec2<f32>(0.5), axis) / span, 0.0, 1.0);
     let tint = mix(u.dot_a.rgb, u.dot_b.rgb, diag);
-    // The VORTEX: a logarithmic spiral of soft bands, the weave catching the
-    // light as it turns. A log spiral looks the same at every scale, so as
-    // it turns its bands pour INWARD forever — each one sinking toward the
-    // orbit's centre and widening behind it the way a hypnotic disc draws
-    // the eye — and it never needs to stop, fade or reset to hide a seam:
-    // a whole band's turn later the page is the page it was. It is drawn on
-    // the bent coordinates, so the whirlpool winds it and the current
-    // ripples it, and it wakes with the page (`flow`), so a still page wears
-    // none of it.
+
+    // The SILK: long soft folds of light lying across the page, the weave
+    // catching them like a sheet of satin catches a window. A fold is a
+    // crest of a sine laid across the page, a little off the horizontal;
+    // two smooth bends — slow sines of the other axis, on the first and
+    // second clocks — sway the sheet, so the folds curve, bunch and open out
+    // and the whole sheet slowly turns, and the eddies above crumple them.
     //
-    // `s` counts bands: ARMS of them round the circle, and one more every
-    // time the radius grows by e^(1/wind). The band's crest is a raised
-    // cosine, sharpened, so a band is a soft ridge of light rather than a
-    // stripe. It fades out at the very centre, where the bands crowd closer
-    // than a pixel, and eases off toward the rim so the eye is drawn in.
+    // It replaced a spiral that poured into the middle of the page, which
+    // was lovely and impossible to look away from — wrong for a backdrop to
+    // work over. So the silk has no centre, no rhythm and no pulse: its
+    // folds are spread evenly over the page, and they sway rather than pour.
     //
-    // Three things keep the gaze on it rather than letting it settle into a
-    // pattern. The spiral BREATHES: on the slow clock it winds tighter and
-    // looser, so the bands crowd in and fan out. Each band wears its OWN
-    // colour, the poles cycling over HUE_BANDS bands, so colours pour in
-    // one after another rather than the whole spiral being one tint. And a
-    // fainter COUNTER-spiral — the other hand, fewer arms, turning the
-    // other way — beads every band where it crosses, so knots of light
-    // slide along the arms against the pour. Every count and spin is a
-    // whole number, so both clocks and the angle wrap seamlessly.
-    const ARMS: f32 = 6.0;
-    const WIND: f32 = 3.5;
-    const WIND_BREATH: f32 = 0.3;
-    const SPIN: f32 = 6.0; // bands that pour past a point per orbit
-    const SHARP: f32 = 3.0;
-    const HUE_BANDS: f32 = 3.0;
-    const BEAD_ARMS: f32 = 4.0;
-    const BEAD_WIND: f32 = 2.5;
-    const BEAD_SPIN: f32 = 4.0;
-    const BEAD_FLOOR: f32 = 0.55; // a band's strength between beads
-    let gr = max(length(q), 1e-4);
-    let turn = atan2(q.y, q.x) / 6.2831853;
-    let wind = WIND * (1.0 + WIND_BREATH * flow * sin(2.0 * wander));
-    // The PULL: the vortex draws in like breath, twice an orbit (every 12 s
-    // on a quiet page, about the pace of a slow breath). Its pour quickens
-    // by up to SURGE on the way in and eases off on the way out — the
-    // surge's integral, so the bands never stop or reverse — and `inhale`
-    // swells the bands and the eye with it.
-    const SURGE: f32 = 0.45;
-    let pull = 6.2831853 * 2.0 * u.dot_grid.w;
-    let surge = flow * SURGE * SPIN / (2.0 * 6.2831853) * (1.0 - cos(pull));
-    let inhale = 0.5 - 0.5 * cos(pull);
-    let s = ARMS * turn + wind * log(gr) + SPIN * u.dot_grid.w + surge;
-    let s_bead = -BEAD_ARMS * turn + BEAD_WIND * log(gr) - BEAD_SPIN * u.dot_grid.w;
-    let bead = 0.5 + 0.5 * cos(6.2831853 * s_bead);
-    let crest = pow(0.5 + 0.5 * cos(6.2831853 * s), SHARP)
-        * mix(BEAD_FLOOR, 1.0, bead * bead);
-    // The EYE: where the bands converge they melt into a soft ring of light
-    // round a dark centre, the focal point the whole page pours toward. It
-    // wears the bands' colours (they cycle round it) and brightens on every
-    // inhale.
-    const EYE_R: f32 = 0.11;
-    const EYE_W: f32 = 0.045;
-    // The PING: every line the user sends drops a ring of light in from the
-    // rim to the eye. It falls the way the bands pour — evenly in the log of
-    // the radius, so it gathers speed as it narrows — and the eye flashes as
-    // it lands. `motion.z` is the seconds since Enter, negative for none.
-    const PING_FALL: f32 = 1.3; // seconds from the rim to the eye
-    const PING_RIM: f32 = 1.2; // where it starts, half-heights out
-    const PING_W: f32 = 0.10; // its width, in the log of the radius
-    let age = u.motion.z;
-    var ping = 0.0;
-    var flash = 0.0;
-    if (age >= 0.0) {
-        let at = PING_RIM * pow(EYE_R / PING_RIM, min(age / PING_FALL, 1.0));
-        let d = log(gr / at) / PING_W;
-        ping = exp(-d * d) * smoothstep(0.0, 0.15, age)
-            * (1.0 - smoothstep(0.85 * PING_FALL, PING_FALL, age));
-        flash = exp(-pow((age - PING_FALL) / 0.35, 2.0));
-    }
-    let eye = exp(-pow((gr - EYE_R) / EYE_W, 2.0)) * mix(0.55, 1.0, inhale) * (1.0 + 0.8 * flash);
-    let bands = crest * smoothstep(0.02, 0.22, gr) * mix(1.0, 0.55, smoothstep(0.35, 1.1, gr));
-    let glint = flow * max(max(bands * mix(0.7, 1.0, inhale), eye), 0.9 * ping);
-    let band_col = mix(u.dot_a.rgb, u.dot_b.rgb, 0.5 + 0.5 * cos(6.2831853 * s / HUE_BANDS));
-    // The light a band casts: its own colour on an awake page, the lattice's
+    // Along its length a fold glows and fades on the eddies' clock, so the
+    // light travels along the folds as well as with them, and each fold wears
+    // the poles as the page's colour drifts across it, so colours lie in
+    // broad washes rather than band by band. It wakes with the page
+    // (`flow`), so a still page wears none of it. Every phase is a whole
+    // multiple of a clock, so every wrap is seamless.
+    const SILK_K: f32 = 2.0;     // the sheet's scale, per page height
+    const SWAY: f32 = 0.50;      // the first, broad bend
+    const RUCK: f32 = 0.22;      // the second, finer one
+    const FOLDS: f32 = 10.0;     // fold phase per unit of sheet: ~3 folds a page height
+    const FOLD_SHARP: f32 = 4.0; // how narrow a fold's crest is
+    const SHIMMER: f32 = 0.55;   // how far a fold dims along its length
+    var sk = q * SILK_K;
+    sk += SWAY * vec2<f32>(sin(1.1 * sk.y + ed), cos(0.9 * sk.x + wander + 0.7));
+    sk += RUCK * vec2<f32>(sin(1.9 * sk.y - wander + 2.1), cos(2.1 * sk.x - ed + 1.3));
+    let fold = FOLDS * (0.45 * sk.x + sk.y) + wander;
+    let along = 0.5 + 0.5 * sin(1.3 * sk.x - 0.7 * sk.y + ed);
+    let crest = pow(0.5 + 0.5 * sin(fold), FOLD_SHARP) * (1.0 - SHIMMER * (1.0 - along));
+    let glint = flow * crest;
+    let silk_col = mix(u.dot_a.rgb, u.dot_b.rgb, 0.5 + 0.5 * sin(0.9 * sk.y + 0.6 * sk.x + wander));
+    // The light a fold casts: its own colour on an awake page, the lattice's
     // tint on a still one.
-    let glow = mix(tint, band_col, flow);
-    // The SHEEN: the bands light the page itself, faintly, in their own
+    let glow = mix(tint, silk_col, flow);
+    // The SHEEN: the folds light the page itself, faintly, in their own
     // colours. Keyed to the wash's own strength — which the frame has already
-    // scaled for the OS contrast setting — at half of it, so an arm never
+    // scaled for the OS contrast setting — at half of it, so a fold never
     // spends more of the text's headroom than a pool does.
     const SHEEN: f32 = 0.5;
     rgb = mix(rgb, glow, glint * wash_amp * SHEEN);
@@ -385,16 +321,15 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // round dots on a grid whose pitch rides the text-cell metrics (set by
     // frame.rs), in the turning tint above so the backdrop carries the
     // theme's gradient identity. A mix toward the tint (not an add) so the
-    // same strength reads on any page brightness. Under a vortex band's
-    // crest a dot carries up to four times its resting strength, takes the
-    // band's colour and SWELLS, so the lattice is a halftone of the spiral:
-    // the bands pour across the weave as a wave of fattening dots. Half as
-    // hard on a light page, where a band of darkened dots sits right under
-    // dark ink.
+    // same strength reads on any page brightness. Under a fold's crest a
+    // dot carries up to about three times its resting strength, takes the
+    // fold's colour and swells a little, so the lattice is a halftone of the
+    // silk. Half as hard on a light page, where a fold of darkened dots sits
+    // right under dark ink.
     let dot_amp = u.dot_a.a;
     if (dot_amp > 0.0) {
-        let gain = 3.0 * mix(0.5, 1.0, dark_weight);
-        let swell = 0.9 * mix(0.6, 1.0, dark_weight);
+        let gain = 2.2 * mix(0.5, 1.0, dark_weight);
+        let swell = 0.6 * mix(0.6, 1.0, dark_weight);
         let pitch = u.dot_grid.xy;
         let off = (fract(in.pos.xy / pitch) - vec2<f32>(0.5)) * pitch; // px from dot centre
         let d = length(off);

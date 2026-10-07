@@ -4075,11 +4075,12 @@ curvature, scanlines and the bezel vignette are all zero — so they sit in the
 `dark` and `light` rotations, not in `crt`.
 
 **The page drifts.** The wash is two broad pools of pole light on an elliptical
-orbit under the page, and they turn: one revolution every six seconds while a
-pane is working, and — with **Settings → APPEARANCE → Drifting background** on,
-the default — one every 24 seconds when nothing is happening at all. Idle
-motion is a texture, not a signal, so it is four times slower than the busy
-kind and drawn at about twelve frames a second.
+orbit under the page, and they turn: one revolution every twelve seconds while
+a pane is working, and — with **Settings → APPEARANCE → Drifting background**
+on, the default — one every 24 seconds when nothing is happening at all. Idle
+motion is a texture, not a signal, so it is half the busy pace — and busy is
+only twice it, so the page never races behind output you are reading. It is
+drawn at about thirty frames a second, so nothing in it moves in steps.
 
 The pools do more than turn. They **breathe** in counter-phase, twice a
 revolution — as one widens and brightens the other narrows and dims, so the
@@ -4091,17 +4092,20 @@ each pool leans toward the other's pole, so the gradient itself keeps changing,
 not only where it lies — on top of the hue breath, which now comes round every
 twelve seconds while a pane works and every 48 when idle (its width is
 **Gradient colour**: subtle ±16°, lively ±38°). The dot lattice moves with them:
-its pole-to-pole tint turns with the orbit, and twice a revolution two spiral
-arms of **glint** bloom out of the centre, pour outward as the pools turn, and
-fade — the dots under a crest carry up to four times their strength, and a
-faint sheen of pole light (half a pool's strength, so it never costs more
-contrast than the wash does) runs with them. And the whole page **swirls**: on
-the slow clock its middle turns further than its rim, so the line between the
-pools winds into a whirlpool and they trail spiral arms as they orbit, while two
-slow crossing currents ripple everything — nothing in the backdrop moves in a
-straight line. All of it rides the same clock and the same frames, on light pages and dark
-alike; none of it asks for a frame of its own, and a page that has never
-drifted is the still one.
+its pole-to-pole tint turns with the orbit. And over the whole page lies
+**silk**: long soft folds of light, about three to a window's height, lying a
+little off the horizontal. They sway on the slow clock, curving, bunching and
+opening out while the sheet slowly turns; slow eddies crumple them; and along
+its length each fold glows and fades, in the poles' colours as they drift
+across it. The dots under a fold carry up to about three times their strength,
+and a faint sheen of pole light (half a pool's strength, so it never costs more
+contrast than the wash does) runs with them. The silk has no centre, no rhythm
+and no pulse — its folds are spread evenly over the page and sway rather than
+sweep past — so it reads from the corner of the eye as a room that is alive,
+not a thing to look at. (It replaced a spiral that poured into the middle of
+the page, which was hypnotic and therefore distracting.) All of it rides the
+same clock and the same frames, on light pages and dark alike; none of it asks
+for a frame of its own, and a page that has never drifted is the still one.
 
 This is the only animation in crew that repaints a window nothing else needed
 repainted, so it is fenced on four things, any one of which stops it: the
