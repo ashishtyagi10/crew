@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.91
+
+**Pickers and the update card stop mid-word no more.** A command or
+attachment description too long for its row was cut wherever the row ended
+(“bump, tag and p…”), and so was the last line of a failed update's note
+(“reset by peer whi…”). Both end on a whole word now, then the “…”.
+
 ## 0.25.90
 
 **The nav's log marks its errors.** An error line in the left nav's LOG

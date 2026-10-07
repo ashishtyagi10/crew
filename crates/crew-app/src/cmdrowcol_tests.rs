@@ -86,3 +86,22 @@ fn rows_with_fewer_or_no_chips_keep_the_description_column() {
         4
     );
 }
+
+/// A description too long for its row is cut between words, as the header
+/// row is: "bump, tag and p…" read as a mangled word. Every width from a
+/// narrow card to a wide one, so no width can land on a space by luck.
+#[test]
+fn a_cut_description_ends_on_a_word() {
+    let desc = "bump the version, tag it and push the release";
+    for avail in 24..48 {
+        let line = text(&spans(&item("/release", desc), 10, 0, avail, DIM));
+        let Some(body) = line.trim_end().strip_suffix('\u{2026}') else {
+            continue;
+        };
+        assert!(
+            desc.split([' ', ','])
+                .any(|w| !w.is_empty() && body.ends_with(w)),
+            "{avail}: cut mid-word: {line:?}"
+        );
+    }
+}
