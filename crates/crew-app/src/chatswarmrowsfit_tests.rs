@@ -112,7 +112,7 @@ fn under_pressure_the_specialist_goes_before_the_deps_and_the_title_clips_last()
     // The record's line is always whole.
     assert_eq!(
         crate::chatswarmrec::plain(s, 2),
-        " 3 \u{25cb} critic  review the draft \u{2190} 1,2"
+        " 3 \u{25cb} critic  review the draft\u{a0}\u{2190}\u{a0}1,2"
     );
 }
 

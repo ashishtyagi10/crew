@@ -137,7 +137,10 @@ fn the_record_lists_the_failed_task_with_its_reason() {
     let text = p.messages[0].text.clone();
     let lines: Vec<&str> = text.lines().collect();
     assert_eq!(lines.len(), 5, "header, three rows, one reason: {lines:#?}");
-    assert_eq!(lines[2], " 2 \u{2717} writer  draft the answer \u{2190} 1");
+    assert_eq!(
+        lines[2],
+        " 2 \u{2717} writer  draft the answer\u{a0}\u{2190}\u{a0}1"
+    );
     assert_eq!(lines[3], format!(" {}{WHY}", "\u{a0}".repeat(4)));
     // The card draws it as its own line, under the words of the row it
     // explains — markdown strips leading spaces, and flush left it read as
