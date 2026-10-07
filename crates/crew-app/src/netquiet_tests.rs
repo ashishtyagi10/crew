@@ -15,13 +15,19 @@ fn a_quiet_chart_is_captioned_on_its_upper_row() {
         ceiling: FLOOR,
         quiet: true,
     };
-    assert_eq!(row_text(&net_cells(0, 0, quiet, 28), 2), "no traffic");
+    assert_eq!(row_text(&net_cells(0, 0, quiet, 28), 2), "under 1 KB/s");
+    // The words name the floor in the rates' own spelling.
+    assert_eq!(rate(crate::nettwin::QUIET), "1 KB/s");
     assert!(
         row_text(&net_cells(0, 0, FLOOR, 28), 2).is_empty(),
         "a plain ceiling says nothing"
     );
-    // Too narrow for the words: nothing, rather than a clipped caption.
-    assert!(row_text(&net_cells(0, 0, quiet, 12), 2).is_empty());
+    // Too narrow for the floor: the one word; for that too, nothing rather
+    // than a clipped caption.
+    assert_eq!(row_text(&net_cells(0, 0, quiet, 15), 2).trim(), "quiet");
+    let mut out = Vec::new();
+    caption(&mut out, 0, 8);
+    assert!(out.is_empty(), "eight columns hold neither");
 }
 
 #[test]

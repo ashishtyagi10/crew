@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.72
+
+**A flat NET chart says why.** The chart stays flat until something moves
+more than a kilobyte a second, but its caption said “no traffic” right
+under a rule reading `↓ 460 B/s`. It now reads “under 1 KB/s” (“quiet”
+where the nav is too narrow), in the nav and on `/dash`.
+
 ## 0.25.71
 
 **The far cursor bar reads on a tube.** On the CRT themes the glow round
