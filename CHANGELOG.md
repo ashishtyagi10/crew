@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.75
+
+**No more “(s)”.** Agent smith said “undone — 1 file(s) back to …”,
+“the last 1 day(s)”, “1 exchange(s)” and “Detected 1 agent(s)”, and the
+resident daemon “2 session(s)” and “up 11520s”. They count properly now
+(“1 file”, “2 exchanges”), and the daemon writes its uptime as `3h12m`
+everywhere.
+
 ## 0.25.74
 
 **Agent smith is called agent smith.** A new agent pane announced “agent

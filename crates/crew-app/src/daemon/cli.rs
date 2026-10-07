@@ -285,8 +285,11 @@ pub(crate) fn run_sub(args: &[String]) -> i32 {
             let code = match probe(inst.as_deref()) {
                 Some(st) => {
                     println!(
-                        "crew daemon {} running — pid {}, up {}s, {} session(s)",
-                        st.version, st.pid, st.uptime_s, st.sessions
+                        "crew daemon {} running — pid {}, up {}, {}",
+                        st.version,
+                        st.pid,
+                        super::reply::human_uptime(st.uptime_s),
+                        crate::wording::count(st.sessions as usize, "session")
                     );
                     0
                 }

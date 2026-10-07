@@ -98,7 +98,10 @@ pub(crate) fn standup_cmd(
         Ok(None) => {
             return emit(msg(
                 "agent smith",
-                format!("no commits in the last {days} day(s) — nothing to report"),
+                format!(
+                    "no commits in the last {} — nothing to report",
+                    super::wording::count(days as usize, "day")
+                ),
             ))
         }
         Ok(Some(l)) => l,
@@ -116,7 +119,10 @@ pub(crate) fn standup_cmd(
     );
     emit(msg(
         "agent smith",
-        format!("drafting a standup from the last {days} day(s) of commits…"),
+        format!(
+            "drafting a standup from the last {} of commits…",
+            super::wording::count(days as usize, "day")
+        ),
     ))?;
     emit(PluginEvent::Activity {
         agent: author.clone(),

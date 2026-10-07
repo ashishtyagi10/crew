@@ -102,7 +102,7 @@ pub(crate) fn relay_turn(
     })?;
     // The chain's timeline, when there WAS a chain. A turn one agent
     // answered alone is already summed up by the answer card's own usage
-    // line — `turn done — coder 2.9s · 1 exchange(s) · 2133 tok` under it
+    // line — `turn done — coder 3s · 1 exchange · 2133 tok` under it
     // said the same thing twice.
     if distinct_agents(&segments) > 1 {
         emit(msg(
@@ -164,7 +164,8 @@ pub(crate) fn turn_summary(
     } else {
         format!("{tokens} tok")
     };
-    format!("{head} \u{00b7} {exchanges} exchange(s) \u{00b7} {cost}")
+    let exchanges = super::wording::count(exchanges as usize, "exchange");
+    format!("{head} \u{00b7} {exchanges} \u{00b7} {cost}")
 }
 
 /// Render a hop as a plugin event. `Dialing` becomes a live `Activity` status

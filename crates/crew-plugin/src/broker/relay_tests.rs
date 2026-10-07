@@ -118,7 +118,8 @@ fn turn_summary_times_each_agent_in_order() {
     let long = vec![("reviewer".to_string(), Duration::from_millis(123_400))];
     let l = turn_summary(&long, 1, 950, true);
     assert!(l.contains("reviewer 2m03"), "{l}");
-    assert!(s.contains("2 exchange(s)"), "{s}");
+    assert!(s.contains("2 exchanges"), "{s}");
+    assert!(l.contains("· 1 exchange ·"), "{l}");
     assert!(s.contains("~950 tok"), "{s}");
 }
 

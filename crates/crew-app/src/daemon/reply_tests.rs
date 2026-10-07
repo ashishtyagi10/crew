@@ -22,7 +22,9 @@ fn status_reports_the_version_uptime_and_session_count() {
     let out = respond("status", &snap(vec![card("s1", true)])).expect("a command");
     assert!(out.contains("9.9.9"), "{out}");
     assert!(out.contains("1h2m"), "uptime is readable: {out}");
-    assert!(out.contains("1 session"), "{out}");
+    assert!(out.ends_with(", 1 session"), "no `(s)`: {out}");
+    let two = respond("status", &snap(vec![card("a", true), card("b", false)])).unwrap();
+    assert!(two.ends_with(", 2 sessions"), "{two}");
 }
 
 #[test]
