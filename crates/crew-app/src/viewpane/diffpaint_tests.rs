@@ -113,3 +113,23 @@ fn the_hunk_heading_and_its_context_are_drawn_apart() {
     assert_ne!(head.0, context.0);
     assert!(head.1 && !context.1);
 }
+
+/// On a tube `ansi[1]` and `ansi[2]` are two shades of one phosphor: the
+/// viewer took them raw and a removed line read as an added one (1.18:1). It
+/// asks the chat's inks now, where a tube's removed line is the dimmer one.
+#[test]
+fn on_a_tube_a_removed_line_reads_apart_from_an_added_one() {
+    let _g = theme_guard();
+    for id in [crew_theme::ThemeId::CrtGreen, crew_theme::ThemeId::CrtAmber] {
+        crew_theme::set_theme(id);
+        let p = paint("-gone\n+here");
+        let (gone, here) = (p[0][2].0, p[1][2].0);
+        let apart = crew_theme::contrast_ratio(gone, here);
+        assert!(
+            apart >= 1.7,
+            "{}: {gone:?} vs {here:?} is {apart:.2}",
+            id.as_str()
+        );
+    }
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+}
