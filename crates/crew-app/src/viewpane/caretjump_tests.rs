@@ -44,3 +44,27 @@ fn top_and_bottom_are_the_documents_ends() {
     assert_eq!(char_at(&ls, top), Some('T'));
     assert_eq!(step(&ls, top, Step::Top), top, "the first place holds");
 }
+
+/// Every place in a document with blank rows and a code block's chrome is
+/// found again from its own byte. The search took a row with no key (a blank
+/// line, a fence's border) as "before the offset", which broke its order: a
+/// caret after Cmd+B landed two paragraphs on, at "What it holds".
+#[test]
+fn every_place_is_found_again_from_its_byte() {
+    let doc = "# Notes\n\nFirst paragraph that runs on a while.\n\n```\nlet a = 1;\n```\n\n\
+               ## What it holds\n\nA second paragraph after the fence.\n\n- one\n- two\n";
+    for cols in [24, 40, 80] {
+        let ls = lines(doc, cols);
+        let mut c = first(&ls).expect("start");
+        loop {
+            let at = offset_at(&ls, c).expect("an offset");
+            let back = super::super::caretfind::find(&ls, at).expect("found");
+            assert_eq!(offset_at(&ls, back), Some(at), "{cols}: byte {at}");
+            let next = step(&ls, c, Step::Right);
+            if next == c {
+                break;
+            }
+            c = next;
+        }
+    }
+}
