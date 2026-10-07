@@ -93,14 +93,16 @@ pub fn net_cells(rx: u64, tx: u64, reading: impl Into<Reading>, cols: u16) -> Ve
     out
 }
 
-/// `no traffic`, centred and muted on `row` — the quiet NET chart's caption,
-/// in the nav and on `/dash` alike.
+/// `under 1 KB/s`, centred and muted on `row` — the quiet NET chart's caption,
+/// in the nav and on `/dash` alike; `quiet` where that does not fit. It was
+/// `no traffic`, under a rule reading `↓ 460 B/s`: the chart is flat below
+/// [`QUIET`](crate::nettwin::QUIET), not only at zero, so the caption names
+/// the floor in the rates' own unit.
 pub(crate) fn caption(out: &mut Vec<CellView>, row: u16, cols: u16) {
-    const WORDS: &str = "no traffic";
-    let w = WORDS.chars().count() as u16;
-    if cols >= w + 4 {
-        let at = (cols - w) / 2;
-        crate::navtext::put_at(out, WORDS, at, row, cols, crew_theme::theme().text_muted);
+    let fits = |w: &&&str| cols >= w.chars().count() as u16 + 4;
+    if let Some(words) = ["under 1 KB/s", "quiet"].iter().find(fits) {
+        let at = (cols - words.chars().count() as u16) / 2;
+        crate::navtext::put_at(out, words, at, row, cols, crew_theme::theme().text_muted);
     }
 }
 
