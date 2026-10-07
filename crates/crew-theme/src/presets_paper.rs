@@ -67,6 +67,7 @@ pub static PAPER_DARK: Theme = Theme {
         dots: 0.20,
         wash: 0.15,
     }),
+    liquid: None,
 };
 
 /// Warm paper "day" page — soft off-white with ink-toned output.
@@ -134,6 +135,7 @@ pub static PAPER_LIGHT: Theme = Theme {
         dots: 0.16,
         wash: 0.12,
     }),
+    liquid: None,
 };
 
 /// **Sepia dark**: dark coffee-brown paper with warm cream ink — the paper
@@ -197,4 +199,5 @@ pub static SEPIA_DARK: Theme = Theme {
         dots: 0.20,
         wash: 0.15,
     }),
+    liquid: None,
 };

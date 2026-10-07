@@ -66,4 +66,5 @@ pub static CRT_VIOLET: Theme = Theme {
         dots: 0.0,
         wash: 0.0,
     }),
+    liquid: None,
 };

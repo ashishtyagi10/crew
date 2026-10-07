@@ -37,6 +37,16 @@ fn backdrop(clocks: crew_render::WashClocks) -> Option<crew_render::ModernPaper>
 
 /// Shoot the window on `id` through the tube, its page at `clocks`.
 fn crt_window(name: &str, id: ThemeId, clocks: crew_render::WashClocks) -> Option<Vec<u8>> {
+    window(name, id, clocks, crate::tubesheer::TUBE_OPACITY)
+}
+
+/// Shoot the window on `id`, its page at `clocks` and the window at `opacity`.
+fn window(
+    name: &str,
+    id: ThemeId,
+    clocks: crew_render::WashClocks,
+    opacity: f32,
+) -> Option<Vec<u8>> {
     crew_theme::set_theme(id);
     // An unset accent follows the theme in the app (`accent_rgb`); the shot
     // never applies a config, so say so here or every tube wears the mint.
@@ -47,7 +57,7 @@ fn crt_window(name: &str, id: ThemeId, clocks: crew_render::WashClocks) -> Optio
         FONT_PX,
         true,
         backdrop(clocks),
-        crate::tubesheer::TUBE_OPACITY,
+        opacity,
         |cw, ch| {
             let mut app = CrewApp {
                 geo_override: Some((cw, ch, W as f32, H as f32, 1.0)),
@@ -119,5 +129,29 @@ fn crt_glass_shot_awake() {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         }
+    }
+}
+
+/// Liquid glass as a window: the panes refracting the wallpaper, at rest and
+/// awake (the pools moved on, the glow beating), opaque as the app ships it.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn glass_window_shot() {
+    let _g = crate::app::theme_test_guard();
+    let awake = crew_render::WashClocks {
+        phase: 0.2,
+        wander: 0.3,
+        live: 1.0,
+        eddy: 0.4,
+    };
+    for (name, clocks) in [
+        ("glass-window", Default::default()),
+        ("glass-window-awake", awake),
+    ] {
+        let Some(px) = window(name, ThemeId::Glass, clocks, 1.0) else {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        };
+        assert!(crate::shotgpu_tests::ink(&px) > 10_000, "{name}: drew");
     }
 }

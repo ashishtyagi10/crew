@@ -63,4 +63,5 @@ pub static SEPIA_LIGHT: Theme = Theme {
         dots: 0.16,
         wash: 0.12,
     }),
+    liquid: None,
 };

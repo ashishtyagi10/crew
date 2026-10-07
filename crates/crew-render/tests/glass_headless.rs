@@ -68,6 +68,7 @@ fn card(alpha_top: f32, alpha_bottom: f32, highlight_alpha: f32, shadow_alpha: f
         lift: 0.0,
         glint: -1.0,
         notch: Default::default(),
+        lens: [0.0; 8],
     }
 }
 

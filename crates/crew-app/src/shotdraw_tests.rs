@@ -116,6 +116,7 @@ pub(crate) fn draw_with(
     );
 
     let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+    grid.encode_behind(&device, &mut enc, (w, h), bg_f32, Some(&paper));
     {
         let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("shotdraw_pass"),

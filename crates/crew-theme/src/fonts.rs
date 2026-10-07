@@ -151,6 +151,9 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Lilex",
         ],
+        // Glass is the iPhone's material, so it wears the iPhone's face: SF
+        // Mono, then the nearest geometric monospaces.
+        ThemeId::Glass => &["SF Mono", "Geist Mono", "JetBrains Mono", "Menlo", "Lilex"],
         // CRT: a terminal face with squared-off shoulders — straight modern
         // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
         // contemporary take on that IBM-terminal DNA).

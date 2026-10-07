@@ -72,4 +72,5 @@ pub static CRT_BLUE: Theme = Theme {
         dots: 0.0,
         wash: 0.0,
     }),
+    liquid: None,
 };

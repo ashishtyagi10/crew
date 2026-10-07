@@ -71,4 +71,5 @@ pub static BLOSSOM: Theme = Theme {
         dots: 0.16,
         wash: 0.12,
     }),
+    liquid: None,
 };

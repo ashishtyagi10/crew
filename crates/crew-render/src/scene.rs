@@ -285,6 +285,20 @@ pub(crate) fn build_scene(
                 lift: pane.lift,
                 glint: pane.glint,
                 notch,
+                // A pop-up's sheet is only its shadow (`sheet` 0): it has no
+                // body to see the wallpaper through.
+                lens: crew_theme::theme().liquid.map_or([0.0; 8], |l| {
+                    [
+                        l.refract,
+                        l.bevel,
+                        l.blur,
+                        l.dispersion,
+                        l.clear_rim,
+                        l.vibrance,
+                        0.0,
+                        sheet,
+                    ]
+                }),
             });
         }
 

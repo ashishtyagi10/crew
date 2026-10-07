@@ -67,4 +67,5 @@ pub static NEBULA: Theme = Theme {
         dots: 0.20,
         wash: 0.15,
     }),
+    liquid: None,
 };

@@ -800,10 +800,11 @@ accepts `accent = "#rrggbb"` to override Crew's accent; omit it (or give an
 invalid value) to use the active theme's default accent. It applies at launch —
 quit and reopen Crew to pick up edits made outside the `/settings` pane.
 
-**Themes.** Crew ships **twelve palettes** in four rotations. `dark` rotates
+**Themes.** Crew ships **thirteen palettes** in four rotations. `dark` rotates
 `paper-dark` (a high-contrast newspaper look), `sepia-dark` (warm cream ink on
-dark sepia), `nebula` (an orchid→rose gradient dusk) and `harbor` (a blue-slate
-page under an azure light); `light` rotates `paper-light`, `sepia-light`,
+dark sepia), `nebula` (an orchid→rose gradient dusk), `harbor` (a blue-slate
+page under an azure light) and `glass` (the iPhone's liquid glass: every pane a
+slab of glass that frosts and bends a vivid wallpaper behind it); `light` rotates `paper-light`, `sepia-light`,
 `blossom` and `fern` (a faint mint page under a green-teal light); `crt`
 rotates the four phosphor tubes — `crt-green`, `crt-amber`, `crt-blue` and
 `crt-violet`, each one hue at six brightnesses on a near-black tube; and `auto`
