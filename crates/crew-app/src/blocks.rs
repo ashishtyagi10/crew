@@ -83,7 +83,8 @@ pub(crate) fn listing(spans: &Spans, title: &str, now: u64) -> String {
         out.push_str("Nothing yet. Run something in this pane and it lands here.\n");
         return out;
     }
-    out.push_str("\n/out <n> opens the output of command n, on its own.\n");
+    // Within `ROW_W`: at 51 columns it wrapped and left "own." alone on a tile.
+    out.push_str("\n/out <n> opens command n's output on its own.\n");
     out
 }
 

@@ -89,7 +89,7 @@ fn logout_rows_lead_with_grants_and_dim_the_clis() {
     assert!(items[1].submit && !items[1].dim);
     assert_eq!(
         items[1].desc,
-        "\u{2713} signed in \u{00b7} the key serves once removed"
+        "\u{2713} signed in \u{00b7} removing it falls back to the key"
     );
     assert!(items[3].dim && items[3].desc.ends_with("run ant auth logout"));
     assert!(items[4].dim && items[4].desc.ends_with("it owns the sign-out"));
