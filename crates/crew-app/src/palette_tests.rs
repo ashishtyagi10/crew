@@ -101,3 +101,30 @@ fn the_focus_accent_can_be_told_from_the_ink_it_replaces() {
     assert_eq!(tubes, 4, "every tube was actually checked");
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
 }
+
+/// A key reads apart from its label: on paper by hue (the accent beside
+/// ink), on a tube — one phosphor, where those two measured 1.02-1.13:1 —
+/// by weight and brightness: a bold key over a label stepped back to muted.
+#[test]
+fn a_key_reads_apart_from_its_label_on_every_theme() {
+    let _a = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
+    let rgb = |c: Option<ratatui::style::Color>| match c {
+        Some(ratatui::style::Color::Rgb(r, g, b)) => (r, g, b),
+        other => panic!("{other:?}"),
+    };
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        crate::palette::set_accent(crew_theme::theme().accent_default);
+        let (key, label) = super::key_label();
+        if id.is_crt() {
+            let apart = crew_theme::contrast_ratio(rgb(key.fg), rgb(label.fg));
+            assert!(apart >= 1.4, "{}: key/label {apart:.2}", id.as_str());
+            assert!(key.add_modifier.contains(ratatui::style::Modifier::BOLD));
+        } else {
+            assert_eq!(rgb(label.fg), crew_theme::theme().ink, "{}", id.as_str());
+        }
+    }
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+}

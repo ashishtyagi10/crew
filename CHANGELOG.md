@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.88
+
+**Keys stand out from their labels on a tube.** In `/keys` and the far
+pane's F-key bar a key is drawn in the accent and its label in the text
+colour, and on a CRT theme those are one phosphor (1.02–1.13:1 apart), so
+“F3 View F4 Edit” read as one run of text. On a tube the key is now bold
+and brighter, and its label steps back to the muted shade.
+
 ## 0.25.87
 
 **A TUI's colours survive on a tube.** On a CRT theme the terminal hid
