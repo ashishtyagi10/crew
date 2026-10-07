@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.62
+
+**The idle footer's last hint reads like the others.** It said
+"shift+tab: approvals" next to "/ for commands" and "@ to relay to an
+agent". It now says "⇧Tab for approvals" ("Shift+Tab for approvals" off
+a Mac), the same way `/approvals` writes the key.
+
 ## 0.25.61
 
 **Badges are smooth pills.** Every badge — agent names in chat, the

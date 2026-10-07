@@ -110,7 +110,7 @@ fn line3_swarm_by_default_relay_when_mentioning() {
     let f = fc(&agents, &empty_ctx);
     let l3 = text(&footer_lines(&f, 120)[2]);
     assert!(l3.contains("\u{25b6}\u{25b6} swarm mode"), "{l3}");
-    assert!(l3.ends_with("shift+tab: approvals"), "{l3}");
+    assert!(l3.ends_with(&crate::summaryroute::approvals_hint()), "{l3}");
     let mut f = fc(&agents, &empty_ctx);
     f.input = "@coder fix the tests";
     let l3 = text(&footer_lines(&f, 120)[2]);
@@ -457,7 +457,7 @@ fn an_idle_line3_is_unchanged_by_the_active_segment() {
     let f = fc(&[], &empty_ctx);
     assert_eq!(
         text(&footer_lines(&f, 120)[2]),
-        "\u{2590} \u{25b6}\u{25b6} swarm mode \u{258c} \u{00b7} / for commands \u{00b7} @ to relay to an agent \u{00b7} shift+tab: approvals"
+        format!("\u{2590} \u{25b6}\u{25b6} swarm mode \u{258c} \u{00b7} / for commands \u{00b7} @ to relay to an agent \u{00b7} {}", crate::summaryroute::approvals_hint())
     );
 }
 
