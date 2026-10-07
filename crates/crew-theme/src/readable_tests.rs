@@ -66,16 +66,21 @@ fn the_unfocused_cursor_is_still_visible() {
     }
 }
 
-/// Hue is meaning and survives: a link stays blue, a warning amber, an alarm
-/// red. Only lightness is the palette's to take.
+/// Hue is meaning and survives: a link stays blue (in a coloured tube's own
+/// phosphor — see the next test), a warning amber, an alarm red. Only
+/// lightness is the palette's to take.
 #[test]
 fn a_role_keeps_its_hue_when_the_page_takes_its_lightness() {
     let _g = crate::contrast::test_lock();
     crate::contrast::set_high_contrast(false);
     for id in ALL_THEMES {
         let t = id.theme();
+        let blue = match t.is_tube() && oklch::from_srgb(t.ink).c >= 0.04 {
+            true => t.border_focused,
+            false => (90u8, 170u8, 255u8),
+        };
         for (name, got, want) in [
-            ("link", link(t), (90u8, 170u8, 255u8)),
+            ("link", link(t), blue),
             ("warn", warn(t), (230, 180, 90)),
             ("danger", danger(t), (230, 90, 90)),
         ] {
@@ -84,6 +89,30 @@ fn a_role_keeps_its_hue_when_the_page_takes_its_lightness() {
             assert!(d < 8.0, "{}: {name} hue moved {d:.1}°", id.as_str());
         }
     }
+}
+
+/// A coloured phosphor tube links in its own hue — every other colour on it
+/// already is — while the white phosphor, which shows hues, keeps the blue.
+#[test]
+fn a_coloured_tube_links_in_its_own_phosphor() {
+    let _g = crate::contrast::test_lock();
+    crate::contrast::set_high_contrast(false);
+    let hue = |c| oklch::from_srgb(c).h;
+    let gap = |a: f32, b: f32| (a - b).rem_euclid(360.0).min((b - a).rem_euclid(360.0));
+    let mut tubes = 0;
+    for id in ALL_THEMES.into_iter().filter(|id| id.theme().is_tube()) {
+        let t = id.theme();
+        let coloured = oklch::from_srgb(t.ink).c >= 0.04;
+        let want = if coloured {
+            t.border_focused
+        } else {
+            (90, 170, 255)
+        };
+        let d = gap(hue(link(t)), hue(want));
+        assert!(d < 8.0, "{}: link hue is {d:.0}° off", id.as_str());
+        tubes += usize::from(coloured);
+    }
+    assert!(tubes >= 2, "premise: coloured tubes ship, {tubes}");
 }
 
 /// A colour that already clears its floor is returned untouched — the dark

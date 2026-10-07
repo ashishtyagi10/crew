@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.64
+
+**Links on the CRT tubes glow in the tube's own colour.** On the green
+and amber tubes every colour a program prints is already a shade of the
+tube's phosphor, but links were still drawn bright blue, the one colour on
+the screen from another machine. Links there are now the tube's own hue,
+underlined as before. The white-phosphor tube shows real colours, so its
+links stay blue, as they do on every other theme.
+
 ## 0.25.63
 
 **Wrapped lists keep their parts whole.** When a line like
