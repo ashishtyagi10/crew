@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.83
+
+**Footer badges keep their weight.** The badges on an agent pane's footer
+(“▶▶ swarm mode”, the working `@agent`, the approval mode) were drawn at
+regular weight, though the same badges in the transcript are bold. On a CRT
+theme the glow round the bright block washed the thin label out (3.8:1
+against 6.8:1 elsewhere). They are bold now.
+
 ## 0.25.82
 
 **A diff on a tube tells its sides apart.** In the file viewer on a CRT
