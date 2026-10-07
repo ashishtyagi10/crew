@@ -705,7 +705,7 @@ a **live activity row** while agents work (`⠹ user ⇢ planner 4s`, one animat
 chip per working agent naming who handed it the task, so parallel fans and
 hand-offs are visible as they happen), and **message cards** (`▍sender · 2m ago · 4.2s`)
 that colour each agent consistently and show hand-offs as `from → to`. Every
-turn ends with a timeline log line: `turn done — planner 4.2s → coder 8.1s ·
+turn ends with a timeline log line: `turn done — planner 4s → coder 8s ·
 2 exchange(s) · ~950 tok (approx)`, and each settled reply that reported real
 usage closes with its own muted trailer — `900 in / 50 out · $0.012`. Long
 system/telemetry cards (turn summaries, `/doctor` output) **auto-fold** to a

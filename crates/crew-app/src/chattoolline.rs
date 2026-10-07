@@ -84,7 +84,7 @@ fn parts(line: &ToolLine, now_ms: u64, on: bool) -> (&'static str, Color, Color,
                 _ => crate::glyphs::spinner_on(now_ms, on),
             };
             let secs = now_ms.saturating_sub(line.started_ms) / 1000;
-            let tail = (secs > 0).then(|| format!("{secs}s"));
+            let tail = (secs > 0).then(|| crate::runclock::ladder(secs));
             (mark, crate::palette::accent(), th.text_muted, tail)
         }
         Some(d) => {

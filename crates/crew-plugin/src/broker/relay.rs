@@ -152,7 +152,7 @@ pub(crate) fn turn_summary(
 ) -> String {
     let timeline: Vec<String> = segments
         .iter()
-        .map(|(agent, d)| format!("{agent} {:.1}s", d.as_secs_f32()))
+        .map(|(agent, d)| format!("{agent} {}", super::toolline::took(d.as_millis() as u64)))
         .collect();
     let head = if timeline.is_empty() {
         "turn done".to_string()

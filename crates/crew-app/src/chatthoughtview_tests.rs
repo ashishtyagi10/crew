@@ -35,6 +35,9 @@ fn the_live_block_shows_the_header_then_only_the_last_four_lines() {
     let rows = live_lines(&l, 4_500, 60);
     assert_eq!(rows.len(), 1 + LIVE_ROWS);
     assert_eq!(text(&rows[0]), "  \u{2234} thinking \u{00b7} 3s");
+    // Past a minute, the clock the folded row and the header use: not `95s`.
+    let long = text(&live_lines(&l, 96_000, 60)[0]);
+    assert_eq!(long, "  \u{2234} thinking \u{00b7} 1m35");
     assert_eq!(
         texts(&rows[1..]),
         ["  three", "  four", "  five", "  six"],
