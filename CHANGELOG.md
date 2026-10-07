@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.68
+
+**`/far` panel headers keep the folder's name whole.** In a narrow
+panel, the header kept the entry count and total size and cut the
+folder's own name, as in `…rew-app · 5 · 7.6K`. The name now comes first.
+When room runs short the size goes, then the count, and the header reads
+`…/crew-app · 5`, then `…/crew-app`.
+
 ## 0.25.67
 
 **`/dash` keeps its header line whole.** On a narrow dashboard the line

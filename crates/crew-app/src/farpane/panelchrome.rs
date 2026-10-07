@@ -105,7 +105,7 @@ pub(crate) fn fmt_size(bytes: u64) -> String {
 }
 
 /// Columns the path keeps for itself before the count and size are worth
-/// showing at all.
+/// showing at all — or its own last name and `…/`, when that is wider.
 pub(crate) const MIN_PATH: usize = 6;
 
 /// `" /path · N · size "` — `N` is the panel's entry count and `size` its
@@ -123,20 +123,31 @@ pub(crate) const MIN_PATH: usize = 6;
 /// rule after the title, which is the breath every other card in crew keeps
 /// (`boxdraw::title_budget` takes six for the same reason).
 pub(crate) fn legend(display: &str, count: usize, total: u64, width: u16) -> String {
-    let suffix = if count == 0 {
-        " \u{00b7} empty ".to_string()
-    } else {
-        format!(" \u{00b7} {count} \u{00b7} {} ", fmt_size(total))
+    let (full, short) = match count {
+        0 => (
+            " \u{00b7} empty ".to_string(),
+            " \u{00b7} empty ".to_string(),
+        ),
+        _ => (
+            format!(" \u{00b7} {count} \u{00b7} {} ", fmt_size(total)),
+            format!(" \u{00b7} {count} "),
+        ),
     };
     let usable = (width as usize).saturating_sub(3);
-    // A panel too narrow for the count and the size keeps the thing you
-    // actually navigate by. The suffix is dropped rather than clipped — the
-    // old `max == 0` branch returned the whole title anyway and let the block
-    // cut it, which is how `· 3.3` came to be a thing the header said.
-    let suffix = match suffix.chars().count() + MIN_PATH <= usable {
-        true => suffix,
-        false => " ".to_string(),
-    };
+    // The folder you are in is what the legend is FOR, so a suffix is kept
+    // only while the path keeps at least its own name whole (`…/crew-app`):
+    // the count and size, then the count alone, then neither. `…rew-app · 5
+    // · 7.6K` kept two numbers and cut the name. A dropped suffix is dropped,
+    // never clipped — the block cutting it is how `· 3.3` came to be a thing
+    // the header said.
+    let name = display.rsplit(['/', '\\']).next().unwrap_or(display);
+    let need = (name.chars().count() + 2)
+        .min(display.chars().count())
+        .max(MIN_PATH);
+    let suffix = [full, short]
+        .into_iter()
+        .find(|s| s.chars().count() + 1 + need <= usable)
+        .unwrap_or_else(|| " ".to_string());
     let max = usable.saturating_sub(1 + suffix.chars().count());
     if max == 0 {
         return String::new();
@@ -147,3 +158,7 @@ pub(crate) fn legend(display: &str, count: usize, total: u64, width: u16) -> Str
     // Cut on a separator, as every path legend is (`cwd::fit_legend`).
     format!(" {}{suffix}", crate::cwd::fit_legend(display, max))
 }
+
+#[cfg(test)]
+#[path = "legend_tests.rs"]
+mod tests;
