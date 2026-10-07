@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.99
+
+**A failed plan looks failed.** When a `/goal` swarm could not plan, its
+pane said “plan failed: …” in the same plain text as “planning: …”. The
+“plan failed:” is now in the error colour and bold, and the pane's last row
+says “Esc closes it”. A long goal in the banner is also cut between words.
+
 ## 0.25.98
 
 **The input bar's path reads on light themes.** The folder path on the

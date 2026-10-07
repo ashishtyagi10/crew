@@ -113,7 +113,7 @@ pub(crate) fn banner(text: &str, cols: u16, rows: u16) -> Vec<CellView> {
     for (i, (start, end)) in ranges.iter().take(n).enumerate() {
         let line: String = if i + 1 == n && n < ranges.len() {
             // The rest of the text, cut where the row ends and marked.
-            crate::chatwidth::clip_w(&full[*start..].iter().collect::<String>(), cols as usize)
+            crate::chatwidth::clip_words(&full[*start..].iter().collect::<String>(), cols as usize)
         } else {
             full[*start..*end].iter().collect()
         };
@@ -121,3 +121,31 @@ pub(crate) fn banner(text: &str, cols: u16, rows: u16) -> Vec<CellView> {
     }
     crate::tui::to_cells(&buf)
 }
+
+/// A plan that failed: the banner with `plan failed:` in the danger ink and
+/// bold — in plain ink it read exactly like `planning:` — and, with room, the
+/// way out on the last row.
+pub(crate) fn failed_banner(msg: &str, cols: u16, rows: u16) -> Vec<CellView> {
+    const LEAD: &str = "plan failed:";
+    const OUT: &str = "Esc closes it";
+    let t = crew_theme::theme();
+    let hint = rows >= 3;
+    let mut cells = banner(&format!("{LEAD} {msg}"), cols, rows - 2 * u16::from(hint));
+    let danger = crew_theme::readable::danger(t);
+    for c in cells
+        .iter_mut()
+        .filter(|c| c.row == 0 && usize::from(c.col) < LEAD.len())
+    {
+        c.fg = danger;
+        c.bold = true;
+    }
+    if hint {
+        let out = crate::chatwidth::clip_words(OUT, usize::from(cols));
+        crate::navtext::put_at(&mut cells, &out, 0, rows - 1, cols, t.text_muted);
+    }
+    cells
+}
+
+#[cfg(test)]
+#[path = "backendfail_tests.rs"]
+mod fail_tests;
