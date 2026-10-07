@@ -90,6 +90,9 @@ pub struct Theme {
     /// Gemini/Codex-app look — and drives the focused frame's gradient ring
     /// in crew-app. Paper and CRT presets are `None`.
     pub modern: Option<ModernStyle>,
+    /// Liquid glass: the panes refract and frost the wallpaper behind them
+    /// ([`LiquidStyle`]). `Some` on the glass theme only.
+    pub liquid: Option<LiquidStyle>,
 }
 
 pub mod ansi;
@@ -100,6 +103,7 @@ mod glass;
 pub mod glassborder;
 pub mod gradients;
 pub mod highlight;
+mod liquid;
 mod modernstyle;
 pub mod oklch;
 pub mod poleshift;
@@ -107,6 +111,7 @@ mod presets_crt;
 mod presets_crt_cool;
 mod presets_crt_violet;
 mod presets_fern;
+mod presets_glass;
 mod presets_harbor;
 mod presets_modern;
 mod presets_modern_light;
@@ -118,6 +123,7 @@ pub mod signal;
 mod tagcolor;
 pub use crtstyle::CrtStyle;
 pub use glass::{style as glass_style, style_for as glass_style_for, GlassLevel, GlassStyle};
+pub use liquid::LiquidStyle;
 pub use modernstyle::ModernStyle;
 
 impl Theme {
@@ -139,6 +145,7 @@ pub use presets_crt::{CRT_AMBER, CRT_GREEN};
 pub use presets_crt_cool::CRT_BLUE;
 pub use presets_crt_violet::CRT_VIOLET;
 pub use presets_fern::FERN;
+pub use presets_glass::GLASS;
 pub use presets_harbor::HARBOR;
 pub use presets_modern::NEBULA;
 pub use presets_modern_light::BLOSSOM;
@@ -184,11 +191,12 @@ pub enum ThemeId {
     Harbor,
     Fern,
     CrtViolet,
+    Glass,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 12] = [
+pub const ALL_THEMES: [ThemeId; 13] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::SepiaDark,
@@ -197,6 +205,7 @@ pub const ALL_THEMES: [ThemeId; 12] = [
     ThemeId::Blossom,
     ThemeId::Harbor,
     ThemeId::Fern,
+    ThemeId::Glass,
     ThemeId::CrtGreen,
     ThemeId::CrtAmber,
     ThemeId::CrtBlue,
@@ -218,6 +227,7 @@ impl ThemeId {
             ThemeId::Harbor => "harbor",
             ThemeId::Fern => "fern",
             ThemeId::CrtViolet => "crt-violet",
+            ThemeId::Glass => "glass",
         }
     }
 
@@ -236,6 +246,7 @@ impl ThemeId {
             ThemeId::Harbor => "blue-slate page under an azure light (dark)",
             ThemeId::Fern => "faint mint page under a green-teal light (light)",
             ThemeId::CrtViolet => "violet phosphor CRT (vector-display glow)",
+            ThemeId::Glass => "iPhone liquid glass over a vivid wallpaper (dark)",
         }
     }
 
@@ -296,6 +307,7 @@ impl ThemeId {
             "crt-violet" => Some(ThemeId::CrtViolet),
             "crt-purple" => Some(ThemeId::CrtViolet),
             "blossom" => Some(ThemeId::Blossom),
+            "glass" => Some(ThemeId::Glass),
             _ => None,
         }
     }
@@ -314,6 +326,7 @@ impl ThemeId {
             ThemeId::Fern => &FERN,
             ThemeId::CrtViolet => &CRT_VIOLET,
             ThemeId::Blossom => &BLOSSOM,
+            ThemeId::Glass => &GLASS,
         }
     }
 
@@ -331,6 +344,7 @@ impl ThemeId {
             ThemeId::Harbor => 9,
             ThemeId::Fern => 10,
             ThemeId::CrtViolet => 11,
+            ThemeId::Glass => 12,
         }
     }
 
@@ -347,6 +361,7 @@ impl ThemeId {
             9 => ThemeId::Harbor,
             10 => ThemeId::Fern,
             11 => ThemeId::CrtViolet,
+            12 => ThemeId::Glass,
             _ => ThemeId::PaperDark,
         }
     }

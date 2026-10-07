@@ -7,7 +7,7 @@ struct Uniform {
     dot_b: vec4<f32>,    // pole B tint; a = dot radius px
     dot_grid: vec4<f32>, // xy = lattice pitch px; z = wash strength (0 = no wash); w = wash phase (turns)
     wash_focus: vec4<f32>, // xy = orbit centre in uv; z = how far it moves there (0 = page centre); w = wander clock (turns)
-    motion: vec4<f32>,     // x = how awake the page is (0 = the still page); y = eddy clock (turns); zw spare
+    motion: vec4<f32>,     // x = how awake the page is (0 = the still page); y = eddy clock (turns); z = 1 for liquid glass's wallpaper; w spare
 }
 @group(0) @binding(0) var<uniform> u: Uniform;
 
@@ -47,10 +47,56 @@ fn vnoise(p: vec2<f32>) -> f32 {
     return mix(mix(a, b, w.x), mix(c, d, w.x), w.y);
 }
 
+// One soft field of colour on the wallpaper: Gaussian, so fields melt into
+// each other with no edge anywhere.
+fn field(p: vec2<f32>, c: vec2<f32>, r: f32) -> f32 {
+    let d = length(p - c) / r;
+    return exp(-d * d);
+}
+
+// Liquid glass's wallpaper: the iPhone's kind — a few broad, saturated fields
+// of colour melting into one another over a deep page, so whatever a pane is
+// laid over, its glass has colour to bend. Pole A and pole B hold opposite
+// corners, their blends the other two; each drifts round a small orbit on the
+// wash's clocks, so the page is still when they are and slides as a lit room
+// would when they run. Coverage tops out at the wash's strength, so the page
+// colour always shows a little — the field the glass's legibility guard
+// (`liquid_text_reads_on_its_glass`) is measured against.
+fn wallpaper(uv: vec2<f32>) -> vec3<f32> {
+    let asp = u.resolution.x / max(u.resolution.y, 1.0);
+    let p = vec2<f32>((uv.x - 0.5) * asp, uv.y - 0.5);
+    let ang = 6.2831853 * u.dot_grid.w;
+    let wnd = 6.2831853 * u.wash_focus.w;
+    let a_at = vec2<f32>(-0.42 * asp, -0.28) + 0.10 * vec2<f32>(cos(ang), sin(ang));
+    let b_at = vec2<f32>(0.40 * asp, 0.30) + 0.10 * vec2<f32>(cos(ang + 2.1), sin(ang + 2.1));
+    let c_at = vec2<f32>(0.34 * asp, -0.34) + 0.08 * vec2<f32>(cos(wnd), sin(1.3 * wnd));
+    let d_at = vec2<f32>(-0.28 * asp, 0.38) + 0.08 * vec2<f32>(sin(wnd), cos(ang));
+    let wa = field(p, a_at, 0.62);
+    let wb = field(p, b_at, 0.62);
+    let wc = 0.8 * field(p, c_at, 0.48);
+    let wd = 0.7 * field(p, d_at, 0.44);
+    let ca = u.dot_a.rgb;
+    let cb = u.dot_b.rgb;
+    let cc = mix(ca, cb, 0.55);
+    let cd = mix(cb, ca, 0.30);
+    let w = wa + wb + wc + wd;
+    let col = (ca * wa + cb * wb + cc * wc + cd * wd) / max(w, 1e-4);
+    // The legibility gradient the iPhone lays behind its status bar: the
+    // wallpaper deepens toward the window's top and bottom edges, where pane
+    // titles and the input bar's tag stand on it rather than on glass.
+    let edge = min(uv.y, 1.0 - uv.y);
+    let shade = mix(0.4, 1.0, smoothstep(0.0, 0.07, edge));
+    let cover = clamp(w, 0.0, 1.0) * u.dot_grid.z * shade;
+    return mix(u.page_bg.rgb, col, cover);
+}
+
 @fragment
 fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // UV in [0, 1] with (0,0) at top-left.
     let uv = in.pos.xy / u.resolution;
+    if (u.motion.z > 0.5) {
+        return vec4<f32>(wallpaper(uv), u.page_bg.a);
+    }
 
     // Radial vignette: ~5% darker at corners (d2 = 0.5 at corner → 0.95).
     // Multiplicative on the page colour, so it scales with brightness.

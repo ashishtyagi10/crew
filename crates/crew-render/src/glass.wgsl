@@ -8,6 +8,11 @@
 // `tilt`: where the pointer sits in the window, -1..=1 per axis (0 at rest).
 struct Vp { size: vec2<f32>, tilt: vec2<f32> };
 @group(0) @binding(0) var<uniform> vp: Vp;
+// What lies behind the glass — the wallpaper, drawn before the cards
+// (crate::behind). A 1×1 stand-in on every theme that is not liquid glass,
+// never sampled there.
+@group(1) @binding(0) var behind_tex: texture_2d<f32>;
+@group(1) @binding(1) var behind_samp: sampler;
 
 // How far outside the card the quad is expanded to give the shadow room. Must
 // stay >= the shadow's blur + offset or the falloff is visibly clipped square.
@@ -94,6 +99,8 @@ struct VsOut {
   @location(8) nt1: vec4<f32>,     // top notch spans 2-3
   @location(9) nb0: vec4<f32>,     // bottom notch spans 0-1
   @location(10) nb1: vec4<f32>,    // bottom notch spans 2-3
+  @location(11) lens0: vec4<f32>,  // refract px, bevel px, blur px, dispersion
+  @location(12) lens1: vec4<f32>,  // clear_rim, vibrance, -, on
 };
 
 // How soft a notch's ends are (px): the rim tapers into the gap round the
@@ -130,7 +137,9 @@ fn vs(@builtin(vertex_index) vi: u32,
       @location(6) nt0: vec4<f32>,
       @location(7) nt1: vec4<f32>,
       @location(8) nb0: vec4<f32>,
-      @location(9) nb1: vec4<f32>) -> VsOut {
+      @location(9) nb1: vec4<f32>,
+      @location(10) lens0: vec4<f32>,
+      @location(11) lens1: vec4<f32>) -> VsOut {
   var corners = array<vec2<f32>,6>(
     vec2<f32>(0.0,0.0), vec2<f32>(1.0,0.0), vec2<f32>(0.0,1.0),
     vec2<f32>(0.0,1.0), vec2<f32>(1.0,0.0), vec2<f32>(1.0,1.0));
@@ -155,6 +164,8 @@ fn vs(@builtin(vertex_index) vi: u32,
   out.nt1 = nt1;
   out.nb0 = nb0;
   out.nb1 = nb1;
+  out.lens0 = lens0;
+  out.lens1 = lens1;
   return out;
 }
 
@@ -168,6 +179,37 @@ fn sd_round_box(p: vec2<f32>, b: vec2<f32>, r: f32) -> f32 {
 fn falloff(d: f32, blur: f32) -> f32 {
   let x = max(d, 0.0) / blur;
   return exp(-2.5 * x * x);
+}
+
+// The rounded box's outward normal: its SDF's own gradient, by central
+// differences. A `local / hsize` normal points at the corners of a wide card.
+fn sdf_normal(p: vec2<f32>, b: vec2<f32>, r: f32) -> vec2<f32> {
+  let e = 0.5;
+  return normalize(vec2<f32>(
+    sd_round_box(p + vec2<f32>(e, 0.0), b, r) - sd_round_box(p - vec2<f32>(e, 0.0), b, r),
+    sd_round_box(p + vec2<f32>(0.0, e), b, r) - sd_round_box(p - vec2<f32>(0.0, e), b, r))
+    + vec2<f32>(1e-5, 1e-5));
+}
+
+// The backdrop at screen px `p`, clamped to the window.
+fn behind_at(p: vec2<f32>) -> vec3<f32> {
+  let uv = clamp(p / vp.size, vec2<f32>(0.0), vec2<f32>(1.0));
+  return textureSampleLevel(behind_tex, behind_samp, uv, 0.0).rgb;
+}
+
+// The backdrop at `p` frosted over radius `r` px: the centre and eight taps on
+// a golden-angle spiral (a Vogel disk), which covers a disk evenly with no
+// grid for the eye to find.
+fn frosted(p: vec2<f32>, r: f32) -> vec3<f32> {
+  var acc = behind_at(p);
+  if (r < 0.5) { return acc; }
+  for (var i = 0; i < 8; i = i + 1) {
+    let fi = f32(i);
+    let a = fi * 2.39996323;
+    let rr = r * sqrt((fi + 0.5) / 8.0);
+    acc = acc + behind_at(p + rr * vec2<f32>(cos(a), sin(a)));
+  }
+  return acc / 9.0;
 }
 
 // Cheap value hash for the frost grain.
@@ -264,11 +306,13 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // pops in, and it rides the fill alpha rather than adding a colour of its
   // own, so it stays in whatever palette the theme declared.
   let scan_pos = in.extra.x;
+  var scan_band = 0.0;
   if (scan_pos >= 0.0) {
     let across = clamp((in.local.x + in.hsize.x) / max(in.hsize.x * 2.0, 1.0), 0.0, 1.0);
     let centre = -SCAN_W + scan_pos * (1.0 + 2.0 * SCAN_W);
     let d_scan = abs((across + t) * 0.5 - centre);
     let band = 1.0 - smoothstep(0.0, SCAN_W, d_scan);
+    scan_band = band * inside;
     fill_a = clamp(fill_a + band * SCAN_GAIN * mix(a_top, a_bot, t) * inside, 0.0, 1.0);
   }
 
@@ -281,6 +325,40 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // whole top edge unevenly.
   var rgb = in.tint.xyz;
   var alpha = fill_a;
+
+  // --- liquid glass -----------------------------------------------------------
+  // The card shows what is behind it, bent. Its body is the backdrop frosted
+  // (blurred over `blur` px), saturated a little — glass makes colour richer,
+  // not greyer — and then smoked with the tint at the fill's ramp, so a calm
+  // field lies under the text. Toward the rim the glass thickens into a lens:
+  // over the last `bevel` px it reaches outward for what it shows, up to
+  // `refract` px past the edge at the edge itself, so the backdrop just
+  // outside the card is pulled in under its rim; there the frost thins
+  // (`clear_rim`) and the colours split a little, red reaching further than
+  // blue, as a prism's do. The rim, gloss and shade below ride on top.
+  if (in.lens1.w > 0.0 && inside > 0.0) {
+    let bevel = max(in.lens0.y, 1.0);
+    let blur = in.lens0.z;
+    let disp = in.lens0.w;
+    let n = sdf_normal(in.local, in.hsize, radius);
+    let s = clamp(-d / bevel, 0.0, 1.0);
+    let k = (1.0 - s) * (1.0 - s);
+    let off = n * in.lens0.x * k;
+    let here = in.pos.xy;
+    let r = blur * (1.0 - k);
+    var c = frosted(here + off, r);
+    if (k > 0.002 && disp > 0.0) {
+      c.r = frosted(here + off * (1.0 + disp), r).r;
+      c.b = frosted(here + off * (1.0 - disp), r).b;
+    }
+    let l = dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
+    c = clamp(mix(vec3<f32>(l), c, in.lens1.y), vec3<f32>(0.0), vec3<f32>(1.0));
+    // A lifted card is nearer the light: its smoke thins a touch.
+    let ramp = mix(a_top, a_bot, t) * (1.0 - 0.12 * lift);
+    let frost = clamp(ramp * (1.0 - in.lens1.x * k), 0.0, 1.0);
+    rgb = mix(mix(c, in.tint.xyz, frost), in.hl.xyz, 0.10 * scan_band);
+    alpha = inside;
+  }
 
   // --- gloss ----------------------------------------------------------------
   // A thick, glossy slab throws a broad curved reflection across its upper
@@ -321,12 +399,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
 
   if (hl_alpha > 0.0) {
     let band = smoothstep(-HL_W, 0.0, d) * inside * (1.0 - rim_cut);
-    let e = 0.5;
-    let n = normalize(vec2<f32>(
-      sd_round_box(in.local + vec2<f32>(e, 0.0), in.hsize, radius)
-        - sd_round_box(in.local - vec2<f32>(e, 0.0), in.hsize, radius),
-      sd_round_box(in.local + vec2<f32>(0.0, e), in.hsize, radius)
-        - sd_round_box(in.local - vec2<f32>(0.0, e), in.hsize, radius)) + vec2<f32>(1e-5, 1e-5));
+    let n = sdf_normal(in.local, in.hsize, radius);
     // A well's lit wall is the one facing AWAY from the light: its lower lip.
     let light = normalize(LIGHT + TILT * vp.tilt);
     let facing = dot(n, light) * select(1.0, -1.0, well > 0.0);

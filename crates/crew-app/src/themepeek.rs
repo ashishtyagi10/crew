@@ -1,6 +1,6 @@
 //! Wearing a colour before you choose it.
 //!
-//! The `/theme` picker names twelve palettes and draws a strip of each one's
+//! The `/theme` picker names thirteen palettes and draws a strip of each one's
 //! colours beside its name — which tells you what a palette *is* and not what
 //! the screen you are looking at will *look like*. Those are different
 //! questions, and only one of them can be answered by a swatch: a palette is

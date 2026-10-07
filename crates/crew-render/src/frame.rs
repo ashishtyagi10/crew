@@ -144,6 +144,10 @@ pub(crate) fn render(
     solid_card.set_rects(gpu.queue(), solid, (w, h));
     let solid_card = (!solid_card.is_empty()).then_some(&*solid_card);
 
+    // Liquid glass refracts the page: it is drawn alone first, into the
+    // texture the glass pass samples (a no-op on every other theme).
+    let size = (gpu.config.width, gpu.config.height);
+    cell_grid.encode_behind(gpu.device(), &mut enc, size, bg_f32, paper);
     let scene_view = if use_crt { crt.scene_view() } else { &view };
     encode_scene(&mut enc, scene_view, bg_f32, paper, cell_grid, solid_card);
     if use_crt {

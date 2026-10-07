@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.80
+
+**A new theme: `glass`, the iPhone's liquid glass.** Pick it with
+`/theme glass`. The page is a wallpaper: broad fields of electric blue,
+violet and hot pink melting over a deep violet night, deepening toward the
+window's top and bottom edges the way the iPhone shades the wallpaper behind
+its status bar. Every pane is a slab of real glass over it. The body shows
+the wallpaper blurred, saturated and smoked so text reads on it. Over the
+last few pixels of the rim a lens bends it, pulling the wallpaper just
+outside the edge in under the glass, its colours splitting a little like a
+prism's. A white specular rim and a faint gloss sit on top. The accent is
+the iPhone's dark-mode mint and the face is SF Mono. A test holds the text
+at 7:1 over the brightest wallpaper the glass can sit on.
+
 ## 0.25.79
 
 **Cmd chords work on Windows and Linux.** There the Cmd key is the

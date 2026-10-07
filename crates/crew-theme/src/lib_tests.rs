@@ -40,7 +40,7 @@ fn the_phosphors_have_distinct_personalities() {
         .iter()
         .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
         .collect();
-    assert_eq!(styles.len(), 12);
+    assert_eq!(styles.len(), 13);
     for (i, (an, a)) in styles.iter().enumerate() {
         for (bn, b) in &styles[i + 1..] {
             assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
@@ -393,9 +393,10 @@ fn every_pool_survives_the_cut() {
     let dark = count(|id: ThemeId| id.theme().dark && !id.is_crt());
     let light = count(|id: ThemeId| !id.theme().dark);
     let crt = count(|id: ThemeId| id.is_crt());
+    // Glass (2026-10-07) joined the dark side.
     assert_eq!(
         (dark, light, crt),
-        (4, 4, 4),
+        (5, 4, 4),
         "pools are dark {dark}, light {light}, crt {crt} — `auto` needs both \
          appearances and the tubes are their own rotation"
     );
@@ -440,10 +441,10 @@ fn every_retired_theme_name_still_resolves() {
     // and `fern` were drawn afterwards, and `crt-violet` came BACK — it is a
     // member again rather than a retiree, which is why the retired list is 14.
     // Written as a sum rather than a difference so adding a palette does not
-    // read as retiring one.
+    // read as retiring one — `glass` was drawn on 2026-10-07.
     assert_eq!(
         RETIRED.len() + ALL_THEMES.len(),
-        26,
+        27,
         "every retiree is listed"
     );
 }
@@ -639,7 +640,9 @@ fn grain_is_newsprint_on_every_theme() {
     // well, and paper that lost its tooth would just be a flat page.
     for id in ALL_THEMES {
         let t = id.theme();
-        let glass = matches!(id, ThemeId::Nebula | ThemeId::Blossom) || id.is_crt();
+        // Liquid glass's page is a wallpaper, and a wallpaper has no tooth.
+        let glass =
+            matches!(id, ThemeId::Nebula | ThemeId::Blossom | ThemeId::Glass) || id.is_crt();
         let want = if glass { 0.0 } else { 1.2 };
         assert_eq!(t.grain, want, "{}: grain", id.as_str());
     }
@@ -650,8 +653,10 @@ fn grain_is_newsprint_on_every_theme() {
 /// stays a whisper — a mix weight past ~0.5 would read as wallpaper.
 #[test]
 fn modern_pages_carry_the_dot_lattice() {
-    // Not a tube: its page is the faceplate, with nothing woven on it.
-    for id in ALL_THEMES.into_iter().filter(|id| !id.is_crt()) {
+    // Not a tube: its page is the faceplate, with nothing woven on it. Not
+    // liquid glass: its page is a wallpaper, seen through glass.
+    let plain = |id: &ThemeId| !id.is_crt() && id.theme().liquid.is_none();
+    for id in ALL_THEMES.into_iter().filter(plain) {
         if let Some(m) = id.theme().modern {
             assert!(
                 m.dots > 0.0 && m.dots <= 0.5,
@@ -669,7 +674,9 @@ fn modern_pages_carry_the_dot_lattice() {
 /// modern family is trying not to be.
 #[test]
 fn modern_pages_carry_the_gradient_wash() {
-    for id in ALL_THEMES.into_iter().filter(|id| !id.is_crt()) {
+    // Liquid glass's wash IS its wallpaper: vivid on purpose, under glass.
+    let plain = |id: &ThemeId| !id.is_crt() && id.theme().liquid.is_none();
+    for id in ALL_THEMES.into_iter().filter(plain) {
         if let Some(m) = id.theme().modern {
             assert!(
                 m.wash > 0.0 && m.wash <= 0.35,
@@ -785,6 +792,9 @@ fn the_modern_backdrop_is_a_per_appearance_constant() {
     for id in ALL_THEMES {
         let t = id.theme();
         let Some(m) = t.modern else { continue };
+        if t.liquid.is_some() {
+            continue; // a wallpaper, not the modern page (see above)
+        }
         let (dots, wash) = match (id.is_crt(), t.dark) {
             (true, _) => (0.0, 0.0),
             (false, true) => (0.20, 0.15),
@@ -1228,6 +1238,12 @@ fn the_wash_never_pushes_a_role_under_its_floor() {
         let Some(m) = t.modern else {
             continue;
         };
+        // Liquid glass is a WALLPAPER under glass, not a page text sits on:
+        // its text rides the frosted slab, held by
+        // `glass::tests::liquid_text_reads_on_its_glass` instead.
+        if t.liquid.is_some() {
+            continue;
+        }
         for pole in [m.pole_a, m.pole_b] {
             let mix = |a: u8, b: u8| {
                 (f32::from(a) + (f32::from(b) - f32::from(a)) * m.wash).round() as u8

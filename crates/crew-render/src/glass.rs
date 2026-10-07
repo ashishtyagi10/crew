@@ -43,17 +43,26 @@ pub struct GlassCard {
     pub glint: f32,
     /// Where the frame's legends break the rim (see [`crate::notch`]).
     pub notch: crate::notch::Notch,
+    /// Liquid glass (`crew_theme::LiquidStyle`): refract, bevel, blur and
+    /// dispersion, then clear_rim and vibrance, two spare and an on flag.
+    /// All zero draws the sheet as before, never sampling the backdrop.
+    pub lens: [f32; 8],
 }
 
-/// 40 × f32 per instance: rect(4), params(4), tint(4), highlight(4), extra(4),
-/// then the notch depth with the gloss, glow and etch beside it (4), and the notch's
-/// top spans(8) and bottom spans(8).
-const INSTANCE_FLOATS: usize = 40;
+/// 48 × f32 per instance: rect(4), params(4), tint(4), highlight(4), extra(4),
+/// then the notch depth with the gloss, glow and etch beside it (4), the notch's
+/// top spans(8) and bottom spans(8), and the lens (8).
+const INSTANCE_FLOATS: usize = 48;
 
 /// GPU layer drawing rounded translucent cards via a signed-distance field.
 pub struct GlassLayer {
     pipeline: wgpu::RenderPipeline,
     bind_group: wgpu::BindGroup,
+    /// Group 1: what lies behind the glass (`crate::behind`) and how it is
+    /// sampled — a 1×1 stand-in until a liquid theme hands over the real one.
+    behind_bgl: wgpu::BindGroupLayout,
+    behind_group: wgpu::BindGroup,
+    sampler: wgpu::Sampler,
     vp_buf: wgpu::Buffer,
     inst_buf: Option<wgpu::Buffer>,
     count: u32,
@@ -110,6 +119,14 @@ fn pack(c: &GlassCard) -> [f32; INSTANCE_FLOATS] {
         b[2][1],
         b[3][0],
         b[3][1],
+        c.lens[0],
+        c.lens[1],
+        c.lens[2],
+        c.lens[3],
+        c.lens[4],
+        c.lens[5],
+        c.lens[6],
+        c.lens[7],
     ]
 }
 
@@ -149,15 +166,64 @@ impl GlassLayer {
             }],
         });
 
+        let behind_bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("glass_behind_bgl"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("glass_behind_sampler"),
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+        let stand_in = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("glass_behind_stand_in"),
+            size: wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+        let behind_group = behind_group(
+            device,
+            &behind_bgl,
+            &stand_in.create_view(&Default::default()),
+            &sampler,
+        );
+
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("glass_layout"),
-            bind_group_layouts: &[Some(&bgl)],
+            bind_group_layouts: &[Some(&bgl), Some(&behind_bgl)],
             immediate_size: 0,
         });
 
         let inst_attrs = wgpu::vertex_attr_array![
             0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4, 4 => Float32x4,
-            5 => Float32x4, 6 => Float32x4, 7 => Float32x4, 8 => Float32x4, 9 => Float32x4];
+            5 => Float32x4, 6 => Float32x4, 7 => Float32x4, 8 => Float32x4, 9 => Float32x4,
+            10 => Float32x4, 11 => Float32x4];
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("glass_pipeline"),
             layout: Some(&layout),
@@ -191,10 +257,18 @@ impl GlassLayer {
         Self {
             pipeline,
             bind_group,
+            behind_bgl,
+            behind_group,
+            sampler,
             vp_buf,
             inst_buf: None,
             count: 0,
         }
+    }
+
+    /// Sample `view` as what lies behind the glass (see `crate::behind`).
+    pub fn set_behind(&mut self, device: &wgpu::Device, view: &wgpu::TextureView) {
+        self.behind_group = behind_group(device, &self.behind_bgl, view, &self.sampler);
     }
 
     /// Upload cards as instance data.
@@ -238,9 +312,32 @@ impl GlassLayer {
         };
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, &self.bind_group, &[]);
+        pass.set_bind_group(1, &self.behind_group, &[]);
         pass.set_vertex_buffer(0, buf.slice(..));
         pass.draw(0..6, 0..self.count);
     }
+}
+
+fn behind_group(
+    device: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+    view: &wgpu::TextureView,
+    sampler: &wgpu::Sampler,
+) -> wgpu::BindGroup {
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("glass_behind_bg"),
+        layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::Sampler(sampler),
+            },
+        ],
+    })
 }
 
 #[cfg(test)]

@@ -219,7 +219,13 @@ impl PaperBgPass {
             k.wander,
             k.live,
             k.eddy,
-            0.0,
+            // Liquid glass's page is a wallpaper (see `wallpaper` in the
+            // shader), only ever with a backdrop to draw it from.
+            if modern.is_some() && crew_theme::theme().liquid.is_some() {
+                1.0
+            } else {
+                0.0
+            },
             0.0,
         ];
         queue.write_buffer(&self.uniform_buf, 0, f32s_as_bytes(&data));

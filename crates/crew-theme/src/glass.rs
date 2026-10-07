@@ -163,6 +163,9 @@ pub fn style_for(t: &Theme) -> GlassStyle {
     if t.is_tube() {
         return tube_glass(t);
     }
+    if t.liquid.is_some() {
+        return liquid_glass(t);
+    }
     let white = (255, 255, 255);
     match t.dark {
         false => GlassStyle {
@@ -239,6 +242,36 @@ pub fn tube_glass(t: &Theme) -> GlassStyle {
         glow: 1.0,
         // The tube's raster, if it keeps one, lives in its glass.
         etch: t.crt.map_or(0.0, |c| c.etch),
+    }
+}
+
+/// The glass theme's slab ([`crate::LiquidStyle`] carries its optics): a deep
+/// tint frosting the wallpaper the renderer refracts under it — heavier
+/// toward the bottom, the way thick glass deepens away from the light — a
+/// crisp white specular rim, a faint gloss across the upper face and a soft
+/// black shadow. The tint is the page lifted a little toward blue, so the
+/// frost reads as smoked glass rather than grey.
+///
+/// Held by the text on it: `liquid_text_reads_on_its_glass` keeps the ink
+/// above 7:1 over the brightest wallpaper the frost can sit on.
+pub fn liquid_glass(t: &Theme) -> GlassStyle {
+    let p = t.page_bg;
+    GlassStyle {
+        tint: (
+            p.0.saturating_add(3),
+            p.1.saturating_add(4),
+            p.2.saturating_add(8),
+        ),
+        alpha_top: 0.66,
+        alpha_bottom: 0.74,
+        highlight: (255, 255, 255),
+        highlight_alpha: 0.9,
+        shadow_alpha: 0.38,
+        noise: 0.0,
+        edge_glow: 0.0,
+        gloss: 0.10,
+        glow: 0.0,
+        etch: 0.0,
     }
 }
 

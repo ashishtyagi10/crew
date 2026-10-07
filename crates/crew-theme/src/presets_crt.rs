@@ -77,6 +77,7 @@ pub static CRT_GREEN: Theme = Theme {
         dots: 0.0,
         wash: 0.0,
     }),
+    liquid: None,
 };
 
 /// **Neon amber phosphor** (P3, Tron-grid): saturated amber traced over a
@@ -143,4 +144,5 @@ pub static CRT_AMBER: Theme = Theme {
         dots: 0.0,
         wash: 0.0,
     }),
+    liquid: None,
 };

@@ -3887,7 +3887,7 @@ pages were the worst of it. Both meter families (the footer's rolling windows
 and the sidebar's system gauges) now lift their track until it clears **1.6:1
 as drawn** — the least a groove can be and still be one — and stop there,
 because a track walked any further reads as a full bar. `metertrack` is that
-one rule, and a test holds both families to it on all twelve themes.
+one rule, and a test holds both families to it on every theme.
 
 **Cards assemble.** A new pane doesn't appear — its frame draws itself outward
 from the four corners, so the card is *built* in front of you. Only the frame
@@ -4020,6 +4020,16 @@ opposite of what a picker is for.
 - **`fern`** — a faint mint page under a deep green-teal light; the only light
   palette whose accent is green, so it cannot be mistaken for the two warm ones
   at a glance.
+- **`glass`** — the iPhone's liquid glass. The page is a wallpaper — broad
+  fields of electric blue, violet and hot pink melting over a deep violet
+  night, darkening toward the window's top and bottom edges the way the
+  iPhone shades the wallpaper behind its status bar — and every pane is a slab
+  of glass over it: the wallpaper blurred, saturated and smoked in the body so
+  text reads on it, bent by a lens over the last few pixels of the rim (the
+  wallpaper just outside the edge pulled in under it, its colours splitting a
+  little), with a white specular rim and a faint gloss on top. The accent is
+  the iPhone's dark-mode mint; the face is SF Mono. A test holds the ink at
+  7:1 over the brightest wallpaper the frost can sit on.
 - **`crt-violet`** — the fourth phosphor: a violet tube, the glow of a vector
   display rather than a terminal. Its ladder is one hue at six brightnesses,
   like the other tubes, and it is the only one of the four whose phosphor
