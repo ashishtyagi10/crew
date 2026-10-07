@@ -392,3 +392,24 @@ fn a_coloured_tube_draws_its_sparkline_in_its_phosphor() {
         assert!(d < 25.0, "{}: sparkline hue is {d:.0}° off", id.as_str());
     }
 }
+
+/// On a coloured tube a link is BRIGHTER than the prose round it: at the
+/// link blue's lightness it read as muted text, the opposite of a link.
+#[test]
+fn a_tubes_link_is_brighter_than_its_prose() {
+    for id in crate::ALL_THEMES {
+        let t = id.theme();
+        if !t.is_tube() || crate::oklch::from_srgb(t.ink).c < 0.04 {
+            continue;
+        }
+        let (l, ink) = (
+            crate::oklch::from_srgb(link(t)).l,
+            crate::oklch::from_srgb(t.ink).l,
+        );
+        assert!(
+            l > ink,
+            "{}: link L {l:.2} under the ink's {ink:.2}",
+            id.as_str()
+        );
+    }
+}

@@ -112,8 +112,10 @@ impl ViewPane {
                         bg: cell.bg.unwrap_or(page_bg),
                         bold: cell.bold,
                         italic: cell.italic,
-                        // An inline code chip is a capsule of its own.
+                        // An inline code chip is a capsule of its own; a link
+                        // is ruled and `~~struck~~` text struck, as in chat.
                         mark: cell.mark,
+                        deco: crate::chatspan::deco(cell),
                         ..Default::default()
                     });
                 },

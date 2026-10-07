@@ -65,7 +65,7 @@ pub(crate) fn line_cells(row: u16, line: &CardLine, cols: u16, page: Color) -> V
             bg: cell.bg.unwrap_or(page),
             bold: cell.bold,
             italic: cell.italic,
-            deco: crate::chatspan::deco(cell.strike),
+            deco: crate::chatspan::deco(cell),
             mark: cell.mark,
             ..Default::default()
         });
