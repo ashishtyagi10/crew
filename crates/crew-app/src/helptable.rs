@@ -58,10 +58,10 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ("Shift+PageUp / Shift+PageDown", "Scroll the focused pane"),
     ("Shift+Home / Shift+End", "Scroll to top / bottom"),
     (
-        "Drag a card's right border",
+        "Drag a card's right edge",
         "Scroll it \u{b7} the nav's LOG scrolls with the wheel",
     ),
-    ("Double-click / Triple-click", "Select the word / the line"),
+    ("Double / triple click", "Select the word / the line"),
     (
         "On a card's top border",
         "Double-click zooms \u{b7} drag it onto another card to swap them",
@@ -77,7 +77,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
         "Recall a line you typed before, filtered by what is in the bar",
     ),
     (
-        "! · * · ? · ?? (in input)",
+        "! * ? ?? (in input)",
         "New pane / broadcast / ask the AI for a command / explain this pane",
     ),
     ("Cmd+Q", "Quit"),

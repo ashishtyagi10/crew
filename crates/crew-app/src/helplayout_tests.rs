@@ -113,3 +113,15 @@ fn a_filtered_list_keeps_only_the_headings_it_needs() {
         .collect();
     assert_eq!(heads, vec!["in an agent pane"]);
 }
+
+/// The first screen reads as one table: every key there, as a Mac draws it,
+/// fits the column with its gap. `Drag a card's right border` and
+/// `Double-click / Triple-click` each took a row of their own, their
+/// descriptions dangling on the next.
+#[test]
+fn every_key_on_the_first_screen_fits_its_column() {
+    for (k, _) in crate::helptable::BINDINGS {
+        let w = str_w(&crate::chordglyph::mac(k));
+        assert!(w + 2 <= KEY_COL, "{k:?} is {w} columns");
+    }
+}
