@@ -8,7 +8,9 @@ use super::{
 #[test]
 fn a_short_pane_keeps_the_machine_and_loses_the_history() {
     let _g = crate::app::theme_test_guard();
-    let d = DashPane::new();
+    // A week with something in it: a quiet one draws no history bands at all.
+    let mut d = DashPane::new();
+    d.seed_for_test();
     let rows_of = |rows: u16| -> Vec<u16> {
         let mut v: Vec<u16> = d
             .cells(100, rows)
@@ -148,4 +150,41 @@ fn both_charts_carry_their_axes() {
     assert_eq!(axis, "6d5d4d3d2d1dnow", "{axis:?}");
     // And inside the pane: an axis drawn past the last row is not drawn.
     assert!(cells.iter().all(|c| c.row < rows && c.col < cols));
+}
+
+/// A quiet week paints nothing under its USAGE line — no grid of idle dots,
+/// no empty cost bars — and a week with something in it starts its heatmap a
+/// column clear of the `now` label.
+#[test]
+fn a_quiet_week_draws_no_history_and_a_busy_one_clears_its_labels() {
+    let _g = crate::app::theme_test_guard();
+    // An explicitly empty week: `new` reads whatever ledger the run has.
+    let mut quiet = DashPane::new();
+    quiet.buckets = crate::usageledger::Buckets {
+        hourly: vec![0; crate::usageledger::DAYS * crate::usageledger::HOURS],
+        daily_cost: vec![0; crate::usageledger::DAYS],
+        tok_in: 0,
+        tok_out: 0,
+        cost_microusd: 0,
+    };
+    let under = |d: &DashPane| -> Vec<f32> {
+        d.paint(100, 40, 2.0)
+            .into_iter()
+            .filter(|p| p.y >= f32::from(USE_TOP))
+            .map(|p| p.x)
+            .collect()
+    };
+    assert!(under(&quiet).is_empty(), "a quiet week drew history");
+    let mut busy = DashPane::new();
+    busy.seed_for_test();
+    assert!(!under(&busy).is_empty(), "a busy week draws its history");
+    let heat_end = USE_TOP + crate::usageledger::DAYS as u16 * layout(40).heat_h;
+    let heat_x = busy
+        .paint(100, 40, 2.0)
+        .into_iter()
+        .filter(|p| p.y >= f32::from(USE_TOP) && p.y < f32::from(heat_end))
+        .map(|p| p.x)
+        .fold(f32::MAX, f32::min);
+    // `now` is written at column 1 and is three wide.
+    assert!(heat_x >= 5.0, "the heatmap starts at {heat_x}, under `now`");
 }

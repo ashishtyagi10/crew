@@ -126,8 +126,10 @@ impl DashPane {
         // what the pane's height buys is the rows each of them is drawn over.
         let l = layout(rows);
         let heat_rows = crate::usageledger::DAYS as u16 * l.heat_h;
-        if rows > USE_TOP + heat_rows {
-            let grid_w = cols.saturating_sub(6);
+        let quiet = dashtext::quiet_week(&self.buckets);
+        if rows > USE_TOP + heat_rows && !quiet {
+            let at = dashtext::GRID_AT;
+            let grid_w = cols.saturating_sub(at + 2);
             let mut c = Canvas::new(grid_w, heat_rows, aspect);
             let (w, h) = c.size();
             crate::plot::heatmap::draw(
@@ -145,12 +147,12 @@ impl DashPane {
             out.extend(
                 c.paint()
                     .into_iter()
-                    .map(|p| p.shifted(4.0, f32::from(USE_TOP))),
+                    .map(|p| p.shifted(f32::from(at), f32::from(USE_TOP))),
             );
         }
 
         // What each day cost, over whatever rows the division left it.
-        if l.cost_rows > 0 {
+        if l.cost_rows > 0 && !quiet {
             let w = cols.saturating_sub(2);
             let bars = crate::costbars::paint(&self.buckets.daily_cost, w, l.cost_rows, aspect);
             out.extend(

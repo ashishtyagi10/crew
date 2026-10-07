@@ -82,6 +82,7 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
 
     let l = layout(rows);
     let heat_end = USE_TOP + crate::usageledger::DAYS as u16 * l.heat_h;
+    let quiet = quiet_week(&d.buckets);
     if rows > heat_end {
         let b = &d.buckets;
         put(
@@ -96,22 +97,28 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
             cols,
         );
         // Each label centred on the band it names: a three-row day must
-        // not read as a label with two unlabelled stripes under it.
-        for (i, label) in ["6d", "5d", "4d", "3d", "2d", "1d", "now"]
-            .iter()
-            .enumerate()
-        {
+        // not read as a label with two unlabelled stripes under it. A quiet
+        // week says so on the line above and draws no empty grid under it.
+        let labels: &[&str] = if quiet {
+            &[]
+        } else {
+            &["6d", "5d", "4d", "3d", "2d", "1d", "now"]
+        };
+        for (i, label) in labels.iter().enumerate() {
             let row = USE_TOP + i as u16 * l.heat_h + (l.heat_h - 1) / 2;
             put(&mut out, label, 1, row, t.text_muted, cols);
         }
         // …and the hours across the bottom of them, the way `/usage`
         // names them: seven unlabelled bands cannot say whether a stripe
         // is your morning or your evening. The grid's own geometry —
-        // inset four columns, two of air on the right (see `paint`).
-        crate::usageaxis::hour_ticks(&mut out, 4, cols.saturating_sub(6), heat_end, cols);
+        // inset GRID_AT columns, two of air on the right (see `paint`).
+        if !quiet {
+            let grid_w = cols.saturating_sub(GRID_AT + 2);
+            crate::usageaxis::hour_ticks(&mut out, GRID_AT, grid_w, heat_end, cols);
+        }
     }
 
-    if l.cost_rows > 0 {
+    if l.cost_rows > 0 && !quiet {
         // A week with nothing spent has no peak: `peak $0.00` read as a
         // meter reading zero, the way the USAGE line did before it said so.
         let peak = d.buckets.daily_cost.iter().copied().max().unwrap_or(0);
@@ -134,6 +141,17 @@ pub(super) fn cells(d: &DashPane, cols: u16, rows: u16) -> Vec<CellView> {
         }
     }
     out
+}
+
+/// Where the heatmap starts: day labels at column 1 and a column of air —
+/// `now` touched a grid inset four.
+pub(crate) const GRID_AT: u16 = 5;
+
+/// A week with nothing used and nothing spent: the dash says so in its USAGE
+/// line and draws neither the heatmap nor the cost bars, which were 60% of
+/// the pane saying nothing in dots and empty bars.
+pub(crate) fn quiet_week(b: &crate::usageledger::Buckets) -> bool {
+    b.hourly.iter().all(|&v| v == 0) && b.daily_cost.iter().all(|&v| v == 0)
 }
 
 #[cfg(test)]
