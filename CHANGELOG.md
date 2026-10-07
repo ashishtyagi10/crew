@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.65
+
+**`/keys` reads as one table.** Three rows in the first section had keys
+too wide for the key column — "Drag a card's right border",
+"Double-click / Triple-click" and the input bar's `! · * · ? · ??`. Each
+took a row to itself, with its description dangling on the next. They
+now read "Drag a card's right edge", "Double / triple click" and
+`! * ? ??`, and sit on one row with their descriptions.
+
 ## 0.25.64
 
 **Links on the CRT tubes glow in the tube's own colour.** On the green
