@@ -443,3 +443,21 @@ fn paint_is_drawn_over_cell_backgrounds() {
     let paint_i = quads.len() - 1;
     assert!(bg_i < paint_i, "paint is emitted after the cell background");
 }
+
+/// A one-cell inline chip is a capsule wider than its glyph, not a disc the
+/// letter is clipped by: the mark reaches MARK_PAD px past its cell each side.
+#[test]
+fn a_one_cell_mark_is_wider_than_its_cell() {
+    let mut fs = crate::embedfont::font_system();
+    let mut c = cell(3, 0, 'w', (10, 20, 30));
+    c.mark = true;
+    let panes = vec![pane(vec![c], false, false)];
+    let (quads, ..) = build(&panes, &mut fs, false, no_glass());
+    let q = quads.first().expect("the chip's capsule");
+    assert!(q.w >= 8.0 + 4.0, "a one-cell chip is {} wide", q.w);
+    assert!(
+        (q.x - (3.0 * 8.0 - 2.0)).abs() < 1e-3,
+        "centred on its cell: {}",
+        q.x
+    );
+}

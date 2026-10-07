@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.1
+
+**A one-letter code chip fits its letter.** Inline code is drawn as a small
+capsule, and one a single character wide (`w`, `/`) came out as a disc
+narrower than the letter, clipped at the curve. Chips now reach two pixels
+past their text on each side, so a one-letter chip is a short capsule
+around it.
+
 ## 0.26.0
 
 **A quiet week leaves `/dash` quiet.** With nothing used in the last seven
