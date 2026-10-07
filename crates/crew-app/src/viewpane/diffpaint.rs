@@ -146,11 +146,15 @@ fn line_paint(
     mark: Option<(usize, usize)>,
     t: &crew_theme::Theme,
 ) -> Vec<CharPaint> {
+    // The chat's diff inks (`chatink::token_fg`), so a ```diff fence and an
+    // opened .patch read alike — and on a tube, where `ansi[1]` and `ansi[2]`
+    // are two shades of one phosphor, a removed line is the dimmer one.
+    use crate::md::syntax::Token;
     let base = match kind {
         Kind::File => t.ink,
-        Kind::Hunk => t.ansi[6],
-        Kind::Added => t.ansi[2],
-        Kind::Removed => t.ansi[1],
+        Kind::Hunk => crate::chatink::token_fg(Token::Hunk),
+        Kind::Added => crate::chatink::token_fg(Token::Added),
+        Kind::Removed => crate::chatink::token_fg(Token::Removed),
         Kind::Context => t.ink,
     };
     let bold = matches!(kind, Kind::File | Kind::Hunk);

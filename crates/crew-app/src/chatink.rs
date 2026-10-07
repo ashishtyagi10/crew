@@ -216,9 +216,10 @@ pub(crate) fn token_fg(token: crate::md::syntax::Token) -> Color {
         Token::Keyword | Token::Type | Token::Func | Token::Number | Token::Attr => {
             crate::chathue::token_fg(token)
         }
-        // Diff line classes take the theme's RAW slots, matching the viewer's
-        // diff rung (`viewpane::lines::diff_lines`) so a ```diff fence in
-        // chat and an opened .patch file colour identically. No `separated`
+        // Diff line classes take the theme's RAW slots — but for a tube's
+        // removed line ([`diff_removed`]) — and the viewer's diff rungs
+        // (`viewpane::diffpaint`, `diffsplitdraw`) ask here, so a ```diff
+        // fence in chat and an opened .patch file colour identically. No `separated`
         // walk here: the +/− marker at column zero already sets these lines
         // apart from prose, hue is the signal, and the raw slots answer to
         // `crew-theme`'s own `contrast_thresholds` for readability.

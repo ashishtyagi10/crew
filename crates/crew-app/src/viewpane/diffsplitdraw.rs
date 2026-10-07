@@ -18,9 +18,10 @@ use crate::viewpane::outline::Mark;
 /// already known, so it is asked directly.
 fn side_paint(text: &str, other: Option<&str>, kind: Kind) -> Vec<CharPaint> {
     let t = crew_theme::theme();
+    // The unified rung's inks (`diffpaint::line_paint`).
     let base = match kind {
-        Kind::Added => t.ansi[2],
-        Kind::Removed => t.ansi[1],
+        Kind::Added => crate::chatink::token_fg(crate::md::syntax::Token::Added),
+        Kind::Removed => crate::chatink::token_fg(crate::md::syntax::Token::Removed),
         _ => t.ink,
     };
     let body = &text[text.len().min(1)..];

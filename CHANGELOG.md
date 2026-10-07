@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.82
+
+**A diff on a tube tells its sides apart.** In the file viewer on a CRT
+theme, removed and added lines were two near-identical shades of the
+phosphor (1.18:1), so a removed line read as an added one. The viewer now
+uses the same diff colours as an agent pane: on a tube the removed side is
+the dimmer one, at least 1.7:1 from the added side, in the unified and
+side-by-side views alike.
+
 ## 0.25.81
 
 **The document window names its own chords off a Mac.** It takes plain
