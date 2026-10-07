@@ -37,7 +37,7 @@ pub(super) fn command_bar(
     // same selected look the panel listing uses for its cursor row (ink on
     // an accent fill) — a highlighted, still-editable suggestion.
     let cmd_style = if suggested {
-        Style::new().fg(bg).bg(accent_color())
+        panellist::on_accent()
     } else {
         Style::new().fg(ink).bg(bg)
     };

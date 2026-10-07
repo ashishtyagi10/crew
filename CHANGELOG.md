@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.71
+
+**The far cursor bar reads on a tube.** On the CRT themes the glow round
+the bright cursor bar swallowed a regular-weight name, so `../` under the
+cursor all but disappeared. The bar's text is bold now, like the path tab
+above it, and so are a highlighted `!` suggestion and the drive list's
+choice.
+
 ## 0.25.70
 
 **Inline code chips stay separate.** Two pieces of inline code that
