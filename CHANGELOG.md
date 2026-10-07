@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.4
+
+**The manuals catch up.**
+- `/logout` is documented in the README and the manual.
+- The README now covers approval modes: Shift+Tab, `/approvals` and
+  `/approvals default`, along with `/init` and `/clear`.
+- It no longer claims “seven” construct commands; `/help` lists them all.
+- The manual's settings section lists each field on the card it is actually
+  on. Glass, Motion, Density, Line spacing, Contrast, Shape cues, Gradient
+  colour, Paper texture and Drifting background are on CANVAS, not
+  APPEARANCE.
+- The settings list adds Text gamma, the Auto theme fields, the switches,
+  and the USAGE budgets.
+- “Sidebar” is “left nav” throughout, as the app says it.
+
 ## 0.26.3
 
 **A swarm's record keeps its table on a narrow pane.** When a swarm run

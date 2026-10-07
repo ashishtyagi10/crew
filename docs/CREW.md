@@ -244,7 +244,7 @@ keeps the marker, which is the one that says the pane is alive, and one with
 fewer than six columns left in the middle leaves the middle empty rather than
 drawing a syllable and an ellipsis. The focused pane is protected
 from demotion. To restore a minimized pane to the full grid, click its thumbnail,
-click its entry in the sidebar's PANES list, or use **Cmd+1 … 9** to jump to it.
+click its entry in the left nav's PANES list, or use **Cmd+1 … 9** to jump to it.
 
 **Colours that read on the page they land on.** Six roles were constants
 chosen by eye on a dark theme and never measured against a light one: the
@@ -273,7 +273,7 @@ geometry to navigate, Cmd+Arrow falls back to stepping through the panes.
 
 **Pointer feedback.** The `–` and `×` on a card's border light under the
 cursor — `–` in the accent, `×` in the bell colour, so the control that
-ends a running program says so before it is clicked. A hovered sidebar PANES
+ends a running program says so before it is clicked. A hovered left-nav PANES
 row lifts its ink to full contrast rather than washing a background behind it:
 the page's contrast budget is spent on the theme's own wash, so hover buys its
 emphasis with ink. Both repaint only when the target changes, so sweeping the
@@ -448,7 +448,7 @@ is nothing behind it to reach.
 anything is clicked: an I-beam over text a click would select, a hand over the
 border buttons, the nav rows and the `+N` tile, an open hand over a card's
 legend row (the handle it is carried by) that closes while one is in hand, and
-a column-resize arrow on the sidebar's edge.
+a column-resize arrow on the left nav's edge.
 
 **The rail, and the chevron.** The nav starts COLLAPSED: seven columns holding
 one row per pane — the focus caret, the pane's number, and the same mark its
@@ -502,7 +502,7 @@ clock is what a rail with one row left still shows. Nothing is ever clipped
 into a smaller-looking number: a count that will not fit whole tightens (`● 9`
 to `●9`) and then says `●…` rather than draw its leading digits.
 
-**Resizing the sidebar.** Open it first, then drag its inner edge. The width was
+**Resizing the left nav.** Open it first, then drag its inner edge. The width was
 a figure in the
 Settings form and nowhere else; it is now also a handle, clamped to the same
 160–320 px the form clamps to. The nav is chrome, not a pane, so the grid never
@@ -848,7 +848,7 @@ The docked command bar supports:
   proportional Unicode fallbacks and icon/symbol fonts that ship mis-flagged
   as monospace (Arial Unicode MS, Symbols Nerd Font Mono) don't appear.
 - **`/update`** — downloads the latest release binary over the running one and
-  **restarts Crew into it** (a fresh detached process; the old process exits
+  **restarts crew into it** (a fresh detached process; the old process exits
   after a brief "restarting…" beat). Progress streams into the left-nav UPDATE
   card. The quiet background check installs updates without restarting — a
   blinking nav legend (`crew vA → vB · /update`) says one is waiting, and the
@@ -986,7 +986,7 @@ longer aim at.
   Crew mostly passed already, by accident of taste rather than by rule —
   attention markers are distinct glyphs (`!`, `⚑`, `✓`, `⊗`, `?`) that happen
   to share the bell colour, broadcast is `»` and not just magenta, every toast
-  names itself in its legend, and a busy sidebar row spins. Two places did
+  names itself in its legend, and a busy left-nav row spins. Two places did
   not, and this turns them on: the **load gauges** mark their band (`!` past
   70%, `‼` past 90%, riding the label's trailing space so no column is spent),
   and a **working pane in the minimized strip** draws a half-filled `◐` rather
@@ -998,7 +998,7 @@ longer aim at.
   color*. It is off unless asked, because a glyph in every gauge row is noise
   for a reader who can see the colour: the rule is *never colour alone* for
   anyone who needs it, not *always both* for everyone. Live and persisted (the
-  `shape_cues` key; **Settings → APPEARANCE → Shape cues**).
+  `shape_cues` key; **Settings → CANVAS → Shape cues**).
 
 - **`/contrast [auto|normal|high]`** — the WCAG floor every derived colour is
   held to. Crew derives its readable roles rather than hard-coding them: the
@@ -1030,7 +1030,7 @@ longer aim at.
   ladder of *relationships* between syntax classes, cached per theme, and
   moving one rung moves the rest — that is its own iteration, not a footnote
   to this one. Live and persisted (the same `contrast` key as
-  **Settings → APPEARANCE → Contrast**); no argument reports the setting and
+  **Settings → CANVAS → Contrast**); no argument reports the setting and
   the band it resolved to.
 
 - **`/focus`** (`Ctrl+Shift+F`) — **focus mode**: crew stops interrupting.
@@ -1057,7 +1057,7 @@ longer aim at.
   gutter and drops the chat spacer (each card still opens with its sender's
   coloured gutter glyph, so the boundary is drawn in ink rather than in space);
   `roomy` opens both up, which is the one to reach for on a large display.
-  Live and persisted — the same `density` key as **Settings → APPEARANCE →
+  Live and persisted — the same `density` key as **Settings → CANVAS →
   Density**.
 
 - **`/leading [tight|normal|relaxed|loose]`** — how much air sits between rows
@@ -1080,7 +1080,7 @@ longer aim at.
   highlighted row reads as a stripe with the text loose inside it). The cell
   changes, so the grid is remeasured and every pane's program is told its new
   size. Live and persisted — the same `leading` key as **Settings →
-  APPEARANCE → Line spacing**.
+  CANVAS → Line spacing**.
 
 - **`/grain [off|light|medium|heavy|<0-2>]`** — how much newsprint texture the
   page carries. The grain is a deliberate part of crew's look: a per-pixel
@@ -1105,13 +1105,13 @@ longer aim at.
   frame. An explicit level overrules the OS in **both** directions: `/motion
   full` keeps crew moving under Reduce Motion, and `/motion off` stays off
   without it. Live and persisted (the same `motion` key as **Settings →
-  APPEARANCE → Motion**, whose picker shows `auto (off)` / `auto (full)` so
+  CANVAS → Motion**, whose picker shows `auto (off)` / `auto (full)` so
   the deferral still tells you what it decided). No argument reports the
   preference, what it resolved to, and whether the OS is asking.
 
 - **`/gradient [off|subtle|lively|<name>|<#a> <#b>|reset]`** — the canvas's
   colour. With a level it sets how far the gradient breathes (the same
-  `gradient` key as **Settings → APPEARANCE → Gradient colour**). With a
+  `gradient` key as **Settings → CANVAS → Gradient colour**). With a
   **name** or two hex colours it replaces the theme's poles with a pair of
   your own — the wash, the dot lattice, every card's stroke and the footer
   meters all run between them.
@@ -1670,7 +1670,7 @@ longer aim at.
   restores the original `!` text, and typing further just edits the
   suggestion as plain text.
 - **`/dash`** — opens the **dashboard**: one screen of the machine and the
-  week, composed from the same widgets the sidebar uses at a size worth
+  week, composed from the same widgets the left nav uses at a size worth
   looking at. Three **dials** (CPU, memory, disk) beside a **CPU curve**
   labelled with the span it draws (up to four minutes); the **network** with both directions on one axis (down above
   the line, up below); a **heatmap** of the last seven days of token use by
@@ -1934,7 +1934,7 @@ always said "something happened here", and the number is the difference between
 glancing over and going back. It caps at `99+`.
 
 The count appears in all three places a pane is listed: its own card, its
-**minimized thumbnail**, and the sidebar's **PANES** row — the one view that
+**minimized thumbnail**, and the left nav's **PANES** row — the one view that
 lists panes you cannot see — and never on the pane you are looking at.
 
 The mark follows the tail while you are watching a pane and nothing new is
@@ -2108,7 +2108,7 @@ zero-padded so the number does not jitter in width as it counts.
 
 Every pane's top border carries the git state of **the directory that pane is
 in**: `main ●3 ↑2 ↓1` — branch, changed files, commits ahead and behind the
-upstream. The sidebar has always shown this for crew's own working directory;
+upstream. The left nav has always shown this for crew's own working directory;
 the badge shows it per pane, which is what you want when one pane runs an agent
 in one worktree and another runs tests in a second. A clean repo is just its
 branch — no tick, no zeroes.
@@ -2454,6 +2454,11 @@ and a typo gets a **did-you-mean** suggestion):
   browser (`/stop` cancels), and on success the provider is selected and the
   grant stored — no key ever pasted. **`/model <n>`** otherwise switches
   to entry *n*, storing the provider pin so it survives restarts.
+- **`/logout`** — remove a stored OAuth sign-in: a picker lists the grants
+  crew holds (pick one to remove it — a key for that provider, if there is
+  one, serves again), and **`/logout <name>`** removes one directly. Grants a
+  provider's own CLI keeps (`claude`, `codex`) are that CLI's to remove, and
+  the picker says which command does it.
 - **`/model <agent> <model|default>`** — pin an agent to a model for the
   session. Pins apply per agent, so **planner, coder, and reviewer can run
   three different models side by side**; every change re-emits the roster so
@@ -2518,7 +2523,7 @@ and a typo gets a **did-you-mean** suggestion):
 - **plan first, for a stretch of work** — say **“plan first”** (or “plan
   mode”) and every plain task from then on is drafted as a plan and waits for
   your “approve”, however it was phrased; **“stop planning”** ends the mode.
-  Claude Code puts this on shift-tab and Codex on a mode flag, and both are
+  Claude Code puts this on Shift+Tab and Codex on a mode flag, and both are
   answering the same want: think before you touch anything, for a run of
   related tasks rather than for one message. Crew had the shape already (“draft
   a plan for …”) but it was per-message, so the one you forgot to ask for was
@@ -3734,7 +3739,7 @@ not installed is skipped by the viewer and answered "not installed" to an
 agent. **`/lsp`** shows the table — language, command, installed or not —
 and which servers this crew has running, by project root.
 
-## Sidebar
+## Left nav
 
 A docked left panel (toggle with **Cmd+G**) with stacked, line-divided sections:
 a live **TIME** clock, **SYSTEM** CPU/MEM/DISK dials followed by a moving
@@ -3815,21 +3820,26 @@ value.
 
 
 - **APPEARANCE** — **Font family** (type-to-search over installed monospace
-  families), **Font size**, **Paper grain** (0–2 amplitude), **Smoothing**
-  (←/→/Space cycle `off · light · medium · heavy` — the same ladder and
-  `font_smooth` key as `/smooth`; a custom numeric strength shows as its
-  number), **Theme**
-  (←/→/Space cycle through the four rotations and every palette), **Accent
-  (#hex)** (override the
-  theme accent; clear to use the default), **Glass** (←/→/Space cycle
-  `off · low · medium · high`), **Motion** (`off · subtle · full`),
-  **Gradient colour** (`off · subtle · lively`), **Paper texture** (on/off),
-  **Drifting background** (on/off).
-- **CANVAS** also carries **Opacity %**, beside **Glass**.
+  families), **Font size**, **Grain (0-2)** (the paper's grain amplitude),
+  **Smoothing** (←/→/Space cycle `off · light · medium · heavy` — the same
+  ladder and `font_smooth` key as `/smooth`; a custom numeric strength shows
+  as its number), **Text gamma**, **Theme** (←/→/Space cycle through the four
+  rotations and every palette), **Auto dark** / **Auto light** (what `auto`
+  serves in each appearance) and **Auto day from** / **Auto day to** (when
+  the clock calls it day), and **Accent (#hex)** (override the theme accent;
+  clear to use the default).
+- **CANVAS** — **Glass** (←/→/Space cycle `off · low · medium · high`) beside
+  **Opacity %**, **Motion** (`off · subtle · full`), **Density**, **Line
+  spacing**, **Contrast**, **Shape cues**, **Gradient colour** (`off · subtle
+  · lively`), and the on/off switches **Card border marks**, **Reveal
+  invisibles**, **Code diagnostics (LSP)**, **Paper texture** and **Drifting
+  background**.
 - **WINDOW** — **Nav width**, **Show nav**, **Launch maximized**.
 - **NOTIFICATIONS** — the master switch plus per-event toggles (**done** — a command or an agent's turn,
   **bell**, **pane exit**), the **min secs** threshold, and the watched
   output **patterns** as a one-per-line text area.
+- **USAGE** — **5h budget (M)** and **7d budget (M)**: the token budgets, in
+  millions, the footer's two rolling usage bars are drawn against.
 
 Number fields (**Font size**, **Grain**, **Opacity %**, **Nav width**, **Min
 secs**, the two budgets) step with **↑ / ↓** — one notch each (opacity 5%,
@@ -3841,7 +3851,7 @@ Settings persist to `$XDG_CONFIG/crew/config.toml` and apply live on Save.
 ### Motion
 
 Crew animates like an instrument panel: elements assemble, marks travel, and
-nothing teleports. **Motion** (APPEARANCE) sets how much of that you get.
+nothing teleports. **Motion** (CANVAS) sets how much of that you get.
 
 - **`full`** — the default; the full choreography at its nominal timing.
 - **`subtle`** — the same movements at 60% duration, quick enough to read as
@@ -3884,7 +3894,7 @@ whole of — and it was chosen as a colour against the page and then *drawn at
 55% alpha*, which is the other half of how visible it ends up. Measured on
 screen, every theme's track came out between 1.35:1 and 1.57:1 and the light
 pages were the worst of it. Both meter families (the footer's rolling windows
-and the sidebar's system gauges) now lift their track until it clears **1.6:1
+and the left nav's system gauges) now lift their track until it clears **1.6:1
 as drawn** — the least a groove can be and still be one — and stop there,
 because a track walked any further reads as a full bar. `metertrack` is that
 one rule, and a test holds both families to it on every theme.
@@ -3912,7 +3922,7 @@ top border, where the legend and the `–` `×` buttons live.
 
 Two of those fields shape the frosted look, and they are separate knobs:
 
-**Glass** (APPEARANCE) sets how frosted the **cards** are. Every pane, panel and
+**Glass** (CANVAS) sets how frosted the **cards** are. Every pane, panel and
 the input bar sits on a translucent sheet: a tinted fill that fades from the top
 down, a bright specular hairline along the upper edge, a soft drop shadow, and a
 whisper of frost grain. The *look* is derived from whichever theme is active
@@ -4096,7 +4106,7 @@ curvature, scanlines and the bezel vignette are all zero — so they sit in the
 
 **The page drifts.** The wash is two broad pools of pole light on an elliptical
 orbit under the page, and they turn: one revolution every twelve seconds while
-a pane is working, and — with **Settings → APPEARANCE → Drifting background**
+a pane is working, and — with **Settings → CANVAS → Drifting background**
 on, the default — one every 24 seconds when nothing is happening at all. Idle
 motion is a texture, not a signal, so it is half the busy pace — and busy is
 only twice it, so the page never races behind output you are reading. It is
@@ -4160,7 +4170,7 @@ across the page.
 **And the gradient's colour breathes.** The two poles every gradient surface
 is drawn between — the wash, the dot lattice, every card's stroke, the footer
 meters — lean around the hue wheel over time, so the canvas warms and cools
-instead of holding one fixed pair of swatches. **Settings → APPEARANCE →
+instead of holding one fixed pair of swatches. **Settings → CANVAS →
 Gradient colour** sets how far: `subtle` (the default) leans ±16°, one
 colour's neighbourhood, so a violet theme visits indigo and magenta and is
 never anything else; `lively` leans ±38°, far enough that the two ends read as

@@ -113,7 +113,7 @@ How you update depends on how you installed:
 - **cargo:** `cargo install --git https://github.com/ashishtyagi10/crew crew-app --force`
 - **Source checkout:** `git pull && cargo build --release -p crew-app`.
 - **In-app:** the **`/update`** command downloads the latest release binary for
-  your platform over the running one and **restarts Crew into it**. Progress
+  your platform over the running one and **restarts crew into it**. Progress
   streams into a dedicated **UPDATE card in the left nav** (checking →
   downloading → installed → restarting) — no separate shell or checkout. The
   old `/restart` command was merged into `/update`; an update the background
@@ -544,7 +544,7 @@ UI. The provider connection opens while you type: the first key of a message
 has the broker shake hands with the provider's host, so the turn's first model
 call skips the ~0.5 s TCP and TLS open (`CREW_PREWARM=0` turns it off).
 
-The pane speaks a tiny **construct language** (seven infrastructure commands),
+The pane speaks a small **construct language** (`/help` lists every command),
 and plain language does the rest: "have every agent take a crack at this"
 sends one task to every agent **in parallel** (replies stream back
 fastest-first), "keep refining it" iterates on the crew's own answer, "keep
@@ -557,13 +557,19 @@ command, and a device-flow provider like Qwen **signs in right in the pane**:
 pick its number, approve the code card in your browser, done — tokens live
 in the OS keychain and refresh themselves), your keys, and installed CLIs,
 with `/model <n>` switching provider
-persistently — `/model <agent> <model>` pins agents to **different models
+persistently and `/logout` removing a stored sign-in (from its own picker, or
+`/logout <name>`) — `/model <agent> <model>` pins agents to **different models
 side by side**, and
 the footer reports live totals — with Tab completion for `@agent` names and
 slash constructs in the composer, one-letter aliases (`/m` → `/model`), and
 did-you-mean on typos. Long constructs run as **concurrent background tasks**
 (default cap 4): each reply is tagged with a dim `#N` task chip, the footer
 lists what's running, and `/stop [#n]` cancels one task or all of them.
+**Shift+Tab** steps the pane's approval mode — auto-approve, accept edits, ask
+first, plan only, yolo — and `/approvals <mode>` says it in words
+(`/approvals default <mode>` also makes it the mode new panes start in);
+`/init` writes an `AGENTS.md` for the project, and `/clear` starts a fresh
+conversation.
 `@file` mentions in the composer fuzzy-complete against the project tree and
 splice the file's contents into the outgoing message — a path with spaces
 rides a quoted `@"my notes.md"` mention, and a file **dragged onto the pane**
