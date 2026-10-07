@@ -22,10 +22,13 @@ fn an_empty_week_names_no_peak() {
     let mut d = DashPane::new();
     d.buckets = b.clone();
     let empty = text(d.cells(100, 40));
+    // The dash draws no cost band at all for a quiet week (`quiet_week`):
+    // its USAGE line says so, and no peak is named anywhere.
     assert!(
-        empty.contains("COST PER DAY") && !empty.contains("peak"),
+        !empty.contains("COST PER DAY") && !empty.contains("peak"),
         "{empty}"
     );
+    assert!(empty.contains("nothing used in the last 7 days"), "{empty}");
     let usage = text(crate::usagepane::cells(&b, 100, 40));
     assert!(
         usage.contains("COST PER DAY") && !usage.contains("peak"),

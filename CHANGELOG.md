@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.0
+
+**A quiet week leaves `/dash` quiet.** With nothing used in the last seven
+days, the dashboard still drew a full grid of empty hour dots, an hour axis
+and an empty cost chart under “nothing used in the last 7 days”, more than
+half the pane saying nothing. It now says so in that one line and draws
+neither. With a week of use, the heatmap starts a column clear of the “now”
+label, which it used to touch.
+
 ## 0.25.99
 
 **A failed plan looks failed.** When a `/goal` swarm could not plan, its
