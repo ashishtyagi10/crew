@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.2
+
+**A tag you are typing matches its completion.** In `/todo`, a half-typed
+tag like `@adm` took a colour from its letters so far, while the pop-up
+beside it offered `@admin` in another, two colours for the one tag. The
+partial now wears the colour of the completion the pop-up has highlighted.
+
 ## 0.26.1
 
 **A one-letter code chip fits its letter.** Inline code is drawn as a small
