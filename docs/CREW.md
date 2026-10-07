@@ -4095,25 +4095,13 @@ its pole-to-pole tint turns with the orbit, and twice a revolution two spiral
 arms of **glint** bloom out of the centre, pour outward as the pools turn, and
 fade — the dots under a crest carry up to four times their strength, and a
 faint sheen of pole light (half a pool's strength, so it never costs more
-contrast than the wash does) runs with them. On a tube (the CRT themes) the
-whole page **swirls**: on the slow clock its middle turns further than its rim,
-so the line between the pools winds into a whirlpool and they trail spiral arms
-as they orbit, while two slow crossing currents ripple everything.
-
-Every other theme holds a **black hole** instead — Interstellar's Gargantua,
-in the theme's own two colours, in the middle of the page and never moving.
-Its light paths are Schwarzschild's, traced once when crew starts: the far side
-of its disk arches over the shadow and its underside bends round below it, a
-thin photon ring hugs the shadow's edge, and the dot lattice bends round it the
-way starlight does. Only the disk moves. It turns, its inner edge faster than
-its outer, and quickens while a pane works; every line you send drops a flare
-of light through it, rim to inner edge. The shadow is near black on a dark
-page and a soft dusk on a light one, where dark text is read across it. It
-wakes with the page over its first three seconds of drift.
-
-All of it rides the same clock and the same frames, on light pages and dark
+contrast than the wash does) runs with them. And the whole page **swirls**: on
+the slow clock its middle turns further than its rim, so the line between the
+pools winds into a whirlpool and they trail spiral arms as they orbit, while two
+slow crossing currents ripple everything — nothing in the backdrop moves in a
+straight line. All of it rides the same clock and the same frames, on light pages and dark
 alike; none of it asks for a frame of its own, and a page that has never
-drifted is the still one, with no hole and no swirl.
+drifted is the still one.
 
 This is the only animation in crew that repaints a window nothing else needed
 repainted, so it is fenced on four things, any one of which stops it: the

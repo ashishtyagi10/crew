@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.59
+
+**The black hole is gone; the swirl is back on every theme.** The black
+hole from 0.25.58 didn't look good in practice. Its dark disc sat in the
+middle of every pane, the bent dot weave around it read as stripes, and on
+light themes the shadow looked like a grey placeholder circle. Every theme
+now has the hypnotic swirl again, as it was in 0.25.57, with the same
+breathing, colours, eddies and the ring that drops in when you press Enter.
+The lensing table is no longer built at start-up and the shader is smaller.
+
 ## 0.25.58
 
 **The page holds a black hole, as in Interstellar.** On every theme but the
