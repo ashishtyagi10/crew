@@ -81,9 +81,16 @@ pub(super) fn wrap_prose_lines(spans: Vec<MdSpan>, cols: usize) -> Vec<MdLine> {
 
 fn list_lines(items: Vec<ListItem>, cols: usize) -> Vec<MdLine> {
     let mut out = Vec::new();
+    // The marker width of the latest item at each depth: a child sits under
+    // its parent's TEXT, so under `1. ` it is three columns in, not the two a
+    // bullet takes — `1. build_frame` used to start under the parent's dot.
+    let mut widths: Vec<usize> = Vec::new();
     for item in items {
-        let indent = "  ".repeat(item.depth as usize);
+        let depth = item.depth as usize;
+        widths.resize(depth, 2);
+        let indent = " ".repeat(widths.iter().sum());
         let bullet = super::tasklist::bullet(item.task, item.ordered_idx, item.depth);
+        widths.push(bullet.chars().count());
         let prefix = format!("{indent}{bullet}");
         let prefix_len = prefix.chars().count();
         let avail = cols.saturating_sub(prefix_len).max(1);
@@ -112,8 +119,15 @@ fn quote_lines(inner: Vec<Block>, cols: usize) -> Vec<MdLine> {
     let prefix_len = prefix.chars().count();
     let inner_cols = cols.saturating_sub(prefix_len).max(1);
     let mut sub = lines(inner, inner_cols);
-    for line in sub.iter_mut() {
+    // A blank `>` line BETWEEN quoted lines is part of the quote, so it keeps
+    // the bar: a gap there cut the attribution off the words it attributes.
+    let last = sub.iter().rposition(|l| l.kind != LineKind::Blank);
+    for (i, line) in sub.iter_mut().enumerate() {
         if line.kind == LineKind::Blank {
+            if last.is_some_and(|l| i < l) {
+                line.spans = vec![marker_span(prefix.trim_end().to_string())];
+                line.kind = LineKind::Quote;
+            }
             continue;
         }
         let mut spans = vec![marker_span(prefix.clone())];
@@ -133,3 +147,7 @@ fn quote_lines(inner: Vec<Block>, cols: usize) -> Vec<MdLine> {
 #[cfg(test)]
 #[path = "layout_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "layoutedge_tests.rs"]
+mod edge_tests;
