@@ -68,7 +68,10 @@ pub(crate) fn render_in(p: &FarPane, cols: u16, rows: u16, focused: bool) -> Vec
     // the accept/discard/edit hint once a suggestion has landed.
     let (ask_hint, suggested) = match &p.ask {
         Some(super::ask::AskState::Thinking { started, .. }) => (
-            Some(format!("thinking\u{2026} {}s", started.elapsed().as_secs())),
+            Some(format!(
+                "thinking\u{2026} {}",
+                crate::runclock::ladder(started.elapsed().as_secs())
+            )),
             false,
         ),
         Some(super::ask::AskState::Suggested { .. }) => (

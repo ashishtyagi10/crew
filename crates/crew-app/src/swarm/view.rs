@@ -140,7 +140,7 @@ pub fn timeline_cells(cols: u16, rows: u16, axis: Option<(u64, u64)>) -> Vec<Cel
     // "0s" at the left of the axis and the elapsed span at its right: two
     // labels are all a chart this narrow can carry, and they are the two that
     // say what the bars are measured against.
-    let elapsed = format!("{:.0}s", (t1.saturating_sub(t0)) as f64 / 1000.0);
+    let elapsed = crate::runclock::ladder(t1.saturating_sub(t0) / 1000);
     let mut out = Vec::new();
     let put = |out: &mut Vec<CellView>, s: &str, col: u16| {
         for (i, c) in s.chars().enumerate() {

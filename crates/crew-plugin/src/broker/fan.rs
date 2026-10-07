@@ -129,7 +129,7 @@ pub(crate) fn fan_out(
     timings.sort_by_key(|(_, d)| *d);
     let order: Vec<String> = timings
         .iter()
-        .map(|(n, d)| format!("{n} {:.1}s", d.as_secs_f32()))
+        .map(|(n, d)| format!("{n} {}", super::toolline::took(d.as_millis() as u64)))
         .collect();
     let (total, approx) = if real_tokens > 0 {
         (real_tokens, false)

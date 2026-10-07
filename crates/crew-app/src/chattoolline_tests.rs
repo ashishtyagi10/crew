@@ -144,3 +144,12 @@ fn opened_text_fills_a_code_field_capped_at_twelve_rows() {
     l.done.as_mut().unwrap().text = "one".into();
     assert_eq!(text_rows(&l, 30).len(), 1);
 }
+
+#[test]
+fn a_pending_line_past_a_minute_counts_like_the_finished_one() {
+    let _g = crate::app::motion_test_guard();
+    set_level(Full);
+    // It ticked `184s` and then landed as `3m04`.
+    let row = text(&render(&line("sh", "cargo test", 0), 184_000, 60, false));
+    assert!(row.ends_with("3m04"), "the runclock ladder: {row}");
+}

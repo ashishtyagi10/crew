@@ -61,7 +61,7 @@ pub(crate) fn live_lines(l: &Live, now_ms: u64, cols: usize) -> Vec<CardLine> {
     head.extend(word.into_iter().map(|(c, fg)| plain(c, fg, false)));
     let secs = now_ms.saturating_sub(l.since_ms) / 1000;
     if now_ms > 0 && secs > 0 {
-        let tail = format!(" \u{00b7} {secs}s");
+        let tail = format!(" \u{00b7} {}", crate::runclock::ladder(secs));
         head.extend(tail.chars().map(|c| plain(c, th.text_muted, false)));
     }
     let lines = wrap(&l.text, cols.saturating_sub(2));

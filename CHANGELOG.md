@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.73
+
+**Every clock counts the same way.** A running tool's row ticked `184s`
+and then landed as `3m04`; the live thinking row said `95s` above a folded
+`thought for 1m35`. Running rows, the thinking row, the far pane's `!`
+ask, the swarm timeline's axis and agent smith's turn and fan summaries
+now all count `12s`, `3m04`, `2h00`.
+
 ## 0.25.72
 
 **A flat NET chart says why.** The chart stays flat until something moves

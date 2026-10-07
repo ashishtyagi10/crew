@@ -113,7 +113,11 @@ fn turn_summary_times_each_agent_in_order() {
         ("coder".to_string(), Duration::from_millis(8100)),
     ];
     let s = turn_summary(&segs, 2, 950, true);
-    assert!(s.contains("planner 4.2s → coder 8.1s"), "{s}");
+    assert!(s.contains("planner 4s → coder 8s"), "{s}");
+    // Past a minute, the clock every other row uses: not `123.4s`.
+    let long = vec![("reviewer".to_string(), Duration::from_millis(123_400))];
+    let l = turn_summary(&long, 1, 950, true);
+    assert!(l.contains("reviewer 2m03"), "{l}");
     assert!(s.contains("2 exchange(s)"), "{s}");
     assert!(s.contains("~950 tok"), "{s}");
 }
