@@ -53,9 +53,9 @@ pub(crate) const RING_R_IN: f32 = 2.8;
 /// on a whole row rather than straddling two.
 pub(crate) const RING_ROW: u16 = 1 + RING_ROWS / 2;
 
-/// Columns of labels down the left of the heatmap (`Mon `), and the air kept
-/// to the right of every chart.
-pub(crate) const LABEL_W: u16 = 4;
+/// Columns of labels down the left of the heatmap (`now ` — the widest, and
+/// it touched the grid at 4), and the air kept to the right of every chart.
+pub(crate) const LABEL_W: u16 = 5;
 
 pub(crate) const RIGHT_PAD: u16 = 2;
 
