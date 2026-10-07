@@ -61,7 +61,7 @@ impl InputBar {
         // the brightest mark on screen belonged to the surface you had just
         // left — the border dimmed, the prompt dimmed, the path did not.
         let legend_fg = if self.focused {
-            accent()
+            crate::palette::legend_accent()
         } else {
             crew_theme::theme().legend_off
         };
