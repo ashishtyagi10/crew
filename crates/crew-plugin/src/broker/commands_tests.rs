@@ -252,7 +252,16 @@ fn expand_alias_leaves_non_aliases_unchanged() {
 fn help_documents_the_aliases() {
     let evs = run("/help");
     let t = text_of(&evs[0]);
-    assert!(t.contains("aliases: /h /d /m /r"), "{t}");
+    // Each with what it stands for: `/h /d /m /r` alone said nothing.
+    for (short, long) in [
+        ("/h", "help"),
+        ("/d", "diff"),
+        ("/m", "model"),
+        ("/r", "reload"),
+    ] {
+        assert_eq!(expand_alias(short), format!("/{long}"));
+        assert!(t.contains(&format!("{short} {long}")), "{t}");
+    }
 }
 
 #[test]

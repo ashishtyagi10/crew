@@ -35,6 +35,12 @@ impl crate::chat::ChatPane {
         ts: String,
         meta: String,
     ) {
+        // Agent smith's bare notes are crew's own words, not a model's: their
+        // chords read as this platform writes them (`/help`'s ⇧Tab on a Mac).
+        let text = match sender.as_str() {
+            "agent smith" => crate::chordglyph::prose(&text).into_owned(),
+            _ => text,
+        };
         // The typewriter carries on from what was visible (see
         // `chatrevealpane::note_settle`) — it reads the streamed length, so
         // it goes before `settle_stream` drops the card.
