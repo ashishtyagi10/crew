@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.87
+
+**A TUI's colours survive on a tube.** On a CRT theme the terminal hid
+any background brighter than mid-grey, a rule meant for the "highlight"
+boxes agent CLIs paint for some other theme. But a tube's own bright
+palette colours are that bright too, so a program's cyan selection bar (mc,
+htop) vanished on green. The theme's sixteen colours are kept now; only
+backgrounds a program picked as exact RGB still go through the old rule.
+
 ## 0.25.86
 
 **Comments read inside a code block.** Code comments were checked for

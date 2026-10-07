@@ -38,15 +38,31 @@ fn is_echo_grey((r, g, b): (u8, u8, u8)) -> bool {
 /// (spread `> 24` and luminance `≤ 0.6` — diff red/green, error rows) survive
 /// untouched.
 ///
+/// The brightness clause is for colours a program TUNED (`slot` false): one
+/// of the theme's own sixteen slots is the theme's choice, not a highlight
+/// meant for some other page — and on a phosphor tube five of them are
+/// brighter than 0.6, so `\x1b[46;30m` (mc's or htop's cyan selection bar)
+/// vanished on green. A grey slot (40, 47) still drops, as it always did.
+///
 /// In a light theme the existing (dark/light-extreme-only) echo-grey
 /// behaviour is unchanged.
-pub(super) fn should_drop_bg((r, g, b): (u8, u8, u8), dark: bool) -> bool {
+pub(super) fn should_drop_bg((r, g, b): (u8, u8, u8), dark: bool, slot: bool) -> bool {
     if dark {
         let mx = r.max(g).max(b);
         let mn = r.min(g).min(b);
-        (mx - mn <= 24) || crate::contrast::luminance((r, g, b)) > 0.6
+        (mx - mn <= 24) || (!slot && crate::contrast::luminance((r, g, b)) > 0.6)
     } else {
         is_echo_grey((r, g, b))
+    }
+}
+
+/// Whether `c` names one of the sixteen ANSI slots (see [`should_drop_bg`]).
+pub(super) fn is_slot(c: alacritty_terminal::vte::ansi::Color) -> bool {
+    use alacritty_terminal::vte::ansi::Color;
+    match c {
+        Color::Named(n) => (n as usize) < 16,
+        Color::Indexed(i) => i < 16,
+        Color::Spec(_) => false,
     }
 }
 
@@ -93,7 +109,7 @@ impl TermCore {
                 // background (see `should_drop_bg`), since the flat-canvas
                 // vision is stricter there than the light-theme extremes-only
                 // check.
-                if should_drop_bg(bg, dark) {
+                if should_drop_bg(bg, dark, is_slot(ind.bg)) {
                     bg = default_bg();
                 }
                 // Selected cells take the selection background, drawn over any

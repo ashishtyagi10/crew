@@ -325,36 +325,53 @@ mod selection_tests {
 
 #[cfg(test)]
 mod should_drop_bg_tests {
-    use super::super::modelcells::should_drop_bg;
+    use super::super::modelcells::{is_slot, should_drop_bg};
 
     #[test]
     fn dark_theme_drops_mid_grey() {
         // The regression the old `is_echo_grey` missed: a MID-grey highlight
         // (neither near-black nor near-white) reads just as ugly on a flat
         // dark canvas as the extremes did.
-        assert!(should_drop_bg((140, 140, 140), true));
+        assert!(should_drop_bg((140, 140, 140), true, false));
     }
 
     #[test]
     fn dark_theme_drops_light_grey() {
-        assert!(should_drop_bg((230, 230, 230), true));
+        assert!(should_drop_bg((230, 230, 230), true, false));
     }
 
     #[test]
     fn dark_theme_keeps_saturated_diff_green() {
-        assert!(!should_drop_bg((30, 110, 50), true));
+        assert!(!should_drop_bg((30, 110, 50), true, false));
     }
 
     #[test]
     fn dark_theme_keeps_saturated_diff_red() {
-        assert!(!should_drop_bg((110, 40, 45), true));
+        assert!(!should_drop_bg((110, 40, 45), true, false));
+    }
+
+    /// A tube's own bright slots are the theme's colours, not a highlight
+    /// tuned for another page: mc's cyan selection bar stays. The same
+    /// colour painted as truecolor is still a program's guess, and drops; a
+    /// grey slot drops either way.
+    #[test]
+    fn dark_theme_keeps_its_own_bright_slots() {
+        use alacritty_terminal::vte::ansi::{Color, NamedColor};
+        let bright_cyan = (150, 250, 240);
+        assert!(!should_drop_bg(bright_cyan, true, true));
+        assert!(should_drop_bg(bright_cyan, true, false));
+        assert!(should_drop_bg((200, 200, 200), true, true), "grey slot");
+        assert!(is_slot(Color::Named(NamedColor::Cyan)));
+        assert!(is_slot(Color::Indexed(14)));
+        assert!(!is_slot(Color::Indexed(51)));
+        assert!(!is_slot(Color::Named(NamedColor::Background)));
     }
 
     #[test]
     fn light_theme_keeps_mid_grey() {
         // Light-theme behaviour is unchanged: `is_echo_grey`'s extremes-only
         // check does not treat mid-grey as an echo highlight.
-        assert!(!should_drop_bg((140, 140, 140), false));
+        assert!(!should_drop_bg((140, 140, 140), false, false));
     }
 }
 
