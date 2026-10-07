@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.93
+
+**The file viewer wraps cleanly.** Three wrap fixes:
+- In a diff, a long added line that wrapped showed a salmon “trailing
+  whitespace” dot at every wrap. Only real trailing spaces are marked now.
+- The side-by-side diff split words across rows (“A face four co” /
+  “lumns wide”); it breaks between words, as the unified view does.
+- A long line of code that wraps now hangs its continuation under its own
+  indent, instead of starting it flush at the gutter where it read as a new
+  statement.
+
 ## 0.25.92
 
 **Chat rows never open on a separator.** Markdown prose already kept a

@@ -69,7 +69,9 @@ fn side_rows(
     let mut first = true;
     loop {
         let end = crate::chatwidth::fit_end(&chars, start, w.saturating_sub(1)).max(start + 1);
-        let end = end.min(chars.len());
+        // At a word boundary when one is near, as the unified rung wraps
+        // (`linepaint::wrap`): "A face four co" / "lumns wide" read as a typo.
+        let end = crate::chatwidth::soft_end(&chars, start, end.min(chars.len()));
         let mut line = match first {
             true => gutter(no, t.text_muted),
             false => continuation(t.text_muted),

@@ -47,16 +47,15 @@ pub(crate) fn diff_lines(text: &str, cols: usize, ws: &[Vec<bool>]) -> (Vec<Card
         &super::diffnums::numbers(text),
         t.text_muted,
     );
-    // Only the row a source line STARTS on carries its marker, so only that
-    // row can be an added line whose tail is worth marking.
+    // A line's tail is on the LAST row it wraps to: marking the first row of
+    // a wrapped added line read the wrap's own break space as trailing
+    // whitespace, a salmon dot at every soft wrap.
     let kinds: Vec<super::diffpaint::Kind> =
         text.split('\n').map(super::diffpaint::kind_of).collect();
-    let mut last = usize::MAX;
     for (row, line) in lines.iter_mut().enumerate() {
         let n = src.get(row).copied().unwrap_or(0);
-        let first = n != last;
-        last = n;
-        let added = first && kinds.get(n) == Some(&super::diffpaint::Kind::Added);
+        let tail = src.get(row + 1).copied() != Some(n);
+        let added = tail && kinds.get(n) == Some(&super::diffpaint::Kind::Added);
         mark_trailing_space(line, added);
     }
     // Landmarks are found in the source and reported as ROWS: a wrapped line
@@ -74,3 +73,7 @@ pub(crate) fn diff_lines(text: &str, cols: usize, ws: &[Vec<bool>]) -> (Vec<Card
         .collect();
     (lines, marks)
 }
+
+#[cfg(test)]
+#[path = "linemarks_tests.rs"]
+mod tests;
