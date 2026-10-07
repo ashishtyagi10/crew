@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.58
+
+**The page holds a black hole, as in Interstellar.** On every theme but the
+CRT tubes, the swirl behind your panes is now Gargantua: a black hole in the
+middle of the page, drawn in the theme's own two colours, that never moves.
+- **Real lensing.** The light paths are Schwarzschild's, traced once when
+  crew starts. The far side of the disk arches over the black shadow and
+  its underside bends round below it, as in the film, and a thin photon
+  ring hugs the shadow's edge. The page's dot weave bends round the hole
+  the way starlight does.
+- **Only the disk moves.** It turns, its inner edge faster than its outer,
+  and speeds up while a pane is working. Every line you send drops a
+  flare of light through it, from the rim to the inner edge.
+- **Readable over it.** On a dark page the shadow is near black, which
+  only helps light text. On a light page it is a soft dusk, so dark text
+  reads across it. It is as quiet as the swirl was: it scales with the
+  theme's wash and your OS contrast setting.
+- **It costs nothing extra.** The hole is traced once (a few milliseconds),
+  then each frame only turns the disk. It wakes with the page over its
+  first three seconds of drift. With the background drift off, the page is
+  still and there is no hole. The CRT themes keep the swirl.
+
 ## 0.25.57
 
 **Ten small pieces of text now say what they mean.** A pass over the words
