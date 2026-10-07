@@ -392,7 +392,7 @@ a letter, a space or Backspace), and the filter is forgotten on the way out.
 | Toggle the nav | **Cmd+G** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — opens on the section for the pane you are in; type to filter, ↑↓ to scroll, Esc to close |
 | Zoom focused pane | **Cmd+Z** (or double-click its top border) |
-| Save a focused settings form | **Cmd+S** |
+| Save the settings form | **Cmd+S** |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |

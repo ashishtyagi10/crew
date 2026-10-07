@@ -66,7 +66,7 @@ impl FarPane {
             Ok(cmd) => {
                 let original = std::mem::replace(&mut self.cmdline, cmd.trim().to_string());
                 self.ask = Some(super::ask::AskState::Suggested { original });
-                "Enter run · Esc discard · keep typing to edit".to_string()
+                "Enter runs · Esc discards · keep typing to edit".to_string()
             }
             Err(e) => {
                 self.ask = None;
