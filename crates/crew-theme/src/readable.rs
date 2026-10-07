@@ -184,9 +184,24 @@ pub fn on_block(t: &Theme, block: (u8, u8, u8)) -> (u8, u8, u8) {
     against(t.term_bg, block, crate::contrast::text_floor())
 }
 
-/// A clickable URL in terminal output. Blue is the convention and stays blue.
+/// A clickable URL in terminal output. Blue is the convention and stays blue
+/// — except on a coloured phosphor tube, which has no blue: every ANSI slot
+/// there is already the tube's own hue, so a blue link was the one colour on
+/// a green screen from another machine. There it is the link's lightness
+/// and chroma in the tube's hue; the underline still says it is a link. A
+/// white phosphor shows hues, so it keeps the blue.
 pub fn link(t: &Theme) -> (u8, u8, u8) {
-    against(LINK_HUE, t.term_bg, crate::contrast::text_floor())
+    let want = match t.is_tube() && oklch::from_srgb(t.ink).c >= 0.04 {
+        true => {
+            let (blue, tube) = (
+                oklch::from_srgb(LINK_HUE),
+                oklch::from_srgb(t.border_focused),
+            );
+            oklch::Oklch::new(blue.l, blue.c, tube.h).to_srgb()
+        }
+        false => LINK_HUE,
+    };
+    against(want, t.term_bg, crate::contrast::text_floor())
 }
 
 /// The mouse-selection wash behind terminal text: the selection blue a step
