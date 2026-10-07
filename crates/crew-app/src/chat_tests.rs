@@ -1075,7 +1075,7 @@ fn ready_and_status_events_become_log_actions() {
         actions[0],
         HostAction::Status {
             error: false,
-            message: "agent smith broker connected".into(),
+            message: "agent smith connected".into(),
         },
         "the crew broker's Ready closes the spawn's 'starting…' loop"
     );

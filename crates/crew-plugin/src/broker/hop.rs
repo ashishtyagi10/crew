@@ -56,10 +56,11 @@ pub(crate) fn back(env: &Envelope, kind: HopKind, text: String) -> Hop {
     }
 }
 
-/// A broker-originated note (loop guard / routing error) about `env`.
+/// A broker-originated note (loop guard / routing error) about `env`, in
+/// agent smith's name — the card header read `broker → coder`.
 pub(crate) fn note(env: &Envelope, kind: HopKind, text: String) -> Hop {
     Hop {
-        from: "broker".into(),
+        from: "agent smith".into(),
         to: env.to.clone(),
         hop: env.hop,
         kind,

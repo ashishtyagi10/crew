@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.74
+
+**Agent smith is called agent smith.** A new agent pane announced “agent
+smith broker connected”, every `/model` pick said a provider “now serves
+smith work” (in three different wordings), and loop-guard notes arrived
+as `broker → coder`. They now read “agent smith connected”, “✓ name now
+serves agent smith (kept across restarts)”, and `agent smith → coder`.
+
 ## 0.25.73
 
 **Every clock counts the same way.** A running tool's row ticked `184s`

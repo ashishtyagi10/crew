@@ -66,7 +66,7 @@ impl ChatPane {
                         actions.push(HostAction::Status {
                             error: false,
                             message: if provider == "crew" {
-                                "agent smith broker connected".to_string()
+                                "agent smith connected".to_string()
                             } else {
                                 format!("{provider} plugin connected")
                             },
