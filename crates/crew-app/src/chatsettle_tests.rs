@@ -69,3 +69,24 @@ fn usage_stash_waits_for_the_sender_the_stat_named() {
     assert_eq!(p.messages[1].usage, Some((900, 50, 12_000)));
     assert_eq!(p.pending_reply_usage, None, "a match drains the stash");
 }
+
+#[test]
+fn agent_smiths_own_notes_write_chords_the_platform_way() {
+    let mut p = pane();
+    let note = "Shift+Tab steps through them";
+    p.absorb_message("agent smith".into(), note.into(), "1".into(), String::new());
+    p.absorb_message(
+        "coder → user".into(),
+        note.into(),
+        "2".into(),
+        String::new(),
+    );
+    assert_eq!(p.messages[0].text, crate::chordglyph::prose(note));
+    assert_eq!(
+        p.messages[1].text, note,
+        "a model's reply is left as written"
+    );
+    if cfg!(target_os = "macos") {
+        assert_eq!(p.messages[0].text, "\u{21e7}Tab steps through them");
+    }
+}

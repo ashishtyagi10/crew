@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.77
+
+**`/help` in an agent pane is complete.** It lists every command the pane
+answers itself (`/export`, `/theme` and `/exit` were missing), says what
+the aliases stand for (`/h help · /d diff · /m model · /r reload`), and
+on a Mac writes ⇧Tab the way the footer does — agent smith's own notes now
+spell key chords the platform's way.
+
 ## 0.25.76
 
 **Hints read as sentences.** The far pane's suggestion hint said “Enter
