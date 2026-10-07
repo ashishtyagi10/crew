@@ -84,7 +84,7 @@ fn shift_tab_steps_the_mode_and_tells_the_broker() {
 fn the_footer_wears_the_mode_and_says_how_to_change_it() {
     let (mut p, _) = pane();
     assert!(!footer(&p).contains("auto-approve"), "{}", footer(&p));
-    assert!(footer(&p).contains("shift+tab"), "{}", footer(&p));
+    assert!(footer(&p).contains(&crate::summaryroute::approvals_hint()));
     p.cycle_mode();
     p.cycle_mode();
     p.cycle_mode();

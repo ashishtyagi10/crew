@@ -142,7 +142,7 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
         // Only show hints when there are no active agents and no running work.
         segs.push((plain("/ for commands", muted), 2));
         segs.push((plain("@ to relay to an agent", muted), 3));
-        segs.push((plain("shift+tab: approvals", muted), 3));
+        segs.push((plain(&approvals_hint(), muted), 3));
     }
     let mut out = Vec::new();
     // Budgeted to the room between the one-column margins, like lines 1–2.
@@ -154,6 +154,13 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
         out.extend(seg);
     }
     out
+}
+
+/// The idle footer's last hint, worded like its siblings and with the chord
+/// as this platform writes it (`⇧Tab for approvals` on a Mac), as
+/// `/approvals` writes it too.
+pub(crate) fn approvals_hint() -> String {
+    crate::chordglyph::prose("Shift+Tab for approvals").into_owned()
 }
 
 #[cfg(test)]
