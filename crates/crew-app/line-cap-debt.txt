@@ -23,7 +23,6 @@ src/chatink.rs 260
 src/chatink_tests.rs 273
 src/chatinput.rs 287
 src/chatinput_tests.rs 285
-src/chatlayout.rs 201
 src/chatmd_tests.rs 299
 src/chatmention.rs 208
 src/chatmention_tests.rs 367
