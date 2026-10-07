@@ -80,6 +80,11 @@ pub(crate) fn body_lines_at(
         // Source mode: show raw text, newline-split + word-wrapped, all cells plain.
         return source_lines(text, width, fg);
     }
+    // A swarm's record is rows of a table, not prose: it wraps with a hanging
+    // indent markdown cannot give it (`chatswarmrec::card_lines`).
+    if text.starts_with(crate::chatswarmrec::LEAD) {
+        return crate::chatswarmrec::card_lines(text, width, fg);
+    }
     // Markdown mode: render through the markdown engine.
     let md_lines = crate::md::render_chat(text, width);
     crate::chatmd::map_chat(md_lines, width, fg, cwd)
