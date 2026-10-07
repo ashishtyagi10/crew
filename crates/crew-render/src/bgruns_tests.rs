@@ -137,3 +137,38 @@ fn a_mark_on_a_band_does_not_square_the_band() {
         "the band's corner under row 0's mark still rounds: {got:?}"
     );
 }
+
+/// A badge's caps — half-discs or half blocks drawn in the body's colour on
+/// bare page — carry the body on: its ends stay square under them, with no
+/// notch of page at the seam. A glyph that does not ink that edge, or a cap
+/// in another colour, is page as before.
+#[test]
+fn a_badge_cap_in_the_run_colour_squares_its_end() {
+    let capped = |l: char, r: char, ink: (u8, u8, u8)| {
+        let mut cells = row_of(1, 3, 7, A);
+        for (col, c) in [(2, l), (7, r)] {
+            cells.push(CellView {
+                fg: ink,
+                ..cell(col, 1, c, PAGE)
+            });
+        }
+        runs(&cells, 10, 3, PAGE)[0].round
+    };
+    assert_eq!(capped('\u{e0b6}', '\u{e0b4}', A), [false; 4], "half-discs");
+    assert_eq!(capped('\u{2590}', '\u{258c}', A), [false; 4], "half blocks");
+    assert_eq!(
+        capped('\u{2590}', 'x', A),
+        [false, true, true, false],
+        "only the capped end"
+    );
+    assert_eq!(
+        capped('\u{258c}', '\u{2590}', A),
+        [true; 4],
+        "caps facing away"
+    );
+    assert_eq!(
+        capped('\u{e0b6}', '\u{e0b4}', B),
+        [true; 4],
+        "another colour"
+    );
+}

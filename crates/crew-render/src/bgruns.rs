@@ -10,7 +10,10 @@
 //! both page. So a block several rows tall rounds its outer corners and
 //! nothing between its rows (no scalloped edge), and colours that abut —
 //! powerline segments, a heatmap's squares, a TUI's painted panels — keep
-//! their square seams.
+//! their square seams. A CAP counts as not page either: a glyph drawn in the
+//! run's own colour that inks the edge it shares with the run — a badge's
+//! half-disc or half block — carries the run on, so the run's end stays
+//! square under it instead of leaving a notch of page at the seam.
 use crate::cellgrid::CellView;
 use unicode_width::UnicodeWidthChar;
 
@@ -48,6 +51,20 @@ pub(crate) fn runs(cells: &[CellView], cols: usize, rows: usize, page: (u8, u8, 
             }
         }
     }
+    // Every cell's glyph and ink, for the caps.
+    let mut ink: Vec<Option<(char, (u8, u8, u8))>> = vec![None; cols * rows];
+    for c in cells {
+        let (row, col) = (usize::from(c.row), usize::from(c.col));
+        if row < rows && col < cols {
+            ink[row * cols + col] = Some((c.c, c.fg));
+        }
+    }
+    let capped = |r: usize, c: isize, bg, edge: &[char]| {
+        (c >= 0 && (c as usize) < cols)
+            .then(|| ink[r * cols + c as usize])
+            .flatten()
+            .is_some_and(|(ch, fg)| fg == bg && edge.contains(&ch))
+    };
     // A mark is its own layer: to every other run it is page, so a band
     // under one still rounds as if the mark were not there.
     let at = |r: isize, c: isize| -> Option<(u8, u8, u8)> {
@@ -71,7 +88,8 @@ pub(crate) fn runs(cells: &[CellView], cols: usize, rows: usize, page: (u8, u8, 
                 c += 1;
             }
             let (ri, first, last) = (r as isize, start as isize, c as isize - 1);
-            let (left, right) = (at(ri, first - 1).is_none(), at(ri, last + 1).is_none());
+            let left = at(ri, first - 1).is_none() && !capped(r, first - 1, bg, &INKS_RIGHT);
+            let right = at(ri, last + 1).is_none() && !capped(r, last + 1, bg, &INKS_LEFT);
             out.push(Run {
                 row: r as u16,
                 col: start as u16,
@@ -92,6 +110,13 @@ pub(crate) fn runs(cells: &[CellView], cols: usize, rows: usize, page: (u8, u8, 
     }
     out
 }
+
+/// Glyphs that ink their cell's whole right edge, so one LEFT of a run in the
+/// run's colour carries it on: a full block, a right half block, a left
+/// half-disc cap and a powerline arrow pointing left.
+const INKS_RIGHT: [char; 4] = ['\u{2588}', '\u{2590}', '\u{e0b6}', '\u{e0b2}'];
+/// Their mirror images, for the cell RIGHT of a run.
+const INKS_LEFT: [char; 4] = ['\u{2588}', '\u{258c}', '\u{e0b4}', '\u{e0b0}'];
 
 /// The corner radius for a cell of `cell_w`×`cell_h` px: soft enough to read
 /// as a capsule on a one-cell run, never so round that a run's end looks
