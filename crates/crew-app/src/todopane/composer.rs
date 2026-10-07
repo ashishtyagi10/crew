@@ -59,10 +59,23 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16)
     // Each span carries its tag's own color (one hash per tag per redraw),
     // so typing `@crew` or `#priya` tints live in the same color its row
     // chip will get.
+    // The tag being typed wears the colour of the completion the pop-up has
+    // highlighted for it: `@adm` hashed to a blue beside an offered salmon
+    // `@admin`, two colours for the tag about to be one.
+    let offered = p
+        .tagmenu
+        .as_ref()
+        .and_then(|m| Some((m.sigil, m.matches.get(m.sel)?)));
     let tag_tints: Vec<(usize, usize, (u8, u8, u8))> = super::parse::tag_spans(&chars)
         .into_iter()
         .map(|(s, e, _)| {
-            let name: String = chars[s + 1..e].iter().collect();
+            let mut name: String = chars[s + 1..e].iter().collect();
+            if let Some((sigil, full)) = offered {
+                let typing = e == chars.len() && chars[s] == sigil;
+                if typing && full.to_lowercase().starts_with(&name.to_lowercase()) {
+                    name = full.clone();
+                }
+            }
             (s, e, crew_theme::tag_color(&name, t))
         })
         .collect();
@@ -177,3 +190,7 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16)
     // wrap budget leaves the end column free ([`input_lines`]).
     out.push(cell(bar_x, bar_row, '\u{258f}', accent, false)); // ▏
 }
+
+#[cfg(test)]
+#[path = "composertag_tests.rs"]
+mod tag_tests;
