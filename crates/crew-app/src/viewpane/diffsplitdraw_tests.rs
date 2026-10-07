@@ -157,3 +157,28 @@ fn a_wide_header_marks_its_cut() {
     assert_eq!(head.chars().count(), MIN_COLS, "{head:?}");
     assert!(head.ends_with('\u{2026}'), "{head:?}");
 }
+
+/// A side wraps at a word when one is near, as the unified rung does: "A face
+/// four co" over "lumns wide" read as a typo. From a width where every word
+/// fits in half a row — `soft_end` only looks back that far, and a word
+/// longer than that is hard-cut on either rung.
+#[test]
+fn a_side_wraps_between_words() {
+    let _g = crate::app::theme_test_guard();
+    let line = "+A face four columns wide, and then a few more words";
+    for w in 20..40 {
+        let rows: Vec<String> = side_rows(Some(1), Some(line), None, w)
+            .iter()
+            .map(|r| text_of(r)[GUTTER_W + 1..].trim_end().to_string())
+            .collect();
+        // Mid-word: the two rows meet with letters on both sides and no
+        // space between them in the source.
+        for pair in rows.windows(2) {
+            let (a, b) = (pair[0].trim_start(), pair[1].trim_start());
+            let alnum = a.ends_with(|c: char| c.is_alphanumeric())
+                && b.starts_with(|c: char| c.is_alphanumeric());
+            let spaced = line.contains(&format!("{a} {b}"));
+            assert!(!alnum || spaced, "{w}: cut mid-word: {a:?} / {b:?}");
+        }
+    }
+}

@@ -41,6 +41,7 @@ mod plainrung;
 mod render;
 mod rendercap;
 mod reread;
+mod rowcut;
 pub(crate) mod search;
 mod search_apply;
 mod searchline;

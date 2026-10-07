@@ -26,32 +26,23 @@ pub(crate) fn wrap(text: &str, w: usize) -> Vec<(usize, Vec<char>)> {
             out.push((n, Vec::new()));
             continue;
         }
+        let lead = super::rowcut::hang(&chars, w);
         let mut s = 0;
         while s < chars.len() {
-            let e = crate::chatwidth::fit_end(&chars, s, w);
+            // A continuation is drawn under the line's own indent (`painted`),
+            // so it wraps in what is left of the row.
+            let room = if s == 0 { w } else { (w - lead).max(1) };
+            let e = crate::chatwidth::fit_end(&chars, s, room);
             let e = crate::chatwidth::soft_end(&chars, s, e);
             let mut row = chars[s..e].to_vec();
             if e < chars.len() {
-                strand_dot(&mut row);
+                super::rowcut::strand_dot(&mut row);
             }
             out.push((n, row));
             s = e;
         }
     }
     out
-}
-
-/// Blank a ` · ` separator the wrap left at the end of a row. The listings
-/// join their parts with it (`/tools`, `/watching`), and a row ending in a
-/// dot that separates it from nothing reads as a stray mark. Paint only: the
-/// row keeps its length, so the offsets still partition the line, and a
-/// selection copies from the source, dot included.
-fn strand_dot(row: &mut [char]) {
-    let n = row.len();
-    let lone = n >= 2 && row[n - 1] == ' ' && row[n - 2] == '\u{b7}';
-    if lone && (n == 2 || row[n - 3] == ' ') {
-        row[n - 2] = ' ';
-    }
 }
 
 /// The paint for source line `n` (1-based), columns `[pos, pos + len)`.
@@ -112,6 +103,10 @@ pub(crate) fn painted(
     let mut src = Vec::new();
     let mut last = 0usize;
     let mut pos = 0usize;
+    let leads: Vec<usize> = text
+        .split('\n')
+        .map(|l| super::rowcut::hang(&l.chars().collect::<Vec<_>>(), w))
+        .collect();
     for (n, chars) in wrap(text, w) {
         src.push(n - 1);
         let mut line: CardLine = if n == last {
@@ -119,7 +114,8 @@ pub(crate) fn painted(
             // and a blank gutter beside a genuinely empty numbered line look
             // identical, and in a wrapped file most rows are one or the
             // other.
-            let mut cont = row(&" ".repeat(GUTTER_W), muted, false);
+            let lead = leads.get(n - 1).copied().unwrap_or(0);
+            let mut cont = row(&" ".repeat(GUTTER_W + lead), muted, false);
             if let Some(cell) = cont.get_mut(GUTTER_W - 2) {
                 cell.c = '\u{21aa}';
             }
@@ -177,3 +173,7 @@ pub(crate) fn renumber(
 #[cfg(test)]
 #[path = "linepaintdot_tests.rs"]
 mod dot_tests;
+
+#[cfg(test)]
+#[path = "linepainthang_tests.rs"]
+mod hang_tests;
