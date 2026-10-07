@@ -45,7 +45,7 @@ fn a_finished_run_folds_into_one_record_card_with_the_count_and_every_row() {
     assert_eq!(lines[1], " 1 \u{2713} scout   research the topic");
     assert_eq!(
         lines[3],
-        " 3 \u{2717} critic  review the draft \u{2190} 1,2"
+        " 3 \u{2717} critic  review the draft\u{a0}\u{2190}\u{a0}1,2"
     );
 }
 
@@ -171,4 +171,17 @@ fn the_broker_dying_mid_run_still_leaves_the_record() {
         p.messages[0].text.contains(" 1 \u{25cf} scout"),
         "still running when it died"
     );
+}
+
+/// Wrapped in a narrow card, what a row waits on stays with its title: no
+/// row of the record opens on `←` (it read as a row of its own).
+#[test]
+fn a_wrapped_record_row_keeps_its_deps_with_the_title() {
+    let text = finished().messages[0].text.clone();
+    for cols in 24..=60 {
+        for row in crate::md::render_chat(&text, cols) {
+            let row: String = row.spans.iter().map(|s| s.text.as_str()).collect();
+            assert!(!row.trim_start().starts_with('\u{2190}'), "{cols}: {row:?}");
+        }
+    }
 }

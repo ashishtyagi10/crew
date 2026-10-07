@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.63
+
+**Wrapped lists keep their parts whole.** When a line like
+`swarm · 5 tasks · 3 done · 1 failed · 1 cancelled · 1s` was too long for
+its pane, the next row could open on a lone `· 1s`. Rows in a reply now
+never start on a separator dot. The dot ends the row the way a comma
+would, and if it doesn't fit, the row breaks at the last dot that does,
+so no part is split. In a swarm's record, what a task waits on (`← 1`)
+stays with the end of its title instead of wrapping onto a row by itself.
+
 ## 0.25.62
 
 **The idle footer's last hint reads like the others.** It said

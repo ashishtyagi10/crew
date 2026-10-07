@@ -26,10 +26,13 @@ pub(crate) fn tools_words(tools: Option<(u32, u32)>) -> Option<String> {
         .map(|(used, total)| format!("tools {used}/{total}"))
 }
 
-/// One task's row as plain text — the record's line, always whole.
+/// One task's row as plain text — the record's line, always whole. What it
+/// waits on is held to the title's last word by no-break spaces: wrapped
+/// in a narrow card, `← 1` alone on a row read as a row of its own.
 pub(crate) fn plain(s: &SwarmStatus, i: usize) -> String {
     let (glyph, ..) = crate::swarm::view::state_style(s.tasks[i].state);
     let (spec, title, deps) = crate::chatswarmrows::words(s, i, usize::MAX, 0);
+    let deps = deps.replace(' ', "\u{a0}");
     let w = s.tasks.len().to_string().len();
     format!(" {:>w$} {glyph} {spec}{title}{deps}", i + 1)
 }

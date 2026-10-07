@@ -100,6 +100,7 @@ fn wrap_ranges(full: &[char], cols: usize) -> Vec<(usize, usize)> {
             full,
             start,
             full[start..max_end].iter().rposition(|&c| c == ' '),
+            cols,
         ) {
             Some(p) if p > 0 => {
                 ranges.push((start, start + p));
