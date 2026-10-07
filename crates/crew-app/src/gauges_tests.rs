@@ -170,3 +170,24 @@ fn the_system_rule_names_the_curves_ceiling() {
     // At the axis's floor the ceiling is its minimum, not a reading.
     assert_eq!(rule(Some(crate::statspane::CHART_FLOOR)), "SYSTEM");
 }
+
+/// On a tube the critical tier is the LOUDEST: `ansi[9]` there is a
+/// mid-tone of the one phosphor, and a disk at 92% drew calmer than a CPU at
+/// 20%. It is the accent overdriven toward white now — brighter than calm.
+#[test]
+fn a_tubes_alarm_is_brighter_than_its_calm() {
+    let _g = crate::app::theme_test_guard();
+    let lum = |c: (u8, u8, u8)| crew_theme::contrast_ratio(c, (0, 0, 0));
+    for id in crew_theme::ALL_THEMES.into_iter().filter(|id| id.is_crt()) {
+        crew_theme::set_theme(id);
+        crate::palette::set_accent(crew_theme::theme().accent_default);
+        let (calm, alarm) = (fill_color(0.2), fill_color(0.95));
+        assert!(
+            lum(alarm) > lum(calm) * 1.1,
+            "{}: alarm {alarm:?} vs calm {calm:?}",
+            id.as_str()
+        );
+    }
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+}

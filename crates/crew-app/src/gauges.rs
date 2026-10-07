@@ -30,9 +30,22 @@ pub(crate) fn fill_color(frac: f32) -> (u8, u8, u8) {
     match crate::shapecues::Tier::of(frac) {
         crate::shapecues::Tier::Nominal => accent(),
         crate::shapecues::Tier::Warn => t.status_fg,
-        crate::shapecues::Tier::Critical => t.ansi[9],
+        crate::shapecues::Tier::Critical => match t.is_tube() {
+            // A tube has one hue, and `ansi[9]` is a mid-tone of it — the
+            // alarm drew QUIETER than calm. Its alarm is the phosphor
+            // overdriven toward white instead: the hottest thing it draws.
+            true => {
+                let a = accent();
+                let hot = |c: u8| (f32::from(c) + (255.0 - f32::from(c)) * HOT).round() as u8;
+                (hot(a.0), hot(a.1), hot(a.2))
+            }
+            false => t.ansi[9],
+        },
     }
 }
+
+/// How far a tube's critical tier runs its accent toward white.
+const HOT: f32 = 0.6;
 
 /// One gauge row laid out within `cols`: `label | space | bar | NNN%`.
 fn gauge_cells(label: &str, frac: f32, row: u16, cols: u16) -> Vec<CellView> {

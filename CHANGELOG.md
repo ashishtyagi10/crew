@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.84
+
+**Tube meters speak phosphor.** On a CRT theme the NET chart's download
+trace and the nav's ↓ figure were a steel blue, the one colour on a green
+or amber screen that came from another machine; they are drawn in the
+tube's own hue now, as links already were. A gauge past 90% used to draw
+in a mid-tone of the phosphor, quieter than a calm one, so a nearly full
+disk read as fine. On a tube it now burns: the phosphor overdriven toward
+white, the brightest thing on the screen.
+
 ## 0.25.83
 
 **Footer badges keep their weight.** The badges on an agent pane's footer
