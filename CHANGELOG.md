@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.69
+
+**`/far` file sizes no longer touch the border.** A file's size sat
+flush against the divider between the panels and against the right
+edge (`3.7K│`), so it read as part of the line. Rows now stop one column
+short of the border.
+
 ## 0.25.68
 
 **`/far` panel headers keep the folder's name whole.** In a narrow
