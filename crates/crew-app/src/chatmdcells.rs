@@ -52,6 +52,7 @@ pub(crate) fn span_cells(span: &MdSpan, kind: LineKind, fg: Color, muted: Color)
                 link: ink.link.clone(),
                 src,
                 pic: None,
+                mark: ink.mark,
             }
         })
         .collect()

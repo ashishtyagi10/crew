@@ -153,9 +153,9 @@ fn file_rows_show_a_right_aligned_size() {
         .find(|l| l.contains("readme.md"))
         .expect("file row rendered");
     assert!(row.contains("1.2K"), "size missing from row: {row:?}");
-    // Right-aligned: the size's final glyph sits flush against a `│` border
-    // cell. (Padding renders as absent blank cells, so text order alone
-    // cannot show the gap.)
+    // Right-aligned: the size's final glyph sits one column of air short of
+    // a `│` border cell. (Padding renders as absent blank cells, so text
+    // order alone cannot show the gap.)
     // Row 0 is the panel header, which now carries a `· N · 3.3K` of its own
     // (it used to lose that `K` to the block's clip — see
     // `the_panel_header_fits_inside_its_own_rule`). The listing starts below.
@@ -167,8 +167,8 @@ fn file_rows_show_a_right_aligned_size() {
     assert!(
         cells
             .iter()
-            .any(|c| c.row == k.row && c.col == k.col + 1 && c.c == '\u{2502}'),
-        "size not flush at the panel's right border (K at col {})",
+            .any(|c| c.row == k.row && c.col == k.col + 2 && c.c == '\u{2502}'),
+        "size not a column short of the panel's right border (K at col {})",
         k.col
     );
 }

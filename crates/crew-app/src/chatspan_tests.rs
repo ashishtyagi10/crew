@@ -153,3 +153,28 @@ fn a_table_header_takes_the_accent_over_a_muted_rule() {
     assert_eq!(out[2][1].fg, fg, "a bold body cell keeps the card colour");
     assert!(out[2][1].bold);
 }
+
+/// Inline code is a chip of its own on its row (`CellView::mark`), so two
+/// chips stacked by chance — `w` over `/` in a table's key column — stay two
+/// rather than reading as one tall pill. A fence's field is one block, and
+/// stays one.
+#[test]
+fn inline_code_is_a_chip_of_its_own_and_a_fence_is_not() {
+    let _guard = crate::app::theme_test_guard();
+    let out = lines("press `w` to pop out", 40, (9, 9, 9));
+    let w = out[0].iter().find(|c| c.c == 'w').expect("the chip");
+    assert!(w.mark && w.bg.is_some(), "inline code is a chip");
+    assert!(!out[0].iter().any(|c| c.c == 'p' && c.mark), "prose is not");
+    let fence = lines("```\nlet a = 1;\n```", 40, (9, 9, 9));
+    let a = fence
+        .iter()
+        .flatten()
+        .find(|c| c.c == 'a')
+        .expect("the fence");
+    assert!(a.bg.is_some() && !a.mark, "a fence's field is one block");
+    let placed = crate::chatplace::line_cells(0, &out[0], 40, (0, 0, 0));
+    assert!(
+        placed.iter().any(|c| c.c == 'w' && c.mark),
+        "and it reaches the cell"
+    );
+}

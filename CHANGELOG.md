@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.70
+
+**Inline code chips stay separate.** Two pieces of inline code that
+happened to sit one above the other, like the `w` and `/` keys in a
+table, merged into one tall pill. Each inline code chip is now a capsule
+of its own on its row, in chat, the viewer and the document window. Fenced
+code blocks are unchanged.
+
 ## 0.25.69
 
 **`/far` file sizes no longer touch the border.** A file's size sat
