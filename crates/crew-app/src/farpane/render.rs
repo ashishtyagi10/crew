@@ -122,7 +122,6 @@ fn drive_select_overlay(buf: &mut Buffer, area: Rect, ds: &super::remote::DriveS
     let t = crew_theme::theme();
     let bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
     let ink = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
-    let page_col = bg;
     let rows = ds.options.len().max(1) as u16;
     let h = (rows + 2).min(area.height);
     let w = 32u16.min(area.width);
@@ -160,7 +159,7 @@ fn drive_select_overlay(buf: &mut Buffer, area: Rect, ds: &super::remote::DriveS
             ListItem::new(Line::from(Span::styled(label, Style::new().fg(ink).bg(bg))))
         })
         .collect();
-    let hl = Style::new().fg(page_col).bg(accent_color());
+    let hl = panellist::on_accent();
     let mut state = ListState::default();
     state.select(Some(ds.sel));
     StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);

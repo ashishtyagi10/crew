@@ -104,15 +104,27 @@ pub(super) fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool, f
     // Only the ACTIVE panel gets a filled cursor bar — with a fill on both
     // sides it was ambiguous which panel keys would act on (the inactive
     // side's bar often sits on `../` and reads as "selected"). The inactive
-    // panel remembers its place with a bold row instead of a bar.
-    let hl = if active {
-        Style::new().fg(on_fill).bg(fill)
-    } else {
-        Style::new().add_modifier(Modifier::BOLD)
+    // panel remembers its place with a bold row instead of a bar; the bar is
+    // bold too (see `on_accent`).
+    let hl = match active {
+        true => Style::new().fg(on_fill).bg(fill),
+        false => Style::new(),
     };
+    let hl = hl.add_modifier(Modifier::BOLD);
     let mut state = ListState::default();
     state.select(Some(panel.sel - start));
     StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);
+}
+
+/// Page ink on the accent fill: the cursor bar, a landed suggestion and the
+/// drive list's choice. Bold, like the path tab — on a phosphor tube the glow
+/// round a bright fill swallowed a regular-weight `../` whole.
+pub(super) fn on_accent() -> Style {
+    let p = crew_theme::theme().page_bg;
+    Style::new()
+        .fg(rgb(p))
+        .bg(accent_color())
+        .add_modifier(Modifier::BOLD)
 }
 
 fn rgb((r, g, b): (u8, u8, u8)) -> Color {
