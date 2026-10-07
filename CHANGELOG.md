@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.78
+
+**Two error messages say it once.** A shell that would not start read
+“could not open a shell: failed to spawn shell (tried pwsh.exe, cmd.exe)”
+as a passing flash; it is an error now, “could not open a shell (tried
+pwsh.exe, then cmd.exe: …)”, with the cause. A sign-in through a CLI crew
+cannot find reads “install it with …, sign in with …, then send /model
+… again here”.
+
 ## 0.25.77
 
 **`/help` in an agent pane is complete.** It lists every command the pane

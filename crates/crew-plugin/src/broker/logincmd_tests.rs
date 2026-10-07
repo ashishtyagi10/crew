@@ -124,8 +124,8 @@ fn a_minting_cli_row_names_install_login_and_precedence() {
         other => panic!("{other:?}"),
     };
     assert!(
-        note.contains("can't find on its PATH")
-            && note.contains("then `ant auth login`")
+        note.contains("cannot find on its PATH")
+            && note.contains("sign in with `ant auth login`")
             && note.contains("/model anthropic again here"),
         "{note}"
     );

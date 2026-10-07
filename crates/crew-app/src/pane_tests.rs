@@ -68,3 +68,18 @@ fn title_text_prefers_user_name() {
     p.name = Some("build".into());
     assert_eq!(p.title_text(), "build");
 }
+
+#[test]
+fn a_shell_that_will_not_start_names_both_tries_once() {
+    let grid = GridSize { cols: 40, rows: 10 };
+    let Err(e) = spawn_pane("/nonexistent/zsh", "/nonexistent/sh", grid, None) else {
+        panic!("neither shell exists");
+    };
+    // The status wraps it as `could not open a shell (…)`: no second
+    // "failed to spawn shell" inside, and the cause after the tries.
+    let shown = format!("{e:#}");
+    assert!(
+        shown.starts_with("tried /nonexistent/zsh, then /nonexistent/sh: "),
+        "{shown}"
+    );
+}

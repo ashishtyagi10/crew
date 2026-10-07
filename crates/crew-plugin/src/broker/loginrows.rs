@@ -82,9 +82,9 @@ pub(crate) fn pick(rows: &[LoginRow], arg: &str) -> LoginPick {
         // this one", never "tell me to run the login again".
         (Some(_), _, true) => LoginPick::Serve(r.name.clone()),
         (Some(login), Some(install), false) => LoginPick::Note(format!(
-            "{} signs in through its own CLI, which crew can't find on its PATH \
-             \u{2014} `{install}` if it isn't installed, then `{login}`; \
-             then /model {} again here",
+            "{} signs in through its own CLI, which crew cannot find on its PATH \
+             \u{2014} install it with `{install}`, sign in with `{login}`, then \
+             send /model {} again here",
             r.name, r.name
         )),
         (Some(login), None, false) => LoginPick::Note(format!(

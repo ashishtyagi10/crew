@@ -95,7 +95,9 @@ impl CrewApp {
                 self.apply_notify_patterns();
             }
             // Surface the failure in the UI — stderr is invisible in the GUI.
-            Err(e) => self.set_status(format!("could not open a shell: {e}")),
+            // An error, not a flash: no pane opened. `{e:#}` keeps the cause
+            // after the shells tried — `(tried zsh, then sh: no such file…)`.
+            Err(e) => self.set_status_err(format!("could not open a shell ({e:#})")),
         }
     }
 
