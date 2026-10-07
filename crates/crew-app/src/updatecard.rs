@@ -81,9 +81,7 @@ fn note_lines(msg: &str, w: u16, rows: u16) -> Vec<String> {
         // The last row we have: say there is more rather than stopping
         // mid-word as if the message ended there.
         if out.len() + 1 == rows {
-            let cut = crate::chatwidth::fit_end(&chars, 0, w.saturating_sub(1));
-            let head: String = chars[..cut].iter().collect();
-            out.push(format!("{head}\u{2026}"));
+            out.push(crate::chatwidth::clip_words(rest, w));
             return out;
         }
         // A row that fills exactly to a word's end breaks THERE, not at the

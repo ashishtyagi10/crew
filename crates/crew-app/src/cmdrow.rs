@@ -149,10 +149,10 @@ pub(crate) fn spans(
     let desc_w = room.saturating_sub(key.map_or(0, |k| str_w(k) + GAP));
     if desc_w > 0 && !item.desc.is_empty() {
         out.push(Span::raw(" ".repeat(desc_col - col)));
-        // Ellipsized, not cut: "Write the frame's cells to a fi" reads as a
-        // rendering fault, where "…to a file" reads as a narrow card. Same
-        // rule the nav's prose follows.
-        let desc = crate::chatwidth::clip_w(&item.desc, desc_w);
+        // Ellipsized between words, not cut: "Write the frame's cells to a
+        // fi" reads as a rendering fault, and so did "bump, tag and p…" —
+        // the header row above already cut on words.
+        let desc = crate::chatwidth::clip_words(&item.desc, desc_w);
         col = desc_col + crate::chatwidth::str_w(&desc);
         out.push(Span::styled(desc, Style::new().fg(dim)));
     }

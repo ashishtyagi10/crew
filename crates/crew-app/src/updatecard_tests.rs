@@ -104,3 +104,23 @@ fn a_row_that_fills_to_a_word_end_keeps_the_word() {
         vec!["failed: connection", "reset by peer"]
     );
 }
+
+/// The last row a note has room for ends on a word and says there is more:
+/// "reset by peer whi…" read as the message ending in a mangled word.
+#[test]
+fn the_last_row_ends_on_a_word() {
+    let lines = note_lines(
+        "failed: connection reset by peer while reading the body",
+        18,
+        2,
+    );
+    assert_eq!(lines.len(), 2);
+    let last = lines[1].trim_end_matches('\u{2026}');
+    assert!(lines[1].ends_with('\u{2026}'), "{lines:?}");
+    assert!(
+        "reset by peer while reading"
+            .split(' ')
+            .any(|w| last.ends_with(w)),
+        "{lines:?}"
+    );
+}
