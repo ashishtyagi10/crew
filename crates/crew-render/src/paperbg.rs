@@ -1,5 +1,3 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-
 use wgpu::util::DeviceExt as _;
 
 fn f32s_as_bytes(data: &[f32]) -> &[u8] {
@@ -93,22 +91,13 @@ pub struct PaperBgPass {
     pipeline: wgpu::RenderPipeline,
     bind_group: wgpu::BindGroup,
     uniform_buf: wgpu::Buffer,
-    /// The black hole's traced light paths (`holelut`), and whether they
-    /// have been written yet — on the first frame, which has the queue.
-    lut: wgpu::Texture,
-    lut_ready: AtomicBool,
-    /// Whether an awake page draws the black hole (every theme but the
-    /// tubes) or the vortex (the tubes). See [`Self::set_black_hole`].
-    hole: AtomicBool,
 }
 
 impl PaperBgPass {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("paperbg"),
-            source: wgpu::ShaderSource::Wgsl(
-                concat!(include_str!("paperbg.wgsl"), include_str!("paperhole.wgsl")).into(),
-            ),
+            source: wgpu::ShaderSource::Wgsl(include_str!("paperbg.wgsl").into()),
         });
 
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -117,56 +106,27 @@ impl PaperBgPass {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-        let (lut, lut_view, lut_sampler) = crate::holelut::texture(device);
-        let fragment = |binding, ty| wgpu::BindGroupLayoutEntry {
-            binding,
-            visibility: wgpu::ShaderStages::FRAGMENT,
-            ty,
-            count: None,
-        };
         let bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("paperbg_bgl"),
-            entries: &[
-                fragment(
-                    0,
-                    wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                ),
-                fragment(
-                    1,
-                    wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                ),
-                fragment(
-                    2,
-                    wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                ),
-            ],
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
         });
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("paperbg_bg"),
             layout: &bgl,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: uniform_buf.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&lut_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&lut_sampler),
-                },
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buf.as_entire_binding(),
+            }],
         });
 
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -205,16 +165,7 @@ impl PaperBgPass {
             pipeline,
             bind_group,
             uniform_buf,
-            lut,
-            lut_ready: AtomicBool::new(false),
-            hole: AtomicBool::new(false),
         }
-    }
-
-    /// Draw the black hole on an awake page (`true`) or the vortex (`false`,
-    /// the default, and what the tubes keep). A still page wears neither.
-    pub fn set_black_hole(&self, on: bool) {
-        self.hole.store(on, Ordering::Relaxed);
     }
 
     /// Write the per-frame uniform: theme background colour, surface resolution,
@@ -243,11 +194,6 @@ impl PaperBgPass {
             focus: [0.5, 0.5],
             focus_pull: 0.0,
         });
-        // Traced once, and only for a page that will draw it: a tube never pays.
-        let hole = self.hole.load(Ordering::Relaxed);
-        if hole && !self.lut_ready.swap(true, Ordering::Relaxed) {
-            crate::holelut::upload(queue, &self.lut);
-        }
         let k = d.clocks;
         let data: [f32; 28] = [
             page_bg[0],
@@ -277,7 +223,7 @@ impl PaperBgPass {
             k.live,
             k.eddy,
             k.ping,
-            if hole { 1.0 } else { 0.0 },
+            0.0,
         ];
         queue.write_buffer(&self.uniform_buf, 0, f32s_as_bytes(&data));
     }

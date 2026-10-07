@@ -7,7 +7,7 @@ struct Uniform {
     dot_b: vec4<f32>,    // pole B tint; a = dot radius px
     dot_grid: vec4<f32>, // xy = lattice pitch px; z = wash strength (0 = no wash); w = wash phase (turns)
     wash_focus: vec4<f32>, // xy = orbit centre in uv; z = how far it moves there (0 = page centre); w = wander clock (turns)
-    motion: vec4<f32>,     // x = how awake the page is (0 = the still page); y = eddy clock (turns); z = s since Enter (<0 none); w = 1 black hole, 0 vortex
+    motion: vec4<f32>,     // x = how awake the page is (0 = the still page); y = eddy clock (turns); z = s since Enter (<0 none); w spare
 }
 @group(0) @binding(0) var<uniform> u: Uniform;
 
@@ -178,20 +178,15 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     const CURRENT: f32 = 0.06;
     const CURRENT_K: f32 = 3.5;
     let flow = u.motion.x;
-    // Every theme but the tubes wears the black hole (`paperhole.wgsl`)
-    // rather than the vortex, and the page's light lies still round it: none
-    // of the bends below run, and nothing pours.
-    let hole_on = u.motion.w > 0.5;
-    let swirl = select(flow, 0.0, hole_on);
     let swirl_fall = 1.0 - smoothstep(0.0, SWIRL_R, length(c));
-    let twist = SWIRL * swirl * (1.0 + SWIRL_BREATH * sin(3.0 * wander))
+    let twist = SWIRL * flow * (1.0 + SWIRL_BREATH * sin(3.0 * wander))
         * swirl_fall * swirl_fall;
     let tc = cos(twist);
     let ts = sin(twist);
     var q = vec2<f32>(c.x * tc - c.y * ts, c.x * ts + c.y * tc);
     // The current stills toward the centre, so the vortex's eye stays where
     // the page pours to rather than being rocked off it.
-    q += CURRENT * swirl * smoothstep(0.0, 0.35, length(c)) * vec2<f32>(
+    q += CURRENT * flow * smoothstep(0.0, 0.35, length(c)) * vec2<f32>(
         sin(CURRENT_K * q.y + ang + wander),
         sin(CURRENT_K * q.x - 2.0 * ang),
     );
@@ -212,7 +207,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let p2 = q * (2.1 * EDDY_K) + 2.5 * e1 - lap.yx;
     let e2 = vec2<f32>(vnoise(p2 + vec2<f32>(1.7, 9.2)), vnoise(p2 + vec2<f32>(8.3, 2.8)))
         - vec2<f32>(0.5);
-    q += EDDY * swirl * smoothstep(0.05, 0.4, length(c)) * (e1 + 0.4 * e2);
+    q += EDDY * flow * smoothstep(0.05, 0.4, length(c)) * (e1 + 0.4 * e2);
     // The same bend in uv, for the tint and the glint. Added as a
     // displacement so a page at rest keeps its exact uv.
     let dq = q - c;
@@ -374,7 +369,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     }
     let eye = exp(-pow((gr - EYE_R) / EYE_W, 2.0)) * mix(0.55, 1.0, inhale) * (1.0 + 0.8 * flash);
     let bands = crest * smoothstep(0.02, 0.22, gr) * mix(1.0, 0.55, smoothstep(0.35, 1.1, gr));
-    let glint = swirl * max(max(bands * mix(0.7, 1.0, inhale), eye), 0.9 * ping);
+    let glint = flow * max(max(bands * mix(0.7, 1.0, inhale), eye), 0.9 * ping);
     let band_col = mix(u.dot_a.rgb, u.dot_b.rgb, 0.5 + 0.5 * cos(6.2831853 * s / HUE_BANDS));
     // The light a band casts: its own colour on an awake page, the lattice's
     // tint on a still one.
@@ -396,51 +391,18 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // the bands pour across the weave as a wave of fattening dots. Half as
     // hard on a light page, where a band of darkened dots sits right under
     // dark ink.
-    // The black hole, on an awake page that wears one. Worked out before the
-    // lattice, which is drawn from where its lens says the page behind
-    // really is.
-    let hot = mix(u.dot_a.rgb, vec3<f32>(1.0), 0.35 * dark_weight);
-    var hole: Hole;
-    let hole_lit = hole_on && flow > 0.0;
-    if (hole_lit) {
-        let hc = vec2<f32>((uv.x - 0.5) * asp, uv.y - 0.5);
-        hole = black_hole(hc, u.resolution.y, 2.0 * u.dot_grid.w, u.motion.z, hot, u.dot_b.rgb);
-        hole.lens *= flow;
-    }
     let dot_amp = u.dot_a.a;
     if (dot_amp > 0.0) {
         let gain = 3.0 * mix(0.5, 1.0, dark_weight);
         let swell = 0.9 * mix(0.6, 1.0, dark_weight);
         let pitch = u.dot_grid.xy;
-        let at = in.pos.xy + hole.lens;
-        let off = (fract(at / pitch) - vec2<f32>(0.5)) * pitch; // px from dot centre
+        let off = (fract(in.pos.xy / pitch) - vec2<f32>(0.5)) * pitch; // px from dot centre
         let d = length(off);
-        // Right at the shadow's edge the lens squeezes the weave finer than a
-        // pixel; it fades out there rather than shimmering.
-        let squeezed = 1.0 - smoothstep(1.05 * B_CRIT, 1.5 * B_CRIT, hole.b);
-        let keep = select(1.0, 1.0 - min(3.0 * flow, 1.0) * squeezed, hole_lit);
         let r = u.dot_b.a * (1.0 + swell * glint);
         // ±0.8px feathered edge — soft, never a hard aliased circle.
         let mask = 1.0 - smoothstep(r - 0.8, r + 0.8, d);
         let ink = mix(tint, glow, min(2.0 * glint, 1.0));
-        rgb = mix(rgb, ink, keep * mask * min(dot_amp * (1.0 + gain * glint), 1.0));
-    }
-    if (hole_lit) {
-        // How strongly the hole is drawn: off the wash's own strength, which
-        // the frame has already scaled for the OS contrast setting, and
-        // eased in with the page as it wakes.
-        let amp = flow * min(4.0 * wash_amp, 0.65);
-        // The shadow: the page's own colour, darkened — near black on a dark
-        // page; on a light one a deep dusk, the page dimmed and leaning
-        // toward the theme's first pole, rather than a flat grey disc.
-        let dim = u.page_bg.rgb * mix(0.12, 0.42, page_luma);
-        let shadow_col = mix(dim, u.dot_a.rgb * 0.4, 0.45 * page_luma);
-        // On a light page the hollow stays a dusk, not a hole punched in the
-        // paper: dark ink is read across it, and the photon ring and the
-        // lensed disk already say what it is.
-        let depth = min(6.0 * wash_amp, 0.9) * mix(1.0, 0.3, page_luma);
-        rgb = mix(rgb, shadow_col, hole.shadow * flow * depth);
-        rgb = rgb * (1.0 - hole.cover * amp) + hole.light * amp;
+        rgb = mix(rgb, ink, mask * min(dot_amp * (1.0 + gain * glint), 1.0));
     }
     // Alpha comes from the page colour, not a hard 1.0: it carries the window
     // opacity, so a translucent window lets the desktop through the paper while

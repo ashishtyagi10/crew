@@ -143,8 +143,6 @@ fn render_full(glass: crew_theme::GlassLevel, opacity: f32, crt: bool) -> Option
     });
 
     let paper = PaperBgPass::new(&device, FORMAT);
-    // Mirrors `frame.rs`: an awake page wears the black hole, a tube the vortex.
-    paper.set_black_hole(!crew_theme::theme().is_tube());
     let bg = crew_theme::theme().page_bg;
     let bg_f32 = crew_render::color::target_rgba(bg, opacity, FORMAT.is_srgb());
     // Mirrors `frame.rs`: the modern backdrop (wash + lattice) rides the same pass.

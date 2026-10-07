@@ -122,9 +122,6 @@ pub(crate) fn render(
                 focus_pull: wash_focus.1,
             }
         });
-        // An awake page wears the black hole on every theme but the tubes,
-        // which keep the vortex.
-        paper.set_black_hole(!crew_theme::theme().is_tube());
         paper.update_uniform(gpu.queue(), bg_f32, (w, h), 1.0, grain, modern.as_ref());
     }
     if use_crt {
