@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.92
+
+**Chat rows never open on a separator.** Markdown prose already kept a
+list's “·” (and a spaced “—”) at the end of a row, the way a comma sits,
+never at the start of the next. Agent replies, tool listings, `/watching`
+and toasts wrap with a simpler routine that could start a row on “· 12s”.
+They follow the same rule now.
+
 ## 0.25.91
 
 **Pickers and the update card stop mid-word no more.** A command or

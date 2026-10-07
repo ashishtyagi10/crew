@@ -9,7 +9,7 @@
 /// `1 failed ·` over `12s`, the way a comma sits — and otherwise on the last
 /// dot that does, so no part of the list is split; with none, it moves back
 /// a word like the dash.
-pub(super) fn dash_safe(
+pub(crate) fn dash_safe(
     full: &[char],
     start: usize,
     p: Option<usize>,

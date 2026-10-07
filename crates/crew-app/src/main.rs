@@ -642,6 +642,7 @@ mod windowtitle;
 #[cfg(any(windows, test))]
 mod winexe;
 mod wording;
+mod wrapidx;
 
 /// What a bare `crew <args>` invocation wants before any GUI exists.
 ///
