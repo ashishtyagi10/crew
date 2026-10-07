@@ -376,3 +376,19 @@ fn a_tube_selects_in_its_own_phosphor() {
         assert!(d < 25.0, "{}: selection hue is {d:.0}° off", id.as_str());
     }
 }
+
+/// A coloured tube's sparkline wears its phosphor too: the NET chart's
+/// steel blue was the one colour on a green tube from another machine.
+#[test]
+fn a_coloured_tube_draws_its_sparkline_in_its_phosphor() {
+    let hue = |c| crate::oklch::from_srgb(c).h;
+    let gap = |a: f32, b: f32| (a - b).rem_euclid(360.0).min((b - a).rem_euclid(360.0));
+    for id in crate::ALL_THEMES {
+        let t = id.theme();
+        if !t.is_tube() || crate::oklch::from_srgb(t.ink).c < 0.04 {
+            continue;
+        }
+        let d = gap(hue(spark(t)), hue(t.border_focused));
+        assert!(d < 25.0, "{}: sparkline hue is {d:.0}° off", id.as_str());
+    }
+}

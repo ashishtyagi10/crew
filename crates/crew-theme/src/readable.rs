@@ -191,17 +191,22 @@ pub fn on_block(t: &Theme, block: (u8, u8, u8)) -> (u8, u8, u8) {
 /// and chroma in the tube's hue; the underline still says it is a link. A
 /// white phosphor shows hues, so it keeps the blue.
 pub fn link(t: &Theme) -> (u8, u8, u8) {
-    let want = match t.is_tube() && oklch::from_srgb(t.ink).c >= 0.04 {
-        true => {
-            let (blue, tube) = (
-                oklch::from_srgb(LINK_HUE),
-                oklch::from_srgb(t.border_focused),
-            );
-            oklch::Oklch::new(blue.l, blue.c, tube.h).to_srgb()
-        }
-        false => LINK_HUE,
-    };
-    against(want, t.term_bg, crate::contrast::text_floor())
+    against(
+        in_tube_hue(t, LINK_HUE),
+        t.term_bg,
+        crate::contrast::text_floor(),
+    )
+}
+
+/// `want` as a coloured phosphor tube can draw it: its lightness and chroma
+/// in the tube's own hue. Anywhere else — a paper page, a white phosphor,
+/// which shows hues — `want` as it is.
+fn in_tube_hue(t: &Theme, want: (u8, u8, u8)) -> (u8, u8, u8) {
+    if !t.is_tube() || oklch::from_srgb(t.ink).c < 0.04 {
+        return want;
+    }
+    let (w, tube) = (oklch::from_srgb(want), oklch::from_srgb(t.border_focused));
+    oklch::Oklch::new(w.l, w.c, tube.h).to_srgb()
 }
 
 /// The mouse-selection wash behind terminal text: the selection blue a step
@@ -244,9 +249,15 @@ pub fn danger(t: &Theme) -> (u8, u8, u8) {
     against(DANGER_HUE, t.page_bg, crate::contrast::text_floor())
 }
 
-/// A sparkline trace — seen, not read.
+/// A sparkline trace — seen, not read. On a coloured tube, in its phosphor
+/// ([`in_tube_hue`]): the NET chart's steel blue was the one colour on a
+/// green screen from another machine, as the link's blue had been.
 pub fn spark(t: &Theme) -> (u8, u8, u8) {
-    against(SPARK_HUE, t.page_bg, crate::contrast::mark_floor())
+    against(
+        in_tube_hue(t, SPARK_HUE),
+        t.page_bg,
+        crate::contrast::mark_floor(),
+    )
 }
 
 /// The intended colours, which are now only intentions: each names a hue, and
