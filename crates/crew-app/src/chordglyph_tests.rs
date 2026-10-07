@@ -56,10 +56,10 @@ fn shown_follows_the_platform() {
 /// A status or toast sentence keeps its words and rewrites only its chords.
 #[test]
 fn prose_rewrites_only_the_chords() {
-    let s = "unsaved changes \u{2014} Cmd+S to save, Esc again to discard";
+    let s = "no shell here \u{2014} press Cmd+T to open one";
     let want = match cfg!(target_os = "macos") {
-        true => "unsaved changes \u{2014} \u{2318}S to save, Esc again to discard",
-        false => s,
+        true => "no shell here \u{2014} press \u{2318}T to open one",
+        false => "no shell here \u{2014} press Ctrl+Shift+T to open one",
     };
     assert_eq!(prose(s), want);
     assert_eq!(prose("no pane is waiting"), "no pane is waiting");
@@ -89,4 +89,17 @@ fn off_a_mac_cmd_chords_are_written_as_their_ctrl_shift_stand_ins() {
     assert_eq!(offmac("Cmd+Shift+T"), "Cmd+Shift+T");
     assert_eq!(offmac("Cmd+{ / Cmd+}"), "Cmd+{ / Cmd+}");
     assert_eq!(offmac("Ctrl+Shift+L"), "Ctrl+Shift+L", "not a Cmd chord");
+}
+
+/// The document window takes plain Ctrl off a Mac, so its own notes say so
+/// — never the main window's Ctrl+Shift stand-in.
+#[test]
+fn the_document_windows_notes_name_its_own_chords() {
+    let note = crate::docwin::reread::guard(true, false).unwrap_err();
+    if cfg!(target_os = "macos") {
+        assert!(note.contains("\u{2318}S"), "{note}");
+    } else {
+        assert!(note.contains("Ctrl+S") && !note.contains("Shift"), "{note}");
+    }
+    assert_eq!(prose(note), note, "and the status line leaves it be");
 }

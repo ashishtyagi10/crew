@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.81
+
+**The document window names its own chords off a Mac.** It takes plain
+Ctrl there (Ctrl+S, Ctrl+R, Ctrl+K), but after the last release its notes
+would have said Ctrl+Shift+S. Its "unsaved changes" and "no link here"
+notes now name the keys it actually answers to.
+
 ## 0.25.80
 
 **A new theme: `glass`, the iPhone's liquid glass.** Pick it with

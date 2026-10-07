@@ -101,6 +101,6 @@ fn a_mac_writes_its_chords_as_the_mac_does() {
             "{hint}"
         );
     } else {
-        assert!(hint.contains("Cmd+T"), "{hint}");
+        assert!(hint.contains("Ctrl+Shift+T"), "{hint}");
     }
 }

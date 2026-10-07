@@ -73,7 +73,9 @@ impl UrlEdit {
         let text = view
             .selected_text()
             .filter(|t| !t.trim().is_empty())
-            .ok_or("no link here \u{2014} select some words and press Cmd+K to make one")?;
+            .ok_or(crate::chordglyph::shown_ctrl(
+                "no link here \u{2014} select some words and press Cmd+K to make one",
+            ))?;
         // The scaffold is a normal edit: recorded, undoable, and a save right now would write
         // exactly what is on screen.
         view.insert(&format!("[{text}]()"), cols, rows);
