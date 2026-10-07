@@ -1,6 +1,6 @@
 //! Headless GPU test for the backdrop's MOTION: the pool breath, the pools'
 //! wander, the flow's seamless clocks and the lattice's turning tint (the
-//! silk has its own, `backdrop_silk_headless`).
+//! glow has its own, `backdrop_glow_headless`).
 //! Each is a pure function of the two clocks and the wake the app hands the
 //! pass, so each is shot at chosen values and read back. Skips on a GPU-less
 //! machine (CI) instead of failing.
@@ -108,7 +108,7 @@ fn backdrop_motion_headless() {
 
     // L1: it all reads on a LIGHT page too, at the strengths the light
     // themes ship (wash 0.12, dots 0.16): the breath moves pool A's colour
-    // and a silk fold darkens its dots by a visible step. Measured as
+    // and the glow darkens its dots by a visible step. Measured as
     // the change in the pixel itself — on a light page a pole can sit on
     // either side of the paper per channel, so "lift" would half-cancel.
     let light = |phase| ModernPaper {
@@ -130,13 +130,13 @@ fn backdrop_motion_headless() {
         .map(|(x, y)| dist(rgb(&lg0, x, y), rgb(&lg1, x, y)))
         .max()
         .unwrap();
-    eprintln!("[light] breath moves pool A by {breath}, a fold moves its dot by {glint}");
+    eprintln!("[light] breath moves pool A by {breath}, the glow moves its dot by {glint}");
     assert!(
         breath >= 6,
         "L1 failed: the breath should show on a light page, moved {breath}"
     );
     assert!(
         glint >= 12,
-        "L1 failed: a fold should show on a light page, moved {glint}"
+        "L1 failed: the glow should show on a light page, moved {glint}"
     );
 }

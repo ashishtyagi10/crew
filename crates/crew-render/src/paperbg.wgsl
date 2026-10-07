@@ -133,7 +133,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // Aspect ratio, for the wash's round pools.
     let asp = u.resolution.x / max(u.resolution.y, 1.0);
     // The wash's orbit, in radians — the clock every moving part of the
-    // backdrop keys off, so the pools, the lattice's tint and the silk never
+    // backdrop keys off, so the pools, the lattice's tint and the glow never
     // drift out of step with each other.
     let ang = 6.2831853 * u.dot_grid.w;
     // The second, slower clock (the hue breath's), in radians.
@@ -151,16 +151,15 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let c = vec2<f32>((uv.x - 0.5) * asp, uv.y - 0.5) - fc;
 
     // The FLOW: the page's light moves like liquid, not like a rigid card.
-    // Every moving part below — the pools, the lattice's tint and the silk —
+    // Every moving part below — the pools, the lattice's tint and the glow —
     // is drawn on these bent coordinates rather than the page's straight
     // ones, so nothing in the backdrop moves in a straight line.
     //
-    // Two bends, both spread evenly over the page — nothing in the backdrop
-    // has a centre the eye is pulled to. A CURRENT: two travelling waves
+    // Two bends, both spread evenly over the page. A CURRENT: two travelling waves
     // crossing at right angles nudge every point along the other axis, so a
     // pool's edge never sits still. Then EDDIES: a slow drift of noise —
-    // smoke, not sine — so the silk's folds wander rather than rippling in
-    // step. Two octaves, the finer one warped by the coarser (a domain warp:
+    // smoke, not sine — so the pools' edges and the glow's ring wisp rather
+    // than rippling in step. Two octaves, the finer one warped by the coarser (a domain warp:
     // eddies inside eddies). The noise is sampled through a window that
     // circles round the noise plane on the third clock, so its loop is
     // seamless, and that clock runs at an irrational ratio to the other two,
@@ -263,7 +262,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         rgb = mix(rgb, col_b, gb * wash_amp * (1.0 - BREATH_AMP * breath));
     }
 
-    // The lattice's gradient, shared by the silk's light below and the dots.
+    // The lattice's gradient, shared by the glow below and the dots.
     //
     // The tint axis turns with the orbit — pole A's end starts at the top-left
     // corner and follows pool A round. Projection onto it is scaled by the
@@ -275,57 +274,65 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let diag = clamp(0.5 + dot(fuv - vec2<f32>(0.5), axis) / span, 0.0, 1.0);
     let tint = mix(u.dot_a.rgb, u.dot_b.rgb, diag);
 
-    // The SILK: long soft folds of light lying across the page, the weave
-    // catching them like a sheet of satin catches a window. A fold is a
-    // crest of a sine laid across the page, a little off the horizontal;
-    // two smooth bends — slow sines of the other axis, on the first and
-    // second clocks — sway the sheet, so the folds curve, bunch and open out
-    // and the whole sheet slowly turns, and the eddies above crumple them.
+    // The GLOW: a soft light at the middle of the page that beats slowly,
+    // like a resting pulse, and radiates. On each beat its CORE swells and
+    // brightens, and a soft RING of light leaves it and travels outward,
+    // widening and fading as it goes, until it is gone near the page's rim —
+    // then the core rests a few seconds before the next. A quiet HALO
+    // round the core holds the light between beats.
     //
-    // It replaced a spiral that poured into the middle of the page, which
-    // was lovely and impossible to look away from — wrong for a backdrop to
-    // work over. So the silk has no centre, no rhythm and no pulse: its
-    // folds are spread evenly over the page, and they sway rather than pour.
+    // It replaced first a spiral that poured into the middle (hypnotic, and
+    // so distracting) and then folds of silk across the page (lines, still
+    // too busy). There are no lines in it: every part is a Gaussian of the
+    // distance from the middle, so it reads as light, not as a pattern.
     //
-    // Along its length a fold glows and fades on the eddies' clock, so the
-    // light travels along the folds as well as with them, and each fold wears
-    // the poles as the page's colour drifts across it, so colours lie in
-    // broad washes rather than band by band. It wakes with the page
-    // (`flow`), so a still page wears none of it. Every phase is a whole
-    // multiple of a clock, so every wrap is seamless.
-    const SILK_K: f32 = 2.0;     // the sheet's scale, per page height
-    const SWAY: f32 = 0.50;      // the first, broad bend
-    const RUCK: f32 = 0.22;      // the second, finer one
-    const FOLDS: f32 = 10.0;     // fold phase per unit of sheet: ~3 folds a page height
-    const FOLD_SHARP: f32 = 4.0; // how narrow a fold's crest is
-    const SHIMMER: f32 = 0.55;   // how far a fold dims along its length
-    var sk = q * SILK_K;
-    sk += SWAY * vec2<f32>(sin(1.1 * sk.y + ed), cos(0.9 * sk.x + wander + 0.7));
-    sk += RUCK * vec2<f32>(sin(1.9 * sk.y - wander + 2.1), cos(2.1 * sk.x - ed + 1.3));
-    let fold = FOLDS * (0.45 * sk.x + sk.y) + wander;
-    let along = 0.5 + 0.5 * sin(1.3 * sk.x - 0.7 * sk.y + ed);
-    let crest = pow(0.5 + 0.5 * sin(fold), FOLD_SHARP) * (1.0 - SHIMMER * (1.0 - along));
-    let glint = flow * crest;
-    let silk_col = mix(u.dot_a.rgb, u.dot_b.rgb, 0.5 + 0.5 * sin(0.9 * sk.y + 0.6 * sk.x + wander));
-    // The light a fold casts: its own colour on an awake page, the lattice's
-    // tint on a still one.
-    let glow = mix(tint, silk_col, flow);
-    // The SHEEN: the folds light the page itself, faintly, in their own
-    // colours. Keyed to the wash's own strength — which the frame has already
-    // scaled for the OS contrast setting — at half of it, so a fold never
-    // spends more of the text's headroom than a pool does.
-    const SHEEN: f32 = 0.5;
+    // It sits at the PAGE's middle — not the pools' orbit centre, which
+    // leans toward the focused card — and the eddies bend it only a little
+    // (a third as far as the pools), so the ring's edge is never a
+    // compass-drawn circle but the glow never wanders. Its colour runs from
+    // pole A at the core to pole B at the rim, so a ring changes colour as it
+    // travels. BEATS whole beats per orbit, so the orbit's wrap is seamless:
+    // six seconds a beat on a quiet page, three while a pane works. It wakes
+    // with the page (`flow`), so a still page wears none of it.
+    const BEATS: f32 = 4.0;
+    const CORE_R: f32 = 0.13; // the core's radius, in page heights
+    const HALO_R: f32 = 0.42;
+    const HALO: f32 = 0.25;
+    const RING: f32 = 0.75;
+    const RING_W: f32 = 0.08; // the ring's width as it leaves the core
+    const REACH: f32 = 1.1; // how far out a ring has gone when it is spent
+    let gp = vec2<f32>((uv.x - 0.5) * asp, uv.y - 0.5) + 0.3 * (q - c);
+    let gr = length(gp);
+    let t = fract(BEATS * u.dot_grid.w);
+    let beat = 0.5 + 0.5 * cos(6.2831853 * t);
+    let core = exp(-pow(gr / CORE_R, 2.0)) * mix(0.55, 1.0, beat);
+    let halo = HALO * exp(-pow(gr / HALO_R, 2.0)) * mix(0.8, 1.0, beat);
+    // The ring is born inside the core (faded in, so it never pops) and
+    // dies at REACH (faded out, so the wrap is seamless).
+    let ring_w = RING_W * (1.0 + 2.0 * t);
+    let ring = RING * exp(-pow((gr - REACH * t) / ring_w, 2.0))
+        * smoothstep(0.0, 0.12, t) * pow(1.0 - t, 1.2);
+    let glint = flow * min(core + halo + ring, 1.0);
+    let glow_col = mix(u.dot_a.rgb, u.dot_b.rgb, smoothstep(0.0, 0.7, gr));
+    // The light the glow casts: its own colour on an awake page, the
+    // lattice's tint on a still one.
+    let glow = mix(tint, glow_col, flow);
+    // The SHEEN: the glow lights the page itself, in its own colours. Keyed
+    // to the wash's own strength — which the frame has already scaled for
+    // the OS contrast setting — and below it, so even the core at the top of
+    // its beat never spends more of the text's headroom than a pool does.
+    const SHEEN: f32 = 0.9;
     rgb = mix(rgb, glow, glint * wash_amp * SHEEN);
 
     // The modern family's dot lattice (dot_a.a = 0 everywhere else): soft
     // round dots on a grid whose pitch rides the text-cell metrics (set by
     // frame.rs), in the turning tint above so the backdrop carries the
     // theme's gradient identity. A mix toward the tint (not an add) so the
-    // same strength reads on any page brightness. Under a fold's crest a
-    // dot carries up to about three times its resting strength, takes the
-    // fold's colour and swells a little, so the lattice is a halftone of the
-    // silk. Half as hard on a light page, where a fold of darkened dots sits
-    // right under dark ink.
+    // same strength reads on any page brightness. Under the glow a dot
+    // carries up to about three times its resting strength, takes the glow's
+    // colour and swells a little, so the lattice is a halftone of the light
+    // and a ring passes across the weave as a wave of brightening dots. Half
+    // as hard on a light page, where darkened dots sit right under dark ink.
     let dot_amp = u.dot_a.a;
     if (dot_amp > 0.0) {
         let gain = 2.2 * mix(0.5, 1.0, dark_weight);

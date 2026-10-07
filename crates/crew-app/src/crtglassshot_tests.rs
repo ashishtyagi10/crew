@@ -97,7 +97,7 @@ fn crt_glass_shot() {
     }
 }
 
-/// Every phosphor with its page awake — the silk swaying under the glass —
+/// Every phosphor with its page awake — the glow beating under the glass —
 /// so the page's depth can be judged where it actually moves.
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]

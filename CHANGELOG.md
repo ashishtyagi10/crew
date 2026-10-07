@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.66
+
+**The page has a glowing centre that beats.** The silk lines from 0.25.60
+are gone. In their place is a soft light at the middle of the window that
+beats like a resting pulse: every six seconds when nothing is happening,
+every three while a pane works.
+- **It radiates.** On each beat the core swells and brightens, and a soft
+  ring of light leaves it and travels outward, widening and fading until
+  it is gone near the window's edge. Between beats a quiet halo holds the
+  light.
+- **No lines.** Everything in it is soft light. It runs from one of the
+  theme's colours at the core to the other at the rim, so each ring
+  changes colour as it travels, and the dot weave brightens under it.
+- **It stays put.** It sits at the window's middle even while the colour
+  pools drift toward the pane you are working in.
+- **Same rules as before.** It wakes over the first three seconds of
+  drift, follows your theme and the OS contrast setting, and stops
+  entirely with **Drifting background** off or Motion off.
+
 ## 0.25.65
 
 **`/keys` reads as one table.** Three rows in the first section had keys
