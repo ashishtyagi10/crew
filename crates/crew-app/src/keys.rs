@@ -172,13 +172,10 @@ impl CrewApp {
             }
         }
 
-        // Super-chords (e.g. Cmd+I, Cmd+T, …) are handled first.
-        if mstate.super_key() && event.state.is_pressed() {
-            if let Key::Character(s) = &event.logical_key {
-                let s = s.to_string();
-                if self.handle_super_chord(&s) {
-                    event_loop.exit();
-                }
+        // Super-chords (Cmd+I, Cmd+T, …; Ctrl+Shift+I … off a Mac) first.
+        if let Some(s) = crate::keychord::cmd_chord(event, mstate) {
+            if self.handle_super_chord(&s) {
+                event_loop.exit();
             }
             self.redraw();
             return;
