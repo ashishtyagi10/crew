@@ -27,7 +27,9 @@ fn pair(rects: &mut Vec<(Field, Rect)>, ix: u16, iw: u16, cy: u16, a: Field, b: 
     let half = iw.saturating_sub(2) / 2;
     if half >= min_cols(a) && half >= min_cols(b) {
         rects.push((a, Rect::new(ix, cy, half, 3)));
-        rects.push((b, Rect::new(ix + half + 2, cy, half, 3)));
+        // The right box takes what is left, so on an odd width it ends where
+        // a full-width field does rather than a column short of it.
+        rects.push((b, Rect::new(ix + half + 2, cy, iw - half - 2, 3)));
         return 3;
     }
     rects.push((a, Rect::new(ix, cy, iw, 3)));
@@ -144,4 +146,25 @@ pub(super) fn usage(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u
 /// Content inset inside a card border: x + 2, width − 4.
 fn inner(x: u16, w: u16) -> (u16, u16) {
     (x + 2, w.saturating_sub(4))
+}
+
+#[cfg(test)]
+mod tests {
+    /// Paired fields end where a full-width field does, on an odd width as
+    /// well as an even one — the right box was a column short on odd ones.
+    #[test]
+    fn a_pair_ends_where_a_full_field_does() {
+        use super::super::Field;
+        for w in 60u16..90 {
+            let mut rects = Vec::new();
+            super::appearance(&mut rects, 0, 0, w);
+            let right = |f: Field| rects.iter().find(|(g, _)| *g == f).map(|(_, r)| r.right());
+            let full = right(Field::FontFamily).unwrap();
+            assert_eq!(
+                right(Field::PaperGrain),
+                Some(full),
+                "{w}: the pair's right box"
+            );
+        }
+    }
 }

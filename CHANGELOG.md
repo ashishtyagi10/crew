@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.96
+
+**Two one-column misalignments.** In `/settings`, a pair of fields side by
+side stopped a column short of the full-width fields above and below them
+whenever the pane's width was odd. They line up now. On `/usage`, the
+heatmap's “now” label touched the grid while “6d” … “1d” had a column of
+air; every day label keeps that column now.
+
 ## 0.25.95
 
 **Markdown keeps its shape.** Three layout fixes in agent replies, the

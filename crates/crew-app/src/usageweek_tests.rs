@@ -23,3 +23,17 @@ fn an_empty_week_says_so_and_a_used_one_counts() {
         "$1.98 · 1.8M in · 410k out · 7 days"
     );
 }
+
+/// Every day label keeps a column of air before the heatmap: `now` (three
+/// wide, written at column 1) touched the grid at a four-column gutter.
+#[test]
+fn the_day_labels_clear_the_grid() {
+    for label in super::day_labels() {
+        let end = 1 + crate::chatwidth::str_w(&label) as u16;
+        assert!(
+            end < super::LABEL_W,
+            "{label:?} ends at {end}, grid at {}",
+            super::LABEL_W
+        );
+    }
+}
