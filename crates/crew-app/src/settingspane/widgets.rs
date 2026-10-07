@@ -97,11 +97,12 @@ pub(crate) fn checkbox(buf: &mut Buffer, rect: Rect, label: &str, on: bool, focu
 /// pads are no-break spaces: a bare space with a fill is emitted as a `█`
 /// glyph, which squares the capsule's ends off. Save names its chord the way
 /// `/keys` does on this platform: the `⌘` it wore on Windows and Linux named
-/// a key those keyboards do not have.
+/// a key those keyboards do not have, and so does Cmd (the Windows key) —
+/// there it is Alt+S, the shorter of the two chords that save.
 pub(crate) const SAVE: &str = if cfg!(target_os = "macos") {
     "\u{a0}\u{a0}Save\u{a0}\u{2318}S\u{a0}\u{a0}"
 } else {
-    "\u{a0}\u{a0}Save\u{a0}Cmd+S\u{a0}\u{a0}"
+    "\u{a0}\u{a0}Save\u{a0}Alt+S\u{a0}\u{a0}"
 };
 pub(crate) const CANCEL: &str = "\u{a0}\u{a0}Cancel\u{a0}esc\u{a0}\u{a0}";
 

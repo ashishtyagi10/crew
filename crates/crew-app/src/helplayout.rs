@@ -42,6 +42,10 @@ pub(crate) enum Row {
     Note(String),
 }
 
+/// The document window's heading: its keys are written with plain Ctrl off a
+/// Mac ([`crate::chordglyph::shown_ctrl`]).
+const DOC_HEAD: &str = "in a document window";
+
 /// The per-pane sections, in the order they are listed. One place, so adding a
 /// pane kind is one row here and nothing else — the height, the width, the
 /// scrolling and the filter all read this.
@@ -52,7 +56,7 @@ pub(crate) fn sections() -> [(&'static str, &'static [(&'static str, &'static st
         ("in a /far file panel", FAR_BINDINGS),
         ("in the /todo pane", TODO_BINDINGS),
         ("in /settings", SETTINGS_BINDINGS),
-        ("in a document window", DOC_BINDINGS),
+        (DOC_HEAD, DOC_BINDINGS),
         ("in the /disk map", DISK_BINDINGS),
     ]
 }
@@ -143,12 +147,19 @@ pub(crate) fn rows_for(needle: &str, cols: u16, mine: Option<&str>) -> Vec<Row> 
     // Two border columns, then the key column; the rest is the description.
     let width = (cols as usize).saturating_sub(2 + col).max(8);
     let mut out = Vec::new();
+    let mut doc = false; // under the document window's heading
     for (k, d) in filtered(needle) {
         match (k, d) {
             ("", "") => out.push(Row::Spacer),
-            ("", head) => out.push(Row::Head(head, Some(head) == mine)),
+            ("", head) => {
+                doc = head == DOC_HEAD;
+                out.push(Row::Head(head, Some(head) == mine))
+            }
             (k, d) => {
-                let k = crate::chordglyph::shown(k);
+                let k = match doc {
+                    true => crate::chordglyph::shown_ctrl(k),
+                    false => crate::chordglyph::shown(k),
+                };
                 // A key wider than the column takes its row alone and its
                 // description starts under the column on the next, the way
                 // a man page lays out a long flag: overrunning, it pushed

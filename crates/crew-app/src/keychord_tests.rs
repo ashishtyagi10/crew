@@ -51,3 +51,21 @@ fn is_compact_chord_rejects_named_keys() {
         ModifiersState::CONTROL
     ));
 }
+
+#[test]
+fn off_a_mac_ctrl_shift_stands_in_for_cmd() {
+    let cs = ModifiersState::CONTROL | ModifiersState::SHIFT;
+    let ch = |s: &str| Key::Character(s.into());
+    assert_eq!(stand_in(&ch("i"), cs, false).as_deref(), Some("i"));
+    assert_eq!(stand_in(&ch("1"), cs, false).as_deref(), Some("1"));
+    assert_eq!(stand_in(&ch("i"), cs, true), None, "a Mac has its Cmd key");
+    assert_eq!(stand_in(&ch("i"), ModifiersState::CONTROL, false), None);
+    let alt = cs | ModifiersState::ALT;
+    assert_eq!(stand_in(&ch("i"), alt, false), None, "AltGr is Ctrl+Alt");
+    // Ctrl+Shift chords crew already means something by keep that meaning.
+    for k in ["l", "g", "f", "m"] {
+        assert_eq!(stand_in(&ch(k), cs, false), None, "{k}");
+    }
+    // …and Ctrl+Shift+O is Cmd+O, not the compact view's Ctrl+O.
+    assert!(!is_compact_chord(&ch("O"), cs));
+}

@@ -36,18 +36,18 @@ const HINTS: &[&str] = &[
 ];
 #[cfg(not(target_os = "macos"))]
 const HINTS: &[&str] = &[
-    "Cmd+T  shell    \u{00b7}    Cmd+O  agents    \u{00b7}    /  commands",
-    "Cmd+T  shell  \u{00b7}  Cmd+O  agents  \u{00b7}  /  commands",
-    "Cmd+T shell \u{00b7} Cmd+O agents \u{00b7} / commands",
-    "Cmd+O  agents    \u{00b7}    /  commands",
-    "Cmd+O agents",
+    "Ctrl+Shift+T  shell    \u{00b7}    Ctrl+Shift+O  agents    \u{00b7}    /  commands",
+    "Ctrl+Shift+T  shell  \u{00b7}  Ctrl+Shift+O  agents  \u{00b7}  /  commands",
+    "Ctrl+Shift+T shell \u{00b7} Ctrl+Shift+O agents \u{00b7} / commands",
+    "Ctrl+Shift+O  agents    \u{00b7}    /  commands",
+    "Ctrl+Shift+O agents",
 ];
 
 /// How the hint writes the command modifier, before the key.
 pub(crate) const CMD: &str = if cfg!(target_os = "macos") {
     "\u{2318}"
 } else {
-    "Cmd+"
+    "Ctrl+Shift+"
 };
 
 /// Columns of air a centred line keeps between itself and the card's frame.

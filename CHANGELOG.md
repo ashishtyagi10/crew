@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.79
+
+**Cmd chords work on Windows and Linux.** There the Cmd key is the
+Windows key, and the OS keeps its chords (Win+I opens Settings), so
+nothing could focus the input bar. Every Cmd chord is now also Ctrl+Shift
+and the key off a Mac — Ctrl+Shift+I focuses the input bar, Ctrl+Shift+T
+opens a shell, Ctrl+Shift+W closes a pane, Ctrl+Shift+1 … 9 jump — the way
+Windows Terminal does it. Ctrl+Shift+L, G, F and M keep their meanings.
+`/keys`, the palette, the welcome card and toasts write each chord the way
+that machine presses it, and the settings form's button says Alt+S.
+
 ## 0.25.78
 
 **Two error messages say it once.** A shell that would not start read

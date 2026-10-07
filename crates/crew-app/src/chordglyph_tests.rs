@@ -68,3 +68,25 @@ fn prose_rewrites_only_the_chords() {
         "press \u{2318}T to open one"
     );
 }
+
+/// Off a Mac the table's Cmd chords are written as they are pressed there.
+#[test]
+fn off_a_mac_cmd_chords_are_written_as_their_ctrl_shift_stand_ins() {
+    assert_eq!(offmac("Cmd+I / Cmd+T"), "Ctrl+Shift+I / Ctrl+Shift+T");
+    assert_eq!(offmac("Cmd+1 \u{2026} 9"), "Ctrl+Shift+1 \u{2026} 9");
+    assert_eq!(
+        offmac("Cmd+= / Cmd+- / Cmd+0 / Cmd+wheel"),
+        "Ctrl+Shift+= / Ctrl+Shift+- / Ctrl+Shift+0 / Ctrl+wheel"
+    );
+    assert_eq!(offmac("Cmd+Click"), "Ctrl+Click");
+    assert_eq!(
+        offmac("press Cmd+T, or /new"),
+        "press Ctrl+Shift+T, or /new"
+    );
+    // No stand-in: Ctrl+Shift+G already steps the gradient, and a shifted
+    // chord has no Shift left to give.
+    assert_eq!(offmac("Cmd+G / Cmd+Z"), "Cmd+G / Ctrl+Shift+Z");
+    assert_eq!(offmac("Cmd+Shift+T"), "Cmd+Shift+T");
+    assert_eq!(offmac("Cmd+{ / Cmd+}"), "Cmd+{ / Cmd+}");
+    assert_eq!(offmac("Ctrl+Shift+L"), "Ctrl+Shift+L", "not a Cmd chord");
+}

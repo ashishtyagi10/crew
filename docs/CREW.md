@@ -373,6 +373,16 @@ matches nothing says so rather than emptying the panel. What you typed is shown
 where the version normally sits. **Esc** closes it (so does any key that is not
 a letter, a space or Backspace), and the filter is forgotten on the way out.
 
+**On Windows and Linux** the Cmd key is the Windows/Super key, which the OS
+keeps for itself (Win+I opens Settings), so every Cmd chord below is pressed
+as **Ctrl+Shift** and the key: Ctrl+Shift+I focuses the input bar,
+Ctrl+Shift+T opens a shell, Ctrl+Shift+1 … 9 jump to a pane. Cmd+Click and
+Cmd+wheel are Ctrl+Click and Ctrl+wheel, and a document window takes plain
+Ctrl (Ctrl+B, Ctrl+S). Cmd+F, Cmd+G, Cmd+M and the shifted chords keep no
+stand-in — Ctrl+Shift+F, G and M already mean focus mode, the gradient and
+markdown source on every platform. `/keys` writes each chord the way that
+machine presses it.
+
 | Action | Keys |
 |--------|------|
 | Next / previous pane | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also **Cmd+]** / **Cmd+[**, which skip minimized panes) |

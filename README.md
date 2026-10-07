@@ -229,6 +229,16 @@ at the top, as before. On macOS it and the command palette write chords the
 way the menu bar does (`⇧⌘T`, `⌃⇧L`); the table below keeps the portable
 spelling, and typing `cmd` or `shift` still filters the list.
 
+**On Windows and Linux** the Cmd key is the Windows/Super key, which the OS
+keeps for itself (Win+I opens Settings), so every Cmd chord below is pressed
+as **Ctrl+Shift** and the key: Ctrl+Shift+I focuses the input bar,
+Ctrl+Shift+T opens a shell, Ctrl+Shift+1 … 9 jump to a pane. Cmd+Click and
+Cmd+wheel are Ctrl+Click and Ctrl+wheel, and a document window takes plain
+Ctrl (Ctrl+B, Ctrl+S). Cmd+F, Cmd+G, Cmd+M and the shifted chords keep no
+stand-in — Ctrl+Shift+F, G and M already mean focus mode, the gradient and
+markdown source on every platform. `/keys` writes each chord the way that
+machine presses it.
+
 | Action | Keys |
 |--------|------|
 | Next / previous pane | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also Cmd+] / Cmd+[) |
