@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.25.89
+
+**Tags and badges read on a tube.** A CRT theme spreads its project tags
+over shades of the one phosphor, and the darkest sat at 3:1, the dimmest
+text on a `/todo` row. A badge filled with one was too dark for dark ink,
+so its label flipped to a light grey beside its neighbours. The darkest tag
+now reads at 4.5:1, every other shade is a little less saturated so twelve
+tags stay twelve colours, and badges keep dark ink. `/disk` tiles too dark
+for dark ink now label in the phosphor, not grey.
+
 ## 0.25.88
 
 **Keys stand out from their labels on a tube.** In `/keys` and the far

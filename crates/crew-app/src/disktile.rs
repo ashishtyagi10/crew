@@ -59,12 +59,18 @@ pub(crate) fn put(
 /// out short of the floor at every lightness — a file tile at 0.55 alpha over
 /// a dark page reached 4.34 and stopped there. `enforced` gives up chroma
 /// rather than the floor, so every tile on the map is readable, not most.
+///
+/// On a tube a tile too dark for the page's ink walks up from the tube's own
+/// ink instead: from the page's near-black the light end of the walk was a
+/// neutral grey, the one colour on the map from another machine.
 pub(crate) fn label_ink(bg: (u8, u8, u8)) -> (u8, u8, u8) {
-    crew_theme::readable::enforced(
-        crew_theme::theme().page_bg,
-        bg,
-        crew_theme::contrast::text_floor(),
-    )
+    let t = crew_theme::theme();
+    let floor = crew_theme::contrast::text_floor();
+    let from = match t.is_tube() && crew_theme::contrast_ratio(t.page_bg, bg) < floor {
+        true => t.ink,
+        false => t.page_bg,
+    };
+    crew_theme::readable::enforced(from, bg, floor)
 }
 
 /// Columns the header keeps for the path before it gives up and shows the

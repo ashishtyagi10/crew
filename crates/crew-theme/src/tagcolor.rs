@@ -95,11 +95,14 @@ fn tube_rung(slot: usize, t: &Theme) -> (u8, u8, u8) {
         .iter()
         .map(|&i| crate::oklch::from_srgb(t.ansi[i]))
         .fold(hue_from, |a, b| if b.c > a.c { b } else { a });
+    // The bottom rung is read, not just seen: a tag is a word. Solved at
+    // the mark floor it sat at 3:1 — the dimmest text on a todo row, and a
+    // badge filled with it too dark for dark ink, so the ink flipped light.
     let dim = crate::oklch::solve_for_contrast(
         t.page_bg,
         peak.h,
         peak.c,
-        floor(),
+        crate::contrast::text_floor(),
         crate::oklch::Toward::for_page(t.page_bg),
     );
     let lo = crate::oklch::from_srgb(dim).l;
@@ -114,8 +117,18 @@ fn tube_rung(slot: usize, t: &Theme) -> (u8, u8, u8) {
         .max(lo + 0.05);
     let n = CHROMATIC.len() as f32;
     let l = lo + (hi - lo) * (slot as f32 / (n - 1.0));
-    crate::oklch::Oklch::new(l, peak.c, peak.h).to_srgb()
+    // Read-floor rungs leave eleven steps of lightness only just one visible
+    // step apart, and 8-bit rounding ate the margin. Every other rung is
+    // less saturated, so neighbours differ in two ways, not one.
+    let c = match slot % 2 {
+        0 => peak.c,
+        _ => peak.c * ODD_CHROMA,
+    };
+    crate::oklch::Oklch::new(l, c, peak.h).to_srgb()
 }
+
+/// How saturated a tube's odd tag rungs are, against its even ones.
+const ODD_CHROMA: f32 = 0.5;
 
 /// Blend `c` toward the theme's ink in tenths until it clears [`FLOOR`]
 /// against the page — lifted, not dropped, so the pool size (and thus every

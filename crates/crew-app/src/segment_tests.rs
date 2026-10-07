@@ -116,3 +116,36 @@ fn to_card_carries_the_block_and_no_source() {
         assert!(c.src.is_none() && c.link.is_none());
     }
 }
+
+/// On a tube every tag colour is a badge dark ink reads on: the bottom tag
+/// rung now clears the text floor against the page, so a badge's ink no
+/// longer flips to a light grey on the darker tags (`scout` beside `smith`).
+/// And a disk tile too dark for that ink takes the tube's own colour, not a
+/// neutral grey.
+#[test]
+fn a_tube_badge_reads_in_dark_ink_and_a_tile_in_its_phosphor() {
+    let _g = crate::app::theme_test_guard();
+    let lum = |c| crew_theme::contrast_ratio(c, (0, 0, 0));
+    for id in crew_theme::ALL_THEMES.into_iter().filter(|id| id.is_crt()) {
+        crew_theme::set_theme(id);
+        let t = crew_theme::theme();
+        for slot in 0..12 {
+            let bg = crew_theme::slot_color(slot, t);
+            let ink = super::page_ink(bg);
+            assert!(
+                lum(ink) < lum(bg),
+                "{} slot {slot}: light ink on {bg:?}",
+                id.as_str()
+            );
+        }
+        let dark_tile = crate::anim::lerp_rgb(t.page_bg, t.border_focused, 0.3);
+        let ink = crate::disktile::label_ink(dark_tile);
+        let chroma = crew_theme::oklch::from_srgb(ink).c;
+        assert!(
+            chroma >= 0.03,
+            "{}: tile label {ink:?} is grey",
+            id.as_str()
+        );
+    }
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+}
