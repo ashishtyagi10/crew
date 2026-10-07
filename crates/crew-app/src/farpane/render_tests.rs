@@ -615,11 +615,10 @@ fn the_panel_header_fits_inside_its_own_rule() {
             l.chars().count() + 3 <= width as usize || l.is_empty(),
             "{width}: header {l:?} is wider than the rule that holds it"
         );
-        // Whenever it says anything, it ends in a whole token — never half a
-        // size, which is what the clip used to leave.
-        if l.contains('\u{b7}') {
-            assert!(l.ends_with("3.3K "), "{width}: clipped suffix {l:?}");
-        }
+        // Whenever it says anything, it ends in a whole token — the size, or
+        // the count alone — never half a size, which the clip used to leave.
+        let whole = l.ends_with("3.3K ") || l.ends_with("\u{b7} 4 ");
+        assert!(whole || !l.contains('\u{b7}'), "{width}: clipped {l:?}");
         // A panel too narrow for the count and size keeps the directory.
         if !l.is_empty() && !l.contains('\u{b7}') {
             assert!(
