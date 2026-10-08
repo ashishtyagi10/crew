@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.6
+
+**Glass is a theme you can pick, and it's light.** The liquid-glass palette
+from 0.25.80 was dark, and it wasn't offered anywhere you would look for it:
+`/settings` and `Ctrl+Shift+L` only cycled `dark`, `light`, `crt` and `auto`,
+and the **Glass** setting there is the frost under every card, not this
+theme. Choosing "glass" left you on whatever you had before.
+- **`/theme glass`** (also in the settings Theme field, the `/theme` picker
+  and `Ctrl+Shift+L`): the iPhone's liquid glass by day. Each pane is frosted
+  white glass over a pastel wallpaper that it blurs and bends at the rim, with
+  a white specular edge, a broad gloss and a soft shadow. Dark ink sits on top,
+  held at 7:1 contrast or better.
+- Two wallpapers rotate: **`glass-sky`** (blue into rose, iPhone-blue
+  accent) and **`glass-dawn`** (peach into lavender, pink accent).
+- The dark glass is now **`glass-night`** and rotates with the other dark
+  pages.
+- On liquid glass, the **Glass** setting moves the frost a third as far as
+  it does elsewhere. `high` used to make light glass milky white and night
+  glass solid smoke.
+
 ## 0.26.5
 
 **`/update` works again.** The update check asked GitHub for the whole

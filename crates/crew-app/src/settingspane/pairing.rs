@@ -19,10 +19,15 @@ use crew_theme::{RandomMode, Selection, ALL_THEMES};
 pub(super) const DEFAULT_LABEL: &str = "default";
 
 /// Every value a pairing side can hold, in picker order: unset, then the
-/// three rotation pools, then every palette.
+/// four rotation pools, then every palette.
 pub(super) fn values() -> Vec<Option<Selection>> {
     let mut v = vec![None];
-    for m in [RandomMode::Dark, RandomMode::Light, RandomMode::Crt] {
+    for m in [
+        RandomMode::Dark,
+        RandomMode::Light,
+        RandomMode::Crt,
+        RandomMode::Glass,
+    ] {
         v.push(Some(Selection::Mode(m)));
     }
     v.extend(ALL_THEMES.into_iter().map(|id| Some(Selection::Fixed(id))));

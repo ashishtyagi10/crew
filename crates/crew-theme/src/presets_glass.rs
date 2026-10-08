@@ -1,4 +1,6 @@
-//! **Glass**: the iPhone's liquid glass (the user, 2026-10-07). Every pane is a
+//! **Glass night**: the iPhone's liquid glass after dark (the user, 2026-10-07 —
+//! the light pair, `glass-sky` and `glass-dawn`, is what `glass` serves; see
+//! [`crate::presets_glass_light`]). Every pane is a
 //! slab of glass over a vivid wallpaper — the wallpaper frosted and deepened
 //! in its body, bent by a lens at its rim, a bright specular edge on top
 //! ([`crate::LiquidStyle`], `glass::liquid_glass`). The page is the wallpaper:
@@ -11,7 +13,7 @@
 //! `highlight_tests` are what put the numbers here.
 use crate::{CrtStyle, LiquidStyle, ModernStyle, Theme};
 
-pub static GLASS: Theme = Theme {
+pub static GLASS_NIGHT: Theme = Theme {
     page_bg: (11, 9, 30),
     ink: (233, 234, 237),
     text_muted: (193, 196, 208),

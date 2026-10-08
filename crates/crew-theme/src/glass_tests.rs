@@ -169,6 +169,39 @@ fn high_never_exceeds_opaque() {
     }
 }
 
+/// Liquid glass stays GLASS at every level: the frost never covers more than
+/// nine tenths of the wallpaper, even at `high` (the user's own setting when
+/// the light glass shipped — the plain ×1.6 took its bottom edge to 93% white
+/// and the night glass's to solid smoke), and the levels still step, so the
+/// knob still does something.
+#[test]
+fn liquid_glass_shows_its_wallpaper_at_every_level() {
+    for id in ALL_THEMES
+        .into_iter()
+        .filter(|id| id.theme().liquid.is_some())
+    {
+        let base = style_for(id.theme());
+        let at = |l: GlassLevel| base.scaled_by(l.liquid_scale());
+        let (low, med, high) = (
+            at(GlassLevel::Low),
+            at(GlassLevel::Medium),
+            at(GlassLevel::High),
+        );
+        assert!(
+            high.alpha_top.max(high.alpha_bottom) <= 0.9,
+            "{}: high frosts {:.2} of the wallpaper away",
+            id.as_str(),
+            high.alpha_bottom
+        );
+        assert!(
+            low.alpha_top < med.alpha_top && med.alpha_top < high.alpha_top,
+            "{}: the level no longer steps",
+            id.as_str()
+        );
+        assert_eq!(at(GlassLevel::Off).alpha_top, 0.0, "{}: off", id.as_str());
+    }
+}
+
 /// A tube's text still reads on its glass (the glass-tube goal, done-means
 /// 5). The worst place text sits is the top of a pane hard by its frame, at
 /// the High level: the body's top tint plus the edge glow and an etched

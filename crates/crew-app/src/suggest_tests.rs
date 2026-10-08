@@ -97,15 +97,15 @@ fn theme_command_expands_into_a_value_picker() {
 fn theme_space_lists_the_rotations_first_then_every_palette() {
     let items = menu_items("/theme ");
     let labels: Vec<&str> = items.iter().map(|m| m.label.as_str()).collect();
-    // The four rotations lead — they are what most people want — then a
+    // The five rotations lead — they are what most people want — then a
     // heading, then every individual palette. The palettes have always
     // parsed; not offering them meant you had to know the name already.
     assert_eq!(
-        &labels[..4],
-        &["dark", "light", "crt", "auto"],
+        &labels[..5],
+        &["dark", "light", "crt", "glass", "auto"],
         "{labels:?}"
     );
-    assert!(items[4].header, "the palettes need a heading: {labels:?}");
+    assert!(items[5].header, "the palettes need a heading: {labels:?}");
     for name in ["paper-dark", "crt-green", "crt-violet", "harbor", "fern"] {
         assert!(labels.contains(&name), "{name} is missing: {labels:?}");
     }

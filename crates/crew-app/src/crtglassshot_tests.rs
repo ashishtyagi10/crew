@@ -144,14 +144,16 @@ fn glass_window_shot() {
         live: 1.0,
         eddy: 0.4,
     };
-    for (name, clocks) in [
-        ("glass-window", Default::default()),
-        ("glass-window-awake", awake),
-    ] {
-        let Some(px) = window(name, ThemeId::Glass, clocks, 1.0) else {
-            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
-            return;
-        };
-        assert!(crate::shotgpu_tests::ink(&px) > 10_000, "{name}: drew");
+    for id in [ThemeId::GlassSky, ThemeId::GlassDawn, ThemeId::GlassNight] {
+        for (name, clocks) in [
+            (format!("{}-window", id.as_str()), Default::default()),
+            (format!("{}-window-awake", id.as_str()), awake),
+        ] {
+            let Some(px) = window(&name, id, clocks, 1.0) else {
+                eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+                return;
+            };
+            assert!(crate::shotgpu_tests::ink(&px) > 10_000, "{name}: drew");
+        }
     }
 }

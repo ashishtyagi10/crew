@@ -406,7 +406,7 @@ machine presses it.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |
-| Cycle themes (dark → light → crt → auto) | **Ctrl+Shift+L** |
+| Cycle themes (dark → light → crt → glass → auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Toggle the chat's compact transcript view | **Ctrl+O** (falls through to the terminal when the focused pane isn't a chat) |
 | Reverse-search the chat composer's send history | **Ctrl+R** (again steps to the next older match) |
@@ -856,21 +856,22 @@ The docked command bar supports:
   The fresh process re-reads `config.toml`, so external config edits ride
   along too.
 - **`/theme [name]`** — switches the theme live and persists it. There are
-  four themes — **`dark`**, **`light`**, **`crt`**, and **`auto`** — and each
-  one *rotates* through a pool of palettes every 10 minutes (dark paper
-  palettes, light paper palettes, CRT phosphor palettes; `auto` borrows the
+  five themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, and
+  **`auto`** — and each one *rotates* through a pool of palettes every 10
+  minutes (dark paper palettes, light paper palettes, CRT phosphor palettes,
+  the iPhone's light liquid glass; `auto` borrows the
   dark or light paper pool to **follow the OS appearance**, flipping live when
   the system switches modes). A fresh install with no saved theme follows the
-  OS out of the box; picking `dark`, `light`, or `crt` opts out of following,
+  OS out of the box; picking `dark`, `light`, `crt` or `glass` opts out of following,
   and picking `auto` opts back in. (If the platform never reports an
   appearance, `auto` assumes dark.) Two `config.toml` keys re-pair what `auto`
   serves per appearance: `theme_dark` and `theme_light` each name a pool
-  (`dark` | `light` | `crt`) or a pinned palette — `theme_dark = "crt"` makes
+  (`dark` | `light` | `crt` | `glass`) or a pinned palette — `theme_dark = "crt"` makes
   night phosphor while day stays light paper. No argument reports the current
   selection.
   Selecting `/theme` in the palette opens an arrow-selectable **picker** of
-  the four themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
-  `dark → light → crt → auto`. The old names — the individual palettes
+  the five themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
+  `dark → light → crt → glass → auto`. The old names — the individual palettes
   (`paper-dark`, `crt-green`, …) and the pre-consolidation rotation modes
   (`random-dark`/`random`, `random-light`) — still resolve for back-compat
   but aren't listed. See [Themes](#themes).
@@ -3935,7 +3936,9 @@ reflection across the upper face, a bright rim, and a halo of phosphor light
 where the other themes cast a shadow — so the terminal reads as running inside
 the glass. `medium` is the default; `off`
 restores flat cards and costs nothing to draw. Overlay popups (the command menu, the attach
-picker, the key prompt) stay opaque by design.
+picker, the key prompt) stay opaque by design. This knob is not the **`glass`
+theme** — that is `/theme glass` (see [Themes](#themes)), the iPhone's liquid
+glass over a pastel wallpaper; on it, this knob sets how deep the frost is.
 
 **Opacity %** (CANVAS) makes the **window itself** translucent, so your desktop
 shows through the page. Text, pane fills and selections stay solid — only the
@@ -3995,10 +3998,11 @@ is the difference between retiring a command and folding one.
 
 ## Themes
 
-Crew offers **four themes** — **`dark`**, **`light`**, **`crt`**, and
-**`auto`** — and each one is a *rotation*: it cycles through a pool of
+Crew offers **five themes** — **`dark`**, **`light`**, **`crt`**, **`glass`**
+and **`auto`** — and each one is a *rotation*: it cycles through a pool of
 hand-tuned palettes every 10 minutes. `dark` rotates the dark paper/ink looks,
 `light` rotates the light ones, `crt` rotates the old-school phosphor tubes,
+`glass` rotates the iPhone's light liquid glass over two pastel wallpapers,
 and `auto` follows the **OS appearance** — the dark pool while the
 system is in dark mode, the light one in light mode, flipping live (through
 the develop-fade) the moment the system switches. With no theme saved at all,
@@ -4030,7 +4034,17 @@ opposite of what a picker is for.
 - **`fern`** — a faint mint page under a deep green-teal light; the only light
   palette whose accent is green, so it cannot be mistaken for the two warm ones
   at a glance.
-- **`glass`** — the iPhone's liquid glass. The page is a wallpaper — broad
+- **`glass-sky`** and **`glass-dawn`** — the `glass` rotation: the iPhone's
+  liquid glass with the lights on. The page is a bright pastel wallpaper —
+  sky blue melting into rose, or peach into lavender — and every pane is a
+  slab of clear glass over it, frosted white in its body so dark ink reads on
+  it, bent by a wider lens at the rim, with a hard white specular edge, a broad
+  gloss and a soft grey shadow (the only thing that lifts a white card off a
+  pale page). Ink is the iPhone's near-black; the accents are its system blue
+  (sky) and pink (dawn). A test holds the ink at 7:1 over the deepest colour
+  the wallpaper reaches.
+- **`glass-night`** — the iPhone's liquid glass after dark (it rotates with
+  the other dark pages). The page is a wallpaper — broad
   fields of electric blue, violet and hot pink melting over a deep violet
   night, darkening toward the window's top and bottom edges the way the
   iPhone shades the wallpaper behind its status bar — and every pane is a slab
