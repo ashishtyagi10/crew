@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.7
+
+**Every corner is rounded.** A frame corner used to be one box-drawing
+glyph, which can bend no further than half a cell, so every card was a
+square with its corners slightly clipped. Now the corner borrows the next
+rule cell along each side. The corner glyph and those cells give way to one
+real quarter arc, about three times the old radius. The glass sheet under
+the card bends with it.
+- **Everywhere frames are drawn:** panes, the left nav, the input bar,
+  pop-ups, toasts, `/far`'s panels, and boxes a program draws in a terminal,
+  including square `┌┐└┘` corners.
+- **The arc's ends meet the rules exactly.** The arc is placed from the same
+  shaped text the rules are drawn from, at every size, on fractional
+  positions and across a stretched frame. Where the two rules differ in
+  colour, as on a focused card's gradient ring, the arc fades from one to
+  the other.
+- **When a legend or mark sits right against a corner,** that corner keeps
+  its old small glyph. `/far`'s panel tabs now start one rule cell in, like
+  every other legend, so their corners round too.
+
 ## 0.26.6
 
 **Glass is a theme you can pick, and it's light.** The liquid-glass palette

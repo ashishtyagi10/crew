@@ -245,8 +245,9 @@ fn focused_border_is_brighter_than_unfocused() {
 /// On the far sides too: the last column's rule is 3.5 into ITS cell, so the
 /// sheet ends at `9 * 8 + 3.5`, not `3.5` short of the frame's outer edge
 /// (which put the rim a pixel beside the right-hand and bottom rules).
-/// Its corner is the `╭` arc's: half the narrower cell side, less the one
-/// pixel of straight tail `boxglyph::round` keeps.
+/// Its corner is the frame's card-scale arc ([`crate::corners`]): the
+/// frame and its glass bend as one — 3.5 px to the cell's edge plus one
+/// borrowed cell, less a pixel of tail.
 #[test]
 fn glass_card_runs_along_the_frame_stroke() {
     let mut fs = crate::embedfont::font_system();
@@ -255,7 +256,8 @@ fn glass_card_runs_along_the_frame_stroke() {
     assert_eq!(cards.len(), 1);
     let c = &cards[0];
     assert_eq!((c.x, c.y, c.w, c.h), (3.5, 7.5, 9.0 * 8.0, 16.0));
-    assert_eq!(c.radius, 8.0 / 2.0 - 1.0);
+    assert_eq!(c.radius, crate::corners::radius(8.0, 16.0));
+    assert_eq!(c.radius, 3.5 + 8.0 - 1.0);
 }
 
 #[test]

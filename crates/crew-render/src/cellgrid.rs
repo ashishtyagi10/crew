@@ -76,6 +76,8 @@ pub struct CellGrid {
     /// Theme-switch veil: one full-window quad drawn over everything, fading
     /// out as the new theme develops. `None` (the resting state) draws nothing.
     round_border_layer: RoundBorderLayer,
+    /// The floating cards' corner arcs (`crate::corners`), over their glass.
+    overlay_round_border_layer: RoundBorderLayer,
     /// Frosted sheets drawn beneath everything else in the base pass.
     glass_layer: GlassLayer,
     /// Floating cards' shadows and rims, drawn over the overlay backgrounds.
@@ -148,6 +150,7 @@ impl CellGrid {
         let quad_layer = QuadLayer::new(device, format);
         let overlay_quad_layer = QuadLayer::new(device, format);
         let round_border_layer = RoundBorderLayer::new(device, format);
+        let overlay_round_border_layer = RoundBorderLayer::new(device, format);
         let glass_layer = GlassLayer::new(device, format);
         let overlay_glass_layer = GlassLayer::new(device, format);
 
@@ -163,6 +166,7 @@ impl CellGrid {
             quad_layer,
             overlay_quad_layer,
             round_border_layer,
+            overlay_round_border_layer,
             glass_layer,
             overlay_glass_layer,
             glass_level: crew_theme::GlassLevel::Medium,
@@ -344,7 +348,7 @@ impl CellGrid {
     pub fn set_scene(&mut self, device: &wgpu::Device, panes: &[PaneScene]) {
         let params = self.font_params();
         let (cw, ch) = (self.cell_w, self.cell_h);
-        let ((quads, buffers, sigs, borders, cards), (oquads, obuffers, osigs, _, ocards)) =
+        let ((quads, buffers, sigs, borders, cards), (oquads, obuffers, osigs, oborders, ocards)) =
             build_both(
                 panes,
                 cw,
@@ -360,6 +364,8 @@ impl CellGrid {
         self.quad_layer.set_quads(device, &quads);
         self.overlay_quad_layer.set_quads(device, &oquads);
         self.round_border_layer.set_borders(device, &borders);
+        self.overlay_round_border_layer
+            .set_borders(device, &oborders);
         self.glass_layer.set_cards(device, &cards);
         self.overlay_glass_layer.set_cards(device, &ocards);
         self.base.set(sigs, buffers);
@@ -398,6 +404,7 @@ impl CellGrid {
         self.quad_layer.set_viewport(queue, w, h);
         self.overlay_quad_layer.set_viewport(queue, w, h);
         self.round_border_layer.set_viewport(queue, w, h);
+        self.overlay_round_border_layer.set_viewport(queue, w, h);
         self.glass_layer.set_view(queue, w, h, self.glass_light);
         self.overlay_glass_layer
             .set_view(queue, w, h, self.glass_light);
@@ -443,6 +450,7 @@ impl CellGrid {
         // Over the overlay backgrounds, not under: a floating card's shadow
         // must darken the page margin its own scene paints opaque.
         self.overlay_glass_layer.draw(pass);
+        self.overlay_round_border_layer.draw(pass);
         self.overlay_renderer
             .render(&self.atlas, &self.viewport, pass)
             .expect("glyphon overlay render failed");
