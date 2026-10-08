@@ -17,6 +17,11 @@ struct U {
     glow: f32,
     core: f32,
     shade: f32,
+    // 1: leave the frame premultiplied (crtchain's `premultiplies`), 0: straight.
+    premul: f32,
+    _pad0: f32,
+    _pad1: f32,
+    _pad2: f32,
 }
 @group(0) @binding(0) var tex: texture_2d<f32>;
 @group(0) @binding(1) var samp: sampler;
@@ -150,5 +155,10 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // Otherwise the scene's alpha passes through untouched — the tube effects
     // shape light, not transparency, so a translucent window stays
     // translucent under CRT.
-    return vec4<f32>(clamp(col, vec3<f32>(0.0), vec3<f32>(1.0)), a);
+    //
+    // See-through glass leaves PREMULTIPLIED: the window server adds rgb to
+    // what the alpha leaves of the desktop, so a light page written straight
+    // is the desktop plus near-white — a white-out, not glass.
+    let out = clamp(col, vec3<f32>(0.0), vec3<f32>(1.0));
+    return vec4<f32>(out * mix(1.0, a, u.premul), a);
 }

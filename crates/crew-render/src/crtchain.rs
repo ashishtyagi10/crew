@@ -8,6 +8,32 @@ use crate::crt::CrtPass;
 use crate::scenetarget::SceneTarget;
 use crew_theme::CrtStyle;
 
+/// Whether the frame must leave the composite PREMULTIPLIED at `window_opacity`.
+///
+/// The window server composites crew premultiplied — shown = rgb + (1 − a) ·
+/// desktop — and every pass writes straight colour. On a dark page that is
+/// near enough (dark colour is near zero either way), and the tubes' glow is
+/// tuned to add light over the desktop. A LIGHT page is not: its colour is
+/// added to the desktop's whole, so a see-through glass window washed out to
+/// white instead of showing what is behind it. Liquid glass is see-through by
+/// design (`LiquidStyle::window`), so it leaves premultiplied whenever the
+/// window is sheer, and the chain runs for it even with no tube of its own.
+pub fn premultiplies(window_opacity: f32) -> bool {
+    window_opacity < 1.0 && crew_theme::theme().liquid.is_some()
+}
+
+/// The composite as a plain copy: what the chain draws when it runs only to
+/// premultiply ([`premultiplies`]) under a theme with no tube of its own.
+const CLEAR: CrtStyle = CrtStyle {
+    scanline: 0.0,
+    glow: 0.0,
+    glow_radius: CrtStyle::DEFAULT.glow_radius,
+    flicker: 0.0,
+    core: 0.0,
+    etch: 0.0,
+    shade: 0.0,
+};
+
 pub struct CrtChain {
     pass: CrtPass,
     bloom: Bloom,
@@ -16,6 +42,8 @@ pub struct CrtChain {
     style: Option<CrtStyle>,
     time: f32,
     flicker: f32,
+    /// Leave the composite premultiplied (see [`premultiplies`]).
+    premul: bool,
 }
 
 impl CrtChain {
@@ -28,6 +56,7 @@ impl CrtChain {
             style: None,
             time: 0.0,
             flicker: 0.0,
+            premul: false,
         };
         chain.bind(device, w, h);
         chain
@@ -71,6 +100,18 @@ impl CrtChain {
         self.style
     }
 
+    /// Leave the composite premultiplied (see [`premultiplies`]). While set
+    /// the chain must run even with no style: it is the frame's last pass.
+    pub fn set_premultiply(&mut self, on: bool) {
+        self.premul = on;
+    }
+
+    /// Whether the frame goes through the chain at all: a tube, or a
+    /// premultiply only it can do.
+    pub fn active(&self) -> bool {
+        self.style.is_some() || self.premul
+    }
+
     /// Per-frame animation inputs: `time` seeds the flicker hash, `flicker`
     /// is its amplitude (0 = a static tube).
     pub fn set_anim(&mut self, time: f32, flicker: f32) {
@@ -83,7 +124,7 @@ impl CrtChain {
     /// added light (dark pages), `true` the coloured shadow a light page needs
     /// (see `bloom.wgsl`). The caller owns the page, so it owns the choice.
     pub fn update_uniforms(&self, queue: &wgpu::Queue, w: f32, h: f32, ink: bool) {
-        let mut style = self.style.unwrap_or(CrtStyle::DEFAULT);
+        let mut style = self.style.unwrap_or(CLEAR);
         // On a light page the halo is a coloured SHADOW, not added light:
         // bloom's ink pass hands the composite the blurred complement of
         // whatever is colourful, and SUBTRACTING that tints the page toward
@@ -95,7 +136,7 @@ impl CrtChain {
             style.glow = -style.glow;
         }
         self.pass
-            .update_uniform(queue, w, h, self.time, self.flicker, style);
+            .update_uniform(queue, w, h, self.time, self.flicker, style, self.premul);
         self.bloom.update_uniform(queue, style.glow_radius, ink);
     }
 

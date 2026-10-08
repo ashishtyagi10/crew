@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.8
+
+**Glass is see-through.** The `glass` theme kept its window opaque, so the
+pastel wallpaper hid everything behind crew, and the only thing to see
+through a pane was more wallpaper. Now the window is glass over your desktop.
+- **The wallpaper is a tint.** The window is at most 45% opaque under every
+  glass theme, title bar included, so your desktop shows through the gaps
+  between panes. A lower Opacity % still wins.
+- **Panes are frosted slabs, not holes.** Each pane still hides about four
+  fifths of what is behind it, so text keeps its contrast. The colour stays
+  exactly the frosted glass it was; only the desktop now shows through.
+- **The desktop keeps its shapes.** macOS blurs what is behind a see-through
+  window. Glass asks for a 20 pt blur instead of the usual 80 pt, which
+  turned everything behind it into fog.
+- **No more white-out.** macOS adds a see-through window's colour to the
+  desktop instead of blending it, so a light page went white instead of
+  showing anything. Glass now hands over its frame premultiplied, which
+  macOS blends correctly.
+- **Tests:** text over a pane stays readable over a black or a white desktop
+  (normal text at least 4.5:1, muted text 3:1), at every Glass level and the
+  wallpaper's deepest colour. GPU tests check that a see-through slab keeps
+  its solid colour at the expected alpha, and that the final frame is
+  premultiplied; each fails with its fix taken out.
+
 ## 0.26.7
 
 **Every corner is rounded.** A frame corner used to be one box-drawing

@@ -517,3 +517,59 @@ fn crt_shade_dims_the_desktop_behind_text_only() {
         );
     }
 }
+
+/// See-through glass leaves the composite PREMULTIPLIED (`premultiplies`):
+/// the window server adds rgb to what the alpha leaves of the desktop, so a
+/// light page written straight was a white-out. With no tube of its own the
+/// chain is a plain copy that does only that; switched off, it hands the
+/// colour through straight, as every tube is tuned for.
+#[test]
+fn crt_premultiplies_for_glass_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("crt_premultiplies_for_glass_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let mut chain = CrtChain::new(&device, wgpu::TextureFormat::Rgba8Unorm, N as u32, N as u32);
+    upload(&queue, &chain, |_, _| [200, 160, 100, 128]);
+    chain.set_style(None);
+    assert!(
+        !chain.active(),
+        "no tube, no premultiply: the frame skips the chain"
+    );
+    chain.set_premultiply(true);
+    assert!(chain.active(), "glass alone runs the chain");
+    chain.set_anim(0.0, 0.0);
+    chain.update_uniforms(&queue, N as f32, N as f32, true);
+    let on = render(&device, &queue, &chain);
+    let o = 32 * STRIDE + 32 * 4;
+    let got = &on[o..o + 4];
+    eprintln!("premultiplied: {got:?}");
+    for (c, want) in [(0, 100), (1, 80), (2, 50)] {
+        assert!(
+            got[c].abs_diff(want) <= 2,
+            "channel {c}: {} not {want}",
+            got[c]
+        );
+    }
+    assert!(got[3].abs_diff(128) <= 1, "alpha moved: {}", got[3]);
+
+    chain.set_premultiply(false);
+    chain.update_uniforms(&queue, N as f32, N as f32, true);
+    let off = render(&device, &queue, &chain);
+    let got = &off[o..o + 4];
+    for (c, want) in [(0, 200), (1, 160), (2, 100)] {
+        assert!(
+            got[c].abs_diff(want) <= 2,
+            "straight channel {c}: {}",
+            got[c]
+        );
+    }
+}

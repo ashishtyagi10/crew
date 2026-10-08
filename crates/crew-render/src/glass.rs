@@ -44,7 +44,9 @@ pub struct GlassCard {
     /// Where the frame's legends break the rim (see [`crate::notch`]).
     pub notch: crate::notch::Notch,
     /// Liquid glass (`crew_theme::LiquidStyle`): refract, bevel, blur and
-    /// dispersion, then clear_rim and vibrance, two spare and an on flag.
+    /// dispersion, then clear_rim and vibrance, how much of the desktop the
+    /// body lets through on a see-through window (0 is a solid slab, as the
+    /// glass always was), one spare and an on flag.
     /// All zero draws the sheet as before, never sampling the backdrop.
     pub lens: [f32; 8],
 }

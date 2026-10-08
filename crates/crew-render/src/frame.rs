@@ -78,8 +78,9 @@ pub(crate) fn render(
         .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
     // CRT on → scene renders off-screen then reprojects; off → straight to
-    // the surface (the original, zero-overhead path).
-    let use_crt = crt.style().is_some();
+    // the surface (the original, zero-overhead path). See-through glass takes
+    // the chain too, for its premultiply (`crtchain::premultiplies`).
+    let use_crt = crt.active();
     let bg = crew_theme::theme().page_bg;
     // The page alpha IS the window opacity: it seeds the clear and the
     // paper pass, and everything drawn afterwards blends over it, so pane

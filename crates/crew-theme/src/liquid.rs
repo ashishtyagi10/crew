@@ -32,4 +32,31 @@ pub struct LiquidStyle {
     /// How much the glass saturates what it shows (1 = as is): the material
     /// makes colour richer, not greyer, behind it.
     pub vibrance: f32,
+    /// The window's opacity under this glass: how much of the desktop behind
+    /// crew the wallpaper hides (1 = an opaque window). Glass is see-through
+    /// (the user, 2026-10-08: "glass theme is not glassy enough, I can't see
+    /// the background") — the wallpaper is a tint over the desktop, and a
+    /// lower Opacity % in Settings still wins.
+    pub window: f32,
+    /// How much of what the wallpaper leaves of the desktop a pane's slab
+    /// hides on top of it (1 = a solid slab). The body is frosted glass, not
+    /// a hole: the text needs a calm field, so a pane hides more of the
+    /// desktop than the gaps between panes do ([`LiquidStyle::pane_cover`]).
+    pub body: f32,
+    /// Radius (pt) the window server blurs the desktop behind a see-through
+    /// window. Small enough that what is behind crew keeps its shapes — the
+    /// difference between glass and fog.
+    pub desktop_blur: f32,
 }
+
+impl LiquidStyle {
+    /// How much of the desktop a pane hides in all: the wallpaper's share,
+    /// then the slab's over what that leaves (Porter-Duff "over").
+    pub fn pane_cover(self) -> f32 {
+        self.body + self.window * (1.0 - self.body)
+    }
+}
+
+#[cfg(test)]
+#[path = "liquid_tests.rs"]
+mod tests;

@@ -48,7 +48,7 @@ pub fn stroke_inset(cell_w: f32, cell_h: f32) -> (f32, f32) {
 pub use cellgrid::CellView;
 pub use celltext::CELL_H_RATIO;
 pub use corners::radius as corner_radius;
-pub use crtchain::CrtChain;
+pub use crtchain::{premultiplies, CrtChain};
 pub use embedfont::font_system;
 pub use fadepass::FadePass;
 pub use glass::{GlassCard, GlassLayer};

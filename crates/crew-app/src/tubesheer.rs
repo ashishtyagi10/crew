@@ -11,6 +11,10 @@
 //! faceplate is tinted for exactly that. [`TUBE_OPACITY`] is the least the
 //! faceplate can be and hold every text role over a white desktop.
 //!
+//! Liquid glass is see-through too (2026-10-08, the user: "glass theme is not
+//! glassy enough, I can't see the background"): its window is capped at the
+//! theme's own `LiquidStyle::window`, the wallpaper a tint over the desktop.
+//!
 //! Everything that reads the window's opacity reads
 //! [`CrewApp::window_opacity`], so the page, the blur, the title bar, the
 //! solid overlays and the lifted borders all agree on it. A lower Opacity %
@@ -25,21 +29,21 @@ use crate::app::CrewApp;
 /// desktop still shows through.
 pub(crate) const TUBE_OPACITY: f32 = 0.84;
 
-/// The window's opacity for a `setting` under a theme that is (`tube`) or is
-/// not a tube.
-pub(crate) fn sheer(setting: f32, tube: bool) -> f32 {
-    if tube {
-        setting.min(TUBE_OPACITY)
-    } else {
-        setting
+/// The window's opacity for a `setting` under theme `t`: capped at
+/// [`TUBE_OPACITY`] under a tube and at its own `window` under liquid glass.
+pub(crate) fn sheer(setting: f32, t: &crew_theme::Theme) -> f32 {
+    match t.liquid {
+        _ if t.is_tube() => setting.min(TUBE_OPACITY),
+        Some(l) => setting.min(l.window),
+        None => setting,
     }
 }
 
 impl CrewApp {
-    /// The window's opacity this frame: the setting, capped at
-    /// [`TUBE_OPACITY`] under a tube.
+    /// The window's opacity this frame: the setting, capped under a tube or
+    /// liquid glass ([`sheer`]).
     pub(crate) fn window_opacity(&self) -> f32 {
-        sheer(self.config.window_opacity, crew_theme::theme().is_tube())
+        sheer(self.config.window_opacity, crew_theme::theme())
     }
 
     /// Keep the window's sheer state in step with the theme. Run every frame
@@ -61,13 +65,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_tube_caps_its_opacity_and_other_themes_keep_the_setting() {
-        assert_eq!(sheer(1.0, true), TUBE_OPACITY);
+    fn a_tube_and_glass_cap_their_opacity_and_other_themes_keep_the_setting() {
+        use crew_theme::ThemeId;
+        let tube = ThemeId::CrtGreen.theme();
+        assert_eq!(sheer(1.0, tube), TUBE_OPACITY);
         // A lower Opacity % is transparency chosen over contrast: it wins.
         let low = crate::config::MIN_WINDOW_OPACITY;
-        assert_eq!(sheer(low, true), low);
-        assert_eq!(sheer(1.0, false), 1.0);
-        assert_eq!(sheer(0.6, false), 0.6);
+        assert_eq!(sheer(low, tube), low);
+        for id in [ThemeId::GlassSky, ThemeId::GlassDawn, ThemeId::GlassNight] {
+            let t = id.theme();
+            let cap = t.liquid.expect("glass is liquid").window;
+            assert!(cap < 1.0, "{}: glass shows the desktop", id.as_str());
+            assert_eq!(sheer(1.0, t), cap);
+            assert_eq!(sheer(low, t), low);
+        }
+        let paper = ThemeId::PaperDark.theme();
+        assert_eq!(sheer(1.0, paper), 1.0);
+        assert_eq!(sheer(0.6, paper), 0.6);
     }
 
     /// The text's background on a tube is the desktop through the faceplate,

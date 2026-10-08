@@ -3945,8 +3945,13 @@ shows through the page. Text, pane fills and selections stay solid — only the
 bare page goes sheer. `100` is opaque; the value floors at **35%**, because a
 window dialled any sheerer is one you can't find again. Works with the CRT
 post-process too — the tube shapes light, not transparency. A CRT theme is
-**always** sheer, a 12% veil whatever this says, title bar included: its
-window is frosted glass over your desktop, never a black slab.
+**always** sheer, at most 84% opaque whatever this says, title bar included:
+its window is a tinted faceplate over your desktop, never a black slab. The
+**`glass`** theme is sheerer still, at most 45% opaque: the pastel wallpaper is
+a tint over your desktop, and each pane is a frosted slab that still hides
+about four fifths of what is behind it, so the text keeps its contrast. The
+desktop behind glass is blurred lightly enough to keep its shapes. A lower
+Opacity % wins on both.
 
 ## `/view` — one command for the file viewer
 
@@ -4042,7 +4047,9 @@ opposite of what a picker is for.
   gloss and a soft grey shadow (the only thing that lifts a white card off a
   pale page). Ink is the iPhone's near-black; the accents are its system blue
   (sky) and pink (dawn). A test holds the ink at 7:1 over the deepest colour
-  the wallpaper reaches.
+  the wallpaper reaches. The window is see-through: your desktop shows through
+  the wallpaper, and more faintly through every pane (see **Opacity %**), and
+  a second test holds the text readable over a black or a white desktop.
 - **`glass-night`** — the iPhone's liquid glass after dark (it rotates with
   the other dark pages). The page is a wallpaper — broad
   fields of electric blue, violet and hot pink melting over a deep violet
@@ -4053,7 +4060,8 @@ opposite of what a picker is for.
   wallpaper just outside the edge pulled in under it, its colours splitting a
   little), with a white specular rim and a faint gloss on top. The accent is
   the iPhone's dark-mode mint; the face is SF Mono. A test holds the ink at
-  7:1 over the brightest wallpaper the frost can sit on.
+  7:1 over the brightest wallpaper the frost can sit on. Like the light glass,
+  its window is see-through.
 - **`crt-violet`** — the fourth phosphor: a violet tube, the glow of a vector
   display rather than a terminal. Its ladder is one hue at six brightnesses,
   like the other tubes, and it is the only one of the four whose phosphor

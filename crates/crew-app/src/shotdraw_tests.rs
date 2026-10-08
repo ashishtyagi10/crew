@@ -75,8 +75,7 @@ pub(crate) fn draw_with(
         view_formats: &[],
     });
     let view = tex.create_view(&Default::default());
-    // With the tube on, the scene is drawn into the chain's own off-screen
-    // target and composited onto `view` — exactly what `frame.rs` does.
+    // With the tube on, the scene goes through the chain — as `frame.rs` does.
     let mut chain = crt.then(|| crew_render::CrtChain::new(&device, FORMAT, w, h));
     if let Some(c) = chain.as_mut() {
         // The theme's own tube, or the default one when a paper theme is
@@ -87,6 +86,7 @@ pub(crate) fn draw_with(
                 .unwrap_or(crew_theme::CrtStyle::DEFAULT),
         ));
         c.set_anim(0.0, 0.0);
+        c.set_premultiply(crew_render::premultiplies(opacity));
         c.update_uniforms(&queue, w as f32, h as f32, !crew_theme::theme().dark);
     }
     let padded = row_padded(w);
@@ -99,6 +99,7 @@ pub(crate) fn draw_with(
 
     let mut grid = CellGrid::new(&device, &queue, FORMAT, font_px);
     crate::shotfont_tests::apply(&mut grid);
+    grid.set_window_opacity(opacity);
     let (cw, ch) = grid.cell_size();
     grid.set_scene(&device, &scenes(cw, ch));
     grid.prepare(&device, &queue, w, h);

@@ -100,7 +100,7 @@ struct VsOut {
   @location(9) nb0: vec4<f32>,     // bottom notch spans 0-1
   @location(10) nb1: vec4<f32>,    // bottom notch spans 2-3
   @location(11) lens0: vec4<f32>,  // refract px, bevel px, blur px, dispersion
-  @location(12) lens1: vec4<f32>,  // clear_rim, vibrance, -, on
+  @location(12) lens1: vec4<f32>,  // clear_rim, vibrance, see-through, on
 };
 
 // How soft a notch's ends are (px): the rim tapers into the gap round the
@@ -429,6 +429,21 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
       rgb = rgb * alpha * (1.0 - shade) / max(sa, 0.0001);
       alpha = sa;
     }
+  }
+
+  // --- see-through ----------------------------------------------------------
+  // On a see-through window the slab lets some of the desktop through: its
+  // alpha drops to the body's, and the window server shows the desktop in
+  // what is left. The colour must not change for it, but the blend would mix
+  // the page under the card back in by the alpha given up — so that share is
+  // taken out here first. The page there IS the wallpaper the glass samples:
+  // the glass is the first thing drawn over it.
+  let see = in.lens1.z;
+  if (in.lens1.w > 0.0 && see > 0.0) {
+    let body = 1.0 - see;
+    let under = behind_at(in.pos.xy);
+    rgb = clamp((rgb - under * see) / body, vec3<f32>(0.0), vec3<f32>(1.0));
+    alpha = alpha * body;
   }
 
   // --- fill over shadow -----------------------------------------------------
