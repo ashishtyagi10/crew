@@ -10,6 +10,15 @@ pub struct Border {
     pub radius: f32,
     pub thickness: f32,
     pub color: [f32; 4],
+    /// The colour of the ring's horizontal runs, when it differs from its
+    /// vertical ones (`color`): round each corner it fades from one to the
+    /// other — a corner arc continues two rules that need not match.
+    pub color_h: Option<[f32; 4]>,
+    /// Draw only inside `[x0, y0, x1, y1]` (px), with pixel-exact edges — how
+    /// a card corner's arc is cut out of a ring ([`crate::corners`]): an edge
+    /// on a pixel boundary is all or nothing there, as the rule glyphs it
+    /// continues are. `None` draws the whole ring, softly antialiased.
+    pub clip: Option<[f32; 4]>,
 }
 
 /// GPU layer that draws rounded-rect outlines via a signed-distance field shader.
@@ -69,8 +78,11 @@ impl RoundBorderLayer {
             immediate_size: 0,
         });
 
-        // Each instance: rect(4), params(4), color(4) = 12 × f32 = 48 bytes.
-        let inst_attrs = wgpu::vertex_attr_array![0 => Float32x4, 1 => Float32x4, 2 => Float32x4];
+        // Each instance: drawn rect(4), shape(4), params(4), color(4),
+        // horizontal colour(4) = 20 × f32.
+        let inst_attrs = wgpu::vertex_attr_array![
+            0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4, 4 => Float32x4
+        ];
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("rb_pipeline"),
             layout: Some(&layout),
@@ -79,7 +91,7 @@ impl RoundBorderLayer {
                 entry_point: Some("vs"),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
                 buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: 12 * 4,
+                    array_stride: 20 * 4,
                     step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &inst_attrs,
                 }],
@@ -110,7 +122,7 @@ impl RoundBorderLayer {
         }
     }
 
-    /// Upload borders as instance data. Each border packs as 12 × f32.
+    /// Upload borders as instance data. Each border packs as 20 × f32.
     pub fn set_borders(&mut self, device: &wgpu::Device, borders: &[Border]) {
         self.count = borders.len() as u32;
         if borders.is_empty() {
@@ -118,11 +130,17 @@ impl RoundBorderLayer {
             return;
         }
 
-        let mut data: Vec<f32> = Vec::with_capacity(borders.len() * 12);
+        let mut data: Vec<f32> = Vec::with_capacity(borders.len() * 20);
         for b in borders {
+            let drawn = b.clip.map_or([b.x, b.y, b.w, b.h], |[x0, y0, x1, y1]| {
+                [x0, y0, x1 - x0, y1 - y0]
+            });
+            data.extend_from_slice(&drawn);
             data.extend_from_slice(&[b.x, b.y, b.w, b.h]);
-            data.extend_from_slice(&[b.radius, b.thickness, 0.0, 0.0]);
+            let crisp = if b.clip.is_some() { 1.0 } else { 0.0 };
+            data.extend_from_slice(&[b.radius, b.thickness, crisp, 0.0]);
             data.extend_from_slice(&b.color);
+            data.extend_from_slice(&b.color_h.unwrap_or(b.color));
         }
 
         self.inst_buf = Some(

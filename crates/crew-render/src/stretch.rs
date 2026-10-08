@@ -73,6 +73,37 @@ fn at_end(i: f32, last: u16, cell: f32, stretch: f32) -> f32 {
         }
 }
 
+/// Which of the four regions `(right, bottom)` a cell at `(col, row)` falls
+/// in: past the last column's split, past the last row's.
+fn region_of(s: &Split, col: u16, row: u16) -> (bool, bool) {
+    (col >= s.lc && s.lc > 0, row >= s.lr && s.lr > 0)
+}
+
+/// The regions [`parts`] returns scenes for, in its order: the body always,
+/// then each other region that holds a cell.
+fn kinds(pane: &PaneScene, s: &Split) -> Vec<(bool, bool)> {
+    let mut out = vec![(false, false)];
+    for k in [(true, false), (false, true), (true, true)] {
+        if pane.cells.iter().any(|c| region_of(s, c.col, c.row) == k) {
+            out.push(k);
+        }
+    }
+    out
+}
+
+/// Where global cell `(col, row)` of `pane` is drawn once [`parts`] has
+/// split it: the index of its scene in that list, and its column and row in
+/// that scene's own grid.
+pub(crate) fn locate(pane: &PaneScene, s: &Split, col: u16, row: u16) -> (usize, u16, u16) {
+    let k = region_of(s, col, row);
+    let idx = kinds(pane, s).iter().position(|&x| x == k).unwrap_or(0);
+    (
+        idx,
+        if k.0 { col - s.lc } else { col },
+        if k.1 { row - s.lr } else { row },
+    )
+}
+
 /// `pane` as up to four scenes — the body, the last column, the last row and
 /// the far corner — each at its moved-out origin, with its cells re-indexed
 /// to its own grid. The body carries all of the paint, remapped to where it
@@ -84,7 +115,7 @@ pub(crate) fn parts(pane: &PaneScene, s: &Split, cell_w: f32, cell_h: f32) -> Ve
         let cells: Vec<CellView> = pane
             .cells
             .iter()
-            .filter(|c| (c.col >= lc && lc > 0) == right && (c.row >= lr && lr > 0) == bottom)
+            .filter(|c| region_of(s, c.col, c.row) == (right, bottom))
             .map(|c| CellView {
                 col: if right { c.col - lc } else { c.col },
                 row: if bottom { c.row - lr } else { c.row },

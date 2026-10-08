@@ -40,18 +40,22 @@ pub(super) fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool, f
     } else {
         Style::new().fg(dim_col)
     };
+    // One cell of rule before the tab, as every card's `╭─ legend` keeps: the
+    // corner rounds through it (`crew_render`'s card-scale corners need a
+    // plain `─` to bend into, and a tab against the `╭` left it square).
+    let tab = legend(
+        &panel.loc.shown(),
+        panel.entries.len(),
+        panel.entries.iter().map(|e| e.size).sum::<u64>(),
+        area.width.saturating_sub(1),
+    );
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(Style::new().fg(edge))
-        .title(Span::styled(
-            legend(
-                &panel.loc.shown(),
-                panel.entries.len(),
-                panel.entries.iter().map(|e| e.size).sum::<u64>(),
-                area.width,
-            ),
-            legend_style,
-        ));
+        .title(Line::from(vec![
+            Span::styled("\u{2500}", Style::new().fg(edge)),
+            Span::styled(tab, legend_style),
+        ]));
     let inner = block.inner(area);
     block.render(area, buf);
     let h = inner.height.max(1) as usize;

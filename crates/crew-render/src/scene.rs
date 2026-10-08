@@ -27,6 +27,7 @@ fn cell_cols(c: char) -> f32 {
     }
 }
 
+#[derive(Clone)]
 pub struct PaneScene {
     pub cells: Vec<CellView>,
     pub x: f32,
@@ -203,6 +204,18 @@ pub(crate) fn build_scene(
         let cols = ((pane.w / cell_w).floor() as usize).max(1);
         let rows = ((pane.h / cell_h).floor() as usize).max(1);
         let split = crate::stretch::split(pane, cell_w, cell_h);
+        // The corners that round at card scale, and the scene as DRAWN: their
+        // glyphs blanked for the arcs to stand in. The sheet still reads the
+        // scene as written — a blanked corner is not a legend's gap.
+        let corners = crate::corners::find(&pane.cells, cell_w, cell_h);
+        let blank;
+        let drawn = if corners.is_empty() {
+            pane
+        } else {
+            blank = crate::corners::blanked(pane, &corners);
+            &blank
+        };
+        let round = crate::corners::radius(cell_w, cell_h);
 
         // Overlay popups get a solid black backdrop spanning the whole pane,
         // drawn before their cell quads. The overlay pass runs after all base
@@ -212,7 +225,13 @@ pub(crate) fn build_scene(
         if pane.overlay {
             let bg = crew_theme::theme().page_bg;
             let color = crate::color::target_rgba(bg, 1.0, srgb);
-            quads.push(Quad::rect(pane.x, pane.y, pane.w, pane.h, color));
+            // Rounded with the frame inside it, concentric: the stroke's
+            // inset plus the corners' radius.
+            let (ix, _) = stroke_inset(cell_w, cell_h);
+            quads.push(Quad {
+                radii: [round + ix; 4],
+                ..Quad::rect(pane.x, pane.y, pane.w, pane.h, color)
+            });
         }
 
         // The frosted sheet this pane sits on. Only card scenes get one — a
@@ -269,7 +288,8 @@ pub(crate) fn build_scene(
                 y: pane.y + iy,
                 w: (fw - 2.0 * ix).max(0.0),
                 h: (fh - 2.0 * iy).max(0.0),
-                radius: (cell_w.min(cell_h) / 2.0 - 1.0).max(1.0),
+                // The corners' own radius: the frame and its glass bend as one.
+                radius: round,
                 alpha_top: glass_style.alpha_top * sheet,
                 alpha_bottom: glass_style.alpha_bottom * sheet,
                 noise: glass_style.noise,
@@ -319,13 +339,16 @@ pub(crate) fn build_scene(
                 radius: BORDER_RADIUS,
                 thickness: t.border_thickness,
                 color,
+                color_h: None,
+                clip: None,
             });
         }
 
         // The cells themselves — once, or once per slice of a stretched
         // frame, with the rules carried across the stretch.
-        let parts = split.map(|s| crate::stretch::parts(pane, &s, cell_w, cell_h));
-        for part in parts.as_deref().unwrap_or(std::slice::from_ref(pane)) {
+        let first = buffers.len();
+        let parts = split.map(|s| crate::stretch::parts(drawn, &s, cell_w, cell_h));
+        for part in parts.as_deref().unwrap_or(std::slice::from_ref(drawn)) {
             emit_cells(
                 part,
                 cell_w,
@@ -343,7 +366,7 @@ pub(crate) fn build_scene(
             );
         }
         if let Some(s) = split {
-            for (x, y, w, h, fg) in crate::stretch::bridges(pane, &s, cell_w, cell_h) {
+            for (x, y, w, h, fg) in crate::stretch::bridges(drawn, &s, cell_w, cell_h) {
                 quads.push(Quad::rect(
                     x,
                     y,
@@ -353,6 +376,15 @@ pub(crate) fn build_scene(
                 ));
             }
         }
+        // The arcs, placed on the very glyphs their tails run into.
+        let at = crate::corners::Drawn {
+            pane: drawn,
+            split: split.as_ref(),
+            buffers: &buffers[first..],
+            cell_w,
+            cell_h,
+        };
+        borders.extend(crate::corners::arcs(&at, &corners, srgb));
     }
 
     (quads, buffers, sigs, borders, cards)

@@ -382,6 +382,9 @@ mod barpopupshot_tests;
 mod cardchartshot_tests;
 mod cardchrome;
 #[cfg(test)]
+#[path = "cornershot_tests.rs"]
+mod cornershot_tests;
+#[cfg(test)]
 #[path = "crtglassshot_tests.rs"]
 mod crtglassshot_tests;
 #[cfg(test)]
