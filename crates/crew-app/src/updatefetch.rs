@@ -5,7 +5,7 @@
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 use anyhow::{anyhow, Context, Result};
-use self_update::backends::github::ReleaseList;
+use self_update::update::Release;
 
 use crate::applog::LogLevel;
 use crate::update::UpdateMsg;
@@ -68,17 +68,31 @@ fn short_err(e: &anyhow::Error) -> String {
         .to_string()
 }
 
+/// GitHub's REST API, where the releases are asked for.
+const API: &str = "https://api.github.com";
+
 /// The newest release tag on GitHub (e.g. "0.6.0"), without the `v` prefix.
 pub(crate) fn latest_version() -> Result<String> {
-    let releases = ReleaseList::configure()
+    Ok(latest_release(API)?.version)
+}
+
+/// The newest release, asked for by name: `/releases/latest`, one request.
+///
+/// It used to list EVERY release (`ReleaseList`, a hundred a page) and take
+/// the first. GitHub serves a list only as far as its first 1000 entries and
+/// answers 422 past that, so the day this repo's 1001st release went up every
+/// update check failed — `releases?per_page=100&page=11: 422` — and an app
+/// that could no longer see a release could not fetch the fix either.
+pub(crate) fn latest_release(api: &str) -> Result<Release> {
+    let release = self_update::backends::github::Update::configure()
         .repo_owner(REPO_OWNER)
         .repo_name(REPO_NAME)
+        .with_url(api)
+        .bin_name("crew")
+        .current_version(env!("CARGO_PKG_VERSION"))
         .build()?
-        .fetch()?;
-    let latest = releases
-        .first()
-        .ok_or_else(|| anyhow!("no releases found"))?;
-    Ok(latest.version.clone())
+        .get_latest_release()?;
+    Ok(release)
 }
 
 /// Download the latest release for this platform and replace the running
@@ -106,14 +120,7 @@ pub(crate) fn install(current: &str) -> Result<String> {
         .parent()
         .ok_or_else(|| anyhow!("the running binary has no parent directory"))?;
 
-    let releases = ReleaseList::configure()
-        .repo_owner(REPO_OWNER)
-        .repo_name(REPO_NAME)
-        .build()?
-        .fetch()?;
-    let release = releases
-        .first()
-        .ok_or_else(|| anyhow!("no releases found"))?;
+    let release = latest_release(API)?;
     let target = self_update::get_target();
     let asset = release
         .asset_for(target, None)
@@ -147,3 +154,7 @@ pub(crate) fn install(current: &str) -> Result<String> {
         .with_context(|| format!("replacing {}", exe.display()))?;
     Ok(release.version.clone())
 }
+
+#[cfg(test)]
+#[path = "updatefetch_tests.rs"]
+mod tests;
