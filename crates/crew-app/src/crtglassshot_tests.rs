@@ -133,7 +133,8 @@ fn crt_glass_shot_awake() {
 }
 
 /// Liquid glass as a window: the panes refracting the wallpaper, at rest and
-/// awake (the pools moved on, the glow beating), opaque as the app ships it.
+/// awake (the pools moved on, the glow beating), as sheer as the app ships it
+/// — the alpha is the desktop showing through (`tubesheer::sheer`).
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn glass_window_shot() {
@@ -149,7 +150,8 @@ fn glass_window_shot() {
             (format!("{}-window", id.as_str()), Default::default()),
             (format!("{}-window-awake", id.as_str()), awake),
         ] {
-            let Some(px) = window(&name, id, clocks, 1.0) else {
+            let Some(px) = window(&name, id, clocks, crate::tubesheer::sheer(1.0, id.theme()))
+            else {
                 eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
                 return;
             };

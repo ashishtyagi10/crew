@@ -115,6 +115,7 @@ fn build(
         want_overlay,
         false,
         glass,
+        1.0,
         (vec![], vec![]),
     )
 }

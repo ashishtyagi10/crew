@@ -149,6 +149,7 @@ impl Renderer {
     /// shows through everything crew draws.
     pub fn set_window_opacity(&mut self, opacity: f32) {
         self.window_opacity = opacity.clamp(MIN_WINDOW_OPACITY, 1.0);
+        self.cell_grid.set_window_opacity(self.window_opacity);
     }
 
     /// The rects a sheer window keeps solid whatever has focus — crew's own
@@ -229,6 +230,9 @@ impl Renderer {
     /// Upload a scene of panes, render, and present the frame — the heavy
     /// lifting lives in [`crate::frame::render`].
     pub fn frame(&mut self, panes: &[PaneScene]) {
+        // Per frame: a theme switch moves it as surely as an opacity change.
+        self.crt
+            .set_premultiply(crate::crtchain::premultiplies(self.window_opacity));
         crate::frame::render(
             &self.gpu,
             &mut self.cell_grid,

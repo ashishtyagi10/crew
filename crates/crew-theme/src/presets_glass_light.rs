@@ -25,6 +25,12 @@ const LIQUID_LIGHT: LiquidStyle = LiquidStyle {
     dispersion: 0.08,
     clear_rim: 0.85,
     vibrance: 1.25,
+    // The desktop shows more than half through the gaps and about a fifth
+    // through a pane: enough to see it, never enough to fight the text
+    // (`liquid_tests::glass_text_reads_over_any_desktop`).
+    window: 0.45,
+    body: 0.65,
+    desktop_blur: 20.0,
 };
 
 /// A whisper of bloom: a white page needs almost none before light reads as

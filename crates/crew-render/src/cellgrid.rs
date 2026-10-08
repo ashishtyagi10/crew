@@ -84,6 +84,9 @@ pub struct CellGrid {
     overlay_glass_layer: GlassLayer,
     /// How strong the glass is; `Off` builds no cards at all.
     glass_level: crew_theme::GlassLevel,
+    /// The window's opacity: below 1 a liquid slab lets the desktop through
+    /// (`LiquidStyle::body`).
+    window_opacity: f32,
     /// The rims' light tilt (see `Renderer::set_glass_light`).
     glass_light: (f32, f32),
     /// What liquid glass sees behind it (`crate::behind`): made the first
@@ -170,6 +173,7 @@ impl CellGrid {
             glass_layer,
             overlay_glass_layer,
             glass_level: crew_theme::GlassLevel::Medium,
+            window_opacity: 1.0,
             glass_light: (0.0, 0.0),
             behind: None,
             format,
@@ -283,6 +287,12 @@ impl CellGrid {
     }
 
     /// Set the frosted-glass strength. Applied next frame.
+    /// The window's opacity, for the liquid slab's body (see
+    /// [`crate::scene::build_scene`]).
+    pub fn set_window_opacity(&mut self, opacity: f32) {
+        self.window_opacity = opacity;
+    }
+
     pub fn set_glass(&mut self, level: crew_theme::GlassLevel) {
         self.glass_level = level;
     }
@@ -358,6 +368,7 @@ impl CellGrid {
                 self.srgb,
                 // Theme-derived, per-frame: `/theme` and `/glass` both land here.
                 crew_theme::glass_style_at(self.glass_level),
+                self.window_opacity,
                 self.base.take_prev(),
                 self.overlay.take_prev(),
             );

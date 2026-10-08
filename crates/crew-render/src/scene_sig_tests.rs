@@ -91,6 +91,7 @@ fn unchanged_pane_reuses_last_frames_buffer() {
         false,
         false,
         super::tests::no_glass(),
+        1.0,
         (vec![], vec![]),
     );
     // Second frame, same content: the same signature comes back out and the
@@ -104,6 +105,7 @@ fn unchanged_pane_reuses_last_frames_buffer() {
         false,
         false,
         super::tests::no_glass(),
+        1.0,
         (sigs.clone(), bufs),
     );
     assert_eq!(sigs, sigs2);

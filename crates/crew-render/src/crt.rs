@@ -23,7 +23,7 @@ impl CrtPass {
         });
         let uniform_buf = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("crt_uniform"),
-            size: 32, // 8 × f32
+            size: 48, // 9 × f32, padded to the uniform's 16-byte stride
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -63,6 +63,7 @@ impl CrtPass {
     /// `style.glow`, which is NEGATIVE for the light-page halo (the caller
     /// flips it; see [`crate::crtchain::CrtChain::update_uniforms`]) so the
     /// composite subtracts the blur instead of adding it.
+    #[allow(clippy::too_many_arguments)]
     pub fn update_uniform(
         &self,
         queue: &wgpu::Queue,
@@ -71,9 +72,10 @@ impl CrtPass {
         time: f32,
         flicker: f32,
         style: crew_theme::CrtStyle,
+        premul: bool,
     ) {
-        // Eight values: the uniform's 32 bytes exactly.
-        let data: [f32; 8] = [
+        // Nine values and three of padding: the uniform's 48 bytes exactly.
+        let data: [f32; 12] = [
             width,
             height,
             time,
@@ -82,6 +84,10 @@ impl CrtPass {
             style.glow,
             style.core,
             style.shade,
+            if premul { 1.0 } else { 0.0 },
+            0.0,
+            0.0,
+            0.0,
         ];
         queue.write_buffer(&self.uniform_buf, 0, postfx::f32s_as_bytes(&data));
     }

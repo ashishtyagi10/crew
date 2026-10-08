@@ -140,6 +140,7 @@ pub(crate) fn build_both(
     params: &FontParams,
     srgb: bool,
     glass: crew_theme::GlassStyle,
+    window_opacity: f32,
     prev_base: PrevPass,
     prev_overlay: PrevPass,
 ) -> (ScenePass, ScenePass) {
@@ -152,6 +153,7 @@ pub(crate) fn build_both(
         false,
         srgb,
         glass,
+        window_opacity,
         prev_base,
     );
     let overlay = build_scene(
@@ -163,6 +165,7 @@ pub(crate) fn build_both(
         true,
         srgb,
         glass,
+        window_opacity,
         prev_overlay,
     );
     (base, overlay)
@@ -187,6 +190,9 @@ pub(crate) fn build_scene(
     // Already scaled by the user's glass level; derived from the active theme
     // at the frame layer (`CellGrid::set_scene`) so this stays theme-agnostic.
     glass_style: crew_theme::GlassStyle,
+    // Below 1 a liquid slab's body lets the desktop through
+    // (`LiquidStyle::body`); at 1 it is solid, as it always was.
+    window_opacity: f32,
     prev: PrevPass,
 ) -> ScenePass {
     let mut quads: Vec<Quad> = Vec::new();
@@ -315,7 +321,12 @@ pub(crate) fn build_scene(
                         l.dispersion,
                         l.clear_rim,
                         l.vibrance,
-                        0.0,
+                        // How much of the desktop the body lets through.
+                        if window_opacity < 1.0 {
+                            1.0 - l.body
+                        } else {
+                            0.0
+                        },
                         sheet,
                     ]
                 }),

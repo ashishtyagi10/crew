@@ -640,6 +640,7 @@ mod welcomecard;
 mod welcomeshot_tests;
 mod welcometext;
 mod wincon;
+mod windowblur;
 mod windowtitle;
 // Windows program lookup (pwsh, oh-my-posh); the tests run everywhere.
 #[cfg(any(windows, test))]

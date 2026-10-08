@@ -76,5 +76,8 @@ pub static GLASS_NIGHT: Theme = Theme {
         dispersion: 0.10,
         clear_rim: 0.75,
         vibrance: 1.35,
+        window: 0.45,
+        body: 0.65,
+        desktop_blur: 20.0,
     }),
 };
