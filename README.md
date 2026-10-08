@@ -262,7 +262,7 @@ machine presses it.
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Label every URL, file and hash on the pane (a letter copies, its capital opens) | **Cmd+E** |
 | Open another crew window | **Cmd+N** |
-| Cycle the theme rotations (dark → light → crt → auto) | **Ctrl+Shift+L** |
+| Cycle the theme rotations (dark → light → crt → glass → auto) | **Ctrl+Shift+L** |
 | Step the canvas gradient (… → the theme's own) | **Ctrl+Shift+G** |
 | Focus mode: hold notifications, never steal focus | **Ctrl+Shift+F** (or `/focus`) |
 | Agent pane: markdown preview ↔ raw source | **Ctrl+Shift+M** |
@@ -806,14 +806,17 @@ accepts `accent = "#rrggbb"` to override Crew's accent; omit it (or give an
 invalid value) to use the active theme's default accent. It applies at launch —
 quit and reopen Crew to pick up edits made outside the `/settings` pane.
 
-**Themes.** Crew ships **thirteen palettes** in four rotations. `dark` rotates
+**Themes.** Crew ships **fifteen palettes** in five rotations. `dark` rotates
 `paper-dark` (a high-contrast newspaper look), `sepia-dark` (warm cream ink on
 dark sepia), `nebula` (an orchid→rose gradient dusk), `harbor` (a blue-slate
-page under an azure light) and `glass` (the iPhone's liquid glass: every pane a
-slab of glass that frosts and bends a vivid wallpaper behind it); `light` rotates `paper-light`, `sepia-light`,
+page under an azure light) and `glass-night` (liquid glass over a night
+wallpaper); `light` rotates `paper-light`, `sepia-light`,
 `blossom` and `fern` (a faint mint page under a green-teal light); `crt`
 rotates the four phosphor tubes — `crt-green`, `crt-amber`, `crt-blue` and
-`crt-violet`, each one hue at six brightnesses on a near-black tube; and `auto`
+`crt-violet`, each one hue at six brightnesses on a near-black tube; `glass`
+is the iPhone's light liquid glass — every pane a slab of frosted white glass
+that blurs and bends a pastel wallpaper behind it, over `glass-sky` (blue into
+rose) and `glass-dawn` (peach into lavender); and `auto`
 follows the OS appearance, serving the dark pool in dark mode and the light one
 in light mode (re-wire the pairing with `theme_dark` / `theme_light`). A
 rotation changes palette every 10 minutes.

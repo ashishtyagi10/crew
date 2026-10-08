@@ -53,7 +53,7 @@ fn every_pool_and_every_palette_is_reachable() {
         );
     }
     assert_eq!(all.first(), Some(&None), "unset must lead the list");
-    assert_eq!(all.len(), 1 + 3 + crew_theme::ALL_THEMES.len());
+    assert_eq!(all.len(), 1 + 4 + crew_theme::ALL_THEMES.len());
 }
 
 /// Cycling walks the whole list and wraps, forwards and backwards.

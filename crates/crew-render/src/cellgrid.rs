@@ -353,7 +353,7 @@ impl CellGrid {
                 &params,
                 self.srgb,
                 // Theme-derived, per-frame: `/theme` and `/glass` both land here.
-                crew_theme::glass_style().scaled(self.glass_level),
+                crew_theme::glass_style_at(self.glass_level),
                 self.base.take_prev(),
                 self.overlay.take_prev(),
             );

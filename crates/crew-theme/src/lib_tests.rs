@@ -40,7 +40,7 @@ fn the_phosphors_have_distinct_personalities() {
         .iter()
         .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
         .collect();
-    assert_eq!(styles.len(), 13);
+    assert_eq!(styles.len(), 15);
     for (i, (an, a)) in styles.iter().enumerate() {
         for (bn, b) in &styles[i + 1..] {
             assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
@@ -194,12 +194,15 @@ fn cycle_next_walks_every_mode_and_wraps() {
     // ...then crt...
     assert_eq!(cycle_next(3), "crt");
     assert!(current_id().is_crt());
+    // ...then glass, the light liquid glass...
+    assert_eq!(cycle_next(4), "glass");
+    assert!(current_id().is_light_glass());
     // ...then auto, whose pool follows the reported OS appearance...
     set_os_dark(true);
-    assert_eq!(cycle_next(4), "auto");
+    assert_eq!(cycle_next(5), "auto");
     assert!(current_id().is_dark() && !current_id().is_crt());
-    // ...and wraps back to dark — four stops, no more.
-    assert_eq!(cycle_next(5), "dark");
+    // ...and wraps back to dark — five stops, no more.
+    assert_eq!(cycle_next(6), "dark");
     assert!(current_id().is_dark() && !current_id().is_crt());
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
@@ -391,14 +394,17 @@ fn no_two_palettes_are_near_duplicates() {
 fn every_pool_survives_the_cut() {
     let count = |f: fn(ThemeId) -> bool| ALL_THEMES.iter().filter(|id| f(**id)).count();
     let dark = count(|id: ThemeId| id.theme().dark && !id.is_crt());
-    let light = count(|id: ThemeId| !id.theme().dark);
+    let light = count(|id: ThemeId| !id.theme().dark && !id.is_light_glass());
     let crt = count(|id: ThemeId| id.is_crt());
-    // Glass (2026-10-07) joined the dark side.
+    let glass = count(|id: ThemeId| id.is_light_glass());
+    // The night glass (2026-10-07) joined the dark side; the light glass
+    // (2026-10-08) is its own rotation, `glass`.
     assert_eq!(
-        (dark, light, crt),
-        (5, 4, 4),
-        "pools are dark {dark}, light {light}, crt {crt} — `auto` needs both \
-         appearances and the tubes are their own rotation"
+        (dark, light, crt, glass),
+        (5, 4, 4, 2),
+        "pools are dark {dark}, light {light}, crt {crt}, glass {glass} — \
+         `auto` needs both appearances and the tubes and the glass are their \
+         own rotations"
     );
 }
 
@@ -441,10 +447,12 @@ fn every_retired_theme_name_still_resolves() {
     // and `fern` were drawn afterwards, and `crt-violet` came BACK — it is a
     // member again rather than a retiree, which is why the retired list is 14.
     // Written as a sum rather than a difference so adding a palette does not
-    // read as retiring one — `glass` was drawn on 2026-10-07.
+    // read as retiring one — `glass` was drawn on 2026-10-07 and became
+    // `glass-night` when the light pair (`glass-sky`, `glass-dawn`) was drawn
+    // on 2026-10-08.
     assert_eq!(
         RETIRED.len() + ALL_THEMES.len(),
-        27,
+        29,
         "every retiree is listed"
     );
 }
@@ -641,8 +649,9 @@ fn grain_is_newsprint_on_every_theme() {
     for id in ALL_THEMES {
         let t = id.theme();
         // Liquid glass's page is a wallpaper, and a wallpaper has no tooth.
-        let glass =
-            matches!(id, ThemeId::Nebula | ThemeId::Blossom | ThemeId::Glass) || id.is_crt();
+        let glass = matches!(id, ThemeId::Nebula | ThemeId::Blossom)
+            || id.theme().liquid.is_some()
+            || id.is_crt();
         let want = if glass { 0.0 } else { 1.2 };
         assert_eq!(t.grain, want, "{}: grain", id.as_str());
     }
@@ -889,9 +898,9 @@ fn light_modern_poles_read_on_a_white_page() {
         // protects readability.
     }
     assert_eq!(
-        seen, 4,
+        seen, 6,
         "every light palette carries a gradient now — blossom, paper-light, \
-         sepia-light, fern"
+         sepia-light, fern, glass-sky, glass-dawn"
     );
 }
 
@@ -1025,15 +1034,22 @@ fn random_pick_pools_are_pure() {
     }
 }
 
-/// The consolidation itself: three pools, and every palette in exactly one of
+/// The consolidation itself: four pools, and every palette in exactly one of
 /// them. The modern family used to stand apart as two more modes — its
 /// palettes are dark and light PAGES like any other (the bloom-only
 /// `CrtStyle` they carry for their halo is not a tube), so they rotate inside
-/// `dark` / `light` and the picker offers three looks plus `auto`.
+/// `dark` / `light`. Light liquid glass is the one look that stands apart
+/// (the user picked it BY NAME and found it nowhere, 2026-10-08), so the
+/// picker offers four looks plus `auto`.
 #[test]
-fn every_palette_lands_in_exactly_one_of_the_three_pools() {
+fn every_palette_lands_in_exactly_one_of_the_four_pools() {
     let _g = guard();
-    let pools = [RandomMode::Dark, RandomMode::Light, RandomMode::Crt];
+    let pools = [
+        RandomMode::Dark,
+        RandomMode::Light,
+        RandomMode::Crt,
+        RandomMode::Glass,
+    ];
     for id in ALL_THEMES {
         let n = pools.iter().filter(|m| m.in_pool(id)).count();
         assert_eq!(n, 1, "{} is in {n} pools, want exactly 1", id.as_str());
@@ -1045,7 +1061,9 @@ fn every_palette_lands_in_exactly_one_of_the_three_pools() {
         .into_iter()
         .filter(|id| id.theme().modern.is_some() && !id.is_crt())
     {
-        let want = if id.is_dark() {
+        let want = if id.is_light_glass() {
+            RandomMode::Glass
+        } else if id.is_dark() {
             RandomMode::Dark
         } else {
             RandomMode::Light

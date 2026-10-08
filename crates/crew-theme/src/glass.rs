@@ -34,6 +34,19 @@ impl GlassLevel {
         }
     }
 
+    /// [`GlassLevel::scale`] for liquid glass, whose body is already most of
+    /// the way to opaque: the full ×1.6 took the light glass's bottom edge to
+    /// 93% white and the night glass's to solid smoke — a milky card with no
+    /// wallpaper behind it, which is the one thing liquid glass is not. So
+    /// the knob moves the frost a third as far either way (`high` ×1.2, `low`
+    /// ×0.85): deeper or clearer glass, never no glass. `off` is still off.
+    pub fn liquid_scale(self) -> f32 {
+        match self {
+            GlassLevel::Off => 0.0,
+            level => 1.0 + (level.scale() - 1.0) * LIQUID_LEVEL_SPAN,
+        }
+    }
+
     pub fn as_str(self) -> &'static str {
         match self {
             GlassLevel::Off => "off",
@@ -55,6 +68,10 @@ impl GlassLevel {
         })
     }
 }
+
+/// How much of the glass level's swing liquid glass takes
+/// ([`GlassLevel::liquid_scale`]).
+const LIQUID_LEVEL_SPAN: f32 = 0.35;
 
 /// Everything the glass pass needs to draw one pane card, in straight sRGB.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -99,7 +116,11 @@ impl GlassStyle {
     /// Scale every alpha by `level`. `Off` yields a fully transparent style,
     /// which the renderer skips entirely.
     pub fn scaled(self, level: GlassLevel) -> Self {
-        let k = level.scale();
+        self.scaled_by(level.scale())
+    }
+
+    /// [`GlassStyle::scaled`] by a bare factor `k`.
+    pub fn scaled_by(self, k: f32) -> Self {
         Self {
             alpha_top: (self.alpha_top * k).clamp(0.0, 1.0),
             alpha_bottom: (self.alpha_bottom * k).clamp(0.0, 1.0),
@@ -254,7 +275,28 @@ pub fn tube_glass(t: &Theme) -> GlassStyle {
 ///
 /// Held by the text on it: `liquid_text_reads_on_its_glass` keeps the ink
 /// above 7:1 over the brightest wallpaper the frost can sit on.
+///
+/// By day (`glass-sky`, `glass-dawn`) the slab is the iPhone's light glass
+/// instead: frosted WHITE — clearer at the top, where the light enters —
+/// with a full-strength white rim, a broad gloss and a soft grey shadow, the
+/// only thing that lifts a white card off a pale page.
 pub fn liquid_glass(t: &Theme) -> GlassStyle {
+    if !t.dark {
+        let white = (255, 255, 255);
+        return GlassStyle {
+            tint: white,
+            alpha_top: 0.44,
+            alpha_bottom: 0.58,
+            highlight: white,
+            highlight_alpha: 1.0,
+            shadow_alpha: 0.10,
+            noise: 0.0,
+            edge_glow: 0.0,
+            gloss: 0.22,
+            glow: 0.0,
+            etch: 0.0,
+        };
+    }
     let p = t.page_bg;
     GlassStyle {
         tint: (
@@ -279,6 +321,17 @@ pub fn liquid_glass(t: &Theme) -> GlassStyle {
 /// more contrast (see [`GlassStyle::quieted`]).
 pub fn style() -> GlassStyle {
     style_for(crate::theme()).quieted(crate::contrast::effect_scale())
+}
+
+/// The active theme's glass at `level` — what the renderer draws. Liquid
+/// glass takes the level on its own, gentler curve
+/// ([`GlassLevel::liquid_scale`]).
+pub fn style_at(level: GlassLevel) -> GlassStyle {
+    let s = style();
+    match crate::theme().liquid {
+        Some(_) => s.scaled_by(level.liquid_scale()),
+        None => s.scaled(level),
+    }
 }
 
 #[cfg(test)]
