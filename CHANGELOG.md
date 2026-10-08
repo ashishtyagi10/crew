@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.5
+
+**`/update` works again.** The update check asked GitHub for the whole
+list of crew's releases, and once there were more than 1,000 of them GitHub
+refused the eleventh page (`422`), so every check failed and nothing
+updated. Crew now asks for the newest release directly, in one request.
+
+A copy older than this one cannot fetch the fix itself. Run the installer
+once (`curl -sSfL https://raw.githubusercontent.com/ashishtyagi10/crew/main/install.sh | sh`,
+or `install.ps1` on Windows); it installs over the running copy, and
+`/update` works from then on.
+
 ## 0.26.4
 
 **The manuals catch up.**
