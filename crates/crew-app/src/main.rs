@@ -7,6 +7,7 @@
 //! — see that module for what the choice costs.
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
+mod accentink;
 mod activitylog;
 #[cfg(test)]
 #[path = "aicaps_tests.rs"]

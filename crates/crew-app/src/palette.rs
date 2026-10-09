@@ -122,7 +122,8 @@ pub fn focus_accent() -> (u8, u8, u8) {
 pub fn legend_accent() -> (u8, u8, u8) {
     let t = crew_theme::theme();
     let row = crate::anim::lerp_rgb(t.page_bg, t.ink, LEGEND_ROW_SHADE);
-    crew_theme::readable::enforced(accent(), row, crew_theme::contrast::text_floor())
+    let out = crew_theme::readable::enforced(accent(), row, crew_theme::contrast::text_floor());
+    crew_theme::glasslegend::legible(t, out, crew_theme::glasslegend::LABEL_FLOOR)
 }
 
 /// How far a card's legend row sits off the page toward the ink.
@@ -143,7 +144,10 @@ pub fn key_label() -> (ratatui::style::Style, ratatui::style::Style) {
             Style::new().fg(focus_color()).add_modifier(Modifier::BOLD),
             Style::new().fg(rgb(t.text_muted)),
         ),
-        false => (Style::new().fg(accent_color()), Style::new().fg(rgb(t.ink))),
+        false => (
+            Style::new().fg(rgb(crate::accentink::accent_ink())),
+            Style::new().fg(rgb(t.ink)),
+        ),
     }
 }
 

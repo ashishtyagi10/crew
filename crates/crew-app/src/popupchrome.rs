@@ -11,7 +11,12 @@ use crew_render::CellView;
 pub(crate) fn card(cols: u16, rows: u16, title: &str) -> Vec<CellView> {
     let t = crew_theme::theme();
     let stroke = crate::panecardglow::focused_stroke(t);
-    let accent = crate::palette::accent();
+    // On glass a legend stands on the desktop: floored like a pane's.
+    let accent = crew_theme::glasslegend::legible(
+        t,
+        crate::palette::accent(),
+        crew_theme::glasslegend::FOCUSED_LABEL_FLOOR,
+    );
     let mut v = crate::boxdraw::titled_card(cols, rows, title, stroke, accent, t.page_bg);
     // The theme gradient at the focused stroke's brightness — static, so a
     // frame with an open pop-up repaints to the same bytes every time.
@@ -31,7 +36,7 @@ pub(crate) fn mark(cells: &mut Vec<CellView>, text: &str, cols: u16) {
     if cols < w + 4 {
         return;
     }
-    let (t, accent) = (crew_theme::theme(), crate::palette::accent());
+    let (t, accent) = (crew_theme::theme(), crate::accentink::accent_ink());
     for (x, c) in (cols - 2 - w..).zip(text.chars()) {
         cells.push(CellView {
             col: x,

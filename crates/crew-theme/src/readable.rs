@@ -200,7 +200,10 @@ pub fn link(t: &Theme) -> (u8, u8, u8) {
         let (w, ink) = (oklch::from_srgb(want), oklch::from_srgb(t.ink));
         want = w.with_l(w.l.max((ink.l + LINK_LIFT).min(0.97))).to_srgb();
     }
-    against(want, t.term_bg, crate::contrast::text_floor())
+    let out = against(want, t.term_bg, crate::contrast::text_floor());
+    // On glass, the secondary floor: the underline says "link" as well, and
+    // at the body's floor the blue went black.
+    glassed(t, want, out, t.term_bg, crate::glassink::SECONDARY_FLOOR)
 }
 
 /// How far past a tube's ink lightness its links sit (OKLCH L).
@@ -249,23 +252,44 @@ const SELECTION_STEP: (f32, f32) = (0.12, 0.2);
 
 /// A gauge crossing into "watch this" (load average, disk).
 pub fn warn(t: &Theme) -> (u8, u8, u8) {
-    against(WARN_HUE, t.page_bg, crate::contrast::text_floor())
+    let out = against(WARN_HUE, t.page_bg, crate::contrast::text_floor());
+    glassed(t, WARN_HUE, out, t.page_bg, MARK_FLOOR)
 }
 
 /// A gauge past its limit.
 pub fn danger(t: &Theme) -> (u8, u8, u8) {
-    against(DANGER_HUE, t.page_bg, crate::contrast::text_floor())
+    let out = against(DANGER_HUE, t.page_bg, crate::contrast::text_floor());
+    glassed(t, DANGER_HUE, out, t.page_bg, MARK_FLOOR)
 }
 
 /// A sparkline trace — seen, not read. On a coloured tube, in its phosphor
 /// ([`in_tube_hue`]): the NET chart's steel blue was the one colour on a
-/// green screen from another machine, as the link's blue had been.
+/// green screen from another machine, as the link's blue had been. On glass
+/// it is floored over the desktop too: as the nav's `↓` it vanished (1.0:1)
+/// on light glass over a dark one.
 pub fn spark(t: &Theme) -> (u8, u8, u8) {
-    against(
-        in_tube_hue(t, SPARK_HUE),
-        t.page_bg,
-        crate::contrast::mark_floor(),
-    )
+    let want = in_tube_hue(t, SPARK_HUE);
+    let out = against(want, t.page_bg, crate::contrast::mark_floor());
+    glassed(t, want, out, t.page_bg, MARK_FLOOR)
+}
+
+/// `out` (the hue `want` floored on `page`), or `want` floored over `t`'s
+/// see-through glass on any desktop instead, whichever reads more: on glass
+/// a page-floored colour vanished over a dark desktop (the nav's `↓`
+/// 1.0:1). Floored from the HUE, not from `out`, so asking for more contrast
+/// can only ever move the answer further from the page.
+fn glassed(
+    t: &Theme,
+    want: (u8, u8, u8),
+    out: (u8, u8, u8),
+    page: (u8, u8, u8),
+    floor: f32,
+) -> (u8, u8, u8) {
+    let g = crate::glasslegend::on_glass(t, want, floor);
+    match contrast_ratio(g, page) > contrast_ratio(out, page) {
+        true => g,
+        false => out,
+    }
 }
 
 /// The intended colours, which are now only intentions: each names a hue, and
