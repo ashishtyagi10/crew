@@ -592,6 +592,8 @@ mod toastcard;
 #[cfg(test)]
 mod toastnarrowshot_tests;
 #[cfg(test)]
+mod toastrow_tests;
+#[cfg(test)]
 #[path = "toastshot_tests.rs"]
 mod toastshot_tests;
 mod toosmall;

@@ -37,8 +37,9 @@ fn cards_stack_downward_with_a_gap() {
     };
     push_toasts(&mut scenes, &mut t, content, 8.0, 16.0, 2_000, None);
     assert_eq!(scenes.len(), 2);
-    assert_eq!(scenes[0].y, 8.0);
-    assert_eq!(scenes[1].y, 8.0 + 48.0 + 8.0);
+    // The gap, then the top pane's title row (`toastrow_tests`).
+    assert_eq!(scenes[0].y, 8.0 + 16.0);
+    assert_eq!(scenes[1].y, 8.0 + 16.0 + 48.0 + 8.0);
 }
 
 /// A card that names a pane is a shortcut to it; one that names none is still
@@ -110,7 +111,8 @@ fn a_long_error_wraps_to_a_second_row_and_the_stack_follows() {
     };
     push_toasts(&mut scenes, &mut t, content, 8.0, 16.0, 2_000, None);
     assert_eq!(scenes[0].h, 64.0, "four rows: border, two of text, border");
-    assert_eq!(scenes[1].y, 8.0 + 64.0 + 8.0, "the next card sits under it");
+    let under = 8.0 + 16.0 + 64.0 + 8.0;
+    assert_eq!(scenes[1].y, under, "the next card sits under it");
     let text: String = scenes[0]
         .cells
         .iter()

@@ -221,9 +221,9 @@ impl Toasts {
     }
 }
 
-/// Push one overlay scene per live toast, stacked below the top-right corner
-/// of `content`. Overlay scenes get an opaque page-bg backdrop from the
-/// overlay pass, so a toast fully occludes whatever pane it rests on.
+/// Push one overlay scene per live toast, stacked down the right of `content`
+/// from one row below its top: the pane under the stack keeps its title row,
+/// `[-][x]` and all, clear. A toast fully occludes whatever it rests on.
 pub(crate) fn push_toasts(
     scenes: &mut Vec<PaneScene>,
     toasts: &mut Toasts,
@@ -244,7 +244,7 @@ pub(crate) fn push_toasts(
     let max_cols = (((content.w - 2.0 * gap) / cw).floor() as usize).min(MAX_TEXT_COLS + PAD);
     // One width for the whole stack (the widest card's): one shared left edge.
     let cols = stack_cols(toasts.items.iter().map(|t| t.text.as_str()), max_cols);
-    let mut y = content.y + gap;
+    let mut y = content.y + gap + ch;
     for (i, t) in toasts.items.iter().enumerate() {
         let lines = crate::toastcard::fit(&t.text, usize::from(cols).saturating_sub(PAD));
         if cols < 6 {
