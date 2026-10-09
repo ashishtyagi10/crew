@@ -26,6 +26,12 @@ fn glass_lets_the_desktop_through() {
             wash, 0.0,
             "{name}: glass paints a wallpaper over the desktop"
         );
+        // …so there is nothing to bend: no lens work on a flat page.
+        assert_eq!(
+            (l.refract, l.blur, l.dispersion),
+            (0.0, 0.0, 0.0),
+            "{name}: the lens samples a flat page"
+        );
         assert!(
             l.window <= 0.35,
             "{name}: the gaps hide {:.2} of the desktop",
