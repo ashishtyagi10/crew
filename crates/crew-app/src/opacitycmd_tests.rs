@@ -85,3 +85,22 @@ fn on_glass_the_reply_says_the_theme_sets_the_window() {
         said(&app)
     );
 }
+
+/// On glass the picker heads its ladder with what the window is — the
+/// steps apply elsewhere; on a paper theme it is the ladder alone.
+#[test]
+fn the_picker_says_when_the_steps_do_nothing_here() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::GlassSky);
+    let rows = picker();
+    assert_eq!(rows[0].0, "", "a heading, not a choice");
+    assert!(
+        rows[0].1.starts_with("glass sets the window to 25%"),
+        "{}",
+        rows[0].1
+    );
+    assert_eq!(rows.len(), LADDER.len() + 1);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    assert_eq!(picker().len(), LADDER.len());
+    assert!(picker().iter().all(|(v, _)| !v.is_empty()));
+}

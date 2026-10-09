@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.23
+
+**The opacity picker says when its steps do nothing.** `/opacity ` (and
+`/look opacity `) offers a ladder (off, subtle, medium, sheer). On glass
+none of them changes the window, which the theme keeps at 25%, so the list
+read as four broken choices. On glass the list now opens with a heading,
+"glass sets the window to 25% — these apply on other themes", and a CRT
+tube says the same while its cap wins. The middle step's description no
+longer says "the default when you ask for glass", which now reads as the
+theme. It says "the middle step, and what `on` picks".
+- **Test:** on glass the picker heads its ladder with what the window is;
+  on other themes it is the ladder alone.
+
 ## 0.26.22
 
 **What you type reads on glass.** The input bar's `›` prompt, its caret,
