@@ -63,9 +63,16 @@ fn the_scale_reads_on_every_page() {
         crew_theme::set_theme(id);
         let page = crew_theme::theme().page_bg;
         let (major, minor) = scale_colors();
+        // On glass the ground is the frost over a black or a white desktop.
+        let grounds = crew_theme::glasslegend::pane_grounds(crew_theme::theme());
         for (what, c) in [("major", major), ("minor", minor)] {
             let cr = crew_theme::contrast_ratio(c, page);
             assert!(cr >= floor - 0.01, "{id:?} {what} tick at {cr:.2}");
+            let over = crew_theme::glasslegend::worst(c, &grounds);
+            assert!(
+                over >= floor - 0.05,
+                "{id:?} {what} tick on glass {over:.2}"
+            );
         }
         // …and the ranking survives: a minor tick is never louder than a
         // major one, however little headroom the page leaves.

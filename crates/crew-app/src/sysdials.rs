@@ -66,14 +66,11 @@ pub const DASH: Dials = Dials {
 pub const DASH_COLS: u16 = 3 + 3 * 12;
 
 /// The scale's two colours: the bezel and major ticks, and the minor ticks a
-/// rank under them.
-///
-/// Derived against the page rather than taken from the palette. The track the
-/// ring gauge used — the theme's recessed border shade — reads at about 3 on
-/// every dark page and under 1.3 on every light one, which on the light
-/// themes drew a dial with a needle and no scale to read it against. A scale
-/// nobody can see is the whole widget wasted, so these clear the mark floor
-/// by construction and `the_scale_reads_on_every_page` measures that they do.
+/// rank under them. Derived against the page, not taken from the palette:
+/// the theme's recessed border shade read under 1.3 on every light page — a
+/// needle with no scale to read it against. On glass they stand on the frost
+/// over the desktop, so they clear the mark floor there too (minor ticks read
+/// 1.16 over a dark desktop). `the_scale_reads_on_every_page` measures both.
 fn scale_colors() -> ((u8, u8, u8), (u8, u8, u8)) {
     let t = crew_theme::theme();
     let major = crew_theme::readable::against(
@@ -81,7 +78,9 @@ fn scale_colors() -> ((u8, u8, u8), (u8, u8, u8)) {
         t.page_bg,
         crew_theme::contrast::mark_floor(),
     );
-    (major, crew_theme::readable::secondary(major, t.page_bg))
+    let minor = crew_theme::readable::secondary(major, t.page_bg);
+    let glassed = |c| crew_theme::glasslegend::on_glass(t, c, crew_theme::readable::MARK_FLOOR);
+    (glassed(major), glassed(minor))
 }
 
 /// Whether this nav width gets dials.
