@@ -52,7 +52,7 @@ pub(crate) fn unticked(text: &str) -> String {
 /// `text` as a badge on `bg`, capped both ends on the page, in the page's
 /// ink walked to the text floor.
 pub(crate) fn badge(text: &str, bg: Fg) -> Vec<FCell> {
-    segment::badge(text, segment::page_ink(bg), bg, Caps::BOTH)
+    segment::badge_on(text, bg, Caps::BOTH)
         .into_iter()
         .map(|c| (c.c, c.fg, c.bg))
         .collect()

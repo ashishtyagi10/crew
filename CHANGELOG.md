@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.48
+
+**Badges on glass are white words on their own colour.** On the
+white-text glass, the agent badges (`scout`, `smith`), a code block's
+language tag, the swarm-mode chip, the new-messages pill and the plan
+buttons were pastel blocks with thin dark lettering. They were the last
+dark text on that glass. They now carry the theme's white, bold, on
+their own colour made deeper until white reads on it: the same hue, a
+darker shade. The Settings Save button gets the same treatment, and its
+label is always bold. In regular weight beside Cancel it looked like the
+disabled button. Other themes are unchanged.
+- **Test:** on the clear glass themes, every tag colour gives white ink
+  that clears the text floor on a fill within a few degrees of the
+  original hue. On every other theme the badge's ink and fill are what
+  they were.
+
 ## 0.26.47
 
 **Code blocks are glass on a see-through window.** On the glass theme

@@ -86,7 +86,7 @@ pub(crate) fn pill_cells(unread: usize, cols: u16, row: u16, popped: bool) -> Ve
     }
     let accent = crate::palette::accent();
     let (fg, bg) = if popped {
-        (crate::segment::page_ink(accent), accent)
+        crate::segment::inked(accent)
     } else {
         (accent, crew_theme::theme().page_bg)
     };

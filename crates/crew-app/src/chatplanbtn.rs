@@ -78,7 +78,7 @@ fn badge(btn: Btn, on: bool, terse: bool, hovered: bool, pressed: bool) -> Vec<s
     } else if hovered {
         (ink, crate::anim::lerp_rgb(base, ink, HOVER_LIFT))
     } else {
-        (segment::page_ink(base), base)
+        segment::inked(base)
     };
     let mut cells = segment::badge(&label(btn, on, terse), fg, bg, Caps::BOTH);
     // `segment` reads the live icon switch for its caps; this row is drawn

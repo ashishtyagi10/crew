@@ -149,3 +149,36 @@ fn a_tube_badge_reads_in_dark_ink_and_a_tile_in_its_phosphor() {
     }
     crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
 }
+
+/// On the white-text glass a badge is white words on its colour deepened
+/// until white reads — the same hue, never the dark smoke walked onto a
+/// pastel block. Off it, the pair is `page_ink` on the colour as given.
+#[test]
+fn a_clear_glass_badge_is_white_on_its_own_hue_deepened() {
+    let _g = crate::app::theme_test_guard();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let (t, floor) = (crew_theme::theme(), crew_theme::contrast::text_floor());
+        for slot in 0..12 {
+            let bg = crew_theme::slot_color(slot, t);
+            let (ink, fill) = super::inked(bg);
+            if !id.is_clear_glass() {
+                assert_eq!((ink, fill), (page_ink(bg), bg), "{}", id.as_str());
+                continue;
+            }
+            assert_eq!(ink, t.ink, "{} slot {slot}", id.as_str());
+            assert!(
+                contrast_ratio(ink, fill) >= floor,
+                "{} {slot}: {fill:?}",
+                id.as_str()
+            );
+            let hue = |c| crew_theme::oklch::from_srgb(c).h;
+            let dh = (hue(fill) - hue(bg)).abs() % 360.0;
+            assert!(
+                dh.min(360.0 - dh) < 12.0,
+                "{} {slot}: hue moved",
+                id.as_str()
+            );
+        }
+    }
+}

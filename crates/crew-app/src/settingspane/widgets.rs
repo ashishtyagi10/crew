@@ -122,20 +122,20 @@ pub(crate) fn button(text: &str, focused: bool, primary: bool) -> Span<'static> 
         Color::Rgb(r, g, b) => (r, g, b),
         _ => t.ink,
     };
-    let bg = match (primary, focused) {
-        (true, _) => rgb(focus_color()),
-        (false, f) => crate::anim::lerp_rgb(t.page_bg, t.ink, if f { 0.3 } else { 0.14 }),
-    };
-    let fg = crate::segment::page_ink(bg);
-    let fg = if primary {
-        fg
-    } else {
-        crew_theme::readable::enforced(t.ink, bg, crew_theme::contrast::text_floor())
+    let (fg, bg) = match (primary, focused) {
+        (true, _) => crate::segment::inked(rgb(focus_color())),
+        (false, f) => {
+            let bg = crate::anim::lerp_rgb(t.page_bg, t.ink, if f { 0.3 } else { 0.14 });
+            let fg = crew_theme::readable::enforced(t.ink, bg, crew_theme::contrast::text_floor());
+            (fg, bg)
+        }
     };
     let mut style = Style::new()
         .fg(Color::Rgb(fg.0, fg.1, fg.2))
         .bg(Color::Rgb(bg.0, bg.1, bg.2));
-    if focused {
+    // The primary button's label always carries weight: in regular weight
+    // on its fill, beside Cancel, Save read as the disabled one (survey #7).
+    if focused || primary {
         style = style.add_modifier(Modifier::BOLD);
     }
     Span::styled(text.to_string(), style)

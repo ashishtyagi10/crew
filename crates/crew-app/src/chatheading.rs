@@ -28,12 +28,7 @@ pub(crate) fn wrap_cols(level: u8, cols: usize) -> usize {
 pub(crate) fn badge_cells(fg: Color) -> Vec<CardCell> {
     let accent = crate::palette::accent();
     let mark = crate::glyphs::pick(crate::glyphs::Glyph::Hash);
-    let badge = crate::segment::badge(
-        mark,
-        crate::segment::page_ink(accent),
-        accent,
-        crate::segment::Caps::BOTH,
-    );
+    let badge = crate::segment::badge_on(mark, accent, crate::segment::Caps::BOTH);
     let mut cells = crate::segment::to_card(&badge);
     cells.push(plain(' ', fg, false));
     cells

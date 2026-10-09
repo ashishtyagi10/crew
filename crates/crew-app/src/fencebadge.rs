@@ -16,12 +16,7 @@ use crate::segment::{self, Caps};
 pub(crate) fn cells(label: &str) -> Vec<CardCell> {
     let bg = crate::chathue::lang_hue(lang_of(label));
     let field = crate::chatink::code_bg();
-    segment::to_card(&segment::badge(
-        label,
-        segment::page_ink(bg),
-        bg,
-        Caps::on(field),
-    ))
+    segment::to_card(&segment::badge_on(label, bg, Caps::on(field)))
 }
 
 /// The language word of a header label: the first word that is not an
