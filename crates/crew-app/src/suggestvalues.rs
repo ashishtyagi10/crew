@@ -181,14 +181,8 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
             )
             .collect(),
         ),
-        // The ladder only — any percent still works, typed freehand, the way
-        // an unlisted value always does.
-        "/opacity" => Some(
-            crate::opacitycmd::LADDER
-                .iter()
-                .map(|(name, _, about)| (name.to_string(), about.to_string()))
-                .collect(),
-        ),
+        // The ladder only — any percent still works, typed freehand.
+        "/opacity" => Some(crate::opacitycmd::picker()),
         "/smooth" => Some(vec![
             (
                 "off".to_string(),

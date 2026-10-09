@@ -34,7 +34,7 @@ use crate::config::MIN_WINDOW_OPACITY;
 pub(crate) const LADDER: &[(&str, f32, &str)] = &[
     ("off", 1.0, "solid — no desktop at all"),
     ("subtle", 0.94, "94% — a breath of frosted desktop"),
-    ("medium", 0.90, "90% — the default when you ask for glass"),
+    ("medium", 0.90, "90% — the middle step, and what `on` picks"),
     ("sheer", 0.85, "85% — as far as the named steps go"),
 ];
 
@@ -64,6 +64,23 @@ pub(crate) fn parse(arg: &str) -> Option<f32> {
     }
     let frac = if n <= 1.0 { n } else { n / 100.0 };
     Some(frac.clamp(MIN_WINDOW_OPACITY, 1.0))
+}
+
+/// The picker's rows: the ladder, under a heading on a theme that sets the
+/// window itself — on glass none of the steps changes what you see, and a
+/// list of them with no word about it read as four broken choices.
+pub(crate) fn picker() -> Vec<(String, String)> {
+    let ladder = LADDER
+        .iter()
+        .map(|(n, _, about)| (n.to_string(), about.to_string()));
+    let head = crate::tubesheer::overridden(1.0, crew_theme::theme()).map(|(who, got)| {
+        let what = format!(
+            "{who} sets the window to {} — these apply on other themes",
+            percent(got)
+        );
+        (String::new(), what)
+    });
+    head.into_iter().chain(ladder).collect()
 }
 
 /// ` — glass sets the window to 25%` while the theme overrides `setting`;
