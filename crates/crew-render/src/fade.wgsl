@@ -7,7 +7,8 @@
 struct U {
     // How strongly the old frame still covers the new one (1 → all old).
     fade: f32,
-    _pad0: f32,
+    // 1: the held frame left the composite premultiplied (see-through glass).
+    premul: f32,
     _pad1: f32,
     _pad2: f32,
 }
@@ -37,5 +38,9 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let c = textureLoad(tex, vec2<i32>(in.pos.xy), 0);
     // The snapshot's own alpha carries the window opacity; the fade scales it
     // so a translucent window crossfades without ever going more opaque.
-    return vec4<f32>(c.rgb, c.a * u.fade);
+    // Handed over premultiplied (`blend::PREMUL_OVER`): a straight frame is
+    // multiplied here — the same pixel as before — and a premultiplied one
+    // (see-through glass) as it is, not darkened a second time.
+    let p = select(c.rgb * c.a, c.rgb, u.premul > 0.5);
+    return vec4<f32>(p * u.fade, c.a * u.fade);
 }

@@ -162,7 +162,11 @@ pub(crate) fn render(
     // that just rendered becomes the next fade's "old" frame.
     match fade {
         Some(a) => fade_pass.draw(&mut enc, gpu.queue(), &view, a),
-        None => fade_pass.capture(&mut enc, &frame.texture),
+        None => fade_pass.capture_as(
+            &mut enc,
+            &frame.texture,
+            crate::crtchain::premultiplies(window_opacity),
+        ),
     }
 
     gpu.queue().submit(Some(enc.finish()));

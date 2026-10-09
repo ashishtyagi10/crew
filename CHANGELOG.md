@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.12
+
+**Glass crossfades cleanly.** A theme switch melts the old frame into the
+new one. Since v0.26.9, glass hands macOS a premultiplied frame, and the
+fade drew that frame back as if it weren't, darkening it a second time by
+its own transparency. Every switch from or between glass themes, including
+the sky/dawn rotation every ten minutes, flashed a dim ghost of the old
+glass. The fade now remembers how the frame it holds was stored and hands
+it back the same way. Every other theme's fade is unchanged.
+- **Test:** a GPU test checks that a held glass frame comes back at its own
+  brightness; it fails (half as bright) with the fix taken out.
+
 ## 0.26.11
 
 **The window title reads over a dark desktop.** Under glass the macOS title

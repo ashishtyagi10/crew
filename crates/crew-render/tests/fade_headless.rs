@@ -155,3 +155,54 @@ fn fade_headless_crossfades_the_captured_frame() {
     fade.resize(&device, SIZE * 2, SIZE * 2);
     assert!(!fade.ready(), "resize must invalidate the snapshot");
 }
+
+/// See-through glass leaves its frame PREMULTIPLIED, and the glass themes
+/// rotate every ten minutes through this crossfade. Drawn back as straight
+/// colour, the held frame was darkened a second time by its own alpha — a
+/// dim ghost of the old glass for the length of every fade.
+#[test]
+fn fade_headless_hands_a_premultiplied_frame_back_as_it_was() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("fade_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    let mut fade = FadePass::new(&device, wgpu::TextureFormat::Rgba8Unorm, SIZE, SIZE, true);
+    // Glass at half alpha, premultiplied: a light grey worth 0.8 shows 0.4.
+    let old = make_texture(
+        &device,
+        wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+    );
+    let glass = wgpu::Color {
+        r: 0.4,
+        g: 0.4,
+        b: 0.4,
+        a: 0.5,
+    };
+    clear_to(&device, &queue, &old, glass);
+    let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+    fade.capture_as(&mut enc, &old, true);
+    queue.submit(Some(enc.finish()));
+
+    let surface = make_texture(
+        &device,
+        wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+    );
+    let surface_view = surface.create_view(&Default::default());
+    clear_to(&device, &queue, &surface, wgpu::Color::TRANSPARENT);
+    let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+    fade.draw(&mut enc, &queue, &surface_view, 1.0);
+    queue.submit(Some(enc.finish()));
+    let px = centre_pixel(&device, &queue, &surface);
+    assert!(
+        (i32::from(px[0]) - 102).abs() <= 2 && (i32::from(px[3]) - 128).abs() <= 2,
+        "the held glass came back darkened: {px:?} (want ~[102, 102, 102, 128])"
+    );
+}

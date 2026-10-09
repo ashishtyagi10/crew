@@ -23,6 +23,9 @@ pub struct FadePass {
     valid: bool,
     /// Whether the surface supports `COPY_SRC` at all.
     enabled: bool,
+    /// The held frame left the composite premultiplied (see-through glass,
+    /// `crtchain::premultiplies`); every other frame is straight.
+    premultiplied: bool,
 }
 
 impl FadePass {
@@ -59,6 +62,7 @@ impl FadePass {
             height: height.max(1),
             valid: false,
             enabled,
+            premultiplied: false,
         }
     }
 
@@ -93,9 +97,21 @@ impl FadePass {
     /// Copy the just-rendered frame into the snapshot (encoded after all
     /// scene passes, before present). `src` must be surface-sized.
     pub fn capture(&mut self, enc: &mut wgpu::CommandEncoder, src: &wgpu::Texture) {
+        self.capture_as(enc, src, false);
+    }
+
+    /// [`Self::capture`] a frame that left the composite `premultiplied` or
+    /// straight — `draw` hands it back the same way either way.
+    pub fn capture_as(
+        &mut self,
+        enc: &mut wgpu::CommandEncoder,
+        src: &wgpu::Texture,
+        premultiplied: bool,
+    ) {
         if !self.enabled || src.width() != self.width || src.height() != self.height {
             return;
         }
+        self.premultiplied = premultiplied;
         enc.copy_texture_to_texture(
             src.as_image_copy(),
             self.texture.as_image_copy(),
@@ -122,7 +138,12 @@ impl FadePass {
         queue.write_buffer(
             &self.uniform,
             0,
-            postfx::f32s_as_bytes(&[fade.clamp(0.0, 1.0), 0.0, 0.0, 0.0]),
+            postfx::f32s_as_bytes(&[
+                fade.clamp(0.0, 1.0),
+                if self.premultiplied { 1.0 } else { 0.0 },
+                0.0,
+                0.0,
+            ]),
         );
         let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("fade"),
@@ -203,7 +224,9 @@ fn blended_pipeline(
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             targets: &[Some(wgpu::ColorTargetState {
                 format,
-                blend: Some(crate::blend::STRAIGHT_OVER),
+                // The shader hands the held frame over premultiplied,
+                // whichever way it was stored (`fade.wgsl`).
+                blend: Some(crate::blend::PREMUL_OVER),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
         }),
