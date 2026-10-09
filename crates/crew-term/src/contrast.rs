@@ -112,6 +112,20 @@ pub(crate) fn dimmed(fg: (u8, u8, u8), bg: (u8, u8, u8)) -> (u8, u8, u8) {
     ensure_contrast(out, bg, DIM_CONTRAST)
 }
 
+/// [`dimmed`] for a cell on the pane's own background. On see-through glass
+/// that background is the frost over whatever desktop is behind the window,
+/// not `bg`: mixed toward the page and floored against it alone, the `-->`
+/// under a rustc error read 1.2:1 on light glass over a dark desktop. So the
+/// whisper is floored over the frost too (`t` is the active theme; off glass
+/// this is [`dimmed`]).
+pub(crate) fn dimmed_on_page(
+    fg: (u8, u8, u8),
+    bg: (u8, u8, u8),
+    t: &crew_theme::Theme,
+) -> (u8, u8, u8) {
+    crew_theme::glasslegend::on_glass(t, dimmed(fg, bg), DIM_CONTRAST)
+}
+
 /// [`ensure_min_contrast`] against an explicit floor.
 fn ensure_contrast(fg: (u8, u8, u8), bg: (u8, u8, u8), min: f32) -> (u8, u8, u8) {
     if ratio(fg, bg) >= min {

@@ -150,6 +150,10 @@ impl TermCore {
                 let fg = match ind.flags.contains(Flags::DIM) {
                     // A dim on a bar is a deliberate whisper; it keeps its
                     // own, lower floor.
+                    // On the pane itself, glass puts the desktop under it.
+                    true if bg == default_bg() => {
+                        crate::contrast::dimmed_on_page(fg, bg, crew_theme::theme())
+                    }
                     true => crate::contrast::dimmed(fg, bg),
                     false => crate::contrast::ensure_readable(fg, bg, bg != default_bg()),
                 };
