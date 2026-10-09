@@ -66,6 +66,15 @@ pub(crate) fn parse(arg: &str) -> Option<f32> {
     Some(frac.clamp(MIN_WINDOW_OPACITY, 1.0))
 }
 
+/// ` — glass sets the window to 25%` while the theme overrides `setting`;
+/// empty while the setting is what the window gets.
+fn theirs(setting: f32, t: &crew_theme::Theme) -> String {
+    match crate::tubesheer::overridden(setting, t) {
+        Some((who, got)) => format!(" — {who} sets the window to {}", percent(got)),
+        None => String::new(),
+    }
+}
+
 /// An opacity as the user talks about it: whole percent.
 pub(crate) fn percent(opacity: f32) -> String {
     format!("{}%", (opacity * 100.0).round() as i32)
@@ -75,11 +84,13 @@ impl CrewApp {
     /// Run `/opacity [off|subtle|medium|sheer|<35-100>]`. Persisted, and
     /// applied to the live window through the same path Settings uses.
     pub(crate) fn opacity_command(&mut self, arg: &str) {
+        let t = crew_theme::theme();
         if arg.is_empty() {
             let now = self.config.window_opacity;
             self.set_status(format!(
-                "opacity {} (/opacity [off|subtle|medium|sheer|<35-100>])",
-                percent(now)
+                "opacity {}{} (/opacity [off|subtle|medium|sheer|<35-100>])",
+                percent(now),
+                theirs(now, t)
             ));
             return;
         }
@@ -93,9 +104,13 @@ impl CrewApp {
         // opaque flag (see `apply_glass` — setting one without the other is
         // what left the title bar see-through at full opacity).
         self.apply_glass();
-        self.set_status(match o >= 1.0 {
-            true => "opacity 100% — solid".to_string(),
-            false => format!(
+        // Glass and a tube set the window themselves (`tubesheer`): say what
+        // was saved and what the window is, not a solid title bar that
+        // frosts with them.
+        self.set_status(match (o >= 1.0, crate::tubesheer::overridden(o, t)) {
+            (_, Some(_)) => format!("opacity {} saved{}", percent(o), theirs(o, t)),
+            (true, None) => "opacity 100% — solid".to_string(),
+            (false, None) => format!(
                 "opacity {} — frosted glass with brighter frames; the title bar stays solid",
                 percent(o)
             ),

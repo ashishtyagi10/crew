@@ -20,16 +20,7 @@ pub(super) fn note(p: &SettingsPane, f: Field) -> Option<String> {
     if f != Field::WindowOpacity {
         return None;
     }
-    let t = crew_theme::theme();
-    let want = p.draft.window_opacity;
-    let got = crate::tubesheer::sheer(want, t);
-    if got >= want - 1e-3 {
-        return None;
-    }
-    let who = match t.liquid {
-        Some(_) => "glass",
-        None => "tube",
-    };
+    let (who, got) = crate::tubesheer::overridden(p.draft.window_opacity, crew_theme::theme())?;
     Some(format!("{who} sets {}", (got * 100.0).round() as u32))
 }
 

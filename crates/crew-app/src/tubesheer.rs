@@ -39,6 +39,18 @@ pub(crate) fn sheer(setting: f32, t: &crew_theme::Theme) -> f32 {
     }
 }
 
+/// Who overrides an Opacity % of `setting` under `t`, and what the window
+/// is instead: `("glass", 0.25)` on glass (whose cap is under the setting's
+/// own floor, so always), `("tube", 0.84)` on a tube while its cap wins.
+/// `None` when the setting is what the window gets.
+pub(crate) fn overridden(setting: f32, t: &crew_theme::Theme) -> Option<(&'static str, f32)> {
+    let got = sheer(setting, t);
+    if got >= setting - 1e-3 {
+        return None;
+    }
+    Some((if t.liquid.is_some() { "glass" } else { "tube" }, got))
+}
+
 impl CrewApp {
     /// The window's opacity this frame: the setting, capped under a tube or
     /// liquid glass ([`sheer`]).
