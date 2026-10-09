@@ -105,6 +105,29 @@ pub(crate) fn page_ink(bg: Color) -> Color {
     )
 }
 
+/// The ink and fill a badge on `bg` is drawn in when its caller has no
+/// opinion. On the white-text glass (`ThemeId::is_clear_glass`) that is the
+/// theme's white on `bg` deepened — its hue, its chroma — until white
+/// clears the text floor: the page's dark smoke walked onto a pastel block
+/// was the last dark, thin lettering on that glass (2026-10-09 survey #3).
+/// Everywhere else, [`page_ink`] on `bg` as it is.
+pub(crate) fn inked(bg: Color) -> (Color, Color) {
+    let t = crew_theme::theme();
+    match t.liquid.is_some() && t.dark {
+        true => {
+            let floor = crew_theme::contrast::text_floor();
+            (t.ink, crew_theme::readable::against(bg, t.ink, floor))
+        }
+        false => (page_ink(bg), bg),
+    }
+}
+
+/// [`badge`] in [`inked`]'s ink and fill.
+pub(crate) fn badge_on(text: &str, bg: Color, caps: Caps) -> Vec<Cell> {
+    let (fg, bg) = inked(bg);
+    badge(text, fg, bg, caps)
+}
+
 /// `text` on a `bg` block, in `fg` walked to the text floor against `bg`
 /// (`readable::enforced`, so it always clears), capped per `caps`. The
 /// label is bold — a badge is a label, and a label carries weight.

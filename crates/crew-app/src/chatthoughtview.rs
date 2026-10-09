@@ -111,12 +111,7 @@ pub(crate) fn block_lines(b: &ThoughtBlock, cols: usize) -> Vec<CardLine> {
 pub(crate) fn header(agent: &str) -> CardLine {
     let color = crate::chatroster::agent_color(agent);
     let mut line = vec![plain('\u{2506}', color, false)];
-    let badge = crate::segment::badge(
-        agent,
-        crate::segment::page_ink(color),
-        color,
-        crate::segment::Caps::BOTH,
-    );
+    let badge = crate::segment::badge_on(agent, color, crate::segment::Caps::BOTH);
     line.extend(crate::segment::to_card(&badge));
     line
 }

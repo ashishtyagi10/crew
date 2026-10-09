@@ -57,12 +57,7 @@ pub(crate) fn summary(b: &ToolBlock, cols: usize, on: bool) -> CardLine {
 pub(crate) fn header(b: &ToolBlock) -> CardLine {
     let color = crate::chatroster::agent_color(&b.agent);
     let mut line = vec![plain('\u{2506}', color, false)];
-    let badge = crate::segment::badge(
-        &b.agent,
-        crate::segment::page_ink(color),
-        color,
-        crate::segment::Caps::BOTH,
-    );
+    let badge = crate::segment::badge_on(&b.agent, color, crate::segment::Caps::BOTH);
     line.extend(crate::segment::to_card(&badge));
     line
 }

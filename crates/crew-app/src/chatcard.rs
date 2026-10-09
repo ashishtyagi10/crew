@@ -151,12 +151,7 @@ fn name_cells(m: &Message, part: &str) -> Vec<CardCell> {
     if !is_badged(m, part) {
         return part.chars().map(|c| plain(c, color, true)).collect();
     }
-    let badge = crate::segment::badge(
-        part,
-        crate::segment::page_ink(color),
-        color,
-        crate::segment::Caps::BOTH,
-    );
+    let badge = crate::segment::badge_on(part, color, crate::segment::Caps::BOTH);
     crate::segment::to_card(&badge)
 }
 
