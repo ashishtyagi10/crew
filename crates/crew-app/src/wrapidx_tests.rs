@@ -55,3 +55,30 @@ fn a_word_that_fills_the_row_breaks_at_the_space_after_it() {
     assert_eq!(rows("alpha bravo eight", 5), ["alpha", "bravo", "eight"]);
     assert_eq!(rows("one two three four", 7), ["one two", "three", "four"]);
 }
+
+fn pretty(s: &str, cols: usize) -> Vec<String> {
+    let c: Vec<char> = s.chars().collect();
+    let r = super::wrap_pretty(&c, cols);
+    r.iter().map(|&(a, b)| c[a..b].iter().collect()).collect()
+}
+
+/// `/keys` ended descriptions on `bar` alone. The row above gives it a word
+/// when the two still fit; when they do not, or there is no word to give,
+/// or the last row is a hard-broken word's tail, the plain wrap stands.
+#[test]
+fn the_last_row_is_not_one_word_when_the_row_above_can_spare_one() {
+    let s = "toggle the left nav bar";
+    assert_eq!(rows(s, 19), ["toggle the left nav", "bar"]);
+    assert_eq!(pretty(s, 19), ["toggle the left", "nav bar"]);
+    assert_eq!(
+        pretty("one two three four", 7),
+        ["one two", "three", "four"]
+    );
+    assert_eq!(pretty("ab cdefghij", 4), rows("ab cdefghij", 4));
+    assert_eq!(pretty("a \u{b7} b", 3), rows("a \u{b7} b", 3));
+    for cols in 3..30 {
+        for r in pretty("drag a pane by its title bar to swap it", cols) {
+            assert!(r.chars().count() <= cols, "{cols}: {r:?}");
+        }
+    }
+}

@@ -16,12 +16,12 @@
 //!   indented under itself, and nothing is lost. The list scrolls, so extra
 //!   rows cost nothing (the v0.6.52 lesson, which the width learned once and
 //!   then only at the preferred size).
-use crate::chatlayout::wrap_indices;
 use crate::chatwidth::str_w;
 use crate::helppanes::{
     DISK_BINDINGS, DOC_BINDINGS, FAR_BINDINGS, SETTINGS_BINDINGS, TODO_BINDINGS, VIEW_BINDINGS,
 };
 use crate::helptable::{BINDINGS, CHAT_BINDINGS};
+use crate::wrapidx::wrap_pretty;
 
 /// The key column crew prefers: wide enough for nearly every binding, narrow
 /// enough that a description is still a sentence.
@@ -169,7 +169,7 @@ pub(crate) fn rows_for(needle: &str, cols: u16, mine: Option<&str>) -> Vec<Row> 
                     out.push(Row::Bind(k, String::new()));
                 }
                 let chars: Vec<char> = d.chars().collect();
-                for (i, (a, b)) in wrap_indices(&chars, width).into_iter().enumerate() {
+                for (i, (a, b)) in wrap_pretty(&chars, width).into_iter().enumerate() {
                     let text: String = chars[a..b].iter().collect();
                     match i == 0 && !alone {
                         true => out.push(Row::Bind(k, text)),

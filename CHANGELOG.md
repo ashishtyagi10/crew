@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.45
+
+**The keys panel no longer ends a description on one word.** On a
+narrow window, `/keys` wrapped some descriptions so their last word sat
+alone on its own row: "bar", "canvas", "the wheel". The row looked like
+the start of a new binding, and the sentence above it looked finished a
+row early. When the row above has a word to spare and the two still fit,
+it now moves down to join the last one ("the bar", "second canvas").
+Every other row wraps as before.
+- **Test:** a last row of one word gets a word from the row above. It is
+  left alone when the two would not fit, when the row above is a single
+  word, when the last row is the tail of a word cut at the edge, or when
+  the moved word would start the row with a `·`. No row ever overflows
+  the width.
+
 ## 0.26.44
 
 **The `@a+b` hint lines up with the agents it describes.** Typing `@`
