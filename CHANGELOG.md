@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.21
+
+**`/opacity` tells the truth on glass and CRT.** On glass, `/opacity 60`
+replied "opacity 60% — frosted glass with brighter frames; the title bar
+stays solid". Glass keeps the window at 25% whatever the setting, and its
+title bar is frosted like its panes, so both halves were wrong. Now it says
+`opacity 60% saved — glass sets the window to 25%`, and bare `/opacity`
+says the same. A CRT tube, which caps the window at 84%, says so while the
+cap wins. Settings' Opacity box (v0.26.19) uses the same check.
+- **Test:** on glass, `/opacity 60` and bare `/opacity` name what the window
+  is. On other themes the reply is unchanged.
+
 ## 0.26.20
 
 **The palette finds commands by their old names.** Fifteen appearance

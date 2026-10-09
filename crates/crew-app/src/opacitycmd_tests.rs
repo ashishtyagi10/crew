@@ -55,3 +55,33 @@ fn percent_is_whole_numbers() {
     assert_eq!(percent(0.85), "85%");
     assert_eq!(percent(MIN_WINDOW_OPACITY), "35%");
 }
+
+/// On glass the window is the theme's (25%): `/opacity 60` says it saved
+/// 60% and what the window is, not "the title bar stays solid" — glass's
+/// bar frosts with its panes. Elsewhere the reply is as it was.
+#[test]
+fn on_glass_the_reply_says_the_theme_sets_the_window() {
+    let _g = crate::app::theme_test_guard();
+    let said = |app: &CrewApp| app.log.last().map(|e| e.text.clone()).unwrap_or_default();
+    crew_theme::set_theme(crew_theme::ThemeId::GlassSky);
+    let mut app = CrewApp::default();
+    app.opacity_command("60");
+    assert!(
+        said(&app).ends_with("opacity 60% saved — glass sets the window to 25%"),
+        "{}",
+        said(&app)
+    );
+    app.opacity_command("");
+    assert!(
+        said(&app).contains("glass sets the window to 25%"),
+        "{}",
+        said(&app)
+    );
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    app.opacity_command("60");
+    assert!(
+        said(&app).contains("the title bar stays solid"),
+        "{}",
+        said(&app)
+    );
+}
