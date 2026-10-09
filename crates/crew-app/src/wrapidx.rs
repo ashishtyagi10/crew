@@ -23,7 +23,13 @@ pub(crate) fn wrap_indices(full: &[char], cols: usize) -> Vec<(usize, usize)> {
         // never so the next row opens on a list's `·` or a spaced dash: the
         // prose rule (`md::dashbreak`), which the chat's bodies, the
         // listings and the toasts wrap by too.
-        let space = full[start..max_end].iter().rposition(|&c| c == ' ');
+        // A word that ends exactly at the edge breaks at the space after it:
+        // looking only inside the row, a word as wide as the row was cut in
+        // two and a full row gave its last word to the next one.
+        let space = match full.get(max_end) {
+            Some(' ') => Some(max_end - start),
+            _ => full[start..max_end].iter().rposition(|&c| c == ' '),
+        };
         let safe = crate::md::dashbreak::dash_safe(full, start, space, cols)
             .filter(|&q| start + q <= max_end);
         match safe.or(space) {

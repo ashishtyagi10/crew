@@ -45,3 +45,13 @@ fn a_moved_break_still_fits() {
         }
     }
 }
+
+/// A word that ends exactly at the edge breaks at the space after it. The
+/// break was only ever looked for INSIDE the row, so `bravo` at five
+/// columns was cut into `brav` / ` o`, and a row whose last word just fit
+/// handed that word to the next row anyway.
+#[test]
+fn a_word_that_fills_the_row_breaks_at_the_space_after_it() {
+    assert_eq!(rows("alpha bravo eight", 5), ["alpha", "bravo", "eight"]);
+    assert_eq!(rows("one two three four", 7), ["one two", "three", "four"]);
+}

@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.34
+
+**A word that exactly fills a row stays whole.** The word wrap behind chat
+replies, listings, toasts and plain-text files looked for a place to break
+only inside the row. When a word ended exactly at the right edge, it didn't
+see the space just after it:
+- A row whose last word just fit gave that word to the next row anyway,
+  wasting the space.
+- A word exactly as wide as the row was cut in two: `bravo` in a 5-column
+  row came out as `brav` and ` o`.
+
+The wrap now breaks at that space, so the row is filled and the word is
+whole.
+- **Test:** `alpha bravo eight` at five columns is three whole words, and a
+  row whose last word ends at the edge keeps it.
+
 ## 0.26.33
 
 **Highlight bars in unfocused panes are one colour again.** An unfocused
