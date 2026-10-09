@@ -101,3 +101,20 @@ fn shadow_padding_covers_its_falloff() {
         );
     }
 }
+
+/// The veil the shader thickens behind a legend is the one crew-theme floors
+/// the legend inks against: a thinner veil here would leave every glass
+/// legend under the floor its colour was chosen for.
+#[test]
+fn veil_frost_is_the_one_the_legend_inks_assume() {
+    let src = include_str!("glass.wgsl");
+    let at = src
+        .find("const VEIL_FROST: f32 = ")
+        .expect("VEIL_FROST missing");
+    let rest = &src[at + "const VEIL_FROST: f32 = ".len()..];
+    let frost: f32 = rest[..rest.find(';').expect("unterminated")]
+        .trim()
+        .parse()
+        .expect("non-numeric");
+    assert_eq!(frost, crew_theme::glasslegend::LEGEND_FROST);
+}

@@ -47,7 +47,22 @@ fn window(
     clocks: crew_render::WashClocks,
     opacity: f32,
 ) -> Option<Vec<u8>> {
+    window_with(name, id, clocks, opacity, &["/far", "/far", "/dash"])
+}
+
+/// [`window`] with the panes `cmds` open, the second one focused.
+pub(crate) fn window_with(
+    name: &str,
+    id: ThemeId,
+    clocks: crew_render::WashClocks,
+    opacity: f32,
+    cmds: &[&str],
+) -> Option<Vec<u8>> {
     crew_theme::set_theme(id);
+    // The app serves a sheer window's palette with its frames and quiet
+    // legends lifted (`glassborder`); so does the shot, or it shows inks the
+    // window never draws.
+    crew_theme::glassborder::set_sheer(opacity < 1.0);
     // An unset accent follows the theme in the app (`accent_rgb`); the shot
     // never applies a config, so say so here or every tube wears the mint.
     crate::palette::set_accent(crew_theme::theme().accent_default);
@@ -63,7 +78,7 @@ fn window(
                 geo_override: Some((cw, ch, W as f32, H as f32, 1.0)),
                 ..Default::default()
             };
-            for cmd in ["/far", "/far", "/dash"] {
+            for cmd in cmds {
                 app.submit_input(cmd.to_string());
             }
             app.zoomed = false;
@@ -78,7 +93,9 @@ fn window(
             std::thread::sleep(std::time::Duration::from_millis(350));
             app.build_frame()
         },
-    )?;
+    );
+    crew_theme::glassborder::set_sheer(false);
+    let px = px?;
     crate::shotdraw_tests::write_png(name, &px, W, H);
     Some(px)
 }

@@ -49,6 +49,9 @@ pub fn lift(t: &Theme) -> Theme {
     l.border_normal = against(t.border_normal, t.page_bg, NORMAL_FLOOR);
     l.border_focused = against(t.border_focused, t.page_bg, FOCUSED_FLOOR);
     l.legend_off = against(t.legend_off, t.page_bg, NORMAL_FLOOR);
+    // See-through glass stands its legends on the desktop, not the page:
+    // floored over the darkest and the brightest one (`glasslegend`).
+    l.legend_off = crate::glasslegend::legible(t, l.legend_off, crate::glasslegend::LABEL_FLOOR);
     l
 }
 
