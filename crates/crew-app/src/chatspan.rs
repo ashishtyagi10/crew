@@ -186,3 +186,7 @@ fn body(span: &MdSpan, base: Color, muted: Color) -> SpanInk {
 #[cfg(test)]
 #[path = "chatspan_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "chatspangrid_tests.rs"]
+mod grid_tests;

@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.38
+
+**Settings says which canvas options your theme ignores.** Glass and the
+CRT tubes paint no paper texture and no wallpaper of their own: on glass
+the desktop is the background, on a tube the phosphor is. So three canvas
+settings had nothing to act on, yet still looked live and could be changed
+to no effect. Those settings are Grain, Paper texture and Drifting
+background. On such a theme the Grain box now says `no grain on glass` (or
+`on a tube`). The two toggles step back to the dim ink, with the same note
+beside them when the card is wide enough. On a theme where they work,
+nothing changes.
+- **Test:** on every theme the Grain note shows exactly when the theme has
+  no grain, and an ignored toggle reads dim.
+
 ## 0.26.37
 
 **Table grids are one colour.** In a markdown table, in a chat reply or a
