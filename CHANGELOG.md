@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.19
+
+**Settings says when the theme sets the window's opacity.** Glass sets the
+window to 25% opacity itself, so the desktop shows through, and
+Settings' Opacity % never goes below 35%. On glass the field read `100`
+while the window plainly showed the desktop, and nothing typed into it
+changed anything. Its box now says so at the right end, `glass sets 25`, the
+way the accent's box reads out its contrast. A CRT tube caps the window at
+84%, and its box says `tube sets 84` while that cap wins. On every other
+theme the field is unchanged.
+- **Test:** the note appears on glass, on a tube only while its cap wins,
+  and never on another theme or field.
+
 ## 0.26.18
 
 **`/keys` names glass in the theme cycle.** `Ctrl+Shift+L` has stepped
