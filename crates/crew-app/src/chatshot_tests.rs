@@ -33,7 +33,7 @@ fn msg(sender: &str, text: &str, meta: &str, usage: Option<(u64, u64, u64)>) -> 
 /// still streaming in. Every body shape the
 /// markdown engine can put on a card, in one transcript, so a width sweep
 /// exercises all of them at once.
-fn live_pane() -> ChatPane {
+pub(crate) fn live_pane() -> ChatPane {
     let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
     let mut p = ChatPane::new(plugin, "crew".into());
     p.connected = true;
