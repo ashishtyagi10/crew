@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.42
+
+**A pasted key longer than its field says so.** When you paste an API key
+into agent smith's key card, each character shows as a `•`. A key longer
+than the field (most are) filled it with dots that simply stopped at the
+edge: 28 dots for a 40-character key, as if the key ended there. The mask
+now ends in a quiet `…` when there is more than it can show, so you can
+tell the whole key went in. Nothing of the key is ever drawn.
+- **Test:** a 40-character key in a narrow card ends its mask in `…`; a
+  short key is all dots.
+
 ## 0.26.41
 
 **A short chat pane drops its example asks whole.** An empty agent smith
