@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.10
+
+**Pane titles read over a dark desktop.** A pane's title sits on its top
+border, so half of each word hangs outside the glass. On an opaque window
+that half sat on the page. On see-through glass it sat on your desktop, and
+over a dark one titles like "1 far" all but vanished.
+- **A soft veil of frost behind each title** reaches out exactly as far as
+  the words do. It is the pane's own glass, with no rim or shadow. It is
+  rounded and feathered at the outer edge, so it reads as frost, not a tab.
+  The same goes for the minimise/close buttons and any status on the bottom
+  border.
+- **Only on see-through glass.** Every opaque theme's frame is untouched.
+- **Test:** a GPU test checks that the veil sits behind a title, nowhere
+  else along the edge, and never on an opaque window.
+
 ## 0.26.9
 
 **Glass is clear, and your desktop is the background.** v0.26.8 let the
