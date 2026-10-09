@@ -322,9 +322,9 @@ fn the_attach_popup_mentions_fanning_out() {
         },
     ];
     let rows = super::chatpaletteitems::attach_items("", &entries, false);
-    let hint = rows.iter().find(|r| r.header).map(|r| r.label.clone());
+    let hint = rows.iter().find(|r| r.header).map(|r| r.desc.clone());
     assert!(
-        hint.is_some_and(|h| h.contains("+") && h.contains("parallel")),
+        hint.is_some_and(|h| h.contains("both, in parallel")),
         "no fan-out hint: {:?}",
         rows.iter().map(|r| &r.label).collect::<Vec<_>>()
     );

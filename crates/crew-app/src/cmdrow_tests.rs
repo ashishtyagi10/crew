@@ -120,7 +120,7 @@ fn no_row_ever_exceeds_the_columns_it_was_given() {
 /// A section title is still a bare bold line — no column, no chord.
 #[test]
 fn a_header_row_is_left_alone() {
-    let mut h = item("your subscriptions", "ignored", vec![], Some("Cmd+K"));
+    let mut h = item("your subscriptions", "", vec![], Some("Cmd+K"));
     h.header = true;
     assert_eq!(text(&spans(&h, 8, 0, 40, DIM)), "your subscriptions");
 }
