@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.40
+
+**A wrapped diff line hangs under its code.** In the viewer, a line of code
+too long for the pane wraps, and its continuation hangs under the line's own
+indent, so it stays inside its block. A diff line opens with its sign (`+`
+or `-`), though, and the indent was measured from that column, where there
+is none. So a `+    /// …` comment's continuation started right under the
+`+` and read as a line of its own. Diff lines now measure their indent
+past the sign, and their wraps line up under the code.
+- **Test:** a wrapped `+    ///` line continues four columns past its
+  sign.
+
 ## 0.26.39
 
 **A swarm's record card wraps where you'd read it.** When a swarm run

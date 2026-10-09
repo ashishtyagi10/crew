@@ -2,7 +2,7 @@
 use super::wrap;
 
 fn rows(text: &str, w: usize) -> Vec<String> {
-    wrap(text, w)
+    wrap(text, w, super::super::rowcut::hang)
         .into_iter()
         .map(|(_, r)| r.into_iter().collect())
         .collect()
@@ -15,7 +15,10 @@ fn a_dot_left_at_a_row_end_is_blanked() {
     assert!(r.len() > 1, "{r:?}");
     assert!(!r[0].trim_end().ends_with('\u{b7}'), "{r:?}");
     // Paint only: the rows still partition the line, char for char.
-    let lens: usize = wrap(line, 38).iter().map(|(_, r)| r.len()).sum();
+    let lens: usize = wrap(line, 38, super::super::rowcut::hang)
+        .iter()
+        .map(|(_, r)| r.len())
+        .sum();
     assert_eq!(lens, line.chars().count());
 }
 

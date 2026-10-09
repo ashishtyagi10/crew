@@ -17,7 +17,7 @@ pub(crate) fn row(s: &str, fg: (u8, u8, u8), bold: bool) -> CardLine {
 /// Wrap `text` at `w` display columns (at a word boundary when one is near —
 /// `chatwidth::soft_end`), tagging each row with its 1-based
 /// source line (continuations repeat it so the gutter can blank them).
-pub(crate) fn wrap(text: &str, w: usize) -> Vec<(usize, Vec<char>)> {
+pub(crate) fn wrap(text: &str, w: usize, hang: Hang) -> Vec<(usize, Vec<char>)> {
     let mut out = Vec::new();
     for (i, line) in text.split('\n').enumerate() {
         let n = i + 1;
@@ -26,7 +26,7 @@ pub(crate) fn wrap(text: &str, w: usize) -> Vec<(usize, Vec<char>)> {
             out.push((n, Vec::new()));
             continue;
         }
-        let lead = super::rowcut::hang(&chars, w);
+        let lead = hang(&chars, w);
         let mut s = 0;
         while s < chars.len() {
             // A continuation is drawn under the line's own indent (`painted`),
@@ -96,6 +96,21 @@ pub(crate) fn painted(
     ink: (u8, u8, u8),
     muted: (u8, u8, u8),
 ) -> (Vec<CardLine>, Vec<usize>) {
+    painted_by(text, cols, paints, (ink, muted), super::rowcut::hang)
+}
+
+/// How far a line's wraps hang (`rowcut`): its indent, or a diff line's
+/// indent past its sign.
+pub(crate) type Hang = fn(&[char], usize) -> usize;
+
+/// [`painted`] with the line's [`Hang`] — the diff rung's is past the sign.
+pub(crate) fn painted_by(
+    text: &str,
+    cols: usize,
+    paints: &[Vec<CharPaint>],
+    (ink, muted): ((u8, u8, u8), (u8, u8, u8)),
+    hang: Hang,
+) -> (Vec<CardLine>, Vec<usize>) {
     let w = cols.saturating_sub(GUTTER_W).max(1);
     let mut out = Vec::new();
     // Which source line each rendered row came from — how a landmark in the
@@ -105,9 +120,9 @@ pub(crate) fn painted(
     let mut pos = 0usize;
     let leads: Vec<usize> = text
         .split('\n')
-        .map(|l| super::rowcut::hang(&l.chars().collect::<Vec<_>>(), w))
+        .map(|l| hang(&l.chars().collect::<Vec<_>>(), w))
         .collect();
-    for (n, chars) in wrap(text, w) {
+    for (n, chars) in wrap(text, w, hang) {
         src.push(n - 1);
         let mut line: CardLine = if n == last {
             // A continuation says so. A blank gutter beside a wrapped line

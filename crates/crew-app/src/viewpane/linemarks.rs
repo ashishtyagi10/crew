@@ -38,7 +38,8 @@ pub(crate) fn diff_lines(text: &str, cols: usize, ws: &[Vec<bool>]) -> (Vec<Card
     let t = crew_theme::theme();
     let mut paints = super::diffpaint::paint(text);
     super::whitespace::dim(&mut paints, ws, t.text_muted);
-    let (mut lines, src) = painted(text, cols, &paints, t.ink, t.text_muted);
+    let pens = (t.ink, t.text_muted);
+    let (mut lines, src) = painted_by(text, cols, &paints, pens, super::rowcut::signed_hang);
     // The gutter says where in the SOURCE you are, not where in the patch —
     // the same numbers the side-by-side rung has always shown (`diffnums`).
     renumber(
