@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.39
+
+**A swarm's record card wraps where you'd read it.** When a swarm run
+finishes, its record card lists the head (`5 tasks · 3 done · 1 failed ·
+1 cancelled · 1s`) and one row per task. On a narrow pane two kinds of
+wrap landed in the wrong column:
+- **The head's tail** started at the margin, so `1 cancelled · 1s` sat
+  right above `1 ✓ scout` and read as task 1. It now hangs two columns
+  in.
+- **A long task title's tail** (`light ← 1`) hung under the specialist
+  (`critic`) rather than under the title it continues. It now lines up
+  with the title.
+- **Test:** the head's tail hangs, and a title's tail starts in the title's
+  own column.
+
 ## 0.26.38
 
 **Settings says which canvas options your theme ignores.** Glass and the
