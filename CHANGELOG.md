@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.27
+
+**Glass is now clear, with bright white text.** The `glass` theme used
+frosted white panes with near-black ink. It now looks like the iPhone's
+Clear glass. Every pane is a slab of clear, lightly smoked glass over your
+desktop, so the wallpaper shows through in its own colours, and every word
+on it is bright white.
+
+White on clear glass reads the way it does on the iPhone. The smoke dims
+the desktop a little, and a soft shadow behind each run of text dims it a
+little more, while the glass between the lines stays clear. The words hold
+even over a white desktop.
+
+`glass` rotates between two palettes:
+- `glass-clear` is new: a neutral smoke with a rose accent.
+- `glass-night` is the navy smoke with a mint accent. It got clearer, and
+  it moved out of the `dark` rotation into `glass`.
+
+The frosted light pair is still there by name: `/look theme glass-sky` or
+`glass-dawn`.
+- **Tests:** every white-glass palette's text reads over a black and a
+  white desktop, counting the shadow behind the words (at its faintest)
+  but no more. Only the tubes and the white glass cast a text shadow. Each
+  rotation still has two palettes to move between. The light pair rotates
+  nowhere.
+
 ## 0.26.26
 
 **Toasts no longer cover a pane's close button.** Notifications ("swarm

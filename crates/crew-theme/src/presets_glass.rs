@@ -1,22 +1,23 @@
-//! **Glass night**: the iPhone's liquid glass after dark (the user, 2026-10-07 —
-//! the light pair, `glass-sky` and `glass-dawn`, is what `glass` serves; see
-//! [`crate::presets_glass_light`]). Every pane is a
-//! slab of smoked glass over the desktop — the window is see-through and
-//! paints no wallpaper of its own (2026-10-09) — with a bright specular edge
-//! on top ([`crate::LiquidStyle`], `glass::liquid_glass`). The accent is the
+//! **Glass night**: the iPhone's liquid glass after dark (the user,
+//! 2026-10-07), the navy twin of `glass-clear` — the two are what `glass`
+//! serves since the user asked for white words on glass (2026-10-09; see
+//! [`crate::presets_glass_clear`]). Every pane is a slab of clear smoked
+//! glass over the desktop — the window is see-through and paints no
+//! wallpaper of its own — with a bright specular edge on top
+//! ([`crate::LiquidStyle`], `glass::liquid_glass`). The accent is the
 //! iPhone's dark-mode mint — aqua, the colour of the glass itself — and the
 //! face is SF Mono.
 //!
 //! Every derived role is what the ramp, the alarm and the wash produce for
 //! this page and ink — the parity tests in `ramp_tests`, `signal_tests` and
 //! `highlight_tests` are what put the numbers here.
-use crate::{CrtStyle, LiquidStyle, ModernStyle, Theme};
+use crate::{CrtStyle, ModernStyle, Theme};
 
 pub static GLASS_NIGHT: Theme = Theme {
     page_bg: (11, 9, 30),
-    ink: (233, 234, 237),
+    ink: (233, 234, 236),
     text_muted: (193, 196, 208),
-    term_fg: (233, 234, 237),
+    term_fg: (233, 234, 236),
     term_bg: (11, 9, 30),
     border_normal: (65, 66, 90),
     border_focused: (226, 232, 246),
@@ -52,14 +53,10 @@ pub static GLASS_NIGHT: Theme = Theme {
     dark: true,
     // The wallpaper is glass and light, not newsprint.
     grain: 0.0,
+    // The clear glass's bloom, glowing a little more on the deeper smoke.
     crt: Some(CrtStyle {
-        scanline: 0.0,
-        glow: 0.70,
-        glow_radius: 12.0,
-        flicker: 0.0,
-        core: 0.0,
-        etch: 0.0,
-        shade: 0.0,
+        glow: 0.55,
+        ..crate::presets_glass_clear::CLEAR_BLOOM
     }),
     modern: Some(ModernStyle {
         pole_a: (70, 130, 255),
@@ -71,18 +68,7 @@ pub static GLASS_NIGHT: Theme = Theme {
         // themes"). The poles still light the focus ring.
         wash: 0.0,
     }),
-    liquid: Some(LiquidStyle {
-        // No lens: the page is flat (see `presets_glass_light`'s optics).
-        refract: 0.0,
-        bevel: 16.0,
-        blur: 0.0,
-        dispersion: 0.0,
-        clear_rim: 0.75,
-        vibrance: 1.35,
-        // Smoke needs a little more body than frost: its worst desktop is
-        // white, and light text has less to spare there.
-        window: 0.25,
-        body: 0.54,
-        desktop_blur: 20.0,
-    }),
+    // Clear glass, as `glass-clear` is: the shadow behind the words, not
+    // thick smoke, is what holds white text over a white desktop.
+    liquid: Some(crate::presets_glass_clear::CLEAR_LIQUID),
 };

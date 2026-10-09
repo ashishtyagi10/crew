@@ -19,7 +19,7 @@ const SETS: &[(&str, &[&str])] = &[
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn glass_survey_shot() {
     let _g = crate::app::theme_test_guard();
-    for id in [ThemeId::GlassSky, ThemeId::GlassNight] {
+    for id in [ThemeId::GlassClear, ThemeId::GlassSky, ThemeId::GlassNight] {
         let sheer = crate::tubesheer::sheer(1.0, id.theme());
         for (set, cmds) in SETS {
             let name = format!("survey-{}-{set}", id.as_str());
@@ -73,7 +73,12 @@ fn glass_ink_survey() {
     let _g = crate::app::theme_test_guard();
     let mut sets: Vec<(&str, &[&str])> = SETS.to_vec();
     sets.push(("far-dash", &["/far", "/far", "/dash"]));
-    for id in [ThemeId::GlassSky, ThemeId::GlassDawn, ThemeId::GlassNight] {
+    for id in [
+        ThemeId::GlassClear,
+        ThemeId::GlassSky,
+        ThemeId::GlassDawn,
+        ThemeId::GlassNight,
+    ] {
         crew_theme::set_theme(id);
         crew_theme::glassborder::set_sheer(true);
         let t = crew_theme::theme();
@@ -97,7 +102,9 @@ fn glass_ink_survey() {
             }
             app.build_frame();
             std::thread::sleep(std::time::Duration::from_millis(400));
-            for scene in app.build_frame() {
+            // Overlays (the palette, toasts) stand on an opaque backdrop of
+            // their own, not on the glass.
+            for scene in app.build_frame().into_iter().filter(|s| !s.overlay) {
                 let mut run = (u16::MAX, (0, 0, 0), String::new());
                 for c in &scene.cells {
                     let on_glass = c.bg == t.page_bg || c.bg == t.term_bg;
@@ -109,12 +116,16 @@ fn glass_ink_survey() {
                     }
                     if (c.row, c.fg) != (run.0, run.1) {
                         let words = std::mem::take(&mut run.2);
-                        found.entry(run.1).or_default().push(words);
+                        if !words.is_empty() {
+                            found.entry(run.1).or_default().push(words);
+                        }
                         run = (c.row, c.fg, String::new());
                     }
                     run.2.push(c.c);
                 }
-                found.entry(run.1).or_default().push(run.2);
+                if !run.2.is_empty() {
+                    found.entry(run.1).or_default().push(run.2);
+                }
             }
         }
         crew_theme::glassborder::set_sheer(false);

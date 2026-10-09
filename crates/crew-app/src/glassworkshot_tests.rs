@@ -82,7 +82,12 @@ fn glass_work_shot() {
     use crew_theme::ThemeId;
     let _a = crate::palette::test_guard();
     let _g = crate::app::theme_test_guard();
-    for id in [ThemeId::GlassSky, ThemeId::GlassDawn, ThemeId::GlassNight] {
+    for id in [
+        ThemeId::GlassClear,
+        ThemeId::GlassSky,
+        ThemeId::GlassDawn,
+        ThemeId::GlassNight,
+    ] {
         let sheer = crate::tubesheer::sheer(1.0, id.theme());
         let prep = |app: &mut crate::app::CrewApp| {
             let smith = crate::chatshot_tests::live_pane();

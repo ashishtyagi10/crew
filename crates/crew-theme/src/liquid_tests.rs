@@ -66,7 +66,8 @@ fn glass_text_reads_over_any_desktop() {
         let (Some(l), Some(m)) = (t.liquid, t.modern) else {
             continue;
         };
-        let cover = l.pane_cover();
+        // Words stand on the pane and on their own shadow (`text_cover`).
+        let cover = l.text_cover(t.crt.map_or(0.0, |c| c.shade));
         for level in [GlassLevel::Low, GlassLevel::Medium, GlassLevel::High] {
             let g = style_for(t).scaled_by(level.liquid_scale());
             for pole in [m.pole_a, m.pole_b] {

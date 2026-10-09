@@ -35,10 +35,16 @@ pub const FOCUSED_LABEL_FLOOR: f32 = 10.0;
 /// How far one step walks the ink's lightness (OKLCH L).
 const STEP: f32 = 0.01;
 
-/// How much of the desktop the glass hides behind a legend, all told.
-fn legend_cover(body: f32, window: f32) -> f32 {
-    let body = 1.0 - (1.0 - body) * (1.0 - LEGEND_FROST);
-    body + window * (1.0 - body)
+/// How much of the desktop the glass hides behind a legend, all told: the
+/// veil thickens the body, and the text shadow dims what that leaves.
+fn legend_cover(l: crate::LiquidStyle, shade: f32) -> f32 {
+    let body = 1.0 - (1.0 - l.body) * (1.0 - LEGEND_FROST);
+    crate::LiquidStyle { body, ..l }.text_cover(shade)
+}
+
+/// `t`'s text shadow, 0 for a theme that casts none.
+fn shade(t: &Theme) -> f32 {
+    t.crt.map_or(0.0, |c| c.shade)
 }
 
 /// What a legend on `t`'s glass stands on over a black desktop and over a
@@ -46,13 +52,13 @@ fn legend_cover(body: f32, window: f32) -> f32 {
 /// Empty for a palette that is not liquid glass.
 pub fn grounds(t: &Theme) -> Vec<(u8, u8, u8)> {
     t.liquid
-        .map_or_else(Vec::new, |l| grounds_at(t, legend_cover(l.body, l.window)))
+        .map_or_else(Vec::new, |l| grounds_at(t, legend_cover(l, shade(t))))
 }
 
-/// What text inside a pane stands on: the body alone, no veil.
+/// What text inside a pane stands on: the body and its text shadow, no veil.
 pub fn pane_grounds(t: &Theme) -> Vec<(u8, u8, u8)> {
     t.liquid
-        .map_or_else(Vec::new, |l| grounds_at(t, l.pane_cover()))
+        .map_or_else(Vec::new, |l| grounds_at(t, l.text_cover(shade(t))))
 }
 
 /// The glass's frost over a black desktop and a white one, where it hides

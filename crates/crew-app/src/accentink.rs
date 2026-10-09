@@ -45,6 +45,7 @@ mod tests {
         let _g = crate::app::theme_test_guard();
         assert_eq!(accent_ink(), accent(), "off glass");
         for id in [
+            crew_theme::ThemeId::GlassClear,
             crew_theme::ThemeId::GlassSky,
             crew_theme::ThemeId::GlassNight,
         ] {
@@ -70,6 +71,7 @@ mod tests {
         let _a = crate::palette::test_guard();
         let _g = crate::app::theme_test_guard();
         for id in [
+            crew_theme::ThemeId::GlassClear,
             crew_theme::ThemeId::GlassSky,
             crew_theme::ThemeId::GlassDawn,
             crew_theme::ThemeId::GlassNight,
