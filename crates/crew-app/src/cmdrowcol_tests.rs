@@ -105,3 +105,32 @@ fn a_cut_description_ends_on_a_word() {
         );
     }
 }
+
+/// The `@a+b` note was one string with two spaces in it: its sentence began
+/// four columns after the selector, while the roles of the agents right
+/// above it began at the description column. It starts there too now — and
+/// on a card too narrow for both columns it is still one line cut on a word.
+#[test]
+fn the_fan_out_note_starts_in_the_description_column() {
+    use crate::chatmention::MentionEntry;
+    let agent = |name: &str, role: &str| MentionEntry::Agent {
+        name: name.into(),
+        role: role.into(),
+    };
+    let entries = [agent("planner", "planning"), agent("coder", "building")];
+    let rows = crate::chatpalette::chatpaletteitems::attach_items("", &entries, false);
+    let lw = label_col(&rows, 60);
+    let col = |needle: &str| {
+        let r = rows
+            .iter()
+            .find(|r| text(&spans(r, lw, 0, 60, DIM)).contains(needle));
+        col_of(&spans(r.unwrap(), lw, 0, 60, DIM), needle)
+    };
+    assert_eq!(col("fans the task"), col("agent \u{b7} planning"));
+    assert!(super::content_w(&rows) >= 2 + col("in parallel").unwrap() + 11);
+    let note = rows.iter().find(|r| r.header).unwrap();
+    let narrow = spans(note, lw, 0, 24, DIM);
+    assert_eq!(col_of(&narrow, "fans"), col("agent \u{b7} planning"));
+    assert_eq!(text(&narrow), "@a+b      fans the task\u{2026}");
+    assert_eq!(text(&spans(note, lw, 0, 16, DIM)), "@a+b  fans the\u{2026}");
+}

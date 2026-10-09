@@ -206,6 +206,7 @@ mod clock;
 mod cmdcheck;
 mod cmddefs;
 mod cmdhead;
+mod cmdheader;
 mod cmdkeys;
 mod cmdmenu;
 mod cmdnote;

@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.44
+
+**The `@a+b` hint lines up with the agents it describes.** Typing `@`
+in a chat pane lists the agents with their roles in one column, and a
+note at the foot of the list says that `@a+b` sends a task to two agents
+at once. The note was one string, so its sentence started two spaces
+after `@a+b` instead of in the column where every role above it starts.
+It is now laid out like the agent rows. On a narrow card its sentence is
+cut on a word, the same way the roles are.
+- **Test:** in the attach list, the note's sentence starts in the same
+  column as an agent's role, at full width and on a 24-column card.
+
 ## 0.26.43
 
 **The usage donut's total sits in the middle, and on glass the hole is

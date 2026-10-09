@@ -41,7 +41,7 @@ pub(crate) fn content_w(items: &[MenuItem]) -> usize {
     let row = |i: &MenuItem| {
         let key = i.key.map_or(0, |k| GAP + str_w(k));
         let label = i.label.chars().count();
-        if i.header || i.desc.is_empty() {
+        if i.desc.is_empty() {
             return 2 + label + key;
         }
         let sw = if swatch > 0 { GAP + swatch } else { 0 };
@@ -91,13 +91,8 @@ pub(crate) fn spans(
         .map(|(r, g, b)| Color::Rgb(r, g, b))
         .unwrap_or_else(crate::palette::accent_color);
     if item.header {
-        // A card can be narrower than its section title, too — and a note
-        // cut at a letter ended `· clear it …`, half an instruction; cut on
-        // a word it drops the part it cannot say whole.
-        return Line::from(Span::styled(
-            crate::chatwidth::clip_words(&item.label, avail),
-            Style::new().fg(dim).add_modifier(Modifier::BOLD),
-        ));
+        let sw = if swatch_w > 0 { swatch_w + GAP } else { 0 };
+        return crate::cmdheader::line(item, label_w + GAP + sw, avail, dim);
     }
     let fg = if item.dim { dim } else { label_fg };
     // A card can be narrower than the command it is listing.

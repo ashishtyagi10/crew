@@ -176,7 +176,10 @@ pub(crate) fn attach_items(
     // hint is for someone who does not know the idiom, and repeating it to
     // someone mid-selector is noise.
     if !multi && agents >= 2 && !out.is_empty() {
-        out.push(header("@a+b  fans the task out to both, in parallel"));
+        out.push(MenuItem {
+            desc: "fans the task out to both, in parallel".into(),
+            ..header("@a+b")
+        });
     }
     out
 }
