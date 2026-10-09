@@ -156,3 +156,16 @@ fn every_pane_key_is_in_the_overlay() {
         }
     }
 }
+
+/// The theme-cycle row names every mode `Ctrl+Shift+L` steps through, in
+/// order: it still said `dark → light → crt → auto` three releases after
+/// glass joined the cycle (v0.26.6).
+#[test]
+fn the_theme_cycle_row_names_every_mode() {
+    let (_, desc) = crate::helptable::BINDINGS
+        .iter()
+        .find(|(keys, _)| *keys == "Ctrl+Shift+L")
+        .expect("the cycle has a row");
+    let names: Vec<&str> = crew_theme::THEME_MODES.iter().map(|m| m.as_str()).collect();
+    assert!(desc.contains(&names.join(" \u{2192} ")), "{desc}");
+}

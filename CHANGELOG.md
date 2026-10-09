@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.18
+
+**`/keys` names glass in the theme cycle.** `Ctrl+Shift+L` has stepped
+through `dark → light → crt → glass → auto` since glass joined the cycle
+(v0.26.6), but `/keys` still listed four stops without glass, and so did the
+user guide's theme section ("cycle all four"). Both now name all five.
+- **Test:** the `/keys` row for `Ctrl+Shift+L` names every theme mode, in
+  the order the shortcut cycles them.
+
 ## 0.26.17
 
 **Blue words read on glass too.** The theme's blue is both a colour that
