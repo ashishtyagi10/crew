@@ -46,6 +46,39 @@ pub(crate) fn wrap_indices(full: &[char], cols: usize) -> Vec<(usize, usize)> {
     lines
 }
 
+/// [`wrap_indices`] without a one-word last row when the row above can spare
+/// a word (CSS's `text-wrap: pretty`). The keys panel's descriptions ended on
+/// `bar`, `canvas` and `auto)` alone on a row at narrow widths: a paragraph
+/// that looks finished a row early, and a row read as a binding of its own.
+/// Only the last break moves, so every other row is the plain wrap's.
+pub(crate) fn wrap_pretty(full: &[char], cols: usize) -> Vec<(usize, usize)> {
+    let mut lines = wrap_indices(full, cols);
+    let [.., (a, b), (c, d)] = lines[..] else {
+        return lines;
+    };
+    // A hard-broken word's tail has no space before it to move a word over.
+    if c != b + 1 || full[c..d].contains(&' ') {
+        return lines;
+    }
+    let Some(p) = full[a..b]
+        .iter()
+        .rposition(|&ch| ch == ' ')
+        .filter(|&p| p > 0)
+    else {
+        return lines;
+    };
+    let moved = a + p + 1;
+    // Never onto a row that opens on a list's `·` or a dash (the prose rule).
+    let opens_on_stop = matches!(full[moved], '\u{b7}' | '\u{2014}' | '\u{2013}');
+    if opens_on_stop || crate::chatwidth::fit_end(full, moved, cols) < d {
+        return lines;
+    }
+    let k = lines.len();
+    lines[k - 2] = (a, a + p);
+    lines[k - 1] = (moved, d);
+    lines
+}
+
 #[cfg(test)]
 #[path = "wrapidx_tests.rs"]
 mod tests;
