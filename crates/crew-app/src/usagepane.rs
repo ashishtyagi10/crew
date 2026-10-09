@@ -123,11 +123,7 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
     // The in/out donut's legend and the total in its hole.
     if rows > l.split_top + SPLIT_ROWS {
         put(&mut out, "TOKENS", 1, l.split_top, t.text_muted);
-        let total = b.tok_in + b.tok_out;
-        let hole = compact(total);
-        let start = (RING_CX - hole.chars().count() as f32 / 2.0)
-            .round()
-            .max(0.0) as u16;
+        let (hole, start, _) = hole(b);
         put(&mut out, &hole, start, l.split_top + RING_ROW, t.ink);
         // Floored on their own, the two read `81% / 18%` — see `usageaxis`.
         let (pct_in, pct_out) = crate::usageaxis::split_pct(b.tok_in, b.tok_out);
@@ -165,6 +161,17 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
         crate::costbars::labels(&mut out, &b.daily_cost, 1, w, top, l.cost_rows, axis, cols);
     }
     out
+}
+
+/// The total written in the ring's hole, the column it starts at, and the
+/// centre it reads at. A cell-placed word can only centre to half a column,
+/// so the ring centres on the WORD: on `RING_CX` itself a one-digit `0` sat
+/// half a column right of the ring's middle.
+fn hole(b: &Buckets) -> (String, u16, f32) {
+    let text = compact(b.tok_in + b.tok_out);
+    let n = text.chars().count() as f32;
+    let start = (RING_CX - n / 2.0).round().max(0.0);
+    (text, start as u16, start + n / 2.0)
 }
 
 pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
@@ -209,7 +216,8 @@ pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
         const SHIFT: f32 = 1.0;
         let mut c = Canvas::new(14, RING_ROWS, aspect);
         let (_, h) = c.size();
-        let centre = (RING_CX - SHIFT, h / 2.0);
+        // Centred on the total in its hole, which sits on whole cells.
+        let centre = (hole(b).2 - SHIFT, h / 2.0);
         let slices = [
             Slice::new(b.tok_in as f32, accent()),
             Slice::new(b.tok_out as f32, t.ansi[13]),
@@ -223,8 +231,12 @@ pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
             t.border_normal,
         );
         // Punch the hole back to the page, so the total written in it is read
-        // off the page rather than off the ring's inner edge.
-        pie::dot(&mut c, centre, RING_R_IN, t.page_bg, 1.0);
+        // off the page rather than off the ring's inner edge. Not on glass:
+        // there the page is see-through, and a solid page-coloured disc was a
+        // puck over the desktop.
+        if t.liquid.is_none() {
+            pie::dot(&mut c, centre, RING_R_IN, t.page_bg, 1.0);
+        }
         out.extend(
             c.paint()
                 .into_iter()
@@ -251,3 +263,7 @@ mod tests;
 #[cfg(test)]
 #[path = "usagenarrow_tests.rs"]
 mod narrow_tests;
+
+#[cfg(test)]
+#[path = "usagehole_tests.rs"]
+mod hole_tests;
