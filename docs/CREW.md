@@ -4218,10 +4218,10 @@ A faint procedural **grain** + edge vignette is drawn behind everything (GPU) �
 it reads as paper texture on the paper themes and as a subtle **tube glow** on
 the CRT ones. Every palette's colours are picked for measured WCAG contrast.
 
-**Switching:** `/theme dark` | `/theme light` | `/theme crt` — selecting
-`/theme` in the palette opens an arrow-selectable picker — or cycle all four
-live with **`Ctrl+Shift+L`** (`dark → light → crt → auto`). The choice persists
-to `config.toml`.
+**Switching:** `/theme dark` | `/theme light` | `/theme crt` | `/theme glass`
+— selecting `/theme` in the palette opens an arrow-selectable picker — or
+cycle all five live with **`Ctrl+Shift+L`** (`dark → light → crt → glass →
+auto`). The choice persists to `config.toml`.
 
 **Each theme rotates** to a different palette from its pool every **10 minutes**:
 
