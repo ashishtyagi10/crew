@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.26
+
+**Toasts no longer cover a pane's close button.** Notifications ("swarm
+finished", "cargo test failed") stack down the top-right of the window. The
+stack started on the very top row, which is the title row of the pane tiled
+there, so for as long as a card was up it sat on that pane's `[-]` and `[x]`
+buttons. The stack now starts one row lower, under the title row, the way a
+Mac notification sits under the menu bar.
+- **Test:** every card in the stack sits below the top pane's title row.
+
 ## 0.26.25
 
 **The settings form's focus reads on glass.** The settings form marks the
