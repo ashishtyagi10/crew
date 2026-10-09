@@ -26,7 +26,7 @@ fn every_role_reads_over_any_desktop() {
             ("placeholder", t.placeholder, MARK_FLOOR),
             ("hint_fg", t.hint_fg, MARK_FLOOR),
         ];
-        roles.extend(t.ansi.iter().skip(1).map(|&c| ("ansi", c, MARK_FLOOR)));
+        roles.extend(t.ansi.iter().skip(1).map(|&c| ("ansi", c, SECONDARY_FLOOR)));
         for (role, c, floor) in roles {
             let got = worst(c, &g);
             // A hue can top out a hair short of the floor; no more than that.

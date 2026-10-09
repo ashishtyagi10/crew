@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.32
+
+**Terminal colours read better on glass.** On see-through glass every
+terminal colour (`ls` folders, `git status`, a compiler's red and green, a
+prompt) is adjusted until it reads over the frost on any desktop. Until
+now they were held only to the floor for hints and faint marks, 3:1. That
+is the body of what a shell pane says, though, and a prompt read 3.16:1 on
+light glass over a dark desktop. They are now held to the floor for
+secondary text, 3.5:1. That makes them a touch lighter on the white-text
+glass and a touch deeper on the light glass. Each colour keeps its own hue.
+- **Test:** on every glass theme all fifteen coloured ANSI slots read 3.5:1
+  over the frost on a black and a white desktop.
+
 ## 0.26.31
 
 **The dials' scales read on glass.** The cpu/mem/dsk dials in the nav and
