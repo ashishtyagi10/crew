@@ -48,7 +48,7 @@ pub(crate) fn paint(text: &str) -> Vec<(u8, u8, u8)> {
     if chars.first() == Some(&'/') {
         let word: String = chars[..head].iter().collect();
         let fg = match classify(&word) {
-            Cmd::Known => crate::palette::accent(),
+            Cmd::Known => crate::accentink::accent_ink(),
             Cmd::Partial => t.text_muted,
             Cmd::Unknown => t.bell,
         };

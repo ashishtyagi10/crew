@@ -28,8 +28,8 @@ fn empty_focused_shows_placeholder() {
 
 #[test]
 fn cells_focused_shows_accent_prompt_and_text() {
-    // Pin the accent global for the read-then-assert window.
-    let _g = crate::palette::test_guard();
+    // Pin the accent and theme globals for the read-then-assert window.
+    let (_a, _g) = (crate::palette::test_guard(), crate::app::theme_test_guard());
     let bar = InputBar {
         text: "ls".into(),
         focused: true,
@@ -135,19 +135,19 @@ fn broadcast_prompt_is_magenta() {
 
 #[test]
 fn cells_show_cwd_legend_on_top_border() {
-    // The accent is a global other tests move; read on both sides, accept either.
-    let _g = crate::palette::test_guard();
+    // The legend's accent (floored for its row), with both globals pinned.
+    let (_a, _g) = (crate::palette::test_guard(), crate::app::theme_test_guard());
     let bar = InputBar {
         text: String::new(),
         focused: true,
         cwd: "/code/crew".into(),
         ..Default::default()
     };
-    let before = accent();
+    let want = crate::palette::legend_accent();
     let cells = bar.cells(40, 3, None, None, None);
     assert!(cells
         .iter()
-        .any(|c| c.c == 'w' && c.row == 0 && (c.fg == before || c.fg == accent())));
+        .any(|c| c.c == 'w' && c.row == 0 && c.fg == want));
     // the card has rounded corners and the prompt is on the interior row
     assert!(cells.iter().any(|c| c.c == '╭'));
     assert!(cells.iter().any(|c| c.c == '\u{203a}' && c.row == 1));
