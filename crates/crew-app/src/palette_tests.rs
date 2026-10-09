@@ -52,9 +52,11 @@ fn a_user_accent_is_floored_against_the_page_it_lands_on() {
             bad.push(format!("{}: crew green floored to {r:.2}", id.as_str()));
         }
 
+        // The page floor never moves a theme's own default; on glass the
+        // frost's floor does, by design (`accentink::glassed`).
         let d = crew_theme::theme().accent_default;
         set_accent(d);
-        if accent() != d {
+        if accent() != crate::accentink::glassed(d) {
             bad.push(format!("{}: its own default was moved", id.as_str()));
         }
     }
