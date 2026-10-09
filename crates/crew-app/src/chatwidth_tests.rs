@@ -37,3 +37,10 @@ fn fit_end_always_advances() {
     assert_eq!(fit_end(&wide, 0, 1), 1);
     assert_eq!(fit_end(&wide, 1, 1), 1, "at the end it stays put");
 }
+
+/// An arrow left at the cut points at nothing: `font →…` loses it too.
+#[test]
+fn a_cut_drops_a_dangling_arrow() {
+    let got = clip_words("font \u{2192} Intel One Mono", 8);
+    assert_eq!(got, "font\u{2026}");
+}

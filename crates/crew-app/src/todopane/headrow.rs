@@ -114,13 +114,43 @@ pub(crate) fn empty(out: &mut Vec<CellView>, p: &TodoPane, header: u16, lh: u16,
     let room = usize::from(cols - BOX_COL);
     for (i, hint) in hints.iter().enumerate() {
         let row = header + (lh / 2).saturating_sub(1) + i as u16;
-        let hint = crate::chatwidth::clip_w(hint, room);
+        let hint = fit_hint(hint, room);
         let x = BOX_COL + (room - crate::chatwidth::str_w(&hint)) as u16 / 2;
         let fg = if i == 0 { t.ink } else { t.text_muted };
         let styled = hint.chars().map(|c| (c, ()));
         crate::chatwidth::place_row(x, cols, styled, |x, c, ()| {
             out.push(cell(x, row, c, fg, false))
         });
+    }
+}
+
+/// An empty pane's hint at `room` columns. The clause after a dash is an
+/// example and the sentence before it stands alone, so a narrow pane drops
+/// the example whole: cut to width, `type one below — try: pay ren…` was a
+/// hint missing its point. Past that, it breaks on a word.
+pub(crate) fn fit_hint(hint: &str, room: usize) -> String {
+    use crate::chatwidth::{clip_words, str_w};
+    if str_w(hint) <= room {
+        return hint.to_string();
+    }
+    match hint.split_once(" \u{2014} ") {
+        Some((head, _)) if str_w(head) <= room => head.to_string(),
+        _ => clip_words(hint, room),
+    }
+}
+
+/// The done view's filter hint at `room` columns. Its way out is the part
+/// that has to survive: cut to width it read `filter with @project or #w…`,
+/// and the one key that leaves the view was what went.
+pub(crate) fn done_hint(room: usize) -> String {
+    const LADDER: [&str; 3] = [
+        "filter with @project or #who \u{b7} esc leaves",
+        "filter \u{b7} esc leaves",
+        "esc leaves",
+    ];
+    match LADDER.iter().find(|h| crate::chatwidth::str_w(h) <= room) {
+        Some(h) => h.to_string(),
+        None => crate::chatwidth::clip_w(LADDER[2], room),
     }
 }
 
