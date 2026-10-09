@@ -280,6 +280,7 @@ mod fileindex;
 mod findhl;
 mod findsnip;
 mod focusmode;
+mod foldrows;
 mod fontcmd;
 #[cfg(test)]
 #[path = "fontpool_tests.rs"]

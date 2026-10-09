@@ -154,25 +154,23 @@ pub(crate) fn menu_items_in(text: &str, cwd: &std::path::Path) -> Vec<MenuItem> 
         }
         return out;
     }
-    matches(text)
-        .into_iter()
-        .map(|c| {
-            let exp = expands(c.name) || crate::verbs::options(c.name).is_some();
-            MenuItem {
-                label: c.name.to_string(),
-                desc: c.desc.to_string(),
-                fill: if exp {
-                    format!("{} ", c.name)
-                } else {
-                    c.name.to_string()
-                },
-                submit: !exp,
-                hit: hit_positions(c.name, &text[1..].to_lowercase()),
-                key: crate::cmdkeys::key_for(c.name).map(crate::chordglyph::shown),
-                ..Default::default()
-            }
-        })
-        .collect()
+    let found = matches(text).into_iter().map(|c| {
+        let exp = expands(c.name) || crate::verbs::options(c.name).is_some();
+        MenuItem {
+            label: c.name.to_string(),
+            desc: c.desc.to_string(),
+            fill: if exp {
+                format!("{} ", c.name)
+            } else {
+                c.name.to_string()
+            },
+            submit: !exp,
+            hit: hit_positions(c.name, &text[1..].to_lowercase()),
+            key: crate::cmdkeys::key_for(c.name).map(crate::chordglyph::shown),
+            ..Default::default()
+        }
+    });
+    crate::foldrows::merged(text, found.collect())
 }
 
 /// Commands matching `text` for the palette: a prefix match ranks first, then a

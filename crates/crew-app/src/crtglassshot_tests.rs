@@ -47,16 +47,25 @@ fn window(
     clocks: crew_render::WashClocks,
     opacity: f32,
 ) -> Option<Vec<u8>> {
-    window_with(name, id, clocks, opacity, &["/far", "/far", "/dash"])
+    window_with(
+        name,
+        id,
+        clocks,
+        opacity,
+        &["/far", "/far", "/dash"],
+        &|_| {},
+    )
 }
 
-/// [`window`] with the panes `cmds` open, the second one focused.
+/// [`window`] with the panes `cmds` open, the second one focused, then
+/// `prep` run on the app (a toast, text in the bar) before the frames.
 pub(crate) fn window_with(
     name: &str,
     id: ThemeId,
     clocks: crew_render::WashClocks,
     opacity: f32,
     cmds: &[&str],
+    prep: &dyn Fn(&mut CrewApp),
 ) -> Option<Vec<u8>> {
     crew_theme::set_theme(id);
     // The app serves a sheer window's palette with its frames and quiet
@@ -87,6 +96,7 @@ pub(crate) fn window_with(
             for p in &mut app.panes {
                 p.born_ms = 0;
             }
+            prep(&mut app);
             app.build_frame();
             std::thread::sleep(std::time::Duration::from_millis(350));
             app.build_frame();

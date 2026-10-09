@@ -23,13 +23,39 @@ fn glass_survey_shot() {
         let sheer = crate::tubesheer::sheer(1.0, id.theme());
         for (set, cmds) in SETS {
             let name = format!("survey-{}-{set}", id.as_str());
-            let shot =
-                crate::crtglassshot_tests::window_with(&name, id, Default::default(), sheer, cmds);
+            let shot = crate::crtglassshot_tests::window_with(
+                &name,
+                id,
+                Default::default(),
+                sheer,
+                cmds,
+                &|_| {},
+            );
             if shot.is_none() {
                 eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
                 return;
             }
         }
+        // The command palette open over a pane, and a toast and an alert.
+        let palette = |app: &mut crate::app::CrewApp| {
+            app.input.focused = true;
+            app.input.text = "/th".into();
+            let now = crate::anim::now_ms();
+            app.toasts
+                .push("swarm finished · 3 tasks".into(), "done", false, now);
+            app.toasts
+                .push("cargo test failed".into(), "bell", true, now);
+        };
+        let name = format!("survey-{}-palette-toast", id.as_str());
+        let dash: &[&str] = &["/dash"];
+        crate::crtglassshot_tests::window_with(
+            &name,
+            id,
+            Default::default(),
+            sheer,
+            dash,
+            &palette,
+        );
     }
 }
 

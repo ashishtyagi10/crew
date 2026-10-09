@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.20
+
+**The palette finds commands by their old names.** Fifteen appearance
+commands moved under `/look` (`/theme` is `/look theme` now), and
+`/clearall` became `/clear all`. The old spellings still run, but the
+palette never offered them, so typing what you remembered got rows that
+merely held its letters: `/th` offered `/smith`, `/watching` and `/batch`,
+and nothing about themes. Now a query that begins an old spelling offers its
+new home, right after the commands that begin with it. `/th` lists
+`/look theme` first, and accepting it opens the theme list.
+- **Test:** an old spelling is offered its new home after the prefix
+  matches; one letter, the verb's own name, or a typed argument offers
+  nothing extra.
+
 ## 0.26.19
 
 **Settings says when the theme sets the window's opacity.** Glass sets the
