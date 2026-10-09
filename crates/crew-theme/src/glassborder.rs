@@ -52,6 +52,8 @@ pub fn lift(t: &Theme) -> Theme {
     // See-through glass stands its legends on the desktop, not the page:
     // floored over the darkest and the brightest one (`glasslegend`).
     l.legend_off = crate::glasslegend::legible(t, l.legend_off, crate::glasslegend::LABEL_FLOOR);
+    // …and so does everything written inside its panes (`glassink`).
+    crate::glassink::floor_roles(&mut l, t);
     l
 }
 

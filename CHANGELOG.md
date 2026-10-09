@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.15
+
+**Text inside glass panes reads over a dark desktop.** Light glass over a
+dark desktop is mid-grey, and the greys picked for a near-white page nearly
+vanished there: dim text and hints at about 1.5:1, an error at 1.9, the
+terminal's green at 2.1. On glass, secondary text, hints, placeholders, the
+status line, errors and the terminal's colours are now darkened on light
+glass (lightened on night glass) until each reads over a black desktop and
+a white one, keeping the order between them: body text strongest, then
+secondary text, then hints. The tint (the blue of the cursor bar, the focus
+ring, the selection) keeps its colour. Every other theme is unchanged.
+- **Test:** every text role of every glass palette clears its floor over
+  any desktop; the order between them survives; the tint is untouched.
+
 ## 0.26.14
 
 **Pane titles read on glass, like the iPhone's labels.** On the see-through
