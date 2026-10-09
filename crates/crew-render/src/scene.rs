@@ -366,7 +366,11 @@ pub(crate) fn build_scene(
                 cell_h,
                 font_system,
                 params,
-                srgb,
+                // A pop-up is solid (its backdrop above): no glass in it.
+                (
+                    srgb,
+                    crate::crtchain::premultiplies(window_opacity) && !pane.overlay,
+                ),
                 &prev_sigs,
                 &mut prev_bufs,
                 &mut Out {
@@ -422,7 +426,8 @@ fn emit_cells(
     cell_h: f32,
     font_system: &mut glyphon::FontSystem,
     params: &FontParams,
-    srgb: bool,
+    // The target's sRGB-ness, and whether the window is sheer glass.
+    (srgb, sheer): (bool, bool),
     prev_sigs: &[u64],
     prev_bufs: &mut [Option<PaneBuffer>],
     out: &mut Out<'_>,
@@ -437,6 +442,8 @@ fn emit_cells(
         (c.max(end), r.max(usize::from(cell.row) + 1))
     });
     let rad = crate::bgruns::radius(cell_w, cell_h);
+    // On a sheer glass window a tint of the page is a frost, not a slab.
+    let fill = |bg| crate::color::target_rgba(bg, crate::cellveil::alpha(bg, sheer), srgb);
     for run in crate::bgruns::runs(&pane.cells, gcols, grows, default_bg()) {
         let radii = run.round.map(|r| if r { rad } else { 0.0 });
         // A mark keeps a pixel of its row's edge either side (`bgruns::Run`)
@@ -453,7 +460,7 @@ fn emit_cells(
             y: pane.y + f32::from(run.row) * cell_h + inset,
             w: f32::from(run.cols) * cell_w + 2.0 * pad,
             h: cell_h - 2.0 * inset,
-            color: crate::color::target_rgba(run.bg, 1.0, srgb),
+            color: fill(run.bg),
             radii,
         });
     }

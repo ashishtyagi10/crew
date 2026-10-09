@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.47
+
+**Code blocks are glass on a see-through window.** On the glass theme
+the window shows the desktop through it, but a chat's code blocks and
+inline `code` chips were drawn solid. They looked like grey slabs set on
+the glass: lighter than the pane over a dark desktop, darker over a
+light one. They are now a second layer of the same smoked glass. They
+keep their own shade and are as see-through as the pane around them, so
+the desktop tints them the same way. A block stays lighter than the
+pane over a dark desktop and darker over a light one, so the code on it
+stays readable. Coloured fills such as a selection or a terminal
+program's blue status bar are still solid. So is everything inside a
+pop-up.
+- **Test:** a background between the page and the ink counts as glass;
+  a hue, the page itself, the ink itself and anything past either end
+  stay solid, and every background is solid on an opaque window.
+
 ## 0.26.46
 
 **Settings values line up under their labels.** Each box in `/settings`

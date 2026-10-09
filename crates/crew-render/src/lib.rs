@@ -6,6 +6,7 @@ mod bloom;
 mod boxglyph;
 mod cellgrid;
 mod celltext;
+mod cellveil;
 pub mod color;
 mod corners;
 mod crt;
