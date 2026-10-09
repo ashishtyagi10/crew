@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.28
+
+**The accent reads on glass wherever it is drawn.** On see-through glass
+the theme's accent colour (rose on `glass-clear`, mint on `glass-night`)
+could sink into the desktop behind the frost: rose read 2.2:1 over a white
+desktop. The last release moved the accent's words, such as `/keys` chords
+and the input bar's prompt, onto a deeper or lighter colour that reads over
+any desktop. A survey found the plain accent still used in 49 other places:
+- the composer's `›`
+- the thinking `∴` and the "thinking" shimmer
+- the header's spinner and the nav's dots
+- the welcome's `⌘T` / `⌘O` chords
+- the usage pane's token row
+- a reply's headings and table heads
+
+The accent itself is now held to the floor on glass, so all of them read,
+and so do the bars and dials it fills. Other themes are unchanged.
+- **Test:** on every glass theme the accent as drawn reads 3:1 over the
+  frost on a black and a white desktop.
+
 ## 0.26.27
 
 **Glass is now clear, with bright white text.** The `glass` theme used

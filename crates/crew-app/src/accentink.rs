@@ -1,16 +1,25 @@
-//! The accent as words.
+//! The accent on glass.
 //!
 //! Split from [`crate::palette`] (at its line ceiling).
 use crate::palette::accent;
 
-/// The accent as WORDS — a key's chord, a prompt's chevron, a rate's arrow
-/// — rather than as the tint of a bar or a ring. On see-through glass it is
-/// floored over the desktop behind the frost: as text the iPhone's blue read
-/// 1.6:1 on light glass over a dark desktop (`/keys`, 2026-10-09). The
-/// bars it fills keep it as it is. Elsewhere this is [`accent`].
+/// The accent on see-through glass, as [`accent`] serves it: floored over
+/// the desktop behind the frost, words and marks alike. As words the
+/// iPhone's blue read 1.6:1 on light glass over a dark desktop (`/keys`,
+/// 2026-10-09), and the survey that followed found it raw in the composer's
+/// `❯`, the thinking `∴`, the header's spinner, the nav's dots, the welcome's
+/// chords and a reply's headings — 49 call sites, so the floor moved here,
+/// under all of them. A bar it fills has to be seen over the frost too.
+/// Elsewhere `c` passes through.
+pub(crate) fn glassed(c: (u8, u8, u8)) -> (u8, u8, u8) {
+    crew_theme::glasslegend::on_glass(crew_theme::theme(), c, crew_theme::readable::MARK_FLOOR)
+}
+
+/// The accent as WORDS — a key's chord, a prompt's chevron, a rate's arrow.
+/// Since [`accent`] itself is floored on glass ([`glassed`]) this is the
+/// accent; the name stays for the sites that mean words.
 pub fn accent_ink() -> (u8, u8, u8) {
-    let t = crew_theme::theme();
-    crew_theme::glasslegend::on_glass(t, accent(), crew_theme::readable::MARK_FLOOR)
+    glassed(accent())
 }
 
 /// The FOCUS accent on see-through glass: walked to read over the pane's
@@ -37,8 +46,8 @@ mod tests {
     use super::*;
     use crew_theme::glasslegend::{pane_grounds, worst};
 
-    /// On glass the accent as words reads over any desktop; the bars keep
-    /// the palette's accent; off glass the two are one colour.
+    /// On glass the drawn accent — words, marks and bars — reads over any
+    /// desktop; off glass it is the palette's own.
     #[test]
     fn the_accent_reads_as_words_on_glass() {
         let _a = crate::palette::test_guard();
@@ -53,7 +62,7 @@ mod tests {
             crew_theme::glassborder::set_sheer(true);
             crate::palette::set_accent(crew_theme::theme().accent_default);
             let g = pane_grounds(crew_theme::theme());
-            let got = worst(accent_ink(), &g);
+            let got = worst(accent_ink(), &g).min(worst(accent(), &g));
             crew_theme::glassborder::set_sheer(false);
             assert!(
                 got >= crew_theme::readable::MARK_FLOOR - 0.05,

@@ -45,7 +45,7 @@ pub fn raw_accent() -> (u8, u8, u8) {
 }
 
 /// The accent as it is drawn: [`raw_accent`] floored against the page it will
-/// land on.
+/// land on — and on glass, over the frost on any desktop ([`crate::accentink`]).
 ///
 /// Every theme's own `accent_default` already clears the floor — that is what
 /// picking it *meant*. A user-set one does not have to, and the app's own
@@ -78,7 +78,7 @@ pub fn accent() -> (u8, u8, u8) {
         if (k_raw, k_page, k_floor) == key {
             return unpack(val);
         }
-        let fixed = crew_theme::readable::enforced(raw, page, floor);
+        let fixed = crate::accentink::glassed(crew_theme::readable::enforced(raw, page, floor));
         m.set((key.0, key.1, key.2, pack(fixed)));
         fixed
     })
