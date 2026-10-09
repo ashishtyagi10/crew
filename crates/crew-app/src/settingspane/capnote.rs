@@ -18,7 +18,7 @@ use super::{form, Field, SettingsPane};
 /// The note for `f`, when the live theme overrides what the draft asks for.
 pub(super) fn note(p: &SettingsPane, f: Field) -> Option<String> {
     if f != Field::WindowOpacity {
-        return None;
+        return inert(f);
     }
     let (who, got) = crate::tubesheer::overridden(p.draft.window_opacity, crew_theme::theme())?;
     Some(format!("{who} sets {}", (got * 100.0).round() as u32))
@@ -39,6 +39,51 @@ pub(super) fn draw(buf: &mut Buffer, r: Rect, p: &SettingsPane, f: Field, value:
         &Line::styled(note, Style::new().fg(form::dim())),
         w,
     );
+}
+
+/// Said of a canvas setting the live theme leaves nothing to act on. Glass
+/// and the tubes paint no paper and no wallpaper of their own — the desktop,
+/// or the phosphor, is the background — so Grain, Paper texture and Drifting
+/// background read live there and changed nothing (2026-10-09 survey).
+fn inert(f: Field) -> Option<String> {
+    let t = crew_theme::theme();
+    let who = match (t.liquid.is_some(), t.is_tube()) {
+        (true, _) => "glass",
+        (_, true) => "a tube",
+        _ => "this theme",
+    };
+    match f {
+        Field::PaperGrain | Field::PaperTexture if t.grain == 0.0 => {
+            Some(format!("no grain on {who}"))
+        }
+        Field::AmbientDrift if t.modern.is_none_or(|m| m.wash == 0.0) => {
+            Some(format!("no wallpaper on {who}"))
+        }
+        _ => None,
+    }
+}
+
+/// [`form::checkbox`] for `f`. When the live theme ignores the toggle the
+/// row steps back to the dim ink (focus keeps its own colour), with the
+/// [`inert`] note at its right end where there is room for both — a canvas
+/// card is usually too narrow, and the dim row says it alone.
+pub(super) fn checkbox(buf: &mut Buffer, r: Rect, f: Field, on: bool, focused: bool) {
+    let label = super::labels::label_of(f);
+    form::checkbox(buf, r, label, on, focused);
+    let Some(note) = inert(f) else { return };
+    if !focused {
+        for x in r.x..r.x + r.width {
+            if let Some(c) = buf.cell_mut((x, r.y)) {
+                c.set_fg(form::dim());
+            }
+        }
+    }
+    let w = note.chars().count() as u16;
+    if r.height < 1 || r.width < label.chars().count() as u16 + w + 6 {
+        return;
+    }
+    let style = Style::new().fg(form::dim());
+    buf.set_line(r.x + r.width - 1 - w, r.y, &Line::styled(note, style), w);
 }
 
 #[cfg(test)]
@@ -74,5 +119,36 @@ mod tests {
         );
         crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
         assert_eq!(note(&pane(1.0), Field::WindowOpacity), None);
+    }
+
+    /// Grain, Paper texture and Drifting background say so on a theme that
+    /// leaves them nothing to act on, and stay quiet where they work.
+    #[test]
+    fn a_canvas_setting_says_when_the_theme_ignores_it() {
+        let _g = crate::app::theme_test_guard();
+        crew_theme::set_theme(crew_theme::ThemeId::GlassClear);
+        assert_eq!(
+            inert(Field::PaperGrain).as_deref(),
+            Some("no grain on glass")
+        );
+        assert_eq!(
+            inert(Field::PaperTexture).as_deref(),
+            Some("no grain on glass")
+        );
+        let drift = inert(Field::AmbientDrift);
+        assert_eq!(drift.as_deref(), Some("no wallpaper on glass"));
+        assert_eq!(inert(Field::FontSize), None);
+        // The toggle's row steps back to the dim ink.
+        let area = Rect::new(0, 0, 30, 1);
+        let mut buf = Buffer::empty(area);
+        checkbox(&mut buf, area, Field::PaperTexture, true, false);
+        let label_fg = buf.cell((4, 0)).map(|c| c.fg);
+        assert_eq!(label_fg, Some(form::dim()), "an inert toggle reads dim");
+        for id in crew_theme::ALL_THEMES {
+            crew_theme::set_theme(id);
+            let t = crew_theme::theme();
+            let grain = inert(Field::PaperGrain).is_some();
+            assert_eq!(grain, t.grain == 0.0, "{}", id.as_str());
+        }
     }
 }

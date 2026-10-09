@@ -59,7 +59,7 @@ pub(crate) fn render(p: &SettingsPane, cols: u16, rows: u16) -> Vec<CellView> {
 /// Draw one field's control into the virtual buffer.
 fn control(buf: &mut Buffer, p: &SettingsPane, f: Field, r: Rect, focused: bool) {
     let d = &p.draft;
-    let check = |buf: &mut Buffer, on| form::checkbox(buf, r, label_of(f), on, focused);
+    let check = |buf: &mut Buffer, on| super::capnote::checkbox(buf, r, f, on, focused);
     match f {
         Field::ShowNav => check(buf, d.show_nav),
         Field::BorderMarks => check(buf, d.border_marks),
