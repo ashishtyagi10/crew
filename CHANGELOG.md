@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.41
+
+**A short chat pane drops its example asks whole.** An empty agent smith
+pane shows how to start: a one-line hint, then two example asks
+(`Try "make the tests pass" — …`). On a tile too short for all of it, the
+blank spacers went first. Then the last row that fit was cut, which often
+landed mid-example: `Try "make the tests pass" — a…`. The examples are now
+the next thing to go, whole, so a short pane shows the complete hint and
+no half-sentence. A pane one row short still only loses its spacer and
+keeps every word.
+- **Test:** one row short keeps every word; with room for the hint and
+  one row more, the examples go whole and nothing is cut.
+
 ## 0.26.40
 
 **A wrapped diff line hangs under its code.** In the viewer, a line of code
