@@ -51,7 +51,7 @@ pub(crate) fn input_box(
     if focused && cursor {
         text.push('\u{2588}');
     }
-    let iw = rect.width.saturating_sub(2);
+    let iw = rect.width.saturating_sub(4);
     // An empty box says what empty means, in the muted ink, until it is
     // typed into: a blank `Accent` read as a value that had gone missing.
     let (text, fg) = match (text.is_empty(), hint) {
@@ -59,8 +59,14 @@ pub(crate) fn input_box(
         _ => (text, ink()),
     };
     let line = Line::styled(tail(&text, iw as usize), Style::new().fg(fg));
-    buf.set_line(rect.x + 1, rect.y + 1, &line, iw);
+    buf.set_line(rect.x + VALUE_X, rect.y + 1, &line, iw);
 }
+
+/// Where a box's value starts: under its legend's first letter (the legend
+/// is ` Label ` from the corner), a column of air from the stroke as the
+/// note on the right end has. At one column it touched the stroke, 4px off
+/// it while the legend above sat a whole cell in (survey B #17).
+pub(crate) const VALUE_X: u16 = 2;
 
 /// `■ Label` single-row toggle — crew's drawn box, filled in the accent when
 /// on, empty and quiet when off (it was `[x]`, typed text); `› ` marker +
@@ -140,7 +146,7 @@ pub(crate) fn button(text: &str, focused: bool, primary: bool) -> Span<'static> 
 pub(crate) fn text_area(buf: &mut Buffer, rect: Rect, label: &str, value: &str, focused: bool) {
     frame(buf, rect, label, focused);
     let ih = rect.height.saturating_sub(2) as usize;
-    let iw = rect.width.saturating_sub(2);
+    let iw = rect.width.saturating_sub(4);
     let mut lines: Vec<String> = value.split('\n').map(str::to_string).collect();
     if focused {
         if let Some(last) = lines.last_mut() {
@@ -150,7 +156,7 @@ pub(crate) fn text_area(buf: &mut Buffer, rect: Rect, label: &str, value: &str, 
     let skip = lines.len().saturating_sub(ih);
     for (i, l) in lines.iter().skip(skip).take(ih).enumerate() {
         let line = Line::styled(tail(l, iw as usize), Style::new().fg(ink()));
-        buf.set_line(rect.x + 1, rect.y + 1 + i as u16, &line, iw);
+        buf.set_line(rect.x + VALUE_X, rect.y + 1 + i as u16, &line, iw);
     }
 }
 

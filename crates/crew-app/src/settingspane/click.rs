@@ -90,11 +90,11 @@ fn chevron(p: &SettingsPane, f: Field, r: Rect, row: u16, col: u16) -> Option<bo
     if cursor || !value.starts_with('\u{2039}') {
         return None; // a text field: a click means "put the caret here"
     }
-    // The value is drawn one cell inside the border, on the box's middle row.
+    // The value is drawn under the legend, on the box's middle row.
     if row != r.y + 1 {
         return None;
     }
-    let left = r.x + 1;
+    let left = r.x + super::widgets::VALUE_X;
     let right = left + value.chars().count() as u16 - 1;
     match col {
         c if c == left => Some(true),
