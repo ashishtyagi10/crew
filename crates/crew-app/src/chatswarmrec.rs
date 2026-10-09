@@ -65,6 +65,17 @@ pub(crate) fn text(s: &SwarmStatus, now_ms: u64) -> String {
     format!("{LEAD}{}\n{}", head.join(" \u{b7} "), rows.join("\n"))
 }
 
+/// Columns of the specialist at the head of `rest` (a task row past its
+/// glyph): its name and the padding after it, which is always two spaces or
+/// more (`chatswarmrows::words`), so a title's wrap hangs under the title
+/// rather than under `critic`. 0 when the row has no specialist column.
+fn spec_w(rest: &[char]) -> usize {
+    let Some(p) = rest.windows(2).position(|w| w == [' ', ' ']) else {
+        return 0;
+    };
+    p + rest[p..].iter().take_while(|c| **c == ' ').count()
+}
+
 /// The record laid out for a card `width` wide: the head wrapped as prose,
 /// each task row hanging its continuation under its title, each reason under
 /// itself. Through markdown a wrapped row restarted at column 0, under the
@@ -87,8 +98,12 @@ pub(crate) fn card_lines(
         // head under nothing.
         let glyph = chars.iter().position(|c| !c.is_ascii_digit() && *c != ' ');
         let lead = match glyph {
-            _ if i == 0 => 0,
-            Some(g) if chars[..g].iter().any(char::is_ascii_digit) => g + 2,
+            // The head's tail hangs two in: at the margin `1 cancelled ·
+            // 1s` sat over `1 ✓ scout` and read as task 1.
+            _ if i == 0 => 2,
+            Some(g) if chars[..g].iter().any(char::is_ascii_digit) => {
+                g + 2 + spec_w(&chars[g + 2..])
+            }
             _ => chars.iter().take_while(|c| **c == '\u{a0}').count(),
         };
         let lead = lead.min(width / 2);

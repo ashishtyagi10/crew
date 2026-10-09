@@ -49,3 +49,36 @@ fn a_titles_code_is_quoted_not_ticked() {
         "{all}"
     );
 }
+
+/// The head's wrapped tail hangs two columns in — at the margin `1 cancelled
+/// · 1s` sat over `1 ✓ scout` and read as task 1 — and a task with a
+/// specialist column hangs its title's tail under the title, not under the
+/// specialist.
+#[test]
+fn the_heads_tail_and_a_titles_tail_hang_where_they_belong() {
+    let nb = '\u{a0}';
+    let text = format!(
+        "swarm \u{b7} 3 tasks \u{b7} 1 done \u{b7} 1 failed \u{b7} 1 cancelled \u{b7} 1s\n \
+         1 \u{2713} scout   find where the ring's track is drawn on paper{nb}\u{2190}{nb}2"
+    );
+    let lines = card_lines(&text, 30, (200, 200, 200));
+    let rows: Vec<String> = lines
+        .iter()
+        .map(|l| l.iter().map(|c| c.c).collect())
+        .collect();
+    let task = rows
+        .iter()
+        .position(|r| r.contains("scout"))
+        .expect("the task row");
+    assert!(task >= 2, "the head wrapped: {rows:?}");
+    for tail in &rows[1..task] {
+        assert!(tail.starts_with("   "), "the head's tail hangs: {tail:?}");
+    }
+    let title = rows[task].chars().position(|c| c == 'f').expect("title");
+    let cont = &rows[task + 1];
+    assert_eq!(
+        cont.chars().take_while(|c| *c == ' ').count(),
+        title,
+        "{rows:?}"
+    );
+}
