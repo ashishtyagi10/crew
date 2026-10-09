@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.46
+
+**Settings values line up under their labels.** Each box in `/settings`
+names its field on the top border and shows the value inside. The label
+starts two columns in from the box's left edge, but the value started
+one column in, so it sat against the border, a column left of the label
+above it. Values and text areas now start under the label's first
+letter, with a column of space on each side. Clicking the `‹` and `›`
+arrows of a picker still steps it.
+- **Test:** a typed value starts in the same column as its box's label,
+  and clicking either arrow of the Motion picker steps it.
+
 ## 0.26.45
 
 **The keys panel no longer ends a description on one word.** On a

@@ -56,7 +56,8 @@ fn the_chevrons_of_a_picker_step_it_both_ways() {
     let r = form::layout(COLS).rect_of(Field::Motion).expect("a rect");
     let (value, _) = value_of(&p, Field::Motion);
     assert!(value.starts_with('\u{2039}'), "not a picker: {value}");
-    let (left, right) = (r.x + 1, r.x + value.chars().count() as u16);
+    let left = r.x + form::VALUE_X;
+    let right = left + value.chars().count() as u16 - 1;
     let start = p.draft.motion.clone();
 
     p.click(COLS, ROWS, r.y + 1, right);

@@ -132,7 +132,7 @@ fn the_focused_box_is_bold_and_an_empty_box_says_what_empty_means() {
         let bold = (0..20)
             .any(|x| buf[(x, 0)].symbol() == "A" && buf[(x, 0)].modifier.contains(Modifier::BOLD));
         let row: String = (1..19).map(|x| buf[(x, 1)].symbol().to_string()).collect();
-        (bold, row.trim_end().to_string(), buf[(1, 1)].fg)
+        (bold, row.trim().to_string(), buf[(2, 1)].fg)
     };
     let (bold, row, fg) = legend_bold(false);
     assert!(!bold);
@@ -151,7 +151,10 @@ fn the_focused_box_is_bold_and_an_empty_box_says_what_empty_means() {
         true,
         Some("theme's own"),
     );
-    assert_eq!(buf[(1, 1)].fg, ink(), "a typed value is ink, hint gone");
+    assert_eq!(buf[(2, 1)].fg, ink(), "a typed value is ink, hint gone");
+    // Under the legend's first letter, not against the stroke.
+    let at = |y: u16, c: &str| (0..20).find(|&x| buf[(x, y)].symbol() == c);
+    assert_eq!(at(1, "#"), at(0, "A"));
 }
 
 /// Opacity is a look, not a window shape: it sits in the canvas card beside
