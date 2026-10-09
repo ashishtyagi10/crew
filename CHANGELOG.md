@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.25
+
+**The settings form's focus reads on glass.** The settings form marks the
+field you are on by swapping its grey legend and frame for the accent: the
+legend in bold blue, the box in blue, and the card around it too. On light
+glass over a dark desktop that blue read 1.62:1, fainter than the grey
+legends around it. On glass it now takes the deeper blue that the accent's
+words already use, which reads over any desktop. Focus still stands apart
+from the grey by colour, and the legend is bold. Other themes are
+unchanged.
+- **Test:** on every glass theme the focus colour reads over the frost on a
+  black and a white desktop, and is still a clear step of colour away from
+  the grey it replaces.
+
 ## 0.26.24
 
 **A thinking block no longer stands a dash on a row of its own.** The

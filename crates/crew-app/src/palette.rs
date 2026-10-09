@@ -100,19 +100,18 @@ const FOCUS_FLOOR: f32 = 1.6;
 const TUBE_FOCUS_FLOOR: f32 = 1.8;
 
 /// The accent as a FOCUS marker: [`accent`], pushed until it clears
-/// [`FOCUS_FLOOR`] against `text_muted`. A floor, not a restyle — most presets
-/// clear it untouched and are handed their own accent back.
+/// [`FOCUS_FLOOR`] against `text_muted` (a floor, not a restyle), then on
+/// glass walked to read over the frost (`accentink::focus_on_glass`).
 ///
 /// Use this wherever focus is drawn by swapping muted ink for accent ink (the
 /// settings form's boxed inputs, its card legends and its buttons). Use plain
 /// [`accent`] where the accent is the subject rather than a state.
 pub fn focus_accent() -> (u8, u8, u8) {
     let t = crew_theme::theme();
-    let floor = match t.is_tube() {
-        true => TUBE_FOCUS_FLOOR,
-        false => FOCUS_FLOOR,
-    };
-    crew_theme::readable::enforced(accent(), t.text_muted, floor)
+    let tube = t.is_tube();
+    let floor = if tube { TUBE_FOCUS_FLOOR } else { FOCUS_FLOOR };
+    let focus = crew_theme::readable::enforced(accent(), t.text_muted, floor);
+    crate::accentink::focus_on_glass(focus)
 }
 
 /// [`accent`] as a card's legend wears it: held to the text floor over the

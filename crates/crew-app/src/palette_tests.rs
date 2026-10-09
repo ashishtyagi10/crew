@@ -72,6 +72,9 @@ fn a_user_accent_is_floored_against_the_page_it_lands_on() {
 fn the_focus_accent_can_be_told_from_the_ink_it_replaces() {
     let _a = crate::palette::test_guard();
     let _g = crate::app::theme_test_guard();
+    // The opaque palettes: a test that applied a glass theme leaves the
+    // window sheer, and sheer glass judges focus by hue (`accentink`).
+    crew_theme::glassborder::set_sheer(false);
     let mut tubes = 0;
     for id in crew_theme::ALL_THEMES {
         crew_theme::set_theme(id);
