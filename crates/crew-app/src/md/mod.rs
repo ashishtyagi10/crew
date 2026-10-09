@@ -90,6 +90,9 @@ pub(crate) struct MdStyle {
     /// `**prose**`; this is what lets the chat renderer tint the header
     /// without tinting every bold word in the table's body.
     pub table_head: bool,
+    /// A table's column separator `│`: drawn in the rule's colour, so it
+    /// meets the header rule's `┼` in one colour rather than a seam.
+    pub rule: bool,
     /// What this run of a fenced code block is — comment, string, keyword —
     /// so the chat renderer can colour inside code rather than painting the
     /// whole block one colour. `Plain` everywhere outside a fence, except

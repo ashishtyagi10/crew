@@ -81,6 +81,9 @@ pub(crate) fn style(span: &MdSpan, kind: LineKind, fg: Color, muted: Color) -> S
             token => chatink::token_fg(token),
         });
     }
+    if span.style.rule {
+        return SpanInk::flat(muted);
+    }
     match kind {
         LineKind::CodeHeader | LineKind::CodeFooter | LineKind::Rule => SpanInk::flat(muted),
         // Inside a fence the SPAN decides the colour, not the line: the
