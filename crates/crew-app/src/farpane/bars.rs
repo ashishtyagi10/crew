@@ -41,9 +41,11 @@ pub(super) fn command_bar(
     } else {
         Style::new().fg(ink).bg(bg)
     };
+    let (r, g, b) = crate::accentink::accent_ink();
+    let prompt = Color::Rgb(r, g, b);
     let mut spans = vec![
         Span::styled(format!("{folder} "), Style::new().fg(dim).bg(bg)),
-        Span::styled("$ ", Style::new().fg(accent_color()).bg(bg)),
+        Span::styled("$ ", Style::new().fg(prompt).bg(bg)),
         Span::styled(cmdline.to_string(), cmd_style),
     ];
     if let Some(g) = ghost {

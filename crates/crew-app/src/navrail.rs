@@ -21,7 +21,6 @@ use crew_render::{CellView, PaneScene};
 use crate::app::CrewApp;
 use crate::chrome;
 use crate::layout::Rect;
-use crate::palette::accent;
 use crate::panelist::PaneRow;
 
 /// Columns the rail's card occupies, its two borders included. Five inside:
@@ -91,7 +90,7 @@ pub(crate) fn rail_cells(panes: &[PaneRow], cols: u16, rows: u16, spin: char) ->
         let row = row as u16;
         let head = format!("{}{}", if p.focused { '\u{25b8}' } else { ' ' }, p.index);
         let head_fg = match p.focused || p.hovered {
-            true => accent(),
+            true => crate::accentink::accent_ink(),
             false => t.text_muted,
         };
         // Two columns of air held back for the mark: the number is what gets
@@ -105,9 +104,9 @@ pub(crate) fn rail_cells(panes: &[PaneRow], cols: u16, rows: u16, spin: char) ->
         // did not carry, so a minimized pane was a bare number here.
         let mark = match (p.attention, p.busy, p.activity || p.unread > 0) {
             (Some((glyph, on)), _, _) => on.then_some((glyph, t.bell)),
-            (None, true, _) => Some((spin, accent())),
+            (None, true, _) => Some((spin, crate::accentink::accent_ink())),
             (None, false, true) => Some(('\u{25cf}', t.activity)),
-            _ => p.minimized.then_some(('+', accent())),
+            _ => p.minimized.then_some(('+', crate::accentink::accent_ink())),
         };
         if let Some((glyph, fg)) = mark {
             let at = cols.saturating_sub(1);

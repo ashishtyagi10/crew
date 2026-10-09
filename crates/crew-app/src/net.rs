@@ -4,7 +4,6 @@
 use crew_render::CellView;
 
 use crate::nettwin::Reading;
-use crate::palette::accent;
 /// Blue-cyan for the throughput chart (distinct from the green CPU chart).
 /// The throughput trace's blue, lightened or darkened until the page it sits
 /// on can show it. As the flat constant `(120, 200, 255)` it read at 1.6 on
@@ -29,7 +28,7 @@ pub fn rate(bytes: u64) -> String {
 /// direction's blue, so the two halves of the twin chart are told apart by
 /// hue as well as by which side of the line they are on.
 pub fn up_color() -> (u8, u8, u8) {
-    accent()
+    crate::accentink::accent_ink()
 }
 
 /// Render the network section: a `NET` rule on row 0 and the `↓ rx  ↑ tx`
@@ -54,7 +53,7 @@ pub fn net_cells(rx: u64, tx: u64, reading: impl Into<Reading>, cols: u16) -> Ve
         &key.map(|c| format!("peak {}", rate(c))).unwrap_or_default(),
         cols,
         t.border_normal,
-        accent(),
+        crate::accentink::accent_ink(),
         t.dim,
         t.page_bg,
     );

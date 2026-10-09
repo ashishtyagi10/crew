@@ -48,7 +48,7 @@ pub(crate) fn input_lines(p: &TodoPane, cols: u16) -> Vec<(usize, usize)> {
 /// one bare tail-follow row.
 pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16) {
     let t = crew_theme::theme();
-    let accent = crate::palette::accent();
+    let accent = crate::accentink::accent_ink();
     let ch = height(p, cols, rows);
     let top = rows - ch;
     let now = duedate::now_local();

@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.17
+
+**Blue words read on glass too.** The theme's blue is both a colour that
+fills things (the cursor bar, a selection) and a colour that writes words
+(a key in `/keys`, far's F-keys and `$`, the todo composer's `❯`, the
+nav's network arrows and busy marks, a popup's title, links, the dashboard's
+warnings). On light glass over a dark desktop those words read at about
+1.6:1, and the nav's `↓` vanished entirely. On glass the words now take a
+deeper blue that reads over any desktop. The bars it fills keep the bright
+blue, and every other theme is unchanged.
+- **Test:** on glass, the accent drawn as words clears the readable floor
+  over any desktop; asking for more contrast never makes a link, warning
+  or chart line read worse.
+
 ## 0.26.16
 
 **Panes you're not in stay readable on glass.** Crew dims every pane but

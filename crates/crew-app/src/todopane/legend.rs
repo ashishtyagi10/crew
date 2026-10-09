@@ -12,7 +12,7 @@ use super::{duedate, TodoPane};
 /// then the active filters, then plain `new`.
 pub(crate) fn text(p: &TodoPane, hit: Option<&duedate::DueHit>) -> (String, (u8, u8, u8)) {
     let t = crew_theme::theme();
-    let accent = crate::palette::accent();
+    let accent = crate::accentink::accent_ink();
     // Both filters, each under its own sigil — `@crew #priya` is one
     // person's work on one project and the legend has to be able to say so.
     let tags: Vec<String> = [

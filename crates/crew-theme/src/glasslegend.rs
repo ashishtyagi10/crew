@@ -93,6 +93,17 @@ pub fn legible(t: &Theme, want: (u8, u8, u8), floor: f32) -> (u8, u8, u8) {
     legible_on(t, want, floor, &grounds(t))
 }
 
+/// `want` as text inside a pane on `t`'s glass: floored over the body's
+/// grounds ([`pane_grounds`]). Unchanged on a palette that is not glass —
+/// for the colours drawn as words and marks that are not palette roles (a
+/// link, a key, a gauge's warning), which `glassink` cannot reach.
+pub fn on_glass(t: &Theme, want: (u8, u8, u8), floor: f32) -> (u8, u8, u8) {
+    match t.liquid {
+        None => want,
+        Some(_) => legible_on(t, want, floor, &pane_grounds(t)),
+    }
+}
+
 /// [`legible`] over any set of `grounds` (none: unchanged).
 pub fn legible_on(
     t: &Theme,
@@ -105,20 +116,43 @@ pub fn legible_on(
     }
     let c = oklch::from_srgb(want);
     let dir = if t.dark { 1.0 } else { -1.0 };
+    let at = |l: f32| c.with_l(l.clamp(0.0, 1.0)).to_srgb();
     let (mut best, mut best_r) = (want, worst(want, grounds));
     let mut l = c.l;
     while (0.0..=1.0).contains(&l) {
+        let from = l;
         l += dir * STEP;
-        let rgb = c.with_l(l.clamp(0.0, 1.0)).to_srgb();
+        let rgb = at(l);
         let r = worst(rgb, grounds);
         if r > best_r {
             (best, best_r) = (rgb, r);
         }
         if r >= floor {
-            return rgb;
+            return threshold(from, l, |l| worst(at(l), grounds) >= floor, at);
         }
     }
     best
+}
+
+/// The colour where the floor is crossed between `fail` and `pass` (OKLCH
+/// L), bisected: a step-sized walk lands up to a step past it, and two walks
+/// from different starts landed different steps past — a raised floor
+/// could hand back a lighter colour than the plain one did.
+fn threshold(
+    mut fail: f32,
+    mut pass: f32,
+    clears: impl Fn(f32) -> bool,
+    at: impl Fn(f32) -> (u8, u8, u8),
+) -> (u8, u8, u8) {
+    for _ in 0..10 {
+        let mid = (fail + pass) * 0.5;
+        if clears(mid) {
+            pass = mid;
+        } else {
+            fail = mid;
+        }
+    }
+    at(pass)
 }
 
 #[cfg(test)]

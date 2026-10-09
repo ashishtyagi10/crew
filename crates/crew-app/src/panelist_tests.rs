@@ -188,10 +188,10 @@ fn pane_cells_lists_focus_and_activity() {
 
 #[test]
 fn busy_row_spins_in_the_accent_color_and_attention_still_wins() {
-    // Reads the process-wide accent, so it is serialised against the
-    // tests that set one (`palette`'s own floor checks walk every theme's
-    // default through `set_accent`).
-    let _a = crate::palette::test_guard();
+    // Reads the process-wide accent and theme (on glass the spinner is the
+    // accent floored as words, `accentink`), so it is serialised against the
+    // tests that set either.
+    let (_a, _g) = (crate::palette::test_guard(), crate::app::theme_test_guard());
     let mut busy = row(1, "swarm", false, true);
     busy.busy = true;
     let cells = cells_of(&[busy], 24, 10);
