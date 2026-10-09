@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.29
+
+**Faint terminal text reads on glass.** Programs print a lot in faint text
+(SGR 2): the `-->` under a compiler error, git's `HEAD is now at`, half of
+what an agent CLI says. Crew draws faint text as the colour mixed toward
+the background. It used to check that only against the page colour, but on
+see-through glass a pane's background is the frost over your desktop. So
+faint text that passed against the page read about 1.2:1 on light glass
+over a dark desktop, and 1.6:1 on the new clear glass over a white one. On
+glass it is now held to the same floor over the frost, on any desktop. It
+still reads quieter than the body text. Other themes are unchanged.
+- **Test:** faint text on clear and light glass reads 3:1 over the frost on
+  a black and a white desktop; elsewhere it is unchanged.
+
 ## 0.26.28
 
 **The accent reads on glass wherever it is drawn.** On see-through glass
