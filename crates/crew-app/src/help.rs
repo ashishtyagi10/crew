@@ -56,6 +56,17 @@ pub fn size() -> (u16, u16) {
     ((col + widest + 2) as u16, rows as u16)
 }
 
+/// The overlay's grid in a `sw × sh` px window of `cw × ch` px cells: the
+/// size it prefers, held a row clear of the window's top and bottom and a
+/// column clear of its sides. Flush against the edges, its title sat 2 px
+/// from the top and the footer on its bottom border hung off the window,
+/// half of each word over the bare desktop (2026-10-09 glass survey).
+pub fn fit(sw: f32, sh: f32, cw: f32, ch: f32) -> (u16, u16) {
+    let (w, h) = size();
+    let room = |px: f32, cell: f32| ((px / cell.max(1.0)) as u16).saturating_sub(2);
+    (w.min(room(sw, cw)), h.min(room(sh, ch)))
+}
+
 /// Rows of the list the overlay can show at `rows` cells tall (borders take
 /// two). Zero when there is no room for a single row.
 fn visible_rows(rows: u16) -> usize {

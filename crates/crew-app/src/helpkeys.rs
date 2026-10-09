@@ -87,14 +87,10 @@ impl crate::app::CrewApp {
 
     /// Move the open help by `step` rows, clamped to its list.
     pub(crate) fn scroll_help(&mut self, step: i32) {
-        let rows = self
-            .frame_geometry()
-            .map_or(size().1, |(_, ch, _, sh, _)| (sh / ch) as u16)
-            .min(size().1);
-        let cols = self
-            .frame_geometry()
-            .map_or(size().0, |(cw, _, sw, _, _)| (sw / cw) as u16)
-            .min(size().0);
+        // The grid the frame draws it at (`render`).
+        let (cols, rows) = self.frame_geometry().map_or(size(), |(cw, ch, sw, sh, _)| {
+            crate::help::fit(sw, sh, cw, ch)
+        });
         let max = max_scroll(rows, cols, &self.help_filter) as i64;
         let want = self.help_scroll as i64 + i64::from(step);
         self.help_scroll = want.clamp(0, max) as usize;

@@ -87,3 +87,18 @@ fn the_global_keys_have_a_ruled_heading() {
         "ruled to the edge: {first:?}"
     );
 }
+
+/// The overlay keeps a row clear of the window's top and bottom and a column
+/// clear of its sides: flush against them, its title sat 2 px from the top
+/// and the hint on its bottom border hung half off the window. A window
+/// roomy enough gets the size the overlay prefers.
+#[test]
+fn the_overlay_keeps_clear_of_the_window_edges() {
+    let (cw, ch) = (8.0, 18.0);
+    let (cols, rows) = crate::help::fit(1280.0, 720.0, cw, ch);
+    assert!(rows <= 720 / 18 - 2, "{rows} rows in a 40-row window");
+    assert!(cols <= 1280 / 8 - 2, "{cols} cols in a 160-col window");
+    let (w, h) = size();
+    let big = crate::help::fit(f32::from(w + 2) * cw, f32::from(h + 2) * ch, cw, ch);
+    assert_eq!(big, (w, h), "room to spare: the size it prefers");
+}

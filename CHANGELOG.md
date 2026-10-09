@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.30
+
+**The `/keys` overlay keeps clear of the window's edges.** The key list is
+taller than most windows, so it was clamped to the window's full height.
+That left its title 2 px from the top of the window and its bottom hint
+("↑↓ for more · type to filter · esc"), which sits on the bottom border,
+half off the window. On glass the lower half of each word stood over the
+bare desktop. The overlay now stops a row short of the top and bottom and a
+column short of each side. Scrolling knows the new height, so the last row
+is still reachable.
+- **Test:** in a 40-row window the overlay is at most 38 rows tall; in a
+  roomy window it gets the size it prefers.
+
 ## 0.26.29
 
 **Faint terminal text reads on glass.** Programs print a lot in faint text

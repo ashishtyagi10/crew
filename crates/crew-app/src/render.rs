@@ -258,15 +258,14 @@ impl CrewApp {
 
         // Keybindings help overlay, centered over everything.
         if self.help_open {
-            let (hw, hh) = crate::help::size();
-            let hwp = (hw as f32 * cw).min(sw);
-            let hhp = (hh as f32 * ch).min(sh);
+            let (hw, hh) = crate::help::fit(sw, sh, cw, ch);
+            let (hwp, hhp) = (hw as f32 * cw, hh as f32 * ch);
             let hx = (sw - hwp) / 2.0;
             let hy = (sh - hhp) / 2.0;
             scenes.push(PaneScene {
                 cells: crate::help::help_cells(
-                    hw.min((sw / cw) as u16),
-                    hh.min((sh / ch) as u16),
+                    hw,
+                    hh,
                     self.help_scroll,
                     &self.help_filter,
                     // Read live rather than remembered: the panel does not
