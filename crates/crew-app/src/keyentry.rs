@@ -142,3 +142,7 @@ mod keycard;
 #[cfg(test)]
 #[path = "keyentry_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "keycardover_tests.rs"]
+mod over_tests;

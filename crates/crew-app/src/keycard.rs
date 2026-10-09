@@ -55,7 +55,14 @@ impl super::KeyEntry {
             crate::palette::accent(),
             true,
         ));
-        cells.extend((0..typed.min(inner)).map(|i| put(3 + i as u16, 1, '•', t.ink, false)));
+        // A key longer than the field ends in a muted `…`: the dots used to
+        // just stop at the edge, 28 of a pasted 40, as if that were all.
+        let over = typed > inner;
+        let dots = if over { inner.saturating_sub(1) } else { typed };
+        cells.extend((0..dots).map(|i| put(3 + i as u16, 1, '•', t.ink, false)));
+        if over {
+            cells.push(put(3 + dots as u16, 1, '\u{2026}', t.text_muted, false));
+        }
         // The longest form that fits the card the pane allowed (`keyhint`),
         // which is not always the one the card asked room for.
         if let Some(hint) = crate::keyhint::fitting(&self.var, self.waiting, inner) {
