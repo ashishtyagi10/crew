@@ -28,8 +28,9 @@ fn a_popup_wears_the_focused_stroke_and_a_bold_accent_legend() {
         .all(|c| c.bold && c.fg == crate::palette::accent()));
 }
 
-/// The mark sits on the top border, two columns in from the right corner,
-/// and is dropped when there is no room to keep frame either side of it.
+/// The mark sits on the top border, three columns in from the right corner
+/// (the round corner borrows the cell beside it), and is dropped when there
+/// is no room to keep frame either side of it.
 #[test]
 fn a_mark_rides_the_top_border_at_the_right() {
     let _g = crate::app::theme_test_guard();
@@ -39,7 +40,7 @@ fn a_mark_rides_the_top_border_at_the_right() {
     let text: String = v[n..].iter().map(|c| c.c).collect();
     assert_eq!(text, "13/14");
     assert!(v[n..].iter().all(|c| c.row == 0), "on the top border");
-    assert_eq!(v[n].col, 40 - 2 - 5, "two columns in from the corner");
+    assert_eq!(v[n].col, 40 - 3 - 5, "clear of the corner's arc");
     let before = v.len();
     mark(&mut v, "13/14", 8);
     assert_eq!(v.len(), before, "no room, no mark");
