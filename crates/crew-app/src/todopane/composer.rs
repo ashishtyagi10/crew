@@ -138,12 +138,11 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16)
     let (text_x, max) = (4u16, cols - 1);
     out.push(cell(2, top + 1, '\u{276f}', accent, true)); // ❯
     if p.input.is_empty() {
-        let hint = if p.done_view {
-            "filter with @project or #who \u{b7} esc leaves"
-        } else {
-            "type a todo"
+        let room = usize::from(max - text_x);
+        let hint = match p.done_view {
+            true => super::headrow::done_hint(room),
+            false => crate::chatwidth::clip_w("type a todo", room),
         };
-        let hint = crate::chatwidth::clip_w(hint, usize::from(max - text_x));
         crate::chatwidth::place_row(text_x, max, hint.chars().map(|c| (c, ())), |x, c, ()| {
             out.push(cell(x, top + 1, c, t.text_muted, false))
         });

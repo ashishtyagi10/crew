@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.36
+
+**Narrow panes drop words, not letters.** Four places cut their text at the
+edge of a narrow pane mid-word:
+- **The empty todo list** said `type one below — try: pay ren…`. It now
+  drops the example after the dash whole and says `type one below`.
+- **The done view's filter hint** read `filter with @project or #w…` and
+  lost the one key that leaves the view. It now steps down to
+  `filter · esc leaves`, then `esc leaves`, so the way out always shows.
+- **The nav's WAITING rows** could end on one letter of a word
+  (`2 running · s…`). They now cut between words, as the nav's other rows
+  do.
+- **A nav LOG row** could end on a lone arrow (`font →…`). An arrow left at
+  the cut now goes with it, as a dash already did.
+- **Tests:** a narrow empty-list hint has no example in it, the done hint
+  keeps `esc leaves` at every width, and a cut drops a dangling arrow.
+
 ## 0.26.35
 
 **Pop-up menus breathe at their right edge.** The command palette and the

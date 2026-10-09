@@ -1,5 +1,6 @@
-//! The empty list's hint and the composer's placeholder end in `…` on a
-//! narrow tile instead of stopping mid-word at the edge.
+//! The empty list's hint and the composer's placeholder fit a narrow tile
+//! by what they drop — the example, the long form — never mid-word at the
+//! edge, and never by losing the way out.
 use crate::todopane::test_pane;
 
 fn row_text(cells: &[crew_render::CellView], row: u16) -> String {
@@ -18,7 +19,7 @@ fn the_empty_hint_marks_its_cut_and_stays_inside_the_pane() {
         .map(|r| row_text(&cells, r))
         .find(|s| s.contains("type one below"))
         .expect("the hint row");
-    assert!(hint.ends_with('\u{2026}'), "{hint:?}");
+    assert!(!hint.contains("try:"), "the example goes whole: {hint:?}");
     assert!(cells.iter().all(|c| c.col < cols), "{hint:?}");
     let wide = crate::todopane::render::cells(&p, 80, 12);
     let whole = (0..12)
@@ -35,8 +36,8 @@ fn the_done_view_placeholder_marks_its_cut() {
     let cells = crate::todopane::render::cells(&p, 24, 12);
     let ph = (0..12)
         .map(|r| row_text(&cells, r))
-        .find(|s| s.contains("filter with"))
+        .find(|s| s.contains("filter"))
         .expect("the placeholder row");
-    assert!(ph.contains("@proje\u{2026}"), "{ph:?}");
+    assert!(ph.contains("filter \u{b7} esc leaves"), "{ph:?}");
     assert!(cells.iter().all(|c| c.col < 24), "{ph:?}");
 }

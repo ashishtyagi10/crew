@@ -126,3 +126,30 @@ fn the_empty_note_is_centred() {
         "{left} | {right}"
     );
 }
+
+/// A narrow empty pane drops the hint's example whole rather than cutting it
+/// mid-word (`type one below — try: pay ren…`), and past that breaks on a
+/// word; a hint that fits is untouched.
+#[test]
+fn a_narrow_hint_drops_its_example_whole() {
+    use super::fit_hint;
+    let hint = "type one below \u{2014} try: pay rent tomorrow 5pm @home #me";
+    assert_eq!(fit_hint(hint, 80), hint);
+    assert_eq!(fit_hint(hint, 30), "type one below");
+    let cut = fit_hint(hint, 10);
+    assert!(
+        cut.ends_with('\u{2026}') && !cut.contains("bel\u{2026}"),
+        "{cut:?}"
+    );
+}
+
+/// The done view's hint keeps `esc leaves` at every width it fits at.
+#[test]
+fn the_done_hint_keeps_its_way_out() {
+    use super::done_hint;
+    for room in 10..60 {
+        let h = done_hint(room);
+        assert!(h.ends_with("esc leaves"), "{room}: {h:?}");
+        assert!(crate::chatwidth::str_w(&h) <= room, "{room}: {h:?}");
+    }
+}

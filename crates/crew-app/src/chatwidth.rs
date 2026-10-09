@@ -63,9 +63,12 @@ pub(crate) fn clip_w(s: &str, max: usize) -> String {
 /// partial word, when that boundary lies in the back half — `4 open items ·
 /// 1 overd…` said a word that does not exist and half a count; `4 open
 /// items…` says less, and all of it true. A single long token still cuts at a
-/// letter. A dash left dangling at the cut goes too (`claude —…`).
+/// letter. A dash or arrow left dangling at the cut goes too (`claude —…`).
 pub(crate) fn clip_words(s: &str, max: usize) -> String {
-    const LOOSE: [char; 7] = [' ', '\u{b7}', ',', ';', ':', '\u{2014}', '\u{2013}'];
+    // An arrow is a stop too: `font →…` pointed at nothing.
+    const LOOSE: [char; 9] = [
+        ' ', '\u{b7}', ',', ';', ':', '\u{2014}', '\u{2013}', '\u{2192}', '\u{2190}',
+    ];
     let cut = clip_w(s, max);
     let Some(body) = cut.strip_suffix('\u{2026}').filter(|_| str_w(s) > max) else {
         return cut;
