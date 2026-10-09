@@ -33,3 +33,19 @@ fn a_wrapped_line_hangs_under_its_indent() {
         "let total = first_argument + second_argument + third_argument;"
     );
 }
+
+/// A diff line opens with its sign, and its wraps hang under the code past
+/// it — measured from column 0, `+    /// …` wrapped under the `+`.
+#[test]
+fn a_wrapped_diff_line_hangs_past_its_sign() {
+    let text = "+    /// columns wide or more gets the whole width of the pane";
+    let cols = GUTTER_W + 28;
+    let pens = ((200, 200, 200), (120, 120, 120));
+    let hang = crate::viewpane::rowcut::signed_hang;
+    let (lines, _) = super::painted_by(text, cols, &[], pens, hang);
+    assert!(lines.len() > 1, "the line wraps");
+    for l in &lines[1..] {
+        let b = body(l);
+        assert!(b.starts_with("     ") && !b.starts_with("      "), "{b:?}");
+    }
+}
