@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.33
+
+**Highlight bars in unfocused panes are one colour again.** An unfocused
+pane is dimmed: its text leans toward the page so the focused pane stands
+out. Inside a highlight bar (a `/far` panel's cursor row and title tab, a
+selected row) the blank cells are drawn as solid blocks in the bar's
+colour, and the dimming treated those blocks as text and faded them too.
+So every word in the bar sat on a darker patch than the gaps around it, a
+patchwork on every theme. The blocks are background now and stay the
+bar's colour, and only the words dim.
+- **Test:** after the dimming, a bar's blank and the background under its
+  words are the same colour.
+
 ## 0.26.32
 
 **Terminal colours read better on glass.** On see-through glass every
