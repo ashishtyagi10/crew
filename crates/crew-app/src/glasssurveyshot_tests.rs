@@ -12,6 +12,7 @@ const SETS: &[(&str, &[&str])] = &[
     ("todo-keys", &["/todo", "/keys"]),
     ("usage-settings", &["/usage", "/settings"]),
     ("view-dash", &["/view Cargo.toml", "/dash"]),
+    ("welcome", &[]),
 ];
 
 #[test]

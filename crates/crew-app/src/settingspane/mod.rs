@@ -3,6 +3,7 @@
 //! with boxed inputs, checkboxes, a notify-patterns text area, Tab/wheel
 //! navigation, a type-to-search font-family dropdown, and Save (Cmd+S /
 //! Alt+S) / Cancel (Esc).
+mod capnote;
 mod cards;
 pub(crate) mod click;
 mod commit;

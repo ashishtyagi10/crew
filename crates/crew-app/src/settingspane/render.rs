@@ -78,6 +78,7 @@ fn control(buf: &mut Buffer, p: &SettingsPane, f: Field, r: Rect, focused: bool)
             let (value, cursor) = value_of(p, f);
             form::input_box(buf, r, label_of(f), &value, focused, cursor, hint_of(f));
             swatch(buf, r, f, &value);
+            super::capnote::draw(buf, r, p, f, &value);
         }
     }
 }
