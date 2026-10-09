@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.14
+
+**Pane titles read on glass, like the iPhone's labels.** On the see-through
+glass a pane's title stands on the desktop, not the page. Over a dark
+desktop, light glass turns mid-grey, and the titles' mid-tone colours read
+at about 2:1. They now follow the iPhone's rule. The glass is thicker
+behind every word on a pane's border, and titles are near-black on light
+glass and near-white on night glass, still tinted with the pane's own
+colour. They are checked over a black desktop and a white one: at least 7:1,
+10:1 for the focused pane. Every other theme is unchanged.
+- **Test:** the quiet and focused titles of every glass palette clear
+  their floors over any desktop; the shader's thicker glass is the one the
+  colours were chosen for.
+
 ## 0.26.13
 
 **Glass is cheaper to draw.** With no wallpaper of its own (v0.26.9), the

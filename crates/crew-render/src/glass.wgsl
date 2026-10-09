@@ -108,6 +108,10 @@ struct VsOut {
 const NOTCH_FEATHER: f32 = 2.0;
 // How soft a legend veil's far edge is (px), either side of the row's edge.
 const VEIL_FEATHER: f32 = 3.0;
+// How much of the body's see-through a veil takes away: the glass is thicker
+// behind a legend, the way the iPhone thickens its material under a label.
+// crew-theme's `glasslegend::LEGEND_FROST` floors the legend inks on it.
+const VEIL_FROST: f32 = 0.6;
 // 1 inside one span `s` (x0, x1) of card-left x `x`, 0 outside, feathered.
 // An empty slot is x1 <= x0 and covers nothing.
 fn in_span(x: f32, a: f32, b: f32) -> f32 {
@@ -277,10 +281,18 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // (2026-10-09). So there the body reaches out behind the words, a frosted
   // veil as far as their row does — the same body, no rim, no shadow, its
   // far edge feathered away rather than cut into a tab.
+  //
+  // And the glass is THICKER there, across the whole row (2026-10-09: "hard
+  // to see title of the panels"): over a dark desktop light glass turns
+  // mid-grey, and no ink but black read on it. The same rounded patch,
+  // mirrored over the rule, hides more of the desktop (`VEIL_FROST`).
   var veil = 0.0;
+  var thick = 0.0;
   if (in.lens1.w > 0.0 && in.lens1.z > 0.0) {
     veil = max(veil_spans(lx, -from_top, depth, in.nt0, in.nt1),
                veil_spans(lx, -from_bot, depth, in.nb0, in.nb1));
+    thick = max(veil_spans(lx, abs(from_top), depth, in.nt0, in.nt1),
+                veil_spans(lx, abs(from_bot), depth, in.nb0, in.nb1));
   }
   let body_in = max(inside, veil);
 
@@ -480,7 +492,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // samples, since the glass is the first thing drawn over it. So the slab
   // hands over its colour at the pane's coverage less that share. Divided by
   // the body only to be multiplied back at the return.
-  let see = in.lens1.z;
+  let see = in.lens1.z * (1.0 - VEIL_FROST * thick);
   if (in.lens1.w > 0.0 && see > 0.0) {
     let body = 1.0 - see;
     let under = behind_raw(in.pos.xy);

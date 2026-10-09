@@ -24,9 +24,18 @@ pub(crate) fn stroke(b: &Bar, hue: (u8, u8, u8)) -> ((u8, u8, u8), (u8, u8, u8))
     if crate::panedrag::is_drop_target(b.index.unwrap_or(0) as u16) {
         return (crate::palette::accent(), crate::palette::accent());
     }
+    // On see-through glass a legend stands on the desktop, so its hue is
+    // walked to the glass's label pole until it reads over any desktop —
+    // dark on light glass, light on night glass (`glasslegend`).
     let legend = match b.focused {
-        true => hue,
-        false => crate::anim::lerp_rgb(hue, t.legend_off, 0.55),
+        true => {
+            crew_theme::glasslegend::legible(t, hue, crew_theme::glasslegend::FOCUSED_LABEL_FLOOR)
+        }
+        false => crew_theme::glasslegend::legible(
+            t,
+            crate::anim::lerp_rgb(hue, t.legend_off, 0.55),
+            crew_theme::glasslegend::LABEL_FLOOR,
+        ),
     };
     if b.broadcast {
         return (t.broadcast, legend);

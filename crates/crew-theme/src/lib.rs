@@ -101,6 +101,7 @@ mod crtstyle;
 pub mod deco;
 mod glass;
 pub mod glassborder;
+pub mod glasslegend;
 pub mod gradients;
 pub mod highlight;
 mod liquid;
