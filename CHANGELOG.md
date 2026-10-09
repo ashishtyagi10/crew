@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.31
+
+**The dials' scales read on glass.** The cpu/mem/dsk dials in the nav and
+on `/dash` draw their bezel and ticks in a grey that was floored against
+the page colour. On see-through glass the dial stands on the frost over
+your desktop instead. On clear glass the major ticks read 1.13:1 over a
+white desktop. On light glass over a dark one the minor ticks came out
+lighter than the dial face. On glass both are now held to the mark floor
+over the frost on any desktop, and the minor ticks stay a rank under the
+major ones.
+- **Test:** on every theme both tick colours clear the mark floor against
+  the page, and on glass against the frost over a black and a white
+  desktop.
+
 ## 0.26.30
 
 **The `/keys` overlay keeps clear of the window's edges.** The key list is
