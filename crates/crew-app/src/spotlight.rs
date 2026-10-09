@@ -64,13 +64,33 @@ pub(crate) fn composer_lift(typing: bool) -> f32 {
 
 /// Apply the wash: every cell's ink leans `dim` toward the page. Backgrounds
 /// stay put — a selection or status band keeps its shape, only its text dims.
+///
+/// On see-through glass the page is not what the words stand on — the
+/// desktop is, through the frost — and leaning toward the page took text
+/// the glass had just floored back under it: an unfocused todo's hint read
+/// 2.3:1 on light glass over a dark desktop (2026-10-09). There a washed
+/// colour stops at the UI floor over any desktop, or where it started if it
+/// started under it; the wash still says which pane is lit.
 pub(crate) fn wash(cells: &mut [CellView], dim: f32) {
     if dim <= 0.0 {
         return;
     }
-    let bg = crew_theme::theme().page_bg;
+    let t = crew_theme::theme();
+    let bg = t.page_bg;
+    let grounds = crew_theme::glasslegend::pane_grounds(t);
+    // A pane has a handful of colours and thousands of cells.
+    let mut done: std::collections::HashMap<(u8, u8, u8), (u8, u8, u8)> = Default::default();
     for c in cells.iter_mut() {
-        c.fg = crate::anim::lerp_rgb(c.fg, bg, dim);
+        let on_glass = !grounds.is_empty() && (c.bg == t.page_bg || c.bg == t.term_bg);
+        let fg = c.fg;
+        c.fg = match on_glass {
+            false => crate::anim::lerp_rgb(fg, bg, dim),
+            true => *done.entry(fg).or_insert_with(|| {
+                use crew_theme::glasslegend::{legible_on, worst};
+                let floor = worst(fg, &grounds).min(crew_theme::readable::MARK_FLOOR);
+                legible_on(t, crate::anim::lerp_rgb(fg, bg, dim), floor, &grounds)
+            }),
+        };
     }
 }
 

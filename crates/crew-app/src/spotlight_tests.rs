@@ -100,3 +100,42 @@ fn the_input_bar_floats_above_the_panes() {
         "above every pane while typing: {typing} vs {pane}"
     );
 }
+
+/// On see-through glass the wash stops at the UI floor over any desktop:
+/// it took an unfocused pane's hint to 2.3:1 on light glass over a dark
+/// desktop. It still moves the ink — the lit pane still reads as lit.
+#[test]
+fn the_wash_never_takes_glass_text_under_the_floor() {
+    let _g = crate::app::theme_test_guard();
+    for id in [
+        crew_theme::ThemeId::GlassSky,
+        crew_theme::ThemeId::GlassNight,
+    ] {
+        crew_theme::set_theme(id);
+        crew_theme::glassborder::set_sheer(true);
+        let t = crew_theme::theme();
+        let grounds = crew_theme::glasslegend::pane_grounds(t);
+        for fg in [t.ink, t.text_muted, t.dim] {
+            let mut cells = vec![CellView {
+                c: 'x',
+                fg,
+                bg: t.page_bg,
+                ..Default::default()
+            }];
+            wash(&mut cells, 0.4);
+            let (was, now) = (
+                crew_theme::glasslegend::worst(fg, &grounds),
+                crew_theme::glasslegend::worst(cells[0].fg, &grounds),
+            );
+            assert!(
+                now >= was.min(3.0) - 0.05,
+                "{id:?} {fg:?}: {was:.2} → {now:.2}"
+            );
+            assert!(
+                now < was || was <= 3.05,
+                "{id:?} {fg:?}: the wash still dims"
+            );
+        }
+        crew_theme::glassborder::set_sheer(false);
+    }
+}

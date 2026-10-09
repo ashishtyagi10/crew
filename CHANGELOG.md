@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.16
+
+**Panes you're not in stay readable on glass.** Crew dims every pane but
+the focused one a little, so your eye lands on the right one. On glass that
+dimming undid the previous fix: it leaned text toward the page colour, and
+over a dark desktop an unfocused todo's "type a todo" fell to about 2.3:1.
+On glass the dimming now stops at the readable floor (3:1 over any
+desktop), so the focused pane still stands out and the rest stay readable.
+Every other theme dims as before.
+- **Test:** on glass, dimmed body, secondary and hint text never drop under
+  the floor, and still dim.
+
 ## 0.26.15
 
 **Text inside glass panes reads over a dark desktop.** Light glass over a
