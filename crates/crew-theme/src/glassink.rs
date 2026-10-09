@@ -44,10 +44,13 @@ pub fn floor_roles(l: &mut Theme, t: &Theme) {
     // The accent family is left as the palette drew it: it is the glass's
     // tint — the cursor bar, the focus ring, the selection — far more than
     // it is text, and walked to the floor the iPhone's blue went navy.
-    // The terminal's colours are text too. Slot 0 is the page's own colour
+    // The terminal's colours are text too — `ls`, `git status`, a
+    // compiler's verdict: the body of what a shell pane says, so held to
+    // the secondary floor rather than the hints' (a prompt read 3.16 on
+    // light glass over a dark desktop). Slot 0 is the page's own colour
     // (black on night glass, as a fill) and is left to be one.
     for slot in l.ansi.iter_mut().skip(1) {
-        *slot = at(*slot, MARK_FLOOR);
+        *slot = at(*slot, SECONDARY_FLOOR);
     }
 }
 
