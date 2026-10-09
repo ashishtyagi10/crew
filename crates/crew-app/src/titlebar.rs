@@ -28,8 +28,8 @@
 use winit::window::Window;
 
 /// What the title bar wears while crew owns it: the page colour, its alpha
-/// (1.0 but under a tube), and whether that page is dark (so its title is
-/// drawn light). `None` is the OS's bar.
+/// (1.0 but under a tube or glass), and whether that page is dark (so its
+/// title is drawn light). `None` is the OS's bar.
 pub type Wear = Option<([u8; 3], f32, bool)>;
 
 impl crate::app::CrewApp {
@@ -42,8 +42,16 @@ impl crate::app::CrewApp {
         // theme switch can move the opacity too: keep that in step first.
         self.sync_window_opacity();
         let t = crew_theme::theme();
-        let sheer_bar = t.is_tube() || t.liquid.is_some();
-        let want = crate::titlebar::wanted(self.window_opacity(), t.page_bg, t.dark, sheer_bar);
+        // A tube's bar frosts with its page; glass's with its panes — the
+        // bar carries a title, and at the gaps' 25% it vanished over a dark
+        // desktop as the pane legends did (2026-10-09).
+        let o = self.window_opacity();
+        let bar = match t.liquid {
+            _ if t.is_tube() => Some(o),
+            Some(l) => Some(l.pane_cover().max(o)),
+            None => None,
+        };
+        let want = crate::titlebar::wanted(o, t.page_bg, t.dark, bar);
         if want == self.titlebar_paint {
             return;
         }
@@ -158,12 +166,12 @@ pub fn apply_window(window: &Window, opacity: f32) {
 }
 
 /// What the title bar should wear at `opacity`: the page colour and the
-/// page's ink while the window is sheer — solid, or as sheer as the page
-/// when the whole window is glass (`sheer_bar`: a tube, liquid glass) — and
-/// the OS's own bar (`None`) while it is solid.
-pub fn wanted(opacity: f32, page_bg: (u8, u8, u8), dark: bool, sheer_bar: bool) -> Wear {
+/// page's ink while the window is sheer — solid, or at the alpha `bar` names
+/// when the whole window is glass (a tube, liquid glass) — and the OS's own
+/// bar (`None`) while it is solid.
+pub fn wanted(opacity: f32, page_bg: (u8, u8, u8), dark: bool, bar: Option<f32>) -> Wear {
     let (r, g, b) = page_bg;
-    let alpha = if sheer_bar { opacity } else { 1.0 };
+    let alpha = bar.unwrap_or(1.0);
     crate::config::wants_window_transparency(opacity).then_some(([r, g, b], alpha, dark))
 }
 

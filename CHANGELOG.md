@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.11
+
+**The window title reads over a dark desktop.** Under glass the macOS title
+bar was as clear as the gaps between panes (25%). Its dark title and buttons
+vanished over a dark desktop, as the pane titles had. The bar is now frosted
+like a pane (55%, or 65% for night glass). A CRT window's bar still frosts
+with its page, and every other theme's bar is unchanged.
+
 ## 0.26.10
 
 **Pane titles read over a dark desktop.** A pane's title sits on its top

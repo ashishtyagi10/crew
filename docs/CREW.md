@@ -3951,7 +3951,8 @@ its window is a tinted faceplate over your desktop, never a black slab. The
 your desktop is the background. The gaps between panes are 25% opaque. Each
 pane is a frosted slab that hides about half of what is behind it (night
 glass two thirds), as clear as it can be while text still reads over a black
-or a white desktop. The desktop behind glass is blurred lightly enough to
+or a white desktop. The title bar is frosted like a pane, and so is a soft
+veil behind each pane's title, which hangs half outside its card. The desktop behind glass is blurred lightly enough to
 keep its shapes. A lower Opacity % still makes a CRT window sheerer; glass is
 already sheerer than the setting goes.
 
