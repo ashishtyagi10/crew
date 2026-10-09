@@ -114,6 +114,7 @@ mod presets_crt_cool;
 mod presets_crt_violet;
 mod presets_fern;
 mod presets_glass;
+mod presets_glass_clear;
 mod presets_glass_light;
 mod presets_harbor;
 mod presets_modern;
@@ -152,6 +153,7 @@ pub use presets_crt_cool::CRT_BLUE;
 pub use presets_crt_violet::CRT_VIOLET;
 pub use presets_fern::FERN;
 pub use presets_glass::GLASS_NIGHT;
+pub use presets_glass_clear::GLASS_CLEAR;
 pub use presets_glass_light::{GLASS_DAWN, GLASS_SKY};
 pub use presets_harbor::HARBOR;
 pub use presets_modern::NEBULA;
@@ -201,11 +203,12 @@ pub enum ThemeId {
     GlassNight,
     GlassSky,
     GlassDawn,
+    GlassClear,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 15] = [
+pub const ALL_THEMES: [ThemeId; 16] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::SepiaDark,
@@ -214,6 +217,7 @@ pub const ALL_THEMES: [ThemeId; 15] = [
     ThemeId::Blossom,
     ThemeId::Harbor,
     ThemeId::Fern,
+    ThemeId::GlassClear,
     ThemeId::GlassNight,
     ThemeId::GlassSky,
     ThemeId::GlassDawn,
@@ -241,6 +245,7 @@ impl ThemeId {
             ThemeId::GlassNight => "glass-night",
             ThemeId::GlassSky => "glass-sky",
             ThemeId::GlassDawn => "glass-dawn",
+            ThemeId::GlassClear => "glass-clear",
         }
     }
 
@@ -259,9 +264,10 @@ impl ThemeId {
             ThemeId::Harbor => "blue-slate page under an azure light (dark)",
             ThemeId::Fern => "faint mint page under a green-teal light (light)",
             ThemeId::CrtViolet => "violet phosphor CRT (vector-display glow)",
-            ThemeId::GlassNight => "iPhone liquid glass over a night wallpaper (dark)",
+            ThemeId::GlassNight => "iPhone liquid glass, clear and navy-smoked, white text",
             ThemeId::GlassSky => "iPhone liquid glass over a sky-to-rose wallpaper (light)",
             ThemeId::GlassDawn => "iPhone liquid glass over a peach-to-lavender wallpaper (light)",
+            ThemeId::GlassClear => "iPhone liquid glass, clear and lightly smoked, white text",
         }
     }
 
@@ -284,12 +290,21 @@ impl ThemeId {
         self.theme().is_tube()
     }
 
-    /// Whether this palette is LIGHT liquid glass — the `glass` rotation's
-    /// members. The night glass is liquid too, but a dark page: it rotates
-    /// with the other dark pages.
+    /// Whether this palette is LIGHT liquid glass — frosted white panes and
+    /// dark ink (`glass-sky`, `glass-dawn`). No rotation serves them since
+    /// `glass` turned to white words (2026-10-09); they are picked by name.
     pub fn is_light_glass(self) -> bool {
         let t = self.theme();
         t.liquid.is_some() && !t.dark
+    }
+
+    /// Whether this palette is the WHITE-TEXT liquid glass — clear smoked
+    /// panes and white words (`glass-clear`, `glass-night`): the `glass`
+    /// rotation (the user, 2026-10-09: "bright white would look great on
+    /// glass").
+    pub fn is_clear_glass(self) -> bool {
+        let t = self.theme();
+        t.liquid.is_some() && t.dark
     }
 
     pub fn from_name(s: &str) -> Option<ThemeId> {
@@ -332,7 +347,8 @@ impl ThemeId {
             "blossom" => Some(ThemeId::Blossom),
             // `glass` is a rotation (`parse_selection` catches it first); a
             // caller asking for one palette by that name gets the sky.
-            "glass" | "glass-light" | "glass-sky" => Some(ThemeId::GlassSky),
+            "glass" | "glass-clear" => Some(ThemeId::GlassClear),
+            "glass-light" | "glass-sky" => Some(ThemeId::GlassSky),
             "glass-dawn" => Some(ThemeId::GlassDawn),
             "glass-night" | "glass-dark" => Some(ThemeId::GlassNight),
             _ => None,
@@ -356,6 +372,7 @@ impl ThemeId {
             ThemeId::GlassNight => &GLASS_NIGHT,
             ThemeId::GlassSky => &GLASS_SKY,
             ThemeId::GlassDawn => &GLASS_DAWN,
+            ThemeId::GlassClear => &GLASS_CLEAR,
         }
     }
 
@@ -376,6 +393,7 @@ impl ThemeId {
             ThemeId::GlassNight => 12,
             ThemeId::GlassSky => 13,
             ThemeId::GlassDawn => 14,
+            ThemeId::GlassClear => 15,
         }
     }
 
@@ -395,6 +413,7 @@ impl ThemeId {
             12 => ThemeId::GlassNight,
             13 => ThemeId::GlassSky,
             14 => ThemeId::GlassDawn,
+            15 => ThemeId::GlassClear,
             _ => ThemeId::PaperDark,
         }
     }
@@ -506,7 +525,7 @@ impl RandomMode {
             RandomMode::Light => "rotating light pages \u{2014} paper and modern glow",
             RandomMode::Crt => "rotating CRT phosphor themes",
             RandomMode::Glass => {
-                "iPhone liquid glass \u{2014} frosted white panes over a pastel wallpaper"
+                "iPhone liquid glass \u{2014} clear smoked panes, bright white text, your desktop behind"
             }
             RandomMode::Auto => {
                 "light by day, dark by night \u{2014} OS appearance, or the clock when it is pinned"
@@ -536,11 +555,12 @@ impl RandomMode {
     }
 
     /// Whether `id` belongs to this mode's rotation pool. Every palette lands
-    /// in exactly ONE of Dark/Light/Crt/Glass, decided by three questions in
+    /// in at most ONE of Dark/Light/Crt/Glass, decided by three questions in
     /// order: is it a phosphor tube ([`ThemeId::is_crt`] — which the modern
     /// family's bloom-only `CrtStyle` deliberately does not make it), is it
-    /// LIGHT liquid glass (the `glass` look; the night glass is a dark page
-    /// like any other), and if neither, is its page dark or light. So each pool is "every palette that looks like
+    /// liquid glass (white-text glass is the `glass` look; the frosted light
+    /// pair rotates nowhere and is picked by name), and if neither, is its
+    /// page dark or light. So each pool is "every palette that looks like
     /// this", modern glow and plain paper alike, and a rotation can never flip
     /// the page from near-black to near-white. `Auto` serves its
     /// per-appearance pairing ([`auto_side`]) — by default the dark or light
@@ -548,10 +568,10 @@ impl RandomMode {
     /// pool.
     pub fn in_pool(self, id: ThemeId) -> bool {
         match self {
-            RandomMode::Dark => id.is_dark() && !id.is_crt(),
+            RandomMode::Dark => id.is_dark() && !id.is_crt() && !id.is_clear_glass(),
             RandomMode::Light => !id.is_dark() && !id.is_crt() && !id.is_light_glass(),
             RandomMode::Crt => id.is_crt(),
-            RandomMode::Glass => id.is_light_glass(),
+            RandomMode::Glass => id.is_clear_glass(),
             RandomMode::Auto => match auto_side() {
                 Selection::Mode(m) => m.in_pool(id),
                 Selection::Fixed(f) => id == f,

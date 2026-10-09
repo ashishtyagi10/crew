@@ -108,6 +108,7 @@ fn the_input_bar_floats_above_the_panes() {
 fn the_wash_never_takes_glass_text_under_the_floor() {
     let _g = crate::app::theme_test_guard();
     for id in [
+        crew_theme::ThemeId::GlassClear,
         crew_theme::ThemeId::GlassSky,
         crew_theme::ThemeId::GlassNight,
     ] {

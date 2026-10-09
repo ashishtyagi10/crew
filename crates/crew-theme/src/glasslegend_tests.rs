@@ -82,8 +82,9 @@ fn other_palettes_keep_their_legends() {
 fn the_veil_is_thicker_glass_not_a_tab() {
     for id in ALL_THEMES {
         let Some(l) = id.theme().liquid else { continue };
-        let veil = legend_cover(l.body, l.window);
-        assert!(veil > l.pane_cover(), "{}", id.as_str());
+        let shade = shade(id.theme());
+        let veil = legend_cover(l, shade);
+        assert!(veil > l.text_cover(shade), "{}", id.as_str());
         assert!(veil < 0.9, "{}: veil hides {veil:.2}", id.as_str());
     }
 }

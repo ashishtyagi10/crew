@@ -4042,19 +4042,21 @@ opposite of what a picker is for.
 - **`fern`** — a faint mint page under a deep green-teal light; the only light
   palette whose accent is green, so it cannot be mistaken for the two warm ones
   at a glance.
-- **`glass-sky`** and **`glass-dawn`** — the `glass` rotation: the iPhone's
-  liquid glass with the lights on. There is no wallpaper: the window is
-  see-through and your desktop is the background (see **Opacity %**). Every
-  pane is a slab of frosted white glass over it, with a hard white specular
-  edge, a broad gloss and a soft grey shadow. Ink is the iPhone's near-black;
-  the accents are its system blue (sky) and pink (dawn), and they colour the
-  focused card's ring. A test holds the text readable over a black or a
-  white desktop.
-- **`glass-night`** — the iPhone's liquid glass after dark (it rotates with
-  the other dark pages). Like the light glass it paints no wallpaper: every
-  pane is a slab of smoked glass over your desktop, with a white specular rim
-  and a faint gloss on top. The accent is the iPhone's dark-mode mint; the
-  face is SF Mono.
+- **`glass-clear`** and **`glass-night`** — the `glass` rotation: the
+  iPhone's liquid glass in its Clear look. There is no wallpaper: the window
+  is see-through and your desktop is the background (see **Opacity %**).
+  Every pane is a slab of clear, lightly smoked glass over it (neutral in
+  `glass-clear`, navy in `glass-night`) with a white specular rim, and every
+  word on it is bright white. White reads there the way the iPhone makes it
+  read: a soft shadow behind each run of text dims the desktop a little more
+  than the glass between the lines. A test holds the text readable over a
+  black or a white desktop. The accents are rose (`clear`) and mint
+  (`night`); the face is SF Mono.
+- **`glass-sky`** and **`glass-dawn`** — the frosted light glass, picked by
+  name (`/look theme glass-sky`); no rotation serves them. Every pane is a
+  slab of frosted white glass with near-black ink, a hard white specular
+  edge, a broad gloss and a soft grey shadow; the accents are the iPhone's
+  system blue (sky) and pink (dawn).
 - **`crt-violet`** — the fourth phosphor: a violet tube, the glow of a vector
   display rather than a terminal. Its ladder is one hue at six brightnesses,
   like the other tubes, and it is the only one of the four whose phosphor

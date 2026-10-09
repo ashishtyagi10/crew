@@ -47,6 +47,13 @@ impl CrtStyle {
     /// "Shadow behind the lines and text are very strong, reduce them".
     pub const TUBE_SHADE: f32 = 0.2;
 
+    /// The white-text glass's [`Self::shade`] (2026-10-09, the user: "bright
+    /// white would look great on glass"): white words over a clear pane need
+    /// the desktop behind them dimmed a little, as the iPhone does under its
+    /// white labels. A touch more than a tube's, which only has to lift a
+    /// glowing phosphor — kept gentle all the same, after "very strong".
+    pub const GLASS_SHADE: f32 = 0.25;
+
     /// Today's look before the per-theme split: a flat phosphor panel
     /// (no warp, no bezel) with moderate scanlines and glow. Used when
     /// `/crt on` forces the tube over a theme that ships no style of its own.

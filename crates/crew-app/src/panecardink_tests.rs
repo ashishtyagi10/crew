@@ -59,6 +59,7 @@ fn glass_legends_read_over_any_desktop() {
         false => crew_theme::glasslegend::LABEL_FLOOR,
     };
     for id in [
+        crew_theme::ThemeId::GlassClear,
         crew_theme::ThemeId::GlassSky,
         crew_theme::ThemeId::GlassDawn,
         crew_theme::ThemeId::GlassNight,

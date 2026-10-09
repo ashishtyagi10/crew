@@ -49,11 +49,26 @@ pub struct LiquidStyle {
     pub desktop_blur: f32,
 }
 
+/// How much of its full strength a theme's text shadow ([`crate::CrtStyle`]
+/// `shade`) reaches behind the sparsest run of text: crew-render's composite
+/// ramps it in over a blurred mask of the ink, which measured 0.45 under a
+/// thin line of text — 0.42 of the way up its ramp. Dense text gets all of it.
+pub const SHADE_UNDER_TEXT: f32 = 0.42;
+
 impl LiquidStyle {
     /// How much of the desktop a pane hides in all: the wallpaper's share,
     /// then the slab's over what that leaves (Porter-Duff "over").
     pub fn pane_cover(self) -> f32 {
         self.body + self.window * (1.0 - self.body)
+    }
+
+    /// How much of the desktop is hidden behind a run of text, where the
+    /// text shadow (`shade`, the theme's `CrtStyle::shade`) dims some of what
+    /// the pane lets through: the words' own ground, which is what their
+    /// colours are floored against.
+    pub fn text_cover(self, shade: f32) -> f32 {
+        let c = self.pane_cover();
+        c + (1.0 - c) * shade * SHADE_UNDER_TEXT
     }
 }
 

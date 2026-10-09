@@ -40,7 +40,7 @@ fn the_phosphors_have_distinct_personalities() {
         .iter()
         .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
         .collect();
-    assert_eq!(styles.len(), 15);
+    assert_eq!(styles.len(), 16);
     for (i, (an, a)) in styles.iter().enumerate() {
         for (bn, b) in &styles[i + 1..] {
             assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
@@ -194,9 +194,9 @@ fn cycle_next_walks_every_mode_and_wraps() {
     // ...then crt...
     assert_eq!(cycle_next(3), "crt");
     assert!(current_id().is_crt());
-    // ...then glass, the light liquid glass...
+    // ...then glass, the white-text liquid glass...
     assert_eq!(cycle_next(4), "glass");
-    assert!(current_id().is_light_glass());
+    assert!(current_id().is_clear_glass());
     // ...then auto, whose pool follows the reported OS appearance...
     set_os_dark(true);
     assert_eq!(cycle_next(5), "auto");
@@ -393,15 +393,16 @@ fn no_two_palettes_are_near_duplicates() {
 #[test]
 fn every_pool_survives_the_cut() {
     let count = |f: fn(ThemeId) -> bool| ALL_THEMES.iter().filter(|id| f(**id)).count();
-    let dark = count(|id: ThemeId| id.theme().dark && !id.is_crt());
+    let dark = count(|id: ThemeId| id.theme().dark && !id.is_crt() && !id.is_clear_glass());
     let light = count(|id: ThemeId| !id.theme().dark && !id.is_light_glass());
     let crt = count(|id: ThemeId| id.is_crt());
-    let glass = count(|id: ThemeId| id.is_light_glass());
-    // The night glass (2026-10-07) joined the dark side; the light glass
-    // (2026-10-08) is its own rotation, `glass`.
+    let glass = count(|id: ThemeId| id.is_clear_glass());
+    // The night glass (2026-10-07) sat with the dark pages and the light
+    // glass (2026-10-08) was `glass`; since 2026-10-09 `glass` is the white-
+    // text pair (`glass-clear`, `glass-night`) and the light pair is by name.
     assert_eq!(
         (dark, light, crt, glass),
-        (5, 4, 4, 2),
+        (4, 4, 4, 2),
         "pools are dark {dark}, light {light}, crt {crt}, glass {glass} — \
          `auto` needs both appearances and the tubes and the glass are their \
          own rotations"
@@ -449,10 +450,10 @@ fn every_retired_theme_name_still_resolves() {
     // Written as a sum rather than a difference so adding a palette does not
     // read as retiring one — `glass` was drawn on 2026-10-07 and became
     // `glass-night` when the light pair (`glass-sky`, `glass-dawn`) was drawn
-    // on 2026-10-08.
+    // on 2026-10-08, and `glass-clear` on 2026-10-09.
     assert_eq!(
         RETIRED.len() + ALL_THEMES.len(),
-        29,
+        30,
         "every retiree is listed"
     );
 }
@@ -1052,7 +1053,10 @@ fn every_palette_lands_in_exactly_one_of_the_four_pools() {
     ];
     for id in ALL_THEMES {
         let n = pools.iter().filter(|m| m.in_pool(id)).count();
-        assert_eq!(n, 1, "{} is in {n} pools, want exactly 1", id.as_str());
+        // The frosted light glass rotates nowhere since `glass` turned to
+        // white words (2026-10-09): picked by name, it stays put.
+        let want = usize::from(!id.is_light_glass());
+        assert_eq!(n, want, "{} is in {n} pools, want {want}", id.as_str());
     }
     // Every non-tube palette rotates with the paper ones of its own appearance…
     // (the filter used to be `modern.is_some()`, which meant "not a tube" only
@@ -1061,7 +1065,10 @@ fn every_palette_lands_in_exactly_one_of_the_four_pools() {
         .into_iter()
         .filter(|id| id.theme().modern.is_some() && !id.is_crt())
     {
-        let want = if id.is_light_glass() {
+        if id.is_light_glass() {
+            continue;
+        }
+        let want = if id.is_clear_glass() {
             RandomMode::Glass
         } else if id.is_dark() {
             RandomMode::Dark
@@ -1292,23 +1299,27 @@ fn the_wash_never_pushes_a_role_under_its_floor() {
     }
 }
 
-/// Only a tube shades its text (2026-10-06): its window is always see-through,
-/// so the phosphor needs the soft shadow over a bright wallpaper. Every other
-/// theme's style — the one `/crt on` lays over it — keeps 0, so its frame
-/// through the tube is exactly what it was.
+/// Only a tube and the white-text glass shade their text: their windows are
+/// see-through, so a phosphor (2026-10-06) and white words (2026-10-09) need
+/// the soft shadow over a bright wallpaper. Every other theme's style — the
+/// one `/crt on` lays over it — keeps 0, so its frame through the tube is
+/// exactly what it was.
 #[test]
-fn only_the_tubes_shade_their_text() {
+fn only_the_tubes_and_the_white_glass_shade_their_text() {
     for id in ALL_THEMES {
         let t = id.theme();
         let shade = t.crt.map_or(0.0, |c| c.shade);
         let want = if t.is_tube() {
             CrtStyle::TUBE_SHADE
+        } else if id.is_clear_glass() {
+            CrtStyle::GLASS_SHADE
         } else {
             0.0
         };
         assert_eq!(shade, want, "{}: shade", id.as_str());
     }
     const { assert!(CrtStyle::TUBE_SHADE > 0.0 && CrtStyle::TUBE_SHADE <= 0.5) };
+    const { assert!(CrtStyle::GLASS_SHADE > 0.0 && CrtStyle::GLASS_SHADE <= 0.5) };
     assert_eq!(
         CrtStyle::DEFAULT.shade,
         0.0,
