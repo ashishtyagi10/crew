@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.43
+
+**The usage donut's total sits in the middle, and on glass the hole is
+glass.** `/usage` writes the token total in the hole of its in/out ring.
+Text sits on whole cells, so a total with an odd number of characters
+(`0`, `345`) landed half a column right of the ring's centre. The ring now
+centres on the number instead. Separately, on glass the hole was punched
+out in a solid page-coloured disc. That was right for paper themes, but
+over a see-through pane it showed as a dark puck. On glass the hole is now
+left as glass.
+- **Test:** for one-, three- and four-character totals the ring's centre,
+  measured from what is drawn, is the centre of the number.
+
 ## 0.26.42
 
 **A pasted key longer than its field says so.** When you paste an API key
