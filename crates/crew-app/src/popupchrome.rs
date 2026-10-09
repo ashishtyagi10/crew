@@ -27,17 +27,19 @@ pub(crate) fn card(cols: u16, rows: u16, title: &str) -> Vec<CellView> {
     v
 }
 
-/// Stamp `text` on the top border, right-aligned two columns in from the
+/// Stamp `text` on the top border, right-aligned three columns in from the
 /// corner, in the legend's accent: where a card says what it knows about
-/// its own contents (`k/N` on a list longer than it shows). Skipped when
-/// the card is too narrow to keep a column of frame either side.
+/// its own contents (`k/N` on a list longer than it shows). The round
+/// corner borrows the rule's cell beside it, so two in left `2/40` touching
+/// the arc. Skipped when the card is too narrow to keep a column of frame
+/// either side.
 pub(crate) fn mark(cells: &mut Vec<CellView>, text: &str, cols: u16) {
     let w = text.chars().count() as u16;
-    if cols < w + 4 {
+    if cols < w + 5 {
         return;
     }
     let (t, accent) = (crew_theme::theme(), crate::accentink::accent_ink());
-    for (x, c) in (cols - 2 - w..).zip(text.chars()) {
+    for (x, c) in (cols - 3 - w..).zip(text.chars()) {
         cells.push(CellView {
             col: x,
             row: 0,

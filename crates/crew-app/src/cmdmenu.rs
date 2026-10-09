@@ -77,7 +77,10 @@ pub(crate) fn popup(title: &str, matches: &[MenuItem], sel: usize, cols: u16) ->
 /// The `(cols, rows)` [`popup`] draws `matches` at in a pane `cols` wide —
 /// the one rule, so a hit-test can size the card without drawing it.
 pub(crate) fn popup_size(matches: &[MenuItem], cols: u16) -> (u16, u16) {
-    let cols = crate::popupplace::card_cols(crate::cmdrow::content_w(matches) + 1, cols);
+    // Two columns of air after the rows, as the selection marker's two give
+    // them before: with one, a chord ended 4 px off the right stroke while
+    // the left kept 21.
+    let cols = crate::popupplace::card_cols(crate::cmdrow::content_w(matches) + 2, cols);
     (cols, menu_rows(matches.len()))
 }
 

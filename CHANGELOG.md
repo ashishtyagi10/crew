@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.35
+
+**Pop-up menus breathe at their right edge.** The command palette and the
+other menus that pop up over a pane had two spacing problems:
+- **Rows crowded the right border.** The left side keeps two columns for
+  the selection marker, but the right kept one, so a shortcut like `⌘O`
+  ended 4 px from the frame while the left had 21. The right side now
+  keeps two columns too.
+- **The count touched the corner.** A long list shows where you are in it
+  on the top border, like `2/40`. Since corners went round, that count
+  touched the corner's arc. It now sits a column further in, with a
+  little rule between it and the curve.
+- **Test:** a menu row ends two columns before the right border, and the
+  count sits clear of the corner's arc.
+
 ## 0.26.34
 
 **A word that exactly fills a row stays whole.** The word wrap behind chat

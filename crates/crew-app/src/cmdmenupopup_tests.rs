@@ -37,7 +37,7 @@ fn a_long_list_hugs_its_measure() {
         "the fixture is wider than the floor"
     );
     let p = popup("commands", &items, 0, 200);
-    assert_eq!(usize::from(p.cols), measure + 3);
+    assert_eq!(usize::from(p.cols), measure + 4);
     assert_eq!(
         popup("commands", &items, 0, 30).cols,
         30,
@@ -73,8 +73,8 @@ fn the_frame_ends_at_the_hugged_width() {
         .max();
     assert_eq!(
         text_end,
-        Some(right - 2),
-        "one column of air before the border"
+        Some(right - 3),
+        "two columns of air before the border, as the marker's two after it"
     );
     assert!(
         p.cells
