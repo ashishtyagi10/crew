@@ -35,7 +35,8 @@ fn prose_breaks_between_words_and_a_detail_keeps_its_indent() {
             "{row:?} ends mid-word"
         );
     }
-    assert_eq!(rows[0].trim_end(), "a row that is");
+    // Exactly twenty columns: the row is filled, not handed a word short.
+    assert_eq!(rows[0].trim_end(), "a row that is longer");
     let detail = rows
         .iter()
         .position(|r| r.starts_with("     detail"))
