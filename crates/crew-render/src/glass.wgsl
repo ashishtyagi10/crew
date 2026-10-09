@@ -106,6 +106,8 @@ struct VsOut {
 // How soft a notch's ends are (px): the rim tapers into the gap round the
 // legend rather than stopping square, as light does off a cut edge.
 const NOTCH_FEATHER: f32 = 2.0;
+// How soft a legend veil's far edge is (px), either side of the row's edge.
+const VEIL_FEATHER: f32 = 3.0;
 // 1 inside one span `s` (x0, x1) of card-left x `x`, 0 outside, feathered.
 // An empty slot is x1 <= x0 and covers nothing.
 fn in_span(x: f32, a: f32, b: f32) -> f32 {
@@ -116,6 +118,22 @@ fn in_span(x: f32, a: f32, b: f32) -> f32 {
 fn in_spans(x: f32, s0: vec4<f32>, s1: vec4<f32>) -> f32 {
   return max(max(in_span(x, s0.x, s0.y), in_span(x, s0.z, s0.w)),
              max(in_span(x, s1.x, s1.y), in_span(x, s1.z, s1.w)));
+}
+
+// A legend veil over span (a, b), `up` px out past the card's edge and `h`
+// deep: a rounded, feathered patch of body behind the words — round at its
+// outer corners and soft all round, so it reads as frost and not a tab.
+fn veil_span(x: f32, up: f32, a: f32, b: f32, h: f32) -> f32 {
+  if (b <= a || up < 0.0) { return 0.0; }
+  let r = min(h * 0.8, (b - a) * 0.5);
+  let p = vec2<f32>(x - (a + b) * 0.5, up);
+  let sd = sd_round_box(p, vec2<f32>((b - a) * 0.5, h), r);
+  return 1.0 - smoothstep(-VEIL_FEATHER, VEIL_FEATHER, sd);
+}
+
+fn veil_spans(x: f32, up: f32, h: f32, s0: vec4<f32>, s1: vec4<f32>) -> f32 {
+  return max(max(veil_span(x, up, s0.x, s0.y, h), veil_span(x, up, s0.z, s0.w, h)),
+             max(veil_span(x, up, s1.x, s1.y, h), veil_span(x, up, s1.z, s1.w, h)));
 }
 
 // Half-width of the busy sheen, as a fraction of the card's diagonal. Wide
@@ -252,6 +270,20 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     in_spans(lx, in.nt0, in.nt1) * step(from_top, depth),
     in_spans(lx, in.nb0, in.nb1) * step(from_bot, depth));
 
+  // --- legend veil ----------------------------------------------------------
+  // A legend stands ON the rule, so half of each word hangs outside the
+  // sheet. On an opaque window that half sat on the page; on see-through
+  // glass it sat on the desktop, and over a dark one the words went dark
+  // (2026-10-09). So there the body reaches out behind the words, a frosted
+  // veil as far as their row does — the same body, no rim, no shadow, its
+  // far edge feathered away rather than cut into a tab.
+  var veil = 0.0;
+  if (in.lens1.w > 0.0 && in.lens1.z > 0.0) {
+    veil = max(veil_spans(lx, -from_top, depth, in.nt0, in.nt1),
+               veil_spans(lx, -from_bot, depth, in.nb0, in.nb1));
+  }
+  let body_in = max(inside, veil);
+
   // --- soft drop shadow -----------------------------------------------------
   // Offset downward and smeared: an exponential falloff outside the shape gives
   // a far softer edge than a smoothstep of the same width.
@@ -269,7 +301,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
                           in.hsize, radius);
     let s = CONTACT_W * falloff(dc, CONTACT_BLUR)
       + AMBIENT_W * falloff(da, AMBIENT_BLUR + LIFT_BLUR * lift);
-    shadow = clamp(sh_alpha * (1.0 + LIFT_SHADOW * lift), 0.0, 1.0) * s * (1.0 - inside);
+    shadow = clamp(sh_alpha * (1.0 + LIFT_SHADOW * lift), 0.0, 1.0) * s * (1.0 - body_in);
   }
 
   // --- frosted fill ---------------------------------------------------------
@@ -343,13 +375,14 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // outside the card is pulled in under its rim; there the frost thins
   // (`clear_rim`) and the colours split a little, red reaching further than
   // blue, as a prism's do. The rim, gloss and shade below ride on top.
-  if (in.lens1.w > 0.0 && inside > 0.0) {
+  if (in.lens1.w > 0.0 && body_in > 0.0) {
     let bevel = max(in.lens0.y, 1.0);
     let blur = in.lens0.z;
     let disp = in.lens0.w;
     let n = sdf_normal(in.local, in.hsize, radius);
     let s = clamp(-d / bevel, 0.0, 1.0);
-    let k = (1.0 - s) * (1.0 - s);
+    // The veil is body, not lens: no bend, full frost.
+    let k = (1.0 - s) * (1.0 - s) * clamp(inside / body_in, 0.0, 1.0);
     let off = n * in.lens0.x * k;
     let here = in.pos.xy;
     let r = blur * (1.0 - k);
@@ -364,7 +397,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let ramp = mix(a_top, a_bot, t) * (1.0 - 0.12 * lift);
     let frost = clamp(ramp * (1.0 - in.lens1.x * k), 0.0, 1.0);
     rgb = mix(mix(c, in.tint.xyz, frost), in.hl.xyz, 0.10 * scan_band);
-    alpha = inside;
+    alpha = body_in;
   }
 
   // --- gloss ----------------------------------------------------------------

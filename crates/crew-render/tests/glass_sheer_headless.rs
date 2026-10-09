@@ -74,6 +74,17 @@ fn page() -> [u8; 4] {
 
 /// The slab's centre pixel, drawn over the page at the window's opacity.
 fn centre(device: &wgpu::Device, queue: &wgpu::Queue, see: f32, frost: f32) -> [u8; 4] {
+    at(device, queue, slab(see, frost), (32, 32))
+}
+
+/// The pixel at `(x, y)` with `card` drawn over the page at the window's
+/// opacity.
+fn at(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    card: GlassCard,
+    (x, y): (usize, usize),
+) -> [u8; 4] {
     let behind = texture(
         device,
         wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
@@ -99,7 +110,7 @@ fn centre(device: &wgpu::Device, queue: &wgpu::Queue, see: f32, frost: f32) -> [
     );
     let mut layer = GlassLayer::new(device, FMT);
     layer.set_behind(device, &behind.create_view(&Default::default()));
-    layer.set_cards(device, &[slab(see, frost)]);
+    layer.set_cards(device, &[card]);
     layer.set_view(queue, SIZE as f32, SIZE as f32, (0.0, 0.0));
     let out = texture(
         device,
@@ -171,7 +182,7 @@ fn centre(device: &wgpu::Device, queue: &wgpu::Queue, see: f32, frost: f32) -> [
     buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});
     wait();
     let data = buf.slice(..).get_mapped_range().to_vec();
-    let o = 32 * STRIDE + 32 * 4;
+    let o = y * STRIDE + x * 4;
     [data[o], data[o + 1], data[o + 2], data[o + 3]]
 }
 
@@ -217,4 +228,49 @@ fn glass_sheer_headless() {
         // The frost is really there (the test is not comparing page to page).
         assert!(solid[2] > PAGE[2] + 10, "no frost: {solid:?}");
     }
+}
+
+/// A legend stands on the rule, half of it outside the sheet. On
+/// see-through glass that half sat on the desktop — dark words on a dark
+/// desktop vanished — so the body reaches out behind the words as a veil:
+/// there and only there, and only when the window is see-through.
+#[test]
+fn legend_veil_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("legend_veil_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+    // A legend over x 8..24 of the card (x 20..36 on screen); the card's top
+    // edge is at y 12, the legend's row reaching 6 px above it.
+    let card = |see: f32| {
+        let mut c = slab(see, 0.5);
+        c.notch.top[0] = [8.0, 24.0];
+        c.notch.depth = 6.0;
+        c
+    };
+    let page = page()[3];
+    let behind = at(&device, &queue, card(0.6), (28, 9));
+    let beside = at(&device, &queue, card(0.6), (46, 9));
+    let solid = at(&device, &queue, card(0.0), (28, 9));
+    eprintln!("legend_veil_headless: behind {behind:?} beside {beside:?} opaque {solid:?}");
+    assert!(
+        behind[3] > page + 40,
+        "no veil behind the legend: {behind:?} over a page at {page}"
+    );
+    assert!(
+        beside[3] <= page + 2,
+        "the veil spread past the legend: {beside:?}"
+    );
+    assert!(
+        solid[3] <= page + 2,
+        "an opaque window grew a tab: {solid:?}"
+    );
 }
