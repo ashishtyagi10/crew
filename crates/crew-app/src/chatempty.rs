@@ -128,11 +128,21 @@ fn advice(cols: u16, avail: usize) -> Vec<Row> {
     pick.into_iter().map(|s| (s, t.text_muted, false)).collect()
 }
 
-/// Fit `block` into `avail` rows: the blank spacers go first, and if the
-/// words still do not fit the last row that does is cut and marked.
+/// Fit `block` into `avail` rows: the blank spacers go first, then the
+/// paragraph after the last of them (the example asks) whole, and if the
+/// words still do not fit the last row that does is cut and marked. Cut
+/// sooner, the examples ended `Try "make the tests pass" — a…`.
 fn fit(mut block: Vec<Row>, avail: usize, cols: u16) -> Vec<Row> {
     if block.len() > avail {
+        // The words before the last spacer: where the example asks begin.
+        let lead = block
+            .iter()
+            .rposition(|r| r.0.is_empty())
+            .map(|i| block[..i].iter().filter(|r| !r.0.is_empty()).count());
         block.retain(|r| !r.0.is_empty());
+        if let Some(n) = lead.filter(|&n| block.len() > avail && n > 0 && n <= avail) {
+            block.truncate(n);
+        }
     }
     if block.len() > avail {
         block.truncate(avail);
@@ -151,3 +161,7 @@ fn fit(mut block: Vec<Row>, avail: usize, cols: u16) -> Vec<Row> {
 #[cfg(test)]
 #[path = "chatempty_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "chatemptyfit_tests.rs"]
+mod fit_tests;
