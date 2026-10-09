@@ -29,7 +29,8 @@ fn glass_survey_shot() {
                 Default::default(),
                 sheer,
                 cmds,
-                &|_| {},
+                // The bar's legend is crew's directory, as in the app.
+                &|app| app.input.cwd = "/Users/you/code/crew".into(),
             );
             if shot.is_none() {
                 eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
@@ -72,14 +73,15 @@ fn glass_ink_survey() {
     let _g = crate::app::theme_test_guard();
     let mut sets: Vec<(&str, &[&str])> = SETS.to_vec();
     sets.push(("far-dash", &["/far", "/far", "/dash"]));
-    for id in [ThemeId::GlassSky, ThemeId::GlassNight] {
+    for id in [ThemeId::GlassSky, ThemeId::GlassDawn, ThemeId::GlassNight] {
         crew_theme::set_theme(id);
         crew_theme::glassborder::set_sheer(true);
         let t = crew_theme::theme();
         crate::palette::set_accent(t.accent_default);
         let grounds = crew_theme::glasslegend::pane_grounds(t);
         let mut found: BTreeMap<(u8, u8, u8), Vec<String>> = BTreeMap::new();
-        for (_, cmds) in &sets {
+        // The welcome's rain is decoration, faint on purpose.
+        for (_, cmds) in sets.iter().filter(|(name, _)| *name != "welcome") {
             let mut app = crate::app::CrewApp {
                 geo_override: Some((8.0, 18.0, 1280.0, 720.0, 1.0)),
                 ..Default::default()
@@ -88,6 +90,11 @@ fn glass_ink_survey() {
                 app.submit_input(cmd.to_string());
             }
             app.focused = 1;
+            // The palette open, as the survey's last window has it.
+            if cmds.len() == 3 {
+                app.input.focused = true;
+                app.input.text = "/th".into();
+            }
             app.build_frame();
             std::thread::sleep(std::time::Duration::from_millis(400));
             for scene in app.build_frame() {

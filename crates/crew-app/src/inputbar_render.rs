@@ -6,7 +6,6 @@ use crew_render::CellView;
 
 use crate::chatwidth::{char_w, place_row, str_w};
 use crate::inputbar::InputBar;
-use crate::palette::accent;
 
 #[cfg(test)]
 #[path = "inputbar_render_tests.rs"]
@@ -78,7 +77,7 @@ impl InputBar {
         let (prompt, base) = if self.broadcast {
             ("» ", crew_theme::theme().broadcast)
         } else {
-            ("\u{203a} ", accent())
+            ("\u{203a} ", crate::accentink::accent_ink())
         };
         let prompt_fg = if self.focused {
             base
@@ -100,7 +99,7 @@ impl InputBar {
             .collect();
         match &self.ghost() {
             Some(g) => body.extend(g.chars().map(|c| (c, crew_theme::theme().dim))),
-            None if self.focused => body.push((CARET, accent())),
+            None if self.focused => body.push((CARET, crate::accentink::accent_ink())),
             None => {}
         }
         // Follow the cursor: when the body overflows the field, show its tail

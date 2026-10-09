@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.22
+
+**What you type reads on glass.** The input bar's `›` prompt, its caret,
+and a command name as you type it (`/far` turns blue once it is a real
+command) were all drawn in the theme's bright blue. On light glass over a
+dark desktop that read at about 1.6:1. On glass they now take the deeper
+blue that reads over any desktop, as the rest of the blue words did in
+0.26.17. Every other theme is unchanged.
+- **Test:** the input bar tests now pin the theme as well as the accent, so
+  they check the colour the bar actually draws.
+
 ## 0.26.21
 
 **`/opacity` tells the truth on glass and CRT.** On glass, `/opacity 60`
