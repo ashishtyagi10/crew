@@ -111,6 +111,13 @@ fn vendored_glyphon_patches_are_applied() {
         cache_src.contains("alpha: wgpu::BlendComponent::OVER"),
         "the text pipeline's alpha no longer composites over (cache.rs)"
     );
+    // Patch 5: the scene is stored premultiplied, the text with it.
+    let shader_src = include_str!("../../../vendor/glyphon/src/shader.wgsl");
+    assert!(
+        cache_src.contains("color: wgpu::BlendComponent::OVER")
+            && shader_src.contains("in_frag.color.rgb * a, a"),
+        "the text pipeline no longer hands over premultiplied colour"
+    );
     for (name, src) in [("text_atlas.rs", atlas_src), ("text_render.rs", render_src)] {
         assert!(
             src.contains("CREW PATCH"),

@@ -48,11 +48,13 @@ fn sd_corners(p: vec2<f32>, b: vec2<f32>, r4: vec4<f32>) -> f32 {
 fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // Square quads — every rule, every chart fill, every run with no corner
     // on the page — take the exact old path: no coverage term at all.
+    // Premultiplied out: the scene is stored that way (`blend::PREMUL_OVER`).
     if (max(max(in.radii.x, in.radii.y), max(in.radii.z, in.radii.w)) <= 0.0) {
-        return in.color;
+        return vec4(in.color.rgb * in.color.a, in.color.a);
     }
     let d = sd_corners(in.local, in.hsz, in.radii);
     let cover = clamp(0.5 - d, 0.0, 1.0);
     if (cover <= 0.0) { discard; }
-    return vec4(in.color.rgb, in.color.a * cover);
+    let a = in.color.a * cover;
+    return vec4(in.color.rgb * a, a);
 }

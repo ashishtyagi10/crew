@@ -859,7 +859,7 @@ The docked command bar supports:
   five themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, and
   **`auto`** — and each one *rotates* through a pool of palettes every 10
   minutes (dark paper palettes, light paper palettes, CRT phosphor palettes,
-  the iPhone's light liquid glass; `auto` borrows the
+  the iPhone's light liquid glass over your desktop; `auto` borrows the
   dark or light paper pool to **follow the OS appearance**, flipping live when
   the system switches modes). A fresh install with no saved theme follows the
   OS out of the box; picking `dark`, `light`, `crt` or `glass` opts out of following,
@@ -3938,7 +3938,7 @@ the glass. `medium` is the default; `off`
 restores flat cards and costs nothing to draw. Overlay popups (the command menu, the attach
 picker, the key prompt) stay opaque by design. This knob is not the **`glass`
 theme** — that is `/theme glass` (see [Themes](#themes)), the iPhone's liquid
-glass over a pastel wallpaper; on it, this knob sets how deep the frost is.
+glass over your desktop; on it, this knob sets how deep the frost is.
 
 **Opacity %** (CANVAS) makes the **window itself** translucent, so your desktop
 shows through the page. Text, pane fills and selections stay solid — only the
@@ -3947,11 +3947,13 @@ window dialled any sheerer is one you can't find again. Works with the CRT
 post-process too — the tube shapes light, not transparency. A CRT theme is
 **always** sheer, at most 84% opaque whatever this says, title bar included:
 its window is a tinted faceplate over your desktop, never a black slab. The
-**`glass`** theme is sheerer still, at most 45% opaque: the pastel wallpaper is
-a tint over your desktop, and each pane is a frosted slab that still hides
-about four fifths of what is behind it, so the text keeps its contrast. The
-desktop behind glass is blurred lightly enough to keep its shapes. A lower
-Opacity % wins on both.
+**`glass`** theme is sheerer still: it paints no wallpaper of its own, so
+your desktop is the background. The gaps between panes are 25% opaque. Each
+pane is a frosted slab that hides about half of what is behind it (night
+glass two thirds), as clear as it can be while text still reads over a black
+or a white desktop. The desktop behind glass is blurred lightly enough to
+keep its shapes. A lower Opacity % still makes a CRT window sheerer; glass is
+already sheerer than the setting goes.
 
 ## `/view` — one command for the file viewer
 
@@ -4007,7 +4009,7 @@ Crew offers **five themes** — **`dark`**, **`light`**, **`crt`**, **`glass`**
 and **`auto`** — and each one is a *rotation*: it cycles through a pool of
 hand-tuned palettes every 10 minutes. `dark` rotates the dark paper/ink looks,
 `light` rotates the light ones, `crt` rotates the old-school phosphor tubes,
-`glass` rotates the iPhone's light liquid glass over two pastel wallpapers,
+`glass` rotates the iPhone's light liquid glass over your own desktop,
 and `auto` follows the **OS appearance** — the dark pool while the
 system is in dark mode, the light one in light mode, flipping live (through
 the develop-fade) the moment the system switches. With no theme saved at all,
@@ -4040,28 +4042,18 @@ opposite of what a picker is for.
   palette whose accent is green, so it cannot be mistaken for the two warm ones
   at a glance.
 - **`glass-sky`** and **`glass-dawn`** — the `glass` rotation: the iPhone's
-  liquid glass with the lights on. The page is a bright pastel wallpaper —
-  sky blue melting into rose, or peach into lavender — and every pane is a
-  slab of clear glass over it, frosted white in its body so dark ink reads on
-  it, bent by a wider lens at the rim, with a hard white specular edge, a broad
-  gloss and a soft grey shadow (the only thing that lifts a white card off a
-  pale page). Ink is the iPhone's near-black; the accents are its system blue
-  (sky) and pink (dawn). A test holds the ink at 7:1 over the deepest colour
-  the wallpaper reaches. The window is see-through: your desktop shows through
-  the wallpaper, and more faintly through every pane (see **Opacity %**), and
-  a second test holds the text readable over a black or a white desktop.
+  liquid glass with the lights on. There is no wallpaper: the window is
+  see-through and your desktop is the background (see **Opacity %**). Every
+  pane is a slab of frosted white glass over it, with a hard white specular
+  edge, a broad gloss and a soft grey shadow. Ink is the iPhone's near-black;
+  the accents are its system blue (sky) and pink (dawn), and they colour the
+  focused card's ring. A test holds the text readable over a black or a
+  white desktop.
 - **`glass-night`** — the iPhone's liquid glass after dark (it rotates with
-  the other dark pages). The page is a wallpaper — broad
-  fields of electric blue, violet and hot pink melting over a deep violet
-  night, darkening toward the window's top and bottom edges the way the
-  iPhone shades the wallpaper behind its status bar — and every pane is a slab
-  of glass over it: the wallpaper blurred, saturated and smoked in the body so
-  text reads on it, bent by a lens over the last few pixels of the rim (the
-  wallpaper just outside the edge pulled in under it, its colours splitting a
-  little), with a white specular rim and a faint gloss on top. The accent is
-  the iPhone's dark-mode mint; the face is SF Mono. A test holds the ink at
-  7:1 over the brightest wallpaper the frost can sit on. Like the light glass,
-  its window is see-through.
+  the other dark pages). Like the light glass it paints no wallpaper: every
+  pane is a slab of smoked glass over your desktop, with a white specular rim
+  and a faint gloss on top. The accent is the iPhone's dark-mode mint; the
+  face is SF Mono.
 - **`crt-violet`** — the fourth phosphor: a violet tube, the glow of a vector
   display rather than a terminal. Its ladder is one hue at six brightnesses,
   like the other tubes, and it is the only one of the four whose phosphor

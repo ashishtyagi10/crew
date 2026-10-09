@@ -11,19 +11,21 @@ use crew_theme::CrtStyle;
 /// Whether the frame must leave the composite PREMULTIPLIED at `window_opacity`.
 ///
 /// The window server composites crew premultiplied — shown = rgb + (1 − a) ·
-/// desktop — and every pass writes straight colour. On a dark page that is
-/// near enough (dark colour is near zero either way), and the tubes' glow is
-/// tuned to add light over the desktop. A LIGHT page is not: its colour is
-/// added to the desktop's whole, so a see-through glass window washed out to
-/// white instead of showing what is behind it. Liquid glass is see-through by
-/// design (`LiquidStyle::window`), so it leaves premultiplied whenever the
-/// window is sheer, and the chain runs for it even with no tube of its own.
+/// desktop. The scene is stored premultiplied too (`blend::PREMUL_OVER`),
+/// but every theme's look before glass was tuned on straight colour: on a
+/// dark page near enough (dark colour is near zero either way), and the
+/// tubes' glow adds light over the desktop. A LIGHT page is not: its colour
+/// is added to the desktop's whole, so a see-through glass window washed out
+/// to white instead of showing what is behind it. Liquid glass is
+/// see-through by design (`LiquidStyle::window`), so it leaves premultiplied;
+/// every other sheer window leaves straight, as it always has.
 pub fn premultiplies(window_opacity: f32) -> bool {
     window_opacity < 1.0 && crew_theme::theme().liquid.is_some()
 }
 
 /// The composite as a plain copy: what the chain draws when it runs only to
-/// premultiply ([`premultiplies`]) under a theme with no tube of its own.
+/// hand a sheer window over ([`CrtChain::set_sheer`]) under a theme with no
+/// tube of its own.
 const CLEAR: CrtStyle = CrtStyle {
     scanline: 0.0,
     glow: 0.0,
@@ -44,6 +46,9 @@ pub struct CrtChain {
     flicker: f32,
     /// Leave the composite premultiplied (see [`premultiplies`]).
     premul: bool,
+    /// The window is see-through: the frame must go through the chain, the
+    /// one place its premultiplied scene is handed over as the theme expects.
+    sheer: bool,
 }
 
 impl CrtChain {
@@ -57,6 +62,7 @@ impl CrtChain {
             time: 0.0,
             flicker: 0.0,
             premul: false,
+            sheer: false,
         };
         chain.bind(device, w, h);
         chain
@@ -100,16 +106,23 @@ impl CrtChain {
         self.style
     }
 
-    /// Leave the composite premultiplied (see [`premultiplies`]). While set
-    /// the chain must run even with no style: it is the frame's last pass.
+    /// Leave the composite premultiplied (see [`premultiplies`]).
     pub fn set_premultiply(&mut self, on: bool) {
         self.premul = on;
     }
 
-    /// Whether the frame goes through the chain at all: a tube, or a
-    /// premultiply only it can do.
+    /// The window is see-through. While set the chain runs even with no
+    /// style: the scene is stored premultiplied, and only the composite
+    /// hands it over the way the theme expects (straight, or premultiplied
+    /// for glass). An opaque scene's alpha is 1, where the two are the same.
+    pub fn set_sheer(&mut self, on: bool) {
+        self.sheer = on;
+    }
+
+    /// Whether the frame goes through the chain at all: a tube, or a sheer
+    /// window only it can hand over.
     pub fn active(&self) -> bool {
-        self.style.is_some() || self.premul
+        self.style.is_some() || self.sheer || self.premul
     }
 
     /// Per-frame animation inputs: `time` seeds the flicker hash, `flicker`

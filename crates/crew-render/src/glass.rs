@@ -245,7 +245,9 @@ impl GlassLayer {
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format,
-                    blend: Some(crate::blend::STRAIGHT_OVER),
+                    // The shader hands over premultiplied colour (see
+                    // `PREMUL_OVER`): the see-through slab needs it.
+                    blend: Some(crate::blend::PREMUL_OVER),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),

@@ -1,14 +1,16 @@
 //! **Glass**, the light pair: the iPhone's liquid glass by day (the user,
 //! 2026-10-08: "I was expecting iphone liquid glass … I like light color
-//! glass"). Every pane is a slab of clear glass over a bright pastel
-//! wallpaper — the wallpaper frosted WHITE in its body so dark ink reads on it,
-//! bent by a lens at the rim, a hard white specular edge riding on top and a
-//! soft grey shadow under it ([`crate::LiquidStyle`], `glass::liquid_glass`).
+//! glass"). The window is see-through and paints no wallpaper of its own
+//! (2026-10-09: "I don't think we need gradient colors in glass themes"):
+//! the desktop is the background. Every pane is a slab of glass over it,
+//! frosted WHITE in its body so dark ink reads on it, a hard white specular
+//! edge riding on top and a soft grey shadow under it ([`crate::LiquidStyle`],
+//! `glass::liquid_glass`).
 //!
-//! Two wallpapers, so `glass` rotates as every crew theme does: **sky**, an
-//! airy blue melting into rose, and **dawn**, peach into lavender. Ink is the
-//! iPhone's near-black label; the accents are its system blue and pink,
-//! deepened until they read as text on a white slab.
+//! Two palettes, so `glass` rotates as every crew theme does: **sky** and
+//! **dawn**, whose poles now only light the focus ring. Ink is the iPhone's
+//! near-black label; the accents are its system blue and pink, deepened
+//! until they read as text on a white slab.
 //!
 //! Every derived role is what the ramp, the alarm and the wash produce for
 //! the page and ink — the parity tests in `ramp_tests`, `ansi_tests`,
@@ -25,11 +27,11 @@ const LIQUID_LIGHT: LiquidStyle = LiquidStyle {
     dispersion: 0.08,
     clear_rim: 0.85,
     vibrance: 1.25,
-    // The desktop shows more than half through the gaps and about a fifth
-    // through a pane: enough to see it, never enough to fight the text
-    // (`liquid_tests::glass_text_reads_over_any_desktop`).
-    window: 0.45,
-    body: 0.65,
+    // The desktop shows three quarters through the gaps and nearly half
+    // through a pane: as clear as the frost can be and still hold the text
+    // over a black desktop (`liquid_tests::glass_text_reads_over_any_desktop`).
+    window: 0.25,
+    body: 0.40,
     desktop_blur: 20.0,
 };
 
@@ -94,7 +96,10 @@ pub static GLASS_SKY: Theme = Theme {
         pole_b: (204, 52, 132),
         drift_ms: 6_000,
         dots: 0.0,
-        wash: 0.60,
+        // No wallpaper of its own: the desktop IS the background (the user,
+        // 2026-10-09: "I don't think we need gradient colors in glass
+        // themes"). The poles still light the focus ring.
+        wash: 0.0,
     }),
     liquid: Some(LIQUID_LIGHT),
 };
@@ -144,7 +149,10 @@ pub static GLASS_DAWN: Theme = Theme {
         pole_b: (124, 84, 226),
         drift_ms: 6_000,
         dots: 0.0,
-        wash: 0.60,
+        // No wallpaper of its own: the desktop IS the background (the user,
+        // 2026-10-09: "I don't think we need gradient colors in glass
+        // themes"). The poles still light the focus ring.
+        wash: 0.0,
     }),
     liquid: Some(LIQUID_LIGHT),
 };

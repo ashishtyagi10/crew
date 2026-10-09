@@ -66,5 +66,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   let q = abs(in.local) - (in.hsize - vec2<f32>(in.radius));
   let turn = atan2(max(q.y, 0.0), max(q.x, 0.0) + 1e-4) / 1.5707963;
   let c = mix(in.color, in.color_h, clamp(turn, 0.0, 1.0));
-  return vec4<f32>(c.rgb, c.a * alpha);
+  // Premultiplied out: the scene is stored that way (`blend::PREMUL_OVER`).
+  let a = c.a * alpha;
+  return vec4<f32>(c.rgb * a, a);
 }

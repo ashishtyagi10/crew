@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.9
+
+**Glass is clear, and your desktop is the background.** v0.26.8 let the
+desktop through, but only a fifth of it showed through a pane, behind a
+pastel wallpaper of crew's own.
+- **No wallpaper.** The glass themes paint no gradient. The desktop is the
+  only background, so its colours come through true. The theme's colours
+  still light the focused card's ring.
+- **Twice as clear.** The gaps between panes are 25% opaque (was 45%), and a
+  pane hides about half of the desktop (was four fifths). Night glass hides
+  two thirds: light text over a white desktop needs a little more smoke.
+- **Crisp text over see-through glass.** crew now stores its frame
+  premultiplied, so a glyph's anti-aliased edge blends with what is really
+  behind it. Before, edges blended against the glass as if it were solid,
+  so over a dark desktop every letter wore a light fringe and looked thin.
+  Opaque windows draw exactly as before. Every other theme's see-through
+  window, including CRT, is handed to macOS as it always was.
+- **Tests:** text still reads over a black or a white desktop (normal text
+  at least 4.5:1, muted 3:1) at every Glass level, and glass paints no
+  wallpaper. GPU tests check that a see-through slab keeps its exact frost
+  colour even when it is clearer than its own frost, and that the composite
+  takes the premultiplied frame in and hands it out the way each theme
+  needs.
+
 ## 0.26.8
 
 **Glass is see-through.** The `glass` theme kept its window opaque, so the

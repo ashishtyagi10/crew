@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.26.8"
+version = "0.26.9"
 edition = "2021"
 authors = ["crew contributors"]
 license = "MIT OR Apache-2.0"
@@ -112,10 +112,14 @@ self_update = { version = "0.42", default-features = false, features = ["archive
 #      (mask 1024², color 256²) replaces the flat 256² INITIAL_SIZE — Retina
 #      glyph sets blew through two grows in the first frames, re-uploading
 #      every glyph each time.
-# 4)   cache.rs text pipeline blends alpha with BlendComponent::OVER (as
-#      crew-render's own `blend::STRAIGHT_OVER`) — ALPHA_BLENDING's sa·sa
-#      alpha thinned a sheer window under every glyph edge.
-#      All four guarded by vendored_glyphon_patches_are_applied in
+# 4)   cache.rs text pipeline blends alpha with BlendComponent::OVER —
+#      ALPHA_BLENDING's sa·sa alpha thinned a sheer window under every glyph
+#      edge.
+# 5)   shader.wgsl hands over PREMULTIPLIED colour and cache.rs blends the
+#      colour with BlendComponent::OVER too (as crew-render's own
+#      `blend::PREMUL_OVER`): crew stores its scene premultiplied, so a glyph
+#      edge over see-through glass blends against what is really there.
+#      All five guarded by vendored_glyphon_patches_are_applied in
 #      crew-render's prewarm tests.
 [patch.crates-io]
 glyphon = { path = "vendor/glyphon" }

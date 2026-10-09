@@ -809,14 +809,14 @@ quit and reopen Crew to pick up edits made outside the `/settings` pane.
 **Themes.** Crew ships **fifteen palettes** in five rotations. `dark` rotates
 `paper-dark` (a high-contrast newspaper look), `sepia-dark` (warm cream ink on
 dark sepia), `nebula` (an orchid→rose gradient dusk), `harbor` (a blue-slate
-page under an azure light) and `glass-night` (liquid glass over a night
-wallpaper); `light` rotates `paper-light`, `sepia-light`,
+page under an azure light) and `glass-night` (smoked liquid glass over your
+desktop); `light` rotates `paper-light`, `sepia-light`,
 `blossom` and `fern` (a faint mint page under a green-teal light); `crt`
 rotates the four phosphor tubes — `crt-green`, `crt-amber`, `crt-blue` and
 `crt-violet`, each one hue at six brightnesses on a near-black tube; `glass`
-is the iPhone's light liquid glass — every pane a slab of frosted white glass
-that blurs and bends a pastel wallpaper behind it, over `glass-sky` (blue into
-rose) and `glass-dawn` (peach into lavender); and `auto`
+is the iPhone's light liquid glass — a see-through window with your desktop as
+the background and every pane a slab of frosted white glass over it, in
+`glass-sky` (blue accents) and `glass-dawn` (pink); and `auto`
 follows the OS appearance, serving the dark pool in dark mode and the light one
 in light mode (re-wire the pairing with `theme_dark` / `theme_light`). A
 rotation changes palette every 10 minutes.

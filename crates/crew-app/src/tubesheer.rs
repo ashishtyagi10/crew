@@ -77,7 +77,8 @@ mod tests {
             let cap = t.liquid.expect("glass is liquid").window;
             assert!(cap < 1.0, "{}: glass shows the desktop", id.as_str());
             assert_eq!(sheer(1.0, t), cap);
-            assert_eq!(sheer(low, t), low);
+            // Glass is sheerer than the setting's own floor: nothing lower.
+            assert_eq!(sheer(low, t), low.min(cap));
         }
         let paper = ThemeId::PaperDark.theme();
         assert_eq!(sheer(1.0, paper), 1.0);

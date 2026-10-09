@@ -35,8 +35,8 @@ pub struct LiquidStyle {
     /// The window's opacity under this glass: how much of the desktop behind
     /// crew the wallpaper hides (1 = an opaque window). Glass is see-through
     /// (the user, 2026-10-08: "glass theme is not glassy enough, I can't see
-    /// the background") — the wallpaper is a tint over the desktop, and a
-    /// lower Opacity % in Settings still wins.
+    /// the background") — the page is a tint over the desktop. Opacity % in
+    /// Settings can only lower it, and its floor is above glass's.
     pub window: f32,
     /// How much of what the wallpaper leaves of the desktop a pane's slab
     /// hides on top of it (1 = a solid slab). The body is frosted glass, not

@@ -24,6 +24,19 @@ fn partial_coverage_never_makes_the_page_more_transparent() {
 }
 
 #[test]
+fn premultiplied_over_matches_straight_over_for_the_same_pixel() {
+    for (src, sa, dst) in [(1.0f32, 0.25f32, 0.0f32), (0.6, 0.5, 0.9), (0.2, 0.9, 0.4)] {
+        let straight = apply(STRAIGHT_OVER.color, src, sa, dst);
+        let premul = apply(PREMUL_OVER.color, src * sa, sa, dst);
+        assert!((straight - premul).abs() < 1e-6, "{src} {sa} {dst}");
+        assert_eq!(
+            apply(PREMUL_OVER.alpha, sa, sa, dst),
+            apply(STRAIGHT_OVER.alpha, sa, sa, dst)
+        );
+    }
+}
+
+#[test]
 fn colour_still_blends_straight_alpha() {
     let c = apply(STRAIGHT_OVER.color, 1.0, 0.25, 0.0);
     assert!((c - 0.25).abs() < 1e-6);

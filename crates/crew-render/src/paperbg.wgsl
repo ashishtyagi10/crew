@@ -95,7 +95,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // UV in [0, 1] with (0,0) at top-left.
     let uv = in.pos.xy / u.resolution;
     if (u.motion.z > 0.5) {
-        return vec4<f32>(wallpaper(uv), u.page_bg.a);
+        return vec4<f32>(wallpaper(uv) * u.page_bg.a, u.page_bg.a);
     }
 
     // Radial vignette: ~5% darker at corners (d2 = 0.5 at corner → 0.95).
@@ -394,6 +394,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     }
     // Alpha comes from the page colour, not a hard 1.0: it carries the window
     // opacity, so a translucent window lets the desktop through the paper while
-    // text and pane fills (which blend on top) stay solid.
-    return vec4<f32>(rgb, u.page_bg.a);
+    // text and pane fills (which blend on top) stay solid. The scene is stored
+    // PREMULTIPLIED (see `blend::PREMUL_OVER`), so the colour carries it too.
+    return vec4<f32>(rgb * u.page_bg.a, u.page_bg.a);
 }

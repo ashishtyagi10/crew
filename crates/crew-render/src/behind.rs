@@ -50,7 +50,9 @@ impl Behind {
     }
 
     /// Draw the wallpaper — the page colour and, with the paper texture on,
-    /// the backdrop pass over it — exactly as the frame's own pass begins.
+    /// the backdrop pass over it — exactly as the frame's own pass begins:
+    /// premultiplied, at the window's opacity (`bg` is straight). The glass
+    /// reads the opacity back from the alpha (`glass.wgsl`'s `under`).
     pub fn encode(
         &self,
         enc: &mut wgpu::CommandEncoder,
@@ -64,12 +66,7 @@ impl Behind {
                 depth_slice: None,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: bg[0] as f64,
-                        g: bg[1] as f64,
-                        b: bg[2] as f64,
-                        a: 1.0,
-                    }),
+                    load: wgpu::LoadOp::Clear(crate::color::premultiplied(bg)),
                     store: wgpu::StoreOp::Store,
                 },
             })],

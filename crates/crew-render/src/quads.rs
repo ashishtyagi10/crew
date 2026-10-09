@@ -106,7 +106,7 @@ impl QuadLayer {
                     // Alpha blending, not REPLACE: cell backgrounds and rules
                     // are all opaque (identical under either mode), but the
                     // paint layer draws translucent chart fills over them.
-                    blend: Some(crate::blend::STRAIGHT_OVER),
+                    blend: Some(crate::blend::PREMUL_OVER),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
