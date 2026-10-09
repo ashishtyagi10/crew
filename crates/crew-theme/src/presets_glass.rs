@@ -72,10 +72,11 @@ pub static GLASS_NIGHT: Theme = Theme {
         wash: 0.0,
     }),
     liquid: Some(LiquidStyle {
-        refract: 14.0,
+        // No lens: the page is flat (see `presets_glass_light`'s optics).
+        refract: 0.0,
         bevel: 16.0,
-        blur: 18.0,
-        dispersion: 0.10,
+        blur: 0.0,
+        dispersion: 0.0,
         clear_rim: 0.75,
         vibrance: 1.35,
         // Smoke needs a little more body than frost: its worst desktop is

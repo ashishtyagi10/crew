@@ -10,6 +10,10 @@
 //!
 //! Alpha composites with Porter-Duff "over" instead — `a = sa + da·(1 − sa)`,
 //! never below what was there — while colour keeps straight-alpha blending.
+// Every scene pipeline now blends `PREMUL_OVER` (the scene is stored
+// premultiplied since v0.26.9); this stays as the reference the tests hold it
+// to.
+#[cfg(test)]
 pub(crate) const STRAIGHT_OVER: wgpu::BlendState = wgpu::BlendState {
     color: wgpu::BlendState::ALPHA_BLENDING.color,
     alpha: wgpu::BlendComponent::OVER,

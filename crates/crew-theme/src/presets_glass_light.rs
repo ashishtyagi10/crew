@@ -17,14 +17,16 @@
 //! `signal_tests` and `highlight_tests` put the numbers here.
 use crate::{CrtStyle, LiquidStyle, ModernStyle, Theme};
 
-/// The light glass's optics, shared by both wallpapers: a wider lens and a
-/// deeper frost than the night glass — on a bright page the bend is what says
-/// "glass", and the frost is what keeps black text calm on a vivid field.
+/// The light glass's optics, shared by both palettes: a deeper frost than the
+/// night glass, which keeps black text calm. No lens: the page is flat (the
+/// glass paints no wallpaper), so bending, blurring and splitting it drew
+/// nothing — eleven texture reads a pixel for a solid colour. The desktop's
+/// blur is the window server's (`desktop_blur`).
 const LIQUID_LIGHT: LiquidStyle = LiquidStyle {
-    refract: 20.0,
+    refract: 0.0,
     bevel: 22.0,
-    blur: 22.0,
-    dispersion: 0.08,
+    blur: 0.0,
+    dispersion: 0.0,
     clear_rim: 0.85,
     vibrance: 1.25,
     // The desktop shows three quarters through the gaps and nearly half

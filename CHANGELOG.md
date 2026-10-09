@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.13
+
+**Glass is cheaper to draw.** With no wallpaper of its own (v0.26.9), the
+glass's lens had nothing to bend. Every pixel of every pane still took
+eleven texture reads to refract, frost and colour-split a solid page. The
+glass themes now skip the lens: the same picture, pixel for pixel, for a
+fraction of the GPU work on every frame. The desktop's blur was always the
+window server's.
+- **Test:** glass with a flat page does no lens work.
+
 ## 0.26.12
 
 **Glass crossfades cleanly.** A theme switch melts the old frame into the
