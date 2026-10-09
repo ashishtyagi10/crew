@@ -104,7 +104,9 @@ fn row_line(
         }
         push_pad(&mut spans, &mut acc, trail, cols);
         if i + 1 < widths.len() {
-            spans.push(super::wrap::plain_span(SEP.to_string()));
+            let mut sep = super::wrap::plain_span(SEP.to_string());
+            sep.style.rule = true;
+            spans.push(sep);
             acc += SEP.chars().count();
         }
     }

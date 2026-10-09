@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.37
+
+**Table grids are one colour.** In a markdown table, in a chat reply or a
+document, the rule under the header row was drawn muted. So were its `┼`
+crossings. The `│` between the columns was drawn in full ink, though, so
+every crossing showed a seam where a bright line met a quiet one. The
+column separators now wear the rule's quieter colour, so the grid reads as
+one piece and stays a step behind the text it divides. The header row
+keeps its accent and the body its ink.
+- **Test:** a separator is the rule's colour, and each `┼` matches the
+  `│` below it.
+
 ## 0.26.36
 
 **Narrow panes drop words, not letters.** Four places cut their text at the

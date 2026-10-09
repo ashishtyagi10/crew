@@ -133,8 +133,8 @@ fn a_fence_draws_keyword_type_call_number_and_attribute_in_their_own_inks() {
         .all(|c| c.bg == Some(crate::chatink::code_bg())));
 }
 
-/// A table's header row reads in the accent, bold; the rule under it stays
-/// muted and the body rows keep the card colour. On main the header was bold
+/// A table's header row reads in the accent, bold; the rule under it and
+/// the column separators stay muted and the body rows keep the card colour. On main the header was bold
 /// in the body colour, the same as `**any**` bold word.
 #[test]
 fn a_table_header_takes_the_accent_over_a_muted_rule() {
@@ -147,9 +147,20 @@ fn a_table_header_takes_the_accent_over_a_muted_rule() {
     assert_eq!(head.fg, crate::palette::accent());
     assert!(head.bold);
     assert_eq!(out[0][6].c, '\u{2502}');
-    assert_eq!(out[0][6].fg, fg, "the separator is not part of the header");
+    // The separator is not part of the header: it is the grid, and wears
+    // the rule's colour so `│` meets `┼` without a seam.
+    let muted = crew_theme::theme().text_muted;
+    assert_eq!(out[0][6].fg, muted, "the separator is the rule's colour");
     assert_eq!(out[1][1].c, '\u{2500}');
-    assert_eq!(out[1][1].fg, crew_theme::theme().text_muted);
+    assert_eq!(out[1][1].fg, muted);
+    let cross = out[1]
+        .iter()
+        .find(|c| c.c == '\u{253c}')
+        .expect("a crossing");
+    assert_eq!(
+        cross.fg, out[2][6].fg,
+        "┼ and the │ under it are one colour"
+    );
     assert_eq!(out[2][1].fg, fg, "a bold body cell keeps the card colour");
     assert!(out[2][1].bold);
 }
