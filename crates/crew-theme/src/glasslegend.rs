@@ -45,10 +45,20 @@ fn legend_cover(body: f32, window: f32) -> f32 {
 /// white one, at every frost level — the grounds its ink has to read on.
 /// Empty for a palette that is not liquid glass.
 pub fn grounds(t: &Theme) -> Vec<(u8, u8, u8)> {
-    let Some(l) = t.liquid else {
-        return Vec::new();
-    };
-    let cover = legend_cover(l.body, l.window);
+    t.liquid
+        .map_or_else(Vec::new, |l| grounds_at(t, legend_cover(l.body, l.window)))
+}
+
+/// What text inside a pane stands on: the body alone, no veil.
+pub fn pane_grounds(t: &Theme) -> Vec<(u8, u8, u8)> {
+    t.liquid
+        .map_or_else(Vec::new, |l| grounds_at(t, l.pane_cover()))
+}
+
+/// The glass's frost over a black desktop and a white one, where it hides
+/// `cover` of the desktop. The body's top is the worst of its ramp either
+/// way: the least frost.
+fn grounds_at(t: &Theme, cover: f32) -> Vec<(u8, u8, u8)> {
     let mut out = Vec::new();
     for level in [GlassLevel::Low, GlassLevel::Medium, GlassLevel::High] {
         let g = style_for(t).scaled_by(level.liquid_scale());
@@ -67,7 +77,7 @@ pub fn grounds(t: &Theme) -> Vec<(u8, u8, u8)> {
 }
 
 /// The worst contrast `fg` makes on any of `grounds`.
-fn worst(fg: (u8, u8, u8), grounds: &[(u8, u8, u8)]) -> f32 {
+pub fn worst(fg: (u8, u8, u8), grounds: &[(u8, u8, u8)]) -> f32 {
     grounds
         .iter()
         .map(|&g| contrast_ratio(fg, g))
@@ -80,18 +90,27 @@ fn worst(fg: (u8, u8, u8), grounds: &[(u8, u8, u8)]) -> f32 {
 /// [`grounds`]). Unchanged on a palette that is not glass, or once it
 /// clears; the best it reached when the hue tops out first.
 pub fn legible(t: &Theme, want: (u8, u8, u8), floor: f32) -> (u8, u8, u8) {
-    let grounds = grounds(t);
-    if grounds.is_empty() || worst(want, &grounds) >= floor {
+    legible_on(t, want, floor, &grounds(t))
+}
+
+/// [`legible`] over any set of `grounds` (none: unchanged).
+pub fn legible_on(
+    t: &Theme,
+    want: (u8, u8, u8),
+    floor: f32,
+    grounds: &[(u8, u8, u8)],
+) -> (u8, u8, u8) {
+    if grounds.is_empty() || worst(want, grounds) >= floor {
         return want;
     }
     let c = oklch::from_srgb(want);
     let dir = if t.dark { 1.0 } else { -1.0 };
-    let (mut best, mut best_r) = (want, worst(want, &grounds));
+    let (mut best, mut best_r) = (want, worst(want, grounds));
     let mut l = c.l;
     while (0.0..=1.0).contains(&l) {
         l += dir * STEP;
         let rgb = c.with_l(l.clamp(0.0, 1.0)).to_srgb();
-        let r = worst(rgb, &grounds);
+        let r = worst(rgb, grounds);
         if r > best_r {
             (best, best_r) = (rgb, r);
         }
