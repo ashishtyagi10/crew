@@ -80,39 +80,23 @@ pub(crate) fn fit(name: &str, max: usize) -> String {
 /// A note is free text of unknown length — an error, a denial reason, whatever
 /// a tool said on its way out — and the detail line is the one place it is
 /// ever shown. Clipping it would drop the tail of exactly the message the line
-/// exists to carry, so it wraps instead.
+/// exists to carry, so it wraps instead: by the chat's own wrap
+/// ([`crate::wrapidx::wrap_indices`]), so no row opens on a spaced dash or a
+/// list's `·` and a wide glyph counts its two columns.
 pub(crate) fn wrap(text: &str, width: usize) -> Vec<String> {
-    let mut lines: Vec<String> = Vec::new();
-    let mut cur = String::new();
-    for word in text.split_whitespace() {
-        let w = word.chars().count();
-        let cur_w = cur.chars().count();
-        if !cur.is_empty() && cur_w + 1 + w > width {
-            lines.push(std::mem::take(&mut cur));
-        }
-        if w > width {
-            // Longer than a whole line: break it rather than overflow.
-            let mut rest = word;
-            while rest.chars().count() > width {
-                let head: String = rest.chars().take(width).collect();
-                lines.push(head);
-                rest = &rest[rest
-                    .char_indices()
-                    .nth(width)
-                    .map_or(rest.len(), |(i, _)| i)..];
-            }
-            cur = rest.to_string();
-            continue;
-        }
-        if !cur.is_empty() {
-            cur.push(' ');
-        }
-        cur.push_str(word);
+    let flat: Vec<char> = text
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .chars()
+        .collect();
+    if flat.is_empty() {
+        return Vec::new();
     }
-    if !cur.is_empty() {
-        lines.push(cur);
-    }
-    lines
+    crate::wrapidx::wrap_indices(&flat, width.max(1))
+        .into_iter()
+        .map(|(a, b)| flat[a..b].iter().collect())
+        .collect()
 }
 
 /// The line under a row, or `None` when there is nothing unusual to say.

@@ -395,6 +395,9 @@ mod frameshot_tests;
 #[cfg(test)]
 #[path = "glasssurveyshot_tests.rs"]
 mod glasssurveyshot_tests;
+#[cfg(test)]
+#[path = "glassworkshot_tests.rs"]
+mod glassworkshot_tests;
 mod hoverlift;
 #[cfg(test)]
 #[path = "lspshot_tests.rs"]

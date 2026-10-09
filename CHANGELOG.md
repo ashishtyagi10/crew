@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.24
+
+**A thinking block no longer stands a dash on a row of its own.** The
+working an agent shows while it thinks, and the task rows of `/watching`,
+were wrapped by a plain word wrap. A line ending in "darkens too —" put the "—"
+alone on the next row. They now wrap by the chat's own rule, the one its
+replies already follow: a row can end on a dash but never start with one,
+and a list's `·` stays with its words. Wide characters also count as two
+columns now, as they do everywhere else in the chat.
+- **Test:** a note that wraps at a spaced dash moves the break back a word.
+- **New shot:** `glass_work_shot` puts agent smith mid-conversation and a
+  shell's output on each glass theme. These are the two panes crew is read
+  in most, and the glass survey had never covered them.
+
 ## 0.26.23
 
 **The opacity picker says when its steps do nothing.** `/opacity ` (and

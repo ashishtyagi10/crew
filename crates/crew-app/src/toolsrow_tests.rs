@@ -31,3 +31,17 @@ fn a_word_longer_than_the_line_is_broken_rather_than_overflowing() {
     assert!(lines.iter().all(|l| l.chars().count() <= 10), "{lines:?}");
     assert!(lines.last().unwrap().contains("short"), "{lines:?}");
 }
+
+/// The prose rule the chat's bodies wrap by (`md::dashbreak`): a row may end
+/// on `too —` but never open on the dash. The thinking block wraps by this
+/// and stood a lone `—` on a row of its own.
+#[test]
+fn no_row_opens_on_a_spaced_dash() {
+    let lines = wrap("the dial face darkens too — better to lift the ticks", 26);
+    assert!(
+        lines.iter().all(|l| !l.starts_with('\u{2014}')),
+        "{lines:?}"
+    );
+    assert!(lines.iter().all(|l| l.chars().count() <= 26), "{lines:?}");
+    assert_eq!(lines[1], "too \u{2014} better to lift the", "{lines:?}");
+}
