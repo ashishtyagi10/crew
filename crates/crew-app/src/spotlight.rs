@@ -81,6 +81,12 @@ pub(crate) fn wash(cells: &mut [CellView], dim: f32) {
     // A pane has a handful of colours and thousands of cells.
     let mut done: std::collections::HashMap<(u8, u8, u8), (u8, u8, u8)> = Default::default();
     for c in cells.iter_mut() {
+        // A blank in a highlight bar is a `█` in the bar's colour
+        // (`tui::cells`): a background, so it stays put with the others —
+        // washed, it left every word in an unfocused bar on a darker patch.
+        if c.c == '\u{2588}' && c.fg == c.bg {
+            continue;
+        }
         let on_glass = !grounds.is_empty() && (c.bg == t.page_bg || c.bg == t.term_bg);
         let fg = c.fg;
         c.fg = match on_glass {

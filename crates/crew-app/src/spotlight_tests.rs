@@ -140,3 +140,23 @@ fn the_wash_never_takes_glass_text_under_the_floor() {
         crew_theme::glassborder::set_sheer(false);
     }
 }
+
+/// A highlight bar is two kinds of cell: a word's, whose background is the
+/// bar's colour, and a blank's, a `█` drawn in it (`tui::cells`). The wash
+/// leaned the blanks' blocks toward the page with the ink, so every word in
+/// an unfocused bar sat on a darker patch than the gaps between them.
+#[test]
+fn the_wash_leaves_a_highlight_bar_one_colour() {
+    let _g = crate::app::theme_test_guard();
+    let bar = (174, 206, 255);
+    let cell = |c: char, fg| CellView {
+        c,
+        fg,
+        bg: bar,
+        ..Default::default()
+    };
+    let mut cells = vec![cell('a', crew_theme::theme().ink), cell('\u{2588}', bar)];
+    wash(&mut cells, DIM);
+    assert_eq!(cells[1].fg, bar, "a blank in the bar is background");
+    assert_eq!(cells[0].bg, bar, "and so is the word's");
+}
