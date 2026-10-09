@@ -31,3 +31,70 @@ fn glass_survey_shot() {
         }
     }
 }
+
+/// Every glyph the glass windows draw on the glass itself (no fill of its
+/// own), ranked by the worst contrast its colour makes over the pane's
+/// grounds — the frost over a black and a white desktop. Prints the colours
+/// under the UI floor with what they spelled: the survey's to-do list.
+///
+/// `cargo test -p crew-app --bin crew glass_ink_survey -- --ignored --nocapture`
+#[test]
+#[ignore = "a survey: prints, asserts nothing"]
+fn glass_ink_survey() {
+    use std::collections::BTreeMap;
+    let _g = crate::app::theme_test_guard();
+    let mut sets: Vec<(&str, &[&str])> = SETS.to_vec();
+    sets.push(("far-dash", &["/far", "/far", "/dash"]));
+    for id in [ThemeId::GlassSky, ThemeId::GlassNight] {
+        crew_theme::set_theme(id);
+        crew_theme::glassborder::set_sheer(true);
+        let t = crew_theme::theme();
+        crate::palette::set_accent(t.accent_default);
+        let grounds = crew_theme::glasslegend::pane_grounds(t);
+        let mut found: BTreeMap<(u8, u8, u8), Vec<String>> = BTreeMap::new();
+        for (_, cmds) in &sets {
+            let mut app = crate::app::CrewApp {
+                geo_override: Some((8.0, 18.0, 1280.0, 720.0, 1.0)),
+                ..Default::default()
+            };
+            for cmd in *cmds {
+                app.submit_input(cmd.to_string());
+            }
+            app.focused = 1;
+            app.build_frame();
+            std::thread::sleep(std::time::Duration::from_millis(400));
+            for scene in app.build_frame() {
+                let mut run = (u16::MAX, (0, 0, 0), String::new());
+                for c in &scene.cells {
+                    let on_glass = c.bg == t.page_bg || c.bg == t.term_bg;
+                    // Frames and fills are strokes, not words: their own
+                    // floor is the frame's (`glassborder`).
+                    let stroke = ('\u{2500}'..='\u{259F}').contains(&c.c);
+                    if c.c == ' ' || stroke || !on_glass {
+                        continue;
+                    }
+                    if (c.row, c.fg) != (run.0, run.1) {
+                        let words = std::mem::take(&mut run.2);
+                        found.entry(run.1).or_default().push(words);
+                        run = (c.row, c.fg, String::new());
+                    }
+                    run.2.push(c.c);
+                }
+                found.entry(run.1).or_default().push(run.2);
+            }
+        }
+        crew_theme::glassborder::set_sheer(false);
+        let mut rows: Vec<_> = found
+            .into_iter()
+            .map(|(fg, words)| (crew_theme::glasslegend::worst(fg, &grounds), fg, words))
+            .filter(|(r, _, _)| *r < crew_theme::readable::MARK_FLOOR)
+            .collect();
+        rows.sort_by(|a, b| a.0.total_cmp(&b.0));
+        eprintln!("== {}", id.as_str());
+        for (r, fg, words) in rows {
+            let mut w: Vec<_> = words.into_iter().filter(|s| !s.trim().is_empty()).collect();
+            w.dedup();
+            eprintln!("{r:5.2} {fg:?} ×{} {:?}", w.len(), &w[..w.len().min(6)]);
+        }
+    }
+}
