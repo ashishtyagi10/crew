@@ -87,6 +87,7 @@ pub(crate) fn draw_with(
         ));
         c.set_anim(0.0, 0.0);
         c.set_premultiply(crew_render::premultiplies(opacity));
+        c.set_sheer(opacity < 1.0);
         c.update_uniforms(&queue, w as f32, h as f32, !crew_theme::theme().dark);
     }
     let padded = row_padded(w);
@@ -126,12 +127,8 @@ pub(crate) fn draw_with(
                 depth_slice: None,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: bg_f32[0] as f64,
-                        g: bg_f32[1] as f64,
-                        b: bg_f32[2] as f64,
-                        a: bg_f32[3] as f64,
-                    }),
+                    // Premultiplied, as the frame stores its scene.
+                    load: wgpu::LoadOp::Clear(crew_render::color::premultiplied(bg_f32)),
                     store: wgpu::StoreOp::Store,
                 },
             })],

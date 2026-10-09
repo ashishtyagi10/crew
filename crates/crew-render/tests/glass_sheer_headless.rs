@@ -4,7 +4,9 @@
 //! does. The blend would mix the page under the card back in by the alpha
 //! given up, so the shader takes that share out first; this renders a slab
 //! solid and see-through over the same page and holds the two to the same
-//! colour, with the see-through one's alpha where the theme says.
+//! colour, with the see-through one's alpha where the theme says. The scene
+//! is stored premultiplied, as the frame stores it — including a slab
+//! CLEARER than its own frost, which straight colour could not draw.
 use crew_render::{GlassCard, GlassLayer};
 
 const SIZE: u32 = 64;
@@ -14,15 +16,15 @@ const FMT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 const PAGE: [u8; 4] = [236, 200, 214, 255];
 const WINDOW: f64 = 0.45;
 
-fn slab(see: f32) -> GlassCard {
+fn slab(see: f32, frost: f32) -> GlassCard {
     GlassCard {
         x: 12.0,
         y: 12.0,
         w: 40.0,
         h: 40.0,
         radius: 8.0,
-        alpha_top: 0.5,
-        alpha_bottom: 0.5,
+        alpha_top: frost,
+        alpha_bottom: frost,
         noise: 0.0,
         tint: [1.0, 1.0, 1.0, 1.0],
         highlight: [1.0, 1.0, 1.0, 1.0],
@@ -58,8 +60,20 @@ fn texture(device: &wgpu::Device, usage: wgpu::TextureUsages) -> wgpu::Texture {
     })
 }
 
+/// The page, premultiplied at the window's opacity — the frame's clear and
+/// the glass's backdrop alike.
+fn page() -> [u8; 4] {
+    let p = |c: u8| (f64::from(c) * WINDOW).round() as u8;
+    [
+        p(PAGE[0]),
+        p(PAGE[1]),
+        p(PAGE[2]),
+        (255.0 * WINDOW).round() as u8,
+    ]
+}
+
 /// The slab's centre pixel, drawn over the page at the window's opacity.
-fn centre(device: &wgpu::Device, queue: &wgpu::Queue, see: f32) -> [u8; 4] {
+fn centre(device: &wgpu::Device, queue: &wgpu::Queue, see: f32, frost: f32) -> [u8; 4] {
     let behind = texture(
         device,
         wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
@@ -71,7 +85,7 @@ fn centre(device: &wgpu::Device, queue: &wgpu::Queue, see: f32) -> [u8; 4] {
             origin: wgpu::Origin3d::ZERO,
             aspect: wgpu::TextureAspect::All,
         },
-        &PAGE.repeat((SIZE * SIZE) as usize),
+        &page().repeat((SIZE * SIZE) as usize),
         wgpu::TexelCopyBufferLayout {
             offset: 0,
             bytes_per_row: Some(SIZE * 4),
@@ -85,7 +99,7 @@ fn centre(device: &wgpu::Device, queue: &wgpu::Queue, see: f32) -> [u8; 4] {
     );
     let mut layer = GlassLayer::new(device, FMT);
     layer.set_behind(device, &behind.create_view(&Default::default()));
-    layer.set_cards(device, &[slab(see)]);
+    layer.set_cards(device, &[slab(see, frost)]);
     layer.set_view(queue, SIZE as f32, SIZE as f32, (0.0, 0.0));
     let out = texture(
         device,
@@ -100,7 +114,6 @@ fn centre(device: &wgpu::Device, queue: &wgpu::Queue, see: f32) -> [u8; 4] {
     let view = out.create_view(&Default::default());
     let mut enc = device.create_command_encoder(&Default::default());
     {
-        let c = |v: u8| f64::from(v) / 255.0;
         let mut rp = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("glass_sheer"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -108,12 +121,12 @@ fn centre(device: &wgpu::Device, queue: &wgpu::Queue, see: f32) -> [u8; 4] {
                 depth_slice: None,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: c(PAGE[0]),
-                        g: c(PAGE[1]),
-                        b: c(PAGE[2]),
-                        a: WINDOW,
-                    }),
+                    load: wgpu::LoadOp::Clear(crew_render::color::premultiplied([
+                        f32::from(PAGE[0]) / 255.0,
+                        f32::from(PAGE[1]) / 255.0,
+                        f32::from(PAGE[2]) / 255.0,
+                        WINDOW as f32,
+                    ])),
                     store: wgpu::StoreOp::Store,
                 },
             })],
@@ -176,29 +189,32 @@ fn glass_sheer_headless() {
     let (device, queue) =
         pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
             .expect("request_device failed");
-    let solid = centre(&device, &queue, 0.0);
-    let see = 0.35;
-    let sheer = centre(&device, &queue, see);
-    eprintln!("glass_sheer_headless: solid {solid:?}, see-through {sheer:?}");
-    // Solid glass covers the desktop whole, as it always did.
-    assert_eq!(solid[3], 255, "a solid slab let the desktop through");
-    // See-through: the slab's own alpha over the page's ("over").
-    let body = 1.0 - see;
-    let want = ((body + WINDOW as f32 * (1.0 - body)) * 255.0).round() as u8;
-    assert!(
-        sheer[3].abs_diff(want) <= 1,
-        "alpha {} not {want}",
-        sheer[3]
-    );
-    // …and it is the same glass: the frost, not the page, under the text.
-    for c in 0..3 {
+    // Clearer than the frost (0.7 of the desktop through a 0.5 frost) as well
+    // as frostier: the first is the one straight colour clamped grey.
+    for (see, frost) in [(0.35_f32, 0.5_f32), (0.7, 0.5)] {
+        let solid = centre(&device, &queue, 0.0, frost);
+        let sheer = centre(&device, &queue, see, frost);
+        eprintln!("glass_sheer_headless: see {see}: solid {solid:?}, see-through {sheer:?}");
+        // Solid glass covers the desktop whole, as it always did.
+        assert_eq!(solid[3], 255, "a solid slab let the desktop through");
+        // See-through: the slab's own alpha over the page's ("over").
+        let body = 1.0 - see;
+        let want = ((body + WINDOW as f32 * see) * 255.0).round() as u8;
         assert!(
-            sheer[c].abs_diff(solid[c]) <= 2,
-            "channel {c}: {} see-through vs {} solid",
-            sheer[c],
-            solid[c]
+            sheer[3].abs_diff(want) <= 1,
+            "see {see}: alpha {} not {want}",
+            sheer[3]
         );
+        // …and it is the same glass: the frost, not the page, under the text.
+        for c in 0..3 {
+            let own = (f32::from(sheer[c]) * 255.0 / f32::from(sheer[3])).round() as u8;
+            assert!(
+                own.abs_diff(solid[c]) <= 2,
+                "see {see} channel {c}: {own} see-through vs {} solid",
+                solid[c]
+            );
+        }
+        // The frost is really there (the test is not comparing page to page).
+        assert!(solid[2] > PAGE[2] + 10, "no frost: {solid:?}");
     }
-    // The frost is really there (the test is not comparing page to page).
-    assert!(solid[2] > PAGE[2] + 10, "no frost: {solid:?}");
 }

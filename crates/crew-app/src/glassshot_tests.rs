@@ -186,12 +186,8 @@ fn render_full(glass: crew_theme::GlassLevel, opacity: f32, crt: bool) -> Option
                 depth_slice: None,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: bg_f32[0] as f64,
-                        g: bg_f32[1] as f64,
-                        b: bg_f32[2] as f64,
-                        a: bg_f32[3] as f64,
-                    }),
+                    // Premultiplied, as the frame stores its scene.
+                    load: wgpu::LoadOp::Clear(crew_render::color::premultiplied(bg_f32)),
                     store: wgpu::StoreOp::Store,
                 },
             })],

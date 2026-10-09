@@ -235,9 +235,11 @@ impl Cache {
                             // CREW PATCH (4, see the root Cargo.toml): alpha
                             // composites "over", not ALPHA_BLENDING's sa·sa —
                             // that thinned the page alpha under every glyph's
-                            // anti-aliased rim on a sheer window.
+                            // anti-aliased rim on a sheer window. And (5) the
+                            // colour does too: the shader hands over
+                            // premultiplied colour, as crew stores its scene.
                             blend: Some(BlendState {
-                                color: BlendState::ALPHA_BLENDING.color,
+                                color: wgpu::BlendComponent::OVER,
                                 alpha: wgpu::BlendComponent::OVER,
                             }),
                             write_mask: ColorWrites::default(),

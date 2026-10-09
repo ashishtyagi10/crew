@@ -11,16 +11,23 @@ fn byte(v: f32) -> u8 {
 }
 
 /// Glass is see-through (the user, 2026-10-08: "I can't see the
-/// background"): every liquid theme's window lets the desktop through, more
-/// of it between the panes than under them, and a pane still hides most of
-/// it — a frosted slab, not a hole.
+/// background"; 2026-10-09: "still not transparent enough"): every liquid
+/// theme's window lets most of the desktop through between the panes and
+/// a third to a half of it through a pane, and the desktop is the only
+/// background — no wallpaper of its own ("I don't think we need gradient
+/// colors in glass themes").
 #[test]
 fn glass_lets_the_desktop_through() {
     for id in ALL_THEMES {
         let Some(l) = id.theme().liquid else { continue };
         let name = id.as_str();
+        let wash = id.theme().modern.map_or(0.0, |m| m.wash);
+        assert_eq!(
+            wash, 0.0,
+            "{name}: glass paints a wallpaper over the desktop"
+        );
         assert!(
-            l.window <= 0.6,
+            l.window <= 0.35,
             "{name}: the gaps hide {:.2} of the desktop",
             l.window
         );
@@ -28,7 +35,7 @@ fn glass_lets_the_desktop_through() {
         let cover = l.pane_cover();
         assert!(cover > l.window, "{name}: a pane shows more than a gap");
         assert!(
-            (0.75..=0.9).contains(&cover),
+            (0.5..=0.7).contains(&cover),
             "{name}: a pane hides {cover:.2}"
         );
         assert!(
@@ -43,8 +50,8 @@ fn glass_lets_the_desktop_through() {
 /// wallpaper's deepest pool (a pole at the wash's full strength, saturated by
 /// the glass) under the clearest frost any level draws (the body's top at
 /// that level). The bar is WCAG AA for the ink and the terminal's text, and
-/// the UI floor for muted text: seeing the desktop costs some contrast, never
-/// legibility.
+/// the UI floor for muted text: seeing the desktop costs some contrast,
+/// never legibility.
 #[test]
 fn glass_text_reads_over_any_desktop() {
     let mut under = Vec::new();

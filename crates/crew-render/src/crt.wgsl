@@ -78,8 +78,10 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // warp to push pixels past the glass edge, so there is no bezel test.
     let warped = uv;
 
+    // The scene is stored PREMULTIPLIED (`blend::PREMUL_OVER`): every effect
+    // below works on its own colour, so take the alpha back out first.
     let scene = textureSample(tex, samp, warped);
-    var col = scene.rgb;
+    var col = scene.rgb / max(scene.a, 0.0001);
 
     // Phosphor glow: add the pre-blurred bright-pass (bloom.wgsl's half-res
     // gaussian chain) scaled by the theme's glow. This is what replaced the
@@ -158,7 +160,8 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     //
     // See-through glass leaves PREMULTIPLIED: the window server adds rgb to
     // what the alpha leaves of the desktop, so a light page written straight
-    // is the desktop plus near-white — a white-out, not glass.
+    // is the desktop plus near-white — a white-out, not glass. Every other
+    // theme leaves straight, as its look was tuned (a tube's glow adds light).
     let out = clamp(col, vec3<f32>(0.0), vec3<f32>(1.0));
     return vec4<f32>(out * mix(1.0, a, u.premul), a);
 }

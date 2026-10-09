@@ -1,12 +1,11 @@
 //! **Glass night**: the iPhone's liquid glass after dark (the user, 2026-10-07 —
 //! the light pair, `glass-sky` and `glass-dawn`, is what `glass` serves; see
 //! [`crate::presets_glass_light`]). Every pane is a
-//! slab of glass over a vivid wallpaper — the wallpaper frosted and deepened
-//! in its body, bent by a lens at its rim, a bright specular edge on top
-//! ([`crate::LiquidStyle`], `glass::liquid_glass`). The page is the wallpaper:
-//! a deep violet night under two broad pools of electric blue and hot pink
-//! that drift as the room does. The accent is the iPhone's dark-mode mint —
-//! aqua, the colour of the glass itself — and the face is SF Mono.
+//! slab of smoked glass over the desktop — the window is see-through and
+//! paints no wallpaper of its own (2026-10-09) — with a bright specular edge
+//! on top ([`crate::LiquidStyle`], `glass::liquid_glass`). The accent is the
+//! iPhone's dark-mode mint — aqua, the colour of the glass itself — and the
+//! face is SF Mono.
 //!
 //! Every derived role is what the ramp, the alarm and the wash produce for
 //! this page and ink — the parity tests in `ramp_tests`, `signal_tests` and
@@ -67,7 +66,10 @@ pub static GLASS_NIGHT: Theme = Theme {
         pole_b: (255, 64, 150),
         drift_ms: 6_000,
         dots: 0.0,
-        wash: 0.85,
+        // No wallpaper of its own: the desktop IS the background (the user,
+        // 2026-10-09: "I don't think we need gradient colors in glass
+        // themes"). The poles still light the focus ring.
+        wash: 0.0,
     }),
     liquid: Some(LiquidStyle {
         refract: 14.0,
@@ -76,8 +78,10 @@ pub static GLASS_NIGHT: Theme = Theme {
         dispersion: 0.10,
         clear_rim: 0.75,
         vibrance: 1.35,
-        window: 0.45,
-        body: 0.65,
+        // Smoke needs a little more body than frost: its worst desktop is
+        // white, and light text has less to spare there.
+        window: 0.25,
+        body: 0.54,
         desktop_blur: 20.0,
     }),
 };

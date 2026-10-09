@@ -233,6 +233,7 @@ impl Renderer {
         // Per frame: a theme switch moves it as surely as an opacity change.
         self.crt
             .set_premultiply(crate::crtchain::premultiplies(self.window_opacity));
+        self.crt.set_sheer(self.window_opacity < 1.0);
         crate::frame::render(
             &self.gpu,
             &mut self.cell_grid,

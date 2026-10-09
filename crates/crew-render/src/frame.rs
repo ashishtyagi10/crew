@@ -78,8 +78,9 @@ pub(crate) fn render(
         .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
     // CRT on → scene renders off-screen then reprojects; off → straight to
-    // the surface (the original, zero-overhead path). See-through glass takes
-    // the chain too, for its premultiply (`crtchain::premultiplies`).
+    // the surface (the original, zero-overhead path). A see-through window
+    // takes the chain too: it hands the premultiplied scene over
+    // (`CrtChain::set_sheer`).
     let use_crt = crt.active();
     let bg = crew_theme::theme().page_bg;
     // The page alpha IS the window opacity: it seeds the clear and the
@@ -196,16 +197,11 @@ fn encode_scene(
             depth_slice: None,
             resolve_target: None,
             ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color {
-                    r: bg_f32[0] as f64,
-                    g: bg_f32[1] as f64,
-                    b: bg_f32[2] as f64,
-                    // Carries the window opacity (see above) — a hard 1.0
-                    // here would make the window opaque no matter what the
-                    // paper pass writes, and with the paper texture off
-                    // there IS no paper pass.
-                    a: bg_f32[3] as f64,
-                }),
+                // Carries the window opacity (see above) — a hard 1.0 here
+                // would make the window opaque no matter what the paper pass
+                // writes, and with the paper texture off there IS no paper
+                // pass. Premultiplied, as the whole scene is stored.
+                load: wgpu::LoadOp::Clear(crate::color::premultiplied(bg_f32)),
                 store: wgpu::StoreOp::Store,
             },
         })],

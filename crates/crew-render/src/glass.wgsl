@@ -191,10 +191,17 @@ fn sdf_normal(p: vec2<f32>, b: vec2<f32>, r: f32) -> vec2<f32> {
     + vec2<f32>(1e-5, 1e-5));
 }
 
-// The backdrop at screen px `p`, clamped to the window.
-fn behind_at(p: vec2<f32>) -> vec3<f32> {
+// The backdrop at screen px `p`, clamped to the window, as it is stored:
+// premultiplied, its alpha the window's opacity (`behind.rs`).
+fn behind_raw(p: vec2<f32>) -> vec4<f32> {
   let uv = clamp(p / vp.size, vec2<f32>(0.0), vec2<f32>(1.0));
-  return textureSampleLevel(behind_tex, behind_samp, uv, 0.0).rgb;
+  return textureSampleLevel(behind_tex, behind_samp, uv, 0.0);
+}
+
+// The backdrop's own colour at `p` — what the frost blurs and the lens bends.
+fn behind_at(p: vec2<f32>) -> vec3<f32> {
+  let t = behind_raw(p);
+  return t.rgb / max(t.a, 0.0001);
 }
 
 // The backdrop at `p` frosted over radius `r` px: the centre and eight taps on
@@ -433,16 +440,19 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
 
   // --- see-through ----------------------------------------------------------
   // On a see-through window the slab lets some of the desktop through: its
-  // alpha drops to the body's, and the window server shows the desktop in
-  // what is left. The colour must not change for it, but the blend would mix
-  // the page under the card back in by the alpha given up — so that share is
-  // taken out here first. The page there IS the wallpaper the glass samples:
-  // the glass is the first thing drawn over it.
+  // own alpha is the body's, over a page at the window's opacity `o`, so the
+  // pane covers `body + o·see` of the desktop — in the slab's own colour. The
+  // blend adds what the slab leaves of the page under it (stored
+  // premultiplied, `under`); the page there IS the wallpaper the glass
+  // samples, since the glass is the first thing drawn over it. So the slab
+  // hands over its colour at the pane's coverage less that share. Divided by
+  // the body only to be multiplied back at the return.
   let see = in.lens1.z;
   if (in.lens1.w > 0.0 && see > 0.0) {
     let body = 1.0 - see;
-    let under = behind_at(in.pos.xy);
-    rgb = clamp((rgb - under * see) / body, vec3<f32>(0.0), vec3<f32>(1.0));
+    let under = behind_raw(in.pos.xy);
+    let cover = body + under.a * see;
+    rgb = max(rgb * cover - under.rgb * see, vec3<f32>(0.0)) / body;
     alpha = alpha * body;
   }
 
@@ -460,6 +470,6 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   let hi = max(in.tint.x, max(in.tint.y, in.tint.z));
   let lit = select(vec3<f32>(1.0), (in.tint.xyz - lo) / max(hi - lo, 0.001), hi - lo > 0.001);
   let halo = lit * in.nmeta.z * shadow * (1.0 - alpha);
-  let out_rgb = (rgb * alpha + halo) / out_a;
-  return vec4<f32>(out_rgb, out_a);
+  // Premultiplied (the pipeline blends with `PREMUL_OVER`).
+  return vec4<f32>(rgb * alpha + halo, out_a);
 }

@@ -34,6 +34,18 @@ pub fn target_rgba(c: (u8, u8, u8), alpha: f32, srgb: bool) -> [f32; 4] {
     }
 }
 
+/// A straight `[r, g, b, a]` as the clear colour of a scene stored
+/// PREMULTIPLIED (see `blend::PREMUL_OVER`): the colour times its alpha.
+pub fn premultiplied(c: [f32; 4]) -> wgpu::Color {
+    let a = f64::from(c[3]);
+    wgpu::Color {
+        r: f64::from(c[0]) * a,
+        g: f64::from(c[1]) * a,
+        b: f64::from(c[2]) * a,
+        a,
+    }
+}
+
 #[cfg(test)]
 #[path = "color_tests.rs"]
 mod tests;

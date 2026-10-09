@@ -102,7 +102,7 @@ impl RoundBorderLayer {
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format,
-                    blend: Some(crate::blend::STRAIGHT_OVER),
+                    blend: Some(crate::blend::PREMUL_OVER),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),

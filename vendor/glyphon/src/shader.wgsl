@@ -115,11 +115,14 @@ fn vs_main(in_vert: VertexInput) -> VertexOutput {
 @fragment
 fn fs_main(in_frag: VertexOutput) -> @location(0) vec4<f32> {
     switch in_frag.content_type {
+        // CREW PATCH (5, see the root Cargo.toml): premultiplied out.
         case 0u: {
-            return textureSampleLevel(color_atlas_texture, atlas_sampler, in_frag.uv, 0.0);
+            let c = textureSampleLevel(color_atlas_texture, atlas_sampler, in_frag.uv, 0.0);
+            return vec4<f32>(c.rgb * c.a, c.a);
         }
         case 1u: {
-            return vec4<f32>(in_frag.color.rgb, in_frag.color.a * textureSampleLevel(mask_atlas_texture, atlas_sampler, in_frag.uv, 0.0).x);
+            let a = in_frag.color.a * textureSampleLevel(mask_atlas_texture, atlas_sampler, in_frag.uv, 0.0).x;
+            return vec4<f32>(in_frag.color.rgb * a, a);
         }
         default: {
             return vec4<f32>(0.0);

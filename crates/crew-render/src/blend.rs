@@ -15,6 +15,17 @@ pub(crate) const STRAIGHT_OVER: wgpu::BlendState = wgpu::BlendState {
     alpha: wgpu::BlendComponent::OVER,
 };
 
+/// [`STRAIGHT_OVER`] for a shader that hands over PREMULTIPLIED colour: the
+/// same result for the same pixel, but the colour need not fit under its own
+/// alpha first. The glass needs that: a see-through slab clearer than its
+/// own frost has to say "this much page, gone" and "this much frost" at once,
+/// and straight colour would have to divide by an alpha smaller than the
+/// frost — clamping the frost greyer (see `glass.wgsl`'s see-through).
+pub(crate) const PREMUL_OVER: wgpu::BlendState = wgpu::BlendState {
+    color: wgpu::BlendComponent::OVER,
+    alpha: wgpu::BlendComponent::OVER,
+};
+
 #[cfg(test)]
 #[path = "blend_tests.rs"]
 mod tests;
