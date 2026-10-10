@@ -12,7 +12,7 @@ fn pane() -> FarPane {
 fn a_blurred_pane_has_no_caret_and_no_accent_bar() {
     let _g = crate::app::theme_test_guard();
     let p = pane();
-    let acc = crate::palette::accent();
+    let acc = crate::segment::inked(crate::palette::accent()).1;
     let live = super::render_in(&p, 80, 24, true);
     let quiet = super::render_in(&p, 80, 24, false);
     assert!(live.iter().any(|c| c.c == '\u{258f}'), "focused: caret");
@@ -25,10 +25,11 @@ fn a_blurred_pane_has_no_caret_and_no_accent_bar() {
         !quiet.iter().any(|c| c.bg == acc),
         "blurred: no accent fill"
     );
-    let wash = crew_theme::readable::selection_bg(&crew_theme::theme());
+    let t = crew_theme::theme();
+    let frost = crate::anim::lerp_rgb(t.page_bg, t.ink, super::panellist::BLURRED_BAR_SHADE);
     assert!(
-        quiet.iter().any(|c| c.bg == wash),
-        "blurred: the place is kept, in the wash"
+        quiet.iter().any(|c| c.bg == frost),
+        "blurred: the place is kept, in a frost of the smoke"
     );
 }
 
@@ -56,4 +57,36 @@ fn an_open_prompt_owns_the_only_caret() {
         0,
         "blurred: none"
     );
+}
+
+/// On the glass the path tab is bold words on the rule, not a filled tab:
+/// tab and cursor bar stood as one stepped slab in dark ink (survey C#2).
+/// The bar's name is the theme's white, on the accent it deepened.
+#[test]
+fn the_tab_is_words_and_the_bar_is_white_on_the_glass() {
+    let _g = crate::app::theme_test_guard();
+    let p = pane();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let t = crew_theme::theme();
+        let live = super::render_in(&p, 80, 24, true);
+        let tab: Vec<_> = live
+            .iter()
+            .filter(|c| c.row == 0 && c.c.is_alphanumeric())
+            .collect();
+        assert!(!tab.is_empty(), "{id:?}: a tab");
+        assert!(
+            tab.iter().all(|c| c.bg == t.page_bg),
+            "{id:?}: the tab has no fill"
+        );
+        let bar: Vec<_> = live
+            .iter()
+            .filter(|c| c.row == 1 && c.bg != t.page_bg && c.c == '.')
+            .collect();
+        assert!(!bar.is_empty(), "{id:?}: the bar holds ../");
+        assert!(
+            bar.iter().all(|c| c.fg == t.ink && c.bold),
+            "{id:?}: white bold on the bar"
+        );
+    }
 }

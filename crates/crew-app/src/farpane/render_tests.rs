@@ -379,7 +379,7 @@ fn suggested_command_highlights_the_bar_and_shows_the_accept_hint() {
         .expect("suggestion cell rendered");
     assert_eq!(
         dash.bg,
-        crate::palette::accent(),
+        crate::segment::inked(crate::palette::accent()).1,
         "a landed suggestion highlights with the accent fill"
     );
 }
@@ -514,32 +514,33 @@ fn status_line_blank_for_an_empty_listing() {
 }
 
 #[test]
-fn active_panel_legend_is_a_filled_accent_tab() {
+fn active_panel_legend_is_bold_accent_words() {
     let _g = crate::app::theme_test_guard();
     // Post-v0.6.23 feedback: the accent border alone was still too subtle.
-    // The active panel's legend now carries an accent bg fill (a "selected
-    // tab"); the inactive legend stays plain — bg fill on row 0 must appear
-    // on exactly one side of the divider.
+    // The active panel's legend was a filled accent tab until the glass
+    // (survey C#2: tab and bar one stepped slab); it is bold accent words
+    // now, and the inactive legend stays plain — on exactly one side of
+    // the divider.
     let cells = super::render(&fixture_pane("legendtab"), 80, 24);
-    let page = crew_theme::theme().page_bg;
+    let acc = crate::palette::accent();
     let divider_x = cells
         .iter()
         .filter(|c| c.c == '┬')
         .map(|c| c.col)
         .next()
         .expect("shared divider column");
-    let filled_top: Vec<u16> = cells
+    let marked: Vec<u16> = cells
         .iter()
-        .filter(|c| c.row == 0 && c.bg != page)
+        .filter(|c| c.row == 0 && c.c.is_alphanumeric() && c.fg == acc && c.bold)
         .map(|c| c.col)
         .collect();
     assert!(
-        filled_top.iter().any(|&x| x < divider_x),
-        "active (left) legend must carry the accent fill"
+        marked.iter().any(|&x| x < divider_x),
+        "active (left) legend must be bold accent words"
     );
     assert!(
-        filled_top.iter().all(|&x| x < divider_x),
-        "inactive (right) legend must stay unfilled"
+        marked.iter().all(|&x| x < divider_x),
+        "inactive (right) legend must stay plain"
     );
 }
 
