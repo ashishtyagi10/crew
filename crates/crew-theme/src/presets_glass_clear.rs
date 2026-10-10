@@ -33,7 +33,7 @@ pub static GLASS_CLEAR: Theme = Theme {
     dim: (124, 126, 130),
     placeholder: (116, 118, 122),
     hint_fg: (126, 128, 132),
-    find_hl_bg: (44, 52, 112),
+    find_hl_bg: (100, 30, 55),
     ansi: [
         (100, 101, 103), // 0  black
         (255, 161, 149), // 1  red

@@ -94,7 +94,7 @@ pub static PAPER_LIGHT: Theme = Theme {
     dim: (136, 131, 125),
     placeholder: (127, 123, 117),
     hint_fg: (137, 133, 127),
-    find_hl_bg: (46, 54, 121),
+    find_hl_bg: (101, 60, 10),
     ansi: [
         (107, 106, 104), // 0  black
         (255, 172, 161), // 1  red

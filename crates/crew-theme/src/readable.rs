@@ -228,21 +228,42 @@ fn in_tube_hue(t: &Theme, want: (u8, u8, u8)) -> (u8, u8, u8) {
 ///
 /// A tube selects in its own phosphor instead: a single-gun screen has no
 /// blue to draw a selection in, and a navy bar on a green tube read as a
-/// window from another machine.
+/// window from another machine. Every other page selects in its accent's
+/// hue ([`selection_tint`]).
 pub fn selection_bg(t: &Theme) -> (u8, u8, u8) {
     let page = oklch::from_srgb(t.term_bg);
     let l = match page.l > 0.5 {
         true => page.l - SELECTION_STEP.0,
         false => page.l + SELECTION_STEP.1,
     };
-    let hue = if t.is_tube() {
-        t.border_focused
-    } else {
-        SELECTION_HUE
+    let tint = match t.is_tube() {
+        true => oklch::from_srgb(t.border_focused),
+        false => selection_tint(t),
     };
-    let want = oklch::from_srgb(hue).with_l(l).to_srgb();
-    against(want, t.term_fg, crate::contrast::text_floor())
+    against(
+        tint.with_l(l).to_srgb(),
+        t.term_fg,
+        crate::contrast::text_floor(),
+    )
 }
+
+/// A page's selection colour off a tube: [`SELECTION_HUE`]'s depth turned
+/// to the palette's own accent. The one navy was off every palette but the
+/// blue ones — glass-clear's rose letters landed on indigo (glass survey
+/// D-M5). A grey accent has no hue to lend and keeps the navy.
+fn selection_tint(t: &Theme) -> oklch::Oklch {
+    let (sel, acc) = (
+        oklch::from_srgb(SELECTION_HUE),
+        oklch::from_srgb(t.accent_default),
+    );
+    match acc.c < GREY_ACCENT {
+        true => sel,
+        false => oklch::Oklch { h: acc.h, ..sel },
+    }
+}
+
+/// Below this chroma an accent is a grey (paper-dark's white).
+const GREY_ACCENT: f32 = 0.03;
 
 /// How far the selection wash sits from the page's L (below a light page,
 /// above a dark one): plainly there against the page, and near enough to it

@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.67
+
+**Search matches and selections wear the palette's own colour.**
+Three palettes still highlighted matches in navy: the command palette's
+match chips, `/find` and text selected in a pane. On glass-clear the
+rose letters sat on indigo chips, and paper-light's amber and blossom's
+pink did the same. Their match colour is now the accent's hue at the same
+depth: deep rose, amber and plum. A selection on any palette other than
+the CRT ones takes its accent's hue too, as a Mac selects in its accent
+colour. Paper-dark's accent is grey, so it keeps the navy.
+- **Test:** every palette's match colour wears its accent's hue (or a
+  tinted page's), and every selection its accent's. Paper-light failed
+  with the old navy. The match colours still sit as far off the page as
+  the house floor asks.
+
 ## 0.26.66
 
 **Focus wears the palette's accent on every glass theme.**
