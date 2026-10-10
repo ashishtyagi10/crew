@@ -146,7 +146,7 @@ fn a_tube_separates_added_from_removed_where_hue_cannot() {
         );
         tubes += 1;
     }
-    assert_eq!(tubes, 4, "every tube was actually checked");
+    assert_eq!(tubes, 2, "every tube was actually checked");
 }
 
 /// The derived table is per-preset, not per-call: the active theme must pick
@@ -243,7 +243,7 @@ fn the_syntax_ladder_holds_where_hue_cannot_help() {
             id.as_str(),
         );
     }
-    assert_eq!(tubes, 4, "every tube was actually checked");
+    assert_eq!(tubes, 2, "every tube was actually checked");
 }
 
 /// A fenced block is a rectangle of `code_bg` — that field IS the block, now

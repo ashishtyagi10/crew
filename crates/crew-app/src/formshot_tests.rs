@@ -79,7 +79,7 @@ fn form_shot_settings_themes() {
     for (name, id) in [
         ("settings-light", crew_theme::ThemeId::PaperLight),
         ("settings-nebula", crew_theme::ThemeId::Nebula),
-        ("settings-crt-violet", crew_theme::ThemeId::CrtViolet),
+        ("settings-crt-amber", crew_theme::ThemeId::CrtAmber),
     ] {
         crew_theme::set_theme(id);
         crate::palette::set_accent(crew_theme::theme().accent_default);

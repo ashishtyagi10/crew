@@ -325,7 +325,6 @@ fn main() {
             ThemeId::CrtAmber,
             format!("{out_dir}/welcome-crt-amber.png"),
         ),
-        (ThemeId::CrtBlue, format!("{out_dir}/welcome-crt-blue.png")),
         (ThemeId::Nebula, format!("{out_dir}/welcome-nebula.png")),
         (ThemeId::Blossom, format!("{out_dir}/welcome-blossom.png")),
     ] {

@@ -135,7 +135,8 @@ fn off_draws_nothing() {
 fn fill_is_brightest_at_the_top() {
     for id in ALL_THEMES {
         let s = style_for(id.theme());
-        if id.theme().liquid.is_some() {
+        // A tube's glass is lit by its own phosphor, from above.
+        if id.theme().liquid.is_some() && !id.is_crt() {
             assert!(s.alpha_top < s.alpha_bottom, "{}: smoke", id.as_str());
             continue;
         }
@@ -269,7 +270,7 @@ fn tubes_etch_their_raster_into_their_glass() {
         .collect();
     assert_eq!(
         tubes.len(),
-        4,
+        2,
         "the four phosphors are still tubes: {tubes:?}"
     );
     for id in &tubes {
@@ -284,7 +285,6 @@ fn tubes_etch_their_raster_into_their_glass() {
     }
     let etched = |id: crate::ThemeId| id.theme().crt.unwrap().etch > 0.0;
     assert!(etched(crate::ThemeId::CrtGreen) && etched(crate::ThemeId::CrtAmber));
-    assert!(!etched(crate::ThemeId::CrtBlue) && !etched(crate::ThemeId::CrtViolet));
 }
 
 /// When the OS asks for more contrast the glass gives back what lies under

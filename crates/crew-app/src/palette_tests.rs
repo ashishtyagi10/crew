@@ -103,7 +103,7 @@ fn the_focus_accent_can_be_told_from_the_ink_it_replaces() {
             id.as_str(),
         );
     }
-    assert_eq!(tubes, 4, "every tube was actually checked");
+    assert_eq!(tubes, 2, "every tube was actually checked");
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
 }
 

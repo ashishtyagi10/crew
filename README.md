@@ -806,18 +806,16 @@ accepts `accent = "#rrggbb"` to override Crew's accent; omit it (or give an
 invalid value) to use the active theme's default accent. It applies at launch —
 quit and reopen Crew to pick up edits made outside the `/settings` pane.
 
-**Themes.** Crew ships **ten palettes** in five rotations. `dark` is
-see-through glass like `glass`, a deeper smoke over your desktop with white
-words, in `paper-dark` (warm charcoal smoke) and `nebula` (violet smoke,
-orchid→rose accents); `light` is see-through glass with white words too, as
-clear as `glass`, in `paper-light` (warm smoke, amber accents) and `blossom`
-(cherry-blossom smoke, pink accents); `crt`
-rotates the four phosphor tubes — `crt-green`, `crt-amber`, `crt-blue` and
-`crt-violet`, each one hue at six brightnesses on a near-black tube; `glass`
-is the iPhone's liquid glass in its Clear look — a see-through window with your
-desktop as the background, every pane a slab of clear, lightly smoked glass
-and every word bright white, in `glass-clear` (rose accents) and `glass-night`
-(navy smoke, mint); and `auto`
+**Themes.** Every theme is see-through glass: the window shows your desktop,
+each pane is a slab of smoked glass over it, and the words on it are bright,
+with a soft shadow behind them. Crew ships **eight palettes**, two in each of
+four rotations. `glass` is the iPhone's liquid glass in its Clear look, in
+`glass-clear` (neutral smoke, rose accents) and `glass-night` (navy smoke,
+mint); `dark` is a deeper smoke, in `paper-dark` (warm charcoal) and `nebula`
+(violet, orchid→rose accents); `light` is as clear as `glass` with warmer
+tints, in `paper-light` (warm smoke, amber accents) and `blossom`
+(cherry-blossom smoke, pink accents); `crt` is a phosphor tube in glass, in
+`crt-green` and `crt-amber`, each one hue at six brightnesses. And `auto`
 follows the OS appearance, serving the dark pool in dark mode and the light one
 in light mode (re-wire the pairing with `theme_dark` / `theme_light`). A
 rotation changes palette every 10 minutes.

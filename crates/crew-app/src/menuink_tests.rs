@@ -63,7 +63,7 @@ fn on_a_single_phosphor_tube_the_description_is_on_the_phosphor() {
     }
     // The tubes are the whole point of this test; a loop that skipped
     // every one of them is a test that asserts nothing.
-    assert_eq!(checked, 4, "every CRT preset was checked");
+    assert_eq!(checked, 2, "every CRT preset was checked");
 }
 
 /// …and it stays quieter than the label beside it, or it is not a

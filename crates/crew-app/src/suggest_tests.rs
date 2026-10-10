@@ -106,7 +106,7 @@ fn theme_space_lists_the_rotations_first_then_every_palette() {
         "{labels:?}"
     );
     assert!(items[5].header, "the palettes need a heading: {labels:?}");
-    for name in ["paper-dark", "crt-green", "crt-violet", "nebula", "blossom"] {
+    for name in ["paper-dark", "crt-green", "crt-amber", "nebula", "blossom"] {
         assert!(labels.contains(&name), "{name} is missing: {labels:?}");
     }
     // The legacy rotation names still parse and are still not offered.
@@ -190,7 +190,7 @@ fn theme_partial_value_filters_and_ghosts() {
         .collect();
     // …to the crt rotation and, under the heading, the tubes themselves.
     assert_eq!(labels[0], "crt", "picker: {labels:?}");
-    assert!(labels.contains(&"crt-violet".to_string()), "{labels:?}");
+    assert!(labels.contains(&"crt-amber".to_string()), "{labels:?}");
     assert!(!labels.contains(&"dark".to_string()), "{labels:?}");
     // …and ghost-completes it like a command.
     assert_eq!(suggest("/theme cr", &[]).as_deref(), Some("t"));
