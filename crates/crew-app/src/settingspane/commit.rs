@@ -32,16 +32,6 @@ pub(crate) fn commit_field(p: &mut SettingsPane) {
             p.draft.nav_width = crate::navresize::width_at(v);
         }
         Field::Accent => commit_accent(p),
-        Field::WindowOpacity => {
-            // Typed as a percentage, stored as a fraction. The floor is the
-            // renderer's own (`MIN_WINDOW_OPACITY`): a window dialled sheerer
-            // than that is one you cannot find again.
-            let pct = p
-                .opacity_buf
-                .parse::<f32>()
-                .unwrap_or(p.draft.window_opacity * 100.0);
-            p.draft.window_opacity = (pct / 100.0).clamp(crate::config::MIN_WINDOW_OPACITY, 1.0);
-        }
         Field::LightFrom => {
             p.draft.auto_light_from = commit_hhmm(&p.light_from_buf, &p.draft.auto_light_from);
         }
@@ -118,7 +108,6 @@ pub(crate) fn refresh_bufs(p: &mut SettingsPane) {
     p.size_buf = format!("{}", p.draft.font_size as i32);
     p.nav_buf = format!("{}", p.draft.nav_width as i32);
     p.accent_buf = p.draft.accent.clone().unwrap_or_default();
-    p.opacity_buf = format!("{}", (p.draft.window_opacity * 100.0).round() as i32);
     (p.light_from_buf, p.light_to_buf) = light_bufs(&p.draft);
     p.minsecs_buf = format!("{}", p.draft.notify_min_secs);
     p.patterns_buf = p.draft.notify_patterns.join("\n");

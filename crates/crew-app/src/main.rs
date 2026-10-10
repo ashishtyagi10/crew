@@ -447,7 +447,6 @@ mod nettwin;
 mod notify;
 mod oauth;
 mod occlusion;
-mod opacitycmd;
 mod openurl;
 mod openview;
 mod osappearance;

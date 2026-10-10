@@ -68,7 +68,6 @@ pub(crate) enum Field {
     /// (see `gradientlvl`). Sits with Glass and Motion: all three say how
     /// much the canvas is allowed to do on its own.
     Gradient,
-    WindowOpacity,
     Maximized,
     Notify,
     NotifyAgentDone,
@@ -86,13 +85,12 @@ pub(crate) enum Field {
 
 /// Every focusable field, for the coverage guards and as `tab_order`'s
 /// backstop — a field the layout does not place still has to be reachable.
-pub(crate) const FIELDS: [Field; 34] = [
+pub(crate) const FIELDS: [Field; 33] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
     Field::FontGamma,
     Field::NavWidth,
-    Field::WindowOpacity,
     Field::ShowNav,
     Field::Theme,
     Field::ThemeDark,

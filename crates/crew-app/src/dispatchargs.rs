@@ -116,8 +116,6 @@ impl CrewApp {
             self.shapes_command(v.trim());
         } else if let Some(g) = other.strip_prefix("gradient ") {
             self.gradient_command(g.trim());
-        } else if let Some(o) = other.strip_prefix("opacity ") {
-            self.opacity_command(o.trim());
         } else if let Some(m) = other.strip_prefix("model ") {
             self.set_model_cmd(m.trim());
         } else {

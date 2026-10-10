@@ -33,7 +33,6 @@ fn edits(f: Field) -> &'static str {
         Field::Contrast => "contrast",
         Field::ShapeCues => "shape_cues",
         Field::Gradient => "gradient",
-        Field::WindowOpacity => "window_opacity",
         Field::Maximized => "maximized",
         Field::Notify => "notify",
         Field::NotifyAgentDone => "notify_agent_done",

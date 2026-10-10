@@ -23,7 +23,7 @@ fn glass_survey_shot() {
         .into_iter()
         .filter(|id| id.theme().liquid.is_some())
     {
-        let sheer = crate::tubesheer::sheer(1.0, id.theme());
+        let sheer = crate::tubesheer::sheer(id.theme());
         for (set, cmds) in SETS {
             let name = format!("survey-{}-{set}", id.as_str());
             let shot = crate::crtglassshot_tests::window_with(

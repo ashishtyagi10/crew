@@ -14,7 +14,7 @@ const FONT_PX: f32 = 13.0;
 
 /// Shoot the window on `id`, as sheer as the app ships it.
 fn window(name: &str, id: ThemeId) -> Option<Vec<u8>> {
-    let opacity = crate::tubesheer::sheer(1.0, id.theme());
+    let opacity = crate::tubesheer::sheer(id.theme());
     window_with(name, id, opacity, &["/far", "/far", "/dash"], &|_| {})
 }
 

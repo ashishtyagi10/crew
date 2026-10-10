@@ -182,7 +182,6 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
             .collect(),
         ),
         // The ladder only — any percent still works, typed freehand.
-        "/opacity" => Some(crate::opacitycmd::picker()),
         "/smooth" => Some(vec![
             (
                 "off".to_string(),
@@ -255,7 +254,6 @@ pub(crate) fn expands(cmd: &str) -> bool {
             | "/invisibles"
             | "/copy"
             | "/gradient"
-            | "/opacity"
             | "/motion"
             | "/density"
             | "/leading"
@@ -280,9 +278,6 @@ pub(crate) fn current_value(cmd: &str, cfg: &crate::config::CrewConfig) -> Optio
             .and_then(|p| crew_theme::gradients::name_of(crate::gradientcmd::parse_poles(&p)?))
             .map(str::to_string)
             .unwrap_or_else(|| cfg.gradient.clone()),
-        // The percent, not a ladder name: the number is the truth here, and a
-        // window at 78% is on no rung at all.
-        "/opacity" => crate::opacitycmd::percent(cfg.window_opacity),
         "/motion" => cfg.motion.clone(),
         "/density" => cfg.density.clone(),
         "/leading" => cfg.leading.clone(),

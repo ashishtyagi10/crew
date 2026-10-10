@@ -309,7 +309,7 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
 
 **How crew looks is one command.** `/look` owns the whole appearance family
 as SUBJECTS — `theme`, `font`, `weight`, `leading`, `density`, `motion`,
-`contrast`, `shapes`, `crt`, `gradient`, `opacity`, `smooth`,
+`contrast`, `shapes`, `crt`, `gradient`, `smooth`,
 `gamma`, `invisibles` — and the palette walks them in two steps: `/look `
 lists the subjects, `/look gamma ` lists that subject's ladder with the value
 you are on marked. Fifteen rows became one, which is fourteen fewer names to

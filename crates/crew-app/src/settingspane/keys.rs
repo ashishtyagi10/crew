@@ -36,7 +36,6 @@ pub(crate) fn buf_of(p: &mut SettingsPane, f: Field) -> Option<&mut String> {
         Field::FontSize => Some(&mut p.size_buf),
         Field::NavWidth => Some(&mut p.nav_buf),
         Field::Accent => Some(&mut p.accent_buf),
-        Field::WindowOpacity => Some(&mut p.opacity_buf),
         Field::LightFrom => Some(&mut p.light_from_buf),
         Field::LightTo => Some(&mut p.light_to_buf),
         Field::NotifyMinSecs => Some(&mut p.minsecs_buf),
@@ -50,9 +49,7 @@ pub(crate) fn buf_of(p: &mut SettingsPane, f: Field) -> Option<&mut String> {
 /// Whether `c` may be typed into the field's buffer (currently `buf`).
 pub(super) fn allowed(f: Field, buf: &str, c: char) -> bool {
     match f {
-        Field::FontSize | Field::NavWidth | Field::NotifyMinSecs | Field::WindowOpacity => {
-            c.is_ascii_digit()
-        }
+        Field::FontSize | Field::NavWidth | Field::NotifyMinSecs => c.is_ascii_digit(),
         Field::Budget5h | Field::Budget7d => c.is_ascii_digit() || (c == '.' && !buf.contains('.')),
         // `HH:MM` and nothing else: digits, one colon, five characters. The
         // length cap is what stops a buffer growing past what the commit can

@@ -169,10 +169,6 @@ pub struct CrewConfig {
     /// `poleshift::relight`).
     #[serde(default)]
     pub gradient_poles: Option<String>,
-    /// Window opacity, `1.0` = fully opaque. Below 1.0 the desktop shows
-    /// through the page (text and pane fills stay solid). Settings → WINDOW.
-    #[serde(default = "default_window_opacity")]
-    pub window_opacity: f32,
     /// Base text weight on the CSS scale (400 normal … 900 black). Defaults to
     /// SemiBold (600) for a thicker body; set live with `/weight`.
     #[serde(default = "default_font_weight")]
@@ -242,7 +238,6 @@ impl Default for CrewConfig {
             command_recents: Vec::new(),
             gradient: default_gradient(),
             gradient_poles: None,
-            window_opacity: default_window_opacity(),
             font_weight: default_font_weight(),
             font_smooth: default_font_smooth(),
             font_gamma: default_font_gamma(),

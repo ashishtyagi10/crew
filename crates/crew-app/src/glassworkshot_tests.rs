@@ -86,7 +86,7 @@ fn glass_work_shot() {
         .into_iter()
         .filter(|id| id.theme().liquid.is_some())
     {
-        let sheer = crate::tubesheer::sheer(1.0, id.theme());
+        let sheer = crate::tubesheer::sheer(id.theme());
         let prep = |app: &mut crate::app::CrewApp| {
             let smith = crate::chatshot_tests::live_pane();
             app.panes.push(pane(PaneContent::Chat(smith), None));
