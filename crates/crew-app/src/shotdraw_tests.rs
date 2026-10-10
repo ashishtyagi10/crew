@@ -108,7 +108,7 @@ pub(crate) fn draw_with(
     let bg_f32 = crew_render::color::target_rgba(bg, opacity, FORMAT.is_srgb());
 
     let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-    grid.encode_behind(&device, &mut enc, (w, h), bg_f32);
+    grid.set_page(&queue, bg_f32);
     {
         let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("shotdraw_pass"),

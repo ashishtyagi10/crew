@@ -21,13 +21,6 @@ fn glass_lets_the_desktop_through() {
     for id in ALL_THEMES {
         let Some(l) = id.theme().liquid else { continue };
         let name = id.as_str();
-        // No theme paints a wallpaper, so there is nothing to bend: no lens
-        // work on a flat page.
-        assert_eq!(
-            (l.refract, l.blur, l.dispersion),
-            (0.0, 0.0, 0.0),
-            "{name}: the lens samples a flat page"
-        );
         assert!(
             l.window <= 0.35,
             "{name}: the gaps hide {:.2} of the desktop",
@@ -65,11 +58,7 @@ fn glass_text_reads_over_any_desktop() {
             let g = style_for(t).scaled_by(level.liquid_scale());
             {
                 // The page is all there is behind the glass: no wallpaper.
-                let (r, gr, b) = mix(t.page_bg, t.page_bg, 0.0);
-                let y = 0.2126 * r + 0.7152 * gr + 0.0722 * b;
-                let vib = |c: f32| byte(y + (c - y) * l.vibrance);
-                let wall = (vib(r), vib(gr), vib(b));
-                let body = mix(wall, g.tint, g.alpha_top);
+                let body = mix(t.page_bg, g.tint, g.alpha_top);
                 for desk in [0.0_f32, 255.0] {
                     let shown = |c: f32| byte(c * cover + desk * (1.0 - cover));
                     let bg = (shown(body.0), shown(body.1), shown(body.2));

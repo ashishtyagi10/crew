@@ -38,8 +38,9 @@ fn slab(see: f32, frost: f32) -> GlassCard {
         lift: 0.0,
         glint: -1.0,
         notch: Default::default(),
-        // A lens with no bend or blur: the body is the page, frosted white.
-        lens: [0.0, 1.0, 0.0, 0.0, 0.0, 1.0, see, 1.0],
+        // The body is the page, frosted white.
+        see,
+        liquid: true,
     }
 }
 
@@ -60,16 +61,10 @@ fn texture(device: &wgpu::Device, usage: wgpu::TextureUsages) -> wgpu::Texture {
     })
 }
 
-/// The page, premultiplied at the window's opacity — the frame's clear and
-/// the glass's backdrop alike.
-fn page() -> [u8; 4] {
-    let p = |c: u8| (f64::from(c) * WINDOW).round() as u8;
-    [
-        p(PAGE[0]),
-        p(PAGE[1]),
-        p(PAGE[2]),
-        (255.0 * WINDOW).round() as u8,
-    ]
+/// The page as the glass takes it: straight, its alpha the window's opacity.
+fn page() -> [f32; 4] {
+    let c = |v: u8| f32::from(v) / 255.0;
+    [c(PAGE[0]), c(PAGE[1]), c(PAGE[2]), WINDOW as f32]
 }
 
 /// The slab's centre pixel, drawn over the page at the window's opacity.
@@ -85,31 +80,8 @@ fn at(
     card: GlassCard,
     (x, y): (usize, usize),
 ) -> [u8; 4] {
-    let behind = texture(
-        device,
-        wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-    );
-    queue.write_texture(
-        wgpu::TexelCopyTextureInfo {
-            texture: &behind,
-            mip_level: 0,
-            origin: wgpu::Origin3d::ZERO,
-            aspect: wgpu::TextureAspect::All,
-        },
-        &page().repeat((SIZE * SIZE) as usize),
-        wgpu::TexelCopyBufferLayout {
-            offset: 0,
-            bytes_per_row: Some(SIZE * 4),
-            rows_per_image: Some(SIZE),
-        },
-        wgpu::Extent3d {
-            width: SIZE,
-            height: SIZE,
-            depth_or_array_layers: 1,
-        },
-    );
     let mut layer = GlassLayer::new(device, FMT);
-    layer.set_behind(device, &behind.create_view(&Default::default()));
+    layer.set_page(queue, page());
     layer.set_cards(device, &[card]);
     layer.set_view(queue, SIZE as f32, SIZE as f32, (0.0, 0.0));
     let out = texture(
@@ -256,7 +228,8 @@ fn legend_veil_headless() {
         c.notch.depth = 6.0;
         c
     };
-    let page = page()[3];
+    // The page's alpha as the readback stores it.
+    let page = (255.0 * WINDOW).round() as u8;
     let behind = at(&device, &queue, card(0.6), (28, 9));
     let beside = at(&device, &queue, card(0.6), (46, 9));
     let solid = at(&device, &queue, card(0.0), (28, 9));

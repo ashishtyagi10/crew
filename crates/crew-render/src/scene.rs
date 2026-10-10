@@ -311,25 +311,13 @@ pub(crate) fn build_scene(
                 lift: pane.lift,
                 glint: pane.glint,
                 notch,
-                // A pop-up's sheet is only its shadow (`sheet` 0): it has no
-                // body to see the wallpaper through.
-                lens: crew_theme::theme().liquid.map_or([0.0; 8], |l| {
-                    [
-                        l.refract,
-                        l.bevel,
-                        l.blur,
-                        l.dispersion,
-                        l.clear_rim,
-                        l.vibrance,
-                        // How much of the desktop the body lets through.
-                        if window_opacity < 1.0 {
-                            1.0 - l.body
-                        } else {
-                            0.0
-                        },
-                        sheet,
-                    ]
-                }),
+                // How much of the desktop the body lets through. A pop-up's
+                // sheet is only its shadow (`sheet` 0): it has no body.
+                see: match crew_theme::theme().liquid {
+                    Some(l) if window_opacity < 1.0 => 1.0 - l.body,
+                    _ => 0.0,
+                },
+                liquid: crew_theme::theme().liquid.is_some() && sheet > 0.0,
             });
         }
 

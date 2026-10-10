@@ -76,13 +76,11 @@ pub struct Theme {
     /// only the bloom runs; every paper theme is `None` so the crisp flat
     /// look is the default.
     pub crt: Option<CrtStyle>,
-    /// The theme's modern-family tuning (gradient light-ring poles, drift).
-    /// `Some` marks the palette as a member of the MODERN pool — the
-    /// Gemini/Codex-app look — and drives the focused frame's gradient ring
-    /// in crew-app. Paper and CRT presets are `None`.
+    /// The gradient light-ring's poles and drift period: the focused
+    /// frame's ring in crew-app. `Some` on every palette.
     pub modern: Option<ModernStyle>,
-    /// Liquid glass: the panes refract and frost the wallpaper behind them
-    /// ([`LiquidStyle`]). `Some` on the glass palettes only.
+    /// Liquid glass: the window and its panes let the desktop through
+    /// ([`LiquidStyle`]). `Some` on every palette since 2026-10-09.
     pub liquid: Option<LiquidStyle>,
 }
 

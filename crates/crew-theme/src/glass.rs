@@ -232,13 +232,12 @@ pub fn tube_glass(t: &Theme) -> GlassStyle {
     }
 }
 
-/// The glass theme's slab ([`crate::LiquidStyle`] carries its optics): a deep
-/// tint frosting the wallpaper the renderer refracts under it — heavier
-/// toward the bottom, the way thick glass deepens away from the light — a
-/// crisp white specular rim, a faint gloss across the upper face and a soft
-/// black shadow. The tint is the page lifted a little toward blue, so the
-/// frost reads as smoked glass rather than grey.
-///
+/// The liquid slab ([`crate::LiquidStyle`] says how much of the desktop it
+/// lets through): a deep tint smoking the page — heavier toward the bottom,
+/// the way thick glass deepens away from the light — a crisp white specular
+/// rim, a faint gloss across the upper face and a soft black shadow. The
+/// tint is the page lifted a little toward blue, so the frost reads as
+/// smoked glass rather than grey.
 pub fn liquid_glass(t: &Theme) -> GlassStyle {
     let p = t.page_bg;
     GlassStyle {

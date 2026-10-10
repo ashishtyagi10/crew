@@ -22,7 +22,8 @@ fn card() -> GlassCard {
         lift: 0.75,
         glint: 0.5,
         notch: Default::default(),
-        lens: [0.0; 8],
+        see: 0.0,
+        liquid: false,
     }
 }
 
@@ -60,8 +61,12 @@ fn packing_matches_the_shader_layout() {
     );
     assert_eq!(&p[26..28], &[3.0, 4.0], "second top span");
     assert_eq!(&p[38..40], &[5.0, 6.0], "last bottom span");
-    c.lens = [14.0, 16.0, 18.0, 0.1, 0.75, 1.35, 0.0, 1.0];
-    assert_eq!(&pack(&c)[40..48], &c.lens, "the lens, last");
+    (c.see, c.liquid) = (0.55, true);
+    assert_eq!(
+        &pack(&c)[40..44],
+        &[0.55, 1.0, 0.0, 0.0],
+        "the liquid body, last"
+    );
 }
 
 /// The vertex buffer stride must match what `pack` produces, or every

@@ -1,44 +1,26 @@
-//! Liquid glass: the panes as slabs of real glass over a wallpaper — the
+//! Liquid glass: the panes as slabs of smoked glass over the desktop — the
 //! iPhone's material (the user, 2026-10-07: "100% look and feel of iphone
-//! liquid glass"). Like [`crate::CrtStyle`] and [`crate::ModernStyle`] this is
-//! pure data; crew-render's glass pass does the optics.
+//! liquid glass"; 2026-10-09: every theme). Like [`crate::CrtStyle`] and
+//! [`crate::ModernStyle`] this is pure data; crew-render's glass pass draws
+//! it.
 //!
-//! What makes the material read as glass rather than a tinted sheet is that
-//! it shows what is BEHIND it, bent: the body is the wallpaper blurred,
-//! saturated and then frosted with the glass tint so text reads on it, and toward the rim the glass thickens into a
-//! lens that pulls the wallpaper just outside the edge in under it, its
-//! colours splitting a little as a prism's do. A thin specular rim and a
-//! broad gloss ride on top ([`crate::glass::style_for`]).
+//! The window paints no wallpaper: the page is a tint at the window's
+//! opacity over the desktop, and each pane's body hides more of the desktop
+//! than the gaps between panes do, so the text has a calm field. A thin
+//! specular rim and a broad gloss ride on top ([`crate::glass::style_for`]).
+//! There was a lens too — the body blurring, saturating and bending what lay
+//! behind it — until the page behind it became one flat colour and the lens
+//! had nothing to bend (removed 2026-10-09).
 
-/// The optics of a liquid-glass card.
+/// How a liquid-glass window and its panes let the desktop through.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LiquidStyle {
-    /// How far (px) the lens at the rim reaches out for what it shows: at the
-    /// very edge the glass shows the wallpaper this far outside the card,
-    /// falling to nothing [`LiquidStyle::bevel`] px in.
-    pub refract: f32,
-    /// How deep (px) the rim's lens runs into the card.
-    pub bevel: f32,
-    /// Radius (px) of the frost: the blur the body lays over the wallpaper.
-    pub blur: f32,
-    /// How far the lens splits the colours: red reaches this fraction
-    /// further than green, blue this much less.
-    pub dispersion: f32,
-    /// How much clearer the rim's lens is than the body, `0..=1`: the body's
-    /// frost (`GlassStyle`'s tint at its fill alpha) thins by this much at the
-    /// very edge, so the bent wallpaper shows there bright and clean while
-    /// the field under the text stays calm.
-    pub clear_rim: f32,
-    /// How much the glass saturates what it shows (1 = as is): the material
-    /// makes colour richer, not greyer, behind it.
-    pub vibrance: f32,
     /// The window's opacity under this glass: how much of the desktop behind
     /// crew the wallpaper hides (1 = an opaque window). Glass is see-through
     /// (the user, 2026-10-08: "glass theme is not glassy enough, I can't see
-    /// the background") — the page is a tint over the desktop. Opacity % in
-    /// Settings can only lower it, and its floor is above glass's.
+    /// the background") — the page is a tint over the desktop.
     pub window: f32,
-    /// How much of what the wallpaper leaves of the desktop a pane's slab
+    /// How much of what the page leaves of the desktop a pane's slab
     /// hides on top of it (1 = a solid slab). The body is frosted glass, not
     /// a hole: the text needs a calm field, so a pane hides more of the
     /// desktop than the gaps between panes do ([`LiquidStyle::pane_cover`]).

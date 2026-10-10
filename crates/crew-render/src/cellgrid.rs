@@ -89,10 +89,6 @@ pub struct CellGrid {
     window_opacity: f32,
     /// The rims' light tilt (see `Renderer::set_glass_light`).
     glass_light: (f32, f32),
-    /// What liquid glass sees behind it (`crate::behind`): made the first
-    /// frame a liquid theme draws, kept at the frame's size from then on.
-    behind: Option<crate::behind::Behind>,
-    format: wgpu::TextureFormat,
     pub(crate) cell_w: f32,
     pub(crate) cell_h: f32,
     font_size: f32,
@@ -175,8 +171,6 @@ impl CellGrid {
             glass_level: crew_theme::GlassLevel::Medium,
             window_opacity: 1.0,
             glass_light: (0.0, 0.0),
-            behind: None,
-            format,
             cell_w,
             cell_h,
             font_size,
@@ -301,29 +295,11 @@ impl CellGrid {
         self.glass_light = tilt;
     }
 
-    /// Liquid glass: draw what lies behind the glass — the page — into a
-    /// texture of its own for the glass pass to refract (`crate::behind`).
-    /// Call before the frame's own pass, `(w, h)` its size. A theme that is
-    /// not liquid draws and allocates nothing here.
-    pub fn encode_behind(
-        &mut self,
-        device: &wgpu::Device,
-        enc: &mut wgpu::CommandEncoder,
-        (w, h): (u32, u32),
-        bg: [f32; 4],
-    ) {
-        if crew_theme::theme().liquid.is_none() {
-            return;
-        }
-        if !self.behind.as_ref().is_some_and(|b| b.matches(w, h)) {
-            let b = crate::behind::Behind::new(device, self.format, w, h);
-            self.glass_layer.set_behind(device, &b.view);
-            self.overlay_glass_layer.set_behind(device, &b.view);
-            self.behind = Some(b);
-        }
-        if let Some(b) = &self.behind {
-            b.encode(enc, bg);
-        }
+    /// The page under the glass, as [`crate::glass::GlassLayer::set_page`]
+    /// takes it: `bg` straight, its alpha the window's opacity.
+    pub fn set_page(&self, queue: &wgpu::Queue, bg: [f32; 4]) {
+        self.glass_layer.set_page(queue, bg);
+        self.overlay_glass_layer.set_page(queue, bg);
     }
 
     /// Sorted, de-duplicated names of all installed monospace font families
