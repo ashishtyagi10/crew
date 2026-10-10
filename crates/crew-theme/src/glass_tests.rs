@@ -1,20 +1,5 @@
 use super::*;
-use crate::{Theme, ALL_THEMES, CRT_GREEN, PAPER_DARK};
-
-/// A dark page with no glass of its own — what `paper-dark` was before every
-/// mode went see-through (2026-10-09): the frosted card a dark page gets.
-const DARK_PAGE: Theme = Theme {
-    liquid: None,
-    ..PAPER_DARK
-};
-
-/// And what `paper-light` was: a warm off-white page with dark ink.
-const LIGHT_PAGE: Theme = Theme {
-    page_bg: (246, 243, 236),
-    ink: (26, 22, 20),
-    dark: false,
-    ..DARK_PAGE
-};
+use crate::{ALL_THEMES, CRT_GREEN};
 
 #[test]
 fn level_round_trips_and_accepts_aliases() {
@@ -58,7 +43,6 @@ fn tubes_are_sheets_of_smoked_glass() {
         .filter(|id| id.theme().is_tube())
         .collect();
     assert!(!tubes.is_empty(), "the filter found no tubes");
-    let paper = style_for(&DARK_PAGE);
     let top = |c: (u8, u8, u8)| {
         [c.0, c.1, c.2]
             .iter()
@@ -79,7 +63,7 @@ fn tubes_are_sheets_of_smoked_glass() {
             "{name}: smoke {f:?} is tinted, and dark"
         );
         assert!(
-            s.alpha_top > paper.alpha_top && s.alpha_top <= 0.4 && s.alpha_bottom < s.alpha_top,
+            s.alpha_top > 0.1 && s.alpha_top <= 0.4 && s.alpha_bottom < s.alpha_top,
             "{name}: a sheet ({} .. {})",
             s.alpha_top,
             s.alpha_bottom
@@ -91,33 +75,6 @@ fn tubes_are_sheets_of_smoked_glass() {
         assert!(h.0 >= p.0 && h.1 >= p.1 && h.2 >= p.2, "{name}: rim {h:?}");
         assert_eq!(top(h), top(p), "{name}: rim {h:?} left the phosphor {p:?}");
     }
-}
-
-/// Frost stays frost: paper and modern sheets carry no gloss, and their
-/// shadow is a shadow.
-#[test]
-fn frost_pages_have_no_gloss_and_a_black_shadow() {
-    // Liquid glass is a slab, not frost: it carries a gloss (see below).
-    let frost = |id: &crate::ThemeId| !id.theme().is_tube() && id.theme().liquid.is_none();
-    for id in ALL_THEMES.into_iter().filter(frost) {
-        let s = style_for(id.theme());
-        assert_eq!((s.gloss, s.glow), (0.0, 0.0), "{}", id.as_str());
-    }
-}
-
-/// A bright rim on a dark page reads as a neon outline, and a faint shadow on
-/// a near-black page reads as nothing: the dark sheet trades one for the
-/// other.
-#[test]
-fn dark_pages_soften_the_rim_and_deepen_the_shadow() {
-    let light = style_for(&LIGHT_PAGE);
-    let dark = style_for(&DARK_PAGE);
-    assert!(dark.highlight_alpha < light.highlight_alpha * 0.5);
-    assert!(dark.shadow_alpha > light.shadow_alpha * 2.0);
-    assert!(
-        dark.alpha_top < light.alpha_top * 0.5,
-        "a dark lift stays faint"
-    );
 }
 
 #[test]

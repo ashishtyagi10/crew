@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.57
+
+**Tubes' title bars frost like their panes; the docs describe the glass
+themes as they are.** A CRT window's title bar was still frosted like the
+old 84% faceplate. Under the see-through tube that made it sheerer than
+the tube's own panes, so its title could fade over a dark desktop. It
+now frosts like the panes, the same as every other theme. Code that only
+ever ran for an opaque or light-coloured page is removed: the old paper
+"frost" card style, a donut-chart step that drew a solid disc on an
+opaque page, and a chart helper nothing called anymore. The Themes
+section of the docs is rewritten for the eight see-through palettes, with
+the names older palettes now load. The Glass setting is described as
+smoked panes over the desktop.
+- **Test:** the theme, terminal, renderer and app suites pass, and the
+  docs name no command or palette that no longer exists.
+
 ## 0.26.56
 
 **Opacity % is gone: the window's see-through-ness is the theme's.**

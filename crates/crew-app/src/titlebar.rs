@@ -38,19 +38,16 @@ impl crate::app::CrewApp {
     /// the wanted colour moves — an opacity change or a theme switch, from
     /// whichever of the several paths switched it.
     pub(crate) fn sync_titlebar(&mut self) {
-        // A tube's window is sheer whatever the setting (`tubesheer`), so a
-        // theme switch can move the opacity too: keep that in step first.
+        // A theme switch can move the window's opacity (`tubesheer`): keep
+        // that in step first.
         self.sync_window_opacity();
         let t = crew_theme::theme();
-        // A tube's bar frosts with its page; glass's with its panes — the
-        // bar carries a title, and at the gaps' 25% it vanished over a dark
-        // desktop as the pane legends did (2026-10-09).
+        // The bar frosts with the panes — it carries a title, and at the
+        // gaps' 25% it vanished over a dark desktop as the pane legends did
+        // (2026-10-09). A tube's too: it frosted with its faceplate when that
+        // was 84%, and is glass like the rest now.
         let o = self.window_opacity();
-        let bar = match t.liquid {
-            _ if t.is_tube() => Some(o),
-            Some(l) => Some(l.pane_cover().max(o)),
-            None => None,
-        };
+        let bar = t.liquid.map(|l| l.pane_cover().max(o));
         let want = crate::titlebar::wanted(o, t.page_bg, t.dark, bar);
         if want == self.titlebar_paint {
             return;
