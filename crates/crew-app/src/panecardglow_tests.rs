@@ -88,8 +88,7 @@ fn settled_crt_frame_has_hot_corners_and_exact_edges() {
     );
 }
 
-/// Ignition: at t = 0 the whole stroke starts at the node colour; the legend
-/// (and anything else riding the border) keeps its own colour throughout.
+/// Ignition: at t = 0 the whole stroke starts at the node colour; the legend keeps its own.
 #[test]
 fn ignition_starts_the_whole_frame_hot() {
     let _g = crate::app::theme_test_guard();
@@ -98,7 +97,8 @@ fn ignition_starts_the_whole_frame_hot() {
     let mut v = pane_card(38, 10, &bar(true));
     trace(&mut v, 40, 12, false, 0.0, 0);
     assert_eq!(fg_at(&v, 0, 5), corner_hot(base), "frame should ignite hot");
-    let hue = crate::chatroster::agent_color("shell");
+    let shell = crate::chatroster::agent_color("shell"); // floored, as on all glass
+    let hue = crew_theme::glasslegend::legible(crew_theme::theme(), shell, 10.0);
     assert!(
         v.iter().any(|c| c.c == 's' && c.row == 0 && c.fg == hue),
         "the legend must keep its signature hue through ignition"

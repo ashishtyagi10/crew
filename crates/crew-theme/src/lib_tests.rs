@@ -411,7 +411,7 @@ fn every_pool_survives_the_cut() {
     // Two palettes a mode since every mode went see-through (2026-10-09).
     assert_eq!(
         (dark, light, crt, glass),
-        (2, 2, 4, 2),
+        (2, 2, 2, 2),
         "pools are dark {dark}, light {light}, crt {crt}, glass {glass} — \
          `auto` needs both appearances and the tubes and the glass are their \
          own rotations"
@@ -423,7 +423,7 @@ fn every_pool_survives_the_cut() {
 /// every one of their names still resolves.
 #[test]
 fn every_retired_theme_name_still_resolves() {
-    const RETIRED: [(&str, ThemeId); 20] = [
+    const RETIRED: [(&str, ThemeId); 22] = [
         ("midnight-ink", ThemeId::Nebula),
         ("graphite", ThemeId::PaperDark),
         ("moss-blotter", ThemeId::PaperDark),
@@ -431,7 +431,7 @@ fn every_retired_theme_name_still_resolves() {
         ("salmon-broadsheet", ThemeId::PaperLight),
         ("ivory-ledger", ThemeId::PaperLight),
         ("glacier-bond", ThemeId::PaperLight),
-        ("crt-paperwhite", ThemeId::CrtBlue),
+        ("crt-paperwhite", ThemeId::CrtGreen),
         ("aurora", ThemeId::Nebula),
         ("graphene", ThemeId::Nebula),
         ("cobalt", ThemeId::Nebula),
@@ -444,6 +444,8 @@ fn every_retired_theme_name_still_resolves() {
         ("harbor", ThemeId::PaperDark),
         ("sepia-light", ThemeId::PaperLight),
         ("fern", ThemeId::Blossom),
+        ("crt-blue", ThemeId::CrtGreen),
+        ("crt-violet", ThemeId::CrtAmber),
     ];
     for (name, want) in RETIRED {
         assert_eq!(

@@ -4053,11 +4053,11 @@ opposite of what a picker is for.
   (`night`); the face is SF Mono.
 - The frosted light glass, `glass-sky` and `glass-dawn`, was folded into
   `glass-clear`: a config naming either loads the clear glass.
-- **`crt-violet`** — the fourth phosphor: a violet tube, the glow of a vector
-  display rather than a terminal. Its ladder is one hue at six brightnesses,
-  like the other tubes, and it is the only one of the four whose phosphor
-  leaves room for a warm pink alarm — the other three cannot tell their bell
-  apart from their status by hue at all.
+- **`crt-green`** and **`crt-amber`** — the `crt` rotation: since
+  2026-10-09 a phosphor tube in see-through glass, its faceplate the `dark`
+  mode's deeper smoke (phosphor green over a white desktop needs it), its
+  panes lit by their own phosphor. `crt-blue` and `crt-violet` were folded
+  into them; their names load green and amber.
 - **`sepia-dark`** and **`harbor`** were folded into `paper-dark` when `dark`
   went see-through (two palettes a mode); their names load it.
 - **`midnight-ink`** — a warm slate-charcoal page with cool off-white ink.

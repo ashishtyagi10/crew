@@ -97,8 +97,10 @@ fn no_two_tags_render_the_same_colour() {
                 .collect::<Vec<_>>()
         })
         .fold(f32::MAX, f32::min);
+    // Green and amber sit Δ 0.058; the cool pair that sat tighter folded
+    // into them (2026-10-09).
     assert!(
-        tightest < FLOOR_D + 0.01,
+        tightest < FLOOR_D + 0.025,
         "the closest pair anywhere is Δ {tightest:.4} against a floor of \
          {FLOOR_D} — the floor has stopped constraining the pools"
     );

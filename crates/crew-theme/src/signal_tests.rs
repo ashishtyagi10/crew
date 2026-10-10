@@ -48,9 +48,7 @@ fn only_the_tubes_are_exempt_from_the_separation() {
         .collect();
     assert_eq!(
         exempt,
-        // `crt-violet` is a tube that CAN separate: its phosphor leaves room
-        // for a warm pink alarm the other three have nowhere to put.
-        vec!["crt-green", "crt-amber", "crt-blue"],
+        vec!["crt-green", "crt-amber"],
         "the set of palettes that cannot separate their alarm has changed"
     );
 }
@@ -143,7 +141,8 @@ type Band = (&'static str, fn(&crate::Theme) -> (u8, u8, u8), f32);
 /// Every signal role and its band. See the module docs for why the bound is
 /// per-appearance and why `accent_default` gets its own.
 const BANDS: [Band; 5] = [
-    ("status_fg", |t| t.status_fg, 1.8),
+    // Tighter since the roster went to two a mode (2026-10-09): 1.30 at most.
+    ("status_fg", |t| t.status_fg, 1.6),
     // Every non-tube page is smoked glass now (2026-10-09), one appearance
     // from `dark`'s deep smoke (12.3) to `light`'s warm one (6.6).
     ("bell", |t| t.bell, 1.9),

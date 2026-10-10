@@ -135,7 +135,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // contemporary take on that IBM-terminal DNA).
         // The light twins share their dark parents' faces — a palette flip
         // must not also change the typeface under the user.
-        ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => &[
+        ThemeId::CrtGreen | ThemeId::CrtAmber => &[
             // One entry, and it is the face crew embeds. That used to be
             // spelled `["Lilex Nerd Font", "Lilex"]` so an installed icon
             // build would beat the built-in copy — resolution matches by

@@ -1,13 +1,13 @@
-//! CRT-family presets, the hot half: the green and amber phosphors. Each
-//! preset carries its own `CrtStyle` — the four tubes no longer share one
-//! set of global post-process knobs, so these two run coarse, jittery
-//! rasters while the cool pair (`presets_crt_cool.rs`: violet, blue) runs
-//! wide, smooth, HUD-calm bloom.
+//! The CRT tubes: the green and amber phosphors. Each preset carries its
+//! own `CrtStyle` — a coarse, jittery raster etched into the glass.
 //!
-//! All four tubes run a 3.5px frame — heavier than any paper preset — and,
-//! since the glass-tube goal (2026-10-05), sit on slabs of glossy glass lit
-//! by their own phosphor (`glass::tube_glass`), which the flat-tube decree
-//! (2026-08-06) had retired.
+//! Both run a 3.5px frame and sit on slabs of glass lit by their own
+//! phosphor (`glass::tube_glass`). Since 2026-10-09 the window is
+//! see-through like every mode's (the user: dark, light and CRT "with the
+//! same pattern as glass"): the tube's faceplate is the dark mode's deeper
+//! smoke over the desktop ([`crate::presets_glass_clear::DARK_LIQUID`]),
+//! which phosphor green needs to hold 4.5:1 over a white desktop. The cool
+//! pair, blue and violet, folded into them.
 
 use crate::{CrtStyle, ModernStyle, Theme};
 
@@ -72,12 +72,11 @@ pub static CRT_GREEN: Theme = Theme {
         pole_a: (106, 184, 118),
         pole_b: (162, 242, 172),
         drift_ms: 6_000,
-        // No backdrop under a tube: just the glass and its borders over the
-        // tinted faceplate (see crew-app's `tubesheer`).
+        // No backdrop under a tube: the desktop, through the smoke.
         dots: 0.0,
         wash: 0.0,
     }),
-    liquid: None,
+    liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
 };
 
 /// **Neon amber phosphor** (P3, Tron-grid): saturated amber traced over a
@@ -139,10 +138,9 @@ pub static CRT_AMBER: Theme = Theme {
         pole_a: (184, 138, 39),
         pole_b: (242, 193, 102),
         drift_ms: 6_000,
-        // No backdrop under a tube: just the glass and its borders over the
-        // tinted faceplate (see crew-app's `tubesheer`).
+        // No backdrop under a tube: the desktop, through the smoke.
         dots: 0.0,
         wash: 0.0,
     }),
-    liquid: None,
+    liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
 };

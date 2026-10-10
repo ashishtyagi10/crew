@@ -110,12 +110,15 @@ mod tests {
         crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
         assert_eq!(
             note(&pane(1.0), Field::WindowOpacity).as_deref(),
-            Some("tube sets 84")
+            Some("tube sets 35")
         );
         assert_eq!(
-            note(&pane(0.5), Field::WindowOpacity),
+            note(
+                &pane(crate::config::MIN_WINDOW_OPACITY),
+                Field::WindowOpacity
+            ),
             None,
-            "a lower setting wins"
+            "at the setting's floor the tube's cap is the setting"
         );
     }
 

@@ -105,8 +105,6 @@ mod modernstyle;
 pub mod oklch;
 pub mod poleshift;
 mod presets_crt;
-mod presets_crt_cool;
-mod presets_crt_violet;
 mod presets_glass;
 mod presets_glass_clear;
 mod presets_modern;
@@ -140,8 +138,6 @@ impl Theme {
 }
 
 pub use presets_crt::{CRT_AMBER, CRT_GREEN};
-pub use presets_crt_cool::CRT_BLUE;
-pub use presets_crt_violet::CRT_VIOLET;
 pub use presets_glass::GLASS_NIGHT;
 pub use presets_glass_clear::GLASS_CLEAR;
 pub use presets_modern::NEBULA;
@@ -179,17 +175,15 @@ pub enum ThemeId {
     PaperLight,
     CrtGreen,
     CrtAmber,
-    CrtBlue,
     Nebula,
     Blossom,
-    CrtViolet,
     GlassNight,
     GlassClear,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 10] = [
+pub const ALL_THEMES: [ThemeId; 8] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::Nebula,
@@ -198,8 +192,6 @@ pub const ALL_THEMES: [ThemeId; 10] = [
     ThemeId::GlassNight,
     ThemeId::CrtGreen,
     ThemeId::CrtAmber,
-    ThemeId::CrtBlue,
-    ThemeId::CrtViolet,
 ];
 
 impl ThemeId {
@@ -209,10 +201,8 @@ impl ThemeId {
             ThemeId::PaperLight => "paper-light",
             ThemeId::CrtGreen => "crt-green",
             ThemeId::CrtAmber => "crt-amber",
-            ThemeId::CrtBlue => "crt-blue",
             ThemeId::Nebula => "nebula",
             ThemeId::Blossom => "blossom",
-            ThemeId::CrtViolet => "crt-violet",
             ThemeId::GlassNight => "glass-night",
             ThemeId::GlassClear => "glass-clear",
         }
@@ -225,10 +215,8 @@ impl ThemeId {
             ThemeId::PaperLight => "warm paper page (light)",
             ThemeId::CrtGreen => "neon green phosphor CRT",
             ThemeId::CrtAmber => "neon amber phosphor CRT",
-            ThemeId::CrtBlue => "neon blue phosphor CRT (Tron)",
             ThemeId::Nebula => "orchid\u{2192}rose gradient dusk (modern dark)",
             ThemeId::Blossom => "violet\u{2192}rose on warm white (modern light)",
-            ThemeId::CrtViolet => "violet phosphor CRT (vector-display glow)",
             ThemeId::GlassNight => "iPhone liquid glass, clear and navy-smoked, white text",
             ThemeId::GlassClear => "iPhone liquid glass, clear and lightly smoked, white text",
         }
@@ -262,9 +250,7 @@ impl ThemeId {
         match self {
             ThemeId::PaperDark | ThemeId::Nebula => RandomMode::Dark,
             ThemeId::PaperLight | ThemeId::Blossom => RandomMode::Light,
-            ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => {
-                RandomMode::Crt
-            }
+            ThemeId::CrtGreen | ThemeId::CrtAmber => RandomMode::Crt,
             ThemeId::GlassClear | ThemeId::GlassNight => RandomMode::Glass,
         }
     }
@@ -287,7 +273,8 @@ impl ThemeId {
             "sepia-light" => Some(ThemeId::PaperLight),
             "crt-green" => Some(ThemeId::CrtGreen),
             "crt-amber" => Some(ThemeId::CrtAmber),
-            "crt-blue" => Some(ThemeId::CrtBlue),
+            // Two tubes since every mode went see-through (2026-10-09).
+            "crt-blue" => Some(ThemeId::CrtGreen),
             // RETIRED (2026-08-22): the roster went from 24 to 9 because
             // several palettes were a hue rotation of each other — the closest
             // pair measured Δ 0.0209, well under the Δ 0.027 at which two
@@ -303,7 +290,7 @@ impl ThemeId {
             "salmon-broadsheet" => Some(ThemeId::PaperLight),
             "ivory-ledger" => Some(ThemeId::PaperLight),
             "glacier-bond" => Some(ThemeId::PaperLight),
-            "crt-paperwhite" => Some(ThemeId::CrtBlue),
+            "crt-paperwhite" => Some(ThemeId::CrtGreen),
             "aurora" => Some(ThemeId::Nebula),
             "graphene" => Some(ThemeId::Nebula),
             "cobalt" => Some(ThemeId::Nebula),
@@ -312,8 +299,7 @@ impl ThemeId {
             "cirrus" => Some(ThemeId::Blossom),
             "nebula" => Some(ThemeId::Nebula),
             "fern" => Some(ThemeId::Blossom),
-            "crt-violet" => Some(ThemeId::CrtViolet),
-            "crt-purple" => Some(ThemeId::CrtViolet),
+            "crt-violet" | "crt-purple" => Some(ThemeId::CrtAmber),
             "blossom" => Some(ThemeId::Blossom),
             // `glass` is a rotation (`parse_selection` catches it first); a
             // caller asking for one palette by that name gets the sky.
@@ -332,9 +318,7 @@ impl ThemeId {
             ThemeId::PaperLight => &PAPER_LIGHT,
             ThemeId::CrtGreen => &CRT_GREEN,
             ThemeId::CrtAmber => &CRT_AMBER,
-            ThemeId::CrtBlue => &CRT_BLUE,
             ThemeId::Nebula => &NEBULA,
-            ThemeId::CrtViolet => &CRT_VIOLET,
             ThemeId::Blossom => &BLOSSOM,
             ThemeId::GlassNight => &GLASS_NIGHT,
             ThemeId::GlassClear => &GLASS_CLEAR,

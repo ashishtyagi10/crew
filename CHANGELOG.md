@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.52
+
+**CRT is a phosphor tube in see-through glass.** The `crt` rotation now
+works like every other mode. The window shows your desktop, the tube's
+faceplate is the `dark` mode's deeper smoke, and the panes are lit by
+their own phosphor. It was an 84% opaque faceplate before. The deeper
+smoke and the tube's text shadow keep phosphor green readable over a
+white desktop. CRT keeps two tubes, `crt-green` and `crt-amber`.
+`crt-blue` and `crt-violet` are folded into them, and their names load
+green and amber. Every theme is see-through glass now, so the window
+always takes its theme's glass. A Settings Opacity % that the glass
+overrides says so in its box, as it does on glass.
+- **Test:** every theme caps the window at its own glass. Each tube's
+  text reads over a black and a white desktop. The tubes stay one hue,
+  and their glass carries their raster.
+
 ## 0.26.51
 
 **Light mode is see-through glass with white words.** The `light`

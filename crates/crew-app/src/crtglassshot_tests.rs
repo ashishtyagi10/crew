@@ -37,7 +37,7 @@ fn backdrop(clocks: crew_render::WashClocks) -> Option<crew_render::ModernPaper>
 
 /// Shoot the window on `id` through the tube, its page at `clocks`.
 fn crt_window(name: &str, id: ThemeId, clocks: crew_render::WashClocks) -> Option<Vec<u8>> {
-    window(name, id, clocks, crate::tubesheer::TUBE_OPACITY)
+    window(name, id, clocks, crate::tubesheer::sheer(1.0, id.theme()))
 }
 
 /// Shoot the window on `id`, its page at `clocks` and the window at `opacity`.
@@ -115,12 +115,7 @@ pub(crate) fn window_with(
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn crt_glass_shot() {
     let _g = crate::app::theme_test_guard();
-    for id in [
-        ThemeId::CrtGreen,
-        ThemeId::CrtAmber,
-        ThemeId::CrtBlue,
-        ThemeId::CrtViolet,
-    ] {
+    for id in [ThemeId::CrtGreen, ThemeId::CrtAmber] {
         let Some(px) = crt_window(&format!("crtglass-{}", id.as_str()), id, Default::default())
         else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
@@ -146,12 +141,7 @@ fn crt_glass_shot_awake() {
         live: 1.0,
         eddy: 0.4,
     };
-    for id in [
-        ThemeId::CrtGreen,
-        ThemeId::CrtAmber,
-        ThemeId::CrtBlue,
-        ThemeId::CrtViolet,
-    ] {
+    for id in [ThemeId::CrtGreen, ThemeId::CrtAmber] {
         if crt_window(&format!("crtglass-awake-{}", id.as_str()), id, clocks).is_none() {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;

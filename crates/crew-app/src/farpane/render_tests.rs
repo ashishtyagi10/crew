@@ -598,7 +598,7 @@ fn a_directory_is_coloured_in_ink_the_tube_can_actually_make() {
         );
         tubes += 1;
     }
-    assert_eq!(tubes, 4, "every tube was actually checked");
+    assert_eq!(tubes, 2, "every tube was actually checked");
 }
 
 /// A ratatui block title owns only what is between the borders, and the
