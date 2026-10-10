@@ -166,3 +166,58 @@ fn no_chrome_symbol_is_drawn_as_a_colour_bitmap() {
         println!("{face:32} {chars}");
     }
 }
+
+/// Whatever family is asked for — installed, missing, or made up — what
+/// [`usable`] hands the grid draws every glyph of a welcome line, digits and
+/// spaces included, on its own cell. A missing family used to reach the
+/// shaper as-is: fontdb substituted a proportional face, its spaces and
+/// digits took two cells each, and the welcome's text slid half a window off
+/// its card (2026-10-09). On the system's real font database, so a machine
+/// whose fallback is proportional is the one that proves it.
+#[test]
+fn a_family_crew_cannot_draw_on_the_grid_is_never_shaped() {
+    use crate::celltext::{build_pane_buffer, cell_metrics, FontParams};
+    let mut fs = FontSystem::new();
+    let line = "new in 0.26.43 \u{b7} the usage donut's total     C R E W";
+    let (cell_w, cell_h) = cell_metrics(28.0, 1.25);
+    for asked in [
+        "Intel One Mono",
+        "No Such Font Mono",
+        crew_theme::EMBEDDED_FAMILY,
+    ] {
+        let family = usable(&mut fs, asked, 28.0, cell_w, 500);
+        let cells: Vec<crate::CellView> = line
+            .chars()
+            .enumerate()
+            .map(|(i, c)| crate::CellView {
+                col: i as u16,
+                c,
+                fg: (200, 200, 200),
+                ..Default::default()
+            })
+            .collect();
+        let p = FontParams {
+            font_size: 28.0,
+            line_height: cell_h,
+            cell_w,
+            family: family.clone(),
+            weight: 500,
+            smooth: 0,
+            gamma: 0,
+            dark: true,
+            body: ((255, 255, 255), (0, 0, 0)),
+        };
+        let n = line.chars().count();
+        let buf = build_pane_buffer(&mut fs, &cells, n, 1, n as f32 * cell_w, cell_h, &p);
+        for g in buf.layout_runs().flat_map(|r| r.glyphs.iter()) {
+            let col = line[..g.start].chars().count() as f32;
+            assert!(
+                (g.x - col * cell_w).abs() < 0.5,
+                "{asked} drawn as {family:?}: {:?} at {} is off its cell {}",
+                &line[g.start..g.end],
+                g.x,
+                col * cell_w
+            );
+        }
+    }
+}

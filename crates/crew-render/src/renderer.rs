@@ -88,6 +88,13 @@ impl Renderer {
         self.cell_grid.set_font_family(family);
     }
 
+    /// The family text is drawn in — what [`Self::set_font_family`] was given,
+    /// unless that would not land on the cell grid (`None` = the embedded
+    /// face).
+    pub fn font_family(&self) -> Option<&str> {
+        self.cell_grid.font_family()
+    }
+
     /// Override the base text weight (CSS scale; `None` → theme default).
     pub fn set_font_weight(&mut self, weight: Option<u16>) {
         self.cell_grid.set_font_weight(weight);

@@ -251,8 +251,15 @@ impl CellGrid {
         self.needs_prewarm = true;
     }
 
+    /// Draw text in `family` (`None`/empty → the embedded face) — or in what
+    /// [`crate::fontverify::usable`] makes of it: a family that would not
+    /// land on the cell grid is never shaped. [`Self::font_family`] says
+    /// which one won.
     pub fn set_font_family(&mut self, family: Option<String>) {
-        self.font_family = family.filter(|n| !n.is_empty());
+        let p = self.font_params();
+        self.font_family = family.filter(|n| !n.is_empty()).and_then(|f| {
+            crate::fontverify::usable(&mut self.font_system, &f, p.font_size, p.cell_w, p.weight)
+        });
         // The swash image cache retains every rasterized glyph (the presmooth
         // pass reads and seeds it); font changes re-key everything, so drop
         // the stale rasters rather than carrying them for the session.
@@ -319,6 +326,11 @@ impl CellGrid {
             crate::fontverify::snaps_to_cells(&mut self.font_system, f, font_size, cell_w, weight)
         });
         fams
+    }
+
+    /// The family text is drawn in (`None` = the embedded face).
+    pub fn font_family(&self) -> Option<&str> {
+        self.font_family.as_deref()
     }
 
     /// Returns the monospace cell size `(width, height)` in pixels.

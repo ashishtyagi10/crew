@@ -15,10 +15,14 @@ pub(crate) const PROBE: char = '\u{e7a8}';
 /// Whether the active family covers the icon set ([`set_family`] writes).
 static ON: AtomicBool = AtomicBool::new(false);
 
-/// Push `family` to the renderer AND re-read icon coverage: the one door.
-pub(crate) fn apply_family(r: &mut crew_render::Renderer, family: Option<String>) {
-    set_family(family.as_deref());
-    r.set_font_family(family);
+/// Push `family` to the renderer AND re-read icon coverage — of the face it
+/// really draws: the one door. Returns `family` when the renderer refused it
+/// (see [`crate::fontfamily`]).
+pub(crate) fn apply_family(r: &mut crew_render::Renderer, f: Option<String>) -> Option<String> {
+    r.set_font_family(f.clone());
+    let got = r.font_family().map(str::to_string);
+    set_family(got.as_deref());
+    f.filter(|f| !f.is_empty() && got.as_deref() != Some(f.as_str()))
 }
 
 /// Re-read icon coverage for `family` (`None` = the embedded face).

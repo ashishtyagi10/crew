@@ -94,16 +94,17 @@ impl CrewApp {
     pub(crate) fn stop_font_rotation(&mut self) {
         self.font_rotate.on = false;
         self.font_rotate.current = None;
+        let mut refused = None;
         if let Some(r) = &mut self.renderer {
-            crate::glyphs::apply_family(r, self.config.font_family.clone());
+            refused = crate::glyphs::apply_family(r, self.config.font_family.clone());
         }
         self.config.font_random = false;
         self.config.save();
-        let back = self
-            .config
-            .font_family
-            .clone()
-            .unwrap_or_else(|| "system monospace".to_string());
+        // The face really drawn: a pinned family that is not installed is not.
+        let back = match (refused, self.config.font_family.clone()) {
+            (Some(_), _) => crew_theme::EMBEDDED_FAMILY.to_string(),
+            (None, f) => f.unwrap_or_else(|| "system monospace".to_string()),
+        };
         self.set_status(format!("font rotation off — back to {back}"));
         self.redraw();
     }

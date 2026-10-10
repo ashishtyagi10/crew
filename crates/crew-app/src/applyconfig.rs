@@ -72,8 +72,8 @@ impl CrewApp {
             .as_ref()
             .map(|w| w.scale_factor() as f32)
             .unwrap_or(1.0);
+        self.apply_config_family();
         if let Some(r) = &mut self.renderer {
-            crate::glyphs::apply_family(r, self.config.font_family.clone());
             r.set_font_size(self.config.font_size * scale);
             r.set_leading(self.config.leading().ratio());
             r.set_font_weight(Some(self.config.font_weight));
@@ -81,9 +81,7 @@ impl CrewApp {
             r.set_text_gamma(Some(self.config.font_gamma));
         }
         // Glass rides the same path: a save that didn't push these two would
-        // leave the sheet and the window opacity a restart behind. `/opacity`
-        // sets the same value from the input bar and calls `apply_glass` for
-        // exactly the same reason.
+        // leave the sheet and the window opacity a restart behind.
         self.apply_glass();
         crate::motion::set_level(self.config.motion_level());
         crate::density::set_level(self.config.density());
