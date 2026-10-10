@@ -169,8 +169,9 @@ fn a_clear_glass_badge_is_white_on_its_own_hue_deepened() {
                 continue;
             }
             assert_eq!(ink, t.ink, "{} slot {slot}", id.as_str());
+            // With room for the glass's glow round the words (survey D-M1).
             assert!(
-                contrast_ratio(ink, fill) >= floor,
+                contrast_ratio(ink, fill) >= floor * 1.1 - 0.01,
                 "{} {slot}: {fill:?}",
                 id.as_str()
             );
