@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.54
+
+**Toasts sit inside the pane's frame.** The toast stack in the top
+right lined its right edge up with the right border of the pane under
+it, so the two frames ran together. The stack starts a cell below the
+pane's title row, and it now also sits a cell inside the pane's right
+border.
+- **Test:** a toast's right edge is one cell inside the top-right
+  pane's border.
+
 ## 0.26.53
 
 **The keys panel's rows have a cell of space from its frame.** `/keys`

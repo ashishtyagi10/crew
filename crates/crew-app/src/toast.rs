@@ -241,7 +241,7 @@ pub(crate) fn push_toasts(
     let hovered = cursor.and_then(|(x, y)| toasts.index_at(x, y));
     toasts.rects.clear();
     let gap = crate::app::gap();
-    let max_cols = (((content.w - 2.0 * gap) / cw).floor() as usize).min(MAX_TEXT_COLS + PAD);
+    let max_cols = (((content.w - 2.0 * gap - cw) / cw).floor() as usize).min(MAX_TEXT_COLS + PAD);
     // One width for the whole stack (the widest card's): one shared left edge.
     let cols = stack_cols(toasts.items.iter().map(|t| t.text.as_str()), max_cols);
     let mut y = content.y + gap + ch;
@@ -265,10 +265,10 @@ pub(crate) fn push_toasts(
         };
         // Text dissolves into the card over the exit window.
         let fade = ((age.saturating_sub(TTL_MS - EXIT_MS)) as f32 / EXIT_MS as f32).clamp(0.0, 1.0);
-        let x = content.x + content.w - gap - w + enter + exit;
-        // The rect the frame drew, for the next frame's hit-test. Recorded
-        // with the slide offsets included: a card halfway in is exactly where
-        // it looks, and a click on it lands.
+        let x = content.x + content.w - gap - cw - w + enter + exit; // a cell in, as from the top
+                                                                     // The rect the frame drew, for the next frame's hit-test. Recorded
+                                                                     // with the slide offsets included: a card halfway in is exactly where
+                                                                     // it looks, and a click on it lands.
         toasts.rects.push(Rect { x, y, w, h });
         scenes.push(PaneScene {
             cells: card_cells(
