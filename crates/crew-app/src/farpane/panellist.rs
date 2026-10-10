@@ -15,13 +15,6 @@ use crate::palette::accent_color;
 /// Render one directory panel: a rounded box (path as legend) with the listing.
 pub(super) fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool, focused: bool) {
     let t = crew_theme::theme();
-    let (fill, on_fill) = match focused {
-        true => (
-            accent_color(),
-            Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2),
-        ),
-        false => (rgb(crew_theme::readable::selection_bg(&t)), rgb(t.ink)),
-    };
     let dim_col = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
     let text_col = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
     let edge = if active && focused {
@@ -29,16 +22,20 @@ pub(super) fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool, f
     } else {
         dim_col
     };
-    // The active panel's legend is a FILLED accent tab (the F-key bar's pill
-    // language) — the accent border alone was too subtle to tell which side
-    // keys act on (user feedback, v0.6.23). Inactive stays plain dim text.
-    let legend_style = if active {
-        Style::new()
-            .fg(on_fill)
-            .bg(fill)
-            .add_modifier(Modifier::BOLD)
-    } else {
-        Style::new().fg(dim_col)
+    // The active panel's legend is bold words — accent while the keys are
+    // here, ink while they are elsewhere — and its frame is the accent. It
+    // was a FILLED accent tab (v0.6.23: the accent border alone was too
+    // subtle); on the glass the tab and the cursor bar under it stood as one
+    // stepped pink slab in dark ink, the loudest thing on the screen (glass
+    // survey C#2). The bar alone carries the fill now. Inactive: dim text.
+    let legend_style = match (active, focused) {
+        (true, true) => Style::new().fg(accent_color()),
+        (true, false) => Style::new().fg(text_col),
+        (false, _) => Style::new().fg(dim_col),
+    };
+    let legend_style = match active {
+        true => legend_style.add_modifier(Modifier::BOLD),
+        false => legend_style,
     };
     // One cell of rule before the tab, as every card's `╭─ legend` keeps: the
     // corner rounds through it (`crew_render`'s card-scale corners need a
@@ -110,26 +107,47 @@ pub(super) fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool, f
     // side's bar often sits on `../` and reads as "selected"). The inactive
     // panel remembers its place with a bold row instead of a bar; the bar is
     // bold too (see `on_accent`).
-    let hl = match active {
-        true => Style::new().fg(on_fill).bg(fill),
-        false => Style::new(),
+    let hl = match (active, focused) {
+        (true, true) => on_accent(),
+        (true, false) => blurred_bar(),
+        (false, _) => Style::new().add_modifier(Modifier::BOLD),
     };
-    let hl = hl.add_modifier(Modifier::BOLD);
     let mut state = ListState::default();
     state.select(Some(panel.sel - start));
     StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);
 }
 
-/// Page ink on the accent fill: the cursor bar, a landed suggestion and the
-/// drive list's choice. Bold, like the path tab — on a phosphor tube the glow
-/// round a bright fill swallowed a regular-weight `../` whole.
+/// The cursor bar, a landed suggestion and the drive list's choice: bold
+/// white on the accent deepened until white reads on it
+/// ([`crate::segment::inked`]) — the page's dark smoke on the bright accent
+/// was the only dark lettering left on the glass (survey C#2). Bold, like
+/// the path tab: on a phosphor tube the glow round a bright fill swallowed a
+/// regular-weight `../` whole.
 pub(super) fn on_accent() -> Style {
-    let p = crew_theme::theme().page_bg;
+    let (ink, fill) = crate::segment::inked(crate::palette::accent());
     Style::new()
-        .fg(rgb(p))
-        .bg(accent_color())
+        .fg(rgb(ink))
+        .bg(rgb(fill))
         .add_modifier(Modifier::BOLD)
 }
+
+/// The cursor bar of a pane the keys are not in: the place kept in a quiet
+/// step of the smoke toward the ink, which the glass draws as a lighter
+/// frost of itself — the selection's navy there was a solid slab on any
+/// desktop, off every palette but one (survey C#2).
+pub(super) fn blurred_bar() -> Style {
+    let t = crew_theme::theme();
+    let fill = crate::anim::lerp_rgb(t.page_bg, t.ink, BLURRED_BAR_SHADE);
+    let ink = crew_theme::readable::enforced(t.ink, fill, crew_theme::contrast::text_floor());
+    Style::new()
+        .fg(rgb(ink))
+        .bg(rgb(fill))
+        .add_modifier(Modifier::BOLD)
+}
+
+/// How far the blurred bar sits off the page toward the ink: the settings
+/// form's quiet Cancel capsule.
+pub(super) const BLURRED_BAR_SHADE: f32 = 0.14;
 
 fn rgb((r, g, b): (u8, u8, u8)) -> Color {
     Color::Rgb(r, g, b)

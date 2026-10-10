@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.60
+
+**The file manager's tab and cursor bar no longer form one bright slab.**
+In `/far` the panel the keys act on wore a filled accent tab, and its
+cursor bar sat right under it in the same fill. On the glass the two read
+as one stepped pink block lettered in dark ink, the loudest thing on the
+screen and the only dark text on it. The active panel's path is now bold
+accent words on its frame. The cursor bar is bold white on the accent,
+deepened until white reads on it (as badges and Save are). A pane the
+keys are not in keeps its place in a light frost of its glass instead of
+a solid navy bar.
+- **Test:** on every theme the path tab has no fill, and the bar's name is
+  the theme's white in bold. The test fails without the fix.
+
 ## 0.26.59
 
 **A font that isn't installed no longer drags the text off its cards.**
