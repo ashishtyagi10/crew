@@ -53,8 +53,14 @@ pub fn size() -> (u16, u16) {
         .map(|(_, d)| d.chars().count())
         .max()
         .unwrap_or(KEY_COL);
-    ((col + widest + 2) as u16, rows as u16)
+    ((col + widest + 2 * INSET) as u16, rows as u16)
 }
+
+/// Columns from the overlay's outer edge to its text, each side: the frame's
+/// cell, then one of air. At one, rows sat half a cell off the stroke —
+/// `capital opens it` ended 4 px from it — where every pane keeps a whole
+/// cell (2026-10-09 glass survey).
+pub(crate) const INSET: usize = 2;
 
 /// The overlay's grid in a `sw × sh` px window of `cw × ch` px cells: the
 /// size it prefers, held a row clear of the window's top and bottom and a
@@ -106,7 +112,7 @@ pub fn help_cells(
     let panel_col = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
     let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
     let col = helplayout::key_col(cols);
-    let inner_w = (cols as usize).saturating_sub(2);
+    let inner_w = (cols as usize).saturating_sub(2 * INSET);
     let all = helplayout::rows_for(needle, cols, mine);
     let items = helpitem::items(&all[scroll.min(all.len())..], col, inner_w, needle);
     // The list fills the interior; the frame is the composer pop-ups' —
@@ -116,7 +122,8 @@ pub fn help_cells(
     Block::new()
         .style(Style::new().bg(panel_col))
         .render(buf.area, &mut buf);
-    List::new(items).render(Rect::new(1, 1, cols - 2, rows - 2), &mut buf);
+    let inset = INSET as u16;
+    List::new(items).render(Rect::new(inset, 1, cols - 2 * inset, rows - 2), &mut buf);
     let title = match needle.is_empty() {
         true => format!("keys \u{b7} crew v{}", env!("CARGO_PKG_VERSION")),
         // What you typed, shown where the version was: a filter you cannot

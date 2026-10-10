@@ -144,8 +144,8 @@ pub(crate) fn rows(needle: &str, cols: u16) -> Vec<Row> {
 /// from (see [`crate::helphere`]) so its heading can say so.
 pub(crate) fn rows_for(needle: &str, cols: u16, mine: Option<&str>) -> Vec<Row> {
     let col = key_col(cols);
-    // Two border columns, then the key column; the rest is the description.
-    let width = (cols as usize).saturating_sub(2 + col).max(8);
+    let inset = 2 * crate::help::INSET; // the frame and a cell of air, each side
+    let width = (cols as usize).saturating_sub(inset + col).max(8); // the rest describes
     let mut out = Vec::new();
     let mut doc = false; // under the document window's heading
     for (k, d) in filtered(needle) {
