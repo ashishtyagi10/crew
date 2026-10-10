@@ -1,7 +1,7 @@
 //! The rows a composer pop-up stands on, blanked beside it.
 //!
 //! A pop-up (`popupplace`) covers the start of the transcript rows it sits
-//! on, as wide as its card and a column of margin. What showed to its right
+//! on, as wide as its card. What showed to its right
 //! was the rest of each of those rows — `ice-pixel canvas, and the gantt's
 //! now-rule…` — half a line with its head bitten off, reading as a broken
 //! render rather than as something underneath. Those rows are cleared from

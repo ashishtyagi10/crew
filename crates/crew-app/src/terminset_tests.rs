@@ -1,6 +1,8 @@
 //! A shell's text stands as far off its frame as a chat's does: a column
 //! further in than the cell past the stroke, with its pty a column narrower
-//! (glass survey C#6). `linkclick_tests` holds clicks to the cell drawn.
+//! (glass survey C#6) — and every pane's content sits in the middle of the
+//! px its cells leave (D-H2). `linkclick_tests` holds clicks to the cell
+//! drawn.
 use crate::app::CrewApp;
 use crate::pane::{Pane, PaneContent, TermPane};
 use crew_term::{GridSize, PtyTerm};
@@ -56,13 +58,32 @@ fn a_shell_starts_a_column_further_in_and_is_a_column_narrower() {
     let p = &app.panes[0];
     let (inner, _) = crate::layout::card_inner_cells(p.rect.w, p.rect.h, CELL.0, CELL.1);
     assert_eq!(p.grid.cols, inner - 1, "the pty gives the column back");
+    let (ox, oy) = super::slack(p.rect, CELL.0, CELL.1);
     let content = scenes
         .iter()
-        .find(|s| !s.bordered && !s.overlay && s.y == p.rect.y + CELL.1)
+        .find(|s| !s.bordered && !s.overlay && s.y == p.rect.y + CELL.1 + oy)
         .expect("the shell's content scene");
     assert_eq!(
         content.x,
-        p.rect.x + 2.0 * CELL.0,
-        "a cell and a half off the stroke"
+        p.rect.x + 2.0 * CELL.0 + ox,
+        "a cell and a half off the stroke, and half the slack"
     );
+}
+
+/// What a card's whole cells leave over is split either side of the
+/// content, in whole px: all of it fell right and below, so a composer
+/// stood 8px off the left rule and 15 off the right (glass survey D-H2).
+#[test]
+fn the_content_sits_in_the_middle_of_its_card() {
+    let r = crate::layout::Rect {
+        x: 100.0,
+        y: 50.0,
+        w: 10.0 * CELL.0 + 7.0,
+        h: 6.0 * CELL.1 + 11.0,
+    };
+    assert_eq!(super::slack(r, CELL.0, CELL.1), (3.0, 5.0));
+    let mut p = term_pane();
+    p.rect = r;
+    let (x, y) = super::origin(&p, CELL.0, CELL.1);
+    assert_eq!((x, y), (r.x + 2.0 * CELL.0 + 3.0, r.y + CELL.1 + 5.0));
 }
