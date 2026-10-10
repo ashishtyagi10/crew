@@ -88,9 +88,11 @@ impl CrewApp {
             .map(|(_, r)| r)?;
         // Content is drawn one cell in from the card's left edge and one row
         // down from its top — past the frame's border column and legend row
-        // (see `paneview`). Missing the column inset put every click on the
-        // character to the right of the one under the pointer.
-        let col = ((self.cursor.0 - rect.x) / cw).floor() as i32 - 1;
+        // (see `paneview`), a terminal a column further. Missing the column
+        // inset put every click on the character to the right of the one
+        // under the pointer.
+        let inset = i32::from(crate::panefit::content_inset(&self.panes.get(i)?.content));
+        let col = ((self.cursor.0 - rect.x) / cw).floor() as i32 - 1 - inset;
         let row = ((self.cursor.1 - rect.y) / ch).floor() as i32 - 1;
         if col < 0 || row < 0 {
             return None;
