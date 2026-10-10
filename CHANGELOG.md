@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.64
+
+**Code comments stay readable on the glass over a light desktop.**
+Since code blocks became see-through, a light desktop showing through
+them lifted their background. On the lighter palettes the comments then
+fell below what they were tuned for: `// signed` read 2.8:1 over a white
+desktop, and strings 3.0:1. A code block (like an inline code chip or a
+quiet button) is now drawn as a second sheet of the pane's glass, as thick
+as the pane's two. Comments, strings and code are also held to their
+floors over the block as the glass shows it, over a black desktop and a
+white one, without breaking the order that sets them apart: comments
+dimmest, then strings, then code, then prose. The one-colour CRT palettes
+keep their own brightness ladder, which has no room to move, but they
+gain from the thicker block too.
+- **Test:** on every non-tube palette, comments and strings clear the
+  comment floor and code clears its own over the block on both desktops.
+  The test fails without the fix. The ladder tests still pass.
+
 ## 0.26.63
 
 **Pop-ups and toasts end at their frame, with no dark rim round them.**

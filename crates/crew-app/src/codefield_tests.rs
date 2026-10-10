@@ -38,3 +38,33 @@ fn a_comment_reads_on_the_field_it_is_drawn_on() {
         );
     }
 }
+
+/// On the glass the field is a frost the desktop shows through, so its code,
+/// strings and comments are floored on it over a black desktop AND a white
+/// one: on the opaque colour alone a light palette's comment read 2.8:1
+/// over white, its strings 3.0 (glass survey D-H1). A tube keeps its
+/// lightness ladder (`glassed`).
+#[test]
+fn the_field_reads_over_any_desktop() {
+    for id in crew_theme::ALL_THEMES {
+        let t = id.theme();
+        if t.is_tube() {
+            continue;
+        }
+        let d = crate::chatink::derive(t);
+        let grounds = field_grounds(t, d.code_bg);
+        let room = comment_room(t, d.code, d.code_bg);
+        for (what, c, floor) in [
+            ("comment", d.comment, room),
+            ("string", d.string, room),
+            ("code", d.code, CODE_ON_FIELD_FLOOR),
+        ] {
+            let worst = crew_theme::glasslegend::worst(c, &grounds);
+            assert!(
+                worst >= floor - 0.01,
+                "{}: {what} {c:?} reads {worst:.2} on the field (floor {floor:.2})",
+                id.as_str()
+            );
+        }
+    }
+}

@@ -8,8 +8,8 @@
 //!
 //! A colour that is a step from the page toward the ink — the code field is
 //! exactly that, by construction (`codefield::code_field`) — is a lighter
-//! smoke, so it is drawn as one: its own colour, covering what is under it
-//! as much as the pane's glass does ([`crew_theme::LiquidStyle::pane_cover`]).
+//! smoke, so it is drawn as one: its own colour, a second sheet of the
+//! pane's glass over the first ([`crew_theme::LiquidStyle::cell_cover`]).
 //! The desktop tints it the way it tints the pane. Not the ink thinned to
 //! land on the same colour over the smoke: over a light desktop that frosted
 //! the block lighter than the glass, and the comments on it went with it.
@@ -38,12 +38,12 @@ pub(crate) fn smoke(c: (u8, u8, u8), page: (u8, u8, u8), ink: (u8, u8, u8)) -> b
     off <= ON_LINE && t > 0.0 && t < 1.0 && c != page && c != ink
 }
 
-/// The alpha a cell background `bg` is drawn at: the pane glass's cover for
+/// The alpha a cell background `bg` is drawn at: a second sheet's cover for
 /// a smoke on a sheer window, solid otherwise.
 pub(crate) fn alpha(bg: (u8, u8, u8), sheer: bool) -> f32 {
     let t = crew_theme::theme();
     match (sheer, t.liquid) {
-        (true, Some(l)) if smoke(bg, t.page_bg, t.ink) => l.pane_cover(),
+        (true, Some(l)) if smoke(bg, t.page_bg, t.ink) => l.cell_cover(),
         _ => 1.0,
     }
 }

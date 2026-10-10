@@ -69,6 +69,48 @@ pub(crate) fn comment(t: &Theme, code: Color, field: Color) -> Color {
     separated_on(t.text_muted, t, COMMENT_FLOOR, room, field)
 }
 
+/// How far code stands above a comment on the glass's field, once both
+/// are floored over the desktop: the syntax ladder's 1.15 (`chatink_tests`)
+/// and a step to spare.
+const RUNG: f32 = 1.2;
+
+/// Code, strings and comments as the field is seen on the glass: each
+/// floored over [`field_grounds`] — comments and strings at the comment's
+/// room, code at [`CODE_ON_FIELD_FLOOR`] and a [`RUNG`] above the comment.
+/// Floored on the opaque colour alone, a light palette's comments read
+/// 2.8:1 there over a white desktop, its strings 3.0 (glass survey D-H1).
+/// `[code, string, comment]`; unchanged off the glass, and on a tube: its
+/// ladder is lightness alone (comment ×1.6 code ×1.8 prose) and does not
+/// fit between a frost and its phosphor's ink, so it keeps the page's.
+pub(crate) fn glassed(t: &Theme, field: Color, code: Color, string: Color) -> [Color; 3] {
+    let comment = comment(t, code, field);
+    let g = field_grounds(t, field);
+    if g.is_empty() || t.is_tube() {
+        return [code, string, comment];
+    }
+    let room = comment_room(t, code, field);
+    let on =
+        |c: Color, floor: f32, g: &[Color]| crew_theme::glasslegend::legible_on(t, c, floor, g);
+    let comment = on(comment, room, &g);
+    let lifted = on(code, CODE_ON_FIELD_FLOOR, &g);
+    [on(lifted, RUNG, &[comment]), on(string, room, &g), comment]
+}
+
+/// The code field on a see-through window, over a black desktop and a
+/// white one: `cellveil` draws it as a second sheet
+/// ([`crew_theme::LiquidStyle::cell_cover`]) over the pane's own frost
+/// ([`crew_theme::glasslegend::pane_grounds`]), so a light desktop still
+/// lifts it a little. Empty on a palette that is not glass.
+pub(crate) fn field_grounds(t: &Theme, field: Color) -> Vec<Color> {
+    let Some(l) = t.liquid else {
+        return Vec::new();
+    };
+    crew_theme::glasslegend::pane_grounds(t)
+        .into_iter()
+        .map(|g| crate::anim::lerp_rgb(g, field, l.cell_cover()))
+        .collect()
+}
+
 /// `chatink::separated_to` for a colour drawn on `ground` rather than the page: the
 /// walk stops before `c` reads under `ground_floor` on what is actually
 /// behind it.

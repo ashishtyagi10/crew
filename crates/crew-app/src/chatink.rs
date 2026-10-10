@@ -169,22 +169,22 @@ fn diff_removed(t: &Theme) -> Color {
 pub(crate) fn derive(t: &Theme) -> Ink {
     let code = separated(t.ansi[6], t);
     let code_bg = crate::codefield::code_field(t, code);
+    let string = separated_to(t.ansi[2], t, STRING_FLOOR, PAGE_FLOOR);
+    let [code, string, comment] = crate::codefield::glassed(t, code_bg, code, string);
     Ink {
         code,
         marker: separated(t.ansi[3], t),
         quote: separated(t.text_muted, t),
         code_bg,
         removed: diff_removed(t),
-        // Syntax classes, from the theme's own slots for the same reason the
-        // rest are: 16 presets already tune them, and a single-phosphor tube
-        // keeps its hue for free. Each still goes through `separated`, so a
-        // token colour can never collapse into body text.
-        // The ladder. Comments sit furthest back, strings between, plain code
-        // nearest to prose. The hued classes (`chathue`) separate by HUE on a
-        // paper preset and fall back to this ladder on a tube.
-        // Floored on the field it is drawn on (`codefield::comment`).
-        comment: crate::codefield::comment(t, code, code_bg),
-        string: separated_to(t.ansi[2], t, STRING_FLOOR, PAGE_FLOOR),
+        // Syntax classes, from the theme's own slots: the presets tune them,
+        // and a single-phosphor tube keeps its hue for free. Each goes through
+        // `separated`, so a token colour never collapses into body text. The
+        // ladder: comments furthest back, strings between, code nearest prose
+        // (`chathue` separates by HUE on paper, by this ladder on a tube), on
+        // the field as it is drawn (`codefield::glassed`).
+        comment,
+        string,
     }
 }
 
