@@ -230,13 +230,8 @@ pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
             &slices,
             t.border_normal,
         );
-        // Punch the hole back to the page, so the total written in it is read
-        // off the page rather than off the ring's inner edge. Not on glass:
-        // there the page is see-through, and a solid page-coloured disc was a
-        // puck over the desktop.
-        if t.liquid.is_none() {
-            pie::dot(&mut c, centre, RING_R_IN, t.page_bg, 1.0);
-        }
+        // The hole stays glass: a page-coloured disc punched there was a
+        // solid puck over the see-through page (2026-10-09).
         out.extend(
             c.paint()
                 .into_iter()

@@ -1,4 +1,4 @@
-use super::{donut, dot, Slice};
+use super::{donut, Slice};
 use crate::plot::Canvas;
 use std::f32::consts::PI;
 
@@ -117,15 +117,4 @@ fn an_empty_series_draws_a_track_not_a_blank() {
     donut(&mut c2, (6.0, 6.0), 4.0, 2.0, &[Slice::new(0.0, RED)], GREY);
     assert!(area_of(&c2, GREY) > 10.0);
     assert_eq!(area_of(&c2, RED), 0.0, "a zero slice is not a hairline");
-}
-
-#[test]
-fn a_dot_is_round_and_where_it_was_put() {
-    let mut c = canvas();
-    dot(&mut c, (3.0, 3.0), 1.0, RED, 1.0);
-    let ink = area_of(&c, RED);
-    assert!((ink - PI).abs() / PI < 0.05, "disc area {ink} vs {PI}");
-    for p in c.paint() {
-        assert!(p.x >= 1.9 && p.x <= 4.1, "dot stayed put: {p:?}");
-    }
 }

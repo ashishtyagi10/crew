@@ -175,47 +175,13 @@ impl GlassStyle {
 /// `stroke_centre`). And its one wide 14px shadow read as panes adrift; the
 /// shadow now has a tight contact layer that says where the card rests.
 ///
-/// Light pages: a white lens over the paper — brighter at the top — with a
-/// white rim and a soft grey shadow. Dark pages: the faintest white lift, a
-/// rim at a third of the light one (a bright rim on a dark page reads as a
-/// neon outline), and a shadow strong enough to see on a near-black page.
-/// Tubes: see [`tube_glass`].
+/// Every theme is liquid glass since 2026-10-09 ([`liquid_glass`]); a tube's
+/// is lit by its own phosphor ([`tube_glass`]).
 pub fn style_for(t: &Theme) -> GlassStyle {
     if t.is_tube() {
         return tube_glass(t);
     }
-    if t.liquid.is_some() {
-        return liquid_glass(t);
-    }
-    let white = (255, 255, 255);
-    match t.dark {
-        false => GlassStyle {
-            tint: white,
-            alpha_top: 0.30,
-            alpha_bottom: 0.14,
-            highlight: white,
-            highlight_alpha: 0.85,
-            shadow_alpha: 0.12,
-            noise: 0.0,
-            edge_glow: 0.0,
-            gloss: 0.0,
-            glow: 0.0,
-            etch: 0.0,
-        },
-        true => GlassStyle {
-            tint: white,
-            alpha_top: 0.05,
-            alpha_bottom: 0.015,
-            highlight: white,
-            highlight_alpha: 0.28,
-            shadow_alpha: 0.45,
-            noise: 0.0,
-            edge_glow: 0.0,
-            gloss: 0.0,
-            glow: 0.0,
-            etch: 0.0,
-        },
-    }
+    liquid_glass(t)
 }
 
 /// A tube's glass: the panes of a terminal running in glass (the 2026-10-05
@@ -304,11 +270,7 @@ pub fn style() -> GlassStyle {
 /// glass takes the level on its own, gentler curve
 /// ([`GlassLevel::liquid_scale`]).
 pub fn style_at(level: GlassLevel) -> GlassStyle {
-    let s = style();
-    match crate::theme().liquid {
-        Some(_) => s.scaled_by(level.liquid_scale()),
-        None => s.scaled(level),
-    }
+    style().scaled_by(level.liquid_scale())
 }
 
 #[cfg(test)]

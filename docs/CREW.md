@@ -878,8 +878,8 @@ The docked command bar supports:
 - **`/crt [on|off|auto]`** — the CRT tube post-process (screen curvature,
   scanlines, phosphor glow, a slight flicker while a pane is busy), independent
   of which theme is active. `auto` follows the theme — on for `crt`, off
-  otherwise — and is the default; `on`/`off` pin it either way, so you can run a
-  paper theme through the tube or a CRT palette flat. No argument reports the
+  otherwise — and is the default; `on`/`off` pin it either way, so you can run
+  any theme through the tube or a CRT palette flat. No argument reports the
   current setting.
 - **`/weight [medium|semibold|bold|…]`** — the weight the text is rendered at,
   live and persisted. Useful when a font renders thin at your size or on a
@@ -1014,11 +1014,10 @@ longer aim at.
   (7.0 and 4.5) — the standard's own next step, which is what "increase
   contrast" means in the only vocabulary that has one.
 
-  High contrast also quiets the two effects that *spend* contrast: the
-  spotlight over unfocused panes, and the page's gradient wash, which lifts
-  the background the ink sits on and has only 4–16% headroom over it. Both
-  drop to a third of their strength rather than to zero — the spotlight is the
-  cue that says which pane has focus, and losing that is itself an
+  High contrast also quiets the effects that *spend* contrast: the
+  spotlight over unfocused panes and the glass under the text. They drop to
+  a third of their strength rather than to zero — the spotlight is the cue
+  that says which pane has focus, and losing that is itself an
   accessibility loss.
 
   And it reaches **the two quiet things it used to miss**: a `@project` tag's
@@ -1101,8 +1100,7 @@ longer aim at.
   colour. With a level it sets how far the gradient breathes (the same
   `gradient` key as **Settings → CANVAS → Gradient colour**). With a
   **name** or two hex colours it replaces the theme's poles with a pair of
-  your own — the wash, the dot lattice, every card's stroke and the footer
-  meters all run between them.
+  your own — every card's stroke and the footer meters run between them.
 
   Eight named pairs come with crew: **`aurora`** (teal→violet), **`tide`**
   (cyan→blue), **`orchid`** (violet→rose), **`moss`** (green→teal),
@@ -1121,10 +1119,8 @@ longer aim at.
 
   **Only the hue is yours.** A custom pair is re-lit to the active theme's
   own pole lightness, at draw time, so it keeps tracking the ten-minute
-  palette rotation and so `#ffffff` cannot bleach the page. The wash lies
-  under your text with 4-16% contrast headroom over the page it lifts — that
-  is not headroom a colour picker gets to spend. You choose the colour; crew
-  chooses how bright it is.
+  palette rotation and so `#ffffff` cannot bleach a stroke into the glass
+  behind it. You choose the colour; crew chooses how bright it is.
 - **The window is see-through on every theme.** What shows the desktop is
   the glass: the panes, the left nav and the input bar. Text, cell
   backgrounds and frames blend on top and stay solid — and what shows
@@ -3893,24 +3889,16 @@ top border, where the legend and the `–` `×` buttons live.
 
 ### Glass
 
-Two of those fields shape the frosted look, and they are separate knobs:
-
-**Glass** (CANVAS) sets how frosted the **cards** are. Every pane, panel and
-the input bar sits on a translucent sheet: a tinted fill that fades from the top
-down, a bright specular hairline along the upper edge, a soft drop shadow, and a
-whisper of frost grain. The *look* is derived from whichever theme is active
-rather than configured per palette, so **every theme** — light, dark and CRT —
-gets its own treatment automatically: dark themes lift a lighter sheet off the
-page, light themes lean on a whiter sheet plus a real shadow (a light page can't
-get lighter), and CRT runs a pane of *frosted, glossy* glass in its own
-phosphor — a thin milky sheet your desktop shows through, a broad glossy
-reflection across the upper face, a bright rim, and a halo of phosphor light
-where the other themes cast a shadow — so the terminal reads as running inside
-the glass. `medium` is the default; `off`
-restores flat cards and costs nothing to draw. Overlay popups (the command menu, the attach
-picker, the key prompt) stay opaque by design. This knob is not the **`glass`
-theme** — that is `/theme glass` (see [Themes](#themes)), the iPhone's liquid
-glass over your desktop; on it, this knob sets how deep the frost is.
+**Glass** (CANVAS) sets how deep the smoke on the **cards** is. Every pane,
+panel and the input bar is a slab of smoked glass over the desktop: a tinted
+body, a bright specular rim along the upper edge and a soft shadow. A tube
+runs its glass in its own phosphor — a broad glossy reflection across the
+upper face, a bright rim, and a halo of phosphor light where the other themes
+cast a shadow — so the terminal reads as running inside the glass. `medium`
+is the default; `low` and `high` make the glass clearer or deeper, and `off`
+restores flat cards and costs nothing to draw. Overlay popups (the command
+menu, the attach picker, the key prompt) stay opaque by design. This knob is
+not the **`glass` theme** — that is `/theme glass` (see [Themes](#themes)).
 
 Every theme's **window is itself translucent**: crew paints no wallpaper of
 its own, so your desktop is the background. The gaps between panes show
@@ -3971,93 +3959,51 @@ is the difference between retiring a command and folding one.
 
 ## Themes
 
-Crew offers **five themes** — **`dark`**, **`light`**, **`crt`**, **`glass`**
-and **`auto`** — and each one is a *rotation*: it cycles through a pool of
-hand-tuned palettes every 10 minutes. `dark` rotates the dark paper/ink looks,
-`light` rotates the light ones, `crt` rotates the old-school phosphor tubes,
-`glass` rotates the iPhone's light liquid glass over your own desktop,
-and `auto` follows the **OS appearance** — the dark pool while the
-system is in dark mode, the light one in light mode, flipping live (through
-the develop-fade) the moment the system switches. With no theme saved at all,
-crew defaults to `auto`, so a fresh install matches the system from the first
-frame. `auto`'s pairing is yours to re-wire: `theme_dark` / `theme_light` in
-`config.toml` swap in a different pool (`crt` at night is the classic) or pin
-a single palette per appearance. The twenty-six palettes
-below are those pool members (eleven paper/ink looks designed to read like a
-page rather than a screen, eight "modern glow" looks in the Gemini/Codex
-idiom, five CRT tubes, and the two — `harbor` and `fern` — drawn after the
-cut; `crt-violet` was retired in that cut and has since come back); they're no longer selected on their own, but each
-name still resolves if you type it. A palette's own appearance decides its
-pool — the modern glow palettes are dark and light *pages* like any other, so
-they rotate inside `dark` and `light` rather than standing apart as themes of
-their own. The picker offers the four rotations first and then **every
-palette by name**, under a heading — they have always parsed, and not offering
-them meant you had to know the name of the one you wanted, which is the
-opposite of what a picker is for.
+**Every theme is see-through glass** (since 2026-10-09). The window paints
+no wallpaper of its own: your desktop is the background, frosted by the
+window server behind crew, and every pane is a slab of smoked glass over it
+with a bright specular rim. Words are bright — white, or the phosphor on a
+tube — and a soft shadow behind each run of text dims the desktop a little
+more than the glass between the lines, so text reads over a black or a white
+desktop alike (a test holds every palette to it).
 
-- **`paper-dark`** (default dark-pool member) — since 2026-10-09 see-through
-  glass like `glass`, with a deeper warm charcoal smoke (a pane hides about
-  70% of the desktop, the clear glass 60%) and white words. **`nebula`** is
-  its violet twin. Terminal output keeps muted-but-readable ANSI colours so
-  error/diff cues survive.
-- **`paper-light`** and **`blossom`** — the `light` rotation: since
-  2026-10-09 see-through glass with white words like the rest, as clear as
-  `glass` (white words over a white desktop need the smoke a clear pane
-  has), told apart by tint: a warm smoke with amber accents, and a
-  cherry-blossom smoke with pink ones. `sepia-light` and `fern` were folded
-  into them; their names load `paper-light` and `blossom`.
-- **`glass-clear`** and **`glass-night`** — the `glass` rotation: the
-  iPhone's liquid glass in its Clear look. There is no wallpaper: the window
-  is see-through and your desktop is the background.
-  Every pane is a slab of clear, lightly smoked glass over it (neutral in
-  `glass-clear`, navy in `glass-night`) with a white specular rim, and every
-  word on it is bright white. White reads there the way the iPhone makes it
-  read: a soft shadow behind each run of text dims the desktop a little more
-  than the glass between the lines. A test holds the text readable over a
-  black or a white desktop. The accents are rose (`clear`) and mint
-  (`night`); the face is SF Mono.
-- The frosted light glass, `glass-sky` and `glass-dawn`, was folded into
-  `glass-clear`: a config naming either loads the clear glass.
-- **`crt-green`** and **`crt-amber`** — the `crt` rotation: since
-  2026-10-09 a phosphor tube in see-through glass, its faceplate the `dark`
-  mode's deeper smoke (phosphor green over a white desktop needs it), its
-  panes lit by their own phosphor. `crt-blue` and `crt-violet` were folded
-  into them; their names load green and amber.
-- **`sepia-dark`** and **`harbor`** were folded into `paper-dark` when `dark`
-  went see-through (two palettes a mode); their names load it.
-- **`midnight-ink`** — a warm slate-charcoal page with cool off-white ink.
-- **`graphite`** — a soft charcoal page; the gentlest of the darks.
-- **`moss-blotter`** — a deep moss-green desk blotter with warm paper-white
-  ink and botanical accents (dark).
-- **`coldpress-gray`** — a cool pale-gray page with light graphite ink.
-- **`salmon-broadsheet`** — an FT-style salmon-pink broadsheet page (light).
-- **`ivory-ledger`** — an ivory page with ledger-green ink (light).
-- **`glacier-bond`** — a cold blue-gray bond page — overcast north light —
-  with crisp near-black ink and slate-blue accents (light).
-- **`aurora`** — blue→violet gradient glass on near-black (modern, dark).
-- **`nebula`** — an orchid→rose gradient dusk (modern, dark).
-- **`graphene`** — neutral near-black with a mint accent (modern, dark).
-- **`cobalt`** — an electric blue→cyan current (modern, dark).
-- **`daybreak`** — blue→violet on a cool white page (modern, light).
-- **`blossom`** — violet→rose on a warm white page (modern, light).
-- **`meadow`** — emerald→teal on a neutral white page (modern, light).
-- **`cirrus`** — blue→cyan on the coolest white page (modern, light).
-- **`crt-green`** — the classic green-phosphor terminal: neon green on a
-  near-black tube, with a monochrome-green ANSI palette (brightness tiers) for
-  that single-gun look.
-- **`crt-amber`** — the warm amber variation of the green tube.
-- **`crt-blue`** — a cool blue phosphor variation (Tron).
-- **`crt-violet`** — a neon violet phosphor variation.
-- **`crt-paperwhite`** — the P4 white tube (early Macintosh/VT420):
-  near-white ink with a faint blue-gray cast on a true black tube.
+Crew offers **five themes** — **`dark`**, **`light`**, **`crt`**,
+**`glass`** and **`auto`** — and each one is a *rotation* between two
+palettes, changing every 10 minutes. `auto` follows the **OS appearance**:
+the dark rotation while the system is in dark mode, the light one in light
+mode, flipping live (through the develop-fade) the moment the system
+switches. With no theme saved at all, crew defaults to `auto`.
+`theme_dark` / `theme_light` in `config.toml` re-wire that pairing (`crt` at
+night is the classic) or pin one palette per appearance.
+
+- **`glass`** — **`glass-clear`** (neutral smoke, rose accents) and
+  **`glass-night`** (navy smoke, mint): the iPhone's liquid glass in its
+  Clear look. A pane hides about 60% of the desktop. The face is SF Mono.
+- **`dark`** — **`paper-dark`** (warm charcoal smoke, near-white accents)
+  and **`nebula`** (violet smoke, orchid→rose accents): a deeper smoke, a
+  pane hiding about 70% of the desktop.
+- **`light`** — **`paper-light`** (warm smoke, amber accents) and
+  **`blossom`** (cherry-blossom smoke, pink accents): as clear as `glass`,
+  told apart by tint. It cannot be a thinner smoke than that: white words
+  over a white desktop need the smoke a clear pane has to hold 4.5:1.
+- **`crt`** — **`crt-green`** and **`crt-amber`**: a phosphor tube in glass,
+  its faceplate the `dark` mode's deeper smoke (which phosphor green needs
+  over a white desktop) and its panes lit by their own phosphor.
+
+The picker offers the five rotations first and then **every palette by
+name**, under a heading; a palette named there is pinned (no rotation).
+Older palettes were folded into these eight and their names still load the
+nearest survivor: `glass-sky` and `glass-dawn` → `glass-clear`; `sepia-dark`
+and `harbor` → `paper-dark`; `sepia-light` → `paper-light`; `fern` →
+`blossom`; `crt-blue` → `crt-green`; `crt-violet` → `crt-amber`; and the
+palettes of earlier roster cuts as before.
 
 **The CRT tubes are terminals running in glass.** Each phosphor carries its
 own tube tuning (bloom strength and radius, streaming-flicker character, how
-hard its strokes burn), so green runs hot and driven while blue runs a cold
-TRON edge. The window itself is frosted glass — your desktop shows through it,
-blurred, with no black page — and every pane is a
-thin milky sheet of frost in the phosphor's hue (see [Glass](#glass)); the hot
-phosphors (green, amber) keep a fine raster *etched into that glass*, under
+hard its strokes burn). The window itself is glass — your desktop shows
+through it, blurred, with no black page — and every pane is a sheet of smoke
+in the phosphor's hue (see [Glass](#glass)); both phosphors keep a fine
+raster *etched into that glass*, under
 the text, rather than scanlines striped over the whole window. Text casts a
 soft shadow onto the desktop behind it: the window dims your wallpaper a
 little around a run of text (not around a lone frame line), so the phosphor
@@ -4072,15 +4018,12 @@ the bloom turns them into glowing nodes, gaining focus fires a ~600ms
 ignition sweep (the whole frame ignites at the node colour and decays to
 rest), and a streaming pane's frame breathes on a slow ~2.4s cycle. All of
 it is focus-led — unfocused panes stay a thin quiet trace — and all of it is
-bounded: an idle tube renders a byte-identical frame every time. Paper
+bounded: an idle tube renders a byte-identical frame every time. The other
 themes are untouched by any of this.
 
-**The modern glow palettes are pages that carry light.** Each one owns two
-saturated poles that drive all three of its signatures: a gradient light-ring
-around the focused frame, a slow wash of pole light under the page, and a fine
-dot lattice woven over it on the text cell's pitch. They ride the bloom chain for their halo but never the tube —
-curvature, scanlines and the bezel vignette are all zero — so they sit in the
-`dark` and `light` rotations, not in `crt`.
+**Every palette carries two poles of light.** They drive the gradient
+light-ring around the focused frame, which rides the bloom chain for its
+halo (never the tube's curvature or scanlines, except on a tube).
 
 **Where you are in a buffer is a colour too.** Scroll a pane back and the
 `⇡N` on its top border and the thumb down its right border both take the
@@ -4118,20 +4061,9 @@ nothing works, and stops dead at **Motion = off**.
 cycle all five live with **`Ctrl+Shift+L`** (`dark → light → crt → glass →
 auto`). The choice persists to `config.toml`.
 
-**Each theme rotates** to a different palette from its pool every **10 minutes**:
-
-- **`/theme dark`** — rotates every dark page: the paper looks (`paper-dark`,
-  `sepia-dark`, `midnight-ink`, `graphite`, `moss-blotter`) and the modern
-  glow ones (`aurora`, `nebula`, `graphene`, `cobalt`).
-- **`/theme light`** — rotates every light page: the paper looks
-  (`paper-light`, `sepia-light`, `coldpress-gray`, `salmon-broadsheet`,
-  `ivory-ledger`, `glacier-bond`) and the modern glow ones (`daybreak`,
-  `blossom`, `meadow`, `cirrus`).
-- **`/theme crt`** — rotates the CRT phosphor palettes (`crt-green`,
-  `crt-amber`, `crt-blue`, `crt-violet`, `crt-paperwhite`).
-
-Selecting a theme switches immediately to a pick from its pool, so the effect
-is visible right away.
+**Each theme rotates** to its other palette every **10 minutes**; selecting
+a theme switches immediately to a pick from its pair, so the effect is
+visible right away.
 
 **Back-compat.** The old names still resolve when typed or loaded from an
 existing config: any individual palette name (`/theme crt-green`) pins that one
@@ -4154,7 +4086,7 @@ old background. Crew therefore enforces a **minimum-contrast floor** on
 program-painted text (à la iTerm2's Minimum Contrast): any foreground within a
 3.0 WCAG ratio of its background is darkened (light page) or lightened (dark
 page) in linear light — hue preserved — just enough to read. White-on-white
-after switching a running claude/codex pane to `paper-light` stays legible.
+after a running claude/codex pane switched theme stays legible.
 Text the program painted a **background behind** is held to a higher floor
 (**4.5**): that pair is not a guess but a TUI's selected row, a status bar or
 a diff block — the thing on the screen most meant to be read — and the ansi

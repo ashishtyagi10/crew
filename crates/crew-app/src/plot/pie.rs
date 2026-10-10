@@ -84,18 +84,6 @@ pub fn donut(
     }
 }
 
-/// A filled circle — the legend swatch beside a slice's label, and the mark a
-/// scatter or a series head is drawn with.
-pub fn dot(c: &mut Canvas, centre: (f32, f32), r: f32, color: (u8, u8, u8), alpha: f32) {
-    let (cx, cy) = centre;
-    c.fill_sdf(
-        (cx - r, cy - r, 2.0 * r, 2.0 * r),
-        color,
-        alpha,
-        move |x, y| sdf::disc((x, y), centre, r),
-    );
-}
-
 #[cfg(test)]
 #[path = "pie_tests.rs"]
 mod tests;
