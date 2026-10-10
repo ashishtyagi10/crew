@@ -66,10 +66,13 @@ pub(crate) fn scene_w(cols: u16, cw: f32) -> f32 {
 pub(crate) fn scene(pane: &ChatPane, r: Rect, cw: f32, ch: f32, p: Popup, now: u64) -> PaneScene {
     let h = f32::from(p.rows) * ch;
     let drop = pane.popup_rise.drop_rows(now) * ch;
+    // Shifted with the pane's content (`panefit::slack`), so the card's rows
+    // and columns stay the content's: `popupband` clears beside it by cell.
+    let (ox, oy) = crate::panefit::slack(r, cw, ch);
     PaneScene {
         cells: p.cells,
-        x: r.x,
-        y: above_composer(pane, r, cw, ch, h) + drop,
+        x: r.x + ox,
+        y: above_composer(pane, r, cw, ch, h) + oy + drop,
         w: scene_w(p.cols, cw),
         h,
         focused: false,

@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.65
+
+**A pane's content sits in the middle of its frame.**
+A pane's frame reaches the edges of its card, but its text is laid out in
+whole cells. Every pixel left over fell to the right and the bottom: a
+chat's composer stood 8 pixels from the left edge and 15 from the right,
+and the first row sat closer to the top than the last row did to the
+bottom. That leftover is now split evenly on both sides, so content sits
+centred in every pane. Clicks, selection and the composer's pop-ups move
+with it.
+- **Test:** a card's leftover pixels are split either side of its content,
+  in whole pixels, and a shell's content scene starts where that puts it.
+  The test fails without the fix. Every click still resolves the cell it
+  was drawn on, in one to four panes.
+
 ## 0.26.64
 
 **Code comments stay readable on the glass over a light desktop.**

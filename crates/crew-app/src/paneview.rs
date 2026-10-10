@@ -194,16 +194,16 @@ pub(crate) fn push_pane_scenes(
         false => -1.0,
     };
     let glint = foc.then(crate::panecardglow::glint).unwrap_or(-1.0);
-    // Content: its own buffer, one cell past the top-left border (a terminal
-    // two: `panefit::content_inset`) so it starts exactly on the grid.
-    let (r, inset) = (p.rect, crate::panefit::inset_px(&p.content, cw));
+    // Content: its own buffer, a cell past the top-left border (a terminal
+    // two) and centred in what the cells leave (`panefit::content_origin`).
+    let (r, (cx, cy)) = (p.rect, crate::panefit::origin(p, cw, ch));
     scenes.push(PaneScene {
         cells,
         paint,
-        x: r.x + cw + inset,
-        y: r.y + ch,
-        w: (r.w - 2.0 * cw - inset).max(0.0),
-        h: (r.h - 2.0 * ch).max(0.0),
+        x: cx,
+        y: cy,
+        w: (r.x + r.w - cw - cx).max(0.0),
+        h: (r.y + r.h - ch - cy).max(0.0),
         focused: foc,
         ..Default::default()
     });
