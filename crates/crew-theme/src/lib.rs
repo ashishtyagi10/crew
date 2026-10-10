@@ -68,10 +68,6 @@ pub struct Theme {
     /// pages get a heavier stem), the CRT pass's inversion, and the
     /// light/dark scheme crew reports to DECSET-2031 terminals.
     pub dark: bool,
-    /// Grain amplitude multiplier for the paper-texture pass, relative to the
-    /// user's configured `paper_grain`. 0.0 on every palette since every mode
-    /// went see-through (2026-10-09): glass has no paper to grain.
-    pub grain: f32,
     /// The theme's CRT tube tuning. When `Some` — and unless the user
     /// overrides it with `/crt off` — the renderer wraps the frame in the CRT
     /// post-process (curvature, scanlines, phosphor bloom, corner darkening)

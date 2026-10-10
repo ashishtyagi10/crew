@@ -301,17 +301,16 @@ impl CellGrid {
         self.glass_light = tilt;
     }
 
-    /// Liquid glass: draw what lies behind the glass — the page and its
-    /// backdrop — into a texture of its own for the glass pass to refract
-    /// (`crate::behind`). Call before the frame's own pass, `(w, h)` its size.
-    /// Every theme that is not liquid draws and allocates nothing here.
+    /// Liquid glass: draw what lies behind the glass — the page — into a
+    /// texture of its own for the glass pass to refract (`crate::behind`).
+    /// Call before the frame's own pass, `(w, h)` its size. A theme that is
+    /// not liquid draws and allocates nothing here.
     pub fn encode_behind(
         &mut self,
         device: &wgpu::Device,
         enc: &mut wgpu::CommandEncoder,
         (w, h): (u32, u32),
         bg: [f32; 4],
-        paper: Option<&crate::paperbg::PaperBgPass>,
     ) {
         if crew_theme::theme().liquid.is_none() {
             return;
@@ -323,7 +322,7 @@ impl CellGrid {
             self.behind = Some(b);
         }
         if let Some(b) = &self.behind {
-            b.encode(enc, bg, paper);
+            b.encode(enc, bg);
         }
     }
 

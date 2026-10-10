@@ -87,10 +87,6 @@ fn every_ladder_marks_its_real_default_and_only_that() {
             "/gamma",
             crate::gammalvl::label_of(crew_render::DEFAULT_TEXT_GAMMA),
         ),
-        (
-            "/grain",
-            crate::graincmd::label_of(crate::config::default_paper_grain()),
-        ),
     ] {
         let vals = options_for(cmd).unwrap_or_else(|| panic!("{cmd} has no picker"));
         let marked: Vec<&String> = vals

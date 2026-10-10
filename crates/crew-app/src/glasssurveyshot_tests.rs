@@ -29,7 +29,6 @@ fn glass_survey_shot() {
             let shot = crate::crtglassshot_tests::window_with(
                 &name,
                 id,
-                Default::default(),
                 sheer,
                 cmds,
                 // The bar's legend is crew's directory, as in the app.
@@ -52,14 +51,7 @@ fn glass_survey_shot() {
         };
         let name = format!("survey-{}-palette-toast", id.as_str());
         let dash: &[&str] = &["/dash"];
-        crate::crtglassshot_tests::window_with(
-            &name,
-            id,
-            Default::default(),
-            sheer,
-            dash,
-            &palette,
-        );
+        crate::crtglassshot_tests::window_with(&name, id, sheer, dash, &palette);
     }
 }
 

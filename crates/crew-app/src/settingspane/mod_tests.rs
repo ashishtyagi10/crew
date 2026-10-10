@@ -114,16 +114,6 @@ fn commit_accent_empty_clears_to_builtin() {
 }
 
 #[test]
-fn commit_grain_clamps_and_formats() {
-    let mut p = pane();
-    focus(&mut p, Field::PaperGrain);
-    p.grain_buf = "9.7".into();
-    commit_field(&mut p);
-    assert_eq!(p.draft.paper_grain, 2.0);
-    assert_eq!(p.grain_buf, "2.0");
-}
-
-#[test]
 fn commit_min_secs_clamps_up_from_zero() {
     let mut p = pane();
     focus(&mut p, Field::NotifyMinSecs);

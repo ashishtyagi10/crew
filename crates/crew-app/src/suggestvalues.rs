@@ -198,12 +198,6 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 "120 — thick, high-contrast".to_string(),
             ),
         ]),
-        "/grain" => Some(
-            crate::graincmd::LADDER
-                .iter()
-                .map(|(name, _, about)| (name.to_string(), about.to_string()))
-                .collect(),
-        ),
         "/gamma" => Some(vec![
             (
                 "off".to_string(),
@@ -256,7 +250,6 @@ pub(crate) fn expands(cmd: &str) -> bool {
             | "/crt"
             | "/weight"
             | "/smooth"
-            | "/grain"
             | "/gamma"
             | "/marks"
             | "/invisibles"

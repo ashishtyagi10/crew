@@ -39,16 +39,6 @@ fn a_step_past_a_bound_stops_at_the_bound() {
 }
 
 #[test]
-fn grain_steps_in_tenths_without_float_dust() {
-    let mut p = pane(Field::PaperGrain);
-    p.draft.paper_grain = 1.3;
-    crate::settingspane::commit::refresh_bufs(&mut p);
-    step(&mut p, true, false);
-    assert_eq!(p.grain_buf, "1.4");
-    assert!((p.draft.paper_grain - 1.4).abs() < 1e-6);
-}
-
-#[test]
 fn a_half_typed_value_is_stepped_from_what_it_says() {
     let mut p = pane(Field::FontSize);
     p.size_buf = "20".into();

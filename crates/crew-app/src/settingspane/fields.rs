@@ -39,12 +39,6 @@ pub(crate) enum Field {
     /// Whether pane cards mark what they know on their borders — the ticks
     /// where a command began and the bars beside error lines.
     BorderMarks,
-    PaperTexture,
-    /// Whether the page's gradient wash keeps drifting while nothing is
-    /// happening (see `washphase`). Sits beside Paper texture: both decide
-    /// what the page itself does behind the cards.
-    AmbientDrift,
-    PaperGrain,
     Glass,
     Motion,
     /// How tightly the canvas packs — the pane gutter and the rows between
@@ -92,7 +86,7 @@ pub(crate) enum Field {
 
 /// Every focusable field, for the coverage guards and as `tab_order`'s
 /// backstop — a field the layout does not place still has to be reachable.
-pub(crate) const FIELDS: [Field; 37] = [
+pub(crate) const FIELDS: [Field; 34] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -107,9 +101,6 @@ pub(crate) const FIELDS: [Field; 37] = [
     Field::LightTo,
     Field::Accent,
     Field::BorderMarks,
-    Field::PaperTexture,
-    Field::AmbientDrift,
-    Field::PaperGrain,
     Field::Glass,
     Field::Motion,
     Field::Density,

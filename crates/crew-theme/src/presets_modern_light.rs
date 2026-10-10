@@ -45,7 +45,6 @@ pub static BLOSSOM: Theme = Theme {
         (255, 250, 252), // 15 bright white
     ],
     dark: true,
-    grain: 0.0,
     crt: Some(CrtStyle {
         // Not a tube: the bloom lights the focus ring, the shade is the
         // glass's text shadow.
@@ -61,9 +60,6 @@ pub static BLOSSOM: Theme = Theme {
         pole_a: (255, 170, 200),
         pole_b: (200, 160, 255),
         drift_ms: 6_000,
-        // No wallpaper: the desktop is the background.
-        dots: 0.0,
-        wash: 0.0,
     }),
     liquid: Some(crate::presets_glass_clear::LIGHT_LIQUID),
 };

@@ -44,7 +44,8 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     let mut cy = y + 1;
     rects.push((Field::FontFamily, Rect::new(ix, cy, iw, 3)));
     cy += 3;
-    cy += pair(rects, ix, iw, cy, Field::FontSize, Field::PaperGrain);
+    lone(rects, ix, iw, cy, Field::FontSize);
+    cy += 3;
     cy += pair(rects, ix, iw, cy, Field::Smooth, Field::FontGamma);
     rects.push((Field::Theme, Rect::new(ix, cy, iw, 3)));
     cy += 3;
@@ -84,13 +85,7 @@ pub(super) fn canvas(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> 
     // and its values are words rather than numbers.
     rects.push((Field::Gradient, Rect::new(ix, cy, iw, 3)));
     cy += 3;
-    for f in [
-        Field::BorderMarks,
-        Field::Invisibles,
-        Field::Lsp,
-        Field::PaperTexture,
-        Field::AmbientDrift,
-    ] {
+    for f in [Field::BorderMarks, Field::Invisibles, Field::Lsp] {
         rects.push((f, Rect::new(ix, cy, iw, 1)));
         cy += 1;
     }
@@ -161,7 +156,7 @@ mod tests {
             let right = |f: Field| rects.iter().find(|(g, _)| *g == f).map(|(_, r)| r.right());
             let full = right(Field::FontFamily).unwrap();
             assert_eq!(
-                right(Field::PaperGrain),
+                right(Field::FontGamma),
                 Some(full),
                 "{w}: the pair's right box"
             );

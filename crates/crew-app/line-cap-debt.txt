@@ -63,7 +63,6 @@ src/farpane/remote_tests.rs 432
 src/farpane/render_tests.rs 652
 src/fontcmd_tests.rs 370
 src/git.rs 210
-src/glassshot_tests.rs 550
 src/gradientcmd_tests.rs 220
 src/grid/tests.rs 357
 src/handler.rs 295

@@ -111,7 +111,6 @@ impl CrewApp {
             "shapes" => self.shapes_command(""),
             "gradient" => self.gradient_command(""),
             "opacity" => self.opacity_command(""),
-            "grain" => self.grain_command(""),
             "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
             "zoom" => self.toggle_zoom(),

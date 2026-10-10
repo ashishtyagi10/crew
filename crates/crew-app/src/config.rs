@@ -113,16 +113,6 @@ pub struct CrewConfig {
     /// Whether the file viewer marks a language server's diagnostics (`lspon`). On.
     #[serde(default = "default_true")]
     pub lsp: bool,
-    /// The paper grain + vignette background texture; off is a plain flat colour.
-    #[serde(default = "default_true")]
-    pub paper_texture: bool,
-    /// Whether the gradient wash drifts while idle (slower, only with the OS focus);
-    /// off restores the busy-only wash; Motion=off overrides it either way.
-    #[serde(default = "default_true")]
-    pub ambient_drift: bool,
-    /// Grain amplitude multiplier for the paper texture (0.0 = no grain, 1.0 = default ~3%, 2.0 = double).
-    #[serde(default = "default_paper_grain")]
-    pub paper_grain: f32,
     /// CRT override: `None` follows the theme's `crt` flag; `Some(_)` is `/crt on|off`.
     #[serde(default)]
     pub crt: Option<bool>,
@@ -239,9 +229,6 @@ impl Default for CrewConfig {
             border_marks: true,
             invisibles: false,
             lsp: true,
-            paper_texture: true,
-            ambient_drift: true,
-            paper_grain: default_paper_grain(),
             crt: None,
             glass: default_glass(),
             motion: default_motion(),

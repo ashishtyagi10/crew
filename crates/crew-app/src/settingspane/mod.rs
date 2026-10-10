@@ -55,8 +55,6 @@ pub struct SettingsPane {
     pub(crate) nav_buf: String,
     /// Editable accent hex (e.g. `#00ffa0`); empty means "use the built-in".
     pub(crate) accent_buf: String,
-    /// Paper-grain amplitude (`0.0`–`2.0`, one decimal).
-    pub(crate) grain_buf: String,
     /// Window opacity as a whole percentage (`35`–`100`), so the number the
     /// user types is the number they see rather than a 0-1 fraction.
     pub(crate) opacity_buf: String,
@@ -88,7 +86,6 @@ impl SettingsPane {
         let size_buf = format!("{}", cfg.font_size as i32);
         let nav_buf = format!("{}", cfg.nav_width as i32);
         let accent_buf = cfg.accent.clone().unwrap_or_default();
-        let grain_buf = format!("{:.1}", cfg.paper_grain);
         let opacity_buf = format!("{}", (cfg.window_opacity * 100.0).round() as i32);
         let (light_from_buf, light_to_buf) = commit::light_bufs(&cfg);
         let minsecs_buf = format!("{}", cfg.notify_min_secs);
@@ -105,7 +102,6 @@ impl SettingsPane {
             size_buf,
             nav_buf,
             accent_buf,
-            grain_buf,
             opacity_buf,
             light_from_buf,
             light_to_buf,

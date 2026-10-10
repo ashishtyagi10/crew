@@ -6,7 +6,6 @@ use crate::cellgrid::CellGrid;
 use crate::crtchain::CrtChain;
 use crate::fadepass::FadePass;
 use crate::gpu::Gpu;
-use crate::paperbg::PaperBgPass;
 use crate::scene::PaneScene;
 use crate::solidcard::SolidCardPass;
 
@@ -22,9 +21,6 @@ const MIN_WINDOW_OPACITY: f32 = 0.1;
 pub struct Renderer {
     gpu: Gpu,
     cell_grid: CellGrid,
-    paper_bg: PaperBgPass,
-    paper_texture: bool,
-    paper_grain: f32,
     /// Alpha the page background is cleared/drawn with. `1.0` is the opaque
     /// window; lower lets the desktop through (see [`Self::set_window_opacity`]).
     window_opacity: f32,
@@ -43,19 +39,12 @@ pub struct Renderer {
     // theme's frames at `theme_fade` strength while a switch settles.
     fade: FadePass,
     theme_fade: Option<f32>,
-    /// The modern backdrop's clocks — set by the app each frame (see
-    /// [`Self::set_wash_phase`]).
-    wash_phase: crate::paperbg::WashClocks,
-    /// The wash orbit's centre in uv and how far it has travelled there (see
-    /// [`Self::set_wash_focus`]). Starts at the page centre, unmoved.
-    wash_focus: ((f32, f32), f32),
 }
 
 impl Renderer {
     pub fn new(window: Arc<Window>, font_size: f32) -> anyhow::Result<Self> {
         let gpu = Gpu::new(window)?;
         let cell_grid = CellGrid::new(gpu.device(), gpu.queue(), gpu.format, font_size);
-        let paper_bg = PaperBgPass::new(gpu.device(), gpu.format);
         let solid_card = SolidCardPass::new(gpu.device(), gpu.format);
         let crt = CrtChain::new(
             gpu.device(),
@@ -73,19 +62,12 @@ impl Renderer {
         Ok(Self {
             gpu,
             cell_grid,
-            paper_bg,
-            paper_texture: true,
-            // Matches config's default_paper_grain; the app calls set_paper_grain
-            // right after construction, so this is just a sane standalone default.
-            paper_grain: 1.3,
             window_opacity: 1.0,
             solid_card,
             solid_chrome: Vec::new(),
             crt,
             fade,
             theme_fade: None,
-            wash_phase: Default::default(),
-            wash_focus: ((0.5, 0.5), 0.0),
         })
     }
 
@@ -117,15 +99,10 @@ impl Renderer {
         self.cell_grid.set_text_smoothing(strength);
     }
 
-    /// Enable or disable the paper grain + vignette background pass.
     /// Override the coverage-curve amount (0–255, 0 = off; `None` follows
     /// [`crew_render::DEFAULT_TEXT_GAMMA`](crate::DEFAULT_TEXT_GAMMA)).
     pub fn set_text_gamma(&mut self, amount: Option<u8>) {
         self.cell_grid.set_text_gamma(amount);
-    }
-
-    pub fn set_paper_texture(&mut self, enabled: bool) {
-        self.paper_texture = enabled;
     }
 
     /// Theme-switch crossfade: how strongly the LAST presented frame still
@@ -160,14 +137,6 @@ impl Renderer {
         self.solid_chrome = rects;
     }
 
-    /// Set the grain amplitude multiplier (0.0 = no grain, 1.0 = default ~±3%, 2.0 = double).
-    /// This stores the USER knob only; the active theme's `grain`
-    /// multiplies it at frame time in `frame()`, so light themes render
-    /// noticeably grainier newsprint without changing what's stored here.
-    pub fn set_paper_grain(&mut self, grain: f32) {
-        self.paper_grain = grain;
-    }
-
     /// Set the CRT tube post-process style; `None` turns it off and the frame
     /// draws straight to the surface with no extra pass (the original path).
     pub fn set_crt(&mut self, style: Option<crew_theme::CrtStyle>) {
@@ -178,22 +147,6 @@ impl Renderer {
     /// amplitude (0 = a static tube). The app lifts these only while streaming.
     pub fn set_crt_anim(&mut self, time: f32, flicker: f32) {
         self.crt.set_anim(time, flicker);
-    }
-
-    /// The modern backdrop's clocks this frame: where the wash sits on its
-    /// orbit, how far its pools have wandered, how awake its flow is and
-    /// where its eddies are. The app owns them all (it advances them while a
-    /// pane is busy or the room drifts, and holds them otherwise), so the
-    /// renderer just carries them through to the background pass.
-    pub fn set_wash_phase(&mut self, clocks: crate::paperbg::WashClocks) {
-        self.wash_phase = clocks;
-    }
-
-    /// Where the wash's orbit is centred — `(centre_uv, pull)`. Pull `0.0` is
-    /// the page centre, which is what a crew with nothing focused draws (see
-    /// crew-app's `washfocus`).
-    pub fn set_wash_focus(&mut self, focus: (f32, f32), pull: f32) {
-        self.wash_focus = (focus, pull);
     }
 
     /// Sorted, de-duplicated names of all installed monospace font families.
@@ -237,23 +190,12 @@ impl Renderer {
         crate::frame::render(
             &self.gpu,
             &mut self.cell_grid,
-            if self.paper_texture {
-                Some(&self.paper_bg)
-            } else {
-                None
-            },
             &self.crt,
             &mut self.fade,
             self.theme_fade,
             &mut self.solid_card,
             &self.solid_chrome,
             self.window_opacity,
-            // Newsprint: light themes multiply the user's grain knob
-            // (theme().grain = 1.2 on light AND dark; the dark-grain
-            // calibration assumes the 1.3 × 1.2 = 1.56 product).
-            self.paper_grain * crew_theme::theme().grain,
-            self.wash_phase,
-            self.wash_focus,
             panes,
         );
     }

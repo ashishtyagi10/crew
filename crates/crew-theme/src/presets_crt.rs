@@ -14,7 +14,6 @@ use crate::{CrtStyle, ModernStyle, Theme};
 /// **Neon green phosphor** (P1, Tron-grid): hot saturated green traced over
 /// a deep cool near-black tube, with a monochrome-green ANSI palette
 /// (brightness tiers, faint hue tilts) for that single-gun terminal look.
-/// The paper-grain pass reads as a subtle glow off the grid lines.
 /// Style: the hottest tube of the four — a raster etched into its glass, a
 /// strong but tight bloom, and the jumpiest streaming flicker: a P1 tube
 /// driven hard.
@@ -58,7 +57,6 @@ pub static CRT_GREEN: Theme = Theme {
         (230, 235, 233), // 15 bright white
     ],
     dark: true,
-    grain: 0.0,
     crt: Some(CrtStyle {
         scanline: 0.0,
         glow: 0.95,
@@ -72,9 +70,6 @@ pub static CRT_GREEN: Theme = Theme {
         pole_a: (106, 184, 118),
         pole_b: (162, 242, 172),
         drift_ms: 6_000,
-        // No backdrop under a tube: the desktop, through the smoke.
-        dots: 0.0,
-        wash: 0.0,
     }),
     liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
 };
@@ -124,7 +119,6 @@ pub static CRT_AMBER: Theme = Theme {
         (234, 233, 234), // 15 bright white
     ],
     dark: true,
-    grain: 0.0,
     crt: Some(CrtStyle {
         scanline: 0.0,
         glow: 0.85,
@@ -138,9 +132,6 @@ pub static CRT_AMBER: Theme = Theme {
         pole_a: (184, 138, 39),
         pole_b: (242, 193, 102),
         drift_ms: 6_000,
-        // No backdrop under a tube: the desktop, through the smoke.
-        dots: 0.0,
-        wash: 0.0,
     }),
     liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
 };
