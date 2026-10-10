@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.58
+
+**The glass draws without an extra pass.** Every frame used to render
+the page into a separate full-window texture before drawing anything
+else. The glass shader then read that texture under every pane pixel to
+blur, bend and tint what was behind the panes. Since crew stopped
+painting a wallpaper, that texture only ever held one flat colour, so
+the lens had nothing to bend. The extra pass, its texture and the lens
+code are removed. The glass now gets the page colour as a single value
+per frame. On screen nothing visible changes: a still pane differs by
+at most 4 out of 255 in any colour channel, from the lens's saturation
+and rim-thinning, which had nothing to work on. Each frame does less GPU
+work.
+- **Test:** a see-through slab still keeps its colour while it lets
+  the desktop through, and the glass behind a pane title is still
+  thicker than the pane, rendered on the GPU. Every theme's text still
+  reads over a black and a white desktop.
+
 ## 0.26.57
 
 **Tubes' title bars frost like their panes; the docs describe the glass

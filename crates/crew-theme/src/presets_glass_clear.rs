@@ -102,15 +102,6 @@ pub(crate) const CLEAR_BLOOM: CrtStyle = CrtStyle {
 /// white desktop because of the shadow behind it, not because the smoke is
 /// thick.
 pub(crate) const CLEAR_LIQUID: LiquidStyle = LiquidStyle {
-    // No lens: the glass paints no wallpaper, so bending, blurring and
-    // splitting the page drew nothing — eleven texture reads a pixel for a
-    // solid colour. The desktop's blur is the window server's.
-    refract: 0.0,
-    bevel: 16.0,
-    blur: 0.0,
-    dispersion: 0.0,
-    clear_rim: 0.75,
-    vibrance: 1.35,
     window: 0.25,
     body: 0.45,
     desktop_blur: 20.0,

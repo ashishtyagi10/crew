@@ -1,8 +1,8 @@
 //! Instanced frosted-glass card layer (SDF-based, alpha-blended).
 //!
 //! Drawn first inside the scene pass — under the cell background quads, the
-//! rounded borders and the text — so every pane sits on a translucent sheet
-//! with the paper grain showing through it. Geometry mirrors
+//! rounded borders and the text — so every pane sits on a slab of glass over
+//! the page. Geometry mirrors
 //! [`crate::roundborder`]; the difference is that this fills the shape (with a
 //! vertical ramp, a specular top edge and a soft shadow) instead of stroking it.
 use wgpu::util::DeviceExt as _;
@@ -43,28 +43,25 @@ pub struct GlassCard {
     pub glint: f32,
     /// Where the frame's legends break the rim (see [`crate::notch`]).
     pub notch: crate::notch::Notch,
-    /// Liquid glass (`crew_theme::LiquidStyle`): refract, bevel, blur and
-    /// dispersion, then clear_rim and vibrance, how much of the desktop the
-    /// body lets through on a see-through window (0 is a solid slab, as the
-    /// glass always was), one spare and an on flag.
-    /// All zero draws the sheet as before, never sampling the backdrop.
-    pub lens: [f32; 8],
+    /// Liquid glass: how much of the desktop the body lets through on a
+    /// see-through window (0 is a solid slab).
+    pub see: f32,
+    /// Whether this card is a liquid-glass body — the page smoked with the
+    /// tint — rather than a sheet's fill alone (a pop-up's shadow-only sheet
+    /// is not).
+    pub liquid: bool,
 }
 
-/// 48 × f32 per instance: rect(4), params(4), tint(4), highlight(4), extra(4),
+/// 44 × f32 per instance: rect(4), params(4), tint(4), highlight(4), extra(4),
 /// then the notch depth with the gloss, glow and etch beside it (4), the notch's
-/// top spans(8) and bottom spans(8), and the lens (8).
-const INSTANCE_FLOATS: usize = 48;
+/// top spans(8) and bottom spans(8), and the liquid body (see, on, 2 spare).
+const INSTANCE_FLOATS: usize = 44;
 
 /// GPU layer drawing rounded translucent cards via a signed-distance field.
 pub struct GlassLayer {
     pipeline: wgpu::RenderPipeline,
     bind_group: wgpu::BindGroup,
-    /// Group 1: what lies behind the glass (`crate::behind`) and how it is
-    /// sampled — a 1×1 stand-in until a liquid theme hands over the real one.
-    behind_bgl: wgpu::BindGroupLayout,
-    behind_group: wgpu::BindGroup,
-    sampler: wgpu::Sampler,
+    /// The viewport, the light's tilt and the page (see [`Self::set_page`]).
     vp_buf: wgpu::Buffer,
     inst_buf: Option<wgpu::Buffer>,
     count: u32,
@@ -121,14 +118,10 @@ fn pack(c: &GlassCard) -> [f32; INSTANCE_FLOATS] {
         b[2][1],
         b[3][0],
         b[3][1],
-        c.lens[0],
-        c.lens[1],
-        c.lens[2],
-        c.lens[3],
-        c.lens[4],
-        c.lens[5],
-        c.lens[6],
-        c.lens[7],
+        c.see,
+        f32::from(u8::from(c.liquid)),
+        0.0,
+        0.0,
     ]
 }
 
@@ -141,7 +134,7 @@ impl GlassLayer {
 
         let vp_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("glass_vp"),
-            contents: f32s_as_bytes(&[1.0_f32, 1.0, 0.0, 0.0]),
+            contents: f32s_as_bytes(&[1.0_f32, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -168,64 +161,16 @@ impl GlassLayer {
             }],
         });
 
-        let behind_bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("glass_behind_bgl"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        });
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("glass_behind_sampler"),
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            ..Default::default()
-        });
-        let stand_in = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("glass_behind_stand_in"),
-            size: wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8Unorm,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING,
-            view_formats: &[],
-        });
-        let behind_group = behind_group(
-            device,
-            &behind_bgl,
-            &stand_in.create_view(&Default::default()),
-            &sampler,
-        );
-
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("glass_layout"),
-            bind_group_layouts: &[Some(&bgl), Some(&behind_bgl)],
+            bind_group_layouts: &[Some(&bgl)],
             immediate_size: 0,
         });
 
         let inst_attrs = wgpu::vertex_attr_array![
             0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4, 4 => Float32x4,
             5 => Float32x4, 6 => Float32x4, 7 => Float32x4, 8 => Float32x4, 9 => Float32x4,
-            10 => Float32x4, 11 => Float32x4];
+            10 => Float32x4];
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("glass_pipeline"),
             layout: Some(&layout),
@@ -261,18 +206,21 @@ impl GlassLayer {
         Self {
             pipeline,
             bind_group,
-            behind_bgl,
-            behind_group,
-            sampler,
             vp_buf,
             inst_buf: None,
             count: 0,
         }
     }
 
-    /// Sample `view` as what lies behind the glass (see `crate::behind`).
-    pub fn set_behind(&mut self, device: &wgpu::Device, view: &wgpu::TextureView) {
-        self.behind_group = behind_group(device, &self.behind_bgl, view, &self.sampler);
+    /// The page under the glass: its colour in the target's space and the
+    /// window's opacity as alpha (straight, as `color::target_rgba` gives
+    /// it). A liquid body is this page smoked with the card's tint, and on a
+    /// see-through window the slab takes the page's share back out of what
+    /// it hands over. The page is one flat colour (no theme paints a
+    /// wallpaper), so it is a uniform: it was a texture drawn in a pass of
+    /// its own and sampled per pixel, for a constant.
+    pub fn set_page(&self, queue: &wgpu::Queue, page: [f32; 4]) {
+        queue.write_buffer(&self.vp_buf, 16, f32s_as_bytes(&page));
     }
 
     /// Upload cards as instance data.
@@ -316,32 +264,9 @@ impl GlassLayer {
         };
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, &self.bind_group, &[]);
-        pass.set_bind_group(1, &self.behind_group, &[]);
         pass.set_vertex_buffer(0, buf.slice(..));
         pass.draw(0..6, 0..self.count);
     }
-}
-
-fn behind_group(
-    device: &wgpu::Device,
-    layout: &wgpu::BindGroupLayout,
-    view: &wgpu::TextureView,
-    sampler: &wgpu::Sampler,
-) -> wgpu::BindGroup {
-    device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("glass_behind_bg"),
-        layout,
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(view),
-            },
-            wgpu::BindGroupEntry {
-                binding: 1,
-                resource: wgpu::BindingResource::Sampler(sampler),
-            },
-        ],
-    })
 }
 
 #[cfg(test)]

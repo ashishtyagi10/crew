@@ -6,13 +6,11 @@
 // pass.
 
 // `tilt`: where the pointer sits in the window, -1..=1 per axis (0 at rest).
-struct Vp { size: vec2<f32>, tilt: vec2<f32> };
+// `page`: the page under the glass, straight, its alpha the window's
+// opacity (`GlassLayer::set_page`) — one flat colour, since no theme paints
+// a wallpaper.
+struct Vp { size: vec2<f32>, tilt: vec2<f32>, page: vec4<f32> };
 @group(0) @binding(0) var<uniform> vp: Vp;
-// What lies behind the glass — the wallpaper, drawn before the cards
-// (crate::behind). A 1×1 stand-in on every theme that is not liquid glass,
-// never sampled there.
-@group(1) @binding(0) var behind_tex: texture_2d<f32>;
-@group(1) @binding(1) var behind_samp: sampler;
 
 // How far outside the card the quad is expanded to give the shadow room. Must
 // stay >= the shadow's blur + offset or the falloff is visibly clipped square.
@@ -99,8 +97,7 @@ struct VsOut {
   @location(8) nt1: vec4<f32>,     // top notch spans 2-3
   @location(9) nb0: vec4<f32>,     // bottom notch spans 0-1
   @location(10) nb1: vec4<f32>,    // bottom notch spans 2-3
-  @location(11) lens0: vec4<f32>,  // refract px, bevel px, blur px, dispersion
-  @location(12) lens1: vec4<f32>,  // clear_rim, vibrance, see-through, on
+  @location(11) liquid: vec4<f32>, // see-through, on, 2 spare
 };
 
 // How soft a notch's ends are (px): the rim tapers into the gap round the
@@ -160,8 +157,7 @@ fn vs(@builtin(vertex_index) vi: u32,
       @location(7) nt1: vec4<f32>,
       @location(8) nb0: vec4<f32>,
       @location(9) nb1: vec4<f32>,
-      @location(10) lens0: vec4<f32>,
-      @location(11) lens1: vec4<f32>) -> VsOut {
+      @location(10) liquid: vec4<f32>) -> VsOut {
   var corners = array<vec2<f32>,6>(
     vec2<f32>(0.0,0.0), vec2<f32>(1.0,0.0), vec2<f32>(0.0,1.0),
     vec2<f32>(0.0,1.0), vec2<f32>(1.0,0.0), vec2<f32>(1.0,1.0));
@@ -186,8 +182,7 @@ fn vs(@builtin(vertex_index) vi: u32,
   out.nt1 = nt1;
   out.nb0 = nb0;
   out.nb1 = nb1;
-  out.lens0 = lens0;
-  out.lens1 = lens1;
+  out.liquid = liquid;
   return out;
 }
 
@@ -211,34 +206,6 @@ fn sdf_normal(p: vec2<f32>, b: vec2<f32>, r: f32) -> vec2<f32> {
     sd_round_box(p + vec2<f32>(e, 0.0), b, r) - sd_round_box(p - vec2<f32>(e, 0.0), b, r),
     sd_round_box(p + vec2<f32>(0.0, e), b, r) - sd_round_box(p - vec2<f32>(0.0, e), b, r))
     + vec2<f32>(1e-5, 1e-5));
-}
-
-// The backdrop at screen px `p`, clamped to the window, as it is stored:
-// premultiplied, its alpha the window's opacity (`behind.rs`).
-fn behind_raw(p: vec2<f32>) -> vec4<f32> {
-  let uv = clamp(p / vp.size, vec2<f32>(0.0), vec2<f32>(1.0));
-  return textureSampleLevel(behind_tex, behind_samp, uv, 0.0);
-}
-
-// The backdrop's own colour at `p` — what the frost blurs and the lens bends.
-fn behind_at(p: vec2<f32>) -> vec3<f32> {
-  let t = behind_raw(p);
-  return t.rgb / max(t.a, 0.0001);
-}
-
-// The backdrop at `p` frosted over radius `r` px: the centre and eight taps on
-// a golden-angle spiral (a Vogel disk), which covers a disk evenly with no
-// grid for the eye to find.
-fn frosted(p: vec2<f32>, r: f32) -> vec3<f32> {
-  var acc = behind_at(p);
-  if (r < 0.5) { return acc; }
-  for (var i = 0; i < 8; i = i + 1) {
-    let fi = f32(i);
-    let a = fi * 2.39996323;
-    let rr = r * sqrt((fi + 0.5) / 8.0);
-    acc = acc + behind_at(p + rr * vec2<f32>(cos(a), sin(a)));
-  }
-  return acc / 9.0;
 }
 
 // Cheap value hash for the frost grain.
@@ -288,7 +255,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // mirrored over the rule, hides more of the desktop (`VEIL_FROST`).
   var veil = 0.0;
   var thick = 0.0;
-  if (in.lens1.w > 0.0 && in.lens1.z > 0.0) {
+  if (in.liquid.y > 0.0 && in.liquid.x > 0.0) {
     veil = max(veil_spans(lx, -from_top, depth, in.nt0, in.nt1),
                veil_spans(lx, -from_bot, depth, in.nb0, in.nb1));
     thick = max(veil_spans(lx, abs(from_top), depth, in.nt0, in.nt1),
@@ -378,37 +345,13 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   var alpha = fill_a;
 
   // --- liquid glass -----------------------------------------------------------
-  // The card shows what is behind it, bent. Its body is the backdrop frosted
-  // (blurred over `blur` px), saturated a little — glass makes colour richer,
-  // not greyer — and then smoked with the tint at the fill's ramp, so a calm
-  // field lies under the text. Toward the rim the glass thickens into a lens:
-  // over the last `bevel` px it reaches outward for what it shows, up to
-  // `refract` px past the edge at the edge itself, so the backdrop just
-  // outside the card is pulled in under its rim; there the frost thins
-  // (`clear_rim`) and the colours split a little, red reaching further than
-  // blue, as a prism's do. The rim, gloss and shade below ride on top.
-  if (in.lens1.w > 0.0 && body_in > 0.0) {
-    let bevel = max(in.lens0.y, 1.0);
-    let blur = in.lens0.z;
-    let disp = in.lens0.w;
-    let n = sdf_normal(in.local, in.hsize, radius);
-    let s = clamp(-d / bevel, 0.0, 1.0);
-    // The veil is body, not lens: no bend, full frost.
-    let k = (1.0 - s) * (1.0 - s) * clamp(inside / body_in, 0.0, 1.0);
-    let off = n * in.lens0.x * k;
-    let here = in.pos.xy;
-    let r = blur * (1.0 - k);
-    var c = frosted(here + off, r);
-    if (k > 0.002 && disp > 0.0) {
-      c.r = frosted(here + off * (1.0 + disp), r).r;
-      c.b = frosted(here + off * (1.0 - disp), r).b;
-    }
-    let l = dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
-    c = clamp(mix(vec3<f32>(l), c, in.lens1.y), vec3<f32>(0.0), vec3<f32>(1.0));
+  // The body is the page smoked with the tint at the fill's ramp, so a calm
+  // field lies under the text. The rim, gloss and shade below ride on top.
+  if (in.liquid.y > 0.0 && body_in > 0.0) {
     // A lifted card is nearer the light: its smoke thins a touch.
     let ramp = mix(a_top, a_bot, t) * (1.0 - 0.12 * lift);
-    let frost = clamp(ramp * (1.0 - in.lens1.x * k), 0.0, 1.0);
-    rgb = mix(mix(c, in.tint.xyz, frost), in.hl.xyz, 0.10 * scan_band);
+    let frost = clamp(ramp, 0.0, 1.0);
+    rgb = mix(mix(vp.page.rgb, in.tint.xyz, frost), in.hl.xyz, 0.10 * scan_band);
     alpha = body_in;
   }
 
@@ -488,14 +431,14 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // own alpha is the body's, over a page at the window's opacity `o`, so the
   // pane covers `body + o·see` of the desktop — in the slab's own colour. The
   // blend adds what the slab leaves of the page under it (stored
-  // premultiplied, `under`); the page there IS the wallpaper the glass
-  // samples, since the glass is the first thing drawn over it. So the slab
+  // premultiplied, `under`): the page, since the glass is the first thing
+  // drawn over it. So the slab
   // hands over its colour at the pane's coverage less that share. Divided by
   // the body only to be multiplied back at the return.
-  let see = in.lens1.z * (1.0 - VEIL_FROST * thick);
-  if (in.lens1.w > 0.0 && see > 0.0) {
+  let see = in.liquid.x * (1.0 - VEIL_FROST * thick);
+  if (in.liquid.y > 0.0 && see > 0.0) {
     let body = 1.0 - see;
-    let under = behind_raw(in.pos.xy);
+    let under = vec4<f32>(vp.page.rgb * vp.page.a, vp.page.a);
     let cover = body + under.a * see;
     rgb = max(rgb * cover - under.rgb * see, vec3<f32>(0.0)) / body;
     alpha = alpha * body;
