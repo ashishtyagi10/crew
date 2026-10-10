@@ -81,7 +81,11 @@ fn a_whisper_on_glass_reads_over_the_frost() {
         assert!(got >= DIM_CONTRAST - 0.05, "{fg:?}: {got:.2}");
         assert_ne!(fg, t.term_fg, "still quieter than the body text");
     }
-    let p = &crew_theme::PAPER_DARK;
+    // A page with no glass (every palette has some since 2026-10-09).
+    let p = &crew_theme::Theme {
+        liquid: None,
+        ..crew_theme::PAPER_DARK
+    };
     let plain = dimmed(p.term_fg, p.term_bg);
     assert_eq!(dimmed_on_page(p.term_fg, p.term_bg, p), plain);
 }

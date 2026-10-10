@@ -106,7 +106,7 @@ fn theme_space_lists_the_rotations_first_then_every_palette() {
         "{labels:?}"
     );
     assert!(items[5].header, "the palettes need a heading: {labels:?}");
-    for name in ["paper-dark", "crt-green", "crt-violet", "nebula", "fern"] {
+    for name in ["paper-dark", "crt-green", "crt-violet", "nebula", "blossom"] {
         assert!(labels.contains(&name), "{name} is missing: {labels:?}");
     }
     // The legacy rotation names still parse and are still not offered.

@@ -1,11 +1,19 @@
 use super::*;
-use crate::{Theme, ALL_THEMES, CRT_GREEN, PAPER_DARK, PAPER_LIGHT};
+use crate::{Theme, ALL_THEMES, CRT_GREEN, PAPER_DARK};
 
 /// A dark page with no glass of its own — what `paper-dark` was before every
 /// mode went see-through (2026-10-09): the frosted card a dark page gets.
 const DARK_PAGE: Theme = Theme {
     liquid: None,
     ..PAPER_DARK
+};
+
+/// And what `paper-light` was: a warm off-white page with dark ink.
+const LIGHT_PAGE: Theme = Theme {
+    page_bg: (246, 243, 236),
+    ink: (26, 22, 20),
+    dark: false,
+    ..DARK_PAGE
 };
 
 #[test]
@@ -102,7 +110,7 @@ fn frost_pages_have_no_gloss_and_a_black_shadow() {
 /// other.
 #[test]
 fn dark_pages_soften_the_rim_and_deepen_the_shadow() {
-    let light = style_for(&PAPER_LIGHT);
+    let light = style_for(&LIGHT_PAGE);
     let dark = style_for(&DARK_PAGE);
     assert!(dark.highlight_alpha < light.highlight_alpha * 0.5);
     assert!(dark.shadow_alpha > light.shadow_alpha * 2.0);

@@ -77,13 +77,6 @@ fn on_glass_the_reply_says_the_theme_sets_the_window() {
         "{}",
         said(&app)
     );
-    crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
-    app.opacity_command("60");
-    assert!(
-        said(&app).contains("the title bar stays solid"),
-        "{}",
-        said(&app)
-    );
 }
 
 /// On glass the picker heads its ladder with what the window is — the
@@ -100,7 +93,4 @@ fn the_picker_says_when_the_steps_do_nothing_here() {
         rows[0].1
     );
     assert_eq!(rows.len(), LADDER.len() + 1);
-    crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
-    assert_eq!(picker().len(), LADDER.len());
-    assert!(picker().iter().all(|(v, _)| !v.is_empty()));
 }

@@ -326,7 +326,7 @@ fn a_pin_holds_across_every_later_theme_change() {
     for id in [
         crew_theme::ThemeId::CrtGreen,
         crew_theme::ThemeId::PaperDark,
-        crew_theme::ThemeId::SepiaLight,
+        crew_theme::ThemeId::PaperLight,
         crew_theme::ThemeId::CrtAmber,
     ] {
         crew_theme::apply_selection(crew_theme::Selection::Fixed(id), 0);

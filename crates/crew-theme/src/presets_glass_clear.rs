@@ -79,6 +79,16 @@ pub(crate) const DARK_LIQUID: LiquidStyle = LiquidStyle {
     ..CLEAR_LIQUID
 };
 
+/// The `light` mode's glass: as clear as `glass-clear`, a touch denser in
+/// the body. Light was meant to be the thinner smoke, but white words over a
+/// white desktop need a pane to hide about 0.6 of it (with the text shadow)
+/// to hold 4.5:1 — the clear glass is already at that edge — so light is
+/// told apart by its tint (warm, rose) rather than by its thickness.
+pub(crate) const LIGHT_LIQUID: LiquidStyle = LiquidStyle {
+    body: 0.47,
+    ..CLEAR_LIQUID
+};
+
 /// The white-text glass's tube settings, shared with the night glass: a
 /// little glow, no tube, and the soft shadow white words need over a clear
 /// pane.

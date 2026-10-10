@@ -309,8 +309,10 @@ fn enforced_clears_the_floor_even_where_against_cannot() {
     let floor = TEXT_FLOOR;
     let mut gave_up = 0;
     let mut bad: Vec<String> = Vec::new();
-    for id in ALL_THEMES {
-        let page = id.theme().page_bg;
+    // Every palette's page, and a cream one: no page is light since every
+    // mode went see-through, and a cream page is where `against` gives up.
+    let pages = ALL_THEMES.map(|id| (id.as_str(), id.theme().page_bg));
+    for (name, page) in pages.into_iter().chain([("cream", (246, 243, 236))]) {
         for want in [
             (255, 240, 90),
             (0, 255, 160),
@@ -323,7 +325,7 @@ fn enforced_clears_the_floor_even_where_against_cannot() {
             }
             let r = contrast_ratio(enforced(want, page, floor), page);
             if r < floor - 0.01 {
-                bad.push(format!("{}: {want:?} enforced to only {r:.2}", id.as_str()));
+                bad.push(format!("{name}: {want:?} enforced to only {r:.2}"));
             }
         }
     }

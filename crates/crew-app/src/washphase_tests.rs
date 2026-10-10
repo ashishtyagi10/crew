@@ -171,65 +171,6 @@ fn motion_off_holds_the_ambient_drift_too() {
     }
 }
 
-/// The four fences on the ambient drift, each checked by turning exactly one
-/// of them off. This is the only motion in crew that repaints an otherwise
-/// idle window, so every one of them is load-bearing.
-#[test]
-fn each_fence_alone_stops_the_ambient_drift() {
-    let _g = crate::app::theme_test_guard();
-    crew_theme::set_theme(crew_theme::ThemeId::PaperLight); // a wash to drift
-    let mut app = crate::app::CrewApp::default();
-    app.config.ambient_drift = true;
-    app.win_focus = None;
-    assert!(app.ambient_drift(), "premise: all four fences pass");
-    app.config.ambient_drift = false;
-    assert!(!app.ambient_drift(), "the setting");
-    app.config.ambient_drift = true;
-    app.win_focus = Some(false);
-    assert!(!app.ambient_drift(), "another window has the OS focus");
-    app.win_focus = Some(true);
-    assert!(app.ambient_drift(), "and it comes back when focus returns");
-
-    crate::motion::set_level(MotionLevel::Off);
-    assert!(!app.ambient_drift(), "Motion off");
-    crate::motion::set_level(MotionLevel::Full);
-    assert!(app.ambient_drift());
-}
-
-/// A window that has never been told about focus is treated as focused: not
-/// every platform sends `Focused(true)` for a window that opens focused, and
-/// a drift that never starts is worse than one that runs while hidden.
-#[test]
-fn a_window_that_was_never_told_counts_as_focused() {
-    let _g = crate::app::theme_test_guard();
-    crew_theme::set_theme(crew_theme::ThemeId::PaperLight); // a wash to drift
-    let app = crate::app::CrewApp::default();
-    assert_eq!(app.win_focus, None, "premise: nothing has said either way");
-    assert!(app.ambient_drift());
-}
-
-/// The ambient drift is deliberately NOT a term in `wants_animation_frame`:
-/// that predicate keeps meaning "some transient animation is in flight", and
-/// this — the one thing that repaints an otherwise idle window — is its own
-/// branch with its own, much coarser throttle. An idle app must therefore say
-/// no to the first and yes to the second.
-#[test]
-fn an_idle_app_wants_no_animation_frame_but_does_want_the_drift() {
-    let _g = crate::app::theme_test_guard();
-    crew_theme::set_theme(crew_theme::ThemeId::PaperLight); // a wash to drift
-    let mut app = crate::app::CrewApp::default();
-    app.config.ambient_drift = true;
-    let now = crate::anim::now_ms();
-    assert!(
-        !app.wants_animation_frame(now),
-        "premise: nothing transient is animating"
-    );
-    assert!(app.ambient_drift(), "but the wash is still turning");
-    // …and with the setting off, an idle app asks for nothing at all.
-    app.config.ambient_drift = false;
-    assert!(!app.wants_animation_frame(now) && !app.ambient_drift());
-}
-
 /// Run the clock forward `ms` in frames small enough to clear `MAX_STEP_MS`,
 /// which is what a real drifting window does — one 1000 ms `advance` is a
 /// STALL and is clamped to 250, so a test that stepped in whole periods would

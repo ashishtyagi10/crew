@@ -318,10 +318,6 @@ fn main() {
         (ThemeId::PaperLight, format!("{out_dir}/welcome-light.png")),
         (ThemeId::PaperDark, format!("{out_dir}/welcome-dark.png")),
         (
-            ThemeId::SepiaLight,
-            format!("{out_dir}/welcome-sepia-light.png"),
-        ),
-        (
             ThemeId::CrtGreen,
             format!("{out_dir}/welcome-crt-green.png"),
         ),

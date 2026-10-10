@@ -112,19 +112,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Lilex",
         ],
-        // Sepia: warm and typewritten — friendly rounded shapes suit it, so
-        // this is where the comic lead lives on: Comic Shanns Mono first (the
-        // user's pick, 2026-09-27 — the face Comic Mono was cut from, with the
-        // wider glyph set), Comic Mono right behind it where it is not.
-        ThemeId::SepiaLight => &[
-            "Comic Shanns Mono",
-            "Comic Mono",
-            "IBM Plex Mono",
-            "MonoLisa",
-            "SF Mono",
-            "Menlo",
-            "Lilex",
-        ],
         // Modern (aurora/nebula): the Gemini look wants a contemporary
         // geometric coding face, and JetBrains Mono is that face — it also
         // happens to be one the user asked to see more of (`FAVORITES`),
@@ -132,18 +119,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // Code and Geist stay behind it.
         ThemeId::Nebula | ThemeId::Blossom => &[
             "JetBrains Mono",
-            "SF Mono",
-            "Google Sans Code",
-            "Geist Mono",
-            "Menlo",
-            "Lilex",
-        ],
-        // Fern is the modern page COOLED, and it used to share Nebula's list
-        // outright. It leads with IBM Plex Mono instead: an engineered, level
-        // face for the cooler page, and a lead of its own is a font change
-        // when the rotation moves between the two halves of the modern family.
-        ThemeId::Fern => &[
-            "IBM Plex Mono",
             "SF Mono",
             "Google Sans Code",
             "Geist Mono",

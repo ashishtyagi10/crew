@@ -76,70 +76,68 @@ pub static PAPER_DARK: Theme = Theme {
     liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
 };
 
-/// Warm paper "day" page — soft off-white with ink-toned output.
+/// The `light` mode's warm glass (2026-10-09: every mode see-through, and
+/// light "a smoked clear glass with white words"): a warm, paper-toned smoke
+/// over the desktop, cream-white ink and an amber accent — the paper page
+/// as glass. Clear like `glass-clear` ([`crate::presets_glass_clear::LIGHT_LIQUID`]);
+/// white words over a white desktop leave no room for a thinner smoke.
 pub static PAPER_LIGHT: Theme = Theme {
-    page_bg: (246, 243, 236),
-    // Ink and every text shade run deep enough that type reads crisp on the
-    // bright page (ink ≥ 16:1, muted ≥ 11:1) rather than washed-out.
-    ink: (26, 22, 20),
-    text_muted: (56, 51, 48),
-    term_fg: (22, 20, 18),
-    term_bg: (246, 243, 236),
-    border_normal: (177, 173, 167),
-    border_focused: (105, 97, 83),
+    page_bg: (30, 26, 22),
+    ink: (246, 242, 234),
+    text_muted: (212, 208, 200),
+    term_fg: (246, 242, 234),
+    term_bg: (30, 26, 22),
+    border_normal: (80, 75, 70),
+    border_focused: (226, 232, 246),
     border_thickness: 3.0,
-    legend_off: (96, 93, 88),
-    accent_default: (110, 72, 38),
-    status_fg: (107, 78, 26),
-    broadcast: (110, 45, 88),
-    activity: (40, 72, 108),
-    bell: (137, 58, 53),
-    dim: (113, 109, 104),
-    placeholder: (121, 117, 112),
-    hint_fg: (112, 108, 103),
-    find_hl_bg: (227, 202, 68),
+    legend_off: (155, 151, 145),
+    accent_default: (255, 179, 102),
+    status_fg: (255, 214, 10),
+    broadcast: (210, 140, 255),
+    activity: (100, 210, 255),
+    bell: (255, 118, 110),
+    dim: (136, 131, 125),
+    placeholder: (127, 123, 117),
+    hint_fg: (137, 133, 127),
+    find_hl_bg: (46, 54, 121),
     ansi: [
-        (33, 32, 31),   // 0  black
-        (142, 64, 57),  // 1  red
-        (30, 100, 50),  // 2  green
-        (113, 83, 0),   // 3  yellow
-        (39, 89, 146),  // 4  blue
-        (120, 69, 127), // 5  magenta
-        (0, 98, 102),   // 6  cyan
-        (71, 70, 68),   // 7  white
-        (97, 95, 93),   // 8  bright black
-        (124, 47, 42),  // 9  bright red
-        (5, 83, 34),    // 10 bright green
-        (93, 68, 0),    // 11 bright yellow
-        (21, 72, 128),  // 12 bright blue
-        (103, 53, 110), // 13 bright magenta
-        (0, 80, 84),    // 14 bright cyan
-        (35, 34, 32),   // 15 bright white
+        (107, 106, 104), // 0  black
+        (255, 172, 161), // 1  red
+        (129, 211, 145), // 2  green
+        (231, 187, 93),  // 3  yellow
+        (147, 197, 255), // 4  blue
+        (237, 171, 244), // 5  magenta
+        (59, 213, 219),  // 6  cyan
+        (230, 228, 225), // 7  white
+        (146, 144, 141), // 8  bright black
+        (255, 203, 195), // 9  bright red
+        (149, 232, 165), // 10 bright green
+        (252, 207, 114), // 11 bright yellow
+        (184, 217, 255), // 12 bright blue
+        (250, 198, 255), // 13 bright magenta
+        (87, 234, 240),  // 14 bright cyan
+        (254, 252, 249), // 15 bright white
     ],
-    dark: false,
-    // 1.2 restores the pre-gamma-blending newsprint amplitude (was 3.0):
-    // grain now modulates encoded values (v0.5.58), which reads much
-    // stronger than the old linear-space pass — calibrated by measuring
-    // page-luma stddev against the previous build's screenshots.
-    grain: 1.2,
+    dark: true,
+    grain: 0.0,
     crt: Some(CrtStyle {
-        // A glowing paper theme, not a tube: scanlines off, so `is_crt` still
-        // reads this as paper. The style is here only to ride the bloom chain
-        // that draws the gradient ring's halo.
+        // Not a tube: the bloom lights the focus ring, the shade is the
+        // glass's text shadow.
         scanline: 0.0,
-        glow: 0.35,
+        glow: 0.5,
         glow_radius: 12.0,
         flicker: 0.015,
         core: 0.0,
         etch: 0.0,
-        shade: 0.0,
+        shade: CrtStyle::GLASS_SHADE,
     }),
     modern: Some(ModernStyle {
-        pole_a: (39, 89, 146),
-        pole_b: (120, 69, 127),
+        pole_a: (255, 196, 120),
+        pole_b: (240, 150, 120),
         drift_ms: 6_000,
-        dots: 0.16,
-        wash: 0.12,
+        // No wallpaper: the desktop is the background.
+        dots: 0.0,
+        wash: 0.0,
     }),
-    liquid: None,
+    liquid: Some(crate::presets_glass_clear::LIGHT_LIQUID),
 };

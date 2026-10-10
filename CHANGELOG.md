@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.51
+
+**Light mode is see-through glass with white words.** The `light`
+rotation now matches the others: a see-through window over your desktop,
+smoked glass panes, and white text with the glass's soft shadow. Light
+uses the same clear smoke as `glass`. White text over a white desktop
+needs that much smoke to stay readable, so it can't be any thinner.
+What sets light apart is its tint: `paper-light` is a warm smoke with
+amber accents, and `blossom` a cherry-blossom smoke with pink accents.
+`sepia-light` and `fern` are folded into them, and a config naming
+either loads `paper-light` or `blossom`.
+- **Test:** each light palette's colours are what the shared derivation
+  produces for its smoke and ink. Its text reads over a black and a
+  white desktop. No two palettes are near-duplicates. `auto` serves the
+  light rotation by day.
+
 ## 0.26.50
 
 **Dark mode is see-through glass.** The `dark` rotation now works like

@@ -69,13 +69,8 @@ pub struct Theme {
     /// light/dark scheme crew reports to DECSET-2031 terminals.
     pub dark: bool,
     /// Grain amplitude multiplier for the paper-texture pass, relative to the
-    /// user's configured `paper_grain`. 1.2 on every newsprint page, dark and
-    /// light alike — gamma-space blending (v0.5.58) modulates encoded values
-    /// and reads far stronger than the old linear-space grain, and the
-    /// shader's dark absolute term carries the texture on a dark page without
-    /// a separate multiplier. The modern family is the deliberate exception at
-    /// 0.0: its pages are glass with a dot lattice, not newsprint.
-    /// `grain_is_newsprint_on_every_theme` is the arbiter.
+    /// user's configured `paper_grain`. 0.0 on every palette since every mode
+    /// went see-through (2026-10-09): glass has no paper to grain.
     pub grain: f32,
     /// The theme's CRT tube tuning. When `Some` — and unless the user
     /// overrides it with `/crt off` — the renderer wraps the frame in the CRT
@@ -112,13 +107,11 @@ pub mod poleshift;
 mod presets_crt;
 mod presets_crt_cool;
 mod presets_crt_violet;
-mod presets_fern;
 mod presets_glass;
 mod presets_glass_clear;
 mod presets_modern;
 mod presets_modern_light;
 mod presets_paper;
-mod presets_paper_light;
 pub mod ramp;
 pub mod readable;
 pub mod signal;
@@ -149,13 +142,11 @@ impl Theme {
 pub use presets_crt::{CRT_AMBER, CRT_GREEN};
 pub use presets_crt_cool::CRT_BLUE;
 pub use presets_crt_violet::CRT_VIOLET;
-pub use presets_fern::FERN;
 pub use presets_glass::GLASS_NIGHT;
 pub use presets_glass_clear::GLASS_CLEAR;
 pub use presets_modern::NEBULA;
 pub use presets_modern_light::BLOSSOM;
 pub use presets_paper::{PAPER_DARK, PAPER_LIGHT};
-pub use presets_paper_light::SEPIA_LIGHT;
 pub use tagcolor::{slot_color, tag_color, tag_slot};
 
 /// WCAG 2.1 relative luminance of an sRGB colour — how much light it
@@ -186,13 +177,11 @@ pub fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
 pub enum ThemeId {
     PaperDark,
     PaperLight,
-    SepiaLight,
     CrtGreen,
     CrtAmber,
     CrtBlue,
     Nebula,
     Blossom,
-    Fern,
     CrtViolet,
     GlassNight,
     GlassClear,
@@ -200,13 +189,11 @@ pub enum ThemeId {
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 12] = [
+pub const ALL_THEMES: [ThemeId; 10] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
-    ThemeId::SepiaLight,
     ThemeId::Nebula,
     ThemeId::Blossom,
-    ThemeId::Fern,
     ThemeId::GlassClear,
     ThemeId::GlassNight,
     ThemeId::CrtGreen,
@@ -220,13 +207,11 @@ impl ThemeId {
         match self {
             ThemeId::PaperDark => "paper-dark",
             ThemeId::PaperLight => "paper-light",
-            ThemeId::SepiaLight => "sepia-light",
             ThemeId::CrtGreen => "crt-green",
             ThemeId::CrtAmber => "crt-amber",
             ThemeId::CrtBlue => "crt-blue",
             ThemeId::Nebula => "nebula",
             ThemeId::Blossom => "blossom",
-            ThemeId::Fern => "fern",
             ThemeId::CrtViolet => "crt-violet",
             ThemeId::GlassNight => "glass-night",
             ThemeId::GlassClear => "glass-clear",
@@ -238,13 +223,11 @@ impl ThemeId {
         match self {
             ThemeId::PaperDark => "high-contrast newspaper (dark)",
             ThemeId::PaperLight => "warm paper page (light)",
-            ThemeId::SepiaLight => "aged-newsprint cream page (light sepia)",
             ThemeId::CrtGreen => "neon green phosphor CRT",
             ThemeId::CrtAmber => "neon amber phosphor CRT",
             ThemeId::CrtBlue => "neon blue phosphor CRT (Tron)",
             ThemeId::Nebula => "orchid\u{2192}rose gradient dusk (modern dark)",
             ThemeId::Blossom => "violet\u{2192}rose on warm white (modern light)",
-            ThemeId::Fern => "faint mint page under a green-teal light (light)",
             ThemeId::CrtViolet => "violet phosphor CRT (vector-display glow)",
             ThemeId::GlassNight => "iPhone liquid glass, clear and navy-smoked, white text",
             ThemeId::GlassClear => "iPhone liquid glass, clear and lightly smoked, white text",
@@ -278,9 +261,7 @@ impl ThemeId {
     pub fn mode(self) -> RandomMode {
         match self {
             ThemeId::PaperDark | ThemeId::Nebula => RandomMode::Dark,
-            ThemeId::PaperLight | ThemeId::SepiaLight | ThemeId::Blossom | ThemeId::Fern => {
-                RandomMode::Light
-            }
+            ThemeId::PaperLight | ThemeId::Blossom => RandomMode::Light,
             ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => {
                 RandomMode::Crt
             }
@@ -303,7 +284,7 @@ impl ThemeId {
             "paper-light" => Some(ThemeId::PaperLight),
             // Folded into the dark glass (2026-10-09: two palettes a mode).
             "sepia-dark" | "harbor" | "harbour" => Some(ThemeId::PaperDark),
-            "sepia-light" => Some(ThemeId::SepiaLight),
+            "sepia-light" => Some(ThemeId::PaperLight),
             "crt-green" => Some(ThemeId::CrtGreen),
             "crt-amber" => Some(ThemeId::CrtAmber),
             "crt-blue" => Some(ThemeId::CrtBlue),
@@ -330,7 +311,7 @@ impl ThemeId {
             "meadow" => Some(ThemeId::Blossom),
             "cirrus" => Some(ThemeId::Blossom),
             "nebula" => Some(ThemeId::Nebula),
-            "fern" => Some(ThemeId::Fern),
+            "fern" => Some(ThemeId::Blossom),
             "crt-violet" => Some(ThemeId::CrtViolet),
             "crt-purple" => Some(ThemeId::CrtViolet),
             "blossom" => Some(ThemeId::Blossom),
@@ -349,12 +330,10 @@ impl ThemeId {
         match self {
             ThemeId::PaperDark => &PAPER_DARK,
             ThemeId::PaperLight => &PAPER_LIGHT,
-            ThemeId::SepiaLight => &SEPIA_LIGHT,
             ThemeId::CrtGreen => &CRT_GREEN,
             ThemeId::CrtAmber => &CRT_AMBER,
             ThemeId::CrtBlue => &CRT_BLUE,
             ThemeId::Nebula => &NEBULA,
-            ThemeId::Fern => &FERN,
             ThemeId::CrtViolet => &CRT_VIOLET,
             ThemeId::Blossom => &BLOSSOM,
             ThemeId::GlassNight => &GLASS_NIGHT,
