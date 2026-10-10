@@ -30,7 +30,7 @@ fn any_hue_becomes_a_legend_on_glass() {
         (40, 170, 120),
         (220, 160, 40),
     ];
-    for id in [ThemeId::GlassSky, ThemeId::GlassDawn, ThemeId::GlassNight] {
+    for id in [ThemeId::GlassClear, ThemeId::GlassNight] {
         let t = id.theme();
         let g = grounds(t);
         for hue in hues {
@@ -52,15 +52,15 @@ fn any_hue_becomes_a_legend_on_glass() {
     }
 }
 
-/// Light glass's labels go dark and night glass's go light — the iPhone's
-/// rule — whichever the colour started as.
+/// The glass's labels go light — white words on smoked glass, the iPhone's
+/// Clear look — whichever the colour started as.
 #[test]
 fn labels_take_the_glass_s_pole() {
     let mid = (128, 128, 128);
-    let sky = legible(ThemeId::GlassSky.theme(), mid, LABEL_FLOOR);
-    let night = legible(ThemeId::GlassNight.theme(), mid, LABEL_FLOOR);
-    assert!(crate::relative_luminance(sky) < crate::relative_luminance(mid));
-    assert!(crate::relative_luminance(night) > crate::relative_luminance(mid));
+    for id in [ThemeId::GlassClear, ThemeId::GlassNight] {
+        let got = legible(id.theme(), mid, LABEL_FLOOR);
+        assert!(crate::relative_luminance(got) > crate::relative_luminance(mid));
+    }
 }
 
 /// Nothing changes off glass: every other palette's legends are its own.

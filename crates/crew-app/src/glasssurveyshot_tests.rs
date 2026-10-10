@@ -19,7 +19,7 @@ const SETS: &[(&str, &[&str])] = &[
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn glass_survey_shot() {
     let _g = crate::app::theme_test_guard();
-    for id in [ThemeId::GlassClear, ThemeId::GlassSky, ThemeId::GlassNight] {
+    for id in [ThemeId::GlassClear, ThemeId::GlassNight] {
         let sheer = crate::tubesheer::sheer(1.0, id.theme());
         for (set, cmds) in SETS {
             let name = format!("survey-{}-{set}", id.as_str());
@@ -73,12 +73,7 @@ fn glass_ink_survey() {
     let _g = crate::app::theme_test_guard();
     let mut sets: Vec<(&str, &[&str])> = SETS.to_vec();
     sets.push(("far-dash", &["/far", "/far", "/dash"]));
-    for id in [
-        ThemeId::GlassClear,
-        ThemeId::GlassSky,
-        ThemeId::GlassDawn,
-        ThemeId::GlassNight,
-    ] {
+    for id in [ThemeId::GlassClear, ThemeId::GlassNight] {
         crew_theme::set_theme(id);
         crew_theme::glassborder::set_sheer(true);
         let t = crew_theme::theme();

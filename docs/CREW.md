@@ -4052,11 +4052,8 @@ opposite of what a picker is for.
   than the glass between the lines. A test holds the text readable over a
   black or a white desktop. The accents are rose (`clear`) and mint
   (`night`); the face is SF Mono.
-- **`glass-sky`** and **`glass-dawn`** — the frosted light glass, picked by
-  name (`/look theme glass-sky`); no rotation serves them. Every pane is a
-  slab of frosted white glass with near-black ink, a hard white specular
-  edge, a broad gloss and a soft grey shadow; the accents are the iPhone's
-  system blue (sky) and pink (dawn).
+- The frosted light glass, `glass-sky` and `glass-dawn`, was folded into
+  `glass-clear`: a config naming either loads the clear glass.
 - **`crt-violet`** — the fourth phosphor: a violet tube, the glow of a vector
   display rather than a terminal. Its ladder is one hue at six brightnesses,
   like the other tubes, and it is the only one of the four whose phosphor

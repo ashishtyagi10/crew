@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn the_box_says_when_the_theme_sets_the_window() {
         let _g = crate::app::theme_test_guard();
-        crew_theme::set_theme(crew_theme::ThemeId::GlassSky);
+        crew_theme::set_theme(crew_theme::ThemeId::GlassClear);
         assert_eq!(
             note(&pane(1.0), Field::WindowOpacity).as_deref(),
             Some("glass sets 25")

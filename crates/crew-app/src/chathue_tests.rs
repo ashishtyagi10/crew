@@ -75,7 +75,12 @@ fn paper_presets_draw_keyword_type_and_call_in_three_hues() {
         assert_ne!(h.ty, h.func, "{}: type == func", id.as_str());
         assert_ne!(h.keyword, h.func, "{}: keyword == func", id.as_str());
     }
-    assert_eq!(papers, 12, "every paper preset (and the glass) was checked");
+    let tubes = ALL_THEMES.iter().filter(|id| id.is_crt()).count();
+    assert_eq!(
+        papers,
+        ALL_THEMES.len() - tubes,
+        "every non-tube was checked"
+    );
 }
 
 /// The number takes `ansi[6]` — the code slot — through the same walk, so it

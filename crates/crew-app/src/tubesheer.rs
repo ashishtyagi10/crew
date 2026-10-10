@@ -84,12 +84,7 @@ mod tests {
         // A lower Opacity % is transparency chosen over contrast: it wins.
         let low = crate::config::MIN_WINDOW_OPACITY;
         assert_eq!(sheer(low, tube), low);
-        for id in [
-            ThemeId::GlassClear,
-            ThemeId::GlassSky,
-            ThemeId::GlassDawn,
-            ThemeId::GlassNight,
-        ] {
+        for id in [ThemeId::GlassClear, ThemeId::GlassNight] {
             let t = id.theme();
             let cap = t.liquid.expect("glass is liquid").window;
             assert!(cap < 1.0, "{}: glass shows the desktop", id.as_str());

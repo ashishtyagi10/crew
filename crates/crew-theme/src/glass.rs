@@ -275,28 +275,7 @@ pub fn tube_glass(t: &Theme) -> GlassStyle {
 ///
 /// Held by the text on it: `liquid_text_reads_on_its_glass` keeps the ink
 /// above 7:1 over the brightest wallpaper the frost can sit on.
-///
-/// By day (`glass-sky`, `glass-dawn`) the slab is the iPhone's light glass
-/// instead: frosted WHITE — clearer at the top, where the light enters —
-/// with a full-strength white rim, a broad gloss and a soft grey shadow, the
-/// only thing that lifts a white card off a pale page.
 pub fn liquid_glass(t: &Theme) -> GlassStyle {
-    if !t.dark {
-        let white = (255, 255, 255);
-        return GlassStyle {
-            tint: white,
-            alpha_top: 0.44,
-            alpha_bottom: 0.58,
-            highlight: white,
-            highlight_alpha: 1.0,
-            shadow_alpha: 0.10,
-            noise: 0.0,
-            edge_glow: 0.0,
-            gloss: 0.22,
-            glow: 0.0,
-            etch: 0.0,
-        };
-    }
     let p = t.page_bg;
     GlassStyle {
         tint: (
