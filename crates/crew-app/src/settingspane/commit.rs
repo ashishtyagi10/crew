@@ -32,10 +32,6 @@ pub(crate) fn commit_field(p: &mut SettingsPane) {
             p.draft.nav_width = crate::navresize::width_at(v);
         }
         Field::Accent => commit_accent(p),
-        Field::PaperGrain => {
-            let v = p.grain_buf.parse::<f32>().unwrap_or(p.draft.paper_grain);
-            p.draft.paper_grain = v.clamp(0.0, 2.0);
-        }
         Field::WindowOpacity => {
             // Typed as a percentage, stored as a fraction. The floor is the
             // renderer's own (`MIN_WINDOW_OPACITY`): a window dialled sheerer
@@ -122,7 +118,6 @@ pub(crate) fn refresh_bufs(p: &mut SettingsPane) {
     p.size_buf = format!("{}", p.draft.font_size as i32);
     p.nav_buf = format!("{}", p.draft.nav_width as i32);
     p.accent_buf = p.draft.accent.clone().unwrap_or_default();
-    p.grain_buf = format!("{:.1}", p.draft.paper_grain);
     p.opacity_buf = format!("{}", (p.draft.window_opacity * 100.0).round() as i32);
     (p.light_from_buf, p.light_to_buf) = light_bufs(&p.draft);
     p.minsecs_buf = format!("{}", p.draft.notify_min_secs);

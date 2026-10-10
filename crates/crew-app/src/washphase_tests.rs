@@ -96,79 +96,31 @@ fn a_zero_drift_period_holds() {
     assert_eq!(w.advance(1_000, Some(0), MotionLevel::Full), 0.0);
 }
 
-/// The busy pace is twice the theme's own; ambient is [`AMBIENT_MULT`] times it;
-/// with neither, the wash holds. Busy wins when both are true, so a working
-/// pane never has its wash slowed down by the idle setting.
+/// The busy pace is twice the theme's own; with no pane working, the clock
+/// holds — and a theme with no drift period never asks for a pace at all.
 #[test]
-fn the_pace_is_busy_then_ambient_then_still() {
-    assert_eq!(pace(6_000, true, false), Some(12_000), "busy");
-    assert_eq!(
-        pace(6_000, true, true),
-        Some(12_000),
-        "busy outranks ambient"
-    );
-    assert_eq!(pace(6_000, false, true), Some(24_000), "ambient");
-    assert_eq!(pace(6_000, false, false), None, "still");
+fn the_pace_is_busy_or_still() {
+    assert_eq!(pace(6_000, true), Some(12_000), "busy");
+    assert_eq!(pace(6_000, false), None, "still");
+    assert_eq!(pace(0, true), None, "no drift period");
 }
 
-/// A theme with no gradient to move never asks for a pace, ambient or not —
-/// turning a phase nothing reads would buy frames for no pixels.
-#[test]
-fn a_theme_with_no_drift_period_never_moves() {
-    for (busy, ambient) in [(true, true), (true, false), (false, true), (false, false)] {
-        assert_eq!(
-            pace(0, busy, ambient),
-            None,
-            "busy={busy} ambient={ambient}"
-        );
-    }
-}
-
-/// Ambient really is slower, not just different: idle motion is a texture,
-/// a working pane's the signal — but only 2×, so busy never races (was 4×).
-#[test]
-fn ambient_is_half_the_busy_pace() {
-    let busy = pace(6_000, true, false).unwrap();
-    let ambient = pace(6_000, false, true).unwrap();
-    assert!(
-        ambient == busy * 2,
-        "ambient {ambient}ms should be twice busy {busy}ms"
-    );
-}
-
-/// Crossing from ambient to busy and back must not jump the pools across the
-/// page: both paces accumulate onto the same phase, and a faster pace only
-/// changes how much each frame adds.
+/// A change of pace must not jump the phase: every pace accumulates onto the
+/// same phase, and a faster one only changes how much each frame adds.
 #[test]
 fn changing_pace_mid_drift_is_continuous() {
     let mut w = WashPhase::default();
-    let slow = pace(1_000, false, true); // 15_000ms per revolution
+    let slow = Some(4_000);
     w.advance(0, slow, MotionLevel::Full);
     let before = w.advance(100, slow, MotionLevel::Full);
     // The very next frame is busy: it may speed up, but must not teleport.
-    let after = w.advance(200, pace(1_000, true, false), MotionLevel::Full);
+    let after = w.advance(200, pace(1_000, true), MotionLevel::Full);
     assert!(after > before, "it keeps going forward");
     assert!(
         after - before < 0.2,
         "a pace change jumped the phase by {}",
         after - before
     );
-}
-
-/// Motion off is a genuine off at either pace.
-#[test]
-fn motion_off_holds_the_ambient_drift_too() {
-    let mut w = WashPhase::default();
-    w.advance(0, pace(1_000, false, true), MotionLevel::Full);
-    let moved = w.advance(500, pace(1_000, false, true), MotionLevel::Full);
-    assert!(moved > 0.0, "premise: it was drifting");
-    for t in [600, 5_000, 60_000] {
-        assert_eq!(
-            w.advance(t, pace(1_000, false, true), MotionLevel::Off),
-            moved,
-            "Motion off must hold the wash at {t}"
-        );
-    }
 }
 
 /// Run the clock forward `ms` in frames small enough to clear `MAX_STEP_MS`,

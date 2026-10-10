@@ -2,7 +2,7 @@
 //! viewer's — the second half of the palette's priority order, continued
 //! from [`super::work`].
 //!
-//! Fifteen of these rows were one family — `/theme`, `/gamma`, `/grain`,
+//! Fifteen of these rows were one family — `/theme`, `/gamma`, `/smooth`,
 //! `/leading` and the rest — and they are one row now: `/look`, whose picker
 //! walks subject then value (`crate::lookcmd`). They still RUN when typed;
 //! what the palette offers is what a user has to know, and a family belongs
@@ -13,7 +13,7 @@ use super::Cmd;
 pub(crate) const LOOK: &[Cmd] = &[
     Cmd {
         name: "/look",
-        desc: "How crew looks — theme, font, weight, motion, grain and the rest (/look [subject] [value])",
+        desc: "How crew looks — theme, font, weight, motion, glass and the rest (/look [subject] [value])",
     },
     Cmd {
         name: "/reopen",

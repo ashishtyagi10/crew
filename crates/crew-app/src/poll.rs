@@ -12,16 +12,10 @@ use crate::pane::{Pane, PaneContent};
 /// ~62 Hz, so redrawing every 4th tick animates the sweep at ~15 fps.
 pub(crate) const BUSY_ANIM_DIV: u64 = 4;
 
-/// Poll ticks per rendered frame of the drifting backdrop: ~31 fps, busy or
-/// idle (see `CrewApp::busy_anim_div`).
-///
-/// The glow's rings travel across the dot lattice without ever stopping, and
-/// that kind of motion only reads as calm while it is FLUID: at ~12 fps a
-/// ring hopped across the lattice in visible steps, which reads as a
-/// slideshow — and steps catch the eye that smooth drift does not. It was
-/// ~6 fps while the pools turned once every ninety seconds. Still fenced like
-/// every ambient frame: OS focus, the setting, Motion not off, a theme with a
-/// wash.
+/// Poll ticks per rendered frame of an idle pane's breathing dot: ~31 fps.
+/// Motion that never stops only reads as calm while it is FLUID — at ~12 fps
+/// it moves in visible steps, and steps catch the eye that smooth motion
+/// does not.
 pub(crate) const AMBIENT_ANIM_DIV: u64 = 2;
 
 /// How long a freshly spawned `$EDITOR` pane is presumed live even before its
@@ -85,7 +79,6 @@ impl CrewApp {
                 PaneContent::Terminal(t) => t.images.loading(),
                 _ => false,
             })
-            || self.wash_focus.moving()
             || self.pointer_gliding()
             // 150ms grace past expiry: the crossfade draws at whatever
             // strength the LAST frame sampled, so one more frame must land
@@ -592,16 +585,15 @@ impl CrewApp {
             // without spinning the CPU. Idle → no redraws: a settled attention
             // marker draws once and then costs nothing.
             self.tick = self.tick.wrapping_add(1);
-            if self.tick.is_multiple_of(self.busy_anim_div()) {
+            if self.tick.is_multiple_of(BUSY_ANIM_DIV) {
                 any_changed = true;
             }
-        } else if self.ambient_drift() || self.ambient_breath() {
-            // Nothing transient wants a frame, but the page's wash is still
-            // turning (see `washphase`), or an idle crew pane's dot breathes
-            // (`panebusy::pane_breathing`). Its own branch rather than a term
-            // in `wants_animation_frame`, so that predicate keeps meaning
-            // "some animation is in flight" — and so the only motion that
-            // repaints an otherwise idle window is throttled on its own here.
+        } else if self.ambient_breath() {
+            // Nothing transient wants a frame, but an idle crew pane's dot
+            // breathes (`panebusy::pane_breathing`). Its own branch rather
+            // than a term in `wants_animation_frame`, so that predicate keeps
+            // meaning "some animation is in flight" — and so the only motion
+            // that repaints an otherwise idle window is throttled on its own.
             self.tick = self.tick.wrapping_add(1);
             if self.tick.is_multiple_of(AMBIENT_ANIM_DIV) {
                 any_changed = true;

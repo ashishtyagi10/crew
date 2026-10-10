@@ -309,7 +309,7 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
 
 **How crew looks is one command.** `/look` owns the whole appearance family
 as SUBJECTS — `theme`, `font`, `weight`, `leading`, `density`, `motion`,
-`contrast`, `shapes`, `crt`, `gradient`, `opacity`, `grain`, `smooth`,
+`contrast`, `shapes`, `crt`, `gradient`, `opacity`, `smooth`,
 `gamma`, `invisibles` — and the palette walks them in two steps: `/look `
 lists the subjects, `/look gamma ` lists that subject's ladder with the value
 you are on marked. Fifteen rows became one, which is fourteen fewer names to
@@ -794,8 +794,8 @@ window that is three columns and no scrolling at all. It covers every
 configurable property: font family/size, font smoothing (the `/smooth`
 ladder), text gamma
 (the `/gamma` ladder), line spacing
-(`/leading`), density, nav width + visibility, theme, accent, paper texture +
-grain, card border marks, revealed invisibles, launch-maximized, and the whole
+(`/leading`), density, nav width + visibility, theme, accent, card border
+marks, revealed invisibles, launch-maximized, and the whole
 notification block (master + per-event toggles, min-secs threshold, watched
 output patterns as a one-per-line text area). Every key in the config file has
 a field here, and a test that parses `config.rs` says so. **Cmd+S / Alt+S**
@@ -839,12 +839,9 @@ named pairs the same way. `Ctrl+Shift+L` cycles the rotations; the palettes reti
 in an earlier roster cut still parse, so an old config keeps working. `/crt
 on|off|auto` overrides the tube post-process independently of the theme.
 
-Light themes render ink at Medium weight over 1.2× "newsprint" grain so they
-read like paper, not a washed-out screen. A subtle GPU grain + vignette sits
-behind everything (it reads as a CRT glow on the phosphor themes). Config
-keys: `theme = "paper-dark"`, `paper_texture = true` (grain on/off),
-`paper_grain = 1.3` (strength `0.0`–`2.0`). See
-[docs/CREW.md](docs/CREW.md#themes).
+Crew paints no wallpaper of its own: your desktop is the background, seen
+through the glass. Config key: `theme = "glass"` (or any rotation or palette
+name). See [docs/CREW.md](docs/CREW.md#themes).
 
 ## Architecture
 

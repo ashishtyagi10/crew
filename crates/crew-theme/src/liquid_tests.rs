@@ -21,12 +21,8 @@ fn glass_lets_the_desktop_through() {
     for id in ALL_THEMES {
         let Some(l) = id.theme().liquid else { continue };
         let name = id.as_str();
-        let wash = id.theme().modern.map_or(0.0, |m| m.wash);
-        assert_eq!(
-            wash, 0.0,
-            "{name}: glass paints a wallpaper over the desktop"
-        );
-        // …so there is nothing to bend: no lens work on a flat page.
+        // No theme paints a wallpaper, so there is nothing to bend: no lens
+        // work on a flat page.
         assert_eq!(
             (l.refract, l.blur, l.dispersion),
             (0.0, 0.0, 0.0),
@@ -52,11 +48,9 @@ fn glass_lets_the_desktop_through() {
     }
 }
 
-/// The text on a see-through pane still reads over ANY desktop — black (the
-/// worst for light glass) and white (the worst for night glass) — at the
-/// wallpaper's deepest pool (a pole at the wash's full strength, saturated by
-/// the glass) under the clearest frost any level draws (the body's top at
-/// that level). The bar is WCAG AA for the ink and the terminal's text, and
+/// The text on a see-through pane still reads over ANY desktop — black and
+/// white, the worst cases — under the clearest frost any level draws (the
+/// body's top at that level). The bar is WCAG AA for the ink and the terminal's text, and
 /// the UI floor for muted text: seeing the desktop costs some contrast,
 /// never legibility.
 #[test]
@@ -64,15 +58,14 @@ fn glass_text_reads_over_any_desktop() {
     let mut under = Vec::new();
     for id in ALL_THEMES {
         let t = id.theme();
-        let (Some(l), Some(m)) = (t.liquid, t.modern) else {
-            continue;
-        };
+        let Some(l) = t.liquid else { continue };
         // Words stand on the pane and on their own shadow (`text_cover`).
         let cover = l.text_cover(t.crt.map_or(0.0, |c| c.shade));
         for level in [GlassLevel::Low, GlassLevel::Medium, GlassLevel::High] {
             let g = style_for(t).scaled_by(level.liquid_scale());
-            for pole in [m.pole_a, m.pole_b] {
-                let (r, gr, b) = mix(t.page_bg, pole, m.wash);
+            {
+                // The page is all there is behind the glass: no wallpaper.
+                let (r, gr, b) = mix(t.page_bg, t.page_bg, 0.0);
                 let y = 0.2126 * r + 0.7152 * gr + 0.0722 * b;
                 let vib = |c: f32| byte(y + (c - y) * l.vibrance);
                 let wall = (vib(r), vib(gr), vib(b));

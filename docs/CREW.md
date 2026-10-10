@@ -1083,19 +1083,6 @@ longer aim at.
   size. Live and persisted — the same `leading` key as **Settings →
   CANVAS → Line spacing**.
 
-- **`/grain [off|light|medium|heavy|<0-2>]`** — how much newsprint texture the
-  page carries. The grain is a deliberate part of crew's look: a per-pixel
-  hash plus a coarser fibre octave, calibrated so the near-black "newspaper"
-  pages and the bright "paper" ones carry the same texture. At the default it
-  measures a standard deviation of about **six levels** on a dark page, which
-  is a lot of texture next to a terminal that has none — whether that reads as
-  paper or as noise is taste, and this is where you exercise it. Live and
-  persisted; no argument reports the current amount; a custom `/grain 0.4`
-  reports as its number rather than the nearest name. It is the same knob as
-  the **Grain (0-2)** field in `/settings` — one `paper_grain` key, two
-  surfaces — and it had only ever been reachable through that numeric field,
-  while every other look knob crew has is a ladder you can type.
-
 - **`/motion [auto|off|subtle|full]`** — how much crew moves. **`auto` is the
   default and follows the operating system**: macOS's *Settings → Accessibility
   → Display → Reduce motion* is where a user has almost certainly already said
@@ -1159,9 +1146,7 @@ longer aim at.
   colour while the window is sheer), every **frame is brightened** — pushed
   to a text-grade contrast against the page, the focused one further — so
   cards stay distinct over the glass, and overlays are solidified outright:
-  the popup you are choosing from never has a wallpaper behind its text. Alpha is all that changes,
-  so the gradient wash, the dot lattice and the paper grain are exactly what
-  they would be in an opaque window, just tinted glass now.
+  the popup you are choosing from never has a wallpaper behind its text.
 
 - **`/close others`** — closes every pane except the focused one (a quick "focus mode");
   a no-op when only one pane is open.
@@ -3821,7 +3806,7 @@ value.
 
 
 - **APPEARANCE** — **Font family** (type-to-search over installed monospace
-  families), **Font size**, **Grain (0-2)** (the paper's grain amplitude),
+  families), **Font size**,
   **Smoothing** (←/→/Space cycle `off · light · medium · heavy` — the same
   ladder and `font_smooth` key as `/smooth`; a custom numeric strength shows
   as its number), **Text gamma**, **Theme** (←/→/Space cycle through the four
@@ -3833,8 +3818,7 @@ value.
   **Opacity %**, **Motion** (`off · subtle · full`), **Density**, **Line
   spacing**, **Contrast**, **Shape cues**, **Gradient colour** (`off · subtle
   · lively`), and the on/off switches **Card border marks**, **Reveal
-  invisibles**, **Code diagnostics (LSP)**, **Paper texture** and **Drifting
-  background**.
+  invisibles** and **Code diagnostics (LSP)**.
 - **WINDOW** — **Nav width**, **Show nav**, **Launch maximized**.
 - **NOTIFICATIONS** — the master switch plus per-event toggles (**done** — a command or an agent's turn,
   **bell**, **pane exit**), the **min secs** threshold, and the watched
@@ -3842,9 +3826,9 @@ value.
 - **USAGE** — **5h budget (M)** and **7d budget (M)**: the token budgets, in
   millions, the footer's two rolling usage bars are drawn against.
 
-Number fields (**Font size**, **Grain**, **Opacity %**, **Nav width**, **Min
+Number fields (**Font size**, **Opacity %**, **Nav width**, **Min
 secs**, the two budgets) step with **↑ / ↓** — one notch each (opacity 5%,
-grain 0.1, nav width 10), **Shift** for ten — clamped to the same range a
+nav width 10), **Shift** for ten — clamped to the same range a
 typed value is. Typing a number still sets it exactly.
 
 Settings persist to `$XDG_CONFIG/crew/config.toml` and apply live on Save.
@@ -3991,13 +3975,13 @@ subject then value.
 ```
 
 The subjects are `theme`, `font`, `weight`, `leading`, `density`, `motion`,
-`contrast`, `shapes`, `crt`, `gradient`, `opacity`, `grain`, `smooth`,
+`contrast`, `shapes`, `crt`, `gradient`, `opacity`, `smooth`,
 `gamma` and `invisibles` — each one the command it used to be, with the same
 values, the same ladders and the same live application. The picker reads its
 values from that command's own table (`crate::lookcmd::canon`), so a subject
 can never drift from what it stands for.
 
-**The old spellings still run.** `/theme dark`, `/gamma medium`, `/grain off`
+**The old spellings still run.** `/theme dark`, `/gamma medium`, `/smooth off`
 — every one of them, unchanged. What the diet removed is the fifteen palette
 ROWS, because what a palette offers is what a user has to know, and a family
 belongs there once. Typing an old name is not a mistake and is not corrected:
@@ -4090,7 +4074,7 @@ opposite of what a picker is for.
 own tube tuning (bloom strength and radius, streaming-flicker character, how
 hard its strokes burn), so green runs hot and driven while blue runs a cold
 TRON edge. The window itself is frosted glass — your desktop shows through it,
-blurred, with no black page and no drifting background — and every pane is a
+blurred, with no black page — and every pane is a
 thin milky sheet of frost in the phosphor's hue (see [Glass](#glass)); the hot
 phosphors (green, amber) keep a fine raster *etched into that glass*, under
 the text, rather than scanlines striped over the whole window. Text casts a
@@ -4117,47 +4101,6 @@ dot lattice woven over it on the text cell's pitch. They ride the bloom chain fo
 curvature, scanlines and the bezel vignette are all zero — so they sit in the
 `dark` and `light` rotations, not in `crt`.
 
-**The page drifts.** The wash is two broad pools of pole light on an elliptical
-orbit under the page, and they turn: one revolution every twelve seconds while
-a pane is working, and — with **Settings → CANVAS → Drifting background**
-on, the default — one every 24 seconds when nothing is happening at all. Idle
-motion is a texture, not a signal, so it is half the busy pace — and busy is
-only twice it, so the page never races behind output you are reading. It is
-drawn at about thirty frames a second, so nothing in it moves in steps.
-
-The pools do more than turn. They **breathe** in counter-phase, twice a
-revolution — as one widens and brightens the other narrows and dims, so the
-light moves between the poles instead of the page pulsing — and they
-**wander**, leaning toward each other on one side of the orbit and reaching in
-and out from the centre, so they meet, mix and part rather than turning as one
-rigid bar. They **trade colour**, too: between the quarter points of the orbit
-each pool leans toward the other's pole, so the gradient itself keeps changing,
-not only where it lies — on top of the hue breath, which now comes round every
-twelve seconds while a pane works and every 48 when idle (its width is
-**Gradient colour**: subtle ±16°, lively ±38°). The dot lattice moves with them:
-its pole-to-pole tint turns with the orbit. And at the middle of the page a
-**glow** beats, like a resting pulse — every six seconds when idle, every
-three while a pane works. On each beat its core swells and brightens, and a
-soft ring of light leaves it and radiates outward, widening and fading until
-it is gone near the window's edge; between beats a quiet halo holds the
-light. The glow runs from one pole at its core to the other at its rim, so a
-ring changes colour as it travels, and the dots under it carry up to about
-three times their strength. Everything in it is soft light, never a line,
-and it stays at the window's middle while the pools drift toward your work.
-(It replaced a spiral that poured into the middle of the page, and then folds
-of silk across it — both too busy to work over.) All of it rides the
-same clock and the same frames, on light pages and dark alike; none of it asks
-for a frame of its own, and a page that has never drifted is the still one.
-
-This is the only animation in crew that repaints a window nothing else needed
-repainted, so it is fenced on four things, any one of which stops it: the
-setting, **Motion** not being `off`, a theme that has a wash at all, and crew
-holding the OS focus — a window you are not looking at repaints for nobody.
-Turn the setting off and an idle crew goes back to drawing exactly nothing, its
-last frame held wherever the pools had reached. The phase is accumulated from
-frame deltas rather than read off the clock, so the motion is continuous across
-every pause instead of teleporting after a quiet minute.
-
 **Where you are in a buffer is a colour too.** Scroll a pane back and the
 `⇡N` on its top border and the thumb down its right border both take the
 theme gradient, sampled at your position: deep in the history they wear one
@@ -4165,24 +4108,9 @@ pole, at the live edge the other, and dragging the gutter walks them between.
 It is the same gradient the card's own stroke runs, so the thumb reads as part
 of the frame it rides rather than as a widget parked on it.
 
-**The light gathers where you are working.** The wash's orbit is not centred
-on the page any more — it slides toward the focused card, so the page is
-brightest under the pane you are typing into and falls away from the ones you
-are not. On a four-pane grid the focused frame is one stroke among four; the
-wash under it is half the window, which is why this reads from the corner of
-the eye when a border colour does not. Focus the input bar and the light comes
-down to meet it.
-
-It travels rather than cutting — the same exponential smoothing the panes use
-to glide to their tiles, a little slower, so a card arrives and the light
-fills in behind it. Bounded like everything else: it settles, and an idle crew
-still repaints nothing. At **Motion = off** it snaps. With nothing focused the
-gather fades out where it stands instead of dragging a bright field back
-across the page.
-
 **And the gradient's colour breathes.** The two poles every gradient surface
-is drawn between — the wash, the dot lattice, every card's stroke, the footer
-meters — lean around the hue wheel over time, so the canvas warms and cools
+is drawn between — every card's stroke, the footer meters — lean around the
+hue wheel while a pane works, so the canvas warms and cools
 instead of holding one fixed pair of swatches. **Settings → CANVAS →
 Gradient colour** sets how far: `subtle` (the default) leans ±16°, one
 colour's neighbourhood, so a violet theme visits indigo and magenta and is
@@ -4200,21 +4128,9 @@ come back out and go straight back in, and out-of-gamut hues lose chroma
 rather than clipping a channel. That is the safety argument, and it is
 measured — across all eight palettes a pole's contrast against its own page
 moves by under 8% at the widest rung, and no offset a hand-edited config can
-reach takes one below the WCAG 3.0 non-text floor. The breath also rides the
-frames the wash was already drawing (four times slower than the pools orbit),
-so it costs nothing extra, holds when the wash holds, and stops dead at
-**Motion = off**.
-
-**Light themes read like print.** The six light *paper* themes (`paper-light`,
-`sepia-light`, `coldpress-gray`, `salmon-broadsheet`, `ivory-ledger`,
-`glacier-bond`) render
-base text at **Medium (500) weight** — dark themes use Normal (400) — and
-carry a **1.2× "newsprint" grain** multiplier, so the page reads as paper
-instead of a washed-out screen.
-
-A faint procedural **grain** + edge vignette is drawn behind everything (GPU) —
-it reads as paper texture on the paper themes and as a subtle **tube glow** on
-the CRT ones. Every palette's colours are picked for measured WCAG contrast.
+reach takes one below the WCAG 3.0 non-text floor. The breath rides frames
+a working pane was already drawing, so it costs nothing extra, holds when
+nothing works, and stops dead at **Motion = off**.
 
 **Switching:** `/theme dark` | `/theme light` | `/theme crt` | `/theme glass`
 — selecting `/theme` in the palette opens an arrow-selectable picker — or
@@ -4275,5 +4191,3 @@ characters, not its columns.
 | `theme_dark` | unset | while `theme = "auto"`: what dark mode serves — a pool (`dark`\|`light`\|`crt`) or a palette name; unset = the dark pool |
 | `theme_light` | unset | while `theme = "auto"`: same for light mode; unset = the light pool |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |
-| `paper_texture` | `true` | turn the paper grain + vignette pass on/off |
-| `paper_grain` | `1.3` | grain strength (`0.0`–`2.0`; `0` = no grain) |

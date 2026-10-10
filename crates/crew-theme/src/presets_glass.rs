@@ -51,8 +51,6 @@ pub static GLASS_NIGHT: Theme = Theme {
         (236, 237, 249), // 15 bright white
     ],
     dark: true,
-    // The wallpaper is glass and light, not newsprint.
-    grain: 0.0,
     // The clear glass's bloom, glowing a little more on the deeper smoke.
     crt: Some(CrtStyle {
         glow: 0.55,
@@ -62,11 +60,6 @@ pub static GLASS_NIGHT: Theme = Theme {
         pole_a: (70, 130, 255),
         pole_b: (255, 64, 150),
         drift_ms: 6_000,
-        dots: 0.0,
-        // No wallpaper of its own: the desktop IS the background (the user,
-        // 2026-10-09: "I don't think we need gradient colors in glass
-        // themes"). The poles still light the focus ring.
-        wash: 0.0,
     }),
     // Clear glass, as `glass-clear` is: the shadow behind the words, not
     // thick smoke, is what holds white text over a white desktop.

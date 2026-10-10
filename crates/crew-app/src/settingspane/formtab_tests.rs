@@ -45,10 +45,9 @@ fn tab_walks_each_card_down_before_moving_to_the_next() {
     let pos = |f: Field| order.iter().position(|x| *x == f).unwrap();
     // The whole appearance card comes before anything in the window card.
     assert!(pos(Field::Gradient) < pos(Field::NavWidth), "{order:?}");
-    // And within a card, the eye's order: font family, then size beside grain.
+    // And within a card, the eye's order: font family, size, smoothing.
     assert!(pos(Field::FontFamily) < pos(Field::FontSize));
-    assert!(pos(Field::FontSize) < pos(Field::PaperGrain));
-    assert!(pos(Field::PaperGrain) < pos(Field::Smooth));
+    assert!(pos(Field::FontSize) < pos(Field::Smooth));
     // Save and Cancel are last, as the last thing you reach.
     assert_eq!(order[order.len() - 2..], [Field::Save, Field::Cancel]);
 }

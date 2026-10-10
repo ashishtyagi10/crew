@@ -288,13 +288,9 @@ pub struct CrewApp {
     /// Once-a-minute clock behind the todo due-toast check (see
     /// [`crate::todopane::store::take_due`], driven from `poll_panes`).
     pub(crate) todo_due: crate::todopane::DueTicker,
-    /// Where the modern backdrop's gradient wash sits on its orbit (see
-    /// [`crate::washphase`]) — advanced only by the frames activity is
-    /// already drawing.
+    /// The gradient's hue breath (see [`crate::washphase`]) — advanced only
+    /// by the frames activity is already drawing.
     pub(crate) wash: crate::washphase::WashPhase,
-    /// Where that orbit is CENTRED: glided toward the focused card, so the
-    /// page's light gathers where the work is (see [`crate::washfocus`]).
-    pub(crate) wash_focus: crate::washfocus::WashFocus,
     /// The glass rims' light, leaning toward the pointer (`pointerlight`).
     pub(crate) pointer_light: crate::pointerlight::PointerLight,
     /// The card under the pointer, risen a little (`hoverlift`).

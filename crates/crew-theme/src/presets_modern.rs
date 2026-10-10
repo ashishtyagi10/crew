@@ -51,7 +51,6 @@ pub static NEBULA: Theme = Theme {
         (243, 241, 247), // 15 bright white
     ],
     dark: true,
-    grain: 0.0,
     crt: Some(CrtStyle {
         scanline: 0.0,
         glow: 0.9,
@@ -65,8 +64,6 @@ pub static NEBULA: Theme = Theme {
         pole_a: (197, 138, 249),
         pole_b: (244, 143, 177),
         drift_ms: 6_000,
-        dots: 0.0,
-        wash: 0.0,
     }),
     liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
 };

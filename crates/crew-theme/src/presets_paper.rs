@@ -51,7 +51,6 @@ pub static PAPER_DARK: Theme = Theme {
         (238, 235, 232), // 15 bright white
     ],
     dark: true,
-    grain: 0.0,
     crt: Some(CrtStyle {
         // Not a tube: no filament, so `is_crt` reads this as a page. The
         // bloom draws the focus ring's halo; the shade is the glass's text
@@ -68,10 +67,6 @@ pub static PAPER_DARK: Theme = Theme {
         pole_a: (123, 184, 255),
         pole_b: (35, 199, 205),
         drift_ms: 6_000,
-        // No wallpaper: the desktop is the background. The poles only light
-        // the focus ring.
-        dots: 0.0,
-        wash: 0.0,
     }),
     liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
 };
@@ -119,7 +114,6 @@ pub static PAPER_LIGHT: Theme = Theme {
         (254, 252, 249), // 15 bright white
     ],
     dark: true,
-    grain: 0.0,
     crt: Some(CrtStyle {
         // Not a tube: the bloom lights the focus ring, the shade is the
         // glass's text shadow.
@@ -135,9 +129,6 @@ pub static PAPER_LIGHT: Theme = Theme {
         pole_a: (255, 196, 120),
         pole_b: (240, 150, 120),
         drift_ms: 6_000,
-        // No wallpaper: the desktop is the background.
-        dots: 0.0,
-        wash: 0.0,
     }),
     liquid: Some(crate::presets_glass_clear::LIGHT_LIQUID),
 };

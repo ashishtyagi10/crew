@@ -53,16 +53,11 @@ pub static GLASS_CLEAR: Theme = Theme {
         (242, 243, 245), // 15 bright white
     ],
     dark: true,
-    grain: 0.0,
     crt: Some(CLEAR_BLOOM),
     modern: Some(ModernStyle {
         pole_a: (70, 130, 255),
         pole_b: (255, 64, 150),
         drift_ms: 6_000,
-        dots: 0.0,
-        // No wallpaper: the desktop IS the background. The poles only light
-        // the focus ring.
-        wash: 0.0,
     }),
     liquid: Some(CLEAR_LIQUID),
 };

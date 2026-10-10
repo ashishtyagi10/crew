@@ -1,12 +1,11 @@
-//! What lies behind liquid glass: the wallpaper alone, rendered into a texture
-//! of its own before the frame, so the glass pass can sample it — frost it,
-//! and bend it through the lens at each card's rim (`glass.wgsl`).
+//! What lies behind liquid glass: the page alone, rendered into a texture of
+//! its own before the frame, so the glass pass can sample it — frost it, and
+//! bend it through the lens at each card's rim (`glass.wgsl`). The page is a
+//! flat colour at the window's opacity since no theme paints a wallpaper
+//! (2026-10-09); the glass reads that opacity back from it.
 //!
 //! Its own pass rather than a copy of the frame: the surface can only be read
-//! back where the platform grants it `COPY_SRC`, and the wallpaper is one
-//! full-screen triangle either way. Only a liquid theme pays for it — every
-//! other theme never creates the texture (see `Renderer::frame`).
-use crate::paperbg::PaperBgPass;
+//! back where the platform grants it `COPY_SRC`.
 
 /// The wallpaper target: the frame's size and format.
 pub struct Behind {
@@ -49,17 +48,11 @@ impl Behind {
         self.width == w.max(1) && self.height == h.max(1)
     }
 
-    /// Draw the wallpaper — the page colour and, with the paper texture on,
-    /// the backdrop pass over it — exactly as the frame's own pass begins:
-    /// premultiplied, at the window's opacity (`bg` is straight). The glass
-    /// reads the opacity back from the alpha (`glass.wgsl`'s `under`).
-    pub fn encode(
-        &self,
-        enc: &mut wgpu::CommandEncoder,
-        bg: [f32; 4],
-        paper: Option<&PaperBgPass>,
-    ) {
-        let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
+    /// Draw the page exactly as the frame's own pass begins: premultiplied,
+    /// at the window's opacity (`bg` is straight). The glass reads the
+    /// opacity back from the alpha (`glass.wgsl`'s `under`).
+    pub fn encode(&self, enc: &mut wgpu::CommandEncoder, bg: [f32; 4]) {
+        let _pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("glass behind"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &self.view,
@@ -75,8 +68,5 @@ impl Behind {
             occlusion_query_set: None,
             multiview_mask: None,
         });
-        if let Some(paper) = paper {
-            paper.draw(&mut pass);
-        }
     }
 }

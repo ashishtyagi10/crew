@@ -1,12 +1,12 @@
 //! The GPU plumbing every shot shares: an off-screen target the size of the
-//! surface under test, the paper background the real frame draws first, the
+//! surface under test, cleared to the page the real frame clears to, the
 //! cell grid on top, and the readback that turns it into pixels you can look
 //! at.
 //!
 //! Split out of `shotgpu_tests` so a widget that draws its OWN card — the
 //! input bar, whose fieldset frame *is* the thing being judged — can be shot
 //! at the full canvas instead of being nested inside the harness's card.
-use crew_render::{CellGrid, PaneScene, PaperBgPass};
+use crew_render::{CellGrid, PaneScene};
 
 pub const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 const BPP: u32 = 4;
@@ -23,7 +23,7 @@ pub fn draw(
     font_px: f32,
     scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
 ) -> Option<Vec<u8>> {
-    draw_with(w, h, font_px, false, None, 1.0, scenes)
+    draw_with(w, h, font_px, false, 1.0, scenes)
 }
 
 /// [`draw`], but through the CRT tube — the bloom, the scanlines and the
@@ -38,7 +38,7 @@ pub fn draw_crt(
     font_px: f32,
     scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
 ) -> Option<Vec<u8>> {
-    draw_with(w, h, font_px, true, None, 1.0, scenes)
+    draw_with(w, h, font_px, true, 1.0, scenes)
 }
 
 pub(crate) fn draw_with(
@@ -46,7 +46,6 @@ pub(crate) fn draw_with(
     h: u32,
     font_px: f32,
     crt: bool,
-    modern: Option<crew_render::ModernPaper>,
     opacity: f32,
     scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
 ) -> Option<Vec<u8>> {
@@ -105,20 +104,11 @@ pub(crate) fn draw_with(
     grid.set_scene(&device, &scenes(cw, ch));
     grid.prepare(&device, &queue, w, h);
 
-    let paper = PaperBgPass::new(&device, FORMAT);
     let bg = crew_theme::theme().page_bg;
     let bg_f32 = crew_render::color::target_rgba(bg, opacity, FORMAT.is_srgb());
-    paper.update_uniform(
-        &queue,
-        bg_f32,
-        (w as f32, h as f32),
-        1.0,
-        1.3 * crew_theme::theme().grain,
-        modern.as_ref(),
-    );
 
     let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-    grid.encode_behind(&device, &mut enc, (w, h), bg_f32, Some(&paper));
+    grid.encode_behind(&device, &mut enc, (w, h), bg_f32);
     {
         let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("shotdraw_pass"),
@@ -137,7 +127,6 @@ pub(crate) fn draw_with(
             occlusion_query_set: None,
             multiview_mask: None,
         });
-        paper.draw(&mut pass);
         grid.draw(&mut pass);
     }
     if let Some(c) = chain.as_ref() {

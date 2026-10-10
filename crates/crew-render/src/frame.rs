@@ -1,5 +1,5 @@
 //! The frame path for [`crate::renderer::Renderer`]: surface acquisition,
-//! uniform writes, the scene pass (paper background + cells), and — when a
+//! uniform writes, the scene pass (page + cells), and — when a
 //! CRT style is active — the bloom + composite reprojection. Split out of
 //! `renderer.rs` to keep both files focused and under the line cap; the
 //! renderer keeps ownership and this module borrows the pieces per frame.
@@ -7,33 +7,23 @@ use crate::cellgrid::CellGrid;
 use crate::crtchain::CrtChain;
 use crate::fadepass::FadePass;
 use crate::gpu::Gpu;
-use crate::paperbg::PaperBgPass;
 use crate::scene::PaneScene;
 use crate::solidcard::SolidCardPass;
 
 /// Upload the scene, render, and present. Skips the frame on surface errors
-/// (Outdated/Lost). `paper` is `None` with the paper texture disabled;
-/// `grain` is the user knob × the theme's multiplier, precomputed upstream.
-/// `fade` is the theme-crossfade strength: while `None` the finished frame is
-/// snapshotted; while `Some` the held old-theme frame draws on top instead.
-/// `wash` is the modern backdrop's clocks this frame (see
-/// [`crate::paperbg::WashClocks`]); `wash_focus` is `(centre_uv, pull)` —
-/// where that orbit is centred and how far it has travelled there from the
-/// page centre.
+/// (Outdated/Lost). `fade` is the theme-crossfade strength: while `None` the
+/// finished frame is snapshotted; while `Some` the held old-theme frame draws
+/// on top instead.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn render(
     gpu: &Gpu,
     cell_grid: &mut CellGrid,
-    paper: Option<&PaperBgPass>,
     crt: &CrtChain,
     fade_pass: &mut FadePass,
     fade: Option<f32>,
     solid_card: &mut SolidCardPass,
     solid_chrome: &[[f32; 4]],
     window_opacity: f32,
-    grain: f32,
-    wash: crate::paperbg::WashClocks,
-    wash_focus: ((f32, f32), f32),
     panes: &[PaneScene],
 ) {
     // The surface is asked FIRST, before a single byte is uploaded.
@@ -83,49 +73,12 @@ pub(crate) fn render(
     // (`CrtChain::set_sheer`).
     let use_crt = crt.active();
     let bg = crew_theme::theme().page_bg;
-    // The page alpha IS the window opacity: it seeds the clear and the
-    // paper pass, and everything drawn afterwards blends over it, so pane
+    // The page alpha IS the window opacity: it seeds the clear, and
+    // everything drawn afterwards blends over it, so pane
     // fills and text stay solid while the bare page shows the desktop.
     let bg_f32 = crate::color::target_rgba(bg, window_opacity, gpu.format.is_srgb());
     let (w, h) = (gpu.config.width as f32, gpu.config.height as f32);
 
-    if let Some(paper) = paper {
-        // The modern family's backdrop: the gradient wash (rotated to
-        // `wash`, which the app advances while a pane is busy or the
-        // room drifts) with the dot lattice woven on top — a fine square grid pitched off the
-        // text ROW height (see `cell_geometry`), so the weave scales with font
-        // size and DPI. Pole colours go through the same colour-space door as
-        // the page.
-        let modern = crew_theme::theme().modern.map(|m| {
-            // The poles are the LIVE ones — the theme's own, rotated by
-            // whatever hue offset the app published this frame (see
-            // crew-theme's `poleshift`). At rest that is the theme's own
-            // bytes, so a still page is still a pure function of position.
-            let (pole_a, pole_b) = crew_theme::poleshift::poles().unwrap_or((m.pole_a, m.pole_b));
-            let c = |rgb| {
-                let [r, g, b, _] = crate::color::target_rgba(rgb, 1.0, gpu.format.is_srgb());
-                [r, g, b]
-            };
-            let (spacing, radius) = crate::paperbg::ModernPaper::cell_geometry(cell_grid.cell_h);
-            crate::paperbg::ModernPaper {
-                color_a: c(pole_a),
-                color_b: c(pole_b),
-                dots: m.dots,
-                spacing,
-                radius,
-                // The wash lifts the very background the ink sits on, and it
-                // was calibrated with only 4-16% contrast headroom over it.
-                // When the OS asks for more contrast that headroom is exactly
-                // what has to be given back, so the wash is scaled by the same
-                // factor the spotlight is.
-                wash: m.wash * crew_theme::contrast::effect_scale(),
-                clocks: wash,
-                focus: [wash_focus.0 .0, wash_focus.0 .1],
-                focus_pull: wash_focus.1,
-            }
-        });
-        paper.update_uniform(gpu.queue(), bg_f32, (w, h), 1.0, grain, modern.as_ref());
-    }
     if use_crt {
         // A light page inverts the halo: see `CrtChain::update_uniforms`.
         crt.update_uniforms(gpu.queue(), w, h, !crew_theme::theme().dark);
@@ -149,9 +102,9 @@ pub(crate) fn render(
     // Liquid glass refracts the page: it is drawn alone first, into the
     // texture the glass pass samples (a no-op on every other theme).
     let size = (gpu.config.width, gpu.config.height);
-    cell_grid.encode_behind(gpu.device(), &mut enc, size, bg_f32, paper);
+    cell_grid.encode_behind(gpu.device(), &mut enc, size, bg_f32);
     let scene_view = if use_crt { crt.scene_view() } else { &view };
-    encode_scene(&mut enc, scene_view, bg_f32, paper, cell_grid, solid_card);
+    encode_scene(&mut enc, scene_view, bg_f32, cell_grid, solid_card);
     if use_crt {
         crt.encode(&mut enc, &view);
     }
@@ -190,7 +143,6 @@ fn encode_scene(
     enc: &mut wgpu::CommandEncoder,
     scene_view: &wgpu::TextureView,
     bg_f32: [f32; 4],
-    paper: Option<&PaperBgPass>,
     cell_grid: &CellGrid,
     solid_card: Option<&SolidCardPass>,
 ) {
@@ -202,9 +154,8 @@ fn encode_scene(
             resolve_target: None,
             ops: wgpu::Operations {
                 // Carries the window opacity (see above) — a hard 1.0 here
-                // would make the window opaque no matter what the paper pass
-                // writes, and with the paper texture off there IS no paper
-                // pass. Premultiplied, as the whole scene is stored.
+                // would make the window opaque. Premultiplied, as the whole
+                // scene is stored.
                 load: wgpu::LoadOp::Clear(crate::color::premultiplied(bg_f32)),
                 store: wgpu::StoreOp::Store,
             },
@@ -214,9 +165,6 @@ fn encode_scene(
         occlusion_query_set: None,
         multiview_mask: None,
     });
-    if let Some(paper) = paper {
-        paper.draw(&mut pass);
-    }
     cell_grid.draw(&mut pass);
     // Last, and only in the alpha channel: everything above has finished
     // writing colour, so solidifying the focused card cannot change any of it

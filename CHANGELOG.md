@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.55
+
+**The wallpaper machinery is gone.** Every theme is see-through glass
+now, so crew no longer draws a background of its own. Several settings
+and the code behind them did nothing anymore, and they are removed: the
+moving backdrop (the drifting wash of colour, the dot grid, the light
+that followed the focused pane), the paper grain, and the **Paper
+texture**, **Drifting background** and **Grain** settings, along with
+`/grain` and `/look grain`. A config file that still has
+`paper_texture`, `ambient_drift` or `paper_grain` in it loads as before,
+and the old keys are ignored. While a pane is working, the colour of
+each pane's border still slowly shifts, set by **Gradient colour** in
+Settings. On screen nothing changes: the backdrop had already been
+drawing just the plain page colour.
+- **Test:** the full app, theme, terminal and renderer suites pass with
+  the backdrop removed, and a glass window renders pixel for pixel as it
+  did, apart from its animated spinners and clock.
+
 ## 0.26.54
 
 **Toasts sit inside the pane's frame.** The toast stack in the top

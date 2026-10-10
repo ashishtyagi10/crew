@@ -95,14 +95,7 @@ fn glass_work_shot() {
             app.input.cwd = "/Users/you/code/crew".into();
         };
         let name = format!("work-{}", id.as_str());
-        let shot = crate::crtglassshot_tests::window_with(
-            &name,
-            id,
-            Default::default(),
-            sheer,
-            &[],
-            &prep,
-        );
+        let shot = crate::crtglassshot_tests::window_with(&name, id, sheer, &[], &prep);
         if shot.is_none() {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;

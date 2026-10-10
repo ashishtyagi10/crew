@@ -7,7 +7,7 @@
 //! ```
 //!
 //! WHY: the input bar offered sixty-seven commands, and fifteen of them were
-//! appearance — `/gamma`, `/grain`, `/smooth`, `/leading`, `/shapes` and the
+//! appearance — `/gamma`, `/smooth`, `/leading`, `/shapes` and the
 //! rest. Fifteen rows you scroll past to reach `/find`, fifteen names to
 //! remember, and no way to see that they are one family. The knobs are good;
 //! the flat list was the problem. They are subjects now, under one verb, and
@@ -38,7 +38,6 @@ pub(crate) const SUBJECTS: &[(&str, &str)] = &[
     ("crt", "the CRT tube look"),
     ("gradient", "how far the canvas colour breathes"),
     ("opacity", "how much desktop shows through"),
-    ("grain", "paper grain — newsprint texture"),
     ("smooth", "font smoothing — stem darkening"),
     ("gamma", "text gamma — ink the encoded blend eats"),
     ("invisibles", "tabs, trailing spaces and CRs in the viewer"),
@@ -109,7 +108,6 @@ impl CrewApp {
             "crt" => self.crt_command(value),
             "gradient" => self.gradient_command(value),
             "opacity" => self.opacity_command(value),
-            "grain" => self.grain_command(value),
             "smooth" => self.smooth_command(value),
             "gamma" => self.gamma_command(value),
             "invisibles" => self.invisibles_command(value),

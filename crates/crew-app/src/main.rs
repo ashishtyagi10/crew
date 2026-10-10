@@ -298,9 +298,6 @@ mod ghost;
 mod git;
 mod gitbadge;
 mod gitfleet;
-#[cfg(test)]
-#[path = "glassshot_tests.rs"]
-mod glassshot_tests;
 mod glide;
 mod glyphlang;
 mod glyphmark;
@@ -311,7 +308,6 @@ mod goaldocs;
 mod goalshot_tests;
 mod gradientcmd;
 mod gradientlvl;
-mod graincmd;
 pub(crate) mod grid;
 mod gridrows;
 mod gridsel;
@@ -636,7 +632,6 @@ mod viewpane;
 #[path = "viewshot_tests.rs"]
 mod viewshot_tests;
 mod voice;
-mod washfocus;
 mod washgate;
 mod washphase;
 #[cfg(test)]

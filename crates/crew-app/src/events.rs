@@ -252,18 +252,16 @@ impl CrewApp {
                 let crt_active = crt.is_some() && busy;
                 let crt_time = (crate::anim::now_ms() % 100_000) as f32 / 1000.0;
                 let fade = self.theme_fade(crate::anim::now_ms());
-                // The modern wash's phase is advanced from this frame's delta
-                // at whichever pace applies — the busy one, the far slower
-                // ambient one, or held (see `washphase`).
+                // The gradient's hue breath advances from this frame's delta
+                // while a pane works, and holds otherwise (see `washphase`):
+                // one hue offset, published to the theme layer, worn this
+                // frame by every card's stroke at once. At `gradient off` the
+                // span is zero and this is a no-op store of the number that
+                // was already there.
                 let drift = crew_theme::theme().modern.map_or(0, |m| m.drift_ms);
-                let pace = crate::washgate::pace(drift, busy, self.ambient_drift());
+                let pace = crate::washgate::pace(drift, busy);
                 self.wash
                     .advance(crate::anim::now_ms(), pace, crate::motion::level());
-                // ... and the gradient's own colour rides the same clock: one
-                // hue offset, published to the theme layer, worn this frame by
-                // the wash, the dot lattice and every card's stroke at once.
-                // At `gradient off` the span is zero and this is a no-op store
-                // of the number that was already there.
                 crew_theme::poleshift::set_shift(
                     self.wash.hue_deg(crate::gradientlvl::level().span_deg()),
                 );
@@ -280,9 +278,6 @@ impl CrewApp {
                     };
                     r.set_crt(crt);
                     r.set_crt_anim(crt_time, amp);
-                    r.set_wash_phase(self.wash.clocks());
-                    let (focus, pull) = self.wash_focus.uniform();
-                    r.set_wash_focus(focus, pull);
                     r.set_theme_fade(fade);
                     r.set_solid_chrome(chrome);
                     r.frame(&scenes);

@@ -228,29 +228,6 @@ impl CrewApp {
         // frosted glass in a sheer window.
         self.solid_chrome.clear();
 
-        // The page's light follows the focused card. Stepped HERE, after the
-        // panes have been glided, so it chases the rect a pane is drawn at
-        // this frame rather than the tile it is heading for — the card and
-        // the light under it move as one thing. It rides the grid's own frame
-        // clock for the same reason.
-        let focus_rect = if self.input.focused {
-            Some(ib)
-        } else if self.panes.is_empty() {
-            // The welcome is the lit card on an empty canvas, so the light
-            // sits under it as it would under the lone terminal it stands in
-            // for — with no pane to follow, the page went unlit.
-            pane_rects_at(1, content.x, content.y, content.w, content.h, self.gutter())
-                .first()
-                .copied()
-        } else {
-            self.panes
-                .get(self.focused)
-                .filter(|p| !p.hidden)
-                .map(|p| p.rect)
-        };
-        self.wash_focus
-            .step(focus_rect, (sw, sh), glide_dt, crate::motion::level());
-
         // Toast cards at the top-right of the content area — pushed before the
         // help early-return so an open help screen doesn't swallow them.
         let cursor = self.cursor_in.then_some(self.cursor);

@@ -649,73 +649,6 @@ fn dark_flag_matches_page_bg_luminance() {
     }
 }
 
-#[test]
-fn grain_is_newsprint_on_every_theme() {
-    // 1.2 across the board (not the historical 3.0): gamma-space blending
-    // (v0.5.58) modulates encoded values, which reads much stronger than the
-    // old linear-space grain. Dark themes now match light (was 1.0) so the
-    // newspaper texture reads on the dark pages too — the shader's dark
-    // absolute term carries it (see paperbg.wgsl). NEBULA AND BLOSSOM are the
-    // deliberate exception: their pages are glass, not newsprint — zero grain.
-    // So are the TUBES since 2026-10-06: their page is a tinted faceplate
-    // with the desktop faintly through it, and grain over it read as dirt.
-    //
-    // This used to key off `modern.is_some()`, back when carrying a gradient
-    // and being made of glass were the same two themes. Every theme has a
-    // gradient now and most of them are still paper, so the exception is named
-    // rather than derived: newsprint and a gradient sit together perfectly
-    // well, and paper that lost its tooth would just be a flat page.
-    for id in ALL_THEMES {
-        let t = id.theme();
-        // Liquid glass's page is a wallpaper, and a wallpaper has no tooth.
-        let glass = matches!(id, ThemeId::Nebula | ThemeId::Blossom)
-            || id.theme().liquid.is_some()
-            || id.is_crt();
-        let want = if glass { 0.0 } else { 1.2 };
-        assert_eq!(t.grain, want, "{}: grain", id.as_str());
-    }
-}
-
-/// The modern family's page carries the dot lattice INSTEAD of grain: a
-/// deliberate identity swap (glass + dots vs newsprint speckle). Strength
-/// stays a whisper — a mix weight past ~0.5 would read as wallpaper.
-#[test]
-fn modern_pages_carry_the_dot_lattice() {
-    // Not a tube: its page is the faceplate, with nothing woven on it. Not
-    // liquid glass: its page is a wallpaper, seen through glass.
-    let plain = |id: &ThemeId| !id.is_crt() && id.theme().liquid.is_none();
-    for id in ALL_THEMES.into_iter().filter(plain) {
-        if let Some(m) = id.theme().modern {
-            assert!(
-                m.dots > 0.0 && m.dots <= 0.5,
-                "{}: dot lattice in the whisper band, got {}",
-                id.as_str(),
-                m.dots
-            );
-        }
-    }
-}
-
-/// The wash is the aurora UNDER the lattice: broad pools of pole light. It
-/// has to stay weaker than the dots — a wash past a whisper stops being light
-/// on a page and becomes a coloured page, which is exactly the flat fill the
-/// modern family is trying not to be.
-#[test]
-fn modern_pages_carry_the_gradient_wash() {
-    // Liquid glass's wash IS its wallpaper: vivid on purpose, under glass.
-    let plain = |id: &ThemeId| !id.is_crt() && id.theme().liquid.is_none();
-    for id in ALL_THEMES.into_iter().filter(plain) {
-        if let Some(m) = id.theme().modern {
-            assert!(
-                m.wash > 0.0 && m.wash <= 0.35,
-                "{}: wash in the whisper band, got {}",
-                id.as_str(),
-                m.wash
-            );
-        }
-    }
-}
-
 /// Glow had no upper bound anywhere, which is the one effect that can ruin a
 /// page. 2026's revival of neon is explicitly *micro*-glow — focus states,
 /// outlines, small badges — never a flood, and a bloom is the easiest thing in
@@ -805,31 +738,6 @@ fn every_page_flickers_less_than_every_tube() {
             id.as_str(),
             c.flicker
         );
-    }
-}
-
-/// The backdrop is a family trait, not a per-theme flourish: every modern
-/// page of one appearance carries exactly the same lattice and wash. Pinned
-/// so a new member joins the family rather than inventing its own weights —
-/// the bands above would let it drift a long way first.
-#[test]
-fn the_modern_backdrop_is_a_per_appearance_constant() {
-    // Three constants, not two: a tube carries no backdrop at all — its
-    // window is frosted glass over the desktop, and the user asked for just
-    // the glass and its borders there (2026-10-06). Paper keeps the per-appearance pair it always had.
-    for id in ALL_THEMES {
-        let t = id.theme();
-        let Some(m) = t.modern else { continue };
-        if t.liquid.is_some() {
-            continue; // a wallpaper, not the modern page (see above)
-        }
-        let (dots, wash) = match (id.is_crt(), t.dark) {
-            (true, _) => (0.0, 0.0),
-            (false, true) => (0.20, 0.15),
-            (false, false) => (0.16, 0.12),
-        };
-        assert_eq!(m.dots, dots, "{}: dot lattice", id.as_str());
-        assert_eq!(m.wash, wash, "{}: gradient wash", id.as_str());
     }
 }
 
@@ -1129,10 +1037,7 @@ fn a_numeric_field_s_doc_may_not_name_a_value_no_palette_uses() {
     /// A numeric `Theme` field: its declaration line, and how to read it.
     type NumField = (&'static str, fn(&Theme) -> f32);
     let mut total = 0usize;
-    let fields: [NumField; 2] = [
-        ("pub grain: f32,", |t| t.grain),
-        ("pub border_thickness: f32,", |t| t.border_thickness),
-    ];
+    let fields: [NumField; 1] = [("pub border_thickness: f32,", |t| t.border_thickness)];
     for (decl, get) in fields {
         let at = src.find(decl).unwrap_or_else(|| panic!("{decl} not found"));
         // Back up to the start of the declaration's own line: `src[..at]`
@@ -1186,73 +1091,10 @@ fn a_numeric_field_s_doc_may_not_name_a_value_no_palette_uses() {
         }
     }
     assert!(
-        total >= 4,
+        total >= 3,
         "only {total} numbers are claimed across the checked fields — the \
          parse has stopped finding them and this test is asserting nothing"
     );
-}
-
-/// The contrast suite above measures every role against `page_bg` — the page
-/// as declared. It is not the page anyone reads on. The gradient wash lies
-/// UNDER the whole canvas and mixes the page toward a pole by `wash` at each
-/// pool's centre, so the real background under a line of text is
-/// `lerp(page_bg, pole, wash)`, and every floor in `contrast_thresholds` is
-/// quietly measured against a colour that is not there.
-///
-/// This closes that. Same roles, same floors, measured on the WASHED page at
-/// both poles — which is also the answer to "make the gradient stronger":
-/// there is no room. Run at the shipped weights the tightest role clears its
-/// floor by 4–16% (border_normal on the paper and modern pages, text_muted on
-/// the tubes); at 1.5× the wash, six of the nine themes are already under.
-/// The aurora is calibrated to the edge of legibility, and more colour has to
-/// come from the chrome — which is where the gradient stroke went — not from
-/// turning the page up.
-///
-/// The mix is done here on the sRGB bytes because that is where the shader
-/// does it too: the surface is deliberately NON-sRGB (see the renderer's
-/// colour-space note), so `mix()` in `paperbg.wgsl` blends in gamma space,
-/// exactly like this.
-#[test]
-fn the_wash_never_pushes_a_role_under_its_floor() {
-    for id in ALL_THEMES {
-        let t = id.theme();
-        let Some(m) = t.modern else {
-            continue;
-        };
-        // Liquid glass is a WALLPAPER under glass, not a page text sits on:
-        // its text rides the frosted slab, held by
-        // `glass::tests::liquid_text_reads_on_its_glass` instead.
-        if t.liquid.is_some() {
-            continue;
-        }
-        for pole in [m.pole_a, m.pole_b] {
-            let mix = |a: u8, b: u8| {
-                (f32::from(a) + (f32::from(b) - f32::from(a)) * m.wash).round() as u8
-            };
-            let page = (
-                mix(t.page_bg.0, pole.0),
-                mix(t.page_bg.1, pole.1),
-                mix(t.page_bg.2, pole.2),
-            );
-            for (role, c, floor) in [
-                ("ink", t.ink, 10.0f32),
-                ("text_muted", t.text_muted, 7.0),
-                ("legend_off", t.legend_off, 3.0),
-                ("hint_fg", t.hint_fg, 2.5),
-                ("placeholder", t.placeholder, 2.3),
-                ("accent_default", t.accent_default, 3.0),
-                ("border_focused", t.border_focused, 2.2),
-                ("border_normal", t.border_normal, 1.45),
-            ] {
-                let got = contrast_ratio(c, page);
-                assert!(
-                    got >= floor,
-                    "{}: {role} vs the page washed toward {pole:?} = {got:.3} (need >= {floor})",
-                    id.as_str()
-                );
-            }
-        }
-    }
 }
 
 /// Only a tube and the white-text glass shade their text: their windows are
