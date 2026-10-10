@@ -182,7 +182,7 @@ fn row_cells_paint_the_page_behind_the_caps_and_the_hint() {
     assert_eq!(cap.bg, page, "a cap cell stands on the page");
     assert_eq!(
         cap.fg,
-        crate::palette::accent(),
+        crate::segment::inked(crate::palette::accent()).1,
         "and is painted in the block's colour"
     );
     let hint = cells.iter().find(|c| c.c == 'e').expect("the hint");

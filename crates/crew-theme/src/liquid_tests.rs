@@ -40,8 +40,9 @@ fn glass_lets_the_desktop_through() {
         assert!(l.body > 0.0 && l.body < 1.0, "{name}: body {:.2}", l.body);
         let cover = l.pane_cover();
         assert!(cover > l.window, "{name}: a pane shows more than a gap");
+        // The clear glass hides 0.59; `dark`'s deeper smoke 0.71.
         assert!(
-            (0.5..=0.7).contains(&cover),
+            (0.5..=0.75).contains(&cover),
             "{name}: a pane hides {cover:.2}"
         );
         assert!(

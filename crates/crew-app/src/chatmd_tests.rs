@@ -26,15 +26,15 @@ fn fenced_code_takes_the_code_colour() {
     assert_eq!(cell.bg, Some(crate::chatink::code_bg()));
 }
 
-/// The language names the block from inside it, as a badge on the same
-/// field the code sits on (`fencebadge`) — the block's edge is the field, so
-/// a label off it would read as a stray word above a rectangle.
+/// The language names the block from inside it, as a badge on the field the
+/// code sits on (`fencebadge`): off it, a stray word above a rectangle.
 #[test]
 fn the_fences_language_sits_as_a_badge_on_the_field() {
     let _guard = crate::app::theme_test_guard();
     let out = lines("```rust\nfn x() {}\n```", 40, (9, 9, 9));
     assert!(row_text(&out[0]).contains(" rust "));
-    assert_eq!(out[0][4].bg, Some(crate::chathue::lang_hue("rust")));
+    let block = crate::segment::inked(crate::chathue::lang_hue("rust")).1;
+    assert_eq!(out[0][4].bg, Some(block));
     assert_eq!(out[0][1].bg, Some(crate::chatink::code_bg()));
 }
 

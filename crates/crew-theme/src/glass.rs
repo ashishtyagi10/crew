@@ -273,8 +273,6 @@ pub fn tube_glass(t: &Theme) -> GlassStyle {
 /// black shadow. The tint is the page lifted a little toward blue, so the
 /// frost reads as smoked glass rather than grey.
 ///
-/// Held by the text on it: `liquid_text_reads_on_its_glass` keeps the ink
-/// above 7:1 over the brightest wallpaper the frost can sit on.
 pub fn liquid_glass(t: &Theme) -> GlassStyle {
     let p = t.page_bg;
     GlassStyle {

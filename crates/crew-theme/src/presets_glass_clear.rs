@@ -67,6 +67,18 @@ pub static GLASS_CLEAR: Theme = Theme {
     liquid: Some(CLEAR_LIQUID),
 };
 
+/// The `dark` mode's glass (the user, 2026-10-09: dark, light and CRT "with
+/// the same pattern as glass"): the clear glass's optics with a deeper
+/// smoke. The window keeps more of the desktop out and each pane more of
+/// what is left, so a pane hides 0.71 of the desktop where the clear glass
+/// hides 0.59 — still glass, the desktop's shapes show through, but a dark
+/// room rather than a clear one.
+pub(crate) const DARK_LIQUID: LiquidStyle = LiquidStyle {
+    window: 0.35,
+    body: 0.55,
+    ..CLEAR_LIQUID
+};
+
 /// The white-text glass's tube settings, shared with the night glass: a
 /// little glow, no tube, and the soft shadow white words need over a clear
 /// pane.

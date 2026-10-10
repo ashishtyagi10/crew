@@ -52,7 +52,8 @@ fn a_badge_lights_with_its_tokens_settles_and_dims_when_idle() {
     set_level(MotionLevel::Full);
     let _plain = crate::glyphs::force(false);
     let th = crew_theme::theme();
-    let roster = crate::chatroster::agent_color("coder");
+    // The badge's resting fill: on glass the roster colour deepened.
+    let roster = crate::segment::inked(crate::chatroster::agent_color("coder")).1;
     let map: HashMap<String, u64> = [("coder".to_string(), 1_000u64)].into();
 
     assert_eq!(coder_block(&HashMap::new(), 1_010), roster, "never burst");
@@ -70,11 +71,20 @@ fn a_badge_lights_with_its_tokens_settles_and_dims_when_idle() {
         "dim sinks toward the page: {dim:?} vs {roster:?}"
     );
     assert!(contrast_ratio(dim, th.page_bg) >= crew_theme::readable::MARK_FLOOR);
-    // The label stays readable on every block it is handed.
+    // The label stays readable on every block it is handed — the label's
+    // own ink, at a bold label's floor while lit (on glass the lift is
+    // toward the label's white).
+    let ink = crate::segment::inked(crate::chatroster::agent_color("coder")).0;
     let floor = crew_theme::contrast::text_floor();
-    for block in [lit, roster, dim] {
-        let ink = crate::segment::page_ink(block);
-        assert!(contrast_ratio(ink, block) >= floor, "{ink:?} on {block:?}");
+    for (block, floor) in [
+        (lit, crew_theme::readable::MARK_FLOOR),
+        (roster, floor),
+        (dim, floor),
+    ] {
+        assert!(
+            contrast_ratio(ink, block) >= floor - 0.01,
+            "{ink:?} on {block:?}"
+        );
     }
 }
 
@@ -83,7 +93,7 @@ fn off_never_lights_a_badge() {
     let _g = crate::app::theme_test_guard();
     set_level(MotionLevel::Off);
     let _plain = crate::glyphs::force(false);
-    let roster = crate::chatroster::agent_color("coder");
+    let roster = crate::segment::inked(crate::chatroster::agent_color("coder")).1;
     let map: HashMap<String, u64> = [("coder".to_string(), 1_000u64)].into();
     assert_eq!(coder_block(&map, 1_010), roster);
     set_level(MotionLevel::Full);

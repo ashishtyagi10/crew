@@ -11,7 +11,8 @@ use crate::{CrtStyle, ModernStyle, Theme};
 
 /// **Nebula**: aurora's dusk sibling — a violet-cast near-black page with the
 /// gradient sliding from orchid to rose. The most saturated of the family,
-/// with the widest halo.
+/// with the widest halo. See-through since 2026-10-09: a deep violet smoke
+/// over the desktop ([`crate::presets_glass_clear::DARK_LIQUID`]).
 pub static NEBULA: Theme = Theme {
     page_bg: (19, 15, 26),
     ink: (241, 235, 250),
@@ -58,14 +59,14 @@ pub static NEBULA: Theme = Theme {
         flicker: 0.03,
         core: 0.0,
         etch: 0.0,
-        shade: 0.0,
+        shade: CrtStyle::GLASS_SHADE,
     }),
     modern: Some(ModernStyle {
         pole_a: (197, 138, 249),
         pole_b: (244, 143, 177),
         drift_ms: 6_000,
-        dots: 0.20,
-        wash: 0.15,
+        dots: 0.0,
+        wash: 0.0,
     }),
-    liquid: None,
+    liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
 };

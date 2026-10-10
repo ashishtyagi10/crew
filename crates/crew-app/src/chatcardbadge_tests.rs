@@ -19,6 +19,8 @@ fn an_agents_name_is_a_badge_on_its_roster_colour() {
     assert_eq!(chars(&line), format!("{GUTTER}\u{2590} planner \u{258c}"));
     let want = crate::chatroster::agent_color("planner");
     assert_eq!(line[0].fg, want, "the gutter keeps the colour");
+    // The block is the badge's fill: on glass the colour deepened.
+    let want = crate::segment::inked(want).1;
     assert_eq!(
         (line[1].fg, line[1].bg),
         (want, None),
@@ -73,8 +75,9 @@ fn a_handoff_badges_each_agent_and_leaves_the_user_plain() {
         format!("{GUTTER}\u{2590} planner \u{258c} \u{2192} \u{2590} coder \u{258c}")
     );
     let blocks: Vec<Color> = both.iter().filter_map(|c| c.bg).collect();
-    assert!(blocks.contains(&crate::chatroster::agent_color("planner")));
-    assert!(blocks.contains(&crate::chatroster::agent_color("coder")));
+    let fill = |n| crate::segment::inked(crate::chatroster::agent_color(n)).1;
+    assert!(blocks.contains(&fill("planner")));
+    assert!(blocks.contains(&fill("coder")));
     let arrow = both.iter().find(|c| c.c == '\u{2192}').expect("arrow");
     assert_eq!(arrow.fg, crew_theme::theme().text_muted);
 }

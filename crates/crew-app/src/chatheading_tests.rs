@@ -68,10 +68,11 @@ fn the_h1_badge_is_the_accent_block_with_a_readable_mark() {
     let _off = crate::glyphs::force(false);
     let out = lines("# Title", 40, (9, 9, 9));
     let accent = crate::palette::accent();
-    assert_eq!((out[0][1].fg, out[0][1].bg), (accent, None), "cap");
+    let block = crate::segment::inked(accent).1;
+    assert_eq!((out[0][1].fg, out[0][1].bg), (block, None), "cap");
     assert_eq!(out[0][3].c, '#');
-    assert_eq!(out[0][3].bg, Some(accent));
-    assert!(crew_theme::contrast_ratio(out[0][3].fg, accent) >= crew_theme::contrast::text_floor());
+    assert_eq!(out[0][3].bg, Some(block));
+    assert!(crew_theme::contrast_ratio(out[0][3].fg, block) >= crew_theme::contrast::text_floor());
     assert_eq!(out[0][7].fg, accent, "the title's ink");
     assert!(out[0][6].bg.is_none(), "the gap sits on the page");
     let _on = crate::glyphs::force(true);

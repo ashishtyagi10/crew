@@ -177,15 +177,14 @@ fn motion_off_holds_the_ambient_drift_too() {
 #[test]
 fn each_fence_alone_stops_the_ambient_drift() {
     let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::PaperLight); // a wash to drift
     let mut app = crate::app::CrewApp::default();
     app.config.ambient_drift = true;
     app.win_focus = None;
     assert!(app.ambient_drift(), "premise: all four fences pass");
-
     app.config.ambient_drift = false;
     assert!(!app.ambient_drift(), "the setting");
     app.config.ambient_drift = true;
-
     app.win_focus = Some(false);
     assert!(!app.ambient_drift(), "another window has the OS focus");
     app.win_focus = Some(true);
@@ -203,6 +202,7 @@ fn each_fence_alone_stops_the_ambient_drift() {
 #[test]
 fn a_window_that_was_never_told_counts_as_focused() {
     let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::PaperLight); // a wash to drift
     let app = crate::app::CrewApp::default();
     assert_eq!(app.win_focus, None, "premise: nothing has said either way");
     assert!(app.ambient_drift());
@@ -216,6 +216,7 @@ fn a_window_that_was_never_told_counts_as_focused() {
 #[test]
 fn an_idle_app_wants_no_animation_frame_but_does_want_the_drift() {
     let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::PaperLight); // a wash to drift
     let mut app = crate::app::CrewApp::default();
     app.config.ambient_drift = true;
     let now = crate::anim::now_ms();
@@ -224,8 +225,7 @@ fn an_idle_app_wants_no_animation_frame_but_does_want_the_drift() {
         "premise: nothing transient is animating"
     );
     assert!(app.ambient_drift(), "but the wash is still turning");
-    // …and with the setting off, an idle app asks for nothing at all, which
-    // is exactly the behaviour crew had before this existed.
+    // …and with the setting off, an idle app asks for nothing at all.
     app.config.ambient_drift = false;
     assert!(!app.wants_animation_frame(now) && !app.ambient_drift());
 }

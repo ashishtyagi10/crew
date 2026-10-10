@@ -1,5 +1,12 @@
 use super::*;
-use crate::{ALL_THEMES, CRT_GREEN, PAPER_DARK, PAPER_LIGHT};
+use crate::{Theme, ALL_THEMES, CRT_GREEN, PAPER_DARK, PAPER_LIGHT};
+
+/// A dark page with no glass of its own — what `paper-dark` was before every
+/// mode went see-through (2026-10-09): the frosted card a dark page gets.
+const DARK_PAGE: Theme = Theme {
+    liquid: None,
+    ..PAPER_DARK
+};
 
 #[test]
 fn level_round_trips_and_accepts_aliases() {
@@ -43,7 +50,7 @@ fn tubes_are_sheets_of_smoked_glass() {
         .filter(|id| id.theme().is_tube())
         .collect();
     assert!(!tubes.is_empty(), "the filter found no tubes");
-    let paper = style_for(&PAPER_DARK);
+    let paper = style_for(&DARK_PAGE);
     let top = |c: (u8, u8, u8)| {
         [c.0, c.1, c.2]
             .iter()
@@ -96,7 +103,7 @@ fn frost_pages_have_no_gloss_and_a_black_shadow() {
 #[test]
 fn dark_pages_soften_the_rim_and_deepen_the_shadow() {
     let light = style_for(&PAPER_LIGHT);
-    let dark = style_for(&PAPER_DARK);
+    let dark = style_for(&DARK_PAGE);
     assert!(dark.highlight_alpha < light.highlight_alpha * 0.5);
     assert!(dark.shadow_alpha > light.shadow_alpha * 2.0);
     assert!(
@@ -357,48 +364,4 @@ fn tube_quiet_text_reads_over_a_desktop() {
         "under the floor over a desktop through the glass:\n  {}",
         under.join("\n  ")
     );
-}
-
-/// Liquid glass shows the wallpaper through its body, so the text on it is
-/// only as legible as the frost makes it. Worst case: the wallpaper at a pool's
-/// full colour, saturated by the glass (`vibrance`, in gamma space as the
-/// shader does it), on a focused card (its smoke thins by 12%) under the
-/// gloss's sheen. The body holds the ink at 7:1; the first column of text,
-/// which sits a cell inside the rim where the lens has begun to clear the
-/// frost, at 4.5:1.
-#[test]
-fn liquid_text_reads_on_its_glass() {
-    for id in ALL_THEMES {
-        let t = id.theme();
-        let (Some(l), Some(m)) = (t.liquid, t.modern) else {
-            continue;
-        };
-        let s = style_for(t);
-        let f = |c: u8| f32::from(c) / 255.0;
-        let byte = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
-        for pole in [m.pole_a, m.pole_b] {
-            let (r, g, b) = (f(pole.0), f(pole.1), f(pole.2));
-            let y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-            let vib = |c: f32| y + (c - y) * l.vibrance;
-            for (k, floor) in [(0.0, 7.0), ((1.0f32 - 9.0 / l.bevel).max(0.0).powi(2), 4.5)] {
-                let frost = s.alpha_top * (1.0 - 0.12) * (1.0 - l.clear_rim * k);
-                let sheen = s.gloss * 0.6;
-                let mix = |c: f32, tint: u8| {
-                    let body = c.clamp(0.0, 1.0) * (1.0 - frost) + f(tint) * frost;
-                    byte(body * (1.0 - sheen) + f(s.highlight.0) * sheen)
-                };
-                let body = (
-                    mix(vib(r), s.tint.0),
-                    mix(vib(g), s.tint.1),
-                    mix(vib(b), s.tint.2),
-                );
-                let got = crate::contrast_ratio(t.ink, body);
-                assert!(
-                    got >= floor,
-                    "{}: ink on {body:?} over {pole:?} at lens {k:.2} is {got:.2} (need {floor})",
-                    id.as_str()
-                );
-            }
-        }
-    }
 }

@@ -116,7 +116,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // this is where the comic lead lives on: Comic Shanns Mono first (the
         // user's pick, 2026-09-27 — the face Comic Mono was cut from, with the
         // wider glyph set), Comic Mono right behind it where it is not.
-        ThemeId::SepiaDark | ThemeId::SepiaLight => &[
+        ThemeId::SepiaLight => &[
             "Comic Shanns Mono",
             "Comic Mono",
             "IBM Plex Mono",
@@ -138,12 +138,11 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Lilex",
         ],
-        // Harbor and Fern are the modern page COOLED, and they used to share
-        // Nebula's list outright. They lead with IBM Plex Mono instead: an
-        // engineered, level face for the cooler page, and a lead of their own
-        // is a font change when the rotation moves between the two halves of
-        // the modern family.
-        ThemeId::Harbor | ThemeId::Fern => &[
+        // Fern is the modern page COOLED, and it used to share Nebula's list
+        // outright. It leads with IBM Plex Mono instead: an engineered, level
+        // face for the cooler page, and a lead of its own is a font change
+        // when the rotation moves between the two halves of the modern family.
+        ThemeId::Fern => &[
             "IBM Plex Mono",
             "SF Mono",
             "Google Sans Code",

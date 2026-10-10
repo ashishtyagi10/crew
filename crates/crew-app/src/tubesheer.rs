@@ -92,7 +92,8 @@ mod tests {
             // Glass is sheerer than the setting's own floor: nothing lower.
             assert_eq!(sheer(low, t), low.min(cap));
         }
-        let paper = ThemeId::PaperDark.theme();
+        // A page with no glass (until every mode is glass, 2026-10-09).
+        let paper = ThemeId::PaperLight.theme();
         assert_eq!(sheer(1.0, paper), 1.0);
         assert_eq!(sheer(0.6, paper), 0.6);
     }
@@ -145,7 +146,7 @@ mod tests {
         let app = CrewApp::default();
         crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
         assert!(app.window_opacity() <= TUBE_OPACITY);
-        crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+        crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
         assert_eq!(app.window_opacity(), app.config.window_opacity);
     }
 }

@@ -49,13 +49,27 @@ pub(crate) fn unticked(text: &str) -> String {
         .collect()
 }
 
-/// `text` as a badge on `bg`, capped both ends on the page, in the page's
-/// ink walked to the text floor.
+/// `text` as a badge on `bg`, capped both ends on the page, in
+/// [`segment::inked`]'s ink and fill.
 pub(crate) fn badge(text: &str, bg: Fg) -> Vec<FCell> {
-    segment::badge_on(text, bg, Caps::BOTH)
-        .into_iter()
-        .map(|c| (c.c, c.fg, c.bg))
-        .collect()
+    cells(segment::badge_on(text, bg, Caps::BOTH))
+}
+
+/// `text` as a badge on a `fill` already chosen — an agent's pulse
+/// ([`crate::summarypulse::agent_block`]), which starts from the badge's
+/// own fill — in the ink that fill takes. Through [`badge`] the glass's
+/// deepening walked a lit block straight back down and the pulse vanished.
+fn filled(text: &str, fill: Fg) -> Vec<FCell> {
+    cells(segment::badge(
+        text,
+        segment::inked(fill).0,
+        fill,
+        Caps::BOTH,
+    ))
+}
+
+fn cells(b: Vec<segment::Cell>) -> Vec<FCell> {
+    b.into_iter().map(|c| (c.c, c.fg, c.bg)).collect()
 }
 
 /// Display columns of a run of cells.
@@ -104,7 +118,7 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
         names => {
             for n in names {
                 let block = crate::summarypulse::agent_block(fc.pulse, n);
-                segs.push((badge(&format!("@{n}"), block), 2));
+                segs.push((filled(&format!("@{n}"), block), 2));
             }
         }
     }

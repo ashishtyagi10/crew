@@ -64,9 +64,15 @@ fn the_mode_and_the_working_agents_are_badges_on_their_colours() {
     let accent = crate::palette::accent();
     let floor = crew_theme::contrast::text_floor();
     for (label, block) in [
-        ("swarm mode", accent),
-        ("@analyst", crate::chatroster::agent_color("analyst")),
-        ("@coder", crate::chatroster::agent_color("coder")),
+        ("swarm mode", crate::segment::inked(accent).1),
+        (
+            "@analyst",
+            crate::segment::inked(crate::chatroster::agent_color("analyst")).1,
+        ),
+        (
+            "@coder",
+            crate::segment::inked(crate::chatroster::agent_color("coder")).1,
+        ),
     ] {
         for cell in run(l3, label) {
             assert_eq!(cell.2, Some(block), "{label} {:?} on its block", cell.0);
@@ -80,7 +86,7 @@ fn the_mode_and_the_working_agents_are_badges_on_their_colours() {
     }
     // The caps wear the block on the page; the tail sits on the page.
     let cap = l3[0];
-    assert_eq!((cap.1, cap.2), (accent, None));
+    assert_eq!((cap.1, cap.2), (crate::segment::inked(accent).1, None));
     assert!(run(l3, "running #3").iter().all(|c| c.2.is_none()));
 }
 

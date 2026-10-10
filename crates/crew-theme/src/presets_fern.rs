@@ -3,8 +3,8 @@
 //! sepia-light is aged cream. The only light page whose accent is green, so
 //! it can never be mistaken for either of them at a glance.
 //!
-//! Derived roles come from the ramp, the alarm and the wash — see
-//! [`super::presets_harbor`].
+//! Derived roles come from the ramp, the alarm and the wash — the parity
+//! tests in `ramp_tests`, `signal_tests` and `highlight_tests`.
 use crate::{CrtStyle, ModernStyle, Theme};
 
 pub static FERN: Theme = Theme {

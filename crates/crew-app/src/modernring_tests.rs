@@ -74,7 +74,6 @@ fn resting_ring_is_the_exact_gradient_and_clock_free() {
     let mid = fg_at(&a, 0, 5);
     assert_ne!(mid, style.pole_a);
     assert_ne!(mid, style.pole_b);
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
 }
 
 /// A streaming pane's ring drifts: the same cell wears a different colour
@@ -103,7 +102,6 @@ fn busy_ring_drifts_and_motion_off_freezes_it() {
         "Motion=off must pin the ring to its resting gradient"
     );
     crate::motion::set_level(crate::motion::MotionLevel::Full);
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
 }
 
 /// Ignition lifts the whole stroke toward white and decays to the exact
@@ -127,12 +125,12 @@ fn ignition_lifts_then_settles_and_spares_the_legend() {
     // The legend keeps its colour: compare non-stroke cells against an
     // untraced card.
     let plain = pane_card(38, 10, &bar(true));
+    let drawn = crate::panecardglow::focused_stroke(crew_theme::theme());
     for (p, l) in plain.iter().zip(lit.iter()) {
-        if !is_frame_glyph(p.c) || p.fg != crew_theme::theme().border_focused {
+        if !is_frame_glyph(p.c) || p.fg != drawn {
             assert_eq!(p.fg, l.fg, "non-stroke cell {:?} was recoloured", p.c);
         }
     }
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
 }
 
 /// On a theme without a `ModernStyle` the ring is a strict no-op.
@@ -237,6 +235,7 @@ fn a_quiet_stroke_holds_the_flat_luminance() {
 /// tell us about `palette::accent`, not about the gradient.
 #[test]
 fn the_focused_ring_stands_further_off_the_page_than_any_quiet_stroke() {
+    let _a = crate::palette::test_guard(); // the strokes read the accent
     let _g = crate::app::theme_test_guard();
     for id in crew_theme::ALL_THEMES {
         crew_theme::set_theme(id);
@@ -277,9 +276,9 @@ fn a_quiet_stroke_spares_the_legend_and_the_status_glyphs() {
     let t = crew_theme::theme();
     let v = pane_card(38, 10, &b);
     // The legend keeps the pane's signature hue, receded toward `legend_off`
-    // exactly as `pane_card` derived it.
-    let want_legend =
-        crate::anim::lerp_rgb(crate::chatroster::agent_color("shell"), t.legend_off, 0.55);
+    // and floored on glass exactly as `pane_card` derived it.
+    let hue = crate::anim::lerp_rgb(crate::chatroster::agent_color("shell"), t.legend_off, 0.55);
+    let want_legend = crew_theme::glasslegend::legible(t, hue, 7.0); // LABEL_FLOOR
     let legend: Vec<_> = v
         .iter()
         .filter(|c| c.row == 0 && c.c == 'h')
@@ -297,5 +296,4 @@ fn a_quiet_stroke_spares_the_legend_and_the_status_glyphs() {
     }
     // And the frame really did move off the flat colour.
     assert_ne!(fg_at(&v, 0, 1), t.border_normal);
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
 }

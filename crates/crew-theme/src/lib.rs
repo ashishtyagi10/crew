@@ -115,7 +115,6 @@ mod presets_crt_violet;
 mod presets_fern;
 mod presets_glass;
 mod presets_glass_clear;
-mod presets_harbor;
 mod presets_modern;
 mod presets_modern_light;
 mod presets_paper;
@@ -153,10 +152,9 @@ pub use presets_crt_violet::CRT_VIOLET;
 pub use presets_fern::FERN;
 pub use presets_glass::GLASS_NIGHT;
 pub use presets_glass_clear::GLASS_CLEAR;
-pub use presets_harbor::HARBOR;
 pub use presets_modern::NEBULA;
 pub use presets_modern_light::BLOSSOM;
-pub use presets_paper::{PAPER_DARK, PAPER_LIGHT, SEPIA_DARK};
+pub use presets_paper::{PAPER_DARK, PAPER_LIGHT};
 pub use presets_paper_light::SEPIA_LIGHT;
 pub use tagcolor::{slot_color, tag_color, tag_slot};
 
@@ -188,14 +186,12 @@ pub fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
 pub enum ThemeId {
     PaperDark,
     PaperLight,
-    SepiaDark,
     SepiaLight,
     CrtGreen,
     CrtAmber,
     CrtBlue,
     Nebula,
     Blossom,
-    Harbor,
     Fern,
     CrtViolet,
     GlassNight,
@@ -204,14 +200,12 @@ pub enum ThemeId {
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 14] = [
+pub const ALL_THEMES: [ThemeId; 12] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
-    ThemeId::SepiaDark,
     ThemeId::SepiaLight,
     ThemeId::Nebula,
     ThemeId::Blossom,
-    ThemeId::Harbor,
     ThemeId::Fern,
     ThemeId::GlassClear,
     ThemeId::GlassNight,
@@ -226,14 +220,12 @@ impl ThemeId {
         match self {
             ThemeId::PaperDark => "paper-dark",
             ThemeId::PaperLight => "paper-light",
-            ThemeId::SepiaDark => "sepia-dark",
             ThemeId::SepiaLight => "sepia-light",
             ThemeId::CrtGreen => "crt-green",
             ThemeId::CrtAmber => "crt-amber",
             ThemeId::CrtBlue => "crt-blue",
             ThemeId::Nebula => "nebula",
             ThemeId::Blossom => "blossom",
-            ThemeId::Harbor => "harbor",
             ThemeId::Fern => "fern",
             ThemeId::CrtViolet => "crt-violet",
             ThemeId::GlassNight => "glass-night",
@@ -246,14 +238,12 @@ impl ThemeId {
         match self {
             ThemeId::PaperDark => "high-contrast newspaper (dark)",
             ThemeId::PaperLight => "warm paper page (light)",
-            ThemeId::SepiaDark => "dark sepia paper (warm cream ink)",
             ThemeId::SepiaLight => "aged-newsprint cream page (light sepia)",
             ThemeId::CrtGreen => "neon green phosphor CRT",
             ThemeId::CrtAmber => "neon amber phosphor CRT",
             ThemeId::CrtBlue => "neon blue phosphor CRT (Tron)",
             ThemeId::Nebula => "orchid\u{2192}rose gradient dusk (modern dark)",
             ThemeId::Blossom => "violet\u{2192}rose on warm white (modern light)",
-            ThemeId::Harbor => "blue-slate page under an azure light (dark)",
             ThemeId::Fern => "faint mint page under a green-teal light (light)",
             ThemeId::CrtViolet => "violet phosphor CRT (vector-display glow)",
             ThemeId::GlassNight => "iPhone liquid glass, clear and navy-smoked, white text",
@@ -280,10 +270,28 @@ impl ThemeId {
         self.theme().is_tube()
     }
 
-    /// Whether this palette is the WHITE-TEXT liquid glass — clear smoked
-    /// panes and white words (`glass-clear`, `glass-night`): the `glass`
-    /// rotation (the user, 2026-10-09: "bright white would look great on
-    /// glass").
+    /// The rotation this palette belongs to — exactly one of `dark`,
+    /// `light`, `crt` and `glass`. Named per palette: since every mode is
+    /// see-through glass (the user, 2026-10-09: "modify dark, light and CRT
+    /// theme with the same pattern as glass"), being liquid no longer tells
+    /// the `glass` look from the others.
+    pub fn mode(self) -> RandomMode {
+        match self {
+            ThemeId::PaperDark | ThemeId::Nebula => RandomMode::Dark,
+            ThemeId::PaperLight | ThemeId::SepiaLight | ThemeId::Blossom | ThemeId::Fern => {
+                RandomMode::Light
+            }
+            ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => {
+                RandomMode::Crt
+            }
+            ThemeId::GlassClear | ThemeId::GlassNight => RandomMode::Glass,
+        }
+    }
+
+    /// Whether this palette is WHITE-TEXT liquid glass — smoked panes over
+    /// the desktop and white words: the `glass` rotation, and the `dark` one
+    /// since it went see-through (the user, 2026-10-09: "bright white would
+    /// look great on glass").
     pub fn is_clear_glass(self) -> bool {
         let t = self.theme();
         t.liquid.is_some() && t.dark
@@ -293,7 +301,8 @@ impl ThemeId {
         match s.trim() {
             "paper-dark" => Some(ThemeId::PaperDark),
             "paper-light" => Some(ThemeId::PaperLight),
-            "sepia-dark" => Some(ThemeId::SepiaDark),
+            // Folded into the dark glass (2026-10-09: two palettes a mode).
+            "sepia-dark" | "harbor" | "harbour" => Some(ThemeId::PaperDark),
             "sepia-light" => Some(ThemeId::SepiaLight),
             "crt-green" => Some(ThemeId::CrtGreen),
             "crt-amber" => Some(ThemeId::CrtAmber),
@@ -308,7 +317,7 @@ impl ThemeId {
             // to the retired `modern` pool names.
             "midnight-ink" => Some(ThemeId::Nebula),
             "graphite" => Some(ThemeId::PaperDark),
-            "moss-blotter" => Some(ThemeId::SepiaDark),
+            "moss-blotter" => Some(ThemeId::PaperDark),
             "coldpress-gray" => Some(ThemeId::PaperLight),
             "salmon-broadsheet" => Some(ThemeId::PaperLight),
             "ivory-ledger" => Some(ThemeId::PaperLight),
@@ -321,8 +330,6 @@ impl ThemeId {
             "meadow" => Some(ThemeId::Blossom),
             "cirrus" => Some(ThemeId::Blossom),
             "nebula" => Some(ThemeId::Nebula),
-            "harbor" => Some(ThemeId::Harbor),
-            "harbour" => Some(ThemeId::Harbor),
             "fern" => Some(ThemeId::Fern),
             "crt-violet" => Some(ThemeId::CrtViolet),
             "crt-purple" => Some(ThemeId::CrtViolet),
@@ -342,13 +349,11 @@ impl ThemeId {
         match self {
             ThemeId::PaperDark => &PAPER_DARK,
             ThemeId::PaperLight => &PAPER_LIGHT,
-            ThemeId::SepiaDark => &SEPIA_DARK,
             ThemeId::SepiaLight => &SEPIA_LIGHT,
             ThemeId::CrtGreen => &CRT_GREEN,
             ThemeId::CrtAmber => &CRT_AMBER,
             ThemeId::CrtBlue => &CRT_BLUE,
             ThemeId::Nebula => &NEBULA,
-            ThemeId::Harbor => &HARBOR,
             ThemeId::Fern => &FERN,
             ThemeId::CrtViolet => &CRT_VIOLET,
             ThemeId::Blossom => &BLOSSOM,
@@ -357,42 +362,17 @@ impl ThemeId {
         }
     }
 
+    /// Its place in [`ALL_THEMES`], for the lock-free [`CURRENT`]. The first
+    /// entry is the default, so a zeroed atomic is `PaperDark`.
     fn as_u8(self) -> u8 {
-        match self {
-            ThemeId::PaperDark => 0,
-            ThemeId::PaperLight => 1,
-            ThemeId::SepiaDark => 2,
-            ThemeId::SepiaLight => 3,
-            ThemeId::Nebula => 4,
-            ThemeId::Blossom => 5,
-            ThemeId::CrtGreen => 6,
-            ThemeId::CrtAmber => 7,
-            ThemeId::CrtBlue => 8,
-            ThemeId::Harbor => 9,
-            ThemeId::Fern => 10,
-            ThemeId::CrtViolet => 11,
-            ThemeId::GlassNight => 12,
-            ThemeId::GlassClear => 13,
-        }
+        ALL_THEMES.iter().position(|&t| t == self).unwrap_or(0) as u8
     }
 
     fn from_u8(v: u8) -> ThemeId {
-        match v {
-            1 => ThemeId::PaperLight,
-            2 => ThemeId::SepiaDark,
-            3 => ThemeId::SepiaLight,
-            4 => ThemeId::Nebula,
-            5 => ThemeId::Blossom,
-            6 => ThemeId::CrtGreen,
-            7 => ThemeId::CrtAmber,
-            8 => ThemeId::CrtBlue,
-            9 => ThemeId::Harbor,
-            10 => ThemeId::Fern,
-            11 => ThemeId::CrtViolet,
-            12 => ThemeId::GlassNight,
-            13 => ThemeId::GlassClear,
-            _ => ThemeId::PaperDark,
-        }
+        ALL_THEMES
+            .get(usize::from(v))
+            .copied()
+            .unwrap_or(ThemeId::PaperDark)
     }
 
     /// The next theme in [`ALL_THEMES`] order, wrapping — the `Ctrl+Shift+L` step.
@@ -531,27 +511,19 @@ impl RandomMode {
         }
     }
 
-    /// Whether `id` belongs to this mode's rotation pool. Every palette lands
-    /// in at most ONE of Dark/Light/Crt/Glass, decided by three questions in
-    /// order: is it a phosphor tube ([`ThemeId::is_crt`] — which the modern
-    /// family's bloom-only `CrtStyle` deliberately does not make it), is it
-    /// liquid glass (white-text glass is the `glass` look), and if neither, is its
-    /// page dark or light. So each pool is "every palette that looks like
-    /// this", modern glow and plain paper alike, and a rotation can never flip
-    /// the page from near-black to near-white. `Auto` serves its
-    /// per-appearance pairing ([`auto_side`]) — by default the dark or light
-    /// pool depending on [`auto_dark`], a pinned side being a one-palette
-    /// pool.
+    /// Whether `id` belongs to this mode's rotation pool: its
+    /// [`ThemeId::mode`], so every palette lands in exactly one of
+    /// Dark/Light/Crt/Glass and a rotation stays inside one look. `Auto`
+    /// serves its per-appearance pairing ([`auto_side`]) — by default the
+    /// dark or light pool depending on [`auto_dark`], a pinned side being a
+    /// one-palette pool.
     pub fn in_pool(self, id: ThemeId) -> bool {
         match self {
-            RandomMode::Dark => id.is_dark() && !id.is_crt() && !id.is_clear_glass(),
-            RandomMode::Light => !id.is_dark() && !id.is_crt(),
-            RandomMode::Crt => id.is_crt(),
-            RandomMode::Glass => id.is_clear_glass(),
             RandomMode::Auto => match auto_side() {
                 Selection::Mode(m) => m.in_pool(id),
                 Selection::Fixed(f) => id == f,
             },
+            mode => id.mode() == mode,
         }
     }
 }

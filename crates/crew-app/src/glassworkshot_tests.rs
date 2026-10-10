@@ -79,10 +79,13 @@ fn shell() -> Pane {
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn glass_work_shot() {
-    use crew_theme::ThemeId;
     let _a = crate::palette::test_guard();
     let _g = crate::app::theme_test_guard();
-    for id in [ThemeId::GlassClear, ThemeId::GlassNight] {
+    // Every see-through palette: every mode is glass (2026-10-09).
+    for id in crew_theme::ALL_THEMES
+        .into_iter()
+        .filter(|id| id.theme().liquid.is_some())
+    {
         let sheer = crate::tubesheer::sheer(1.0, id.theme());
         let prep = |app: &mut crate::app::CrewApp| {
             let smith = crate::chatshot_tests::live_pane();

@@ -151,8 +151,9 @@ fn random_pick_never_returns_current_and_is_deterministic() {
             assert_eq!(random_pick(current, seed, RandomMode::Dark), picked);
         }
     }
-    // Varying the seed actually varies the pick (not a constant function).
-    let current = ThemeId::PaperDark;
+    // Varying the seed actually varies the pick (not a constant function) —
+    // from outside the pool, since a two-palette pool's only other is fixed.
+    let current = ThemeId::GlassClear;
     let picks: Vec<ThemeId> = (0u64..20)
         .map(|s| random_pick(current, s, RandomMode::Dark))
         .collect();
@@ -332,14 +333,14 @@ fn auto_pools_pair_each_appearance_with_its_configured_side() {
     apply_selection(Selection::Mode(RandomMode::Auto), 8);
     assert!(!current_id().is_dark() && !current_id().is_crt());
     // A pinned side is a one-palette pool: always exactly that palette.
-    set_auto_pools(Some(Selection::Fixed(ThemeId::SepiaDark)), None);
+    set_auto_pools(Some(Selection::Fixed(ThemeId::Nebula)), None);
     set_os_dark(true);
     apply_selection(Selection::Mode(RandomMode::Auto), 9);
-    assert_eq!(current_id(), ThemeId::SepiaDark);
+    assert_eq!(current_id(), ThemeId::Nebula);
     // ...and a rotation tick can't drift off a pinned side.
     assert_eq!(
         random_pick(current_id(), 12345, RandomMode::Auto),
-        ThemeId::SepiaDark
+        ThemeId::Nebula
     );
     // `auto` as its own side is dropped: default pool, no recursion.
     set_auto_pools(Some(Selection::Mode(RandomMode::Auto)), None);
@@ -393,16 +394,14 @@ fn no_two_palettes_are_near_duplicates() {
 #[test]
 fn every_pool_survives_the_cut() {
     let count = |f: fn(ThemeId) -> bool| ALL_THEMES.iter().filter(|id| f(**id)).count();
-    let dark = count(|id: ThemeId| id.theme().dark && !id.is_crt() && !id.is_clear_glass());
-    let light = count(|id: ThemeId| !id.theme().dark);
-    let crt = count(|id: ThemeId| id.is_crt());
-    let glass = count(|id: ThemeId| id.is_clear_glass());
-    // The night glass (2026-10-07) sat with the dark pages and the light
-    // glass (2026-10-08) was `glass`; since 2026-10-09 `glass` is the white-
-    // text pair (`glass-clear`, `glass-night`), which the light pair joined.
+    let dark = count(|id: ThemeId| id.mode() == RandomMode::Dark);
+    let light = count(|id: ThemeId| id.mode() == RandomMode::Light);
+    let crt = count(|id: ThemeId| id.mode() == RandomMode::Crt);
+    let glass = count(|id: ThemeId| id.mode() == RandomMode::Glass);
+    // Two palettes a mode since every mode went see-through (2026-10-09).
     assert_eq!(
         (dark, light, crt, glass),
-        (4, 4, 4, 2),
+        (2, 4, 4, 2),
         "pools are dark {dark}, light {light}, crt {crt}, glass {glass} — \
          `auto` needs both appearances and the tubes and the glass are their \
          own rotations"
@@ -414,10 +413,10 @@ fn every_pool_survives_the_cut() {
 /// every one of their names still resolves.
 #[test]
 fn every_retired_theme_name_still_resolves() {
-    const RETIRED: [(&str, ThemeId); 16] = [
+    const RETIRED: [(&str, ThemeId); 18] = [
         ("midnight-ink", ThemeId::Nebula),
         ("graphite", ThemeId::PaperDark),
-        ("moss-blotter", ThemeId::SepiaDark),
+        ("moss-blotter", ThemeId::PaperDark),
         ("coldpress-gray", ThemeId::PaperLight),
         ("salmon-broadsheet", ThemeId::PaperLight),
         ("ivory-ledger", ThemeId::PaperLight),
@@ -431,6 +430,8 @@ fn every_retired_theme_name_still_resolves() {
         ("cirrus", ThemeId::Blossom),
         ("glass-sky", ThemeId::GlassClear),
         ("glass-dawn", ThemeId::GlassClear),
+        ("sepia-dark", ThemeId::PaperDark),
+        ("harbor", ThemeId::PaperDark),
     ];
     for (name, want) in RETIRED {
         assert_eq!(
@@ -1058,31 +1059,15 @@ fn every_palette_lands_in_exactly_one_of_the_four_pools() {
         let n = pools.iter().filter(|m| m.in_pool(id)).count();
         assert_eq!(n, 1, "{} is in {n} pools", id.as_str());
     }
-    // Every non-tube palette rotates with the paper ones of its own appearance…
-    // (the filter used to be `modern.is_some()`, which meant "not a tube" only
-    // while gradients were a two-theme family; tubes have one now too).
-    for id in ALL_THEMES
-        .into_iter()
-        .filter(|id| id.theme().modern.is_some() && !id.is_crt())
-    {
-        let want = if id.is_clear_glass() {
-            RandomMode::Glass
-        } else if id.is_dark() {
-            RandomMode::Dark
-        } else {
-            RandomMode::Light
-        };
+    // …the one its `mode` names, and the tubes and only the tubes rotate as
+    // `crt`.
+    for id in ALL_THEMES {
         assert!(
-            want.in_pool(id),
-            "{} must rotate inside {}",
-            id.as_str(),
-            want.as_str()
-        );
-        assert!(
-            !RandomMode::Crt.in_pool(id),
-            "{} is not a tube",
+            id.mode().in_pool(id),
+            "{} outside its own pool",
             id.as_str()
         );
+        assert_eq!(id.is_crt(), id.mode() == RandomMode::Crt, "{}", id.as_str());
     }
     // …and each pool is still wide enough for `random_pick`'s never-empty
     // contract: it filters out the current theme before picking, so a pool

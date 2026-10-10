@@ -4030,15 +4030,14 @@ palette by name**, under a heading — they have always parsed, and not offering
 them meant you had to know the name of the one you wanted, which is the
 opposite of what a picker is for.
 
-- **`paper-dark`** (default dark-pool member) — a high-contrast "newspaper" look: a near-black
-  page (`#0c0805`) with near-white ink (`#ececec`) and grey rules. Terminal
-  output keeps muted-but-readable ANSI colours so error/diff cues survive.
+- **`paper-dark`** (default dark-pool member) — since 2026-10-09 see-through
+  glass like `glass`, with a deeper warm charcoal smoke (a pane hides about
+  70% of the desktop, the clear glass 60%) and white words. **`nebula`** is
+  its violet twin. Terminal output keeps muted-but-readable ANSI colours so
+  error/diff cues survive.
 - **`paper-light`** — a warm off-white page (`#f4f1ea`) with soft dark ink and
   ink-toned ANSI colours (sage, brick, faded indigo). No pure black or white
   anywhere; every surface reads as the same sheet of paper.
-- **`harbor`** — a deep blue-slate page under an azure light, its gradient
-  running azure into teal. The cool end of the dark pool, where `paper-dark` is
-  neutral and `sepia-dark` is warm.
 - **`fern`** — a faint mint page under a deep green-teal light; the only light
   palette whose accent is green, so it cannot be mistaken for the two warm ones
   at a glance.
@@ -4059,7 +4058,8 @@ opposite of what a picker is for.
   like the other tubes, and it is the only one of the four whose phosphor
   leaves room for a warm pink alarm — the other three cannot tell their bell
   apart from their status by hue at all.
-- **`sepia-dark`** — dark sepia paper with warm cream ink.
+- **`sepia-dark`** and **`harbor`** were folded into `paper-dark` when `dark`
+  went see-through (two palettes a mode); their names load it.
 - **`sepia-light`** — an aged-newsprint cream page with dark sepia ink.
 - **`midnight-ink`** — a warm slate-charcoal page with cool off-white ink.
 - **`graphite`** — a soft charcoal page; the gentlest of the darks.
