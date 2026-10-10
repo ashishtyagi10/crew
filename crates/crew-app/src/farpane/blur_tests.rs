@@ -90,3 +90,20 @@ fn the_tab_is_words_and_the_bar_is_white_on_the_glass() {
         );
     }
 }
+
+/// The pane draws its panels a column in from its left rule, as a chat
+/// keeps its text: from column 0 the frames and `crew $` stood half a cell
+/// off the pane's stroke (glass survey C#6). Nothing is lost on the right.
+#[test]
+fn the_panels_keep_a_column_of_air_from_the_pane_rule() {
+    let _g = crate::app::theme_test_guard();
+    let p = pane();
+    let cells = p.cells_in(80, 24, true);
+    assert!(cells.iter().all(|c| c.col >= 1), "column 0 stays bare");
+    let corner = cells.iter().find(|c| c.row == 0 && c.c == '\u{256d}');
+    assert_eq!(corner.map(|c| c.col), Some(1), "the left panel's ╭");
+    assert!(
+        cells.iter().any(|c| c.col == 79 && c.c == '\u{2502}'),
+        "the right panel's frame still ends on the last column"
+    );
+}
