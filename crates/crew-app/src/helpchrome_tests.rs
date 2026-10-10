@@ -81,10 +81,11 @@ fn the_global_keys_have_a_ruled_heading() {
     let (w, h) = size();
     let cells = help_cells(w, h, 0, "", None);
     let first = row(&cells, 1);
-    assert!(first.starts_with("\u{2502}everywhere"), "{first:?}");
+    // A cell of air (the filler) between the frame and the words, each side.
+    assert!(first.starts_with("\u{2502}\u{2588}everywhere"), "{first:?}");
     assert!(
-        first.ends_with("\u{2500}\u{2500}\u{2500}\u{2502}"),
-        "ruled to the edge: {first:?}"
+        first.ends_with("\u{2500}\u{2500}\u{2588}\u{2502}"),
+        "ruled to the air: {first:?}"
     );
 }
 

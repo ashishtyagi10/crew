@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.53
+
+**The keys panel's rows have a cell of space from its frame.** `/keys`
+drew its list one column in from the panel's edge. The rounded frame
+sits in the middle of that column, so each row's first and last letters
+ended up half a column from the stroke. A row ending "capital opens it"
+nearly touched it. Every pane keeps a full column of space inside its
+frame, and the keys panel now does too, on both sides. The panel is
+two columns wider so its descriptions keep their width.
+- **Test:** the first heading row reads frame, a blank column, the
+  heading, its rule, a blank column, frame.
+
 ## 0.26.52
 
 **CRT is a phosphor tube in see-through glass.** The `crt` rotation now
