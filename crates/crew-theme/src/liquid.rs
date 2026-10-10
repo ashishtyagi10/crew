@@ -44,6 +44,18 @@ impl LiquidStyle {
         self.body + self.window * (1.0 - self.body)
     }
 
+    /// How much of what is under it a cell's own smoke hides — a code
+    /// field, an inline chip, a quiet button — drawn as a second sheet of
+    /// the pane's glass, as thick as the pane's two: `1 − (1 − pane)²`. At
+    /// the pane's cover alone a white desktop lifted the code field until a
+    /// light palette's comments read 2.8:1 on it and its ladder (comment,
+    /// code, prose) no longer fitted between field and ink (glass survey
+    /// D-H1).
+    pub fn cell_cover(self) -> f32 {
+        let see = 1.0 - self.pane_cover();
+        1.0 - see * see
+    }
+
     /// How much of the desktop is hidden behind a run of text, where the
     /// text shadow (`shade`, the theme's `CrtStyle::shade`) dims some of what
     /// the pane lets through: the words' own ground, which is what their
