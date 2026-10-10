@@ -211,6 +211,41 @@ fn overlay_pane_gets_an_opaque_page_bg_backdrop() {
     );
 }
 
+/// A framed overlay's backdrop spans its FRAME, stroke to stroke, not its
+/// rect: out to the rect it stood half a cell past the line on every side
+/// and a margin column more on the right — a dark rim round the white
+/// frame (glass survey C#4).
+#[test]
+fn a_framed_overlay_is_backed_to_its_stroke() {
+    let mut fs = crate::embedfont::font_system();
+    // 10×4 cells of frame in an 11-column scene (a column to spare).
+    let mut cells = Vec::new();
+    for col in 0..10u16 {
+        for row in 0..4u16 {
+            let c = match (col, row) {
+                (0, 0) => '\u{256d}',
+                (9, 0) => '\u{256e}',
+                (0, 3) => '\u{2570}',
+                (9, 3) => '\u{256f}',
+                (0 | 9, _) => '\u{2502}',
+                (_, 0 | 3) => '\u{2500}',
+                _ => continue,
+            };
+            cells.push(cell(col, row, c, default_bg()));
+        }
+    }
+    let p = PaneScene {
+        w: 88.0,
+        h: 64.0,
+        ..pane(cells, false, true)
+    };
+    let (quads, _b, _s, _bd, _c) = build(&[p], &mut fs, true, no_glass());
+    let q = &quads[0];
+    let (ix, iy) = (stroke_centre(8.0, 16.0), stroke_centre(16.0, 16.0));
+    assert_eq!((q.x, q.y), (ix, iy), "from the first stroke");
+    assert_eq!((q.w, q.h), (9.0 * 8.0, 3.0 * 16.0), "to the last");
+}
+
 #[test]
 fn focused_border_is_brighter_than_unfocused() {
     let mut fs = crate::embedfont::font_system();

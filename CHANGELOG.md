@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.63
+
+**Pop-ups and toasts end at their frame, with no dark rim round them.**
+The command palette, the composer's pickers, `/keys` and the toasts each
+sat on a solid dark card that reached past their white frame: half a cell
+on every side, and a whole column more to the right of a palette. On the
+glass this looked like a card set off-centre inside a bigger black one.
+The dark card now stops at the frame's line and bends with its corners.
+A pop-up casts its own soft shadow, which parts it from the text it
+stands over. That column of margin is gone.
+- **Test:** a framed pop-up's backing runs from its frame's first line to
+  its last. A pop-up's scene is exactly its card and casts a shadow. The
+  test fails without the fix.
+
 ## 0.26.62
 
 **A shell's text keeps the same air from its frame as a chat's.**

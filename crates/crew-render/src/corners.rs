@@ -149,6 +149,17 @@ fn lent(r: f32, own: f32, cell: f32) -> u16 {
     ((r - own) / cell).ceil().max(1.0) as u16
 }
 
+/// The cells the rounded frame(s) among `corners` span, `(col0, row0, col1,
+/// row1)` corner to corner inclusive — `None` without a full box (fewer
+/// than two columns or rows of corners).
+pub(crate) fn frame_box(corners: &[Corner]) -> Option<(u16, u16, u16, u16)> {
+    let c0 = corners.iter().map(|c| c.col).min()?;
+    let c1 = corners.iter().map(|c| c.col).max()?;
+    let r0 = corners.iter().map(|c| c.row).min()?;
+    let r1 = corners.iter().map(|c| c.row).max()?;
+    (c1 > c0 && r1 > r0).then_some((c0, r0, c1, r1))
+}
+
 /// The corners of `cells` that can round at [`radius`], in cell order.
 pub(crate) fn find(cells: &[CellView], cell_w: f32, cell_h: f32) -> Vec<Corner> {
     if !cells.iter().any(|c| arms(c.c).is_some()) {

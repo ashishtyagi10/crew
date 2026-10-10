@@ -51,7 +51,7 @@ fn shot(name: &str, w: u32, text: &str) -> Option<Vec<u8>> {
                 cells: pop.cells,
                 x: ib_x,
                 y: (ib_y - mh - crate::app::gap()).max(0.0),
-                w: crate::popupplace::scene_w(pop.cols, cols, cw),
+                w: crate::popupplace::scene_w(pop.cols, cw),
                 h: mh,
                 focused: false,
                 bordered: false,

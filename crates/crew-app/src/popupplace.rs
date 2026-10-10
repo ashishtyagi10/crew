@@ -47,39 +47,37 @@ pub(crate) fn above_composer(pane: &ChatPane, r: Rect, cw: f32, ch: f32, mh: f32
     (composer_top - mh).max(r.y)
 }
 
-/// Columns of bare page kept to the RIGHT of a card, inside its scene: the
-/// overlay pass backs the whole scene with page, so this is a margin
-/// between the frame and whatever transcript text it stands over. Without
-/// it the border touched the next word.
-pub(crate) const MARGIN_COLS: u16 = 1;
-
-/// A pop-up scene's width in px for a card `cols` wide: the card and its
-/// margin, never past the pane's `pane_cols`.
-pub(crate) fn scene_w(cols: u16, pane_cols: u16, cw: f32) -> f32 {
-    f32::from((cols + MARGIN_COLS).min(pane_cols.max(cols))) * cw
+/// A pop-up scene's width in px for a card `cols` wide: the card's own.
+/// It kept a column of page to the card's right (`MARGIN_COLS`, so the
+/// frame didn't touch the transcript's next word) until the backdrop came
+/// in to the frame's stroke (glass survey C#4): the margin was the widest
+/// side of a dark rim round the card. The card's shadow parts it from the
+/// words beside it now.
+pub(crate) fn scene_w(cols: u16, cw: f32) -> f32 {
+    f32::from(cols) * cw
 }
 
 /// The pop-up as an overlay scene on pane `r`: standing on the composer,
 /// flush with the pane's left edge (the composer's own left border), as
-/// wide as its cells plus [`MARGIN_COLS`] of page — and, on its first
-/// frames, still rising into place (`popuprise`, read at `now`). Overlay,
-/// so the overlay pass backs it with an opaque page and a sheer window
-/// holds it solid.
+/// wide as its cells — and, on its first frames, still rising into place
+/// (`popuprise`, read at `now`). Overlay, so the overlay pass backs it with
+/// an opaque page and a sheer window holds it solid; floating, so it casts
+/// its shadow ([`FLOAT`]).
 pub(crate) fn scene(pane: &ChatPane, r: Rect, cw: f32, ch: f32, p: Popup, now: u64) -> PaneScene {
     let h = f32::from(p.rows) * ch;
-    let pane_cols = (r.w / cw).floor() as u16;
     let drop = pane.popup_rise.drop_rows(now) * ch;
     PaneScene {
         cells: p.cells,
         x: r.x,
         y: above_composer(pane, r, cw, ch, h) + drop,
-        w: scene_w(p.cols, pane_cols, cw),
+        w: scene_w(p.cols, cw),
         h,
         focused: false,
         bordered: false,
-        glass: false,
+        // Exactly its frame, so it casts its own shadow.
+        glass: true,
         scan: -1.0,
-        lift: 0.0,
+        lift: FLOAT,
         glint: -1.0,
         stretch: false,
         overlay: true,
@@ -87,42 +85,10 @@ pub(crate) fn scene(pane: &ChatPane, r: Rect, cw: f32, ch: f32, p: Popup, now: u
     }
 }
 
-/// The pop-up as [`scene`] places it, with the shadow it casts laid first.
-pub(crate) fn floating(
-    pane: &ChatPane,
-    r: Rect,
-    cw: f32,
-    ch: f32,
-    p: Popup,
-    now: u64,
-) -> [PaneScene; 2] {
-    let fw = f32::from(p.cols) * cw;
-    let card = scene(pane, r, cw, ch, p, now);
-    [float_shadow(card.x, card.y, fw, card.h), card]
-}
-
 /// How high a floating card rides above the page: the pop-ups, `/keys` and
 /// the toasts. Twice the focused pane's lift, so what floats over the panes
 /// visibly floats over the one you are in too.
 pub(crate) const FLOAT: f32 = 2.0;
-
-/// The shadow a floating card casts — an empty overlay scene carrying only
-/// the glass, laid under the card itself. Its own scene because a pop-up's
-/// scene is wider than its frame (a margin of page, see [`scene_w`]), and the
-/// shadow must hug the frame. `w`/`h` are the FRAME's extent in px.
-pub(crate) fn float_shadow(x: f32, y: f32, w: f32, h: f32) -> PaneScene {
-    PaneScene {
-        x,
-        y,
-        w,
-        h,
-        glass: true,
-        lift: FLOAT,
-        stretch: false,
-        overlay: true,
-        ..Default::default()
-    }
-}
 
 #[cfg(test)]
 #[path = "popupplace_tests.rs"]
