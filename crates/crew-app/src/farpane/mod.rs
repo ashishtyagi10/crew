@@ -80,6 +80,9 @@ impl Panel {
     }
 }
 
+/// Columns of air between the pane's left rule and the panels.
+pub(crate) const GUTTER: u16 = 1;
+
 pub struct FarPane {
     pub(crate) left: Panel,
     pub(crate) right: Panel,
@@ -162,9 +165,17 @@ impl FarPane {
         render::render(self, cols, rows)
     }
 
-    /// [`Self::cells`] as the pane draws it: quiet when not `focused`.
+    /// [`Self::cells`] as the pane draws it: quiet when not `focused`, and
+    /// a column in from the pane's left rule. From column 0 the panels'
+    /// frames and the `crew $` line stood half a cell off the pane's stroke
+    /// while a chat beside it kept a cell and a half (glass survey C#6); the
+    /// right already keeps a cell, the frame's own column.
     pub fn cells_in(&self, cols: u16, rows: u16, focused: bool) -> Vec<CellView> {
-        render::render_in(self, cols, rows, focused)
+        let mut cells = render::render_in(self, cols.saturating_sub(GUTTER), rows, focused);
+        for c in &mut cells {
+            c.col += GUTTER;
+        }
+        cells
     }
 
     pub fn on_key(&mut self, key: &KeyEvent, alt: bool) -> Option<FarAction> {

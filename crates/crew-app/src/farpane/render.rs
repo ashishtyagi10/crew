@@ -21,8 +21,8 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
 }
 
 /// A pane that is not focused shows where it was, not that it is listening:
-/// no caret on its command line, and its cursor bar and path tab in the
-/// selection wash instead of the accent (the way a Mac's inactive window
+/// no caret on its command line, its cursor bar a frost of the glass and its
+/// path tab in ink instead of the accent (the way a Mac's inactive window
 /// greys its selection) — with two `/far` panes open both used to look live.
 pub(crate) fn render_in(p: &FarPane, cols: u16, rows: u16, focused: bool) -> Vec<CellView> {
     if cols < 16 || rows < 6 {

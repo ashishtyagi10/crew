@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.61
+
+**The file manager keeps the same air from its frame as a chat does.**
+`/far` drew from the pane's first column, so its panel frames, the
+`crew $` line and the F-key bar stood half a cell off the pane's left
+edge, while the chat or dashboard beside it kept a cell and a half. The
+panels now start a column in. The space on the left matches the space on
+the right, and the command line lines up with the text in the panes next
+to it.
+- **Test:** `/far` leaves its first column bare. Its left panel's corner
+  sits on the second column, and the right panel's frame still ends on
+  the last one. The test fails without the fix.
+
 ## 0.26.60
 
 **The file manager's tab and cursor bar no longer form one bright slab.**
