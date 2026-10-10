@@ -3,7 +3,6 @@
 //! with boxed inputs, checkboxes, a notify-patterns text area, Tab/wheel
 //! navigation, a type-to-search font-family dropdown, and Save (Cmd+S /
 //! Alt+S) / Cancel (Esc).
-mod capnote;
 mod cards;
 pub(crate) mod click;
 mod commit;
@@ -55,9 +54,6 @@ pub struct SettingsPane {
     pub(crate) nav_buf: String,
     /// Editable accent hex (e.g. `#00ffa0`); empty means "use the built-in".
     pub(crate) accent_buf: String,
-    /// Window opacity as a whole percentage (`35`–`100`), so the number the
-    /// user types is the number they see rather than a 0-1 fraction.
-    pub(crate) opacity_buf: String,
     /// `auto`'s light-hours window as typed, `HH:MM`. Normalised to
     /// zero-padded form on every refresh, so `7:5` reads back as `07:05`.
     pub(crate) light_from_buf: String,
@@ -86,7 +82,6 @@ impl SettingsPane {
         let size_buf = format!("{}", cfg.font_size as i32);
         let nav_buf = format!("{}", cfg.nav_width as i32);
         let accent_buf = cfg.accent.clone().unwrap_or_default();
-        let opacity_buf = format!("{}", (cfg.window_opacity * 100.0).round() as i32);
         let (light_from_buf, light_to_buf) = commit::light_bufs(&cfg);
         let minsecs_buf = format!("{}", cfg.notify_min_secs);
         let patterns_buf = cfg.notify_patterns.join("\n");
@@ -102,7 +97,6 @@ impl SettingsPane {
             size_buf,
             nav_buf,
             accent_buf,
-            opacity_buf,
             light_from_buf,
             light_to_buf,
             minsecs_buf,

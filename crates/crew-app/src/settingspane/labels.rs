@@ -39,7 +39,6 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::Gradient => "Gradient colour",
         // Kept short: this sits in a half-width box beside Nav width, and a
         // legend wider than its border is a legend the user reads truncated.
-        Field::WindowOpacity => "Opacity %",
         Field::Maximized => "Launch maximized",
         Field::Notify => "Notifications",
         // Commands AND agent turns since 0.25.32: "cmd done" undersold it.
@@ -134,7 +133,6 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
             format!("\u{2039} {} \u{203a}", p.draft.gradient_level().as_str()),
             false,
         ),
-        Field::WindowOpacity => (p.opacity_buf.clone(), true),
         Field::Maximized => (onoff(p.draft.maximized), false),
         Field::Notify => (onoff(p.draft.notify), false),
         Field::NotifyAgentDone => (onoff(p.draft.notify_agent_done), false),

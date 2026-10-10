@@ -99,16 +99,6 @@ pub(crate) fn default_glass() -> String {
     "medium".to_string()
 }
 
-/// Floor for [`CrewConfig::window_opacity`]. Mirrors the renderer's own clamp:
-/// a window dialled to invisible is a window the user cannot get back.
-pub const MIN_WINDOW_OPACITY: f32 = 0.35;
-
-pub(crate) fn default_window_opacity() -> f32 {
-    // Opaque. Window translucency is opt-in via Settings → CANVAS → Opacity % — a
-    // see-through terminal is a taste, not a default.
-    1.0
-}
-
 pub(crate) fn default_font_weight() -> u16 {
     // SemiBold. Heavier than the old Medium (500) base so body text reads
     // thicker and more substantial out of the box; /weight tunes it live.

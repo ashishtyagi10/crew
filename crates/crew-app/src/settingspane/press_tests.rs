@@ -128,7 +128,7 @@ fn a_click_follows_the_form_when_it_has_scrolled() {
     // The scroll is focus-driven, so a form scrolled to its foot must answer
     // clicks against what is ON SCREEN, not against the virtual rows.
     let mut p = pane();
-    let rows = 24; // short enough that the tail scrolls into view
+    let rows = 16; // short enough that the tail scrolls into view
     p.focus = FIELDS.iter().position(|f| *f == Field::Budget7d).unwrap();
     let lay = form::layout(COLS);
     let viewport = rows - 2;

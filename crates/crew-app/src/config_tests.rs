@@ -139,7 +139,6 @@ fn round_trip() {
         crt: Some(true),
         glass: "high".to_string(),
         motion: "full".to_string(),
-        window_opacity: 0.85,
         font_weight: 700,
         font_smooth: 120,
         font_gamma: 90,
@@ -255,9 +254,6 @@ fn a_fully_opaque_window_does_not_ask_to_be_transparent() {
     // title bar showed the desktop through it: the title bar is not part of
     // the frame crew draws, so "nothing crew draws leaves alpha below 1"
     // never covered it.
-    assert!(!super::wants_window_transparency(
-        super::default_window_opacity()
-    ));
     assert!(!super::wants_window_transparency(1.0));
 }
 
@@ -266,7 +262,7 @@ fn any_opacity_below_one_asks_to_be_transparent() {
     // The other direction matters just as much: gating this on the setting is
     // only correct if translucency still works when it is actually wanted.
     assert!(super::wants_window_transparency(0.99));
-    assert!(super::wants_window_transparency(super::MIN_WINDOW_OPACITY));
+    assert!(super::wants_window_transparency(0.25));
 }
 
 #[test]

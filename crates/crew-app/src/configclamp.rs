@@ -67,7 +67,6 @@ impl CrewConfig {
             gradient_poles: self.gradient_poles.filter(|s| !s.is_empty()),
             // A window that can be dialled to invisible is a window you cannot
             // find again; the floor keeps crew recoverable from any setting.
-            window_opacity: self.window_opacity.clamp(MIN_WINDOW_OPACITY, 1.0),
             font_weight: self.font_weight.clamp(300, 900),
             // Any u8 is a valid smoothing strength; 0 simply turns it off.
             font_smooth: self.font_smooth,

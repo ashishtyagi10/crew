@@ -1125,28 +1125,17 @@ longer aim at.
   under your text with 4-16% contrast headroom over the page it lifts — that
   is not headroom a colour picker gets to spend. You choose the colour; crew
   chooses how bright it is.
-- **`/opacity [off|subtle|medium|sheer|<35-100>]`** — how much of the desktop
-  shows through crew. The same knob as **Settings → CANVAS → Opacity %**, on
-  the input bar and applied live; the ladder's rungs are `off` (100%),
-  `subtle` (94%), `medium` (90%) and `sheer` (85%), and any percent down to
-  the **35% floor** works too (`/opacity 60`). A window that could be dialled
-  to nothing is a window you cannot find again, so the floor holds.
-
-  **The named steps are deliberately shy.** Translucency is a texture, not a
-  window into the wallpaper — past a tenth or so of desktop the canvas starts
-  competing with the work on it, and the ladder is where a first `/opacity`
-  lands. The aquarium look is still one typed number away.
-
-  **What goes sheer is the glass: the panes, the left nav and the input
-  bar**, at the one opacity you dialled. The window's alpha rides the page colour and text,
-  cell backgrounds and frames blend on top of it and stay solid — and what
-  shows through is **frosted, never raw**: macOS blurs the desktop behind the
-  window, so a sheer crew reads as frosted glass rather than a hole. The
-  **title bar is never see-through** (it is painted solid in the page
-  colour while the window is sheer), every **frame is brightened** — pushed
-  to a text-grade contrast against the page, the focused one further — so
-  cards stay distinct over the glass, and overlays are solidified outright:
-  the popup you are choosing from never has a wallpaper behind its text.
+- **The window is see-through on every theme.** What shows the desktop is
+  the glass: the panes, the left nav and the input bar. Text, cell
+  backgrounds and frames blend on top and stay solid — and what shows
+  through is **frosted, never raw**: macOS blurs the desktop behind the
+  window, so crew reads as frosted glass rather than a hole. Every **frame
+  is brightened** — pushed to a text-grade contrast over the glass, the
+  focused one further — and overlays are solid: the popup you are choosing
+  from never has the desktop behind its text. How much shows through is the
+  theme's: the `glass` and `light` panes hide about 60% of the desktop,
+  `dark` and `crt` about 70%. (An **Opacity %** setting once
+  dialled this; every theme's glass sat at or below its floor, so they went.)
 
 - **`/close others`** — closes every pane except the focused one (a quick "focus mode");
   a no-op when only one pane is open.
@@ -3814,8 +3803,8 @@ value.
   serves in each appearance) and **Auto day from** / **Auto day to** (when
   the clock calls it day), and **Accent (#hex)** (override the theme accent;
   clear to use the default).
-- **CANVAS** — **Glass** (←/→/Space cycle `off · low · medium · high`) beside
-  **Opacity %**, **Motion** (`off · subtle · full`), **Density**, **Line
+- **CANVAS** — **Glass** (←/→/Space cycle `off · low · medium · high`),
+  **Motion** (`off · subtle · full`), **Density**, **Line
   spacing**, **Contrast**, **Shape cues**, **Gradient colour** (`off · subtle
   · lively`), and the on/off switches **Card border marks**, **Reveal
   invisibles** and **Code diagnostics (LSP)**.
@@ -3826,9 +3815,8 @@ value.
 - **USAGE** — **5h budget (M)** and **7d budget (M)**: the token budgets, in
   millions, the footer's two rolling usage bars are drawn against.
 
-Number fields (**Font size**, **Opacity %**, **Nav width**, **Min
-secs**, the two budgets) step with **↑ / ↓** — one notch each (opacity 5%,
-nav width 10), **Shift** for ten — clamped to the same range a
+Number fields (**Font size**, **Nav width**, **Min secs**, the two
+budgets) step with **↑ / ↓** — one notch each (nav width 10), **Shift** for ten — clamped to the same range a
 typed value is. Typing a number still sets it exactly.
 
 Settings persist to `$XDG_CONFIG/crew/config.toml` and apply live on Save.
@@ -3924,21 +3912,14 @@ picker, the key prompt) stay opaque by design. This knob is not the **`glass`
 theme** — that is `/theme glass` (see [Themes](#themes)), the iPhone's liquid
 glass over your desktop; on it, this knob sets how deep the frost is.
 
-**Opacity %** (CANVAS) makes the **window itself** translucent, so your desktop
-shows through the page. Text, pane fills and selections stay solid — only the
-bare page goes sheer. `100` is opaque; the value floors at **35%**, because a
-window dialled any sheerer is one you can't find again. Works with the CRT
-post-process too — the tube shapes light, not transparency. A CRT theme is
-**always** sheer, at most 84% opaque whatever this says, title bar included:
-its window is a tinted faceplate over your desktop, never a black slab. The
-**`glass`** theme is sheerer still: it paints no wallpaper of its own, so
-your desktop is the background. The gaps between panes are 25% opaque. Each
-pane is a frosted slab that hides about half of what is behind it (night
-glass two thirds), as clear as it can be while text still reads over a black
-or a white desktop. The title bar is frosted like a pane, and so is a soft
-veil behind each pane's title, which hangs half outside its card. The desktop behind glass is blurred lightly enough to
-keep its shapes. A lower Opacity % still makes a CRT window sheerer; glass is
-already sheerer than the setting goes.
+Every theme's **window is itself translucent**: crew paints no wallpaper of
+its own, so your desktop is the background. The gaps between panes show
+most of it; each pane is a smoked slab that hides about 60% of what is
+behind it (70% on `dark` and `crt`), as clear as it can be while text still
+reads over a black or a white desktop. The title bar is frosted like a
+pane, and so is a soft veil behind each pane's title, which hangs half
+outside its card. The desktop behind the glass is blurred lightly enough to
+keep its shapes.
 
 ## `/view` — one command for the file viewer
 
@@ -3975,7 +3956,7 @@ subject then value.
 ```
 
 The subjects are `theme`, `font`, `weight`, `leading`, `density`, `motion`,
-`contrast`, `shapes`, `crt`, `gradient`, `opacity`, `smooth`,
+`contrast`, `shapes`, `crt`, `gradient`, `smooth`,
 `gamma` and `invisibles` — each one the command it used to be, with the same
 values, the same ladders and the same live application. The picker reads its
 values from that command's own table (`crate::lookcmd::canon`), so a subject
@@ -4027,7 +4008,7 @@ opposite of what a picker is for.
   into them; their names load `paper-light` and `blossom`.
 - **`glass-clear`** and **`glass-night`** — the `glass` rotation: the
   iPhone's liquid glass in its Clear look. There is no wallpaper: the window
-  is see-through and your desktop is the background (see **Opacity %**).
+  is see-through and your desktop is the background.
   Every pane is a slab of clear, lightly smoked glass over it (neutral in
   `glass-clear`, navy in `glass-night`) with a white specular rim, and every
   word on it is bright white. White reads there the way the iPhone makes it

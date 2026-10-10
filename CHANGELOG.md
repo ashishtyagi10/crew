@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.56
+
+**Opacity % is gone: the window's see-through-ness is the theme's.**
+Every theme is glass now, and each one sets how much of the desktop
+shows through. The Opacity % setting and `/opacity` could only make the
+window more opaque than that, and the setting's 35% floor sat at or
+above every theme's own value, so no value of it changed anything. Both
+are removed, and `opacity` is gone from `/look`. A config file with
+`window_opacity` in it loads as before, and the key is ignored. In
+Settings, the Canvas card is now Glass beside Motion, then Density,
+Line spacing, and Contrast beside Shape cues.
+- **Test:** every theme shows the desktop through its glass, and the
+  app's window opacity is always the active theme's.
+
 ## 0.26.55
 
 **The wallpaper machinery is gone.** Every theme is see-through glass

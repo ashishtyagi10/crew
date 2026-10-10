@@ -72,15 +72,9 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
 pub(super) fn canvas(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
     let (ix, iw) = inner(x, w);
     let mut cy = y + 1;
-    // Opacity beside Glass: both say how much of what is behind a card
-    // shows through it — Glass the page under the card, Opacity the desktop
-    // under the window. It lived in WINDOW, with the nav width and the
-    // maximize switch, which are about the window's shape, not its look.
-    cy += pair(rects, ix, iw, cy, Field::Glass, Field::WindowOpacity);
-    cy += pair(rects, ix, iw, cy, Field::Motion, Field::Density);
-    cy += pair(rects, ix, iw, cy, Field::Leading, Field::Contrast);
-    rects.push((Field::ShapeCues, Rect::new(ix, cy, iw, 3)));
-    cy += 3;
+    cy += pair(rects, ix, iw, cy, Field::Glass, Field::Motion);
+    cy += pair(rects, ix, iw, cy, Field::Density, Field::Leading);
+    cy += pair(rects, ix, iw, cy, Field::Contrast, Field::ShapeCues);
     // Full width: its legend is longer than a half-width border can carry,
     // and its values are words rather than numbers.
     rects.push((Field::Gradient, Rect::new(ix, cy, iw, 3)));

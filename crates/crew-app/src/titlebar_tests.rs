@@ -12,7 +12,7 @@ fn a_sheer_window_paints_its_title_bar_the_page_colour() {
         Some(([1, 2, 3], 1.0, true))
     );
     assert_eq!(
-        wanted(crate::config::MIN_WINDOW_OPACITY, (9, 9, 9), true, None),
+        wanted(0.25, (9, 9, 9), true, None),
         Some(([9, 9, 9], 1.0, true))
     );
 }
