@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.66
+
+**Focus wears the palette's accent on every glass theme.**
+On glass-night, the settings form's focused field, its legend, its caret
+and its section title were pure white, and Save was a grey block. Focus
+was pushed to stand well apart in brightness from the muted grey it
+replaces, which drove glass-night's pale cyan all the way to white. On
+the glass, focus is now told apart by colour and weight, as the docs
+already said. It is the accent's own hue, in bold. Save is a deep teal
+with a white label, like the badges on that theme. The one-colour CRT
+palettes keep their brightness step, since colour can't help there.
+- **Test:** on every non-CRT palette, the focus colour keeps the accent's
+  hue. Glass-night's came out (255, 255, 255) without the fix.
+
 ## 0.26.65
 
 **A pane's content sits in the middle of its frame.**

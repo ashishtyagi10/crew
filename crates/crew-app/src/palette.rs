@@ -99,16 +99,18 @@ const FOCUS_FLOOR: f32 = 1.6;
 /// mean "different brightness" there or it means nothing.
 const TUBE_FOCUS_FLOOR: f32 = 1.8;
 
-/// The accent as a FOCUS marker: [`accent`], pushed until it clears
-/// [`FOCUS_FLOOR`] against `text_muted` (a floor, not a restyle), then on
-/// glass walked to read over the frost (`accentink::focus_on_glass`).
-///
-/// Use this wherever focus is drawn by swapping muted ink for accent ink (the
-/// settings form's boxed inputs, its card legends and its buttons). Use plain
-/// [`accent`] where the accent is the subject rather than a state.
+/// The accent as a FOCUS marker, wherever focus swaps muted ink for accent
+/// ink (the settings form's inputs, legends, buttons). On glass it is the
+/// accent's words (`accentink`), told from muted by hue and weight: pushed
+/// 1.6:1 off muted first, glass-night's pale cyan came out white (glass
+/// survey D-M2). A one-hue tube has only lightness: [`TUBE_FOCUS_FLOOR`]
+/// off `text_muted`, then over the frost (`accentink::focus_on_glass`).
 pub fn focus_accent() -> (u8, u8, u8) {
     let t = crew_theme::theme();
     let tube = t.is_tube();
+    if crew_theme::glassborder::sheer() && !tube {
+        return crate::accentink::accent_ink();
+    }
     let floor = if tube { TUBE_FOCUS_FLOOR } else { FOCUS_FLOOR };
     let focus = crew_theme::readable::enforced(accent(), t.text_muted, floor);
     crate::accentink::focus_on_glass(focus)

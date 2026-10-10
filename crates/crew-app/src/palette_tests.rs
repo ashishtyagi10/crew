@@ -107,6 +107,33 @@ fn the_focus_accent_can_be_told_from_the_ink_it_replaces() {
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
 }
 
+/// On see-through glass focus is the accent's own hue, in bold: pushed
+/// 1.6:1 off `text_muted` first, glass-night's pale cyan walked to white —
+/// a white focused field and caret, a grey Save (glass survey D-M2). A tube
+/// keeps its lightness floor (above).
+#[test]
+fn on_glass_focus_keeps_the_accents_hue() {
+    let _a = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
+    crew_theme::glassborder::set_sheer(true);
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        crate::palette::set_accent(crew_theme::theme().accent_default);
+        if crew_theme::theme().is_tube() {
+            continue;
+        }
+        let chroma = |c| crew_theme::oklch::from_srgb(c).c;
+        let (focus, accent) = (super::focus_accent(), super::accent());
+        assert!(
+            chroma(focus) >= 0.6 * chroma(accent),
+            "{}: focus {focus:?} lost the accent {accent:?}'s hue",
+            id.as_str(),
+        );
+    }
+    crew_theme::glassborder::set_sheer(false);
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+}
+
 /// A key reads apart from its label: on paper by hue (the accent beside
 /// ink), on a tube — one phosphor, where those two measured 1.02-1.13:1 —
 /// by weight and brightness: a bold key over a label stepped back to muted.
