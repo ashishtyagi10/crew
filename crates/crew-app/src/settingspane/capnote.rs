@@ -117,8 +117,6 @@ mod tests {
             None,
             "a lower setting wins"
         );
-        crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
-        assert_eq!(note(&pane(1.0), Field::WindowOpacity), None);
     }
 
     /// Grain, Paper texture and Drifting background say so on a theme that

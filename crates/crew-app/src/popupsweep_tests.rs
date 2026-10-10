@@ -126,7 +126,6 @@ fn popup_shot_themes_and_tiles() {
     let model = |c| crate::cmdmenu::popup(MODELS, &models, 1, c);
     for (name, id) in [
         ("popup-model-crt-green", crew_theme::ThemeId::CrtGreen),
-        ("popup-model-sepia", crew_theme::ThemeId::SepiaLight),
         ("popup-model-nebula", crew_theme::ThemeId::Nebula),
     ] {
         crew_theme::set_theme(id);

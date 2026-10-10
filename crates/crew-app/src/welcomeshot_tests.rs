@@ -82,7 +82,6 @@ fn welcome_shot_lit_card() {
     let (w, h) = (1100u32, 760u32);
     for (name, id) in [
         ("welcome-lit-paper", crew_theme::ThemeId::PaperLight),
-        ("welcome-lit-sepia", crew_theme::ThemeId::SepiaLight),
         ("welcome-lit-blossom", crew_theme::ThemeId::Blossom),
     ] {
         crew_theme::set_theme(id);

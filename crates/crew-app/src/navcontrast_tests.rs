@@ -140,7 +140,6 @@ fn high_contrast_raises_the_navs_floor_too() {
     crew_theme::contrast::set_high_contrast(true);
     let floor = crew_theme::readable::MARK_FLOOR;
     let mut bad: Vec<String> = Vec::new();
-    let mut lifted = 0;
     for id in crew_theme::ALL_THEMES {
         crew_theme::set_theme(id);
         crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
@@ -154,9 +153,6 @@ fn high_contrast_raises_the_navs_floor_too() {
                 "{}: high contrast LOWERED it ({hi:.2} < {normal:.2})",
                 id.as_str()
             ));
-        }
-        if hi > normal + 0.5 {
-            lifted += 1;
         }
         let (sp, log, panes) = fixture();
         for c in sp
@@ -173,7 +169,7 @@ fn high_contrast_raises_the_navs_floor_too() {
     crew_theme::contrast::set_high_contrast(false);
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
     assert!(bad.is_empty(), "{}", bad.join("\n  "));
-    // …and the switch actually moved something, on the pages where crew green
-    // needed the help. Otherwise this test agrees with nothing.
-    assert!(lifted > 0, "high contrast changed no theme's accent");
+    // (It used to also demand that the switch lifted SOME accent: crew green
+    // needed the help only on light pages, and none is left since every mode
+    // went to dark glass, 2026-10-09.)
 }

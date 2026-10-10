@@ -42,11 +42,11 @@ fn card_has_rounded_border_and_legend() {
 #[test]
 fn legend_wears_the_pane_signature_hue() {
     let _g = crate::app::theme_test_guard();
-    // Off glass, where a legend is its hue as is (glass floors it).
-    crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
-    // Focused: the title glyph on the top border takes the title-derived hue
-    // (same hash the roster uses), so a pane and its roster row match.
-    let hue = crate::chatroster::agent_color("shell");
+    // Focused: the title-derived hue (the roster's hash), so a pane and its
+    // roster row match — floored on glass to read over any desktop.
+    let t = crew_theme::theme();
+    let shell = crate::chatroster::agent_color("shell");
+    let hue = crew_theme::glasslegend::legible(t, shell, 10.0); // FOCUSED_LABEL_FLOOR
     assert!(
         pane_card(38, 10, &bar(true))
             .iter()
@@ -54,7 +54,8 @@ fn legend_wears_the_pane_signature_hue() {
         "focused legend should be the pane's signature hue"
     );
     // Unfocused: the same hue, dimmed toward legend_off (still identifiable).
-    let dim = crate::anim::lerp_rgb(hue, crew_theme::theme().legend_off, 0.55);
+    let dim = crate::anim::lerp_rgb(shell, t.legend_off, 0.55);
+    let dim = crew_theme::glasslegend::legible(t, dim, 7.0); // LABEL_FLOOR
     assert!(
         pane_card(38, 10, &bar(false))
             .iter()

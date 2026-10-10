@@ -144,7 +144,9 @@ type Band = (&'static str, fn(&crate::Theme) -> (u8, u8, u8), f32);
 /// per-appearance and why `accent_default` gets its own.
 const BANDS: [Band; 5] = [
     ("status_fg", |t| t.status_fg, 1.8),
-    ("bell", |t| t.bell, 1.8),
+    // Every non-tube page is smoked glass now (2026-10-09), one appearance
+    // from `dark`'s deep smoke (12.3) to `light`'s warm one (6.6).
+    ("bell", |t| t.bell, 1.9),
     ("broadcast", |t| t.broadcast, 1.8),
     ("activity", |t| t.activity, 1.8),
     // Monochrome is `paper-dark`'s identity: its near-white accent measures
@@ -171,7 +173,7 @@ fn pools() -> [(&'static str, Vec<ThemeId>); 3] {
 /// measuring it, drifting until someone noticed by eye.
 #[test]
 fn a_signal_role_holds_its_band_inside_an_appearance() {
-    for (pool, ids) in pools() {
+    for (pool, ids) in pools().into_iter().filter(|(_, ids)| !ids.is_empty()) {
         for (role, get, bound) in BANDS {
             let mut v: Vec<(f32, &str)> = ids
                 .iter()
@@ -207,6 +209,7 @@ fn every_band_is_close_enough_to_the_palettes_to_bite() {
     for (role, get, bound) in BANDS {
         let reach = pools()
             .iter()
+            .filter(|(_, ids)| !ids.is_empty())
             .map(|(_, ids)| {
                 let mut v: Vec<f32> = ids
                     .iter()

@@ -4035,12 +4035,12 @@ opposite of what a picker is for.
   70% of the desktop, the clear glass 60%) and white words. **`nebula`** is
   its violet twin. Terminal output keeps muted-but-readable ANSI colours so
   error/diff cues survive.
-- **`paper-light`** — a warm off-white page (`#f4f1ea`) with soft dark ink and
-  ink-toned ANSI colours (sage, brick, faded indigo). No pure black or white
-  anywhere; every surface reads as the same sheet of paper.
-- **`fern`** — a faint mint page under a deep green-teal light; the only light
-  palette whose accent is green, so it cannot be mistaken for the two warm ones
-  at a glance.
+- **`paper-light`** and **`blossom`** — the `light` rotation: since
+  2026-10-09 see-through glass with white words like the rest, as clear as
+  `glass` (white words over a white desktop need the smoke a clear pane
+  has), told apart by tint: a warm smoke with amber accents, and a
+  cherry-blossom smoke with pink ones. `sepia-light` and `fern` were folded
+  into them; their names load `paper-light` and `blossom`.
 - **`glass-clear`** and **`glass-night`** — the `glass` rotation: the
   iPhone's liquid glass in its Clear look. There is no wallpaper: the window
   is see-through and your desktop is the background (see **Opacity %**).
@@ -4060,7 +4060,6 @@ opposite of what a picker is for.
   apart from their status by hue at all.
 - **`sepia-dark`** and **`harbor`** were folded into `paper-dark` when `dark`
   went see-through (two palettes a mode); their names load it.
-- **`sepia-light`** — an aged-newsprint cream page with dark sepia ink.
 - **`midnight-ink`** — a warm slate-charcoal page with cool off-white ink.
 - **`graphite`** — a soft charcoal page; the gentlest of the darks.
 - **`moss-blotter`** — a deep moss-green desk blotter with warm paper-white

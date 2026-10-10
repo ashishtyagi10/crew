@@ -245,15 +245,15 @@ fn the_retired_modern_names_still_land_on_their_own_appearance() {
     app.set_theme_cmd("modern-light");
     assert_eq!(app.config.theme.as_deref(), Some("light"));
     assert!(
-        !crew_theme::current_id().is_dark(),
-        "modern-light must still open a LIGHT page, got {}",
+        crew_theme::current_id().mode() == crew_theme::RandomMode::Light,
+        "modern-light must still open a LIGHT palette, got {}",
         crew_theme::current_id().as_str()
     );
     app.set_theme_cmd("modern");
     assert_eq!(app.config.theme.as_deref(), Some("dark"));
     assert!(
-        crew_theme::current_id().is_dark(),
-        "modern must still open a DARK page, got {}",
+        crew_theme::current_id().mode() == crew_theme::RandomMode::Dark,
+        "modern must still open a DARK palette, got {}",
         crew_theme::current_id().as_str()
     );
     crew_theme::apply_selection(
@@ -273,18 +273,18 @@ fn the_dark_and_light_pools_rotate_the_modern_palettes_too() {
     // ticks have to start from there — counting up from zero is in the past
     // and `tick_random` (rightly) never fires.
     let base = crate::chattime::unix_now_ms();
-    for (name, want_dark) in [("dark", true), ("light", false)] {
+    use crew_theme::RandomMode::{Dark, Light};
+    for (name, want) in [("dark", Dark), ("light", Light)] {
         app.set_theme_cmd(name);
         let mut seen_modern = crew_theme::current_id().theme().modern.is_some();
         for tick in 1..=40u64 {
-            // A second past each 10-minute mark: the clock was stamped a hair
-            // after `base`, so landing exactly on it falls just short.
+            // A second past each 10-minute mark (stamped just after `base`).
             assert!(
                 crew_theme::tick_random(base + tick * (crew_theme::ROTATE_MS + 1_000)),
                 "the rotation clock never advanced"
             );
             let id = crew_theme::current_id();
-            assert_eq!(id.is_dark(), want_dark, "{name} rotated off its own side");
+            assert_eq!(id.mode(), want, "{name} rotated off its own side");
             assert!(!id.is_crt(), "{name} rotated onto a tube: {}", id.as_str());
             seen_modern |= id.theme().modern.is_some();
         }

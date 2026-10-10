@@ -806,11 +806,12 @@ accepts `accent = "#rrggbb"` to override Crew's accent; omit it (or give an
 invalid value) to use the active theme's default accent. It applies at launch —
 quit and reopen Crew to pick up edits made outside the `/settings` pane.
 
-**Themes.** Crew ships **twelve palettes** in five rotations. `dark` is
+**Themes.** Crew ships **ten palettes** in five rotations. `dark` is
 see-through glass like `glass`, a deeper smoke over your desktop with white
 words, in `paper-dark` (warm charcoal smoke) and `nebula` (violet smoke,
-orchid→rose accents); `light` rotates `paper-light`, `sepia-light`,
-`blossom` and `fern` (a faint mint page under a green-teal light); `crt`
+orchid→rose accents); `light` is see-through glass with white words too, as
+clear as `glass`, in `paper-light` (warm smoke, amber accents) and `blossom`
+(cherry-blossom smoke, pink accents); `crt`
 rotates the four phosphor tubes — `crt-green`, `crt-amber`, `crt-blue` and
 `crt-violet`, each one hue at six brightnesses on a near-black tube; `glass`
 is the iPhone's liquid glass in its Clear look — a see-through window with your

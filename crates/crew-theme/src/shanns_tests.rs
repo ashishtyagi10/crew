@@ -1,6 +1,7 @@
 //! The Shanns faces (the user's installs, 2026-09-27): Comic Shanns is a
-//! favourite in the spellings this Mac actually has and leads the Sepia
-//! family; Serious Shanns was asked out the next day and must stay out.
+//! favourite in the spellings this Mac actually has (it led the sepia pages
+//! until they folded, 2026-10-09); Serious Shanns was asked out the next day
+//! and must stay out.
 use crate::{font_prefs, is_favorite, typeface_key, ThemeId, ALL_THEMES, FONT_ALLOWLIST};
 
 #[test]
@@ -40,10 +41,6 @@ fn serious_shanns_is_out_of_every_list_in_every_spelling() {
 }
 
 #[test]
-fn sepia_leads_with_comic_shanns_and_paper_with_monolisa_again() {
-    assert_eq!(
-        &font_prefs(ThemeId::SepiaLight)[..2],
-        ["Comic Shanns Mono", "Comic Mono"]
-    );
+fn paper_leads_with_monolisa_again() {
     assert_eq!(font_prefs(ThemeId::PaperLight)[0], "MonoLisa");
 }

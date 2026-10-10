@@ -3,6 +3,16 @@ use super::*;
 /// Serialises tests that mutate the process-wide CURRENT.
 use crate::test_guard as guard;
 
+/// The `light` and `dark` rotations: every palette is see-through glass with
+/// white words since 2026-10-09, so a pool is its mode, not its page.
+fn light(id: ThemeId) -> bool {
+    id.mode() == RandomMode::Light
+}
+
+fn dark(id: ThemeId) -> bool {
+    id.mode() == RandomMode::Dark
+}
+
 #[test]
 fn default_is_paper_dark() {
     let _g = guard();
@@ -188,10 +198,10 @@ fn cycle_next_walks_every_mode_and_wraps() {
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
     assert_eq!(cycle_next(1), "dark");
     assert!(is_random());
-    assert!(current_id().is_dark() && !current_id().is_crt());
+    assert!(dark(current_id()));
     // ...then light...
     assert_eq!(cycle_next(2), "light");
-    assert!(!current_id().is_dark());
+    assert!(light(current_id()));
     // ...then crt...
     assert_eq!(cycle_next(3), "crt");
     assert!(current_id().is_crt());
@@ -201,10 +211,10 @@ fn cycle_next_walks_every_mode_and_wraps() {
     // ...then auto, whose pool follows the reported OS appearance...
     set_os_dark(true);
     assert_eq!(cycle_next(5), "auto");
-    assert!(current_id().is_dark() && !current_id().is_crt());
+    assert!(dark(current_id()));
     // ...and wraps back to dark — five stops, no more.
     assert_eq!(cycle_next(6), "dark");
-    assert!(current_id().is_dark() && !current_id().is_crt());
+    assert!(dark(current_id()));
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
 
@@ -219,12 +229,12 @@ fn auto_is_advertised_and_follows_the_os_appearance() {
     assert!(ALL_THEMES
         .into_iter()
         .filter(|id| RandomMode::Auto.in_pool(*id))
-        .all(|id| !id.is_dark() && !id.is_crt()));
+        .all(light));
     set_os_dark(true);
     assert!(ALL_THEMES
         .into_iter()
         .filter(|id| RandomMode::Auto.in_pool(*id))
-        .all(|id| id.is_dark() && !id.is_crt()));
+        .all(dark));
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
 
@@ -258,15 +268,15 @@ fn a_pinned_os_appearance_hands_auto_over_to_the_clock() {
     assert!(ALL_THEMES
         .into_iter()
         .filter(|id| RandomMode::Auto.in_pool(*id))
-        .all(|id| !id.is_dark() && !id.is_crt()));
+        .all(light));
     apply_selection(Selection::Mode(RandomMode::Auto), 11);
-    assert!(!current_id().is_dark() && !current_id().is_crt());
+    assert!(light(current_id()));
 
     // ...and after dark the same pinned OS agrees with the clock again.
     set_daylight(false);
     assert!(auto_dark());
     apply_selection(Selection::Mode(RandomMode::Auto), 12);
-    assert!(current_id().is_dark() && !current_id().is_crt());
+    assert!(dark(current_id()));
 
     // Symmetry: a Mac pinned to LIGHT goes dark at night. Once the OS stops
     // changing, the clock is the only thing left that can.
@@ -297,7 +307,7 @@ fn the_pinned_fallback_still_honours_the_configured_pairing() {
     set_daylight(true);
     apply_selection(Selection::Mode(RandomMode::Auto), 14);
     assert!(
-        !current_id().is_dark() && !current_id().is_crt(),
+        light(current_id()),
         "clock-day must serve the unpaired light pool, got {:?}",
         current_id()
     );
@@ -331,7 +341,7 @@ fn auto_pools_pair_each_appearance_with_its_configured_side() {
     // The unpaired light side keeps its built-in light pool.
     set_os_dark(false);
     apply_selection(Selection::Mode(RandomMode::Auto), 8);
-    assert!(!current_id().is_dark() && !current_id().is_crt());
+    assert!(light(current_id()));
     // A pinned side is a one-palette pool: always exactly that palette.
     set_auto_pools(Some(Selection::Fixed(ThemeId::Nebula)), None);
     set_os_dark(true);
@@ -345,7 +355,7 @@ fn auto_pools_pair_each_appearance_with_its_configured_side() {
     // `auto` as its own side is dropped: default pool, no recursion.
     set_auto_pools(Some(Selection::Mode(RandomMode::Auto)), None);
     apply_selection(Selection::Mode(RandomMode::Auto), 10);
-    assert!(current_id().is_dark() && !current_id().is_crt());
+    assert!(dark(current_id()));
     // Reset shared state for the other tests.
     set_auto_pools(None, None);
     set_os_dark(true);
@@ -401,7 +411,7 @@ fn every_pool_survives_the_cut() {
     // Two palettes a mode since every mode went see-through (2026-10-09).
     assert_eq!(
         (dark, light, crt, glass),
-        (2, 4, 4, 2),
+        (2, 2, 4, 2),
         "pools are dark {dark}, light {light}, crt {crt}, glass {glass} — \
          `auto` needs both appearances and the tubes and the glass are their \
          own rotations"
@@ -413,7 +423,7 @@ fn every_pool_survives_the_cut() {
 /// every one of their names still resolves.
 #[test]
 fn every_retired_theme_name_still_resolves() {
-    const RETIRED: [(&str, ThemeId); 18] = [
+    const RETIRED: [(&str, ThemeId); 20] = [
         ("midnight-ink", ThemeId::Nebula),
         ("graphite", ThemeId::PaperDark),
         ("moss-blotter", ThemeId::PaperDark),
@@ -432,6 +442,8 @@ fn every_retired_theme_name_still_resolves() {
         ("glass-dawn", ThemeId::GlassClear),
         ("sepia-dark", ThemeId::PaperDark),
         ("harbor", ThemeId::PaperDark),
+        ("sepia-light", ThemeId::PaperLight),
+        ("fern", ThemeId::Blossom),
     ];
     for (name, want) in RETIRED {
         assert_eq!(
@@ -863,50 +875,13 @@ fn modern_glow_is_clean_of_retro_knobs() {
     // dark/light pools leaves neither of them without glow. One twinned pair
     // survives the 24→9 cut — `nebula`/`blossom` — so one a side is the floor,
     // not a shortfall.
-    for (side, want_dark) in [("dark", true), ("light", false)] {
+    for (side, mode) in [("dark", RandomMode::Dark), ("light", RandomMode::Light)] {
         let n = ALL_THEMES
             .iter()
-            .filter(|id| {
-                let t = id.theme();
-                t.modern.is_some() && t.dark == want_dark
-            })
+            .filter(|id| id.theme().modern.is_some() && id.mode() == mode)
             .count();
         assert!(n >= 1, "the {side} pool inherited no modern palette");
     }
-}
-
-/// The light half is the same family with the lights on, and its poles have
-/// to be COLOUR on a white page, not the dark half's pastels: the ring, the
-/// wash and the lattice all draw in them, and a pale pole on near-white paper
-/// is an invisible one. 2.2 is the `border_focused` floor the ring already
-/// answers to.
-#[test]
-fn light_modern_poles_read_on_a_white_page() {
-    let mut seen = 0;
-    for id in ALL_THEMES {
-        let t = id.theme();
-        let Some(m) = t.modern.filter(|_| !t.dark) else {
-            continue;
-        };
-        seen += 1;
-        for (which, pole) in [("pole_a", m.pole_a), ("pole_b", m.pole_b)] {
-            let c = contrast_ratio(pole, t.page_bg);
-            assert!(
-                c >= 2.2,
-                "{}: {which} {pole:?} vs the page = {c:.2} (need >= 2.2)",
-                id.as_str()
-            );
-        }
-        // The near-white assertion that used to live here described BLOSSOM's
-        // page, not a rule about gradients: sepia-light's cream is a
-        // legitimate light page and the contrast check above is what actually
-        // protects readability.
-    }
-    assert_eq!(
-        seen, 4,
-        "every light palette carries a gradient now — blossom, paper-light, \
-         sepia-light, fern"
-    );
 }
 
 #[test]
@@ -1030,9 +1005,9 @@ fn random_pick_pools_are_pure() {
             // right pool — and the appearance split is what keeps a rotation
             // from flipping the page near-black↔near-white under you.
             let d = random_pick(current, seed, RandomMode::Dark);
-            assert!(d.is_dark() && !d.is_crt(), "dark pool: {}", d.as_str());
+            assert!(dark(d), "dark pool: {}", d.as_str());
             let l = random_pick(current, seed, RandomMode::Light);
-            assert!(!l.is_dark() && !l.is_crt(), "light pool: {}", l.as_str());
+            assert!(light(l), "light pool: {}", l.as_str());
             let c = random_pick(current, seed, RandomMode::Crt);
             assert!(c.is_crt(), "crt pool: {}", c.as_str());
         }
@@ -1090,12 +1065,9 @@ fn apply_selection_modes_pick_from_their_pool_immediately() {
     apply_selection(Selection::Mode(RandomMode::Light), 1_000);
     assert_eq!(mode(), Some(RandomMode::Light));
     assert!(is_random());
-    assert!(
-        !current_id().is_dark(),
-        "light mode must land on a light theme"
-    );
+    assert!(light(current_id()), "light mode must land on a light theme");
     apply_selection(Selection::Mode(RandomMode::Dark), 2_000);
-    assert!(current_id().is_dark());
+    assert!(dark(current_id()));
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 3_000);
     assert_eq!(mode(), None);
     assert!(!is_random());
@@ -1107,12 +1079,12 @@ fn auto_mode_follows_the_os_appearance() {
     let _g = guard();
     set_os_dark(true);
     apply_selection(Selection::Mode(RandomMode::Auto), 1_000);
-    assert!(current_id().is_dark(), "auto + OS dark → dark pool");
+    assert!(dark(current_id()), "auto + OS dark → dark pool");
     // OS flips to light: the NEXT tick (or re-apply) must land light.
     set_os_dark(false);
     ROTATED_MS.store(0, Ordering::Relaxed);
     assert!(tick_random(ROTATE_MS));
-    assert!(!current_id().is_dark(), "auto + OS light → light pool");
+    assert!(light(current_id()), "auto + OS light → light pool");
     set_os_dark(true);
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 2_000);
 }
@@ -1124,7 +1096,7 @@ fn tick_random_rotates_within_the_light_pool() {
     for i in 1..=4u64 {
         ROTATED_MS.store(0, Ordering::Relaxed);
         assert!(tick_random(i * ROTATE_MS));
-        assert!(!current_id().is_dark(), "tick {i} left the light pool");
+        assert!(light(current_id()), "tick {i} left the light pool");
     }
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }

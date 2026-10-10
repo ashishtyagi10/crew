@@ -206,7 +206,6 @@ fn input_shot_themes() {
     for (name, id) in [
         ("input-light", crew_theme::ThemeId::PaperLight),
         ("input-crt-green", crew_theme::ThemeId::CrtGreen),
-        ("input-sepia", crew_theme::ThemeId::SepiaLight),
     ] {
         crew_theme::set_theme(id);
         crate::palette::set_accent(crew_theme::theme().accent_default);
