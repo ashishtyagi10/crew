@@ -283,6 +283,7 @@ mod findsnip;
 mod focusmode;
 mod foldrows;
 mod fontcmd;
+mod fontfamily;
 #[cfg(test)]
 #[path = "fontpool_tests.rs"]
 mod fontpool_tests;

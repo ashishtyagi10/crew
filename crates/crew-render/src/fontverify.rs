@@ -74,6 +74,32 @@ pub(crate) fn snaps_to_cells(
     run.glyphs.iter().all(|g| (g.w - cell_w).abs() < 0.01)
 }
 
+/// The family crew can draw for `family`: itself when it lands on the cell
+/// grid, else an installed copy of the same typeface that does (a Nerd Font
+/// build of it, say), else `None` — the embedded face.
+///
+/// A family that is not installed has fontdb substitute a proportional face,
+/// and cell rounding then gives its spaces and digits two cells each: every
+/// space pushed the rest of its row right, and the welcome's text slid half a
+/// window off its card (2026-10-09, `font_family = "Intel One Mono"` in a
+/// config on a Mac without it).
+pub(crate) fn usable(
+    font_system: &mut FontSystem,
+    family: &str,
+    font_size: f32,
+    cell_w: f32,
+    weight: u16,
+) -> Option<String> {
+    if snaps_to_cells(font_system, family, font_size, cell_w, weight) {
+        return Some(family.to_string());
+    }
+    let key = crew_theme::typeface_key(family);
+    crate::fontlist::monospace_families(font_system)
+        .into_iter()
+        .filter(|f| crew_theme::typeface_key(f) == key)
+        .find(|f| snaps_to_cells(font_system, f, font_size, cell_w, weight))
+}
+
 #[cfg(test)]
 #[path = "fontverify_tests.rs"]
 mod tests;

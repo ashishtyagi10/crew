@@ -153,8 +153,6 @@ impl CrewApp {
         let font_px = self.config.font_size * window.scale_factor() as f32;
         match Renderer::new(window.clone(), font_px) {
             Ok(mut renderer) => {
-                // Apply the persisted font family up front, not just on Save.
-                crate::glyphs::apply_family(&mut renderer, self.config.font_family.clone());
                 renderer.set_font_weight(Some(self.config.font_weight));
                 renderer.set_text_smoothing(Some(self.config.font_smooth));
                 renderer.set_text_gamma(Some(self.config.font_gamma));
@@ -164,6 +162,7 @@ impl CrewApp {
                     window.set_maximized(true);
                 }
                 self.renderer = Some(renderer);
+                self.apply_config_family(); // the persisted family, up front
                 self.window = Some(window.clone());
                 window.request_redraw();
             }

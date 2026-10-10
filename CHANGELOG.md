@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.59
+
+**A font that isn't installed no longer drags the text off its cards.**
+If Settings named a font family missing from the Mac (for example
+`Intel One Mono`), macOS stood in a proportional font. Crew's text grid
+then gave each space and digit two cells, so every space pushed the rest
+of its line right. The welcome screen's text slid half a window off its
+card, and "0.26.43" read as "0 . 2 6 . 4 3". Crew now never draws with a
+family that doesn't fit its grid. It uses an installed copy of the same
+typeface instead (a Nerd Font build, say), or else its built-in face.
+The status line says so: "font Intel One Mono is not installed (or not
+monospaced) — drawing Lilex". Turning font rotation off now names the
+face actually drawn.
+- **Test:** for an installed family, a missing one and a made-up one,
+  every glyph of a welcome line, spaces and digits included, lands on
+  its own cell. The test fails without the fix.
+
 ## 0.26.58
 
 **The glass draws without an extra pass.** Every frame used to render
