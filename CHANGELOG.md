@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.49
+
+**glass-sky and glass-dawn are now the clear glass.** The two frosted
+light glass palettes (white glass, dark text) are gone. A config or
+`/look theme` naming `glass-sky`, `glass-dawn` or `glass-light` loads
+`glass-clear`, the see-through smoked glass with white text, so a saved
+setting keeps working. Glass now has two palettes, `glass-clear` and
+`glass-night`, and the code that only drew the white frosted glass is
+removed.
+- **Test:** the old names resolve to `glass-clear`; every palette still
+  lands in exactly one rotation, and the glass tests run on the two that
+  remain.
+
 ## 0.26.48
 
 **Badges on glass are white words on their own colour.** On the

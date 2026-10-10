@@ -153,7 +153,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ],
         // Glass is the iPhone's material, so it wears the iPhone's face: SF
         // Mono, then the nearest geometric monospaces.
-        ThemeId::GlassClear | ThemeId::GlassNight | ThemeId::GlassSky | ThemeId::GlassDawn => {
+        ThemeId::GlassClear | ThemeId::GlassNight => {
             &["SF Mono", "Geist Mono", "JetBrains Mono", "Menlo", "Lilex"]
         }
         // CRT: a terminal face with squared-off shoulders — straight modern

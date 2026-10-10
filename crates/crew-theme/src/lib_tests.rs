@@ -40,7 +40,7 @@ fn the_phosphors_have_distinct_personalities() {
         .iter()
         .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
         .collect();
-    assert_eq!(styles.len(), 16);
+    assert_eq!(styles.len(), ALL_THEMES.len());
     for (i, (an, a)) in styles.iter().enumerate() {
         for (bn, b) in &styles[i + 1..] {
             assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
@@ -394,12 +394,12 @@ fn no_two_palettes_are_near_duplicates() {
 fn every_pool_survives_the_cut() {
     let count = |f: fn(ThemeId) -> bool| ALL_THEMES.iter().filter(|id| f(**id)).count();
     let dark = count(|id: ThemeId| id.theme().dark && !id.is_crt() && !id.is_clear_glass());
-    let light = count(|id: ThemeId| !id.theme().dark && !id.is_light_glass());
+    let light = count(|id: ThemeId| !id.theme().dark);
     let crt = count(|id: ThemeId| id.is_crt());
     let glass = count(|id: ThemeId| id.is_clear_glass());
     // The night glass (2026-10-07) sat with the dark pages and the light
     // glass (2026-10-08) was `glass`; since 2026-10-09 `glass` is the white-
-    // text pair (`glass-clear`, `glass-night`) and the light pair is by name.
+    // text pair (`glass-clear`, `glass-night`), which the light pair joined.
     assert_eq!(
         (dark, light, crt, glass),
         (4, 4, 4, 2),
@@ -414,7 +414,7 @@ fn every_pool_survives_the_cut() {
 /// every one of their names still resolves.
 #[test]
 fn every_retired_theme_name_still_resolves() {
-    const RETIRED: [(&str, ThemeId); 14] = [
+    const RETIRED: [(&str, ThemeId); 16] = [
         ("midnight-ink", ThemeId::Nebula),
         ("graphite", ThemeId::PaperDark),
         ("moss-blotter", ThemeId::SepiaDark),
@@ -429,6 +429,8 @@ fn every_retired_theme_name_still_resolves() {
         ("daybreak", ThemeId::Blossom),
         ("meadow", ThemeId::Blossom),
         ("cirrus", ThemeId::Blossom),
+        ("glass-sky", ThemeId::GlassClear),
+        ("glass-dawn", ThemeId::GlassClear),
     ];
     for (name, want) in RETIRED {
         assert_eq!(
@@ -450,7 +452,8 @@ fn every_retired_theme_name_still_resolves() {
     // Written as a sum rather than a difference so adding a palette does not
     // read as retiring one — `glass` was drawn on 2026-10-07 and became
     // `glass-night` when the light pair (`glass-sky`, `glass-dawn`) was drawn
-    // on 2026-10-08, and `glass-clear` on 2026-10-09.
+    // on 2026-10-08, and `glass-clear` on 2026-10-09, which the light pair
+    // folded into the same day.
     assert_eq!(
         RETIRED.len() + ALL_THEMES.len(),
         30,
@@ -899,9 +902,9 @@ fn light_modern_poles_read_on_a_white_page() {
         // protects readability.
     }
     assert_eq!(
-        seen, 6,
+        seen, 4,
         "every light palette carries a gradient now — blossom, paper-light, \
-         sepia-light, fern, glass-sky, glass-dawn"
+         sepia-light, fern"
     );
 }
 
@@ -1053,10 +1056,7 @@ fn every_palette_lands_in_exactly_one_of_the_four_pools() {
     ];
     for id in ALL_THEMES {
         let n = pools.iter().filter(|m| m.in_pool(id)).count();
-        // The frosted light glass rotates nowhere since `glass` turned to
-        // white words (2026-10-09): picked by name, it stays put.
-        let want = usize::from(!id.is_light_glass());
-        assert_eq!(n, want, "{} is in {n} pools, want {want}", id.as_str());
+        assert_eq!(n, 1, "{} is in {n} pools", id.as_str());
     }
     // Every non-tube palette rotates with the paper ones of its own appearance…
     // (the filter used to be `modern.is_some()`, which meant "not a tube" only
@@ -1065,9 +1065,6 @@ fn every_palette_lands_in_exactly_one_of_the_four_pools() {
         .into_iter()
         .filter(|id| id.theme().modern.is_some() && !id.is_crt())
     {
-        if id.is_light_glass() {
-            continue;
-        }
         let want = if id.is_clear_glass() {
             RandomMode::Glass
         } else if id.is_dark() {

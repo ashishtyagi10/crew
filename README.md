@@ -816,8 +816,7 @@ rotates the four phosphor tubes — `crt-green`, `crt-amber`, `crt-blue` and
 is the iPhone's liquid glass in its Clear look — a see-through window with your
 desktop as the background, every pane a slab of clear, lightly smoked glass
 and every word bright white, in `glass-clear` (rose accents) and `glass-night`
-(navy smoke, mint) — with the frosted light pair, `glass-sky` and
-`glass-dawn`, picked by name; and `auto`
+(navy smoke, mint); and `auto`
 follows the OS appearance, serving the dark pool in dark mode and the light one
 in light mode (re-wire the pairing with `theme_dark` / `theme_light`). A
 rotation changes palette every 10 minutes.

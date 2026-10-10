@@ -63,7 +63,7 @@ fn percent_is_whole_numbers() {
 fn on_glass_the_reply_says_the_theme_sets_the_window() {
     let _g = crate::app::theme_test_guard();
     let said = |app: &CrewApp| app.log.last().map(|e| e.text.clone()).unwrap_or_default();
-    crew_theme::set_theme(crew_theme::ThemeId::GlassSky);
+    crew_theme::set_theme(crew_theme::ThemeId::GlassClear);
     let mut app = CrewApp::default();
     app.opacity_command("60");
     assert!(
@@ -91,7 +91,7 @@ fn on_glass_the_reply_says_the_theme_sets_the_window() {
 #[test]
 fn the_picker_says_when_the_steps_do_nothing_here() {
     let _g = crate::app::theme_test_guard();
-    crew_theme::set_theme(crew_theme::ThemeId::GlassSky);
+    crew_theme::set_theme(crew_theme::ThemeId::GlassClear);
     let rows = picker();
     assert_eq!(rows[0].0, "", "a heading, not a choice");
     assert!(

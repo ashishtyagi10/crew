@@ -6,8 +6,9 @@
 //! smoke dims the desktop a little, and a soft shadow behind each run of text
 //! dims it a little more (`CrtStyle::GLASS_SHADE`), so the words hold over a
 //! white desktop while the glass between them stays clear. The night glass
-//! ([`crate::presets_glass`]) is its navy twin; the frosted light pair
-//! ([`crate::presets_glass_light`]) is still there by name.
+//! ([`crate::presets_glass`]) is its navy twin. The frosted light pair, sky
+//! and dawn, folded into this one (the user, 2026-10-09: "should also be
+//! clear"); their names still load it.
 //!
 //! Every derived role is what the ramp, the alarm and the wash produce for
 //! this page and ink — the parity tests in `ramp_tests`, `signal_tests` and
@@ -84,7 +85,9 @@ pub(crate) const CLEAR_BLOOM: CrtStyle = CrtStyle {
 /// white desktop because of the shadow behind it, not because the smoke is
 /// thick.
 pub(crate) const CLEAR_LIQUID: LiquidStyle = LiquidStyle {
-    // No lens: the page is flat (see `presets_glass_light`'s optics).
+    // No lens: the glass paints no wallpaper, so bending, blurring and
+    // splitting the page drew nothing — eleven texture reads a pixel for a
+    // solid colour. The desktop's blur is the window server's.
     refract: 0.0,
     bevel: 16.0,
     blur: 0.0,

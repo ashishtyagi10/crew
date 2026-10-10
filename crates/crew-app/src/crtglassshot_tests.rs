@@ -172,12 +172,7 @@ fn glass_window_shot() {
         live: 1.0,
         eddy: 0.4,
     };
-    for id in [
-        ThemeId::GlassClear,
-        ThemeId::GlassSky,
-        ThemeId::GlassDawn,
-        ThemeId::GlassNight,
-    ] {
+    for id in [ThemeId::GlassClear, ThemeId::GlassNight] {
         for (name, clocks) in [
             (format!("{}-window", id.as_str()), Default::default()),
             (format!("{}-window-awake", id.as_str()), awake),

@@ -70,13 +70,12 @@ fn dim_is_the_same_step_on_a_light_page_and_a_dark_one() {
 }
 
 /// A whisper on glass stands on the frost over the desktop, not on the page
-/// colour: floored there too, over a black desktop and a white one, for the
-/// light glass and the white-text glass alike. Off glass it is the plain
-/// whisper.
+/// colour: floored there too, over a black desktop and a white one, on
+/// both glasses. Off glass it is the plain whisper.
 #[test]
 fn a_whisper_on_glass_reads_over_the_frost() {
     use crew_theme::glasslegend::{pane_grounds, worst};
-    for t in [&crew_theme::GLASS_CLEAR, &crew_theme::GLASS_SKY] {
+    for t in [&crew_theme::GLASS_CLEAR, &crew_theme::GLASS_NIGHT] {
         let fg = dimmed_on_page(t.term_fg, t.term_bg, t);
         let got = worst(fg, &pane_grounds(t));
         assert!(got >= DIM_CONTRAST - 0.05, "{fg:?}: {got:.2}");

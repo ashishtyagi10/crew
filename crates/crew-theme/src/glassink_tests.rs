@@ -46,7 +46,7 @@ fn every_role_reads_over_any_desktop() {
 /// next, hints after it — flooring moved them, it did not flatten them.
 #[test]
 fn the_ladder_survives_the_floor() {
-    for id in [ThemeId::GlassSky, ThemeId::GlassDawn, ThemeId::GlassNight] {
+    for id in [ThemeId::GlassClear, ThemeId::GlassNight] {
         let t = lift(id.theme());
         let g = pane_grounds(id.theme());
         let (ink, muted, dim) = (worst(t.ink, &g), worst(t.text_muted, &g), worst(t.dim, &g));
@@ -58,11 +58,11 @@ fn the_ladder_survives_the_floor() {
     }
 }
 
-/// Light glass's roles only ever darken and night glass's only lighten:
-/// the floor walks toward the label pole, never across it.
+/// The glass's roles only ever lighten: the floor walks toward the label
+/// pole, never across it.
 #[test]
 fn roles_move_toward_the_label_pole() {
-    for id in [ThemeId::GlassSky, ThemeId::GlassDawn, ThemeId::GlassNight] {
+    for id in [ThemeId::GlassClear, ThemeId::GlassNight] {
         let (base, t) = (id.theme(), lift(id.theme()));
         for (was, now) in [(base.dim, t.dim), (base.ansi[2], t.ansi[2])] {
             let (a, b) = (relative_luminance(was), relative_luminance(now));
@@ -75,7 +75,7 @@ fn roles_move_toward_the_label_pole() {
 /// is not walked (it went navy when it was).
 #[test]
 fn the_tint_keeps_its_colour() {
-    for id in [ThemeId::GlassSky, ThemeId::GlassDawn, ThemeId::GlassNight] {
+    for id in [ThemeId::GlassClear, ThemeId::GlassNight] {
         let (base, t) = (id.theme(), lift(id.theme()));
         assert_eq!(
             (t.accent_default, t.activity, t.broadcast),

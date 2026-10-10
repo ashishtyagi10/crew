@@ -60,8 +60,6 @@ fn glass_legends_read_over_any_desktop() {
     };
     for id in [
         crew_theme::ThemeId::GlassClear,
-        crew_theme::ThemeId::GlassSky,
-        crew_theme::ThemeId::GlassDawn,
         crew_theme::ThemeId::GlassNight,
     ] {
         crew_theme::set_theme(id);
