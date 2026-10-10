@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.69
+
+**Badge and button labels keep their contrast once the glow is drawn.**
+On the glass, a badge (scout, smith, a code block's language, swarm
+mode) and the Save button put white words on their colour, deepened
+until white reads at 4.5:1. The glass's soft glow round white text then
+lightens the colour under the letters, so as drawn they measured about
+4.0:1. Those fills are now deepened a tenth further. Drawn, the labels
+measure 4.5:1 or more on glass-clear, glass-night and blossom, and
+improve on every other palette. They go no deeper, so the badge still
+stands out from the dark glass around it when its agent goes quiet.
+- **Test:** on every glass palette a badge's white label clears 1.1× the
+  text floor on its fill. The test fails at the old depth.
+
 ## 0.26.68
 
 **The keys panel stands over the panes, clear of the input bar.**

@@ -110,10 +110,12 @@ pub(crate) fn page_ink(bg: Color) -> Color {
 /// theme's white on `bg` deepened — its hue, its chroma — until white
 /// clears the text floor: the page's dark smoke walked onto a pastel block
 /// was the last dark, thin lettering on that glass (2026-10-09 survey #3).
+/// Deepened past the floor by [`GLOW_ROOM`]: the glow round white words
+/// lifts the fill under them, and solved to 4.5 the labels drew at 4.0.
 /// Everywhere else, [`page_ink`] on `bg` as it is.
 pub(crate) fn inked(bg: Color) -> (Color, Color) {
     let t = crew_theme::theme();
-    let floor = crew_theme::contrast::text_floor();
+    let floor = crew_theme::contrast::text_floor() * GLOW_ROOM;
     match t.liquid.is_some() && t.dark {
         true if crew_theme::contrast_ratio(t.ink, bg) >= floor => (t.ink, bg),
         // Always DOWN: walked "away from the ink", a block lighter than the
@@ -129,6 +131,12 @@ pub(crate) fn inked(bg: Color) -> (Color, Color) {
         false => (page_ink(bg), bg),
     }
 }
+
+/// How far past the text floor [`inked`] deepens a fill: the glass's glow
+/// spends about a tenth of it (scout 4.03, smith 4.05 drawn on fills solved
+/// to 4.5, glass survey D-M1). No deeper: a badge's block must still clear
+/// the mark floor on the page it rests on, idle dim and all (`summarypulse`).
+pub(crate) const GLOW_ROOM: f32 = 1.1;
 
 /// [`badge`] in [`inked`]'s ink and fill.
 pub(crate) fn badge_on(text: &str, bg: Color, caps: Caps) -> Vec<Cell> {
