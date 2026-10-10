@@ -117,7 +117,7 @@ mod tests {
             None,
             "a lower setting wins"
         );
-        crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+        crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
         assert_eq!(note(&pane(1.0), Field::WindowOpacity), None);
     }
 

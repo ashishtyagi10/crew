@@ -338,7 +338,7 @@ fn modern_shot_every_palette() {
     // `Blossom` four times, so "every palette" shot two of them eight times
     // and overwrote the same two PNGs. The light pages are the reason the
     // test exists and half of them were never in it.
-    for id in [T::Nebula, T::Blossom, T::Harbor, T::Fern] {
+    for id in [T::Nebula, T::Blossom, T::Fern] {
         crew_theme::set_theme(id);
         let Some(px) = render_full(crew_theme::GlassLevel::Medium, 1.0, true) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");

@@ -60,21 +60,28 @@ pub(crate) fn block(
 
 /// The block for `name`'s badge given the pane's `pulses` (`None` when the
 /// footer is rendered without a pane — the tests' pure form — which is the
-/// roster colour, as before).
+/// badge's resting fill). It pulses from the fill the badge rests on
+/// ([`crate::segment::inked`]: on glass the roster colour deepened).
 pub(crate) fn agent_block(pulses: Option<Pulses<'_>>, name: &str) -> Color {
-    let roster = crate::chatroster::agent_color(name);
+    let roster = crate::segment::inked(crate::chatroster::agent_color(name)).1;
     let Some(p) = pulses else {
         return roster;
     };
     let th = crew_theme::theme();
-    block(
+    let lit = block(
         roster,
         th.ink,
         th.page_bg,
         p.map.get(name).copied(),
         p.now,
         crate::motion::level(),
-    )
+    );
+    // On glass the label IS the ink: the lift toward it stops where a bold
+    // label still reads on the block, or the burst wiped the name out.
+    match crate::segment::inked(roster).0 == th.ink {
+        true => crew_theme::readable::against(lit, th.ink, crew_theme::readable::MARK_FLOOR),
+        false => lit,
+    }
 }
 
 #[cfg(test)]

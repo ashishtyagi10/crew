@@ -6,6 +6,10 @@ use crate::{CrtStyle, ModernStyle, Theme};
 /// chrome for maximum legibility with minimal glare. The page leans warm
 /// charcoal since the 2026-07-24 retune. Terminal ANSI output keeps
 /// muted-but-readable colours so error/diff colour cues survive. The default.
+///
+/// See-through since 2026-10-09, like every mode: the page is a deep warm
+/// smoke over the desktop ([`crate::presets_glass_clear::DARK_LIQUID`]),
+/// with the glass's soft shadow behind the words and no paper of its own.
 pub static PAPER_DARK: Theme = Theme {
     page_bg: (12, 8, 5),
     ink: (232, 232, 232),
@@ -47,27 +51,29 @@ pub static PAPER_DARK: Theme = Theme {
         (238, 235, 232), // 15 bright white
     ],
     dark: true,
-    grain: 1.2,
+    grain: 0.0,
     crt: Some(CrtStyle {
-        // A glowing paper theme, not a tube: scanlines off, so `is_crt` still
-        // reads this as paper. The style is here only to ride the bloom chain
-        // that draws the gradient ring's halo.
+        // Not a tube: no filament, so `is_crt` reads this as a page. The
+        // bloom draws the focus ring's halo; the shade is the glass's text
+        // shadow.
         scanline: 0.0,
         glow: 0.70,
         glow_radius: 13.0,
         flicker: 0.020,
         core: 0.0,
         etch: 0.0,
-        shade: 0.0,
+        shade: CrtStyle::GLASS_SHADE,
     }),
     modern: Some(ModernStyle {
         pole_a: (123, 184, 255),
         pole_b: (35, 199, 205),
         drift_ms: 6_000,
-        dots: 0.20,
-        wash: 0.15,
+        // No wallpaper: the desktop is the background. The poles only light
+        // the focus ring.
+        dots: 0.0,
+        wash: 0.0,
     }),
-    liquid: None,
+    liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
 };
 
 /// Warm paper "day" page — soft off-white with ink-toned output.
@@ -134,70 +140,6 @@ pub static PAPER_LIGHT: Theme = Theme {
         drift_ms: 6_000,
         dots: 0.16,
         wash: 0.12,
-    }),
-    liquid: None,
-};
-
-/// **Sepia dark**: dark coffee-brown paper with warm cream ink — the paper
-/// family's "aged newsprint at night" page.
-pub static SEPIA_DARK: Theme = Theme {
-    page_bg: (24, 17, 11),
-    ink: (249, 238, 213),
-    text_muted: (211, 199, 180),
-    term_fg: (241, 229, 205),
-    term_bg: (24, 17, 11),
-    // Focus-led border hierarchy, as in paper-dark.
-    border_normal: (78, 70, 62),
-    border_focused: (216, 192, 150),
-    border_thickness: 2.5,
-    legend_off: (154, 143, 131),
-    accent_default: (235, 190, 120),
-    status_fg: (235, 195, 120),
-    broadcast: (210, 150, 180),
-    activity: (150, 175, 205),
-    bell: (247, 186, 177),
-    dim: (135, 125, 114),
-    placeholder: (127, 116, 106),
-    hint_fg: (137, 126, 115),
-    find_hl_bg: (80, 62, 24),
-    ansi: [
-        (104, 101, 97),  // 0  black
-        (255, 161, 150), // 1  red
-        (122, 204, 138), // 2  green
-        (223, 180, 85),  // 3  yellow
-        (134, 190, 255), // 4  blue
-        (229, 163, 237), // 5  magenta
-        (46, 205, 211),  // 6  cyan
-        (224, 219, 216), // 7  white
-        (141, 138, 134), // 8  bright black
-        (255, 193, 184), // 9  bright red
-        (142, 225, 158), // 10 bright green
-        (244, 200, 106), // 11 bright yellow
-        (171, 210, 255), // 12 bright blue
-        (248, 185, 255), // 13 bright magenta
-        (77, 226, 232),  // 14 bright cyan
-        (247, 242, 239), // 15 bright white
-    ],
-    dark: true,
-    grain: 1.2,
-    crt: Some(CrtStyle {
-        // A glowing paper theme, not a tube: scanlines off, so `is_crt` still
-        // reads this as paper. The style is here only to ride the bloom chain
-        // that draws the gradient ring's halo.
-        scanline: 0.0,
-        glow: 0.62,
-        glow_radius: 14.0,
-        flicker: 0.025,
-        core: 0.0,
-        etch: 0.0,
-        shade: 0.0,
-    }),
-    modern: Some(ModernStyle {
-        pole_a: (223, 180, 85),
-        pole_b: (255, 161, 150),
-        drift_ms: 6_000,
-        dots: 0.20,
-        wash: 0.15,
     }),
     liquid: None,
 };

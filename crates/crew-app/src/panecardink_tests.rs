@@ -40,6 +40,8 @@ fn without_broadcast_the_frame_is_the_one_it_always_was() {
 #[test]
 fn the_legend_keeps_the_panes_own_hue() {
     let _g = crate::app::theme_test_guard();
+    // Off glass, where a legend is its hue as is (glass floors it).
+    crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
     let hue = (200, 40, 90);
     assert_eq!(stroke(&bar(true, true), hue).1, hue);
     assert_eq!(stroke(&bar(true, false), hue).1, hue);

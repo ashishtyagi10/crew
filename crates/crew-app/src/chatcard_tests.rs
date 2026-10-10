@@ -185,8 +185,9 @@ fn the_gutter_and_name_wear_the_senders_roster_colour() {
     let want = crate::chatroster::agent_color("planner");
     assert_eq!(line[0].c, GUTTER);
     assert_eq!(line[0].fg, want, "gutter");
-    assert_eq!(line[1].fg, want, "the badge's cap");
-    assert_eq!(line[3].bg, Some(want), "the name's block");
+    let block = crate::segment::inked(want).1;
+    assert_eq!(line[1].fg, block, "the badge's cap");
+    assert_eq!(line[3].bg, Some(block), "the name's block");
     assert!(line[3].bold);
     assert_ne!(want, crew_theme::theme().text_muted);
     let tool = msg("planner", &format!("{TOOL_PREFIX}ls"));

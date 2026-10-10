@@ -192,9 +192,12 @@ fn every_derived_role_clears_the_contrast_floor() {
 
 /// Neutrals inherit the page's temperature, or every theme's greys collapse
 /// into the same ladder and SEPIA stops being warm.
+const SEPIA_PAGE: (u8, u8, u8) = (24, 17, 11);
+
 #[test]
 fn neutrals_keep_the_page_s_temperature() {
-    let warm = Ramp::for_page(crate::SEPIA_DARK.page_bg).text_muted();
+    // The retired sepia-dark page: coffee-brown paper.
+    let warm = Ramp::for_page(SEPIA_PAGE).text_muted();
     let cool = Ramp::for_page(crate::NEBULA.page_bg).text_muted();
     let d = distance(warm, cool);
     assert!(
@@ -203,7 +206,7 @@ fn neutrals_keep_the_page_s_temperature() {
          flattened the warm/cool cast that distinguishes them"
     );
     // …but not so far that it reads as coloured text rather than as ink.
-    for page in [crate::SEPIA_DARK.page_bg, crate::CRT_GREEN.page_bg] {
+    for page in [SEPIA_PAGE, crate::CRT_GREEN.page_bg] {
         let c = crate::oklch::from_srgb(Ramp::for_page(page).ink()).c;
         assert!(
             c <= NEUTRAL_CHROMA_CAP + 1e-3,

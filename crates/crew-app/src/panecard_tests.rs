@@ -42,6 +42,8 @@ fn card_has_rounded_border_and_legend() {
 #[test]
 fn legend_wears_the_pane_signature_hue() {
     let _g = crate::app::theme_test_guard();
+    // Off glass, where a legend is its hue as is (glass floors it).
+    crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
     // Focused: the title glyph on the top border takes the title-derived hue
     // (same hash the roster uses), so a pane and its roster row match.
     let hue = crate::chatroster::agent_color("shell");

@@ -78,7 +78,7 @@ fn form_shot_settings_themes() {
     // focused control had nothing to say for itself.
     for (name, id) in [
         ("settings-light", crew_theme::ThemeId::PaperLight),
-        ("settings-sepia-dark", crew_theme::ThemeId::SepiaDark),
+        ("settings-nebula", crew_theme::ThemeId::Nebula),
         ("settings-crt-violet", crew_theme::ThemeId::CrtViolet),
     ] {
         crew_theme::set_theme(id);

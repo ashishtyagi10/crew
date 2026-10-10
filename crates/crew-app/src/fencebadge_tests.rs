@@ -25,7 +25,7 @@ fn the_fence_header_is_a_capped_badge_on_the_languages_hue() {
         "not a badge: {row:?}"
     );
     let field = Some(crate::chatink::code_bg());
-    let hue = crate::chathue::lang_hue("rust");
+    let hue = crate::segment::inked(crate::chathue::lang_hue("rust")).1;
     assert_ne!(
         hue,
         crate::chatink::code_bg(),

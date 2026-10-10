@@ -42,7 +42,7 @@ fn serious_shanns_is_out_of_every_list_in_every_spelling() {
 #[test]
 fn sepia_leads_with_comic_shanns_and_paper_with_monolisa_again() {
     assert_eq!(
-        &font_prefs(ThemeId::SepiaDark)[..2],
+        &font_prefs(ThemeId::SepiaLight)[..2],
         ["Comic Shanns Mono", "Comic Mono"]
     );
     assert_eq!(font_prefs(ThemeId::PaperLight)[0], "MonoLisa");

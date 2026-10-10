@@ -35,6 +35,10 @@ pub(crate) struct ThemeGuard {
     /// pole pair, so a test that only reads `theme()` still sees the light
     /// somebody else turned on. `themepeek`'s previews move both.
     poles: Option<crew_theme::poleshift::Poles>,
+    /// Whether the glass was SHEER (`glassborder::set_sheer`): a test that
+    /// applied a glass theme left it on, and every later palette test read
+    /// floored colours it never asked for (2026-10-09, two flakes).
+    sheer: bool,
     /// The motion level in force when the guard was taken — put back on drop
     /// so each guarded test starts from the same place.
     motion: crate::motion::MotionLevel,
@@ -65,6 +69,7 @@ impl Drop for ThemeGuard {
     fn drop(&mut self) {
         crew_theme::set_theme(self.prev);
         crew_theme::poleshift::set_custom(self.poles);
+        crew_theme::glassborder::set_sheer(self.sheer);
         // The motion level goes back too, for the same reason the theme
         // does: a guarded test that never mentions motion must not inherit
         // the level the last one happened to leave. Restored BEFORE the flag
@@ -92,10 +97,13 @@ pub(crate) fn theme_test_guard() -> ThemeGuard {
     crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
     crew_theme::poleshift::set_custom(None);
     crew_theme::contrast::set_high_contrast(false);
+    let sheer = crew_theme::glassborder::sheer();
+    crew_theme::glassborder::set_sheer(false);
     ThemeGuard {
         _lock: lock,
         prev,
         poles,
+        sheer,
         motion,
         contrast,
     }

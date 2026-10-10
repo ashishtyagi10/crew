@@ -100,7 +100,10 @@ mod tests {
 
     #[test]
     fn only_the_frames_move() {
-        let base = ThemeId::PaperDark.theme();
+        let base = &crate::Theme {
+            liquid: None,
+            ..crate::PAPER_DARK
+        };
         let t = lift(base);
         assert_eq!(t.page_bg, base.page_bg);
         assert_eq!(t.ink, base.ink);

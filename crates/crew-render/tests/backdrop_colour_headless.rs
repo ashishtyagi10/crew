@@ -14,6 +14,9 @@ fn backdrop_colour_headless() {
         eprintln!("backdrop_colour_headless: no GPU adapter, skipping");
         return;
     };
+    // A theme that paints a wallpaper: glass (every mode, since 2026-10-09)
+    // turns the backdrop's motion off.
+    crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
     let pass = PaperBgPass::new(&device, wgpu::TextureFormat::Rgba8Unorm);
     let shot = |page: [f32; 4], m: &ModernPaper| {
         pass.update_uniform(&queue, page, (64.0, 64.0), 1.0, 0.0, Some(m));

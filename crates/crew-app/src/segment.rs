@@ -113,10 +113,18 @@ pub(crate) fn page_ink(bg: Color) -> Color {
 /// Everywhere else, [`page_ink`] on `bg` as it is.
 pub(crate) fn inked(bg: Color) -> (Color, Color) {
     let t = crew_theme::theme();
+    let floor = crew_theme::contrast::text_floor();
     match t.liquid.is_some() && t.dark {
+        true if crew_theme::contrast_ratio(t.ink, bg) >= floor => (t.ink, bg),
+        // Always DOWN: walked "away from the ink", a block lighter than the
+        // ink (paper-dark's near-white accent) went whiter, under white words.
         true => {
-            let floor = crew_theme::contrast::text_floor();
-            (t.ink, crew_theme::readable::against(bg, t.ink, floor))
+            let c = crew_theme::oklch::from_srgb(bg);
+            let dark = crew_theme::oklch::Toward::Dark;
+            (
+                t.ink,
+                crew_theme::oklch::solve_for_contrast(t.ink, c.h, c.c, floor, dark),
+            )
         }
         false => (page_ink(bg), bg),
     }

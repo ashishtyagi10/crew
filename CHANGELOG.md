@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.50
+
+**Dark mode is see-through glass.** The `dark` rotation now works like
+`glass`. The window shows your desktop through it, each pane is a slab
+of smoked glass, and every word is white with the glass's soft shadow
+behind it. Dark uses a deeper smoke than `glass`: a pane hides about 70%
+of the desktop, where the clear glass hides about 60%. Dark keeps two
+palettes, `paper-dark` (warm charcoal) and `nebula` (violet, with orchid
+and rose accents). `sepia-dark` and `harbor` are folded into
+`paper-dark`, and a config naming them loads it. Badges on a light
+accent, such as paper-dark's near-white, now deepen to a grey that white
+text reads on. Before, they stayed white under white text. An agent
+badge's flash, when its tokens arrive, still shows on glass. It brightens
+only as far as its name stays readable.
+- **Test:** each palette names its own rotation, and every palette sits
+  in exactly one. The old names resolve. Badges read on every tag colour
+  and on near-white accents. The test that checks a whole-theme setting
+  no longer depends on the glass state an earlier test left behind.
+
 ## 0.26.49
 
 **glass-sky and glass-dawn are now the clear glass.** The two frosted

@@ -159,8 +159,10 @@ fn a_clear_glass_badge_is_white_on_its_own_hue_deepened() {
     for id in crew_theme::ALL_THEMES {
         crew_theme::set_theme(id);
         let (t, floor) = (crew_theme::theme(), crew_theme::contrast::text_floor());
-        for slot in 0..12 {
-            let bg = crew_theme::slot_color(slot, t);
+        // Every tag colour, and the accents — paper-dark's is near-white.
+        let accents = [t.accent_default, (240, 240, 240), (255, 255, 255)];
+        let tags = (0..12).map(|slot| crew_theme::slot_color(slot, t));
+        for (slot, bg) in tags.chain(accents).enumerate() {
             let (ink, fill) = super::inked(bg);
             if !id.is_clear_glass() {
                 assert_eq!((ink, fill), (page_ink(bg), bg), "{}", id.as_str());
@@ -174,8 +176,9 @@ fn a_clear_glass_badge_is_white_on_its_own_hue_deepened() {
             );
             let hue = |c| crew_theme::oklch::from_srgb(c).h;
             let dh = (hue(fill) - hue(bg)).abs() % 360.0;
+            let grey = crew_theme::oklch::from_srgb(bg).c < 0.03;
             assert!(
-                dh.min(360.0 - dh) < 12.0,
+                grey || dh.min(360.0 - dh) < 12.0,
                 "{} {slot}: hue moved",
                 id.as_str()
             );

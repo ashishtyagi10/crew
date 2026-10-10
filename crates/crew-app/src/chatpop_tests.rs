@@ -29,7 +29,8 @@ fn the_pill_pops_on_each_increase_then_rests() {
     let popped = crate::chatscroll::pill_cells(3, 80, 5, true);
     let rest = crate::chatscroll::pill_cells(3, 80, 5, false);
     assert_eq!(popped.len(), rest.len());
-    assert!(popped.iter().all(|c| c.bg == accent && c.bold), "inverted");
+    let block = crate::segment::inked(accent).1;
+    assert!(popped.iter().all(|c| c.bg == block && c.bold), "inverted");
     assert!(
         popped
             .iter()
