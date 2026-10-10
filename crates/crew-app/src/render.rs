@@ -233,12 +233,14 @@ impl CrewApp {
         let cursor = self.cursor_in.then_some(self.cursor);
         crate::toast::push_toasts(&mut scenes, &mut self.toasts, content, cw, ch, now, cursor);
 
-        // Keybindings help overlay, centered over everything.
+        // Keybindings help overlay, centred over the panes' area: over the
+        // whole window it covered the input bar and stood 4 px off the
+        // panes' rules above and below (glass survey D-M4).
         if self.help_open {
-            let (hw, hh) = crate::help::fit(sw, sh, cw, ch);
+            let (hw, hh) = crate::help::fit(content.w, content.h, cw, ch);
             let (hwp, hhp) = (hw as f32 * cw, hh as f32 * ch);
-            let hx = (sw - hwp) / 2.0;
-            let hy = (sh - hhp) / 2.0;
+            let hx = (content.x + (content.w - hwp) / 2.0).floor();
+            let hy = (content.y + (content.h - hhp) / 2.0).floor();
             scenes.push(PaneScene {
                 cells: crate::help::help_cells(
                     hw,

@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.68
+
+**The keys panel stands over the panes, clear of the input bar.**
+`/keys` (Cmd+/) was centred on the whole window and nearly as tall as it.
+It covered the input bar, and its edges stood 4 pixels off the panes'
+frames above and below. It is now sized to and centred on the area the
+panes fill, right of the nav and above the input bar, with a row of air
+at the top and the canvas's own gap above the bar. Its arrow-key
+scrolling uses the same size, so the last row still comes into view.
+- **Test:** with `/keys` open, the panel starts a row under the top of
+  the panes' area, ends at least the canvas's gap above the input bar,
+  and starts right of the nav. Without the fix it overlapped the bar by
+  34 pixels.
+
 ## 0.26.67
 
 **Search matches and selections wear the palette's own colour.**

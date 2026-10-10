@@ -62,9 +62,9 @@ pub fn size() -> (u16, u16) {
 /// cell (2026-10-09 glass survey).
 pub(crate) const INSET: usize = 2;
 
-/// The overlay's grid in a `sw × sh` px window of `cw × ch` px cells: the
-/// size it prefers, held a row clear of the window's top and bottom and a
-/// column clear of its sides. Flush against the edges, its title sat 2 px
+/// The overlay's grid in a `sw × sh` px area of `cw × ch` px cells (the
+/// panes' area: `render`): the size it prefers, held a row clear of the
+/// area's top and bottom and a column clear of its sides. Flush against the edges, its title sat 2 px
 /// from the top and the footer on its bottom border hung off the window,
 /// half of each word over the bare desktop (2026-10-09 glass survey).
 pub fn fit(sw: f32, sh: f32, cw: f32, ch: f32) -> (u16, u16) {
