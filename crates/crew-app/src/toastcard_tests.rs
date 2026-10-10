@@ -19,8 +19,8 @@ fn card_geometry_is_cell_quantized_and_right_aligned() {
     let s = &scenes[0];
     // "toast 0" = 7 cols + 4 frame/air = 11 cols → 88px wide, 3 rows tall.
     assert_eq!((s.w, s.h), (88.0, 48.0));
-    // Right-aligned to content minus the gap: 100 + 800 - 8 - 88.
-    assert_eq!(s.x, 804.0);
+    // Right-aligned a cell inside the gap: 100 + 800 - 8 - 8 - 88.
+    assert_eq!(s.x, 796.0);
     assert!(s.overlay, "toasts must ride the opaque overlay pass");
     assert!(s.glass, "a toast casts its own floating shadow");
 }
