@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.62
+
+**A shell's text keeps the same air from its frame as a chat's.**
+A terminal pane drew its first column right past the frame's line: its
+prompt stood 4 pixels off the left edge, while a chat beside it kept 12.
+A shell now starts a column further in, and the program inside it gets a
+terminal one column narrower. Clicks, selection and Cmd+click links land
+on the character under the pointer, as before.
+- **Test:** a shell pane's content starts a cell and a half off its frame,
+  and its terminal is a column narrower than the card's inside. The test
+  fails without the fix. The existing test that every click resolves the
+  cell it was drawn on, across one to four panes, still passes.
+
 ## 0.26.61
 
 **The file manager keeps the same air from its frame as a chat does.**
