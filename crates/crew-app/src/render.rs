@@ -290,19 +290,18 @@ impl CrewApp {
             let p = crate::cmdmenu::popup(title, &matches, self.input.menu_sel, ic);
             let mh = f32::from(p.rows) * ch;
             let my = (ib.y - mh - self.gutter().y).max(0.0);
-            let fw = f32::from(p.cols) * cw;
-            scenes.push(crate::popupplace::float_shadow(ib.x, my, fw, mh));
+            // Exactly its frame, so it casts its own shadow.
             scenes.push(PaneScene {
                 cells: p.cells,
                 x: ib.x,
                 y: my,
-                w: crate::popupplace::scene_w(p.cols, ic, cw),
+                w: crate::popupplace::scene_w(p.cols, cw),
                 h: mh,
                 focused: false,
                 bordered: false,
-                glass: false,
+                glass: true,
                 scan: -1.0,
-                lift: 0.0,
+                lift: crate::popupplace::FLOAT,
                 glint: -1.0,
                 stretch: false,
                 overlay: true,
@@ -328,7 +327,7 @@ impl CrewApp {
                 let popup = drawn.then(|| c.popup(cols)).flatten();
                 c.popup_rise.tick(popup.is_some(), now);
                 if let Some(p) = popup {
-                    scenes.extend(crate::popupplace::floating(c, r, cw, ch, p, now));
+                    scenes.push(crate::popupplace::scene(c, r, cw, ch, p, now));
                 }
             }
         }
