@@ -362,17 +362,20 @@ fn a_light_pages_selection_is_pale() {
 }
 
 /// A tube selects in its own phosphor (2026-10-05): its selection wash wears
-/// the hue of its frame, where every other page gets the selection blue.
+/// the hue of its frame, and every other page its accent's — the one navy
+/// was off every palette but the blue ones (glass survey D-M5); a grey
+/// accent keeps the navy.
 #[test]
 fn a_tube_selects_in_its_own_phosphor() {
     let hue = |c| crate::oklch::from_srgb(c).h;
     let gap = |a: f32, b: f32| (a - b).rem_euclid(360.0).min((b - a).rem_euclid(360.0));
     for id in crate::ALL_THEMES {
         let t = id.theme();
-        let want = if t.is_tube() {
-            t.border_focused
-        } else {
-            SELECTION_HUE
+        let grey = crate::oklch::from_srgb(t.accent_default).c < 0.03;
+        let want = match (t.is_tube(), grey) {
+            (true, _) => t.border_focused,
+            (false, true) => SELECTION_HUE,
+            (false, false) => t.accent_default,
         };
         let d = gap(hue(selection_bg(t)), hue(want));
         assert!(d < 25.0, "{}: selection hue is {d:.0}° off", id.as_str());

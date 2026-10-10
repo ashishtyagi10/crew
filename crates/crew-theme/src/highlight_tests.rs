@@ -104,3 +104,28 @@ fn the_wash_never_moves_a_palette_that_already_clears_the_floor() {
 fn a_highlight_equal_to_the_page_is_returned_not_exploded() {
     assert_eq!(wash((12, 8, 5), (12, 8, 5)), (12, 8, 5));
 }
+
+/// A match wears its palette's colours: the accent's hue, or a tinted
+/// page's. Navy chips on glass-clear's rose and paper-light's amber came
+/// from another theme (glass survey D-M5).
+#[test]
+fn a_match_wears_its_own_palettes_hue() {
+    let gap = |a: f32, b: f32| (a - b).rem_euclid(360.0).min((b - a).rem_euclid(360.0));
+    for id in ALL_THEMES {
+        let t = id.theme();
+        let (hl, acc, page) = (
+            oklch::from_srgb(t.find_hl_bg),
+            oklch::from_srgb(t.accent_default),
+            oklch::from_srgb(t.page_bg),
+        );
+        let near = |o: oklch::Oklch| o.c >= 0.03 && gap(hl.h, o.h) <= 40.0;
+        assert!(
+            t.is_tube() || acc.c < 0.03 || near(acc) || near(page),
+            "{}: highlight hue {:.0}° vs accent {:.0}° / page {:.0}°",
+            id.as_str(),
+            hl.h,
+            acc.h,
+            page.h
+        );
+    }
+}
