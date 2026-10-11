@@ -125,7 +125,7 @@ impl StatsPane {
                 rx,
                 tx,
                 cols,
-                net_off + 2,
+                (crate::nettwin::UNDER_LEGEND, net_off + 2),
                 aspect,
                 crate::net::spark(),
                 crate::net::up_color(),

@@ -89,18 +89,25 @@ pub(crate) fn reading(
     }
 }
 
-/// Draw the twin chart across `cols` starting at `row0`, indented under the
-/// section legend like the rates above it. `rx`/`tx` are the two histories.
+/// The nav's chart column: indented under its section legend like the
+/// rates above it.
+pub const UNDER_LEGEND: u16 = 3;
+
+/// Draw the twin chart in a card `cols` wide from `at` (column, row) to a
+/// column short of the card's right edge. `rx`/`tx` are the two histories.
+/// The nav indents it [`UNDER_LEGEND`]; `/dash` starts it on its text's own
+/// column, where the nav's indent stood it 16px in from `NET` and lopsided
+/// in the pane (glass survey D-L7).
 pub fn paint(
     rx: &crate::spark::History,
     tx: &crate::spark::History,
     cols: u16,
-    row0: u16,
+    at: (u16, u16),
     aspect: f32,
     down: (u8, u8, u8),
     up: (u8, u8, u8),
 ) -> Vec<Paint> {
-    let (col0, width) = (3u16, cols.saturating_sub(4));
+    let ((col0, row0), width) = (at, cols.saturating_sub(at.0 + 1));
     if width == 0 || (rx.is_empty() && tx.is_empty()) {
         return Vec::new();
     }

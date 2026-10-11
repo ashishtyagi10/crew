@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.73
+
+**The `/dash` network chart lines up with the text above it.**
+The NET chart on `/dash` used the nav's indent, so it started two
+columns in from the `NET` heading, with more air on its left than its
+right. It now starts on the dash's own text column and stops a column
+short of the frame, the same on both sides. Its "under 1 KB/s" caption
+is centred on the chart again. The nav's chart is unchanged.
+- **Test:** drawn from the dash's text column, the chart's left edge is
+  that column and its right edge is one column short of the card.
+
 ## 0.26.72
 
 **The usage heatmap's empty hours stay visible over a light desktop.**

@@ -106,7 +106,7 @@ fn chart_shot_net_twin() {
                 &rx,
                 &tx,
                 cols,
-                2,
+                (crate::nettwin::UNDER_LEGEND, 2),
                 aspect,
                 crate::net::spark(),
                 crate::net::up_color(),
