@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.75
+
+**Theme colour chips are clean squares on the glass.**
+Next to a theme name, in settings and in the `/theme` picker, crew shows
+small colour chips. Each was a cell split in two: the palette's colour
+on top and its page colour below. On the glass the page colour is the
+glass itself, drawn as a faint smoke, so the bottom halves vanished in
+some cells and not others and the chips looked like a broken character.
+Each chip is now a crisp, drawn square of the palette's colour.
+- **Test:** on every glass palette, each chip is a square with no
+  background half.
+
 ## 0.26.74
 
 **The cost-per-day bars line up with the heatmap above them.**

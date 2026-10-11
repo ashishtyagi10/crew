@@ -171,7 +171,7 @@ fn the_theme_field_draws_the_palettes_it_would_rotate() {
         assert!(
             cells
                 .iter()
-                .any(|c| c.c == chip.c && c.fg == chip.fg && c.bg == chip.bg.unwrap()),
+                .any(|c| c.c == chip.c && c.fg == chip.fg && chip.bg.is_none_or(|b| c.bg == b)),
             "no chip drawn for {chip:?}"
         );
     }
@@ -215,10 +215,10 @@ fn a_theme_pickers_chips_come_from_the_palette_it_names() {
         let row = (0..40u16)
             .find(|r| row_text(&cells, *r).contains(value))
             .unwrap_or_else(|| panic!("{value} is not drawn anywhere"));
-        // `▀` is the palette chip; `█` is the text caret, which is not one.
+        // `■` is a glass palette's chip; `█` is the text caret, not one.
         let chips: Vec<(u8, u8, u8)> = cells
             .iter()
-            .filter(|c| c.row == row && c.c == '\u{2580}')
+            .filter(|c| c.row == row && c.c == '\u{25a0}')
             .map(|c| c.fg)
             .collect();
         chips

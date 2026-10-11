@@ -49,17 +49,18 @@ fn a_theme_mode_shows_one_chip_per_palette_in_its_pool() {
     assert_ne!(fgs(&dark), fgs(&crt), "two pools drew the same swatch");
 }
 
-/// Each chip carries two colours — that palette's page underneath and one of
-/// its faces on top — because a dark pool's pages are all nearly black and a
-/// column of them would be one smudge.
+/// On glass a chip is its face alone, a drawn square: the page under a half
+/// block was the glass, drawn as smoke in some quadrants and not others, and
+/// the Theme field's chips read as a broken glyph (glass survey D-L10).
 #[test]
-fn a_chip_carries_both_the_page_and_a_face() {
-    let chips = for_value("/theme", "crt-green");
-    let t = ThemeId::CrtGreen.theme();
-    assert!(!chips.is_empty());
-    for (i, c) in chips.iter().enumerate() {
-        assert_eq!(c.bg, Some(t.page_bg), "chip {i} left its page");
-        assert_ne!(c.fg, t.page_bg, "chip {i} is a single flat colour");
+fn on_glass_a_chip_is_its_face_alone() {
+    let _g = crate::app::theme_test_guard();
+    for id in ALL_THEMES.iter().filter(|id| id.theme().liquid.is_some()) {
+        let chips = for_value("/theme", id.as_str());
+        assert!(!chips.is_empty());
+        for (i, c) in chips.iter().enumerate() {
+            assert_eq!((c.c, c.bg), ('\u{25a0}', None), "{} chip {i}", id.as_str());
+        }
     }
 }
 
