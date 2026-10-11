@@ -151,14 +151,23 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
         let axis = l.cost_top + 1 + l.cost_rows;
         put(&mut out, "COST PER DAY", 1, l.cost_top, t.text_muted);
         let peak = b.daily_cost.iter().copied().max().unwrap_or(0);
-        let w = cols.saturating_sub(2 + RIGHT_PAD);
+        let (left, w) = chart_span(cols);
         let said = crate::costbars::peak_labelled(&b.daily_cost, w, l.cost_rows);
         if cols >= FULL_COLS && peak > 0 && !said {
             let peak = format!("peak {}", money(peak));
             put(&mut out, &peak, cols - 14, l.cost_top, t.text_muted);
         }
         let top = l.cost_top + 1;
-        crate::costbars::labels(&mut out, &b.daily_cost, 1, w, top, l.cost_rows, axis, cols);
+        crate::costbars::labels(
+            &mut out,
+            &b.daily_cost,
+            left,
+            w,
+            top,
+            l.cost_rows,
+            axis,
+            cols,
+        );
     }
     out
 }
@@ -241,11 +250,11 @@ pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
 
     // Cost per day, over whatever rows the division left it.
     if l.cost_rows > 0 {
-        let w = cols.saturating_sub(2 + RIGHT_PAD);
+        let (left, w) = chart_span(cols);
         let bars = crate::costbars::paint(&b.daily_cost, w, l.cost_rows, aspect);
         out.extend(
             bars.into_iter()
-                .map(|p| p.shifted(1.0, f32::from(l.cost_top + 1))),
+                .map(|p| p.shifted(f32::from(left), f32::from(l.cost_top + 1))),
         );
     }
     out

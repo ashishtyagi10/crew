@@ -59,6 +59,15 @@ pub(crate) const LABEL_W: u16 = 5;
 
 pub(crate) const RIGHT_PAD: u16 = 2;
 
+/// The columns `/usage`'s charts span — the heat grid's, past its day
+/// labels — as `(first column, width)`, so the charts stacked down the
+/// pane share their edges. The cost bars ran from column 1 to a column
+/// short of the grid's end: 24px from the left stroke, 46px from the right
+/// (glass survey D-L8).
+pub(crate) fn chart_span(cols: u16) -> (u16, u16) {
+    (LABEL_W, cols.saturating_sub(LABEL_W + RIGHT_PAD))
+}
+
 /// How the pane divides `rows` between its three bands, for one frame — the
 /// one derivation the text and the drawing both read, so a label can never
 /// land on a row the chart beside it was drawn from a different sum.

@@ -153,11 +153,15 @@ impl DashPane {
 
         // What each day cost, over whatever rows the division left it.
         if l.cost_rows > 0 && !quiet {
-            let w = cols.saturating_sub(2);
+            // Under the heat grid's span, as on `/usage`.
+            let (at, w) = (
+                dashtext::GRID_AT,
+                cols.saturating_sub(dashtext::GRID_AT + 2),
+            );
             let bars = crate::costbars::paint(&self.buckets.daily_cost, w, l.cost_rows, aspect);
             out.extend(
                 bars.into_iter()
-                    .map(|p| p.shifted(1.0, f32::from(l.cost_top))),
+                    .map(|p| p.shifted(f32::from(at), f32::from(l.cost_top))),
             );
         }
         out

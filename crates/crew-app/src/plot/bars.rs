@@ -19,12 +19,18 @@ const GAP: f32 = 0.28;
 /// so the value line is where the eye lands (the area chart's curve-over-
 /// fill, in bar form).
 const BODY: f32 = 0.55;
-/// A zero value's stub: present (the day exists, it cost nothing), faint.
-const STUB: f32 = 0.35;
 
 /// Draw `values` (each 0..=1 of the box height) as bars across `rect`
-/// (`x, y, w, h` in canvas units), left to right, in `color`.
-pub fn draw(c: &mut Canvas, rect: (f32, f32, f32, f32), values: &[f32], color: (u8, u8, u8)) {
+/// (`x, y, w, h` in canvas units), left to right, in `color`. A zero value
+/// is a one-pixel stub in `stub` (colour, alpha): present — the day
+/// exists, it cost nothing — and faint.
+pub fn draw(
+    c: &mut Canvas,
+    rect: (f32, f32, f32, f32),
+    values: &[f32],
+    color: (u8, u8, u8),
+    stub: ((u8, u8, u8), f32),
+) {
     let (x, y, w, h) = rect;
     if values.is_empty() || w <= 0.0 || h <= 0.0 {
         return;
@@ -38,7 +44,7 @@ pub fn draw(c: &mut Canvas, rect: (f32, f32, f32, f32), values: &[f32], color: (
         let v = v.clamp(0.0, 1.0);
         let bh = v * h;
         if bh < px {
-            c.rect(bx, y + h - px, bw, px, color, STUB);
+            c.rect(bx, y + h - px, bw, px, stub.0, stub.1);
             continue;
         }
         let top = y + h - bh;
