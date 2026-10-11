@@ -97,6 +97,24 @@ fn grid_sits_exactly_one_gap_above_the_input_bar() {
     }
 }
 
+/// A frame strokes its rect's edge, so rects that share an edge must round
+/// it alike: the input bar was never snapped, and its left rule stood a
+/// pixel outside every pane's above it (x 71 vs 72), the nav's top a pixel
+/// above theirs (glass survey D-L3).
+#[test]
+fn the_chrome_rounds_the_edges_it_shares_with_the_panes() {
+    let (sh, ch) = (720.0_f32, 17.2_f32);
+    let g = Gutter::between_strokes(8.0, (4.3, 8.6));
+    for nav in [120.0_f32, 130.7] {
+        let content = content_rect(1280.0, sh, true, nav, g, bottom_chrome_h(sh, ch, g));
+        let tile =
+            crate::layout::pane_rects_at(1, content.x, content.y, content.w, content.h, g)[0];
+        let ib = inputbar_rect(content, sh, ch, g);
+        assert_eq!((ib.x, ib.x + ib.w), (tile.x, tile.x + tile.w), "nav {nav}");
+        assert_eq!(sidebar_rect(sh, nav, g).y, tile.y, "nav {nav}");
+    }
+}
+
 #[test]
 fn stats_card_rect_shifts_below_the_update_card() {
     // No update: the stats card IS the sidebar column.

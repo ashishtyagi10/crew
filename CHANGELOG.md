@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.70
+
+**The input bar and the nav line up with the panes, to the pixel.**
+The input bar's left edge stood a pixel outside the edges of the panes
+above it, and the nav's top a pixel above theirs. Panes round their
+edges to whole pixels and these two did not. Now they do, so every
+shared edge lands on the same pixel row or column, and the gaps
+between the nav and the panes match the gap to the input bar.
+- **Test:** with a fractional gutter, the input bar's left and right
+  edges equal the pane's, and the nav's top equals the pane's top. The
+  test fails without the rounding.
+
 ## 0.26.69
 
 **Badge and button labels keep their contrast once the glow is drawn.**

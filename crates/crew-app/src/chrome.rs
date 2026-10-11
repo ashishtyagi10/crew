@@ -27,7 +27,8 @@ pub fn card_bottom(sh: f32, gap: impl Into<Gutter>) -> f32 {
 
 /// Bottom input-bar card, bottom-aligned to [`card_bottom`] so its bottom border
 /// lines up exactly with the sidebar's. Spans the action area width (content
-/// x/width, gap-inset). Always a 3-cell-row card.
+/// x/width, gap-inset). Always a 3-cell-row card. Snapped like the panes'
+/// rects, so an edge it shares with them rounds to the same pixel.
 pub fn inputbar_rect(content: Rect, sh: f32, ch: f32, gap: impl Into<Gutter>) -> Rect {
     let g: Gutter = gap.into();
     let h = 3.0 * ch;
@@ -37,6 +38,7 @@ pub fn inputbar_rect(content: Rect, sh: f32, ch: f32, gap: impl Into<Gutter>) ->
         w: content.w - 2.0 * g.mx,
         h,
     }
+    .snapped()
 }
 
 /// Fixed-width sidebar column on the left spanning the **entire** height (inset by
@@ -49,6 +51,7 @@ pub fn sidebar_rect(sh: f32, nav_px: f32, gap: impl Into<Gutter>) -> Rect {
         w: nav_px,
         h: sh - 2.0 * g.my,
     }
+    .snapped()
 }
 
 /// Cell rows the docked UPDATE card occupies while a `/update` runs (2 border
