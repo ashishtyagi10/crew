@@ -104,3 +104,38 @@ fn a_tight_welcome_has_no_block() {
     let mut scenes = Vec::new();
     push_welcome(&mut scenes, rect(), 8.0, 16.0, 7, None);
 }
+
+/// Centred to the pixel, not to the row: whole rows put the block half a
+/// row high whenever the rows left over were odd, and the card's sub-cell
+/// remainder all fell below it — 14px high in the survey's window (glass
+/// survey D-L9). The lines it holds ride with it; the stamp does not.
+#[test]
+fn the_block_is_centred_to_the_pixel() {
+    for extra in [0.0_f32, 5.0, 9.0, 16.0, 23.0, 31.0] {
+        let r = Rect {
+            h: 41.0 * 16.0 + extra,
+            ..roomy()
+        };
+        let mut scenes = Vec::new();
+        push_welcome(&mut scenes, r, 8.0, 16.0, 7, None);
+        let block = scenes.iter().filter(|s| s.glass).nth(1).expect("a block");
+        let (bx, by) = (block.x + block.w / 2.0, block.y + block.h / 2.0);
+        assert!(
+            (by - (r.y + r.h / 2.0)).abs() <= 1.0,
+            "+{extra}: {by} vs {}",
+            r.h / 2.0
+        );
+        assert!((bx - (r.x + r.w / 2.0)).abs() <= 1.0, "+{extra}: {bx}");
+        let lines = scenes.last().unwrap();
+        let name = lines
+            .cells
+            .iter()
+            .find(|c| c.c == 'C')
+            .expect("the name rides");
+        let y = lines.y + f32::from(name.row) * 16.0;
+        assert!(
+            y > block.y && y + 16.0 < block.y + block.h,
+            "+{extra}: inside"
+        );
+    }
+}

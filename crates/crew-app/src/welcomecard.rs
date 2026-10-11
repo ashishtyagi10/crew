@@ -62,9 +62,40 @@ pub fn push_welcome(
         block = block_rect(&cells, cols, rows, restore.is_some());
         cells
     });
-    if let Some(b) = block {
-        push_block(scenes, rect, cw, ch, b);
-    }
+    let Some(b) = block else {
+        return;
+    };
+    // Whole rows centre the block to half a row, and the card's sub-cell
+    // remainder all fell below it: it sat 14px high in the shot window
+    // (glass survey D-L9). The block and the lines it holds move by the px
+    // that centre it; the stamp keeps the card's last row.
+    let at = scenes.len() - 2; // push_framed: the content, then its frame
+    let shift = centring(rect, cw, ch, b);
+    let (held, rest) = std::mem::take(&mut scenes[at].cells)
+        .into_iter()
+        .partition(|c| (b.1..b.1 + b.3).contains(&c.row));
+    scenes[at].cells = rest;
+    let lines = PaneScene {
+        cells: held,
+        x: scenes[at].x + shift.0,
+        y: scenes[at].y + shift.1,
+        ..scenes[at].clone()
+    };
+    push_block(scenes, rect, cw, ch, b, shift);
+    scenes.push(lines);
+}
+
+/// The whole px that put block `b`'s centre on `rect`'s, held under a cell
+/// so the block never leaves the padding `block_rect` keeps round it.
+fn centring(rect: Rect, cw: f32, ch: f32, b: (u16, u16, u16, u16)) -> (f32, f32) {
+    let off = |at: f32, len: f32, from: u16, n: u16, cell: f32| {
+        let mid = at + f32::from(from + 1) * cell + f32::from(n) * cell / 2.0;
+        (at + len / 2.0 - mid).round().clamp(1.0 - cell, cell - 1.0)
+    };
+    (
+        off(rect.x, rect.w, b.0, b.2, cw),
+        off(rect.y, rect.h, b.1, b.3, ch),
+    )
 }
 
 /// Blank columns and rows between the block's content and its frame.
@@ -112,6 +143,7 @@ fn push_block(
     cw: f32,
     ch: f32,
     (col, row, cols, rows): (u16, u16, u16, u16),
+    (dx, dy): (f32, f32),
 ) {
     let t = crew_theme::theme();
     let stroke = crate::panecardglow::focused_stroke(t);
@@ -120,8 +152,8 @@ fn push_block(
     scenes.push(PaneScene {
         cells: frame,
         // The welcome's interior starts one cell in from `rect`.
-        x: rect.x + f32::from(col + 1) * cw,
-        y: rect.y + f32::from(row + 1) * ch,
+        x: rect.x + f32::from(col + 1) * cw + dx,
+        y: rect.y + f32::from(row + 1) * ch + dy,
         w: f32::from(cols) * cw,
         h: f32::from(rows) * ch,
         focused: true,
