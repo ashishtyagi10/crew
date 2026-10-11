@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.76
+
+**The welcome card sits in the middle of the window.**
+The welcome screen's card, with the rain, the CREW nameplate and the
+hints, sat about 14px above the middle of its pane. It was centred in
+whole rows, so an odd number of spare rows put it half a row high, and
+the leftover pixels below the last row added the rest. The card and
+everything in it are now centred to the pixel. The version stamp stays
+in the pane's bottom row.
+- **Test:** at six pane heights the card's centre is within 1px of the
+  pane's centre, with the nameplate inside the card. The test fails on
+  the old placement, 8px high.
+
 ## 0.26.75
 
 **Theme colour chips are clean squares on the glass.**
