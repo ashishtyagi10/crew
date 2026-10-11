@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[test]
 fn a_long_pane_name_cannot_eat_the_bottom_rule() {
     let cols = 52u16;
-    let (label, _) = bottom(
+    let (label, _) = pane_tag(
         None,
         None,
         Some("cargo test --workspace -p crew-app --bin crew"),
@@ -32,7 +32,7 @@ fn a_long_pane_name_cannot_eat_the_bottom_rule() {
 /// A short name is not padded out to the budget — it is exactly itself.
 #[test]
 fn a_short_pane_name_is_left_alone() {
-    assert_eq!(bottom(None, None, Some("zsh"), 52).unwrap().0, " zsh ");
+    assert_eq!(pane_tag(None, None, Some("zsh"), 52).unwrap().0, " zsh ");
 }
 
 /// A flashing status borrows the slot — and gets the rule's real budget, not
@@ -41,7 +41,7 @@ fn a_short_pane_name_is_left_alone() {
 fn a_status_flash_borrows_the_slot_and_may_use_the_rule() {
     let _g = crate::app::theme_test_guard();
     let msg = "copied 4 lines to the clipboard";
-    let (label, fg) = bottom(None, Some(msg), Some("zsh"), 52).unwrap();
+    let (label, fg) = pane_tag(None, Some(msg), Some("zsh"), 52).unwrap();
     assert!(
         label.contains(msg),
         "status was clipped to a tag: {label:?}"
@@ -56,8 +56,8 @@ fn a_status_flash_borrows_the_slot_and_may_use_the_rule() {
 /// No pane and no status leaves the rule unbroken.
 #[test]
 fn nothing_to_say_draws_nothing() {
-    assert!(bottom(None, None, None, 52).is_none());
-    assert!(bottom(None, None, Some("   "), 52).is_none());
+    assert!(pane_tag(None, None, None, 52).is_none());
+    assert!(pane_tag(None, None, Some("   "), 52).is_none());
 }
 
 /// The narrowest bar still gets a usable tag rather than a bare ellipsis.
@@ -86,7 +86,7 @@ fn the_top_legend_keeps_the_current_directory() {
 fn a_pending_confirmation_owns_the_slot_and_wears_the_bell() {
     let _g = crate::app::theme_test_guard();
     let ask = "close all 4 panes? /close all again";
-    let (label, fg) = bottom(Some(ask), Some("copied 4 lines"), Some("zsh"), 60).unwrap();
+    let (label, fg) = pane_tag(Some(ask), Some("copied 4 lines"), Some("zsh"), 60).unwrap();
     assert!(label.contains(ask), "the question is what shows: {label:?}");
     assert_eq!(fg, crew_theme::theme().bell, "a warning wears the bell");
 }
@@ -95,7 +95,7 @@ fn a_pending_confirmation_owns_the_slot_and_wears_the_bell() {
 #[test]
 fn the_slot_goes_back_when_nothing_is_pending() {
     let _g = crate::app::theme_test_guard();
-    assert_eq!(bottom(None, None, Some("zsh"), 60).unwrap().0, " zsh ");
+    assert_eq!(pane_tag(None, None, Some("zsh"), 60).unwrap().0, " zsh ");
 }
 
 /// Up does not walk back through everything typed: it recalls only lines
@@ -151,4 +151,16 @@ fn the_path_makes_room_for_the_tag() {
     );
     // Both still end in the directory you are actually in.
     assert!(with.ends_with("settingspane"), "{with:?}");
+}
+
+/// One slot, one tag: a pending confirmation outranks where you are in
+/// history, which outranks a status or the pane's name.
+#[test]
+fn the_right_end_holds_one_tag() {
+    let _g = crate::app::theme_test_guard();
+    let h = Some((" hist 1/1 ".to_string(), (1, 2, 3)));
+    let tag = |h, p| right(h, p, Some("saved"), Some("zsh"), 60).unwrap().0;
+    assert_eq!(tag(h.clone(), None), " hist 1/1 ");
+    assert!(tag(h, Some("again to close")).contains("again to close"));
+    assert_eq!(tag(None, None), " saved ");
 }

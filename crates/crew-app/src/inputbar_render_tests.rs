@@ -80,7 +80,7 @@ fn nothing_collides_on_the_row_you_type_into() {
     }
 }
 
-/// The bottom rule's tag is drawn AFTER the card, over the border it rides —
+/// The rule's tag is drawn AFTER the card, over the border it rides —
 /// which only reads correctly because later cells paint over earlier ones.
 /// Pinning it here so the ordering is a stated contract rather than an
 /// accident of two call sites' sequence.
@@ -89,11 +89,27 @@ fn a_border_tag_wins_the_cells_it_rides() {
     let _g = crate::app::theme_test_guard();
     let b = bar("x", true);
     let cells = b.cells(40, 3, None, Some("saved"), None);
-    let bottom = &rows_of(&cells, 40, 3)[2];
+    let top = &rows_of(&cells, 40, 3)[0];
+    assert!(top.contains("saved"), "the tag lost to the border: {top:?}");
+}
+
+/// Nothing rides the bottom rule: a tag there hangs half a row below the
+/// stroke, into the window's margin — 5px off its edge, where every other
+/// line keeps 12 (glass survey D-L1). The pane's name and a status share
+/// the top rule's right end with the path at its left.
+#[test]
+fn the_bottom_rule_is_only_a_rule() {
+    let _g = crate::app::theme_test_guard();
+    let b = bar("x", true);
+    let rows = rows_of(&b.cells(60, 3, None, None, Some("chat")), 60, 3);
     assert!(
-        bottom.contains("saved"),
-        "the tag lost to the border: {bottom:?}"
+        rows[0].find(" chat ").is_some_and(|i| i > 40),
+        "{:?}",
+        rows[0]
     );
+    assert!(!rows[2].contains("chat"), "{:?}", rows[2]);
+    let rows = rows_of(&b.cells(60, 3, None, Some("saved"), Some("chat")), 60, 3);
+    assert!(rows[0].contains("saved") && !rows[0].contains("chat"));
 }
 
 /// Every column the frame wrote on `row`, in draw order.
