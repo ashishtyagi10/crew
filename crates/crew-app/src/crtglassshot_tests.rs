@@ -43,6 +43,21 @@ pub(crate) fn window_with(
         for cmd in cmds {
             app.submit_input(cmd.to_string());
         }
+        // A file viewer loads on a worker: let it land, or the window is
+        // shot at `loading…` (the glass survey never saw `/view`).
+        for _ in 0..300 {
+            let mut waiting = false;
+            for p in &mut app.panes {
+                if let crate::pane::PaneContent::View(v) = &mut p.content {
+                    v.poll();
+                    waiting |= v.loading();
+                }
+            }
+            if !waiting {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
         app.zoomed = false;
         app.focused = 1;
         app.input.focused = false;

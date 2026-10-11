@@ -78,12 +78,24 @@ fn pool_chips(m: RandomMode) -> Vec<Chip> {
 /// A palette as one cell: its page underneath, `over` across the top half.
 /// Two colours in one column is what makes a dark pool's chips tell each other
 /// apart — every one of their pages is nearly black.
+///
+/// A glass palette's page is the glass, so its chip is `over` alone, a drawn
+/// square: under the half block, a page drawn as smoke went missing in some
+/// quadrants and not others, and a `Theme` value read as a broken glyph
+/// (glass survey D-L10).
 fn chip_of(id: ThemeId, over: Face) -> Chip {
     let t = id.theme();
-    Chip {
-        c: '\u{2580}',
-        fg: over(t),
-        bg: Some(t.page_bg),
+    match t.liquid {
+        Some(_) => Chip {
+            c: '\u{25a0}',
+            fg: over(t),
+            bg: None,
+        },
+        None => Chip {
+            c: '\u{2580}',
+            fg: over(t),
+            bg: Some(t.page_bg),
+        },
     }
 }
 
