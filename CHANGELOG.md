@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.77
+
+**`/keys` never ends a page on a lone section heading.**
+When the keys panel was taller than its window, a section's heading
+could land on the last visible row, with "in an agent pane" standing
+alone above the bottom edge and its keys hidden below. The window now
+stops before a heading that has none of its rows under it. Scroll down
+and the heading arrives with its rows.
+- **Test:** at three window heights and every scroll position, the last
+  row shown is a key (or the end of the list), never a heading or the
+  blank line above one. The test fails without the change.
+
 ## 0.26.76
 
 **The welcome card sits in the middle of the window.**

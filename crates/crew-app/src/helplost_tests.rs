@@ -37,3 +37,29 @@ fn the_hint_marks_its_cut_on_a_narrow_overlay() {
     assert!(hint.contains('\u{2026}'), "{hint:?}");
     assert!(cells.iter().all(|c| c.col < 30), "nothing past the edge");
 }
+
+/// A section's heading never closes the window alone: at every scroll of
+/// the default list, the last row shown is a binding (or the list's end) —
+/// `in an agent pane` stood alone at the fold (glass survey D).
+#[test]
+fn a_heading_waits_for_its_rows() {
+    use crate::helplayout::Row;
+    let all = crate::helplayout::rows_for("", 110, None);
+    for fit in [10, 25, 36] {
+        for scroll in 0..all.len() {
+            let shown = &all[scroll..];
+            let n = crate::help::kept(shown, fit);
+            assert!(
+                n >= fit.min(shown.len()).saturating_sub(2),
+                "{fit}@{scroll}"
+            );
+            if n < shown.len() {
+                let last = &shown[n - 1];
+                assert!(
+                    !matches!(last, Row::Head(..) | Row::Spacer),
+                    "{fit}@{scroll}"
+                );
+            }
+        }
+    }
+}
