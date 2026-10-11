@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.72
+
+**The usage heatmap's empty hours stay visible over a light desktop.**
+On `/usage` and `/dash`, an hour with no use is a small dot, so a quiet
+week still reads as a grid. The dots were the border's grey, chosen for
+an opaque page. Through the glass over a white desktop they measured
+1.1:1 on four palettes, and the grid vanished. On the glass they are now
+a light wash of the palette's own white, so they take on whatever
+desktop is under them: about 1.8–2.3:1 over white, 2.4–2.8:1 over a
+mid-tone and 2.5–3.2:1 over black (was 3.0). They are still quieter
+than any text.
+- **Test:** on every glass palette an idle dot reads between 1.8:1 and
+  3.2:1 over the glass on any desktop. The test fails with the old grey
+  dots, and also with grey dots lifted until they read over white,
+  which measured 7.6:1 over black.
+
 ## 0.26.71
 
 **The input bar's pane name moves up to its top edge.**
