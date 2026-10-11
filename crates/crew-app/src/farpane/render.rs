@@ -92,10 +92,17 @@ pub(crate) fn render_in(p: &FarPane, cols: u16, rows: u16, focused: bool) -> Vec
     // One caret, where the keys go: the F7 prompt and the drive list each
     // take them while open, so the command line then shows none.
     let typing = focused && p.prompt.is_none() && p.drive_select.is_none();
-    status_bar(&mut buf, split[1], sel_label.as_deref());
+    // The rows under the panels start on the listing's column, not 3px
+    // left of the frames' stroke above them.
+    let row = |i: usize| Rect {
+        x: split[i].x + 1,
+        width: split[i].width - 1,
+        ..split[i]
+    };
+    status_bar(&mut buf, row(1), sel_label.as_deref());
     command_bar(
         &mut buf,
-        split[2],
+        row(2),
         &p.active_panel_folder(),
         &format!("{}{}", p.cmdline, if typing { "\u{258f}" } else { "" }),
         ghost.as_deref(),
@@ -105,8 +112,8 @@ pub(crate) fn render_in(p: &FarPane, cols: u16, rows: u16, focused: bool) -> Vec
     );
     // F7's prompt takes over the function-key row; F6's box floats above.
     match p.prompt.as_ref().filter(|pr| !pr.floats()) {
-        Some(prompt) => prompt_bar(&mut buf, split[3], prompt, focused),
-        None => function_bar(&mut buf, split[3]),
+        Some(prompt) => prompt_bar(&mut buf, row(3), prompt, focused),
+        None => function_bar(&mut buf, row(3)),
     }
     if let Some(prompt) = p.prompt.as_ref().filter(|pr| pr.floats()) {
         movebox::move_box(&mut buf, area, prompt, focused);

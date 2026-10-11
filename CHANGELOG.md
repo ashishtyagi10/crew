@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.79
+
+**The `/far` command line lines up with the file lists above it.**
+Under the two file panels, the selected entry's path, the `crew $`
+command line and the F-key bar started on the panel frames' own column,
+3px left of the frame's edge. They now start one column in, in line
+with the listings' `▸` markers, the way a chat's text sits inside its
+composer.
+- **Test:** the three rows under the panels start one column right of
+  the frames' left edge. The test fails on the old layout.
+
 ## 0.26.78
 
 **TOML, YAML and JSON files colour their values, not their key names.**
