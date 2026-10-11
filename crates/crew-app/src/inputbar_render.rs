@@ -21,11 +21,12 @@ const PLACEHOLDERS: &[&str] = &["type / for commands", "/ for commands", "/"];
 impl InputBar {
     /// Render the input card: a rounded border with the working directory as its
     /// top-border legend, `> text` on the interior row, and an optional transient
-    /// `status` message on the bottom border. Prompt and border brighten on focus.
+    /// `status` message at the top rule's right end. Prompt and border brighten
+    /// on focus.
     ///
-    /// `pane` is the focused pane's name, drawn as a right-aligned legend on the
-    /// bottom border — the mirror of the cwd riding the top one. Typing here acts
-    /// on whichever pane is selected, and until now the bar never said which.
+    /// `pane` is the focused pane's name, right-aligned on the same rule — the
+    /// mirror of the cwd at its left. Typing here acts on whichever pane is
+    /// selected, and until now the bar never said which.
     pub fn cells(
         &self,
         cols: u16,
@@ -39,13 +40,13 @@ impl InputBar {
         }
         // Interior row between the top (legend) and bottom borders.
         let row = rows / 2;
-        // Where you are in history, at the right end of the TOP rule — the
-        // one border slot the bar never used (see `inputlegend::history_tag`).
-        // Measured before the legend is fitted, so a deep path gives way to it
+        // The tag at the right end of the top rule (`inputlegend::right`),
+        // measured before the legend is fitted, so a deep path gives way to it
         // rather than being silently overwritten by it.
         let history =
             crate::inputlegend::history_tag(&self.history, &self.hist_prefix, self.hist_pos, cols);
-        let reserved = history.as_ref().map_or(0, |(l, _)| str_w(l) + 1);
+        let tag = crate::inputlegend::right(history, pending, status, pane, cols);
+        let reserved = tag.as_ref().map_or(0, |(l, _)| str_w(l) + 1);
 
         // The card frame with the cwd riding the top border as its legend
         // (and the focus-mode tag in front of it) — see `inputlegend`.
@@ -153,19 +154,8 @@ impl InputBar {
             );
         }
 
-        // Where you are in history, at the right end of the TOP rule — the
-        // one border slot the bar never used (see `inputlegend::history_tag`).
-        let history =
-            crate::inputlegend::history_tag(&self.history, &self.hist_prefix, self.hist_pos, cols);
-        if let Some((label, fg)) = history {
+        if let Some((label, fg)) = tag {
             place_tag(&mut out, &label, fg, cols, 0);
-        }
-
-        // The bottom rule's tag: a flashing status, else the focused pane's
-        // name, both budgeted so the rule stays a rule (see `inputlegend`).
-        let bottom = crate::inputlegend::bottom(pending, status, pane, cols);
-        if let Some((label, fg)) = bottom {
-            place_tag(&mut out, &label, fg, cols, rows - 1);
         }
         out
     }

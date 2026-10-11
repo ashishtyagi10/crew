@@ -1,6 +1,6 @@
-//! What rides the input bar's two border rows: the working directory (and the
-//! focus-mode tag) on the top rule, and the focused pane's name — or a
-//! transient status flash — on the bottom one.
+//! What rides the input bar's top rule: the working directory (and the
+//! focus-mode tag) at its left, and the focused pane's name — or a transient
+//! status flash, or where you are in history — at its right.
 //!
 //! Split out of `inputbar_render` because both slots have the same job and
 //! neither is text: they are *tags on a frame*. The bottom one used to be
@@ -57,7 +57,7 @@ pub(crate) fn top(cwd: &std::path::Path, cols: u16, reserved: usize, cast: bool)
     }
 }
 
-/// The bottom-border tag, right-aligned: a transient status while one is
+/// The pane's tag, right-aligned: a transient status while one is
 /// flashing, else the focused pane's name. A status is a moment; the pane
 /// legend is the bar's standing answer to "where does this go?", so the flash
 /// borrows the slot and gives it back.
@@ -74,7 +74,7 @@ pub(crate) fn top(cwd: &std::path::Path, cols: u16, reserved: usize, cast: bool)
 ///
 /// Returns the already-clipped label (spaces included, so the rule breaks
 /// cleanly around it) and its colour.
-pub(crate) fn bottom(
+pub(crate) fn pane_tag(
     pending: Option<&str>,
     status: Option<&str>,
     pane: Option<&str>,
@@ -99,6 +99,24 @@ pub(crate) fn bottom(
     };
     let text = crate::chordglyph::prose(text);
     Some((format!(" {} ", clip_w(&text, budget)), fg))
+}
+
+/// The one tag at the right end of the top rule: a pending confirmation,
+/// then where you are in history while you browse it, then [`pane_tag`].
+/// It rode the bottom rule until v0.26.70 — half a row below the stroke,
+/// 5px off the window's edge where every other line keeps 12 (glass survey
+/// D-L1).
+pub(crate) fn right(
+    history: Option<(String, (u8, u8, u8))>,
+    pending: Option<&str>,
+    status: Option<&str>,
+    pane: Option<&str>,
+    cols: u16,
+) -> Option<(String, (u8, u8, u8))> {
+    match (pending, history) {
+        (None, Some(h)) => Some(h),
+        _ => pane_tag(pending, status, pane, cols),
+    }
 }
 
 /// Where you are while browsing the bar's history with Up/Down — the one

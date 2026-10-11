@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.71
+
+**The input bar's pane name moves up to its top edge.**
+The name of the pane you are typing into (and a flashing status such as
+"copied 4 lines") sat on the input bar's bottom edge. Words on an edge
+hang half a row below it, so they ended about 5px from the bottom of
+the window, where every other line keeps 12px. They now sit at the right
+end of the top edge, across from the folder on its left, and the bottom
+edge is a plain line. While you browse history with Up and Down, the
+`hist 2/5` marker takes that spot, and a pending "run it again to
+confirm" warning outranks both.
+- **Test:** nothing is drawn on the bar's bottom row; the pane's name
+  and a status land at the right end of the top row; the right end holds
+  one tag, in order: warning, history, status, pane name.
+
 ## 0.26.70
 
 **The input bar and the nav line up with the panes, to the pixel.**

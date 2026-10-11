@@ -188,39 +188,39 @@ fn cells_with_empty_cwd_shows_solid_top_border() {
 }
 
 #[test]
-fn cells_show_status_on_bottom_border() {
+fn cells_show_status_on_the_top_rule() {
     let _g = crate::app::theme_test_guard();
     let bar = InputBar {
         focused: true,
         ..Default::default()
     };
     let cells = bar.cells(40, 3, None, Some("copied 4 lines"), None);
-    // status characters appear on the bottom border row in the amber colour
+    // status characters appear on the top rule in the amber colour
     assert!(cells
         .iter()
-        .any(|c| c.c == 'c' && c.row == 2 && c.fg == crew_theme::theme().status_fg));
-    // without a status, the bottom row carries no amber text
+        .any(|c| c.c == 'c' && c.row == 0 && c.fg == crew_theme::theme().status_fg));
+    // without a status, no row carries amber text
     let plain = bar.cells(40, 3, None, None, None);
     assert!(!plain.iter().any(|c| c.fg == crew_theme::theme().status_fg));
 }
 
 /// Typing in the bar acts on whichever pane is selected, and the bar never
-/// said which. The name rides the bottom border as a legend, mirroring the cwd
-/// on the top one.
+/// said which. The name rides the top rule's right end as a legend,
+/// mirroring the cwd at its left.
 #[test]
-fn the_focused_pane_names_itself_on_the_bottom_border() {
+fn the_focused_pane_names_itself_on_the_top_rule() {
     let _g = crate::app::theme_test_guard();
     let bar = InputBar {
         focused: true,
         ..Default::default()
     };
     let cells = bar.cells(40, 3, None, None, Some("agent smith"));
-    let bottom: String = row_text(&cells, 2);
-    assert!(bottom.contains("agent smith"), "{bottom}");
+    let top: String = row_text(&cells, 0);
+    assert!(top.contains("agent smith"), "{top}");
     // Drawn as a legend, not as a status flash.
     assert!(cells
         .iter()
-        .any(|c| c.c == 'a' && c.row == 2 && c.fg == crew_theme::theme().legend_off));
+        .any(|c| c.c == 'a' && c.row == 0 && c.fg == crew_theme::theme().legend_off));
 }
 
 /// A status flash borrows the slot and gives it back — two right-aligned
@@ -232,9 +232,9 @@ fn a_status_flash_supersedes_the_pane_legend() {
         ..Default::default()
     };
     let cells = bar.cells(40, 3, None, Some("copied 4 lines"), Some("agent smith"));
-    let bottom = row_text(&cells, 2);
-    assert!(bottom.contains("copied 4 lines"), "{bottom}");
-    assert!(!bottom.contains("agent smith"), "{bottom}");
+    let top = row_text(&cells, 0);
+    assert!(top.contains("copied 4 lines"), "{top}");
+    assert!(!top.contains("agent smith"), "{top}");
 }
 
 /// A pane title longer than the bar clips instead of running over the corner.
@@ -248,21 +248,21 @@ fn a_long_pane_name_clips_inside_the_border() {
         "legend overran the card width"
     );
     // The closing corner survives.
-    assert!(cells.iter().any(|c| c.c == '\u{256f}' && c.row == 2));
-    assert!(row_text(&cells, 2).contains('\u{2026}'));
+    assert!(cells.iter().any(|c| c.c == '\u{256e}' && c.row == 0));
+    assert!(row_text(&cells, 0).contains('\u{2026}'));
 }
 
 /// No panes at all (the welcome screen) is the one moment the question has no
 /// answer, and an empty name must not draw a bare `  ` gap in the rule.
 #[test]
-fn no_pane_leaves_the_bottom_rule_intact() {
+fn no_pane_leaves_the_rule_intact() {
     let bar = InputBar::default();
     for name in [None, Some(""), Some("   ")] {
         let cells = bar.cells(40, 3, None, None, name);
-        let bottom = row_text(&cells, 2);
+        let top = row_text(&cells, 0);
         assert!(
-            bottom.chars().filter(|c| *c == '\u{2500}').count() >= 36,
-            "{name:?} broke the rule: {bottom}"
+            top.chars().filter(|c| *c == '\u{2500}').count() >= 36,
+            "{name:?} broke the rule: {top}"
         );
     }
 }
