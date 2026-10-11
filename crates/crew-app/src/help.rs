@@ -79,6 +79,18 @@ fn visible_rows(rows: u16) -> usize {
     usize::from(rows.saturating_sub(2))
 }
 
+/// How many of `rows` a window `fit` rows tall shows: all that fit, less a
+/// heading (and the blank above it) that would close the window with none
+/// of its rows under it — `in an agent pane` stood alone at the fold.
+pub(crate) fn kept(rows: &[helplayout::Row], fit: usize) -> usize {
+    use helplayout::Row::{Head, Spacer};
+    let mut n = rows.len().min(fit);
+    while n > 1 && n < rows.len() && matches!(rows[n - 1], Head(..) | Spacer) {
+        n -= 1;
+    }
+    n
+}
+
 /// The furthest the overlay can be scrolled: enough to bring the last row
 /// into view, and not one row more — scrolling into blank space below a list
 /// is the thing that makes an unfamiliar scroll feel broken.
@@ -114,7 +126,9 @@ pub fn help_cells(
     let col = helplayout::key_col(cols);
     let inner_w = (cols as usize).saturating_sub(2 * INSET);
     let all = helplayout::rows_for(needle, cols, mine);
-    let items = helpitem::items(&all[scroll.min(all.len())..], col, inner_w, needle);
+    let shown = &all[scroll.min(all.len())..];
+    let shown = &shown[..kept(shown, visible_rows(rows))];
+    let items = helpitem::items(shown, col, inner_w, needle);
     // The list fills the interior; the frame is the composer pop-ups' —
     // the focused stroke and a bold accent legend (`popupchrome`), since
     // this overlay, like them, is the box the next key lands in. It was a
