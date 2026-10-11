@@ -12,6 +12,11 @@ fn hist(vals: &[u64]) -> History {
     h
 }
 
+/// The chart as the nav draws it, 24 columns wide, from `row0`.
+fn nav(rx: &History, tx: &History, row0: u16) -> Vec<crew_render::Paint> {
+    paint(rx, tx, 24, (super::UNDER_LEGEND, row0), 2.0, DOWN, UP)
+}
+
 /// Ink of one colour above / below the block's centre line, in rows.
 fn split(p: &[crew_render::Paint], row0: u16, color: (u8, u8, u8)) -> (f32, f32) {
     let mid = f32::from(row0) + f32::from(ROWS) / 2.0;
@@ -35,7 +40,7 @@ fn split(p: &[crew_render::Paint], row0: u16, color: (u8, u8, u8)) -> (f32, f32)
 #[test]
 fn down_grows_up_and_up_grows_down() {
     let _g = crate::app::theme_test_guard();
-    let p = paint(&hist(&[900; 8]), &hist(&[900; 8]), 24, 4, 2.0, DOWN, UP);
+    let p = nav(&hist(&[900; 8]), &hist(&[900; 8]), 4);
     let (d_above, d_below) = split(&p, 4, DOWN);
     let (u_above, u_below) = split(&p, 4, UP);
     assert!(
@@ -54,15 +59,7 @@ fn both_halves_share_one_scale() {
     // Scaled independently the two would reach equally far and say the
     // traffic was balanced.
     // Both well above the chart's floor, so the axis is theirs.
-    let p = paint(
-        &hist(&[4_000_000; 8]),
-        &hist(&[400_000; 8]),
-        24,
-        0,
-        2.0,
-        DOWN,
-        UP,
-    );
+    let p = nav(&hist(&[4_000_000; 8]), &hist(&[400_000; 8]), 0);
     let mid = f32::from(ROWS) / 2.0;
     let near = |a: (u8, u8, u8), b: (u8, u8, u8)| {
         let d = |x: u8, y: u8| (x as i32 - y as i32).abs();
@@ -88,7 +85,7 @@ fn both_halves_share_one_scale() {
 fn an_idle_network_draws_its_axis_and_nothing_else() {
     let _g = crate::app::theme_test_guard();
     let axis = crew_theme::theme().border_normal;
-    let p = paint(&hist(&[0; 8]), &hist(&[0; 8]), 24, 0, 2.0, DOWN, UP);
+    let p = nav(&hist(&[0; 8]), &hist(&[0; 8]), 0);
     // Named by colour, not by "something was drawn": the old assertion
     // passed on the two curves' strokes while the axis itself was thinner
     // than a canvas pixel and never rendered at all.
@@ -122,7 +119,7 @@ fn an_idle_link_does_not_fill_the_chart() {
     let _g = crate::app::theme_test_guard();
     // A few hundred bytes a second of background chatter. Scaled to its
     // own peak this drew a full-height band and read as a saturated link.
-    let p = paint(&hist(&[300; 8]), &hist(&[120; 8]), 24, 0, 2.0, DOWN, UP);
+    let p = nav(&hist(&[300; 8]), &hist(&[120; 8]), 0);
     let mid = f32::from(ROWS) / 2.0;
     let reach = p
         .iter()
@@ -133,15 +130,7 @@ fn an_idle_link_does_not_fill_the_chart() {
     // baseline — but a fraction of what a real transfer draws.
     assert!(reach < 0.3, "an idle link drew {reach} rows of chart");
     // …and a real transfer still fills it.
-    let busy = paint(
-        &hist(&[9_000_000; 8]),
-        &hist(&[10; 8]),
-        24,
-        0,
-        2.0,
-        DOWN,
-        UP,
-    );
+    let busy = nav(&hist(&[9_000_000; 8]), &hist(&[10; 8]), 0);
     let loud = busy
         .iter()
         .filter(|r| r.color == DOWN)
@@ -155,21 +144,13 @@ fn an_idle_link_does_not_fill_the_chart() {
 fn with_no_history_at_all_nothing_is_drawn() {
     let _g = crate::app::theme_test_guard();
     let empty = History::new(8);
-    assert!(paint(&empty, &empty, 24, 0, 2.0, DOWN, UP).is_empty());
+    assert!(nav(&empty, &empty, 0).is_empty());
 }
 
 #[test]
 fn the_chart_stays_in_its_rows_and_indent() {
     let _g = crate::app::theme_test_guard();
-    let p = paint(
-        &hist(&[500, 900, 100]),
-        &hist(&[10, 700, 20]),
-        24,
-        6,
-        2.0,
-        DOWN,
-        UP,
-    );
+    let p = nav(&hist(&[500, 900, 100]), &hist(&[10, 700, 20]), 6);
     assert!(!p.is_empty());
     for r in &p {
         assert!(r.x >= 3.0, "indented under the legend: {r:?}");
@@ -179,4 +160,19 @@ fn the_chart_stays_in_its_rows_and_indent() {
             "{r:?}"
         );
     }
+}
+
+/// `/dash` starts the chart on its text's column and keeps one column clear
+/// of the card's right edge, as the nav does: at the nav's indent it stood
+/// 16px in from `NET`, with less air on its right than its left (glass
+/// survey D-L7).
+#[test]
+fn on_the_dash_the_chart_spans_the_text_column() {
+    let _g = crate::app::theme_test_guard();
+    let (rx, tx) = (hist(&[500, 900]), hist(&[700, 20]));
+    let p = paint(&rx, &tx, 40, (1, 0), 2.0, DOWN, UP);
+    let left = p.iter().map(|r| r.x).fold(f32::MAX, f32::min);
+    let right = p.iter().map(|r| r.x + r.w).fold(0.0, f32::max);
+    assert!((left - 1.0).abs() < 0.05, "on the text column: {left}");
+    assert!((right - 39.0).abs() < 0.05, "a column short: {right}");
 }

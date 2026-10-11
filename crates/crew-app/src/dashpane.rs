@@ -115,7 +115,7 @@ impl DashPane {
                 rx,
                 tx,
                 cols,
-                NET_TOP + 1,
+                (1, NET_TOP + 1),
                 aspect,
                 crate::net::spark(),
                 crate::net::up_color(),
