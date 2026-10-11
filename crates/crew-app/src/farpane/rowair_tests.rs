@@ -66,3 +66,36 @@ fn the_cursor_bar_is_bold_on_its_fill() {
         "every inked cell on the bar is bold"
     );
 }
+
+/// The rows under the panels — the selection's path, `crew $`, the F-key
+/// bar — start on the listing's column, inside the frames' left rule: from
+/// the rule's own cell they stood 3px left of the stroke above them.
+#[test]
+fn the_rows_under_the_panels_start_inside_the_frames_rule() {
+    let pane = crate::farpane::FarPane::new(std::env::temp_dir());
+    let cells = {
+        let _lock = crate::app::THEME_LOCK.lock();
+        crate::farpane::render::render(&pane, 80, 24)
+    };
+    let first = |row: u16| {
+        let mut v: Vec<_> = cells
+            .iter()
+            .filter(|c| c.row == row && c.c != ' ')
+            .collect();
+        v.sort_by_key(|c| c.col);
+        v.first().map(|c| (c.col, c.c))
+    };
+    assert_eq!(
+        first(0).map(|f| f.0),
+        Some(0),
+        "the frame's rule is column 0"
+    );
+    for row in 21..24 {
+        assert_eq!(
+            first(row).map(|f| f.0),
+            Some(1),
+            "row {row}: {:?}",
+            first(row)
+        );
+    }
+}
