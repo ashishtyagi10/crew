@@ -1,6 +1,8 @@
 use super::draw;
 use crate::plot::Canvas;
 
+const STUB: ((u8, u8, u8), f32) = ((90, 90, 90), 0.35);
+
 /// Ink (alpha × area, in canvas units²) in each of `n` equal slots.
 fn ink_per_slot(c: &Canvas, n: usize) -> Vec<f32> {
     let (w, _) = c.size();
@@ -24,6 +26,7 @@ fn a_taller_value_draws_a_taller_bar() {
         (0.0, 0.0, w, h),
         &[0.25, 1.0, 0.5, 0.75],
         (255, 200, 0),
+        STUB,
     );
     let ink = ink_per_slot(&c, 4);
     assert!(
@@ -36,7 +39,13 @@ fn a_taller_value_draws_a_taller_bar() {
 fn a_zero_day_is_a_stub_not_a_hole() {
     let mut c = Canvas::new(21, 3, 2.0);
     let (w, h) = c.size();
-    draw(&mut c, (0.0, 0.0, w, h), &[1.0, 0.0, 1.0], (255, 200, 0));
+    draw(
+        &mut c,
+        (0.0, 0.0, w, h),
+        &[1.0, 0.0, 1.0],
+        (255, 200, 0),
+        STUB,
+    );
     let ink = ink_per_slot(&c, 3);
     assert!(ink[1] > 0.0, "the zero day drew nothing");
     assert!(ink[1] < ink[0] * 0.1, "the stub is not a bar: {ink:?}");
@@ -47,7 +56,7 @@ fn neighbouring_bars_do_not_touch() {
     // Every day its own bar: some column between two slots stays empty.
     let mut c = Canvas::new(14, 2, 2.0);
     let (w, h) = c.size();
-    draw(&mut c, (0.0, 0.0, w, h), &[1.0, 1.0], (255, 200, 0));
+    draw(&mut c, (0.0, 0.0, w, h), &[1.0, 1.0], (255, 200, 0), STUB);
     let mid = w / 2.0;
     assert!(
         c.paint()
@@ -61,6 +70,6 @@ fn neighbouring_bars_do_not_touch() {
 fn nothing_to_draw_draws_nothing() {
     let mut c = Canvas::new(10, 2, 2.0);
     let (w, h) = c.size();
-    draw(&mut c, (0.0, 0.0, w, h), &[], (255, 200, 0));
+    draw(&mut c, (0.0, 0.0, w, h), &[], (255, 200, 0), STUB);
     assert!(c.paint().is_empty());
 }

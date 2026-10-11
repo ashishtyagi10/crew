@@ -24,7 +24,10 @@ pub(crate) fn paint(daily: &[u64], w_cells: u16, rows: u16, aspect: f32) -> Vec<
     let (w, h) = c.size();
     let head = if rows >= 2 { c.row_units() } else { 0.0 };
     let color = crew_theme::theme().ansi[11];
-    crate::plot::bars::draw(&mut c, (0.0, head, w, h - head), &values, color);
+    // A day that cost nothing is the canvas's "nothing measured" mark, not
+    // a stub of the bars' amber, which went khaki on pink and blue glass.
+    let stub = crate::plot::heatmap::idle_ink(&crew_theme::theme());
+    crate::plot::bars::draw(&mut c, (0.0, head, w, h - head), &values, color, stub);
     c.paint()
 }
 

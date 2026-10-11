@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.74
+
+**The cost-per-day bars line up with the heatmap above them.**
+On `/usage` the cost bars ran from the pane's first column to a column
+short of the heatmap's right end: 24px from the left edge and 46px from
+the right. They now span exactly the heatmap's width on `/usage` and on
+`/dash`, so the two charts share their edges. A day that cost nothing
+draws its small stub in the same light wash as the heatmap's empty
+hours, instead of the bars' amber, which looked khaki on pink and blue
+glass.
+- **Test:** the cost bars keep the same air at both ends of the heat
+  grid's span. The test fails on the old layout.
+
 ## 0.26.73
 
 **The `/dash` network chart lines up with the text above it.**

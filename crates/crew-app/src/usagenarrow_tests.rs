@@ -62,3 +62,35 @@ fn the_narrow_pane_keeps_the_key_and_drops_the_peak() {
     assert!(wide.contains("in   1.8M  82%"), "{wide}");
     assert!(wide.contains("peak $0.81"), "{wide}");
 }
+
+/// The cost bars stand under the heat grid's own span, so the two charts
+/// share their edges: they ran from column 1 to a column short of the
+/// grid's end — 24px from the left stroke, 46px from the right (glass
+/// survey D-L8).
+#[test]
+fn the_cost_bars_span_the_heat_grid_above_them() {
+    let _g = crate::app::theme_test_guard();
+    let b = crate::usageledger::Buckets {
+        hourly: vec![5; crate::usageledger::DAYS * crate::usageledger::HOURS],
+        daily_cost: vec![1, 4, 2, 9, 3, 6, 5],
+        tok_in: 10,
+        tok_out: 5,
+        cost_microusd: 100,
+    };
+    let (cols, rows) = (60u16, 34u16);
+    let l = super::layout(rows);
+    let p = super::paint(&b, cols, rows, 2.0);
+    let span = |top: f32, end: f32| {
+        let band = p.iter().filter(|q| q.y >= top && q.y < end);
+        let lo = band.clone().map(|q| q.x).fold(f32::MAX, f32::min);
+        (lo, band.map(|q| q.x + q.w).fold(0.0, f32::max))
+    };
+    let heat = span(f32::from(super::HEAT_TOP), f32::from(l.split_top));
+    let cost = span(f32::from(l.cost_top), f32::from(rows));
+    let day = (heat.1 - heat.0) / crate::usageledger::DAYS as f32;
+    assert!((heat.0 - f32::from(super::LABEL_W)).abs() < 0.2, "{heat:?}");
+    // The outer bars keep their slots' own air, the same at both ends.
+    let (l_air, r_air) = (cost.0 - heat.0, heat.1 - cost.1);
+    assert!((l_air - r_air).abs() < 0.1, "{cost:?} vs {heat:?}");
+    assert!((0.0..day / 4.0).contains(&l_air), "{cost:?} vs {heat:?}");
+}
