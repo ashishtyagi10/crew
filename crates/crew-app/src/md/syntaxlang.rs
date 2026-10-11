@@ -102,6 +102,11 @@ pub(super) fn keywords(lang: &str) -> &'static [&'static str] {
         "js" | "javascript" | "ts" | "typescript" | "tsx" | "jsx" => JS,
         "go" | "golang" => GO,
         "sh" | "bash" | "zsh" | "shell" | "console" => SH,
+        // Data has keys and literals, not keywords: under the C-family words
+        // below, a Cargo.toml's `default-features` lit `default` alone, as
+        // any key named `type`, `new` or `case` would.
+        "toml" => &["true", "false"],
+        "yaml" | "yml" | "json" | "jsonc" => &["true", "false", "null"],
         // An unlabelled or unknown fence gets the C-family words, which
         // overlap heavily with most curly-brace languages. Wrong keywords are
         // cheap here: a missed word reads as plain code, which is the default.

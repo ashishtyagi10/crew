@@ -81,6 +81,24 @@ fn shell_and_go_get_their_own_keywords() {
     assert!(of(&go, Token::Keyword).contains(&"func"), "{go:?}");
 }
 
+/// Data has keys and literals, not keywords: a Cargo.toml's
+/// `default-features` lit `default` alone under the C-family words an
+/// unknown fence gets.
+#[test]
+fn a_data_files_keys_are_not_keywords() {
+    for (line, lang) in [
+        ("serde = { default-features = false }", "toml"),
+        ("new: null  # case", "yaml"),
+        ("{default: null, this: true}", "json"),
+    ] {
+        let runs = assert_lossless(line, lang);
+        let words = of(&runs, Token::Keyword);
+        assert!(!words.is_empty(), "{lang}: the literal is lit: {runs:?}");
+        let literal = |w: &&str| ["true", "false", "null"].contains(w);
+        assert!(words.iter().all(literal), "{lang}: {runs:?}");
+    }
+}
+
 /// An unlabelled fence still tokenizes — strings and C-family comments are
 /// right often enough to be worth it, and a wrong guess reads as plain code.
 #[test]
