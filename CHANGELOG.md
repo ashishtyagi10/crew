@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.78
+
+**TOML, YAML and JSON files colour their values, not their key names.**
+Data files borrowed the JavaScript keyword list, so in `/view
+Cargo.toml` the `default` of `default-features` was coloured as a
+keyword while the rest of the key stayed plain, and so would any key
+named `type`, `new` or `case`. Data files now colour only their literal
+values: `true` and `false` in TOML, plus `null` in YAML and JSON. This
+applies to code blocks in chat too.
+- **Test:** a TOML, a YAML and a JSON line colour only their literals.
+  The test fails on the old word list.
+
 ## 0.26.77
 
 **`/keys` never ends a page on a lone section heading.**
