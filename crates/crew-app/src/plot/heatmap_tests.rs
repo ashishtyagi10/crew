@@ -126,7 +126,7 @@ fn a_short_values_slice_leaves_the_rest_at_zero() {
     assert!(alpha_at(&c, x0, y0) > 0.9, "the readings are hot");
     assert_eq!(
         color_at(&c, x3, y3),
-        Some(crew_theme::theme().border_normal),
+        Some(super::idle_ink(&crew_theme::theme()).0),
         "the rest are idle dots"
     );
 }
@@ -145,9 +145,9 @@ fn an_idle_cell_is_a_dot_and_a_busy_one_a_tile() {
     assert!(near_edge(1) > 0.5, "the busy cell fills its tile");
 }
 
-/// An idle hour's dot is drawn strong enough to see, in the neutral the
-/// axes' dots use: a quiet day is a row of dots, not a row missing from the
-/// grid, and not a reading on the heat scale either.
+/// An idle hour is drawn as its idle dot, not as a reading on the heat
+/// scale: a quiet day is a row of dots, not a row missing from the grid
+/// (that it can be seen is the next test's).
 #[test]
 fn an_idle_row_is_dots_you_can_see() {
     let _g = crate::app::theme_test_guard();
@@ -156,10 +156,37 @@ fn an_idle_row_is_dots_you_can_see() {
     v[3] = 50; // one busy hour on the first day; the second day is idle
     let c = grid(&v, rows, cols);
     let (x, y) = centre(&c, rows, cols, 1, 2);
+    let (ink, alpha) = super::idle_ink(&crew_theme::theme());
     assert!(
-        alpha_at(&c, x, y) >= 0.6,
+        (alpha_at(&c, x, y) - alpha).abs() < 0.01,
         "idle dot at {}",
         alpha_at(&c, x, y)
     );
-    assert_eq!(color_at(&c, x, y), Some(crew_theme::theme().border_normal));
+    assert_eq!(color_at(&c, x, y), Some(ink));
+}
+
+/// On glass the dot is a wash of the ink, so it reads over the frost
+/// whatever desktop is under it — and stays quieter than any word. The
+/// border's neutral measured 1.1:1 over a white desktop on four palettes,
+/// and a quiet week vanished (glass survey D-L2).
+#[test]
+fn an_idle_dot_reads_over_the_glass_on_any_desktop() {
+    let _g = crate::app::theme_test_guard();
+    let over = |a: (u8, u8, u8), g: (u8, u8, u8), k: f32| {
+        let m = |p: u8, q: u8| (f32::from(q) + (f32::from(p) - f32::from(q)) * k).round() as u8;
+        (m(a.0, g.0), m(a.1, g.1), m(a.2, g.2))
+    };
+    let mut glass = 0;
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let t = crew_theme::theme();
+        let (ink, alpha) = super::idle_ink(&t);
+        for g in crew_theme::glasslegend::pane_grounds(&t) {
+            let got = crew_theme::contrast_ratio(over(ink, g, alpha), g);
+            assert!((1.8..=3.2).contains(&got), "{}: {got:.2}", id.as_str());
+            glass += 1;
+        }
+    }
+    assert!(glass >= 36, "the glass palettes were checked");
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
 }

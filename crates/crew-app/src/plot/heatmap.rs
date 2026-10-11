@@ -20,6 +20,22 @@ const DOT: f32 = 0.3;
 /// nothing in it read as a row missing from the grid.
 const IDLE_ALPHA: f32 = 0.7;
 
+/// An idle dot on glass: the glass's own ink at this strength, a lighter
+/// frost over whatever desktop is under it. The border's neutral was picked
+/// for the page; through the frost over a white desktop it measured 1.1:1
+/// on four palettes and a quiet week vanished, and lifted until it read
+/// there it stood 7.6:1 over black (glass survey D-L2). A wash of the ink
+/// reads 1.9–3:1 over any desktop: plainly a dot, still quieter than a word.
+const IDLE_GLASS: f32 = 0.35;
+
+/// An idle dot's colour and alpha on `t`.
+pub(crate) fn idle_ink(t: &crew_theme::Theme) -> ((u8, u8, u8), f32) {
+    match t.liquid {
+        None => (t.border_normal, IDLE_ALPHA),
+        Some(_) => (t.ink, IDLE_GLASS),
+    }
+}
+
 /// A cell's colour, given its value's share of the peak (`0.0..=1.0`).
 pub type Shade<'a> = &'a dyn Fn(f32) -> ((u8, u8, u8), f32);
 
@@ -59,15 +75,8 @@ pub fn draw(
                 // An idle hour is a dot at the cell's centre: a quiet week
                 // is a calm dot grid, not a slab of empty tiles.
                 let d = DOT * bw.min(bh);
-                let idle = crew_theme::theme().border_normal;
-                c.rect(
-                    bx + (bw - d) / 2.0,
-                    by + (bh - d) / 2.0,
-                    d,
-                    d,
-                    idle,
-                    IDLE_ALPHA,
-                );
+                let (idle, alpha) = idle_ink(&crew_theme::theme());
+                c.rect(bx + (bw - d) / 2.0, by + (bh - d) / 2.0, d, d, idle, alpha);
                 continue;
             }
             // Rounded corners at this size would cost more than they show;
