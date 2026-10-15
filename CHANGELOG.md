@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.97
+
+**An empty week in `/usage` says so instead of drawing a blank chart.**
+When nothing was spent all week, the "COST PER DAY" chart in `/usage`
+was an empty box with only its day labels under it. It looked like a
+chart that had failed to draw. It now reads "nothing spent in the last
+7 days" in the middle of the chart, where the bars would be. Once any
+day has a cost, the bars draw as before and the note goes away. This
+also applies when you have used tokens but they cost nothing, for
+example on a subscription.
+- **Test:** a week with no cost shows the note on one of the chart's
+  rows, and a week with one day of spending doesn't show it.
+
 ## 0.26.96
 
 **The settings form fades out where it scrolls instead of cutting its
