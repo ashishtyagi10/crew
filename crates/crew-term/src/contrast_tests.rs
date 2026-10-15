@@ -89,3 +89,46 @@ fn a_whisper_on_glass_reads_over_the_frost() {
     let plain = dimmed(p.term_fg, p.term_bg);
     assert_eq!(dimmed_on_page(p.term_fg, p.term_bg, p), plain);
 }
+
+/// Body text on the pane's own background clears the floor over the glass's
+/// frost on any desktop, on every palette — ANSI black included, which
+/// glass leaves dark and read 1.26:1 over a light desktop (glass survey
+/// E10). Text that already reads is left alone, and off glass — or on a
+/// window that is not see-through — the page floor is the only one.
+#[test]
+fn text_on_the_page_reads_over_the_glass() {
+    use crew_theme::glasslegend::{pane_grounds, worst};
+    for id in crew_theme::ALL_THEMES {
+        let t = crew_theme::glassborder::lift(id.theme());
+        let mut floor = PageFloor::new(&t, true);
+        for slot in [0, 8] {
+            let fg = floor.floor(t.ansi[slot], t.term_bg);
+            let got = worst(fg, &pane_grounds(&t));
+            assert!(
+                got >= MIN_CONTRAST - 0.05,
+                "{}: ansi[{slot}] {fg:?} at {got:.2}",
+                id.as_str()
+            );
+            assert!(
+                ratio(fg, t.term_bg) >= MIN_CONTRAST - 0.05,
+                "{}: off the page",
+                id.as_str()
+            );
+        }
+        assert_eq!(
+            floor.floor(t.term_fg, t.term_bg),
+            t.term_fg,
+            "{}",
+            id.as_str()
+        );
+    }
+    let p = crew_theme::Theme {
+        liquid: None,
+        ..crew_theme::PAPER_DARK
+    };
+    let black = PageFloor::new(&p, true).floor(p.ansi[0], p.term_bg);
+    assert_eq!(black, ensure_min_contrast(p.ansi[0], p.term_bg));
+    let t = crew_theme::glassborder::lift(&crew_theme::GLASS_CLEAR);
+    let opaque = PageFloor::new(&t, false).floor(t.ansi[0], t.term_bg);
+    assert_eq!(opaque, ensure_min_contrast(t.ansi[0], t.term_bg));
+}

@@ -76,6 +76,8 @@ impl TermCore {
         let cursor = content.cursor;
         let selection = content.selection;
         let dark = crate::contrast::luminance(default_bg()) < 0.5;
+        let sheer = crew_theme::glassborder::sheer();
+        let mut page = crate::contrast::PageFloor::new(crew_theme::theme(), sheer);
         let mut out: Vec<RenderCell> = content
             .display_iter
             // The spacer cells a full-width character reserves are not cells:
@@ -155,7 +157,8 @@ impl TermCore {
                         crate::contrast::dimmed_on_page(fg, bg, crew_theme::theme())
                     }
                     true => crate::contrast::dimmed(fg, bg),
-                    false => crate::contrast::ensure_readable(fg, bg, bg != default_bg()),
+                    false if bg == default_bg() => page.floor(fg, bg),
+                    false => crate::contrast::ensure_readable(fg, bg, true),
                 };
                 // SGR 58's colour resolves against the same palette the text
                 // does; without one the renderer falls back to the cell's fg.

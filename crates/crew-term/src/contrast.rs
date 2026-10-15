@@ -126,6 +126,54 @@ pub(crate) fn dimmed_on_page(
     crew_theme::glasslegend::on_glass(t, dimmed(fg, bg), DIM_CONTRAST)
 }
 
+/// [`ensure_readable`] for text on the pane's own background, floored over
+/// the glass as well. On see-through glass that background is the frost
+/// over whatever desktop is behind the window, and a colour that clears the
+/// page alone can sink into it: ANSI black, which glass leaves the page's
+/// own colour so a program can paint with it, read 1.26:1 on light glass
+/// over a light desktop (glass survey E10). Off glass, or on a window that
+/// is not see-through, this is the page floor alone.
+///
+/// One per frame: the grounds are worked out once, and each colour the
+/// frame uses is floored once (the page is the same for every cell).
+pub(crate) struct PageFloor<'a> {
+    t: &'a crew_theme::Theme,
+    grounds: Vec<(u8, u8, u8)>,
+    seen: Vec<((u8, u8, u8), (u8, u8, u8))>,
+}
+
+impl<'a> PageFloor<'a> {
+    /// The floor for `t`'s page; over its glass too while the window is
+    /// `sheer` (`glassborder::sheer`).
+    pub(crate) fn new(t: &'a crew_theme::Theme, sheer: bool) -> Self {
+        let grounds = match sheer {
+            true => crew_theme::glasslegend::pane_grounds(t),
+            false => Vec::new(),
+        };
+        Self {
+            t,
+            grounds,
+            seen: Vec::new(),
+        }
+    }
+
+    /// `fg` on the page `bg`: [`MIN_CONTRAST`] over the page and over every
+    /// ground the glass can show.
+    pub(crate) fn floor(&mut self, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> (u8, u8, u8) {
+        if let Some(&(_, out)) = self.seen.iter().find(|(k, _)| *k == fg) {
+            return out;
+        }
+        let page = ensure_contrast(fg, bg, MIN_CONTRAST);
+        let out = crew_theme::glasslegend::legible_on(self.t, page, MIN_CONTRAST, &self.grounds);
+        // A truecolour gradient can use a colour per cell: past a screenful
+        // of distinct colours, look-ups would cost more than they save.
+        if self.seen.len() < 64 {
+            self.seen.push((fg, out));
+        }
+        out
+    }
+}
+
 /// [`ensure_min_contrast`] against an explicit floor.
 fn ensure_contrast(fg: (u8, u8, u8), bg: (u8, u8, u8), min: f32) -> (u8, u8, u8) {
     if ratio(fg, bg) >= min {
