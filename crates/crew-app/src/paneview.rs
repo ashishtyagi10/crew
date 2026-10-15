@@ -234,13 +234,11 @@ pub(crate) fn push_pane_scenes(
         unread,
         doc: crate::panehome::of(&p.content),
     };
-    // The card's grid: the content grid plus the ring `pane_card` lays out.
-    let (ccols, crows) = (p.grid.cols + 2, p.grid.rows + 2);
     scenes.push(PaneScene {
         cells: crate::panecardglow::pane_card_glowing(p, &bar),
         // The frame's continuous readings — the scroll thumb and the
-        // program's progress bar — drawn rather than spelled.
-        paint: crate::cardpaint::card_paint(ccols, crows, &bar, ch / cw, now),
+        // program's progress bar — and its row marks, drawn, not spelled.
+        paint: crate::cardmarks::card_paint(p, &bar, cw, ch, now),
         x: r.x,
         y: r.y,
         w: r.w,

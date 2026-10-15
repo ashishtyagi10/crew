@@ -1,0 +1,72 @@
+//! The left border's row marks — where a command began, where the shell
+//! reported one failed, where an error line is — drawn on the CONTENT's rows.
+//!
+//! They were glyphs in the card's own cells (`╶`, `▌`), and a card's rows are
+//! not its content's: the content sits half the card's sub-cell remainder
+//! lower ([`crate::panefit::slack`]), so every mark stood up to half a row
+//! above the line it marked. The shell's `error[E0433]` bar straddled the
+//! `warning:` line over it by 6 px (glass survey E3). Drawn, a mark lands on
+//! its line's own pixels.
+use crew_render::Paint;
+
+use crate::pane::Pane;
+use crate::panecard::Bar;
+
+/// Everything pane `p`'s card draws rather than spells: the readings of
+/// [`crate::cardpaint`] and the row marks, on a `cw`×`ch` px cell.
+pub fn card_paint(p: &Pane, b: &Bar, cw: f32, ch: f32, now: u64) -> Vec<Paint> {
+    let dy = crate::panefit::slack(p.rect, cw, ch).1 / ch;
+    // The card's grid: the content grid plus the ring `pane_card` lays out.
+    painted(p.grid.cols + 2, p.grid.rows + 2, b, (dy, cw, ch), now)
+}
+
+/// [`card_paint`] for a `cols`×`rows` card whose content starts `dy` rows
+/// below its row 1.
+pub fn painted(cols: u16, rows: u16, b: &Bar, at: (f32, f32, f32), now: u64) -> Vec<Paint> {
+    let (dy, cw, ch) = at;
+    let mut out = crate::cardpaint::card_paint(cols, rows, b, ch / cw, now);
+    out.extend(marks(rows, b, dy, cw, ch));
+    out
+}
+
+/// The marks for `b` on a `rows`-row card whose content row 0 starts `dy`
+/// rows below the card's row 1, in card cells (`0,0` the top-left corner).
+pub fn marks(rows: u16, b: &Bar, dy: f32, cw: f32, ch: f32) -> Vec<Paint> {
+    let t = crew_theme::theme();
+    // The frame's own rule weight for this cell (`deco::thickness`).
+    let light = (ch * 0.07).round().max(1.0);
+    // Never into the bottom border's row: past it the stretched frame moves
+    // a rect's far edge out by the card's remainder (`stretch::parts`).
+    let floor = f32::from(rows.saturating_sub(1));
+    let mut out = Vec::new();
+    let mut mark = |r: u16, (x, top, w, h): (f32, f32, f32, f32), fg| {
+        let y = f32::from(r) + 1.0 + dy + top;
+        let h = h.min(floor - y);
+        if r + 2 < rows && h > 0.0 {
+            out.push(Paint::solid(x, y, w, h, fg));
+        }
+    };
+    // `╶`: from the stroke's centre into the card, across the line's middle.
+    // A block the shell reported a failure for wears it heavy, in the alarm
+    // colour. An error bar on the same row replaces it: "this failed"
+    // outranks "this began".
+    let x = ((cw - light) / 2.0).floor() / cw;
+    for (rows_of, fg, weight) in [
+        (b.cmd_rows, t.legend_off, light),
+        (b.fail_rows, t.bell, 2.0 * light),
+    ] {
+        let top = ((ch - weight) / 2.0).floor() / ch;
+        for &r in rows_of.iter().filter(|r| !b.err_rows.contains(r)) {
+            mark(r, (x, top, 1.0 - x, weight / ch), fg);
+        }
+    }
+    // `▌`: the cell's left half, the line's whole height.
+    for &r in b.err_rows {
+        mark(r, (0.0, 0.0, 0.5, 1.0), t.bell);
+    }
+    out
+}
+
+#[cfg(test)]
+#[path = "cardmarks_tests.rs"]
+mod tests;

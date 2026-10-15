@@ -272,32 +272,8 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     // readings and are drawn instead — see [`crate::cardpaint`].
     crate::panescroll::ticks(&mut v, cols, rows, b);
     crate::panescroll::hit_ticks(&mut v, cols, rows, b);
-    // Where each thing you ran began. Quieter than the error bars, and drawn
-    // first so an error on the same row replaces it. A block the shell
-    // reported a failure for wears the same tick in the alarm colour — it is
-    // still "here is where this began", said about a command that went wrong.
-    for (rows_of, fg, bold) in [
-        (b.cmd_rows, crew_theme::theme().legend_off, false),
-        (b.fail_rows, crew_theme::theme().bell, true),
-    ] {
-        for &r in rows_of {
-            let row = r + 1;
-            if row + 1 < rows {
-                put(&mut v, 0, row, '\u{2576}', fg, bold);
-            }
-        }
-    }
-    // Where the failures are. Content starts one row below the top border,
-    // so a content row `n` is border row `n + 1`.
-    if !b.err_rows.is_empty() {
-        let fg = crew_theme::theme().bell;
-        for &r in b.err_rows {
-            let row = r + 1;
-            if row + 1 < rows {
-                put(&mut v, 0, row, '\u{258c}', fg, false);
-            }
-        }
-    }
+    // The row marks down the left border (command starts, failures,
+    // errors) are drawn on the content's own rows: `crate::cardmarks`.
     // Focus brackets last, so they sit on the finished frame — and only on the
     // focused card, which is the one piece of state they exist to announce.
     if b.focused {
