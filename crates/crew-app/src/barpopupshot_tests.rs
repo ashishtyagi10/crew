@@ -24,12 +24,19 @@ fn shot(name: &str, w: u32, text: &str) -> Option<Vec<u8>> {
         let bw = w as f32 - 2.0 * PAD;
         let cols = (bw / cw).floor() as u16;
         let (ib_x, ib_y) = (PAD, h as f32 - PAD - bh);
-        let pop = crate::cmdmenu::popup("commands", &matches, 1, cols);
+        let pop = crate::cmdmenu::popup("commands", &matches, 1, crate::barpopup::room(cols));
         eprintln!("--- {name} {}x{}", pop.cols, pop.rows);
         for l in dump(&pop.cells, pop.cols, pop.rows) {
             eprintln!("|{l}");
         }
         let mh = f32::from(pop.rows) * ch;
+        let ib = crate::layout::Rect {
+            x: ib_x,
+            y: ib_y,
+            w: bw,
+            h: bh,
+        };
+        let (mx, my) = crate::barpopup::place(ib, mh, crate::app::gap(), cw, ch);
         vec![
             PaneScene {
                 cells: b.cells(cols, 3, None, None, Some("1 crew")),
@@ -49,8 +56,8 @@ fn shot(name: &str, w: u32, text: &str) -> Option<Vec<u8>> {
             },
             PaneScene {
                 cells: pop.cells,
-                x: ib_x,
-                y: (ib_y - mh - crate::app::gap()).max(0.0),
+                x: mx,
+                y: my,
                 w: crate::popupplace::scene_w(pop.cols, cw),
                 h: mh,
                 focused: false,
