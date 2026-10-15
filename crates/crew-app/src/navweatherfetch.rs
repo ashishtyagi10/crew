@@ -7,7 +7,17 @@ use std::time::Duration;
 
 use crate::navweather::{self, parse_forecast, parse_geo, State, Weather, TTL};
 
-fn cache_path() -> Option<std::path::PathBuf> {
+/// The app's side of the worker: the fetch in flight, when the next is
+/// due (`anim::now_ms`; 0 = now), and the place and clock zone it was
+/// for — either changing fetches at once rather than on the half-hour.
+#[derive(Default)]
+pub(crate) struct Worker {
+    pub fetch: Option<Receiver<Option<Weather>>>,
+    pub next: u64,
+    asked: Option<(String, String)>,
+}
+
+pub(crate) fn cache_path() -> Option<std::path::PathBuf> {
     dirs::config_dir().map(|d| d.join("crew").join("weather.json"))
 }
 
@@ -21,8 +31,9 @@ pub(crate) fn read_cache_at(path: &std::path::Path, place: &str, ttl: Duration) 
     // The cache remembers what was ASKED, so a new place never serves the
     // old place's sky for an hour.
     let asked = std::fs::read_to_string(path.with_extension("place")).ok()?;
-    // A reading without its hours is from before the card drew them: fetch.
-    (asked == place && !w.hours.is_empty()).then_some(w)
+    // A reading without its hours (or its offset) is from before the card
+    // drew them (or crew noticed travel): fetch.
+    (asked == place && !w.hours.is_empty() && w.offset.is_some()).then_some(w)
 }
 
 fn write_cache(place: &str, w: &Weather) {
@@ -112,14 +123,18 @@ impl crate::app::CrewApp {
     /// Once per tick: start a fetch when one is due, drain one that landed.
     /// Returns whether the strip changed. Cheap when nothing is set.
     pub(crate) fn tick_weather(&mut self, now_ms: u64) -> bool {
-        let Some(place) = crate::navweatherplace::resolve(&self.config.weather_place) else {
+        let (_, zone, here) = crate::navweatherplace::clock();
+        let key = &self.config.weather_place;
+        let Some(place) = crate::navweatherplace::resolve_with(key, zone.as_deref()) else {
             return false;
         };
         let mut changed = false;
-        if now_ms >= self.weather_next {
-            self.weather_fetch = Some(spawn(place.clone()));
+        let asked = Some((place.clone(), here));
+        if now_ms >= self.weather.next || self.weather.asked != asked {
+            self.weather.asked = asked;
+            self.weather.fetch = Some(spawn(place.clone()));
             // Half the TTL: the cache answers the early ones for free.
-            self.weather_next = now_ms + TTL.as_millis() as u64 / 2;
+            self.weather.next = now_ms + TTL.as_millis() as u64 / 2;
             // A reading stays on the card while its refresh is in flight;
             // only a card with nothing on it says it is looking.
             if navweather::now().is_none() {
@@ -128,13 +143,17 @@ impl crate::app::CrewApp {
             }
         }
         let landed = self
-            .weather_fetch
+            .weather
+            .fetch
             .as_ref()
             .and_then(|rx| rx.try_recv().ok());
         match landed {
             Some(w) => {
                 let next = match w {
-                    Some(w) => State::Found(w),
+                    Some(w) => {
+                        self.travel_check(&w);
+                        State::Found(w)
+                    }
                     None => {
                         self.set_status(format!("weather: nothing found for {place}"));
                         State::Missing(place)
@@ -142,11 +161,36 @@ impl crate::app::CrewApp {
                 };
                 let changed = next != navweather::state();
                 navweather::set(next);
-                self.weather_fetch = None;
+                self.weather.fetch = None;
                 changed
             }
             None => changed,
         }
+    }
+
+    /// A typed place on another clock than the machine's: say so once, on
+    /// arriving in the zone (`navweatherplace::arrive`), as a toast and in
+    /// the LOG. A reading that does not know its offset decides nothing.
+    fn travel_check(&mut self, w: &Weather) {
+        use crate::navweatherplace::{arrive, clock, travel_note};
+        if w.offset.is_none() {
+            return;
+        }
+        let (offset, zone, here) = clock();
+        let key = &self.config.weather_place;
+        let note = travel_note(key, &w.place, w.offset, offset, zone.as_deref());
+        // Arriving is recorded whether or not there is a note, so coming
+        // home and leaving again says it again.
+        let (true, Some(note)) = (arrive(&here), note) else {
+            return;
+        };
+        if crate::focusmode::on() {
+            self.held.toasts += 1;
+        } else {
+            self.toasts
+                .push(note.clone(), "weather", false, crate::anim::now_ms());
+        }
+        self.set_status(note);
     }
 }
 

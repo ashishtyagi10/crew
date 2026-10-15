@@ -1,7 +1,7 @@
 use super::*;
 
 const GEO: &str = r#"{"results":[{"name":"Berlin","latitude":52.52437,"longitude":13.41053,"country_code":"DE"}]}"#;
-const FORECAST: &str = r#"{"current":{"time":"2026-09-10T08:15","temperature_2m":23.6,"weather_code":61},"hourly":{"time":["2026-09-10T06:00","2026-09-10T07:00","2026-09-10T08:00","2026-09-10T09:00","2026-09-10T10:00"],"temperature_2m":[17.9,19.2,21.4,23.1,24.9]},"daily":{"temperature_2m_max":[27.1],"temperature_2m_min":[17.8],"precipitation_probability_max":[35]}}"#;
+const FORECAST: &str = r#"{"utc_offset_seconds":7200,"current":{"time":"2026-09-10T08:15","temperature_2m":23.6,"weather_code":61},"hourly":{"time":["2026-09-10T06:00","2026-09-10T07:00","2026-09-10T08:00","2026-09-10T09:00","2026-09-10T10:00"],"temperature_2m":[17.9,19.2,21.4,23.1,24.9]},"daily":{"temperature_2m_max":[27.1],"temperature_2m_min":[17.8],"precipitation_probability_max":[35]}}"#;
 
 /// Real Open-Meteo shapes (2026-09) parse into one reading, rounded, with
 /// the place the geocoder names and the unit the country decides.
@@ -23,6 +23,7 @@ fn geocoder_and_forecast_bodies_parse_into_a_reading() {
             unit: 'C',
             hours: vec![21, 23, 25],
             hour: 8,
+            offset: Some(7200),
         }
     );
     let bare = FORECAST.replace(r#""time":"2026-09-10T08:15","#, "");
@@ -57,6 +58,7 @@ fn a_dry_clear_day_reads_short_and_glyphs_follow_the_code() {
         unit: 'F',
         hours: Vec::new(),
         hour: 0,
+        offset: None,
     };
     assert_eq!(line(&w), "\u{2600} 31\u{00b0} \u{2191}33 \u{2193}22");
     assert_eq!(glyph(2), '\u{2601}');
