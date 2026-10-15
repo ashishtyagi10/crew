@@ -475,6 +475,7 @@ mod panehome;
 mod panehover;
 mod panelcard;
 mod panelist;
+mod panellevel;
 #[cfg(test)]
 #[path = "panelshot_tests.rs"]
 mod panelshot_tests;
