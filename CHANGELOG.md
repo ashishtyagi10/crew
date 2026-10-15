@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.106
+
+**The focus brackets are the same length at the top and the bottom.**
+The pane you're working in shows short highlighted segments at the top
+and bottom of its left and right edges. The bottom ones came out 12 px
+longer than the top ones, because the frame stretches its last row to
+fill the card's leftover pixels and the bottom segment stretched with
+it. When that leftover is more than half a row, the bottom segment is
+now one row shorter, so the two match within a few pixels (64 px and
+59 px on a full-height chat pane, where they were 64 px and 75 px).
+- **Test:** on a focused card the bottom segment is one row shorter than
+  the top when the leftover is long, and the same length when it isn't.
+
 ## 0.26.105
 
 **Empty meter bars stay visible on see-through glass.**

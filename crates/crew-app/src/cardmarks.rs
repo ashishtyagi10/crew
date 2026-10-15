@@ -27,11 +27,33 @@ pub fn card_paint(p: &Pane, b: &Bar, cw: f32, ch: f32, now: u64) -> Vec<Paint> {
 }
 
 /// Pane `p`'s frame `cells` with the stroke under its drawn readings in
-/// their colour ([`crate::cardpaint::tint`]).
-pub fn tinted(p: &Pane, mut cells: Vec<CellView>, b: &Bar) -> Vec<CellView> {
-    let cols = crate::panefit::frame_cols(p) + 2;
-    crate::cardpaint::tint(&mut cells, cols, p.grid.rows + 2, b);
+/// their colour ([`crate::cardpaint::tint`]) and its focus brackets evened
+/// out ([`even_brackets`]), on `ch`-px rows.
+pub fn tinted(p: &Pane, mut cells: Vec<CellView>, b: &Bar, ch: f32) -> Vec<CellView> {
+    let (cols, rows) = (crate::panefit::frame_cols(p) + 2, p.grid.rows + 2);
+    crate::cardpaint::tint(&mut cells, cols, rows, b);
+    let below = p.rect.h - f32::from(rows) * ch;
+    even_brackets(&mut cells, (cols, rows), b, below > ch / 2.0);
     cells
+}
+
+/// The focus brackets as long at the bottom as at the top. They colour
+/// whole rows, and the frame stretches its LAST row down by the card's
+/// sub-cell remainder, so the bottom arm carried it: 74 px against the top
+/// arm's 62 (glass survey G7). With `long` — a remainder past half a row —
+/// the bottom arm's innermost row goes back to the stroke beside it.
+pub fn even_brackets(cells: &mut [CellView], (cols, rows): (u16, u16), b: &Bar, long: bool) {
+    let n = crate::cardchrome::bracket_len(rows, b.focus_t);
+    if !b.focused || !long || n < 2 || rows < 2 * n + 3 {
+        return;
+    }
+    let (inner, above) = (rows - 1 - n, rows - 2 - n);
+    for col in [0, cols - 1] {
+        let at = |r: u16| cells.iter().position(|c| c.col == col && c.row == r);
+        if let (Some(i), Some(j)) = (at(inner), at(above)) {
+            (cells[i].fg, cells[i].bold) = (cells[j].fg, cells[j].bold);
+        }
+    }
 }
 
 /// [`card_paint`] for a `cols`×`rows` card whose content starts `dy` rows
@@ -124,3 +146,7 @@ pub fn marks(rows: u16, b: &Bar, dy: f32, cw: f32, ch: f32) -> Vec<Paint> {
 #[cfg(test)]
 #[path = "cardmarks_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "cardbracket_tests.rs"]
+mod bracket_tests;
