@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.96
+
+**The settings form fades out where it scrolls instead of cutting its
+boxes off.**
+When the settings form is taller than its pane, the bottom of the
+visible part sliced straight through the group boxes. Four box sides
+ended in mid-air above Save and Cancel, and the only hint that more
+was below was a small `↓` in the margin. Now the last two visible rows
+fade toward the background wherever the form continues, and the top two
+fade the same way once you have scrolled down. It reads as a list that
+continues. The `↓` and `↑` are still there.
+- **Test:** on a pane too short for the form, the box sides on the last
+  visible row are closer to the background colour than the same row
+  drawn on a taller pane, where it isn't at the edge.
+
 ## 0.26.95
 
 **The scroll thumb and progress bar sit centred on the card's edge.**

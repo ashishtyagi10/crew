@@ -8,6 +8,7 @@ pub(crate) mod click;
 mod commit;
 mod cycle;
 mod dropdown;
+mod edges;
 mod fields;
 mod fit;
 mod form;
