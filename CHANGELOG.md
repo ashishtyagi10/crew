@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.103
+
+**The Shift symbol `⇧` no longer looks like a lowercase "o".**
+Key combinations that include Shift are written with `⇧` (in `/keys`,
+the command list and hints). The font's version is a thin outline about
+8 px across, and at text size it read as a letter "o", so `⇧PageUp`
+looked like "oPageUp" and `^⇧G` like "^oG". crew now draws the symbol
+itself, the way it already draws its box lines and check marks: an
+outlined arrow as tall as a capital letter, with a clear stem. It
+matches the line weight of the text around it.
+- **Test:** the drawn `⇧` in an 8×16 px cell spans at least 8 rows and 6
+  columns, and its stem is hollow down the middle.
+
 ## 0.26.102
 
 **The collapsed sidebar's pane numbers sit level with the panes' rows.**
