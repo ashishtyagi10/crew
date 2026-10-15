@@ -124,6 +124,7 @@ mod segment;
 mod signoutpick;
 
 mod canvas;
+mod cardmarks;
 mod cardpaint;
 #[cfg(test)]
 #[path = "cardshot_tests.rs"]

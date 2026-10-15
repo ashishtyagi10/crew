@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.81
+
+**A shell's error marks line up with the lines they mark.**
+The marks down a shell pane's left border (a bar beside each error
+line, a tick where each command began, a red tick where one failed)
+were placed on the card's own rows, but a pane's text sits a few pixels
+lower to centre it in its frame. Each mark stood up to half a line too
+high: the bar for `error[E0433]` covered the bottom of the `warning:`
+line above it. The marks are now drawn on the text's own lines.
+- **Test:** an error bar on line 3 covers exactly that line's pixels, a
+  command tick crosses the middle of its line, and no mark runs into the
+  bottom border. The first test fails on the old placement.
+
 ## 0.26.80
 
 **A file viewer no longer says it is scrolled when it is at the top.**

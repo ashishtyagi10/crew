@@ -61,10 +61,9 @@ fn card_scene(w: u32, h: u32, cw: f32, ch: f32, b: &Bar) -> Vec<PaneScene> {
         glint: -1.0,
         stretch: false,
         overlay: false,
-        // The thumb and the progress bar are Paint, not cells — a card shot
-        // without its paint layer is missing two of the readings it exists to
-        // give (see `cardpaint`).
-        paint: crate::cardpaint::card_paint(cols, rows, b, ch / cw, 0),
+        // The thumb, the progress bar and the row marks are Paint, not cells
+        // (see `cardpaint`, `cardmarks`): a shot without them is missing them.
+        paint: crate::cardmarks::painted(cols, rows, b, (0.0, cw, ch), 0),
     }]
 }
 
