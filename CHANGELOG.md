@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.93
+
+**The chat's status line ends where the rows under it do.**
+The line at the top of a chat pane (`thinking · esc interrupts ●`) was
+lined up against the pane's very last column. Code blocks and wrapped
+text below it stop a column short, so the `●` stuck out about 7 px
+past everything else in the pane. It now ends one column in, in line
+with the right edge of the code blocks.
+- **Test:** at 40 and 72 columns, the status line's last character is
+  in the second-to-last column.
+
 ## 0.26.92
 
 **The /keys window no longer ends in two empty rows.**
