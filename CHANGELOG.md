@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.85
+
+**The weather card says so when you travel with a place typed in.**
+After `/weather charlotte`, the card kept showing Charlotte's weather
+wherever the machine went, with nothing to say it was a different place
+from where you are. Now, when the computer's clock moves to another time
+zone (in Honduras it becomes `America/Tegucigalpa`), crew shows a note
+once: "your clock is on Tegucigalpa time, not Charlotte's — /weather
+auto follows the clock". You get the note once each time you arrive in a
+new zone, not on every refresh. A faraway city you type in on purpose
+stays quiet until you move again.
+`/weather auto` also follows a time-zone change right away. Before, it
+could keep showing the old city for up to half an hour. Its status line
+now says the city comes from your clock's time zone.
+- **Test:** a typed place in a different time zone from the clock gets
+  the note, and a place in the same zone, auto, off, or an unknown
+  offset does not. A whole trip (type the place at home, fly out, two
+  refreshes, fly home, fly out again) gives exactly two notes. A cached
+  reading saved before the zone's offset was stored is fetched again.
+
 ## 0.26.84
 
 **An agent's live thinking says when its first line is cut.**

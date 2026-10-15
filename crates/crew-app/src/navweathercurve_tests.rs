@@ -11,6 +11,7 @@ fn berlin() -> Weather {
         unit: 'C',
         hours: Vec::new(),
         hour: 0,
+        offset: Some(7200),
     }
 }
 

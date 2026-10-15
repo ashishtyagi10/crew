@@ -65,9 +65,15 @@ impl CrewApp {
             self.set_status("weather: your time zone names no city — /weather <place>");
             return;
         };
+        // A place typed here is squared with this clock: it was chosen
+        // knowing where the machine is, so only a later move is news.
+        crate::navweatherplace::arrive(&crate::navweatherplace::clock().2);
         // Fetch now rather than on the hourly clock — the user just asked.
         crate::navweather::set(crate::navweather::State::Looking(arg.clone()));
-        self.weather_next = 0;
-        self.set_status(format!("weather: looking up {arg}\u{2026}"));
+        self.weather.next = 0;
+        self.set_status(match is_auto(&self.config.weather_place) {
+            true => format!("weather: looking up {arg}\u{2026} (your clock\u{2019}s time zone)"),
+            false => format!("weather: looking up {arg}\u{2026}"),
+        });
     }
 }

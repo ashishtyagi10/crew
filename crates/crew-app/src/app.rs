@@ -273,10 +273,8 @@ pub struct CrewApp {
     pub(crate) model_fetch: Option<std::sync::mpsc::Receiver<Vec<crew_hive::catalog::LiveModel>>>,
     /// Kicked off this process — a picker reopening must not spawn a second worker.
     pub(crate) model_fetch_started: bool,
-    /// The weather worker in flight, and when the next fetch is due
-    /// (`anim::now_ms`; 0 = now). See `navweather::tick_weather`.
-    pub(crate) weather_fetch: Option<std::sync::mpsc::Receiver<Option<crate::navweather::Weather>>>,
-    pub(crate) weather_next: u64,
+    /// The weather worker (`navweatherfetch::tick_weather`).
+    pub(crate) weather: crate::navweatherfetch::Worker,
     /// When the user last typed, clicked, or scrolled (on the `anim` clock).
     /// Gates blocked-pane auto-focus: focus is never stolen while the user is
     /// actively driving some other pane (see [`crate::blocked`]).

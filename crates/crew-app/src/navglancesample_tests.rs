@@ -22,6 +22,7 @@ pub(crate) fn glance() -> Glance {
                 })
                 .collect(),
             hour: 8,
+            offset: Some(7200),
         }),
         serving: Serving {
             provider: Some("claude-code".into()),

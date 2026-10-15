@@ -35,6 +35,11 @@ pub(crate) struct Weather {
     /// where the day ends.
     #[serde(default)]
     pub hour: u8,
+    /// The place's UTC offset in seconds, from the forecast, so a typed
+    /// place can be told apart from the clock's zone (`navweatherplace::
+    /// travel_note`). `None` from a cache written before it was kept.
+    #[serde(default)]
+    pub offset: Option<i32>,
 }
 
 /// What the card has to show: nothing asked for, a lookup in flight for a
@@ -133,6 +138,10 @@ pub(crate) fn parse_forecast(body: &str, place: &str, unit: char) -> Option<Weat
             .clamp(0.0, 100.0) as u8,
         code: cur.get("weather_code")?.as_u64()? as u16,
         unit,
+        offset: v
+            .get("utc_offset_seconds")
+            .and_then(|o| o.as_i64())
+            .map(|o| o as i32),
     })
 }
 
