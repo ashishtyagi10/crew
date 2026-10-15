@@ -34,6 +34,23 @@ pub(crate) fn item_at(
     (i < n).then_some(i)
 }
 
+/// Where the bar's palette card stands over a bar `ib`, for a card `mh` px
+/// tall with the grid's `gap` between: a cell in from the bar's left edge
+/// and half a row clear of the pane above it. Flush with the bar, the
+/// card's left stroke ran down the pane card's own and its bottom stroke
+/// lay 1 px off the pane's — a misregistered double line (glass survey
+/// E7). A cell in, as the toasts stand a cell in from the right stroke, it
+/// floats over the pane instead of sitting on its frame.
+pub(crate) fn place(ib: Rect, mh: f32, gap: f32, cw: f32, ch: f32) -> (f32, f32) {
+    (ib.x + cw, (ib.y - gap - mh - ch / 2.0).max(0.0))
+}
+
+/// The columns the card may take over a bar `ic` columns wide: a cell clear
+/// of each end, so [`place`]'s inset never pushes it past the bar's right.
+pub(crate) fn room(ic: u16) -> u16 {
+    ic.saturating_sub(2)
+}
+
 impl CrewApp {
     /// The bar's palette rows: the slash commands matching the text (or
     /// its value picker, with the value you are on marked). Empty for
@@ -79,11 +96,12 @@ impl CrewApp {
         );
         let ib = chrome::inputbar_rect(content, sh, ch, self.gutter());
         let ic = (ib.w / cw).floor() as u16;
-        let (cols, card_rows) = crate::cmdmenu::popup_size(&rows, ic);
+        let (cols, card_rows) = crate::cmdmenu::popup_size(&rows, room(ic));
         let h = f32::from(card_rows) * ch;
+        let (x, y) = place(ib, h, self.gutter().y, cw, ch);
         let card = Rect {
-            x: ib.x,
-            y: (ib.y - h - self.gutter().y).max(0.0),
+            x,
+            y,
             w: f32::from(cols) * cw,
             h,
         };

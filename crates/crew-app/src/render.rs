@@ -289,13 +289,14 @@ impl CrewApp {
             (rows, legend.as_str())
         };
         if self.input.focused && !matches.is_empty() {
-            let p = crate::cmdmenu::popup(title, &matches, self.input.menu_sel, ic);
+            let sel = self.input.menu_sel;
+            let p = crate::cmdmenu::popup(title, &matches, sel, crate::barpopup::room(ic));
             let mh = f32::from(p.rows) * ch;
-            let my = (ib.y - mh - self.gutter().y).max(0.0);
+            let (mx, my) = crate::barpopup::place(ib, mh, self.gutter().y, cw, ch);
             // Exactly its frame, so it casts its own shadow.
             scenes.push(PaneScene {
                 cells: p.cells,
-                x: ib.x,
+                x: mx,
                 y: my,
                 w: crate::popupplace::scene_w(p.cols, cw),
                 h: mh,

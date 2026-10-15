@@ -1,4 +1,4 @@
-use super::item_at;
+use super::{item_at, place, room};
 use crate::layout::Rect;
 
 const CW: f32 = 8.0;
@@ -88,4 +88,31 @@ fn the_card_is_named_for_what_it_lists() {
     assert_eq!(super::legend_for("/theme "), "theme");
     assert_eq!(super::legend_for("/model qw"), "model");
     assert_eq!(super::legend_for("ls -la"), "commands");
+}
+
+/// The card floats a cell in from the bar's left edge and half a row clear
+/// of the pane over the bar, so none of its strokes lands on (or a pixel
+/// off) the pane card's own (glass survey E7) — and, a cell clear of each
+/// end, it never reaches past the bar's right.
+#[test]
+fn the_card_floats_clear_of_the_pane_frame() {
+    let ib = Rect {
+        x: 72.0,
+        y: 668.0,
+        w: 1196.0,
+        h: 3.0 * CH,
+    };
+    let (gap, mh) = (5.0, 6.0 * CH);
+    let (x, y) = place(ib, mh, gap, CW, CH);
+    assert_eq!(
+        x - ib.x,
+        CW,
+        "a cell in from the bar's (and the pane's) left"
+    );
+    let pane_bottom = ib.y - gap;
+    assert_eq!(pane_bottom - (y + mh), CH / 2.0, "half a row above it");
+    let ic = (ib.w / CW).floor() as u16;
+    assert!(x + f32::from(room(ic)) * CW <= ib.x + ib.w - CW);
+    // Taller than the room above: pinned at the top, never off-screen.
+    assert_eq!(place(ib, 2000.0, gap, CW, CH).1, 0.0);
 }

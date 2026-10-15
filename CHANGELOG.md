@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.90
+
+**The command list over the input bar floats instead of sitting on the
+pane's frame.**
+When you type a `/` command in the input bar at the bottom, the
+"commands" list opens above it. Its left edge sat right on top of the
+pane's left edge, and its bottom edge lay one pixel off the pane's
+bottom edge, which read as a smudged double line. The list now stands
+one character in from the left and half a line above the pane's bottom
+edge, the same one-character inset the notifications keep from the
+right. Hovering and clicking its rows use the same position, so they
+still line up.
+- **Test:** the list is one cell in from the bar's left edge and half a
+  row above the pane's bottom edge, never runs past the bar's right end,
+  and stays on screen when it is taller than the space above.
+
 ## 0.26.89
 
 **The token ring's "in" and "out" no longer share a colour.**
