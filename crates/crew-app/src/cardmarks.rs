@@ -24,8 +24,48 @@ pub fn card_paint(p: &Pane, b: &Bar, cw: f32, ch: f32, now: u64) -> Vec<Paint> {
 /// below its row 1.
 pub fn painted(cols: u16, rows: u16, b: &Bar, at: (f32, f32, f32), now: u64) -> Vec<Paint> {
     let (dy, cw, ch) = at;
-    let mut out = crate::cardpaint::card_paint(cols, rows, b, ch / cw, now);
+    // Notches first: the thumb is drawn over the border they ride.
+    let mut out = notches(cols, rows, b, cw, ch);
+    out.extend(crate::cardpaint::card_paint(cols, rows, b, ch / cw, now));
     out.extend(marks(rows, b, dy, cw, ch));
+    out
+}
+
+/// Landmarks (`]` / `[`) and search hits down the right border of a
+/// `cols`×`rows` card: one notch per row, placed proportionally, from the
+/// stroke into the card. They were `┈` / `━` glyphs in the border cell, a
+/// whole cell wide across a stroke drawn down its middle, so half of every
+/// tick stood out in the gap between two cards (glass survey E14). A hit
+/// outranks a landmark in its row, and the thumb — where you ARE — outranks
+/// both, so neither is drawn under it.
+pub fn notches(cols: u16, rows: u16, b: &Bar, cw: f32, ch: f32) -> Vec<Paint> {
+    if rows < 5 || cols < 2 || b.total == 0 {
+        return Vec::new();
+    }
+    let light = (ch * 0.07).round().max(1.0);
+    // The cell's inner half up to the stroke's far side: never past it.
+    let w = (((cw - light) / 2.0).floor() + light) / cw;
+    let inner = usize::from(rows - 2);
+    let thumb = crate::cardpaint::thumb_span(rows, b);
+    let mut taken: Vec<u16> = Vec::new();
+    let mut out = Vec::new();
+    for (lines, fg, weight) in [
+        (b.hits, crate::findhl::hit_mark(), 2.0 * light),
+        (b.ticks, crew_theme::theme().legend_off, light),
+    ] {
+        for &line in lines {
+            let at = (line.min(b.total - 1) * inner) / b.total;
+            let r = 1 + at.min(inner - 1) as u16;
+            let mid = f32::from(r) + 0.5;
+            if taken.contains(&r) || thumb.is_some_and(|(y, h)| (y..=y + h).contains(&mid)) {
+                continue;
+            }
+            taken.push(r);
+            let top = ((ch - weight) / 2.0).floor() / ch;
+            let x = f32::from(cols - 1);
+            out.push(Paint::solid(x, f32::from(r) + top, w, weight / ch, fg));
+        }
+    }
     out
 }
 

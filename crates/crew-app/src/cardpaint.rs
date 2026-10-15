@@ -38,28 +38,35 @@ pub fn card_paint(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64) -> Vec<P
     out
 }
 
-/// The scroll thumb, down the right border — a rounded bar at a fractional
-/// position, so a long buffer scrolls smoothly instead of in cell steps.
-fn thumb(cols: u16, rows: u16, b: &Bar, aspect: f32) -> Vec<Paint> {
-    if (b.scroll == 0 && b.doc == crate::panehome::Doc::No)
-        || rows < MIN_ROWS
-        || cols < 2
-        || b.total == 0
-    {
-        return Vec::new();
+/// Where the scroll thumb sits on the right border: `(top, height)` in card
+/// rows, or `None` when the card draws none. The notches beside it read this
+/// too ([`crate::cardmarks::notches`]): where you ARE outranks a landmark.
+pub(crate) fn thumb_span(rows: u16, b: &Bar) -> Option<(f32, f32)> {
+    if (b.scroll == 0 && b.doc == crate::panehome::Doc::No) || rows < MIN_ROWS || b.total == 0 {
+        return None;
     }
     let visible = usize::from(rows - 2);
     if b.total <= visible {
-        return Vec::new();
+        return None;
     }
     let first = b.total.saturating_sub(visible).saturating_sub(b.scroll);
     // Where the window sits in the buffer, and how much of it it covers.
     let span = (visible as f32 / b.total as f32).clamp(0.02, 1.0);
     let at = (first as f32 / b.total.saturating_sub(visible).max(1) as f32).clamp(0.0, 1.0);
-    let track_top = aspect; // below the top border row
-    let track_h = (rows - 2) as f32 * aspect;
-    let h = (track_h * span).max(aspect * 0.6);
-    let y = track_top + at * (track_h - h);
+    // The track runs below the top border row, between the corners.
+    let track_h = f32::from(rows - 2);
+    let h = (track_h * span).max(0.6);
+    Some((1.0 + at * (track_h - h), h))
+}
+
+/// The scroll thumb, down the right border — a rounded bar at a fractional
+/// position, so a long buffer scrolls smoothly instead of in cell steps.
+fn thumb(cols: u16, rows: u16, b: &Bar, aspect: f32) -> Vec<Paint> {
+    let Some((top, rows_h)) = thumb_span(rows, b).filter(|_| cols >= 2) else {
+        return Vec::new();
+    };
+    let visible = usize::from(rows - 2);
+    let (y, h) = (top * aspect, rows_h * aspect);
     // The strip is the border column itself; the bar is placed inside it.
     let x = (1.0 - WEIGHT) * 0.5;
     let fg =
