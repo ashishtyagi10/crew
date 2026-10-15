@@ -39,7 +39,8 @@ pub(crate) fn render(p: &SettingsPane, cols: u16, rows: u16) -> Vec<CellView> {
 
     let mut out = Buffer::empty(Rect::new(0, 0, cols, rows));
     blit(&mut out, &virt, off, viewport);
-    hints(&mut out, cols, viewport, off, lay.height);
+    super::edges::fade(&mut out, cols, viewport, off, lay.height);
+    super::edges::hints(&mut out, cols, viewport, off, lay.height);
     buttons(&mut out, cols, rows, focused);
     if p.family_open {
         if let Some(r) = lay.rect_of(Field::FontFamily) {
@@ -159,20 +160,6 @@ fn blit(dst: &mut Buffer, src: &Buffer, off: u16, viewport: u16) {
                 *d = s.clone();
             }
         }
-    }
-}
-
-/// `↑` / `↓` at the right edge when the form overflows the viewport, in the
-/// margin outside the cards: one column in, they stood ON a card's border.
-fn hints(buf: &mut Buffer, cols: u16, viewport: u16, off: u16, total: u16) {
-    let style = Style::new().fg(form::dim());
-    let x = cols.saturating_sub(1);
-    if off > 0 {
-        buf.set_line(x, 0, &Line::styled("\u{2191}", style), 1);
-    }
-    if off + viewport < total {
-        let y = viewport.saturating_sub(1);
-        buf.set_line(x, y, &Line::styled("\u{2193}", style), 1);
     }
 }
 
