@@ -64,6 +64,30 @@ pub(crate) fn split_pct(a: u64, b: u64) -> (u64, u64) {
     }
 }
 
+/// The colours the token split's "out" share tries, in order: bright
+/// magenta, bright cyan, bright blue, bright green, bright yellow.
+const OUT_SLOTS: [usize; 5] = [13, 14, 12, 10, 11];
+
+/// How far (Oklab, see `crew_theme::oklch::distance`) "out" must stand from
+/// the accent "in" wears to be told apart at a glance: past one rung of the
+/// text hierarchy (0.10), short of ANSI red against yellow (0.20).
+const APART: f32 = 0.15;
+
+/// The colour of the token split's "out" share, beside an `accent` "in".
+/// It was always bright magenta, and on a pink or violet accent the two
+/// arcs and the words naming them were one colour — 0.08 apart on blossom,
+/// 0.05 on amber (glass survey E9). The first of [`OUT_SLOTS`] at least
+/// [`APART`] from the accent; the farthest of them when none is.
+pub(crate) fn out_ink(accent: (u8, u8, u8)) -> (u8, u8, u8) {
+    let t = crew_theme::theme();
+    let far = |i: &usize| crew_theme::oklch::distance(accent, t.ansi[*i]);
+    let slot = OUT_SLOTS
+        .iter()
+        .find(|i| far(i) >= APART)
+        .or_else(|| OUT_SLOTS.iter().max_by(|a, b| far(a).total_cmp(&far(b))));
+    t.ansi[*slot.unwrap_or(&13)]
+}
+
 #[cfg(test)]
 #[path = "usageaxis_tests.rs"]
 mod tests;

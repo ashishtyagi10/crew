@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.89
+
+**The token ring's "in" and "out" no longer share a colour.**
+`/usage` splits tokens into "in" (your accent colour) and "out" (always
+bright magenta). The two words are the ring's only key. On a pink or
+violet accent (blossom, nebula) and on the amber and green tube
+palettes, the two colours were so close that you couldn't tell the
+arcs apart. "Out" now uses the first of magenta, cyan, blue, green and
+yellow that stands clearly apart from your accent, or the most distant
+one if none does. Where magenta was already distinct, nothing changes.
+- **Test:** on every palette, "out" is at least the set distance from
+  the accent, or as far as any of those colours gets, and it stays
+  magenta wherever magenta was already clear of it.
+
 ## 0.26.88
 
 **The /far panels sit in the middle of their card.**

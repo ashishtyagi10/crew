@@ -142,7 +142,7 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
             &key("out", b.tok_out, pct_out),
             13,
             r_out,
-            t.ansi[13],
+            crate::usageaxis::out_ink(accent()),
         );
     }
 
@@ -229,7 +229,7 @@ pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
         let centre = (hole(b).2 - SHIFT, h / 2.0);
         let slices = [
             Slice::new(b.tok_in as f32, accent()),
-            Slice::new(b.tok_out as f32, t.ansi[13]),
+            Slice::new(b.tok_out as f32, crate::usageaxis::out_ink(accent())),
         ];
         pie::donut(
             &mut c,
