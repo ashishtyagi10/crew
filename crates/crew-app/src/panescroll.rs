@@ -11,13 +11,12 @@
 //! scrolled back — a permanent gutter on every card would be chrome for a
 //! question nobody is asking at the bottom of the buffer.
 //!
-//! What is left here is the discrete part: landmark ticks and search hits,
-//! which mark particular *rows* and so are exactly one cell each. The thumb
-//! and the program's progress bar are continuous readings and moved a whole
-//! cell at a time as glyphs; they are drawn now, in [`crate::cardpaint`].
+//! What is left here is the count and the colour. The thumb, the program's
+//! progress bar, landmarks and search hits are drawn, in
+//! [`crate::cardpaint`] and [`crate::cardmarks`].
 use crew_render::CellView;
 
-use crate::panecard::{put, Bar};
+use crate::panecard::put;
 
 /// The colour both readings wear: the theme gradient sampled at `t`, where 0
 /// is the top of the buffer and 1 the live bottom.
@@ -73,52 +72,6 @@ pub(crate) fn count(
         put(v, start + i as u16, 0, ch, fg, false);
     }
     start.saturating_sub(2)
-}
-
-/// Rows of the right border a thumb may occupy: everything between the two
-/// corners. A card shorter than this has no gutter worth drawing.
-const MIN_ROWS: u16 = 5;
-
-/// Landmark ticks down the right border: one dim mark per rendered row worth
-/// jumping to (`]` / `[`), placed proportionally. Drawn BEFORE the thumb, so
-/// the landmark you are sitting on is covered by the thumb rather than the
-/// other way round — the thumb is where you are, and that answer wins.
-///
-/// Ticks are deduplicated by row: a long document has more headings than the
-/// gutter has cells, and two landmarks in one cell is one mark, not two.
-pub(crate) fn ticks(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar) {
-    if b.ticks.is_empty() || rows < MIN_ROWS || cols < 2 || b.total == 0 {
-        return;
-    }
-    let inner = usize::from(rows - 2);
-    let fg = crew_theme::theme().legend_off;
-    let mut drawn: Vec<u16> = Vec::new();
-    for &row in b.ticks {
-        let at = (row.min(b.total.saturating_sub(1)) * inner) / b.total.max(1);
-        let y = 1 + at.min(inner.saturating_sub(1)) as u16;
-        if drawn.contains(&y) {
-            continue;
-        }
-        drawn.push(y);
-        put(v, cols - 1, y, '\u{2508}', fg, false);
-    }
-}
-
-/// Search hits down the gutter, in the colour the matches themselves wear.
-/// Drawn over the landmark ticks and under the thumb: while you are looking
-/// for something, where the matches are outranks where the sections are, and
-/// where you ARE outranks both.
-pub(crate) fn hit_ticks(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar) {
-    if b.hits.is_empty() || rows < MIN_ROWS || cols < 2 || b.total == 0 {
-        return;
-    }
-    let inner = usize::from(rows - 2);
-    let fg = crate::findhl::hit_mark();
-    for &row in b.hits {
-        let at = (row.min(b.total.saturating_sub(1)) * inner) / b.total.max(1);
-        let y = 1 + at.min(inner.saturating_sub(1)) as u16;
-        put(v, cols - 1, y, '\u{2501}', fg, false);
-    }
 }
 
 /// The scroll offset that puts the top of the window on the line a pointer

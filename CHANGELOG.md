@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.86
+
+**Scroll marks stay inside the card's edge.**
+The small marks on a pane's right edge (one for each heading or command
+you can jump to with `]` and `[`, and one for each search match) were
+dotted lines drawn across the edge. Half of each mark stuck out into
+the gap between two panes, and the edge line had a hole where the mark
+replaced it. Each mark is now a short notch on the inside of the edge,
+and the edge line stays unbroken. Search matches are a thicker notch in
+their own colour. Neither kind is drawn under the scroll thumb, because
+the thumb shows where you are.
+- **Test:** an 8 px cell's notch covers pixels 0 to 4 of the edge
+  column and never reaches past the line. Rows are deduplicated, and a
+  search match takes a row from a heading mark.
+
 ## 0.26.85
 
 **The weather card says so when you travel with a place typed in.**
