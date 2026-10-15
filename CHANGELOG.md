@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.83
+
+**The input bar's pane name no longer has its frame line running into it.**
+The name at the right end of the input bar's top edge (`chat`, `dash`,
+or a status message or history position when one is showing) was meant
+to sit in a gap in the line, like the folder path at the left end does.
+The frame line was left underneath it, though, so it ran right up to
+the letters and on through them. The line now stops a cell short on
+each side.
+- **Test:** at three widths, the bar's top edge reads `─ chat ─╮` with
+  no line drawn under the name or its spaces. The test fails on the old
+  bar.
+
 ## 0.26.82
 
 **The `/far` file panels keep all four corners round.**
