@@ -10,7 +10,8 @@
 //!
 //! These are drawn from one primitive — a capped line segment of the rules'
 //! own weight — so they are the same colour, the same stroke and the same
-//! optical size as every other mark and every rule around them. `⚑ ↵ ⇡ ⌘` are
+//! optical size as every other mark and every rule around them — `⇧` too,
+//! whose faces' loop read as an `o` at cell size. `⚑ ↵ ⇡ ⌘` are
 //! left to the font: a flag, a return arrow and the command loop are drawings,
 //! not constructions, and a hand-built one reads worse than a designed one.
 use super::{light_thickness, Mask};
@@ -59,6 +60,30 @@ fn ballot(m: &mut Mask, t: f32) {
     m.rect(x1 - t, y0, x1, y1);
 }
 
+/// Shift, `⇧`: an outlined arrow at cap height, its head the cell's width
+/// and its stem two fifths of it. The faces' own is a loop about 8 px
+/// across that read as a lowercase `o` beside the key it modifies —
+/// `oPageUp`, `^oL` down the `/keys` list (glass survey G5).
+fn shift(m: &mut Mask, t: f32) {
+    let (w, h) = (m.w as f32, m.h as f32);
+    let (top, bot) = ((h * 0.22).round(), (h * 0.72).round());
+    let neck = ((top + bot) / 2.0).round();
+    let (cx, edge) = (w / 2.0, 0.5 * t + 0.5);
+    let (l, r) = (cx - w * 0.2, cx + w * 0.2);
+    let outline = [
+        (cx, top),
+        (w - edge, neck),
+        (r, neck),
+        (r, bot),
+        (l, bot),
+        (l, neck),
+        (edge, neck),
+    ];
+    for (i, &p) in outline.iter().enumerate() {
+        m.stroke(p, outline[(i + 1) % outline.len()], t);
+    }
+}
+
 /// Draw `c` if it is one of the stroked marks.
 pub(super) fn draw(m: &mut Mask, c: char) -> bool {
     let t = light_thickness(m.h) as f32;
@@ -81,6 +106,7 @@ pub(super) fn draw(m: &mut Mask, c: char) -> bool {
         }
         '\u{276F}' => chevron(m, 1.0, t),
         '\u{276E}' => chevron(m, -1.0, t),
+        '\u{21E7}' => shift(m, t),
         _ => return false,
     }
     true

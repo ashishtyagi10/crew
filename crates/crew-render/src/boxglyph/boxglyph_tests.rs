@@ -557,3 +557,21 @@ fn badge_caps_are_half_discs_that_meet_the_block() {
     assert_eq!(at(&wide, 7, 8), 0, "a semicircle does not reach past r");
     assert!(at(&wide, 9, 8) > 0, "a semicircle reaches its own radius");
 }
+
+/// `⇧` is drawn: an outlined arrow as tall as a capital, its stem hollow
+/// down the middle — not the faces' 8 px loop, which read as an `o` beside
+/// the key it modifies (glass survey G5).
+#[test]
+fn the_shift_arrow_is_drawn_at_cap_height() {
+    let img = cell('\u{21E7}', 8, 16);
+    let inked = |x: u32, y: u32| at(&img, x, y) > 64;
+    let rows: Vec<u32> = (0..16).filter(|&y| (0..8).any(|x| inked(x, y))).collect();
+    let cols: Vec<u32> = (0..8).filter(|&x| (0..16).any(|y| inked(x, y))).collect();
+    assert!(rows.len() >= 8, "only rows {rows:?}");
+    assert!(cols.len() >= 6, "only columns {cols:?}");
+    let stem = rows[rows.len() - 3];
+    assert!(
+        !inked(4, stem) && inked(2, stem) && inked(5, stem),
+        "a hollow stem at row {stem}"
+    );
+}
