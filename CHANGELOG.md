@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.92
+
+**The /keys window no longer ends in two empty rows.**
+When a section heading such as "in an agent pane" landed on the last
+row of the `/keys` window, crew hid it, together with the blank line
+above it, so the heading wouldn't sit alone at the bottom with none of
+its keys. That left two empty rows at the bottom of the window, right
+above a hint saying there was more to scroll to. Now the heading moves
+up into the blank line's place and its first key fills the last row,
+so the window stays full and shows what comes next.
+- **Test:** at every scroll position and three window heights, the last
+  row shown is never a heading or a blank. The window is never more than
+  a row short, and some scroll position puts a heading with its first
+  key at the bottom. On the old window it ran two rows short.
+
 ## 0.26.91
 
 **Numbers like `3.1k` and `2.3s` are no longer drawn as file links.**

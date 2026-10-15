@@ -40,26 +40,35 @@ fn the_hint_marks_its_cut_on_a_narrow_overlay() {
 
 /// A section's heading never closes the window alone: at every scroll of
 /// the default list, the last row shown is a binding (or the list's end) —
-/// `in an agent pane` stood alone at the fold (glass survey D).
+/// `in an agent pane` stood alone at the fold (glass survey D). And the
+/// window is never left two lines short for it: a heading at the fold
+/// takes the blank above it, with its first row under it (F4).
 #[test]
 fn a_heading_waits_for_its_rows() {
     use crate::helplayout::Row;
     let all = crate::helplayout::rows_for("", 110, None);
+    let mut folded = 0;
     for fit in [10, 25, 36] {
         for scroll in 0..all.len() {
             let shown = &all[scroll..];
-            let n = crate::help::kept(shown, fit);
+            let idx = crate::help::kept(shown, fit);
+            let n = idx.len();
             assert!(
-                n >= fit.min(shown.len()).saturating_sub(2),
+                n >= fit.min(shown.len()).saturating_sub(1),
                 "{fit}@{scroll}"
             );
-            if n < shown.len() {
-                let last = &shown[n - 1];
+            assert!(idx.windows(2).all(|w| w[0] < w[1]), "{fit}@{scroll}");
+            if *idx.last().unwrap() + 1 < shown.len() {
+                let last = &shown[idx[n - 1]];
                 assert!(
                     !matches!(last, Row::Head(..) | Row::Spacer),
                     "{fit}@{scroll}"
                 );
             }
+            if n == fit && matches!(shown[idx[n - 2]], Row::Head(..)) {
+                folded += 1;
+            }
         }
     }
+    assert!(folded > 0, "no scroll put a heading at the fold");
 }

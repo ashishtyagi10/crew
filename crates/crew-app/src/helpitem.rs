@@ -9,7 +9,7 @@ use crate::helplayout::Row;
 use crate::helpmark::marked as mark;
 
 pub(super) fn items(
-    rows: &[Row],
+    rows: &[&Row],
     col: usize,
     inner_w: usize,
     needle: &str,
@@ -65,4 +65,23 @@ pub(super) fn items(
             ))),
         })
         .collect()
+}
+
+/// Which of `rows` a window `fit` rows tall shows, by index: all that fit,
+/// less a heading (and the blank above it) that would close the window
+/// with none of its rows under it — `in an agent pane` stood alone at the
+/// fold. A heading with a blank above it takes the blank's line instead,
+/// with its first row under it: trimmed, the two lines were empty glass
+/// over a hint saying there was more (glass survey F4).
+pub(crate) fn kept(rows: &[Row], fit: usize) -> Vec<usize> {
+    use Row::{Head, Spacer};
+    let mut n = rows.len().min(fit);
+    let lead = matches!(rows.get(n), Some(r) if !matches!(r, Head(..) | Spacer));
+    if n >= 2 && lead && matches!((&rows[n - 2], &rows[n - 1]), (Spacer, Head(..))) {
+        return (0..n - 2).chain([n - 1, n]).collect();
+    }
+    while n > 1 && n < rows.len() && matches!(rows[n - 1], Head(..) | Spacer) {
+        n -= 1;
+    }
+    (0..n).collect()
 }
