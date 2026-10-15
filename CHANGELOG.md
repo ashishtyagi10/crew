@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.87
+
+**Dark text from a program stays readable on see-through glass.**
+When a program prints in ANSI black (`\e[30m`), or in a dark colour it
+picked itself, crew only checked that colour against the pane's own
+colour. On a see-through window, though, the text actually sits on the
+frosted glass over your desktop. Over a light desktop that frost is
+mid-grey, so black text measured 1.3:1 there and all but disappeared.
+Text on the pane's background is now kept at least 3:1 against the
+glass over any desktop, the same floor it already had against the page
+and the floor dim text already had on glass. Black now shows as a grey
+a step below the other greys, still darker than bright black and white.
+A window that is not see-through is unchanged, and so is text the
+program draws on a background colour of its own.
+- **Test:** on every palette, ANSI black and bright black on the page
+  clear 3:1 against the frost over a black desktop and a white one, and
+  body text is left as it was. An opaque window gets only the page floor.
+
 ## 0.26.86
 
 **Scroll marks stay inside the card's edge.**
