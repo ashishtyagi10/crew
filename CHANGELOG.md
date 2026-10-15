@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.95
+
+**The scroll thumb and progress bar sit centred on the card's edge.**
+The scroll thumb on a pane's right edge, and the progress bar some
+programs draw along its bottom edge, were centred on the middle of the
+edge's character cell. The edge line itself sits half a pixel off that
+middle, rounded to a whole pixel, so both bars hung about a pixel
+outside the card, into the gap between panes. On glass-night that read
+as a pink line running beside the teal edge. Both are now centred on
+the edge line.
+- **Test:** on an 8×16 px cell, the thumb is centred on pixel 3.5
+  across its cell and the progress bar on pixel 7.5 down its row, where
+  the edge line is. Before, they were centred on 4 and 8.
+
 ## 0.26.94
 
 **Strings and comments in the file viewer read clearly on see-through
