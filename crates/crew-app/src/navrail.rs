@@ -126,7 +126,8 @@ impl CrewApp {
             return None;
         }
         let (_, rows) = crate::layout::card_inner_cells(sb.w, sb.h, cw, ch);
-        let rel = ((self.cursor.1 - sb.y) / ch).floor() as u16;
+        let dy = crate::panellevel::level_dy(sb, &self.panes, cw, ch);
+        let rel = ((self.cursor.1 - sb.y - dy) / ch).floor() as u16;
         crate::navrail::pane_at_row(rel, rows, self.panes.len())
     }
 
@@ -176,8 +177,9 @@ impl CrewApp {
         // `ch / cw` goes with the meters so a capsule stays a capsule when the
         // font changes (see `crate::plot::Canvas`).
         let aspect = ch / cw;
-        let fg = crew_theme::theme().legend_off;
-        crate::panelcard::push_card_art(scenes, sb, cw, ch, &legend, fg, |cols, irows| {
+        let label = (legend.as_str(), crew_theme::theme().legend_off);
+        let dy = crate::panellevel::level_dy(sb, &self.panes, cw, ch);
+        crate::panellevel::push_card_art_level(scenes, sb, (cw, ch), label, dy, |cols, irows| {
             let mut cells = rail_cells(&rows, cols, irows, spin);
             let used = rows.len().min(usize::from(irows)) as u16;
             let (foot, paint) = crate::navrailfoot::foot(&foot, cols, irows, used, aspect);

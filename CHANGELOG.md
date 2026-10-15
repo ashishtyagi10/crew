@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.103
+
+**The Shift symbol `⇧` no longer looks like a lowercase "o".**
+Key combinations that include Shift are written with `⇧` (in `/keys`,
+the command list and hints). The font's version is a thin outline about
+8 px across, and at text size it read as a letter "o", so `⇧PageUp`
+looked like "oPageUp" and `^⇧G` like "^oG". crew now draws the symbol
+itself, the way it already draws its box lines and check marks: an
+outlined arrow as tall as a capital letter, with a clear stem. It
+matches the line weight of the text around it.
+- **Test:** the drawn `⇧` in an 8×16 px cell spans at least 8 rows and 6
+  columns, and its stem is hollow down the middle.
+
+## 0.26.102
+
+**The collapsed sidebar's pane numbers sit level with the panes' rows.**
+When the left sidebar is collapsed to a narrow rail, it lists your panes
+by number, one per row. Those rows sat 6 px higher than the text rows
+of the panes beside them. Panes centre their content in the leftover
+pixels of their card, and the rail didn't. The rail's rows now start on
+the same line as the first row of the topmost pane, and clicking a
+number still picks the row it is drawn on.
+- **Test:** beside a pane 668 px tall (41 rows plus 12 px), the rail's
+  rows drop 6 px to match. The rail's frame doesn't move, and with no
+  pane beside it nothing shifts.
+
 ## 0.26.101
 
 **A terminal pane's corner buttons line up with every other pane's.**
