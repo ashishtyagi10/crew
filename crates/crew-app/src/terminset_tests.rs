@@ -87,3 +87,34 @@ fn the_content_sits_in_the_middle_of_its_card() {
     let (x, y) = super::origin(&p, CELL.0, CELL.1);
     assert_eq!((x, y), (r.x + 2.0 * CELL.0 + 3.0, r.y + CELL.1 + 5.0));
 }
+
+/// A shell's card is as wide as its frame, not its pty: its `×` lands in
+/// the button target the click resolves (`cardchrome::btn_rect`), the same
+/// distance from the corner as every other pane's. Built from the pty's
+/// columns it stood a cell further in (glass survey G4).
+#[test]
+fn a_shells_buttons_sit_in_their_targets() {
+    let mut app = CrewApp {
+        geo_override: Some((CELL.0, CELL.1, 1280.0, 720.0, 1.0)),
+        ..Default::default()
+    };
+    app.panes = vec![term_pane()];
+    app.input.focused = false;
+    app.reconcile_grid();
+    app.build_frame();
+    let p = &app.panes[0];
+    let (inner, _) = crate::layout::card_inner_cells(p.rect.w, p.rect.h, CELL.0, CELL.1);
+    assert_eq!(crate::panefit::frame_cols(p), inner);
+    let bar = crate::panecard::Bar {
+        min_btn: true,
+        ..Default::default()
+    };
+    let card = crate::panecardglow::pane_card_glowing(p, &bar);
+    let x = card
+        .iter()
+        .find(|c| c.row == 0 && c.c == '\u{00d7}')
+        .map(|c| c.col);
+    let target = crate::cardchrome::close_btn_rect(p.rect, CELL.0, CELL.1);
+    let at = target.map(|r| ((r.x - p.rect.x) / CELL.0).round() as u16 + 1);
+    assert_eq!(x, at, "the × is the middle of its target");
+}
