@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.104
+
+**Agent smith shows it is working, Matrix style, just above where you type.**
+From the moment you send a message until the turn ends, the row above
+the composer shows a line of code. A word in smith's voice
+(`assimilating`, `inevitable…`, `jacking in` and others, one per turn)
+decodes out of falling glyphs, holds, dissolves and decodes again. A
+short streak of code runs after it, and the turn's time counts up on
+the right. This covers the few seconds before the first word of a
+reply, when nothing showed before. The line moves only while work
+does: each reply token, reasoning line or tool result lights it for a
+moment. After 8 seconds with nothing new it holds its word, dims and
+slows down, so a stuck turn looks stuck. A running tool adds a second
+streak, and tool calls are not listed. With Motion off it is one still
+line, `smith · assimilating · 6s`. During a swarm run, the run's
+progress bar keeps that row.
+- **Test:** a busy pane draws the line on the row directly above the
+  composer, and the transcript gives up one row for it. Letters lock in
+  left to right behind a bright head. A stalled turn's streak moves at
+  a quarter of the pace, and a running tool adds a second streak.
+
 ## 0.26.103
 
 **The Shift symbol `⇧` no longer looks like a lowercase "o".**

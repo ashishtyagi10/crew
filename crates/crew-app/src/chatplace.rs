@@ -39,8 +39,8 @@ pub(crate) fn window(
 /// where it always was.
 ///
 /// ONE definition, read by the draw and by every path that resolves a click
-/// back to a line (`chatfold::line_index_at`). Two row divisions is how the
-/// left nav shipped a hit-test one row off its own frame.
+/// back to a line (`chatfold::line_index_at`): two row divisions shipped the
+/// left nav a hit-test one row off its own frame.
 pub(crate) fn top_pad(total: usize, rows: u16) -> u16 {
     (rows as usize).saturating_sub(total) as u16
 }
@@ -104,10 +104,9 @@ pub(crate) fn cell_at_col(line: &CardLine, col: u16) -> Option<&CardCell> {
 /// bar, the indicator and the status line onto the same row and let
 /// last-write-wins hide whichever drew first.
 ///
-/// Priority, most expendable last: the status line, then the queued indicator,
-/// then the bar. The bar goes first because the status line now carries the
-/// `done/total` counter that used to be the bar's label — a pane with room for
-/// one of them is better off with the one that also names the task.
+/// Priority, most expendable last: the status line, the queued indicator, the
+/// bar (or the code line). The bar goes first: the status line carries the
+/// `done/total` that was the bar's label, and it names the task as well.
 pub(crate) struct Grants {
     pub top: u16,
     pub bottom: u16,
@@ -117,6 +116,7 @@ pub(crate) struct Grants {
     pub summary: u16,
     pub swarm: u16,
     pub queued: u16,
+    /// The live row above the composer: the swarm's bar, or the code line.
     pub prog: u16,
     /// The dimmed streaming overflow tail (0 or `TAIL_ROWS`).
     pub tail: u16,
@@ -144,7 +144,7 @@ pub(crate) fn grants(pane: &ChatPane, cols: u16, rows: u16) -> Grants {
     let plan = take(crate::chatplanbtn::plan_rows(pane, cols));
     let swarm = take(crate::chatswarmview::swarm_rows(pane, cols));
     let queued = take(crate::chatqueue::queued_rows(pane));
-    let prog = take(crate::chatprog::progress_rows(pane, cols));
+    let prog = take(crate::chatcodeline::live_rows(pane, cols));
     // The tail is the most expendable surface: the text it mirrors also
     // exists in the transcript (or the streaming card itself), so it takes
     // last, after everything load-bearing has already claimed its rows.

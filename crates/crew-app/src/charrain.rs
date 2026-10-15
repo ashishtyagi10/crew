@@ -3,7 +3,7 @@
 //! it renders identically for identical inputs — testable and resume-safe.
 //! Give it a rect and it drops glyphs inside it and nowhere else (the page
 //! shows through the gaps). Backs the welcome screen (replacing the old
-//! globe); busy panes use a progress bar instead (see [`crate::chatprog`]).
+//! globe), and a busy agent smith pane's code line ([`crate::chatcodeline`]).
 use crew_render::CellView;
 
 /// Default rain box: 64×16 cells — a wide, low 4:1 rectangle (~2:1 on screen
@@ -21,9 +21,9 @@ const TRAIL: u16 = 6;
 /// advance-width hazards on some fonts). Letters and digits, and a few quiet
 /// marks the trail may wear: the `$#%&\\{}` the field once rained read as a
 /// corrupted terminal, not as light.
-const GLYPHS: &[u8] = b"0123456789abcdefhkmnrsvxyz<>/=+:";
+pub(crate) const GLYPHS: &[u8] = b"0123456789abcdefhkmnrsvxyz<>/=+:";
 /// The leading run of [`GLYPHS`] a head may be: letters and digits only.
-const HEADS: usize = 26;
+pub(crate) const HEADS: usize = 26;
 /// Trail cells from this depth on are dots: the streak dissolves as it fades.
 const DOTS_FROM: u16 = 3;
 /// A column rests between streaks for up to this many cells' fall, so the
@@ -54,7 +54,7 @@ fn calm(col: u16, row: u16, w: u16, h: u16) -> f32 {
 }
 
 /// A fast integer hash (SplitMix-style) — the deterministic stand-in for RNG.
-fn hash(a: u64, b: u64) -> u64 {
+pub(crate) fn hash(a: u64, b: u64) -> u64 {
     let mut x = a.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ b.wrapping_mul(0xC2B2_AE3D_27D4_EB4F);
     x ^= x >> 33;
     x = x.wrapping_mul(0xFF51_AFD7_ED55_8CCD);
