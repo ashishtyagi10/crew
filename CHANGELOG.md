@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.84
+
+**An agent's live thinking says when its first line is cut.**
+While an agent thinks, its pane shows the last four lines of what it is
+working through. When those four lines started partway through a long
+wrapped line, the block opened on a bare fragment such as `applies.`,
+with nothing to say the sentence began further up. That first line now
+starts with `…`, set in the margin so the text stays lined up with the
+lines below it. A tail that starts at the beginning of a line is shown
+as before.
+- **Test:** a tail cut inside a wrapped line starts with `…` and the rows
+  under it are unchanged. A tail starting on a line's own beginning has
+  no mark. The first test fails on the old block.
+
 ## 0.26.83
 
 **The input bar's pane name no longer has its frame line running into it.**
