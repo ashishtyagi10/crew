@@ -22,6 +22,9 @@ fn row(cells: &[CellView], r: u16) -> String {
 /// the legend bold in the accent — not a flat accent border of its own.
 #[test]
 fn the_overlay_wears_the_popup_chrome() {
+    // The legend is read against the accent global: its own lock first, as
+    // everywhere, or `set_accent` in a palette test lands mid-assertion.
+    let _a = crate::palette::test_guard();
     let _g = crate::app::theme_test_guard();
     let (w, h) = size();
     let cells = help_cells(w, h, 0, "", None);

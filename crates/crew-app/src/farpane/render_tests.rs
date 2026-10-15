@@ -347,9 +347,9 @@ fn thinking_status_shows_elapsed_seconds() {
 
 #[test]
 fn suggested_command_highlights_the_bar_and_shows_the_accept_hint() {
+    let _a = crate::palette::test_guard();
     let _g = crate::app::theme_test_guard();
     use crate::farpane::ask::AskState;
-    let _g = crate::palette::test_guard();
     let mut pane = fixture_pane("suggested");
     pane.cmdline = "ls -la".into();
     pane.ask = Some(AskState::Suggested {

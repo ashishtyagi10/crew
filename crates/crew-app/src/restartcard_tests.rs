@@ -11,8 +11,8 @@ fn text(cells: &[CellView], row: u16) -> String {
 /// Both halves of the card: the thing to press, and what pressing it buys.
 #[test]
 fn the_card_says_what_to_press_and_what_it_lands_on() {
-    let _g = crate::app::theme_test_guard();
     let _p = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
     let cells = restart_cells("9.9.9", 0, 24, 2);
     let first = text(&cells, 0);
     assert!(
@@ -30,8 +30,8 @@ fn the_card_says_what_to_press_and_what_it_lands_on() {
 /// A one-row card keeps the button, not the detail — the press is the point.
 #[test]
 fn a_single_row_card_keeps_the_button() {
-    let _g = crate::app::theme_test_guard();
     let _p = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
     let cells = restart_cells("9.9.9", 0, 24, 1);
     assert!(text(&cells, 0).contains("restart"));
     assert!(cells.iter().all(|c| c.row == 0), "nothing below row 0");
@@ -39,8 +39,8 @@ fn a_single_row_card_keeps_the_button() {
 
 #[test]
 fn a_card_with_no_room_draws_nothing() {
-    let _g = crate::app::theme_test_guard();
     let _p = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
     assert!(restart_cells("9.9.9", 0, 3, 2).is_empty());
     assert!(restart_cells("9.9.9", 0, 24, 0).is_empty());
 }
@@ -52,8 +52,8 @@ fn a_card_with_no_room_draws_nothing() {
 fn the_button_alternates_on_the_blink_clock() {
     // `motion_test_guard` IS the appearance guard — it pins the theme too.
     // Taking `theme_test_guard` as well deadlocks: one lock, not reentrant.
-    let _g = crate::app::motion_test_guard();
     let _p = crate::palette::test_guard();
+    let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Full);
     let accent = crate::palette::accent();
     assert_eq!(button_fg(0), accent, "phase 0 is the accent");
@@ -78,8 +78,8 @@ fn the_button_alternates_on_the_blink_clock() {
 fn motion_off_holds_the_button_steady_and_visible() {
     // `motion_test_guard` IS the appearance guard — it pins the theme too.
     // Taking `theme_test_guard` as well deadlocks: one lock, not reentrant.
-    let _g = crate::app::motion_test_guard();
     let _p = crate::palette::test_guard();
+    let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Off);
     let accent = crate::palette::accent();
     for t in [0, BLINK_MS, 5 * BLINK_MS] {
