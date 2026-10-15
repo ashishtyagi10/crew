@@ -69,6 +69,14 @@ pub(crate) fn scroll_thumb(buf: &mut Buffer, area: Rect, panel: &Panel, active: 
     let Some((top, len)) = crate::chatscroll::thumb(panel.entries.len(), inner_h, start) else {
         return;
     };
+    // Laid on the rows between the corners' neighbours: a card-scale corner
+    // rounds by borrowing the `│` beside it, and a thumb there left the
+    // panel's `╮` square (glass survey E4).
+    let track = inner_h.saturating_sub(2);
+    if track == 0 {
+        return;
+    }
+    let (top, len) = (top * track / inner_h, (len * track / inner_h).max(1));
     let edge = if active {
         accent_color()
     } else {
@@ -77,7 +85,7 @@ pub(crate) fn scroll_thumb(buf: &mut Buffer, area: Rect, panel: &Panel, active: 
     };
     let x = area.x + area.width - 1;
     for i in 0..len {
-        if let Some(cell) = buf.cell_mut((x, area.y + 1 + (top + i) as u16)) {
+        if let Some(cell) = buf.cell_mut((x, area.y + 2 + (top + i) as u16)) {
             cell.set_symbol("\u{2503}"); // ┃
             cell.set_fg(edge);
         }

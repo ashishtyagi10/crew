@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.82
+
+**The `/far` file panels keep all four corners round.**
+A panel's scroll thumb ran down its right edge starting on the row
+right under the top corner, and the corner can only round by borrowing
+that row. So when a listing was longer than the panel, the panel's
+top-right corner (and the bottom-right one once scrolled to the end)
+was drawn square. The thumb now stays one row clear of each corner.
+- **Test:** with a long listing, at its first entry and at its last, the
+  cells beside the panel's right-hand corners are plain frame and the
+  thumb is still drawn. The test fails on the old thumb.
+
 ## 0.26.81
 
 **A shell's error marks line up with the lines they mark.**
