@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.88
+
+**The /far panels sit in the middle of their card.**
+The two file panels in a `/far` pane had a column of space between them
+and the card's left edge but none on the right. That put the panels 19
+px in from the left edge and 12 px in from the right. They now have a
+column on each side, 19 px and 20 px, the same way a chat keeps its text
+in from both edges. The rows under the panels move with them.
+- **Test:** an 80-column pane leaves column 0 and column 79 empty, and
+  the right panel's frame ends on column 78. On the old layout it ended
+  on 79.
+
 ## 0.26.87
 
 **Dark text from a program stays readable on see-through glass.**
