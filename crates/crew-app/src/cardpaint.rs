@@ -24,18 +24,32 @@ const SWEEP_MS: u64 = 1400;
 const MIN_ROWS: u16 = 5;
 
 /// Everything this card draws on its frame, in the card's own cell
-/// coordinates (`0,0` is the top-left border cell).
-pub fn card_paint(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64) -> Vec<Paint> {
+/// coordinates (`0,0` is the top-left border cell), for `cw`×`ch` px cells.
+pub fn card_paint(cols: u16, rows: u16, b: &Bar, cell: (f32, f32), now: u64) -> Vec<Paint> {
     if cols < 4 || rows < 3 {
         return Vec::new();
     }
+    let aspect = cell.1 / cell.0;
+    let (mx, my) = stroke_mid(cell.0, cell.1);
     // A strip each, not one buffer the size of the card: the old shared
     // canvas allocated and zeroed `cols * rows * SUB^2` pixels every frame
     // for every pane — megabytes on a wide card — to put ink on two edges of
     // it.
-    let mut out = thumb(cols, rows, b, aspect);
-    out.extend(progress(cols, rows, b, aspect, now));
+    let mut out = thumb(cols, rows, b, aspect, mx);
+    out.extend(progress(cols, rows, b, aspect, now, my));
     out
+}
+
+/// Where the frame's stroke runs across its border cell, as a fraction of
+/// it: `(down a side, along the top or bottom)`. The rule is a whole number
+/// of px laid at the cell's middle rounded DOWN (`cardmarks::marks`), so an
+/// 8 px cell's stroke is px 3 — and a reading centred on the cell's middle
+/// (px 4) hung a pixel outside the card, its edge in the gutter (glass
+/// survey F11).
+pub(crate) fn stroke_mid(cw: f32, ch: f32) -> (f32, f32) {
+    let light = (ch * 0.07).round().max(1.0);
+    let mid = |len: f32| (((len - light) / 2.0).floor() + light / 2.0) / len;
+    (mid(cw), mid(ch))
 }
 
 /// Where the scroll thumb sits on the right border: `(top, height)` in card
@@ -61,14 +75,15 @@ pub(crate) fn thumb_span(rows: u16, b: &Bar) -> Option<(f32, f32)> {
 
 /// The scroll thumb, down the right border — a rounded bar at a fractional
 /// position, so a long buffer scrolls smoothly instead of in cell steps.
-fn thumb(cols: u16, rows: u16, b: &Bar, aspect: f32) -> Vec<Paint> {
+fn thumb(cols: u16, rows: u16, b: &Bar, aspect: f32, mid: f32) -> Vec<Paint> {
     let Some((top, rows_h)) = thumb_span(rows, b).filter(|_| cols >= 2) else {
         return Vec::new();
     };
     let visible = usize::from(rows - 2);
     let (y, h) = (top * aspect, rows_h * aspect);
-    // The strip is the border column itself; the bar is placed inside it.
-    let x = (1.0 - WEIGHT) * 0.5;
+    // The strip is the border column itself; the bar is centred on its
+    // stroke ([`stroke_mid`]).
+    let x = mid - WEIGHT * 0.5;
     let fg =
         crate::panescroll::position_fg(crate::panescroll::position(b.total, visible, b.scroll));
     let mut c = Canvas::new(1, rows, aspect);
@@ -82,7 +97,7 @@ fn thumb(cols: u16, rows: u16, b: &Bar, aspect: f32) -> Vec<Paint> {
 }
 
 /// The program's own progress (OSC 9;4) along the bottom border.
-fn progress(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64) -> Vec<Paint> {
+fn progress(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64, mid: f32) -> Vec<Paint> {
     let Some(p) = b.progress else {
         return Vec::new();
     };
@@ -92,8 +107,8 @@ fn progress(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64) -> Vec<Paint> 
         false => t.activity,
     };
     let inner = f32::from(cols - 2);
-    // One row tall, at the card's last row: `y` is inside the strip.
-    let y = (aspect - WEIGHT) * 0.5;
+    // One row tall, at the card's last row, centred on its stroke.
+    let y = mid * aspect - WEIGHT * 0.5;
     let mut c = Canvas::new(cols, 1, aspect);
     match p.percent {
         // A FULL bar is not a reading, it is a line. A program that reports
@@ -141,3 +156,7 @@ fn progress(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64) -> Vec<Paint> 
         .map(|p| p.shifted(0.0, f32::from(rows - 1)))
         .collect()
 }
+
+#[cfg(test)]
+#[path = "cardpaint_tests.rs"]
+mod tests;

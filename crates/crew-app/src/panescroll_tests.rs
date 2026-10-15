@@ -7,7 +7,7 @@ use crew_render::CellView;
 /// same questions these tests always asked — where is it, how long is it —
 /// are answered by which rows its rectangle covers.
 fn thumb_rows_of(b: &Bar, cols: u16, rows: u16) -> Vec<u16> {
-    let paint = crate::cardpaint::card_paint(cols, rows, b, 2.0, 0);
+    let paint = crate::cardpaint::card_paint(cols, rows, b, (8.0, 16.0), 0);
     let mut out: Vec<u16> = Vec::new();
     for p in paint.iter().filter(|p| p.x >= f32::from(cols - 1) - 0.01) {
         let first = p.y.floor() as u16;
@@ -206,7 +206,7 @@ fn both_readings_of_the_position_share_one_colour() {
     let (total, visible) = (1_000usize, 8usize);
     let rows = (visible + 2) as u16;
     let b = bar(400, total);
-    let thumb_fg = crate::cardpaint::card_paint(40, rows, &b, 2.0, 0)
+    let thumb_fg = crate::cardpaint::card_paint(40, rows, &b, (8.0, 16.0), 0)
         .into_iter()
         .find(|p| p.x >= 39.0)
         .expect("a thumb should be drawn")
@@ -263,7 +263,7 @@ fn a_progress_report_fills_the_bottom_border() {
     // The bar is drawn now, so its reading is its WIDTH rather than a count
     // of cells — which is the point: 50% is half the border, not four glyphs.
     let bar_paint = |p| {
-        crate::cardpaint::card_paint(42, 10, &bar_at(p), 2.0, 0)
+        crate::cardpaint::card_paint(42, 10, &bar_at(p), (8.0, 16.0), 0)
             .into_iter()
             .filter(|q| q.y >= 9.0)
             .collect::<Vec<_>>()
@@ -316,7 +316,7 @@ fn an_alarming_report_is_drawn_in_the_alarm_colour() {
         ..bar(0, 0)
     };
     let bell = crew_theme::theme().bell;
-    let v = crate::cardpaint::card_paint(42, 10, &alarm, 2.0, 0);
+    let v = crate::cardpaint::card_paint(42, 10, &alarm, (8.0, 16.0), 0);
     assert!(!v.is_empty());
     assert!(v.iter().all(|q| q.color == bell));
 }
@@ -334,14 +334,14 @@ fn an_indeterminate_report_sweeps_instead_of_filling() {
         ..bar(0, 0)
     };
     let at = |now: u64| {
-        crate::cardpaint::card_paint(42, 10, &b, 2.0, now)
+        crate::cardpaint::card_paint(42, 10, &b, (8.0, 16.0), now)
             .into_iter()
             .map(|q| q.x)
             .fold(f32::MAX, f32::min)
     };
     assert!(at(0) < at(700), "the sweep does not move");
     let span = |now: u64| {
-        let v = crate::cardpaint::card_paint(42, 10, &b, 2.0, now);
+        let v = crate::cardpaint::card_paint(42, 10, &b, (8.0, 16.0), now);
         let lo = v.iter().map(|q| q.x).fold(f32::MAX, f32::min);
         let hi = v.iter().map(|q| q.x + q.w).fold(0.0f32, f32::max);
         hi - lo
@@ -349,7 +349,7 @@ fn an_indeterminate_report_sweeps_instead_of_filling() {
     assert!(span(700) < 20.0, "the sweep is a comet, not a fill");
     // It fades toward its tail — a block of constant brightness cannot say
     // which way it is going.
-    let v = crate::cardpaint::card_paint(42, 10, &b, 2.0, 700);
+    let v = crate::cardpaint::card_paint(42, 10, &b, (8.0, 16.0), 700);
     let alphas: Vec<f32> = v.iter().map(|q| q.alpha).collect();
     let lo = alphas.iter().cloned().fold(f32::MAX, f32::min);
     let hi = alphas.iter().cloned().fold(0.0f32, f32::max);
@@ -364,6 +364,6 @@ fn a_tiny_card_draws_no_bar() {
         progress: pct(50),
         ..bar(0, 0)
     };
-    assert!(crate::cardpaint::card_paint(3, 10, &b, 2.0, 0).is_empty());
-    assert!(crate::cardpaint::card_paint(42, 2, &b, 2.0, 0).is_empty());
+    assert!(crate::cardpaint::card_paint(3, 10, &b, (8.0, 16.0), 0).is_empty());
+    assert!(crate::cardpaint::card_paint(42, 2, &b, (8.0, 16.0), 0).is_empty());
 }

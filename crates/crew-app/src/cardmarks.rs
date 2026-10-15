@@ -26,7 +26,7 @@ pub fn painted(cols: u16, rows: u16, b: &Bar, at: (f32, f32, f32), now: u64) -> 
     let (dy, cw, ch) = at;
     // Notches first: the thumb is drawn over the border they ride.
     let mut out = notches(cols, rows, b, cw, ch);
-    out.extend(crate::cardpaint::card_paint(cols, rows, b, ch / cw, now));
+    out.extend(crate::cardpaint::card_paint(cols, rows, b, (cw, ch), now));
     out.extend(marks(rows, b, dy, cw, ch));
     out
 }

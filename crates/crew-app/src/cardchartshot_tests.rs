@@ -132,7 +132,7 @@ fn chart_shot_card_indicators() {
         };
         (
             crate::panecard::pane_card(cols.saturating_sub(2), rows.saturating_sub(2), &bar),
-            crate::cardpaint::card_paint(cols, rows, &bar, aspect, 0),
+            crate::cardpaint::card_paint(cols, rows, &bar, (8.0, 8.0 * aspect), 0),
         )
     });
     let Some(px) = px else {
