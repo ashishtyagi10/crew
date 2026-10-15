@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.98
+
+**The dashboard's dials no longer touch the line above them.**
+On `/dash` the three dials (cpu, mem, dsk) were drawn as tall as their
+rows allow, so their top edges ran 2 px under the computer's name and
+uptime line. They are now a little smaller, leaving a fifth of a row of
+space above and below, and the numbers still sit inside each dial. The
+small dials in the left sidebar are unchanged, since their size is set
+by the sidebar's width.
+- **Test:** the dashboard dials' first drawn pixel is at least a tenth
+  of a row below the top of their block, where before they started
+  right at the top. The sidebar's dials keep no extra space.
+
 ## 0.26.97
 
 **An empty week in `/usage` says so instead of drawing a blank chart.**

@@ -157,3 +157,24 @@ fn the_dashboards_faces_are_bigger_than_any_the_nav_can_draw() {
         );
     }
 }
+
+/// The dashboard's faces keep air under the row above them: full height,
+/// their rims stood 2 px under the host line (glass survey F5). The nav's
+/// keep none — they are capped by their width, not their rows.
+#[test]
+fn the_dashboards_faces_keep_air_above_them() {
+    let _g = crate::app::theme_test_guard();
+    let top = |d: &Dials| {
+        d.paint(stats(), 60, 3, 2.0)
+            .iter()
+            .map(|p| p.y)
+            .fold(f32::MAX, f32::min)
+            - 3.0
+    };
+    assert!(
+        top(&DASH) >= 0.1,
+        "the rim starts {:.2} rows down",
+        top(&DASH)
+    );
+    assert_eq!(NAV.air, 0.0);
+}
