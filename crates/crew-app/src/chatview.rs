@@ -105,8 +105,10 @@ pub(crate) fn art(
     // Session stats (model, context, tokens) live only in the below-input
     // summary footer (`chatsummary`); the header stays identity + liveness so
     // the same numbers are never repeated in two places.
+    // A column short of the pane's last, as the code blocks stop: the `●`
+    // ran 7 px past every row under it (glass survey F9).
     let mut cells = crate::chathdr::header_cells(
-        cols,
+        cols.saturating_sub(1),
         &pane.channel,
         pane.connected,
         pane.is_busy(),
@@ -265,3 +267,7 @@ pub(crate) fn art(
 #[cfg(test)]
 #[path = "chatview_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "chatviewhdr_tests.rs"]
+mod hdr_tests;
