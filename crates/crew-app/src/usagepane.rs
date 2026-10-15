@@ -158,6 +158,15 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
             put(&mut out, &peak, cols - 14, l.cost_top, t.text_muted);
         }
         let top = l.cost_top + 1;
+        // A week of nothing spent is still a reading: said in the plot,
+        // where the bars would stand, not left as an empty frame that reads
+        // as a chart that failed to draw (glass survey F8).
+        let note = "nothing spent in the last 7 days";
+        let n = note.chars().count() as u16;
+        if peak == 0 && w >= n {
+            let row = top + l.cost_rows.saturating_sub(1) / 2;
+            put(&mut out, note, left + (w - n) / 2, row, t.text_muted);
+        }
         crate::costbars::labels(
             &mut out,
             &b.daily_cost,
@@ -271,3 +280,7 @@ mod narrow_tests;
 #[cfg(test)]
 #[path = "usagehole_tests.rs"]
 mod hole_tests;
+
+#[cfg(test)]
+#[path = "usagecost_tests.rs"]
+mod cost_tests;
