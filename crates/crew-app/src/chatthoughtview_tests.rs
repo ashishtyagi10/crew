@@ -95,3 +95,28 @@ fn a_long_thought_is_capped_at_forty_rows_with_a_count_of_the_rest() {
     assert_eq!(text(&rows[1]), "  line 1");
     assert_eq!(text(rows.last().unwrap()), "  \u{2026} +21 lines");
 }
+
+/// A tail that starts inside a wrapped line says so: the cut row hangs `…`
+/// in its indent instead of opening on a bare fragment (glass survey E8:
+/// `applies.`). A tail that starts on a line's own beginning hangs nothing.
+#[test]
+fn a_tail_cut_inside_a_line_hangs_an_ellipsis() {
+    let _g = crate::app::motion_test_guard();
+    let live = |text: &str| Live {
+        agent: "coder".into(),
+        text: text.into(),
+        since_ms: 1_000,
+        last_ms: 4_000,
+    };
+    // 22 columns (20 of text) wrap the first line in two; the four-row tail
+    // starts on its second.
+    let cut = live("so the same floor here applies to it.\nnext\nthen\nlast");
+    let rows = texts(&live_lines(&cut, 0, 22)[1..]);
+    assert!(
+        rows[0].starts_with(" \u{2026}") && !rows[0].starts_with("  "),
+        "{rows:?}"
+    );
+    assert_eq!(&rows[1..], ["  next", "  then", "  last"]);
+    let whole = texts(&live_lines(&live("one\ntwo\nthree\nfour\nfive"), 0, 22)[1..]);
+    assert_eq!(whole[0], "  two", "a line's own start needs no mark");
+}

@@ -18,9 +18,20 @@ fn ital(c: char, fg: crate::chatbody::Color) -> CardCell {
 
 /// The working, wrapped plain to `width`, blank lines dropped.
 fn wrap(text: &str, width: usize) -> Vec<String> {
+    wrap_marked(text, width)
+        .into_iter()
+        .map(|(s, _)| s)
+        .collect()
+}
+
+/// [`wrap`], each row marked with whether it begins its line.
+fn wrap_marked(text: &str, width: usize) -> Vec<(String, bool)> {
     text.lines()
         .filter(|l| !l.trim().is_empty())
-        .flat_map(|l| crate::toolsrow::wrap(l.trim(), width.max(1)))
+        .flat_map(|l| {
+            let rows = crate::toolsrow::wrap(l.trim(), width.max(1));
+            rows.into_iter().enumerate().map(|(i, r)| (r, i == 0))
+        })
         .collect()
 }
 
@@ -64,10 +75,21 @@ pub(crate) fn live_lines(l: &Live, now_ms: u64, cols: usize) -> Vec<CardLine> {
         let tail = format!(" \u{00b7} {}", crate::runclock::ladder(secs));
         head.extend(tail.chars().map(|c| plain(c, th.text_muted, false)));
     }
-    let lines = wrap(&l.text, cols.saturating_sub(2));
-    let from = lines.len().saturating_sub(LIVE_ROWS);
+    let rows = wrap_marked(&l.text, cols.saturating_sub(2));
+    let from = rows.len().saturating_sub(LIVE_ROWS);
+    let tail: Vec<String> = rows[from..].iter().map(|(s, _)| s.clone()).collect();
+    let mut body = body_rows(&tail, cols);
+    // The tail can start inside a wrapped line, and it opened on a fragment
+    // (`applies.`) with nothing saying the sentence began above it (glass
+    // survey E8). That row hangs an ellipsis in its indent: the rest of
+    // something, its text still in line with the rows under it.
+    if from > 0 && !rows[from].1 {
+        if let Some(cell) = body.first_mut().and_then(|r| r.get_mut(1)) {
+            cell.c = '\u{2026}';
+        }
+    }
     let mut out = vec![head];
-    out.extend(body_rows(&lines[from..], cols));
+    out.extend(body);
     out
 }
 
