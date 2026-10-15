@@ -27,7 +27,7 @@ fn bar(title: &'static str) -> Bar<'static> {
         cmd_rows: &[],
         err_rows: &[],
         unread: 0,
-        doc: false,
+        doc: crate::panehome::Doc::No,
     }
 }
 

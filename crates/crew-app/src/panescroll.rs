@@ -47,15 +47,22 @@ pub(crate) fn position(total: usize, visible: usize, scroll: usize) -> f32 {
     1.0 - (scroll.min(range) as f32 / range as f32)
 }
 
-/// Stamp `⇡N` on the top border, ending at column `rx` and never reaching
-/// left of `min_col` (the legend's floor — see [`crate::panecard`]), and
-/// return the next free column to its left. `rx` unchanged when there is
-/// nothing to say or no room to say it.
-pub(crate) fn count(v: &mut Vec<CellView>, rx: u16, min_col: u16, scroll: usize, t: f32) -> u16 {
-    if scroll == 0 {
+/// Stamp `⇡N` (or a file's `⇣N` — see [`crate::panehome`]) on the top
+/// border, ending at column `rx` and never reaching left of `min_col` (the
+/// legend's floor — see [`crate::panecard`]), and return the next free column
+/// to its left. `rx` unchanged when there is nothing to say or no room.
+pub(crate) fn count(
+    v: &mut Vec<CellView>,
+    rx: u16,
+    min_col: u16,
+    away: (usize, char),
+    t: f32,
+) -> u16 {
+    let (n, arrow) = away;
+    if n == 0 {
         return rx;
     }
-    let s = format!("\u{21e1}{scroll}");
+    let s = format!("{arrow}{n}");
     let w = s.chars().count() as u16;
     if rx < w || rx + 1 - w < min_col {
         return rx;

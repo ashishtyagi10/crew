@@ -470,6 +470,7 @@ mod panedrag;
 mod panefit;
 mod paneglance;
 mod panegutter;
+mod panehome;
 mod panehover;
 mod panelcard;
 mod panelist;

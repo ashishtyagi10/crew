@@ -24,7 +24,7 @@ fn bar(focused: bool) -> Bar<'static> {
         cmd_rows: &[],
         err_rows: &[],
         unread: 0,
-        doc: false,
+        doc: crate::panehome::Doc::No,
     }
 }
 
@@ -258,7 +258,7 @@ fn only_the_focused_card_gets_brackets() {
         cmd_rows: &[],
         err_rows: &[],
         unread: 0,
-        doc: false,
+        doc: crate::panehome::Doc::No,
     };
     assert_eq!(
         bracket_cells(&crate::panecard::pane_card(40, 20, &bar(false))),
@@ -298,7 +298,7 @@ fn brackets_grow_with_progress() {
                 cmd_rows: &[],
                 err_rows: &[],
                 unread: 0,
-                doc: false,
+                doc: crate::panehome::Doc::No,
             },
         ))
     };
@@ -337,7 +337,7 @@ fn tiny_cards_get_no_brackets() {
             cmd_rows: &[],
             err_rows: &[],
             unread: 0,
-            doc: false,
+            doc: crate::panehome::Doc::No,
         },
     );
     assert_eq!(bracket_cells(&cells), 0);
@@ -373,7 +373,7 @@ fn brackets_leave_the_legend_row_alone() {
             cmd_rows: &[],
             err_rows: &[],
             unread: 0,
-            doc: false,
+            doc: crate::panehome::Doc::No,
         },
     );
     assert!(
@@ -413,7 +413,7 @@ fn card_at(assemble_t: f32) -> Vec<crew_render::CellView> {
             cmd_rows: &[],
             err_rows: &[],
             unread: 0,
-            doc: false,
+            doc: crate::panehome::Doc::No,
         },
     )
 }

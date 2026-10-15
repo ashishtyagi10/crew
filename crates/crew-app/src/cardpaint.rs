@@ -41,7 +41,11 @@ pub fn card_paint(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64) -> Vec<P
 /// The scroll thumb, down the right border — a rounded bar at a fractional
 /// position, so a long buffer scrolls smoothly instead of in cell steps.
 fn thumb(cols: u16, rows: u16, b: &Bar, aspect: f32) -> Vec<Paint> {
-    if (b.scroll == 0 && !b.doc) || rows < MIN_ROWS || cols < 2 || b.total == 0 {
+    if (b.scroll == 0 && b.doc == crate::panehome::Doc::No)
+        || rows < MIN_ROWS
+        || cols < 2
+        || b.total == 0
+    {
         return Vec::new();
     }
     let visible = usize::from(rows - 2);

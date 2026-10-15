@@ -101,7 +101,7 @@ fn bar(err_rows: &[u16]) -> crate::panecard::Bar<'_> {
         cmd_rows: &[],
         err_rows,
         unread: 0,
-        doc: false,
+        doc: crate::panehome::Doc::No,
     }
 }
 
