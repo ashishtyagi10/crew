@@ -77,7 +77,7 @@ fn the_card_carries_the_clock_only_while_something_is_running() {
         cmd_rows: &[],
         err_rows: &[],
         unread: 0,
-        doc: false,
+        doc: crate::panehome::Doc::No,
     };
     let row0 = |elapsed: Option<String>| -> String {
         let mut cells = crate::panecard::pane_card(60, 8, &bar(elapsed));

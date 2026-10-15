@@ -232,7 +232,7 @@ pub(crate) fn push_pane_scenes(
         fail_rows: &fail_rows,
         err_rows: &err_rows,
         unread,
-        doc: matches!(p.content, PaneContent::View(_) | PaneContent::Chat(_)),
+        doc: crate::panehome::of(&p.content),
     };
     // The card's grid: the content grid plus the ring `pane_card` lays out.
     let (ccols, crows) = (p.grid.cols + 2, p.grid.rows + 2);

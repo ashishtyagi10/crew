@@ -32,7 +32,7 @@ fn loaded(git: &GitInfo, cols: u16) -> Vec<crew_render::CellView> {
         cmd_rows: &[],
         err_rows: &[],
         unread: 128,
-        doc: false,
+        doc: crate::panehome::Doc::No,
     };
     pane_card(cols, 12, &bar)
 }

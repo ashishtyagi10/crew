@@ -136,7 +136,7 @@ fn the_card_carries_the_badge_without_disturbing_its_legend() {
         cmd_rows: &[],
         err_rows: &[],
         unread: 0,
-        doc: false,
+        doc: crate::panehome::Doc::No,
     };
     let plain = crate::panecard::pane_card(60, 10, &bar(None));
     let badged = crate::panecard::pane_card(60, 10, &bar(Some(&state)));

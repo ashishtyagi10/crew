@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.80
+
+**A file viewer no longer says it is scrolled when it is at the top.**
+`/view` and the markdown window wore a scroll count on their top border
+from the moment they opened: `⇡110` on a 130-line file sitting on line
+1, read as "110 rows up" when you had not scrolled at all. A file now
+counts down from its first line instead: nothing at the top, `⇣40`
+forty rows down. Shells and chat transcripts, whose home is the bottom,
+still count back with `⇡`.
+- **Test:** a file at its top stamps no count, a file forty rows down
+  stamps `⇣40`, and a shell or transcript still stamps `⇡12`. The first
+  test fails on the old count.
+
 ## 0.26.79
 
 **The `/far` command line lines up with the file lists above it.**

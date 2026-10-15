@@ -37,7 +37,7 @@ fn the_card_shows_the_count_and_only_when_there_is_one() {
         cmd_rows: &[],
         err_rows: &[],
         unread,
-        doc: false,
+        doc: crate::panehome::Doc::No,
     };
     let row0 = |unread| -> String {
         let mut cells = crate::panecard::pane_card(60, 8, &bar(unread));

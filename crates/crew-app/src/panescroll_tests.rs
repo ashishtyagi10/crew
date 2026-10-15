@@ -46,7 +46,7 @@ fn bar(scroll: usize, total: usize) -> Bar<'static> {
         cmd_rows: &[],
         err_rows: &[],
         unread: 0,
-        doc: false,
+        doc: crate::panehome::Doc::No,
     }
 }
 
@@ -115,9 +115,13 @@ fn the_thumb_is_proportional_to_how_much_there_is() {
 #[test]
 fn the_count_reports_the_next_free_column_and_writes_nothing_at_the_bottom() {
     let mut v: Vec<CellView> = Vec::new();
-    assert_eq!(count(&mut v, 37, 2, 0, 0.5), 37, "no scroll, no change");
+    assert_eq!(
+        count(&mut v, 37, 2, (0, '⇡'), 0.5),
+        37,
+        "no scroll, no change"
+    );
     assert!(v.is_empty());
-    let next = count(&mut v, 37, 2, 12, 0.5);
+    let next = count(&mut v, 37, 2, (12, '⇡'), 0.5);
     assert_eq!(v.len(), 3, "⇡12 is three glyphs");
     assert!(next < 35, "and the next glyph goes to its left");
 }
@@ -127,7 +131,7 @@ fn the_count_reports_the_next_free_column_and_writes_nothing_at_the_bottom() {
 #[test]
 fn a_count_with_no_room_writes_nothing() {
     let mut v: Vec<CellView> = Vec::new();
-    assert_eq!(count(&mut v, 1, 2, 4_000, 0.5), 1);
+    assert_eq!(count(&mut v, 1, 2, (4_000, '⇡'), 0.5), 1);
     assert!(v.is_empty());
 }
 
@@ -212,7 +216,7 @@ fn both_readings_of_the_position_share_one_colour() {
         &mut count_cells,
         30,
         2,
-        b.scroll,
+        (b.scroll, '⇡'),
         position(total, visible, b.scroll),
     );
     let count_fg = count_cells.first().expect("a count should be drawn").fg;
@@ -228,11 +232,11 @@ fn a_document_draws_its_thumb_before_it_is_scrolled() {
     let doc = Bar {
         scroll: 0,
         total: 400,
-        doc: true,
+        doc: crate::panehome::Doc::File,
         ..bar(0, 400)
     };
     let shell = Bar {
-        doc: false,
+        doc: crate::panehome::Doc::No,
         ..bar(0, 400)
     };
     let drawn = |b: &Bar| thumb_rows_of(b, 40, 20).len();
@@ -250,17 +254,8 @@ fn landmark_ticks_are_placed_down_the_gutter_and_deduplicated() {
     let b = Bar {
         scroll: 0,
         total: 400,
-        doc: true,
+        doc: crate::panehome::Doc::File,
         ticks: &ticks_at,
-        hits: &[],
-        progress: None,
-        elapsed: None,
-        pinned: false,
-        at_cmd: None,
-        fail_rows: &[],
-        cmd_rows: &[],
-        err_rows: &[],
-        unread: 0,
         ..bar(0, 400)
     };
     let mut v = Vec::new();
@@ -292,7 +287,7 @@ fn the_thumb_covers_the_landmark_it_sits_on() {
     let b = Bar {
         scroll: 400 - 18,
         total: 400,
-        doc: true,
+        doc: crate::panehome::Doc::File,
         ticks: &ticks_at,
         hits: &[],
         progress: None,
@@ -329,7 +324,7 @@ fn no_landmarks_and_no_room_both_draw_nothing() {
     let _g = crate::app::theme_test_guard();
     let none = Bar {
         total: 400,
-        doc: true,
+        doc: crate::panehome::Doc::File,
         ..bar(0, 400)
     };
     let mut v = Vec::new();
@@ -338,7 +333,7 @@ fn no_landmarks_and_no_room_both_draw_nothing() {
     let ticks_at: Vec<usize> = vec![1, 2];
     let tiny = Bar {
         total: 400,
-        doc: true,
+        doc: crate::panehome::Doc::File,
         ticks: &ticks_at,
         hits: &[],
         progress: None,
@@ -364,7 +359,7 @@ fn search_hits_are_marked_in_the_gutter_in_their_own_colour() {
     let b = Bar {
         scroll: 0,
         total: 400,
-        doc: true,
+        doc: crate::panehome::Doc::File,
         hits: &hits_at,
         progress: None,
         elapsed: None,
@@ -398,7 +393,7 @@ fn a_hit_is_drawn_over_the_landmark_it_shares_a_cell_with() {
     let b = Bar {
         scroll: 0,
         total: 400,
-        doc: true,
+        doc: crate::panehome::Doc::File,
         ticks: &same,
         hits: &same,
         progress: None,

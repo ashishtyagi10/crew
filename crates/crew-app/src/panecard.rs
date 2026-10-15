@@ -92,8 +92,9 @@ pub(crate) struct Bar<'a> {
     pub at_cmd: Option<&'a str>,
     /// This pane is a document: its gutter is drawn whenever the content is
     /// longer than the pane, not only once it has been scrolled. A shell's
-    /// gutter is a scrollback affordance; a document's is where you ARE.
-    pub doc: bool,
+    /// gutter is a scrollback affordance; a document's is where you ARE. A
+    /// file's count runs from its top ([`crate::panehome`]).
+    pub doc: crate::panehome::Doc,
 }
 
 /// Whether `c` is part of a card's frame stroke (as opposed to its legend or a
@@ -259,9 +260,10 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     }
     // Both readings of the scroll position share one colour, sampled at the
     // same point of the buffer — see `panescroll::position_fg`.
-    let scroll_t =
-        crate::panescroll::position(b.total, usize::from(rows.saturating_sub(2)), b.scroll);
-    rx = crate::panescroll::count(&mut v, rx, floor, b.scroll, scroll_t);
+    let visible = usize::from(rows.saturating_sub(2));
+    let scroll_t = crate::panescroll::position(b.total, visible, b.scroll);
+    let away = crate::panehome::away(b.doc, b.total, visible, b.scroll);
+    rx = crate::panescroll::count(&mut v, rx, floor, away, scroll_t);
     // …and the same fact as a shape, down the right border: where you are in
     // the scrollback, not just how far from its bottom. Landmarks first, so
     // the thumb draws over the one you are on.

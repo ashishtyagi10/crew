@@ -128,7 +128,7 @@ fn chart_shot_card_indicators() {
             cmd_rows: &[],
             err_rows: &[],
             unread: 0,
-            doc: false,
+            doc: crate::panehome::Doc::No,
         };
         (
             crate::panecard::pane_card(cols.saturating_sub(2), rows.saturating_sub(2), &bar),
