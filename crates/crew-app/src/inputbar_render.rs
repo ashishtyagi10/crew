@@ -161,14 +161,21 @@ impl InputBar {
     }
 }
 
-/// Right-align `label` on one of the card's border rows, clear of the corner.
+/// Right-align `label` (its blanks included — see `inputlegend::pane_tag`)
+/// on one of the card's border rows, clear of the corner. The rule's own
+/// cells under it are taken out first: the renderer draws every cell it is
+/// given, so a later blank never erased the `─` beneath it, and the rule ran
+/// through the tag's blanks into its letters (`──chat─╮`, 1 px of clearance
+/// where the path's legend keeps a cell — glass survey E5).
 fn place_tag(out: &mut Vec<CellView>, label: &str, fg: (u8, u8, u8), cols: u16, row: u16) {
     let w = str_w(label) as u16;
     if w + 3 >= cols {
         return;
     }
+    let span = cols - 2 - w..cols - 2;
+    out.retain(|c| c.row != row || !span.contains(&c.col));
     place_row(
-        cols - 2 - w,
+        span.start,
         cols,
         label.chars().map(|c| (c, fg)),
         |x, ch, fg| out.push(cell(x, row, ch, fg)),

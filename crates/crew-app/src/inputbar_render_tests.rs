@@ -166,3 +166,23 @@ fn a_narrow_bar_shortens_the_placeholder_rather_than_cutting_it() {
         line(16)
     );
 }
+
+/// The pane's tag sits on the rule as the path's legend does at the left:
+/// a blank each side, then rule, then the corner — `─ chat ─╮`. The
+/// renderer draws EVERY cell, so the rule's own `─` under a blank (or a
+/// letter) has to be gone, not merely written over (glass survey E5).
+#[test]
+fn the_rules_tag_keeps_a_blank_each_side_like_the_legend() {
+    let _g = crate::app::theme_test_guard();
+    for cols in [24u16, 40, 120] {
+        let cells = bar("", false).cells(cols, 3, None, None, Some("chat"));
+        let top = &rows_of(&cells, cols, 3)[0];
+        assert!(top.ends_with("\u{2500} chat \u{2500}\u{256e}"), "{top:?}");
+        let under: Vec<u16> = cells
+            .iter()
+            .filter(|c| c.row == 0 && c.c == '\u{2500}' && (cols - 8..cols - 2).contains(&c.col))
+            .map(|c| c.col)
+            .collect();
+        assert!(under.is_empty(), "rule drawn under the tag at {under:?}");
+    }
+}
