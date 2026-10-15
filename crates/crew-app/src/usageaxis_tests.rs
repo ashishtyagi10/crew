@@ -28,6 +28,27 @@ fn the_hour_ticks_land_on_their_own_columns() {
     assert!(out.iter().all(|c| c.row == 9));
 }
 
+/// On a grid whose hour slots are not whole cells, each label is centred
+/// within half a column of its hour's dots (`(h + ½)` of a slot): from the
+/// slot's left edge, rounded down, "18" sat 8.6 px left of them (E11).
+#[test]
+fn a_label_centres_on_its_hours_dots_on_any_grid() {
+    let _g = crate::app::theme_test_guard();
+    for grid_w in [48u16, 55, 65, 71] {
+        let mut out = Vec::new();
+        hour_ticks(&mut out, 4, grid_w, 9, 120);
+        let slot = f32::from(grid_w) / 24.0;
+        for (i, h) in [0.0f32, 6.0, 12.0, 18.0].into_iter().enumerate() {
+            let start = f32::from(out[2 * i].col);
+            let dots = 4.0 + (h + 0.5) * slot;
+            assert!(
+                (start + 1.0 - dots).abs() <= 0.5,
+                "{grid_w}: {h} at {start} vs {dots}"
+            );
+        }
+    }
+}
+
 /// A grid narrower than the ticks still puts them in order and inside the
 /// pane — a tick drawn past the card is a tick on somebody else's chart.
 #[test]

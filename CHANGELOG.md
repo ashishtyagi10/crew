@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.99
+
+**The hour labels under the usage heatmap line up with their columns.**
+The `00 06 12 18` labels under the week-by-hour grid in `/usage` and
+`/dash` were placed where each hour's column starts, rounded down to
+a whole character. On grids where an hour's column isn't a whole number
+of characters wide, the error built up across the row, and "18" ended
+up 8.6 px left of its dots. Each label is now centred on its own column
+of dots, so none is more than half a character off.
+- **Test:** on grids 48, 55, 65 and 71 characters wide, every label's
+  centre is within half a column of its hour's dots. On the old layout
+  a 65-wide grid was off by more than a column.
+
 ## 0.26.98
 
 **The dashboard's dials no longer touch the line above them.**

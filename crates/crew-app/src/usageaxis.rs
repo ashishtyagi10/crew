@@ -17,17 +17,16 @@ const TICKS: [usize; 4] = [0, 6, 12, 18];
 /// Hour ticks under a heatmap whose grid starts at column `left` and is
 /// `grid_w` columns wide, on `row`.
 pub(crate) fn hour_ticks(out: &mut Vec<CellView>, left: u16, grid_w: u16, row: u16, cols: u16) {
-    let hours = crate::usageledger::HOURS as u16;
+    let slot = f32::from(grid_w) / crate::usageledger::HOURS as f32;
     for h in TICKS {
-        let col = left + (h as u16 * grid_w) / hours;
-        crate::navtext::put_at(
-            out,
-            &format!("{h:02}"),
-            col,
-            row,
-            cols,
-            crew_theme::theme().text_muted,
-        );
+        // Centred on the hour's own column of dots, half a slot in. Put at
+        // the slot's left edge rounded down, a label drifted further left
+        // the further right it stood — "18" 8.6 px off its dots on a grid
+        // whose slots are not whole cells (glass survey E11).
+        let label = format!("{h:02}");
+        let start = (h as f32 + 0.5) * slot - label.len() as f32 / 2.0;
+        let col = left + start.round().max(0.0) as u16;
+        crate::navtext::put_at(out, &label, col, row, cols, crew_theme::theme().text_muted);
     }
 }
 
