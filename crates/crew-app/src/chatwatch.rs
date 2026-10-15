@@ -64,6 +64,14 @@ impl ChatPane {
         }
     }
 
+    /// When the turn running now began and its last sign of work, for the
+    /// code line (`chatcodeline`). A send the poll has not stamped yet began
+    /// `now`, and a turn's first beat of work is the send itself.
+    pub(crate) fn work_clock(&self, now: u64) -> (u64, u64) {
+        let since = self.watch.turn_since.unwrap_or(now);
+        (since, self.watch.last_work.max(since))
+    }
+
     /// Check the clocks; a restart's status line when one was needed.
     pub(crate) fn watchdog(&mut self) -> Option<HostAction> {
         self.watchdog_at(crate::anim::now_ms())
