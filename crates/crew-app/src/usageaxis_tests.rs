@@ -74,3 +74,32 @@ fn the_leftover_point_goes_to_the_larger_remainder() {
     assert_eq!(split_pct(1, 2), (33, 67));
     assert_eq!(split_pct(2, 1), (67, 33));
 }
+
+/// "out" stands clear of the accent "in" wears on every palette that has a
+/// colour to spare, and keeps bright magenta wherever magenta already is
+/// clear. On blossom, nebula and the tubes magenta sat 0.05–0.12 from the
+/// accent and the two arcs read as one (glass survey E9).
+#[test]
+fn out_stands_clear_of_the_accent_on_every_palette() {
+    use crew_theme::oklch::distance;
+    let _g = crate::app::theme_test_guard();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let t = crew_theme::theme();
+        let accent = t.accent_default;
+        let out = out_ink(accent);
+        let best = OUT_SLOTS
+            .iter()
+            .map(|&i| distance(accent, t.ansi[i]))
+            .fold(0.0f32, f32::max);
+        let got = distance(accent, out);
+        assert!(
+            got >= APART.min(best),
+            "{}: out {out:?} only {got:.3} from {accent:?}",
+            id.as_str()
+        );
+        if distance(accent, t.ansi[13]) >= APART {
+            assert_eq!(out, t.ansi[13], "{}: magenta was clear", id.as_str());
+        }
+    }
+}
