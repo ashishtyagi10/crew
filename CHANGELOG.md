@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.105
+
+**Empty meter bars stay visible on see-through glass.**
+The meters in the chat footer (such as the context bar, `0% (ctx)`) and
+in the sidebar draw a faint full-length track so you can see how long
+the bar is. That track was only checked against the pane's own colour.
+On a see-through window over a light desktop, the footer's empty track
+measured about 1.1:1, so `0% (ctx)` followed a gap rather than a bar.
+On a see-through window the track is now kept readable against the
+glass over any desktop, about 2.4:1 over a light one. It is still the
+quietest mark on the card.
+- **Test:** with the window see-through, both kinds of meter track, on
+  every palette, clear the track floor against the glass over a black
+  desktop and a white one.
+
 ## 0.26.104
 
 **Agent smith shows it is working, Matrix style, just above where you type.**

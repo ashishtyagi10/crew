@@ -31,20 +31,39 @@ pub(crate) fn as_drawn(c: (u8, u8, u8), page: (u8, u8, u8)) -> (u8, u8, u8) {
 }
 
 /// Walk `from` toward `to` in twentieths until what is DRAWN clears
-/// [`floor`] against `page` — `to` itself is the end of the walk, and on
-/// every theme in the set it clears the floor by a wide margin.
+/// [`floor`] against `page` — and, on a see-through window, against the
+/// glass over any desktop ([`grounds`]). On a page `to` clears it by a wide
+/// margin; over a light desktop's frost the footer's mid-ramp shade did not
+/// (1.14), so the walk goes on from `to` toward the ink, and ends there.
 ///
 /// Lifted rather than dropped, the way `crew_theme::tagcolor` lifts a tag
 /// into readability: the recessed colour is the intent, and the floor is the
 /// least of it that survives.
 pub(crate) fn lift(from: (u8, u8, u8), to: (u8, u8, u8), page: (u8, u8, u8)) -> (u8, u8, u8) {
-    for k in 0..=20 {
-        let c = crate::anim::lerp_rgb(from, to, k as f32 / 20.0);
-        if crew_theme::contrast_ratio(as_drawn(c, page), page) >= floor() {
-            return c;
-        }
+    let grounds = grounds(page);
+    let reads = |c| {
+        let on = |g: &(u8, u8, u8)| crew_theme::contrast_ratio(as_drawn(c, *g), *g);
+        grounds.iter().all(|g| on(g) >= floor())
+    };
+    let ink = crew_theme::theme().ink;
+    let step =
+        |(a, b): ((u8, u8, u8), (u8, u8, u8)), k| crate::anim::lerp_rgb(a, b, k as f32 / 20.0);
+    let legs = (0..=20).map(|k| step((from, to), k));
+    legs.chain((1..=20).map(|k| step((to, ink), k)))
+        .find(|&c| reads(c))
+        .unwrap_or(ink)
+}
+
+/// What a track is laid down on: the page, and while the window is sheer
+/// the frost over a black desktop and a white one. Measured on the page
+/// alone, the chat footer's empty `ctx` track read 1.05:1 on light glass
+/// over a light desktop — a gap where the meter should be (glass survey G6).
+pub(crate) fn grounds(page: (u8, u8, u8)) -> Vec<(u8, u8, u8)> {
+    let mut out = vec![page];
+    if crew_theme::glassborder::sheer() {
+        out.extend(crew_theme::glasslegend::pane_grounds(crew_theme::theme()));
     }
-    to
+    out
 }
 
 #[cfg(test)]

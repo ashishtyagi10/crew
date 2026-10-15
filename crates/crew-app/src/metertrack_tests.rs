@@ -86,3 +86,35 @@ fn the_high_contrast_switch_raises_the_floor() {
         "tracks left quiet in high contrast: {thin:?}"
     );
 }
+
+/// On a see-through window both tracks hold the floor over the glass on any
+/// desktop too, where the footer's empty `ctx` bar read 1.05:1 over a light
+/// one (glass survey G6).
+#[test]
+fn every_track_survives_the_glass_over_any_desktop() {
+    let _a = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
+    let mut thin: Vec<String> = Vec::new();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        crew_theme::glassborder::set_sheer(true);
+        crate::palette::set_accent(crew_theme::theme().accent_default);
+        let grounds = crew_theme::glasslegend::pane_grounds(crew_theme::theme());
+        for (what, c) in [
+            ("footer", crate::summarymeter::meter_track()),
+            ("rail", crate::gauges::track_color()),
+        ] {
+            for g in &grounds {
+                let r = crew_theme::contrast_ratio(as_drawn(c, *g), *g);
+                if r < floor() - 0.01 {
+                    thin.push(format!("{id:?} {what} on {g:?}: {r:.2}"));
+                }
+            }
+        }
+        crew_theme::glassborder::set_sheer(false);
+    }
+    assert!(
+        thin.is_empty(),
+        "tracks that vanish into the glass: {thin:?}"
+    );
+}
