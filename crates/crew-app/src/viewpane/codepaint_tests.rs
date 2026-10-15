@@ -2,6 +2,7 @@ use super::*;
 
 #[test]
 fn a_keyword_takes_the_theme_keyword_slot_and_bold() {
+    let _g = crate::app::theme_test_guard();
     // "let" is a Rust keyword; its first char is index 0.
     let paint = line_paint("let x = 1;", "rust", (10, 10, 10));
     let (fg, bold) = paint[0];
@@ -31,6 +32,7 @@ fn a_plain_identifier_keeps_the_callers_ink_unbold() {
 
 #[test]
 fn a_comment_takes_the_theme_comment_slot() {
+    let _g = crate::app::theme_test_guard();
     let paint = line_paint("x // trailing note", "rust", (10, 10, 10));
     // The "/" that opens "// trailing note" is at index 2.
     let (fg, _bold) = paint[2];
@@ -87,4 +89,29 @@ fn a_line_at_or_under_the_cap_is_still_tokenized() {
         paint[0].0, ink,
         "\"let\" is a keyword and must still be coloured under the cap"
     );
+}
+
+/// On see-through glass a file's strings and comments clear the comment
+/// floor over the pane's frost on any desktop — they were floored for
+/// chat's code field, which the viewer does not draw (glass survey F7).
+/// Opaque, they are the slots as derived.
+#[test]
+fn strings_and_comments_read_over_the_viewers_glass() {
+    use crew_theme::glasslegend::{pane_grounds, worst};
+    let _g = crate::app::theme_test_guard();
+    let line = "let s = \"crates/crew-theme\"; // TUI";
+    for id in crew_theme::ALL_THEMES.into_iter().filter(|id| !id.is_crt()) {
+        crew_theme::set_theme(id);
+        crew_theme::glassborder::set_sheer(true);
+        let paint = line_paint(line, "rust", (200, 200, 200));
+        let g = pane_grounds(crew_theme::theme());
+        for at in [9, line.len() - 2] {
+            let got = worst(paint[at].0, &g);
+            let floor = crate::chatink::COMMENT_PAGE_FLOOR - 0.05;
+            assert!(got >= floor, "{}: char {at} at {got:.2}", id.as_str());
+        }
+        crew_theme::glassborder::set_sheer(false);
+        let paint = line_paint(line, "rust", (200, 200, 200));
+        assert_eq!(paint[9].0, crate::chatink::token_fg(Token::Str));
+    }
 }

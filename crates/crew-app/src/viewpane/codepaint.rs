@@ -13,18 +13,37 @@ pub(crate) type CharPaint = ((u8, u8, u8), bool);
 /// (`chatspan::style`'s `LineKind::Code` arm): colour from the theme's
 /// derived syntax slots via `chatink::token_fg` (the hued classes through
 /// `chathue`), with keywords carrying WEIGHT on top of their hue.
-fn token_paint(tok: Token, ink: (u8, u8, u8)) -> CharPaint {
+///
+/// On see-through glass each class is floored over `grounds` ([`grounds`]):
+/// the slots were floored for chat's code FIELD, a second sheet the viewer
+/// does not draw, so on the pane's own frost over a light desktop a file's
+/// strings read 3.1:1 and its comments 3.3 (glass survey F7).
+fn token_paint(tok: Token, ink: (u8, u8, u8), grounds: &[(u8, u8, u8)]) -> CharPaint {
+    let t = crew_theme::theme();
+    let floor = crate::chatink::COMMENT_PAGE_FLOOR;
+    let on = |c| crew_theme::glasslegend::legible_on(t, c, floor, grounds);
     match tok {
         Token::Plain => (ink, false),
-        Token::Keyword => (crate::chatink::token_fg(tok), true),
+        Token::Keyword => (on(crate::chatink::token_fg(tok)), true),
         Token::Comment | Token::Str | Token::Type | Token::Func | Token::Number | Token::Attr => {
-            (crate::chatink::token_fg(tok), false)
+            (on(crate::chatink::token_fg(tok)), false)
         }
         // Diff line classes never reach this path today — `detect` routes
         // .diff/.patch files to their own rung (`lines::diff_lines`), not to
         // a `Code { lang }` — but the mapping is the honest one if they ever
         // do: the same colour the chat transcript gives them, regular weight.
         Token::Added | Token::Removed | Token::Hunk => (crate::chatink::token_fg(tok), false),
+    }
+}
+
+/// What a viewed file's code stands on: the pane's frost over any desktop
+/// while the window is sheer. None off glass, on an opaque window, or on a
+/// tube, whose syntax ladder is lightness alone (`codefield::glassed`).
+fn grounds() -> Vec<(u8, u8, u8)> {
+    let t = crew_theme::theme();
+    match crew_theme::glassborder::sheer() && !t.is_tube() {
+        true => crew_theme::glasslegend::pane_grounds(t),
+        false => Vec::new(),
     }
 }
 
@@ -52,10 +71,11 @@ pub(crate) fn line_paint(line: &str, lang: &str, ink: (u8, u8, u8)) -> Vec<CharP
     if lang.is_empty() || line.len() > MAX_COLOURED_LINE_BYTES {
         return line.chars().map(|_| (ink, false)).collect();
     }
+    let grounds = grounds();
     tokenize(line, lang)
         .into_iter()
         .flat_map(|(text, tok)| {
-            let paint = token_paint(tok, ink);
+            let paint = token_paint(tok, ink, &grounds);
             std::iter::repeat_n(paint, text.chars().count())
         })
         .collect()

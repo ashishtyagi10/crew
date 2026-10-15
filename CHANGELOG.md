@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.94
+
+**Strings and comments in the file viewer read clearly on see-through
+glass.**
+`/view` colours code with the same palette as code blocks in chat. In
+chat, though, code sits on its own slightly darker panel, and those
+colours were checked against that panel. The viewer draws code straight
+on the pane's glass, which over a light desktop is lighter than chat's
+code panel. So a file's strings measured 3.1:1 there and its comments
+3.3:1, the faintest text in the window. On a see-through window, each
+coloured part of the code is now held to the same 3.5:1 against the
+pane's glass, over any desktop, that it already had in chat. Colours
+that already met it are unchanged. The CRT palettes keep their own
+brightness steps, as they do in chat.
+- **Test:** on every non-CRT palette with a see-through window, a
+  string and a comment clear 3.5:1 against the glass over a black
+  desktop and a white one, and an opaque window keeps the colours as
+  they were. Before the change, paper-dark's string was 3.07:1.
+
 ## 0.26.93
 
 **The chat's status line ends where the rows under it do.**
