@@ -7,7 +7,7 @@
 //! above the line it marked. The shell's `error[E0433]` bar straddled the
 //! `warning:` line over it by 6 px (glass survey E3). Drawn, a mark lands on
 //! its line's own pixels.
-use crew_render::Paint;
+use crew_render::{CellView, Paint};
 
 use crate::pane::Pane;
 use crate::panecard::Bar;
@@ -18,6 +18,13 @@ pub fn card_paint(p: &Pane, b: &Bar, cw: f32, ch: f32, now: u64) -> Vec<Paint> {
     let dy = crate::panefit::slack(p.rect, cw, ch).1 / ch;
     // The card's grid: the content grid plus the ring `pane_card` lays out.
     painted(p.grid.cols + 2, p.grid.rows + 2, b, (dy, cw, ch), now)
+}
+
+/// Pane `p`'s frame `cells` with the stroke under its drawn readings in
+/// their colour ([`crate::cardpaint::tint`]).
+pub fn tinted(p: &Pane, mut cells: Vec<CellView>, b: &Bar) -> Vec<CellView> {
+    crate::cardpaint::tint(&mut cells, p.grid.cols + 2, p.grid.rows + 2, b);
+    cells
 }
 
 /// [`card_paint`] for a `cols`×`rows` card whose content starts `dy` rows

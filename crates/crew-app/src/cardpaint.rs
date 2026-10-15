@@ -10,7 +10,7 @@
 //! Drawn, they are continuous: the thumb slides, the bar lands where the
 //! number says, and the indeterminate sweep is a comet with a fading tail
 //! rather than a block that jumps.
-use crew_render::Paint;
+use crew_render::{CellView, Paint};
 
 use crate::panecard::Bar;
 use crate::plot::{sdf, Canvas};
@@ -96,16 +96,54 @@ fn thumb(cols: u16, rows: u16, b: &Bar, aspect: f32, mid: f32) -> Vec<Paint> {
         .collect()
 }
 
+/// The progress bar's colour: the alarm's for a report that says so.
+fn progress_fg(p: crew_term::Progress) -> (u8, u8, u8) {
+    let t = crew_theme::theme();
+    if p.alarm {
+        t.bell
+    } else {
+        t.activity
+    }
+}
+
+/// The frame cells under the thumb and a filling progress bar, in their
+/// colour. The stroke is a glyph, drawn over the card's paint, so a thumb
+/// centred on it wore the frame's colour down its middle — a pin-striped
+/// bar (glass survey G1). A border cell a reading covers at least half of
+/// takes the reading's colour and disappears into it.
+pub(crate) fn tint(cells: &mut [CellView], cols: u16, rows: u16, b: &Bar) {
+    let half = |a0: f32, a1: f32, i: u16| {
+        let i = f32::from(i);
+        a1.min(i + 1.0) - a0.max(i) >= 0.5
+    };
+    if let Some((top, h)) = thumb_span(rows, b).filter(|_| cols >= 2) {
+        let at = crate::panescroll::position(b.total, usize::from(rows - 2), b.scroll);
+        let fg = crate::panescroll::position_fg(at);
+        let side = |c: &&mut CellView| c.col == cols - 1 && c.row >= 1 && c.row + 1 < rows;
+        for c in cells.iter_mut().filter(side) {
+            if half(top, top + h, c.row) {
+                c.fg = fg;
+            }
+        }
+    }
+    let Some(p) = b.progress.filter(|p| p.percent.is_some_and(|n| n < 100)) else {
+        return;
+    };
+    let w = f32::from(cols.saturating_sub(2)) * f32::from(p.percent.unwrap_or(0)) / 100.0;
+    let floor = |c: &&mut CellView| c.row == rows - 1 && c.col >= 1 && c.col + 1 < cols;
+    for c in cells.iter_mut().filter(floor) {
+        if half(1.0, 1.0 + w, c.col) {
+            c.fg = progress_fg(p);
+        }
+    }
+}
+
 /// The program's own progress (OSC 9;4) along the bottom border.
 fn progress(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64, mid: f32) -> Vec<Paint> {
     let Some(p) = b.progress else {
         return Vec::new();
     };
-    let t = crew_theme::theme();
-    let fg = match p.alarm {
-        true => t.bell,
-        false => t.activity,
-    };
+    let fg = progress_fg(p);
     let inner = f32::from(cols - 2);
     // One row tall, at the card's last row, centred on its stroke.
     let y = mid * aspect - WEIGHT * 0.5;
