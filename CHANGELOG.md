@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.100
+
+**The scroll thumb is one solid colour again.**
+Since 0.26.95 centred the scroll thumb on the card's edge line, that
+line has been drawn on top of it, so every thumb had a thin stripe of
+the frame's colour down its middle. The progress bar along the bottom
+edge did the same. Where the thumb or a filling progress bar covers the
+edge, the edge line now takes the bar's colour and disappears into it.
+Above and below the bar the edge keeps its own colour.
+- **Test:** on a scrolled card, the edge in every row the thumb fully
+  covers is the thumb's colour, and in every row it doesn't touch the
+  edge is unchanged.
+
 ## 0.26.99
 
 **The hour labels under the usage heatmap line up with their columns.**

@@ -235,7 +235,7 @@ pub(crate) fn push_pane_scenes(
         doc: crate::panehome::of(&p.content),
     };
     scenes.push(PaneScene {
-        cells: crate::panecardglow::pane_card_glowing(p, &bar),
+        cells: crate::cardmarks::tinted(p, crate::panecardglow::pane_card_glowing(p, &bar), &bar),
         // The frame's continuous readings — the scroll thumb and the
         // program's progress bar — and its row marks, drawn, not spelled.
         paint: crate::cardmarks::card_paint(p, &bar, cw, ch, now),
