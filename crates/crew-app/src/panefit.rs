@@ -42,6 +42,15 @@ pub fn content_inset(content: &PaneContent) -> u16 {
     }
 }
 
+/// Columns inside pane `p`'s frame: its grid's, and the column a terminal
+/// gives its pty back ([`content_inset`]). The card is drawn this wide —
+/// built from a shell's grid, its corner buttons and right-hand badges
+/// stood a cell further in than every other pane's (glass survey G4) and
+/// off their click targets (`cardchrome::btn_rect`).
+pub fn frame_cols(p: &Pane) -> u16 {
+    p.grid.cols + content_inset(&p.content)
+}
+
 /// [`content_inset`] in px for cells `cw` wide.
 pub fn inset_px(content: &PaneContent, cw: f32) -> f32 {
     f32::from(content_inset(content)) * cw

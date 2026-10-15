@@ -112,7 +112,7 @@ pub(crate) fn focused_stroke(t: &crew_theme::Theme) -> (u8, u8, u8) {
 /// paper theme pass through untouched (hierarchy in light: no nodes on a
 /// quiet trace).
 pub(crate) fn pane_card_glowing(p: &Pane, b: &Bar) -> Vec<CellView> {
-    let mut v = pane_card(p.grid.cols, p.grid.rows, b);
+    let mut v = pane_card(crate::panefit::frame_cols(p), p.grid.rows, b);
     let theme = crew_theme::theme();
     if b.focused {
         let busy = crate::paneview::pane_animating(p);
@@ -127,7 +127,7 @@ pub(crate) fn pane_card_glowing(p: &Pane, b: &Bar) -> Vec<CellView> {
         if !theme.is_tube() {
             crate::modernring::ring(
                 &mut v,
-                p.grid.cols + 2,
+                crate::panefit::frame_cols(p) + 2,
                 p.grid.rows + 2,
                 busy,
                 ignite_t(),
@@ -136,7 +136,7 @@ pub(crate) fn pane_card_glowing(p: &Pane, b: &Bar) -> Vec<CellView> {
         } else {
             trace(
                 &mut v,
-                p.grid.cols + 2,
+                crate::panefit::frame_cols(p) + 2,
                 p.grid.rows + 2,
                 busy,
                 ignite_t(),

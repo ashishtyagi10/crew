@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.101
+
+**A terminal pane's corner buttons line up with every other pane's.**
+In a shell pane, the minimize and close buttons in the top-right
+corner, and the counts beside them (such as unread lines), sat one
+character further from the corner than in any other pane. They were
+also off-centre in the spot a click actually lands on. A terminal keeps
+its text one column further from the left edge, and its frame was being
+drawn from that narrower width. The frame is now drawn at its real
+width, so the buttons sit where the clicks land, the same distance from
+the corner as in every other pane.
+- **Test:** a shell pane's frame is as wide as its card, and its `×` is
+  drawn in the middle of the area a click on it resolves to.
+
 ## 0.26.100
 
 **The scroll thumb is one solid colour again.**
