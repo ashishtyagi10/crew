@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.102
+
+**The collapsed sidebar's pane numbers sit level with the panes' rows.**
+When the left sidebar is collapsed to a narrow rail, it lists your panes
+by number, one per row. Those rows sat 6 px higher than the text rows
+of the panes beside them. Panes centre their content in the leftover
+pixels of their card, and the rail didn't. The rail's rows now start on
+the same line as the first row of the topmost pane, and clicking a
+number still picks the row it is drawn on.
+- **Test:** beside a pane 668 px tall (41 rows plus 12 px), the rail's
+  rows drop 6 px to match. The rail's frame doesn't move, and with no
+  pane beside it nothing shifts.
+
 ## 0.26.101
 
 **A terminal pane's corner buttons line up with every other pane's.**
