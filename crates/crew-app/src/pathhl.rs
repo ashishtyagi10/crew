@@ -76,14 +76,21 @@ pub(crate) fn is_reference(tok: &str) -> bool {
 
 /// A stem and a 2–6 character extension that is not all digits — enough to
 /// pass `main.rs` and `Cargo.toml`, and to fail `e.g`, `Fig.2` and `v1.0`.
+/// Nor a number with a unit: `3.1k`, `2.3s` and `1.5MB` are a stem of
+/// digits and an "extension" that starts with one, and they were drawn as
+/// links in every token count and timing an agent printed (glass survey
+/// F1). `01.md` and `archive.7z` keep theirs.
 fn has_extension(name: &str) -> bool {
     let Some((stem, ext)) = name.rsplit_once('.') else {
         return false;
     };
+    let digits = |s: &str| s.chars().all(|c| c.is_ascii_digit());
+    let quantity = digits(stem) && ext.starts_with(|c: char| c.is_ascii_digit());
     !stem.is_empty()
         && (2..=6).contains(&ext.chars().count())
         && ext.chars().all(|c| c.is_ascii_alphanumeric())
-        && !ext.chars().all(|c| c.is_ascii_digit())
+        && !digits(ext)
+        && !quantity
 }
 
 /// Split a `path:line[:col]` reference into its path and line number.

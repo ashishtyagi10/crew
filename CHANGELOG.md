@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.26.91
+
+**Numbers like `3.1k` and `2.3s` are no longer drawn as file links.**
+crew underlines file names in blue so you can Cmd+click them. It
+decided `3.1k` was a file called "3" with a ".1k" extension, so token
+counts (`3.1k in`, `36.1k in / 5.7k out`) and timings (`thought for
+2.3s`) all looked clickable, and clicking one went looking for a file
+that doesn't exist. A number followed by a unit is no longer read as a
+file name. A file whose name is digits (`01.md`) or whose extension
+starts with a digit (`archive.7z`) is still a link.
+- **Test:** `3.1k in / 486 out`, `thought for 2.3s`, `36.1k in / 5.7k
+  out` and `a 1.5MB download` mark nothing, while `01.md` and
+  `archive.7z` are still marked.
+
 ## 0.26.90
 
 **The command list over the input bar floats instead of sitting on the
