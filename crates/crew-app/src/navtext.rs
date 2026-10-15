@@ -94,6 +94,29 @@ pub fn put_at(
     );
 }
 
+/// Write `text` centred on column `cx` (a canvas unit, i.e. a column).
+pub(crate) fn put_centred(
+    out: &mut Vec<CellView>,
+    text: &str,
+    cx: f32,
+    row: u16,
+    fg: (u8, u8, u8),
+    bg: (u8, u8, u8),
+) {
+    let n = text.chars().count() as f32;
+    let start = (cx - n / 2.0).round().max(0.0) as u16;
+    for (i, ch) in text.chars().enumerate() {
+        out.push(CellView {
+            col: start + i as u16,
+            row,
+            c: ch,
+            fg,
+            bg,
+            ..Default::default()
+        });
+    }
+}
+
 #[cfg(test)]
 #[path = "depthkey_tests.rs"]
 mod depthkey_tests;

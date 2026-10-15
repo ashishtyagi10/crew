@@ -44,12 +44,17 @@ pub struct Dials {
     /// instruments, so they stay together and the group centres in the extra
     /// width instead of being stretched across it.
     pub max_slot: f32,
+    /// Rows of air a full-height face keeps from the block's top and bottom.
+    /// The dashboard's rims stood 2 px under the host line over them (glass
+    /// survey F5); the nav's faces are width-capped and keep none.
+    pub air: f32,
 }
 
 /// The sidebar's: four rows, faces capped at eight columns.
 pub const NAV: Dials = Dials {
     rows: 4,
     max_slot: 8.0,
+    air: 0.0,
 };
 /// The dashboard's: six rows, faces twice the nav's across.
 ///
@@ -60,6 +65,7 @@ pub const NAV: Dials = Dials {
 pub const DASH: Dials = Dials {
     rows: 6,
     max_slot: 12.0,
+    air: 0.2,
 };
 /// Columns the dashboard's block claims — three of its slots, plus the
 /// indent every section is written under.
@@ -123,7 +129,7 @@ impl Dials {
     /// at full height the open third of the scale is a window the number sits
     /// *inside*, which is where an instrument keeps its odometer.
     fn radius(&self, cols: u16, aspect: f32) -> f32 {
-        (self.slot_w(cols) * 0.5 - 0.15).min(self.cy(aspect))
+        (self.slot_w(cols) * 0.5 - 0.15).min(self.cy(aspect) - self.air * aspect)
     }
 
     /// The row the digits go on: the one nearest 0.72 of the face's radius
@@ -173,7 +179,7 @@ impl Dials {
             // reads "99" nowhere — it reads "100", and the gap widens toward
             // the rim, which is the direction a third digit grows.
             let pct = (frac.clamp(0.0, 1.0) * 100.0).round() as u16;
-            write_centred(&mut out, &pct.to_string(), cx, digits, t.ink, t.page_bg);
+            crate::navtext::put_centred(&mut out, &pct.to_string(), cx, digits, t.ink, t.page_bg);
             // The tier cue rides with the name, in the dial's own colour: the
             // band is said in shape as well as hue, as it is beside the bars.
             let mark = crate::shapecues::Tier::of(frac).mark();
@@ -185,7 +191,7 @@ impl Dials {
                 Some(_) => fill_color(frac),
                 None => t.text_muted,
             };
-            write_centred(&mut out, &name, cx, row0 + self.rows - 1, fg, t.page_bg);
+            crate::navtext::put_centred(&mut out, &name, cx, row0 + self.rows - 1, fg, t.page_bg);
         }
         out
     }
@@ -220,29 +226,6 @@ impl Dials {
             .into_iter()
             .map(|p| p.shifted(0.0, f32::from(row0)))
             .collect()
-    }
-}
-
-/// Write `text` centred on column `cx` (a canvas unit, i.e. a column).
-fn write_centred(
-    out: &mut Vec<CellView>,
-    text: &str,
-    cx: f32,
-    row: u16,
-    fg: (u8, u8, u8),
-    bg: (u8, u8, u8),
-) {
-    let n = text.chars().count() as f32;
-    let start = (cx - n / 2.0).round().max(0.0) as u16;
-    for (i, ch) in text.chars().enumerate() {
-        out.push(CellView {
-            col: start + i as u16,
-            row,
-            c: ch,
-            fg,
-            bg,
-            ..Default::default()
-        });
     }
 }
 
