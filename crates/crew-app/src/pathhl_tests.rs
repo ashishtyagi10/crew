@@ -15,6 +15,9 @@ fn the_shapes_an_agent_actually_writes_are_marked() {
     assert_eq!(spans("in ~/notes/todo.md"), ["~/notes/todo.md"]);
     assert_eq!(spans("edit Cargo.toml"), ["Cargo.toml"]);
     assert_eq!(spans("at /etc/hosts:12:3"), ["/etc/hosts:12:3"]);
+    // A name of digits is still a name when its extension is a word.
+    assert_eq!(spans("open 01.md next"), ["01.md"]);
+    assert_eq!(spans("unpack archive.7z"), ["archive.7z"]);
 }
 
 /// The whole risk of this feature: a mark on ordinary prose teaches people to
@@ -31,6 +34,10 @@ fn prose_that_merely_contains_a_slash_or_a_dot_is_not_marked() {
         "yes/no?",
         "a.b",
         "--flag=x",
+        "3.1k in / 486 out",
+        "thought for 2.3s",
+        "36.1k in / 5.7k out",
+        "a 1.5MB download",
     ] {
         assert!(spans(line).is_empty(), "{line} → {:?}", spans(line));
     }
