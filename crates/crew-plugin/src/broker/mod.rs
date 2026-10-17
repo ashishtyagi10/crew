@@ -67,6 +67,7 @@ mod projectcard;
 mod readset;
 mod recall;
 mod recallask;
+mod receipt;
 mod registry;
 mod relay;
 mod retired;

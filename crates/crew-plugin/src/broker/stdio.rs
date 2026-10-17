@@ -609,18 +609,27 @@ fn report_changes(session: &Session, id: u64, out: &Out) {
     let hint = !session
         .announced_changes
         .swap(true, std::sync::atomic::Ordering::Relaxed);
-    if let Some(line) = super::changed::summary(&changes, hint) {
-        let _ = emit(out, &msg("agent smith", format!("task #{id}: {line}")));
-    }
-    // …and WHAT changed, at once, then what the language servers make of it
-    // as its own message: the diff must not wait on a server still indexing,
-    // and the budget is a deadline on the asks (`taskdiag`).
+    // The receipt's head and WHAT changed go out together, at once (the
+    // pane folds the diff under the head), then what the language servers
+    // make of it as its own note, which the pane files into the receipt
+    // (`receipt`): the diff must not wait on a server still indexing, and
+    // the budget is a deadline on the asks (`taskdiag`).
+    let counts = super::changed::patch(&dir, &base).map_or((0, 0), |p| super::receipt::totals(&p));
+    let mut head = super::changed::summary(&changes, hint)
+        .map(|line| super::receipt::headline(id, &line, counts));
     let diagnostics = |files: &[String]| {
         super::taskdiag::lsp_diagnostics(&session.lsp, files, super::taskdiff::DIAG_BUDGET)
     };
     super::taskdiff::report(&dir, &base, &changes, diagnostics, &mut |body| {
-        let _ = emit(out, &msg("agent smith", body));
+        let text = match head.take() {
+            Some(head) => format!("{head}\n{body}"),
+            None => body,
+        };
+        let _ = emit(out, &msg("agent smith", text));
     });
+    if let Some(head) = head {
+        let _ = emit(out, &msg("agent smith", head));
+    }
     // …and last, the project's own check, if it declared one: the diff says
     // what changed and the language server what is malformed; this is the
     // only thing that says whether it still WORKS.

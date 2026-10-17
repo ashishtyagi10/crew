@@ -68,6 +68,10 @@ impl crate::chat::ChatPane {
                 .map(|(_, tok_in, tok_out, cost)| (tok_in, tok_out, cost)),
             _ => None,
         };
+        // A later note of a turn that changed files joins its receipt.
+        if self.into_receipt(&sender, &text) {
+            return;
+        }
         self.push_capped(Message {
             sender,
             text,

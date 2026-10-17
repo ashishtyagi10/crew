@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.12
+
+**A turn that changed files ends in one receipt, not four notes.**
+After a turn that edited files, smith used to leave a pile of separate
+notes under its answer: which files changed, the diff, what the language
+servers thought, the project check's result, the "checked" line. Each came
+with its own header and gap. They are now one card. Its head reads
+`task #1: 1 file changed (+1 −1): ~ src/lib.rs`, with the line counts. Each
+later verdict about the same turn is added under the head as it arrives.
+The diff folds behind `… +N` while the head and the verdicts stay in view.
+Measured on the planted-bug probe: the notes under the answer went from
+about 14 rows to 6.
+- **Tests:** the head counts lines added and removed (not file headers). A
+  verdict is added above the diff. The turn's later notes join the receipt,
+  and nothing after an agent's reply does. The "checked" line joins at the
+  end of the task. Folded, the receipt shows its verdicts and hides only
+  the diff.
+
 ## 0.27.11
 
 **A swarm run's progress bar is a slim capsule, not a green brick.**
