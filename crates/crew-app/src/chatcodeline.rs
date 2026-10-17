@@ -18,7 +18,7 @@ use crew_render::CellView;
 use crate::anim::lerp_rgb;
 use crate::charrain::{hash, GLYPHS, HEADS};
 use crate::chat::ChatPane;
-use crate::chatcodeword::{slot, word, Slot};
+use crate::chatcodeword::{slot, Slot};
 use crate::motion::MotionLevel;
 
 /// Left inset, matching the bar and the queued indicator.
@@ -50,6 +50,8 @@ pub(crate) struct Frame {
     pub last_work: u64,
     /// A tool is running: a second streak.
     pub tool: bool,
+    /// The phase's word (`chatphase`), and when it went up: it decodes from then.
+    pub word: (&'static str, u64),
     pub level: MotionLevel,
 }
 
@@ -84,6 +86,7 @@ pub(crate) fn line_cells(pane: &ChatPane, cols: u16, row: u16) -> Vec<CellView> 
             last_work,
             tool,
             level,
+            word: pane.watch.phase.word_at(now),
         },
         now,
     )
@@ -97,7 +100,7 @@ pub(crate) fn cells_at(f: &Frame, now: u64) -> Vec<CellView> {
         return out;
     }
     let clock = crate::runclock::ladder(now.saturating_sub(f.since) / 1000);
-    let word = word(f.since);
+    let (word, word_since) = f.word;
     let mut put = |col: u16, c: char, fg: (u8, u8, u8), bold: bool| {
         let (row, italic) = (f.row, false);
         out.push(CellView {
@@ -136,11 +139,11 @@ pub(crate) fn cells_at(f: &Frame, now: u64) -> Vec<CellView> {
     let pick = |i: u64, n: usize| GLYPHS[(hash(i, flick) % n as u64) as usize] as char;
 
     let n = word.chars().count() as u64;
-    let at = now.saturating_sub(f.since) % crate::chatcodeword::cycle(n, ms);
+    let at = now.saturating_sub(word_since) % crate::chatcodeword::cycle(n, ms);
     for (i, c) in word.chars().enumerate() {
         let col = INSET + i as u16;
         // A stalled line holds its word: nothing is being decoded.
-        let shown = (!stalled).then(|| slot(i as u64, n, at, f.since, ms));
+        let shown = (!stalled).then(|| slot(i as u64, n, at, word_since, ms));
         match shown.unwrap_or(Slot::Letter) {
             Slot::Letter if c == ' ' => {}
             Slot::Letter => put(col, c, letter, false),

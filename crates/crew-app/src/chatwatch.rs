@@ -38,6 +38,8 @@ pub(crate) struct Watch {
     turn_since: Option<u64>,
     /// …and, once it ended, how long it ran — taken by the app (`turndone`).
     pub(crate) turn_done: Option<u64>,
+    /// What the turn is doing, as the code line's word (`chatphase`).
+    pub(crate) phase: crate::chatphase::PhaseClock,
 }
 
 impl ChatPane {
@@ -45,6 +47,7 @@ impl ChatPane {
     pub(crate) fn heard(&mut self, ev: &PluginEvent) {
         let now = crate::anim::now_ms();
         self.watch.last_event = now;
+        self.watch.phase.hear(ev, now);
         match ev {
             PluginEvent::Alive {} => self.watch.beats = true,
             _ => (self.watch.last_work, self.watch.noted) = (now, None),
@@ -55,7 +58,10 @@ impl ChatPane {
     pub(crate) fn track_turn(&mut self) {
         let now = crate::anim::now_ms();
         match (self.is_busy(), self.watch.turn_since) {
-            (true, None) => self.watch.turn_since = Some(now),
+            (true, None) => {
+                self.watch.turn_since = Some(now);
+                self.watch.phase = crate::chatphase::PhaseClock::start(now);
+            }
             (false, Some(since)) => {
                 self.watch.turn_since = None;
                 self.watch.turn_done = Some(now.saturating_sub(since));

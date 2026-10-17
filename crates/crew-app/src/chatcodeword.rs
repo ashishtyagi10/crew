@@ -1,23 +1,9 @@
-//! The code line's word: one of agent smith's, a turn, and how it decodes
+//! The code line's word (`chatphase` picks it) and how it decodes
 //! out of the glyphs — a scramble, the letters locking in left to right
 //! behind a bright head, the word held, then dissolving back to glyphs.
 //!
 //! Split from [`crate::chatcodeline`], which draws it, for the line cap.
 use crate::charrain::hash;
-
-/// Smith's words, one a turn, picked by when the turn began.
-pub(crate) const WORDS: &[&str] = &[
-    "assimilating",
-    "inevitable\u{2026}",
-    "replicating",
-    "tracing",
-    "decrypting",
-    "rerouting",
-    "jacking in",
-    "deciphering",
-    "rewriting",
-    "compiling",
-];
 
 /// The word's cycle at full motion: all glyphs, then the letters locking in
 /// one by one behind a bright head, then the word held, then dissolving.
@@ -25,11 +11,6 @@ pub(crate) const SCRAMBLE_MS: u64 = 500;
 pub(crate) const LOCK_MS: u64 = 70;
 pub(crate) const HOLD_MS: u64 = 2_400;
 pub(crate) const DISSOLVE_MS: u64 = 450;
-
-/// The turn's word: the same one for the whole turn, any of [`WORDS`].
-pub(crate) fn word(since: u64) -> &'static str {
-    WORDS[(hash(since, 0xC0DE) % WORDS.len() as u64) as usize]
-}
 
 /// What cell `i` of an `n`-letter word shows `at` ms into the cycle.
 #[derive(Clone, Copy, PartialEq, Debug)]
