@@ -13,6 +13,13 @@
 //! words, the message goes to one agent's reply, and the routing line says
 //! the router was overruled rather than pretending it chose.
 //!
+//! A `loop` is held the same way. It refines one result over rounds, and the
+//! router picked it for "cargo test started failing after my last change,
+//! find the root cause and fix it" (2026-10-16, qwen-max): the first round
+//! reproduced, fixed and re-ran the tests green, and the next round spent
+//! 20–46 s agreeing. A message about something that broke, which asks for no
+//! rounds, is a fix, and a fix is done when it is verified.
+//!
 //! Only the ROUTER's pick is checked. The gates ahead of it (`gate`: the
 //! confirm that applies a drafted commit, the plan verdict) are exact
 //! matches of their own, and plan-first never asks the router at all.
@@ -61,20 +68,38 @@ const ASKS: &[(Shape, &[&str])] = &[
     ),
 ];
 
+/// The words that ask for rounds of refinement, which let a `loop` stand.
+/// Not "again": a test that is failing again is still a fix.
+const ROUNDS: &[&str] = &["loop", "rounds", "iterate", "polish", "refine", "improve"];
+
 /// `d` as the router gave it, unless it picked a git or session shape that
-/// `task` never asks for: then a reply, whose reason names what the router
-/// said (and why, when it said why) so the line stays honest.
+/// `task` never asks for, or a `loop` for a fix: then a reply, whose reason
+/// names what the router said (and why, when it said why) so the line stays
+/// honest.
 pub(super) fn hold(task: &str, d: Decision) -> Decision {
+    if d.shape == Shape::Loop {
+        let fix = crate::broker::whatchanged::about_breakage(task) && !says_any(task, ROUNDS);
+        return match fix {
+            true => overruled(d, "a fix ends when it is verified, not after rounds"),
+            false => d,
+        };
+    }
     let Some((_, words)) = ASKS.iter().find(|(shape, _)| *shape == d.shape) else {
         return d;
     };
-    if says_any(task, words) {
-        return d;
+    match says_any(task, words) {
+        true => d,
+        false => overruled(d, "nothing here asks for one"),
     }
+}
+
+/// `d` sent to one agent's reply, the line saying what the router said and
+/// why it did not stand.
+fn overruled(d: Decision, because: &str) -> Decision {
     let said = d.shape.name();
     let why = match &d.why {
-        Some(why) => format!("the router said {said} ({why}), but nothing here asks for one"),
-        None => format!("the router said {said}, but nothing here asks for one"),
+        Some(why) => format!("the router said {said} ({why}), but {because}"),
+        None => format!("the router said {said}, but {because}"),
     };
     Decision {
         shape: Shape::Reply,

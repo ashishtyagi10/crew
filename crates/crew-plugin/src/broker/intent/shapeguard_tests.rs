@@ -155,3 +155,32 @@ fn the_prompt_rules_file_edits_out_of_commit_and_skills_out_of_names() {
     assert!(g.contains("Most messages need none"), "{g}");
     assert!(g.contains("its DESCRIPTION"), "{g}");
 }
+
+/// The live misroute of 2026-10-16: a fix the router sent round a loop.
+#[test]
+fn a_fix_the_router_sent_round_a_loop_is_a_reply_and_the_line_says_so() {
+    let task = "cargo test -p crew-theme started failing after my last change. \
+                Find the root cause and fix it.";
+    let r = routed(task, "SHAPE: loop\nWHY: root cause analysis and fix needed");
+    assert_eq!(r.decision().shape, Shape::Reply, "{r:?}");
+    assert_eq!(
+        r.line(),
+        "routing: reply \u{2014} the router said loop (root cause analysis and fix \
+         needed), but a fix ends when it is verified, not after rounds"
+    );
+    assert_eq!(
+        shape_of("it is failing again, fix it", "loop"),
+        Shape::Reply
+    );
+}
+
+#[test]
+fn a_loop_asked_for_or_not_about_a_breakage_stands() {
+    for task in [
+        "the tests fail: iterate on the fix until the flakes are gone",
+        "polish this paragraph",
+        "improve the error messages, three rounds",
+    ] {
+        assert_eq!(shape_of(task, "loop"), Shape::Loop, "{task}");
+    }
+}

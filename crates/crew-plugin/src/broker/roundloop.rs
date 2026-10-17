@@ -88,15 +88,21 @@ pub(crate) fn rounds(
             "agent smith",
             format!("loop round {round}/{n} \u{2014} starting with {start}"),
         ))?;
-        // Once there is a result to keep, the agent is TOLD the early exit —
-        // an exit the model cannot see is one it plans straight past.
+        // Every round is TOLD the early exit — an exit the model cannot see
+        // is one it plans straight past. Round 1 too: measured live, a round
+        // that reproduced a failing test, fixed it and re-ran it green was
+        // never told it could stop, and the next round spent 46 s agreeing.
         let mut body = round_body(task, answer.as_deref());
-        if answer.is_some() {
-            body.push_str(
+        body.push_str(match answer {
+            Some(_) => {
                 "\n\nIf the result above is already as good as it can get, \
-                 reply with `@done` as the FIRST line, then the final version.",
-            );
-        }
+                 reply with `@done` as the FIRST line, then the final version."
+            }
+            None => {
+                "\n\nIf you finish the whole task in this round, and checked \
+                 that it works, reply with `@done` as the FIRST line."
+            }
+        });
         answer = turn(round, &body, emit)?.or(answer);
         if answer.as_deref().is_some_and(early_done) {
             return emit(msg(

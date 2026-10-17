@@ -71,9 +71,16 @@ fn a_turn_declaring_done_on_round_two_ends_a_five_round_loop_early() {
         "round 2's body never taught the early exit: {}",
         bodies[1]
     );
+    // Round 1 is told it may finish the whole task, checked, in one round: a
+    // fix verified green in round 1 bought a 46 s second round, live.
     assert!(
-        !bodies[0].contains("@done"),
-        "round 1 has nothing to keep yet: {}",
+        bodies[0].contains("finish the whole task in this round"),
+        "round 1 never learned it could stop: {}",
+        bodies[0]
+    );
+    assert!(
+        !bodies[0].contains("as good as it can get"),
+        "{}",
         bodies[0]
     );
 }
