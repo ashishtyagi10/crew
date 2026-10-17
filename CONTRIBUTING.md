@@ -79,6 +79,14 @@ cargo llvm-cov -p crew-term -p crew-render -p crew-plugin --all-features --summa
 
 Keep PRs focused — one feature or fix per PR. If a change is large, open an issue first to discuss the approach.
 
+## Releasing
+
+`scripts/release.sh` ships the uncommitted edits on `main` as one release: a
+CHANGELOG entry, the version bump, the test gate, a merge, and the tag. It
+chooses the version itself: the patch number runs from 0 to 99, so the release
+after `0.26.99` is `0.27.0`. Run `scripts/release.sh --next` to see the number
+the next release will get.
+
 ## Reporting Bugs
 
 Open an issue at [github.com/ashishtyagi10/crew/issues](https://github.com/ashishtyagi10/crew/issues) with:
