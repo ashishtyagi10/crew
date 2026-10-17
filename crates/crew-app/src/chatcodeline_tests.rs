@@ -5,6 +5,7 @@ use crate::chatcodeword::{LOCK_MS, SCRAMBLE_MS};
 
 const COLS: u16 = 60;
 const SINCE: u64 = 1_000_000;
+const WORD: &str = "deciphering";
 
 fn frame(last_work: u64) -> Frame {
     let (cols, row, since, tool, level) = (COLS, 5, SINCE, false, MotionLevel::Full);
@@ -15,6 +16,7 @@ fn frame(last_work: u64) -> Frame {
         last_work,
         tool,
         level,
+        word: (WORD, SINCE),
     }
 }
 
@@ -29,13 +31,13 @@ fn text(cells: &[CellView], cols: u16) -> String {
 
 /// Where the word's whole cycle is held, `ms` in.
 fn hold(ms: u64) -> u64 {
-    let n = word(SINCE).chars().count() as u64;
+    let n = WORD.chars().count() as u64;
     SINCE + SCRAMBLE_MS + n * LOCK_MS + ms
 }
 
 /// The bold cells past the word: the streaks' heads.
 fn heads(cells: &[CellView]) -> Vec<u16> {
-    let past = INSET + word(SINCE).chars().count() as u16;
+    let past = INSET + WORD.chars().count() as u16;
     let mut v: Vec<u16> = cells
         .iter()
         .filter(|c| c.bold && c.col > past)
@@ -47,7 +49,7 @@ fn heads(cells: &[CellView]) -> Vec<u16> {
 
 #[test]
 fn the_word_decodes_out_of_glyphs_then_holds() {
-    let w = word(SINCE);
+    let w = WORD;
     let early = cells_at(&frame(SINCE + 100), SINCE + 100);
     assert!(!text(&early, COLS).contains(w), "still glyphs at 100 ms");
     let now = hold(200);
@@ -71,7 +73,7 @@ fn a_stalled_turn_holds_its_word_and_dims() {
         let d = |x: u8, y: u8| (x as i32 - y as i32).abs();
         d(a.0, t.ink.0) + d(a.1, t.ink.1) + d(a.2, t.ink.2)
     };
-    let w = word(SINCE);
+    let w = WORD;
     // Mid-scramble on the clock, five cycles in, and nothing for 9 s.
     let cycle = crate::chatcodeword::cycle(w.chars().count() as u64, |b| b);
     let now = SINCE + 5 * cycle + 100;
@@ -159,7 +161,7 @@ fn motion_off_is_one_still_sentence() {
         };
         text(&cells_at(&f, now), COLS)
     };
-    let want = format!(" smith \u{b7} {} \u{b7} 6s", word(SINCE));
+    let want = format!(" smith \u{b7} {} \u{b7} 6s", WORD);
     assert_eq!(off(SINCE + 6_200).trim_end(), want);
     assert_eq!(off(SINCE + 6_200), off(SINCE + 6_900), "nothing moves");
 }
@@ -179,4 +181,18 @@ fn work_lights_the_word_for_a_beat() {
         t.ink,
         "two quiet seconds later: muted"
     );
+}
+
+#[test]
+fn a_new_phase_word_decodes_from_when_it_went_up_not_from_the_turns_start() {
+    let up = SINCE + 10_000;
+    let f = Frame {
+        word: ("tracing", up),
+        ..frame(up)
+    };
+    let n = "tracing".len() as u64;
+    let scrambling = text(&cells_at(&f, up + 10), COLS);
+    assert!(!scrambling.contains("tracing"), "{scrambling:?}");
+    let held = up + SCRAMBLE_MS + n * LOCK_MS + 100;
+    assert!(text(&cells_at(&f, held), COLS).contains("tracing"));
 }

@@ -2344,6 +2344,17 @@ instead of transcript spam, and each
 turn ends with a `stats` event plus a timeline summary: `turn done — planner
 4s → coder 8s · 2 exchanges · ~950 tok (approx)`.
 
+**The code line says what smith is doing.** While a turn of the pane's own
+runs, the row above the composer decodes a word out of falling glyphs with a
+streak running after it and the turn's clock at the edge. The word is the
+phase the turn is in, never a tool's name: `rerouting` while the request is
+routed, `tracing` while it reads or searches, `rewriting` while it edits,
+`compiling` while a command runs, `decrypting` in git's history, `jacking in`
+on the web, `replicating` while a sub-agent works, `deciphering` while it
+thinks, and `inevitable…` as the answer comes. A word holds for at least
+1.5 s, so a burst of calls doesn't restart it on every one. With motion off it
+is one still line, `smith · tracing · 6s`.
+
 **Swarm runs stream inline, then get out of the way.** When a plain `/smith`
 message runs as a broker-side swarm, the pane opens a **live task-list block**
 above the composer while the run is in flight — one row per planned task with a

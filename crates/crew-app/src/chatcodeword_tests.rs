@@ -23,11 +23,3 @@ fn letters_lock_in_left_to_right_behind_a_bright_head() {
         "and dissolves"
     );
 }
-
-#[test]
-fn one_word_a_turn_and_turns_vary() {
-    assert_eq!(word(4_242), word(4_242), "the same word all turn");
-    let picked: std::collections::BTreeSet<&str> = (0..200u64).map(|s| word(s * 977)).collect();
-    assert!(picked.len() >= 5, "only {picked:?}");
-    assert!(picked.iter().all(|w| WORDS.contains(w)));
-}

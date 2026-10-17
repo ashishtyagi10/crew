@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.2
+
+**The busy line says what agent smith is doing.**
+The line above the composer used to decode one of smith's words at random
+each turn, so it might say `jacking in` while smith read a file. The word is
+now the phase the turn is in, in the same Matrix voice and never a tool's
+name: `tracing` while it reads or searches, `rewriting` while it edits,
+`compiling` while a command runs, `decrypting` in git history, `jacking in`
+on the web, `replicating` while a sub-agent works, `deciphering` while it
+thinks, and `inevitable…` as the answer comes. Claude Code's turns and
+crew's own agents land on the same words. Each new word decodes in from the
+moment it takes over, and holds for at least 1.5 s, so a burst of calls
+doesn't restart it on every one.
+- **Tests:** Claude Code's tools and crew's map to the same phases, and so do
+  crew's tool cards. A tool result or a thought is thinking, and the reply is
+  the answer. A burst inside 1.5 s keeps its word. The pane hears the phase
+  on its own event path, and a new word decodes from when it went up.
+
 ## 0.27.1
 
 **A pop-up's title no longer prints over the line behind it.**
