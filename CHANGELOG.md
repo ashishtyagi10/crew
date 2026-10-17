@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.5
+
+**The command palette keeps its right margin on a narrow pane.**
+When the `/` palette is wider than the pane, the card is capped to the pane
+width. Its rows then ran to the last column inside the border, so a
+shortened description's `…` sat 3 px from the right edge while the left
+kept 21 px. A capped card now keeps the same two blank columns on the right
+that an uncapped one has, and cuts its rows two columns sooner.
+- **Tests:** a capped palette at 30, 46 and 60 columns leaves its last two
+  columns blank on every row. A card with room lays its rows out at their
+  natural width, exactly as before.
+
 ## 0.27.4
 
 **When something broke, agent smith reads what changed first.**

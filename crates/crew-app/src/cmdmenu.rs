@@ -112,8 +112,11 @@ pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16)
     // right-aligns to the row's edge, so a row as wide as the pane put it a
     // screen away from its own command (see `cmdrow::content_w`). The card
     // itself is cut to this measure by [`popup`]; a wider one (the todo
-    // pane's) keeps its list at the edge the eye starts from.
-    let w = (crate::cmdrow::content_w(matches) as u16).clamp(MIN_ROW_W.min(cols), cols);
+    // pane's) keeps its list at the edge the eye starts from. A card capped
+    // at the pane keeps its two columns of air on the right too: at the full
+    // interior a cut row's `…` ran to 3 px off the stroke (survey H2).
+    let most = cols.saturating_sub(2).max(1);
+    let w = (crate::cmdrow::content_w(matches) as u16).clamp(MIN_ROW_W.min(most), most);
     let mut buf = Buffer::empty(Rect::new(0, 0, w, rows));
     // Two columns of the row go to the selection marker; every row is laid out
     // in what is left, so the description column and the chord agree with the
@@ -161,3 +164,7 @@ mod popup_tests;
 #[cfg(test)]
 #[path = "cmdmenu_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "cmdmenuair_tests.rs"]
+mod air_tests;
