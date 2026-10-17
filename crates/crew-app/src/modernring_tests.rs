@@ -137,11 +137,11 @@ fn ignition_lifts_then_settles_and_spares_the_legend() {
 #[test]
 fn every_theme_draws_the_ring_now() {
     let _g = crate::app::theme_test_guard();
-    // This test used to assert the opposite — that the ring was a no-op anywhere outside the
-    // two-theme modern family. Every palette carries a gradient now, so the guard worth having
-    // is that none of them LOST one: a preset whose `modern` went back to `None` would silently
-    // stop glowing, and nothing else would notice.
-    for id in crew_theme::ALL_THEMES {
+    // Every glass palette keeps its ring; the Ink Reader pages are print (inkpage_tests).
+    for id in crew_theme::ALL_THEMES
+        .into_iter()
+        .filter(|id| id.theme().modern.is_some())
+    {
         crew_theme::set_theme(id);
         let plain = pane_card(38, 10, &bar(true));
         let mut v = pane_card(38, 10, &bar(true));
@@ -168,13 +168,15 @@ fn stroke(v: &[CellView]) -> Vec<(u8, u8, u8)> {
         .collect()
 }
 
-/// An UNFOCUSED card is no longer a flat stroke on any theme: its border runs
-/// a real gradient — many distinct colours, different at the two corners —
-/// which is the whole point of pushing the gradient past the focused pane.
+/// An UNFOCUSED card on a glass palette runs a real gradient, many colours and
+/// different corners, not a flat stroke.
 #[test]
 fn every_theme_tints_an_unfocused_card() {
     let _g = crate::app::theme_test_guard();
-    for id in crew_theme::ALL_THEMES {
+    for id in crew_theme::ALL_THEMES
+        .into_iter()
+        .filter(|id| id.theme().modern.is_some())
+    {
         crew_theme::set_theme(id);
         let flat = crew_theme::theme().border_normal;
         let v = pane_card(38, 10, &bar(false));

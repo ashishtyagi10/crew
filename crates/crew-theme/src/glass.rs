@@ -181,7 +181,29 @@ pub fn style_for(t: &Theme) -> GlassStyle {
     if t.is_tube() {
         return tube_glass(t);
     }
+    if t.liquid.is_none() {
+        return print(t);
+    }
     liquid_glass(t)
+}
+
+/// An Ink Reader page's "glass": none. The card is the page and its edge is
+/// the line round it: no gloss, no shine, no shadow, no tint, because print
+/// has none of them (the 2026-10-16 goal).
+pub fn print(t: &Theme) -> GlassStyle {
+    GlassStyle {
+        tint: t.page_bg,
+        alpha_top: 1.0,
+        alpha_bottom: 1.0,
+        highlight: t.page_bg,
+        highlight_alpha: 0.0,
+        shadow_alpha: 0.0,
+        noise: 0.0,
+        edge_glow: 0.0,
+        gloss: 0.0,
+        glow: 0.0,
+        etch: 0.0,
+    }
 }
 
 /// A tube's glass: the panes of a terminal running in glass (the 2026-10-05

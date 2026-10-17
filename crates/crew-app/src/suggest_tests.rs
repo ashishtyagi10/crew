@@ -164,10 +164,13 @@ fn model_picker_filters_by_partial_value() {
 fn theme_picker_describes_each_mode() {
     let items = menu_items("/theme ");
     for (mode, desc) in [
-        ("dark", "rotating dark pages \u{2014} paper and modern glow"),
+        (
+            "dark",
+            "Ink Reader \u{2014} an e-reader's black page, white words",
+        ),
         (
             "light",
-            "rotating light pages \u{2014} paper and modern glow",
+            "Ink Reader \u{2014} an e-reader's white page, black words",
         ),
         ("crt", "rotating CRT phosphor themes"),
     ] {

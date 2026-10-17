@@ -28,10 +28,11 @@ use crate::panecard::put;
 /// card's own stroke runs, so the thumb reads as part of the frame it rides
 /// rather than as a widget parked on it.
 ///
-/// Falls back to `status_fg` — what both wore before — on a theme with no
-/// gradient to sample.
+/// Falls back to `text_muted` on a theme with no gradient to sample: an Ink
+/// Reader page (2026-10-16) marks where you are in a grey of its ink, as its
+/// meters do, not in a lit amber.
 pub(crate) fn position_fg(t: f32) -> (u8, u8, u8) {
-    crate::modernring::pole_mix(t).unwrap_or(crew_theme::theme().status_fg)
+    crate::modernring::pole_mix(t).unwrap_or_else(|| crew_theme::theme().text_muted)
 }
 
 /// How far through the buffer the viewport's top edge sits, `0.0` at the top

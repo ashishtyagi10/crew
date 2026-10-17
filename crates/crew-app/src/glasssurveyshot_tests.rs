@@ -19,10 +19,7 @@ const SETS: &[(&str, &[&str])] = &[
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn glass_survey_shot() {
     let _g = crate::app::theme_test_guard();
-    for id in crew_theme::ALL_THEMES
-        .into_iter()
-        .filter(|id| id.theme().liquid.is_some())
-    {
+    for id in crew_theme::ALL_THEMES {
         let sheer = crate::tubesheer::sheer(id.theme());
         for (set, cmds) in SETS {
             let name = format!("survey-{}-{set}", id.as_str());

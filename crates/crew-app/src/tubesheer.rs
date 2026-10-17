@@ -48,12 +48,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn every_theme_shows_the_desktop_through_its_glass() {
+    fn every_glass_theme_shows_the_desktop_and_a_print_page_does_not() {
         for id in crew_theme::ALL_THEMES {
             let t = id.theme();
-            let cap = t.liquid.expect("every theme is glass").window;
-            assert!(cap < 1.0, "{}: shows the desktop", id.as_str());
-            assert_eq!(sheer(t), cap);
+            // The Ink Reader pages (2026-10-16) are print: opaque.
+            let Some(l) = t.liquid else {
+                assert_eq!(sheer(t), 1.0, "{}: opaque", id.as_str());
+                continue;
+            };
+            assert!(l.window < 1.0, "{}: shows the desktop", id.as_str());
+            assert_eq!(sheer(t), l.window);
         }
     }
 

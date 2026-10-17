@@ -3975,39 +3975,50 @@ is the difference between retiring a command and folding one.
 
 ## Themes
 
-**Every theme is see-through glass** (since 2026-10-09). The window paints
-no wallpaper of its own: your desktop is the background, frosted by the
-window server behind crew, and every pane is a slab of smoked glass over it
-with a bright specular rim. Words are bright — white, or the phosphor on a
-tube — and a soft shadow behind each run of text dims the desktop a little
-more than the glass between the lines, so text reads over a black or a white
-desktop alike (a test holds every palette to it).
+**`light` and `dark` are print; every other theme is glass** (since
+2026-10-16). The two print themes are **Ink Reader**, an e-reader's white
+and black pages as the Kindle app draws them. They are opaque: the window
+shows no desktop, the title bar wears the page, and nothing glows, drifts or
+casts a shadow. A frame is a line. The pane you are in is framed in the ink
+itself, the rest in a grey of it at 3:1. Grey is the only second ink: the
+meters, the scroll thumb and the quieter words are greys of the page's own
+ink. Colour stays where it carries meaning, printed rather than lit: the
+terminal's ANSI output, a diff's red and green, and the status, bell,
+broadcast and activity marks are deep inks that read on the page, and a
+search match sits under a highlighter yellow on the white page.
 
-Crew offers **five themes** — **`dark`**, **`light`**, **`crt`**,
-**`glass`** and **`auto`** — and each one is a *rotation* between two
-palettes, changing every 10 minutes. `auto` follows the **OS appearance**:
-the dark rotation while the system is in dark mode, the light one in light
-mode, flipping live (through the develop-fade) the moment the system
-switches. With no theme saved at all, crew defaults to `auto`.
+The glass themes paint no wallpaper of their own: your desktop is the
+background, frosted by the window server behind crew, and every pane is a
+slab of smoked glass over it with a bright specular rim. Words are bright —
+white, or the phosphor on a tube — and a soft shadow behind each run of text
+dims the desktop a little more than the glass between the lines, so text
+reads over a black or a white desktop alike (a test holds every glass
+palette to it).
+
+Crew offers **five themes**: **`light`**, **`dark`**, **`glass`**,
+**`crt`** and **`auto`**. `light` and `dark` are one page each. `glass` and
+`crt` are *rotations*, changing palette every 10 minutes. `auto` follows the
+**OS appearance**: the dark page while the system is in dark mode, the light
+one in light mode, flipping live (through the develop-fade) the moment the
+system switches. With no theme saved at all, crew defaults to `auto`.
 `theme_dark` / `theme_light` in `config.toml` re-wire that pairing (`crt` at
 night is the classic) or pin one palette per appearance.
 
-- **`glass`** — **`glass-clear`** (neutral smoke, rose accents) and
-  **`glass-night`** (navy smoke, mint): the iPhone's liquid glass in its
-  Clear look. A pane hides about 60% of the desktop. The face is SF Mono.
-- **`dark`** — **`paper-dark`** (warm charcoal smoke, near-white accents)
-  and **`nebula`** (violet smoke, orchid→rose accents): a deeper smoke, a
-  pane hiding about 70% of the desktop.
-- **`light`** — **`paper-light`** (warm smoke, amber accents) and
-  **`blossom`** (cherry-blossom smoke, pink accents): as clear as `glass`,
-  told apart by tint. It cannot be a thinner smoke than that: white words
-  over a white desktop need the smoke a clear pane has to hold 4.5:1.
+- **`light`** — **`paper-light`**, Ink Reader's white page: near-black
+  words, black lines.
+- **`dark`** — **`paper-dark`**, Ink Reader's black page: white-grey words,
+  grey lines, the focused frame white.
+- **`glass`** — **`glass-clear`** (neutral smoke, rose accents),
+  **`glass-night`** (navy smoke, mint), **`nebula`** (violet smoke,
+  orchid→rose accents) and **`blossom`** (cherry-blossom smoke, pink
+  accents): the iPhone's liquid glass in its Clear look. A pane hides about
+  60% of the desktop (`nebula`'s deeper smoke about 70%). The face is SF Mono.
 - **`crt`** — **`crt-green`** and **`crt-amber`**: a phosphor tube in glass,
-  its faceplate the `dark` mode's deeper smoke (which phosphor green needs
-  over a white desktop) and its panes lit by their own phosphor.
+  its faceplate a deep smoke (which phosphor green needs over a white
+  desktop) and its panes lit by their own phosphor.
 
-The picker offers the five rotations first and then **every palette by
-name**, under a heading; a palette named there is pinned (no rotation).
+The picker offers the five themes first and then **every palette by name**,
+under a heading; a palette named there is pinned (no rotation).
 Older palettes were folded into these eight and their names still load the
 nearest survivor: `glass-sky` and `glass-dawn` → `glass-clear`; `sepia-dark`
 and `harbor` → `paper-dark`; `sepia-light` → `paper-light`; `fern` →
@@ -4037,16 +4048,19 @@ it is focus-led — unfocused panes stay a thin quiet trace — and all of it is
 bounded: an idle tube renders a byte-identical frame every time. The other
 themes are untouched by any of this.
 
-**Every palette carries two poles of light.** They drive the gradient
+**Every glass palette carries two poles of light.** They drive the gradient
 light-ring around the focused frame, which rides the bloom chain for its
-halo (never the tube's curvature or scanlines, except on a tube).
+halo (never the tube's curvature or scanlines, except on a tube). An Ink
+Reader page has none: its frames are plain lines, and a `/gradient` set
+there is kept for the glass themes (the status line says so).
 
 **Where you are in a buffer is a colour too.** Scroll a pane back and the
 `⇡N` on its top border and the thumb down its right border both take the
 theme gradient, sampled at your position: deep in the history they wear one
 pole, at the live edge the other, and dragging the gutter walks them between.
 It is the same gradient the card's own stroke runs, so the thumb reads as part
-of the frame it rides rather than as a widget parked on it.
+of the frame it rides rather than as a widget parked on it. On an Ink Reader
+page, which has no gradient, both are a grey of the ink.
 
 **And the gradient's colour breathes.** The two poles every gradient surface
 is drawn between — every card's stroke, the footer meters — lean around the
@@ -4117,6 +4131,6 @@ characters, not its columns.
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `auto`), one of the palette names (pins it), or a legacy `random-*` / `modern*` mode; unset follows the OS appearance |
-| `theme_dark` | unset | while `theme = "auto"`: what dark mode serves — a pool (`dark`\|`light`\|`crt`) or a palette name; unset = the dark pool |
-| `theme_light` | unset | while `theme = "auto"`: same for light mode; unset = the light pool |
+| `theme_dark` | unset | while `theme = "auto"`: what dark mode serves — a theme (`dark`\|`light`\|`glass`\|`crt`) or a palette name; unset = `dark`, Ink Reader's black page |
+| `theme_light` | unset | while `theme = "auto"`: same for light mode; unset = `light`, Ink Reader's white page |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |

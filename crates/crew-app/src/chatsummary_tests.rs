@@ -548,9 +548,8 @@ fn meters_are_drawn_over_a_blanked_run() {
 #[test]
 fn the_drawn_meter_walks_the_theme_gradient() {
     let _g = crate::app::theme_test_guard();
-    let style = crew_theme::theme()
-        .modern
-        .expect("every theme is modern now");
+    crew_theme::set_theme(crew_theme::ThemeId::Nebula); // poles (inkpage_tests)
+    let style = crew_theme::theme().modern.expect("nebula has poles");
     let mut cells = run_cells(0, 0, 8);
     let paint = super::draw_meters(&mut cells, &[1.0], 2.0);
     let colors: std::collections::HashSet<_> = paint.iter().map(|p| p.color).collect();
