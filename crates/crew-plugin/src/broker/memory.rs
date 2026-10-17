@@ -89,12 +89,17 @@ pub(crate) fn load_from(user: Option<&Path>, project: &Path) -> Option<String> {
     Some(merged)
 }
 
-/// Prepend the project card, the project's instructions and the loaded
-/// memory to a task prompt; the task passes through untouched when there is
-/// none of them. The card leads: where the agent stands comes before the
-/// rules for standing there.
+/// Prepend the project card, what changed (for a task about something that
+/// broke, `whatchanged`), the project's instructions and the loaded memory to
+/// a task prompt; the task passes through untouched when there is none of
+/// them. The card leads: where the agent stands comes before the rules for
+/// standing there.
 pub(crate) fn with_memory(task: &str) -> String {
     let rest = prepend_all(super::agentsmd::block().map(|(b, _)| b), load(), task);
+    let rest = match super::whatchanged::block(task) {
+        Some(changed) => format!("{changed}\n{rest}"),
+        None => rest,
+    };
     match super::projectcard::block() {
         Some(card) => format!("{card}\n\n{rest}"),
         None => rest,

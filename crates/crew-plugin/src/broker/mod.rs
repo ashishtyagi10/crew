@@ -130,6 +130,7 @@ mod toolround;
 mod turnspent;
 mod undo;
 mod undoask;
+mod whatchanged;
 pub(crate) mod wording;
 mod zerostat;
 
