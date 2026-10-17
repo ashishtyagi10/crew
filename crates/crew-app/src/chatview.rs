@@ -230,12 +230,10 @@ pub(crate) fn art(
         cells.extend(crate::chatplanbtn::row_cells(pane, cols, rows - bottom));
     }
     if prog_rows > 0 {
-        cells.extend(crate::chatprog::bar_cells(
-            pane,
-            cols,
-            bar_row,
-            crate::anim::now_ms(),
-        ));
+        let now = crate::anim::now_ms();
+        let (bar, bar_paint) = crate::chatprog::bar_art(pane, cols, bar_row, now, aspect);
+        cells.extend(bar);
+        paint.extend(bar_paint);
         // Or, on a turn that is not a swarm run, the agent's plan over the code line.
         cells.extend(crate::chatchecklistdraw::live_cells(
             pane, cols, bar_row, prog_rows,

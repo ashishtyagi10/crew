@@ -31,6 +31,19 @@ newest_tag() {
 
 cd "$(git rev-parse --show-toplevel)"
 
+# A git step that touches the index, retried while another process holds
+# .git/index.lock: the running crew app's own git watcher takes it for a
+# moment, and a release once died mid-undo on exactly that.
+g() {
+  local i
+  for i in 1 2 3 4 5 6 7 8; do
+    git "$@" && return 0
+    [[ -e .git/index.lock ]] || return 1
+    sleep 1
+  done
+  return 1
+}
+
 case "${1:-}" in
 --after) next_after "$2"; exit 0 ;;
 --next) git fetch -q --tags origin; next_after "$(newest_tag | cut -c2-)"; exit 0 ;;
@@ -48,7 +61,7 @@ BODY=$(sed "s/{V}/$V/g" "$MSG")
 stale=$(grep -o -E '\(v[0-9]+\.[0-9]+\.[0-9]+\)' <<<"$BODY" | grep -v -F "(v$V)" || true)
 [[ -z $stale ]] || { echo "MSG names $stale but this release is v$V — write {V}"; exit 1; }
 
-git checkout -q -b "$BR"
+g checkout -q -b "$BR"
 /usr/bin/python3 - "$ENTRY" "$V" <<'EOF'
 import sys
 entry, v = open(sys.argv[1]).read().strip() + "\n\n", sys.argv[2]
@@ -64,9 +77,9 @@ cargo fmt --all
 # A failed gate puts everything back as it was, the fix still uncommitted on
 # main, so the script can simply be run again.
 undo() {
-  git checkout -q HEAD -- CHANGELOG.md Cargo.toml Cargo.lock
-  git checkout -q main
-  git branch -q -D "$BR"
+  g checkout -q HEAD -- CHANGELOG.md Cargo.toml Cargo.lock
+  g checkout -q main
+  g branch -q -D "$BR"
   echo "GATE FAILED ($1) — back on main, fix still uncommitted"
   exit 2
 }
@@ -79,11 +92,11 @@ for p in ${EXTRA:-}; do
     grep -E "^test result: FAILED|FAILED|panicked|^error" "$log" | head -20; undo "$p"; }
 done
 
-git add -A
+g add -A
 git status --short
-git commit -q -F - <<<"$BODY"
-git checkout -q main
-git merge -q --no-ff "$BR" -m "merge: $SUBJ (v$V)
+g commit -q -F - <<<"$BODY"
+g checkout -q main
+g merge -q --no-ff "$BR" -m "merge: $SUBJ (v$V)
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
@@ -93,8 +106,8 @@ if [[ $(git rev-parse origin/main) != $(git rev-parse main^1) ]] || git rev-pars
   echo "reset main to origin/main, git checkout $BR -- <files>, and run again"
   exit 3
 fi
-git tag "v$V"
+g tag "v$V"
 git push -q --atomic origin main "v$V"
-git branch -q -d "$BR"
+g branch -q -d "$BR"
 git log --oneline -3
 echo "RELEASED v$V"
