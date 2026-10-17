@@ -188,3 +188,12 @@ fn a_call_written_the_way_the_log_writes_calls_is_a_call() {
         None
     );
 }
+
+/// A call written mid-answer, fenced as an example with prose under it, is
+/// not run; `stray_calls` names it so the answer can say so.
+#[test]
+fn a_call_left_inside_an_answer_is_found_wherever_it_sits() {
+    let answer = "Step 1: look at the history.\n```json\n@tool sys:git {\"cmd\": \"log\"}\n```\nThis shows the last commits.\nCALLED sys:run {\"cmd\":\"ls\"}\nthen @tool sys:git again";
+    assert_eq!(stray_calls(answer), ["sys:git", "sys:run"]);
+    assert!(stray_calls("all done, nothing to call").is_empty());
+}

@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.14
+
+**Agent smith never passes off a tool call it didn't run as an answer.**
+Two ways a turn could end on something that looked like an answer but
+wasn't:
+- **The model call after a tool round failed or came back empty.** Smith
+  showed the previous reply, which ended in its raw `@tool …` line. Now the
+  answer is what the agent wrote before its calls, plus a line saying it
+  stopped and why ("the model's next reply failed: connection reset").
+- **A final answer still contained a call** (an example of what it meant
+  to do next, fenced, with prose under it). That call never ran, but the
+  answer read as finished work. It now ends with one line saying so: `not
+  run — the answer asks for sys:git, but the turn ended before any call in
+  it ran`. The call itself stays visible as written.
+- **Tests:** an error and an empty reply after a tool round each end on the
+  agent's words and the reason, never on the raw call. A call anywhere in
+  an answer, fenced or bare or in the log's shape, is found. A finished
+  answer that still holds one says it never ran, and an ordinary answer is
+  unchanged.
+
 ## 0.27.13
 
 **The /far panel you aren't in has a quiet frame again.**

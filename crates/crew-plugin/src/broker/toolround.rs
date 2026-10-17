@@ -104,6 +104,18 @@ pub(super) fn budget_answer(before: &str, rounds: u32) -> String {
     }
 }
 
+/// The answer of a turn whose next model call failed after a tool round:
+/// `before`, the text above the calls just run, and a line saying why it
+/// stopped. It used to return the whole reply, so its raw `@tool` line
+/// became the answer the user read.
+pub(super) fn failed_answer(before: &str, why: &str) -> String {
+    let note = format!("stopped \u{2014} the model's next reply failed: {why}");
+    match before.trim() {
+        "" => note,
+        kept => format!("{kept}\n\n{note}"),
+    }
+}
+
 /// The answer of a turn stopped between tool rounds (`/stop`): `before`, the
 /// text the agent wrote above the calls it asked for last, and a line saying
 /// how far the turn got. The stop used to wait out every round left, each a
@@ -122,7 +134,27 @@ pub(super) fn stopped_answer(before: &str, calls: u32) -> String {
 /// step the agent skipped is not hidden behind an answer that says done. The
 /// answer as written when the task kept no list or finished it.
 pub(super) fn finished(runner: Option<&dyn ToolRunner>, answer: String) -> String {
-    crew_hive::tools::todo::finished(answer, runner.and_then(|r| r.checklist()))
+    let answer = crew_hive::tools::todo::finished(answer, runner.and_then(|r| r.checklist()));
+    never_ran(answer)
+}
+
+/// `answer` with one line under it when it still holds a call: a finished
+/// answer has run its trailing calls, so one left in it never ran, and the
+/// work it says comes next was not done. The call stays as written.
+pub(super) fn never_ran(answer: String) -> String {
+    let stray = crew_hive::tools::stray_calls(&answer);
+    let Some(first) = stray.first() else {
+        return answer;
+    };
+    let more = match stray.len() {
+        1 => String::new(),
+        n => format!(" and {} more", n - 1),
+    };
+    format!(
+        "{}\n\nnot run \u{2014} the answer asks for `{first}`{more}, but the turn \
+         ended before any call in it ran",
+        answer.trim_end()
+    )
 }
 
 #[cfg(test)]

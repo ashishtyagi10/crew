@@ -117,6 +117,21 @@ fn closes(args: &str) -> bool {
     !t.starts_with(['{', '[']) || t.chars().any(|c| depth.push(c))
 }
 
+/// The tools a reply names on call lines ANYWHERE in it, in order, each
+/// once: `["sys:git"]`. A finished answer has run its trailing calls, so any
+/// call still in it is one that never ran: written mid-answer, fenced as an
+/// example of what it meant to do next (live probe, 2026-10-16).
+pub fn stray_calls(reply: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for rest in reply.lines().filter_map(directive) {
+        let name = rest.split_whitespace().next().unwrap_or_default();
+        if !name.is_empty() && !out.iter().any(|n| n == name) {
+            out.push(name.to_string());
+        }
+    }
+    out
+}
+
 /// What follows `@tool ` on `line`, when `line` is a call: past emphasis, a
 /// code span, a list bullet or a quote marker, which models add unbidden.
 ///
