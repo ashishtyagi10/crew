@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.6
+
+**A fix ends when it is verified, not after more rounds.**
+Smith's router sometimes sent "find the root cause and fix it" into its
+`loop` shape, which reworks one result over several rounds. The first round
+reproduced the failing test, fixed it and re-ran it green. The next round
+then spent 20–46 s agreeing. Now a request about something that broke,
+which doesn't ask for rounds (iterate, polish, refine, improve), goes to one
+agent's reply instead, and the routing line says the router was overruled
+and why. Every loop round is also told it may stop as soon as the work is
+finished and checked; round 1 used not to be.
+
+Measured on the planted-bug probe: fixed and verified in 21.5 s, where the
+previous release took 64–87 s for the same fix and v0.26.106 didn't fix it
+at all.
+- **Tests:** the live misroute is now a reply, and the routing line says
+  why. A loop that is asked for, or that isn't about something broken,
+  still stands. Round 1 learns that it can stop.
+
 ## 0.27.5
 
 **The command palette keeps its right margin on a narrow pane.**
