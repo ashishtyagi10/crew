@@ -71,16 +71,22 @@ pub(crate) fn is_tool_card(m: &Message) -> bool {
     !is_system_voice(&m.sender) && m.text.starts_with(TOOL_PREFIX)
 }
 
-/// The gutter glyph for a card: a lighter bar for the system/broker voice and
+/// The gutter glyph for a card: a hairline for the system/broker voice and
 /// for machine chatter (tool calls), the solid bar for what an agent or the
 /// user actually said.
 pub(crate) fn gutter_for(m: &Message) -> char {
     if is_system_voice(&m.sender) || is_tool_card(m) {
-        '\u{2506}' // ┆ dotted — quieter
+        QUIET_GUTTER
     } else {
         GUTTER // ▍ solid
     }
 }
+
+/// The quiet voice's gutter: `▏`, the left eighth, so it stands on the solid
+/// bar's left edge. The dotted `┆` it replaces is a box-drawing rule drawn
+/// down the cell's middle, and the rail stepped 2–3 px right on every card
+/// that changed voice (survey H3).
+pub(crate) const QUIET_GUTTER: char = '\u{258F}';
 
 /// The colour one name on a card renders in: muted when the card is the
 /// broker/system voice or the machine talking on an agent's behalf, else the

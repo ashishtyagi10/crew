@@ -76,7 +76,7 @@ fn fenced_code_renders_as_bordered_card() {
 #[test]
 fn crew_message_uses_the_dotted_system_gutter() {
     let cells = message_cells(&[&msg("crew", "hello")], 40, 10, 0, 0, View::default());
-    assert_eq!(card_row(&cells, 0), "\u{2506}crew");
+    assert_eq!(card_row(&cells, 0), "\u{258F}crew");
 }
 
 #[test]

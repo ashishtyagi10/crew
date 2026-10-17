@@ -56,7 +56,7 @@ pub(crate) fn summary(b: &ToolBlock, cols: usize, on: bool) -> CardLine {
 /// A thin card's header: the dotted gutter and the agent's badge.
 pub(crate) fn header(b: &ToolBlock) -> CardLine {
     let color = crate::chatroster::agent_color(&b.agent);
-    let mut line = vec![plain('\u{2506}', color, false)];
+    let mut line = vec![plain(crate::chatcard::QUIET_GUTTER, color, false)];
     let badge = crate::segment::badge_on(&b.agent, color, crate::segment::Caps::BOTH);
     line.extend(crate::segment::to_card(&badge));
     line
