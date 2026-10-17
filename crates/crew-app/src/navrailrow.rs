@@ -115,11 +115,13 @@ pub(crate) fn git(cells: &mut Vec<CellView>, info: Option<&GitInfo>, top: u16, c
     let Some(i) = info else {
         return;
     };
+    // `●9`, tight: every figure in the foot starts in the column after its
+    // mark (`↓1.2M`, `↑1`), and the spaced `● 9` put this one a cell right of
+    // the rest (survey H5).
     let (head, fg) = match i.changed > 0 {
         true => (
             pick(
                 &[
-                    format!("\u{25cf} {}", i.changed),
                     format!("\u{25cf}{}", i.changed),
                     "\u{25cf}\u{2026}".to_string(),
                 ],
