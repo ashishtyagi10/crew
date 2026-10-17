@@ -42,6 +42,7 @@ impl ChatPane {
             show_source: false,
             compact_view: false,
             swarm: None,
+            checklist: Vec::new(),
             queued: std::collections::VecDeque::new(),
             folded: 0,
             plan_pending: false,

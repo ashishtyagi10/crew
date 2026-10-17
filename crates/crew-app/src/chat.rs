@@ -87,6 +87,9 @@ pub struct ChatPane {
     /// The live /crew swarm-run block (from `HivePlan`/`Hive` events); folded
     /// into a transcript message when the run ends (see `chatswarm`).
     pub(crate) swarm: Option<crate::chatswarm::SwarmStatus>,
+    /// The running agent's plan (`PluginEvent::Todo`), drawn over the code
+    /// line while its turn runs (`chatchecklist`); emptied when it ends.
+    pub(crate) checklist: Vec<crew_hive::tools::todowire::Step>,
     /// Text typed and submitted while the crew was busy: held here instead of
     /// sent immediately, flushed one at a time as each turn settles (see
     /// `chatqueue` for the indicator; the flush itself is in `poll` below,

@@ -76,6 +76,22 @@ fn shell() -> Pane {
     )
 }
 
+/// The plan smith's turn is working to, two steps in (`chatchecklist`).
+fn plan() -> Vec<crew_hive::tools::todowire::Step> {
+    use crew_hive::tools::todowire::{Step, StepState::*};
+    [
+        ("Measure the ring's track on paper light", Done),
+        ("Lift the scale ink to the accent floor", Done),
+        ("Roll the floor out to the dial's ticks", Active),
+        ("Re-shoot all eight palettes", Pending),
+    ]
+    .map(|(text, state)| Step {
+        text: text.into(),
+        state,
+    })
+    .into()
+}
+
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn glass_work_shot() {
@@ -88,7 +104,8 @@ fn glass_work_shot() {
     {
         let sheer = crate::tubesheer::sheer(id.theme());
         let prep = |app: &mut crate::app::CrewApp| {
-            let smith = crate::chatshot_tests::live_pane();
+            let mut smith = crate::chatshot_tests::live_pane();
+            smith.checklist = plan();
             app.panes.push(pane(PaneContent::Chat(smith), None));
             app.panes.push(shell());
             app.focused = 0;

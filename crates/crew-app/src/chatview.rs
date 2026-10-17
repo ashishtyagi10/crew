@@ -236,8 +236,10 @@ pub(crate) fn art(
             bar_row,
             crate::anim::now_ms(),
         ));
-        // Or, on a turn that is not a swarm run, the code line in its row.
-        cells.extend(crate::chatcodeline::line_cells(pane, cols, bar_row));
+        // Or, on a turn that is not a swarm run, the agent's plan over the code line.
+        cells.extend(crate::chatchecklistdraw::live_cells(
+            pane, cols, bar_row, prog_rows,
+        ));
     }
     // The composer anchors to the bottom of the pane MINUS the summary footer,
     // so it ends one row up when the footer shows; the summary then occupies the

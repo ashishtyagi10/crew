@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.0
+
+**Agent smith shows the plan it is working to.**
+When the agent keeps a checklist (Claude Code's TodoWrite, or crew's own
+`sys:todo`), the smith pane draws it above the busy line while the turn
+runs. Finished steps get a ✓ and fade, the step it is on gets a ● in your
+accent colour and bold words, and what is left gets a ○. A `2/5` tally sits
+at the right edge. Before this, the list was a tool line holding raw JSON,
+or nothing at all. A long list keeps to five rows, with the current step and
+the one before it in view and the rest counted (`✓ 3 done`, `+2 more`). On
+a short pane the plan gives up its rows before the busy line does, and it
+goes away when the turn ends.
+- **Tests:** both list formats read the same way. Claude Code's list
+  arrives as the plan, not as a tool line. crew's own list does too, and a
+  rejected list sends nothing. Every window, for every list length, shows
+  the current step and fills its rows. The marks, weights and tally are
+  checked, and so is the busy line keeping its row.
+
 ## 0.26.106
 
 **The focus brackets are the same length at the top and the bottom.**

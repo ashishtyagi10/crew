@@ -161,7 +161,7 @@ impl Broker {
             // Each call counts, so a batch runs only as far as the budget
             // (and the per-reply cap) reaches; the rest are answered.
             let fit = calls.len().min(PER_REPLY).min((max_calls - used) as usize);
-            for call in &calls[..fit] {
+            for call in calls[..fit].iter().filter(|c| super::planout::carded(c)) {
                 sink(call_card(env, call));
             }
             let mut ran = super::toolbatch::run(runner, &mut seen, &exchanges, &calls[..fit]);
@@ -170,7 +170,10 @@ impl Broker {
             let mut round = Vec::with_capacity(calls.len());
             for (k, (call, r)) in calls.iter().zip(&ran).enumerate() {
                 stats.approx_tokens += r.text.len() / 4;
-                sink(result_card(env, call, r));
+                match super::planout::carded(call) {
+                    true => sink(result_card(env, call, r)),
+                    false => super::planout::send(stream, &env.to, call, r),
+                }
                 // The message was written once, with the first call.
                 let said = if k == 0 { said.as_str() } else { "" };
                 let label = call.label();

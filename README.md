@@ -598,7 +598,8 @@ rather than five pages),
 `sys:todo` (a checklist of up to 12 steps the agent keeps for a task with
 three or more of them, sent whole each time, shown back to it above every
 round's tool results so shortening never drops it, and the steps left undone
-named at the end of its answer, the way Claude Code's TodoWrite does),
+named at the end of its answer, the way Claude Code's TodoWrite does; the
+pane draws it, and Claude Code's own list, as the plan over the code line),
 `sys:git` (status, diff, log, show and blame, run without a shell and with
 any argument that writes a file or runs a program refused, so it needs no
 approval and works in read-only mode),

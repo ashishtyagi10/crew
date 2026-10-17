@@ -2857,7 +2857,10 @@ the file every hit or path was saved to (below)
 — **`sys:outline`**, which shows one file's shape (below), **`sys:todo`**, the
 agent's own checklist for a task of three or more steps (whole list per call,
 at most 12 items and one in progress, shown back above every round's tool
-results, and an answer that ends with steps undone says which), **`sys:git`**
+results, and an answer that ends with steps undone says which; the pane draws
+it, and Claude Code's TodoWrite, as the plan rows over the code line while the
+turn runs — `✓` done, `●` the step it is on, `○` the rest, `2/5` at the edge,
+at most five rows with the rest counted), **`sys:git`**
 (below), and the two that reach off this machine —
 **`sys:fetch`** and **`sys:search`**.
 
