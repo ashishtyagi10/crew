@@ -21,7 +21,9 @@ impl ChatPane {
             self.checklist.clear();
             // What the turn's own runs prove about its edits (`chatproof`).
             if let Some(said) = self.watch.proof.settle() {
-                self.push_note(said);
+                if !self.into_receipt("agent smith", &said) {
+                    self.push_note(said);
+                }
             }
             // A run ends with its agents idle and its swarm folded; one that
             // is still showing them died mid-run (`✗ task #N crashed`), and

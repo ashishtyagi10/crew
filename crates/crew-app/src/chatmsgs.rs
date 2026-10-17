@@ -184,9 +184,18 @@ pub(crate) fn card_lines_spanned(
             crate::chatfold::folded(m, body.len())
         };
         if clamp {
-            let hidden = body.len() - 1;
-            body.truncate(1);
-            crate::chathidden::append_hidden_suffix(&mut body[0], hidden, cols);
+            // A receipt folds only its diff (`chatreceipt`): its head and
+            // verdicts are what the card is for.
+            let keep = match view.compact {
+                true => 1,
+                false => crate::chatreceipt::kept_rows(m, cols, view),
+            };
+            let keep = keep.clamp(1, body.len());
+            let hidden = body.len() - keep;
+            body.truncate(keep);
+            if hidden > 0 {
+                crate::chathidden::append_hidden_suffix(&mut body[keep - 1], hidden, cols);
+            }
         }
         if splash {
             splash_style(&mut body, cols);
