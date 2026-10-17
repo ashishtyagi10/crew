@@ -99,3 +99,22 @@ fn the_rows_under_the_panels_start_inside_the_frames_rule() {
         );
     }
 }
+
+/// The passive panel's frame is drawn in the frame role, like every other
+/// quiet frame, not in the muted text ink (survey I5).
+#[test]
+fn a_passive_panels_frame_is_a_frame_not_text() {
+    let _g = crate::app::theme_test_guard();
+    let base = std::env::temp_dir().join("crew_far_passive_edge");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    let pane = crate::farpane::FarPane::new(base);
+    let border = crew_theme::theme().border_normal;
+    let cells = crate::farpane::render::render(&pane, 80, 24);
+    let right = cells
+        .iter()
+        .filter(|c| c.c == '\u{2502}')
+        .max_by_key(|c| c.col)
+        .expect("the passive panel's right edge");
+    assert_eq!(right.fg, border, "edge at column {}", right.col);
+}
