@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.16
+
+**On an Ink Reader page, the frame round the pane you are in is a heavy line.**
+In v0.27.15 the focused frame on `light` and `dark` stood out by tone alone:
+black (or white) among grey lines of the same weight. Now it is also twice
+as thick, and its rounded corners are drawn at that weight too, so the
+arcs meet the straight lines without a step. The other frames keep their
+thin grey line, and the glass and crt themes are unchanged.
+- **Tests:** on both pages the focused card is drawn in heavy rules all the
+  way round, the unfocused card and the glass themes keep the light line,
+  and a heavy corner rounds at its own weight and stays clear of the text.
+
 ## 0.27.15
 
 **Light and dark are Ink Reader now: an e-reader's white page and black page.**

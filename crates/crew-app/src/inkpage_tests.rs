@@ -150,3 +150,45 @@ fn dark_and_light_hold_their_page_and_glass_rotates_the_modern_palettes() {
         0,
     );
 }
+
+/// The frame you are in is heavier as well as darker (the user, 2026-10-17:
+/// "make the focused frame thicker too"): heavy rules all round, corners
+/// too. The other frames, and the glass's focused one, keep the light line.
+#[test]
+fn the_focused_frame_is_drawn_in_heavy_rules() {
+    let _g = crate::app::theme_test_guard();
+    let card = |focused: bool| {
+        let b = crate::panecard::Bar {
+            title: "zsh",
+            focused,
+            assemble_t: 1.0,
+            focus_t: 1.0,
+            ..Default::default()
+        };
+        let mut v = crate::panecard::pane_card(20, 6, &b);
+        crate::inkframe::weigh(&mut v, (22, 8), focused);
+        v
+    };
+    let has = |v: &[crew_render::CellView], c: char| v.iter().any(|x| x.c == c);
+    for id in INK {
+        crew_theme::set_theme(id);
+        let v = card(true);
+        for c in [
+            '\u{2501}', '\u{2503}', '\u{250F}', '\u{2513}', '\u{2517}', '\u{251B}',
+        ] {
+            assert!(has(&v, c), "{id:?}: no {c} on the focused frame");
+        }
+        assert!(
+            !v.iter().any(|x| crate::panecard::is_frame_glyph(x.c)),
+            "{id:?}: a light rule left"
+        );
+        assert!(has(&v, 'z'), "{id:?}: the legend stays");
+        assert!(
+            has(&card(false), '\u{2500}'),
+            "{id:?}: unfocused stays light"
+        );
+    }
+    crew_theme::set_theme(crew_theme::ThemeId::GlassClear);
+    assert!(!has(&card(true), '\u{2501}'), "glass keeps its light line");
+    crew_theme::set_theme(PaperDark);
+}

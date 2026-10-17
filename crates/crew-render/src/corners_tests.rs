@@ -36,7 +36,7 @@ fn the_radius_is_card_scale_and_stays_off_the_text() {
         let r = radius(cw, ch);
         // Well past what one cell's glyph could bend (half a cell).
         assert!(r >= cw, "{cw}x{ch}: radius {r} is not card scale");
-        let (t, lx, ly) = stroke(cw, ch);
+        let (t, lx, ly) = stroke_at(cw, ch, 1);
         let near_x = (lx + t / 2.0).min(cw.round() - lx - t / 2.0);
         let near_y = (ly + t / 2.0).min(ch.round() - ly - t / 2.0);
         // Its arc ends inside the first borrowed cell…
@@ -125,4 +125,61 @@ fn square_corners_round_too() {
         };
     }
     assert_eq!(find(&cells, 8.4, 18.0).len(), 4);
+}
+
+/// [`frame`] drawn in heavy rules, `┏━┓┃┗┛`: the focused card on an Ink
+/// Reader page.
+fn heavy(cols: u16, rows: u16) -> Vec<CellView> {
+    let mut cells = frame(cols, rows);
+    for c in &mut cells {
+        c.c = match c.c {
+            '\u{256D}' => '\u{250F}',
+            '\u{256E}' => '\u{2513}',
+            '\u{2570}' => '\u{2517}',
+            '\u{256F}' => '\u{251B}',
+            RULE_H => '\u{2501}',
+            RULE_V => '\u{2503}',
+            x => x,
+        };
+    }
+    cells
+}
+
+#[test]
+fn a_heavy_frame_rounds_at_its_own_weight() {
+    for (cw, ch) in CELLS {
+        let found = find(&heavy(10, 5), cw, ch);
+        assert_eq!(found.len(), 4, "{cw}x{ch}");
+        assert!(found.iter().all(|k| k.weight == 2), "{cw}x{ch}");
+        let (light, thick) = (stroke_at(cw, ch, 1).0, stroke_at(cw, ch, 2).0);
+        assert_eq!(thick, 2.0 * light, "{cw}x{ch}: heavy is twice light");
+    }
+}
+
+#[test]
+fn a_heavy_arc_stays_off_the_text() {
+    for (cw, ch) in CELLS {
+        let r = radius_at(cw, ch, 2);
+        assert!(r >= cw, "{cw}x{ch}: radius {r} is not card scale");
+        let (t, lx, ly) = stroke_at(cw, ch, 2);
+        let near_x = (lx + t / 2.0).min(cw.round() - lx - t / 2.0);
+        let near_y = (ly + t / 2.0).min(ch.round() - ly - t / 2.0);
+        assert!(
+            bow(r, near_x) + t / 2.0 <= near_y - 1.0,
+            "{cw}x{ch}: into the text"
+        );
+    }
+}
+
+#[test]
+fn a_heavy_corner_on_light_rules_keeps_its_glyph() {
+    let mut cells = frame(10, 5);
+    cells
+        .iter_mut()
+        .find(|c| (c.col, c.row) == (0, 0))
+        .unwrap()
+        .c = '\u{250F}';
+    let found = find(&cells, 8.4, 18.0);
+    assert!(found.iter().all(|k| (k.col, k.row) != (0, 0)), "{found:?}");
+    assert_eq!(found.len(), 3);
 }
