@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use crate::broker::adapter::{HopStream, Usage};
+use crate::broker::adapter::Usage;
 use crate::broker::hop::RunStats;
 use crate::broker::session::sessiontest::sys_surface;
 use crate::broker::{Adapter, Broker, Envelope};
@@ -32,7 +32,7 @@ fn the_relay_shows_a_non_zero_exit_as_a_failed_card() {
     let broker =
         Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5)).with_tools(sys_surface());
     let agent = Agent(Mutex::new(Vec::new()));
-    let mut hops = Vec::new();
+    let (tools, stream) = crate::broker::toolhive::lane::capture();
     broker.run_tools(
         &agent,
         "task",
@@ -40,15 +40,12 @@ fn the_relay_shows_a_non_zero_exit_as_a_failed_card() {
         &mut RunStats::default(),
         &mut Usage::default(),
         &Envelope::new("user", "planner", "t1", "task"),
-        &HopStream::noop(),
-        &mut |h| hops.push(h),
+        &stream,
+        &mut |_| {},
     );
-    let card = hops
-        .iter()
-        .find(|h| h.from == "sys:run")
-        .map(|h| h.text.clone())
-        .expect("a result card");
-    assert!(card.starts_with("[tool] sys:run \u{2717} "), "{card}");
+    let cards = crate::broker::toolhive::lane::cards(&tools);
+    let card = cards.get(1).cloned().expect("a result");
+    assert!(card.starts_with("[tool] sys:run \u{2717}"), "{card}");
     // Only the flag changed: the agent still reads what the command said.
     let seen = agent.0.lock().unwrap().concat();
     assert!(seen.contains("RESULT:\nexit 3\nx\n"), "{seen}");

@@ -116,15 +116,13 @@ impl Proof {
     }
 }
 
-/// The command a call runs: Claude Code's `Bash` sends `{"command": …}`.
+/// The command a call runs: Claude Code's `Bash` sends `{"command": …}`,
+/// crew's `sys:run` `{"cmd": …}`.
 fn command_of(args: &str) -> String {
-    serde_json::from_str::<serde_json::Value>(args)
-        .ok()
-        .and_then(|v| {
-            v.get("command")
-                .and_then(|c| c.as_str())
-                .map(str::to_string)
-        })
+    let v = serde_json::from_str::<serde_json::Value>(args).ok();
+    let field = |k: &str| v.as_ref()?.get(k)?.as_str().map(str::to_string);
+    field("command")
+        .or_else(|| field("cmd"))
         .unwrap_or_default()
 }
 

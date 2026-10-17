@@ -10,7 +10,7 @@ use std::sync::Arc;
 use super::adapter::{Adapter, HopStream, Usage};
 use super::hop::{back, Hop, HopKind, RunStats};
 use super::route::clip;
-use super::toolbatch::{call_card, refusal, result_card, Ran, PER_REPLY};
+use super::toolbatch::{refusal, Ran, PER_REPLY};
 use super::{Broker, Envelope};
 use crate::mcp::McpTool;
 
@@ -23,13 +23,6 @@ use crate::mcp::McpTool;
 /// dialects drifting apart — the relay's and the swarm's — with the MCP host
 /// implementing each separately.
 pub use crew_hive::tools::Tools as ToolRunner;
-
-/// Chars of tool output a result hop carries. The same budget the swarm's
-/// result card uses, for the same reason: the card is folded to its outcome
-/// line until clicked, so a long result costs scroll the reader asked for.
-/// It was 400 — a display clip from before results were foldable, which cut
-/// most real output off mid-word.
-pub(crate) const RESULT_CLIP: usize = 4_000;
 
 /// Most tool calls one agent may make within a single hop, each call of a
 /// batch counted. Shared with the swarm so both engines stop at the same
@@ -162,7 +155,7 @@ impl Broker {
             // (and the per-reply cap) reaches; the rest are answered.
             let fit = calls.len().min(PER_REPLY).min((max_calls - used) as usize);
             for call in calls[..fit].iter().filter(|c| super::planout::carded(c)) {
-                sink(call_card(env, call));
+                super::toolhive::call(stream, env, call);
             }
             let mut ran = super::toolbatch::run(runner, &mut seen, &exchanges, &calls[..fit]);
             let why = refusal(fit == (max_calls - used) as usize, max_calls);
@@ -170,9 +163,10 @@ impl Broker {
             let mut round = Vec::with_capacity(calls.len());
             for (k, (call, r)) in calls.iter().zip(&ran).enumerate() {
                 stats.approx_tokens += r.text.len() / 4;
-                match super::planout::carded(call) {
-                    true => sink(result_card(env, call, r)),
-                    false => super::planout::send(stream, &env.to, call, r),
+                match (k < fit, super::planout::carded(call)) {
+                    (false, _) => {}
+                    (true, true) => super::toolhive::result(stream, env, call, r),
+                    (true, false) => super::planout::send(stream, &env.to, call, r),
                 }
                 // The message was written once, with the first call.
                 let said = if k == 0 { said.as_str() } else { "" };

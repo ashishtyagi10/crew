@@ -136,8 +136,7 @@ fn run_tools_feeds_the_result_back_and_returns_the_final_reply() {
     let agent = Scripted::new(&["used the file\n@done"]);
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let stream = HopStream::noop();
-    let mut hops = Vec::new();
+    let (tools, stream) = crate::broker::toolhive::lane::capture();
     let reply = b.run_tools(
         &agent,
         "base prompt",
@@ -146,12 +145,19 @@ fn run_tools_feeds_the_result_back_and_returns_the_final_reply() {
         &mut usage,
         &env(),
         &stream,
-        &mut |h| hops.push(h),
+        &mut |_| {},
     );
     assert_eq!(reply, "used the file\n@done");
     assert_eq!(stats.exchanges, 1);
-    assert!(hops.iter().any(|h| h.text.contains("[tool] fs:read")));
-    assert!(hops.iter().any(|h| h.text.contains("FILE CONTENTS")));
+    let cards = crate::broker::toolhive::lane::cards(&tools);
+    assert!(
+        cards.iter().any(|c| c.contains("[tool] fs:read")),
+        "{cards:?}"
+    );
+    assert!(
+        cards.iter().any(|c| c.contains("FILE CONTENTS")),
+        "{cards:?}"
+    );
 }
 
 #[test]
@@ -160,8 +166,7 @@ fn run_tools_shows_errors_to_the_agent_and_continues() {
     let agent = Scripted::new(&["cannot read it\n@done"]);
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let stream = HopStream::noop();
-    let mut hops = Vec::new();
+    let (tools, stream) = crate::broker::toolhive::lane::capture();
     let reply = b.run_tools(
         &agent,
         "base",
@@ -170,10 +175,14 @@ fn run_tools_shows_errors_to_the_agent_and_continues() {
         &mut usage,
         &env(),
         &stream,
-        &mut |h| hops.push(h),
+        &mut |_| {},
     );
     assert_eq!(reply, "cannot read it\n@done");
-    assert!(hops.iter().any(|h| h.text.contains("ERROR: no such file")));
+    let cards = crate::broker::toolhive::lane::cards(&tools);
+    assert!(
+        cards.iter().any(|c| c.contains("ERROR: no such file")),
+        "{cards:?}"
+    );
 }
 
 #[test]
@@ -322,10 +331,9 @@ fn relay_runs_a_real_sys_command_and_logs_hops() {
         "@tool sys:run {\"cmd\":\"echo tool-e2e\"}",
         "the command printed tool-e2e",
     ]);
-    let mut hops = Vec::new();
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let stream = HopStream::noop();
+    let (tools, stream) = crate::broker::toolhive::lane::capture();
     let reply = broker.run_tools(
         &agent,
         "task",
@@ -334,26 +342,17 @@ fn relay_runs_a_real_sys_command_and_logs_hops() {
         &mut usage,
         &env(),
         &stream,
-        &mut |h| hops.push(h),
+        &mut |_| {},
     );
     assert_eq!(reply, "the command printed tool-e2e");
-    // The call hop reads as the COMMAND, not as its wire form: this is the
-    // line a user scans to see what an agent is doing to their machine.
-    let call = hops
-        .iter()
-        .find(|h| h.text.starts_with("[tool] sys:run"))
-        .unwrap_or_else(|| {
-            panic!(
-                "no call hop: {:?}",
-                hops.iter().map(|h| &h.text).collect::<Vec<_>>()
-            )
-        });
-    assert_eq!(call.text, "[tool] sys:run  echo tool-e2e", "{}", call.text);
-    assert!(!call.text.contains('{'), "wire form leaked: {}", call.text);
+    // The call and its result go out on the tool lane, as Claude Code's do;
+    // the pane's tool line reads the command out of the arguments.
+    let cards = crate::broker::toolhive::lane::cards(&tools);
     assert!(
-        hops.iter().any(|h| h.text.contains("tool-e2e")),
-        "result hop logged"
+        cards[0].starts_with("[tool] sys:run ") && cards[0].contains("echo tool-e2e"),
+        "{cards:?}"
     );
+    assert!(cards[1].contains("tool-e2e"), "result logged: {cards:?}");
 }
 
 #[test]
@@ -375,10 +374,9 @@ fn pointer_framed_skill_lets_the_agent_read_the_playbook() {
     let broker = Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5))
         .with_tools(std::sync::Arc::new(SysOnly));
     let agent = Scripted::new(&["read it, proceeding"]);
-    let mut hops = Vec::new();
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let stream = HopStream::noop();
+    let (tools, stream) = crate::broker::toolhive::lane::capture();
     let reply = broker.run_tools(
         &agent,
         &frame,
@@ -390,12 +388,14 @@ fn pointer_framed_skill_lets_the_agent_read_the_playbook() {
         &mut usage,
         &env(),
         &stream,
-        &mut |h| hops.push(h),
+        &mut |_| {},
     );
     assert_eq!(reply, "read it, proceeding");
     assert!(
-        hops.iter().any(|h| h.text.contains("needle-content")),
-        "tool result hop carries the playbook text"
+        crate::broker::toolhive::lane::cards(&tools)
+            .iter()
+            .any(|c| c.contains("needle-content")),
+        "the tool result carries the playbook text"
     );
     let _ = std::fs::remove_file(&p);
 }
@@ -648,11 +648,10 @@ fn run_tools_follow_up_dial_ticks_past_the_hops_running_estimate() {
 }
 
 /// Run one tool round and hand back the hops it emitted.
-fn run_tools_hops(b: &Broker, agent: &Scripted, reply: &str) -> Vec<Hop> {
+fn run_tools_cards(b: &Broker, agent: &Scripted, reply: &str) -> Vec<String> {
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let stream = HopStream::noop();
-    let mut hops = Vec::new();
+    let (tools, stream) = crate::broker::toolhive::lane::capture();
     b.run_tools(
         agent,
         "task",
@@ -661,29 +660,23 @@ fn run_tools_hops(b: &Broker, agent: &Scripted, reply: &str) -> Vec<Hop> {
         &mut usage,
         &env(),
         &stream,
-        &mut |h| hops.push(h),
+        &mut |_| {},
     );
-    hops
+    crate::broker::toolhive::lane::cards(&tools)
 }
 
-/// The relay and the swarm must produce the SAME card for the same action.
-///
-/// The relay's result hop carried raw output with no `[tool]` marker, so the
-/// app did not classify it as a tool card at all: the CALL rendered quiet and
-/// folded while its RESULT sat beside it as a full, brightly-coloured agent
-/// reply. One action, two looks, depending on which engine ran it.
+/// A result says whether it worked and carries what the tool said: the
+/// pane's tool line marks it ✓ or ✗ and opens the text on a click.
 #[test]
 fn a_relay_tool_result_is_marked_the_way_the_swarm_marks_it() {
     let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
     let agent = Scripted::new(&["done\n@done"]);
-    let hops = run_tools_hops(&b, &agent, "reading\n@tool fs:read {\"path\":\"x\"}");
-    let result = hops
+    let cards = run_tools_cards(&b, &agent, "reading\n@tool fs:read {\"path\":\"x\"}");
+    let result = cards
         .iter()
-        .find(|h| h.from == "fs:read")
-        .expect("a result hop");
-    let mut lines = result.text.lines();
-    let head = lines.next().unwrap();
-    assert!(head.starts_with("[tool] fs:read \u{2713} "), "{head:?}");
+        .find(|c| c.starts_with("[tool] fs:read \u{2713}"));
+    let mut lines = result.expect("a passed result").lines();
+    lines.next();
     assert_eq!(lines.next(), Some("FILE CONTENTS"));
 }
 
@@ -691,12 +684,11 @@ fn a_relay_tool_result_is_marked_the_way_the_swarm_marks_it() {
 fn a_relay_tool_failure_carries_the_failure_mark() {
     let b = broker_with(FakeTools(Err("connection refused".into())));
     let agent = Scripted::new(&["gave up\n@done"]);
-    let hops = run_tools_hops(&b, &agent, "trying\n@tool fs:read {\"path\":\"x\"}");
-    let result = hops.iter().find(|h| h.from == "fs:read").unwrap();
-    assert!(
-        result.text.starts_with("[tool] fs:read \u{2717} "),
-        "{:?}",
-        result.text
-    );
-    assert!(result.text.contains("connection refused"));
+    let cards = run_tools_cards(&b, &agent, "trying\n@tool fs:read {\"path\":\"x\"}");
+    let result = cards
+        .iter()
+        .find(|c| c.starts_with("[tool] fs:read \u{2717}"));
+    assert!(result
+        .expect("a failed result")
+        .contains("connection refused"));
 }

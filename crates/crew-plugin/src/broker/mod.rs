@@ -124,6 +124,7 @@ mod toolbatch;
 mod toolcall;
 mod toolclip;
 mod toolfull;
+mod toolhive;
 mod toolline;
 mod toolpick;
 mod toolround;

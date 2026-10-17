@@ -6,9 +6,18 @@
 
 use crew_hive::tools::JsonDepth;
 
+/// The exchange log's shape for a call, `CALLED sys:run {…}`, which a model
+/// copies back as its next call and the parser runs (`parse::directive`).
+/// Exact and upper-case, as the parser takes it: "Called it" is a sentence.
+pub(super) const CALLED: &str = "CALLED ";
+
 /// `@done`, `@next …` or `@tool …`, however wrapped — the directives the
-/// engine parses, which are the relay's business and not the reader's.
+/// engine parses, which are the relay's business and not the reader's —
+/// and a call in the exchange log's shape, which is `@tool` by another name.
 pub(super) fn control(line: &str) -> Option<&'static str> {
+    if line.trim_start().starts_with(CALLED) {
+        return Some("@tool");
+    }
     let bare = line
         .trim()
         .trim_matches(|c: char| matches!(c, '`' | '*' | '_'))

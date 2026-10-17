@@ -19,7 +19,6 @@ fn ran(ok: bool) -> Ran {
     Ran {
         ok,
         text: String::new(),
-        repeat: None,
         ms: 1,
     }
 }

@@ -62,12 +62,13 @@ impl ToolRunner for Counting {
 }
 
 /// Run a turn whose first reply is `first` and whose later replies are
-/// `then`; hand back the calls that ran, the prompts dialed and the hops.
+/// `then`; hand back the calls that ran, the prompts dialed and the tool
+/// lane's events, read as cards (`toolhive::lane`).
 fn turn(
     result: Result<String, String>,
     first: &str,
     then: &[&str],
-) -> (Vec<String>, Vec<String>, Vec<Hop>) {
+) -> (Vec<String>, Vec<String>, Vec<String>) {
     let runner = std::sync::Arc::new(Counting {
         ran: Mutex::new(Vec::new()),
         result,
@@ -75,7 +76,7 @@ fn turn(
     let b =
         Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5)).with_tools(runner.clone());
     let agent = Scripted::new(then);
-    let mut hops = Vec::new();
+    let (tools, stream) = crate::broker::toolhive::lane::capture();
     b.run_tools(
         &agent,
         "base prompt",
@@ -83,19 +84,19 @@ fn turn(
         &mut RunStats::default(),
         &mut Usage::default(),
         &Envelope::new("user", "planner", "t1", "task"),
-        &HopStream::noop(),
-        &mut |h| hops.push(h),
+        &stream,
+        &mut |_| {},
     );
     let ran = runner.ran.lock().unwrap().clone();
     let dialed = agent.1.lock().unwrap().clone();
-    (ran, dialed, hops)
+    (ran, dialed, crate::broker::toolhive::lane::cards(&tools))
 }
 
 const READ: &str = "reading\n@tool sys:read_file {\"path\":\"a.rs\"}";
 
 #[test]
 fn the_same_read_twice_runs_once_and_the_second_points_at_the_first() {
-    let (ran, dialed, hops) = turn(
+    let (ran, dialed, cards) = turn(
         Ok("FILE BODY".into()),
         READ,
         &[
@@ -112,17 +113,14 @@ fn the_same_read_twice_runs_once_and_the_second_points_at_the_first() {
         "no pointer in:\n{last}"
     );
     assert_eq!(last.matches("FILE BODY").count(), 1, "{last}");
-    // The card says so too, on its outcome line.
-    let card = hops
+    // The pane's tool line says so too: the second read's result points at
+    // the first.
+    let second = cards
         .iter()
-        .filter(|h| h.from == "sys:read_file" && h.text.starts_with("[tool]"))
+        .filter(|c| c.starts_with("[tool] sys:read_file \u{2713}"))
         .nth(1)
-        .expect("a second result card");
-    let head = card.text.lines().next().unwrap();
-    assert!(
-        head.contains("\u{2713}") && head.ends_with("same as round 1"),
-        "{head}"
-    );
+        .expect("a second result");
+    assert!(second.contains("same call as round 1"), "{second}");
 }
 
 #[test]

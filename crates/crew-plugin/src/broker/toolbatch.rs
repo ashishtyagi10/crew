@@ -11,12 +11,8 @@
 use std::thread::ScopedJoinHandle;
 use std::time::Instant;
 
-use super::hop::{Hop, HopKind};
-use super::toolcall::{ToolRunner, RESULT_CLIP};
-use super::toolclip::clip_result;
-use super::toolline::{call_line, result_line, same_as};
+use super::toolcall::ToolRunner;
 use super::toolround::{run_once, settle};
-use super::Envelope;
 use crew_hive::tools::exchanges::Exchanges;
 use crew_hive::tools::{seen::Seen, ToolCall};
 
@@ -28,8 +24,6 @@ pub(super) const PER_REPLY: usize = 4;
 pub(super) struct Ran {
     pub(super) ok: bool,
     pub(super) text: String,
-    /// The round whose result stands for this one, when it was not run.
-    pub(super) repeat: Option<u32>,
     pub(super) ms: u64,
 }
 
@@ -39,7 +33,6 @@ impl Ran {
         Self {
             ok: false,
             text: why.to_string(),
-            repeat: None,
             ms: 0,
         }
     }
@@ -71,14 +64,9 @@ pub(super) fn run(
     if calls.len() < 2 || !reads {
         let one = |(k, call): (usize, &ToolCall)| {
             let started = Instant::now();
-            let (ok, text, repeat) = run_once(runner, seen, log, call, entry(k));
+            let (ok, text) = run_once(runner, seen, log, call, entry(k));
             let ms = started.elapsed().as_millis() as u64;
-            Ran {
-                ok,
-                text,
-                repeat,
-                ms,
-            }
+            Ran { ok, text, ms }
         };
         return calls.iter().enumerate().map(one).collect();
     }
@@ -102,7 +90,6 @@ pub(super) fn run(
                 Job::Pointer(round) => Ran {
                     ok: true,
                     text: Seen::pointer(round),
-                    repeat: Some(round),
                     ms: 0,
                 },
                 Job::Running(h) => {
@@ -111,12 +98,7 @@ pub(super) fn run(
                         .unwrap_or_else(|_| (Err("the tool's thread panicked".into()), 0));
                     let (ok, text) = settle(runner, call, called);
                     seen.ran(runner, call, entry(k), ok);
-                    Ran {
-                        ok,
-                        text,
-                        repeat: None,
-                        ms,
-                    }
+                    Ran { ok, text, ms }
                 }
             });
         }
@@ -137,41 +119,6 @@ pub(super) fn refusal(budget_bound: bool, max: u32) -> String {
     match budget_bound {
         true => format!("not run \u{2014} tool budget spent ({max} calls this turn)"),
         false => format!("not run \u{2014} at most {PER_REPLY} tool calls per reply"),
-    }
-}
-
-/// The card for a call as it is made: `[tool] sys:read_file  src/lib.rs`.
-pub(super) fn call_card(env: &Envelope, call: &ToolCall) -> Hop {
-    let label = call.label();
-    Hop {
-        from: env.to.clone(),
-        to: label.clone(),
-        hop: env.hop,
-        kind: HopKind::Reply,
-        text: format!("[tool] {}", call_line(&label, &call.args, 200)),
-        usage: Default::default(),
-    }
-}
-
-/// The card for a call's result: the `[tool]` marker and the outcome line,
-/// exactly as the swarm builds them. Without the marker this card was not a
-/// tool card to the app at all: the CALL was styled quiet and folded, and its
-/// RESULT rendered beside it as a full, brightly-coloured agent reply. One
-/// action, two looks, depending on which engine ran it.
-pub(super) fn result_card(env: &Envelope, call: &ToolCall, ran: &Ran) -> Hop {
-    let label = call.label();
-    Hop {
-        from: label.clone(),
-        to: env.to.clone(),
-        hop: env.hop,
-        kind: HopKind::Reply,
-        text: format!(
-            "[tool] {}{}\n{}",
-            result_line(&label, ran.ok, ran.ms),
-            same_as(ran.repeat),
-            clip_result(ran.text.trim_end(), RESULT_CLIP)
-        ),
-        usage: Default::default(),
     }
 }
 
