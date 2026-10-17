@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.8
+
+**Agent smith says whether its change was actually checked.**
+An answer can say "the tests pass" whether or not anything ran. When a turn
+that edited files ends, smith now adds one line saying what happened after
+the last edit, based on the commands that actually ran, not on what the
+answer claims:
+- `✓ checked: cargo test -p crew-theme passed after the last edit`
+- `✗ failing: cargo build failed after the last edit`
+- `! not checked: nothing was built or tested after the last edit`
+
+It hears Claude Code's tools and crew's own agents alike. An edit after a
+passing run counts as not checked again, because what passed is no longer
+what is on disk. A command that builds or tests nothing (`ls`) isn't
+evidence. If the project has its own check (`.crew/check`), that verdict
+is the one shown and this line stays quiet.
+- **Tests:** Claude Code's edit followed by a passing or a failing test
+  run, an edit after a passing run, a command that isn't a test, crew's
+  own tool calls, the project's check winning, the verdict said once per
+  turn, and the pane adding the line when the task ends.
+
 ## 0.27.7
 
 **The transcript's left rail runs straight.**

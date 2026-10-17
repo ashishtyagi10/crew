@@ -96,6 +96,7 @@ mod chatmdcells;
 mod chatmention;
 mod chatmotion;
 mod chatphase;
+mod chatproof;
 #[cfg(test)]
 #[path = "chatshot_tests.rs"]
 mod chatshot_tests;
