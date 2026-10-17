@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.4
+
+**When something broke, agent smith reads what changed first.**
+Ask smith about something that broke ("started failing after my change",
+"the build broke", "it panics") and the task now carries what changed: the
+uncommitted diff, or the last commit's if the tree is clean. The diff is
+labelled as the first suspect. That is the first question an experienced
+engineer asks, and smith used not to. Measured on a planted bug (two colour
+channels swapped in an uncommitted edit, prompt "cargo test started failing
+after my last change, find the root cause and fix it"):
+- **Before:** smith ran `git log` three times, never `git diff`, ran out of
+  tool calls and called the task done with the bug still in place.
+- **Now:** it ran the tests, fixed the exact line and re-ran them green in
+  its first round, with three tool calls in 14 s.
+
+Other requests are sent exactly as before. The diff covers whole files up to
+4 KB, and any files past that are listed by name. It reaches Claude Code
+turns as well as crew's own agents.
+- **Tests:** breakage requests are recognised and other requests aren't. A
+  dirty tree shows its diff with the old and new lines, a clean tree shows
+  its last commit and says so, and outside a repository nothing is added.
+  Files are kept whole while they fit, and one file that is too big is cut
+  at a line boundary.
+
 ## 0.27.3
 
 **A narrow smith pane keeps its context meter.**
