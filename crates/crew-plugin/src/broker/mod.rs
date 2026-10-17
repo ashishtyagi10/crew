@@ -60,6 +60,7 @@ mod opencodesteps;
 mod opening;
 mod plan;
 mod planfirst;
+mod planout;
 mod plugins;
 mod prewarm;
 mod projectcard;

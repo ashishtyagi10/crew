@@ -133,6 +133,7 @@ impl ChatPane {
                     PluginEvent::Delta { agent, text, sub } => self.absorb_delta(agent, text, sub),
                     PluginEvent::Thought { agent, text } => self.absorb_thought(agent, text),
                     PluginEvent::Steered { text, .. } => self.absorb_steered(text),
+                    PluginEvent::Todo { steps } => self.checklist = steps,
                     PluginEvent::Message {
                         sender,
                         text,

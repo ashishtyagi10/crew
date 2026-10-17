@@ -25,6 +25,7 @@ mod parse;
 mod said;
 pub mod seen;
 pub mod todo;
+pub mod todowire;
 
 #[cfg(test)]
 mod tests;

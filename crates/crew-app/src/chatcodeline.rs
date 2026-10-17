@@ -61,10 +61,11 @@ pub(crate) fn code_rows(pane: &ChatPane, cols: u16) -> u16 {
     u16::from(own && cols >= MIN_COLS)
 }
 
-/// The live row directly above the composer: a swarm run's bar, or the code
-/// line. One grant, because the two never show at once.
+/// The live rows directly above the composer: a swarm run's bar, or the code
+/// line with the agent's plan over it. One grant, because the two never show
+/// at once.
 pub(crate) fn live_rows(pane: &ChatPane, cols: u16) -> u16 {
-    crate::chatprog::progress_rows(pane, cols).max(code_rows(pane, cols))
+    crate::chatprog::progress_rows(pane, cols).max(crate::chatchecklist::rows(pane, cols))
 }
 
 /// The line at `row` on the animation clock, or nothing when it has no row.

@@ -249,6 +249,13 @@ pub enum PluginEvent {
         channel: String,
         text: String,
     },
+    /// The running agent wrote its checklist: the WHOLE list, which replaces
+    /// the last one. Claude Code's TodoWrite and crew's `sys:todo` both
+    /// arrive as this, so the pane draws one plan whoever keeps it, instead
+    /// of a tool line holding a JSON list nobody reads.
+    Todo {
+        steps: Vec<crew_hive::tools::todowire::Step>,
+    },
     Message {
         channel: String,
         sender: String,

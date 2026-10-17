@@ -64,3 +64,31 @@ fn minted_ids_are_stable_and_never_hive_ids() {
     assert_ne!(AgentId::minted("claude"), AgentId::minted("codex"));
     assert!(AgentId::minted("claude").0 >> 63 == 1);
 }
+
+/// Claude Code's TodoWrite is the agent's plan: it leaves as ONE `Todo`
+/// event, and neither the call nor its result becomes a tool line.
+#[test]
+fn a_checklist_write_is_a_todo_event_and_not_a_tool_line() {
+    let (log, emit) = capture();
+    let on = hop_tooler(emit, "claude".into());
+    let id = AgentId::minted("claude");
+    on(HiveEvent::ToolCall {
+        agent: id.clone(),
+        label: "TodoWrite".into(),
+        args: r#"{"todos":[{"content":"Reproduce","status":"in_progress"},{"content":"Fix","status":"pending"}]}"#.into(),
+    });
+    on(HiveEvent::ToolResult {
+        agent: id,
+        label: "TodoWrite".into(),
+        ok: true,
+        text: "Todos have been modified successfully".into(),
+        ms: 3,
+    });
+    let evs = log.lock().unwrap();
+    assert_eq!(evs.len(), 1, "{evs:?}");
+    let PluginEvent::Todo { steps } = &evs[0] else {
+        panic!("{evs:?}")
+    };
+    let texts: Vec<&str> = steps.iter().map(|s| s.text.as_str()).collect();
+    assert_eq!(texts, ["Reproduce", "Fix"]);
+}
