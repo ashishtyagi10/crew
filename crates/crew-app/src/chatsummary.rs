@@ -200,22 +200,23 @@ pub(crate) fn footer_lines_with(
     };
     l2.push(((format!("5h:{}", left(fc.windows.five_h)), blue), 0));
     l2.push(((format!("7d:{}", left(fc.windows.seven_d)), blue), 1));
-    if cols >= 60 {
-        // The meters fill rather than snap: a bar that jumps two cells reads
-        // as a glitch, the same bar sliding reads as a gauge.
-        if let Some(w) = fc.windows.five_h {
-            let pct = ((w.spent.saturating_mul(100)) / w.budget.max(1)).min(100) as u8;
-            let pct = fc.readouts.bar_5h.tick(f64::from(pct), now);
-            meters.push((pct / 100.0).clamp(0.0, 1.0) as f32);
-            let pct = pct.round() as u8;
-            l2.push(((format!("{} {pct}% (5h)", bar(pct)), muted), 2));
-        }
-        if let Some(fill) = ctx_fill(fc.agents, fc.ctx) {
-            let fill = fc.readouts.ctx.tick(f64::from(fill), now);
-            meters.push((fill / 100.0).clamp(0.0, 1.0) as f32);
-            let fill = fill.round() as u8;
-            l2.push(((format!("{} {fill}% (ctx)", bar(fill)), muted), 3));
-        }
+    // The meters fill rather than snap: a bar that jumps two cells reads as a
+    // glitch, a sliding one as a gauge. No width gate: `budget` drops a meter
+    // that does not fit, the account's 5h one first (survey H4).
+    let mut gauges: Vec<(String, f32)> = Vec::new();
+    let mut gauge = |l2: &mut Vec<(Seg, u8)>, pct: f64, what: &str, p: u8| {
+        let text = format!("{} {}% ({what})", bar(pct.round() as u8), pct.round() as u8);
+        gauges.push((text.clone(), (pct / 100.0).clamp(0.0, 1.0) as f32));
+        l2.push(((text, muted), p));
+    };
+    if let Some(w) = fc.windows.five_h {
+        let pct = ((w.spent.saturating_mul(100)) / w.budget.max(1)).min(100) as u8;
+        let pct = fc.readouts.bar_5h.tick(f64::from(pct), now);
+        gauge(&mut l2, pct, "5h", 3);
+    }
+    if let Some(fill) = ctx_fill(fc.agents, fc.ctx) {
+        let fill = fc.readouts.ctx.tick(f64::from(fill), now);
+        gauge(&mut l2, fill, "ctx", 2);
     }
 
     // The rows sit one column in from each edge (`summary_art`), so that is
@@ -223,13 +224,10 @@ pub(crate) fn footer_lines_with(
     // last segment ran a column past it and lost a letter (`to an agen`).
     let room = cols.saturating_sub(2);
     let l1 = budget(l1, room);
-    // The budget drops the meters first on a narrow pane. Their fractions go
-    // with them, or the drawn meters would be paired with the wrong runs.
-    let kept = l2.len();
+    // Each meter the budget kept keeps its own fraction, whichever went.
     let l2 = budget(l2, room);
-    if l2.len() < kept {
-        meters.truncate(l2.iter().filter(|(text, _)| text.contains(FILLED)).count());
-    }
+    let kept = |g: &(String, f32)| l2.iter().any(|(t, _)| *t == g.0);
+    meters.extend(gauges.iter().filter(|g| kept(g)).map(|g| g.1));
 
     // Line 3: the routing mode and who is working, as badges, then what is
     // RUNNING or the hints — `summaryroute`.
@@ -289,7 +287,7 @@ pub(crate) fn summary_rows(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
 
 #[cfg(test)]
 #[path = "chatsummary_tests.rs"]
-mod tests;
+pub(crate) mod tests;
 
 #[cfg(test)]
 #[path = "runningseg_tests.rs"]

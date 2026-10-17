@@ -2,7 +2,7 @@ use super::*;
 use crew_plugin::AgentInfo;
 use std::collections::HashMap;
 
-fn agent(name: &str, model: &str) -> AgentInfo {
+pub(crate) fn agent(name: &str, model: &str) -> AgentInfo {
     AgentInfo {
         name: name.into(),
         role: String::new(),
@@ -10,7 +10,7 @@ fn agent(name: &str, model: &str) -> AgentInfo {
     }
 }
 
-fn ctx(pairs: &[(&str, u64)]) -> HashMap<String, u64> {
+pub(crate) fn ctx(pairs: &[(&str, u64)]) -> HashMap<String, u64> {
     pairs.iter().map(|(n, v)| (n.to_string(), *v)).collect()
 }
 
@@ -19,11 +19,11 @@ fn text(line: &[(char, (u8, u8, u8))]) -> String {
 }
 
 /// Fresh counters per call: each case sees its numbers settled on first sight.
-fn readouts() -> &'static crate::readout::Readouts {
+pub(crate) fn readouts() -> &'static crate::readout::Readouts {
     Box::leak(Box::new(crate::readout::Readouts::default()))
 }
 
-fn fc<'a>(agents: &'a [AgentInfo], ctxm: &'a HashMap<String, u64>) -> FooterCtx<'a> {
+pub(crate) fn fc<'a>(agents: &'a [AgentInfo], ctxm: &'a HashMap<String, u64>) -> FooterCtx<'a> {
     FooterCtx {
         readouts: readouts(),
         agents,
@@ -610,7 +610,7 @@ fn a_dropped_meter_drops_its_fraction() {
     let _g = crate::app::theme_test_guard();
     let agents = [agent("smith", "anthropic/claude-opus-4-8")];
     let ctx = ctx(&[("smith", 100_000)]);
-    for cols in [60usize, 72, 84, 96, 120] {
+    for cols in [30usize, 40, 44, 52, 60, 72, 84, 96, 120] {
         let mut meters = Vec::new();
         let lines = super::footer_text_lines(&fc(&agents, &ctx), cols, &mut meters);
         let runs = meter_runs(&lines[1]).len();
