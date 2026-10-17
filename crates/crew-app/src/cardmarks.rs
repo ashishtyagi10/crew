@@ -27,13 +27,15 @@ pub fn card_paint(p: &Pane, b: &Bar, cw: f32, ch: f32, now: u64) -> Vec<Paint> {
 }
 
 /// Pane `p`'s frame `cells` with the stroke under its drawn readings in
-/// their colour ([`crate::cardpaint::tint`]) and its focus brackets evened
-/// out ([`even_brackets`]), on `ch`-px rows.
+/// their colour ([`crate::cardpaint::tint`]), its focus brackets evened out
+/// ([`even_brackets`]) and, focused on an Ink page, heavy
+/// ([`crate::inkframe`]), on `ch`-px rows.
 pub fn tinted(p: &Pane, mut cells: Vec<CellView>, b: &Bar, ch: f32) -> Vec<CellView> {
     let (cols, rows) = (crate::panefit::frame_cols(p) + 2, p.grid.rows + 2);
     crate::cardpaint::tint(&mut cells, cols, rows, b);
     let below = p.rect.h - f32::from(rows) * ch;
     even_brackets(&mut cells, (cols, rows), b, below > ch / 2.0);
+    crate::inkframe::weigh(&mut cells, (cols, rows), b.focused);
     cells
 }
 

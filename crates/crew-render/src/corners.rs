@@ -19,6 +19,11 @@
 //!
 //! A corner whose arms are not plain rules — a legend or a mark standing
 //! where the arc would run — keeps its glyph.
+//!
+//! A heavy box (`┏━┓┃`) rounds the same way at its own weight: an Ink
+//! Reader page draws the frame you are in with heavy rules (the user,
+//! 2026-10-17: "make the focused frame thicker too"), and its corners
+//! bend as the light ones do.
 use std::collections::HashSet;
 
 use crate::cellgrid::CellView;
@@ -29,15 +34,28 @@ use crate::stretch::Split;
 const RULE_H: char = '\u{2500}';
 const RULE_V: char = '\u{2502}';
 
-/// The way a corner's arms run, `(dx, dy)`: `╭` reaches right and down. The
-/// square corners round too — a box is a box, whoever drew it.
-fn arms(c: char) -> Option<(i32, i32)> {
+/// The way a corner's arms run, `(dx, dy)`, and their weight (`1` light,
+/// `2` heavy): `╭` reaches right and down, light. The square corners round
+/// too — a box is a box, whoever drew it.
+fn arms(c: char) -> Option<(i32, i32, u8)> {
     match c {
-        '\u{256D}' | '\u{250C}' => Some((1, 1)),
-        '\u{256E}' | '\u{2510}' => Some((-1, 1)),
-        '\u{256F}' | '\u{2518}' => Some((-1, -1)),
-        '\u{2570}' | '\u{2514}' => Some((1, -1)),
+        '\u{256D}' | '\u{250C}' => Some((1, 1, 1)),
+        '\u{256E}' | '\u{2510}' => Some((-1, 1, 1)),
+        '\u{256F}' | '\u{2518}' => Some((-1, -1, 1)),
+        '\u{2570}' | '\u{2514}' => Some((1, -1, 1)),
+        '\u{250F}' => Some((1, 1, 2)),
+        '\u{2513}' => Some((-1, 1, 2)),
+        '\u{251B}' => Some((-1, -1, 2)),
+        '\u{2517}' => Some((1, -1, 2)),
         _ => None,
+    }
+}
+
+/// The rules, `(horizontal, vertical)`, a corner of `weight` runs into.
+fn rules(weight: u8) -> (char, char) {
+    match weight {
+        2 => ('\u{2501}', '\u{2503}'),
+        _ => (RULE_H, RULE_V),
     }
 }
 
@@ -80,12 +98,13 @@ impl Chars {
     }
 }
 
-/// A frame's light stroke in a `cell_w`×`cell_h` cell, as `boxglyph` draws
-/// it: `(thickness, left of the vertical rule, top of the horizontal one)`.
-fn stroke(cell_w: f32, cell_h: f32) -> (f32, f32, f32) {
+/// A frame's stroke of `weight` (`1` light, `2` heavy) in a
+/// `cell_w`×`cell_h` cell, as `boxglyph` draws it: `(thickness, left of the
+/// vertical rule, top of the horizontal one)`.
+fn stroke_at(cell_w: f32, cell_h: f32, weight: u8) -> (f32, f32, f32) {
     let (cw, ch) = (cell_w.round() as u32, cell_h.round() as u32);
-    let (lx, hx) = crate::boxglyph::band(cw, 1, ch);
-    let (ly, _) = crate::boxglyph::band(ch, 1, ch);
+    let (lx, hx) = crate::boxglyph::band(cw, weight, ch);
+    let (ly, _) = crate::boxglyph::band(ch, weight, ch);
     ((hx - lx) as f32, lx as f32, ly as f32)
 }
 
@@ -104,7 +123,13 @@ fn bow(r: f32, d: f32) -> f32 {
 /// next rule at full ink. Then held off the card's first cell of content —
 /// the arc bows inward, and it must not reach the text.
 pub fn radius(cell_w: f32, cell_h: f32) -> f32 {
-    let (t, lx, ly) = stroke(cell_w, cell_h);
+    radius_at(cell_w, cell_h, 1)
+}
+
+/// [`radius`] for a stroke of `weight`. A heavy arc's inner edge stands
+/// further in, so it is held off the text by its own half-width.
+fn radius_at(cell_w: f32, cell_h: f32, weight: u8) -> f32 {
+    let (t, lx, ly) = stroke_at(cell_w, cell_h, weight);
     let (cw, ch) = (cell_w.round(), cell_h.round());
     // The tighter side of the cell, whichever way the corner faces.
     let near_x = (lx + t / 2.0).min(cw - lx - t / 2.0);
@@ -118,15 +143,17 @@ pub fn radius(cell_w: f32, cell_h: f32) -> f32 {
     r.max(1.0)
 }
 
-/// One corner that rounds: where its glyph is, which way it faces, how many
-/// cells each arm lends it, and the colours at the ends of its arms — the
-/// arc fades from one to the other, so a gradient ring stays a gradient.
+/// One corner that rounds: where its glyph is, which way it faces, its
+/// weight, how many cells each arm lends it, and the colours at the ends of
+/// its arms — the arc fades from one to the other, so a gradient ring stays
+/// a gradient.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct Corner {
     pub col: u16,
     pub row: u16,
     pub dx: i32,
     pub dy: i32,
+    pub weight: u8,
     pub nx: u16,
     pub ny: u16,
     pub fg_h: (u8, u8, u8),
@@ -166,23 +193,24 @@ pub(crate) fn find(cells: &[CellView], cell_w: f32, cell_h: f32) -> Vec<Corner> 
         return Vec::new();
     }
     let at = Chars::of(cells);
-    let r = radius(cell_w, cell_h);
-    let (t, lx, ly) = stroke(cell_w, cell_h);
+    let geometry = [1, 2].map(|w| (radius_at(cell_w, cell_h, w), stroke_at(cell_w, cell_h, w)));
     let (cw, ch) = (cell_w.round(), cell_h.round());
     // Two corners on one rule round only if their arcs cannot meet: their
     // stroke centres at least two radii and a pixel apart. A one-row card's
     // top and bottom corners share the `│` between them, and that is fine —
     // each arc is done well inside its half of it.
-    let crowded = |col: i32, row: i32, (dx, dy): (i32, i32), cell: f32| {
+    let crowded = |col: i32, row: i32, (dx, dy): (i32, i32), cell: f32, r: f32| {
         (1..)
             .take_while(|&k| k as f32 * cell < 2.0 * r + 1.0)
             .any(|k| at.get(col + dx * k, row + dy * k).and_then(arms).is_some())
     };
     let mut out = Vec::new();
     for cell in cells {
-        let Some((dx, dy)) = arms(cell.c) else {
+        let Some((dx, dy, weight)) = arms(cell.c) else {
             continue;
         };
+        let (r, (t, lx, ly)) = geometry[usize::from(weight - 1)];
+        let (rule_h, rule_v) = rules(weight);
         // From the stroke's centre to the corner cell's edge on each arm.
         let own_x = if dx > 0 {
             cw - lx - t / 2.0
@@ -199,15 +227,16 @@ pub(crate) fn find(cells: &[CellView], cell_w: f32, cell_h: f32) -> Vec<Corner> 
             row: cell.row,
             dx,
             dy,
+            weight,
             nx: lent(r, own_x, cell_w),
             ny: lent(r, own_y, cell_h),
             fg_h: cell.fg,
             fg_v: cell.fg,
         };
         let (c, row) = (i32::from(cell.col), i32::from(cell.row));
-        let plain = (1..=i32::from(corner.nx)).all(|k| at.get(c + dx * k, row) == Some(RULE_H))
-            && (1..=i32::from(corner.ny)).all(|k| at.get(c, row + dy * k) == Some(RULE_V));
-        if !plain || crowded(c, row, (dx, 0), cell_w) || crowded(c, row, (0, dy), cell_h) {
+        let plain = (1..=i32::from(corner.nx)).all(|k| at.get(c + dx * k, row) == Some(rule_h))
+            && (1..=i32::from(corner.ny)).all(|k| at.get(c, row + dy * k) == Some(rule_v));
+        if !plain || crowded(c, row, (dx, 0), cell_w, r) || crowded(c, row, (0, dy), cell_h, r) {
             continue;
         }
         let fg = |col: i32, row: i32| at.cell(col, row).map_or(cell.fg, |(_, fg)| fg);
@@ -290,18 +319,19 @@ fn cell_at(d: &Drawn<'_>, col: i32, row: i32) -> Option<(f32, f32)> {
 /// The arcs for `corners`, placed on the glyphs of `d` and ready for the
 /// round-border pass.
 pub(crate) fn arcs(d: &Drawn<'_>, corners: &[Corner], srgb: bool) -> Vec<Border> {
-    let r = radius(d.cell_w, d.cell_h);
-    let (t, lx, ly) = stroke(d.cell_w, d.cell_h);
     let (cw, ch) = (d.cell_w.round(), d.cell_h.round());
     if corners.is_empty() {
         return Vec::new();
     }
     let chars = Chars::of(&d.pane.cells);
     let char_at = |col: i32, row: i32| chars.get(col, row);
-    // Far enough that the shape's other three corners never reach the clip.
-    let big = 4.0 * (r + cw + ch);
     let mut out = Vec::new();
     for k in corners {
+        let r = radius_at(d.cell_w, d.cell_h, k.weight);
+        let (t, lx, ly) = stroke_at(d.cell_w, d.cell_h, k.weight);
+        let (rule_h, rule_v) = rules(k.weight);
+        // Far enough that the shape's other three corners never reach the clip.
+        let big = 4.0 * (r + cw + ch);
         let (c, row) = (i32::from(k.col), i32::from(k.row));
         let Some((cx, cy)) = cell_at(d, c, row) else {
             continue;
@@ -311,8 +341,8 @@ pub(crate) fn arcs(d: &Drawn<'_>, corners: &[Corner], srgb: bool) -> Vec<Border>
             c + k.dx * (i32::from(k.nx) + 1),
             row + k.dy * (i32::from(k.ny) + 1),
         );
-        let h_rule = char_at(hc, row) == Some(RULE_H);
-        let v_rule = char_at(c, vr) == Some(RULE_V);
+        let h_rule = char_at(hc, row) == Some(rule_h);
+        let v_rule = char_at(c, vr) == Some(rule_v);
         let h_next = cell_at(d, hc, row);
         let v_next = cell_at(d, c, vr);
         // The bands the tails continue: the neighbouring rule's own, when it

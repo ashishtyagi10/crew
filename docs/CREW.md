@@ -3980,7 +3980,8 @@ is the difference between retiring a command and folding one.
 and black pages as the Kindle app draws them. They are opaque: the window
 shows no desktop, the title bar wears the page, and nothing glows, drifts or
 casts a shadow. A frame is a line. The pane you are in is framed in the ink
-itself, the rest in a grey of it at 3:1. Grey is the only second ink: the
+itself, in heavy rules at twice the weight (`━ ┃`, corners rounded as the
+light ones are), the rest in a light line of grey at 3:1. Grey is the only second ink: the
 meters, the scroll thumb and the quieter words are greys of the page's own
 ink. Colour stays where it carries meaning, printed rather than lit: the
 terminal's ANSI output, a diff's red and green, and the status, bell,

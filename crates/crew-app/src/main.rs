@@ -608,6 +608,7 @@ mod toosmall;
 #[path = "transientshot_tests.rs"]
 mod transientshot_tests;
 
+mod inkframe;
 #[cfg(test)]
 #[path = "inkpage_tests.rs"]
 mod inkpage_tests;

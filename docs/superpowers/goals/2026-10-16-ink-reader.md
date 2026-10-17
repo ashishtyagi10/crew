@@ -56,9 +56,13 @@ theme changes under them).
    gives both a sheet with no tint, gloss, rim or shadow, and `tubesheer` keeps the window opaque.
 2. Lines: the focused frame is the ink (18.1:1 light, 16.2:1 dark). Unfocused frames are a grey of
    it at 3:1, from a ramp ladder of their own (`HOUSE_INK`: the paper ladder with
-   `border_normal` at 3.0 instead of 2.0). "Heavier" is carried by tone, not stroke width: card
-   corners are drawn at the light weight (`crew-render/src/corners.rs`), and a heavy rule
-   meeting a light arc would look broken.
+   `border_normal` at 3.0 instead of 2.0). In v0.27.15 "heavier" was carried by tone alone,
+   because card corners were drawn only at the light weight. On 2026-10-17 the user asked
+   "make the focused frame thicker too": the focused card now swaps its light rules for heavy
+   ones (`crew-app/src/inkframe.rs`, `Theme::is_print`), and `crew-render/src/corners.rs`
+   rounds a heavy box (`┏━┓┃`) at its own weight. Measured at 1×: the focused frame is 2 px,
+   the others 1 px. On a Retina screen's 36 px cell the rules come to 3 px and 6 px
+   (`deco::thickness`, computed rather than shot).
 3. `dark` and `light` are one page each, no longer rotations. `nebula` and `blossom` moved to
    the `glass` rotation, which now has four palettes. A one-page pool's rotation tick returns
    `false`, so nothing repaints.

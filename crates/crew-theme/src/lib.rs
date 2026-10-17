@@ -129,6 +129,12 @@ impl Theme {
     pub fn is_tube(&self) -> bool {
         self.crt.is_some_and(|c| c.core > 0.0)
     }
+
+    /// Whether this palette is an Ink Reader page (the 2026-10-16 goal): print, with no glass
+    /// and no tube — what [`glass_style_for`] draws flat.
+    pub fn is_print(&self) -> bool {
+        !self.is_tube() && self.liquid.is_none()
+    }
 }
 
 pub use presets_crt::{CRT_AMBER, CRT_GREEN};
