@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.1
+
+**A pop-up's title no longer prints over the line behind it.**
+Pop-ups above the composer (commands, attach, models, a key prompt) have
+their title on the top border. The card's backing only starts at that
+border, so the transcript line behind the top half of the title showed
+through it: `commands` read as if struck through by `provider: anthropic`.
+The rows a pop-up stands on are now cleared under the card as well as
+beside it, so the title sits on the bare pane. The bottom border no longer
+shows the descenders of the line under it either.
+- **Test:** with the command palette open, no transcript text is left on
+  the card's rows, under the card or beside it.
+
 ## 0.27.0
 
 **Agent smith shows the plan it is working to.**
