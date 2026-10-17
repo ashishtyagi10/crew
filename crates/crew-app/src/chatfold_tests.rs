@@ -165,7 +165,7 @@ fn clicking_the_folded_card_expands_and_its_header_refolds() {
     let body_row = row_with(&p, cols, rows, "four");
     assert!(!p.toggle_fold_at(cols, rows, body_row), "body click inert");
     assert!(p.messages[0].expanded);
-    let header_row = row_with(&p, cols, rows, "\u{2506}crew");
+    let header_row = row_with(&p, cols, rows, "\u{258F}crew");
     assert!(p.toggle_fold_at(cols, rows, header_row), "header refolds");
     assert!(!p.messages[0].expanded);
 }

@@ -153,7 +153,7 @@ fn a_tool_card_takes_the_quiet_gutter_and_muted_ink() {
     let r = header_line(&reply, 0, None);
 
     // Same sender, two voices: dotted vs solid gutter.
-    assert_eq!(t[0].c, '\u{2506}', "tool gutter");
+    assert_eq!(t[0].c, '\u{258F}', "tool gutter");
     assert_eq!(r[0].c, GUTTER, "reply gutter");
     // …and the tool card's name is muted, so a run of four calls does not read
     // as four replies in the agent's own colour.

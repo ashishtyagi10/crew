@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.7
+
+**The transcript's left rail runs straight.**
+Every card in the smith pane has a bar on its left: solid for what you or
+an agent said, and lighter for smith's own notes and tool lines. The lighter
+one was a dotted line drawn down the middle of its cell, while the solid bar
+stands on the cell's left edge. So the rail stepped 2–3 px to the right on
+every card that changed voice. The quiet bar is now a hairline on the same
+left edge as the solid one, so the eye can run straight down the rail and
+the two voices still look different.
+- **Tests:** smith notes, tool lines, thought folds and tool blocks all draw
+  the hairline, and replies keep the solid bar.
+
 ## 0.27.6
 
 **A fix ends when it is verified, not after more rounds.**

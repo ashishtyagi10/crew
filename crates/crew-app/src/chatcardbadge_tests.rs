@@ -52,9 +52,9 @@ fn the_user_the_system_voice_and_a_tool_card_keep_the_plain_name() {
     assert!(user.iter().all(|c| c.bg.is_none()), "no block on the user");
     assert!(user[1].bold, "still the bold name");
     let sys = header_line(&msg("crew", "x"), 0, None);
-    assert_eq!(chars(&sys), "\u{2506}crew");
+    assert_eq!(chars(&sys), "\u{258F}crew");
     let tool = header_line(&msg("planner", &format!("{TOOL_PREFIX}ls")), 0, None);
-    assert_eq!(chars(&tool), "\u{2506}planner");
+    assert_eq!(chars(&tool), "\u{258F}planner");
     assert!(tool.iter().all(|c| c.bg.is_none()));
 }
 

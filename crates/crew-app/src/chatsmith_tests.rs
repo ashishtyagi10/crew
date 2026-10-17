@@ -42,7 +42,7 @@ fn smiths_answer_wears_his_roster_colour_his_badge_and_ink() {
     let badge = crate::segment::inked(smith).1;
     assert_eq!(answer[3].bg, Some(badge), "his name on its badge");
     let chrome = header_line(&msg("agent smith", "x"), 0, None);
-    assert_eq!(chrome[0].c, '\u{2506}', "chrome keeps the dotted gutter");
+    assert_eq!(chrome[0].c, '\u{258F}', "chrome keeps the dotted gutter");
     assert_eq!(chrome[0].fg, t.text_muted);
     let ink = |sender: &str| crate::chatvoice::body_voice(&msg(sender, "x")).0;
     assert_eq!(ink(ANSWER), t.ink, "an answer speaks in ink");
