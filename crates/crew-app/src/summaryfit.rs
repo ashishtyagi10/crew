@@ -142,3 +142,7 @@ pub(crate) fn ctx_fill(agents: &[AgentInfo], ctx: &HashMap<String, u64>) -> Opti
     }
     max_fill
 }
+
+#[cfg(test)]
+#[path = "chatsummarymeter_tests.rs"]
+mod meter_tests;

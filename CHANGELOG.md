@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.3
+
+**A narrow smith pane keeps its context meter.**
+The footer's second line drew the context meter (how full this
+conversation's context is) and the 5-hour usage meter only on panes at least
+60 columns wide. On a quarter tile both were missing, even with 27 columns
+free on the line. The cut-off is gone. Each meter now goes only when it
+really doesn't fit, and the context meter is kept the longest, because it is
+this pane's own reading; the 5-hour meter is account-wide and the nav shows
+it too. When one meter goes, the other keeps its own value.
+- **Tests:** at 44 columns the context meter shows and the 5-hour one
+  doesn't, with the context's fraction. At 30 columns both go. At every
+  width, each drawn meter has exactly one fraction.
+
 ## 0.27.2
 
 **The busy line says what agent smith is doing.**
