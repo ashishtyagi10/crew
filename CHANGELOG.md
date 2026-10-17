@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.13
+
+**The /far panel you aren't in has a quiet frame again.**
+/far shows two directory panels. The one your keys are in has an accent
+frame. The other one's frame was drawn in the muted text colour, which on
+the glass themes is almost white, so the idle panel's box was about 2.5×
+brighter than every other inactive frame and outshone the card around it.
+It now uses the same border colour as every other inactive frame, and its
+title keeps the muted text colour.
+- **Test:** the inactive panel's edge is drawn in the frame's border
+  colour.
+
 ## 0.27.12
 
 **A turn that changed files ends in one receipt, not four notes.**

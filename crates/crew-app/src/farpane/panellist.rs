@@ -17,10 +17,13 @@ pub(super) fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool, f
     let t = crew_theme::theme();
     let dim_col = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
     let text_col = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
+    // A quiet panel's frame is a frame, in the frame role: `text_muted` is a
+    // text ink floored for legibility, near-white on the glass, and the
+    // passive box outshone the card around it (survey I5).
     let edge = if active && focused {
         accent_color()
     } else {
-        dim_col
+        Color::Rgb(t.border_normal.0, t.border_normal.1, t.border_normal.2)
     };
     // The active panel's legend is bold words — accent while the keys are
     // here, ink while they are elsewhere — and its frame is the accent. It
