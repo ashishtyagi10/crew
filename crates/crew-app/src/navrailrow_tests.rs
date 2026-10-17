@@ -67,7 +67,11 @@ fn a_dirty_tree_says_how_dirty_and_a_clean_one_says_so_in_one_glyph() {
         3,
         5,
     );
-    assert_eq!(text(&cells, 3), "\u{25cf} 9");
+    assert_eq!(
+        text(&cells, 3),
+        "\u{25cf}9",
+        "the figure follows its mark, as ↑1 does"
+    );
     assert_eq!(text(&cells, 4), "\u{2191}1 \u{2193}2");
 
     let mut clean = Vec::new();
@@ -165,7 +169,7 @@ fn a_count_that_fits_is_drawn_whole_and_tightens_before_it_gives_up() {
         0,
         6,
     );
-    // Six columns: `● 1234` fits, and the pair tightens to `↑12↓34`.
-    assert_eq!(text(&cells, 0), "\u{25cf} 1234");
+    // Six columns: `●1234` fits, and the pair tightens to `↑12↓34`.
+    assert_eq!(text(&cells, 0), "\u{25cf}1234");
     assert_eq!(text(&cells, 1), "\u{2191}12\u{2193}34");
 }

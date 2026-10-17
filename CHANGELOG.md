@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.9
+
+**The nav rail's numbers line up.**
+At the foot of the narrow nav rail, every reading is a mark followed by a
+number: `↓1.2M`, `↑4K`, `↑1`. The count of changed files was the exception:
+it read `● 9`, with a space that put the number one column right of all the
+others. It now reads `●9`, starting in the same column, and still cuts to
+`●…` when the rail is too narrow.
+- **Tests:** the changed count's number follows its mark directly, as the
+  ahead count does, at five and six columns.
+
 ## 0.27.8
 
 **Agent smith says whether its change was actually checked.**
