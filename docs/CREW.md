@@ -3080,9 +3080,11 @@ runs, what it was asked is already worth reading. When the agent's reply
 settles the block folds to `▸ 4 tool calls · 2.1s` above it, and a click
 reopens it. Every result is kept, success included: an agent's paraphrase of
 what an API returned is the one thing you cannot check an integration
-against. The relay engine (`@agent` messages) has no live events, so its
-calls still land as `[tool]` cards in the quieter dotted gutter, folded to
-one line until clicked.
+against. The relay engine (`@agent` messages and a routed reply) sends its
+calls on the same lane, so they draw in the same block: one line a call,
+`✓ sys:run cargo test · 689ms exit 0`, folded with the rest when the reply
+settles. They used to land as two `[tool]` cards each, call and result, in
+the transcript.
 
 **Loads in the same block.** Three things shape a reply without being tool
 calls, and each used to happen in silence: a skill whose name the task

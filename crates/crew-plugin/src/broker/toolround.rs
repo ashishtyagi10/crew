@@ -23,9 +23,9 @@ pub(super) fn run_once(
     log: &Exchanges,
     call: &ToolCall,
     entry: u32,
-) -> (bool, String, Option<u32>) {
+) -> (bool, String) {
     if let Some(first) = log.repeat(seen, call) {
-        return (true, Seen::pointer(first), Some(first));
+        return (true, Seen::pointer(first));
     }
     let (ok, text) = settle(
         runner,
@@ -33,7 +33,7 @@ pub(super) fn run_once(
         runner.call(&call.server, &call.tool, &call.args),
     );
     seen.ran(runner, call, entry, ok);
-    (ok, text, None)
+    (ok, text)
 }
 
 /// What a call that ran came back as: `(ok, text)`.

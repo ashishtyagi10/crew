@@ -132,3 +132,19 @@ fn the_pane_says_it_under_the_turn_when_the_task_ends() {
     assert_eq!(last.sender, "agent smith");
     assert!(last.text.starts_with("\u{2713} checked"), "{}", last.text);
 }
+
+/// crew's own tools on the hive lane (`toolhive`), as the S6 replay sent
+/// them: an edit and a run in one reply, then both results.
+#[test]
+fn crews_tools_on_the_hive_lane_are_heard_too() {
+    let said = settled(&[
+        call("sys:edit", r#"{"path":"crates/crew-theme/src/lib.rs"}"#),
+        call("sys:run", r#"{"cmd":"cargo test -p crew-theme"}"#),
+        result("sys:edit", true),
+        result("sys:run", true),
+    ]);
+    assert_eq!(
+        said.as_deref(),
+        Some("\u{2713} checked: `cargo test -p crew-theme` passed after the last edit")
+    );
+}

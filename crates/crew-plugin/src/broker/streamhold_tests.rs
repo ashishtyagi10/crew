@@ -117,3 +117,37 @@ fn other_markup_at_line_start_is_released_whole() {
         "<tool_calls are fine>\n"
     );
 }
+
+/// The exchange log's shape, copied back as a call (seen live, 2026-10-16:
+/// `CALLED sys:run {"cmd": "cargo test -` typed out on the card), is held
+/// and dropped with its JSON, like `@tool`.
+#[test]
+fn a_call_in_the_logs_shape_never_shows() {
+    let s = shown(&[
+        "Re-running the tests.\nCALL",
+        "ED sys:run {\"cmd\": \"cargo test -",
+        "p crew-theme\"}\n",
+        "All green.\n",
+    ]);
+    assert_eq!(s, "Re-running the tests.\nAll green.\n");
+}
+
+/// Only `CALLED ` is held, upper-case and exact: any other line that starts
+/// with `C` shows as it streams, from the character it stops matching.
+#[test]
+fn a_line_starting_with_c_streams_from_the_moment_it_cannot_be_a_call() {
+    let mut h = Hold::default();
+    assert_eq!(
+        h.feed("Ca"),
+        "Ca",
+        "lower-case: it cannot be a call, so it shows"
+    );
+    let mut h2 = Hold::default();
+    assert_eq!(h2.feed("C"), "", "held while it could still be one");
+    assert_eq!(h2.feed("ommit the fix"), "Commit the fix");
+    assert_eq!(
+        shown(&["Called it: the tests pass.\n"]),
+        "Called it: the tests pass.\n"
+    );
+    assert_eq!(shown(&["CALL me later\n"]), "CALL me later\n");
+}

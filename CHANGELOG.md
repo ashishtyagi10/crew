@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.10
+
+**Agent smith's own tool calls fold into one line, like Claude Code's.**
+When smith ran on an API model (DashScope, OpenRouter, the Anthropic API),
+every tool call and every result landed in the transcript as a card of its
+own. A four-call fix put sixteen rows of `engineer → sys:run` between your
+question and the answer. Those calls now draw in the same tool block Claude
+Code's do: one live line per call (`✗ sys:run cargo test · 742ms exit 101`,
+`✓ sys:edit crates/…/lib.rs · edited at line 155`), folded to a single
+summary line when the reply settles. A call a model writes in the log's own
+shape (`CALLED sys:run {…}`) no longer flashes on the reply card while it
+streams.
+
+Also fixed: the "checked" line from the previous release didn't recognise
+crew's own `sys:run` command (its argument is `cmd`, not `command`), so it
+reported "not checked" after a passing test run.
+- **Tests:** a call and its result are sent the way Claude Code's are, and a
+  long result keeps its start and is marked as cut. The tool-loop tests now
+  read these events. `CALLED` lines are dropped along with their JSON,
+  while any other line starting with `C` streams as normal. `sys:run`
+  counts as a test run for the checked line.
+
 ## 0.27.9
 
 **The nav rail's numbers line up.**

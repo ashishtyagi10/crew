@@ -25,7 +25,7 @@
 #[path = "streamline.rs"]
 mod streamline;
 use crew_hive::tools::JsonDepth;
-use streamline::{control, is_fence, open_args, Tagged};
+use streamline::{control, is_fence, open_args, Tagged, CALLED};
 
 /// Streaming filter for one hop's text (spanning its tool rounds).
 #[derive(Default)]
@@ -49,6 +49,9 @@ pub(crate) struct Hold {
     args: Option<JsonDepth>,
     /// A `<tool_call>` block that has not closed yet.
     tag: Tagged,
+    /// The held line began with `C`: it is held only while it can still be
+    /// `CALLED ` (`streamline::CALLED`), and shown the moment it cannot.
+    maybe_called: bool,
 }
 
 impl Hold {
@@ -62,17 +65,24 @@ impl Hold {
             if self.held {
                 if c == '\n' {
                     let line = std::mem::take(&mut self.line);
-                    self.held = false;
-                    self.mid = false;
+                    (self.held, self.mid, self.maybe_called) = (false, false, false);
                     self.settle(line, &mut out);
                 } else {
                     self.line.push(c);
+                    let t = self.line.trim_start_matches([' ', '\t', '`', '*', '_']);
+                    if self.maybe_called && !CALLED.starts_with(t) && !t.starts_with(CALLED) {
+                        (self.held, self.mid, self.maybe_called) = (false, true, false);
+                        self.closer = false;
+                        self.release(&mut out);
+                        out.push_str(&std::mem::take(&mut self.line));
+                    }
                 }
                 continue;
             }
             if !self.mid {
                 match c {
-                    '@' | '<' => {
+                    '@' | '<' | 'C' => {
+                        self.maybe_called = c == 'C';
                         self.held = true;
                         self.line = std::mem::take(&mut self.lead);
                         self.line.push(c);
