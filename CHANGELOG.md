@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.17
+
+**The title bar on the glass and crt themes is less see-through.** Since
+v0.26.11 the bar was frosted like the panes, so it let through about as much
+of the desktop as a pane does. Over a busy desktop the chrome looked like a
+hole in the window. Now it is two sheets of that glass, the same thickness
+as a code field: it hides about 83% of the desktop on the clear glass (was
+59%), 84% on the light glass (was 60%) and 91% on the dark glass and the
+tubes (was 71%). It is still frosted, and still takes the page's colour and
+ink. The `light` and `dark` Ink Reader pages already had a solid bar and are
+unchanged.
+- **Tests:** every glass theme's bar hides more of the desktop than its
+  panes, and at least 80% of it.
+
 ## 0.27.16
 
 **On an Ink Reader page, the frame round the pane you are in is a heavy line.**

@@ -24,8 +24,9 @@
 //! glass (`tubesheer`), and a solid page-black strip across the top was the
 //! darkest thing left on it. Its bar wears the page at the window's own
 //! opacity, so it frosts with everything else — and so does liquid glass's
-//! (2026-10-08), whose window is see-through by design. An Ink Reader page
-//! (2026-10-16) is opaque, and paints its bar solid in the page all the same.
+//! (2026-10-08), whose window is see-through by design. It is two sheets of
+//! that glass, not one (2026-10-17: "make title bar less transparent"). An
+//! Ink Reader page (2026-10-16) is opaque, and paints its bar solid all the same.
 use winit::window::Window;
 
 /// What the title bar wears while crew owns it: the page colour, its alpha
@@ -43,10 +44,10 @@ impl crate::app::CrewApp {
         // that in step first.
         self.sync_window_opacity();
         let t = crew_theme::theme();
-        // The bar frosts with the panes — it carries a title, and at the
-        // gaps' 25% it vanished over a dark desktop as the pane legends did
-        // (2026-10-09). A tube's too: it frosted with its faceplate when that
-        // was 84%, and is glass like the rest now.
+        // The bar is frosted, thicker than a pane — it carries a title, and at
+        // the gaps' 25% it vanished over a dark desktop as the pane legends
+        // did (2026-10-09). A tube's too: it frosted with its faceplate when
+        // that was 84%, and is glass like the rest now.
         let want = crate::titlebar::wear_for(t, self.window_opacity());
         if want == self.titlebar_paint {
             return;
@@ -161,7 +162,10 @@ pub fn apply_window(window: &Window, opacity: f32) {
     }
 }
 
-/// What the title bar wears under `t` at window `opacity`. An Ink Reader page
+/// What the title bar wears under `t` at window `opacity`. Under glass it is
+/// a second sheet of the pane's glass, as a code field is
+/// ([`crew_theme::LiquidStyle::cell_cover`]): at one sheet the desktop still
+/// showed through the chrome (the user, 2026-10-17). An Ink Reader page
 /// (2026-10-16) is opaque and paints its bar all the same: the native one
 /// follows the Mac, a dark strip across a white page, and print is one sheet.
 pub fn wear_for(t: &crew_theme::Theme, opacity: f32) -> Wear {
@@ -170,7 +174,7 @@ pub fn wear_for(t: &crew_theme::Theme, opacity: f32) -> Wear {
             opacity,
             t.page_bg,
             t.dark,
-            Some(l.pane_cover().max(opacity)),
+            Some(l.cell_cover().max(opacity)),
         ),
         None => Some(([t.page_bg.0, t.page_bg.1, t.page_bg.2], 1.0, t.dark)),
     }

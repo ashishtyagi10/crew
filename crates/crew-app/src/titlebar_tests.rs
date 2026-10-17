@@ -41,7 +41,7 @@ fn a_tube_s_title_bar_is_as_sheer_as_its_page() {
     );
 }
 
-/// Glass's bar wears its panes' frost, not its gaps': it carries the
+/// Glass's bar wears the frost it is handed, not its gaps': it carries the
 /// window's title, and at the gaps' alpha a dark desktop swallowed it.
 #[test]
 fn a_glass_title_bar_is_as_frosted_as_its_panes() {
@@ -66,6 +66,20 @@ fn an_ink_page_paints_its_bar_the_page_whatever_the_mac_is() {
     let glass = crew_theme::ThemeId::GlassClear.theme();
     let l = glass.liquid.expect("glass");
     let o = l.window;
-    let want = wanted(o, glass.page_bg, glass.dark, Some(l.pane_cover().max(o)));
-    assert_eq!(wear_for(glass, o), want, "glass is as it was");
+    let want = wanted(o, glass.page_bg, glass.dark, Some(l.cell_cover().max(o)));
+    assert_eq!(wear_for(glass, o), want, "glass wears two sheets");
+}
+
+/// The user, 2026-10-17: "make title bar less transparent". Every glass
+/// theme's bar hides more of the desktop than its panes, and most of it.
+#[test]
+fn a_glass_title_bar_is_thicker_than_its_panes() {
+    for id in crew_theme::ALL_THEMES {
+        let t = id.theme();
+        let Some(l) = t.liquid else { continue };
+        let Some((_, a, _)) = wear_for(t, l.window) else {
+            panic!("{id:?}: a sheer window handed its bar to the OS");
+        };
+        assert!(a > l.pane_cover() && a >= 0.8, "{id:?}: bar alpha {a}");
+    }
 }
