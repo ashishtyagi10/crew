@@ -263,40 +263,6 @@ fn the_retired_modern_names_still_land_on_their_own_appearance() {
 }
 
 #[test]
-fn the_dark_and_light_pools_rotate_the_modern_palettes_too() {
-    // The consolidation as the user meets it: pick `dark`, sit through
-    // rotations, and the Gemini/Codex palettes come up alongside the paper
-    // ones — they are no longer a separate theme you have to go and choose.
-    let _g = crate::app::theme_test_guard();
-    let mut app = CrewApp::default();
-    // `set_theme_cmd` stamps the rotation clock with the WALL clock, so the
-    // ticks have to start from there — counting up from zero is in the past
-    // and `tick_random` (rightly) never fires.
-    let base = crate::chattime::unix_now_ms();
-    use crew_theme::RandomMode::{Dark, Light};
-    for (name, want) in [("dark", Dark), ("light", Light)] {
-        app.set_theme_cmd(name);
-        let mut seen_modern = crew_theme::current_id().theme().modern.is_some();
-        for tick in 1..=40u64 {
-            // A second past each 10-minute mark (stamped just after `base`).
-            assert!(
-                crew_theme::tick_random(base + tick * (crew_theme::ROTATE_MS + 1_000)),
-                "the rotation clock never advanced"
-            );
-            let id = crew_theme::current_id();
-            assert_eq!(id.mode(), want, "{name} rotated off its own side");
-            assert!(!id.is_crt(), "{name} rotated onto a tube: {}", id.as_str());
-            seen_modern |= id.theme().modern.is_some();
-        }
-        assert!(seen_modern, "no modern palette ever came up in `{name}`");
-    }
-    crew_theme::apply_selection(
-        crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
-        0,
-    );
-}
-
-#[test]
 fn an_unknown_theme_name_is_an_error_not_a_whisper() {
     // A name this build doesn't know changes nothing on screen, so the report
     // IS the whole feedback — at info level it was a three-second flash on the

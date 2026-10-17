@@ -68,10 +68,10 @@ fn expired_toasts_render_nothing() {
 #[test]
 fn alert_toasts_border_in_the_bell_color() {
     // Reads the theme AND the gradient poles the quiet stroke is tinted from,
-    // so it has to be serialised against every test that moves either — which
-    // it was not, and which only stopped being theoretical when the `/theme`
-    // picker's preview started moving the poles too.
+    // so it is serialised against every test that moves either (the `/theme`
+    // picker's preview moves the poles too).
     let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::Nebula); // print: inkpage_tests
     let t = crew_theme::theme();
     let border_of = |alert: bool| {
         card_cells(

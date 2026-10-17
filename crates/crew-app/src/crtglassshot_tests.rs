@@ -35,7 +35,11 @@ pub(crate) fn window_with(
     // An unset accent follows the theme in the app (`accent_rgb`); the shot
     // never applies a config, so say so here or every tube wears the mint.
     crate::palette::set_accent(crew_theme::theme().accent_default);
-    let px = crate::shotdraw_tests::draw_with(W, H, FONT_PX, true, opacity, |cw, ch| {
+    // The chain runs when the theme has a tube or a halo, as the app's
+    // `effective_crt` decides with no `/crt` override: forced on, a flat Ink
+    // Reader page wore the default tube's scanlines in the shot only.
+    let crt = crew_theme::theme().crt.is_some();
+    let px = crate::shotdraw_tests::draw_with(W, H, FONT_PX, crt, opacity, |cw, ch| {
         let mut app = CrewApp {
             geo_override: Some((cw, ch, W as f32, H as f32, 1.0)),
             ..Default::default()

@@ -170,11 +170,17 @@ impl CrewApp {
         ));
     }
 
-    /// Save, re-apply and repaint after a `/gradient` change.
+    /// Save, re-apply and repaint after a `/gradient` change. An Ink Reader
+    /// page (2026-10-16) draws no gradient, so the note says the change waits
+    /// for a glass theme rather than reporting colours nothing shows.
     fn commit_gradient(&mut self, note: &str) {
         self.config.save();
         self.apply_gradient();
-        self.set_status(note.to_string());
+        let note = match crew_theme::theme().modern {
+            Some(_) => note.to_string(),
+            None => format!("{note} · kept for the glass themes: this page is print, with none"),
+        };
+        self.set_status(note);
         self.redraw();
     }
 }

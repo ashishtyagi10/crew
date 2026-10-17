@@ -1,4 +1,4 @@
-use super::wanted;
+use super::{wanted, wear_for};
 
 #[test]
 fn a_solid_window_leaves_the_native_title_bar_alone() {
@@ -49,4 +49,23 @@ fn a_glass_title_bar_is_as_frosted_as_its_panes() {
         wanted(0.25, (250, 250, 250), false, Some(0.55)),
         Some(([250, 250, 250], 0.55, false))
     );
+}
+
+/// An Ink Reader page is opaque and still wears its own bar: on a dark Mac
+/// the native one was a dark strip across the white page.
+#[test]
+fn an_ink_page_paints_its_bar_the_page_whatever_the_mac_is() {
+    for id in [
+        crew_theme::ThemeId::PaperLight,
+        crew_theme::ThemeId::PaperDark,
+    ] {
+        let t = id.theme();
+        let (r, g, b) = t.page_bg;
+        assert_eq!(wear_for(t, 1.0), Some(([r, g, b], 1.0, t.dark)), "{id:?}");
+    }
+    let glass = crew_theme::ThemeId::GlassClear.theme();
+    let l = glass.liquid.expect("glass");
+    let o = l.window;
+    let want = wanted(o, glass.page_bg, glass.dark, Some(l.pane_cover().max(o)));
+    assert_eq!(wear_for(glass, o), want, "glass is as it was");
 }

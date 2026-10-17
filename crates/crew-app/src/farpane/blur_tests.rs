@@ -84,9 +84,12 @@ fn the_tab_is_words_and_the_bar_is_white_on_the_glass() {
             .filter(|c| c.row == 1 && c.bg != t.page_bg && c.c == '.')
             .collect();
         assert!(!bar.is_empty(), "{id:?}: the bar holds ../");
+        // White on the glass; the page's own colour on an Ink Reader page,
+        // the e-reader's inverse highlight (`segment::inked`).
+        let ink = crate::segment::inked(crate::palette::accent()).0;
         assert!(
-            bar.iter().all(|c| c.fg == t.ink && c.bold),
-            "{id:?}: white bold on the bar"
+            bar.iter().all(|c| c.fg == ink && c.bold),
+            "{id:?}: bold ink on the bar"
         );
     }
 }

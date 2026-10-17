@@ -97,11 +97,9 @@ fn plan() -> Vec<crew_hive::tools::todowire::Step> {
 fn glass_work_shot() {
     let _a = crate::palette::test_guard();
     let _g = crate::app::theme_test_guard();
-    // Every see-through palette: every mode is glass (2026-10-09).
-    for id in crew_theme::ALL_THEMES
-        .into_iter()
-        .filter(|id| id.theme().liquid.is_some())
-    {
+    // Every palette: the glass ones over the desktop, the Ink Reader pages
+    // (2026-10-16) opaque.
+    for id in crew_theme::ALL_THEMES {
         let sheer = crate::tubesheer::sheer(id.theme());
         let prep = |app: &mut crate::app::CrewApp| {
             let mut smith = crate::chatshot_tests::live_pane();

@@ -78,13 +78,13 @@ pub struct CrewConfig {
     #[serde(default)]
     pub theme: Option<String>,
     /// While `theme = "auto"`: what serves when the OS is in dark mode — a
-    /// rotation pool (`dark` | `light` | `crt`) or a pinned palette name
-    /// (e.g. `crt-green`). Unset → the dark paper pool. `auto` itself is
-    /// rejected (it can't serve as its own side).
+    /// theme (`dark` | `light` | `glass` | `crt`) or a pinned palette name
+    /// (e.g. `crt-green`). Unset → `dark`, Ink Reader's black page. `auto`
+    /// itself is rejected (it can't serve as its own side).
     #[serde(default)]
     pub theme_dark: Option<String>,
     /// While `theme = "auto"`: what serves when the OS is in light mode.
-    /// Same values as `theme_dark`; unset → the light paper pool.
+    /// Same values as `theme_dark`; unset → `light`, Ink Reader's white page.
     #[serde(default)]
     pub theme_light: Option<String>,
     /// While `theme = "auto"` and the OS appearance is PINNED (not on macOS

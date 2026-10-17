@@ -609,6 +609,9 @@ mod toosmall;
 mod transientshot_tests;
 
 #[cfg(test)]
+#[path = "inkpage_tests.rs"]
+mod inkpage_tests;
+#[cfg(test)]
 mod integrshot_tests;
 mod integrview;
 mod lspon;

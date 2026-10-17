@@ -17,12 +17,19 @@ fn level_round_trips_and_accepts_aliases() {
     assert_eq!(GlassLevel::parse("shiny"), None);
 }
 
-/// Liquid glass (2026-09-23): every page wears a sheet, and the sheet casts
-/// a shadow — the depth is the point of it. Tubes included since 2026-10-05.
+/// Liquid glass (2026-09-23): every glass page wears a sheet, and the sheet
+/// casts a shadow — the depth is the point of it. Tubes included since
+/// 2026-10-05. An Ink Reader page (2026-10-16) is print, and wears none: no
+/// shadow, no rim, no gloss.
 #[test]
 fn every_page_wears_liquid_glass() {
     for id in ALL_THEMES {
         let s = style_for(id.theme()).scaled(GlassLevel::Medium);
+        if id.theme().liquid.is_none() && !id.theme().is_tube() {
+            let flat = (s.shadow_alpha, s.highlight_alpha, s.gloss);
+            assert_eq!(flat, (0.0, 0.0, 0.0), "{}: print", id.as_str());
+            continue;
+        }
         assert!(s.visible(), "{}: no sheet", id.as_str());
         assert!(s.shadow_alpha > 0.0, "{}: no shadow", id.as_str());
         assert!(s.highlight_alpha > 0.0, "{}: no rim", id.as_str());

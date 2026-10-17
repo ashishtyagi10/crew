@@ -125,6 +125,16 @@ pub const HOUSE: House = House {
     max_l: 0.96,
 };
 
+/// The ladder for the Ink Reader pages (2026-10-16): the paper pool's, with
+/// the unfocused line at 3:1. Print draws a line you can see (the user:
+/// "white background with black lines"), where glass let its frame sit nearly
+/// in the page at 2:1; the focused frame, the ink itself, stands well clear.
+pub const HOUSE_INK: House = House {
+    name: "ink reader (print)",
+    border_normal: 3.0,
+    ..HOUSE
+};
+
 /// The ladder for the CRT pool, which genuinely sits lower — a phosphor is a
 /// *coloured* ink, and colour costs contrast: pushing `crt-amber`'s
 /// `(255, 184, 0)` up to the paper pool's 16.2 drains the chroma out of it and
@@ -262,6 +272,8 @@ impl Ramp {
             } else {
                 HOUSE_CRT
             }
+        } else if t.liquid.is_none() {
+            HOUSE_INK
         } else {
             HOUSE
         };

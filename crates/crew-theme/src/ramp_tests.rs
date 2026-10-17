@@ -84,13 +84,18 @@ fn a_role_means_the_same_thing_in_every_theme_of_a_ladder() {
         .collect();
     ladders.sort_unstable();
     ladders.dedup();
-    // Two in use since `crt-paperwhite` retired. `HOUSE_CRT_WHITE` is kept
-    // rather than deleted: the rule that a white phosphor pays none of a
-    // coloured one's contrast cost is correct and cheap, and a future white
-    // tube would otherwise silently derive as monochrome.
+    // Three in use: `crt-paperwhite` retired, and the Ink Reader pages got
+    // their own (2026-10-16). `HOUSE_CRT_WHITE` is kept rather than deleted:
+    // the rule that a white phosphor pays none of a coloured one's contrast
+    // cost is correct and cheap, and a future white tube would otherwise
+    // silently derive as monochrome.
     assert_eq!(
         ladders,
-        vec!["crt (coloured phosphor)", "paper/modern"],
+        vec![
+            "crt (coloured phosphor)",
+            "ink reader (print)",
+            "paper/modern"
+        ],
         "the ladders in use changed"
     );
 

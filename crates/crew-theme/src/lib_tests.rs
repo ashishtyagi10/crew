@@ -50,7 +50,10 @@ fn the_phosphors_have_distinct_personalities() {
         .iter()
         .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
         .collect();
-    assert_eq!(styles.len(), ALL_THEMES.len());
+    // Every theme with a ring to halo, that is: the Ink Reader pages are flat
+    // print, with neither (2026-10-16).
+    let ringed = ALL_THEMES.iter().filter(|id| id.theme().modern.is_some());
+    assert_eq!(styles.len(), ringed.count());
     for (i, (an, a)) in styles.iter().enumerate() {
         for (bn, b) in &styles[i + 1..] {
             assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
@@ -150,22 +153,27 @@ fn random_pick_never_returns_current_and_is_deterministic() {
     let _g = guard();
     for current in ALL_THEMES {
         for seed in [0u64, 1, 2, 42, 1_000, 600_000, u64::MAX, 123_456_789] {
-            let picked = random_pick(current, seed, RandomMode::Dark);
+            let picked = random_pick(current, seed, RandomMode::Glass);
             // A pick from a pool the current theme isn't in still holds the
             // never-empty / determinism contract; it just may equal nothing
             // special. Only assert inequality when current is in the pool.
-            if RandomMode::Dark.in_pool(current) {
+            if RandomMode::Glass.in_pool(current) {
                 assert_ne!(picked, current, "seed {seed} picked the current theme");
             }
             // Same seed -> same pick (determinism).
-            assert_eq!(random_pick(current, seed, RandomMode::Dark), picked);
+            assert_eq!(random_pick(current, seed, RandomMode::Glass), picked);
+            // A one-page pool (the Ink Reader modes) stays on its page.
+            assert_eq!(
+                random_pick(current, seed, RandomMode::Dark),
+                ThemeId::PaperDark
+            );
         }
     }
     // Varying the seed actually varies the pick (not a constant function) —
     // from outside the pool, since a two-palette pool's only other is fixed.
-    let current = ThemeId::GlassClear;
+    let current = ThemeId::PaperLight;
     let picks: Vec<ThemeId> = (0u64..20)
-        .map(|s| random_pick(current, s, RandomMode::Dark))
+        .map(|s| random_pick(current, s, RandomMode::Glass))
         .collect();
     assert!(
         picks.iter().any(|&p| p != picks[0]),
@@ -176,11 +184,11 @@ fn random_pick_never_returns_current_and_is_deterministic() {
 #[test]
 fn tick_random_fires_at_rotate_ms_when_on() {
     let _g = guard();
-    set_theme(ThemeId::PaperDark);
-    MODE.store(1, Ordering::Relaxed);
+    set_theme(ThemeId::GlassClear);
+    MODE.store(RandomMode::Glass.as_u8(), Ordering::Relaxed);
     ROTATED_MS.store(0, Ordering::Relaxed);
     assert!(!tick_random(ROTATE_MS - 1));
-    assert_eq!(current_id(), ThemeId::PaperDark);
+    assert_eq!(current_id(), ThemeId::GlassClear);
     let before = current_id();
     assert!(tick_random(ROTATE_MS));
     assert_ne!(current_id(), before);
@@ -408,10 +416,11 @@ fn every_pool_survives_the_cut() {
     let light = count(|id: ThemeId| id.mode() == RandomMode::Light);
     let crt = count(|id: ThemeId| id.mode() == RandomMode::Crt);
     let glass = count(|id: ThemeId| id.mode() == RandomMode::Glass);
-    // Two palettes a mode since every mode went see-through (2026-10-09).
+    // One Ink Reader page each for dark and light (2026-10-16), two tubes,
+    // and the four glass palettes.
     assert_eq!(
         (dark, light, crt, glass),
-        (2, 2, 2, 2),
+        (1, 1, 2, 4),
         "pools are dark {dark}, light {light}, crt {crt}, glass {glass} — \
          `auto` needs both appearances and the tubes and the glass are their \
          own rotations"
@@ -781,16 +790,10 @@ fn modern_glow_is_clean_of_retro_knobs() {
         assert_ne!(m.pole_a, m.pole_b, "{}: gradient poles equal", id.as_str());
         assert!(m.drift_ms > 0, "{}: drift period", id.as_str());
     }
-    // The family covers both appearances, so consolidating it into the
-    // dark/light pools leaves neither of them without glow. One twinned pair
-    // survives the 24→9 cut — `nebula`/`blossom` — so one a side is the floor,
-    // not a shortfall.
-    for (side, mode) in [("dark", RandomMode::Dark), ("light", RandomMode::Light)] {
-        let n = ALL_THEMES
-            .iter()
-            .filter(|id| id.theme().modern.is_some() && id.mode() == mode)
-            .count();
-        assert!(n >= 1, "the {side} pool inherited no modern palette");
+    // The Ink Reader pages are the dark and light modes now (2026-10-16), and
+    // print: `nebula` and `blossom` carry their glow in the glass rotation.
+    for id in [ThemeId::Nebula, ThemeId::Blossom] {
+        assert_eq!(id.mode(), RandomMode::Glass, "{}", id.as_str());
     }
 }
 
@@ -954,14 +957,14 @@ fn every_palette_lands_in_exactly_one_of_the_four_pools() {
         );
         assert_eq!(id.is_crt(), id.mode() == RandomMode::Crt, "{}", id.as_str());
     }
-    // …and each pool is still wide enough for `random_pick`'s never-empty
-    // contract: it filters out the current theme before picking, so a pool
-    // needs at least two members or a rotation has nowhere to go. Three after
-    // the cut, evenly across dark/light/crt.
+    // …and each rotating pool is wide enough to move: `random_pick` filters
+    // out the current theme first. `dark` and `light` are one Ink Reader page
+    // each (2026-10-16), which is a page, not a rotation.
     for m in pools {
         let n = ALL_THEMES.into_iter().filter(|id| m.in_pool(*id)).count();
+        let page = matches!(m, RandomMode::Dark | RandomMode::Light);
         assert!(
-            n >= 2,
+            n >= 2 || (page && n == 1),
             "{} pool has only {n} palettes — a rotation would \
                 have nowhere to move",
             m.as_str()
@@ -999,14 +1002,19 @@ fn auto_mode_follows_the_os_appearance() {
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 2_000);
 }
 
+/// `light` is one Ink Reader page (2026-10-16): the clock comes round and
+/// the page stays, with nothing to repaint.
 #[test]
-fn tick_random_rotates_within_the_light_pool() {
+fn tick_random_holds_the_light_page() {
     let _g = guard();
     apply_selection(Selection::Mode(RandomMode::Light), 0);
     for i in 1..=4u64 {
         ROTATED_MS.store(0, Ordering::Relaxed);
-        assert!(tick_random(i * ROTATE_MS));
-        assert!(light(current_id()), "tick {i} left the light pool");
+        assert!(
+            !tick_random(i * ROTATE_MS),
+            "tick {i} repainted the same page"
+        );
+        assert_eq!(current_id(), ThemeId::PaperLight, "tick {i} left the page");
     }
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }

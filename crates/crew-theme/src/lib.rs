@@ -36,10 +36,10 @@ pub struct Theme {
     /// Unfocused / focused rounded pane border.
     pub border_normal: (u8, u8, u8),
     pub border_focused: (u8, u8, u8),
-    /// Rounded pane border stroke width, in physical pixels. 2.5 on the dark
-    /// newsprint pages, 3.0 on the light ones (a thin stroke disappears into
-    /// paper), and 3.5 on the tubes and the modern family, where the frame is
-    /// part of the look rather than just an edge.
+    /// Rounded pane border stroke width, in physical pixels. 2.5 on the Ink
+    /// Reader pages, where a line is drawn the way print draws it, 2.0 on the
+    /// clear glass, and 3.5 on the tubes and the modern family, where the
+    /// frame is part of the look rather than just an edge.
     pub border_thickness: f32,
     /// Legend text on an unfocused pane card.
     pub legend_off: (u8, u8, u8),
@@ -205,8 +205,8 @@ impl ThemeId {
     /// A short human description, for the `/theme` value picker.
     pub fn describe(self) -> &'static str {
         match self {
-            ThemeId::PaperDark => "high-contrast newspaper (dark)",
-            ThemeId::PaperLight => "warm paper page (light)",
+            ThemeId::PaperDark => "Ink Reader: an e-reader's black page (dark)",
+            ThemeId::PaperLight => "Ink Reader: an e-reader's white page (light)",
             ThemeId::CrtGreen => "neon green phosphor CRT",
             ThemeId::CrtAmber => "neon amber phosphor CRT",
             ThemeId::Nebula => "orchid\u{2192}rose gradient dusk (modern dark)",
@@ -236,16 +236,19 @@ impl ThemeId {
     }
 
     /// The rotation this palette belongs to — exactly one of `dark`,
-    /// `light`, `crt` and `glass`. Named per palette: since every mode is
-    /// see-through glass (the user, 2026-10-09: "modify dark, light and CRT
-    /// theme with the same pattern as glass"), being liquid no longer tells
-    /// the `glass` look from the others.
+    /// `light`, `crt` and `glass`. Named per palette. `dark` and `light` are
+    /// the Ink Reader pages alone (the user, 2026-10-16: the light and dark
+    /// themes "Ink Reader like"): a light mode that rotated to a dark glass
+    /// palette every ten minutes would not be one. Nebula and blossom joined
+    /// the glass they are.
     pub fn mode(self) -> RandomMode {
         match self {
-            ThemeId::PaperDark | ThemeId::Nebula => RandomMode::Dark,
-            ThemeId::PaperLight | ThemeId::Blossom => RandomMode::Light,
+            ThemeId::PaperDark => RandomMode::Dark,
+            ThemeId::PaperLight => RandomMode::Light,
             ThemeId::CrtGreen | ThemeId::CrtAmber => RandomMode::Crt,
-            ThemeId::GlassClear | ThemeId::GlassNight => RandomMode::Glass,
+            ThemeId::GlassClear | ThemeId::GlassNight | ThemeId::Nebula | ThemeId::Blossom => {
+                RandomMode::Glass
+            }
         }
     }
 
@@ -435,8 +438,8 @@ impl RandomMode {
     /// A short human description, for the `/theme` value picker and listings.
     pub fn describe(self) -> &'static str {
         match self {
-            RandomMode::Dark => "rotating dark pages \u{2014} paper and modern glow",
-            RandomMode::Light => "rotating light pages \u{2014} paper and modern glow",
+            RandomMode::Dark => "Ink Reader \u{2014} an e-reader's black page, white words",
+            RandomMode::Light => "Ink Reader \u{2014} an e-reader's white page, black words",
             RandomMode::Crt => "rotating CRT phosphor themes",
             RandomMode::Glass => {
                 "iPhone liquid glass \u{2014} clear smoked panes, bright white text, your desktop behind"
@@ -712,7 +715,9 @@ pub fn selection_label() -> &'static str {
 /// Called each poll tick with the current wall-clock ms. When a mode is on
 /// and `ROTATE_MS` has elapsed, switch to a new pick from the mode's pool
 /// (auto re-reads the OS appearance every tick) and return `true` so the
-/// caller repaints. Cheap and lock-free — safe at ~62 Hz on the winit thread.
+/// caller repaints. A one-page pool (the Ink Reader modes) holds its page and
+/// returns `false`: nothing changed. Cheap and lock-free — safe at ~62 Hz on
+/// the winit thread.
 pub fn tick_random(now_ms: u64) -> bool {
     let Some(m) = mode() else {
         return false;
@@ -721,8 +726,12 @@ pub fn tick_random(now_ms: u64) -> bool {
     if now_ms.saturating_sub(last) < ROTATE_MS {
         return false;
     }
-    set_theme(random_pick(current_id(), now_ms, m));
+    let next = random_pick(current_id(), now_ms, m);
     ROTATED_MS.store(now_ms, Ordering::Relaxed);
+    if next == current_id() {
+        return false;
+    }
+    set_theme(next);
     true
 }
 

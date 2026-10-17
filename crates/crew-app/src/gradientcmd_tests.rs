@@ -91,16 +91,16 @@ fn a_custom_pair_is_adopted_and_can_be_dropped() {
 }
 
 /// The colour is the user's; the brightness is not. Typing white must not
-/// bleach the page — the wash lies under the text and has almost no contrast
-/// headroom to spend.
+/// bleach the page: the wash under the text has no contrast to spare.
 #[test]
 fn a_white_pair_does_not_bleach_the_page() {
     let _g = crate::app::theme_test_guard();
     let (l0, c0) = (crate::gradientlvl::level(), poleshift::custom());
     let mut app = crate::app::CrewApp::default();
-    let before = poleshift::poles().expect("every theme ships poles");
+    crew_theme::set_theme(crew_theme::ThemeId::Nebula); // Ink Reader has no poles
+    let before = poleshift::poles().expect("nebula has poles");
     app.gradient_command("#ffffff #ffffff");
-    let after = poleshift::poles().expect("every theme ships poles");
+    let after = poleshift::poles().expect("nebula has poles");
     let lum = |(r, g, b): (u8, u8, u8)| {
         0.2126 * f32::from(r) + 0.7152 * f32::from(g) + 0.0722 * f32::from(b)
     };

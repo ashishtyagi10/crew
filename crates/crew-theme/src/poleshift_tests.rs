@@ -180,7 +180,10 @@ fn at_rest_poles_are_the_themes_own() {
     set_custom(None);
     for id in ALL_THEMES.iter() {
         crate::apply_selection(crate::Selection::Fixed(*id), 0);
-        let m = crate::theme().modern.expect("every theme ships poles");
+        let Some(m) = crate::theme().modern else {
+            assert_eq!(poles(), None, "{id:?}: a flat page has no poles");
+            continue;
+        };
         assert_eq!(poles(), Some((m.pole_a, m.pole_b)), "{id:?}");
     }
     set_shift(prev);
@@ -230,7 +233,9 @@ fn a_custom_gradient_cannot_change_how_bright_the_wash_is() {
         set_custom(Some(pair));
         for id in ALL_THEMES.iter() {
             crate::apply_selection(crate::Selection::Fixed(*id), 0);
-            let m = crate::theme().modern.expect("every theme ships poles");
+            let Some(m) = crate::theme().modern else {
+                continue;
+            };
             let (a, b) = poles().expect("custom poles are still poles");
             for (got, want) in [(a, m.pole_a), (b, m.pole_b)] {
                 let (lg, lw) = (oklch::from_srgb(got).l, oklch::from_srgb(want).l);
@@ -258,7 +263,7 @@ fn no_custom_gradient_can_take_a_pole_below_the_stroke_floor() {
         for id in ALL_THEMES.iter() {
             crate::apply_selection(crate::Selection::Fixed(*id), 0);
             let page = crate::theme().page_bg;
-            let (a, b) = poles().expect("custom poles are still poles");
+            let Some((a, b)) = poles() else { continue };
             for p in [a, b] {
                 let r = crate::contrast_ratio(p, page);
                 assert!(r >= 3.0, "{id:?} hue {hue}°: {r:.2}");

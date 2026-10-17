@@ -8,6 +8,37 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.15
+
+**Light and dark are Ink Reader now: an e-reader's white page and black page.**
+Since the all-glass redesign, `light` and `dark` were tinted smoke with
+white words, and neither looked like paper. Now they look like the Kindle
+app's reading themes:
+- **`light`** (`paper-light`) is a white page with near-black words and black
+  lines. **`dark`** (`paper-dark`) is the same page inverted: a black page,
+  white-grey words, grey lines, and a white frame round the pane you are in.
+- **They are print, not glass.** The window is opaque, with no desktop showing
+  through, and nothing glows, drifts, tints or casts a shadow. The pane you are
+  in is framed in the ink itself. Every other frame is a grey of it at 3:1, a
+  line you can see. The meters, the scroll thumb and the quieter words are
+  greys of the ink too.
+- **Colour is kept where it means something**, printed rather than lit: a
+  terminal's ANSI output, a diff's red and green, the status and bell marks.
+  On the white page these are deep inks, and a search match sits under a
+  highlighter yellow.
+- **The title bar is the page too.** On a dark-mode Mac the native bar was a
+  dark strip across the white page.
+- **`light` and `dark` are one page each and stay put.** `nebula` and
+  `blossom` moved to the `glass` rotation, which now has four palettes.
+  `auto` serves the black page in dark mode and the white one in light mode.
+- `/gradient` typed on an Ink page is kept for the glass themes, and the
+  status line says so instead of naming colours the page doesn't draw.
+- **Tests:** both pages are opaque and flat, ink and the focused line clear
+  14:1, the meters and scroll thumb are one grey, a selection reads on the
+  accent, the title bar wears the page, and a one-page mode never repaints on
+  its rotation tick. The Ink pages have their own ladder in the colour ramp,
+  and the work and survey shots now cover every palette.
+
 ## 0.27.14
 
 **Agent smith never passes off a tool call it didn't run as an answer.**

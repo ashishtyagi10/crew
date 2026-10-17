@@ -189,7 +189,7 @@ fn a_tube_gets_the_light_trace_and_a_paper_page_gets_the_ring() {
         "a tube's focused frame carries its corner node"
     );
 
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    crew_theme::set_theme(crew_theme::ThemeId::Nebula); // Ink Reader: inkpage_tests
     let v = pane_card_glowing(&p, &bar(true));
     let paper_corner = corner(cols, rows, &v);
     assert_ne!(

@@ -88,7 +88,10 @@ fn every_preset_is_readable_on_every_palette() {
         for id in ALL_THEMES.iter() {
             crate::apply_selection(crate::Selection::Fixed(*id), 0);
             let page = crate::theme().page_bg;
-            let (a, b) = poleshift::poles().expect("every theme ships poles");
+            // A flat Ink Reader page has no poles for a gradient to move.
+            let Some((a, b)) = poleshift::poles() else {
+                continue;
+            };
             for p in [a, b] {
                 let r = crate::contrast_ratio(p, page);
                 assert!(r >= 3.0, "{} on {id:?}: {r:.2}", g.name);
@@ -113,7 +116,9 @@ fn a_preset_keeps_its_hue_on_every_palette() {
         poleshift::set_custom(Some(g.poles));
         for id in ALL_THEMES.iter() {
             crate::apply_selection(crate::Selection::Fixed(*id), 0);
-            let (a, _) = poleshift::poles().expect("every theme ships poles");
+            let Some((a, _)) = poleshift::poles() else {
+                continue;
+            };
             let (want, got) = (oklch::from_srgb(g.poles.0).h, oklch::from_srgb(a).h);
             let d = (want - got).abs().min(360.0 - (want - got).abs());
             assert!(d < 6.0, "{} on {id:?}: {want:.0}° -> {got:.0}°", g.name);

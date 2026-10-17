@@ -215,10 +215,11 @@ fn a_theme_pickers_chips_come_from_the_palette_it_names() {
         let row = (0..40u16)
             .find(|r| row_text(&cells, *r).contains(value))
             .unwrap_or_else(|| panic!("{value} is not drawn anywhere"));
-        // `■` is a glass palette's chip; `█` is the text caret, not one.
+        // `■` is a glass palette's chip, `▀` an Ink Reader page's (its page
+        // under it); `█` is the text caret, not one.
         let chips: Vec<(u8, u8, u8)> = cells
             .iter()
-            .filter(|c| c.row == row && c.c == '\u{25a0}')
+            .filter(|c| c.row == row && matches!(c.c, '\u{25a0}' | '\u{2580}'))
             .map(|c| c.fg)
             .collect();
         chips

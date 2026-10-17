@@ -807,19 +807,27 @@ accepts `accent = "#rrggbb"` to override Crew's accent; omit it (or give an
 invalid value) to use the active theme's default accent. It applies at launch —
 quit and reopen Crew to pick up edits made outside the `/settings` pane.
 
-**Themes.** Every theme is see-through glass: the window shows your desktop,
-each pane is a slab of smoked glass over it, and the words on it are bright,
-with a soft shadow behind them. Crew ships **eight palettes**, two in each of
-four rotations. `glass` is the iPhone's liquid glass in its Clear look, in
-`glass-clear` (neutral smoke, rose accents) and `glass-night` (navy smoke,
-mint); `dark` is a deeper smoke, in `paper-dark` (warm charcoal) and `nebula`
-(violet, orchid→rose accents); `light` is as clear as `glass` with warmer
-tints, in `paper-light` (warm smoke, amber accents) and `blossom`
-(cherry-blossom smoke, pink accents); `crt` is a phosphor tube in glass, in
-`crt-green` and `crt-amber`, each one hue at six brightnesses. And `auto`
-follows the OS appearance, serving the dark pool in dark mode and the light one
-in light mode (re-wire the pairing with `theme_dark` / `theme_light`). A
-rotation changes palette every 10 minutes.
+**Themes.** `light` and `dark` are **Ink Reader**: an e-reader's white and
+black pages, the way the Kindle app draws them. `paper-light` is a white page
+with near-black words and black lines. `paper-dark` is the same page inverted:
+a black page, white-grey words, grey lines and a white frame round the pane
+you are in. Both are opaque print, with no glass, glow, gradient or text
+shadow. Grey is the only second ink. Colour stays where it means something
+(a terminal's ANSI output, a diff, the status marks) in deep printed inks
+that read on the page.
+
+Every other theme is see-through glass: the window shows your desktop, each
+pane is a slab of smoked glass over it, and the words on it are bright, with
+a soft shadow behind them. `glass` is the iPhone's liquid glass in its Clear
+look, rotating four palettes: `glass-clear` (neutral smoke, rose accents),
+`glass-night` (navy smoke, mint), `nebula` (violet smoke, orchid→rose
+accents) and `blossom` (cherry-blossom smoke, pink accents). `crt` is a
+phosphor tube in glass, in `crt-green` and `crt-amber`, each one hue at six
+brightnesses. A rotation changes palette every 10 minutes; `light` and `dark`
+are one page each and stay put. And `auto` follows the OS appearance,
+serving the dark page in dark mode and the light one in light mode (re-wire
+the pairing with `theme_dark` / `theme_light`). That makes **eight
+palettes** in all.
 
 Almost every colour in a palette is **derived, not chosen**: the ramp produces
 the whole text ladder and all sixteen ANSI slots from the page and the ink, a
@@ -828,8 +836,8 @@ each with a contract test that fails when a shipped value drifts from what the
 system would produce. What a palette actually picks is its page, its ink, its
 accent and its gradient poles.
 
-`/theme` offers the four rotations and then every palette by name, and shows
-you the colours rather than the names: a rotation draws one chip per palette it
+`/theme` offers the modes and then every palette by name, and shows
+you the colours rather than the names: a mode draws one chip per palette it
 would serve, and a named palette draws its whole hand — the ink it writes in,
 its accent, and the four ANSI slots every program in a pane paints with, each
 over that palette's own page. Better still, **arrowing onto a palette puts it
@@ -840,8 +848,8 @@ named pairs the same way. `Ctrl+Shift+L` cycles the rotations; the palettes reti
 in an earlier roster cut still parse, so an old config keeps working. `/crt
 on|off|auto` overrides the tube post-process independently of the theme.
 
-Crew paints no wallpaper of its own: your desktop is the background, seen
-through the glass. Config key: `theme = "glass"` (or any rotation or palette
+On the glass themes crew paints no wallpaper of its own: your desktop is the
+background, seen through the glass. Config key: `theme = "glass"` (or any rotation or palette
 name). See [docs/CREW.md](docs/CREW.md#themes).
 
 ## Architecture

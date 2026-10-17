@@ -24,7 +24,8 @@
 //! glass (`tubesheer`), and a solid page-black strip across the top was the
 //! darkest thing left on it. Its bar wears the page at the window's own
 //! opacity, so it frosts with everything else — and so does liquid glass's
-//! (2026-10-08), whose window is see-through by design.
+//! (2026-10-08), whose window is see-through by design. An Ink Reader page
+//! (2026-10-16) is opaque, and paints its bar solid in the page all the same.
 use winit::window::Window;
 
 /// What the title bar wears while crew owns it: the page colour, its alpha
@@ -46,9 +47,7 @@ impl crate::app::CrewApp {
         // gaps' 25% it vanished over a dark desktop as the pane legends did
         // (2026-10-09). A tube's too: it frosted with its faceplate when that
         // was 84%, and is glass like the rest now.
-        let o = self.window_opacity();
-        let bar = t.liquid.map(|l| l.pane_cover().max(o));
-        let want = crate::titlebar::wanted(o, t.page_bg, t.dark, bar);
+        let want = crate::titlebar::wear_for(t, self.window_opacity());
         if want == self.titlebar_paint {
             return;
         }
@@ -159,6 +158,21 @@ pub fn apply_window(window: &Window, opacity: f32) {
     // shapes behind it with a lighter one of its own.
     if let (true, Some(l)) = (sheer, crew_theme::theme().liquid) {
         crate::windowblur::radius(window, l.desktop_blur.round() as i64);
+    }
+}
+
+/// What the title bar wears under `t` at window `opacity`. An Ink Reader page
+/// (2026-10-16) is opaque and paints its bar all the same: the native one
+/// follows the Mac, a dark strip across a white page, and print is one sheet.
+pub fn wear_for(t: &crew_theme::Theme, opacity: f32) -> Wear {
+    match t.liquid {
+        Some(l) => wanted(
+            opacity,
+            t.page_bg,
+            t.dark,
+            Some(l.pane_cover().max(opacity)),
+        ),
+        None => Some(([t.page_bg.0, t.page_bg.1, t.page_bg.2], 1.0, t.dark)),
     }
 }
 

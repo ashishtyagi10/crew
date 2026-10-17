@@ -35,18 +35,27 @@ fn an_unknown_gradient_name_has_no_swatch() {
 }
 
 /// A mode shows the palettes it will actually rotate through — one chip each,
-/// and pools with different members look different.
+/// and pools with different members look different. `dark` is one Ink Reader
+/// page (2026-10-16): one chip, its accent over its black page.
 #[test]
 fn a_theme_mode_shows_one_chip_per_palette_in_its_pool() {
-    let dark = for_value("/theme", "dark");
+    let glass = for_value("/theme", "glass");
     let crt = for_value("/theme", "crt");
-    assert!(dark.len() > 1, "the dark pool has more than one palette");
+    let dark = for_value("/theme", "dark");
+    assert!(glass.len() > 1, "the glass pool has more than one palette");
     assert_eq!(
         crt.len(),
         ALL_THEMES.iter().filter(|id| id.is_crt()).count()
     );
+    let page = ThemeId::PaperDark.theme();
+    let ink_chip = Chip {
+        c: '\u{2580}',
+        fg: page.accent_default,
+        bg: Some(page.page_bg),
+    };
+    assert_eq!(dark, vec![ink_chip], "the dark page as one chip");
     let fgs = |v: &[Chip]| v.iter().map(|c| c.fg).collect::<Vec<_>>();
-    assert_ne!(fgs(&dark), fgs(&crt), "two pools drew the same swatch");
+    assert_ne!(fgs(&glass), fgs(&crt), "two pools drew the same swatch");
 }
 
 /// On glass a chip is its face alone, a drawn square: the page under a half
