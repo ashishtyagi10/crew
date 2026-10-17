@@ -692,3 +692,61 @@ fn a_relay_tool_failure_carries_the_failure_mark() {
         .expect("a failed result")
         .contains("connection refused"));
 }
+
+/// An agent whose every dial after the first comes back `Err` (or empty).
+struct Failing(Result<String, String>);
+
+impl Adapter for Failing {
+    fn name(&self) -> &str {
+        "planner"
+    }
+    fn probe(&self) -> bool {
+        true
+    }
+    fn call(&self, _body: &str, _t: Duration) -> Result<String, String> {
+        self.0.clone()
+    }
+}
+
+/// A follow-up dial that fails ends the turn on what the agent had said,
+/// with a line saying why — never on its raw `@tool` line, which the caller
+/// would otherwise show as the answer (inventory 2026-10-16, item 7).
+#[test]
+fn a_failed_follow_up_never_leaves_the_raw_call_as_the_answer() {
+    for (agent, why) in [
+        (Failing(Err("connection reset".into())), "connection reset"),
+        (Failing(Ok("  ".into())), "an empty reply"),
+    ] {
+        let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
+        let reply = b.run_tools(
+            &agent,
+            "base",
+            "Let me look at x.\n@tool fs:read {\"path\": \"x\"}".into(),
+            &mut RunStats::default(),
+            &mut Usage::default(),
+            &env(),
+            &HopStream::noop(),
+            &mut |_| {},
+        );
+        assert!(
+            !reply.contains("@tool"),
+            "raw call as the answer: {reply:?}"
+        );
+        assert!(reply.starts_with("Let me look at x."), "{reply:?}");
+        assert!(reply.contains(why), "says why it stopped: {reply:?}");
+    }
+}
+
+/// A finished answer that still holds a call says the call never ran
+/// (baseline probe 2026-10-16: a fenced `@tool sys:git` under `@done`).
+#[test]
+fn an_answer_still_holding_a_call_says_it_never_ran() {
+    let a = "@done\n\nWe will look at history:\n```json\n@tool sys:git {\"cmd\":\"log\"}\n```\nThen fix it.";
+    let got = crate::broker::toolround::never_ran(a.to_string());
+    assert!(got.starts_with(a), "the answer as written: {got}");
+    assert!(got.ends_with("not run \u{2014} the answer asks for `sys:git`, but the turn ended before any call in it ran"), "{got}");
+    assert_eq!(crate::broker::toolround::never_ran("Done.".into()), "Done.");
+    // Through the seam every final answer passes (`engine::done`).
+    let done = crate::broker::toolround::finished(None, a.to_string());
+    assert!(done.contains("not run \u{2014}"), "{done}");
+}

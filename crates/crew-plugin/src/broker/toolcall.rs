@@ -221,11 +221,12 @@ impl Broker {
                         HopKind::Error,
                         "empty reply after tool call".into(),
                     ));
-                    return reply;
+                    return super::toolround::failed_answer(&said, "an empty reply");
                 }
                 Err(e) => {
+                    let answer = super::toolround::failed_answer(&said, &e);
                     sink(back(env, HopKind::Error, e));
-                    return reply;
+                    return answer;
                 }
             }
         };
