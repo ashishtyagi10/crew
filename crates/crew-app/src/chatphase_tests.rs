@@ -160,6 +160,8 @@ fn the_same_phase_again_keeps_its_time() {
 fn the_pane_hears_the_phase_on_its_own_event_path() {
     let mut p = crate::chat::tests::pane();
     p.heard(&call("Bash"));
-    let now = crate::anim::now_ms();
-    assert_eq!(p.watch.phase.word_at(now).0, "compiling");
+    // Past the dwell: the animation clock starts with the process, so a test
+    // run's first 1.5 s are still inside the routing word's (Windows CI).
+    let later = crate::anim::now_ms() + DWELL_MS;
+    assert_eq!(p.watch.phase.word_at(later).0, "compiling");
 }
