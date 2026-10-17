@@ -8,6 +8,13 @@
 //! the card's edge to the pane's, so the band is the pop-up's and the
 //! transcript resumes, whole, above it.
 //!
+//! They are cleared UNDER the card too. Its backing starts at its top stroke
+//! (`scene.rs`, the overlay sheet), half a row below the top of the band, so
+//! the transcript row there showed through around the legend's letters:
+//! `commands` printed over `provider: anthropic`, struck through (survey
+//! H1). The bottom stroke left the descenders of the last row showing under
+//! it the same way.
+//!
 //! The pane's own cells are dropped rather than a page-coloured sheet laid
 //! over them: a sheet would be a hard stripe across a frosted pane, where
 //! dropping the glyphs shows the pane's own ground.
@@ -47,8 +54,8 @@ pub(crate) fn art(
 ) -> (Vec<CellView>, Vec<Paint>) {
     let (cols, rows) = (g.cols, g.rows);
     let (mut cells, paint) = crate::chatview::art(c, cols, rows, aspect);
-    if let Some((top, bottom, from)) = focused.then(|| band(c, cols, rows)).flatten() {
-        cells.retain(|x| !(x.row >= top && x.row < bottom && x.col >= from));
+    if let Some((top, bottom, _)) = focused.then(|| band(c, cols, rows)).flatten() {
+        cells.retain(|x| !(x.row >= top && x.row < bottom));
     }
     (cells, paint)
 }

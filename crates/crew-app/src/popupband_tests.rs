@@ -63,6 +63,16 @@ fn the_rows_a_popup_stands_on_are_blank_beside_it() {
     // …focused, the pop-up stands there and its rows are its own.
     let (shown, _) = art(&p, true, crew_term::GridSize { cols, rows }, 2.0);
     assert_eq!(beside(&shown), 0);
+    // Nor under it: the card's sheet starts at its top stroke, so a glyph on
+    // the legend's row would print through the legend (survey H1).
+    let under = |cells: &[CellView]| {
+        cells
+            .iter()
+            .filter(|c| c.row >= top && c.row < bottom && c.col < from && c.c != ' ')
+            .count()
+    };
+    assert!(under(&plain) > 0, "the transcript runs under the card");
+    assert_eq!(under(&shown), 0);
     // Rows above the band and the composer below it are untouched.
     let row = |cells: &[CellView], r: u16| cells.iter().filter(|c| c.row == r).count();
     assert_eq!(
