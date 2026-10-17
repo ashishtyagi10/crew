@@ -40,6 +40,8 @@ pub(crate) struct Watch {
     pub(crate) turn_done: Option<u64>,
     /// What the turn is doing, as the code line's word (`chatphase`).
     pub(crate) phase: crate::chatphase::PhaseClock,
+    /// What the turn's runs prove about its edits (`chatproof`).
+    pub(crate) proof: crate::chatproof::Proof,
 }
 
 impl ChatPane {
@@ -48,6 +50,7 @@ impl ChatPane {
         let now = crate::anim::now_ms();
         self.watch.last_event = now;
         self.watch.phase.hear(ev, now);
+        self.watch.proof.hear(ev);
         match ev {
             PluginEvent::Alive {} => self.watch.beats = true,
             _ => (self.watch.last_work, self.watch.noted) = (now, None),
@@ -61,6 +64,7 @@ impl ChatPane {
             (true, None) => {
                 self.watch.turn_since = Some(now);
                 self.watch.phase = crate::chatphase::PhaseClock::start(now);
+                self.watch.proof = Default::default();
             }
             (false, Some(since)) => {
                 self.watch.turn_since = None;

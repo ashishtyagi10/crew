@@ -17,10 +17,15 @@ impl ChatPane {
             self.running_tasks.push(id);
         } else if self.running_tasks.is_empty() {
             self.asking.clear(); // nothing is left to be waiting on an answer
-            self.checklist.clear(); // the plan was the run's, and the run is over
-                                    // A run ends with its agents idle and its swarm folded; one that
-                                    // is still showing them died mid-run (`✗ task #N crashed`), and
-                                    // would leave the pane looking busy with nothing behind it.
+                                 // The plan was the run's, and the run is over.
+            self.checklist.clear();
+            // What the turn's own runs prove about its edits (`chatproof`).
+            if let Some(said) = self.watch.proof.settle() {
+                self.push_note(said);
+            }
+            // A run ends with its agents idle and its swarm folded; one that
+            // is still showing them died mid-run (`✗ task #N crashed`), and
+            // would leave the pane looking busy with nothing behind it.
             if self.swarm.is_some() || !self.active.is_empty() {
                 self.fold_swarm();
                 self.flush_active_hops();
