@@ -501,8 +501,8 @@ fn progress_bar_renders_directly_above_the_composer() {
     let bar_row = rows - bottom - 1;
 
     let cells_out = cells(&pane, cols, rows);
-    let text = row_text(&cells_out, bar_row);
-    assert!(text.contains('\u{2588}'), "bar row {bar_row}: {text}");
+    let painted = crate::chatprog::art_tests::bar_on(&pane, cols, rows, bar_row);
+    assert!(painted, "no bar painted on row {bar_row}");
 
     // The whole reason the rain was dropped: the indicator must claim its own
     // row, never overlay the composer's text.
@@ -522,10 +522,10 @@ fn progress_bar_and_queued_indicator_stack_without_colliding() {
     let cells_out = cells(&pane, cols, rows);
 
     // Bar innermost (directly above the composer), queued indicator above it.
-    let bar = row_text(&cells_out, rows - bottom - 1);
+    let bar = crate::chatprog::art_tests::bar_on(&pane, cols, rows, rows - bottom - 1);
     let above = 1 + crate::chatqueue::queued_rows(&pane);
     let queued = row_text(&cells_out, rows - bottom - above);
-    assert!(bar.contains('\u{2588}'), "bar: {bar}");
+    assert!(bar, "no bar painted directly above the composer");
     assert!(queued.contains("1 message queued"), "queued: {queued}");
 }
 
@@ -609,11 +609,9 @@ fn status_line_queued_indicator_bar_and_composer_stack_without_colliding() {
                 "queued indicator missing/overwritten at cols={cols} rows={rows}: {indicator_text:?}"
             );
 
-            let bar_text = row_text(bar_row);
-            assert!(
-                bar_text.contains('\u{2588}') || bar_text.contains('\u{2591}'),
-                "progress bar missing/overwritten at cols={cols} rows={rows}: {bar_text:?}"
-            );
+            let bar = crate::chatprog::art_tests::bar_on(&pane, cols, rows, bar_row);
+            let clear = row_text(bar_row).trim().is_empty();
+            assert!(bar && clear, "no bar at {cols}x{rows}");
 
             // None of the three surfaces above bleed onto the composer's row.
             let composer_text = row_text(composer_row);

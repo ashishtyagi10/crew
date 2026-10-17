@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.11
+
+**A swarm run's progress bar is a slim capsule, not a green brick.**
+While a swarm runs, a bar under its task list shows how much of the plan has
+settled. It was drawn with block characters, so it filled a whole 16 px row,
+sat 2 px under the last task, and was the heaviest thing in the pane. It is
+now painted as the same rounded capsule the footer's meters use, centred in
+its row with space above and below.
+- **Tests:** while a run is live no block glyph is left in the bar's row and
+  one capsule is painted in its place, and with no run nothing is painted.
+
 ## 0.27.10
 
 **Agent smith's own tool calls fold into one line, like Claude Code's.**

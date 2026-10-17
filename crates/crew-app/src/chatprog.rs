@@ -91,6 +91,32 @@ pub(crate) fn bar_cells(pane: &ChatPane, cols: u16, row: u16, now_ms: u64) -> Ve
     cells
 }
 
+/// The bar as the pane draws it: the cells with their glyphs blanked, and a
+/// capsule painted over them, the footer meters' pill (`summarymeter`). As
+/// `█` over `░` it was a 16 px brick on the plan's last row, the heaviest
+/// thing in the pane and the only meter still spelled in block glyphs
+/// (survey I1). The cells stay, blank, for hit-tests and dumps.
+pub(crate) fn bar_art(
+    pane: &ChatPane,
+    cols: u16,
+    row: u16,
+    now_ms: u64,
+    aspect: f32,
+) -> (Vec<CellView>, Vec<crew_render::Paint>) {
+    let mut cells = bar_cells(pane, cols, row, now_ms);
+    let filled = cells.iter().filter(|c| c.c == '\u{2588}').count();
+    let frac = filled as f32 / cells.len().max(1) as f32;
+    for c in &mut cells {
+        c.c = crate::summaryfit::EMPTY;
+    }
+    let paint = crate::summarymeter::draw_meters(&mut cells, &[frac], aspect);
+    (cells, paint)
+}
+
 #[cfg(test)]
 #[path = "chatprog_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "chatprogart_tests.rs"]
+pub(crate) mod art_tests;
