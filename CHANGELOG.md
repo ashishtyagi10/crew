@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.18
+
+**The title bar on the glass and crt themes is solid now, as it is on
+`light` and `dark`.** In v0.27.17 it was two sheets of frost, and the desktop
+still showed through it. Now it is painted in the page's own colour with
+nothing showing through, and its title and traffic lights take the page's
+ink. The panes are still glass; only the strip across the top changed.
+- **Tests:** every theme's bar is its page colour at full alpha, with that
+  page's ink.
+
 ## 0.27.17
 
 **The title bar on the glass and crt themes is less see-through.** Since

@@ -1,4 +1,4 @@
-//! The title bar of a sheer window is never see-through.
+//! The title bar is never see-through.
 //!
 //! The title bar is the OS's, not crew's: AppKit draws it, and it composites
 //! against `NSWindow.isOpaque`. A translucent crew window has to be
@@ -6,11 +6,9 @@
 //! it — which is backwards: the chrome that names the window went glassy
 //! while the panes were meant to.
 //!
-//! So while the window is sheer, the titlebar container view gets a SOLID
-//! layer background in the page colour, beneath the traffic lights and the
-//! title. At full opacity the layer background is cleared and the native bar
-//! is untouched. Crew's frame never reaches this strip, so there is nothing to
-//! solidify on the GPU side.
+//! So the titlebar container view gets a SOLID layer background in the page
+//! colour, beneath the traffic lights and the title. Crew's frame never
+//! reaches this strip, so there is nothing to solidify on the GPU side.
 //!
 //! The bar's INK comes with it: the container also wears the page's own
 //! appearance (Aqua on a light page, Dark Aqua on a dark one). Without it the
@@ -20,35 +18,28 @@
 //! so the window's own appearance — the one winit reports as the OS theme,
 //! which `auto` follows — stays the system's.
 //!
-//! A CRT tube is the exception (2026-10-06): its whole window is frosted
-//! glass (`tubesheer`), and a solid page-black strip across the top was the
-//! darkest thing left on it. Its bar wears the page at the window's own
-//! opacity, so it frosts with everything else — and so does liquid glass's
-//! (2026-10-08), whose window is see-through by design. It is two sheets of
-//! that glass, not one (2026-10-17: "make title bar less transparent"). An
-//! Ink Reader page (2026-10-16) is opaque, and paints its bar solid all the same.
+//! Glass and the tubes frosted their bar with the rest of the window from
+//! 2026-10-06/08, and thickened it to two sheets on 2026-10-17. The user,
+//! 2026-10-18: "the title bar is still transparent … make it like it is in
+//! light and dark". Every theme's bar is solid in its page now; an Ink
+//! Reader page (2026-10-16) is opaque, and paints its bar all the same.
 use winit::window::Window;
 
-/// What the title bar wears while crew owns it: the page colour, its alpha
-/// (1.0 but under a tube or glass), and whether that page is dark (so its
-/// title is drawn light). `None` is the OS's bar.
+/// What the title bar wears while crew owns it: the page colour, its alpha,
+/// and whether that page is dark (so its title is drawn light). `None` is the
+/// OS's bar.
 pub type Wear = Option<([u8; 3], f32, bool)>;
 
 impl crate::app::CrewApp {
-    /// Keep the title bar solid while the window is sheer (see
-    /// [`crate::titlebar`]). Run every frame, but it only reaches AppKit when
-    /// the wanted colour moves — an opacity change or a theme switch, from
-    /// whichever of the several paths switched it.
+    /// Keep the title bar solid in the page (see [`crate::titlebar`]). Run
+    /// every frame, but it only reaches AppKit when the wanted colour moves —
+    /// a theme switch, from whichever of the several paths switched it.
     pub(crate) fn sync_titlebar(&mut self) {
         // A theme switch can move the window's opacity (`tubesheer`): keep
         // that in step first.
         self.sync_window_opacity();
         let t = crew_theme::theme();
-        // The bar is frosted, thicker than a pane — it carries a title, and at
-        // the gaps' 25% it vanished over a dark desktop as the pane legends
-        // did (2026-10-09). A tube's too: it frosted with its faceplate when
-        // that was 84%, and is glass like the rest now.
-        let want = crate::titlebar::wear_for(t, self.window_opacity());
+        let want = crate::titlebar::wear_for(t);
         if want == self.titlebar_paint {
             return;
         }
@@ -162,32 +153,14 @@ pub fn apply_window(window: &Window, opacity: f32) {
     }
 }
 
-/// What the title bar wears under `t` at window `opacity`. Under glass it is
-/// a second sheet of the pane's glass, as a code field is
-/// ([`crew_theme::LiquidStyle::cell_cover`]): at one sheet the desktop still
-/// showed through the chrome (the user, 2026-10-17). An Ink Reader page
-/// (2026-10-16) is opaque and paints its bar all the same: the native one
-/// follows the Mac, a dark strip across a white page, and print is one sheet.
-pub fn wear_for(t: &crew_theme::Theme, opacity: f32) -> Wear {
-    match t.liquid {
-        Some(l) => wanted(
-            opacity,
-            t.page_bg,
-            t.dark,
-            Some(l.cell_cover().max(opacity)),
-        ),
-        None => Some(([t.page_bg.0, t.page_bg.1, t.page_bg.2], 1.0, t.dark)),
-    }
-}
-
-/// What the title bar should wear at `opacity`: the page colour and the
-/// page's ink while the window is sheer — solid, or at the alpha `bar` names
-/// when the whole window is glass (a tube, liquid glass) — and the OS's own
-/// bar (`None`) while it is solid.
-pub fn wanted(opacity: f32, page_bg: (u8, u8, u8), dark: bool, bar: Option<f32>) -> Wear {
-    let (r, g, b) = page_bg;
-    let alpha = bar.unwrap_or(1.0);
-    crate::config::wants_window_transparency(opacity).then_some(([r, g, b], alpha, dark))
+/// What the title bar wears under `t`: its page, solid, with the page's ink,
+/// however sheer the window is. Under glass even two sheets of frost let the
+/// desktop through the chrome (the user, 2026-10-18); on an opaque Ink Reader
+/// page (2026-10-16) the native bar follows the Mac, a dark strip across a
+/// white page.
+pub fn wear_for(t: &crew_theme::Theme) -> Wear {
+    let (r, g, b) = t.page_bg;
+    Some(([r, g, b], 1.0, t.dark))
 }
 
 #[cfg(test)]
