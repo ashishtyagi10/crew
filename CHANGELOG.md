@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.22
+
+**A call agent smith describes is run, not imagined.**
+Crew shows the agent its earlier tool calls as `CALLED …` lines, each with
+its output under `RESULT:`. Some models copy that layout and write out the
+next call together with an output they made up. On a test task (rename a
+function across the crew-theme crate and make sure its tests pass) qwen-max
+did this four times in its final answer: three edits and a test run, each
+with a "result", then "all occurrences have been renamed". None of them had
+run. One file of three was changed, and the crate no longer compiled. Now a
+`RESULT:` line that comes straight after a call ends the reply at that call:
+the call runs for real, and whatever the model wrote after it, made-up output
+and all, is dropped. On DashScope and other OpenAI-compatible hosts the model
+is also stopped as it starts to write `RESULT:`, so the made-up output isn't
+generated at all. On the same task afterwards, one run renamed all six uses
+in three files and ran the tests for real (176 passed) in 24 s. The other
+made up nothing, but ran out of its 8 tool calls with one file left.
+- **Tests:** a narrated call runs and what follows it is dropped, including
+  when the result is on the same line or the call's arguments span several
+  lines; an answer that only mentions `RESULT:` is left alone; the stop
+  sequences sent to DashScope.
+
 ## 0.27.21
 
 **A reply's lines stop where the composer stops.**
