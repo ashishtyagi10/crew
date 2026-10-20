@@ -13,7 +13,7 @@
 const DROPPED: &[&str] = &["script", "style", "noscript", "svg", "head"];
 
 /// The readable text of an HTML document.
-pub(crate) fn readable(html: &str) -> String {
+pub fn readable(html: &str) -> String {
     let mut out = String::with_capacity(html.len() / 2);
     let mut rest = html;
     'outer: while !rest.is_empty() {

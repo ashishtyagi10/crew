@@ -72,6 +72,10 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "One screen of the machine and the week — CPU, memory and disk dials, the CPU curve, both directions of the network, and a heatmap of token usage",
     },
     Cmd {
+        name: "/inbox",
+        desc: "Gmail, read-only, in a pane — the list, / search in Gmail's syntax, enter reads a thread; /inbox signout",
+    },
+    Cmd {
         name: "/disk",
         desc: "Where the space went — this directory as a treemap; arrows pick, enter opens, backspace up",
     },

@@ -92,8 +92,7 @@ impl CrewApp {
             Some(PaneContent::Terminal(t)) if !self.input.focused => Some(t.pty.bracketed_paste()),
             _ => None,
         };
-        // Only a terminal runs what it is handed; the bar, a chat composer and
-        // a todo list all just hold the text.
+        // Only a terminal runs what it is handed; the rest just hold the text.
         if let Some(false) = bracketed {
             if crate::pastesafe::needs_confirm(&text, false) {
                 let n = crate::pastesafe::line_count(&text);
@@ -126,6 +125,7 @@ impl CrewApp {
                 }
                 PaneContent::Chat(c) => paste_into_chat(c, text),
                 PaneContent::Todo(t) => t.paste(text),
+                PaneContent::Inbox(i) => i.paste(text),
                 PaneContent::Settings(_)
                 | PaneContent::Far(_)
                 | PaneContent::Swarm(_)

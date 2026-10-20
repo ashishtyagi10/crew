@@ -30,6 +30,7 @@ impl CrewApp {
                 PaneContent::Usage(_) => "Usage — Crew".into(),
                 PaneContent::Disk(_) => "Disk — Crew".into(),
                 PaneContent::Dash(_) => "Dashboard — Crew".into(),
+                PaneContent::Inbox(_) => "Inbox — Crew".into(),
             },
             None => "Crew".into(),
         }

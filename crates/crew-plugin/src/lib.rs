@@ -16,6 +16,11 @@ pub mod tier {
     pub use crate::broker::tier::*;
 }
 pub mod credentials;
+/// HTML read as text, the way `sys:fetch` reads a page: what the inbox shows
+/// of a mail that came as HTML only.
+pub mod html {
+    pub use crate::broker::sysfetchtext::readable;
+}
 mod echo;
 mod host;
 pub mod lsp;

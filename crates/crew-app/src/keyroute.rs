@@ -24,6 +24,7 @@ impl CrewApp {
         let mut is_terminal = false;
         let mut swarm_close = false;
         let mut disk_action: Option<crate::diskpane::DiskAction> = None;
+        let mut inbox_action: Option<crate::inbox::keys::InboxAction> = None;
         if let Some(pane) = self.panes.get_mut(focused) {
             match &mut pane.content {
                 // Terminal input is written below (so broadcast can reach all panes).
@@ -52,6 +53,9 @@ impl CrewApp {
                 PaneContent::Disk(d) => disk_action = d.on_key(event),
                 // The dashboard is a picture: nothing in it takes a key.
                 PaneContent::Dash(_) => {}
+                PaneContent::Inbox(i) => {
+                    inbox_action = i.on_key(event, pane.grid.cols, pane.grid.rows)
+                }
                 PaneContent::Todo(t) => {
                     todo_action = t.on_key(
                         event,
@@ -70,6 +74,11 @@ impl CrewApp {
                 }
                 crate::diskpane::DiskAction::Redraw => self.redraw(),
             }
+        }
+        match inbox_action {
+            Some(crate::inbox::keys::InboxAction::Close) => drop(self.close_pane(focused)),
+            Some(crate::inbox::keys::InboxAction::Redraw) => self.redraw(),
+            None => {}
         }
         if swarm_close {
             self.close_pane(focused);

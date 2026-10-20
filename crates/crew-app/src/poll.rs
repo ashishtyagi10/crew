@@ -336,6 +336,8 @@ impl CrewApp {
                 // The dashboard follows the machine on the sampler's own ~1s
                 // clock, and the ledger on a slower one.
                 PaneContent::Dash(d) => d.poll(),
+                // What the network thread brought back, and a minute's check.
+                PaneContent::Inbox(i) => i.poll(),
             };
             // Follow `cd` inside the pane: a new OSC 7 cwd report retitles the
             // pane to that folder (a `/name` override still wins in title_text).
@@ -360,6 +362,7 @@ impl CrewApp {
                             | PaneContent::Usage(_)
                             | PaneContent::Disk(_)
                             | PaneContent::Dash(_)
+                            | PaneContent::Inbox(_)
                     );
                 p.activity |= is_activity;
                 p.bell |= rang;

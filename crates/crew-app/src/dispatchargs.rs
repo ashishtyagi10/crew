@@ -13,6 +13,8 @@ impl CrewApp {
     pub(crate) fn run_slash_with_arg(&mut self, other: &str) {
         if let Some(a) = other.strip_prefix("look ") {
             self.look_command(a.trim());
+        } else if let Some(a) = other.strip_prefix("inbox ") {
+            self.inbox_command(a);
         } else if let Some(a) = other.strip_prefix("clear ") {
             match a.trim() {
                 "all" => self.clear_all_scrollback(),

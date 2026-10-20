@@ -40,6 +40,7 @@ pub(crate) fn card_for(i: usize, p: &Pane, procnames: &ProcNames) -> PaneCard {
         PaneContent::Usage(_) => ("usage", None, false),
         PaneContent::Disk(_) => ("disk", None, false),
         PaneContent::Dash(_) => ("dash", None, false),
+        PaneContent::Inbox(i) => ("inbox", None, i.busy),
         _ => ("other", None, false),
     };
     PaneCard {
