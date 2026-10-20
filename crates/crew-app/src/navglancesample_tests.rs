@@ -1,5 +1,5 @@
 //! One glance the shots and the contrast sweep share: WEATHER for a Berlin
-//! afternoon with its hours, SERVING with two live meters, WAITING ON YOU
+//! afternoon with its hours, INBOX with twelve unread, SERVING with two live meters, WAITING ON YOU
 //! with a blocked shell, a plan and a running task.
 use crate::navglance::{Glance, Serving, Signal};
 use crate::usageledger::{WindowStat, Windows};
@@ -24,6 +24,10 @@ pub(crate) fn glance() -> Glance {
             hour: 8,
             offset: Some(7200),
         }),
+        inbox: crate::inboxglance::Card::Count {
+            unread: 12,
+            newest: Some(("Ann Lee".into(), "Q4 roadmap review".into())),
+        },
         serving: Serving {
             provider: Some("claude-code".into()),
             model: Some("claude-sonnet-5".into()),

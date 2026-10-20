@@ -10,7 +10,8 @@ impl CrewApp {
             self.input.focused = true;
             return None;
         }
-        if let Some(i) = self.pane_at_sidebar().or_else(|| self.pane_at_cursor()) {
+        let hit = self.inbox_card_click().or_else(|| self.pane_at_sidebar());
+        if let Some(i) = hit.or_else(|| self.pane_at_cursor()) {
             self.focused = i;
             self.input.focused = false;
             return Some(i);

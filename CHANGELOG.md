@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.32
+
+**The nav shows your unread mail: an INBOX card.**
+Once you are signed in to `/inbox`, the nav's card slot shows an INBOX card
+under WEATHER: how many threads are unread, and who wrote the newest unread
+one about what ("Ann Lee · Q4 roadmap review"). It says "nothing unread" at
+zero, and "signed out — /inbox" if Google ended the sign-in. Click it to
+open the inbox. It refreshes every five minutes while the inbox pane is
+closed, at about 50 of the 6,000 quota units a minute Gmail allows, and
+while the pane is open it shows what the pane already knows, so nothing
+extra is asked. Signed out, there is no card and nothing is asked. When the
+nav is short it is the first card to go, before the weather.
+- **Tests:** the card's rows for a count, for nothing unread, while
+  checking and on a problem, nothing when signed out; INBOX sits under
+  WEATHER, pushes SERVING down, and is dropped first; an ended sign-in
+  reads "signed out — /inbox".
+
 ## 0.27.31
 
 **`/inbox` and agent smith: ask about a thread, draft a reply, make a todo.**

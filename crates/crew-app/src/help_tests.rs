@@ -63,9 +63,8 @@ fn the_chat_pane_keys_are_documented() {
 /// build until someone made room. Three times in one release "making room"
 /// meant merging two unrelated rows and losing detail from both.
 ///
-/// It scrolls now, so the contract is the one that actually matters: every
-/// row is REACHABLE. The width still has to fit — nothing scrolls
-/// sideways.
+/// It scrolls now, so the contract that matters is that every row is
+/// REACHABLE. The width still has to fit: nothing scrolls sideways.
 #[test]
 fn every_binding_is_reachable_even_when_the_list_outgrows_the_window() {
     let (w, _) = size();
@@ -95,6 +94,7 @@ fn every_binding_is_reachable_even_when_the_list_outgrows_the_window() {
 /// space is what makes an unfamiliar scroll feel broken.
 #[test]
 fn scrolling_stops_at_the_end_of_the_list() {
+    let _g = crate::inkframe::glass_theme_test_guard(); // two draws, one theme
     let (w, h) = (size().0, 24u16);
     let at_end = rows_of(&panel(w, h, max_scroll(h, w, ""), ""));
     assert_eq!(
