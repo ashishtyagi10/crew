@@ -10,7 +10,7 @@ fn body() -> Value {
 #[test]
 fn a_text_protocol_body_stops_at_the_closing_tag() {
     let b = super::super::for_endpoint(DASHSCOPE, body());
-    assert_eq!(b["stop"], json!(["</tool_call>"]));
+    assert_eq!(b["stop"], json!(["</tool_call>", "\nRESULT:"]));
     assert_eq!(b["max_tokens"], 4096, "the ceiling keeps its name here");
 }
 
@@ -75,7 +75,10 @@ async fn the_wire_carries_the_stop_only_when_calls_are_text() {
         max_tokens: 8,
         ..Default::default()
     };
-    assert_eq!(sent(text.clone()).await["stop"], json!(["</tool_call>"]));
+    assert_eq!(
+        sent(text.clone()).await["stop"],
+        json!(["</tool_call>", "\nRESULT:"])
+    );
     let tool = ToolDef {
         name: "sys__run".into(),
         description: String::new(),

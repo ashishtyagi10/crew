@@ -15,6 +15,9 @@ use super::{JsonDepth, ToolCall};
 #[path = "tagged.rs"]
 mod tagged;
 
+#[path = "narrated.rs"]
+mod narrated;
+
 /// Read the tool call a reply ends with. `None` = the agent answered instead
 /// of calling something.
 ///
@@ -37,7 +40,8 @@ pub fn parse_tool_call(reply: &str) -> Option<ToolCall> {
 /// a routing line, a short aside) and the fence it opened in; what is left
 /// is the text before it, trailing whitespace trimmed.
 pub fn split_tool_call(reply: &str) -> Option<(String, ToolCall)> {
-    let reply = tagged::untag(reply);
+    let untagged = tagged::untag(reply);
+    let reply = narrated::cut(&untagged);
     let lines: Vec<&str> = reply.lines().collect();
     let (at, call) = last_call(&lines)?;
     Some((above(&lines, at), call))
@@ -54,7 +58,8 @@ pub fn split_tool_call(reply: &str) -> Option<(String, ToolCall)> {
 /// JSON that closes) with nothing but blank lines between it and the next. A
 /// call with prose under it is one the model was quoting, and stays text.
 pub fn split_tool_calls(reply: &str) -> Option<(String, Vec<ToolCall>)> {
-    let reply = tagged::untag(reply);
+    let untagged = tagged::untag(reply);
+    let reply = narrated::cut(&untagged);
     let lines: Vec<&str> = reply.lines().collect();
     let (mut top, last) = last_call(&lines)?;
     let mut calls = vec![last];
