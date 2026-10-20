@@ -1,0 +1,132 @@
+# Goal — the inbox list, redesigned: how `/inbox` looks before a thread is opened
+
+**Status: SET 2026-10-20.** Nothing built yet (see "Where it stands" at the end).
+
+**Set:** 2026-10-20 by the user, while the mail reader goal was being built: *"write a goal to
+update the look and feel of listing mode as well for `/inbox`"*.
+
+## What the list looks like today
+
+One row per thread, drawn by `row` in `crates/crew-app/src/inbox/draw.rs` from what
+`crates/crew-app/src/inbox/wire.rs` keeps (sender, subject, snippet, unread, starred, time,
+message count). Seen in the `inboxshot_tests` render on both themes:
+
+- **The selected row barely shows.** Only a `›` in the first column marks it; the row itself
+  has no highlight.
+- **The markers collide.** `●` (unread) and `★` (starred) share a two-column gutter, so a
+  starred unread thread reads `●★` crammed against the sender.
+- **The sender column wastes space.** It is a fixed width, so a short name like "GitHub"
+  leaves a wide empty gap before the subject.
+- **One line holds too much.** Subject and snippet share it and are cut with `…`, often in the
+  middle of the subject on a narrow pane.
+- **Read and unread differ only in weight.** An unread thread is bold; a read one is the same
+  ink, not bold. The inbox has no rhythm: no gaps or headers by day.
+- **The row says little.** Nothing shows attachments, importance, labels, a draft, who else is
+  in the thread, or that you replied last.
+- **The foot is cut off.** The key hint ends in `…` on every normal width.
+- **Empty and waiting states are bare.** They are one muted word (`loading…`,
+  `nothing in the inbox`) in a large blank pane.
+
+## What crew's other lists already do (so this matches them)
+
+- `/todo` groups rows under day headers (`crates/crew-app/src/todopane/group.rs`, drawn by
+  `crates/crew-app/src/todopane/headrow.rs`, which also owns the empty-list hint).
+- Its row chips drop by priority as the tile narrows
+  (`crates/crew-app/src/todopane/rowchips.rs`).
+- Chips are capsules through `CellView::mark`, as inline code is in chat.
+- The theme has a selection colour (`selection_bg`) that every theme is checked against.
+- The user wants **bright white text on glass**, legible, and not argued about. Every colour
+  here comes from theme tokens, and every surface is shot on the light Ink page and on glass.
+
+## Done means
+
+**Phase 0: check what the metadata already gives.**
+
+1. Confirm from Gmail's reference and one live list which fields `threads.get?format=metadata`
+   returns for **every** message: `labelIds` (`IMPORTANT`, `DRAFT`, `SENT`, `CATEGORY_*`, user
+   labels), the `From` header of each, and whether `payload.mimeType` is there (it would say
+   `multipart/mixed`, meaning an attachment). Anything that needs a second call per thread is
+   dropped from this goal. The only new call allowed is one `labels.list` per pane open (label
+   names and colours), and it is cached.
+
+**Phase 1: the row, rebuilt.**
+
+2. **Two-line rows when there is room.**
+   - Line 1: the senders, the message count as a quiet chip, and the time right-aligned.
+   - Line 2: the subject, then the snippet in muted ink.
+   - The list falls back to one-line rows when fewer than 8 two-line rows fit. `L` switches
+     between the two, and the choice is remembered for the session.
+3. **The selection is unmistakable.** The selected row gets a full-width wash in
+   `selection_bg` and an accent bar at its left edge (`▍`), on both lines of a two-line row.
+   The `›` goes. A mouse hover gets a lighter wash.
+4. **Markers that never collide.**
+   - `●` unread stays in the gutter, in accent.
+   - `★` moves to the right edge beside the time, where an attachment glyph also goes.
+   - Each marker has its own cell, and is dropped before it is cramped.
+5. **Read mail recedes.** Unread threads are bright ink and bold; read threads are muted ink.
+   On glass, unread is bright white. The snippet is always muted.
+6. **Senders the way Gmail writes them.** "Ann, Bo, me (4)" from the `From` of every message,
+   newest last; `me` for the signed-in account. Sized to the names on screen (capped at about
+   24 columns), never a fixed gap.
+7. **A width ladder.** As the pane narrows, the snippet goes first, then the count chip, then
+   participants shorten to the newest sender, then the time goes compact. Asserted as cell tests
+   at 40, 60, 80 and 120 columns.
+
+**Phase 2: the list's shape.**
+
+8. **Day headers** in muted ink between rows: Today, Yesterday, the weekday names this week,
+   Last week, then month names, then years. Drawn the way `/todo`'s done history bands its
+   days, for the inbox and for a search.
+9. **Empty, loading and error states that look finished.**
+   - While a page loads: skeleton rows (muted bars on the paint layer, the shape of real rows).
+   - An empty inbox: a drawn mark with "Inbox zero" and when it was last checked.
+   - A failure: what went wrong and the key that fixes it, never a raw error string.
+10. **A foot that never ends in `…`.** It shows the keys that fit, most-used first. `?` opens
+    the full key card as a pop-up, the way crew's `/help` card opens.
+
+**Phase 3: what a row can say (no new scopes, at most one new call).**
+
+11. **Attachment** glyph by the time, if phase 0 finds `payload.mimeType` in the metadata. The
+    glyph is chosen by a real charmap check, as crew picks every icon.
+12. **Labels as chips.** Gmail's Important marker; user labels as small capsules in their own
+    Gmail colours; a `Draft` chip when the thread holds one. All dropped first by the width
+    ladder.
+13. **You replied last:** a quiet `↩` when the newest message is the user's own (`SENT`).
+14. **An initial chip** before the sender in two-line mode: the sender's initial on a colour
+    derived from their address, as Gmail does. Nothing is fetched (no avatars from the web).
+
+**Phase 4: mouse and motion, crew's way.**
+
+15. **Mouse.** Clicking a row selects it; clicking the selected row opens it. Clicking the `★`
+    toggles it. Hover gets the wash from item 3, and the wheel already scrolls.
+16. **Motion.**
+    - An archived or deleted row folds away instead of vanishing.
+    - New mail arriving at the top gets a brief accent pulse.
+    - The selection wash glides to the next row.
+    - All of it follows crew's motion setting: off means instant.
+
+**Not in this goal:** a list and reader side by side on a wide pane (an open question below);
+category tabs (Primary, Promotions, Social); selecting several threads to file at once; sorting
+other than newest first; any new Gmail scope.
+
+## Light weight (measurable)
+
+- No extra Gmail call per refresh; at most one `labels.list` per pane open.
+- The row layout is one function of (thread, width, density, selected), tested by its cells at
+  four widths. Shots on the light Ink page and on glass, in both densities, joining the existing
+  `crates/crew-app/src/inboxshot_tests.rs`.
+- Every file under the 200-line cap; `crates/crew-app/src/inbox/draw.rs` splits along row,
+  bands and states as it grows.
+
+## Open questions for the user
+
+- **Density.** Two-line rows when there is room (proposed), or one line like a terminal mail
+  reader?
+- **Wide panes.** On a pane wider than about 140 columns, should the list show the open thread
+  beside it, as Mail.app does?
+- **Category tabs.** Should the inbox show Gmail's Primary only, with tabs for the rest?
+
+## Where it stands
+
+Nothing built yet. The mail reader goal (`2026-10-20-mail-reader.md`) is in progress first; its
+phase 2 (pictures) is being built. This goal follows it.
