@@ -75,7 +75,10 @@ pub(crate) fn body_lines_at(
     source: bool,
     cwd: Option<&std::path::Path>,
 ) -> Vec<CardLine> {
-    let width = cols.saturating_sub(1).max(1);
+    // One column for the indent under the gutter and one kept on the right, so
+    // a rule, a table or a word on the last column ends where the header, the
+    // code fields and the composer's stroke end, not one past them.
+    let width = cols.saturating_sub(2).max(1);
     if source {
         // Source mode: show raw text, newline-split + word-wrapped, all cells plain.
         return source_lines(text, width, fg);
