@@ -38,3 +38,12 @@ pub(crate) fn weigh(cells: &mut [CellView], (cols, rows): (u16, u16), focused: b
         c.c = heavy(c.c);
     }
 }
+
+/// For a test that names the light frame's glyphs: the theme lock, on a glass
+/// theme, where a focused frame is the light rule.
+#[cfg(test)]
+pub(crate) fn glass_theme_test_guard() -> crate::appearanceguard::ThemeGuard {
+    let g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::Nebula);
+    g
+}
