@@ -40,6 +40,7 @@ fn waiting_follows_an_unmetered_card_without_a_hole() {
     let tail = |s: &Serving| Tail::Glance {
         waiting: 1,
         weather: 0,
+        inbox: 0,
         serving: block(s),
     };
     let bare = layout_with(60, true, tail(&Serving::default()), 2);

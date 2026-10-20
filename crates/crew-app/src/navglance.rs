@@ -42,6 +42,8 @@ pub(crate) struct Glance {
     /// The sky over the place the user named (`/weather`): a reading, a
     /// lookup in flight, a place not found, or nothing asked for.
     pub weather: crate::navweather::State,
+    /// Unread mail and the newest unread thread, when signed in (`/inbox`).
+    pub inbox: crate::inboxglance::Card,
     pub serving: Serving,
     pub waiting: Vec<WaitRow>,
 }
@@ -151,6 +153,7 @@ impl crate::app::CrewApp {
         );
         Some(Glance {
             weather: crate::navweather::state(),
+            inbox: crate::inboxglance::state(),
             serving,
             waiting,
         })

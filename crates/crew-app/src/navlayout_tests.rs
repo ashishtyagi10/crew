@@ -82,6 +82,7 @@ fn glance(rows: u16, waiting: usize, weather: bool, panes: usize) -> NavLayout {
     let tail = Tail::Glance {
         waiting,
         weather,
+        inbox: 0,
         serving,
     };
     layout_with(rows, true, tail, panes)
@@ -113,4 +114,38 @@ fn the_weather_card_stands_first_and_goes_first() {
     let just = glance(top + 5 + 3 + 4 + w, 1, true, 3);
     assert_eq!(just.weather_rows, w, "and stands the row it fits");
     assert_eq!(just.waiting_lines, 1);
+}
+
+/// INBOX stands under WEATHER and pushes SERVING down by its block — and it
+/// goes before the sky does: on a nav with room for WEATHER, SERVING and a
+/// WAITING row but not INBOX too, INBOX is the card left out.
+#[test]
+fn the_inbox_card_stands_under_the_sky_and_goes_first() {
+    let top = fixed_rows(true);
+    let (w, i) = (crate::navweathercard::WEATHER_BLOCK, 4);
+    let serving = crate::navserving::SERVING_BLOCK;
+    let tail = Tail::Glance {
+        waiting: 1,
+        weather: w,
+        inbox: i,
+        serving,
+    };
+    let tall = layout_with(top + 60, true, tail, 2);
+    assert_eq!((tall.inbox_top, tall.inbox_rows), (top + w, i));
+    assert_eq!(tall.serving_top, top + w + i);
+    // Room for everything but INBOX: the sky stays, the inbox goes.
+    let tight = layout_with(top + w + serving + 3 + 3, true, tail, 2);
+    assert_eq!((tight.weather_rows, tight.inbox_rows), (w, 0));
+    assert_eq!(tight.serving_top, top + w);
+    let none = Tail::Glance {
+        waiting: 1,
+        weather: w,
+        inbox: 0,
+        serving,
+    };
+    assert_eq!(
+        layout_with(top + 60, true, none, 2).serving_top,
+        top + w,
+        "signed out"
+    );
 }

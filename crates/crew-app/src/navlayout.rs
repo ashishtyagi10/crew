@@ -45,6 +45,7 @@ pub enum Tail {
     Glance {
         waiting: usize,
         weather: u16,
+        inbox: u16,
         serving: u16,
     },
 }
@@ -61,6 +62,10 @@ pub struct NavLayout {
     /// Rows the WEATHER card got: its block, or 0 when there was no reading
     /// or no room — then the clock's gap row carries the strip instead.
     pub weather_rows: u16,
+    /// Content row the INBOX card's rule sits on, and the rows it got (0:
+    /// signed out, or dropped first for room).
+    pub inbox_top: u16,
+    pub inbox_rows: u16,
     /// Content row the SERVING card's rule sits on (glance mode).
     pub serving_top: u16,
     /// Rows the SERVING card got: its block, or 0 when there was no room.
@@ -137,6 +142,7 @@ pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLay
         Tail::Glance {
             waiting,
             weather: w,
+            inbox,
             serving,
         } => {
             // A one-row WAITING is rule + row + gap: the sky never displaces
@@ -144,7 +150,13 @@ pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLay
             if w > 0 && rows >= top + w + serving + 3 + panes_block {
                 out.weather_rows = w;
             }
-            out.serving_top = top + out.weather_rows;
+            // INBOX goes before the sky does: placed only when everything
+            // else, the sky included, still fits.
+            out.inbox_top = top + out.weather_rows;
+            if inbox > 0 && rows >= out.inbox_top + inbox + serving + 3 + panes_block {
+                out.inbox_rows = inbox;
+            }
+            out.serving_top = out.inbox_top + out.inbox_rows;
             if rows >= out.serving_top + serving + panes_block {
                 out.serving_rows = serving;
             }

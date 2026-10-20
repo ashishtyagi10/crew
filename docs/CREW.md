@@ -1692,7 +1692,14 @@ longer aim at.
   memory an hour at a time. Gmail charges a project's user 6,000 units a
   minute and a page of 25 threads costs about 1,000, so the pane lists once
   and then checks the mailbox's `historyId` each minute (1 unit), listing
-  again only when it moved. The nav glance is the unread count.
+  again only when it moved. Signed in, the nav's glance slot carries an
+  **INBOX** card under WEATHER: `● 12 unread threads` and the newest unread
+  thread's sender and subject, `nothing unread` at zero, or what went wrong
+  (`signed out — /inbox` when Google ended the sign-in). A click on it
+  opens `/inbox`. It is the first card dropped when the nav is short, and it
+  costs Gmail one look every five minutes (about 50 units) while the pane
+  is closed and nothing while it is open — then it shows what the pane
+  holds. Signed out, there is no card and nothing is asked.
 - **`/disk`** — opens the **disk** pane: the current directory as a
   **treemap**, one tile per entry with its area equal to its share of the
   bytes, so the thing filling your disk is the thing filling the pane. The

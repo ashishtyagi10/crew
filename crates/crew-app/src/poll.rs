@@ -134,7 +134,8 @@ impl CrewApp {
         let oauth_landed = self.drain_oauth();
         // `/diff`'s worker (opens the review pane the tick it lands) and the
         // clock's weather strip (`navweather`: hourly, off-thread, cached).
-        let jobs_landed = self.drain_diff_job() | self.tick_weather(crate::anim::now_ms());
+        let now = crate::anim::now_ms();
+        let jobs_landed = self.drain_diff_job() | self.tick_weather(now) | self.tick_inbox(now);
 
         // Random theme mode: rotate on its 10-minute clock. Cheap + lock-free.
         // Seeds `any_changed` so a rotation repaints every pane in the new theme.

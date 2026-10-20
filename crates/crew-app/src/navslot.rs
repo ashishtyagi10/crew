@@ -13,6 +13,7 @@ pub(crate) fn tail(glance: Option<&Glance>, log_len: usize) -> Tail {
         Some(g) => Tail::Glance {
             waiting: g.waiting.len(),
             weather: crate::navweathercard::block(&g.weather),
+            inbox: crate::navinboxcard::block(&g.inbox),
             serving: crate::navserving::block(&g.serving),
         },
         None => Tail::Log(log_len),
@@ -40,6 +41,12 @@ pub(crate) fn slot_cells(
     if l.weather_rows > 0 {
         for mut c in crate::navweathercard::state_cells(&g.weather, cols) {
             c.row += l.weather_top;
+            out.push(c);
+        }
+    }
+    if l.inbox_rows > 0 {
+        for mut c in crate::navinboxcard::cells(&g.inbox, cols) {
+            c.row += l.inbox_top;
             out.push(c);
         }
     }
