@@ -113,13 +113,10 @@ fn timed(runner: &dyn ToolRunner, call: &ToolCall) -> Called {
     (called, started.elapsed().as_millis() as u64)
 }
 
-/// What a call that is not run is answered with: past [`PER_REPLY`], or past
-/// what is left of the turn's `max` calls when that is what stopped it.
-pub(super) fn refusal(budget_bound: bool, max: u32) -> String {
-    match budget_bound {
-        true => format!("not run \u{2014} tool budget spent ({max} calls this turn)"),
-        false => format!("not run \u{2014} at most {PER_REPLY} tool calls per reply"),
-    }
+/// What a call past [`PER_REPLY`] is answered with. The turn's budget is
+/// rounds, so a reply that is run at all runs this far.
+pub(super) fn refusal() -> String {
+    format!("not run \u{2014} at most {PER_REPLY} tool calls per reply")
 }
 
 #[cfg(test)]

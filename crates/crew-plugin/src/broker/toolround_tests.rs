@@ -123,7 +123,7 @@ fn a_spent_budget_on_a_bare_call_answers_with_one_plain_line() {
     assert_eq!(
         answer,
         format!(
-            "stopped before answering: the tool budget ({} calls) ran out",
+            "stopped before answering: the tool budget ({} rounds) ran out",
             crew_hive::tools::MAX_TOOL_ROUNDS
         )
     );

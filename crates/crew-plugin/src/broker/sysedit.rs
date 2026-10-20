@@ -26,11 +26,8 @@ use std::path::Path;
 pub(crate) struct Swap<'a> {
     pub old: &'a str,
     pub new: &'a str,
-}
-
-/// Replace the one occurrence of `old` in `path` with `new`.
-pub(crate) fn edit(path: &str, old: &str, new: &str) -> Result<String, String> {
-    edit_all(path, &[Swap { old, new }])
+    /// Every occurrence (a rename), as Claude Code's `replace_all`.
+    pub all: bool,
 }
 
 /// Make every `swaps` replacement in `path`, or none of them.
@@ -66,7 +63,7 @@ pub(crate) fn edit_all(path: &str, swaps: &[Swap]) -> Result<String, String> {
     let mut edited = body.clone();
     let mut landed = super::editshow::Landed::default();
     for (i, s) in swaps.iter().enumerate() {
-        let next = replace(&edited, s.old, s.new)
+        let next = replace(&edited, s.old, s.new, s.all)
             .map_err(|e| format!("edit {path}: {}", numbered(swaps.len(), i, &e)))?;
         landed.swap(&edited, s.old, s.new);
         edited = next;
@@ -90,14 +87,16 @@ fn numbered(total: usize, i: usize, why: &str) -> String {
     }
 }
 
-/// The file with its one occurrence of `old` replaced, or why it could not be.
-pub(crate) fn replace(body: &str, old: &str, new: &str) -> Result<String, String> {
+/// `body` with its one `old` replaced (every one, when `all`), or why not.
+pub(crate) fn replace(body: &str, old: &str, new: &str, all: bool) -> Result<String, String> {
     match body.matches(old).count() {
-        1 => Ok(body.replacen(old, new, 1)),
         0 => Err(miss(body, old)),
+        1 => Ok(body.replacen(old, new, 1)),
+        _ if all => Ok(body.replace(old, new)),
         n => Err(format!(
             "`old` appears {n} times, so there is no single place to put `new` \u{2014} \
-             include more of the surrounding lines to name just one"
+             include more of the surrounding lines to name just one, or pass \
+             \"all\": true to replace every one"
         )),
     }
 }
@@ -144,7 +143,10 @@ fn report_all(path: &str, before: &str, swaps: &[Swap]) -> String {
         };
         return format!("edited {} in {} places{delta}", name(path), swaps.len());
     };
-    report(path, before, one.old, one.new)
+    match before.matches(one.old).count() {
+        n if one.all && n > 1 => format!("edited {} in {n} places (every one)", name(path)),
+        _ => report(path, before, one.old, one.new),
+    }
 }
 
 fn report(path: &str, before: &str, old: &str, new: &str) -> String {

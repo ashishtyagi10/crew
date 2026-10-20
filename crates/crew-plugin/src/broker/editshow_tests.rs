@@ -18,7 +18,14 @@ impl Scratch {
 
     /// The whole `sys:edit` result, through the real edit on the real file.
     fn edit(&self, pairs: &[(&str, &str)]) -> String {
-        let swaps: Vec<Swap> = pairs.iter().map(|(old, new)| Swap { old, new }).collect();
+        let swaps: Vec<Swap> = pairs
+            .iter()
+            .map(|(old, new)| Swap {
+                old,
+                new,
+                all: false,
+            })
+            .collect();
         edit_all(&self.0, &swaps).unwrap()
     }
 }

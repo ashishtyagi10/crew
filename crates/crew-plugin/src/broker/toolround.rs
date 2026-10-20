@@ -67,8 +67,8 @@ pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> Exc
     Exchange::new(said, label, args, clip_result(result, AGENT_CLIP))
 }
 
-/// The last line of a follow-up prompt: the calls `left` this turn, and how
-/// to finish.
+/// The last line of a follow-up prompt: the rounds of calls `left` this turn,
+/// and how to finish.
 ///
 /// The agent is TOLD what it has left. A budget it cannot see is one it plans
 /// straight past, and then the turn ends mid-sequence with a tool call nobody
@@ -79,12 +79,14 @@ pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> Exc
 /// the one statement of it, so the follow-up cannot disagree with it.
 pub(super) fn next_step(left: u32) -> String {
     match left {
-        0 => "This was your LAST tool call this turn: answer now with what you \
-              have, and end the answer as HOW TO REPLY says."
+        0 => "That was your LAST round of tool calls this turn: answer now with \
+              what you have, and end the answer as HOW TO REPLY says."
             .to_string(),
         n => format!(
-            "You may make {n} more tool call(s) this turn, or answer now and end \
-             the answer as HOW TO REPLY says."
+            "You may make {n} more round(s) of tool calls this turn, up to {} \
+             calls in one reply, or answer now and end the answer as HOW TO \
+             REPLY says.",
+            super::toolbatch::PER_REPLY
         ),
     }
 }
@@ -99,7 +101,7 @@ pub(super) fn next_step(left: u32) -> String {
 /// reads as a crash; one plain line says what happened instead.
 pub(super) fn budget_answer(before: &str, rounds: u32) -> String {
     match before.trim() {
-        "" => format!("stopped before answering: the tool budget ({rounds} calls) ran out"),
+        "" => format!("stopped before answering: the tool budget ({rounds} rounds) ran out"),
         kept => kept.to_string(),
     }
 }
