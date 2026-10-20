@@ -28,6 +28,7 @@ fn rows() -> Vec<Thread> {
         subject: subject.into(),
         snippet: snippet.into(),
         unread,
+        starred: id == "b",
         at_ms: now - ago,
         count,
     };

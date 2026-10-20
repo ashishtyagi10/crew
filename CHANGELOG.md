@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.30
+
+**`/inbox` files mail: archive, read or unread, star, and undo.**
+In the inbox pane `e` archives the thread under the cursor (or the one you
+are reading), `m` marks it read or unread, `s` stars or unstars it, and `u`
+puts the last of those back where it was. Opening a thread marks it read,
+as Gmail does. Each change shows at once and goes to Gmail behind it; if
+Gmail refuses one, the pane says why and re-reads the list as Gmail has it.
+Nothing is ever deleted: archive takes the thread out of the inbox, the same
+as Gmail's own button. Filing needs Gmail's "modify" permission, which the
+pane now asks for when you sign in; it also covers writing drafts, which is
+next. A sign-in from v0.27.29, made for reading only, is told to run
+`/inbox signout` and sign in again.
+- **Tests:** archive takes the thread out of the inbox and undo returns it
+  to its row; read and star toggle and undo restores just that flag;
+  opening marks read and archiving the open thread closes it; a read-only
+  sign-in is told how to file.
+
 ## 0.27.29
 
 **Your Gmail, read-only, in a pane: `/inbox`.**

@@ -1,5 +1,6 @@
-//! GETs to Gmail, run together on the worker's runtime and answered in the
-//! order asked. A 401 is its own answer: the caller renews the token.
+//! Requests to Gmail, run together on the worker's runtime and answered in
+//! the order asked: a GET, or a POST of JSON when the request carries a body.
+//! A 401 is its own answer: the caller renews the token.
 use std::time::Duration;
 
 use serde_json::Value;
@@ -11,15 +12,18 @@ pub(crate) enum Fetch {
     Failed(String),
 }
 
+/// A URL, and the JSON to POST to it (`None`: a GET).
+pub(crate) type Req = (String, Option<Value>);
+
 pub(crate) async fn all(
     http: reqwest::Client,
     token: String,
-    urls: Vec<String>,
+    reqs: Vec<Req>,
 ) -> Result<Vec<Value>, Fetch> {
     let mut set = tokio::task::JoinSet::new();
-    for (i, url) in urls.into_iter().enumerate() {
+    for (i, (url, body)) in reqs.into_iter().enumerate() {
         let (http, token) = (http.clone(), token.clone());
-        set.spawn(async move { (i, one(&http, &token, &url).await) });
+        set.spawn(async move { (i, one(&http, &token, &url, body).await) });
     }
     let mut out: Vec<Option<Value>> = vec![None; set.len()];
     while let Some(done) = set.join_next().await {
@@ -29,9 +33,17 @@ pub(crate) async fn all(
     Ok(out.into_iter().map(Option::unwrap_or_default).collect())
 }
 
-async fn one(http: &reqwest::Client, token: &str, url: &str) -> Result<Value, Fetch> {
-    let r = http
-        .get(url)
+async fn one(
+    http: &reqwest::Client,
+    token: &str,
+    url: &str,
+    body: Option<Value>,
+) -> Result<Value, Fetch> {
+    let req = match body {
+        Some(b) => http.post(url).json(&b),
+        None => http.get(url),
+    };
+    let r = req
         .bearer_auth(token)
         .timeout(HTTP)
         .send()

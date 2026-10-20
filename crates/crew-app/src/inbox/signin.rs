@@ -17,8 +17,10 @@ use serde_json::Value;
 use super::grant::{Client, Grant};
 use crate::oauth::Waited;
 
-/// Read-only: list, search and read. Restricted, so the client is the user's.
-pub(crate) const SCOPE: &str = "https://www.googleapis.com/auth/gmail.readonly";
+/// Read, file (archive, read, star) and draft — never delete, which needs the
+/// full-mail scope. `gmail.modify` covers `drafts.create` too, so one consent
+/// serves every phase. Restricted, so the client is the user's.
+pub(crate) const SCOPE: &str = "https://www.googleapis.com/auth/gmail.modify";
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 pub(crate) const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 pub(crate) const REVOKE_URL: &str = "https://oauth2.googleapis.com/revoke";

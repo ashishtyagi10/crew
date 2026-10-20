@@ -16,6 +16,7 @@ pub(crate) mod reader;
 pub(crate) mod setup;
 pub(crate) mod signin;
 pub(crate) mod take;
+pub(crate) mod triage;
 pub(crate) mod wire;
 pub(crate) mod worker;
 
@@ -63,6 +64,8 @@ pub struct InboxPane {
     pub(crate) busy: bool,
     /// Gmail has another page after the rows shown.
     pub(crate) more: bool,
+    /// The last archive, read or star, for `u`.
+    pub(crate) undo: Option<triage::Undo>,
     ticked_ms: u64,
 }
 
@@ -93,6 +96,7 @@ impl InboxPane {
             note: String::new(),
             busy: false,
             more: false,
+            undo: None,
             ticked_ms: crate::anim::now_ms(),
         }
     }

@@ -1652,14 +1652,20 @@ longer aim at.
   dates says something happened rather than when. Bands are drawn in
   priority order, so a short pane keeps the machine and loses the history, and
   everything follows its own clock — the sampler's second, the ledger's five.
-- **`/inbox`** — opens the **inbox** pane: Gmail, read-only. Rows are
+- **`/inbox`** — opens the **inbox** pane: Gmail, to read and to file. Rows are
   threads, newest first: an unread dot, the sender (with a count when the
   thread has several messages), the subject, the snippet in a quieter ink
   and the age (`9m`, `3h`, `Mon`, `Oct 12`). Keys: ↑↓ or j/k move (the last
   row loads the next page), Enter reads the thread as text — each message's
   sender and local time over its words, attachments named, HTML-only mail
   read as text the way `sys:fetch` reads a page, control characters stripped
-  — `/` searches with Gmail's syntax, `r` re-lists, `o` opens the thread or
+  — `e` archives (takes the `INBOX` label away, as Gmail's archive does),
+  `m` marks read or unread, `s` stars or unstars, `u` undoes the last of
+  those; each shows at once and goes to Gmail behind it, and a refusal is
+  said with the list re-read as Gmail has it. Opening a thread marks it read.
+  Nothing is ever deleted: the scope is `gmail.modify` (read, file, draft),
+  not the full-mail one; a sign-in from v0.27.29, made for read-only, is
+  told to sign in again. `/` searches with Gmail's syntax, `r` re-lists, `o` opens the thread or
   the inbox in Gmail on the signed-in account, Esc clears a search, leaves a
   thread, and closes the pane. `/inbox <search>` opens on a search; `/inbox
   signout` deletes the grant and revokes it at Google. Sign-in is Google's

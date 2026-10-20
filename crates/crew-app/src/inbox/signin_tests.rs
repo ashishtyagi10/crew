@@ -49,13 +49,13 @@ fn stub(status: u16, json: &'static str) -> (String, std::thread::JoinHandle<Str
 }
 
 #[test]
-fn the_consent_url_asks_for_read_only_mail_a_refresh_token_and_pkce() {
+fn the_consent_url_asks_to_read_and_file_mail_with_a_refresh_token_and_pkce() {
     let u = super::authorize_url(&client().id, "http://127.0.0.1:5555", "CHAL", "STATE");
     assert!(u.starts_with("https://accounts.google.com/o/oauth2/v2/auth?client_id=123-abc.apps.googleusercontent.com&"), "{u}");
     for part in [
         "redirect_uri=http%3A%2F%2F127.0.0.1%3A5555",
         "response_type=code",
-        "scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly",
+        "scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.modify",
         "code_challenge=CHAL",
         "code_challenge_method=S256",
         "state=STATE",

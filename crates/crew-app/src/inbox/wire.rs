@@ -18,6 +18,8 @@ pub(crate) struct Thread {
     pub snippet: String,
     /// Any message in the thread still carries `UNREAD`.
     pub unread: bool,
+    /// Any message in the thread carries `STARRED`.
+    pub starred: bool,
     /// The newest message's `internalDate`, ms since the epoch.
     pub at_ms: i64,
     /// Messages in the thread.
@@ -59,6 +61,7 @@ pub(crate) fn thread(v: &Value) -> Thread {
         subject: header(first, "Subject"),
         snippet: unescape(newest["snippet"].as_str().unwrap_or_default()),
         unread,
+        starred: msgs.iter().any(|m| has_label(m, "STARRED")),
         at_ms: date_of(&newest),
         count: msgs.len(),
     }
