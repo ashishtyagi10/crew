@@ -24,9 +24,16 @@ const RATES: &[(&str, u64, u64, u64)] = &[
     ("claude-opus-5-5", 4_000_000, 20_000_000, 200_000),
     ("claude-opus-5.5", 4_000_000, 20_000_000, 200_000),
     ("claude-sonnet", 3_000_000, 15_000_000, 300_000),
-    // Sonnet 5 and 5.5 (either spelling) share a price.
+    // Sonnet 5 and 5.5 (either spelling) share a list price; a 5.5 cache
+    // read is 5% of input (the 2026-10 table), Sonnet 5's the usual 10%.
     ("claude-sonnet-5", 2_000_000, 10_000_000, 200_000),
+    ("claude-sonnet-5-5", 2_000_000, 10_000_000, 100_000),
+    ("claude-sonnet-5.5", 2_000_000, 10_000_000, 100_000),
     ("claude-haiku", 1_000_000, 5_000_000, 100_000),
+    // Haiku 5.5 (2026-10-07) is priced in two tiers by prompt length; this is
+    // the ≤100K tier, the one a Cheap-tier call lands in.
+    ("claude-haiku-5-5", 100_000, 500_000, 10_000),
+    ("claude-haiku-5.5", 100_000, 500_000, 10_000),
     ("claude-fable", 10_000_000, 50_000_000, 1_000_000),
     ("claude-fable-5-1", 10_000_000, 50_000_000, 250_000),
     ("claude-fable-5.1", 10_000_000, 50_000_000, 250_000),
@@ -72,6 +79,8 @@ const RATES: &[(&str, u64, u64, u64)] = &[
     // Google, ai.google.dev/gemini-api/docs/pricing, 2026-09-29, at the
     // ≤200K tier. 3.8 Flash is at its introductory rate, which Google says
     // lasts to 2026-12-31 and then doubles ($1.50 / $7.50).
+    // Gemini 4 Argon's launch price, to 2026-11-30 ($4/$20 after).
+    ("gemini-4-argon", 2_000_000, 10_000_000, 100_000),
     ("gemini-3.8-flash", 750_000, 3_750_000, 75_000),
     ("gemini-3.1-pro", 2_000_000, 12_000_000, 200_000),
     ("gemini-2.5-pro", 1_250_000, 10_000_000, 125_000),

@@ -37,6 +37,7 @@ pub(super) const MODELS: &[ModelInfo] = &[
     m("Claude Fable 5.1", "claude-fable-5-1", Some("anthropic/claude-fable-5.1"), Vendor::Anthropic, Some((10 * M, 50 * M)), false, 1_000_000),
     m("Claude Opus 5", "claude-opus-5", Some("anthropic/claude-opus-5"), Vendor::Anthropic, Some((5 * M, 25 * M)), false, 1_000_000),
     m("Claude Sonnet 5", "claude-sonnet-5", Some("anthropic/claude-sonnet-5"), Vendor::Anthropic, Some((2 * M, 10 * M)), false, 1_000_000),
+    m("Claude Haiku 5.5", "claude-haiku-5-5", None, Vendor::Anthropic, Some((100_000, 500_000)), false, 1_000_000),
     m("Claude Haiku 4.5", "claude-haiku-4-5", Some("anthropic/claude-haiku-4.5"), Vendor::Anthropic, Some((M, 5 * M)), false, 200_000),
     m("Claude Opus 4.8", "claude-opus-4-8", Some("anthropic/claude-opus-4.8"), Vendor::Anthropic, Some((5 * M, 25 * M)), false, 1_000_000),
     m("Claude Fable 5", "claude-fable-5", Some("anthropic/claude-fable-5"), Vendor::Anthropic, Some((10 * M, 50 * M)), false, 1_000_000),
@@ -61,7 +62,7 @@ pub(super) const MODELS: &[ModelInfo] = &[
     m("Qwen3.7 Max", "qwen3.7-max", Some("qwen/qwen3.7-max"), Vendor::Alibaba, Some((2_500_000, 7_500_000)), false, 1_000_000),
     m("Qwen Max", "qwen-max", Some("qwen/qwen3-max"), Vendor::Alibaba, Some((1_600_000, 6_400_000)), false, 0),
     m("Qwen Plus", "qwen-plus", Some("qwen/qwen-plus"), Vendor::Alibaba, Some((400_000, 1_200_000)), false, 0),
-    m("Qwen Turbo", "qwen-turbo", None, Vendor::Alibaba, Some((50_000, 200_000)), false, 0),
+    m("Qwen Flash", "qwen-flash", None, Vendor::Alibaba, Some((50_000, 400_000)), false, 0),
     m("Qwen3 Coder Plus", "qwen3-coder-plus", None, Vendor::Alibaba, Some((M, 5 * M)), false, 0),
     m("Qwen3 Coder Flash", "qwen3-coder-flash", None, Vendor::Alibaba, Some((300_000, 1_500_000)), false, 0),
     // DeepSeek / Moonshot — rates from `pricing::RATES`. `deepseek-chat` and
@@ -74,6 +75,7 @@ pub(super) const MODELS: &[ModelInfo] = &[
     m("Llama 3.3 70B", "meta-llama/llama-3.3-70b-instruct", Some("meta-llama/llama-3.3-70b-instruct"), Vendor::Meta, None, false, 131_072),
     // Google — rates from `pricing::RATES`; 2.5 Flash's left to enrichment.
     // 2.5 is limited to projects that already used it (2026-09-18).
+    m("Gemini 4 Argon", "gemini-4-argon", None, Vendor::Google, Some((2 * M, 10 * M)), false, 1_048_576),
     m("Gemini 3.8 Flash", "gemini-3.8-flash", Some("google/gemini-3.8-flash"), Vendor::Google, Some((750_000, 3_750_000)), false, 1_048_576),
     m("Gemini 3.1 Pro Preview", "gemini-3.1-pro-preview", Some("google/gemini-3.1-pro-preview"), Vendor::Google, Some((2 * M, 12 * M)), false, 1_048_576),
     m("Gemini 2.5 Pro", "gemini-2.5-pro", Some("google/gemini-2.5-pro"), Vendor::Google, Some((1_250_000, 10 * M)), false, 1_048_576),

@@ -123,11 +123,15 @@ fn current_claude_models_bill_at_their_own_rates() {
     );
     // 100 × $4 + 900 × $0.20 + 10 × $20 per M.
     assert_eq!(cached_reply_cost("claude-opus-5-5"), 400 + 180 + 200);
-    for sonnet in ["claude-sonnet-5", "claude-sonnet-5-5"] {
+    // 100 × $2 + 900 × the cache read + 10 × $10 per M: $0.20 on Sonnet 5,
+    // $0.10 on 5.5 (5% of input, as on Opus 5.5).
+    for (sonnet, read) in [("claude-sonnet-5", 180), ("claude-sonnet-5-5", 90)] {
         assert_eq!(super::rate(sonnet), Some((2_000_000, 10_000_000)));
-        // 100 × $2 + 900 × $0.20 + 10 × $10 per M.
-        assert_eq!(cached_reply_cost(sonnet), 200 + 180 + 100, "{sonnet}");
+        assert_eq!(cached_reply_cost(sonnet), 200 + read + 100, "{sonnet}");
     }
+    // The Cheap tier: 100 × $0.10 + 900 × $0.01 + 10 × $0.50 per M.
+    assert_eq!(super::rate("claude-haiku-5-5"), Some((100_000, 500_000)));
+    assert_eq!(cached_reply_cost("claude-haiku-5-5"), 10 + 9 + 5);
     assert_eq!(
         super::rate("claude-fable-5-1"),
         Some((10_000_000, 50_000_000))
@@ -143,6 +147,7 @@ fn openrouter_aliases_bill_like_the_native_slug() {
         ("claude-opus-5-5", "anthropic/claude-opus-5.5"),
         ("claude-sonnet-5-5", "anthropic/claude-sonnet-5.5"),
         ("claude-fable-5-1", "anthropic/claude-fable-5.1"),
+        ("claude-haiku-5-5", "anthropic/claude-haiku-5.5"),
     ] {
         assert_eq!(
             cached_reply_cost(alias),

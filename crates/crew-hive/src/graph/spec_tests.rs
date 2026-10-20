@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn model_id_cheap() {
-    assert_eq!(ModelTier::Cheap.model_id(), "claude-haiku-4-5");
+    assert_eq!(ModelTier::Cheap.model_id(), "claude-haiku-5-5");
 }
 
 #[test]

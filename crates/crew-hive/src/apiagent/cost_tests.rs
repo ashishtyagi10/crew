@@ -27,7 +27,7 @@ fn a_known_model_bills_at_its_own_price_not_the_tiers() {
 fn an_unknown_model_bills_at_the_tiers_own_model_price_not_zero() {
     let got = billed("mock", ModelTier::Cheap, &reply(100, 10));
     assert_eq!(got, cost_microusd(ModelTier::Cheap.model_id(), 100, 10));
-    assert_eq!(got, 150, "haiku: 100 × $1 + 10 × $5 per Mtok");
+    assert_eq!(got, 15, "haiku 5.5: 100 × $0.10 + 10 × $0.50 per Mtok");
     // The list, not a second table: Opus 5.5 at its list price.
     assert_eq!(billed("mock", ModelTier::Capable, &reply(1, 1)), 4 + 20);
 }
@@ -88,15 +88,16 @@ async fn a_factory_pinned_to_haiku_bills_its_agents_at_haikus_rate_not_sonnets()
 }
 
 /// The router on DashScope's cheap tier: qwen-flash was unlisted, so it
-/// billed at the Cheap tier's Haiku — $1/$5 per M against $0.05/$0.4, 20×
-/// on the input that is nearly all of a router call.
+/// billed at the Cheap tier's Haiku — $1/$5 per M against $0.05/$0.4 then,
+/// $0.10/$0.50 on Haiku 5.5 now: still 2× on the input that is nearly all
+/// of a router call.
 #[test]
 fn the_router_on_qwen_flash_bills_at_qwen_flash_not_haiku() {
     let got = billed("qwen-flash", ModelTier::Cheap, &reply(10_000, 100));
     assert_eq!(got, 500 + 40, "qwen-flash: 10k × $0.05 + 100 × $0.4 per M");
     assert_eq!(
         cost_microusd(ModelTier::Cheap.model_id(), 10_000, 100),
-        10_500
+        1_050
     );
 }
 
