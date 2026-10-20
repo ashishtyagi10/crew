@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.27
+
+**On an Ink page a pop-up wears the heavy frame of the box you're in.**
+Since v0.27.16 the pane you're working in on the `light` and `dark` Ink
+Reader pages is outlined with a heavier line, the only way a plain
+black-and-white page can say where the next key goes. Pop-ups didn't get
+it: `/keys`, the command and model menus and the other boxes that open over
+a pane kept the thin line while the pane waiting behind them kept the heavy
+one, so the emphasis pointed at the wrong box. Now a pop-up on an Ink page
+is drawn with the heavy line too (2 px against 1 px on `/keys`). The glass
+and tube themes are unchanged.
+- **Tests:** on both Ink pages a pop-up's frame is all heavy strokes, and on
+  glass all light ones.
+
 ## 0.27.26
 
 **When you say what "done" means, agent smith checks the answer against it.**

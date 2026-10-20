@@ -15,6 +15,7 @@ fn card_legend_is_the_given_title() {
 
 #[test]
 fn card_has_fieldset_border_legend_and_command_text() {
+    let _g = crate::inkframe::glass_theme_test_guard();
     let matches = crate::suggest::menu_items("/s");
     assert!(matches.len() >= 2); // /settings, /shell
     let cells = menu_card("commands", &matches, 0, 40, menu_rows(matches.len()));
@@ -79,6 +80,7 @@ fn long_list_scrolls_to_selection() {
 
 #[test]
 fn header_rows_are_dim_and_unmarked() {
+    let _g = crate::inkframe::glass_theme_test_guard();
     let items = vec![
         crate::suggest::MenuItem {
             label: "anthropic".into(),
@@ -112,8 +114,7 @@ fn header_rows_are_dim_and_unmarked() {
         .filter(|c| c.row == 1)
         .all(|c| c.c != '\u{203a}'));
     // ...and is bold despite not being selected — that's the section styling.
-    // (Excludes the card's own side border, which is drawn separately by
-    // `titled_card` and is never bold regardless of row content.)
+    // (Not the card's own side border: `titled_card` draws it, never bold.)
     assert!(cells
         .iter()
         .filter(|c| c.row == 1 && !c.c.is_whitespace() && c.c != '│')

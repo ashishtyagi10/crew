@@ -58,7 +58,7 @@ fn the_overlay_wears_the_popup_chrome() {
 /// muted ink — the frame stays the frame around it.
 #[test]
 fn the_hint_rides_the_bottom_border_at_the_right() {
-    let _g = crate::app::theme_test_guard();
+    let _g = crate::inkframe::glass_theme_test_guard();
     let (w, _) = size();
     let cells = help_cells(w, 24, 0, "", None);
     let bottom = row(&cells, 23);
@@ -80,7 +80,7 @@ fn the_hint_rides_the_bottom_border_at_the_right() {
 /// (The blank after the word is the opaque filler `to_cells_opaque` draws.)
 #[test]
 fn the_global_keys_have_a_ruled_heading() {
-    let _g = crate::app::theme_test_guard();
+    let _g = crate::inkframe::glass_theme_test_guard();
     let (w, h) = size();
     let cells = help_cells(w, h, 0, "", None);
     let first = row(&cells, 1);

@@ -31,6 +31,7 @@ fn shows(cells: &[CellView], needle: &str) -> bool {
 
 #[test]
 fn renders_bindings_with_border() {
+    let _g = crate::inkframe::glass_theme_test_guard();
     let (w, h) = size();
     let cells = panel(w, h, 0, "");
     assert!(cells.iter().any(|c| c.c == '╭'));
@@ -211,7 +212,7 @@ fn documented_chords(docs: &str) -> Vec<String> {
 /// is to say what you are looking for.
 #[test]
 fn typing_filters_the_list_to_what_matches() {
-    let _g = crate::app::theme_test_guard();
+    let _g = crate::inkframe::glass_theme_test_guard();
     let (w, h) = (super::size().0, 24);
     // `rows_of` stands blank cells in as `█`; the words are what matter here.
     let text = |needle: &str| -> String {

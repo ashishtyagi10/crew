@@ -24,6 +24,10 @@ pub(crate) fn card(cols: u16, rows: u16, title: &str) -> Vec<CellView> {
     for c in v.iter_mut().filter(|c| c.row == 0 && c.fg == accent) {
         c.bold = true;
     }
+    // On an Ink page the focused frame is the heavy line (`inkframe`), and the
+    // box the next key lands in is focused: it had the light rule while the
+    // pane waiting under it wore the heavy one.
+    crate::inkframe::weigh(&mut v, (cols, rows), true);
     v
 }
 
@@ -56,3 +60,7 @@ pub(crate) fn mark(cells: &mut Vec<CellView>, text: &str, cols: u16) {
 #[cfg(test)]
 #[path = "popupchrome_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "popupink_tests.rs"]
+mod ink_tests;

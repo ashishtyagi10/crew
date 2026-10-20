@@ -49,6 +49,7 @@ fn a_long_list_hugs_its_measure() {
 /// card's last column, and no cell lies past it.
 #[test]
 fn the_frame_ends_at_the_hugged_width() {
+    let _g = crate::inkframe::glass_theme_test_guard();
     let items = [
         item("/dash", "Open the dashboard pane"),
         item(
