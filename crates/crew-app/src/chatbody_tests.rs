@@ -53,8 +53,9 @@ fn untagged_fence_is_labelled_code() {
 
 #[test]
 fn long_code_lines_hard_wrap_verbatim() {
-    let lines = body_lines("```\nlet a = 1;\n```", 6, (9, 9, 9), false);
-    // The field's own padding is part of the card's width, never past it.
+    let lines = body_lines("```\nlet a = 1;\n```", 7, (9, 9, 9), false);
+    // The field's own padding is part of the card's width, never past it,
+    // and the card's last column is the margin nothing in a body takes.
     assert!(
         lines.iter().all(|l| l.len() <= 6),
         "{:?}",
@@ -62,10 +63,10 @@ fn long_code_lines_hard_wrap_verbatim() {
     );
     // Every character — including the spaces — survives the wrap. Read
     // from inside the field: column 0 is the indent, then the pad, then
-    // the code itself, which is the card's width less both pads. A
-    // continued row leads with the `↪` that says it is one, which is the
-    // mark and not the code.
-    let code_w = 6 - 1 - crate::chatfield::PAD * 2;
+    // the code itself: the card less the indent, the right margin and both
+    // pads. A continued row leads with the `↪` that says it is one, which is
+    // the mark and not the code.
+    let code_w = 7 - 2 - crate::chatfield::PAD * 2;
     let rows: Vec<String> = lines[1..lines.len() - 1]
         .iter()
         .map(|l| {

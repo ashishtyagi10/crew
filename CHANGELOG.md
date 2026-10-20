@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.21
+
+**A reply's lines stop where the composer stops.**
+In the chat pane the header, code blocks, swarm rows and the composer's
+outline all end one column in from the card's right edge. The reply text
+itself didn't: a horizontal rule, a table, a word that landed on the last
+column, and the ` … +N` at the end of a folded reply all ran into that
+column, a few pixels past the composer under them. Reply text now wraps one
+column sooner and the fold count fits inside the same edge. A rule on a
+512 px card now ends 12 px from the card's right stroke, the same as on the
+left (it was 4 px), and inside the composer's outline instead of past it.
+- **Tests:** a rule, a table and a long word end a column short of the
+  card's edge, and so does a folded line's ` … +N`.
+
 ## 0.27.20
 
 **Cheap work runs on Claude Haiku 5.5, and DashScope's last fallback answers.**

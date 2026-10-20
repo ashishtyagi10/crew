@@ -194,7 +194,9 @@ pub(crate) fn card_lines_spanned(
             let hidden = body.len() - keep;
             body.truncate(keep);
             if hidden > 0 {
-                crate::chathidden::append_hidden_suffix(&mut body[keep - 1], hidden, cols);
+                // The body line holds its indent cell; the last column stays margin.
+                let room = cols.saturating_sub(1);
+                crate::chathidden::append_hidden_suffix(&mut body[keep - 1], hidden, room);
             }
         }
         if splash {
@@ -267,3 +269,7 @@ pub(crate) mod tests;
 #[cfg(test)]
 #[path = "chattrunk_tests.rs"]
 mod trunk_tests;
+
+#[cfg(test)]
+#[path = "chatmargin_tests.rs"]
+mod margin_tests;
