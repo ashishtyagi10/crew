@@ -1656,10 +1656,24 @@ longer aim at.
   threads, newest first: an unread dot, the sender (with a count when the
   thread has several messages), the subject, the snippet in a quieter ink
   and the age (`9m`, `3h`, `Mon`, `Oct 12`). Keys: ↑↓ or j/k move (the last
-  row loads the next page), Enter reads the thread as text — each message's
-  sender and local time over its words, attachments named, HTML-only mail
-  read as text the way `sys:fetch` reads a page, control characters stripped
-  — `e` archives (takes the `INBOX` label away, as Gmail's archive does),
+  row loads the next page), Enter reads the thread — each message's sender
+  and local time over its words, attachments named, control characters
+  stripped. An HTML mail is drawn as markdown through the chat renderer:
+  headings, bold and italic, nested lists, blockquotes, code, rules, and a
+  data table (a receipt's rows) as a table, while a newsletter's layout
+  tables are read cell by cell. Hidden text (`display:none`, preheaders,
+  `mso-hide`) is dropped, so agent smith never reads what the user cannot
+  see. A link opens at its real address by Cmd+click or `Cmd+E`; only
+  `http`, `https` and `mailto` are links, and one whose words name another
+  site shows the real one after it (`paypal.com ⟶ paypa1-login.xyz`). A
+  reply's quoted history (Gmail, Outlook, Apple Mail, Thunderbird, Yahoo, or
+  a plain mail's "On … wrote:") folds to `··· quoted text (N lines)` and `z`
+  unfolds it; a forwarded mail never folds. `v` swaps to the plain-text part
+  and back. A plain mail stays plain: its `*` and `#` are characters, `>`
+  runs draw as quote bars, and the signature under `-- ` is quiet. Bytes are
+  read in the part's charset (UTF-8, Latin-1, windows-1252; any other is
+  named in a line under the mail), and HTML past 512 KB is cut with a line
+  saying so — `e` archives (takes the `INBOX` label away, as Gmail's archive does),
   `d` deletes (moves the thread to Trash, as Gmail's delete does; Gmail
   empties Trash after 30 days), `m` marks read or unread, `s` stars or
   unstars, `u` undoes the last of those (a delete comes back out of Trash);
@@ -1678,7 +1692,8 @@ longer aim at.
   Pressed in the list, each opens the thread and acts when it arrives. The
   thread reaches smith fenced and labelled untrusted, with the instruction
   not to follow it; smith's transcript shows one short line for it, not the
-  mail. `/` searches with Gmail's syntax, `R` re-lists, `o` opens the thread or
+  mail. `/` searches with Gmail's syntax, `R` re-lists, `z` and `v` fold and swap
+  in the reader, `o` opens the thread or
   the inbox in Gmail on the signed-in account, Esc clears a search, leaves a
   thread, and closes the pane. `/inbox <search>` opens on a search; `/inbox
   signout` deletes the grant and revokes it at Google. Sign-in is Google's

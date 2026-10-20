@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.34
+
+**`/inbox` reads mail the way it was written.**
+An opened HTML mail is now formatted text instead of one run of words:
+headings, bold and italic, lists, quotes, code, and a receipt's rows as a
+real table. A newsletter's layout is read top to bottom instead of drawn as
+nonsense columns. Links work: Cmd+click one, or press `Cmd+E` and its
+letter, and it opens at its real address. A link whose words name one site
+but which goes to another shows where it really goes
+(`paypal.com ⟶ paypa1-login.xyz`). Text the sender hid (preheaders,
+`display:none`) is dropped, so agent smith never reads words you cannot
+see. A reply's quoted history folds to one row; `z` unfolds it, and a
+forwarded mail is never folded. `v` switches to the mail's plain-text
+version and back. A plain-text mail stays plain: a `*` or `#` in it is a
+character, `>` lines draw as quote bars, and the signature is quiet. Mail
+in Latin-1 or windows-1252 now reads right (curly quotes instead of `�`),
+and any other charset is named in a line under the mail. Pictures are not
+drawn yet; an image shows as `▣` and its description.
+- **Tests:** ten synthetic mails (Gmail, Outlook and Apple Mail replies, a
+  newsletter, a receipt, a GitHub notification, a calendar invitation, a
+  forward, a deceptive link, structure) each against its expected markdown;
+  hidden text and script links never reach the output; a 512 KB newsletter
+  is cut and converts in time; charsets, entities, tags, the forgiving
+  tree, tables, plain-mail splitting, folding, links by hint and by click;
+  four mutants checked.
+
 ## 0.27.33
 
 **`/inbox`: `d` deletes, `r` replies.**

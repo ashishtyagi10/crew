@@ -6,23 +6,47 @@ fn b64(s: &str) -> String {
 }
 
 #[test]
-fn the_plain_part_wins_over_the_html_one() {
+fn the_html_part_is_shown_and_the_plain_part_is_its_other_version() {
     let msg = json!({"payload": {"mimeType": "multipart/alternative", "parts": [
         {"mimeType": "text/html", "body": {"data": b64("<p>Hi <b>there</b></p>")}},
-        {"mimeType": "text/plain", "body": {"data": b64("Hi there\r\n\r\n\r\n-- Ann")}},
+        {"mimeType": "text/plain", "body": {"data": b64("Hi there\r\n\r\n\r\n-- \r\nAnn")}},
     ]}});
+    let (rich, files) = super::text(&msg);
+    assert_eq!((rich.body.as_str(), files.len()), ("Hi **there**", 0));
+    let alt = rich.alt.expect("the plain part");
     assert_eq!(
-        super::text(&msg),
-        ("Hi there\n\n-- Ann".to_string(), vec![])
+        (alt.body.as_str(), alt.sig.as_deref()),
+        ("Hi there", Some("Ann"))
     );
 }
 
 #[test]
-fn an_html_only_mail_is_read_as_text() {
+fn an_html_only_mail_reads_as_its_words() {
     let msg = json!({"payload": {"mimeType": "text/html", "body": {"data": b64("<html><head><style>p{}</style></head><body><p>Your order shipped.</p></body></html>")}}});
-    let (text, _) = super::text(&msg);
-    assert!(text.contains("Your order shipped."), "{text:?}");
-    assert!(!text.contains('<') && !text.contains("p{}"), "{text:?}");
+    let (rich, _) = super::text(&msg);
+    assert_eq!(rich.body, "Your order shipped.");
+    assert!(rich.alt.is_none());
+}
+
+#[test]
+fn a_part_is_read_in_the_charset_its_header_names() {
+    let bytes = [0x93u8, b'H', b'i', 0x94, b' ', 0xE9];
+    let data = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes);
+    let msg = json!({"payload": {"mimeType": "text/plain",
+        "headers": [{"name": "Content-Type", "value": "text/plain; charset=windows-1252"}],
+        "body": {"data": data}}});
+    let (rich, _) = super::text(&msg);
+    assert_eq!(
+        (rich.body.as_str(), rich.note),
+        ("\u{201c}Hi\u{201d} \u{e9}", None)
+    );
+    let msg = json!({"payload": {"mimeType": "text/plain",
+        "headers": [{"name": "content-type", "value": "text/plain; charset=Shift_JIS"}],
+        "body": {"data": b64("abc")}}});
+    assert!(super::text(&msg)
+        .0
+        .note
+        .is_some_and(|n| n.contains("shift_jis")));
 }
 
 #[test]
@@ -32,19 +56,15 @@ fn attachments_are_named_and_never_read_as_the_text() {
         {"mimeType": "text/plain", "body": {"data": b64("See attached.")}},
         {"mimeType": "application/pdf", "filename": "invoice.pdf", "body": {"attachmentId": "a2"}},
     ]}});
-    assert_eq!(
-        super::text(&msg),
-        (
-            "See attached.".into(),
-            vec!["notes.txt".into(), "invoice.pdf".into()]
-        )
-    );
+    let (rich, files) = super::text(&msg);
+    assert_eq!(rich.body, "See attached.");
+    assert_eq!(files, ["notes.txt", "invoice.pdf"]);
 }
 
 #[test]
 fn a_mail_with_no_text_says_what_it_is() {
     let msg = json!({"payload": {"mimeType": "image/png", "body": {"attachmentId": "x"}}});
-    assert!(super::text(&msg).0.contains("image/png"));
+    assert!(super::text(&msg).0.body.contains("image/png"));
 }
 
 #[test]
@@ -57,7 +77,18 @@ fn escape_sequences_never_reach_the_grid() {
 
 #[test]
 fn padded_and_unpadded_base64url_both_decode() {
-    assert_eq!(super::decode("aGk_Pz8").as_deref(), Some("hi???"));
-    assert_eq!(super::decode("aGk_Pz8=").as_deref(), Some("hi???"));
-    assert_eq!(super::decode("not base64!"), None);
+    assert_eq!(super::bytes("aGk_Pz8").as_deref(), Some(&b"hi???"[..]));
+    assert_eq!(super::bytes("aGk_Pz8=").as_deref(), Some(&b"hi???"[..]));
+    assert_eq!(super::bytes("not base64!"), None);
+}
+
+#[test]
+fn html_that_reads_as_nothing_gives_way_to_the_plain_part() {
+    let msg = json!({"payload": {"mimeType": "multipart/alternative", "parts": [
+        {"mimeType": "text/html", "body": {"data": b64("<img src='https://x.io/a.png'>")}},
+        {"mimeType": "text/plain", "body": {"data": b64("Your statement is ready.")}},
+    ]}});
+    let (rich, _) = super::text(&msg);
+    assert_eq!(rich.body, "Your statement is ready.");
+    assert!(rich.alt.is_some());
 }

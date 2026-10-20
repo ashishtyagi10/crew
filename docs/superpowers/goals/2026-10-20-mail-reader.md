@@ -1,6 +1,7 @@
 # Goal — read mail the way it was written: rich text and pictures in `/inbox`
 
-**Status: SET 2026-10-20.** Nothing built yet (see "Where it stands" at the end).
+**Status: SET 2026-10-20** (the user: "go ahead with the mail reader goal"). Phases 0 and 1
+built (see "Where it stands" at the end).
 
 **Set:** 2026-10-20 by the user, once `/inbox` was signed in live: *"write a goal to give better
 email viewer, like showing better markdown or htmls with images, whatever is possible."*
@@ -185,4 +186,24 @@ question below); calendar invitation cards; inverting pictures for dark mode.
 
 ## Where it stands
 
-Nothing built yet. The reader is plain text as described at the top.
+**Phase 0, decided:** crew's own converter, no new dependency. A lenient tokenizer and tree
+(`crates/crew-app/src/inbox/html/tok.rs`, `crates/crew-app/src/inbox/html/tree.rs`) and a walk
+that writes markdown (`crates/crew-app/src/inbox/html/walk.rs`, `out.rs`, `block.rs`,
+`crates/crew-app/src/inbox/html/table.rs`, `crates/crew-app/src/inbox/html/quote.rs`,
+`crates/crew-app/src/inbox/html/link.rs`, `crates/crew-app/src/inbox/html/hide.rs`,
+`crates/crew-app/src/inbox/html/ent.rs`): about 1,000 lines, more than the 600 guessed, every
+file under the cap. The corpus is ten synthetic mails in `crates/crew-app/src/inbox/html/corpus/`
+(Gmail, Outlook, Apple Mail replies; a newsletter; a receipt; a GitHub notification; a calendar
+invitation; a forward; a deceptive link; structure), each with its expected markdown, held by
+`crates/crew-app/src/inbox/html/corpus_tests.rs`.
+
+**Phase 1, built:** items 3–10. The reader draws through `chatmd` (`crates/crew-app/src/inbox/reader.rs`,
+layout cached per width and toggles in `crates/crew-app/src/inbox/reading.rs`); a message is a
+`Rich` (`crates/crew-app/src/inbox/rich.rs`) made in `crates/crew-app/src/inbox/body.rs` from its
+parts in their charsets (`crates/crew-app/src/inbox/charset.rs`), plain mail through
+`crates/crew-app/src/inbox/plain.rs`. Links reach hint mode and Cmd+click through
+`crates/crew-app/src/inbox/links.rs`. Two departures from the items as written: `z` and `v`
+act on the whole open thread rather than the message under a cursor (the reader has no cursor),
+and the shots are the inbox's two themes (Ink light, glass dark) rather than 80 and 120 columns.
+
+**Not yet:** phase 2 (pictures) and phase 3 (`w`, attachments).

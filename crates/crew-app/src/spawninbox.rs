@@ -73,3 +73,20 @@ impl CrewApp {
         self.redraw();
     }
 }
+
+impl CrewApp {
+    /// A Cmd+click on the inbox pane: the link drawn under it, at its real
+    /// address (only `http`, `https` and `mailto` are ever links there).
+    pub(crate) fn resolve_inbox_click(&mut self, i: usize, row: u16, col: u16) -> bool {
+        let grid = self.panes[i].grid;
+        let PaneContent::Inbox(p) = &self.panes[i].content else {
+            return false;
+        };
+        let Some(url) = p.link_at(grid.cols, grid.rows, row, col) else {
+            return false;
+        };
+        crate::linkclick::open_external(&url);
+        self.set_status(format!("opening {url}"));
+        true
+    }
+}

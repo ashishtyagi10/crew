@@ -86,11 +86,7 @@ impl InboxPane {
             let thread = self.rows.get(self.sel)?.clone();
             self.ask(Ask::Open(thread.id.clone()));
             self.opened(&thread.id);
-            self.reading = Some(Reading {
-                thread,
-                mails: None,
-                scroll: 0,
-            });
+            self.reading = Some(Reading::new(thread));
         } else if ch == "/" {
             self.typing = Some(self.query.clone());
         } else if ch == "R" {
@@ -112,9 +108,7 @@ impl InboxPane {
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
         let page = rows.saturating_sub(2).max(1) as usize;
         let r = self.reading.as_mut()?;
-        let last = super::reader::layout(r, cols.saturating_sub(4) as usize)
-            .len()
-            .saturating_sub(page);
+        let last = super::reader::height(r, cols).saturating_sub(page);
         if named(NamedKey::Escape) || named(NamedKey::Backspace) || named(NamedKey::ArrowLeft) {
             self.reading = None;
         } else if named(NamedKey::ArrowUp) || ch == "k" {
@@ -128,6 +122,8 @@ impl InboxPane {
         } else if ch == "o" {
             let id = r.thread.id.clone();
             self.browse(Some(&id));
+        } else if ch == "v" || ch == "z" {
+            self.note = r.toggle(ch == "v").into();
         } else {
             return None;
         }
@@ -172,7 +168,7 @@ pub(crate) fn hint(p: &InboxPane) -> String {
         (Stage::Setup { .. }, _) => "1\u{2013}5 open the console \u{b7} enter sign in \u{b7} esc close".into(),
         (Stage::SigningIn(_), _) => "esc cancel".into(),
         (Stage::Ready(_), Some(_)) => {
-            "esc back \u{b7} r reply \u{b7} e archive \u{b7} d delete \u{b7} a ask smith \u{b7} t todo \u{b7} m unread \u{b7} s star \u{b7} o gmail".into()
+            "esc back \u{b7} r reply \u{b7} e archive \u{b7} d delete \u{b7} a ask smith \u{b7} t todo \u{b7} z quotes \u{b7} v text \u{b7} m unread \u{b7} s star \u{b7} o gmail".into()
         }
         (Stage::Ready(_), None) if p.busy => "loading\u{2026}".into(),
         (Stage::Ready(_), None) => {

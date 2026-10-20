@@ -54,9 +54,8 @@ fn a_in_the_list_opens_the_thread_and_hands_it_over_when_it_lands() {
 fn r_asks_for_a_reply_and_smiths_body_becomes_a_draft_in_the_thread() {
     let (mut p, asks, _answer) = pane();
     p.reading = Some(super::Reading {
-        thread: p.rows[0].clone(),
         mails: Some(mails()),
-        scroll: 0,
+        ..super::Reading::new(p.rows[0].clone())
     });
     p.press(&Key::Character("r".into()), 80, 24);
     let sent = p.to_smith.take().expect("handed over");
@@ -94,9 +93,8 @@ fn t_adds_a_todo_row_with_the_deadline_the_mail_states() {
     let _g = crate::todopane::store::test_guard(Vec::new());
     let (mut p, _asks, _answer) = pane();
     p.reading = Some(super::Reading {
-        thread: p.rows[0].clone(),
         mails: Some(mails()),
-        scroll: 0,
+        ..super::Reading::new(p.rows[0].clone())
     });
     p.press(&Key::Character("t".into()), 80, 24);
     let items = crate::todopane::store::snapshot();
