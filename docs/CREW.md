@@ -3195,7 +3195,7 @@ then serves *every* model call (classify, planner, workers, judges) exactly
 as a key would. With no subscription, key discovery is unchanged and
 prefers `DASHSCOPE_API_KEY`
 (Alibaba Cloud Model Studio — Qwen commercial models, `qwen-max` →
-`qwen-plus` → `qwen-turbo`, override with `CREW_DASHSCOPE_MODEL=a,b,…` —
+`qwen-plus` → `qwen-flash`, override with `CREW_DASHSCOPE_MODEL=a,b,…` —
 `qwen3.8-max` is in the catalog with a 1M context against `qwen-max`'s 32K,
 but thinks before it answers, so a plain reply starts about twice as late; the
 quick decisions — routing, skill and tool picks — run on `qwen-flash`, override
@@ -3618,7 +3618,7 @@ goal ─► Planner ─► TaskGraph (DAG) ─► Scheduler ─► Agent pool �
   so each round reads the conversation so far back from the cache instead of
   paying full input price and prefill for it again. `ModelTier` maps cost
   tiers to models —
-  Cheap→`claude-haiku-4-5`, Standard→`claude-sonnet-5-5`, Capable→`claude-opus-5-5`.
+  Cheap→`claude-haiku-5-5`, Standard→`claude-sonnet-5-5`, Capable→`claude-opus-5-5`.
 
 **Two modes, one engine.** Single-goal decomposition (the planner builds a DAG)
 *and* embarrassingly-parallel batches — `batch_graph(jobs)` builds a flat

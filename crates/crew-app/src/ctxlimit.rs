@@ -31,6 +31,7 @@ const LIMITS: &[(&str, u64)] = &[
     ("claude-opus-5", 1_000_000),
     ("claude-sonnet-5", 1_000_000),
     ("claude-fable", 1_000_000),
+    ("claude-haiku-5", 1_000_000),
     ("claude", 200_000),
     // OpenAI. GPT-5.5 and every GPT-6 read 1.05M (model pages, 2026-09-29);
     // `gpt-5.5` must precede `gpt-5`, which it contains.

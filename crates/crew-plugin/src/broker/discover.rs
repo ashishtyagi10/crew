@@ -39,8 +39,11 @@ pub(crate) fn default_openrouter_chain() -> Vec<String> {
 /// 1.5× later on a plain question and its first ANSWER token 2.2× later (it
 /// thinks first), though 4× sooner on a tool call — and a slower plain reply
 /// is the complaint smith has been fixing. `CREW_DASHSCOPE_MODEL=qwen3.8-max`
-/// or `/model` picks it.
-pub(crate) const DEFAULT_DASHSCOPE_CHAIN: &[&str] = &["qwen-max", "qwen-plus", "qwen-turbo"];
+/// or `/model` picks it. The last rung was qwen-turbo until Alibaba retired
+/// it on 2026-10-10; on 2026-10-20 it answered HTTP 429 to every call, so the
+/// chain's floor was a model that never answers. qwen-flash is its named
+/// successor and answered the same call.
+pub(crate) const DEFAULT_DASHSCOPE_CHAIN: &[&str] = &["qwen-max", "qwen-plus", "qwen-flash"];
 
 /// DashScope's model for [`crew_hive::ModelTier::Cheap`] work — the router's
 /// one-line decision, a skill or tool pick, a far-command hint. It used to be

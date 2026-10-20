@@ -27,8 +27,10 @@ fn unknown_models_have_no_limit() {
 /// Anthropic's current models read 1M, in either spelling of their version;
 /// Haiku 4.5 and anything older stay at the family's conservative 200K.
 #[test]
-fn current_claude_models_have_a_million_haiku_and_older_do_not() {
+fn current_claude_models_have_a_million_haiku_4_and_older_do_not() {
     for m in [
+        "claude-haiku-5-5",
+        "anthropic/claude-haiku-5.5",
         "claude-opus-5-5",
         "anthropic/claude-opus-5.5",
         "claude-sonnet-5-5",

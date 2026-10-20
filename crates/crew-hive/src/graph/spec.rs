@@ -85,7 +85,7 @@ impl ModelTier {
     /// call is billed at, so a stale generation here is wrong three ways.
     pub fn model_id(&self) -> &'static str {
         match self {
-            ModelTier::Cheap => "claude-haiku-4-5",
+            ModelTier::Cheap => "claude-haiku-5-5",
             ModelTier::Standard => "claude-sonnet-5-5",
             ModelTier::Capable => "claude-opus-5-5",
         }

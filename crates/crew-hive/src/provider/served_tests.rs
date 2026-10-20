@@ -132,8 +132,8 @@ fn a_reply_that_reads_and_writes_the_cache_prices_each_part() {
         );
         assert_eq!((c.cached_input_tokens, c.cache_write_tokens), (1800, 200));
         assert_eq!(c.output_tokens, 16);
-        // $2/$10, a cache read $0.20, a write 1.25× input.
-        assert_eq!(usage_cost("claude-sonnet-5-5", &c), 100 + 360 + 500 + 160);
+        // $2/$10, a cache read $0.10 (5% of input), a write 1.25× input.
+        assert_eq!(usage_cost("claude-sonnet-5-5", &c), 100 + 180 + 500 + 160);
     }
 }
 

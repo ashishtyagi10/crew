@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.20
+
+**Cheap work runs on Claude Haiku 5.5, and DashScope's last fallback answers.**
+Two of crew's model choices had gone stale. On DashScope, the last model
+crew falls back to when the first two fail was `qwen-turbo`, which Alibaba
+retired on 2026-10-10. A turn forced onto it now fails in 8 s with "exceeded
+your current request limit", so the fallback could never answer. The last
+fallback is now `qwen-flash`, its successor, which answered the same
+question in 16 s with two tool calls. On Anthropic, the Cheap tier (the
+planner's one-line decisions and quick checks) moves from Haiku 4.5 to
+`claude-haiku-5-5`, released 2026-10-07: a tenth of the input price ($0.10
+against $1 per million tokens below 100K) and a 1M-token window against
+200K. Haiku 4.5 still works when you pick it. The `/model` picker lists
+Haiku 5.5, Qwen Flash in place of Qwen Turbo, and Gemini 4 Argon (generally
+available 2026-10-13; not tried live, as there is no Gemini key to try it
+with). Costs follow the current price tables: Sonnet 5.5 now reads its cache
+at $0.10 per million, not $0.20. Idea from Claude Code's `fallbackModel` and
+the vendors' model pages.
+- **Tests:** the Cheap tier's id, Haiku 5.5 and Sonnet 5.5 pricing (with the
+  OpenRouter spelling), and a 1M window for Haiku 5.5.
+
 ## 0.27.19
 
 **A swarm run's live block sits a row apart from your message.**
