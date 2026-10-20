@@ -2457,7 +2457,12 @@ and a typo gets a **did-you-mean** suggestion):
   project.
 - **what agent smith decides** — every plain message runs one decision
   loop: **routing** (the model picks the shape and says so — `routing: swarm
-  · verified — multi-part work`), **context** (one line says what the run
+  · verified — multi-part work`; `· verified` means the request states a
+  condition to check, such as tests passing, and a swarm, a plan or one
+  agent's reply is then judged against it when it ends: one call reads the
+  request, what the turn's tools did and the answer, says `verified — …` or
+  `not yet — …`, and on `not yet` the work goes back once for the gap the
+  judge named), **context** (one line says what the run
   starts with — `context: 2 earlier turns · recalled 2 turns from 3w ago ·
   a note · skill code-review · 41 tools · tree dirty (3 files)` — and nothing
   at all when a fresh session on a clean tree has nothing to bring; the

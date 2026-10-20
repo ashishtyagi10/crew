@@ -695,13 +695,36 @@ pub(crate) fn relay_counting(
     tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
+    relayed(input, pick, solo, session, tick_emit, emit).map(|_| ())
+}
+
+/// A routed reply's turn, and the answer it left (`None`: stopped, fanned
+/// out, or nobody to ask) — for the judge that checks it (`replyverify`).
+pub(crate) fn relay_answer(
+    input: &str,
+    pick: Option<&str>,
+    session: &Session,
+    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<Option<String>> {
+    relayed(input, pick, true, session, tick_emit, emit)
+}
+
+fn relayed(
+    input: &str,
+    pick: Option<&str>,
+    solo: bool,
+    session: &Session,
+    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<Option<String>> {
     let reg = session.registry();
     if reg.is_empty() {
-        return emit(msg("agent smith", roster(&reg)));
+        return emit(msg("agent smith", roster(&reg))).map(|_| None);
     }
     let task = input.trim();
     if task.is_empty() {
-        return Ok(());
+        return Ok(None);
     }
     // `@a+b <task>` fans out to that subset in parallel instead of relaying.
     if let Some((names, body)) = multi_targets(task, &reg) {
@@ -709,7 +732,8 @@ pub(crate) fn relay_counting(
             "agent smith",
             format!("fanning out to {} in parallel\u{2026}", names.join("+")),
         ))?;
-        return super::intent::fan_recorded(session, &reg, &names, &body, tick_emit, emit);
+        return super::intent::fan_recorded(session, &reg, &names, &body, tick_emit, emit)
+            .map(|_| None);
     }
     // A `/resume` before this task folds the previous session's tail in as
     // restored context (consumed once).
@@ -754,8 +778,8 @@ pub(crate) fn relay_counting(
     let answer = relay_turn(&broker, &start, &body, &request, &tid, tick_emit, emit)?;
     let kept = answer.filter(|_| !session.cancelled()); // a stopped turn is no turn
     super::recall::record(&session.recall, task, kept.as_deref());
-    super::thread::record(&session.thread, task, kept);
-    Ok(())
+    super::thread::record(&session.thread, task, kept.clone());
+    Ok(kept)
 }
 
 #[cfg(test)]

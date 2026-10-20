@@ -204,7 +204,7 @@ pub(crate) fn dispatch(
         Shape::Reply => {
             let pick = hints.agents.as_ref().and_then(|a| a.first());
             let pick = pick.map(String::as_str);
-            super::stdio::relay_counting(task, pick, true, session, tick_emit, emit)
+            super::replyverify::reply(task, pick, hints.verify, session, tick_emit, emit)
         }
         Shape::Fan => fanout::fan_cmd(session, task, hints.agents.as_deref(), tick_emit, emit),
         Shape::Loop => {

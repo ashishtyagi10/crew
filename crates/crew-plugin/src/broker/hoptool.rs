@@ -40,6 +40,7 @@ pub(crate) fn hop_tooler(
             }),
             _ => None,
         };
+        super::turnproof::note(&event);
         tick_emit(PluginEvent::Hive { event });
         if let Some(a) = activity {
             tick_emit(a);

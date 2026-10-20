@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.26
+
+**When you say what "done" means, agent smith checks the answer against it.**
+A request with a condition, such as "and make sure the tests pass", was
+checked against it only when it ran as a crew of agents. When one agent
+answered alone, its turn simply ended when the agent stopped, and on a test
+task (rename a function across a crate and make its tests pass) agents
+stopped with files left over or tests failing and said they were done. Now
+the same check runs on a one-agent answer: one call reads what you asked,
+what the agent's tools actually did (each call and whether it worked) and
+the answer, and a claim no tool result shows doesn't count. It says
+`verified — …` or `not yet — …` under the answer, and on `not yet` the agent
+takes one more turn on exactly the gap named. In five runs of that task the
+check was right every time: once `verified` (renamed and tests green), four
+times `not yet` with the real gap ("the final cargo test did not pass", "no
+rename was performed"). With the extra turn, every qwen-max run finished the
+rename, where 3 of 7 had without it. It costs one model call when you state
+a condition, nothing when you don't. Idea from Claude Code's `/goal` and
+LLM-judged Stop hooks, and Amp's oracle.
+- **Tests:** the judge's prompt carries the request, the turn's calls with
+  how each came back and the answer; the retry names the gap and then the
+  request; a reply keeps the router's `VERIFY` line.
+
 ## 0.27.25
 
 **A reply that opens with a title, quote, code or table starts a row lower.**
