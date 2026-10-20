@@ -96,7 +96,7 @@ mod streamhold;
 mod swarm;
 mod sysedit;
 mod sysfetch;
-mod sysfetchtext;
+pub(crate) mod sysfetchtext;
 mod sysgit;
 mod sysgitargs;
 mod sysgrep;

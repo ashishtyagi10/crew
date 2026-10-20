@@ -72,6 +72,7 @@ fn scroll_pane(pane: &mut Pane, lines: i32) {
         | PaneContent::Dash(_) => {}
         PaneContent::View(v) => v.scroll_wheel(cols, rows, lines),
         PaneContent::Todo(t) => t.scroll_wheel(lines, cols, rows),
+        PaneContent::Inbox(i) => i.scroll_wheel(lines, cols, rows),
     }
 }
 

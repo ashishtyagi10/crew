@@ -65,6 +65,8 @@ pub enum PaneContent {
     Disk(DiskPane),
     /// `/dash` — the machine and the week, on one screen.
     Dash(DashPane),
+    /// `/inbox` — Gmail, read-only, in a pane.
+    Inbox(Box<crate::inbox::InboxPane>),
 }
 
 /// A single pane: owns its content, grid size, and pixel rect.
@@ -102,10 +104,9 @@ pub struct Pane {
     /// When this pane came into being, on the shared animation clock — the
     /// start of its assemble animation (see [`crate::panecard`]).
     ///
-    /// A field on the pane rather than a timeline in the app because panes are
-    /// pushed, closed and reordered from a dozen places; anything keyed on
-    /// position or count would animate the wrong card the first time two of
-    /// those happened in one frame.
+    /// A field on the pane, not a timeline in the app: panes are pushed, closed
+    /// and reordered from a dozen places, so anything keyed on position or
+    /// count animated the wrong card when two of those met in one frame.
     pub born_ms: u64,
 }
 
@@ -118,9 +119,8 @@ impl Pane {
         }
         match &self.content {
             PaneContent::Terminal(t) => {
-                // Directory folder name, plus the foreground command when one is
-                // running (e.g. `crew · claude`). The folder name wins over an OSC
-                // title; the running command is appended to it.
+                // Folder name, plus the foreground command when one is running
+                // (`crew · claude`); the folder wins over an OSC title.
                 let dir = self.dir.as_deref().and_then(dir_label);
                 match (dir, t.cmd.as_deref()) {
                     (Some(dir), Some(cmd)) => format!("{dir} · {cmd}"),
@@ -154,6 +154,7 @@ impl Pane {
             PaneContent::Todo(_) => "todo".into(),
             PaneContent::Usage(_) => "usage".into(),
             PaneContent::Dash(_) => "dash".into(),
+            PaneContent::Inbox(i) => i.legend(),
             // The map is always OF somewhere: the card's legend says which
             // folder, the way a terminal pane's does.
             PaneContent::Disk(d) => match d.root().file_name() {
@@ -214,6 +215,7 @@ impl Pane {
             PaneContent::Usage(u) => u.cells(self.grid.cols, self.grid.rows),
             PaneContent::Disk(d) => d.cells(self.grid.cols, self.grid.rows),
             PaneContent::Dash(d) => d.cells(self.grid.cols, self.grid.rows),
+            PaneContent::Inbox(i) => i.cells(self.grid.cols, self.grid.rows),
         }
     }
 }

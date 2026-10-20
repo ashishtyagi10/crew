@@ -1,11 +1,7 @@
-//! OpenRouter browser sign-in: the loopback callback parser.
-//!
-//! This module holds the pure, I/O-free logic for interpreting the single
-//! HTTP request the loopback listener receives once the user finishes
-//! authorizing in their browser. Keeping it free of sockets means the
-//! trickiest part of the flow — matching the nonce, picking a `code` or
-//! `error` out of the query string — is fully unit-testable before any
-//! listener exists.
+//! Browser sign-in over a loopback callback: OpenRouter's, and the inbox's
+//! Google one (`inbox::signin`), which shares the listener. The request-line
+//! parser is pure, so matching the nonce and picking out `code` or `error`
+//! is unit-testable before any listener exists.
 
 /// What the single callback request turned out to be.
 #[derive(PartialEq)]
@@ -62,17 +58,19 @@ pub(crate) fn parse_request(line: &str, nonce: &str) -> Callback {
     let Some((path, query)) = target.split_once('?') else {
         return Callback::Ignore;
     };
-    if path.trim_start_matches('/') != nonce {
-        return Callback::Ignore;
-    }
-    let mut code = None;
-    let mut error = None;
+    let (mut code, mut error, mut state) = (None, None, None);
     for pair in query.split('&') {
         match pair.split_once('=') {
             Some(("code", v)) if !v.is_empty() => code = Some(v.to_string()),
             Some(("error", v)) if !v.is_empty() => error = Some(v.to_string()),
+            Some(("state", v)) => state = Some(v),
             _ => {}
         }
+    }
+    // Ours by its path (OpenRouter's) or by `state` (Google sends the user
+    // back to the bare port, carrying the `state` it was given).
+    if path.trim_start_matches('/') != nonce && state != Some(nonce) {
+        return Callback::Ignore;
     }
     match (code, error) {
         (Some(c), _) => Callback::Code(c),
@@ -81,6 +79,7 @@ pub(crate) fn parse_request(line: &str, nonce: &str) -> Callback {
     }
 }
 
+use std::net::TcpListener;
 use std::sync::mpsc::{self, Receiver};
 use std::time::{Duration, Instant};
 
@@ -189,7 +188,7 @@ impl std::fmt::Debug for Waited {
 /// check happens after the read, so it protects the flow's INTEGRITY but
 /// offers no protection at all against a peer that holds the socket open or
 /// feeds it one byte at a time.
-fn await_callback(listener: std::net::TcpListener, nonce: &str, timeout: Duration) -> Waited {
+pub(crate) fn await_callback(listener: TcpListener, nonce: &str, timeout: Duration) -> Waited {
     await_callback_within(listener, nonce, timeout, CONN_TIMEOUT)
 }
 

@@ -101,7 +101,8 @@ impl CrewApp {
             | PaneContent::Todo(_)
             | PaneContent::Usage(_)
             | PaneContent::Disk(_)
-            | PaneContent::Dash(_) => return,
+            | PaneContent::Dash(_)
+            | PaneContent::Inbox(_) => return,
         };
         self.set_status(note);
         self.redraw();

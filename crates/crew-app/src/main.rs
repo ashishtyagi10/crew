@@ -564,6 +564,7 @@ mod smoothlvl;
 mod spark;
 mod spawn;
 mod spawndata;
+mod spawninbox;
 mod spawnpanes;
 mod spawnswarm;
 mod spotlight;
@@ -610,6 +611,7 @@ mod toosmall;
 #[path = "transientshot_tests.rs"]
 mod transientshot_tests;
 
+mod inbox;
 mod inkframe;
 #[cfg(test)]
 #[path = "inkpage_tests.rs"]
@@ -859,3 +861,6 @@ mod cli_intent_tests {
         assert_eq!(cli_intent(&args(&["install-app"])), None);
     }
 }
+
+#[cfg(test)]
+mod inboxshot_tests;

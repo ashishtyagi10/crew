@@ -1652,6 +1652,30 @@ longer aim at.
   dates says something happened rather than when. Bands are drawn in
   priority order, so a short pane keeps the machine and loses the history, and
   everything follows its own clock — the sampler's second, the ledger's five.
+- **`/inbox`** — opens the **inbox** pane: Gmail, read-only. Rows are
+  threads, newest first: an unread dot, the sender (with a count when the
+  thread has several messages), the subject, the snippet in a quieter ink
+  and the age (`9m`, `3h`, `Mon`, `Oct 12`). Keys: ↑↓ or j/k move (the last
+  row loads the next page), Enter reads the thread as text — each message's
+  sender and local time over its words, attachments named, HTML-only mail
+  read as text the way `sys:fetch` reads a page, control characters stripped
+  — `/` searches with Gmail's syntax, `r` re-lists, `o` opens the thread or
+  the inbox in Gmail on the signed-in account, Esc clears a search, leaves a
+  thread, and closes the pane. `/inbox <search>` opens on a search; `/inbox
+  signout` deletes the grant and revokes it at Google. Sign-in is Google's
+  desktop flow: a loopback listener on `127.0.0.1` and a random port, PKCE
+  (S256) and a random `state`; the client is the user's own, because every
+  Gmail scope that reads mail is restricted and an app may not read
+  everyone's mail without Google's review. The setup page lists the five
+  console steps (project, Gmail API, Branding + Audience, **Publish app** —
+  an app left in Testing has its sign-in ended after 7 days — and a Desktop
+  client), opens each on keys 1–5, and picks up the downloaded
+  `client_secret_*.json` from `~/Downloads` (or a pasted one). The grant is
+  `gmail.json`, written 0600 beside `credentials.json`; access tokens live in
+  memory an hour at a time. Gmail charges a project's user 6,000 units a
+  minute and a page of 25 threads costs about 1,000, so the pane lists once
+  and then checks the mailbox's `historyId` each minute (1 unit), listing
+  again only when it moved. The nav glance is the unread count.
 - **`/disk`** — opens the **disk** pane: the current directory as a
   **treemap**, one tile per entry with its area equal to its share of the
   bytes, so the thing filling your disk is the thing filling the pane. The

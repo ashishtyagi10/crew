@@ -305,7 +305,22 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
 `/copy`, `/dump`, `/reopen`,
 `/restore`, `/blame`, `/lsp`, `/pwd`, `/about`, `/log`, `/nav`,
 `/model`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
-`/todo`, `/dash`, `/usage`, `/disk`, `/focus`, `/notify` — then `/exit`.
+`/todo`, `/dash`, `/usage`, `/disk`, `/inbox`, `/focus`, `/notify` — then
+`/exit`.
+
+**Your Gmail, read-only, in a pane: `/inbox`.** The list (an unread dot,
+sender, subject, snippet, age), `/` to search in Gmail's own syntax
+(`from:ann is:unread`), Enter to read a thread as text, `o` to open it in
+Gmail, `/inbox <search>` to open on a search, `/inbox signout` to withdraw
+the grant. Gmail's read scope is restricted, so it signs in with an OAuth
+client of your own: the pane's setup page opens the five Google Cloud
+console pages in order (about five minutes, once), finds the
+`client_secret_….json` you download in `~/Downloads`, and Enter signs in
+through the browser. Publish the app on the console's Audience page, or
+Google ends the sign-in after seven days. Nothing is stored but the grant
+(`gmail.json`, 0600, beside `credentials.json`), and the pane asks Gmail
+whether anything changed once a minute (2 of the 6,000 quota units a minute
+a project gets) rather than listing on a timer.
 
 **How crew looks is one command.** `/look` owns the whole appearance family
 as SUBJECTS — `theme`, `font`, `weight`, `leading`, `density`, `motion`,

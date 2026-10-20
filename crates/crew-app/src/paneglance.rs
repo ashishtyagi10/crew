@@ -21,6 +21,7 @@ pub(crate) fn of(content: &PaneContent) -> Option<String> {
         PaneContent::Disk(d) => disk(d),
         PaneContent::Usage(u) => Some(u.glance()),
         PaneContent::Dash(d) => Some(d.glance()),
+        PaneContent::Inbox(i) => Some(i.glance()),
         PaneContent::Swarm(s) => swarm(s.state()),
         // A settings form is its own answer: every row of it is the state,
         // and "editing settings" is what the legend already says.

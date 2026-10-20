@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.29
+
+**Your Gmail, read-only, in a pane: `/inbox`.**
+`/inbox` opens a pane with your inbox as Gmail lists it: an unread dot, the
+sender (and how many messages the thread holds), the subject, the start of
+the newest message and its age. The arrows (or j/k) move, the last row loads
+the next page, Enter reads a thread as text with each message's sender and
+time, `/` searches in Gmail's own syntax (`from:ann is:unread`), `r`
+re-lists, `o` opens the thread in Gmail, Esc steps back. `/inbox <search>`
+opens on a search; `/inbox signout` deletes the sign-in and withdraws it at
+Google. Google won't let any app read everyone's mail without its review,
+so the pane signs in with a Google client of your own: its first page opens
+the five Google Cloud console pages in order (about five minutes, once),
+finds the `client_secret_….json` you download, and Enter signs in through
+your browser. Publish the app on the console's Audience page, or Google
+signs you out every seven days. Nothing is kept on disk but the sign-in
+(`gmail.json`, readable only by you), mail is shown as text with control
+characters removed, and the pane checks once a minute whether anything
+changed rather than re-reading the inbox. The sign-in hasn't been tried
+against Google yet: if it fails, the pane's foot line says what Google
+answered.
+- **Tests:** Google's consent URL, the callback matched by its `state`,
+  the code and refresh exchanges against a stub of Google's token endpoint
+  (an ended sign-in says Google's reason and nothing secret), a page of
+  threads fetched together and kept in Gmail's order, a 401 renewing the
+  token once, MIME bodies (plain wins, HTML read as text, attachments
+  named), the client file found in a folder, the grant written 0600 and
+  never printed, and the pane's keys, search, paging and drawing.
+
 ## 0.27.28
 
 **qwen3.8-max's tool calls run, in the shapes it actually writes.**
