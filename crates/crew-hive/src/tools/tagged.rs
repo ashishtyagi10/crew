@@ -17,6 +17,9 @@
 use serde_json::Value;
 use std::borrow::Cow;
 
+#[path = "namedcall.rs"]
+mod named;
+
 const OPEN: &str = "<tool_call>";
 const CLOSE: &str = "</tool_call>";
 
@@ -56,7 +59,9 @@ pub(super) fn untag(reply: &str) -> Cow<'_, str> {
 fn call(body: &str) -> Option<(String, usize)> {
     let lead = body.len() - body.trim_start().len();
     let s = &body[lead..];
-    let (name, args, len) = json_call(s).or_else(|| xml_call(s))?;
+    let (name, args, len) = json_call(s)
+        .or_else(|| xml_call(s))
+        .or_else(|| named::call(s))?;
     if !name.contains(':') {
         return None;
     }
