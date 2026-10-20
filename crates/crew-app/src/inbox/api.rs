@@ -71,15 +71,17 @@ impl Gmail {
         Ok(t)
     }
 
-    /// GET each of `paths` (under the API root) at once, in order; one 401
-    /// renews the token and tries once more.
-    fn get_all(&mut self, paths: &[String]) -> Result<Vec<Value>, String> {
+    /// Send each request (a path under the API root, and a body to POST) at
+    /// once, in order; one 401 renews the token and tries once more.
+    fn send_all(&mut self, reqs: &[(String, Option<Value>)]) -> Result<Vec<Value>, String> {
         for attempt in 0..2 {
             let token = self.token()?;
-            let urls: Vec<String> = paths.iter().map(|p| format!("{}{p}", self.api)).collect();
+            let reqs: Vec<_> = reqs
+                .iter()
+                .map(|(p, b)| (format!("{}{p}", self.api), b.clone()))
+                .collect();
             let http = self.http.clone();
-            let got = self.rt.block_on(super::fetch::all(http, token, urls));
-            match got {
+            match self.rt.block_on(super::fetch::all(http, token, reqs)) {
                 Err(super::fetch::Fetch::Expired) if attempt == 0 => self.access = None,
                 Err(super::fetch::Fetch::Expired) => {
                     return Err("Gmail refused the sign-in (401)".into())
@@ -92,7 +94,24 @@ impl Gmail {
     }
 
     fn get(&mut self, path: &str) -> Result<Value, String> {
-        Ok(self.get_all(&[path.to_string()])?.remove(0))
+        Ok(self.send_all(&[(path.to_string(), None)])?.remove(0))
+    }
+
+    pub(crate) fn post(&mut self, path: &str, body: Value) -> Result<Value, String> {
+        Ok(self.send_all(&[(path.to_string(), Some(body))])?.remove(0))
+    }
+
+    /// Add and take away labels on a whole thread: archive is taking `INBOX`,
+    /// read is taking `UNREAD`, a star is adding `STARRED`.
+    pub(crate) fn relabel(
+        &mut self,
+        id: &str,
+        add: &[&str],
+        remove: &[&str],
+    ) -> Result<(), String> {
+        let body = serde_json::json!({"addLabelIds": add, "removeLabelIds": remove});
+        let path = format!("/threads/{}/modify", super::query::enc(id));
+        self.post(&path, body).map(|_| ())
     }
 
     /// The account's address, and the mailbox's current history record: it
@@ -127,11 +146,11 @@ impl Gmail {
         let (ids, next) = wire::thread_ids(&self.get(&list)?);
         let meta =
             "format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date";
-        let paths: Vec<String> = ids
+        let reqs: Vec<_> = ids
             .iter()
-            .map(|id| format!("/threads/{id}?{meta}"))
+            .map(|id| (format!("/threads/{id}?{meta}"), None))
             .collect();
-        let rows = self.get_all(&paths)?.iter().map(wire::thread).collect();
+        let rows = self.send_all(&reqs)?.iter().map(wire::thread).collect();
         Ok((rows, next))
     }
 

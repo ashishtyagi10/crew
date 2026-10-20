@@ -308,9 +308,11 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
 `/todo`, `/dash`, `/usage`, `/disk`, `/inbox`, `/focus`, `/notify` — then
 `/exit`.
 
-**Your Gmail, read-only, in a pane: `/inbox`.** The list (an unread dot,
+**Your Gmail in a pane: `/inbox`.** The list (an unread dot, a star,
 sender, subject, snippet, age), `/` to search in Gmail's own syntax
-(`from:ann is:unread`), Enter to read a thread as text, `o` to open it in
+(`from:ann is:unread`), Enter to read a thread as text (which marks it read,
+as Gmail does), `e` to archive, `m` to mark read or unread, `s` to star, `u`
+to undo the last of those — nothing is ever deleted — `o` to open it in
 Gmail, `/inbox <search>` to open on a search, `/inbox signout` to withdraw
 the grant. Gmail's read scope is restricted, so it signs in with an OAuth
 client of your own: the pane's setup page opens the five Google Cloud

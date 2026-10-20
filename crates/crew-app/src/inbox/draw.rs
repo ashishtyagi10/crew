@@ -157,6 +157,9 @@ fn row(cv: &mut Canvas, r: u16, th: &Thread, selected: bool, now: i64) {
     if th.unread {
         cv.text(r, 1, end, "\u{25cf}", accent, false);
     }
+    if th.starred {
+        cv.text(r, 2, end, "\u{2605}", accent, false);
+    }
     let age = super::age::said(th.at_ms, now);
     let age_at = end.saturating_sub(age.chars().count() as u16);
     cv.text(r, age_at, end, &age, t.text_muted, false);

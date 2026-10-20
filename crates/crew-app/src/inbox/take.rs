@@ -69,7 +69,15 @@ impl InboxPane {
             }
             Got::Failed(e) => {
                 self.busy = false;
-                self.note = e;
+                // A grant made for the read-only scope (v0.27.29) cannot file
+                // or draft, and Google adds no scope to an installed app's
+                // grant without a fresh consent.
+                self.note = match e.contains("insufficient authentication scopes") {
+                    true => {
+                        "filing and drafts need a new sign-in: /inbox signout, then Enter".into()
+                    }
+                    false => e,
+                };
             }
             Got::Ended(e) => {
                 grant::clear();

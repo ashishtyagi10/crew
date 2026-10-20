@@ -41,6 +41,9 @@ impl InboxPane {
             return Some(InboxAction::Redraw);
         }
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
+        if matches!(self.stage, Stage::Ready(_)) && self.triage(&ch) {
+            return Some(InboxAction::Redraw);
+        }
         match &mut self.stage {
             Stage::Setup { found } => match (ch.as_str(), found.clone()) {
                 (n @ ("1" | "2" | "3" | "4" | "5"), _) => {
@@ -82,6 +85,7 @@ impl InboxPane {
         } else if named(NamedKey::Enter) {
             let thread = self.rows.get(self.sel)?.clone();
             self.ask(Ask::Open(thread.id.clone()));
+            self.opened(&thread.id);
             self.reading = Some(Reading {
                 thread,
                 mails: None,
@@ -167,10 +171,12 @@ pub(crate) fn hint(p: &InboxPane) -> String {
     match (&p.stage, &p.reading) {
         (Stage::Setup { .. }, _) => "1\u{2013}5 open the console \u{b7} enter sign in \u{b7} esc close".into(),
         (Stage::SigningIn(_), _) => "esc cancel".into(),
-        (Stage::Ready(_), Some(_)) => "\u{2191}\u{2193} scroll \u{b7} esc back \u{b7} o gmail".into(),
+        (Stage::Ready(_), Some(_)) => {
+            "\u{2191}\u{2193} scroll \u{b7} e archive \u{b7} m unread \u{b7} s star \u{b7} esc back \u{b7} o gmail".into()
+        }
         (Stage::Ready(_), None) if p.busy => "loading\u{2026}".into(),
         (Stage::Ready(_), None) => {
-            "\u{2191}\u{2193} move \u{b7} enter read \u{b7} / search \u{b7} r refresh \u{b7} o gmail \u{b7} esc close".into()
+            "enter read \u{b7} e archive \u{b7} m read \u{b7} s star \u{b7} u undo \u{b7} / search \u{b7} o gmail".into()
         }
     }
 }

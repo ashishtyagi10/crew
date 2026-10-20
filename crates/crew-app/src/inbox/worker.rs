@@ -21,6 +21,12 @@ pub(crate) enum Ask {
     Open(String),
     /// Has anything changed? Re-list when the mailbox moved.
     Check,
+    /// Add and take away labels on a thread (archive, read, star).
+    Relabel {
+        id: String,
+        add: Vec<&'static str>,
+        remove: Vec<&'static str>,
+    },
 }
 
 pub(crate) enum Got {
@@ -90,6 +96,12 @@ impl State {
                 None => Vec::new(),
             },
             Ask::Open(id) => vec![g.open(&id).map_or_else(fail, |m| Got::Opened(id, m))],
+            // The pane already shows the change; a refusal is said, and the
+            // list comes back as Gmail has it, which puts the row right.
+            Ask::Relabel { id, add, remove } => match g.relabel(&id, &add, &remove) {
+                Ok(()) => vec![],
+                Err(e) => std::iter::once(fail(e)).chain(self.list(g, None)).collect(),
+            },
             Ask::Check => match g.profile().map(|(_, h)| h) {
                 Ok(h) if h == self.history => vec![],
                 Ok(_) => self.list(g, None),
