@@ -103,6 +103,7 @@ mod chatreceipt;
 mod chatshot_tests;
 mod chatslash;
 mod chatspan;
+mod chatstrong;
 #[cfg(test)]
 #[path = "chatswarmshot_tests.rs"]
 mod chatswarmshot_tests;

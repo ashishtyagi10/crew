@@ -22,11 +22,11 @@ pub(crate) fn wrap_cols(level: u8, cols: usize) -> usize {
 }
 
 /// The h1 badge: the heading mark (`#`, or the hashtag icon on a Nerd
-/// Font) on an accent block, then one space in `fg` before the title. The
-/// title itself keeps the accent INK from `chatspan::heading_fg`; the badge
-/// is the same accent as a block, so mark and title read as one thing.
+/// Font) on a block of the title's own ink (`chatstrong`: the accent, or the
+/// darkest ink when the accent is a grey), then one space in `fg` before the
+/// title, so mark and title read as one thing.
 pub(crate) fn badge_cells(fg: Color) -> Vec<CardCell> {
-    let accent = crate::palette::accent();
+    let accent = crate::chatstrong::ink();
     let mark = crate::glyphs::pick(crate::glyphs::Glyph::Hash);
     let badge = crate::segment::badge_on(mark, accent, crate::segment::Caps::BOTH);
     let mut cells = crate::segment::to_card(&badge);

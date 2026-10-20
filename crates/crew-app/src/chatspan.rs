@@ -61,7 +61,7 @@ pub(crate) fn deco(cell: &crate::chatbody::CardCell) -> crew_theme::deco::Deco {
 pub(crate) fn heading_fg(level: u8) -> Color {
     let th = crew_theme::theme();
     match level {
-        1 => crate::palette::accent(),
+        1 => crate::chatstrong::ink(),
         2 => th.ink,
         _ => th.text_muted,
     }
@@ -150,11 +150,11 @@ fn body(span: &MdSpan, base: Color, muted: Color) -> SpanInk {
             ..SpanInk::flat(base)
         }
     } else if style.table_head {
-        // A table's header row: the accent, already floored against the
-        // page by `palette::accent`, so the column names read as the labels
-        // they are and the rule under them stays muted.
+        // A table's header row: the h1's ink (`chatstrong`), so the column
+        // names read as the labels they are and the rule under them stays
+        // muted.
         SpanInk {
-            fg: crate::palette::accent(),
+            fg: crate::chatstrong::ink(),
             bold: true,
             italic: style.italic,
             ..SpanInk::flat(base)
