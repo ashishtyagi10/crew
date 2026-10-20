@@ -1,6 +1,6 @@
 //! The inbox's keys. One letter each, as a terminal mail reader has them: the
 //! arrows (or j/k) move, Enter reads, `/` searches with Gmail's own syntax,
-//! `r` re-lists, `o` opens Gmail in the browser, Esc steps back.
+//! `R` re-lists, `o` opens Gmail in the browser, Esc steps back.
 use winit::event::KeyEvent;
 use winit::keyboard::{Key, NamedKey};
 
@@ -93,7 +93,7 @@ impl InboxPane {
             });
         } else if ch == "/" {
             self.typing = Some(self.query.clone());
-        } else if ch == "r" {
+        } else if ch == "R" {
             self.relist();
         } else if ch == "o" {
             self.browse(None);
@@ -172,11 +172,11 @@ pub(crate) fn hint(p: &InboxPane) -> String {
         (Stage::Setup { .. }, _) => "1\u{2013}5 open the console \u{b7} enter sign in \u{b7} esc close".into(),
         (Stage::SigningIn(_), _) => "esc cancel".into(),
         (Stage::Ready(_), Some(_)) => {
-            "esc back \u{b7} e archive \u{b7} a ask smith \u{b7} d draft a reply \u{b7} t todo \u{b7} m unread \u{b7} s star \u{b7} o gmail".into()
+            "esc back \u{b7} r reply \u{b7} e archive \u{b7} d delete \u{b7} a ask smith \u{b7} t todo \u{b7} m unread \u{b7} s star \u{b7} o gmail".into()
         }
         (Stage::Ready(_), None) if p.busy => "loading\u{2026}".into(),
         (Stage::Ready(_), None) => {
-            "enter read \u{b7} e archive \u{b7} a ask smith \u{b7} u undo \u{b7} / search \u{b7} m read \u{b7} s star \u{b7} d draft \u{b7} t todo \u{b7} o gmail".into()
+            "enter read \u{b7} r reply \u{b7} e archive \u{b7} d delete \u{b7} u undo \u{b7} a ask smith \u{b7} / search \u{b7} m read \u{b7} s star \u{b7} t todo \u{b7} R refresh \u{b7} o gmail".into()
         }
     }
 }

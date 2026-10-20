@@ -1,4 +1,4 @@
-//! `a`, `d` and `t`: the thread to agent smith, a reply drafted by smith, the
+//! `a`, `r` and `t`: the thread to agent smith, a reply drafted by smith, the
 //! thread to `/todo`. Each acts on the open thread once its messages are
 //! here; pressed in the list, it opens the thread and acts when it lands.
 //!
@@ -33,11 +33,11 @@ pub(crate) struct Waiting {
 }
 
 impl InboxPane {
-    /// `a`, `d` or `t`: true when it was one of them.
+    /// `a`, `r` or `t`: true when it was one of them.
     pub(crate) fn handoff(&mut self, ch: &str) -> bool {
         let then = match ch {
             "a" => Then::Ask,
-            "d" => Then::Draft,
+            "r" => Then::Draft,
             "t" => Then::Todo,
             _ => return false,
         };
@@ -108,7 +108,7 @@ impl InboxPane {
             }
             None => {
                 self.note =
-                    "agent smith's answer held no draft \u{2014} press d to ask again".into()
+                    "agent smith's answer held no draft \u{2014} press r to ask again".into()
             }
         }
     }

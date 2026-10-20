@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.33
+
+**`/inbox`: `d` deletes, `r` replies.**
+In the inbox pane, `d` now deletes the thread: it moves to Gmail's Trash,
+exactly as Gmail's own Delete button does, and Gmail empties Trash after 30
+days. `u` brings it back. Nothing is ever deleted for good, and no new
+sign-in is needed: the permission crew already has covers Trash. `r` now
+asks agent smith to write a reply, saved as a Gmail draft and never sent
+(this was `d`). Refreshing the list moved from `r` to `R`. The key hint,
+README, docs, privacy policy and terms say the same.
+- **Tests:** `d` sends the thread to Trash and drops the row, `u` takes it
+  out again and puts the row back where it was; `R` re-lists and `r` opens
+  the thread for a reply; the Gmail calls are `threads/{id}/trash` and
+  `threads/{id}/untrash`.
+
 ## 0.27.32
 
 **The nav shows your unread mail: an INBOX card.**

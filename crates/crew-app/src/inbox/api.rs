@@ -103,19 +103,6 @@ impl Gmail {
         Ok(self.send_all(&[(path.to_string(), Some(body))])?.remove(0))
     }
 
-    /// Add and take away labels on a whole thread: archive is taking `INBOX`,
-    /// read is taking `UNREAD`, a star is adding `STARRED`.
-    pub(crate) fn relabel(
-        &mut self,
-        id: &str,
-        add: &[&str],
-        remove: &[&str],
-    ) -> Result<(), String> {
-        let body = serde_json::json!({"addLabelIds": add, "removeLabelIds": remove});
-        let path = format!("/threads/{}/modify", super::query::enc(id));
-        self.post(&path, body).map(|_| ())
-    }
-
     /// The account's address, and the mailbox's current history record: it
     /// moves when anything lands, is read or is filed, so an unchanged one
     /// means nothing to re-list.

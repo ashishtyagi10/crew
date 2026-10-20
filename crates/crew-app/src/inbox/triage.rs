@@ -1,8 +1,10 @@
-//! Filing mail from the pane: `e` archives, `m` marks read or unread, `s`
-//! stars or unstars, `u` puts the last of those back. Each shows at once and
-//! goes to Gmail behind it; a refusal is said and the list comes back as
-//! Gmail has it. Nothing is ever deleted: archive is taking the `INBOX`
-//! label away, as Gmail's own archive is.
+//! Filing mail from the pane: `e` archives, `d` deletes, `m` marks read or
+//! unread, `s` stars or unstars, `u` puts the last of those back. Each shows
+//! at once and goes to Gmail behind it; a refusal is said and the list comes
+//! back as Gmail has it. Archive is taking the `INBOX` label away, as Gmail's
+//! own archive is; delete is Gmail's own delete too, a move to Trash (emptied
+//! after 30 days). Nothing is deleted for good: that needs the full-mail
+//! scope.
 use super::wire::Thread;
 use super::worker::Ask;
 use super::InboxPane;
@@ -16,14 +18,17 @@ pub(crate) struct Undo {
     pub remove: Vec<&'static str>,
     /// The row left the list (an archive), so undo puts it back in.
     pub returns: bool,
+    /// The thread went to Trash, so undo takes it out again.
+    pub trashed: bool,
 }
 
 impl InboxPane {
-    /// `e`, `m`, `s` or `u` on the thread under the cursor (or open): true
-    /// when it was one of them.
+    /// `e`, `d`, `m`, `s` or `u` on the thread under the cursor (or open):
+    /// true when it was one of them.
     pub(crate) fn triage(&mut self, ch: &str) -> bool {
         match ch {
             "e" => self.archive(),
+            "d" => self.delete(),
             "m" => self.flip("UNREAD", "read", "unread", |t| &mut t.unread),
             "s" => self.flip("STARRED", "unstarred", "starred", |t| &mut t.starred),
             "u" => self.undo(),
@@ -43,12 +48,9 @@ impl InboxPane {
     }
 
     fn archive(&mut self) {
-        let Some((at, thread)) = self.target() else {
+        let Some((at, thread)) = self.take_row() else {
             return;
         };
-        self.rows.remove(at);
-        self.sel = self.sel.min(self.rows.len().saturating_sub(1));
-        self.reading = None;
         self.relabel(&thread.id, vec![], vec!["INBOX"]);
         self.said(&thread, "archived");
         self.undo = Some(Undo {
@@ -57,7 +59,33 @@ impl InboxPane {
             add: vec!["INBOX"],
             remove: vec![],
             returns: true,
+            trashed: false,
         });
+    }
+
+    fn delete(&mut self) {
+        let Some((at, thread)) = self.take_row() else {
+            return;
+        };
+        self.trash(&thread.id, false);
+        self.said(&thread, "deleted");
+        self.undo = Some(Undo {
+            thread,
+            at,
+            add: vec![],
+            remove: vec![],
+            returns: true,
+            trashed: true,
+        });
+    }
+
+    /// The target out of the list, and out of the reader if it was open.
+    fn take_row(&mut self) -> Option<(usize, Thread)> {
+        let (at, thread) = self.target()?;
+        self.rows.remove(at);
+        self.sel = self.sel.min(self.rows.len().saturating_sub(1));
+        self.reading = None;
+        Some((at, thread))
     }
 
     /// Toggle `label` through `field`: `was`/`now` name the two states.
@@ -90,6 +118,7 @@ impl InboxPane {
             add: remove,
             remove: add,
             returns: false,
+            trashed: false,
         });
     }
 
@@ -110,7 +139,10 @@ impl InboxPane {
                 }
             }
         }
-        self.relabel(&u.thread.id, u.add, u.remove);
+        match u.trashed {
+            true => self.trash(&u.thread.id, true),
+            false => self.relabel(&u.thread.id, u.add, u.remove),
+        }
         self.said(&u.thread, "put back");
     }
 
@@ -123,14 +155,25 @@ impl InboxPane {
     }
 
     fn relabel(&mut self, id: &str, add: Vec<&'static str>, remove: Vec<&'static str>) {
-        let ask = Ask::Relabel {
+        self.file(Ask::Relabel {
             id: id.into(),
             add,
             remove,
-        };
+        });
+    }
+
+    /// To Trash, or (`back`) out of it.
+    fn trash(&mut self, id: &str, back: bool) {
+        self.file(Ask::Trash {
+            id: id.into(),
+            back,
+        });
+    }
+
+    fn file(&mut self, ask: Ask) {
         let busy = self.busy;
         self.ask(ask);
-        self.busy = busy; // a label change is not a load: the list stays live
+        self.busy = busy; // filing is not a load: the list stays live
     }
 
     fn said(&mut self, t: &Thread, what: &str) {

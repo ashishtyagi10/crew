@@ -158,3 +158,24 @@ fn gmails_own_error_is_said_and_an_opened_thread_reads_as_text() {
         ("Ann <a@x.org>", "Hello")
     );
 }
+
+#[test]
+fn delete_is_gmails_trash_and_undo_its_untrash() {
+    let route: Route = Arc::new(|p: &str| match p {
+        "/token" => (200, TOKEN.into()),
+        _ => (200, "{}".into()),
+    });
+    let (base, log) = serve(route);
+    let mut g = gmail(&base);
+    g.trash("t1", false).unwrap();
+    g.trash("t1", true).unwrap();
+    let seen = log.lock().unwrap().clone();
+    assert_eq!(
+        seen,
+        [
+            "/token",
+            "/gmail/threads/t1/trash",
+            "/gmail/threads/t1/untrash"
+        ]
+    );
+}

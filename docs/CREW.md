@@ -1660,14 +1660,16 @@ longer aim at.
   sender and local time over its words, attachments named, HTML-only mail
   read as text the way `sys:fetch` reads a page, control characters stripped
   — `e` archives (takes the `INBOX` label away, as Gmail's archive does),
-  `m` marks read or unread, `s` stars or unstars, `u` undoes the last of
-  those; each shows at once and goes to Gmail behind it, and a refusal is
-  said with the list re-read as Gmail has it. Opening a thread marks it read.
-  Nothing is ever deleted: the scope is `gmail.modify` (read, file, draft),
-  not the full-mail one; a sign-in from v0.27.29, made for read-only, is
-  told to sign in again. Agent smith on the inbox: `a` hands the thread to
-  smith to say what it wants and by when; `d` asks smith for a reply and,
-  when its turn settles, saves the body it wrote between `<<<DRAFT` and
+  `d` deletes (moves the thread to Trash, as Gmail's delete does; Gmail
+  empties Trash after 30 days), `m` marks read or unread, `s` stars or
+  unstars, `u` undoes the last of those (a delete comes back out of Trash);
+  each shows at once and goes to Gmail behind it, and a refusal is said with
+  the list re-read as Gmail has it. Opening a thread marks it read. Nothing
+  is deleted for good: the scope is `gmail.modify` (read, file, trash,
+  draft), not the full-mail one; a sign-in from v0.27.29, made for
+  read-only, is told to sign in again. Agent smith on the inbox: `a` hands
+  the thread to smith to say what it wants and by when; `r` asks smith for a
+  reply and, when its turn settles, saves the body it wrote between `<<<DRAFT` and
   `DRAFT>>>` as a Gmail draft in the thread — crew writes the To,
   Subject (`Re:`), `In-Reply-To` and `References` headers itself from the
   thread, so the model writes only the body, and the draft is never sent;
@@ -1676,7 +1678,7 @@ longer aim at.
   Pressed in the list, each opens the thread and acts when it arrives. The
   thread reaches smith fenced and labelled untrusted, with the instruction
   not to follow it; smith's transcript shows one short line for it, not the
-  mail. `/` searches with Gmail's syntax, `r` re-lists, `o` opens the thread or
+  mail. `/` searches with Gmail's syntax, `R` re-lists, `o` opens the thread or
   the inbox in Gmail on the signed-in account, Esc clears a search, leaves a
   thread, and closes the pane. `/inbox <search>` opens on a search; `/inbox
   signout` deletes the grant and revokes it at Google. Sign-in is Google's
