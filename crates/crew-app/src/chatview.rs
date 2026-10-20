@@ -162,7 +162,7 @@ pub(crate) fn art(
         ));
         if g.swarm > 0 {
             cells.extend(
-                crate::chatswarmview::block_cells(pane, cols, block_start, crate::anim::now_ms())
+                crate::chatswarmview::block_in(pane, cols, block_start, g.swarm)
                     .into_iter()
                     .filter(|c| c.row >= top && c.row < block_max),
             );
@@ -205,7 +205,7 @@ pub(crate) fn art(
         let swarm_start = block_max.saturating_sub(g.swarm);
         if g.swarm > 0 {
             cells.extend(
-                crate::chatswarmview::block_cells(pane, cols, swarm_start, crate::anim::now_ms())
+                crate::chatswarmview::block_in(pane, cols, swarm_start, g.swarm)
                     .into_iter()
                     .filter(|c| c.row < block_max),
             );

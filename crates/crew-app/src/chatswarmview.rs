@@ -161,8 +161,9 @@ fn layout(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<Line> {
     let tokens = (!trail.is_empty())
         .then(|| format!("({})", trail.join(" \u{b7} ")))
         .filter(|t| {
-            let tw = crate::chatwidth::str_w(t) as u16;
-            cols >= tw && cols - tw >= left_w + 2
+            // Ends in the margin column's neighbour, like the rows under it.
+            let (tw, end) = (crate::chatwidth::str_w(t) as u16, cols.saturating_sub(1));
+            end >= tw && end - tw >= left_w + 2
         });
 
     Some(Line {
@@ -181,9 +182,33 @@ fn layout(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<Line> {
 /// deterministic for the layout budget in `chatplace`.
 pub(crate) fn swarm_rows(pane: &ChatPane, cols: u16) -> u16 {
     match (layout(pane, cols, 0), pane.swarm.as_ref()) {
-        (Some(_), Some(s)) => 1 + crate::chatswarmplan::rows_wanted(s),
+        (Some(_), Some(s)) => spacer(pane) + 1 + crate::chatswarmplan::rows_wanted(s),
         _ => 0,
     }
+}
+
+/// Blank rows between the transcript and the block: the density's card gap,
+/// as between any two cards. Without it the status line hung off the user's
+/// last sentence and read as the prompt's second line.
+fn spacer(pane: &ChatPane) -> u16 {
+    match pane.messages.is_empty() && pane.streaming.is_empty() {
+        true => 0,
+        false => pane.view().gap_rows as u16,
+    }
+}
+
+/// The blank rows heading the block's `granted` rows. The spacer is the first
+/// row a short pane gives up, so a squeezed block keeps its status line.
+pub(crate) fn lead(pane: &ChatPane, cols: u16, granted: u16) -> u16 {
+    let gap = spacer(pane);
+    let body = swarm_rows(pane, cols).saturating_sub(gap);
+    granted.saturating_sub(body).min(gap)
+}
+
+/// The block in the `granted` rows from `start`, under its [`lead`].
+pub(crate) fn block_in(pane: &ChatPane, cols: u16, start: u16, granted: u16) -> Vec<CellView> {
+    let top = start + lead(pane, cols, granted);
+    block_cells(pane, cols, top, crate::anim::now_ms())
 }
 
 /// The left text's display width — the columns the "words" occupy, from the
@@ -235,10 +260,10 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
     let words = std::iter::once((' ', muted)).chain(title).chain(after);
     push_styled(&mut v, &mut col, top_row, words, cols, false);
 
-    // Tokens, right-aligned at the pane edge, muted.
+    // Tokens, muted, ending where the task rows under them end.
     if let Some(tokens) = &line.tokens {
         let tw = crate::chatwidth::str_w(tokens) as u16;
-        let mut tcol = cols - tw;
+        let mut tcol = cols.saturating_sub(1) - tw;
         push_str(&mut v, &mut tcol, top_row, tokens, theme.text_muted, cols);
     }
     // The plan's rows, under the line.
@@ -253,3 +278,7 @@ mod tests;
 #[cfg(test)]
 #[path = "chatswarmshimmer_tests.rs"]
 mod shimmer_tests;
+
+#[cfg(test)]
+#[path = "chatswarmgap_tests.rs"]
+mod gap_tests;
