@@ -3015,7 +3015,10 @@ Exact, because a matcher that forgives whitespace is one that sometimes edits
 a line you did not mean — the model can always read the file first, but it
 cannot always tell which of two near-misses it hit. Unique, because `old`
 appearing twice means the edit has no single answer, and a guess that
-succeeds silently is worse than a failure that says what to do instead. So a
+succeeds silently is worse than a failure that says what to do instead. A
+rename means every occurrence, and says so: `"all": true` (Claude Code's
+`replace_all`) replaces each one and answers `edited a.rs in 3 places (every
+one)`, and the "appears 3 times" refusal names it as the way out. So a
 miss is never a write, and the errors say WHY the match failed: text present
 with different indentation reads differently from text that is not there at
 all, because the model's next move differs. On success it answers

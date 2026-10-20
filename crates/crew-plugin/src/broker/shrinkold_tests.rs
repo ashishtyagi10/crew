@@ -102,8 +102,9 @@ fn whole(names: &[&str], left: u32) -> String {
         })
         .collect();
     format!(
-        "base prompt\n\nTOOL EXCHANGES THIS TURN:\n{}\n\nYou may make {left} more tool \
-         call(s) this turn, or answer now and end the answer as HOW TO REPLY says.",
+        "base prompt\n\nTOOL EXCHANGES THIS TURN:\n{}\n\nYou may make {left} more round(s) \
+         of tool calls this turn, up to 4 calls in one reply, or answer now and end the \
+         answer as HOW TO REPLY says.",
         exchanges.join("\n\n")
     )
 }

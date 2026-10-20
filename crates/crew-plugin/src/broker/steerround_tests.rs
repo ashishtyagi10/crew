@@ -82,7 +82,7 @@ fn a_steer_typed_during_a_round_joins_the_next_prompt_and_stays_for_the_turn() {
         );
         assert!(added.starts_with("\n- also check the tests\n"), "{p}");
         assert!(
-            added.contains("tool call(s)") || added.contains("LAST tool call"),
+            added.contains("round(s) of tool calls") || added.contains("LAST round"),
             "{p}"
         );
     }

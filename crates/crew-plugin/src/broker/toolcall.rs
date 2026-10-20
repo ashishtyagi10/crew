@@ -135,8 +135,12 @@ impl Broker {
         let mut exchanges = crew_hive::tools::exchanges::Exchanges::default();
         // The reads this turn has made, so a repeat is not run again.
         let mut seen = crew_hive::tools::seen::Seen::default();
-        let max_calls = self.tool_rounds;
-        let mut used: u32 = 0;
+        // The budget is ROUND TRIPS, each re-sending the whole prompt, not
+        // calls: counted per call, a rename's six edits spent a solo turn's
+        // eight before its last file (live, 2026-10-20), and the agent that
+        // batched its edits paid for them as if it had not.
+        let max_rounds = self.tool_rounds;
+        let (mut used, mut made): (u32, u32) = (0, 0);
         // What the user typed while this turn ran (`steer`), kept for its rest.
         let mut steered: Vec<String> = Vec::new();
         let before = loop {
@@ -146,19 +150,18 @@ impl Broker {
             // A stop pressed while the agent was dialed: what it asked for
             // is not run.
             if self.cancelled() {
-                return super::toolround::stopped_answer(&said, used);
+                return super::toolround::stopped_answer(&said, made);
             }
-            if used >= max_calls {
+            if used >= max_rounds {
                 break said;
             }
-            // Each call counts, so a batch runs only as far as the budget
-            // (and the per-reply cap) reaches; the rest are answered.
-            let fit = calls.len().min(PER_REPLY).min((max_calls - used) as usize);
+            // A batch runs as far as the per-reply cap; the rest are answered.
+            let fit = calls.len().min(PER_REPLY);
             for call in calls[..fit].iter().filter(|c| super::planout::carded(c)) {
                 super::toolhive::call(stream, env, call);
             }
             let mut ran = super::toolbatch::run(runner, &mut seen, &exchanges, &calls[..fit]);
-            let why = refusal(fit == (max_calls - used) as usize, max_calls);
+            let why = refusal();
             ran.resize_with(calls.len(), || Ran::not_run(&why));
             let mut round = Vec::with_capacity(calls.len());
             for (k, (call, r)) in calls.iter().zip(&ran).enumerate() {
@@ -176,13 +179,13 @@ impl Broker {
                 ));
             }
             exchanges.push_round(round);
-            used += fit as u32;
+            (used, made) = (used + 1, made + fit as u32);
             // A stop pressed while the tools ran: no follow-up dial. Its
             // tools are not undone, and one still running was waited for:
             // `ToolRunner::call` takes no stop, and `sys:run` kills its
             // child only at its own deadline.
             if self.cancelled() {
-                return super::toolround::stopped_answer(&said, used);
+                return super::toolround::stopped_answer(&said, made);
             }
             // Refused for its length, the follow-up is cut and dialed once
             // more (`toolfull`); the cut holds for the rest of the turn.
@@ -196,7 +199,7 @@ impl Broker {
                 &list,
                 &mut exchanges,
                 &added,
-                max_calls - used,
+                max_rounds - used,
                 &label,
                 tick_base,
                 env,
@@ -239,11 +242,11 @@ impl Broker {
             env,
             HopKind::Terminated,
             format!(
-                "tool budget spent \u{2014} {max_calls} calls in one turn; \
-                 the last request was not run"
+                "tool budget spent \u{2014} {max_rounds} rounds of tool calls in \
+                 one turn; the last request was not run"
             ),
         ));
-        super::toolround::budget_answer(&before, max_calls)
+        super::toolround::budget_answer(&before, max_rounds)
     }
 }
 

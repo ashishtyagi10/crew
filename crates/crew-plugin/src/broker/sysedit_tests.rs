@@ -1,10 +1,20 @@
 use super::*;
 
+/// One unique replacement, the shape most calls take.
+fn edit(path: &str, old: &str, new: &str) -> Result<String, String> {
+    let one = Swap {
+        old,
+        new,
+        all: false,
+    };
+    edit_all(path, &[one])
+}
+
 const SRC: &str = "fn main() {\n    let x = 1;\n    println!(\"{x}\");\n}\n";
 
 #[test]
 fn a_unique_match_is_replaced_and_nothing_else_moves() {
-    let out = replace(SRC, "let x = 1;", "let x = 2;").unwrap();
+    let out = replace(SRC, "let x = 1;", "let x = 2;", false).unwrap();
     assert_eq!(
         out,
         "fn main() {\n    let x = 2;\n    println!(\"{x}\");\n}\n"
@@ -16,7 +26,7 @@ fn a_repeated_match_is_refused_rather_than_guessed_at() {
     // Editing the first of two is a coin flip that succeeds silently, which
     // is the worst of the three possible outcomes.
     let body = "a = 1\nb = 2\na = 1\n";
-    let err = replace(body, "a = 1", "a = 3").unwrap_err();
+    let err = replace(body, "a = 1", "a = 3", false).unwrap_err();
     assert!(err.starts_with("`old` appears 2 times"), "{err}");
     assert!(err.contains("surrounding lines"), "no way out: {err}");
 }
@@ -25,14 +35,14 @@ fn a_repeated_match_is_refused_rather_than_guessed_at() {
 fn a_miss_on_whitespace_says_it_was_whitespace() {
     // The commonest miss by far: the model retyped the line without its
     // indentation. "not found" would send it looking for the wrong problem.
-    let err = replace(SRC, "let x = 1;\nprintln!(\"{x}\");", "let x = 2;").unwrap_err();
+    let err = replace(SRC, "let x = 1;\nprintln!(\"{x}\");", "let x = 2;", false).unwrap_err();
     assert!(err.contains("different whitespace"), "{err}");
     assert!(err.contains("copy the indentation"), "{err}");
 }
 
 #[test]
 fn a_miss_that_starts_right_says_where_it_diverged() {
-    let err = replace(SRC, "    let x = 1;\n    let y = 2;", "x").unwrap_err();
+    let err = replace(SRC, "    let x = 1;\n    let y = 2;", "x", false).unwrap_err();
     assert!(err.contains("let x = 1;"), "{err}");
     assert!(err.contains("does not match what follows"), "{err}");
 }
@@ -41,14 +51,14 @@ fn a_miss_that_starts_right_says_where_it_diverged() {
 fn a_miss_copied_from_a_shown_block_names_the_line_numbers() {
     // The edit result shows numbered rows; an `old` copied from them carries
     // `2│ ` prefixes the file never had.
-    let err = replace(SRC, "2\u{2502}     let x = 1;", "x").unwrap_err();
+    let err = replace(SRC, "2\u{2502}     let x = 1;", "x", false).unwrap_err();
     assert!(err.contains("line numbers"), "{err}");
     assert!(err.contains("leave them out"), "{err}");
 }
 
 #[test]
 fn a_miss_with_nothing_in_common_says_so_plainly() {
-    let err = replace(SRC, "struct Nothing;", "x").unwrap_err();
+    let err = replace(SRC, "struct Nothing;", "x", false).unwrap_err();
     assert!(
         err.starts_with("`old` is not in the file \u{2014}"),
         "{err}"
@@ -60,7 +70,7 @@ fn a_miss_with_nothing_in_common_says_so_plainly() {
 fn a_long_fragment_is_clipped_inside_the_error() {
     let long = "x".repeat(200);
     let body = format!("{long}\ntail\n");
-    let err = replace(&body, &format!("{long}\nnope"), "y").unwrap_err();
+    let err = replace(&body, &format!("{long}\nnope"), "y", false).unwrap_err();
     assert!(err.chars().count() < 200, "error is a wall of text: {err}");
     assert!(err.contains('\u{2026}'), "no clip marker: {err}");
 }
@@ -129,7 +139,14 @@ fn a_missing_file_names_the_path_and_the_reason() {
 }
 
 fn swaps<'a>(pairs: &'a [(&'a str, &'a str)]) -> Vec<Swap<'a>> {
-    pairs.iter().map(|(o, n)| Swap { old: o, new: n }).collect()
+    pairs
+        .iter()
+        .map(|(o, n)| Swap {
+            old: o,
+            new: n,
+            all: false,
+        })
+        .collect()
 }
 
 fn file(tag: &str, body: &str) -> std::path::PathBuf {

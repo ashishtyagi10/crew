@@ -122,7 +122,10 @@ fn three_reads_on_the_last_lines_are_answered_in_one_follow_up() {
     }
     assert_eq!(f.matches("CALLED sys:read_file").count(), 3, "{f}");
     assert_eq!(f.matches("Reading the three").count(), 1, "said once:\n{f}");
-    assert!(f.contains("You may make 5 more tool call(s)"), "{f}");
+    assert!(
+        f.contains("You may make 7 more round(s) of tool calls"),
+        "{f}"
+    );
 }
 
 #[test]
@@ -144,21 +147,24 @@ fn a_batch_with_an_edit_runs_in_the_order_written() {
     assert!(t.took >= nap * 3, "took {:?}", t.took);
 }
 
-/// Budget 8, two replies of four reads: eight calls run, and the third ask
-/// meets the budget-spent path, its text kept and its calls cut.
+/// Budget 2 ROUNDS, two replies of four reads: eight calls run, a batch being
+/// one round however many calls it makes, and the third ask meets the
+/// budget-spent path, its text kept and its calls cut.
 #[test]
-fn each_call_of_a_batch_counts_against_the_budget() {
+fn a_batch_is_one_round_of_the_budget() {
     let then = [
         reads("next four", &["e", "f", "g", "h"]),
         reads("one more", &["i"]),
     ];
-    let t = quick(
+    let t = turn(
         &reads("first four", &["a", "b", "c", "d"]),
         &[&then[0], &then[1]],
+        2,
+        Duration::ZERO,
     );
     assert_eq!(t.ran.len(), 8, "{:?}", t.ran);
     assert_eq!(t.dialed.len(), 2);
-    assert!(t.dialed[1].contains("This was your LAST tool call"));
+    assert!(t.dialed[1].contains("That was your LAST round of tool calls"));
     assert_eq!(t.answer, "one more");
     let spent = t
         .hops
@@ -166,15 +172,16 @@ fn each_call_of_a_batch_counts_against_the_budget() {
         .find(|h| h.kind == HopKind::Terminated)
         .unwrap();
     assert!(
-        spent.text.contains("tool budget spent \u{2014} 8 calls"),
+        spent.text.contains("tool budget spent \u{2014} 2 rounds"),
         "{spent:?}"
     );
 }
 
-/// Past four in one reply, or past what the budget has left, a call is
-/// answered "not run" in the log rather than dropped without a word.
+/// Past four in one reply a call is answered "not run" in the log rather than
+/// dropped without a word; under four, a reply's calls all run, whatever is
+/// left of the turn's rounds.
 #[test]
-fn calls_past_the_cap_or_the_budget_are_answered_not_run() {
+fn calls_past_the_cap_are_answered_not_run() {
     let t = quick(&reads("", &["a", "b", "c", "d", "e", "f"]), &["ok\n@done"]);
     assert_eq!(t.ran.len(), 4);
     let cap = t.dialed[0].matches("at most 4 tool calls per reply");
@@ -182,11 +189,11 @@ fn calls_past_the_cap_or_the_budget_are_answered_not_run() {
     let t = turn(
         &reads("", &["a", "b", "c"]),
         &["ok\n@done"],
-        2,
+        1,
         Duration::ZERO,
     );
-    assert_eq!(t.ran.len(), 2);
-    assert!(t.dialed[0].contains("tool budget spent (2 calls this turn)"));
+    assert_eq!(t.ran.len(), 3, "one round, all of it run");
+    assert!(!t.dialed[0].contains("not run"), "{}", t.dialed[0]);
 }
 
 #[test]

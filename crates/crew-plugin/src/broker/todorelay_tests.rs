@@ -202,8 +202,9 @@ fn a_turn_that_keeps_no_list_is_sent_and_answers_as_before() {
     assert_eq!(
         kept[1],
         format!(
-            "{}\n\nTOOL EXCHANGES THIS TURN:\n{exchange}\n\nYou may make 7 more tool call(s) \
-             this turn, or answer now and end the answer as HOW TO REPLY says.",
+            "{}\n\nTOOL EXCHANGES THIS TURN:\n{exchange}\n\nYou may make 7 more round(s) of \
+             tool calls this turn, up to 4 calls in one reply, or answer now and end the \
+             answer as HOW TO REPLY says.",
             kept[0]
         )
     );

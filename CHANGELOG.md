@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.24
+
+**A rename fits in one of agent smith's turns.**
+When smith answers on its own (not with a crew of agents), it gets a budget
+of tool calls per turn so a confused model can't loop forever. That budget
+counted every call, so an agent that changed four places in one reply spent
+four of its eight at once, the same as asking four times. On a test task
+(rename a function across a crate and make the tests pass) the agent ran out
+with files still unchanged. The budget now counts round trips to the model,
+which is what costs time and tokens: eight per turn, each still at most four
+calls. The same task's runs made 8 to 13 calls within those eight rounds;
+two of the runs that finished made nine, one past the old limit. And
+`sys:edit` takes `"all": true` to replace every occurrence of a name at
+once, as Claude Code's `replace_all` does; an edit whose text appears more
+than once now says so when it is refused. Agents that answer as part of a
+crew keep their four rounds per hop.
+- **Tests:** a reply of four calls is one round, a fifth call in one reply is
+  still answered "not run", and `"all": true` replaces every occurrence,
+  alone or in a batch, and reports how many.
+
 ## 0.27.23
 
 **On the light Ink Reader page a reply's title prints in its darkest ink.**

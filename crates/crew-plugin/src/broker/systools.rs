@@ -106,7 +106,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
         ),
         mk(
             "edit",
-            "change PART of a file, leaving the rest alone: {\"path\": …, \"old\": \"the exact text to replace\", \"new\": …}, or several at once with {\"path\": …, \"edits\": [{\"old\": …, \"new\": …}, …]} \u{2014} prefer this to write_file on a file that already exists; the result shows the edited lines, numbered",
+            "change PART of a file, leaving the rest alone: {\"path\": …, \"old\": \"the exact text to replace\", \"new\": …}, or several at once with {\"path\": …, \"edits\": [{\"old\": …, \"new\": …}, …]}; add \"all\": true to replace every occurrence (a rename) \u{2014} prefer this to write_file on a file that already exists; the result shows the edited lines, numbered",
             serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -116,6 +116,10 @@ pub(crate) fn tools() -> Vec<McpTool> {
                         "description": "the exact text to replace, copied from the file including its indentation; it must appear EXACTLY ONCE, so include surrounding lines if it would not",
                     },
                     "new": {"type": "string", "description": "what to put in its place"},
+                    "all": {
+                        "type": "boolean",
+                        "description": "true replaces EVERY occurrence of `old` (a rename) instead of requiring exactly one",
+                    },
                     "edits": {
                         "type": "array",
                         "description": "several replacements in one call, applied in order; if ANY of them does not match exactly once the file is left untouched",
@@ -124,6 +128,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
                             "properties": {
                                 "old": {"type": "string"},
                                 "new": {"type": "string"},
+                                "all": {"type": "boolean"},
                             },
                             "required": ["old", "new"],
                         },
@@ -313,8 +318,15 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
 /// second code path that can drift from the single edit's contract.
 fn edit(v: &serde_json::Value) -> Result<String, String> {
     let path = str_arg(v, "path")?;
+    let all = |e: &serde_json::Value| e.get("all").and_then(|a| a.as_bool()) == Some(true);
     let Some(edits) = v.get("edits").and_then(|e| e.as_array()) else {
-        return super::sysedit::edit(path, str_arg(v, "old")?, str_arg(v, "new")?);
+        let (old, new) = (str_arg(v, "old")?, str_arg(v, "new")?);
+        let swap = super::sysedit::Swap {
+            old,
+            new,
+            all: all(v),
+        };
+        return super::sysedit::edit_all(path, &[swap]);
     };
     let swaps: Result<Vec<_>, String> = edits
         .iter()
@@ -328,6 +340,7 @@ fn edit(v: &serde_json::Value) -> Result<String, String> {
             Ok(super::sysedit::Swap {
                 old: at("old")?,
                 new: at("new")?,
+                all: all(e),
             })
         })
         .collect();
@@ -369,3 +382,7 @@ fn list_dir(path: &str) -> Result<String, String> {
 #[cfg(test)]
 #[path = "systools_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "syseditall_tests.rs"]
+mod all_tests;

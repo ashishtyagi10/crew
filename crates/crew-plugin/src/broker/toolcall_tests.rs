@@ -277,12 +277,12 @@ fn the_follow_up_prompt_states_the_remaining_budget() {
     let seen = agent.seen();
     assert_eq!(seen.len(), MAX_TOOL_ROUNDS as usize, "one dial per round");
     assert!(
-        seen[0].contains("more tool call"),
+        seen[0].contains("more round(s) of tool calls"),
         "the first follow-up must state the remaining budget: {}",
         seen[0]
     );
     assert!(
-        seen.last().unwrap().contains("LAST tool call"),
+        seen.last().unwrap().contains("LAST round of tool calls"),
         "the final round must say so plainly: {}",
         seen.last().unwrap()
     );
