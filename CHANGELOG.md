@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.19
+
+**A swarm run's live block sits a row apart from your message.**
+While a swarm ran, its status line came on the row right after your last
+message, with nothing between them, so the spinner line read as the second
+line of what you typed. Now the block keeps the same blank row that separates
+any two messages (none in compact density), and a pane too short for
+everything gives up that row before the status line. The run's token count on
+the right of the status line also ends where the task rows under it end; it
+used to stick out one column past them and past the composer.
+- **Tests:** the status line sits one card gap under the last message, a
+  squeezed block drops the gap first, and the token count ends in the same
+  column as the task rows.
+
 ## 0.27.18
 
 **The title bar on the glass and crt themes is solid now, as it is on

@@ -572,7 +572,7 @@ fn status_line_queued_indicator_bar_and_composer_stack_without_colliding() {
 
             let top = pane.status_rows(cols, rows);
             let msg_rows = crate::chatplace::msg_rows_budget(&pane, cols, rows);
-            let status_row = top + msg_rows;
+            let status_row = top + msg_rows + crate::chatswarmview::lead(&pane, cols, g.swarm);
             let indicator_row = rows - bottom - g.prog - g.queued;
             let bar_row = rows - bottom - g.prog;
             let composer_row = rows - bottom;
