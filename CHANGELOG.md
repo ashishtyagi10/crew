@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.28
+
+**qwen3.8-max's tool calls run, in the shapes it actually writes.**
+Crew asks a model to call a tool with an `@tool` line. qwen3.8-max (Alibaba's
+1M-token model) mostly ignores that and writes the call wrapped in
+`<tool_call>` tags, in shapes crew didn't read: the name in a `<tool_name>`
+or `<function_name>` tag with the arguments in an `<arguments>` tag, the
+name bare and then its arguments, or GLM's `<arg_key>`/`<arg_value>` pairs.
+Nothing ran: in two runs of a test task (rename a function across a crate
+and make its tests pass) every call stayed on screen as raw text, and the
+new answer check (v0.27.26) reported "no rename was performed". Crew now
+reads all three shapes as the call they are, the same way it already read
+two other Qwen shapes. On the same task afterwards, all five runs renamed
+every use, with 6 to 13 calls actually run, and four of the five ran the
+tests. The model still sometimes writes a sixth shape or loops on a
+sentence, and the answer check catches those.
+- **Tests:** the four live blocks, exactly as they arrived, each become one
+  call with its arguments; closing tags go with the call; a URL, a half
+  call or a call with no arguments stays text.
+
 ## 0.27.27
 
 **On an Ink page a pop-up wears the heavy frame of the box you're in.**
