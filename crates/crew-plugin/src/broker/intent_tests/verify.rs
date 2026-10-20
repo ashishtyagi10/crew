@@ -16,9 +16,18 @@ fn a_verify_line_is_kept_for_a_plan_that_will_become_a_swarm() {
     assert!(d.hints.verify);
 }
 
+/// One agent's reply is judged too (`replyverify`): a reply that stopped
+/// short of its own condition was the commonest unchecked finish.
+#[test]
+fn a_verify_line_is_kept_for_a_reply() {
+    let d = parse_decision("SHAPE: reply\nWHY: rename and test\nVERIFY: yes").unwrap();
+    assert_eq!(d.shape, Shape::Reply);
+    assert!(d.hints.verify);
+}
+
 #[test]
 fn a_verify_line_is_dropped_for_every_other_shape() {
-    for shape in ["reply", "fan", "loop", "goal", "commit", "review"] {
+    for shape in ["fan", "loop", "goal", "commit", "review"] {
         let d = parse_decision(&format!("SHAPE: {shape}\nVERIFY: yes")).unwrap();
         assert!(!d.hints.verify, "{shape} cannot act on a verdict");
         assert_eq!(d.hints, Hints::default(), "{shape}: nothing else changes");
@@ -66,5 +75,5 @@ fn the_routing_line_says_verified_after_the_shape() {
 fn the_classifier_is_told_when_to_ask_for_a_check() {
     let p = classify::prompt("make the tests pass", &World::default());
     assert!(p.contains("`VERIFY: yes`"), "{p}");
-    assert!(p.contains("swarm or plan only"), "{p}");
+    assert!(p.contains("(reply, swarm or plan)"), "{p}");
 }

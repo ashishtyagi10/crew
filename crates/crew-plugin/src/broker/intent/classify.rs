@@ -191,7 +191,7 @@ pub(super) fn prompt(task: &str, world: &super::world::World) -> String {
          default) and `AGENTS: <name, name>` (fan: a subset of the agents \
          listed below, when fewer clearly fit; reply: the ONE agent whose role \
          fits the message best). One more optional line \
-         `VERIFY: yes` (swarm or plan only) says the message states a checkable \
+         `VERIFY: yes` (reply, swarm or plan) says the message states a checkable \
          success condition — tests passing, a build compiling, \"so that X\" — so \
          the result should be judged against it when the work ends; omit it when \
          there is nothing to check. A last optional line `TIER: cheap` (swarm, \

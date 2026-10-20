@@ -81,7 +81,7 @@ impl Hints {
                 }),
                 _ => None,
             },
-            verify: self.verify && matches!(shape, Shape::Swarm | Shape::Plan),
+            verify: self.verify && matches!(shape, Shape::Swarm | Shape::Plan | Shape::Reply),
             tier: self
                 .tier
                 .filter(|_| matches!(shape, Shape::Swarm | Shape::Plan | Shape::Goal)),
