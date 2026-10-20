@@ -199,6 +199,9 @@ pub(crate) fn card_lines_spanned(
                 crate::chathidden::append_hidden_suffix(&mut body[keep - 1], hidden, room);
             }
         }
+        if !(splash || view.compact || view.source) && crate::chatlead::framed(&m.text) {
+            body.insert(0, Vec::new());
+        }
         if splash {
             splash_style(&mut body, cols);
         }

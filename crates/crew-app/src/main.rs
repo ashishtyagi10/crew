@@ -90,6 +90,7 @@ mod chatinput;
 mod chatkeys;
 mod chatkeystore;
 mod chatlayout;
+mod chatlead;
 mod chatliveness;
 mod chatmd;
 mod chatmdcells;
