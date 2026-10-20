@@ -65,7 +65,15 @@ impl InboxPane {
                 self.busy = false;
                 if let Some(r) = self.reading.as_mut().filter(|r| r.thread.id == id) {
                     r.mails = Some(mails);
+                    if let Some(then) = self.then.take() {
+                        self.act(then);
+                    }
                 }
+            }
+            Got::Drafted(subject) => {
+                self.note = format!(
+                    "draft saved in Gmail: \u{201c}{subject}\u{201d} \u{2014} review and send it there (o)"
+                );
             }
             Got::Failed(e) => {
                 self.busy = false;

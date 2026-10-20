@@ -21,6 +21,12 @@ pub(crate) enum Ask {
     Open(String),
     /// Has anything changed? Re-list when the mailbox moved.
     Check,
+    /// Save `raw` (RFC 2822, base64url) as a draft in the thread.
+    Draft {
+        thread_id: String,
+        raw: String,
+        subject: String,
+    },
     /// Add and take away labels on a thread (archive, read, star).
     Relabel {
         id: String,
@@ -41,6 +47,8 @@ pub(crate) enum Got {
     },
     Unread(u64),
     Opened(String, Vec<Mail>),
+    /// A draft was saved; its subject.
+    Drafted(String),
     /// A call failed; the pane says why and keeps what it has.
     Failed(String),
     /// Google ended the grant (revoked, expired): sign in again.
@@ -102,6 +110,15 @@ impl State {
                 Ok(()) => vec![],
                 Err(e) => std::iter::once(fail(e)).chain(self.list(g, None)).collect(),
             },
+            Ask::Draft {
+                thread_id,
+                raw,
+                subject,
+            } => {
+                vec![g
+                    .draft(&thread_id, &raw)
+                    .map_or_else(fail, |()| Got::Drafted(subject))]
+            }
             Ask::Check => match g.profile().map(|(_, h)| h) {
                 Ok(h) if h == self.history => vec![],
                 Ok(_) => self.list(g, None),

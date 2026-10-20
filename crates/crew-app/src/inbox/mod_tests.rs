@@ -152,7 +152,7 @@ fn the_list_draws_unread_dots_senders_and_the_hint() {
         }
         line.into_iter().collect()
     };
-    assert!(row(0).starts_with("\u{203a}\u{25cf} ann"), "{:?}", row(0));
+    assert!(row(0).starts_with("\u{203a}\u{25cf}  ann"), "{:?}", row(0));
     assert!(row(0).contains("about ann"), "{:?}", row(0));
     assert!(row(5).contains("enter read"), "{:?}", row(5));
     assert!(

@@ -127,8 +127,8 @@ fn inbox_shot_screens() {
     reading.reading = Some(Reading {
         thread: rows()[0].clone(),
         mails: Some(vec![
-            Mail { from: "Ann Lee <ann@x.org>".into(), date: "Tue, 20 Oct 2026 09:02:00 -0400".into(), text: "Hi all,\n\nCan we move the Q4 roadmap review to Thursday? I need one more day to finish the numbers for the platform team, and Bo is out on Wednesday anyway.\n\nThanks,\nAnn".into(), files: vec!["roadmap-q4.pdf".into()] },
-            Mail { from: "Bo Park <bo@y.org>".into(), date: "Tue, 20 Oct 2026 09:40:00 -0400 (EDT)".into(), text: "Thursday works for me.".into(), files: vec![] },
+            Mail { from: "Ann Lee <ann@x.org>".into(), date: "Tue, 20 Oct 2026 09:02:00 -0400".into(), text: "Hi all,\n\nCan we move the Q4 roadmap review to Thursday? I need one more day to finish the numbers for the platform team, and Bo is out on Wednesday anyway.\n\nThanks,\nAnn".into(), files: vec!["roadmap-q4.pdf".into()], ..Mail::default() },
+            Mail { from: "Bo Park <bo@y.org>".into(), date: "Tue, 20 Oct 2026 09:40:00 -0400 (EDT)".into(), text: "Thursday works for me.".into(), files: vec![], ..Mail::default() },
         ]),
         scroll: 0,
     });
