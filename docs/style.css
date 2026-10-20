@@ -323,7 +323,7 @@ strong { color: var(--white); }
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
 }
 .footer-logo { font-family: var(--mono); font-weight: 700; font-size: 1.1rem; color: var(--white); }
-.footer-links { display: flex; gap: 24px; }
+.footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 24px; }
 .footer-links a { color: var(--text-dim); font-size: .88rem; }
 .footer-links a:hover { color: var(--white); }
 .footer-copy { color: var(--text-dim); font-size: .82rem; }
