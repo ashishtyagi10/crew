@@ -104,6 +104,9 @@
   white-space: nowrap;
 }
 
+/* ===== LEGAL PAGES ===== */
+.legal { max-width: 760px; margin: 0 auto; }
+
 /* ===== DOCS TABLE ===== */
 .docs-table {
   width: 100%;
