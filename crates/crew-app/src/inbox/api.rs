@@ -24,8 +24,13 @@ pub(crate) const PAGE: u32 = 25;
 pub(crate) struct Mail {
     pub from: String,
     pub date: String,
+    /// What agent smith and the deadline finder read: [`Rich::whole`].
+    ///
+    /// [`Rich::whole`]: super::rich::Rich::whole
     pub text: String,
     pub files: Vec<String>,
+    /// The message to draw (`reader`).
+    pub rich: super::rich::Rich,
     /// What a reply to it needs: its id, subject and where answers go.
     pub reply: super::draft::Reply,
 }
@@ -166,12 +171,13 @@ impl Gmail {
         Ok(msgs
             .iter()
             .map(|m| {
-                let (text, files) = super::body::text(m);
+                let (rich, files) = super::body::text(m);
                 Mail {
                     from: wire::header(m, "From"),
                     date: wire::header(m, "Date"),
-                    text,
+                    text: rich.whole(),
                     files,
+                    rich,
                     reply: super::draft::Reply::of(m),
                 }
             })

@@ -5,13 +5,13 @@ use super::super::wire::Thread;
 use super::super::Reading;
 
 fn reading(texts: &[&str]) -> Reading {
+    let thread = Thread {
+        id: "t1".into(),
+        subject: "Q4 review".into(),
+        from: "Ann <ann@x.org>".into(),
+        ..Thread::default()
+    };
     Reading {
-        thread: Thread {
-            id: "t1".into(),
-            subject: "Q4 review".into(),
-            from: "Ann <ann@x.org>".into(),
-            ..Thread::default()
-        },
         mails: Some(
             texts
                 .iter()
@@ -22,7 +22,7 @@ fn reading(texts: &[&str]) -> Reading {
                 })
                 .collect(),
         ),
-        scroll: 0,
+        ..Reading::new(thread)
     }
 }
 

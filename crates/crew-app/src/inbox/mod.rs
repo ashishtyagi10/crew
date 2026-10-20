@@ -7,15 +7,21 @@
 pub(crate) mod age;
 pub(crate) mod api;
 pub(crate) mod body;
+pub(crate) mod charset;
 pub(crate) mod draft;
 pub(crate) mod draw;
 pub(crate) mod fetch;
 pub(crate) mod filing;
 pub(crate) mod grant;
 pub(crate) mod handoff;
+pub(crate) mod html;
 pub(crate) mod keys;
+pub(crate) mod links;
+pub(crate) mod plain;
 pub(crate) mod query;
 pub(crate) mod reader;
+mod reading;
+pub(crate) mod rich;
 pub(crate) mod setup;
 pub(crate) mod signin;
 pub(crate) mod smith;
@@ -27,8 +33,8 @@ pub(crate) mod worker;
 use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 
-use api::Mail;
 use grant::{Client, Grant};
+pub(crate) use reading::Reading;
 use wire::Thread;
 use worker::{Ask, Got, Worker};
 
@@ -44,13 +50,6 @@ pub(crate) enum Stage {
     },
     SigningIn(Receiver<Result<Grant, String>>),
     Ready(Worker),
-}
-
-/// An opened thread: its row, its messages once they arrive, and the scroll.
-pub(crate) struct Reading {
-    pub thread: Thread,
-    pub mails: Option<Vec<Mail>>,
-    pub scroll: usize,
 }
 
 pub struct InboxPane {

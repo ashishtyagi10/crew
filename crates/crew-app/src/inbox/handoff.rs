@@ -47,11 +47,7 @@ impl InboxPane {
             };
             self.ask(Ask::Open(thread.id.clone()));
             self.opened(&thread.id);
-            self.reading = Some(Reading {
-                thread,
-                mails: None,
-                scroll: 0,
-            });
+            self.reading = Some(Reading::new(thread));
         }
         match self.reading.as_ref().is_some_and(|r| r.mails.is_some()) {
             true => self.act(then),

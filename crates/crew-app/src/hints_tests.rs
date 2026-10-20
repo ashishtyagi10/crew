@@ -155,3 +155,17 @@ fn the_labels_are_drawn_over_the_first_cells_of_their_target() {
         "the tag carries its own field"
     );
 }
+
+#[test]
+fn a_target_the_pane_knows_is_labelled_and_outranks_the_words_at_its_cell() {
+    use crate::hints::Kind;
+    let known = vec![
+        (0, 4, "https://x.io/track".to_string(), Kind::Url),
+        (1, 0, "https://real.io/".to_string(), Kind::Url),
+    ];
+    let h = Hints::scan_wrapped(&rows(&["see Track it", "https://shown.io/ ok"]), &[], known)
+        .expect("labels");
+    let texts: Vec<&str> = h.targets.iter().map(|t| t.text.as_str()).collect();
+    assert_eq!(texts.len(), 2, "{texts:?}");
+    assert!(texts.contains(&"https://x.io/track") && texts.contains(&"https://real.io/"));
+}

@@ -125,12 +125,35 @@ fn inbox_shot_screens() {
     take("list", &ready());
     let mut reading = ready();
     reading.reading = Some(Reading {
-        thread: rows()[0].clone(),
         mails: Some(vec![
             Mail { from: "Ann Lee <ann@x.org>".into(), date: "Tue, 20 Oct 2026 09:02:00 -0400".into(), text: "Hi all,\n\nCan we move the Q4 roadmap review to Thursday? I need one more day to finish the numbers for the platform team, and Bo is out on Wednesday anyway.\n\nThanks,\nAnn".into(), files: vec!["roadmap-q4.pdf".into()], ..Mail::default() },
             Mail { from: "Bo Park <bo@y.org>".into(), date: "Tue, 20 Oct 2026 09:40:00 -0400 (EDT)".into(), text: "Thursday works for me.".into(), files: vec![], ..Mail::default() },
         ]),
-        scroll: 0,
+        ..Reading::new(rows()[0].clone())
     });
     take("reader", &reading);
+    let html = |name: &str, from: &str| {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/inbox/html/corpus");
+        let rich = crate::inbox::rich::Rich::of_html(
+            &std::fs::read_to_string(dir.join(format!("{name}.html"))).unwrap(),
+            None,
+        );
+        Mail {
+            from: from.into(),
+            date: "Tue, 20 Oct 2026 09:02:00 -0400".into(),
+            text: rich.whole(),
+            rich,
+            ..Mail::default()
+        }
+    };
+    let mut rich = ready();
+    rich.reading = Some(Reading {
+        mails: Some(vec![
+            html("receipt", "Shop Co <orders@shop.io>"),
+            html("gmail_reply", "Bob Park <bo@y.org>"),
+            html("newsletter", "Shop Co <news@shop.io>"),
+        ]),
+        ..Reading::new(rows()[0].clone())
+    });
+    take("rich", &rich);
 }

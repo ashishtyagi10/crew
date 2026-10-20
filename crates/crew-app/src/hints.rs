@@ -32,6 +32,9 @@ pub(crate) enum Kind {
     Hash,
 }
 
+/// A target before its label: `(row, col, text, kind)`.
+pub(crate) type Found = (u16, u16, String, Kind);
+
 /// One labelled thing on the pane.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Target {
@@ -70,10 +73,11 @@ pub(crate) struct Hints {
 /// would touch a dozen files to carry a mode that is off almost always.
 static MODE: Mutex<Option<Hints>> = Mutex::new(None);
 
-/// Label `pane`'s rows, if there is anything on them to label. Returns
-/// whether the mode opened.
-pub(crate) fn open(pane: usize, rows: &[Vec<char>], wraps: &[bool]) -> bool {
-    let mut h = Hints::scan_wrapped(rows, wraps);
+/// Label `pane`'s rows, if there is anything on them to label, plus the
+/// targets the pane knows of that its text does not show (a mail's link
+/// under its words). Returns whether the mode opened.
+pub(crate) fn open(pane: usize, rows: &[Vec<char>], wraps: &[bool], known: Vec<Found>) -> bool {
+    let mut h = Hints::scan_wrapped(rows, wraps, known);
     if let Some(h) = &mut h {
         h.pane = pane;
     }
@@ -129,13 +133,20 @@ impl Hints {
     /// the next key you press.
     #[cfg(test)]
     pub(crate) fn scan(rows: &[Vec<char>]) -> Option<Self> {
-        Self::scan_wrapped(rows, &[])
+        Self::scan_wrapped(rows, &[], Vec::new())
     }
 
     /// [`Self::scan`] with each row's soft-wrap flag, so a path the pane broke
     /// across rows is one target (`hintscan`).
-    pub(crate) fn scan_wrapped(rows: &[Vec<char>], wraps: &[bool]) -> Option<Self> {
+    pub(crate) fn scan_wrapped(
+        rows: &[Vec<char>],
+        wraps: &[bool],
+        known: Vec<Found>,
+    ) -> Option<Self> {
         let mut found = crate::hintscan::found(rows, wraps);
+        // What the pane knows outranks what its text spells at the same cell.
+        found.retain(|&(r, c, _, _)| !known.iter().any(|&(kr, kc, _, _)| (kr, kc) == (r, c)));
+        found.extend(known);
         if found.is_empty() {
             return None;
         }

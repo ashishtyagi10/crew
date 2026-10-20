@@ -33,7 +33,15 @@ impl CrewApp {
             crate::pane::PaneContent::Terminal(t) => crew_term::TermModel::wrapped_rows(&t.pty),
             _ => Vec::new(),
         };
-        match crate::hints::open(i, &rows, &wraps) {
+        let known = match &pane.content {
+            crate::pane::PaneContent::Inbox(p) => p.links(pane.grid.cols, pane.grid.rows),
+            _ => Vec::new(),
+        };
+        let known = known
+            .into_iter()
+            .map(|(r, c, u)| (r, c, u, Kind::Url))
+            .collect();
+        match crate::hints::open(i, &rows, &wraps, known) {
             true => self.input.focused = false,
             false => self.set_status("nothing on this pane to reach"),
         }

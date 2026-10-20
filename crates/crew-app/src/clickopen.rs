@@ -116,6 +116,7 @@ impl CrewApp {
         match &self.panes[i].content {
             PaneContent::Chat(_) => self.resolve_chat_click(i, row, col),
             PaneContent::View(_) => self.resolve_view_click(i, row, col),
+            PaneContent::Inbox(_) => self.resolve_inbox_click(i, row, col),
             _ => false,
         }
     }
