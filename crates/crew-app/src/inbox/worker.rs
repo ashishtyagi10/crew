@@ -33,6 +33,11 @@ pub(crate) enum Ask {
         add: Vec<&'static str>,
         remove: Vec<&'static str>,
     },
+    /// Move a thread to Trash, or (`back`) out of it.
+    Trash {
+        id: String,
+        back: bool,
+    },
 }
 
 pub(crate) enum Got {
@@ -106,10 +111,14 @@ impl State {
             Ask::Open(id) => vec![g.open(&id).map_or_else(fail, |m| Got::Opened(id, m))],
             // The pane already shows the change; a refusal is said, and the
             // list comes back as Gmail has it, which puts the row right.
-            Ask::Relabel { id, add, remove } => match g.relabel(&id, &add, &remove) {
-                Ok(()) => vec![],
-                Err(e) => std::iter::once(fail(e)).chain(self.list(g, None)).collect(),
-            },
+            Ask::Relabel { id, add, remove } => {
+                let done = g.relabel(&id, &add, &remove);
+                self.filed(g, done)
+            }
+            Ask::Trash { id, back } => {
+                let done = g.trash(&id, back);
+                self.filed(g, done)
+            }
             Ask::Draft {
                 thread_id,
                 raw,
@@ -124,6 +133,14 @@ impl State {
                 Ok(_) => self.list(g, None),
                 Err(e) => vec![fail(e)],
             },
+        }
+    }
+
+    /// A filing call's answer: nothing to say when it worked.
+    fn filed(&mut self, g: &mut Gmail, done: Result<(), String>) -> Vec<Got> {
+        match done {
+            Ok(()) => vec![],
+            Err(e) => std::iter::once(fail(e)).chain(self.list(g, None)).collect(),
         }
     }
 

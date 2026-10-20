@@ -84,9 +84,11 @@
       <ul>
         <li>Archiving, starring, and marking as read or unread, which change labels on
         a thread.</li>
+        <li>Deleting, which moves a thread to Gmail's Trash, as Gmail's own delete
+        does. Gmail empties Trash after 30 days; Crew never deletes mail
+        permanently.</li>
         <li>Opening a thread marks it read, as Gmail does.</li>
-        <li>Saving a reply as a Gmail draft. Crew never sends mail, and it never
-        deletes mail.</li>
+        <li>Saving a reply as a Gmail draft. Crew never sends mail.</li>
       </ul>
       <h3>Where it is stored</h3>
       <p>The inbox pane keeps only the sign-in grant (your client ID, client secret
@@ -97,7 +99,7 @@
       that conversation in the project's <code>.crew</code> folder. A command-line
       agent such as Claude Code also keeps its own history.</p>
       <h3>Sharing with an AI provider</h3>
-      <p>When you press <kbd>a</kbd> (ask smith), <kbd>d</kbd> (draft a reply) or
+      <p>When you press <kbd>a</kbd> (ask smith), <kbd>r</kbd> (draft a reply) or
       <kbd>t</kbd> (make a todo), the open thread is sent to the AI provider you
       configured, so that it can answer, write the draft, or find the deadline.
       Nothing is sent until you press one of those keys. The thread is passed to the

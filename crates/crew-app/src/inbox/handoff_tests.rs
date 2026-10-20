@@ -51,14 +51,14 @@ fn a_in_the_list_opens_the_thread_and_hands_it_over_when_it_lands() {
 }
 
 #[test]
-fn d_asks_for_a_reply_and_smiths_body_becomes_a_draft_in_the_thread() {
+fn r_asks_for_a_reply_and_smiths_body_becomes_a_draft_in_the_thread() {
     let (mut p, asks, _answer) = pane();
     p.reading = Some(super::Reading {
         thread: p.rows[0].clone(),
         mails: Some(mails()),
         scroll: 0,
     });
-    p.press(&Key::Character("d".into()), 80, 24);
+    p.press(&Key::Character("r".into()), 80, 24);
     let sent = p.to_smith.take().expect("handed over");
     let answer = sent.draft.expect("the draft's headers");
     assert_eq!(
@@ -86,7 +86,7 @@ fn d_asks_for_a_reply_and_smiths_body_becomes_a_draft_in_the_thread() {
         at_ms: 0,
     });
     p.drafted_by_smith(None);
-    assert!(p.note.contains("held no draft"), "{}", p.note);
+    assert!(p.note.contains("press r to ask again"), "{}", p.note);
 }
 
 #[test]

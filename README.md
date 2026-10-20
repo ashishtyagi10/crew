@@ -311,12 +311,13 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
 **Your Gmail in a pane: `/inbox`.** The list (an unread dot, a star,
 sender, subject, snippet, age), `/` to search in Gmail's own syntax
 (`from:ann is:unread`), Enter to read a thread as text (which marks it read,
-as Gmail does), `e` to archive, `m` to mark read or unread, `s` to star, `u`
-to undo the last of those — nothing is ever deleted — `a` to hand the
-thread to agent smith ("what does it want from me?"), `d` to have smith
-write a reply that crew saves as a **Gmail draft** in the thread (never
-sent: you send it from Gmail), `t` to turn it into a `/todo` row due on the
-deadline the mail states ("by Friday"), `o` to open it in
+as Gmail does), `e` to archive, `d` to delete (to Gmail's Trash, as Gmail's
+own delete does — nothing is deleted for good), `m` to mark read or unread,
+`s` to star, `u` to undo the last of those, `r` to have agent smith write a
+reply that crew saves as a **Gmail draft** in the thread (never sent: you
+send it from Gmail), `a` to hand the thread to smith ("what does it want
+from me?"), `t` to turn it into a `/todo` row due on the deadline the mail
+states ("by Friday"), `R` to refresh, `o` to open it in
 Gmail, `/inbox <search>` to open on a search, `/inbox signout` to withdraw
 the grant. Gmail's read scope is restricted, so it signs in with an OAuth
 client of your own: the pane's setup page opens the five Google Cloud
