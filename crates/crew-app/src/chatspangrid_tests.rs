@@ -22,7 +22,7 @@ fn a_table_header_takes_the_accent_over_a_muted_rule() {
     let out = lines("| name | n |\n|---|---|\n| **a** | 1 |", 40, fg);
     assert_eq!(row_text(&out[0]), " name │ n");
     let head = &out[0][1];
-    assert_eq!(head.fg, crate::palette::accent());
+    assert_eq!(head.fg, crate::chatstrong::ink());
     assert!(head.bold);
     assert_eq!(out[0][6].c, '\u{2502}');
     let muted = crew_theme::theme().text_muted;

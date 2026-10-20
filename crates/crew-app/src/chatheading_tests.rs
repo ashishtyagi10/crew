@@ -60,14 +60,14 @@ fn a_wrapped_h1_is_ruled_once_under_its_last_row() {
     assert_eq!(super::wrap_cols(2, 14), 14);
 }
 
-/// The badge is the accent as a block, its mark in ink that clears the text
-/// floor on it; the title beside it keeps the accent as ink.
+/// The badge is the title's ink (`chatstrong`) as a block, its mark in ink
+/// that clears the text floor on it; the title beside it wears it as ink.
 #[test]
 fn the_h1_badge_is_the_accent_block_with_a_readable_mark() {
     let _guard = crate::app::theme_test_guard();
     let _off = crate::glyphs::force(false);
     let out = lines("# Title", 40, (9, 9, 9));
-    let accent = crate::palette::accent();
+    let accent = crate::chatstrong::ink();
     let block = crate::segment::inked(accent).1;
     assert_eq!((out[0][1].fg, out[0][1].bg), (block, None), "cap");
     assert_eq!(out[0][3].c, '#');

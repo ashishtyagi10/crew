@@ -56,11 +56,13 @@ fn the_strike_threads_through_to_the_cell_views_deco() {
 fn heading_ink_steps_down_by_level() {
     let _guard = crate::app::theme_test_guard();
     let th = crew_theme::theme();
-    assert_eq!(super::heading_fg(1), crate::palette::accent());
+    assert_eq!(super::heading_fg(1), crate::chatstrong::ink());
     assert_eq!(super::heading_fg(2), th.ink);
     assert_eq!(super::heading_fg(3), th.text_muted);
     assert_eq!(super::heading_fg(6), th.text_muted);
-    assert_ne!(super::heading_fg(1), super::heading_fg(2));
+    // h1 may wear the body's own ink when the accent is a grey and nothing
+    // reads harder (`chatstrong`); it never steps back to h3's.
+    assert_ne!(super::heading_fg(1), super::heading_fg(3));
 }
 
 /// The h1 accent is the FLOORED accent: it clears the text floor against the

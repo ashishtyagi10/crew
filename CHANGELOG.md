@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.23
+
+**On the light Ink Reader page a reply's title prints in its darkest ink.**
+Headings step down in strength: the `#` title is the strongest, `##` is
+body ink, `###` steps back. The title and a table's column names take the
+accent colour, which on a coloured accent still reads as a label. The light
+page's accent is a grey, so its title printed at 7.1:1 against the page,
+fainter than the body text (16.3:1) and the `###` headings and table rules
+under it (11.2:1), and the column names read as a greyed-out row. When the
+accent is a grey, the title, its `#` badge and the column names now print
+in the darkest ink on the page (18.1:1). The dark Ink page already worked
+this way, a coloured accent you picked yourself is used as before, and the
+glass and tube themes are unchanged.
+- **Tests:** with a grey accent the title is never fainter than `##` text,
+  the light page's title and column names wear the darkest ink, and a
+  coloured accent is left as it is.
+
 ## 0.27.22
 
 **A call agent smith describes is run, not imagined.**
