@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.25
+
+**A reply that opens with a title, quote, code or table starts a row lower.**
+Each reply starts with its sender's name on a coloured tab over a short bar
+on the left, and plain text goes on the row right under it. When the reply
+opened with a framed block, that frame landed on the very next row: a `#`
+title put its own tab flush under the sender's tab, so the two read as one
+stepped label, and a `>` quote ran its bar straight on from the sender's
+bar, so the two looked like one bent line in two colours. A reply whose
+first block is a `#` title, a quote, a code block or a table now gets the
+same blank row every later block already gets before it. Replies that open
+with plain text are unchanged, and so are the compact view (Ctrl+O) and the
+source view.
+- **Tests:** a title or a quote opens a blank row under the header and
+  plain text does not; the compact and source views stay tight.
+
 ## 0.27.24
 
 **A rename fits in one of agent smith's turns.**
