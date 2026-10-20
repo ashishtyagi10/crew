@@ -7,14 +7,17 @@
 pub(crate) mod age;
 pub(crate) mod api;
 pub(crate) mod body;
+pub(crate) mod draft;
 pub(crate) mod draw;
 pub(crate) mod fetch;
 pub(crate) mod grant;
+pub(crate) mod handoff;
 pub(crate) mod keys;
 pub(crate) mod query;
 pub(crate) mod reader;
 pub(crate) mod setup;
 pub(crate) mod signin;
+pub(crate) mod smith;
 pub(crate) mod take;
 pub(crate) mod triage;
 pub(crate) mod wire;
@@ -66,6 +69,12 @@ pub struct InboxPane {
     pub(crate) more: bool,
     /// The last archive, read or star, for `u`.
     pub(crate) undo: Option<triage::Undo>,
+    /// `a`/`d`/`t` pressed before the thread's messages arrived.
+    pub(crate) then: Option<handoff::Then>,
+    /// A prompt for agent smith, for the app to deliver.
+    pub(crate) to_smith: Option<handoff::ToSmith>,
+    /// A reply smith is writing for a draft.
+    pub(crate) waiting: Option<handoff::Waiting>,
     ticked_ms: u64,
 }
 
@@ -97,6 +106,9 @@ impl InboxPane {
             busy: false,
             more: false,
             undo: None,
+            then: None,
+            to_smith: None,
+            waiting: None,
             ticked_ms: crate::anim::now_ms(),
         }
     }

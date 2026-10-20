@@ -41,7 +41,7 @@ impl InboxPane {
             return Some(InboxAction::Redraw);
         }
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
-        if matches!(self.stage, Stage::Ready(_)) && self.triage(&ch) {
+        if matches!(self.stage, Stage::Ready(_)) && (self.triage(&ch) || self.handoff(&ch)) {
             return Some(InboxAction::Redraw);
         }
         match &mut self.stage {
@@ -172,11 +172,11 @@ pub(crate) fn hint(p: &InboxPane) -> String {
         (Stage::Setup { .. }, _) => "1\u{2013}5 open the console \u{b7} enter sign in \u{b7} esc close".into(),
         (Stage::SigningIn(_), _) => "esc cancel".into(),
         (Stage::Ready(_), Some(_)) => {
-            "\u{2191}\u{2193} scroll \u{b7} e archive \u{b7} m unread \u{b7} s star \u{b7} esc back \u{b7} o gmail".into()
+            "esc back \u{b7} e archive \u{b7} a ask smith \u{b7} d draft a reply \u{b7} t todo \u{b7} m unread \u{b7} s star \u{b7} o gmail".into()
         }
         (Stage::Ready(_), None) if p.busy => "loading\u{2026}".into(),
         (Stage::Ready(_), None) => {
-            "enter read \u{b7} e archive \u{b7} m read \u{b7} s star \u{b7} u undo \u{b7} / search \u{b7} o gmail".into()
+            "enter read \u{b7} e archive \u{b7} a ask smith \u{b7} u undo \u{b7} / search \u{b7} m read \u{b7} s star \u{b7} d draft \u{b7} t todo \u{b7} o gmail".into()
         }
     }
 }

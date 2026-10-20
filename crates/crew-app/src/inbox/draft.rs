@@ -1,0 +1,117 @@
+//! A reply saved as a Gmail draft, in its thread, never sent.
+//!
+//! Gmail files a draft into a thread when three things agree: the draft's
+//! `threadId`, `In-Reply-To` and `References` naming the message answered
+//! (RFC 2822), and a subject that matches ("Gmail API: Managing threads").
+//! crew writes those headers itself from the thread; the model writes only
+//! the body. The draft waits in Gmail, and sending it is the user's.
+use base64::Engine;
+use serde_json::Value;
+
+use super::api::{Gmail, Mail};
+use super::wire::header;
+
+/// What a reply to one message needs from it.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub(crate) struct Reply {
+    pub subject: String,
+    pub message_id: String,
+    pub reply_to: String,
+    pub references: String,
+}
+
+impl Reply {
+    pub(crate) fn of(msg: &Value) -> Self {
+        Self {
+            subject: header(msg, "Subject"),
+            message_id: header(msg, "Message-ID"),
+            reply_to: header(msg, "Reply-To"),
+            references: header(msg, "References"),
+        }
+    }
+}
+
+/// Everything a draft needs but its body, taken when the user asks for one.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub(crate) struct Answer {
+    pub thread_id: String,
+    pub to: String,
+    pub subject: String,
+    pub in_reply_to: String,
+    pub references: String,
+}
+
+/// The reply to `mails`, from `me`: to the last message someone else sent
+/// (its `Reply-To`, else its `From`), on the thread's subject with `Re:`.
+pub(crate) fn answer(thread_id: &str, mails: &[Mail], me: &str) -> Option<Answer> {
+    let me = me.to_ascii_lowercase();
+    let theirs = |m: &&Mail| me.is_empty() || !m.from.to_ascii_lowercase().contains(&me);
+    let last = mails.iter().rev().find(theirs).or(mails.last())?;
+    let to = match last.reply.reply_to.trim() {
+        "" => last.from.trim(),
+        r => r,
+    };
+    let first = mails.first().map_or("", |m| m.reply.subject.trim());
+    let subject = match first
+        .get(..3)
+        .is_some_and(|p| p.eq_ignore_ascii_case("re:"))
+    {
+        true => first.to_string(),
+        false => format!("Re: {first}"),
+    };
+    let id = last.reply.message_id.trim();
+    Some(Answer {
+        thread_id: thread_id.into(),
+        to: to.into(),
+        subject,
+        in_reply_to: id.into(),
+        references: format!("{} {id}", last.reply.references.trim())
+            .trim()
+            .to_string(),
+    })
+}
+
+/// The draft as Gmail takes it: an RFC 2822 message, base64url. Header
+/// values lose any line break (a body cannot smuggle a header in), and a
+/// subject outside ASCII is RFC 2047-encoded.
+pub(crate) fn raw(a: &Answer, body: &str) -> String {
+    let one = |s: &str| s.replace(['\r', '\n'], " ");
+    let mut m = format!(
+        "To: {}\r\nSubject: {}\r\n",
+        one(&a.to),
+        encoded(&one(&a.subject))
+    );
+    if !a.in_reply_to.is_empty() {
+        m.push_str(&format!(
+            "In-Reply-To: {}\r\nReferences: {}\r\n",
+            one(&a.in_reply_to),
+            one(&a.references)
+        ));
+    }
+    m.push_str("MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n");
+    m.push_str("Content-Transfer-Encoding: 8bit\r\n\r\n");
+    m.push_str(&body.replace("\r\n", "\n").replace('\n', "\r\n"));
+    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(m)
+}
+
+fn encoded(s: &str) -> String {
+    match s.is_ascii() {
+        true => s.to_string(),
+        false => {
+            let b = base64::engine::general_purpose::STANDARD.encode(s);
+            format!("=?UTF-8?B?{b}?=")
+        }
+    }
+}
+
+impl Gmail {
+    /// Save `raw` as a draft in thread `thread_id`.
+    pub(crate) fn draft(&mut self, thread_id: &str, raw: &str) -> Result<(), String> {
+        let body = serde_json::json!({"message": {"raw": raw, "threadId": thread_id}});
+        self.post("/drafts", body).map(|_| ())
+    }
+}
+
+#[cfg(test)]
+#[path = "draft_tests.rs"]
+mod tests;

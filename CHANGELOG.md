@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.31
+
+**`/inbox` and agent smith: ask about a thread, draft a reply, make a todo.**
+In the inbox pane `a` hands the thread to agent smith and asks what it says
+and what it wants from you, and by when; the answer appears in smith's pane.
+`d` asks smith to write a reply, and when smith finishes, crew saves it as
+a draft in that thread in Gmail. It is never sent: you read it, change it
+and send it from Gmail. Smith writes only the body; crew fills in who it
+goes to, the `Re:` subject and the headers that keep it in the thread.
+`t` adds a `/todo` row ("Reply to Ann: Q4 review"), due on the date the mail
+gives after "by", "before", "until", "due" or "no later than" ("by the end
+of Thursday"). Pressed on a row in the list, each opens the thread first. A
+thread reaches smith marked as untrusted text it must not take orders from,
+and smith's pane shows one short line for it rather than the whole mail.
+This works the same whether smith runs on crew's own models or on Claude
+Code.
+- **Tests:** the thread goes to smith fenced and labelled untrusted, the
+  oldest messages cut first when it is long; a reply answers the last
+  message someone else sent, honours `Reply-To` and builds `References`;
+  smith's body is the text between the markers and nothing else, and a
+  line break in a header value cannot add a header; the draft waits while
+  smith is still working and saves its body when the turn ends; only a
+  stated deadline becomes the todo's due date.
+
 ## 0.27.30
 
 **`/inbox` files mail: archive, read or unread, star, and undo.**

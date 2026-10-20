@@ -517,6 +517,7 @@ mod popupshot_tests;
 mod popupsweep_tests;
 // Only a Windows PowerShell pane starts oh-my-posh (a Mac zsh brings its own
 // prompt); the tests run everywhere.
+mod inboxsmith;
 #[cfg(any(windows, test))]
 mod posh;
 mod procname;

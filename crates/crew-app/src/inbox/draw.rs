@@ -168,8 +168,8 @@ fn row(cv: &mut Canvas, r: u16, th: &Thread, selected: bool, now: i64) {
     if th.count > 1 {
         who = format!("{who} ({})", th.count);
     }
-    cv.text(r, 3, 3 + sw, &who, t.ink, th.unread || selected);
-    let at = 3 + sw + 1;
+    cv.text(r, 4, 4 + sw, &who, t.ink, th.unread || selected);
+    let at = 4 + sw + 1;
     let subject = match th.subject.trim() {
         "" => "(no subject)",
         s => s,

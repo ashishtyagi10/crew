@@ -20,12 +20,14 @@ pub(crate) const API: &str = "https://gmail.googleapis.com/gmail/v1/users/me";
 pub(crate) const PAGE: u32 = 25;
 
 /// One message of an opened thread, as the reader shows it.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub(crate) struct Mail {
     pub from: String,
     pub date: String,
     pub text: String,
     pub files: Vec<String>,
+    /// What a reply to it needs: its id, subject and where answers go.
+    pub reply: super::draft::Reply,
 }
 
 pub(crate) struct Gmail {
@@ -167,6 +169,7 @@ impl Gmail {
                     date: wire::header(m, "Date"),
                     text,
                     files,
+                    reply: super::draft::Reply::of(m),
                 }
             })
             .collect())
