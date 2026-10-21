@@ -2,6 +2,8 @@
 //! pane and cell the pointer is on, handed to the pane, which says what a
 //! click there does and which thread to wash for the hover.
 use crate::app::CrewApp;
+use crate::inbox::keys::InboxAction;
+use crate::inbox::mouse::Clicked;
 use crate::pane::PaneContent;
 
 impl CrewApp {
@@ -26,11 +28,18 @@ impl CrewApp {
         let PaneContent::Inbox(p) = &mut self.panes[i].content else {
             return false;
         };
-        if !p.click(grid.cols, grid.rows, row, col) {
-            return false;
-        }
+        let then = match p.click(grid.cols, grid.rows, row, col) {
+            Clicked::Miss => return false,
+            Clicked::Done => None,
+            Clicked::Then(act) => Some(act),
+        };
         self.focused = i;
         self.input.focused = false;
+        match then {
+            Some(InboxAction::Close) => drop(self.close_pane(i)),
+            Some(InboxAction::Keys) => self.open_help(),
+            Some(InboxAction::Redraw) | None => {}
+        }
         true
     }
 
@@ -56,9 +65,16 @@ impl CrewApp {
     pub(crate) fn inbox_hover_on(&self, i: usize) -> bool {
         self.inbox_cell_at_cursor().is_some_and(|(at, row, col)| {
             let grid = self.panes[at].grid;
-            at == i
-                && matches!(&self.panes[at].content,
-                    PaneContent::Inbox(p) if p.thread_at(grid.cols, grid.rows, row, col).is_some())
+            let on = |p: &crate::inbox::InboxPane| {
+                let (rx, w) = p.reader_box(grid.cols);
+                p.thread_at(grid.cols, grid.rows, row, col).is_some()
+                    || p.foot_key_at(grid.cols, grid.rows, row, col).is_some()
+                    || col
+                        .checked_sub(rx)
+                        .and_then(|c| p.counter_at(w, row, c))
+                        .is_some()
+            };
+            at == i && matches!(&self.panes[at].content, PaneContent::Inbox(p) if on(p))
         })
     }
 }

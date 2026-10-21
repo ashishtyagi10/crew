@@ -1,4 +1,4 @@
-use super::{lines, said_lines, width, Key, LIST, MORE, READER};
+use super::{lines, said_lines, width, Key, GAP, LIST, MORE, READER};
 use crate::inbox::wire::Thread;
 
 fn said(ls: &[Vec<Key>]) -> Vec<String> {
@@ -25,7 +25,9 @@ fn every_key_shows_wrapped_whole_and_only_a_short_pane_points_at_the_rest() {
                 said(&got)
             );
             if room >= 58 {
-                assert_eq!(shown, keys.to_vec(), "{room}: every key, in order");
+                let keys: Vec<Key> = keys.iter().copied().filter(|&k| k != GAP).collect();
+                let shown: Vec<Key> = shown.into_iter().filter(|&k| k != GAP).collect();
+                assert_eq!(shown, keys, "{room}: every key, in order");
             }
         }
     }

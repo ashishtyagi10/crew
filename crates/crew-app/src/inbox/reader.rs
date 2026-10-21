@@ -77,7 +77,8 @@ fn layout(r: &Reading, k: Key) -> Laid {
     };
     // A row of air under the pane's edge, as the list has.
     lay.lines.push(Vec::new());
-    let title = wrap(subject, k.width);
+    // Its first row leaves room for `‹ 3 of 25 ›` (`readpos`).
+    let title = wrap(subject, k.width.saturating_sub(super::readpos::ROOM));
     lay.lines.extend(title.iter().map(|l| row(l, k.ink, true)));
     match &r.mails {
         Some(mails) => mails

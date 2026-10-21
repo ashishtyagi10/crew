@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.51
+
+**`/inbox`: keys you can click, and where you are.** First round of the
+mail reader loop.
+- **The foot is keycaps.** Every key at the foot of the inbox is drawn on a
+  keycap with what it does beside it, in groups (move, act, view, more),
+  so the line reads at a glance instead of as one block of words. Click a
+  keycap and it does its key.
+- **Where you are.** An open thread says which of the list it is,
+  `‹ 3 of 25 ›`, at the right of its subject; click an arrow for the
+  previous or the next thread.
+- **Tests:** a keycap's click is its key; the arrows step through the list;
+  every key is still shown, in order.
+
 ## 0.27.50
 
 **`/inbox`: mail reads more like mail — headings, capitals, pictures in their places.**
