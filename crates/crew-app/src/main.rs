@@ -237,6 +237,7 @@ mod crashlog;
 #[cfg(test)]
 #[path = "crispshot_tests.rs"]
 mod crispshot_tests;
+mod ctrlchord;
 mod ctxlimit;
 mod cursortrail;
 mod cwd;

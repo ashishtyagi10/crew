@@ -231,13 +231,21 @@ spelling, and typing `cmd` or `shift` still filters the list.
 
 **On Windows and Linux** the Cmd key is the Windows/Super key, which the OS
 keeps for itself (Win+I opens Settings), so every Cmd chord below is pressed
-as **Ctrl+Shift** and the key: Ctrl+Shift+I focuses the input bar,
-Ctrl+Shift+T opens a shell, Ctrl+Shift+1 … 9 jump to a pane. Cmd+Click and
-Cmd+wheel are Ctrl+Click and Ctrl+wheel, and a document window takes plain
-Ctrl (Ctrl+B, Ctrl+S). Cmd+F, Cmd+G, Cmd+M and the shifted chords keep no
-stand-in — Ctrl+Shift+F, G and M already mean focus mode, the gradient and
-markdown source on every platform. `/keys` writes each chord the way that
-machine presses it.
+with **Ctrl**, as a browser or an editor has it: Ctrl+T opens a shell, Ctrl+W
+closes a pane, Ctrl+N opens a window, Ctrl+1 … 9 jump to a pane, in every
+pane, terminals included. A terminal (or a line you are typing) keeps the
+plain Ctrl keys it lives by — C, D, Z, R, L, A, E, K, U, and M, J, I, H and
+`[`, which are Enter, newline, Tab, Backspace and Escape to it — and there
+**Ctrl+Shift** and the key reaches crew instead (Ctrl+Shift+C, Ctrl+Shift+I);
+Ctrl+Shift works for every chord anywhere. A chord a Mac shifts is
+Ctrl+Shift too: Ctrl+Shift+T reopens the pane you just closed, as a browser
+reopens a tab, and Ctrl+Shift+[ / ] move a pane. The grid's arrows take
+**Alt** (Alt+arrow focuses that way, Alt+Shift+arrow swaps), since Windows
+keeps Win+arrow for snapping windows. Cmd+Click and Cmd+wheel are Ctrl+Click
+and Ctrl+wheel, and a document window takes plain Ctrl (Ctrl+B, Ctrl+S).
+Ctrl+Shift+F, G, L and M keep their meanings (focus mode, the gradient,
+themes, markdown source) on every platform. `/keys` writes each chord the
+way that machine presses it.
 
 | Action | Keys |
 |--------|------|

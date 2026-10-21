@@ -75,25 +75,38 @@ fn native(s: &str) -> String {
     }
 }
 
-/// Every Cmd chord in `s` as Windows and Linux press it: Ctrl+Shift for the
-/// key ([`crate::keychord::stand_in`]), plain Ctrl for a click or the wheel
-/// (`events::open_modifier`, `scroll`). A chord with no stand-in — Cmd+G,
-/// whose Ctrl+Shift+G steps the gradient, or a shifted one — is left as the
-/// table writes it.
+/// Every Cmd chord in `s` as Windows and Linux press it
+/// ([`crate::keychord::stand_in`]): plain Ctrl for a key a terminal leaves to
+/// crew (`Cmd+T` is `Ctrl+T`), Ctrl+Shift for one it keeps (`Cmd+C` is
+/// `Ctrl+Shift+C`, since a terminal's Ctrl+C interrupts) and for a chord a
+/// Mac shifts (`Cmd+Shift+T`, `Cmd+{`), Alt for the grid's arrows, and plain
+/// Ctrl for a click or the wheel (`events::open_modifier`, `scroll`).
 pub(crate) fn offmac(s: &str) -> String {
     s.split(' ').map(off_chord).collect::<Vec<_>>().join(" ")
 }
 
 /// One space-free token of [`offmac`]; a trailing `.`/`,`/`)` rides along.
 fn off_chord(tok: &str) -> String {
+    use crate::keychord::{plain, stands_in, TYPED};
     let Some(rest) = tok.strip_prefix("Cmd+") else {
         return tok.to_string();
     };
     let cut = rest.len() - rest.trim_end_matches([',', ';', ')']).len();
     let (key, tail) = rest.split_at(rest.len() - cut);
+    let arrows = |k: &str| {
+        !k.is_empty()
+            && k.chars()
+                .all(|c| "\u{2190}\u{2191}\u{2192}\u{2193}".contains(c))
+    };
+    let kept = |k: &str| k.len() == 1 && TYPED.contains(&k.to_ascii_lowercase());
     match key {
         "Click" | "click" | "wheel" => format!("Ctrl+{key}{tail}"),
-        k if crate::keychord::stands_in(k) => format!("Ctrl+Shift+{k}{tail}"),
+        k if arrows(k.trim_start_matches("Shift+")) => format!("Alt+{k}{tail}"),
+        "{" => format!("Ctrl+Shift+[{tail}"),
+        "}" => format!("Ctrl+Shift+]{tail}"),
+        "Shift+T" => format!("Ctrl+Shift+T{tail}"),
+        k if kept(k) && stands_in(k) => format!("Ctrl+Shift+{k}{tail}"),
+        k if plain(k, false) => format!("Ctrl+{k}{tail}"),
         _ => tok.to_string(),
     }
 }

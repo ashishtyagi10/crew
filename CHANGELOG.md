@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.44
+
+**Windows and Linux: Ctrl+T is Cmd+T.** Crew's shortcuts are now pressed
+with plain Ctrl off a Mac, as in a browser or an editor: Ctrl+T opens a
+shell, Ctrl+W closes a pane, Ctrl+N opens a window, Ctrl+1 … 9 jump to a
+pane, in every pane, terminals included. Before, only Ctrl+Shift+<key>
+worked, so Ctrl+T went to the terminal and nothing happened. A terminal, or
+a line you are typing, keeps the Ctrl keys it lives by (C, D, Z, R, L, A,
+E, K, U, and M, J, I, H and `[`, which are Enter, newline, Tab, Backspace
+and Escape to it); Ctrl+Shift+<key> reaches crew there and everywhere else.
+Ctrl+Shift+T now reopens the last closed pane, as a browser reopens a tab,
+and Ctrl+Shift+[ / ] move a pane; neither was reachable on Windows before.
+Ctrl+G toggles the nav, Ctrl+F finds and Ctrl+M maximizes, which had no
+Windows form. The grid's arrows walk with Alt (Alt+arrow to focus,
+Alt+Shift+arrow to swap), since Windows keeps Win+arrow for snapping
+windows. `/keys` and every hint write each chord the way Windows and Linux
+press it.
+- **Tests:** plain Ctrl is the Cmd chord with or without a terminal
+  focused, every key a terminal keeps stays with it, Ctrl+Shift reaches
+  crew everywhere and gives the shifted chords (Ctrl+Shift+T reopens),
+  AltGr and a Mac are untouched, Alt walks the grid but never as AltGr, and
+  the help labels read Ctrl, Ctrl+Shift and Alt where they are pressed.
+  `cargo xwin check` builds it for Windows.
+
 ## 0.27.43
 
 **`/inbox`: deleting or archiving an open mail opens the next one.**

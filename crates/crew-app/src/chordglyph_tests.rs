@@ -69,25 +69,33 @@ fn prose_rewrites_only_the_chords() {
     );
 }
 
-/// Off a Mac the table's Cmd chords are written as they are pressed there.
+/// Off a Mac the table's Cmd chords are written as they are pressed there:
+/// plain Ctrl, Ctrl+Shift where a terminal keeps the key, Alt for arrows.
 #[test]
-fn off_a_mac_cmd_chords_are_written_as_their_ctrl_shift_stand_ins() {
-    assert_eq!(offmac("Cmd+I / Cmd+T"), "Ctrl+Shift+I / Ctrl+Shift+T");
-    assert_eq!(offmac("Cmd+1 \u{2026} 9"), "Ctrl+Shift+1 \u{2026} 9");
+fn off_a_mac_cmd_chords_are_written_as_they_are_pressed_there() {
+    assert_eq!(offmac("Cmd+I / Cmd+T"), "Ctrl+Shift+I / Ctrl+T");
+    assert_eq!(offmac("Cmd+1 \u{2026} 9"), "Ctrl+1 \u{2026} 9");
     assert_eq!(
         offmac("Cmd+= / Cmd+- / Cmd+0 / Cmd+wheel"),
-        "Ctrl+Shift+= / Ctrl+Shift+- / Ctrl+Shift+0 / Ctrl+wheel"
+        "Ctrl+= / Ctrl+- / Ctrl+0 / Ctrl+wheel"
     );
     assert_eq!(offmac("Cmd+Click"), "Ctrl+Click");
+    assert_eq!(offmac("press Cmd+T, or /new"), "press Ctrl+T, or /new");
+    // A terminal keeps Ctrl+C and Ctrl+Z, so those are written shifted.
+    assert_eq!(offmac("Cmd+C / Cmd+V"), "Ctrl+Shift+C / Ctrl+V");
+    assert_eq!(offmac("Cmd+G / Cmd+Z"), "Ctrl+G / Ctrl+Shift+Z");
+    assert_eq!(offmac("Cmd+W / Cmd+M"), "Ctrl+W / Ctrl+M");
+    // What a Mac shifts, Ctrl+Shift; the grid's arrows, Alt.
+    assert_eq!(offmac("Cmd+Shift+T"), "Ctrl+Shift+T");
+    assert_eq!(offmac("Cmd+{ / Cmd+}"), "Ctrl+Shift+[ / Ctrl+Shift+]");
     assert_eq!(
-        offmac("press Cmd+T, or /new"),
-        "press Ctrl+Shift+T, or /new"
+        offmac("Cmd+\u{2190}\u{2191}\u{2192}\u{2193}"),
+        "Alt+\u{2190}\u{2191}\u{2192}\u{2193}"
     );
-    // No stand-in: Ctrl+Shift+G already steps the gradient, and a shifted
-    // chord has no Shift left to give.
-    assert_eq!(offmac("Cmd+G / Cmd+Z"), "Cmd+G / Ctrl+Shift+Z");
-    assert_eq!(offmac("Cmd+Shift+T"), "Cmd+Shift+T");
-    assert_eq!(offmac("Cmd+{ / Cmd+}"), "Cmd+{ / Cmd+}");
+    assert_eq!(
+        offmac("Cmd+Shift+\u{2190}\u{2191}\u{2192}\u{2193}"),
+        "Alt+Shift+\u{2190}\u{2191}\u{2192}\u{2193}"
+    );
     assert_eq!(offmac("Ctrl+Shift+L"), "Ctrl+Shift+L", "not a Cmd chord");
 }
 
