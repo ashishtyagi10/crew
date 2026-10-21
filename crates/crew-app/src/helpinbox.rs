@@ -36,7 +36,11 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
     ),
     (
         "Tab / Up / Down",
-        "In the reply box: from the to line to cc to the words, and back",
+        "In the reply box: through the to, cc and bcc lines, the words and the files",
+    ),
+    (
+        "Down, then Enter",
+        "In the reply box: + attach picks files (or drop them); Enter opens one, Backspace drops it",
     ),
     ("a", "Ask agent smith about the thread"),
     ("t", "A /todo row, due on the deadline the mail states"),

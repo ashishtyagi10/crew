@@ -14,6 +14,8 @@ pub(crate) fn key_of(k: &str) -> Option<winit::keyboard::Key> {
         "enter" => Some(Press::Named(NamedKey::Enter)),
         "tab" => Some(Press::Named(NamedKey::Tab)),
         "\u{2191}" => Some(Press::Named(NamedKey::ArrowUp)),
+        "\u{2193}" => Some(Press::Named(NamedKey::ArrowDown)),
+        "del" => Some(Press::Named(NamedKey::Backspace)),
         k if k.chars().count() == 1 => Some(Press::Character(k.into())),
         _ => None,
     }
@@ -36,19 +38,29 @@ pub(crate) const SEND: &str = if cfg!(target_os = "macos") {
     "ctrl+\u{21a9}"
 };
 /// Writing a reply's words; [`FORWARD`] a forward's note, [`ADDRESS`] on
-/// its `to` or `cc` line.
+/// its `to`, `cc` or `bcc` line, [`FILES`] on its row of files.
 pub(crate) const COMPOSE: Keys = &[
     (SEND, "send"),
     ("esc", "close"),
     GAP,
-    ("\u{2191}", "to and cc"),
+    ("\u{2191}", "to, cc, bcc"),
+    ("\u{2193}", "attach"),
     ("tab", "agent smith drafts it"),
 ];
 pub(crate) const FORWARD: Keys = &[
     (SEND, "send"),
     ("esc", "close"),
     GAP,
-    ("\u{2191}", "to and cc"),
+    ("\u{2191}", "to, cc, bcc"),
+    ("\u{2193}", "attach"),
+];
+pub(crate) const FILES: Keys = &[
+    (SEND, "send"),
+    ("esc", "close"),
+    GAP,
+    ("enter", "open or attach"),
+    ("del", "take off"),
+    ("\u{2191}", "back to the words"),
 ];
 pub(crate) const ADDRESS: Keys = &[(SEND, "send"), ("esc", "close"), GAP, ("tab", "next line")];
 pub(crate) const LIST: Keys = &[

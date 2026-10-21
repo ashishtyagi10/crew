@@ -38,7 +38,7 @@ impl InboxPane {
                 if landed {
                     self.sync_sizes();
                 }
-                let changed = landed || changed;
+                let changed = landed || changed || self.picked();
                 if due && !self.busy {
                     self.ask(Ask::Check);
                 }

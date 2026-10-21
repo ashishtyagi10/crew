@@ -1,18 +1,22 @@
-//! The reply box's `to` and `cc` lines: a muted name, the addresses, and
-//! on the line the caret is on, the caret, where a long line shows its end.
+//! The reply box's `to`, `cc` and `bcc` lines: a muted name, the addresses,
+//! and on the line the caret is on, the caret, where a long line shows its
+//! end.
 use super::compose::{Compose, Kind, On};
 use super::draw::Canvas;
 
-/// Where an address line's value starts, after `to` or `cc`.
+/// Where an address line's value starts, after `to`, `cc` or `bcc`.
 const VALUE: u16 = 7;
 
-/// The two lines, under the box's top edge at `top`, inside its `right` edge.
+/// The three lines, under the box's top edge at `top`, inside its `right`
+/// edge.
 pub(super) fn draw(cv: &mut Canvas, c: &Compose, top: u16, right: u16) {
     let t = crew_theme::theme();
-    for (i, (name, f, on)) in [("to", &c.to, On::To), ("cc", &c.cc, On::Cc)]
-        .into_iter()
-        .enumerate()
-    {
+    let lines = [
+        ("to", &c.to, On::To),
+        ("cc", &c.cc, On::Cc),
+        ("bcc", &c.bcc, On::Bcc),
+    ];
+    for (i, (name, f, on)) in lines.into_iter().enumerate() {
         let row = top + 1 + i as u16;
         let focused = c.on == on;
         let label = if focused { t.ink } else { t.text_muted };
@@ -41,8 +45,9 @@ pub(super) fn hint(c: &Compose, on: On) -> &'static str {
     match (on, c.kind) {
         (On::To, _) => "who it goes to",
         (On::Cc, _) => "add people, commas between",
-        (On::Body, Kind::Forward) => "add a note, or send it as it is",
-        (On::Body, _) => "write your reply \u{b7} tab: agent smith drafts it",
+        (On::Bcc, _) => "copied unseen: no one else sees these",
+        (On::Body | On::Files, Kind::Forward) => "add a note, or send it as it is",
+        (On::Body | On::Files, _) => "write your reply \u{b7} tab: agent smith drafts it",
     }
 }
 

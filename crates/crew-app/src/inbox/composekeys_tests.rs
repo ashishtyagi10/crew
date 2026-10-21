@@ -80,6 +80,8 @@ fn up_reaches_the_cc_line_and_what_is_typed_there_is_copied() {
     assert_eq!(on(&p), On::Body, "a reply starts in the words");
     typed(&mut p, "Yes!");
     press(&mut p, NamedKey::ArrowUp);
+    assert_eq!(on(&p), On::Bcc);
+    press(&mut p, NamedKey::ArrowUp);
     assert_eq!(on(&p), On::Cc);
     typed(&mut p, "dee@x.org");
     let cells = p.cells(80, 30);
@@ -100,7 +102,9 @@ fn up_reaches_the_cc_line_and_what_is_typed_there_is_copied() {
         "{rows:#?}"
     );
     press(&mut p, NamedKey::Enter);
-    assert_eq!(on(&p), On::Body, "Enter on a line goes on to the words");
+    assert_eq!(on(&p), On::Bcc, "Enter on a line goes on");
+    press(&mut p, NamedKey::Enter);
+    assert_eq!(on(&p), On::Body, "and from bcc to the words");
     p.send_reply();
     let m = sent(&asks);
     assert!(
@@ -121,9 +125,10 @@ fn reply_all_copies_everyone_and_a_bad_address_is_refused_where_it_is() {
     );
     typed(&mut p, "See you.");
     press(&mut p, NamedKey::ArrowUp);
+    press(&mut p, NamedKey::ArrowUp);
     typed(&mut p, ", bob");
     press(&mut p, NamedKey::Tab);
-    assert_eq!(on(&p), On::Body, "Tab on a line goes on");
+    assert_eq!(on(&p), On::Bcc, "Tab on a line goes on");
     p.send_reply();
     assert_eq!(p.note, "\u{201c}bob\u{201d} is not an address");
     assert_eq!(on(&p), On::Cc, "the caret goes to it");
@@ -161,14 +166,16 @@ fn a_click_puts_the_caret_on_the_line_clicked() {
     typed(&mut p, "r");
     let h = p.compose_h(80, 30);
     let top = p.reader_rows(80, 30);
-    assert!(h > 0 && p.compose_click(80, 30, top + 2));
+    assert!(h > 0 && p.compose_click(80, 30, top + 2, 9));
     assert_eq!(on(&p), On::Cc);
-    assert!(p.compose_click(80, 30, top + 1));
+    assert!(p.compose_click(80, 30, top + 1, 9));
     assert_eq!(on(&p), On::To);
-    assert!(p.compose_click(80, 30, top + 4));
+    assert!(p.compose_click(80, 30, top + 3, 9));
+    assert_eq!(on(&p), On::Bcc);
+    assert!(p.compose_click(80, 30, top + 5, 9));
     assert_eq!(on(&p), On::Body);
     assert!(
-        !p.compose_click(80, 30, top - 1),
+        !p.compose_click(80, 30, top - 1, 9),
         "above the box is the mail"
     );
 }

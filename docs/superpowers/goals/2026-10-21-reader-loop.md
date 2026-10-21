@@ -170,3 +170,12 @@ through Gmail's upload address (`upload.rs`); past Gmail's 25 MB it says so and 
 nothing. Every body now goes base64, so a long paragraph never breaks the 998-byte line
 limit.
 
+**Then (v0.27.57), the user: *"add bcc and an attach-a-file option to the box and we might
+need option to see file attachment"*.** A `bcc` line joins `to` and `cc`. Under the words,
+a row of files (`crates/crew-app/src/inbox/composefiles.rs`, `attach.rs`) names each file
+of yours with its size and a `✕`, then `+ attach`, which opens the system's own chooser
+(`pick.rs`: AppleScript's `choose file`, Windows Forms through PowerShell, zenity or
+kdialog), and a file dropped on the pane lands there too. Enter or a click on a file opens
+it in its own app, to see it; Backspace or `✕` takes it off. A reply that carries files is
+built by the worker (`outgoing.rs`) and goes up with its thread beside it
+(`uploadType=multipart`, `upload.rs`); past Gmail's 25 MB nothing is added or sent.

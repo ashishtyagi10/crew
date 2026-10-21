@@ -1,7 +1,9 @@
 //! The reply box's keys: while it is open every key is its own. Tab and
-//! Enter on the `to` or `cc` line go on to the next; the arrows move up and
-//! down through the lines and the words; in the words Tab asks agent smith
-//! to write a draft there, which is yours to change before it goes.
+//! Enter on the `to`, `cc` or `bcc` line go on to the next; the arrows move
+//! up and down through the lines, the words and the row of files; in the
+//! words Tab asks agent smith to write a draft there, which is yours to
+//! change before it goes. On the row of files ← and → choose, Enter opens
+//! the file (or the chooser, on `+ attach`) and Backspace takes it off.
 use winit::keyboard::{Key, NamedKey};
 
 use super::compose::{Kind, On};
@@ -18,8 +20,10 @@ impl InboxPane {
         let (on, forward) = (c.on, c.kind == Kind::Forward);
         let next = match on {
             On::To => On::Cc,
-            On::Cc => On::Body,
-            On::Body => On::To,
+            On::Cc => On::Bcc,
+            On::Bcc => On::Body,
+            On::Body => On::Files,
+            On::Files => On::To,
         };
         match key {
             Key::Named(NamedKey::Escape) if armed || c.untouched() => {
@@ -35,22 +39,21 @@ impl InboxPane {
                 self.note = "agent smith is writing a draft into the box\u{2026}".into();
             }
             Key::Named(NamedKey::Tab) => c.on = next,
-            Key::Named(NamedKey::Enter) if on != On::Body => c.on = next,
-            // A line up or down in the words, else the line above or below.
+            Key::Named(NamedKey::Enter) if matches!(on, On::To | On::Cc | On::Bcc) => c.on = next,
+            _ if on == On::Files => self.files_key(key),
+            // A line up or down in the words, else the place above or below.
             Key::Named(NamedKey::ArrowUp) => {
                 if !c.field().line(true) {
                     c.on = match on {
-                        On::Body => On::Cc,
+                        On::Body => On::Bcc,
+                        On::Bcc => On::Cc,
                         _ => On::To,
                     };
                 }
             }
             Key::Named(NamedKey::ArrowDown) => {
                 if !c.field().line(false) {
-                    c.on = match on {
-                        On::To => On::Cc,
-                        _ => On::Body,
-                    };
+                    c.on = next;
                 }
             }
             _ if named(NamedKey::Backspace) => c.field().back(),
@@ -66,13 +69,33 @@ impl InboxPane {
         }
     }
 
+    /// A key on the row of files: choose, open, take off, or attach.
+    fn files_key(&mut self, key: &Key) {
+        let Some(c) = self.compose.as_mut() else {
+            return;
+        };
+        let (pick, n) = (c.pick.min(c.files.len()), c.files.len());
+        match key {
+            Key::Named(NamedKey::ArrowLeft) => c.pick = pick.saturating_sub(1),
+            Key::Named(NamedKey::ArrowRight) => c.pick = (pick + 1).min(n),
+            Key::Named(NamedKey::ArrowUp) => c.on = On::Body,
+            Key::Named(NamedKey::Enter | NamedKey::Space) if pick == n => self.choose_files(),
+            Key::Named(NamedKey::Enter | NamedKey::Space) => self.open_attached(pick),
+            Key::Named(NamedKey::Backspace | NamedKey::Delete) => self.unattach(pick),
+            _ => {}
+        }
+    }
+
     /// `text` at the caret, on the line or in the words: a key, a paste.
     pub(crate) fn type_in(&mut self, text: &str) {
         let Some(c) = self.compose.as_mut().filter(|c| !c.sending) else {
             return;
         };
-        let line = c.on != On::Body;
-        c.field().put(text, line);
+        match c.on {
+            On::Files => {}
+            On::Body => c.body.put(text, false),
+            _ => c.field().put(text, true),
+        }
     }
 
     /// agent smith's draft, into the words wherever the caret was.
@@ -87,31 +110,13 @@ impl InboxPane {
     /// The keys the foot shows while the box is open: what works where the
     /// caret is.
     pub(crate) fn compose_keys(&self) -> super::footkeys::Keys {
-        use super::footkeys::{ADDRESS, COMPOSE, FORWARD};
+        use super::footkeys::{ADDRESS, COMPOSE, FILES, FORWARD};
         match self.compose.as_ref().map(|c| (c.on, c.kind)) {
-            Some((On::To | On::Cc, _)) => ADDRESS,
+            Some((On::To | On::Cc | On::Bcc, _)) => ADDRESS,
+            Some((On::Files, _)) => FILES,
             Some((On::Body, Kind::Forward)) => FORWARD,
             _ => COMPOSE,
         }
-    }
-
-    /// A click on row `row` of a pane `cols` by `rows`: the caret to the box's
-    /// line there, or its words. True when it was on the box.
-    pub(crate) fn compose_click(&mut self, cols: u16, rows: u16, row: u16) -> bool {
-        let h = self.compose_h(cols, rows);
-        let top = self.body_rows(cols, rows).saturating_sub(h);
-        let Some(c) = self.compose.as_mut() else {
-            return false;
-        };
-        if h == 0 || row < top || row >= top + h {
-            return false;
-        }
-        c.on = match row - top {
-            0 | 1 => On::To,
-            2 => On::Cc,
-            _ => On::Body,
-        };
-        true
     }
 }
 

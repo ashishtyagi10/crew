@@ -85,28 +85,29 @@ fn f_forwards_the_newest_mail_to_whom_you_say_with_its_file() {
     p.send_reply();
     assert_eq!(p.note, "who is it to? write an address on the to line");
     typed(&mut p, "Dee <dee@x.org>");
+    for _ in 0..3 {
+        press(&mut p, NamedKey::Tab);
+    }
+    assert_eq!(on(&p), On::Body, "through cc and bcc");
     press(&mut p, NamedKey::Tab);
+    assert_eq!(on(&p), On::Files, "no smith in a forward: Tab goes on");
     press(&mut p, NamedKey::Tab);
-    assert_eq!(on(&p), On::Body);
-    press(&mut p, NamedKey::Tab);
-    assert_eq!(on(&p), On::To, "no smith in a forward: Tab goes round");
+    assert_eq!(on(&p), On::To, "and round");
     let cells = p.cells(80, 30);
     let all: String = cells.iter().map(|c| c.c).collect();
     assert!(all.contains("menu.pdf"), "the box says what it carries");
     p.send_reply();
     let fwd = asks.try_iter().find_map(|a| match a {
-        Ask::Forward { head, note, of, to } => Some((head, note, of, to)),
+        Ask::Mail(o) => Some(o),
         _ => None,
     });
-    let (head, note, of, to) = fwd.expect("a note is not needed to forward");
-    assert_eq!(
-        head,
-        ["To: Dee <dee@x.org>", "Subject: Fwd: Lunch"],
-        "a thread of its own"
-    );
-    assert_eq!((note.as_str(), to.as_str()), ("", "Dee <dee@x.org>"));
+    let o = fwd.expect("a note is not needed to forward");
+    assert_eq!(o.head, ["To: Dee <dee@x.org>", "Subject: Fwd: Lunch"]);
+    assert_eq!(o.thread_id, None, "a thread of its own");
+    assert_eq!((o.words.as_str(), o.to.as_str()), ("", "Dee <dee@x.org>"));
+    let of = o.forward.as_ref().expect("the mail it carries");
     assert_eq!((of.msg.as_str(), of.files.len()), ("m1", 1));
-    p.take(Got::Forwarded(to));
+    p.take(Got::Forwarded(o.to.clone()));
     assert!(p.compose.is_none());
     assert_eq!(p.note, "forwarded to Dee");
 }
@@ -121,6 +122,6 @@ fn a_forward_past_gmails_limit_is_said_not_sent() {
     typed(&mut p, "dee@x.org");
     p.send_reply();
     assert!(p.note.contains("30 MB, more than the 25 MB"), "{}", p.note);
-    assert!(asks.try_iter().all(|a| !matches!(a, Ask::Forward { .. })));
+    assert!(asks.try_iter().all(|a| !matches!(a, Ask::Mail(_))));
     assert!(!p.compose.as_ref().unwrap().sending);
 }

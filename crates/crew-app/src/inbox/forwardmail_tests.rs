@@ -13,7 +13,7 @@ use crate::inbox::grant::{Client, Grant};
 #[test]
 fn the_forward_is_your_note_then_gmails_rule_and_the_mail_itself() {
     let f = Forwarded::of(&mail());
-    let m = crate::inbox::mime::message(&[], &tree("FYI <3", &f, vec![vec![7], vec![8]]));
+    let m = crate::inbox::mime::message(&[], &tree("FYI <3", &f, vec![vec![7], vec![8]], vec![]));
     let decoded: Vec<String> = m
         .split("\r\n\r\n")
         .skip(1)
@@ -60,7 +60,7 @@ fn the_forward_is_your_note_then_gmails_rule_and_the_mail_itself() {
 }
 
 /// A stub of Google: every request's first line, headers and body logged.
-fn serve() -> (String, Arc<Mutex<Vec<String>>>) {
+pub(crate) fn serve() -> (String, Arc<Mutex<Vec<String>>>) {
     let l = TcpListener::bind("127.0.0.1:0").unwrap();
     let base = format!("http://{}", l.local_addr().unwrap());
     let log = Arc::new(Mutex::new(Vec::new()));
@@ -116,11 +116,15 @@ fn send_fetches_the_files_then_uploads_the_mail_as_itself() {
     };
     let mut g = Gmail::at(grant, &format!("{base}/token"), &format!("{base}/gmail")).unwrap();
     let f = Forwarded::of(&mail());
-    let head = [
-        "To: Dee <dee@x.org>".to_string(),
-        "Subject: Fwd: Lunch".to_string(),
-    ];
-    super::send(&mut g, &head, "FYI", &f).expect("sent");
+    let o = crate::inbox::outgoing::Outgoing {
+        head: vec!["To: Dee <dee@x.org>".into(), "Subject: Fwd: Lunch".into()],
+        thread_id: None,
+        words: "FYI".into(),
+        forward: Some(Box::new(f)),
+        files: vec![],
+        to: "Dee <dee@x.org>".into(),
+    };
+    crate::inbox::outgoing::send(&mut g, &o).expect("sent");
     let log = log.lock().unwrap().clone();
     let at = |p: &str| {
         log.iter()

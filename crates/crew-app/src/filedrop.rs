@@ -1,6 +1,7 @@
 //! Dropped-file routing (`WindowEvent::DroppedFile`): a file dragged from
 //! Finder lands in the focused pane — as an `@path ` mention in a chat
-//! composer, as a shell-quoted path written to a terminal's PTY. Multiple
+//! composer, as a shell-quoted path written to a terminal's PTY, as a file
+//! of the reply being written in `/inbox`. Multiple
 //! files arrive as one event each; every drop appends, so they end up
 //! space-separated in arrival order.
 //!
@@ -94,6 +95,8 @@ impl CrewApp {
                 }
                 format!("dropped file \u{2192} {}", quoted.trim_end())
             }
+            // On the reply box being written: one of its files.
+            PaneContent::Inbox(p) if p.compose.is_some() => p.attach(path),
             PaneContent::Settings(_)
             | PaneContent::Far(_)
             | PaneContent::Swarm(_)
