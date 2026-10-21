@@ -878,3 +878,5 @@ mod inboxreadshot_tests;
 mod inboxrows_tests;
 #[cfg(test)]
 mod inboxshot_tests;
+#[cfg(test)]
+mod indicshot_tests;

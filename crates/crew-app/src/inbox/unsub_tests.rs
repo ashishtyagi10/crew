@@ -91,8 +91,11 @@ fn press(p: &mut InboxPane, k: &str) {
 fn u_says_what_it_would_do_and_a_second_u_does_it() {
     let (mut p, asks) = reading(Some(How::OneClick("https://acme.example/u".into())));
     press(&mut p, "u");
-    assert!(p.note.contains("unsubscribe from Acme News?"), "{}", p.note);
-    assert!(p.note.contains("u again"), "{}", p.note);
+    assert!(
+        p.note.starts_with("u again unsubscribes from Acme News"),
+        "{}",
+        p.note
+    );
     assert!(asks.try_recv().is_err(), "nothing yet");
     press(&mut p, "j");
     press(&mut p, "u");

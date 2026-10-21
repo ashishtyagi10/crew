@@ -148,7 +148,7 @@ impl InboxPane {
                 How::Mail { to, .. } => format!("crew mails {to} from your account"),
                 How::Web(_) => String::new(),
             };
-            return format!("unsubscribe from {who}? {what} \u{b7} u again to do it");
+            return format!("u again unsubscribes from {who} \u{b7} {what}");
         }
         r.unsub_armed = false;
         self.ask(Ask::Unsubscribe {
