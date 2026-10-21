@@ -125,8 +125,10 @@ fn body(span: &MdSpan, base: Color, muted: Color) -> SpanInk {
     let mut ink = if style.footnote {
         SpanInk::flat(chatink::marker_fg())
     } else if let Some(url) = &span.link {
+        let (fg, bg) =
+            crate::chatbutton::ink(span).map_or((chatink::link_color(), bg), |(f, b)| (f, Some(b)));
         SpanInk {
-            fg: chatink::link_color(),
+            fg,
             bold: true,
             italic: style.italic,
             bg,

@@ -32,6 +32,10 @@ impl CrewApp {
             Clicked::Miss => return false,
             Clicked::Done => None,
             Clicked::Then(act) => Some(act),
+            Clicked::Open(url) => {
+                self.follow_inbox_link(&url);
+                None
+            }
         };
         self.focused = i;
         self.input.focused = false;
@@ -74,6 +78,7 @@ impl CrewApp {
                         .and_then(|c| p.counter_at(w, row, c))
                         .is_some()
                     || (col >= rx && p.folded_at(w, row).is_some())
+                    || p.link_at(grid.cols, grid.rows, row, col).is_some()
             };
             at == i && matches!(&self.panes[at].content, PaneContent::Inbox(p) if on(p))
         })

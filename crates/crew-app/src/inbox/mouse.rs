@@ -12,6 +12,8 @@ pub(crate) enum Clicked {
     Done,
     /// A key that asks the app to act: close the pane, open `/keys`.
     Then(InboxAction),
+    /// A link or a button in the open mail, by a plain click, as in Gmail.
+    Open(String),
 }
 
 impl InboxPane {
@@ -54,6 +56,13 @@ impl InboxPane {
         }
         if self.reading.is_some() && col >= at && self.unfold_at(width, row) {
             return Clicked::Done;
+        }
+        if let Some(url) = self
+            .reading
+            .as_ref()
+            .and(self.link_at(cols, rows, row, col))
+        {
+            return Clicked::Open(url);
         }
         match self.click_list(cols, rows, row, col) {
             true => Clicked::Done,

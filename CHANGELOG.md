@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.54
+
+**`/inbox`: a mail's buttons look like buttons, and a click opens a link.**
+Fourth round of the mail reader loop.
+- **Buttons are filled.** A mail's buttons ("Shop now", an invite's Yes,
+  Maybe and No) are drawn as filled capsules in the link colour, their
+  words in white on the light page and dark on glass, instead of grey chips
+  that read like code.
+- **Click a link or a button** in an open mail and it opens, as in Gmail;
+  the pointer is a hand over it. Cmd+click still works too.
+- **Tests:** buttons are filled and read on their fill while inline code is
+  not; a plain click on a link and on a button opens it.
+
 ## 0.27.53
 
 **`/inbox`: pictures drawn as pictures.** Third round of the mail reader

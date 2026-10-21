@@ -100,3 +100,18 @@ Rules that hold every round:
   quarter its own colour, nothing outside its box, nothing past its clip. Placement and clip
   maths are unit-tested.
 
+**Round 4 (v0.27.54): a mail's buttons, and links you can click.**
+
+- **The survey.** A mail's buttons ("Shop now", an invite's Yes / Maybe / No) were drawn as
+  inline code is, a grey chip with link-blue words: quieter than the call to action the mail
+  meant, and no different from code. Every link and button in the reader needed Cmd+click,
+  which no mail reader asks for.
+- **Buttons are filled.** A link around a padded code span, the converter's button, is
+  drawn as a capsule filled with the link's colour, its words in the page colour or the ink,
+  whichever reads hardest on it (`crates/crew-app/src/chatbutton.rs`): white on blue on the
+  light page, dark on light blue on glass.
+- **A plain click opens a link or a button** in the open mail, as in Gmail (a file's row saves
+  and opens it). The pointer is a hand over every one. Cmd+click still works.
+- **Tests:** a padded code link is a filled button whose words read on it, and plain inline
+  code is not; a plain click on a link and on a button opens each one's address.
+
