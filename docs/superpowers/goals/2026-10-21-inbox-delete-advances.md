@@ -1,6 +1,7 @@
 # Goal — delete in the reader opens the next thread
 
-**Status: WRITTEN, NOT STARTED.** Set 2026-10-21.
+**Status: COMPLETE (v0.27.43).** Set 2026-10-21. The user said go ahead the same day,
+adding *"archive too"*.
 
 **Set:** 2026-10-21 by the user: *"write a goal that if I delete an email in the detail pane, it
 should automatically open the next email detail instead of taking me back to list."*
@@ -62,11 +63,32 @@ helper goes in its own file.
 - a late `Opened` for the deleted id leaves the new reader empty;
 - `u` reopens the deleted thread.
 
-## Open question for the user
+## Answered by the user (2026-10-21)
 
-- **Should `e` (archive) advance the same way?** It removes the thread from the list just as
-  delete does, and Gmail's auto-advance covers both. Recommended: yes. Then `take_row` itself
-  advances, and both keys behave the same.
+- **Should `e` (archive) advance the same way?** *"archive too"*. `take_row` itself advances,
+  so both keys behave the same.
+
+## Where it stands
+
+**Shipped in v0.27.43.**
+
+- `crates/crew-app/src/inbox/advance.rs` holds `open_at(i)`, the one way a thread opens.
+  `Enter`, the advance and undo's reopen all call it, and it is ready for phase 5's `J` and `K`.
+- `advance(at)` opens the row that slid into the gone thread's place. At the end of the list it
+  opens the row above, and with no row left it stays on the list.
+- `take_row` in `crates/crew-app/src/inbox/triage.rs` calls `advance(at)` whenever the reader
+  was open. `Undo` moved to `crates/crew-app/src/inbox/undo.rs` and carries `reopen`, so `z`
+  puts the thread back and opens it again.
+- A late `Opened` for the deleted thread is dropped by the id check `take.rs` already had, and
+  a test holds this.
+- The `w` window sends its keys through the same `on_key` and `press` as the tile, so it
+  advances too.
+- Tests are in `crates/crew-app/src/inbox/advance_tests.rs`. They cover:
+  - `d` in the middle of the list;
+  - `e` at the end and on the only row;
+  - the late answer;
+  - `z` reopening the thread;
+  - a delete from the list staying on the list.
 
 **Not in this goal:** a setting for the direction (Gmail offers older, newer, or back to the
 list); loading the next thread's body before you delete; advancing after `m` or `s`, which

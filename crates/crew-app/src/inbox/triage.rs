@@ -5,22 +5,10 @@
 //! own archive is; delete is Gmail's own delete too, a move to Trash (emptied
 //! after 30 days). Nothing is deleted for good: that needs the full-mail
 //! scope.
+use super::undo::Undo;
 use super::wire::Thread;
 use super::worker::Ask;
 use super::InboxPane;
-
-/// The way back from the last change: the row as it was, where it was, and
-/// the labels that restore it.
-pub(crate) struct Undo {
-    pub thread: Thread,
-    pub at: usize,
-    pub add: Vec<&'static str>,
-    pub remove: Vec<&'static str>,
-    /// The row left the list (an archive), so undo puts it back in.
-    pub returns: bool,
-    /// The thread went to Trash, so undo takes it out again.
-    pub trashed: bool,
-}
 
 impl InboxPane {
     /// `e`, `d`, `m`, `s` or `z` on the thread under the cursor (or open):
@@ -48,7 +36,7 @@ impl InboxPane {
     }
 
     fn archive(&mut self) {
-        let Some((at, thread)) = self.take_row() else {
+        let Some((at, thread, reopen)) = self.take_row() else {
             return;
         };
         self.relabel(&thread.id, vec![], vec!["INBOX"]);
@@ -60,11 +48,12 @@ impl InboxPane {
             remove: vec![],
             returns: true,
             trashed: false,
+            reopen,
         });
     }
 
     fn delete(&mut self) {
-        let Some((at, thread)) = self.take_row() else {
+        let Some((at, thread, reopen)) = self.take_row() else {
             return;
         };
         self.trash(&thread.id, false);
@@ -76,16 +65,22 @@ impl InboxPane {
             remove: vec![],
             returns: true,
             trashed: true,
+            reopen,
         });
     }
 
-    /// The target out of the list, and out of the reader if it was open.
-    fn take_row(&mut self) -> Option<(usize, Thread)> {
+    /// The target out of the list. When it was open, the reader goes on to
+    /// the thread that takes its place (`advance`); the last of the three:
+    /// whether it was.
+    fn take_row(&mut self) -> Option<(usize, Thread, bool)> {
         let (at, thread) = self.target()?;
         self.rows.remove(at);
         self.sel = self.sel.min(self.rows.len().saturating_sub(1));
-        self.reading = None;
-        Some((at, thread))
+        let open = self.reading.take().is_some();
+        if open {
+            self.advance(at);
+        }
+        Some((at, thread, open))
     }
 
     /// Toggle `label` through `field`: `was`/`now` name the two states.
@@ -119,31 +114,8 @@ impl InboxPane {
             remove: add,
             returns: false,
             trashed: false,
+            reopen: false,
         });
-    }
-
-    fn undo(&mut self) {
-        let Some(u) = self.undo.take() else {
-            self.note = "nothing to undo".into();
-            return;
-        };
-        match u.returns {
-            true => {
-                let at = u.at.min(self.rows.len());
-                self.rows.insert(at, u.thread.clone());
-                self.sel = at;
-            }
-            false => {
-                if let Some(row) = self.rows.iter_mut().find(|t| t.id == u.thread.id) {
-                    *row = u.thread.clone();
-                }
-            }
-        }
-        match u.trashed {
-            true => self.trash(&u.thread.id, true),
-            false => self.relabel(&u.thread.id, u.add, u.remove),
-        }
-        self.said(&u.thread, "put back");
     }
 
     /// Mark a thread read as it is opened, as Gmail does.
@@ -154,7 +126,7 @@ impl InboxPane {
         }
     }
 
-    fn relabel(&mut self, id: &str, add: Vec<&'static str>, remove: Vec<&'static str>) {
+    pub(super) fn relabel(&mut self, id: &str, add: Vec<&'static str>, remove: Vec<&'static str>) {
         self.file(Ask::Relabel {
             id: id.into(),
             add,
@@ -163,7 +135,7 @@ impl InboxPane {
     }
 
     /// To Trash, or (`back`) out of it.
-    fn trash(&mut self, id: &str, back: bool) {
+    pub(super) fn trash(&mut self, id: &str, back: bool) {
         self.file(Ask::Trash {
             id: id.into(),
             back,
@@ -176,7 +148,7 @@ impl InboxPane {
         self.busy = busy; // filing is not a load: the list stays live
     }
 
-    fn said(&mut self, t: &Thread, what: &str) {
+    pub(super) fn said(&mut self, t: &Thread, what: &str) {
         let subject = match t.subject.trim() {
             "" => "(no subject)",
             s => s,

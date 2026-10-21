@@ -105,15 +105,20 @@ fn m_and_s_toggle_and_undo_restores_the_flag() {
 }
 
 #[test]
-fn opening_a_thread_marks_it_read_and_archiving_it_closes_it() {
+fn opening_a_thread_marks_it_read_and_archiving_it_reads_on() {
     let (mut p, asks, _a) = pane(&["a", "b"]);
     p.press(&Key::Named(NamedKey::Enter), 80, 24);
     assert!(matches!(asks.try_recv(), Ok(Ask::Open(id)) if id == "a"));
     assert_eq!(relabel(&asks), ("a".into(), vec![], vec!["UNREAD"]));
     assert!(p.reading.as_ref().is_some_and(|r| r.thread.id == "a"));
     p.press(&ch("e"), 80, 24);
+    assert!(matches!(asks.try_recv(), Ok(Ask::Open(id)) if id == "b"));
+    assert_eq!(relabel(&asks), ("b".into(), vec![], vec!["UNREAD"]));
     assert_eq!(relabel(&asks), ("a".into(), vec![], vec!["INBOX"]));
-    assert!(p.reading.is_none(), "an archived thread is not left open");
+    assert!(
+        p.reading.as_ref().is_some_and(|r| r.thread.id == "b"),
+        "an archived thread gives way to the next"
+    );
     assert_eq!(p.rows.len(), 1);
 }
 

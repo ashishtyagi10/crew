@@ -329,7 +329,8 @@ pixels are never fetched), and a link opened by Cmd+click or
 it really goes), each attachment a row you Cmd+click to save it to
 `~/Downloads` and open it, and `w` for the thread in a window of its own —
 `e` to archive, `d` to delete (to Gmail's Trash, as Gmail's
-own delete does — nothing is deleted for good), `m` to mark read or unread,
+own delete does — nothing is deleted for good; either one, in an open
+mail, opens the next mail instead of going back to the list), `m` to mark read or unread,
 `s` to star, `z` to undo the last of those, `u` in an open mail to
 unsubscribe from its sender (one click where the mail offers it, else a
 mail to the list's address; a second `u` confirms, and only mail Gmail
