@@ -25,18 +25,19 @@ pub(crate) fn prepare_renderer(
     // prepare walks the same glyphs — its cache hits take our images.
     presmooth(swash, font_system, buffers);
 
-    let areas: Vec<TextArea<'_>> = buffers
-        .iter()
-        .map(|(buf, ox, oy, pw, ph)| TextArea {
+    // Each pane's snapped buffer, and the runs of joining script drawn whole
+    // over it, clipped to the pane.
+    let areas: Vec<TextArea<'_>> = crate::scriptrun::areas(buffers)
+        .map(|(buf, ox, oy, [l, t, r, b])| TextArea {
             buffer: buf,
-            left: *ox,
-            top: *oy,
+            left: ox,
+            top: oy,
             scale: 1.0,
             bounds: TextBounds {
-                left: *ox as i32,
-                top: *oy as i32,
-                right: (*ox + *pw) as i32,
-                bottom: (*oy + *ph) as i32,
+                left: l as i32,
+                top: t as i32,
+                right: r as i32,
+                bottom: b as i32,
             },
             default_color: DEFAULT_TEXT,
             custom_glyphs: &[],

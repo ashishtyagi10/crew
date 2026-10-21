@@ -124,15 +124,15 @@ impl InputBar {
         if let Some(last) = prompt_cells.last_mut() {
             *last = gutter;
         }
-        place_row(pstart, cols, prompt_cells, |x, ch, fg| {
-            out.push(cell(x, row, ch, fg));
+        place_row(pstart, cols, prompt_cells, |x, ch, marks, fg| {
+            out.push(cell(x, row, ch, fg).marked(marks));
         });
         place_row(
             tstart,
             cols - 1,
             body[skip..].iter().copied(),
-            |x, ch, fg| {
-                out.push(cell(x, row, ch, fg));
+            |x, ch, marks, fg| {
+                out.push(cell(x, row, ch, fg).marked(marks));
             },
         );
 
@@ -150,7 +150,7 @@ impl InputBar {
                 tstart + 1,
                 cols - 1,
                 hint.chars().map(|c| (c, ph)),
-                |x, ch, fg| out.push(cell(x, row, ch, fg)),
+                |x, ch, marks, fg| out.push(cell(x, row, ch, fg).marked(marks)),
             );
         }
 
@@ -178,7 +178,7 @@ fn place_tag(out: &mut Vec<CellView>, label: &str, fg: (u8, u8, u8), cols: u16, 
         span.start,
         cols,
         label.chars().map(|c| (c, fg)),
-        |x, ch, fg| out.push(cell(x, row, ch, fg)),
+        |x, ch, marks, fg| out.push(cell(x, row, ch, fg).marked(marks)),
     );
 }
 

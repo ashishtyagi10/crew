@@ -81,11 +81,12 @@ pub fn put_at(
         col,
         max_col,
         clipped.chars().map(|c| (c, fg)),
-        |x, c, fg| {
+        |x, c, marks, fg| {
             out.push(CellView {
                 col: x,
                 row,
                 c,
+                marks,
                 fg,
                 bg,
                 ..Default::default()

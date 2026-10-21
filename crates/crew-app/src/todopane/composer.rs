@@ -117,8 +117,8 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16)
             .iter()
             .enumerate()
             .map(|(j, &c)| (c, style(start + j)));
-        crate::chatwidth::place_row(text_x, max, styled, |x, c, (fg, bold)| {
-            out.push(cell(x, top, c, fg, bold))
+        crate::chatwidth::place_row(text_x, max, styled, |x, c, marks, (fg, bold)| {
+            out.push(cell(x, top, c, fg, bold).marked(marks))
         });
         let bar_x = text_x + used as u16;
         if bar_x < max {
@@ -143,9 +143,12 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16)
             true => super::headrow::done_hint(room),
             false => crate::chatwidth::clip_w("type a todo", room),
         };
-        crate::chatwidth::place_row(text_x, max, hint.chars().map(|c| (c, ())), |x, c, ()| {
-            out.push(cell(x, top + 1, c, t.text_muted, false))
-        });
+        crate::chatwidth::place_row(
+            text_x,
+            max,
+            hint.chars().map(|c| (c, ())),
+            |x, c, marks, ()| out.push(cell(x, top + 1, c, t.text_muted, false).marked(marks)),
+        );
         return;
     }
 
@@ -168,8 +171,8 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16)
             .iter()
             .enumerate()
             .map(|(j, &c)| (c, style(s + j)));
-        let end_x = crate::chatwidth::place_row(text_x, max, styled, |x, c, (fg, bold)| {
-            out.push(cell(x, r, c, fg, bold))
+        let end_x = crate::chatwidth::place_row(text_x, max, styled, |x, c, marks, (fg, bold)| {
+            out.push(cell(x, r, c, fg, bold).marked(marks))
         });
         if skip + vi == cur_line {
             let w: usize = chars[s..cursor.min(e).max(s)]

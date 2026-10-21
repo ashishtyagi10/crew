@@ -55,6 +55,18 @@ pub struct CellView {
     /// merged with the same colour on the row above or below (`bgruns`):
     /// `car` matched on two rows read as one 3×2 slab.
     pub mark: bool,
+    /// The combining marks that follow `c` — a virama, a nasal dot, an accent
+    /// typed as its own code point — shaped with it and never given a cell
+    /// of their own. Empty for almost every cell, and then free.
+    pub marks: crew_theme::marks::Marks,
+}
+
+impl CellView {
+    /// This cell, carrying `marks`: what a widget placing text through
+    /// `place_row` hands each cell it builds.
+    pub fn marked(self, marks: crew_theme::marks::Marks) -> Self {
+        Self { marks, ..self }
+    }
 }
 
 /// Renders a scene of panes: per-cell bg quads, rounded borders, per-pane text.

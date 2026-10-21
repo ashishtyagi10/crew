@@ -168,11 +168,12 @@ fn put_at(
     bg: (u8, u8, u8),
 ) {
     let styled = styled.into_iter().map(|(c, fg, b)| (c, (fg, b)));
-    crate::chatwidth::place_row(col, max_col, styled, |x, c, (fg, bold)| {
+    crate::chatwidth::place_row(col, max_col, styled, |x, c, marks, (fg, bold)| {
         out.push(CellView {
             col: x,
             row,
             c,
+            marks,
             fg,
             bg,
             bold,

@@ -35,16 +35,22 @@ pub(super) fn search_line(out: &mut Vec<CellView>, p: &ViewPane, cols: u16, rows
         (false, true) => t.bell,
         _ => t.ink,
     };
-    crate::chatwidth::place_row(0, cols, text.chars().map(|c| (c, fg)), |col, c, fg| {
-        out.push(CellView {
-            col,
-            row,
-            c,
-            fg,
-            bg: t.page_bg,
-            ..Default::default()
-        });
-    });
+    crate::chatwidth::place_row(
+        0,
+        cols,
+        text.chars().map(|c| (c, fg)),
+        |col, c, marks, fg| {
+            out.push(CellView {
+                col,
+                row,
+                c,
+                marks,
+                fg,
+                bg: t.page_bg,
+                ..Default::default()
+            });
+        },
+    );
 }
 
 #[cfg(test)]

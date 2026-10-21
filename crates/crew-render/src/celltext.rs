@@ -7,6 +7,8 @@ use glyphon::{Attrs, Buffer, Color, Family, FontSystem, Metrics, Shaping, Style,
 use unicode_width::UnicodeWidthChar;
 
 use crate::cellgrid::CellView;
+use crate::scriptrun::{RunSpec, Runs};
+use crew_theme::marks::Marks;
 
 /// Font metrics shared across all pane buffers.
 pub(crate) struct FontParams {
@@ -71,6 +73,20 @@ pub(crate) fn build_pane_buffer(
     h: f32,
     params: &FontParams,
 ) -> Buffer {
+    build_pane_text(font_system, cells, cols, rows, w, h, params).0
+}
+
+/// [`build_pane_buffer`], and the runs of joining script it left as spaces
+/// for [`crate::scriptrun`] to draw whole.
+pub(crate) fn build_pane_text(
+    font_system: &mut FontSystem,
+    cells: &[CellView],
+    cols: usize,
+    rows: usize,
+    w: f32,
+    h: f32,
+    params: &FontParams,
+) -> (Buffer, Vec<RunSpec>) {
     let mut buffer = Buffer::new(
         font_system,
         Metrics::new(params.font_size, params.line_height),
@@ -91,7 +107,7 @@ pub(crate) fn build_pane_buffer(
     // (verified by `bold_glyphs_snap_to_the_same_cell_advance`).
     buffer.set_monospace_width(font_system, Some(params.cell_w * params.font_size));
 
-    fill_rich_text(&mut buffer, font_system, cells, cols, rows, params);
+    let mut runs = fill_rich_text(&mut buffer, font_system, cells, cols, rows, params);
     // First sighting of a misbehaving glyph: measure it from the shaped
     // layout, cache its correction, and rebuild this buffer with it applied.
     // Steady-state frames hit the cache inside `fill_rich_text` directly.
@@ -101,12 +117,12 @@ pub(crate) fn build_pane_buffer(
     // skipped detection entirely on the frame that banished, which is the
     // first frame a fresh `FontSystem` ever draws.
     if banish_broken_faces(&buffer, font_system) {
-        fill_rich_text(&mut buffer, font_system, cells, cols, rows, params);
+        runs = fill_rich_text(&mut buffer, font_system, cells, cols, rows, params);
     }
     if detect_corrections(&buffer, font_system, params) {
-        fill_rich_text(&mut buffer, font_system, cells, cols, rows, params);
+        runs = fill_rich_text(&mut buffer, font_system, cells, cols, rows, params);
     }
-    buffer
+    (buffer, runs)
 }
 
 /// Extra letter-spacing (em units, added pre-rounding at shape time) that
@@ -228,7 +244,13 @@ fn detect_corrections(buffer: &Buffer, font_system: &mut FontSystem, params: &Fo
     // Collect offenders first: (char, weight, font_id, glyph_id).
     let mut offenders: Vec<(char, u16, u16, fontdb::ID, u16)> = Vec::new();
     for run in buffer.layout_runs() {
+        let mut cluster = usize::MAX;
         for g in run.glyphs {
+            // Only a cluster's first glyph is its cell's: the marks shaped
+            // after it have no advance of their own to put right.
+            if std::mem::replace(&mut cluster, g.start) == g.start {
+                continue;
+            }
             let Some(c) = run.text[g.start..g.end].chars().next() else {
                 continue;
             };
@@ -279,7 +301,11 @@ fn detect_corrections(buffer: &Buffer, font_system: &mut FontSystem, params: &Fo
 /// can answer, so crew stops making it: bold shapes at the heaviest weight
 /// the family really has, and a single-weight face simply stays its own
 /// weight rather than becoming somebody else's.
-fn weight_in_family(font_system: &FontSystem, family: &Option<String>, want: u16) -> Weight {
+pub(crate) fn weight_in_family(
+    font_system: &FontSystem,
+    family: &Option<String>,
+    want: u16,
+) -> Weight {
     let Some(name) = family.as_deref().filter(|f| !f.is_empty()) else {
         // No family means the monospace default, which is the family crew
         // embeds — and it ships every weight it is ever asked for.
@@ -325,6 +351,9 @@ enum RunKey {
 /// cells that share styling collapse into one span. This avoids the previous
 /// one-`String`-and-one-span-per-cell layout (10k+ heap allocations per pane per
 /// frame on a large grid), cutting both allocations and shaping spans sharply.
+///
+/// Cells of a script that joins its letters go in as spaces, and come back as
+/// the runs [`crate::scriptrun`] draws whole.
 pub(crate) fn fill_rich_text(
     buffer: &mut Buffer,
     font_system: &mut FontSystem,
@@ -332,7 +361,7 @@ pub(crate) fn fill_rich_text(
     cols: usize,
     rows: usize,
     params: &FontParams,
-) {
+) -> Vec<RunSpec> {
     let fam = family_from(&params.family);
     let base = weight_in_family(font_system, &params.family, params.weight);
     // What "bold" means in THIS family (see `weight_in_family`).
@@ -367,6 +396,7 @@ pub(crate) fn fill_rich_text(
     // ranges into it; consecutive same-key cells extend the current run.
     let mut text = String::with_capacity(rows * (cols + 1));
     let mut runs: Vec<(usize, usize, RunKey)> = Vec::new();
+    let mut joined = Runs::default();
     for row_i in 0..rows {
         // Set after a full-width character: the column its second half sits in
         // carries no cell of its own (the terminal drops alacritty's spacer,
@@ -382,27 +412,42 @@ pub(crate) fn fill_rich_text(
             if std::mem::take(&mut in_wide_tail) && at.is_none() {
                 continue;
             }
-            let (ch, key) = match at {
+            let (ch, marks, key) = match at {
                 Some(cell) => {
                     let w = if cell.bold { bold.0 } else { base.0 };
-                    let ls = correction_for(params, cell.c, w);
-                    (
-                        cell.c,
-                        RunKey::Styled(
+                    let light = crate::textgamma::light_ink(cell.fg, cell.bg);
+                    let gamma = crate::textgamma::amount_for(params.gamma, cell.fg, cell.bg);
+                    if joined.take(cell, w, light, gamma) {
+                        (' ', Marks::default(), RunKey::Default)
+                    } else {
+                        if cell.c == ' ' && cell.marks.is_empty() {
+                            joined.blank(cell.row, cell.col);
+                        }
+                        // Spacing lands on every glyph of a cluster, its
+                        // marks too, so a cell carrying marks keeps the
+                        // advance it has.
+                        let ls =
+                            correction_for(params, cell.c, w).filter(|_| cell.marks.is_empty());
+                        let key = RunKey::Styled(
                             cell.fg,
                             cell.bold,
                             cell.italic,
                             ls.map(f32::to_bits),
-                            crate::textgamma::light_ink(cell.fg, cell.bg),
-                            crate::textgamma::amount_for(params.gamma, cell.fg, cell.bg),
-                        ),
-                    )
+                            light,
+                            gamma,
+                        );
+                        (cell.c, cell.marks, key)
+                    }
                 }
-                None => (' ', RunKey::Default),
+                None => {
+                    joined.blank(row_i as u16, c as u16);
+                    (' ', Marks::default(), RunKey::Default)
+                }
             };
             in_wide_tail = UnicodeWidthChar::width(ch) == Some(2);
             let start = text.len();
             text.push(ch);
+            text.extend(marks.chars());
             match runs.last_mut() {
                 Some((_, last_end, last_key)) if *last_key == key => *last_end = text.len(),
                 _ => runs.push((start, text.len(), key)),
@@ -444,6 +489,7 @@ pub(crate) fn fill_rich_text(
         .collect();
 
     buffer.set_rich_text(font_system, spans, &default_attrs, Shaping::Advanced, None);
+    joined.0
 }
 
 /// Cell width as a fraction of the font size. Family-independent on purpose

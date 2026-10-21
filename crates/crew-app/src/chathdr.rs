@@ -16,11 +16,12 @@ fn seg_w(s: &Seg) -> usize {
 /// free column. Width-aware through `chatwidth::place_row`.
 fn push(cells: &mut Vec<CellView>, col: u16, max_col: u16, s: &Seg) -> u16 {
     let bg = crew_theme::theme().page_bg;
-    crate::chatwidth::place_row(col, max_col, s.iter().copied(), |x, c, fg| {
+    crate::chatwidth::place_row(col, max_col, s.iter().copied(), |x, c, marks, fg| {
         cells.push(CellView {
             col: x,
             row: 0,
             c,
+            marks,
             fg,
             bg,
             ..Default::default()

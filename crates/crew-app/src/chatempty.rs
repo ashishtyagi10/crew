@@ -21,11 +21,12 @@ fn line(
 ) {
     let bg = crew_theme::theme().page_bg;
     // Width-aware (see `chatwidth`): roster names can carry wide glyphs.
-    crate::chatwidth::place_row(col, cols, s.chars().map(|c| (c, fg)), |x, c, fg| {
+    crate::chatwidth::place_row(col, cols, s.chars().map(|c| (c, fg)), |x, c, marks, fg| {
         out.push(CellView {
             col: x,
             row,
             c,
+            marks,
             fg,
             bg,
             bold,

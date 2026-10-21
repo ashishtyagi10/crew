@@ -29,6 +29,9 @@ pub struct RenderCell {
     pub deco: crew_theme::deco::Deco,
     /// The cursor, when this is the cell it sits on.
     pub cursor: crew_theme::deco::CursorMark,
+    /// The combining marks alacritty keeps after the cell's character
+    /// (`Cell::zerowidth`): a virama, a nasal dot, an accent.
+    pub marks: crew_theme::marks::Marks,
 }
 
 pub trait TermModel {
@@ -329,3 +332,6 @@ mod graphicsplace_tests;
 #[cfg(test)]
 #[path = "model_tests.rs"]
 mod model_tests;
+#[cfg(test)]
+#[path = "modelmarks_tests.rs"]
+mod modelmarks_tests;

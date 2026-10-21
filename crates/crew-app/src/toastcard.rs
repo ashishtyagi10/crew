@@ -143,18 +143,24 @@ pub(crate) fn card_cells(c: &CardText, cols: u16, fade: f32, hovered: bool) -> V
     }
     let fg = lerp_rgb(t.ink, t.page_bg, fade);
     for (i, line) in lines.iter().enumerate() {
-        place_row(2, cols - 2, line.chars().map(|c| (c, fg)), |col, c, fg| {
-            cells.push(CellView {
-                col,
-                row: 1 + i as u16,
-                c,
-                fg,
-                bg: t.page_bg,
-                bold: false,
-                italic: false,
-                ..Default::default()
-            });
-        });
+        place_row(
+            2,
+            cols - 2,
+            line.chars().map(|c| (c, fg)),
+            |col, c, marks, fg| {
+                cells.push(CellView {
+                    col,
+                    row: 1 + i as u16,
+                    c,
+                    marks,
+                    fg,
+                    bg: t.page_bg,
+                    bold: false,
+                    italic: false,
+                    ..Default::default()
+                });
+            },
+        );
     }
     cells
 }

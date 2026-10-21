@@ -45,11 +45,12 @@ pub(crate) fn stamp(cells: &mut Vec<CellView>, cols: u16, rows: u16) {
     let row = rows - 1;
     cells.retain(|c| c.row != row);
     let styled = text(cols).chars().map(|c| (c, t.text_muted));
-    crate::chatwidth::place_row(1, cols, styled, |x, c, fg| {
+    crate::chatwidth::place_row(1, cols, styled, |x, c, marks, fg| {
         cells.push(CellView {
             col: x,
             row,
             c,
+            marks,
             fg,
             bg: t.page_bg,
             ..Default::default()

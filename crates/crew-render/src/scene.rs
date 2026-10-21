@@ -6,15 +6,18 @@ use glyphon::Buffer;
 use unicode_width::UnicodeWidthChar;
 
 use crate::cellgrid::{default_bg, CellView};
-use crate::celltext::{build_pane_buffer, FontParams};
+use crate::celltext::{build_pane_text, FontParams};
 use crate::glass::GlassCard;
 use crate::paint::Paint;
 use crate::quads::Quad;
 use crate::roundborder::Border;
 use crate::scenecache::{pane_sig, PrevPass};
+use crate::scriptrun::RunArea;
 
-/// `(Buffer, origin_x, origin_y, pane_w, pane_h)` for one rendered pane.
-pub(crate) type PaneBuffer = (Buffer, f32, f32, f32, f32);
+/// `(Buffer, origin_x, origin_y, pane_w, pane_h, runs)` for one rendered
+/// pane: its snapped buffer, and the runs of joining script drawn whole over
+/// it (see [`crate::scriptrun`]).
+pub(crate) type PaneBuffer = (Buffer, f32, f32, f32, f32, Vec<RunArea>);
 
 /// One pane to be rendered: its cell data, pixel rect, and focus state.
 /// Columns a cell's character occupies — the same one-or-two the layout
@@ -441,6 +444,23 @@ fn emit_cells(
 ) {
     let cols = ((pane.w / cell_w).floor() as usize).max(1);
     let rows = ((pane.h / cell_h).floor() as usize).max(1);
+    // One text Buffer per pane — last frame's, when the signature matches
+    // (position is not part of the signature; a moved pane reuses too).
+    // Shaped first, so the rules under a run of joining script can follow
+    // its ink (`scriptplace::Warp`).
+    let sig = pane_sig(pane, cols, rows, params);
+    let slot = out.buffers.len();
+    let buf = match prev_sigs.get(slot) == Some(&sig) {
+        true => prev_bufs.get_mut(slot).and_then(Option::take),
+        false => None,
+    };
+    let (buf, runs) = buf.map(|b| (b.0, b.5)).unwrap_or_else(|| {
+        let (buf, specs) =
+            build_pane_text(font_system, &pane.cells, cols, rows, pane.w, pane.h, params);
+        let runs = crate::scriptrun::place(font_system, &buf, &specs, params);
+        (buf, runs)
+    });
+    let warp = crate::scriptplace::Warp::of(&runs, cell_w);
     let quads = &mut *out.quads;
     // Cell backgrounds, as runs: one quad per horizontal run of a colour,
     // its corners rounded wherever they sit on bare page (`bgruns`).
@@ -492,7 +512,8 @@ fn emit_cells(
         if !cell.deco.is_blank() {
             let rgb = crate::deco::color(&cell.deco, cell.fg);
             let color = crate::color::target_rgba(rgb, 1.0, srgb);
-            for (x, y, w, h) in crate::deco::rects(&cell.deco, x, y, w, cell_h) {
+            let (dx, w) = warp.span(cell.row, f32::from(cell.col) * cell_w, w);
+            for (x, y, w, h) in crate::deco::rects(&cell.deco, pane.x + dx, y, w, cell_h) {
                 quads.push(Quad::rect(x, y, w, h, color));
             }
         }
@@ -517,19 +538,9 @@ fn emit_cells(
         ));
     }
 
-    // One text Buffer per pane — last frame's, when the signature matches
-    // (position is not part of the signature; a moved pane reuses too).
-    let sig = pane_sig(pane, cols, rows, params);
-    let slot = out.buffers.len();
-    let buf = match prev_sigs.get(slot) == Some(&sig) {
-        true => prev_bufs.get_mut(slot).and_then(Option::take),
-        false => None,
-    };
-    let buf = buf.map(|b| b.0).unwrap_or_else(|| {
-        build_pane_buffer(font_system, &pane.cells, cols, rows, pane.w, pane.h, params)
-    });
     out.sigs.push(sig);
-    out.buffers.push((buf, pane.x, pane.y, pane.w, pane.h));
+    out.buffers
+        .push((buf, pane.x, pane.y, pane.w, pane.h, runs));
 }
 
 #[cfg(test)]

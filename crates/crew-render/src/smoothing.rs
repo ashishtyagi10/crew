@@ -107,14 +107,14 @@ pub(crate) fn presmooth(
     buffers: &[PaneBuffer],
 ) {
     let mut curve = Curve::new();
-    for (buf, ox, oy, _, _) in buffers {
+    for (buf, ox, oy, _) in crate::scriptrun::areas(buffers) {
         for run in buf.layout_runs() {
             // Where the cell's top edge sits above this run's baseline — the
             // placement a synthesized glyph needs so its box covers exactly
             // the cell the character was laid into.
             let cell_top = (run.line_y.round() - run.line_top) as i32;
             for glyph in run.glyphs.iter() {
-                let key = glyph.physical((*ox, *oy), 1.0).cache_key;
+                let key = glyph.physical((ox, oy), 1.0).cache_key;
                 if swash.image_cache.contains_key(&key) {
                     continue;
                 }

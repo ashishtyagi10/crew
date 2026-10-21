@@ -49,17 +49,23 @@ fn put_centered(
     let w = crate::chatwidth::str_w(s) as u16;
     let start = if w < cols { (cols - w) / 2 } else { 0 };
     let styled = s.chars().map(|c| (c, ()));
-    crate::chatwidth::place_row(start, cols.saturating_sub(1), styled, |col, c, ()| {
-        out.push(CellView {
-            col,
-            row,
-            c,
-            fg,
-            bg,
-            bold,
-            ..Default::default()
-        });
-    });
+    crate::chatwidth::place_row(
+        start,
+        cols.saturating_sub(1),
+        styled,
+        |col, c, marks, ()| {
+            out.push(CellView {
+                col,
+                row,
+                c,
+                marks,
+                fg,
+                bg,
+                bold,
+                ..Default::default()
+            });
+        },
+    );
 }
 
 #[cfg(test)]

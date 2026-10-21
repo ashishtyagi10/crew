@@ -165,10 +165,9 @@ fn prompt_lines(
             .iter()
             .enumerate()
             .map(|(j, &c)| (c, (style_at(s + j), s + j)));
-        // Width-aware placement: a wide glyph advances two columns, and the
-        // caret lands after the text instead of on top of it.
-        let x = crate::chatwidth::place_row(x0 + 2, max, styled, |x, c, ((fg, bold), i)| {
-            let mut glyph = cell(x, row, c, fg, bold);
+        // Width-aware: wide glyphs take two columns, marks ride their letter.
+        let x = crate::chatwidth::place_row(x0 + 2, max, styled, |x, c, marks, ((fg, bold), i)| {
+            let mut glyph = cell(x, row, c, fg, bold).marked(marks);
             if i == caret && !line_end {
                 glyph.cursor = beam;
             }
@@ -186,14 +185,10 @@ fn prompt_lines(
     // wrapping it would change the composer's HEIGHT as you type — the card
     // growing under a suggestion nobody asked for.
     if let Some(g) = ghost.filter(|_| caret == chars.len()) {
-        let mut x = end_x + 1;
-        for c in g.chars() {
-            if x >= max {
-                break;
-            }
-            cells.push(cell(x, end_row, c, t.text_muted, false));
-            x += crate::chatwidth::char_w(c) as u16;
-        }
+        let ghost = g.chars().map(|c| (c, ()));
+        crate::chatwidth::place_row(end_x + 1, max, ghost, |x, c, marks, ()| {
+            cells.push(cell(x, end_row, c, t.text_muted, false).marked(marks))
+        });
     }
     cells
 }

@@ -23,7 +23,14 @@ successor to this repo's original terminal file-manager project; the crates unde
   last frame's shaped text** (content signatures in `scenecache`); and all cell
   placement is **display-width aware** (`chatwidth` — emoji/CJK advance two
   columns everywhere, and everything a wide cell wears — its background, the
-  underline family, the block cursor — is drawn across both of them).
+  underline family, the block cursor — is drawn across both of them). Scripts
+  that join their letters (Devanagari and the other Indic scripts, Thai, Lao,
+  Myanmar, Khmer) are the one exception to the snap: a cell carries the
+  combining marks after its character (`CellView::marks`), a run of such
+  cells is left blank in the snapped buffer, and `scriptrun`/`scriptplace`
+  shape each word whole at its natural advance and lay a phrase's words
+  together on the row's baseline, so `भारत` is one word and the grid, the
+  cursor and the selection stay where the widths put them.
 - **Terminal model** — `alacritty_terminal` + `portable-pty` (`crates/smith-term`).
 - **In-pane UI** — `ratatui` widgets are laid out into a `Buffer` and converted to
   GPU cells (the settings form, command palette, and help overlay use this).
