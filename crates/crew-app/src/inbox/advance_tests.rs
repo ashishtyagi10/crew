@@ -148,3 +148,34 @@ fn n_and_p_in_the_reader_open_the_next_and_the_previous_thread_in_place() {
         "each marked read as it opened"
     );
 }
+
+#[test]
+fn a_long_thread_folds_its_older_mails_to_a_line_until_a_click_or_x_opens_them() {
+    let (mut p, _asks, _) = reading(&["a"], 0);
+    let mail = |from: &str, words: &str| Mail {
+        from: from.into(),
+        date: "Tue, 20 Oct 2026 09:02:00 -0400".into(),
+        rich: crate::inbox::rich::Rich::of_plain(words, None),
+        ..Mail::default()
+    };
+    p.reading.as_mut().unwrap().mails = Some(vec![
+        mail("Ann <a@x.org>", "First words"),
+        mail("Bob <b@y.org>", "Second words"),
+        mail("Cy <c@z.org>", "Newest words"),
+    ]);
+    let laid = |p: &InboxPane| p.reading.as_ref().unwrap().laid(80);
+    assert_eq!(laid(&p).folded.len(), 2, "all but the newest");
+    let text: String = laid(&p).lines.iter().flatten().map(|c| c.c).collect();
+    assert!(text.contains("Newest words") && text.contains("Second words"));
+    let row = laid(&p).folded[1].0 as u16;
+    assert!(p.unfold_at(84, row), "a click on Bob's line");
+    assert_eq!(laid(&p).folded.len(), 1);
+    press(&mut p, "x");
+    assert!(laid(&p).folded.is_empty(), "x: every mail open");
+    press(&mut p, "x");
+    assert_eq!(laid(&p).folded.len(), 2, "x again folds them");
+    assert_eq!(
+        crate::inbox::reader::text_width(300),
+        crate::inbox::reader::MEASURE
+    );
+}

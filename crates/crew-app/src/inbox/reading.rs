@@ -22,6 +22,11 @@ pub(crate) struct Reading {
     pub pop_out: bool,
     /// How big each landed picture is (`readfit`).
     pub sizes: super::readfit::Sizes,
+    /// Older mails opened by a click, `x` for all, and a count of the
+    /// changes for the layout's key (`readfold`).
+    pub open: std::collections::BTreeSet<usize>,
+    pub all: bool,
+    pub folds: u32,
     pub(crate) laid: std::sync::Mutex<Option<(reader::Key, std::sync::Arc<reader::Laid>)>>,
 }
 
@@ -37,6 +42,9 @@ impl Reading {
             web: false,
             pop_out: false,
             sizes: Default::default(),
+            open: Default::default(),
+            all: false,
+            folds: 0,
             laid: std::sync::Mutex::new(None),
         }
     }

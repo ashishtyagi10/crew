@@ -46,5 +46,9 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
         "In a thread: hide its pictures from the web, or show them",
     ),
     ("w", "In a thread: open it in a window of its own"),
+    (
+        "x",
+        "In a long thread: open every mail, or fold the older ones",
+    ),
     ("?", "These keys"),
 ];

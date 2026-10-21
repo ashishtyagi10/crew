@@ -36,6 +36,7 @@ pub(crate) mod plain;
 pub(crate) mod query;
 pub(crate) mod reader;
 mod readfit;
+mod readfold;
 mod reading;
 mod readmail;
 mod readpos;

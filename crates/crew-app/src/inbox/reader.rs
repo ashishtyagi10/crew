@@ -12,11 +12,12 @@ use super::readmail::{Lay, Placed};
 use super::Reading;
 use crate::chatbody::{plain, CardLine, Color};
 
-/// The thread laid out: card lines, one column of indent included, and
-/// where its pictures are.
+/// The thread laid out: card lines, one column of indent included, where
+/// its pictures are, and which rows are folded mails (`readfold`).
 pub(crate) struct Laid {
     pub lines: Vec<CardLine>,
     pub pics: Vec<Placed>,
+    pub folded: Vec<(usize, usize)>,
 }
 
 /// Everything a layout depends on besides the thread itself.
@@ -29,6 +30,8 @@ pub(crate) struct Key {
     loaded: bool,
     /// Pictures landed and sized (`readfit`).
     sized: usize,
+    /// Mails folded or opened (`readfold`).
+    folds: u32,
     pub(crate) ink: Color,
     pub(crate) muted: Color,
 }
@@ -44,6 +47,7 @@ impl Reading {
             web: self.web,
             loaded: self.mails.is_some(),
             sized: self.sizes.len(),
+            folds: self.folds,
             ink: t.ink,
             muted: t.text_muted,
         };
@@ -62,9 +66,15 @@ pub(crate) fn height(r: &Reading, cols: u16) -> usize {
     r.laid(text_width(cols)).lines.len()
 }
 
+/// The text's width in a reader `cols` wide: all of it but the margins, up
+/// to a reading measure. On a wide pane a line ran the width of the screen;
+/// a mail is set for about 600 px, some 75 columns.
 pub(crate) fn text_width(cols: u16) -> usize {
-    cols.saturating_sub(4) as usize
+    (cols.saturating_sub(4) as usize).min(MEASURE)
 }
+
+/// The longest line the reader sets.
+pub(crate) const MEASURE: usize = 88;
 
 fn layout(r: &Reading, k: Key) -> Laid {
     let subject = match r.thread.subject.trim() {
@@ -81,10 +91,20 @@ fn layout(r: &Reading, k: Key) -> Laid {
     let title = wrap(subject, k.width.saturating_sub(super::readpos::ROOM));
     lay.lines.extend(title.iter().map(|l| row(l, k.ink, true)));
     match &r.mails {
-        Some(mails) => mails
-            .iter()
-            .enumerate()
-            .for_each(|(i, m)| super::readmail::message(&mut lay, m, r, &k, i == 0)),
+        Some(mails) => {
+            let w = super::readfold::names_w(mails);
+            for (i, m) in mails.iter().enumerate() {
+                match r.folded(i, mails.len()) {
+                    // The folded lines run together under a row of air.
+                    true if i == 0 => {
+                        lay.lines.push(Vec::new());
+                        super::readfold::line(&mut lay, m, &k, i, w);
+                    }
+                    true => super::readfold::line(&mut lay, m, &k, i, w),
+                    false => super::readmail::message(&mut lay, m, r, &k, i == 0),
+                }
+            }
+        }
         None => {
             lay.lines.push(Vec::new());
             lay.lines.push(row("loading\u{2026}", k.muted, false));
@@ -93,6 +113,7 @@ fn layout(r: &Reading, k: Key) -> Laid {
     Laid {
         lines: lay.lines,
         pics: lay.pics,
+        folded: lay.folded,
     }
 }
 

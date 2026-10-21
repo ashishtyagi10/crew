@@ -52,6 +52,9 @@ impl InboxPane {
             self.note = self.next_thread(older).into();
             return Clicked::Done;
         }
+        if self.reading.is_some() && col >= at && self.unfold_at(width, row) {
+            return Clicked::Done;
+        }
         match self.click_list(cols, rows, row, col) {
             true => Clicked::Done,
             false => Clicked::Miss,

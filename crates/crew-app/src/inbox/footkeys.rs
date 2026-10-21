@@ -60,6 +60,7 @@ pub(crate) const READER: Keys = &[
     ("i", "pictures"),
     ("v", "text"),
     ("w", "window"),
+    ("x", "all mails"),
     GAP,
     ("a", "ask smith"),
     ("t", "todo"),

@@ -61,3 +61,20 @@ Rules that hold every round:
 - **Tests:** a keycap's click is its key (`n` opens the next thread, `esc` goes back); the
   counter's arrows step through the list; every key still shows in order.
 
+**Round 2 (v0.27.52): type and the shape of a thread.**
+
+- **The survey.** On a wide pane a mail's lines ran the width of the screen, 140 columns and
+  more. A thread of three mails or more showed every one in full, the newest at the bottom of
+  a long scroll.
+- **A reading measure.** The reader sets no line wider than 88 columns
+  (`reader::MEASURE`), about the 600 px a mail is designed for. The header, pictures and
+  `‹ 3 of 25 ›` follow the measure.
+- **Older mails fold.** In a thread of three or more, every mail but the newest folds to one
+  line (`crates/crew-app/src/inbox/readfold.rs`): the sender in bold, how the mail starts in
+  plain words (no markdown marks, table bars or picture marks), and its date at the right.
+  The names share one column, so the words line up. A click opens a folded mail, and the
+  pointer is a hand over it. `x` opens every mail, or folds the older ones again; it joins
+  the foot's view group and `/keys`.
+- **Tests:** a thread of three folds two and opens on a click and on `x`; a folded mail's
+  words are plain; the measure caps the text.
+
