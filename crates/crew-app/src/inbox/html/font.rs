@@ -155,6 +155,10 @@ pub(super) fn styled(n: &Node, o: &mut Out, block: bool) {
         // `<div><span class="h1">` is a headline.
         let (mut big, mut heavy) = (size, bold);
         if let Some(only) = sole_inline(n) {
+            // A button alone in a large type is still a button.
+            if only.tag == "a" && super::anchor::button(only) {
+                return super::walk::kids(n, o);
+            }
             let inner = o.style(only);
             big = big.max(super::font::size(only, &inner).unwrap_or(0.0));
             heavy |= weight(&inner).is_some_and(|w| w >= 600);

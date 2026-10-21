@@ -3,6 +3,7 @@
 //! hidden text dropped, the quoted history split off. crew's own small
 //! tokenizer and tree, not a browser's: phase 0 asked whether that is
 //! enough, and the fixture corpus (`corpus_tests`) is the answer.
+mod anchor;
 mod block;
 mod css;
 mod ent;
@@ -77,6 +78,7 @@ pub(crate) fn to_markdown(html: &str, web: bool) -> Converted {
         ),
         (None, None) => (joined(&tidy(&doc)), None, None),
     };
+    let body = calmed(&body);
     Converted {
         body,
         quote,
@@ -145,6 +147,24 @@ fn joined(md: &str) -> String {
         }
     }
     out.join("\n\n")
+}
+
+/// A mail that sets more than four lines as its largest headings (a
+/// promotion, every offer a headline) has them a step down: a page of
+/// accent headlines is no outline at all.
+fn calmed(md: &str) -> String {
+    let tops = md.lines().filter(|l| l.starts_with("# ")).count();
+    if tops <= 4 {
+        return md.to_string();
+    }
+    let lines: Vec<String> = md
+        .lines()
+        .map(|l| match l.strip_prefix("# ") {
+            Some(rest) => format!("## {rest}"),
+            None => l.to_string(),
+        })
+        .collect();
+    lines.join("\n")
 }
 
 /// Markdown read back as the words it shows: escapes and link syntax out.

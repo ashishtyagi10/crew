@@ -160,15 +160,15 @@ fn pictures_the_mail_carries_are_drawn_and_the_webs_are_words_while_hidden() {
         ]
     );
     assert!(
-        web.body
-            .contains("![Read the report](<https://cdn.x.io/banner.png#rows=4>)"),
+        web.body.contains(
+            "![Read the report](<https://cdn.x.io/banner.png#rows=4&go=https://x.io/report>)"
+        ),
         "{}",
         web.body
     );
     assert!(
-        web.body
-            .contains("[\u{2197} Read the report](<https://x.io/report>)"),
-        "{}",
+        !web.body.contains("\u{2197}"),
+        "the picture is the link, with no line under it: {}",
         web.body
     );
     assert!(

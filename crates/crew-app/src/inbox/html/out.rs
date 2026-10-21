@@ -46,6 +46,11 @@ pub(crate) struct Out {
     pub(super) line_size: f32,
     /// Where the run of small print the document ends with starts (`block`).
     pub(super) small_from: Option<usize>,
+    /// Inside a link: where it goes, for a picture drawn in it (`anchor`).
+    pub go: Option<String>,
+    /// Inside a link that holds blocks: where it goes, and the paragraph it
+    /// began in; every paragraph begun after that is the link (`block`).
+    pub link: Option<(String, u32)>,
 }
 
 /// A place in the open paragraph, to wrap what comes after it.

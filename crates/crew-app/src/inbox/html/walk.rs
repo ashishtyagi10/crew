@@ -2,7 +2,7 @@
 //! inline elements wrap what they hold, and what is hidden is never read.
 use super::out::Out;
 use super::tree::{Kid, Node, BLOCK};
-use super::{ent, hide, link, quote, table};
+use super::{ent, hide, quote, table};
 
 pub(crate) fn node(n: &Node, o: &mut Out) {
     if hide::hidden(n) {
@@ -15,7 +15,7 @@ pub(crate) fn node(n: &Node, o: &mut Out) {
         o.size = px;
     }
     // A table or cell classed as a button makes the link in it one.
-    o.btn |= n.tag != "a" && classed_button(n);
+    o.btn |= n.tag != "a" && super::anchor::classed_button(n);
     element(n, o);
     (o.tiny, o.btn, o.size) = (tiny, btn, size);
 }
@@ -30,7 +30,7 @@ fn element(n: &Node, o: &mut Out) {
         "br" => o.brk(),
         "hr" => o.hr(),
         "img" => super::image::image(n, o),
-        "a" => anchor(n, o),
+        "a" => super::anchor::anchor(n, o),
         "ul" | "ol" => {
             let start = n
                 .attr("start")
@@ -79,8 +79,50 @@ fn element(n: &Node, o: &mut Out) {
             super::font::styled(n, o, true);
             o.block();
         }
+        // A span set apart by its own padding or margin (a chip, a spacer)
+        // is a word of its own: `<span>HUNTERSVILLE</span><span>NC</span>`.
+        _ if spaced(n) => {
+            o.text(" ");
+            super::font::styled(n, o, false);
+            o.text(" ");
+        }
         _ => super::font::styled(n, o, false),
     }
+}
+
+/// Whether `n` keeps room either side of it: horizontal padding or margin,
+/// or `display:inline-block`.
+fn spaced(n: &Node) -> bool {
+    let Some(style) = n.attr("style") else {
+        return false;
+    };
+    let decl = |p: &str| super::font::decl(style, p);
+    let side = |v: String| {
+        let vals: Vec<&str> = v.split_whitespace().collect();
+        let x = match vals.len() {
+            1 => vals[0],
+            2 | 3 => vals[1],
+            4 => vals[1],
+            _ => return false,
+        };
+        super::font::px(x).is_some_and(|px| px > 0.0)
+    };
+    let one = |p: &str| {
+        decl(p)
+            .and_then(|v| super::font::px(&v))
+            .is_some_and(|px| px > 0.0)
+    };
+    decl("display").is_some_and(|d| d == "inline-block")
+        || decl("padding").is_some_and(side)
+        || decl("margin").is_some_and(side)
+        || [
+            "padding-left",
+            "padding-right",
+            "margin-left",
+            "margin-right",
+        ]
+        .iter()
+        .any(|p| one(p))
 }
 
 pub(super) fn kids(n: &Node, o: &mut Out) {
@@ -121,61 +163,6 @@ fn code(n: &Node, o: &mut Out) {
         let ticks = "`".repeat(run + 1);
         format!("{ticks} {s} {ticks}")
     });
-}
-
-fn anchor(n: &Node, o: &mut Out) {
-    // Links set side by side with only CSS between them (a menu, a row of
-    // social marks) would read as one word: a dot goes between them.
-    if o.line.ends_with(">)") {
-        o.text(" \u{b7} ");
-    }
-    let m = o.mark();
-    kids(n, o);
-    let Some(href) = n.attr("href").and_then(link::target) else {
-        return;
-    };
-    // A picture is a block of its own, so the link goes on a line under it.
-    if o.since(m).is_none() {
-        let alt = super::image::alt_in(n).unwrap_or_default();
-        let words = match alt.as_str() {
-            "" => "open the link".to_string(),
-            a => a.to_string(),
-        };
-        let m = o.mark();
-        o.text(&format!("\u{2197} {words}"));
-        o.wrap(m, |s| format!("[{s}](<{href}>)"));
-        o.block();
-        return;
-    }
-    let words = super::plain_of(o.since(m).unwrap_or(""));
-    match (o.btn || button(n)) && (1..=40).contains(&words.trim().chars().count()) {
-        // A capsule that is the link, as chat draws inline code; the spaces
-        // inside it pad the capsule (a code span drops one each side).
-        true => {
-            let said = words.trim().replace('`', "'");
-            o.wrap(m, |_| format!("[`  {said}  `](<{href}>)"));
-        }
-        false => o.wrap(m, |s| format!("[{s}](<{href}>)")),
-    }
-    if let Some(real) = link::lie(&words, &href) {
-        o.text(&format!(" \u{27f6} {real}"));
-    }
-}
-
-/// A link drawn as a button (goal 2026-10-21-mail-looks-right, item 10):
-/// its own fill or border, or a class that says so.
-fn button(n: &Node) -> bool {
-    let style = n.attr("style").unwrap_or("");
-    let fill = ["background-color", "background"].iter().any(|p| {
-        super::font::decl(style, p).is_some_and(|v| !matches!(v.as_str(), "none" | "transparent"))
-    });
-    let border = super::font::decl(style, "border").is_some_and(|v| v != "0" && v != "none");
-    fill || border || classed_button(n)
-}
-
-fn classed_button(n: &Node) -> bool {
-    let class = n.attr("class").unwrap_or("").to_ascii_lowercase();
-    class.contains("button") || class.split_whitespace().any(|c| c == "btn")
 }
 
 fn data_table(t: &Node, o: &mut Out) {

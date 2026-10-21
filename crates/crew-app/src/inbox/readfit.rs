@@ -31,7 +31,9 @@ pub(crate) fn fitted<'a>(md: &'a str, msg: &str, width: usize, sizes: &Sizes) ->
         let (frag, after) = tail.split_at(end);
         let fit = frag
             .split_once("&fit=")
-            .and_then(|(_, w)| w.parse::<f32>().ok());
+            .and_then(|(_, w)| w.split('&').next()?.parse::<f32>().ok());
+        // A picture's link (`&go=`) rides along, last.
+        let go = frag.find("&go=").map_or("", |i| &frag[i..]);
         let size = sizes
             .get(&super::pics::key(msg, src))
             .filter(|(w, h)| *w > 0 && *h > 0);
@@ -42,7 +44,7 @@ pub(crate) fn fitted<'a>(md: &'a str, msg: &str, width: usize, sizes: &Sizes) ->
                 let rows = (shown * h as f32 / w as f32 / ROW_PX)
                     .round()
                     .clamp(2.0, 40.0);
-                out.push_str(&format!("#rows={rows}"));
+                out.push_str(&format!("#rows={rows}{go}"));
             }
             _ => out.push_str(frag),
         }

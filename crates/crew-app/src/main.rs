@@ -869,6 +869,8 @@ mod cli_intent_tests {
 }
 
 #[cfg(test)]
+mod inboxlive_tests;
+#[cfg(test)]
 mod inboxmailshot_tests;
 #[cfg(test)]
 mod inboxreadshot_tests;
