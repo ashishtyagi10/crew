@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.37
+
+**`/inbox`: the list, redrawn — two lines a thread, and the selection you can see.**
+When the pane is tall enough, each thread takes two lines: who wrote it,
+the way Gmail writes it (`Ann, Bo, me`, each person once, the newest last),
+the number of messages as a small chip, a star and the age on the right;
+then the subject and the start of the mail in a quieter ink. Unread threads
+are bold, and read ones step back to muted ink. The thread you are on is
+washed from edge to edge with an accent bar at its left, in place of the
+old `›`, and no two markers share a cell any more. As the pane narrows, the
+snippet goes first, then the count, then everyone but the newest sender, and
+last the age shortens (`3h`, `4d`, `2w`). `L` switches between one and two
+lines a thread, and crew remembers the choice until it quits.
+- **Tests:** the ladder at 40, 60, 80 and 120 columns in both densities,
+  the wash covering every column of both lines with every colour on it
+  readable on all eight themes, read mail receding, every marker in a cell
+  of its own, senders written as Gmail writes them (first names when there
+  is no room, `me` by `SENT` or by address, a draft never counted), two-line
+  rows only when eight fit, and `L` held for the session.
+
 ## 0.27.36
 
 **`/inbox`: attachments open, and `w` gives a thread its own window.**

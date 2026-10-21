@@ -24,6 +24,16 @@ pub(crate) struct Thread {
     pub at_ms: i64,
     /// Messages in the thread.
     pub count: usize,
+    /// Who wrote each message but a draft, oldest first: what the row's
+    /// "Ann, Bo, me" is made from (`who`).
+    pub senders: Vec<Sender>,
+}
+
+/// One message's `From`, and whether it carries `SENT` (the account's own).
+#[derive(Debug, Clone, PartialEq, Default)]
+pub(crate) struct Sender {
+    pub from: String,
+    pub sent: bool,
 }
 
 /// `threads.list`: the thread ids in the order Gmail gave them, and the
@@ -54,6 +64,8 @@ pub(crate) fn thread(v: &Value) -> Thread {
         .unwrap_or(Value::Null);
     let unread = msgs.iter().any(|m| has_label(m, "UNREAD"));
     let first = msgs.first().unwrap_or(&Value::Null);
+    let mut written: Vec<&Value> = msgs.iter().filter(|m| !has_label(m, "DRAFT")).collect();
+    written.sort_by_key(|m| date_of(m));
     Thread {
         id: v["id"].as_str().unwrap_or_default().to_string(),
         from: header(&newest, "From"),
@@ -64,6 +76,13 @@ pub(crate) fn thread(v: &Value) -> Thread {
         starred: msgs.iter().any(|m| has_label(m, "STARRED")),
         at_ms: date_of(&newest),
         count: msgs.len(),
+        senders: written
+            .iter()
+            .map(|m| Sender {
+                from: header(m, "From"),
+                sent: has_label(m, "SENT"),
+            })
+            .collect(),
     }
 }
 

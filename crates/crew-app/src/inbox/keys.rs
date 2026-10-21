@@ -69,11 +69,11 @@ impl InboxPane {
             }
             Stage::SigningIn(_) => None,
             Stage::Ready(_) if self.reading.is_some() => self.reading_key(key, &ch, cols, rows),
-            Stage::Ready(_) => self.list_key(key, &ch),
+            Stage::Ready(_) => self.list_key(key, &ch, rows),
         }
     }
 
-    fn list_key(&mut self, key: &Key, ch: &str) -> Option<InboxAction> {
+    fn list_key(&mut self, key: &Key, ch: &str, rows: u16) -> Option<InboxAction> {
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
         if named(NamedKey::ArrowUp) || ch == "k" {
             self.sel = self.sel.saturating_sub(1);
@@ -94,6 +94,8 @@ impl InboxPane {
             self.relist();
         } else if ch == "o" {
             self.browse(None);
+        } else if ch == "L" {
+            self.note = self.flip_density(rows).into();
         } else if named(NamedKey::Escape) && !self.query.is_empty() {
             self.query.clear();
             self.relist();
@@ -163,21 +165,6 @@ impl InboxPane {
                 self.typing.get_or_insert_default().push_str(text.trim())
             }
             _ => {}
-        }
-    }
-}
-
-/// The foot line's key list for where the pane is.
-pub(crate) fn hint(p: &InboxPane) -> String {
-    match (&p.stage, &p.reading) {
-        (Stage::Setup { .. }, _) => "1\u{2013}5 open the console \u{b7} enter sign in \u{b7} esc close".into(),
-        (Stage::SigningIn(_), _) => "esc cancel".into(),
-        (Stage::Ready(_), Some(_)) => {
-            "esc back \u{b7} r reply \u{b7} e archive \u{b7} d delete \u{b7} a ask smith \u{b7} t todo \u{b7} z quotes \u{b7} v text \u{b7} m unread \u{b7} s star \u{b7} o gmail".into()
-        }
-        (Stage::Ready(_), None) if p.busy => "loading\u{2026}".into(),
-        (Stage::Ready(_), None) => {
-            "enter read \u{b7} r reply \u{b7} e archive \u{b7} d delete \u{b7} u undo \u{b7} a ask smith \u{b7} / search \u{b7} m read \u{b7} s star \u{b7} t todo \u{b7} R refresh \u{b7} o gmail".into()
         }
     }
 }

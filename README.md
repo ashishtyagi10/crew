@@ -308,8 +308,11 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
 `/todo`, `/dash`, `/usage`, `/disk`, `/inbox`, `/focus`, `/notify` — then
 `/exit`.
 
-**Your Gmail in a pane: `/inbox`.** The list (an unread dot, a star,
-sender, subject, snippet, age), `/` to search in Gmail's own syntax
+**Your Gmail in a pane: `/inbox`.** The list, two lines a thread when the
+pane is tall enough (who wrote, as Gmail writes it — `Ann, Bo, me` — the
+message count, a star and the age; then the subject and the snippet; unread
+bold, read mail quieter; `L` for one line a thread, kept for the session),
+`/` to search in Gmail's own syntax
 (`from:ann is:unread`), Enter to read a thread (which marks it read, as
 Gmail does) — HTML mail drawn as formatted text: headings, bold, lists,
 tables and links, hidden text dropped, quoted history folded to one row

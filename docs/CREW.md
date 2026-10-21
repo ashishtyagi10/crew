@@ -1653,9 +1653,16 @@ longer aim at.
   priority order, so a short pane keeps the machine and loses the history, and
   everything follows its own clock — the sampler's second, the ledger's five.
 - **`/inbox`** — opens the **inbox** pane: Gmail, to read and to file. Rows are
-  threads, newest first: an unread dot, the sender (with a count when the
-  thread has several messages), the subject, the snippet in a quieter ink
-  and the age (`9m`, `3h`, `Mon`, `Oct 12`). Keys: ↑↓ or j/k move (the last
+  threads, newest first, two lines each when eight fit (one line each
+  otherwise; `L` picks, and the pick holds for the session): the unread dot
+  in the gutter, who wrote as Gmail writes it (`Ann, Bo, me`: each person
+  once, newest last, first names when several), the message count as a
+  chip, a star and the age (`9m`, `3h`, `Mon`, `Oct 12`) at the right; then
+  the subject and the snippet in a quieter ink. Unread threads are bold
+  ink, read ones muted. The selected thread wears the selection wash from
+  edge to edge with an accent bar at its left. As the pane narrows the
+  snippet goes first, then the count, then all but the newest sender, then
+  the age shortens (`3h`, `4d`, `2w`, `5mo`). Keys: ↑↓ or j/k move (the last
   row loads the next page), Enter reads the thread — each message's sender
   and local time over its words, attachments named, control characters
   stripped. An HTML mail is drawn as markdown through the chat renderer:
@@ -1710,7 +1717,7 @@ longer aim at.
   Pressed in the list, each opens the thread and acts when it arrives. The
   thread reaches smith fenced and labelled untrusted, with the instruction
   not to follow it; smith's transcript shows one short line for it, not the
-  mail. `/` searches with Gmail's syntax, `R` re-lists, `z` and `v` fold and swap
+  mail. `/` searches with Gmail's syntax, `R` re-lists, `L` swaps one and two lines a thread, `z` and `v` fold and swap
   in the reader, `o` opens the thread or
   the inbox in Gmail on the signed-in account, Esc clears a search, leaves a
   thread, and closes the pane. `/inbox <search>` opens on a search; `/inbox
