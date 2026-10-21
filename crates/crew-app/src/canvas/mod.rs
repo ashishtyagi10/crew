@@ -65,7 +65,7 @@ impl Crew {
         let found = self
             .canvases
             .iter()
-            .position(|c| c.owns(id) || c.is_doc_window(id));
+            .position(|c| c.owns(id) || c.is_doc_window(id) || c.is_mail_window(id));
         if let Some(i) = found {
             self.active = i;
             // What the quit guard speaks for: Cmd+Q takes the app, so the

@@ -317,7 +317,9 @@ tables and links, hidden text dropped, quoted history folded to one row
 drawn in place and pictures from the web only when you press `i` (fetching
 one tells the sender you opened the mail), and a link opened by Cmd+click or
 `Cmd+E` at its real address (one whose words name another site shows where
-it really goes) — `e` to archive, `d` to delete (to Gmail's Trash, as Gmail's
+it really goes), each attachment a row you Cmd+click to save it to
+`~/Downloads` and open it, and `w` for the thread in a window of its own —
+`e` to archive, `d` to delete (to Gmail's Trash, as Gmail's
 own delete does — nothing is deleted for good), `m` to mark read or unread,
 `s` to star, `u` to undo the last of those, `r` to have agent smith write a
 reply that crew saves as a **Gmail draft** in the thread (never sent: you

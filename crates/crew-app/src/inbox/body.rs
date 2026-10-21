@@ -82,6 +82,29 @@ pub(crate) struct Part {
     pub size: u64,
 }
 
+/// Every part sent as a file (it has a name): what the reader lists under
+/// its message, to be saved and opened.
+pub(crate) fn files(msg: &Value) -> Vec<Part> {
+    fn walk(p: &Value, out: &mut Vec<Part>) {
+        if let Some(name) = p["filename"].as_str().filter(|f| !f.is_empty()) {
+            out.push(Part {
+                cid: None,
+                name: name.to_string(),
+                mime: p["mimeType"].as_str().unwrap_or("").to_ascii_lowercase(),
+                att: p["body"]["attachmentId"].as_str().map(str::to_string),
+                data: p["body"]["data"].as_str().map(str::to_string),
+                size: p["body"]["size"].as_u64().unwrap_or(0),
+            });
+        }
+        for k in p["parts"].as_array().into_iter().flatten() {
+            walk(k, out);
+        }
+    }
+    let mut out = Vec::new();
+    walk(&msg["payload"], &mut out);
+    out
+}
+
 /// Every part that is a picture, or that a `cid:` could name.
 pub(crate) fn pictures(msg: &Value) -> Vec<Part> {
     fn walk(p: &Value, out: &mut Vec<Part>) {

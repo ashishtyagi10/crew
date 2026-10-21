@@ -99,8 +99,30 @@ pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key) {
         lay.lines.push(Vec::new());
         lay.md(sig, k, k.muted, &m.id);
     }
-    let files = (!m.files.is_empty()).then(|| format!("attached: {}", m.files.join(", ")));
-    for line in [rich.note.clone(), files].into_iter().flatten() {
-        lay.quiet(&line, k);
+    if let Some(note) = &rich.note {
+        lay.quiet(note, k);
     }
+    for (n, f) in m.attached.iter().enumerate() {
+        let link = format!("{}{}/{n}", super::save::ATTACHMENT, m.id);
+        lay.lines.push(file_row(&f.name, f.size, &link, k));
+    }
+    if m.attached.is_empty() && !m.files.is_empty() {
+        lay.quiet(&format!("attached: {}", m.files.join(", ")), k);
+    }
+}
+
+/// `↓ report.pdf · 1.2 MB`, the name a link that saves and opens it.
+fn file_row(name: &str, size: u64, link: &str, k: &Key) -> CardLine {
+    let link: std::sync::Arc<str> = link.into();
+    let mut line = row("\u{2193} ", k.muted, false);
+    line.extend(name.chars().map(|c| crate::chatbody::CardCell {
+        link: Some(std::sync::Arc::clone(&link)),
+        ..crate::chatbody::plain(c, k.ink, false)
+    }));
+    line.extend(row(
+        &format!("\u{b7} {}", super::save::size(size)),
+        k.muted,
+        false,
+    ));
+    line
 }

@@ -98,6 +98,9 @@ impl CrewApp {
         match t.kind {
             // `safe_link` is the same guard a Cmd+click goes through: only
             // schemes that are safe to hand an OS opener.
+            Kind::Url if t.text.starts_with(crate::inbox::save::ATTACHMENT) => {
+                self.follow_inbox_link(&t.text)
+            }
             Kind::Url => match crate::openurl::safe_link(&t.text) {
                 Some(url) => {
                     let _ = open::that_detached(url);

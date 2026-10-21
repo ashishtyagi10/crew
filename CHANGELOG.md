@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.36
+
+**`/inbox`: attachments open, and `w` gives a thread its own window.**
+Every file sent with a mail is now a row under it — `↓ report.pdf · 1.2 MB`.
+Cmd+click its name (or press `Cmd+E` and its capital letter) and crew
+saves it to your Downloads folder and opens it in the app your Mac uses
+for it. It is saved under a safe version of its name and never over a
+file already there (`report (1).pdf`). Press `w` while reading a thread to
+open it in a window of its own that you can put on another screen and size
+for reading. Every key works there too, and it always shows the same thing
+as the inbox tile. Esc from the list, or Cmd+W, closes it.
+- **Tests:** an attachment draws as a row whose link saves exactly that
+  file, an attachment from another thread is refused, a finished save opens
+  the file and a failed one says why, a sender's name cannot climb out of
+  Downloads or overwrite a file, sizes read as people say them, `w` asks for
+  a window and the window redraws when a picture lands or the thread closes.
+
 ## 0.27.35
 
 **`/inbox` draws a mail's pictures.**

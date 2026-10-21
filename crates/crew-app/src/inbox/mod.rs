@@ -6,6 +6,7 @@
 //! is a thread of its own (`worker`), and the pane only drains what it says.
 pub(crate) mod age;
 pub(crate) mod api;
+mod asks;
 pub(crate) mod body;
 pub(crate) mod charset;
 pub(crate) mod draft;
@@ -16,7 +17,9 @@ pub(crate) mod grant;
 pub(crate) mod handoff;
 pub(crate) mod html;
 pub(crate) mod keys;
+mod legend;
 pub(crate) mod links;
+pub(crate) mod mailwin;
 pub(crate) mod picfetch;
 mod picpaint;
 pub(crate) mod pics;
@@ -26,6 +29,7 @@ pub(crate) mod reader;
 mod reading;
 mod readmail;
 pub(crate) mod rich;
+pub(crate) mod save;
 pub(crate) mod setup;
 pub(crate) mod signin;
 pub(crate) mod smith;
@@ -124,26 +128,8 @@ impl InboxPane {
         let Stage::Ready(w) = &self.stage else {
             return false;
         };
-        self.busy = !matches!(ask, Ask::Check | Ask::Picture { .. });
+        self.busy = !matches!(ask, Ask::Check | Ask::Picture { .. } | Ask::Save { .. });
         w.tx.send(ask).is_ok()
-    }
-
-    /// The card's legend: `inbox · 12 unread`, or the search shown.
-    pub(crate) fn legend(&self) -> String {
-        match (self.query.trim(), self.unread) {
-            ("", Some(n)) if n > 0 => format!("inbox \u{b7} {n} unread"),
-            ("", _) => "inbox".into(),
-            (q, _) => format!("inbox \u{b7} {q}"),
-        }
-    }
-
-    /// The nav's one-line glance.
-    pub(crate) fn glance(&self) -> String {
-        match (&self.stage, self.unread) {
-            (Stage::Ready(_), Some(n)) => format!("{n} unread"),
-            (Stage::Ready(_), None) => "checking\u{2026}".into(),
-            _ => "not signed in".into(),
-        }
     }
 
     /// Drain what came back; true when the pane should repaint.
