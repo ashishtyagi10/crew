@@ -40,6 +40,10 @@ impl InboxPane {
     /// of the reader's `‹ ›`.
     pub(crate) fn click(&mut self, cols: u16, rows: u16, row: u16, col: u16) -> Clicked {
         if let Some(k) = self.foot_key_at(cols, rows, row, col) {
+            if k == super::footkeys::SEND {
+                self.send_reply();
+                return Clicked::Done;
+            }
             return match super::footkeys::key_of(k).map(|key| self.press(&key, cols, rows)) {
                 Some(Some(InboxAction::Redraw) | None) => Clicked::Done,
                 Some(Some(act)) => Clicked::Then(act),

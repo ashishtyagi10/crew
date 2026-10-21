@@ -13,7 +13,7 @@ impl InboxPane {
         // The thread's own columns: the right half of a wide pane (`split`).
         let (at, width) = self.reader_box(cols);
         let laid = r.laid(reader::text_width(width));
-        let room = usize::from(self.body_rows(cols, rows));
+        let room = usize::from(self.reader_rows(cols, rows));
         let mut out = Vec::new();
         for (row, line) in laid.lines.iter().skip(r.scroll).take(room).enumerate() {
             let mut col: u16 = at + 1;
@@ -43,7 +43,7 @@ impl InboxPane {
         let r = self.reading.as_ref()?;
         let (at, width) = self.reader_box(cols);
         let col = col.checked_sub(at)?;
-        if row >= self.body_rows(cols, rows) || col == 0 {
+        if row >= self.reader_rows(cols, rows) || col == 0 {
             return None;
         }
         let laid = r.laid(reader::text_width(width));

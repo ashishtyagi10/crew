@@ -25,7 +25,10 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
     ("z", "Undo the last archive, delete, read or star"),
     ("m", "Mark read or unread"),
     ("s", "Star or unstar"),
-    ("r", "Agent smith writes a reply, saved as a Gmail draft"),
+    (
+        "r",
+        "Reply in a box under the mail: \u{2318}/Ctrl+Enter sends, Tab has agent smith draft it, Esc closes",
+    ),
     ("a", "Ask agent smith about the thread"),
     ("t", "A /todo row, due on the deadline the mail states"),
     ("/", "Search with Gmail's own syntax (from:ann is:unread)"),

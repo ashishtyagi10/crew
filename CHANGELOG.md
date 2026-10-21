@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.55
+
+**`/inbox`: reply where you read.** Fifth round of the mail reader loop.
+- **`r` opens a reply box** under the open mail, addressed to whoever
+  wrote last, on the thread's subject. Type your reply there: Enter starts a
+  new line, the arrow keys move, and a paste lands at the caret.
+- **Cmd+Enter sends it** (Ctrl+Enter off a Mac, or click the send keycap),
+  in the same thread, through Gmail. The box stays until Gmail says the mail
+  went, so nothing you wrote is lost if sending fails; then the thread opens
+  again with your reply in it.
+- **Esc closes the box**, twice if it holds words.
+- **Tab asks agent smith** to write a draft into the box, for you to change
+  before you send it.
+- **Tests:** the box takes its own keys, sends in the thread, keeps the words
+  through a failed send, and takes smith's draft and a paste at the caret.
+
 ## 0.27.54
 
 **`/inbox`: a mail's buttons look like buttons, and a click opens a link.**

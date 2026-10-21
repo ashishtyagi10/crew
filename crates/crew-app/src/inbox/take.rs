@@ -140,6 +140,15 @@ impl InboxPane {
                     "draft saved in Gmail: \u{201c}{subject}\u{201d} \u{2014} review and send it there (o)"
                 );
             }
+            Got::Sent(to) => {
+                self.compose = None;
+                let who = super::wire::sender_name(&to);
+                self.note = format!("sent to {who}");
+                // The thread again, the reply in it.
+                if let Some(id) = self.reading.as_ref().map(|r| r.thread.id.clone()) {
+                    self.ask(Ask::Open(id));
+                }
+            }
             Got::Unsubscribed(who) => {
                 self.note = format!("unsubscribed from {who} \u{b7} e archives this mail");
             }
@@ -150,6 +159,10 @@ impl InboxPane {
             }
             Got::Failed(e) => {
                 self.busy = false;
+                // A reply that did not go stays, words and all.
+                if let Some(c) = self.compose.as_mut() {
+                    c.sending = false;
+                }
                 // A grant made for the read-only scope (v0.27.29) cannot file
                 // or draft, and Google adds no scope to an installed app's
                 // grant without a fresh consent.

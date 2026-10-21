@@ -12,7 +12,10 @@ use super::{InboxPane, Reading};
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum Then {
     Ask,
+    /// Agent smith writes a reply: into the box when one is open.
     Draft,
+    /// `r`: the reply box (`compose`).
+    Reply,
     Todo,
 }
 
@@ -37,7 +40,7 @@ impl InboxPane {
     pub(crate) fn handoff(&mut self, ch: &str) -> bool {
         let then = match ch {
             "a" => Then::Ask,
-            "r" => Then::Draft,
+            "r" => Then::Reply,
             "t" => Then::Todo,
             _ => return false,
         };
@@ -84,6 +87,7 @@ impl InboxPane {
                     "agent smith is writing a reply \u{2014} it lands as a Gmail draft, never sent"
                         .into();
             }
+            Then::Reply => self.note = self.open_compose().into(),
             Then::Todo => self.to_todo(),
         }
     }
@@ -93,6 +97,11 @@ impl InboxPane {
     pub(crate) fn drafted_by_smith(&mut self, body: Option<String>) {
         let Some(w) = self.waiting.take() else { return };
         match body {
+            // Into the box, to be changed and sent by hand.
+            Some(b) if self.compose.is_some() => {
+                self.type_in(&b);
+                self.note = "agent smith drafted it \u{b7} change what you like, then send".into();
+            }
             Some(b) => {
                 let raw = draft::raw(&w.answer, &b);
                 let ask = Ask::Draft {

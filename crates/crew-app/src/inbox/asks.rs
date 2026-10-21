@@ -43,6 +43,12 @@ pub(crate) enum Ask {
         data: Option<String>,
         name: String,
     },
+    /// A reply written in the box (`compose`), to `to`: sent in the thread.
+    Send {
+        thread_id: String,
+        raw: String,
+        to: String,
+    },
     /// `u`, confirmed: unsubscribe from `who`.
     Unsubscribe {
         how: super::unsub::How,
@@ -68,6 +74,8 @@ pub(crate) enum Got {
     Drafted(String),
     /// Unsubscribed from this sender.
     Unsubscribed(String),
+    /// A reply went, to this address.
+    Sent(String),
     /// A picture, decoded, or `None` when there is nothing to draw.
     Picture(String, Option<crate::viewpane::bitmap::Bitmap>),
     /// An attachment written to disk, or why not.

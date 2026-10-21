@@ -1,6 +1,6 @@
 # Loop — the mail reader, five rounds
 
-**Status: RUNNING.** Set 2026-10-21 by the user: *"write a loop and execute it 5 time to improve
+**Status: DONE (v0.27.51–55).** Set 2026-10-21 by the user: *"write a loop and execute it 5 time to improve
 the UI of email reading pane / detail pane - improve everything, how image render, how font
 render and how action button appear, navigation should be simple and improved"*.
 
@@ -114,4 +114,48 @@ Rules that hold every round:
   and opens it). The pointer is a hand over every one. Cmd+click still works.
 - **Tests:** a padded code link is a filled button whose words read on it, and plain inline
   code is not; a plain click on a link and on a button opens each one's address.
+
+**Round 5 (v0.27.55): reply where you read.** The plan's fifth round was polish. The user
+asked mid-round: *"'r' should open a reply box rather than agent typing the response in the
+smith pane, we should have reply functionality within email detail panel"*, so this round
+is the reply box.
+
+- **`r` opens a reply box** under the open mail (`crates/crew-app/src/inbox/compose.rs`,
+  drawn by `composedraw.rs`).
+  - It is a crew card with `reply to Ann Lee` on its edge, addressed as the old smith draft
+    was: To the last other sender (their `Reply-To`), `Re:` the subject, threaded with
+    `In-Reply-To` and `References`.
+  - The mail above gives it the rows it needs, three of text at least and up to half the
+    pane (`reader_rows`, read by drawing, pictures, links and scrolling).
+  - While it is open every key is the box's: letters, Enter for a new line, the arrows,
+    Home, End, Backspace, Delete, and a paste. Off a Mac the Ctrl keys a typed line keeps
+    stay with it.
+- **Sending.** Cmd+Enter (Ctrl+Enter off a Mac, or a click on the `⌘↩ send` keycap) sends it
+  through Gmail's `messages.send` in the thread (`gmail.modify` covers it). The box shows
+  `sending to …` and stays until Gmail says the mail went, so a failed send keeps every word.
+  Then the thread opens again with the reply in it.
+- **Closing.** Esc closes the box: at once when it is empty, and after a second Esc when it
+  holds words.
+- **agent smith, inside the box.** Tab asks smith to write a draft, which lands in the box for
+  you to change before sending. Asked for with no box open, as before, its draft becomes a
+  Gmail draft.
+- **The foot** shows only what works while you write: send, close, and smith.
+- **Tests:** `r` opens a box whose keys are its own (`d` is a letter there); Esc twice lets the
+  words go; an empty reply is not sent; a reply is sent in its thread, kept through a failure,
+  and closed once Gmail says it went; Tab's draft and a paste land at the caret.
+
+## The loop, closed
+
+Five releases, v0.27.51 to v0.27.55:
+
+- **Navigation:** keycaps you can click, `‹ 3 of 25 ›`, `n` and `p`, folded threads.
+- **Type:** a reading measure.
+- **Pictures:** real textures.
+- **Actions:** filled buttons, links that open on a plain click, and a reply box.
+
+Left for a later round:
+
+- The viewer, chat and terminal pictures could take the texture path too.
+- The reply box has no Cc, no forward, and no undo for a sent mail (Gmail's API has no
+  unsend).
 

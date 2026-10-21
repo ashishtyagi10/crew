@@ -13,7 +13,7 @@ impl InboxPane {
     /// hairline of a split pane, the boxes of pictures still coming.
     pub fn art(&self, cols: u16, rows: u16, aspect: f32) -> (Vec<CellView>, Vec<Paint>) {
         let cells = self.cells(cols, rows);
-        let rows = self.body_rows(cols, rows);
+        let rows = self.reader_rows(cols, rows);
         let r = match (&self.stage, &self.reading) {
             (Stage::Ready(_), Some(r)) => r,
             (Stage::Ready(_), None) => return (cells, self.list_paint(cols, rows, aspect)),
@@ -47,7 +47,7 @@ impl InboxPane {
         let (Stage::Ready(_), Some(r)) = (&self.stage, &self.reading) else {
             return Vec::new();
         };
-        let rows = self.body_rows(cols, rows);
+        let rows = self.reader_rows(cols, rows);
         let (at, width) = self.reader_box(cols);
         let width = reader::text_width(width);
         let clip = [f32::from(at), 0.0, f32::from(cols), f32::from(rows)];

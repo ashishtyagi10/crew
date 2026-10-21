@@ -69,3 +69,25 @@ fn inbox_split_shot_wide_and_moving() {
     });
     both("moving", 760, 560, &moving);
 }
+
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn inbox_split_shot_reply_box() {
+    let mut p = ready();
+    p.sel = 1;
+    p.reading = Some(Reading {
+        mails: Some(vec![Mail {
+            from: "Bob Park <bo@y.org>".into(),
+            date: "Tue, 20 Oct 2026 09:02:00 -0400".into(),
+            rich: crate::inbox::rich::Rich::of_plain(
+                "Hi Ann,\n\nFriday works. I'll bring the Q4 numbers and the forecast sheet.\n\nBob",
+                None,
+            ),
+            ..Mail::default()
+        }]),
+        ..Reading::new(rows()[1].clone())
+    });
+    p.press(&winit::keyboard::Key::Character("r".into()), 90, 30);
+    p.type_in("Thanks Bob, Friday at 10 then.\nI'll book the room.");
+    both("reply", 760, 560, &p);
+}

@@ -65,6 +65,20 @@ impl CrewApp {
         moved
     }
 
+    /// Send the reply being written in the focused inbox pane, if one is.
+    pub(crate) fn inbox_send(&mut self) -> bool {
+        let Some(pane) = self.panes.get_mut(self.focused) else {
+            return false;
+        };
+        match &mut pane.content {
+            PaneContent::Inbox(p) if p.compose.is_some() => {
+                p.send_reply();
+                true
+            }
+            _ => false,
+        }
+    }
+
     /// Whether pane `i` has a thread under the pointer: the hand.
     pub(crate) fn inbox_hover_on(&self, i: usize) -> bool {
         self.inbox_cell_at_cursor().is_some_and(|(at, row, col)| {

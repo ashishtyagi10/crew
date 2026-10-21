@@ -20,7 +20,7 @@ impl CrewApp {
                     | PaneContent::Todo(_)
                     | PaneContent::Settings(_)
                     | PaneContent::Far(_)
-            )
+            ) || matches!(&p.content, PaneContent::Inbox(i) if i.composing())
         };
         self.input.focused || self.panes.get(self.focused).is_some_and(typed)
     }
