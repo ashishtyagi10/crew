@@ -5,11 +5,11 @@
 //! `CREW_SHOT_DIR=<dir> cargo test -p crew-app --bin crew inbox_shot -- --ignored`
 use std::sync::mpsc;
 
-use crate::chartshot_tests::shot;
 use crate::inbox::api::Mail;
 use crate::inbox::grant::Client;
 use crate::inbox::worker::Worker;
 use crate::inbox::{InboxPane, Reading, Stage};
+use crate::shotgpu_tests::shot_pics;
 
 pub(crate) use crate::inboxrows_tests::rows;
 
@@ -30,8 +30,10 @@ pub(crate) fn take(name: &str, p: &InboxPane) {
         crew_theme::set_theme(id);
         crate::palette::set_accent(crew_theme::theme().accent_default);
         let tag = format!("inbox-{name}-{}", format!("{id:?}").to_lowercase());
-        let px = shot(&tag, &p.legend(), |cols, rows, aspect| {
-            p.art(cols, rows, aspect)
+        let tag = format!("chart-{tag}");
+        let px = shot_pics(&tag, 760, 560, 13.0, &p.legend(), |c, r, a| {
+            let (cells, paint) = p.art(c, r, a);
+            (cells, paint, p.pictures(c, r, a))
         });
         if px.is_none() {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");

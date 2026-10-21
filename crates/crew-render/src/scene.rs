@@ -77,6 +77,9 @@ pub struct PaneScene {
     /// the frame's own set this — content split off the far edge would read
     /// as a gap in the text.
     pub stretch: bool,
+    /// Pictures, drawn as textures over the cell backgrounds and the paint,
+    /// under the text (`picture`). The base pass only.
+    pub pictures: Vec<crate::picture::Picture>,
     /// Overlay popups (command palette, help) drawn on top of everything. Their
     /// backgrounds and text are rendered in a second pass *after* base panes, so
     /// nothing behind them can bleed through — they are fully opaque.
@@ -100,6 +103,7 @@ impl Default for PaneScene {
             lift: 0.0,
             glint: -1.0,
             paint: Vec::new(),
+            pictures: Vec::new(),
             stretch: false,
             overlay: false,
         }

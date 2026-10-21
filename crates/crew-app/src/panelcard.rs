@@ -63,6 +63,7 @@ pub fn push_ghost(
         scan: -1.0,
         lift: 0.0,
         glint: -1.0,
+        pictures: Vec::new(),
         stretch: true,
         overlay: false,
         paint: Vec::new(),
@@ -137,6 +138,7 @@ pub(crate) fn push_framed(
         scan: -1.0,
         lift: 0.0,
         glint: -1.0,
+        pictures: Vec::new(),
         stretch: false,
         overlay: false,
     });
@@ -157,6 +159,7 @@ pub(crate) fn push_framed(
         glint: -1.0,
         // The frame fills its rect to the pixel, so the nav's cards keep the
         // same gutter as every other card.
+        pictures: Vec::new(),
         stretch: true,
         overlay: false,
         paint: Vec::new(),

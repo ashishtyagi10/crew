@@ -34,6 +34,8 @@ pub(crate) enum Pic {
 
 pub(crate) struct Pics {
     map: HashMap<String, Pic>,
+    /// Each landed picture's pixels, as the renderer draws them (`picpaint`).
+    tex: HashMap<String, Arc<crew_render::Pixels>>,
     /// Bumped by every picture that lands, so a second view knows to redraw.
     pub(crate) rev: u64,
     pub(crate) tx: Sender<(String, Option<Bitmap>)>,
@@ -45,6 +47,7 @@ impl Default for Pics {
         let (tx, rx) = mpsc::channel();
         Self {
             map: HashMap::new(),
+            tex: HashMap::new(),
             rev: 0,
             tx,
             rx,
@@ -67,7 +70,17 @@ impl Pics {
         self.map.get(key)
     }
 
+    /// A landed picture's pixels, for the renderer.
+    pub(crate) fn pixels(&self, key: &str) -> Option<Arc<crew_render::Pixels>> {
+        self.tex.get(key).cloned()
+    }
+
     pub(crate) fn set(&mut self, key: String, bm: Option<Bitmap>) {
+        if let Some(b) = &bm {
+            let rgba: Vec<u8> = b.px.iter().flatten().copied().collect();
+            let px = crew_render::Pixels::new(b.w, b.h, rgba);
+            self.tex.insert(key.clone(), Arc::new(px));
+        }
         let pic = bm.map_or(Pic::Failed, |b| Pic::Ready(Arc::new(b)));
         self.map.insert(key, pic);
         self.rev += 1;
@@ -99,6 +112,7 @@ impl Pics {
 
     pub(crate) fn clear(&mut self) {
         self.map.clear();
+        self.tex.clear();
     }
 }
 

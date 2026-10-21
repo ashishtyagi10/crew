@@ -85,6 +85,9 @@ pub struct CellGrid {
     overlay: SceneSlots,
     quad_layer: QuadLayer,
     overlay_quad_layer: QuadLayer,
+    /// Pictures, as textures (`picture`), and this frame's, placed.
+    image_layer: crate::images::ImageLayer,
+    pictures: Vec<crate::picture::Placed>,
     /// Theme-switch veil: one full-window quad drawn over everything, fading
     /// out as the new theme develops. `None` (the resting state) draws nothing.
     round_border_layer: RoundBorderLayer,
@@ -160,6 +163,7 @@ impl CellGrid {
         let line_height = cell_h;
         let quad_layer = QuadLayer::new(device, format);
         let overlay_quad_layer = QuadLayer::new(device, format);
+        let image_layer = crate::images::ImageLayer::new(device, format);
         let round_border_layer = RoundBorderLayer::new(device, format);
         let overlay_round_border_layer = RoundBorderLayer::new(device, format);
         let glass_layer = GlassLayer::new(device, format);
@@ -176,6 +180,8 @@ impl CellGrid {
             overlay: SceneSlots::default(),
             quad_layer,
             overlay_quad_layer,
+            image_layer,
+            pictures: Vec::new(),
             round_border_layer,
             overlay_round_border_layer,
             glass_layer,
@@ -373,6 +379,12 @@ impl CellGrid {
             );
         self.quad_layer.set_quads(device, &quads);
         self.overlay_quad_layer.set_quads(device, &oquads);
+        self.pictures = panes
+            .iter()
+            .filter(|p| !p.overlay)
+            .flat_map(|p| p.pictures.iter().map(move |pic| (p, pic)))
+            .filter_map(|(p, pic)| crate::picture::place(pic, p.x, p.y, cw, ch))
+            .collect();
         self.round_border_layer.set_borders(device, &borders);
         self.overlay_round_border_layer
             .set_borders(device, &oborders);
@@ -413,6 +425,8 @@ impl CellGrid {
         let h = height as f32;
         self.quad_layer.set_viewport(queue, w, h);
         self.overlay_quad_layer.set_viewport(queue, w, h);
+        self.image_layer
+            .prepare(device, queue, &self.pictures, (w, h));
         self.round_border_layer.set_viewport(queue, w, h);
         self.overlay_round_border_layer.set_viewport(queue, w, h);
         self.glass_layer.set_view(queue, w, h, self.glass_light);
@@ -452,6 +466,7 @@ impl CellGrid {
     pub fn draw<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>) {
         self.glass_layer.draw(pass);
         self.quad_layer.draw(pass);
+        self.image_layer.draw(pass);
         self.round_border_layer.draw(pass);
         self.renderer
             .render(&self.atlas, &self.viewport, pass)

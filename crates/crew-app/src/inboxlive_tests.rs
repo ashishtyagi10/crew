@@ -172,8 +172,9 @@ fn inbox_live_shot() {
                 crate::palette::set_accent(crew_theme::theme().accent_default);
                 let tag = format!("live-{id}-{depth}-{}", format!("{theme:?}").to_lowercase());
                 let legend = p.legend();
-                crate::shotgpu_tests::shot_at(&tag, 760, 900, 13.0, &legend, |c, r, a| {
-                    p.art(c, r, a)
+                crate::shotgpu_tests::shot_pics(&tag, 760, 900, 13.0, &legend, |c, r, a| {
+                    let (cells, paint) = p.art(c, r, a);
+                    (cells, paint, p.pictures(c, r, a))
                 });
             }
         }

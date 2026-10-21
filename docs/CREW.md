@@ -30,7 +30,10 @@ successor to this repo's original terminal file-manager project; the crates unde
   cells is left blank in the snapped buffer, and `scriptrun`/`scriptplace`
   shape each word whole at its natural advance and lay a phrase's words
   together on the row's baseline, so `भारत` is one word and the grid, the
-  cursor and the selection stay where the widths put them.
+  cursor and the selection stay where the widths put them. A pane can also
+  hand over pictures (`crew_render::Picture`), which the renderer draws as
+  textures at the display's resolution (`images`), over the cells'
+  backgrounds and under their text; the mail reader's pictures go this way.
 - **Terminal model** — `alacritty_terminal` + `portable-pty` (`crates/smith-term`).
 - **In-pane UI** — `ratatui` widgets are laid out into a `Buffer` and converted to
   GPU cells (the settings form, command palette, and help overlay use this).

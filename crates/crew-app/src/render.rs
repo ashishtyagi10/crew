@@ -204,6 +204,7 @@ impl CrewApp {
             glint: -1.0,
             // Its frame is its last column and row: it fills the rect, so
             // the seam above it is the gutter and nothing more.
+            pictures: Vec::new(),
             stretch: true,
             overlay: false,
             paint: Vec::new(),
@@ -265,6 +266,7 @@ impl CrewApp {
                 scan: -1.0,
                 lift: crate::popupplace::FLOAT,
                 glint: -1.0,
+                pictures: Vec::new(),
                 stretch: false,
                 overlay: true,
                 paint: Vec::new(),
@@ -306,6 +308,7 @@ impl CrewApp {
                 scan: -1.0,
                 lift: crate::popupplace::FLOAT,
                 glint: -1.0,
+                pictures: Vec::new(),
                 stretch: false,
                 overlay: true,
                 paint: Vec::new(),

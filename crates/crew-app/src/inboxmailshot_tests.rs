@@ -101,9 +101,11 @@ fn inbox_mail_shot_corpus() {
                 crate::palette::set_accent(crew_theme::theme().accent_default);
                 let tag = format!("mail-{name}-{depth}-{}", format!("{id:?}").to_lowercase());
                 let legend = p.legend();
-                let px = crate::shotgpu_tests::shot_at(&tag, 760, 900, 13.0, &legend, |c, r, a| {
-                    p.art(c, r, a)
-                });
+                let px =
+                    crate::shotgpu_tests::shot_pics(&tag, 760, 900, 13.0, &legend, |c, r, a| {
+                        let (cells, paint) = p.art(c, r, a);
+                        (cells, paint, p.pictures(c, r, a))
+                    });
                 if px.is_none() {
                     eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
                     return;
