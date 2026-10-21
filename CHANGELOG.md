@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.57
+
+**`/inbox`: Bcc, and files in the reply box.**
+- **A `bcc` line** sits under `cc`. Whoever is on it gets the mail and no
+  one else sees them.
+- **Attach files**: under the words is a row of files. Press ↓ to reach it
+  and Enter on `+ attach` (or click it) to open your system's file chooser,
+  or drop files on the pane while the box is open.
+- **See what is attached**: each file shows its name and size. Click it, or
+  Enter on it, to open it in its own app; click its `✕`, or press Delete,
+  to take it off.
+- **Replies with files stay in their thread**, and a forward can carry your
+  files as well as its own. Past Gmail's 25 MB the box says so instead of
+  adding the file.
+- **Tests:** the bcc line goes out, files land, open, come off and are
+  refused when too big, the chooser's answer lands on the row, and a reply
+  with a file goes up in its thread to a stub Gmail.
+
 ## 0.27.56
 
 **`/inbox`: Cc, reply all and forward in the reply box.**

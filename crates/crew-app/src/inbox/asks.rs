@@ -49,14 +49,8 @@ pub(crate) enum Ask {
         raw: String,
         to: String,
     },
-    /// `f`: the mail `of` forwarded under `head` (To, Cc, Subject) with
-    /// `note` on top, to `to`: its pictures and files fetched as it goes.
-    Forward {
-        head: Vec<String>,
-        note: String,
-        of: Box<super::forward::Forwarded>,
-        to: String,
-    },
+    /// A forward, or a reply with files: built and sent by the worker.
+    Mail(Box<super::outgoing::Outgoing>),
     /// `u`, confirmed: unsubscribe from `who`.
     Unsubscribe {
         how: super::unsub::How,

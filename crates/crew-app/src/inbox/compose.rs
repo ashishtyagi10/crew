@@ -3,14 +3,18 @@
 //! than agent typing the response in the smith pane"). To the last person
 //! who wrote, on the thread's subject, threaded as Gmail threads it. `R`
 //! replies to everyone on the mail, `f` forwards it (the user: "add cc and
-//! forward to the reply box"): the box has a `to` and a `cc` line to change
-//! (`composekeys` moves between them). Cmd+Enter (Ctrl+Enter off a Mac)
-//! sends; Esc closes it, a second Esc when there are words.
+//! forward to the reply box", then "add bcc and an attach-a-file option"):
+//! the box has `to`, `cc` and `bcc` lines to change and a row of files
+//! (`composekeys` moves between them, `attach` fills the row). Cmd+Enter
+//! (Ctrl+Enter off a Mac) sends (`composesend`); Esc closes it, a second Esc
+//! when there are words.
+use std::sync::mpsc::Receiver;
+
+use super::attach::Attached;
 use super::draft::{self, Answer};
 use super::field::Field;
 use super::forward::{self, Forwarded};
-use super::worker::Ask;
-use super::{addr, InboxPane};
+use super::InboxPane;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum Kind {
@@ -20,12 +24,14 @@ pub(crate) enum Kind {
     Forward,
 }
 
-/// Where the caret is: a line of addresses, or the words.
+/// Where the caret is: a line of addresses, the words, or the files.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum On {
     To,
     Cc,
+    Bcc,
     Body,
+    Files,
 }
 
 pub(crate) struct Compose {
@@ -35,8 +41,15 @@ pub(crate) struct Compose {
     pub answer: Answer,
     pub to: Field,
     pub cc: Field,
+    pub bcc: Field,
     pub body: Field,
     pub on: On,
+    /// Files of yours sent with it, and the one chosen on their row
+    /// (`files.len()`: the row's `+ attach`).
+    pub files: Vec<Attached>,
+    pub pick: usize,
+    /// The system's file chooser, open until it answers.
+    pub picking: Option<Receiver<Result<Vec<std::path::PathBuf>, String>>>,
     /// The mail a forward carries.
     pub forward: Option<Box<Forwarded>>,
     /// Esc pressed once over words: a second discards them.
@@ -46,11 +59,14 @@ pub(crate) struct Compose {
 }
 
 impl Compose {
+    /// The place being typed in (the row of files types nothing, and
+    /// `composekeys` never edits it).
     pub(crate) fn field(&mut self) -> &mut Field {
         match self.on {
             On::To => &mut self.to,
             On::Cc => &mut self.cc,
-            On::Body => &mut self.body,
+            On::Bcc => &mut self.bcc,
+            On::Body | On::Files => &mut self.body,
         }
     }
 
@@ -59,6 +75,8 @@ impl Compose {
         self.body.text.trim().is_empty()
             && self.to.text == self.answer.to
             && self.cc.text == self.answer.cc
+            && self.bcc.text.trim().is_empty()
+            && self.files.is_empty()
     }
 }
 
@@ -105,69 +123,18 @@ impl InboxPane {
             kind,
             to: Field::with(&answer.to),
             cc: Field::with(&answer.cc),
+            bcc: Field::default(),
             answer,
             body: Field::default(),
             on,
+            files: Vec::new(),
+            pick: 0,
+            picking: None,
             forward,
             armed: false,
             sending: false,
         });
         ""
-    }
-
-    /// Cmd+Enter: to Gmail, a reply in its thread, a forward on its own.
-    /// The box stays until Gmail says it went, so words that failed to go
-    /// are still there.
-    pub(crate) fn send_reply(&mut self) {
-        let Some(c) = self.compose.as_mut().filter(|c| !c.sending) else {
-            return;
-        };
-        let refused = if addr::split(&c.to.text).is_empty() {
-            c.on = On::To;
-            Some("who is it to? write an address on the to line".to_string())
-        } else if let Some((bad, on)) = addr::first_bad(&c.to.text)
-            .map(|b| (b, On::To))
-            .or_else(|| addr::first_bad(&c.cc.text).map(|b| (b, On::Cc)))
-        {
-            c.on = on;
-            Some(format!("\u{201c}{bad}\u{201d} is not an address"))
-        } else if c.body.text.trim().is_empty() && c.forward.is_none() {
-            Some("write something first".to_string())
-        } else {
-            match c.forward.as_ref().map(|f| f.size()) {
-                Some(n) if n > forward::MOST => Some(format!(
-                    "its files come to {} MB, more than the 25 MB Gmail sends \u{2014} forward it from Gmail (o)",
-                    n.div_ceil(1024 * 1024)
-                )),
-                _ => None,
-            }
-        };
-        if let Some(why) = refused {
-            self.note = why;
-            return;
-        }
-        c.sending = true;
-        let answer = Answer {
-            to: addr::split(&c.to.text).join(", "),
-            cc: addr::split(&c.cc.text).join(", "),
-            ..c.answer.clone()
-        };
-        let to = answer.to.clone();
-        self.note = format!("sending to {}\u{2026}", addr::names(&to));
-        let ask = match c.forward.clone() {
-            Some(of) => Ask::Forward {
-                head: draft::head(&answer),
-                note: c.body.text.clone(),
-                of,
-                to,
-            },
-            None => Ask::Send {
-                thread_id: answer.thread_id.clone(),
-                raw: draft::raw(&answer, &c.body.text),
-                to,
-            },
-        };
-        self.ask(ask);
     }
 }
 

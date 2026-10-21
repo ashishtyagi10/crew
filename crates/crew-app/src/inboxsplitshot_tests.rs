@@ -128,13 +128,20 @@ fn inbox_split_shot_cc_and_forward() {
     read(&mut p);
     key(&mut p, "R");
     p.type_in("Friday at 10 suits everyone.");
-    p.press(
-        &winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowUp),
-        90,
-        30,
-    );
-    p.type_in(", eve@y.org");
-    both("reply-all", 760, 560, &p);
+    // Up to bcc; two files of yours on the row, the caret on the second.
+    let up = winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowUp);
+    p.press(&up, 90, 30);
+    p.type_in("boss@y.org");
+    let dir = tempfile::tempdir().unwrap();
+    for (name, len) in [("agenda.pdf", 84_000), ("room plan.png", 1_300_000)] {
+        let f = std::fs::File::create(dir.path().join(name)).unwrap();
+        f.set_len(len).unwrap();
+        p.attach(&dir.path().join(name));
+    }
+    if let Some(c) = p.compose.as_mut() {
+        (c.on, c.pick) = (crate::inbox::compose::On::Files, 1);
+    }
+    both("reply-all", 760, 600, &p);
     read(&mut p);
     key(&mut p, "f");
     p.type_in("Kim <kim@z.org>");

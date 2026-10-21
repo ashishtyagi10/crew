@@ -101,9 +101,13 @@ impl State {
                     .send(&thread_id, &raw)
                     .map_or_else(fail, |()| Got::Sent(to))]
             }
-            Ask::Forward { head, note, of, to } => {
-                vec![super::forwardmail::send(g, &head, &note, &of)
-                    .map_or_else(fail, |()| Got::Forwarded(to))]
+            Ask::Mail(o) => {
+                let went = super::outgoing::send(g, &o);
+                let to = o.to.clone();
+                vec![went.map_or_else(fail, |()| match o.forward.is_some() {
+                    true => Got::Forwarded(to),
+                    false => Got::Sent(to),
+                })]
             }
             Ask::Unsubscribe { how, who } => {
                 vec![g

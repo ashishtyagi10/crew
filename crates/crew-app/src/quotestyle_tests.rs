@@ -7,12 +7,13 @@
 
 /// Files where a straight-quoted value is syntax, not prose: an `@"path"`
 /// mention, an HTTP header, a line injected into an agent's prompt, a MIME
-/// parameter (`boundary="…"`, `filename="…"`).
+/// parameter (`boundary="…"`, `filename="…"`), an AppleScript string.
 const SYNTAX: &[&str] = &[
     "filedrop.rs",
     "voice/openai.rs",
     "askroute.rs",
     "inbox/mime.rs",
+    "inbox/pick.rs",
 ];
 
 fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {

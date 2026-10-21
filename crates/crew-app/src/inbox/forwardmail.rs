@@ -1,6 +1,6 @@
-//! A forward built and sent (`forward`): your note, Gmail's rule and the
-//! forwarded mail's headers, then the mail as it came, in its HTML and its
-//! plain words, its `cid:` pictures beside the HTML and its files after.
+//! A forward built (`forward`): your note, Gmail's rule and the forwarded
+//! mail's headers, then the mail as it came, in its HTML and its plain
+//! words, its `cid:` pictures beside the HTML, its files after, then yours.
 use super::api::Gmail;
 use super::forward::Forwarded;
 use super::mime::Node;
@@ -8,8 +8,9 @@ use super::mime::Node;
 const RULE: &str = "---------- Forwarded message ---------";
 
 /// The whole forward, its files' and pictures' bytes in hand (`bytes`, in
-/// the order of `of.inline` then `of.files`): the tree to send.
-pub(crate) fn tree(note: &str, of: &Forwarded, mut bytes: Vec<Vec<u8>>) -> Node {
+/// the order of `of.inline` then `of.files`), and `mine`, the files you
+/// attached: the tree to send.
+pub(crate) fn tree(note: &str, of: &Forwarded, mut bytes: Vec<Vec<u8>>, mine: Vec<Node>) -> Node {
     let mut plain = format!("{}\n\n{RULE}\n", note.trim_end());
     for (k, v) in of.lines() {
         plain.push_str(&format!("{k}: {v}\n"));
@@ -49,17 +50,13 @@ pub(crate) fn tree(note: &str, of: &Forwarded, mut bytes: Vec<Vec<u8>>) -> Node 
     for (p, b) in of.files.iter().zip(files) {
         mixed.push(Node::file(&p.mime, &p.name, b));
     }
+    mixed.extend(mine);
     Node::multi("mixed", mixed)
 }
 
-/// The worker's half: each picture and file fetched, the forward built and
-/// sent through Gmail's upload, which takes a mail of up to 35 MB.
-pub(crate) fn send(
-    g: &mut Gmail,
-    head: &[String],
-    note: &str,
-    of: &Forwarded,
-) -> Result<(), String> {
+/// Each picture and file the forwarded mail carries, fetched from Gmail in
+/// the order [`tree`] takes them.
+pub(crate) fn fetch(g: &mut Gmail, of: &Forwarded) -> Result<Vec<Vec<u8>>, String> {
     let mut bytes = Vec::new();
     for p in of.inline.iter().chain(&of.files) {
         bytes.push(
@@ -70,8 +67,7 @@ pub(crate) fn send(
             },
         );
     }
-    let m = super::mime::message(head, &tree(note, of, bytes));
-    g.upload_send(m.into_bytes())
+    Ok(bytes)
 }
 
 /// The mail's own HTML, inside a `<div>`: what its `<body>` holds, after the
@@ -109,4 +105,4 @@ fn esc(s: &str) -> String {
 
 #[cfg(test)]
 #[path = "forwardmail_tests.rs"]
-mod tests;
+pub(crate) mod tests;
