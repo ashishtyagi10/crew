@@ -97,7 +97,7 @@ impl State {
                     .map_or_else(fail, |()| Got::Drafted(subject))]
             }
             Ask::Check => match g.profile().map(|(_, h)| h) {
-                Ok(h) if h == self.history => vec![],
+                Ok(h) if h == self.history => vec![Got::Checked],
                 Ok(_) => self.list(g, None),
                 Err(e) => vec![fail(e)],
             },

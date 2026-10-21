@@ -311,7 +311,9 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
 **Your Gmail in a pane: `/inbox`.** The list, two lines a thread when the
 pane is tall enough (who wrote, as Gmail writes it — `Ann, Bo, me` — the
 message count, a star and the age; then the subject and the snippet; unread
-bold, read mail quieter; `L` for one line a thread, kept for the session),
+bold, read mail quieter; `L` for one line a thread, kept for the session;
+grouped under `today`, `yesterday`, the weekday, `last week` and on back;
+`?` lists every key),
 `/` to search in Gmail's own syntax
 (`from:ann is:unread`), Enter to read a thread (which marks it read, as
 Gmail does) — HTML mail drawn as formatted text: headings, bold, lists,

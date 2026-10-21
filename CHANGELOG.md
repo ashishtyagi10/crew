@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.38
+
+**`/inbox`: threads grouped by day, and a list that looks finished when it is empty.**
+Threads now sit under day headers — `today`, `yesterday`, the weekday,
+`last week`, `earlier this month`, then the month and the year — each with a
+faint rule running out from its name. While the first page loads you see
+rows in outline instead of a lone `loading…`. An empty inbox shows a tick
+and when Gmail was last asked ("checked 4m ago"). A search that found
+nothing says how to get back. When Gmail won't give the list, the pane says
+what went wrong in plain words and the key that fixes it (`R tries again`)
+instead of a raw error. The line at the foot shows as many whole keys as fit
+and ends with `? keys`, never with `…`. Pressing `?` opens `/keys` on a new
+section listing every inbox key.
+- **Tests:** day headers in the right places and the selected thread always
+  on screen beneath one, each day's name from today back to past years,
+  outline rows while loading, the tick and the last-checked time, the way
+  back from an empty search, failures in words (never the raw error) and
+  gone as soon as a page lands, the foot holding whole keys at every width,
+  and every inbox key listed in `/keys`.
+
 ## 0.27.37
 
 **`/inbox`: the list, redrawn — two lines a thread, and the selection you can see.**

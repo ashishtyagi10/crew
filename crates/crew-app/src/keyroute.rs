@@ -78,6 +78,7 @@ impl CrewApp {
         match inbox_action {
             Some(crate::inbox::keys::InboxAction::Close) => drop(self.close_pane(focused)),
             Some(crate::inbox::keys::InboxAction::Redraw) => self.redraw(),
+            Some(crate::inbox::keys::InboxAction::Keys) => self.open_help(),
             None => {}
         }
         if swarm_close {

@@ -1662,7 +1662,13 @@ longer aim at.
   ink, read ones muted. The selected thread wears the selection wash from
   edge to edge with an accent bar at its left. As the pane narrows the
   snippet goes first, then the count, then all but the newest sender, then
-  the age shortens (`3h`, `4d`, `2w`, `5mo`). Keys: ↑↓ or j/k move (the last
+  the age shortens (`3h`, `4d`, `2w`, `5mo`). Threads are grouped under day
+  bands: `today`, `yesterday`, the weekday this week, `last week`, `earlier
+  this month`, the month, then the year. While a page loads the list shows
+  rows in outline; an empty inbox shows a tick and when Gmail was last
+  asked; a list Gmail would not give says why in words and the key that
+  mends it (`R tries again`). The foot shows as many whole keys as fit and
+  ends `? keys`: `?` opens `/keys` on its inbox section. Keys: ↑↓ or j/k move (the last
   row loads the next page), Enter reads the thread — each message's sender
   and local time over its words, attachments named, control characters
   stripped. An HTML mail is drawn as markdown through the chat renderer:

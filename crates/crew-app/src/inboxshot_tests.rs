@@ -59,6 +59,15 @@ fn inbox_shot_screens() {
     take("list", &list);
     list.density = crate::inbox::list::Density::One;
     take("list-one", &list);
+    let mut empty = ready();
+    empty.rows.clear();
+    empty.busy = true;
+    take("loading", &empty);
+    empty.busy = false;
+    empty.checked_ms = Some(chrono::Utc::now().timestamp_millis() - 4 * 60_000);
+    take("zero", &empty);
+    empty.failed = Some("could not reach Gmail: dns error".into());
+    take("failed", &empty);
     let mut reading = ready();
     reading.reading = Some(Reading {
         mails: Some(vec![

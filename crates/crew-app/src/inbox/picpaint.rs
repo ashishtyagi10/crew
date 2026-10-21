@@ -12,7 +12,7 @@ impl InboxPane {
         let cells = self.cells(cols, rows);
         let r = match (&self.stage, &self.reading) {
             (Stage::Ready(_), Some(r)) => r,
-            (Stage::Ready(_), None) => return (cells, self.list_paint(cols, rows)),
+            (Stage::Ready(_), None) => return (cells, self.list_paint(cols, rows, aspect)),
             _ => return (cells, Vec::new()),
         };
         let width = reader::text_width(cols);
