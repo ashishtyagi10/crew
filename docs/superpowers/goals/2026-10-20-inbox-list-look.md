@@ -1,7 +1,8 @@
 # Goal — the inbox list, redesigned: how `/inbox` looks before a thread is opened
 
 **Status: IN PROGRESS.** Set 2026-10-20; the user answered its questions on 2026-10-21 and said
-go ahead. Phases 0 and 1 are built (see "Where it stands" at the end).
+go ahead. Phases 0 and 1 shipped in v0.27.37, phase 2 after it (see "Where it stands" at the
+end).
 
 **Set:** 2026-10-20 by the user, while the mail reader goal was being built: *"write a goal to
 update the look and feel of listing mode as well for `/inbox`"*.
@@ -147,7 +148,7 @@ means a file is attached (a guess Gmail's own clip is surer of). `labels.list` g
 `id`, `name` and `type` but not its colour, which takes a `labels.get` per label. So item 12's
 chips take crew's own tag colours (`crew_theme::tag_color`), not Gmail's.
 
-**Phase 1, built:** items 2 to 7. A row is laid out by `crates/crew-app/src/inbox/row.rs` into a
+**Phase 1, shipped in v0.27.37:** items 2 to 7. A row is laid out by `crates/crew-app/src/inbox/row.rs` into a
 whole-width line buffer (`crates/crew-app/src/inbox/line.rs`), so a selected row carries the
 wash (`selection_bg`) on every column and `bgruns` rounds and frosts it as it does every
 highlight; the count chip is a `mark` capsule over it, and every colour on the wash is lifted
@@ -158,3 +159,20 @@ read as an underline of the subject. Senders come from `crates/crew-app/src/inbo
 for the session (`crates/crew-app/src/inbox/list.rs`). The ladder's widths: the snippet below 64
 columns, the chip below 52, all but the newest sender below 44, a compact time below 36, two-line
 rows climbing it 16 columns later. The `›` marker is gone.
+
+**Phase 2, built:** items 8 to 10. `crates/crew-app/src/inbox/layout.rs` lays the list out as
+bands and threads, and drawing, paint and (next) clicks all read it; the list scrolls as little
+as keeps the selected thread on screen, with its day's band over the first thread shown. The
+bands (`crates/crew-app/src/inbox/days.rs`) are lowercase, as `/todo`'s done history writes its
+days: `today`, `yesterday`, the weekday, `last week`, `earlier this month`, the month, the
+year. A rule runs out from each band's name. `crates/crew-app/src/inbox/states.rs` draws the
+empty list: outline rows on the paint layer while a page loads (static, so a slow list costs no
+frames), a ring and tick in the accent over `inbox zero` and when Gmail was last asked (a check
+that finds nothing new now says so: `Got::Checked`), the way back from a search that found
+nothing, and a failed list as words and a key (`R tries again`; a refused sign-in names
+`/inbox signout`). With rows already on screen a failure is still a note at the foot. The foot
+(`crates/crew-app/src/inbox/foot.rs`) fits whole keys, most used first, and ends `? keys` when
+it drops any; `?` opens `/keys` on a new section, `in the /inbox pane`
+(`crates/crew-app/src/helpinbox.rs`), which the key-map parity test now reads against the
+inbox's own key files.
+

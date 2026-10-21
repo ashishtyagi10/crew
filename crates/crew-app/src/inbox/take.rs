@@ -5,7 +5,51 @@ use super::setup;
 use super::worker::{self, Ask, Got};
 use super::{InboxPane, Stage};
 
+/// How often a signed-in pane asks whether the mailbox moved (2 units).
+const CHECK_MS: u64 = 60_000;
+/// How often the setup page looks in Downloads for the client file.
+const LOOK_MS: u64 = 2_000;
+
 impl InboxPane {
+    /// Drain what came back; true when the pane should repaint.
+    pub fn poll(&mut self) -> bool {
+        let now = crate::anim::now_ms();
+        let due = now.saturating_sub(self.ticked_ms) >= self.tick_ms();
+        if due {
+            self.ticked_ms = now;
+        }
+        match &mut self.stage {
+            Stage::Setup { found } if due && found.is_none() => {
+                *found = setup::look();
+                found.is_some()
+            }
+            Stage::Setup { .. } => false,
+            Stage::SigningIn(rx) => match rx.try_recv() {
+                Ok(got) => self.signed(got),
+                Err(_) => false,
+            },
+            Stage::Ready(w) => {
+                let got: Vec<Got> = w.rx.try_iter().collect();
+                let changed = !got.is_empty();
+                for g in got {
+                    self.take(g);
+                }
+                let changed = self.pics.drain() || changed;
+                if due && !self.busy {
+                    self.ask(Ask::Check);
+                }
+                changed
+            }
+        }
+    }
+
+    fn tick_ms(&self) -> u64 {
+        match self.stage {
+            Stage::Setup { .. } => LOOK_MS,
+            _ => CHECK_MS,
+        }
+    }
+
     /// The browser sign-in ended: keep the grant and start listing, or say why
     /// not and go back to setup.
     pub(crate) fn signed(&mut self, got: Result<Grant, String>) -> bool {
@@ -59,8 +103,11 @@ impl InboxPane {
                     }
                 }
                 self.note.clear();
+                self.failed = None;
+                self.checked_ms = Some(chrono::Utc::now().timestamp_millis());
             }
             Got::Unread(n) => self.unread = Some(n),
+            Got::Checked => self.checked_ms = Some(chrono::Utc::now().timestamp_millis()),
             Got::Opened(id, mails) => {
                 self.busy = false;
                 if let Some(r) = self.reading.as_mut().filter(|r| r.thread.id == id) {
@@ -85,6 +132,11 @@ impl InboxPane {
                 self.note = format!(
                     "draft saved in Gmail: \u{201c}{subject}\u{201d} \u{2014} review and send it there (o)"
                 );
+            }
+            Got::Failed(e) if self.rows.is_empty() && self.reading.is_none() => {
+                // Nothing listed: the list's own place says what went wrong.
+                self.busy = false;
+                self.failed = Some(e);
             }
             Got::Failed(e) => {
                 self.busy = false;

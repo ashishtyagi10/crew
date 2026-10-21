@@ -21,6 +21,7 @@ pub(crate) fn section_for(content: &PaneContent) -> Option<&'static str> {
         PaneContent::Todo(_) => "in the /todo pane",
         PaneContent::Settings(_) => "in /settings",
         PaneContent::Disk(_) => "in the /disk map",
+        PaneContent::Inbox(_) => crate::helpinbox::HEAD,
         _ => return None,
     })
 }

@@ -9,6 +9,7 @@ pub(crate) mod api;
 mod asks;
 pub(crate) mod body;
 pub(crate) mod charset;
+pub(crate) mod days;
 pub(crate) mod draft;
 pub(crate) mod draw;
 pub(crate) mod fetch;
@@ -18,6 +19,7 @@ pub(crate) mod grant;
 pub(crate) mod handoff;
 pub(crate) mod html;
 pub(crate) mod keys;
+pub(crate) mod layout;
 mod legend;
 pub(crate) mod line;
 pub(crate) mod links;
@@ -37,6 +39,7 @@ pub(crate) mod save;
 pub(crate) mod setup;
 pub(crate) mod signin;
 pub(crate) mod smith;
+mod states;
 pub(crate) mod take;
 pub(crate) mod triage;
 pub(crate) mod who;
@@ -49,12 +52,7 @@ use std::sync::mpsc::Receiver;
 use grant::{Client, Grant};
 pub(crate) use reading::Reading;
 use wire::Thread;
-use worker::{Ask, Got, Worker};
-
-/// How often a signed-in pane asks whether the mailbox moved (2 units).
-const CHECK_MS: u64 = 60_000;
-/// How often the setup page looks in Downloads for the client file.
-const LOOK_MS: u64 = 2_000;
+use worker::{Ask, Worker};
 
 pub(crate) enum Stage {
     /// No grant yet: how to make a client, and the one found, if any.
@@ -89,6 +87,10 @@ pub struct InboxPane {
     /// A reply smith is writing for a draft.
     pub(crate) waiting: Option<handoff::Waiting>,
     pub(crate) pics: pics::Pics,
+    /// Why the list could not be had, while there are no rows to show.
+    pub(crate) failed: Option<String>,
+    /// When Gmail last answered a list or a check (ms since the epoch).
+    pub(crate) checked_ms: Option<i64>,
     /// One line or two per row (`L`).
     pub(crate) density: list::Density,
     ticked_ms: u64,
@@ -127,6 +129,8 @@ impl InboxPane {
             to_smith: None,
             waiting: None,
             pics: pics::Pics::default(),
+            failed: None,
+            checked_ms: None,
             density: list::Density::Auto,
             ticked_ms: crate::anim::now_ms(),
         }
@@ -139,45 +143,6 @@ impl InboxPane {
         };
         self.busy = !matches!(ask, Ask::Check | Ask::Picture { .. } | Ask::Save { .. });
         w.tx.send(ask).is_ok()
-    }
-
-    /// Drain what came back; true when the pane should repaint.
-    pub fn poll(&mut self) -> bool {
-        let now = crate::anim::now_ms();
-        let due = now.saturating_sub(self.ticked_ms) >= self.tick_ms();
-        if due {
-            self.ticked_ms = now;
-        }
-        match &mut self.stage {
-            Stage::Setup { found } if due && found.is_none() => {
-                *found = setup::look();
-                found.is_some()
-            }
-            Stage::Setup { .. } => false,
-            Stage::SigningIn(rx) => match rx.try_recv() {
-                Ok(got) => self.signed(got),
-                Err(_) => false,
-            },
-            Stage::Ready(w) => {
-                let got: Vec<Got> = w.rx.try_iter().collect();
-                let changed = !got.is_empty();
-                for g in got {
-                    self.take(g);
-                }
-                let changed = self.pics.drain() || changed;
-                if due && !self.busy {
-                    self.ask(Ask::Check);
-                }
-                changed
-            }
-        }
-    }
-
-    fn tick_ms(&self) -> u64 {
-        match self.stage {
-            Stage::Setup { .. } => LOOK_MS,
-            _ => CHECK_MS,
-        }
     }
 }
 

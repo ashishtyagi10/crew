@@ -27,6 +27,7 @@ fn every_named_section_exists_in_the_panel() {
         "in the /todo pane",
         "in /settings",
         "in the /disk map",
+        "in the /inbox pane",
     ];
     for n in named {
         assert!(titles.contains(&n), "{n} is not a section any more");

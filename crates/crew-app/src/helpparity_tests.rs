@@ -15,6 +15,10 @@ fn keys_in(src: &str) -> Vec<String> {
     // care which, or the map's `r` is invisible to this test, as it was).
     for (pat, take) in [
         (".as_str() == \"", 1),
+        // The inbox: `ch == "k"`, and its filing and smith arms.
+        ("ch == \"", 1),
+        ("\" => self.", 0),
+        ("\" => Then::", 0),
         ("\" => ViewInput::", 0),
         ("\" => Some(Edit::", 0),
     ] {
@@ -121,6 +125,17 @@ fn every_pane_key_is_in_the_overlay() {
             ),
             TODO_BINDINGS,
             8,
+        ),
+        // Three files: the list and the reader, filing, and smith's letters.
+        (
+            "the /inbox pane",
+            concat!(
+                include_str!("inbox/keys.rs"),
+                include_str!("inbox/triage.rs"),
+                include_str!("inbox/handoff.rs")
+            ),
+            crate::helpinbox::INBOX_BINDINGS,
+            12,
         ),
         (
             "a document window",

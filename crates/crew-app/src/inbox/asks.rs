@@ -56,6 +56,8 @@ pub(crate) enum Got {
         more: bool,
     },
     Unread(u64),
+    /// A check found the mailbox as it was: nothing to list again.
+    Checked,
     Opened(String, Vec<Mail>),
     /// A draft was saved; its subject.
     Drafted(String),

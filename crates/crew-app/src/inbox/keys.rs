@@ -10,6 +10,8 @@ use super::{InboxPane, Reading, Stage};
 pub enum InboxAction {
     Close,
     Redraw,
+    /// `?`: `/keys`, open on the inbox's section.
+    Keys,
 }
 
 impl InboxPane {
@@ -39,6 +41,9 @@ impl InboxPane {
                 _ => return None,
             }
             return Some(InboxAction::Redraw);
+        }
+        if ch == "?" {
+            return Some(InboxAction::Keys);
         }
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
         if matches!(self.stage, Stage::Ready(_)) && (self.triage(&ch) || self.handoff(&ch)) {
@@ -147,6 +152,7 @@ impl InboxPane {
     fn relist(&mut self) {
         self.rows.clear();
         self.sel = 0;
+        self.failed = None;
         self.ask(Ask::List(self.query.clone()));
     }
 

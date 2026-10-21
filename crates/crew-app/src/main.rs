@@ -325,6 +325,7 @@ mod gridsel;
 mod handler;
 mod help;
 mod helphere;
+mod helpinbox;
 mod helpkeys;
 mod helplayout;
 mod helppanes;

@@ -4,10 +4,12 @@
 //! pick holds for the rest of the session, in every inbox pane opened.
 use std::sync::atomic::{AtomicU8, Ordering};
 
-use crew_render::{CellView, Paint};
+use crew_render::Paint;
 
 use super::draw::Canvas;
+use super::layout::{Shown, Slot};
 use super::row::{self, Ctx};
+use super::wire::Thread;
 use super::InboxPane;
 
 /// One line or two per row: chosen by the room (`Auto`), or by `L`.
@@ -57,69 +59,68 @@ impl InboxPane {
         }
     }
 
-    /// The rows on screen: the first thread shown, the lines each takes, and
-    /// how many are shown.
-    pub(crate) fn shown(&self, rows: u16) -> (usize, u16, usize) {
-        let lines = if self.density.two(rows) { 2 } else { 1 };
-        let fit = usize::from((rows.saturating_sub(1) / lines).max(1));
-        let top = self.sel.saturating_sub(fit - 1);
-        (top, lines, fit.min(self.rows.len().saturating_sub(top)))
-    }
-
-    fn ctx(&self, cols: u16, rows: u16) -> Ctx<'_> {
-        let (top, lines, n) = self.shown(rows);
+    fn ctx(&self, cols: u16, shown: &Shown) -> Ctx<'_> {
+        let on: Vec<Thread> = shown.threads().map(|(_, i)| self.rows[i].clone()).collect();
         Ctx {
             cols,
-            two: lines == 2,
+            two: shown.lines == 2,
             me: &self.email,
             now: chrono::Utc::now().timestamp_millis(),
-            who_w: row::who_w(&self.rows[top..top + n], cols, &self.email),
+            who_w: row::who_w(&on, cols, &self.email),
         }
     }
 
     pub(crate) fn list(&self, cv: &mut Canvas) {
-        let t = crew_theme::theme();
         if self.rows.is_empty() {
-            let said = match (self.busy, self.query.trim()) {
-                (true, _) => "loading\u{2026}".to_string(),
-                (false, "") => "nothing in the inbox".to_string(),
-                (false, q) => format!("no mail matches \u{201c}{q}\u{201d}"),
-            };
-            cv.text(1, 2, cv.cols, &said, t.text_muted, false);
-            return;
+            return self.empty(cv);
         }
-        let (top, lines, n) = self.shown(cv.rows);
-        let x = self.ctx(cv.cols, cv.rows);
-        let mut out: Vec<CellView> = Vec::new();
-        for (k, th) in self.rows[top..top + n].iter().enumerate() {
-            let at = k as u16 * lines;
-            row::cells(&mut out, th, at, top + k == self.sel, &x);
-        }
-        cv.out.extend(out);
-    }
-
-    /// What the list paints: the selected row's accent bar, and on two-line
-    /// rows a hairline between threads.
-    pub(crate) fn list_paint(&self, cols: u16, rows: u16) -> Vec<Paint> {
-        if self.rows.is_empty() {
-            return Vec::new();
-        }
-        let (top, lines, n) = self.shown(rows);
-        let mut paint = Vec::new();
-        if lines == 2 {
-            let rule = crew_theme::theme().text_muted;
-            // Not against the wash: it has its own edge.
-            let washed = |k: usize| top + k == self.sel || top + k == self.sel + 1;
-            for k in (1..n).filter(|&k| !washed(k)) {
-                let y = (k as u16 * lines) as f32;
-                let mut p = Paint::solid(row::NAMES as f32, y + 0.1, 0.0, 0.06, rule);
-                p.w = f32::from(cols.saturating_sub(1)) - p.x;
-                p.alpha = 0.25;
-                paint.push(p);
+        let shown = self.shown(cv.rows);
+        let x = self.ctx(cv.cols, &shown);
+        let muted = crew_theme::theme().text_muted;
+        for (r, slot) in &shown.slots {
+            match slot {
+                Slot::Band(day) => cv.text(*r, 1, cv.cols, day, muted, true),
+                Slot::Thread(i) => row::cells(&mut cv.out, &self.rows[*i], *r, *i == self.sel, &x),
             }
         }
-        if let Some(k) = self.sel.checked_sub(top).filter(|&k| k < n) {
-            paint.push(row::bar(k as u16 * lines, lines));
+    }
+
+    /// What the list paints: the selected thread's accent bar, a rule out
+    /// from each day's name, and on two-line rows a fainter one between
+    /// threads of the same day.
+    pub(crate) fn list_paint(&self, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
+        if self.rows.is_empty() {
+            return self.empty_paint(cols, rows, aspect);
+        }
+        let shown = self.shown(rows);
+        let (lines, end) = (shown.lines, f32::from(cols.saturating_sub(1)));
+        let muted = crew_theme::theme().text_muted;
+        let rule = |x: f32, y: f32, alpha: f32| Paint {
+            alpha,
+            ..Paint::solid(x, y, (end - x).max(0.0), 0.06, muted)
+        };
+        let mut paint = Vec::new();
+        let mut prev: Option<usize> = None;
+        for (r, slot) in &shown.slots {
+            let y = f32::from(*r);
+            match slot {
+                Slot::Band(day) => {
+                    let x = 2.0 + crate::chatwidth::str_w(day) as f32;
+                    paint.push(rule(x, y + 0.5, 0.3));
+                    prev = None;
+                }
+                Slot::Thread(i) => {
+                    // Not against the wash: it has its own edge.
+                    let washed = *i == self.sel || prev == Some(self.sel);
+                    if lines == 2 && prev.is_some() && !washed {
+                        paint.push(rule(row::NAMES as f32, y + 0.1, 0.2));
+                    }
+                    if *i == self.sel {
+                        paint.push(row::bar(*r, lines));
+                    }
+                    prev = Some(*i);
+                }
+            }
         }
         paint
     }

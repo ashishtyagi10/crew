@@ -50,6 +50,7 @@ pub fn size() -> (u16, u16) {
         .chain(SETTINGS_BINDINGS)
         .chain(DOC_BINDINGS)
         .chain(DISK_BINDINGS)
+        .chain(crate::helpinbox::INBOX_BINDINGS)
         .map(|(_, d)| d.chars().count())
         .max()
         .unwrap_or(KEY_COL);

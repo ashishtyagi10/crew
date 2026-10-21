@@ -1,7 +1,6 @@
 //! What `/keys` actually puts on each row, before any of it is coloured.
 //!
-//! Split out of [`crate::help`] because the panel had two width bugs that are
-//! both layout, not rendering:
+//! Split out of [`crate::help`]: the panel had two width bugs, both layout:
 //!
 //! * The key column was the constant 26, and `{left:<26}` pads to a minimum —
 //!   it does not guarantee a *gap*. Five bindings are wider than 26, so their
@@ -49,7 +48,7 @@ const DOC_HEAD: &str = "in a document window";
 /// The per-pane sections, in the order they are listed. One place, so adding a
 /// pane kind is one row here and nothing else — the height, the width, the
 /// scrolling and the filter all read this.
-pub(crate) fn sections() -> [(&'static str, &'static [(&'static str, &'static str)]); 7] {
+pub(crate) fn sections() -> [(&'static str, &'static [(&'static str, &'static str)]); 8] {
     [
         ("in an agent pane", CHAT_BINDINGS),
         ("in the file viewer", VIEW_BINDINGS),
@@ -58,6 +57,7 @@ pub(crate) fn sections() -> [(&'static str, &'static [(&'static str, &'static st
         ("in /settings", SETTINGS_BINDINGS),
         (DOC_HEAD, DOC_BINDINGS),
         ("in the /disk map", DISK_BINDINGS),
+        (crate::helpinbox::HEAD, crate::helpinbox::INBOX_BINDINGS),
     ]
 }
 
