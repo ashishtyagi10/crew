@@ -1,8 +1,8 @@
 # Goal — read mail the way it was written: rich text and pictures in `/inbox`
 
 **Status: COMPLETE 2026-10-20** (the user: "go ahead with the mail reader goal"). Phases 0
-and 1 shipped in v0.27.34, phase 2 in v0.27.35, phase 3 built after it (see "Where it stands"
-at the end).
+and 1 shipped in v0.27.34, phase 2 in v0.27.35, phase 3 in v0.27.36 (see "Where it stands" at
+the end).
 
 **Set:** 2026-10-20 by the user, once `/inbox` was signed in live: *"write a goal to give better
 email viewer, like showing better markdown or htmls with images, whatever is possible."*
@@ -218,7 +218,7 @@ pictures live in `crates/crew-app/src/inbox/pics.rs`; fetching and the limited d
 under it (`↗ Read the report`). The quota cost of `attachments.get` was not read; it is one
 call per carried picture, at most four attachments a message.
 
-**Phase 3, built:** items 16 and 17. `w` opens `crates/crew-app/src/inbox/mailwin.rs`, a second
+**Phase 3, shipped in v0.27.36:** items 16 and 17. `w` opens `crates/crew-app/src/inbox/mailwin.rs`, a second
 surface beside the document window rather than inside it: the document window is built around
 the file viewer and its editor, so this one is the inbox pane drawn again at the window's size,
 its keys, wheel and Cmd+clicks handed to the same pane (`crates/crew-app/src/inboxwin.rs`), and
