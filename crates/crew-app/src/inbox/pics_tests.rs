@@ -140,3 +140,39 @@ fn the_webs_pictures_come_with_the_mail_i_hides_them_and_a_failed_one_says_what_
         "the link survives on the picture's box: {shown}"
     );
 }
+
+#[test]
+fn a_picture_written_into_the_mail_is_decoded_in_place_with_nothing_fetched() {
+    use base64::Engine;
+    let img = image::RgbaImage::from_pixel(16, 12, image::Rgba([30, 90, 200, 255]));
+    let mut png = std::io::Cursor::new(Vec::new());
+    image::DynamicImage::ImageRgba8(img)
+        .write_to(&mut png, image::ImageFormat::Png)
+        .unwrap();
+    let b64 = base64::engine::general_purpose::STANDARD.encode(png.into_inner());
+    let html =
+        format!("<p>Hi</p><img src=\"data:image/png;base64,{b64}\" height=\"48\" alt=\"Acme\">");
+    let (mut p, asks) = pane();
+    let m = mail(&html, vec![]);
+    let key = m.rich.inline[0].0.clone();
+    assert!(
+        m.rich.body.contains(&key) && !m.rich.body.contains(&b64),
+        "named, not inlined"
+    );
+    p.reading.as_mut().unwrap().mails = Some(vec![m]);
+    p.fetch_carried();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while !matches!(p.pics.get(&key), Some(super::Pic::Ready(_))) {
+        assert!(std::time::Instant::now() < deadline, "never decoded");
+        p.pics.drain();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    let Some(super::Pic::Ready(bm)) = p.pics.get(&key) else {
+        unreachable!()
+    };
+    assert_eq!(bm.src, (16, 12));
+    assert!(
+        asks.try_recv().is_err(),
+        "nothing asked of Gmail or the web"
+    );
+}

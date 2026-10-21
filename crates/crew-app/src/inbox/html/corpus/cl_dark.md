@@ -2,7 +2,7 @@
 
 issue 018 · mar 14
 
-**This week**
+**THIS WEEK**
 
 # Three things that changed how I'll write code next month.
 
@@ -10,7 +10,7 @@ Rust shipped into the Linux kernel networking path. The first open-weight model 
 
 [`  Read the issue  `](<https://example.com/cl_dark/link-2>)
 
-**Three stories**
+**THREE STORIES**
 
 01 · systems
 
@@ -36,21 +36,21 @@ Pub/sub, vectors, JSON, time-series. Postgres now does all four well enough that
 
 Crunchy Data blog · 14 min
 
-**Quick hits**
+**QUICK HITS**
 
-tool
+TOOL
 [Codename Goose](<https://example.com/cl_dark/link-6>) — Block's open-source AI agent for the terminal. MIT licensed.
 
-release
+RELEASE
 [Bun 1.2](<https://example.com/cl_dark/link-7>) — now ships a built-in S3 client, native HTMX support, and 30% faster cold start.
 
-deep dive
+DEEP DIVE
 [How Cursor's index works](<https://example.com/cl_dark/link-8>) — the engineering blog finally explained the embedding pipeline.
 
-funny
+FUNNY
 ["My team uses kanban"](<https://example.com/cl_dark/link-9>) — a single-page interactive that's gone around every product Slack this week.
 
-// sponsored
+// SPONSORED
 
 ### [Want to stop writing Dockerfiles?](<https://example.com/cl_dark/link-10>)
 

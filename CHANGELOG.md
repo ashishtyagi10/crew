@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.50
+
+**`/inbox`: mail reads more like mail — headings, capitals, pictures in their places.**
+- **Headings stand out on the light page.** The Ink Reader page is
+  monochrome, so a mail's headline was bold black like any bold words. A
+  mail's top headings are now ruled under, as crew's chat draws them.
+- **Capitals the mail sets in CSS** (`text-transform`) are kept, so a
+  kicker reads `THE ESSAY` and a label `ISSUE 42`, as in Gmail.
+- **Pictures where the mail puts them.** A picture is centred only where
+  the mail centres it; a signature's logo now sits at the left.
+- **Pictures written into the mail** (`data:` PNG, JPEG, GIF, WebP) are
+  drawn, decoded in place with nothing fetched. SVG stays words.
+- **No echoes.** With pictures hidden, a picture's words that only repeat
+  the caption beside them are left out.
+- **Calendar invites** read as invites: When, Join and Guests line up as a
+  table, and Yes, Maybe and No sit on one row as buttons.
+- A row of air now parts a mail from its folded history.
+- **Tests:** two new corpus fixtures (a Google Calendar invite with
+  buttons, a Gmail reply with a signature picture); a check that no fixture
+  read with pictures hidden echoes a caption; centring, capitals,
+  label-and-value tables, `data:` pictures decoding, and the reader's
+  ruled headings.
+
 ## 0.27.49
 
 **`/inbox`: `n` and `p` open the next and the previous mail.** In an open

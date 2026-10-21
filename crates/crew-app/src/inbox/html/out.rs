@@ -38,6 +38,12 @@ pub(crate) struct Out {
     pub tiny: bool,
     /// Inside a table or cell classed as a button: its link is one.
     pub btn: bool,
+    /// The letter case the words are in (`text-transform`), inherited.
+    pub case: super::case::Case,
+    /// Pictures written into the mail, by name and payload (`inline`).
+    pub inline: Vec<(String, String)>,
+    /// Inside something that centres its content (`inherit`).
+    pub center: bool,
     /// The type the mail's stylesheet sets on each class (`css`).
     pub css: std::rc::Rc<std::collections::HashMap<String, String>>,
     /// The font size here, in px (0 when the mail never said).

@@ -1,6 +1,6 @@
-![alt\_text](<https://via.placeholder.com/200x50#rows=3>)
+![alt\_text](<https://via.placeholder.com/200x50#rows=3&mid=1>)
 
-![alt\_text](<https://via.placeholder.com/1360x600#rows=12&fit=680>)
+![alt\_text](<https://via.placeholder.com/1360x600#rows=12&fit=680&mid=1>)
 
 # Praesent laoreet malesuada cursus.
 

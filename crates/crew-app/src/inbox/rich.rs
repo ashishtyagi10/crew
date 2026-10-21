@@ -27,6 +27,8 @@ pub(crate) struct Rich {
     pub web: usize,
     /// This version with the web's pictures drawn too (`i`), when it has any.
     pub with_web: Option<Box<Rich>>,
+    /// Pictures written into the mail, by name and payload (`html::inline`).
+    pub inline: Vec<(String, String)>,
 }
 
 impl Rich {
@@ -49,6 +51,7 @@ impl Rich {
                 note,
                 pics: c.pics,
                 web: c.web_left,
+                inline: c.inline,
                 ..Self::default()
             }
         };

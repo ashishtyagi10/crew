@@ -3,9 +3,9 @@ use super::out::Out;
 use super::tree::Node;
 use super::{ent, hide, link};
 
-/// A picture the mail carries (`cid:`) is drawn; one from the web is drawn
-/// only when asked (`o.web`), and is its words until then — as is anything
-/// else (`data:`, a relative path).
+/// A picture the mail carries (`cid:`, or written into it as `data:`) is
+/// drawn; one from the web is drawn only when asked (`o.web`), and is its
+/// words until then — as is anything else (a relative path).
 pub(crate) fn image(n: &Node, o: &mut Out) {
     if hide::invisible_image(n) {
         return;
@@ -25,6 +25,7 @@ pub(crate) fn image(n: &Node, o: &mut Out) {
     let web = lower.starts_with("http") || lower.starts_with("//");
     let src = match () {
         _ if lower.starts_with("cid:") => Some(src),
+        _ if lower.starts_with("data:") => super::inline::keep(&src, o),
         _ if web && o.web => link::target(&src),
         _ => None,
     };
@@ -45,9 +46,16 @@ pub(crate) fn image(n: &Node, o: &mut Out) {
                 .replace('>', "%3E")
         )
     });
+    // Centred where the mail centres it, else at the left, as a signature's
+    // logo is (`&mid=1`, read by the reader's paint).
+    let auto = |k: &str| super::font::decl(n.attr("style").unwrap_or(""), k);
+    let mid = o.center
+        || auto("margin").is_some_and(|m| m.split_whitespace().nth(1).unwrap_or(&m) == "auto")
+        || auto("margin-left").is_some_and(|m| m == "auto");
+    let mid = if mid { "&mid=1" } else { "" };
     o.block();
     o.raw(&format!(
-        "![{}](<{src}#rows={}{go}>)",
+        "![{}](<{src}#rows={}{mid}{go}>)",
         super::esc(&alt),
         rows(n)
     ));

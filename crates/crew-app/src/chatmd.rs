@@ -1,9 +1,7 @@
 //! Maps `md::render`'s output (styled lines wrapped by CHAR count) to card
-//! `CardLine`s (styled cells wrapped by DISPLAY column). The two wrap units
-//! differ so every produced line is re-chunked here by display width via
-//! `chatwidth::fit_end` — the same primitive the old chat-body path used for
-//! code chunking — so wide glyphs (CJK, emoji) never overflow the pane.
-//! What a span draws in is `chatspan`'s call; this file only places cells.
+//! `CardLine`s (styled cells wrapped by DISPLAY column), re-chunked by
+//! display width (`chatwidth::fit_end`) so wide glyphs never overflow the
+//! pane. What a span draws in is `chatspan`'s call; this only places cells.
 use std::path::Path;
 
 use crate::chatbody::{plain, CardCell, CardLine, Color};
@@ -28,7 +26,7 @@ pub(crate) struct Picture {
 /// the card's own reading of the document, which the viewer does not share.
 /// No working directory, so a relative picture is never more than named.
 pub(crate) fn map_lines(md_lines: Vec<MdLine>, width: usize, fg: Color) -> Vec<CardLine> {
-    map_lines_inner(md_lines, width, fg, None, None)
+    map_lines_inner(md_lines, width, fg, None, None, true)
 }
 
 /// [`map_lines`] for a pane working in `cwd`: a picture whose source is a
@@ -40,7 +38,7 @@ pub(crate) fn map_chat(
     fg: Color,
     cwd: Option<&Path>,
 ) -> Vec<CardLine> {
-    map_lines_inner(md_lines, width, fg, None, cwd)
+    map_lines_inner(md_lines, width, fg, None, cwd, true)
 }
 
 /// [`map_lines`] for the VIEWER, plus where the pictures ended up.
@@ -54,7 +52,19 @@ pub(crate) fn with_pictures(
     fg: Color,
 ) -> (Vec<CardLine>, Vec<Picture>) {
     let mut pics: Vec<Picture> = Vec::new();
-    let lines = map_lines_inner(md_lines, width, fg, Some(&mut pics), None);
+    let lines = map_lines_inner(md_lines, width, fg, Some(&mut pics), None, false);
+    (lines, pics)
+}
+
+/// [`with_pictures`] for a MAIL: `#` headings ruled under as on a chat card,
+/// since on a grey page bold ink alone read as any bold words.
+pub(crate) fn mail_lines(
+    md_lines: Vec<MdLine>,
+    width: usize,
+    fg: Color,
+) -> (Vec<CardLine>, Vec<Picture>) {
+    let mut pics: Vec<Picture> = Vec::new();
+    let lines = map_lines_inner(md_lines, width, fg, Some(&mut pics), None, true);
     (lines, pics)
 }
 
@@ -66,6 +76,7 @@ fn map_lines_inner(
     fg: Color,
     mut pics: Option<&mut Vec<Picture>>,
     cwd: Option<&Path>,
+    rule: bool,
 ) -> Vec<CardLine> {
     let muted = crew_theme::theme().text_muted;
     let chat = pics.is_none();
@@ -131,7 +142,7 @@ fn map_lines_inner(
         let wraps = lines
             .peek()
             .is_some_and(|n| crate::md::heading::level_of(n) == 1);
-        if chat && level == 1 && !wraps {
+        if rule && level == 1 && !wraps {
             let rule = crate::chatheading::rule_row(out.last().expect("pushed"), muted);
             out.push(rule);
         }

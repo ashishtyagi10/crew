@@ -108,7 +108,10 @@ impl InboxPane {
         let Some(mails) = self.reading.as_ref().and_then(|r| r.mails.clone()) else {
             return;
         };
+        let mut inline = Vec::new();
         for m in &mails {
+            let written = m.rich.inline.iter().filter(|(k, _)| self.pics.claim(k));
+            inline.extend(written.cloned());
             let named = |p: &super::body::Part| p.cid.as_ref().map(|c| format!("cid:{c}"));
             let drawn: Vec<&String> = m.rich.pics.iter().chain(web_pics(&m.rich)).collect();
             for part in &m.parts {
@@ -126,6 +129,9 @@ impl InboxPane {
                     });
                 }
             }
+        }
+        if !inline.is_empty() {
+            super::picfetch::inline(inline, self.pics.tx.clone());
         }
     }
 

@@ -32,8 +32,13 @@ pub(crate) fn fitted<'a>(md: &'a str, msg: &str, width: usize, sizes: &Sizes) ->
         let fit = frag
             .split_once("&fit=")
             .and_then(|(_, w)| w.split('&').next()?.parse::<f32>().ok());
-        // A picture's link (`&go=`) rides along, last.
+        // A picture's link (`&go=`) rides along, last, and its centring.
         let go = frag.find("&go=").map_or("", |i| &frag[i..]);
+        let mid = if frag.contains("&mid=1") {
+            "&mid=1"
+        } else {
+            ""
+        };
         let size = sizes
             .get(&super::pics::key(msg, src))
             .filter(|(w, h)| *w > 0 && *h > 0);
@@ -44,7 +49,7 @@ pub(crate) fn fitted<'a>(md: &'a str, msg: &str, width: usize, sizes: &Sizes) ->
                 let rows = (shown * h as f32 / w as f32 / ROW_PX)
                     .round()
                     .clamp(2.0, 40.0);
-                out.push_str(&format!("#rows={rows}{go}"));
+                out.push_str(&format!("#rows={rows}{mid}{go}"));
             }
             _ => out.push_str(frag),
         }
@@ -91,5 +96,10 @@ mod tests {
         );
         let none = fitted(md, "m1", 80, &Sizes::new());
         assert_eq!(none, md, "nothing landed: the engine's own box");
+        let mid = "![logo](<https://x.io/l.png#rows=12&fit=0&mid=1&go=https://x.io>)";
+        assert!(
+            fitted(mid, "m1", 80, &sizes).contains("l.png#rows=3&mid=1&go=https://x.io>)"),
+            "its centring and its link ride along"
+        );
     }
 }

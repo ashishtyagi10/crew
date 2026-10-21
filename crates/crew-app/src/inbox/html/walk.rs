@@ -8,16 +8,9 @@ pub(crate) fn node(n: &Node, o: &mut Out) {
     if hide::hidden(n) {
         return;
     }
-    // A size is inherited: zero hides only the words that do not set their own.
-    let (tiny, btn, size) = (o.tiny, o.btn, o.size);
-    if let Some(px) = super::font::size(n, &o.style(n)) {
-        o.tiny = px <= 1.0;
-        o.size = px;
-    }
-    // A table or cell classed as a button makes the link in it one.
-    o.btn |= n.tag != "a" && super::anchor::classed_button(n);
+    let kept = super::inherit::enter(n, o);
     element(n, o);
-    (o.tiny, o.btn, o.size) = (tiny, btn, size);
+    super::inherit::leave(kept, o);
 }
 
 fn element(n: &Node, o: &mut Out) {
@@ -67,7 +60,7 @@ fn element(n: &Node, o: &mut Out) {
             o.block();
             o.pre = false;
         }
-        "table" if table::is_data(n) => data_table(n, o),
+        "table" if table::is_data(n) || table::is_pairs(n) => data_table(n, o),
         "b" | "strong" if o.head == 0 && !plain_style(n, "font-weight", &["normal", "400"]) => {
             wrapped(n, o, "**")
         }
@@ -130,7 +123,7 @@ pub(super) fn kids(n: &Node, o: &mut Out) {
         match k {
             Kid::El(e) => node(e, o),
             Kid::Text(_) if o.tiny => {}
-            Kid::Text(t) => o.text(&ent::decode(t)),
+            Kid::Text(t) => o.text(&o.case.apply(&ent::decode(t))),
         }
     }
 }
@@ -177,7 +170,18 @@ fn data_table(t: &Node, o: &mut Out) {
                 .map(|c| {
                     let mut inner = Out::default();
                     kids(c, &mut inner);
-                    inner.done().0.trim().replace('\n', " ")
+                    // Lines a cell breaks (a guest list, an address) apart.
+                    let lines: Vec<String> = inner
+                        .done()
+                        .0
+                        .lines()
+                        .map(|l| l.trim().to_string())
+                        .collect();
+                    lines
+                        .into_iter()
+                        .filter(|l| !l.is_empty())
+                        .collect::<Vec<_>>()
+                        .join(" \u{b7} ")
                 })
                 .collect()
         })
