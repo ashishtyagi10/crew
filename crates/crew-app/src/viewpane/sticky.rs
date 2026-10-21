@@ -80,12 +80,13 @@ pub(crate) fn draw(cells: &mut Vec<CellView>, label: &str, cols: u16) {
         0,
         cols,
         text.chars().map(|c| (c, t.text_muted)),
-        |col, c, fg| {
+        |col, c, marks, fg| {
             cells.retain(|x| !(x.row == 0 && x.col == col));
             cells.push(CellView {
                 col,
                 row: 0,
                 c,
+                marks,
                 fg,
                 bg,
                 bold: true,

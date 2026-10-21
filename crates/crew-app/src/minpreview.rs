@@ -94,19 +94,24 @@ pub(crate) fn cells(text: &str, cols: u16, badge: usize) -> Vec<CellView> {
         return Vec::new();
     }
     let t = crew_theme::theme();
-    let mut col = LEFT;
     let mut out = Vec::new();
-    for c in crate::chatwidth::clip_words(text, room).chars() {
-        out.push(CellView {
-            col,
-            row: 0,
-            c,
-            fg: t.text_muted,
-            bg: t.page_bg,
-            ..Default::default()
-        });
-        col += crate::chatwidth::char_w(c) as u16;
-    }
+    let text = crate::chatwidth::clip_words(text, room);
+    crate::chatwidth::place_row(
+        LEFT,
+        u16::MAX,
+        text.chars().map(|c| (c, ())),
+        |col, c, marks, ()| {
+            out.push(CellView {
+                col,
+                row: 0,
+                c,
+                marks,
+                fg: t.text_muted,
+                bg: t.page_bg,
+                ..Default::default()
+            })
+        },
+    );
     out
 }
 

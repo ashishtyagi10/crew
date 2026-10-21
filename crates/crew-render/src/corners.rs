@@ -287,7 +287,7 @@ fn cell_at(d: &Drawn<'_>, col: i32, row: i32) -> Option<(f32, f32)> {
         Some(s) => crate::stretch::locate(d.pane, s, col, row),
         None => (0, col, row),
     };
-    let (buf, ox, oy, _, _) = d.buffers.get(idx)?;
+    let (buf, ox, oy, ..) = d.buffers.get(idx)?;
     let run = buf.layout_runs().find(|r| r.line_i == usize::from(lrow));
     let top = match &run {
         Some(r) => {

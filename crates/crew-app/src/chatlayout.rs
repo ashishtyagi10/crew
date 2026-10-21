@@ -66,11 +66,12 @@ pub fn layout_cells(
         0,
         cols,
         format!("\u{203a} {}", input).chars().map(|c| (c, ink)),
-        |x, c, fg| {
+        |x, c, marks, fg| {
             cells.push(CellView {
                 col: x,
                 row: input_row,
                 c,
+                marks,
                 fg,
                 bg: crew_theme::theme().page_bg,
                 bold: false,
@@ -144,8 +145,11 @@ pub fn layout_cells(
         let mut col: u16 = 0;
         for &(c, fg) in line.iter() {
             let w = crate::chatwidth::char_w(c) as u16;
+            if let (0, Some(prev)) = (w, cells.last_mut().filter(|p| p.row == row)) {
+                prev.marks.push(c); // a mark rides on its letter's cell
+            }
             if w == 0 {
-                continue; // zero-width marks don't get their own cell
+                continue;
             }
             if col + w > cols {
                 break;

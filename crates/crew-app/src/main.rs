@@ -232,6 +232,7 @@ mod composershot_tests;
 pub mod config;
 mod configdefault;
 mod confirm;
+mod copytext;
 mod costbars;
 mod crashlog;
 #[cfg(test)]
@@ -879,4 +880,8 @@ mod inboxrows_tests;
 #[cfg(test)]
 mod inboxshot_tests;
 #[cfg(test)]
+mod indicpixel_tests;
+#[cfg(test)]
 mod indicshot_tests;
+#[cfg(test)]
+mod markcells_tests;

@@ -54,23 +54,19 @@ pub(crate) fn highlight(cells: &mut [CellView], sel: &CellSel, bg: (u8, u8, u8))
 /// joined with newlines. Empty when nothing is selected.
 pub(crate) fn selection_text(cells: &[CellView], sel: &CellSel) -> String {
     let (s, e) = sel.span();
-    let mut rows: BTreeMap<u16, BTreeMap<u16, char>> = BTreeMap::new();
-    for cell in cells {
-        if sel.contains(cell.col, cell.row) {
-            rows.entry(cell.row).or_default().insert(cell.col, cell.c);
-        }
-    }
+    let rows = crate::copytext::rows(
+        cells
+            .iter()
+            .filter(|c| sel.contains(c.col, c.row))
+            .map(|c| (c.row, c.col, c.c, c.marks)),
+    );
     let mut out: Vec<String> = Vec::new();
     for row in s.0..=e.0 {
         let line = match rows.get(&row) {
             Some(m) => {
                 let first = *m.keys().next().unwrap();
                 let last = *m.keys().next_back().unwrap();
-                (first..=last)
-                    .map(|c| *m.get(&c).unwrap_or(&' '))
-                    .collect::<String>()
-                    .trim_end()
-                    .to_string()
+                crate::copytext::line(m, first, last)
             }
             None => String::new(),
         };

@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.47
+
+**Hindi, and every script that joins its letters, drawn whole.** Devanagari
+used to come out a letter to a cell, with its vowel signs pushed apart and
+its marks dropped: `भारत` read `भ ा र त`, `क्ष` read `कष`, and `हिंदी` lost
+its nasal dot. Now each word is shaped whole at its natural size, on the
+line English sits on, in chat, the `/inbox` reader, terminals, the input
+bar and every other surface. Bengali, Tamil, Gujarati, Telugu, Kannada,
+Malayalam, Thai, Lao, Myanmar and Khmer come with it.
+- **On the grid.** The columns a program counts don't move: a table a
+  program draws around Hindi stays square, and the cursor, selection and
+  find marks stay where they were. A phrase's words are laid together with
+  even gaps, at their own size. A word wider than its cells spills into
+  the space after it instead of shrinking. Bold Hindi is bold, in the
+  same typeface as the text around it. A link's underline runs under its
+  words.
+- **Marks are kept.** A cell carries the combining marks after its
+  character, from the terminal (alacritty's zero-width marks) and from
+  every widget, ratatui's included. Copying gives them back: `क्ष` pastes
+  as `क्ष`, and `日本` no longer pastes as `日 本`.
+- **Faster.** A full pane of Hindi builds about ten times faster than
+  before, since the old path measured and rebuilt every Devanagari glyph.
+- **Tests:** runs, phrases, room, punctuation, bold's family and the
+  underline warp (crew-render); marks through the terminal, every widget
+  and copy; and a GPU test that reads the pixels and fails on the old
+  path: each Hindi word is one span of ink, every row stays within its
+  cells, and English after Hindi stays on its cell.
+
 ## 0.27.46
 
 **`/inbox`: `u` says to press it again where you can see it.** `u` in an

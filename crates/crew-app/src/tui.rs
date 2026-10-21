@@ -55,7 +55,7 @@ fn convert(buf: &Buffer, opaque: bool) -> Vec<CellView> {
                     color_opt(cell.fg).unwrap_or_else(|| crew_theme::theme().ink),
                 )
             };
-            out.push(CellView {
+            let first = CellView {
                 col: x,
                 row: y,
                 c,
@@ -68,10 +68,36 @@ fn convert(buf: &Buffer, opaque: bool) -> Vec<CellView> {
                 // has no other bit to carry it through a `Buffer`.
                 mark: cell.modifier.contains(Modifier::RAPID_BLINK),
                 ..Default::default()
-            });
+            };
+            split(first, cell.symbol(), &mut out);
         }
     }
     out
+}
+
+/// One ratatui cell as crew's: ratatui keeps a grapheme whole (`हि`, `क्ष`)
+/// and blanks the columns its width takes past the first, and crew gives
+/// each character with a width a cell of its own in those columns, every
+/// mark riding on the one before it. Only the first character was kept, so
+/// `हिंदी` lost its vowel signs and its nasal dot.
+fn split(first: CellView, symbol: &str, out: &mut Vec<CellView>) {
+    let mut at = first;
+    for c in symbol.chars().skip(1) {
+        match crate::chatwidth::char_w(c) as u16 {
+            0 => drop(at.marks.push(c)),
+            _ => {
+                let col = at.col + crate::chatwidth::char_w(at.c).max(1) as u16;
+                let next = CellView {
+                    col,
+                    c,
+                    marks: Default::default(),
+                    ..at.clone()
+                };
+                out.push(std::mem::replace(&mut at, next));
+            }
+        }
+    }
+    out.push(at);
 }
 
 /// Map a ratatui colour to RGB. `Reset` (and unsupported indexed colours) → `None`

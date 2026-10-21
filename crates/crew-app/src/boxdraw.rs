@@ -98,7 +98,9 @@ pub fn section_header_key(
         .map(|c| (c, title_fg))
         .chain(spacer)
         .chain(key.chars().map(|c| (c, key_fg)));
-    col = crate::chatwidth::place_row(col, right, styled, |x, c, fg| v.push(cell(x, 0, c, fg, bg)));
+    col = crate::chatwidth::place_row(col, right, styled, |x, c, marks, fg| {
+        v.push(cell(x, 0, c, fg, bg).marked(marks))
+    });
     if col <= right {
         v.push(cell(col, 0, ' ', border, bg));
         col += 1;

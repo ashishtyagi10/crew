@@ -1,6 +1,7 @@
 # Goal — Hindi, and every script that joins its letters, drawn whole
 
-**Status: WRITTEN, NOT STARTED.** Set 2026-10-21.
+**Status: BUILT (v0.27.47), waiting on the user's check on their own machine.** Set and
+started 2026-10-21 (*"go ahead with the hindi goal"*). The record is the last section.
 
 **Set:** 2026-10-21 by the user, after the inbox was read against their own mail and a Hindi
 news digest came out letter by letter: *"write a goal for the hindi rendering"*.
@@ -124,3 +125,144 @@ glyph by glyph.
 - Emoji presentation and ZWJ sequences, which crew draws through its own path.
 - A bundled Devanagari font, since the systems' own fallbacks are there.
 - Hindi input methods.
+
+## Record
+
+**v0.27.47 (2026-10-21).** Phases 0 to 3 are built. Item 8 waits on the user's own check, and
+Windows and Linux were not run (see the end of this section).
+
+### What was built
+
+- **Phase 0.** `crates/crew-app/src/indicshot_tests.rs` shoots the samples on a chat reply, the
+  `/inbox` reader, a terminal (`printf`, the sentence, the mixed line, and a box table drawn
+  around Hindi), and the input bar, on PaperLight and GlassNight. The before shots showed every
+  sample letter by letter (`भ ा र त`). `क्ष` was drawn `कष`, `हिंदी` lost its nasal dot, and
+  Tamil and Bengali were scattered across their rows.
+- **Item 2, a cell carries its marks.** `crew_theme::marks::Marks` holds up to four marks
+  inline (16 bytes, no allocation). It is `CellView::marks` and `RenderCell::marks`.
+  - Terminal: `modelcells` copies alacritty's `Cell::zerowidth()`.
+  - `chatwidth::place_row` holds each character until the marks after it are read, and hands
+    them to its callback. All 37 callers pass them on, through `CellView::marked`.
+  - Also converted: `chatplace::line_cells` (chat, the stream tail, the inbox reader),
+    `chatlayout`'s legacy rows, the inbox list (`inbox::line::Line`), the composer's ghost
+    suggestion and the minimized-pane preview (both gave a mark its own cell on top of the next
+    letter), and the ratatui bridge (`tui::split`). ratatui keeps a grapheme such as `हि`
+    whole in one cell and blanks the next; the bridge now gives each character with a width a
+    cell of its own, in the columns ratatui reserved.
+- **Item 3, copy.** `copytext` rebuilds a row with every mark, and without the space the old
+  copy put after a wide character (`日本` used to paste as `日 本`). It is used by selection
+  copy (`gridsel`), Cmd+C with no selection (terminal and in-app), and `/copy` scrollback
+  (`dump::grid_row`). Terminal mouse selection already read alacritty's own text.
+- **Item 4, runs.** `crates/crew-render/src/scriptrun.rs` collects runs of joining script (the
+  blocks the goal names) and leaves their cells blank in the snapped buffer.
+  `scriptshape.rs` shapes each run on its own and caches it. `scriptplace.rs` places it, and
+  each run is drawn as its own text area (`scriptrun::areas`, used by `textprep` and
+  `presmooth`). The correction pass never sees a run. A cell that carries marks also takes no
+  letter-spacing, since spacing lands on the marks too.
+- **Item 5, style.** A run splits where the colour, weight, slant or ink polarity changes, so
+  a bold headline is bold and a link is in the link's colour.
+- **Item 6, the grid.** Cells, backgrounds, the cursor, selection and find marks are unchanged.
+  A terminal table drawn around Hindi stays square (see the terminal shot).
+
+### Where it differs from the plan
+
+The plan drew each run at its first cell and shrank it only when wider than its cells. Shots
+showed two faults with that:
+
+1. **Gaps.** Ink is rarely as wide as the widths say. `हिंदी` is four cells and under three of
+   ink, and every word put all its slack after it, so a sentence read `भारत   ने आज`.
+2. **Tiny words.** Others are wider than their cells: `आज` is two cells and nearly three of
+   ink, and Bengali and Tamil words reach 1.5×. Shrunk to fit, they came out at 60–70%.
+
+So the placement is now a **phrase at a time**. A phrase is the runs on one row, each one blank
+after the last.
+
+- Its words are drawn at their natural size, from the phrase's first cell, with equal gaps of
+  ½ to 1½ cells.
+- The gaps end the phrase at its last cell when they can. A word's ink stays within a cell or
+  two of its cells, so the cursor, a selection and a find mark still sit on it.
+- A word may spill into the blanks after it, at most its own width again, keeping half a cell
+  clear (`RunSpec::room`).
+- Only a phrase too tight for the ½-cell gap falls back to each word in its own room, shrunk
+  if it must be.
+
+Five further changes came from the shots:
+
+- **Punctuation.** Punctuation straight after a word joins its run (`भेजा,`, `दिल्ली:`), so it
+  is not left behind on its grid cell. `|` and `/` are left out, since programs draw columns
+  with them.
+- **Bold.** macOS falls back to Kohinoor Devanagari at the body's weight 500 but to Devanagari
+  Sangam MN at 700, so bold Hindi was another typeface and hardly heavier. Bold now comes from
+  the family that drew the run at the body weight (`weight_in_family`).
+- **Underlines and strikes.** These are drawn per cell, and in a phrase drawn off its cells a
+  link's underline ran past its last word. `scriptplace::Warp` now maps them onto the ink:
+  across a word, across the gap to the next word of its phrase, and along with a word for the
+  blanks after it. Cursor and backgrounds stay on the grid.
+- **Baselines.** Each run sits on its row's baseline as the snapped buffer laid it out, so
+  Hindi beside English shares the English line.
+- **The proof's second test.** It checks ink against the row's cells plus the last word's
+  room, not the cells alone, because a word may spill into the blank after it.
+
+### Width-0 skips left as they were
+
+- `navtext::put_centred` (dial labels) and the sites that place fixed ASCII one char a cell:
+  `popupchrome`, `chatscroll`, `help`, `panecard`, `keycard`, `hints`, `welcomeart`,
+  `gauges`, `toosmall`, `updatecard`. Also `git.rs` (the branch name), `minstrip` (pane
+  names) and `cmdhead` (the running command), whose text could hold a mark but rarely does.
+- `viewpane::caret` stops: on a line ending in a mark, the end stop sits before the mark.
+- `viewpane::lspdeco`: a char-index span can land one mark off.
+- `chatprobe::token_at` (the Cmd+click path) indexes chars by display column.
+- `hintact`'s copy reads `grid_lines` (URLs and hashes, which carry no marks).
+- The chat composer's beam is drawn on the cell whose index is the caret, so with the caret
+  on a mark it is not drawn.
+- The markdown engine wraps by chars, not width, so Hindi lines wrap a little early.
+
+### Proof
+
+- **Shots.** `CREW_SHOT_DIR=<dir> cargo test -p crew-app --bin crew indic_ -- --ignored`
+  writes the phase-0 set, plus Bengali, Tamil, Gujarati and Thai, on both pages. No PNG is
+  kept in the repo; the command makes them.
+- **Pixels.** `indicpixel_tests` (same command) draws Hindi rows and a mixed row on both
+  pages and reads the pixels:
+  - each Devanagari word is one unbroken span of ink;
+  - every row's ink starts at its first cell and ends within its last word's room;
+  - Latin after Hindi starts on its own cell.
+
+  With the run path switched off it fails: 9 spans of ink for 6 words.
+- **The digest.** The Hindi news digest that showed the bug (thread `1a15d247` of the user's
+  saved mail) was drawn by `inbox_live_shot`, before (v0.27.46) and after. Every headline
+  link reads whole, and its underline ends with its words. The shots are of the user's own
+  mail, so they stay outside the repo.
+- **Unit tests.**
+  - `scriptrun_tests`: collection, punctuation, room.
+  - `scriptplace_tests`: phrase layout, the tight fallback, shrinking, bold's family, the
+    warp.
+  - `crew-term` `modelmarks_tests`, `crew-theme` `marks_tests`, `crew-app`
+    `markcells_tests` (every producer and selection copy) and `copytext_tests`.
+
+### Light weight
+
+Measured with `cargo test --release -p crew-render scriptrun_cost -- --ignored --nocapture`,
+on a 120×40 pane. A warm English pane is the baseline:
+
+| Pane | Grid | Runs |
+|---|---|---|
+| English, warm | 29 ms | none |
+| Hindi, cold | 72 ms | 3.5 ms (1,200 runs) |
+| Hindi, run cache warm | 72 ms | 0.08 ms |
+| Hindi, before this goal | 782 ms cold, 391 ms warm | none |
+
+- A pane of plain spaces also costs 72 ms, so the grid's share is cosmic-text's cost for long
+  runs of blanks, not the run path. Neither a no-break space nor a merged span changed it.
+- The old path paid for a correction measured and rebuilt on every Devanagari glyph.
+- Latin pays nothing new: no runs, and empty marks.
+- A pane is only rebuilt when its content changes.
+
+### Windows and Linux
+
+Not run. On macOS the fallbacks found are Kohinoor Devanagari (body) and Devanagari Sangam MN,
+Bangla Sangam MN, InaiMathi (Tamil), Gujarati Sangam MN and Ayuthaya (Thai). The goal names
+Nirmala UI on Windows and Noto Sans Devanagari on Linux; nothing here depends on which family
+answers. The shaping tests skip, saying so, on a machine with no face for the script
+(`scriptrun::tests::drawable`), so CI on a runner without Indic fonts skips rather than fails.
+

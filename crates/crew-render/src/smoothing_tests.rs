@@ -109,7 +109,7 @@ fn presmooth_seeds_the_cache_with_padded_heavier_masks() {
         body: ((255, 255, 255), (0, 0, 0)),
     };
     let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cell_w, cell_h, &p);
-    let buffers = vec![(buf, 0.0f32, 0.0f32, cell_w, cell_h)];
+    let buffers = vec![(buf, 0.0f32, 0.0f32, cell_w, cell_h, Vec::new())];
     presmooth(&mut swash, &mut fs, &buffers);
 
     // Compare the seeded 'M' against a raw re-raster of the same key.
@@ -169,7 +169,7 @@ fn presmooth_at_zero_strength_seeds_untouched_masks() {
         body: ((255, 255, 255), (0, 0, 0)),
     };
     let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cell_w, cell_h, &p);
-    let buffers = vec![(buf, 0.0f32, 0.0f32, cell_w, cell_h)];
+    let buffers = vec![(buf, 0.0f32, 0.0f32, cell_w, cell_h, Vec::new())];
     presmooth(&mut swash, &mut fs, &buffers);
     let key = buffers[0]
         .0

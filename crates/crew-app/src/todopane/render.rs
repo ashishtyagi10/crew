@@ -336,8 +336,8 @@ pub(crate) fn row_cells(
             false => chars[s..e].iter().collect(),
         };
         let styled = text.chars().map(|c| (c, ()));
-        crate::chatwidth::place_row(TITLE_COL, max, styled, |x, c, ()| {
-            out.push(cell(x, r, c, ink, selected))
+        crate::chatwidth::place_row(TITLE_COL, max, styled, |x, c, marks, ()| {
+            out.push(cell(x, r, c, ink, selected).marked(marks))
         });
     }
 }

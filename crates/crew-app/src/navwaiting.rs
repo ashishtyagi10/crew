@@ -49,17 +49,23 @@ pub(crate) fn waiting_cells(rows: &[WaitRow], cols: u16, max_lines: usize) -> Ve
         let col = crate::navtext::lead(&r.text);
         // Cut between words: `▸ 2 running · s…` was a letter of a word.
         let body = crate::chatwidth::clip_words(&r.text, usize::from(max_col.saturating_sub(col)));
-        crate::chatwidth::place_row(col, max_col, body.chars().map(|c| (c, fg)), |x, c, fg| {
-            out.push(CellView {
-                col: x,
-                row: 1 + k as u16,
-                c,
-                fg,
-                bg: t.page_bg,
-                bold: r.hovered,
-                ..Default::default()
-            });
-        });
+        crate::chatwidth::place_row(
+            col,
+            max_col,
+            body.chars().map(|c| (c, fg)),
+            |x, c, marks, fg| {
+                out.push(CellView {
+                    col: x,
+                    row: 1 + k as u16,
+                    c,
+                    marks,
+                    fg,
+                    bg: t.page_bg,
+                    bold: r.hovered,
+                    ..Default::default()
+                });
+            },
+        );
     }
     out
 }

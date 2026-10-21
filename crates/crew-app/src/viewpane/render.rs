@@ -103,11 +103,12 @@ impl ViewPane {
                 0,
                 cols,
                 line.iter().map(|cell| (cell.c, cell)),
-                |col, c, cell| {
+                |col, c, marks, cell| {
                     out.push(CellView {
                         col,
                         row,
                         c,
+                        marks,
                         fg: cell.fg,
                         bg: cell.bg.unwrap_or(page_bg),
                         bold: cell.bold,

@@ -139,8 +139,8 @@ pub(crate) fn place_left(
         return x;
     }
     let styled = s.chars().map(|c| (c, ()));
-    crate::chatwidth::place_row(x, limit, styled, |x, c, ()| {
-        out.push(cell(x, row, c, fg, false))
+    crate::chatwidth::place_row(x, limit, styled, |x, c, marks, ()| {
+        out.push(cell(x, row, c, fg, false).marked(marks))
     });
     x + w + 2
 }
@@ -161,8 +161,8 @@ pub(crate) fn place_right(
         return end;
     }
     let styled = s.chars().map(|c| (c, ()));
-    crate::chatwidth::place_row(start, end, styled, |x, c, ()| {
-        out.push(cell(x, row, c, fg, bold))
+    crate::chatwidth::place_row(start, end, styled, |x, c, marks, ()| {
+        out.push(cell(x, row, c, fg, bold).marked(marks))
     });
     start.saturating_sub(2)
 }

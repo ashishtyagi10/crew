@@ -110,11 +110,12 @@ fn put(
     max_col: u16,
     bg: (u8, u8, u8),
 ) {
-    crate::chatwidth::place_row(TEXT_COL, max_col, styled, |x, c, fg| {
+    crate::chatwidth::place_row(TEXT_COL, max_col, styled, |x, c, marks, fg| {
         out.push(CellView {
             col: x,
             row,
             c,
+            marks,
             fg,
             bg,
             ..Default::default()

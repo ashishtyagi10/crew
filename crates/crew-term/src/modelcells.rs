@@ -196,6 +196,12 @@ impl TermCore {
                     bold,
                     italic,
                     deco,
+                    marks: match ind.flags.contains(Flags::HIDDEN) {
+                        true => crew_theme::marks::Marks::default(),
+                        false => crew_theme::marks::Marks::of(
+                            ind.zerowidth().unwrap_or_default().iter().copied(),
+                        ),
+                    },
                     ..Default::default()
                 })
             })

@@ -8,15 +8,11 @@ use crew_term::{RenderCell, TermModel};
 /// Reconstruct the visible terminal screen as text: each row trimmed of trailing
 /// spaces, with trailing blank rows dropped.
 fn screen_text(cells: &[RenderCell], cols: u16, rows: u16) -> String {
+    let grid = crate::copytext::rows(cells.iter().map(|c| (c.row, c.col, c.c, c.marks)));
     let mut lines: Vec<String> = Vec::new();
     for r in 0..rows {
-        let mut line = vec![' '; cols as usize];
-        for cell in cells.iter().filter(|c| c.row == r) {
-            if (cell.col as usize) < line.len() {
-                line[cell.col as usize] = cell.c;
-            }
-        }
-        lines.push(line.into_iter().collect::<String>().trim_end().to_string());
+        let row = grid.get(&r).cloned().unwrap_or_default();
+        lines.push(crate::copytext::line(&row, 0, cols.saturating_sub(1)));
     }
     while lines.last().is_some_and(|l| l.is_empty()) {
         lines.pop();
@@ -56,9 +52,10 @@ fn paste_into_chat(c: &mut crate::chat::ChatPane, text: &str) {
 /// A pane's drawn cells as text, trailing blanks trimmed — the same reading
 /// `screen_text` gives a terminal grid, for the panes crew draws itself.
 fn rendered_text(cells: &[crew_render::CellView], cols: u16, rows: u16) -> String {
-    crate::gridrows::grid_lines(cells, cols, rows)
-        .into_iter()
-        .map(|line| line.iter().collect::<String>().trim_end().to_string())
+    let grid = crate::copytext::rows(cells.iter().map(|c| (c.row, c.col, c.c, c.marks)));
+    (0..rows)
+        .map(|r| grid.get(&r).cloned().unwrap_or_default())
+        .map(|row| crate::copytext::line(&row, 0, cols.saturating_sub(1)))
         .collect::<Vec<_>>()
         .join("\n")
         .trim_end()

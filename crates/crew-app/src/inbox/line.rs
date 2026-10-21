@@ -3,6 +3,7 @@
 //! selected row carries the wash (`bgruns` rounds a highlight's outer corners
 //! and frosts it on glass).
 use crew_render::CellView;
+use crew_theme::marks::Marks;
 
 use crate::chatwidth::{char_w, clip_w, str_w};
 
@@ -14,6 +15,7 @@ enum Slot {
     /// A glyph; a wide one's second column is [`Slot::Cont`].
     Glyph {
         c: char,
+        marks: Marks,
         fg: Rgb,
         bold: bool,
     },
@@ -43,12 +45,19 @@ impl Line {
             return col;
         }
         let mut x = col;
+        // The glyph a mark after it rides on (`CellView::marks`).
+        let mut last: Option<usize> = None;
         for c in clip_w(s, usize::from(end - col)).chars() {
             let w = char_w(c) as u16;
+            if let (0, Some(Slot::Glyph { marks, .. })) = (w, last.map(|i| &mut self.slots[i])) {
+                marks.push(c);
+            }
             if w == 0 || x + w > end {
                 continue;
             }
-            self.slots[usize::from(x)] = Slot::Glyph { c, fg, bold };
+            last = Some(usize::from(x));
+            let marks = Marks::default();
+            self.slots[usize::from(x)] = Slot::Glyph { c, marks, fg, bold };
             if w == 2 {
                 self.slots[usize::from(x) + 1] = Slot::Cont;
             }
@@ -77,16 +86,17 @@ impl Line {
     pub(crate) fn emit(self, out: &mut Vec<CellView>, row: u16, wash: Option<Rgb>) {
         let page = crew_theme::theme().page_bg;
         for (x, slot) in self.slots.into_iter().enumerate() {
-            let (c, fg, bold) = match slot {
+            let (c, marks, fg, bold) = match slot {
                 Slot::Cont => continue,
                 Slot::Empty if wash.is_none() => continue,
-                Slot::Empty => (' ', page, false),
-                Slot::Glyph { c, fg, bold } => (c, fg, bold),
+                Slot::Empty => (' ', Marks::default(), page, false),
+                Slot::Glyph { c, marks, fg, bold } => (c, marks, fg, bold),
             };
             out.push(CellView {
                 col: x as u16,
                 row,
                 c,
+                marks,
                 fg,
                 bg: wash.unwrap_or(page),
                 bold,

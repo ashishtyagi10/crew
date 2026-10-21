@@ -23,14 +23,10 @@ pub(crate) fn dump_path(arg: &str, base: &Path, stamp: &str) -> PathBuf {
 
 /// Reconstruct one grid row as a string, trimming trailing blanks.
 pub(crate) fn grid_row(cells: &[RenderCell], row: u16, cols: u16) -> String {
-    let mut line = vec![' '; cols as usize];
-    for c in cells.iter().filter(|c| c.row == row) {
-        if (c.col as usize) < line.len() {
-            line[c.col as usize] = c.c;
-        }
-    }
-    let s: String = line.into_iter().collect();
-    s.trim_end().to_string()
+    let at = cells.iter().filter(|c| c.row == row);
+    let grid = crate::copytext::rows(at.map(|c| (c.row, c.col, c.c, c.marks)));
+    let row = grid.get(&row).cloned().unwrap_or_default();
+    crate::copytext::line(&row, 0, cols.saturating_sub(1))
 }
 
 /// Walk `pty` from the top of its scrollback to the live bottom, returning the

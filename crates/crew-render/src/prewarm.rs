@@ -83,7 +83,7 @@ pub(crate) fn build_buffer(font_system: &mut FontSystem, params: &FontParams) ->
         rows as f32 * params.line_height,
     );
     let buf = build_pane_buffer(font_system, &cells, COLS, rows, w, h, params);
-    (buf, 0.0, 0.0, w, h)
+    (buf, 0.0, 0.0, w, h, Vec::new())
 }
 
 /// Rasterize and upload the working set through the real render path. A

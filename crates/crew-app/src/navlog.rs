@@ -108,11 +108,12 @@ pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize, back: usize)
             .chars()
             .map(|c| (c, t.dim))
             .chain(body.chars().map(|c| (c, fg)));
-        crate::chatwidth::place_row(TEXT_COL, max_col, styled, |x, c, fg| {
+        crate::chatwidth::place_row(TEXT_COL, max_col, styled, |x, c, marks, fg| {
             out.push(CellView {
                 col: x,
                 row: 1 + k as u16,
                 c,
+                marks,
                 fg,
                 bg: t.page_bg,
                 // An error says so by weight as well as colour: on amber the
@@ -137,18 +138,24 @@ fn write(
 ) {
     // Width-aware: pane titles can carry emoji/CJK (OSC titles) — a wide
     // glyph advances two columns (see `chatwidth`).
-    crate::chatwidth::place_row(col, max_col, s.chars().map(|c| (c, fg)), |x, c, fg| {
-        out.push(CellView {
-            col: x,
-            row,
-            c,
-            fg,
-            bg,
-            bold: false,
-            italic: false,
-            ..Default::default()
-        });
-    });
+    crate::chatwidth::place_row(
+        col,
+        max_col,
+        s.chars().map(|c| (c, fg)),
+        |x, c, marks, fg| {
+            out.push(CellView {
+                col: x,
+                row,
+                c,
+                marks,
+                fg,
+                bg,
+                bold: false,
+                italic: false,
+                ..Default::default()
+            });
+        },
+    );
 }
 
 #[path = "navlogstamp.rs"]

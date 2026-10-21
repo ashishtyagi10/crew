@@ -33,11 +33,12 @@ pub(crate) fn push_styled(
     bold: bool,
 ) {
     let bg = crew_theme::theme().page_bg;
-    *col = crate::chatwidth::place_row(*col, max_col, chars, |x, c, fg| {
+    *col = crate::chatwidth::place_row(*col, max_col, chars, |x, c, marks, fg| {
         v.push(CellView {
             col: x,
             row,
             c,
+            marks,
             fg,
             bg,
             bold,

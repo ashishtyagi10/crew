@@ -81,11 +81,12 @@ pub(crate) fn indicator_cells_at(
         let text = crate::chatwidth::clip_w(&text, usize::from(cols.saturating_sub(inset)));
         let styled = text.chars().map(|c| (c, theme.text_muted));
         let row = row + i as u16;
-        crate::chatwidth::place_row(inset, cols, styled, |col, c, fg| {
+        crate::chatwidth::place_row(inset, cols, styled, |col, c, marks, fg| {
             cells.push(CellView {
                 col,
                 row,
                 c,
+                marks,
                 fg,
                 bg: theme.page_bg,
                 ..Default::default()

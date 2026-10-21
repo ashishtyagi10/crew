@@ -56,21 +56,27 @@ pub(crate) fn summary_art(
         let row = top + i as u16;
         let line = line.into_iter().map(|(c, fg, block)| (c, (fg, block)));
         // A badge cell carries its block; everything else sits on the page.
-        crate::chatwidth::place_row(1, cols.saturating_sub(1), line, |x, c, (fg, block)| {
-            cells.push(CellView {
-                col: x,
-                row,
-                c,
-                fg,
-                bg: block.unwrap_or(bg),
-                // A badge's label is bold (`segment::badge`), as in the
-                // transcript: thin strokes on a bright block were the first
-                // thing a tube's glow ate.
-                bold: block.is_some(),
-                italic: false,
-                ..Default::default()
-            });
-        });
+        crate::chatwidth::place_row(
+            1,
+            cols.saturating_sub(1),
+            line,
+            |x, c, marks, (fg, block)| {
+                cells.push(CellView {
+                    col: x,
+                    row,
+                    c,
+                    marks,
+                    fg,
+                    bg: block.unwrap_or(bg),
+                    // A badge's label is bold (`segment::badge`), as in the
+                    // transcript: thin strokes on a bright block were the first
+                    // thing a tube's glow ate.
+                    bold: block.is_some(),
+                    italic: false,
+                    ..Default::default()
+                });
+            },
+        );
     }
     let paint = draw_meters(&mut cells, &meters, aspect);
     (cells, paint)

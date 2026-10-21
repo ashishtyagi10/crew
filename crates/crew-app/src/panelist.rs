@@ -177,15 +177,15 @@ fn write(
 ) {
     // Width-aware: pane titles can carry emoji/CJK (OSC titles) — a wide
     // glyph advances two columns (see `chatwidth`).
-    crate::chatwidth::place_row(col, max_col, s.chars().map(|c| (c, fg)), |x, c, fg| {
+    let chars = s.chars().map(|c| (c, fg));
+    crate::chatwidth::place_row(col, max_col, chars, |x, c, marks, fg| {
         out.push(CellView {
             col: x,
             row,
             c,
+            marks,
             fg,
             bg,
-            bold: false,
-            italic: false,
             ..Default::default()
         });
     });

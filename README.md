@@ -29,7 +29,10 @@ changes with the font you pick (every glyph advance — bold and wide CJK/emoji
 included — snaps to whole cells, so panes, borders, and columns never move),
 **pixel-exact themes** (colours convert to linear once at the GPU boundary —
 the near-black page really is near-black), **width-aware text everywhere**
-(emoji/CJK occupy two cells without overlapping), a **verified font picker**
+(emoji/CJK occupy two cells without overlapping), **Hindi and every script
+that joins its letters drawn whole** (Bengali, Tamil, Gujarati, Thai and the
+rest: vowel signs, conjuncts and marks shaped together, on the grid), a
+**verified font picker**
 (families are listed by measuring that they render fixed-pitch Latin, so
 variable fonts like JetBrains Mono appear and mis-flagged symbol fonts don't —
 check with `crew --list-fonts`), and frame-to-frame **shaped-text reuse** so

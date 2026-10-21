@@ -20,13 +20,16 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, shown: usi
         let mut x = BOX_COL;
         for tag in [project, who].into_iter().flatten() {
             let fg = crew_theme::tag_color(tag.trim_start_matches(['@', '#']), t);
-            x = crate::chatwidth::place_row(x, cols, tag.chars().map(|c| (c, ())), |x, c, ()| {
-                out.push(cell(x, 0, c, fg, false))
-            }) + 1;
+            x = crate::chatwidth::place_row(
+                x,
+                cols,
+                tag.chars().map(|c| (c, ())),
+                |x, c, marks, ()| out.push(cell(x, 0, c, fg, false).marked(marks)),
+            ) + 1;
         }
         let tail = format!("\u{b7} {shown} item{}", if shown == 1 { "" } else { "s" });
-        crate::chatwidth::place_row(x, cols, tail.chars().map(|c| (c, ())), |x, c, ()| {
-            out.push(cell(x, 0, c, t.text_muted, false))
+        crate::chatwidth::place_row(x, cols, tail.chars().map(|c| (c, ())), |x, c, marks, ()| {
+            out.push(cell(x, 0, c, t.text_muted, false).marked(marks))
         });
     }
     if let (Some(chip), Some((start, _))) = (done_chip(p), done_chip_zone(p, cols)) {
@@ -34,9 +37,10 @@ pub(crate) fn cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, shown: usi
         let bg = crate::anim::lerp_rgb(t.page_bg, crate::palette::accent(), 0.22);
         let fg = crew_theme::readable::enforced(crate::palette::accent(), bg, 4.5);
         let styled = chip.chars().map(|c| (c, ()));
-        crate::chatwidth::place_row(start, cols, styled, |x, c, ()| {
+        crate::chatwidth::place_row(start, cols, styled, |x, c, marks, ()| {
             out.push(CellView {
                 bg,
+                marks,
                 ..cell(x, 0, c, fg, false)
             })
         });
@@ -71,17 +75,19 @@ pub(crate) fn band(out: &mut Vec<CellView>, p: &TodoPane, idx: usize, row: u16, 
             }
         }
     };
-    let x =
-        crate::chatwidth::place_row(BOX_COL, cols, name.chars().map(|c| (c, ())), |x, c, ()| {
-            out.push(cell(x, row, c, fg, true))
-        });
+    let x = crate::chatwidth::place_row(
+        BOX_COL,
+        cols,
+        name.chars().map(|c| (c, ())),
+        |x, c, marks, ()| out.push(cell(x, row, c, fg, true).marked(marks)),
+    );
     let Some(tail) = tail else { return };
     // Two columns of air, then the roll-up — dropped whole rather than
     // clipped when the pane is too narrow to hold it beside the name.
     let tail = format!("  {tail}");
     if x + crate::chatwidth::str_w(&tail) as u16 <= cols {
-        crate::chatwidth::place_row(x, cols, tail.chars().map(|c| (c, ())), |x, c, ()| {
-            out.push(cell(x, row, c, t.text_muted, false))
+        crate::chatwidth::place_row(x, cols, tail.chars().map(|c| (c, ())), |x, c, marks, ()| {
+            out.push(cell(x, row, c, t.text_muted, false).marked(marks))
         });
     }
 }
@@ -118,8 +124,8 @@ pub(crate) fn empty(out: &mut Vec<CellView>, p: &TodoPane, header: u16, lh: u16,
         let x = BOX_COL + (room - crate::chatwidth::str_w(&hint)) as u16 / 2;
         let fg = if i == 0 { t.ink } else { t.text_muted };
         let styled = hint.chars().map(|c| (c, ()));
-        crate::chatwidth::place_row(x, cols, styled, |x, c, ()| {
-            out.push(cell(x, row, c, fg, false))
+        crate::chatwidth::place_row(x, cols, styled, |x, c, marks, ()| {
+            out.push(cell(x, row, c, fg, false).marked(marks))
         });
     }
 }

@@ -2,6 +2,7 @@
 //! (a wide emoji/CJK glyph occupies two cells — its advance snaps to
 //! 2 × cell at render), so wrapping and column placement must count display
 //! columns, not chars, or text after a wide glyph overlaps it.
+use crew_theme::marks::Marks;
 use unicode_width::UnicodeWidthChar;
 
 /// Display columns `c` occupies in the cell grid (0 for zero-width marks).
@@ -111,25 +112,38 @@ pub(crate) fn soft_end(full: &[char], start: usize, end: usize) -> usize {
 }
 
 /// Place styled chars on one row from `start`, advancing by display width and
-/// stopping before `max_col`; zero-width marks are skipped. Calls
-/// `put(col, ch, style)` per placed char and returns the next free column.
+/// stopping before `max_col`. Calls `put(col, ch, marks, style)` per placed
+/// char and returns the next free column. `marks` are the zero-width marks
+/// that follow `ch` — a virama, a nasal dot — which ride on its cell instead
+/// of taking one: skipped, they turned `क्ष` into `कष`.
 pub(crate) fn place_row<S: Copy>(
     start: u16,
     max_col: u16,
     chars: impl IntoIterator<Item = (char, S)>,
-    mut put: impl FnMut(u16, char, S),
+    mut put: impl FnMut(u16, char, Marks, S),
 ) -> u16 {
     let mut x = start;
+    // The char placed last, held until the marks after it are read.
+    let mut held: Option<(u16, char, Marks, S)> = None;
     for (ch, style) in chars {
         let w = char_w(ch) as u16;
         if w == 0 {
+            if let Some((_, _, marks, _)) = held.as_mut() {
+                marks.push(ch);
+            }
             continue;
         }
-        if x + w > max_col {
-            break;
+        if let Some((hx, hc, hm, hs)) = held.take() {
+            put(hx, hc, hm, hs);
         }
-        put(x, ch, style);
+        if x + w > max_col {
+            return x;
+        }
+        held = Some((x, ch, Marks::default(), style));
         x += w;
+    }
+    if let Some((hx, hc, hm, hs)) = held {
+        put(hx, hc, hm, hs);
     }
     x
 }
