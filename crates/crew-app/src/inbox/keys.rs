@@ -134,6 +134,8 @@ impl InboxPane {
             self.browse(Some(&id));
         } else if matches!(ch, "n" | "p" | "J" | "K") {
             self.note = self.next_thread(matches!(ch, "n" | "J")).into();
+        } else if ch == "x" {
+            self.note = r.fold_all().into();
         } else if ch == "w" {
             r.pop_out = true;
         } else if ch == "i" {

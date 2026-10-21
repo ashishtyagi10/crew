@@ -19,8 +19,8 @@ impl InboxPane {
         let more = if self.more { "+" } else { "" };
         let n = self.rows.len();
         let s = format!("\u{2039}  {} of {n}{more}  \u{203a}", self.sel + 1);
-        // The reader's words end two columns in from its edge.
-        let end = cols.saturating_sub(2);
+        // Where the reader's words end: its margin, or its measure.
+        let end = 2 + super::reader::text_width(cols) as u16;
         Some((s.clone(), end.saturating_sub(str_w(&s) as u16)))
     }
 

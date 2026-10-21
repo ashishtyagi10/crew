@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.52
+
+**`/inbox`: long threads fold, and lines keep a reading measure.** Second
+round of the mail reader loop.
+- **Older mails fold.** In a thread of three mails or more, every mail but
+  the newest folds to one line: who wrote it, how it starts and when, so
+  the conversation reads at a glance and the newest is where the eye lands.
+  Click a folded mail to open it; `x` opens them all, or folds them again.
+- **A reading measure.** On a wide pane a mail's lines no longer run the
+  width of the screen: the reader sets them at most 88 columns wide, about
+  the width a mail is designed for.
+- **Tests:** folding, opening by click and by `x`, the folded line's plain
+  words, and the measure.
+
 ## 0.27.51
 
 **`/inbox`: keys you can click, and where you are.** First round of the

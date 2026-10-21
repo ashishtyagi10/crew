@@ -73,6 +73,7 @@ impl CrewApp {
                         .checked_sub(rx)
                         .and_then(|c| p.counter_at(w, row, c))
                         .is_some()
+                    || (col >= rx && p.folded_at(w, row).is_some())
             };
             at == i && matches!(&self.panes[at].content, PaneContent::Inbox(p) if on(p))
         })

@@ -33,6 +33,8 @@ pub(crate) struct Lay {
     /// How big the landed pictures are, to size the boxes of those the mail
     /// gave no height (`readfit`).
     pub sizes: super::readfit::Sizes,
+    /// Each folded mail's row, and which mail it is (`readfold`).
+    pub folded: Vec<(usize, usize)>,
 }
 
 impl Lay {
