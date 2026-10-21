@@ -8,6 +8,18 @@ pub(crate) fn node(n: &Node, o: &mut Out) {
     if hide::hidden(n) {
         return;
     }
+    // A size is inherited: zero hides only the words that do not set their own.
+    let (tiny, btn) = (o.tiny, o.btn);
+    if let Some(px) = super::font::size(n) {
+        o.tiny = px <= 1.0;
+    }
+    // A table or cell classed as a button makes the link in it one.
+    o.btn |= n.tag != "a" && classed_button(n);
+    element(n, o);
+    (o.tiny, o.btn) = (tiny, btn);
+}
+
+fn element(n: &Node, o: &mut Out) {
     if o.split.is_none() && quote::starts(n) {
         o.block();
         o.split = Some(o.doc.len());
@@ -61,41 +73,20 @@ pub(crate) fn node(n: &Node, o: &mut Out) {
         "code" | "tt" | "kbd" | "samp" if !o.pre => code(n, o),
         _ if BLOCK.contains(&tag) => {
             o.block();
-            styled(n, o);
+            super::font::styled(n, o, true);
             o.block();
         }
-        _ => styled(n, o),
+        _ => super::font::styled(n, o, false),
     }
 }
 
-fn kids(n: &Node, o: &mut Out) {
+pub(super) fn kids(n: &Node, o: &mut Out) {
     for k in &n.kids {
         match k {
             Kid::El(e) => node(e, o),
+            Kid::Text(_) if o.tiny => {}
             Kid::Text(t) => o.text(&ent::decode(t)),
         }
-    }
-}
-
-/// A `span` or `td` styled bold or italic is as good as a `<b>`.
-fn styled(n: &Node, o: &mut Out) {
-    let style = n
-        .attr("style")
-        .unwrap_or("")
-        .to_ascii_lowercase()
-        .replace(' ', "");
-    let bold = [
-        "font-weight:bold",
-        "font-weight:700",
-        "font-weight:800",
-        "font-weight:900",
-    ]
-    .iter()
-    .any(|s| style.contains(s));
-    match (bold, style.contains("font-style:italic")) {
-        (true, _) => wrapped(n, o, "**"),
-        (false, true) => wrapped(n, o, "*"),
-        _ => kids(n, o),
     }
 }
 
@@ -111,7 +102,7 @@ fn plain_style(n: &Node, prop: &str, normal: &[&str]) -> bool {
         .any(|v| style.contains(&format!("{prop}:{v}")))
 }
 
-fn wrapped(n: &Node, o: &mut Out, delim: &str) {
+pub(super) fn wrapped(n: &Node, o: &mut Out, delim: &str) {
     let m = o.mark();
     kids(n, o);
     o.wrap(m, |s| format!("{delim}{s}{delim}"));
@@ -149,10 +140,34 @@ fn anchor(n: &Node, o: &mut Out) {
         return;
     }
     let words = super::plain_of(o.since(m).unwrap_or(""));
-    o.wrap(m, |s| format!("[{s}](<{href}>)"));
+    match (o.btn || button(n)) && (1..=40).contains(&words.trim().chars().count()) {
+        // A capsule that is the link, as chat draws inline code; the spaces
+        // inside it pad the capsule (a code span drops one each side).
+        true => {
+            let said = words.trim().replace('`', "'");
+            o.wrap(m, |_| format!("[`  {said}  `](<{href}>)"));
+        }
+        false => o.wrap(m, |s| format!("[{s}](<{href}>)")),
+    }
     if let Some(real) = link::lie(&words, &href) {
         o.text(&format!(" \u{27f6} {real}"));
     }
+}
+
+/// A link drawn as a button (goal 2026-10-21-mail-looks-right, item 10):
+/// its own fill or border, or a class that says so.
+fn button(n: &Node) -> bool {
+    let style = n.attr("style").unwrap_or("");
+    let fill = ["background-color", "background"].iter().any(|p| {
+        super::font::decl(style, p).is_some_and(|v| !matches!(v.as_str(), "none" | "transparent"))
+    });
+    let border = super::font::decl(style, "border").is_some_and(|v| v != "0" && v != "none");
+    fill || border || classed_button(n)
+}
+
+fn classed_button(n: &Node) -> bool {
+    let class = n.attr("class").unwrap_or("").to_ascii_lowercase();
+    class.contains("button") || class.split_whitespace().any(|c| c == "btn")
 }
 
 fn data_table(t: &Node, o: &mut Out) {

@@ -33,7 +33,10 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
         "In a thread: unsubscribe from its sender (a second u confirms)",
     ),
     ("v", "In a thread: the plain-text version"),
-    ("i", "In a thread: fetch its pictures from the web"),
+    (
+        "i",
+        "In a thread: hide its pictures from the web, or show them",
+    ),
     ("w", "In a thread: open it in a window of its own"),
     ("?", "These keys"),
 ];

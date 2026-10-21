@@ -11,7 +11,7 @@ use super::{html, plain};
 pub(crate) struct Rich {
     /// Markdown, for `md::render_chat`.
     pub body: String,
-    /// The quoted history, folded until `z`.
+    /// The quoted history, folded until `q`.
     pub quote: Option<String>,
     /// A plain mail's signature, drawn quiet.
     pub sig: Option<String>,

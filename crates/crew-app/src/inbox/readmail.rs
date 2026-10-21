@@ -1,6 +1,7 @@
-//! One message laid out in the open thread: who and when, its words, the
-//! row about pictures from the web, its folded history, its pictured
-//! attachments, its signature, and the quiet lines under it — and where
+//! One message laid out in the open thread: who and when, the row about
+//! pictures from the web when they are hidden, its words, its folded
+//! history, its pictured attachments, its signature, and the quiet lines
+//! under it — and where
 //! every picture landed, which only the layout can know (goal
 //! 2026-10-20-mail-reader, phases 1 and 2).
 use super::api::Mail;
@@ -64,15 +65,16 @@ pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key) {
     lay.lines.push(Vec::new());
     let who = format!("{} \u{b7} {}", sender_name(&m.from), when(&m.date));
     lay.lines.push(row(&who, k.muted, true));
-    lay.md(&rich.body, k, k.ink, &m.id);
+    // Said where it shows, under the sender, not past the end of the mail.
     if rich.web > 0 && !r.web {
         let s = if rich.web == 1 { "" } else { "s" };
         let line = format!(
-            "\u{25a3} {} picture{s} from the web \u{b7} i shows them",
+            "\u{25a3} {} picture{s} from the web hidden \u{b7} i shows them",
             rich.web
         );
         lay.quiet(&line, k);
     }
+    lay.md(&rich.body, k, k.ink, &m.id);
     if let Some(q) = &rich.quote {
         match r.quotes {
             true => lay.md(q, k, k.ink, &m.id),

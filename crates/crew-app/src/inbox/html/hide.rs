@@ -26,8 +26,9 @@ pub(crate) fn hidden(n: &Node) -> bool {
     n.attr("style").is_some_and(invisible_style)
 }
 
-/// `display:none`, `visibility:hidden`, `mso-hide:all`, `opacity:0`, a
-/// zero `max-height`, or a font too small to read.
+/// `display:none`, `visibility:hidden`, `mso-hide:all`, `opacity:0` or a
+/// zero `max-height`. A zero font size is not here: it is inherited, and a
+/// child that sets its own is seen (`font`).
 pub(crate) fn invisible_style(style: &str) -> bool {
     style.split(';').any(|decl| {
         let Some((k, v)) = decl.split_once(':') else {
@@ -44,7 +45,7 @@ pub(crate) fn invisible_style(style: &str) -> bool {
             "visibility" => v == "hidden",
             "mso-hide" => v == "all",
             "opacity" => zero(&v),
-            "max-height" | "font-size" => zero(&v) || v == "1px",
+            "max-height" => zero(&v) || v == "1px",
             _ => false,
         }
     })
@@ -86,7 +87,10 @@ mod tests {
     fn preheaders_and_hidden_styles_are_hidden_and_plain_blocks_are_not() {
         let style = |s: &str| node("div", &[("style", s)]);
         assert!(hidden(&style("display: none !important; max-height:0")));
-        assert!(hidden(&style("font-size:0px;color:#fff")));
+        assert!(
+            !hidden(&style("font-size:0px;color:#fff")),
+            "a zero size is inherited, not a hidden subtree"
+        );
         assert!(hidden(&style("mso-hide:all")));
         assert!(hidden(&node("span", &[("class", "Preheader x")])));
         assert!(hidden(&node("style", &[])));

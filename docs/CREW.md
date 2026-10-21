@@ -1681,7 +1681,14 @@ longer aim at.
   stripped. An HTML mail is drawn as markdown through the chat renderer:
   headings, bold and italic, nested lists, blockquotes, code, rules, and a
   data table (a receipt's rows) as a table, while a newsletter's layout
-  tables are read cell by cell. Hidden text (`display:none`, preheaders,
+  tables are read cell by cell. Mail styled with CSS rather than tags reads
+  the same: a short line set at 24px or more is a heading (`#`), at 20px
+  `##`, bold at 17px `###` (`<font size>` too), and a weight of 600 or more
+  is bold. A font size is inherited as in a browser: `font-size:0` on a row
+  of columns (the gap-closing trick of hybrid and MJML mail) hides only the
+  words directly under it, never the columns that set their own size. A link
+  with its own fill or border, or inside a table or cell classed `btn` or
+  `button`, is drawn as a button: a padded capsule that is the link. Hidden text (`display:none`, preheaders,
   `mso-hide`) is dropped, so agent smith never reads what the user cannot
   see. A link opens at its real address by Cmd+click or `Cmd+E`; only
   `http`, `https` and `mailto` are links, and one whose words name another
@@ -1696,11 +1703,14 @@ longer aim at.
   saying so. Pictures: one the mail carries (`cid:`, and up to four image
   attachments under their message) is fetched as the thread opens and drawn
   in its place, in a box sized from the mail's own `height` (about 20 px a
-  row) so the text never jumps when it lands. One from the web is its words
-  (`▣ Team`) with `▣ 3 pictures from the web · i shows them` under the
-  message, because fetching it tells the sender the mail was opened; `i`
-  fetches them on a thread of their own (`https`/`http` only, no cookies, no
-  `Referer`, 10 s and 5 MB a picture, 20 a message). A tracking pixel
+  row) so the text never jumps when it lands. Pictures from the web are
+  fetched as the thread opens too, as Gmail shows them, on a thread of their
+  own (`https`/`http` only, no cookies, no `Referer`, 10 s and 5 MB a
+  picture, 20 a message). Fetching one tells the sender the mail was opened,
+  when and from which address (Gmail's own proxy, which hides the address,
+  is not reachable through the API), so `i` hides a thread's web pictures,
+  and a line under the sender (`▣ 3 pictures from the web hidden · i shows
+  them`) says so until `i` shows them again. A tracking pixel
   (declared 2×2 or smaller, a spacer file, or one that decodes that small)
   is never drawn; every decode runs under `image::Limits` (8,192 px a side,
   128 MB). Pictures live in memory with the open thread and go with it.

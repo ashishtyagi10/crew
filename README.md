@@ -319,10 +319,12 @@ answers to is listed at its foot),
 `/` to search in Gmail's own syntax
 (`from:ann is:unread`), Enter to read a thread (which marks it read, as
 Gmail does) — HTML mail drawn as formatted text: headings, bold, lists,
-tables and links, hidden text dropped, the earlier replies a mail quotes
-folded to one row (`q` unfolds them), `v` for the plain-text version, pictures the mail carries
-drawn in place and pictures from the web only when you press `i` (fetching
-one tells the sender you opened the mail), and a link opened by Cmd+click or
+tables and links, headings and bold set in CSS read as headings and bold,
+buttons drawn as buttons, hidden text dropped, the earlier replies a mail
+quotes folded to one row (`q` unfolds them), `v` for the plain-text version,
+pictures drawn in place — the mail's own and, as in Gmail, those from the web
+(`i` hides those: fetching one tells the sender you opened the mail; tracking
+pixels are never fetched), and a link opened by Cmd+click or
 `Cmd+E` at its real address (one whose words name another site shows where
 it really goes), each attachment a row you Cmd+click to save it to
 `~/Downloads` and open it, and `w` for the thread in a window of its own —

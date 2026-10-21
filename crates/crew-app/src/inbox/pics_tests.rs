@@ -103,13 +103,27 @@ fn a_decoded_picture_is_painted_in_its_box_and_one_still_coming_says_so() {
 }
 
 #[test]
-fn i_fetches_the_webs_pictures_and_one_that_fails_says_what_it_was() {
+fn the_webs_pictures_come_with_the_mail_i_hides_them_and_a_failed_one_says_what_it_was() {
     let (mut p, _asks) = pane();
     let html = "<p>Hi</p><a href='https://x.io/r'><img src='http://127.0.0.1:9/b.png' alt='Read the report' height='60'></a>";
     p.reading.as_mut().unwrap().mails = Some(vec![mail(html, vec![])]);
-    assert!(text(&p, 80, 30).contains("1 picture from the web"));
-    assert_eq!(p.show_web(), "fetching 1 picture from the web");
+    assert!(text(&p, 80, 30).contains("1 picture from the web hidden"));
+    assert_eq!(p.fetch_web(), 1, "fetched as the thread opens");
     assert!(p.reading.as_ref().unwrap().web);
+    assert_eq!(
+        p.show_web(),
+        "pictures from the web hidden \u{b7} i shows them"
+    );
+    let hint = text(&p, 80, 30);
+    let (at, body) = (hint.find("hidden").unwrap(), hint.find("Hi").unwrap());
+    assert!(
+        at < body,
+        "the hint is under the sender, over the words: {hint}"
+    );
+    assert_eq!(
+        p.show_web(),
+        "showing 1 picture from the web \u{b7} i hides it"
+    );
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
     while !p.pics.drain() && std::time::Instant::now() < deadline {
         std::thread::sleep(std::time::Duration::from_millis(20));
