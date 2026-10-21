@@ -96,6 +96,11 @@ impl State {
                     .draft(&thread_id, &raw)
                     .map_or_else(fail, |()| Got::Drafted(subject))]
             }
+            Ask::Send { thread_id, raw, to } => {
+                vec![g
+                    .send(&thread_id, &raw)
+                    .map_or_else(fail, |()| Got::Sent(to))]
+            }
             Ask::Unsubscribe { how, who } => {
                 vec![g
                     .unsubscribe(&how)

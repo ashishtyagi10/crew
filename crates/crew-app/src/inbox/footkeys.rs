@@ -12,6 +12,7 @@ pub(crate) fn key_of(k: &str) -> Option<winit::keyboard::Key> {
     match k {
         "esc" => Some(Press::Named(NamedKey::Escape)),
         "enter" => Some(Press::Named(NamedKey::Enter)),
+        "tab" => Some(Press::Named(NamedKey::Tab)),
         k if k.chars().count() == 1 => Some(Press::Character(k.into())),
         _ => None,
     }
@@ -27,6 +28,18 @@ pub(crate) const SETUP: Keys = &[
     ("esc", "close"),
 ];
 pub(crate) const SIGNING_IN: Keys = &[("esc", "cancel")];
+/// The keycap that sends a reply: the chord the platform sends with.
+pub(crate) const SEND: &str = if cfg!(target_os = "macos") {
+    "\u{2318}\u{21a9}"
+} else {
+    "ctrl+\u{21a9}"
+};
+pub(crate) const COMPOSE: Keys = &[
+    (SEND, "send"),
+    ("esc", "close"),
+    GAP,
+    ("tab", "agent smith drafts it"),
+];
 pub(crate) const LIST: Keys = &[
     ("enter", "read"),
     ("/", "search"),

@@ -54,7 +54,8 @@ impl CrewApp {
                 // The dashboard is a picture: nothing in it takes a key.
                 PaneContent::Dash(_) => {}
                 PaneContent::Inbox(i) => {
-                    inbox_action = i.on_key(event, pane.grid.cols, pane.grid.rows)
+                    let held = mstate.control_key() || mstate.super_key();
+                    inbox_action = i.on_key(event, pane.grid.cols, pane.grid.rows, held)
                 }
                 PaneContent::Todo(t) => {
                     todo_action = t.on_key(

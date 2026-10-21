@@ -15,8 +15,20 @@ pub enum InboxAction {
 }
 
 impl InboxPane {
-    pub fn on_key(&mut self, event: &KeyEvent, cols: u16, rows: u16) -> Option<InboxAction> {
+    /// `held`: Ctrl or Cmd is down, which makes Enter send a reply.
+    pub fn on_key(
+        &mut self,
+        event: &KeyEvent,
+        cols: u16,
+        rows: u16,
+        held: bool,
+    ) -> Option<InboxAction> {
+        let enter = matches!(event.logical_key, Key::Named(NamedKey::Enter));
         match event.state.is_pressed() {
+            true if held && enter && self.compose.is_some() => {
+                self.send_reply();
+                Some(InboxAction::Redraw)
+            }
             true => self.press(&event.logical_key, cols, rows),
             false => None,
         }
@@ -24,6 +36,10 @@ impl InboxPane {
 
     /// One key, pressed: the pane's whole keyboard, testable without winit.
     pub(crate) fn press(&mut self, key: &Key, cols: u16, rows: u16) -> Option<InboxAction> {
+        if self.compose.is_some() && self.reading.is_some() {
+            self.compose_key(key);
+            return Some(InboxAction::Redraw);
+        }
         let ch = match key {
             Key::Character(c) => c.as_str().to_string(),
             Key::Named(NamedKey::Space) => " ".into(),
@@ -115,7 +131,7 @@ impl InboxPane {
 
     fn reading_key(&mut self, key: &Key, ch: &str, cols: u16, rows: u16) -> Option<InboxAction> {
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
-        let page = self.body_rows(cols, rows).saturating_sub(1).max(1) as usize;
+        let page = self.reader_rows(cols, rows).saturating_sub(1).max(1) as usize;
         let (_, width) = self.reader_box(cols);
         let r = self.reading.as_mut()?;
         let last = super::reader::height(r, width).saturating_sub(page);
@@ -169,31 +185,5 @@ impl InboxPane {
         let who = super::query::enc(&self.email);
         let at = thread.map_or_else(|| "#inbox".to_string(), |id| format!("#all/{id}"));
         let _ = open::that_detached(format!("https://mail.google.com/mail/?authuser={who}{at}"));
-    }
-
-    /// A pasted client (the console's JSON) is the one to sign in with.
-    pub fn paste(&mut self, text: &str) {
-        match (&mut self.stage, super::grant::client_from_json(text)) {
-            (Stage::Setup { found }, Some(c)) => *found = Some(("pasted client".into(), c)),
-            (_, _) if self.typing.is_some() => {
-                self.typing.get_or_insert_default().push_str(text.trim())
-            }
-            _ => {}
-        }
-    }
-}
-
-impl InboxPane {
-    /// The wheel moves the selection in the list and scrolls the reader.
-    pub fn scroll_wheel(&mut self, lines: i32, cols: u16, rows: u16) {
-        let (up, n) = (lines > 0, lines.unsigned_abs() as usize);
-        let key = Key::Named(if up {
-            NamedKey::ArrowUp
-        } else {
-            NamedKey::ArrowDown
-        });
-        for _ in 0..n.min(10) {
-            self.press(&key, cols, rows);
-        }
     }
 }

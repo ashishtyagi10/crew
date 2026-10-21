@@ -115,7 +115,12 @@ impl CrewApp {
                     && matches!(&event.logical_key, winit::keyboard::Key::Character(c) if c == "w");
                 close = cmd_w
                     || matches!(
-                        p.on_key(&event, grid.cols, grid.rows),
+                        p.on_key(
+                            &event,
+                            grid.cols,
+                            grid.rows,
+                            m.mods.super_key() || m.mods.control_key()
+                        ),
                         Some(InboxAction::Close)
                     );
                 if let Some(r) = p.reading.as_mut() {

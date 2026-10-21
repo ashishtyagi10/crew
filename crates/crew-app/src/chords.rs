@@ -88,6 +88,8 @@ impl CrewApp {
     /// Handle a Super-chord key.  Returns `true` if the app should exit.
     pub(crate) fn handle_super_chord(&mut self, s: &str) -> bool {
         match s {
+            // Cmd+Enter: a reply being written in the inbox goes.
+            "" if self.inbox_send() => {}
             "i" => self.input.focused = !self.input.focused,
             "," => self.spawn_settings_pane(),
             "g" => self.toggle_sidebar(),

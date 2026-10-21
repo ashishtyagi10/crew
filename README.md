@@ -354,9 +354,9 @@ mail, opens the next mail instead of going back to the list), `m` to mark read o
 `s` to star, `z` to undo the last of those, `u` in an open mail to
 unsubscribe from its sender (one click where the mail offers it, else a
 mail to the list's address; a second `u` confirms, and only mail Gmail
-found DKIM-signed is acted on), `r` to have agent smith write a
-reply that crew saves as a **Gmail draft** in the thread (never sent: you
-send it from Gmail), `a` to hand the thread to smith ("what does it want
+found DKIM-signed is acted on), `r` to **reply in a box under the mail** (Cmd+Enter, Ctrl+Enter off a Mac,
+sends it in the thread; Tab has agent smith write a draft into the box for you
+to change first; Esc closes it, twice when it holds words), `a` to hand the thread to smith ("what does it want
 from me?"), `t` to turn it into a `/todo` row due on the deadline the mail
 states ("by Friday"), `R` to refresh, `o` to open it in
 Gmail, `/inbox <search>` to open on a search, `/inbox signout` to withdraw

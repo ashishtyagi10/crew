@@ -51,13 +51,15 @@ fn a_in_the_list_opens_the_thread_and_hands_it_over_when_it_lands() {
 }
 
 #[test]
-fn r_asks_for_a_reply_and_smiths_body_becomes_a_draft_in_the_thread() {
+fn smiths_reply_with_no_box_open_becomes_a_draft_in_the_thread() {
     let (mut p, asks, _answer) = pane();
     p.reading = Some(super::Reading {
         mails: Some(mails()),
         ..super::Reading::new(p.rows[0].clone())
     });
-    p.press(&Key::Character("r".into()), 80, 24);
+    // `r` opens the reply box now (`compose`); smith's draft, asked for
+    // with no box open, still becomes a Gmail draft.
+    p.act(super::Then::Draft);
     let sent = p.to_smith.take().expect("handed over");
     let answer = sent.draft.expect("the draft's headers");
     assert_eq!(

@@ -10,6 +10,8 @@ pub(crate) mod api;
 mod asks;
 pub(crate) mod body;
 pub(crate) mod charset;
+pub(crate) mod compose;
+mod composedraw;
 pub(crate) mod days;
 pub(crate) mod draft;
 pub(crate) mod draw;
@@ -20,6 +22,7 @@ mod footkeys;
 pub(crate) mod grant;
 pub(crate) mod handoff;
 pub(crate) mod html;
+mod input;
 pub(crate) mod keys;
 pub(crate) mod layout;
 mod legend;
@@ -106,6 +109,8 @@ pub struct InboxPane {
     pub(crate) density: list::Density,
     /// The thread under the pointer, washed lighter than the selection.
     pub(crate) hover: Option<usize>,
+    /// A reply being written under the open mail (`compose`).
+    pub(crate) compose: Option<compose::Compose>,
     pub(crate) motion: motion::Motion,
     ticked_ms: u64,
 }
@@ -147,6 +152,7 @@ impl InboxPane {
             checked_ms: None,
             density: list::Density::Auto,
             hover: None,
+            compose: None,
             motion: motion::Motion::default(),
             ticked_ms: crate::anim::now_ms(),
         }
@@ -159,7 +165,11 @@ impl InboxPane {
         };
         self.busy = !matches!(
             ask,
-            Ask::Check | Ask::Picture { .. } | Ask::Save { .. } | Ask::Unsubscribe { .. }
+            Ask::Check
+                | Ask::Picture { .. }
+                | Ask::Save { .. }
+                | Ask::Unsubscribe { .. }
+                | Ask::Send { .. }
         );
         w.tx.send(ask).is_ok()
     }

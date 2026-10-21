@@ -95,12 +95,16 @@ impl InboxPane {
                     self.list(&mut list);
                     cv.out.extend(list.out);
                 }
-                let mut read = Canvas::new(width, cv.rows);
+                // The mail above the reply box, when one is open.
+                let box_h = self.compose_h(cols, rows);
+                let mut read = Canvas::new(width, cv.rows - box_h);
                 super::reader::draw(&mut read, r, &self.pics);
                 if let Some((s, start)) = self.counter(width) {
                     let t = crew_theme::theme();
                     read.text(1, start, width, &s, t.text_muted, false);
                 }
+                read.rows = cv.rows;
+                self.draw_compose(&mut read, cv.rows - box_h, box_h);
                 let shifted = read.out.into_iter().map(|c| CellView {
                     col: c.col + at,
                     ..c

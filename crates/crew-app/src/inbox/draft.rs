@@ -110,6 +110,12 @@ impl Gmail {
         let body = serde_json::json!({"message": {"raw": raw, "threadId": thread_id}});
         self.post("/drafts", body).map(|_| ())
     }
+
+    /// Send `raw` (RFC 2822, base64url) in the thread: `gmail.modify` covers it.
+    pub(crate) fn send(&mut self, thread_id: &str, raw: &str) -> Result<(), String> {
+        let body = serde_json::json!({"raw": raw, "threadId": thread_id});
+        self.post("/messages/send", body).map(|_| ())
+    }
 }
 
 #[cfg(test)]
