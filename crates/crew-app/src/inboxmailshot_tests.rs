@@ -85,6 +85,7 @@ fn inbox_mail_shot_corpus() {
                 scroll: depth,
                 ..Reading::new(rows()[0].clone())
             });
+            p.sync_sizes();
             for id in [
                 crew_theme::ThemeId::PaperLight,
                 crew_theme::ThemeId::GlassNight,

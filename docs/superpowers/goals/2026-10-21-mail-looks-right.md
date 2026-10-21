@@ -174,3 +174,32 @@ Still to do (the shots show them):
 - The footer's small print is not muted.
 - The capsule's underline runs under its padding.
 - The reader's own frame is not done yet (item 15).
+
+**Round 2 (v0.27.41): pictures at their own size, and the reader's frame.**
+
+- **Picture sizes (item 5).** The mail's height now counts when it is set in `style` as well
+  as in the attribute, at 16 px a row (a cell is about 8 by 16 of a mail's px), so a 40 px
+  logo takes 3 rows.
+- **Pictures with no height.** These are written `#rows=12&fit=W`, where `W` is the width the
+  mail asks for, or 0. When the picture lands, its real size goes to the open thread
+  (`Pics::sizes`, `InboxPane::sync_sizes`), and `crates/crew-app/src/inbox/readfit.rs` gives
+  the box the rows its shape needs. It is as wide as the mail asks, or the picture's own
+  width, and never wider than the text. A hero now takes the measure and a logo stays a logo.
+  The words under the picture move once, when it lands, as they do in Gmail.
+- **The reader's frame (item 15).** It now has:
+  - a row of air above the subject;
+  - each message's sender bright and bold, their address muted when it fits, and the date at
+    the right edge of the text;
+  - a row of air under that line;
+  - two blank rows between messages.
+- **Capsules lose their underline.** A link drawn as a capsule (a mail's button) is no longer
+  underlined, because the capsule already marks it (`crates/crew-app/src/chatspan.rs`). This
+  holds in chat too.
+
+Still to do:
+
+- Muted small print in footers.
+- A heading on the light page is only bold.
+- Echoed captions when pictures are hidden (item 7).
+- Columns read in order (item 12) holds in the corpus; it needs a product-grid fixture to
+  prove it.

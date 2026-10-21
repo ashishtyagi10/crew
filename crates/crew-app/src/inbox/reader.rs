@@ -1,5 +1,6 @@
-//! An opened thread, read: the subject, then each message's sender and time
-//! over its words, oldest first. The words are markdown drawn the way chat
+//! An opened thread, read: under a row of air, the subject, then each
+//! message's sender (and address, and time at the right) over its words,
+//! oldest first, with air between messages. The words are markdown drawn the way chat
 //! draws it (`chatmd`), so a mail's headings, emphasis, lists, quotes,
 //! tables and links survive (goal 2026-10-20-mail-reader, phase 1); quoted
 //! replies fold to one row until `q`, and `v` reads the other version.
@@ -26,6 +27,8 @@ pub(crate) struct Key {
     quotes: bool,
     web: bool,
     loaded: bool,
+    /// Pictures landed and sized (`readfit`).
+    sized: usize,
     pub(crate) ink: Color,
     pub(crate) muted: Color,
 }
@@ -40,6 +43,7 @@ impl Reading {
             quotes: self.quotes,
             web: self.web,
             loaded: self.mails.is_some(),
+            sized: self.sizes.len(),
             ink: t.ink,
             muted: t.text_muted,
         };
@@ -67,15 +71,19 @@ fn layout(r: &Reading, k: Key) -> Laid {
         "" => "(no subject)",
         s => s,
     };
-    let mut lay = Lay::default();
-    lay.lines = wrap(subject, k.width)
-        .iter()
-        .map(|l| row(l, k.ink, true))
-        .collect();
+    let mut lay = Lay {
+        sizes: r.sizes.clone(),
+        ..Lay::default()
+    };
+    // A row of air under the pane's edge, as the list has.
+    lay.lines.push(Vec::new());
+    let title = wrap(subject, k.width);
+    lay.lines.extend(title.iter().map(|l| row(l, k.ink, true)));
     match &r.mails {
         Some(mails) => mails
             .iter()
-            .for_each(|m| super::readmail::message(&mut lay, m, r, &k)),
+            .enumerate()
+            .for_each(|(i, m)| super::readmail::message(&mut lay, m, r, &k, i == 0)),
         None => {
             lay.lines.push(Vec::new());
             lay.lines.push(row("loading\u{2026}", k.muted, false));

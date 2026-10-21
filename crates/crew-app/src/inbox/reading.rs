@@ -20,6 +20,8 @@ pub(crate) struct Reading {
     pub web: bool,
     /// `w`: asked for a window of its own, until the app opens one.
     pub pop_out: bool,
+    /// How big each landed picture is (`readfit`).
+    pub sizes: super::readfit::Sizes,
     pub(crate) laid: std::sync::Mutex<Option<(reader::Key, std::sync::Arc<reader::Laid>)>>,
 }
 
@@ -34,6 +36,7 @@ impl Reading {
             unsub_armed: false,
             web: false,
             pop_out: false,
+            sizes: Default::default(),
             laid: std::sync::Mutex::new(None),
         }
     }

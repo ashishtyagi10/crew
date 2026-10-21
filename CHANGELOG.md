@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.41
+
+**`/inbox`: pictures at their own size, and a reader that frames each message.**
+A picture the mail gives no height (most heroes and product shots) is now
+sized by the picture itself once it loads: as wide as the mail asks, or its
+own width, never wider than the text. So a hero banner spans the reading
+column and a logo stays a logo, instead of every picture sitting in the
+same small box. Heights the mail does give, in an attribute or its CSS, are
+read at 16 px a row. The open thread now opens under a row of air with the
+subject, and each message starts with the sender's name in bold, their
+address in a quieter ink and the date at the right, with air between
+messages. A button (a link drawn as a capsule) no longer has an underline
+cutting through it; the capsule marks it.
+- **Tests:** a landed picture takes the rows its shape needs, capped by the
+  text width, and a height the mail gave stays; heights from `style`; the
+  corpus at 16 px a row; and the reader and corpus shots on both themes.
+
 ## 0.27.40
 
 **`/inbox`: mail looks like mail — pictures, headings and buttons in real-world email.**

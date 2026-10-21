@@ -39,16 +39,33 @@ pub(crate) fn image(n: &Node, o: &mut Out) {
     o.pics.push(src);
 }
 
-/// Rows for a picture, from the height the mail gives it (about 20 px a
-/// row); the engine's own box when it gives none.
-fn rows(n: &Node) -> u16 {
+/// Rows for a picture, from the height the mail gives it in an attribute or
+/// its `style` (16 px a row, a cell being about 8 px by 16 of a mail's px).
+/// With none, the engine's own box and `&fit=W`, the width the mail gives
+/// (0 for none): the reader sizes it from the picture once it lands
+/// (`readfit`).
+fn rows(n: &Node) -> String {
     let px = |k: &str| {
-        n.attr(k)
-            .and_then(|v| v.trim().trim_end_matches("px").parse::<f32>().ok())
+        let style = n.attr("style").and_then(|s| super::font::decl(s, k));
+        [n.attr(k).map(str::to_string), style]
+            .into_iter()
+            .flatten()
+            .find_map(|v| {
+                v.trim()
+                    .strip_suffix("px")
+                    .unwrap_or(v.trim())
+                    .parse::<f32>()
+                    .ok()
+            })
+            .filter(|&v| v > 0.0)
     };
     match px("height") {
-        Some(h) => (h / 20.0).round().clamp(2.0, 20.0) as u16,
-        None => crate::md::picture::ROWS,
+        Some(h) => format!("{}", (h / 16.0).round().clamp(2.0, 40.0) as u16),
+        None => format!(
+            "{}&fit={}",
+            crate::md::picture::ROWS,
+            px("width").unwrap_or(0.0) as u32
+        ),
     }
 }
 

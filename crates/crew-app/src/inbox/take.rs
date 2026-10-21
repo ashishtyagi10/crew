@@ -34,7 +34,11 @@ impl InboxPane {
                 for g in got {
                     self.take(g);
                 }
-                let changed = self.pics.drain() || changed;
+                let landed = self.pics.drain();
+                if landed {
+                    self.sync_sizes();
+                }
+                let changed = landed || changed;
                 if due && !self.busy {
                     self.ask(Ask::Check);
                 }

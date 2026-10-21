@@ -66,7 +66,12 @@ pub(super) fn lines(spans: &[MdSpan]) -> Option<Vec<MdLine>> {
 /// 2026-10-20-mail-reader, item 14).
 pub(crate) fn rows_of(src: &str) -> u16 {
     src.rsplit_once("#rows=")
-        .and_then(|(_, n)| n.parse::<u16>().ok())
+        .and_then(|(_, n)| {
+            n.split(|c: char| !c.is_ascii_digit())
+                .next()?
+                .parse::<u16>()
+                .ok()
+        })
         .map_or(ROWS, |n| n.clamp(2, 40))
 }
 

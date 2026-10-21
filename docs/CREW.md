@@ -1702,8 +1702,11 @@ longer aim at.
   named in a line under the mail), and HTML past 512 KB is cut with a line
   saying so. Pictures: one the mail carries (`cid:`, and up to four image
   attachments under their message) is fetched as the thread opens and drawn
-  in its place, in a box sized from the mail's own `height` (about 20 px a
-  row) so the text never jumps when it lands. Pictures from the web are
+  in its place, in a box sized from the mail's own height (16 px a row,
+  from the `height` attribute or `style`). A picture the
+  mail gives no height is sized by the picture itself once it lands: as
+  wide as the mail asks (or its own width), never wider than the text, so a
+  hero takes the measure and a logo stays small. Pictures from the web are
   fetched as the thread opens too, as Gmail shows them, on a thread of their
   own (`https`/`http` only, no cookies, no `Referer`, 10 s and 5 MB a
   picture, 20 a message). Fetching one tells the sender the mail was opened,

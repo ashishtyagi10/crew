@@ -26,13 +26,17 @@ pub(crate) struct Placed {
 pub(crate) struct Lay {
     pub lines: Vec<CardLine>,
     pub pics: Vec<Placed>,
+    /// How big the landed pictures are, to size the boxes of those the mail
+    /// gave no height (`readfit`).
+    pub sizes: super::readfit::Sizes,
 }
 
 impl Lay {
     /// Markdown at the layout's width, its pictures placed under `msg`.
     fn md(&mut self, text: &str, k: &Key, fg: Color, msg: &str) {
         let at = self.lines.len();
-        let rendered = crate::md::render_chat(text, k.width);
+        let text = super::readfit::fitted(text, msg, k.width, &self.sizes);
+        let rendered = crate::md::render_chat(&text, k.width);
         let (lines, placed) = crate::chatmd::with_pictures(rendered, k.width, fg);
         self.lines.extend(lines);
         self.pics.extend(placed.into_iter().map(|p| Placed {
@@ -50,7 +54,7 @@ impl Lay {
     }
 }
 
-pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key) {
+pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key, first: bool) {
     // A mail built from its text alone (an older grant's, a test's).
     let own = (m.rich.body.is_empty() && !m.text.is_empty()).then(|| Rich::of_plain(&m.text, None));
     let rich = own.as_ref().unwrap_or(&m.rich);
@@ -62,9 +66,13 @@ pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key) {
         (true, Some(w)) => w.as_ref(),
         _ => rich,
     };
+    // Air between messages, more than between a mail's own paragraphs.
     lay.lines.push(Vec::new());
-    let who = format!("{} \u{b7} {}", sender_name(&m.from), when(&m.date));
-    lay.lines.push(row(&who, k.muted, true));
+    if !first {
+        lay.lines.push(Vec::new());
+    }
+    lay.lines.push(header(m, k));
+    lay.lines.push(Vec::new());
     // Said where it shows, under the sender, not past the end of the mail.
     if rich.web > 0 && !r.web {
         let s = if rich.web == 1 { "" } else { "s" };
@@ -111,6 +119,36 @@ pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key) {
     if m.attached.is_empty() && !m.files.is_empty() {
         lay.quiet(&format!("attached: {}", m.files.join(", ")), k);
     }
+}
+
+/// Who wrote, bright and bold; their address, quiet, when there is room; and
+/// the time at the right edge of the text.
+fn header(m: &Mail, k: &Key) -> CardLine {
+    let w = crate::chatwidth::str_w;
+    let name = sender_name(&m.from);
+    let date = when(&m.date);
+    let addr = m
+        .from
+        .split_once('<')
+        .map(|(_, a)| a.trim_end_matches('>').trim());
+    let addr = addr.filter(|a| !a.is_empty() && *a != name);
+    let mut line = row(&name, k.ink, true);
+    let mut used = 1 + w(&name);
+    if let Some(a) = addr.filter(|a| used + 2 + w(a) + 2 + w(&date) <= k.width) {
+        line.extend(
+            row(a, k.muted, false)
+                .into_iter()
+                .chain(row("", k.muted, false)),
+        );
+        used += 2 + w(a);
+    }
+    let pad = k.width.saturating_sub(used + w(&date)).max(2);
+    let tail = format!("{}{date}", " ".repeat(pad));
+    line.extend(
+        tail.chars()
+            .map(|c| crate::chatbody::plain(c, k.muted, false)),
+    );
+    line
 }
 
 /// `↓ report.pdf · 1.2 MB`, the name a link that saves and opens it.
