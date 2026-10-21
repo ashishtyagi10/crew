@@ -19,6 +19,25 @@ pub(crate) fn said(at_ms: i64, now_ms: i64) -> String {
     }
 }
 
+/// The age in three columns at most, for a narrow pane (the width ladder's
+/// last step): `now`, `9m`, `3h`, `4d`, `3w`, `5mo`, `2y`.
+pub(crate) fn short(at_ms: i64, now_ms: i64) -> String {
+    if at_ms <= 0 {
+        return String::new();
+    }
+    let mins = (now_ms - at_ms).max(0) / 60_000;
+    let days = mins / (24 * 60);
+    match mins {
+        0 => "now".into(),
+        m if m < 60 => format!("{m}m"),
+        m if m < 24 * 60 => format!("{}h", m / 60),
+        _ if days < 7 => format!("{days}d"),
+        _ if days < 30 => format!("{}w", days / 7),
+        _ if days < 365 => format!("{}mo", days / 30),
+        _ => format!("{}y", days / 365),
+    }
+}
+
 fn local(ms: i64) -> Option<DateTime<Local>> {
     Local.timestamp_millis_opt(ms).single()
 }
@@ -45,5 +64,20 @@ mod tests {
             "a clock ahead is not the future"
         );
         assert_eq!(super::said(0, NOW), "", "no date, no age");
+    }
+
+    #[test]
+    fn a_short_age_never_takes_more_than_three_columns() {
+        let ages = [
+            9 * 60_000,
+            3 * H,
+            4 * 24 * H,
+            20 * 24 * H,
+            150 * 24 * H,
+            800 * 24 * H,
+        ];
+        let got: Vec<String> = ages.iter().map(|a| super::short(NOW - a, NOW)).collect();
+        assert_eq!(got, ["9m", "3h", "4d", "2w", "5mo", "2y"]);
+        assert_eq!(super::short(0, NOW), "");
     }
 }

@@ -8,78 +8,10 @@ use std::sync::mpsc;
 use crate::chartshot_tests::shot;
 use crate::inbox::api::Mail;
 use crate::inbox::grant::Client;
-use crate::inbox::wire::Thread;
 use crate::inbox::worker::Worker;
 use crate::inbox::{InboxPane, Reading, Stage};
 
-const H: i64 = 3_600_000;
-
-pub(crate) fn rows() -> Vec<Thread> {
-    let now = chrono::Utc::now().timestamp_millis();
-    let t = |id: &str,
-             from: &str,
-             subject: &str,
-             snippet: &str,
-             unread: bool,
-             ago: i64,
-             count: usize| Thread {
-        id: id.into(),
-        from: from.into(),
-        subject: subject.into(),
-        snippet: snippet.into(),
-        unread,
-        starred: id == "b",
-        at_ms: now - ago,
-        count,
-    };
-    vec![
-        t(
-            "a",
-            "Ann Lee <ann@x.org>",
-            "Q4 roadmap review",
-            "Can we move the review to Thursday? I need one more day for the numbers",
-            true,
-            H / 6,
-            3,
-        ),
-        t(
-            "b",
-            "GitHub <noreply@github.com>",
-            "[crew] Release v0.27.28",
-            "Release succeeded for 6 targets in 10m 26s",
-            true,
-            2 * H,
-            1,
-        ),
-        t(
-            "c",
-            "Bo Park <bo@y.org>",
-            "Lunch Friday?",
-            "Sure — the place on 5th at 12:30 works for me",
-            false,
-            5 * H,
-            2,
-        ),
-        t(
-            "d",
-            "Google Cloud <cloud@google.com>",
-            "Your Gmail API client is ready",
-            "You created an OAuth client for crew-inbox",
-            false,
-            30 * H,
-            1,
-        ),
-        t(
-            "e",
-            "Cy Diaz <cy@z.org>",
-            "Re: the glass theme",
-            "White text on the frost reads well on my monitor now",
-            false,
-            4 * 24 * H,
-            6,
-        ),
-    ]
-}
+pub(crate) use crate::inboxrows_tests::rows;
 
 pub(crate) fn ready() -> InboxPane {
     let (tx, _) = mpsc::channel();
@@ -122,7 +54,11 @@ fn inbox_shot_screens() {
         },
     ));
     take("setup", &InboxPane::with(Stage::Setup { found }));
-    take("list", &ready());
+    let mut list = ready();
+    list.sel = 2;
+    take("list", &list);
+    list.density = crate::inbox::list::Density::One;
+    take("list-one", &list);
     let mut reading = ready();
     reading.reading = Some(Reading {
         mails: Some(vec![

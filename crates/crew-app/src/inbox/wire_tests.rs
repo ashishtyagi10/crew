@@ -69,3 +69,26 @@ fn a_sender_is_named_by_their_display_name() {
     assert_eq!(super::sender_name("<ann@x.org>"), "ann@x.org");
     assert_eq!(super::sender_name("ann@x.org"), "ann@x.org");
 }
+
+#[test]
+fn senders_are_every_written_message_oldest_first_and_never_a_draft() {
+    let v = json!({"id": "t3", "messages": [
+        msg("Bo <bo@y.org>", "Re: x", "3000", &["INBOX"], ""),
+        msg("Ann <ann@x.org>", "x", "1000", &["INBOX"], ""),
+        msg("Me <me@x.org>", "Re: x", "2000", &["SENT"], ""),
+        msg("Me <me@x.org>", "Re: x", "4000", &["DRAFT"], ""),
+    ]});
+    let got: Vec<(String, bool)> = super::thread(&v)
+        .senders
+        .into_iter()
+        .map(|s| (s.from, s.sent))
+        .collect();
+    assert_eq!(
+        got,
+        [
+            ("Ann <ann@x.org>".to_string(), false),
+            ("Me <me@x.org>".to_string(), true),
+            ("Bo <bo@y.org>".to_string(), false),
+        ]
+    );
+}

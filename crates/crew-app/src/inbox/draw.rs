@@ -3,7 +3,6 @@
 use crew_render::CellView;
 use unicode_width::UnicodeWidthChar;
 
-use super::wire::{sender_name, Thread};
 use super::{InboxPane, Stage};
 
 /// Cells written one run at a time, clipped to the pane, never past `cols-1`.
@@ -113,76 +112,4 @@ impl InboxPane {
         self.foot(&mut cv);
         cv.out
     }
-
-    fn list(&self, cv: &mut Canvas) {
-        let t = crew_theme::theme();
-        let room = cv.rows.saturating_sub(1) as usize;
-        if self.rows.is_empty() {
-            let said = match (self.busy, self.query.trim()) {
-                (true, _) => "loading\u{2026}".to_string(),
-                (false, "") => "nothing in the inbox".to_string(),
-                (false, q) => format!("no mail matches \u{201c}{q}\u{201d}"),
-            };
-            cv.text(1, 2, cv.cols, &said, t.text_muted, false);
-            return;
-        }
-        let top = self.sel.saturating_sub(room.saturating_sub(1));
-        let now = chrono::Utc::now().timestamp_millis();
-        for (i, th) in self.rows.iter().enumerate().skip(top).take(room) {
-            row(cv, (i - top) as u16, th, i == self.sel, now);
-        }
-    }
-
-    fn foot(&self, cv: &mut Canvas) {
-        let t = crew_theme::theme();
-        let last = cv.rows.saturating_sub(1);
-        let (text, fg) = match (&self.typing, self.note.is_empty()) {
-            (Some(q), _) => (format!("search: {q}\u{258f}"), crate::palette::accent()),
-            (None, false) => (self.note.clone(), t.bell),
-            (None, true) => (super::keys::hint(self), t.text_muted),
-        };
-        cv.text(last, 1, cv.cols, &text, fg, false);
-    }
-}
-
-/// One thread: `›` when selected, `●` when unread, sender, subject and
-/// snippet, and the age at the right edge.
-fn row(cv: &mut Canvas, r: u16, th: &Thread, selected: bool, now: i64) {
-    let t = crew_theme::theme();
-    let accent = crate::palette::accent();
-    let end = cv.cols.saturating_sub(1);
-    if selected {
-        cv.text(r, 0, end, "\u{203a}", accent, true);
-    }
-    if th.unread {
-        cv.text(r, 1, end, "\u{25cf}", accent, false);
-    }
-    if th.starred {
-        cv.text(r, 2, end, "\u{2605}", accent, false);
-    }
-    let age = super::age::said(th.at_ms, now);
-    let age_at = end.saturating_sub(age.chars().count() as u16);
-    cv.text(r, age_at, end, &age, t.text_muted, false);
-    let sw = (cv.cols / 4).clamp(8, 22);
-    let mut who = sender_name(&th.from);
-    if th.count > 1 {
-        who = format!("{who} ({})", th.count);
-    }
-    cv.text(r, 4, 4 + sw, &who, t.ink, th.unread || selected);
-    let at = 4 + sw + 1;
-    let subject = match th.subject.trim() {
-        "" => "(no subject)",
-        s => s,
-    };
-    let lead = format!("{subject} \u{2014} ");
-    cv.text(r, at, age_at.saturating_sub(1), &lead, t.ink, th.unread);
-    let snip_at = at + lead.chars().count() as u16;
-    cv.text(
-        r,
-        snip_at,
-        age_at.saturating_sub(1),
-        &th.snippet,
-        t.text_muted,
-        false,
-    );
 }

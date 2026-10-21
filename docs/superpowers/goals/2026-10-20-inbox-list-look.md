@@ -1,6 +1,7 @@
 # Goal — the inbox list, redesigned: how `/inbox` looks before a thread is opened
 
-**Status: SET 2026-10-20.** Nothing built yet (see "Where it stands" at the end).
+**Status: IN PROGRESS.** Set 2026-10-20; the user answered its questions on 2026-10-21 and said
+go ahead. Phases 0 and 1 are built (see "Where it stands" at the end).
 
 **Set:** 2026-10-20 by the user, while the mail reader goal was being built: *"write a goal to
 update the look and feel of listing mode as well for `/inbox`"*.
@@ -105,8 +106,17 @@ message count). Seen in the `inboxshot_tests` render on both themes:
     - The selection wash glides to the next row.
     - All of it follows crew's motion setting: off means instant.
 
-**Not in this goal:** a list and reader side by side on a wide pane (an open question below);
-category tabs (Primary, Promotions, Social); selecting several threads to file at once; sorting
+**Phase 5: the list and the thread side by side (the user's answer, 2026-10-21).**
+
+17. **A reading pane on a wide pane.** At 140 columns or more, an open thread reads on the right
+    and the list stays on the left (two fifths of the pane, 48 to 64 columns), with a rule
+    between them. Narrower, the thread takes the pane as it does today.
+18. **Every way into the reader still works in the half it has.** Scrolling, the picture boxes,
+    `Cmd+click` and `Cmd+E` on links, and the attachment rows all measure the right-hand side,
+    not the whole pane. `J` and `K` open the next and the previous thread without going back to
+    the list, on any width.
+
+**Not in this goal:** category tabs (Primary, Promotions, Social); selecting several threads to file at once; sorting
 other than newest first; any new Gmail scope.
 
 ## Light weight (measurable)
@@ -118,15 +128,33 @@ other than newest first; any new Gmail scope.
 - Every file under the 200-line cap; `crates/crew-app/src/inbox/draw.rs` splits along row,
   bands and states as it grows.
 
-## Open questions for the user
+## Answered by the user (2026-10-21)
 
-- **Density.** Two-line rows when there is room (proposed), or one line like a terminal mail
-  reader?
-- **Wide panes.** On a pane wider than about 140 columns, should the list show the open thread
-  beside it, as Mail.app does?
-- **Category tabs.** Should the inbox show Gmail's Primary only, with tabs for the rest?
+*"two-line rows, side-by-side on wide panes, no tabs — go ahead"*
+
+- **Density:** two-line rows when there is room (item 2, as proposed).
+- **Wide panes:** yes, the list and the open thread side by side (phase 5).
+- **Category tabs:** no.
 
 ## Where it stands
 
-Nothing built yet. The mail reader goal (`2026-10-20-mail-reader.md`) is in progress first; its
-phase 2 (pictures) is being built. This goal follows it.
+**Phase 0, checked 2026-10-21 against Gmail's reference (no live list was read):**
+`format=metadata` returns "only email message ID, labels, and email headers". So `labelIds` and
+the `From` of every message come with the list as it is fetched today. The reference does not
+list `payload.mimeType` among them, so the attachment glyph (item 11) reads the `Content-Type`
+header instead, asked for beside `From`, `Subject` and `Date` in the same call: `multipart/mixed`
+means a file is attached (a guess Gmail's own clip is surer of). `labels.list` gives each label's
+`id`, `name` and `type` but not its colour, which takes a `labels.get` per label. So item 12's
+chips take crew's own tag colours (`crew_theme::tag_color`), not Gmail's.
+
+**Phase 1, built:** items 2 to 7. A row is laid out by `crates/crew-app/src/inbox/row.rs` into a
+whole-width line buffer (`crates/crew-app/src/inbox/line.rs`), so a selected row carries the
+wash (`selection_bg`) on every column and `bgruns` rounds and frosts it as it does every
+highlight; the count chip is a `mark` capsule over it, and every colour on the wash is lifted
+to the text floor against it on all eight themes. The accent bar is paint. Two-line rows are
+divided by a faint rule above each thread's names line: at the row boundary itself the rule
+read as an underline of the subject. Senders come from `crates/crew-app/src/inbox/who.rs`
+(each person once, newest last, `me` by `SENT` or the account's address). `L` picks the density
+for the session (`crates/crew-app/src/inbox/list.rs`). The ladder's widths: the snippet below 64
+columns, the chip below 52, all but the newest sender below 44, a compact time below 36, two-line
+rows climbing it 16 columns later. The `›` marker is gone.

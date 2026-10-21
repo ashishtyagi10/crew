@@ -13,12 +13,15 @@ pub(crate) mod draft;
 pub(crate) mod draw;
 pub(crate) mod fetch;
 pub(crate) mod filing;
+mod foot;
 pub(crate) mod grant;
 pub(crate) mod handoff;
 pub(crate) mod html;
 pub(crate) mod keys;
 mod legend;
+pub(crate) mod line;
 pub(crate) mod links;
+pub(crate) mod list;
 pub(crate) mod mailwin;
 pub(crate) mod picfetch;
 mod picpaint;
@@ -29,12 +32,14 @@ pub(crate) mod reader;
 mod reading;
 mod readmail;
 pub(crate) mod rich;
+pub(crate) mod row;
 pub(crate) mod save;
 pub(crate) mod setup;
 pub(crate) mod signin;
 pub(crate) mod smith;
 pub(crate) mod take;
 pub(crate) mod triage;
+pub(crate) mod who;
 pub(crate) mod wire;
 pub(crate) mod worker;
 
@@ -84,6 +89,8 @@ pub struct InboxPane {
     /// A reply smith is writing for a draft.
     pub(crate) waiting: Option<handoff::Waiting>,
     pub(crate) pics: pics::Pics,
+    /// One line or two per row (`L`).
+    pub(crate) density: list::Density,
     ticked_ms: u64,
 }
 
@@ -97,6 +104,7 @@ impl InboxPane {
             },
         };
         let mut p = Self::with(stage);
+        p.density = list::Density::picked();
         p.ask(Ask::List(String::new()));
         p
     }
@@ -119,6 +127,7 @@ impl InboxPane {
             to_smith: None,
             waiting: None,
             pics: pics::Pics::default(),
+            density: list::Density::Auto,
             ticked_ms: crate::anim::now_ms(),
         }
     }
