@@ -35,9 +35,19 @@ pub(crate) fn image(n: &Node, o: &mut Out) {
         }
         return;
     };
+    // A picture inside a link is the link: `&go=` carries it, last, to the
+    // reader, which opens it on a click (`inbox::links`).
+    let go = o.go.as_deref().map_or(String::new(), |h| {
+        format!(
+            "&go={}",
+            h.replace(' ', "%20")
+                .replace('<', "%3C")
+                .replace('>', "%3E")
+        )
+    });
     o.block();
     o.raw(&format!(
-        "![{}](<{src}#rows={}>)",
+        "![{}](<{src}#rows={}{go}>)",
         super::esc(&alt),
         rows(n)
     ));

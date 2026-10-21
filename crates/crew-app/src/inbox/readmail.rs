@@ -18,6 +18,8 @@ pub(crate) struct Placed {
     pub rows: usize,
     /// What it is stored under ([`pics::key`]).
     pub key: String,
+    /// Where a click on it goes, when the mail made it a link.
+    pub href: Option<String>,
     pub alt: String,
 }
 
@@ -43,6 +45,7 @@ impl Lay {
             row: at + p.row,
             rows: p.rows,
             key: pics::key(msg, &p.src),
+            href: p.src.split_once("&go=").map(|(_, h)| h.to_string()),
             alt: p.alt,
         }));
     }

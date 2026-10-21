@@ -1703,7 +1703,12 @@ longer aim at.
   A data table with no `th` row has no header, and the small print a mail
   ends with (12px or less: the address, why you got it) is drawn muted. A link
   with its own fill or border, or inside a table or cell classed `btn` or
-  `button`, is drawn as a button: a padded capsule that is the link. Hidden text (`display:none`, preheaders,
+  `button`, is drawn as a button: a padded capsule that is the link. A
+  picture inside a link is the link (Cmd+click it, or its `Cmd+E` hint),
+  a link around a headline and its summary makes both the link, and a link
+  around a tracking pixel leaves nothing behind. Spans set apart by their
+  own padding read as separate words, and a mail that sets more than four
+  lines as top-level headings has them a step down. Hidden text (`display:none`, preheaders,
   `mso-hide`) is dropped, so agent smith never reads what the user cannot
   see. A link opens at its real address by Cmd+click or `Cmd+E`; only
   `http`, `https` and `mailto` are links, and one whose words name another

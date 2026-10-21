@@ -126,3 +126,47 @@ fn links_alone_in_cells_side_by_side_read_as_one_line() {
         "[Home](<https://x.io/h>) \u{b7} [Account](<https://x.io/a>) \u{b7} [Twitter](<https://x.io/t>)"
     );
 }
+
+#[test]
+fn a_picture_in_a_link_is_the_link_and_a_link_round_a_pixel_is_nothing() {
+    let got = md(
+        r#"<a href="https://x.io/deal"><img src="https://x.io/hero.png" width="600"></a>
+        <a href="https://x.io/open"><img src="https://x.io/p.gif" width="1" height="1"></a>
+        <p><span style="padding:0 6px">HUNTERSVILLE</span><span style="padding:0 4px"></span><span style="padding:0 6px">NC</span>28078</p>"#,
+    );
+    assert!(got.contains("hero.png#rows="), "{got}");
+    assert!(
+        got.contains("&go=https://x.io/deal>)"),
+        "the picture carries its link: {got}"
+    );
+    assert!(
+        !got.contains('\u{2197}') && !got.contains("x.io/open"),
+        "{got}"
+    );
+    assert!(
+        got.contains("HUNTERSVILLE NC 28078"),
+        "padded spans are words: {got}"
+    );
+}
+
+#[test]
+fn a_button_in_a_large_type_stays_a_button_and_a_page_of_headlines_steps_down() {
+    let got = md(
+        r#"<div style="font-size:24px"><a href="https://x.io/u" style="background:#c00">Unlock your Offer</a></div>"#,
+    );
+    assert_eq!(
+        got.trim(),
+        "[`  Unlock your Offer  `](<https://x.io/u>)",
+        "{got}"
+    );
+    let offers: String = (1..=5)
+        .map(|i| format!(r#"<div style="font-size:28px">Offer number {i}</div><p>Details</p>"#))
+        .collect();
+    let got = md(&offers);
+    assert_eq!(
+        got.lines().filter(|l| l.starts_with("## Offer")).count(),
+        5,
+        "{got}"
+    );
+    assert!(!got.lines().any(|l| l.starts_with("# ")), "{got}");
+}

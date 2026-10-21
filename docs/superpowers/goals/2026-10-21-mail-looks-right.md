@@ -235,3 +235,33 @@ Still to do:
 - `data:` pictures.
 - Not tried yet: a calendar invite's buttons and a Gmail personal mail with a signature
   picture.
+
+**Round 4 (v0.27.45): the user's own mail.** The user said *"go ahead and test against my own
+mails"*. `crates/crew-app/src/inboxlive_tests.rs` has three `#[ignore]`d steps, each run by hand:
+
+1. One saves recent threads as Gmail sends them (`format=full`) outside the repo. It uses the
+   user's grant file, never prints it, marks nothing read and fetches no picture.
+2. One reads them as the reader does.
+3. One draws them with stand-in pictures.
+
+Forty threads were read: inbox, promotions and updates, in English and Hindi. Almost nothing
+was wrong at the text level: no raw markup, two pictures left as words, and the long lines were
+long paragraphs. The shots showed these, now fixed:
+
+- **`↗ open the link` under linked pictures (16 times).**
+  - A picture inside a link is now the link (item 6). The link rides in the picture's source
+    (`&go=`), and `inbox::links` opens it by Cmd+click anywhere on the picture, or by its
+    `Cmd+E` hint.
+  - A link around blocks (a news digest's headline and summary in `<div>`s) makes every
+    paragraph begun inside it the link (`Out::link`, `block`).
+  - A link around a tracking pixel leaves nothing behind.
+- **Addresses run together** (`HUNTERSVILLENC28078`). A span with horizontal padding or
+  margin, or `display:inline-block`, is now a word of its own.
+- **A button in a large type became a heading.** A block holding only a button is the button.
+- **Too many top-level headings.** A promotion set 33 lines as headings, every offer a
+  headline. A mail with more than four `#` headings has them all a step down, so the page is
+  not a wall of accent headlines.
+
+Found but not the reader's to fix: Devanagari (a Hindi news digest) is drawn a cell per
+character, so its vowel signs and conjuncts come apart. That is shaping in crew's cell
+renderer, crew-wide, and needs a goal of its own.

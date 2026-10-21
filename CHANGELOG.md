@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.45
+
+**`/inbox`: tested on real mail — linked pictures, run-together words and headline floods fixed.**
+Checked against forty threads from a real inbox (promotions, receipts,
+notifications, newsletters, Hindi news). What was wrong is fixed. A
+picture inside a link is now the link itself: Cmd+click it or use its
+`Cmd+E` hint, and the stray `↗ open the link` line under it is gone. A link
+around a headline and its summary makes both the link, and a link around a
+tracking pixel leaves nothing behind. Words set apart only by padding
+(`HUNTERSVILLE NC 28078`) no longer run together. A button set in large
+type stays a button instead of becoming a heading. A promotion that sets
+every offer as a headline has them a step down, so the page isn't a wall
+of accent headlines.
+- **Tests:** a linked picture carries its link and opens it by click
+  anywhere on it and by hint, including a picture that failed to load; a
+  link around a pixel is nothing; a link around blocks makes each paragraph
+  the link; padded spans read as words; a button in a large type stays a
+  button; five headline offers step down. The live run (fetch, read, shot)
+  lives in `inboxlive_tests` as ignored steps that only run by hand.
+
 ## 0.27.44
 
 **Windows and Linux: Ctrl+T is Cmd+T.** Crew's shortcuts are now pressed

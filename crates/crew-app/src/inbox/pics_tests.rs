@@ -130,8 +130,13 @@ fn the_webs_pictures_come_with_the_mail_i_hides_them_and_a_failed_one_says_what_
     }
     let shown = text(&p, 80, 30);
     assert!(shown.contains("\u{25a3} Read the report"), "{shown}");
-    assert!(
-        shown.contains("\u{2197} Read the report"),
-        "the link survives: {shown}"
+    let row = shown
+        .lines()
+        .position(|l| l.contains("\u{25a3} Read the report"))
+        .unwrap();
+    assert_eq!(
+        p.link_at(80, 30, row as u16, 10).as_deref(),
+        Some("https://x.io/r"),
+        "the link survives on the picture's box: {shown}"
     );
 }

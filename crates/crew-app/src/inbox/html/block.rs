@@ -33,8 +33,15 @@ impl Out {
 
     /// End the paragraph: lay it into the document.
     pub(crate) fn block(&mut self) {
-        let text = std::mem::take(&mut self.line);
+        let mut text = std::mem::take(&mut self.line);
+        let began = self.gen;
         self.gen += 1;
+        // A paragraph begun inside a link that holds blocks is the link.
+        if let Some((href, _)) = self.link.as_ref().filter(|(_, at)| began > *at) {
+            if !self.pre && linkable(&text) {
+                text = format!("[{}](<{href}>)", text.trim());
+            }
+        }
         let at = self.doc.len();
         match self.pre {
             true => self.fence(&text),
@@ -146,4 +153,10 @@ pub(crate) fn start_safe(line: &str) -> String {
         }
         _ => line.to_string(),
     }
+}
+
+/// Words that can be a link's: some, and no link or picture of their own.
+pub(super) fn linkable(text: &str) -> bool {
+    let t = text.trim();
+    !t.is_empty() && !t.contains("](<") && !t.starts_with("![")
 }
