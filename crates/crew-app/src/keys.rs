@@ -160,7 +160,9 @@ impl CrewApp {
         // sit above the Character super-chords because an arrow arrives as a
         // NamedKey, and above the input-bar early-return so the grid stays
         // navigable while the composer holds the keys.
-        if event.state.is_pressed() && mstate.super_key() {
+        if event.state.is_pressed()
+            && crate::ctrlchord::grid_held(mstate, cfg!(target_os = "macos"))
+        {
             if let Some(dir) = arrow_dir(&event.logical_key) {
                 if mstate.shift_key() {
                     self.move_direction(dir);
@@ -172,8 +174,8 @@ impl CrewApp {
             }
         }
 
-        // Super-chords (Cmd+I, Cmd+T, …; Ctrl+Shift+I … off a Mac) first.
-        if let Some(s) = crate::keychord::cmd_chord(event, mstate) {
+        // Super-chords (Cmd+I, Cmd+T, …; Ctrl+I, Ctrl+T … off a Mac) first.
+        if let Some(s) = self.chord_here(event, mstate) {
             if self.handle_super_chord(&s) {
                 event_loop.exit();
             }
