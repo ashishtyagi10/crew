@@ -258,3 +258,7 @@ mean and use `u` for unsubscribe action in email detail panel"*.
   each motion and Motion off, which mail counts as new, the fold in the layout, and `J`/`K`.
   `/keys` lists `J / K` and the click.
 
+**After (2026-10-21), at the user's ask:** *"n go to next email / open next email in detail panel,
+p open previous email in detail panel"*. `n` and `p` open the next and the previous thread in the
+reader, and the foot shows them; `J` and `K` still do the same.
+

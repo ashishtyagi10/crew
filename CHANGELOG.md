@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.49
+
+**`/inbox`: `n` and `p` open the next and the previous mail.** In an open
+mail, `n` opens the next one (older, the row below in the list) and `p`
+the previous one, without going back to the list, on any width. The foot
+shows them. `J` and `K`, added in 0.27.48, still do the same.
+- **Tests:** `n` and `p` step through the list, stop at either end and say
+  so, and mark each mail read as it opens; `J` and `K` match them.
+
 ## 0.27.48
 
 **`/inbox`: click, hover and motion, and a wide pane reads beside the list.**
