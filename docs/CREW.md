@@ -1653,22 +1653,29 @@ longer aim at.
   priority order, so a short pane keeps the machine and loses the history, and
   everything follows its own clock — the sampler's second, the ledger's five.
 - **`/inbox`** — opens the **inbox** pane: Gmail, to read and to file. Rows are
-  threads, newest first, two lines each when eight fit (one line each
-  otherwise; `L` picks, and the pick holds for the session): the unread dot
-  in the gutter, who wrote as Gmail writes it (`Ann, Bo, me`: each person
-  once, newest last, first names when several), the message count as a
-  chip, a star and the age (`9m`, `3h`, `Mon`, `Oct 12`) at the right; then
-  the subject and the snippet in a quieter ink. Unread threads are bold
-  ink, read ones muted. The selected thread wears the selection wash from
-  edge to edge with an accent bar at its left. As the pane narrows the
+  threads, newest first, two lines each with a blank row between them when
+  six fit (one line each otherwise; `L` picks, and the pick holds for the
+  session; at the `compact` density two-line rows close up). The list is
+  quiet on purpose: no chips and no rules. A row is the unread dot in the
+  gutter, who wrote as Gmail writes it (`Ann, Bo, me`: each person once,
+  newest last, first names when several), the message count, Gmail's red
+  `draft` when the thread holds one, and at the right the age (`9m`, `3h`,
+  `Mon`, `Oct 12`) with a star and a paperclip (a `multipart/mixed`
+  message) beside it; then the subject and, in a quieter ink, the snippet.
+  Names and subject are bright on every row, so a glass theme reads white;
+  an unread thread has the dot, bold names and a bright age. The selected
+  thread wears the selection wash from edge to edge. As the pane narrows the
   snippet goes first, then the count, then all but the newest sender, then
   the age shortens (`3h`, `4d`, `2w`, `5mo`). Threads are grouped under day
   bands: `today`, `yesterday`, the weekday this week, `last week`, `earlier
-  this month`, the month, then the year. While a page loads the list shows
+  this month`, the month, then the year, each a quiet word after a blank
+  row. While a page loads the list shows
   rows in outline; an empty inbox shows a tick and when Gmail was last
   asked; a list Gmail would not give says why in words and the key that
-  mends it (`R tries again`). The foot shows as many whole keys as fit and
-  ends `? keys`: `?` opens `/keys` on its inbox section. Keys: ↑↓ or j/k move (the last
+  mends it (`R tries again`). The foot lists every key the pane answers to,
+  wrapped whole onto as many lines as they take, with a note (`deleted …`)
+  on a line of its own above them; only a pane too short to spare the lines
+  ends `? keys`, and `?` opens `/keys` on its inbox section. Keys: ↑↓ or j/k move (the last
   row loads the next page), Enter reads the thread — each message's sender
   and local time over its words, attachments named, control characters
   stripped. An HTML mail is drawn as markdown through the chat renderer:
@@ -1680,8 +1687,8 @@ longer aim at.
   `http`, `https` and `mailto` are links, and one whose words name another
   site shows the real one after it (`paypal.com ⟶ paypa1-login.xyz`). A
   reply's quoted history (Gmail, Outlook, Apple Mail, Thunderbird, Yahoo, or
-  a plain mail's "On … wrote:") folds to `··· quoted text (N lines)` and `z`
-  unfolds it; a forwarded mail never folds. `v` swaps to the plain-text part
+  a plain mail's "On … wrote:") folds to `··· N lines quoted from earlier
+  replies` and `q` unfolds them; a forwarded mail never folds. `v` swaps to the plain-text part
   and back. A plain mail stays plain: its `*` and `#` are characters, `>`
   runs draw as quote bars, and the signature under `-- ` is quiet. Bytes are
   read in the part's charset (UTF-8, Latin-1, windows-1252; any other is
@@ -1707,7 +1714,15 @@ longer aim at.
   never disagree, and Esc from the list or Cmd+W closes it — `e` archives (takes the `INBOX` label away, as Gmail's archive does),
   `d` deletes (moves the thread to Trash, as Gmail's delete does; Gmail
   empties Trash after 30 days), `m` marks read or unread, `s` stars or
-  unstars, `u` undoes the last of those (a delete comes back out of Trash);
+  unstars, `z` undoes the last of those (a delete comes back out of Trash);
+  `u` in an open mail unsubscribes from its sender the way its
+  `List-Unsubscribe` header offers: one POST when it also says
+  `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058, what
+  Gmail's own button sends), else a mail to the list's address sent from
+  your account. Only mail whose `Authentication-Results` say `dkim=pass` is
+  acted on (RFC 8058 counts only signed headers), and never at an IP or a
+  local host; any other mail can only have its unsubscribe page opened in
+  the browser. The first `u` says what would happen; a second does it;
   each shows at once and goes to Gmail behind it, and a refusal is said with
   the list re-read as Gmail has it. Opening a thread marks it read. Nothing
   is deleted for good: the scope is `gmail.modify` (read, file, trash,

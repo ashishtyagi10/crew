@@ -13,7 +13,7 @@ fn pane() -> (InboxPane, mpsc::Sender<Got>) {
 
 fn words(p: &InboxPane, cols: u16, rows: u16) -> String {
     let cells = p.cells(cols, rows);
-    (0..rows.saturating_sub(1))
+    (0..p.body_rows(cols, rows))
         .map(|r| {
             let mut line = vec![' '; usize::from(cols)];
             for c in cells.iter().filter(|c| c.row == r) {

@@ -1,8 +1,9 @@
 # Goal — the inbox list, redesigned: how `/inbox` looks before a thread is opened
 
 **Status: IN PROGRESS.** Set 2026-10-20; the user answered its questions on 2026-10-21 and said
-go ahead. Phases 0 and 1 shipped in v0.27.37, phase 2 after it (see "Where it stands" at the
-end).
+go ahead. Phases 0 and 1 shipped in v0.27.37, phase 2 in v0.27.38, phase 3 after it, pared
+back to a quiet list at the user's word (see "Where it stands" at the end). Phases 4 and 5 are
+not started.
 
 **Set:** 2026-10-20 by the user, while the mail reader goal was being built: *"write a goal to
 update the look and feel of listing mode as well for `/inbox`"*.
@@ -160,7 +161,7 @@ for the session (`crates/crew-app/src/inbox/list.rs`). The ladder's widths: the 
 columns, the chip below 52, all but the newest sender below 44, a compact time below 36, two-line
 rows climbing it 16 columns later. The `›` marker is gone.
 
-**Phase 2, built:** items 8 to 10. `crates/crew-app/src/inbox/layout.rs` lays the list out as
+**Phase 2, shipped in v0.27.38:** items 8 to 10. `crates/crew-app/src/inbox/layout.rs` lays the list out as
 bands and threads, and drawing, paint and (next) clicks all read it; the list scrolls as little
 as keeps the selected thread on screen, with its day's band over the first thread shown. The
 bands (`crates/crew-app/src/inbox/days.rs`) are lowercase, as `/todo`'s done history writes its
@@ -176,3 +177,45 @@ it drops any; `?` opens `/keys` on a new section, `in the /inbox pane`
 (`crates/crew-app/src/helpinbox.rs`), which the key-map parity test now reads against the
 inbox's own key files.
 
+**Phase 3, built and then pared back (2026-10-21).** Items 11 to 14 were built: label chips
+(with one `labels.list` per pane open), `»` for Important, a paperclip, `draft`, `↩` for "you
+wrote last", and an initial chip. The user looked at the list as shipped in v0.27.38 and said it
+was *"still very dense. it should be minimal and looks good"*. So the release that carries
+phase 3 is a quiet list, and it replaces items 3 and 12 to 14:
+
+- **What a row keeps:** the unread dot in the gutter, the names, the message count as a plain
+  muted number (no capsule), Gmail's red `draft`, and the time at the right with the star and
+  the paperclip (item 11, still read from the `Content-Type` header asked for beside the other
+  three) beside it.
+- **What went:** label chips and the `labels.list` call, the Important mark, `↩`, the initial
+  chip, the accent bar on the selection (the wash is enough), and every rule. The rules
+  between threads and out from each day's name gave way to air: a row of it under the pane's
+  top edge and over the foot, a blank row between two-line threads (none at crew's `compact`
+  density), and a blank row before each new day. A day's name is a quiet word in muted ink
+  (`crates/crew-app/src/inbox/layout.rs`).
+- **Ink:** names and subject are bright on every row, so a glass theme reads white (the user's
+  standing ask). Unread mail is the dot, bold names and a bright time. The snippet is muted
+  and follows the subject after two spaces, with no dash.
+- **Density:** two-line rows need six threads, each with its blank row, to fit.
+
+**The foot, changed at the user's ask (2026-10-21):** *"all shortcut should be visible at the
+bottom of email detail"*. The foot (`crates/crew-app/src/inbox/foot.rs`) now lists every key the
+pane answers to, wrapped whole onto as many lines as they take (four at most). Each key is
+bright and what it does is muted. A note such as `deleted "…" · z undoes` takes a line of its
+own above the keys instead of replacing them. Only a pane too short to spare the lines ends
+`? keys`. The list, the reader and the setup page draw in the rows above the foot
+(`body_rows`).
+
+**Keys, changed at the user's ask (2026-10-21):** *"use `z` for undo - not sure what quote
+mean and use `u` for unsubscribe action in email detail panel"*.
+
+- `z` undoes, in the list and in the reader.
+- Folding quoted replies moved from `z` to `q`. Its fold reads `··· N lines quoted from
+  earlier replies · q shows them`.
+- `u` in the reader unsubscribes (`crates/crew-app/src/inbox/unsub.rs`), from the mail's
+  `List-Unsubscribe`. Where the mail also sends `List-Unsubscribe-Post`, that is one RFC 8058
+  POST to its https address; otherwise a mail goes to the list's address through
+  `messages.send`, which `gmail.modify` covers (checked on the method's reference page,
+  2026-10-21). Either is done only for mail whose `Authentication-Results` say `dkim=pass`,
+  and never for an IP or a local host. Any other mail can only have its page opened in the
+  browser. A second `u` confirms.

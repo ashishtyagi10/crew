@@ -11,7 +11,7 @@ impl InboxPane {
             return Vec::new();
         };
         let laid = r.laid(reader::text_width(cols));
-        let room = rows.saturating_sub(1) as usize;
+        let room = usize::from(self.body_rows(cols, rows));
         let mut out = Vec::new();
         for (row, line) in laid.lines.iter().skip(r.scroll).take(room).enumerate() {
             let mut col: u16 = 1;
@@ -32,7 +32,7 @@ impl InboxPane {
     /// The address under a click at `(row, col)`, if a link is drawn there.
     pub(crate) fn link_at(&self, cols: u16, rows: u16, row: u16, col: u16) -> Option<String> {
         let r = self.reading.as_ref()?;
-        if row >= rows.saturating_sub(1) || col == 0 {
+        if row >= self.body_rows(cols, rows) || col == 0 {
             return None;
         }
         let laid = r.laid(reader::text_width(cols));

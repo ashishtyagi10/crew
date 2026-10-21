@@ -1,5 +1,5 @@
-//! The inbox drawn: the thread list, or the reader, or the setup page, with
-//! one line at the foot that says what the keys do — or what just happened.
+//! The inbox drawn: the thread list, or the reader, or the setup page, over
+//! a foot that says what every key does, and what just happened.
 use crew_render::CellView;
 use unicode_width::UnicodeWidthChar;
 
@@ -84,7 +84,8 @@ pub(crate) fn wrap(text: &str, width: usize) -> Vec<String> {
 
 impl InboxPane {
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
-        let mut cv = Canvas::new(cols, rows);
+        // Everything but the foot draws in the rows above it.
+        let mut cv = Canvas::new(cols, self.body_rows(cols, rows));
         match (&self.stage, &self.reading) {
             (Stage::Ready(_), Some(r)) => super::reader::draw(&mut cv, r, &self.pics),
             (Stage::Ready(_), None) => self.list(&mut cv),
@@ -109,6 +110,7 @@ impl InboxPane {
                 );
             }
         }
+        cv.rows = rows;
         self.foot(&mut cv);
         cv.out
     }

@@ -34,7 +34,7 @@ fn ch(c: &str) -> Key {
 }
 
 #[test]
-fn e_archives_by_taking_inbox_away_and_u_puts_it_back_where_it_was() {
+fn e_archives_by_taking_inbox_away_and_z_puts_it_back_where_it_was() {
     let (mut p, asks, _a) = pane(&["a", "b", "c"]);
     p.sel = 1;
     p.press(&ch("e"), 80, 24);
@@ -46,16 +46,16 @@ fn e_archives_by_taking_inbox_away_and_u_puts_it_back_where_it_was() {
         "{}",
         p.note
     );
-    p.press(&ch("u"), 80, 24);
+    p.press(&ch("z"), 80, 24);
     assert_eq!(relabel(&asks), ("b".into(), vec!["INBOX"], vec![]));
     let ids: Vec<&str> = p.rows.iter().map(|t| t.id.as_str()).collect();
     assert_eq!((ids, p.sel), (vec!["a", "b", "c"], 1));
-    p.press(&ch("u"), 80, 24);
+    p.press(&ch("z"), 80, 24);
     assert_eq!(p.note, "nothing to undo");
 }
 
 #[test]
-fn d_moves_the_thread_to_trash_and_u_takes_it_out_again() {
+fn d_moves_the_thread_to_trash_and_z_takes_it_out_again() {
     let (mut p, asks, _a) = pane(&["a", "b", "c"]);
     p.sel = 2;
     p.press(&ch("d"), 80, 24);
@@ -67,7 +67,7 @@ fn d_moves_the_thread_to_trash_and_u_takes_it_out_again() {
         "{}",
         p.note
     );
-    p.press(&ch("u"), 80, 24);
+    p.press(&ch("z"), 80, 24);
     assert!(matches!(asks.try_recv(), Ok(Ask::Trash { id, back: true }) if id == "c"));
     let ids: Vec<&str> = p.rows.iter().map(|t| t.id.as_str()).collect();
     assert_eq!((ids, p.sel), (vec!["a", "b", "c"], 2));
@@ -96,7 +96,7 @@ fn m_and_s_toggle_and_undo_restores_the_flag() {
     p.press(&ch("s"), 80, 24);
     assert_eq!(relabel(&asks), ("a".into(), vec!["STARRED"], vec![]));
     assert!(p.rows[0].starred);
-    p.press(&ch("u"), 80, 24);
+    p.press(&ch("z"), 80, 24);
     assert_eq!(relabel(&asks), ("a".into(), vec![], vec!["STARRED"]));
     assert!(
         !p.rows[0].starred && !p.rows[0].unread,

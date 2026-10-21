@@ -2,7 +2,7 @@
 //! over its words, oldest first. The words are markdown drawn the way chat
 //! draws it (`chatmd`), so a mail's headings, emphasis, lists, quotes,
 //! tables and links survive (goal 2026-10-20-mail-reader, phase 1); quoted
-//! history folds to one row until `z`, and `v` reads the other version.
+//! replies fold to one row until `q`, and `v` reads the other version.
 use std::sync::Arc;
 
 use super::draw::{wrap, Canvas};
@@ -97,7 +97,7 @@ pub(crate) fn row(text: &str, fg: Color, bold: bool) -> CardLine {
 
 pub(crate) fn draw(cv: &mut Canvas, r: &Reading, pics: &Pics) {
     let t = crew_theme::theme();
-    let room = cv.rows.saturating_sub(1) as usize;
+    let room = usize::from(cv.rows);
     let laid = r.laid(text_width(cv.cols));
     for (i, line) in laid.lines.iter().skip(r.scroll).take(room).enumerate() {
         let mut cells =

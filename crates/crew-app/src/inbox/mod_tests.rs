@@ -152,11 +152,12 @@ fn the_list_draws_unread_dots_senders_and_the_hint() {
         }
         line.into_iter().collect()
     };
-    assert_eq!(row(0).trim(), "undated", "the day's band, first");
+    assert_eq!(row(0).trim(), "", "a row of air");
+    assert_eq!(row(1).trim(), "undated", "the day's band, first");
     assert!(
-        row(1).starts_with(" \u{25cf} ann  about ann"),
+        row(2).starts_with(" \u{25cf} ann   about ann"),
         "{:?}",
-        row(1)
+        row(2)
     );
     assert!(row(5).contains("enter read"), "{:?}", row(5));
     assert!(

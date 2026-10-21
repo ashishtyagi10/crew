@@ -35,6 +35,7 @@ mod reading;
 mod readmail;
 pub(crate) mod rich;
 pub(crate) mod row;
+mod rowfit;
 pub(crate) mod save;
 pub(crate) mod setup;
 pub(crate) mod signin;
@@ -42,6 +43,7 @@ pub(crate) mod smith;
 mod states;
 pub(crate) mod take;
 pub(crate) mod triage;
+pub(crate) mod unsub;
 pub(crate) mod who;
 pub(crate) mod wire;
 pub(crate) mod worker;
@@ -141,7 +143,10 @@ impl InboxPane {
         let Stage::Ready(w) = &self.stage else {
             return false;
         };
-        self.busy = !matches!(ask, Ask::Check | Ask::Picture { .. } | Ask::Save { .. });
+        self.busy = !matches!(
+            ask,
+            Ask::Check | Ask::Picture { .. } | Ask::Save { .. } | Ask::Unsubscribe { .. }
+        );
         w.tx.send(ask).is_ok()
     }
 }
