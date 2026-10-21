@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.46
+
+**`/inbox`: `u` says to press it again where you can see it.** `u` in an
+open mail asks before it unsubscribes, and the question ended with what to
+do about it: "unsubscribe from Dainik Bhaskar? one click, nothing is sent
+from your account · u again to do it". The foot cut that line at the
+pane's edge, so on a half-width pane the instruction never showed: you got
+a message and no unsubscribe. The question now leads with the key ("u again
+unsubscribes from Dainik Bhaskar · one click, nothing is sent from your
+account"), and the foot wraps a long note onto as many as three lines
+instead of cutting it.
+- **Tests:** the prompt starts with `u again`, a long note wraps whole
+  and keeps every word, a flood stops at three lines with an ellipsis, and
+  the foot grows by the lines the note takes. Off-screen shots of Hindi on
+  a chat reply, the reader, a terminal and the input bar
+  (`indicshot_tests`) record how Devanagari draws today, before the
+  Indic-text goal changes it.
+
 ## 0.27.45
 
 **`/inbox`: tested on real mail — linked pictures, run-together words and headline floods fixed.**

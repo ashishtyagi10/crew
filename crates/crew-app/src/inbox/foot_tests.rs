@@ -1,4 +1,4 @@
-use super::{lines, width, Key, LIST, MORE, READER};
+use super::{lines, said_lines, width, Key, LIST, MORE, READER};
 use crate::inbox::wire::Thread;
 
 fn said(ls: &[Vec<Key>]) -> Vec<String> {
@@ -62,4 +62,29 @@ fn the_pane_draws_above_the_foot_and_a_note_takes_a_line_of_its_own() {
     for (k, w) in READER {
         assert!(all.contains(&format!("{k} {w}")), "{k} {w} in {all:?}");
     }
+}
+
+#[test]
+fn a_long_note_wraps_whole_so_its_end_says_what_to_press() {
+    let note = "u again unsubscribes from Dainik Bhaskar \u{b7} one click, nothing is sent from your account";
+    let got = said_lines(note, 48);
+    assert!(
+        got.len() == 2 && got.iter().all(|l| l.chars().count() <= 48),
+        "{got:?}"
+    );
+    assert!(got[0].starts_with("u again"));
+    assert_eq!(got.join(" "), note, "every word, none cut");
+    assert!(said_lines("", 48).is_empty());
+    let flood = said_lines(&"word ".repeat(80), 20);
+    assert_eq!(flood.len(), 3);
+    assert!(flood[2].ends_with('\u{2026}'), "{flood:?}");
+    let mut p = crate::inboxshot_tests::ready();
+    p.reading = Some(crate::inbox::Reading::new(Thread::default()));
+    let bare = p.foot_h(50, 30);
+    p.note = note.into();
+    assert_eq!(
+        p.foot_h(50, 30),
+        bare + 2,
+        "the note takes the lines it needs"
+    );
 }

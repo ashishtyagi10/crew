@@ -61,7 +61,10 @@ impl InboxPane {
     /// The rows the foot takes in a pane `cols` by `rows`: the note's line
     /// when there is one, and the keys' lines. The pane draws above them.
     pub(crate) fn foot_h(&self, cols: u16, rows: u16) -> u16 {
-        let said = u16::from(self.typing.is_some() || !self.note.is_empty());
+        let said = match &self.typing {
+            Some(_) => 1,
+            None => said_lines(&self.note, room(cols)).len() as u16,
+        };
         (said + lines(self.keys(), room(cols), most(rows)).len() as u16).min(rows)
     }
 
@@ -74,12 +77,14 @@ impl InboxPane {
     pub(crate) fn foot(&self, cv: &mut Canvas) {
         let t = crew_theme::theme();
         let mut row = cv.rows.saturating_sub(self.foot_h(cv.cols, cv.rows));
-        let said = match &self.typing {
-            Some(q) => Some((format!("search: {q}\u{258f}"), crate::palette::accent())),
-            None if !self.note.is_empty() => Some((self.note.clone(), t.bell)),
-            None => None,
+        let (said, fg) = match &self.typing {
+            Some(q) => (
+                vec![format!("search: {q}\u{258f}")],
+                crate::palette::accent(),
+            ),
+            None => (said_lines(&self.note, room(cv.cols)), t.bell),
         };
-        if let Some((text, fg)) = said {
+        for text in said {
             cv.text(row, 1, cv.cols, &text, fg, false);
             row += 1;
         }
@@ -109,6 +114,31 @@ impl InboxPane {
 fn room(cols: u16) -> usize {
     usize::from(cols.saturating_sub(2))
 }
+
+/// What just happened, wrapped at spaces onto up to [`SAID`] lines of `room`
+/// columns. Cut at the pane's edge, a note lost its own end, and `u`'s ended
+/// with what to press next (the user, 2026-10-21: "unable to unsubscribe,
+/// however getting message at the bottom").
+fn said_lines(note: &str, room: usize) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for word in note.split(' ').filter(|w| !w.is_empty()) {
+        match out.last_mut() {
+            Some(line) if str_w(line) + 1 + str_w(word) <= room => {
+                line.push(' ');
+                line.push_str(word);
+            }
+            _ => out.push(word.to_string()),
+        }
+    }
+    if out.len() > SAID {
+        out.truncate(SAID);
+        out[SAID - 1].push('\u{2026}');
+    }
+    out
+}
+
+/// The note's lines at most; past them the last ends in an ellipsis.
+const SAID: usize = 3;
 
 /// The key lines a pane `rows` tall can spare: a quarter of it, one at
 /// least and [`LINES`] at most.
