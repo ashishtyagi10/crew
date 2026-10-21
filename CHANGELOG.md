@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.53
+
+**`/inbox`: pictures drawn as pictures.** Third round of the mail reader
+loop.
+- **Sharp pictures.** A mail's pictures are drawn as real textures at your
+  screen's resolution, smoothly scaled, instead of a mosaic of coloured
+  squares: a photo no longer looks blocky on a Retina screen, and edges with
+  transparency are clean. Pictures keep up to 1024 pixels a side, so a wide
+  hero stays sharp.
+- **A picture still loading** shows a quiet box of its own size, so the
+  words under it don't start in mid-air.
+- **Tests:** a GPU test draws a picture and reads it back: its colours in
+  place, nothing outside its box, nothing past where it is cut.
+
 ## 0.27.52
 
 **`/inbox`: long threads fold, and lines keep a reading measure.** Second

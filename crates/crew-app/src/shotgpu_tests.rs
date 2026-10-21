@@ -54,6 +54,47 @@ pub fn shot_at(
     Some(px)
 }
 
+/// [`shot_at`] for content that draws pictures as textures too: they go on
+/// the card's interior, the scene `push_card_art` pushes first.
+pub fn shot_pics(
+    name: &str,
+    w: u32,
+    h: u32,
+    font_px: f32,
+    legend: &str,
+    content: impl FnOnce(u16, u16, f32) -> (Vec<CellView>, Vec<Paint>, Vec<crew_render::Picture>),
+) -> Option<Vec<u8>> {
+    let px = crate::shotdraw_tests::draw(w, h, font_px, |cw, ch| {
+        let rect = crate::layout::Rect {
+            x: 12.0,
+            y: 12.0,
+            w: w as f32 - 24.0,
+            h: h as f32 - 24.0,
+        };
+        let mut scenes: Vec<PaneScene> = Vec::new();
+        let mut pictures = Vec::new();
+        crate::panelcard::push_card_art(
+            &mut scenes,
+            rect,
+            cw,
+            ch,
+            legend,
+            crew_theme::theme().legend_off,
+            |cols, rows| {
+                let (cells, paint, pics) = content(cols, rows, ch / cw);
+                pictures = pics;
+                (cells, paint)
+            },
+        );
+        if let Some(inside) = scenes.first_mut() {
+            inside.pictures = pictures;
+        }
+        scenes
+    })?;
+    crate::shotdraw_tests::write_png(name, &px, w, h);
+    Some(px)
+}
+
 /// Count pixels that differ from the page background by more than the grain —
 /// "did this widget put ink on the page at all".
 pub fn ink(px: &[u8]) -> usize {

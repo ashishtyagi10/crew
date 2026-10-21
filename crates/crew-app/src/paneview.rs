@@ -200,6 +200,7 @@ pub(crate) fn push_pane_scenes(
     scenes.push(PaneScene {
         cells,
         paint,
+        pictures: crate::panepics::of(p, ch / cw),
         x: cx,
         y: cy,
         w: (r.x + r.w - cw - cx).max(0.0),

@@ -10,7 +10,7 @@ use crate::inbox::api::Mail;
 use crate::inbox::motion::Fold;
 use crate::inbox::{InboxPane, Reading};
 use crate::inboxshot_tests::{ready, rows};
-use crate::shotgpu_tests::shot_at;
+use crate::shotgpu_tests::shot_pics;
 
 fn both(name: &str, w: u32, h: u32, p: &InboxPane) {
     let _a = crate::palette::test_guard();
@@ -22,8 +22,9 @@ fn both(name: &str, w: u32, h: u32, p: &InboxPane) {
         crew_theme::set_theme(id);
         crate::palette::set_accent(crew_theme::theme().accent_default);
         let tag = format!("inbox-{name}-{}", format!("{id:?}").to_lowercase());
-        let px = shot_at(&tag, w, h, 13.0, &p.legend(), |cols, rows, aspect| {
-            p.art(cols, rows, aspect)
+        let px = shot_pics(&tag, w, h, 13.0, &p.legend(), |c, r, a| {
+            let (cells, paint) = p.art(c, r, a);
+            (cells, paint, p.pictures(c, r, a))
         });
         if px.is_none() {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");

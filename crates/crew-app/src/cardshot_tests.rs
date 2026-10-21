@@ -59,6 +59,7 @@ fn card_scene(w: u32, h: u32, cw: f32, ch: f32, b: &Bar) -> Vec<PaneScene> {
         scan: -1.0,
         lift: 0.0,
         glint: -1.0,
+        pictures: Vec::new(),
         stretch: false,
         overlay: false,
         // The thumb, the progress bar and the row marks are Paint, not cells

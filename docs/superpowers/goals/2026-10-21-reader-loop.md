@@ -78,3 +78,25 @@ Rules that hold every round:
 - **Tests:** a thread of three folds two and opens on a click and on `x`; a folded mail's
   words are plain; the measure caps the text.
 
+**Round 3 (v0.27.53): pictures as pictures.**
+
+- **The survey.** Every picture was a mosaic of coloured quads, about 2 px each and point
+  sampled, so a photo was blocky on a Retina screen and the edge of anything with
+  transparency was ragged. A picture still loading was the words `loading picture…` in an
+  empty band.
+- **A texture per picture.** crew-render draws pictures (`crew_render::Picture`,
+  `Pixels`) as textures (`crates/crew-render/src/images.rs`, `images.wgsl`), one textured
+  rectangle per picture, linearly filtered at the display's resolution, over the cells'
+  backgrounds and under their text. Pixels are uploaded once per picture (named by an id of
+  their own) and kept while drawn; textures unused for 600 frames are let go. Clipping is
+  done on the CPU, texture coordinates and all (`picture::place`). Pixels are premultiplied,
+  so a transparent edge does not pull in a dark fringe. The open mail's pictures go this way
+  (`InboxPane::pictures`, `panepics`, the mail window, and the shot harness's `shot_pics`);
+  the viewer, chat and the terminal keep the mosaic for now.
+- **Sharper.** A decoded picture keeps up to 1024 samples a side, up from 640, so a hero
+  across the measure stays sharp on a Retina screen.
+- **Loading.** A picture still coming is a quiet box of its own size under its words.
+- **Tests:** a headless GPU test draws a four-colour picture and reads it back: each
+  quarter its own colour, nothing outside its box, nothing past its clip. Placement and clip
+  maths are unit-tested.
+

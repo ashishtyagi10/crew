@@ -157,6 +157,7 @@ fn scene(x: f32, y: f32, w: f32, h: f32, overlay: bool) -> crew_render::PaneScen
         scan: -1.0,
         lift: 0.0,
         glint: -1.0,
+        pictures: Vec::new(),
         stretch: false,
         overlay,
         paint: Vec::new(),

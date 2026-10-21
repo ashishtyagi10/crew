@@ -18,11 +18,12 @@
 //! the page it is being read on and stays right when the theme changes.
 use crew_render::Paint;
 
-/// The largest sample grid kept from a decoded file, per axis. A pane 200
-/// columns wide draws ~600 samples across at [`SAMPLES_PER_CELL`], so this is
-/// past what any window can show while keeping the decoded copy to about a
-/// megabyte.
-const MAX_SAMPLES: u32 = 640;
+/// The largest sample grid kept from a decoded file, per axis. A mosaic 200
+/// columns wide draws ~600 samples across at [`SAMPLES_PER_CELL`], but a
+/// picture drawn as a texture (the mail reader) shows every sample, and a
+/// mail's hero across the reader's measure is some 1,400 px on a Retina
+/// screen: 1024 keeps it sharp at about 4 MB a picture.
+const MAX_SAMPLES: u32 = 1024;
 
 /// Samples per cell along the x axis. Cells are about twice as tall as they
 /// are wide, so this is ~6 rows of samples per row of text — fine detail by

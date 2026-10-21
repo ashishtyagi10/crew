@@ -492,6 +492,7 @@ mod panellevel;
 #[path = "panelshot_tests.rs"]
 mod panelshot_tests;
 mod panemanage;
+mod panepics;
 mod panes_roster;
 mod panescenes;
 mod panescroll;

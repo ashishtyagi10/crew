@@ -95,6 +95,7 @@ impl MailWindow {
             h: h as f32 - m * 2.0,
         };
         let mut scenes: Vec<PaneScene> = Vec::new();
+        let (cols, rows) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
         crate::panelcard::push_card_art(
             &mut scenes,
             rect,
@@ -104,6 +105,10 @@ impl MailWindow {
             crew_theme::theme().legend_off,
             |cols, rows| pane.art(cols, rows, ch / cw),
         );
+        // The interior is the first scene; its pictures are textures.
+        if let Some(inside) = scenes.first_mut() {
+            inside.pictures = pane.pictures(cols, rows, ch / cw);
+        }
         self.renderer.set_theme_fade(None);
         self.renderer.set_solid_chrome(Vec::new());
         self.renderer.frame(&scenes);
