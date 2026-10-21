@@ -1,7 +1,8 @@
 //! The thread list drawn: as many rows as fit above the foot, the selected
-//! one in view, two lines each when the pane holds at least eight of them
-//! and one line each when it does not. `L` picks one or the other, and the
-//! pick holds for the rest of the session, in every inbox pane opened.
+//! one in view, two lines each when the pane holds at least six of them with
+//! air between, and one line each when it does not. `L` picks one or the
+//! other, and the pick holds for the rest of the session, in every inbox
+//! pane opened. Each day's name is a quiet word over its threads: no rules.
 use std::sync::atomic::{AtomicU8, Ordering};
 
 use crew_render::Paint;
@@ -24,8 +25,9 @@ pub(crate) enum Density {
 /// The session's `L` pick: what a pane opened later starts with.
 static PICKED: AtomicU8 = AtomicU8::new(0);
 
-/// Two-line rows are worth it only when this many of them fit.
-const TWO_LINE_ROWS: u16 = 8;
+/// Two-line rows are worth it only when this many of them fit, each with
+/// the blank row under it.
+const TWO_LINE_ROWS: u16 = 6;
 
 impl Density {
     /// The session's pick, for a pane being opened.
@@ -37,12 +39,13 @@ impl Density {
         }
     }
 
-    /// Two lines per row in a pane `rows` tall?
+    /// Two lines per row in the `rows` above the foot?
     pub(crate) fn two(self, rows: u16) -> bool {
         match self {
             Self::One => false,
             Self::Two => true,
-            Self::Auto => rows.saturating_sub(1) / 2 >= TWO_LINE_ROWS,
+            // Less the row of air at the top and the one over the foot.
+            Self::Auto => rows.saturating_sub(2) / 3 >= TWO_LINE_ROWS,
         }
     }
 }
@@ -79,50 +82,19 @@ impl InboxPane {
         let muted = crew_theme::theme().text_muted;
         for (r, slot) in &shown.slots {
             match slot {
-                Slot::Band(day) => cv.text(*r, 1, cv.cols, day, muted, true),
+                Slot::Band(day) => cv.text(*r, row::TEXT, cv.cols, day, muted, false),
                 Slot::Thread(i) => row::cells(&mut cv.out, &self.rows[*i], *r, *i == self.sel, &x),
             }
         }
     }
 
-    /// What the list paints: the selected thread's accent bar, a rule out
-    /// from each day's name, and on two-line rows a fainter one between
-    /// threads of the same day.
+    /// What the list paints: nothing over rows (the air divides them), and
+    /// the empty list's outline rows or mark.
     pub(crate) fn list_paint(&self, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
-        if self.rows.is_empty() {
-            return self.empty_paint(cols, rows, aspect);
+        match self.rows.is_empty() {
+            true => self.empty_paint(cols, rows, aspect),
+            false => Vec::new(),
         }
-        let shown = self.shown(rows);
-        let (lines, end) = (shown.lines, f32::from(cols.saturating_sub(1)));
-        let muted = crew_theme::theme().text_muted;
-        let rule = |x: f32, y: f32, alpha: f32| Paint {
-            alpha,
-            ..Paint::solid(x, y, (end - x).max(0.0), 0.06, muted)
-        };
-        let mut paint = Vec::new();
-        let mut prev: Option<usize> = None;
-        for (r, slot) in &shown.slots {
-            let y = f32::from(*r);
-            match slot {
-                Slot::Band(day) => {
-                    let x = 2.0 + crate::chatwidth::str_w(day) as f32;
-                    paint.push(rule(x, y + 0.5, 0.3));
-                    prev = None;
-                }
-                Slot::Thread(i) => {
-                    // Not against the wash: it has its own edge.
-                    let washed = *i == self.sel || prev == Some(self.sel);
-                    if lines == 2 && prev.is_some() && !washed {
-                        paint.push(rule(row::NAMES as f32, y + 0.1, 0.2));
-                    }
-                    if *i == self.sel {
-                        paint.push(row::bar(*r, lines));
-                    }
-                    prev = Some(*i);
-                }
-            }
-        }
-        paint
     }
 }
 

@@ -1,14 +1,15 @@
-//! The pane's last line: what the keys do where you are, or what just
-//! happened, or the search being typed.
-//!
-//! The keys are as many as fit, most used first, and never cut in half
-//! (goal 2026-10-20-inbox-list-look, item 10): when some are left out the
-//! line ends `? keys`, and `?` opens `/keys` on the inbox's own section.
+//! The pane's foot: every key that works where you are, wrapped whole onto
+//! as many lines as they take (the user, 2026-10-21: "all shortcut should
+//! be visible"), each key bright and what it does quiet; over them, on a
+//! line of its own, what just happened or the search being typed. Only a
+//! pane too short to spare the lines ends its last one `? keys`, and `?`
+//! opens `/keys` on the inbox's own section.
 use super::draw::Canvas;
 use super::{InboxPane, Stage};
 use crate::chatwidth::str_w;
 
-type Keys = &'static [(&'static str, &'static str)];
+type Key = (&'static str, &'static str);
+type Keys = &'static [Key];
 
 const SETUP: Keys = &[
     ("1\u{2013}5", "open the console"),
@@ -22,7 +23,7 @@ const LIST: Keys = &[
     ("d", "delete"),
     ("r", "reply"),
     ("/", "search"),
-    ("u", "undo"),
+    ("z", "undo"),
     ("s", "star"),
     ("m", "read/unread"),
     ("a", "ask smith"),
@@ -36,7 +37,9 @@ const READER: Keys = &[
     ("r", "reply"),
     ("e", "archive"),
     ("d", "delete"),
-    ("z", "quotes"),
+    ("z", "undo"),
+    ("u", "unsubscribe"),
+    ("q", "quoted replies"),
     ("i", "pictures"),
     ("v", "text"),
     ("w", "window"),
@@ -47,21 +50,49 @@ const READER: Keys = &[
     ("o", "gmail"),
 ];
 
-/// What a left-out key's place says instead.
-const MORE: &str = "? keys";
-const SEP: &str = " \u{b7} ";
+/// Between two keys on a line.
+const SEP: &str = "  ";
+/// What stands for the keys a short pane leaves out.
+const MORE: Key = ("?", "keys");
+/// The foot's key lines at most, however many keys there are.
+const LINES: u16 = 4;
 
 impl InboxPane {
+    /// The rows the foot takes in a pane `cols` by `rows`: the note's line
+    /// when there is one, and the keys' lines. The pane draws above them.
+    pub(crate) fn foot_h(&self, cols: u16, rows: u16) -> u16 {
+        let said = u16::from(self.typing.is_some() || !self.note.is_empty());
+        (said + lines(self.keys(), room(cols), most(rows)).len() as u16).min(rows)
+    }
+
+    /// The rows the list, the reader or the setup page draw in.
+    pub(crate) fn body_rows(&self, cols: u16, rows: u16) -> u16 {
+        rows - self.foot_h(cols, rows)
+    }
+
+    /// The foot, on the last [`Self::foot_h`] rows of `cv`.
     pub(crate) fn foot(&self, cv: &mut Canvas) {
         let t = crew_theme::theme();
-        let last = cv.rows.saturating_sub(1);
-        let room = usize::from(cv.cols.saturating_sub(2));
-        let (text, fg) = match (&self.typing, self.note.is_empty()) {
-            (Some(q), _) => (format!("search: {q}\u{258f}"), crate::palette::accent()),
-            (None, false) => (self.note.clone(), t.bell),
-            (None, true) => (fit(self.keys(), room), t.text_muted),
+        let mut row = cv.rows.saturating_sub(self.foot_h(cv.cols, cv.rows));
+        let said = match &self.typing {
+            Some(q) => Some((format!("search: {q}\u{258f}"), crate::palette::accent())),
+            None if !self.note.is_empty() => Some((self.note.clone(), t.bell)),
+            None => None,
         };
-        cv.text(last, 1, cv.cols, &text, fg, false);
+        if let Some((text, fg)) = said {
+            cv.text(row, 1, cv.cols, &text, fg, false);
+            row += 1;
+        }
+        for line in lines(self.keys(), room(cv.cols), most(cv.rows)) {
+            let mut col = 1;
+            for (k, what) in line {
+                cv.text(row, col, cv.cols, k, t.ink, false);
+                let at = col + str_w(k) as u16 + 1;
+                cv.text(row, at, cv.cols, what, t.text_muted, false);
+                col = at + (str_w(what) + str_w(SEP)) as u16;
+            }
+            row += 1;
+        }
     }
 
     fn keys(&self) -> Keys {
@@ -74,50 +105,44 @@ impl InboxPane {
     }
 }
 
-/// `keys` in at most `room` columns, whole: as many as fit with room left
-/// for `? keys` after them, or all of them when all fit.
-pub(crate) fn fit(keys: Keys, room: usize) -> String {
-    let said: Vec<String> = keys.iter().map(|(k, what)| format!("{k} {what}")).collect();
-    let all = said.join(SEP);
-    if str_w(&all) <= room {
-        return all;
-    }
-    let mut out = String::new();
-    for s in &said {
-        let next = match out.is_empty() {
-            true => s.clone(),
-            false => format!("{out}{SEP}{s}"),
-        };
-        if str_w(&next) + str_w(SEP) + str_w(MORE) > room {
-            break;
+/// The columns a line of keys may take: all but the margin each side.
+fn room(cols: u16) -> usize {
+    usize::from(cols.saturating_sub(2))
+}
+
+/// The key lines a pane `rows` tall can spare: a quarter of it, one at
+/// least and [`LINES`] at most.
+fn most(rows: u16) -> usize {
+    usize::from((rows / 4).clamp(1, LINES))
+}
+
+fn width(line: &[Key]) -> usize {
+    let keys: usize = line.iter().map(|(k, w)| str_w(k) + 1 + str_w(w)).sum();
+    keys + str_w(SEP) * line.len().saturating_sub(1)
+}
+
+/// `keys` wrapped whole into lines of at most `room` columns, in order. Past
+/// `most` lines, the last ends with `? keys` in place of what is left out.
+pub(crate) fn lines(keys: Keys, room: usize, most: usize) -> Vec<Vec<Key>> {
+    let mut out: Vec<Vec<Key>> = Vec::new();
+    for &key in keys {
+        match out.last_mut() {
+            Some(line) if width(line) + str_w(SEP) + width(&[key]) <= room => line.push(key),
+            _ => out.push(vec![key]),
         }
-        out = next;
     }
-    match out.is_empty() {
-        true => MORE.into(),
-        false => format!("{out}{SEP}{MORE}"),
+    if out.len() > most {
+        out.truncate(most);
+        if let Some(last) = out.last_mut() {
+            while !last.is_empty() && width(last) + str_w(SEP) + width(&[MORE]) > room {
+                last.pop();
+            }
+            last.push(MORE);
+        }
     }
+    out
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{fit, LIST, READER};
-    use crate::chatwidth::str_w;
-
-    #[test]
-    fn the_foot_keeps_whole_keys_most_used_first_and_points_at_the_rest() {
-        for room in [20, 40, 58, 78, 118] {
-            for keys in [LIST, READER] {
-                let got = fit(keys, room);
-                assert!(str_w(&got) <= room, "{room}: {got:?}");
-                assert!(!got.contains('\u{2026}'), "{room}: {got:?}");
-                assert!(got.ends_with("? keys"), "{room}: {got:?}");
-                let first = format!("{} {}", keys[0].0, keys[0].1);
-                assert!(got.starts_with(&first), "{room}: {got:?}");
-            }
-        }
-        let wide = fit(LIST, 400);
-        assert!(wide.ends_with("o gmail"), "everything fits: {wide:?}");
-        assert_eq!(fit(LIST, 4), "? keys", "too narrow for any key");
-    }
-}
+#[path = "foot_tests.rs"]
+mod tests;

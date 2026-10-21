@@ -92,3 +92,24 @@ fn senders_are_every_written_message_oldest_first_and_never_a_draft() {
         ]
     );
 }
+
+#[test]
+fn a_draft_and_an_attachment_come_with_the_metadata() {
+    let mut first = msg("Ann <ann@x.org>", "x", "1000", &["INBOX", "Label_7"], "");
+    first["payload"]["headers"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"name": "Content-Type", "value": "Multipart/Mixed; boundary=\"b\""}));
+    let v = json!({"id": "t4", "messages": [
+        first,
+        msg("Me <me@x.org>", "Re: x", "2000", &["SENT", "IMPORTANT", "INBOX"], ""),
+        msg("Me <me@x.org>", "Re: x", "3000", &["DRAFT"], ""),
+    ]});
+    let t = super::thread(&v);
+    assert!(t.draft, "a message still a draft");
+    assert!(t.attached, "a multipart/mixed message");
+    let plain = super::thread(&json!({"id": "t5", "messages": [
+        msg("Ann <ann@x.org>", "x", "1000", &["INBOX"], ""),
+    ]}));
+    assert!(!plain.draft && !plain.attached);
+}

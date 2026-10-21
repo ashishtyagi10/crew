@@ -1,5 +1,5 @@
 //! Filing mail from the pane: `e` archives, `d` deletes, `m` marks read or
-//! unread, `s` stars or unstars, `u` puts the last of those back. Each shows
+//! unread, `s` stars or unstars, `z` puts the last of those back. Each shows
 //! at once and goes to Gmail behind it; a refusal is said and the list comes
 //! back as Gmail has it. Archive is taking the `INBOX` label away, as Gmail's
 //! own archive is; delete is Gmail's own delete too, a move to Trash (emptied
@@ -23,7 +23,7 @@ pub(crate) struct Undo {
 }
 
 impl InboxPane {
-    /// `e`, `d`, `m`, `s` or `u` on the thread under the cursor (or open):
+    /// `e`, `d`, `m`, `s` or `z` on the thread under the cursor (or open):
     /// true when it was one of them.
     pub(crate) fn triage(&mut self, ch: &str) -> bool {
         match ch {
@@ -31,7 +31,7 @@ impl InboxPane {
             "d" => self.delete(),
             "m" => self.flip("UNREAD", "read", "unread", |t| &mut t.unread),
             "s" => self.flip("STARRED", "unstarred", "starred", |t| &mut t.starred),
-            "u" => self.undo(),
+            "z" => self.undo(),
             _ => return false,
         }
         true
@@ -181,7 +181,7 @@ impl InboxPane {
             "" => "(no subject)",
             s => s,
         };
-        self.note = format!("{what} \u{201c}{subject}\u{201d} \u{b7} u undoes");
+        self.note = format!("{what} \u{201c}{subject}\u{201d} \u{b7} z undoes");
     }
 }
 

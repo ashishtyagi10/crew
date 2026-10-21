@@ -12,7 +12,9 @@ pub(crate) struct Reading {
     pub scroll: usize,
     /// `v`: each message's other version (the plain part of an HTML mail).
     pub plain: bool,
-    /// `z`: quoted history unfolded.
+    /// `u` pressed once: a second unsubscribes (`unsub`).
+    pub unsub_armed: bool,
+    /// `q`: the quoted earlier replies unfolded.
     pub quotes: bool,
     /// `i`: pictures from the web drawn.
     pub web: bool,
@@ -29,13 +31,14 @@ impl Reading {
             scroll: 0,
             plain: false,
             quotes: false,
+            unsub_armed: false,
             web: false,
             pop_out: false,
             laid: std::sync::Mutex::new(None),
         }
     }
 
-    /// `v` (`plain`) or `z`: flip it when the thread has something to flip, and
+    /// `v` (`plain`) or `q`: flip it when the thread has something to flip, and
     /// the line the foot says.
     pub(crate) fn toggle(&mut self, plain: bool) -> &'static str {
         let mails = self.mails.as_deref().unwrap_or_default();
@@ -58,7 +61,7 @@ impl Reading {
                 self.quotes = !self.quotes;
                 ""
             }
-            false => "no quoted history in this thread",
+            false => "no quoted replies in this thread",
         }
     }
 }

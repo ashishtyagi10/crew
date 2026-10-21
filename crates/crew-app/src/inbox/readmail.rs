@@ -79,7 +79,7 @@ pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key) {
             false => {
                 let n = crate::md::render_chat(q, k.width).len();
                 lay.quiet(
-                    &format!("\u{b7}\u{b7}\u{b7} quoted text ({n} lines) \u{b7} z shows it"),
+                    &format!("\u{b7}\u{b7}\u{b7} {n} lines quoted from earlier replies \u{b7} q shows them"),
                     k,
                 );
             }

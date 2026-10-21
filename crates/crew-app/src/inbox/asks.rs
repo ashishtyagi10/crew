@@ -43,6 +43,11 @@ pub(crate) enum Ask {
         data: Option<String>,
         name: String,
     },
+    /// `u`, confirmed: unsubscribe from `who`.
+    Unsubscribe {
+        how: super::unsub::How,
+        who: String,
+    },
 }
 
 pub(crate) enum Got {
@@ -61,6 +66,8 @@ pub(crate) enum Got {
     Opened(String, Vec<Mail>),
     /// A draft was saved; its subject.
     Drafted(String),
+    /// Unsubscribed from this sender.
+    Unsubscribed(String),
     /// A picture, decoded, or `None` when there is nothing to draw.
     Picture(String, Option<crate::viewpane::bitmap::Bitmap>),
     /// An attachment written to disk, or why not.

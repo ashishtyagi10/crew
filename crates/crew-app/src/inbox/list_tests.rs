@@ -36,21 +36,31 @@ fn slots(p: &InboxPane, rows: u16) -> Vec<(u16, String)> {
 }
 
 #[test]
-fn two_lines_only_when_eight_of_them_fit_and_l_picks_for_the_session() {
-    assert!(Density::Auto.two(17), "eight two-line rows over the foot");
-    assert!(!Density::Auto.two(16), "seven: one line each");
-    let mut p = pane(30);
-    let shown = p.shown(17);
-    assert_eq!(
-        (shown.lines, shown.threads().count()),
-        (2, 7),
-        "a band, then seven"
+fn two_lines_only_when_six_fit_with_air_and_l_picks_for_the_session() {
+    let _g = crate::app::motion_test_guard();
+    assert!(
+        Density::Auto.two(20),
+        "six two-line rows, a blank under each"
     );
-    assert_eq!(p.shown(16).threads().count(), 14);
-    p.flip_density(16);
+    assert!(!Density::Auto.two(19), "five: one line each");
+    let mut p = pane(30);
+    let shown = p.shown(20);
+    let rows: Vec<u16> = shown.threads().map(|(r, _)| r).collect();
+    assert_eq!(shown.lines, 2);
+    assert_eq!(
+        rows,
+        [2, 5, 8, 11, 14, 17],
+        "under a row of air and the band, a blank row between threads"
+    );
+    assert_eq!(
+        p.shown(19).threads().count(),
+        16,
+        "one line, no air between"
+    );
+    p.flip_density(19);
     assert_eq!(p.density, Density::Two, "L on a short pane asks for two");
-    assert_eq!(p.shown(16).lines, 2);
-    p.flip_density(16);
+    assert_eq!(p.shown(19).lines, 2);
+    p.flip_density(19);
     assert_eq!(p.density, Density::One);
     assert_eq!(
         Density::picked(),
@@ -61,7 +71,8 @@ fn two_lines_only_when_eight_of_them_fit_and_l_picks_for_the_session() {
 }
 
 #[test]
-fn each_day_gets_a_band_and_the_selection_stays_in_view_under_one() {
+fn each_day_gets_a_band_after_a_blank_row_and_the_selection_stays_in_view() {
+    let _g = crate::app::motion_test_guard();
     let now = chrono::Utc::now().timestamp_millis();
     let mut p = pane(12);
     for (i, t) in p.rows.iter_mut().enumerate() {
@@ -70,60 +81,57 @@ fn each_day_gets_a_band_and_the_selection_stays_in_view_under_one() {
         t.at_ms = now - days * 86_400_000 - i as i64 * 60_000;
     }
     p.density = Density::One;
-    let got = slots(&p, 12);
+    let got = slots(&p, 14);
     let year = crate::inbox::days::band(p.rows[6].at_ms, now);
-    assert_eq!(got[0], (0, "today".to_string()));
-    assert_eq!(got[4], (4, "yesterday".to_string()));
-    assert_eq!(got[8], (8, year), "a band where the day changes");
-    assert_eq!(got.len(), 11, "a row is left for the foot: {got:?}");
+    assert_eq!(got[0], (1, "today".to_string()), "under a row of air");
+    assert_eq!(
+        got[4],
+        (6, "yesterday".to_string()),
+        "a blank row before a day"
+    );
+    assert_eq!(got[8], (11, year));
+    assert_eq!(
+        got.last(),
+        Some(&(12, "#6".to_string())),
+        "a row of air over the foot"
+    );
     p.sel = 9;
-    let got = slots(&p, 12);
+    let got = slots(&p, 14);
     assert!(
-        got.contains(&(10, "#9".to_string())),
-        "the selected thread is the last: {got:?}"
+        got.iter().any(|(_, s)| s == "#9"),
+        "the selected thread is on screen: {got:?}"
     );
     assert!(
-        matches!(&got[0], (0, b) if !b.starts_with('#')),
+        matches!(&got[0], (1, b) if !b.starts_with('#')),
         "the first row is a band: {got:?}"
     );
-    let rows: Vec<u16> = got.iter().map(|(r, _)| *r).collect();
-    assert!(
-        rows.windows(2).all(|w| w[1] == w[0] + 1),
-        "no row skipped: {got:?}"
-    );
+    p.density = Density::Two;
+    for sel in 0..12 {
+        p.sel = sel;
+        let shown = p.shown(14);
+        let at = shown.threads().find(|&(_, i)| i == sel);
+        assert!(
+            at.is_some_and(|(r, _)| r + 2 <= 13),
+            "{sel}: {:?}",
+            shown.slots
+        );
+    }
 }
 
 #[test]
-fn the_selection_wears_the_bar_on_both_lines_and_rules_stay_off_the_wash() {
-    let _g = crate::app::theme_test_guard();
+fn the_list_paints_nothing_over_its_rows() {
     let mut p = pane(30);
-    let now = chrono::Utc::now().timestamp_millis();
-    for t in &mut p.rows {
-        t.at_ms = now;
-    }
-    p.sel = 3;
-    let paint = p.list_paint(60, 21, 2.0);
-    let bars: Vec<_> = paint
-        .iter()
-        .filter(|q| q.color == crate::palette::accent())
-        .collect();
-    assert_eq!(bars.len(), 1);
-    assert_eq!(
-        (bars[0].y.floor(), bars[0].h.ceil()),
-        (7.0, 2.0),
-        "under today's band, rows 7 and 8"
+    (p.sel, p.density) = (3, Density::Two);
+    assert!(
+        p.list_paint(60, 21, 2.0).is_empty(),
+        "air divides the threads"
     );
     let cells = p.cells(60, 21);
+    let washed = |r: u16| cells.iter().any(|c| c.row == r && c.c == ' ');
+    let shown = p.shown(p.body_rows(60, 21));
+    let (r, _) = shown.threads().find(|&(_, i)| i == 3).unwrap();
     assert!(
-        cells
-            .iter()
-            .any(|c| c.row == 8 && c.c == ' ' && c.bg != crew_theme::theme().page_bg),
-        "the wash covers the selected thread's second line"
-    );
-    let rules = paint.len() - 1;
-    assert_eq!(
-        rules,
-        1 + 9 - 1 - 2,
-        "the band's rule; between threads, none at the wash"
+        washed(r) && washed(r + 1),
+        "the wash covers both of its lines"
     );
 }

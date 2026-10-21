@@ -2,7 +2,15 @@
 //! (`days`), then that day's threads, one or two lines each. Drawing, the
 //! paint under it and a click all read this one answer, so they cannot
 //! disagree about which thread is on which row.
+//!
+//! The list breathes (goal 2026-10-20-inbox-list-look, made quiet on
+//! 2026-10-21): a row of air under the pane's top edge and over the foot, a
+//! blank row between two-line threads (none at crew's `compact` density),
+//! and a blank row before each new day.
 use super::InboxPane;
+
+/// The row the list starts on, under a row of air.
+pub(crate) const TOP: u16 = 1;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Slot {
@@ -29,12 +37,22 @@ impl Shown {
     }
 }
 
+/// The blank rows between two threads of one day.
+pub(crate) fn gap(lines: u16) -> u16 {
+    match lines {
+        2 => crate::density::level().card_gap_rows().min(1) as u16,
+        _ => 0,
+    }
+}
+
 impl InboxPane {
-    /// The list laid out in a pane `rows` tall, above the foot. The selected
+    /// The list laid out in the `rows` above the foot. The selected
     /// thread is always on screen, with its day's band over the first thread
     /// shown; the list scrolls only as far as it must to keep it there.
     pub(crate) fn shown(&self, rows: u16) -> Shown {
         let lines = if self.density.two(rows) { 2 } else { 1 };
+        let gap = gap(lines);
+        // A row of air over the foot.
         let room = rows.saturating_sub(1);
         let now = chrono::Utc::now().timestamp_millis();
         let bands: Vec<String> = self
@@ -42,24 +60,36 @@ impl InboxPane {
             .iter()
             .map(|t| super::days::band(t.at_ms, now))
             .collect();
+        // What thread `i` costs below the one before it: the air, its day's
+        // band when the day changes, and its lines.
+        let below = |i: usize| match bands[i] != bands[i - 1] {
+            true => 1 + 1 + lines,
+            false => gap + lines,
+        };
         let sel = self.sel.min(self.rows.len().saturating_sub(1));
-        // The earliest thread from which the selected one still fits: each
-        // thread added above costs its lines, and a band when its day differs.
-        let (mut top, mut used) = (sel, 1 + lines);
+        // The earliest thread from which the selected one still fits. The
+        // first thread shown always wears its day's band, so a thread added
+        // above costs what the old first one now costs below it.
+        let (mut top, mut used) = (sel, TOP + 1 + lines);
         while top > 0 {
-            let more = used + lines + u16::from(bands[top] != bands[top - 1]);
+            let more = used + below(top);
             if more > room {
                 break;
             }
             (top, used) = (top - 1, more);
         }
         let mut slots = Vec::new();
-        let mut r = 0;
+        let mut r = TOP;
         for i in top..self.rows.len() {
             let band = i == top || bands[i] != bands[i - 1];
-            if r + u16::from(band) + lines > room {
+            let air = match i == top {
+                true => 0,
+                false => below(i) - lines - u16::from(band),
+            };
+            if r + air + u16::from(band) + lines > room {
                 break;
             }
+            r += air;
             if band {
                 slots.push((r, Slot::Band(bands[i].clone())));
                 r += 1;

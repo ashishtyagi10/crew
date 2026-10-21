@@ -96,6 +96,11 @@ impl State {
                     .draft(&thread_id, &raw)
                     .map_or_else(fail, |()| Got::Drafted(subject))]
             }
+            Ask::Unsubscribe { how, who } => {
+                vec![g
+                    .unsubscribe(&how)
+                    .map_or_else(fail, |()| Got::Unsubscribed(who))]
+            }
             Ask::Check => match g.profile().map(|(_, h)| h) {
                 Ok(h) if h == self.history => vec![Got::Checked],
                 Ok(_) => self.list(g, None),

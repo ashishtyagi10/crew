@@ -45,6 +45,9 @@ impl InboxPane {
         if ch == "?" {
             return Some(InboxAction::Keys);
         }
+        if let Some(r) = self.reading.as_mut().filter(|_| ch != "u") {
+            r.unsub_armed = false;
+        }
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
         if matches!(self.stage, Stage::Ready(_)) && (self.triage(&ch) || self.handoff(&ch)) {
             return Some(InboxAction::Redraw);
@@ -74,11 +77,11 @@ impl InboxPane {
             }
             Stage::SigningIn(_) => None,
             Stage::Ready(_) if self.reading.is_some() => self.reading_key(key, &ch, cols, rows),
-            Stage::Ready(_) => self.list_key(key, &ch, rows),
+            Stage::Ready(_) => self.list_key(key, &ch, cols, rows),
         }
     }
 
-    fn list_key(&mut self, key: &Key, ch: &str, rows: u16) -> Option<InboxAction> {
+    fn list_key(&mut self, key: &Key, ch: &str, cols: u16, rows: u16) -> Option<InboxAction> {
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
         if named(NamedKey::ArrowUp) || ch == "k" {
             self.sel = self.sel.saturating_sub(1);
@@ -100,7 +103,7 @@ impl InboxPane {
         } else if ch == "o" {
             self.browse(None);
         } else if ch == "L" {
-            self.note = self.flip_density(rows).into();
+            self.note = self.flip_density(self.body_rows(cols, rows)).into();
         } else if named(NamedKey::Escape) && !self.query.is_empty() {
             self.query.clear();
             self.relist();
@@ -114,7 +117,7 @@ impl InboxPane {
 
     fn reading_key(&mut self, key: &Key, ch: &str, cols: u16, rows: u16) -> Option<InboxAction> {
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
-        let page = rows.saturating_sub(2).max(1) as usize;
+        let page = self.body_rows(cols, rows).saturating_sub(1).max(1) as usize;
         let r = self.reading.as_mut()?;
         let last = super::reader::height(r, cols).saturating_sub(page);
         if named(NamedKey::Escape) || named(NamedKey::Backspace) || named(NamedKey::ArrowLeft) {
@@ -134,7 +137,9 @@ impl InboxPane {
             r.pop_out = true;
         } else if ch == "i" {
             self.note = self.show_web();
-        } else if ch == "v" || ch == "z" {
+        } else if ch == "u" {
+            self.note = self.unsubscribe();
+        } else if ch == "v" || ch == "q" {
             self.note = r.toggle(ch == "v").into();
         } else {
             return None;

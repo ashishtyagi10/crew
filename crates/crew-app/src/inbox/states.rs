@@ -78,7 +78,7 @@ impl InboxPane {
 const MARK_ROWS: u16 = 4;
 
 fn mark_row(rows: u16) -> u16 {
-    rows.saturating_sub(1 + MARK_ROWS + 2) / 2
+    rows.saturating_sub(MARK_ROWS + 2) / 2
 }
 
 /// A ring with a tick in it, in the accent: done, nothing waiting.
@@ -104,8 +104,9 @@ fn mark(cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
     c.paint()
 }
 
-/// Rows in outline while the first page comes: a bar where the names go,
-/// one for the time, and one for the subject, of varied lengths.
+/// Rows in outline while the first page comes, where real ones will sit: a
+/// bar where the names go, one for the time, and one for the subject, of
+/// varied lengths.
 fn skeleton(cols: u16, rows: u16, two: bool) -> Vec<Paint> {
     const NAMES: [f32; 6] = [14.0, 9.0, 18.0, 11.0, 16.0, 8.0];
     const SUBJECT: [f32; 6] = [0.6, 0.45, 0.7, 0.5, 0.65, 0.4];
@@ -114,12 +115,17 @@ fn skeleton(cols: u16, rows: u16, two: bool) -> Vec<Paint> {
         alpha: 0.16,
         ..Paint::solid(x, y + 0.3, w.max(0.0), 0.4, muted)
     };
-    let (lines, end) = (if two { 2 } else { 1 }, f32::from(cols.saturating_sub(1)));
-    let x0 = super::row::NAMES as f32;
+    let lines = if two { 2 } else { 1 };
+    let (step, end) = (
+        lines + super::layout::gap(lines),
+        f32::from(cols.saturating_sub(2)),
+    );
+    let x0 = super::row::TEXT as f32;
     let room = end - x0 - 4.0;
+    let top = super::layout::TOP;
     let mut out = Vec::new();
-    for k in 0..usize::from(rows.saturating_sub(1) / lines) {
-        let y = (k as u16 * lines) as f32;
+    for k in 0..usize::from((rows.saturating_sub(1 + top) + step - lines) / step) {
+        let y = f32::from(top + k as u16 * step);
         let names = NAMES[k % 6].min(room / 3.0);
         out.push(bar(x0, y, names));
         out.push(bar(end - 3.0, y, 3.0));

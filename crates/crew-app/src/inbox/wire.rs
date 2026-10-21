@@ -27,6 +27,10 @@ pub(crate) struct Thread {
     /// Who wrote each message but a draft, oldest first: what the row's
     /// "Ann, Bo, me" is made from (`who`).
     pub senders: Vec<Sender>,
+    /// A message is a draft not yet sent (`DRAFT`).
+    pub draft: bool,
+    /// A message is `multipart/mixed`: something is attached.
+    pub attached: bool,
 }
 
 /// One message's `From`, and whether it carries `SENT` (the account's own).
@@ -83,7 +87,21 @@ pub(crate) fn thread(v: &Value) -> Thread {
                 sent: has_label(m, "SENT"),
             })
             .collect(),
+        draft: msgs.iter().any(|m| has_label(m, "DRAFT")),
+        attached: msgs.iter().any(mixed),
     }
+}
+
+/// Whether a message is `multipart/mixed`, by its `Content-Type` header or
+/// the payload's own type: the shape a mail with a file attached takes.
+fn mixed(msg: &Value) -> bool {
+    let kind = match msg["payload"]["mimeType"].as_str() {
+        Some(t) => t.to_string(),
+        None => header(msg, "Content-Type"),
+    };
+    kind.trim()
+        .to_ascii_lowercase()
+        .starts_with("multipart/mixed")
 }
 
 /// `labels.get` on `INBOX`: the threads in it still unread.

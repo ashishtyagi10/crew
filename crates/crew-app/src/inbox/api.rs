@@ -1,10 +1,9 @@
 //! The Gmail REST calls the inbox makes, on one worker-owned runtime.
 //!
 //! A page of the list is `threads.list` (ids) and then `threads.get` with
-//! `format=metadata` for each id, run together: twenty-five threads one after
-//! another were twenty-five round trips before the first row could draw. An
-//! opened thread is one `threads.get` with `format=full`. The unread count is
-//! `labels.get INBOX` — one call, the glance's whole cost.
+//! `format=metadata` for each id, run together: one after another they were a
+//! round trip each before the first row could draw. An opened thread is one
+//! `threads.get` with `format=full`; the unread count, one `labels.get INBOX`.
 //!
 //! The access token lives here, an hour at a time, renewed from the grant's
 //! refresh token a minute before it lapses or when Gmail answers 401.
@@ -38,6 +37,8 @@ pub(crate) struct Mail {
     pub attached: Vec<super::body::Part>,
     /// What a reply to it needs: its id, subject and where answers go.
     pub reply: super::draft::Reply,
+    /// How to unsubscribe from what sent it (`unsub`), when it says.
+    pub unsub: Option<super::unsub::How>,
 }
 
 pub(crate) struct Gmail {
@@ -45,8 +46,8 @@ pub(crate) struct Gmail {
     token_url: String,
     api: String,
     access: Option<(String, Instant)>,
-    rt: tokio::runtime::Runtime,
-    http: reqwest::Client,
+    pub(super) rt: tokio::runtime::Runtime,
+    pub(super) http: reqwest::Client,
 }
 
 impl Gmail {
@@ -144,7 +145,7 @@ impl Gmail {
         }
         let (ids, next) = wire::thread_ids(&self.get(&list)?);
         let meta =
-            "format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date";
+            "format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date&metadataHeaders=Content-Type";
         let reqs: Vec<_> = ids
             .iter()
             .map(|id| (format!("/threads/{id}?{meta}"), None))
@@ -187,6 +188,7 @@ impl Gmail {
                     files,
                     rich,
                     reply: super::draft::Reply::of(m),
+                    unsub: super::unsub::of(m),
                 }
             })
             .collect())

@@ -138,6 +138,8 @@ pub(crate) fn rows() -> Vec<Thread> {
                 starred: id == "b" || id == "h",
                 at_ms: now - ago,
                 count: who.len(),
+                draft: id == "j",
+                attached: id == "f" || id == "h",
                 senders,
             }
         })

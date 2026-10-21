@@ -308,17 +308,19 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
 `/todo`, `/dash`, `/usage`, `/disk`, `/inbox`, `/focus`, `/notify` — then
 `/exit`.
 
-**Your Gmail in a pane: `/inbox`.** The list, two lines a thread when the
-pane is tall enough (who wrote, as Gmail writes it — `Ann, Bo, me` — the
-message count, a star and the age; then the subject and the snippet; unread
-bold, read mail quieter; `L` for one line a thread, kept for the session;
-grouped under `today`, `yesterday`, the weekday, `last week` and on back;
-`?` lists every key),
+**Your Gmail in a pane: `/inbox`.** A quiet list: two lines a thread when
+the pane is tall enough, with a blank row between threads instead of rules
+(who wrote, as Gmail writes it — `Ann, Bo, me` — and the message count, the
+time at the right with a star or a paperclip beside it; then the subject and
+the snippet in a quieter ink; unread mail has a dot and bold names; `L` for
+one line a thread, kept for the session; grouped under `today`,
+`yesterday`, the weekday, `last week` and on back; every key the pane
+answers to is listed at its foot),
 `/` to search in Gmail's own syntax
 (`from:ann is:unread`), Enter to read a thread (which marks it read, as
 Gmail does) — HTML mail drawn as formatted text: headings, bold, lists,
-tables and links, hidden text dropped, quoted history folded to one row
-(`z` unfolds it), `v` for the plain-text version, pictures the mail carries
+tables and links, hidden text dropped, the earlier replies a mail quotes
+folded to one row (`q` unfolds them), `v` for the plain-text version, pictures the mail carries
 drawn in place and pictures from the web only when you press `i` (fetching
 one tells the sender you opened the mail), and a link opened by Cmd+click or
 `Cmd+E` at its real address (one whose words name another site shows where
@@ -326,7 +328,10 @@ it really goes), each attachment a row you Cmd+click to save it to
 `~/Downloads` and open it, and `w` for the thread in a window of its own —
 `e` to archive, `d` to delete (to Gmail's Trash, as Gmail's
 own delete does — nothing is deleted for good), `m` to mark read or unread,
-`s` to star, `u` to undo the last of those, `r` to have agent smith write a
+`s` to star, `z` to undo the last of those, `u` in an open mail to
+unsubscribe from its sender (one click where the mail offers it, else a
+mail to the list's address; a second `u` confirms, and only mail Gmail
+found DKIM-signed is acted on), `r` to have agent smith write a
 reply that crew saves as a **Gmail draft** in the thread (never sent: you
 send it from Gmail), `a` to hand the thread to smith ("what does it want
 from me?"), `t` to turn it into a `/todo` row due on the deadline the mail

@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.39
+
+**`/inbox`: a quiet list, every key at the foot, `z` to undo and `u` to unsubscribe.**
+The list was too dense, so it lost its chips and rules. Threads are now
+divided by air: a blank row between two-line threads, a blank row before
+each day, and a quiet day name. A row is who wrote, the message count,
+`draft` when there is one, and the time at the right with a star or a
+paperclip beside it, then the subject and a muted snippet. Names and
+subjects stay bright on every row, so glass reads white. Unread mail has a
+dot, bold names and a bright time. The foot now lists every key the pane
+answers to, wrapped onto as many lines as they need, and a note such as
+`deleted "…"` gets its own line above them instead of hiding them. `z` now
+undoes. Folding quoted replies moved to `q`, and its fold says what it hides
+("12 lines quoted from earlier replies"). `u` in an open mail unsubscribes
+from its sender: one click where the mail offers RFC 8058's one-click
+unsubscribe (what Gmail's own button sends), otherwise a mail to the list's
+address. The first `u` says what will happen and a second does it. Only
+mail Gmail found DKIM-signed is acted on; any other mail can only have its
+unsubscribe page opened in the browser.
+- **Tests:** a blank row between threads and before each day, the
+  selection always on screen, six two-line threads before two lines are
+  chosen, no paint over rows, the width ladder at 40 to 120 columns, bright
+  names and subjects with bold only on unread mail, `draft` and the
+  paperclip with no chips, every key shown and wrapped whole, a note on its
+  own line, `z` undoing archive, delete, read and star, the best way to
+  unsubscribe (one click, then mail, then only the page for unsigned mail,
+  never an IP or a local host), the two-press confirm, and the one-click
+  POST and the Gmail send against a local server.
+
 ## 0.27.38
 
 **`/inbox`: threads grouped by day, and a list that looks finished when it is empty.**

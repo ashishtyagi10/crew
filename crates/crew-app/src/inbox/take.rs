@@ -133,6 +133,9 @@ impl InboxPane {
                     "draft saved in Gmail: \u{201c}{subject}\u{201d} \u{2014} review and send it there (o)"
                 );
             }
+            Got::Unsubscribed(who) => {
+                self.note = format!("unsubscribed from {who} \u{b7} e archives this mail");
+            }
             Got::Failed(e) if self.rows.is_empty() && self.reading.is_none() => {
                 // Nothing listed: the list's own place says what went wrong.
                 self.busy = false;
