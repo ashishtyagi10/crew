@@ -22,6 +22,8 @@ pub(crate) const PAGE: u32 = 25;
 /// One message of an opened thread, as the reader shows it.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub(crate) struct Mail {
+    /// The message's id, which its attachments are fetched by.
+    pub id: String,
     pub from: String,
     pub date: String,
     /// What agent smith and the deadline finder read: [`Rich::whole`].
@@ -29,8 +31,9 @@ pub(crate) struct Mail {
     /// [`Rich::whole`]: super::rich::Rich::whole
     pub text: String,
     pub files: Vec<String>,
-    /// The message to draw (`reader`).
+    /// The message to draw (`reader`), and the parts its pictures are in.
     pub rich: super::rich::Rich,
+    pub parts: Vec<super::body::Part>,
     /// What a reply to it needs: its id, subject and where answers go.
     pub reply: super::draft::Reply,
 }
@@ -100,7 +103,7 @@ impl Gmail {
         unreachable!("the second attempt always returns")
     }
 
-    fn get(&mut self, path: &str) -> Result<Value, String> {
+    pub(crate) fn get(&mut self, path: &str) -> Result<Value, String> {
         Ok(self.send_all(&[(path.to_string(), None)])?.remove(0))
     }
 
@@ -173,6 +176,8 @@ impl Gmail {
             .map(|m| {
                 let (rich, files) = super::body::text(m);
                 Mail {
+                    id: m["id"].as_str().unwrap_or_default().to_string(),
+                    parts: super::body::pictures(m),
                     from: wire::header(m, "From"),
                     date: wire::header(m, "Date"),
                     text: rich.whole(),

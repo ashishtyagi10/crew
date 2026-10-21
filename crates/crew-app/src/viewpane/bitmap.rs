@@ -70,7 +70,7 @@ pub(crate) fn decode(bytes: &[u8]) -> Option<Bitmap> {
 
 /// Reduce to at most [`MAX_SAMPLES`] per axis and flatten to RGBA samples,
 /// remembering what size the source really was.
-fn downscale(img: image::DynamicImage, src: (u32, u32)) -> Option<Bitmap> {
+pub(crate) fn downscale(img: image::DynamicImage, src: (u32, u32)) -> Option<Bitmap> {
     let scaled = match src.0.max(src.1) > MAX_SAMPLES {
         true => img.resize(
             MAX_SAMPLES,

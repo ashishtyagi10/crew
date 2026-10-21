@@ -16,7 +16,7 @@ pub(crate) fn node(n: &Node, o: &mut Out) {
     match tag {
         "br" => o.brk(),
         "hr" => o.hr(),
-        "img" => image(n, o),
+        "img" => super::image::image(n, o),
         "a" => anchor(n, o),
         "ul" | "ol" => {
             let start = n
@@ -135,21 +135,23 @@ fn anchor(n: &Node, o: &mut Out) {
     let Some(href) = n.attr("href").and_then(link::target) else {
         return;
     };
+    // A picture is a block of its own, so the link goes on a line under it.
+    if o.since(m).is_none() {
+        let alt = super::image::alt_in(n).unwrap_or_default();
+        let words = match alt.as_str() {
+            "" => "open the link".to_string(),
+            a => a.to_string(),
+        };
+        let m = o.mark();
+        o.text(&format!("\u{2197} {words}"));
+        o.wrap(m, |s| format!("[{s}](<{href}>)"));
+        o.block();
+        return;
+    }
     let words = super::plain_of(o.since(m).unwrap_or(""));
     o.wrap(m, |s| format!("[{s}](<{href}>)"));
     if let Some(real) = link::lie(&words, &href) {
         o.text(&format!(" \u{27f6} {real}"));
-    }
-}
-
-/// Phase 1 draws no pictures: an image is its alt text, marked as one.
-fn image(n: &Node, o: &mut Out) {
-    if hide::invisible_image(n) {
-        return;
-    }
-    let alt = ent::decode(n.attr("alt").unwrap_or("")).trim().to_string();
-    if !alt.is_empty() {
-        o.text(&format!(" \u{25a3} {alt} "));
     }
 }
 

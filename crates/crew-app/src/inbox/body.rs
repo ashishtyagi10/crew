@@ -70,6 +70,47 @@ fn header(part: &Value, name: &str) -> String {
         .to_string()
 }
 
+/// A part a picture can come from: the name `cid:` gives it, and where its
+/// bytes are (inline, or an attachment to fetch).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub(crate) struct Part {
+    pub cid: Option<String>,
+    pub name: String,
+    pub mime: String,
+    pub att: Option<String>,
+    pub data: Option<String>,
+    pub size: u64,
+}
+
+/// Every part that is a picture, or that a `cid:` could name.
+pub(crate) fn pictures(msg: &Value) -> Vec<Part> {
+    fn walk(p: &Value, out: &mut Vec<Part>) {
+        let mime = p["mimeType"].as_str().unwrap_or("").to_ascii_lowercase();
+        let cid = header(p, "Content-ID");
+        let cid = cid
+            .trim()
+            .trim_start_matches('<')
+            .trim_end_matches('>')
+            .trim();
+        if mime.starts_with("image/") || !cid.is_empty() {
+            out.push(Part {
+                cid: (!cid.is_empty()).then(|| cid.to_string()),
+                name: p["filename"].as_str().unwrap_or("").to_string(),
+                mime,
+                att: p["body"]["attachmentId"].as_str().map(str::to_string),
+                data: p["body"]["data"].as_str().map(str::to_string),
+                size: p["body"]["size"].as_u64().unwrap_or(0),
+            });
+        }
+        for k in p["parts"].as_array().into_iter().flatten() {
+            walk(k, out);
+        }
+    }
+    let mut out = Vec::new();
+    walk(&msg["payload"], &mut out);
+    out
+}
+
 fn attachments(part: &Value, out: &mut Vec<String>) {
     if let Some(name) = part["filename"].as_str().filter(|f| !f.is_empty()) {
         out.push(name.to_string());

@@ -28,6 +28,12 @@ pub(crate) struct Out {
     pub code: usize,
     /// Where the quoted history starts in `doc`, once the walk reaches it.
     pub split: Option<usize>,
+    /// Pictures from the web are drawn (`i`), not named.
+    pub web: bool,
+    /// Every picture drawn, by source, in order.
+    pub pics: Vec<String>,
+    /// Pictures from the web left as their words.
+    pub web_left: usize,
 }
 
 /// A place in the open paragraph, to wrap what comes after it.
@@ -76,6 +82,11 @@ impl Out {
                 self.line.push(c);
             }
         }
+    }
+
+    /// Markdown the walk itself writes.
+    pub(crate) fn raw(&mut self, s: &str) {
+        self.line.push_str(s);
     }
 
     pub(crate) fn brk(&mut self) {

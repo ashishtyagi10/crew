@@ -313,9 +313,11 @@ sender, subject, snippet, age), `/` to search in Gmail's own syntax
 (`from:ann is:unread`), Enter to read a thread (which marks it read, as
 Gmail does) — HTML mail drawn as formatted text: headings, bold, lists,
 tables and links, hidden text dropped, quoted history folded to one row
-(`z` unfolds it), `v` for the plain-text version, and a link opened by
-Cmd+click or `Cmd+E` at its real address (one whose words name another site
-shows where it really goes) — `e` to archive, `d` to delete (to Gmail's Trash, as Gmail's
+(`z` unfolds it), `v` for the plain-text version, pictures the mail carries
+drawn in place and pictures from the web only when you press `i` (fetching
+one tells the sender you opened the mail), and a link opened by Cmd+click or
+`Cmd+E` at its real address (one whose words name another site shows where
+it really goes) — `e` to archive, `d` to delete (to Gmail's Trash, as Gmail's
 own delete does — nothing is deleted for good), `m` to mark read or unread,
 `s` to star, `u` to undo the last of those, `r` to have agent smith write a
 reply that crew saves as a **Gmail draft** in the thread (never sent: you

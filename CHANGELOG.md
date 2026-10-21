@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.35
+
+**`/inbox` draws a mail's pictures.**
+Pictures a mail carries (a chart pasted into the message, a logo sent
+with it) now appear where the mail puts them, and up to four attached
+photos show under their message. Each picture gets room sized from the
+mail's own measurements, so the text does not jump when it arrives.
+Pictures from the web stay as their description, with a line under the
+message — `▣ 3 pictures from the web · i shows them` — because loading one
+tells the sender you opened the mail, when, and roughly where. Press `i`
+to load them for the open thread. A link made of a picture keeps its link
+on a line under it. Tracking pixels are never loaded or drawn, and every
+picture is read with size limits, so a malicious file cannot exhaust
+memory. Nothing is saved to disk; pictures go when the thread closes.
+- **Tests:** a picture fixture in both versions (carried drawn, web named
+  until asked, the pixel and a `data:` image never drawn); a thread asks for
+  exactly the pictures it carries; a decoded picture paints in its box and
+  never over the foot, one still loading says so; `i` against a dead local
+  address ends in the picture's words; decoding refuses junk, a pixel and a
+  9,000 px image; the markdown engine sizes a box from `#rows=N`; mutants
+  checked.
+
 ## 0.27.34
 
 **`/inbox` reads mail the way it was written.**

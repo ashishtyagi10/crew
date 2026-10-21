@@ -14,6 +14,8 @@ pub(crate) struct Reading {
     pub plain: bool,
     /// `z`: quoted history unfolded.
     pub quotes: bool,
+    /// `i`: pictures from the web drawn.
+    pub web: bool,
     pub(crate) laid: std::sync::Mutex<Option<(reader::Key, std::sync::Arc<reader::Laid>)>>,
 }
 
@@ -25,6 +27,7 @@ impl Reading {
             scroll: 0,
             plain: false,
             quotes: false,
+            web: false,
             laid: std::sync::Mutex::new(None),
         }
     }

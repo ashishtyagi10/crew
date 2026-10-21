@@ -1,7 +1,7 @@
 # Goal — read mail the way it was written: rich text and pictures in `/inbox`
 
 **Status: SET 2026-10-20** (the user: "go ahead with the mail reader goal"). Phases 0 and 1
-built (see "Where it stands" at the end).
+shipped in v0.27.34; phase 2 built (see "Where it stands" at the end).
 
 **Set:** 2026-10-20 by the user, once `/inbox` was signed in live: *"write a goal to give better
 email viewer, like showing better markdown or htmls with images, whatever is possible."*
@@ -206,4 +206,15 @@ parts in their charsets (`crates/crew-app/src/inbox/charset.rs`), plain mail thr
 act on the whole open thread rather than the message under a cursor (the reader has no cursor),
 and the shots are the inbox's two themes (Ink light, glass dark) rather than 80 and 120 columns.
 
-**Not yet:** phase 2 (pictures) and phase 3 (`w`, attachments).
+**Phase 2, built:** items 11–15. The converter writes `![alt](<src#rows=N>)` for a `cid:`
+picture always and for a web one only in the "with web" version a `Rich` also keeps
+(`crates/crew-app/src/inbox/html/image.rs`); `#rows=N` is read by the markdown engine
+(`crates/crew-app/src/md/picture.rs`), so any document can size a picture's box. The pane's
+pictures live in `crates/crew-app/src/inbox/pics.rs`; fetching and the limited decode in
+`crates/crew-app/src/inbox/picfetch.rs`; message layout with picture placement in
+`crates/crew-app/src/inbox/readmail.rs`; the paint pass in `crates/crew-app/src/inbox/picpaint.rs`.
+`i` acts on the whole open thread, like `z` and `v`. A linked picture keeps its link on a line
+under it (`↗ Read the report`). The quota cost of `attachments.get` was not read; it is one
+call per carried picture, at most four attachments a message.
+
+**Not yet:** phase 3 (`w`, attachments saved and opened).

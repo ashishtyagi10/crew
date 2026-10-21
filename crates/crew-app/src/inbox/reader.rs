@@ -6,25 +6,28 @@
 use std::sync::Arc;
 
 use super::draw::{wrap, Canvas};
-use super::rich::Rich;
-use super::wire::sender_name;
+use super::pics::{Pic, Pics};
+use super::readmail::{Lay, Placed};
 use super::Reading;
 use crate::chatbody::{plain, CardLine, Color};
 
-/// The thread laid out: card lines, one column of indent included.
+/// The thread laid out: card lines, one column of indent included, and
+/// where its pictures are.
 pub(crate) struct Laid {
     pub lines: Vec<CardLine>,
+    pub pics: Vec<Placed>,
 }
 
 /// Everything a layout depends on besides the thread itself.
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) struct Key {
-    width: usize,
+    pub(crate) width: usize,
     plain: bool,
     quotes: bool,
+    web: bool,
     loaded: bool,
-    ink: Color,
-    muted: Color,
+    pub(crate) ink: Color,
+    pub(crate) muted: Color,
 }
 
 impl Reading {
@@ -35,6 +38,7 @@ impl Reading {
             width: width.max(8),
             plain: self.plain,
             quotes: self.quotes,
+            web: self.web,
             loaded: self.mails.is_some(),
             ink: t.ink,
             muted: t.text_muted,
@@ -63,77 +67,57 @@ fn layout(r: &Reading, k: Key) -> Laid {
         "" => "(no subject)",
         s => s,
     };
-    let mut out: Vec<CardLine> = wrap(subject, k.width)
+    let mut lay = Lay::default();
+    lay.lines = wrap(subject, k.width)
         .iter()
         .map(|l| row(l, k.ink, true))
         .collect();
-    let Some(mails) = &r.mails else {
-        out.push(Vec::new());
-        out.push(row("loading\u{2026}", k.muted, false));
-        return Laid { lines: out };
-    };
-    for m in mails {
-        // A mail built from its text alone (an older grant's, a test's).
-        let own =
-            (m.rich.body.is_empty() && !m.text.is_empty()).then(|| Rich::of_plain(&m.text, None));
-        let rich = own.as_ref().unwrap_or(&m.rich);
-        let rich = match (r.plain, &rich.alt) {
-            (true, Some(alt)) => alt.as_ref(),
-            _ => rich,
-        };
-        out.push(Vec::new());
-        let who = format!("{} \u{b7} {}", sender_name(&m.from), when(&m.date));
-        out.push(row(&who, k.muted, true));
-        out.extend(md(&rich.body, k.width, k.ink));
-        if let Some(q) = &rich.quote {
-            let lines = md(q, k.width, k.ink);
-            match r.quotes {
-                true => out.extend(lines),
-                false => {
-                    let n = lines.len();
-                    let fold =
-                        format!("\u{b7}\u{b7}\u{b7} quoted text ({n} lines) \u{b7} z shows it");
-                    out.push(row(&fold, k.muted, false));
-                }
-            }
-        }
-        if let Some(sig) = &rich.sig {
-            out.push(Vec::new());
-            out.extend(md(sig, k.width, k.muted));
-        }
-        let files = (!m.files.is_empty()).then(|| format!("attached: {}", m.files.join(", ")));
-        for quiet in [rich.note.clone(), files].into_iter().flatten() {
-            out.extend(wrap(&quiet, k.width).iter().map(|l| row(l, k.muted, false)));
+    match &r.mails {
+        Some(mails) => mails
+            .iter()
+            .for_each(|m| super::readmail::message(&mut lay, m, r, &k)),
+        None => {
+            lay.lines.push(Vec::new());
+            lay.lines.push(row("loading\u{2026}", k.muted, false));
         }
     }
-    Laid { lines: out }
-}
-
-/// Markdown as card lines at `width` columns.
-fn md(text: &str, width: usize, fg: Color) -> Vec<CardLine> {
-    let rendered = crate::md::render_chat(text, width);
-    crate::chatmd::with_pictures(rendered, width, fg).0
+    Laid {
+        lines: lay.lines,
+        pics: lay.pics,
+    }
 }
 
 /// One line of the reader's own words, indented like the markdown's.
-fn row(text: &str, fg: Color, bold: bool) -> CardLine {
+pub(crate) fn row(text: &str, fg: Color, bold: bool) -> CardLine {
     std::iter::once(' ')
         .chain(text.chars())
         .map(|c| plain(c, fg, bold))
         .collect()
 }
 
-pub(crate) fn draw(cv: &mut Canvas, r: &Reading) {
-    let page = crew_theme::theme().page_bg;
+pub(crate) fn draw(cv: &mut Canvas, r: &Reading, pics: &Pics) {
+    let t = crew_theme::theme();
     let room = cv.rows.saturating_sub(1) as usize;
     let laid = r.laid(text_width(cv.cols));
     for (i, line) in laid.lines.iter().skip(r.scroll).take(room).enumerate() {
         let mut cells =
-            crate::chatplace::line_cells(i as u16, line, cv.cols.saturating_sub(2), page);
+            crate::chatplace::line_cells(i as u16, line, cv.cols.saturating_sub(2), t.page_bg);
         for c in &mut cells {
             c.col += 1;
         }
         cv.out.extend(cells);
+    }
+    // A picture not drawn yet says so in its box; a drawn one is paint.
+    for p in &laid.pics {
+        let say = match pics.get(&p.key) {
+            Some(Pic::Ready(_)) => continue,
+            Some(Pic::Failed) if p.alt.is_empty() => "\u{25a3} (a picture)".to_string(),
+            Some(Pic::Failed) => format!("\u{25a3} {}", p.alt),
+            _ => "loading picture\u{2026}".to_string(),
+        };
+        if let Some(y) = p.row.checked_sub(r.scroll).filter(|&y| y < room) {
+            cv.text(y as u16, 2, cv.cols, &say, t.text_muted, false);
+        }
     }
 }
 

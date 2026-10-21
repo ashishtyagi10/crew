@@ -6,6 +6,7 @@
 mod block;
 mod ent;
 mod hide;
+mod image;
 mod link;
 mod out;
 mod quote;
@@ -34,17 +35,26 @@ pub(crate) struct Converted {
     pub quote: Option<String>,
     /// The HTML was longer than [`CAP`] and was cut.
     pub cut: bool,
+    /// Every picture drawn, by source (`cid:…`, or a web address).
+    pub pics: Vec<String>,
+    /// Pictures from the web left as their words (`web` was off).
+    pub web_left: usize,
 }
 
-pub(crate) fn to_markdown(html: &str) -> Converted {
+/// `web`: draw pictures from the web too, rather than naming them.
+pub(crate) fn to_markdown(html: &str, web: bool) -> Converted {
     let cut = html.len() > CAP;
     let end = (0..=CAP.min(html.len()))
         .rev()
         .find(|&i| html.is_char_boundary(i))
         .unwrap_or(0);
     let root = tree::parse(&html[..end]);
-    let mut o = out::Out::default();
+    let mut o = out::Out {
+        web,
+        ..out::Out::default()
+    };
     walk::node(&root, &mut o);
+    let (pics, web_left) = (std::mem::take(&mut o.pics), o.web_left);
     let (doc, split) = o.done();
     let (body, quote) = match split {
         Some(at) => (
@@ -53,7 +63,13 @@ pub(crate) fn to_markdown(html: &str) -> Converted {
         ),
         None => (tidy(&doc), None),
     };
-    Converted { body, quote, cut }
+    Converted {
+        body,
+        quote,
+        cut,
+        pics,
+        web_left,
+    }
 }
 
 /// Runs of blank lines folded to one, trailing spaces gone.

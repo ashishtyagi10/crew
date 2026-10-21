@@ -49,14 +49,25 @@ pub(super) fn lines(spans: &[MdSpan]) -> Option<Vec<MdLine>> {
     if !is_sentinel(only) {
         return None;
     }
+    let n = rows_of(only.link.as_deref().unwrap_or_default());
     Some(
-        (0..ROWS)
+        (0..n)
             .map(|i| MdLine {
                 spans: vec![only.clone()],
-                kind: LineKind::Picture { i, n: ROWS },
+                kind: LineKind::Picture { i, n },
             })
             .collect(),
     )
+}
+
+/// A `#rows=N` on the source asks for N rows (2 to 40) instead of [`ROWS`]: a
+/// mail knows its logo is 40 px tall before anything is decoded, and a box
+/// sized from that never reflows the text when the picture lands (goal
+/// 2026-10-20-mail-reader, item 14).
+pub(crate) fn rows_of(src: &str) -> u16 {
+    src.rsplit_once("#rows=")
+        .and_then(|(_, n)| n.parse::<u16>().ok())
+        .map_or(ROWS, |n| n.clamp(2, 40))
 }
 
 /// The source a picture line names, if it is one.
@@ -64,4 +75,16 @@ pub(crate) fn src_of(line: &MdLine) -> Option<&str> {
     matches!(line.kind, LineKind::Picture { .. })
         .then(|| line.spans.first()?.link.as_deref())
         .flatten()
+}
+
+#[cfg(test)]
+mod rows_tests {
+    #[test]
+    fn a_rows_hint_sizes_the_box_and_is_kept_in_bounds() {
+        let n = |md: &str| crate::md::render(md, 40).len();
+        assert_eq!(n("![logo](cid:a#rows=3)"), 3);
+        assert_eq!(n("![x](x.png)"), usize::from(super::ROWS));
+        assert_eq!(super::rows_of("x#rows=900"), 40);
+        assert_eq!(super::rows_of("x#rows=1"), 2);
+    }
 }

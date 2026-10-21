@@ -87,6 +87,7 @@ impl InboxPane {
             self.ask(Ask::Open(thread.id.clone()));
             self.opened(&thread.id);
             self.reading = Some(Reading::new(thread));
+            self.pics.clear();
         } else if ch == "/" {
             self.typing = Some(self.query.clone());
         } else if ch == "R" {
@@ -122,6 +123,8 @@ impl InboxPane {
         } else if ch == "o" {
             let id = r.thread.id.clone();
             self.browse(Some(&id));
+        } else if ch == "i" {
+            self.note = self.show_web();
         } else if ch == "v" || ch == "z" {
             self.note = r.toggle(ch == "v").into();
         } else {
