@@ -5,7 +5,7 @@ use winit::event::KeyEvent;
 use winit::keyboard::{Key, NamedKey};
 
 use super::worker::Ask;
-use super::{InboxPane, Reading, Stage};
+use super::{InboxPane, Stage};
 
 pub enum InboxAction {
     Close,
@@ -91,11 +91,9 @@ impl InboxPane {
                 self.ask(Ask::More);
             }
         } else if named(NamedKey::Enter) {
-            let thread = self.rows.get(self.sel)?.clone();
-            self.ask(Ask::Open(thread.id.clone()));
-            self.opened(&thread.id);
-            self.reading = Some(Reading::new(thread));
-            self.pics.clear();
+            if !self.open_at(self.sel) {
+                return None;
+            }
         } else if ch == "/" {
             self.typing = Some(self.query.clone());
         } else if ch == "R" {

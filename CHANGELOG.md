@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.43
+
+**`/inbox`: deleting or archiving an open mail opens the next one.**
+Pressing `d` or `e` while reading a mail used to drop you back on the
+list. Now the next mail opens in its place, the next older one (the row
+below), as Gmail's auto-advance does. At the end of the list the one above
+opens, and the last mail left takes you back to the list. `z` brings the
+mail back and opens it again. It works the same in a mail's own window
+(`w`).
+- **Tests:** `d` in the middle of the list opens the next mail, selected
+  and marked read; `e` advances too; the last row opens the one above; the
+  only row ends on the list; a late answer for the deleted mail never
+  fills the next one; `z` reopens the mail; a delete from the list stays on
+  the list.
+
 ## 0.27.42
 
 **`/inbox`: template-built mail reads right — headlines, menus, receipts and footers.**

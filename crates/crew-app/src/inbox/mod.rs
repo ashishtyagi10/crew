@@ -4,6 +4,7 @@
 //! browser one key away for anything more. Nothing is stored on disk but the
 //! grant (`grant`); the rows live in memory and go with the pane. The network
 //! is a thread of its own (`worker`), and the pane only drains what it says.
+mod advance;
 pub(crate) mod age;
 pub(crate) mod api;
 mod asks;
@@ -44,6 +45,7 @@ pub(crate) mod smith;
 mod states;
 pub(crate) mod take;
 pub(crate) mod triage;
+mod undo;
 pub(crate) mod unsub;
 pub(crate) mod who;
 pub(crate) mod wire;
@@ -82,7 +84,7 @@ pub struct InboxPane {
     /// Gmail has another page after the rows shown.
     pub(crate) more: bool,
     /// The last archive, read or star, for `u`.
-    pub(crate) undo: Option<triage::Undo>,
+    pub(crate) undo: Option<undo::Undo>,
     /// `a`/`d`/`t` pressed before the thread's messages arrived.
     pub(crate) then: Option<handoff::Then>,
     /// A prompt for agent smith, for the app to deliver.

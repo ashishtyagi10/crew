@@ -1734,7 +1734,11 @@ longer aim at.
   never disagree, and Esc from the list or Cmd+W closes it — `e` archives (takes the `INBOX` label away, as Gmail's archive does),
   `d` deletes (moves the thread to Trash, as Gmail's delete does; Gmail
   empties Trash after 30 days), `m` marks read or unread, `s` stars or
-  unstars, `z` undoes the last of those (a delete comes back out of Trash);
+  unstars, `z` undoes the last of those (a delete comes back out of Trash).
+  Archiving or deleting the thread you are reading opens the next one, the
+  next older (the one past the end of the list opens the one above, and the
+  last one goes back to the list), as Gmail's auto-advance does; `z` then
+  brings the thread back and opens it again;
   `u` in an open mail unsubscribes from its sender the way its
   `List-Unsubscribe` header offers: one POST when it also says
   `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058, what
