@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.56
+
+**`/inbox`: Cc, reply all and forward in the reply box.**
+- **A `to` and a `cc` line** sit at the top of the reply box. Tab or Enter
+  goes on to the next line, the up and down arrows move between the lines
+  and the words, and a click puts the caret on the line clicked. Addresses
+  are separated by commas; one that is not an address is named, and the
+  caret goes to it, before anything is sent.
+- **`R` replies to everyone** the mail went to, in the thread: its sender
+  and the other recipients in To, its Cc in Cc, never you.
+- **`f` forwards the newest mail** of the thread: your note on top, then
+  Gmail's "Forwarded message" block, then the mail as it came, in its own
+  HTML with its pictures and its plain words, and every file it carried.
+  The box names the mail and its files. Past Gmail's 25 MB it says so and
+  sends nothing.
+- **Long paragraphs go safely**: every reply's words are now sent base64, so
+  no line breaks the mail line limit.
+- **Tests:** the lines take their keys and clicks, reply all copies everyone
+  but you, a bad address is refused, a forward carries the HTML's pictures
+  and its files once, and the upload sends the whole mail to a stub Gmail.
+
 ## 0.27.55
 
 **`/inbox`: reply where you read.** Fifth round of the mail reader loop.

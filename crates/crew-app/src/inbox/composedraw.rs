@@ -1,12 +1,17 @@
 //! The reply box drawn: a card under the open mail, the width of its text,
-//! `reply to Ann Lee` on its top edge as every crew card wears its name, the
-//! words inside with a caret where they go, and the mail above given the
-//! rows it leaves. It grows with the reply, up to half the pane.
+//! `reply to Ann Lee` (or `reply all`, `forward`) on its top edge as every
+//! crew card wears its name. Inside, the `to` and `cc` lines, the words with
+//! a caret where they go, and for a forward the mail it carries; the mail
+//! above is given the rows it leaves. It grows with the words, up to half
+//! the pane.
+use super::compose::{Kind, On};
 use super::draw::{wrap, Canvas};
 use super::InboxPane;
 
 /// Text rows the box shows at least.
 const MIN_ROWS: u16 = 3;
+/// The `to` and `cc` lines, and a row of air under them.
+const HEAD: u16 = 3;
 
 impl InboxPane {
     /// The rows the reply box takes in a pane `cols` by `rows`: none when
@@ -16,9 +21,11 @@ impl InboxPane {
             return 0;
         };
         let (_, width) = self.reader_box(cols);
-        let lines = wrap(&c.text, inner(width)).len() as u16;
-        let most = (self.body_rows(cols, rows) / 2).max(MIN_ROWS + 2);
-        (lines.max(MIN_ROWS) + 2).min(most)
+        let lines = wrap(&c.body.text, inner(width)).len() as u16;
+        let carried = u16::from(c.forward.is_some());
+        let least = MIN_ROWS + HEAD + carried + 2;
+        let most = (self.body_rows(cols, rows) / 2).max(least);
+        (lines.max(MIN_ROWS) + HEAD + carried + 2).min(most)
     }
 
     /// The rows the open mail draws in: above the foot and the reply box.
@@ -35,10 +42,11 @@ impl InboxPane {
         let t = crew_theme::theme();
         let w = inner(cv.cols) as u16;
         let (left, right) = (1, 2 + w + 1);
-        let who = super::wire::sender_name(&c.answer.to);
-        let legend = match c.sending {
-            true => format!(" sending to {who}\u{2026} "),
-            false => format!(" reply to {who} "),
+        let legend = match (c.sending, c.kind) {
+            (true, _) => format!(" sending to {}\u{2026} ", super::addr::names(&c.to.text)),
+            (false, Kind::Reply) => format!(" reply to {} ", super::addr::names(&c.answer.to)),
+            (false, Kind::All) => " reply all ".to_string(),
+            (false, Kind::Forward) => " forward ".to_string(),
         };
         let rule = |l: char, r: char| {
             let mut s = String::from(l);
@@ -68,22 +76,31 @@ impl InboxPane {
             edge,
             false,
         );
-        let lines = wrap(&c.text, usize::from(w));
-        let (row, col) = caret(&c.text, c.at, usize::from(w));
-        // The last rows of a long reply, with the caret's row in them.
-        let room = usize::from(h.saturating_sub(2));
-        let first = row.saturating_sub(room.saturating_sub(1));
         for r in top + 1..bottom {
             cv.text(r, left, left + 1, "\u{2502}", edge, false);
             cv.text(r, right, right + 1, "\u{2502}", edge, false);
         }
-        if c.text.is_empty() {
-            let hint = "write your reply \u{b7} tab: agent smith drafts it";
-            cv.text(top + 1, 3, right - 1, hint, t.text_muted, false);
+        super::composehead::draw(cv, c, top, right);
+        let first_row = top + 1 + HEAD;
+        let carried = u16::from(c.forward.is_some());
+        let room = usize::from(bottom.saturating_sub(first_row + carried));
+        let lines = wrap(&c.body.text, usize::from(w));
+        let (row, col) = place(&c.body.text, c.body.at, usize::from(w));
+        // The last rows of long words, with the caret's row in them.
+        let first = row.saturating_sub(room.saturating_sub(1));
+        if c.body.text.is_empty() && c.on != On::Body {
+            cv.text(
+                first_row,
+                3,
+                right - 1,
+                super::composehead::hint(c, On::Body),
+                t.text_muted,
+                false,
+            );
         }
         for (i, line) in lines.iter().enumerate().skip(first).take(room) {
             cv.text(
-                top + 1 + (i - first) as u16,
+                first_row + (i - first) as u16,
                 3,
                 right - 1,
                 line,
@@ -91,18 +108,42 @@ impl InboxPane {
                 false,
             );
         }
-        if !c.sending {
-            let at = (top + 1 + (row - first) as u16, 3 + col as u16);
-            cv.text(
-                at.0,
-                at.1,
+        if c.on == On::Body {
+            if c.body.text.is_empty() {
+                cv.text(
+                    first_row,
+                    4,
+                    right - 1,
+                    super::composehead::hint(c, On::Body),
+                    t.text_muted,
+                    false,
+                );
+            }
+            super::composehead::caret(
+                cv,
+                c,
+                (first_row + (row - first) as u16, 3 + col as u16),
                 right,
-                "\u{258f}",
-                crate::palette::accent(),
-                false,
             );
         }
+        if let Some(f) = &c.forward {
+            cv.text(bottom - 1, 3, right - 1, &carrying(f), t.text_muted, false);
+        }
     }
+}
+
+/// `↪ Ann Lee · Lunch · report.pdf, photo.jpg`: the mail a forward carries.
+fn carrying(f: &super::forward::Forwarded) -> String {
+    let mut s = format!(
+        "\u{21aa} {} \u{b7} {}",
+        super::wire::sender_name(&f.from),
+        f.subject.trim()
+    );
+    if !f.files.is_empty() {
+        let names: Vec<&str> = f.files.iter().map(|p| p.name.as_str()).collect();
+        s.push_str(&format!(" \u{b7} {}", names.join(", ")));
+    }
+    s
 }
 
 /// The text's width inside a box in a reader `cols` wide.
@@ -111,7 +152,7 @@ fn inner(cols: u16) -> usize {
 }
 
 /// The caret's wrapped row and column: where the text up to it ends.
-fn caret(text: &str, at: usize, width: usize) -> (usize, usize) {
+fn place(text: &str, at: usize, width: usize) -> (usize, usize) {
     let before: String = text.chars().take(at).collect();
     let lines = wrap(&before, width);
     let last = lines.last().map_or(0, |l| crate::chatwidth::str_w(l));

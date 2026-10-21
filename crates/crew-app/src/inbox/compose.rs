@@ -1,25 +1,65 @@
 //! `r` in the reader: a reply box under the open mail, written and sent
 //! right there (the user, 2026-10-21: "'r' should open a reply box rather
 //! than agent typing the response in the smith pane"). To the last person
-//! who wrote, on the thread's subject, threaded as Gmail threads it.
-//! Cmd+Enter (Ctrl+Enter off a Mac) sends; Esc closes it, a second Esc when
-//! there are words; Tab asks agent smith to write a draft into the box,
-//! which is yours to change before it goes.
-use winit::keyboard::{Key, NamedKey};
-
+//! who wrote, on the thread's subject, threaded as Gmail threads it. `R`
+//! replies to everyone on the mail, `f` forwards it (the user: "add cc and
+//! forward to the reply box"): the box has a `to` and a `cc` line to change
+//! (`composekeys` moves between them). Cmd+Enter (Ctrl+Enter off a Mac)
+//! sends; Esc closes it, a second Esc when there are words.
 use super::draft::{self, Answer};
+use super::field::Field;
+use super::forward::{self, Forwarded};
 use super::worker::Ask;
-use super::InboxPane;
+use super::{addr, InboxPane};
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub(crate) enum Kind {
+    Reply,
+    /// `R`: to everyone the mail went to.
+    All,
+    Forward,
+}
+
+/// Where the caret is: a line of addresses, or the words.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub(crate) enum On {
+    To,
+    Cc,
+    Body,
+}
 
 pub(crate) struct Compose {
+    pub kind: Kind,
+    /// The headers it opened with: the subject and threading are kept, the
+    /// addresses are what the `to` and `cc` lines say when it goes.
     pub answer: Answer,
-    pub text: String,
-    /// The caret, in chars.
-    pub at: usize,
+    pub to: Field,
+    pub cc: Field,
+    pub body: Field,
+    pub on: On,
+    /// The mail a forward carries.
+    pub forward: Option<Box<Forwarded>>,
     /// Esc pressed once over words: a second discards them.
     pub armed: bool,
     /// Sent, and waiting for Gmail to say so: the box stays until it does.
     pub sending: bool,
+}
+
+impl Compose {
+    pub(crate) fn field(&mut self) -> &mut Field {
+        match self.on {
+            On::To => &mut self.to,
+            On::Cc => &mut self.cc,
+            On::Body => &mut self.body,
+        }
+    }
+
+    /// Nothing written or changed since it opened: Esc lets it go at once.
+    pub(crate) fn untouched(&self) -> bool {
+        self.body.text.trim().is_empty()
+            && self.to.text == self.answer.to
+            && self.cc.text == self.answer.cc
+    }
 }
 
 impl InboxPane {
@@ -27,106 +67,107 @@ impl InboxPane {
         self.compose.is_some()
     }
 
-    /// `r`: the box, addressed to the open thread. The line to say.
-    pub(crate) fn open_compose(&mut self) -> &'static str {
+    /// `r`, `R` or `f`: the box, for the open thread. The line to say.
+    pub(crate) fn open_compose(&mut self, kind: Kind) -> &'static str {
         let Some(r) = self.reading.as_ref() else {
             return "";
         };
+        if self.compose.is_some() {
+            return "";
+        }
         let mails = r.mails.as_deref().unwrap_or_default();
-        let Some(answer) = draft::answer(&r.thread.id, mails, &self.email) else {
+        let (answer, forward) = match kind {
+            Kind::Reply => (draft::answer(&r.thread.id, mails, &self.email), None),
+            Kind::All => (draft::answer_all(&r.thread.id, mails, &self.email), None),
+            Kind::Forward => match mails.last() {
+                Some(m) => {
+                    let subject = match m.reply.subject.trim() {
+                        "" => r.thread.subject.as_str(),
+                        s => s,
+                    };
+                    let a = Answer {
+                        subject: forward::subject(subject),
+                        ..Answer::default()
+                    };
+                    (Some(a), Some(Box::new(Forwarded::of(m))))
+                }
+                None => (None, None),
+            },
+        };
+        let Some(answer) = answer else {
             return "nothing in this thread to reply to";
         };
-        if self.compose.is_none() {
-            let (text, at, armed, sending) = (String::new(), 0, false, false);
-            self.compose = Some(Compose {
-                answer,
-                text,
-                at,
-                armed,
-                sending,
-            });
-        }
+        let on = match kind {
+            Kind::Forward => On::To,
+            _ => On::Body,
+        };
+        self.compose = Some(Compose {
+            kind,
+            to: Field::with(&answer.to),
+            cc: Field::with(&answer.cc),
+            answer,
+            body: Field::default(),
+            on,
+            forward,
+            armed: false,
+            sending: false,
+        });
         ""
     }
 
-    /// A key while the box is open: every one is the box's.
-    pub(crate) fn compose_key(&mut self, key: &Key) {
-        let Some(c) = self.compose.as_mut() else {
-            return;
-        };
-        let armed = std::mem::take(&mut c.armed);
-        let len = c.text.chars().count();
-        let byte = |t: &str, at: usize| t.char_indices().nth(at).map_or(t.len(), |(b, _)| b);
-        match key {
-            Key::Named(NamedKey::Escape) if armed || c.text.trim().is_empty() => {
-                self.compose = None;
-                self.note = String::new();
-            }
-            Key::Named(NamedKey::Escape) => {
-                c.armed = true;
-                self.note = "esc again discards your reply".into();
-            }
-            Key::Named(NamedKey::Tab) => {
-                self.act(super::handoff::Then::Draft);
-                self.note = "agent smith is writing a draft into the box\u{2026}".into();
-            }
-            Key::Named(NamedKey::Backspace) if c.at > 0 => {
-                let b = byte(&c.text, c.at - 1);
-                c.text.remove(b);
-                c.at -= 1;
-            }
-            Key::Named(NamedKey::Delete) if c.at < len => {
-                let b = byte(&c.text, c.at);
-                c.text.remove(b);
-            }
-            Key::Named(NamedKey::ArrowLeft) => c.at = c.at.saturating_sub(1),
-            Key::Named(NamedKey::ArrowRight) => c.at = (c.at + 1).min(len),
-            Key::Named(NamedKey::Home) => c.at = 0,
-            Key::Named(NamedKey::End) => c.at = len,
-            Key::Named(NamedKey::Enter) => self.type_in("\n"),
-            Key::Named(NamedKey::Space) => self.type_in(" "),
-            Key::Character(s) => self.type_in(s),
-            _ => {}
-        }
-    }
-
-    /// `text` at the caret: a key, a paste, agent smith's draft.
-    pub(crate) fn type_in(&mut self, text: &str) {
+    /// Cmd+Enter: to Gmail, a reply in its thread, a forward on its own.
+    /// The box stays until Gmail says it went, so words that failed to go
+    /// are still there.
+    pub(crate) fn send_reply(&mut self) {
         let Some(c) = self.compose.as_mut().filter(|c| !c.sending) else {
             return;
         };
-        let clean: String = text
-            .replace("\r\n", "\n")
-            .chars()
-            .filter(|&ch| ch == '\n' || !ch.is_control())
-            .collect();
-        let b = c
-            .text
-            .char_indices()
-            .nth(c.at)
-            .map_or(c.text.len(), |(b, _)| b);
-        c.text.insert_str(b, &clean);
-        c.at += clean.chars().count();
-    }
-
-    /// Cmd+Enter: the reply to Gmail, in its thread. The box stays until
-    /// Gmail says it went, so words that failed to go are still there.
-    pub(crate) fn send_reply(&mut self) {
-        let Some(c) = self.compose.as_mut() else {
-            return;
+        let refused = if addr::split(&c.to.text).is_empty() {
+            c.on = On::To;
+            Some("who is it to? write an address on the to line".to_string())
+        } else if let Some((bad, on)) = addr::first_bad(&c.to.text)
+            .map(|b| (b, On::To))
+            .or_else(|| addr::first_bad(&c.cc.text).map(|b| (b, On::Cc)))
+        {
+            c.on = on;
+            Some(format!("\u{201c}{bad}\u{201d} is not an address"))
+        } else if c.body.text.trim().is_empty() && c.forward.is_none() {
+            Some("write something first".to_string())
+        } else {
+            match c.forward.as_ref().map(|f| f.size()) {
+                Some(n) if n > forward::MOST => Some(format!(
+                    "its files come to {} MB, more than the 25 MB Gmail sends \u{2014} forward it from Gmail (o)",
+                    n.div_ceil(1024 * 1024)
+                )),
+                _ => None,
+            }
         };
-        if c.sending {
-            return;
-        }
-        if c.text.trim().is_empty() {
-            self.note = "write something first".into();
+        if let Some(why) = refused {
+            self.note = why;
             return;
         }
         c.sending = true;
-        let raw = draft::raw(&c.answer, &c.text);
-        let (thread_id, to) = (c.answer.thread_id.clone(), c.answer.to.clone());
-        self.note = format!("sending to {}\u{2026}", super::wire::sender_name(&to));
-        self.ask(Ask::Send { thread_id, raw, to });
+        let answer = Answer {
+            to: addr::split(&c.to.text).join(", "),
+            cc: addr::split(&c.cc.text).join(", "),
+            ..c.answer.clone()
+        };
+        let to = answer.to.clone();
+        self.note = format!("sending to {}\u{2026}", addr::names(&to));
+        let ask = match c.forward.clone() {
+            Some(of) => Ask::Forward {
+                head: draft::head(&answer),
+                note: c.body.text.clone(),
+                of,
+                to,
+            },
+            None => Ask::Send {
+                thread_id: answer.thread_id.clone(),
+                raw: draft::raw(&answer, &c.body.text),
+                to,
+            },
+        };
+        self.ask(ask);
     }
 }
 

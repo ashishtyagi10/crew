@@ -1,7 +1,7 @@
 use base64::Engine;
 
 use super::super::api::Mail;
-use super::{answer, raw, Reply};
+use super::{answer, answer_all, raw, Reply};
 
 fn mail(from: &str, subject: &str, id: &str, reply_to: &str, refs: &str) -> Mail {
     Mail {
@@ -11,6 +11,7 @@ fn mail(from: &str, subject: &str, id: &str, reply_to: &str, refs: &str) -> Mail
             message_id: id.into(),
             reply_to: reply_to.into(),
             references: refs.into(),
+            ..Reply::default()
         },
         ..Mail::default()
     }
@@ -84,7 +85,60 @@ fn the_draft_carries_crews_headers_and_the_body_cannot_add_one() {
         "{head}"
     );
     assert!(!head.contains("Bcc"), "the body stays the body: {head}");
-    assert_eq!(body, "Thursday works.\r\nBcc: evil@x.org");
+    assert!(
+        head.ends_with("Content-Transfer-Encoding: base64"),
+        "{head}"
+    );
+    assert_eq!(words(body), "Thursday works.\r\nBcc: evil@x.org");
+}
+
+/// A base64 body, in its lines of 76, as its words.
+fn words(body: &str) -> String {
+    let b: String = body.split_whitespace().collect();
+    let bytes = base64::engine::general_purpose::STANDARD.decode(b).unwrap();
+    String::from_utf8(bytes).unwrap()
+}
+
+#[test]
+fn a_long_paragraph_goes_in_lines_a_mail_may_carry() {
+    let a = answer(
+        "t1",
+        &[mail("Ann <ann@x.org>", "plans", "<1@x>", "", "")],
+        "",
+    )
+    .unwrap();
+    let long = "word ".repeat(400);
+    let m = decoded(&raw(&a, &long));
+    assert!(
+        m.split("\r\n").all(|l| l.len() <= 998),
+        "RFC 5322's line limit"
+    );
+    assert_eq!(words(m.split_once("\r\n\r\n").unwrap().1), long);
+}
+
+#[test]
+fn reply_all_answers_everyone_but_me_and_a_cc_line_goes_out() {
+    let mut last = mail("Ann Lee <ann@x.org>", "plans", "<1@x>", "", "");
+    last.reply.to = "Me <ME@gmail.com>, \"Ray, Bo\" <bo@y.org>".into();
+    last.reply.cc = "cy@z.org, ann@x.org, me@gmail.com".into();
+    let a = answer_all("t1", &[last], "me@gmail.com").unwrap();
+    assert_eq!(a.to, "Ann Lee <ann@x.org>, \"Ray, Bo\" <bo@y.org>");
+    assert_eq!(a.cc, "cy@z.org", "once each, and never me");
+    let head = decoded(&raw(&a, "ok"));
+    assert!(
+        head.contains("\r\nCc: cy@z.org\r\nSubject: Re: plans\r\n"),
+        "{head}"
+    );
+    let plain = answer(
+        "t1",
+        &[mail("Ann <ann@x.org>", "plans", "<1@x>", "", "")],
+        "",
+    )
+    .unwrap();
+    assert!(
+        !decoded(&raw(&plain, "ok")).contains("Cc:"),
+        "no cc, no line"
+    );
 }
 
 #[test]

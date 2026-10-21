@@ -1,10 +1,11 @@
-//! `a`, `r` and `t`: the thread to agent smith, a reply drafted by smith, the
+//! `a`, `r` and `t`: the thread to agent smith, a reply (or `R`, `f`), the
 //! thread to `/todo`. Each acts on the open thread once its messages are
 //! here; pressed in the list, it opens the thread and acts when it lands.
 //!
 //! What goes to smith leaves through [`ToSmith`]: the app owns both panes,
 //! so it delivers the prompt and, for a draft, watches smith's answer
 //! (`spawninbox::poll_inbox`) and hands the body back to [`InboxPane::drafted_by_smith`].
+use super::compose::Kind;
 use super::draft::{self, Answer};
 use super::worker::Ask;
 use super::{InboxPane, Reading};
@@ -14,8 +15,10 @@ pub(crate) enum Then {
     Ask,
     /// Agent smith writes a reply: into the box when one is open.
     Draft,
-    /// `r`: the reply box (`compose`).
+    /// `r`, `R` and `f`: the reply box (`compose`).
     Reply,
+    ReplyAll,
+    Forward,
     Todo,
 }
 
@@ -36,11 +39,14 @@ pub(crate) struct Waiting {
 }
 
 impl InboxPane {
-    /// `a`, `r` or `t`: true when it was one of them.
+    /// `a`, `r`, `f` or `t` (and `R` in a thread: in the list it
+    /// refreshes): true when it was one of them.
     pub(crate) fn handoff(&mut self, ch: &str) -> bool {
         let then = match ch {
             "a" => Then::Ask,
             "r" => Then::Reply,
+            "R" if self.reading.is_some() => Then::ReplyAll,
+            "f" => Then::Forward,
             "t" => Then::Todo,
             _ => return false,
         };
@@ -87,7 +93,9 @@ impl InboxPane {
                     "agent smith is writing a reply \u{2014} it lands as a Gmail draft, never sent"
                         .into();
             }
-            Then::Reply => self.note = self.open_compose().into(),
+            Then::Reply => self.note = self.open_compose(Kind::Reply).into(),
+            Then::ReplyAll => self.note = self.open_compose(Kind::All).into(),
+            Then::Forward => self.note = self.open_compose(Kind::Forward).into(),
             Then::Todo => self.to_todo(),
         }
     }
@@ -99,7 +107,7 @@ impl InboxPane {
         match body {
             // Into the box, to be changed and sent by hand.
             Some(b) if self.compose.is_some() => {
-                self.type_in(&b);
+                self.draft_in(&b);
                 self.note = "agent smith drafted it \u{b7} change what you like, then send".into();
             }
             Some(b) => {

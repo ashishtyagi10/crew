@@ -8,16 +8,22 @@
 use base64::Engine;
 use serde_json::Value;
 
+use super::addr;
 use super::api::{Gmail, Mail};
 use super::wire::header;
 
-/// What a reply to one message needs from it.
+/// What a reply to one message, or its forward, needs from it.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub(crate) struct Reply {
     pub subject: String,
     pub message_id: String,
     pub reply_to: String,
     pub references: String,
+    /// Who else it went to, for reply all and a forward's header.
+    pub to: String,
+    pub cc: String,
+    /// Its own HTML and plain words, as a forward carries them.
+    pub source: super::forward::Source,
 }
 
 impl Reply {
@@ -27,6 +33,9 @@ impl Reply {
             message_id: header(msg, "Message-ID"),
             reply_to: header(msg, "Reply-To"),
             references: header(msg, "References"),
+            to: header(msg, "To"),
+            cc: header(msg, "Cc"),
+            source: super::forward::Source::of(msg),
         }
     }
 }
@@ -36,6 +45,7 @@ impl Reply {
 pub(crate) struct Answer {
     pub thread_id: String,
     pub to: String,
+    pub cc: String,
     pub subject: String,
     pub in_reply_to: String,
     pub references: String,
@@ -44,9 +54,7 @@ pub(crate) struct Answer {
 /// The reply to `mails`, from `me`: to the last message someone else sent
 /// (its `Reply-To`, else its `From`), on the thread's subject with `Re:`.
 pub(crate) fn answer(thread_id: &str, mails: &[Mail], me: &str) -> Option<Answer> {
-    let me = me.to_ascii_lowercase();
-    let theirs = |m: &&Mail| me.is_empty() || !m.from.to_ascii_lowercase().contains(&me);
-    let last = mails.iter().rev().find(theirs).or(mails.last())?;
+    let last = answered(mails, me)?;
     let to = match last.reply.reply_to.trim() {
         "" => last.from.trim(),
         r => r,
@@ -63,6 +71,7 @@ pub(crate) fn answer(thread_id: &str, mails: &[Mail], me: &str) -> Option<Answer
     Some(Answer {
         thread_id: thread_id.into(),
         to: to.into(),
+        cc: String::new(),
         subject,
         in_reply_to: id.into(),
         references: format!("{} {id}", last.reply.references.trim())
@@ -71,27 +80,55 @@ pub(crate) fn answer(thread_id: &str, mails: &[Mail], me: &str) -> Option<Answer
     })
 }
 
+/// `R`: the reply to everyone on the message answered, as Gmail's reply all
+/// has it: its sender and the rest of its `To` in To, its `Cc` in Cc, and
+/// never `me`.
+pub(crate) fn answer_all(thread_id: &str, mails: &[Mail], me: &str) -> Option<Answer> {
+    let one = answer(thread_id, mails, me)?;
+    let last = answered(mails, me)?;
+    let mut to = addr::split(&one.to);
+    to.extend(addr::split(&last.reply.to));
+    let to = addr::without(&to, &[me]);
+    let mut cc = to.clone();
+    cc.extend(addr::split(&last.reply.cc));
+    let cc = addr::without(&cc, &[me]).split_off(to.len());
+    Some(Answer {
+        to: to.join(", "),
+        cc: cc.join(", "),
+        ..one
+    })
+}
+
+/// The message a reply answers: the last someone else sent, else the last.
+fn answered<'a>(mails: &'a [Mail], me: &str) -> Option<&'a Mail> {
+    let me = me.to_ascii_lowercase();
+    let theirs = |m: &&Mail| me.is_empty() || !m.from.to_ascii_lowercase().contains(&me);
+    mails.iter().rev().find(theirs).or(mails.last())
+}
+
 /// The draft as Gmail takes it: an RFC 2822 message, base64url. Header
 /// values lose any line break (a body cannot smuggle a header in), and a
 /// subject outside ASCII is RFC 2047-encoded.
 pub(crate) fn raw(a: &Answer, body: &str) -> String {
-    let one = |s: &str| s.replace(['\r', '\n'], " ");
-    let mut m = format!(
-        "To: {}\r\nSubject: {}\r\n",
-        one(&a.to),
-        encoded(&one(&a.subject))
-    );
-    if !a.in_reply_to.is_empty() {
-        m.push_str(&format!(
-            "In-Reply-To: {}\r\nReferences: {}\r\n",
-            one(&a.in_reply_to),
-            one(&a.references)
-        ));
-    }
-    m.push_str("MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n");
-    m.push_str("Content-Transfer-Encoding: 8bit\r\n\r\n");
-    m.push_str(&body.replace("\r\n", "\n").replace('\n', "\r\n"));
+    let m = super::mime::message(&head(a), &super::mime::Node::text("plain", body));
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(m)
+}
+
+/// To, Cc, Subject and the threading headers, each one line.
+pub(crate) fn head(a: &Answer) -> Vec<String> {
+    let mut h = vec![format!("To: {}", addr::header(&a.to))];
+    if !a.cc.trim().is_empty() {
+        h.push(format!("Cc: {}", addr::header(&a.cc)));
+    }
+    h.push(format!(
+        "Subject: {}",
+        encoded(&a.subject.replace(['\r', '\n'], " "))
+    ));
+    if !a.in_reply_to.is_empty() {
+        h.push(format!("In-Reply-To: {}", a.in_reply_to));
+        h.push(format!("References: {}", a.references));
+    }
+    h
 }
 
 fn encoded(s: &str) -> String {

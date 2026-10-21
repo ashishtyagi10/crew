@@ -43,7 +43,7 @@ fn the_pane_draws_above_the_foot_and_a_note_takes_a_line_of_its_own() {
     let mut p = crate::inboxshot_tests::ready();
     p.reading = Some(crate::inbox::Reading::new(Thread::default()));
     let h = p.foot_h(70, 30);
-    assert_eq!(h, lines(READER, 68, 3).len() as u16);
+    assert_eq!(h, lines(READER, 68, usize::from(super::LINES)).len() as u16);
     assert!(h >= 2, "the reader's keys take two lines at 70: {h}");
     p.note = "deleted \u{201c}x\u{201d} \u{b7} u undoes".into();
     assert_eq!(p.foot_h(70, 30), h + 1);

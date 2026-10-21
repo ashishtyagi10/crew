@@ -6,8 +6,14 @@
 //! interpolated value. Far's `‘file’` names a file, not your words, and stays.
 
 /// Files where a straight-quoted value is syntax, not prose: an `@"path"`
-/// mention, an HTTP header, a line injected into an agent's prompt.
-const SYNTAX: &[&str] = &["filedrop.rs", "voice/openai.rs", "askroute.rs"];
+/// mention, an HTTP header, a line injected into an agent's prompt, a MIME
+/// parameter (`boundary="…"`, `filename="…"`).
+const SYNTAX: &[&str] = &[
+    "filedrop.rs",
+    "voice/openai.rs",
+    "askroute.rs",
+    "inbox/mime.rs",
+];
 
 fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
     for e in std::fs::read_dir(dir).unwrap().flatten() {

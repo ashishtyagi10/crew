@@ -13,6 +13,7 @@ pub(crate) fn key_of(k: &str) -> Option<winit::keyboard::Key> {
         "esc" => Some(Press::Named(NamedKey::Escape)),
         "enter" => Some(Press::Named(NamedKey::Enter)),
         "tab" => Some(Press::Named(NamedKey::Tab)),
+        "\u{2191}" => Some(Press::Named(NamedKey::ArrowUp)),
         k if k.chars().count() == 1 => Some(Press::Character(k.into())),
         _ => None,
     }
@@ -34,12 +35,22 @@ pub(crate) const SEND: &str = if cfg!(target_os = "macos") {
 } else {
     "ctrl+\u{21a9}"
 };
+/// Writing a reply's words; [`FORWARD`] a forward's note, [`ADDRESS`] on
+/// its `to` or `cc` line.
 pub(crate) const COMPOSE: Keys = &[
     (SEND, "send"),
     ("esc", "close"),
     GAP,
+    ("\u{2191}", "to and cc"),
     ("tab", "agent smith drafts it"),
 ];
+pub(crate) const FORWARD: Keys = &[
+    (SEND, "send"),
+    ("esc", "close"),
+    GAP,
+    ("\u{2191}", "to and cc"),
+];
+pub(crate) const ADDRESS: Keys = &[(SEND, "send"), ("esc", "close"), GAP, ("tab", "next line")];
 pub(crate) const LIST: Keys = &[
     ("enter", "read"),
     ("/", "search"),
@@ -48,6 +59,7 @@ pub(crate) const LIST: Keys = &[
     ("e", "archive"),
     ("d", "delete"),
     ("r", "reply"),
+    ("f", "forward"),
     ("z", "undo"),
     ("s", "star"),
     ("m", "read/unread"),
@@ -63,6 +75,8 @@ pub(crate) const READER: Keys = &[
     ("p", "previous"),
     GAP,
     ("r", "reply"),
+    ("R", "reply all"),
+    ("f", "forward"),
     ("e", "archive"),
     ("d", "delete"),
     ("z", "undo"),
