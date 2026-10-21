@@ -34,6 +34,10 @@ pub(crate) struct Out {
     pub pics: Vec<String>,
     /// Pictures from the web left as their words.
     pub web_left: usize,
+    /// The type here is zero-sized (`font`): its words are not drawn.
+    pub tiny: bool,
+    /// Inside a table or cell classed as a button: its link is one.
+    pub btn: bool,
 }
 
 /// A place in the open paragraph, to wrap what comes after it.

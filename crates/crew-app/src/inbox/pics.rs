@@ -4,8 +4,12 @@
 //!
 //! A picture the mail carries (`cid:`, and image attachments) is fetched as
 //! the thread opens: its bytes are already Google's, so asking for them tells
-//! no one anything. A picture from the web is fetched only on `i`, because
-//! fetching one tells its sender the mail was opened, when and from where.
+//! no one anything. A picture from the web is fetched as the thread opens
+//! too, as Gmail shows them (goal 2026-10-21-mail-looks-right, item 4): the
+//! user asked for mail with its pictures. Fetching one tells its sender the
+//! mail was opened, when and from where, and Gmail's own proxy, which hides
+//! the where, is not reachable through the API; `i` hides a thread's web
+//! pictures again. Tracking pixels are never fetched (`html::hide`).
 use std::collections::HashMap;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
@@ -116,10 +120,11 @@ impl InboxPane {
         }
     }
 
-    /// `i`: the web's pictures for the open thread. The line to say.
-    pub(crate) fn show_web(&mut self) -> String {
+    /// The web's pictures for the open thread, drawn and fetched (those not
+    /// fetched already): as it opens, and on `i`. How many it has.
+    pub(crate) fn fetch_web(&mut self) -> usize {
         let Some(r) = self.reading.as_mut() else {
-            return String::new();
+            return 0;
         };
         let mails = r.mails.as_deref().unwrap_or_default();
         let mut want = Vec::new();
@@ -127,17 +132,27 @@ impl InboxPane {
             let urls = web_pics(&m.rich).filter(|s| !s.starts_with("cid:"));
             want.extend(urls.take(WEB_PER_MAIL).map(|u| (key(&m.id, u), u.clone())));
         }
-        if want.is_empty() {
-            return "no pictures from the web in this thread".into();
-        }
-        r.web = true;
-        want.retain(|(k, _)| self.pics.claim(k));
         let n = want.len();
+        r.web = n > 0;
+        want.retain(|(k, _)| self.pics.claim(k));
         super::picfetch::web(want, self.pics.tx.clone());
-        format!(
-            "fetching {n} picture{} from the web",
-            if n == 1 { "" } else { "s" }
-        )
+        n
+    }
+
+    /// `i`: the web's pictures hidden, or shown again. The line to say.
+    pub(crate) fn show_web(&mut self) -> String {
+        match self.reading.as_mut() {
+            None => String::new(),
+            Some(r) if r.web => {
+                r.web = false;
+                "pictures from the web hidden \u{b7} i shows them".into()
+            }
+            Some(_) => match self.fetch_web() {
+                0 => "no pictures from the web in this thread".into(),
+                1 => "showing 1 picture from the web \u{b7} i hides it".into(),
+                n => format!("showing {n} pictures from the web \u{b7} i hides them"),
+            },
+        }
     }
 }
 

@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.40
+
+**`/inbox`: mail looks like mail — pictures, headings and buttons in real-world email.**
+Newsletters and receipts were read as plain paragraphs with their pictures
+held back, and some lost whole sections. Three fixes:
+- **Whole sections came back.** The `font-size:0` trick that closes the
+  gaps between columns (used by most template-built mail) was read as
+  hidden text, so every column under it disappeared. A font size is now
+  inherited, as in a browser. Words directly under a zero size still stay
+  unseen, so nothing hidden reaches agent smith.
+- **Headings and bold come from the mail's CSS.** A large short line is a
+  heading and a weight of 600 or more is bold, as are `<font size>`
+  headlines.
+- **Web pictures and buttons show.** Pictures from the web load as a thread
+  opens, as Gmail shows them; tracking pixels are still never fetched. `i`
+  hides them (fetching one tells the sender you opened the mail), and a
+  line under the sender says when they are hidden. A link styled as a
+  button is drawn as a padded capsule that is the link, and a button whose
+  words name another site is flagged like any lying link.
+
+A link worded as a file name (`spec.pdf`) is no longer flagged as a lie.
+- **Tests:** five real-world templates (Cerberus, leemunroe, Postmark's
+  receipt, reset and comment notification; MIT, sources in the corpus)
+  read as expected markdown; type sizes in px, pt, em, rem and percent;
+  headings, bold and long body text; zero-size words hidden while
+  self-sized columns read; buttons and lying buttons; web pictures fetched
+  on open, hidden and shown on `i`, with the hint above the words; and shots
+  of every fixture in the reader on both themes.
+
 ## 0.27.39
 
 **`/inbox`: a quiet list, every key at the foot, `z` to undo and `u` to unsubscribe.**

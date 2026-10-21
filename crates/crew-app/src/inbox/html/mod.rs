@@ -5,6 +5,7 @@
 //! enough, and the fixture corpus (`corpus_tests`) is the answer.
 mod block;
 mod ent;
+mod font;
 mod hide;
 mod image;
 mod link;

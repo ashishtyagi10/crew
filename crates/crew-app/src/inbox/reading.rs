@@ -16,7 +16,7 @@ pub(crate) struct Reading {
     pub unsub_armed: bool,
     /// `q`: the quoted earlier replies unfolded.
     pub quotes: bool,
-    /// `i`: pictures from the web drawn.
+    /// Pictures from the web drawn: as the thread opens, until `i`.
     pub web: bool,
     /// `w`: asked for a window of its own, until the app opens one.
     pub pop_out: bool,

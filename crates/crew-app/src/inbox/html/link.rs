@@ -59,10 +59,15 @@ pub(crate) fn lie(words: &str, href: &str) -> Option<String> {
     if w.is_empty() || w.contains(char::is_whitespace) || w.contains('@') {
         return None;
     }
+    // A file's name (`spec.pdf`) is not a site: none of these is a domain.
+    const FILES: &[&str] = &[
+        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "csv", "txt", "rtf", "odt", "png",
+        "jpg", "jpeg", "gif", "heic", "webp", "svg", "wav", "ics", "json", "xml", "htm", "html",
+    ];
     let looks_like_site = w.starts_with("http") || w.starts_with("www.") || {
         let h = host(&w).unwrap_or_default();
         let tld = h.rsplit('.').next().unwrap_or("");
-        tld.len() >= 2 && tld.chars().all(|c| c.is_ascii_alphabetic())
+        tld.len() >= 2 && tld.chars().all(|c| c.is_ascii_alphabetic()) && !FILES.contains(&tld)
     };
     if !looks_like_site || href.to_ascii_lowercase().starts_with("mailto:") {
         return None;
@@ -116,5 +121,10 @@ mod tests {
         assert_eq!(lie("amazon.com", "https://click.e.amazon.com/t"), None);
         assert_eq!(lie("Track your order", "https://evil.io"), None);
         assert_eq!(lie("v2.1", "https://x.io"), None, "a version is not a site");
+        assert_eq!(
+            lie("spec.pdf", "https://x.io/f/1"),
+            None,
+            "a file is not a site"
+        );
     }
 }

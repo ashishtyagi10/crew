@@ -116,6 +116,7 @@ impl InboxPane {
                         self.act(then);
                     }
                     self.fetch_carried();
+                    self.fetch_web();
                 }
             }
             Got::Picture(key, bm) => self.pics.set(key, bm),
