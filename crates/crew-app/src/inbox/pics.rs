@@ -30,6 +30,8 @@ pub(crate) enum Pic {
 
 pub(crate) struct Pics {
     map: HashMap<String, Pic>,
+    /// Bumped by every picture that lands, so a second view knows to redraw.
+    pub(crate) rev: u64,
     pub(crate) tx: Sender<(String, Option<Bitmap>)>,
     rx: Receiver<(String, Option<Bitmap>)>,
 }
@@ -39,6 +41,7 @@ impl Default for Pics {
         let (tx, rx) = mpsc::channel();
         Self {
             map: HashMap::new(),
+            rev: 0,
             tx,
             rx,
         }
@@ -63,6 +66,7 @@ impl Pics {
     pub(crate) fn set(&mut self, key: String, bm: Option<Bitmap>) {
         let pic = bm.map_or(Pic::Failed, |b| Pic::Ready(Arc::new(b)));
         self.map.insert(key, pic);
+        self.rev += 1;
     }
 
     /// Mark `key` as asked for; false when it already was.

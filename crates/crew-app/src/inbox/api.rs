@@ -34,6 +34,8 @@ pub(crate) struct Mail {
     /// The message to draw (`reader`), and the parts its pictures are in.
     pub rich: super::rich::Rich,
     pub parts: Vec<super::body::Part>,
+    /// Every file sent with it, to save and open.
+    pub attached: Vec<super::body::Part>,
     /// What a reply to it needs: its id, subject and where answers go.
     pub reply: super::draft::Reply,
 }
@@ -178,6 +180,7 @@ impl Gmail {
                 Mail {
                     id: m["id"].as_str().unwrap_or_default().to_string(),
                     parts: super::body::pictures(m),
+                    attached: super::body::files(m),
                     from: wire::header(m, "From"),
                     date: wire::header(m, "Date"),
                     text: rich.whole(),

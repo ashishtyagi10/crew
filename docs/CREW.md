@@ -1683,7 +1683,15 @@ longer aim at.
   `Referer`, 10 s and 5 MB a picture, 20 a message). A tracking pixel
   (declared 2×2 or smaller, a spacer file, or one that decodes that small)
   is never drawn; every decode runs under `image::Limits` (8,192 px a side,
-  128 MB). Pictures live in memory with the open thread and go with it — `e` archives (takes the `INBOX` label away, as Gmail's archive does),
+  128 MB). Pictures live in memory with the open thread and go with it.
+  Every attachment is a row under its message (`↓ report.pdf · 1.2 MB`):
+  Cmd+click its name, or its capital letter in `Cmd+E`'s hint mode, and crew
+  saves it to `~/Downloads` under a safe version of its name (no folders, no
+  leading dot, never over a file already there: `report (1).pdf`) and opens
+  it with the system's app — the only thing the reader ever writes to disk.
+  `w` opens the thread in a window of its own, sized for reading: it is the
+  inbox pane drawn a second time, so every key works in it, it and the tile
+  never disagree, and Esc from the list or Cmd+W closes it — `e` archives (takes the `INBOX` label away, as Gmail's archive does),
   `d` deletes (moves the thread to Trash, as Gmail's delete does; Gmail
   empties Trash after 30 days), `m` marks read or unread, `s` stars or
   unstars, `u` undoes the last of those (a delete comes back out of Trash);

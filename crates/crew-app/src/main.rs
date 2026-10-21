@@ -519,6 +519,7 @@ mod popupsweep_tests;
 // prompt); the tests run everywhere.
 mod inboxglance;
 mod inboxsmith;
+mod inboxwin;
 mod navinboxcard;
 #[cfg(any(windows, test))]
 mod posh;
@@ -865,5 +866,7 @@ mod cli_intent_tests {
     }
 }
 
+#[cfg(test)]
+mod inboxreadshot_tests;
 #[cfg(test)]
 mod inboxshot_tests;

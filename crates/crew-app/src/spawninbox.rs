@@ -85,8 +85,23 @@ impl CrewApp {
         let Some(url) = p.link_at(grid.cols, grid.rows, row, col) else {
             return false;
         };
-        crate::linkclick::open_external(&url);
-        self.set_status(format!("opening {url}"));
+        self.follow_inbox_link(&url);
         true
+    }
+
+    /// A link out of the inbox, wherever it was picked: an attachment's row
+    /// saves and opens the file; anything else opens in the browser.
+    pub(crate) fn follow_inbox_link(&mut self, url: &str) {
+        if !url.starts_with(crate::inbox::save::ATTACHMENT) {
+            crate::linkclick::open_external(url);
+            return self.set_status(format!("opening {url}"));
+        }
+        let i = self
+            .panes
+            .iter()
+            .position(|p| matches!(p.content, PaneContent::Inbox(_)));
+        if let Some(PaneContent::Inbox(p)) = i.map(|i| &mut self.panes[i].content) {
+            p.note = p.save_attachment(url);
+        }
     }
 }

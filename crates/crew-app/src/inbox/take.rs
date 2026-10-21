@@ -72,6 +72,15 @@ impl InboxPane {
                 }
             }
             Got::Picture(key, bm) => self.pics.set(key, bm),
+            Got::Saved(Ok(path)) => {
+                let name = path.file_name().map(|n| n.to_string_lossy().into_owned());
+                self.note = format!(
+                    "saved {} to Downloads \u{2014} opening it",
+                    name.unwrap_or_default()
+                );
+                crate::linkclick::open_external(&path.to_string_lossy());
+            }
+            Got::Saved(Err(e)) => self.note = e,
             Got::Drafted(subject) => {
                 self.note = format!(
                     "draft saved in Gmail: \u{201c}{subject}\u{201d} \u{2014} review and send it there (o)"

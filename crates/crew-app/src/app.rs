@@ -37,6 +37,8 @@ pub struct CrewApp {
     /// panes: a document window holds no grid, so none of the app's
     /// pane-shaped state applies to it.
     pub(crate) docs: Vec<crate::docwin::DocWindow>,
+    /// The inbox's thread in a window of its own (`w`, see `inboxwin`).
+    pub(crate) mail: Option<crate::inbox::mailwin::MailWindow>,
     /// The first canvas of the process. The launch note, the crash report and
     /// the upgrade migrations are about this LAUNCH, not about this window, so
     /// a second canvas does not repeat them (see [`crate::canvas`]).

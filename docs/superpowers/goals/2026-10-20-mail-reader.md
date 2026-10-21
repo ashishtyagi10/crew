@@ -1,7 +1,8 @@
 # Goal — read mail the way it was written: rich text and pictures in `/inbox`
 
-**Status: SET 2026-10-20** (the user: "go ahead with the mail reader goal"). Phases 0 and 1
-shipped in v0.27.34; phase 2 built (see "Where it stands" at the end).
+**Status: COMPLETE 2026-10-20** (the user: "go ahead with the mail reader goal"). Phases 0
+and 1 shipped in v0.27.34, phase 2 in v0.27.35, phase 3 built after it (see "Where it stands"
+at the end).
 
 **Set:** 2026-10-20 by the user, once `/inbox` was signed in live: *"write a goal to give better
 email viewer, like showing better markdown or htmls with images, whatever is possible."*
@@ -206,7 +207,7 @@ parts in their charsets (`crates/crew-app/src/inbox/charset.rs`), plain mail thr
 act on the whole open thread rather than the message under a cursor (the reader has no cursor),
 and the shots are the inbox's two themes (Ink light, glass dark) rather than 80 and 120 columns.
 
-**Phase 2, built:** items 11–15. The converter writes `![alt](<src#rows=N>)` for a `cid:`
+**Phase 2, shipped in v0.27.35:** items 11–15. The converter writes `![alt](<src#rows=N>)` for a `cid:`
 picture always and for a web one only in the "with web" version a `Rich` also keeps
 (`crates/crew-app/src/inbox/html/image.rs`); `#rows=N` is read by the markdown engine
 (`crates/crew-app/src/md/picture.rs`), so any document can size a picture's box. The pane's
@@ -217,4 +218,15 @@ pictures live in `crates/crew-app/src/inbox/pics.rs`; fetching and the limited d
 under it (`↗ Read the report`). The quota cost of `attachments.get` was not read; it is one
 call per carried picture, at most four attachments a message.
 
-**Not yet:** phase 3 (`w`, attachments saved and opened).
+**Phase 3, built:** items 16 and 17. `w` opens `crates/crew-app/src/inbox/mailwin.rs`, a second
+surface beside the document window rather than inside it: the document window is built around
+the file viewer and its editor, so this one is the inbox pane drawn again at the window's size,
+its keys, wheel and Cmd+clicks handed to the same pane (`crates/crew-app/src/inboxwin.rs`), and
+it redraws when what the pane would draw changes. Attachments are rows whose link
+(`crew-attachment:`) saves and opens the file (`crates/crew-app/src/inbox/save.rs`), through
+Cmd+click in the tile or the window and hint mode's capital letter
+(`crates/crew-app/src/spawninbox.rs`, `crates/crew-app/src/hintact.rs`). Hint mode in the mail
+window is not wired: `Cmd+E` labels the main window's focused pane.
+
+**Open, for the user:** the two questions above (remote pictures per sender, plain text as the
+default view), and a live look at real mail, which none of the corpus is.

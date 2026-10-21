@@ -123,6 +123,8 @@ impl InboxPane {
         } else if ch == "o" {
             let id = r.thread.id.clone();
             self.browse(Some(&id));
+        } else if ch == "w" {
+            r.pop_out = true;
         } else if ch == "i" {
             self.note = self.show_web();
         } else if ch == "v" || ch == "z" {

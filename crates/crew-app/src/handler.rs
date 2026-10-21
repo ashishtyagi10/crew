@@ -181,6 +181,7 @@ impl CrewApp {
         // too — this is where the active event loop is.
         self.open_pending_docs(event_loop);
         self.poll_doc_windows();
+        self.tick_mail_window(event_loop);
     }
 
     /// Whether `id` is this canvas's own window.
@@ -196,6 +197,10 @@ impl CrewApp {
         // window resizes the wrong surface.
         if self.is_doc_window(id) {
             self.doc_window_event(id, event);
+            return;
+        }
+        if self.is_mail_window(id) {
+            self.mail_window_event(event);
             return;
         }
         self.handle_window_event(event_loop, event);

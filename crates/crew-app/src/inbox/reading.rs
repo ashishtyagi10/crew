@@ -16,6 +16,8 @@ pub(crate) struct Reading {
     pub quotes: bool,
     /// `i`: pictures from the web drawn.
     pub web: bool,
+    /// `w`: asked for a window of its own, until the app opens one.
+    pub pop_out: bool,
     pub(crate) laid: std::sync::Mutex<Option<(reader::Key, std::sync::Arc<reader::Laid>)>>,
 }
 
@@ -28,6 +30,7 @@ impl Reading {
             plain: false,
             quotes: false,
             web: false,
+            pop_out: false,
             laid: std::sync::Mutex::new(None),
         }
     }
