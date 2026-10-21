@@ -15,6 +15,8 @@ pub(crate) struct Rich {
     pub quote: Option<String>,
     /// A plain mail's signature, drawn quiet.
     pub sig: Option<String>,
+    /// An HTML mail's small print, drawn quiet (`html::Converted::foot`).
+    pub foot: Option<String>,
     /// What could not be read: a charset, a cut.
     pub note: Option<String>,
     /// The other version of the same message (`v`).
@@ -43,6 +45,7 @@ impl Rich {
             Self {
                 body,
                 quote,
+                foot: c.foot,
                 note,
                 pics: c.pics,
                 web: c.web_left,
@@ -72,13 +75,18 @@ impl Rich {
     /// Everything a reader could unfold, as one markdown text: what agent
     /// smith is handed (hidden text was never in it, item 9).
     pub(crate) fn whole(&self) -> String {
-        [Some(&self.body), self.quote.as_ref(), self.sig.as_ref()]
-            .into_iter()
-            .flatten()
-            .filter(|s| !s.trim().is_empty())
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("\n\n")
+        [
+            Some(&self.body),
+            self.foot.as_ref(),
+            self.quote.as_ref(),
+            self.sig.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        .filter(|s| !s.trim().is_empty())
+        .cloned()
+        .collect::<Vec<_>>()
+        .join("\n\n")
     }
 }
 

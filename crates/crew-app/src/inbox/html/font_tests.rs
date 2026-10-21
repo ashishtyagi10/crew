@@ -51,7 +51,7 @@ fn a_large_short_line_is_a_heading_and_a_heavy_one_is_bold() {
     let old =
         md(r#"<p><font size="5">Big news</font></p><p><font size="2">small print</font></p>"#);
     assert!(
-        old.contains("**Big news**") && old.contains("small print"),
+        old.contains("# Big news") && old.contains("small print"),
         "{old}"
     );
 }
@@ -94,5 +94,35 @@ fn a_link_drawn_as_a_button_is_a_capsule_that_opens_it() {
     assert!(
         lie.ends_with("\u{27f6} paypa1-login.xyz"),
         "a button that lies is named too: {lie}"
+    );
+}
+
+#[test]
+fn a_stylesheet_class_sets_the_type_and_a_large_price_is_no_heading() {
+    let got = md(
+        r#"<style>.h1 { font-size: 38px; font-weight: 700 } @media (max-width:480px) { .h1 { font-size: 12px } }</style>
+        <div style="font-size:16px"><span class="h1">The unbundling of the design tool</span></div>
+        <div style="font-size:24px;font-weight:700">$120</div>"#,
+    );
+    let lines: Vec<&str> = got.lines().filter(|l| !l.is_empty()).collect();
+    assert_eq!(
+        lines,
+        ["# The unbundling of the design tool", "**$120**"],
+        "{got}"
+    );
+}
+
+#[test]
+fn links_alone_in_cells_side_by_side_read_as_one_line() {
+    let got = md(
+        r#"<table><tr><td><a href="https://x.io/h">Home</a></td><td><a href="https://x.io/a">Account</a></td>
+        <td><a href="https://x.io/t"><img src="https://x.io/t.png" width="24" height="24" alt="Twitter"></a></td></tr></table>
+        <p><a href="https://x.io/long">A link that is a whole sentence of its own, far too long</a></p>"#,
+    );
+    let lines: Vec<&str> = got.lines().filter(|l| !l.is_empty()).collect();
+    assert_eq!(lines.len(), 2, "{got}");
+    assert_eq!(
+        lines[0],
+        "[Home](<https://x.io/h>) \u{b7} [Account](<https://x.io/a>) \u{b7} [Twitter](<https://x.io/t>)"
     );
 }

@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.42
+
+**`/inbox`: template-built mail reads right — headlines, menus, receipts and footers.**
+Mail built with MJML and similar tools sets its headlines in stylesheet
+classes. Those now read as headings, and a price set large stays bold
+instead of becoming a heading. Menus, footer links and social icons that
+sit side by side now read on one line (`Home · Account · Orders`,
+`Twitter · Facebook`) instead of one per line or run together. Receipt rows
+with no header no longer promote the first item to a header. The small
+print a mail ends with (the address, why you got it, unsubscribe) is drawn
+in a quieter ink. A picture with only a width starts in a box near its real
+shape.
+- **Tests:** six more real-world templates (Colorlib, MIT: a product grid,
+  a cart reminder, an order receipt, an editorial and a dark newsletter, and
+  a launch announcement) read as expected markdown; stylesheet class rules
+  (ignored inside `@media` and compound selectors); a headline in a span; a
+  large price staying bold; links in neighbouring cells on one line; icons
+  as words; tables without a header in the converter and the renderer;
+  small print found and drawn quiet; and shots of all of it on both themes.
+
 ## 0.27.41
 
 **`/inbox`: pictures at their own size, and a reader that frames each message.**

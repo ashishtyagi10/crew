@@ -11,6 +11,12 @@ pub(crate) fn image(n: &Node, o: &mut Out) {
         return;
     }
     let alt = ent::decode(n.attr("alt").unwrap_or("")).trim().to_string();
+    // A mark at icon size (a social logo, a bullet) is its word, as a
+    // reader would say it: in a row of links, `Twitter · Facebook`.
+    if icon(n) {
+        o.text(&alt);
+        return;
+    }
     let src = n
         .attr("src")
         .map(|s| ent::decode(s.trim()))
@@ -45,27 +51,37 @@ pub(crate) fn image(n: &Node, o: &mut Out) {
 /// (0 for none): the reader sizes it from the picture once it lands
 /// (`readfit`).
 fn rows(n: &Node) -> String {
-    let px = |k: &str| {
-        let style = n.attr("style").and_then(|s| super::font::decl(s, k));
-        [n.attr(k).map(str::to_string), style]
-            .into_iter()
-            .flatten()
-            .find_map(|v| {
-                v.trim()
-                    .strip_suffix("px")
-                    .unwrap_or(v.trim())
-                    .parse::<f32>()
-                    .ok()
-            })
-            .filter(|&v| v > 0.0)
+    match (px(n, "height"), px(n, "width")) {
+        (Some(h), _) => format!("{}", (h / 16.0).round().clamp(2.0, 40.0) as u16),
+        // Until it lands, a box guessed from its width at a photo's shape.
+        (None, Some(w)) => {
+            let guess = (w.min(600.0) * 0.6 / 16.0).round().clamp(2.0, 12.0);
+            format!("{guess}&fit={}", w as u32)
+        }
+        (None, None) => format!("{}&fit=0", crate::md::picture::ROWS),
+    }
+}
+
+/// A size `n` gives in px, by attribute or `style`.
+fn px(n: &Node, k: &str) -> Option<f32> {
+    let style = n.attr("style").and_then(|s| super::font::decl(s, k));
+    let num = |v: String| {
+        let v = v.trim();
+        v.strip_suffix("px").unwrap_or(v).parse::<f32>().ok()
     };
-    match px("height") {
-        Some(h) => format!("{}", (h / 16.0).round().clamp(2.0, 40.0) as u16),
-        None => format!(
-            "{}&fit={}",
-            crate::md::picture::ROWS,
-            px("width").unwrap_or(0.0) as u32
-        ),
+    [n.attr(k).map(str::to_string), style]
+        .into_iter()
+        .flatten()
+        .find_map(num)
+        .filter(|&v| v > 0.0)
+}
+
+/// Drawn at 32 px or less across and down: an icon, not a picture.
+fn icon(n: &Node) -> bool {
+    match (px(n, "width"), px(n, "height")) {
+        (Some(w), Some(h)) => w <= 32.0 && h <= 32.0,
+        (Some(s), None) | (None, Some(s)) => s <= 32.0,
+        _ => false,
     }
 }
 

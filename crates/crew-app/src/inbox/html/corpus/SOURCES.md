@@ -1,8 +1,12 @@
 # Where the real-world fixtures come from
 
-The hand-written fixtures here (`apple_reply` … `structure`) are synthetic. Five are open-source
-email templates, unchanged except that their `{{placeholders}}` and template sections are filled
-with sample values (`Ann`, `$42.00`, `https://example.com/…`), so they read as sent mail:
+The hand-written fixtures here (`apple_reply` … `structure`) are synthetic. The rest are
+open-source email templates, changed only so that they read as sent mail:
+
+- `{{placeholders}}` and template sections are filled with sample values (`Ann`, `$42.00`,
+  `https://example.com/…`);
+- `href="#"` is replaced with an example address;
+- relative picture paths are replaced with absolute `https://cdn.example.com/…` ones.
 
 | Fixture | Source | Licence |
 | --- | --- | --- |
@@ -11,12 +15,19 @@ with sample values (`Ann`, `$42.00`, `https://example.com/…`), so they read as
 | `pm_receipt.html` | `templates-inlined/basic/receipt` from github.com/ActiveCampaign/postmark-templates | MIT, © 2015 Wildbit |
 | `pm_reset.html` | `templates-inlined/basic/password-reset`, same repository | MIT, © 2015 Wildbit |
 | `pm_comment.html` | `templates-inlined/basic/comment-notification`, same repository | MIT, © 2015 Wildbit |
+| `cl_shop.html` | `6/index.html` (Shopping) from github.com/ColorlibHQ/email-templates | MIT, © Colorlib |
+| `cl_cart.html` | `12/index.html` (Shop, cart reminder), same repository | MIT, © Colorlib |
+| `cl_order.html` | `22/index.html` (Northbound, order receipt), same repository | MIT, © Colorlib |
+| `cl_brief.html` | `24/index.html` (Brief, editorial newsletter), same repository | MIT, © Colorlib |
+| `cl_launch.html` | `25/index.html` (Loop, product launch), same repository | MIT, © Colorlib |
+| `cl_dark.html` | `28/index.html` (Pulse, dark-mode newsletter), same repository | MIT, © Colorlib |
 
 Each is used under the MIT License, whose notice follows.
 
 Copyright (c) 2017 Ted Goas
 Copyright (c) 2013 Lee Munroe
 Copyright (c) 2015 Wildbit
+Copyright (c) Colorlib
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in

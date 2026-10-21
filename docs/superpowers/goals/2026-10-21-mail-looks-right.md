@@ -203,3 +203,35 @@ Still to do:
 - Echoed captions when pictures are hidden (item 7).
 - Columns read in order (item 12) holds in the corpus; it needs a product-grid fixture to
   prove it.
+
+**Round 3 (v0.27.42): template-built mail, and what is around a mail's words.**
+
+- **More fixtures.** Six Colorlib templates (MIT) joined the corpus: a product grid, a cart
+  reminder, an order receipt, an editorial newsletter, a product launch and a dark newsletter.
+  The grid is the fixture item 12 asked for, and its products read as picture, name, words and
+  button, in order.
+- **Classes in a stylesheet set type (item 8).** MJML writes a headline as
+  `<span class="h1">` and puts its 38px in a `<style>` rule.
+  `crates/crew-app/src/inbox/html/css.rs` reads plain class rules (`.h1`, `span.h1`, outside
+  `@media`) for size, weight and style only; it never reads anything that hides. A block that
+  holds a single span is a heading by the span's type. A heading must hold words: a price set
+  large (`$120`) is bold, not a heading, and nothing inside a heading is wrapped in `**`.
+- **Links that sit side by side** with only CSS between them (a menu, footer links, social
+  marks, each in its own cell) read on one line, joined by `·`. A picture at icon size (32 px
+  or less) is its alt word, so a row of social logos reads `Twitter · Facebook · Instagram`.
+- **Tables with no header row.** A receipt's item rows used to promote the first item to a
+  header. Now, with no `th` row, the header is empty, and the markdown renderer leaves an
+  empty header out along with its rule (`crates/crew-app/src/md/table.rs`).
+- **Small print (item 11).** A run of blocks set at 12px or less that ends the mail (and is
+  no more than its second half) is its footer, drawn in muted ink: the address, why you got
+  it, unsubscribe. This happens in five fixtures, and no body text is caught in it.
+- **A first box from the width.** A picture with only a width gets a box guessed at a photo's
+  shape until it lands, not the default 12 rows.
+
+Still to do:
+
+- A heading on the light page is still only bold.
+- Echoed captions when pictures are hidden (item 7).
+- `data:` pictures.
+- Not tried yet: a calendar invite's buttons and a Gmail personal mail with a signature
+  picture.

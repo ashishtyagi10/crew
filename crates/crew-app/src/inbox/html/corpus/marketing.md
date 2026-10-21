@@ -22,19 +22,19 @@ Maecenas sed ante pellentesque, posuere leo id, eleifend dolor. Class aptent tac
 
 Maecenas sed ante pellentesque, posuere leo id, eleifend dolor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.
 
-![alt\_text](<https://via.placeholder.com/200#rows=12&fit=200>)
+![alt\_text](<https://via.placeholder.com/200#rows=8&fit=200>)
 
 Maecenas sed ante pellentesque, posuere leo id, eleifend dolor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.
 
-![alt\_text](<https://via.placeholder.com/200#rows=12&fit=200>)
+![alt\_text](<https://via.placeholder.com/200#rows=8&fit=200>)
 
 Maecenas sed ante pellentesque, posuere leo id, eleifend dolor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.
 
-![alt\_text](<https://via.placeholder.com/200#rows=12&fit=200>)
+![alt\_text](<https://via.placeholder.com/200#rows=8&fit=200>)
 
 Maecenas sed ante pellentesque, posuere leo id, eleifend dolor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.
 
-![alt\_text](<https://via.placeholder.com/200#rows=12&fit=200>)
+![alt\_text](<https://via.placeholder.com/200#rows=8&fit=200>)
 
 ## Class aptent taciti sociosqu
 
@@ -42,7 +42,7 @@ Maecenas sed ante pellentesque, posuere leo id, eleifend dolor. Class aptent tac
 
 [`  Primary Button  `](<https://google.com/>)
 
-![alt\_text](<https://via.placeholder.com/200#rows=12&fit=200>)
+![alt\_text](<https://via.placeholder.com/200#rows=8&fit=200>)
 
 ## Class aptent taciti sociosqu
 

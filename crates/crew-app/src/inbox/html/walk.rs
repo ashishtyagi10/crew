@@ -9,14 +9,15 @@ pub(crate) fn node(n: &Node, o: &mut Out) {
         return;
     }
     // A size is inherited: zero hides only the words that do not set their own.
-    let (tiny, btn) = (o.tiny, o.btn);
-    if let Some(px) = super::font::size(n) {
+    let (tiny, btn, size) = (o.tiny, o.btn, o.size);
+    if let Some(px) = super::font::size(n, &o.style(n)) {
         o.tiny = px <= 1.0;
+        o.size = px;
     }
     // A table or cell classed as a button makes the link in it one.
     o.btn |= n.tag != "a" && classed_button(n);
     element(n, o);
-    (o.tiny, o.btn) = (tiny, btn);
+    (o.tiny, o.btn, o.size) = (tiny, btn, size);
 }
 
 fn element(n: &Node, o: &mut Out) {
@@ -67,7 +68,9 @@ fn element(n: &Node, o: &mut Out) {
             o.pre = false;
         }
         "table" if table::is_data(n) => data_table(n, o),
-        "b" | "strong" if !plain_style(n, "font-weight", &["normal", "400"]) => wrapped(n, o, "**"),
+        "b" | "strong" if o.head == 0 && !plain_style(n, "font-weight", &["normal", "400"]) => {
+            wrapped(n, o, "**")
+        }
         "i" | "em" if !plain_style(n, "font-style", &["normal"]) => wrapped(n, o, "*"),
         "s" | "strike" | "del" => wrapped(n, o, "~~"),
         "code" | "tt" | "kbd" | "samp" if !o.pre => code(n, o),
@@ -121,6 +124,11 @@ fn code(n: &Node, o: &mut Out) {
 }
 
 fn anchor(n: &Node, o: &mut Out) {
+    // Links set side by side with only CSS between them (a menu, a row of
+    // social marks) would read as one word: a dot goes between them.
+    if o.line.ends_with(">)") {
+        o.text(" \u{b7} ");
+    }
     let m = o.mark();
     kids(n, o);
     let Some(href) = n.attr("href").and_then(link::target) else {
@@ -171,7 +179,11 @@ fn classed_button(n: &Node) -> bool {
 }
 
 fn data_table(t: &Node, o: &mut Out) {
-    let cells: Vec<Vec<String>> = table::rows(t)
+    let rows = table::rows(t);
+    let head = rows
+        .first()
+        .is_some_and(|r| r.iter().all(|c| c.tag == "th"));
+    let cells: Vec<Vec<String>> = rows
         .iter()
         .map(|row| {
             row.iter()
@@ -183,5 +195,5 @@ fn data_table(t: &Node, o: &mut Out) {
                 .collect()
         })
         .collect();
-    o.lines(&table::markdown(&cells));
+    o.lines(&table::markdown(&cells, head));
 }

@@ -24,6 +24,11 @@ const MAILS: &[(&str, &str, &[usize])] = &[
     ("pm_comment", "Acme <notify@acme.example>", &[0]),
     ("notice", "HTMLemail <hello@htmlemail.example>", &[0]),
     ("newsletter", "Shop Co <news@shop.io>", &[0]),
+    ("cl_shop", "Shopping <hello@shop.example>", &[0, 45]),
+    ("cl_order", "Northbound <orders@northbound.example>", &[0]),
+    ("cl_brief", "Maya Chen <brief@brief.example>", &[0, 30]),
+    ("cl_dark", "Pulse <alex@pulse.example>", &[0]),
+    ("cl_cart", "Shop <cart@shop.example>", &[0]),
 ];
 
 /// A picture of the size its address names (`…/310`, `…/200x50`), else 4:3:
