@@ -31,6 +31,7 @@ pub(crate) mod pics;
 pub(crate) mod plain;
 pub(crate) mod query;
 pub(crate) mod reader;
+mod readfit;
 mod reading;
 mod readmail;
 pub(crate) mod rich;

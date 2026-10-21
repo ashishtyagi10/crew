@@ -1,4 +1,4 @@
-![Shop Co](<https://cdn.shop.io/logo.png#rows=2>)
+![Shop Co](<https://cdn.shop.io/logo.png#rows=3>)
 
 [View in browser](<https://shop.io/view?id=1>)
 
@@ -10,12 +10,12 @@ Everything in the **autumn collection** is 30% off until Sunday.
 
 [`  Shop now  `](<https://click.shop.io/c?u=1&s=2>)
 
-![Wool scarf](<https://cdn.shop.io/p1.jpg#rows=12>)
+![Wool scarf](<https://cdn.shop.io/p1.jpg#rows=12&fit=280>)
 
 Wool scarf
 $29
 
-![Boots](<https://cdn.shop.io/p2.jpg#rows=12>)
+![Boots](<https://cdn.shop.io/p2.jpg#rows=12&fit=280>)
 
 Boots
 $89

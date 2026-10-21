@@ -42,10 +42,11 @@ pub(crate) fn deco(cell: &crate::chatbody::CardCell) -> crew_theme::deco::Deco {
     use crew_theme::deco::{Deco, DecoLine};
     // A link is ruled, as a URL in a terminal is (`linkhl`): marked by hue
     // alone it is not marked for a reader who cannot tell that hue from the
-    // prose — on a tube, nobody can.
-    let line = match cell.link {
-        Some(_) => DecoLine::Single,
-        None => DecoLine::None,
+    // prose — on a tube, nobody can. A link that is a capsule (a mail's
+    // button) is marked by its shape already, and a rule would cut through it.
+    let line = match (&cell.link, cell.mark) {
+        (Some(_), false) => DecoLine::Single,
+        _ => DecoLine::None,
     };
     Deco {
         line,

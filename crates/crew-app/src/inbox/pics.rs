@@ -73,6 +73,15 @@ impl Pics {
         self.rev += 1;
     }
 
+    /// The size each picture that has landed really is, by key.
+    pub(crate) fn sizes(&self) -> super::readfit::Sizes {
+        let ready = self.map.iter().filter_map(|(k, p)| match p {
+            Pic::Ready(bm) => Some((k.clone(), bm.src)),
+            _ => None,
+        });
+        ready.collect()
+    }
+
     /// Mark `key` as asked for; false when it already was.
     fn claim(&mut self, key: &str) -> bool {
         !self.map.contains_key(key) && self.map.insert(key.to_string(), Pic::Loading).is_none()

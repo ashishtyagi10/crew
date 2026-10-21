@@ -125,14 +125,14 @@ fn a_huge_newsletter_converts_quickly_and_is_cut_at_the_cap() {
 }
 
 #[test]
-fn pictures_the_mail_carries_are_drawn_and_the_webs_wait_to_be_asked() {
+fn pictures_the_mail_carries_are_drawn_and_the_webs_are_words_while_hidden() {
     let html = std::fs::read_to_string(dir().join("related.html")).unwrap();
     let bare = to_markdown(&html, false);
     assert_eq!(bare.pics, ["cid:chart@x"]);
     assert_eq!(bare.web_left, 2, "the banner and the logo; never the pixel");
     assert!(
-        bare.body.contains("![Q4 chart](<cid:chart@x#rows=15>)"),
-        "{}",
+        bare.body.contains("![Q4 chart](<cid:chart@x#rows=19>)"),
+        "300 px at 16 a row: {}",
         bare.body
     );
     assert!(
@@ -152,7 +152,7 @@ fn pictures_the_mail_carries_are_drawn_and_the_webs_wait_to_be_asked() {
     );
     assert!(
         web.body
-            .contains("![Read the report](<https://cdn.x.io/banner.png#rows=3>)"),
+            .contains("![Read the report](<https://cdn.x.io/banner.png#rows=4>)"),
         "{}",
         web.body
     );
