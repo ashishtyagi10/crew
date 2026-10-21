@@ -3,7 +3,16 @@
 //! takes the star off, and the thread under the pointer wears a lighter
 //! wash than the selection. Beside an open thread on a wide pane (`split`),
 //! a click opens the thread at once: the reader is already open.
+use super::keys::InboxAction;
 use super::{InboxPane, Stage};
+
+/// What a click did.
+pub(crate) enum Clicked {
+    Miss,
+    Done,
+    /// A key that asks the app to act: close the pane, open `/keys`.
+    Then(InboxAction),
+}
 
 impl InboxPane {
     /// The thread drawn at `(row, col)` of the pane, on its names, its
@@ -25,8 +34,31 @@ impl InboxPane {
         Some(i)
     }
 
-    /// A left click at `(row, col)`: true when it landed on a thread.
-    pub(crate) fn click(&mut self, cols: u16, rows: u16, row: u16, col: u16) -> bool {
+    /// A left click at `(row, col)`: on a thread, a key in the foot, or one
+    /// of the reader's `‹ ›`.
+    pub(crate) fn click(&mut self, cols: u16, rows: u16, row: u16, col: u16) -> Clicked {
+        if let Some(k) = self.foot_key_at(cols, rows, row, col) {
+            return match super::footkeys::key_of(k).map(|key| self.press(&key, cols, rows)) {
+                Some(Some(InboxAction::Redraw) | None) => Clicked::Done,
+                Some(Some(act)) => Clicked::Then(act),
+                None => Clicked::Miss,
+            };
+        }
+        let (at, width) = self.reader_box(cols);
+        if let Some(older) = col
+            .checked_sub(at)
+            .and_then(|c| self.counter_at(width, row, c))
+        {
+            self.note = self.next_thread(older).into();
+            return Clicked::Done;
+        }
+        match self.click_list(cols, rows, row, col) {
+            true => Clicked::Done,
+            false => Clicked::Miss,
+        }
+    }
+
+    fn click_list(&mut self, cols: u16, rows: u16, row: u16, col: u16) -> bool {
         let Some(i) = self.thread_at(cols, rows, row, col) else {
             return false;
         };

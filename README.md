@@ -328,7 +328,9 @@ one line a thread, kept for the session; grouped under `today`,
 `yesterday`, the weekday, `last week` and on back; every key the pane
 answers to is listed at its foot; a click selects a thread and a second
 reads it, a click on a star takes it off, and the thread under the pointer
-wears a lighter wash; the selection glides, an archived thread folds away
+wears a lighter wash; every key at the foot is a keycap you can click, in
+groups; an open thread says where it is in the list (`‹ 3 of 25 ›`, the
+arrows step through it); the selection glides, an archived thread folds away
 and new mail glows once, all still at Motion off),
 `/` to search in Gmail's own syntax
 (`from:ann is:unread`), Enter to read a thread (which marks it read, as

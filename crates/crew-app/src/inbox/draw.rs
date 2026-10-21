@@ -87,21 +87,26 @@ impl InboxPane {
         // Everything but the foot draws in the rows above it.
         let mut cv = Canvas::new(cols, self.body_rows(cols, rows));
         match (&self.stage, &self.reading) {
-            (Stage::Ready(_), Some(r)) => match self.split(cols) {
+            (Stage::Ready(_), Some(r)) => {
                 // The list on the left, the thread from `at` (`split`).
-                Some(s) => {
+                let (at, width) = self.reader_box(cols);
+                if let Some(s) = self.split(cols) {
                     let mut list = Canvas::new(s.list, cv.rows);
                     self.list(&mut list);
-                    let mut read = Canvas::new(cols - s.at, cv.rows);
-                    super::reader::draw(&mut read, r, &self.pics);
-                    let shifted = read.out.into_iter().map(|c| CellView {
-                        col: c.col + s.at,
-                        ..c
-                    });
-                    cv.out.extend(list.out.into_iter().chain(shifted));
+                    cv.out.extend(list.out);
                 }
-                None => super::reader::draw(&mut cv, r, &self.pics),
-            },
+                let mut read = Canvas::new(width, cv.rows);
+                super::reader::draw(&mut read, r, &self.pics);
+                if let Some((s, start)) = self.counter(width) {
+                    let t = crew_theme::theme();
+                    read.text(1, start, width, &s, t.text_muted, false);
+                }
+                let shifted = read.out.into_iter().map(|c| CellView {
+                    col: c.col + at,
+                    ..c
+                });
+                cv.out.extend(shifted);
+            }
             (Stage::Ready(_), None) => self.list(&mut cv),
             (Stage::Setup { found }, _) => super::setup::draw(&mut cv, found.as_ref()),
             (Stage::SigningIn(_), _) => {
