@@ -112,3 +112,28 @@ fn a_keycap_in_the_foot_is_its_key_and_the_counters_arrows_step_through_the_list
     assert!(matches!(p.click(80, 24, esc.row, esc.col), Clicked::Done));
     assert!(p.reading.is_none(), "esc: back to the list");
 }
+
+#[test]
+fn a_plain_click_on_a_link_or_a_button_in_a_mail_opens_it() {
+    let _g = crate::app::motion_test_guard();
+    let (mut p, _) = pane();
+    let rich = crate::inbox::rich::Rich::of_html(
+        "<p>See <a href='https://x.io/t'>Track it</a></p><p><a href='https://x.io/buy' style='background:#1a73e8;padding:8px 16px'>Buy now</a></p>",
+        None,
+    );
+    p.reading = Some(Reading {
+        mails: Some(vec![crate::inbox::api::Mail {
+            rich,
+            ..Default::default()
+        }]),
+        ..Reading::new(p.rows[0].clone())
+    });
+    let links = p.links(80, 24);
+    assert_eq!(links.len(), 2, "{links:?}");
+    for (row, col, url) in links {
+        match p.click(80, 24, row, col + 1) {
+            Clicked::Open(got) => assert_eq!(got, url),
+            _ => panic!("{url}: not opened"),
+        }
+    }
+}

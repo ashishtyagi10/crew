@@ -57,6 +57,7 @@ mod chat;
 mod chataction;
 mod chatapprove;
 mod chatbody;
+mod chatbutton;
 mod chatchecklist;
 mod chatchecklistdraw;
 mod chatcodeline;
