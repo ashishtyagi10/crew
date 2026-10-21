@@ -30,9 +30,10 @@ impl InboxPane {
         }
     }
 
-    /// `J` and `K` in the reader: the next thread (older, the row below) or
-    /// the previous one, opened where the reader is, on any width. What to
-    /// say: nothing when it opened.
+    /// `n` and `p` (or `J` and `K`) in the reader: the next thread (older,
+    /// the row below) or the previous one, opened where the reader is, on
+    /// any width (the user, 2026-10-21: "n go to next email … p open
+    /// previous email in detail panel"). What to say: nothing when it opened.
     pub(crate) fn next_thread(&mut self, older: bool) -> &'static str {
         let to = match (older, self.sel.checked_sub(1)) {
             (true, _) => self.sel + 1,
@@ -44,7 +45,7 @@ impl InboxPane {
         }
         if self.more && !self.busy {
             self.ask(Ask::More);
-            return "loading older threads\u{2026} J again for the next";
+            return "loading older threads\u{2026} n again for the next";
         }
         "this is the oldest thread"
     }

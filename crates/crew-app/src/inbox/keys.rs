@@ -132,8 +132,8 @@ impl InboxPane {
         } else if ch == "o" {
             let id = r.thread.id.clone();
             self.browse(Some(&id));
-        } else if ch == "J" || ch == "K" {
-            self.note = self.next_thread(ch == "J").into();
+        } else if matches!(ch, "n" | "p" | "J" | "K") {
+            self.note = self.next_thread(matches!(ch, "n" | "J")).into();
         } else if ch == "w" {
             r.pop_out = true;
         } else if ch == "i" {

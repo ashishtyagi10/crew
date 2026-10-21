@@ -12,7 +12,7 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
     ),
     ("Enter", "Read the thread (marks it read, as Gmail does)"),
     (
-        "J / K",
+        "n / p \u{b7} J / K",
         "In a thread: open the next (older) or the previous one",
     ),
     (
