@@ -55,9 +55,10 @@ pub(crate) fn px(v: &str) -> Option<f32> {
         .or_else(|| num(v))
 }
 
-/// The font size `n` sets, from its `style` or an old `<font size>`.
-pub(crate) fn size(n: &Node) -> Option<f32> {
-    if let Some(v) = n.attr("style").and_then(|s| decl(s, "font-size")) {
+/// The font size `n` sets, from its `style` (its classes' rules and its
+/// own, [`Out::style`]) or an old `<font size>`.
+pub(crate) fn size(n: &Node, style: &str) -> Option<f32> {
+    if let Some(v) = decl(style, "font-size") {
         return px(&v);
     }
     let old = n.attr("size").filter(|_| n.tag == "font")?.trim();
@@ -69,9 +70,9 @@ pub(crate) fn size(n: &Node) -> Option<f32> {
     Some(sizes[step.clamp(1, 7) as usize - 1])
 }
 
-/// The weight `n` sets: `bold` 700, `normal` 400, or the number.
-fn weight(n: &Node) -> Option<u16> {
-    let v = decl(n.attr("style")?, "font-weight")?;
+/// The weight a `style` sets: `bold` 700, `normal` 400, or the number.
+fn weight(style: &str) -> Option<u16> {
+    let v = decl(style, "font-weight")?;
     match v.as_str() {
         "bold" | "bolder" => Some(700),
         "normal" | "lighter" => Some(400),
@@ -90,7 +91,28 @@ fn heading(n: &Node, size: f32, bold: bool) -> Option<u8> {
         _ => return None,
     };
     let mut words = String::new();
-    (one_line(n, &mut words) && (1..=90).contains(&words.trim().chars().count())).then_some(level)
+    let inline = one_line(n, &mut words);
+    let short = (1..=90).contains(&words.trim().chars().count());
+    // A heading is words: a price set large (`$120`) is only bold.
+    let letters = words.chars().filter(|c| c.is_alphabetic()).count();
+    (inline && short && letters >= 2).then_some(level)
+}
+
+/// The one element `n` holds, when it holds nothing else but space and it
+/// is inline.
+fn sole_inline(n: &Node) -> Option<&Node> {
+    let mut els = n.kids.iter().filter(|k| match k {
+        Kid::Text(t) => !t.trim().is_empty(),
+        Kid::El(_) => true,
+    });
+    match (els.next(), els.next()) {
+        (Some(Kid::El(e)), None)
+            if matches!(e.tag.as_str(), "span" | "font" | "a" | "b" | "strong") =>
+        {
+            Some(e)
+        }
+        _ => None,
+    }
 }
 
 /// Whether `n` holds only inline words (gathered into `out`).
@@ -125,18 +147,28 @@ fn one_line(n: &Node, out: &mut String) -> bool {
 /// A block or a span in its own type: a heading when it is one, else bold
 /// or italic as its weight and style say, else just its words.
 pub(super) fn styled(n: &Node, o: &mut Out, block: bool) {
-    let size = size(n).unwrap_or(0.0);
-    let bold = weight(n).is_some_and(|w| w >= 600);
+    let style = o.style(n);
+    let size = size(n, &style).unwrap_or(0.0);
+    let bold = weight(&style).is_some_and(|w| w >= 600);
     if block && o.head == 0 && o.code == 0 && !o.pre {
-        if let Some(level) = heading(n, size, bold) {
+        // A block holding one span is a heading by the span's type too:
+        // `<div><span class="h1">` is a headline.
+        let (mut big, mut heavy) = (size, bold);
+        if let Some(only) = sole_inline(n) {
+            let inner = o.style(only);
+            big = big.max(super::font::size(only, &inner).unwrap_or(0.0));
+            heavy |= weight(&inner).is_some_and(|w| w >= 600);
+        }
+        if let Some(level) = heading(n, big, heavy) {
             o.head = level;
             return super::walk::kids(n, o);
         }
     }
-    let italic = n
-        .attr("style")
-        .and_then(|s| decl(s, "font-style"))
-        .is_some_and(|v| v == "italic" || v == "oblique");
+    // A heading is strong already.
+    if o.head > 0 {
+        return super::walk::kids(n, o);
+    }
+    let italic = decl(&style, "font-style").is_some_and(|v| v == "italic" || v == "oblique");
     // A long block in a large type is body text, not a shout.
     match (bold || (!block && size >= 20.0), italic) {
         (true, _) => super::walk::wrapped(n, o, "**"),

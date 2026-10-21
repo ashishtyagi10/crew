@@ -1686,7 +1686,14 @@ longer aim at.
   `##`, bold at 17px `###` (`<font size>` too), and a weight of 600 or more
   is bold. A font size is inherited as in a browser: `font-size:0` on a row
   of columns (the gap-closing trick of hybrid and MJML mail) hides only the
-  words directly under it, never the columns that set their own size. A link
+  words directly under it, never the columns that set their own size. A
+  stylesheet's plain class rules (`.h1 { font-size: 38px }`, outside
+  `@media`) count for type only, as MJML writes its headlines; a heading
+  must hold words, so a price set large stays bold. Links side by side in a
+  menu or a footer read on one line joined by `·`, and a picture at icon size
+  (32 px or less) is its alt word, so social marks read `Twitter · Facebook`.
+  A data table with no `th` row has no header, and the small print a mail
+  ends with (12px or less: the address, why you got it) is drawn muted. A link
   with its own fill or border, or inside a table or cell classed `btn` or
   `button`, is drawn as a button: a padded capsule that is the link. Hidden text (`display:none`, preheaders,
   `mso-hide`) is dropped, so agent smith never reads what the user cannot

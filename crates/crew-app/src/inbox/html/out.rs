@@ -38,6 +38,14 @@ pub(crate) struct Out {
     pub tiny: bool,
     /// Inside a table or cell classed as a button: its link is one.
     pub btn: bool,
+    /// The type the mail's stylesheet sets on each class (`css`).
+    pub css: std::rc::Rc<std::collections::HashMap<String, String>>,
+    /// The font size here, in px (0 when the mail never said).
+    pub size: f32,
+    /// The size the open paragraph's first words were set in.
+    pub(super) line_size: f32,
+    /// Where the run of small print the document ends with starts (`block`).
+    pub(super) small_from: Option<usize>,
 }
 
 /// A place in the open paragraph, to wrap what comes after it.
@@ -67,8 +75,24 @@ fn invisible(c: char) -> bool {
 }
 
 impl Out {
+    /// `n`'s style: what its classes' rules set, then its own (which wins).
+    pub(crate) fn style(&self, n: &super::tree::Node) -> String {
+        let mut s = String::new();
+        for c in n.attr("class").unwrap_or("").split_whitespace() {
+            if let Some(d) = self.css.get(c) {
+                s.push_str(d);
+            }
+        }
+        s.push(';');
+        s.push_str(n.attr("style").unwrap_or(""));
+        s
+    }
+
     /// Text as the mail has it, whitespace collapsed (verbatim in `pre`).
     pub(crate) fn text(&mut self, s: &str) {
+        if self.line.is_empty() {
+            self.line_size = self.size;
+        }
         if self.pre {
             self.line
                 .extend(s.chars().filter(|&c| c == '\n' || !invisible(c)));
@@ -90,6 +114,9 @@ impl Out {
 
     /// Markdown the walk itself writes.
     pub(crate) fn raw(&mut self, s: &str) {
+        if self.line.is_empty() {
+            self.line_size = self.size;
+        }
         self.line.push_str(s);
     }
 

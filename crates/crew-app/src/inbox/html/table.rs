@@ -69,16 +69,21 @@ pub(crate) fn is_data(t: &Node) -> bool {
 
 /// A data table as markdown: the first row is the header (GFM needs one),
 /// every row padded to the widest.
-pub(crate) fn markdown(cells: &[Vec<String>]) -> String {
+/// `cells` as a markdown table; without a `head` row (`th` cells), an empty
+/// header, which the renderer leaves out.
+pub(crate) fn markdown(cells: &[Vec<String>], head: bool) -> String {
     let width = cells.iter().map(Vec::len).max().unwrap_or(0);
     let row = |r: &[String]| {
         let mut parts: Vec<String> = r.iter().map(|c| c.replace('\n', " ")).collect();
         parts.resize(width, String::new());
         format!("| {} |", parts.join(" | "))
     };
-    let mut out = vec![row(&cells[0])];
-    out.push(format!("|{}", " --- |".repeat(width)));
-    out.extend(cells[1..].iter().map(|r| row(r)));
+    let (top, body) = match head {
+        true => (row(&cells[0]), &cells[1..]),
+        false => (format!("|{}", "  |".repeat(width)), cells),
+    };
+    let mut out = vec![top, format!("|{}", " --- |".repeat(width))];
+    out.extend(body.iter().map(|r| row(r)));
     out.join("\n")
 }
 
@@ -115,8 +120,32 @@ mod tests {
     fn rows_are_padded_under_a_header() {
         let c = |s: &[&str]| s.iter().map(|x| x.to_string()).collect::<Vec<_>>();
         assert_eq!(
-            markdown(&[c(&["a", "b"]), c(&["1"])]),
+            markdown(&[c(&["a", "b"]), c(&["1"])], true),
             "| a | b |\n| --- | --- |\n| 1 |  |"
+        );
+        assert_eq!(
+            markdown(&[c(&["Tea", "$4"]), c(&["Cake", "$6"])], false),
+            "|  |  |\n| --- | --- |\n| Tea | $4 |\n| Cake | $6 |",
+            "no th row: an empty header, every row data"
+        );
+    }
+
+    #[test]
+    fn an_empty_header_is_left_out_with_its_rule() {
+        let lines =
+            crate::md::render_chat("|  |  |\n| --- | --- |\n| Tea | $4 |\n| Cake | $6 |", 40);
+        let text: Vec<String> = lines
+            .iter()
+            .map(|l| l.spans.iter().map(|s| s.text.as_str()).collect::<String>())
+            .collect();
+        assert_eq!(
+            text.len(),
+            2,
+            "two data rows and nothing over them: {text:?}"
+        );
+        assert!(
+            text[0].contains("Tea") && !text.iter().any(|l| l.contains('\u{2500}')),
+            "{text:?}"
         );
     }
 }

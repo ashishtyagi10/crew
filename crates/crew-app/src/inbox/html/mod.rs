@@ -4,6 +4,7 @@
 //! tokenizer and tree, not a browser's: phase 0 asked whether that is
 //! enough, and the fixture corpus (`corpus_tests`) is the answer.
 mod block;
+mod css;
 mod ent;
 mod font;
 mod hide;
@@ -34,6 +35,9 @@ pub(crate) struct Converted {
     pub body: String,
     /// The quoted history, from where the mailer marked it.
     pub quote: Option<String>,
+    /// The small print the mail ends with (an address, why you got it),
+    /// drawn quietly.
+    pub foot: Option<String>,
     /// The HTML was longer than [`CAP`] and was cut.
     pub cut: bool,
     /// Every picture drawn, by source (`cid:…`, or a web address).
@@ -52,21 +56,31 @@ pub(crate) fn to_markdown(html: &str, web: bool) -> Converted {
     let root = tree::parse(&html[..end]);
     let mut o = out::Out {
         web,
+        css: std::rc::Rc::new(css::classes(&html[..end])),
         ..out::Out::default()
     };
     walk::node(&root, &mut o);
     let (pics, web_left) = (std::mem::take(&mut o.pics), o.web_left);
-    let (doc, split) = o.done();
-    let (body, quote) = match split {
-        Some(at) => (
-            tidy(&doc[..at]),
+    let (doc, split, small) = o.done();
+    // Small print only when it is the tail of a mail, never the mail.
+    let small = small.filter(|&f| split.is_none() && f >= doc.len() / 2);
+    let (body, quote, foot) = match (split, small) {
+        (Some(at), _) => (
+            joined(&tidy(&doc[..at])),
             Some(tidy(&doc[at..])).filter(|q| !q.is_empty()),
+            None,
         ),
-        None => (tidy(&doc), None),
+        (None, Some(f)) => (
+            joined(&tidy(&doc[..f])),
+            None,
+            Some(joined(&tidy(&doc[f..]))).filter(|f| !f.is_empty()),
+        ),
+        (None, None) => (joined(&tidy(&doc)), None, None),
     };
     Converted {
         body,
         quote,
+        foot,
         cut,
         pics,
         web_left,
@@ -98,6 +112,39 @@ fn tidy(md: &str) -> String {
         out.pop();
     }
     out.join("\n").trim().to_string()
+}
+
+/// Runs of paragraphs that are each one short link (a footer's `Home`,
+/// `Account`, `Orders`; a row of social marks, each in a cell of its own)
+/// set on one line, as the mail sets them side by side.
+fn joined(md: &str) -> String {
+    let lone = |p: &str| {
+        let words = p
+            .strip_prefix('[')
+            .and_then(|r| r.split_once("](<"))
+            .map(|(w, _)| w);
+        !p.contains('\n')
+            && p.ends_with(">)")
+            && p.matches("](<").count() == 1
+            && words.is_some_and(|w| {
+                (1..=30).contains(&w.chars().count()) && !w.starts_with(['`', '\u{2197}'])
+            })
+    };
+    let mut out: Vec<String> = Vec::new();
+    let mut run = false;
+    for p in md.split("\n\n") {
+        match (lone(p), run, out.last_mut()) {
+            (true, true, Some(last)) => {
+                last.push_str(" \u{b7} ");
+                last.push_str(p);
+            }
+            (l, _, _) => {
+                out.push(p.to_string());
+                run = l;
+            }
+        }
+    }
+    out.join("\n\n")
 }
 
 /// Markdown read back as the words it shows: escapes and link syntax out.

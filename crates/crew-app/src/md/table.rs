@@ -139,7 +139,9 @@ fn rule_line(widths: &[usize], cols: usize) -> MdLine {
 }
 
 /// Lays out a table: header line (bold, flagged `table_head`), a `─` rule
-/// under it, then each data row — all space-padded to each column's max
+/// under it (neither when every header cell is empty: a mail's receipt rows
+/// often have no header, and an empty one is never worth a row), then each
+/// data row — all space-padded to each column's max
 /// cell width. A table wider than `cols` has its widest columns squeezed
 /// and their cells wrapped onto continuation rows (`tablewrap`); one that
 /// cannot fit even so is hard-truncated at `cols`, as every table was.
@@ -150,22 +152,29 @@ pub(super) fn lines(
     cols: usize,
 ) -> Vec<MdLine> {
     let natural = col_widths(&header, &rows);
+    let headless = header.iter().all(|c| cell_width(c) == 0);
     let squeezed = (total_width(&natural) > cols)
         .then(|| tablewrap::shrink(&natural, sep_width(natural.len()), cols))
         .flatten();
     let Some(widths) = squeezed else {
-        let mut out = vec![
-            row_line(&header, &natural, &aligns, true, cols),
-            rule_line(&natural, cols),
-        ];
+        let mut out = match headless {
+            true => Vec::new(),
+            false => vec![
+                row_line(&header, &natural, &aligns, true, cols),
+                rule_line(&natural, cols),
+            ],
+        };
         out.extend(
             rows.iter()
                 .map(|row| row_line(row, &natural, &aligns, false, cols)),
         );
         return out;
     };
-    let mut out = tablewrap::row_lines(&header, &widths, &aligns, true, cols);
-    out.push(rule_line(&widths, cols));
+    let mut out = Vec::new();
+    if !headless {
+        out = tablewrap::row_lines(&header, &widths, &aligns, true, cols);
+        out.push(rule_line(&widths, cols));
+    }
     let body: Vec<Vec<MdLine>> = rows
         .iter()
         .map(|row| tablewrap::row_lines(row, &widths, &aligns, false, cols))

@@ -83,6 +83,10 @@ pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key, first: bool
         lay.quiet(&line, k);
     }
     lay.md(&rich.body, k, k.ink, &m.id);
+    if let Some(foot) = &rich.foot {
+        lay.lines.push(Vec::new());
+        lay.md(foot, k, k.muted, &m.id);
+    }
     if let Some(q) = &rich.quote {
         match r.quotes {
             true => lay.md(q, k, k.ink, &m.id),

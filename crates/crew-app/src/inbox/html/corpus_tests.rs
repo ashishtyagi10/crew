@@ -9,6 +9,12 @@ use super::to_markdown;
 const NAMES: &[&str] = &[
     "apple_reply",
     "calendar",
+    "cl_brief",
+    "cl_cart",
+    "cl_dark",
+    "cl_launch",
+    "cl_order",
+    "cl_shop",
     "deceptive",
     "forward",
     "github",
@@ -33,9 +39,12 @@ fn shown(name: &str) -> String {
     let html = std::fs::read_to_string(dir().join(format!("{name}.html"))).unwrap();
     // As the reader shows a mail: pictures from the web drawn (item 4).
     let c = to_markdown(&html, true);
+    let foot = c
+        .foot
+        .map(|f| format!("\n\n===== small print =====\n\n{f}"));
     match c.quote {
         Some(q) => format!("{}\n\n===== quote =====\n\n{q}\n", c.body),
-        None => format!("{}\n", c.body),
+        None => format!("{}{}\n", c.body, foot.unwrap_or_default()),
     }
 }
 

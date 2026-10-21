@@ -35,12 +35,18 @@ impl Out {
     pub(crate) fn block(&mut self) {
         let text = std::mem::take(&mut self.line);
         self.gen += 1;
+        let at = self.doc.len();
         match self.pre {
             true => self.fence(&text),
             false if !text.trim().is_empty() => self.para(text.trim_end()),
             false => {}
         }
         self.head = 0;
+        // Small print (12px or less) the mail ends with is its footer.
+        if self.doc.len() > at {
+            let small = self.line_size > 0.0 && self.line_size <= 12.5;
+            self.small_from = small.then(|| self.small_from.unwrap_or(at));
+        }
     }
 
     fn para(&mut self, text: &str) {
@@ -101,10 +107,12 @@ impl Out {
     }
 
     /// The markdown, finished.
-    pub(crate) fn done(mut self) -> (String, Option<usize>) {
+    /// The document, where its quoted history starts, and where the small
+    /// print it ends with starts.
+    pub(crate) fn done(mut self) -> (String, Option<usize>, Option<usize>) {
         self.pre = false;
         self.block();
-        (self.doc, self.split)
+        (self.doc, self.split, self.small_from)
     }
 
     /// Lines the walk built whole (a table), at the current quote depth.
