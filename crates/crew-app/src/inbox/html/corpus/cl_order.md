@@ -1,4 +1,4 @@
-**[Northbound](<https://example.com/cl_order/link-1>)**
+**[NORTHBOUND](<https://example.com/cl_order/link-1>)**
 
 # Thanks, Sam. Your order is confirmed.
 
@@ -6,13 +6,13 @@ Order **\#NB-10428** · placed Mar 14, 2026
 
 [`  Track your order  `](<https://example.com/cl_order/link-2>)
 
-Items
+ITEMS
 
 |  |  |
 | --- | --- |
-| **Field Jacket — Olive** Size M · Qty 1 | $248.00 |
-| **Cotton Tee — Bone** Size M · Qty 2 | $78.00 |
-| **Wool Beanie — Charcoal** One size · Qty 1 | $42.00 |
+| **Field Jacket — Olive** · Size M · Qty 1 | $248.00 |
+| **Cotton Tee — Bone** · Size M · Qty 2 | $78.00 |
+| **Wool Beanie — Charcoal** · One size · Qty 1 | $42.00 |
 
 |  |  |
 | --- | --- |
@@ -21,14 +21,14 @@ Items
 | Tax | $32.80 |
 | Total | $400.80 |
 
-Shipping to
+SHIPPING TO
 
 Sam Reilly
 548 Market St \#28475
 San Francisco, CA 94104
 United States
 
-Payment
+PAYMENT
 
 Visa ending in 4242
 Charged $400.80

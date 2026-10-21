@@ -1,6 +1,7 @@
 # Where the real-world fixtures come from
 
-The hand-written fixtures here (`apple_reply` … `structure`) are synthetic. The rest are
+The hand-written fixtures here (`apple_reply` … `structure`, and `gcal_buttons` and `gmail_sig`,
+written in the shape Google Calendar's invites and Gmail's signatures take) are synthetic. The rest are
 open-source email templates, changed only so that they read as sent mail:
 
 - `{{placeholders}}` and template sections are filled with sample values (`Ann`, `$42.00`,

@@ -10,9 +10,9 @@ A small river named Duden flows by their place and supplies it with the necessar
 
 [`  Shop now  `](<https://example.com/cl_shop/link-7>)
 
-![Young Woman Dress](<https://cdn.example.com/colorlib/6/images/product-1.jpg#rows=11&fit=300>)
+![Young Woman Dress](<https://cdn.example.com/colorlib/6/images/product-1.jpg#rows=11&fit=300&mid=1>)
 
-![Young Woman Dress](<https://cdn.example.com/colorlib/6/images/product-2.jpg#rows=11&fit=300>)
+![Young Woman Dress](<https://cdn.example.com/colorlib/6/images/product-2.jpg#rows=11&fit=300&mid=1>)
 
 ## Young Woman Dress
 
@@ -26,9 +26,9 @@ A small river named Duden flows by their place and supplies it with the necessar
 
 [`  Shop now  `](<https://example.com/cl_shop/link-9>)
 
-![Young Woman Dress](<https://cdn.example.com/colorlib/6/images/product-3.jpg#rows=11&fit=300>)
+![Young Woman Dress](<https://cdn.example.com/colorlib/6/images/product-3.jpg#rows=11&fit=300&mid=1>)
 
-![Young Woman Dress](<https://cdn.example.com/colorlib/6/images/product-4.jpg#rows=11&fit=300>)
+![Young Woman Dress](<https://cdn.example.com/colorlib/6/images/product-4.jpg#rows=11&fit=300&mid=1>)
 
 ## Young Woman Dress
 
@@ -42,9 +42,9 @@ A small river named Duden flows by their place and supplies it with the necessar
 
 [`  Shop now  `](<https://example.com/cl_shop/link-11>)
 
-![Young Woman Dress](<https://cdn.example.com/colorlib/6/images/product-5.jpg#rows=11&fit=300>)
+![Young Woman Dress](<https://cdn.example.com/colorlib/6/images/product-5.jpg#rows=11&fit=300&mid=1>)
 
-![Young Woman Dress](<https://cdn.example.com/colorlib/6/images/product-6.jpg#rows=11&fit=300>)
+![Young Woman Dress](<https://cdn.example.com/colorlib/6/images/product-6.jpg#rows=11&fit=300&mid=1>)
 
 ## Young Woman Dress
 

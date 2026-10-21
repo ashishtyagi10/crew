@@ -1,6 +1,7 @@
 # Goal — mail that looks like mail: pictures and formatting on real-world email in `/inbox`
 
-**Status: IN PROGRESS.** Set 2026-10-21; looping until done.
+**Status: IN PROGRESS.** Set 2026-10-21; looping until done. Rounds 1–5 shipped (v0.27.40–42, 45,
+50); every item is built, and the last condition is the user's own read of their inbox.
 
 **Set:** 2026-10-21 by the user, after the mail reader goal was marked complete: *"bug: email
 rendering still pre-historic like only text are appearing, no image or markdown. Can we improve
@@ -265,3 +266,40 @@ long paragraphs. The shots showed these, now fixed:
 Found but not the reader's to fix: Devanagari (a Hindi news digest) is drawn a cell per
 character, so its vowel signs and conjuncts come apart. That is shaping in crew's cell
 renderer, crew-wide, and needs a goal of its own.
+
+**Round 5 (v0.27.50): the open list from rounds 1–4.** The user said *"go ahead with the mail
+looks right goal"*.
+
+- **Headings on the light page.** The Ink Reader page is monochrome by design (ink, muted ink
+  and the accent are all near-black), so a `#` heading was bold black, like any bold words.
+  The reader now rules its `#` headings under, as a chat card does
+  (`chatmd::mail_lines`), on every theme; on glass the heading keeps its accent too. The file
+  viewer still reads its own way.
+- **Capitals from CSS.** `text-transform` (uppercase, lowercase, capitalize), inline or from a
+  class rule, is applied to the words (`crates/crew-app/src/inbox/html/case.rs`). Kickers and
+  section labels (`THE ESSAY`, `ISSUE 42`) now read in capitals as the mail sets them, in five
+  fixtures.
+- **Echoed captions (item 7).** With pictures hidden, a picture's words that only repeat the
+  line beside them are dropped (`after::echoless`). A corpus check reads every fixture with
+  its pictures hidden and fails on any echo; with the pass off it fails on the newsletter.
+- **`data:` pictures (item 5).** A PNG, JPEG, GIF or WebP written into the mail is kept beside
+  the markdown under a name made from its bytes (`html/inline.rs`), never in it. It is decoded
+  on a worker under the same limits as any other picture, with nothing fetched. SVG stays
+  words, since an SVG can script.
+- **Pictures where the mail puts them.** A picture is centred only where the mail centres it
+  (`align=center`, `text-align:center`, `<center>`, or its own `margin:auto`); otherwise it
+  sits at the left of the text, as a signature's logo does. A table's own `align` places the
+  table, not what it holds (`html/inherit.rs`, `&mid=1`, read by `picpaint`).
+- **Two shapes not tried before**, written for crew (synthetic, in `SOURCES.md`):
+  - `gcal_buttons`, a Google Calendar invite with Yes, Maybe and No styled as buttons. Its
+    When, Join and Guests rows now read as a table: a table of short labels beside values is
+    one, even when marked for layout (`table::is_pairs`). A label needs a letter, so a
+    story list numbered `01`, `02` stays a list. A cell's line breaks join with ` · `. The
+    buttons, each alone in its cell, read on one line.
+  - `gmail_sig`, a personal reply with a signature logo and a quoted history. The logo is
+    drawn small at the left, and a row of air now parts the mail from its folded history.
+- **Shots:** all 24 fixtures on both pages, by `inbox_mail_shot`.
+
+Still to do: the user opening their own inbox on this release and saying so (the goal's last
+condition). Not seen wrong in any shot this round.
+

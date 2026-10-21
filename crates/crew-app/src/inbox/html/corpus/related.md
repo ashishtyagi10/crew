@@ -8,4 +8,6 @@ Logo:
 
 ![X Co](<https://cdn.x.io/logo.png#rows=3>)
 
-and ▣ inline
+and
+
+![inline](<data:956fcb4b65352e2a#rows=12&fit=0>)

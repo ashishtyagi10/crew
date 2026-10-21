@@ -3,13 +3,17 @@
 //! hidden text dropped, the quoted history split off. crew's own small
 //! tokenizer and tree, not a browser's: phase 0 asked whether that is
 //! enough, and the fixture corpus (`corpus_tests`) is the answer.
+mod after;
 mod anchor;
 mod block;
+mod case;
 mod css;
 mod ent;
 mod font;
 mod hide;
 mod image;
+mod inherit;
+pub(crate) mod inline;
 mod link;
 mod out;
 mod quote;
@@ -45,6 +49,9 @@ pub(crate) struct Converted {
     pub pics: Vec<String>,
     /// Pictures from the web left as their words (`web` was off).
     pub web_left: usize,
+    /// Pictures written into the mail, by the name each is drawn under, and
+    /// their payload (`inline`).
+    pub inline: Vec<(String, String)>,
 }
 
 /// `web`: draw pictures from the web too, rather than naming them.
@@ -62,23 +69,24 @@ pub(crate) fn to_markdown(html: &str, web: bool) -> Converted {
     };
     walk::node(&root, &mut o);
     let (pics, web_left) = (std::mem::take(&mut o.pics), o.web_left);
+    let inline = std::mem::take(&mut o.inline);
     let (doc, split, small) = o.done();
     // Small print only when it is the tail of a mail, never the mail.
     let small = small.filter(|&f| split.is_none() && f >= doc.len() / 2);
     let (body, quote, foot) = match (split, small) {
         (Some(at), _) => (
-            joined(&tidy(&doc[..at])),
+            after::joined(&tidy(&doc[..at])),
             Some(tidy(&doc[at..])).filter(|q| !q.is_empty()),
             None,
         ),
         (None, Some(f)) => (
-            joined(&tidy(&doc[..f])),
+            after::joined(&tidy(&doc[..f])),
             None,
-            Some(joined(&tidy(&doc[f..]))).filter(|f| !f.is_empty()),
+            Some(after::joined(&tidy(&doc[f..]))).filter(|f| !f.is_empty()),
         ),
-        (None, None) => (joined(&tidy(&doc)), None, None),
+        (None, None) => (after::joined(&tidy(&doc)), None, None),
     };
-    let body = calmed(&body);
+    let body = after::calmed(&tidy(&after::echoless(&body)));
     Converted {
         body,
         quote,
@@ -86,6 +94,7 @@ pub(crate) fn to_markdown(html: &str, web: bool) -> Converted {
         cut,
         pics,
         web_left,
+        inline,
     }
 }
 
@@ -114,57 +123,6 @@ fn tidy(md: &str) -> String {
         out.pop();
     }
     out.join("\n").trim().to_string()
-}
-
-/// Runs of paragraphs that are each one short link (a footer's `Home`,
-/// `Account`, `Orders`; a row of social marks, each in a cell of its own)
-/// set on one line, as the mail sets them side by side.
-fn joined(md: &str) -> String {
-    let lone = |p: &str| {
-        let words = p
-            .strip_prefix('[')
-            .and_then(|r| r.split_once("](<"))
-            .map(|(w, _)| w);
-        !p.contains('\n')
-            && p.ends_with(">)")
-            && p.matches("](<").count() == 1
-            && words.is_some_and(|w| {
-                (1..=30).contains(&w.chars().count()) && !w.starts_with(['`', '\u{2197}'])
-            })
-    };
-    let mut out: Vec<String> = Vec::new();
-    let mut run = false;
-    for p in md.split("\n\n") {
-        match (lone(p), run, out.last_mut()) {
-            (true, true, Some(last)) => {
-                last.push_str(" \u{b7} ");
-                last.push_str(p);
-            }
-            (l, _, _) => {
-                out.push(p.to_string());
-                run = l;
-            }
-        }
-    }
-    out.join("\n\n")
-}
-
-/// A mail that sets more than four lines as its largest headings (a
-/// promotion, every offer a headline) has them a step down: a page of
-/// accent headlines is no outline at all.
-fn calmed(md: &str) -> String {
-    let tops = md.lines().filter(|l| l.starts_with("# ")).count();
-    if tops <= 4 {
-        return md.to_string();
-    }
-    let lines: Vec<String> = md
-        .lines()
-        .map(|l| match l.strip_prefix("# ") {
-            Some(rest) => format!("## {rest}"),
-            None => l.to_string(),
-        })
-        .collect();
-    lines.join("\n")
 }
 
 /// Markdown read back as the words it shows: escapes and link syntax out.

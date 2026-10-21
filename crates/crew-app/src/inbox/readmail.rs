@@ -21,6 +21,8 @@ pub(crate) struct Placed {
     /// Where a click on it goes, when the mail made it a link.
     pub href: Option<String>,
     pub alt: String,
+    /// The mail centres it; else it sits at the left of the text.
+    pub mid: bool,
 }
 
 /// The thread's lines and the pictures in them, as they are built.
@@ -39,14 +41,21 @@ impl Lay {
         let at = self.lines.len();
         let text = super::readfit::fitted(text, msg, k.width, &self.sizes);
         let rendered = crate::md::render_chat(&text, k.width);
-        let (lines, placed) = crate::chatmd::with_pictures(rendered, k.width, fg);
+        let (lines, placed) = crate::chatmd::mail_lines(rendered, k.width, fg);
         self.lines.extend(lines);
-        self.pics.extend(placed.into_iter().map(|p| Placed {
-            row: at + p.row,
-            rows: p.rows,
-            key: pics::key(msg, &p.src),
-            href: p.src.split_once("&go=").map(|(_, h)| h.to_string()),
-            alt: p.alt,
+        self.pics.extend(placed.into_iter().map(|p| {
+            Placed {
+                row: at + p.row,
+                rows: p.rows,
+                key: pics::key(msg, &p.src),
+                href: p.src.split_once("&go=").map(|(_, h)| h.to_string()),
+                mid: p
+                    .src
+                    .split("&go=")
+                    .next()
+                    .is_some_and(|s| s.contains("&mid=1")),
+                alt: p.alt,
+            }
         }));
     }
 
@@ -91,6 +100,8 @@ pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key, first: bool
         lay.md(foot, k, k.muted, &m.id);
     }
     if let Some(q) = &rich.quote {
+        // A row of air between the mail and its history, folded or not.
+        lay.lines.push(Vec::new());
         match r.quotes {
             true => lay.md(q, k, k.ink, &m.id),
             false => {
@@ -173,3 +184,7 @@ fn file_row(name: &str, size: u64, link: &str, k: &Key) -> CardLine {
     ));
     line
 }
+
+#[cfg(test)]
+#[path = "readmail_tests.rs"]
+mod tests;

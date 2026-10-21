@@ -67,6 +67,30 @@ pub(crate) fn is_data(t: &Node) -> bool {
     !busy && empty * 2 <= all.len()
 }
 
+/// Whether `t` is labels beside values (an invite's `When` and `Join`, a
+/// receipt's `Subtotal` and `Tax`): two cells a row, each label a few plain
+/// words. Read as a table even where the mail marks it for layout, since
+/// read cell by cell each label lost the value it names.
+pub(crate) fn is_pairs(t: &Node) -> bool {
+    let rows = rows(t);
+    let label = |c: &Node| {
+        let words = c.text();
+        let words = words.trim();
+        // A word, not a number: `01`, `02` beside stories are a list.
+        words.chars().any(char::is_alphabetic)
+            && words.chars().count() <= 24
+            && words.split_whitespace().count() <= 3
+            && !c.any(&|n| n.tag == "a" || n.tag == "img")
+    };
+    let value = |c: &Node| {
+        !c.text().trim().is_empty() && !c.any(&|n| LAYOUT_INSIDE.contains(&n.tag.as_str()))
+    };
+    rows.len() >= 2
+        && rows
+            .iter()
+            .all(|r| r.len() == 2 && label(r[0]) && value(r[1]))
+}
+
 /// A data table as markdown: the first row is the header (GFM needs one),
 /// every row padded to the widest.
 /// `cells` as a markdown table; without a `head` row (`th` cells), an empty

@@ -17,8 +17,10 @@ const NAMES: &[&str] = &[
     "cl_shop",
     "deceptive",
     "forward",
+    "gcal_buttons",
     "github",
     "gmail_reply",
+    "gmail_sig",
     "marketing",
     "newsletter",
     "notice",
@@ -137,7 +139,9 @@ fn a_huge_newsletter_converts_quickly_and_is_cut_at_the_cap() {
 fn pictures_the_mail_carries_are_drawn_and_the_webs_are_words_while_hidden() {
     let html = std::fs::read_to_string(dir().join("related.html")).unwrap();
     let bare = to_markdown(&html, false);
-    assert_eq!(bare.pics, ["cid:chart@x"]);
+    // A picture written into the mail is drawn by name, carried beside it.
+    let inline = bare.inline[0].0.clone();
+    assert_eq!(bare.pics, ["cid:chart@x", inline.as_str()]);
     assert_eq!(bare.web_left, 2, "the banner and the logo; never the pixel");
     assert!(
         bare.body.contains("![Q4 chart](<cid:chart@x#rows=19>)"),
@@ -156,7 +160,8 @@ fn pictures_the_mail_carries_are_drawn_and_the_webs_are_words_while_hidden() {
         [
             "cid:chart@x",
             "https://cdn.x.io/banner.png",
-            "https://cdn.x.io/logo.png"
+            "https://cdn.x.io/logo.png",
+            inline.as_str()
         ]
     );
     assert!(
@@ -172,8 +177,23 @@ fn pictures_the_mail_carries_are_drawn_and_the_webs_are_words_while_hidden() {
         web.body
     );
     assert!(
-        !web.body.contains("p.gif") && !web.body.contains("data:"),
+        !web.body.contains("p.gif") && !web.body.contains("base64"),
         "{}",
         web.body
     );
+}
+
+#[test]
+fn read_with_its_pictures_hidden_no_mail_names_a_picture_its_caption_names() {
+    for name in NAMES {
+        let html = std::fs::read_to_string(dir().join(format!("{name}.html"))).unwrap();
+        let said: Vec<String> = (to_markdown(&html, false).body.lines())
+            .filter(|l| !l.trim().is_empty())
+            .map(|l| super::plain_of(l).trim().to_lowercase())
+            .collect();
+        let echo = |a: &str, b: &str| a.strip_prefix('\u{25a3}').is_some_and(|a| a.trim() == b);
+        for w in said.windows(2) {
+            assert!(!echo(&w[0], &w[1]) && !echo(&w[1], &w[0]), "{name}: {w:?}");
+        }
+    }
 }

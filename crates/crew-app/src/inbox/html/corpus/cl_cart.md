@@ -1,4 +1,4 @@
-## [Shop](<https://example.com/cl_cart/link-1>)
+## [SHOP](<https://example.com/cl_cart/link-1>)
 
 # Ronald, your shopping cart misses you
 

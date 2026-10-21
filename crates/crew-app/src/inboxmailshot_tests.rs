@@ -28,6 +28,8 @@ const MAILS: &[(&str, &str, &[usize])] = &[
     ("cl_order", "Northbound <orders@northbound.example>", &[0]),
     ("cl_brief", "Maya Chen <brief@brief.example>", &[0, 30]),
     ("cl_dark", "Pulse <alex@pulse.example>", &[0]),
+    ("gcal_buttons", "Google Calendar <calendar@x.example>", &[0]),
+    ("gmail_sig", "Bob Park <bo@y.org>", &[0]),
     ("cl_cart", "Shop <cart@shop.example>", &[0]),
 ];
 

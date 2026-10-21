@@ -70,6 +70,19 @@ impl Gmail {
 
 /// Fetch `want` (`(key, address)`) from the web on a thread, sending each
 /// picture (or `None`) back as it lands.
+/// Pictures written into the mail (`html::inline`), decoded off the winit
+/// thread, under the same limits as any other: nothing is fetched.
+pub(crate) fn inline(want: Vec<(String, String)>, tx: Sender<(String, Option<Bitmap>)>) {
+    std::thread::spawn(move || {
+        for (k, payload) in want {
+            let got = super::html::inline::bytes(&payload).and_then(|b| decode(&b));
+            if tx.send((k, got)).is_err() {
+                return; // the pane closed
+            }
+        }
+    });
+}
+
 pub(crate) fn web(want: Vec<(String, String)>, tx: Sender<(String, Option<Bitmap>)>) {
     std::thread::spawn(move || {
         let rt = tokio::runtime::Builder::new_current_thread()

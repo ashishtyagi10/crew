@@ -2,14 +2,14 @@
 
 v4.2.0 · mar 14
 
-**What shipped this week**
+**WHAT SHIPPED THIS WEEK**
 
 **Shared canvases.
 Sub-issues. A faster editor.**
 
 Three of the most-requested features of the year, plus a quiet rewrite that makes the editor 40% faster on long docs. Here's what's new.
 
-![Loop 4.2 — Shared canvases](<https://cdn.example.com/colorlib/25/images/hero.jpg#rows=12&fit=510>)
+![Loop 4.2 — Shared canvases](<https://cdn.example.com/colorlib/25/images/hero.jpg#rows=12&fit=510&mid=1>)
 
 **▤**
 
@@ -31,7 +31,7 @@ A new incremental renderer means typing latency is gone, even on docs with 10,00
 
 [`  See the full changelog  `](<https://example.com/cl_launch/link-2>)
 
-**Also in 4.2**
+**ALSO IN 4.2**
 
 • Markdown paste preserves formatting from Notion, Linear, and GitHub
 
@@ -43,7 +43,7 @@ A new incremental renderer means typing latency is gone, even on docs with 10,00
 
 • Fix: search no longer hangs on workspaces with 100k+ items
 
-**Coming next month**
+**COMING NEXT MONTH**
 
 ## AI summarize, async standups, and a public API.
 

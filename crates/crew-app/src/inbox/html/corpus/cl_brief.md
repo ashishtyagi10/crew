@@ -1,8 +1,8 @@
 ## [Brief.](<https://example.com/cl_brief/link-1>)
 
-Issue 42 · March 14, 2026
+ISSUE 42 · MARCH 14, 2026
 
-The essay
+THE ESSAY
 
 # The unbundling of the design tool
 
@@ -16,7 +16,7 @@ The interesting question isn't whether Figma loses. It's what the new shape of t
 
 [**Continue reading →**](<https://example.com/cl_brief/link-2>)
 
-Three worth your time
+THREE WORTH YOUR TIME
 
 **01**
 
@@ -33,7 +33,7 @@ Platformer · 8 min
 [**The compiler is the new framework**](<https://example.com/cl_brief/link-5>)
 Brian Lovin's blog · 6 min
 
-One tool I'm using
+ONE TOOL I'M USING
 
 # Raycast Notes
 

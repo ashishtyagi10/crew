@@ -36,7 +36,12 @@ impl InboxPane {
                 continue;
             };
             let y = p.row as f32 - r.scroll as f32;
-            let (w, h) = (width as f32, p.rows as f32);
+            let (mut w, h) = (width as f32, p.rows as f32);
+            // At the left unless the mail centres it: the box is the picture.
+            if !p.mid {
+                let (iw, ih) = (bm.w as f32, bm.h as f32);
+                w = (iw * (w / iw).min(h * aspect / ih)).min(w);
+            }
             paint.extend(crate::viewpane::bitmap::paint_at(
                 bm,
                 2.0 + f32::from(at),

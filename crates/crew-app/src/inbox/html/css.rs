@@ -7,7 +7,7 @@
 use std::collections::HashMap;
 
 /// The declarations type takes from a rule.
-const TYPE: &[&str] = &["font-size", "font-weight", "font-style"];
+const TYPE: &[&str] = &["font-size", "font-weight", "font-style", "text-transform"];
 
 /// Class name to the type declarations every `<style>` in `html` sets on it,
 /// in order (so a later rule wins, as in a browser).
@@ -112,8 +112,8 @@ mod tests {
             got["h1"], "font-size: 38px;font-weight: 700;font-size: 40px;",
             "a later rule wins"
         );
-        assert_eq!(got["kicker"], "font-size: 11px;");
-        assert_eq!(got["eyebrow"], "font-size: 11px;");
+        assert_eq!(got["kicker"], "font-size: 11px;text-transform: uppercase;");
+        assert_eq!(got["eyebrow"], "font-size: 11px;text-transform: uppercase;");
         assert!(
             !got.contains_key("hide") && !got.contains_key("title"),
             "{got:?}"
