@@ -29,6 +29,15 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
         "r",
         "Reply in a box under the mail: \u{2318}/Ctrl+Enter sends, Tab has agent smith draft it, Esc closes",
     ),
+    ("R", "In a thread: reply to everyone the mail went to"),
+    (
+        "f",
+        "Forward the newest mail, its pictures and files with it, under a note of yours",
+    ),
+    (
+        "Tab / Up / Down",
+        "In the reply box: from the to line to cc to the words, and back",
+    ),
     ("a", "Ask agent smith about the thread"),
     ("t", "A /todo row, due on the deadline the mail states"),
     ("/", "Search with Gmail's own syntax (from:ann is:unread)"),

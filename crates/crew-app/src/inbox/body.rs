@@ -43,7 +43,7 @@ pub(crate) fn text(msg: &Value) -> (Rich, Vec<String>) {
 
 /// The first part of `mime` in the tree, depth first: its text, and the
 /// charset it was in when that is not one crew reads.
-fn find(part: &Value, mime: &str) -> Option<(String, Option<String>)> {
+pub(crate) fn find(part: &Value, mime: &str) -> Option<(String, Option<String>)> {
     let named_file = part["filename"].as_str().is_some_and(|f| !f.is_empty());
     if part["mimeType"].as_str() == Some(mime) && !named_file {
         if let Some(bytes) = part["body"]["data"].as_str().and_then(bytes) {

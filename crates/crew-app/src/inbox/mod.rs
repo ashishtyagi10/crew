@@ -4,6 +4,7 @@
 //! browser one key away for anything more. Nothing is stored on disk but the
 //! grant (`grant`); the rows live in memory and go with the pane. The network
 //! is a thread of its own (`worker`), and the pane only drains what it says.
+mod addr;
 mod advance;
 pub(crate) mod age;
 pub(crate) mod api;
@@ -12,13 +13,18 @@ pub(crate) mod body;
 pub(crate) mod charset;
 pub(crate) mod compose;
 mod composedraw;
+mod composehead;
+pub(crate) mod composekeys;
 pub(crate) mod days;
 pub(crate) mod draft;
 pub(crate) mod draw;
 pub(crate) mod fetch;
+mod field;
 pub(crate) mod filing;
 mod foot;
 mod footkeys;
+pub(crate) mod forward;
+mod forwardmail;
 pub(crate) mod grant;
 pub(crate) mod handoff;
 pub(crate) mod html;
@@ -30,6 +36,7 @@ pub(crate) mod line;
 pub(crate) mod links;
 pub(crate) mod list;
 pub(crate) mod mailwin;
+mod mime;
 pub(crate) mod motion;
 pub(crate) mod mouse;
 pub(crate) mod picfetch;
@@ -56,6 +63,7 @@ pub(crate) mod take;
 pub(crate) mod triage;
 mod undo;
 pub(crate) mod unsub;
+mod upload;
 pub(crate) mod who;
 pub(crate) mod wire;
 pub(crate) mod worker;

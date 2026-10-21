@@ -156,6 +156,17 @@ Five releases, v0.27.51 to v0.27.55:
 Left for a later round:
 
 - The viewer, chat and terminal pictures could take the texture path too.
-- The reply box has no Cc, no forward, and no undo for a sent mail (Gmail's API has no
-  unsend).
+- No undo for a sent mail (Gmail's API has no unsend).
+
+**After the loop (v0.27.56), the user: *"add cc and forward to the reply box"*.** The box has
+a `to` and a `cc` line (`crates/crew-app/src/inbox/composehead.rs`, `field.rs`, `addr.rs`):
+Tab or Enter goes on to the next, the arrows move between them and the words, a click puts
+the caret on the line clicked, and a bad address is refused with the caret on it. `R`
+replies to everyone the mail went to. `f` forwards the newest mail
+(`crates/crew-app/src/inbox/forward.rs`, `forwardmail.rs`): your note, Gmail's
+`---------- Forwarded message ---------` block, then the mail's own HTML with the pictures
+it draws by `cid:` and its plain words, and every file it carried (`mime.rs`), sent
+through Gmail's upload address (`upload.rs`); past Gmail's 25 MB it says so and sends
+nothing. Every body now goes base64, so a long paragraph never breaks the 998-byte line
+limit.
 

@@ -101,6 +101,10 @@ impl State {
                     .send(&thread_id, &raw)
                     .map_or_else(fail, |()| Got::Sent(to))]
             }
+            Ask::Forward { head, note, of, to } => {
+                vec![super::forwardmail::send(g, &head, &note, &of)
+                    .map_or_else(fail, |()| Got::Forwarded(to))]
+            }
             Ask::Unsubscribe { how, who } => {
                 vec![g
                     .unsubscribe(&how)

@@ -91,3 +91,52 @@ fn inbox_split_shot_reply_box() {
     p.type_in("Thanks Bob, Friday at 10 then.\nI'll book the room.");
     both("reply", 760, 560, &p);
 }
+
+/// `R` and `f`: the box with its `to` and `cc` lines, the caret on cc, and
+/// a forward carrying a file.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn inbox_split_shot_cc_and_forward() {
+    let mut p = ready();
+    p.sel = 1;
+    p.email = "ann@x.org".into();
+    let mut mail = Mail {
+        id: "m1".into(),
+        from: "Bob Park <bo@y.org>".into(),
+        date: "Tue, 20 Oct 2026 09:02:00 -0400".into(),
+        rich: crate::inbox::rich::Rich::of_plain("Hi Ann,\n\nFriday works.\n\nBob", None),
+        attached: vec![crate::inbox::body::Part {
+            name: "Q4 forecast.xlsx".into(),
+            size: 48_000,
+            ..Default::default()
+        }],
+        ..Mail::default()
+    };
+    mail.reply.subject = "Q4 review".into();
+    mail.reply.to = "Ann Lee <ann@x.org>, Cy Dee <cy@y.org>".into();
+    mail.reply.cc = "dana@y.org".into();
+    let read = |p: &mut InboxPane| {
+        p.compose = None;
+        p.reading = Some(Reading {
+            mails: Some(vec![mail.clone()]),
+            ..Reading::new(rows()[1].clone())
+        });
+    };
+    let key = |p: &mut InboxPane, k: &str| {
+        p.press(&winit::keyboard::Key::Character(k.into()), 90, 30);
+    };
+    read(&mut p);
+    key(&mut p, "R");
+    p.type_in("Friday at 10 suits everyone.");
+    p.press(
+        &winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowUp),
+        90,
+        30,
+    );
+    p.type_in(", eve@y.org");
+    both("reply-all", 760, 560, &p);
+    read(&mut p);
+    key(&mut p, "f");
+    p.type_in("Kim <kim@z.org>");
+    both("forward", 760, 560, &p);
+}

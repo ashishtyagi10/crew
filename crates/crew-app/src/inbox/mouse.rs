@@ -58,6 +58,10 @@ impl InboxPane {
             self.note = self.next_thread(older).into();
             return Clicked::Done;
         }
+        // On the reply box: the caret to the line clicked.
+        if (at..at + width).contains(&col) && self.compose_click(cols, rows, row) {
+            return Clicked::Done;
+        }
         if self.reading.is_some() && col >= at && self.unfold_at(width, row) {
             return Clicked::Done;
         }

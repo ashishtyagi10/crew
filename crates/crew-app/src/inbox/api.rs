@@ -44,8 +44,8 @@ pub(crate) struct Mail {
 pub(crate) struct Gmail {
     grant: Grant,
     token_url: String,
-    api: String,
-    access: Option<(String, Instant)>,
+    pub(super) api: String,
+    pub(super) access: Option<(String, Instant)>,
     pub(super) rt: tokio::runtime::Runtime,
     pub(super) http: reqwest::Client,
 }
@@ -72,7 +72,7 @@ impl Gmail {
     }
 
     /// The access token, renewed when it is within a minute of lapsing.
-    fn token(&mut self) -> Result<String, String> {
+    pub(super) fn token(&mut self) -> Result<String, String> {
         if let Some((t, until)) = &self.access {
             if Instant::now() < *until {
                 return Ok(t.clone());

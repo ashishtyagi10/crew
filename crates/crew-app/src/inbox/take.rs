@@ -140,10 +140,13 @@ impl InboxPane {
                     "draft saved in Gmail: \u{201c}{subject}\u{201d} \u{2014} review and send it there (o)"
                 );
             }
+            Got::Forwarded(to) => {
+                self.compose = None;
+                self.note = format!("forwarded to {}", super::addr::names(&to));
+            }
             Got::Sent(to) => {
                 self.compose = None;
-                let who = super::wire::sender_name(&to);
-                self.note = format!("sent to {who}");
+                self.note = format!("sent to {}", super::addr::names(&to));
                 // The thread again, the reply in it.
                 if let Some(id) = self.reading.as_ref().map(|r| r.thread.id.clone()) {
                     self.ask(Ask::Open(id));

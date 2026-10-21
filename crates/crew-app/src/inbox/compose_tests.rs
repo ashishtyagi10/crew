@@ -44,7 +44,7 @@ fn typed(p: &mut InboxPane, s: &str) {
 fn text(p: &InboxPane) -> String {
     p.compose
         .as_ref()
-        .map(|c| c.text.clone())
+        .map(|c| c.body.text.clone())
         .unwrap_or_default()
 }
 

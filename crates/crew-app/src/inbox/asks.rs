@@ -49,6 +49,14 @@ pub(crate) enum Ask {
         raw: String,
         to: String,
     },
+    /// `f`: the mail `of` forwarded under `head` (To, Cc, Subject) with
+    /// `note` on top, to `to`: its pictures and files fetched as it goes.
+    Forward {
+        head: Vec<String>,
+        note: String,
+        of: Box<super::forward::Forwarded>,
+        to: String,
+    },
     /// `u`, confirmed: unsubscribe from `who`.
     Unsubscribe {
         how: super::unsub::How,
@@ -74,8 +82,10 @@ pub(crate) enum Got {
     Drafted(String),
     /// Unsubscribed from this sender.
     Unsubscribed(String),
-    /// A reply went, to this address.
+    /// A reply went, to these addresses.
     Sent(String),
+    /// A forward went, to these addresses.
+    Forwarded(String),
     /// A picture, decoded, or `None` when there is nothing to draw.
     Picture(String, Option<crate::viewpane::bitmap::Bitmap>),
     /// An attachment written to disk, or why not.
