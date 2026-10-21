@@ -520,6 +520,7 @@ mod popupshot_tests;
 mod popupsweep_tests;
 // Only a Windows PowerShell pane starts oh-my-posh (a Mac zsh brings its own
 // prompt); the tests run everywhere.
+mod inboxclick;
 mod inboxglance;
 mod inboxsmith;
 mod inboxwin;
@@ -879,6 +880,8 @@ mod inboxreadshot_tests;
 mod inboxrows_tests;
 #[cfg(test)]
 mod inboxshot_tests;
+#[cfg(test)]
+mod inboxsplitshot_tests;
 #[cfg(test)]
 mod indicpixel_tests;
 #[cfg(test)]

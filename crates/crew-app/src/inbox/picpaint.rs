@@ -16,11 +16,18 @@ impl InboxPane {
             (Stage::Ready(_), None) => return (cells, self.list_paint(cols, rows, aspect)),
             _ => return (cells, Vec::new()),
         };
-        let width = reader::text_width(cols);
+        // On a wide pane the thread reads on the right (`split`), beside the
+        // list's own paint and the hairline between them.
+        let (at, width) = self.reader_box(cols);
+        let width = reader::text_width(width);
         let laid = r.laid(width);
         let room = usize::from(rows);
-        let clip = (0.0, 0.0, f32::from(cols), room as f32);
-        let mut paint = Vec::new();
+        let clip = (f32::from(at), 0.0, f32::from(cols), room as f32);
+        let mut paint = match self.split(cols) {
+            Some(s) => self.list_paint(s.list, rows, aspect),
+            None => Vec::new(),
+        };
+        paint.extend(self.split_paint(cols, rows));
         for p in &laid.pics {
             if p.row + p.rows <= r.scroll || p.row >= r.scroll + room {
                 continue;
@@ -31,7 +38,13 @@ impl InboxPane {
             let y = p.row as f32 - r.scroll as f32;
             let (w, h) = (width as f32, p.rows as f32);
             paint.extend(crate::viewpane::bitmap::paint_at(
-                bm, 2.0, y, w, h, aspect, clip,
+                bm,
+                2.0 + f32::from(at),
+                y,
+                w,
+                h,
+                aspect,
+                clip,
             ));
         }
         (cells, paint)

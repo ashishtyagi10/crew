@@ -10,11 +10,13 @@ impl InboxPane {
         let Some(r) = &self.reading else {
             return Vec::new();
         };
-        let laid = r.laid(reader::text_width(cols));
+        // The thread's own columns: the right half of a wide pane (`split`).
+        let (at, width) = self.reader_box(cols);
+        let laid = r.laid(reader::text_width(width));
         let room = usize::from(self.body_rows(cols, rows));
         let mut out = Vec::new();
         for (row, line) in laid.lines.iter().skip(r.scroll).take(room).enumerate() {
-            let mut col: u16 = 1;
+            let mut col: u16 = at + 1;
             let mut prev: Option<&str> = None;
             for cell in line {
                 let w = crate::chatwidth::char_w(cell.c) as u16;
@@ -30,7 +32,7 @@ impl InboxPane {
         for p in laid.pics.iter().filter(|p| p.row + p.rows > r.scroll) {
             let row = p.row.max(r.scroll) - r.scroll;
             if let (Some(href), true) = (&p.href, row < room) {
-                out.push((row as u16, 2, href.clone()));
+                out.push((row as u16, at + 2, href.clone()));
             }
         }
         out
@@ -39,10 +41,12 @@ impl InboxPane {
     /// The address under a click at `(row, col)`, if a link is drawn there.
     pub(crate) fn link_at(&self, cols: u16, rows: u16, row: u16, col: u16) -> Option<String> {
         let r = self.reading.as_ref()?;
+        let (at, width) = self.reader_box(cols);
+        let col = col.checked_sub(at)?;
         if row >= self.body_rows(cols, rows) || col == 0 {
             return None;
         }
-        let laid = r.laid(reader::text_width(cols));
+        let laid = r.laid(reader::text_width(width));
         let at = r.scroll + row as usize;
         let pic = laid
             .pics

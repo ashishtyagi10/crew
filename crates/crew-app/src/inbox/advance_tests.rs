@@ -120,3 +120,31 @@ fn from_the_list_a_delete_stays_on_the_list() {
     press(&mut p, "z");
     assert_eq!(open_id(&p), None, "undo puts it back without opening it");
 }
+
+#[test]
+fn j_and_k_in_the_reader_open_the_next_and_the_previous_thread_in_place() {
+    let (mut p, asks, _) = reading(&["a", "b", "c"], 1);
+    press(&mut p, "J");
+    assert_eq!(
+        (open_id(&p), p.sel),
+        (Some("c"), 2),
+        "J: older, the row below"
+    );
+    press(&mut p, "J");
+    assert_eq!(open_id(&p), Some("c"), "past the oldest it stays");
+    assert_eq!(p.note, "this is the oldest thread");
+    press(&mut p, "K");
+    press(&mut p, "K");
+    assert_eq!((open_id(&p), p.sel), (Some("a"), 0));
+    press(&mut p, "K");
+    assert_eq!(p.note, "this is the newest thread");
+    let opened: Vec<String> = sent(&asks)
+        .into_iter()
+        .filter(|a| a.starts_with("open"))
+        .collect();
+    assert_eq!(opened, ["open c", "open b", "open a"]);
+    assert!(
+        p.rows.iter().all(|t| !t.unread),
+        "each marked read as it opened"
+    );
+}

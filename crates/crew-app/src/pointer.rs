@@ -91,6 +91,7 @@ impl CrewApp {
                     || self.plan_hover_on(i)
                     || self.popup_hover_on(i)
                     || self.todo_hover_on(i)
+                    || self.inbox_hover_on(i)
                     || self.fold_hover_on(i) =>
             {
                 Over::Link
@@ -128,6 +129,7 @@ impl CrewApp {
             | self.link_hover_sync()
             | self.popup_hover_sync()
             | self.todo_hover_sync()
+            | self.inbox_hover_sync()
         {
             self.redraw();
         }

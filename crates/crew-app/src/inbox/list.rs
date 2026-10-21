@@ -62,7 +62,7 @@ impl InboxPane {
         }
     }
 
-    fn ctx(&self, cols: u16, shown: &Shown) -> Ctx<'_> {
+    pub(super) fn ctx(&self, cols: u16, shown: &Shown) -> Ctx<'_> {
         let on: Vec<Thread> = shown.threads().map(|(_, i)| self.rows[i].clone()).collect();
         Ctx {
             cols,
@@ -77,24 +77,78 @@ impl InboxPane {
         if self.rows.is_empty() {
             return self.empty(cv);
         }
-        let shown = self.shown(cv.rows);
+        let now = crate::anim::now_ms();
+        let shown = self.shown_at(cv.rows, now);
         let x = self.ctx(cv.cols, &shown);
-        let muted = crew_theme::theme().text_muted;
+        let t = crew_theme::theme();
+        let chosen = crew_theme::readable::selection_bg(t);
+        // While the selection glides its wash is paint (`motion_paint`), and
+        // the row it is going to waits for it.
+        let gliding = self.motion.glide(now).is_some();
         for (r, slot) in &shown.slots {
             match slot {
-                Slot::Band(day) => cv.text(*r, row::TEXT, cv.cols, day, muted, false),
-                Slot::Thread(i) => row::cells(&mut cv.out, &self.rows[*i], *r, *i == self.sel, &x),
+                Slot::Band(day) => cv.text(*r, row::TEXT, cv.cols, day, t.text_muted, false),
+                Slot::Thread(i) => {
+                    let wash = match (*i == self.sel, self.hover == Some(*i)) {
+                        (true, _) => (!gliding).then_some(chosen),
+                        (false, true) => Some(crate::anim::lerp_rgb(t.page_bg, chosen, 0.5)),
+                        (false, false) => None,
+                    };
+                    row::washed(&mut cv.out, &self.rows[*i], *r, wash, &x);
+                }
+                Slot::Fold(left) => {
+                    let Some((_, th, _, fade)) = self.motion.folding(shown.lines, now) else {
+                        continue;
+                    };
+                    let mut gone = Vec::new();
+                    row::washed(&mut gone, th, *r, None, &x);
+                    gone.retain(|c| c.row < r + left);
+                    for c in &mut gone {
+                        c.fg = crate::anim::lerp_rgb(c.fg, t.page_bg, fade);
+                    }
+                    cv.out.extend(gone);
+                }
             }
         }
     }
 
-    /// What the list paints: nothing over rows (the air divides them), and
-    /// the empty list's outline rows or mark.
+    /// What the list paints: nothing over rows (the air divides them) but
+    /// its motion, and the empty list's outline rows or mark.
     pub(crate) fn list_paint(&self, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
         match self.rows.is_empty() {
             true => self.empty_paint(cols, rows, aspect),
-            false => Vec::new(),
+            false => self.motion_paint(cols, rows),
         }
+    }
+
+    /// New mail's glow, and the selection's wash on its way to its row.
+    fn motion_paint(&self, cols: u16, rows: u16) -> Vec<Paint> {
+        let now = crate::anim::now_ms();
+        let shown = self.shown_at(rows, now);
+        let (w, lines) = (f32::from(cols.saturating_sub(1)), f32::from(shown.lines));
+        let at = |i: usize| {
+            shown
+                .threads()
+                .find(|&(_, j)| j == i)
+                .map(|(r, _)| f32::from(r))
+        };
+        let t = crew_theme::theme();
+        let mut paint = Vec::new();
+        for (r, i) in shown.threads() {
+            if let Some(g) = self.motion.glow(&self.rows[i].id, now) {
+                let glow = Paint::solid(0.0, f32::from(r), w, lines, crate::palette::accent());
+                paint.push(Paint {
+                    alpha: 0.22 * g,
+                    ..glow
+                });
+            }
+        }
+        if let (Some((from, k)), Some(to)) = (self.motion.glide(now), at(self.sel)) {
+            let y = at(from).map_or(to, |from| from + (to - from) * k);
+            let chosen = crew_theme::readable::selection_bg(t);
+            paint.push(Paint::solid(0.0, y, w, lines, chosen));
+        }
+        paint
     }
 }
 

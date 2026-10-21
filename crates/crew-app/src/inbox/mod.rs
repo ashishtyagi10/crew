@@ -26,6 +26,8 @@ pub(crate) mod line;
 pub(crate) mod links;
 pub(crate) mod list;
 pub(crate) mod mailwin;
+pub(crate) mod motion;
+mod mouse;
 pub(crate) mod picfetch;
 mod picpaint;
 pub(crate) mod pics;
@@ -42,6 +44,7 @@ pub(crate) mod save;
 pub(crate) mod setup;
 pub(crate) mod signin;
 pub(crate) mod smith;
+pub(crate) mod split;
 mod states;
 pub(crate) mod take;
 pub(crate) mod triage;
@@ -98,6 +101,9 @@ pub struct InboxPane {
     pub(crate) checked_ms: Option<i64>,
     /// One line or two per row (`L`).
     pub(crate) density: list::Density,
+    /// The thread under the pointer, washed lighter than the selection.
+    pub(crate) hover: Option<usize>,
+    pub(crate) motion: motion::Motion,
     ticked_ms: u64,
 }
 
@@ -137,6 +143,8 @@ impl InboxPane {
             failed: None,
             checked_ms: None,
             density: list::Density::Auto,
+            hover: None,
+            motion: motion::Motion::default(),
             ticked_ms: crate::anim::now_ms(),
         }
     }

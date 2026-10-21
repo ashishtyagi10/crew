@@ -31,6 +31,7 @@ fn slots(p: &InboxPane, rows: u16) -> Vec<(u16, String)> {
         .map(|(r, s)| match s {
             Slot::Band(b) => (r, b),
             Slot::Thread(i) => (r, format!("#{i}")),
+            Slot::Fold(n) => (r, format!("fold {n}")),
         })
         .collect()
 }

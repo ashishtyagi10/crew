@@ -16,7 +16,8 @@ fn said(ls: &[Vec<Key>]) -> Vec<String> {
 fn every_key_shows_wrapped_whole_and_only_a_short_pane_points_at_the_rest() {
     for room in [30, 58, 78, 118] {
         for keys in [LIST, READER] {
-            let got = lines(keys, room, 3);
+            // As many lines as a pane of 16 rows or more spares.
+            let got = lines(keys, room, usize::from(super::LINES));
             let shown: Vec<Key> = got.iter().flatten().copied().collect();
             assert!(
                 got.iter().all(|l| width(l) <= room),

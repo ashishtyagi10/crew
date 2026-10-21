@@ -34,6 +34,8 @@ const LIST: Keys = &[
 ];
 const READER: Keys = &[
     ("esc", "back"),
+    ("J", "next"),
+    ("K", "previous"),
     ("r", "reply"),
     ("e", "archive"),
     ("d", "delete"),

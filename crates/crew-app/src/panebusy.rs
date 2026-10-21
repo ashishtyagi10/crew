@@ -64,6 +64,8 @@ pub(crate) fn pane_animating(p: &Pane) -> bool {
                     || c.thinking_live()
                     || c.chrome_animating(crate::anim::now_ms())
             }
+            // A glide, a fold or new mail's glow (`inbox::motion`).
+            PaneContent::Inbox(i) => i.motion.live(crate::anim::now_ms()),
             _ => false,
         }
 }

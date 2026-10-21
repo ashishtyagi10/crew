@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.48
+
+**`/inbox`: click, hover and motion, and a wide pane reads beside the list.**
+The last two phases of the list's redesign.
+- **The mouse.** A click selects a thread, a second click reads it, and a
+  click on a `★` takes the star off. The thread under the pointer wears a
+  lighter wash than the selection, and the pointer is a hand over it.
+- **Motion.** The selection's wash glides to the row it went to. An
+  archived or deleted thread fades and folds away where it was instead of
+  vanishing. New mail glows once in the accent. At Motion off nothing
+  moves, and an idle inbox draws no frames.
+- **Side by side.** On a pane 140 columns or wider, an open thread reads
+  on the right and the list stays on the left, two fifths of the pane,
+  parted by a faint hairline. A click on the list opens that thread there.
+  Pictures, links by Cmd+click and `Cmd+E`, attachments and scrolling all
+  work in the half the thread has.
+- **`J` and `K`** open the next and the previous thread from an open one,
+  on any width, without going back to the list.
+- **Tests:** where the halves are and where links land in them, clicks and
+  the star, each motion and Motion off, which mail counts as new, the fold
+  in the layout, and `J`/`K`. Shots of the split and of the list mid-motion
+  on the light page and on glass (`inboxsplitshot_tests`).
+
 ## 0.27.47
 
 **Hindi, and every script that joins its letters, drawn whole.** Devanagari

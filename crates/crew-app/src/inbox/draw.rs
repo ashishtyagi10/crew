@@ -87,7 +87,21 @@ impl InboxPane {
         // Everything but the foot draws in the rows above it.
         let mut cv = Canvas::new(cols, self.body_rows(cols, rows));
         match (&self.stage, &self.reading) {
-            (Stage::Ready(_), Some(r)) => super::reader::draw(&mut cv, r, &self.pics),
+            (Stage::Ready(_), Some(r)) => match self.split(cols) {
+                // The list on the left, the thread from `at` (`split`).
+                Some(s) => {
+                    let mut list = Canvas::new(s.list, cv.rows);
+                    self.list(&mut list);
+                    let mut read = Canvas::new(cols - s.at, cv.rows);
+                    super::reader::draw(&mut read, r, &self.pics);
+                    let shifted = read.out.into_iter().map(|c| CellView {
+                        col: c.col + s.at,
+                        ..c
+                    });
+                    cv.out.extend(list.out.into_iter().chain(shifted));
+                }
+                None => super::reader::draw(&mut cv, r, &self.pics),
+            },
             (Stage::Ready(_), None) => self.list(&mut cv),
             (Stage::Setup { found }, _) => super::setup::draw(&mut cv, found.as_ref()),
             (Stage::SigningIn(_), _) => {
