@@ -17,10 +17,14 @@ pub(crate) mod handoff;
 pub(crate) mod html;
 pub(crate) mod keys;
 pub(crate) mod links;
+pub(crate) mod picfetch;
+mod picpaint;
+pub(crate) mod pics;
 pub(crate) mod plain;
 pub(crate) mod query;
 pub(crate) mod reader;
 mod reading;
+mod readmail;
 pub(crate) mod rich;
 pub(crate) mod setup;
 pub(crate) mod signin;
@@ -75,6 +79,7 @@ pub struct InboxPane {
     pub(crate) to_smith: Option<handoff::ToSmith>,
     /// A reply smith is writing for a draft.
     pub(crate) waiting: Option<handoff::Waiting>,
+    pub(crate) pics: pics::Pics,
     ticked_ms: u64,
 }
 
@@ -109,6 +114,7 @@ impl InboxPane {
             then: None,
             to_smith: None,
             waiting: None,
+            pics: pics::Pics::default(),
             ticked_ms: crate::anim::now_ms(),
         }
     }
@@ -118,7 +124,7 @@ impl InboxPane {
         let Stage::Ready(w) = &self.stage else {
             return false;
         };
-        self.busy = !matches!(ask, Ask::Check);
+        self.busy = !matches!(ask, Ask::Check | Ask::Picture { .. });
         w.tx.send(ask).is_ok()
     }
 
@@ -163,6 +169,7 @@ impl InboxPane {
                 for g in got {
                     self.take(g);
                 }
+                let changed = self.pics.drain() || changed;
                 if due && !self.busy {
                     self.ask(Ask::Check);
                 }

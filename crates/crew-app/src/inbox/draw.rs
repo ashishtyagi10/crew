@@ -87,7 +87,7 @@ impl InboxPane {
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
         let mut cv = Canvas::new(cols, rows);
         match (&self.stage, &self.reading) {
-            (Stage::Ready(_), Some(r)) => super::reader::draw(&mut cv, r),
+            (Stage::Ready(_), Some(r)) => super::reader::draw(&mut cv, r, &self.pics),
             (Stage::Ready(_), None) => self.list(&mut cv),
             (Stage::Setup { found }, _) => super::setup::draw(&mut cv, found.as_ref()),
             (Stage::SigningIn(_), _) => {

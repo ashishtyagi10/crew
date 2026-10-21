@@ -98,8 +98,8 @@ fn take(name: &str, p: &InboxPane) {
         crew_theme::set_theme(id);
         crate::palette::set_accent(crew_theme::theme().accent_default);
         let tag = format!("inbox-{name}-{}", format!("{id:?}").to_lowercase());
-        let px = shot(&tag, &p.legend(), |cols, rows, _| {
-            (p.cells(cols, rows), Vec::new())
+        let px = shot(&tag, &p.legend(), |cols, rows, aspect| {
+            p.art(cols, rows, aspect)
         });
         if px.is_none() {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
@@ -156,4 +156,39 @@ fn inbox_shot_screens() {
         ..Reading::new(rows()[0].clone())
     });
     take("rich", &rich);
+    let mut pics = ready();
+    let html = "<p>Q4 is up 12% on Q3. The chart:</p><img src='cid:chart@x' alt='Q4 chart' height='240'>\
+                <p>And the team photo, from the web:</p><img src='https://x.io/team.jpg' alt='Team'>\
+                <p>Thanks, Ann</p>";
+    let rich = crate::inbox::rich::Rich::of_html(html, None);
+    pics.reading = Some(Reading {
+        mails: Some(vec![Mail {
+            id: "m1".into(),
+            from: "Ann Lee <ann@x.org>".into(),
+            date: "Tue, 20 Oct 2026 09:02:00 -0400".into(),
+            text: rich.whole(),
+            rich,
+            ..Mail::default()
+        }]),
+        ..Reading::new(rows()[0].clone())
+    });
+    let (w, h) = (96u32, 48u32);
+    let px = (0..w * h)
+        .map(|i| {
+            let (x, y) = (i % w, i / w);
+            let bar = x % 24 < 16 && y >= h - (x / 24 + 1) * 10;
+            match bar {
+                true => [60, 120 + (x / 24) as u8 * 30, 220, 255],
+                false => [0, 0, 0, 0],
+            }
+        })
+        .collect();
+    let bm = crate::viewpane::bitmap::Bitmap {
+        w,
+        h,
+        px,
+        src: (w, h),
+    };
+    pics.pics.set("m1|cid:chart@x".into(), Some(bm));
+    take("pictures", &pics);
 }

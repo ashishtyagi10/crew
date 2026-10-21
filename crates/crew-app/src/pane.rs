@@ -174,10 +174,9 @@ impl Pane {
         }
     }
 
-    /// This pane's cells *and* the sub-cell paint drawn under them (see
-    /// [`crew_render::Paint`] and [`crate::plot`]); `aspect` is `cell_h /
-    /// cell_w`. One call, not two: a chat pane's footer ticks animated
-    /// readouts while it is built, and two builds would tick them twice.
+    /// Cells *and* the sub-cell paint under them ([`crew_render::Paint`], [`crate::plot`]);
+    /// `aspect` is `cell_h / cell_w`. One call, not two: a chat pane's footer
+    /// ticks animated readouts while it is built, and two builds would tick them twice.
     pub fn art(&self, focused: bool, aspect: f32) -> (Vec<CellView>, Vec<crew_render::Paint>) {
         match &self.content {
             PaneContent::Chat(c) => crate::popupband::art(c, focused, self.grid, aspect),
@@ -199,6 +198,7 @@ impl Pane {
             ),
             PaneContent::View(v) => v.art(self.grid.cols, self.grid.rows, aspect),
             PaneContent::Todo(t) => t.art(self.grid.cols, self.grid.rows, aspect),
+            PaneContent::Inbox(i) => i.art(self.grid.cols, self.grid.rows, aspect),
             _ => (self.cells_only(focused), Vec::new()),
         }
     }

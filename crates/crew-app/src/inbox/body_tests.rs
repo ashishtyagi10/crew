@@ -92,3 +92,25 @@ fn html_that_reads_as_nothing_gives_way_to_the_plain_part() {
     assert_eq!(rich.body, "Your statement is ready.");
     assert!(rich.alt.is_some());
 }
+
+#[test]
+fn picture_parts_are_found_by_content_id_and_by_kind() {
+    let msg = json!({"payload": {"mimeType": "multipart/related", "parts": [
+        {"mimeType": "text/html", "body": {"data": b64("<img src='cid:logo@x'>")}},
+        {"mimeType": "image/png", "filename": "logo.png",
+         "headers": [{"name": "Content-ID", "value": "<logo@x>"}],
+         "body": {"attachmentId": "A1", "size": 2048}},
+        {"mimeType": "image/jpeg", "filename": "photo.jpg", "body": {"attachmentId": "A2"}},
+        {"mimeType": "application/pdf", "filename": "x.pdf", "body": {"attachmentId": "A3"}},
+    ]}});
+    let p = super::pictures(&msg);
+    assert_eq!(p.len(), 2);
+    assert_eq!(
+        (p[0].cid.as_deref(), p[0].att.as_deref(), p[0].size),
+        (Some("logo@x"), Some("A1"), 2048)
+    );
+    assert_eq!(
+        (p[1].cid.as_deref(), p[1].name.as_str()),
+        (None, "photo.jpg")
+    );
+}

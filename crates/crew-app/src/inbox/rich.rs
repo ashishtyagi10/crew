@@ -19,23 +19,40 @@ pub(crate) struct Rich {
     pub note: Option<String>,
     /// The other version of the same message (`v`).
     pub alt: Option<Box<Rich>>,
+    /// The pictures this version draws, by source (`cid:…`, a web address).
+    pub pics: Vec<String>,
+    /// Pictures from the web it names but does not draw.
+    pub web: usize,
+    /// This version with the web's pictures drawn too (`i`), when it has any.
+    pub with_web: Option<Box<Rich>>,
 }
 
 impl Rich {
     /// From a message's HTML.
     pub(crate) fn of_html(html_text: &str, charset: Option<String>) -> Self {
-        let c = html::to_markdown(html_text);
-        let (body, quote) = fold(c.body, c.quote);
-        let note = match (charset, c.cut) {
-            (Some(cs), _) => Some(unread(&cs)),
-            (None, true) => Some("the rest of this mail is in Gmail \u{2014} o opens it".into()),
-            (None, false) => None,
+        let build = |web: bool| {
+            let c = html::to_markdown(html_text, web);
+            let (body, quote) = fold(c.body, c.quote);
+            let note = match (&charset, c.cut) {
+                (Some(cs), _) => Some(unread(cs)),
+                (None, true) => {
+                    Some("the rest of this mail is in Gmail \u{2014} o opens it".into())
+                }
+                (None, false) => None,
+            };
+            Self {
+                body,
+                quote,
+                note,
+                pics: c.pics,
+                web: c.web_left,
+                ..Self::default()
+            }
         };
+        let bare = build(false);
         Self {
-            body,
-            quote,
-            note,
-            ..Self::default()
+            with_web: (bare.web > 0).then(|| Box::new(build(true))),
+            ..bare
         }
     }
 
@@ -48,7 +65,7 @@ impl Rich {
             quote,
             sig: s.sig,
             note: charset.map(|cs| unread(&cs)),
-            alt: None,
+            ..Self::default()
         }
     }
 

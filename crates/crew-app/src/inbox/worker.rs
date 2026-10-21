@@ -38,6 +38,14 @@ pub(crate) enum Ask {
         id: String,
         back: bool,
     },
+    /// A picture the mail carries: inline `data`, or attachment `att` of
+    /// message `msg`, decoded here and sent back under `key`.
+    Picture {
+        key: String,
+        msg: String,
+        att: Option<String>,
+        data: Option<String>,
+    },
 }
 
 pub(crate) enum Got {
@@ -54,6 +62,8 @@ pub(crate) enum Got {
     Opened(String, Vec<Mail>),
     /// A draft was saved; its subject.
     Drafted(String),
+    /// A picture, decoded, or `None` when there is nothing to draw.
+    Picture(String, Option<crate::viewpane::bitmap::Bitmap>),
     /// A call failed; the pane says why and keeps what it has.
     Failed(String),
     /// Google ended the grant (revoked, expired): sign in again.
@@ -118,6 +128,14 @@ impl State {
             Ask::Trash { id, back } => {
                 let done = g.trash(&id, back);
                 self.filed(g, done)
+            }
+            Ask::Picture {
+                key,
+                msg,
+                att,
+                data,
+            } => {
+                vec![super::picfetch::carried(g, key, &msg, att, data)]
             }
             Ask::Draft {
                 thread_id,

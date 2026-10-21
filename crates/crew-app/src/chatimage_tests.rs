@@ -69,7 +69,8 @@ fn the_viewer_path_still_reserves_the_picture_rows() {
         vec![crate::chatmd::Picture {
             row: 0,
             rows: 12,
-            src: "x.png".into()
+            src: "x.png".into(),
+            alt: "a".into()
         }]
     );
 }

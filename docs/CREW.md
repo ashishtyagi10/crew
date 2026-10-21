@@ -1673,7 +1673,17 @@ longer aim at.
   runs draw as quote bars, and the signature under `-- ` is quiet. Bytes are
   read in the part's charset (UTF-8, Latin-1, windows-1252; any other is
   named in a line under the mail), and HTML past 512 KB is cut with a line
-  saying so — `e` archives (takes the `INBOX` label away, as Gmail's archive does),
+  saying so. Pictures: one the mail carries (`cid:`, and up to four image
+  attachments under their message) is fetched as the thread opens and drawn
+  in its place, in a box sized from the mail's own `height` (about 20 px a
+  row) so the text never jumps when it lands. One from the web is its words
+  (`▣ Team`) with `▣ 3 pictures from the web · i shows them` under the
+  message, because fetching it tells the sender the mail was opened; `i`
+  fetches them on a thread of their own (`https`/`http` only, no cookies, no
+  `Referer`, 10 s and 5 MB a picture, 20 a message). A tracking pixel
+  (declared 2×2 or smaller, a spacer file, or one that decodes that small)
+  is never drawn; every decode runs under `image::Limits` (8,192 px a side,
+  128 MB). Pictures live in memory with the open thread and go with it — `e` archives (takes the `INBOX` label away, as Gmail's archive does),
   `d` deletes (moves the thread to Trash, as Gmail's delete does; Gmail
   empties Trash after 30 days), `m` marks read or unread, `s` stars or
   unstars, `u` undoes the last of those (a delete comes back out of Trash);

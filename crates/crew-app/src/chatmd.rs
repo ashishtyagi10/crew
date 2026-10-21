@@ -18,6 +18,8 @@ pub(crate) struct Picture {
     pub row: usize,
     pub rows: usize,
     pub src: String,
+    /// What the picture is of, for a reader that has not got it yet.
+    pub alt: String,
 }
 
 /// Maps one rendered markdown document to CHAT card lines, indented one
@@ -177,6 +179,7 @@ fn reserve(pics: &mut Vec<Picture>, line: &MdLine, i: u16, at: usize) {
             row: at,
             rows: 1,
             src: src.to_string(),
+            alt: line.spans.first().map_or(String::new(), |s| s.text.clone()),
         }),
     }
 }

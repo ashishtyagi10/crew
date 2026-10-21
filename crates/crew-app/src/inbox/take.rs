@@ -68,8 +68,10 @@ impl InboxPane {
                     if let Some(then) = self.then.take() {
                         self.act(then);
                     }
+                    self.fetch_carried();
                 }
             }
+            Got::Picture(key, bm) => self.pics.set(key, bm),
             Got::Drafted(subject) => {
                 self.note = format!(
                     "draft saved in Gmail: \u{201c}{subject}\u{201d} \u{2014} review and send it there (o)"
