@@ -11,6 +11,14 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
         "Move through the list; in a thread, scroll it",
     ),
     ("Enter", "Read the thread (marks it read, as Gmail does)"),
+    (
+        "J / K",
+        "In a thread: open the next (older) or the previous one",
+    ),
+    (
+        "Click",
+        "Select a thread; again to read it; on a \u{2605} to unstar",
+    ),
     ("Esc", "Back to the list; clear a search; close the pane"),
     ("e", "Archive"),
     ("d", "Delete: to Gmail's Trash, never for good"),

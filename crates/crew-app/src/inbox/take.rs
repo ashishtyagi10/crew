@@ -100,6 +100,8 @@ impl InboxPane {
                     true => self.rows.extend(rows),
                     false => {
                         let keep = self.rows.get(self.sel).map(|t| t.id.clone());
+                        let fresh = super::motion::fresh(&self.rows, &rows);
+                        self.motion.fresh = Some((fresh, crate::anim::now_ms()));
                         self.rows = rows;
                         self.sel = keep
                             .and_then(|id| self.rows.iter().position(|t| t.id == id))

@@ -326,7 +326,10 @@ time at the right with a star or a paperclip beside it; then the subject and
 the snippet in a quieter ink; unread mail has a dot and bold names; `L` for
 one line a thread, kept for the session; grouped under `today`,
 `yesterday`, the weekday, `last week` and on back; every key the pane
-answers to is listed at its foot),
+answers to is listed at its foot; a click selects a thread and a second
+reads it, a click on a star takes it off, and the thread under the pointer
+wears a lighter wash; the selection glides, an archived thread folds away
+and new mail glows once, all still at Motion off),
 `/` to search in Gmail's own syntax
 (`from:ann is:unread`), Enter to read a thread (which marks it read, as
 Gmail does) — HTML mail drawn as formatted text: headings, bold, lists,
@@ -338,7 +341,9 @@ pictures drawn in place — the mail's own and, as in Gmail, those from the web
 pixels are never fetched), and a link opened by Cmd+click or
 `Cmd+E` at its real address (one whose words name another site shows where
 it really goes), each attachment a row you Cmd+click to save it to
-`~/Downloads` and open it, and `w` for the thread in a window of its own —
+`~/Downloads` and open it, `J` and `K` for the next and the previous thread
+without going back to the list, and `w` for the thread in a window of its
+own; on a pane 140 columns or wider the thread reads beside the list —
 `e` to archive, `d` to delete (to Gmail's Trash, as Gmail's
 own delete does — nothing is deleted for good; either one, in an open
 mail, opens the next mail instead of going back to the list), `m` to mark read or unread,

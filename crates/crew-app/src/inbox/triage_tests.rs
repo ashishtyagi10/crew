@@ -133,3 +133,29 @@ fn a_read_only_grant_is_told_how_to_file() {
     p.poll();
     assert!(p.note.contains("/inbox signout"), "{}", p.note);
 }
+
+#[test]
+fn an_archived_row_folds_away_where_it_was_instead_of_vanishing() {
+    let _g = crate::app::motion_test_guard();
+    let (mut p, _asks, _a) = pane(&["a", "b", "c"]);
+    let now = crate::anim::now_ms();
+    p.press(&ch("e"), 80, 24);
+    let at = |p: &InboxPane, now| {
+        p.shown_at(20, now)
+            .slots
+            .iter()
+            .map(|(_, s)| format!("{s:?}"))
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
+    assert!(
+        at(&p, now).contains("Fold("),
+        "drawn where it was: {}",
+        at(&p, now)
+    );
+    assert!(p.motion.live(now));
+    assert!(
+        !at(&p, now + 1_000).contains("Fold("),
+        "then the rows close up"
+    );
+}

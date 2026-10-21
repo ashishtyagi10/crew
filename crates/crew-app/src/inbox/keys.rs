@@ -84,9 +84,9 @@ impl InboxPane {
     fn list_key(&mut self, key: &Key, ch: &str, cols: u16, rows: u16) -> Option<InboxAction> {
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
         if named(NamedKey::ArrowUp) || ch == "k" {
-            self.sel = self.sel.saturating_sub(1);
+            self.select(self.sel.saturating_sub(1));
         } else if named(NamedKey::ArrowDown) || ch == "j" {
-            self.sel = (self.sel + 1).min(self.rows.len().saturating_sub(1));
+            self.select((self.sel + 1).min(self.rows.len().saturating_sub(1)));
             if self.sel + 1 >= self.rows.len() && self.more && !self.busy {
                 self.ask(Ask::More);
             }
@@ -116,8 +116,9 @@ impl InboxPane {
     fn reading_key(&mut self, key: &Key, ch: &str, cols: u16, rows: u16) -> Option<InboxAction> {
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
         let page = self.body_rows(cols, rows).saturating_sub(1).max(1) as usize;
+        let (_, width) = self.reader_box(cols);
         let r = self.reading.as_mut()?;
-        let last = super::reader::height(r, cols).saturating_sub(page);
+        let last = super::reader::height(r, width).saturating_sub(page);
         if named(NamedKey::Escape) || named(NamedKey::Backspace) || named(NamedKey::ArrowLeft) {
             self.reading = None;
         } else if named(NamedKey::ArrowUp) || ch == "k" {
@@ -131,6 +132,8 @@ impl InboxPane {
         } else if ch == "o" {
             let id = r.thread.id.clone();
             self.browse(Some(&id));
+        } else if ch == "J" || ch == "K" {
+            self.note = self.next_thread(ch == "J").into();
         } else if ch == "w" {
             r.pop_out = true;
         } else if ch == "i" {

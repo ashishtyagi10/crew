@@ -1,9 +1,9 @@
 # Goal — the inbox list, redesigned: how `/inbox` looks before a thread is opened
 
-**Status: IN PROGRESS.** Set 2026-10-20; the user answered its questions on 2026-10-21 and said
-go ahead. Phases 0 and 1 shipped in v0.27.37, phase 2 in v0.27.38, phase 3 after it, pared
-back to a quiet list at the user's word (see "Where it stands" at the end). Phases 4 and 5 are
-not started.
+**Status: COMPLETE (v0.27.48).** Set 2026-10-20; the user answered its questions on 2026-10-21
+and said go ahead. Phases 0 and 1 shipped in v0.27.37, phase 2 in v0.27.38, phase 3 after it,
+pared back to a quiet list at the user's word, and phases 4 and 5 in v0.27.48 (*"go ahead with
+the inbox list look goal"*, 2026-10-21). See "Where it stands" at the end.
 
 **Set:** 2026-10-20 by the user, while the mail reader goal was being built: *"write a goal to
 update the look and feel of listing mode as well for `/inbox`"*.
@@ -219,3 +219,42 @@ mean and use `u` for unsubscribe action in email detail panel"*.
   2026-10-21). Either is done only for mail whose `Authentication-Results` say `dkim=pass`,
   and never for an IP or a local host. Any other mail can only have its page opened in the
   browser. A second `u` confirms.
+
+**Phases 4 and 5, shipped in v0.27.48 (2026-10-21).**
+
+- **Mouse (item 15).**
+  - A click on a thread selects it, and a second click reads it. A click on a `★` takes the
+    star off (`crates/crew-app/src/inbox/mouse.rs`, wired through
+    `crates/crew-app/src/inboxclick.rs`).
+  - The thread under the pointer wears a wash half way between the page and the selection's,
+    and the pointer turns to the hand over it. The wheel scrolls as it did.
+  - Beside an open thread (phase 5), a click on the list opens that thread at once, since the
+    reader is already open.
+- **Motion (item 16)** lives in `crates/crew-app/src/inbox/motion.rs`. Each motion is a start
+  time and a duration scaled by crew's motion setting, so at Motion off they are all born
+  settled. `pane_animating` asks for frames only while one is live.
+  - **Glide.** The selection's wash glides to the row it went to, by keys or by click, in 140
+    ms. The moving wash is drawn on the paint layer, square for those few frames, and the
+    rounded cell wash takes over when it lands.
+  - **Fold.** An archived or deleted thread is drawn where it was for 240 ms, fading. Cells
+    are whole rows tall, so it goes a line at a time rather than shrinking smoothly; then the
+    rows under it close up (`Slot::Fold` in `layout.rs`).
+  - **Glow.** New mail glows once in the accent, fading over 1.2 s. That is a thread not
+    listed before, or one with mail newer than it had, on a list that was already showing.
+- **The thread beside the list (item 17)** lives in `crates/crew-app/src/inbox/split.rs`.
+  - At 140 columns or more an open thread reads on the right. The list keeps two fifths of the
+    pane, 48 to 64 columns, with the selection on the open thread.
+  - The halves are parted by air and a faint hairline instead of a rule, since the list has
+    lost its rules.
+  - The mail's own window (`w`) is the same pane drawn at the window's size, so a window 140
+    columns or wider shows the list too.
+- **Every way into the reader (item 18).** Drawing, the pictures' paint, links by Cmd+click
+  and by `Cmd+E`, attachment rows and scrolling all ask `reader_box` where the thread is.
+  `J` and `K` open the next and the previous thread in place, on any width. Past the last
+  thread loaded, `J` asks Gmail for the next page.
+- **Shots.** `inboxsplitshot_tests` draws a wide pane reading beside the list, and the list
+  mid-motion (a hovered row, new mail glowing, a thread folding), on the light page and on
+  glass. Unit tests cover the split geometry and where links land in it, clicks, the star,
+  each motion and Motion off, which mail counts as new, the fold in the layout, and `J`/`K`.
+  `/keys` lists `J / K` and the click.
+

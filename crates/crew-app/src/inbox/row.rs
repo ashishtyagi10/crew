@@ -23,9 +23,16 @@ const WHO_CAP_TWO: usize = 36;
 const AIR: u16 = 2;
 
 /// The thread at `row` (and `row + 1` on two lines).
+#[cfg(test)]
 pub(crate) fn cells(out: &mut Vec<CellView>, th: &Thread, row: u16, selected: bool, x: &Ctx) {
+    let wash = selected.then(|| crew_theme::readable::selection_bg(crew_theme::theme()));
+    washed(out, th, row, wash, x);
+}
+
+/// [`cells`] on `wash`, edge to edge: the selection's, the lighter one a
+/// hovered row wears, or none.
+pub(crate) fn washed(out: &mut Vec<CellView>, th: &Thread, row: u16, wash: Option<Rgb>, x: &Ctx) {
     let t = crew_theme::theme();
-    let wash = selected.then(|| crew_theme::readable::selection_bg(&t));
     let ink = |c: Rgb| match wash {
         Some(w) => crew_theme::readable::against(c, w, crew_theme::contrast::text_floor()),
         None => c,

@@ -149,7 +149,7 @@ impl CrewApp {
                 // toggles, ✗ deletes, a row selects, the composer refocuses)
                 // and focuses the pane; empty regions fall through to the
                 // normal focus/drag path below.
-                if self.todo_click_at_cursor() {
+                if self.todo_click_at_cursor() || self.inbox_click_at_cursor() {
                     self.redraw();
                     return;
                 }

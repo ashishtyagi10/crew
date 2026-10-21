@@ -75,6 +75,12 @@ impl InboxPane {
     fn take_row(&mut self) -> Option<(usize, Thread, bool)> {
         let (at, thread) = self.target()?;
         self.rows.remove(at);
+        // Drawn where it was a moment longer, folding away (`motion`).
+        self.motion.fold = Some(super::motion::Fold {
+            at,
+            thread: thread.clone(),
+            start: crate::anim::now_ms(),
+        });
         self.sel = self.sel.min(self.rows.len().saturating_sub(1));
         let open = self.reading.take().is_some();
         if open {
