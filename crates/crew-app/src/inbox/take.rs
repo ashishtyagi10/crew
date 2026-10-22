@@ -117,6 +117,8 @@ impl InboxPane {
             Got::Opened(id, mails) => {
                 self.busy = false;
                 if let Some(r) = self.reading.as_mut().filter(|r| r.thread.id == id) {
+                    // New mails (a reply just sent among them): a new layout.
+                    *r.laid.get_mut().unwrap_or_else(|e| e.into_inner()) = None;
                     r.mails = Some(mails);
                     if let Some(then) = self.then.take() {
                         self.act(then);
@@ -124,6 +126,7 @@ impl InboxPane {
                     self.fetch_carried();
                     self.fetch_web();
                 }
+                self.end_after_send();
             }
             Got::Picture(key, bm) => self.pics.set(key, bm),
             Got::Saved(Ok(path)) => {
@@ -142,8 +145,10 @@ impl InboxPane {
             Got::Sent(to) => {
                 self.compose = None;
                 self.note = format!("sent to {}", super::addr::names(&to));
-                // The thread again, the reply in it.
-                if let Some(id) = self.reading.as_ref().map(|r| r.thread.id.clone()) {
+                // The thread again, the reply in it, shown (`end_after_send`).
+                if let Some(r) = self.reading.as_mut() {
+                    r.to_end = true;
+                    let id = r.thread.id.clone();
                     self.ask(Ask::Open(id));
                 }
             }

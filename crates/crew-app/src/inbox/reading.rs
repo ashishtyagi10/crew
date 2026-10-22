@@ -28,6 +28,10 @@ pub(crate) struct Reading {
     pub all: bool,
     pub folds: u32,
     pub(crate) laid: std::sync::Mutex<Option<(reader::Key, std::sync::Arc<reader::Laid>)>>,
+    /// The pane's size when last drawn, for what moves the scroll between
+    /// keys; and a reply just sent: its thread opens again at its end.
+    pub seen: std::cell::Cell<(u16, u16)>,
+    pub to_end: bool,
 }
 
 impl Reading {
@@ -46,6 +50,8 @@ impl Reading {
             all: false,
             folds: 0,
             laid: std::sync::Mutex::new(None),
+            seen: Default::default(),
+            to_end: false,
         }
     }
 

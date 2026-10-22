@@ -69,6 +69,22 @@ impl InboxPane {
         out
     }
 
+    /// A reply's thread, opened again after it went: at its end, where the
+    /// reply is, at the size the pane was last drawn.
+    pub(crate) fn end_after_send(&mut self) {
+        let asked = self.reading.as_mut().filter(|r| r.to_end).map(|r| {
+            r.to_end = false;
+            r.seen.get()
+        });
+        let Some((cols, rows)) = asked.filter(|&(c, r)| c > 0 && r > 0) else {
+            return;
+        };
+        let (room, width) = (self.reader_rows(cols, rows), self.reader_box(cols).1);
+        if let Some(r) = self.reading.as_mut() {
+            r.scroll = super::reader::height(r, width).saturating_sub(usize::from(room));
+        }
+    }
+
     /// Whether the open mail's last line is on screen.
     fn end_in_view(&self, cols: u16, rows: u16) -> bool {
         let (room, width) = (self.reader_rows(cols, rows), self.reader_box(cols).1);
