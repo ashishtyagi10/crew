@@ -41,3 +41,19 @@ fn a_reply_waits_out_an_ended_sign_in_and_the_setup_page_keeps_its_keys() {
     typed(&mut p, "!");
     assert_eq!(p.compose.as_ref().unwrap().body.text, "Half a reply!");
 }
+
+#[test]
+fn a_reply_on_its_way_keeps_its_box_until_gmail_says_it_went() {
+    let _g = crate::app::motion_test_guard();
+    let (mut p, _) = reading();
+    typed(&mut p, "r");
+    typed(&mut p, "Yes.");
+    p.send_reply();
+    for _ in 0..2 {
+        p.press(&Key::Named(NamedKey::Escape), 80, 30);
+    }
+    assert!(p.compose.is_some(), "Esc does not let a sending box go");
+    assert!(p.note.contains("on its way"), "{}", p.note);
+    p.take(Got::Sent("ann@x.org".into()));
+    assert!(p.compose.is_none(), "Gmail said it went");
+}

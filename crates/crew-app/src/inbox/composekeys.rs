@@ -25,6 +25,11 @@ impl InboxPane {
             On::Files => On::To,
         };
         match key {
+            // On its way: the box goes when Gmail says it went, so that word
+            // cannot close a box opened since.
+            Key::Named(NamedKey::Escape) if c.sending => {
+                self.note = "on its way \u{2014} the box closes when Gmail says it went".into();
+            }
             Key::Named(NamedKey::Escape) if armed || c.untouched() => {
                 self.compose = None;
                 self.note = String::new();
