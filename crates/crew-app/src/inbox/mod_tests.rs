@@ -156,7 +156,7 @@ fn the_list_draws_unread_dots_senders_and_the_hint() {
     assert!(row(0).trim().starts_with('\u{256d}'), "the list's card");
     let air: String = row(1).chars().filter(|c| *c != ' ').collect();
     assert_eq!(air, "\u{2502}\u{2502}", "a row of air in it");
-    assert!(row(2).contains("undated"), "the day's band, first");
+    assert!(row(2).contains("unread"), "the unread ones' band, first");
     assert!(
         row(3).starts_with(" \u{2502} \u{25cf} ann   about ann"),
         "{:?}",

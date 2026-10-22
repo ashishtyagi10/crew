@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.0
+
+**`/inbox`: unread mail on top, and bold.**
+- The unread threads come first, newest first, under a band of their own,
+  `unread`; the read ones follow under their days, as before. A page that
+  `j` brings in puts its unread threads up there too, and the selection
+  stays on its thread.
+- A thread you read keeps its place on top until the list is asked for
+  again by hand (`R`, a search), as Gmail's "Unread first" does, so reading
+  down the unread never moves the row out from under you.
+- An unread thread's subject is bold on two-line rows as well as its names
+  and time. A font with no Bold face (Cascadia Code, Geist Mono, MonoLisa)
+  draws bold at its own weight, and the colour still tells unread apart.
+- `n` and `p` at either end of the list say `this is the end of the list`
+  and `this is the top of the list`: the list is no longer one run of dates.
+
 ## 0.27.99
 
 **`/inbox`: unread mail is a colour of its own in the list.**

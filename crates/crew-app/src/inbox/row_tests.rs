@@ -161,8 +161,8 @@ fn the_selected_row_is_washed_edge_to_edge_and_its_ink_reads_on_it() {
         );
         assert_eq!(at('h').fg, t.text_muted, "a read thread's time recedes");
         let unread = draw(&thread(), 60, true, false);
-        let names = unread.iter().find(|c| c.c == 'A').unwrap();
-        assert!(names.bold, "unread names are bold");
+        let bold = |ch: char| unread.iter().find(|c| c.c == ch).unwrap().bold;
+        assert!(bold('A') && bold('Q'), "unread names and subject are bold");
     }
 }
 

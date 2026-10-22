@@ -324,8 +324,10 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
 the pane is tall enough, with a blank row between threads instead of rules
 (who wrote, as Gmail writes it — `Ann, Bo, me` — and the message count, the
 time at the right with a star or a paperclip beside it; then the subject and
-the snippet in a quieter ink; unread mail has a dot and bold names; `L` for
-one line a thread, kept for the session; grouped under `today`,
+the snippet in a quieter ink; unread mail comes first, under an `unread`
+band, with a dot and its names, subject and time bold in your accent colour
+(a thread you read there keeps its place until `R` lists again); `L` for
+one line a thread, kept for the session; the rest grouped under `today`,
 `yesterday`, the weekday, `last week` and on back; every key the pane
 answers to is listed at its foot; a click selects a thread and a second
 reads it, a click on a star takes it off, and the thread under the pointer

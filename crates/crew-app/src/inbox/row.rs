@@ -5,10 +5,13 @@
 //! with the star or a paperclip beside it; under them the subject and, in
 //! muted ink, the snippet. One line when it has not: the same across. No
 //! chips and no rules: the air between threads divides them. An unread
-//! thread's names, subject and gutter dot wear a colour of their own, bold
+//! thread's names, subject and gutter dot wear a colour of their own
 //! ("unread email should appear with different color", 2026-10-22,
-//! [`unread_ink`]); a read one is plain ink with its time receded. The selected row wears the
-//! wash from edge to edge, and every colour on it is lifted to read on it.
+//! [`unread_ink`]), and its names, subject and time are bold ("may be bold
+//! text"): a family with no Bold face draws bold at its own weight, and the
+//! colour still tells. A read one is plain ink with its time receded. The
+//! selected row wears the wash from edge to edge, and every colour on it is
+//! lifted to read on it.
 use crew_render::CellView;
 
 use super::line::Line;
@@ -93,8 +96,7 @@ pub(crate) fn washed(out: &mut Vec<CellView>, th: &Thread, row: u16, wash: Optio
         "" => "(no subject)",
         s => s,
     };
-    // Bold once a row: the names on two lines, the subject on one.
-    let after = body.put(at, stop, subject, lead, th.unread && !x.two);
+    let after = body.put(at, stop, subject, lead, th.unread);
     if fit.snippet && !th.snippet.is_empty() && after + AIR + 4 < stop {
         body.put(after + AIR, stop, &th.snippet, muted, false);
     }

@@ -44,6 +44,7 @@ pub(crate) mod mailwin;
 mod mime;
 pub(crate) mod motion;
 pub(crate) mod mouse;
+mod ontop;
 pub(crate) mod outgoing;
 pub(crate) mod picfetch;
 mod pick;
