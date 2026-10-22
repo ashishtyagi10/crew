@@ -526,6 +526,7 @@ mod inboxclick;
 mod inboxglance;
 mod inboxsmith;
 mod inboxwin;
+mod inboxwinkeys;
 mod navinboxcard;
 #[cfg(any(windows, test))]
 mod posh;
