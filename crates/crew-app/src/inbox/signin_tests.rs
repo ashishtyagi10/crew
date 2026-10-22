@@ -50,7 +50,13 @@ fn stub(status: u16, json: &'static str) -> (String, std::thread::JoinHandle<Str
 
 #[test]
 fn the_consent_url_asks_to_read_and_file_mail_with_a_refresh_token_and_pkce() {
-    let u = super::authorize_url(&client().id, "http://127.0.0.1:5555", "CHAL", "STATE");
+    let u = super::authorize_url(
+        &client().id,
+        "http://127.0.0.1:5555",
+        "CHAL",
+        "STATE",
+        false,
+    );
     assert!(u.starts_with("https://accounts.google.com/o/oauth2/v2/auth?client_id=123-abc.apps.googleusercontent.com&"), "{u}");
     for part in [
         "redirect_uri=http%3A%2F%2F127.0.0.1%3A5555",
@@ -97,7 +103,9 @@ fn a_code_is_redeemed_with_its_verifier_for_a_refresh_token() {
         g == Grant {
             client: client(),
             refresh_token: "1//r".into(),
-            email: String::new()
+            email: String::new(),
+            // What Google said it granted, kept as it said it.
+            scope: "x".into(),
         }
     );
     let body = sent.join().unwrap();
@@ -122,6 +130,7 @@ fn an_ended_grant_says_googles_reason_and_nothing_secret() {
         client: client(),
         refresh_token: "1//secret".into(),
         email: String::new(),
+        scope: String::new(),
     };
     let err = super::refresh(&url, &g).unwrap_err();
     assert_eq!(err, "invalid_grant: Token has been expired or revoked.");
@@ -138,6 +147,7 @@ fn a_refresh_gives_the_access_token_and_its_life() {
         client: client(),
         refresh_token: "1//r".into(),
         email: String::new(),
+        scope: String::new(),
     };
     assert_eq!(
         super::refresh(&url, &g).unwrap(),

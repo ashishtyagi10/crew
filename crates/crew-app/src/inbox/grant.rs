@@ -26,6 +26,10 @@ pub(crate) struct Grant {
     /// The account, once the profile has been read; shown in the legend.
     #[serde(default)]
     pub email: String,
+    /// What Google granted, space-separated; empty in a grant from before
+    /// it was kept (Gmail's alone, then).
+    #[serde(default)]
+    pub scope: String,
 }
 
 /// Redacted: the refresh token and the secret never reach a log or a panic.

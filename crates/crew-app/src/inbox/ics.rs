@@ -9,14 +9,22 @@ pub(crate) use icsline::{props, text, Prop};
 
 #[path = "icsadd.rs"]
 mod add;
+#[path = "icsanswer.rs"]
+mod answer;
+#[path = "icscal.rs"]
+pub(crate) mod cal;
 #[path = "invitecard.rs"]
 pub(crate) mod card;
+#[path = "icsevent.rs"]
+mod event;
 #[path = "icsline.rs"]
 mod icsline;
 #[path = "icstz.rs"]
 pub(crate) mod icstz;
 #[path = "icswhen.rs"]
 pub(crate) mod icswhen;
+#[path = "icsreply.rs"]
+pub(crate) mod reply;
 
 /// When an event starts or ends, as the file wrote it.
 #[derive(Clone, Debug, PartialEq)]

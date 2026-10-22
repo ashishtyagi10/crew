@@ -34,6 +34,12 @@ pub(crate) struct Reading {
     pub to_end: bool,
     /// Gmail would not open it, and why (`Got::Unopened`).
     pub failed: Option<String>,
+    /// `y` opened the invite's answer: its keys are the card's (`ics::answer`).
+    pub(crate) answering: bool,
+    /// What Google Calendar said of the invite: its UID, and your answer
+    /// there (`None`: not on it). And what you answered here.
+    pub(crate) on_cal: Option<(String, Option<String>)>,
+    pub(crate) answered: Option<String>,
 }
 
 impl Reading {
@@ -55,6 +61,9 @@ impl Reading {
             seen: Default::default(),
             to_end: false,
             failed: None,
+            answering: false,
+            on_cal: None,
+            answered: None,
         }
     }
 

@@ -14,6 +14,7 @@ fn a_reply_with_a_file_goes_up_in_its_thread_the_file_read_from_disk() {
         },
         refresh_token: "1//r".into(),
         email: String::new(),
+        scope: String::new(),
     };
     let mut g = Gmail::at(grant, &format!("{base}/token"), &format!("{base}/gmail")).unwrap();
     let dir = tempfile::tempdir().unwrap();

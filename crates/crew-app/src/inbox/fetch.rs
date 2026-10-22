@@ -1,6 +1,7 @@
 //! Requests to Gmail, run together on the worker's runtime and answered in
-//! the order asked: a GET, or a POST of JSON when the request carries a body.
-//! A 401 is its own answer: the caller renews the token.
+//! the order asked: a GET, or a POST of JSON when the request carries a body
+//! (and a lone PATCH, for Google Calendar's `events.patch`). A 401 is its
+//! own answer: the caller renews the token.
 use std::time::Duration;
 
 use serde_json::Value;
@@ -43,6 +44,20 @@ async fn one(
         Some(b) => http.post(url).json(&b),
         None => http.get(url),
     };
+    answer(req, token).await
+}
+
+/// A PATCH of `body` to `url`.
+pub(crate) async fn patch(
+    http: reqwest::Client,
+    token: String,
+    url: String,
+    body: Value,
+) -> Result<Value, Fetch> {
+    answer(http.patch(url).json(&body), &token).await
+}
+
+async fn answer(req: reqwest::RequestBuilder, token: &str) -> Result<Value, Fetch> {
     let r = req
         .bearer_auth(token)
         .timeout(HTTP)

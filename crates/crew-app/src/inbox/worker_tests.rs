@@ -13,6 +13,7 @@ fn a_filing_that_went_brings_the_unread_count_with_it() {
         },
         refresh_token: "1//r".into(),
         email: String::new(),
+        scope: String::new(),
     };
     let mut g = Gmail::at(grant, &format!("{base}/token"), &format!("{base}/gmail")).unwrap();
     let got = State::default().answer(
@@ -76,6 +77,7 @@ fn the_account_comes_with_the_first_list_that_reaches_gmail() {
         },
         refresh_token: "1//r".into(),
         email: String::new(),
+        scope: String::new(),
     };
     let mut g = Gmail::at(grant, &format!("{base}/token"), &format!("{base}/gmail")).unwrap();
     let mut s = State::default();

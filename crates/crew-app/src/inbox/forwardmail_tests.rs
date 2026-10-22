@@ -114,6 +114,7 @@ fn send_fetches_the_files_then_uploads_the_mail_as_itself() {
         },
         refresh_token: "1//r".into(),
         email: String::new(),
+        scope: String::new(),
     };
     let mut g = Gmail::at(grant, &format!("{base}/token"), &format!("{base}/gmail")).unwrap();
     let f = Forwarded::of(&mail());

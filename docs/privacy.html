@@ -75,7 +75,10 @@
       <h2 id="gmail">Gmail and Google user data</h2>
       <p>The <code>/inbox</code> pane shows your Gmail inside Crew. You sign in with
       a Google OAuth client that you create in your own Google Cloud project, and
-      Crew asks for one scope, <code>gmail.modify</code>.</p>
+      Crew asks for one scope, <code>gmail.modify</code>. Only if you run
+      <code>/inbox calendar</code> does it also ask for
+      <code>calendar.events</code>, so that it can add a meeting invite to your
+      Google Calendar and answer it there.</p>
       <h3>What Crew reads</h3>
       <p>Thread lists, message headers, message bodies and labels, which it fetches
       from the Gmail API so you can read and search your mail in the pane. It also
@@ -84,6 +87,11 @@
       fetched from where they are hosted, as a browser would fetch them. The
       sender's servers can see that the mail was opened, and from which IP
       address. <kbd>i</kbd> hides them again.</p>
+      <p>A meeting invite in a mail is read on your computer. With
+      <code>calendar.events</code>, opening a thread that carries one also asks
+      your Google Calendar whether that one event is on your primary calendar,
+      and what you answered: Crew looks it up by the invite's own ID and reads no
+      other event.</p>
       <h3>What Crew changes, and only when you press a key</h3>
       <ul>
         <li>Archiving, starring, and marking as read or unread, which change labels on
@@ -95,6 +103,17 @@
         <li>Sending a reply or a forward you wrote, when you press
         <kbd>Cmd</kbd>+<kbd>Enter</kbd> (<kbd>Ctrl</kbd>+<kbd>Enter</kbd> off a Mac) in the
         reply box. Crew sends no mail you did not write and send.</li>
+        <li>Adding a meeting invite to your calendar, when you press <kbd>c</kbd>:
+        with <code>calendar.events</code>, onto your Google Calendar; without it,
+        Crew writes the invite to a file and opens it in your computer's calendar
+        app, which sends nothing to Google from Crew.</li>
+        <li>Answering a meeting invite, when you press <kbd>y</kbd> and then
+        <kbd>y</kbd>, <kbd>n</kbd> or <kbd>m</kbd> on its card, which first names
+        who will be told: with <code>calendar.events</code> and the event on your
+        Google Calendar, Crew sets your answer there and Google tells the
+        organizer; otherwise Crew sends the organizer a short reply mail from your
+        account that says your answer, as Outlook and Apple Mail do. It is the one
+        mail Crew writes for you, and only the answer you chose.</li>
         <li>Unsubscribing, when you press <kbd>u</kbd> twice on a mail that offers it:
         Crew sends the unsubscribe email the sender asks for, from your account, or
         posts to the sender's own unsubscribe address.</li>
@@ -129,7 +148,7 @@
       including the Limited Use requirements.</p>
       <h3>Removing access</h3>
       <p>Run <code>/inbox signout</code> to delete <code>gmail.json</code> and revoke
-      the grant at Google. You can also remove access at any time from
+      the grant at Google, Calendar access with it. You can also remove access at any time from
       <a href="https://myaccount.google.com/permissions" target="_blank">your Google Account's third-party access page</a>.</p>
 
       <h2 id="children">Children</h2>

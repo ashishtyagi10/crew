@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.3
+
+**`/inbox`: your Google Calendar, and answers to invites.** Phase 3, the
+last, of the calendar goal.
+- **`/inbox calendar`** signs in again asking for Google Calendar's events
+  beside Gmail (and opens the console page that turns the Calendar API on
+  in your project). Then the invite card says whether the meeting is on
+  your Google Calendar and what you answered, and `c` adds it there, under
+  its own ID, so an invite Gmail already added is never added twice.
+- **`y` answers an invite:** the card names who will be told, then `y` yes,
+  `n` no, `m` maybe, or Esc for not now. On your Google Calendar the answer
+  is set there and Google tells the organizer; otherwise crew sends the
+  organizer a short reply mail with your answer, as Outlook and Apple Mail
+  do, which needs no new permission.
+- The privacy policy and the terms say what the Calendar permission reads
+  and changes, and that the answer is the one mail crew writes for you.
+
 ## 0.28.2
 
 **`/inbox`: `c` adds a meeting invite to your calendar.** Phase 2 of the

@@ -8,15 +8,13 @@ use super::super::InboxPane;
 use super::icstz::{place, Placed};
 
 impl InboxPane {
-    /// Add the open thread's newest invite (an update comes after the
-    /// first); what happened, for the reader's note.
-    pub(crate) fn add_to_calendar(&self) -> String {
-        let mails = self.reading.as_ref().and_then(|r| r.mails.as_ref());
-        let Some(ics) = mails.and_then(|ms| ms.iter().rev().find_map(|m| m.calendar.as_deref()))
-        else {
+    /// Add the open thread's newest invite: to Google Calendar once it has
+    /// answered for it (`icsanswer`), else here. What happened, for the note.
+    pub(crate) fn add_to_calendar(&mut self) -> String {
+        let Some(ics) = self.invite() else {
             return "no invite in this thread".into();
         };
-        let Some(inv) = super::parse(ics) else {
+        let Some(inv) = super::parse(&ics) else {
             return "crew cannot read this invite".into();
         };
         if inv.cancelled {
@@ -26,8 +24,16 @@ impl InboxPane {
         if let Some(Placed::Unplaced(_, zone)) = inv.start.as_ref().map(|s| place(s, &inv.zones)) {
             return format!("crew cannot place the zone {zone}, so it adds nothing");
         }
+        match self.on_google(&inv.uid) {
+            Some(Some(_)) => return "already on your Google Calendar".into(),
+            Some(None) => {
+                self.ask(crate::inbox::worker::Ask::AddEvent(ics));
+                return "adding it to your Google Calendar\u{2026}".into();
+            }
+            None => {}
+        }
         let path = std::env::temp_dir().join(file_name(&inv.uid));
-        if let Err(e) = std::fs::write(&path, ics) {
+        if let Err(e) = std::fs::write(&path, &ics) {
             return format!("could not write the invite: {e}");
         }
         crate::linkclick::open_external(&path.to_string_lossy());

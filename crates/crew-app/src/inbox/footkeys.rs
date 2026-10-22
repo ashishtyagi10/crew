@@ -31,6 +31,13 @@ pub(crate) const SETUP: Keys = &[
     ("esc", "back"),
 ];
 pub(crate) const SIGNING_IN: Keys = &[("esc", "cancel")];
+/// An invite's answer, open on its card (`ics::answer`).
+pub(crate) const ANSWER: Keys = &[
+    ("y", "yes"),
+    ("n", "no"),
+    ("m", "maybe"),
+    ("esc", "not now"),
+];
 /// The todo card's keys (`todocard`).
 pub(crate) const TODO: Keys = &[
     ("enter", "add to /todo"),

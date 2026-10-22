@@ -53,6 +53,7 @@ fn grant() -> Grant {
         },
         refresh_token: "1//r".into(),
         email: String::new(),
+        scope: String::new(),
     }
 }
 

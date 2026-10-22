@@ -8,6 +8,7 @@ impl CrewApp {
     pub(crate) fn inbox_command(&mut self, arg: &str) {
         match arg.trim() {
             "signout" | "sign out" | "logout" => self.inbox_signout(),
+            "calendar" => self.inbox_calendar(),
             q => {
                 let i = self.spawn_inbox_pane();
                 if let Some(PaneContent::Inbox(p)) = self.panes.get_mut(i).map(|p| &mut p.content) {
@@ -52,6 +53,20 @@ impl CrewApp {
         });
         self.focus_new_pane();
         self.panes.len() - 1
+    }
+
+    /// `/inbox calendar`: sign in again, asking for Google Calendar's events
+    /// beside Gmail's (`inbox::ics::cal`), with the console page that turns
+    /// the Calendar API on opened first.
+    fn inbox_calendar(&mut self) {
+        let Some(grant) = crate::inbox::grant::load() else {
+            return self.set_status("/inbox: sign in first, then /inbox calendar");
+        };
+        let i = self.spawn_inbox_pane();
+        crate::linkclick::open_external(crate::inbox::ics::cal::ENABLE);
+        if let Some(PaneContent::Inbox(p)) = self.panes.get_mut(i).map(|p| &mut p.content) {
+            p.calendar_sign_in(grant.client);
+        }
     }
 
     /// Forget the grant here, and ask Google to withdraw it (off the winit

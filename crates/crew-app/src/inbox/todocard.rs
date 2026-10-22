@@ -111,11 +111,15 @@ impl InboxPane {
 
     /// Whether a card (the reply box or the todo) is open under the mail.
     pub(crate) fn carded(&self) -> bool {
-        self.compose.is_some() || self.todo.is_some()
+        self.compose.is_some() || self.todo.is_some() || self.answering()
     }
 
-    /// A key while a card is open: the todo's here, the box's in `composekeys`.
+    /// A key while a card is open: the todo's here, the box's in `composekeys`,
+    /// an invite's answer in `ics::answer`.
     pub(crate) fn card_key(&mut self, key: &Key) {
+        if self.answering() {
+            return self.answer_key(key);
+        }
         if self.todo.is_none() {
             return self.compose_key(key);
         }
