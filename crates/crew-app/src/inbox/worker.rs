@@ -69,15 +69,15 @@ impl State {
                 Ok(m) => Got::Opened(id, m),
                 Err(e) => failed_as(e, |e| Got::Unopened(id, e)),
             }],
-            // The pane already shows the change; a refusal is said, and the
-            // list comes back as Gmail has it, which puts the row right.
+            // The pane already shows the change. A refusal: the list as Gmail
+            // has it, then the refusal, which puts the row right and is said.
             Ask::Relabel { id, add, remove } => {
                 let done = g.relabel(&id, &add, &remove);
-                self.filed(g, done)
+                self.filed(g, id, done)
             }
             Ask::Trash { id, back } => {
                 let done = g.trash(&id, back);
-                self.filed(g, done)
+                self.filed(g, id, done)
             }
             Ask::Picture {
                 key,
@@ -123,12 +123,16 @@ impl State {
     }
 
     /// A filing call's answer: the unread count when it worked.
-    fn filed(&mut self, g: &mut Gmail, done: Result<(), String>) -> Vec<Got> {
+    fn filed(&mut self, g: &mut Gmail, id: String, done: Result<(), String>) -> Vec<Got> {
         match done {
             // The count the pane's name and the nav card say, at once
             // (labels.get, one unit); none when it could not be had.
             Ok(()) => g.unread().ok().map(Got::Unread).into_iter().collect(),
-            Err(e) => std::iter::once(fail(e)).chain(self.list(g, None)).collect(),
+            // Last, so the page landing before it does not clear its words.
+            Err(e) => {
+                let refused = failed_as(e, |e| Got::Refused(id, e));
+                self.list(g, None).into_iter().chain([refused]).collect()
+            }
         }
     }
 

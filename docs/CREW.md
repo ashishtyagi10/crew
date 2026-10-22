@@ -1770,8 +1770,8 @@ longer aim at.
   acted on (RFC 8058 counts only signed headers), and never at an IP or a
   local host; any other mail can only have its unsubscribe page opened in
   the browser. The first `u` says what would happen; a second does it;
-  each shows at once and goes to Gmail behind it, and a refusal is said with
-  the list re-read as Gmail has it. Opening a thread marks it read. Nothing
+  each shows at once and goes to Gmail behind it, and a refusal is said and
+  the thread put back as it was. Opening a thread marks it read. Nothing
   is deleted for good: the scope is `gmail.modify` (read, file, trash,
   draft), not the full-mail one; a sign-in from v0.27.29, made for
   read-only, is told to sign in again. Agent smith on the inbox: `a` hands

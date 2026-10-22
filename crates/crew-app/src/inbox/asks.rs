@@ -105,6 +105,9 @@ pub(crate) enum Got {
     Saved(Result<std::path::PathBuf, String>),
     /// A call failed; the pane says why and keeps what it has.
     Failed(String),
+    /// Gmail refused to file thread `.0` (archive, delete, star, read), and
+    /// why: the row goes back as it was.
+    Refused(String, String),
     /// Google ended the grant (revoked, expired): sign in again.
     Ended(String),
 }
