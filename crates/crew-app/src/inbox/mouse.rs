@@ -29,6 +29,20 @@ impl InboxPane {
         Some(i)
     }
 
+    /// Whether a click at `(row, col)` would do something: a thread, a
+    /// keycap, the counter, a folded mail, a link, the reply box's files.
+    /// The tile and the mail window both make the pointer a hand there.
+    pub(crate) fn clickable_at(&self, cols: u16, rows: u16, row: u16, col: u16) -> bool {
+        let w = self.reader_box(cols).1;
+        let folded = self.mail_local(cols, rows, row, col);
+        self.thread_at(cols, rows, row, col).is_some()
+            || self.foot_key_at(cols, rows, row, col).is_some()
+            || self.counter_at(cols, rows, row, col).is_some()
+            || folded.is_some_and(|(r, _)| self.folded_at(w, r).is_some())
+            || self.link_at(cols, rows, row, col).is_some()
+            || self.compose_spot_at(cols, rows, row, col).is_some()
+    }
+
     /// A left click at `(row, col)`: on a thread, a key in the foot, or one
     /// of the reader's `‹ ›`.
     pub(crate) fn click(&mut self, cols: u16, rows: u16, row: u16, col: u16) -> Clicked {

@@ -115,3 +115,37 @@ fn a_drag_copies_the_inside_of_its_card_and_nothing_beside_it() {
         "the pane as drawn does have edges"
     );
 }
+
+#[test]
+fn the_hand_shows_over_what_clicks_and_nowhere_else() {
+    let _g = crate::app::motion_test_guard();
+    let p = reading();
+    let k = p.cards(150, 30);
+    let (list, mail) = (k.list.unwrap().inner(), k.mail.unwrap());
+    let (r, _) = p.shown(list.h).threads().next().expect("a row");
+    assert!(
+        p.clickable_at(150, 30, list.row + r, list.col + 4),
+        "a thread"
+    );
+    let (row, col, _) = p.links(150, 30).first().cloned().expect("a link");
+    assert!(p.clickable_at(150, 30, row, col + 1), "a link");
+    let cells = p.cells(150, 30);
+    let arrow = cells
+        .iter()
+        .find(|c| c.row == mail.row && c.c == '\u{203a}')
+        .unwrap();
+    assert!(p.clickable_at(150, 30, arrow.row, arrow.col), "the counter");
+    let key = cells
+        .iter()
+        .find(|c| c.c == 'e' && c.mark)
+        .expect("a keycap");
+    assert!(p.clickable_at(150, 30, key.row, key.col), "a keycap");
+    assert!(
+        !p.clickable_at(150, 30, mail.row + 1, mail.col),
+        "a card's edge"
+    );
+    assert!(
+        !p.clickable_at(150, 30, row, col - 3),
+        "the words before the link"
+    );
+}
