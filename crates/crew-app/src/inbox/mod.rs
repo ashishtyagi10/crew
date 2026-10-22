@@ -16,6 +16,7 @@ pub(crate) mod charset;
 pub(crate) mod compose;
 mod composedraw;
 pub(crate) mod composefiles;
+mod composegeo;
 mod composehead;
 pub(crate) mod composekeys;
 mod composesend;
@@ -74,8 +75,7 @@ pub(crate) mod who;
 pub(crate) mod wire;
 pub(crate) mod worker;
 
-use std::path::PathBuf;
-use std::sync::mpsc::Receiver;
+use std::{path::PathBuf, sync::mpsc::Receiver};
 
 use grant::{Client, Grant};
 pub(crate) use reading::Reading;
