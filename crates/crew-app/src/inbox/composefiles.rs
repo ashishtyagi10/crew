@@ -133,14 +133,28 @@ pub(crate) fn draw(cv: &mut Canvas, c: &Compose, top: u16, w: u16) {
 }
 
 impl InboxPane {
+    /// What on the box's row of files is at the pane's `(row, col)`, if
+    /// anything: what a click does there, and where the pointer is a hand.
+    pub(crate) fn compose_spot_at(&self, cols: u16, rows: u16, row: u16, col: u16) -> Option<What> {
+        let b = self.cards(cols, rows).reply?;
+        let ((row, col), c) = (b.local(row, col)?, self.compose.as_ref()?);
+        let w = text_w(b.w) as u16;
+        let f = geo(c, 0, b.h, w).files?;
+        let s = spots(c, w).into_iter().find(|s| {
+            row.checked_sub(f) == Some(s.row) && (X + s.col..X + s.col + s.w).contains(&col)
+        })?;
+        Some(s.what)
+    }
+
     /// A click on the pane's `(row, col)`: the caret to the box's line
     /// there, or a file's open or `✕`, or `+ attach`. True when it was on
     /// the box.
     pub(crate) fn compose_click(&mut self, cols: u16, rows: u16, row: u16, col: u16) -> bool {
+        let hit = self.compose_spot_at(cols, rows, row, col);
         let Some(b) = self.cards(cols, rows).reply else {
             return false;
         };
-        let (Some((row, col)), Some(c)) = (b.local(row, col), self.compose.as_mut()) else {
+        let (Some((row, _)), Some(c)) = (b.local(row, col), self.compose.as_mut()) else {
             return false;
         };
         let w = text_w(b.w) as u16;
@@ -148,13 +162,6 @@ impl InboxPane {
         let files = g
             .files
             .filter(|&f| (f..f + self::rows(c, w)).contains(&row));
-        let hit = spots(c, w)
-            .into_iter()
-            .find(|s| {
-                files.is_some_and(|f| s.row == row - f)
-                    && (X + s.col..X + s.col + s.w).contains(&col)
-            })
-            .map(|s| s.what);
         c.on = match row {
             _ if files.is_some() => On::Files,
             r if r <= g.to => On::To,

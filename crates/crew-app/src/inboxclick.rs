@@ -92,6 +92,7 @@ impl CrewApp {
                     || p.counter_at(cols, rows, row, col).is_some()
                     || folded.is_some_and(|(r, _)| p.folded_at(w, r).is_some())
                     || p.link_at(cols, rows, row, col).is_some()
+                    || p.compose_spot_at(cols, rows, row, col).is_some()
             };
             at == i && matches!(&self.panes[at].content, PaneContent::Inbox(p) if on(p))
         })
