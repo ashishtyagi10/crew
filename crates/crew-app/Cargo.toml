@@ -17,6 +17,8 @@ anyhow.workspace = true
 ratatui.workspace = true
 arboard = "3"
 chrono = "0.4"
+# An invite's named zone (`inbox::icstz`): the IANA database, compiled in.
+chrono-tz = "0.10"
 iana-time-zone = "0.1"
 serde = { workspace = true }
 serde_json = { workspace = true }

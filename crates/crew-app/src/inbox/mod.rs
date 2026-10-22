@@ -33,6 +33,7 @@ mod forwardmail;
 pub(crate) mod grant;
 pub(crate) mod handoff;
 pub(crate) mod html;
+pub(crate) mod ics;
 mod input;
 pub(crate) mod keys;
 pub(crate) mod layout;

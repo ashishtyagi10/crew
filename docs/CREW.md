@@ -1752,6 +1752,13 @@ longer aim at.
   (declared 2×2 or smaller, a spacer file, or one that decodes that small)
   is never drawn; every decode runs under `image::Limits` (8,192 px a side,
   128 MB). Pictures live in memory with the open thread and go with it.
+  A mail that carries a meeting invite opens with a card under its sender:
+  the meeting's title, when it is in your time (and in the organizer's, when
+  their clocks say otherwise: `Tue Nov 3 · 12:00–12:30 · 09:00–09:30 in Los
+  Angeles`), how often it repeats, where, who asked, and its Zoom, Teams or
+  Meet link to Cmd+click. crew reads the invite on your computer, Outlook's
+  Windows zone names and its own zone rules included; a zone it cannot place
+  is shown as written and says so. A cancelled one says so first.
   Every attachment is a row under its message (`↓ report.pdf · 1.2 MB`):
   Cmd+click its name, or its capital letter in `Cmd+E`'s hint mode, and crew
   saves it to `~/Downloads` under a safe version of its name (no folders, no

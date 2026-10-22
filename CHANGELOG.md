@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.1
+
+**`/inbox`: a meeting invite is a card at the top of its mail.** Phase 1 of
+the calendar goal: crew reads the invite, on your computer.
+- **What, when, how often, where, who asked:** the title, the time in your
+  zone, and in the organizer's beside it when their clocks differ
+  (`Tue Nov 3 · 12:00–12:30 · 09:00–09:30 in Los Angeles`), the repeat in
+  words (`every week on Tuesday, until Dec 15`), the place, the organizer
+  and how many were invited, and the Zoom, Teams or Meet link to Cmd+click
+  (shown without its password).
+- **Any calendar's invite:** Google's, Outlook's (Windows zone names and its
+  own zone rules), Apple's, Thunderbird's, Zoom's, an airline's. A zone crew
+  cannot place is shown as written and says so. A cancelled one says so
+  first.
+- The todo card's due date reads the invite the same way, so a meeting set
+  in another zone now lands at your time.
+
 ## 0.28.0
 
 **`/inbox`: unread mail on top, and bold.**
