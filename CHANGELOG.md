@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.68
+
+**`/inbox`: agent smith's draft never lands behind your back.** First round
+of the fourth inbox loop.
+- **A draft for a closed reply box is let go.** If you pressed Tab for agent
+  smith's draft and then closed the box (or sent your own reply) before smith
+  answered, its draft used to be saved into Gmail as a draft in the thread.
+  Now crew says it was let go, and nothing is saved.
+- **Tab asks once.** A second Tab while smith is writing says so instead of
+  asking for a second draft.
+
 ## 0.27.67
 
 **`/inbox`: one geometry for every card.** Fifth and last round of the third

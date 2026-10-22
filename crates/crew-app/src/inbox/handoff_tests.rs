@@ -47,47 +47,32 @@ fn a_in_the_list_opens_the_thread_and_hands_it_over_when_it_lands() {
     p.poll();
     let sent = p.to_smith.take().expect("handed over");
     assert!(sent.prompt.contains("<<<MAIL") && sent.prompt.contains("by Friday"));
-    assert!(sent.shown.contains("Q4 review") && sent.draft.is_none());
+    assert!(sent.shown.contains("Q4 review") && !sent.draft);
 }
 
 #[test]
-fn smiths_reply_with_no_box_open_becomes_a_draft_in_the_thread() {
+fn smiths_draft_for_a_closed_box_is_let_go_never_saved() {
     let (mut p, asks, _answer) = pane();
     p.reading = Some(super::Reading {
         mails: Some(mails()),
         ..super::Reading::new(p.rows[0].clone())
     });
-    // `r` opens the reply box now (`compose`); smith's draft, asked for
-    // with no box open, still becomes a Gmail draft.
+    // Asked for from the box, then the box closed: the draft is let go,
+    // never saved to Gmail behind your back.
     p.act(super::Then::Draft);
     let sent = p.to_smith.take().expect("handed over");
-    let answer = sent.draft.expect("the draft's headers");
-    assert_eq!(
-        (answer.to.as_str(), answer.subject.as_str()),
-        ("Ann <ann@x.org>", "Re: Q4 review")
-    );
-    p.waiting = Some(super::Waiting {
-        answer,
-        since: 0,
-        at_ms: 0,
-    });
+    assert!(sent.draft, "a draft of the box's words");
+    p.waiting = Some(super::Waiting { since: 0, at_ms: 0 });
     p.drafted_by_smith(Some("Sure, Friday.".into()));
-    match asks.try_recv() {
-        Ok(Ask::Draft {
-            thread_id, subject, ..
-        }) => assert_eq!(
-            (thread_id.as_str(), subject.as_str()),
-            ("t1", "Re: Q4 review")
-        ),
-        _ => panic!("no draft asked"),
-    }
-    p.waiting = Some(super::Waiting {
-        answer: Default::default(),
-        since: 0,
-        at_ms: 0,
-    });
+    assert!(asks.try_iter().next().is_none(), "nothing asked of Gmail");
+    assert!(p.note.contains("let go"), "{}", p.note);
+    p.waiting = Some(super::Waiting { since: 0, at_ms: 0 });
     p.drafted_by_smith(None);
-    assert!(p.note.contains("press r to ask again"), "{}", p.note);
+    assert!(
+        p.note.contains("tab in the reply box asks again"),
+        "{}",
+        p.note
+    );
 }
 
 #[test]

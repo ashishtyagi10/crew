@@ -135,11 +135,6 @@ impl InboxPane {
                 crate::linkclick::open_external(&path.to_string_lossy());
             }
             Got::Saved(Err(e)) => self.note = e,
-            Got::Drafted(subject) => {
-                self.note = format!(
-                    "draft saved in Gmail: \u{201c}{subject}\u{201d} \u{2014} review and send it there (o)"
-                );
-            }
             Got::Forwarded(to) => {
                 self.compose = None;
                 self.note = format!("forwarded to {}", super::addr::names(&to));

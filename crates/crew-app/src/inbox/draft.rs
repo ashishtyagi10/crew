@@ -1,10 +1,11 @@
-//! A reply saved as a Gmail draft, in its thread, never sent.
+//! A reply as Gmail takes it, in its thread: whom it answers and the
+//! message itself.
 //!
-//! Gmail files a draft into a thread when three things agree: the draft's
+//! Gmail files a message into a thread when three things agree: its
 //! `threadId`, `In-Reply-To` and `References` naming the message answered
 //! (RFC 2822), and a subject that matches ("Gmail API: Managing threads").
-//! crew writes those headers itself from the thread; the model writes only
-//! the body. The draft waits in Gmail, and sending it is the user's.
+//! crew writes those headers itself from the thread; the words are yours,
+//! or agent smith's draft of them in the box, and sending is yours.
 use base64::Engine;
 use serde_json::Value;
 
@@ -40,7 +41,7 @@ impl Reply {
     }
 }
 
-/// Everything a draft needs but its body, taken when the user asks for one.
+/// Everything a reply needs but its words, taken when the box opens.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub(crate) struct Answer {
     pub thread_id: String,
@@ -106,7 +107,7 @@ fn answered<'a>(mails: &'a [Mail], me: &str) -> Option<&'a Mail> {
     mails.iter().rev().find(theirs).or(mails.last())
 }
 
-/// The draft as Gmail takes it: an RFC 2822 message, base64url. Header
+/// The reply as Gmail takes it: an RFC 2822 message, base64url. Header
 /// values lose any line break (a body cannot smuggle a header in), and a
 /// subject outside ASCII is RFC 2047-encoded.
 pub(crate) fn raw(a: &Answer, body: &str) -> String {
@@ -142,12 +143,6 @@ fn encoded(s: &str) -> String {
 }
 
 impl Gmail {
-    /// Save `raw` as a draft in thread `thread_id`.
-    pub(crate) fn draft(&mut self, thread_id: &str, raw: &str) -> Result<(), String> {
-        let body = serde_json::json!({"message": {"raw": raw, "threadId": thread_id}});
-        self.post("/drafts", body).map(|_| ())
-    }
-
     /// Send `raw` (RFC 2822, base64url) in the thread: `gmail.modify` covers it.
     pub(crate) fn send(&mut self, thread_id: &str, raw: &str) -> Result<(), String> {
         let body = serde_json::json!({"raw": raw, "threadId": thread_id});
