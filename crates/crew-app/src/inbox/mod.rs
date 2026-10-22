@@ -177,14 +177,7 @@ impl InboxPane {
         let Stage::Ready(w) = &self.stage else {
             return false;
         };
-        self.busy = !matches!(
-            ask,
-            Ask::Check
-                | Ask::Picture { .. }
-                | Ask::Save { .. }
-                | Ask::Unsubscribe { .. }
-                | Ask::Send { .. }
-        );
+        self.busy = ask.loads();
         w.tx.send(ask).is_ok()
     }
 }

@@ -52,6 +52,24 @@ pub(crate) enum Ask {
     },
 }
 
+impl Ask {
+    /// Whether the pane waits on this as a load (`busy`), which holds the
+    /// minute's check and `j`'s next page until it lands. Mail going out,
+    /// pictures, saves and unsubscribes are not loads: a forward left the
+    /// pane busy for good, as nothing it answers ends a load.
+    pub(crate) fn loads(&self) -> bool {
+        !matches!(
+            self,
+            Ask::Check
+                | Ask::Picture { .. }
+                | Ask::Save { .. }
+                | Ask::Unsubscribe { .. }
+                | Ask::Send { .. }
+                | Ask::Mail(_)
+        )
+    }
+}
+
 pub(crate) enum Got {
     /// The signed-in account.
     Account(String),
@@ -74,6 +92,10 @@ pub(crate) enum Got {
     Sent(String),
     /// A forward went, to these addresses.
     Forwarded(String),
+    /// Mail going out (a reply, a forward) did not go, and why: the one
+    /// answer that unlocks the box, so another call's failure never lets a
+    /// reply still on its way be sent twice.
+    NotSent(String),
     /// A picture, decoded, or `None` when there is nothing to draw.
     Picture(String, Option<crate::viewpane::bitmap::Bitmap>),
     /// An attachment written to disk, or why not.

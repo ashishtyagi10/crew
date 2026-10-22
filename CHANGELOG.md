@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.86
+
+**`/inbox`: a reply is never sent twice.** Second round of the seventh inbox
+loop.
+- **A reply on its way stays on its way until Gmail answers for it.** Any
+  failure (a check that timed out just before Cmd+Enter) unlocked the box,
+  so a second Cmd+Enter sent the reply twice. Now only the send's own
+  failure frees the box, which says "not sent" and why, words kept.
+- **After a forward, new mail still comes in.** A forward left the pane
+  waiting for good: the minute's check and `j`'s next page stopped.
+
 ## 0.27.85
 
 **`/inbox`: a check after new mail keeps your place.** First round of the
