@@ -58,14 +58,22 @@ impl CrewApp {
         self.redraw();
     }
 
+    /// Cmd+Z: the focused pane takes the whole content area, or goes onto the
+    /// grid — the inbox and far included, which start out zoomed. The choice
+    /// is the pane's own, so it outlives a trip to another pane
+    /// ([`crate::panezoom`]).
     pub(crate) fn toggle_zoom(&mut self) {
+        let Some(p) = self.panes.get_mut(self.focused) else {
+            return;
+        };
         // Remember where the pane was so the zoom can travel out of (and back
         // into) its own tile rather than cutting.
-        self.zoom_from = self.panes.get(self.focused).map(|p| p.rect);
+        self.zoom_from = Some(p.rect);
         self.zoom_anim =
             crate::ease::Timeline::start(crate::anim::now_ms(), 240, crate::motion::level());
-        self.zoomed = !self.zoomed;
-        self.set_status(if self.zoomed { "zoomed" } else { "unzoomed" });
+        let on = !p.zoomed();
+        p.zoom = Some(on);
+        self.set_status(if on { "zoomed" } else { "unzoomed" });
         self.redraw();
     }
 }

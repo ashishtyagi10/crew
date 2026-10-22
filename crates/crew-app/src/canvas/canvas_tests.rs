@@ -5,7 +5,6 @@
 //! show you until much later.
 use super::*;
 use crate::farpane::FarPane;
-use crate::layout::Rect;
 use crate::pane::{Pane, PaneContent};
 use crew_term::GridSize;
 
@@ -19,12 +18,7 @@ fn pane() -> Pane {
         glide: Default::default(),
         content: PaneContent::Far(FarPane::new(std::env::temp_dir())),
         grid: GridSize { cols: 80, rows: 24 },
-        rect: Rect {
-            x: 0.0,
-            y: 0.0,
-            w: 0.0,
-            h: 0.0,
-        },
+        rect: crate::spawn::PLACEHOLDER_RECT,
         label: None,
         name: None,
         dir: None,
@@ -33,6 +27,7 @@ fn pane() -> Pane {
         hidden: false,
         attention: None,
         born_ms: 0,
+        zoom: None,
     }
 }
 
@@ -123,9 +118,9 @@ fn focus_and_zoom_belong_to_their_own_canvas() {
         c.canvases[1].panes.push(pane());
     }
     c.canvases[0].focused = 1;
-    c.canvases[0].zoomed = true;
+    c.canvases[0].toggle_zoom();
     assert_eq!(c.canvases[1].focused, 0);
-    assert!(!c.canvases[1].zoomed);
+    assert!(c.canvases[1].panes.iter().all(|p| p.zoom.is_none()));
 }
 
 /// A new canvas inherits the config and the working directory, and nothing

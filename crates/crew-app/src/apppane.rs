@@ -20,6 +20,8 @@ impl CrewApp {
 
     /// Close pane at `idx`.  Returns `true` if the app should exit.
     pub fn close_pane(&mut self, idx: usize) -> bool {
+        // Closing the pane that had the screen lands on the grid you left.
+        let had_screen = self.zoomed_pane() == Some(idx);
         if idx < self.panes.len() {
             // Record where the card was before the pane is gone: everything
             // downstream reads `panes`, so the pane cannot linger — only the
@@ -38,14 +40,15 @@ impl CrewApp {
             self.panes.remove(idx);
             self.grid.on_close(idx);
         }
-        // Closing a pane returns to the grid; never linger zoomed on it.
-        self.zoomed = false;
         if self.panes.is_empty() {
             // No panel selected → focus returns to the input bar; reset modes.
             self.focused = 0;
             self.input.focused = true;
             self.broadcast = false;
             self.input.broadcast = false;
+            return false;
+        }
+        if had_screen && self.focus_grid() {
             return false;
         }
         self.focused = self.focused.min(self.panes.len() - 1);
@@ -89,13 +92,14 @@ impl CrewApp {
             }
         }
         // Hidden panes leave the grid without reindexing — a hide keeps the
-        // panes vec intact, unlike a close. Also drops any stale index past the
-        // end (defensive; close_pane already fixes the common case via on_close).
+        // panes vec intact, unlike a close — and so do zoomed ones, which have
+        // a screen of their own (`panezoom`). Also drops any stale index past
+        // the end (defensive; close_pane already fixes the common case).
         let panes = &self.panes;
         self.grid
-            .retain(|i| panes.get(i).is_some_and(|p| !p.hidden));
+            .retain(|i| panes.get(i).is_some_and(|p| !p.hidden && !p.zoomed()));
         for idx in 0..n {
-            if !self.panes[idx].hidden
+            if self.on_grid(idx)
                 && !self.grid.full().contains(&idx)
                 && !self.grid.minimized().contains(&idx)
             {

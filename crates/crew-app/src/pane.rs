@@ -108,6 +108,9 @@ pub struct Pane {
     /// and reordered from a dozen places, so anything keyed on position or
     /// count animated the wrong card when two of those met in one frame.
     pub born_ms: u64,
+    /// Cmd+Z's word on whether this pane takes the whole content area when
+    /// focused; `None` leaves it to the kind ([`crate::panezoom`]).
+    pub zoom: Option<bool>,
 }
 
 impl Pane {
@@ -264,12 +267,7 @@ pub fn spawn_pane(
             images: Default::default(),
         })),
         grid,
-        rect: Rect {
-            x: 0.0,
-            y: 0.0,
-            w: 0.0,
-            h: 0.0,
-        },
+        rect: crate::spawn::PLACEHOLDER_RECT,
         label: None,
         name: None,
         dir: cwd.map(Path::to_path_buf),
@@ -278,6 +276,7 @@ pub fn spawn_pane(
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: None,
     })
 }
 

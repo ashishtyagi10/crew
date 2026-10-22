@@ -60,8 +60,10 @@ fn frame_shot_every_family() {
             for cmd in ["/far", "/far", "/dash"] {
                 app.submit_input(cmd.to_string());
             }
-            // `/dash` opens zoomed; the point here is the grid.
-            app.zoomed = false;
+            // far opens zoomed; the point here is the grid.
+            for p in &mut app.panes {
+                p.zoom = Some(false);
+            }
             app.focused = 1;
             app.input.focused = false;
         });
@@ -88,7 +90,9 @@ fn frame_shot_hover_lift() {
         for cmd in ["/far", "/far", "/dash"] {
             app.submit_input(cmd.to_string());
         }
-        app.zoomed = false;
+        for p in &mut app.panes {
+            p.zoom = Some(false);
+        }
         app.focused = 1;
         app.input.focused = false;
         app.cursor = (300.0, 150.0);

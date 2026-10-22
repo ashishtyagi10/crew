@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use crate::app::CrewApp;
 use crate::farpane::FarPane;
-use crate::layout::Rect;
 use crate::pane::{Pane, PaneContent};
 use crate::reopen::{saved_for, ClosedStack, DEPTH};
 use crate::sessionsave::SavedPane;
@@ -19,12 +18,7 @@ fn pane(content: PaneContent) -> Pane {
         glide: crate::glide::Glide::default(),
         content,
         grid: GridSize { cols: 40, rows: 10 },
-        rect: Rect {
-            x: 0.0,
-            y: 0.0,
-            w: 0.0,
-            h: 0.0,
-        },
+        rect: crate::spawn::PLACEHOLDER_RECT,
         label: None,
         name: None,
         dir: None,
@@ -33,6 +27,7 @@ fn pane(content: PaneContent) -> Pane {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: None,
     }
 }
 
@@ -173,7 +168,7 @@ fn closing_a_pane_and_reopening_it_puts_it_back() {
     assert!(matches!(app.panes[0].content, PaneContent::Far(_)));
     assert_eq!(app.closed.len(), 0, "and the stack was spent");
     assert_eq!(app.cwd, PathBuf::from("/"), "the tracked cwd is put back");
-    assert!(!app.zoomed);
+    assert!(app.zoomed(), "far comes back with the screen to itself");
     let status = app.status.as_ref().map(|(s, _)| s.clone()).unwrap();
     assert!(status.starts_with("reopened "), "status was {status:?}");
     assert!(

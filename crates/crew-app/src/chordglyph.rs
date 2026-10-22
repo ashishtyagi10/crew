@@ -79,8 +79,9 @@ fn native(s: &str) -> String {
 /// ([`crate::keychord::stand_in`]): plain Ctrl for a key a terminal leaves to
 /// crew (`Cmd+T` is `Ctrl+T`), Ctrl+Shift for one it keeps (`Cmd+C` is
 /// `Ctrl+Shift+C`, since a terminal's Ctrl+C interrupts) and for a chord a
-/// Mac shifts (`Cmd+Shift+T`, `Cmd+{`), Alt for the grid's arrows, and plain
-/// Ctrl for a click or the wheel (`events::open_modifier`, `scroll`).
+/// Mac shifts (`Cmd+Shift+T`, `Cmd+{`), Alt for the grid's arrows, Ctrl+Alt
+/// for the screens' (`ctrlchord::screen_held`), and plain Ctrl for a click or
+/// the wheel (`events::open_modifier`, `scroll`).
 pub(crate) fn offmac(s: &str) -> String {
     s.split(' ').map(off_chord).collect::<Vec<_>>().join(" ")
 }
@@ -102,6 +103,7 @@ fn off_chord(tok: &str) -> String {
     match key {
         "Click" | "click" | "wheel" => format!("Ctrl+{key}{tail}"),
         k if arrows(k.trim_start_matches("Shift+")) => format!("Alt+{k}{tail}"),
+        k if k.strip_prefix("Opt+").is_some_and(arrows) => format!("Ctrl+Alt+{}{tail}", &k[4..]),
         "{" => format!("Ctrl+Shift+[{tail}"),
         "}" => format!("Ctrl+Shift+]{tail}"),
         "Shift+T" => format!("Ctrl+Shift+T{tail}"),

@@ -52,6 +52,7 @@ fn app_with_view_unlocked(text: &str) -> CrewApp {
         hidden: false,
         attention: None,
         born_ms: 0,
+        zoom: None,
     });
     app
 }

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scripts/release.sh *)",
+      "Bash(./scripts/release.sh *)",
+      "Bash(bash /private/tmp/claude-501/-Users-atyagi-code-crew/5b5602d3-17fb-4c26-8921-8a373371fd0b/scratchpad/ship.sh)"
+    ]
+  }
+}

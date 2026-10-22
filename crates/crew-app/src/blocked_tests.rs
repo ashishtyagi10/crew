@@ -7,13 +7,11 @@ fn rows(lines: &[&str]) -> Vec<String> {
 }
 
 fn pane_with(content: PaneContent, born_ms: u64) -> Pane {
-    let (x, y, w, h) = (0.0, 0.0, 0.0, 0.0);
-    let rect = crate::layout::Rect { x, y, w, h };
     Pane {
         glide: crate::glide::Glide::default(),
         content,
         grid: crew_term::GridSize { cols: 80, rows: 24 },
-        rect,
+        rect: crate::spawn::PLACEHOLDER_RECT,
         label: None,
         name: None,
         dir: None,
@@ -22,12 +20,16 @@ fn pane_with(content: PaneContent, born_ms: u64) -> Pane {
         hidden: false,
         attention: None,
         born_ms,
+        zoom: None,
     }
 }
 
 fn far(born_ms: u64) -> Pane {
     let f = crate::farpane::FarPane::new(std::env::temp_dir());
-    pane_with(PaneContent::Far(f), born_ms)
+    // Docked: a pane with the screen to itself keeps it (`panezoom_tests`).
+    let mut p = pane_with(PaneContent::Far(f), born_ms);
+    p.zoom = Some(false);
+    p
 }
 
 fn chat(born_ms: u64, pending: bool) -> Pane {
@@ -295,7 +297,6 @@ fn tick_blocked_does_not_ping_pong() {
 #[cfg(unix)]
 #[test]
 fn live_pty_claude_style_dialog_autofocuses() {
-    use crate::layout::Rect;
     use crate::pane::{Pane, TermPane};
     use crew_term::{GridSize, PtyTerm};
     use std::io::Write;
@@ -344,12 +345,7 @@ fn live_pty_claude_style_dialog_autofocuses() {
             images: Default::default(),
         })),
         grid,
-        rect: Rect {
-            x: 0.0,
-            y: 0.0,
-            w: 0.0,
-            h: 0.0,
-        },
+        rect: crate::spawn::PLACEHOLDER_RECT,
         label: None,
         name: None,
         dir: None,
@@ -358,6 +354,7 @@ fn live_pty_claude_style_dialog_autofocuses() {
         hidden: false,
         attention: None,
         born_ms: 2,
+        zoom: None,
     });
     app.last_input_ms = 0; // hands-off since forever
 

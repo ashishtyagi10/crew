@@ -36,10 +36,9 @@ fn far_pane() -> Pane {
         content: crate::pane::PaneContent::Far(crate::farpane::FarPane::new(std::env::temp_dir())),
         grid: crew_term::GridSize { cols: 38, rows: 10 },
         rect: crate::layout::Rect {
-            x: 0.0,
-            y: 0.0,
             w: 400.0,
             h: 192.0,
+            ..crate::spawn::PLACEHOLDER_RECT
         },
         label: None,
         name: Some("shell".into()),
@@ -49,6 +48,7 @@ fn far_pane() -> Pane {
         hidden: false,
         attention: None,
         born_ms: 0,
+        zoom: None,
     }
 }
 

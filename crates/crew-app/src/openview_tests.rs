@@ -20,7 +20,7 @@ fn about_opens_a_file_viewer_pane_rather_than_flashing_a_version() {
         ),
         "/about did not open a file-viewer pane"
     );
-    assert!(app.zoomed, "a document pane opens zoomed, like /md");
+    assert!(app.zoomed(), "a document pane opens zoomed, like /md");
 }
 
 /// Fix 4: `/about` opens its viewer on a SYNTHETIC temp file (a compiled-in

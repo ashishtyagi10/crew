@@ -23,6 +23,7 @@ fn far_pane(name: &str) -> Pane {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: None,
     }
 }
 
@@ -34,12 +35,10 @@ fn minimize_focused_pane_moves_focus_to_nearest_visible() {
     }
     app.focused = 1;
     app.input.focused = false;
-    app.zoomed = true;
     app.minimize_pane(1);
     assert!(app.panes[1].hidden);
     assert_eq!(app.focused, 0, "nearest visible pane takes focus");
     assert!(!app.input.focused);
-    assert!(!app.zoomed, "minimize leaves zoom");
 }
 
 #[test]
@@ -90,15 +89,13 @@ fn close_others_keeps_the_focused_pane() {
         app.panes.push(far_pane(n));
     }
     app.focused = 1; // the "b" pane
-    app.zoomed = true;
-    // Asks first; the same command again is the answer.
+                     // Asks first; the same command again is the answer.
     app.close_other_panes();
     assert_eq!(app.panes.len(), 3, "the first /only closed something");
     app.close_other_panes();
     assert_eq!(app.panes.len(), 1);
     assert_eq!(app.focused, 0);
     assert_eq!(app.panes[0].name.as_deref(), Some("b"));
-    assert!(!app.zoomed);
 }
 
 #[test]

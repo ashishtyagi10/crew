@@ -6,10 +6,11 @@
 //! pushed a fresh one would strand the pane you put away.
 //!
 //! The rest are VISITS — open, do a thing, leave — which is why settings and
-//! far open ZOOMED: far has two panes of its own to fit and a settings form
-//! is a column to read down, and neither wants a quarter tile beside the work
-//! it interrupts. Nothing new gets you out: Esc already means "leave" here,
-//! and `close_pane` clears the zoom, so you land on the grid you left.
+//! far are ZOOMED by kind ([`crate::panezoom`]): far has two panes of its own
+//! to fit and a settings form is a column to read down, and neither wants a
+//! quarter tile beside the work it interrupts. Nothing new gets you out: Esc
+//! already means "leave" here, and closing the pane that has the screen
+//! lands you on the grid you left.
 //!
 //! Split from [`crate::spawn`] for the line cap, along the line between
 //! spawning a TERMINAL (a process, a PTY, a shell) and opening a pane crew
@@ -47,9 +48,9 @@ impl CrewApp {
             hidden: false,
             attention: None,
             born_ms: crate::anim::now_ms(),
+            zoom: None,
         });
         self.focus_new_pane();
-        self.zoomed = true;
     }
 
     /// Open the todo list and focus it — or bring back the one already open,
@@ -85,6 +86,7 @@ impl CrewApp {
             hidden: false,
             attention: None,
             born_ms: crate::anim::now_ms(),
+            zoom: None,
         });
         self.focus_new_pane();
         self.panes.len() - 1
@@ -129,9 +131,9 @@ impl CrewApp {
             hidden: false,
             attention: None,
             born_ms: crate::anim::now_ms(),
+            zoom: None,
         });
         self.focus_new_pane();
-        self.zoomed = true;
     }
 }
 

@@ -22,6 +22,7 @@ fn pane_with(content: PaneContent) -> Pane {
         hidden: false,
         attention: None,
         born_ms: 0,
+        zoom: None,
     }
 }
 

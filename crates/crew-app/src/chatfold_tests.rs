@@ -262,6 +262,7 @@ fn app_with_folded_card() -> (crate::app::CrewApp, u16) {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: None,
     });
     (app, suffix_row)
 }
@@ -306,14 +307,12 @@ fn fold_armed_clicks_stay_out_of_the_double_click_zoom_count() {
     // No armed drag, so these presses read as landing on the card's border —
     // where the double click still toggles zoom.
     let mut app = crate::app::CrewApp::default();
+    app.spawn_todo_pane(); // a tile, for the double click to zoom
     app.click_gesture(0, true); // the press that armed a fold toggle
     app.click_gesture(0, false); // a plain press right after
-    assert!(
-        !app.zoomed,
-        "a fold click must not seed a double-click zoom"
-    );
+    assert!(!app.zoomed(), "a fold click seeds no double click");
     app.click_gesture(0, false); // second plain press within the window
-    assert!(app.zoomed, "two plain clicks in a row still zoom");
+    assert!(app.zoomed(), "two plain clicks in a row still zoom");
 }
 
 #[test]

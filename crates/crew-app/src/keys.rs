@@ -3,7 +3,7 @@ use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key, KeyCode, NamedKey, PhysicalKey};
 
 use crate::app::CrewApp;
-use crate::keychord::{arrow_dir, is_compact_chord};
+use crate::keychord::is_compact_chord;
 use crate::pane::PaneContent;
 
 impl CrewApp {
@@ -155,23 +155,13 @@ impl CrewApp {
             return;
         }
 
-        // Cmd+Arrow walks focus across the tiled grid the way the eye does,
-        // and Cmd+Shift+Arrow carries the pane with it (see `panedir`). Both
-        // sit above the Character super-chords because an arrow arrives as a
-        // NamedKey, and above the input-bar early-return so the grid stays
-        // navigable while the composer holds the keys.
-        if event.state.is_pressed()
-            && crate::ctrlchord::grid_held(mstate, cfg!(target_os = "macos"))
-        {
-            if let Some(dir) = arrow_dir(&event.logical_key) {
-                if mstate.shift_key() {
-                    self.move_direction(dir);
-                } else {
-                    self.focus_direction(dir);
-                }
-                self.redraw();
-                return;
-            }
+        // Cmd+Arrow walks the grid, Cmd+Opt+←/→ steps the screens
+        // (`arrow_chord`). Above the Character super-chords because an arrow
+        // arrives as a NamedKey, and above the input-bar early-return so the
+        // grid stays navigable while the composer holds the keys.
+        if event.state.is_pressed() && self.arrow_chord(&event.logical_key, mstate) {
+            self.redraw();
+            return;
         }
 
         // Super-chords (Cmd+I, Cmd+T, …; Ctrl+I, Ctrl+T … off a Mac) first.

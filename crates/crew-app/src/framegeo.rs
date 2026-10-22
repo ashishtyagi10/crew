@@ -90,7 +90,7 @@ impl CrewApp {
             return Vec::new();
         };
         frame_hit_rects(
-            self.zoomed,
+            self.zoomed(),
             self.focused,
             self.panes.len(),
             content,

@@ -79,6 +79,7 @@ fn test_pane() -> Pane {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: None,
     }
 }
 
@@ -102,6 +103,7 @@ fn zoomed_scenes_carry_the_minimize_button() {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: None,
     };
     let scenes = build_scenes(
         &[pane],

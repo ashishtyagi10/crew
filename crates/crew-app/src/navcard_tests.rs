@@ -42,12 +42,7 @@ fn far_pane(name: &str) -> Pane {
         glide: crate::glide::Glide::default(),
         content: PaneContent::Far(FarPane::new(std::env::temp_dir())),
         grid: GridSize { cols: 80, rows: 24 },
-        rect: Rect {
-            x: 0.0,
-            y: 0.0,
-            w: 0.0,
-            h: 0.0,
-        },
+        rect: crate::spawn::PLACEHOLDER_RECT,
         label: None,
         name: Some(name.to_string()),
         dir: None,
@@ -56,6 +51,7 @@ fn far_pane(name: &str) -> Pane {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: Some(false), // a tile: these rows are about the grid
     }
 }
 
@@ -66,7 +62,7 @@ fn zoom_marks_every_covered_pane_restorable() {
         app.panes.push(far_pane(n));
     }
     app.focused = 1;
-    app.zoomed = true;
+    app.toggle_zoom();
     let rows = app.pane_rows();
     assert!(!rows[1].minimized, "the zoomed pane is on screen");
     assert!(

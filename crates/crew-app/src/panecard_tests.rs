@@ -186,10 +186,9 @@ fn border_buttons_absent_when_narrow() {
 fn close_rect_covers_the_corner_button_and_min_rect_sits_left_of_it() {
     use crate::layout::Rect;
     let r = Rect {
-        x: 0.0,
-        y: 0.0,
         w: 300.0,
         h: 100.0,
+        ..crate::spawn::PLACEHOLDER_RECT
     };
     let close = close_btn_rect(r, 10.0, 20.0).unwrap();
     let min = min_btn_rect(r, 10.0, 20.0).unwrap();
@@ -480,10 +479,9 @@ fn only_a_working_pane_carries_a_scan() {
         content: PaneContent::Far(crate::farpane::FarPane::new(std::env::temp_dir())),
         grid: crew_term::GridSize { cols: 40, rows: 12 },
         rect: crate::layout::Rect {
-            x: 0.0,
-            y: 0.0,
             w: 400.0,
             h: 200.0,
+            ..crate::spawn::PLACEHOLDER_RECT
         },
         label: None,
         name: None,
@@ -493,6 +491,7 @@ fn only_a_working_pane_carries_a_scan() {
         hidden: false,
         attention: None,
         born_ms: 0,
+        zoom: None,
     };
     assert!(!crate::paneview::pane_busy(&idle), "fixture must be idle");
     let scenes = crate::paneview::build_scenes(

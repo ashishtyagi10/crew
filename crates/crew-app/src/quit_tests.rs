@@ -65,6 +65,7 @@ fn app_with_a_pane() -> CrewApp {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: None,
     });
     app
 }

@@ -22,7 +22,7 @@ fn explain_result_opens_the_markdown_viewer() {
         matches!(last.content, crate::pane::PaneContent::View(_)),
         "the answer opens in the file viewer"
     );
-    assert!(app.zoomed, "the viewer opens zoomed");
+    assert!(app.zoomed(), "the viewer opens zoomed");
 }
 
 #[test]

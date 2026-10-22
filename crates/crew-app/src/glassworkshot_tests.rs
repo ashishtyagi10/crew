@@ -48,6 +48,7 @@ fn pane(content: PaneContent, dir: Option<&str>) -> Pane {
         hidden: false,
         attention: None,
         born_ms: 0,
+        zoom: None,
     }
 }
 

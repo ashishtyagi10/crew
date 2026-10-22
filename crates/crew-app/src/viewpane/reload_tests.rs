@@ -190,5 +190,6 @@ fn editor_pane(born_ms: u64, cmd: Option<&str>) -> Pane {
         hidden: false,
         attention: None,
         born_ms,
+        zoom: None,
     }
 }

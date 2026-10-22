@@ -59,7 +59,7 @@ impl CrewApp {
         // cell, so this is also the answer to "was that the border?".
         let Some(cell) = self.drag.map(|d| d.anchor) else {
             if run == 2 {
-                self.zoomed = !self.zoomed;
+                self.toggle_zoom();
             }
             return;
         };

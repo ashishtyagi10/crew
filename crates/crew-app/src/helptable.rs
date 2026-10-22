@@ -20,11 +20,15 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
         "Cmd+Shift+\u{2190}\u{2191}\u{2192}\u{2193}",
         "Swap the focused pane with that neighbour",
     ),
+    (
+        "Cmd+Opt+\u{2190}\u{2192}",
+        "Next / previous screen: the grid, then each zoomed pane (inbox, far, \u{2026})",
+    ),
     ("Cmd+I / Cmd+T", "Focus the input bar / new shell pane"),
     ("Cmd+F", "Find: in a chat transcript, or /find in the bar"),
     ("Cmd+,", "Settings"),
     ("Cmd+O", "Open agent smith (same as /smith)"),
-    ("Cmd+G / Cmd+Z", "Toggle the nav / zoom focused pane"),
+    ("Cmd+G / Cmd+Z", "Toggle the nav / zoom the focused pane, or put it on the grid"),
     ("Cmd+S", "Save the settings form (to type into every terminal, use /broadcast)"),
     (
         "Cmd+= / Cmd+- / Cmd+0 / Cmd+wheel",

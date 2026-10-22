@@ -14,7 +14,7 @@ fn open_view_pushes_a_zoomed_focused_pane() {
     assert_eq!(app.panes.len(), 1);
     assert!(matches!(app.panes[0].content, PaneContent::View(_)));
     assert_eq!(app.focused, 0, "the new pane is focused");
-    assert!(app.zoomed, "the viewer opens zoomed");
+    assert!(app.zoomed(), "the viewer opens zoomed");
 }
 
 #[test]

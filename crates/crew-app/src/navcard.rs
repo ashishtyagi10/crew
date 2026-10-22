@@ -134,12 +134,12 @@ impl CrewApp {
     /// One row per open pane for the sidebar PANES list. A row carries the
     /// `+` restore marker whenever its pane is NOT visible in the content
     /// area — minimized into the nav, covered while another pane is zoomed,
-    /// or standing behind the strip's `+N` overflow tile — so the list always
-    /// says which panes are actually on screen. Clicking (or Cmd+N-focusing)
-    /// such a row brings the pane back either way.
+    /// zoomed itself while the grid shows, or standing behind the strip's
+    /// `+N` overflow tile — so the list always says which panes are actually
+    /// on screen. Clicking (or Cmd+N-focusing) such a row brings the pane
+    /// back either way.
     pub(crate) fn pane_rows(&self) -> Vec<crate::panelist::PaneRow> {
-        // Zoom draws only the focused pane (clamped like build_frame clamps).
-        let zoomed_on = self.focused.min(self.panes.len().saturating_sub(1));
+        let zoomed = self.zoomed_pane();
         // Panes standing behind the strip's `+N` overflow tile have no
         // thumbnail — not visible anywhere in the content area — so their
         // rows get the + marker too. Same placement derivation the frame
@@ -160,7 +160,10 @@ impl CrewApp {
                 title: p.title_text(),
                 focused: i == self.focused,
                 activity: p.activity,
-                minimized: p.hidden || (self.zoomed && i != zoomed_on) || strip_hidden.contains(&i),
+                minimized: match zoomed {
+                    Some(z) => i != z,
+                    None => !self.on_grid(i) || strip_hidden.contains(&i),
+                },
                 attention: p.attention.map(|a| (a.glyph(), a.visible(now))),
                 busy: crate::paneview::pane_busy(p),
                 unread: match &p.content {

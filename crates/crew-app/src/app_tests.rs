@@ -18,12 +18,7 @@ fn tests_far_pane(name: &str) -> crate::pane::Pane {
         glide: crate::glide::Glide::default(),
         content: PaneContent::Far(crate::farpane::FarPane::new(std::env::temp_dir())),
         grid: GridSize { cols: 80, rows: 24 },
-        rect: crate::layout::Rect {
-            x: 0.0,
-            y: 0.0,
-            w: 0.0,
-            h: 0.0,
-        },
+        rect: crate::spawn::PLACEHOLDER_RECT,
         label: Some(name.into()),
         name: None,
         dir: None,
@@ -32,6 +27,8 @@ fn tests_far_pane(name: &str) -> crate::pane::Pane {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        // Docked: a far that is a tile, since these tests are about the grid.
+        zoom: Some(false),
     }
 }
 
@@ -60,6 +57,7 @@ fn tests_chat_pane() -> crate::pane::Pane {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: None,
     }
 }
 
@@ -168,13 +166,12 @@ fn bang_runs_command_in_a_pane() {
 #[test]
 fn close_pane_resets_modes_when_empty() {
     let mut app = CrewApp {
-        zoomed: true,
         broadcast: true,
         ..Default::default()
     };
     app.input.broadcast = true;
     assert!(!app.close_pane(0));
-    assert!(!app.zoomed && !app.broadcast && !app.input.broadcast);
+    assert!(!app.zoomed() && !app.broadcast && !app.input.broadcast);
     assert!(app.input.focused);
 }
 
@@ -227,7 +224,7 @@ fn md_slash_command_opens_a_document_window() {
     assert!(!app.submit_input("/md".to_string()));
     assert!(app.panes.is_empty(), "bare /md opens no pane");
     assert!(app.pending_docs.is_empty(), "…and asks for no window");
-    assert!(!app.zoomed);
+    assert!(!app.zoomed());
 
     let path = std::env::temp_dir().join("crew_md_slash_test.md");
     std::fs::write(&path, "# Title\n").unwrap();
@@ -254,7 +251,7 @@ fn view_slash_command_opens_the_same_viewer_as_md() {
     assert!(!app.submit_input(format!("/view {}", path.display())));
     assert_eq!(app.panes.len(), 1);
     assert!(matches!(app.panes[0].content, PaneContent::View(_)));
-    assert!(app.zoomed, "/view spawns a zoomed pane");
+    assert!(app.zoomed(), "/view spawns a zoomed pane");
     let _ = std::fs::remove_file(&path);
 }
 
@@ -332,11 +329,12 @@ fn spawn_labeled_terminal_failure_is_shown_in_status() {
 #[test]
 fn zoom_chord_toggles() {
     let mut app = CrewApp::default();
-    assert!(!app.zoomed);
+    app.panes.push(tests_far_pane("far"));
+    assert!(!app.zoomed());
     app.handle_super_chord("z");
-    assert!(app.zoomed);
+    assert!(app.zoomed());
     app.handle_super_chord("z");
-    assert!(!app.zoomed);
+    assert!(!app.zoomed());
 }
 
 #[test]
@@ -442,6 +440,7 @@ fn typing_clears_a_terminal_selection() {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: None,
     });
     app.focused = 0;
     if let Some(PaneContent::Terminal(t)) = app.panes.get_mut(0).map(|p| &mut p.content) {

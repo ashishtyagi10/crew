@@ -83,7 +83,7 @@ impl CrewApp {
     ) -> Option<usize> {
         let (cw, ch, _sw, _sh, _scale) = self.frame_geometry()?;
         let (content, placed) = self.placed_grid()?;
-        let tiles = if self.zoomed {
+        let tiles = if self.zoomed() {
             crate::render::frame_hit_rects(
                 true,
                 self.focused,
