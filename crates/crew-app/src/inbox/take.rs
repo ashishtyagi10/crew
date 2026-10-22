@@ -120,7 +120,7 @@ impl InboxPane {
                     // New mails (a reply just sent among them): a new layout.
                     *r.laid.get_mut().unwrap_or_else(|e| e.into_inner()) = None;
                     r.mails = Some(mails);
-                    if let Some(then) = self.then.take() {
+                    if let Some((then, _)) = self.then.take().filter(|(_, t)| *t == id) {
                         self.act(then);
                     }
                     self.fetch_carried();

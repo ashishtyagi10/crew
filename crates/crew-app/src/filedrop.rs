@@ -97,6 +97,7 @@ impl CrewApp {
             }
             // On the reply box being written: one of its files.
             PaneContent::Inbox(p) if p.compose.is_some() => p.attach(path),
+            PaneContent::Inbox(_) => "files attach to a reply: r opens one, then drop them".into(),
             PaneContent::Settings(_)
             | PaneContent::Far(_)
             | PaneContent::Swarm(_)
@@ -104,8 +105,7 @@ impl CrewApp {
             | PaneContent::Todo(_)
             | PaneContent::Usage(_)
             | PaneContent::Disk(_)
-            | PaneContent::Dash(_)
-            | PaneContent::Inbox(_) => return,
+            | PaneContent::Dash(_) => return,
         };
         self.set_status(note);
         self.redraw();

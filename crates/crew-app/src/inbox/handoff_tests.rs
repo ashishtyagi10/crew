@@ -41,7 +41,7 @@ fn a_in_the_list_opens_the_thread_and_hands_it_over_when_it_lands() {
     let (mut p, asks, answer) = pane();
     p.press(&Key::Character("a".into()), 80, 24);
     assert!(matches!(asks.try_recv(), Ok(Ask::Open(id)) if id == "t1"));
-    assert_eq!(p.then, Some(Then::Ask));
+    assert_eq!(p.then, Some((Then::Ask, "t1".to_string())));
     assert!(p.to_smith.is_none(), "nothing to hand over yet");
     answer.send(Got::Opened("t1".into(), mails())).unwrap();
     p.poll();
@@ -89,4 +89,24 @@ fn t_adds_a_todo_row_with_the_deadline_the_mail_states() {
     assert_eq!(items[0].title, "Reply to Ann: Q4 review");
     assert!(items[0].due_ms.is_some(), "\"by Friday\" is the due date");
     assert!(p.note.starts_with("added to /todo"), "{}", p.note);
+}
+
+#[test]
+fn a_key_waiting_for_a_thread_never_acts_on_another() {
+    let (mut p, _asks, _answer) = pane();
+    p.rows.push(Thread {
+        id: "t2".into(),
+        subject: "Other".into(),
+        ..Thread::default()
+    });
+    p.press(&Key::Character("r".into()), 80, 24);
+    assert!(p.then.is_some(), "waiting for t1's mails");
+    p.press(&Key::Named(winit::keyboard::NamedKey::Escape), 80, 24);
+    assert!(p.open_at(1), "another thread");
+    p.take(crate::inbox::worker::Got::Opened("t2".into(), mails()));
+    assert!(
+        p.compose.is_none(),
+        "no reply box on a thread r was not pressed on"
+    );
+    assert!(p.then.is_none(), "and the stale key is let go");
 }
