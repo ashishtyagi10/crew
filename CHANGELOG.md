@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.89
+
+**`/inbox`: a refused archive or delete is said and put back.** Fifth round
+of the seventh inbox loop.
+- **When Gmail refuses an archive, delete, star or read mark, the pane says
+  so and why**, and the thread goes back where it was. The row came back with
+  no words, or, further down the list, did not come back at all.
+- **`z` never lists a thread twice.** After a refusal it added the row again.
+
 ## 0.27.88
 
 **`/inbox`: a thread that will not open says so.** Fourth round of the

@@ -162,16 +162,9 @@ impl InboxPane {
             }
             Got::Failed(e) => {
                 self.busy = false;
-                // A grant made for the read-only scope (v0.27.29) cannot file
-                // or draft, and Google adds no scope to an installed app's
-                // grant without a fresh consent.
-                self.note = match e.contains("insufficient authentication scopes") {
-                    true => {
-                        "filing and drafts need a new sign-in: /inbox signout, then Enter".into()
-                    }
-                    false => e,
-                };
+                self.note = told(e);
             }
+            Got::Refused(id, e) => self.refused(&id, told(e)),
             Got::Ended(e) => {
                 grant::clear();
                 self.busy = false;
@@ -190,5 +183,15 @@ impl InboxPane {
                 };
             }
         }
+    }
+}
+
+/// A failure in the words the foot says. A grant made for the read-only scope
+/// (v0.27.29) cannot file or draft, and Google adds no scope to an installed
+/// app's grant without a fresh consent.
+pub(super) fn told(e: String) -> String {
+    match e.contains("insufficient authentication scopes") {
+        true => "filing and drafts need a new sign-in: /inbox signout, then Enter".into(),
+        false => e,
     }
 }

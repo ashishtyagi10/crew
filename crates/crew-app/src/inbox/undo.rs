@@ -25,10 +25,15 @@ impl InboxPane {
             self.note = "nothing to undo".into();
             return;
         };
+        // Back already (a list that came again carried it): selected, not
+        // added a second time.
+        let back = self.rows.iter().position(|t| t.id == u.thread.id);
         match u.returns {
             true => {
-                let at = u.at.min(self.rows.len());
-                self.rows.insert(at, u.thread.clone());
+                let at = back.unwrap_or_else(|| u.at.min(self.rows.len()));
+                if back.is_none() {
+                    self.rows.insert(at, u.thread.clone());
+                }
                 self.sel = at;
                 if u.reopen {
                     self.open_at(at);
@@ -46,4 +51,30 @@ impl InboxPane {
         }
         self.said(&u.thread, "put back");
     }
+
+    /// Gmail refused to file thread `id`: said, and when it is the last
+    /// filing, the row put back as it was (the list Gmail sends again only
+    /// reaches its first page) and its undo let go, as there is nothing left
+    /// to take back.
+    pub(super) fn refused(&mut self, id: &str, why: String) {
+        if let Some(u) = self.undo.take_if(|u| u.thread.id == id) {
+            match self.rows.iter().position(|t| t.id == id) {
+                Some(i) => self.rows[i] = u.thread,
+                None if u.returns => {
+                    let at = u.at.min(self.rows.len());
+                    // The selection stays on the thread it is on.
+                    if at <= self.sel && !self.rows.is_empty() {
+                        self.sel += 1;
+                    }
+                    self.rows.insert(at, u.thread);
+                }
+                None => {}
+            }
+        }
+        self.note = format!("Gmail refused that, so it is as it was: {why}");
+    }
 }
+
+#[cfg(test)]
+#[path = "undo_tests.rs"]
+mod tests;
