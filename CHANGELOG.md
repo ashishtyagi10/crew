@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.82
+
+**`/inbox`: Cmd shortcuts are safe in the mail window.** Fifth and last
+round of the sixth inbox loop.
+- **A Cmd shortcut in the mail window (`w`) is never taken as a plain
+  letter.** Cmd+D there deleted the thread, Cmd+E archived it, Cmd+R opened a
+  reply and Cmd+V switched to the plain text. Now Cmd+W closes the window,
+  Cmd+Enter sends a reply, Cmd+V pastes, and other shortcuts do nothing there.
+
 ## 0.27.81
 
 **`/inbox`: the hand in the mail window.** Fourth round of the sixth inbox

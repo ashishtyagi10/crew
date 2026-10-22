@@ -130,23 +130,35 @@ impl CrewApp {
             },
             // As the grid's wheel: a slow trackpad's fractions add up.
             WindowEvent::MouseWheel { delta, .. } => {
-                let lines = crate::inbox::mailwin::wheel_lines(&mut m.scroll, delta);
+                let lines = crate::inboxwinkeys::wheel_lines(&mut m.scroll, delta);
                 p.scroll_wheel(lines, grid.cols, grid.rows);
                 changed = true;
             }
             WindowEvent::KeyboardInput { event, .. } => {
-                let cmd_w = m.mods.super_key()
-                    && matches!(&event.logical_key, winit::keyboard::Key::Character(c) if c == "w");
-                close = cmd_w
-                    || matches!(
-                        p.on_key(
-                            &event,
-                            grid.cols,
-                            grid.rows,
-                            m.mods.super_key() || m.mods.control_key()
-                        ),
-                        Some(InboxAction::Close)
-                    );
+                use crate::inboxwinkeys::{chord, Chord};
+                let enter = matches!(
+                    event.logical_key,
+                    winit::keyboard::Key::Named(winit::keyboard::NamedKey::Enter)
+                );
+                // A chord is a command, as in the grid (`keychord`), never the
+                // plain letter: Cmd+D here deleted the thread.
+                match crate::keychord::cmd_chord(&event, m.mods, p.composing()) {
+                    Some(s) => match chord(&s, enter) {
+                        Chord::Close => close = true,
+                        Chord::Send => p.send_reply(),
+                        Chord::Paste => {
+                            if let Some(t) = crate::clipboard::system_text() {
+                                p.paste(&t);
+                            }
+                        }
+                        Chord::Nothing => {}
+                    },
+                    None => {
+                        let held = m.mods.super_key() || m.mods.control_key();
+                        let act = p.on_key(&event, grid.cols, grid.rows, held);
+                        close = matches!(act, Some(InboxAction::Close));
+                    }
+                }
                 if let Some(r) = p.reading.as_mut() {
                     r.pop_out = false; // already out
                 }
