@@ -5,8 +5,8 @@
 //! Gmail charges each project's user 6,000 units a minute (projects made
 //! since 2026-05-01), and one page of 25 threads costs about 1,011. So the
 //! pane never re-lists on a timer: a [`Ask::Check`] reads the profile's
-//! `historyId` (1 unit) and the INBOX label (1 unit), and only a mailbox
-//! that moved since the last page is listed again.
+//! `historyId` (1 unit), and only a mailbox that moved since the last page
+//! is listed again.
 use std::sync::mpsc::{self, Receiver, Sender};
 
 use super::api::Gmail;

@@ -32,7 +32,7 @@
 <section class="docs-hero">
   <div class="container">
     <h1 class="hero-title">Privacy Policy</h1>
-    <p class="hero-sub">Effective October 21, 2026</p>
+    <p class="hero-sub">Effective October 22, 2026</p>
   </div>
 </section>
 
@@ -80,6 +80,10 @@
       <p>Thread lists, message headers, message bodies and labels, which it fetches
       from the Gmail API so you can read and search your mail in the pane. It also
       reads your email address, to show which account is signed in.</p>
+      <p>When you open a thread, the pictures its mails link from the web are
+      fetched from where they are hosted, as a browser would fetch them. The
+      sender's servers can see that the mail was opened, and from which IP
+      address. <kbd>i</kbd> hides them again.</p>
       <h3>What Crew changes, and only when you press a key</h3>
       <ul>
         <li>Archiving, starring, and marking as read or unread, which change labels on
@@ -88,7 +92,12 @@
         does. Gmail empties Trash after 30 days; Crew never deletes mail
         permanently.</li>
         <li>Opening a thread marks it read, as Gmail does.</li>
-        <li>Saving a reply as a Gmail draft. Crew never sends mail.</li>
+        <li>Sending a reply or a forward you wrote, when you press
+        <kbd>Cmd</kbd>+<kbd>Enter</kbd> (<kbd>Ctrl</kbd>+<kbd>Enter</kbd> off a Mac) in the
+        reply box. Crew sends no mail you did not write and send.</li>
+        <li>Unsubscribing, when you press <kbd>u</kbd> twice on a mail that offers it:
+        Crew sends the unsubscribe email the sender asks for, from your account, or
+        posts to the sender's own unsubscribe address.</li>
       </ul>
       <h3>Where it is stored</h3>
       <p>The inbox pane keeps only the sign-in grant (your client ID, client secret

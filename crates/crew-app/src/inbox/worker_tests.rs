@@ -87,3 +87,17 @@ fn the_account_comes_with_the_first_list_that_reaches_gmail() {
     let again = s.answer(&mut g, Ask::List(String::new()));
     assert!(!again.iter().any(|g| matches!(g, Got::Account(_))), "once");
 }
+
+/// The privacy policy and the terms say what this worker sends: they said
+/// "never sends mail" through every release that sent replies and forwards.
+#[test]
+fn the_policy_and_the_terms_say_the_pane_sends_what_you_write() {
+    let docs = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs");
+    for page in ["privacy.html", "terms.html"] {
+        let text = std::fs::read_to_string(docs.join(page)).unwrap();
+        // "Never sends mail" only as "… mail you did not write and send".
+        let said = text.replace("never sends mail you did not write", "");
+        assert!(!said.contains("never sends mail"), "{page}");
+        assert!(text.contains("you did not write and send"), "{page}");
+    }
+}

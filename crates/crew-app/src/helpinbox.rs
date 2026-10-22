@@ -34,12 +34,12 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
         "Forward the newest mail, its pictures and files with it, under a note of yours",
     ),
     (
-        "Tab / Up / Down",
-        "In the reply box: through the to and cc lines, the words and the files",
+        "Up / Down",
+        "In the reply box: through the to and cc lines, the words and the files (\u{2190} \u{2192} among the files)",
     ),
     (
         "Down, then Enter",
-        "In the reply box: + attach picks files (or drop them); Enter opens one, Backspace drops it",
+        "In the reply box: + attach picks files (or drop them); Enter opens one, Backspace takes it off",
     ),
     ("a", "Ask agent smith about the thread"),
     ("t", "A /todo row, due on the deadline the mail states"),

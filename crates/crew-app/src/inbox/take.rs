@@ -5,7 +5,7 @@ use super::setup;
 use super::worker::{self, Ask, Got};
 use super::{InboxPane, Stage};
 
-/// How often a signed-in pane asks whether the mailbox moved (2 units).
+/// How often a signed-in pane asks whether the mailbox moved (1 unit).
 const CHECK_MS: u64 = 60_000;
 /// How often the setup page looks in Downloads for the client file.
 const LOOK_MS: u64 = 2_000;

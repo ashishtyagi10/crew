@@ -370,7 +370,7 @@ console pages in order (about five minutes, once), finds the
 through the browser. Publish the app on the console's Audience page, or
 Google ends the sign-in after seven days. Nothing is stored but the grant
 (`gmail.json`, 0600, beside `credentials.json`), and the pane asks Gmail
-whether anything changed once a minute (2 of the 6,000 quota units a minute
+whether anything changed once a minute (1 of the 6,000 quota units a minute
 a project gets) rather than listing on a timer. The nav's **INBOX** card
 shows the unread count and the newest unread thread, refreshed every five
 minutes while the pane is closed; a click opens `/inbox`.
