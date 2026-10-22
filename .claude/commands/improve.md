@@ -144,7 +144,8 @@ DashScope's Anthropic-compatible endpoint, or marked unverified.
 1. **Pick one** — the top unshipped row of the backlog, re-ranked against what
    the tree does today. Say what it is before building it.
 2. **Branch** `feat/<slug>` in the main checkout (no worktree unless another
-   session holds the checkout; then a worktree with its OWN `target-<branch>`).
+   session holds the checkout; then a worktree with its OWN `target-<branch>`,
+   removed together with the worktree once the branch ships).
    A loop of several iterations may run TWO lanes — the main checkout and one
    worktree with its own `target/` — each detached at main, an implementer
    subagent per lane, releases strictly one at a time (squash onto the local
@@ -164,7 +165,9 @@ DashScope's Anthropic-compatible endpoint, or marked unverified.
    voice: what was wrong, what it does now, what it costs when it has nothing
    to say. A test asserts the top entry names the current version. The bold
    headline is UI text (the welcome card shows it): keep it under ~70 chars.
-7. **Release** — bump `Cargo.toml`, `cargo check` for the lock, commit, merge
+7. **Release** — bump `Cargo.toml`, `cargo clean -p` each crew crate (the
+   bump renames their builds, so the old copies would sit in `target/` for
+   good), `cargo check` for the lock, commit, merge
    `--no-ff` into main, `git push origin main`, `git tag vX.Y.Z`, push the tag.
    Then read `gh run list` before the NEXT tag: a red Windows or Release job
    stops the loop.

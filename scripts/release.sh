@@ -61,6 +61,15 @@ BODY=$(sed "s/{V}/$V/g" "$MSG")
 stale=$(grep -o -E '\(v[0-9]+\.[0-9]+\.[0-9]+\)' <<<"$BODY" | grep -v -F "(v$V)" || true)
 [[ -z $stale ]] || { echo "MSG names $stale but this release is v$V — write {V}"; exit 1; }
 
+# The version is part of cargo's build hash, so every bump compiles each crew
+# crate under a new name and the old copies, a gigabyte or more a release,
+# stayed in target/ for good. They rebuild for v$V anyway, so dropping them
+# here costs no build time. The guard keeps an empty list from becoming a
+# bare `cargo clean` of the whole target dir.
+crates=$(cargo metadata -q --no-deps --format-version 1 | /usr/bin/python3 -c \
+  'import json, sys; print(" ".join("-p " + p["name"] for p in json.load(sys.stdin)["packages"]))')
+[[ $crates == -p* ]] && cargo clean $crates
+
 g checkout -q -b "$BR"
 /usr/bin/python3 - "$ENTRY" "$V" <<'EOF'
 import sys

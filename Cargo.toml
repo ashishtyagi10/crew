@@ -123,3 +123,10 @@ self_update = { version = "0.42", default-features = false, features = ["archive
 #      crew-render's prewarm tests.
 [patch.crates-io]
 glyphon = { path = "vendor/glyphon" }
+
+[profile.dev]
+# File and line in panics and backtraces is all the tests and the gate need;
+# full debuginfo made the release gate's build 2.2 GB instead of 1.7 GB, and
+# every bump and worktree pays that again. For an lldb session that needs
+# variables, build with CARGO_PROFILE_DEV_DEBUG=true.
+debug = "line-tables-only"

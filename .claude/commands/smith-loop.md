@@ -60,7 +60,9 @@ iteration), or empty (propose the top three rows and ask).
    added and removed.
 2. **Branch** `feat/<slug>` in the main checkout. If another session holds the
    checkout, use a worktree with an APFS-cloned target: `cp -cR target/debug
-   target-<br>/debug` and `CARGO_TARGET_DIR=target-<br>`.
+   target-<br>/debug` and `CARGO_TARGET_DIR=target-<br>`. Once the branch
+   ships, `git worktree remove` it and `rm -rf target-<br>` with it — a left
+   behind target is gigabytes nothing will use again.
 3. **Build the smallest honest version.** Every `.rs` file stays ≤ 200 lines
    (the linecap ratchet). Tests go in a sibling `*_tests.rs`. Mutation-check
    new tests: break the code and watch them fail. A test that reads the theme
