@@ -73,17 +73,18 @@ fn only_a_stated_deadline_becomes_a_due_date() {
         .unwrap()
         .and_hms_opt(10, 0, 0)
         .unwrap();
-    let due = super::deadline(
+    let (due, said) = super::deadline(
         "We met on Monday. Please send the numbers by Friday 5pm.",
         now,
     )
     .unwrap();
     assert_eq!(due.due.format("%a %H:%M").to_string(), "Fri 17:00");
+    assert_eq!(said, "by friday 5pm", "the words it was read from");
     assert!(
         super::deadline("We met on Monday to talk.", now).is_none(),
         "a date is not a deadline"
     );
-    let end = super::deadline("Can you have it ready by the end of Thursday?", now).unwrap();
+    let (end, _) = super::deadline("Can you have it ready by the end of Thursday?", now).unwrap();
     assert_eq!(end.due.format("%a").to_string(), "Thu");
     assert_eq!(
         super::todo_title(&reading(&["hi"])),

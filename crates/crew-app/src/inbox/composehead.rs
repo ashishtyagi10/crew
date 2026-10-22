@@ -64,7 +64,7 @@ pub(super) fn hint(c: &Compose, on: On) -> &'static str {
 
 /// The part of a line `room` columns wide that holds its caret, and the
 /// caret's column in it: the start, or `…` and the end of a long line.
-fn window(text: &str, at: usize, room: usize) -> (String, usize) {
+pub(super) fn window(text: &str, at: usize, room: usize) -> (String, usize) {
     let cw = crate::chatwidth::char_w;
     let chars: Vec<char> = text.chars().collect();
     let at = at.min(chars.len());

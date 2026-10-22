@@ -77,7 +77,7 @@ impl Compose {
 
 impl InboxPane {
     pub(crate) fn composing(&self) -> bool {
-        self.compose.is_some()
+        self.carded()
     }
 
     /// `r` or `f`: the box, for the open thread. The line to say.

@@ -1787,8 +1787,13 @@ longer aim at.
   `+ attach` for the system's chooser, or a drop on the pane; Gmail's 25 MB at
   most); while a reply is open the mail under it stays, so a click on another
   thread is refused until it is sent or closed;
-  `t` adds a `/todo` row ("Reply to Ann: …") due on a date that follows
-  "by", "before", "until", "due" or "no later than" in the newest message.
+  `t` opens a todo card under the mail, as `r` opens the reply box: the
+  title ("Reply to Ann: …"), `@project`, `#assignee` and due of the `/todo`
+  row, the due being a date that follows "by", "before", "until", "due" or
+  "no later than" in the newest message, read as of the day it was sent,
+  with the words it came from beside it. Up and Down move between the
+  lines, typing changes one, Enter adds the row (a due line must read as a
+  date), Esc lets it go (twice once something changed).
   Pressed in the list, each opens the thread and acts when it arrives. The
   thread reaches smith fenced and labelled untrusted, with the instruction
   not to follow it; smith's transcript shows one short line for it, not the

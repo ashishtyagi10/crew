@@ -84,6 +84,11 @@ fn t_adds_a_todo_row_with_the_deadline_the_mail_states() {
         ..super::Reading::new(p.rows[0].clone())
     });
     p.press(&Key::Character("t".into()), 80, 24);
+    assert!(
+        crate::todopane::store::snapshot().is_empty(),
+        "a card first"
+    );
+    p.press(&Key::Named(winit::keyboard::NamedKey::Enter), 80, 24);
     let items = crate::todopane::store::snapshot();
     assert_eq!(items.len(), 1);
     assert_eq!(items[0].title, "Reply to Ann: Q4 review");

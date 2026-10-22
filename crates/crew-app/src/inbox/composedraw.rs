@@ -24,7 +24,7 @@ impl InboxPane {
     /// the words to a third of the pane, and never to the mail's height.
     pub(crate) fn compose_h(&self, cols: u16, rows: u16) -> u16 {
         let Some(c) = &self.compose else {
-            return 0;
+            return self.todo_h(cols, rows);
         };
         let w = text_w(self.mail_cols(cols).1);
         let lines = wrap(&c.body.text, w).len() as u16;
