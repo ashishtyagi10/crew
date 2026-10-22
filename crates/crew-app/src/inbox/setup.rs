@@ -109,6 +109,30 @@ impl InboxPane {
         })
     }
 
+    /// Google ended the grant (revoked, or expired): back to the setup page,
+    /// saying so in words. Google's reason, without its code ("Token has
+    /// been expired or revoked"), says which.
+    pub(super) fn signed_out(&mut self, e: &str) {
+        super::grant::clear();
+        self.busy = false;
+        // Kept for after the sign-in, the words free to change again; a
+        // half-typed search would take the setup page's keys.
+        self.typing = None;
+        if let Some(c) = self.compose.as_mut() {
+            c.sending = false;
+        }
+        let why = e.split_once(':').map_or("", |(_, w)| w).trim();
+        let why = match why.trim_end_matches('.') {
+            "" => String::new(),
+            w => format!(" ({w})"),
+        };
+        self.note = format!(
+            "Google signed crew out{why}: sign in again here. Every 7 days? The app is \
+             in Testing: Audience \u{2192} Publish app"
+        );
+        self.stage = super::Stage::Setup { found: look() };
+    }
+
     /// Esc on the setup page closes the pane, and a reply kept for after the
     /// sign-in went with it, unsaid. With one kept, the first Esc says so and
     /// only a second lets it go, as Esc does over words in the box.
