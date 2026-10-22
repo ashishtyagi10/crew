@@ -45,15 +45,24 @@ fn every_pool_and_every_palette_is_reachable() {
             if offered { "" } else { "not " }
         );
     }
+    // Each palette is reachable as what naming it selects — the Ink Reader
+    // pages as `dark` / `light`, so they are not listed a second time.
     for id in crew_theme::ALL_THEMES {
         assert!(
-            all.contains(&Some(crew_theme::Selection::Fixed(id))),
+            all.contains(&Some(id.selection())),
             "{} is not reachable in the picker",
             id.as_str()
         );
     }
     assert_eq!(all.first(), Some(&None), "unset must lead the list");
-    assert_eq!(all.len(), 1 + 4 + crew_theme::ALL_THEMES.len());
+    assert_eq!(all.len(), 1 + 4 + crew_theme::pinnable_themes().count());
+    for (i, v) in all.iter().enumerate() {
+        assert!(
+            !all[..i].contains(v),
+            "the picker lists `{}` twice",
+            label(*v)
+        );
+    }
 }
 
 /// Cycling walks the whole list and wraps, forwards and backwards.

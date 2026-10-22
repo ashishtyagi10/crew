@@ -10,8 +10,13 @@ fn parse_no_arg_lists() {
 #[test]
 fn parse_known_name_switches() {
     assert_eq!(
+        parse_theme_cmd("nebula"),
+        ThemeCmd::Select(crew_theme::Selection::Fixed(ThemeId::Nebula))
+    );
+    // The white page's own name is the `light` it is.
+    assert_eq!(
         parse_theme_cmd("paper-light"),
-        ThemeCmd::Select(crew_theme::Selection::Fixed(ThemeId::PaperLight))
+        ThemeCmd::Select(crew_theme::Selection::Mode(crew_theme::RandomMode::Light))
     );
     assert_eq!(
         parse_theme_cmd(" crt-green "),

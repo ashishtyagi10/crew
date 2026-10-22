@@ -28,8 +28,7 @@ impl CrewConfig {
     pub fn theme_selection(&self) -> crew_theme::Selection {
         match self.theme.as_deref() {
             None => crew_theme::Selection::Mode(crew_theme::RandomMode::Auto),
-            Some(s) => crew_theme::parse_selection(s)
-                .unwrap_or(crew_theme::Selection::Fixed(self.theme_id())),
+            Some(s) => crew_theme::parse_selection(s).unwrap_or(self.theme_id().selection()),
         }
     }
 

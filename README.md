@@ -877,10 +877,11 @@ invalid value) to use the active theme's default accent. It applies at launch â€
 quit and reopen Crew to pick up edits made outside the `/settings` pane.
 
 **Themes.** `light` and `dark` are **Ink Reader**: an e-reader's white and
-black pages, the way the Kindle app draws them. `paper-light` is a white page
-with near-black words and black lines. `paper-dark` is the same page inverted:
+black pages, the way the Kindle app draws them. `light` is a white page
+with near-black words and black lines. `dark` is the same page inverted:
 a black page, white-grey words, grey lines and a white frame round the pane
-you are in. On both, the pane you are in is framed in a heavy line, twice
+you are in. (The old names `paper-light` and `paper-dark` still load, as
+`light` and `dark`.) On both, the pane you are in is framed in a heavy line, twice
 the weight of the others. Both are opaque print, with no glass, glow, gradient or text
 shadow. Grey is the only second ink. Colour stays where it means something
 (a terminal's ANSI output, a diff, the status marks) in deep printed inks

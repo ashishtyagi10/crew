@@ -164,12 +164,12 @@ fn set_theme_cmd_switches_active_theme() {
     let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
     let mut app = CrewApp::default();
-    app.set_theme_cmd("paper-light");
-    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
-    assert_eq!(app.config.theme.as_deref(), Some("paper-light"));
+    app.set_theme_cmd("crt-amber");
+    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::CrtAmber);
+    assert_eq!(app.config.theme.as_deref(), Some("crt-amber"));
     // Unknown name leaves the active theme unchanged.
     app.set_theme_cmd("chartreuse");
-    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
+    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::CrtAmber);
     crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
 }
 
@@ -222,9 +222,9 @@ fn set_theme_cmd_random_enters_rotation_mode() {
     assert_eq!(app.config.theme.as_deref(), Some("dark"));
 
     // Switching to a fixed theme through this path also turns rotation off.
-    app.set_theme_cmd("paper-light");
+    app.set_theme_cmd("crt-amber");
     assert!(!crew_theme::is_random());
-    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
+    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::CrtAmber);
 
     crew_theme::apply_selection(
         crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),

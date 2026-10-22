@@ -55,10 +55,26 @@ fn walking_the_list_still_restores_where_you_started() {
 fn a_rotation_mode_is_not_previewed() {
     let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(ThemeId::PaperDark);
-    for mode in ["dark", "light", "crt", "auto"] {
+    for mode in ["crt", "glass", "auto"] {
         assert!(!sync(&[row(&format!("/theme {mode}"))], 0), "{mode}");
         assert_eq!(crew_theme::current_id(), ThemeId::PaperDark, "{mode}");
     }
+}
+
+/// `dark` and `light` are one page each, so the row promises exactly that
+/// page and puts it on — the picker no longer lists the pages by their own
+/// names, and they would otherwise be the two themes you could not preview.
+#[test]
+fn a_one_page_rotation_previews_its_page() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(ThemeId::CrtGreen);
+    assert!(sync(&[row("/theme light")], 0));
+    assert_eq!(crew_theme::current_id(), ThemeId::PaperLight);
+    assert!(sync(&[row("/theme dark")], 0));
+    assert_eq!(crew_theme::current_id(), ThemeId::PaperDark);
+    sync(&[], 0);
+    assert_eq!(crew_theme::current_id(), ThemeId::CrtGreen);
+    crew_theme::set_theme(ThemeId::PaperDark);
 }
 
 /// Every row that names no colour leaves everything alone.

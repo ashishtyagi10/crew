@@ -21,7 +21,8 @@
 //! A rotation mode (`dark`, `auto`) names a *pool*, not a palette, and the
 //! one it would land on is a choice crew makes later — previewing "one of
 //! these four" by picking one would be showing something the choice does not
-//! promise. Those rows leave the current theme alone, and so do `/gradient`'s
+//! promise. Those rows leave the current theme alone — except `dark` and
+//! `light`, whose pool is one page, so they put that page on — and so do `/gradient`'s
 //! level rows (`off`, `subtle`, `lively`), which say how far the poles
 //! *breathe* rather than which colours they are.
 //!
@@ -58,8 +59,9 @@ fn peek_of(item: &MenuItem) -> Option<Peek> {
     if let Some(value) = item.fill.strip_prefix("/theme ") {
         return match crew_theme::parse_selection(value.trim())? {
             Selection::Fixed(id) => Some(Peek::Palette(id)),
-            // A pool is not a palette — see the module doc.
-            Selection::Mode(_) => None,
+            // A pool is not a palette — see the module doc — unless it is
+            // one page.
+            Selection::Mode(m) => m.sole_palette().map(Peek::Palette),
         };
     }
     let value = item.fill.strip_prefix("/gradient ")?.trim();

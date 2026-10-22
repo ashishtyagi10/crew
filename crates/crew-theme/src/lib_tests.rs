@@ -881,8 +881,8 @@ fn parse_selection_names_modes_and_alias() {
     // A pinned palette name still resolves (back-compat), including the new
     // light palettes.
     assert_eq!(
-        parse_selection("paper-light"),
-        Some(Selection::Fixed(ThemeId::PaperLight))
+        parse_selection("crt-amber"),
+        Some(Selection::Fixed(ThemeId::CrtAmber))
     );
     assert_eq!(
         parse_selection(" daybreak "),
@@ -1131,4 +1131,37 @@ fn only_the_tubes_and_the_white_glass_shade_their_text() {
         0.0,
         "/crt on over a theme with no tube"
     );
+}
+
+/// `dark` is the black page and `light` the white one, each its rotation's
+/// whole pool, so the pages' own names are the same theme and are listed
+/// once (the user, 2026-10-22: "remove the duplicate themes … dark ==
+/// paper-dark, light == paper-light"). The names still load, as the
+/// rotation they are, so a saved config keeps its page.
+#[test]
+fn the_ink_reader_pages_are_their_rotations() {
+    for (name, mode, page) in [
+        ("paper-dark", RandomMode::Dark, ThemeId::PaperDark),
+        ("paper-light", RandomMode::Light, ThemeId::PaperLight),
+    ] {
+        assert_eq!(parse_selection(name), Some(Selection::Mode(mode)), "{name}");
+        assert_eq!(page.selection(), Selection::Mode(mode), "{name}");
+        assert!(
+            pinnable_themes().all(|t| t != page),
+            "{name} is offered beside `{}`",
+            mode.as_str()
+        );
+    }
+    // Every other palette pins itself and is offered.
+    for id in ALL_THEMES {
+        if matches!(id, ThemeId::PaperDark | ThemeId::PaperLight) {
+            continue;
+        }
+        assert_eq!(id.selection(), Selection::Fixed(id), "{}", id.as_str());
+        assert!(
+            pinnable_themes().any(|t| t == id),
+            "{} not offered",
+            id.as_str()
+        );
+    }
 }
