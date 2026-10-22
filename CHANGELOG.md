@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.69
+
+**`/inbox`: the mail you answer stays in view.** Second round of the fourth
+inbox loop.
+- **Opening the reply box no longer hides the end of the mail.** Read a
+  thread to its end, press `r`, and the newest mail's last lines used to slide
+  under the box, and further as the box grew with your words. If the end was
+  in view, it stays in view.
+
 ## 0.27.68
 
 **`/inbox`: agent smith's draft never lands behind your back.** First round

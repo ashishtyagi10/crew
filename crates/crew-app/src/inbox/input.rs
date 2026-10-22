@@ -1,6 +1,7 @@
 //! What the pane takes besides keys: a paste, and the wheel.
 use winit::keyboard::{Key, NamedKey};
 
+use super::keys::InboxAction;
 use super::{InboxPane, Stage};
 
 impl InboxPane {
@@ -41,6 +42,32 @@ impl InboxPane {
         for _ in 0..n.min(10) {
             self.press(&key, cols, rows);
         }
+    }
+}
+
+impl InboxPane {
+    /// One key, pressed: the pane's whole keyboard, testable without winit.
+    /// When the reply box takes rows from the mail (opening, or growing with
+    /// the words), the mail's end stays in view if it was: the newest mail,
+    /// the one being answered, does not slide under the box.
+    pub(crate) fn press(&mut self, key: &Key, cols: u16, rows: u16) -> Option<InboxAction> {
+        let (h, end) = (self.compose_h(cols, rows), self.end_in_view(cols, rows));
+        let out = self.press_key(key, cols, rows);
+        if end && self.compose_h(cols, rows) > h {
+            let (room, width) = (self.reader_rows(cols, rows), self.reader_box(cols).1);
+            if let Some(r) = self.reading.as_mut() {
+                r.scroll = super::reader::height(r, width).saturating_sub(usize::from(room));
+            }
+        }
+        out
+    }
+
+    /// Whether the open mail's last line is on screen.
+    fn end_in_view(&self, cols: u16, rows: u16) -> bool {
+        let (room, width) = (self.reader_rows(cols, rows), self.reader_box(cols).1);
+        self.reading
+            .as_ref()
+            .is_some_and(|r| r.scroll + usize::from(room) >= super::reader::height(r, width))
     }
 }
 

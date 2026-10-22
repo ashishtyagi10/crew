@@ -1,6 +1,7 @@
 use crate::inbox::compose::On;
 use crate::inbox::composefiles::What;
 use crate::inbox::composekeys::tests::{on, reading, typed};
+use crate::inbox::InboxPane;
 
 #[test]
 fn the_wheel_scrolls_the_mail_while_a_reply_keeps_its_caret() {
@@ -62,4 +63,51 @@ fn the_hidden_pictures_note_has_air_under_it() {
         .expect("the note");
     assert_eq!(text(&laid.lines[note + 1]).trim(), "", "a row of air");
     assert!(text(&laid.lines[note + 2]).contains("Hi there"));
+}
+
+#[test]
+fn a_reply_box_keeps_the_end_of_the_mail_it_answers_in_view() {
+    let _g = crate::app::motion_test_guard();
+    let (mut p, _) = reading();
+    if let Some(m) = p.reading.as_mut().and_then(|r| r.mails.as_mut()) {
+        m[0].text = (1..=40).map(|n| format!("line {n}\n\n")).collect();
+    }
+    p.scroll_wheel(-200, 80, 30);
+    let shown = |p: &InboxPane| {
+        let mail = p.cards(80, 30).mail.unwrap();
+        p.cells(80, 30)
+            .into_iter()
+            .filter(|c| c.row > mail.row && c.row < mail.row + mail.h)
+            .map(|c| c.c)
+            .collect::<String>()
+    };
+    assert!(
+        shown(&p).contains("line 40"),
+        "read to the end: {}",
+        shown(&p)
+    );
+    typed(&mut p, "r");
+    assert!(
+        shown(&p).contains("line 40"),
+        "the box opened, the end still shows"
+    );
+    for _ in 0..6 {
+        p.press(
+            &winit::keyboard::Key::Named(winit::keyboard::NamedKey::Enter),
+            80,
+            30,
+        );
+    }
+    assert!(
+        shown(&p).contains("line 40"),
+        "the box grew, the end still shows"
+    );
+    p.compose = None;
+    p.scroll_wheel(200, 80, 30);
+    typed(&mut p, "r");
+    assert_eq!(
+        p.reading.as_ref().unwrap().scroll,
+        0,
+        "read from the top, it stays there"
+    );
 }
