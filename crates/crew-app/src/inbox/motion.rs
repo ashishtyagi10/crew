@@ -5,6 +5,7 @@
 //! by crew's motion setting, so at Motion off every one is born settled and
 //! draws its last state once: the list is exactly what it was before.
 use super::wire::Thread;
+use super::InboxPane;
 use crate::motion::level;
 
 /// How long each takes at full motion.
@@ -91,6 +92,55 @@ pub(crate) fn fresh(old: &[Thread], new: &[Thread]) -> Vec<String> {
         .filter(|t| !old.iter().any(|o| o.id == t.id && o.at_ms >= t.at_ms))
         .map(|t| t.id.clone())
         .collect()
+}
+
+impl InboxPane {
+    /// A page of the list came back. A further one (`more`) adds the threads
+    /// not already held. A first one is the list again: it replaces the rows
+    /// it covers and keeps those below it ([`refreshed`]), and the selection
+    /// stays on its thread, or takes the row that took its place.
+    pub(super) fn paged(&mut self, rows: Vec<Thread>, next: bool, more: bool, whole: bool) {
+        self.busy = false;
+        self.more = next;
+        if more {
+            let new: Vec<Thread> = rows
+                .into_iter()
+                .filter(|t| !self.rows.iter().any(|h| h.id == t.id))
+                .collect();
+            self.rows.extend(new);
+        } else {
+            let keep = self.rows.get(self.sel).map(|t| t.id.clone());
+            let fresh = fresh(&self.rows, &rows);
+            self.motion.fresh = Some((fresh, crate::anim::now_ms()));
+            self.rows = refreshed(&self.rows, rows, whole);
+            let here = self.sel.min(self.rows.len().saturating_sub(1));
+            self.sel = keep
+                .and_then(|id| self.rows.iter().position(|t| t.id == id))
+                .unwrap_or(here);
+        }
+        self.note.clear();
+        self.failed = None;
+        self.checked_ms = Some(chrono::Utc::now().timestamp_millis());
+    }
+}
+
+/// A first page `page` listed again over the rows held before (`old`): the
+/// page, then the held threads older than its oldest that it does not carry,
+/// the pages `j` brought in below it. A thread the page's span no longer
+/// carries left the list. Nothing is kept when the page was the whole list.
+pub(crate) fn refreshed(old: &[Thread], page: Vec<Thread>, whole: bool) -> Vec<Thread> {
+    let floor = page.iter().map(|t| t.at_ms).min();
+    let below: Vec<Thread> = match floor.filter(|_| !whole) {
+        Some(floor) => old
+            .iter()
+            .filter(|t| t.at_ms < floor && !page.iter().any(|p| p.id == t.id))
+            .cloned()
+            .collect(),
+        None => Vec::new(),
+    };
+    let mut rows = page;
+    rows.extend(below);
+    rows
 }
 
 #[cfg(test)]

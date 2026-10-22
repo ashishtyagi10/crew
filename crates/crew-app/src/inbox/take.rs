@@ -90,29 +90,12 @@ impl InboxPane {
                 rows,
                 next,
                 more,
+                whole,
             } => {
                 if query != self.query {
                     return; // an older search's page, overtaken
                 }
-                self.busy = false;
-                self.more = next.is_some();
-                match more {
-                    true => self.rows.extend(rows),
-                    false => {
-                        let keep = self.rows.get(self.sel).map(|t| t.id.clone());
-                        let fresh = super::motion::fresh(&self.rows, &rows);
-                        self.motion.fresh = Some((fresh, crate::anim::now_ms()));
-                        self.rows = rows;
-                        // Gone (filed elsewhere): the row that took its place.
-                        let here = self.sel.min(self.rows.len().saturating_sub(1));
-                        self.sel = keep
-                            .and_then(|id| self.rows.iter().position(|t| t.id == id))
-                            .unwrap_or(here);
-                    }
-                }
-                self.note.clear();
-                self.failed = None;
-                self.checked_ms = Some(chrono::Utc::now().timestamp_millis());
+                self.paged(rows, next.is_some(), more, whole);
             }
             Got::Unread(n) => self.unread = Some(n),
             Got::Checked => self.checked_ms = Some(chrono::Utc::now().timestamp_millis()),

@@ -36,6 +36,7 @@ fn page(query: &str, ids: &[&str], more: bool) -> Got {
         rows: ids.iter().map(|i| thread(i, true)).collect(),
         next: Some("n".into()),
         more,
+        whole: false,
     }
 }
 

@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.85
+
+**`/inbox`: a check after new mail keeps your place.** First round of the
+seventh inbox loop.
+- **New mail no longer throws you back up the list.** When the mailbox
+  changed (new mail, or a thread archived here), the next check put the
+  first 25 threads in place of the whole list: the pages `j` had brought in
+  below were gone, and the selection dropped to the 25th thread. Now the
+  threads below stay, and so does the selection.
+- **`j` at the end goes on from the deepest page**, and a page never lists a
+  thread twice.
+
 ## 0.27.84
 
 **Themes: `neon`, a neon scoreboard, dark and light.**

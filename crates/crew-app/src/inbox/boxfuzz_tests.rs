@@ -95,6 +95,7 @@ fn the_pane_survives_any_keys_at_any_size() {
                         rows,
                         next: None,
                         more: r % 2 == 0,
+                        whole: true,
                     });
                 }
                 11 => {
