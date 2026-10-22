@@ -49,7 +49,8 @@ impl InboxPane {
             true => self.trash(&u.thread.id, true),
             false => self.relabel(&u.thread.id, u.add, u.remove),
         }
-        self.said(&u.thread, "put back");
+        // Taken back: nothing left for a second `z`.
+        self.note = super::triage::of(&u.thread, "put back");
     }
 
     /// Gmail refused to file thread `id`: said, and when it is the last

@@ -91,3 +91,18 @@ fn a_long_note_wraps_whole_so_its_end_says_what_to_press() {
         "the note takes the lines it needs"
     );
 }
+
+/// While a search is typed the foot shows the search's keys: the list's
+/// stayed, and "e archive" typed an e.
+#[test]
+fn the_foot_shows_the_search_s_keys_while_it_is_typed() {
+    use crate::inbox::worker::Worker;
+    use crate::inbox::{InboxPane, Stage};
+    let ((tx, _), (_, rx)) = (std::sync::mpsc::channel(), std::sync::mpsc::channel());
+    let mut p = InboxPane::with(Stage::Ready(Worker { tx, rx }));
+    p.rows = vec![Thread::default()];
+    p.press(&winit::keyboard::Key::Character("/".into()), 80, 24);
+    let text: String = p.cells(80, 24).iter().map(|c| c.c).collect();
+    assert!(text.contains("cancel") && text.contains("erase"), "{text}");
+    assert!(!text.contains("archive"), "{text}");
+}

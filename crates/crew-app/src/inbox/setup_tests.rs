@@ -43,3 +43,13 @@ fn esc_on_the_setup_page_closes_it_when_nothing_is_kept() {
     let esc = p.press(&Key::Named(NamedKey::Escape), 80, 24);
     assert!(matches!(esc, Some(crate::inbox::keys::InboxAction::Close)));
 }
+
+/// Enter with no client found did nothing at all, under a foot that says
+/// "enter sign in": now it says what is missing.
+#[test]
+fn enter_with_no_client_says_what_is_missing() {
+    use winit::keyboard::{Key, NamedKey};
+    let mut p = InboxPane::with(Stage::Setup { found: None });
+    p.press(&Key::Named(NamedKey::Enter), 80, 24);
+    assert!(p.note.starts_with("no client yet"), "{}", p.note);
+}

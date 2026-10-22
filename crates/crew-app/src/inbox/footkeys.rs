@@ -31,6 +31,8 @@ pub(crate) const SETUP: Keys = &[
     ("esc", "close"),
 ];
 pub(crate) const SIGNING_IN: Keys = &[("esc", "cancel")];
+/// While a search is typed, every key is the search's.
+pub(crate) const SEARCH: Keys = &[("enter", "search"), ("esc", "cancel"), ("del", "erase")];
 /// The keycap that sends a reply: the chord the platform sends with.
 pub(crate) const SEND: &str = if cfg!(target_os = "macos") {
     "\u{2318}\u{21a9}"
@@ -93,7 +95,7 @@ pub(crate) const READER: Keys = &[
     ("d", "delete"),
     ("z", "undo"),
     ("s", "star"),
-    ("m", "unread"),
+    ("m", "read/unread"),
     GAP,
     ("q", "quoted replies"),
     ("i", "pictures"),
