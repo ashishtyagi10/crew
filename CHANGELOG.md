@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.94
+
+**`/inbox`: an answer cut off is a failure.** Tenth and last round of the
+seventh inbox loop.
+- **When Gmail's answer breaks off, the pane says so.** It read as an empty
+  answer: a list of nothing, a thread with no mails, a saved attachment of
+  no bytes.
+- **Every file the chooser could not attach is said.** Choosing several
+  files at once said only the last one's line, so a refused file (too big, a
+  folder, unreadable) went unseen. A file that would pass Gmail's 25 MB is
+  named.
+
 ## 0.27.93
 
 **`/inbox`: the foot and the notes say what the keys do.** Ninth round of

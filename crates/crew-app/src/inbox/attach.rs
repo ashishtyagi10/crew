@@ -73,7 +73,7 @@ impl InboxPane {
         let total = carried + size + c.files.iter().map(|f| f.size).sum::<u64>();
         if total > super::forward::MOST {
             return format!(
-                "that makes {} MB, more than the 25 MB Gmail sends",
+                "{name} would make {} MB, more than the 25 MB Gmail sends",
                 total.div_ceil(1024 * 1024)
             );
         }
@@ -105,9 +105,28 @@ impl InboxPane {
         };
         c.picking = None;
         match got {
+            // Every file that did not go on is said, not only the last
+            // file's line: a refusal mid-way went unseen.
             Ok(paths) => {
-                let said: Vec<String> = paths.iter().map(|p| self.attach(p)).collect();
-                self.note = said.last().cloned().unwrap_or_default();
+                let (mut on, mut refused) = (Vec::new(), Vec::new());
+                for p in &paths {
+                    let had = self.compose.as_ref().map_or(0, |c| c.files.len());
+                    let said = self.attach(p);
+                    match self.compose.as_ref().map_or(0, |c| c.files.len()) > had {
+                        true => on.push(said),
+                        false => refused.push(said),
+                    }
+                }
+                let attached = match on.len() {
+                    0 => None,
+                    1 => on.pop(),
+                    n => Some(format!("attached {n} files")),
+                };
+                self.note = attached
+                    .into_iter()
+                    .chain(refused)
+                    .collect::<Vec<_>>()
+                    .join(" \u{b7} ");
             }
             Err(e) => self.note = e,
         }

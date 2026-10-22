@@ -50,11 +50,19 @@ async fn one(
         .await
         .map_err(|e| Fetch::Failed(format!("could not reach Gmail: {}", e.without_url())))?;
     let status = r.status().as_u16();
-    let v: Value = r.json().await.unwrap_or(Value::Null);
+    let body = r.bytes().await;
+    let v: Option<Value> = body
+        .as_ref()
+        .ok()
+        .and_then(|b| serde_json::from_slice(b).ok());
     match status {
-        200..=299 => Ok(v),
+        // An answer that broke off (the timeout reaches into the body, and a
+        // big attachment takes a while) read as an empty one: a list of
+        // nothing, a thread with no mails, a file of no bytes.
+        200..=299 => v.ok_or_else(|| Fetch::Failed("Gmail\u{2019}s answer was cut off".into())),
         401 => Err(Fetch::Expired),
         _ => {
+            let v = v.unwrap_or(Value::Null);
             let msg = v["error"]["message"].as_str().unwrap_or("no reason given");
             Err(Fetch::Failed(crate::oauth::short_reason(&format!(
                 "Gmail {status}: {msg}"

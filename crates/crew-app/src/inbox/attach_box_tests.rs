@@ -80,7 +80,7 @@ fn a_folder_a_missing_file_and_too_much_are_refused() {
         .starts_with("could not read"));
     assert_eq!(
         p.attach(&big),
-        "that makes 26 MB, more than the 25 MB Gmail sends"
+        "film.mov would make 26 MB, more than the 25 MB Gmail sends"
     );
     assert!(p.compose.as_ref().unwrap().files.is_empty());
 }
@@ -139,4 +139,22 @@ fn a_type_is_named_by_the_extension_and_the_chooser_prints_paths() {
         .map(|c| c.get_program().to_string_lossy().into_owned())
         .collect();
     assert!(!names.is_empty(), "a chooser to try on every system");
+}
+
+/// Several files chosen at once said only the last file's line, so a file
+/// refused mid-way went unseen: every refusal is said, after what went on.
+#[test]
+fn every_file_the_chooser_could_not_attach_is_said() {
+    let (mut p, _) = reading();
+    typed(&mut p, "r");
+    let (_a, one) = file("a.pdf", 1024);
+    let (_b, two) = file("b.pdf", 1024);
+    let (_c, big) = file("film.mov", 26 * 1024 * 1024);
+    let (tx, rx) = std::sync::mpsc::channel();
+    tx.send(Ok(vec![one, big, two])).unwrap();
+    p.compose.as_mut().unwrap().picking = Some(rx);
+    assert!(p.picked());
+    assert_eq!(p.compose.as_ref().unwrap().files.len(), 2);
+    assert!(p.note.starts_with("attached 2 files"), "{}", p.note);
+    assert!(p.note.contains("film.mov would make"), "{}", p.note);
 }
