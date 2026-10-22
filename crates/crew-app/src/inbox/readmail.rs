@@ -85,7 +85,7 @@ pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key, first: bool
         .extend(std::iter::repeat_n(Vec::new(), if first { 1 } else { 2 }));
     lay.lines.push(header(m, k));
     lay.lines.push(Vec::new());
-    super::ics::card::lines(lay, m, k);
+    super::ics::card::lines(lay, m, r, k);
     // Said where it shows, under the sender, not past the end of the mail.
     if rich.web > 0 && !r.web {
         let s = if rich.web == 1 { "" } else { "s" };

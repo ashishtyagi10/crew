@@ -61,7 +61,14 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
         "In a thread: hide its pictures from the web, or show them",
     ),
     ("w", "In a thread: open it in a window of its own"),
-    ("c", "In a thread with a meeting invite: add it to your calendar app"),
+    (
+        "c",
+        "A meeting invite: add it to Google Calendar (after /inbox calendar), or your calendar app",
+    ),
+    (
+        "y",
+        "A meeting invite: answer it on its card, which names who is told (y yes, n no, m maybe)",
+    ),
     (
         "x",
         "In a long thread: open every mail, or fold the older ones",

@@ -153,6 +153,7 @@ fn gmail(base: &str) -> crate::inbox::api::Gmail {
         },
         refresh_token: "1//r".into(),
         email: String::new(),
+        scope: String::new(),
     };
     crate::inbox::api::Gmail::at(grant, &format!("{base}/token"), &format!("{base}/gmail")).unwrap()
 }

@@ -34,8 +34,9 @@ pub(crate) struct Key {
     folds: u32,
     pub(crate) ink: Color,
     pub(crate) muted: Color,
-    /// The invite card's bar (`ics::card`).
+    /// The invite card's bar, and what it says of your answer (`ics::card`).
     pub(crate) accent: Color,
+    cal: u64,
 }
 
 impl Reading {
@@ -53,6 +54,7 @@ impl Reading {
             ink: t.ink,
             muted: t.text_muted,
             accent: crate::palette::accent(),
+            cal: super::ics::card::key(self),
         };
         let mut cache = self.laid.lock().unwrap_or_else(|e| e.into_inner());
         if let Some((_, laid)) = cache.as_ref().filter(|(k, _)| *k == key) {

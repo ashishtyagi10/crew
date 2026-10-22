@@ -1,6 +1,6 @@
 # Goal — a meeting invite in the inbox becomes a calendar entry
 
-**Status: IN PROGRESS.** Set 2026-10-22; the questions answered the same day (the user: "go with
+**Status: BUILT (phases 1–3), awaiting release.** Set 2026-10-22; the questions answered the same day (the user: "go with
 your recommendations for the calendar goal"): the system calendar app first, then Google
 Calendar; answers, each pressed twice; and `m` for maybe only on the card.
 
@@ -145,3 +145,16 @@ and in Kolkata.
 it, byte for byte, to `crew-invite-<uid>.ics` in the temp folder and opens it with the system's
 calendar app; the note says where it went. A cancelled invite, or one whose zone crew cannot
 place, adds nothing and says why. The card's last line says `c adds it to your calendar`.
+
+**Phase 3: built (not yet released).** `/inbox calendar` signs in again asking for
+`calendar.events` beside `gmail.modify` and opens the console page that turns the Calendar API
+on; the grant now keeps the scopes Google granted (`Grant::scope`), and a second sign-in that
+fails leaves the first in place. With the scope, opening a thread with an invite asks
+`events.list?iCalUID=` (`icscal.rs`), and the card says `✓ on your Google Calendar · you have
+not answered`; `c` then imports it (`icsevent.rs`: its UID, times with their IANA zone, a whole
+day as a date, the RRULE, the people and their answers). **One change from the shape above:**
+in the reader `n` is the next thread and `m` marks read, so `y` opens the answer on the card
+(`icsanswer.rs`) and only then are `y`, `n` and `m` the answers, Esc not now: the press-twice
+rule, with the card naming who will be told. On Google Calendar the answer is an
+`events.patch` with `sendUpdates=all`; otherwise a `METHOD:REPLY` mail to the organizer
+(`icsreply.rs`), with no new scope. The privacy policy and the terms say both.

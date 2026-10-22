@@ -47,7 +47,9 @@ pub(crate) struct Mail {
 }
 
 pub(crate) struct Gmail {
-    grant: Grant,
+    pub(super) grant: Grant,
+    /// Google Calendar's events (`ics::cal`): the stub's own under a test.
+    pub(super) cal: String,
     token_url: String,
     pub(super) api: String,
     pub(super) access: Option<(String, Instant)>,
@@ -57,7 +59,9 @@ pub(crate) struct Gmail {
 
 impl Gmail {
     pub(crate) fn new(grant: Grant) -> Result<Self, String> {
-        Self::at(grant, super::signin::TOKEN_URL, API)
+        let mut g = Self::at(grant, super::signin::TOKEN_URL, API)?;
+        g.cal = super::ics::cal::EVENTS.into();
+        Ok(g)
     }
 
     /// Against other endpoints: the tests' stub servers.
@@ -68,6 +72,7 @@ impl Gmail {
             .map_err(|_| "could not start the http runtime".to_string())?;
         Ok(Self {
             grant,
+            cal: format!("{api}/calendar/events"),
             token_url: token_url.into(),
             api: api.into(),
             access: None,
@@ -89,14 +94,18 @@ impl Gmail {
         Ok(t)
     }
 
-    /// Send each request (a path under the API root, and a body to POST) at
-    /// once, in order; one 401 renews the token and tries once more.
+    /// Send each request (a path under the API root, or a whole address such
+    /// as Google Calendar's, and a body to POST) at once, in order; one 401
+    /// renews the token and tries once more.
     fn send_all(&mut self, reqs: &[(String, Option<Value>)]) -> Result<Vec<Value>, String> {
         for attempt in 0..2 {
             let token = self.token()?;
             let reqs: Vec<_> = reqs
                 .iter()
-                .map(|(p, b)| (format!("{}{p}", self.api), b.clone()))
+                .map(|(p, b)| match p.starts_with("http") {
+                    true => (p.clone(), b.clone()),
+                    false => (format!("{}{p}", self.api), b.clone()),
+                })
                 .collect();
             let http = self.http.clone();
             match self.rt.block_on(super::fetch::all(http, token, reqs)) {

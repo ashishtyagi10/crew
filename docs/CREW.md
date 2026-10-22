@@ -1762,7 +1762,16 @@ longer aim at.
   adds it to your calendar: crew writes the invite, as it came, to a file
   and opens it in the system's calendar app (Calendar on a Mac), which
   shows its own page to add or answer it, in whichever account you keep
-  there. Nothing goes to Google from crew for that.
+  there. Nothing goes to Google from crew for that. `/inbox calendar` signs
+  in again asking for Google Calendar's events too (and opens the console
+  page that turns the Calendar API on in your project): from then on the
+  card says whether the meeting is on your Google Calendar and what you
+  answered there, and `c` adds it there, under its own ID, so an invite
+  Gmail already added is never added twice. `y` answers it: the card names
+  who will be told, then `y` yes, `n` no, `m` maybe, or Esc for not now.
+  On your Google Calendar the answer is set there and Google tells the
+  organizer; otherwise crew sends the organizer a short reply mail with
+  your answer, as Outlook and Apple Mail do.
   Every attachment is a row under its message (`↓ report.pdf · 1.2 MB`):
   Cmd+click its name, or its capital letter in `Cmd+E`'s hint mode, and crew
   saves it to `~/Downloads` under a safe version of its name (no folders, no

@@ -50,6 +50,17 @@ pub(crate) enum Ask {
         how: super::unsub::How,
         who: String,
     },
+    /// The open thread's invite (`ics::cal`): on your Google Calendar, and
+    /// your answer there? Nothing comes back without the Calendar scope.
+    OnCalendar(String),
+    /// `c` once Google Calendar answered: the invite onto your calendar.
+    AddEvent(String),
+    /// `y` and an answer, as `me`: on Google Calendar, or by mail.
+    Answer {
+        ics: String,
+        answer: super::ics::reply::Answer,
+        me: String,
+    },
 }
 
 impl Ask {
@@ -66,6 +77,9 @@ impl Ask {
                 | Ask::Unsubscribe { .. }
                 | Ask::Send { .. }
                 | Ask::Mail(_)
+                | Ask::OnCalendar(_)
+                | Ask::AddEvent(_)
+                | Ask::Answer { .. }
         )
     }
 }
@@ -110,4 +124,12 @@ pub(crate) enum Got {
     Refused(String, String),
     /// Google ended the grant (revoked, expired): sign in again.
     Ended(String),
+    /// What Google Calendar says of the invite with this UID: your answer
+    /// there, or `None` when it is not on your calendar.
+    OnCalendar(String, Option<String>),
+    /// An invite added to your calendar: the line to say.
+    Calendar(String),
+    /// An invite answered (its UID, Google's word for the answer), and the
+    /// line to say.
+    Answered(String, String, String),
 }

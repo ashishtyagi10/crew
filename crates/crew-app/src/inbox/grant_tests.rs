@@ -57,6 +57,7 @@ fn a_grant_round_trips_through_a_private_file_and_never_prints_its_token() {
         client: super::client_from_json(DOWNLOAD).unwrap(),
         refresh_token: "1//refresh-secret".into(),
         email: "ann@gmail.com".into(),
+        scope: String::new(),
     };
     let p = d.join("gmail.json");
     super::save_to(&p, &g).unwrap();

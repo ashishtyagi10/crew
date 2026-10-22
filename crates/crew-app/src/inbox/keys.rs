@@ -77,7 +77,7 @@ impl InboxPane {
                     None
                 }
                 (_, Some((_, client))) if named(NamedKey::Enter) => {
-                    match super::signin::spawn(client) {
+                    match super::signin::spawn(client, false) {
                         Some(rx) => self.stage = Stage::SigningIn(rx),
                         None => self.note = "could not open a port for the sign-in".into(),
                     }
@@ -158,8 +158,8 @@ impl InboxPane {
             self.note = self.next_thread(matches!(ch, "n" | "J")).into();
         } else if ch == "x" {
             self.note = r.fold_all().into();
-        } else if ch == "c" {
-            self.note = self.add_to_calendar();
+        } else if ch == "c" || ch == "y" {
+            self.note = self.invite_key(ch);
         } else if ch == "w" {
             r.pop_out = true;
         } else if ch == "i" {

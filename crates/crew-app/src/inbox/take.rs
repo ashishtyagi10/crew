@@ -68,8 +68,13 @@ impl InboxPane {
             }
             Err(e) => {
                 self.note = format!("sign-in failed: {e}");
-                self.stage = Stage::Setup {
-                    found: setup::look(),
+                // A second sign-in (`/inbox calendar`) that failed leaves the
+                // first one as it was.
+                self.stage = match grant::load() {
+                    Some(g) => Stage::Ready(worker::start(g)),
+                    None => Stage::Setup {
+                        found: setup::look(),
+                    },
                 };
             }
         }
@@ -98,6 +103,9 @@ impl InboxPane {
                 self.paged(rows, next.is_some(), more, whole);
             }
             Got::Unread(n) => self.unread = Some(n),
+            got @ (Got::OnCalendar(..) | Got::Calendar(_) | Got::Answered(..)) => {
+                self.take_cal(got)
+            }
             Got::Checked => {
                 self.checked_ms = Some(chrono::Utc::now().timestamp_millis());
                 // Gmail answered: a failure the list still showed is over.
@@ -114,6 +122,7 @@ impl InboxPane {
                     }
                     self.fetch_carried();
                     self.fetch_web();
+                    self.ask_calendar();
                 }
                 self.end_after_send();
             }

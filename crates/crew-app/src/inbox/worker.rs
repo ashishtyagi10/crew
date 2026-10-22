@@ -119,6 +119,9 @@ impl State {
                     .unsubscribe(&how)
                     .map_or_else(fail, |()| Got::Unsubscribed(who))]
             }
+            Ask::OnCalendar(ics) => super::ics::cal::seen(g, &ics),
+            Ask::AddEvent(ics) => super::ics::cal::add(g, &ics),
+            Ask::Answer { ics, answer, me } => super::ics::cal::answer(g, &ics, answer, &me),
             Ask::Check => match g.profile().map(|(_, h)| h) {
                 Ok(h) if h == self.history => vec![Got::Checked],
                 Ok(_) => self.list(g, None),

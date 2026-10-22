@@ -37,12 +37,18 @@ pub(crate) fn authorize_url(
     redirect: &str,
     challenge: &str,
     state: &str,
+    calendar: bool,
 ) -> String {
+    // `/inbox calendar` adds Google Calendar's events to Gmail's (`ics::cal`).
+    let scope = match calendar {
+        true => format!("{SCOPE} {}", super::ics::cal::SCOPE),
+        false => SCOPE.to_string(),
+    };
     let q = [
         ("client_id", client_id),
         ("redirect_uri", redirect),
         ("response_type", "code"),
-        ("scope", SCOPE),
+        ("scope", scope.as_str()),
         ("code_challenge", challenge),
         ("code_challenge_method", "S256"),
         ("state", state),
@@ -57,13 +63,13 @@ pub(crate) fn authorize_url(
 }
 
 /// Start the sign-in. `None` only when no loopback port could be bound.
-pub(crate) fn spawn(client: Client) -> Option<Receiver<Result<Grant, String>>> {
+pub(crate) fn spawn(client: Client, calendar: bool) -> Option<Receiver<Result<Grant, String>>> {
     let listener = TcpListener::bind("127.0.0.1:0").ok()?;
     let port = listener.local_addr().ok()?.port();
     let pkce = crew_hive::oauth::pkce();
     let state = crew_hive::oauth::random_token(32);
     let redirect = format!("http://127.0.0.1:{port}");
-    let url = authorize_url(&client.id, &redirect, &pkce.challenge, &state);
+    let url = authorize_url(&client.id, &redirect, &pkce.challenge, &state, calendar);
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
         // The test-safe opener: tests record the page, never open it.
@@ -108,6 +114,7 @@ pub(crate) fn exchange(
         client: client.clone(),
         refresh_token: refresh.to_string(),
         email: String::new(),
+        scope: v["scope"].as_str().unwrap_or(SCOPE).to_string(),
     })
 }
 

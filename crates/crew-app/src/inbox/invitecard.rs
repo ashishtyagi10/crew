@@ -9,6 +9,7 @@ use std::sync::Arc;
 use super::super::api::Mail;
 use super::super::reader::Key;
 use super::super::readmail::Lay;
+use super::super::Reading;
 use crate::chatbody::{plain, CardCell, CardLine, Color};
 
 /// The bar down the card's left edge.
@@ -16,10 +17,13 @@ const BAR: char = '\u{258e}';
 
 /// The card's lines for `m`, with a row of air after; nothing when the mail
 /// carries no invite crew can read.
-pub(crate) fn lines(lay: &mut Lay, m: &Mail, k: &Key) {
+pub(crate) fn lines(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key) {
     let Some(inv) = m.calendar.as_deref().and_then(super::parse) else {
         return;
     };
+    // `c` and `y` act on the thread's newest invite: its card says so.
+    let mails = r.mails.as_deref().unwrap_or_default();
+    let newest = mails.iter().rev().find_map(|m| m.calendar.as_deref()) == m.calendar.as_deref();
     let t = crew_theme::theme();
     let title = match inv.summary.trim() {
         "" => "(no title)",
@@ -52,14 +56,65 @@ pub(crate) fn lines(lay: &mut Lay, m: &Mail, k: &Key) {
         lay.lines
             .push(bar(link(url, crew_theme::readable::link(&t)), k));
     }
+    if newest {
+        foot(lay, &inv, r, k);
+    }
+    lay.lines.push(Vec::new());
+}
+
+/// The newest card's last lines: where it stands, then its keys, or the
+/// answer being given.
+fn foot(lay: &mut Lay, inv: &super::Invite, r: &Reading, k: &Key) {
+    let google = r.on_cal.as_ref().filter(|(u, _)| *u == inv.uid);
+    let stands = match (google, &r.answered) {
+        (Some((_, Some(s))), _) => Some(format!(
+            "\u{2713} on your Google Calendar \u{b7} {}",
+            said(s)
+        )),
+        (_, Some(s)) => Some(said(s).to_string()),
+        _ => None,
+    };
+    if let Some(line) = stands {
+        say(lay, k, &line, k.accent, false);
+    }
+    let who = inv.organizer.as_ref().map(|o| match o.name.trim() {
+        "" => o.email.clone(),
+        n => n.to_string(),
+    });
     let placed = inv
         .start
         .as_ref()
         .map(|s| super::icstz::place(s, &inv.zones));
-    if !inv.cancelled && !matches!(placed, Some(super::icstz::Placed::Unplaced(..))) {
-        say(lay, k, "c adds it to your calendar", k.muted, false);
+    let unplaced = matches!(placed, Some(super::icstz::Placed::Unplaced(..)));
+    let keys = match (r.answering, &who) {
+        (true, Some(w)) => {
+            format!("answer {w}: y yes \u{b7} n no \u{b7} m maybe \u{b7} esc not now")
+        }
+        _ if inv.cancelled || unplaced => return,
+        (_, Some(_)) => "c adds it to your calendar \u{b7} y answers it".into(),
+        (_, None) => "c adds it to your calendar".into(),
+    };
+    let bold = r.answering;
+    say(lay, k, &keys, if bold { k.ink } else { k.muted }, bold);
+}
+
+/// Google's word for an answer, as the card says it.
+fn said(s: &str) -> &'static str {
+    match s {
+        "accepted" => "you accepted",
+        "declined" => "you declined",
+        "tentative" => "you said maybe",
+        _ => "you have not answered",
     }
-    lay.lines.push(Vec::new());
+}
+
+/// What the card shows besides the invite, for the layout's key: the
+/// answer being given, and what Google Calendar and you said.
+pub(crate) fn key(r: &Reading) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    (r.answering, &r.on_cal, &r.answered).hash(&mut h);
+    h.finish()
 }
 
 /// `Ann Lee · 6 invited`: the organizer, and how many others were asked.

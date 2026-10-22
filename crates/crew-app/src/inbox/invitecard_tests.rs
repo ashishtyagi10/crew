@@ -44,7 +44,8 @@ fn an_invite_is_a_card_under_its_sender_and_over_its_words() {
     );
     let n = c.len();
     assert!(c[n - 2].ends_with("meet.google.com/abc-defg-hij"), "{c:?}");
-    assert!(c[n - 1].ends_with("c adds it to your calendar"), "{c:?}");
+    let keys = "c adds it to your calendar \u{b7} y answers it";
+    assert!(c[n - 1].ends_with(keys), "{c:?}");
     let at = |needle: &str| all.iter().position(|l| text(l).contains(needle)).unwrap();
     assert!(at("Ann Lee") < at("Q4 planning") && at("Q4 planning") < at("See you there."));
     let title = all
