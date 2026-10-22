@@ -21,40 +21,43 @@ pub(crate) fn lines(lay: &mut Lay, m: &Mail, k: &Key) {
         return;
     };
     let t = crew_theme::theme();
-    let width = k.width.saturating_sub(3).max(8);
-    let mut say = |text: &str, fg: Color, bold: bool| {
-        for l in super::super::draw::wrap(text, width) {
-            lay.lines.push(bar(words(&l, fg, bold), k));
-        }
-    };
     let title = match inv.summary.trim() {
         "" => "(no title)",
         s => s,
     };
     match inv.cancelled {
         true => say(
+            lay,
+            k,
             &format!("cancelled \u{b7} {title}"),
             crew_theme::readable::danger(&t),
             true,
         ),
-        false => say(title, k.ink, true),
+        false => say(lay, k, title, k.ink, true),
     }
     let today = chrono::Local::now().date_naive();
     let mut when = super::icswhen::span(&inv, &chrono::Local, today).unwrap_or_default();
     if let Some(r) = &inv.rrule {
         when = format!("{when} \u{b7} {}", super::icswhen::repeat(r));
     }
-    say(&when, k.ink, false);
+    say(lay, k, &when, k.ink, false);
     let place = inv.location.trim();
     if !place.is_empty() && inv.link.as_deref().is_none_or(|l| !place.contains(l)) {
-        say(place, k.muted, false);
+        say(lay, k, place, k.muted, false);
     }
     if let Some(who) = asked(&inv) {
-        say(&who, k.muted, false);
+        say(lay, k, &who, k.muted, false);
     }
     if let Some(url) = &inv.link {
         lay.lines
             .push(bar(link(url, crew_theme::readable::link(&t)), k));
+    }
+    let placed = inv
+        .start
+        .as_ref()
+        .map(|s| super::icstz::place(s, &inv.zones));
+    if !inv.cancelled && !matches!(placed, Some(super::icstz::Placed::Unplaced(..))) {
+        say(lay, k, "c adds it to your calendar", k.muted, false);
     }
     lay.lines.push(Vec::new());
 }
@@ -92,6 +95,13 @@ fn link(url: &str, fg: Color) -> CardLine {
             ..plain(c, fg, false)
         })
         .collect()
+}
+
+/// `text` in the card, wrapped to its width behind the bar.
+fn say(lay: &mut Lay, k: &Key, text: &str, fg: Color, bold: bool) {
+    for l in super::super::draw::wrap(text, k.width.saturating_sub(3).max(8)) {
+        lay.lines.push(bar(words(&l, fg, bold), k));
+    }
 }
 
 fn bar(mut text: CardLine, k: &Key) -> CardLine {

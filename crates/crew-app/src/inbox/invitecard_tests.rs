@@ -42,10 +42,9 @@ fn an_invite_is_a_card_under_its_sender_and_over_its_words() {
         c.iter().any(|l| l.ends_with("Ann Lee \u{b7} 2 invited")),
         "{c:?}"
     );
-    assert!(
-        c.last().unwrap().ends_with("meet.google.com/abc-defg-hij"),
-        "{c:?}"
-    );
+    let n = c.len();
+    assert!(c[n - 2].ends_with("meet.google.com/abc-defg-hij"), "{c:?}");
+    assert!(c[n - 1].ends_with("c adds it to your calendar"), "{c:?}");
     let at = |needle: &str| all.iter().position(|l| text(l).contains(needle)).unwrap();
     assert!(at("Ann Lee") < at("Q4 planning") && at("Q4 planning") < at("See you there."));
     let title = all
@@ -78,6 +77,7 @@ fn a_cancelled_invite_says_so_first_and_a_mail_with_none_has_no_card() {
     let ev = "DTSTART:20261102T190000Z\r\nSUMMARY:Hiring panel\r\n";
     let c = card(&lines(Some(cal("METHOD:CANCEL\r\n", ev))));
     assert!(c[0].ends_with("cancelled \u{b7} Hiring panel"), "{c:?}");
+    assert!(!c.iter().any(|l| l.contains("c adds")), "nothing to add");
     assert!(card(&lines(None)).is_empty());
     assert!(card(&lines(Some("BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n".into()))).is_empty());
 }

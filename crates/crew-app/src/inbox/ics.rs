@@ -7,6 +7,8 @@ use chrono::{Duration, NaiveDate, NaiveDateTime};
 use icsline::{join, person, when};
 pub(crate) use icsline::{props, text, Prop};
 
+#[path = "icsadd.rs"]
+mod add;
 #[path = "invitecard.rs"]
 pub(crate) mod card;
 #[path = "icsline.rs"]
