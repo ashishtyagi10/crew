@@ -4242,8 +4242,8 @@ palette to it).
 
 Crew offers **six themes**: **`light`**, **`dark`**, **`glass`**,
 **`crt`**, **`neon`** and **`auto`**. `light` and `dark` are one page each. `glass` and
-`crt` are *rotations*, changing palette every 10 minutes. `neon` is one look
-in a dark and a light page, and serves the one for the OS appearance. `auto` follows the
+`crt` are *rotations*, changing palette every 10 minutes. `neon` is one dark
+page, whatever the OS appearance or the clock. `auto` follows the
 **OS appearance**: the dark page while the system is in dark mode, the light
 one in light mode, flipping live (through the develop-fade) the moment the
 system switches. With no theme saved at all, crew defaults to `auto`.
@@ -4261,8 +4261,8 @@ night is the classic) or pin one palette per appearance.
 - **`crt`** — **`crt-green`** and **`crt-amber`**: a phosphor tube in glass,
   its faceplate a deep smoke (which phosphor green needs over a white
   desktop) and its panes lit by their own phosphor.
-- **`neon`** — **`neon-dark`** and **`neon-light`**: a holographic control
-  room in electric blue, violet and cyan. `neon-dark` is a near-black
+- **`neon`** — **`neon-dark`**: a holographic control room in electric
+  blue, violet and cyan, always dark. It is a near-black
   blue-violet window that lets a little of the desktop through, with a fine
   grid in the electric blue behind the panes (every fourth line brighter, a
   crosshair where those cross, a point at every other crossing) lit from
@@ -4277,14 +4277,14 @@ night is the classic) or pin one palette per appearance.
   broadcast violet, and the focus ring runs cyan to violet. Pane titles,
   agent names and `@project` tags keep to the same family — twelve
   signature colours from cyan to violet in place of the terminal's red,
-  yellow and green. `neon-light` is
-  print: a cool white page, deep navy words, an electric-blue frame and
-  accent, cyan progress and violet broadcast. The face is SF Mono.
+  yellow and green. The face is SF Mono. It had a light page,
+  `neon-light`, which `neon` served by day; that name now loads `neon`.
 
 The picker offers the six themes first and then **every other palette by
 name**, under a heading; a palette named there is pinned (no rotation). The
-Ink Reader pages are not repeated there: `dark` and `light` already are
-them, and their old names `paper-dark` and `paper-light` load as those two.
+Ink Reader pages and neon's are not repeated there: `dark`, `light` and
+`neon` already are them, and their names `paper-dark`, `paper-light` and
+`neon-dark` load as those three.
 Older palettes were folded into these eight and their names still load the
 nearest survivor: `glass-sky` and `glass-dawn` → `glass-clear`; `sepia-dark`
 and `harbor` → `dark`; `sepia-light` → `light`; `fern` →

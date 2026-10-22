@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.6
+
+**`neon` is always dark.** It served its light page by day: with macOS
+Appearance set to Dark (not Auto), crew decides day and night by its own
+clock, so `/theme neon` came up as the white print page, with no glass and no
+grid, until 19:00. Neon is now one page, the holographic glass over the lit
+grid, whatever the appearance or the time.
+- `neon-light` is retired. A config that saved it loads `neon`, and so does
+  `neon-dark`, the same way `paper-dark` loads `dark`. The picker lists
+  `neon` once.
+
 ## 0.28.5
 
 **`neon` is a holographic control room: glass over a lit grid, in electric

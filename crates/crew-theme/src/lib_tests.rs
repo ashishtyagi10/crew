@@ -421,10 +421,10 @@ fn every_pool_survives_the_cut() {
     let glass = count(|id: ThemeId| id.mode() == RandomMode::Glass);
     let neon = count(|id: ThemeId| id.mode() == RandomMode::Neon);
     // One Ink Reader page each for dark and light (2026-10-16), two tubes,
-    // the four glass palettes, and neon's dark and light page.
+    // the four glass palettes, and neon's one dark page.
     assert_eq!(
         (dark, light, crt, glass, neon),
-        (1, 1, 2, 4, 2),
+        (1, 1, 2, 4, 1),
         "pools are dark {dark}, light {light}, crt {crt}, glass {glass}, neon {neon} — \
          `auto` needs both appearances and the tubes and the glass are their \
          own rotations"
@@ -436,7 +436,7 @@ fn every_pool_survives_the_cut() {
 /// every one of their names still resolves.
 #[test]
 fn every_retired_theme_name_still_resolves() {
-    const RETIRED: [(&str, ThemeId); 22] = [
+    const RETIRED: [(&str, ThemeId); 23] = [
         ("midnight-ink", ThemeId::Nebula),
         ("graphite", ThemeId::PaperDark),
         ("moss-blotter", ThemeId::PaperDark),
@@ -459,6 +459,8 @@ fn every_retired_theme_name_still_resolves() {
         ("fern", ThemeId::Blossom),
         ("crt-blue", ThemeId::CrtGreen),
         ("crt-violet", ThemeId::CrtAmber),
+        // Dark on purpose: neon is one dark page (the user, 2026-10-22).
+        ("neon-light", ThemeId::NeonDark),
     ];
     for (name, want) in RETIRED {
         assert_eq!(
@@ -481,7 +483,8 @@ fn every_retired_theme_name_still_resolves() {
     // read as retiring one — `glass` was drawn on 2026-10-07 and became
     // `glass-night` when the light pair (`glass-sky`, `glass-dawn`) was drawn
     // on 2026-10-08, and `glass-clear` on 2026-10-09, which the light pair
-    // folded into the same day. The neon pair was drawn on 2026-10-22.
+    // folded into the same day. The neon pair was drawn on 2026-10-22, and
+    // its light page retired the same day.
     assert_eq!(
         RETIRED.len() + ALL_THEMES.len(),
         32,
@@ -938,8 +941,8 @@ fn random_pick_pools_are_pure() {
 /// `CrtStyle` they carry for their halo is not a tube), so they rotate inside
 /// `dark` / `light`. Light liquid glass is the one look that stands apart
 /// (the user picked it BY NAME and found it nowhere, 2026-10-08), so the
-/// picker offers four looks plus `auto` — and `neon` (2026-10-22), one look
-/// in a dark and a light page.
+/// picker offers four looks plus `auto` — and `neon` (2026-10-22), one dark
+/// page of holographic glass.
 #[test]
 fn every_palette_lands_in_exactly_one_of_the_pools() {
     let _g = guard();
@@ -966,10 +969,11 @@ fn every_palette_lands_in_exactly_one_of_the_pools() {
     }
     // …and each rotating pool is wide enough to move: `random_pick` filters
     // out the current theme first. `dark` and `light` are one Ink Reader page
-    // each (2026-10-16), which is a page, not a rotation.
+    // each (2026-10-16), and `neon` one dark page (2026-10-22), which is a
+    // page, not a rotation.
     for m in pools {
         let n = ALL_THEMES.into_iter().filter(|id| m.in_pool(*id)).count();
-        let page = matches!(m, RandomMode::Dark | RandomMode::Light);
+        let page = matches!(m, RandomMode::Dark | RandomMode::Light | RandomMode::Neon);
         assert!(
             n >= 2 || (page && n == 1),
             "{} pool has only {n} palettes — a rotation would \
@@ -1161,7 +1165,10 @@ fn the_ink_reader_pages_are_their_rotations() {
     }
     // Every other palette pins itself and is offered.
     for id in ALL_THEMES {
-        if matches!(id, ThemeId::PaperDark | ThemeId::PaperLight) {
+        if matches!(
+            id,
+            ThemeId::PaperDark | ThemeId::PaperLight | ThemeId::NeonDark
+        ) {
             continue;
         }
         assert_eq!(id.selection(), Selection::Fixed(id), "{}", id.as_str());
@@ -1173,35 +1180,45 @@ fn the_ink_reader_pages_are_their_rotations() {
     }
 }
 
-/// `neon` is one theme in two pages (the user, 2026-10-22: "both light and
-/// dark variation"): it serves the page for the appearance, re-serves it when
-/// the appearance flips, and never rotates from one page to the other on the
-/// clock. Each page can also be pinned by name.
+/// `neon` is dark, by day and by night (the user, 2026-10-22: "neon doesn't
+/// have to be light color, keep it default dark"). It had a light page and
+/// served it with the appearance — and a Mac pinned to Dark hands that call
+/// to the clock, so `neon` came up light until 19:00. One page now, so its
+/// name is the theme: `neon-dark` loads as `neon`, and so does the retired
+/// `neon-light`.
 #[test]
-fn neon_serves_the_page_for_the_appearance() {
+fn neon_is_dark_by_day_and_by_night() {
     let _g = guard();
+    // (OS switches itself, OS dark, clock says day)
+    for (os_auto, os_dark, day) in [
+        (false, true, true),
+        (true, false, true),
+        (true, true, false),
+        (false, false, false),
+    ] {
+        set_os_auto(os_auto);
+        set_os_dark(os_dark);
+        set_daylight(day);
+        let at = format!("os_auto {os_auto}, os_dark {os_dark}, day {day}");
+        apply_selection(Selection::Mode(RandomMode::Neon), 1_000);
+        assert_eq!(current_id(), ThemeId::NeonDark, "{at}");
+        assert!(!follow_appearance(2_000), "{at}: neon followed it");
+        assert!(!tick_random(1_000 + ROTATE_MS), "{at}: neon rotated");
+        assert_eq!(current_id(), ThemeId::NeonDark, "{at}");
+    }
+    for name in ["neon", "neon-dark", "neon-light"] {
+        assert_eq!(
+            parse_selection(name),
+            Some(Selection::Mode(RandomMode::Neon)),
+            "{name}"
+        );
+    }
+    assert!(
+        pinnable_themes().all(|t| t != ThemeId::NeonDark),
+        "neon-dark is offered beside `neon`"
+    );
     set_os_auto(true);
     set_os_dark(true);
-    apply_selection(Selection::Mode(RandomMode::Neon), 1_000);
-    assert_eq!(current_id(), ThemeId::NeonDark);
-    // The rotation clock does not move it to the other page.
-    assert!(!tick_random(1_000 + ROTATE_MS));
-    assert_eq!(current_id(), ThemeId::NeonDark);
-    // An appearance flip re-serves it.
-    set_os_dark(false);
-    assert!(follow_appearance(2_000));
-    assert_eq!(current_id(), ThemeId::NeonLight);
-    assert_eq!(mode(), Some(RandomMode::Neon));
-    // Pinned rotations do not follow the appearance.
-    apply_selection(Selection::Mode(RandomMode::Crt), 3_000);
-    assert!(!follow_appearance(4_000));
-    for (name, id) in [
-        ("neon-dark", ThemeId::NeonDark),
-        ("neon-light", ThemeId::NeonLight),
-    ] {
-        assert_eq!(parse_selection(name), Some(Selection::Fixed(id)), "{name}");
-        assert!(pinnable_themes().any(|t| t == id), "{name} not offered");
-    }
-    set_os_dark(true);
+    set_daylight(false);
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
