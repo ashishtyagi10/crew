@@ -108,8 +108,8 @@ pub struct InboxPane {
     pub(crate) more: bool,
     /// The last archive, read or star, for `u`.
     pub(crate) undo: Option<undo::Undo>,
-    /// `a`/`d`/`t` pressed before the thread's messages arrived.
-    pub(crate) then: Option<handoff::Then>,
+    /// `a`/`r`/`f`/`t` pressed before the thread's messages came, and its id.
+    pub(crate) then: Option<(handoff::Then, String)>,
     /// A prompt for agent smith, for the app to deliver.
     pub(crate) to_smith: Option<handoff::ToSmith>,
     /// A reply smith is writing for a draft.

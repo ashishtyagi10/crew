@@ -54,9 +54,15 @@ impl InboxPane {
             self.reading = Some(Reading::new(thread));
             self.pics.clear();
         }
-        match self.reading.as_ref().is_some_and(|r| r.mails.is_some()) {
-            true => self.act(then),
-            false => self.then = Some(then),
+        // Not here yet: kept for this thread's mails, and for no other's.
+        match self
+            .reading
+            .as_ref()
+            .map(|r| (r.mails.is_some(), r.thread.id.clone()))
+        {
+            Some((true, _)) => self.act(then),
+            Some((false, id)) => self.then = Some((then, id)),
+            None => {}
         }
         true
     }

@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.75
+
+**`/inbox`: a key pressed on a thread acts on that thread.** Third round of
+the fifth inbox loop.
+- **`a`, `r`, `f` and `t` pressed on a row wait for that thread only.** Press
+  one, go back with Esc before the thread loaded, open another, and the key
+  used to act on the other thread: a todo, a reply box or a hand-off to agent
+  smith for a thread you did not choose. It now lets the key go.
+- **Dropping a file on the inbox without a reply box open** says to press `r`
+  first, instead of nothing.
+
 ## 0.27.74
 
 **`/inbox`: a reply waits out an ended sign-in.** Second round of the fifth
