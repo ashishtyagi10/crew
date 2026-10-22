@@ -94,6 +94,9 @@ impl InboxPane {
 
     /// `text` at the caret, on the line or in the words: a key, a paste.
     pub(crate) fn type_in(&mut self, text: &str) {
+        if let Some(t) = self.todo.as_mut() {
+            return t.field().put(text, true);
+        }
         let Some(c) = self.compose.as_mut().filter(|c| !c.sending) else {
             return;
         };

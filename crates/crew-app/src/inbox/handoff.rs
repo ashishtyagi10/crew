@@ -93,7 +93,7 @@ impl InboxPane {
             }
             Then::Reply => self.note = self.open_compose(Kind::Reply).into(),
             Then::Forward => self.note = self.open_compose(Kind::Forward).into(),
-            Then::Todo => self.to_todo(),
+            Then::Todo => self.note = self.open_todo(),
         }
     }
 
@@ -116,38 +116,6 @@ impl InboxPane {
                 "agent smith's answer held no draft \u{2014} tab in the reply box asks again".into()
             }
         };
-    }
-
-    fn to_todo(&mut self) {
-        let Some(r) = self.reading.as_ref() else {
-            return;
-        };
-        let title = super::smith::todo_title(r);
-        let newest = r
-            .mails
-            .as_deref()
-            .and_then(|m| m.last())
-            .map_or("", |m| m.text.as_str());
-        let due = super::smith::deadline(newest, crate::todopane::duedate::now_local());
-        let now = crate::chattime::unix_now_ms();
-        let item = crate::todopane::item::TodoItem {
-            title: title.clone(),
-            due_ms: due
-                .as_ref()
-                .and_then(|h| crate::todopane::duedate::to_epoch_ms(h.due)),
-            due_has_time: due.as_ref().is_some_and(|h| h.has_time),
-            created_ms: now,
-            ..Default::default()
-        };
-        crate::todopane::store::mutate(|items| {
-            let id = items.iter().map(|i| i.id).max().unwrap_or(0).max(now - 1) + 1;
-            items.push(crate::todopane::item::TodoItem { id, ..item });
-        });
-        let when = match due {
-            Some(h) => format!(" (due {})", h.due.format("%a %b %-d")),
-            None => String::new(),
-        };
-        self.note = format!("added to /todo: {title}{when}");
     }
 }
 

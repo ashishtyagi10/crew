@@ -34,6 +34,17 @@ pub(crate) fn label(d: NaiveDate, today: NaiveDate) -> String {
     }
 }
 
+/// A `Date` header as local wall time (`reader::when` says why each form is tried).
+pub(crate) fn sent(date: &str) -> Option<chrono::NaiveDateTime> {
+    let d = date.trim();
+    let bare = d.split(" (").next().unwrap_or(d);
+    let dayless = bare.split_once(", ").map_or(bare, |(_, rest)| rest);
+    [d, bare, dayless]
+        .iter()
+        .find_map(|s| chrono::DateTime::parse_from_rfc2822(s).ok())
+        .map(|t| t.with_timezone(&chrono::Local).naive_local())
+}
+
 #[cfg(test)]
 mod tests {
     use chrono::NaiveDate;

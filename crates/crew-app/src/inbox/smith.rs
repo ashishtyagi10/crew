@@ -88,28 +88,31 @@ pub(crate) fn todo_title(r: &Reading) -> String {
     format!("Reply to {who}: {}", r.thread.subject.trim())
 }
 
-/// A deadline the newest message states: a date within the four words after
-/// "by", "before", "until", "due" or "no later than" ("by the end of Friday"),
-/// read the way `/todo` reads a typed one. A date anywhere else (a meeting
-/// last Monday) is not a deadline.
+/// A deadline a message states: a date within the four words after "by",
+/// "before", "until", "due" or "no later than" ("by the end of Friday"),
+/// read the way `/todo` reads a typed one, as of `now` (the day the mail was
+/// sent), and the words it was read from ("by friday"). A date anywhere else
+/// (a meeting last Monday) is not a deadline.
 pub(crate) fn deadline(
     text: &str,
     now: chrono::NaiveDateTime,
-) -> Option<crate::todopane::duedate::DueHit> {
+) -> Option<(crate::todopane::duedate::DueHit, String)> {
     let lower = text.to_lowercase();
     ["no later than ", "before ", "until ", "due ", "by "]
         .iter()
-        .flat_map(|w| lower.match_indices(w).map(move |(i, _)| i + w.len()))
-        .filter_map(|at| {
+        .flat_map(|w| lower.match_indices(w).map(move |(i, _)| (*w, i + w.len())))
+        .filter_map(|(w, at)| {
             // Sentence punctuation is not part of a date: "by Friday?".
             let words = lower[at..].split_whitespace().take(4);
             let words: Vec<&str> = words
                 .map(|w| w.trim_end_matches(['.', ',', ';', ':', '!', '?', ')']))
                 .collect();
             let phrase = words.join(" ");
-            crate::todopane::duedate::find(&phrase, now)
+            let h = crate::todopane::duedate::find(&phrase, now)?;
+            let said: String = phrase.chars().skip(h.start).take(h.end - h.start).collect();
+            Some((h, format!("{w}{said}")))
         })
-        .min_by_key(|h| h.due)
+        .min_by_key(|(h, _)| h.due)
 }
 
 #[cfg(test)]

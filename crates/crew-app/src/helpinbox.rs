@@ -42,7 +42,7 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
         "In the reply box: + attach picks files (or drop them); Enter opens one, Backspace takes it off",
     ),
     ("a", "Ask agent smith about the thread"),
-    ("t", "A /todo row, due on the deadline the mail states"),
+    ("t", "A /todo card under the mail: title, @project, #assignee, due; Enter adds it"),
     ("/", "Search with Gmail's own syntax (from:ann is:unread)"),
     ("R", "Refresh the list"),
     ("L", "One line a thread, or two (kept until crew quits)"),

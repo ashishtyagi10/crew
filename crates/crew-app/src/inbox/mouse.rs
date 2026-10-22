@@ -62,7 +62,7 @@ impl InboxPane {
             return Clicked::Done;
         }
         // On the reply box: the caret to the line clicked.
-        if self.compose_click(cols, rows, row, col) {
+        if self.compose_click(cols, rows, row, col) || self.todo_click(cols, rows, row, col) {
             return Clicked::Done;
         }
         let width = self.reader_box(cols).1;

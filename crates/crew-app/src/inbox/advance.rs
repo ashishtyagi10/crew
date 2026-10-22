@@ -9,8 +9,19 @@ use super::{InboxPane, Reading};
 /// Said when another thread is asked for while a reply is being written:
 /// the box answers the thread it was opened on, so the mail under it stays.
 pub(crate) const HELD: &str = "a reply is open \u{2014} send it, or esc to close it, first";
+/// The same, for the todo card (`todocard`).
+pub(crate) const TODO_HELD: &str =
+    "a todo is open \u{2014} enter adds it, or esc lets it go, first";
 
 impl InboxPane {
+    /// Why another thread waits: the card open under this one.
+    fn held(&self) -> &'static str {
+        match self.todo {
+            Some(_) => TODO_HELD,
+            None => HELD,
+        }
+    }
+
     /// Open thread `i` of the list, as Enter does: asked of Gmail, marked
     /// read as Gmail marks it, selected, its pictures fresh. False when
     /// there is no such thread.
@@ -19,8 +30,8 @@ impl InboxPane {
             return false;
         };
         let open = self.reading.as_ref().map(|r| r.thread.id.as_str());
-        if self.compose.is_some() && open != Some(thread.id.as_str()) {
-            self.note = HELD.into();
+        if self.carded() && open != Some(thread.id.as_str()) {
+            self.note = self.held().into();
             return false;
         }
         self.select(i);
@@ -44,8 +55,8 @@ impl InboxPane {
     /// any width (the user, 2026-10-21: "n go to next email … p open
     /// previous email in detail panel"). What to say: nothing when it opened.
     pub(crate) fn next_thread(&mut self, older: bool) -> &'static str {
-        if self.compose.is_some() {
-            return HELD;
+        if self.carded() {
+            return self.held();
         }
         // The open thread gone from the list: the one in its place is next.
         let open = self.reading.as_ref().map(|r| r.thread.id.as_str());

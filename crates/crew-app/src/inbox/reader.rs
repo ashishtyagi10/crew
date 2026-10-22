@@ -166,18 +166,10 @@ pub(crate) fn draw(cv: &mut Canvas, r: &Reading, pics: &Pics) {
 /// that disagrees with the date, and RFC 2822 parsing refuses both, so each
 /// is tried without them too.
 pub(crate) fn when(date: &str) -> String {
-    let d = date.trim();
-    let bare = d.split(" (").next().unwrap_or(d);
-    let dayless = bare.split_once(", ").map_or(bare, |(_, rest)| rest);
-    [d, bare, dayless]
-        .iter()
-        .find_map(|s| chrono::DateTime::parse_from_rfc2822(s).ok())
-        .map(|t| {
-            t.with_timezone(&chrono::Local)
-                .format("%a %b %-d, %H:%M")
-                .to_string()
-        })
-        .unwrap_or_else(|| d.to_string())
+    super::days::sent(date).map_or_else(
+        || date.trim().to_string(),
+        |t| t.format("%a %b %-d, %H:%M").to_string(),
+    )
 }
 
 #[cfg(test)]

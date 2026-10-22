@@ -103,7 +103,7 @@ impl InboxPane {
                     let counter = self.counter().unwrap_or_default();
                     let room = b.w.saturating_sub(8 + str_w(&counter) as u16);
                     let subject = super::reader::subject(r);
-                    let keys = self.compose.is_none();
+                    let keys = !self.carded();
                     super::cards::frame(&mut cv, b, &clip(subject, room), &counter, keys);
                     let inner = b.inner();
                     let mut read = Canvas::new(inner.w, inner.h);
@@ -113,6 +113,7 @@ impl InboxPane {
                 if let Some(b) = k.reply {
                     let mut reply = Canvas::new(b.w + 1, b.h);
                     self.draw_compose(&mut reply, b.w);
+                    self.draw_todo(&mut reply, b.w);
                     put(&mut cv, reply, b);
                 }
             }

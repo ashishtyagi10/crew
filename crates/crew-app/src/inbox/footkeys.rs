@@ -31,6 +31,14 @@ pub(crate) const SETUP: Keys = &[
     ("esc", "close"),
 ];
 pub(crate) const SIGNING_IN: Keys = &[("esc", "cancel")];
+/// The todo card's keys (`todocard`).
+pub(crate) const TODO: Keys = &[
+    ("enter", "add to /todo"),
+    ("esc", "close"),
+    GAP,
+    ("\u{2191}", "up"),
+    ("\u{2193}", "down"),
+];
 /// While a search is typed, every key is the search's.
 pub(crate) const SEARCH: Keys = &[("enter", "search"), ("esc", "cancel"), ("del", "erase")];
 /// The keycap that sends a reply: the chord the platform sends with.

@@ -360,8 +360,10 @@ found DKIM-signed is acted on), `r` to **reply to everyone on it in a box under 
 Cmd+Enter, Ctrl+Enter off a Mac, sends it in the thread; Tab has agent smith
 write a draft into the box for you to change first; Esc closes it, twice when
 it holds words), `f` to forward the newest mail with its pictures and files, `a` to hand the thread to smith ("what does it want
-from me?"), `t` to turn it into a `/todo` row due on the deadline the mail
-states ("by Friday"), `R` to refresh, `o` to open it in
+from me?"), `t` to open a card under the mail with the `/todo` row
+it asks for (its title, `@project`, `#assignee` and the deadline the mail
+states, "by Friday" read as of the day it was sent) to change before Enter
+adds it, `R` to refresh, `o` to open it in
 Gmail, `/inbox <search>` to open on a search, `/inbox signout` to withdraw
 the grant. Gmail's read scope is restricted, so it signs in with an OAuth
 client of your own: the pane's setup page opens the five Google Cloud

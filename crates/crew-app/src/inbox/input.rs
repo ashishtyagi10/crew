@@ -9,7 +9,9 @@ impl InboxPane {
     pub fn paste(&mut self, text: &str) {
         match (&mut self.stage, super::grant::client_from_json(text)) {
             (Stage::Setup { found }, Some(c)) => *found = Some(("pasted client".into(), c)),
-            (Stage::Ready(_), _) if self.compose.is_some() => self.type_in(text),
+            (Stage::Ready(_), _) if self.compose.is_some() || self.todo.is_some() => {
+                self.type_in(text)
+            }
             (_, _) if self.typing.is_some() => {
                 self.typing.get_or_insert_default().push_str(text.trim())
             }

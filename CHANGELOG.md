@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.95
+
+**`/inbox`: `t` opens a todo card.** Phase 1 of the smart-todo goal.
+- **`t` opens a card under the mail**, as `r` opens the reply box, with the
+  `/todo` row the mail asks for: its title, `@project`, `#assignee` and
+  due. Up and Down move between the lines, typing changes one, Enter adds
+  the row, Esc lets it go (twice once you changed something). It added the
+  row at once before, with no project or assignee.
+- **The due date reads the mail as of the day it was sent:** "by Friday" in
+  Tuesday's mail is that Friday, whenever you press `t`. The card shows the
+  day and the words it came from; a due line you type must read as a date.
+
 ## 0.27.94
 
 **`/inbox`: an answer cut off is a failure.** Tenth and last round of the

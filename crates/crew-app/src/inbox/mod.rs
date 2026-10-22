@@ -67,6 +67,7 @@ pub(crate) mod smith;
 pub(crate) mod split;
 mod states;
 pub(crate) mod take;
+pub(crate) mod todocard;
 pub(crate) mod triage;
 mod undo;
 pub(crate) mod unsub;
@@ -125,6 +126,8 @@ pub struct InboxPane {
     pub(crate) hover: Option<usize>,
     /// A reply being written under the open mail (`compose`).
     pub(crate) compose: Option<compose::Compose>,
+    /// `t`: the `/todo` row the mail asks for, under the open mail (`todocard`).
+    pub(crate) todo: Option<todocard::TodoCard>,
     pub(crate) motion: motion::Motion,
     ticked_ms: u64,
 }
@@ -167,6 +170,7 @@ impl InboxPane {
             density: list::Density::Auto,
             hover: None,
             compose: None,
+            todo: None,
             motion: motion::Motion::default(),
             ticked_ms: crate::anim::now_ms(),
         }
