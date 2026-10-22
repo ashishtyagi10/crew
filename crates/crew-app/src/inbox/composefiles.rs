@@ -154,7 +154,7 @@ impl InboxPane {
         let Some(b) = self.cards(cols, rows).reply else {
             return false;
         };
-        let (Some((row, _)), Some(c)) = (b.local(row, col), self.compose.as_mut()) else {
+        let (Some((row, col)), Some(c)) = (b.local(row, col), self.compose.as_mut()) else {
             return false;
         };
         let w = text_w(b.w) as u16;
@@ -168,6 +168,7 @@ impl InboxPane {
             r if Some(r) == g.cc => On::Cc,
             _ => On::Body,
         };
+        super::composegeo::caret_at(c, &g, w, (row, col));
         match hit {
             Some(What::Open(i)) => {
                 c.pick = i;

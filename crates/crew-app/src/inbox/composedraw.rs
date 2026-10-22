@@ -119,7 +119,7 @@ pub(crate) fn text_w(w: u16) -> usize {
 }
 
 /// The caret's wrapped row and column: where the text up to it ends.
-fn place(text: &str, at: usize, width: usize) -> (usize, usize) {
+pub(crate) fn place(text: &str, at: usize, width: usize) -> (usize, usize) {
     let before: String = text.chars().take(at).collect();
     let lines = wrap(&before, width);
     let last = lines.last().map_or(0, |l| crate::chatwidth::str_w(l));

@@ -6,7 +6,7 @@ use super::composegeo::Geo;
 use super::draw::Canvas;
 
 /// Where an address line's value starts, after `to` or `cc`.
-const VALUE: u16 = X + 4;
+pub(crate) const VALUE: u16 = X + 4;
 
 /// The lines on the rows `g` gives them, their words ending before column
 /// `end`. The line being written shows the part around its caret; the

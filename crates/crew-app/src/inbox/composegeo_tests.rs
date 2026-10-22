@@ -83,3 +83,33 @@ fn the_box_is_named_for_whom_its_to_line_says() {
         name(&p)
     );
 }
+
+#[test]
+fn a_click_puts_the_caret_on_the_letter_clicked() {
+    let _g = crate::app::motion_test_guard();
+    let (mut p, _) = reading();
+    typed(&mut p, "r");
+    typed(&mut p, "Hello there");
+    press(&mut p, NamedKey::Enter);
+    typed(&mut p, "second");
+    let b = p.cards(80, 30).reply.expect("the box");
+    let words = b.row + 4;
+    let x = b.col + crate::inbox::composedraw::X;
+    let body = |p: &InboxPane| p.compose.as_ref().unwrap().body.clone();
+    assert!(p.compose_click(80, 30, words, x + 2));
+    assert_eq!(body(&p).at, 2, "between e and l");
+    typed(&mut p, "Z");
+    assert_eq!(body(&p).text, "HeZllo there\nsecond");
+    assert!(p.compose_click(80, 30, words + 1, x + 40));
+    assert_eq!(
+        body(&p).at,
+        body(&p).text.chars().count(),
+        "past a line's end: its end"
+    );
+    let value = b.col + crate::inbox::composehead::VALUE;
+    assert!(p.compose_click(80, 30, b.row + 1, value + 3));
+    assert_eq!(on(&p), On::To);
+    typed(&mut p, "|");
+    let to = p.compose.as_ref().unwrap().to.text.clone();
+    assert!(to.starts_with("Ann|"), "{to}");
+}
