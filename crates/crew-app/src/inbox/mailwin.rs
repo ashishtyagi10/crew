@@ -29,6 +29,8 @@ pub(crate) struct MailWindow {
     pub grid: GridSize,
     /// Last pointer position, in physical pixels.
     pub pointer: (f32, f32),
+    /// A trackpad's scroll short of a whole line, carried to the next.
+    pub scroll: f32,
     /// A fingerprint of what was last drawn ([`look`]).
     pub seen: u64,
 }
@@ -47,6 +49,7 @@ impl MailWindow {
             mods: Default::default(),
             grid: GridSize { cols: 80, rows: 40 },
             pointer: (0.0, 0.0),
+            scroll: 0.0,
             seen: 0,
         };
         me.refit();
@@ -125,4 +128,41 @@ pub(crate) fn look(pane: &InboxPane, grid: GridSize) -> u64 {
     }
     pane.pics.rev.hash(&mut h);
     h.finish()
+}
+
+/// Whole lines out of a wheel `delta`, the fraction left over kept in `acc`
+/// for the next: a slow trackpad sends deltas of a few pixels each, which
+/// rounded alone never moved the mail (24 pixels a line, as the grid's).
+pub(crate) fn wheel_lines(acc: &mut f32, delta: winit::event::MouseScrollDelta) -> i32 {
+    *acc += match delta {
+        winit::event::MouseScrollDelta::LineDelta(_, y) => y,
+        winit::event::MouseScrollDelta::PixelDelta(d) => d.y as f32 / 24.0,
+    };
+    let lines = acc.trunc() as i32;
+    *acc -= lines as f32;
+    lines
+}
+
+#[cfg(test)]
+mod wheel_tests {
+    use winit::dpi::PhysicalPosition;
+    use winit::event::MouseScrollDelta;
+
+    #[test]
+    fn a_slow_trackpad_adds_up_to_lines() {
+        let mut acc = 0.0;
+        let moved: i32 = (0..10)
+            .map(|_| {
+                super::wheel_lines(
+                    &mut acc,
+                    MouseScrollDelta::PixelDelta(PhysicalPosition::new(0.0, 5.0)),
+                )
+            })
+            .sum();
+        assert_eq!(moved, 2, "fifty pixels, two lines");
+        assert_eq!(
+            super::wheel_lines(&mut acc, MouseScrollDelta::LineDelta(0.0, -3.0)),
+            -2
+        );
+    }
 }
