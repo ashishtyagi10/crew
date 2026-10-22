@@ -87,3 +87,28 @@ fn links_by_click_and_by_hint_are_where_the_right_half_draws_them() {
         "the same words, moved with the half"
     );
 }
+
+#[test]
+fn a_drag_copies_the_inside_of_its_card_and_nothing_beside_it() {
+    let _g = crate::app::motion_test_guard();
+    let p = reading();
+    let mail = p.cards(150, 30).mail.unwrap().inner();
+    // From the mail's first row to well below its words, across the pane.
+    let sel = crate::gridsel::CellSel {
+        pane: 0,
+        anchor: (mail.col + 1, mail.row),
+        cursor: (149, mail.row + 6),
+    };
+    let text = crate::gridsel::selection_text(&p.copy_cells(150, 30, sel.anchor), &sel);
+    assert!(text.contains("Track it"), "{text}");
+    assert!(!text.contains('\u{2502}'), "no card's edge: {text}");
+    assert!(
+        !text.contains("about a"),
+        "none of the list beside it: {text}"
+    );
+    let all = crate::gridsel::selection_text(&p.cells(150, 30), &sel);
+    assert!(
+        all.contains('\u{2502}'),
+        "the pane as drawn does have edges"
+    );
+}
