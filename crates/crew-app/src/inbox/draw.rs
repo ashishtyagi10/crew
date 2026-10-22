@@ -116,10 +116,15 @@ impl InboxPane {
                 }
             }
             // Before the list: a card of its own, as every section is.
-            (Stage::Setup { found }, _) => page(&mut cv, "set up Gmail", |c| {
-                super::setup::draw(c, found.as_ref())
-            }),
-            (Stage::SigningIn(_), _) => page(&mut cv, "signing in", super::setup::signing_in),
+            (Stage::Setup { found }, _) => {
+                page(&mut cv, self.cards(cols, rows).page, "set up Gmail", |c| {
+                    super::setup::draw(c, found.as_ref())
+                })
+            }
+            (Stage::SigningIn(_), _) => {
+                let b = self.cards(cols, rows).page;
+                page(&mut cv, b, "signing in", super::setup::signing_in)
+            }
         }
         cv.rows = rows;
         self.foot(&mut cv);
@@ -127,14 +132,9 @@ impl InboxPane {
     }
 }
 
-/// A card filling `cv` named `name`, `fill` drawing inside it.
-fn page(cv: &mut Canvas, name: &str, fill: impl FnOnce(&mut Canvas)) {
-    let b = Rect {
-        col: 1,
-        row: 0,
-        w: cv.cols.saturating_sub(2),
-        h: cv.rows,
-    };
+/// The page's card (`cards`) named `name`, `fill` drawing inside it.
+fn page(cv: &mut Canvas, b: Option<Rect>, name: &str, fill: impl FnOnce(&mut Canvas)) {
+    let Some(b) = b else { return };
     super::cards::frame(cv, b, name, "", true);
     let inner = b.inner();
     let mut c = Canvas::new(inner.w, inner.h);
