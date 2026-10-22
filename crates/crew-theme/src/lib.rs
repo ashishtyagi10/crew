@@ -104,6 +104,7 @@ mod presets_glass;
 mod presets_glass_clear;
 mod presets_modern;
 mod presets_modern_light;
+mod presets_neon;
 mod presets_paper;
 pub mod ramp;
 pub mod readable;
@@ -143,6 +144,7 @@ pub use presets_glass::GLASS_NIGHT;
 pub use presets_glass_clear::GLASS_CLEAR;
 pub use presets_modern::NEBULA;
 pub use presets_modern_light::BLOSSOM;
+pub use presets_neon::{NEON_DARK, NEON_LIGHT};
 pub use presets_paper::{PAPER_DARK, PAPER_LIGHT};
 pub use tagcolor::{slot_color, tag_color, tag_slot};
 
@@ -180,11 +182,13 @@ pub enum ThemeId {
     Blossom,
     GlassNight,
     GlassClear,
+    NeonDark,
+    NeonLight,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 8] = [
+pub const ALL_THEMES: [ThemeId; 10] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::Nebula,
@@ -193,6 +197,8 @@ pub const ALL_THEMES: [ThemeId; 8] = [
     ThemeId::GlassNight,
     ThemeId::CrtGreen,
     ThemeId::CrtAmber,
+    ThemeId::NeonDark,
+    ThemeId::NeonLight,
 ];
 
 impl ThemeId {
@@ -206,6 +212,8 @@ impl ThemeId {
             ThemeId::Blossom => "blossom",
             ThemeId::GlassNight => "glass-night",
             ThemeId::GlassClear => "glass-clear",
+            ThemeId::NeonDark => "neon-dark",
+            ThemeId::NeonLight => "neon-light",
         }
     }
 
@@ -220,6 +228,8 @@ impl ThemeId {
             ThemeId::Blossom => "violet\u{2192}rose on warm white (modern light)",
             ThemeId::GlassNight => "iPhone liquid glass, clear and navy-smoked, white text",
             ThemeId::GlassClear => "iPhone liquid glass, clear and lightly smoked, white text",
+            ThemeId::NeonDark => "neon scoreboard: deep indigo, neon lines (dark)",
+            ThemeId::NeonLight => "neon scoreboard: lavender page, neon lines (light)",
         }
     }
 
@@ -243,7 +253,7 @@ impl ThemeId {
     }
 
     /// The rotation this palette belongs to — exactly one of `dark`,
-    /// `light`, `crt` and `glass`. Named per palette. `dark` and `light` are
+    /// `light`, `crt`, `glass` and `neon`. Named per palette. `dark` and `light` are
     /// the Ink Reader pages alone (the user, 2026-10-16: the light and dark
     /// themes "Ink Reader like"): a light mode that rotated to a dark glass
     /// palette every ten minutes would not be one. Nebula and blossom joined
@@ -256,6 +266,7 @@ impl ThemeId {
             ThemeId::GlassClear | ThemeId::GlassNight | ThemeId::Nebula | ThemeId::Blossom => {
                 RandomMode::Glass
             }
+            ThemeId::NeonDark | ThemeId::NeonLight => RandomMode::Neon,
         }
     }
 
@@ -326,6 +337,8 @@ impl ThemeId {
             // 2026-10-09: "glass-sky and glass-dusk … should also be clear").
             "glass-light" | "glass-sky" | "glass-dawn" => Some(ThemeId::GlassClear),
             "glass-night" | "glass-dark" => Some(ThemeId::GlassNight),
+            "neon-dark" => Some(ThemeId::NeonDark),
+            "neon-light" => Some(ThemeId::NeonLight),
             _ => None,
         }
     }
@@ -340,6 +353,8 @@ impl ThemeId {
             ThemeId::Blossom => &BLOSSOM,
             ThemeId::GlassNight => &GLASS_NIGHT,
             ThemeId::GlassClear => &GLASS_CLEAR,
+            ThemeId::NeonDark => &NEON_DARK,
+            ThemeId::NeonLight => &NEON_LIGHT,
         }
     }
 
@@ -429,19 +444,23 @@ pub enum RandomMode {
     Light,
     Crt,
     Glass,
+    /// The neon scoreboard: one theme in two pages, served dark or light with
+    /// the appearance, the way `auto` picks its side.
+    Neon,
     Auto,
 }
 
-/// The themes crew offers: four pools plus `auto`, which serves one of them
+/// The themes crew offers: five pools plus `auto`, which serves one of them
 /// per OS appearance. This is the whole user-facing theme list (`/theme`, the
 /// settings picker, the `Ctrl+Shift+L` cycle); everything else (legacy
 /// `random-*` / `modern*` names, individual palettes) parses for back-compat
 /// but isn't advertised.
-pub const THEME_MODES: [RandomMode; 5] = [
+pub const THEME_MODES: [RandomMode; 6] = [
     RandomMode::Dark,
     RandomMode::Light,
     RandomMode::Crt,
     RandomMode::Glass,
+    RandomMode::Neon,
     RandomMode::Auto,
 ];
 
@@ -452,6 +471,7 @@ impl RandomMode {
             RandomMode::Light => "light",
             RandomMode::Crt => "crt",
             RandomMode::Glass => "glass",
+            RandomMode::Neon => "neon",
             RandomMode::Auto => "auto",
         }
     }
@@ -464,6 +484,9 @@ impl RandomMode {
             RandomMode::Crt => "rotating CRT phosphor themes",
             RandomMode::Glass => {
                 "iPhone liquid glass \u{2014} clear smoked panes, bright white text, your desktop behind"
+            }
+            RandomMode::Neon => {
+                "neon scoreboard \u{2014} indigo and neon lines, dark or light with your OS"
             }
             RandomMode::Auto => {
                 "light by day, dark by night \u{2014} OS appearance, or the clock when it is pinned"
@@ -478,6 +501,7 @@ impl RandomMode {
             RandomMode::Auto => 3,
             RandomMode::Crt => 4,
             RandomMode::Glass => 5,
+            RandomMode::Neon => 6,
         }
     }
 
@@ -488,6 +512,7 @@ impl RandomMode {
             3 => Some(RandomMode::Auto),
             4 => Some(RandomMode::Crt),
             5 => Some(RandomMode::Glass),
+            6 => Some(RandomMode::Neon),
             _ => None,
         }
     }
@@ -506,9 +531,26 @@ impl RandomMode {
         }
     }
 
+    /// Whether this rotation serves the page for the current appearance —
+    /// `auto` its pairing's side, `neon` its dark or light page — so an
+    /// appearance change has to re-serve it ([`follow_appearance`]).
+    pub fn follows_appearance(self) -> bool {
+        matches!(self, RandomMode::Auto | RandomMode::Neon)
+    }
+
+    /// Whether this mode may put `id` on right now: its pool, narrowed to
+    /// the page for the current appearance on `neon`, whose two pages are
+    /// one theme rather than a rotation.
+    fn serves(self, id: ThemeId) -> bool {
+        match self {
+            RandomMode::Neon => self.in_pool(id) && id.is_dark() == auto_dark(),
+            m => m.in_pool(id),
+        }
+    }
+
     /// Whether `id` belongs to this mode's rotation pool: its
     /// [`ThemeId::mode`], so every palette lands in exactly one of
-    /// Dark/Light/Crt/Glass and a rotation stays inside one look. `Auto`
+    /// Dark/Light/Crt/Glass/Neon and a rotation stays inside one look. `Auto`
     /// serves its per-appearance pairing ([`auto_side`]) — by default the
     /// dark or light pool depending on [`auto_dark`], a pinned side being a
     /// one-palette pool.
@@ -577,6 +619,9 @@ pub fn parse_selection(s: &str) -> Option<Selection> {
     }
     if s.eq_ignore_ascii_case("glass") || s.eq_ignore_ascii_case("liquid-glass") {
         return Some(Selection::Mode(RandomMode::Glass));
+    }
+    if s.eq_ignore_ascii_case("neon") {
+        return Some(Selection::Mode(RandomMode::Neon));
     }
     if s.eq_ignore_ascii_case("auto") {
         return Some(Selection::Mode(RandomMode::Auto));
@@ -719,13 +764,13 @@ pub fn random_pick(current: ThemeId, seed: u64, mode: RandomMode) -> ThemeId {
     let mut others: Vec<ThemeId> = ALL_THEMES
         .iter()
         .copied()
-        .filter(|&t| mode.in_pool(t) && t != current)
+        .filter(|&t| mode.serves(t) && t != current)
         .collect();
     if others.is_empty() {
         others = ALL_THEMES
             .iter()
             .copied()
-            .filter(|&t| mode.in_pool(t))
+            .filter(|&t| mode.serves(t))
             .collect();
     }
     let idx = (seed.wrapping_mul(6364136223846793005).rotate_right(29) as usize) % others.len();
@@ -746,6 +791,20 @@ pub fn apply_selection(sel: Selection, now_ms: u64) {
             set_theme(random_pick(current_id(), now_ms, m));
             ROTATED_MS.store(now_ms, Ordering::Relaxed);
         }
+    }
+}
+
+/// Re-serve a rotation that follows the appearance ([`RandomMode::follows_appearance`])
+/// after the appearance changed — the OS flipped, or the clock crossed into or
+/// out of the light hours. Returns whether one was active, so the caller
+/// knows to refresh the accent and repaint.
+pub fn follow_appearance(now_ms: u64) -> bool {
+    match mode() {
+        Some(m) if m.follows_appearance() => {
+            apply_selection(Selection::Mode(m), now_ms);
+            true
+        }
+        _ => false,
     }
 }
 
@@ -782,7 +841,7 @@ pub fn tick_random(now_ms: u64) -> bool {
 }
 
 /// Advance the `Ctrl+Shift+L` cycle one step through [`THEME_MODES`]:
-/// dark → light → crt → glass → auto → dark, wrapping. Any other state (a pinned
+/// dark → light → crt → glass → neon → auto → dark, wrapping. Any other state (a pinned
 /// palette) enters at `dark`. The order IS `THEME_MODES` — walking the list
 /// rather than hand-writing the successors is what keeps a newly added mode
 /// from being silently unreachable by the hotkey (which is exactly what

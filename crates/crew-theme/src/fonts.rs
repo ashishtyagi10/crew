@@ -130,6 +130,12 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ThemeId::GlassClear | ThemeId::GlassNight => {
             &["SF Mono", "Geist Mono", "JetBrains Mono", "Menlo", "Lilex"]
         }
+        // Neon: the scoreboard's lettering is a bold geometric grotesque.
+        // JetBrains Mono is the favourite nearest that shape, and Geist Mono
+        // the next.
+        ThemeId::NeonDark | ThemeId::NeonLight => {
+            &["JetBrains Mono", "Geist Mono", "SF Mono", "Menlo", "Lilex"]
+        }
         // CRT: a terminal face with squared-off shoulders — straight modern
         // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
         // contemporary take on that IBM-terminal DNA).

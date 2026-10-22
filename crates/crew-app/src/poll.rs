@@ -156,11 +156,7 @@ impl CrewApp {
             // auto` typed at 22:00 has to resolve against 22:00, not against
             // whatever the clock read the last time auto happened to be on.
             let flipped = self.config.publish_daylight() != was;
-            if flipped && crew_theme::mode() == Some(crew_theme::RandomMode::Auto) {
-                crew_theme::apply_selection(
-                    crew_theme::Selection::Mode(crew_theme::RandomMode::Auto),
-                    now_ms,
-                );
+            if flipped && crew_theme::follow_appearance(now_ms) {
                 crate::palette::set_accent(self.config.accent_rgb());
                 daylight_flipped = true;
             }

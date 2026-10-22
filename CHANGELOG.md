@@ -8,9 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
-## 0.27.83
+## 0.27.84
 
-## {V}
+**Themes: `neon`, a neon scoreboard, dark and light.**
+- **`/theme neon`** is a new theme, drawn from a scoreboard video: a deep
+  indigo page, lavender-white words and thin neon lines, opaque like print
+  (no glass, no glow). The pane you are in is framed in yellow, the accent
+  is yellow, progress is cyan, the bell hot pink, a live pane green and
+  broadcast violet. The face is JetBrains Mono.
+- **It has a light page too.** `neon` serves `neon-dark` while the OS is
+  dark and `neon-light` while it is light (a pale lavender page, deep indigo
+  words, a hot-pink frame and accent, a warm red bell), and switches when
+  the OS does, the way `auto` does. Each page can also be pinned by name
+  from the picker.
+- `Ctrl+Shift+L` now cycles `dark → light → crt → glass → neon → auto`, and
+  the settings pickers for `theme_dark` / `theme_light` offer `neon` too.
+
+## 0.27.83
 
 **Themes: `dark` and `light` are listed once.**
 - **The `/theme` picker no longer lists `paper-dark` and `paper-light`

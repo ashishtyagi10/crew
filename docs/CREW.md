@@ -424,7 +424,7 @@ way that machine presses it.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |
-| Cycle themes (dark → light → crt → glass → auto) | **Ctrl+Shift+L** |
+| Cycle themes (dark → light → crt → glass → neon → auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Toggle the chat's compact transcript view | **Ctrl+O** (falls through to the terminal when the focused pane isn't a chat) |
 | Reverse-search the chat composer's send history | **Ctrl+R** (again steps to the next older match) |
@@ -874,8 +874,8 @@ The docked command bar supports:
   The fresh process re-reads `config.toml`, so external config edits ride
   along too.
 - **`/theme [name]`** — switches the theme live and persists it. There are
-  five themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, and
-  **`auto`** — and each one *rotates* through a pool of palettes every 10
+  six themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, **`neon`**
+  and **`auto`** — and each one *rotates* through a pool of palettes every 10
   minutes (dark paper palettes, light paper palettes, CRT phosphor palettes,
   the iPhone's light liquid glass over your desktop; `auto` borrows the
   dark or light paper pool to **follow the OS appearance**, flipping live when
@@ -888,8 +888,8 @@ The docked command bar supports:
   night phosphor while day stays light paper. No argument reports the current
   selection.
   Selecting `/theme` in the palette opens an arrow-selectable **picker** of
-  the five themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
-  `dark → light → crt → glass → auto`. The old names — `paper-dark` and
+  the six themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
+  `dark → light → crt → glass → neon → auto`. The old names — `paper-dark` and
   `paper-light` (now simply `dark` and `light`) and the pre-consolidation
   rotation modes (`random-dark`/`random`, `random-light`) — still resolve for
   back-compat but aren't listed. See [Themes](#themes).
@@ -4169,9 +4169,10 @@ dims the desktop a little more than the glass between the lines, so text
 reads over a black or a white desktop alike (a test holds every glass
 palette to it).
 
-Crew offers **five themes**: **`light`**, **`dark`**, **`glass`**,
-**`crt`** and **`auto`**. `light` and `dark` are one page each. `glass` and
-`crt` are *rotations*, changing palette every 10 minutes. `auto` follows the
+Crew offers **six themes**: **`light`**, **`dark`**, **`glass`**,
+**`crt`**, **`neon`** and **`auto`**. `light` and `dark` are one page each. `glass` and
+`crt` are *rotations*, changing palette every 10 minutes. `neon` is one look
+in a dark and a light page, and serves the one for the OS appearance. `auto` follows the
 **OS appearance**: the dark page while the system is in dark mode, the light
 one in light mode, flipping live (through the develop-fade) the moment the
 system switches. With no theme saved at all, crew defaults to `auto`.
@@ -4189,8 +4190,14 @@ night is the classic) or pin one palette per appearance.
 - **`crt`** — **`crt-green`** and **`crt-amber`**: a phosphor tube in glass,
   its faceplate a deep smoke (which phosphor green needs over a white
   desktop) and its panes lit by their own phosphor.
+- **`neon`** — **`neon-dark`** and **`neon-light`**: a neon scoreboard,
+  opaque like print. `neon-dark` is a deep indigo page with lavender-white
+  words, the focused frame and the accent in yellow, progress cyan, the bell
+  hot pink, a live pane green and broadcast violet. `neon-light` is the same
+  board on a pale lavender page: deep indigo words, a hot-pink frame and
+  accent, and a warm red bell. The face is JetBrains Mono.
 
-The picker offers the five themes first and then **every other palette by
+The picker offers the six themes first and then **every other palette by
 name**, under a heading; a palette named there is pinned (no rotation). The
 Ink Reader pages are not repeated there: `dark` and `light` already are
 them, and their old names `paper-dark` and `paper-light` load as those two.

@@ -216,12 +216,15 @@ fn cycle_next_walks_every_mode_and_wraps() {
     // ...then glass, the white-text liquid glass...
     assert_eq!(cycle_next(4), "glass");
     assert!(current_id().is_clear_glass());
-    // ...then auto, whose pool follows the reported OS appearance...
+    // ...then neon, its page for the reported OS appearance...
     set_os_dark(true);
-    assert_eq!(cycle_next(5), "auto");
+    assert_eq!(cycle_next(5), "neon");
+    assert_eq!(current_id(), ThemeId::NeonDark);
+    // ...then auto, whose pool follows the same appearance...
+    assert_eq!(cycle_next(6), "auto");
     assert!(dark(current_id()));
-    // ...and wraps back to dark — five stops, no more.
-    assert_eq!(cycle_next(6), "dark");
+    // ...and wraps back to dark — six stops, no more.
+    assert_eq!(cycle_next(7), "dark");
     assert!(dark(current_id()));
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
@@ -416,12 +419,13 @@ fn every_pool_survives_the_cut() {
     let light = count(|id: ThemeId| id.mode() == RandomMode::Light);
     let crt = count(|id: ThemeId| id.mode() == RandomMode::Crt);
     let glass = count(|id: ThemeId| id.mode() == RandomMode::Glass);
+    let neon = count(|id: ThemeId| id.mode() == RandomMode::Neon);
     // One Ink Reader page each for dark and light (2026-10-16), two tubes,
-    // and the four glass palettes.
+    // the four glass palettes, and neon's dark and light page.
     assert_eq!(
-        (dark, light, crt, glass),
-        (1, 1, 2, 4),
-        "pools are dark {dark}, light {light}, crt {crt}, glass {glass} — \
+        (dark, light, crt, glass, neon),
+        (1, 1, 2, 4, 2),
+        "pools are dark {dark}, light {light}, crt {crt}, glass {glass}, neon {neon} — \
          `auto` needs both appearances and the tubes and the glass are their \
          own rotations"
     );
@@ -477,10 +481,10 @@ fn every_retired_theme_name_still_resolves() {
     // read as retiring one — `glass` was drawn on 2026-10-07 and became
     // `glass-night` when the light pair (`glass-sky`, `glass-dawn`) was drawn
     // on 2026-10-08, and `glass-clear` on 2026-10-09, which the light pair
-    // folded into the same day.
+    // folded into the same day. The neon pair was drawn on 2026-10-22.
     assert_eq!(
         RETIRED.len() + ALL_THEMES.len(),
-        30,
+        32,
         "every retiree is listed"
     );
 }
@@ -800,9 +804,10 @@ fn modern_glow_is_clean_of_retro_knobs() {
 #[test]
 fn dark_paper_pages_lean_warm() {
     // Dark non-CRT pages read as warm charcoal/kraft: R strictly above B.
+    // Neon's page is the scoreboard's indigo, cool by design.
     for id in ALL_THEMES {
         let t = id.theme();
-        if t.dark && t.crt.is_none() {
+        if t.dark && t.crt.is_none() && id.mode() != RandomMode::Neon {
             assert!(
                 t.page_bg.0 > t.page_bg.2,
                 "{}: page_bg {:?} not warm (R must exceed B)",
@@ -927,21 +932,23 @@ fn random_pick_pools_are_pure() {
     }
 }
 
-/// The consolidation itself: four pools, and every palette in exactly one of
+/// The consolidation itself: five pools, and every palette in exactly one of
 /// them. The modern family used to stand apart as two more modes — its
 /// palettes are dark and light PAGES like any other (the bloom-only
 /// `CrtStyle` they carry for their halo is not a tube), so they rotate inside
 /// `dark` / `light`. Light liquid glass is the one look that stands apart
 /// (the user picked it BY NAME and found it nowhere, 2026-10-08), so the
-/// picker offers four looks plus `auto`.
+/// picker offers four looks plus `auto` — and `neon` (2026-10-22), one look
+/// in a dark and a light page.
 #[test]
-fn every_palette_lands_in_exactly_one_of_the_four_pools() {
+fn every_palette_lands_in_exactly_one_of_the_pools() {
     let _g = guard();
     let pools = [
         RandomMode::Dark,
         RandomMode::Light,
         RandomMode::Crt,
         RandomMode::Glass,
+        RandomMode::Neon,
     ];
     for id in ALL_THEMES {
         let n = pools.iter().filter(|m| m.in_pool(id)).count();
@@ -1164,4 +1171,37 @@ fn the_ink_reader_pages_are_their_rotations() {
             id.as_str()
         );
     }
+}
+
+/// `neon` is one theme in two pages (the user, 2026-10-22: "both light and
+/// dark variation"): it serves the page for the appearance, re-serves it when
+/// the appearance flips, and never rotates from one page to the other on the
+/// clock. Each page can also be pinned by name.
+#[test]
+fn neon_serves_the_page_for_the_appearance() {
+    let _g = guard();
+    set_os_auto(true);
+    set_os_dark(true);
+    apply_selection(Selection::Mode(RandomMode::Neon), 1_000);
+    assert_eq!(current_id(), ThemeId::NeonDark);
+    // The rotation clock does not move it to the other page.
+    assert!(!tick_random(1_000 + ROTATE_MS));
+    assert_eq!(current_id(), ThemeId::NeonDark);
+    // An appearance flip re-serves it.
+    set_os_dark(false);
+    assert!(follow_appearance(2_000));
+    assert_eq!(current_id(), ThemeId::NeonLight);
+    assert_eq!(mode(), Some(RandomMode::Neon));
+    // Pinned rotations do not follow the appearance.
+    apply_selection(Selection::Mode(RandomMode::Crt), 3_000);
+    assert!(!follow_appearance(4_000));
+    for (name, id) in [
+        ("neon-dark", ThemeId::NeonDark),
+        ("neon-light", ThemeId::NeonLight),
+    ] {
+        assert_eq!(parse_selection(name), Some(Selection::Fixed(id)), "{name}");
+        assert!(pinnable_themes().any(|t| t == id), "{name} not offered");
+    }
+    set_os_dark(true);
+    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }

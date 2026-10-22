@@ -55,8 +55,7 @@ impl CrewApp {
         let want = self.config.theme_selection();
         let live = match want {
             crew_theme::Selection::Mode(m) => {
-                crew_theme::mode() == Some(m)
-                    && !(m == crew_theme::RandomMode::Auto && auto_side_changed)
+                crew_theme::mode() == Some(m) && !(m.follows_appearance() && auto_side_changed)
             }
             crew_theme::Selection::Fixed(id) => {
                 crew_theme::mode().is_none() && crew_theme::current_id() == id
