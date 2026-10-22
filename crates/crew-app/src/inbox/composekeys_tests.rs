@@ -178,8 +178,17 @@ fn tab_asks_smith_once_while_it_writes() {
     let (mut p, _) = reading();
     typed(&mut p, "r");
     press(&mut p, NamedKey::Tab);
-    assert!(p.to_smith.take().is_some_and(|s| s.draft), "asked");
-    p.waiting = Some(crate::inbox::handoff::Waiting { since: 0, at_ms: 0 });
+    assert!(
+        p.to_smith
+            .take()
+            .is_some_and(|s| s.wants == crate::inbox::handoff::Wants::Draft),
+        "asked"
+    );
+    p.waiting = Some(crate::inbox::handoff::Waiting {
+        since: 0,
+        at_ms: 0,
+        wants: crate::inbox::handoff::Wants::Draft,
+    });
     press(&mut p, NamedKey::Tab);
     assert!(p.to_smith.is_none(), "not twice");
     assert!(p.note.contains("still writing"), "{}", p.note);

@@ -12,6 +12,8 @@ use crate::todopane::duedate;
 mod ask;
 #[path = "tododue.rs"]
 mod due;
+#[path = "todofill.rs"]
+mod fill;
 #[path = "todoproject.rs"]
 mod project;
 #[path = "todowho.rs"]
@@ -67,6 +69,8 @@ impl Known {
         k
     }
 }
+
+pub(super) use fill::check;
 
 /// A due date as the due line holds it: a form that reads back the same
 /// whenever it is read (`2026-10-24`, `2026-10-24 17:00`).

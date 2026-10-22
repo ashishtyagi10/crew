@@ -67,6 +67,30 @@ pub(crate) fn draft_prompt(r: &Reading) -> String {
     )
 }
 
+/// Tab on the todo card: the `/todo` row the thread asks for, as JSON between
+/// the markers crew looks for (`todofill`), for crew to check line by line.
+pub(crate) fn todo_prompt(r: &Reading, projects: &[String], me: &str) -> String {
+    let list = match projects.is_empty() {
+        true => "none yet".to_string(),
+        false => projects
+            .iter()
+            .take(60)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(", "),
+    };
+    format!(
+        "Read this email thread and say what to-do it asks of me ({me}). Answer with a JSON \
+         object ONLY, between a line `<<<TODO` and a line `TODO>>>`, with these keys: \
+         \"title\" (the task in a few words, starting with a verb), \"project\" (one of these \
+         exactly, or \"\": {list}), \"assignee\" (the name of the person on the thread asked \
+         to do it, or \"\" when it is me or unclear), \"due\" (the deadline as YYYY-MM-DD, \
+         with HH:MM when a time is stated, or \"\"), and \"why\" (a few words on how you read \
+         it). crew checks each value, and nothing is saved until I press Enter.\n\n{}",
+        fenced(r)
+    )
+}
+
 /// The reply body in smith's answer: the text between the markers, trimmed.
 /// `None` when the answer has no complete pair, or nothing between them.
 pub(crate) fn draft_body(answer: &str) -> Option<String> {

@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.97
+
+**`/inbox`: Tab asks agent smith to fill the todo card.** Phase 3, the last,
+of the smart-todo goal.
+- **Tab on the todo card hands the thread to agent smith** to read the
+  title, project, assignee and due date. Nothing goes to an AI provider
+  until you press it.
+- **crew checks every line smith writes** as it checks its own guesses: a
+  project from your list, someone on the thread (never you), a date `/todo`
+  reads. Anything else is dropped. A line you changed stays yours.
+- The privacy policy says what Tab on the card sends.
+
 ## 0.27.96
 
 **`/inbox`: the todo card reads the thread.** Phase 2 of the smart-todo

@@ -3,7 +3,7 @@
 //! draft is waiting for.
 use crate::app::CrewApp;
 use crate::chatlayout::Message;
-use crate::inbox::handoff::{ToSmith, Waiting};
+use crate::inbox::handoff::{ToSmith, Waiting, Wants};
 use crate::pane::PaneContent;
 
 /// How long a draft waits for smith's answer before giving up.
@@ -56,11 +56,13 @@ impl CrewApp {
         c.submit_command(send.prompt);
         // A summary is read in smith's pane; a draft lands in Gmail, so the
         // inbox keeps the keys and says when it is saved.
-        match (send.draft, &mut self.panes[inbox].content) {
-            (true, PaneContent::Inbox(p)) => {
+        match (send.wants, &mut self.panes[inbox].content) {
+            (Wants::Read, _) => self.focused = s,
+            (wants, PaneContent::Inbox(p)) => {
                 p.waiting = Some(Waiting {
                     since,
                     at_ms: crate::anim::now_ms(),
+                    wants,
                 });
                 self.focused = inbox;
             }
@@ -91,16 +93,11 @@ impl CrewApp {
             _ => None, // smith's pane was closed
         };
         let late = crate::anim::now_ms().saturating_sub(at) > DRAFT_WAIT_MS;
-        let body = match answers {
-            Some(a) if a.is_empty() && !late => return false, // the turn has not begun
-            Some(a) => a
-                .iter()
-                .rev()
-                .find_map(|t| crate::inbox::smith::draft_body(t)),
-            None => None,
-        };
+        if answers.as_ref().is_some_and(|a| a.is_empty() && !late) {
+            return false; // the turn has not begun
+        }
         if let PaneContent::Inbox(p) = &mut self.panes[inbox].content {
-            p.drafted_by_smith(body);
+            p.from_smith(answers);
         }
         true
     }

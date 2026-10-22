@@ -44,6 +44,27 @@ pub(super) fn guess(mails: &[Mail], theirs: Option<&Mail>, k: &Known) -> Guess {
     let [p] = asked.as_slice() else {
         return Guess::default();
     };
+    Guess {
+        text: spell(p, k),
+        why: format!("asked by name in {}", whose(m)),
+    }
+}
+
+/// `name` (agent smith's word for who is asked) as someone on the thread,
+/// spelled as your tag for them; none for you, or anyone not on it.
+pub(super) fn named(mails: &[Mail], name: &str, k: &Known) -> Option<String> {
+    let want = name.trim().trim_start_matches(['@', '#']).to_lowercase();
+    let local = |p: &Person| p.address.split('@').next().unwrap_or("").to_string();
+    people(mails, &k.me)
+        .into_iter()
+        .find(|p| {
+            !want.is_empty() && (p.address == want || local(p) == want || p.names().contains(&want))
+        })
+        .map(|p| spell(&p, k))
+}
+
+/// Their `#assignee`: a tag you already use for them, else their first name.
+fn spell(p: &Person, k: &Known) -> String {
     let first = p.names().pop().unwrap_or_default();
     let local = p.address.split('@').next().unwrap_or("").to_lowercase();
     let full = p
@@ -52,8 +73,7 @@ pub(super) fn guess(mails: &[Mail], theirs: Option<&Mail>, k: &Known) -> Guess {
         .split_whitespace()
         .collect::<Vec<_>>()
         .join("-");
-    let tag = k
-        .people
+    k.people
         .iter()
         .find(|t| {
             [&first, &full, &local]
@@ -61,11 +81,7 @@ pub(super) fn guess(mails: &[Mail], theirs: Option<&Mail>, k: &Known) -> Guess {
                 .any(|n| t.eq_ignore_ascii_case(n))
         })
         .cloned()
-        .unwrap_or(first);
-    Guess {
-        text: tag,
-        why: format!("asked by name in {}", whose(m)),
-    }
+        .unwrap_or(first)
 }
 
 /// Everyone on the thread but you, once each.

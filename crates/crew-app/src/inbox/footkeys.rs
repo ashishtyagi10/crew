@@ -38,6 +38,8 @@ pub(crate) const TODO: Keys = &[
     GAP,
     ("\u{2191}", "up"),
     ("\u{2193}", "down"),
+    GAP,
+    ("tab", "agent smith fills it"),
 ];
 /// While a search is typed, every key is the search's.
 pub(crate) const SEARCH: Keys = &[("enter", "search"), ("esc", "cancel"), ("del", "erase")];
