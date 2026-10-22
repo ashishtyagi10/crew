@@ -4056,9 +4056,8 @@ value.
   ladder and `font_smooth` key as `/smooth`; a custom numeric strength shows
   as its number), **Text gamma**, **Theme** (←/→/Space cycle through the four
   rotations and every palette), **Auto dark** / **Auto light** (what `auto`
-  serves in each appearance) and **Auto day from** / **Auto day to** (when
-  the clock calls it day), and **Accent (#hex)** (override the theme accent;
-  clear to use the default).
+  serves in each appearance), and **Accent (#hex)** (override the theme
+  accent; clear to use the default).
 - **CANVAS** — **Glass** (←/→/Space cycle `off · low · medium · high`),
   **Motion** (`off · subtle · full`), **Density**, **Line
   spacing**, **Contrast**, **Shape cues**, **Gradient colour** (`off · subtle
@@ -4246,7 +4245,10 @@ Crew offers **six themes**: **`light`**, **`dark`**, **`glass`**,
 page, whatever the OS appearance or the clock. `auto` follows the
 **OS appearance**: the dark page while the system is in dark mode, the light
 one in light mode, flipping live (through the develop-fade) the moment the
-system switches. With no theme saved at all, crew defaults to `auto`.
+system switches. An appearance set to Dark or Light (not Auto) is obeyed
+too: a Mac set to Dark keeps `auto` dark all day. For light by day and dark
+by night, set macOS Appearance to Auto. With no theme saved at all, crew
+defaults to `auto`.
 `theme_dark` / `theme_light` in `config.toml` re-wire that pairing (`crt` at
 night is the classic) or pin one palette per appearance.
 

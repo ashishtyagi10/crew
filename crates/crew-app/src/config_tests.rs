@@ -134,9 +134,6 @@ fn round_trip() {
         theme: Some("paper-light".to_string()),
         theme_dark: Some("crt".to_string()),
         theme_light: Some("sepia-light".to_string()),
-        // Non-default: `clamped()` rebuilds field by field; one it forgets resets on every load.
-        auto_light_from: "05:30".to_string(),
-        auto_light_to: "21:05".to_string(),
         crt: Some(true),
         glass: "high".to_string(),
         motion: "full".to_string(),
@@ -316,19 +313,14 @@ fn load_keeps_the_last_seen_version() {
     assert_eq!(cfg.last_seen_version.as_deref(), Some("0.12.5"));
 }
 
+/// `auto`'s light-hours window was retired (2026-10-22: `auto` follows a
+/// pinned macOS appearance now); a config that still holds it loads the rest
+/// untouched.
 #[test]
-fn light_hours_falls_back_per_bound_not_per_window() {
-    // Defaults out of the box: 07:00–19:00.
-    assert_eq!(CrewConfig::default().light_hours(), (7 * 60, 19 * 60));
-
-    let cfg = CrewConfig::from_toml_str("auto_light_from = \"05:30\"\nauto_light_to = \"21:05\"\n");
-    assert_eq!(cfg.light_hours(), (5 * 60 + 30, 21 * 60 + 5));
-
-    // A typo in ONE bound must not drag the other back to its default —
-    // half a window the user set is still a window they can read back.
-    let half = CrewConfig::from_toml_str("auto_light_from = \"nope\"\nauto_light_to = \"21:05\"\n");
-    assert_eq!(half.light_hours(), (7 * 60, 21 * 60 + 5));
-    let other =
-        CrewConfig::from_toml_str("auto_light_from = \"05:30\"\nauto_light_to = \"25:00\"\n");
-    assert_eq!(other.light_hours(), (5 * 60 + 30, 19 * 60));
+fn a_config_with_the_retired_light_hours_still_loads() {
+    let cfg = CrewConfig::from_toml_str(
+        "theme = \"auto\"\nauto_light_from = \"07:00\"\nauto_light_to = \"19:00\"\n",
+    );
+    assert_eq!(cfg.theme.as_deref(), Some("auto"));
+    assert!(!cfg.to_toml_str().contains("auto_light"));
 }

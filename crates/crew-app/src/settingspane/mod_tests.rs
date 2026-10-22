@@ -224,65 +224,6 @@ fn save_commits_the_focused_edit_and_applies() {
     assert_eq!(cfg.font_size, 20.0);
 }
 
-/// The light-hours boxes accept `HH:MM` and nothing else, normalise what they
-/// accept, and keep the previous value rather than coercing a typo — a value
-/// the form took but `light_hours()` will not parse is a setting that reads
-/// back fine and does nothing.
-#[test]
-fn the_light_hours_boxes_take_hhmm_and_normalise_it() {
-    let mut p = SettingsPane::new(CrewConfig::default(), Vec::new());
-    focus(&mut p, Field::LightFrom);
-    assert_eq!(p.light_from_buf, "07:00", "seeded from the live window");
-
-    p.light_from_buf = "5:5".to_string();
-    super::commit::commit_field(&mut p);
-    assert_eq!(p.draft.auto_light_from, "05:05", "normalised on commit");
-    assert_eq!(p.light_from_buf, "05:05", "and mirrored back into the box");
-
-    // A typo keeps the previous value instead of landing on midnight.
-    for typo in ["25:00", "07:60", "nope", ""] {
-        p.light_from_buf = typo.to_string();
-        super::commit::commit_field(&mut p);
-        assert_eq!(p.draft.auto_light_from, "05:05", "`{typo}` was accepted");
-    }
-
-    // Whatever survives, `light_hours()` must agree with — the form and the
-    // config parser reading the same string differently is the whole bug.
-    p.light_from_buf = "21:45".to_string();
-    super::commit::commit_field(&mut p);
-    assert_eq!(p.draft.light_hours().0, 21 * 60 + 45);
-}
-
-/// Only `HH:MM` can be typed: five characters, digits, at most one colon, and
-/// never a leading one. Drives the same predicate the key handler does.
-#[test]
-fn the_light_hours_boxes_reject_anything_that_is_not_hhmm() {
-    for f in [Field::LightFrom, Field::LightTo] {
-        let mut buf = String::new();
-        for c in ":a1b2:3:4:5:6".chars() {
-            if super::keys::allowed(f, &buf, c) {
-                buf.push(c);
-            }
-        }
-        assert_eq!(buf, "12:34", "{f:?} accepted `{buf}`");
-        // Full: nothing more goes in, so the buffer can never outgrow what
-        // the commit is able to parse.
-        assert!(!super::keys::allowed(f, &buf, '9'));
-        // And a colon may not lead, or `:30` would parse as nothing.
-        assert!(!super::keys::allowed(f, "", ':'));
-    }
-}
-
-/// A config file holding an unparseable window shows the window that is
-/// actually in effect, not the typo echoed back as if it were live.
-#[test]
-fn an_unparseable_saved_window_displays_the_fallback() {
-    let cfg = CrewConfig::from_toml_str("auto_light_from = \"nope\"\nauto_light_to = \"21:05\"\n");
-    let p = SettingsPane::new(cfg, Vec::new());
-    assert_eq!(p.light_from_buf, "07:00");
-    assert_eq!(p.light_to_buf, "21:05");
-}
-
 /// Each pairing picker edits its OWN side. A two-branch cycle is exactly
 /// where a copy-paste writes the wrong field, and both sides holding the same
 /// value looks plausible enough to ship.
@@ -443,16 +384,6 @@ fn fields_pair_up_on_a_wide_form_and_stack_on_a_narrow_one() {
             .find(|(f, _)| *f == want)
             .map(|(_, r)| (r.y, r.width))
     };
-    // A wide form pairs everything it can; a narrow one stacks rather than
-    // clipping. `Auto day from` is a thirteen-column legend, so its box needs
-    // nineteen — comfortable on a wide pane, impossible on a narrow one.
-    let (fy, _) = row_of(200, Field::LightFrom).expect("LightFrom");
-    let (ty, _) = row_of(200, Field::LightTo).expect("LightTo");
-    assert_eq!(fy, ty, "two short boxes must pair on a wide form");
-    let (fy, _) = row_of(64, Field::LightFrom).expect("LightFrom");
-    let (ty, _) = row_of(64, Field::LightTo).expect("LightTo");
-    assert_ne!(fy, ty, "…and stack rather than clip on a narrow one");
-
     // The palette pickers carry theme names. Narrow, they stack; wide, they
     // pair — which is the whole point of taking the decision from the width.
     let (dy, _) = row_of(80, Field::ThemeDark).expect("ThemeDark");

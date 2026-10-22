@@ -55,10 +55,6 @@ pub struct SettingsPane {
     pub(crate) nav_buf: String,
     /// Editable accent hex (e.g. `#00ffa0`); empty means "use the built-in".
     pub(crate) accent_buf: String,
-    /// `auto`'s light-hours window as typed, `HH:MM`. Normalised to
-    /// zero-padded form on every refresh, so `7:5` reads back as `07:05`.
-    pub(crate) light_from_buf: String,
-    pub(crate) light_to_buf: String,
     /// Minimum command runtime (seconds) before a "finished" notification.
     pub(crate) minsecs_buf: String,
     /// Watched output substrings, one per line (text area).
@@ -83,7 +79,6 @@ impl SettingsPane {
         let size_buf = format!("{}", cfg.font_size as i32);
         let nav_buf = format!("{}", cfg.nav_width as i32);
         let accent_buf = cfg.accent.clone().unwrap_or_default();
-        let (light_from_buf, light_to_buf) = commit::light_bufs(&cfg);
         let minsecs_buf = format!("{}", cfg.notify_min_secs);
         let patterns_buf = cfg.notify_patterns.join("\n");
         let budget5h_buf = tokens::label(cfg.usage_budget_5h);
@@ -98,8 +93,6 @@ impl SettingsPane {
             size_buf,
             nav_buf,
             accent_buf,
-            light_from_buf,
-            light_to_buf,
             minsecs_buf,
             patterns_buf,
             budget5h_buf,

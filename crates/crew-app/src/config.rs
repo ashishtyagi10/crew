@@ -87,17 +87,6 @@ pub struct CrewConfig {
     /// Same values as `theme_dark`; unset → `light`, Ink Reader's white page.
     #[serde(default)]
     pub theme_light: Option<String>,
-    /// While `theme = "auto"` and the OS appearance is PINNED (not on macOS
-    /// Appearance: Auto): the local `HH:MM` daylight starts and ends. crew
-    /// has no location, so this is a wall-clock window rather than real
-    /// sunrise/sunset — dial it to your own. An unparseable value falls back
-    /// to the 07:00–19:00 default; a window whose end is at or before its
-    /// start wraps past midnight (see `daylight`).
-    #[serde(default = "default_auto_light_from")]
-    pub auto_light_from: String,
-    /// End of the light-hours window; see `auto_light_from`.
-    #[serde(default = "default_auto_light_to")]
-    pub auto_light_to: String,
     /// Whether a pane's card marks what it knows on its border: the ticks
     /// where each command began and the bars beside error lines.
     ///
@@ -225,8 +214,6 @@ impl Default for CrewConfig {
             theme: None,
             theme_dark: None,
             theme_light: None,
-            auto_light_from: default_auto_light_from(),
-            auto_light_to: default_auto_light_to(),
             border_marks: true,
             invisibles: false,
             lsp: true,

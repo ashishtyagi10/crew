@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.7
+
+**`auto` obeys a Mac set to Dark.** With macOS Appearance set to Dark or
+Light (not Auto), `auto` used crew's own clock and went light from 07:00 to
+19:00. It now follows the appearance whatever it is set to: Dark stays dark
+all day. For light by day and dark by night, set macOS Appearance to Auto.
+- The light-hours window is retired: the **Auto day from** / **Auto day to**
+  boxes are gone from Settings, and `auto_light_from` / `auto_light_to` in
+  `config.toml` are ignored and dropped on the next save.
+- `/theme` with `auto` names the OS side it serves, as it always did on a
+  scheduled Mac.
+
 ## 0.28.6
 
 **`neon` is always dark.** It served its light page by day: with macOS

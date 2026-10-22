@@ -36,8 +36,6 @@ pub(crate) fn buf_of(p: &mut SettingsPane, f: Field) -> Option<&mut String> {
         Field::FontSize => Some(&mut p.size_buf),
         Field::NavWidth => Some(&mut p.nav_buf),
         Field::Accent => Some(&mut p.accent_buf),
-        Field::LightFrom => Some(&mut p.light_from_buf),
-        Field::LightTo => Some(&mut p.light_to_buf),
         Field::NotifyMinSecs => Some(&mut p.minsecs_buf),
         Field::Budget5h => Some(&mut p.budget5h_buf),
         Field::Budget7d => Some(&mut p.budget7d_buf),
@@ -51,13 +49,6 @@ pub(super) fn allowed(f: Field, buf: &str, c: char) -> bool {
     match f {
         Field::FontSize | Field::NavWidth | Field::NotifyMinSecs => c.is_ascii_digit(),
         Field::Budget5h | Field::Budget7d => c.is_ascii_digit() || (c == '.' && !buf.contains('.')),
-        // `HH:MM` and nothing else: digits, one colon, five characters. The
-        // length cap is what stops a buffer growing past what the commit can
-        // parse, which would silently revert on every keystroke after it.
-        Field::LightFrom | Field::LightTo => {
-            buf.chars().count() < 5
-                && (c.is_ascii_digit() || (c == ':' && !buf.contains(':') && !buf.is_empty()))
-        }
         Field::Accent => (c == '#' || c.is_ascii_hexdigit()) && buf.len() < 7,
         Field::NotifyPatterns => !c.is_control(),
         _ => false,

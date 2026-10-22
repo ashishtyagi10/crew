@@ -1,8 +1,8 @@
 //! The value list behind `auto`'s per-appearance pairing pickers
 //! (`theme_dark` / `theme_light`).
 //!
-//! Unlike the light-hours boxes beside them these are a closed set, so they
-//! are ‹ › pickers rather than typed fields. The list is every value the
+//! These are a closed set, so they are ‹ › pickers rather than typed
+//! fields. The list is every value the
 //! config accepts, and that completeness is load-bearing: a picker that
 //! could not reach `crt-green` would still have to DISPLAY it for someone who
 //! set it in the config file, and a value the form can show but not produce

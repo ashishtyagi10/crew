@@ -1,7 +1,7 @@
 //! Does the OS want more contrast? — the probe behind `contrast = auto`.
 //!
-//! Sibling of [`crate::reducemotion`] and [`crate::osappearance`], read at the
-//! same three points those are (startup, config adoption, the appearance
+//! Sibling of [`crate::reducemotion`], read at the same three points that
+//! is (startup, config adoption, the appearance
 //! notification) and cached the same way: `crew_theme::contrast` holds the
 //! answer in an atomic, because the floors it moves are consulted while
 //! building frames.

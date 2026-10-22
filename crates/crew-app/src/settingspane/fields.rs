@@ -27,14 +27,10 @@ pub(crate) enum Field {
     NavWidth,
     ShowNav,
     Theme,
-    /// `auto`'s per-appearance pairing: what it serves while the OS (or, when
-    /// the appearance is pinned, the clock below) says dark / light.
+    /// `auto`'s per-appearance pairing: what it serves while the OS says dark
+    /// / light.
     ThemeDark,
     ThemeLight,
-    /// `auto`'s light-hours window, `HH:MM` each. Placed under Theme because
-    /// they are only read while it is `auto` AND the OS appearance is pinned.
-    LightFrom,
-    LightTo,
     Accent,
     /// Whether pane cards mark what they know on their borders — the ticks
     /// where a command began and the bars beside error lines.
@@ -85,7 +81,7 @@ pub(crate) enum Field {
 
 /// Every focusable field, for the coverage guards and as `tab_order`'s
 /// backstop — a field the layout does not place still has to be reachable.
-pub(crate) const FIELDS: [Field; 33] = [
+pub(crate) const FIELDS: [Field; 31] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -95,8 +91,6 @@ pub(crate) const FIELDS: [Field; 33] = [
     Field::Theme,
     Field::ThemeDark,
     Field::ThemeLight,
-    Field::LightFrom,
-    Field::LightTo,
     Field::Accent,
     Field::BorderMarks,
     Field::Glass,

@@ -32,12 +32,6 @@ pub(crate) fn commit_field(p: &mut SettingsPane) {
             p.draft.nav_width = crate::navresize::width_at(v);
         }
         Field::Accent => commit_accent(p),
-        Field::LightFrom => {
-            p.draft.auto_light_from = commit_hhmm(&p.light_from_buf, &p.draft.auto_light_from);
-        }
-        Field::LightTo => {
-            p.draft.auto_light_to = commit_hhmm(&p.light_to_buf, &p.draft.auto_light_to);
-        }
         Field::NotifyMinSecs => {
             let v = p
                 .minsecs_buf
@@ -67,29 +61,6 @@ pub(crate) fn commit_field(p: &mut SettingsPane) {
     refresh_bufs(p);
 }
 
-/// A typed `HH:MM` if it is a real time of day, else `prev` unchanged.
-///
-/// Rejecting rather than coercing matters here: `daylight::parse_hhmm` also
-/// rejects, and a value the form accepted but the config parser will not is
-/// a setting that reads back fine and does nothing. Same shape as the accent
-/// field, which keeps the previous colour on unparseable hex.
-fn commit_hhmm(typed: &str, prev: &str) -> String {
-    match crate::daylight::parse_hhmm(typed) {
-        Some(m) => format!("{:02}:{:02}", m / 60, m % 60),
-        None => prev.to_string(),
-    }
-}
-
-/// The two light-hours buffers for `cfg`, normalised. Goes through
-/// `light_hours()` so the form shows the window that is actually IN EFFECT —
-/// a config file holding `auto_light_from = "nope"` falls back to 07:00, and
-/// the form must say 07:00 rather than echo the typo back as if it were live.
-pub(crate) fn light_bufs(cfg: &CrewConfig) -> (String, String) {
-    let (from, to) = cfg.light_hours();
-    let fmt = |m: u16| format!("{:02}:{:02}", m / 60, m % 60);
-    (fmt(from), fmt(to))
-}
-
 fn commit_accent(p: &mut SettingsPane) {
     let raw = p.accent_buf.trim();
     if raw.is_empty() {
@@ -108,7 +79,6 @@ pub(crate) fn refresh_bufs(p: &mut SettingsPane) {
     p.size_buf = format!("{}", p.draft.font_size as i32);
     p.nav_buf = format!("{}", p.draft.nav_width as i32);
     p.accent_buf = p.draft.accent.clone().unwrap_or_default();
-    (p.light_from_buf, p.light_to_buf) = light_bufs(&p.draft);
     p.minsecs_buf = format!("{}", p.draft.notify_min_secs);
     p.patterns_buf = p.draft.notify_patterns.join("\n");
     p.budget5h_buf = super::tokens::label(p.draft.usage_budget_5h);

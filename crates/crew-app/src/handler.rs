@@ -132,9 +132,6 @@ impl CrewApp {
         // Seed the OS appearance for `/theme auto` (ThemeChanged keeps it live).
         if let Some(t) = window.theme() {
             crew_theme::set_os_dark(t == winit::window::Theme::Dark);
-            // Re-read the pinned/scheduled flag beside it: winit reports macOS
-            // Appearance: Auto as whichever side it is currently showing, so
-            // the theme alone cannot tell the two apart.
             self.config.publish_appearance_sources();
             if crew_theme::follow_appearance(crate::chattime::unix_now_ms()) {
                 // The re-apply can flip pools (startup guessed OS-dark before
@@ -234,9 +231,6 @@ pub fn run() -> anyhow::Result<()> {
     // land BEFORE the apply, or auto's first pick comes from the wrong pool.
     let (pool_dark, pool_light) = config.auto_pool_selections();
     crew_theme::set_auto_pools(pool_dark, pool_light);
-    // The clock half of `auto` needs no window, so it lands before the first
-    // apply — a Mac pinned to Dark resolves `auto` off the light-hours window
-    // from the very first frame instead of opening dark and correcting later.
     config.publish_appearance_sources();
     crew_theme::apply_selection(config.theme_selection(), crate::chattime::unix_now_ms());
     // Seed the themeable accent from config before the first frame.

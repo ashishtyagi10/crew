@@ -291,10 +291,6 @@ impl CrewApp {
             WindowEvent::DroppedFile(path) => self.drop_file(&path),
             WindowEvent::ThemeChanged(t) => {
                 crew_theme::set_os_dark(t == winit::window::Theme::Dark);
-                // Flipping System Settings between Light/Dark/Auto all arrive
-                // here, so re-read whether the appearance is now scheduled or
-                // pinned — turning Auto ON must stop the clock fallback, and
-                // turning it OFF must start it.
                 self.config.publish_appearance_sources();
                 // An appearance flip lands immediately in `auto`.
                 if crew_theme::follow_appearance(crate::chattime::unix_now_ms()) {
