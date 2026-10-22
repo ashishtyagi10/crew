@@ -178,3 +178,23 @@ fn every_marker_has_a_cell_of_its_own() {
     cols.dedup();
     assert_eq!(cols.len(), c.len(), "no two cells share a column");
 }
+
+/// Unread is a colour, not a weight only, on every theme's own accent.
+#[test]
+fn an_unread_thread_wears_a_colour_of_its_own() {
+    let (_g, _p) = (crate::app::theme_test_guard(), crate::palette::test_guard());
+    let floor = crew_theme::contrast::text_floor();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        crate::palette::set_accent(crew_theme::theme().accent_default); // unset, as in the app
+        let c = draw(&thread(), 60, true, false);
+        let at = |ch: char| c.iter().find(|c| c.c == ch).unwrap().fg;
+        let apart = crew_theme::oklch::distance(at('A'), crew_theme::theme().ink);
+        assert!(at('A') == at('Q') && apart >= 0.08, "{id:?}: {apart:.3}");
+        let wash = crew_theme::readable::selection_bg(&crew_theme::theme());
+        let reads = |c: &CellView| crew_theme::contrast_ratio(c.fg, wash) >= floor - 0.05;
+        let lit = draw(&thread(), 60, true, true);
+        assert!(lit.iter().filter(|c| c.c != ' ').all(reads), "{id:?}");
+    }
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+}
