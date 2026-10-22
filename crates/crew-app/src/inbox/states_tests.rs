@@ -50,6 +50,7 @@ fn a_list_gmail_would_not_give_says_what_in_words_and_the_key_that_mends_it() {
             rows: vec![Thread::default()],
             next: None,
             more: false,
+            whole: true,
         })
         .unwrap();
     p.poll();

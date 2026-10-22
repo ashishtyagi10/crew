@@ -61,6 +61,8 @@ pub(crate) enum Got {
         next: Option<String>,
         /// Rows to add to the list rather than replace it.
         more: bool,
+        /// Gmail had nothing after this page: on a first page, the whole list.
+        whole: bool,
     },
     Unread(u64),
     /// A check found the mailbox as it was: nothing to list again.

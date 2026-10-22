@@ -48,6 +48,8 @@ pub(crate) fn start(grant: Grant) -> Worker {
 struct State {
     query: String,
     next: Option<String>,
+    /// Pages of `query` the pane holds, the first one included.
+    pages: usize,
     history: String,
 }
 
@@ -56,6 +58,7 @@ impl State {
         match ask {
             Ask::List(q) => {
                 self.query = q;
+                self.pages = 0;
                 self.list(g, None)
             }
             Ask::More => match self.next.clone() {
@@ -132,17 +135,33 @@ impl State {
         let mut out = vec![g.unread().map_or_else(fail, Got::Unread)];
         out.push(match g.page(&self.query, from.as_deref()) {
             Ok((rows, next)) => {
-                self.next = next.clone();
+                let whole = next.is_none();
+                self.went(more, next);
                 Got::Page {
                     query: self.query.clone(),
                     rows,
-                    next,
+                    next: self.next.clone(),
                     more,
+                    whole,
                 }
             }
             Err(e) => fail(e),
         });
         out
+    }
+
+    /// Where `j` at the end of the list goes on from after a page: the page's
+    /// own cursor, except that a first page listed again (the check after the
+    /// mailbox moved) of a list already paged past it keeps the deeper one,
+    /// as the pane keeps those rows. Gmail's end ends the list either way.
+    fn went(&mut self, more: bool, next: Option<String>) {
+        match (more, next) {
+            (false, Some(_)) if self.pages > 1 => {}
+            (more, next) => {
+                self.pages = if more { self.pages + 1 } else { 1 };
+                self.next = next;
+            }
+        }
     }
 }
 

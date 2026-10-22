@@ -27,6 +27,7 @@ fn a_thread_filed_elsewhere_leaves_no_false_count_and_n_opens_what_took_its_plac
         rows: vec![row("a"), row("c")],
         next: None,
         more: false,
+        whole: true,
     });
     assert_eq!(p.sel, 1, "the place it had, now `c`'s, not the top");
     assert_eq!(p.counter(), None, "no place of its own to count");
