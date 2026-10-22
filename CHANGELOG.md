@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.70
+
+**`/inbox`: a click puts the caret where you click.** Third round of the
+fourth inbox loop.
+- **Click in your reply's words** and the caret goes to the letter you
+  clicked, as in any text box; past the end of a line, to its end. The same
+  on the `to` and `cc` lines. It used to stay wherever it had been.
+
 ## 0.27.69
 
 **`/inbox`: the mail you answer stays in view.** Second round of the fourth

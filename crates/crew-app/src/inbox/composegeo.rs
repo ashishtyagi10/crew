@@ -48,6 +48,49 @@ pub(crate) fn geo(c: &Compose, top: u16, h: u16, w: u16) -> Geo {
     }
 }
 
+/// A click at the box's own `(row, col)`, on the place `c.on` already
+/// names: the caret to the letter there. In the words, the last letter at or
+/// before the column on the row clicked (below the words, their end); on an
+/// address line shown whole, the letter under the pointer.
+pub(crate) fn caret_at(c: &mut Compose, g: &Geo, w: u16, (row, col): (u16, u16)) {
+    use super::composedraw::{place, X};
+    let w = usize::from(w);
+    match c.on {
+        On::Body if (g.words..g.words + g.room).contains(&row) => {
+            let text = &c.body.text;
+            let (now, _) = place(text, c.body.at, w);
+            let first = now.saturating_sub(usize::from(g.room).saturating_sub(1));
+            let (line, col) = (
+                first + usize::from(row - g.words),
+                usize::from(col.saturating_sub(X)),
+            );
+            let n = text.chars().count();
+            let at = (0..=n).filter(|&i| {
+                let (r, k) = place(text, i, w);
+                r == line && k <= col
+            });
+            c.body.at = at.last().unwrap_or(n);
+        }
+        On::To | On::Cc => {
+            let room = w.saturating_sub(usize::from(super::composehead::VALUE - X));
+            let f = c.field();
+            if crate::chatwidth::str_w(&f.text) < room {
+                let col = usize::from(col.saturating_sub(super::composehead::VALUE));
+                let mut x = 0;
+                f.at = f
+                    .text
+                    .chars()
+                    .take_while(|&ch| {
+                        x += crate::chatwidth::char_w(ch);
+                        x <= col
+                    })
+                    .count();
+            }
+        }
+        _ => {}
+    }
+}
+
 #[cfg(test)]
 #[path = "composegeo_tests.rs"]
 mod tests;
