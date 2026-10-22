@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.79
+
+**`/inbox`: strange mail never crashes the reader.** Second round of the
+sixth inbox loop.
+- **Ten thousand mangled real mails** (cut, spliced, laced with hostile HTML)
+  and twenty thousand mangled headers went through the reader without a
+  crash. Smaller versions of both now run with every release, so a change
+  that would crash on a strange mail is caught before it ships.
+- **A very long `to` or `cc` line** draws in one pass while you write in it.
+
 ## 0.27.78
 
 **`/inbox`: no crash on a tiny pane.** First round of the sixth inbox loop.

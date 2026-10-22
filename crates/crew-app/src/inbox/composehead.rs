@@ -65,17 +65,19 @@ pub(super) fn hint(c: &Compose, on: On) -> &'static str {
 /// The part of a line `room` columns wide that holds its caret, and the
 /// caret's column in it: the start, or `…` and the end of a long line.
 fn window(text: &str, at: usize, room: usize) -> (String, usize) {
-    let w = crate::chatwidth::str_w;
+    let cw = crate::chatwidth::char_w;
     let chars: Vec<char> = text.chars().collect();
-    let before: String = chars[..at.min(chars.len())].iter().collect();
-    if w(&before) + 1 < room {
-        return (text.to_string(), w(&before));
+    let at = at.min(chars.len());
+    let before: usize = chars[..at].iter().map(|&c| cw(c)).sum();
+    if before + 1 < room {
+        return (text.to_string(), before);
     }
-    let mut from = 0;
-    while from < at && w(&chars[from..at].iter().collect::<String>()) + 2 >= room {
-        from += 1;
+    // Back from the caret, one pass: as much as leaves `…` and the caret room.
+    let (mut from, mut wide) = (at, 0);
+    while from > 0 && wide + cw(chars[from - 1]) + 2 < room {
+        from -= 1;
+        wide += cw(chars[from]);
     }
     let tail: String = chars[from..].iter().collect();
-    let shown = format!("\u{2026}{tail}");
-    (shown, 1 + w(&chars[from..at].iter().collect::<String>()))
+    (format!("\u{2026}{tail}"), 1 + wide)
 }
