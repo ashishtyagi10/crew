@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.71
+
+**`/inbox`: folding a mail never leaves you looking at nothing.** Fourth
+round of the fourth inbox loop.
+- **A mail made shorter keeps you on its words.** Far down a long quoted
+  reply, `q` folded it and left the mail scrolled past its new end, a blank
+  card until you scrolled up; `v` and `x` could do the same. The view now
+  stays on the mail.
+
 ## 0.27.70
 
 **`/inbox`: a click puts the caret where you click.** Third round of the

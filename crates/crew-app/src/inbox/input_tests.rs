@@ -111,3 +111,32 @@ fn a_reply_box_keeps_the_end_of_the_mail_it_answers_in_view() {
         "read from the top, it stays there"
     );
 }
+
+#[test]
+fn folding_a_long_mail_never_leaves_it_scrolled_past_its_end() {
+    let _g = crate::app::motion_test_guard();
+    let (mut p, _) = reading();
+    let quote: String = (1..=60).map(|n| format!("> quoted line {n}\n")).collect();
+    if let Some(m) = p.reading.as_mut().and_then(|r| r.mails.as_mut()) {
+        let text = format!("Short reply.\n\nOn Tue, Ann wrote:\n{quote}");
+        m[0].rich = crate::inbox::rich::Rich::of_plain(&text, None);
+    }
+    typed(&mut p, "q");
+    p.scroll_wheel(-500, 80, 30);
+    assert!(
+        p.reading.as_ref().unwrap().scroll > 20,
+        "far down the quote"
+    );
+    typed(&mut p, "q");
+    let mail = p.cards(80, 30).mail.unwrap();
+    let shown: String = p
+        .cells(80, 30)
+        .into_iter()
+        .filter(|c| c.row > mail.row && c.row + 1 < mail.row + mail.h)
+        .map(|c| c.c)
+        .collect();
+    assert!(
+        shown.contains("Short reply."),
+        "the folded mail shows: {shown}"
+    );
+}
