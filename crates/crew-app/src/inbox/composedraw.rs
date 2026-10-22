@@ -52,10 +52,14 @@ impl InboxPane {
         };
         let t = crew_theme::theme();
         let h = cv.rows;
-        let legend = match (c.sending, c.kind) {
-            (true, _) => format!("sending to {}\u{2026}", super::addr::names(&c.to.text)),
-            (false, Kind::Reply) => format!("reply to {}", super::addr::names(&c.answer.to)),
-            (false, Kind::Forward) => "forward".to_string(),
+        // Named for whom the `to` line says now, as it is edited.
+        let who = super::addr::names(&c.to.text);
+        let legend = match (c.sending, c.kind, who.is_empty()) {
+            (true, ..) => format!("sending to {who}\u{2026}"),
+            (false, Kind::Reply, true) => "reply".to_string(),
+            (false, Kind::Reply, false) => format!("reply to {who}"),
+            (false, Kind::Forward, true) => "forward".to_string(),
+            (false, Kind::Forward, false) => format!("forward to {who}"),
         };
         let b = super::cards::Rect {
             col: 0,
