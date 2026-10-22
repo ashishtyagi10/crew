@@ -6,7 +6,6 @@
 //! so it delivers the prompt and, for a draft, watches smith's answer
 //! (`spawninbox::poll_inbox`) and hands the body back to [`InboxPane::drafted_by_smith`].
 use super::compose::Kind;
-use super::draft::{self, Answer};
 use super::worker::Ask;
 use super::{InboxPane, Reading};
 
@@ -21,18 +20,17 @@ pub(crate) enum Then {
     Todo,
 }
 
-/// A prompt for smith, the short line its transcript shows for it, and, for
-/// a draft, what the draft will need besides the body.
+/// A prompt for smith, the short line its transcript shows for it, and
+/// whether it asks for a draft of the reply box's words.
 pub(crate) struct ToSmith {
     pub prompt: String,
     pub shown: String,
-    pub draft: Option<Answer>,
+    pub draft: bool,
 }
 
-/// A reply smith is writing: the draft's headers, and the transcript length
-/// when it was asked, so only its answer is read.
+/// A reply smith is writing for the box: the transcript length when it was
+/// asked, so only its answer is read.
 pub(crate) struct Waiting {
-    pub answer: Answer,
     pub since: usize,
     pub at_ms: u64,
 }
@@ -74,21 +72,18 @@ impl InboxPane {
                 self.to_smith = Some(ToSmith {
                     prompt: super::smith::ask_prompt(r),
                     shown: format!("\u{2709} what does \u{201c}{subject}\u{201d} want from me?"),
-                    draft: None,
+                    draft: false,
                 });
                 self.note = "handed to agent smith".into();
             }
+            // Tab in the reply box: the words, written into it.
             Then::Draft => {
-                let mails = r.mails.as_deref().unwrap_or_default();
-                let answer = draft::answer_all(&r.thread.id, mails, &self.email);
                 self.to_smith = Some(ToSmith {
                     prompt: super::smith::draft_prompt(r),
                     shown: format!("\u{2709} draft a reply to \u{201c}{subject}\u{201d}"),
-                    draft: answer,
+                    draft: true,
                 });
-                self.note =
-                    "agent smith is writing a reply \u{2014} it lands as a Gmail draft, never sent"
-                        .into();
+                self.note = "agent smith is writing a draft into the box\u{2026}".into();
             }
             Then::Reply => self.note = self.open_compose(Kind::Reply).into(),
             Then::Forward => self.note = self.open_compose(Kind::Forward).into(),
@@ -96,31 +91,25 @@ impl InboxPane {
         }
     }
 
-    /// The reply smith wrote (or `None`: its answer held none) becomes a
-    /// draft in the thread.
+    /// The words smith wrote (or `None`: its answer held none) go into the
+    /// reply box, to be changed and sent by hand. A box closed meanwhile
+    /// (let go, or sent) lets them go too: nothing is saved behind your back.
     pub(crate) fn drafted_by_smith(&mut self, body: Option<String>) {
-        let Some(w) = self.waiting.take() else { return };
-        match body {
-            // Into the box, to be changed and sent by hand.
-            Some(b) if self.compose.is_some() => {
-                self.draft_in(&b);
-                self.note = "agent smith drafted it \u{b7} change what you like, then send".into();
-            }
-            Some(b) => {
-                let raw = draft::raw(&w.answer, &b);
-                let ask = Ask::Draft {
-                    thread_id: w.answer.thread_id.clone(),
-                    raw,
-                    subject: w.answer.subject,
-                };
-                self.ask(ask);
-                self.note = "saving the draft\u{2026}".into();
-            }
-            None => {
-                self.note =
-                    "agent smith's answer held no draft \u{2014} press r to ask again".into()
-            }
+        if self.waiting.take().is_none() {
+            return;
         }
+        self.note = match (body, self.compose.is_some()) {
+            (Some(b), true) => {
+                self.draft_in(&b);
+                "agent smith drafted it \u{b7} change what you like, then send".into()
+            }
+            (Some(_), false) => {
+                "agent smith's draft came after the reply box closed \u{2014} let go".into()
+            }
+            (None, _) => {
+                "agent smith's answer held no draft \u{2014} tab in the reply box asks again".into()
+            }
+        };
     }
 
     fn to_todo(&mut self) {

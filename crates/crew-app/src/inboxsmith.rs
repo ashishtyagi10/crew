@@ -57,9 +57,8 @@ impl CrewApp {
         // A summary is read in smith's pane; a draft lands in Gmail, so the
         // inbox keeps the keys and says when it is saved.
         match (send.draft, &mut self.panes[inbox].content) {
-            (Some(answer), PaneContent::Inbox(p)) => {
+            (true, PaneContent::Inbox(p)) => {
                 p.waiting = Some(Waiting {
-                    answer,
                     since,
                     at_ms: crate::anim::now_ms(),
                 });

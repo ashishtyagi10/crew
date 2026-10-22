@@ -2,7 +2,6 @@ use std::sync::mpsc;
 
 use crate::app::CrewApp;
 use crate::chatlayout::Message;
-use crate::inbox::draft::Answer;
 use crate::inbox::handoff::ToSmith;
 use crate::inbox::worker::{Ask, Worker};
 use crate::inbox::{InboxPane, Stage};
@@ -65,7 +64,7 @@ fn a_summary_goes_to_smith_showing_one_line_and_smith_takes_the_focus() {
     let send = ToSmith {
         prompt: "<<<MAIL\nlong thread\nMAIL>>>".into(),
         shown: "\u{2709} what does it want?".into(),
-        draft: None,
+        draft: false,
     };
     let (mut a, _asks) = app(send);
     assert!(a.poll_inbox());
@@ -83,17 +82,11 @@ fn a_summary_goes_to_smith_showing_one_line_and_smith_takes_the_focus() {
 }
 
 #[test]
-fn a_draft_waits_for_smiths_settled_answer_and_saves_its_body() {
-    let answer = Answer {
-        thread_id: "t1".into(),
-        to: "ann@x.org".into(),
-        subject: "Re: plan".into(),
-        ..Answer::default()
-    };
+fn a_draft_waits_for_smiths_settled_answer_and_lets_it_go_with_no_box() {
     let send = ToSmith {
         prompt: "draft it".into(),
         shown: "\u{2709} draft a reply".into(),
-        draft: Some(answer),
+        draft: true,
     };
     let (mut a, asks) = app(send);
     a.poll_inbox();
@@ -119,11 +112,7 @@ fn a_draft_waits_for_smiths_settled_answer_and_saves_its_body() {
         .push(say("Here is a reply:\n<<<DRAFT\nSure, Friday.\nDRAFT>>>"));
     c.messages.push(say("\u{2713} checked"));
     assert!(a.poll_inbox());
-    match asks.try_recv() {
-        Ok(Ask::Draft {
-            thread_id, subject, ..
-        }) => assert_eq!((thread_id.as_str(), subject.as_str()), ("t1", "Re: plan")),
-        _ => panic!("no draft saved"),
-    }
+    assert!(asks.try_recv().is_err(), "nothing saved to Gmail");
+    assert!(inbox(&a).note.contains("let go"), "{}", inbox(&a).note);
     assert!(inbox(&a).waiting.is_none());
 }

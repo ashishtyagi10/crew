@@ -10,12 +10,6 @@ pub(crate) enum Ask {
     Open(String),
     /// Has anything changed? Re-list when the mailbox moved.
     Check,
-    /// Save `raw` (RFC 2822, base64url) as a draft in the thread.
-    Draft {
-        thread_id: String,
-        raw: String,
-        subject: String,
-    },
     /// Add and take away labels on a thread (archive, read, star).
     Relabel {
         id: String,
@@ -72,8 +66,6 @@ pub(crate) enum Got {
     /// A check found the mailbox as it was: nothing to list again.
     Checked,
     Opened(String, Vec<Mail>),
-    /// A draft was saved; its subject.
-    Drafted(String),
     /// Unsubscribed from this sender.
     Unsubscribed(String),
     /// A reply went, to these addresses.

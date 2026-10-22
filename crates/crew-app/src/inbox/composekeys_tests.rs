@@ -172,3 +172,15 @@ fn a_click_puts_the_caret_on_the_line_clicked() {
         "above the box is the mail"
     );
 }
+
+#[test]
+fn tab_asks_smith_once_while_it_writes() {
+    let (mut p, _) = reading();
+    typed(&mut p, "r");
+    press(&mut p, NamedKey::Tab);
+    assert!(p.to_smith.take().is_some_and(|s| s.draft), "asked");
+    p.waiting = Some(crate::inbox::handoff::Waiting { since: 0, at_ms: 0 });
+    press(&mut p, NamedKey::Tab);
+    assert!(p.to_smith.is_none(), "not twice");
+    assert!(p.note.contains("still writing"), "{}", p.note);
+}

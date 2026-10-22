@@ -87,15 +87,6 @@ impl State {
                 data,
                 name,
             } => vec![super::save::save(g, &msg, att, data, &name)],
-            Ask::Draft {
-                thread_id,
-                raw,
-                subject,
-            } => {
-                vec![g
-                    .draft(&thread_id, &raw)
-                    .map_or_else(fail, |()| Got::Drafted(subject))]
-            }
             Ask::Send { thread_id, raw, to } => {
                 vec![g
                     .send(&thread_id, &raw)

@@ -116,11 +116,8 @@ fn tab_asks_agent_smith_and_its_draft_lands_in_the_box() {
     typed(&mut p, "r");
     press(&mut p, Key::Named(NamedKey::Tab));
     let ask = p.to_smith.take().expect("smith asked");
-    p.waiting = Some(crate::inbox::handoff::Waiting {
-        answer: ask.draft.expect("a reply's headers"),
-        since: 0,
-        at_ms: 0,
-    });
+    assert!(ask.draft, "a draft of the box's words");
+    p.waiting = Some(crate::inbox::handoff::Waiting { since: 0, at_ms: 0 });
     p.drafted_by_smith(Some("Friday is good, see you then.".into()));
     assert_eq!(text(&p), "Friday is good, see you then.");
     p.paste(" Ann");
