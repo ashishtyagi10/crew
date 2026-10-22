@@ -92,7 +92,7 @@ impl InboxPane {
             (Stage::Ready(_), reading) => {
                 let k = self.cards(cols, rows);
                 if let Some(b) = k.list {
-                    super::cards::frame(&mut cv, b, "", "");
+                    super::cards::frame(&mut cv, b, "", "", reading.is_none());
                     let inner = b.inner();
                     let mut list = Canvas::new(inner.w, inner.h);
                     self.list(&mut list);
@@ -102,7 +102,8 @@ impl InboxPane {
                     let counter = self.counter().unwrap_or_default();
                     let room = b.w.saturating_sub(8 + str_w(&counter) as u16);
                     let subject = super::reader::subject(r);
-                    super::cards::frame(&mut cv, b, &clip(subject, room), &counter);
+                    let keys = self.compose.is_none();
+                    super::cards::frame(&mut cv, b, &clip(subject, room), &counter, keys);
                     let inner = b.inner();
                     let mut read = Canvas::new(inner.w, inner.h);
                     super::reader::draw(&mut read, r, &self.pics);
@@ -134,7 +135,7 @@ fn page(cv: &mut Canvas, name: &str, fill: impl FnOnce(&mut Canvas)) {
         w: cv.cols.saturating_sub(2),
         h: cv.rows,
     };
-    super::cards::frame(cv, b, name, "");
+    super::cards::frame(cv, b, name, "", true);
     let inner = b.inner();
     let mut c = Canvas::new(inner.w, inner.h);
     fill(&mut c);
