@@ -1,5 +1,5 @@
 //! The reply box's keys: while it is open every key is its own. Tab and
-//! Enter on the `to`, `cc` or `bcc` line go on to the next; the arrows move
+//! Enter on the `to` or `cc` line go on to the next; the arrows move
 //! up and down through the lines, the words and the row of files; in the
 //! words Tab asks agent smith to write a draft there, which is yours to
 //! change before it goes. On the row of files ← and → choose, Enter opens
@@ -20,8 +20,7 @@ impl InboxPane {
         let (on, forward) = (c.on, c.kind == Kind::Forward);
         let next = match on {
             On::To => On::Cc,
-            On::Cc => On::Bcc,
-            On::Bcc => On::Body,
+            On::Cc => On::Body,
             On::Body => On::Files,
             On::Files => On::To,
         };
@@ -39,14 +38,13 @@ impl InboxPane {
                 self.note = "agent smith is writing a draft into the box\u{2026}".into();
             }
             Key::Named(NamedKey::Tab) => c.on = next,
-            Key::Named(NamedKey::Enter) if matches!(on, On::To | On::Cc | On::Bcc) => c.on = next,
+            Key::Named(NamedKey::Enter) if matches!(on, On::To | On::Cc) => c.on = next,
             _ if on == On::Files => self.files_key(key),
             // A line up or down in the words, else the place above or below.
             Key::Named(NamedKey::ArrowUp) => {
                 if !c.field().line(true) {
                     c.on = match on {
-                        On::Body => On::Bcc,
-                        On::Bcc => On::Cc,
+                        On::Body => On::Cc,
                         _ => On::To,
                     };
                 }
@@ -112,7 +110,7 @@ impl InboxPane {
     pub(crate) fn compose_keys(&self) -> super::footkeys::Keys {
         use super::footkeys::{ADDRESS, COMPOSE, FILES, FORWARD};
         match self.compose.as_ref().map(|c| (c.on, c.kind)) {
-            Some((On::To | On::Cc | On::Bcc, _)) => ADDRESS,
+            Some((On::To | On::Cc, _)) => ADDRESS,
             Some((On::Files, _)) => FILES,
             Some((On::Body, Kind::Forward)) => FORWARD,
             _ => COMPOSE,

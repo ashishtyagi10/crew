@@ -85,10 +85,10 @@ fn f_forwards_the_newest_mail_to_whom_you_say_with_its_file() {
     p.send_reply();
     assert_eq!(p.note, "who is it to? write an address on the to line");
     typed(&mut p, "Dee <dee@x.org>");
-    for _ in 0..3 {
+    for _ in 0..2 {
         press(&mut p, NamedKey::Tab);
     }
-    assert_eq!(on(&p), On::Body, "through cc and bcc");
+    assert_eq!(on(&p), On::Body, "through cc");
     press(&mut p, NamedKey::Tab);
     assert_eq!(on(&p), On::Files, "no smith in a forward: Tab goes on");
     press(&mut p, NamedKey::Tab);

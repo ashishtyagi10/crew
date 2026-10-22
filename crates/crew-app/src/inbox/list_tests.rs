@@ -129,8 +129,10 @@ fn the_list_paints_nothing_over_its_rows() {
     );
     let cells = p.cells(60, 21);
     let washed = |r: u16| cells.iter().any(|c| c.row == r && c.c == ' ');
-    let shown = p.shown(p.body_rows(60, 21));
+    let inner = p.cards(60, 21).list.expect("the list's card").inner();
+    let shown = p.shown(inner.h);
     let (r, _) = shown.threads().find(|&(_, i)| i == 3).unwrap();
+    let r = inner.row + r;
     assert!(
         washed(r) && washed(r + 1),
         "the wash covers both of its lines"

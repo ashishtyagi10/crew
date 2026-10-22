@@ -1,42 +1,45 @@
-//! The reply box's `to`, `cc` and `bcc` lines: a muted name, the addresses,
-//! and on the line the caret is on, the caret, where a long line shows its
-//! end.
+//! The reply box's `to` and `cc` lines: a muted name, the addresses, and on
+//! the line the caret is on, the caret, where a long line shows its end.
 use super::compose::{Compose, Kind, On};
+use super::composedraw::X;
 use super::draw::Canvas;
 
-/// Where an address line's value starts, after `to`, `cc` or `bcc`.
-const VALUE: u16 = 7;
+/// Where an address line's value starts, after `to` or `cc`.
+const VALUE: u16 = X + 4;
 
-/// The three lines, under the box's top edge at `top`, inside its `right`
-/// edge.
-pub(super) fn draw(cv: &mut Canvas, c: &Compose, top: u16, right: u16) {
+/// The two lines, under the box's top edge at `top`, their words ending
+/// before column `end`.
+pub(super) fn draw(cv: &mut Canvas, c: &Compose, top: u16, end: u16) {
     let t = crew_theme::theme();
-    let lines = [
-        ("to", &c.to, On::To),
-        ("cc", &c.cc, On::Cc),
-        ("bcc", &c.bcc, On::Bcc),
-    ];
+    let lines = [("to", &c.to, On::To), ("cc", &c.cc, On::Cc)];
     for (i, (name, f, on)) in lines.into_iter().enumerate() {
         let row = top + 1 + i as u16;
         let focused = c.on == on;
         let label = if focused { t.ink } else { t.text_muted };
-        cv.text(row, 3, VALUE, name, label, focused);
-        let room = usize::from(right.saturating_sub(VALUE + 1));
+        cv.text(row, X, VALUE, name, label, focused);
+        let room = usize::from(end.saturating_sub(VALUE));
         let (shown, at) = window(&f.text, f.at, room);
         match (shown.is_empty(), focused) {
-            (true, true) => cv.text(row, VALUE, right - 1, hint(c, on), t.text_muted, false),
-            _ => cv.text(row, VALUE, right - 1, &shown, t.ink, false),
+            (true, true) => cv.text(row, VALUE, end, hint(c, on), t.text_muted, false),
+            _ => cv.text(row, VALUE, end, &shown, t.ink, false),
         }
         if focused {
-            caret(cv, c, (row, VALUE + at as u16), right);
+            caret(cv, c, (row, VALUE + at as u16), end);
         }
     }
 }
 
 /// The caret at `(row, col)`, unless the words are on their way.
-pub(super) fn caret(cv: &mut Canvas, c: &Compose, (row, col): (u16, u16), right: u16) {
+pub(super) fn caret(cv: &mut Canvas, c: &Compose, (row, col): (u16, u16), end: u16) {
     if !c.sending {
-        cv.text(row, col, right, "\u{258f}", crate::palette::accent(), false);
+        cv.text(
+            row,
+            col,
+            end + 1,
+            "\u{258f}",
+            crate::palette::accent(),
+            false,
+        );
     }
 }
 
@@ -45,7 +48,6 @@ pub(super) fn hint(c: &Compose, on: On) -> &'static str {
     match (on, c.kind) {
         (On::To, _) => "who it goes to",
         (On::Cc, _) => "add people, commas between",
-        (On::Bcc, _) => "copied unseen: no one else sees these",
         (On::Body | On::Files, Kind::Forward) => "add a note, or send it as it is",
         (On::Body | On::Files, _) => "write your reply \u{b7} tab: agent smith drafts it",
     }

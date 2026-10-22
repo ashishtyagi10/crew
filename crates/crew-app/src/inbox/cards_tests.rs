@@ -1,0 +1,124 @@
+use std::sync::mpsc;
+
+use super::Rect;
+use crate::inbox::api::Mail;
+use crate::inbox::wire::Thread;
+use crate::inbox::worker::Worker;
+use crate::inbox::{InboxPane, Reading, Stage};
+
+/// A pane listing three threads, reading the second.
+fn reading() -> InboxPane {
+    let (tx, _) = mpsc::channel();
+    let (_, rx) = mpsc::channel();
+    let mut p = InboxPane::with(Stage::Ready(Worker { tx, rx }));
+    p.rows = ["a", "b", "c"]
+        .iter()
+        .map(|id| Thread {
+            id: id.to_string(),
+            from: format!("{id} <{id}@x.org>"),
+            subject: format!("about {id}"),
+            ..Thread::default()
+        })
+        .collect();
+    p.sel = 1;
+    let mut mail = Mail {
+        from: "b <b@x.org>".into(),
+        text: "Lunch?".into(),
+        ..Mail::default()
+    };
+    mail.reply.subject = "about b".into();
+    p.reading = Some(Reading {
+        mails: Some(vec![mail]),
+        ..Reading::new(p.rows[1].clone())
+    });
+    p
+}
+
+fn corners(p: &InboxPane, cols: u16, rows: u16, b: Rect) -> [char; 4] {
+    let cells = p.cells(cols, rows);
+    let at = |r: u16, c: u16| {
+        cells
+            .iter()
+            .find(|x| x.row == r && x.col == c)
+            .map_or(' ', |x| x.c)
+    };
+    let (r, c) = (b.row + b.h - 1, b.col + b.w - 1);
+    [at(b.row, b.col), at(b.row, c), at(r, b.col), at(r, c)]
+}
+
+#[test]
+fn the_list_the_mail_and_the_reply_are_each_a_card_and_none_overlap() {
+    let _g = crate::app::motion_test_guard();
+    let mut p = reading();
+    let k = p.cards(160, 40);
+    let (list, mail) = (k.list.expect("beside it"), k.mail.expect("the mail"));
+    assert!(list.col + list.w < mail.col, "air between them");
+    assert_eq!(
+        corners(&p, 160, 40, mail),
+        ['\u{256d}', '\u{256e}', '\u{2570}', '\u{256f}']
+    );
+    assert_eq!(
+        corners(&p, 160, 40, list),
+        ['\u{256d}', '\u{256e}', '\u{2570}', '\u{256f}']
+    );
+    p.press(&winit::keyboard::Key::Character("r".into()), 160, 40);
+    let k = p.cards(160, 40);
+    let (mail, reply) = (k.mail.unwrap(), k.reply.expect("the reply box"));
+    assert_eq!(mail.row + mail.h, reply.row, "the box right under the mail");
+    assert_eq!(
+        (mail.col, mail.w),
+        (reply.col, reply.w),
+        "as wide as the mail"
+    );
+    assert_eq!(corners(&p, 160, 40, reply)[3], '\u{256f}');
+    p.reading = None;
+    p.compose = None;
+    let k = p.cards(80, 30);
+    assert!(k.mail.is_none() && k.list.is_some(), "the list alone");
+}
+
+#[test]
+fn the_mail_card_is_always_taller_than_the_reply_box() {
+    let _g = crate::app::motion_test_guard();
+    for rows in [14u16, 20, 30, 50] {
+        let mut p = reading();
+        p.press(&winit::keyboard::Key::Character("r".into()), 90, rows);
+        p.type_in(&"a long reply that keeps going on and on ".repeat(30));
+        let k = p.cards(90, rows);
+        let (mail, reply) = (k.mail.unwrap(), k.reply.unwrap());
+        assert!(
+            mail.h > reply.h,
+            "{rows} rows: mail {} box {}",
+            mail.h,
+            reply.h
+        );
+    }
+}
+
+#[test]
+fn the_subject_names_the_mail_card_and_its_counter_steps_through_the_list() {
+    let _g = crate::app::motion_test_guard();
+    let p = reading();
+    let mail = p.cards(90, 30).mail.unwrap();
+    let cells = p.cells(90, 30);
+    let edge: String = {
+        let mut on: Vec<_> = cells.iter().filter(|c| c.row == mail.row).collect();
+        on.sort_by_key(|c| c.col);
+        on.iter().map(|c| c.c).collect()
+    };
+    assert!(
+        edge.contains("about b") && edge.contains("2 of 3"),
+        "{edge}"
+    );
+    let next = cells
+        .iter()
+        .find(|c| c.row == mail.row && c.c == '\u{203a}')
+        .expect("the arrow");
+    assert_eq!(p.counter_at(90, 30, mail.row, next.col), Some(true));
+    let prev = cells
+        .iter()
+        .find(|c| c.row == mail.row && c.c == '\u{2039}')
+        .unwrap();
+    assert_eq!(p.counter_at(90, 30, mail.row, prev.col), Some(false));
+    assert_eq!(p.counter_at(90, 30, mail.row + 1, next.col), None);
+}

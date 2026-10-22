@@ -144,7 +144,7 @@ fn the_list_draws_unread_dots_senders_and_the_hint() {
     let (mut p, _asks, answer) = ready();
     answer.send(page("", &["ann", "bo"], false)).unwrap();
     p.poll();
-    let cells = p.cells(60, 6);
+    let cells = p.cells(60, 8);
     let row = |r: u16| -> String {
         let mut line = vec![' '; 60];
         for c in cells.iter().filter(|c| c.row == r) {
@@ -152,14 +152,16 @@ fn the_list_draws_unread_dots_senders_and_the_hint() {
         }
         line.into_iter().collect()
     };
-    assert_eq!(row(0).trim(), "", "a row of air");
-    assert_eq!(row(1).trim(), "undated", "the day's band, first");
+    assert!(row(0).trim().starts_with('\u{256d}'), "the list's card");
+    let air: String = row(1).chars().filter(|c| *c != ' ').collect();
+    assert_eq!(air, "\u{2502}\u{2502}", "a row of air in it");
+    assert!(row(2).contains("undated"), "the day's band, first");
     assert!(
-        row(2).starts_with(" \u{25cf} ann   about ann"),
+        row(3).starts_with(" \u{2502} \u{25cf} ann   about ann"),
         "{:?}",
-        row(2)
+        row(3)
     );
-    assert!(row(5).contains("enter read"), "{:?}", row(5));
+    assert!((0..8).any(|r| row(r).contains("enter read")), "the foot");
     assert!(
         cells.iter().all(|c| c.col < 59),
         "nothing in the margin column"

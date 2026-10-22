@@ -4,7 +4,7 @@
 //! wash than the selection. Beside an open thread on a wide pane (`split`),
 //! a click opens the thread at once: the reader is already open.
 use super::keys::InboxAction;
-use super::{InboxPane, Stage};
+use super::InboxPane;
 
 /// What a click did.
 pub(crate) enum Clicked {
@@ -20,16 +20,9 @@ impl InboxPane {
     /// The thread drawn at `(row, col)` of the pane, on its names, its
     /// subject or anywhere across its lines.
     pub(crate) fn thread_at(&self, cols: u16, rows: u16, row: u16, col: u16) -> Option<usize> {
-        let width = match (&self.reading, self.split(cols)) {
-            (None, _) => cols,
-            (Some(_), Some(s)) => s.list,
-            (Some(_), None) => return None,
-        };
-        let body = self.body_rows(cols, rows);
-        if !matches!(self.stage, Stage::Ready(_)) || col >= width || row >= body {
-            return None;
-        }
-        let shown = self.shown(body);
+        let inner = self.cards(cols, rows).list?.inner();
+        let (row, _) = inner.local(row, col)?;
+        let shown = self.shown(inner.h);
         let (_, i) = shown
             .threads()
             .find(|&(r, _)| (r..r + shown.lines).contains(&row))?;
@@ -50,20 +43,19 @@ impl InboxPane {
                 None => Clicked::Miss,
             };
         }
-        let (at, width) = self.reader_box(cols);
-        if let Some(older) = col
-            .checked_sub(at)
-            .and_then(|c| self.counter_at(width, row, c))
-        {
+        if let Some(older) = self.counter_at(cols, rows, row, col) {
             self.note = self.next_thread(older).into();
             return Clicked::Done;
         }
         // On the reply box: the caret to the line clicked.
-        if (at..at + width).contains(&col) && self.compose_click(cols, rows, row, col - at) {
+        if self.compose_click(cols, rows, row, col) {
             return Clicked::Done;
         }
-        if self.reading.is_some() && col >= at && self.unfold_at(width, row) {
-            return Clicked::Done;
+        let width = self.reader_box(cols).1;
+        if let Some((r, _)) = self.mail_local(cols, rows, row, col) {
+            if self.unfold_at(width, r) {
+                return Clicked::Done;
+            }
         }
         if let Some(url) = self
             .reading
@@ -102,13 +94,18 @@ impl InboxPane {
         let Some(th) = self.rows.get(i).filter(|t| t.starred) else {
             return false;
         };
-        let width = self.split(cols).map_or(cols, |s| s.list);
-        let shown = self.shown(self.body_rows(cols, rows));
+        let Some(inner) = self.cards(cols, rows).list.map(|b| b.inner()) else {
+            return false;
+        };
+        let Some((row, col)) = inner.local(row, col) else {
+            return false;
+        };
+        let shown = self.shown(inner.h);
         let Some((top, _)) = shown.threads().find(|&(_, j)| j == i) else {
             return false;
         };
         let mut cells = Vec::new();
-        super::row::washed(&mut cells, th, top, None, &self.ctx(width, &shown));
+        super::row::washed(&mut cells, th, top, None, &self.ctx(inner.w, &shown));
         cells
             .iter()
             .any(|c| c.row == row && c.col == col && c.c == '\u{2605}')

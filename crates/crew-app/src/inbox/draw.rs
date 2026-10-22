@@ -3,7 +3,9 @@
 use crew_render::CellView;
 use unicode_width::UnicodeWidthChar;
 
+use super::cards::Rect;
 use super::{InboxPane, Stage};
+use crate::chatwidth::str_w;
 
 /// Cells written one run at a time, clipped to the pane, never past `cols-1`.
 pub(crate) struct Canvas {
@@ -87,31 +89,31 @@ impl InboxPane {
         // Everything but the foot draws in the rows above it.
         let mut cv = Canvas::new(cols, self.body_rows(cols, rows));
         match (&self.stage, &self.reading) {
-            (Stage::Ready(_), Some(r)) => {
-                // The list on the left, the thread from `at` (`split`).
-                let (at, width) = self.reader_box(cols);
-                if let Some(s) = self.split(cols) {
-                    let mut list = Canvas::new(s.list, cv.rows);
+            (Stage::Ready(_), reading) => {
+                let k = self.cards(cols, rows);
+                if let Some(b) = k.list {
+                    super::cards::frame(&mut cv, b, "", "");
+                    let inner = b.inner();
+                    let mut list = Canvas::new(inner.w, inner.h);
                     self.list(&mut list);
-                    cv.out.extend(list.out);
+                    put(&mut cv, list, inner);
                 }
-                // The mail above the reply box, when one is open.
-                let box_h = self.compose_h(cols, rows);
-                let mut read = Canvas::new(width, cv.rows - box_h);
-                super::reader::draw(&mut read, r, &self.pics);
-                if let Some((s, start)) = self.counter(width) {
-                    let t = crew_theme::theme();
-                    read.text(1, start, width, &s, t.text_muted, false);
+                if let (Some(b), Some(r)) = (k.mail, reading) {
+                    let counter = self.counter().unwrap_or_default();
+                    let room = b.w.saturating_sub(8 + str_w(&counter) as u16);
+                    let subject = super::reader::subject(r);
+                    super::cards::frame(&mut cv, b, &clip(subject, room), &counter);
+                    let inner = b.inner();
+                    let mut read = Canvas::new(inner.w, inner.h);
+                    super::reader::draw(&mut read, r, &self.pics);
+                    put(&mut cv, read, inner);
                 }
-                read.rows = cv.rows;
-                self.draw_compose(&mut read, cv.rows - box_h, box_h);
-                let shifted = read.out.into_iter().map(|c| CellView {
-                    col: c.col + at,
-                    ..c
-                });
-                cv.out.extend(shifted);
+                if let Some(b) = k.reply {
+                    let mut reply = Canvas::new(b.w + 1, b.h);
+                    self.draw_compose(&mut reply, b.w);
+                    put(&mut cv, reply, b);
+                }
             }
-            (Stage::Ready(_), None) => self.list(&mut cv),
             (Stage::Setup { found }, _) => super::setup::draw(&mut cv, found.as_ref()),
             (Stage::SigningIn(_), _) => {
                 let t = crew_theme::theme();
@@ -137,4 +139,29 @@ impl InboxPane {
         self.foot(&mut cv);
         cv.out
     }
+}
+
+/// `inner`'s cells onto `cv`, where its rect is.
+fn put(cv: &mut Canvas, inner: Canvas, at: Rect) {
+    cv.out.extend(inner.out.into_iter().map(|c| CellView {
+        col: c.col + at.col,
+        row: c.row + at.row,
+        ..c
+    }));
+}
+
+/// `s` cut to `room` columns, an ellipsis where it was cut.
+fn clip(s: &str, room: u16) -> String {
+    let room = usize::from(room);
+    if str_w(s) <= room {
+        return s.to_string();
+    }
+    let mut out: String = String::new();
+    for ch in s.chars() {
+        if str_w(&out) + 2 > room {
+            break;
+        }
+        out.push(ch);
+    }
+    format!("{out}\u{2026}")
 }

@@ -4,7 +4,7 @@
 //! click does what the keys do (`composekeys`): a name opens the file, to
 //! see it, `✕` takes it off, `+ attach` opens the chooser.
 use super::compose::{Compose, On};
-use super::composedraw::{geo, inner};
+use super::composedraw::{geo, text_w, X};
 use super::draw::Canvas;
 use super::InboxPane;
 use crate::chatwidth::str_w;
@@ -106,9 +106,9 @@ fn clip(name: &str, most: usize) -> String {
     out
 }
 
-/// The row on `cv` from row `top`, in words `w` wide from column 3.
+/// The row on `cv` from row `top`, in words `w` wide from column [`X`].
 pub(crate) fn draw(cv: &mut Canvas, c: &Compose, top: u16, w: u16) {
-    let right = 3 + w;
+    let end = X + w;
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
     let on = c.on == On::Files;
@@ -117,7 +117,7 @@ pub(crate) fn draw(cv: &mut Canvas, c: &Compose, top: u16, w: u16) {
             || on && w == What::Add && c.pick >= c.files.len()
     };
     for s in spots(c, w) {
-        let (row, col) = (top + s.row, 3 + s.col);
+        let (row, col) = (top + s.row, X + s.col);
         let lit = chosen(s.what);
         let ink = match (s.what, lit) {
             (_, true) => accent,
@@ -125,39 +125,36 @@ pub(crate) fn draw(cv: &mut Canvas, c: &Compose, top: u16, w: u16) {
             (What::Remove(_), false) => t.text_muted,
             (What::Add, false) => accent,
         };
-        cv.text(row, col, right - 1, &s.text, ink, lit);
+        cv.text(row, col, end, &s.text, ink, lit);
         let after = col + str_w(&s.text) as u16;
-        cv.text(row, after, right - 1, &s.tail, t.text_muted, false);
+        cv.text(row, after, end, &s.tail, t.text_muted, false);
     }
 }
 
 impl InboxPane {
-    /// A click on row `row`, column `col` (from the reader's left) of a pane
-    /// `cols` by `rows`: the caret to the box's line there, or a file's
-    /// open or `✕`, or `+ attach`. True when it was on the box.
+    /// A click on the pane's `(row, col)`: the caret to the box's line
+    /// there, or a file's open or `✕`, or `+ attach`. True when it was on
+    /// the box.
     pub(crate) fn compose_click(&mut self, cols: u16, rows: u16, row: u16, col: u16) -> bool {
-        let h = self.compose_h(cols, rows);
-        let top = self.body_rows(cols, rows).saturating_sub(h);
-        let w = inner(self.reader_box(cols).1) as u16;
-        let Some(c) = self.compose.as_mut() else {
+        let Some(b) = self.cards(cols, rows).reply else {
             return false;
         };
-        if h == 0 || row < top || row >= top + h {
+        let (Some((row, col)), Some(c)) = (b.local(row, col), self.compose.as_mut()) else {
             return false;
-        }
-        let g = geo(c, top, h, w);
+        };
+        let w = text_w(b.w) as u16;
+        let g = geo(c, 0, b.h, w);
         let on_files = (g.files..g.files + self::rows(c, w)).contains(&row);
         let hit = spots(c, w)
             .into_iter()
             .find(|s| {
-                on_files && s.row == row - g.files && (3 + s.col..3 + s.col + s.w).contains(&col)
+                on_files && s.row == row - g.files && (X + s.col..X + s.col + s.w).contains(&col)
             })
             .map(|s| s.what);
-        c.on = match row - top {
+        c.on = match row {
             _ if on_files => On::Files,
             0 | 1 => On::To,
             2 => On::Cc,
-            3 => On::Bcc,
             _ => On::Body,
         };
         match hit {

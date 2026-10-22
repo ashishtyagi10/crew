@@ -11,6 +11,7 @@ pub(crate) mod api;
 mod asks;
 pub(crate) mod attach;
 pub(crate) mod body;
+pub(crate) mod cards;
 pub(crate) mod charset;
 pub(crate) mod compose;
 mod composedraw;

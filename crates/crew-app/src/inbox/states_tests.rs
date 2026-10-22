@@ -11,12 +11,14 @@ fn pane() -> (InboxPane, mpsc::Sender<Got>) {
     (InboxPane::with(Stage::Ready(Worker { tx, rx })), answer)
 }
 
+/// The words drawn above the foot, the list card's edge left out.
 fn words(p: &InboxPane, cols: u16, rows: u16) -> String {
     let cells = p.cells(cols, rows);
+    let edge = |c: char| ('\u{2500}'..='\u{257f}').contains(&c);
     (0..p.body_rows(cols, rows))
         .map(|r| {
             let mut line = vec![' '; usize::from(cols)];
-            for c in cells.iter().filter(|c| c.row == r) {
+            for c in cells.iter().filter(|c| c.row == r && !edge(c.c)) {
                 line[usize::from(c.col)] = c.c;
             }
             line.into_iter().collect::<String>().trim().to_string()

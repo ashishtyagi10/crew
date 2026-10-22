@@ -84,15 +84,14 @@ impl CrewApp {
         self.inbox_cell_at_cursor().is_some_and(|(at, row, col)| {
             let grid = self.panes[at].grid;
             let on = |p: &crate::inbox::InboxPane| {
-                let (rx, w) = p.reader_box(grid.cols);
-                p.thread_at(grid.cols, grid.rows, row, col).is_some()
-                    || p.foot_key_at(grid.cols, grid.rows, row, col).is_some()
-                    || col
-                        .checked_sub(rx)
-                        .and_then(|c| p.counter_at(w, row, c))
-                        .is_some()
-                    || (col >= rx && p.folded_at(w, row).is_some())
-                    || p.link_at(grid.cols, grid.rows, row, col).is_some()
+                let (cols, rows) = (grid.cols, grid.rows);
+                let w = p.reader_box(cols).1;
+                let folded = p.mail_local(cols, rows, row, col);
+                p.thread_at(cols, rows, row, col).is_some()
+                    || p.foot_key_at(cols, rows, row, col).is_some()
+                    || p.counter_at(cols, rows, row, col).is_some()
+                    || folded.is_some_and(|(r, _)| p.folded_at(w, r).is_some())
+                    || p.link_at(cols, rows, row, col).is_some()
             };
             at == i && matches!(&self.panes[at].content, PaneContent::Inbox(p) if on(p))
         })

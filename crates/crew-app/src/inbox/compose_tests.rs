@@ -67,8 +67,13 @@ fn r_opens_a_box_whose_keys_are_its_own_and_esc_twice_lets_words_go() {
     assert!(p.compose.is_some() && p.note.contains("esc again"));
     press(&mut p, Key::Named(NamedKey::Escape));
     assert!(p.compose.is_none());
-    let cells = p.cells(80, 30);
-    assert!(!cells.iter().any(|c| c.c == '\u{256d}'), "the box is gone");
+    let k = p.cards(80, 30);
+    assert!(k.reply.is_none(), "the box is gone");
+    assert_eq!(
+        k.mail.unwrap().h,
+        p.body_rows(80, 30),
+        "the mail has it all"
+    );
 }
 
 #[test]
