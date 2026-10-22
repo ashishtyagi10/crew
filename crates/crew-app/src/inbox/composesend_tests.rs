@@ -19,11 +19,14 @@ fn a_reply_waits_out_an_ended_sign_in_and_the_setup_page_keeps_its_keys() {
     assert!(matches!(p.stage, Stage::Setup { .. }));
     let c = p.compose.as_ref().expect("the words are kept");
     assert!(!c.sending, "not stuck sending");
+    // The page says the reply is kept, and Esc lets it go only when asked
+    // twice (one Esc closed the pane, and the reply went with it).
+    let page: String = p.cells(80, 30).iter().map(|c| c.c).collect();
+    assert!(page.contains("is kept: it opens again"), "{page}");
     let esc = p.press(&Key::Named(NamedKey::Escape), 80, 30);
-    assert!(
-        matches!(esc, Some(InboxAction::Close)),
-        "the setup page's Esc"
-    );
+    assert!(matches!(esc, Some(InboxAction::Redraw)), "kept, said");
+    assert!(p.note.contains("esc again discards it"), "{}", p.note);
+    assert!(p.compose.is_some());
     typed(&mut p, "x");
     assert_eq!(
         p.compose.as_ref().unwrap().body.text,
@@ -35,6 +38,8 @@ fn a_reply_waits_out_an_ended_sign_in_and_the_setup_page_keeps_its_keys() {
         !p.compose.as_ref().unwrap().sending,
         "nothing to send it with"
     );
+    let esc = p.press(&Key::Named(NamedKey::Escape), 80, 30);
+    assert!(matches!(esc, Some(InboxAction::Close)), "asked twice");
     // Signed in again: the box and its words, as they were.
     let ((tx, _), (_, rx)) = (mpsc::channel(), mpsc::channel());
     p.stage = Stage::Ready(Worker { tx, rx });

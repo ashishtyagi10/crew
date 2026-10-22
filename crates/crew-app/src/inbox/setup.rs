@@ -8,8 +8,11 @@
 //! "Testing" has its sign-in ended by Google after seven days.
 use std::path::{Path, PathBuf};
 
+use super::compose::Kind;
 use super::draw::{wrap, Canvas};
 use super::grant::{downloaded_client, Client};
+use super::keys::InboxAction;
+use super::InboxPane;
 
 /// The console pages, in order (Google's own deep links).
 pub(crate) const STEPS: [(&str, &str); 5] = [
@@ -45,7 +48,8 @@ pub(crate) fn look() -> Option<(PathBuf, Client)> {
     downloaded_client(&dirs::download_dir()?)
 }
 
-pub(crate) fn draw(cv: &mut Canvas, found: Option<&(PathBuf, Client)>) {
+/// The page; `kept` names a reply waiting out the sign-in, if one is.
+pub(crate) fn draw(cv: &mut Canvas, found: Option<&(PathBuf, Client)>, kept: Option<&str>) {
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
     let width = cv.cols.saturating_sub(4) as usize;
@@ -79,6 +83,47 @@ pub(crate) fn draw(cv: &mut Canvas, found: Option<&(PathBuf, Client)>) {
         None => {
             let line = "waiting for client_secret_\u{2026}.json in Downloads";
             cv.text(r, 2, cv.cols, line, t.text_muted, false);
+        }
+    }
+    if let Some(kept) = kept {
+        let line = format!("{kept} is kept: it opens again once you are signed in");
+        for (i, line) in wrap(&line, width).iter().enumerate() {
+            cv.text(r + 2 + i as u16, 2, cv.cols, line, t.ink, false);
+        }
+    }
+}
+
+impl InboxPane {
+    /// The reply (or forward) waiting out a sign-in, named: "your reply to
+    /// Ann Lee".
+    pub(super) fn kept(&self) -> Option<String> {
+        let c = self.compose.as_ref()?;
+        let what = match c.kind {
+            Kind::Reply => "your reply",
+            Kind::Forward => "your forward",
+        };
+        let who = super::addr::names(&c.to.text);
+        Some(match who.is_empty() {
+            true => what.to_string(),
+            false => format!("{what} to {who}"),
+        })
+    }
+
+    /// Esc on the setup page closes the pane, and a reply kept for after the
+    /// sign-in went with it, unsaid. With one kept, the first Esc says so and
+    /// only a second lets it go, as Esc does over words in the box.
+    pub(super) fn leave_setup(&mut self) -> Option<InboxAction> {
+        let Some(kept) = self.kept() else {
+            return Some(InboxAction::Close);
+        };
+        match self.compose.as_mut() {
+            Some(c) if !c.armed => {
+                c.armed = true;
+                self.note =
+                    format!("{kept} is kept for after the sign-in \u{b7} esc again discards it");
+                Some(InboxAction::Redraw)
+            }
+            _ => Some(InboxAction::Close),
         }
     }
 }

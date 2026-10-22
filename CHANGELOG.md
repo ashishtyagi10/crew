@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.87
+
+**`/inbox`: a reply waiting out a sign-in is kept.** Third round of the
+seventh inbox loop.
+- **When Google ends the sign-in while you write a reply, the setup page
+  says your reply is kept** and opens again once you sign in.
+- **Esc there asks twice before letting the reply go.** One Esc closed the
+  pane, and the kept reply with it. Now the first says the reply is kept
+  and that Esc again discards it; with nothing kept, Esc closes as before.
+
 ## 0.27.86
 
 **`/inbox`: a reply is never sent twice.** Second round of the seventh inbox

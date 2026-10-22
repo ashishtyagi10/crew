@@ -83,7 +83,7 @@ impl InboxPane {
                     }
                     Some(InboxAction::Redraw)
                 }
-                _ if named(NamedKey::Escape) => Some(InboxAction::Close),
+                _ if named(NamedKey::Escape) => self.leave_setup(),
                 _ => None,
             },
             Stage::SigningIn(_) if named(NamedKey::Escape) => {

@@ -34,3 +34,12 @@ fn a_drag_on_the_setup_page_keeps_to_its_card() {
         "its edge is not kept"
     );
 }
+
+/// With no reply kept, Esc on the setup page closes the pane at once.
+#[test]
+fn esc_on_the_setup_page_closes_it_when_nothing_is_kept() {
+    use winit::keyboard::{Key, NamedKey};
+    let mut p = InboxPane::with(Stage::Setup { found: None });
+    let esc = p.press(&Key::Named(NamedKey::Escape), 80, 24);
+    assert!(matches!(esc, Some(crate::inbox::keys::InboxAction::Close)));
+}
