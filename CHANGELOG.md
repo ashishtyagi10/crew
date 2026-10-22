@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.8
+
+**Attaching a file on Windows no longer flashes a console window.** The
+`/inbox` attach chooser ran its dialog through PowerShell with the console
+hidden, but the other three choosers (AppleScript, zenity, kdialog) skipped
+the shared guard. All four now go through it, and crew-hive's spawn-site
+check passes again.
+
 ## 0.28.7
 
 **`auto` obeys a Mac set to Dark.** With macOS Appearance set to Dark or

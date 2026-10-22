@@ -6,6 +6,8 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::mpsc::{self, Receiver};
 
+use crew_hive::childproc::no_console_window;
+
 const TITLE: &str = "Attach to your mail";
 
 /// Open the chooser on a thread of its own: the paths come back on the
@@ -64,6 +66,7 @@ pub(crate) fn commands() -> Vec<Command> {
             "return out".into(),
         ];
         let mut c = Command::new("osascript");
+        no_console_window(&mut c);
         for line in script {
             c.args(["-e", &line]);
         }
@@ -73,11 +76,12 @@ pub(crate) fn commands() -> Vec<Command> {
             "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Multiselect = $true; $d.Title = '{TITLE}'; if ($d.ShowDialog() -eq 'OK') {{ $d.FileNames }}"
         );
         let mut c = Command::new("powershell");
+        no_console_window(&mut c);
         c.args(["-NoProfile", "-STA", "-Command", &ps]);
-        hidden(&mut c);
         vec![c]
     } else {
         let mut z = Command::new("zenity");
+        no_console_window(&mut z);
         z.args([
             "--file-selection",
             "--multiple",
@@ -86,6 +90,7 @@ pub(crate) fn commands() -> Vec<Command> {
             TITLE,
         ]);
         let mut k = Command::new("kdialog");
+        no_console_window(&mut k);
         k.args([
             "--getopenfilename",
             "--multiple",
@@ -96,14 +101,3 @@ pub(crate) fn commands() -> Vec<Command> {
         vec![z, k]
     }
 }
-
-/// No console window flashing up behind the dialog (crew is a GUI app).
-#[cfg(windows)]
-fn hidden(c: &mut Command) {
-    use std::os::windows::process::CommandExt;
-    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-    c.creation_flags(CREATE_NO_WINDOW);
-}
-
-#[cfg(not(windows))]
-fn hidden(_: &mut Command) {}
