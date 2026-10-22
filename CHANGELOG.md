@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.81
+
+**`/inbox`: the hand in the mail window.** Fourth round of the sixth inbox
+loop.
+- **The pointer turns into a hand in the mail window (`w`)** over what you can
+  click (links, keycaps, the counter, folded mails, the reply box's files),
+  and a list row under it is washed, as in the pane.
+
 ## 0.27.80
 
 **`/inbox`: the mail window answers the mouse.** Third round of the sixth

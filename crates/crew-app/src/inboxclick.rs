@@ -83,17 +83,7 @@ impl CrewApp {
     pub(crate) fn inbox_hover_on(&self, i: usize) -> bool {
         self.inbox_cell_at_cursor().is_some_and(|(at, row, col)| {
             let grid = self.panes[at].grid;
-            let on = |p: &crate::inbox::InboxPane| {
-                let (cols, rows) = (grid.cols, grid.rows);
-                let w = p.reader_box(cols).1;
-                let folded = p.mail_local(cols, rows, row, col);
-                p.thread_at(cols, rows, row, col).is_some()
-                    || p.foot_key_at(cols, rows, row, col).is_some()
-                    || p.counter_at(cols, rows, row, col).is_some()
-                    || folded.is_some_and(|(r, _)| p.folded_at(w, r).is_some())
-                    || p.link_at(cols, rows, row, col).is_some()
-                    || p.compose_spot_at(cols, rows, row, col).is_some()
-            };
+            let on = |p: &crate::inbox::InboxPane| p.clickable_at(grid.cols, grid.rows, row, col);
             at == i && matches!(&self.panes[at].content, PaneContent::Inbox(p) if on(p))
         })
     }

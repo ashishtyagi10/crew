@@ -91,8 +91,18 @@ impl CrewApp {
             }
             WindowEvent::RedrawRequested => m.draw(p),
             WindowEvent::ModifiersChanged(mods) => m.mods = mods.state(),
+            // The hand over what clicks, the wash over the row under it, as
+            // in the tile.
             WindowEvent::CursorMoved { position, .. } => {
                 m.pointer = (position.x as f32, position.y as f32);
+                let at = m.cell_at();
+                let hand = at.is_some_and(|(r, c)| p.clickable_at(grid.cols, grid.rows, r, c));
+                m.window.set_cursor(match hand {
+                    true => winit::window::CursorIcon::Pointer,
+                    false => winit::window::CursorIcon::Default,
+                });
+                let hover = at.and_then(|(r, c)| p.thread_at(grid.cols, grid.rows, r, c));
+                changed |= std::mem::replace(&mut p.hover, hover) != hover;
             }
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
