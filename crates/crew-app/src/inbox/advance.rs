@@ -1,8 +1,8 @@
 //! Reading on after an archive or a delete (goal
 //! 2026-10-21-inbox-delete-advances): the thread that takes the gone one's
 //! place opens, as Gmail's auto-advance does, instead of the list. Next means
-//! older, the row below in a newest-first list; past the last row, the one
-//! above; with no row left, the list.
+//! the row below (older, within the unread on top and the read under them,
+//! `ontop`); past the last row, the one above; with no row left, the list.
 use super::worker::Ask;
 use super::{InboxPane, Reading};
 
@@ -50,8 +50,8 @@ impl InboxPane {
         }
     }
 
-    /// `n` and `p` (or `J` and `K`) in the reader: the next thread (older,
-    /// the row below) or the previous one, opened where the reader is, on
+    /// `n` and `p` (or `J` and `K`) in the reader: the next thread (the row
+    /// below) or the previous one, opened where the reader is, on
     /// any width (the user, 2026-10-21: "n go to next email … p open
     /// previous email in detail panel"). What to say: nothing when it opened.
     pub(crate) fn next_thread(&mut self, older: bool) -> &'static str {
@@ -65,7 +65,7 @@ impl InboxPane {
             (true, _) if gone => self.sel,
             (true, _) => self.sel + 1,
             (false, Some(i)) => i,
-            (false, None) => return "this is the newest thread",
+            (false, None) => return "this is the top of the list",
         };
         if self.open_at(to) {
             return "";
@@ -74,7 +74,7 @@ impl InboxPane {
             self.ask(Ask::More);
             return "loading older threads\u{2026} n again for the next";
         }
-        "this is the oldest thread"
+        "this is the end of the list"
     }
 
     /// After the open thread at `at` left the list: the next one, if any.

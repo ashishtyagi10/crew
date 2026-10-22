@@ -31,6 +31,9 @@ pub(crate) struct Thread {
     pub draft: bool,
     /// A message is `multipart/mixed`: something is attached.
     pub attached: bool,
+    /// Among the unread on top of the list (`ontop`): set as a list comes,
+    /// and kept by a thread read since.
+    pub on_top: bool,
 }
 
 /// One message's `From`, and whether it carries `SENT` (the account's own).
@@ -89,6 +92,7 @@ pub(crate) fn thread(v: &Value) -> Thread {
             .collect(),
         draft: msgs.iter().any(|m| has_label(m, "DRAFT")),
         attached: msgs.iter().any(mixed),
+        on_top: false,
     }
 }
 

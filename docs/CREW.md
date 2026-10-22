@@ -1671,24 +1671,28 @@ longer aim at.
   dates says something happened rather than when. Bands are drawn in
   priority order, so a short pane keeps the machine and loses the history, and
   everything follows its own clock — the sampler's second, the ledger's five.
-- **`/inbox`** — opens the **inbox** pane: Gmail, to read and to file. Rows are
-  threads, newest first, two lines each with a blank row between them when
-  six fit (one line each otherwise; `L` picks, and the pick holds for the
-  session; at the `compact` density two-line rows close up). The list is
-  quiet on purpose: no chips and no rules. A row is the unread dot in the
-  gutter, who wrote as Gmail writes it (`Ann, Bo, me`: each person once,
-  newest last, first names when several), the message count, Gmail's red
-  `draft` when the thread holds one, and at the right the age (`9m`, `3h`,
-  `Mon`, `Oct 12`) with a star and a paperclip (a `multipart/mixed`
-  message) beside it; then the subject and, in a quieter ink, the snippet.
-  Names and subject are bright on every row, so a glass theme reads white;
-  an unread thread has the dot, bold names and a bright age. The selected
-  thread wears the selection wash from edge to edge. As the pane narrows the
-  snippet goes first, then the count, then all but the newest sender, then
-  the age shortens (`3h`, `4d`, `2w`, `5mo`). Threads are grouped under day
-  bands: `today`, `yesterday`, the weekday this week, `last week`, `earlier
-  this month`, the month, then the year, each a quiet word after a blank
-  row. While a page loads the list shows
+- **`/inbox`** — opens the **inbox** pane: Gmail, to read and to file. Rows
+  are threads, the unread ones first and then the rest, each newest first (a
+  thread read in the pane keeps its place on top until `R` or a new search
+  lists again, as Gmail's "Unread first" does), two lines each with a blank
+  row between them when six fit (one line each otherwise; `L` picks, and the
+  pick holds for the session; at the `compact` density two-line rows close
+  up). The list is quiet on purpose: no chips and no rules. A row is the
+  unread dot in the gutter, who wrote as Gmail writes it (`Ann, Bo, me`: each
+  person once, newest last, first names when several), the message count,
+  Gmail's red `draft` when the thread holds one, and at the right the age
+  (`9m`, `3h`, `Mon`, `Oct 12`) with a star and a paperclip (a
+  `multipart/mixed` message) beside it; then the subject and, in a quieter
+  ink, the snippet. Names and subject are bright on every row, so a glass
+  theme reads white; an unread thread has the dot, its names, subject and age
+  bold, and its names and subject in the accent colour (the link blue where
+  the accent is grey or close to the ink). The selected thread wears the
+  selection wash from edge to edge. As the pane narrows the snippet goes
+  first, then the count, then all but the newest sender, then the age shortens
+  (`3h`, `4d`, `2w`, `5mo`). The unread threads on top sit under one band,
+  `unread`; the rest are grouped under day bands: `today`, `yesterday`, the
+  weekday this week, `last week`, `earlier this month`, the month, then the
+  year, each a quiet word after a blank row. While a page loads the list shows
   rows in outline; an empty inbox shows a tick and when Gmail was last
   asked; a list Gmail would not give says why in words and the key that
   mends it (`R tries again`). The foot lists every key the pane answers to,

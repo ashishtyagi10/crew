@@ -98,10 +98,15 @@ impl InboxPane {
     /// A page of the list came back. A further one (`more`) adds the threads
     /// not already held. A first one is the list again: it replaces the rows
     /// it covers and keeps those below it ([`refreshed`]), and the selection
-    /// stays on its thread, or takes the row that took its place.
+    /// stays on its thread, or takes the row that took its place. Either
+    /// way the unread ones go on top ([`super::ontop`]).
     pub(super) fn paged(&mut self, rows: Vec<Thread>, next: bool, more: bool, whole: bool) {
         self.busy = false;
         self.more = next;
+        let keep = self.rows.get(self.sel).map(|t| t.id.clone());
+        let was: Vec<String> = (self.rows.iter().filter(|t| t.on_top))
+            .map(|t| t.id.clone())
+            .collect();
         if more {
             let new: Vec<Thread> = rows
                 .into_iter()
@@ -109,15 +114,15 @@ impl InboxPane {
                 .collect();
             self.rows.extend(new);
         } else {
-            let keep = self.rows.get(self.sel).map(|t| t.id.clone());
             let fresh = fresh(&self.rows, &rows);
             self.motion.fresh = Some((fresh, crate::anim::now_ms()));
             self.rows = refreshed(&self.rows, rows, whole);
-            let here = self.sel.min(self.rows.len().saturating_sub(1));
-            self.sel = keep
-                .and_then(|id| self.rows.iter().position(|t| t.id == id))
-                .unwrap_or(here);
         }
+        super::ontop::order(&mut self.rows, &was);
+        let here = self.sel.min(self.rows.len().saturating_sub(1));
+        self.sel = keep
+            .and_then(|id| self.rows.iter().position(|t| t.id == id))
+            .unwrap_or(here);
         self.note.clear();
         self.failed = None;
         self.checked_ms = Some(chrono::Utc::now().timestamp_millis());

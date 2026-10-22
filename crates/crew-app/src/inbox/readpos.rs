@@ -21,7 +21,7 @@ impl InboxPane {
     }
 
     /// The pane's `(row, col)` on one of the counter's arrows: `Some(true)`
-    /// for the next (older) thread, `Some(false)` the previous.
+    /// for the next thread (the row below), `Some(false)` the previous.
     pub(crate) fn counter_at(&self, cols: u16, rows: u16, row: u16, col: u16) -> Option<bool> {
         let s = self.counter()?;
         let b = self.cards(cols, rows).mail.filter(|b| b.row == row)?;

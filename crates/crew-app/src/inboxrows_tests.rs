@@ -141,6 +141,7 @@ pub(crate) fn rows() -> Vec<Thread> {
                 draft: id == "j",
                 attached: id == "f" || id == "h",
                 senders,
+                on_top: false,
             }
         })
         .collect()

@@ -1,5 +1,6 @@
 //! Where everything in the list sits: each day's band on a row of its own
-//! (`days`), then that day's threads, one or two lines each. Drawing, the
+//! (`days`), then that day's threads, one or two lines each; the unread on
+//! top (`ontop`) are under one band, `unread`, of their own. Drawing, the
 //! paint under it and a click all read this one answer, so they cannot
 //! disagree about which thread is on which row.
 //!
@@ -14,7 +15,7 @@ pub(crate) const TOP: u16 = 1;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Slot {
-    /// A day's band, by its name.
+    /// A day's band, by its name, or the unread ones' band.
     Band(String),
     /// A thread, by its index in the list.
     Thread(usize),
@@ -62,12 +63,13 @@ impl InboxPane {
         let gap = gap(lines);
         // A row of air over the foot.
         let room = rows.saturating_sub(1);
-        // Each thread, or the one folding (`None`): its time and its lines.
-        let mut items: Vec<(Option<usize>, i64, u16)> = (0..self.rows.len())
-            .map(|i| (Some(i), self.rows[i].at_ms, lines))
+        // Each thread, or the one folding (`None`): its time, its lines and
+        // whether it is among the unread on top.
+        let mut items: Vec<(Option<usize>, i64, u16, bool)> = (self.rows.iter().enumerate())
+            .map(|(i, t)| (Some(i), t.at_ms, lines, t.on_top))
             .collect();
         if let Some((at, th, left, _)) = self.motion.folding(lines, now) {
-            items.insert(at.min(items.len()), (None, th.at_ms, left));
+            items.insert(at.min(items.len()), (None, th.at_ms, left, th.on_top));
         }
         if items.is_empty() {
             return Shown {
@@ -78,7 +80,10 @@ impl InboxPane {
         let wall = chrono::Utc::now().timestamp_millis();
         let bands: Vec<String> = items
             .iter()
-            .map(|it| super::days::band(it.1, wall))
+            .map(|it| match it.3 {
+                true => super::ontop::BAND.into(),
+                false => super::days::band(it.1, wall),
+            })
             .collect();
         // What item `i` costs below the one before it: the air, its day's
         // band when the day changes, and its lines.

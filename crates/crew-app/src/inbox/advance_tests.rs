@@ -132,12 +132,12 @@ fn n_and_p_in_the_reader_open_the_next_and_the_previous_thread_in_place() {
     );
     press(&mut p, "J");
     assert_eq!(open_id(&p), Some("c"), "past the oldest it stays (J is n)");
-    assert_eq!(p.note, "this is the oldest thread");
+    assert_eq!(p.note, "this is the end of the list");
     press(&mut p, "p");
     press(&mut p, "K");
     assert_eq!((open_id(&p), p.sel), (Some("a"), 0), "K is p");
     press(&mut p, "p");
-    assert_eq!(p.note, "this is the newest thread");
+    assert_eq!(p.note, "this is the top of the list");
     let opened: Vec<String> = sent(&asks)
         .into_iter()
         .filter(|a| a.starts_with("open"))
