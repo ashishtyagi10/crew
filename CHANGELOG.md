@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.67
+
+**`/inbox`: one geometry for every card.** Fifth and last round of the third
+inbox loop.
+- **A drag on the setup page keeps to its card**, as on the list, the mail
+  and the reply box, so a copy holds no card edges.
+- Real-world mails (receipts, order tables, buttons) checked again in the
+  narrower mail card on both pages: they read right.
+
 ## 0.27.66
 
 **`/inbox`: what you select is what you copy.** Fourth round of the third

@@ -48,6 +48,8 @@ pub(crate) struct Cards {
     pub list: Option<Rect>,
     pub mail: Option<Rect>,
     pub reply: Option<Rect>,
+    /// The setup or sign-in page, before there is a list.
+    pub page: Option<Rect>,
 }
 
 impl InboxPane {
@@ -85,9 +87,13 @@ impl InboxPane {
                         w,
                         h,
                     }),
+                    page: None,
                 }
             }
-            _ => Cards::default(),
+            _ => Cards {
+                page: Some(whole),
+                ..Cards::default()
+            },
         }
     }
 }
@@ -110,7 +116,7 @@ impl InboxPane {
     /// hold no card's edge and none of the card beside it. None: anywhere.
     pub(crate) fn drag_card(&self, cols: u16, rows: u16, (col, row): (u16, u16)) -> Option<Rect> {
         let k = self.cards(cols, rows);
-        let card = [k.list, k.mail, k.reply].into_iter().flatten();
+        let card = [k.list, k.mail, k.reply, k.page].into_iter().flatten();
         card.into_iter()
             .find(|b| b.local(row, col).is_some())
             .map(Rect::inner)

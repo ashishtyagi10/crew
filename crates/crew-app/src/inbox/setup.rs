@@ -92,3 +92,7 @@ fn name(path: &Path) -> String {
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_else(|| "the pasted client".into())
 }
+
+#[cfg(test)]
+#[path = "setup_tests.rs"]
+mod tests;
