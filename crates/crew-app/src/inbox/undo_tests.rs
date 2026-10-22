@@ -76,3 +76,23 @@ fn z_never_lists_a_thread_twice() {
     let ids: Vec<&str> = p.rows.iter().map(|t| t.id.as_str()).collect();
     assert_eq!((ids, p.sel), (vec!["a", "b", "c"], 1));
 }
+
+/// The note after `z` offered `z` again, which then had nothing to undo.
+#[test]
+fn z_says_what_it_put_back_and_offers_nothing_more() {
+    let (mut p, asks) = pane(&["a", "b"]);
+    p.press(&ch("e"), 80, 24);
+    relabel(&asks);
+    p.press(&ch("z"), 80, 24);
+    assert_eq!(p.note, "put back \u{201c}about a\u{201d}");
+}
+
+/// `m` says what it did, in the list's words and the reader's alike.
+#[test]
+fn m_says_read_or_unread_as_done() {
+    let (mut p, _asks) = pane(&["a"]);
+    p.press(&ch("m"), 80, 24);
+    assert!(p.note.starts_with("marked unread"), "{}", p.note);
+    p.press(&ch("m"), 80, 24);
+    assert!(p.note.starts_with("marked read"), "{}", p.note);
+}

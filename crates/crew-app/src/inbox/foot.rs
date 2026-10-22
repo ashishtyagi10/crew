@@ -10,7 +10,7 @@ use super::{InboxPane, Stage};
 use crate::chatwidth::str_w;
 
 pub(crate) use super::footkeys::{Key, Keys, GAP, LIST, READER};
-use super::footkeys::{SETUP, SIGNING_IN};
+use super::footkeys::{SEARCH, SETUP, SIGNING_IN};
 
 /// Between two keys on a line.
 const SEP: &str = "  ";
@@ -92,6 +92,8 @@ impl InboxPane {
             (Stage::SigningIn(_), _) => SIGNING_IN,
             (Stage::Ready(_), Some(_)) if self.compose.is_some() => self.compose_keys(),
             (Stage::Ready(_), Some(_)) => READER,
+            // The list's keys type into the search while it is written.
+            (Stage::Ready(_), None) if self.typing.is_some() => SEARCH,
             (Stage::Ready(_), None) => LIST,
         }
     }

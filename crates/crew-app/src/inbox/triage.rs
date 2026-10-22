@@ -17,7 +17,7 @@ impl InboxPane {
         match ch {
             "e" => self.archive(),
             "d" => self.delete(),
-            "m" => self.flip("UNREAD", "read", "unread", |t| &mut t.unread),
+            "m" => self.flip("UNREAD", "marked read", "marked unread", |t| &mut t.unread),
             "s" => self.flip("STARRED", "unstarred", "starred", |t| &mut t.starred),
             "z" => self.undo(),
             _ => return false,
@@ -155,12 +155,17 @@ impl InboxPane {
     }
 
     pub(super) fn said(&mut self, t: &Thread, what: &str) {
-        let subject = match t.subject.trim() {
-            "" => "(no subject)",
-            s => s,
-        };
-        self.note = format!("{what} \u{201c}{subject}\u{201d} \u{b7} z undoes");
+        self.note = format!("{} \u{b7} z undoes", of(t, what));
     }
+}
+
+/// What was done to thread `t`, by its subject: `archived “Lunch”`.
+pub(super) fn of(t: &Thread, what: &str) -> String {
+    let subject = match t.subject.trim() {
+        "" => "(no subject)",
+        s => s,
+    };
+    format!("{what} \u{201c}{subject}\u{201d}")
 }
 
 #[cfg(test)]

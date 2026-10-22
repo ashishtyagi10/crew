@@ -83,6 +83,11 @@ impl InboxPane {
                     }
                     Some(InboxAction::Redraw)
                 }
+                (_, None) if named(NamedKey::Enter) => {
+                    self.note =
+                        "no client yet: download its JSON (step 5), or paste it here".into();
+                    Some(InboxAction::Redraw)
+                }
                 _ if named(NamedKey::Escape) => self.leave_setup(),
                 _ => None,
             },

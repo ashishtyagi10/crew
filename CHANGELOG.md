@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.93
+
+**`/inbox`: the foot and the notes say what the keys do.** Ninth round of
+the seventh inbox loop.
+- **While a search is typed, the foot shows the search's keys** (enter
+  search, esc cancel, del erase). It kept the list's, and "e archive" typed
+  an e.
+- **After `z`, the note says what was put back**, without offering `z`
+  again: there was nothing left to undo.
+- **`m` says "marked read" or "marked unread"**, and the reader's foot says
+  "read/unread" as the list's does.
+- **Enter on the setup page with no client found says what is missing**
+  (download its JSON, step 5, or paste it). It did nothing.
+
 ## 0.27.92
 
 **`/inbox`: the privacy policy and the docs say what the pane does.** Eighth
