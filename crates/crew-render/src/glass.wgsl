@@ -9,7 +9,9 @@
 // `page`: the page under the glass, straight, its alpha the window's
 // opacity (`GlassLayer::set_page`) — one flat colour, since no theme paints
 // a wallpaper.
-struct Vp { size: vec2<f32>, tilt: vec2<f32>, page: vec4<f32> };
+// `holo`: x is how holographic the glass is (crew-theme `holo`, 0 on every
+// theme but neon's); `foil` the violet its rim and frame-light turn to.
+struct Vp { size: vec2<f32>, tilt: vec2<f32>, page: vec4<f32>, holo: vec4<f32>, foil: vec4<f32> };
 @group(0) @binding(0) var<uniform> vp: Vp;
 
 // How far outside the card the quad is expanded to give the shadow room. Must
@@ -208,6 +210,15 @@ fn sdf_normal(p: vec2<f32>, b: vec2<f32>, r: f32) -> vec2<f32> {
     + vec2<f32>(1e-5, 1e-5));
 }
 
+// `c`'s hue at its full brightness and saturation: the grey lifted out (its
+// lowest channel is how much white or black it carries) and what is left
+// stretched to 1 — white for a grey.
+fn saturated(c: vec3<f32>) -> vec3<f32> {
+  let lo = min(c.x, min(c.y, c.z));
+  let hi = max(c.x, max(c.y, c.z));
+  return select(vec3<f32>(1.0), (c - lo) / max(hi - lo, 0.001), hi - lo > 0.001);
+}
+
 // Cheap value hash for the frost grain.
 fn hash21(p: vec2<f32>) -> f32 {
   let h = dot(p, vec2<f32>(127.1, 311.7));
@@ -355,6 +366,24 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     alpha = body_in;
   }
 
+  // --- holo -----------------------------------------------------------------
+  // Holographic glass (neon): the frame's light bleeds into the slab — the
+  // edge glow, which a liquid body has no other use for — and it and the rim
+  // turn from the rim's cyan through the smoke's blue to the foil's violet
+  // across the card, the way a hologram's foil turns with the angle.
+  let holo = vp.holo.x;
+  var rim_rgb = in.hl.xyz;
+  if (holo > 0.0 && in.liquid.y > 0.0) {
+    let across = clamp((in.local.x + in.hsize.x) / max(in.hsize.x * 2.0, 1.0), 0.0, 1.0);
+    let turn = clamp(0.65 * across + 0.35 * t, 0.0, 1.0);
+    let blue = saturated(in.tint.xyz);
+    let foil = mix(mix(in.hl.xyz, blue, smoothstep(0.0, 0.5, turn)), vp.foil.xyz,
+                   smoothstep(0.5, 1.0, turn));
+    rim_rgb = mix(in.hl.xyz, foil, 0.55 * holo);
+    let bleed = (1.0 - smoothstep(0.0, GLOW_W, -d)) * inside;
+    rgb = mix(rgb, foil, clamp(in.extra.y * bleed, 0.0, 1.0));
+  }
+
   // --- gloss ----------------------------------------------------------------
   // A thick, glossy slab throws a broad curved reflection across its upper
   // face: a bright lip just under the top rim, and below it a softer sheen
@@ -372,7 +401,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let g = clamp(gloss * (0.6 * sheen + lip), 0.0, 1.0) * inside;
     let ga = g + alpha * (1.0 - g);
     if (ga > 0.0001) {
-      rgb = (in.hl.xyz * g + rgb * alpha * (1.0 - g)) / ga;
+      rgb = (rim_rgb * g + rgb * alpha * (1.0 - g)) / ga;
     }
     alpha = ga;
   }
@@ -412,7 +441,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // Composite the highlight over the fill (both are "source" here).
     let out_a = a + alpha * (1.0 - a);
     if (out_a > 0.0001) {
-      rgb = (in.hl.xyz * a + rgb * alpha * (1.0 - a)) / out_a;
+      rgb = (rim_rgb * a + rgb * alpha * (1.0 - a)) / out_a;
     }
     alpha = out_a;
 
@@ -454,10 +483,16 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // lowest channel is how much white or black it carries) and what is left
   // is stretched to 1, so a pale frost or a dark smoke alike throws its
   // phosphor's own light.
-  let lo = min(in.tint.x, min(in.tint.y, in.tint.z));
-  let hi = max(in.tint.x, max(in.tint.y, in.tint.z));
-  let lit = select(vec3<f32>(1.0), (in.tint.xyz - lo) / max(hi - lo, 0.001), hi - lo > 0.001);
-  let halo = lit * in.nmeta.z * shadow * (1.0 - alpha);
+  // On holographic glass the focused card burns: its halo turns to the rim's
+  // cyan and brightens, and every other card keeps a fainter blue one.
+  var halo_rgb = saturated(in.tint.xyz);
+  var halo_k = 1.0;
+  if (holo > 0.0 && in.liquid.y > 0.0) {
+    let f = clamp(lift, 0.0, 1.0);
+    halo_rgb = mix(halo_rgb, saturated(in.hl.xyz), 0.7 * f);
+    halo_k = 0.6 + 1.4 * f;
+  }
+  let halo = halo_rgb * in.nmeta.z * shadow * halo_k * (1.0 - alpha);
   // Premultiplied (the pipeline blends with `PREMUL_OVER`).
   return vec4<f32>(rgb * alpha + halo, out_a);
 }

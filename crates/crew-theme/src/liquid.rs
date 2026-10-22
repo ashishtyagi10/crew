@@ -29,6 +29,11 @@ pub struct LiquidStyle {
     /// window. Small enough that what is behind crew keeps its shapes — the
     /// difference between glass and fog.
     pub desktop_blur: f32,
+    /// How HOLOGRAPHIC the glass is, `0.0..=1.0` (neon, 2026-10-22: "dark
+    /// glassmorphism … glowing borders … holographic effects … fine grid
+    /// lines"): a lit grid behind the panes, a frame-light bleeding into each
+    /// slab and an iridescent rim ([`crate::holo`]). 0 is plain liquid glass.
+    pub holo: f32,
 }
 
 /// How much of its full strength a theme's text shadow ([`crate::CrtStyle`]

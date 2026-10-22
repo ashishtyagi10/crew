@@ -94,6 +94,7 @@ pub mod glassink;
 pub mod glasslegend;
 pub mod gradients;
 pub mod highlight;
+pub mod holo;
 mod liquid;
 pub mod marks;
 mod modernstyle;
@@ -228,8 +229,8 @@ impl ThemeId {
             ThemeId::Blossom => "violet\u{2192}rose on warm white (modern light)",
             ThemeId::GlassNight => "iPhone liquid glass, clear and navy-smoked, white text",
             ThemeId::GlassClear => "iPhone liquid glass, clear and lightly smoked, white text",
-            ThemeId::NeonDark => "neon scoreboard: deep indigo, neon lines (dark)",
-            ThemeId::NeonLight => "neon scoreboard: lavender page, neon lines (light)",
+            ThemeId::NeonDark => "neon: holographic glass over a lit grid (dark)",
+            ThemeId::NeonLight => "neon: electric blue on a cool white page (light)",
         }
     }
 
@@ -444,7 +445,7 @@ pub enum RandomMode {
     Light,
     Crt,
     Glass,
-    /// The neon scoreboard: one theme in two pages, served dark or light with
+    /// The neon control room: one theme in two pages, served dark or light with
     /// the appearance, the way `auto` picks its side.
     Neon,
     Auto,
@@ -486,7 +487,7 @@ impl RandomMode {
                 "iPhone liquid glass \u{2014} clear smoked panes, bright white text, your desktop behind"
             }
             RandomMode::Neon => {
-                "neon scoreboard \u{2014} indigo and neon lines, dark or light with your OS"
+                "neon \u{2014} holographic glass and a lit grid, dark or light with your OS"
             }
             RandomMode::Auto => {
                 "light by day, dark by night \u{2014} OS appearance, or the clock when it is pinned"

@@ -22,7 +22,7 @@ fn toggle_theme_cycles_every_mode_and_wraps() {
     app.toggle_theme();
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Glass));
     assert_eq!(app.config.theme.as_deref(), Some("glass"));
-    // …then neon, the scoreboard…
+    // …then neon, the control room…
     app.toggle_theme();
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Neon));
     assert_eq!(app.config.theme.as_deref(), Some("neon"));

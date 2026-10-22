@@ -95,6 +95,8 @@ pub struct CellGrid {
     overlay_round_border_layer: RoundBorderLayer,
     /// Frosted sheets drawn beneath everything else in the base pass.
     glass_layer: GlassLayer,
+    /// Neon's grid behind the panes (see [`crate::holo`]).
+    holo_layer: crate::holo::HoloLayer,
     /// Floating cards' shadows and rims, drawn over the overlay backgrounds.
     overlay_glass_layer: GlassLayer,
     /// How strong the glass is; `Off` builds no cards at all.
@@ -167,6 +169,7 @@ impl CellGrid {
         let round_border_layer = RoundBorderLayer::new(device, format);
         let overlay_round_border_layer = RoundBorderLayer::new(device, format);
         let glass_layer = GlassLayer::new(device, format);
+        let holo_layer = crate::holo::HoloLayer::new(device, format);
         let overlay_glass_layer = GlassLayer::new(device, format);
 
         Self {
@@ -185,6 +188,7 @@ impl CellGrid {
             round_border_layer,
             overlay_round_border_layer,
             glass_layer,
+            holo_layer,
             overlay_glass_layer,
             glass_level: crew_theme::GlassLevel::Medium,
             window_opacity: 1.0,
@@ -325,6 +329,8 @@ impl CellGrid {
     pub fn set_page(&self, queue: &wgpu::Queue, bg: [f32; 4]) {
         self.glass_layer.set_page(queue, bg);
         self.overlay_glass_layer.set_page(queue, bg);
+        self.glass_layer.set_holo(queue);
+        self.overlay_glass_layer.set_holo(queue);
     }
 
     /// Sorted, de-duplicated names of all installed monospace font families
@@ -430,6 +436,8 @@ impl CellGrid {
         self.round_border_layer.set_viewport(queue, w, h);
         self.overlay_round_border_layer.set_viewport(queue, w, h);
         self.glass_layer.set_view(queue, w, h, self.glass_light);
+        self.holo_layer
+            .prepare(queue, (w, h), (self.cell_w, self.cell_h));
         self.overlay_glass_layer
             .set_view(queue, w, h, self.glass_light);
         self.viewport.update(queue, Resolution { width, height });
@@ -464,6 +472,7 @@ impl CellGrid {
     /// pane itself draws: the sheet must tint the page it sits on, never the
     /// text or selection highlights sitting on the sheet.
     pub fn draw<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>) {
+        self.holo_layer.draw(pass);
         self.glass_layer.draw(pass);
         self.quad_layer.draw(pass);
         self.image_layer.draw(pass);

@@ -804,7 +804,7 @@ fn modern_glow_is_clean_of_retro_knobs() {
 #[test]
 fn dark_paper_pages_lean_warm() {
     // Dark non-CRT pages read as warm charcoal/kraft: R strictly above B.
-    // Neon's page is the scoreboard's indigo, cool by design.
+    // Neon's page is a blue-violet near-black, cool by design.
     for id in ALL_THEMES {
         let t = id.theme();
         if t.dark && t.crt.is_none() && id.mode() != RandomMode::Neon {

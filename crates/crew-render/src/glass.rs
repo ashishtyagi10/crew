@@ -65,6 +65,8 @@ pub struct GlassLayer {
     vp_buf: wgpu::Buffer,
     inst_buf: Option<wgpu::Buffer>,
     count: u32,
+    /// Whether the target stores sRGB (the foil colour is converted for it).
+    srgb: bool,
 }
 
 fn f32s_as_bytes(data: &[f32]) -> &[u8] {
@@ -134,7 +136,9 @@ impl GlassLayer {
 
         let vp_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("glass_vp"),
-            contents: f32s_as_bytes(&[1.0_f32, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]),
+            contents: f32s_as_bytes(&[
+                1.0_f32, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            ]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -209,7 +213,20 @@ impl GlassLayer {
             vp_buf,
             inst_buf: None,
             count: 0,
+            srgb: format.is_srgb(),
         }
+    }
+
+    /// The live theme's holographic glass ([`crew_theme::holo`]): how much,
+    /// and the violet its rim and frame-light turn to across a card. Zero on
+    /// every theme but neon's, which leaves the slab as it was.
+    pub fn set_holo(&self, queue: &wgpu::Queue) {
+        let t = crew_theme::theme();
+        let k = t.liquid.map_or(0.0, |l| l.holo);
+        let foil = crate::color::target_rgba(t.broadcast, 1.0, self.srgb);
+        let mut v = [k, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0];
+        v[4..].copy_from_slice(&foil);
+        queue.write_buffer(&self.vp_buf, 32, f32s_as_bytes(&v));
     }
 
     /// The page under the glass: its colour in the target's space and the
