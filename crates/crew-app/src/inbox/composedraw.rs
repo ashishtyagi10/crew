@@ -67,7 +67,7 @@ impl InboxPane {
             w,
             h,
         };
-        super::cards::frame(cv, b, &legend, "");
+        super::cards::frame(cv, b, &legend, "", true);
         let tw = text_w(w) as u16;
         let end = X + tw;
         let g = geo(c, 0, h, tw);

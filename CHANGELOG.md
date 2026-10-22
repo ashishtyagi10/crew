@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.64
+
+**`/inbox`: you can see which card has the keys.** Second round of the
+third inbox loop.
+- **The card your keys go to has a stronger edge**: the reply box while you
+  write, the open mail while you read, the list on its own. The others keep
+  their quiet edge.
+
 ## 0.27.63
 
 **`/inbox`: the setup page and a mail's files.** First round of the third

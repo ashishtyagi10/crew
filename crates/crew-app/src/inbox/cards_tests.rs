@@ -165,3 +165,36 @@ fn the_setup_page_is_a_card_and_says_what_the_pane_does() {
         "it has not been read-only since v0.27.30"
     );
 }
+
+#[test]
+fn the_card_the_keys_go_to_has_the_stronger_edge() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = reading();
+    let corner = |p: &InboxPane, b: Rect| {
+        p.cells(160, 40)
+            .into_iter()
+            .find(|c| (c.row, c.col) == (b.row, b.col))
+            .map(|c| c.fg)
+    };
+    let (keyed, rest) = (super::keyed_edge(), crew_theme::theme().border_normal);
+    let k = p.cards(160, 40);
+    assert_eq!(
+        corner(&p, k.mail.unwrap()),
+        Some(keyed),
+        "reading: the mail"
+    );
+    assert_eq!(corner(&p, k.list.unwrap()), Some(rest));
+    p.press(&winit::keyboard::Key::Character("r".into()), 160, 40);
+    let k = p.cards(160, 40);
+    assert_eq!(
+        corner(&p, k.reply.unwrap()),
+        Some(keyed),
+        "writing: the box"
+    );
+    assert_eq!(corner(&p, k.mail.unwrap()), Some(rest));
+    assert_ne!(
+        keyed,
+        crew_theme::theme().border_focused,
+        "never the pane's own stroke"
+    );
+}

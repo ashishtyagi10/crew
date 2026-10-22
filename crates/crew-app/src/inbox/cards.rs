@@ -106,14 +106,23 @@ impl InboxPane {
     }
 }
 
+/// The edge of the card the pane's keys go to: half way from a resting
+/// edge to the ink. Not the pane's own focused stroke, which the ring and
+/// the glow repaint wherever they find it (`modernring`, `panecardglow`).
+pub(crate) fn keyed_edge() -> (u8, u8, u8) {
+    let t = crew_theme::theme();
+    crate::anim::lerp_rgb(t.border_normal, t.ink, 0.5)
+}
+
 /// A card's edge on `cv` around `b`, `name` on its top edge at the left
-/// and `right` (when there is one) at its right, each cell drawn once.
-pub(crate) fn frame(cv: &mut Canvas, b: Rect, name: &str, right: &str) {
+/// and `right` (when there is one) at its right, each cell drawn once; the
+/// edge stronger on the card the keys go to (`keys`).
+pub(crate) fn frame(cv: &mut Canvas, b: Rect, name: &str, right: &str, keys: bool) {
     if b.w < 6 || b.h < 2 {
         return;
     }
     let t = crew_theme::theme();
-    let edge = t.border_normal;
+    let edge = if keys { keyed_edge() } else { t.border_normal };
     let line = |n: u16| "\u{2500}".repeat(usize::from(n));
     let (end, bottom) = (b.col + b.w, b.row + b.h - 1);
     // The top edge: corner, a dash, the name, dashes, the right, a dash, corner.
