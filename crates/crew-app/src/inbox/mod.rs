@@ -1,6 +1,6 @@
 //! `/inbox` — a light Gmail inbox in a pane (goal 2026-10-20-inbox).
 //!
-//! Read-only: the list, Gmail's own search, a thread read as text, and the
+//! The list, Gmail's own search, a thread read, filed and answered, and the
 //! browser one key away for anything more. Nothing is stored on disk but the
 //! grant (`grant`); the rows live in memory and go with the pane. The network
 //! is a thread of its own (`worker`), and the pane only drains what it says.

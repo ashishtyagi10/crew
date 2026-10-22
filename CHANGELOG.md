@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.63
+
+**`/inbox`: the setup page and a mail's files.** First round of the third
+inbox loop.
+- **The setup and sign-in pages are cards** like every other part of the
+  inbox, and the setup page no longer calls the pane read-only (it reads,
+  files and replies).
+- **A mail's attachments stand apart** from its words and its quoted
+  replies, with a row of air above them, instead of hanging off the last
+  quoted line.
+
 ## 0.27.62
 
 **`/inbox`: the reply box is named for whom it goes to.** Fifth and last
