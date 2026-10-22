@@ -179,3 +179,16 @@ fn delete_is_gmails_trash_and_undo_its_untrash() {
         ]
     );
 }
+
+/// A 200 whose answer broke off was read as an empty one: a list of nothing,
+/// a thread with no mails, an attachment of no bytes. It is a failure, said
+/// as one.
+#[test]
+fn an_answer_cut_off_is_a_failure_not_an_empty_one() {
+    let (base, _) = serve(Arc::new(|p: &str| match p {
+        "/token" => (200, TOKEN.to_string()),
+        _ => (200, r#"{"threads":[{"id":"t1"#.to_string()),
+    }));
+    let err = gmail(&base).page("", None).unwrap_err();
+    assert!(err.contains("cut off"), "{err}");
+}
