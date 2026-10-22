@@ -18,14 +18,26 @@ pub(crate) enum Then {
     Reply,
     Forward,
     Todo,
+    /// Tab on the todo card: agent smith fills it (`todofill`).
+    Fill,
+}
+
+/// What the inbox waits on smith's answer for, if anything: a summary is
+/// read in smith's pane; a draft goes into the reply box, a card's lines
+/// into the todo card.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub(crate) enum Wants {
+    Read,
+    Draft,
+    Todo,
 }
 
 /// A prompt for smith, the short line its transcript shows for it, and
-/// whether it asks for a draft of the reply box's words.
+/// what the inbox waits for in its answer.
 pub(crate) struct ToSmith {
     pub prompt: String,
     pub shown: String,
-    pub draft: bool,
+    pub wants: Wants,
 }
 
 /// A reply smith is writing for the box: the transcript length when it was
@@ -33,6 +45,7 @@ pub(crate) struct ToSmith {
 pub(crate) struct Waiting {
     pub since: usize,
     pub at_ms: u64,
+    pub wants: Wants,
 }
 
 impl InboxPane {
@@ -78,7 +91,7 @@ impl InboxPane {
                 self.to_smith = Some(ToSmith {
                     prompt: super::smith::ask_prompt(r),
                     shown: format!("\u{2709} what does \u{201c}{subject}\u{201d} want from me?"),
-                    draft: false,
+                    wants: Wants::Read,
                 });
                 self.note = "handed to agent smith".into();
             }
@@ -87,19 +100,44 @@ impl InboxPane {
                 self.to_smith = Some(ToSmith {
                     prompt: super::smith::draft_prompt(r),
                     shown: format!("\u{2709} draft a reply to \u{201c}{subject}\u{201d}"),
-                    draft: true,
+                    wants: Wants::Draft,
                 });
                 self.note = "agent smith is writing a draft into the box\u{2026}".into();
             }
             Then::Reply => self.note = self.open_compose(Kind::Reply).into(),
             Then::Forward => self.note = self.open_compose(Kind::Forward).into(),
             Then::Todo => self.note = self.open_todo(),
+            Then::Fill => {
+                let k = super::todocard::Known::here(&self.email);
+                let projects: Vec<String> = k.projects.iter().chain(&k.folders).cloned().collect();
+                self.to_smith = Some(ToSmith {
+                    prompt: super::smith::todo_prompt(r, &projects, &self.email),
+                    shown: format!("\u{2709} the todo in \u{201c}{subject}\u{201d}"),
+                    wants: Wants::Todo,
+                });
+                self.note = "agent smith is filling the card\u{2026}".into();
+            }
         }
     }
 
     /// The words smith wrote (or `None`: its answer held none) go into the
     /// reply box, to be changed and sent by hand. A box closed meanwhile
     /// (let go, or sent) lets them go too: nothing is saved behind your back.
+    /// Smith's settled answer (`None`: its pane closed), to what the inbox
+    /// was waiting for.
+    pub(crate) fn from_smith(&mut self, answers: Option<Vec<String>>) {
+        let texts = answers.unwrap_or_default();
+        match self.waiting.as_ref().map(|w| w.wants) {
+            Some(Wants::Todo) => {
+                self.waiting = None;
+                self.filled_by_smith(&texts);
+            }
+            _ => {
+                self.drafted_by_smith(texts.iter().rev().find_map(|t| super::smith::draft_body(t)))
+            }
+        }
+    }
+
     pub(crate) fn drafted_by_smith(&mut self, body: Option<String>) {
         if self.waiting.take().is_none() {
             return;

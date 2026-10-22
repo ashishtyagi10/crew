@@ -64,7 +64,7 @@ fn a_summary_goes_to_smith_showing_one_line_and_smith_takes_the_focus() {
     let send = ToSmith {
         prompt: "<<<MAIL\nlong thread\nMAIL>>>".into(),
         shown: "\u{2709} what does it want?".into(),
-        draft: false,
+        wants: crate::inbox::handoff::Wants::Read,
     };
     let (mut a, _asks) = app(send);
     assert!(a.poll_inbox());
@@ -86,7 +86,7 @@ fn a_draft_waits_for_smiths_settled_answer_and_lets_it_go_with_no_box() {
     let send = ToSmith {
         prompt: "draft it".into(),
         shown: "\u{2709} draft a reply".into(),
-        draft: true,
+        wants: crate::inbox::handoff::Wants::Draft,
     };
     let (mut a, asks) = app(send);
     a.poll_inbox();

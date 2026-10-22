@@ -1,6 +1,6 @@
 # Goal — `t` in the inbox makes the todo the mail asks for
 
-**Status: IN PROGRESS.** Set 2026-10-22; the open questions answered the same day (the user: "go
+**Status: DONE (v0.27.95–v0.27.97).** Set 2026-10-22; the open questions answered the same day (the user: "go
 ahead with the goal, use your recommendations"): a card first, smith only on Tab, and no
 `#assignee` for a task asked of you.
 
@@ -138,4 +138,10 @@ start comes from the mail's `text/calendar` part (`api.rs`, `Mail::calendar`). T
 27 mails (`todo_corpus.toml`); the test holds every guess to it: no wrong project, no
 assignee off the thread, no due date where none is stated, and every stated one right.
 
-Phase 3: not started.
+**Phase 3: shipped in v0.27.97.** Tab on the card hands the thread to smith
+(`smith.rs`, `todo_prompt`, with the names of your projects); what the inbox waits for is
+now said (`handoff.rs`, `Wants`: a read, a draft, a card), and the app hands smith's settled
+answer back (`inboxsmith.rs`, `from_smith`). Crew checks every line it writes as it checks
+its own (`todofill.rs`): a project from your list in your spelling, someone on the thread
+who is not you, a due date `/todo` reads whole; anything else is dropped. Only lines still
+as crew wrote them change. The privacy policy says what Tab on the card sends.

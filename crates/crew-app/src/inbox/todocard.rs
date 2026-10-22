@@ -19,6 +19,7 @@ mod draw;
 mod guess;
 
 pub(crate) use add::due_of;
+pub(crate) use guess::Known;
 
 /// The card's lines, top to bottom.
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -62,6 +63,13 @@ impl TodoCard {
 
     pub(crate) fn text(&self, l: Line) -> &str {
         self.lines[l as usize].text.trim()
+    }
+
+    /// Line `i` as smith filled it: the words, why, and kept as written.
+    fn set(&mut self, i: usize, g: Guess) {
+        self.lines[i] = Field::with(&g.text);
+        self.opened[i].clone_from(&g.text);
+        self.why[i] = g.why;
     }
 
     pub(crate) fn field(&mut self) -> &mut Field {
@@ -125,6 +133,11 @@ impl InboxPane {
                 self.note = "esc again discards it".into();
             }
             Key::Named(NamedKey::Enter) => self.add_todo(),
+            // Once: a second Tab while smith reads would fill it twice.
+            Key::Named(NamedKey::Tab) => match self.waiting.is_some() || self.to_smith.is_some() {
+                true => self.note = "agent smith is still filling the card\u{2026}".into(),
+                false => self.act(super::handoff::Then::Fill),
+            },
             Key::Named(NamedKey::ArrowUp) => c.step(false),
             Key::Named(NamedKey::ArrowDown) => c.step(true),
             Key::Named(NamedKey::Backspace) => c.field().back(),
@@ -137,6 +150,37 @@ impl InboxPane {
             Key::Character(s) => c.field().put(s, true),
             _ => {}
         }
+    }
+}
+
+impl InboxPane {
+    /// Smith's answer for the card: each line it filled that crew accepts
+    /// (`todofill`) takes the place of a line still as crew wrote it; a line
+    /// you changed stays yours.
+    pub(crate) fn filled_by_smith(&mut self, texts: &[String]) {
+        let (Some(c), Some(r)) = (self.todo.as_mut(), self.reading.as_ref()) else {
+            self.note =
+                "agent smith\u{2019}s todo came after the card closed \u{2014} let go".into();
+            return;
+        };
+        let k = Known::here(&self.email);
+        let Some(lines) = texts.iter().rev().find_map(|t| guess::check(t, r, &k)) else {
+            self.note = "agent smith\u{2019}s answer held no card \u{2014} tab asks again".into();
+            return;
+        };
+        let mut n = 0;
+        for (i, g) in lines.into_iter().enumerate() {
+            if let Some(g) = g.filter(|_| c.kept(LINES[i])) {
+                c.set(i, g);
+                n += 1;
+            }
+        }
+        self.note = match n {
+            0 => "agent smith left the card as it was".into(),
+            n => format!(
+                "agent smith filled {n} of its lines \u{b7} change what you like, then enter"
+            ),
+        };
     }
 }
 

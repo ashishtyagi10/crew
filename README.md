@@ -363,8 +363,8 @@ it holds words), `f` to forward the newest mail with its pictures and files, `a`
 from me?"), `t` to open a card under the mail with the `/todo` row
 it asks for, guessed from the thread on your computer (the ask as its title,
 a project you already have, the person asked by name, and the deadline the
-mail states, "by Friday" read as of the day it was sent), to change before
-Enter adds it, `R` to refresh, `o` to open it in
+mail states, "by Friday" read as of the day it was sent; Tab asks smith to
+fill it, every line checked), to change before Enter adds it, `R` to refresh, `o` to open it in
 Gmail, `/inbox <search>` to open on a search, `/inbox signout` to withdraw
 the grant. Gmail's read scope is restricted, so it signs in with an OAuth
 client of your own: the pane's setup page opens the five Google Cloud

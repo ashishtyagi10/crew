@@ -47,7 +47,7 @@ fn a_in_the_list_opens_the_thread_and_hands_it_over_when_it_lands() {
     p.poll();
     let sent = p.to_smith.take().expect("handed over");
     assert!(sent.prompt.contains("<<<MAIL") && sent.prompt.contains("by Friday"));
-    assert!(sent.shown.contains("Q4 review") && !sent.draft);
+    assert!(sent.shown.contains("Q4 review") && sent.wants == super::Wants::Read);
 }
 
 #[test]
@@ -61,12 +61,24 @@ fn smiths_draft_for_a_closed_box_is_let_go_never_saved() {
     // never saved to Gmail behind your back.
     p.act(super::Then::Draft);
     let sent = p.to_smith.take().expect("handed over");
-    assert!(sent.draft, "a draft of the box's words");
-    p.waiting = Some(super::Waiting { since: 0, at_ms: 0 });
+    assert_eq!(
+        sent.wants,
+        super::Wants::Draft,
+        "a draft of the box's words"
+    );
+    p.waiting = Some(super::Waiting {
+        since: 0,
+        at_ms: 0,
+        wants: super::Wants::Draft,
+    });
     p.drafted_by_smith(Some("Sure, Friday.".into()));
     assert!(asks.try_iter().next().is_none(), "nothing asked of Gmail");
     assert!(p.note.contains("let go"), "{}", p.note);
-    p.waiting = Some(super::Waiting { since: 0, at_ms: 0 });
+    p.waiting = Some(super::Waiting {
+        since: 0,
+        at_ms: 0,
+        wants: super::Wants::Draft,
+    });
     p.drafted_by_smith(None);
     assert!(
         p.note.contains("tab in the reply box asks again"),
