@@ -55,7 +55,8 @@ fn every_pool_and_every_palette_is_reachable() {
         );
     }
     assert_eq!(all.first(), Some(&None), "unset must lead the list");
-    assert_eq!(all.len(), 1 + 4 + crew_theme::pinnable_themes().count());
+    let pools = crew_theme::THEME_MODES.len() - 1;
+    assert_eq!(all.len(), 1 + pools + crew_theme::pinnable_themes().count());
     for (i, v) in all.iter().enumerate() {
         assert!(
             !all[..i].contains(v),

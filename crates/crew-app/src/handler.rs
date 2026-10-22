@@ -136,11 +136,7 @@ impl CrewApp {
             // Appearance: Auto as whichever side it is currently showing, so
             // the theme alone cannot tell the two apart.
             self.config.publish_appearance_sources();
-            if crew_theme::mode() == Some(crew_theme::RandomMode::Auto) {
-                crew_theme::apply_selection(
-                    crew_theme::Selection::Mode(crew_theme::RandomMode::Auto),
-                    crate::chattime::unix_now_ms(),
-                );
+            if crew_theme::follow_appearance(crate::chattime::unix_now_ms()) {
                 // The re-apply can flip pools (startup guessed OS-dark before
                 // the window existed), so refresh the theme-following accent
                 // too — same pairing as the ThemeChanged arm in events.rs.

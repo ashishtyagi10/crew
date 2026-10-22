@@ -22,9 +22,13 @@ fn toggle_theme_cycles_every_mode_and_wraps() {
     app.toggle_theme();
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Glass));
     assert_eq!(app.config.theme.as_deref(), Some("glass"));
-    // …then the OS-following auto — five stops, no more: the modern glow
-    // palettes are members of the dark and light pools, not two extra
-    // presses on the way round.
+    // …then neon, the scoreboard…
+    app.toggle_theme();
+    assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Neon));
+    assert_eq!(app.config.theme.as_deref(), Some("neon"));
+    // …then the OS-following auto — six stops, no more: the modern glow
+    // palettes are members of the glass pool, not extra presses on the way
+    // round.
     app.toggle_theme();
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Auto));
     assert_eq!(app.config.theme.as_deref(), Some("auto"));

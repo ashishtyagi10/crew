@@ -18,18 +18,15 @@ use crew_theme::{RandomMode, Selection};
 /// that appearance. Not a config value — unset is `None`.
 pub(super) const DEFAULT_LABEL: &str = "default";
 
-/// Every value a pairing side can hold, in picker order: unset, then the
-/// four rotation pools, then every palette that is not already one of them
-/// (`paper-dark` IS `dark`, so it is listed once).
+/// Every value a pairing side can hold, in picker order: unset, then every
+/// theme but `auto` (which cannot be its own side), then every palette that
+/// is not already one of them (`paper-dark` IS `dark`, so it is listed once).
 pub(super) fn values() -> Vec<Option<Selection>> {
     let mut v = vec![None];
-    for m in [
-        RandomMode::Dark,
-        RandomMode::Light,
-        RandomMode::Crt,
-        RandomMode::Glass,
-    ] {
-        v.push(Some(Selection::Mode(m)));
+    for m in crew_theme::THEME_MODES {
+        if m != RandomMode::Auto {
+            v.push(Some(Selection::Mode(m)));
+        }
     }
     v.extend(crew_theme::pinnable_themes().map(|id| Some(Selection::Fixed(id))));
     v

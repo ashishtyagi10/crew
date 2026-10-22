@@ -273,7 +273,7 @@ way that machine presses it.
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Label every URL, file and hash on the pane (a letter copies, its capital opens) | **Cmd+E** |
 | Open another crew window | **Cmd+N** |
-| Cycle the theme rotations (dark → light → crt → glass → auto) | **Ctrl+Shift+L** |
+| Cycle the theme rotations (dark → light → crt → glass → neon → auto) | **Ctrl+Shift+L** |
 | Step the canvas gradient (… → the theme's own) | **Ctrl+Shift+G** |
 | Focus mode: hold notifications, never steal focus | **Ctrl+Shift+F** (or `/focus`) |
 | Agent pane: markdown preview ↔ raw source | **Ctrl+Shift+M** |
@@ -897,8 +897,14 @@ phosphor tube in glass, in `crt-green` and `crt-amber`, each one hue at six
 brightnesses. A rotation changes palette every 10 minutes; `light` and `dark`
 are one page each and stay put. And `auto` follows the OS appearance,
 serving the dark page in dark mode and the light one in light mode (re-wire
-the pairing with `theme_dark` / `theme_light`). That makes **eight
-palettes** in all.
+the pairing with `theme_dark` / `theme_light`).
+
+`neon` is a neon scoreboard: a deep indigo page, words in lavender white,
+and thin neon lines, opaque like print. The pane you are in is framed in
+yellow, progress is cyan, the bell hot pink, a live pane green. It has a
+dark page (`neon-dark`) and a light one (`neon-light`, a pale lavender page
+with a hot-pink frame), and serves whichever matches the OS appearance, the
+way `auto` does. That makes **ten palettes** in all.
 
 Almost every colour in a palette is **derived, not chosen**: the ramp produces
 the whole text ladder and all sixteen ANSI slots from the page and the ink, a
