@@ -94,3 +94,7 @@ pub(crate) fn caret_at(c: &mut Compose, g: &Geo, w: u16, (row, col): (u16, u16))
 #[cfg(test)]
 #[path = "composegeo_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "boxfuzz_tests.rs"]
+mod fuzz;

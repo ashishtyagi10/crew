@@ -35,8 +35,13 @@ pub(crate) const STEPS: [(&str, &str); 5] = [
     ),
 ];
 
-/// The client downloaded last into the Downloads folder, if any.
+/// The client downloaded last into the Downloads folder, if any. Tests never
+/// read the real Downloads (nor sign in with what is there), as they never
+/// read the real grant (`grant::path`).
 pub(crate) fn look() -> Option<(PathBuf, Client)> {
+    if cfg!(test) {
+        return None;
+    }
     downloaded_client(&dirs::download_dir()?)
 }
 

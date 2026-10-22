@@ -66,7 +66,8 @@ pub(crate) fn spawn(client: Client) -> Option<Receiver<Result<Grant, String>>> {
     let url = authorize_url(&client.id, &redirect, &pkce.challenge, &state);
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
-        let _ = open::that_detached(&url);
+        // The test-safe opener: tests record the page, never open it.
+        crate::linkclick::open_external(&url);
         let got = match crate::oauth::await_callback(listener, &state, FLOW) {
             Waited::Code(code) => {
                 let code = super::query::dec(&code);
