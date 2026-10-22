@@ -1758,7 +1758,11 @@ longer aim at.
   Angeles`), how often it repeats, where, who asked, and its Zoom, Teams or
   Meet link to Cmd+click. crew reads the invite on your computer, Outlook's
   Windows zone names and its own zone rules included; a zone it cannot place
-  is shown as written and says so. A cancelled one says so first.
+  is shown as written and says so. A cancelled one says so first. `c`
+  adds it to your calendar: crew writes the invite, as it came, to a file
+  and opens it in the system's calendar app (Calendar on a Mac), which
+  shows its own page to add or answer it, in whichever account you keep
+  there. Nothing goes to Google from crew for that.
   Every attachment is a row under its message (`↓ report.pdf · 1.2 MB`):
   Cmd+click its name, or its capital letter in `Cmd+E`'s hint mode, and crew
   saves it to `~/Downloads` under a safe version of its name (no folders, no

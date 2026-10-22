@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.2
+
+**`/inbox`: `c` adds a meeting invite to your calendar.** Phase 2 of the
+calendar goal, with no new permission.
+- **`c` in a thread with an invite** writes the invite, as it came, to a
+  file and opens it in your calendar app (Calendar on a Mac), which shows
+  its own page to add or answer it, in whichever account you keep there.
+  Nothing goes to Google from crew.
+- A cancelled invite, or one set in a zone crew cannot place, adds nothing
+  and says why. The invite card's last line names the key.
+
 ## 0.28.1
 
 **`/inbox`: a meeting invite is a card at the top of its mail.** Phase 1 of

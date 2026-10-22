@@ -140,3 +140,8 @@ Angeles`, `every week on Tuesday, until Dec 15`). `invitecard.rs` draws the card
 sender. The todo card's due date now reads through the same reader, so a named zone's time is
 right there too. The corpus is 20 invites (`invite_corpus.toml`), every time right in New York
 and in Kolkata.
+
+**Phase 2: built (not yet released).** `c` in a thread (`icsadd.rs`) writes the newest invite in
+it, byte for byte, to `crew-invite-<uid>.ics` in the temp folder and opens it with the system's
+calendar app; the note says where it went. A cancelled invite, or one whose zone crew cannot
+place, adds nothing and says why. The card's last line says `c adds it to your calendar`.

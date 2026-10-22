@@ -158,6 +158,8 @@ impl InboxPane {
             self.note = self.next_thread(matches!(ch, "n" | "J")).into();
         } else if ch == "x" {
             self.note = r.fold_all().into();
+        } else if ch == "c" {
+            self.note = self.add_to_calendar();
         } else if ch == "w" {
             r.pop_out = true;
         } else if ch == "i" {
