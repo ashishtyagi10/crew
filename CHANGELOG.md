@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.73
+
+**`/inbox`: the unread count keeps up with you.** First round of the fifth
+inbox loop.
+- **The count in the pane's name and on the nav's INBOX card updates at
+  once** when you open an unread mail, mark one read or unread, archive or
+  delete one, or undo. It used to wait for the next check, up to a minute.
+
 ## 0.27.72
 
 **`/inbox`: the reply you send shows in its thread.** Fifth and last round
