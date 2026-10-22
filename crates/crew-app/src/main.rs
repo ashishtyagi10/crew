@@ -536,6 +536,7 @@ mod quit;
 mod readout;
 mod reducemotion;
 mod relay;
+mod reminders;
 mod render;
 mod reopen;
 mod restart;

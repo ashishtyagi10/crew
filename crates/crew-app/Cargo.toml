@@ -80,12 +80,25 @@ winresource = "0.1"
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", default-features = false, features = [
     "std",
+    "block2",
     "NSData",
     # `AppleInterfaceStyleSwitchesAutomatically` (see `osappearance`): tells a
     # scheduled OS appearance apart from a pinned one, which `auto` needs.
     "NSString",
     "NSUserDefaults",
+    # `/todo reminders` (`reminders::ek`): EventKit's arrays, due components,
+    # errors, change notice and the Info.plist note it asks with.
+    "NSArray",
+    "NSBundle",
+    "NSCalendar",
+    "NSDate",
+    "NSError",
+    "NSNotification",
+    "NSObject",
+    "NSOperation",
 ] }
+objc2-event-kit = { version = "0.3", default-features = false, features = ["std", "block2", "EKAlarm", "EKCalendar", "EKCalendarItem", "EKEventStore", "EKObject", "EKReminder", "EKSource", "EKTypes"] }
+block2 = "0.6"
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSApplication", "NSImage", "NSResponder", "NSWorkspace", "NSAccessibility"] }
 
 [dev-dependencies]

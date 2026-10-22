@@ -416,7 +416,9 @@ recognised as you type (tinted live, stripped from the title on Enter),
 overdue items surface to the top, a toast fires when an item comes due, and
 `r` on a row hands it to a coding agent (claude, codex, opencode or agent
 smith) in a new pane in the `@project`'s directory — or end the line with `&`
-and it runs the moment it is added.
+and it runs the moment it is added. On macOS, `/todo reminders` keeps the list
+and a `crew` list in Apple Reminders in step both ways: add or tick a todo on
+your phone and it is added or done here, and the other way round.
 
 ## The left nav
 

@@ -24,6 +24,7 @@ impl CrewConfig {
             lsp: self.lsp,
             font_family: self.font_family.filter(|n| !n.is_empty()),
             font_random: self.font_random,
+            todo_reminders: self.todo_reminders,
             accent: self.accent.filter(|s| !s.is_empty()),
             maximized: self.maximized,
             last_dir: self.last_dir,

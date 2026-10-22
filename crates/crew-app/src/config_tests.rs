@@ -119,6 +119,7 @@ fn round_trip() {
         gradient_poles: Some("#112233 #445566".to_string()),
         font_family: Some("Menlo".to_string()),
         font_random: false,
+        todo_reminders: true,
         accent: Some("#112233".to_string()),
         maximized: true,
         last_dir: Some("/tmp".to_string()),

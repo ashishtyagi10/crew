@@ -1995,6 +1995,20 @@ longer aim at.
   never broken mid-word and a chip is never cut in half (one that will not
   fit is dropped whole — a clipped `@cre` claims a project that does not
   exist).
+  **`/todo reminders`** (macOS) keeps the list and a list named `crew` in
+  Apple Reminders in step both ways, so a todo typed here is on your phone
+  and one ticked there is done here; `/todo reminders off` stops it, and the
+  switch holds across launches. macOS asks once whether crew may see your
+  reminders (System Settings › Privacy & Security › Reminders takes it back).
+  The title, done and the due go across, a due with a time ringing on your
+  devices; `@project`, `#who` and the done history stay crew's. A pass runs
+  when the list settles after an edit, when Reminders says it changed, and
+  every minute. Each side's change since the last pass goes to the other, and
+  when both changed the same thing crew's word stands; a delete goes across
+  too, but a done todo whose reminder Reminders cleared away stays in the
+  history. Turning it on with reminders already in the list pairs them by
+  title rather than doubling them. `reminders.toml`, beside `todos.toml`,
+  remembers the pairs.
 - **`/smith`** — opens **agent smith**, a **multi-agent pane** where the
   installed CLI coding agents (claude, codex, opencode) message each other to
   work a task. See [Multi-agent relay](#multi-agent-relay-smith-alias-crew) below.

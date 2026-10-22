@@ -48,7 +48,7 @@ fn edits(f: Field) -> &'static str {
 
 /// Keys the form deliberately does not carry, each with the reason — "we
 /// forgot" is not a third option.
-const NOT_IN_FORM: [(&str, &str); 14] = [
+const NOT_IN_FORM: [(&str, &str); 15] = [
     (
         "approval_default",
         "set live by /approvals default <mode> in an agent pane",
@@ -59,6 +59,7 @@ const NOT_IN_FORM: [(&str, &str); 14] = [
     ),
     ("nav_card", "set live by /nav"),
     ("weather_place", "set live by /weather"),
+    ("todo_reminders", "set live by /todo reminders"),
     ("last_seen_version", "bookkeeping: drives the version note"),
     (
         "command_recents",
