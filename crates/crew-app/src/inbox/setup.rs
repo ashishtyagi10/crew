@@ -44,9 +44,9 @@ pub(crate) fn draw(cv: &mut Canvas, found: Option<&(PathBuf, Client)>) {
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
     let width = cv.cols.saturating_sub(4) as usize;
-    let lead = "Gmail in this pane, read-only. It needs a Google OAuth client of your own \
-                (Google lets no app read everyone's mail without a review): about five \
-                minutes, once.";
+    let lead = "Gmail in this pane: read, file and reply. It needs a Google OAuth client of \
+                your own (Google lets no app read everyone's mail without a review): about \
+                five minutes, once.";
     let mut r = 1;
     for line in wrap(lead, width) {
         cv.text(r, 2, cv.cols, &line, t.ink, false);
@@ -76,6 +76,15 @@ pub(crate) fn draw(cv: &mut Canvas, found: Option<&(PathBuf, Client)>) {
             cv.text(r, 2, cv.cols, line, t.text_muted, false);
         }
     }
+}
+
+/// While Google's sign-in page is open in the browser.
+pub(crate) fn signing_in(cv: &mut Canvas) {
+    let t = crew_theme::theme();
+    let said = "finish signing in in your browser\u{2026}";
+    cv.text(1, 2, cv.cols, said, t.ink, false);
+    let why = "(crew is listening for Google's answer)";
+    cv.text(2, 2, cv.cols, why, t.text_muted, false);
 }
 
 fn name(path: &Path) -> String {

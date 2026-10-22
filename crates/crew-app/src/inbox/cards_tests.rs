@@ -149,3 +149,19 @@ fn a_reply_being_written_keeps_its_mail_under_it() {
     p.click(160, 40, mail.row, next.col);
     assert_eq!(open(&p), "c", "with no reply open, it steps on");
 }
+
+#[test]
+fn the_setup_page_is_a_card_and_says_what_the_pane_does() {
+    let p = InboxPane::with(Stage::Setup { found: None });
+    let cells = p.cells(80, 24);
+    let text: String = cells.iter().map(|c| c.c).collect();
+    assert!(text.contains("set up Gmail"), "its card's name");
+    assert!(cells
+        .iter()
+        .any(|c| (c.row, c.col, c.c) == (0, 1, '\u{256d}')));
+    assert!(text.contains("read, file and reply"), "{text}");
+    assert!(
+        !text.contains("read-only"),
+        "it has not been read-only since v0.27.30"
+    );
+}

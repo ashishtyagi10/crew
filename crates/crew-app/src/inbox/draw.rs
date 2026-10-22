@@ -114,31 +114,31 @@ impl InboxPane {
                     put(&mut cv, reply, b);
                 }
             }
-            (Stage::Setup { found }, _) => super::setup::draw(&mut cv, found.as_ref()),
-            (Stage::SigningIn(_), _) => {
-                let t = crew_theme::theme();
-                cv.text(
-                    1,
-                    2,
-                    cols,
-                    "finish signing in in your browser\u{2026}",
-                    t.ink,
-                    false,
-                );
-                cv.text(
-                    2,
-                    2,
-                    cols,
-                    "(crew is listening for Google's answer)",
-                    t.text_muted,
-                    false,
-                );
-            }
+            // Before the list: a card of its own, as every section is.
+            (Stage::Setup { found }, _) => page(&mut cv, "set up Gmail", |c| {
+                super::setup::draw(c, found.as_ref())
+            }),
+            (Stage::SigningIn(_), _) => page(&mut cv, "signing in", super::setup::signing_in),
         }
         cv.rows = rows;
         self.foot(&mut cv);
         cv.out
     }
+}
+
+/// A card filling `cv` named `name`, `fill` drawing inside it.
+fn page(cv: &mut Canvas, name: &str, fill: impl FnOnce(&mut Canvas)) {
+    let b = Rect {
+        col: 1,
+        row: 0,
+        w: cv.cols.saturating_sub(2),
+        h: cv.rows,
+    };
+    super::cards::frame(cv, b, name, "");
+    let inner = b.inner();
+    let mut c = Canvas::new(inner.w, inner.h);
+    fill(&mut c);
+    put(cv, c, inner);
 }
 
 /// `inner`'s cells onto `cv`, where its rect is.

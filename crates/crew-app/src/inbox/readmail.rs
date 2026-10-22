@@ -134,6 +134,12 @@ pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key, first: bool
     if let Some(note) = &rich.note {
         lay.quiet(note, k);
     }
+    // Air between the mail (or its quote) and its files, which are the
+    // mail's, not the last quoted line's.
+    let files = !m.attached.is_empty() || !m.files.is_empty();
+    if files && lay.lines.last().is_some_and(|l| !l.is_empty()) {
+        lay.lines.push(Vec::new());
+    }
     for (n, f) in m.attached.iter().enumerate() {
         let link = format!("{}{}/{n}", super::save::ATTACHMENT, m.id);
         lay.lines.push(file_row(&f.name, f.size, &link, k));
