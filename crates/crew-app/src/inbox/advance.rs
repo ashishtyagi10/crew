@@ -47,7 +47,11 @@ impl InboxPane {
         if self.compose.is_some() {
             return HELD;
         }
+        // The open thread gone from the list: the one in its place is next.
+        let open = self.reading.as_ref().map(|r| r.thread.id.as_str());
+        let gone = self.rows.get(self.sel).map(|t| t.id.as_str()) != open;
         let to = match (older, self.sel.checked_sub(1)) {
+            (true, _) if gone => self.sel,
             (true, _) => self.sel + 1,
             (false, Some(i)) => i,
             (false, None) => return "this is the newest thread",

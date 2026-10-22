@@ -103,9 +103,11 @@ impl InboxPane {
                         let fresh = super::motion::fresh(&self.rows, &rows);
                         self.motion.fresh = Some((fresh, crate::anim::now_ms()));
                         self.rows = rows;
+                        // Gone (filed elsewhere): the row that took its place.
+                        let here = self.sel.min(self.rows.len().saturating_sub(1));
                         self.sel = keep
                             .and_then(|id| self.rows.iter().position(|t| t.id == id))
-                            .unwrap_or(0);
+                            .unwrap_or(here);
                     }
                 }
                 self.note.clear();
