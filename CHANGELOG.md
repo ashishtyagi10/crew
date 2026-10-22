@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.62
+
+**`/inbox`: the reply box is named for whom it goes to.** Fifth and last
+round of the second inbox loop.
+- **The box's name follows its `to` line** as you edit it: `reply to Ann Lee
+  and 2 others`, `forward to Kim`. It used to keep the addresses it opened
+  with, and a forward said only `forward`.
+
 ## 0.27.61
 
 **`/inbox`: a reply keeps its mail.** Fourth round of the second inbox loop.

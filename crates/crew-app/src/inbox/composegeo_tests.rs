@@ -52,3 +52,34 @@ fn a_line_not_being_written_shows_its_start_and_a_hint_follows_the_caret() {
     let cc = row(&p, 40, 20, b.row + 2);
     assert!(cc.contains("cc  \u{258f}add people"), "{cc}");
 }
+
+#[test]
+fn the_box_is_named_for_whom_its_to_line_says() {
+    let _g = crate::app::motion_test_guard();
+    let (mut p, _) = reading();
+    let name = |p: &InboxPane| {
+        let b = p.cards(80, 30).reply.expect("the box");
+        row(p, 80, 30, b.row)
+    };
+    typed(&mut p, "f");
+    assert!(name(&p).contains(" forward "), "{}", name(&p));
+    typed(&mut p, "Kim <kim@z.org>");
+    assert!(name(&p).contains(" forward to Kim "), "{}", name(&p));
+    p.compose = None;
+    typed(&mut p, "r");
+    assert!(
+        name(&p).contains(" reply to Ann Lee and bo@x.org "),
+        "{}",
+        name(&p)
+    );
+    press(&mut p, NamedKey::ArrowUp);
+    press(&mut p, NamedKey::ArrowUp);
+    for _ in 0..", bo@x.org".len() {
+        press(&mut p, NamedKey::Backspace);
+    }
+    assert!(
+        name(&p).contains(" reply to Ann Lee "),
+        "as it is edited: {}",
+        name(&p)
+    );
+}
