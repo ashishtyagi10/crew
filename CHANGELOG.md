@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.65
+
+**`/inbox`: copying text from a mail copies only the mail.** Third round of
+the third inbox loop.
+- **A mouse drag copies the inside of the card it began in.** Since the
+  cards, copying a few lines of a mail brought the card's `│` edges along,
+  and in the side-by-side view the list's text from the same rows.
+
 ## 0.27.64
 
 **`/inbox`: you can see which card has the keys.** Second round of the
