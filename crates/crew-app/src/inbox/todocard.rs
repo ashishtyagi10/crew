@@ -96,7 +96,8 @@ impl InboxPane {
         let Some(r) = self.reading.as_ref() else {
             return String::new();
         };
-        self.todo = Some(TodoCard::new(guess::guess(r)));
+        let known = guess::Known::here(&self.email);
+        self.todo = Some(TodoCard::new(guess::guess(r, &known)));
         String::new()
     }
 

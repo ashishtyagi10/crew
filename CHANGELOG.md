@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.96
+
+**`/inbox`: the todo card reads the thread.** Phase 2 of the smart-todo
+goal: crew fills the card from the mail, on your computer.
+- **The title is the ask:** "can you send me the Q4 numbers by Friday?"
+  becomes "Send Ann the Q4 numbers"; a mail with no plain ask keeps
+  "Reply to Ann: …".
+- **The project is only one you already have:** a `[name]` in the subject
+  (GitHub's notifications) or a link to its repository, or a tag or
+  binding of yours named in the subject. Two as likely are none.
+- **The assignee is only someone on the thread asked by name** ("Bo, can
+  you…", "@bo", "Hi Bo,", "Bo to send the deck"), spelled as your tag for
+  them. Asked of you, it stays blank.
+- **The due date reads the whole thread and the subject**, and a calendar
+  invite's start. "EOD" is that day at 5pm, "end of the week" that Friday,
+  "next Friday" the week after's; "10/11" is left blank.
+- Every guess says why beside it, and you change any line before Enter.
+
 ## 0.27.95
 
 **`/inbox`: `t` opens a todo card.** Phase 1 of the smart-todo goal.

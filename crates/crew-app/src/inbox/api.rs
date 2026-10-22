@@ -14,6 +14,9 @@ use serde_json::Value;
 use super::grant::Grant;
 use super::wire::{self, Thread};
 
+#[path = "apipeek.rs"]
+mod peek;
+
 pub(crate) const API: &str = "https://gmail.googleapis.com/gmail/v1/users/me";
 /// Rows a page asks for.
 pub(crate) const PAGE: u32 = 25;
@@ -39,6 +42,8 @@ pub(crate) struct Mail {
     pub reply: super::draft::Reply,
     /// How to unsubscribe from what sent it (`unsub`), when it says.
     pub unsub: Option<super::unsub::How>,
+    /// A calendar invite it carries (`text/calendar`), as written.
+    pub calendar: Option<String>,
 }
 
 pub(crate) struct Gmail {
@@ -154,22 +159,6 @@ impl Gmail {
         Ok((rows, next))
     }
 
-    /// The nav card's reading: unread threads, and the newest unread one
-    /// (1 + 10 + 40 units — a full page is about 1,000).
-    pub(crate) fn peek(&mut self) -> Result<(u64, Option<Thread>), String> {
-        let unread = self.unread()?;
-        let q = super::query::enc("in:inbox is:unread");
-        let (ids, _) = wire::thread_ids(&self.get(&format!("/threads?maxResults=1&q={q}"))?);
-        let Some(id) = ids.first() else {
-            return Ok((unread, None));
-        };
-        let meta = "format=metadata&metadataHeaders=From&metadataHeaders=Subject";
-        Ok((
-            unread,
-            Some(wire::thread(&self.get(&format!("/threads/{id}?{meta}"))?)),
-        ))
-    }
-
     /// Every message of thread `id`, oldest first, as text.
     pub(crate) fn open(&mut self, id: &str) -> Result<Vec<Mail>, String> {
         let v = self.get(&format!("/threads/{}?format=full", super::query::enc(id)))?;
@@ -189,6 +178,7 @@ impl Gmail {
                     rich,
                     reply: super::draft::Reply::of(m),
                     unsub: super::unsub::of(m),
+                    calendar: super::body::find(&m["payload"], "text/calendar").map(|(t, _)| t),
                 }
             })
             .collect())

@@ -1,0 +1,292 @@
+# The todo card's corpus (goal 2026-10-22-inbox-smart-todo, phase 2): mails
+# written for the test, each with the card it should give. `todoguess_tests`
+# reads it with these known projects, folders and people, as `sam@x.org`:
+#   projects: crew, rdactd, hive   folders: crew, rdactd, hive, docs, api
+#   people: bo, ann
+# An empty want is "nothing": no project, no assignee (yours), no due date.
+
+[[case]]
+name = "a GitHub notification names its repository"
+subject = "[crew] Release workflow failed"
+want_project = "crew"
+[[case.mail]]
+from = "GitHub <notifications@github.com>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 09:02:00 -0400"
+text = "The Release workflow failed.\n\nView the run: https://github.com/ashishtyagi10/crew/actions/runs/123"
+
+[[case]]
+name = "a review request, an owner/repo subject and an @ of me"
+subject = "[ashishtyagi10/rdactd] Add company search index (#42)"
+want_project = "rdactd"
+[[case.mail]]
+from = "Bo Park <notifications@github.com>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 10:00:00 -0400"
+text = "@sam requested your review on this pull request."
+
+[[case]]
+name = "a newsletter asks nothing"
+subject = "Your weekly picks"
+want_title = "Reply to Shop Co: Your weekly picks"
+[[case.mail]]
+from = "Shop Co <news@shop.io>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 08:00:00 -0400"
+text = "Everything in the autumn collection is 30% off. Shop now.\n\nUnsubscribe"
+
+[[case]]
+name = "a plain ask of me, with a deadline"
+subject = "Q4 numbers"
+want_due = "2026-10-23"
+want_title = "Send Ann the Q4 numbers for the roadmap"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 09:02:00 -0400"
+text = "Hi Sam,\n\nCan you send me the Q4 numbers for the roadmap by Friday?\n\nThanks,\nAnn"
+
+[[case]]
+name = "a delegation to someone on Cc; a project named once is not enough"
+subject = "Dashboard"
+want_assignee = "bo"
+want_due = "2026-10-22"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+cc = "Bo Park <bo@y.org>"
+date = "Tue, 20 Oct 2026 09:30:00 -0400"
+text = "Bo, could you update the hive dashboard by Thursday? Sam, for your information."
+
+[[case]]
+name = "a deadline in last week's mail is that week's"
+subject = "Contract"
+want_due = "2026-10-16"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 13 Oct 2026 09:30:00 -0400"
+text = "Please review the contract by Friday."
+
+[[case]]
+name = "a numeric date that reads two ways is left blank"
+subject = "Form"
+want_title = "Submit the form"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Fri, 02 Oct 2026 09:30:00 -0400"
+text = "Can you submit the form by 10/11?"
+
+[[case]]
+name = "the ask is in the third mail, after one of mine"
+subject = "Kickoff"
+want_due = "2026-10-21"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Mon, 19 Oct 2026 09:30:00 -0400"
+text = "Kickoff notes attached."
+[[case.mail]]
+from = "Sam Doe <sam@x.org>"
+to = "Ann Lee <ann@x.org>"
+date = "Mon, 19 Oct 2026 10:30:00 -0400"
+text = "Thanks!"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 09:30:00 -0400"
+text = "One more thing: can you book the room for Thursday by Wednesday?"
+
+[[case]]
+name = "EOD is that day at five"
+subject = "Slides"
+want_due = "2026-10-20 17:00"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Need the slides by EOD please."
+
+[[case]]
+name = "the end of the week is its Friday at five"
+subject = "Review"
+want_due = "2026-10-23 17:00"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Let's wrap the review by end of the week."
+
+[[case]]
+name = "next Friday said on a Tuesday is the week after's"
+subject = "Launch"
+want_due = "2026-10-30"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Can we get the launch checklist done by next Friday?"
+
+[[case]]
+name = "an invite's start is the due date"
+subject = "Invitation: Q4 planning"
+want_due = "2026-10-24 15:00"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Ann Lee has invited you to Q4 planning."
+calendar = "BEGIN:VCALENDAR\nMETHOD:REQUEST\nBEGIN:VEVENT\nDTSTART;TZID=America/New_York:20261024T150000\nDTEND;TZID=America/New_York:20261024T160000\nEND:VEVENT\nEND:VCALENDAR"
+
+[[case]]
+name = "a cancelled invite gives no date"
+subject = "Cancelled: Q4 planning"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "This event has been cancelled."
+calendar = "BEGIN:VCALENDAR\nMETHOD:CANCEL\nBEGIN:VEVENT\nDTSTART:20261024T190000Z\nEND:VEVENT\nEND:VCALENDAR"
+
+[[case]]
+name = "a link to the repository names the project"
+subject = "Search is slow"
+want_project = "rdactd"
+want_title = "Take a look"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Hi Sam, the search is slow again, see https://github.com/acme/rdactd/issues/99 for the trace. Can you take a look?"
+
+[[case]]
+name = "two projects in the subject are none"
+subject = "[crew][hive] Shared CI broke"
+[[case.mail]]
+from = "GitHub <notifications@github.com>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "The shared workflow failed in both repositories."
+
+[[case]]
+name = "a project's name in the subject"
+subject = "hive rollout plan"
+want_project = "hive"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Can you review the plan?"
+
+[[case]]
+name = "a folder's name as a word is an ordinary word"
+subject = "docs update"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "I updated the onboarding docs, have a look when you can."
+
+[[case]]
+name = "a project's name once, as an ordinary word"
+subject = "Team lunch"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "The whole crew is coming to lunch on Friday."
+
+[[case]]
+name = "an @ of someone on the thread, due a weekday"
+subject = "Release notes"
+want_assignee = "cy"
+want_due = "2026-10-26"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+cc = "Bo Park <bo@y.org>, Cy Diaz <cy@z.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "@cy please own the release notes, due Monday."
+
+[[case]]
+name = "two people asked is no one"
+subject = "Offsite"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+cc = "Bo Park <bo@y.org>, Cy Diaz <cy@z.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Bo, can you draft the agenda? Cy, could you book the room?"
+
+[[case]]
+name = "an action-item list; my own item is mine"
+subject = "Notes from today"
+want_assignee = "bo"
+want_due = "2026-10-22"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>, Bo Park <bo@y.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Action items:\n- Bo to send the deck by Thursday\n- Sam to review it"
+
+[[case]]
+name = "a greeting names who is asked; I am on Cc"
+subject = "Invoices"
+want_assignee = "bo"
+want_due = "2026-10-21"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Bo Park <bo@y.org>"
+cc = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Hi Bo,\n\nCould you check the invoices before Wednesday?\n\nAnn"
+
+[[case]]
+name = "a signature is not an ask"
+subject = "Call"
+want_title = "Call Ann back"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Can you call me back?\n\nAnn"
+
+[[case]]
+name = "someone not on the thread is never the assignee"
+subject = "File"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Dee, can you send the file?"
+
+[[case]]
+name = "a deadline line"
+subject = "Grant"
+want_due = "2026-10-30"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Deadline: Oct 30 for the grant application."
+
+[[case]]
+name = "no later than"
+subject = "Expenses"
+want_due = "2026-10-28"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "Please submit expenses no later than Oct 28."
+
+[[case]]
+name = "the subject states the deadline"
+subject = "Due Friday: timesheets"
+want_due = "2026-10-23"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 11:00:00 -0400"
+text = "A reminder to fill in your timesheets."

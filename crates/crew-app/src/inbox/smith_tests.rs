@@ -1,5 +1,3 @@
-use chrono::NaiveDate;
-
 use super::super::api::Mail;
 use super::super::wire::Thread;
 use super::super::Reading;
@@ -68,24 +66,7 @@ fn the_draft_is_the_text_between_the_markers_and_nothing_else() {
 }
 
 #[test]
-fn only_a_stated_deadline_becomes_a_due_date() {
-    let now = NaiveDate::from_ymd_opt(2026, 10, 20)
-        .unwrap()
-        .and_hms_opt(10, 0, 0)
-        .unwrap();
-    let (due, said) = super::deadline(
-        "We met on Monday. Please send the numbers by Friday 5pm.",
-        now,
-    )
-    .unwrap();
-    assert_eq!(due.due.format("%a %H:%M").to_string(), "Fri 17:00");
-    assert_eq!(said, "by friday 5pm", "the words it was read from");
-    assert!(
-        super::deadline("We met on Monday to talk.", now).is_none(),
-        "a date is not a deadline"
-    );
-    let (end, _) = super::deadline("Can you have it ready by the end of Thursday?", now).unwrap();
-    assert_eq!(end.due.format("%a").to_string(), "Thu");
+fn the_todo_title_names_who_and_what() {
     assert_eq!(
         super::todo_title(&reading(&["hi"])),
         "Reply to Ann Lee: Q4 review"

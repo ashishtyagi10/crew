@@ -1788,10 +1788,20 @@ longer aim at.
   most); while a reply is open the mail under it stays, so a click on another
   thread is refused until it is sent or closed;
   `t` opens a todo card under the mail, as `r` opens the reply box: the
-  title ("Reply to Ann: …"), `@project`, `#assignee` and due of the `/todo`
-  row, the due being a date that follows "by", "before", "until", "due" or
-  "no later than" in the newest message, read as of the day it was sent,
-  with the words it came from beside it. Up and Down move between the
+  title, `@project`, `#assignee` and due of the `/todo` row, which crew
+  guesses from the thread on your computer, each with why beside it. The
+  title is the ask ("can you send me the numbers" becomes "Send Ann the
+  numbers"), else "Reply to Ann: …". The project is only one you already
+  have: a `[name]` in the subject or a link to its repository (a tag, a
+  binding or a folder projects live in), or a tag or binding of yours named
+  in the subject or twice in the mail; two as strong are none. The assignee
+  is only someone on the thread asked by name ("Bo, can you", "@bo", "Hi
+  Bo,", an action item "Bo to …"), in the spelling of a tag you use; asked
+  of you, it is blank. The due is an invite's start, else a date after
+  "by", "before", "until", "due", "deadline" or "no later than" in the
+  newest mail that has one, then the subject, read as of the day its mail
+  was sent ("EOD" is that day at 5pm, "end of the week" that Friday,
+  "next Friday" the week after's). Up and Down move between the
   lines, typing changes one, Enter adds the row (a due line must read as a
   date), Esc lets it go (twice once something changed).
   Pressed in the list, each opens the thread and acts when it arrives. The
