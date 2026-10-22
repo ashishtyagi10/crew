@@ -62,3 +62,28 @@ fn a_fresh_first_page_keeps_the_deeper_cursor() {
     s.went(false, Some("q2".into()));
     assert_eq!(s.next.as_deref(), Some("q2"));
 }
+
+/// Offline when the worker started, the account was never told: `me` stayed
+/// no one for the session, the list never said "me" and a reply-all wrote to
+/// yourself too. It comes with the first list that reaches Gmail, once.
+#[test]
+fn the_account_comes_with_the_first_list_that_reaches_gmail() {
+    let (base, _) = serve();
+    let grant = Grant {
+        client: Client {
+            id: "c".into(),
+            secret: "s".into(),
+        },
+        refresh_token: "1//r".into(),
+        email: String::new(),
+    };
+    let mut g = Gmail::at(grant, &format!("{base}/token"), &format!("{base}/gmail")).unwrap();
+    let mut s = State::default();
+    let got = s.answer(&mut g, Ask::List(String::new()));
+    assert!(
+        matches!(got.first(), Some(Got::Account(e)) if e == "me@x.org"),
+        "told, before the page"
+    );
+    let again = s.answer(&mut g, Ask::List(String::new()));
+    assert!(!again.iter().any(|g| matches!(g, Got::Account(_))), "once");
+}
