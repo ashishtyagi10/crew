@@ -140,3 +140,44 @@ fn folding_a_long_mail_never_leaves_it_scrolled_past_its_end() {
         "the folded mail shows: {shown}"
     );
 }
+
+#[test]
+fn a_sent_reply_shows_when_its_thread_opens_again() {
+    let _g = crate::app::motion_test_guard();
+    let (mut p, _) = reading();
+    typed(&mut p, "r");
+    typed(&mut p, "Yes.");
+    p.cells(80, 30);
+    p.send_reply();
+    p.take(crate::inbox::worker::Got::Sent("ann@x.org".into()));
+    let mut mails = p.reading.as_ref().unwrap().mails.clone().unwrap();
+    mails[0].text = "word\n\n".repeat(40);
+    let mine = crate::inbox::api::Mail {
+        from: "me <me@y.org>".into(),
+        text: "Yes, Friday works for me.".into(),
+        ..Default::default()
+    };
+    mails.push(mine);
+    p.take(crate::inbox::worker::Got::Opened("t1".into(), mails));
+    let shown: String = p.cells(80, 30).into_iter().map(|c| c.c).collect();
+    assert!(
+        shown.contains("Yes, Friday works for me."),
+        "the reply on screen: scroll {} {shown}",
+        p.reading.as_ref().unwrap().scroll
+    );
+    assert!(p.reading.as_ref().unwrap().scroll > 0, "scrolled to it");
+}
+
+#[test]
+fn a_thread_opened_again_draws_its_new_mails() {
+    let (mut p, _) = reading();
+    p.cells(80, 30);
+    let mut mails = p.reading.as_ref().unwrap().mails.clone().unwrap();
+    mails[0].text = "A different word now.".into();
+    p.take(crate::inbox::worker::Got::Opened("t1".into(), mails));
+    let shown: String = p.cells(80, 30).into_iter().map(|c| c.c).collect();
+    assert!(
+        shown.contains("A different word now."),
+        "not the old layout: {shown}"
+    );
+}

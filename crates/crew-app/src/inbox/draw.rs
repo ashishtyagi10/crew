@@ -99,6 +99,7 @@ impl InboxPane {
                     put(&mut cv, list, inner);
                 }
                 if let (Some(b), Some(r)) = (k.mail, reading) {
+                    r.seen.set((cols, rows));
                     let counter = self.counter().unwrap_or_default();
                     let room = b.w.saturating_sub(8 + str_w(&counter) as u16);
                     let subject = super::reader::subject(r);

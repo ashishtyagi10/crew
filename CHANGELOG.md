@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.72
+
+**`/inbox`: the reply you send shows in its thread.** Fifth and last round
+of the fourth inbox loop.
+- **Your sent reply now appears.** After sending, the thread opens again
+  with your reply in it, but crew kept drawing the thread as it was before,
+  without the reply, until something else changed how it was laid out. That
+  has been so since the reply box arrived (v0.27.55); it is fixed.
+- **The thread opens at its end**, where your reply is, instead of where you
+  were scrolled before you sent it.
+
 ## 0.27.71
 
 **`/inbox`: folding a mail never leaves you looking at nothing.** Fourth
