@@ -21,6 +21,14 @@ fn glass_lets_the_desktop_through() {
     for id in ALL_THEMES {
         let Some(l) = id.theme().liquid else { continue };
         let name = id.as_str();
+        // Neon's holographic glass is a dark room with a grid of its own
+        // (`holo`): its window keeps most of the desktop out, and its panes
+        // are thinner glass over the grid, which shows through them.
+        if l.holo > 0.0 {
+            assert!((0.6..=0.9).contains(&l.window), "{name}: window");
+            assert!(l.body < 0.5 && l.pane_cover() < 0.95, "{name}: body");
+            continue;
+        }
         assert!(
             l.window <= 0.35,
             "{name}: the gaps hide {:.2} of the desktop",

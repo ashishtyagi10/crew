@@ -19,6 +19,7 @@ mod frame;
 mod glass;
 mod glyphmap;
 mod gpu;
+pub mod holo;
 mod images;
 pub mod notch;
 mod paint;

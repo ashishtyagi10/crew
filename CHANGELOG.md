@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.5
+
+**`neon` is a holographic control room: glass over a lit grid, in electric
+blue, violet and cyan.**
+- `neon-dark` is a near-black blue-violet window with a fine grid in the
+  electric blue behind the panes, brighter every fourth line with a
+  crosshair where those cross, lit from above and in violet from the lower
+  right. While a pane works, sparks drift up it and packets of light run up
+  its bright lines; idle they hold still and cost no frames, and Motion off
+  holds them too.
+- Each pane is a slab of blue-smoked glass the grid shows through: a
+  cyan-white rim, the frame's light bleeding a little way in and turning
+  cyan to violet across the card like a hologram's foil, and a halo of blue
+  round it. The pane you are in burns cyan. Pane titles, agent names and
+  `@project` tags keep to cyan, blue and violet too.
+- The words are bright white, the accent the electric blue, progress cyan
+  and broadcast violet, and the focus ring runs cyan to violet. The face is
+  SF Mono.
+- `neon-light` is the same three neons on a cool white page, as print: deep
+  navy words and an electric-blue frame. The yellow, pink and green
+  scoreboard is gone.
+
 ## 0.28.4
 
 **`/todo reminders`: your todo list and Apple Reminders, kept in step.**

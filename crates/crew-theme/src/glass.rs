@@ -181,10 +181,11 @@ pub fn style_for(t: &Theme) -> GlassStyle {
     if t.is_tube() {
         return tube_glass(t);
     }
-    if t.liquid.is_none() {
-        return print(t);
+    match t.liquid {
+        None => print(t),
+        Some(l) if l.holo > 0.0 => crate::holo::holo_glass(t, l.holo),
+        Some(_) => liquid_glass(t),
     }
-    liquid_glass(t)
 }
 
 /// An Ink Reader page's "glass": none. The card is the page and its edge is

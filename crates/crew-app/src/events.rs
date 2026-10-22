@@ -260,8 +260,10 @@ impl CrewApp {
                 // was already there.
                 let drift = crew_theme::theme().modern.map_or(0, |m| m.drift_ms);
                 let pace = crate::washgate::pace(drift, busy);
-                self.wash
+                let phase = self
+                    .wash
                     .advance(crate::anim::now_ms(), pace, crate::motion::level());
+                crew_render::holo::set_phase(phase); // neon's sparks ride it
                 crew_theme::poleshift::set_shift(
                     self.wash.hue_deg(crate::gradientlvl::level().span_deg()),
                 );

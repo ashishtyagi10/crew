@@ -4261,12 +4261,25 @@ night is the classic) or pin one palette per appearance.
 - **`crt`** — **`crt-green`** and **`crt-amber`**: a phosphor tube in glass,
   its faceplate a deep smoke (which phosphor green needs over a white
   desktop) and its panes lit by their own phosphor.
-- **`neon`** — **`neon-dark`** and **`neon-light`**: a neon scoreboard,
-  opaque like print. `neon-dark` is a deep indigo page with lavender-white
-  words, the focused frame and the accent in yellow, progress cyan, the bell
-  hot pink, a live pane green and broadcast violet. `neon-light` is the same
-  board on a pale lavender page: deep indigo words, a hot-pink frame and
-  accent, and a warm red bell. The face is JetBrains Mono.
+- **`neon`** — **`neon-dark`** and **`neon-light`**: a holographic control
+  room in electric blue, violet and cyan. `neon-dark` is a near-black
+  blue-violet window that lets a little of the desktop through, with a fine
+  grid in the electric blue behind the panes (every fourth line brighter, a
+  crosshair where those cross, a point at every other crossing) lit from
+  above and from the lower right in violet. Sparks drift up the grid and
+  packets of light run up its bright lines while a pane works, on the same
+  clock as the focus ring's hue breath, so an idle window draws nothing new
+  and Motion off holds them still. Each pane is a slab of blue-smoked glass
+  over the grid: a cyan-white rim, the frame's light bleeding into the slab
+  and turning cyan to violet across it like a hologram's foil, and a halo of
+  blue round it in place of a shadow; the focused pane's halo burns cyan.
+  Words are bright white; the accent is the electric blue, progress cyan,
+  broadcast violet, and the focus ring runs cyan to violet. Pane titles,
+  agent names and `@project` tags keep to the same family — twelve
+  signature colours from cyan to violet in place of the terminal's red,
+  yellow and green. `neon-light` is
+  print: a cool white page, deep navy words, an electric-blue frame and
+  accent, cyan progress and violet broadcast. The face is SF Mono.
 
 The picker offers the six themes first and then **every other palette by
 name**, under a heading; a palette named there is pinned (no rotation). The

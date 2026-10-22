@@ -65,6 +65,10 @@ pub fn slot_color(slot: usize, t: &Theme) -> (u8, u8, u8) {
     if t.is_tube() {
         return tube_rung(slot, t);
     }
+    // Neon's holographic page keeps its signatures inside its own neons.
+    if t.liquid.is_some_and(|l| l.holo > 0.0) {
+        return lift(crate::holo::tag_rung(slot), t);
+    }
     lift(t.ansi[CHROMATIC[slot]], t)
 }
 
