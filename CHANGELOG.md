@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.88
+
+**`/inbox`: a thread that will not open says so.** Fourth round of the
+seventh inbox loop.
+- **When Gmail cannot open a thread, the reader says why** and that Esc,
+  then Enter, tries again. It said "loading…" for good, with nothing to try.
+- **A reply, forward or archive pressed before it opened is let go**,
+  rather than acting on that thread whenever it next opened.
+
 ## 0.27.87
 
 **`/inbox`: a reply waiting out a sign-in is kept.** Third round of the

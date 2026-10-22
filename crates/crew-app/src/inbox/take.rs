@@ -113,6 +113,14 @@ impl InboxPane {
                 }
                 self.end_after_send();
             }
+            Got::Unopened(id, e) => {
+                self.busy = false;
+                if let Some(r) = self.reading.as_mut().filter(|r| r.thread.id == id) {
+                    r.failed = Some(e);
+                }
+                // `r`, `f` or `a` asked before it opened: nothing to act on.
+                self.then = self.then.take().filter(|(_, t)| *t != id);
+            }
             Got::Picture(key, bm) => self.pics.set(key, bm),
             Got::Saved(Ok(path)) => {
                 let name = path.file_name().map(|n| n.to_string_lossy().into_owned());

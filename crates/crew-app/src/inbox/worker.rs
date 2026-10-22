@@ -65,7 +65,10 @@ impl State {
                 Some(p) => self.list(g, Some(p)),
                 None => Vec::new(),
             },
-            Ask::Open(id) => vec![g.open(&id).map_or_else(fail, |m| Got::Opened(id, m))],
+            Ask::Open(id) => vec![match g.open(&id) {
+                Ok(m) => Got::Opened(id, m),
+                Err(e) => failed_as(e, |e| Got::Unopened(id, e)),
+            }],
             // The pane already shows the change; a refusal is said, and the
             // list comes back as Gmail has it, which puts the row right.
             Ask::Relabel { id, add, remove } => {
@@ -93,15 +96,18 @@ impl State {
             Ask::Send { thread_id, raw, to } => {
                 vec![g
                     .send(&thread_id, &raw)
-                    .map_or_else(not_sent, |()| Got::Sent(to))]
+                    .map_or_else(|e| failed_as(e, Got::NotSent), |()| Got::Sent(to))]
             }
             Ask::Mail(o) => {
                 let went = super::outgoing::send(g, &o);
                 let to = o.to.clone();
-                vec![went.map_or_else(not_sent, |()| match o.forward.is_some() {
-                    true => Got::Forwarded(to),
-                    false => Got::Sent(to),
-                })]
+                vec![went.map_or_else(
+                    |e| failed_as(e, Got::NotSent),
+                    |()| match o.forward.is_some() {
+                        true => Got::Forwarded(to),
+                        false => Got::Sent(to),
+                    },
+                )]
             }
             Ask::Unsubscribe { how, who } => {
                 vec![g
@@ -173,10 +179,11 @@ fn fail(e: String) -> Got {
     }
 }
 
-/// Mail that did not go: its own answer, unless the grant ended with it.
-fn not_sent(e: String) -> Got {
+/// A call whose failure is its own answer (mail that did not go, a thread
+/// that did not open), unless the grant ended with it.
+fn failed_as(e: String, own: impl FnOnce(String) -> Got) -> Got {
     match fail(e) {
-        Got::Failed(e) => Got::NotSent(e),
+        Got::Failed(e) => own(e),
         ended => ended,
     }
 }
