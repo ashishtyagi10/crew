@@ -9,6 +9,8 @@ use std::collections::BTreeMap;
 
 use crew_render::CellView;
 
+use crate::pane::{Pane, PaneContent};
+
 /// An active selection over a non-terminal pane's rendered grid. Coordinates are
 /// `(col, row)` cells; the selection is linear (row-major), like a terminal's.
 #[derive(Clone, Copy)]
@@ -41,12 +43,34 @@ impl CellSel {
 
 /// Wash the background of every selected cell with `bg`. Only cells that carry a
 /// glyph exist in `cells`, so this highlights the actual text, not empty space.
-pub(crate) fn highlight(cells: &mut [CellView], sel: &CellSel, bg: (u8, u8, u8)) {
+/// What is lit is what is copied: within `pane`'s reach ([`keeps`]).
+pub(crate) fn highlight(cells: &mut [CellView], sel: &CellSel, bg: (u8, u8, u8), pane: &Pane) {
+    light(cells, sel, bg, keeps(pane, sel));
+}
+
+/// [`highlight`], lighting only the cells `keep` keeps.
+pub(crate) fn light(
+    cells: &mut [CellView],
+    sel: &CellSel,
+    bg: (u8, u8, u8),
+    keep: impl Fn(u16, u16) -> bool,
+) {
     for cell in cells.iter_mut() {
-        if sel.contains(cell.col, cell.row) {
+        if sel.contains(cell.col, cell.row) && keep(cell.col, cell.row) {
             cell.bg = bg;
         }
     }
+}
+
+/// Whether a selection begun at `sel.anchor` may take `pane`'s cell at
+/// `(col, row)`: an inbox keeps to the card the drag began in
+/// (`InboxPane::drag_card`), every other pane takes all of it.
+pub(crate) fn keeps(pane: &Pane, sel: &CellSel) -> impl Fn(u16, u16) -> bool {
+    let card = match &pane.content {
+        PaneContent::Inbox(p) => p.drag_card(pane.grid.cols, pane.grid.rows, sel.anchor),
+        _ => None,
+    };
+    move |col, row| card.is_none_or(|b| b.local(row, col).is_some())
 }
 
 /// Extract the selected text from `cells`: each selected row from its first to
@@ -125,3 +149,7 @@ pub(crate) fn line_span(cells: &[CellView], row: u16) -> Option<(u16, u16)> {
 #[cfg(test)]
 #[path = "gridsel_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "gridselinbox_tests.rs"]
+mod inbox_tests;

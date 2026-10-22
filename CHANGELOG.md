@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.66
+
+**`/inbox`: what you select is what you copy.** Fourth round of the third
+inbox loop.
+- **A drag's highlight keeps to its card too**, as the copy has since the
+  last release: no card edges and none of the list beside the mail are lit.
+
 ## 0.27.65
 
 **`/inbox`: copying text from a mail copies only the mail.** Third round of

@@ -99,7 +99,10 @@ fn a_drag_copies_the_inside_of_its_card_and_nothing_beside_it() {
         anchor: (mail.col + 1, mail.row),
         cursor: (149, mail.row + 6),
     };
-    let text = crate::gridsel::selection_text(&p.copy_cells(150, 30, sel.anchor), &sel);
+    let card = p.drag_card(150, 30, sel.anchor).expect("the mail's card");
+    let mut cells = p.cells(150, 30);
+    cells.retain(|c| card.local(c.row, c.col).is_some());
+    let text = crate::gridsel::selection_text(&cells, &sel);
     assert!(text.contains("Track it"), "{text}");
     assert!(!text.contains('\u{2502}'), "no card's edge: {text}");
     assert!(
