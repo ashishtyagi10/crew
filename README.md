@@ -907,8 +907,9 @@ are one page each and stay put. And `auto` follows the OS appearance,
 serving the dark page in dark mode and the light one in light mode (re-wire
 the pairing with `theme_dark` / `theme_light`).
 
-`neon` is a holographic control room in electric blue, violet and cyan. On
-the dark page (`neon-dark`) a fine grid glows in electric blue behind the
+`neon` is a holographic control room in electric blue, violet and cyan, and
+it is always dark, whatever the OS appearance or the clock. A fine grid glows
+in electric blue behind the
 panes, brighter every fourth line with a crosshair where those cross, and
 sparks drift up it — and packets of light run up its bright lines — while a
 pane works (they hold still when nothing does, and at Motion off). Each pane
@@ -916,9 +917,8 @@ is a slab of blue-smoked glass over the grid, which shows through it: a
 cyan-white rim, its frame's light bleeding a little way in and turning cyan
 to violet across the card like a hologram's foil, and a halo of blue round
 it; the pane you are in burns cyan. Words are bright white and the face is
-SF Mono. The light page (`neon-light`) is print: deep navy words and an
-electric-blue frame on a cool white page. `neon` serves whichever matches
-the OS appearance, the way `auto` does. That makes **ten palettes** in all.
+SF Mono. Its palette's own name, `neon-dark`, loads as `neon`, and so does
+the retired `neon-light`. That makes **nine palettes** in all.
 
 Almost every colour in a palette is **derived, not chosen**: the ramp produces
 the whole text ladder and all sixteen ANSI slots from the page and the ink, a

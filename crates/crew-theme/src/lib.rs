@@ -145,7 +145,7 @@ pub use presets_glass::GLASS_NIGHT;
 pub use presets_glass_clear::GLASS_CLEAR;
 pub use presets_modern::NEBULA;
 pub use presets_modern_light::BLOSSOM;
-pub use presets_neon::{NEON_DARK, NEON_LIGHT};
+pub use presets_neon::NEON_DARK;
 pub use presets_paper::{PAPER_DARK, PAPER_LIGHT};
 pub use tagcolor::{slot_color, tag_color, tag_slot};
 
@@ -184,12 +184,11 @@ pub enum ThemeId {
     GlassNight,
     GlassClear,
     NeonDark,
-    NeonLight,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 10] = [
+pub const ALL_THEMES: [ThemeId; 9] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::Nebula,
@@ -199,7 +198,6 @@ pub const ALL_THEMES: [ThemeId; 10] = [
     ThemeId::CrtGreen,
     ThemeId::CrtAmber,
     ThemeId::NeonDark,
-    ThemeId::NeonLight,
 ];
 
 impl ThemeId {
@@ -214,7 +212,6 @@ impl ThemeId {
             ThemeId::GlassNight => "glass-night",
             ThemeId::GlassClear => "glass-clear",
             ThemeId::NeonDark => "neon-dark",
-            ThemeId::NeonLight => "neon-light",
         }
     }
 
@@ -229,8 +226,7 @@ impl ThemeId {
             ThemeId::Blossom => "violet\u{2192}rose on warm white (modern light)",
             ThemeId::GlassNight => "iPhone liquid glass, clear and navy-smoked, white text",
             ThemeId::GlassClear => "iPhone liquid glass, clear and lightly smoked, white text",
-            ThemeId::NeonDark => "neon: holographic glass over a lit grid (dark)",
-            ThemeId::NeonLight => "neon: electric blue on a cool white page (light)",
+            ThemeId::NeonDark => "neon: holographic glass over a lit grid",
         }
     }
 
@@ -267,14 +263,14 @@ impl ThemeId {
             ThemeId::GlassClear | ThemeId::GlassNight | ThemeId::Nebula | ThemeId::Blossom => {
                 RandomMode::Glass
             }
-            ThemeId::NeonDark | ThemeId::NeonLight => RandomMode::Neon,
+            ThemeId::NeonDark => RandomMode::Neon,
         }
     }
 
     /// What naming this palette selects. A palette that is its rotation's
     /// whole pool IS that rotation, so it resolves to the rotation:
-    /// `paper-dark` is `dark` and `paper-light` is `light`, and the pickers
-    /// list each theme once (the user, 2026-10-22: "remove the duplicate
+    /// `paper-dark` is `dark`, `paper-light` is `light` and `neon-dark` is
+    /// `neon`, and the pickers list each theme once (the user, 2026-10-22: "remove the duplicate
     /// themes … dark == paper-dark, light == paper-light"). Every other
     /// palette pins itself.
     pub fn selection(self) -> Selection {
@@ -338,8 +334,9 @@ impl ThemeId {
             // 2026-10-09: "glass-sky and glass-dusk … should also be clear").
             "glass-light" | "glass-sky" | "glass-dawn" => Some(ThemeId::GlassClear),
             "glass-night" | "glass-dark" => Some(ThemeId::GlassNight),
-            "neon-dark" => Some(ThemeId::NeonDark),
-            "neon-light" => Some(ThemeId::NeonLight),
+            // Neon had a light page until 2026-10-22; a config that saved
+            // it gets the one neon there is.
+            "neon-dark" | "neon-light" => Some(ThemeId::NeonDark),
             _ => None,
         }
     }
@@ -355,7 +352,6 @@ impl ThemeId {
             ThemeId::GlassNight => &GLASS_NIGHT,
             ThemeId::GlassClear => &GLASS_CLEAR,
             ThemeId::NeonDark => &NEON_DARK,
-            ThemeId::NeonLight => &NEON_LIGHT,
         }
     }
 
@@ -445,8 +441,8 @@ pub enum RandomMode {
     Light,
     Crt,
     Glass,
-    /// The neon control room: one theme in two pages, served dark or light with
-    /// the appearance, the way `auto` picks its side.
+    /// The neon control room: one dark page of holographic glass, whatever
+    /// the appearance (the user, 2026-10-22: "keep it default dark").
     Neon,
     Auto,
 }
@@ -486,9 +482,7 @@ impl RandomMode {
             RandomMode::Glass => {
                 "iPhone liquid glass \u{2014} clear smoked panes, bright white text, your desktop behind"
             }
-            RandomMode::Neon => {
-                "neon \u{2014} holographic glass and a lit grid, dark or light with your OS"
-            }
+            RandomMode::Neon => "neon \u{2014} holographic glass over a lit grid, always dark",
             RandomMode::Auto => {
                 "light by day, dark by night \u{2014} OS appearance, or the clock when it is pinned"
             }
@@ -519,8 +513,9 @@ impl RandomMode {
     }
 
     /// The one palette this rotation serves when its pool is a single page
-    /// (`dark` and `light`, the Ink Reader pages). `None` for a pool that
-    /// changes palette, and for `auto`, whose page follows the appearance.
+    /// (`dark` and `light`, the Ink Reader pages, and `neon`). `None` for a
+    /// pool that changes palette, and for `auto`, whose page follows the
+    /// appearance.
     pub fn sole_palette(self) -> Option<ThemeId> {
         if self == RandomMode::Auto {
             return None;
@@ -533,20 +528,11 @@ impl RandomMode {
     }
 
     /// Whether this rotation serves the page for the current appearance —
-    /// `auto` its pairing's side, `neon` its dark or light page — so an
-    /// appearance change has to re-serve it ([`follow_appearance`]).
+    /// `auto`, its pairing's side — so an appearance change has to re-serve
+    /// it ([`follow_appearance`]). Neon did too while it had a light page,
+    /// and served it by day on a Mac pinned to Dark (the clock decides then).
     pub fn follows_appearance(self) -> bool {
-        matches!(self, RandomMode::Auto | RandomMode::Neon)
-    }
-
-    /// Whether this mode may put `id` on right now: its pool, narrowed to
-    /// the page for the current appearance on `neon`, whose two pages are
-    /// one theme rather than a rotation.
-    fn serves(self, id: ThemeId) -> bool {
-        match self {
-            RandomMode::Neon => self.in_pool(id) && id.is_dark() == auto_dark(),
-            m => m.in_pool(id),
-        }
+        self == RandomMode::Auto
     }
 
     /// Whether `id` belongs to this mode's rotation pool: its
@@ -591,7 +577,8 @@ impl Selection {
 /// name still parse so old configs keep loading — a name that stops parsing is
 /// a config line that silently does nothing, which is exactly the failure this
 /// list exists to prevent. `paper-dark` and `paper-light` load as the `dark`
-/// and `light` they are ([`ThemeId::selection`]).
+/// and `light` they are, and `neon-dark` (and the retired `neon-light`) as
+/// `neon` ([`ThemeId::selection`]).
 pub fn parse_selection(s: &str) -> Option<Selection> {
     let s = s.trim();
     // `modern` was a dark-page rotation and `modern-light` a light-page one;
@@ -631,8 +618,8 @@ pub fn parse_selection(s: &str) -> Option<Selection> {
 }
 
 /// The palettes a picker offers one by one, in [`ALL_THEMES`] order: those
-/// that pin themselves. The Ink Reader pages are left out because the
-/// picker already lists them as `dark` and `light` (see
+/// that pin themselves. The Ink Reader pages and neon's are left out
+/// because the picker already lists them as `dark`, `light` and `neon` (see
 /// [`ThemeId::selection`]).
 pub fn pinnable_themes() -> impl Iterator<Item = ThemeId> {
     ALL_THEMES
@@ -765,13 +752,13 @@ pub fn random_pick(current: ThemeId, seed: u64, mode: RandomMode) -> ThemeId {
     let mut others: Vec<ThemeId> = ALL_THEMES
         .iter()
         .copied()
-        .filter(|&t| mode.serves(t) && t != current)
+        .filter(|&t| mode.in_pool(t) && t != current)
         .collect();
     if others.is_empty() {
         others = ALL_THEMES
             .iter()
             .copied()
-            .filter(|&t| mode.serves(t))
+            .filter(|&t| mode.in_pool(t))
             .collect();
     }
     let idx = (seed.wrapping_mul(6364136223846793005).rotate_right(29) as usize) % others.len();

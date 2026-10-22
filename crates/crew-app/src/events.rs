@@ -296,7 +296,7 @@ impl CrewApp {
                 // pinned — turning Auto ON must stop the clock fallback, and
                 // turning it OFF must start it.
                 self.config.publish_appearance_sources();
-                // An appearance flip lands immediately in `auto` and `neon`.
+                // An appearance flip lands immediately in `auto`.
                 if crew_theme::follow_appearance(crate::chattime::unix_now_ms()) {
                     crate::palette::set_accent(self.config.accent_rgb());
                     self.redraw();

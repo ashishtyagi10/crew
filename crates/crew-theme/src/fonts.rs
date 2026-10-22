@@ -132,9 +132,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         }
         // Neon: a control room's lettering — SF Mono, the cleanest and most
         // precise favourite, then Geist Mono's geometric cut.
-        ThemeId::NeonDark | ThemeId::NeonLight => {
-            &["SF Mono", "Geist Mono", "JetBrains Mono", "Menlo", "Lilex"]
-        }
+        ThemeId::NeonDark => &["SF Mono", "Geist Mono", "JetBrains Mono", "Menlo", "Lilex"],
         // CRT: a terminal face with squared-off shoulders — straight modern
         // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
         // contemporary take on that IBM-terminal DNA).
