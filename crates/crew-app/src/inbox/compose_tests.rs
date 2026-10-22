@@ -97,7 +97,7 @@ fn a_reply_is_sent_in_its_thread_and_stays_until_gmail_says_it_went() {
     );
     assert!(!raw.is_empty());
     assert!(p.compose.as_ref().is_some_and(|c| c.sending));
-    p.take(Got::Failed("network down".into()));
+    p.take(Got::NotSent("network down".into()));
     assert_eq!(text(&p), "Friday works.", "a failure keeps the words");
     assert!(!p.compose.as_ref().unwrap().sending);
     p.take(Got::Sent(to));

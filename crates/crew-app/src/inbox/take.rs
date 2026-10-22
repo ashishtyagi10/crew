@@ -145,12 +145,15 @@ impl InboxPane {
                 self.busy = false;
                 self.failed = Some(e);
             }
-            Got::Failed(e) => {
-                self.busy = false;
+            Got::NotSent(e) => {
                 // A reply that did not go stays, words and all.
                 if let Some(c) = self.compose.as_mut() {
                     c.sending = false;
                 }
+                self.note = format!("not sent: {e}");
+            }
+            Got::Failed(e) => {
+                self.busy = false;
                 // A grant made for the read-only scope (v0.27.29) cannot file
                 // or draft, and Google adds no scope to an installed app's
                 // grant without a fresh consent.

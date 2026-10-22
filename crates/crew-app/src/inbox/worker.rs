@@ -93,12 +93,12 @@ impl State {
             Ask::Send { thread_id, raw, to } => {
                 vec![g
                     .send(&thread_id, &raw)
-                    .map_or_else(fail, |()| Got::Sent(to))]
+                    .map_or_else(not_sent, |()| Got::Sent(to))]
             }
             Ask::Mail(o) => {
                 let went = super::outgoing::send(g, &o);
                 let to = o.to.clone();
-                vec![went.map_or_else(fail, |()| match o.forward.is_some() {
+                vec![went.map_or_else(not_sent, |()| match o.forward.is_some() {
                     true => Got::Forwarded(to),
                     false => Got::Sent(to),
                 })]
@@ -170,6 +170,14 @@ fn fail(e: String) -> Got {
     match e.starts_with("invalid_grant") {
         true => Got::Ended(e),
         false => Got::Failed(e),
+    }
+}
+
+/// Mail that did not go: its own answer, unless the grant ended with it.
+fn not_sent(e: String) -> Got {
+    match fail(e) {
+        Got::Failed(e) => Got::NotSent(e),
+        ended => ended,
     }
 }
 
