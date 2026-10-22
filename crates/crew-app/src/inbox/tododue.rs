@@ -5,7 +5,7 @@
 //! people mean it: "EOD" is that day at 5pm, "end of the week" that Friday at
 //! 5pm, "next Friday" the Friday of the week after. A date that reads two
 //! ways ("10/11") is not a date `/todo` reads, so it is left blank.
-use chrono::{Datelike, Duration, Local, NaiveDateTime, TimeZone};
+use chrono::{Datelike, Duration, Local, NaiveDateTime};
 
 use super::super::super::api::Mail;
 use super::super::Guess;
@@ -107,30 +107,16 @@ fn end_of(phrase: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, bool, Strin
     Some((due, false, format!("next {wd}")))
 }
 
-/// An invite's start (`DTSTART`) as the due date, unless it was cancelled.
+/// An invite's start as the due date, in your time, unless it was
+/// cancelled: read as the invite card reads it (`ics`), a named zone's time
+/// in that zone.
 fn invite(m: &Mail) -> Option<Guess> {
-    let ics = m.calendar.as_deref()?;
-    if ics.contains("METHOD:CANCEL") {
-        return None;
-    }
-    let line = ics.lines().find(|l| l.starts_with("DTSTART"))?;
-    let v = line.split_once(':')?.1.trim();
-    let (due, timed) = match v.len() {
-        8 => (
-            chrono::NaiveDate::parse_from_str(v, "%Y%m%d")
-                .ok()?
-                .and_hms_opt(9, 0, 0)?,
-            false,
-        ),
-        _ => {
-            let t = NaiveDateTime::parse_from_str(&v[..v.len().min(15)], "%Y%m%dT%H%M%S").ok()?;
-            // UTC ("Z") read in local time; a named zone's time as written.
-            let t = match v.ends_with('Z') {
-                true => Local.from_utc_datetime(&t).naive_local(),
-                false => t,
-            };
-            (t, true)
-        }
+    use crate::inbox::ics::{self, icstz::Placed};
+    let inv = ics::parse(m.calendar.as_deref()?).filter(|i| !i.cancelled)?;
+    let (due, timed) = match ics::icstz::place(inv.start.as_ref()?, &inv.zones) {
+        Placed::Day(d) => (d.and_hms_opt(9, 0, 0)?, false),
+        Placed::At(t, _) => (t.with_timezone(&Local).naive_local(), true),
+        Placed::Floating(t) | Placed::Unplaced(t, _) => (t, true),
     };
     Some(Guess {
         text: due_text(due, timed),

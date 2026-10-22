@@ -1,0 +1,395 @@
+# The invite reader's corpus (goal 2026-10-22-inbox-calendar, phase 1):
+# invites written for the test in the shapes Google, Outlook, Teams, Zoom,
+# Apple, Thunderbird and an airline send, each with what the card must say
+# to someone reading it in New York and to someone in Kolkata, on Thu Oct
+# 22 2026. Every time was worked out by hand from the zone's offset on the
+# day, not copied from the reader's answer.
+
+[[invite]]
+name = "Google Calendar, Meet link, in the reader's own zone"
+summary = "Q4 planning"
+organizer = "Ann Lee"
+new_york = "Fri Oct 30 · 10:00–10:45"
+kolkata = "Fri Oct 30 · 19:30–20:15 · 10:00–10:45 in New York"
+link = "https://meet.google.com/abc-defg-hij"
+ics = '''
+BEGIN:VCALENDAR
+METHOD:REQUEST
+BEGIN:VEVENT
+DTSTART;TZID=America/New_York:20261030T100000
+DTEND;TZID=America/New_York:20261030T104500
+SUMMARY:Q4 planning
+ORGANIZER;CN=Ann Lee:mailto:ann@x.org
+ATTENDEE;CN=Ann Lee;PARTSTAT=ACCEPTED:mailto:ann@x.org
+ATTENDEE;PARTSTAT=NEEDS-ACTION:mailto:me@x.org
+X-GOOGLE-CONFERENCE:https://meet.google.com/abc-defg-hij
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "Outlook writes Windows' name for the zone, after the clocks went back"
+summary = "Vendor sync"
+new_york = "Tue Nov 3 · 12:00–12:30 · 09:00–09:30 in Los Angeles"
+kolkata = "Tue Nov 3 · 22:30–23:00 · 09:00–09:30 in Los Angeles"
+ics = '''
+BEGIN:VCALENDAR
+METHOD:REQUEST
+BEGIN:VTIMEZONE
+TZID:Pacific Standard Time
+BEGIN:STANDARD
+DTSTART:16010101T020000
+TZOFFSETFROM:-0700
+TZOFFSETTO:-0800
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=1SU;BYMONTH=11
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:16010101T020000
+TZOFFSETFROM:-0800
+TZOFFSETTO:-0700
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=2SU;BYMONTH=3
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTART;TZID=Pacific Standard Time:20261103T090000
+DTEND;TZID=Pacific Standard Time:20261103T093000
+SUMMARY;LANGUAGE=en-US:Vendor sync
+ORGANIZER;CN=Cy Diaz:mailto:cy@corp.example
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "Outlook's zone of its own, placed by the rules it sends"
+summary = "Budget review"
+new_york = "Wed Oct 28 · 15:00–16:00"
+kolkata = "Thu Oct 29 · 00:30–01:30"
+ics = '''
+BEGIN:VCALENDAR
+METHOD:REQUEST
+BEGIN:VTIMEZONE
+TZID:Customized Time Zone
+BEGIN:STANDARD
+DTSTART:16010101T020000
+TZOFFSETFROM:-0400
+TZOFFSETTO:-0500
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=1SU;BYMONTH=11
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:16010101T020000
+TZOFFSETFROM:-0500
+TZOFFSETTO:-0400
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=2SU;BYMONTH=3
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTART;TZID="Customized Time Zone":20261028T150000
+DTEND;TZID="Customized Time Zone":20261028T160000
+SUMMARY:Budget review
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "Zoom writes UTC, the link in its words"
+summary = "Design crit"
+new_york = "Wed Nov 4 · 10:00–11:00"
+kolkata = "Wed Nov 4 · 20:30–21:30"
+link = "https://us02web.zoom.us/j/8812345678?pwd=abc"
+ics = '''
+BEGIN:VCALENDAR
+METHOD:REQUEST
+BEGIN:VEVENT
+DTSTART:20261104T150000Z
+DTEND:20261104T160000Z
+SUMMARY:Design crit
+LOCATION:https://us02web.zoom.us/j/8812345678?pwd=abc
+DESCRIPTION:Bo is inviting you to a scheduled Zoom meeting.\n\nJoin Zoom Meeting\nhttps://us02web.zoom.us/j/8812345678?pwd=abc\n\nMeeting ID: 881 234 5678
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "a whole day"
+summary = "Thanksgiving"
+new_york = "Thu Nov 26 · all day"
+kolkata = "Thu Nov 26 · all day"
+ics = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20261126
+DTEND;VALUE=DATE:20261127
+SUMMARY:Thanksgiving
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "three whole days, the end date not one of them"
+summary = "Offsite"
+new_york = "Fri Dec 18 – Sun Dec 20 · all day"
+kolkata = "Fri Dec 18 – Sun Dec 20 · all day"
+ics = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20261218
+DTEND;VALUE=DATE:20261221
+SUMMARY:Offsite
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "Teams, weekly, Windows' Eastern name"
+summary = "Platform weekly"
+new_york = "Tue Oct 27 · 11:00–11:30"
+kolkata = "Tue Oct 27 · 20:30–21:00 · 11:00–11:30 in New York"
+repeat = "every week on Tuesday, until Dec 15"
+link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc%40thread.v2/0?context=x"
+ics = '''
+BEGIN:VCALENDAR
+METHOD:REQUEST
+BEGIN:VTIMEZONE
+TZID:Eastern Standard Time
+BEGIN:STANDARD
+DTSTART:16010101T020000
+TZOFFSETFROM:-0400
+TZOFFSETTO:-0500
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=1SU;BYMONTH=11
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:16010101T020000
+TZOFFSETFROM:-0500
+TZOFFSETTO:-0400
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=2SU;BYMONTH=3
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+RRULE:FREQ=WEEKLY;UNTIL=20261215T160000Z;INTERVAL=1;BYDAY=TU;WKST=SU
+DTSTART;TZID=Eastern Standard Time:20261027T110000
+DTEND;TZID=Eastern Standard Time:20261027T113000
+SUMMARY;LANGUAGE=en-US:Platform weekly
+LOCATION;LANGUAGE=en-US:Microsoft Teams Meeting
+DESCRIPTION;LANGUAGE=en-US:Join the meeting now <https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc%40thread.v2/0?context=x>
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "an update, after London's clocks went back"
+summary = "Design review (moved)"
+sequence = 2
+new_york = "Thu Oct 29 · 10:00–11:00 · 14:00–15:00 in London"
+kolkata = "Thu Oct 29 · 19:30–20:30 · 14:00–15:00 in London"
+ics = '''
+BEGIN:VCALENDAR
+METHOD:REQUEST
+BEGIN:VEVENT
+UID:review-1@x.org
+SEQUENCE:2
+DTSTART;TZID=Europe/London:20261029T140000
+DTEND;TZID=Europe/London:20261029T150000
+SUMMARY:Design review (moved)
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "a cancellation"
+summary = "Hiring panel"
+cancelled = true
+new_york = "Mon Nov 2 · 14:00–15:00 · 13:00–14:00 in Chicago"
+kolkata = "Tue Nov 3 · 00:30–01:30 · 13:00–14:00 in Chicago"
+ics = '''
+BEGIN:VCALENDAR
+METHOD:CANCEL
+BEGIN:VEVENT
+UID:panel@x.org
+DTSTART;TZID=America/Chicago:20261102T130000
+DTEND;TZID=America/Chicago:20261102T140000
+SUMMARY:Hiring panel
+STATUS:CANCELLED
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "an airline's booking, published, in UTC"
+summary = "Flight UA 123 SFO → ORD"
+new_york = "Sat Dec 12 · 01:30–04:45"
+kolkata = "Sat Dec 12 · 12:00–15:15"
+ics = '''
+BEGIN:VCALENDAR
+METHOD:PUBLISH
+BEGIN:VEVENT
+DTSTART:20261212T063000Z
+DTEND:20261212T094500Z
+SUMMARY:Flight UA 123 SFO → ORD
+LOCATION:San Francisco (SFO)
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "a summary folded across lines, set in Kolkata"
+summary = "Quarterly business review with the India team"
+new_york = "Tue Nov 10 · 07:30–08:30 · 18:00–19:00 in Kolkata"
+kolkata = "Tue Nov 10 · 18:00–19:00"
+ics = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;TZID=Asia/Kolkata:20261110T180000
+DTEND;TZID=Asia/Kolkata:20261110T190000
+SUMMARY:Quarterly business re
+ view with the India team
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "a length rather than an end"
+summary = "Berlin workshop"
+new_york = "Tue Nov 24 · 03:00–04:30 · 09:00–10:30 in Berlin"
+kolkata = "Tue Nov 24 · 13:30–15:00 · 09:00–10:30 in Berlin"
+ics = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;TZID=Europe/Berlin:20261124T090000
+DURATION:PT1H30M
+SUMMARY:Berlin workshop
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "a time in no zone means wherever you are"
+summary = "Morning run"
+new_york = "Thu Nov 5 · 09:00–10:00"
+kolkata = "Thu Nov 5 · 09:00–10:00"
+ics = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART:20261105T090000
+DTEND:20261105T100000
+SUMMARY:Morning run
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "next year says its year"
+summary = "Kickoff"
+new_york = "Fri Jan 15 2027 · 10:00–11:00"
+kolkata = "Fri Jan 15 2027 · 20:30–21:30 · 10:00–11:00 in New York"
+ics = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;TZID=America/New_York:20270115T100000
+DTEND;TZID=America/New_York:20270115T110000
+SUMMARY:Kickoff
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "late in Los Angeles is the next day elsewhere"
+summary = "Launch watch"
+new_york = "Sat Nov 7 · 01:00–04:00 · 22:00–01:00 in Los Angeles"
+kolkata = "Sat Nov 7 · 11:30–14:30 · 22:00–01:00 in Los Angeles"
+ics = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20261106T220000
+DTEND;TZID=America/Los_Angeles:20261107T010000
+SUMMARY:Launch watch
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "a zone nothing knows stays as written"
+summary = "Rover check-in"
+new_york = "Mon Nov 9 · 10:00–11:00 in Mars/Olympus_Mons, as written"
+kolkata = "Mon Nov 9 · 10:00–11:00 in Mars/Olympus_Mons, as written"
+ics = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;TZID=Mars/Olympus_Mons:20261109T100000
+DTEND;TZID=Mars/Olympus_Mons:20261109T110000
+SUMMARY:Rover check-in
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "Apple Calendar quotes its names"
+summary = "1:1"
+organizer = "Lee, Ann"
+new_york = "Mon Oct 26 · 12:00–13:00 · 09:00–10:00 in Los Angeles"
+kolkata = "Mon Oct 26 · 21:30–22:30 · 09:00–10:00 in Los Angeles"
+ics = '''
+BEGIN:VCALENDAR
+METHOD:REQUEST
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20261026T090000
+DTEND;TZID=America/Los_Angeles:20261026T100000
+SUMMARY:1:1
+ORGANIZER;CN="Lee, Ann":mailto:ann@x.org
+ATTENDEE;CN="Bo Park";CUTYPE=INDIVIDUAL;EMAIL="bo@y.org";PARTSTAT=ACCEPTED:mailto:bo@y.org
+ATTENDEE;CN="me";PARTSTAT=NEEDS-ACTION:mailto:me@x.org
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "Thunderbird's long zone name"
+summary = "Paris catch-up"
+new_york = "Thu Nov 12 · 10:00–11:00 · 16:00–17:00 in Paris"
+kolkata = "Thu Nov 12 · 20:30–21:30 · 16:00–17:00 in Paris"
+ics = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;TZID=/mozilla.org/20050126_1/Europe/Paris:20261112T160000
+DTEND;TZID=/mozilla.org/20050126_1/Europe/Paris:20261112T170000
+SUMMARY:Paris catch-up
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "a series, with one occurrence moved, reads as the series"
+summary = "Standup"
+new_york = "Mon Oct 26 · 09:30–09:45"
+kolkata = "Mon Oct 26 · 19:00–19:15 · 09:30–09:45 in New York"
+repeat = "every weekday"
+ics = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+RECURRENCE-ID;TZID=America/New_York:20261028T093000
+DTSTART;TZID=America/New_York:20261028T110000
+DTEND;TZID=America/New_York:20261028T111500
+SUMMARY:Standup (moved)
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/New_York:20261026T093000
+DTEND;TZID=America/New_York:20261026T094500
+RRULE:FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR
+SUMMARY:Standup
+END:VEVENT
+END:VCALENDAR
+'''
+
+[[invite]]
+name = "Sydney in its summer is the day before in New York"
+summary = "APAC sync"
+new_york = "Wed Nov 4 · 17:00–18:00 · 09:00–10:00 in Sydney"
+kolkata = "Thu Nov 5 · 03:30–04:30 · 09:00–10:00 in Sydney"
+ics = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;TZID=Australia/Sydney:20261105T090000
+DTEND;TZID=Australia/Sydney:20261105T100000
+SUMMARY:APAC sync
+END:VEVENT
+END:VCALENDAR
+'''

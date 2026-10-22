@@ -81,12 +81,11 @@ pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key, first: bool
         _ => rich,
     };
     // Air between messages, more than between a mail's own paragraphs.
-    lay.lines.push(Vec::new());
-    if !first {
-        lay.lines.push(Vec::new());
-    }
+    lay.lines
+        .extend(std::iter::repeat_n(Vec::new(), if first { 1 } else { 2 }));
     lay.lines.push(header(m, k));
     lay.lines.push(Vec::new());
+    super::ics::card::lines(lay, m, k);
     // Said where it shows, under the sender, not past the end of the mail.
     if rich.web > 0 && !r.web {
         let s = if rich.web == 1 { "" } else { "s" };
