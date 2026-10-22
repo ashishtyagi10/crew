@@ -5,9 +5,10 @@
 //! with the star or a paperclip beside it; under them the subject and, in
 //! muted ink, the snippet. One line when it has not: the same across. No
 //! chips and no rules: the air between threads divides them. An unread
-//! thread is bright ink and bold with the accent dot in the gutter, a read
-//! one recedes to muted ink. The selected row wears the wash from edge to
-//! edge, and every colour on it is lifted to read on it.
+//! thread's names, subject and gutter dot wear a colour of their own, bold
+//! ("unread email should appear with different color", 2026-10-22,
+//! [`unread_ink`]); a read one is plain ink with its time receded. The selected row wears the
+//! wash from edge to edge, and every colour on it is lifted to read on it.
 use crew_render::CellView;
 
 use super::line::Line;
@@ -39,14 +40,19 @@ pub(crate) fn washed(out: &mut Vec<CellView>, th: &Thread, row: u16, wash: Optio
     };
     let fit = Fit::at(x.cols, x.two);
     // Every row reads names, subject, snippet, bright to quiet; an unread
-    // one is the bold one, with the dot and its time in bright ink.
+    // one is the bold one in the accent, with the dot and its time bright.
     let (bright, muted) = (ink(t.ink), ink(t.text_muted));
     let accent = ink(crate::palette::accent());
     let when = if th.unread { bright } else { muted };
+    let lead = if th.unread {
+        ink(unread_ink(&t))
+    } else {
+        bright
+    };
     let end = x.cols.saturating_sub(1);
     let mut top = Line::new(end);
     if th.unread {
-        top.put(DOT, DOT + 1, "\u{25cf}", accent, false);
+        top.put(DOT, DOT + 1, "\u{25cf}", lead, false);
     }
     let age = match fit.compact {
         true => super::age::short(th.at_ms, x.now),
@@ -69,7 +75,7 @@ pub(crate) fn washed(out: &mut Vec<CellView>, th: &Thread, row: u16, wash: Optio
         false => usize::from(x.who_w.saturating_sub(tw)),
     };
     let who = super::who::names(th, x.me, room, fit.all);
-    let mut after = top.put(TEXT, stop, &who, bright, th.unread);
+    let mut after = top.put(TEXT, stop, &who, lead, th.unread);
     for tl in &tails {
         let fg = match tl {
             Tail::Draft => ink(crew_theme::readable::danger(&t)),
@@ -88,13 +94,29 @@ pub(crate) fn washed(out: &mut Vec<CellView>, th: &Thread, row: u16, wash: Optio
         s => s,
     };
     // Bold once a row: the names on two lines, the subject on one.
-    let after = body.put(at, stop, subject, bright, th.unread && !x.two);
+    let after = body.put(at, stop, subject, lead, th.unread && !x.two);
     if fit.snippet && !th.snippet.is_empty() && after + AIR + 4 < stop {
         body.put(after + AIR, stop, &th.snippet, muted, false);
     }
     top.emit(out, row, wash);
     if let Some(body) = second {
         body.emit(out, row + 1, wash);
+    }
+}
+
+/// What an unread thread wears: the accent, when it is a colour that stands
+/// apart from the ink — the paper themes' accent is a grey, and a tube's is
+/// near its ink — else the link blue (a tube's own hue), on the page.
+fn unread_ink(t: &crew_theme::Theme) -> Rgb {
+    let accent = crate::palette::accent();
+    let apart = crew_theme::oklch::from_srgb(accent).c >= 0.05
+        && crew_theme::oklch::distance(accent, t.ink) >= 0.1;
+    match apart {
+        true => accent,
+        false => {
+            let link = crew_theme::readable::link(t);
+            crew_theme::readable::against(link, t.page_bg, crew_theme::contrast::text_floor())
+        }
     }
 }
 

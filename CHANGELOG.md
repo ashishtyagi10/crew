@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.99
+
+**`/inbox`: unread mail is a colour of its own in the list.**
+- An unread thread's names, subject and gutter dot are drawn in your accent,
+  still bold. On the paper themes, whose accent is a grey, and on the CRT
+  tubes, whose accent is near the ink, they are the link blue (the tube's
+  own hue) instead, so unread always stands apart from read.
+- A read thread stays in plain ink with its time receded, and the selected
+  row's highlight still lifts every colour on it to read.
+
 ## 0.27.98
 
 **The inbox and far take the whole window; every other pane stays on the
