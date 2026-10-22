@@ -8,8 +8,6 @@
 //! Everything that draws or finds a thing in a card (the list's rows, the
 //! mail's links and pictures, the box's lines) asks [`InboxPane::cards`]
 //! where the card is, so a click and what was drawn cannot disagree.
-use crew_render::CellView;
-
 use super::draw::Canvas;
 use super::{InboxPane, Stage};
 use crate::chatwidth::str_w;
@@ -107,23 +105,15 @@ impl InboxPane {
         self.cards(cols, rows).mail?.inner().local(row, col)
     }
 
-    /// What a drag that began at the pane's `(col, row)` may copy: the
-    /// inside of the card it began in, so a copy holds no card's edge and
-    /// none of the card beside it. Anywhere else, every cell.
-    pub(crate) fn copy_cells(&self, cols: u16, rows: u16, (col, row): (u16, u16)) -> Vec<CellView> {
+    /// Where a drag that began at the pane's `(col, row)` keeps to: the
+    /// inside of the card it began in, so what it copies and what it lights
+    /// hold no card's edge and none of the card beside it. None: anywhere.
+    pub(crate) fn drag_card(&self, cols: u16, rows: u16, (col, row): (u16, u16)) -> Option<Rect> {
         let k = self.cards(cols, rows);
-        let card = [k.list, k.mail, k.reply]
-            .into_iter()
-            .flatten()
-            .find(|b| b.local(row, col).is_some());
-        let cells = self.cells(cols, rows);
-        match card.map(Rect::inner) {
-            Some(b) => cells
-                .into_iter()
-                .filter(|c| b.local(c.row, c.col).is_some())
-                .collect(),
-            None => cells,
-        }
+        let card = [k.list, k.mail, k.reply].into_iter().flatten();
+        card.into_iter()
+            .find(|b| b.local(row, col).is_some())
+            .map(Rect::inner)
     }
 }
 

@@ -81,7 +81,7 @@ fn highlight_only_touches_selected_cells() {
         anchor: (0, 0),
         cursor: (1, 0),
     };
-    highlight(&mut cells, &sel, (9, 9, 9));
+    light(&mut cells, &sel, (9, 9, 9), |_, _| true);
     // Row 0 cols 0,1 washed; everything else keeps its original bg.
     for c in &cells {
         let washed = c.row == 0 && c.col <= 1;

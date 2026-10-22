@@ -119,11 +119,10 @@ impl CrewApp {
             return t.pty.sel_text();
         }
         let sel = self.cell_sel.as_ref().filter(|s| s.pane == i)?;
-        let cells = match &pane.content {
-            // The inbox's cards: only the inside of the one the drag began in.
-            PaneContent::Inbox(p) => p.copy_cells(pane.grid.cols, pane.grid.rows, sel.anchor),
-            _ => pane.cells(false),
-        };
+        // An inbox's cards: only the inside of the one the drag began in.
+        let keep = crate::gridsel::keeps(pane, sel);
+        let mut cells = pane.cells(false);
+        cells.retain(|c| keep(c.col, c.row));
         let text = crate::gridsel::selection_text(&cells, sel);
         (!text.is_empty()).then_some(text)
     }
