@@ -34,8 +34,8 @@ impl InboxPane {
         }
     }
 
-    /// One key, pressed: the pane's whole keyboard, testable without winit.
-    pub(crate) fn press(&mut self, key: &Key, cols: u16, rows: u16) -> Option<InboxAction> {
+    /// One key, pressed (`press` wraps it): the pane's whole keyboard.
+    pub(crate) fn press_key(&mut self, key: &Key, cols: u16, rows: u16) -> Option<InboxAction> {
         if self.compose.is_some() && self.reading.is_some() {
             self.compose_key(key);
             return Some(InboxAction::Redraw);
