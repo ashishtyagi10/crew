@@ -49,15 +49,22 @@ impl InboxPane {
     /// One key, pressed: the pane's whole keyboard, testable without winit.
     /// When the reply box takes rows from the mail (opening, or growing with
     /// the words), the mail's end stays in view if it was: the newest mail,
-    /// the one being answered, does not slide under the box.
+    /// the one being answered, does not slide under the box. And a mail made
+    /// shorter (`v`, `q`, `x`) is never left scrolled past its end, a card
+    /// of nothing.
     pub(crate) fn press(&mut self, key: &Key, cols: u16, rows: u16) -> Option<InboxAction> {
         let (h, end) = (self.compose_h(cols, rows), self.end_in_view(cols, rows));
         let out = self.press_key(key, cols, rows);
-        if end && self.compose_h(cols, rows) > h {
-            let (room, width) = (self.reader_rows(cols, rows), self.reader_box(cols).1);
-            if let Some(r) = self.reading.as_mut() {
-                r.scroll = super::reader::height(r, width).saturating_sub(usize::from(room));
+        let (room, width) = (self.reader_rows(cols, rows), self.reader_box(cols).1);
+        let grew = self.compose_h(cols, rows) > h;
+        if let Some(r) = self.reading.as_mut() {
+            let height = super::reader::height(r, width);
+            if end && grew {
+                r.scroll = height.saturating_sub(usize::from(room));
             }
+            // As far as the arrows go: the last page, a row of it to spare.
+            let page = usize::from(room).saturating_sub(1).max(1);
+            r.scroll = r.scroll.min(height.saturating_sub(page));
         }
         out
     }
