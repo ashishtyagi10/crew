@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.80
+
+**`/inbox`: the mail window answers the mouse.** Third round of the sixth
+inbox loop.
+- **Clicks work in the mail window (`w`)** as in the pane: a link or a mail's
+  button, a keycap at the foot, the `‹ ›` counter, a folded mail, the reply
+  box. Only Cmd/Ctrl+click did anything there before.
+- **Slow trackpad scrolling moves the mail window.** Small scrolls used to
+  round to nothing.
+
 ## 0.27.79
 
 **`/inbox`: strange mail never crashes the reader.** Second round of the

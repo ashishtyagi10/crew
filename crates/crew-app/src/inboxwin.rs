@@ -2,13 +2,14 @@
 //! `w` asks, redrawing it when the pane changes, and handing its keys, its
 //! wheel and its clicks to the one inbox pane. The window closes with the
 //! pane, and on Esc from the list, which would otherwise close the pane.
-use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
+use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::WindowId;
 
 use crate::app::CrewApp;
 use crate::inbox::keys::InboxAction;
 use crate::inbox::mailwin::{look, MailWindow};
+use crate::inbox::mouse::Clicked;
 use crate::pane::PaneContent;
 
 impl CrewApp {
@@ -102,11 +103,24 @@ impl CrewApp {
                     .cell_at()
                     .and_then(|(r, c)| p.link_at(grid.cols, grid.rows, r, c));
             }
+            // A plain click does here what it does in the tile: a link, a
+            // keycap, the counter, a folded mail, the reply box.
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Left,
+                ..
+            } => match m
+                .cell_at()
+                .map(|(r, c)| p.click(grid.cols, grid.rows, r, c))
+            {
+                Some(Clicked::Open(url)) => open = Some(url),
+                Some(Clicked::Then(InboxAction::Close)) => close = true,
+                Some(_) => changed = true,
+                None => {}
+            },
+            // As the grid's wheel: a slow trackpad's fractions add up.
             WindowEvent::MouseWheel { delta, .. } => {
-                let lines = match delta {
-                    MouseScrollDelta::LineDelta(_, y) => y.round() as i32,
-                    MouseScrollDelta::PixelDelta(d) => (d.y / 20.0).round() as i32,
-                };
+                let lines = crate::inbox::mailwin::wheel_lines(&mut m.scroll, delta);
                 p.scroll_wheel(lines, grid.cols, grid.rows);
                 changed = true;
             }
