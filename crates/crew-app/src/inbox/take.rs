@@ -179,6 +179,12 @@ impl InboxPane {
             Got::Ended(e) => {
                 grant::clear();
                 self.busy = false;
+                // Kept for after the sign-in, the words free to change again;
+                // a half-typed search would take the setup page's keys.
+                self.typing = None;
+                if let Some(c) = self.compose.as_mut() {
+                    c.sending = false;
+                }
                 self.note = format!(
                     "Google ended the sign-in ({e}). An app left in Testing is \
                      signed out after 7 days: Audience \u{2192} Publish app keeps it"

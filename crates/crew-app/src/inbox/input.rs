@@ -9,7 +9,7 @@ impl InboxPane {
     pub fn paste(&mut self, text: &str) {
         match (&mut self.stage, super::grant::client_from_json(text)) {
             (Stage::Setup { found }, Some(c)) => *found = Some(("pasted client".into(), c)),
-            (_, _) if self.compose.is_some() => self.type_in(text),
+            (Stage::Ready(_), _) if self.compose.is_some() => self.type_in(text),
             (_, _) if self.typing.is_some() => {
                 self.typing.get_or_insert_default().push_str(text.trim())
             }
@@ -83,6 +83,11 @@ impl InboxPane {
         if let Some(r) = self.reading.as_mut() {
             r.scroll = super::reader::height(r, width).saturating_sub(usize::from(room));
         }
+    }
+
+    /// Signed in, with Gmail to talk to: the reply box takes keys only then.
+    pub(crate) fn ready(&self) -> bool {
+        matches!(self.stage, Stage::Ready(_))
     }
 
     /// Whether the open mail's last line is on screen.

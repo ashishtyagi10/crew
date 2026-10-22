@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.74
+
+**`/inbox`: a reply waits out an ended sign-in.** Second round of the fifth
+inbox loop.
+- **The setup page's keys work again after Google ends the sign-in** while
+  you were writing a reply. The hidden reply box used to take every key, so
+  1–5 and Enter did nothing.
+- **Your words are kept**, and no longer stuck "sending" if the sign-in ended
+  mid-send: signed in again, you are back in the reply.
+
 ## 0.27.73
 
 **`/inbox`: the unread count keeps up with you.** First round of the fifth

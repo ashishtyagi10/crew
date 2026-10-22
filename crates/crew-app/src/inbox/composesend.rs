@@ -11,7 +11,8 @@ impl InboxPane {
     /// The box stays until Gmail says it went, so words that failed to go
     /// are still there.
     pub(crate) fn send_reply(&mut self) {
-        let Some(c) = self.compose.as_mut().filter(|c| !c.sending) else {
+        let ready = self.ready();
+        let Some(c) = self.compose.as_mut().filter(|c| !c.sending && ready) else {
             return;
         };
         let bad = [(On::To, &c.to), (On::Cc, &c.cc)]
@@ -66,3 +67,7 @@ impl InboxPane {
         self.ask(ask);
     }
 }
+
+#[cfg(test)]
+#[path = "composesend_tests.rs"]
+mod tests;
