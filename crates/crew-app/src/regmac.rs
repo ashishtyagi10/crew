@@ -10,6 +10,9 @@ use super::*;
 // everywhere (mirrors `regwin::win_marker_content`).
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn plist(version: &str) -> String {
+    // Why crew asks for Reminders (`/todo reminders`): macOS shows it, and
+    // ends an app that asks without one.
+    let why = "Crew keeps your /todo list and a list named crew in Reminders in step.";
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -25,6 +28,8 @@ pub fn plist(version: &str) -> String {
     <key>CFBundleVersion</key><string>{version}</string>
     <key>LSMinimumSystemVersion</key><string>11.0</string>
     <key>NSHighResolutionCapable</key><true/>
+    <key>NSRemindersUsageDescription</key><string>{why}</string>
+    <key>NSRemindersFullAccessUsageDescription</key><string>{why}</string>
 </dict>
 </plist>
 "#

@@ -267,6 +267,9 @@ pub fn run() -> anyhow::Result<()> {
     // in a detached GUI run).
     let applog = crate::applog::AppLog::default();
     crate::relay::maybe_spawn_listener(applog.sender());
+    if config.todo_reminders {
+        crate::reminders::start(applog.sender());
+    }
     let mut app = CrewApp {
         config,
         font_rotate,

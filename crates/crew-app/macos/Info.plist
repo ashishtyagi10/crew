@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key><string>io.github.ashishtyagi10.crew</string>
+    <key>CFBundleName</key><string>Crew</string>
+    <key>NSRemindersUsageDescription</key><string>Crew keeps your /todo list and a list named crew in Reminders in step.</string>
+    <key>NSRemindersFullAccessUsageDescription</key><string>Crew keeps your /todo list and a list named crew in Reminders in step.</string>
+</dict>
+</plist>

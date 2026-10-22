@@ -25,3 +25,19 @@ fn notify_add_without_text_adds_nothing() {
     app.notify_command("add    ");
     assert!(app.config.notify_patterns.is_empty());
 }
+
+#[test]
+fn todo_reminders_turns_the_sync_on_and_off_and_keeps_the_switch() {
+    let mut app = CrewApp::default();
+    app.todo_command("reminders");
+    assert_eq!(app.config.todo_reminders, cfg!(target_os = "macos"));
+    app.todo_command("reminders off");
+    assert!(!app.config.todo_reminders);
+    app.todo_command("reminders now");
+    let said = app
+        .status
+        .as_ref()
+        .map(|s| s.0.as_str())
+        .unwrap_or_default();
+    assert!(said.starts_with("usage: /todo"), "{said}");
+}

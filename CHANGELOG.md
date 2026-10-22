@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.4
+
+**`/todo reminders`: your todo list and Apple Reminders, kept in step.**
+- `/todo reminders` (macOS) keeps `/todo` and a list named `crew` in
+  Reminders in step both ways: type a todo here and it is on your phone; add
+  or tick one there and it is added or done here. `/todo reminders off`
+  stops it; the switch holds across launches.
+- macOS asks once whether crew may see your reminders. If the answer is no,
+  crew says where to change it (System Settings › Privacy & Security ›
+  Reminders).
+- The title, done and the due go across, and a due with a time rings on
+  your devices. `@project`, `#who` and the done history stay crew's.
+- A change on either side goes to the other within moments: a pass runs when
+  the list settles after an edit, when Reminders says it changed, and every
+  minute. When both sides changed the same thing, crew's word stands.
+- Deletes go across too, but a done todo whose reminder Reminders cleared
+  away stays in crew's history, and a Reminders list that comes back empty
+  never empties yours. Turning it on with reminders already in the list
+  pairs them by title instead of doubling them.
+
 ## 0.28.3
 
 **`/inbox`: your Google Calendar, and answers to invites.** Phase 3, the
