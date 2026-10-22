@@ -715,13 +715,13 @@ fn slash_theme_random_enters_rotation_and_a_named_switch_clears_it() {
 
     // Switching to a named theme turns rotation back off (and persists too —
     // a fixed pick must not leave a stale rotation mode in the config).
-    p.input = "/theme paper-light".to_string();
+    p.input = "/theme crt-amber".to_string();
     assert!(matches!(
         p.on_input(ChatInput::Enter, &cwd),
         Some(ChatAction::PersistTheme)
     ));
     assert!(!crew_theme::is_random());
-    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
+    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::CrtAmber);
 
     crew_theme::apply_selection(
         crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),

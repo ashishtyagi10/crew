@@ -259,6 +259,20 @@ impl ThemeId {
         }
     }
 
+    /// What naming this palette selects. A palette that is its rotation's
+    /// whole pool IS that rotation, so it resolves to the rotation:
+    /// `paper-dark` is `dark` and `paper-light` is `light`, and the pickers
+    /// list each theme once (the user, 2026-10-22: "remove the duplicate
+    /// themes … dark == paper-dark, light == paper-light"). Every other
+    /// palette pins itself.
+    pub fn selection(self) -> Selection {
+        let m = self.mode();
+        match m.sole_palette() {
+            Some(_) => Selection::Mode(m),
+            None => Selection::Fixed(self),
+        }
+    }
+
     /// Whether this palette is WHITE-TEXT liquid glass — smoked panes over
     /// the desktop and white words: the `glass` rotation, and the `dark` one
     /// since it went see-through (the user, 2026-10-09: "bright white would
@@ -478,6 +492,20 @@ impl RandomMode {
         }
     }
 
+    /// The one palette this rotation serves when its pool is a single page
+    /// (`dark` and `light`, the Ink Reader pages). `None` for a pool that
+    /// changes palette, and for `auto`, whose page follows the appearance.
+    pub fn sole_palette(self) -> Option<ThemeId> {
+        if self == RandomMode::Auto {
+            return None;
+        }
+        let mut pool = ALL_THEMES.into_iter().filter(|&t| t.mode() == self);
+        match (pool.next(), pool.next()) {
+            (Some(id), None) => Some(id),
+            _ => None,
+        }
+    }
+
     /// Whether `id` belongs to this mode's rotation pool: its
     /// [`ThemeId::mode`], so every palette lands in exactly one of
     /// Dark/Light/Crt/Glass and a rotation stays inside one look. `Auto`
@@ -519,7 +547,8 @@ impl Selection {
 /// that are now simply part of `dark` / `light`) and every individual palette
 /// name still parse so old configs keep loading — a name that stops parsing is
 /// a config line that silently does nothing, which is exactly the failure this
-/// list exists to prevent.
+/// list exists to prevent. `paper-dark` and `paper-light` load as the `dark`
+/// and `light` they are ([`ThemeId::selection`]).
 pub fn parse_selection(s: &str) -> Option<Selection> {
     let s = s.trim();
     // `modern` was a dark-page rotation and `modern-light` a light-page one;
@@ -552,7 +581,17 @@ pub fn parse_selection(s: &str) -> Option<Selection> {
     if s.eq_ignore_ascii_case("auto") {
         return Some(Selection::Mode(RandomMode::Auto));
     }
-    ThemeId::from_name(s).map(Selection::Fixed)
+    ThemeId::from_name(s).map(ThemeId::selection)
+}
+
+/// The palettes a picker offers one by one, in [`ALL_THEMES`] order: those
+/// that pin themselves. The Ink Reader pages are left out because the
+/// picker already lists them as `dark` and `light` (see
+/// [`ThemeId::selection`]).
+pub fn pinnable_themes() -> impl Iterator<Item = ThemeId> {
+    ALL_THEMES
+        .into_iter()
+        .filter(|id| matches!(id.selection(), Selection::Fixed(_)))
 }
 
 /// The active rotation mode, if any.

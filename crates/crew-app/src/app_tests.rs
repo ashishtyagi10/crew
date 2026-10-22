@@ -607,10 +607,10 @@ fn apply_config_resumes_saved_mode_and_pins_fixed_themes() {
     let mut cfg = app.config.clone();
     // A retired theme name: it must resolve to its nearest survivor rather
     // than silently resetting to the default (see `from_name`).
-    cfg.theme = Some("graphite".to_string());
+    cfg.theme = Some("aurora".to_string());
     app.apply_config(cfg);
     assert_eq!(crew_theme::mode(), None);
-    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperDark);
+    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::Nebula);
     crew_theme::apply_selection(
         crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
         0,

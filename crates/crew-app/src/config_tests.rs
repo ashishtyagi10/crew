@@ -204,15 +204,12 @@ fn theme_selection_defaults_fresh_installs_to_os_following_auto() {
     // an upgrade never hijacks an explicit pick into following the OS.
     let dark = CrewConfig::from_toml_str("theme = \"dark\"\n");
     assert_eq!(dark.theme_selection(), Selection::Mode(RandomMode::Dark));
-    let pinned = CrewConfig::from_toml_str("theme = \"paper-light\"\n");
-    assert_eq!(
-        pinned.theme_selection(),
-        Selection::Fixed(ThemeId::PaperLight)
-    );
-    // A garbage value keeps its historical fallback (fixed default palette),
-    // not auto — a broken string is not an intent to follow the OS.
+    let pinned = CrewConfig::from_toml_str("theme = \"blossom\"\n");
+    assert_eq!(pinned.theme_selection(), Selection::Fixed(ThemeId::Blossom));
+    // A garbage value keeps its historical fallback (the black page), not
+    // auto — a broken string is not an intent to follow the OS.
     let bad = CrewConfig::from_toml_str("theme = \"chartreuse\"\n");
-    assert_eq!(bad.theme_selection(), Selection::Fixed(ThemeId::PaperDark));
+    assert_eq!(bad.theme_selection(), Selection::Mode(RandomMode::Dark));
 }
 
 #[test]
@@ -220,13 +217,13 @@ fn auto_pool_pairing_round_trips_and_survives_clamped() {
     use crew_theme::{RandomMode, Selection, ThemeId};
     // clamped() must carry both fields (the last_seen_version lesson: a
     // literal in the rebuild silently resets the field on every load).
-    let cfg = CrewConfig::from_toml_str("theme_dark = \"crt\"\ntheme_light = \"paper-light\"\n")
-        .clamped();
+    let cfg =
+        CrewConfig::from_toml_str("theme_dark = \"crt\"\ntheme_light = \"blossom\"\n").clamped();
     assert_eq!(cfg.theme_dark.as_deref(), Some("crt"));
-    assert_eq!(cfg.theme_light.as_deref(), Some("paper-light"));
+    assert_eq!(cfg.theme_light.as_deref(), Some("blossom"));
     let (d, l) = cfg.auto_pool_selections();
     assert_eq!(d, Some(Selection::Mode(RandomMode::Crt)));
-    assert_eq!(l, Some(Selection::Fixed(ThemeId::PaperLight)));
+    assert_eq!(l, Some(Selection::Fixed(ThemeId::Blossom)));
     // `auto` can't serve as its own side, and garbage falls back to the
     // built-in pool for that appearance.
     let bad = CrewConfig::from_toml_str("theme_dark = \"auto\"\ntheme_light = \"nope\"\n");

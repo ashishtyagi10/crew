@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.83
+
+## {V}
+
+**Themes: `dark` and `light` are listed once.**
+- **The `/theme` picker no longer lists `paper-dark` and `paper-light`
+  under the palettes.** They were `dark` and `light` under other names: each
+  of those themes is one page, so both rows put on the same theme. The
+  settings pickers for `theme_dark` / `theme_light` drop them too.
+- **The old names still load.** A config or `/theme` naming `paper-dark` or
+  `paper-light` gets `dark` or `light`, and that is the name shown.
+- **Arrowing onto `dark` or `light` in the picker previews the page**, as
+  the old rows did. Rows that rotate (`crt`, `glass`, `auto`) still don't.
+
 ## 0.27.82
 
 **`/inbox`: Cmd shortcuts are safe in the mail window.** Fifth and last

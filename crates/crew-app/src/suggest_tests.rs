@@ -106,11 +106,11 @@ fn theme_space_lists_the_rotations_first_then_every_palette() {
         "{labels:?}"
     );
     assert!(items[5].header, "the palettes need a heading: {labels:?}");
-    for name in ["paper-dark", "crt-green", "crt-amber", "nebula", "blossom"] {
+    for name in ["glass-clear", "crt-green", "crt-amber", "nebula", "blossom"] {
         assert!(labels.contains(&name), "{name} is missing: {labels:?}");
     }
-    // The legacy rotation names still parse and are still not offered.
-    for name in ["modern", "modern-light", "random-dark"] {
+    // Legacy names parse but are not offered; the pages ARE `dark`/`light`.
+    for name in "modern modern-light random-dark paper-dark paper-light".split(' ') {
         assert!(!labels.contains(&name), "{name} must not be a picker entry");
     }
     // Every offered row runs on Enter, and a heading is not a row.

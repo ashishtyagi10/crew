@@ -12,14 +12,15 @@
 //! is legal (crew serves it while the OS is dark) and perverse, but filtering
 //! it out per side would mean a config holding it could not round-trip
 //! through the form — the exact failure above, reintroduced for tidiness.
-use crew_theme::{RandomMode, Selection, ALL_THEMES};
+use crew_theme::{RandomMode, Selection};
 
 /// Shown for the unset side: no pairing, so `auto` uses its built-in pool for
 /// that appearance. Not a config value — unset is `None`.
 pub(super) const DEFAULT_LABEL: &str = "default";
 
 /// Every value a pairing side can hold, in picker order: unset, then the
-/// four rotation pools, then every palette.
+/// four rotation pools, then every palette that is not already one of them
+/// (`paper-dark` IS `dark`, so it is listed once).
 pub(super) fn values() -> Vec<Option<Selection>> {
     let mut v = vec![None];
     for m in [
@@ -30,7 +31,7 @@ pub(super) fn values() -> Vec<Option<Selection>> {
     ] {
         v.push(Some(Selection::Mode(m)));
     }
-    v.extend(ALL_THEMES.into_iter().map(|id| Some(Selection::Fixed(id))));
+    v.extend(crew_theme::pinnable_themes().map(|id| Some(Selection::Fixed(id))));
     v
 }
 

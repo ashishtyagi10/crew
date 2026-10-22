@@ -889,10 +889,10 @@ The docked command bar supports:
   selection.
   Selecting `/theme` in the palette opens an arrow-selectable **picker** of
   the five themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
-  `dark → light → crt → glass → auto`. The old names — the individual palettes
-  (`paper-dark`, `crt-green`, …) and the pre-consolidation rotation modes
-  (`random-dark`/`random`, `random-light`) — still resolve for back-compat
-  but aren't listed. See [Themes](#themes).
+  `dark → light → crt → glass → auto`. The old names — `paper-dark` and
+  `paper-light` (now simply `dark` and `light`) and the pre-consolidation
+  rotation modes (`random-dark`/`random`, `random-light`) — still resolve for
+  back-compat but aren't listed. See [Themes](#themes).
 - **`/crt [on|off|auto]`** — the CRT tube post-process (screen curvature,
   scanlines, phosphor glow, a slight flicker while a pane is busy), independent
   of which theme is active. `auto` follows the theme — on for `crt`, off
@@ -4178,10 +4178,9 @@ system switches. With no theme saved at all, crew defaults to `auto`.
 `theme_dark` / `theme_light` in `config.toml` re-wire that pairing (`crt` at
 night is the classic) or pin one palette per appearance.
 
-- **`light`** — **`paper-light`**, Ink Reader's white page: near-black
-  words, black lines.
-- **`dark`** — **`paper-dark`**, Ink Reader's black page: white-grey words,
-  grey lines, the focused frame white.
+- **`light`** — Ink Reader's white page: near-black words, black lines.
+- **`dark`** — Ink Reader's black page: white-grey words, grey lines, the
+  focused frame white.
 - **`glass`** — **`glass-clear`** (neutral smoke, rose accents),
   **`glass-night`** (navy smoke, mint), **`nebula`** (violet smoke,
   orchid→rose accents) and **`blossom`** (cherry-blossom smoke, pink
@@ -4191,11 +4190,13 @@ night is the classic) or pin one palette per appearance.
   its faceplate a deep smoke (which phosphor green needs over a white
   desktop) and its panes lit by their own phosphor.
 
-The picker offers the five themes first and then **every palette by name**,
-under a heading; a palette named there is pinned (no rotation).
+The picker offers the five themes first and then **every other palette by
+name**, under a heading; a palette named there is pinned (no rotation). The
+Ink Reader pages are not repeated there: `dark` and `light` already are
+them, and their old names `paper-dark` and `paper-light` load as those two.
 Older palettes were folded into these eight and their names still load the
 nearest survivor: `glass-sky` and `glass-dawn` → `glass-clear`; `sepia-dark`
-and `harbor` → `paper-dark`; `sepia-light` → `paper-light`; `fern` →
+and `harbor` → `dark`; `sepia-light` → `light`; `fern` →
 `blossom`; `crt-blue` → `crt-green`; `crt-violet` → `crt-amber`; and the
 palettes of earlier roster cuts as before.
 

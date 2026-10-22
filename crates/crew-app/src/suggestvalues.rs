@@ -17,7 +17,9 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
         // every individual palette under a heading. The palettes have always
         // PARSED; not offering them meant you had to already know the name of
         // the one you wanted, which is the opposite of what a picker is for.
-        // The legacy `random-*` names still parse and are still not offered.
+        // The Ink Reader pages are not repeated there: `dark` and `light`
+        // already are them. The legacy `random-*` names still parse and are
+        // still not offered.
         "/theme" => Some(
             crew_theme::THEME_MODES
                 .iter()
@@ -29,8 +31,7 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                     "one palette, pinned".to_string(),
                 )))
                 .chain(
-                    crew_theme::ALL_THEMES
-                        .iter()
+                    crew_theme::pinnable_themes()
                         .map(|t| (t.as_str().to_string(), t.describe().to_string())),
                 )
                 .collect(),
