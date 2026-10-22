@@ -42,6 +42,7 @@ fn term_pane() -> Pane {
         hidden: false,
         attention: None,
         born_ms: 0,
+        zoom: None,
     }
 }
 

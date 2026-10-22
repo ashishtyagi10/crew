@@ -83,7 +83,7 @@ impl crate::app::CrewApp {
     pub(crate) fn focus_direction(&mut self, dir: Dir) {
         // Zoomed, one pane fills the content area and there is no geometry to
         // navigate; fall back to the index step so the chord still moves.
-        if self.zoomed {
+        if self.zoomed() {
             self.focus_visible_step(if dir.negative() { -1 } else { 1 });
             self.input.focused = false;
             return;

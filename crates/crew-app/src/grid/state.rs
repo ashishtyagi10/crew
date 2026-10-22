@@ -103,6 +103,12 @@ impl GridLayout {
         out
     }
 
+    /// Every tracked index, most-recently-active first, pins ignored: the
+    /// tile you were last on, for the way back to the grid.
+    pub fn recent(&self) -> &[usize] {
+        &self.order
+    }
+
     /// Indices shown full (pinned first, then most-recently-active).
     pub fn full(&self) -> Vec<usize> {
         self.ranked()[..self.split()].to_vec()

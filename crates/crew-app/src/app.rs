@@ -158,8 +158,6 @@ pub struct CrewApp {
     /// focused, because a window that has just opened is, and not every
     /// platform sends `Focused(true)` to say so.
     pub(crate) win_focus: Option<bool>,
-    /// Whether the focused pane is zoomed to fill the content area.
-    pub(crate) zoomed: bool,
     /// What focus mode has held back since it was entered (see
     /// [`crate::focusmode`]). Reset every time the mode is entered, reported
     /// and cleared on the way out.

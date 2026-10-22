@@ -7,9 +7,9 @@ use crate::spawn::PLACEHOLDER_RECT;
 use crate::viewpane::ViewPane;
 
 impl CrewApp {
-    /// Open `path` in the viewer, zoomed and focused. An empty path is a
-    /// usage hint; a path that does not resolve to a file reports why in the
-    /// status bar rather than opening an empty pane.
+    /// Open `path` in the viewer, focused (a viewer is zoomed by kind). An
+    /// empty path is a usage hint; a path that does not resolve to a file
+    /// reports why in the status bar rather than opening an empty pane.
     ///
     /// The `is_file` check is the one filesystem call this makes on the winit
     /// thread — the same one `clickopen::open_path_token` already makes. Every
@@ -43,9 +43,9 @@ impl CrewApp {
             hidden: false,
             attention: None,
             born_ms: crate::anim::now_ms(),
+            zoom: None,
         });
         self.focus_new_pane();
-        self.zoomed = true;
         self.redraw();
     }
 

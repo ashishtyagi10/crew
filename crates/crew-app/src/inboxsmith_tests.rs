@@ -26,6 +26,7 @@ fn pane(content: PaneContent, label: Option<&str>) -> Pane {
         hidden: false,
         attention: None,
         born_ms: 0,
+        zoom: None,
     }
 }
 

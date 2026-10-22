@@ -79,10 +79,11 @@ fn arming_broadcast_raises_a_toast_naming_the_way_out() {
 #[test]
 fn toggle_zoom_flips() {
     let mut app = CrewApp::default();
+    app.spawn_todo_pane();
     app.toggle_zoom();
-    assert!(app.zoomed);
+    assert!(app.zoomed());
     app.toggle_zoom();
-    assert!(!app.zoomed);
+    assert!(!app.zoomed());
 }
 
 /// Focus mode is a MODE, and every mode owes two things: it has to be

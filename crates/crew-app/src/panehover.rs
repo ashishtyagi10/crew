@@ -87,7 +87,7 @@ impl CrewApp {
             Some(i) => (i, Btn::Close),
             None => (self.min_btn_at_cursor()?, Btn::Min),
         };
-        let slot = if self.zoomed || self.panes.len() < 2 {
+        let slot = if self.zoomed() || self.panes.len() < 2 {
             0
         } else {
             u16::try_from(idx + 1).unwrap_or(0)

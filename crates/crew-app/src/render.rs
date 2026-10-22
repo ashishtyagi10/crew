@@ -83,9 +83,9 @@ impl CrewApp {
         let Some((content, placed)) = self.placed_grid() else {
             return Vec::new();
         };
-        let mut scenes = if self.zoomed && !self.panes.is_empty() {
+        let zoomed = self.zoomed_pane();
+        let mut scenes = if let Some(i) = zoomed {
             // Zoom: render only the focused pane, expanded to the full content area.
-            let i = self.focused.min(self.panes.len() - 1);
             if let Some(r) = zoom_tile(content, self.gutter()) {
                 // Travel out of the tile the pane occupied: at t=0 the zoomed
                 // pane is exactly its old self, at t=1 it fills the area.
@@ -146,7 +146,7 @@ impl CrewApp {
                 &self.grid.pinned_indices(),
             )
         };
-        if !self.zoomed {
+        if zoomed.is_none() {
             let hidden = placed.strip_hidden(&self.grid.minimized());
             crate::minstrip::push_min_strip(&mut scenes, &self.panes, &placed, cw, ch, &hidden);
         }

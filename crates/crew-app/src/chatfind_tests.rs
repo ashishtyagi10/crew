@@ -341,12 +341,7 @@ fn cmd_f_opens_find_on_the_focused_chat_pane_and_enter_jumps() {
         glide: crate::glide::Glide::default(),
         content: crate::pane::PaneContent::Chat(crate::chat::ChatPane::new(plugin, "crew".into())),
         grid: crew_term::GridSize { cols: 80, rows: 24 },
-        rect: crate::layout::Rect {
-            x: 0.0,
-            y: 0.0,
-            w: 0.0,
-            h: 0.0,
-        },
+        rect: crate::spawn::PLACEHOLDER_RECT,
         label: None,
         name: None,
         dir: None,
@@ -355,6 +350,7 @@ fn cmd_f_opens_find_on_the_focused_chat_pane_and_enter_jumps() {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: None,
     });
     assert!(!app.handle_super_chord("f"), "Cmd+F never exits the app");
     let crate::pane::PaneContent::Chat(c) = &app.panes[0].content else {

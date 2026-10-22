@@ -24,6 +24,7 @@ fn pane(content: PaneContent, label: Option<&str>) -> Pane {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: None,
     }
 }
 

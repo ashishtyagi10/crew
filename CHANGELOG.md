@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.98
+
+**The inbox and far take the whole window; every other pane stays on the
+grid.**
+- **Zoom belongs to the pane now.** `/inbox`, `/far`, `/settings` and
+  `/view` take the whole content area whenever they have focus, and never
+  take a tile. Cmd+2 to a shell brings the grid back; back on the inbox, it
+  has the screen again. Zoom used to be one switch for the whole app: far's
+  zoom passed to the next pane you focused, and far came back as a quarter
+  tile.
+- **Cmd+Opt+←/→ steps the screens** (Ctrl+Alt+←/→ on Windows and Linux):
+  the grid, then each zoomed pane, wrapping. Back on the grid, you land on
+  the tile you used last.
+- **Esc on the inbox's list goes back to the grid with the inbox still
+  open**, so coming back does not fetch the mail again. Cmd+W closes it.
+- **Cmd+Z flips any pane** between a screen of its own and a tile, and the
+  choice stays with that pane: dock far beside a shell, or zoom a shell and
+  keep it zoomed while you visit the grid.
+- Closing or minimizing the pane on screen lands on the grid you left, a
+  restored session lands on the grid, and an agent waiting on you badges
+  its row instead of taking the screen from the pane you are reading.
+
 ## 0.27.97
 
 **`/inbox`: Tab asks agent smith to fill the todo card.** Phase 3, the last,

@@ -64,7 +64,7 @@ impl CrewApp {
     /// A left press landed on pane `i` and armed no text selection, so it
     /// found the card's legend row: pick the card up.
     pub(crate) fn card_press(&mut self, i: usize) {
-        if self.drag.is_some() || self.panes.len() < 2 || self.zoomed {
+        if self.drag.is_some() || self.panes.len() < 2 || self.zoomed() {
             return;
         }
         self.card_drag = Some(CardDrag {

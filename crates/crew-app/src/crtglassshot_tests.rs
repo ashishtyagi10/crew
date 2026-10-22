@@ -62,11 +62,11 @@ pub(crate) fn window_with(
             }
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
-        app.zoomed = false;
         app.focused = 1;
         app.input.focused = false;
         for p in &mut app.panes {
             p.born_ms = 0;
+            p.zoom = Some(false); // every card on the grid
         }
         prep(&mut app);
         app.build_frame();

@@ -258,6 +258,7 @@ way that machine presses it.
 | Move pane left / right | **Cmd+{** / **Cmd+}** |
 | Focus the pane that way on the grid | **Cmd+←↑→↓** |
 | Swap the focused pane with that neighbour | **Cmd+Shift+←↑→↓** |
+| Next / previous screen: the grid, then each zoomed pane (inbox, far, …) | **Cmd+Opt+←→** |
 | Focus the input bar | **Cmd+I** |
 | Recall a line you typed before | **↑** / **↓** — filtered by what is already in the bar; the top border says `hist 2/5 · git` |
 | New shell pane | **Cmd+T** |
@@ -266,7 +267,7 @@ way that machine presses it.
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | Toggle the nav | **Cmd+G** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — type to filter, ↑↓ to scroll, Esc to close |
-| Zoom focused pane | **Cmd+Z** (or double-click its top border) |
+| Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
 | Broadcast input to all panes | `/broadcast` (by name only — **Cmd+S** saves a focused settings form) |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path) |

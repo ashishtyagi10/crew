@@ -410,6 +410,7 @@ way that machine presses it.
 | Move pane left / right | **Cmd+{** / **Cmd+}** |
 | Focus the pane that way on the grid | **Cmd+←↑→↓** |
 | Swap the focused pane with that neighbour | **Cmd+Shift+←↑→↓** |
+| Next / previous screen: the grid, then each zoomed pane (inbox, far, …) | **Cmd+Opt+←→** |
 | Focus the input bar | **Cmd+I** |
 | Recall a line you typed before | **↑** / **↓** — filtered by what is already in the bar; the top border says `hist 2/5 · git` |
 | Find: in a chat transcript, or `/find` in the bar | **Cmd+F** |
@@ -419,7 +420,7 @@ way that machine presses it.
 | Accept the ghost text, or fill the highlighted palette row | **Tab** / **→** (in the input bar) |
 | Toggle the nav | **Cmd+G** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — opens on the section for the pane you are in; type to filter, ↑↓ to scroll, Esc to close |
-| Zoom focused pane | **Cmd+Z** (or double-click its top border) |
+| Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
 | Save the settings form | **Cmd+S** |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** |
@@ -1814,7 +1815,8 @@ longer aim at.
   mail. `/` searches with Gmail's syntax, `R` re-lists, `L` swaps one and two lines a thread, `q` and `v` fold and swap
   in the reader, `o` opens the thread or
   the inbox in Gmail on the signed-in account, Esc clears a search, leaves a
-  thread, and closes the pane. `/inbox <search>` opens on a search; `/inbox
+  thread, and then goes back to the grid with the inbox still open (Cmd+W
+  closes it). `/inbox <search>` opens on a search; `/inbox
   signout` deletes the grant and revokes it at Google. Sign-in is Google's
   desktop flow: a loopback listener on `127.0.0.1` and a random port, PKCE
   (S256) and a random `state`; the client is the user's own, because every
@@ -3941,15 +3943,27 @@ under the pointer brightens to say so. The panel's **card legend shows the runni
 
 ## Settings
 
-`/settings` and `/far` open **zoomed**, because they are visits: you open one,
-do a thing, and leave. A visit wants the window — far is a dual-pane file
-manager with two panes of its own to fit, and the settings form is a column of
-boxes to read down, and neither is much use as a quarter tile beside the work
-it is interrupting. Nothing new gets you out again: **Esc** already means
-"leave" in every pane crew draws, and closing a pane already clears the zoom,
-so you land back on exactly the grid you left. `Cmd+Z` still un-zooms if you
-would rather keep the pane and shrink it into its tile — useful for running
-far *beside* a shell. (`/view` has opened this way since it was written.)
+`/inbox`, `/far`, `/settings` and `/view` open **zoomed**: each takes the whole
+content area whenever it has focus, and none of them sits on the grid. They are
+places you go rather than tiles you keep — far is a dual-pane file manager with
+two panes of its own to fit, the settings form is a column of boxes to read
+down, and mail is read for twenty minutes at a time — and none is much use as
+a quarter tile beside the work. Every other pane is a tile.
+
+The zoom belongs to the pane, not to whatever has focus. With the inbox on
+screen, Cmd+2 to a shell brings the grid back, and coming back to the inbox
+gives it the screen again. So the window is a row of **screens** — the grid,
+then each zoomed pane — and **Cmd+Opt+←→** (Ctrl+Alt+←→ on Windows and Linux)
+steps along it. Getting out needs nothing new: **Esc** on far, the settings
+form or a viewer closes it, and closing the pane on screen lands you on the
+grid you left; **Esc** on the inbox's list goes back to the grid and keeps the
+inbox open, so coming back does not fetch the mail again. A pane waiting on
+you never takes the screen from the one you are reading — its nav row blinks,
+and **Cmd+.** takes you to it.
+
+`Cmd+Z` flips any pane: a tile gets a screen of its own, and a zoomed pane
+goes onto the grid as a tile — useful for running far *beside* a shell. The
+choice stays with that pane until you press it again.
 
 The todo list is the exception, and deliberately: it is the one crew-drawn
 surface you keep open while you work, so it opens as a normal tile and **Esc

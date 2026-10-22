@@ -77,7 +77,8 @@ impl CrewApp {
             }
         }
         match inbox_action {
-            Some(crate::inbox::keys::InboxAction::Close) => drop(self.close_pane(focused)),
+            // Esc with nothing left to cancel keeps the mail: `put_away`.
+            Some(crate::inbox::keys::InboxAction::Close) => self.put_away(focused),
             Some(crate::inbox::keys::InboxAction::Redraw) => self.redraw(),
             Some(crate::inbox::keys::InboxAction::Keys) => self.open_help(),
             None => {}

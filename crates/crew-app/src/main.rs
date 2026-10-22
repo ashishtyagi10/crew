@@ -498,6 +498,7 @@ mod panes_roster;
 mod panescenes;
 mod panescroll;
 mod paneview;
+mod panezoom;
 mod pastesafe;
 mod pathcomplete;
 mod pathexpand;

@@ -70,12 +70,7 @@ fn session_panes_snapshots_a_crew_chat_pane_by_its_routing_label() {
         glide: crate::glide::Glide::default(),
         content: PaneContent::Chat(ChatPane::new(plugin, "crew".into())),
         grid: crew_term::GridSize { cols: 80, rows: 24 },
-        rect: crate::layout::Rect {
-            x: 0.0,
-            y: 0.0,
-            w: 0.0,
-            h: 0.0,
-        },
+        rect: crate::spawn::PLACEHOLDER_RECT,
         label: Some("crew".to_string()),
         name: Some("crew".to_string()),
         dir: None,
@@ -84,6 +79,7 @@ fn session_panes_snapshots_a_crew_chat_pane_by_its_routing_label() {
         hidden: false,
         attention: None,
         born_ms: crate::anim::now_ms(),
+        zoom: None,
     });
     assert_eq!(app.session_panes(), vec![SavedPane::crew()]);
     // A label-less chat pane (Cmd+J) is NOT snapshot.
@@ -129,7 +125,7 @@ fn restore_from_reopens_a_viewer_on_its_saved_path() {
     };
     assert_eq!(v.path, f, "restored viewer must open the saved path");
     assert!(
-        app.zoomed,
+        app.zoomed(),
         "a restored viewer opens zoomed, like a fresh /view"
     );
     let _ = std::fs::remove_file(&f);
@@ -137,11 +133,10 @@ fn restore_from_reopens_a_viewer_on_its_saved_path() {
 
 #[test]
 fn restoring_a_viewer_among_other_panes_does_not_leave_the_app_zoomed() {
-    // Fix 3 regression: `open_view` (called for the "view" entry) always
-    // sets `zoomed = true`, and nothing used to clear it afterward. Restoring
-    // `[view, shell, shell, shell]` left `zoomed == true` with focus on the
-    // last shell — the user sees one pane and has every reason to think the
-    // other three failed to open. Unlike
+    // Fix 3 regression: a viewer is zoomed, and the restore loop leaves the
+    // LAST spawn focused. Restoring `[shell, shell, view]` showed the viewer
+    // alone — the user sees one pane and has every reason to think the
+    // other two failed to open. Unlike
     // `restore_from_reopens_a_viewer_on_its_saved_path` above (a ONE-entry
     // fixture, the single case where staying zoomed is correct), this fixture
     // is mixed, which is exactly the shape that fixture cannot catch.
@@ -150,17 +145,16 @@ fn restoring_a_viewer_among_other_panes_does_not_leave_the_app_zoomed() {
     std::fs::write(&f, "hi\n").unwrap();
     let mut app = CrewApp {
         cwd: PathBuf::from("/"),
-        zoomed: false,
         ..Default::default()
     };
     app.restore_from(vec![
+        SavedPane::shell(tmp_dir_str()),
+        SavedPane::shell(tmp_dir_str()),
         SavedPane::view(f.to_string_lossy().into_owned()),
-        SavedPane::shell(tmp_dir_str()),
-        SavedPane::shell(tmp_dir_str()),
     ]);
     assert_eq!(app.panes.len(), 3, "all three panes should have opened");
     assert!(
-        !app.zoomed,
+        !app.zoomed(),
         "a restored MIXED session must not leave the app zoomed — the other panes are still there"
     );
     let _ = std::fs::remove_file(&f);

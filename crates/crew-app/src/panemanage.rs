@@ -12,6 +12,7 @@ impl CrewApp {
         if idx >= self.panes.len() {
             return;
         }
+        let had_screen = self.zoomed_pane() == Some(idx);
         let p = &self.panes[idx];
         self.ghosts.push(crate::ghost::Ghost::new(
             p.rect,
@@ -20,12 +21,13 @@ impl CrewApp {
             crate::anim::now_ms(),
         ));
         self.panes[idx].hidden = true;
-        self.zoomed = false;
         if !self.config.show_nav {
             self.config.show_nav = true;
             self.config.save();
         }
-        if idx == self.focused {
+        // Put away from its own screen, the way back is the grid you left.
+        let back = had_screen && self.focus_grid();
+        if idx == self.focused && !back {
             // Focus the nearest visible pane; with none left, the input bar.
             match self.nearest_visible(idx) {
                 Some(i) => self.focused = i,
@@ -90,7 +92,6 @@ impl CrewApp {
         }
         self.panes.truncate(1); // drops the rest (closing their PTYs)
         self.focused = 0;
-        self.zoomed = false;
         self.input.focused = false;
         self.set_status("closed other panes");
         self.redraw();

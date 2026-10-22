@@ -19,7 +19,7 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
         "Click",
         "Select a thread, again to read it; a \u{2605} unstars; a key at the foot, or \u{2039} \u{203a}, does it",
     ),
-    ("Esc", "Back to the list; clear a search; close the pane"),
+    ("Esc", "Back to the list; clear a search; back to the grid, the inbox still open"),
     ("e", "Archive"),
     ("d", "Delete: to Gmail's Trash, never for good"),
     ("z", "Undo the last archive, delete, read or star"),

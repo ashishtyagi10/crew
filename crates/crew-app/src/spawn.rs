@@ -152,6 +152,7 @@ impl CrewApp {
                     hidden: false,
                     attention: None,
                     born_ms: crate::anim::now_ms(),
+                    zoom: None,
                 };
                 self.panes.push(pane);
                 self.focus_new_pane();

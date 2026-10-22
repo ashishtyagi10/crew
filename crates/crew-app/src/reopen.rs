@@ -141,10 +141,6 @@ impl crate::app::CrewApp {
         let kept = std::mem::take(&mut self.cwd);
         let opened = self.open_saved(&entry.saved, &kept);
         self.cwd = kept;
-        // A reopen is a request to look at the pane, so it never lands
-        // zoomed on top of a grid the user did not ask to leave — `open_view`
-        // sets that flag for a fresh `/view` and this is not one.
-        self.zoomed = false;
         if opened {
             let left = self.closed.len();
             let more = match left {

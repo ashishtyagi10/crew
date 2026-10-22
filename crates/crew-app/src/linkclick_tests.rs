@@ -41,6 +41,7 @@ fn term_pane(dir: Option<std::path::PathBuf>) -> Pane {
         hidden: false,
         attention: None,
         born_ms: 0,
+        zoom: None,
     }
 }
 
@@ -52,7 +53,7 @@ fn app_with(panes: Vec<Pane>, zoomed: bool, focused: usize) -> CrewApp {
     };
     app.panes = panes;
     app.focused = focused;
-    app.zoomed = zoomed;
+    app.panes[focused].zoom = Some(zoomed);
     app.input.focused = false;
     app.reconcile_grid();
     // The first frame sizes each shell to its card, which moves what is

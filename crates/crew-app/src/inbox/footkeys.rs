@@ -28,7 +28,7 @@ pub(crate) const GAP: Key = ("", "");
 pub(crate) const SETUP: Keys = &[
     ("1\u{2013}5", "open the console"),
     ("enter", "sign in"),
-    ("esc", "close"),
+    ("esc", "back"),
 ];
 pub(crate) const SIGNING_IN: Keys = &[("esc", "cancel")];
 /// The todo card's keys (`todocard`).

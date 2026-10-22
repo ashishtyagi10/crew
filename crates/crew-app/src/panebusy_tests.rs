@@ -30,6 +30,7 @@ fn chat_pane(connected: bool) -> Pane {
         hidden: false,
         attention: None,
         born_ms: 0,
+        zoom: None,
     }
 }
 
