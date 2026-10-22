@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.61
+
+**`/inbox`: a reply keeps its mail.** Fourth round of the second inbox loop.
+- **The mail stays under the reply you are writing.** A click on another
+  thread in the list beside it, or on the `‹ ›` on its card, used to open
+  that thread under the box, which still answered the first one. Now crew
+  says `a reply is open — send it, or esc to close it, first` and keeps your
+  words.
+- **Docs caught up**: the README and `CREW.md` describe the reply box as it
+  is (to everyone, `cc`, files, `f` to forward). The privacy page now says
+  exactly what reaches the AI provider: the thread, when you press `a` or Tab
+  in the reply box; never on `r`, `f` or `t`. Its effective date is
+  October 21, 2026.
+
 ## 0.27.60
 
 **`/inbox`: the wheel, the pointer and a little air.** Third round of the

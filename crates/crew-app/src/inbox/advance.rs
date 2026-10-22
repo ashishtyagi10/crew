@@ -6,6 +6,10 @@
 use super::worker::Ask;
 use super::{InboxPane, Reading};
 
+/// Said when another thread is asked for while a reply is being written:
+/// the box answers the thread it was opened on, so the mail under it stays.
+pub(crate) const HELD: &str = "a reply is open \u{2014} send it, or esc to close it, first";
+
 impl InboxPane {
     /// Open thread `i` of the list, as Enter does: asked of Gmail, marked
     /// read as Gmail marks it, selected, its pictures fresh. False when
@@ -14,6 +18,11 @@ impl InboxPane {
         let Some(thread) = self.rows.get(i).cloned() else {
             return false;
         };
+        let open = self.reading.as_ref().map(|r| r.thread.id.as_str());
+        if self.compose.is_some() && open != Some(thread.id.as_str()) {
+            self.note = HELD.into();
+            return false;
+        }
         self.select(i);
         self.ask(Ask::Open(thread.id.clone()));
         self.opened(&thread.id);
@@ -35,6 +44,9 @@ impl InboxPane {
     /// any width (the user, 2026-10-21: "n go to next email … p open
     /// previous email in detail panel"). What to say: nothing when it opened.
     pub(crate) fn next_thread(&mut self, older: bool) -> &'static str {
+        if self.compose.is_some() {
+            return HELD;
+        }
         let to = match (older, self.sel.checked_sub(1)) {
             (true, _) => self.sel + 1,
             (false, Some(i)) => i,
