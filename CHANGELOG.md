@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.76
+
+**`/inbox`: a reply on its way keeps its box.** Fourth round of the fifth
+inbox loop.
+- **Esc no longer closes a reply box while its mail is sending.** Closing it
+  then let you start another reply, which the first send's confirmation
+  closed, words and all. Esc now says the box closes when Gmail confirms.
+
 ## 0.27.75
 
 **`/inbox`: a key pressed on a thread acts on that thread.** Third round of
