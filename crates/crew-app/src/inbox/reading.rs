@@ -32,6 +32,8 @@ pub(crate) struct Reading {
     /// keys; and a reply just sent: its thread opens again at its end.
     pub seen: std::cell::Cell<(u16, u16)>,
     pub to_end: bool,
+    /// Gmail would not open it, and why (`Got::Unopened`).
+    pub failed: Option<String>,
 }
 
 impl Reading {
@@ -52,6 +54,7 @@ impl Reading {
             laid: std::sync::Mutex::new(None),
             seen: Default::default(),
             to_end: false,
+            failed: None,
         }
     }
 

@@ -45,7 +45,7 @@ impl Reading {
             plain: self.plain,
             quotes: self.quotes,
             web: self.web,
-            loaded: self.mails.is_some(),
+            loaded: self.mails.is_some() || self.failed.is_some(),
             sized: self.sizes.len(),
             folds: self.folds,
             ink: t.ink,
@@ -106,7 +106,18 @@ fn layout(r: &Reading, k: Key) -> Laid {
         }
         None => {
             lay.lines.push(Vec::new());
-            lay.lines.push(row("loading\u{2026}", k.muted, false));
+            match &r.failed {
+                // Esc and Enter ask for it again (`open_at`).
+                Some(e) => {
+                    let said = format!("could not open this thread: {e}");
+                    for line in super::draw::wrap(&said, k.width.max(1)) {
+                        lay.lines.push(row(&line, k.ink, false));
+                    }
+                    lay.lines
+                        .push(row("esc, then enter tries again", k.muted, false));
+                }
+                None => lay.lines.push(row("loading\u{2026}", k.muted, false)),
+            }
         }
     }
     Laid {

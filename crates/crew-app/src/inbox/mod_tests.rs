@@ -168,3 +168,32 @@ fn the_list_draws_unread_dots_senders_and_the_hint() {
         "nothing in the margin column"
     );
 }
+
+/// A thread Gmail would not open says so and how to try again, where it
+/// said "loading…" for good; a reply asked for before it opened is let go,
+/// and Esc then Enter asks for it again.
+#[test]
+fn a_thread_that_does_not_open_says_why() {
+    let (mut p, asks, answer) = ready();
+    answer.send(page("", &["a"], false)).unwrap();
+    p.poll();
+    p.press(&Key::Named(NamedKey::Enter), 80, 24);
+    p.press(&ch("r"), 80, 24);
+    answer
+        .send(Got::Unopened("a".into(), "Gmail 503".into()))
+        .unwrap();
+    p.poll();
+    let text: String = p.cells(80, 24).iter().map(|c| c.c).collect();
+    assert!(
+        text.contains("could not open this thread: Gmail 503"),
+        "{text}"
+    );
+    assert!(!text.contains("loading"), "{text}");
+    assert!(p.then.is_none() && !p.busy);
+    while asks.try_recv().is_ok() {}
+    p.press(&Key::Named(NamedKey::Escape), 80, 24);
+    p.press(&Key::Named(NamedKey::Enter), 80, 24);
+    assert!(asks
+        .try_iter()
+        .any(|a| matches!(a, Ask::Open(id) if id == "a")));
+}

@@ -86,6 +86,9 @@ pub(crate) enum Got {
     /// A check found the mailbox as it was: nothing to list again.
     Checked,
     Opened(String, Vec<Mail>),
+    /// A thread did not open (its id), and why: the reader says so where
+    /// its mails would be.
+    Unopened(String, String),
     /// Unsubscribed from this sender.
     Unsubscribed(String),
     /// A reply went, to these addresses.
