@@ -82,7 +82,9 @@ One card at a time: with a reply open, `t` says so, as a click on another thread
    `projects.toml`, or a folder crew can see), matched in this order: a bracketed tag in the
    subject (`[crew]`), a repository link in the mail (`github.com/…/crew`), the sender's list
    (`List-Id`, a GitHub or issue-tracker sender), and then the project's name as a whole word
-   in the subject or words. Two projects matching equally means none. A project not yet in
+   in the subject or words. *(As built: `List-Id` is not read, as GitHub's and most lists'
+   subjects carry the `[name]` already; a name as a word counts in the subject, or said twice
+   in the mails, and only for a tag or binding of yours, never a bare folder name.)* Two projects matching equally means none. A project not yet in
    the list is never made up from a mail; you type it.
 6. **Assignee:** only a person on the thread (sender, To or Cc). Picked from a direct ask
    ("Bo, can you…", "@bo", "assigned to Bo", "owner: Bo", an action-item line "Bo — the
@@ -128,4 +130,12 @@ rules: another thread waits while it is open, a paste lands on its line, a click
 line. The due date reads the newest mail as of the day it was sent (`days.rs`, `sent`), with
 the words it came from and the day beside it; a due line must read whole as a date.
 
-Phase 2: not started. Phase 3: not started.
+**Phase 2: shipped in v0.27.96.** crew guesses the card from the thread on your computer
+(`todoguess.rs`, with `todoask.rs` for the title, `todoproject.rs`, `todowho.rs` and
+`tododue.rs`), from what it knows besides (the tags in `/todo`, `projects.toml` and the
+folders projects live in, read by `Known::here` and never under a test). A calendar invite's
+start comes from the mail's `text/calendar` part (`api.rs`, `Mail::calendar`). The corpus is
+27 mails (`todo_corpus.toml`); the test holds every guess to it: no wrong project, no
+assignee off the thread, no due date where none is stated, and every stated one right.
+
+Phase 3: not started.

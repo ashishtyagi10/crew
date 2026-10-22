@@ -91,7 +91,10 @@ fn t_adds_a_todo_row_with_the_deadline_the_mail_states() {
     p.press(&Key::Named(winit::keyboard::NamedKey::Enter), 80, 24);
     let items = crate::todopane::store::snapshot();
     assert_eq!(items.len(), 1);
-    assert_eq!(items[0].title, "Reply to Ann: Q4 review");
+    assert_eq!(
+        items[0].title, "Send it (Q4 review)",
+        "the ask, with the subject it needs"
+    );
     assert!(items[0].due_ms.is_some(), "\"by Friday\" is the due date");
     assert!(p.note.starts_with("added to /todo"), "{}", p.note);
 }

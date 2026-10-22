@@ -61,7 +61,7 @@ fn t_opens_the_card_filled_in_and_adds_nothing_yet() {
         "nothing lands before Enter"
     );
     let c = p.todo.as_ref().expect("the card");
-    assert_eq!(c.text(Line::Title), "Reply to Ann Lee: Q4 numbers");
+    assert_eq!(c.text(Line::Title), "Send Ann the Q4 numbers", "the ask");
     assert_eq!(
         c.text(Line::Due),
         "2026-10-23",
@@ -94,7 +94,7 @@ fn enter_adds_the_row_as_the_card_says_it() {
     let items = crate::todopane::store::snapshot();
     assert_eq!(items.len(), 1);
     let it = &items[0];
-    assert_eq!(it.title, "Reply to Ann Lee: Q4 numbers");
+    assert_eq!(it.title, "Send Ann the Q4 numbers");
     assert_eq!(
         (it.project.as_deref(), it.assignee.as_deref()),
         (Some("crew"), Some("bo-park"))
@@ -103,7 +103,7 @@ fn enter_adds_the_row_as_the_card_says_it() {
     assert!(p.todo.is_none(), "the card goes once the row is in");
     assert!(
         p.note
-            .starts_with("added to /todo: Reply to Ann Lee: Q4 numbers @crew #bo-park"),
+            .starts_with("added to /todo: Send Ann the Q4 numbers @crew #bo-park"),
         "{}",
         p.note
     );
