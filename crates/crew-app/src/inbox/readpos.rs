@@ -8,8 +8,11 @@ use super::InboxPane;
 
 impl InboxPane {
     /// The counter's words; none with no list to count.
+    /// None, too, when the open thread has left the list (filed in Gmail
+    /// elsewhere): it has no place in it to count.
     pub(crate) fn counter(&self) -> Option<String> {
-        if self.reading.is_none() || self.rows.is_empty() {
+        let open = self.reading.as_ref()?.thread.id.as_str();
+        if self.rows.get(self.sel).map(|t| t.id.as_str()) != Some(open) {
             return None;
         }
         let more = if self.more { "+" } else { "" };
@@ -32,3 +35,7 @@ impl InboxPane {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "readpos_tests.rs"]
+mod tests;

@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.77
+
+**`/inbox`: a thread filed elsewhere.** Fifth and last round of the fifth
+inbox loop.
+- **When the thread you are reading is archived or deleted in Gmail
+  elsewhere** (on the web, on your phone), the list keeps its place instead
+  of jumping to the top, the `‹ 2 of 12 ›` counter no longer claims a place
+  the thread does not have, and `n` opens the thread now in its place instead
+  of skipping it.
+
 ## 0.27.76
 
 **`/inbox`: a reply on its way keeps its box.** Fourth round of the fifth
