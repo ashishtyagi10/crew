@@ -1775,11 +1775,18 @@ longer aim at.
   is deleted for good: the scope is `gmail.modify` (read, file, trash,
   draft), not the full-mail one; a sign-in from v0.27.29, made for
   read-only, is told to sign in again. Agent smith on the inbox: `a` hands
-  the thread to smith to say what it wants and by when; `r` asks smith for a
-  reply and, when its turn settles, saves the body it wrote between `<<<DRAFT` and
-  `DRAFT>>>` as a Gmail draft in the thread — crew writes the To,
-  Subject (`Re:`), `In-Reply-To` and `References` headers itself from the
-  thread, so the model writes only the body, and the draft is never sent;
+  the thread to smith to say what it wants and by when; `r` opens a reply box
+  under the mail, to everyone on it (its sender and the rest of its To in
+  `to`, its Cc in `cc`, never you), and Tab in the box asks smith for a draft
+  of the words, written between `<<<DRAFT` and `DRAFT>>>` and put in the box for
+  you to change — crew writes the To, Subject (`Re:`), `In-Reply-To` and
+  `References` headers itself from the thread, so the model writes only the
+  words, and nothing is sent until you press Cmd+Enter (Ctrl+Enter off a Mac);
+  `f` forwards the newest mail, its HTML, pictures and files with it, under a
+  note of yours; the box's row of files takes files of yours (↓ to it, Enter on
+  `+ attach` for the system's chooser, or a drop on the pane; Gmail's 25 MB at
+  most); while a reply is open the mail under it stays, so a click on another
+  thread is refused until it is sent or closed;
   `t` adds a `/todo` row ("Reply to Ann: …") due on a date that follows
   "by", "before", "until", "due" or "no later than" in the newest message.
   Pressed in the list, each opens the thread and acts when it arrives. The

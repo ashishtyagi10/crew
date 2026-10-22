@@ -122,3 +122,30 @@ fn the_subject_names_the_mail_card_and_its_counter_steps_through_the_list() {
     assert_eq!(p.counter_at(90, 30, mail.row, prev.col), Some(false));
     assert_eq!(p.counter_at(90, 30, mail.row + 1, next.col), None);
 }
+
+#[test]
+fn a_reply_being_written_keeps_its_mail_under_it() {
+    let _g = crate::app::motion_test_guard();
+    let mut p = reading();
+    p.press(&winit::keyboard::Key::Character("r".into()), 160, 40);
+    p.type_in("Friday then.");
+    let list = p.cards(160, 40).list.unwrap().inner();
+    let shown = p.shown(list.h);
+    let (r, _) = shown.threads().find(|&(_, i)| i == 0).expect("thread a");
+    p.click(160, 40, list.row + r, list.col + 4);
+    let open = |p: &InboxPane| p.reading.as_ref().unwrap().thread.id.clone();
+    assert_eq!(open(&p), "b", "a click on the list does not swap the mail");
+    assert_eq!(p.note, crate::inbox::advance::HELD);
+    let mail = p.cards(160, 40).mail.unwrap();
+    let next = p
+        .cells(160, 40)
+        .into_iter()
+        .find(|c| c.row == mail.row && c.c == '\u{203a}')
+        .unwrap();
+    p.click(160, 40, mail.row, next.col);
+    assert_eq!(open(&p), "b", "nor does the counter");
+    assert_eq!(p.compose.as_ref().unwrap().body.text, "Friday then.");
+    p.compose = None;
+    p.click(160, 40, mail.row, next.col);
+    assert_eq!(open(&p), "c", "with no reply open, it steps on");
+}
