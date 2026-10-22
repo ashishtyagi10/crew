@@ -113,3 +113,20 @@ fn a_click_puts_the_caret_on_the_letter_clicked() {
     let to = p.compose.as_ref().unwrap().to.text.clone();
     assert!(to.starts_with("Ann|"), "{to}");
 }
+
+#[test]
+fn a_long_line_being_written_shows_its_end_around_the_caret() {
+    let _g = crate::app::motion_test_guard();
+    let (mut p, _) = reading();
+    typed(&mut p, "r");
+    press(&mut p, NamedKey::ArrowUp);
+    let many: String = (0..200).map(|i| format!(", p{i}@x.org")).collect();
+    p.paste(&many);
+    let b = p.cards(80, 30).reply.unwrap();
+    let cc = row(&p, 80, 30, b.row + 2);
+    assert!(cc.contains("cc  \u{2026}"), "its start cut: {cc}");
+    assert!(
+        cc.contains("p199@x.org\u{258f}"),
+        "its end and the caret: {cc}"
+    );
+}

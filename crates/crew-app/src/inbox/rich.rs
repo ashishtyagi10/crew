@@ -139,3 +139,7 @@ mod tests {
         assert!(r.note.as_deref().is_some_and(|n| n.contains("koi8-r")));
     }
 }
+
+#[cfg(test)]
+#[path = "htmlfuzz_tests.rs"]
+mod fuzz;

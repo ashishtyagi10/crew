@@ -104,3 +104,7 @@ pub(crate) fn names(line: &str) -> String {
 #[cfg(test)]
 #[path = "addr_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "hdrfuzz_tests.rs"]
+mod fuzz;
