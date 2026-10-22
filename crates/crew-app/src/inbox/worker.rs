@@ -113,10 +113,12 @@ impl State {
         }
     }
 
-    /// A filing call's answer: nothing to say when it worked.
+    /// A filing call's answer: the unread count when it worked.
     fn filed(&mut self, g: &mut Gmail, done: Result<(), String>) -> Vec<Got> {
         match done {
-            Ok(()) => vec![],
+            // The count the pane's name and the nav card say, at once
+            // (labels.get, one unit); none when it could not be had.
+            Ok(()) => g.unread().ok().map(Got::Unread).into_iter().collect(),
             Err(e) => std::iter::once(fail(e)).chain(self.list(g, None)).collect(),
         }
     }
@@ -151,3 +153,7 @@ fn fail(e: String) -> Got {
         false => Got::Failed(e),
     }
 }
+
+#[cfg(test)]
+#[path = "worker_tests.rs"]
+mod tests;
