@@ -118,8 +118,9 @@ impl InboxPane {
             }
             // Before the list: a card of its own, as every section is.
             (Stage::Setup { found }, _) => {
+                let kept = self.kept();
                 page(&mut cv, self.cards(cols, rows).page, "set up Gmail", |c| {
-                    super::setup::draw(c, found.as_ref())
+                    super::setup::draw(c, found.as_ref(), kept.as_deref())
                 })
             }
             (Stage::SigningIn(_), _) => {
