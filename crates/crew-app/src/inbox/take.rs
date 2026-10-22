@@ -98,7 +98,11 @@ impl InboxPane {
                 self.paged(rows, next.is_some(), more, whole);
             }
             Got::Unread(n) => self.unread = Some(n),
-            Got::Checked => self.checked_ms = Some(chrono::Utc::now().timestamp_millis()),
+            Got::Checked => {
+                self.checked_ms = Some(chrono::Utc::now().timestamp_millis());
+                // Gmail answered: a failure the list still showed is over.
+                self.failed = None;
+            }
             Got::Opened(id, mails) => {
                 self.busy = false;
                 if let Some(r) = self.reading.as_mut().filter(|r| r.thread.id == id) {
@@ -165,33 +169,19 @@ impl InboxPane {
                 self.note = told(e);
             }
             Got::Refused(id, e) => self.refused(&id, told(e)),
-            Got::Ended(e) => {
-                grant::clear();
-                self.busy = false;
-                // Kept for after the sign-in, the words free to change again;
-                // a half-typed search would take the setup page's keys.
-                self.typing = None;
-                if let Some(c) = self.compose.as_mut() {
-                    c.sending = false;
-                }
-                self.note = format!(
-                    "Google ended the sign-in ({e}). An app left in Testing is \
-                     signed out after 7 days: Audience \u{2192} Publish app keeps it"
-                );
-                self.stage = Stage::Setup {
-                    found: setup::look(),
-                };
-            }
+            Got::Ended(e) => self.signed_out(&e),
         }
     }
 }
 
-/// A failure in the words the foot says. A grant made for the read-only scope
-/// (v0.27.29) cannot file or draft, and Google adds no scope to an installed
-/// app's grant without a fresh consent.
+/// A failure in the words the foot says: what it is, where crew can name it
+/// (`states::known`), else Gmail's own words. A grant made for the read-only
+/// scope (v0.27.29) cannot archive, star or send, and Google adds no scope to
+/// an installed app's grant without a fresh consent.
 pub(super) fn told(e: String) -> String {
-    match e.contains("insufficient authentication scopes") {
-        true => "filing and drafts need a new sign-in: /inbox signout, then Enter".into(),
-        false => e,
+    if e.contains("insufficient authentication scopes") {
+        return "archiving, starring and sending need a new sign-in: /inbox signout, then Enter"
+            .into();
     }
+    super::states::known(&e).map_or(e, |(what, _)| what.to_string())
 }

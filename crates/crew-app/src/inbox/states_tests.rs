@@ -60,7 +60,7 @@ fn a_list_gmail_would_not_give_says_what_in_words_and_the_key_that_mends_it() {
         .unwrap();
     p.poll();
     assert!(p.failed.is_none(), "with rows to show, it is a note");
-    assert_eq!(p.note, "Gmail 500: backend");
+    assert_eq!(p.note, "Gmail is having trouble", "in words, not Gmail's");
 }
 
 #[test]
@@ -79,6 +79,23 @@ fn failures_read_as_people_would_say_them() {
         "Gmail asked crew to slow down"
     );
     assert_eq!(said("Gmail 503: unavailable"), "Gmail is having trouble");
+    // Offline, the token's renewal fails first, in Google's name.
+    assert_eq!(
+        said("could not reach Google: error sending request"),
+        "Gmail can\u{2019}t be reached from here"
+    );
+    assert_eq!(
+        said("Gmail 403: User-rate limit exceeded"),
+        "Gmail asked crew to slow down"
+    );
+    assert_eq!(
+        failure("Gmail 403: Gmail API has not been used in project 12 before or it is disabled").0,
+        "the Gmail API is off in your Google project"
+    );
+    assert_eq!(
+        said("invalid_client: The OAuth client was deleted."),
+        "Google no longer knows your OAuth client"
+    );
     assert_eq!(
         said("something else"),
         "Gmail wouldn\u{2019}t list the inbox"
@@ -111,4 +128,36 @@ fn loading_draws_rows_in_outline_and_an_empty_inbox_a_mark_and_when_it_was_check
     );
     assert!(said.contains("esc goes back to the inbox"), "{said}");
     assert!(p.art(60, 20, 2.0).1.is_empty(), "no mark for a search");
+}
+
+/// One failed check at inbox zero said "can't be reached" until new mail
+/// came: a later check that reached Gmail found nothing to list and never
+/// took it back.
+#[test]
+fn a_check_that_reaches_gmail_ends_a_failure_the_empty_list_showed() {
+    let (mut p, answer) = pane();
+    answer
+        .send(Got::Failed("could not reach Gmail: timeout".into()))
+        .unwrap();
+    p.poll();
+    assert!(p.failed.is_some());
+    answer.send(Got::Checked).unwrap();
+    p.poll();
+    assert!(p.failed.is_none());
+}
+
+/// Signed out: in words, the way back, and no raw code or ".)." from Google.
+#[test]
+fn the_signed_out_note_is_in_words() {
+    let (mut p, answer) = pane();
+    let e = "invalid_grant: Token has been expired or revoked.";
+    answer.send(Got::Ended(e.into())).unwrap();
+    p.poll();
+    assert!(p.note.starts_with("Google signed crew out"), "{}", p.note);
+    assert!(!p.note.contains("invalid_grant") && !p.note.contains(".)."));
+    assert!(
+        p.note.contains("(Token has been expired or revoked)"),
+        "{}",
+        p.note
+    );
 }

@@ -140,24 +140,41 @@ fn skeleton(cols: u16, rows: u16, two: bool) -> Vec<Paint> {
 
 /// A failed list in words, and the key that mends it: never the raw error.
 pub(crate) fn failure(e: &str) -> (&'static str, &'static str) {
+    known(e).unwrap_or(("Gmail wouldn\u{2019}t list the inbox", "R tries again"))
+}
+
+/// A failure crew can name, in words, and the key that mends it. Matched
+/// without case: Gmail writes "Rate Limit" and "User-rate limit" both.
+pub(crate) fn known(e: &str) -> Option<(&'static str, &'static str)> {
     let again = "R tries again";
     let sign = "/inbox signout, then Enter, signs in again";
-    match e {
-        e if e.contains("could not reach Gmail") => {
+    let low = e.to_ascii_lowercase();
+    let has = |s: &str| low.contains(s);
+    Some(match () {
+        // The token's renewal is the first call to fail when offline.
+        _ if has("could not reach gmail") || has("could not reach google") => {
             ("Gmail can\u{2019}t be reached from here", again)
         }
-        e if e.contains("insufficient authentication scopes") => {
+        _ if has("insufficient authentication scopes") => {
             ("this sign-in can\u{2019}t read your mail", sign)
         }
-        e if e.contains("401") || e.contains("refused the sign-in") => {
+        _ if has("has not been used") || has("is disabled") || has("accessnotconfigured") => (
+            "the Gmail API is off in your Google project",
+            "turn it on (setup step 2), then R",
+        ),
+        _ if has("invalid_client") => (
+            "Google no longer knows your OAuth client",
+            "/inbox signout, then set up a new one",
+        ),
+        _ if has("401") || has("refused the sign-in") => {
             ("Gmail turned down crew\u{2019}s sign-in", sign)
         }
-        e if e.contains(" 429") || e.contains("Rate Limit") || e.contains("quota") => {
+        _ if has(" 429") || has("rate limit") || has("quota") => {
             ("Gmail asked crew to slow down", "R in a minute")
         }
-        e if e.contains("Gmail 5") => ("Gmail is having trouble", again),
-        _ => ("Gmail wouldn\u{2019}t list the inbox", again),
-    }
+        _ if has("gmail 5") => ("Gmail is having trouble", again),
+        _ => return None,
+    })
 }
 
 #[cfg(test)]

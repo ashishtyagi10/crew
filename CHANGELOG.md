@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.91
+
+**`/inbox`: failures said in words.** Seventh round of the seventh inbox
+loop.
+- **A failure note says what happened** ("Gmail can't be reached from
+  here", "Gmail asked crew to slow down") instead of Gmail's raw text, where
+  crew knows the failure.
+- **More failures are known:** offline when the sign-in renews ("could not
+  reach Google"), the Gmail API turned off in your Google project, a deleted
+  OAuth client, and Gmail's "User-rate limit exceeded".
+- **One failed check at inbox zero no longer stays on screen.** It said
+  "Gmail can't be reached" until new mail came, though later checks reached
+  Gmail; now the next check that does clears it.
+- **Signed out by Google, the note says so in words**, without Google's raw
+  `invalid_grant` code.
+
 ## 0.27.90
 
 **`/inbox`: offline at the start, you are still "me".** Sixth round of the
