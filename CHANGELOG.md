@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.92
+
+**`/inbox`: the privacy policy and the docs say what the pane does.** Eighth
+round of the seventh inbox loop.
+- **The privacy policy and the terms said crew never sends mail.** It sends
+  the replies and forwards you write when you press Cmd+Enter, and the
+  unsubscribe mail a sender asks for when you press `u` twice. Both pages
+  now say so, and the policy says that opening a thread fetches its web
+  pictures from where they are hosted (`i` hides them). Effective
+  October 22, 2026.
+- **CREW.md named `z` for folding quoted replies** (it is `q`) and the scope
+  as "draft" (it is send); README said a check costs 2 quota units (it is 1).
+- **The help's reply-box rows match the foot:** Up and Down move through the
+  box (Tab in the words asks smith), and ← → choose a file on the row of
+  files, which the foot now shows too.
+
 ## 0.27.91
 
 **`/inbox`: failures said in words.** Seventh round of the seventh inbox

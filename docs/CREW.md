@@ -1772,8 +1772,8 @@ longer aim at.
   the browser. The first `u` says what would happen; a second does it;
   each shows at once and goes to Gmail behind it, and a refusal is said and
   the thread put back as it was. Opening a thread marks it read. Nothing
-  is deleted for good: the scope is `gmail.modify` (read, file, trash,
-  draft), not the full-mail one; a sign-in from v0.27.29, made for
+  is deleted for good: the scope is `gmail.modify` (read, label, trash,
+  send), not the full-mail one; a sign-in from v0.27.29, made for
   read-only, is told to sign in again. Agent smith on the inbox: `a` hands
   the thread to smith to say what it wants and by when; `r` opens a reply box
   under the mail, to everyone on it (its sender and the rest of its To in
@@ -1792,7 +1792,7 @@ longer aim at.
   Pressed in the list, each opens the thread and acts when it arrives. The
   thread reaches smith fenced and labelled untrusted, with the instruction
   not to follow it; smith's transcript shows one short line for it, not the
-  mail. `/` searches with Gmail's syntax, `R` re-lists, `L` swaps one and two lines a thread, `z` and `v` fold and swap
+  mail. `/` searches with Gmail's syntax, `R` re-lists, `L` swaps one and two lines a thread, `q` and `v` fold and swap
   in the reader, `o` opens the thread or
   the inbox in Gmail on the signed-in account, Esc clears a search, leaves a
   thread, and closes the pane. `/inbox <search>` opens on a search; `/inbox

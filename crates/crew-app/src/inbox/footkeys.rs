@@ -58,6 +58,7 @@ pub(crate) const FILES: Keys = &[
     (SEND, "send"),
     ("esc", "close"),
     GAP,
+    ("\u{2190}\u{2192}", "choose"),
     ("enter", "open or attach"),
     ("del", "take off"),
     ("\u{2191}", "back to the words"),
