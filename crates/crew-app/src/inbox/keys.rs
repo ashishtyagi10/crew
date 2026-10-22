@@ -25,7 +25,7 @@ impl InboxPane {
     ) -> Option<InboxAction> {
         let enter = matches!(event.logical_key, Key::Named(NamedKey::Enter));
         match event.state.is_pressed() {
-            true if held && enter && self.compose.is_some() => {
+            true if held && enter && self.compose.is_some() && self.ready() => {
                 self.send_reply();
                 Some(InboxAction::Redraw)
             }
@@ -36,7 +36,8 @@ impl InboxPane {
 
     /// One key, pressed (`press` wraps it): the pane's whole keyboard.
     pub(crate) fn press_key(&mut self, key: &Key, cols: u16, rows: u16) -> Option<InboxAction> {
-        if self.compose.is_some() && self.reading.is_some() {
+        // A reply box waits out a sign-in: the setup page's keys are its own.
+        if self.compose.is_some() && self.reading.is_some() && self.ready() {
             self.compose_key(key);
             return Some(InboxAction::Redraw);
         }
