@@ -95,6 +95,8 @@ pub(crate) fn message(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key, first: bool
             rich.web
         );
         lay.quiet(&line, k);
+        // Air, so the note does not sit on the mail's first line.
+        lay.lines.push(Vec::new());
     }
     lay.md(&rich.body, k, k.ink, &m.id);
     if let Some(foot) = &rich.foot {

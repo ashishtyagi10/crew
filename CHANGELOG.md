@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.60
+
+**`/inbox`: the wheel, the pointer and a little air.** Third round of the
+second inbox loop.
+- **Scrolling while you reply scrolls the mail.** The wheel used to act as
+  the arrow keys, which in the reply box moved your caret up to the `to`
+  line.
+- **The pointer is a hand** over the reply box's files, their `✕` and
+  `+ attach`, as over everything else you can click.
+- **The "pictures from the web hidden" note has air under it** instead of
+  sitting on the mail's first line.
+
 ## 0.27.59
 
 **`/inbox`: the reply box on a small pane.** Second round of the second
