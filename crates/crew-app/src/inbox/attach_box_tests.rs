@@ -91,27 +91,24 @@ fn the_chooser_answers_onto_the_row_and_a_click_on_attach_asks_it() {
     let (_d, path) = file("plan.txt", 10);
     typed(&mut p, "r");
     crate::inbox::pick::CHOSEN.with(|c| *c.borrow_mut() = vec![path.clone()]);
-    let row = p.reader_rows(80, 30) + p.compose_h(80, 30) - 2;
-    assert!(p.compose_click(80, 30, row, 5), "on + attach");
+    let b = p.cards(80, 30).reply.expect("the box's card");
+    assert!(p.compose_click(80, 30, b.row + b.h - 2, 5), "on + attach");
     assert!(p.picked());
     assert_eq!(p.compose.as_ref().unwrap().files[0].name, "plan.txt");
     assert_eq!(on(&p), On::Files);
     // The foot changed with the caret (and a note), so the box moved.
-    let row = p.reader_rows(80, 30) + p.compose_h(80, 30) - 2;
-    let col = 3 + "plan.txt 10 B ".len() as u16;
+    let b = p.cards(80, 30).reply.unwrap();
+    let (row, col) = (b.row + b.h - 2, b.col + 3 + "plan.txt 10 B ".len() as u16);
     assert!(p.compose_click(80, 30, row, col), "on its \u{2715}");
     assert!(p.compose.as_ref().unwrap().files.is_empty());
 }
 
 #[test]
-fn a_reply_with_a_file_and_a_bcc_goes_in_its_thread_built_by_the_worker() {
+fn a_reply_with_a_file_goes_in_its_thread_built_by_the_worker() {
     let (mut p, asks) = reading();
     let (_d, path) = file("menu.pdf", 5);
     typed(&mut p, "r");
     typed(&mut p, "Here it is.");
-    press(&mut p, NamedKey::ArrowUp);
-    assert_eq!(on(&p), On::Bcc, "up from the words is bcc");
-    typed(&mut p, "boss@x.org");
     p.attach(&path);
     p.send_reply();
     let mail = asks.try_iter().find_map(|a| match a {
@@ -124,11 +121,7 @@ fn a_reply_with_a_file_and_a_bcc_goes_in_its_thread_built_by_the_worker() {
         Some("t1"),
         "a reply stays in its thread"
     );
-    assert!(
-        o.head.contains(&"Bcc: boss@x.org".to_string()),
-        "{:?}",
-        o.head
-    );
+    assert!(o.head.iter().all(|h| !h.starts_with("Bcc")), "{:?}", o.head);
     assert_eq!((o.words.as_str(), o.files.len()), ("Here it is.", 1));
 }
 

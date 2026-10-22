@@ -126,12 +126,12 @@ fn inbox_split_shot_cc_and_forward() {
         p.press(&winit::keyboard::Key::Character(k.into()), 90, 30);
     };
     read(&mut p);
-    key(&mut p, "R");
+    key(&mut p, "r");
     p.type_in("Friday at 10 suits everyone.");
-    // Up to bcc; two files of yours on the row, the caret on the second.
+    // Up to cc; two files of yours on the row, the caret on the second.
     let up = winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowUp);
     p.press(&up, 90, 30);
-    p.type_in("boss@y.org");
+    p.type_in(", eve@y.org");
     let dir = tempfile::tempdir().unwrap();
     for (name, len) in [("agenda.pdf", 84_000), ("room plan.png", 1_300_000)] {
         let f = std::fs::File::create(dir.path().join(name)).unwrap();

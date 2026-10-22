@@ -38,12 +38,12 @@ pub(crate) const SEND: &str = if cfg!(target_os = "macos") {
     "ctrl+\u{21a9}"
 };
 /// Writing a reply's words; [`FORWARD`] a forward's note, [`ADDRESS`] on
-/// its `to`, `cc` or `bcc` line, [`FILES`] on its row of files.
+/// its `to` or `cc` line, [`FILES`] on its row of files.
 pub(crate) const COMPOSE: Keys = &[
     (SEND, "send"),
     ("esc", "close"),
     GAP,
-    ("\u{2191}", "to, cc, bcc"),
+    ("\u{2191}", "to and cc"),
     ("\u{2193}", "attach"),
     ("tab", "agent smith drafts it"),
 ];
@@ -51,7 +51,7 @@ pub(crate) const FORWARD: Keys = &[
     (SEND, "send"),
     ("esc", "close"),
     GAP,
-    ("\u{2191}", "to, cc, bcc"),
+    ("\u{2191}", "to and cc"),
     ("\u{2193}", "attach"),
 ];
 pub(crate) const FILES: Keys = &[
@@ -87,7 +87,6 @@ pub(crate) const READER: Keys = &[
     ("p", "previous"),
     GAP,
     ("r", "reply"),
-    ("R", "reply all"),
     ("f", "forward"),
     ("e", "archive"),
     ("d", "delete"),

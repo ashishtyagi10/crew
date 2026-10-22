@@ -22,11 +22,13 @@ fn pane() -> (InboxPane, mpsc::Receiver<Ask>) {
     (p, asks)
 }
 
-/// The first row thread `i` is drawn on, in a pane `cols` by 24.
+/// The pane row thread `i` is first drawn on, in a pane `cols` by 24: in
+/// the list's card.
 fn row_of(p: &InboxPane, cols: u16, i: usize) -> u16 {
-    let shown = p.shown(p.body_rows(cols, 24));
+    let inner = p.cards(cols, 24).list.expect("the list's card").inner();
+    let shown = p.shown(inner.h);
     let at = shown.threads().find(|&(_, j)| j == i).unwrap().0;
-    at
+    inner.row + at
 }
 
 #[test]
@@ -93,17 +95,19 @@ fn a_keycap_in_the_foot_is_its_key_and_the_counters_arrows_step_through_the_list
         "t2",
         "n: the next thread"
     );
+    // On the mail card's top edge.
+    let edge: Vec<_> = p.cells(80, 24).into_iter().filter(|c| c.row == 0).collect();
     let row: String = {
-        let mut on: Vec<_> = p.cells(80, 24).into_iter().filter(|c| c.row == 1).collect();
+        let mut on = edge.clone();
         on.sort_by_key(|c| c.col);
         on.iter().map(|c| c.c).collect()
     };
     assert!(row.contains("3 of 4"), "{row}");
-    let (s, start) = p.counter(80).unwrap();
-    assert!(matches!(p.click(80, 24, 1, start), Clicked::Done), "‹");
+    let arrow = |ch: char| edge.iter().find(|c| c.c == ch).expect("an arrow").col;
+    let (prev, next) = (arrow('\u{2039}'), arrow('\u{203a}'));
+    assert!(matches!(p.click(80, 24, 0, prev), Clicked::Done), "‹");
     assert_eq!(p.sel, 1);
-    let end = start + crate::chatwidth::str_w(&s) as u16 - 1;
-    assert!(matches!(p.click(80, 24, 1, end), Clicked::Done), "›");
+    assert!(matches!(p.click(80, 24, 0, next), Clicked::Done), "›");
     assert_eq!(p.sel, 2);
     let esc = cells
         .iter()

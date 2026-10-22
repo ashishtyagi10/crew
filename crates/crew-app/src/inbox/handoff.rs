@@ -1,4 +1,4 @@
-//! `a`, `r` and `t`: the thread to agent smith, a reply (or `R`, `f`), the
+//! `a`, `r` and `t`: the thread to agent smith, a reply (or `f`), the
 //! thread to `/todo`. Each acts on the open thread once its messages are
 //! here; pressed in the list, it opens the thread and acts when it lands.
 //!
@@ -15,9 +15,8 @@ pub(crate) enum Then {
     Ask,
     /// Agent smith writes a reply: into the box when one is open.
     Draft,
-    /// `r`, `R` and `f`: the reply box (`compose`).
+    /// `r` and `f`: the reply box (`compose`).
     Reply,
-    ReplyAll,
     Forward,
     Todo,
 }
@@ -39,13 +38,11 @@ pub(crate) struct Waiting {
 }
 
 impl InboxPane {
-    /// `a`, `r`, `f` or `t` (and `R` in a thread: in the list it
-    /// refreshes): true when it was one of them.
+    /// `a`, `r`, `f` or `t`: true when it was one of them.
     pub(crate) fn handoff(&mut self, ch: &str) -> bool {
         let then = match ch {
             "a" => Then::Ask,
             "r" => Then::Reply,
-            "R" if self.reading.is_some() => Then::ReplyAll,
             "f" => Then::Forward,
             "t" => Then::Todo,
             _ => return false,
@@ -83,7 +80,7 @@ impl InboxPane {
             }
             Then::Draft => {
                 let mails = r.mails.as_deref().unwrap_or_default();
-                let answer = draft::answer(&r.thread.id, mails, &self.email);
+                let answer = draft::answer_all(&r.thread.id, mails, &self.email);
                 self.to_smith = Some(ToSmith {
                     prompt: super::smith::draft_prompt(r),
                     shown: format!("\u{2709} draft a reply to \u{201c}{subject}\u{201d}"),
@@ -94,7 +91,6 @@ impl InboxPane {
                         .into();
             }
             Then::Reply => self.note = self.open_compose(Kind::Reply).into(),
-            Then::ReplyAll => self.note = self.open_compose(Kind::All).into(),
             Then::Forward => self.note = self.open_compose(Kind::Forward).into(),
             Then::Todo => self.to_todo(),
         }

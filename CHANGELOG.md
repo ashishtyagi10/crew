@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.58
+
+**`/inbox`: cards, and reply means everyone.** First round of the second
+inbox loop.
+- **`r` replies to everyone** on the mail: its sender and the others it went
+  to, never you. The separate reply all (`R`) is gone.
+- **No Bcc line** in the reply box.
+- **The list, the open mail and the reply box are each a card** with its own
+  edge. The mail's card wears the subject on its top edge, with `‹ 2 of 12 ›`
+  at its right, which stays put as the mail scrolls.
+- **The mail is always the tallest**: the reply box grows to a third of the
+  pane at most and is never as tall as the mail above it.
+- **Tests:** the cards never overlap, every click and picture lands in its
+  card, the mail card is taller than the box at every pane height, and a
+  reply copies everyone but you.
+
 ## 0.27.57
 
 **`/inbox`: Bcc, and files in the reply box.**

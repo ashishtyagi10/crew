@@ -80,10 +80,8 @@ fn up_reaches_the_cc_line_and_what_is_typed_there_is_copied() {
     assert_eq!(on(&p), On::Body, "a reply starts in the words");
     typed(&mut p, "Yes!");
     press(&mut p, NamedKey::ArrowUp);
-    assert_eq!(on(&p), On::Bcc);
-    press(&mut p, NamedKey::ArrowUp);
     assert_eq!(on(&p), On::Cc);
-    typed(&mut p, "dee@x.org");
+    typed(&mut p, ", dee@x.org");
     let cells = p.cells(80, 30);
     let row = |r: u16| -> String {
         let mut c: Vec<_> = cells.iter().filter(|c| c.row == r).collect();
@@ -93,42 +91,39 @@ fn up_reaches_the_cc_line_and_what_is_typed_there_is_copied() {
     let rows: Vec<String> = (0..30).map(row).collect();
     assert!(
         rows.iter()
-            .any(|r| r.contains("to") && r.contains("Ann Lee <ann@x.org>")),
+            .any(|r| r.contains("to") && r.contains("Ann Lee <ann@x.org>, bo@x.org")),
         "{rows:#?}"
     );
     assert!(
         rows.iter()
-            .any(|r| r.contains("cc") && r.contains("dee@x.org")),
+            .any(|r| r.contains("cc") && r.contains("cy@x.org, dee@x.org")),
         "{rows:#?}"
     );
     press(&mut p, NamedKey::Enter);
-    assert_eq!(on(&p), On::Bcc, "Enter on a line goes on");
-    press(&mut p, NamedKey::Enter);
-    assert_eq!(on(&p), On::Body, "and from bcc to the words");
+    assert_eq!(on(&p), On::Body, "Enter on a line goes on to the words");
     p.send_reply();
     let m = sent(&asks);
     assert!(
-        m.contains("To: Ann Lee <ann@x.org>\r\nCc: dee@x.org\r\n"),
+        m.contains("To: Ann Lee <ann@x.org>, bo@x.org\r\nCc: cy@x.org, dee@x.org\r\n"),
         "{m}"
     );
 }
 
 #[test]
-fn reply_all_copies_everyone_and_a_bad_address_is_refused_where_it_is() {
+fn a_reply_copies_everyone_and_a_bad_address_is_refused_where_it_is() {
     let (mut p, asks) = reading();
-    typed(&mut p, "R");
+    typed(&mut p, "r");
     let c = p.compose.as_ref().expect("the box");
-    assert_eq!(c.kind, Kind::All);
+    assert_eq!(c.kind, Kind::Reply, "every reply is to everyone");
     assert_eq!(
         (c.to.text.as_str(), c.cc.text.as_str()),
         ("Ann Lee <ann@x.org>, bo@x.org", "cy@x.org")
     );
     typed(&mut p, "See you.");
     press(&mut p, NamedKey::ArrowUp);
-    press(&mut p, NamedKey::ArrowUp);
     typed(&mut p, ", bob");
     press(&mut p, NamedKey::Tab);
-    assert_eq!(on(&p), On::Bcc, "Tab on a line goes on");
+    assert_eq!(on(&p), On::Body, "Tab on a line goes on");
     p.send_reply();
     assert_eq!(p.note, "\u{201c}bob\u{201d} is not an address");
     assert_eq!(on(&p), On::Cc, "the caret goes to it");
@@ -148,7 +143,7 @@ fn reply_all_copies_everyone_and_a_bad_address_is_refused_where_it_is() {
 #[test]
 fn esc_closes_an_untouched_box_and_asks_twice_once_a_line_changed() {
     let (mut p, _) = reading();
-    typed(&mut p, "R");
+    typed(&mut p, "r");
     press(&mut p, NamedKey::Escape);
     assert!(p.compose.is_none(), "nothing changed: closed at once");
     typed(&mut p, "r");
@@ -165,14 +160,12 @@ fn a_click_puts_the_caret_on_the_line_clicked() {
     let (mut p, _) = reading();
     typed(&mut p, "r");
     let h = p.compose_h(80, 30);
-    let top = p.reader_rows(80, 30);
+    let top = p.cards(80, 30).reply.expect("the box's card").row;
     assert!(h > 0 && p.compose_click(80, 30, top + 2, 9));
     assert_eq!(on(&p), On::Cc);
     assert!(p.compose_click(80, 30, top + 1, 9));
     assert_eq!(on(&p), On::To);
-    assert!(p.compose_click(80, 30, top + 3, 9));
-    assert_eq!(on(&p), On::Bcc);
-    assert!(p.compose_click(80, 30, top + 5, 9));
+    assert!(p.compose_click(80, 30, top + 4, 9));
     assert_eq!(on(&p), On::Body);
     assert!(
         !p.compose_click(80, 30, top - 1, 9),

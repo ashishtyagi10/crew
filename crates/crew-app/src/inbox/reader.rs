@@ -1,12 +1,12 @@
-//! An opened thread, read: under a row of air, the subject, then each
-//! message's sender (and address, and time at the right) over its words,
-//! oldest first, with air between messages. The words are markdown drawn the way chat
+//! An opened thread, read: each message's sender (and address, and time at
+//! the right) over its words, oldest first, with air between messages; the
+//! subject is on the card's edge (`cards`). The words are markdown drawn the way chat
 //! draws it (`chatmd`), so a mail's headings, emphasis, lists, quotes,
 //! tables and links survive (goal 2026-10-20-mail-reader, phase 1); quoted
 //! replies fold to one row until `q`, and `v` reads the other version.
 use std::sync::Arc;
 
-use super::draw::{wrap, Canvas};
+use super::draw::Canvas;
 use super::pics::{Pic, Pics};
 use super::readmail::{Lay, Placed};
 use super::Reading;
@@ -76,20 +76,19 @@ pub(crate) fn text_width(cols: u16) -> usize {
 /// The longest line the reader sets.
 pub(crate) const MEASURE: usize = 88;
 
-fn layout(r: &Reading, k: Key) -> Laid {
-    let subject = match r.thread.subject.trim() {
+/// The thread's subject, as its card's edge names it.
+pub(crate) fn subject(r: &Reading) -> &str {
+    match r.thread.subject.trim() {
         "" => "(no subject)",
         s => s,
-    };
+    }
+}
+
+fn layout(r: &Reading, k: Key) -> Laid {
     let mut lay = Lay {
         sizes: r.sizes.clone(),
         ..Lay::default()
     };
-    // A row of air under the pane's edge, as the list has.
-    lay.lines.push(Vec::new());
-    // Its first row leaves room for `‹ 3 of 25 ›` (`readpos`).
-    let title = wrap(subject, k.width.saturating_sub(super::readpos::ROOM));
-    lay.lines.extend(title.iter().map(|l| row(l, k.ink, true)));
     match &r.mails {
         Some(mails) => {
             let w = super::readfold::names_w(mails);

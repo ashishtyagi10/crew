@@ -27,16 +27,15 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
     ("s", "Star or unstar"),
     (
         "r",
-        "Reply in a box under the mail: \u{2318}/Ctrl+Enter sends, Tab has agent smith draft it, Esc closes",
+        "Reply to everyone on the mail, in a box under it: \u{2318}/Ctrl+Enter sends, Tab drafts with smith",
     ),
-    ("R", "In a thread: reply to everyone the mail went to"),
     (
         "f",
         "Forward the newest mail, its pictures and files with it, under a note of yours",
     ),
     (
         "Tab / Up / Down",
-        "In the reply box: through the to, cc and bcc lines, the words and the files",
+        "In the reply box: through the to and cc lines, the words and the files",
     ),
     (
         "Down, then Enter",

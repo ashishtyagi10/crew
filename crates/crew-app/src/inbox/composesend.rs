@@ -14,7 +14,7 @@ impl InboxPane {
         let Some(c) = self.compose.as_mut().filter(|c| !c.sending) else {
             return;
         };
-        let bad = [(On::To, &c.to), (On::Cc, &c.cc), (On::Bcc, &c.bcc)]
+        let bad = [(On::To, &c.to), (On::Cc, &c.cc)]
             .into_iter()
             .find_map(|(on, f)| addr::first_bad(&f.text).map(|b| (b, on)));
         let size = c.forward.as_ref().map_or(0, |f| f.size())
@@ -44,7 +44,6 @@ impl InboxPane {
         let answer = Answer {
             to: list(&c.to),
             cc: list(&c.cc),
-            bcc: list(&c.bcc),
             ..c.answer.clone()
         };
         let to = answer.to.clone();

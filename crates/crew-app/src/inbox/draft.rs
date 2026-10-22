@@ -46,8 +46,6 @@ pub(crate) struct Answer {
     pub thread_id: String,
     pub to: String,
     pub cc: String,
-    /// Copied unseen: Gmail sends to them and drops the line from the mail.
-    pub bcc: String,
     pub subject: String,
     pub in_reply_to: String,
     pub references: String,
@@ -74,7 +72,6 @@ pub(crate) fn answer(thread_id: &str, mails: &[Mail], me: &str) -> Option<Answer
         thread_id: thread_id.into(),
         to: to.into(),
         cc: String::new(),
-        bcc: String::new(),
         subject,
         in_reply_to: id.into(),
         references: format!("{} {id}", last.reply.references.trim())
@@ -83,9 +80,9 @@ pub(crate) fn answer(thread_id: &str, mails: &[Mail], me: &str) -> Option<Answer
     })
 }
 
-/// `R`: the reply to everyone on the message answered, as Gmail's reply all
-/// has it: its sender and the rest of its `To` in To, its `Cc` in Cc, and
-/// never `me`.
+/// The reply to everyone on the message answered, as Gmail's reply all has
+/// it: its sender and the rest of its `To` in To, its `Cc` in Cc, and never
+/// `me`. Every reply crew writes is this one.
 pub(crate) fn answer_all(thread_id: &str, mails: &[Mail], me: &str) -> Option<Answer> {
     let one = answer(thread_id, mails, me)?;
     let last = answered(mails, me)?;
@@ -117,14 +114,11 @@ pub(crate) fn raw(a: &Answer, body: &str) -> String {
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(m)
 }
 
-/// To, Cc, Bcc, Subject and the threading headers, each one line.
+/// To, Cc, Subject and the threading headers, each one line.
 pub(crate) fn head(a: &Answer) -> Vec<String> {
     let mut h = vec![format!("To: {}", addr::header(&a.to))];
     if !a.cc.trim().is_empty() {
         h.push(format!("Cc: {}", addr::header(&a.cc)));
-    }
-    if !a.bcc.trim().is_empty() {
-        h.push(format!("Bcc: {}", addr::header(&a.bcc)));
     }
     h.push(format!(
         "Subject: {}",

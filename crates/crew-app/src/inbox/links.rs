@@ -2,6 +2,7 @@
 //! one land on its real address (goal 2026-10-20-mail-reader, item 7): a
 //! Cmd+click on its words, and `Cmd+E`'s hint mode, which reads only what is
 //! on screen and would otherwise see "Track your order" and nothing to open.
+use super::cards::READ_TOP;
 use super::{reader, InboxPane};
 
 impl InboxPane {
@@ -22,7 +23,7 @@ impl InboxPane {
                 let w = crate::chatwidth::char_w(cell.c) as u16;
                 let link = cell.link.as_deref();
                 if let Some(url) = link.filter(|&u| prev != Some(u)) {
-                    out.push((row as u16, col, url.to_string()));
+                    out.push((READ_TOP + row as u16, col, url.to_string()));
                 }
                 prev = link;
                 col += w;
@@ -32,7 +33,7 @@ impl InboxPane {
         for p in laid.pics.iter().filter(|p| p.row + p.rows > r.scroll) {
             let row = p.row.max(r.scroll) - r.scroll;
             if let (Some(href), true) = (&p.href, row < room) {
-                out.push((row as u16, at + 2, href.clone()));
+                out.push((READ_TOP + row as u16, at + 2, href.clone()));
             }
         }
         out
@@ -41,8 +42,8 @@ impl InboxPane {
     /// The address under a click at `(row, col)`, if a link is drawn there.
     pub(crate) fn link_at(&self, cols: u16, rows: u16, row: u16, col: u16) -> Option<String> {
         let r = self.reading.as_ref()?;
-        let (at, width) = self.reader_box(cols);
-        let col = col.checked_sub(at)?;
+        let (row, col) = self.mail_local(cols, rows, row, col)?;
+        let width = self.reader_box(cols).1;
         if row >= self.reader_rows(cols, rows) || col == 0 {
             return None;
         }
@@ -64,6 +65,7 @@ impl InboxPane {
 #[cfg(test)]
 mod tests {
     use crate::inbox::api::Mail;
+    use crate::inbox::cards::READ_TOP;
     use crate::inbox::rich::Rich;
     use crate::inbox::wire::Thread;
     use crate::inbox::{InboxPane, Reading, Stage};
@@ -114,9 +116,10 @@ mod tests {
             .reading
             .as_ref()
             .unwrap()
-            .laid(crate::inbox::reader::text_width(60));
+            .laid(crate::inbox::reader::text_width(p.reader_box(60).1));
         let pic = laid.pics.first().expect("a picture");
-        let (top, rows) = (pic.row as u16, pic.rows as u16);
+        // The pane's rows: under the mail card's top edge.
+        let (top, rows) = (READ_TOP + pic.row as u16, pic.rows as u16);
         assert_eq!(rows, 6, "96 px at 16 a row");
         for row in [top, top + rows - 1] {
             assert_eq!(

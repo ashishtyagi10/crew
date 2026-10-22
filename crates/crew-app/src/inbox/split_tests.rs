@@ -38,10 +38,10 @@ fn a_wide_pane_reads_beside_the_list_and_a_narrow_one_as_before() {
     let mut p = reading();
     assert_eq!(p.split(139), None);
     let s = p.split(150).expect("wide enough");
-    assert_eq!((s.list, s.at), (60, 63), "two fifths, then the air");
+    assert_eq!((s.list, s.at), (60, 61), "two fifths, then the air");
     assert_eq!(p.split(400).unwrap().list, 64, "never wider than 64");
-    assert_eq!(p.reader_box(120), (0, 120));
-    assert_eq!(p.reader_box(150), (63, 87));
+    assert_eq!(p.reader_box(120), (2, 116), "inside the card");
+    assert_eq!(p.reader_box(150), (62, 86));
     let body = p.body_rows(150, 30);
     let cells: Vec<_> = p
         .cells(150, 30)
@@ -57,9 +57,8 @@ fn a_wide_pane_reads_beside_the_list_and_a_narrow_one_as_before() {
         on.iter().map(|c| c.c).collect()
     };
     assert!(text(0, 60).contains("aboutb"), "the list on the left");
-    assert!(text(63, 150).contains("Trackit"), "the thread on the right");
-    assert!(!text(0, 63).contains("Track"), "and not on the left");
-    assert!(p.split_paint(150, 30).is_some(), "the hairline");
+    assert!(text(61, 150).contains("Trackit"), "the thread on the right");
+    assert!(!text(0, 61).contains("Track"), "and not on the left");
     p.reading = None;
     assert_eq!(
         p.split(150),
@@ -81,5 +80,10 @@ fn links_by_click_and_by_hint_are_where_the_right_half_draws_them() {
     );
     assert_eq!(p.link_at(150, 30, row, 10), None, "the list's half");
     let narrow = p.links(100, 30);
-    assert_eq!(narrow[0].1 + 63, col, "the same words, moved with the half");
+    let moved = p.reader_box(150).0 - p.reader_box(100).0;
+    assert_eq!(
+        narrow[0].1 + moved,
+        col,
+        "the same words, moved with the half"
+    );
 }

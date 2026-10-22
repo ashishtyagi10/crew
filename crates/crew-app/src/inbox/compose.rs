@@ -1,10 +1,10 @@
 //! `r` in the reader: a reply box under the open mail, written and sent
 //! right there (the user, 2026-10-21: "'r' should open a reply box rather
-//! than agent typing the response in the smith pane"). To the last person
-//! who wrote, on the thread's subject, threaded as Gmail threads it. `R`
-//! replies to everyone on the mail, `f` forwards it (the user: "add cc and
-//! forward to the reply box", then "add bcc and an attach-a-file option"):
-//! the box has `to`, `cc` and `bcc` lines to change and a row of files
+//! than agent typing the response in the smith pane"). To everyone on the
+//! mail (the user: "reply -- should always be reply all"), on the thread's
+//! subject, threaded as Gmail threads it; `f` forwards it instead (the user:
+//! "add cc and forward to the reply box", then "an attach-a-file option"):
+//! the box has `to` and `cc` lines to change and a row of files
 //! (`composekeys` moves between them, `attach` fills the row). Cmd+Enter
 //! (Ctrl+Enter off a Mac) sends (`composesend`); Esc closes it, a second Esc
 //! when there are words.
@@ -18,9 +18,8 @@ use super::InboxPane;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum Kind {
+    /// To everyone the mail went to.
     Reply,
-    /// `R`: to everyone the mail went to.
-    All,
     Forward,
 }
 
@@ -29,7 +28,6 @@ pub(crate) enum Kind {
 pub(crate) enum On {
     To,
     Cc,
-    Bcc,
     Body,
     Files,
 }
@@ -41,7 +39,6 @@ pub(crate) struct Compose {
     pub answer: Answer,
     pub to: Field,
     pub cc: Field,
-    pub bcc: Field,
     pub body: Field,
     pub on: On,
     /// Files of yours sent with it, and the one chosen on their row
@@ -65,7 +62,6 @@ impl Compose {
         match self.on {
             On::To => &mut self.to,
             On::Cc => &mut self.cc,
-            On::Bcc => &mut self.bcc,
             On::Body | On::Files => &mut self.body,
         }
     }
@@ -75,7 +71,6 @@ impl Compose {
         self.body.text.trim().is_empty()
             && self.to.text == self.answer.to
             && self.cc.text == self.answer.cc
-            && self.bcc.text.trim().is_empty()
             && self.files.is_empty()
     }
 }
@@ -85,7 +80,7 @@ impl InboxPane {
         self.compose.is_some()
     }
 
-    /// `r`, `R` or `f`: the box, for the open thread. The line to say.
+    /// `r` or `f`: the box, for the open thread. The line to say.
     pub(crate) fn open_compose(&mut self, kind: Kind) -> &'static str {
         let Some(r) = self.reading.as_ref() else {
             return "";
@@ -95,8 +90,7 @@ impl InboxPane {
         }
         let mails = r.mails.as_deref().unwrap_or_default();
         let (answer, forward) = match kind {
-            Kind::Reply => (draft::answer(&r.thread.id, mails, &self.email), None),
-            Kind::All => (draft::answer_all(&r.thread.id, mails, &self.email), None),
+            Kind::Reply => (draft::answer_all(&r.thread.id, mails, &self.email), None),
             Kind::Forward => match mails.last() {
                 Some(m) => {
                     let subject = match m.reply.subject.trim() {
@@ -123,7 +117,6 @@ impl InboxPane {
             kind,
             to: Field::with(&answer.to),
             cc: Field::with(&answer.cc),
-            bcc: Field::default(),
             answer,
             body: Field::default(),
             on,
