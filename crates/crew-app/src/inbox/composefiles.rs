@@ -4,7 +4,8 @@
 //! click does what the keys do (`composekeys`): a name opens the file, to
 //! see it, `✕` takes it off, `+ attach` opens the chooser.
 use super::compose::{Compose, On};
-use super::composedraw::{geo, text_w, X};
+use super::composedraw::{text_w, X};
+use super::composegeo::geo;
 use super::draw::Canvas;
 use super::InboxPane;
 use crate::chatwidth::str_w;
@@ -144,17 +145,20 @@ impl InboxPane {
         };
         let w = text_w(b.w) as u16;
         let g = geo(c, 0, b.h, w);
-        let on_files = (g.files..g.files + self::rows(c, w)).contains(&row);
+        let files = g
+            .files
+            .filter(|&f| (f..f + self::rows(c, w)).contains(&row));
         let hit = spots(c, w)
             .into_iter()
             .find(|s| {
-                on_files && s.row == row - g.files && (X + s.col..X + s.col + s.w).contains(&col)
+                files.is_some_and(|f| s.row == row - f)
+                    && (X + s.col..X + s.col + s.w).contains(&col)
             })
             .map(|s| s.what);
         c.on = match row {
-            _ if on_files => On::Files,
-            0 | 1 => On::To,
-            2 => On::Cc,
+            _ if files.is_some() => On::Files,
+            r if r <= g.to => On::To,
+            r if Some(r) == g.cc => On::Cc,
             _ => On::Body,
         };
         match hit {

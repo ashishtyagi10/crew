@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.59
+
+**`/inbox`: the reply box on a small pane.** Second round of the second
+inbox loop.
+- **Your words always have a row.** On a short pane the box keeps the `to`
+  line, the line you are on and a row for your words; the row of air, an
+  empty `cc` line and an empty row of files give way first. The caret is
+  never drawn on the box's edge.
+- **Address lines read from their start** when you are not writing in them,
+  cut with `…` at the edge, instead of showing their end.
+- **A hint no longer hides under the caret** on an empty line.
+
 ## 0.27.58
 
 **`/inbox`: cards, and reply means everyone.** First round of the second

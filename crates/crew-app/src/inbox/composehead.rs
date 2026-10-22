@@ -2,25 +2,34 @@
 //! the line the caret is on, the caret, where a long line shows its end.
 use super::compose::{Compose, Kind, On};
 use super::composedraw::X;
+use super::composegeo::Geo;
 use super::draw::Canvas;
 
 /// Where an address line's value starts, after `to` or `cc`.
 const VALUE: u16 = X + 4;
 
-/// The two lines, under the box's top edge at `top`, their words ending
-/// before column `end`.
-pub(super) fn draw(cv: &mut Canvas, c: &Compose, top: u16, end: u16) {
+/// The lines on the rows `g` gives them, their words ending before column
+/// `end`. The line being written shows the part around its caret; the
+/// others show their start, cut at the edge.
+pub(super) fn draw(cv: &mut Canvas, c: &Compose, g: &Geo, end: u16) {
     let t = crew_theme::theme();
-    let lines = [("to", &c.to, On::To), ("cc", &c.cc, On::Cc)];
-    for (i, (name, f, on)) in lines.into_iter().enumerate() {
-        let row = top + 1 + i as u16;
+    let lines = [
+        (Some(g.to), "to", &c.to, On::To),
+        (g.cc, "cc", &c.cc, On::Cc),
+    ];
+    for (row, name, f, on) in lines {
+        let Some(row) = row else { continue };
         let focused = c.on == on;
         let label = if focused { t.ink } else { t.text_muted };
         cv.text(row, X, VALUE, name, label, focused);
         let room = usize::from(end.saturating_sub(VALUE));
-        let (shown, at) = window(&f.text, f.at, room);
+        let (shown, at) = match focused {
+            true => window(&f.text, f.at, room),
+            false => (f.text.clone(), 0),
+        };
         match (shown.is_empty(), focused) {
-            (true, true) => cv.text(row, VALUE, end, hint(c, on), t.text_muted, false),
+            // After the caret, so it does not stand on the first letter.
+            (true, true) => cv.text(row, VALUE + 1, end, hint(c, on), t.text_muted, false),
             _ => cv.text(row, VALUE, end, &shown, t.ink, false),
         }
         if focused {

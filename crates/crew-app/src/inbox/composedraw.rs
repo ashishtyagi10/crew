@@ -5,7 +5,8 @@
 //! mail it carries. It grows with the words to a third of the pane, never
 //! as tall as the mail's card (the user: "mail panel should have tallest
 //! height").
-use super::compose::{Compose, Kind, On};
+use super::compose::{Kind, On};
+use super::composegeo::geo;
 use super::draw::{wrap, Canvas};
 use super::InboxPane;
 
@@ -16,27 +17,6 @@ const HEAD: u16 = 3;
 /// Where the box's words start: its edge and two columns of air, under its
 /// name and in line with the mail's words above.
 pub(crate) const X: u16 = 3;
-
-/// Where the box's parts sit, from its top edge at `top`, `h` rows tall.
-pub(crate) struct Geo {
-    /// The words' first row, and how many they have.
-    pub words: u16,
-    pub room: u16,
-    /// The row of files' first row.
-    pub files: u16,
-}
-
-pub(crate) fn geo(c: &Compose, top: u16, h: u16, w: u16) -> Geo {
-    let bottom = top + h - 1;
-    let carried = u16::from(c.forward.is_some());
-    let files = bottom.saturating_sub(carried + super::composefiles::rows(c, w));
-    let words = top + 1 + HEAD;
-    Geo {
-        words,
-        room: files.saturating_sub(words),
-        files,
-    }
-}
 
 impl InboxPane {
     /// The rows the reply box takes in a pane `cols` by `rows`, its edges
@@ -86,8 +66,8 @@ impl InboxPane {
         super::cards::frame(cv, b, &legend, "");
         let tw = text_w(w) as u16;
         let end = X + tw;
-        super::composehead::draw(cv, c, 0, end);
         let g = geo(c, 0, h, tw);
+        super::composehead::draw(cv, c, &g, end);
         let room = usize::from(g.room);
         let lines = wrap(&c.body.text, usize::from(tw));
         let (row, col) = place(&c.body.text, c.body.at, usize::from(tw));
@@ -96,16 +76,18 @@ impl InboxPane {
         for (i, line) in lines.iter().enumerate().skip(first).take(room) {
             cv.text(g.words + (i - first) as u16, X, end, line, t.ink, false);
         }
-        if c.body.text.is_empty() {
+        if c.body.text.is_empty() && g.room > 0 {
             let at = X + u16::from(c.on == On::Body);
             let hint = super::composehead::hint(c, On::Body);
             cv.text(g.words, at, end, hint, t.text_muted, false);
         }
-        if c.on == On::Body {
+        if c.on == On::Body && g.room > 0 {
             let at = (g.words + (row - first) as u16, X + col as u16);
             super::composehead::caret(cv, c, at, end);
         }
-        super::composefiles::draw(cv, c, g.files, tw);
+        if let Some(top) = g.files {
+            super::composefiles::draw(cv, c, top, tw);
+        }
         if let Some(f) = &c.forward {
             cv.text(h - 2, X, end, &carrying(f), t.text_muted, false);
         }
