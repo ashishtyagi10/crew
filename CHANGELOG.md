@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.90
+
+**`/inbox`: offline at the start, you are still "me".** Sixth round of the
+seventh inbox loop.
+- **A pane opened before the network was up never learned your address:**
+  the list never said "me" for your mail, and reply-all wrote to you as
+  well. The address now comes with the first list that reaches Gmail.
+
 ## 0.27.89
 
 **`/inbox`: a refused archive or delete is said and put back.** Fifth round

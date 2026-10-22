@@ -29,7 +29,10 @@ pub(crate) fn start(grant: Grant) -> Worker {
         };
         let mut state = State::default();
         let _ = out.send(match g.profile() {
-            Ok((email, _)) => Got::Account(email),
+            Ok((email, _)) => {
+                state.told = true;
+                Got::Account(email)
+            }
             Err(e) => fail(e),
         });
         while let Ok(ask) = asks.recv() {
@@ -50,6 +53,8 @@ struct State {
     next: Option<String>,
     /// Pages of `query` the pane holds, the first one included.
     pages: usize,
+    /// The pane was told whose account this is (`Got::Account`).
+    told: bool,
     history: String,
 }
 
@@ -135,44 +140,6 @@ impl State {
             }
         }
     }
-
-    fn list(&mut self, g: &mut Gmail, from: Option<String>) -> Vec<Got> {
-        let more = from.is_some();
-        // Read before the page, so a mail landing mid-list moves it again.
-        if let Ok((_, h)) = g.profile() {
-            self.history = h;
-        }
-        let mut out = vec![g.unread().map_or_else(fail, Got::Unread)];
-        out.push(match g.page(&self.query, from.as_deref()) {
-            Ok((rows, next)) => {
-                let whole = next.is_none();
-                self.went(more, next);
-                Got::Page {
-                    query: self.query.clone(),
-                    rows,
-                    next: self.next.clone(),
-                    more,
-                    whole,
-                }
-            }
-            Err(e) => fail(e),
-        });
-        out
-    }
-
-    /// Where `j` at the end of the list goes on from after a page: the page's
-    /// own cursor, except that a first page listed again (the check after the
-    /// mailbox moved) of a list already paged past it keeps the deeper one,
-    /// as the pane keeps those rows. Gmail's end ends the list either way.
-    fn went(&mut self, more: bool, next: Option<String>) {
-        match (more, next) {
-            (false, Some(_)) if self.pages > 1 => {}
-            (more, next) => {
-                self.pages = if more { self.pages + 1 } else { 1 };
-                self.next = next;
-            }
-        }
-    }
 }
 
 /// An `invalid_grant` is the grant's end, not one call's failure.
@@ -191,6 +158,9 @@ fn failed_as(e: String, own: impl FnOnce(String) -> Got) -> Got {
         ended => ended,
     }
 }
+
+#[path = "workerlist.rs"]
+mod list;
 
 #[cfg(test)]
 #[path = "worker_tests.rs"]

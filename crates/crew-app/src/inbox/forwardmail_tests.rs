@@ -92,6 +92,7 @@ pub(crate) fn serve() -> (String, Arc<Mutex<Vec<String>>>) {
             seen.lock().unwrap().push(text);
             let body = match path.as_str() {
                 "/token" => r#"{"access_token":"ya29.x","expires_in":3599}"#.to_string(),
+                "/gmail/profile" => r#"{"emailAddress":"me@x.org","historyId":"7"}"#.to_string(),
                 p if p.contains("/attachments/a3") => r#"{"data":"JVBERg"}"#.to_string(),
                 p if p.contains("/attachments/a1") => r#"{"data":"iVBO"}"#.to_string(),
                 _ => r#"{"id":"sent"}"#.to_string(),
