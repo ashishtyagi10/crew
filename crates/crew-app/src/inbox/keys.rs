@@ -73,7 +73,7 @@ impl InboxPane {
             Stage::Setup { found } => match (ch.as_str(), found.clone()) {
                 (n @ ("1" | "2" | "3" | "4" | "5"), _) => {
                     let i = n.parse::<usize>().unwrap_or(1) - 1;
-                    let _ = open::that_detached(super::setup::STEPS[i].1);
+                    crate::linkclick::open_external(super::setup::STEPS[i].1);
                     None
                 }
                 (_, Some((_, client))) if named(NamedKey::Enter) => {
@@ -185,6 +185,8 @@ impl InboxPane {
     fn browse(&self, thread: Option<&str>) {
         let who = super::query::enc(&self.email);
         let at = thread.map_or_else(|| "#inbox".to_string(), |id| format!("#all/{id}"));
-        let _ = open::that_detached(format!("https://mail.google.com/mail/?authuser={who}{at}"));
+        crate::linkclick::open_external(&format!(
+            "https://mail.google.com/mail/?authuser={who}{at}"
+        ));
     }
 }

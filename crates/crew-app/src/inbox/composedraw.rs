@@ -92,7 +92,7 @@ impl InboxPane {
         if let Some(top) = g.files {
             super::composefiles::draw(cv, c, top, tw);
         }
-        if let Some(f) = &c.forward {
+        if let (Some(f), true) = (&c.forward, h >= 3) {
             cv.text(h - 2, X, end, &carrying(f), t.text_muted, false);
         }
     }

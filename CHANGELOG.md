@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.27.78
+
+**`/inbox`: no crash on a tiny pane.** First round of the sixth inbox loop.
+- **A forward's reply box on a pane only a row or two tall** no longer draws
+  outside itself (a crash in a debug build). Found by a new test that drives
+  the pane at random, at every size from one cell to a wide screen, which now
+  runs with every release.
+- **Tests never open a browser**: signing in, the setup page's 1–5 and `o`
+  now go through the opener tests only record, and tests no longer read your
+  Downloads folder.
+
 ## 0.27.77
 
 **`/inbox`: a thread filed elsewhere.** Fifth and last round of the fifth
