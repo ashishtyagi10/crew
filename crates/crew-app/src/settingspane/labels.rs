@@ -20,12 +20,10 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         // a legend wider than its border reads truncated (see Opacity %).
         // 13 characters is the whole budget in a half-width box at 80 cols
         // (`every_field_renders_on_a_tall_pane` is where that is enforced),
-        // and these read in context: they sit under `Theme: auto` and above
-        // the day-hours, so "Auto dark <crt>" is "when auto is dark, crt".
+        // and these read in context: they sit under `Theme: auto`, so "Auto
+        // dark <crt>" is "when auto is dark, crt".
         Field::ThemeDark => "Auto dark",
         Field::ThemeLight => "Auto light",
-        Field::LightFrom => "Auto day from",
-        Field::LightTo => "Auto day to",
         Field::Accent => "Accent (#hex)",
         Field::BorderMarks => "Card border marks",
         Field::Invisibles => "Reveal invisibles",
@@ -102,8 +100,6 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
                 false,
             )
         }
-        Field::LightFrom => (p.light_from_buf.clone(), true),
-        Field::LightTo => (p.light_to_buf.clone(), true),
         Field::Accent => (p.accent_buf.clone(), true),
         Field::BorderMarks => (onoff(p.draft.border_marks), false),
         Field::Invisibles => (onoff(p.draft.invisibles), false),

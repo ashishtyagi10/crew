@@ -410,18 +410,6 @@ static ROTATED_MS: AtomicU64 = AtomicU64::new(0);
 /// The OS appearance, fed by winit's ThemeChanged. Defaults to dark so a
 /// platform that never reports stays on the dark pool.
 static OS_DARK: AtomicBool = AtomicBool::new(true);
-/// Whether the OS switches its own appearance between light and dark (macOS
-/// System Settings → Appearance → Auto). Defaults to `true` — on a platform
-/// crew cannot ask, the OS appearance is taken as authoritative and nothing
-/// about `auto` changes. It matters only for the `false` case: an appearance
-/// PINNED to dark never turns light, so following it would make `auto` a
-/// synonym for `dark` forever, which is exactly the "auto is stuck on dark in
-/// broad daylight" report this flag exists to answer.
-static OS_AUTO: AtomicBool = AtomicBool::new(true);
-/// Whether the local clock currently reads as daytime (the app's light-hours
-/// window — see `daylight` in crew-app). Consulted ONLY while `OS_AUTO` is
-/// false. Defaults to false so an unfed clock keeps the historical dark bias.
-static DAYLIGHT: AtomicBool = AtomicBool::new(false);
 /// How long each rotated theme is shown: 10 minutes (fonts share this).
 pub const ROTATE_MS: u64 = 600_000;
 
@@ -433,8 +421,8 @@ pub const ROTATE_MS: u64 = 600_000;
 /// Codex look) palettes are dark and light pages like any other and rotate
 /// inside `dark` / `light` rather than standing apart as their own themes.
 /// `Auto` borrows the dark or light pool depending on the appearance
-/// [`auto_dark`] resolves — the OS's while it self-switches, the local clock's
-/// once it is pinned; [`THEME_MODES`] is the list the picker advertises.
+/// [`auto_dark`] resolves — the OS's; [`THEME_MODES`] is the list the picker
+/// advertises.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RandomMode {
     Dark,
@@ -484,7 +472,7 @@ impl RandomMode {
             }
             RandomMode::Neon => "neon \u{2014} holographic glass over a lit grid, always dark",
             RandomMode::Auto => {
-                "light by day, dark by night \u{2014} OS appearance, or the clock when it is pinned"
+                "follows your OS appearance \u{2014} light by day, dark by night on macOS Appearance: Auto"
             }
         }
     }
@@ -529,8 +517,7 @@ impl RandomMode {
 
     /// Whether this rotation serves the page for the current appearance —
     /// `auto`, its pairing's side — so an appearance change has to re-serve
-    /// it ([`follow_appearance`]). Neon did too while it had a light page,
-    /// and served it by day on a Mac pinned to Dark (the clock decides then).
+    /// it ([`follow_appearance`]). Neon did too while it had a light page.
     pub fn follows_appearance(self) -> bool {
         self == RandomMode::Auto
     }
@@ -649,43 +636,14 @@ pub fn os_dark() -> bool {
     OS_DARK.load(Ordering::Relaxed)
 }
 
-/// Report whether the OS switches its OWN appearance on a schedule (macOS
-/// Appearance: Auto). Fed at startup and on every ThemeChanged.
-pub fn set_os_auto(auto: bool) {
-    OS_AUTO.store(auto, Ordering::Relaxed);
-}
-
-/// Whether the OS appearance is self-switching (defaults to `true`: assume
-/// the OS is authoritative unless crew has been told otherwise).
-pub fn os_auto() -> bool {
-    OS_AUTO.load(Ordering::Relaxed)
-}
-
-/// Report whether the local clock currently reads as daytime.
-pub fn set_daylight(day: bool) {
-    DAYLIGHT.store(day, Ordering::Relaxed);
-}
-
-/// The last reported daylight state (defaults to false = night).
-pub fn daylight() -> bool {
-    DAYLIGHT.load(Ordering::Relaxed)
-}
-
-/// Which half `auto` should serve, as a single yes/no — the ONE place the
-/// two clocks are weighed against each other, so every caller (pool
-/// membership, the `/theme` report, the settings blurb) agrees.
-///
-/// While the OS switches itself, the OS wins: it already encodes the user's
-/// day/night preference, schedule and all. Once the appearance is PINNED,
-/// following it makes `auto` indistinguishable from `dark` (or `light`)
-/// forever, so crew falls back to its own light-hours window — which is what
-/// "light by day, dark by night" says on the tin.
+/// Which half `auto` should serve, as a single yes/no, so every caller (pool
+/// membership, the `/theme` report, the settings blurb) agrees: the OS
+/// appearance, pinned or scheduled. A Mac pinned to Dark keeps `auto` dark
+/// (the user, 2026-10-22: "make auto stay dark too"); crew's own light-hours
+/// clock, which turned a pinned Mac's `auto` light from 07:00 to 19:00, is
+/// retired. Day and night come from macOS Appearance: Auto.
 pub fn auto_dark() -> bool {
-    if os_auto() {
-        os_dark()
-    } else {
-        !daylight()
-    }
+    os_dark()
 }
 
 /// What `auto` serves per OS appearance: `.0` while dark, `.1` while light.
@@ -711,24 +669,6 @@ pub fn set_auto_pools(dark: Option<Selection>, light: Option<Selection>) {
 /// nothing at all).
 pub fn auto_pools() -> (Option<Selection>, Option<Selection>) {
     *AUTO_POOLS.lock().unwrap()
-}
-
-/// `auto`'s light-hours window as minutes past midnight (`.0` start, `.1`
-/// end), for REPORTING only — the app owns the window, parses it from config
-/// and decides [`set_daylight`] from it. It lives here beside [`AUTO_POOLS`]
-/// for the same reason that does: `/theme` has to be able to read back every
-/// part of what `auto` is holding, and a window it cannot name is a setting
-/// with no visible effect.
-static LIGHT_HOURS: Mutex<(u16, u16)> = Mutex::new((7 * 60, 19 * 60));
-
-/// Publish `auto`'s configured light-hours window.
-pub fn set_light_hours(from: u16, to: u16) {
-    *LIGHT_HOURS.lock().unwrap() = (from, to);
-}
-
-/// The configured light-hours window (minutes past midnight).
-pub fn light_hours() -> (u16, u16) {
-    *LIGHT_HOURS.lock().unwrap()
 }
 
 /// The selection `auto` resolves to under the current appearance. Never
@@ -783,9 +723,8 @@ pub fn apply_selection(sel: Selection, now_ms: u64) {
 }
 
 /// Re-serve a rotation that follows the appearance ([`RandomMode::follows_appearance`])
-/// after the appearance changed — the OS flipped, or the clock crossed into or
-/// out of the light hours. Returns whether one was active, so the caller
-/// knows to refresh the accent and repaint.
+/// after the OS appearance flipped. Returns whether one was active, so the
+/// caller knows to refresh the accent and repaint.
 pub fn follow_appearance(now_ms: u64) -> bool {
     match mode() {
         Some(m) if m.follows_appearance() => {

@@ -27,12 +27,7 @@ fn a_half_typed_value_is_stepped_from_what_it_says() {
 
 #[test]
 fn a_field_that_is_not_a_number_is_left_alone() {
-    for f in [
-        Field::Accent,
-        Field::LightFrom,
-        Field::NotifyPatterns,
-        Field::Theme,
-    ] {
+    for f in [Field::Accent, Field::NotifyPatterns, Field::Theme] {
         let mut p = pane(f);
         assert!(!step(&mut p, true, false), "{f:?} stepped");
     }

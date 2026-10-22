@@ -13,7 +13,7 @@
 //! The bar's INK comes with it: the container also wears the page's own
 //! appearance (Aqua on a light page, Dark Aqua on a dark one). Without it the
 //! title and traffic lights followed the OS — a dark Mac under a light crew
-//! (auto's daylight hours, or a pinned light theme) drew a white title on the
+//! (a pinned light theme) drew a white title on the
 //! light strip crew had just painted. Set on the container, not the window,
 //! so the window's own appearance — the one winit reports as the OS theme,
 //! which `auto` follows — stays the system's.

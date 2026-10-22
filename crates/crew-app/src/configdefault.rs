@@ -85,14 +85,6 @@ pub(crate) fn default_motion() -> String {
     "auto".to_string()
 }
 
-pub(crate) fn default_auto_light_from() -> String {
-    "07:00".to_string()
-}
-
-pub(crate) fn default_auto_light_to() -> String {
-    "19:00".to_string()
-}
-
 pub(crate) fn default_glass() -> String {
     // Strength only; the look is derived per-theme (see `crew_theme::glass`):
     // liquid glass on paper and modern pages, flat on the tubes.

@@ -20,8 +20,6 @@ fn edits(f: Field) -> &'static str {
         Field::Theme => "theme",
         Field::ThemeDark => "theme_dark",
         Field::ThemeLight => "theme_light",
-        Field::LightFrom => "auto_light_from",
-        Field::LightTo => "auto_light_to",
         Field::Accent => "accent",
         Field::BorderMarks => "border_marks",
         Field::Invisibles => "invisibles",

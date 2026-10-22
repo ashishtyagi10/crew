@@ -4,8 +4,8 @@
 //! reading, today's range and the chance of rain. Fetched on a worker
 //! thread (`modelfetch`'s pattern), cached beside the config for an hour,
 //! and read by the winit thread from a process-global — never a request
-//! on the frame path. Crew has no location of its own (see `daylight`), so
-//! the place is typed, not looked up.
+//! on the frame path. Crew has no location of its own, so the place is
+//! typed, not looked up.
 use std::sync::RwLock;
 use std::time::Duration;
 

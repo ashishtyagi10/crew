@@ -249,92 +249,33 @@ fn auto_is_advertised_and_follows_the_os_appearance() {
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
 
+/// `auto` serves the OS appearance's side, pinned or scheduled: a Mac pinned
+/// to Dark keeps it dark at noon (the user, 2026-10-22: "make auto stay dark
+/// too"), where crew's light-hours clock used to turn it light from 07:00 to
+/// 19:00. `theme_dark` / `theme_light` still decide what each side serves.
 #[test]
-fn a_pinned_os_appearance_hands_auto_over_to_the_clock() {
+fn auto_follows_the_os_appearance_pinned_or_not() {
     let _g = guard();
     set_auto_pools(None, None);
-    // While the OS switches itself it is the only authority — the daylight
-    // flag must not reach the answer at all.
-    set_os_auto(true);
     set_os_dark(true);
-    for day in [false, true] {
-        set_daylight(day);
-        assert!(auto_dark(), "self-switching dark OS must stay dark ({day})");
-    }
-    set_os_dark(false);
-    for day in [false, true] {
-        set_daylight(day);
-        assert!(
-            !auto_dark(),
-            "self-switching light OS must stay light ({day})"
-        );
-    }
-
-    // Pinned: the OS appearance stops mattering and the clock decides. This
-    // is the reported bug — a Mac pinned to Dark at noon was dark forever.
-    set_os_auto(false);
-    set_os_dark(true);
-    set_daylight(true);
-    assert!(!auto_dark(), "pinned-dark OS in daylight must serve light");
-    assert!(ALL_THEMES
-        .into_iter()
-        .filter(|id| RandomMode::Auto.in_pool(*id))
-        .all(light));
-    apply_selection(Selection::Mode(RandomMode::Auto), 11);
-    assert!(light(current_id()));
-
-    // ...and after dark the same pinned OS agrees with the clock again.
-    set_daylight(false);
     assert!(auto_dark());
-    apply_selection(Selection::Mode(RandomMode::Auto), 12);
+    apply_selection(Selection::Mode(RandomMode::Auto), 11);
     assert!(dark(current_id()));
-
-    // Symmetry: a Mac pinned to LIGHT goes dark at night. Once the OS stops
-    // changing, the clock is the only thing left that can.
     set_os_dark(false);
-    assert!(auto_dark(), "pinned-light OS at night must serve dark");
-
-    // Restore the defaults the other tests assume.
-    set_os_auto(true);
-    set_daylight(false);
-    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
-}
-
-#[test]
-fn the_pinned_fallback_still_honours_the_configured_pairing() {
-    let _g = guard();
-    // The clock picks the SIDE; `theme_dark`/`theme_light` still decide what
-    // that side serves. Phosphor at night, paper by day, on a pinned Mac.
+    assert!(!auto_dark());
+    apply_selection(Selection::Mode(RandomMode::Auto), 12);
+    assert!(light(current_id()));
+    // Phosphor at night, paper by day.
     set_auto_pools(Some(Selection::Mode(RandomMode::Crt)), None);
-    set_os_auto(false);
     set_os_dark(true);
-    set_daylight(false);
     apply_selection(Selection::Mode(RandomMode::Auto), 13);
     assert!(
         current_id().theme().crt.is_some(),
-        "clock-night must serve the paired CRT pool, got {:?}",
-        current_id()
-    );
-    set_daylight(true);
-    apply_selection(Selection::Mode(RandomMode::Auto), 14);
-    assert!(
-        light(current_id()),
-        "clock-day must serve the unpaired light pool, got {:?}",
+        "a dark OS must serve the paired CRT pool, got {:?}",
         current_id()
     );
     set_auto_pools(None, None);
-    set_os_auto(true);
-    set_daylight(false);
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
-}
-
-#[test]
-fn the_light_hours_window_round_trips_for_reporting() {
-    let _g = guard();
-    assert_eq!(light_hours(), (7 * 60, 19 * 60), "default window");
-    set_light_hours(5 * 60 + 30, 21 * 60 + 5);
-    assert_eq!(light_hours(), (330, 1265));
-    set_light_hours(7 * 60, 19 * 60);
 }
 
 #[test]
@@ -1180,26 +1121,18 @@ fn the_ink_reader_pages_are_their_rotations() {
     }
 }
 
-/// `neon` is dark, by day and by night (the user, 2026-10-22: "neon doesn't
+/// `neon` is dark in either appearance (the user, 2026-10-22: "neon doesn't
 /// have to be light color, keep it default dark"). It had a light page and
-/// served it with the appearance — and a Mac pinned to Dark hands that call
-/// to the clock, so `neon` came up light until 19:00. One page now, so its
+/// served it with the appearance, which on a Mac pinned to Dark was then
+/// crew's clock, so `neon` came up light until 19:00. One page now, so its
 /// name is the theme: `neon-dark` loads as `neon`, and so does the retired
 /// `neon-light`.
 #[test]
-fn neon_is_dark_by_day_and_by_night() {
+fn neon_is_dark_in_either_appearance() {
     let _g = guard();
-    // (OS switches itself, OS dark, clock says day)
-    for (os_auto, os_dark, day) in [
-        (false, true, true),
-        (true, false, true),
-        (true, true, false),
-        (false, false, false),
-    ] {
-        set_os_auto(os_auto);
+    for os_dark in [false, true] {
         set_os_dark(os_dark);
-        set_daylight(day);
-        let at = format!("os_auto {os_auto}, os_dark {os_dark}, day {day}");
+        let at = format!("os_dark {os_dark}");
         apply_selection(Selection::Mode(RandomMode::Neon), 1_000);
         assert_eq!(current_id(), ThemeId::NeonDark, "{at}");
         assert!(!follow_appearance(2_000), "{at}: neon followed it");
@@ -1217,8 +1150,6 @@ fn neon_is_dark_by_day_and_by_night() {
         pinnable_themes().all(|t| t != ThemeId::NeonDark),
         "neon-dark is offered beside `neon`"
     );
-    set_os_auto(true);
     set_os_dark(true);
-    set_daylight(false);
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }

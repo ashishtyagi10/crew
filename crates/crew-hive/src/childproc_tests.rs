@@ -26,11 +26,8 @@ const ALLOWED: &[(&str, &str)] = &[
     ("sysrun.rs", "Command::new(\"/bin/kill\")"),
     ("host.rs", "Command::new(\"kill\")"),
     // macOS-only TEST probe (`#[cfg(all(test, target_os = "macos"))]`) that
-    // cross-checks the appearance preference against the `defaults` CLI.
-    // Never compiled on Windows, and never in a shipped binary.
-    ("osappearance.rs", "Command::new(\"defaults\")"),
-    // Same shape, one preference over: the macOS-only TEST probe that
-    // cross-checks Reduce Motion against `defaults`. Test-only, macOS-only.
+    // cross-checks Reduce Motion against the `defaults` CLI. Never compiled
+    // on Windows, and never in a shipped binary.
     ("reducemotion.rs", "Command::new(\"defaults\")"),
     // …and the Increase Contrast one. Same shape, same reason.
     ("oscontrast.rs", "Command::new(\"defaults\")"),

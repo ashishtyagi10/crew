@@ -48,41 +48,12 @@ impl CrewConfig {
         (parse(&self.theme_dark), parse(&self.theme_light))
     }
 
-    /// `auto`'s light-hours window as minutes past midnight, used only when
-    /// the OS appearance is pinned. Each end falls back to its default
-    /// INDEPENDENTLY: a typo in one bound shouldn't silently redefine the
-    /// other, and a half-parsed window is still a window the user can read
-    /// back off `/theme`.
-    pub fn light_hours(&self) -> (u16, u16) {
-        (
-            crate::daylight::parse_hhmm(&self.auto_light_from)
-                .unwrap_or(crate::daylight::DEFAULT_FROM),
-            crate::daylight::parse_hhmm(&self.auto_light_to).unwrap_or(crate::daylight::DEFAULT_TO),
-        )
-    }
-
-    /// Push the local clock's day/night verdict into `crew_theme`, returning
-    /// it. Clock only, so it is cheap enough for the poll tick — the pinned/
-    /// scheduled probe it pairs with is [`Self::publish_os_auto`], which reads
-    /// OS preferences and belongs on the rare paths instead.
-    pub fn publish_daylight(&self) -> bool {
-        let (from, to) = self.light_hours();
-        // Republished with the verdict so `/theme` can never quote a window
-        // that isn't the one the verdict came from.
-        crew_theme::set_light_hours(from, to);
-        let day = crate::daylight::is_day_now(from, to);
-        crew_theme::set_daylight(day);
-        day
-    }
-
-    /// Probe whether the OS switches its own appearance and publish that too.
-    /// Reads OS preferences: call it where the answer can actually change
-    /// (startup, ThemeChanged, config adoption), never per frame.
-    pub fn publish_appearance_sources(&self) -> bool {
-        crew_theme::set_os_auto(crate::osappearance::switches_automatically());
-        // Reduce-motion rides the same probe points: it is an OS preference
-        // read through the same "only where it can change" rule, and `auto`
-        // motion is stale the moment this is not refreshed alongside.
+    /// Read the OS preferences crew follows and publish them. Call it where
+    /// the answers can actually change (startup, ThemeChanged, config
+    /// adoption), never per frame.
+    pub fn publish_appearance_sources(&self) {
+        // Reduce-motion: `auto` motion is stale the moment this is not
+        // refreshed alongside the appearance.
         crate::motion::set_os_reduce(crate::reducemotion::reduce_motion());
         // Same three probe points, same rule: read where it can change, cache
         // it, never ask per frame.
@@ -91,7 +62,6 @@ impl CrewConfig {
         );
         crate::shapecues::set(self.shape_cues(crate::shapecues::os_asks()));
         crate::motion::set_level(self.motion_level());
-        self.publish_daylight()
     }
 
     /// A display label for the configured selection: the rotation mode name
