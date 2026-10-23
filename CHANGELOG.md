@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.66
+
+**Chat find and history search show a hit's start again.**
+- 0.28.55 kept the end of a long path in the `@` and `/view` pickers. It took any row with a
+  `/` and no description for a path, and chat find's and history search's rows are just that:
+  `user: @scout what changed in plot/…` came out as `…/ since v0.19.60?`, without the sender
+  and often without the word searched for. A path is now a row with a `/` and no spaces; a row
+  of words keeps its start, as before.
+
 ## 0.28.65
 
 **`/doctor` says what your tool hooks are.**
