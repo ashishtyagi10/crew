@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.72
+
+**On the CRT tubes, theme and accent swatches keep their colours.**
+- The tubes turn any small bright mark white-hot, as a phosphor does with a stroke, and a 6 px
+  swatch counts as one: on crt-green and crt-amber every chip in the `/theme` picker and the
+  settings came out a near-white square, and nebula could not be told from glass. On a tube
+  that burns, a coloured chip is now drawn just under that point, so the glow lifts it toward
+  its own colour; a white or grey chip, with no hue to lose, is left as it is.
+
 ## 0.28.71
 
 **`/inbox`: Tab while agent smith works says what it is working on.**

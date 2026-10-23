@@ -392,3 +392,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The second inbox/todo audit** (also noted): the busy line named the key's job, so Tab on the
   card while a draft came said "still filling the card". `smith_busy` names smith's own job.
+
+**Round U17 (v0.28.72): on the CRT tubes, swatches keep their colours.**
+
+- **The UI regression survey** (N2): the tubes' filament turned every 6 px chip white-hot. A
+  coloured chip is drawn just under the filament's floor on a tube that burns; greys are left.

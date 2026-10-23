@@ -27,7 +27,7 @@ fn lerp(a: (u8, u8, u8), b: (u8, u8, u8), t: f32) -> (u8, u8, u8) {
 
 /// The swatch for `value` of `cmd`, empty when the value is not a colour.
 pub(crate) fn for_value(cmd: &str, value: &str) -> Vec<Chip> {
-    match cmd {
+    let chips = match cmd {
         "/gradient" => crew_theme::gradients::by_name(value)
             .map(|(a, b)| {
                 (0..RAMP)
@@ -47,8 +47,37 @@ pub(crate) fn for_value(cmd: &str, value: &str) -> Vec<Chip> {
             None => Vec::new(),
         },
         _ => Vec::new(),
-    }
+    };
+    chips
+        .into_iter()
+        .map(|c| Chip {
+            fg: cooled(c.fg),
+            ..c
+        })
+        .collect()
 }
+
+/// A chip's colour as a tube that burns can show it. The tube's filament
+/// turns a small bright mark white-hot, which is right for a stroke and
+/// wrong for a 6 px swatch: on crt-green and crt-amber every chip came out
+/// a near-white square and nebula could not be told from glass. Kept under
+/// the filament's floor (half on), its glow lifts it toward its own hue.
+fn cooled(c: (u8, u8, u8)) -> (u8, u8, u8) {
+    let burns = crew_theme::theme().crt.is_some_and(|s| s.core > 0.0);
+    let (top, low) = (c.0.max(c.1).max(c.2), c.0.min(c.1).min(c.2));
+    // A white or grey has no hue to lose: burning white is its truth.
+    if !burns || top <= COOL || top - low < GREY {
+        return c;
+    }
+    let k = f32::from(COOL) / f32::from(top);
+    let s = |v: u8| (f32::from(v) * k).round() as u8;
+    (s(c.0), s(c.1), s(c.2))
+}
+
+/// The brightest channel a coloured chip keeps on a burning tube, and the
+/// channel spread under which a chip is a grey.
+const COOL: u8 = 127;
+const GREY: u8 = 24;
 
 /// A `#rrggbb` value as its own chip — what the Accent field holds. `None`
 /// for anything that is not a full six-digit hex colour, including the empty
@@ -61,7 +90,7 @@ pub(crate) fn hex_chip(value: &str) -> Option<Chip> {
     let byte = |i: usize| u8::from_str_radix(&hex[i..i + 2], 16).ok();
     Some(Chip {
         c: '\u{2588}',
-        fg: (byte(0)?, byte(2)?, byte(4)?),
+        fg: cooled((byte(0)?, byte(2)?, byte(4)?)),
         bg: None,
     })
 }
@@ -144,6 +173,10 @@ const FACES: [Face; 6] = [
 fn palette_chips(id: ThemeId) -> Vec<Chip> {
     FACES.iter().map(|f| chip_of(id, *f)).collect()
 }
+
+#[cfg(test)]
+#[path = "swatchtube_tests.rs"]
+mod tube_tests;
 
 #[cfg(test)]
 #[path = "swatch_tests.rs"]
