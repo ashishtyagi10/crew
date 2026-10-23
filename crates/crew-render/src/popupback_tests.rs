@@ -37,31 +37,20 @@ fn quads(cells: &[CellView]) -> Vec<crate::quads::Quad> {
     let corners = crate::corners::find(cells, 10.0, 20.0);
     assert!(!corners.is_empty(), "the frame rounds");
     let geometry = (0.0, 0.0, 200.0, 100.0);
-    backdrop(
-        geometry,
-        cells,
-        &corners,
-        (10.0, 20.0),
-        (5.0, 10.0),
-        6.0,
-        [1.0; 4],
-    )
+    backdrop(geometry, &corners, (10.0, 20.0), (5.0, 10.0), 6.0, [1.0; 4])
 }
 
-/// The words on the bottom rule get one cell-high patch of the backdrop
-/// under them, whole and unbroken by their spaces: the box stops at the
-/// rule's centre, and the shadow below it ran through their lower half.
+/// A pop-up is one box, whatever its rule says: the patch behind the words
+/// on it is the shader's, feathered (`glass.wgsl`), where a quad a cell high
+/// was a hard tab hanging off the card.
 #[test]
-fn the_words_on_a_rule_stand_on_one_patch_of_the_backdrop() {
+fn a_pop_up_is_one_box_whatever_its_rule_says() {
     let q = quads(&popup(" e c "));
-    assert_eq!(q.len(), 2, "the box and one patch");
-    let (bx, patch) = (&q[0], &q[1]);
+    assert_eq!(q.len(), 1);
     assert!(
-        bx.y + bx.h <= 4.0 * 20.0 + 10.0 + 1e-3,
+        q[0].y + q[0].h <= 4.0 * 20.0 + 10.0 + 1e-3,
         "the box stops at the rule"
     );
-    assert_eq!((patch.x, patch.w), (130.0, 50.0), "the run, spaces and all");
-    assert_eq!((patch.y, patch.h), (80.0, 20.0), "the whole row");
 }
 
 /// A rule with nothing written on it adds nothing.

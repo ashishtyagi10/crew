@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.67
+
+**Pop-up titles and hints sit on soft frost, not a dark tab.**
+- 0.28.39 put a pop-up's page behind the words on its frame (the `/keys` title and hint, a
+  toast's or the palette's legend) so its shadow stopped striking through them. It did so with
+  a box a cell high, which on glass over a light desktop read as a hard dark tab hanging off
+  the card, and on the tubes and neon as a notch cut in the card's glow. The page is now laid
+  in by the glass itself, rounded and feathered, as a pane's title has always stood on it.
+
 ## 0.28.66
 
 **Chat find and history search show a hit's start again.**
