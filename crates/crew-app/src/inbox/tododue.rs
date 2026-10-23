@@ -76,7 +76,14 @@ pub(crate) fn deadline(text: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, 
             }
             let h = duedate::find(phrase, at)?;
             let said: String = phrase.chars().skip(h.start).take(h.end - h.start).collect();
-            Some((nearest(h.due, at, &said), h.has_time, format!("{k}{said}")))
+            // "was due by", "were due": an overdue notice.
+            let before = lower[..i - k.len()].split_whitespace().rev().take(2);
+            let was = before.into_iter().any(|w| w == "was" || w == "were");
+            Some((
+                nearest(h.due, at, &said, was),
+                h.has_time,
+                format!("{k}{said}"),
+            ))
         })
         .min_by_key(|d| d.0)
 }
@@ -85,14 +92,20 @@ pub(crate) fn deadline(text: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, 
 /// "oct 15" as the next one, right for a todo typed today, wrong for a mail
 /// of Oct 20 saying it "was due by Oct 15": that landed a year out. Only a
 /// month and day can roll half a year ahead; "in 300 days" and a written
-/// year ("2027-10-15") mean what they say.
-fn nearest(due: NaiveDateTime, at: NaiveDateTime, said: &str) -> NaiveDateTime {
+/// year ("2027-10-15") mean what they say. And only a deadline that reads as
+/// passed: an overdue notice (`was` due), or one weeks back. "Applications
+/// are due by May 15", in October, is next May's, not five months overdue.
+fn nearest(due: NaiveDateTime, at: NaiveDateTime, said: &str, was: bool) -> NaiveDateTime {
     let written = said.starts_with("in ") || said.contains('-');
+    let late = |back| was || at - back <= Duration::days(LATE_DAYS);
     match due.with_year(due.year() - 1) {
-        Some(back) if !written && at - back < due - at => back,
+        Some(back) if !written && late(back) && at - back < due - at => back,
         _ => due,
     }
 }
+
+/// How far back a month and day may be read as passed with no "was" to say so.
+const LATE_DAYS: i64 = 60;
 
 /// A day's or week's end, or "next {weekday}", at the start of `phrase`.
 fn end_of(phrase: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, bool, String)> {

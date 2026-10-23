@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.79
+
+**`/inbox`: "due by May 15" in an October mail is next May, not five months overdue.**
+- 0.28.32 read a month and day in a mail as the one nearest the day it was sent, so an overdue
+  notice's "was due by Oct 15" stayed passed. That also put "Applications are due by May 15",
+  read in October, last May, and the todo was filed five months overdue. A month and day is now
+  read as passed only when the mail says so ("was due by", "were due") or it is a few weeks
+  back at most; anything else is the next one.
+
 ## 0.28.78
 
 **`/todo`: retyping a todo's date with `e` changes the date again, not the title.**
