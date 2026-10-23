@@ -610,7 +610,7 @@ impl super::toolcall::ToolRunner for SessionTools {
 }
 
 #[path = "hooks.rs"]
-mod hooks;
+pub(crate) mod hooks;
 #[path = "sessionask.rs"]
 mod sessionask;
 #[path = "toolchoice.rs"]

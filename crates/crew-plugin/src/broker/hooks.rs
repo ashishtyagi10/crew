@@ -151,6 +151,33 @@ fn log(message: String) {
     crate::broker::hostnote::status(true, message);
 }
 
+/// `/doctor`'s hooks line: off, none, how many, or a file that will not load,
+/// which blocks every tool call, so it is the first place to look when every
+/// call comes back "blocked by hook".
+pub(crate) fn doctor_line(src: Option<&Source>) -> (char, String) {
+    let Some(src) = src else {
+        return ('\u{2013}', "off (CREW_HOOKS=0)".into());
+    };
+    match src.load().file {
+        Err(e) => (
+            '\u{2717}',
+            format!("{e} \u{2014} every tool call is blocked until it is fixed"),
+        ),
+        Ok(f) if f.pre_tool.is_empty() && f.post_tool.is_empty() => (
+            '\u{2013}',
+            format!("none ({} adds them)", src.path.display()),
+        ),
+        Ok(f) => (
+            '\u{2713}',
+            format!(
+                "{} before a tool call, {} after",
+                f.pre_tool.len(),
+                f.post_tool.len()
+            ),
+        ),
+    }
+}
+
 #[cfg(all(test, unix))]
 #[path = "hooks_tests.rs"]
 mod tests;

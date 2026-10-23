@@ -147,3 +147,26 @@ fn the_kill_switch_takes_the_file_away() {
     let at = file::location(true, Some(config)).unwrap();
     assert!(at.ends_with("crew/hooks.json"), "{}", at.display());
 }
+
+/// `/doctor` says what the hooks are: off, none, how many, or a file that
+/// blocks every call (the first thing to look at when every call is blocked).
+#[test]
+fn the_doctor_line_says_what_the_hooks_are() {
+    assert_eq!(doctor_line(None), ('\u{2013}', "off (CREW_HOOKS=0)".into()));
+    let none = doctor_line(Some(&source("doc-none", "")));
+    assert!(
+        none.0 == '\u{2013}' && none.1.starts_with("none ("),
+        "{none:?}"
+    );
+    let two = r#"{"pre_tool": [{"match": "sys:run", "cmd": "true"}], "post_tool": [{"match": "*", "cmd": "true"}]}"#;
+    let some = doctor_line(Some(&source("doc-two", two)));
+    assert_eq!(some, ('\u{2713}', "1 before a tool call, 1 after".into()));
+    let broken = doctor_line(Some(&source("doc-bad", "{\"pre_tools\": []}")));
+    assert_eq!(broken.0, '\u{2717}');
+    assert!(
+        broken
+            .1
+            .ends_with("every tool call is blocked until it is fixed"),
+        "{broken:?}"
+    );
+}

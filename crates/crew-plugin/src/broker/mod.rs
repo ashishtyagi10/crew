@@ -34,6 +34,7 @@ mod directs;
 mod discover;
 mod doctor;
 mod doctorprobe;
+mod doctorsession;
 mod editargs;
 mod editdiag;
 mod editnear;

@@ -66,7 +66,11 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
         )),
         _ => active.map(|p| p.name().to_string()),
     };
+    let hooks = (!cfg!(test))
+        .then(super::session::hooks::Source::live)
+        .flatten();
     DoctorInputs {
+        hooks: super::session::hooks::doctor_line(hooks.as_ref()),
         // The same resolution the roster is built from, so `/doctor` reports a
         // stored key's provider rather than only an exported one's.
         provider,

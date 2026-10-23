@@ -27,6 +27,7 @@ fn healthy() -> DoctorInputs {
         thread_turns: 0,
         recall: (0, 0, 0, 0),
         instructions: Vec::new(),
+        hooks: ('\u{2013}', "none".into()),
     }
 }
 
@@ -124,10 +125,8 @@ fn on_path_finds_only_executables() {
     assert!(!on_path("missing", &path));
 }
 
-/// Inherited from the deleted `/status`, whose tests these were: the turn
-/// count, the token total, the per-turn average and the relay budget lived
-/// nowhere else in the product, so they had to land somewhere before that
-/// construct could go.
+/// Inherited from the deleted `/status`, whose tests these were: the turn count, the token
+/// total, the per-turn average and the relay budget lived nowhere else, so they landed here.
 #[test]
 fn the_session_line_carries_what_status_used_to() {
     let r = render(&healthy());
