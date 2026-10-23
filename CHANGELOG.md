@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.87
+
+**`/inbox`: in a long smith session, Tab's draft still arrives.**
+- Once smith's pane held about 500 messages, it folded older ones away while answering. The
+  inbox then looked for the answer past the end of the shorter list. Tab said "still writing"
+  for ten minutes, then "held no draft", while the draft sat in smith's pane. The answer's place
+  is now counted with the folded messages, so a fold does not move it. The same holds for a
+  todo card's fill.
+
 ## 0.28.86
 
 **Agents: when the tool budget runs out, the last request still runs, and a follow-up turn starts from what the tools did.**

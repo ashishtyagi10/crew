@@ -119,3 +119,40 @@ fn a_draft_waits_for_smiths_settled_answer_and_lets_it_go_with_no_box() {
     assert!(inbox(&a).note.contains("let go"), "{}", inbox(&a).note);
     assert!(inbox(&a).waiting.is_none());
 }
+
+/// Smith's pane folds while it answers (500 messages, `push_capped`): the
+/// draft still reaches the box. It was looked for past the end of the
+/// folded list, and Tab waited ten minutes for "held no draft".
+#[test]
+fn a_fold_while_smith_answers_still_brings_the_draft() {
+    let send = ToSmith {
+        prompt: "draft it".into(),
+        shown: "\u{2709} draft a reply".into(),
+        wants: crate::inbox::handoff::Wants::Draft,
+        thread: "t1".into(),
+    };
+    let (mut a, _asks) = app(send);
+    let say = |text: &str| Message {
+        sender: "agent smith".into(),
+        text: text.into(),
+        ts: String::new(),
+        meta: String::new(),
+        usage: None,
+        expanded: false,
+    };
+    chat(&mut a).messages = (0..499).map(|i| say(&format!("old {i}"))).collect();
+    a.poll_inbox();
+    let c = chat(&mut a);
+    c.awaiting = false;
+    c.push_capped(say("routing: reply \u{2192} engineer"));
+    c.push_capped(say("Here is a reply:\n<<<DRAFT\nSure, Friday.\nDRAFT>>>"));
+    c.push_capped(say("\u{2713} checked"));
+    assert!(c.folded > 0, "the pane folded");
+    assert!(a.poll_inbox(), "the answer was found");
+    assert!(inbox(&a).waiting.is_none());
+    assert!(
+        !inbox(&a).note.contains("held no draft"),
+        "{}",
+        inbox(&a).note
+    );
+}
