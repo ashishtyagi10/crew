@@ -19,6 +19,14 @@ pub(super) fn edit(v: &Value) -> Result<String, String> {
         };
         return edit_all(path, &[swap]);
     };
+    // `line` or `all` beside the list, not in an edit (a probe sent
+    // `{"edits": [{…}], "line": 15}`): one edit's own, or no one's.
+    let one = edits.len() == 1;
+    if !one && (line(v).is_some() || all(v)) {
+        return Err("edit: `line` and `all` go inside the edit they are for: \
+                    {\"edits\": [{\"old\": \u{2026}, \"new\": \u{2026}, \"line\": N}, \u{2026}]}"
+            .into());
+    }
     let swaps: Result<Vec<_>, String> = edits
         .iter()
         .enumerate()
@@ -31,8 +39,8 @@ pub(super) fn edit(v: &Value) -> Result<String, String> {
             Ok(Swap {
                 old: at("old")?,
                 new: at("new")?,
-                all: all(e),
-                line: line(e),
+                all: all(e) || (one && all(v)),
+                line: line(e).or(line(v).filter(|_| one)),
             })
         })
         .collect();
@@ -49,3 +57,7 @@ fn line(e: &Value) -> Option<usize> {
     let n = v.as_u64().or_else(|| v.as_str()?.trim().parse().ok())?;
     usize::try_from(n).ok()
 }
+
+#[cfg(test)]
+#[path = "editargs_tests.rs"]
+mod tests;

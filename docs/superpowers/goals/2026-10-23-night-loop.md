@@ -514,3 +514,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **AI survey 2** (runner-up #8, Claude Code sends whole descriptions): clipped at 100, sys:edit
   lost `edits`, `all` and `line`. Live on the two-copies task, the first edit carried `line` in
   2 of 3 runs, against 0 of 3 before; the third put it beside `edits` and was refused once.
+
+**Round A19 (v0.28.92): `line` beside a one-edit list applies to that edit.**
+
+- **A18's third live run** sent `line` beside `edits` and was refused as if it had not. A list of
+  one takes it now; a longer list is refused saying where it goes. Unit tests only.
