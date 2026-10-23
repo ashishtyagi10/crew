@@ -106,7 +106,10 @@ impl InboxPane {
                 let here =
                     (self.invite().and_then(|i| super::parse(&i))).is_some_and(|i| i.uid == uid);
                 self.with_reading(|r| {
-                    if let Some((_, s)) = r.on_cal.as_mut().filter(|(u, _)| *u == uid) {
+                    // Only an event Google has takes Google's answer: one it
+                    // does not was answered by mail, which puts nothing there.
+                    let mine = |(u, s): &&mut (String, Option<String>)| *u == uid && s.is_some();
+                    if let Some((_, s)) = r.on_cal.as_mut().filter(mine) {
                         *s = Some(said.clone());
                     }
                     if here {
@@ -142,3 +145,7 @@ impl InboxPane {
 #[cfg(test)]
 #[path = "icsanswer_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "icsanswermail_tests.rs"]
+mod mail_tests;

@@ -452,3 +452,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   parts at, the places a glued `old` came from, or that `new` is already in the file.
 - **Live**: the compile task ×3 on this build solved on its first edit each time and never
   missed, so the new text never showed. Unit tests replay the captured shapes.
+
+**Round I27 (v0.28.82): an invite answered by mail is not called on Google Calendar.**
+
+- **The third inbox/todo audit** (finding 4): an answer to an invite Google does not have went by
+  mail, yet the card said "on your Google Calendar" and `c` refused to add it. Only an event
+  Google has takes Google's answer now.
