@@ -1,9 +1,15 @@
 //! Asking an OpenAI-compatible endpoint to SHOW its reasoning.
 //!
 //! Every host parses whatever reasoning comes back (`openai_http`); only two
-//! need asking. DashScope's Qwen3 hides its thinking unless the request
-//! carries `enable_thinking: true` — and rejects that flag on a non-streamed
-//! request outright, so it rides the streaming body alone. OpenRouter's
+//! need asking. DashScope's Qwen3 hides its thinking unless a streamed
+//! request carries `enable_thinking: true`, so the opt-in rides the
+//! streaming body alone. A request that does NOT stream is told
+//! `enable_thinking: false`: those are one-shot calls (the reply judge, the
+//! router, the `?` command suggestion, commit messages, the planner), and qwen3.8-max now thinks
+//! on them by default, unbounded and unseen (measured 2026-10-22, a
+//! judge-sized prompt: 211–292 reasoning tokens and 7.3–9.5 s, against 1.4–
+//! 1.6 s told not to; the judge's 30 s timeout fired on 2 of 5 runs).
+//! OpenRouter's
 //! unified field is `reasoning: {enabled: true}`, which it translates for
 //! whichever upstream serves the slug. Anything else (NVIDIA NIM, a local
 //! vLLM, the DIRECT rows) gets no extra field: an unknown key is a 400 on
@@ -60,13 +66,15 @@ pub(crate) fn opt_in_if(
     streaming: bool,
     budget: u32,
 ) -> Vec<(&'static str, serde_json::Value)> {
+    // A one-shot call on DashScope says no to thinking whatever the switch:
+    // `CREW_THINKING=0` is a request for less reasoning, never more.
+    if endpoint.contains("dashscope") && !streaming {
+        return vec![("enable_thinking", serde_json::json!(false))];
+    }
     if !enabled {
         return Vec::new();
     }
     if endpoint.contains("dashscope") {
-        if !streaming {
-            return Vec::new();
-        }
         return vec![
             ("enable_thinking", serde_json::json!(true)),
             ("thinking_budget", serde_json::json!(budget)),
