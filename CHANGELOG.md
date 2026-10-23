@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.20
+
+**Delete the crew list in Reminders, and it stays deleted.**
+- With `/todo reminders` on, deleting the `crew` list in Reminders made the sync quietly make a
+  new one and fill it with every open todo again within a minute. Now the sync stops and says
+  so ("the crew list was deleted there · /todo reminders makes it again"), and only turning
+  it on again makes a new list.
+
 ## 0.28.19
 
 **On neon, agent badges and chips glow instead of looking dusty.**

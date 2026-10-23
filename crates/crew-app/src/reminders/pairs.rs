@@ -27,6 +27,40 @@ pub(crate) fn load_at(p: Option<&Path>) -> State {
         .unwrap_or_default()
 }
 
+/// Which `crew` list a pass keeps in step: the one remembered, else one so
+/// named, else a new one, but a new one only before the first. A remembered
+/// list that is gone was deleted in Reminders; making it again put every
+/// open todo back on the phone, unasked and unsaid.
+#[derive(Debug, PartialEq)]
+pub(crate) enum Pick {
+    Remembered,
+    Named,
+    Make,
+    Deleted,
+}
+
+pub(crate) fn pick(remembered: &str, found: bool, named: bool) -> Pick {
+    match (found, named) {
+        (true, _) => Pick::Remembered,
+        (_, true) => Pick::Named,
+        _ if remembered.is_empty() => Pick::Make,
+        _ => Pick::Deleted,
+    }
+}
+
+pub(crate) const DELETED: &str =
+    "Reminders: the crew list was deleted there \u{b7} /todo reminders makes it again";
+
+/// `/todo reminders` turned on: the list is chosen afresh (a deleted one is
+/// made again) and its pairs found again by title.
+pub(crate) fn forget_list(p: Option<&Path>) {
+    let mut s = load_at(p);
+    if !s.list.is_empty() {
+        s = State::default();
+        save_at(p, &s);
+    }
+}
+
 /// Never from the test harness, as `todos.toml` is never written there.
 pub(crate) fn save_at(p: Option<&Path>, s: &State) {
     let Some(p) = p.filter(|_| !cfg!(test)) else {
@@ -40,7 +74,7 @@ pub(crate) fn save_at(p: Option<&Path>, s: &State) {
 
 #[cfg(test)]
 mod tests {
-    use super::{load_at, State};
+    use super::{load_at, pick, Pick, State};
     use crate::reminders::{fields::Fields, plan::Pair};
 
     #[test]
@@ -66,5 +100,14 @@ mod tests {
         std::fs::write(&p, "pairs = 3").unwrap();
         assert_eq!(load_at(Some(&p)), State::default());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The list deleted in Reminders stays deleted until you ask again.
+    #[test]
+    fn a_remembered_list_that_is_gone_is_never_made_again_unasked() {
+        assert_eq!(pick("L1", true, true), Pick::Remembered);
+        assert_eq!(pick("L1", false, true), Pick::Named, "made again by you");
+        assert_eq!(pick("", false, false), Pick::Make, "the first pass");
+        assert_eq!(pick("L1", false, false), Pick::Deleted);
     }
 }
