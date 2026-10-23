@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.55
+
+**The `@` and `/view` pickers keep a long path's file name.**
+- In a narrow tile a path too long for the picker was cut at its end, so the part that names
+  the file went: two files both read `@crates/crew-app/src/viewpane/render_…`, and a long file
+  name lost its extension. A path now keeps its tail, cut on a folder boundary as the
+  directory legend is: `@…/src/viewpane/render_tests.rs`. A fuzzy match's highlights stay on
+  the letters they matched; commands and anything else with a description are cut as before.
+
 ## 0.28.54
 
 **`/todo`: "standup tomorrow at 9am" is due tomorrow at 9.**

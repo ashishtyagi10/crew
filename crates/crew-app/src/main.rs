@@ -219,6 +219,7 @@ mod cmddefs;
 mod cmdhead;
 mod cmdheader;
 mod cmdkeys;
+mod cmdlabel;
 mod cmdmenu;
 mod cmdnote;
 mod cmdrecents;

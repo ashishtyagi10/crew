@@ -294,3 +294,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The second inbox/todo audit** (finding 1): a date, "at", a time parsed as the time alone,
   due today with the date left in the title; a mail's "by Friday at 5pm" came out due the day
   it was sent. `leadin::dated` lets the date before a time keep its "at".
+
+**Round U12 (v0.28.55): the `@` and `/view` pickers keep a long path's file name.**
+
+- **The second UI survey** (finding 6): a long path was cut at its end, so two files read
+  `@crates/crew-app/src/viewpane/render_…`. A path row now keeps its tail, cut on a separator
+  (`cmdlabel.rs`, out of `cmdrow.rs`, which shrank 198 → 189); match marks follow their letters.
