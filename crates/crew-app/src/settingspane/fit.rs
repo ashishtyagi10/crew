@@ -28,7 +28,8 @@ use super::Field;
 
 /// Border and padding around a value: two border columns, a space inside
 /// each, and the `‹ ›` a picker wears. Text boxes pay the same, which keeps
-/// a typed value clear of the cursor at the right edge.
+/// a typed value clear of the cursor at the right edge. A picker pays two
+/// more ([`min_cols`]), the space each chevron keeps from its value.
 const CHROME: usize = 6;
 
 /// The longest option a picker can show, or `None` for a field that is not a
@@ -85,7 +86,9 @@ fn widest_value(f: Field) -> Option<usize> {
 /// widest value.
 pub(crate) fn min_cols(f: Field) -> u16 {
     let legend = super::labels::label_of(f).chars().count();
-    let value = widest_value(f).unwrap_or(0);
+    // `‹ auto (full) ›`: unpaid, those two spaces cut the `‹ ` off a
+    // 17-column Motion box, which keeps a value's end.
+    let value = widest_value(f).map_or(0, |v| v + 2);
     (legend.max(value) + CHROME) as u16
 }
 

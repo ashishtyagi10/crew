@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.51
+
+**`/settings`: a picker never loses its left chevron.**
+- Two short settings share a row when both fit, and the fit counted a picker's `‹ ›` but not
+  the space each keeps from its value. Beside Glass, Motion's box came out two columns short,
+  and as a box keeps the end of what it shows, it read `auto (full) ›`; the theme pickers
+  could do the same with their longest names. Those spaces are counted now: a picker that does
+  not fit beside another takes the row to itself and reads whole, `‹ auto (full) ›`.
+
 ## 0.28.50
 
 **An agent's edit that misses is shown the line it probably meant.**
