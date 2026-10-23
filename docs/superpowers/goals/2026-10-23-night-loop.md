@@ -196,3 +196,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **Live, through a scratch HOME** (qwen-max): a guard refusing `rm` blocked it twice with its
   reason, and the agent's next call took the `mv` the reason named; the post hook's line came
   back under each of three reads; nothing was deleted.
+
+**Round I7 (v0.28.41): a proposed new time is not an invite.**
+
+- **The survey** (also noted): only `METHOD:REPLY` was "not an invite", so a proposed new time
+  (`COUNTER`) offered `c` (adding the proposal as the event) and `y y` (an answer to yourself).
+- **Every method but an invite's own** says what it is and offers no keys (`ics.rs`).

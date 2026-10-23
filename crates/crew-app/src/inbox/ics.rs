@@ -81,18 +81,25 @@ pub(crate) struct Invite {
 }
 
 impl Invite {
-    /// What an answer to YOUR invite says (`METHOD:REPLY`: the "Accepted: …"
-    /// mail an organizer gets), e.g. "Bo Lee accepted your invite". Such a
-    /// mail is no invite: nothing to add, nothing to answer.
+    /// What an answer in an invite's exchange says (`METHOD:REPLY`: the
+    /// "Accepted: …" mail an organizer gets), e.g. "Bo Lee accepted your
+    /// invite". Such a mail is no invite: nothing to add, nothing to answer.
+    /// Nor is a new time proposed (`COUNTER`, from Outlook and Google), its
+    /// refusal, or any method but an invite's own: `c` imported a proposal
+    /// as the event, and `y y` sent a REPLY to yourself.
     pub(crate) fn reply_line(&self) -> Option<String> {
-        if self.method != "REPLY" {
-            return None;
-        }
         let a = self.attendees.first();
         let who = a.map_or("someone", |p| match p.name.trim() {
             "" => p.email.as_str(),
             n => n,
         });
+        match self.method.as_str() {
+            "" | "REQUEST" | "PUBLISH" | "CANCEL" | "ADD" => return None,
+            "REPLY" => {}
+            "COUNTER" => return Some(format!("{who} proposed a new time")),
+            "DECLINECOUNTER" => return Some("your proposed time was turned down".into()),
+            other => return Some(format!("a calendar {} from {who}", other.to_lowercase())),
+        }
         let said = match a.map(|p| p.answer.as_str()) {
             Some("ACCEPTED") => "accepted",
             Some("DECLINED") => "declined",

@@ -103,3 +103,33 @@ DESCRIPTION:See you!\\nJoin: https://us02web.zoom.us/j/8812345678?pwd=abc.\\n\r\
     .unwrap();
     assert_eq!(none.link, None, "only a meeting's link");
 }
+
+/// Only an invite's own methods are invites: a proposed new time, its
+/// refusal and the rest say what they are, and offer no keys.
+#[test]
+fn a_proposed_time_is_said_and_is_no_invite() {
+    let me = "ATTENDEE;CN=me;PARTSTAT=NEEDS-ACTION:mailto:me@x.org\r\n";
+    let line = |method: &str| {
+        let ics = cal(&format!("METHOD:{method}\r\n"), &GOOGLE.replace(me, ""));
+        parse(&ics).unwrap().reply_line()
+    };
+    assert_eq!(
+        line("COUNTER").as_deref(),
+        Some("Bo Park proposed a new time")
+    );
+    assert_eq!(
+        line("DECLINECOUNTER").as_deref(),
+        Some("your proposed time was turned down")
+    );
+    assert_eq!(
+        line("REFRESH").as_deref(),
+        Some("a calendar refresh from Bo Park")
+    );
+    assert_eq!(
+        line("REPLY").as_deref(),
+        Some("Bo Park accepted your invite")
+    );
+    for invite in ["REQUEST", "PUBLISH", "CANCEL"] {
+        assert_eq!(line(invite), None, "{invite}");
+    }
+}
