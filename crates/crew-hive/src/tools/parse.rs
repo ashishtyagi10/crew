@@ -9,7 +9,7 @@
 //! the way Aider reads a malformed edit block — lenient about the wrapping,
 //! strict about what counts as the reply's last word.
 
-use super::around::{ends_the_reply, fence_above};
+use super::around::{bare_call, ends_the_reply, fence_above};
 use super::{JsonDepth, ToolCall};
 
 #[path = "tagged.rs"]
@@ -140,10 +140,10 @@ pub fn stray_calls(reply: &str) -> Vec<String> {
 /// What follows `@tool ` on `line`, when `line` is a call: past emphasis, a
 /// code span, a list bullet or a quote marker, which models add unbidden.
 ///
-/// Also what follows `CALLED `, spelled exactly so: the exchange log shows
-/// every earlier call as `CALLED <tool> <args>` (`exchanges`), and a model
-/// taking a steer mid-turn wrote its next call in that shape — it never ran,
-/// and the raw line was the answer's end (live probe, 2026-09-30).
+/// Also what follows `CALLED ` (the exchange log's shape, which a model taking
+/// a steer wrote its next call in; live probe, 2026-09-30), and a bare
+/// `server:tool {…}` line ([`bare_call`]), which qwen-max fenced as `sh` and
+/// left unrun, ending the turn on it (live probe, 2026-10-22).
 fn directive(line: &str) -> Option<&str> {
     let mut s = line.trim_start();
     while let Some(t) = s
@@ -152,8 +152,8 @@ fn directive(line: &str) -> Option<&str> {
     {
         s = t;
     }
-    if let Some(logged) = s.strip_prefix("CALLED ") {
-        return Some(logged.trim());
+    if let Some(call) = (s.strip_prefix("CALLED ")).or_else(|| bare_call(s).then_some(s)) {
+        return Some(call.trim());
     }
     let head = s.get(..6)?;
     head.eq_ignore_ascii_case("@tool ").then(|| s[6..].trim())
