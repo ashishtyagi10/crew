@@ -92,3 +92,39 @@ fn a_date_at_a_time_is_one_due() {
     assert_eq!(due("dentist aug 24 at 10am"), "2026-08-24 10:00");
     assert_eq!(due("demo next fri at 3pm"), "2026-08-21 15:00");
 }
+
+/// Any lead-in between a date and its time, and a count of days before one:
+/// "fri by 5pm" was due today at five, with "fri" left in the title.
+#[test]
+fn a_date_a_lead_in_and_a_time_are_one_due() {
+    for (input, title, frag, due) in [
+        (
+            "send deck fri by 5pm",
+            "send deck",
+            "fri by 5pm",
+            "2026-08-14 17:00",
+        ),
+        (
+            "pay rent fri before 5pm",
+            "pay rent",
+            "fri before 5pm",
+            "2026-08-14 17:00",
+        ),
+        (
+            "call bob in 2 days at 5pm",
+            "call bob",
+            "in 2 days at 5pm",
+            "2026-08-14 17:00",
+        ),
+        (
+            "renew passport in 3 weeks at 9am",
+            "renew passport",
+            "in 3 weeks at 9am",
+            "2026-09-02 09:00",
+        ),
+    ] {
+        assert_eq!(split(input), (title.into(), frag.into()), "{input}");
+        let at = find(input, now()).unwrap().due.format("%Y-%m-%d %H:%M");
+        assert_eq!(at.to_string(), due, "{input}");
+    }
+}

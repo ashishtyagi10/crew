@@ -438,3 +438,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The third inbox/todo audit** (finding 5) caught I4's edge: "nearest" flipped any date over
   half a year ahead to last year's. Only an overdue notice ("was due") or a date weeks back
   reads as passed now.
+
+**Round I26 (v0.28.80): "send deck fri by 5pm" is due Friday at five.**
+
+- **The third inbox/todo audit** (finding 1) caught I11's edge: only `at` could sit between a
+  date and its time, so `fri by 5pm` was due today and `fri` stayed in the title. Any one
+  lead-in word goes with the date now, and `in 2 days at 5pm` fits the date reader's window.
