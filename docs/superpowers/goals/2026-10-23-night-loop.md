@@ -29,3 +29,16 @@ Three at once, as in loop 15: the UI on every palette through the headless shot 
 AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 ## Log
+
+**Round A1 (v0.28.24): an agent's edit can name which of two identical lines it means.**
+
+- **The survey** (the probe logs of 2026-10-20 and 2026-10-22): 27 of 59 failed `sys:edit`
+  calls were "`old` appears 2 times", and qwen-max sent `"line": N` with them thirty times,
+  which `systools::edit` never read; one turn sent the same failing pair six times.
+- **`editpick.rs`**: the refusal names each copy's line, and `"line"` picks the exact match
+  whose lines hold it, or is refused with the list again. In a batch a line means the file as
+  read (`Shift`), and the report and the shown rows follow the copy that changed. `edit()` left
+  `systools.rs` (388 → 356) for `editargs.rs`; the report for `editreport.rs`.
+- **Live, qwen-max, two identical `let floor = 4.5;` blocks, "change only the second"**:
+  before, 2 refusals a run, 26–42 s, and 1 of 3 ended with `"all": true` changing both; after,
+  1 refusal, the next call `"line": 15`, 3 of 3 right.
