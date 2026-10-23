@@ -281,3 +281,10 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **From the same probe data as A8**: 14 of 69 failed edits were "the same text with different
   whitespace", answered only with "read the file".
 - **`editnear::spaced`** shows the lines that hold the text, numbered, to copy. Unit tests only.
+
+**Round U11 (v0.28.53): document windows keep a column of air inside their frame.**
+
+- **The second UI survey** (finding 5): a document window drew from the frame's first inside
+  column, so its sticky heading band ran 4 px from the strokes. `docwin::PAD` gives it a pane's
+  gutter in the resize, the click mapping and the drawing. The band's tightness under the
+  legend, vertically, is left as it was.

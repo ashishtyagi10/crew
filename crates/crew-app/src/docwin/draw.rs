@@ -3,7 +3,7 @@
 //! only difference, and it is a rect.
 use crew_render::PaneScene;
 
-use super::{DocWindow, MARGIN};
+use super::{DocWindow, MARGIN, PAD};
 use crate::layout::Rect;
 use crate::viewpane::ViewPane;
 
@@ -26,9 +26,26 @@ pub(crate) fn scenes(
         ch,
         legend,
         crew_theme::theme().legend_off,
-        |cols, rows| view.art(cols, rows, ch / cw),
+        |cols, rows| padded(view, cols, rows, ch / cw),
     );
     out
+}
+
+/// The document's art for a `cols`-wide interior, [`PAD`] columns in from
+/// each side.
+pub(crate) fn padded(
+    view: &ViewPane,
+    cols: u16,
+    rows: u16,
+    aspect: f32,
+) -> (Vec<crew_render::CellView>, Vec<crew_render::Paint>) {
+    let (cells, paint) = view.art(cols.saturating_sub(2 * PAD), rows, aspect);
+    let cells = cells.into_iter().map(|c| crew_render::CellView {
+        col: c.col + PAD,
+        ..c
+    });
+    let paint = paint.into_iter().map(|p| p.shifted(f32::from(PAD), 0.0));
+    (cells.collect(), paint.collect())
 }
 
 impl DocWindow {

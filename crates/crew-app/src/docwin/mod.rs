@@ -38,6 +38,11 @@ pub(crate) mod reread;
 /// the same one-cell ring every pane card sits in.
 const MARGIN: f32 = 12.0;
 
+/// A column of air each side of the document, as a grid pane keeps between
+/// its content and its frame: drawn from the card's own interior, the sticky
+/// heading band ran 4 px from the stroke (UI survey 2026-10-23).
+pub(super) const PAD: u16 = 1;
+
 /// One open document window.
 pub(crate) struct DocWindow {
     pub window: Arc<Window>,
@@ -106,7 +111,10 @@ impl DocWindow {
         let scale = self.window.scale_factor() as f32;
         // The document starts one cell inside the frame, which itself starts
         // `MARGIN` from the window's edge (see `draw`).
-        let (x0, y0) = (MARGIN * scale + cw, MARGIN * scale + ch);
+        let (x0, y0) = (
+            MARGIN * scale + cw * f32::from(1 + PAD),
+            MARGIN * scale + ch,
+        );
         if x < x0 || y < y0 || cw <= 0.0 || ch <= 0.0 {
             return None;
         }
@@ -130,6 +138,7 @@ impl DocWindow {
             h as f32 - MARGIN * 2.0 * scale,
         );
         let (cols, rows) = crate::layout::card_inner_cells(iw, ih, cw, ch);
+        let cols = cols.saturating_sub(2 * PAD);
         self.grid = GridSize { cols, rows };
         self.view.clamp_scroll(cols, rows);
         // The document just re-wrapped: the caret's row and column belonged
