@@ -126,6 +126,9 @@ fn summed(first: Completion, r: Completion) -> Completion {
     if c.model.is_empty() {
         c.model = r.model;
     }
+    if c.fell_back.is_empty() {
+        c.fell_back = r.fell_back;
+    }
     c.cost_microusd = c.cost_microusd.saturating_add(r.cost_microusd);
     if !r.thought.is_empty() {
         if !c.thought.is_empty() {

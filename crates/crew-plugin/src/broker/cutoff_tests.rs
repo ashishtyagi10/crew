@@ -163,3 +163,15 @@ fn marked_adds_the_line_only_to_a_cut_reply() {
     );
     assert_eq!(marked("", true), CUT_OFF);
 }
+
+/// What the provider's chain skipped reaches the adapter's usage through the
+/// join: every reply is joined onto `resume`'s empty first half, which kept
+/// only its own (empty) `fell_back`, so smith never said "fell back to".
+#[test]
+fn a_fallback_survives_the_join() {
+    let mut c = reply("hi", false);
+    (c.model, c.fell_back) = ("qwen-flash".into(), "qwen-max: gone".into());
+    let p = scripted(vec![c], None);
+    let (_, usage) = adapter(&p).call_with_usage("task", SECS).unwrap();
+    assert_eq!(usage.fell_back, "qwen-flash \u{b7} qwen-max: gone");
+}

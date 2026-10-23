@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.22
+
+**Agent smith says when your model was skipped for another.**
+- A model chain (`CREW_DASHSCOPE_MODEL="qwen-max,qwen-flash"`, OpenRouter's fallbacks) moved on
+  to the next model at any failure without a word, so a model that was gone for good was
+  never heard of again while every answer came from another. Now smith says so under the
+  agent's reply, once a turn: `fell back to qwen-flash · qwen-max: The model qwen-max does not
+  exist…`. The bill was already priced at the model that answered.
+- From Claude Code's `fallbackModel` and Kiro's model notices.
+
 ## 0.28.21
 
 **`/disk`: the map no longer touches the header and the key line.**

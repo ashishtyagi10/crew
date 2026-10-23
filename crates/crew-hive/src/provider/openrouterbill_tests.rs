@@ -1,11 +1,11 @@
 //! A fallback chain is billed at the model that answered, not the one asked
-//! for first.
+//! for first, and the answer says which model it skipped and why.
 use std::sync::{Arc, Mutex};
 
 use super::tests::read_request;
 use super::OpenRouterProvider;
 use crate::graph::ModelTier;
-use crate::provider::{CompletionRequest, Provider};
+use crate::provider::{Chunk, ChunkFn, CompletionRequest, Provider};
 
 /// A loopback server that answers its Nth connection with `replies[N]`,
 /// keeping each request's `model` so the test can see the chain was walked.
@@ -71,7 +71,67 @@ async fn a_fallback_reply_is_billed_at_the_model_that_answered() {
     let c = p.complete(req).await.expect("the fallback answers");
     assert_eq!(asked.lock().unwrap().as_slice(), ["qwen-max", "qwen-plus"]);
     assert_eq!(c.model, "qwen-plus");
+    assert_eq!(c.fell_back, "qwen-max: The model `qwen-max` does not exist");
     let billed = crate::apiagent::billed("qwen-max", ModelTier::Standard, &c);
     assert_eq!(billed, 400 + 120, "priced at qwen-plus");
     assert_ne!(billed, 1600 + 640, "priced at qwen-max, which 404ed");
+}
+
+fn ask(model: &str) -> CompletionRequest {
+    CompletionRequest {
+        model: model.into(),
+        prompt: "hi".into(),
+        max_tokens: 8,
+        ..Default::default()
+    }
+}
+
+/// The first model answered: the reply says nothing was skipped, and the
+/// fallback was never dialed.
+#[tokio::test]
+async fn a_first_model_that_answers_falls_back_to_nothing() {
+    let answer = r#"{"model":"qwen-max","choices":[{"message":{"content":"hi"}}],
+        "usage":{"prompt_tokens":10,"completion_tokens":1}}"#;
+    let (addr, asked) = scripted(vec![http("200 OK", answer)]);
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"))
+        .with_fallbacks(vec!["qwen-plus".into()]);
+    let c = p.complete(ask("qwen-max")).await.expect("answers");
+    assert_eq!(asked.lock().unwrap().as_slice(), ["qwen-max"]);
+    assert_eq!(c.fell_back, "");
+}
+
+/// The streamed path walks the same chain: a first model that is not
+/// there (a bare 404 page, no envelope) is skipped before anything was
+/// shown, and the streamed answer names it with its status.
+#[tokio::test]
+async fn a_streamed_reply_names_the_model_it_skipped() {
+    let sse = concat!(
+        "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n",
+        "data: [DONE]\n",
+    );
+    let streamed = format!(
+        "HTTP/1.1 200 OK\r\nconnection: close\r\ncontent-type: text/event-stream\r\ncontent-length: {}\r\n\r\n{sse}",
+        sse.len()
+    );
+    let (addr, asked) = scripted(vec![http("404 Not Found", "not here"), streamed]);
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"))
+        .with_fallbacks(vec!["qwen-flash".into()]);
+    let quiet: ChunkFn = Arc::new(|_: Chunk<'_>| {});
+    let c = p
+        .complete_streaming(ask("qwen-nope"), quiet)
+        .await
+        .expect("the fallback answers");
+    assert_eq!(
+        asked.lock().unwrap().as_slice(),
+        ["qwen-nope", "qwen-flash"]
+    );
+    assert_eq!(c.text, "hi");
+    assert!(
+        c.fell_back
+            .starts_with("qwen-nope: HTTP 404 from 127.0.0.1"),
+        "{}",
+        c.fell_back
+    );
 }

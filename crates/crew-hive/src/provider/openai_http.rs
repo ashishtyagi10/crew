@@ -266,6 +266,7 @@ async fn consume_sse(
         cost_microusd,
         calls: st.calls.finish(),
         truncated: st.truncated,
+        ..Default::default()
     }))
 }
 
@@ -350,12 +351,7 @@ fn apply_sse_line(
 /// truncates to 0 for anything under 4 chars, which would otherwise
 /// misreport a real (if tiny) reply as having produced no output tokens.
 fn estimate_output_tokens(s: &str) -> u32 {
-    let n = chars_to_tokens(s.chars().count());
-    if s.is_empty() {
-        n
-    } else {
-        n.max(1)
-    }
+    chars_to_tokens(s.chars().count()).max(u32::from(!s.is_empty()))
 }
 
 /// Same chars/4 estimate as [`estimate_output_tokens`] (minus its non-empty
@@ -596,6 +592,7 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
         cost_microusd: (usage.cost.unwrap_or(0.0) * 1_000_000.0) as u64,
         calls,
         truncated,
+        ..Default::default()
     })
 }
 

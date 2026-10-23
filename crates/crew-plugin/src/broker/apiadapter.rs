@@ -14,7 +14,7 @@ use std::time::Duration;
 
 use crew_hive::{CompletionRequest, Provider};
 
-use super::adapter::{Adapter, HopStream};
+use super::adapter::{Adapter, HopStream, Usage};
 
 /// Output token ceiling per agent reply. 2048 was too few for real work — a
 /// long answer, a `sys:write_file` of a whole file, a `sys:edit` with a big
@@ -122,11 +122,7 @@ impl Adapter for ApiAdapter {
 
     /// API replies carry real usage: the provider's reported prompt/completion
     /// tokens (the prompt size is the agent's live context fill).
-    fn call_with_usage(
-        &self,
-        body: &str,
-        timeout: Duration,
-    ) -> Result<(String, super::adapter::Usage), String> {
+    fn call_with_usage(&self, body: &str, timeout: Duration) -> Result<(String, Usage), String> {
         let req = CompletionRequest {
             model: self.model.clone(),
             system: self.system.clone(),
@@ -145,18 +141,7 @@ impl Adapter for ApiAdapter {
             return Err(super::cancelscope::STOPPED.to_string());
         };
         match outcome {
-            Ok(Ok(c)) => Ok((
-                c.text.trim().to_string(),
-                super::adapter::Usage {
-                    input_tokens: c.input_tokens,
-                    output_tokens: c.output_tokens,
-                    cost_microusd: if c.cost_microusd > 0 {
-                        c.cost_microusd
-                    } else {
-                        crew_hive::pricing::estimate(&self.model, &c).unwrap_or(0)
-                    },
-                },
-            )),
+            Ok(Ok(c)) => Ok((c.text.trim().to_string(), Usage::of(&self.model, &c))),
             Ok(Err(e)) => Err(e.to_string()),
             Err(_) => Err(format!(
                 "{}: api call timed out after {timeout:?} (raise CREW_BROKER_TIMEOUT_MS?)",
@@ -176,7 +161,7 @@ impl Adapter for ApiAdapter {
         body: &str,
         timeout: Duration,
         stream: &HopStream,
-    ) -> Result<(String, super::adapter::Usage), String> {
+    ) -> Result<(String, Usage), String> {
         let req = CompletionRequest {
             model: self.model.clone(),
             system: self.system.clone(),
@@ -229,18 +214,7 @@ impl Adapter for ApiAdapter {
         }
         (stream.on_thought)(""); // the hop is over: flush the gate's tail
         match outcome {
-            Ok(Ok(c)) => Ok((
-                c.text.trim().to_string(),
-                super::adapter::Usage {
-                    input_tokens: c.input_tokens,
-                    output_tokens: c.output_tokens,
-                    cost_microusd: if c.cost_microusd > 0 {
-                        c.cost_microusd
-                    } else {
-                        crew_hive::pricing::estimate(&self.model, &c).unwrap_or(0)
-                    },
-                },
-            )),
+            Ok(Ok(c)) => Ok((c.text.trim().to_string(), Usage::of(&self.model, &c))),
             Ok(Err(e)) => Err(e.to_string()),
             Err(_) => Err(format!(
                 "{}: api call timed out after {timeout:?} (raise CREW_BROKER_TIMEOUT_MS?)",

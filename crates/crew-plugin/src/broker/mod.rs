@@ -2,14 +2,13 @@
 //! are the inbuilt API agents (planner/coder/reviewer in `apiadapter`), which
 //! call the LLM in-process via crew-hive; the external-CLI adapters in `agents`
 //! remain available as the same [`Adapter`] abstraction. The broker is
-//! agent-agnostic — an adapter turns an envelope body into a clean reply string;
-//! nothing in the routing engine cares how that reply was produced.
+//! agent-agnostic — an adapter turns an envelope body into a clean reply string
+//! (never raw CLI chatter); nothing in the routing engine cares how it was made.
 //!
-//! Every message in flight is an [`Envelope`]. An adapter turns an envelope
-//! body into a clean reply string (never raw CLI chatter). The [`engine::Broker`]
-//! drives the relay: it calls the addressed agent, parses the reply for a
-//! routing directive (`TO <peer>:` / `DONE`), logs every hop, and stops at the
-//! hop limit so a thread can never loop forever.
+//! Every message in flight is an [`Envelope`]. The [`engine::Broker`] drives
+//! the relay: it calls the addressed agent, parses the reply for a routing
+//! directive (`TO <peer>:` / `DONE`), logs every hop, and stops at the hop
+//! limit so a thread can never loop forever.
 mod adapter;
 mod agents;
 mod agentsmd;
@@ -42,6 +41,7 @@ mod elect;
 mod engine;
 mod failexcerpt;
 mod fan;
+mod fellback;
 mod gitmsg;
 mod hop;
 mod hoptool;

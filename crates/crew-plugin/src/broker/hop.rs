@@ -42,6 +42,20 @@ pub struct RunStats {
     pub cost_microusd: u64,
 }
 
+impl RunStats {
+    /// One agent call into the tally: `approx` is its chars/4 estimate,
+    /// `u` what the backend reported. Every dial of a turn (the first, the
+    /// repair re-ask, each tool round's follow-up) counts the same way.
+    pub(crate) fn add(&mut self, approx: usize, u: &super::adapter::Usage) {
+        self.exchanges += 1;
+        self.approx_tokens += approx;
+        self.real_tokens += (u.input_tokens + u.output_tokens) as usize;
+        self.tok_in += u64::from(u.input_tokens);
+        self.tok_out += u64::from(u.output_tokens);
+        self.cost_microusd += u.cost_microusd;
+    }
+}
+
 use super::Envelope;
 
 /// A hop produced by the agent at `env.to`, bound back to `env.from`.
