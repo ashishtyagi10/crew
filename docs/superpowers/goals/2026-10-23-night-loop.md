@@ -526,3 +526,10 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   comes back as its code row and rustc's word on it, grouped by file (all 25 of the test build
   in ~2.9 KB). Live, advisor off: 1 of 3 solved in 23 s by fixing the source function, against
   0 of 6 earlier tonight; the other two were no better on lookups or misses.
+
+**Round I32 (v0.28.94): "by Friday, October 30" is October 30 again.**
+
+- **The fourth inbox/todo audit** (I24–I31: seven hold, I29 broken): I29's "date right after
+  its key" read "by Friday, October 30" a week early and "Due date: Oct 30" as nothing. A
+  weekday may lead its date and "is"/"date" may follow the key now; `end_of` moved to
+  `todoeod.rs` to keep the cap.
