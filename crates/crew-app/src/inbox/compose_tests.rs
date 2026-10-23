@@ -125,6 +125,7 @@ fn tab_asks_agent_smith_and_its_draft_lands_in_the_box() {
         since: 0,
         at_ms: 0,
         wants: crate::inbox::handoff::Wants::Draft,
+        thread: "t1".into(),
     });
     p.drafted_by_smith(Some("Friday is good, see you then.".into()));
     assert_eq!(text(&p), "Friday is good, see you then.");

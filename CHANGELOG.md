@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.15
+
+**Agent smith's answer lands only on the mail it was about.**
+- In `/inbox`, Tab on a mail's todo card (or in its reply box) asks agent smith to fill it.
+  Leave with Esc, open the next mail and press `t`, and smith's answer about the first mail
+  filled the second mail's card, or put its draft in the wrong reply box. The ask now carries
+  its thread, and an answer about a mail other than the one open is let go, with a note
+  saying so.
+
 ## 0.28.14
 
 **Theme chips are whole squares, not black teeth.**
