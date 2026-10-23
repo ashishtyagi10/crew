@@ -23,6 +23,7 @@ mod act;
 pub(crate) mod agentpick;
 mod checkbox;
 mod click;
+mod clockword;
 mod composer;
 pub(crate) mod duedate;
 pub(crate) mod duetext;

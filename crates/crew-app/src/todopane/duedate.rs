@@ -94,7 +94,7 @@ fn tokens(input: &str) -> Vec<(usize, usize, String)> {
         let word: String = chars[start..i].iter().collect::<String>().to_lowercase();
         out.push((start, i, word));
     }
-    out
+    super::clockword::joined(out)
 }
 
 /// One token window against the whole grammar.
