@@ -52,3 +52,39 @@ fn an_answer_by_mail_puts_nothing_on_google_calendar() {
         p.note
     );
 }
+
+/// Answered by mail, then added with `c`: Google's copy carries the
+/// invite's "needs action" for you, not what you mailed, and the card said
+/// "on your Google Calendar · you have not answered".
+#[test]
+fn an_answer_by_mail_outlives_the_add() {
+    let (tx, asks) = mpsc::channel();
+    let (_, rx) = mpsc::channel();
+    let mut p = InboxPane::with(Stage::Ready(Worker { tx, rx }));
+    p.email = "me@x.org".into();
+    let m = Mail {
+        calendar: Some(cal("METHOD:REQUEST\r\n", GOOGLE)),
+        ..Default::default()
+    };
+    p.reading = Some(Reading {
+        mails: Some(vec![m]),
+        ..Reading::new(Thread::default())
+    });
+    p.take_cal(Got::OnCalendar(UID.into(), None));
+    let line = "you accepted \u{b7} Ann Lee was told".to_string();
+    p.take_cal(Got::Answered(UID.into(), "accepted".into(), line));
+    p.press_key(&Key::Character("c".into()), 100, 40);
+    assert!(
+        matches!(asks.try_recv(), Ok(Ask::AddEvent(_))),
+        "{}",
+        p.note
+    );
+    // The worker's answer: the add, then the event Google now has.
+    p.take_cal(Got::Calendar(
+        "added to your Google Calendar: Offsite".into(),
+    ));
+    p.take_cal(Got::OnCalendar(UID.into(), Some("needsAction".into())));
+    let lines = card(&p);
+    let on = lines.iter().find(|l| l.contains("on your Google Calendar"));
+    assert!(on.is_some_and(|l| l.ends_with("you accepted")), "{lines:?}");
+}

@@ -543,3 +543,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The fourth inbox/todo audit** (finding 1, inbox3's open sibling): a day just before "by"
   goes with the time after it now; a full stop between them still separates them.
+
+**Round I35 (v0.28.97): an answer by mail outlives the add to Google Calendar.**
+
+- **The fourth inbox/todo audit** (finding 3): Google's "needs action" on the added copy
+  overrode the answer you had mailed. It yields to yours now.
