@@ -172,7 +172,7 @@ pub(crate) fn push_pane_scenes(
     // Wash a generic mouse selection over a non-terminal pane (terminals carry
     // their selection in the cell data already).
     if let Some(s) = sel {
-        crate::gridsel::highlight(&mut cells, s, crew_theme::theme().find_hl_bg, p);
+        crate::gridsel::highlight(&mut cells, s, crate::gridsel::wash(), p);
     }
     // Focus spotlight: unfocused content leans toward the page (frame cells
     // keep their own focus colors — this is about the ink, not the box).

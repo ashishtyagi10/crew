@@ -126,7 +126,7 @@ impl ViewPane {
         // a range of BYTES, so the wash follows the text through a re-wrap
         // instead of being a rectangle of the screen.
         if let Some((lo, hi)) = super::select::range(self) {
-            let bg = crew_theme::theme().find_hl_bg;
+            let bg = crate::gridsel::wash();
             let mut col = 0u16;
             for (r, line) in cache.lines.iter().skip(top).take(rows as usize).enumerate() {
                 col = 0;
@@ -190,3 +190,6 @@ mod tests;
 #[cfg(test)]
 #[path = "opaqueempty_tests.rs"]
 mod opaque_tests;
+#[cfg(test)]
+#[path = "selwash_tests.rs"]
+mod selwash_tests;
