@@ -37,17 +37,17 @@ pub(crate) fn hint_for(tools: &[McpTool]) -> String {
     let lines: Vec<String> = tools
         .iter()
         .map(|t| {
-            // FIRST LINE, then clipped. `McpTool::description` is now the
-            // server's whole description — paragraphs and all — and pasting
-            // that into a one-line-per-tool list would break the list.
+            // FIRST LINE: a server's paragraphs would break the list. Clipped,
+            // but crew's own `sys:` tools whole: at 100, sys:edit lost `edits`,
+            // `all` and `line` (3 of 3 first edits refused for want of `line`).
             let one = t.description.lines().next().unwrap_or("");
-            format!("- {}:{} \u{2014} {}", t.server, t.name, clip(one, 100))
+            let cap = if t.server == "sys" { usize::MAX } else { 100 };
+            format!("- {}:{} \u{2014} {}", t.server, t.name, clip(one, cap))
         })
         .collect();
-    // The LOOK FIRST line is what turns a tool list into grounded answers.
-    // Offered as merely "optional", a model asked what a crate in the repo
-    // does answered from its priors (a web framework that does not exist)
-    // with `sys:read_file` sitting right there.
+    // LOOK FIRST turns a tool list into grounded answers: offered as merely
+    // "optional", a model asked what a repo crate does answered from its
+    // priors (a web framework that does not exist), sys:read_file right there.
     format!(
         "TOOLS: to call one, make the FINAL line of your reply exactly\n\
          `@tool <server>:<tool> {{\"arg\": \u{2026}}}` (JSON arguments) \u{2014} the \

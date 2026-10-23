@@ -508,3 +508,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   or more lines matching one place with one uniform leading-whitespace shift lands there, `new`
   shifted the same; the report says so. Replay: 14 of 14 indentation-only captures land, 16 of
   16 reflowed stay refused. Live: one two-block batch landed in one call.
+
+**Round A18 (v0.28.91): crew's own tools are described whole on the text path.**
+
+- **AI survey 2** (runner-up #8, Claude Code sends whole descriptions): clipped at 100, sys:edit
+  lost `edits`, `all` and `line`. Live on the two-copies task, the first edit carried `line` in
+  2 of 3 runs, against 0 of 3 before; the third put it beside `edits` and was refused once.
