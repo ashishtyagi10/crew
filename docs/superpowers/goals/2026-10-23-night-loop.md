@@ -202,3 +202,11 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The survey** (also noted): only `METHOD:REPLY` was "not an invite", so a proposed new time
   (`COUNTER`) offered `c` (adding the proposal as the event) and `y y` (an answer to yourself).
 - **Every method but an invite's own** says what it is and offers no keys (`ics.rs`).
+
+**Round I8 (v0.28.42): a failed invite answer says it did not go.**
+
+- **The survey** (finding 8): Google Calendar's failures were worded as Gmail's, then the
+  inbox's known words replaced the whole line, `not answered:` included, so a failed answer
+  read "Gmail can't be reached from here" over an unchanged card.
+- **`told.rs`** keeps the `not …:` head and Google Calendar's name; `fetch` names the service
+  by the address asked.

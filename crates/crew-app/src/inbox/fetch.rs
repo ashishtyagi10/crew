@@ -44,7 +44,7 @@ async fn one(
         Some(b) => http.post(url).json(&b),
         None => http.get(url),
     };
-    answer(req, token).await
+    answer(req, token, service(url)).await
 }
 
 /// A PATCH of `body` to `url`.
@@ -54,16 +54,27 @@ pub(crate) async fn patch(
     url: String,
     body: Value,
 ) -> Result<Value, Fetch> {
-    answer(http.patch(url).json(&body), &token).await
+    let who = service(&url);
+    answer(http.patch(url).json(&body), &token, who).await
 }
 
-async fn answer(req: reqwest::RequestBuilder, token: &str) -> Result<Value, Fetch> {
+/// Whose answer it is, by the address asked: Google Calendar's failures were
+/// all worded as Gmail's ("Gmail 409" for an event already there).
+fn service(url: &str) -> &'static str {
+    if url.contains("/calendar/") {
+        "Google Calendar"
+    } else {
+        "Gmail"
+    }
+}
+
+async fn answer(req: reqwest::RequestBuilder, token: &str, who: &str) -> Result<Value, Fetch> {
     let r = req
         .bearer_auth(token)
         .timeout(HTTP)
         .send()
         .await
-        .map_err(|e| Fetch::Failed(format!("could not reach Gmail: {}", e.without_url())))?;
+        .map_err(|e| Fetch::Failed(format!("could not reach {who}: {}", e.without_url())))?;
     let status = r.status().as_u16();
     let body = r.bytes().await;
     let v: Option<Value> = body
@@ -74,13 +85,13 @@ async fn answer(req: reqwest::RequestBuilder, token: &str) -> Result<Value, Fetc
         // An answer that broke off (the timeout reaches into the body, and a
         // big attachment takes a while) read as an empty one: a list of
         // nothing, a thread with no mails, a file of no bytes.
-        200..=299 => v.ok_or_else(|| Fetch::Failed("Gmail\u{2019}s answer was cut off".into())),
+        200..=299 => v.ok_or_else(|| Fetch::Failed(format!("{who}\u{2019}s answer was cut off"))),
         401 => Err(Fetch::Expired),
         _ => {
             let v = v.unwrap_or(Value::Null);
             let msg = v["error"]["message"].as_str().unwrap_or("no reason given");
             Err(Fetch::Failed(crate::oauth::short_reason(&format!(
-                "Gmail {status}: {msg}"
+                "{who} {status}: {msg}"
             ))))
         }
     }

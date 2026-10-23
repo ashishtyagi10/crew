@@ -4,6 +4,10 @@ use super::grant::{self, Grant};
 use super::setup;
 use super::worker::{self, Ask, Got};
 use super::{InboxPane, Stage};
+use told::told;
+
+#[path = "told.rs"]
+mod told;
 
 /// How often a signed-in pane asks whether the mailbox moved (1 unit).
 const CHECK_MS: u64 = 60_000;
@@ -181,16 +185,4 @@ impl InboxPane {
             Got::Ended(e) => self.signed_out(&e),
         }
     }
-}
-
-/// A failure in the words the foot says: what it is, where crew can name it
-/// (`states::known`), else Gmail's own words. A grant made for the read-only
-/// scope (v0.27.29) cannot archive, star or send, and Google adds no scope to
-/// an installed app's grant without a fresh consent.
-pub(super) fn told(e: String) -> String {
-    if e.contains("insufficient authentication scopes") {
-        return "archiving, starring and sending need a new sign-in: /inbox signout, then Enter"
-            .into();
-    }
-    super::states::known(&e).map_or(e, |(what, _)| what.to_string())
 }
