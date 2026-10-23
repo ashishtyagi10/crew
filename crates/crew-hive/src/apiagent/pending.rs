@@ -33,6 +33,9 @@ enum Pending {
     Running(JoinHandle<Called>),
     /// Never started: the run was stopped before its turn came.
     Stopped,
+    /// Never started: the same edit failed in that round, and nothing has
+    /// been written since (`Seen::missed`), as the relay answers it.
+    Missed(u32, String),
 }
 
 /// What a call the stop kept from starting is answered with.
@@ -87,10 +90,12 @@ pub(super) async fn run(
         // already running is NOT killed, and is waited for: `Tools::call`
         // takes no stop, and `sys:run` kills its child only at its own
         // deadline. Reaching into that process is work for another day.
-        let pending = match first {
-            Some(round) => Pending::Pointer(round),
-            None if ctx.stopped() => Pending::Stopped,
-            None => start(tools, call),
+        let missed = seen.missed(call).map(|(r, why)| (r, why.to_string()));
+        let pending = match (first, missed) {
+            (Some(round), _) => Pending::Pointer(round),
+            (None, Some((round, why))) => Pending::Missed(round, why),
+            _ if ctx.stopped() => Pending::Stopped,
+            _ => start(tools, call),
         };
         match together {
             true => waiting.push(pending),
@@ -131,6 +136,7 @@ async fn finish(
     let (ok, text, ms) = match pending {
         Pending::Pointer(first) => (true, Seen::pointer(first), 0),
         Pending::Stopped => (false, NOT_RUN_STOPPED.to_string(), 0),
+        Pending::Missed(round, why) => (false, Seen::again(round, &why), 0),
         Pending::Running(task) => {
             let (called, ms) = task
                 .await
@@ -144,6 +150,9 @@ async fn finish(
                 Err(e) => (false, (rules.error)(e)),
             };
             seen.ran(tools.as_ref(), call, entry, ok);
+            if !ok {
+                seen.miss(call, entry, &text);
+            }
             (ok, text, ms)
         }
     };

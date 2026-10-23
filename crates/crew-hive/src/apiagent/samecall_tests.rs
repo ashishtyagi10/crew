@@ -43,15 +43,18 @@ impl Tools for Counting {
             .lock()
             .unwrap()
             .push(format!("{server}:{tool} {args}"));
-        Ok("FILE BODY".into())
+        match tool {
+            "edit" => Err("edit a.rs: `old` is not in the file".into()),
+            _ => Ok("FILE BODY".into()),
+        }
     }
     fn repeatable(&self, server: &str, tool: &str) -> bool {
         (server, tool) == ("fs", "read")
     }
     fn specs(&self) -> Vec<ToolSpec> {
-        ["read", "write"]
-            .map(|t| ToolSpec {
-                server: "fs".into(),
+        [("fs", "read"), ("fs", "write"), ("sys", "edit")]
+            .map(|(s, t)| ToolSpec {
+                server: s.into(),
                 tool: t.into(),
                 description: format!("{t} a file"),
                 input_schema: serde_json::json!({"type": "object"}),
@@ -165,4 +168,21 @@ async fn text_path_the_same_read_in_two_rounds_runs_once() {
     let last = &sent.last().unwrap().prompt;
     assert_eq!(last.matches("FILE BODY").count(), 1, "{last}");
     assert!(last.contains("same call as round 1"), "{last}");
+}
+
+/// A failed edit sent again with nothing written since is answered from the
+/// first failure, on the native path as on the relay's.
+#[tokio::test]
+async fn native_a_failed_edit_sent_again_is_not_run() {
+    let edit = || {
+        calling(
+            "sys__edit",
+            serde_json::json!({"path": "a.rs", "old": "x", "new": "y"}),
+        )
+    };
+    let (ran, sent) = run(true, vec![edit(), edit(), text("done")]).await;
+    assert_eq!(ran.len(), 1, "sent once: {ran:?}");
+    let r = results(&sent);
+    assert!(r[1].content.contains("failed in round 1"), "{:?}", r[1]);
+    assert!(r[1].is_error);
 }
