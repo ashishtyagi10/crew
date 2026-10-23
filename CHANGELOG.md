@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.35
+
+**A reply whose stream closed early is picked up, not passed off as whole.**
+- A stream that broke mid-reply has been picked up where it stopped since 0.28.17, but only
+  when it broke loudly. One that simply ended, the connection closed cleanly with no `[DONE]`
+  and no finish reason (a proxy, a gateway, an HTTP/1.1 body with no length), was taken as
+  the whole answer and stopped mid-sentence with no word said. A stream now counts as finished
+  only when it says so (`[DONE]`, a finish reason or its usage; `message_stop` from
+  Anthropic), and one that closes before that with words or a call under way is a broken one,
+  picked up like the rest.
+- Live, through a proxy that ends DashScope's stream cleanly after 9 text chunks: before, the
+  reply stopped at "This process involves" (189 characters) with no error; after, it went on
+  from there to 892 characters, joined cleanly, and the same after 14 chunks.
+- From Claude Code 2.1.288 and Cline 4.1.25, which continue a reply from its partial text.
+
 ## 0.28.34
 
 **`/inbox`: answering an invite never marks the next one answered.**

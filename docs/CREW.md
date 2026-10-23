@@ -2548,9 +2548,11 @@ timed out before any reply) is asked again, 1 s and then 2 s later, before it
 fails; nothing was shown, so a retry can never repeat a word. A reply whose
 stream breaks partway is picked up where it stopped (what was shown goes back as
 the model's own words, and the rest is joined on), and an empty reply is asked
-for again — three tries in all, and never for a missing or rejected key. The
-broker sends a heartbeat every five seconds, and the pane keeps three clocks on
-it. If a task
+for again — three tries in all, and never for a missing or rejected key. A
+stream that closes before its end marker (no `[DONE]` or finish reason; no
+`message_stop`) has broken too: the cut reply is picked up, not taken for the
+whole one. The broker sends a heartbeat every five seconds, and the pane keeps
+three clocks on it. If a task
 has had nothing new for 90 seconds, a note says what it is waiting on (*coder is
 waiting on sys:run*) and that Esc stops it, again every three minutes. Esc
 ends an agent's model call at once (the call races the task's stop); if a task

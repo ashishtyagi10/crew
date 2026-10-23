@@ -16,6 +16,7 @@ mod overflow;
 mod retry;
 mod served;
 mod ssecalls;
+mod sseframe;
 mod status;
 mod stopreason;
 #[cfg(test)]

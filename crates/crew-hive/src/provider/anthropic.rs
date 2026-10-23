@@ -444,7 +444,11 @@ impl Provider for AnthropicProvider {
                 };
                 match wait {
                     Some(wait) => tokio::time::sleep(wait).await,
-                    None => return fold.finish(&on_chunk).map(|c| c.served_by(&req.model)),
+                    None => {
+                        return fold
+                            .finish(&endpoint, &on_chunk)
+                            .map(|c| c.served_by(&req.model))
+                    }
                 }
             }
         })

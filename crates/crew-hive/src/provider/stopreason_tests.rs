@@ -88,7 +88,7 @@ fn fold(stream: &str) -> crate::provider::Completion {
     for piece in stream.as_bytes().chunks(11) {
         f.feed(std::str::from_utf8(piece).unwrap(), &quiet);
     }
-    f.finish(&quiet).unwrap()
+    f.finish("https://api.anthropic.com", &quiet).unwrap()
 }
 
 #[test]

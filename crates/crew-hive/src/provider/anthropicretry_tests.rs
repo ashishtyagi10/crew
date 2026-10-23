@@ -2,8 +2,7 @@
 //! request is not, a stream that has shown text is never replayed, and a
 //! character split between two reads arrives whole.
 use super::*;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{atomic::AtomicUsize, atomic::Ordering, Arc, Mutex};
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -14,6 +13,7 @@ const OVERLOADED: &str =
 const LIMITED: &str = r#"{"type":"error","error":{"type":"rate_limit_error","message":"slow"}}"#;
 const BAD: &str = r#"{"type":"error","error":{"type":"invalid_request_error","message":"no"}}"#;
 const OK: &str = r#"{"type":"message","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":1,"output_tokens":1}}"#;
+const STOP: &[u8] = b"event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n";
 
 /// A loopback server answering the Nth request with `replies[N]`, flushing
 /// and pausing after each write so the client reads them apart. Returns the
@@ -79,12 +79,12 @@ pub(crate) fn whole(status: &str, headers: &str, body: &str) -> Reply {
     vec![[head.as_bytes(), body.as_bytes()].concat()]
 }
 
-/// A 200 event stream, one HTTP chunk per part: the client gets each chunk
-/// as its own read, so a part boundary inside a character is a split read.
+/// A 200 event stream ending as a whole one does ([`STOP`]), one HTTP chunk
+/// per part: each is its own read, so a part boundary inside a character is a split read.
 fn events(parts: &[&[u8]]) -> Reply {
     let head = "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ntransfer-encoding: chunked\r\nconnection: close\r\n\r\n";
     let mut w = vec![head.as_bytes().to_vec()];
-    for p in parts {
+    for p in parts.iter().chain(&[STOP]) {
         w.push([format!("{:x}\r\n", p.len()).as_bytes(), p, b"\r\n"].concat());
     }
     w.push(b"0\r\n\r\n".to_vec());

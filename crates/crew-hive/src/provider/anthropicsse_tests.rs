@@ -37,7 +37,7 @@ fn a_stream_folds_into_text_thought_and_usage_forwarding_each_fragment() {
     for piece in bytes.chunks(7) {
         fold.feed(std::str::from_utf8(piece).unwrap(), &f);
     }
-    let c = fold.finish(&f).unwrap();
+    let c = fold.finish("https://api.anthropic.com", &f).unwrap();
     assert_eq!(c.text, "Hello, world");
     assert_eq!(c.thought, "weigh it");
     assert_eq!((c.input_tokens, c.output_tokens), (42, 7));
@@ -60,7 +60,7 @@ fn an_error_event_fails_the_completion() {
         "event: error\ndata: {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"}}\n\n",
         &f,
     );
-    let e = fold.finish(&f).unwrap_err();
+    let e = fold.finish("https://api.anthropic.com", &f).unwrap_err();
     assert!(e.to_string().contains("Overloaded"), "{e}");
 }
 
@@ -75,7 +75,7 @@ fn a_whole_json_reply_is_read_as_one() {
          \"usage\":{\"input_tokens\":3,\"output_tokens\":1}}",
         &f,
     );
-    let c = fold.finish(&f).unwrap();
+    let c = fold.finish("https://api.anthropic.com", &f).unwrap();
     assert_eq!(c.text, "whole");
     assert_eq!(
         got.lock().unwrap().clone(),

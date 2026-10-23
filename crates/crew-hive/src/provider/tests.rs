@@ -234,7 +234,7 @@ fn parse_response_without_cost_is_zero() {
 
 #[test]
 fn sse_parser_extracts_deltas_usage_and_done() {
-    use super::openai_http::{parse_sse_frame, SseItem};
+    use super::sseframe::{parse_sse_frame, SseItem};
     let none: Vec<SseItem> = Vec::new();
     assert_eq!(parse_sse_frame(""), none);
     assert_eq!(parse_sse_frame(": keep-alive"), none);

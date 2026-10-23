@@ -28,6 +28,10 @@ pub(crate) struct Fold {
     seen: bool,
     /// The bytes, while nothing has parsed as an event.
     raw: String,
+    /// The stream said it was over: `message_stop`, or a `message_delta`
+    /// with its `stop_reason`. A body that closes cleanly without either was
+    /// cut ([`Self::finish`]).
+    ended: bool,
 }
 
 impl Fold {
@@ -84,8 +88,10 @@ impl Fold {
                 }
                 if let Some(why) = v["delta"]["stop_reason"].as_str() {
                     self.out.truncated = super::stopreason::anthropic(Some(why));
+                    self.ended = true;
                 }
             }
+            "message_stop" => self.ended = true,
             "error" => self.failed = Some(v.to_string()),
             _ => {}
         }
@@ -93,7 +99,14 @@ impl Fold {
 
     /// The reply, or the stream's own error — or, when the server sent a
     /// whole JSON reply instead of events, that reply, forwarded as one chunk.
-    pub(crate) fn finish(self, on_chunk: &ChunkFn) -> Result<Completion, ProviderError> {
+    /// Words cut off by a clean close from `endpoint` fail as a broken stream
+    /// does: as a reply they stood as the whole answer, ending mid-word, and
+    /// only a failed stream is picked up where it stopped.
+    pub(crate) fn finish(
+        self,
+        endpoint: &str,
+        on_chunk: &ChunkFn,
+    ) -> Result<Completion, ProviderError> {
         if !self.seen {
             let c = super::AnthropicProvider::parse_response(&self.raw)?;
             if !c.text.is_empty() {
@@ -103,6 +116,12 @@ impl Fold {
         }
         match self.failed {
             Some(e) => Err(ProviderError::Api(e)),
+            None if !self.ended && !self.out.text.trim().is_empty() => {
+                Err(ProviderError::Http(format!(
+                    "{} closed the stream before the reply ended (no message_stop, no stop_reason)",
+                    super::wire::host_of(endpoint)
+                )))
+            }
             None => Ok(self.out),
         }
     }

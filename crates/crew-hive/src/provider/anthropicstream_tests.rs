@@ -7,7 +7,8 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 const EVENTS: &str = "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":9}}}\n\n\
 event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"two \"}}\n\n\
 event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"parts\"}}\n\n\
-event: message_delta\ndata: {\"type\":\"message_delta\",\"usage\":{\"output_tokens\":2}}\n\n";
+event: message_delta\ndata: {\"type\":\"message_delta\",\"usage\":{\"output_tokens\":2}}\n\n\
+event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n";
 
 #[tokio::test]
 async fn a_text_reply_streams_fragment_by_fragment() {
