@@ -210,3 +210,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   read "Gmail can't be reached from here" over an unchanged card.
 - **`told.rs`** keeps the `not …:` head and Google Calendar's name; `fetch` names the service
   by the address asked.
+
+**Round U7 (v0.28.43): the faint theme chips no longer run into a black bar.**
+
+- **The second UI survey** (finding 1) caught U3's side effect: the page cells it gave six
+  faint chips sat one above another, and the renderer merged them into one dark bar.
+- **Each is its own capsule** (`cmdrow::spans`, the mark the fuzzy-match highlight uses).
