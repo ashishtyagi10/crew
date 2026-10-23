@@ -91,3 +91,15 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The store tells the two apart** (`read_at`, `take_unreadable`): a broken file is kept as
   `todos.toml.bad` and the pass forgets the pairs once, so the open reminders come back; the
   guard keeps only its Reminders half. Writes go through `todos.toml.tmp` and a rename.
+
+**Round A2 (v0.28.30): a turn of calls ending in a `sh` block of the next command still runs.**
+
+- **The survey** (open item 2 of loop 15): a ```` ```sh ```` fence under the calls counted as
+  prose, and with one line saying what comes next the reply went past the two lines a call
+  may be followed by; both relay turns of a5w-run2 ended on four edits, unrun.
+- **`around::opens_shell`**: a fence opening a shell block is wrapping; the command inside
+  still counts, so several commands or another language still leave the calls as text.
+- **Live, unit tests only in effect**: four runs of the a5w compile-error task (two each side)
+  never met the shape; they ended on the 8-round budget, or on edits described with no calls.
+  Seen on the way, left open: after a budget stop the "not run" note says the turn ended
+  before any call ran, which names the wrong cause (`toolround.rs`).

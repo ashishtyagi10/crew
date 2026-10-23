@@ -57,7 +57,7 @@ pub(super) fn ends_the_reply(after: &[&str]) -> bool {
     let mut prose = 0;
     for line in after {
         let t = line.trim();
-        if t.is_empty() || is_fence(t) || is_routing(t) {
+        if t.is_empty() || is_fence(t) || opens_shell(t) || is_routing(t) {
             continue;
         }
         let lower = t.to_lowercase();
@@ -100,6 +100,24 @@ fn is_fence(t: &str) -> bool {
     t.len() >= 3 && t.chars().all(|c| c == '`' || c == '~')
 }
 
+/// A fence opening a shell block under the calls. Models end a turn of
+/// calls with the command they mean to run once the calls are done (`After
+/// these edits I will run the tests:` and a ```` ```sh ```` block of `cargo
+/// test`), and read as two more lines of prose the fence pushed the reply
+/// past [`TRAILING_PROSE`]: on the 2026-10-22 probe both of a relay's turns
+/// ended on four edits, unrun. The fence is wrapping; the command inside it
+/// still counts as an aside, so a block of several commands, or one in any
+/// other language, still makes the call an example. The command itself is
+/// not run: the agent sees its calls' results and runs it next round.
+fn opens_shell(t: &str) -> bool {
+    let lang = t.trim_start_matches(['`', '~']);
+    t.len() - lang.len() >= 3
+        && matches!(
+            lang.trim().to_ascii_lowercase().as_str(),
+            "sh" | "bash" | "shell" | "zsh" | "console"
+        )
+}
+
 /// `@done` / `@next <agent>`, read as tolerantly as the relay's own routing
 /// parser reads them. A relay agent ends every reply with one, and a call
 /// above it is still the reply's business before routing is.
@@ -113,3 +131,7 @@ fn is_routing(t: &str) -> bool {
 #[cfg(test)]
 #[path = "barecall_tests.rs"]
 mod barecall_tests;
+
+#[cfg(test)]
+#[path = "shellfence_tests.rs"]
+mod shellfence_tests;
