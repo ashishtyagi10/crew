@@ -2690,8 +2690,12 @@ and a typo gets a **did-you-mean** suggestion):
   condition to check, such as tests passing, and a swarm, a plan or one
   agent's reply is then judged against it when it ends: one call reads the
   request, what the turn's tools did and the answer, says `verified — …` or
-  `not yet — …`, and on `not yet` the work goes back once for the gap the
-  judge named), **context** (one line says what the run
+  `not yet — …`, and on `not yet` the work goes back for the gap the judge
+  named — once for a swarm or a plan; for one agent's reply the revision is
+  judged too, up to three checks, and checking stops early with one
+  `stopped checking — …` line when the judge names the same gap twice
+  (`no progress: …`) or a revision ran no tool and answered as before,
+  since nothing changed for the judge to see), **context** (one line says what the run
   starts with — `context: 2 earlier turns · recalled 2 turns from 3w ago ·
   a note · skill code-review · 41 tools · tree dirty (3 files)` — and nothing
   at all when a fresh session on a clean tree has nothing to bring; the
@@ -2701,7 +2705,7 @@ and a typo gets a **did-you-mean** suggestion):
   the plan you approved), **workers** (each with a persona, the tools and
   skills the model chose for its task, and the last six turns in front of
   it), **answer** (one closing reply from agent smith when several workers
-  produced one), and **verify** (a judge and one revision, when the routing
+  produced one), and **verify** (a judge and a revision, when the routing
   asked for a check). The entries below say how each shape is asked for.
 - **fan-out and loops, in plain language** — the former fan and loop commands
   are retired: the intent router classifies each plain message and picks its
