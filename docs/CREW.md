@@ -2014,8 +2014,10 @@ longer aim at.
   would not load) the open reminders come back as todos. Turning it on with
   reminders already in the list pairs them by title rather than doubling
   them, an open one only with an open one: last month's done "pay rent" is
-  history, and this month's new one is news. `reminders.toml`, beside
-  `todos.toml`, remembers the pairs.
+  history, and this month's new one is news. Delete the `crew` list in
+  Reminders and the sync stops, says so, and leaves it deleted;
+  `/todo reminders` makes it again. `reminders.toml`, beside `todos.toml`,
+  remembers the pairs.
 - **`/smith`** — opens **agent smith**, a **multi-agent pane** where the
   installed CLI coding agents (claude, codex, opencode) message each other to
   work a task. See [Multi-agent relay](#multi-agent-relay-smith-alias-crew) below.

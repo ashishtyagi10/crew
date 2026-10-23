@@ -19,6 +19,7 @@ use objc2_foundation::{
 use super::ekask::{ask, REFUSED};
 use super::ekfields::{components, read, ring};
 use super::fields::Fields;
+use super::pairs::{self, Pick};
 
 /// The list's name in Reminders.
 const LIST: &str = "crew";
@@ -49,20 +50,20 @@ impl Kit {
         })
     }
 
-    /// The `crew` list: the one remembered by `id`, else the one so named,
-    /// else a new one in the account new reminders go to. True when it is
-    /// not the one remembered.
+    /// The `crew` list ([`pairs::pick`]): the one remembered by `id`, else
+    /// the one so named, else a new one in the account new reminders go to.
+    /// True when it is not the one remembered.
     pub(super) fn list(&self, id: &str) -> Result<(Retained<EKCalendar>, bool), String> {
         unsafe {
             let known = (!id.is_empty())
                 .then(|| self.store.calendarWithIdentifier(&NSString::from_str(id)))
                 .flatten();
-            if let Some(c) = known {
-                return Ok((c, false));
-            }
             let all = self.store.calendarsForEntityType(EKEntityType::Reminder);
-            if let Some(c) = all.iter().find(|c| c.title().to_string() == LIST) {
-                return Ok((c, true));
+            let named = all.iter().find(|c| c.title().to_string() == LIST);
+            match pairs::pick(id, known.is_some(), named.is_some()) {
+                Pick::Deleted => return Err(pairs::DELETED.into()),
+                Pick::Make => {}
+                p => return Ok((known.or(named).ok_or(pairs::DELETED)?, p == Pick::Named)),
             }
             let c =
                 EKCalendar::calendarForEntityType_eventStore(EKEntityType::Reminder, &self.store);
