@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.34
+
+**`/inbox`: answering an invite never marks the next one answered.**
+- Google takes a second or two to take an answer (`y` `y`), and `e` or `d` moves on at once.
+  When the answer landed, it marked whatever thread was open, so the next mail's invite card
+  said "you accepted" for an invite never answered. It now marks only the invite it answered;
+  the note still says what was sent.
+
 ## 0.28.33
 
 **`/usage` with nothing used shows its TOKENS ring, not a lone `0`.**
