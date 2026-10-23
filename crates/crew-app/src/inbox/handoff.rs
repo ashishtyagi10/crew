@@ -53,7 +53,6 @@ pub(crate) struct Waiting {
 }
 
 impl InboxPane {
-    /// `a`, `r`, `f` or `t`: true when it was one of them.
     /// What agent smith is still busy with, when the inbox waits on it: the
     /// job it was asked for, not the key's. Tab on the card while a draft was
     /// coming said "still filling the card", and the other way about.
@@ -68,6 +67,7 @@ impl InboxPane {
         Some(format!("agent smith is still {doing}\u{2026}"))
     }
 
+    /// `a`, `r`, `f` or `t`: true when it was one of them.
     pub(crate) fn handoff(&mut self, ch: &str) -> bool {
         let then = match ch {
             "a" => Then::Ask,

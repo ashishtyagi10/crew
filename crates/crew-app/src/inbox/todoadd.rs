@@ -3,6 +3,7 @@
 use super::super::InboxPane;
 use super::Line;
 use crate::todopane::duedate;
+use chrono::Datelike;
 
 impl InboxPane {
     /// Enter: the row as the card says it, into `/todo`.
@@ -54,8 +55,19 @@ impl InboxPane {
         .into_iter()
         .flatten()
         .collect();
+        // A deadline the mail says has passed is filed passed: said, with
+        // its year when not this one, or "(due Thu Oct 15)" read as ahead.
         let when = due.map_or(String::new(), |h| {
-            format!(" (due {})", h.due.format("%a %b %-d"))
+            let this = h.due.year() == duedate::now_local().year();
+            let day = h
+                .due
+                .format(if this { "%a %b %-d" } else { "%a %b %-d %Y" });
+            let late = if due_ms.is_some_and(|d| d <= now) {
+                ", passed"
+            } else {
+                ""
+            };
+            format!(" (due {day}{late})")
         });
         self.note = format!("added to /todo: {title}{tags}{when}");
     }
@@ -75,3 +87,7 @@ fn tag(text: &str) -> Option<String> {
     let t = t.split_whitespace().collect::<Vec<_>>().join("-");
     (!t.is_empty()).then_some(t)
 }
+
+#[cfg(test)]
+#[path = "todoaddnote_tests.rs"]
+mod tests;
