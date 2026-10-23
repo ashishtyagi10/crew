@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.25
+
+**`/todo`: a change from your phone no longer moves the highlight to another todo.**
+- With the Reminders sync on, a reminder ticked, added or re-dated on the phone re-sorts the
+  list about a second later, and the highlight stayed on the same row number, now another
+  todo's. `d` (no undo) then deleted the todo that had slid into place, and the next pass
+  deleted it from the phone as well. The highlight now goes with its todo wherever it sorts;
+  only when that todo is gone does it stay on the row. A key you press still moves by row, so
+  a tick steps on to the next todo as before.
+
 ## 0.28.24
 
 **An agent's edit can name which of two identical lines it means.**

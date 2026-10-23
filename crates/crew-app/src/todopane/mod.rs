@@ -144,7 +144,7 @@ impl TodoPane {
         if store::revision() == self.seen_rev {
             return false;
         }
-        self.refresh();
+        self.follow();
         true
     }
 

@@ -10,6 +10,21 @@ impl TodoPane {
         self.order().get(display_idx).map(|&i| self.items[i].id)
     }
 
+    /// `refresh` for a write made elsewhere (the Reminders sync, another
+    /// pane, `t` in the inbox): the highlight stays on the todo it was on,
+    /// wherever that todo now sorts. A key here still moves by row (a tick
+    /// steps on to the next one), but rows that shift under the cursor
+    /// unasked must not hand `d` another todo to delete. A todo that is gone
+    /// leaves the highlight on the row it was, as before.
+    pub(crate) fn follow(&mut self) {
+        let id = self.sel.and_then(|s| self.id_at(s));
+        self.refresh();
+        let order = self.order();
+        if let Some(at) = id.and_then(|id| order.iter().position(|&i| self.items[i].id == id)) {
+            self.sel = Some(at);
+        }
+    }
+
     pub(crate) fn toggle_done_at(&mut self, display_idx: usize) {
         let Some(id) = self.id_at(display_idx) else {
             return;
@@ -96,3 +111,7 @@ impl TodoPane {
         self.tagmenu = None;
     }
 }
+
+#[cfg(test)]
+#[path = "follow_tests.rs"]
+mod follow_tests;
