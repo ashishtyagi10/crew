@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.47
+
+**A tool call written as `<parameter name="…">` tags runs.**
+- Asked for `@tool` lines, qwen3.8-max sometimes writes a call in the shape it was trained on.
+  crew already read five of them; a sixth, `<parameter name="cmd">sys:edit</parameter>` then
+  `<parameter name="args">{…}</parameter>` inside `<tool_call>`, was read as text and the
+  turn ended with the edit unrun (probe, 2026-10-20). It is now the call it stands for, as is
+  the same tag carrying one parameter per argument under the tool's name, the way Anthropic's
+  XML calls are written. A block naming no tool, or with arguments that are not JSON, stays
+  text. Unit tests only: the shape turns up about once in forty probe turns.
+
 ## 0.28.46
 
 **`/usage`: the empty TOKENS ring is quiet again on the tubes and the glass.**

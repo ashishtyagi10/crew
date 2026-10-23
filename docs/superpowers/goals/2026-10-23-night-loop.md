@@ -240,3 +240,10 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   over a white desktop it was still under the empty hours' dots.
 - **`heatmap::track_ink`**: solid on paper, the idle dot's wash elsewhere. crt-green 2.5:1,
   glass 2.8–3.0 over dark and 1.7 over white, paper 3.0.
+
+**Round A7 (v0.28.47): a tool call written as `<parameter name="…">` tags runs.**
+
+- **The survey** (item 5, loop 15's open item 3): qwen3.8-max's sixth call shape, the name and
+  the arguments each in a `<parameter name="…">` tag inside `<tool_call>`, was text.
+- **`paramcall.rs`** reads it, and the per-argument form Anthropic's XML calls use. Unit tests
+  only (one capture; about one turn in forty).
