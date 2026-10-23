@@ -136,6 +136,26 @@ fn the_card_says_where_the_invite_stands() {
     assert_eq!(p.note, line);
 }
 
+/// `y y` then `e` straight away: Google's answer lands on the next thread
+/// open, whose invite is another. Its card said "you accepted" for an
+/// invite never answered; the answer belongs to its own invite only.
+#[test]
+fn an_answer_lands_only_on_the_invite_it_answered() {
+    let (mut p, _) = pane(cal(
+        "METHOD:REQUEST\r\n",
+        &GOOGLE.replace(UID, "other@google.com"),
+    ));
+    let line = "you accepted \u{b7} Ann Lee was told".to_string();
+    p.take_cal(Got::Answered(UID.into(), "accepted".into(), line.clone()));
+    assert!(p.reading.as_ref().unwrap().answered.is_none());
+    assert!(
+        !card(&p).iter().any(|l| l.contains("you accepted")),
+        "{:?}",
+        card(&p)
+    );
+    assert_eq!(p.note, line, "the note still says what was sent");
+}
+
 /// An "Accepted: …" mail carries an attendee's answer (`METHOD:REPLY`), not
 /// an invite: its card offered `c` and `y`, and `y` then `y` sent a REPLY to
 /// yourself. Now the card says who answered, with no keys, and the keys say

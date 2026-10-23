@@ -100,11 +100,18 @@ impl InboxPane {
             }
             Got::Answered(uid, said, line) => {
                 self.note = line;
+                // The answer takes a second or two, and `e` moves on at once:
+                // the thread open now may carry another invite, whose card
+                // then said "you accepted" for one never answered.
+                let here =
+                    (self.invite().and_then(|i| super::parse(&i))).is_some_and(|i| i.uid == uid);
                 self.with_reading(|r| {
                     if let Some((_, s)) = r.on_cal.as_mut().filter(|(u, _)| *u == uid) {
                         *s = Some(said.clone());
                     }
-                    r.answered = Some(said);
+                    if here {
+                        r.answered = Some(said);
+                    }
                 });
             }
             _ => {}

@@ -130,3 +130,10 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The survey** (finding 7): the empty ring, drawn so an idle crew and a broken widget differ,
   was half strength in the frame colour: 1.04:1 on glass over white, 1.6:1 on paper.
 - **Drawn whole** (`plot/pie.rs`): 1.39:1, 2.98:1 and 3.02:1, the frames' own weight.
+
+**Round I5 (v0.28.34): answering an invite never marks the next one answered.**
+
+- **The survey** (finding 6): the answer from Google set "you accepted" on whatever thread was
+  open when it landed, a second or two after `y y`, and `e` moves on at once.
+- **Only the invite with the answer's UID is marked** (`icsanswer.rs`). The test fails
+  without it.
