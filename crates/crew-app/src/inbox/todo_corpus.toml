@@ -290,3 +290,18 @@ from = "Ann Lee <ann@x.org>"
 to = "Sam Doe <sam@x.org>"
 date = "Tue, 20 Oct 2026 11:00:00 -0400"
 text = "A reminder to fill in your timesheets."
+
+[[case]]
+name = "you answered last: the title names who asked, not you"
+subject = "Deck"
+want_title = "Reply to Ann Lee: Deck"
+[[case.mail]]
+from = "Ann Lee <ann@x.org>"
+to = "Sam Doe <sam@x.org>"
+date = "Tue, 20 Oct 2026 09:30:00 -0400"
+text = "Thoughts on the deck for Thursday?"
+[[case.mail]]
+from = "Sam Doe <sam@x.org>"
+to = "Ann Lee <ann@x.org>"
+date = "Tue, 20 Oct 2026 10:15:00 -0400"
+text = "Will look today."

@@ -300,3 +300,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The second UI survey** (finding 6): a long path was cut at its end, so two files read
   `@crates/crew-app/src/viewpane/render_…`. A path row now keeps its tail, cut on a separator
   (`cmdlabel.rs`, out of `cmdrow.rs`, which shrank 198 → 189); match marks follow their letters.
+
+**Round I12 (v0.28.56): `t` right after you answer names who asked, not you.**
+
+- **The second inbox/todo audit** (finding 2): the card's fallback title named the last mail's
+  sender, you, after your own reply. `smith::todo_title` takes the newest mail someone else
+  sent; a corpus case holds it.
