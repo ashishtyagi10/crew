@@ -3563,7 +3563,11 @@ reasoning — by default DashScope is sent `enable_thinking` and OpenRouter
 NIM's `reasoning_content`, `<think>` tags in the text, an Anthropic `thinking`
 block) streams into the smith pane as a live block above the reply that folds
 to `▸ thought for 4.2s` when the reply lands; the switch only stops the
-asking — reasoning a model shows unprompted is still shown;
+asking — reasoning a model shows unprompted is still shown. A call that does
+not stream (the reply judge, the router, the `?` command suggestion, a commit message, the
+planner) is told `enable_thinking: false` on DashScope either way, since
+qwen3.8-max would otherwise think on it unseen and unbounded (a judge call:
+7–9 s thinking, 1.5 s told not to);
 `CREW_THINKING_BUDGET` (default 512) bounds the reasoning those asks allow, in
 tokens — DashScope's `thinking_budget`, OpenRouter's `reasoning.max_tokens` —
 since an unbounded qwen3-max thought for over a minute before answering;

@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.9
+
+**One-shot AI calls answer in seconds: no unseen thinking.**
+- qwen3.8-max thinks by default on a call that does not stream, unbounded and unseen, so the
+  reply judge often hit its 30-second timeout ("could not verify") and swarm planning waited
+  about 25 seconds on a plan. Every non-streamed DashScope call (the judges, the router,
+  the `?` command suggestion, commit messages, the planner) now says `enable_thinking: false`; streamed turns
+  still think, and you still see it.
+- Measured live on the rename-and-test task: planning 24 s → 6 s, the verdict after the last
+  worker 30 s (timed out) → 1.5 s, three of three verified. A model that only thinks refuses
+  the flag and is asked once more without it.
+- From Claude Code and Codex: effort set per call, not one budget for everything.
+
 ## 0.28.8
 
 **Attaching a file on Windows no longer flashes a console window.** The

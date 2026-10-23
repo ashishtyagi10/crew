@@ -5,7 +5,7 @@ const OR: &str = "https://openrouter.ai/api/v1/chat/completions";
 const NIM: &str = "https://integrate.api.nvidia.com/v1/chat/completions";
 
 #[test]
-fn dashscope_is_asked_only_on_the_streaming_request() {
+fn dashscope_thinks_only_on_the_streaming_request() {
     assert_eq!(
         opt_in_if(true, DASH, true, 512),
         vec![
@@ -14,10 +14,20 @@ fn dashscope_is_asked_only_on_the_streaming_request() {
         ],
         "asked, and bounded"
     );
-    assert!(
-        opt_in_if(true, DASH, false, 512).is_empty(),
-        "DashScope rejects enable_thinking on a non-streamed request"
+    // A one-shot call (judge, router, commit message) is told not to think:
+    // qwen3.8-max otherwise thinks on it unbounded, unseen, and late.
+    let off = vec![("enable_thinking", serde_json::json!(false))];
+    assert_eq!(opt_in_if(true, DASH, false, 512), off);
+    assert_eq!(
+        opt_in_if(false, DASH, false, 512),
+        off,
+        "CREW_THINKING=0 too"
     );
+    // …and a model that only thinks, and so refuses `false`, gets the one
+    // retry without it (`openai_http`).
+    let mut body = serde_json::json!({"model": "m", "enable_thinking": false});
+    assert!(strip(&mut body));
+    assert!(body.get("enable_thinking").is_none());
 }
 
 #[test]
@@ -38,6 +48,11 @@ fn crew_thinking_zero_turns_every_opt_in_off() {
     assert!(enabled_from(None));
     assert!(enabled_from(Some("1")));
     assert!(opt_in_if(false, DASH, true, 512).is_empty());
+    assert_eq!(
+        opt_in_if(false, DASH, false, 512).len(),
+        1,
+        "a no, not an opt-in"
+    );
     assert!(opt_in_if(false, OR, true, 512).is_empty());
 }
 
