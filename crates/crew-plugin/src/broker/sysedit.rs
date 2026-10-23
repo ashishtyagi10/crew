@@ -12,7 +12,9 @@
 //!
 //! - Exact, because a matcher that forgives whitespace is a matcher that
 //!   sometimes edits a line you did not mean. The model can always read the
-//!   file first; it cannot always tell which of two near-misses it hit.
+//!   file first; it cannot always tell which of two near-misses it hit. The
+//!   one thing forgiven is `editindent`'s: after an exact miss, lines off by
+//!   the same leading whitespace in one place only, and the report says so.
 //! - Unique, because `old` appearing twice means the edit has no single
 //!   answer. Editing the first is a guess, and a guess that silently succeeds
 //!   is worse than a failure that says what to do instead.
@@ -66,7 +68,16 @@ pub(crate) fn edit_all(path: &str, swaps: &[Swap]) -> Result<String, String> {
     let mut edited = body.clone();
     let mut landed = super::editshow::Landed::default();
     let (mut shift, mut first) = (Shift::default(), Vec::new());
+    let mut moved = false;
     for (i, s) in swaps.iter().enumerate() {
+        let fixed = (!edited.contains(s.old))
+            .then(|| super::editindent::respace(&edited, s.old, s.new))
+            .flatten();
+        moved |= fixed.is_some();
+        let s = &match &fixed {
+            Some((old, new)) => Swap { old, new, ..*s },
+            None => Swap { ..*s },
+        };
         let ats = place(&edited, s, &shift)
             .map_err(|e| format!("edit {path}: {}", numbered(swaps.len(), i, &e)))?;
         landed.swap(&edited, ats[0], s.old, s.new);
@@ -79,7 +90,10 @@ pub(crate) fn edit_all(path: &str, swaps: &[Swap]) -> Result<String, String> {
     std::fs::write(path, &edited).map_err(|e| format!("edit {path}: {e}"))?;
     // The report line, then the edited lines as they now read, so the edit
     // can be checked without spending a round on sys:read_file.
-    let report = super::editreport::report_all(path, &body, swaps, &first);
+    let mut report = super::editreport::report_all(path, &body, swaps, &first);
+    if moved {
+        report += " \u{2014} matched with the file's indentation";
+    }
     match landed.show(&edited) {
         shown if shown.is_empty() => Ok(report),
         shown => Ok(format!("{report}\n{shown}")),

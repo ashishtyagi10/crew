@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.90
+
+**Agents: an edit off only in its indentation lands, matched to the file's.**
+- After "the same text is there with different whitespace" and the file's lines to copy, models
+  often sent the lines back without their indentation, and the edit missed again. One probe
+  spent its last three rounds that way. When `old` has two or more lines that match exactly one
+  place in the file, each line off by the same leading whitespace, the edit now lands there.
+  `new` is shifted by the same amount, and the result says "matched with the file's
+  indentation". Anything looser is still refused: two places, uneven shifts, a single line,
+  text reflowed onto fewer lines, or a `new` that would lose whitespace it doesn't have.
+- The idea comes from Codex's `apply_patch` (exact match first, then trimmed) and Aider (which
+  re-indents a block "GPT often messes up leading whitespace" on). Replayed, all 14
+  indentation-only misses captured in this night's probes now land, 6 of them from a run an
+  hour earlier, and all 16 reflowed ones stay refused. Live, in the third of three runs of the
+  compile-error task, a two-edit batch on  (blocks 12 and 16 spaces short,
+  the same edit an earlier run spent four rounds resending) landed in one call.
+
 ## 0.28.89
 
 **Pickers: a path cut to fit keeps its file name, even with a space in it.**

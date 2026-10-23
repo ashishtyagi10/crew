@@ -501,3 +501,10 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The fourth UI survey** (finding 2): text alone could not tell a path with a space, a folder
   row or a root file from words. The pickers mark their path rows now (`MenuItem::path`).
+
+**Round A17 (v0.28.90): an edit off only in its indentation lands, matched to the file's.**
+
+- **AI survey 2** (#4, from Codex `apply_patch` and Aider): after an exact miss, an `old` of two
+  or more lines matching one place with one uniform leading-whitespace shift lands there, `new`
+  shifted the same; the report says so. Replay: 14 of 14 indentation-only captures land, 16 of
+  16 reflowed stay refused. Live: one two-block batch landed in one call.
