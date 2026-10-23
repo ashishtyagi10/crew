@@ -134,3 +134,33 @@ fn the_fan_out_note_starts_in_the_description_column() {
     assert_eq!(text(&narrow), "@a+b      fans the task\u{2026}");
     assert_eq!(text(&spans(note, lw, 0, 16, DIM)), "@a+b  fans the\u{2026}");
 }
+
+/// A chip on a page cell is its own capsule: on the light page the faint
+/// chips' cells sat one above the other and fused into a black bar.
+#[test]
+fn a_chip_on_its_page_is_drawn_apart() {
+    let mut r = item("nebula", "violet smoked glass");
+    r.swatch = vec![
+        crate::swatch::Chip {
+            bg: Some((19, 15, 26)),
+            ..chip()
+        },
+        chip(),
+    ];
+    let line = spans(&r, 8, 2, 60, DIM);
+    let blink = ratatui::style::Modifier::RAPID_BLINK;
+    let chips: Vec<_> = line
+        .spans
+        .iter()
+        .filter(|s| s.content == "\u{2588}")
+        .collect();
+    assert_eq!(chips.len(), 2);
+    assert!(
+        chips[0].style.add_modifier.contains(blink),
+        "on its page: a capsule"
+    );
+    assert!(
+        !chips[1].style.add_modifier.contains(blink),
+        "bare: no cell to part"
+    );
+}

@@ -123,8 +123,12 @@ pub(crate) fn spans(
             col = desc_col;
             for chip in &item.swatch {
                 let mut style = Style::new().fg(Color::Rgb(chip.fg.0, chip.fg.1, chip.fg.2));
+                // Its own capsule (a mark, as `hit_style`'s): the page cells
+                // of a column of faint chips ran together into one black bar.
                 if let Some((r, g, b)) = chip.bg {
-                    style = style.bg(Color::Rgb(r, g, b));
+                    style = style
+                        .bg(Color::Rgb(r, g, b))
+                        .add_modifier(Modifier::RAPID_BLINK);
                 }
                 out.push(Span::styled(chip.c.to_string(), style));
                 col += 1;

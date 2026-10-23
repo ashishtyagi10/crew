@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.43
+
+**`/theme` on the light page: the faint chips no longer run into a black bar.**
+- 0.28.31 gave a chip that would not read on the light page a cell of its palette's own page.
+  Six of those sat one above the other and fused into one dark bar down the picker, stepping
+  wider at the bottom. Each such cell is now drawn as its own small capsule, the way two
+  search matches in the same column are kept apart.
+
 ## 0.28.42
 
 **`/inbox`: an invite answer that fails says it did not go, and names Google Calendar.**
