@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.82
+
+**`/inbox`: answering an invite that is not on your Google Calendar no longer says it is.**
+- An invite Google Calendar does not have (forwarded to you, sent to an alias, or from an
+  organizer Calendar doesn't take invites from) is answered by mail. The card then said
+  "✓ on your Google Calendar · you accepted", and `c` refused with "already on your Google
+  Calendar", so the meeting never reached your calendar. The card now says "you accepted", and
+  `c` adds the meeting.
+
 ## 0.28.81
 
 **Agents: an edit that misses says where `old` parts from the file, or that `new` is already there.**
