@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.53
+
+**Document windows keep a column of air inside their frame.**
+- A document opened in its own window was drawn from the frame's first inside column, where a
+  pane keeps one more: scrolled into a section, the grey heading band (`crew › Themes › CRT`)
+  ran 4 px from the left stroke and 3 px from the right. The document now keeps a column each
+  side, as a pane does, the band and the text with it; clicks land where they did.
+
 ## 0.28.52
 
 **An edit that misses on whitespace is shown the lines as the file has them.**

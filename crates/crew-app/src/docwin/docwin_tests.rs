@@ -102,3 +102,24 @@ fn cmd_s_saves_and_cmd_letters_do_not_type() {
         "a key going UP types nothing"
     );
 }
+
+/// The document keeps a column of air each side inside its frame, as a grid
+/// pane does: everything it draws, the sticky heading band included, sits
+/// from column 1 to the last but one.
+#[test]
+fn the_document_keeps_a_column_from_its_frame() {
+    let _g = crate::app::theme_test_guard();
+    let mut body = String::from("# crew\n\n## Themes\n\n");
+    for i in 0..20 {
+        body.push_str(&format!("A line of prose about themes, number {i}.\n\n"));
+    }
+    let mut view = crate::docshot_tests::doc(&body);
+    view.scroll = 12;
+    let (cells, _) = super::draw::padded(&view, 40, 12, 2.0);
+    let band = cells.iter().filter(|c| c.row == 0).count();
+    assert!(band > 30, "the sticky band runs across: {band}");
+    assert!(
+        cells.iter().all(|c| (1..39).contains(&c.col)),
+        "a cell in the gutter"
+    );
+}
