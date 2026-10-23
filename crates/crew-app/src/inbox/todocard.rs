@@ -138,9 +138,9 @@ impl InboxPane {
             }
             Key::Named(NamedKey::Enter) => self.add_todo(),
             // Once: a second Tab while smith reads would fill it twice.
-            Key::Named(NamedKey::Tab) => match self.waiting.is_some() || self.to_smith.is_some() {
-                true => self.note = "agent smith is still filling the card\u{2026}".into(),
-                false => self.act(super::handoff::Then::Fill),
+            Key::Named(NamedKey::Tab) => match self.smith_busy() {
+                Some(line) => self.note = line,
+                None => self.act(super::handoff::Then::Fill),
             },
             Key::Named(NamedKey::ArrowUp) => c.step(false),
             Key::Named(NamedKey::ArrowDown) => c.step(true),

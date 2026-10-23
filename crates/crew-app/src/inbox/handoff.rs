@@ -54,6 +54,20 @@ pub(crate) struct Waiting {
 
 impl InboxPane {
     /// `a`, `r`, `f` or `t`: true when it was one of them.
+    /// What agent smith is still busy with, when the inbox waits on it: the
+    /// job it was asked for, not the key's. Tab on the card while a draft was
+    /// coming said "still filling the card", and the other way about.
+    pub(crate) fn smith_busy(&self) -> Option<String> {
+        let wants =
+            (self.waiting.as_ref().map(|w| w.wants)).or(self.to_smith.as_ref().map(|t| t.wants))?;
+        let doing = match wants {
+            Wants::Draft => "writing the draft",
+            Wants::Todo => "filling the card",
+            Wants::Read => "reading the thread",
+        };
+        Some(format!("agent smith is still {doing}\u{2026}"))
+    }
+
     pub(crate) fn handoff(&mut self, ch: &str) -> bool {
         let then = match ch {
             "a" => Then::Ask,

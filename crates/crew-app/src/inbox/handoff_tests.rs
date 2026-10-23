@@ -132,3 +132,26 @@ fn a_key_waiting_for_a_thread_never_acts_on_another() {
     );
     assert!(p.then.is_none(), "and the stale key is let go");
 }
+
+/// What smith is busy with is the job it was given, whichever key asks.
+#[test]
+fn smith_busy_names_the_job_it_is_on() {
+    let (mut p, _, _) = pane();
+    assert_eq!(p.smith_busy(), None);
+    for (wants, says) in [
+        (super::Wants::Draft, "writing the draft"),
+        (super::Wants::Todo, "filling the card"),
+        (super::Wants::Read, "reading the thread"),
+    ] {
+        p.waiting = Some(super::Waiting {
+            since: 0,
+            at_ms: 0,
+            wants,
+            thread: "t1".into(),
+        });
+        assert_eq!(
+            p.smith_busy(),
+            Some(format!("agent smith is still {says}\u{2026}"))
+        );
+    }
+}
