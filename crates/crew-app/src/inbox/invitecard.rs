@@ -69,9 +69,10 @@ pub(crate) fn lines(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key) {
 fn foot(lay: &mut Lay, inv: &super::Invite, r: &Reading, k: &Key) {
     let google = r.on_cal.as_ref().filter(|(u, _)| *u == inv.uid);
     let stands = match (google, &r.answered) {
-        (Some((_, Some(s))), _) => Some(format!(
+        // Added after an answer by mail: Google's copy has none of yours.
+        (Some((_, Some(s))), a) => Some(format!(
             "\u{2713} on your Google Calendar \u{b7} {}",
-            said(s)
+            said(a.as_ref().filter(|_| s == "needsAction").unwrap_or(s))
         )),
         (_, Some(s)) => Some(said(s).to_string()),
         _ => None,

@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.97
+
+**`/inbox`: an invite you answered by mail, then added with `c`, still says how you answered.**
+- After answering an invite Google Calendar didn't have (the answer goes by mail) and adding it
+  with `c`, the card said "✓ on your Google Calendar · you have not answered". Google's copy
+  carries the invite's "needs action", not what you mailed. The card now keeps your answer:
+  "✓ on your Google Calendar · you accepted".
+
 ## 0.28.96
 
 **`/inbox`: "due Friday by 5pm" is Friday at five, and "tomorrow by 10am" is tomorrow.**
