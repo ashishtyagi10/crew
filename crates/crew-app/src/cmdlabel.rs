@@ -1,5 +1,5 @@
-//! A picker row's label, fitted to its card. A path (a row with no
-//! description, a `/` and no space: the `@` attach and `/view` pickers) keeps its
+//! A picker row's label, fitted to its card. A path (a row its picker marks
+//! [`MenuItem::path`]: the `@` attach and `/view` pickers) keeps its
 //! tail, where the file is named, cut on a separator as the cwd legend is
 //! (`cwdshow::fit_legend`): clipped at the end, two files in a narrow tile
 //! both read `@crates/crew-app/src/viewpane/render_…`. Anything else keeps
@@ -28,10 +28,9 @@ pub(crate) fn spans(item: &MenuItem, avail: usize, fg: Color) -> Vec<Span<'stati
 fn shown(item: &MenuItem, avail: usize) -> Vec<(char, Option<usize>)> {
     let label = item.label.as_str();
     let n = label.chars().count();
-    // No space: a chat-find or history row ("user: @scout what changed in
-    // plot/…") has a `/` too, and cut from its front it lost the words.
-    let path = label.contains('/') && !label.contains(char::is_whitespace);
-    if !(item.desc.is_empty() && path && n > avail) {
+    // Said by the picker, not guessed from the text: a find or history row
+    // has a `/` too, and a path can hold a space ("Application Support").
+    if !(item.path && n > avail) {
         let fit = crate::chatwidth::clip_w(label, avail);
         return fit.chars().enumerate().map(|(i, c)| (c, Some(i))).collect();
     }

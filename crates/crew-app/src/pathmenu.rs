@@ -70,6 +70,7 @@ pub(crate) fn rows(text: &str, base: &Path) -> Option<Vec<MenuItem>> {
                 // palette marks a command's.
                 let at = dir_part.chars().count();
                 MenuItem {
+                    path: true,
                     hit: (at..at + leaf.chars().count()).collect(),
                     fill: format!("{cmd} {path}"),
                     label: path,

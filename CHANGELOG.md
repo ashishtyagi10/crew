@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.89
+
+**Pickers: a path cut to fit keeps its file name, even with a space in it.**
+- In a narrow tile, `/view Library/Application Support/Code/User/` listed six identical rows,
+  `Library/Application Support/Code/User…`. Folder rows in a deep listing lost their own name,
+  and a long file at the top of a listing lost its extension. Crew guessed whether a row was a
+  path from its text, and a space, a "folder" description or a missing `/` each read as words.
+  The `/view` and `@` pickers now mark their path rows, and a marked row keeps its end.
+
 ## 0.28.88
 
 **Input bar: in a value picker, the grey ghost text is the row you highlighted.**
