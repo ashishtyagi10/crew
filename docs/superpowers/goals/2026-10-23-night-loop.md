@@ -157,3 +157,14 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   and `.git` sat a tenth of a cell from their borders and `target` most of a cell.
 - **Half a cell at least, each side** (`diskdraw.rs`); a test sweeping 40–90 columns failed
   at 42 without it. Shot compared.
+
+**Round A4 (v0.28.37): when the tool budget stops a turn, the answer says so.**
+
+- **Found tracing A2's probes**: a turn's last reply had five fenced edits, a line, then a test
+  run. Only the trailing call is the reply's call, so the edits stayed in the answer when the
+  budget refused everything, under a note that the turn "ended before any call in it ran";
+  the reply judge read that as a turn that did nothing.
+- **`budget_answer` names the budget** for calls left in its answer, and `never_ran` adds no
+  second note. Replayed through `Broker::run`; unit tests only.
+- **Open, and bigger**: calls followed by prose and then more calls run only the last group,
+  budget or not (`parse.rs`, `call_ending` needs the calls to end the text above them).

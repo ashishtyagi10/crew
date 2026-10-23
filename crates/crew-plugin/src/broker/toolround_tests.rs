@@ -142,3 +142,29 @@ fn a_reply_that_was_only_the_call_adds_no_message() {
 fn text_above_the_call_is_the_answer_when_it_is_all_there_is() {
     assert_eq!(budget_answer("  kept  \n", 4), "kept");
 }
+
+/// The 2026-10-23 probe's last reply: edits, a line of prose, then a test
+/// run. Only the run is the reply's trailing call, so the edits stayed in the
+/// text above it; the budget refused all of them, and the note said the turn
+/// "ended before any call in it ran" — which sent the reply judge after a
+/// turn that had run every round it had.
+#[test]
+fn edits_left_by_a_spent_budget_say_the_budget_stopped_them() {
+    let reply = "Let's make these changes.\n\n```rust\n\
+                 @tool sys:edit {\"path\": \"a.rs\", \"old\": \"x\", \"new\": \"y\"}\n\
+                 @tool sys:edit {\"path\": \"b.rs\", \"old\": \"x\", \"new\": \"y\"}\n```\n\n\
+                 After making these changes, we should run the tests again.\n\n\
+                 @tool sys:run {\"cmd\": \"cargo test\"}";
+    let (_, answer) = turn(&[reply]);
+    let answer = super::finished(None, answer);
+    let rounds = crew_hive::tools::MAX_TOOL_ROUNDS;
+    let note = format!(
+        "not run \u{2014} the tool budget ({rounds} rounds) was spent before `sys:edit` could run"
+    );
+    assert!(answer.ends_with(&note), "{answer}");
+    assert_eq!(answer.matches("not run").count(), 1, "one note: {answer}");
+    assert!(
+        !answer.contains("cargo test"),
+        "the trailing call is cut: {answer}"
+    );
+}
