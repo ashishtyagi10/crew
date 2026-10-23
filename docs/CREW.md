@@ -1917,8 +1917,8 @@ longer aim at.
   list (stored in
   `$XDG_CONFIG/crew/todos.toml`, shared by every window and pane). Type into
   its composer and press `Enter` to add an item; a **natural-language due
-  date** anywhere in the text (`tomorrow`, `fri 5pm`, `fri at 5pm`, `next fri`, `aug 15`,
-  `in 2 weeks`, `17:30`; `next friday` said on a Tuesday is next week's, `this
+  date** anywhere in the text (`tomorrow`, `fri 5pm`, `fri at 5pm`, `fri by 5pm`, `next fri`, `aug 15`,
+  `in 2 weeks`, `in 2 days at 5pm`, `17:30`; `next friday` said on a Tuesday is next week's, `this
   friday` the coming one) is tinted live as you type — the composer's legend previews the
   parse exactly as the row will print it (`fri sep 18 17:00`) — and is
   stripped from the title on save. Two tag tokens name the other two things

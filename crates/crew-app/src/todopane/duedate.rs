@@ -20,8 +20,8 @@ use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime, NaiveTime};
 /// clock (`due_has_time == false`).
 pub(crate) const DEFAULT_HOUR: u32 = 9;
 
-/// Widest token window the grammar can need: `in 2 weeks 5pm`.
-const MAX_WINDOW: usize = 4;
+/// Widest token window the grammar can need: `in 2 weeks at 5pm`.
+const MAX_WINDOW: usize = 5;
 
 /// A recognised date fragment: its char range in the input and what it
 /// resolves to.

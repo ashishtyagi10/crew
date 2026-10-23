@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.80
+
+**`/todo`: "send deck fri by 5pm" is due Friday at five, and the title is "send deck".**
+- 0.28.54 let only `at` sit between a date and its time. "fri by 5pm" and "fri before 5pm"
+  read only the time, due today at five, with "fri" left in the title; and with the sync on,
+  the reminder rang today. Any one lead-in word now goes with the date.
+- "call bob in 2 days at 5pm" and "renew passport in 3 weeks at 9am" were one word longer than
+  the date reader looked, so they were also due today. They are now due on the day they name.
+
 ## 0.28.79
 
 **`/inbox`: "due by May 15" in an October mail is next May, not five months overdue.**
