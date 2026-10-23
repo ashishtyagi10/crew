@@ -2026,9 +2026,14 @@ longer aim at.
   never broken mid-word and a chip is never cut in half (one that will not
   fit is dropped whole — a clipped `@cre` claims a project that does not
   exist).
-  **`/todo reminders`** (macOS) keeps the list and a list named `crew` in
-  Apple Reminders in step both ways, so a todo typed here is on your phone
-  and one ticked there is done here; `/todo reminders off` stops it, and the
+  **`/todo reminders`** (macOS) keeps the list and Apple Reminders in step
+  both ways — every list, as "All" on your phone shows them — so a todo typed
+  here is on your phone and one ticked there is done here. A todo made here
+  goes to the list new reminders go to (Reminders' default), and an open
+  reminder in any list comes here as a todo; lists shared with you read-only
+  are left out. The `crew` list v0.28.4–97 kept is folded away: its
+  reminders move to the default list and the list, empty then, is deleted.
+  `/todo reminders off` stops it, and the
   switch holds across launches. macOS asks once whether crew may see your
   reminders (System Settings › Privacy & Security › Reminders takes it back).
   The title, done and the due go across, a due with a time ringing on your
@@ -2043,11 +2048,9 @@ longer aim at.
   `todos.toml.bad` while the open reminders come back as todos. Deleting
   your last few todos here deletes their reminders, however quickly. The
   file is written whole or not at all (a new copy renamed into place). Turning it on with
-  reminders already in the list pairs them by title rather than doubling
+  reminders already there pairs them by title rather than doubling
   them, an open one only with an open one: last month's done "pay rent" is
-  history, and this month's new one is news. Delete the `crew` list in
-  Reminders and the sync stops, says so, and leaves it deleted;
-  `/todo reminders` makes it again. `reminders.toml`, beside `todos.toml`,
+  history, and this month's new one is news. `reminders.toml`, beside `todos.toml`,
   remembers the pairs, and turning the sync off and on again keeps them: a
   todo ticked or deleted in crew meanwhile is ticked or deleted on the phone
   at the next pass, not brought back as a new one. A change arriving from the phone re-sorts the list

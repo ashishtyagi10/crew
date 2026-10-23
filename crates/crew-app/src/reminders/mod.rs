@@ -1,6 +1,9 @@
-//! `/todo reminders`: the todo list and a `crew` list in Apple Reminders kept
-//! in step both ways (the user, 2026-10-22: "two-way sync to a crew list"),
-//! so a todo typed here is on your phone and one ticked there is done here.
+//! `/todo reminders`: the todo list and Apple Reminders kept in step both
+//! ways, every list as "All" on the phone shows them, a todo made here going
+//! to the list new reminders go to (the user, 2026-10-23: "sync with reminder
+//! should happen to 'all' instead of crew section"; v0.28.4–97 kept a `crew`
+//! list of its own, folded away by `ekfold`). A todo typed here is on your
+//! phone and one ticked there is done here.
 //!
 //! A thread of its own does the work (`worker`): a pass at once, then one
 //! when the todo list settles after a change, when Reminders says it moved,
@@ -19,6 +22,8 @@ mod ek;
 mod ekask;
 #[cfg(target_os = "macos")]
 mod ekfields;
+#[cfg(target_os = "macos")]
+mod ekfold;
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub(crate) mod fields;
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]

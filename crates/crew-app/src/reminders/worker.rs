@@ -31,7 +31,7 @@ pub(super) fn run(log: &Log, stop: &AtomicBool) {
         let line = match pass(&kit) {
             Ok(_) if first => Some((
                 LogLevel::Info,
-                "Reminders: /todo and the crew list are in step".into(),
+                "Reminders: /todo and all your reminders are in step".into(),
             )),
             Ok(_) if !said.is_empty() => Some((LogLevel::Info, "Reminders: in step again".into())),
             Ok(0) => None,
@@ -85,17 +85,16 @@ fn wait(rx: &Receiver<()>, stop: &AtomicBool) {
 fn pass(kit: &Kit) -> Result<usize, String> {
     let file = pairs::path();
     let mut state = pairs::load_at(file.as_deref());
-    let (list, other) = kit.list(&state.list, state.remake)?;
-    // Asked once, used once: a list deleted later stays deleted.
-    let asked = std::mem::take(&mut state.remake);
-    if other {
-        // Not the list the pairs were made in: pair again, by title.
-        state = pairs::State {
-            list: Kit::id(&list),
-            ..Default::default()
-        };
+    let home = kit.home()?;
+    if !state.list.is_empty() {
+        let (went, gone) = kit.fold(&state.list, &home)?;
+        pairs::moved(&mut state, &went);
+        if gone {
+            state.list.clear();
+        }
+        pairs::save_at(file.as_deref(), &state);
     }
-    let rems = kit.fetch(&list)?;
+    let rems = kit.fetch(&kit.lists())?;
     let todos: Vec<(u64, Fields)> = (store::snapshot().iter())
         .map(|it| (it.id, Fields::of(it)))
         .collect();
@@ -111,10 +110,10 @@ fn pass(kit: &Kit) -> Result<usize, String> {
             match s {
                 Step::NewRem { todo, f } => made.push(Pair {
                     todo: *todo,
-                    rem: kit.put(&list, None, None, f)?,
+                    rem: kit.put(&home, None, None, f)?,
                     last: f.clone(),
                 }),
-                Step::SetRem { rem, was, f } => drop(kit.put(&list, Some(rem), Some(was), f)?),
+                Step::SetRem { rem, was, f } => drop(kit.put(&home, Some(rem), Some(was), f)?),
                 Step::DropRem { rem } => kit.remove(rem)?,
                 _ => {}
             }
@@ -139,7 +138,7 @@ fn pass(kit: &Kit) -> Result<usize, String> {
         }
     };
     let agreed: Vec<Pair> = plan.pairs.into_iter().chain(made).chain(born).collect();
-    if other || asked || agreed != state.pairs {
+    if agreed != state.pairs {
         state.pairs = agreed;
         pairs::save_at(file.as_deref(), &state);
     }

@@ -1,4 +1,4 @@
-//! EventKit, as little of it as the sync needs: access, the `crew` list, its
+//! EventKit, as little of it as the sync needs: access, the lists, their
 //! reminders read as [`Fields`], and writes staged until one commit. Every
 //! call runs on the sync's own thread.
 use std::ptr::NonNull;
@@ -19,18 +19,14 @@ use objc2_foundation::{
 use super::ekask::{ask, REFUSED};
 use super::ekfields::{components, read, ring};
 use super::fields::Fields;
-use super::pairs::{self, Pick};
-
-/// The list's name in Reminders.
-const LIST: &str = "crew";
 
 pub(super) type Watch = Retained<ProtocolObject<dyn NSObjectProtocol>>;
 
 pub(super) struct Kit {
-    store: Retained<EKEventStore>,
+    pub(super) store: Retained<EKEventStore>,
 }
 
-fn err(e: Retained<NSError>) -> String {
+pub(super) fn err(e: Retained<NSError>) -> String {
     format!("Reminders: {}", e.localizedDescription())
 }
 
@@ -50,37 +46,23 @@ impl Kit {
         })
     }
 
-    /// The `crew` list ([`pairs::pick`]): the one remembered by `id`, else
-    /// the one so named, else a new one in the account new reminders go to.
-    /// True when it is not the one remembered.
-    pub(super) fn list(
-        &self,
-        id: &str,
-        remake: bool,
-    ) -> Result<(Retained<EKCalendar>, bool), String> {
+    /// The list new reminders go to, the phone's own: where a todo made here
+    /// lands, so on the phone it sits with the rest rather than in a list of
+    /// crew's.
+    pub(super) fn home(&self) -> Result<Retained<EKCalendar>, String> {
+        unsafe { self.store.defaultCalendarForNewReminders() }
+            .ok_or_else(|| "Reminders: no list for new reminders \u{b7} make one there".into())
+    }
+
+    /// Every list crew may write, as "All" on the phone shows them, less any
+    /// shared to you read-only (a tick there would fail every pass).
+    pub(super) fn lists(&self) -> Retained<NSArray<EKCalendar>> {
         unsafe {
-            let known = (!id.is_empty())
-                .then(|| self.store.calendarWithIdentifier(&NSString::from_str(id)))
-                .flatten();
             let all = self.store.calendarsForEntityType(EKEntityType::Reminder);
-            let named = all.iter().find(|c| c.title().to_string() == LIST);
-            match pairs::pick(id, known.is_some(), named.is_some(), remake) {
-                Pick::Deleted => return Err(pairs::DELETED.into()),
-                Pick::Make => {}
-                p => return Ok((known.or(named).ok_or(pairs::DELETED)?, p == Pick::Named)),
-            }
-            let c =
-                EKCalendar::calendarForEntityType_eventStore(EKEntityType::Reminder, &self.store);
-            c.setTitle(&NSString::from_str(LIST));
-            let home = self.store.defaultCalendarForNewReminders();
-            let source = home
-                .and_then(|d| d.source())
-                .ok_or("Reminders: no account to keep a crew list in")?;
-            c.setSource(Some(&source));
-            self.store
-                .saveCalendar_commit_error(&c, true)
-                .map_err(err)?;
-            Ok((c, true))
+            let mine: Vec<_> = (all.iter())
+                .filter(|c| c.allowsContentModifications())
+                .collect();
+            NSArray::from_retained_slice(&mine)
         }
     }
 
@@ -88,23 +70,24 @@ impl Kit {
         unsafe { list.calendarIdentifier() }.to_string()
     }
 
-    /// Every reminder in `list`, done ones too, by id.
-    pub(super) fn fetch(&self, list: &EKCalendar) -> Result<Vec<(String, Fields)>, String> {
+    /// Every reminder in `lists`, done ones too, by id.
+    pub(super) fn fetch(
+        &self,
+        lists: &NSArray<EKCalendar>,
+    ) -> Result<Vec<(String, Fields)>, String> {
         let (tx, rx) = mpsc::channel();
         let block = RcBlock::new(move |found: *mut NSArray<EKReminder>| {
             let rows = unsafe { found.as_ref() }.map(|a| a.iter().map(|r| read(&r)).collect());
             let _ = tx.send(rows);
         });
         unsafe {
-            let which = self
-                .store
-                .predicateForRemindersInCalendars(Some(&NSArray::from_slice(&[list])));
+            let which = self.store.predicateForRemindersInCalendars(Some(lists));
             self.store
                 .fetchRemindersMatchingPredicate_completion(&which, &block);
         }
         match rx.recv_timeout(Duration::from_secs(60)) {
             Ok(Some(rows)) => Ok(rows),
-            Ok(None) => Err("Reminders: the crew list could not be read".into()),
+            Ok(None) => Err("Reminders: your lists could not be read".into()),
             Err(_) => Err("Reminders did not answer in a minute".into()),
         }
     }
@@ -144,7 +127,7 @@ impl Kit {
         }
     }
 
-    /// Reminder `id` out of the list, staged; gone already is fine.
+    /// Reminder `id` deleted, staged; gone already is fine.
     pub(super) fn remove(&self, id: &str) -> Result<(), String> {
         match self.find(id) {
             Some(r) => unsafe { self.store.removeReminder_commit_error(&r, false) }.map_err(err),
@@ -161,7 +144,7 @@ impl Kit {
         unsafe { self.store.reset() }
     }
 
-    fn find(&self, id: &str) -> Option<Retained<EKReminder>> {
+    pub(super) fn find(&self, id: &str) -> Option<Retained<EKReminder>> {
         let item = unsafe {
             self.store
                 .calendarItemWithIdentifier(&NSString::from_str(id))

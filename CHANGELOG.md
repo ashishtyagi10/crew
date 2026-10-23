@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.98
+
+**`/todo reminders` keeps all your reminders, not a `crew` list of its own.**
+- The sync now covers every Reminders list, the way "All" on your phone shows them. A todo you
+  make in crew goes to your default Reminders list, so on the phone it sits with the rest rather
+  than under a "crew" heading. An open reminder in any list comes to `/todo` as a todo. Lists
+  shared with you read-only are left out.
+- The `crew` list from before is folded away on the first pass: its reminders move to your
+  default list, keeping their pairs with their todos, and the list is deleted once it is empty.
+
 ## 0.28.97
 
 **`/inbox`: an invite you answered by mail, then added with `c`, still says how you answered.**
