@@ -1,6 +1,6 @@
 //! A day's end, or the week's, as a mail says it (`tododue`): "EOD" is that
-//! day at 5pm, "EOD Friday" that Friday's, "end of the week" that Friday at
-//! 5pm. Apart from `tododue`, which it kept over the line cap.
+//! day at 5pm, "EOD Friday" and "the end of Friday" that Friday's, "end of
+//! the week" that Friday at 5pm. Apart from `tododue`, which it kept over the line cap.
 use chrono::{Datelike, Duration, NaiveDateTime};
 
 use crate::todopane::duedate;
@@ -26,20 +26,20 @@ pub(super) fn end_of(phrase: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, 
                 .is_none_or(|c| !c.is_alphanumeric())
     };
     let five = |d: chrono::NaiveDate| d.and_hms_opt(17, 0, 0);
-    if let Some(w) = EOD.iter().find(|w| starts(w)) {
+    // The longest run of words after it that is a day: "oct 30", "next friday".
+    let day_in = |w: &str| {
         let rest = phrase[w.len()..].trim_start();
-        let next = (rest
-            .strip_prefix("on ")
-            .unwrap_or(rest)
-            .split_whitespace()
-            .next())
-        .unwrap_or("");
-        let day = duedate::find(next, at)
-            .filter(|h| h.start == 0 && h.end == next.chars().count() && !h.has_time);
-        return Some(match day {
-            Some(h) => (five(h.due.date())?, true, format!("{w} {next}")),
-            None => (five(at.date())?, true, w.to_string()),
-        });
+        let rest = rest.strip_prefix("on ").unwrap_or(rest);
+        let ws: Vec<&str> = rest.split_whitespace().collect();
+        (1..=ws.len()).rev().find_map(|n| {
+            let s = ws[..n].join(" ");
+            let h = duedate::find(&s, at)
+                .filter(|h| h.start == 0 && h.end == s.chars().count() && !h.has_time)?;
+            Some((five(h.due.date())?, true, format!("{w} {s}")))
+        })
+    };
+    if let Some(w) = EOD.iter().find(|w| starts(w)) {
+        return day_in(w).or_else(|| Some((five(at.date())?, true, w.to_string())));
     }
     if let Some(w) = EOW.iter().find(|w| starts(w)) {
         let ahead = (4 + 7 - at.weekday().num_days_from_monday()) % 7;
@@ -48,6 +48,10 @@ pub(super) fn end_of(phrase: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, 
             true,
             w.to_string(),
         ));
+    }
+    // "the end of Friday" is Friday's; "the end of the month" no day's.
+    if starts("end of") {
+        return day_in("end of");
     }
     // "next Friday [at 5pm]" is the grammar's (`nextday`), time and all.
     None
