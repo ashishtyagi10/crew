@@ -433,10 +433,10 @@ fn plus_and_minus_bump_the_selected_due_a_day() {
     assert_eq!(day(&p, 0, now), 1, "premise: due tomorrow");
     apply(&mut p, TodoInput::Char('+'), COLS, ROWS);
     assert_eq!(day(&p, 0, now), 2, "postponed a day");
+    assert!(!p.items[0].notified, "a bumped due may toast again");
     apply(&mut p, TodoInput::Char('-'), COLS, ROWS);
     apply(&mut p, TodoInput::Char('-'), COLS, ROWS);
     assert_eq!(day(&p, 0, now), 0, "advanced back to today");
-    assert!(!p.items[0].notified, "a bumped due may toast again");
     // The undated row: '-' is a no-op, '+' starts at tomorrow, dateless.
     apply(&mut p, TodoInput::Down, COLS, ROWS);
     assert_eq!(p.items[1].due_ms, None);

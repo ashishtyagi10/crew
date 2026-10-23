@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.45
+
+**`/todo`: `-` on an overdue row no longer toasts it again.**
+- `+` and `-` move a todo's due a day, and any move re-armed its due toast, so `-` on a row
+  already overdue (moving it further into the past) toasted it again a minute later. A due
+  still past after the move counts as told about, as a past due typed in the composer does;
+  one moved ahead toasts when it comes.
+
 ## 0.28.44
 
 **Every group of tool calls a reply ends with runs, not only the last.**

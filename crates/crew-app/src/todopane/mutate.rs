@@ -66,8 +66,11 @@ impl TodoPane {
                     }
                     None => {}
                 }
-                // A bumped due is a new deadline: let it toast again.
-                it.notified = false;
+                // A bumped due is a new deadline, and toasts when it comes;
+                // one still past is no news: `-` on an overdue row toasted it
+                // again at once (the composer's rule, `act.rs`).
+                let now_ms = crate::chattime::unix_now_ms();
+                it.notified = it.due_ms.is_some_and(|d| d <= now_ms);
             }
         });
         self.refresh();
@@ -115,3 +118,7 @@ impl TodoPane {
 #[cfg(test)]
 #[path = "follow_tests.rs"]
 mod follow_tests;
+
+#[cfg(test)]
+#[path = "bump_tests.rs"]
+mod bump_tests;
