@@ -312,3 +312,12 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The second inbox/todo audit** (finding 6): the bands matched names ignoring ASCII case
   only, so `#Émile` missed its own band and the list opened a header at every row. Names now
   match lowercased, in the bands, the filter and the tag menu.
+
+**Round A10 (v0.28.58): a build too long to show names every error's place at the top.**
+
+- **From tonight's probes**: the compile task's `cargo test` ran 54 times, every result cut to
+  its tail, two of about 25 errors in view; no run passed.
+- **`rundigest.rs`**: a cut run says `N errors at path:line,line · …` under its exit line, from
+  the whole output (`runfit.rs` 199 → 191, `failed` moved with it).
+- **Live, twice**: the line came with every cut run and named library files the agents had not
+  looked at; the longer run went 25 → 23 → 26 → 25 → 19 → 20 → 14 errors. Neither finished.

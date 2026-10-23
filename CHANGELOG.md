@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.58
+
+**A build too long to show names every error's place at the top.**
+- A long `sys:run` reaches the agent as its start and its end, the rest saved to a file it can
+  read. A build with 25 errors therefore showed the agent its last two: on tonight's probes
+  the compile-error task's `cargo test` ran 54 times, cut every time, and the agent fixed the
+  two it could see each round. A cut run now says, under its exit line, `25 errors at
+  crates/crew-theme/src/readable.rs:64,84,106,131 · crates/crew-theme/src/oklch.rs:220,227 · …`,
+  every error by file and line, warnings and notes left out.
+- Live, the same task twice: the line reached the agent on every cut run and named where the
+  errors were, library files the agents had not been looking at all night; in the longer run
+  the count fell from 25 to 14. Neither run finished the task in its budget.
+
 ## 0.28.57
 
 **`/todo`: `#Émile` keeps one band, like any other name.**

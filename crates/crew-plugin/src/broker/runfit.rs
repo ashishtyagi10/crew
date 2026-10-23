@@ -87,10 +87,14 @@ pub(super) fn fit(code: i32, stdout: &str, stderr: &str, truncated: bool) -> Str
         return all;
     }
     let spill = super::spill::saved("run", &for_spill(code, stdout, stderr, truncated));
-    let head = head_of(stdout, HEAD);
+    let (head, errors) = (
+        head_of(stdout, HEAD),
+        super::rundigest::digest(stdout, stderr),
+    );
     let rest = &stdout[head.len()..];
-    let (out_room, err_room) = share(rest.len(), stderr.len(), spill.room - FRAME - head.len());
-    let mut text = format!("exit {code}\n{head}");
+    let room = spill.room - FRAME - head.len() - errors.len();
+    let (out_room, err_room) = share(rest.len(), stderr.len(), room);
+    let mut text = format!("exit {code}\n{errors}{head}");
     push_end(&mut text, rest, out_room);
     if !stderr.is_empty() {
         text.push_str("\n--- stderr ---\n");
@@ -102,19 +106,7 @@ pub(super) fn fit(code: i32, stdout: &str, stderr: &str, truncated: bool) -> Str
     spill.close(text)
 }
 
-/// Whether a `sys:run` result is a command that ran and failed: its first
-/// line is `exit N` with N not 0 (-1 is a signal). `sysrun` returns such a
-/// run as `Ok`, because the output IS the answer; this is what keeps the
-/// card from reading ✓ and the provider from being told `is_error: false`
-/// about a build that did not build — the way Codex reports a non-zero exit.
-/// A timeout is already an `Err`.
-pub(super) fn failed(text: &str) -> bool {
-    text.lines()
-        .next()
-        .and_then(|l| l.strip_prefix("exit "))
-        .and_then(|n| n.trim().parse::<i32>().ok())
-        .is_some_and(|n| n != 0)
-}
+pub(super) use super::rundigest::failed;
 
 /// How the tail budget splits between the rest of stdout and stderr.
 ///
