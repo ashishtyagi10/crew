@@ -321,3 +321,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   the whole output (`runfit.rs` 199 → 191, `failed` moved with it).
 - **Live, twice**: the line came with every cut run and named library files the agents had not
   looked at; the longer run went 25 → 23 → 26 → 25 → 19 → 20 → 14 errors. Neither finished.
+
+**Round I14 (v0.28.59): `e` then Enter leaves a todo as it was.**
+
+- **The second inbox/todo audit** (finding 4): a todo reloaded for editing and sent back
+  unchanged lost a title's last "on" to the due's lead-in, and a title's own `@word` became
+  its project. `edit_at` writes the tags first and the due before the title.

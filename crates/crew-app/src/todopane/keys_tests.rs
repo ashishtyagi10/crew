@@ -132,7 +132,7 @@ fn e_reloads_the_selected_item_into_the_composer() {
     apply(&mut p, TodoInput::Down, COLS, ROWS);
     apply(&mut p, TodoInput::Char('e'), COLS, ROWS);
     assert_eq!(p.sel, None, "editing happens in the composer");
-    assert_eq!(p.input, "fix scroll @crew");
+    assert_eq!(p.input, "@crew fix scroll");
     assert!(p.editing.is_some());
 }
 
