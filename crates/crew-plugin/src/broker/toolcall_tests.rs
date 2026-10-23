@@ -750,3 +750,25 @@ fn an_answer_still_holding_a_call_says_it_never_ran() {
     let done = crate::broker::toolround::finished(None, a.to_string());
     assert!(done.contains("not run \u{2014}"), "{done}");
 }
+
+/// Crew's own tools are listed whole on the text path: clipped at 100,
+/// sys:edit's line lost `edits`, `all` and `line`, and 3 of 3 first edits in
+/// one probe were refused for want of the `line` it offers. Another
+/// server's stays clipped.
+#[test]
+fn crews_own_tools_are_listed_whole() {
+    let h = hint_for(&crate::broker::systools::tools());
+    let edit = h.lines().find(|l| l.starts_with("- sys:edit ")).unwrap();
+    for word in ["\"edits\"", "\"all\": true", "\"line\": N"] {
+        assert!(edit.contains(word), "{word} in {edit}");
+    }
+    let long = "x".repeat(300);
+    let other = hint_for(&[crate::mcp::McpTool {
+        server: "fs".into(),
+        name: "read".into(),
+        description: long,
+        input_schema: serde_json::json!({"type": "object"}),
+    }]);
+    let line = other.lines().find(|l| l.starts_with("- fs:read")).unwrap();
+    assert!(line.chars().count() < 130, "{line}");
+}

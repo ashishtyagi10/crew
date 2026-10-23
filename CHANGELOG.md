@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.91
+
+**Agents: crew's own tools are described whole to models on the text tool path.**
+- Models that call tools by writing `@tool` lines (DashScope and the other text-path providers)
+  saw every tool's description cut at 100 characters. For `sys:edit` that cut off the list
+  form (`edits`), `all` for a rename, and `line` for picking one of two matches. Crew's own
+  `sys:` tools are now listed whole, about 1,700 characters for all 13. Other servers' tools stay
+  cut at 100.
+- The idea comes from Claude Code, whose tools reach the model with their whole descriptions.
+  Live, on the two-copies task (change one of two identical lines): before, 3 of 3 runs' first
+  edit was refused as ambiguous. Now 2 of 3 sent `line` the first time and finished in 6–9 s.
+  The third put `line` beside the `edits` list instead of inside it, was refused, and got it
+  right on the next call.
+
 ## 0.28.90
 
 **Agents: an edit off only in its indentation lands, matched to the file's.**
