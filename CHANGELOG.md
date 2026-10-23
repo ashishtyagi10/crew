@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.81
+
+**Agents: an edit that misses says where `old` parts from the file, or that `new` is already there.**
+- When `old` started right but went wrong further down, the refusal said only "the rest of `old`
+  does not match what follows it", with no line number. One probe sent the same 6-line `old`
+  five rounds running. The refusal now names the lines that matched and the line where `old`
+  parts from the file, and shows the file's text from there to copy.
+- When `old` is two places sent as one, it says where each part is and how to send them as a
+  list of edits.
+- When `new` is already in the file, it says so and shows where. Before, it pointed at that line
+  as the nearest one to copy, and the agent redid an edit it had already made.
+- When the same failed edit is sent again, the answer keeps the lines the first refusal showed.
+  In a batch, "nothing was written" now ends the first line instead of trailing after the last
+  row.
+- The idea comes from Aider's SEARCH/REPLACE failure report ("did you mean to match some of
+  these actual lines", "the REPLACE lines are already in the file"). Live, three runs of the
+  compile-error task each solved it on their first edit and never missed, so the new answers
+  were never shown. The unit tests replay the probes' captured misses.
+
 ## 0.28.80
 
 **`/todo`: "send deck fri by 5pm" is due Friday at five, and the title is "send deck".**

@@ -37,6 +37,7 @@ mod doctorprobe;
 mod doctorsession;
 mod editargs;
 mod editdiag;
+mod editmiss;
 mod editnear;
 mod editpick;
 mod editreport;

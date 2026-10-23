@@ -71,8 +71,12 @@ fn a_miss_on_whitespace_says_it_was_whitespace() {
 #[test]
 fn a_miss_that_starts_right_says_where_it_diverged() {
     let err = replace(SRC, "    let x = 1;\n    let y = 2;", "x", false).unwrap_err();
-    assert!(err.contains("let x = 1;"), "{err}");
-    assert!(err.contains("does not match what follows"), "{err}");
+    assert!(err.contains("its first line is line 2"), "{err}");
+    assert!(
+        err.contains("\u{201c}let y = 2;\u{201d}, line 3 reads"),
+        "{err}"
+    );
+    assert!(err.ends_with("3\u{2502}     println!(\"{x}\");"), "{err}");
 }
 
 #[test]
@@ -97,8 +101,7 @@ fn a_miss_with_nothing_in_common_says_so_plainly() {
 #[test]
 fn a_long_fragment_is_clipped_inside_the_error() {
     let long = "x".repeat(200);
-    let body = format!("{long}\ntail\n");
-    let err = replace(&body, &format!("{long}\nnope"), "y", false).unwrap_err();
+    let err = replace("head\ntail\n", &format!("head\n{long}"), "y", false).unwrap_err();
     assert!(err.chars().count() < 200, "error is a wall of text: {err}");
     assert!(err.contains('\u{2026}'), "no clip marker: {err}");
 }

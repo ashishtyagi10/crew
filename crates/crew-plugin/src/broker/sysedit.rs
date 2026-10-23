@@ -91,7 +91,19 @@ pub(crate) fn edit_all(path: &str, swaps: &[Swap]) -> Result<String, String> {
 fn numbered(total: usize, i: usize, why: &str) -> String {
     match total {
         1 => why.to_string(),
-        n => format!("edit {} of {n}: {why} \u{2014} nothing was written", i + 1),
+        // After the reason's first line, not under the rows it shows.
+        n => {
+            let (head, rows) = why.split_once('\n').unwrap_or((why, ""));
+            let rows = if rows.is_empty() {
+                String::new()
+            } else {
+                format!("\n{rows}")
+            };
+            format!(
+                "edit {} of {n}: {head} \u{2014} nothing was written{rows}",
+                i + 1
+            )
+        }
     }
 }
 
@@ -100,7 +112,7 @@ fn numbered(total: usize, i: usize, why: &str) -> String {
 pub(super) fn place(body: &str, s: &Swap, shift: &Shift) -> Result<Vec<usize>, String> {
     let ats: Vec<usize> = body.match_indices(s.old).map(|(at, _)| at).collect();
     match (ats.len(), s.line) {
-        (0, _) => Err(miss(body, s.old)),
+        (0, _) => Err(miss(body, s.old, s.new)),
         (1, _) => Ok(ats),
         _ if s.all => Ok(ats),
         (_, Some(line)) => {
@@ -123,7 +135,7 @@ fn splice(body: &str, ats: &[usize], old: &str, new: &str) -> String {
 }
 
 /// Why a match failed, in the terms the model's next move depends on.
-fn miss(body: &str, old: &str) -> String {
+fn miss(body: &str, old: &str, new: &str) -> String {
     if super::editrows::carries_numbers(old) {
         return "`old` carries the line numbers from a read or edit result (`41\u{2502} `) \
                 \u{2014} they are not in the file; leave them out and copy only the text"
@@ -138,14 +150,11 @@ fn miss(body: &str, old: &str) -> String {
              numbers):\n{lines}"
         );
     }
-    if let Some(line) = old.lines().find(|l| !l.trim().is_empty()) {
-        if body.contains(line.trim()) {
-            return format!(
-                "`old` is not in the file, though \u{201c}{}\u{201d} is \u{2014} the rest of \
-                 `old` does not match what follows it",
-                clip(line.trim())
-            );
-        }
+    let other = (super::editmiss::already(body, old, new))
+        .or_else(|| super::editmiss::apart(body, old))
+        .or_else(|| super::editmiss::parted(body, old));
+    if let Some(why) = other {
+        return why;
     }
     match super::editnear::nearest(body, old) {
         Some(rows) => format!(
@@ -157,15 +166,6 @@ fn miss(body: &str, old: &str) -> String {
                  text to replace"
             .into(),
     }
-}
-
-/// A fragment short enough to sit inside an error message.
-fn clip(s: &str) -> String {
-    const CAP: usize = 48;
-    if s.chars().count() <= CAP {
-        return s.into();
-    }
-    format!("{}\u{2026}", s.chars().take(CAP).collect::<String>())
 }
 
 #[cfg(test)]

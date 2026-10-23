@@ -444,3 +444,11 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The third inbox/todo audit** (finding 1) caught I11's edge: only `at` could sit between a
   date and its time, so `fri by 5pm` was due today and `fri` stayed in the title. Any one
   lead-in word goes with the date now, and `in 2 days at 5pm` fits the date reader's window.
+
+**Round A15 (v0.28.81): a missed edit says where `old` parts, or that `new` is already there.**
+
+- **AI survey 2** (#2, from Aider's failure report): misses were 14 of the a14 probes' 60 rounds,
+  most of them answered only "the rest does not match". New `editmiss.rs` names the line `old`
+  parts at, the places a glued `old` came from, or that `new` is already in the file.
+- **Live**: the compile task ×3 on this build solved on its first edit each time and never
+  missed, so the new text never showed. Unit tests replay the captured shapes.

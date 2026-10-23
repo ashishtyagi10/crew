@@ -104,17 +104,16 @@ impl Seen {
         }
     }
 
-    /// What the model is given in place of a failed edit sent again.
+    /// What the model is given in place of a failed edit sent again: the
+    /// first failure's reason, and the file's rows it showed (`169│ …`),
+    /// which are the answer to the repeat as much as to the first.
     pub fn again(round: u32, why: &str) -> String {
-        let why = why
-            .trim_start_matches("ERROR: ")
-            .lines()
-            .next()
-            .unwrap_or_default();
-        let why: String = why.chars().take(240).collect();
+        let mut why = why.trim_start_matches("ERROR: ").lines();
+        let head: String = why.next().unwrap_or_default().chars().take(240).collect();
+        let rows: String = why.take(8).map(|r| format!("\n{r}")).collect();
         format!(
             "ERROR: the same edit failed in round {round}, and nothing has been written since, \
-             so it was not sent again: {why} \u{2014} change `old` to what the file holds"
+             so it was not sent again: {head} \u{2014} change `old` to what the file holds{rows}"
         )
     }
 }

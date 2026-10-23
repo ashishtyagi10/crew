@@ -18,31 +18,30 @@ fn result(label: &str, ok: bool, text: &str) -> HiveEvent {
     }
 }
 
-/// One test, because the log is the process's: two tests filling it at once
-/// would read each other's lines.
+/// A log of the test's own: the process's is noted into by the broker's
+/// other tests at the same time.
 #[test]
 fn a_turn_reads_as_its_calls_and_how_each_came_back() {
-    super::start();
-    super::note(&call("sys:edit", "{\"path\": \"a.rs\"}"));
-    super::note(&call("sys:run", "{\"cmd\": \"cargo test\"}"));
-    super::note(&result(
+    let mut log = super::Log::default();
+    log.note(&call("sys:edit", "{\"path\": \"a.rs\"}"));
+    log.note(&call("sys:run", "{\"cmd\": \"cargo test\"}"));
+    log.note(&result(
         "sys:edit",
         true,
-        "edited a.rs at line 4 (1 line)\n4│ x",
+        "edited a.rs at line 4 (1 line)\n4\u{2502} x",
     ));
-    super::note(&result("sys:run", false, "\nexit 101\n--- stderr ---"));
+    log.note(&result("sys:run", false, "\nexit 101\n--- stderr ---"));
     assert_eq!(
-        super::lines(),
+        log.lines(),
         "1. sys:edit {\"path\": \"a.rs\"} \u{2192} ok: edited a.rs at line 4 (1 line)\n\
          2. sys:run {\"cmd\": \"cargo test\"} \u{2192} failed: exit 101"
     );
-    super::start();
-    assert_eq!(super::lines(), "", "a verified turn starts from nothing");
+    let mut log = super::Log::default();
+    assert_eq!(log.lines(), "", "a verified turn starts from nothing");
     for i in 0..super::KEEP + 5 {
-        super::note(&call("sys:grep", &i.to_string()));
+        log.note(&call("sys:grep", &i.to_string()));
     }
-    let kept = super::lines();
+    let kept = log.lines();
     assert_eq!(kept.lines().count(), super::KEEP);
     assert!(kept.starts_with("1. sys:grep 5"), "the oldest go first");
-    super::start();
 }
