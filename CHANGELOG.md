@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.68
+
+**`/theme` on the light page: faint colours are drawn paler, not boxed in black.**
+- Tonight's earlier fixes seated a see-through palette's faint colour (its white ink, a bright
+  phosphor green) on a cell of that palette's dark page, then drew each cell as its own
+  capsule. On the light page that made thick black rings that ran into the next colour. A
+  faint colour is now walked just dark enough to show on the page it is drawn on, and sits bare
+  like every other chip.
+
 ## 0.28.67
 
 **Pop-up titles and hints sit on soft frost, not a dark tab.**

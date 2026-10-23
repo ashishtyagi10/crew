@@ -372,3 +372,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The UI regression survey** (R1): U6's patch behind a pop-up's rule words was a box a cell
   high, a hard tab on glass over white and a notch in the tubes' glow. The quads are gone; the
   shader lays the page in under a sheetless card's rule words in the veil's feathered shape.
+
+**Round U15 (v0.28.68): faint theme chips are drawn paler, not boxed in black.**
+
+- **The UI regression survey** (R3): U3 and U7's page cells became 12 px black capsules butting
+  into the next chip. A faint glass face is now walked to 2:1 on the page and left bare.

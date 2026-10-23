@@ -74,21 +74,19 @@ fn on_glass_a_chip_is_its_face_alone() {
     }
 }
 
-/// On the light page a glass palette's near-white ink carries its own page:
-/// alone it read 1.1:1 on white, and the strip showed five colours and a gap.
-/// The faces that read there stay bare, as on glass.
+/// On the light page a glass palette's near-white ink is walked darker to
+/// read alone: it read 1.1:1 on white, and on its own page cell it was a
+/// thick black ring. Every glass chip stays bare, as on glass.
 #[test]
-fn on_an_opaque_page_a_faint_glass_chip_carries_its_own_page() {
+fn on_an_opaque_page_a_faint_glass_chip_is_darkened_to_read_alone() {
     let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(ThemeId::PaperLight);
     let page = crew_theme::theme().page_bg;
     for id in ALL_THEMES.iter().filter(|id| id.theme().liquid.is_some()) {
         for (i, c) in for_value("/theme", id.as_str()).iter().enumerate() {
-            let ground = c.bg.unwrap_or(page);
-            let cr = crew_theme::contrast_ratio(c.fg, ground);
-            assert!(cr >= 1.5, "{} chip {i}: {cr:.2} on {ground:?}", id.as_str());
-            let alone = crew_theme::contrast_ratio(c.fg, page) >= 1.5;
-            assert_eq!(c.bg.is_none(), alone, "{} chip {i}", id.as_str());
+            let cr = crew_theme::contrast_ratio(c.fg, page);
+            assert!(cr >= 1.5, "{} chip {i}: {cr:.2} on the page", id.as_str());
+            assert_eq!(c.bg, None, "{} chip {i}: bare", id.as_str());
         }
     }
 }
