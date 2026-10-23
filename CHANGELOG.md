@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.50
+
+**An agent's edit that misses is shown the line it probably meant.**
+- Most `sys:edit` calls that miss were never in the file as written: the agent retyped the line
+  from memory (`let mut free = Vec::new();` for `let mut free: Vec<f32> = Vec::new();`). The
+  refusal said only to read the file, which costs a round, or the agent guessed again. It now
+  names the nearest line and shows it, numbered as a read shows it: `` `old` is not in the
+  file — the nearest is line 104; copy its text ``. Nothing is offered when no line is near.
+- Of tonight's probe edits, 31 of 36 "not in the file" misses were retyped lines; replayed, 22
+  would have been shown the line they meant, and the rest (a line in another file, mostly)
+  are offered nothing rather than a wrong guess.
+- From Aider, whose failed edit answers "did you mean to match some of these actual lines".
+
 ## 0.28.49
 
 **`/far`: in a pane you are not in, the line between the lists is frame, not text.**

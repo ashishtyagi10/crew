@@ -36,6 +36,7 @@ mod doctor;
 mod doctorprobe;
 mod editargs;
 mod editdiag;
+mod editnear;
 mod editpick;
 mod editreport;
 mod editrows;
