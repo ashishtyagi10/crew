@@ -2006,7 +2006,10 @@ longer aim at.
   every minute. Each side's change since the last pass goes to the other, and
   when both changed the same thing crew's word stands; a delete goes across
   too, but a done todo whose reminder Reminders cleared away stays in the
-  history. Turning it on with reminders already in the list pairs them by
+  history. Neither side wipes the other by coming back empty: if every
+  paired reminder vanishes at once (an empty answer from Reminders) the open
+  todos go across again, and if every paired todo does (a `todos.toml` that
+  would not load) the open reminders come back as todos. Turning it on with reminders already in the list pairs them by
   title rather than doubling them. `reminders.toml`, beside `todos.toml`,
   remembers the pairs.
 - **`/smith`** — opens **agent smith**, a **multi-agent pane** where the

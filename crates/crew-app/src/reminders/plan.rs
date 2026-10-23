@@ -12,9 +12,11 @@
 //! sync on twice never makes two of anything; failing that, an open one is
 //! made on the other side and a done one is left alone.
 //!
-//! Crew never loses its list to Reminders answering empty: when every
+//! Neither side loses its list to the other answering empty: when every
 //! paired reminder is gone at once, the pairs are forgotten and the open
-//! todos go to Reminders again, rather than all of them being deleted.
+//! todos go to Reminders again; when every paired TODO is gone at once (a
+//! `todos.toml` that would not load reads as no todos), the open reminders
+//! come back as todos, rather than all of them being deleted.
 use serde::{Deserialize, Serialize};
 
 use super::fields::Fields;
@@ -70,8 +72,9 @@ pub(crate) struct Plan {
 }
 
 pub(crate) fn plan(todos: &[(u64, Fields)], rems: &[(String, Fields)], pairs: &[Pair]) -> Plan {
-    let gone = pairs.iter().filter(|p| !rems.iter().any(|r| r.0 == p.rem));
-    let pairs = match pairs.len() >= 2 && gone.count() == pairs.len() {
+    let rems_gone = pairs.iter().all(|p| !rems.iter().any(|r| r.0 == p.rem));
+    let todos_gone = pairs.iter().all(|p| !todos.iter().any(|t| t.0 == p.todo));
+    let pairs = match pairs.len() >= 2 && (rems_gone || todos_gone) {
         true => &[][..],
         false => pairs,
     };
