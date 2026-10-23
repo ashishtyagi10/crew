@@ -246,7 +246,7 @@ pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
             RING_R_OUT,
             RING_R_IN,
             &slices,
-            t.border_normal,
+            crate::plot::heatmap::track_ink(&t),
         );
         // The hole stays glass: a page-coloured disc punched there was a
         // solid puck over the see-through page (2026-10-09).

@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.46
+
+**`/usage`: the empty TOKENS ring is quiet again on the tubes and the glass.**
+- 0.28.33 drew the empty ring solid so it would show on paper. On the CRT tubes and the glass,
+  which lift what they draw, solid made it brighter than the pane's own frame (7.7:1 on
+  crt-green, two-thirds of the way to a real slice's colour), so `0 tokens` sat inside what
+  looked like a full ring. Off paper it is now drawn as the heat grid's empty hours are:
+  2.5:1 on the tubes, 2.8–3.0 on glass over a dark desktop and 1.7 over a white one, where
+  solid had still been fainter (1.4). Paper keeps its solid ring.
+
 ## 0.28.45
 
 **`/todo`: `-` on an overdue row no longer toasts it again.**

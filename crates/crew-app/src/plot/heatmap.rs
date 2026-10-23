@@ -50,6 +50,17 @@ pub(crate) fn idle_ink(t: &crew_theme::Theme) -> ((u8, u8, u8), f32) {
     }
 }
 
+/// An empty ring's track (`pie::donut`): solid in the frame's colour on a
+/// print page, where half strength measured 1.6:1 and vanished; elsewhere an
+/// idle dot's wash, since solid, the tube and the glass lifted it past the
+/// frame (7.7:1 on crt-green) and an empty ring read as a full one.
+pub(crate) fn track_ink(t: &crew_theme::Theme) -> ((u8, u8, u8), f32) {
+    match t.liquid {
+        None => (t.border_normal, 1.0),
+        Some(_) => idle_ink(t),
+    }
+}
+
 /// A cell's colour, given its value's share of the peak (`0.0..=1.0`).
 pub type Shade<'a> = &'a dyn Fn(f32) -> ((u8, u8, u8), f32);
 

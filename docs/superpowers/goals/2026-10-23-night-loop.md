@@ -232,3 +232,11 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The survey** (also noted): any `+`/`-` re-armed the due toast, so moving an overdue row
   further back toasted it again. Now a due still past counts as told, as the composer has it.
+
+**Round U8 (v0.28.46): the empty TOKENS ring is quiet again on the tubes and the glass.**
+
+- **The second UI survey** (finding 2) caught U4's side effect: solid, the ring was lifted by
+  the tubes and the glass past the frame (7.7:1 on crt-green) and read as a full ring, and
+  over a white desktop it was still under the empty hours' dots.
+- **`heatmap::track_ink`**: solid on paper, the idle dot's wash elsewhere. crt-green 2.5:1,
+  glass 2.8–3.0 over dark and 1.7 over white, paper 3.0.
