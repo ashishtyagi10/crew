@@ -275,3 +275,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The second UI survey** (finding 4): the fit that pairs short settings counted a picker's
   chevrons but not their spaces, so Motion beside Glass read `auto (full) ›`.
 - **Counted** (`fit::min_cols`, widest + 2); Motion now takes its own row, whole.
+
+**Round A9 (v0.28.52): an edit that misses on whitespace is shown the lines as they are.**
+
+- **From the same probe data as A8**: 14 of 69 failed edits were "the same text with different
+  whitespace", answered only with "read the file".
+- **`editnear::spaced`** shows the lines that hold the text, numbered, to copy. Unit tests only.

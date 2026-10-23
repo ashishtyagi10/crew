@@ -61,7 +61,11 @@ fn a_miss_on_whitespace_says_it_was_whitespace() {
     // indentation. "not found" would send it looking for the wrong problem.
     let err = replace(SRC, "let x = 1;\nprintln!(\"{x}\");", "let x = 2;", false).unwrap_err();
     assert!(err.contains("different whitespace"), "{err}");
-    assert!(err.contains("copy the indentation"), "{err}");
+    // …and shows the lines as the file has them, to copy.
+    assert!(
+        err.ends_with("2\u{2502}     let x = 1;\n3\u{2502}     println!(\"{x}\");"),
+        "{err}"
+    );
 }
 
 #[test]

@@ -41,3 +41,14 @@ fn the_miss_says_where_the_line_is() {
     assert_eq!(std::fs::read_to_string(&p).unwrap(), RAMP, "untouched");
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// The same text with other whitespace: the lines that hold it, as they are.
+#[test]
+fn spaced_text_is_shown_as_the_file_has_it() {
+    let got = super::spaced(RAMP, "for c in all() {\nfree.push(c);").expect("there");
+    assert_eq!(
+        got,
+        "3\u{2502}     for c in all() {\n4\u{2502}         free.push(c);"
+    );
+    assert_eq!(super::spaced(RAMP, "struct Nothing;"), None);
+}
