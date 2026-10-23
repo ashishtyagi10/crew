@@ -74,3 +74,23 @@ fn editing_unchanged_keeps_the_todo_whole() {
         );
     }
 }
+
+/// A todo deleted elsewhere while it was open for editing keeps what was
+/// typed, as a todo of its own: Enter dropped the edit without a word.
+#[test]
+fn an_edit_of_a_todo_deleted_meanwhile_is_kept() {
+    let it = super::super::item::TodoItem {
+        id: 7,
+        title: "call mom".into(),
+        ..Default::default()
+    };
+    let _g = super::super::store::test_guard(vec![it]);
+    let mut p = super::super::TodoPane::new();
+    p.edit_at(0);
+    super::super::store::mutate(|items| items.clear());
+    p.paste(" back");
+    p.submit();
+    let now = super::super::store::snapshot();
+    assert_eq!(now.len(), 1, "kept");
+    assert_eq!(now[0].title, "call mom back", "as typed");
+}

@@ -397,3 +397,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The UI regression survey** (N2): the tubes' filament turned every 6 px chip white-hot. A
   coloured chip is drawn just under the filament's floor on a tube that burns; greys are left.
+
+**Round I20 (v0.28.73): an edit to a todo deleted meanwhile is kept.**
+
+- **The second inbox/todo audit** (also noted): Enter on a todo deleted elsewhere while it was
+  open for editing dropped the words silently; they are added as a todo of their own now.

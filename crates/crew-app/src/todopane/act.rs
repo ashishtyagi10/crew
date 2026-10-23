@@ -85,6 +85,11 @@ impl TodoPane {
             .and_then(|h| super::duedate::to_epoch_ms(h.due));
         let has_time = hit.as_ref().is_some_and(|h| h.has_time);
         let now_ms = crate::chattime::unix_now_ms();
+        // Deleted while it was open here (on the phone, by the Reminders
+        // sync, or in another pane): the edit was dropped without a word.
+        // What was typed is kept, as a todo of its own.
+        let gone = |id: u64| !super::store::snapshot().iter().any(|it| it.id == id);
+        self.editing = self.editing.filter(|&id| !gone(id));
         let id = match self.editing {
             Some(id) => super::store::mutate(|items| {
                 if let Some(it) = items.iter_mut().find(|it| it.id == id) {
