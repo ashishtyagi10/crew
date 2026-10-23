@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.49
+
+**`/far`: in a pane you are not in, the line between the lists is frame, not text.**
+- In an unfocused `/far` pane the line dividing the two lists was drawn in the muted text
+  colour, 7–10:1 on every palette, inside a box drawn in the frame colour at about 2:1; on
+  glass over a white desktop it was a lone white line in a box you could not see, and its
+  ends notched the frame. It is now the frame's colour, as the panels' edges became in
+  0.27.13. The focused pane keeps its accent divider.
+
 ## 0.28.48
 
 **`/todo`: "call bob next friday" is "call bob", due next Friday.**

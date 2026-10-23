@@ -118,3 +118,25 @@ fn a_passive_panels_frame_is_a_frame_not_text() {
         .expect("the passive panel's right edge");
     assert_eq!(right.fg, border, "edge at column {}", right.col);
 }
+
+/// The line between a blurred pane's two lists is frame, as its edges are:
+/// in the muted text ink it stood 7–10:1 in a box drawn at 2:1.
+#[test]
+fn a_blurred_panes_divider_is_frame_too() {
+    let _g = crate::app::theme_test_guard();
+    let base = std::env::temp_dir().join("crew_far_passive_divider");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    let pane = crate::farpane::FarPane::new(base);
+    let cells = crate::farpane::render::render_in(&pane, 80, 24, false);
+    let top = cells.iter().find(|c| c.c == '\u{252c}').expect("the ┬");
+    let column: Vec<_> = cells.iter().filter(|c| c.col == top.col).collect();
+    assert!(column.len() > 3, "the divider runs down");
+    let border = crew_theme::theme().border_normal;
+    for c in column
+        .iter()
+        .filter(|c| "\u{252c}\u{2502}\u{2534}".contains(c.c))
+    {
+        assert_eq!(c.fg, border, "{} at row {}", c.c, c.row);
+    }
+}
