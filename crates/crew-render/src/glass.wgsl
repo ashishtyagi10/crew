@@ -488,7 +488,12 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   }
 
   // --- fill over shadow -----------------------------------------------------
-  let out_a = alpha + shadow * (1.0 - alpha);
+  // A pop-up has no sheet (`a_top + a_bot` 0), so the words on its rule have
+  // its page laid in under them here, in the veil's rounded, feathered shape
+  // a pane title stands on. Drawn by the backdrop as a box a cell high, the
+  // patch was a hard dark tab hanging off the card (2026-10-23).
+  let pop = words_out * (1.0 - step(1e-4, a_top + a_bot));
+  let out_a = pop + (alpha + shadow * (1.0 - alpha)) * (1.0 - pop);
   if (out_a <= 0.0015) { discard; }
   // A resting sheet's shadow is pure black, so it contributes no colour —
   // only weight. A lit slab's (`glow`) is a halo of its own tint instead —
@@ -508,5 +513,5 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   }
   let halo = halo_rgb * in.nmeta.z * shadow * halo_k * (1.0 - alpha);
   // Premultiplied (the pipeline blends with `PREMUL_OVER`).
-  return vec4<f32>(rgb * alpha + halo, out_a);
+  return vec4<f32>((rgb * alpha + halo) * (1.0 - pop) + vp.page.rgb * pop, out_a);
 }

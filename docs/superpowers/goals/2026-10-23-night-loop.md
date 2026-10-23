@@ -366,3 +366,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The UI regression survey** (tonight's own changes, every palette; R2): U12's path rule took
   chat find's and history search's rows for paths and cut their fronts. A path now has no spaces.
+
+**Round U14 (v0.28.67): pop-up titles and hints sit on soft frost, not a dark tab.**
+
+- **The UI regression survey** (R1): U6's patch behind a pop-up's rule words was a box a cell
+  high, a hard tab on glass over white and a notch in the tubes' glow. The quads are gone; the
+  shader lays the page in under a sheetless card's rule words in the veil's feathered shape.

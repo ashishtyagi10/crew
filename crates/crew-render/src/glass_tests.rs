@@ -153,3 +153,15 @@ fn no_shadow_falls_under_a_legends_outer_half() {
     let term = &src[at..at + src[at..].find(';').expect("unterminated")];
     assert!(term.contains("max(body_in, words_out)"), "{term}");
 }
+
+/// A sheetless card (a pop-up) has its page laid in under the words on its
+/// rule, by the veil's feathered shape, not by a box drawn under them.
+#[test]
+fn a_pop_ups_rule_words_stand_on_its_page_feathered() {
+    let src = include_str!("glass.wgsl");
+    assert!(src.contains("let pop = words_out * (1.0 - step(1e-4, a_top + a_bot));"));
+    assert!(
+        src.contains("vp.page.rgb * pop, out_a)"),
+        "the page is mixed in by it"
+    );
+}

@@ -8,22 +8,19 @@
 //! in a bigger black one (glass survey C#4). A scene with no rounded frame
 //! keeps its rect.
 //!
-//! And behind the words on its top and bottom rule, a cell-high patch more:
-//! those words stand on the rule, half of them outside the box, and there the
-//! card's own shadow ran through them. On glass over a light desktop the
-//! `/keys` hint under its card read as struck through (UI survey 2026-10-23).
-//! A base pane's sheet has a frosted veil there; a pop-up has no sheet, so
-//! the backdrop reaches out instead, and the shadow stops at it (`glass.wgsl`).
-use crate::cellgrid::CellView;
+//! The words on its top and bottom rule stand half outside the box, where the
+//! card's shadow ran through them (the `/keys` hint read as struck through on
+//! glass over a light desktop). The shader keeps the shadow off them and lays
+//! the page in under them, feathered as a pane title's veil (`glass.wgsl`):
+//! drawn here as a box a cell high, that patch was a hard tab (2026-10-23).
 use crate::corners::Corner;
 use crate::quads::Quad;
 
-/// The quads behind a pop-up at (`x`, `y`) of `w`×`h` px whose `cells` hold
+/// The quads behind a pop-up at (`x`, `y`) of `w`×`h` px framed by
 /// the rounded `corners`, in `color`.
 #[allow(clippy::too_many_arguments)] // a pane's geometry, unbundled for the test
 pub(crate) fn backdrop(
     (x, y, w, h): (f32, f32, f32, f32),
-    cells: &[CellView],
     corners: &[Corner],
     (cell_w, cell_h): (f32, f32),
     (ix, iy): (f32, f32),
@@ -36,7 +33,7 @@ pub(crate) fn backdrop(
             ..Quad::rect(x, y, w, h, color)
         }];
     };
-    let mut out = vec![Quad {
+    vec![Quad {
         radii: [round; 4],
         ..Quad::rect(
             x + f32::from(c0) * cell_w + ix,
@@ -45,24 +42,7 @@ pub(crate) fn backdrop(
             f32::from(r1 - r0) * cell_h,
             color,
         )
-    }];
-    let cols = usize::from(c1) + 1;
-    for row in [r0, r1] {
-        let runs = crate::notch::runs(cells, row, cols);
-        for (a, b) in runs.into_iter().filter(|&(a, _)| a > usize::from(c0)) {
-            out.push(Quad {
-                radii: [(cell_h * 0.3).min(round); 4],
-                ..Quad::rect(
-                    x + a as f32 * cell_w,
-                    y + f32::from(row) * cell_h,
-                    (b - a) as f32 * cell_w,
-                    cell_h,
-                    color,
-                )
-            });
-        }
-    }
-    out
+    }]
 }
 
 #[cfg(test)]

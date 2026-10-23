@@ -238,7 +238,6 @@ pub(crate) fn build_scene(
             let color = crate::color::target_rgba(crew_theme::theme().page_bg, 1.0, srgb);
             quads.extend(crate::popupback::backdrop(
                 (pane.x, pane.y, pane.w, pane.h),
-                &pane.cells,
                 &corners,
                 (cell_w, cell_h),
                 stroke_inset(cell_w, cell_h),
