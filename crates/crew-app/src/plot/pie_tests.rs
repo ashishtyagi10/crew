@@ -118,3 +118,13 @@ fn an_empty_series_draws_a_track_not_a_blank() {
     assert!(area_of(&c2, GREY) > 10.0);
     assert_eq!(area_of(&c2, RED), 0.0, "a zero slice is not a hairline");
 }
+
+/// The track is drawn whole, as the frames in its colour are: at half
+/// strength it all but vanished on glass.
+#[test]
+fn the_empty_track_is_solid() {
+    let mut c = canvas();
+    donut(&mut c, (6.0, 6.0), 4.0, 2.0, &[], GREY);
+    let top = c.paint().iter().map(|p| p.alpha).fold(0.0_f32, f32::max);
+    assert!(top > 0.99, "the track's core is solid: {top}");
+}

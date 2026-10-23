@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.33
+
+**`/usage` with nothing used shows its TOKENS ring, not a lone `0`.**
+- With no tokens spent the ring is drawn as an empty track, so an idle crew and a broken widget
+  look different. It was drawn at half strength in the frame colour: 1.04:1 on glass over a
+  white desktop, 1.6:1 on the paper pages, a `0` floating where a ring should be. It is now
+  drawn whole, as the frames in that colour are: 1.4:1 there, 3.0:1 on paper.
+
 ## 0.28.32
 
 **`t` on an overdue notice keeps its date in the past, and "lobby" holds no "by".**

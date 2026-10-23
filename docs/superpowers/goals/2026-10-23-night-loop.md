@@ -124,3 +124,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **`tododue::nearest`**: a month and day is the one nearest the mail's day; the keys must
   start a word; the reason line names a year that is not this one; `add_todo` files a passed
   due as told about, as the composer does.
+
+**Round U4 (v0.28.33): `/usage` with nothing used shows its TOKENS ring.**
+
+- **The survey** (finding 7): the empty ring, drawn so an idle crew and a broken widget differ,
+  was half strength in the frame colour: 1.04:1 on glass over white, 1.6:1 on paper.
+- **Drawn whole** (`plot/pie.rs`): 1.39:1, 2.98:1 and 3.02:1, the frames' own weight.
