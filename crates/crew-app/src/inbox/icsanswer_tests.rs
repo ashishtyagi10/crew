@@ -135,3 +135,28 @@ fn the_card_says_where_the_invite_stands() {
         .any(|l| l.ends_with("Google Calendar \u{b7} you accepted")));
     assert_eq!(p.note, line);
 }
+
+/// An "Accepted: …" mail carries an attendee's answer (`METHOD:REPLY`), not
+/// an invite: its card offered `c` and `y`, and `y` then `y` sent a REPLY to
+/// yourself. Now the card says who answered, with no keys, and the keys say
+/// why they do nothing.
+#[test]
+fn an_answer_to_your_invite_is_not_an_invite() {
+    let me = "ATTENDEE;CN=me;PARTSTAT=NEEDS-ACTION:mailto:me@x.org\r\n";
+    let (mut p, asks) = pane(cal("METHOD:REPLY\r\n", &GOOGLE.replace(me, "")));
+    let c = card(&p);
+    assert!(
+        c.iter().any(|l| l.contains("Bo Park accepted your invite")),
+        "{c:?}"
+    );
+    assert!(!c.iter().any(|l| l.contains("y answers it")), "{c:?}");
+    for k in ["y", "y", "c"] {
+        press(&mut p, k);
+        assert!(
+            !p.answering() && p.note.contains("an answer"),
+            "{k}: {}",
+            p.note
+        );
+    }
+    assert!(asks.try_recv().is_err(), "nothing asked of Gmail or Google");
+}

@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.18
+
+**An "Accepted:" mail is an answer to your invite, not an invite.**
+- When you organize a meeting, each "Accepted: …" (or declined, or maybe) mail carries the
+  attendee's answer, and `/inbox` drew it as an invite: its card offered `c` to add it and
+  `y` to answer, and answering sent a reply to yourself, or, with Google Calendar connected,
+  touched your own event and mailed everyone. Now its card says who answered ("Bo Lee
+  accepted your invite") with no keys, and `c` and `y` say it is an answer.
+
 ## 0.28.17
 
 **A reply whose connection drops is picked up where it stopped.**
