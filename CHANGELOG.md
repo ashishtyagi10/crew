@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.23
+
+**A tool call written without `@tool` still runs.**
+- Agents end a reply with `@tool sys:read_file {…}` to call a tool. qwen-max sometimes writes
+  the same calls bare (`sys:read_file {"path": …}`), fenced as shell, and the turn ended on
+  them with nothing run and the work half done. A bare `server:tool` line with its JSON whole
+  on it is now the call it stands for, under the same rules as `@tool` lines; log lines, URLs
+  and a call cut off mid-JSON stay text.
+- Seen on a live probe and replayed into the parser's tests.
+
 ## 0.28.22
 
 **Agent smith says when your model was skipped for another.**

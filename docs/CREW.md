@@ -3418,7 +3418,10 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   the same way: `<tool_call>{"name": "sys:read_file", "arguments": {…}}`
   (Qwen 3.x, Hermes; `input`/`parameters` and string-encoded arguments too)
   and Qwen3-Coder's `<function=…><parameter=…>` XML are each taken as the
-  `@tool` line they stand for, under the same last-word rule. Requests that
+  `@tool` line they stand for, under the same last-word rule, and so is a
+  bare `sys:read_file {"path": …}` line with its JSON whole on it (qwen-max
+  wrote its next reads so, fenced as `sh`, and the turn ended on them).
+  Requests that
   carry no native tools ask every OpenAI-compatible host but OpenAI's own to
   stop at `</tool_call>`, the tag those templates end a turn on: without it
   the model re-wrote the call it was waiting on until its token cap. While

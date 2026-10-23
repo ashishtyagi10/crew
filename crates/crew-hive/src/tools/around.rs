@@ -30,6 +30,26 @@ const RETRACTS: [&str; 6] = [
     "ignore that",
 ];
 
+/// Whether `s` is a call written without its `@tool`: a `server:tool` name,
+/// lowercase words either side of the colon, and JSON that opens right after
+/// it and closes on the line. Strict, as the least sure shape: a log line
+/// (`error[E0308]: …`), a URL or a call cut off mid-JSON never reads as one.
+pub(super) fn bare_call(s: &str) -> bool {
+    let Some((target, rest)) = s.split_once(' ') else {
+        return false;
+    };
+    let word = |w: &str| {
+        w.starts_with(|c: char| c.is_ascii_lowercase())
+            && w.chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "_-".contains(c))
+    };
+    let named = target
+        .split_once(':')
+        .is_some_and(|(s, t)| word(s) && word(t));
+    let json = rest.trim();
+    named && json.starts_with('{') && json.ends_with('}')
+}
+
 /// Whether what follows a call leaves it the reply's last word: blank lines,
 /// the fence it sat in, the relay's routing line, and at most
 /// [`TRAILING_PROSE`] short asides that do not take it back.
@@ -89,3 +109,7 @@ fn is_routing(t: &str) -> bool {
         .to_ascii_lowercase();
     bare.starts_with("@done") || bare.starts_with("@next")
 }
+
+#[cfg(test)]
+#[path = "barecall_tests.rs"]
+mod barecall_tests;
