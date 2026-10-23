@@ -380,7 +380,12 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let foil = mix(mix(in.hl.xyz, blue, smoothstep(0.0, 0.5, turn)), vp.foil.xyz,
                    smoothstep(0.5, 1.0, turn));
     rim_rgb = mix(in.hl.xyz, foil, 0.55 * holo);
-    let bleed = (1.0 - smoothstep(0.0, GLOW_W, -d)) * inside;
+    // Not behind a legend (`thick`): the lower half of a pane's title stands
+    // inside the sheet, where the frame's light is brightest, and on neon
+    // (2026-10-23) that band put an unfocused title at 2.5:1 against its
+    // upper half's 8:1; no ink reaches 7:1 on a lit band. The legend sits in
+    // a notch of the rim already, and the light stops there with it.
+    let bleed = (1.0 - smoothstep(0.0, GLOW_W, -d)) * inside * (1.0 - thick);
     rgb = mix(rgb, foil, clamp(in.extra.y * bleed, 0.0, 1.0));
   }
 
@@ -398,7 +403,9 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let down = from_top / max(reach, 1.0);
     let sheen = (1.0 - smoothstep(0.7, 1.0, down)) * (0.35 + 0.65 * (1.0 - clamp(down, 0.0, 1.0)));
     let lip = exp(-pow(from_top / GLOSS_LIP, 2.0));
-    let g = clamp(gloss * (0.6 * sheen + lip), 0.0, 1.0) * inside;
+    // Off the legend's patch, as the holo bleed is: the lip runs right
+    // under a title's lower half.
+    let g = clamp(gloss * (0.6 * sheen + lip), 0.0, 1.0) * inside * (1.0 - thick);
     let ga = g + alpha * (1.0 - g);
     if (ga > 0.0001) {
       rgb = (rim_rgb * g + rgb * alpha * (1.0 - g)) / ga;
