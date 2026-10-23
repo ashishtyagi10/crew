@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.73
+
+**`/todo`: an edit to a todo deleted meanwhile is kept.**
+- With a todo open in the composer (`e`), deleting it elsewhere first (on the phone through the
+  Reminders sync, or in another pane) made Enter drop the edit without a word: what you typed
+  was gone. It is now kept as a todo of its own, and the sync carries it back to the phone.
+
 ## 0.28.72
 
 **On the CRT tubes, theme and accent swatches keep their colours.**
