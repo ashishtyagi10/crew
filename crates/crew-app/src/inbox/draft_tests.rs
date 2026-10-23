@@ -154,3 +154,26 @@ fn a_header_value_with_a_line_break_cannot_start_another_header() {
     let head = m.split_once("\r\n\r\n").unwrap().0;
     assert!(head.lines().all(|l| !l.starts_with("Bcc")), "{head}");
 }
+
+/// Yours is your address, not any that contains it: signed in as ann@, the
+/// mail from joann@ was taken for your own, and the reply answered the one
+/// before it, leaving out whoever joann@ had added.
+#[test]
+fn a_mail_from_an_address_holding_yours_is_not_yours() {
+    let mails = [
+        mail("Bo <bo@y.org>", "plan", "<1@y>", "", ""),
+        mail("Jo Ann <joann@x.org>", "Re: plan", "<2@x>", "", "<1@y>"),
+    ];
+    let a = answer("t1", &mails, "ann@x.org").unwrap();
+    assert_eq!(a.in_reply_to, "<2@x>", "answers joann's mail");
+    assert_eq!(a.to, "Jo Ann <joann@x.org>");
+    let own = [
+        mails[0].clone(),
+        mail("Ann <ANN@x.org>", "Re: plan", "<3@x>", "", "<1@y>"),
+    ];
+    assert_eq!(
+        answer("t1", &own, "ann@x.org").unwrap().in_reply_to,
+        "<1@y>",
+        "yours, any case"
+    );
+}
