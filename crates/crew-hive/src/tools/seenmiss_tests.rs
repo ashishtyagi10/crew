@@ -92,3 +92,22 @@ fn a_failed_command_is_not_remembered() {
     seen.miss(&run, 1, "exit 101");
     assert_eq!(seen.missed(&run), None);
 }
+
+/// The rows the first refusal showed, the file's lines to copy, are in the
+/// answer to the repeat: a14x2 was given only the first line, four times.
+#[test]
+fn the_repeat_keeps_the_rows_the_first_failure_showed() {
+    let why = "ERROR: edit lib.rs: `old` is not in the file: its first 4 lines are lines \
+               165\u{2013}168, then it parts \u{2014} where `old` has \u{201c}(hi + 0.05)\u{201d}, \
+               line 169 reads (copy it, not the numbers):\n\
+               169\u{2502}     ((hi + 0.05) / (lo + 0.05)) as f64\n170\u{2502} }";
+    let said = Seen::again(4, why);
+    assert!(
+        said.contains("line 169 reads (copy it, not the numbers): \u{2014} change `old`"),
+        "{said}"
+    );
+    assert!(
+        said.ends_with("\n169\u{2502}     ((hi + 0.05) / (lo + 0.05)) as f64\n170\u{2502} }"),
+        "{said}"
+    );
+}

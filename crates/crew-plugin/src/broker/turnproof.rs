@@ -17,49 +17,64 @@ const KEEP: usize = 60;
 /// Chars of a call's arguments, and of a result's first line, kept per line.
 const HEAD: usize = 90;
 
-static LOG: Mutex<Vec<String>> = Mutex::new(Vec::new());
+static LOG: Mutex<Log> = Mutex::new(Log(Vec::new()));
+
+/// The lines themselves. The process keeps one ([`LOG`]); a test keeps its
+/// own, since the broker's other tests note into the process's at the same
+/// time, and one clearing it mid-count failed the gate.
+#[derive(Default)]
+pub(crate) struct Log(Vec<String>);
 
 /// Forget what earlier turns did: a verified reply's turn starts here.
 pub(crate) fn start() {
-    LOG.lock().unwrap_or_else(|p| p.into_inner()).clear();
+    LOG.lock().unwrap_or_else(|p| p.into_inner()).0.clear();
 }
 
-/// Note `event` when it is a call or a result. A result completes the last
-/// open line of its tool, `sys:run {"cmd": …} → failed: exit 101`.
+/// Note `event` in the process's log.
 pub(crate) fn note(event: &HiveEvent) {
-    let mut log = LOG.lock().unwrap_or_else(|p| p.into_inner());
-    match event {
-        HiveEvent::ToolCall { label, args, .. } => {
-            log.push(format!("{label} {}", head(args)));
-            let over = log.len().saturating_sub(KEEP);
-            log.drain(..over);
-        }
-        HiveEvent::ToolResult {
-            label, ok, text, ..
-        } => {
-            let open = log
-                .iter_mut()
-                .rev()
-                .find(|l| l.starts_with(label.as_str()) && !l.contains(" \u{2192} "));
-            if let Some(line) = open {
-                let first = text.lines().find(|l| !l.trim().is_empty()).unwrap_or("");
-                let how = if *ok { "ok" } else { "failed" };
-                line.push_str(&format!(" \u{2192} {how}: {}", head(first)));
-            }
-        }
-        _ => {}
-    }
+    LOG.lock().unwrap_or_else(|p| p.into_inner()).note(event);
 }
 
-/// The turn's calls so far, one numbered line each.
+/// The process's turn so far, one numbered line per call.
 pub(crate) fn lines() -> String {
-    let log = LOG.lock().unwrap_or_else(|p| p.into_inner());
-    let rows: Vec<String> = log
-        .iter()
-        .enumerate()
-        .map(|(i, l)| format!("{}. {l}", i + 1))
-        .collect();
-    rows.join("\n")
+    LOG.lock().unwrap_or_else(|p| p.into_inner()).lines()
+}
+
+impl Log {
+    /// Note `event` when it is a call or a result. A result completes the
+    /// last open line of its tool, `sys:run {"cmd": …} → failed: exit 101`.
+    pub(crate) fn note(&mut self, event: &HiveEvent) {
+        let log = &mut self.0;
+        match event {
+            HiveEvent::ToolCall { label, args, .. } => {
+                log.push(format!("{label} {}", head(args)));
+                let over = log.len().saturating_sub(KEEP);
+                log.drain(..over);
+            }
+            HiveEvent::ToolResult {
+                label, ok, text, ..
+            } => {
+                let open = log
+                    .iter_mut()
+                    .rev()
+                    .find(|l| l.starts_with(label.as_str()) && !l.contains(" \u{2192} "));
+                if let Some(line) = open {
+                    let first = text.lines().find(|l| !l.trim().is_empty()).unwrap_or("");
+                    let how = if *ok { "ok" } else { "failed" };
+                    line.push_str(&format!(" \u{2192} {how}: {}", head(first)));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// The calls so far, one numbered line each.
+    pub(crate) fn lines(&self) -> String {
+        let rows: Vec<String> = (self.0.iter().enumerate())
+            .map(|(i, l)| format!("{}. {l}", i + 1))
+            .collect();
+        rows.join("\n")
+    }
 }
 
 fn head(s: &str) -> String {

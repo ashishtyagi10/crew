@@ -57,7 +57,7 @@ pub(super) fn spaced(body: &str, old: &str) -> Option<String> {
 }
 
 /// `lines[at..end]`, each under its number as a read shows it.
-fn rows(lines: &[&str], at: usize, end: usize) -> String {
+pub(super) fn rows(lines: &[&str], at: usize, end: usize) -> String {
     let w = end.to_string().len();
     let row = |(k, l): (usize, &&str)| {
         let text: String = l.chars().take(CAP).collect();
