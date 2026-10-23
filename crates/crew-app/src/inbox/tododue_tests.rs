@@ -126,3 +126,20 @@ fn an_end_of_day_names_its_day_and_next_keeps_its_time() {
         assert_eq!(read(mail), (due.into(), true, said.into()), "{mail}");
     }
 }
+
+/// A key's date comes right after it. "By the way, Friday works for me" set a
+/// deadline of Friday, and "Signed by Ann on Oct 15" one quoted as "by on oct
+/// 15", words no mail said.
+#[test]
+fn a_key_brings_its_date_right_after_it() {
+    assert_eq!(due("By the way, Friday works for me."), None);
+    assert_eq!(due("Signed by Ann on Oct 15."), None);
+    assert_eq!(
+        due("Please send it by Friday, Oct 23.").as_deref(),
+        Some("2026-10-23")
+    );
+    assert_eq!(
+        due("Can you review it by tomorrow morning?").as_deref(),
+        Some("2026-10-21")
+    );
+}
