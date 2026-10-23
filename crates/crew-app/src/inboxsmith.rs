@@ -52,7 +52,7 @@ impl CrewApp {
             usage: None,
             expanded: false,
         });
-        let since = c.messages.len();
+        let since = told(c);
         c.submit_command(send.prompt);
         // A summary is read in smith's pane; a draft lands in Gmail, so the
         // inbox keeps the keys and says when it is saved.
@@ -86,7 +86,7 @@ impl CrewApp {
             Some(PaneContent::Chat(c)) => Some(
                 c.messages
                     .iter()
-                    .skip(since)
+                    .skip(start(c, since))
                     .filter(|m| m.sender != "user")
                     .map(|m| m.text.clone())
                     .collect(),
@@ -102,6 +102,21 @@ impl CrewApp {
         }
         true
     }
+}
+
+/// How many messages smith's pane has held, folded ones too: where an
+/// answer starts, counted so a fold does not move it. A long session folds
+/// 501 messages to 451 (`push_capped`), and an answer marked by its place in
+/// the list was looked for past its end: Tab said "still writing" for ten
+/// minutes, then "held no draft".
+fn told(c: &crate::chat::ChatPane) -> usize {
+    c.folded + c.messages.len() - usize::from(c.folded > 0)
+}
+
+/// Where the message [`told`] counted to sits in the list now, past the
+/// fold's marker.
+fn start(c: &crate::chat::ChatPane, since: usize) -> usize {
+    since.saturating_sub(c.folded) + usize::from(c.folded > 0)
 }
 
 #[cfg(test)]

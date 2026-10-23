@@ -485,3 +485,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **Live** (compile task, advisor off, ×3): all 6 budget stops ran their last batch, and the
   judge's gap named the test result; the old build dropped it in both of its runs. Unsolved in
   both builds.
+
+**Round I31 (v0.28.87): in a long smith session, Tab's draft still arrives.**
+
+- **The second inbox audit's open item** (#5): a fold in smith's 500-message pane put the answer
+  before the place the inbox looked from, and Tab waited ten minutes for "held no draft". The
+  place now counts folded messages.
