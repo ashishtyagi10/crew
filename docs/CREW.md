@@ -3471,6 +3471,14 @@ export CREW_OPENROUTER_MODEL="nvidia/nemotron-3.5-lightning:free,google/gemma-4-
 Free models still share a hard account-wide daily cap; for sustained heavy use,
 put a cheap **paid** slug (no daily cap) in the chain, or buy OpenRouter credits.
 
+**A chain that falls through says so.** When a model in a chain — DashScope's,
+OpenRouter's, or a direct vendor's below — fails and a later one answers,
+agent smith adds one line under that agent's reply (a swarm's workers
+excepted): `fell back to qwen-flash · qwen-max: <the provider's reason>`, once
+per agent a turn, so a first model that is gone for good (a typo in
+`CREW_DASHSCOPE_MODEL`, a slug the region does not serve) cannot hide behind
+the one answering for it. The reply is billed at the model that answered.
+
 **Direct vendor keys.** If you hold a key from the vendor itself, Crew talks to
 that vendor directly rather than routing you through OpenRouter. Each of these
 speaks the OpenAI chat-completions wire, so they share one client — only the

@@ -182,9 +182,9 @@ fn finish(fold: Fold, program: &str, stderr: &str) -> Result<(String, Usage), St
         Usage {
             input_tokens: r.input_tokens,
             output_tokens: r.output_tokens,
-            // The plan covers it; a list-price figure would show a bill
-            // the user never gets.
-            cost_microusd: 0,
+            // No cost: the plan covers it, and a list-price figure would
+            // show a bill the user never gets.
+            ..Default::default()
         },
     ))
 }

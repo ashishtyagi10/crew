@@ -47,6 +47,7 @@ pub(crate) fn fan_out(
     let mut timings: Vec<(String, Duration)> = Vec::new();
     let mut replies: Vec<(String, String)> = Vec::new();
     let mut werr: anyhow::Result<()> = Ok(());
+    let mut told = super::fellback::Told::default();
     std::thread::scope(|s| {
         let (tx, rx) = mpsc::channel();
         for name in names {
@@ -80,6 +81,7 @@ pub(crate) fn fan_out(
                 state: "idle".into(),
                 from: String::new(),
             };
+            let mut fell = None;
             let (ev, stat) = match res {
                 Ok((reply, u)) => {
                     tokens += (prompt.len() + reply.len()) / 4;
@@ -88,18 +90,9 @@ pub(crate) fn fan_out(
                     tok_out += u64::from(u.output_tokens);
                     cost_microusd += u.cost_microusd;
                     timings.push((name.clone(), dt));
+                    fell = told.line(&name, &u);
                     // The agent's live reply stat, real usage when reported.
-                    let stat = PluginEvent::Stats {
-                        exchanges: 0,
-                        tokens: (u.input_tokens + u.output_tokens) as u64,
-                        agent: name.clone(),
-                        ms: dt.as_millis() as u64,
-                        ctx: u.input_tokens as u64,
-                        tok_in: u64::from(u.input_tokens),
-                        tok_out: u64::from(u.output_tokens),
-                        cost_microusd: u.cost_microusd,
-                        tools: None,
-                    };
+                    let stat = super::zerostat::with_usage(&name, dt, &u);
                     let clean = clean_reply(&reply);
                     replies.push((name.clone(), clean.clone()));
                     (reply_msg(&name, clean, dt), Some(stat))
@@ -121,7 +114,8 @@ pub(crate) fn fan_out(
                         Some(s) => emit(s),
                         None => Ok(()),
                     })
-                    .and_then(|()| emit(ev));
+                    .and_then(|()| emit(ev))
+                    .and_then(|()| fell.map_or(Ok(()), &mut *emit));
             }
         }
     });

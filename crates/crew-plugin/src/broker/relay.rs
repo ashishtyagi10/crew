@@ -45,6 +45,7 @@ pub(crate) fn relay_turn(
     let mut segments: Vec<(String, Duration)> = Vec::new();
     let mut answer: Option<String> = None;
     let mut werr: anyhow::Result<()> = Ok(());
+    let mut told = super::fellback::Told::default();
     let stats = broker.run("user", start, &body, tid, tick_emit, &mut |hop| {
         if hop.kind == HopKind::Done && !hop.text.is_empty() {
             answer = Some(hop.text.clone());
@@ -64,7 +65,7 @@ pub(crate) fn relay_turn(
                 let d = t0.elapsed();
                 latency = Some(d);
                 if werr.is_ok() {
-                    werr = emit(reply_stat(&agent, d, &hop));
+                    werr = emit(super::zerostat::with_usage(&agent, d, &hop.usage));
                 }
                 segments.push((agent, d));
             }
@@ -75,6 +76,10 @@ pub(crate) fn relay_turn(
         let silent = hop.kind == HopKind::Done && hop.text.trim().is_empty();
         if werr.is_ok() && !silent {
             werr = emit(hop_to_msg(&hop, latency));
+        }
+        // Under the reply it is about, once per agent a turn (`fellback`).
+        if let (Some(line), true) = (told.line(&hop.from, &hop.usage), werr.is_ok()) {
+            werr = emit(line);
         }
     });
     werr?;
@@ -116,22 +121,6 @@ pub(crate) fn relay_turn(
         from: String::new(),
     })?;
     Ok(answer)
-}
-
-/// One agent's live reply stat: its latency plus — when the backend reported
-/// usage — the hop's real token spend and prompt size (context fill).
-fn reply_stat(agent: &str, d: Duration, hop: &Hop) -> PluginEvent {
-    PluginEvent::Stats {
-        exchanges: 0,
-        tokens: (hop.usage.input_tokens + hop.usage.output_tokens) as u64,
-        agent: agent.to_string(),
-        ms: d.as_millis() as u64,
-        ctx: hop.usage.input_tokens as u64,
-        tok_in: u64::from(hop.usage.input_tokens),
-        tok_out: u64::from(hop.usage.output_tokens),
-        cost_microusd: hop.usage.cost_microusd,
-        tools: None,
-    }
 }
 
 /// How many different agents took a segment of the turn.

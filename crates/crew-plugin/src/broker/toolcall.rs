@@ -90,7 +90,8 @@ impl Broker {
     /// repair dial's when it ran) — each follow-up dial overwrites it with
     /// its own real usage, the same "latest wins" rule the primary dial uses
     /// for its own repair call, so the hop's reply-stat and context-fill
-    /// stay accurate through tool rounds.
+    /// stay accurate through tool rounds. A fallback any dial of the hop
+    /// made is kept ([`Usage::latest`]), so smith can still say so.
     ///
     /// `stream` is the SAME `HopStream` the primary dial was given (built
     /// once at the engine call site) — reused rather than rebuilt per
@@ -208,13 +209,8 @@ impl Broker {
             );
             match dialed {
                 Ok((r, u)) if !r.trim().is_empty() => {
-                    stats.exchanges += 1;
-                    stats.approx_tokens += (follow.len() + r.len()) / 4;
-                    stats.real_tokens += (u.input_tokens + u.output_tokens) as usize;
-                    stats.tok_in += u64::from(u.input_tokens);
-                    stats.tok_out += u64::from(u.output_tokens);
-                    stats.cost_microusd += u.cost_microusd;
-                    *usage = u; // latest context fill, mirroring the primary dial's repair call
+                    stats.add((follow.len() + r.len()) / 4, &u);
+                    usage.latest(u); // latest context fill, mirroring the primary dial's repair call
                     tick_base += (r.chars().count() as u64) / 4;
                     reply = r;
                 }

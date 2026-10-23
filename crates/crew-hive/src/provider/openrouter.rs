@@ -7,6 +7,7 @@
 use std::future::Future;
 use std::pin::Pin;
 
+use super::fellback::{attempt_chain, Walk};
 use super::openai_http::{request_with_retry, request_with_retry_streaming};
 use super::thinking;
 use super::{
@@ -25,24 +26,10 @@ pub struct OpenRouterProvider {
     /// endpoint via [`Self::with_endpoint`].
     endpoint: String,
     /// Fallback model chain: when the requested model is rate-limited or
-    /// unavailable, `complete` advances to the next slug here. Empty = no
-    /// fallback (just the request's own model, with transient retry).
+    /// unavailable, `complete` advances to the next slug here, and the reply
+    /// says what it skipped (`fellback`). Empty = no fallback (just the
+    /// request's own model, with transient retry).
     fallbacks: Vec<String>,
-}
-
-/// The ordered, de-duplicated models to try for one request: the requested model
-/// first, then each configured fallback not already present. Because free
-/// OpenRouter models route to *different* upstream providers, a different slug
-/// often dodges a provider-specific throttle even when the account-wide daily
-/// cap is shared.
-fn attempt_chain(primary: &str, fallbacks: &[String]) -> Vec<String> {
-    let mut chain = vec![primary.to_string()];
-    for m in fallbacks {
-        if !m.is_empty() && !chain.contains(m) {
-            chain.push(m.clone());
-        }
-    }
-    chain
 }
 
 /// The `messages` array shared by [`Provider::complete`] and
@@ -240,7 +227,7 @@ impl Provider for OpenRouterProvider {
             // Try each model in turn; a model that stays rate-limited or is
             // unavailable (retired free slug, upstream error) hands off to the
             // next. Only a missing key short-circuits — no model can fix that.
-            let mut last_err = ProviderError::Api("no model attempted".into());
+            let mut walk = Walk::default();
             for model in &chain {
                 let think = thinking::opt_in(&endpoint, false);
                 let body = super::tokencap::for_endpoint(
@@ -248,14 +235,12 @@ impl Provider for OpenRouterProvider {
                     build_body(model, &req, &messages, report_cost, think),
                 );
                 match request_with_retry(&client, &endpoint, &key, &body).await {
-                    // Billed at the model that answered, not the one asked
-                    // for first (`Completion::model`).
-                    Ok(c) => return Ok(c.served_by(model)),
+                    Ok(c) => return walk.answered(model, c),
                     Err(ProviderError::MissingKey(v)) => return Err(ProviderError::MissingKey(v)),
-                    Err(e) => last_err = e,
+                    Err(e) => walk.failed(model, e),
                 }
             }
-            Err(last_err)
+            walk.exhausted()
         })
     }
 
@@ -287,7 +272,7 @@ impl Provider for OpenRouterProvider {
         let report_cost = wants_cost(&endpoint);
         super::io::run(async move {
             let messages = build_messages(&req);
-            let mut last_err = ProviderError::Api("no model attempted".into());
+            let mut walk = Walk::default();
             for model in &chain {
                 let think = thinking::opt_in(&endpoint, true);
                 let body = super::tokencap::for_endpoint(
@@ -311,21 +296,21 @@ impl Provider for OpenRouterProvider {
                             build_body(model, &req, &messages, report_cost, think),
                         );
                         match request_with_retry(&client, &endpoint, &key, &body).await {
-                            Ok(c) => return Ok(c.served_by(model)),
-                            Err(e) => last_err = e,
+                            Ok(c) => return walk.answered(model, c),
+                            Err(e) => walk.failed(model, e),
                         }
                     }
-                    Ok(c) => return Ok(c.served_by(model)),
+                    Ok(c) => return walk.answered(model, c),
                     Err(ProviderError::MissingKey(v)) => return Err(ProviderError::MissingKey(v)),
                     Err(e) => {
                         if started.load(std::sync::atomic::Ordering::SeqCst) {
                             return Err(e);
                         }
-                        last_err = e;
+                        walk.failed(model, e);
                     }
                 }
             }
-            Err(last_err)
+            walk.exhausted()
         })
     }
 }

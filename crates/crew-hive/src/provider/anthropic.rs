@@ -198,9 +198,9 @@ impl AnthropicProvider {
             cached_input_tokens,
             cache_write_tokens,
             output_tokens: super::served::count(&usage["output_tokens"]),
-            cost_microusd: 0,
             calls,
             truncated,
+            ..Default::default()
         })
     }
 }
