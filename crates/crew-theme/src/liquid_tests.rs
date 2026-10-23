@@ -119,3 +119,23 @@ fn a_dark_palette_is_never_described_as_light() {
         );
     }
 }
+
+/// In a narrow picker only a description's start shows: `dark` and `light`
+/// both read "Ink Reader — an…", three glass rows "iPhone liquid…". Each
+/// row now starts with what sets it apart.
+#[test]
+fn no_two_picker_rows_start_alike() {
+    let modes: Vec<&str> = crate::THEME_MODES.iter().map(|m| m.describe()).collect();
+    let palettes: Vec<&str> = ALL_THEMES.iter().map(|t| t.describe()).collect();
+    for rows in [modes, palettes] {
+        let starts: Vec<String> = rows.iter().map(|d| d.chars().take(10).collect()).collect();
+        for (i, s) in starts.iter().enumerate() {
+            assert_eq!(
+                starts.iter().filter(|o| *o == s).count(),
+                1,
+                "{:?} starts like another",
+                rows[i]
+            );
+        }
+    }
+}

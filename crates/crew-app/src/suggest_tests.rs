@@ -166,11 +166,11 @@ fn theme_picker_describes_each_mode() {
     for (mode, desc) in [
         (
             "dark",
-            "Ink Reader \u{2014} an e-reader's black page, white words",
+            "black page, white words \u{2014} the Ink Reader, an e-reader's look",
         ),
         (
             "light",
-            "Ink Reader \u{2014} an e-reader's white page, black words",
+            "white page, black words \u{2014} the Ink Reader, an e-reader's look",
         ),
         ("crt", "rotating CRT phosphor themes"),
     ] {

@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.70
+
+**`/theme` in a narrow tile: every row's description says what sets it apart.**
+- Cut to fit a narrow picker, the descriptions showed their start, and the starts were the same:
+  `dark` and `light` both read "Ink Reader — an…", the glass rows "iPhone liquid…", the tubes
+  "neon green…" and "neon amber…". Each now leads with what differs: "black page…", "white
+  page…", "clear smoked…", "lightly smoked…", "navy-smoked…", "green phosphor…", "amber
+  phosphor…". A test keeps any two rows from starting alike.
+
 ## 0.28.69
 
 **`/inbox`: a due agent smith writes with a `T` is kept.**
