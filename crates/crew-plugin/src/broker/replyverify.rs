@@ -5,21 +5,20 @@
 //! "rename relative_luminance … and make sure cargo test -p crew-theme
 //! passes"), a turn renamed two of three files, never ran the tests, and
 //! answered that the rename was complete. The router already says when a
-//! request states a checkable condition (`VERIFY: yes`); a reply now gets the
-//! same ONE bounded judge call a swarm does. The judge reads the request, the
+//! request states a checkable condition (`VERIFY: yes`); a reply now gets a
+//! bounded judge the way a swarm does. The judge reads the request, the
 //! answer and what the turn's tools did (`turnproof`), and a claim no tool
 //! result shows is not enough. `MET` is one quiet line. `NOT MET` is one
-//! quiet line and one more turn of the same agent on the gap the judge named;
-//! that turn is not judged, so one stubborn verdict cannot become a loop.
+//! quiet line and one more turn of the same agent on the gap the judge named,
+//! and that revision is judged as the first turn was (`replyloop`).
 //!
 //! Keyless and mock runs get no judge (routing's gates), and a judge that
 //! errors is one quiet line, never a failed turn.
 use std::sync::Arc;
 
-use super::constructs::parse_verdict;
-use super::relay::msg;
 use super::session::Session;
 use crate::PluginEvent;
+use replyloop::Turn;
 
 /// Output ceiling for the verdict: one line, with room for a reason.
 const JUDGE_MAX_TOKENS: u32 = 384;
@@ -27,7 +26,8 @@ const JUDGE_MAX_TOKENS: u32 = 384;
 const ANSWER_CAP: usize = 2_500;
 const LEAD: &str = "agent smith";
 
-/// Answer `task` as one agent's reply and, when `verify`, judge it once.
+/// Answer `task` as one agent's reply and, when `verify`, judge it until it
+/// holds (`replyloop::run`).
 pub(crate) fn reply(
     task: &str,
     pick: Option<&str>,
@@ -39,39 +39,18 @@ pub(crate) fn reply(
     let judge = verify
         .then(|| super::intent::live_call_at(JUDGE_MAX_TOKENS, crew_hive::ModelTier::Standard))
         .flatten();
-    super::turnproof::start();
-    let answer = super::stdio::relay_answer(task, pick, session, tick_emit, emit)?;
-    let (Some(judge), Some(answer)) = (judge, answer) else {
-        return Ok(());
+    // Each turn's proof is its own: the log starts empty before it runs.
+    let mut turn = |t: &str, emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>| {
+        super::turnproof::start();
+        let answer = super::stdio::relay_answer(t, pick, session, tick_emit, emit)?;
+        let proof = super::turnproof::lines();
+        anyhow::Ok(answer.map(|answer| Turn { answer, proof }))
     };
-    emit(activity("thinking", "user"))?;
-    let verdict = judge(&prompt(task, &super::turnproof::lines(), &answer));
-    let gap = match verdict {
-        Ok((reply, _)) => match parse_verdict(&reply) {
-            (true, why) => {
-                emit(msg(LEAD, said("verified", &why)))?;
-                None
-            }
-            (false, why) => {
-                emit(msg(LEAD, said("not yet", &why)))?;
-                Some(why)
-            }
-        },
-        Err(e) => {
-            let e = super::route::clip(&e, 120);
-            emit(msg(LEAD, format!("could not verify: {e}")))?;
-            None
-        }
+    let Some(judge) = judge else {
+        return turn(task, emit).map(|_| ());
     };
-    emit(activity("idle", ""))?;
-    match gap {
-        Some(why) if !session.cancelled() => {
-            super::turnproof::start();
-            super::stdio::relay_answer(&revise(task, &why), pick, session, tick_emit, emit)
-                .map(|_| ())
-        }
-        _ => Ok(()),
-    }
+    let judge = |p: &str| judge(p).map(|(reply, _)| reply);
+    replyloop::run(task, &judge, &mut turn, &|| session.cancelled(), emit)
 }
 
 /// The judge's brief: the request, what the tools did, the answer, and the
@@ -92,7 +71,7 @@ pub(crate) fn prompt(task: &str, proof: &str, answer: &str) -> String {
     )
 }
 
-/// The second turn's task: the gap first, then the request it serves.
+/// A revision's task: the gap first, then the request it serves.
 pub(crate) fn revise(task: &str, why: &str) -> String {
     format!(
         "A check of your last turn found: {why}\nDo only what closes that gap, and run \
@@ -116,6 +95,9 @@ fn activity(state: &str, from: &str) -> PluginEvent {
         from: from.into(),
     }
 }
+
+#[path = "replyloop.rs"]
+mod replyloop;
 
 #[cfg(test)]
 #[path = "replyverify_tests.rs"]

@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.13
+
+**The reply judge checks until it holds, and stops when nothing moves.**
+- When a request states something to check (tests passing, say) and one agent answers it,
+  the judge used to send a `not yet` back once and never look at the revision. Now each
+  revision is judged too, up to three checks, so the work goes back while the judge still
+  names a gap. It stops early, with one `stopped checking — …` line, when the judge names
+  the same gap twice (no progress) or a revision ran no tool and answered as before.
+  Swarms and plans still revise once.
+- From Claude Code's `/goal` and judged Stop hooks, and the no-progress limit of Codex goals.
+
 ## 0.28.12
 
 **Reminders: a new "pay rent" is no longer ticked off by last month's.**
