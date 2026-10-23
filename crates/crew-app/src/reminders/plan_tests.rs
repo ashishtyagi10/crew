@@ -143,6 +143,30 @@ fn a_reminder_whose_id_changed_is_found_again_by_its_title() {
     assert_eq!(p.pairs[0].rem, "new-id");
 }
 
+/// The mirror case: a `todos.toml` that will not load (a write cut off by a
+/// crash, a field an older build cannot read) reads as no todos, and the
+/// sync's first pass at launch planned a `DropRem` for every reminder —
+/// Reminders, the last good copy, wiped. Now the open ones come back.
+#[test]
+fn crew_answering_empty_never_deletes_the_reminders() {
+    let pairs = [
+        pair(1, "r1", open("a")),
+        pair(2, "r2", open("b")),
+        pair(3, "r3", f("c", true, None)),
+    ];
+    let rems = [
+        ("r1".to_string(), open("a")),
+        ("r2".into(), open("b")),
+        ("r3".into(), f("c", true, None)),
+    ];
+    let p = plan(&[], &rems, &pairs);
+    let back = |rem: &str, t: &str| Step::NewTodo {
+        rem: rem.into(),
+        f: open(t),
+    };
+    assert_eq!(p.steps, [back("r1", "a"), back("r2", "b")], "none dropped");
+}
+
 #[test]
 fn reminders_answering_empty_never_deletes_the_todo_list() {
     let pairs = [pair(1, "r1", open("a")), pair(2, "r2", open("b"))];

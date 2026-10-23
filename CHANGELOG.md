@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.10
+
+**A todo list that will not load never wipes your Reminders.**
+- `/todo reminders` read a `todos.toml` it could not parse (a write cut off by a crash, a field
+  an older build cannot read) as an empty list, and its first pass deleted every reminder in
+  the `crew` list: the last good copy, gone. Now, when every paired todo vanishes at once,
+  the sync forgets the pairs and the open reminders come back as todos, the same guard that
+  already kept an empty answer from Reminders from wiping the todo list.
+
 ## 0.28.9
 
 **One-shot AI calls answer in seconds: no unseen thinking.**
