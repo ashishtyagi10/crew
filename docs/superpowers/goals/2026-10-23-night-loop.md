@@ -334,3 +334,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   in the same turn; an edit is all or nothing, so it could only fail the same way.
 - **`Seen::missed`** remembers a failed edit until anything is written, and the relay answers
   the repeat with the first failure and its reason. Unit tests only.
+
+**Round I15 (v0.28.61): "e archives this mail" only over the mail you unsubscribed from.**
+
+- **The second inbox/todo audit** (finding 7): an unsubscribe answered after `n` offered `e`
+  over the next thread, and `e` archived it. The offer now needs the sender's mail open.

@@ -163,7 +163,15 @@ impl InboxPane {
                 }
             }
             Got::Unsubscribed(who) => {
-                self.note = format!("unsubscribed from {who} \u{b7} e archives this mail");
+                // `e` only over the mail it was from: answered after `n`, it
+                // was offered over another thread, and `e` archived that one.
+                let from = |m: &super::api::Mail| super::wire::sender_name(&m.from) == who;
+                let mails = self.reading.as_ref().and_then(|r| r.mails.as_deref());
+                let here = mails.is_some_and(|m| m.iter().any(|m| m.unsub.is_some() && from(m)));
+                self.note = format!("unsubscribed from {who}");
+                if here {
+                    self.note.push_str(" \u{b7} e archives this mail");
+                }
             }
             Got::Failed(e) if self.rows.is_empty() && self.reading.is_none() => {
                 // Nothing listed: the list's own place says what went wrong.
