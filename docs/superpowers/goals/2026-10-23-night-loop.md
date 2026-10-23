@@ -356,3 +356,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The second inbox/todo audit** (also noted): `5 pm` with a space parsed as nothing.
   `clockword::joined` makes a clock and its am/pm one token, in every reader of a due.
+
+**Round A13 (v0.28.65): `/doctor` says what your tool hooks are.**
+
+- **A5's follow-up**: a `hooks.json` that will not load blocks every call, and nothing said so.
+  `/doctor` has a `hooks` line: off, none, how many, or ✗ with the file's error.

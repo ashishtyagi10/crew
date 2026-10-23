@@ -54,6 +54,8 @@ pub(crate) struct DoctorInputs {
     pub recall: (usize, usize, usize, usize),
     /// The project's own instruction files, by name (`agentsmd`).
     pub instructions: Vec<String>,
+    /// The user's tool hooks: off, none, how many, or a file that blocks.
+    pub hooks: (char, String),
 }
 
 /// One report line: `✓` when healthy, `✗` when broken, `–` for "absent but
@@ -192,28 +194,9 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
     } else {
         line('–', "sys tools", "disabled (CREW_SYS_TOOLS=0)")
     });
-    // The session line `/status` used to carry. `~n/turn` only once there is a
-    // turn to average over — a `0/turn` reading would be meaningless, and
-    // turns == 0 would divide by zero.
-    let per_turn = match i.tokens.checked_div(i.turns) {
-        Some(avg) => format!(" (~{avg}/turn)"),
-        None => String::new(),
-    };
-    let budget = if i.budget == 0 {
-        "unlimited budget".to_string()
-    } else {
-        format!("~{} tok budget", i.budget)
-    };
-    out.push(line(
-        '✓',
-        "session",
-        &format!(
-            "{} turn{} · ~{} tok{per_turn} · {budget}",
-            i.turns,
-            if i.turns == 1 { "" } else { "s" },
-            i.tokens,
-        ),
-    ));
+    out.push(line(i.hooks.0, "hooks", &i.hooks.1));
+    let session = super::doctorsession::detail(i.turns, i.tokens, i.budget);
+    out.push(line('✓', "session", &session));
     out.join("\n")
 }
 

@@ -3109,7 +3109,8 @@ block, so a formatter or a linter answers back in the same turn; a post hook
 never fails a call. The file is read on every call, so an edit counts from the
 next one, and a file that does not parse — a misspelt key included — refuses
 every call and says so, rather than leaving a guard you think is on switched
-off. `CREW_HOOKS=0` turns hooks off entirely.
+off. `CREW_HOOKS=0` turns hooks off entirely. `/doctor` has a `hooks` line: off,
+none, how many run before and after a call, or a file that will not load.
 
 **Built-in sys tools.** Agents can touch the workspace without any MCP server:
 five bounded tools ride the same `@tool` surface — **`sys:run`** (one

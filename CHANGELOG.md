@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.65
+
+**`/doctor` says what your tool hooks are.**
+- 0.28.40's hooks are read from your own `hooks.json`, and one that will not load blocks every
+  tool call until it is fixed. Nothing said whether the file was read, how many hooks it held,
+  or that it was the reason every call came back "blocked by hook". `/doctor` now has a `hooks`
+  line: off (`CREW_HOOKS=0`), none (and where to put them), how many run before and after a
+  call, or ✗ with what is wrong with the file.
+
 ## 0.28.64
 
 **`/todo`: "call mom at 5 pm" is due at five.**
