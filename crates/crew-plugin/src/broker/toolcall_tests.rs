@@ -210,9 +210,9 @@ fn run_tools_stops_at_the_round_cap() {
         reply, "again",
         "the answer is the text above the unrun call"
     );
-    // …and SAYS the budget ran out. The last request was never run; without
-    // this the turn just stopped, with nothing anywhere explaining why it
-    // ended mid-sequence.
+    // …and SAYS the budget ran out. The last request ran, but no dial read
+    // it; without this the turn just stopped, with nothing anywhere
+    // explaining why it ended mid-sequence.
     let note = hops
         .iter()
         .find(|h| h.kind == HopKind::Terminated)
@@ -223,7 +223,7 @@ fn run_tools_stops_at_the_round_cap() {
             )
         });
     assert!(note.text.contains("tool budget spent"), "{}", note.text);
-    assert!(note.text.contains("not run"), "{}", note.text);
+    assert!(note.text.contains("its last request ran"), "{}", note.text);
 }
 
 /// An agent that finishes inside its budget is told nothing about budgets —

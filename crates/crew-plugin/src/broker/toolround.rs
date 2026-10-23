@@ -85,8 +85,8 @@ pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> Exc
 /// the one statement of it, so the follow-up cannot disagree with it.
 pub(super) fn next_step(left: u32) -> String {
     match left {
-        0 => "That was your LAST round of tool calls this turn: answer now with \
-              what you have, and end the answer as HOW TO REPLY says."
+        0 => "That was your LAST round of tool calls this turn: answer now, and end \
+              the answer as HOW TO REPLY says. A call you add runs, but you never see its result."
             .to_string(),
         n => format!(
             "You may make {n} more round(s) of tool calls this turn, up to {} \

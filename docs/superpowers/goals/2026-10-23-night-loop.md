@@ -476,3 +476,12 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The third inbox/todo audit** (also noted): the add note read "(due Fri Oct 23)" for a
   deadline already late. It says ", passed" and the year when not this one; `handoff`'s doc line
   is back where I19 moved it from.
+
+**Round A16 (v0.28.86): a budget stop runs its last request, and a revision starts from the tools' record.**
+
+- **AI survey 2** (#1, from Claude Code `/goal` and Codex goals): 22 of 22 budget stops asked
+  for one more batch, which was dropped, and the judge then asked for the run it never saw. The
+  batch runs now, unread, and the revision turn is given the last turn's tool lines.
+- **Live** (compile task, advisor off, ×3): all 6 budget stops ran their last batch, and the
+  judge's gap named the test result; the old build dropped it in both of its runs. Unsolved in
+  both builds.

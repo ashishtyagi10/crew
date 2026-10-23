@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.86
+
+**Agents: when the tool budget runs out, the last request still runs, and a follow-up turn starts from what the tools did.**
+- After the last round of tool calls the agent is told to answer. Every time it hit the budget
+  on Oct 23 (22 of 22) it asked for one more batch anyway, usually its edits and the test run,
+  and that batch was dropped unrun. The answer then claimed work that had never happened, and
+  the reply check asked again for the run it never saw. The batch now runs, through the same
+  cards, approval and hooks as any call. Nothing reads its results, and the note says so: "its
+  last request ran, but nothing read the results".
+- When the reply check sends the agent back, the follow-up turn now gets the last turn's tool
+  record (its last 12 calls and how each came back) as well as the gap. Before, it started from
+  the gap alone, and 7 of 19 opened by re-running the test the last turn had just run.
+- The idea comes from Claude Code `/goal` and Codex goals, where a continuation starts from the
+  session's own tool results. Live, the compile-error task with the advisor off: in all 6
+  budget stops across 3 runs the last batch ran. In the old build's two runs it was dropped
+  both times, and the check then asked for the test run it had not seen. The task stayed
+  unsolved in both builds. The swarm's workers keep their own budget path, a last answer
+  without tools.
+
 ## 0.28.85
 
 **`/inbox`: a todo filed with a passed due says it has passed.**

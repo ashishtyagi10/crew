@@ -88,7 +88,7 @@ pub(crate) fn run(
         if stopped() {
             break;
         }
-        let Some(next) = turn(&revise(task, &gap), emit)? else {
+        let Some(next) = turn(&revise(task, &gap, &last.proof), emit)? else {
             break;
         };
         if next.proof.trim().is_empty() && words(&next.answer) == words(&last.answer) {

@@ -28,7 +28,11 @@ fn a_turn_with_no_calls_says_so_rather_than_nothing() {
 /// The second turn leads with the gap and still carries the whole request.
 #[test]
 fn the_revision_names_the_gap_then_the_request() {
-    let r = super::revise("rename x to y; tests must pass", "the tests were never run");
+    let r = super::revise(
+        "rename x to y; tests must pass",
+        "the tests were never run",
+        "",
+    );
     assert!(
         r.starts_with("A check of your last turn found: the tests were never run\n"),
         "{r}"
@@ -37,6 +41,23 @@ fn the_revision_names_the_gap_then_the_request() {
         r.ends_with("THE REQUEST:\nrename x to y; tests must pass"),
         "{r}"
     );
+}
+
+/// The revision is told what the last turn's tools did, its last lines,
+/// so it starts from there rather than re-running the check to find out.
+#[test]
+fn the_revision_starts_from_what_the_last_turn_did() {
+    let proof: String = (1..=14)
+        .map(|i| format!("{i}. sys:read_file {{\"path\": \"{i}.rs\"}} \u{2192} ok: \n"))
+        .collect();
+    let r = super::revise("fix it", "the tests were never run", &proof);
+    assert!(
+        r.contains("WHAT YOUR LAST TURN'S TOOLS DID (the last 12 of 14):\n3. sys:read_file"),
+        "{r}"
+    );
+    assert!(r.contains("14.rs"), "{r}");
+    assert!(!r.contains("\"2.rs\""), "only the last 12: {r}");
+    assert!(r.ends_with("THE REQUEST:\nfix it"), "{r}");
 }
 
 #[test]

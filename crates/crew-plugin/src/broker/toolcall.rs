@@ -154,9 +154,6 @@ impl Broker {
             if self.cancelled() {
                 return super::toolround::stopped_answer(&said, made);
             }
-            if used >= max_rounds {
-                break said;
-            }
             // A batch runs as far as the per-reply cap; the rest are answered.
             let fit = calls.len().min(PER_REPLY);
             for call in calls[..fit].iter().filter(|c| super::planout::carded(c)) {
@@ -182,6 +179,11 @@ impl Broker {
             }
             exchanges.push_round(round);
             (used, made) = (used + 1, made + fit as u32);
+            // Past the budget the batch still ran (22 of 22 budget stops asked
+            // for one, 2026-10-23): its edits and check are the answer's proof.
+            if used > max_rounds {
+                break said;
+            }
             // The advisor reads a failed check before the stop is looked at (`advise`).
             let advice = advisor.read(runner, env, &calls[..fit], &ran, stats, self.cancelled());
             // A stop pressed while the tools ran, or the advisor read them: no
@@ -229,17 +231,15 @@ impl Broker {
                 }
             }
         };
-        // Out of the loop means the last reply asked for MORE tools and the
-        // budget is gone. It used to be returned as-is: the pane showed an
-        // agent's unrun `@tool` line as its answer, with nothing anywhere
-        // saying why it stopped halfway through what it was doing. Now the
-        // note says why, and the answer is the text above the calls.
+        // Out of the loop: the last reply asked for more tools past the
+        // budget. It used to be returned as-is, raw `@tool` lines and all,
+        // with nothing saying why it stopped; the answer is the text above.
         sink(back(
             env,
             HopKind::Terminated,
             format!(
                 "tool budget spent \u{2014} {max_rounds} rounds of tool calls in \
-                 one turn; the last request was not run"
+                 one turn; its last request ran, but nothing read the results"
             ),
         ));
         super::toolround::budget_answer(&before, max_rounds)
