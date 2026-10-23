@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.60
+
+**An agent that resends an edit that just failed is told, not charged a round.**
+- An edit changes every place it names or none, so one that failed changed nothing, and sent
+  again to the same file it can only fail the same way. Agents send it again anyway: 24 of the
+  28 edits tonight's probes sent twice repeated one that had just failed, 23 in the same turn.
+  Now the repeat is not run; the agent is answered with the first failure, `the same edit
+  failed in round 3, and nothing has been written since …`, and its reason, which since
+  0.28.50 shows the line it probably meant. Once anything is written, the edit runs again.
+- From Codex's and Claude Code's repeated-call guards, and crew's own for repeated reads.
+
 ## 0.28.59
 
 **`/todo`: `e` then Enter leaves a todo as it was.**
