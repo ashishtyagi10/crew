@@ -4,7 +4,9 @@
 //! read as of the day its mail was sent. A day's or a week's end is read as
 //! people mean it: "EOD" is that day at 5pm, "end of the week" that Friday at
 //! 5pm, "next Friday" the Friday of the week after. A date that reads two
-//! ways ("10/11") is not a date `/todo` reads, so it is left blank.
+//! ways ("10/11") is not a date `/todo` reads, so it is left blank. A month
+//! and day is the one nearest the mail's day, so a deadline already passed
+//! when it was written stays passed.
 use chrono::{Datelike, Duration, Local, NaiveDateTime};
 
 use super::super::super::api::Mail;
@@ -54,8 +56,12 @@ pub(super) fn guess(subject: &str, mails: &[Mail]) -> Guess {
 /// said, and the words it was read from ("by friday").
 pub(crate) fn deadline(text: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, bool, String)> {
     let lower = text.to_lowercase();
+    // A key starts a word: "lobby at 3pm" holds no "by", "overdue" no "due".
+    let starts_word = |i: usize| !lower[..i].ends_with(|c: char| c.is_alphanumeric());
     KEYS.iter()
-        .flat_map(|k| lower.match_indices(k).map(move |(i, _)| (*k, i + k.len())))
+        .flat_map(|k| lower.match_indices(k).map(move |(i, _)| (*k, i)))
+        .filter(|&(_, i)| starts_word(i))
+        .map(|(k, i)| (k, i + k.len()))
         .filter_map(|(k, i)| {
             // Sentence punctuation is not part of a date: "by Friday?".
             let words: Vec<&str> = lower[i..]
@@ -70,9 +76,22 @@ pub(crate) fn deadline(text: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, 
             }
             let h = duedate::find(phrase, at)?;
             let said: String = phrase.chars().skip(h.start).take(h.end - h.start).collect();
-            Some((h.due, h.has_time, format!("{k}{said}")))
+            Some((nearest(h.due, at, &said), h.has_time, format!("{k}{said}")))
         })
         .min_by_key(|d| d.0)
+}
+
+/// A month and day with no year, as the one nearest `at`. `/todo` reads
+/// "oct 15" as the next one, right for a todo typed today, wrong for a mail
+/// of Oct 20 saying it "was due by Oct 15": that landed a year out. Only a
+/// month and day can roll half a year ahead; "in 300 days" and a written
+/// year ("2027-10-15") mean what they say.
+fn nearest(due: NaiveDateTime, at: NaiveDateTime, said: &str) -> NaiveDateTime {
+    let written = said.starts_with("in ") || said.contains('-');
+    match due.with_year(due.year() - 1) {
+        Some(back) if !written && at - back < due - at => back,
+        _ => due,
+    }
 }
 
 /// A day's or week's end, or "next {weekday}", at the start of `phrase`.
@@ -124,12 +143,19 @@ fn invite(m: &Mail) -> Option<Guess> {
     })
 }
 
-/// `Fri Oct 24`, and its time when one was said.
+/// `Fri Oct 24`, its time when one was said, and its year when it is not
+/// this one: "Thu Oct 15" said nothing of which October.
 fn day(due: NaiveDateTime, timed: bool) -> String {
-    due.format(if timed {
-        "%a %b %-d %H:%M"
-    } else {
-        "%a %b %-d"
+    let year = due.year() != duedate::now_local().year();
+    due.format(match (timed, year) {
+        (true, false) => "%a %b %-d %H:%M",
+        (false, false) => "%a %b %-d",
+        (true, true) => "%a %b %-d %Y %H:%M",
+        (false, true) => "%a %b %-d %Y",
     })
     .to_string()
 }
+
+#[cfg(test)]
+#[path = "tododue_tests.rs"]
+mod tests;
