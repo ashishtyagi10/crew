@@ -25,7 +25,7 @@ use crate::PluginEvent;
 
 use super::session::Session;
 
-mod classify;
+pub(crate) mod classify;
 mod context;
 pub(crate) mod decision;
 mod fanout;

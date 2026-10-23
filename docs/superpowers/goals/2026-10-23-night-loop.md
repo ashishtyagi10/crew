@@ -417,3 +417,12 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The inbox audits' open item**: `invalid_grant` on a Calendar call showed raw; it reads as a
   turned-down sign-in now (`states::known`).
+
+**Round A14 (v0.28.77): when a run fails, a second model reads it and advises.**
+
+- **The advisor parked last night** (`feat/a5-advisor`, no gain then) was ported onto main in a
+  worktree lane (`feat/a14-advisor`): on a failed `sys:run`, at most twice a turn, a second
+  model's three lines join the next prompt; read before the stop check, never after `/stop`.
+- **Live, the compile-error task** (qwen-max engineer, qwen3.8-max advisor): with it 1 of 2
+  solved in 27 s (the advice named the uncommitted `f64` change; the agent reverted it), without
+  it 0 of 2, and 0 of 9 earlier tonight. Small numbers, and the first solve of the night.

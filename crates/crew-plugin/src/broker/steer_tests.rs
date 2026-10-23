@@ -104,3 +104,26 @@ fn the_section_lists_each_steer_after_its_heading() {
         format!("{HEAD}\n- also check the tests\n- no,\n  the other file\n{TAIL}\n\n")
     );
 }
+
+#[test]
+fn say_reaches_the_task_s_host_and_no_other_thread_s() {
+    let _t = turn();
+    let said: Log = Log::default();
+    let keep = Arc::clone(&said);
+    let _task = Taking::begin(Arc::new(move |ev| {
+        if let PluginEvent::Message { sender, text, .. } = ev {
+            keep.lock().unwrap().push(format!("{sender}: {text}"));
+        }
+    }));
+    say(crate::broker::relay::msg(
+        "agent smith",
+        "advised \u{b7} read the error",
+    ));
+    std::thread::spawn(|| say(crate::broker::relay::msg("agent smith", "elsewhere")))
+        .join()
+        .unwrap();
+    assert_eq!(
+        *said.lock().unwrap(),
+        ["agent smith: advised \u{b7} read the error"]
+    );
+}
