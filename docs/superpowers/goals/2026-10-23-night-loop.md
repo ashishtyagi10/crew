@@ -168,3 +168,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   second note. Replayed through `Broker::run`; unit tests only.
 - **Open, and bigger**: calls followed by prose and then more calls run only the last group,
   budget or not (`parse.rs`, `call_ending` needs the calls to end the text above them).
+
+**Round I6 (v0.28.38): `r` answers the right mail when someone's address holds yours.**
+
+- **The survey** (also noted): which mail a reply answers was decided by a substring, so
+  signed in as ann@, joann@'s mail was "yours" and `r` answered the one before it.
+- **Your whole address, any case** (`draft::answered`), as the rest of the inbox compares.

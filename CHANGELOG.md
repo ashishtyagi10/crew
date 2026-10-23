@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.38
+
+**`/inbox`: `r` answers the right mail when someone's address holds yours.**
+- A reply answers the last mail someone else sent, and "someone else" was any sender whose
+  address did not contain yours. Signed in as ann@, a mail from joann@ counted as your own, so
+  `r` answered the mail before it and left out whoever joann@ had added. Yours is now your
+  address, whole, in any case.
+
 ## 0.28.37
 
 **When the tool budget stops a turn, the answer says the budget stopped it.**

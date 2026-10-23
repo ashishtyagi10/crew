@@ -101,9 +101,10 @@ pub(crate) fn answer_all(thread_id: &str, mails: &[Mail], me: &str) -> Option<An
 }
 
 /// The message a reply answers: the last someone else sent, else the last.
+/// Yours by address, whole: as a substring, ann@'s own covered joann@'s.
 fn answered<'a>(mails: &'a [Mail], me: &str) -> Option<&'a Mail> {
-    let me = me.to_ascii_lowercase();
-    let theirs = |m: &&Mail| me.is_empty() || !m.from.to_ascii_lowercase().contains(&me);
+    let me = addr::address(me);
+    let theirs = |m: &&Mail| me.is_empty() || !addr::address(&m.from).eq_ignore_ascii_case(me);
     mails.iter().rev().find(theirs).or(mails.last())
 }
 
