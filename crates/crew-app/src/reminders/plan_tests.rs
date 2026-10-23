@@ -143,28 +143,17 @@ fn a_reminder_whose_id_changed_is_found_again_by_its_title() {
     assert_eq!(p.pairs[0].rem, "new-id");
 }
 
-/// The mirror case: a `todos.toml` that will not load (a write cut off by a
-/// crash, a field an older build cannot read) reads as no todos, and the
-/// sync's first pass at launch planned a `DropRem` for every reminder —
-/// Reminders, the last good copy, wiped. Now the open ones come back.
+/// Every paired todo deleted in one settle window (`d d d` on the last few)
+/// is deleted on the phone too. The guard that read it as a `todos.toml` that
+/// would not load brought them all back; that case is the store's to say now
+/// (`store::take_unreadable`), and the pass forgets the pairs for it.
 #[test]
-fn crew_answering_empty_never_deletes_the_reminders() {
-    let pairs = [
-        pair(1, "r1", open("a")),
-        pair(2, "r2", open("b")),
-        pair(3, "r3", f("c", true, None)),
-    ];
-    let rems = [
-        ("r1".to_string(), open("a")),
-        ("r2".into(), open("b")),
-        ("r3".into(), f("c", true, None)),
-    ];
+fn deleting_every_paired_todo_deletes_their_reminders() {
+    let pairs = [pair(1, "r1", open("a")), pair(2, "r2", open("b"))];
+    let rems = [("r1".to_string(), open("a")), ("r2".into(), open("b"))];
     let p = plan(&[], &rems, &pairs);
-    let back = |rem: &str, t: &str| Step::NewTodo {
-        rem: rem.into(),
-        f: open(t),
-    };
-    assert_eq!(p.steps, [back("r1", "a"), back("r2", "b")], "none dropped");
+    let gone = |rem: &str| Step::DropRem { rem: rem.into() };
+    assert_eq!(p.steps, [gone("r1"), gone("r2")]);
 }
 
 #[test]

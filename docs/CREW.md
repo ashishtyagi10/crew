@@ -2010,8 +2010,10 @@ longer aim at.
   too, but a done todo whose reminder Reminders cleared away stays in the
   history. Neither side wipes the other by coming back empty: if every
   paired reminder vanishes at once (an empty answer from Reminders) the open
-  todos go across again, and if every paired todo does (a `todos.toml` that
-  would not load) the open reminders come back as todos. Turning it on with
+  todos go across again, and a `todos.toml` that would not load is kept as
+  `todos.toml.bad` while the open reminders come back as todos. Deleting
+  your last few todos here deletes their reminders, however quickly. The
+  file is written whole or not at all (a new copy renamed into place). Turning it on with
   reminders already in the list pairs them by title rather than doubling
   them, an open one only with an open one: last month's done "pay rent" is
   history, and this month's new one is news. Delete the `crew` list in

@@ -61,6 +61,25 @@ fn unknown_fields_and_kinds_do_not_break_a_load() {
     let _ = std::fs::remove_file(&p);
 }
 
+/// A file that is there and will not load is not "no todos": it is said, and
+/// kept, so the sync can tell a deleted list from a broken one.
+#[test]
+fn a_file_that_will_not_load_is_said_and_kept_beside_it() {
+    let dir = std::env::temp_dir().join(format!("crew-todo-bad-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    let p = dir.join("todos.toml");
+    std::fs::write(&p, "[[items]]\nid = 7\ntitle = \"cut off mid-wri").unwrap();
+    assert!(read_at(Some(&p)).is_err());
+    assert_eq!(load_at(Some(&p)), Vec::new());
+    let bad = std::fs::read_to_string(dir.join("todos.toml.bad")).unwrap();
+    assert!(bad.contains("cut off mid-wri"), "{bad}");
+    assert_eq!(read_at(Some(&dir.join("absent.toml"))), Ok(Vec::new()));
+    save_at(Some(&p), &[item(1, "fresh")]);
+    assert_eq!(read_at(Some(&p)).unwrap().len(), 1);
+    assert!(!dir.join("todos.toml.tmp").exists(), "renamed into place");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn a_missing_file_is_an_empty_list() {
     let p = std::env::temp_dir().join("crew-todo-definitely-not-here.toml");

@@ -75,8 +75,7 @@ pub(crate) struct Plan {
 
 pub(crate) fn plan(todos: &[(u64, Fields)], rems: &[(String, Fields)], pairs: &[Pair]) -> Plan {
     let rems_gone = pairs.iter().all(|p| !rems.iter().any(|r| r.0 == p.rem));
-    let todos_gone = pairs.iter().all(|p| !todos.iter().any(|t| t.0 == p.todo));
-    let pairs = match pairs.len() >= 2 && (rems_gone || todos_gone) {
+    let pairs = match pairs.len() >= 2 && rems_gone {
         true => &[][..],
         false => pairs,
     };

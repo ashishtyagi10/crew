@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.29
+
+**Delete your last few synced todos and they stay deleted.**
+- With the Reminders sync on, deleting the last two or more todos quickly (`d d d` inside the
+  second and a half the sync waits for the list to settle) brought every one of them back: the
+  sync read "every paired todo gone at once" as a `todos.toml` that would not load and put the
+  open reminders back as todos. They now go from the phone as well.
+- A `todos.toml` that will not load is told apart from an empty one: it is kept as
+  `todos.toml.bad`, and the sync pairs again, so the open reminders come back. It used to be
+  read as an empty list and written over at the first change, history and all. The file is
+  now written to a copy and renamed into place, so a crash mid-write cannot cut it off.
+
 ## 0.28.28
 
 **Pane titles on glass and neon no longer sit half on a lit band.**
