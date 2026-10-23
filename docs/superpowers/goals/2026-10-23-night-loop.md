@@ -81,3 +81,13 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   way the rim stops at its notch. Lower half over a dark desktop: neon 2.5 → 5.4:1,
   glass-clear 5.2 → 7.3, glass-night 5.2 → 7.3, nebula 4.6 → 6.5, blossom 5.2 → 6.9; over a
   white one 2.3–3.5 → 4.6–4.9. Shots compared before and after; a source guard test.
+
+**Round I3 (v0.28.29): delete your last few synced todos and they stay deleted.**
+
+- **The survey** (findings 3 and 10): the sync's guard read "every paired todo gone at once"
+  as a `todos.toml` that would not load, so deleting the last two or more quickly brought them
+  all back; and a file that would not load was read as empty and written over at the first
+  change (`fs::write` truncates first, the very cut-off it feared).
+- **The store tells the two apart** (`read_at`, `take_unreadable`): a broken file is kept as
+  `todos.toml.bad` and the pass forgets the pairs once, so the open reminders come back; the
+  guard keeps only its Reminders half. Writes go through `todos.toml.tmp` and a rename.

@@ -6,7 +6,7 @@
 //! rewrite-on-save TOML (the `session.toml` precedent); concurrent crew
 //! *processes* are last-write-wins, documented in the goal.
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
@@ -24,16 +24,45 @@ pub(crate) fn path() -> Option<PathBuf> {
     dirs::config_dir().map(|d| d.join("crew").join("todos.toml"))
 }
 
-/// Load items from `p`; a missing or unreadable file is an empty list.
-pub(crate) fn load_at(p: Option<&Path>) -> Vec<TodoItem> {
-    let Some(p) = p else { return Vec::new() };
-    let Ok(text) = std::fs::read_to_string(p) else {
-        return Vec::new();
-    };
-    toml::from_str::<TodoFile>(&text).unwrap_or_default().items
+/// Set when `todos.toml` was there but would not load (a write cut off by a
+/// crash, a hand edit gone wrong). The list starts empty and the file is kept
+/// beside it as `todos.toml.bad`; the Reminders sync asks ([`take_unreadable`])
+/// and pairs again, so an empty list here is not read as every todo deleted.
+static UNREADABLE: AtomicBool = AtomicBool::new(false);
+
+/// Whether the list was loaded from a file that would not load, once.
+pub(crate) fn take_unreadable() -> bool {
+    UNREADABLE.swap(false, Ordering::Relaxed)
 }
 
-/// Rewrite `p` with `items` (creating the config dir if needed).
+/// Load items from `p`: a missing file is an empty list, and so is one that
+/// will not load, which is kept as `<name>.bad` and noted ([`UNREADABLE`]).
+pub(crate) fn load_at(p: Option<&Path>) -> Vec<TodoItem> {
+    read_at(p).unwrap_or_else(|()| {
+        if let Some(p) = p {
+            let _ = std::fs::copy(p, p.with_extension("toml.bad"));
+        }
+        UNREADABLE.store(true, Ordering::Relaxed);
+        Vec::new()
+    })
+}
+
+/// The items in `p`: none when there is no file, `Err` when one is there and
+/// will not load.
+pub(crate) fn read_at(p: Option<&Path>) -> Result<Vec<TodoItem>, ()> {
+    let Some(p) = p else { return Ok(Vec::new()) };
+    match std::fs::read_to_string(p) {
+        Ok(text) => toml::from_str::<TodoFile>(&text)
+            .map(|f| f.items)
+            .map_err(drop),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
+        Err(_) => Err(()),
+    }
+}
+
+/// Rewrite `p` with `items` (creating the config dir if needed), through a
+/// file beside it and a rename: a write cut off half-way is what leaves a
+/// `todos.toml` that will not load, and a rename is never half done.
 pub(crate) fn save_at(p: Option<&Path>, items: &[TodoItem]) {
     let Some(p) = p else { return };
     if let Some(dir) = p.parent() {
@@ -42,7 +71,10 @@ pub(crate) fn save_at(p: Option<&Path>, items: &[TodoItem]) {
     if let Ok(s) = toml::to_string(&TodoFile {
         items: items.to_vec(),
     }) {
-        let _ = std::fs::write(p, s);
+        let tmp = p.with_extension("toml.tmp");
+        if std::fs::write(&tmp, s).is_ok() {
+            let _ = std::fs::rename(&tmp, p);
+        }
     }
 }
 

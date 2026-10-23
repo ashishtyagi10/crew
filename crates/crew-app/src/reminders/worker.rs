@@ -99,6 +99,11 @@ fn pass(kit: &Kit) -> Result<usize, String> {
     let todos: Vec<(u64, Fields)> = (store::snapshot().iter())
         .map(|it| (it.id, Fields::of(it)))
         .collect();
+    if store::take_unreadable() {
+        // todos.toml would not load: no todos here is not every todo
+        // deleted, so the open reminders come back by title.
+        state.pairs.clear();
+    }
     let plan = plan::plan(&todos, &rems, &state.pairs);
     let mut made = Vec::new();
     let wrote = (|| {
