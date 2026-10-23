@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.21
+
+**`/disk`: the map no longer touches the header and the key line.**
+- The treemap ran flush from the path line above it to the key hint below, so the header's
+  descenders touched the first tiles and the last tiles sat on the keys. It now keeps half a
+  row clear of each.
+
 ## 0.28.20
 
 **Delete the crew list in Reminders, and it stays deleted.**
