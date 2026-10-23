@@ -111,7 +111,7 @@ fn live_bounded(
 /// `block_on` — so the first time a long session's log crossed its cap
 /// mid-swarm, the panic took the /smith worker down with its task still
 /// showing as running (2026-10-03).
-fn complete_once(
+pub(crate) fn complete_once(
     provider: &Arc<dyn crew_hive::Provider>,
     model: &str,
     prompt: &str,

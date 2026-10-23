@@ -144,6 +144,7 @@ impl Broker {
         let (mut used, mut made): (u32, u32) = (0, 0);
         // What the user typed while this turn ran (`steer`), kept for its rest.
         let mut steered: Vec<String> = Vec::new();
+        let mut advisor = super::toolround::advise::Advisor::default();
         let before = loop {
             let Some((said, calls)) = split_tool_calls(&reply) else {
                 return reply;
@@ -181,10 +182,12 @@ impl Broker {
             }
             exchanges.push_round(round);
             (used, made) = (used + 1, made + fit as u32);
-            // A stop pressed while the tools ran: no follow-up dial. Its
-            // tools are not undone, and one still running was waited for:
-            // `ToolRunner::call` takes no stop, and `sys:run` kills its
-            // child only at its own deadline.
+            // The advisor reads a failed check before the stop is looked at (`advise`).
+            let advice = advisor.read(runner, env, &calls[..fit], &ran, stats, self.cancelled());
+            // A stop pressed while the tools ran, or the advisor read them: no
+            // follow-up dial. Its tools are not undone, and one still running
+            // was waited for: `ToolRunner::call` takes no stop, and `sys:run`
+            // kills its child only at its own deadline.
             if self.cancelled() {
                 return super::toolround::stopped_answer(&said, made);
             }
@@ -193,7 +196,7 @@ impl Broker {
             let label = calls[fit - 1].label();
             let list = crew_hive::tools::todo::section(runner.checklist());
             steered.extend(super::steer::take());
-            let added = super::steer::section(&steered);
+            let added = super::steer::section(&steered) + &advice;
             let (follow, dialed) = self.dial_fitted(
                 agent,
                 &mut base,
@@ -215,11 +218,8 @@ impl Broker {
                     reply = r;
                 }
                 Ok(_) => {
-                    sink(back(
-                        env,
-                        HopKind::Error,
-                        "empty reply after tool call".into(),
-                    ));
+                    let why = "empty reply after tool call".to_string();
+                    sink(back(env, HopKind::Error, why));
                     return super::toolround::failed_answer(&said, "an empty reply");
                 }
                 Err(e) => {

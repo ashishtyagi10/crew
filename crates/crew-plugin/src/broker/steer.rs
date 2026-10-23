@@ -140,6 +140,15 @@ pub(crate) fn take() -> Vec<String> {
     texts
 }
 
+/// Tell the host `ev` from this thread's task, the way a taken steer is
+/// announced; nothing on a thread holding no [`Taking`]. The tool loop's way
+/// to a quiet line of its own (`toolround::advise`): its hops are cards.
+pub(crate) fn say(ev: PluginEvent) {
+    if let Some(emit) = TAKER.with(|t| t.borrow().clone()) {
+        emit(ev);
+    }
+}
+
 /// What this thread's task was told mid-run, as a section to follow the
 /// request in the swarm lead's closing brief and the judge's: the answer is
 /// written, and judged, against the request as the user left it. Empty when

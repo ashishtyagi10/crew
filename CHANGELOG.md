@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.77
+
+**When a build or test an agent runs fails, a second model reads it and advises.**
+- An agent that ran a command that failed would read files again, fix the one error in view
+  and run it again, round after round. Now, when a `sys:run` fails, a second model reads the
+  request, the calls so far and the failure, and writes up to three short lines of advice
+  that go with the agent's next prompt; smith says so in one line. At most twice a turn, and
+  never once you pressed `/stop`. `CREW_ADVISOR_MODEL` picks the model (else the provider's
+  capable one); `CREW_ADVISOR=0` turns it off.
+- Live, the compile-error task tonight's probes could not solve: with the advisor (qwen3.8-max)
+  one run of two was done in 27 s — the advice named the uncommitted change behind the errors,
+  and the agent reverted it — where every run without it, eleven tonight, ran out of time.
+- From Anthropic's advisor tool, Claude Code's `/advisor`, Amp's oracle and Codex's Guardian.
+
 ## 0.28.76
 
 **`/inbox`: a sign-in Google no longer honours reads as that, not `invalid_grant`.**

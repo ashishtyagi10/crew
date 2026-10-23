@@ -186,6 +186,10 @@ pub(super) fn never_ran(answer: String) -> String {
     )
 }
 
+/// What a second model makes of a failed check, for the follow-up.
+#[path = "advise.rs"]
+pub(super) mod advise;
+
 #[cfg(test)]
 #[path = "toolround_tests.rs"]
 mod tests;

@@ -706,6 +706,26 @@ The docked command bar supports:
   message typed during one stays queued as before. With several relay tasks
   running, the first to reach a round takes it. Backspace still takes a queued
   copy back — but a message the task already took has been read.
+  **A second model reads a failed check.** When a `sys:run` in agent smith's
+  tool loop exits non-zero — a build, a test run — a second model that only
+  reads is shown the request, the turn's calls one line each and the failure
+  cut to its error lines — a run cut for length keeps the line under its exit
+  line that names every error's place — and answers in at most three short
+  lines, because a weaker agent misreads a failure (qwen-max answered a type
+  error by reading files again, the error itself unread). The advice rides the
+  next follow-up after the tool exchanges, and every one after it until a
+  later failure's replaces it —
+
+      ADVICE (a second model read the failure; you decide):
+      - E0308 at src/a.rs:3: the caller wants &str — fix the call site, then rerun cargo build
+
+  — and the pane says `advised · <its first line>`. The agent decides what to
+  do with it: nothing is run, and the request is not changed. At most two reads
+  a turn; a read that fails or times out adds nothing and says nothing, and a
+  `/stop` pressed while the check ran or while it is read ends the turn before
+  the next dial, as it always has.
+  `CREW_ADVISOR=0` turns it off, `CREW_ADVISOR_MODEL` picks the model. Swarm
+  workers and CLI agents run their own loops and are not advised.
 
 - **Smart bare-input routing** — plain text (not a slash command, `cd`, or a
   prefix below) routes by context: if the focused pane is a **visible, idle
@@ -3623,6 +3643,10 @@ sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:edit`, `sys:list_d
 `sys:grep`, `sys:glob`, `sys:outline`, `sys:todo`, `sys:git`, `sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
 and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
 `CREW_SPILL=0` stops a long sys result being saved whole to `.crew/out/`;
+`CREW_ADVISOR=0` stops a second model reading a failed check for agent smith's
+tool loop (see **A second model reads a failed check**), and
+`CREW_ADVISOR_MODEL` names the model that reads it — by default the provider's
+capable tier: the chain head on DashScope, `claude-opus-5-5` on Anthropic;
 `CREW_HTTP_TIMEOUT_MS` (default 120000) is how long a provider may say
 NOTHING — the wait for the first byte, and each gap between two frames of a
 streamed reply — deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled
