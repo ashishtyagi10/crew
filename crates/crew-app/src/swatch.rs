@@ -4,8 +4,8 @@
 //! a list and pressing Enter to find out what they look like is the picker
 //! failing at the one thing a picker is for, so each row carries the thing it
 //! stands for: the gradient as a four-cell ramp between its poles, a theme
-//! mode as one chip per palette in its rotation — the page it puts up, with
-//! that palette's accent across the top half.
+//! mode as one chip per palette in its rotation — that palette's accent, a
+//! square on a cell of the page it puts up.
 use crew_theme::{RandomMode, ThemeId, ALL_THEMES};
 
 /// One cell of a swatch: a glyph in `fg` over `bg`.
@@ -75,27 +75,23 @@ fn pool_chips(m: RandomMode) -> Vec<Chip> {
         .collect()
 }
 
-/// A palette as one cell: its page underneath, `over` across the top half.
-/// Two colours in one column is what makes a dark pool's chips tell each other
+/// A palette as one cell: `over`, a square, on a cell of its page. Two
+/// colours in one cell is what makes a dark pool's chips tell each other
 /// apart — every one of their pages is nearly black.
 ///
-/// A glass palette's page is the glass, so its chip is `over` alone, a drawn
-/// square: under the half block, a page drawn as smoke went missing in some
-/// quadrants and not others, and a `Theme` value read as a broken glyph
-/// (glass survey D-L10).
+/// The square is whole, and the page goes round it. As a half block (`over`
+/// across the top, the page below) a chip whose `over` matched the page it
+/// was drawn on vanished by half: `dark`'s near-white accent on the light
+/// page left a black tooth, and on neon `auto` a lone white half (UI survey
+/// 2026-10-22, J7). A glass palette's page is the glass, so its chip is the
+/// square alone: a page drawn as smoke went missing in some quadrants and
+/// not others (glass survey D-L10).
 fn chip_of(id: ThemeId, over: Face) -> Chip {
     let t = id.theme();
-    match t.liquid {
-        Some(_) => Chip {
-            c: '\u{25a0}',
-            fg: over(t),
-            bg: None,
-        },
-        None => Chip {
-            c: '\u{2580}',
-            fg: over(t),
-            bg: Some(t.page_bg),
-        },
+    Chip {
+        c: '\u{25a0}',
+        fg: over(t),
+        bg: t.liquid.is_none().then_some(t.page_bg),
     }
 }
 

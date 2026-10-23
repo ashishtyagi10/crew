@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.14
+
+**Theme chips are whole squares, not black teeth.**
+- In `/settings` and the `/theme` picker a palette's chip was a half block: its accent across
+  the top, its page below. When the accent matched the page it was drawn on, half the chip
+  vanished, so `dark` showed as a black tooth on the light page and `auto` as a lone white
+  half on neon. Every chip is now a whole square in its colour, on a cell of the palette's
+  own page.
+
 ## 0.28.13
 
 **The reply judge checks until it holds, and stops when nothing moves.**

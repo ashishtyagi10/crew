@@ -49,7 +49,7 @@ fn a_theme_mode_shows_one_chip_per_palette_in_its_pool() {
     );
     let page = ThemeId::PaperDark.theme();
     let ink_chip = Chip {
-        c: '\u{2580}',
+        c: '\u{25a0}',
         fg: page.accent_default,
         bg: Some(page.page_bg),
     };
