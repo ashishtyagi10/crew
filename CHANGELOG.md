@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.96
+
+**`/inbox`: "due Friday by 5pm" is Friday at five, and "tomorrow by 10am" is tomorrow.**
+- In a mail, a day said just before "by" lost to the time after it. "The report is due Friday by
+  5pm" filed a todo due at five on the day the mail was sent, and "Can you send it tomorrow by
+  10am?" one due that morning. The day now goes with its time. A full stop between them still
+  separates them: "See you Friday. By 5pm, please." is five o'clock that day.
+
 ## 0.28.95
 
 **`/inbox`: "by the end of the day" is today at five, and "EOD Oct 30" is October 30.**

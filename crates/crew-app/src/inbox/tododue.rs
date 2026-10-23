@@ -78,12 +78,12 @@ pub(crate) fn deadline(text: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, 
             // and "signed by Ann on Oct 15" set no deadline. Cut back a word
             // at a time, so "by Friday, Oct 23" still reads Friday; a weekday
             // may lead the date it names: "by Friday, October 30".
+            let whole = |s: &str| {
+                duedate::find(s, at).filter(|w| w.start == 0 && w.end == s.chars().count())
+            };
             let led = |h: &duedate::DueHit, s: &str| {
                 let lead: String = s.chars().take(h.start).collect();
-                let lead = lead.trim_end();
-                let whole = duedate::find(lead, at)
-                    .is_some_and(|w| w.start == 0 && w.end == lead.chars().count());
-                h.start == 0 || whole
+                h.start == 0 || whole(lead.trim_end()).is_some()
             };
             let cuts: Vec<usize> = (phrase.match_indices(' ').map(|(j, _)| j))
                 .chain([phrase.len()])
@@ -93,14 +93,18 @@ pub(crate) fn deadline(text: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, 
                 duedate::find(s, at).filter(|h| led(h, s))
             })?;
             let said: String = phrase.chars().skip(h.start).take(h.end - h.start).collect();
+            // "tomorrow by 10am", "due Friday by 5pm": a day said just before
+            // the key is its time's day (a comma between them, not a stop).
+            let prev = (lower[..i - k.len()].split_whitespace().last())
+                .map_or("", |w| w.trim_end_matches(','));
+            let (h, quote) = match whole(&format!("{prev} {said}")).filter(|_| h.has_time) {
+                Some(w) => (w, format!("{prev} {k}{said}")),
+                None => (h, format!("{k}{said}")),
+            };
             // "was due by", "were due": an overdue notice.
             let before = lower[..i - k.len()].split_whitespace().rev().take(2);
             let was = before.into_iter().any(|w| w == "was" || w == "were");
-            Some((
-                nearest(h.due, at, &said, was),
-                h.has_time,
-                format!("{k}{said}"),
-            ))
+            Some((nearest(h.due, at, &said, was), h.has_time, quote))
         })
         .min_by_key(|d| d.0)
 }
@@ -157,3 +161,7 @@ fn day(due: NaiveDateTime, timed: bool) -> String {
 #[cfg(test)]
 #[path = "tododue_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tododuephrase_tests.rs"]
+mod phrase_tests;

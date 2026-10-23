@@ -538,3 +538,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The fourth inbox/todo audit** (finding 2): "the" was dropped after the words were counted,
   and only one word after "EOD" was read. Both are read whole now.
+
+**Round I34 (v0.28.96): "due Friday by 5pm" is Friday at five.**
+
+- **The fourth inbox/todo audit** (finding 1, inbox3's open sibling): a day just before "by"
+  goes with the time after it now; a full stop between them still separates them.
