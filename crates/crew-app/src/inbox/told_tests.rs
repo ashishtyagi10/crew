@@ -35,3 +35,12 @@ fn gmail_failures_read_as_before() {
     );
     assert_eq!(told("Gmail 418: teapot".into()), "Gmail 418: teapot");
 }
+
+/// A grant Google no longer honours reads as the sign-in it is.
+#[test]
+fn an_invalid_grant_reads_as_a_turned_down_sign_in() {
+    assert_eq!(
+        told("not added: invalid_grant: Token has been expired or revoked.".into()),
+        "not added: Gmail turned down crew\u{2019}s sign-in"
+    );
+}

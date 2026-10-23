@@ -412,3 +412,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The inbox audits' open item** (#8): a next page's unread went above the reader, unsaid, by
   the "unread on top" rule. The rule stands; the foot says `N more unread on top`.
+
+**Round I23 (v0.28.76): a sign-in Google no longer honours reads as that.**
+
+- **The inbox audits' open item**: `invalid_grant` on a Calendar call showed raw; it reads as a
+  turned-down sign-in now (`states::known`).

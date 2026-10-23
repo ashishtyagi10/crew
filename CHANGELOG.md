@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.76
+
+**`/inbox`: a sign-in Google no longer honours reads as that, not `invalid_grant`.**
+- When Google stops honouring crew's sign-in (revoked, or unused too long), the next call says
+  `invalid_grant`, and an invite added or answered then read "not added: invalid_grant: Token has
+  been expired or revoked." It now reads as the other turned-down sign-ins do, "not added: Gmail
+  turned down crew's sign-in", and the list's own check asks you to sign in again as before.
+
 ## 0.28.75
 
 **`/inbox`: unread mail a further page brings in says it went on top.**
