@@ -44,6 +44,14 @@ impl CellSel {
 /// Wash the background of every selected cell with `bg`. Only cells that carry a
 /// glyph exist in `cells`, so this highlights the actual text, not empty space.
 /// What is lit is what is copied: within `pane`'s reach ([`keeps`]).
+/// The wash a selection wears anywhere in crew: the terminal's
+/// (`readable::selection_bg`). The editor and the viewer washed theirs in
+/// the find highlight, so a selection there read as a search hit, and on
+/// the Ink Reader pages as a yellow one (UI survey 2026-10-22, J9).
+pub(crate) fn wash() -> (u8, u8, u8) {
+    crew_theme::readable::selection_bg(crew_theme::theme())
+}
+
 pub(crate) fn highlight(cells: &mut [CellView], sel: &CellSel, bg: (u8, u8, u8), pane: &Pane) {
     light(cells, sel, bg, keeps(pane, sel));
 }

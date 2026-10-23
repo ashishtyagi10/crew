@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.16
+
+**A selection looks like a selection in the editor and the viewer.**
+- The terminal draws a selection in the selection colour, but an editor pane and the file
+  viewer drew theirs in the find highlight, so selecting text there looked like a search hit
+  (yellow, on the Ink Reader's dark page). Both now wash a selection the way the terminal
+  does.
+
 ## 0.28.15
 
 **Agent smith's answer lands only on the mail it was about.**
