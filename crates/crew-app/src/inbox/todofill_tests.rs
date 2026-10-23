@@ -160,3 +160,18 @@ fn smiths_answer_lands_only_on_the_mail_it_was_about() {
         p.note
     );
 }
+
+/// smith's ISO due, `T` and all, is the date and time it says; one with a
+/// zone is not read as this machine's hour.
+#[test]
+fn an_iso_due_with_a_t_is_read() {
+    assert_eq!(
+        super::read_due("2026-10-23T17:00", &[]).as_deref(),
+        Some("2026-10-23 17:00")
+    );
+    assert_eq!(
+        super::read_due("2026-10-23T17:00:00", &[]).as_deref(),
+        Some("2026-10-23 17:00")
+    );
+    assert_eq!(super::read_due("2026-10-23T17:00Z", &[]), None);
+}

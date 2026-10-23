@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.69
+
+**`/inbox`: a due agent smith writes with a `T` is kept.**
+- Tab on the todo card asks agent smith to fill it, and crew checks each line it writes. A due
+  written the ISO way, `2026-10-23T17:00`, was not a date `/todo` reads, so it was dropped and
+  the card kept no due. It now reads as `2026-10-23 17:00`, seconds or not; one with a time zone
+  is still left out, as its hour is not yours.
+
 ## 0.28.68
 
 **`/theme` on the light page: faint colours are drawn paler, not boxed in black.**

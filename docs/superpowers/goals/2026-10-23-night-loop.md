@@ -377,3 +377,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The UI regression survey** (R3): U3 and U7's page cells became 12 px black capsules butting
   into the next chip. A faint glass face is now walked to 2:1 on the page and left bare.
+
+**Round I18 (v0.28.69): a due agent smith writes with a `T` is kept.**
+
+- **The second inbox/todo audit** (also noted): smith's `2026-10-23T17:00` on the todo card was
+  no date `/todo` reads and was dropped. `todofill::untee` reads it; a zoned one stays out.

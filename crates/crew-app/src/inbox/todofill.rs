@@ -55,6 +55,7 @@ fn known_project(name: &str, k: &Known) -> Option<String> {
 /// A due smith wrote, read whole as `/todo` reads a date, as of the newest
 /// mail: never taken on its word.
 fn read_due(text: &str, mails: &[Mail]) -> Option<String> {
+    let text = &untee(text);
     let at = mails
         .last()
         .map_or_else(crate::todopane::duedate::now_local, sent);
@@ -62,6 +63,22 @@ fn read_due(text: &str, mails: &[Mail]) -> Option<String> {
     crate::todopane::duedate::strip(text, h.start, h.end)
         .is_empty()
         .then(|| due_text(h.due, h.has_time))
+}
+
+/// `2026-10-23T17:00` (seconds or not) as `/todo` writes it, with a space:
+/// models write ISO's `T` as often as not, and the due was dropped for it.
+/// One with a zone is left as it is: its hour is not this machine's.
+fn untee(text: &str) -> String {
+    let t = text.trim();
+    let clock = |hm: &str| {
+        (hm.len() == 5 || hm.len() == 8) && hm.chars().all(|c| c.is_ascii_digit() || c == ':')
+    };
+    match t.split_once('T') {
+        Some((d, hm)) if d.len() == 10 && d.matches('-').count() == 2 && clock(hm) => {
+            format!("{d} {}", &hm[..5])
+        }
+        _ => t.to_string(),
+    }
 }
 
 #[cfg(test)]
