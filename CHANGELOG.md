@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.31
+
+**`/theme` on the light page: every palette's colours show, the white ones included.**
+- A see-through palette's chips are drawn alone, with no page under them, since a page drawn
+  as smoke on glass went missing in patches. On the light page that left each glass palette's
+  first chip, its near-white ink, at 1.1:1 on white: nebula, blossom, glass-clear and
+  glass-night showed five colours and a gap, and the phosphor greens and ambers barely showed.
+  A chip that would not read on the page it is drawn on now sits on its palette's own page;
+  the rest stay bare, and on glass nothing changes.
+
 ## 0.28.30
 
 **A turn of tool calls ending in a ```` ```sh ```` block of the next command still runs.**

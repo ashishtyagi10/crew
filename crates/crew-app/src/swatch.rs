@@ -83,17 +83,27 @@ fn pool_chips(m: RandomMode) -> Vec<Chip> {
 /// across the top, the page below) a chip whose `over` matched the page it
 /// was drawn on vanished by half: `dark`'s near-white accent on the light
 /// page left a black tooth, and on neon `auto` a lone white half (UI survey
-/// 2026-10-22, J7). A glass palette's page is the glass, so its chip is the
-/// square alone: a page drawn as smoke went missing in some quadrants and
-/// not others (glass survey D-L10).
+/// 2026-10-22, J7). A glass palette's page is the glass, so drawn ON glass
+/// its chip is the square alone: a page drawn as smoke went missing in some
+/// quadrants and not others (glass survey D-L10). On an opaque page a face
+/// that would not read there is drawn on its own page after all: a glass
+/// palette's first face is its near-white ink, which alone on the light page
+/// was a 1.1:1 blank (UI survey 2026-10-23). Only that one: every strip on
+/// its page made the picker a column of dark slabs.
 fn chip_of(id: ThemeId, over: Face) -> Chip {
-    let t = id.theme();
+    let (t, now) = (id.theme(), crew_theme::theme());
+    let face = over(t);
+    let faint = crew_theme::contrast_ratio(face, now.page_bg) < FAINT;
+    let bare = t.liquid.is_some() && (now.liquid.is_some() || !faint);
     Chip {
         c: '\u{25a0}',
-        fg: over(t),
-        bg: t.liquid.is_none().then_some(t.page_bg),
+        fg: face,
+        bg: (!bare).then_some(t.page_bg),
     }
 }
+
+/// Below this against the page a chip is drawn on, a face is not there.
+const FAINT: f32 = 1.5;
 
 /// One colour read off a palette — a face of it, for the strip below.
 type Face = fn(&crew_theme::Theme) -> (u8, u8, u8);

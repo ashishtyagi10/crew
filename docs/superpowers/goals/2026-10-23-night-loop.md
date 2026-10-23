@@ -103,3 +103,14 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   never met the shape; they ended on the 8-round budget, or on edits described with no calls.
   Seen on the way, left open: after a budget stop the "not run" note says the turn ended
   before any call ran, which names the wrong cause (`toolround.rs`).
+
+**Round U3 (v0.28.31): `/theme` on the light page shows every palette's colours.**
+
+- **The survey** (finding 4): a glass palette's chips are drawn with no page under them (smoke
+  cells on glass went missing in patches, D-L10), so on the light page each one's first chip,
+  its near-white ink, read 1.1:1. Its suggested fix (every glass chip on its page there) made
+  the picker a column of dark slabs, since every mode is see-through now, the CRTs included.
+- **Only a chip that would not read on the page it is drawn on gets its own page**
+  (`swatch::chip_of`, under 1.5:1): the glass inks and the brightest phosphor faces. Nebula's
+  survey item (its chips washed by a bloom twice glass-clear's) is left for later: the fix is
+  either its bloom (its look) or deeper fills (the mark floor), both bigger than a round.

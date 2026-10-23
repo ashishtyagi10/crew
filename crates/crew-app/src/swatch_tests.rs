@@ -64,11 +64,31 @@ fn a_theme_mode_shows_one_chip_per_palette_in_its_pool() {
 #[test]
 fn on_glass_a_chip_is_its_face_alone() {
     let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(ThemeId::GlassClear);
     for id in ALL_THEMES.iter().filter(|id| id.theme().liquid.is_some()) {
         let chips = for_value("/theme", id.as_str());
         assert!(!chips.is_empty());
         for (i, c) in chips.iter().enumerate() {
             assert_eq!((c.c, c.bg), ('\u{25a0}', None), "{} chip {i}", id.as_str());
+        }
+    }
+}
+
+/// On the light page a glass palette's near-white ink carries its own page:
+/// alone it read 1.1:1 on white, and the strip showed five colours and a gap.
+/// The faces that read there stay bare, as on glass.
+#[test]
+fn on_an_opaque_page_a_faint_glass_chip_carries_its_own_page() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(ThemeId::PaperLight);
+    let page = crew_theme::theme().page_bg;
+    for id in ALL_THEMES.iter().filter(|id| id.theme().liquid.is_some()) {
+        for (i, c) in for_value("/theme", id.as_str()).iter().enumerate() {
+            let ground = c.bg.unwrap_or(page);
+            let cr = crew_theme::contrast_ratio(c.fg, ground);
+            assert!(cr >= 1.5, "{} chip {i}: {cr:.2} on {ground:?}", id.as_str());
+            let alone = crew_theme::contrast_ratio(c.fg, page) >= 1.5;
+            assert_eq!(c.bg.is_none(), alone, "{} chip {i}", id.as_str());
         }
     }
 }
