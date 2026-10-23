@@ -231,39 +231,20 @@ pub(crate) fn build_scene(
         let round = crate::corners::radius(cell_w, cell_h);
 
         // Overlay popups get a solid backdrop in the page's colour, drawn
-        // before their cell quads. The overlay pass runs after all base text,
-        // so this fully occludes anything behind — a 100%-opaque box. A
-        // per-cell bg wouldn't suffice: cells skip the bg quad when their
-        // colour is the default, and base text would still show through.
-        //
-        // It spans the FRAME, stroke to stroke and bent with its corners, as
-        // a pane's sheet does: out to the scene's rect it stood half a cell
-        // past the frame on every side (and a margin column more on a
-        // composer pop-up's right), a dark rim round the white line that
-        // read, on the glass, as a card set off-centre in a bigger black
-        // one (glass survey C#4). A scene with no rounded frame keeps its
-        // rect.
+        // before their cell quads (`popupback`): the overlay pass runs after
+        // all base text, and a per-cell bg would not do, as cells skip the bg
+        // quad when their colour is the default.
         if pane.overlay {
-            let bg = crew_theme::theme().page_bg;
-            let color = crate::color::target_rgba(bg, 1.0, srgb);
-            let (ix, iy) = (stroke_centre(cell_w, cell_h), stroke_centre(cell_h, cell_h));
-            let quad = match crate::corners::frame_box(&corners) {
-                Some((c0, r0, c1, r1)) => Quad {
-                    radii: [round; 4],
-                    ..Quad::rect(
-                        pane.x + f32::from(c0) * cell_w + ix,
-                        pane.y + f32::from(r0) * cell_h + iy,
-                        f32::from(c1 - c0) * cell_w,
-                        f32::from(r1 - r0) * cell_h,
-                        color,
-                    )
-                },
-                None => Quad {
-                    radii: [round + ix; 4],
-                    ..Quad::rect(pane.x, pane.y, pane.w, pane.h, color)
-                },
-            };
-            quads.push(quad);
+            let color = crate::color::target_rgba(crew_theme::theme().page_bg, 1.0, srgb);
+            quads.extend(crate::popupback::backdrop(
+                (pane.x, pane.y, pane.w, pane.h),
+                &pane.cells,
+                &corners,
+                (cell_w, cell_h),
+                stroke_inset(cell_w, cell_h),
+                round,
+                color,
+            ));
         }
 
         // The frosted sheet this pane sits on. Only card scenes get one — a

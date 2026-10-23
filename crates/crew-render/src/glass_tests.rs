@@ -141,3 +141,15 @@ fn the_frame_light_and_the_gloss_stop_at_a_legend() {
     let gloss = line("let g = clamp(gloss");
     assert!(gloss.contains("(1.0 - thick)"), "{gloss}");
 }
+
+/// No shadow under the words a card's legend puts outside it: a pop-up has
+/// no veil there, and its shadow drew a dark rule through the `/keys` hint.
+#[test]
+fn no_shadow_falls_under_a_legends_outer_half() {
+    let src = include_str!("glass.wgsl");
+    let at = src
+        .find("shadow = clamp(sh_alpha")
+        .expect("the shadow term");
+    let term = &src[at..at + src[at..].find(';').expect("unterminated")];
+    assert!(term.contains("max(body_in, words_out)"), "{term}");
+}

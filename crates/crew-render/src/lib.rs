@@ -24,6 +24,7 @@ mod images;
 pub mod notch;
 mod paint;
 mod picture;
+mod popupback;
 mod postfx;
 mod prewarm;
 mod quads;

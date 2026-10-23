@@ -284,6 +284,12 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // the page it was supposed to be lifting off (caught by `glass_headless`).
   let lift = clamp(in.extra.z, 0.0, MAX_LIFT);
   let well = clamp(-in.extra.z, 0.0, 1.0);
+  // Nor under the half of a legend's words outside the card, liquid or
+  // not: a pop-up has no veil there, its backdrop reaches out behind the
+  // words instead (`popupback`), and its shadow ran through them, a dark
+  // rule through the `/keys` hint on glass over a light desktop (2026-10-23).
+  let words_out = max(veil_spans(lx, -from_top, depth, in.nt0, in.nt1),
+                      veil_spans(lx, -from_bot, depth, in.nb0, in.nb1));
   var shadow = 0.0;
   if (sh_alpha > 0.0 && well == 0.0) {
     let dc = sd_round_box(in.local - vec2<f32>(0.0, CONTACT_DROP), in.hsize, radius);
@@ -291,7 +297,8 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
                           in.hsize, radius);
     let s = CONTACT_W * falloff(dc, CONTACT_BLUR)
       + AMBIENT_W * falloff(da, AMBIENT_BLUR + LIFT_BLUR * lift);
-    shadow = clamp(sh_alpha * (1.0 + LIFT_SHADOW * lift), 0.0, 1.0) * s * (1.0 - body_in);
+    shadow = clamp(sh_alpha * (1.0 + LIFT_SHADOW * lift), 0.0, 1.0) * s
+      * (1.0 - max(body_in, words_out));
   }
 
   // --- frosted fill ---------------------------------------------------------

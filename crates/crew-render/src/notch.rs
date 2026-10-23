@@ -34,17 +34,20 @@ fn is_rule(c: char) -> bool {
 /// the frame's corners (`1..cols - 1`), and only runs with a visible glyph:
 /// a stretch the rule merely has not reached yet (a frame still assembling)
 /// is not a legend.
-fn runs(cells: &[CellView], row: u16, cols: usize) -> Vec<(usize, usize)> {
+pub(crate) fn runs(cells: &[CellView], row: u16, cols: usize) -> Vec<(usize, usize)> {
     if cols < 3 {
         return Vec::new();
     }
     // What stands in each column: None = blank, Some(true) = rule,
     // Some(false) = a glyph.
+    // The later cell at a column is the one drawn: a legend pushed over the
+    // frame's row puts its spaces on top of the rule, and read as rule they
+    // split ` esc · type ` into a run per word (UI survey 2026-10-23).
     let mut line: Vec<Option<bool>> = vec![None; cols];
     for c in cells.iter().filter(|c| c.row == row) {
         let col = usize::from(c.col);
-        if col < cols && c.c != ' ' {
-            line[col] = Some(is_rule(c.c));
+        if col < cols {
+            line[col] = (c.c != ' ').then(|| is_rule(c.c));
         }
     }
     let mut out = Vec::new();
