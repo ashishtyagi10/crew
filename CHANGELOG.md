@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.83
+
+**`/inbox`: "by EOD Friday" in a mail is due Friday at five, not the day it was sent.**
+- `t` on a mail saying "please send it by EOD Friday", "by end of day tomorrow" or "by COB on
+  Monday" filed a todo due at five on the day the mail was sent, overdue as soon as it was
+  filed. The day after the end-of-day word is now the day it ends: Friday at 17:00.
+- "by next Friday at 5pm" lost its time and was due at 09:00. It keeps the 5 pm now.
+
 ## 0.28.82
 
 **`/inbox`: answering an invite that is not on your Google Calendar no longer says it is.**

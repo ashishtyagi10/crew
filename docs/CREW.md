@@ -1851,9 +1851,10 @@ longer aim at.
   of you, it is blank. The due is an invite's start, else a date after
   "by", "before", "until", "due", "deadline" or "no later than" in the
   newest mail that has one, then the subject, read as of the day its mail
-  was sent ("EOD" is that day at 5pm, "end of the week" that Friday,
-  "next Friday" the week after's, and a month and day the one nearest the
-  mail, so an overdue notice's "was due by Oct 15" stays passed). The words
+  was sent ("EOD" is that day at 5pm and "EOD Friday" that Friday's, "end
+  of the week" that Friday, "next Friday" the week after's, and a month and
+  day the next one, unless the mail says it "was due" or it is a few weeks
+  back at most, so an overdue notice's "was due by Oct 15" stays passed). The words
   must start a word: "lobby" holds no "by". A due already passed is filed
   without its toast, as the composer files one. Tab on the card hands the thread to
   smith (fenced and untrusted, with the names of your projects) to fill

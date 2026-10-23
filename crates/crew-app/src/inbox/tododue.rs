@@ -107,7 +107,9 @@ fn nearest(due: NaiveDateTime, at: NaiveDateTime, said: &str, was: bool) -> Naiv
 /// How far back a month and day may be read as passed with no "was" to say so.
 const LATE_DAYS: i64 = 60;
 
-/// A day's or week's end, or "next {weekday}", at the start of `phrase`.
+/// A day's end, or the week's, at the start of `phrase`. A day said after
+/// the day's end is its day: "EOD Friday", "end of day tomorrow" were due
+/// the day the mail was sent, overdue as soon as they were filed.
 fn end_of(phrase: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, bool, String)> {
     let starts = |w: &str| {
         phrase.starts_with(w)
@@ -118,7 +120,19 @@ fn end_of(phrase: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, bool, Strin
     };
     let five = |d: chrono::NaiveDate| d.and_hms_opt(17, 0, 0);
     if let Some(w) = EOD.iter().find(|w| starts(w)) {
-        return Some((five(at.date())?, true, w.to_string()));
+        let rest = phrase[w.len()..].trim_start();
+        let next = (rest
+            .strip_prefix("on ")
+            .unwrap_or(rest)
+            .split_whitespace()
+            .next())
+        .unwrap_or("");
+        let day = duedate::find(next, at)
+            .filter(|h| h.start == 0 && h.end == next.chars().count() && !h.has_time);
+        return Some(match day {
+            Some(h) => (five(h.due.date())?, true, format!("{w} {next}")),
+            None => (five(at.date())?, true, w.to_string()),
+        });
     }
     if let Some(w) = EOW.iter().find(|w| starts(w)) {
         let ahead = (4 + 7 - at.weekday().num_days_from_monday()) % 7;
@@ -128,15 +142,8 @@ fn end_of(phrase: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, bool, Strin
             w.to_string(),
         ));
     }
-    let wd = phrase.strip_prefix("next ")?.split_whitespace().next()?;
-    let this = duedate::find(wd, at)
-        .filter(|h| h.end == wd.chars().count())?
-        .due;
-    let days = (this.date() - at.date()).num_days();
-    // "next Friday" said on a Tuesday is not this week's Friday.
-    let same_week = days < 7 - i64::from(at.weekday().num_days_from_monday());
-    let due = this + Duration::days(if days == 0 || same_week { 7 } else { 0 });
-    Some((due, false, format!("next {wd}")))
+    // "next Friday [at 5pm]" is the grammar's (`nextday`), time and all.
+    None
 }
 
 /// An invite's start as the due date, in your time, unless it was
