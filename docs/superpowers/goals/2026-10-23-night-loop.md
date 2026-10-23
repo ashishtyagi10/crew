@@ -327,3 +327,10 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The second inbox/todo audit** (finding 4): a todo reloaded for editing and sent back
   unchanged lost a title's last "on" to the due's lead-in, and a title's own `@word` became
   its project. `edit_at` writes the tags first and the due before the title.
+
+**Round A11 (v0.28.60): a failed edit sent again is answered, not run.**
+
+- **From the probe data again**: 24 of 28 repeated edits repeated one that had just failed, 23
+  in the same turn; an edit is all or nothing, so it could only fail the same way.
+- **`Seen::missed`** remembers a failed edit until anything is written, and the relay answers
+  the repeat with the first failure and its reason. Unit tests only.

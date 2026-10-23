@@ -27,12 +27,18 @@ pub(super) fn run_once(
     if let Some(first) = log.repeat(seen, call) {
         return (true, Seen::pointer(first));
     }
+    if let Some((round, why)) = seen.missed(call) {
+        return (false, Seen::again(round, why));
+    }
     let (ok, text) = settle(
         runner,
         call,
         runner.call(&call.server, &call.tool, &call.args),
     );
     seen.ran(runner, call, entry, ok);
+    if !ok {
+        seen.miss(call, entry, &text);
+    }
     (ok, text)
 }
 
@@ -183,3 +189,7 @@ pub(super) fn never_ran(answer: String) -> String {
 #[cfg(test)]
 #[path = "toolround_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "samemiss_tests.rs"]
+mod samemiss_tests;

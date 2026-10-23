@@ -29,6 +29,9 @@ use super::{ToolCall, Tools};
 #[derive(Debug, Default, Clone)]
 pub struct Seen {
     rounds: HashMap<String, u32>,
+    /// Edits that failed, by [`key`], with the round and the reason
+    /// ([`Seen::missed`]); forgotten when anything is written.
+    misses: HashMap<String, (u32, String)>,
 }
 
 impl Seen {
@@ -64,6 +67,10 @@ impl Seen {
         }
         if !tools.repeatable(&call.server, &call.tool) {
             self.rounds.clear();
+            // A failed edit wrote nothing; anything else may have.
+            if ok || !all_or_nothing(call) {
+                self.misses.clear();
+            }
         } else if ok {
             self.rounds.insert(key(call), round);
         }
@@ -77,6 +84,45 @@ impl Seen {
              its result is above)"
         )
     }
+}
+
+impl Seen {
+    /// The round an edit failed in, and why, when `call` is that same edit
+    /// sent again with nothing written since. It can only fail the same way:
+    /// an edit is all or nothing, so a miss changed no file. 24 of 28 edits
+    /// the 2026-10-22/23 probes sent twice repeated one that had just failed,
+    /// 23 of them in the same turn, each a round spent on a known answer.
+    pub fn missed(&self, call: &ToolCall) -> Option<(u32, &str)> {
+        let (round, why) = self.misses.get(&key(call))?;
+        Some((*round, why.as_str()))
+    }
+
+    /// Note that `call` failed in `round` with `why` (after [`Seen::ran`]).
+    pub fn miss(&mut self, call: &ToolCall, round: u32, why: &str) {
+        if all_or_nothing(call) {
+            self.misses.insert(key(call), (round, why.to_string()));
+        }
+    }
+
+    /// What the model is given in place of a failed edit sent again.
+    pub fn again(round: u32, why: &str) -> String {
+        let why = why
+            .trim_start_matches("ERROR: ")
+            .lines()
+            .next()
+            .unwrap_or_default();
+        let why: String = why.chars().take(240).collect();
+        format!(
+            "ERROR: the same edit failed in round {round}, and nothing has been written since, \
+             so it was not sent again: {why} \u{2014} change `old` to what the file holds"
+        )
+    }
+}
+
+/// A call that writes nothing when it fails: `sys:edit` changes every place
+/// it was asked to or none (`sysedit`).
+fn all_or_nothing(call: &ToolCall) -> bool {
+    call.server == "sys" && call.tool == "edit"
 }
 
 /// `server:tool` plus the arguments as JSON with its keys sorted, so a call
@@ -111,3 +157,7 @@ fn sorted(v: Value) -> Value {
 #[cfg(test)]
 #[path = "seen_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "seenmiss_tests.rs"]
+mod miss_tests;
