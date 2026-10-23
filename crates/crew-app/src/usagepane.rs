@@ -217,7 +217,7 @@ pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
             0.12,
             &|k: f32| {
                 let color = crate::modernring::pole_mix(k).unwrap_or_else(accent);
-                (color, 0.10 + 0.90 * k.powf(0.6))
+                (color, heatmap::heat_alpha(k))
             },
         );
         out.extend(
