@@ -19,6 +19,8 @@ use std::borrow::Cow;
 
 #[path = "namedcall.rs"]
 mod named;
+#[path = "paramcall.rs"]
+mod paramcall;
 
 const OPEN: &str = "<tool_call>";
 const CLOSE: &str = "</tool_call>";
@@ -61,7 +63,8 @@ fn call(body: &str) -> Option<(String, usize)> {
     let s = &body[lead..];
     let (name, args, len) = json_call(s)
         .or_else(|| xml_call(s))
-        .or_else(|| named::call(s))?;
+        .or_else(|| named::call(s))
+        .or_else(|| paramcall::call(s))?;
     if !name.contains(':') {
         return None;
     }
