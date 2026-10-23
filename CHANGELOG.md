@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.41
+
+**`/inbox`: a proposed new time is not an invite.**
+- When someone proposes a new time for your meeting (Outlook's and Google's "New time
+  proposed" mail, `METHOD:COUNTER`), its card offered `c` and `y` as if it were an invite: `c`
+  would add the proposal as the event, and `y` `y` sent your answer to yourself. Its card now
+  says `Bo Lee proposed a new time` and offers no keys, as an "Accepted: …" mail's does, and so
+  does the organizer's refusal of a proposal or any other calendar mail that is not an invite.
+
 ## 0.28.40
 
 **Hooks: your own commands can check or block an agent's tool calls.**

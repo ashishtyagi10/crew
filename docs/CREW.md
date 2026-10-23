@@ -1773,7 +1773,8 @@ longer aim at.
   organizer; otherwise crew sends the organizer a short reply mail with
   your answer, as Outlook and Apple Mail do. An answer to an invite you
   sent (the "Accepted: …" mail) is no invite: its card says who answered
-  (`Bo Lee accepted your invite`) and offers no keys.
+  (`Bo Lee accepted your invite`) and offers no keys; so does a new time
+  someone proposes (`Bo Lee proposed a new time`) and its refusal.
   Every attachment is a row under its message (`↓ report.pdf · 1.2 MB`):
   Cmd+click its name, or its capital letter in `Cmd+E`'s hint mode, and crew
   saves it to `~/Downloads` under a safe version of its name (no folders, no
