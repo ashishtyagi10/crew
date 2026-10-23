@@ -26,7 +26,14 @@ const GREY: (u8, u8, u8) = (128, 128, 128);
 #[test]
 fn a_donut_is_a_ring_with_a_hole_the_size_it_was_asked_for() {
     let mut c = canvas();
-    donut(&mut c, (6.0, 6.0), 4.0, 2.0, &[Slice::new(1.0, RED)], GREY);
+    donut(
+        &mut c,
+        (6.0, 6.0),
+        4.0,
+        2.0,
+        &[Slice::new(1.0, RED)],
+        (GREY, 1.0),
+    );
     let ink = area_of(&c, RED);
     let want = PI * (4.0 * 4.0 - 2.0 * 2.0);
     assert!(
@@ -44,7 +51,7 @@ fn slice_areas_are_proportional_to_their_values() {
         4.0,
         0.0,
         &[Slice::new(3.0, RED), Slice::new(1.0, BLUE)],
-        GREY,
+        (GREY, 1.0),
     );
     let (r, b) = (area_of(&c, RED), area_of(&c, BLUE));
     assert!(
@@ -62,7 +69,7 @@ fn the_first_slice_starts_at_twelve_oclock_and_runs_clockwise() {
         4.0,
         0.0,
         &[Slice::new(1.0, RED), Slice::new(3.0, BLUE)],
-        GREY,
+        (GREY, 1.0),
     );
     // A quarter turn clockwise from noon is the upper-RIGHT quadrant.
     let quadrant = |xs: std::ops::Range<f32>, ys: std::ops::Range<f32>, col: (u8, u8, u8)| {
@@ -79,7 +86,14 @@ fn the_first_slice_starts_at_twelve_oclock_and_runs_clockwise() {
 fn neighbouring_slices_are_separated_but_a_single_slice_is_whole() {
     let one = {
         let mut c = canvas();
-        donut(&mut c, (6.0, 6.0), 4.0, 2.0, &[Slice::new(1.0, RED)], GREY);
+        donut(
+            &mut c,
+            (6.0, 6.0),
+            4.0,
+            2.0,
+            &[Slice::new(1.0, RED)],
+            (GREY, 1.0),
+        );
         area_of(&c, RED)
     };
     let split = {
@@ -90,7 +104,7 @@ fn neighbouring_slices_are_separated_but_a_single_slice_is_whole() {
             4.0,
             2.0,
             &[Slice::new(0.5, RED), Slice::new(0.5, RED)],
-            GREY,
+            (GREY, 1.0),
         );
         area_of(&c, RED)
     };
@@ -109,22 +123,43 @@ fn neighbouring_slices_are_separated_but_a_single_slice_is_whole() {
 #[test]
 fn an_empty_series_draws_a_track_not_a_blank() {
     let mut c = canvas();
-    donut(&mut c, (6.0, 6.0), 4.0, 2.0, &[], GREY);
+    donut(&mut c, (6.0, 6.0), 4.0, 2.0, &[], (GREY, 1.0));
     assert!(area_of(&c, GREY) > 10.0, "the empty ring is drawn");
     // Every value zero reads the same way: nothing running, not nothing
     // rendered.
     let mut c2 = canvas();
-    donut(&mut c2, (6.0, 6.0), 4.0, 2.0, &[Slice::new(0.0, RED)], GREY);
+    donut(
+        &mut c2,
+        (6.0, 6.0),
+        4.0,
+        2.0,
+        &[Slice::new(0.0, RED)],
+        (GREY, 1.0),
+    );
     assert!(area_of(&c2, GREY) > 10.0);
     assert_eq!(area_of(&c2, RED), 0.0, "a zero slice is not a hairline");
 }
 
-/// The track is drawn whole, as the frames in its colour are: at half
-/// strength it all but vanished on glass.
+/// The track is drawn at the strength asked: solid on paper, an idle dot's
+/// wash on the tubes, where solid it read as a full ring (7.7:1 on
+/// crt-green, brighter than the frame).
 #[test]
-fn the_empty_track_is_solid() {
-    let mut c = canvas();
-    donut(&mut c, (6.0, 6.0), 4.0, 2.0, &[], GREY);
-    let top = c.paint().iter().map(|p| p.alpha).fold(0.0_f32, f32::max);
-    assert!(top > 0.99, "the track's core is solid: {top}");
+fn the_empty_track_is_solid_on_paper_and_a_wash_on_the_tubes() {
+    let _g = crate::app::theme_test_guard();
+    use crate::usageledger::{Buckets, DAYS, HOURS};
+    let zero = Buckets {
+        hourly: vec![0; DAYS * HOURS],
+        daily_cost: vec![0; DAYS],
+        tok_in: 0,
+        tok_out: 0,
+        cost_microusd: 0,
+    };
+    let top = || {
+        let paints = crate::usagepane::paint(&zero, 60, 30, 2.0);
+        paints.iter().map(|p| p.alpha).fold(0.0_f32, f32::max)
+    };
+    crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
+    assert!(top() <= 0.5, "a wash on the tube: {}", top());
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    assert!(top() > 0.99, "solid on paper: {}", top());
 }

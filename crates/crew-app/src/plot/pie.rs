@@ -35,17 +35,18 @@ impl Slice {
 /// hole radius `r_in` (`0.0` for a full pie), in canvas units.
 ///
 /// With nothing to show — no slices, or every value zero — a track ring is
-/// drawn instead of nothing at all: an empty crew and a broken widget must not
-/// look the same. Solid, in its colour: at half strength the track was 1.05:1
-/// on glass over a white desktop and 1.6:1 on paper, a lone `0` where a ring
-/// should be, while the frames drawn whole in the same colour read (2026-10-23).
+/// drawn instead of nothing at all, in `empty`'s colour and strength: an
+/// empty crew and a broken widget must not look the same. The caller picks
+/// the strength (`heatmap::track_ink`): solid in the frame colour on paper,
+/// where half strength vanished, and an idle dot's wash where glass lifts
+/// paint, where solid it read as a full ring (2026-10-23).
 pub fn donut(
     c: &mut Canvas,
     centre: (f32, f32),
     r_out: f32,
     r_in: f32,
     slices: &[Slice],
-    empty_color: (u8, u8, u8),
+    empty: ((u8, u8, u8), f32),
 ) {
     let (cx, cy) = centre;
     let r_in = r_in.clamp(0.0, r_out.max(0.0));
@@ -55,7 +56,7 @@ pub fn donut(
         return;
     }
     if total <= 0.0 {
-        c.fill_sdf(bbox, empty_color, 1.0, move |x, y| {
+        c.fill_sdf(bbox, empty.0, empty.1, move |x, y| {
             sdf::sector((x, y), centre, r_out, r_in, 0.0, TAU)
         });
         return;
