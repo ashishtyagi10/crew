@@ -269,3 +269,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **`editnear.rs`**: the miss names the nearest line (difflib's ratio, 0.6 or more) and shows
   it numbered, as Aider's failed edits do. Replayed on the 31: 22 shown the line they meant,
   9 nothing (mostly a line in another file). Unit tests and the replay; no live run.
+
+**Round U10 (v0.28.51): a settings picker never loses its left chevron.**
+
+- **The second UI survey** (finding 4): the fit that pairs short settings counted a picker's
+  chevrons but not their spaces, so Motion beside Glass read `auto (full) ›`.
+- **Counted** (`fit::min_cols`, widest + 2); Motion now takes its own row, whole.

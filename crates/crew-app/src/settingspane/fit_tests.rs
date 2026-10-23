@@ -54,3 +54,26 @@ fn a_pickers_cost_covers_its_own_widest_option() {
         );
     }
 }
+
+/// A picker's widest value fits its box whole, chevrons, their spaces and
+/// all (`‹ auto (full) ›`): the box gives a value its width less 4, and the
+/// spaces inside the chevrons were not counted, so a 17-column Motion box
+/// kept the end of its 15-column value and lost the `‹ `.
+#[test]
+fn a_pickers_widest_value_fits_with_its_chevrons() {
+    for f in [
+        Field::Motion,
+        Field::Theme,
+        Field::ThemeDark,
+        Field::ThemeLight,
+    ] {
+        let widest = widest_value(f).expect("a picker");
+        let shown = format!("\u{2039} {} \u{203a}", "x".repeat(widest));
+        let room = usize::from(min_cols(f)) - 4;
+        assert!(
+            room >= shown.chars().count(),
+            "{f:?}: {room} < {}",
+            shown.chars().count()
+        );
+    }
+}
