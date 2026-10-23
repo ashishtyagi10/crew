@@ -27,21 +27,39 @@ fn three_trailing_calls_are_three_calls_in_the_order_written() {
     assert_eq!(calls, vec![read("a.rs"), read("b.rs"), read("c.rs")]);
 }
 
-/// Prose under a call means the model was showing it, not making it: only
-/// the call the reply ends with runs, and the earlier one stays in the text.
+/// An explanation under a call means the model was showing it, not making
+/// it: past two short lines, or a line taking it back, only the call the
+/// reply ends with runs, and the earlier one stays in the text.
 #[test]
-fn a_call_with_prose_under_it_is_quoted_and_only_the_last_runs() {
+fn a_call_with_an_explanation_under_it_is_quoted_and_only_the_last_runs() {
+    for gap in [
+        "that is how a file is read.\nIt takes a path.\nAnd an offset.",
+        "never mind that one.",
+    ] {
+        let reply = format!("{}\n{gap}\n{}", line("a.rs"), line("b.rs"));
+        let (said, calls) = split_tool_calls(&reply).unwrap();
+        assert_eq!(calls, vec![read("b.rs")], "{gap}");
+        assert_eq!(said, format!("{}\n{gap}", line("a.rs")));
+    }
+}
+
+/// The 2026-10-22 probe's turns: a fenced group, a line saying what comes
+/// next, and the next call; or two fenced groups. Every call runs, in order,
+/// where only the last group did and the edits stayed text, every turn.
+#[test]
+fn groups_with_a_short_line_or_a_fence_between_all_run() {
     let reply = format!(
-        "{}\nthat is how a file is read.\n{}",
+        "Making the edits.\n\n```rust\n{}\n{}\n```\n\nAfter these, run the tests.\n\n{}",
         line("a.rs"),
-        line("b.rs")
+        line("b.rs"),
+        line("c.rs")
     );
     let (said, calls) = split_tool_calls(&reply).unwrap();
-    assert_eq!(calls, vec![read("b.rs")]);
-    assert_eq!(
-        said,
-        format!("{}\nthat is how a file is read.", line("a.rs"))
-    );
+    assert_eq!(said, "Making the edits.");
+    assert_eq!(calls, vec![read("a.rs"), read("b.rs"), read("c.rs")]);
+    let fenced = format!("```\n{}\n```\n\n```sh\n{}\n```", line("a.rs"), line("b.rs"));
+    let (_, calls) = split_tool_calls(&fenced).unwrap();
+    assert_eq!(calls, vec![read("a.rs"), read("b.rs")]);
 }
 
 #[test]

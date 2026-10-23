@@ -143,17 +143,20 @@ fn text_above_the_call_is_the_answer_when_it_is_all_there_is() {
     assert_eq!(budget_answer("  kept  \n", 4), "kept");
 }
 
-/// The 2026-10-23 probe's last reply: edits, a line of prose, then a test
-/// run. Only the run is the reply's trailing call, so the edits stayed in the
-/// text above it; the budget refused all of them, and the note said the turn
-/// "ended before any call in it ran" — which sent the reply judge after a
-/// turn that had run every round it had.
+/// Calls left in the answer by a spent budget: edits, an explanation too long
+/// to be an aside, then a test run (on the 2026-10-23 probe the gap was one
+/// line, which now runs every group). Only the run is the reply's call, so
+/// the edits stayed in the text; the budget refused all of them, and the note
+/// said the turn "ended before any call in it ran", which sent the reply
+/// judge after a turn that had run every round it had.
 #[test]
 fn edits_left_by_a_spent_budget_say_the_budget_stopped_them() {
     let reply = "Let's make these changes.\n\n```rust\n\
                  @tool sys:edit {\"path\": \"a.rs\", \"old\": \"x\", \"new\": \"y\"}\n\
                  @tool sys:edit {\"path\": \"b.rs\", \"old\": \"x\", \"new\": \"y\"}\n```\n\n\
-                 After making these changes, we should run the tests again.\n\n\
+                 After making these changes, we should run the tests again.\n\
+                 They cover the floors and the ratios both.\n\
+                 If one fails, the edit above is the place to look.\n\n\
                  @tool sys:run {\"cmd\": \"cargo test\"}";
     let (_, answer) = turn(&[reply]);
     let answer = super::finished(None, answer);

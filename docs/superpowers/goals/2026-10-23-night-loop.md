@@ -216,3 +216,14 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The second UI survey** (finding 1) caught U3's side effect: the page cells it gave six
   faint chips sat one above another, and the renderer merged them into one dark bar.
 - **Each is its own capsule** (`cmdrow::spans`, the mark the fuzzy-match highlight uses).
+
+**Round A6 (v0.28.44): every group of tool calls a reply ends with runs.**
+
+- **Found tracing A4**: a call above the reply's last ran only with blank lines alone between,
+  so fenced edits over "then run the tests" and a `sys:run`, or two fenced groups, ran only the
+  last group; the edits stayed text and the agent went on as if they were made.
+- **`call_ending`** takes a call above when the gap under it passes the reply-tail test
+  (`ends_the_reply`): fences, at most two short lines, no retraction. The old test that held one
+  prose line as quoting now holds a three-line explanation or a retraction.
+- **Live, inconclusive**: two runs of the compile-error task never finish in the budget either
+  way; they changed 12 and 3 files against 4–7 before. Unit tests carry it.

@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.44
+
+**Every group of tool calls a reply ends with runs, not only the last.**
+- An agent often ends a turn with a fenced group of edits, a line ("after these, run the
+  tests"), and the test run; or with two fenced groups. Only the last group ran: a call above
+  another counted only with nothing but blank lines between them, and a fence line is not
+  blank. The edits stayed in the reply as text, and the agent went on as if they were made
+  (on the 2026-10-22 probes, five edits a turn). A call above another now runs when what lies
+  between is what may follow a reply's last call: blank lines, fences, at most two short lines,
+  nothing taking it back. A longer explanation between still leaves the call above as text.
+- Unit tests replay the probe's shapes. Live, two runs of the compile-error task were
+  inconclusive: neither side finishes it in its budget, and the runs changed 12 and 3 files
+  against 4 to 7 before.
+
 ## 0.28.43
 
 **`/theme` on the light page: the faint chips no longer run into a black bar.**

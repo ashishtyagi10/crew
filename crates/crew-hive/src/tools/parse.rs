@@ -79,13 +79,17 @@ fn last_call(lines: &[&str]) -> Option<(usize, ToolCall)> {
     ends_the_reply(&lines[at + 1 + used..]).then_some((at, call))
 }
 
-/// The call that ends `lines` whole, and the line it starts on: only blank
-/// lines under it, and its JSON, if it opened any, closed.
+/// The call that ends `lines` whole, and the line it starts on: its JSON,
+/// if it opened any, closed, and under it only what may follow a reply's
+/// last call ([`ends_the_reply`]). It had to be blank lines alone, so a group
+/// of fenced edits over "then I'll run the tests" and its `sys:run`, or two
+/// fenced groups (a fence line is not blank), ran only the last group and
+/// left the edits as text (live probe, 2026-10-22: five edits, every turn).
 fn call_ending(lines: &[&str]) -> Option<(usize, ToolCall)> {
-    let end = lines.iter().rposition(|l| !l.trim().is_empty())? + 1;
-    let at = lines[..end].iter().rposition(|l| directive(l).is_some())?;
-    let (call, used) = call_at(&lines[..end], at)?;
-    (at + 1 + used == end && closes(&call.args)).then_some((at, call))
+    let at = lines.iter().rposition(|l| directive(l).is_some())?;
+    let (call, used) = call_at(lines, at)?;
+    let under = lines.get(at + 1 + used..).unwrap_or_default();
+    (closes(&call.args) && ends_the_reply(under)).then_some((at, call))
 }
 
 /// The call on line `at`, and how many lines under it its JSON took.
