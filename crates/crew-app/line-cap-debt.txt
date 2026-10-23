@@ -118,7 +118,7 @@ src/termshot_tests.rs 313
 src/toast.rs 334
 src/toast_tests.rs 240
 src/toastshot_tests.rs 212
-src/todopane/duedate.rs 252
+src/todopane/duedate.rs 240
 src/todopane/duedate_tests.rs 225
 src/todopane/keys_tests.rs 614
 src/todopane/mod_tests.rs 260
