@@ -32,6 +32,13 @@ pub(crate) fn dated<'a>(w: &'a [&'a str]) -> &'a [&'a str] {
     w.strip_suffix(&["at"]).unwrap_or(w)
 }
 
+/// Whether `title`'s last word is a lead-in ("turn the heater on"): the one
+/// title a due written after it would take its word from.
+pub(crate) fn ends_on_one(title: &str) -> bool {
+    let last = title.split_whitespace().last().unwrap_or("").to_lowercase();
+    WORDS.contains(&last.as_str())
+}
+
 #[cfg(test)]
 #[path = "leadin_tests.rs"]
 mod tests;

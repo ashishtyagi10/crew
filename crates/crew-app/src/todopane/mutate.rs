@@ -96,11 +96,13 @@ impl TodoPane {
         // The FULL chip list, not the row's: an item edited from under its
         // own band must not come back belonging to nobody. Chips first, so a
         // title's own `@types/node` is not read back as its project; the due
-        // before the title unless the title names a date itself, so its last
-        // word ("turn the heater on") is not read as the date's lead-in.
+        // last, where Backspace from the end edits it, unless the title ends
+        // on a lead-in word ("turn the heater on"), which a due after it
+        // would take: then the due goes before the title.
         let mut parts = super::rowchips::chips(it);
         let due = (it.due_ms).and_then(|d| super::duedate::edit_text(d, it.due_has_time));
-        let dated = super::duedate::find(&it.title, super::duedate::now_local()).is_some();
+        let dated = super::duedate::find(&it.title, super::duedate::now_local()).is_some()
+            || !super::leadin::ends_on_one(&it.title);
         match due {
             Some(d) if !dated => parts.extend([d, it.title.clone()]),
             Some(d) => parts.extend([it.title.clone(), d]),
