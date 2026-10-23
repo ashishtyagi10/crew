@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.37
+
+**When the tool budget stops a turn, the answer says the budget stopped it.**
+- A turn whose last reply asked for edits, said a line, then asked to run the tests keeps the
+  edits in its answer when the budget refuses them all. The note under them said the turn
+  "ended before any call in it ran", true word for word and wrong in sense, after eight
+  rounds of calls; the reply judge read it as a turn that did nothing and sent the agent
+  back. It now reads `not run — the tool budget (8 rounds) was spent before sys:edit could
+  run`, and only one note is added.
+- Seen on a live probe (qwen-max, the compile-error task); replayed in the tests.
+
 ## 0.28.36
 
 **`/disk`: every name keeps the same air from its tile's edge.**

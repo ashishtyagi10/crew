@@ -99,10 +99,30 @@ pub(super) fn next_step(left: u32) -> String {
 /// a fence and pretty-printed JSON included, as the answer. When the call was
 /// all the agent wrote there is nothing to answer with, and an empty answer
 /// reads as a crash; one plain line says what happened instead.
+///
+/// Calls still in `before` (a group the reply wrote above prose and its last
+/// calls) were refused by the budget too, and the note says so: the generic
+/// one [`never_ran`] adds told the reader, and the reply judge, that the
+/// turn "ended before any call in it ran", which sent the judge after a turn
+/// that had run eight rounds (live, 2026-10-23).
 pub(super) fn budget_answer(before: &str, rounds: u32) -> String {
-    match before.trim() {
-        "" => format!("stopped before answering: the tool budget ({rounds} rounds) ran out"),
-        kept => kept.to_string(),
+    let stray = crew_hive::tools::stray_calls(before);
+    match (before.trim(), stray.first()) {
+        ("", _) => format!("stopped before answering: the tool budget ({rounds} rounds) ran out"),
+        (kept, Some(first)) => format!(
+            "{kept}\n\nnot run \u{2014} the tool budget ({rounds} rounds) was spent before \
+             `{first}`{} could run",
+            more(stray.len())
+        ),
+        (kept, None) => kept.to_string(),
+    }
+}
+
+/// ` and 2 more`, after the first of `n` calls named.
+fn more(n: usize) -> String {
+    match n {
+        0 | 1 => String::new(),
+        n => format!(" and {} more", n - 1),
     }
 }
 
@@ -145,17 +165,18 @@ pub(super) fn finished(runner: Option<&dyn ToolRunner>, answer: String) -> Strin
 /// work it says comes next was not done. The call stays as written.
 pub(super) fn never_ran(answer: String) -> String {
     let stray = crew_hive::tools::stray_calls(&answer);
-    let Some(first) = stray.first() else {
+    let said = answer.trim_end().rsplit('\n').next();
+    let (Some(first), false) = (
+        stray.first(),
+        said.is_some_and(|l| l.starts_with("not run")),
+    ) else {
         return answer;
     };
-    let more = match stray.len() {
-        1 => String::new(),
-        n => format!(" and {} more", n - 1),
-    };
     format!(
-        "{}\n\nnot run \u{2014} the answer asks for `{first}`{more}, but the turn \
+        "{}\n\nnot run \u{2014} the answer asks for `{first}`{}, but the turn \
          ended before any call in it ran",
-        answer.trim_end()
+        answer.trim_end(),
+        more(stray.len())
     )
 }
 
