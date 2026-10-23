@@ -9,8 +9,10 @@
 //! half changed since (that edit wins, and the thread comes back), or it is a
 //! done todo whose reminder Reminders cleared away (crew keeps its history).
 //! A todo or reminder with no pair finds one by title first, so turning the
-//! sync on twice never makes two of anything; failing that, an open one is
-//! made on the other side and a done one is left alone.
+//! sync on twice never makes two of anything — but only one that is as done
+//! as it is: last month's done "pay rent" is history, and this month's new
+//! one on the phone is news, not a tick for the old one. Failing that, an
+//! open one is made on the other side and a done one is left alone.
 //!
 //! Neither side loses its list to the other answering empty: when every
 //! paired reminder is gone at once, the pairs are forgotten and the open
@@ -113,12 +115,12 @@ pub(crate) fn plan(todos: &[(u64, Fields)], rems: &[(String, Fields)], pairs: &[
     }
     let paired = |id: u64| pairs.iter().any(|p| p.todo == id);
     for t in todos.iter().filter(|t| !paired(t.0)) {
-        match free.iter().position(|r| r.1.same_title(&t.1)) {
+        match (free.iter()).position(|r| r.1.same_title(&t.1) && r.1.done == t.1.done) {
             Some(i) => {
                 let r = free.remove(i);
                 let f = Fields {
                     title: t.1.title.clone(),
-                    done: t.1.done || r.1.done,
+                    done: t.1.done,
                     due: t.1.due.clone().or_else(|| r.1.due.clone()),
                 };
                 out.agree(t, r, f);
@@ -177,3 +179,6 @@ fn merged(last: &Fields, crew: &Fields, rem: &Fields) -> Fields {
 #[cfg(test)]
 #[path = "plan_tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "plan_title_tests.rs"]
+mod title_tests;

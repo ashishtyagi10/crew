@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.12
+
+**Reminders: a new "pay rent" is no longer ticked off by last month's.**
+- With `/todo reminders` on, an unpaired todo and reminder were matched by title alone and
+  joined as done if either was. Last month's done "pay rent" todo is never paired, so this
+  month's "Pay rent" added on your phone was matched to it and ticked off at once, and never
+  showed in crew; a new crew todo could be ticked by an old done reminder the same way. A
+  title now pairs only with one that is as done as it is: the new one shows on the other
+  side and nothing is ticked.
+
 ## 0.28.11
 
 **The heat grid: a used hour outweighs an idle one.**

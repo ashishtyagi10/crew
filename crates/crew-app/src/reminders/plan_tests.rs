@@ -1,7 +1,7 @@
 use super::{plan, Pair, Step};
 use crate::reminders::fields::Fields;
 
-fn f(title: &str, done: bool, due: Option<&str>) -> Fields {
+pub(super) fn f(title: &str, done: bool, due: Option<&str>) -> Fields {
     Fields {
         title: title.into(),
         done,
@@ -9,7 +9,7 @@ fn f(title: &str, done: bool, due: Option<&str>) -> Fields {
     }
 }
 
-fn open(title: &str) -> Fields {
+pub(super) fn open(title: &str) -> Fields {
     f(title, false, None)
 }
 
@@ -104,13 +104,13 @@ fn the_unpaired_pair_by_title_before_anything_is_made() {
         (3, f("old", true, None)),
     ];
     let rems = [
-        ("r1".to_string(), f("milk", true, None)),
+        ("r1".to_string(), open("milk")),
         ("r2".into(), open("dentist")),
         ("r3".into(), f("long done", true, None)),
     ];
     let p = plan(&todos, &rems, &[]);
     assert_eq!(p.pairs.len(), 1);
-    assert_eq!(p.pairs[0].last, f("Milk", true, Some("2026-10-24")));
+    assert_eq!(p.pairs[0].last, f("Milk", false, Some("2026-10-24")));
     let made: Vec<&Step> = (p.steps.iter())
         .filter(|s| matches!(s, Step::NewRem { .. } | Step::NewTodo { .. }))
         .collect();
