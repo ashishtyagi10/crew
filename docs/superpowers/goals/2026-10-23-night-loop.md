@@ -533,3 +533,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   its key" read "by Friday, October 30" a week early and "Due date: Oct 30" as nothing. A
   weekday may lead its date and "is"/"date" may follow the key now; `end_of` moved to
   `todoeod.rs` to keep the cap.
+
+**Round I33 (v0.28.95): "by the end of the day" and "EOD Oct 30" read whole.**
+
+- **The fourth inbox/todo audit** (finding 2): "the" was dropped after the words were counted,
+  and only one word after "EOD" was read. Both are read whole now.

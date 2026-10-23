@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.95
+
+**`/inbox`: "by the end of the day" is today at five, and "EOD Oct 30" is October 30.**
+- `t` on a mail saying "by the end of the day" or "by the end of the week" filed no due: four
+  words were taken before "the" was dropped, so the phrase ran out early. "EOD Oct 30", "EOD next
+  Friday" and "end of the day tomorrow" read as five o'clock on the day the mail was sent,
+  because only one word after "EOD" was read. Now "the" goes first, and the longest run of words
+  after "EOD" that is a date names the day. "by the end of Friday" is Friday at five, and "by the
+  end of the month" still sets no due.
+
 ## 0.28.94
 
 **`/inbox`: "by Friday, October 30" is October 30 again, and "Due date: Oct 30" reads.**

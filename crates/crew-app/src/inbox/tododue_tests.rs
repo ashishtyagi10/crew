@@ -166,3 +166,26 @@ fn a_key_reads_past_a_weekday_and_an_is() {
     assert_eq!(due("By the way, Friday works for me."), None);
     assert_eq!(due("Signed by Ann on Oct 15."), None);
 }
+
+/// "the end of the day" is read whole, and a day's end takes the date after
+/// it however many words it is: "by the end of the day" set no due, and
+/// "EOD Oct 30" was the mail's own day.
+#[test]
+fn the_end_of_the_day_is_read() {
+    let at = |s| deadline(s, tue()).map(|d| d.0.format("%Y-%m-%d %H:%M").to_string());
+    for (mail, due) in [
+        ("Please send it by the end of the day.", "2026-10-20 17:00"),
+        ("Please send it by the end of the week.", "2026-10-23 17:00"),
+        (
+            "Please send it by end of the day tomorrow.",
+            "2026-10-21 17:00",
+        ),
+        ("Please send it by the end of Friday.", "2026-10-23 17:00"),
+        ("Please send it by EOD Oct 30.", "2026-10-30 17:00"),
+        ("Please send it by EOD next Friday.", "2026-10-30 17:00"),
+        ("Need the slides by EOD please.", "2026-10-20 17:00"),
+    ] {
+        assert_eq!(at(mail).as_deref(), Some(due), "{mail}");
+    }
+    assert_eq!(at("Please send it by the end of the month."), None);
+}

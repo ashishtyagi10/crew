@@ -58,17 +58,19 @@ pub(crate) fn deadline(text: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, 
         .map(|(k, i)| (k, i + k.len()))
         .filter_map(|(k, i)| {
             // Sentence punctuation is not part of a date: "by Friday?".
-            let words: Vec<&str> = lower[i..]
+            // "the" first, so "by the end of the day" keeps all its words.
+            let after = lower[i..].trim_start();
+            let after = after.strip_prefix("the ").unwrap_or(after);
+            let words: Vec<&str> = after
                 .split_whitespace()
-                .take(4)
+                .take(5)
                 .map(|w| w.trim_end_matches(['.', ',', ';', ':', '!', '?', ')']))
                 .collect();
             let phrase = words.join(" ");
-            let phrase = phrase.strip_prefix("the ").unwrap_or(&phrase);
             // "deadline is Friday", "due date: Oct 30".
             let phrase = ["date ", "is "]
                 .iter()
-                .fold(phrase, |p, w| p.strip_prefix(w).unwrap_or(p));
+                .fold(phrase.as_str(), |p, w| p.strip_prefix(w).unwrap_or(p));
             if let Some((due, timed, said)) = end_of(phrase, at) {
                 return Some((due, timed, format!("{k}{said}")));
             }
