@@ -122,3 +122,18 @@ fn the_tally_stays_inside_an_active_project_filter() {
         "the other project's item is not on this board — and no zeros"
     );
 }
+
+/// A name with a capital beyond ASCII is one person in any case: `#Émile`
+/// keyed as "émile" missed its own band under an ASCII-only compare, so its
+/// rows sorted with the unassigned and every row opened a band.
+#[test]
+fn a_name_beyond_ascii_keeps_one_band() {
+    let items = [
+        item(1, Some("Émile"), None),
+        item(2, None, None),
+        item(3, Some("émile"), None),
+    ];
+    let f = Filters::default();
+    assert_eq!(people(&items, f), vec!["Émile".to_string()]);
+    assert_eq!(order(&items, f, false), vec![0, 2, 1]);
+}

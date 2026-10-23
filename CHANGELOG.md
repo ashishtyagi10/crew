@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.57
+
+**`/todo`: `#Émile` keeps one band, like any other name.**
+- The list bands its todos by who they are for, matching names in any case, but only ASCII's:
+  a name with a capital beyond it (`#Émile`, `#Łukasz`, `#Øyvind`, `#Иван`) never matched its
+  own band, so its rows sorted in among the unassigned and every row opened a header. The same
+  compare made `#émile` a second person and the `#émile` filter miss `Émile`'s todos. Names now
+  match in any case, any letters.
+
 ## 0.28.56
 
 **`/inbox`: `t` right after you answer names who asked, not you.**

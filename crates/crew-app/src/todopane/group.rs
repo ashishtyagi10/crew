@@ -36,7 +36,8 @@ pub(crate) fn people(items: &[TodoItem], f: Filters) -> Vec<String> {
     let mut names: Vec<String> = Vec::new();
     for it in items.iter().filter(|it| f.matches(it)) {
         let Some(a) = &it.assignee else { continue };
-        if !names.iter().any(|n| n.eq_ignore_ascii_case(a)) {
+        // Any case, not ASCII's alone: `#Émile` and `#émile` are one person.
+        if !names.iter().any(|n| n.to_lowercase() == a.to_lowercase()) {
             names.push(a.clone());
         }
     }
@@ -53,7 +54,7 @@ pub(crate) fn order(items: &[TodoItem], f: Filters, show_done: bool) -> Vec<usiz
     let mut order = super::item::display_order(items, f, show_done);
     order.sort_by_key(|&i| {
         who(&items[i])
-            .and_then(|k| names.iter().position(|n| n.eq_ignore_ascii_case(&k)))
+            .and_then(|k| names.iter().position(|n| n.to_lowercase() == k))
             .unwrap_or(names.len())
     });
     order
