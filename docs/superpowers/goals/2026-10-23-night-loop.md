@@ -432,3 +432,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The third inbox/todo audit** (finding 2) caught I14's edge: the due before every title put
   it where Backspace from the end no longer reached it. It is last again, before the title only
   when the title ends on a lead-in word.
+
+**Round I25 (v0.28.79): "due by May 15" in an October mail is next May.**
+
+- **The third inbox/todo audit** (finding 5) caught I4's edge: "nearest" flipped any date over
+  half a year ahead to last year's. Only an overdue notice ("was due") or a date weeks back
+  reads as passed now.

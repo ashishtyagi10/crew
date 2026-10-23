@@ -68,3 +68,22 @@ fn a_deadline_at_a_time_is_that_day_at_that_time() {
     assert!(d.1, "a time was said");
     assert_eq!(d.2, "by friday at 5pm");
 }
+
+/// A date months ahead is ahead: only an overdue notice, or one weeks back,
+/// reads a month and day as passed.
+#[test]
+fn a_date_months_ahead_is_not_read_as_passed() {
+    assert_eq!(
+        due("Applications are due by May 15.").as_deref(),
+        Some("2027-05-15")
+    );
+    assert_eq!(
+        due("The offer is valid until June 30.").as_deref(),
+        Some("2027-06-30")
+    );
+    assert_eq!(
+        due("The report was due by June 1.").as_deref(),
+        Some("2026-06-01"),
+        "an overdue notice"
+    );
+}
