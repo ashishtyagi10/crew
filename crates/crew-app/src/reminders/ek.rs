@@ -53,14 +53,18 @@ impl Kit {
     /// The `crew` list ([`pairs::pick`]): the one remembered by `id`, else
     /// the one so named, else a new one in the account new reminders go to.
     /// True when it is not the one remembered.
-    pub(super) fn list(&self, id: &str) -> Result<(Retained<EKCalendar>, bool), String> {
+    pub(super) fn list(
+        &self,
+        id: &str,
+        remake: bool,
+    ) -> Result<(Retained<EKCalendar>, bool), String> {
         unsafe {
             let known = (!id.is_empty())
                 .then(|| self.store.calendarWithIdentifier(&NSString::from_str(id)))
                 .flatten();
             let all = self.store.calendarsForEntityType(EKEntityType::Reminder);
             let named = all.iter().find(|c| c.title().to_string() == LIST);
-            match pairs::pick(id, known.is_some(), named.is_some()) {
+            match pairs::pick(id, known.is_some(), named.is_some(), remake) {
                 Pick::Deleted => return Err(pairs::DELETED.into()),
                 Pick::Make => {}
                 p => return Ok((known.or(named).ok_or(pairs::DELETED)?, p == Pick::Named)),

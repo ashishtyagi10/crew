@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.27
+
+**`/todo reminders` no longer brings back todos you ticked or deleted.**
+- Typing `/todo reminders` (after turning the sync off, after macOS refused access, or just to
+  check it was on) threw away every pair crew keeps between a todo and its reminder, so the
+  next pass matched them by title alone. A todo ticked in crew meanwhile came back as a new
+  open todo from its still-open reminder, a deleted one came back the same way, and a renamed
+  one doubled on the phone. The pairs now stay; the command only lets a `crew` list deleted in
+  Reminders be made again, once.
+
 ## 0.28.26
 
 **`/theme`: blossom and nebula are described as what they are now.**

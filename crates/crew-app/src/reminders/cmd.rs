@@ -10,7 +10,7 @@ impl CrewApp {
         self.config.todo_reminders = on;
         self.config.save();
         if on {
-            super::pairs::forget_list(super::pairs::path().as_deref());
+            super::pairs::turned_on(super::pairs::path().as_deref());
             super::start(self.applog.sender());
             self.set_status(
                 "Reminders: /todo and the crew list kept in step \u{b7} macOS asks once whether crew may",

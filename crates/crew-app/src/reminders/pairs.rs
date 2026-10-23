@@ -15,6 +15,10 @@ pub(crate) struct State {
     pub list: String,
     #[serde(default)]
     pub pairs: Vec<Pair>,
+    /// `/todo reminders` was typed since the last pass: a deleted list may be
+    /// made again, once.
+    #[serde(default)]
+    pub remake: bool,
 }
 
 pub(crate) fn path() -> Option<PathBuf> {
@@ -28,9 +32,9 @@ pub(crate) fn load_at(p: Option<&Path>) -> State {
 }
 
 /// Which `crew` list a pass keeps in step: the one remembered, else one so
-/// named, else a new one, but a new one only before the first. A remembered
-/// list that is gone was deleted in Reminders; making it again put every
-/// open todo back on the phone, unasked and unsaid.
+/// named, else a new one, but a new one only before the first or when asked
+/// (`remake`). A remembered list that is gone was deleted in Reminders;
+/// making it again put every open todo back on the phone, unasked and unsaid.
 #[derive(Debug, PartialEq)]
 pub(crate) enum Pick {
     Remembered,
@@ -39,11 +43,11 @@ pub(crate) enum Pick {
     Deleted,
 }
 
-pub(crate) fn pick(remembered: &str, found: bool, named: bool) -> Pick {
+pub(crate) fn pick(remembered: &str, found: bool, named: bool, remake: bool) -> Pick {
     match (found, named) {
         (true, _) => Pick::Remembered,
         (_, true) => Pick::Named,
-        _ if remembered.is_empty() => Pick::Make,
+        _ if remembered.is_empty() || remake => Pick::Make,
         _ => Pick::Deleted,
     }
 }
@@ -51,14 +55,21 @@ pub(crate) fn pick(remembered: &str, found: bool, named: bool) -> Pick {
 pub(crate) const DELETED: &str =
     "Reminders: the crew list was deleted there \u{b7} /todo reminders makes it again";
 
-/// `/todo reminders` turned on: the list is chosen afresh (a deleted one is
-/// made again) and its pairs found again by title.
-pub(crate) fn forget_list(p: Option<&Path>) {
-    let mut s = load_at(p);
-    if !s.list.is_empty() {
-        s = State::default();
-        save_at(p, &s);
+/// `/todo reminders` turned on: a deleted list may be made again, and that is
+/// all. It used to forget the pairs too, so every pass after a spell with the
+/// sync off (or access refused, or the command typed again to check) paired
+/// by title alone: what you had ticked or deleted in crew came back as new
+/// open todos from its still-open reminder, and a rename doubled on the phone.
+pub(crate) fn turned_on(p: Option<&Path>) {
+    let s = load_at(p);
+    if !s.list.is_empty() && !s.remake {
+        save_at(p, &asked(s));
     }
+}
+
+/// The state once `/todo reminders` is typed: the list and pairs kept.
+pub(crate) fn asked(s: State) -> State {
+    State { remake: true, ..s }
 }
 
 /// Never from the test harness, as `todos.toml` is never written there.
@@ -74,7 +85,7 @@ pub(crate) fn save_at(p: Option<&Path>, s: &State) {
 
 #[cfg(test)]
 mod tests {
-    use super::{load_at, pick, Pick, State};
+    use super::{asked, load_at, pick, Pick, State};
     use crate::reminders::{fields::Fields, plan::Pair};
 
     #[test]
@@ -90,6 +101,7 @@ mod tests {
                     due: Some("2026-10-24".into()),
                 },
             }],
+            remake: false,
         };
         let back: State = toml::from_str(&toml::to_string(&s).unwrap()).unwrap();
         assert_eq!(back, s);
@@ -105,9 +117,43 @@ mod tests {
     /// The list deleted in Reminders stays deleted until you ask again.
     #[test]
     fn a_remembered_list_that_is_gone_is_never_made_again_unasked() {
-        assert_eq!(pick("L1", true, true), Pick::Remembered);
-        assert_eq!(pick("L1", false, true), Pick::Named, "made again by you");
-        assert_eq!(pick("", false, false), Pick::Make, "the first pass");
-        assert_eq!(pick("L1", false, false), Pick::Deleted);
+        assert_eq!(pick("L1", true, true, false), Pick::Remembered);
+        assert_eq!(
+            pick("L1", false, true, false),
+            Pick::Named,
+            "made again by you"
+        );
+        assert_eq!(pick("", false, false, false), Pick::Make, "the first pass");
+        assert_eq!(pick("L1", false, false, false), Pick::Deleted);
+        assert_eq!(pick("L1", false, false, true), Pick::Make, "asked for");
+        assert_eq!(
+            pick("L1", true, true, true),
+            Pick::Remembered,
+            "still there"
+        );
+    }
+
+    /// Typing `/todo reminders` keeps what both sides agreed: the next pass
+    /// finds the list by its id and goes on from the pairs.
+    #[test]
+    fn turning_it_on_again_keeps_the_list_and_its_pairs() {
+        let pair = Pair {
+            todo: 7,
+            rem: "r7".into(),
+            last: Fields {
+                title: "milk".into(),
+                done: false,
+                due: None,
+            },
+        };
+        let s = asked(State {
+            list: "L1".into(),
+            pairs: vec![pair.clone()],
+            remake: false,
+        });
+        assert_eq!(
+            (s.list.as_str(), s.pairs, s.remake),
+            ("L1", vec![pair], true)
+        );
     }
 }
