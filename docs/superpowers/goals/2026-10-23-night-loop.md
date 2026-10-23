@@ -255,3 +255,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   todo card refused it.
 - **`nextday.rs`**: `next WD` is the inbox's reading, `this WD` the coming one; `duedate.rs`
   shrank 252 → 240 (its debt row with it).
+
+**Round U9 (v0.28.49): a blurred `/far` pane's divider is the frame's colour.**
+
+- **The second UI survey** (finding 3): the line between the lists was the muted text ink, 7–10:1
+  in a box drawn at about 2:1; 0.27.13 had moved the panel edges to the frame colour and missed
+  it. Now `border_normal` (`merge_divider`); shots match the frame to the pixel.

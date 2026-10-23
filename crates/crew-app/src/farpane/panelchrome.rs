@@ -32,12 +32,14 @@ pub(crate) fn split_panels(area: Rect) -> (Rect, Rect) {
 
 /// Join the shared border column into the panel frames: `┬` at the top, `┴`
 /// at the bottom, accent-coloured — the divider always touches the active
-/// panel, whichever side it is (muted with the rest of a blurred pane).
+/// panel, whichever side it is. In a blurred pane it is the frame's colour
+/// with the rest of the frame: in a text ink it outshone the box it divides
+/// (7–10:1 against 2:1, a white line in an unseen box on glass over white).
 pub(crate) fn merge_divider(buf: &mut Buffer, area: Rect, x: u16, lit: bool) {
     let t = crew_theme::theme();
     let fg = match lit {
         true => accent_color(),
-        false => Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2),
+        false => Color::Rgb(t.border_normal.0, t.border_normal.1, t.border_normal.2),
     };
     for y in area.y..area.y + area.height {
         let sym = if y == area.y {
