@@ -12,7 +12,7 @@ use super::*;
 pub fn plist(version: &str) -> String {
     // Why crew asks for Reminders (`/todo reminders`): macOS shows it, and
     // ends an app that asks without one.
-    let why = "Crew keeps your /todo list and a list named crew in Reminders in step.";
+    let why = "Crew keeps your /todo list and your reminders in step.";
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

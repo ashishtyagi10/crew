@@ -10,14 +10,13 @@ impl CrewApp {
         self.config.todo_reminders = on;
         self.config.save();
         if on {
-            super::pairs::turned_on(super::pairs::path().as_deref());
             super::start(self.applog.sender());
             self.set_status(
-                "Reminders: /todo and the crew list kept in step \u{b7} macOS asks once whether crew may",
+                "Reminders: /todo kept in step with all your reminders \u{b7} macOS asks once whether crew may",
             );
         } else {
             super::stop();
-            self.set_status("Reminders: sync off \u{b7} the crew list stays as it is");
+            self.set_status("Reminders: sync off \u{b7} your reminders stay as they are");
         }
     }
 }

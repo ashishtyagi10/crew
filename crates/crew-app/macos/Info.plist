@@ -4,7 +4,7 @@
 <dict>
     <key>CFBundleIdentifier</key><string>io.github.ashishtyagi10.crew</string>
     <key>CFBundleName</key><string>Crew</string>
-    <key>NSRemindersUsageDescription</key><string>Crew keeps your /todo list and a list named crew in Reminders in step.</string>
-    <key>NSRemindersFullAccessUsageDescription</key><string>Crew keeps your /todo list and a list named crew in Reminders in step.</string>
+    <key>NSRemindersUsageDescription</key><string>Crew keeps your /todo list and your reminders in step.</string>
+    <key>NSRemindersFullAccessUsageDescription</key><string>Crew keeps your /todo list and your reminders in step.</string>
 </dict>
 </plist>

@@ -183,8 +183,8 @@ pub struct CrewConfig {
     /// picker's shortcut section. Slugs only; unknown ones are skipped.
     #[serde(default)]
     pub model_recents: Vec<String>,
-    /// `/todo reminders`: the todo list and a `crew` list in Apple Reminders
-    /// kept in step both ways (macOS; see `reminders`).
+    /// `/todo reminders`: the todo list and every Apple Reminders list kept
+    /// in step both ways (macOS; see `reminders`).
     #[serde(default)]
     pub todo_reminders: bool,
 }

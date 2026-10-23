@@ -1,7 +1,7 @@
 //! What the sync remembers between passes, in `reminders.toml` beside
-//! `todos.toml`: which `crew` list it keeps in step, and each todo's pair
-//! with what both sides last agreed ([`Pair`]). Losing the file costs
-//! nothing but a pass that pairs by title again.
+//! `todos.toml`: each todo's pair with what both sides last agreed
+//! ([`Pair`]), and the `crew` list of v0.28.4–97 until it is folded away.
+//! Losing the file costs nothing but a pass that pairs by title again.
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -10,15 +10,12 @@ use super::plan::Pair;
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq)]
 pub(crate) struct State {
-    /// The Reminders list's identifier; empty before the first pass.
+    /// The `crew` list v0.28.4–97 kept every todo in, by identifier, while
+    /// it waits to be folded into the list new reminders go to; empty after.
     #[serde(default)]
     pub list: String,
     #[serde(default)]
     pub pairs: Vec<Pair>,
-    /// `/todo reminders` was typed since the last pass: a deleted list may be
-    /// made again, once.
-    #[serde(default)]
-    pub remake: bool,
 }
 
 pub(crate) fn path() -> Option<PathBuf> {
@@ -31,45 +28,14 @@ pub(crate) fn load_at(p: Option<&Path>) -> State {
         .unwrap_or_default()
 }
 
-/// Which `crew` list a pass keeps in step: the one remembered, else one so
-/// named, else a new one, but a new one only before the first or when asked
-/// (`remake`). A remembered list that is gone was deleted in Reminders;
-/// making it again put every open todo back on the phone, unasked and unsaid.
-#[derive(Debug, PartialEq)]
-pub(crate) enum Pick {
-    Remembered,
-    Named,
-    Make,
-    Deleted,
-}
-
-pub(crate) fn pick(remembered: &str, found: bool, named: bool, remake: bool) -> Pick {
-    match (found, named) {
-        (true, _) => Pick::Remembered,
-        (_, true) => Pick::Named,
-        _ if remembered.is_empty() || remake => Pick::Make,
-        _ => Pick::Deleted,
+/// Reminders the fold moved, `(before, after)` by id: a pair goes with its
+/// reminder rather than finding it again by title.
+pub(crate) fn moved(s: &mut State, went: &[(String, String)]) {
+    for p in &mut s.pairs {
+        if let Some((_, now)) = went.iter().find(|w| w.0 == p.rem) {
+            p.rem = now.clone();
+        }
     }
-}
-
-pub(crate) const DELETED: &str =
-    "Reminders: the crew list was deleted there \u{b7} /todo reminders makes it again";
-
-/// `/todo reminders` turned on: a deleted list may be made again, and that is
-/// all. It used to forget the pairs too, so every pass after a spell with the
-/// sync off (or access refused, or the command typed again to check) paired
-/// by title alone: what you had ticked or deleted in crew came back as new
-/// open todos from its still-open reminder, and a rename doubled on the phone.
-pub(crate) fn turned_on(p: Option<&Path>) {
-    let s = load_at(p);
-    if !s.list.is_empty() && !s.remake {
-        save_at(p, &asked(s));
-    }
-}
-
-/// The state once `/todo reminders` is typed: the list and pairs kept.
-pub(crate) fn asked(s: State) -> State {
-    State { remake: true, ..s }
 }
 
 /// Never from the test harness, as `todos.toml` is never written there.
@@ -85,7 +51,7 @@ pub(crate) fn save_at(p: Option<&Path>, s: &State) {
 
 #[cfg(test)]
 mod tests {
-    use super::{asked, load_at, pick, Pick, State};
+    use super::{load_at, moved, State};
     use crate::reminders::{fields::Fields, plan::Pair};
 
     #[test]
@@ -101,7 +67,6 @@ mod tests {
                     due: Some("2026-10-24".into()),
                 },
             }],
-            remake: false,
         };
         let back: State = toml::from_str(&toml::to_string(&s).unwrap()).unwrap();
         assert_eq!(back, s);
@@ -114,46 +79,30 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// The list deleted in Reminders stays deleted until you ask again.
+    /// A reminder the fold moved keeps its todo, under its new id.
     #[test]
-    fn a_remembered_list_that_is_gone_is_never_made_again_unasked() {
-        assert_eq!(pick("L1", true, true, false), Pick::Remembered);
-        assert_eq!(
-            pick("L1", false, true, false),
-            Pick::Named,
-            "made again by you"
-        );
-        assert_eq!(pick("", false, false, false), Pick::Make, "the first pass");
-        assert_eq!(pick("L1", false, false, false), Pick::Deleted);
-        assert_eq!(pick("L1", false, false, true), Pick::Make, "asked for");
-        assert_eq!(
-            pick("L1", true, true, true),
-            Pick::Remembered,
-            "still there"
-        );
-    }
-
-    /// Typing `/todo reminders` keeps what both sides agreed: the next pass
-    /// finds the list by its id and goes on from the pairs.
-    #[test]
-    fn turning_it_on_again_keeps_the_list_and_its_pairs() {
-        let pair = Pair {
-            todo: 7,
-            rem: "r7".into(),
+    fn a_moved_reminder_keeps_its_pair() {
+        let pair = |todo, rem: &str| Pair {
+            todo,
+            rem: rem.into(),
             last: Fields {
                 title: "milk".into(),
                 done: false,
                 due: None,
             },
         };
-        let s = asked(State {
+        let mut s = State {
             list: "L1".into(),
-            pairs: vec![pair.clone()],
-            remake: false,
-        });
-        assert_eq!(
-            (s.list.as_str(), s.pairs, s.remake),
-            ("L1", vec![pair], true)
-        );
+            pairs: vec![pair(7, "r7"), pair(8, "r8")],
+        };
+        moved(&mut s, &[("r7".into(), "n7".into())]);
+        assert_eq!(s.pairs, vec![pair(7, "n7"), pair(8, "r8")]);
+    }
+
+    /// A `reminders.toml` from before still says `remake`: its pairs stand.
+    #[test]
+    fn a_file_from_before_the_fold_still_loads() {
+        let s: State = toml::from_str("list = \"L1\"\nremake = true\npairs = []\n").unwrap();
+        assert_eq!(s.list, "L1");
     }
 }

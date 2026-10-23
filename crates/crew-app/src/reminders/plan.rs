@@ -1,5 +1,5 @@
 //! The sync's one decision, made with no Reminders and no disk in sight:
-//! given the todos, the reminders in the `crew` list and the pairs agreed
+//! given the todos, the reminders in every list and the pairs agreed
 //! last time, what to write where.
 //!
 //! A pair remembers what both sides said when they last agreed. A side whose
@@ -33,7 +33,7 @@ pub(crate) struct Pair {
 
 #[derive(Debug, PartialEq)]
 pub(crate) enum Step {
-    /// A reminder for this todo, in the `crew` list.
+    /// A reminder for this todo, in the list new reminders go to.
     NewRem {
         todo: u64,
         f: Fields,
