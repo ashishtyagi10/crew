@@ -470,3 +470,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The third inbox/todo audit** (finding 6): a date anywhere in the four words after a key
   counted. It must start right after it now; "by noon Friday" goes blank (noon is not a time the
   grammar reads), said in the changelog.
+
+**Round I30 (v0.28.85): a todo filed with a passed due says it has passed.**
+
+- **The third inbox/todo audit** (also noted): the add note read "(due Fri Oct 23)" for a
+  deadline already late. It says ", passed" and the year when not this one; `handoff`'s doc line
+  is back where I19 moved it from.

@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.85
+
+**`/inbox`: a todo filed with a passed due says it has passed.**
+- A deadline the mail says has passed ("were due by Friday") was filed with the note "added to
+  /todo: … (due Fri Oct 23)", which reads as a date still ahead. The note now says
+  "(due Fri Oct 23, passed)", and gives the year when it is not this one.
+
 ## 0.28.84
 
 **`/inbox`: "By the way, Friday works for me" is not a deadline.**
