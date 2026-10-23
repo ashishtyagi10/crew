@@ -491,3 +491,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The second inbox audit's open item** (#5): a fold in smith's 500-message pane put the answer
   before the place the inbox looked from, and Tab waited ten minutes for "held no draft". The
   place now counts folded messages.
+
+**Round U18 (v0.28.88): a value picker's ghost text is the highlighted row.**
+
+- **The fourth UI survey** (regressions: U13–U17 all hold; finding 1): arrowed to `light`, the
+  bar read `/theme dark`. It ghosts the row Tab fills now (shot: paper-light and glass-clear).

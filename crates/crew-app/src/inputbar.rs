@@ -85,6 +85,13 @@ impl InputBar {
             // and Tab/Enter fills the full name.
             return name.strip_prefix(self.text.as_str()).map(str::to_string);
         }
+        // An open value picker ghosts the row Tab fills: it showed the first
+        // value whatever was highlighted, `/theme dark` over `light`.
+        let rows = crate::cmdnote::rows(&self.text, &self.cwd);
+        if crate::cmdnote::selectable(&rows) {
+            let fill = &rows[self.menu_sel.min(rows.len() - 1)].fill;
+            return fill.strip_prefix(self.text.as_str()).map(str::to_string);
+        }
         if !self.cwd.as_os_str().is_empty() {
             if crate::pathcomplete::dir_arg(&self.text).is_some() {
                 return crate::suggest::dir_suggest(&self.text, &self.cwd);
@@ -102,3 +109,7 @@ impl InputBar {
 #[cfg(test)]
 #[path = "inputbar_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "inputghost_tests.rs"]
+mod ghost_tests;
