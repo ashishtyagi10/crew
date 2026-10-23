@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.94
+
+**`/inbox`: "by Friday, October 30" is October 30 again, and "Due date: Oct 30" reads.**
+- 0.28.84 made a deadline's date come right after its word, and that broke common phrasings. "by
+  Friday, October 30" read as this Friday, a week early. "The deadline is Friday", "Due date:
+  Oct 30" and "The due date is October 30" set no due at all. A weekday may now lead the date it
+  names, and "is" or "date" may stand between the word and its date. "By the way, Friday works
+  for me" and "Signed by Ann on Oct 15" still set none.
+
 ## 0.28.93
 
 **Agents: a build cut for length quotes each error's line of code, not only where it is.**

@@ -13,6 +13,9 @@ use super::super::super::api::Mail;
 use super::super::Guess;
 use super::{due_text, sent, whose};
 use crate::todopane::duedate;
+#[path = "todoeod.rs"]
+mod eod;
+use eod::end_of;
 
 const KEYS: [&str; 7] = [
     "no later than ",
@@ -23,15 +26,6 @@ const KEYS: [&str; 7] = [
     "due ",
     "by ",
 ];
-const EOD: [&str; 5] = [
-    "end of the day",
-    "end of day",
-    "close of business",
-    "eod",
-    "cob",
-];
-const EOW: [&str; 3] = ["end of the week", "end of week", "eow"];
-
 pub(super) fn guess(subject: &str, mails: &[Mail]) -> Guess {
     if let Some(g) = mails.iter().rev().find_map(invite) {
         return g;
@@ -71,17 +65,31 @@ pub(crate) fn deadline(text: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, 
                 .collect();
             let phrase = words.join(" ");
             let phrase = phrase.strip_prefix("the ").unwrap_or(&phrase);
+            // "deadline is Friday", "due date: Oct 30".
+            let phrase = ["date ", "is "]
+                .iter()
+                .fold(phrase, |p, w| p.strip_prefix(w).unwrap_or(p));
             if let Some((due, timed, said)) = end_of(phrase, at) {
                 return Some((due, timed, format!("{k}{said}")));
             }
             // The date comes right after its key: "By the way, Friday works"
             // and "signed by Ann on Oct 15" set no deadline. Cut back a word
-            // at a time, so "by Friday, Oct 23" still reads Friday.
+            // at a time, so "by Friday, Oct 23" still reads Friday; a weekday
+            // may lead the date it names: "by Friday, October 30".
+            let led = |h: &duedate::DueHit, s: &str| {
+                let lead: String = s.chars().take(h.start).collect();
+                let lead = lead.trim_end();
+                let whole = duedate::find(lead, at)
+                    .is_some_and(|w| w.start == 0 && w.end == lead.chars().count());
+                h.start == 0 || whole
+            };
             let cuts: Vec<usize> = (phrase.match_indices(' ').map(|(j, _)| j))
                 .chain([phrase.len()])
                 .collect();
-            let h = (cuts.into_iter().rev())
-                .find_map(|j| duedate::find(&phrase[..j], at).filter(|h| h.start == 0))?;
+            let h = (cuts.into_iter().rev()).find_map(|j| {
+                let s = &phrase[..j];
+                duedate::find(s, at).filter(|h| led(h, s))
+            })?;
             let said: String = phrase.chars().skip(h.start).take(h.end - h.start).collect();
             // "was due by", "were due": an overdue notice.
             let before = lower[..i - k.len()].split_whitespace().rev().take(2);
@@ -113,45 +121,6 @@ fn nearest(due: NaiveDateTime, at: NaiveDateTime, said: &str, was: bool) -> Naiv
 
 /// How far back a month and day may be read as passed with no "was" to say so.
 const LATE_DAYS: i64 = 60;
-
-/// A day's end, or the week's, at the start of `phrase`. A day said after
-/// the day's end is its day: "EOD Friday", "end of day tomorrow" were due
-/// the day the mail was sent, overdue as soon as they were filed.
-fn end_of(phrase: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, bool, String)> {
-    let starts = |w: &str| {
-        phrase.starts_with(w)
-            && phrase[w.len()..]
-                .chars()
-                .next()
-                .is_none_or(|c| !c.is_alphanumeric())
-    };
-    let five = |d: chrono::NaiveDate| d.and_hms_opt(17, 0, 0);
-    if let Some(w) = EOD.iter().find(|w| starts(w)) {
-        let rest = phrase[w.len()..].trim_start();
-        let next = (rest
-            .strip_prefix("on ")
-            .unwrap_or(rest)
-            .split_whitespace()
-            .next())
-        .unwrap_or("");
-        let day = duedate::find(next, at)
-            .filter(|h| h.start == 0 && h.end == next.chars().count() && !h.has_time);
-        return Some(match day {
-            Some(h) => (five(h.due.date())?, true, format!("{w} {next}")),
-            None => (five(at.date())?, true, w.to_string()),
-        });
-    }
-    if let Some(w) = EOW.iter().find(|w| starts(w)) {
-        let ahead = (4 + 7 - at.weekday().num_days_from_monday()) % 7;
-        return Some((
-            five(at.date() + Duration::days(ahead.into()))?,
-            true,
-            w.to_string(),
-        ));
-    }
-    // "next Friday [at 5pm]" is the grammar's (`nextday`), time and all.
-    None
-}
 
 /// An invite's start as the due date, in your time, unless it was
 /// cancelled: read as the invite card reads it (`ics`), a named zone's time

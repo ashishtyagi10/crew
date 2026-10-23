@@ -143,3 +143,26 @@ fn a_key_brings_its_date_right_after_it() {
         Some("2026-10-21")
     );
 }
+
+/// A weekday may lead the date it names, and "is" or "date" may stand
+/// between a key and its date: after I29, "by Friday, October 30" read a week
+/// early (this Friday) and "Due date: Oct 30" read nothing.
+#[test]
+fn a_key_reads_past_a_weekday_and_an_is() {
+    assert_eq!(
+        due("Please send it by Friday, October 30.").as_deref(),
+        Some("2026-10-30")
+    );
+    assert_eq!(
+        due("The deadline is Friday.").as_deref(),
+        Some("2026-10-23")
+    );
+    assert_eq!(due("Due date: Oct 30.").as_deref(), Some("2026-10-30"));
+    assert_eq!(
+        due("The due date is October 30.").as_deref(),
+        Some("2026-10-30")
+    );
+    // I29's own cases hold.
+    assert_eq!(due("By the way, Friday works for me."), None);
+    assert_eq!(due("Signed by Ann on Oct 15."), None);
+}
