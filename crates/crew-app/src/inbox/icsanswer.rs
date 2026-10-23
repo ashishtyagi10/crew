@@ -21,6 +21,11 @@ impl InboxPane {
 
     /// `c` or `y` in a thread; the line to say.
     pub(crate) fn invite_key(&mut self, ch: &str) -> String {
+        // An answer to your own invite: never a REPLY sent to yourself.
+        let inv = self.invite().and_then(|i| super::parse(&i));
+        if let Some(said) = inv.and_then(|i| i.reply_line()) {
+            return format!("{said} \u{b7} an answer, nothing to add or answer");
+        }
         match ch {
             "c" => self.add_to_calendar(),
             _ => self.start_answer(),

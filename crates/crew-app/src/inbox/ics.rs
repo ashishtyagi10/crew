@@ -80,6 +80,29 @@ pub(crate) struct Invite {
     pub zones: Vec<Vec<Prop>>,
 }
 
+impl Invite {
+    /// What an answer to YOUR invite says (`METHOD:REPLY`: the "Accepted: …"
+    /// mail an organizer gets), e.g. "Bo Lee accepted your invite". Such a
+    /// mail is no invite: nothing to add, nothing to answer.
+    pub(crate) fn reply_line(&self) -> Option<String> {
+        if self.method != "REPLY" {
+            return None;
+        }
+        let a = self.attendees.first();
+        let who = a.map_or("someone", |p| match p.name.trim() {
+            "" => p.email.as_str(),
+            n => n,
+        });
+        let said = match a.map(|p| p.answer.as_str()) {
+            Some("ACCEPTED") => "accepted",
+            Some("DECLINED") => "declined",
+            Some("TENTATIVE") => "said maybe to",
+            _ => "answered",
+        };
+        Some(format!("{who} {said} your invite"))
+    }
+}
+
 /// The invite in `ics`: its first event that is not one changed occurrence
 /// of a repeating one (`RECURRENCE-ID`), else its first event.
 pub(crate) fn parse(ics: &str) -> Option<Invite> {

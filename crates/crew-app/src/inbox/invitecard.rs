@@ -56,8 +56,10 @@ pub(crate) fn lines(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key) {
         lay.lines
             .push(bar(link(url, crew_theme::readable::link(&t)), k));
     }
-    if newest {
-        foot(lay, &inv, r, k);
+    match inv.reply_line() {
+        Some(said) => say(lay, k, &said, k.accent, false),
+        None if newest => foot(lay, &inv, r, k),
+        None => {}
     }
     lay.lines.push(Vec::new());
 }
