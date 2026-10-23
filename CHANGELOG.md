@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.30
+
+**A turn of tool calls ending in a ```` ```sh ```` block of the next command still runs.**
+- Models often close a turn of calls with what they mean to do once the calls are done:
+  "After making these changes, I will run the tests again" and a ```` ```sh ```` block of
+  `cargo test`. The fence's language line and the command counted as prose under the calls,
+  which pushed the reply past the two short lines a call may be followed by, so the calls were
+  read as an example: both of a 2026-10-22 probe's relay turns ended on four edits, unrun. A
+  fence opening a shell block (`sh`, `bash`, `shell`, `zsh`, `console`) is now wrapping like a
+  bare one; the command inside still counts as a line, so a block of several commands, or one
+  in another language, still leaves the calls as text. The command itself is not run: the
+  agent sees its calls' results and runs it next round.
+- Unit tests replay the captured replies. Four live runs of the same task (two with, two
+  without) did not meet the shape: they ended on the tool budget or on edits described in
+  prose with no calls at all.
+
 ## 0.28.29
 
 **Delete your last few synced todos and they stay deleted.**
