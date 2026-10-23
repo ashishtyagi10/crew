@@ -93,7 +93,10 @@ impl DiskPane {
                 child.is_dir,
                 tile.index == self.selected,
             ));
-            let room = (tile.w - 1.0) as usize;
+            // Half a cell of air at least, each side: the edge floored plus
+            // one put a tile starting at 10.9 a tenth of a cell off its name.
+            let left = (tile.x + 0.5).ceil();
+            let room = (tile.x + tile.w - 0.5 - left).max(0.0) as usize;
             // `vend` is not a directory anybody has. A tile that cuts a name
             // without saying so reads as a complete, wrong name; `ven…` reads
             // as a name that did not fit — which is the truth.
@@ -101,7 +104,7 @@ impl DiskPane {
             put(
                 &mut out,
                 &name,
-                tile.x as u16 + 1,
+                left as u16,
                 top as u16,
                 fg,
                 cols.saturating_sub(1),
@@ -110,7 +113,7 @@ impl DiskPane {
                 put(
                     &mut out,
                     &bytes(child.bytes),
-                    tile.x as u16 + 1,
+                    left as u16,
                     top as u16 + 1,
                     fg,
                     cols.saturating_sub(1),
