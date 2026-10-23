@@ -123,3 +123,21 @@ fn veil_frost_is_the_one_the_legend_inks_assume() {
         .expect("non-numeric");
     assert_eq!(frost, crew_theme::glasslegend::LEGEND_FROST);
 }
+
+/// Nothing lights the patch behind a legend: the frame's holographic light
+/// and the gloss lip both ran under a title's lower half, inside the sheet's
+/// top edge, and on neon (2026-10-23) put it at 2.5:1 against its upper
+/// half's 8:1 (the glass family at 3.4–5.2:1). With both kept off the patch,
+/// neon 5.4:1 and the glass family 6.5–7.3:1 over a dark desktop.
+#[test]
+fn the_frame_light_and_the_gloss_stop_at_a_legend() {
+    let src = include_str!("glass.wgsl");
+    let line = |start: &str| {
+        let at = src.find(start).unwrap_or_else(|| panic!("{start} missing"));
+        &src[at..at + src[at..].find(';').expect("unterminated")]
+    };
+    let bleed = line("let bleed = (1.0 - smoothstep(0.0, GLOW_W, -d)) * inside");
+    assert!(bleed.contains("(1.0 - thick)"), "{bleed}");
+    let gloss = line("let g = clamp(gloss");
+    assert!(gloss.contains("(1.0 - thick)"), "{gloss}");
+}

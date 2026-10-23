@@ -69,3 +69,15 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   it is, so a todo ticked or deleted in crew meanwhile came back as a new todo.
 - **`turned_on`** keeps the list and the pairs and sets `remake`, which lets a deleted `crew`
   list be made again once (`pick`); the pass takes it and saves.
+
+**Round U2 (v0.28.28): the frame light and the gloss stop at a pane's title.**
+
+- **The survey** (finding 2): on neon an unfocused pane's title read 8:1 above the rule and
+  2.5:1 below it, where its lower half stands inside the sheet on the frame's light. Its
+  suggested fix (scale by the veil) would not have reached it: the veil is only the half above
+  the rule. Measured in the shader's terms, the band was two things: neon's holographic bleed
+  and the gloss lip every glass palette has.
+- **Both stop at the frosted patch behind a title** (`glass.wgsl`, `* (1.0 - thick)`), the
+  way the rim stops at its notch. Lower half over a dark desktop: neon 2.5 → 5.4:1,
+  glass-clear 5.2 → 7.3, glass-night 5.2 → 7.3, nebula 4.6 → 6.5, blossom 5.2 → 6.9; over a
+  white one 2.3–3.5 → 4.6–4.9. Shots compared before and after; a source guard test.

@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.28
+
+**Pane titles on glass and neon no longer sit half on a lit band.**
+- A pane's title stands on the frame's top edge, so its lower half is inside the sheet, right
+  where the gloss lip and, on neon, the frame's holographic light are brightest. On neon an
+  unfocused title read 8:1 above the line and 2.5:1 below it; on the glass palettes 3.4–5.2:1
+  below it. The light and the gloss now stop at the frosted patch behind each title, the way
+  the rim already stops at its notch: neon's lower half reads 5.4:1 over a dark desktop (4.9
+  over a white one), glass-clear and glass-night 7.3 (4.8), nebula 6.5, blossom 6.9.
+
 ## 0.28.27
 
 **`/todo reminders` no longer brings back todos you ticked or deleted.**
