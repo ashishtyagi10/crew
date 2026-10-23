@@ -261,3 +261,11 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The second UI survey** (finding 3): the line between the lists was the muted text ink, 7–10:1
   in a box drawn at about 2:1; 0.27.13 had moved the panel edges to the frame colour and missed
   it. Now `border_normal` (`merge_divider`); shots match the frame to the pixel.
+
+**Round A8 (v0.28.50): a missed edit is shown the line it probably meant.**
+
+- **From tonight's probes**: of 154 `sys:edit` calls 69 failed, 36 as "not in the file", and 31
+  of those were never in the file as written: the agent retyped the line from memory.
+- **`editnear.rs`**: the miss names the nearest line (difflib's ratio, 0.6 or more) and shows
+  it numbered, as Aider's failed edits do. Replayed on the 31: 22 shown the line they meant,
+  9 nothing (mostly a line in another file). Unit tests and the replay; no live run.

@@ -144,8 +144,16 @@ fn miss(body: &str, old: &str) -> String {
             );
         }
     }
-    "`old` is not in the file \u{2014} read it with sys:read_file and copy the text to replace"
-        .into()
+    match super::editnear::nearest(body, old) {
+        Some(rows) => format!(
+            "`old` is not in the file \u{2014} the nearest is line {}; copy its text \
+             (without the number) or read the file:\n{rows}",
+            rows.split('\u{2502}').next().unwrap_or_default().trim()
+        ),
+        None => "`old` is not in the file \u{2014} read it with sys:read_file and copy the \
+                 text to replace"
+            .into(),
+    }
 }
 
 /// A fragment short enough to sit inside an error message.
