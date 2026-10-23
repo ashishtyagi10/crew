@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.63
+
+**A swarm worker that resends a failed edit is told too.**
+- 0.28.60 answered a failed edit sent again, with nothing written since, from its first
+  failure instead of running it, in the relay that routed replies run in. A swarm's workers
+  call their tools through their own loop, which kept sending the same failed edit to the
+  same unchanged file. They are answered the same way now.
+
 ## 0.28.62
 
 **`/inbox`: declining one moved meeting no longer declines the series.**

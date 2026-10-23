@@ -346,3 +346,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   `RECURRENCE-ID` when read, so the reply answered the series, and the Calendar path patched the
   series event. `Invite.occurrence` keeps it as written; the reply names it; an occurrence goes
   by mail. The Calendar half is from the code, not run against Google.
+
+**Round A12 (v0.28.63): a swarm worker that resends a failed edit is told too.**
+
+- **Parity with A11**: the native tool loop (`apiagent::pending`) shares `Seen` and now answers
+  a failed edit sent again from its first failure. Unit test; the relay's live probes stand.
