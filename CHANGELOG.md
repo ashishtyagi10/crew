@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.26
+
+**`/theme`: blossom and nebula are described as what they are now.**
+- The picker still called blossom "violet→rose on warm white (modern light)", two weeks after
+  it became a cherry-blossom smoke with white words, so picking it for a light page gave a dark
+  window; nebula named the "modern" family it left for the glass rotation. They now read
+  "cherry-blossom smoked glass, pink accents, white text" and "violet smoked glass,
+  orchid→rose ring, white text", and a test keeps every dark palette's line from saying light.
+
 ## 0.28.25
 
 **`/todo`: a change from your phone no longer moves the highlight to another todo.**
