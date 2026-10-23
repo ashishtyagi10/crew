@@ -78,6 +78,13 @@ pub(crate) fn calendar(inv: &Invite, me: &str, a: Answer, stamp: &str) -> Option
         "END:VEVENT".into(),
         "END:VCALENDAR".into(),
     ];
+    // One occurrence's answer names it: without it the organizer reads the
+    // REPLY as one for the whole series (RFC 5546 3.2.3), and declining a
+    // moved meeting declined every one.
+    let mut lines = Vec::from(lines);
+    if let Some(at) = &inv.occurrence {
+        lines.insert(6, format!("RECURRENCE-ID{}", clean(at)));
+    }
     Some(lines.join("\r\n") + "\r\n")
 }
 

@@ -75,6 +75,8 @@ pub(crate) struct Invite {
     pub organizer: Option<Person>,
     pub attendees: Vec<Person>,
     pub rrule: Option<String>,
+    /// `RECURRENCE-ID` as written: this is one occurrence of a series.
+    pub occurrence: Option<String>,
     pub cancelled: bool,
     /// Every `VTIMEZONE` block's lines, for a zone no database knows.
     pub zones: Vec<Vec<Prop>>,
@@ -170,6 +172,7 @@ pub(crate) fn parse(ics: &str) -> Option<Invite> {
             "ORGANIZER" => inv.organizer = Some(person(&p)),
             "ATTENDEE" => inv.attendees.push(person(&p)),
             "RRULE" => inv.rrule = Some(v.to_ascii_uppercase()),
+            "RECURRENCE-ID" => inv.occurrence = Some(p.tail()),
             "STATUS" => inv.cancelled |= v.eq_ignore_ascii_case("CANCELLED"),
             "X-GOOGLE-CONFERENCE" => inv.link = Some(v.to_string()),
             _ => {}

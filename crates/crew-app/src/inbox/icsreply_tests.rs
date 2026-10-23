@@ -67,3 +67,19 @@ fn the_mail_goes_to_the_organizer_with_the_calendar_beside_its_words() {
         "no one to tell"
     );
 }
+
+/// One moved occurrence ("Updated invitation … @ Wed Oct 28"): the answer
+/// names it, so it is not read as one for the whole series.
+#[test]
+fn an_answer_to_one_occurrence_names_it() {
+    let at = "RECURRENCE-ID;TZID=America/New_York:20261028T093000\r\n";
+    let one = parse(&cal("METHOD:REQUEST\r\n", &format!("{at}{GOOGLE}"))).unwrap();
+    assert_eq!(
+        one.occurrence.as_deref(),
+        Some(";TZID=America/New_York:20261028T093000")
+    );
+    let reply = calendar(&one, "me@x.org", Answer::No, STAMP).unwrap();
+    assert!(reply.contains(at), "{reply}");
+    let series = calendar(&inv(), "me@x.org", Answer::No, STAMP).unwrap();
+    assert!(!series.contains("RECURRENCE-ID"), "{series}");
+}
