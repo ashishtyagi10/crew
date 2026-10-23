@@ -188,6 +188,7 @@ fn tab_asks_smith_once_while_it_writes() {
         since: 0,
         at_ms: 0,
         wants: crate::inbox::handoff::Wants::Draft,
+        thread: "t1".into(),
     });
     press(&mut p, NamedKey::Tab);
     assert!(p.to_smith.is_none(), "not twice");

@@ -63,6 +63,7 @@ impl CrewApp {
                     since,
                     at_ms: crate::anim::now_ms(),
                     wants,
+                    thread: send.thread,
                 });
                 self.focused = inbox;
             }

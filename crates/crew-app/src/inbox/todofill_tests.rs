@@ -94,6 +94,7 @@ fn tab_asks_smith_once_and_its_answer_fills_what_you_left() {
         since: 0,
         at_ms: 0,
         wants: Wants::Todo,
+        thread: "t1".into(),
     });
     p.press(&Key::Named(NamedKey::Tab), 90, 30);
     assert!(
@@ -118,7 +119,44 @@ fn tab_asks_smith_once_and_its_answer_fills_what_you_left() {
         since: 0,
         at_ms: 0,
         wants: Wants::Todo,
+        thread: "t1".into(),
     });
     p.from_smith(Some(vec![answer(json)]));
     assert!(p.note.contains("after the card closed"), "{}", p.note);
+}
+
+/// Tab on one mail's card, Esc, the next mail open and its card up: the
+/// answer about the first is let go, never written onto the second's card.
+#[test]
+fn smiths_answer_lands_only_on_the_mail_it_was_about() {
+    let ((tx, _), (_, rx)) = (mpsc::channel(), mpsc::channel());
+    let mut p = InboxPane::with(Stage::Ready(Worker { tx, rx }));
+    p.email = "sam@x.org".into();
+    let mut next = reading();
+    next.thread.id = "t2".into();
+    p.rows = vec![next.thread.clone()];
+    p.reading = Some(next);
+    p.press(&Key::Character("t".into()), 90, 30);
+    let title = |p: &InboxPane| {
+        p.todo
+            .as_ref()
+            .expect("t2's card")
+            .text(Line::Title)
+            .to_string()
+    };
+    let before = title(&p);
+    p.waiting = Some(Waiting {
+        since: 0,
+        at_ms: 0,
+        wants: Wants::Todo,
+        thread: "t1".into(),
+    });
+    let json = r#"{"title":"Send Ann the numbers","project":"","assignee":"","due":"","why":""}"#;
+    p.from_smith(Some(vec![answer(json)]));
+    assert_eq!(title(&p), before, "t1's answer never on t2's card");
+    assert!(
+        p.waiting.is_none() && p.note.contains("another mail"),
+        "{}",
+        p.note
+    );
 }

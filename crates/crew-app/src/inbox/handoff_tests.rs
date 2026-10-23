@@ -70,6 +70,7 @@ fn smiths_draft_for_a_closed_box_is_let_go_never_saved() {
         since: 0,
         at_ms: 0,
         wants: super::Wants::Draft,
+        thread: "t1".into(),
     });
     p.drafted_by_smith(Some("Sure, Friday.".into()));
     assert!(asks.try_iter().next().is_none(), "nothing asked of Gmail");
@@ -78,6 +79,7 @@ fn smiths_draft_for_a_closed_box_is_let_go_never_saved() {
         since: 0,
         at_ms: 0,
         wants: super::Wants::Draft,
+        thread: "t1".into(),
     });
     p.drafted_by_smith(None);
     assert!(

@@ -38,14 +38,18 @@ pub(crate) struct ToSmith {
     pub prompt: String,
     pub shown: String,
     pub wants: Wants,
+    /// The thread asked about.
+    pub thread: String,
 }
 
 /// A reply smith is writing for the box: the transcript length when it was
-/// asked, so only its answer is read.
+/// asked, so only its answer is read, and the thread it is about, so it
+/// lands on no other.
 pub(crate) struct Waiting {
     pub since: usize,
     pub at_ms: u64,
     pub wants: Wants,
+    pub thread: String,
 }
 
 impl InboxPane {
@@ -86,12 +90,14 @@ impl InboxPane {
             return;
         };
         let subject = r.thread.subject.trim().to_string();
+        let thread = r.thread.id.clone();
         match then {
             Then::Ask => {
                 self.to_smith = Some(ToSmith {
                     prompt: super::smith::ask_prompt(r),
                     shown: format!("\u{2709} what does \u{201c}{subject}\u{201d} want from me?"),
                     wants: Wants::Read,
+                    thread,
                 });
                 self.note = "handed to agent smith".into();
             }
@@ -101,6 +107,7 @@ impl InboxPane {
                     prompt: super::smith::draft_prompt(r),
                     shown: format!("\u{2709} draft a reply to \u{201c}{subject}\u{201d}"),
                     wants: Wants::Draft,
+                    thread,
                 });
                 self.note = "agent smith is writing a draft into the box\u{2026}".into();
             }
@@ -114,6 +121,7 @@ impl InboxPane {
                     prompt: super::smith::todo_prompt(r, &projects, &self.email),
                     shown: format!("\u{2709} the todo in \u{201c}{subject}\u{201d}"),
                     wants: Wants::Todo,
+                    thread,
                 });
                 self.note = "agent smith is filling the card\u{2026}".into();
             }
@@ -127,6 +135,16 @@ impl InboxPane {
     /// was waiting for.
     pub(crate) fn from_smith(&mut self, answers: Option<Vec<String>>) {
         let texts = answers.unwrap_or_default();
+        // Asked on one mail, answered with another open (Esc, then `t` on
+        // the next): let go, never written onto that one's card or box.
+        if let (Some(w), Some(r)) = (&self.waiting, &self.reading) {
+            if w.thread != r.thread.id {
+                self.waiting = None;
+                self.note =
+                    "agent smith\u{2019}s answer was about another mail \u{2014} let go".into();
+                return;
+            }
+        }
         match self.waiting.as_ref().map(|w| w.wants) {
             Some(Wants::Todo) => {
                 self.waiting = None;
