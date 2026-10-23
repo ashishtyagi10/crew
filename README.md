@@ -788,6 +788,16 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-smith-alias-crew):
   (bounded rounds, visible in the transcript) before routing resumes. A
   model's own trained shape (`<tool_call>{"name": …, "arguments": …}`, or
   Qwen3-Coder's `<function=…>` XML) is read as the same call.
+- **Hooks** — commands of your own on either side of every tool call, as
+  Claude Code's PreToolUse/PostToolUse hooks are, declared in
+  `~/.config/crew/hooks.json` and never in a project, so a cloned repo cannot
+  make crew run anything: `{"pre_tool": [{"match": "sys:run", "cmd": "…",
+  "on_failure": "block"}], "post_tool": [{"match": "sys:edit", "cmd": "…"}]}`.
+  `match` is a `server:tool` label, `server:*` or `*`; each hook reads the call
+  as one JSON line on stdin and has five seconds. A pre hook that exits 2, or
+  prints `{"decision": "block", "reason": "…"}`, stops the call and the agent
+  reads why as its result; a post hook's output lands under the result, so a
+  formatter or linter answers back. `CREW_HOOKS=0` turns hooks off.
 
 The pane itself reads like a multi-agent console: a header with a live status
 (`| coder · 12s` while an agent thinks, `| 3 working · 8s` during a parallel

@@ -146,7 +146,7 @@ pub(crate) fn run_with(cmd: &str, timeout: Duration) -> Result<String, String> {
 /// well-behaved processes clean up, then KILL to guarantee they're gone;
 /// both are best-effort since the group may already be empty.
 #[cfg(unix)]
-fn kill_group(pgid: u32) {
+pub(super) fn kill_group(pgid: u32) {
     let target = format!("-{pgid}");
     // An already-empty group makes `/bin/kill` print "No such process" — that
     // is expected (the command finished with no survivors), so silence its
