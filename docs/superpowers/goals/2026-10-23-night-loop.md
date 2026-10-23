@@ -1,6 +1,7 @@
 # Loop — UI, crew AI, inbox and todo, through the night
 
-**Status: RUNNING (from v0.28.24).** Set by the user at 01:00 on 2026-10-23, after loop 15
+**Status: DONE — v0.28.24 to v0.28.97, 74 releases, 01:00 to 07:55.** Set by the user at
+01:00 on 2026-10-23, after loop 15
 closed (`2026-10-22-loop-15.md`, v0.28.9–v0.28.23): *"keep running UI / Crew AI / Inbox /
 todo loop for rest of the night autonomously"*.
 
@@ -548,3 +549,27 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The fourth inbox/todo audit** (finding 3): Google's "needs action" on the added copy
   overrode the answer you had mailed. It yields to yours now.
+
+## Close (07:55)
+
+- **74 releases:** 19 UI (U1–U19), 20 AI (A1–A20), 35 inbox/todo (I1–I35). Four surveys ran
+  behind them: three UI shot surveys (the last found U13–U17 all holding) and four inbox/todo
+  audits (the last found I29 broken, fixed as I32).
+- **Regressions of tonight's own making, all fixed the same night:** U3/U7 chip slabs (U15), U4
+  ring on CRT (U8), U6 hard tabs (U14), U12 find rows (U13), I4 last-May (I25), I14 backspace
+  (I24), I29 weekday-led dates (I32). The lesson held: a regression survey after every batch.
+- **The AI lane's live wins:** sys:edit `line` (A1, 3/3), the advisor (A14, the night's first
+  solve), the budget batch runs (A16, 6/6 stops), indentation-only misses land (A17, 14/14
+  replayed), whole tool descriptions (A18, `line` on the first edit 2/3 vs 0/3), the quoted
+  build digest (A20, 1/3 solved with the advisor off vs 0/6).
+- **Left open, for the owner:**
+  - nebula's bloom (ui.md #3), and the four glass palettes' look-alike strips (ui4 #3: their
+    smokes lifted to the page do not separate);
+  - "book table for friday by 3pm" filing "book table for" (the old "for <day>" rule, now past
+    `at`), "2 PM candidates" read as a time, and a group invite's answer;
+  - `feat/a5-advisor`, superseded by A14, for the user to delete.
+- **Left open, small:** I24's title ending on a lead-in opens with the due in front; I25's
+  "was" look-back crosses a sentence; "by noon Friday" sets no due (noon is not in the
+  grammar); the popup shot harness (ui.md #8) and `bar_popup_shot`'s sel mismatch; AI survey 2
+  #5 (a line of intent per round, risky) and runners-up #6, #7, #9, #10.
+
