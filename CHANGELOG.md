@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.48
+
+**`/todo`: "call bob next friday" is "call bob", due next Friday.**
+- The composer read only the weekday of `next friday`, so the todo was titled "call bob next"
+  and due this Friday (with the Reminders sync on, on the phone too); `this friday` left
+  "this" in the title the same way. Both now read as dates and leave the title: `next friday`
+  said on a Tuesday is next week's, as the inbox already read it, and `this friday` is the
+  coming one. The todo card's due line takes them too, where it refused them as no date.
+
 ## 0.28.47
 
 **A tool call written as `<parameter name="…">` tags runs.**

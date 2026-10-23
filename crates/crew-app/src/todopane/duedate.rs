@@ -13,6 +13,7 @@
 //! occurrence) · `YYYY-MM-DD` · a time `5pm` / `5:30pm` / `17:30` alone
 //! (today, else tomorrow once passed) or beside any date form.
 pub(crate) use super::duetext::*;
+use super::nextday::weekday;
 use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
 /// Hour a date-only due lands on (a morning reminder); its label hides the
@@ -151,6 +152,7 @@ fn parse_date(w: &[&str], today: NaiveDate) -> Option<NaiveDate> {
             };
             today.checked_add_signed(Duration::days(days))
         }
+        ["next" | "this", wd] if weekday(wd).is_some() => super::nextday::date(w[0], wd, today),
         [a, b] => {
             let (m, d) = month(a)
                 .zip(day_num(b))
@@ -163,20 +165,6 @@ fn parse_date(w: &[&str], today: NaiveDate) -> Option<NaiveDate> {
         }
         _ => None,
     }
-}
-
-/// Weekday token → days-from-Monday index. Short and long forms.
-fn weekday(w: &str) -> Option<u32> {
-    Some(match w {
-        "mon" | "monday" => 0,
-        "tue" | "tues" | "tuesday" => 1,
-        "wed" | "weds" | "wednesday" => 2,
-        "thu" | "thur" | "thurs" | "thursday" => 3,
-        "fri" | "friday" => 4,
-        "sat" | "saturday" => 5,
-        "sun" | "sunday" => 6,
-        _ => return None,
-    })
 }
 
 /// Month-name token → 1-based month. Bare month names only parse beside a

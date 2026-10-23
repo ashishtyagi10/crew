@@ -38,6 +38,7 @@ mod legend;
 mod listkeys;
 pub(crate) mod measure;
 mod mutate;
+mod nextday;
 pub(crate) mod parse;
 pub(crate) mod projectdir;
 pub(crate) mod render;

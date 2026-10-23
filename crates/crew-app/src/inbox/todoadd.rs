@@ -21,7 +21,7 @@ impl InboxPane {
                 Some(h) => Some(h),
                 None => {
                     self.note = format!(
-                        "\u{201c}{t}\u{201d} is not a date /todo reads (fri, oct 24, in 2 days, 2026-10-24)"
+                        "\u{201c}{t}\u{201d} is not a date /todo reads (fri, next fri, oct 24, in 2 days, 2026-10-24)"
                     );
                     return;
                 }

@@ -247,3 +247,11 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   the arguments each in a `<parameter name="…">` tag inside `<tool_call>`, was text.
 - **`paramcall.rs`** reads it, and the per-argument form Anthropic's XML calls use. Unit tests
   only (one capture; about one turn in forty).
+
+**Round I10 (v0.28.48): "call bob next friday" is "call bob", due next Friday.**
+
+- **The survey** (finding 7): the composer's grammar had no `next`/`this`, so only the weekday
+  parsed and the word stayed in the title; the inbox read "next friday" as next week's and the
+  todo card refused it.
+- **`nextday.rs`**: `next WD` is the inbox's reading, `this WD` the coming one; `duedate.rs`
+  shrank 252 → 240 (its debt row with it).
