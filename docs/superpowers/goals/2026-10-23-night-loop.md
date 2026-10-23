@@ -361,3 +361,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **A5's follow-up**: a `hooks.json` that will not load blocks every call, and nothing said so.
   `/doctor` has a `hooks` line: off, none, how many, or ✗ with the file's error.
+
+**Round U13 (v0.28.66): chat find and history search show a hit's start again.**
+
+- **The UI regression survey** (tonight's own changes, every palette; R2): U12's path rule took
+  chat find's and history search's rows for paths and cut their fronts. A path now has no spaces.

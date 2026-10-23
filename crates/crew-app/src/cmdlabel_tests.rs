@@ -51,3 +51,18 @@ fn anything_else_keeps_its_start() {
     cmd.desc = "attaches".into();
     assert!(text(&cmd, 10).starts_with("/attach"));
 }
+
+/// A row of words that holds a `/` (a chat-find or history hit) is not a
+/// path: it keeps its start, where the sender and the match are.
+#[test]
+fn a_sentence_with_a_slash_keeps_its_start() {
+    let hit = item(
+        "user: @scout what changed in plot/heatmap.rs since v0.19.60?",
+        vec![],
+    );
+    assert!(
+        text(&hit, 30).starts_with("user: @scout what"),
+        "{}",
+        text(&hit, 30)
+    );
+}
