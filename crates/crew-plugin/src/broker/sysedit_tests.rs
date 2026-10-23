@@ -6,8 +6,32 @@ fn edit(path: &str, old: &str, new: &str) -> Result<String, String> {
         old,
         new,
         all: false,
+        line: None,
     };
     edit_all(path, &[one])
+}
+
+/// The one swap against a buffer, as `edit_all` makes each of its swaps.
+fn replace(body: &str, old: &str, new: &str, all: bool) -> Result<String, String> {
+    let s = Swap {
+        old,
+        new,
+        all,
+        line: None,
+    };
+    place(body, &s, &Shift::default()).map(|ats| splice(body, &ats, old, new))
+}
+
+/// The report for one edit at its (single) match.
+fn report(path: &str, before: &str, old: &str, new: &str) -> String {
+    let s = Swap {
+        old,
+        new,
+        all: false,
+        line: None,
+    };
+    let at = before.find(old).unwrap();
+    super::super::editreport::report_all(path, before, &[s], &[at])
 }
 
 const SRC: &str = "fn main() {\n    let x = 1;\n    println!(\"{x}\");\n}\n";
@@ -145,6 +169,7 @@ fn swaps<'a>(pairs: &'a [(&'a str, &'a str)]) -> Vec<Swap<'a>> {
             old: o,
             new: n,
             all: false,
+            line: None,
         })
         .collect()
 }

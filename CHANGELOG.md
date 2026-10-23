@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.24
+
+**An agent's edit can name which of two identical lines it means.**
+- `sys:edit` refused an `old` found twice (rightly: changing the first is a guess) without
+  saying where the copies were, and dropped the `"line"` models sent to pick one, unread. On
+  the 2026-10-22 probes qwen-max sent the same failing edit six times in one turn. Now the
+  refusal names the lines (`` `old` appears 2 times (lines 2 and 9) ``) and `"line": 9`
+  changes the copy that line falls in and no other. A line in none of them is refused with
+  the list again, and in a batch every line means the file as it was read.
+- Live, a file with two identical `let floor = 4.5;` blocks and "change only the second":
+  before, every run met "appears 2 times" twice and took 26–42 s, and one of three gave up
+  with `"all": true` and changed both, the one it was told to leave included. With it, every
+  run's next call after the refusal sent `"line": 15`: 3 of 3 right, the edit made in 7–11 s.
+- From Codex's `apply_patch`, which anchors a hunk by a context line.
+
 ## 0.28.23
 
 **A tool call written without `@tool` still runs.**
