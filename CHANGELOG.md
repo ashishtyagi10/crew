@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.64
+
+**`/todo`: "call mom at 5 pm" is due at five.**
+- A time with its am or pm a word apart, as many people type it, was read as neither: "call
+  mom at 5 pm" was filed with that title and no due, and `t` on a mail asking for something
+  "by 5 pm" found no deadline. `5 pm`, `9 am` and `4:30 pm` now read as `5pm`, `9am` and
+  `4:30pm`, in the composer, the todo card's due line, and what `t` reads from a mail.
+
 ## 0.28.63
 
 **A swarm worker that resends a failed edit is told too.**

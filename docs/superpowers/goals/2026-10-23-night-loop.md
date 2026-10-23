@@ -351,3 +351,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **Parity with A11**: the native tool loop (`apiagent::pending`) shares `Seen` and now answers
   a failed edit sent again from its first failure. Unit test; the relay's live probes stand.
+
+**Round I17 (v0.28.64): "call mom at 5 pm" is due at five.**
+
+- **The second inbox/todo audit** (also noted): `5 pm` with a space parsed as nothing.
+  `clockword::joined` makes a clock and its am/pm one token, in every reader of a due.
