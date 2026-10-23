@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.11
+
+**The heat grid: a used hour outweighs an idle one.**
+- On `/dash` and `/usage` the dot that marks an hour with nothing in it outshone the quietest
+  hour that saw use, so the empty hours read as the marks: on neon the dot stood 2.8:1
+  against the page and the used tile 1.5:1. The heat scale now starts at half strength rather
+  than a tenth, and the Ink Reader pages' idle dot is quieter: neon 2.8 against 4.3, light
+  1.6 against 2.5. Both panes shade by the one scale.
+
 ## 0.28.10
 
 **A todo list that will not load never wipes your Reminders.**
