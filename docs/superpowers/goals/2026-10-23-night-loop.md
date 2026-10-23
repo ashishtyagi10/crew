@@ -306,3 +306,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The second inbox/todo audit** (finding 2): the card's fallback title named the last mail's
   sender, you, after your own reply. `smith::todo_title` takes the newest mail someone else
   sent; a corpus case holds it.
+
+**Round I13 (v0.28.57): `#Émile` keeps one band, like any other name.**
+
+- **The second inbox/todo audit** (finding 6): the bands matched names ignoring ASCII case
+  only, so `#Émile` missed its own band and the list opened a header at every row. Names now
+  match lowercased, in the bands, the filter and the tag menu.

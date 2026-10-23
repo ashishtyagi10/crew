@@ -83,7 +83,7 @@ impl Filters<'_> {
 fn tag_eq(tag: Option<&str>, want: Option<&str>) -> bool {
     match want {
         None => true,
-        Some(w) => tag.is_some_and(|t| t.eq_ignore_ascii_case(w)),
+        Some(w) => tag.is_some_and(|t| t.to_lowercase() == w.to_lowercase()),
     }
 }
 

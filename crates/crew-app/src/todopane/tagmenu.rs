@@ -37,7 +37,10 @@ pub(crate) fn known_tags(items: &[TodoItem], sigil: char) -> Vec<String> {
             _ => &it.project,
         };
         let Some(p) = field else { continue };
-        match counts.iter_mut().find(|(t, _)| t.eq_ignore_ascii_case(p)) {
+        match counts
+            .iter_mut()
+            .find(|(t, _)| t.to_lowercase() == p.to_lowercase())
+        {
             Some((_, c)) => *c += 1,
             None => counts.push((p.clone(), 1)),
         }
@@ -55,7 +58,10 @@ pub(crate) fn offered(items: &[TodoItem], sigil: char) -> Vec<String> {
     let mut tags = known_tags(items, sigil);
     if sigil == parse::WHO {
         for a in super::agentpick::AGENTS {
-            if !tags.iter().any(|t| t.eq_ignore_ascii_case(a.name())) {
+            if !tags
+                .iter()
+                .any(|t| t.to_lowercase() == a.name().to_lowercase())
+            {
                 tags.push(a.name().to_string());
             }
         }
