@@ -22,7 +22,7 @@ line saying what it was.
   re-indents a block "GPT often messes up leading whitespace" on). Replayed, all 14
   indentation-only misses captured in this night's probes now land, 6 of them from a run an
   hour earlier, and all 16 reflowed ones stay refused. Live, in the third of three runs of the
-  compile-error task, a two-edit batch on  (blocks 12 and 16 spaces short,
+  compile-error task, a two-edit batch on `signal_tests.rs` (blocks 12 and 16 spaces short,
   the same edit an earlier run spent four rounds resending) landed in one call.
 
 ## 0.28.89
