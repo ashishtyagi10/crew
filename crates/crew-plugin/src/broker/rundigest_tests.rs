@@ -25,7 +25,8 @@ fn every_error_is_named_by_its_place_and_nothing_else_is() {
     assert_eq!(
         digest("", CARGO),
         "4 errors at crates/crew-theme/src/readable_tests.rs:25,327 \u{b7} \
-         crates/crew-theme/src/signal_tests.rs:185 \u{b7} crates/crew-theme/src/oklch_tests.rs:133\n"
+         crates/crew-theme/src/signal_tests.rs:185 \u{b7} crates/crew-theme/src/oklch_tests.rs:133\n\
+         crates/crew-theme/src/readable_tests.rs\n  25\u{2502} if r < floor { \u{2014} mismatched types\n"
     );
 }
 
@@ -70,4 +71,32 @@ fn a_cut_run_names_its_errors_under_the_exit_line() {
         "{second}"
     );
     assert!(out.contains("src/f2.rs:2,5"), "the cut ones are named too");
+}
+
+/// The compile task's real `cargo test` (25 errors, 17.9 KB): every error
+/// rustc quoted a line for comes back as that line, copyable as `old`, with
+/// what rustc said of it; a note's or help's code is not quoted.
+#[test]
+fn a_real_build_quotes_each_errors_line() {
+    let got = digest("", include_str!("testdata/cargo_f64_errors.txt"));
+    let rows: Vec<&str> = got.lines().skip(1).collect();
+    assert!(got.starts_with("25 errors at"), "{got}");
+    assert!(
+        got.contains("crates/crew-theme/src/oklch.rs\n  220\u{2502} if contrast_ratio(at(far), bg) < target { \u{2014} expected `f64`, found `f32`\n"),
+        "{got}"
+    );
+    assert!(
+        rows.contains(&"  90\u{2502} .fold(f32::INFINITY, f32::min) \u{2014} type mismatch in function arguments"),
+        "{got}"
+    );
+    assert!(
+        !got.contains("iterator.rs") && !got.contains("target.into()"),
+        "{got}"
+    );
+    assert_eq!(
+        rows.iter().filter(|r| r.contains('\u{2502}')).count(),
+        25,
+        "all 25 quoted: {got}"
+    );
+    assert!(got.len() <= 3_100, "{}", got.len());
 }

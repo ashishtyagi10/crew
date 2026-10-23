@@ -1,0 +1,417 @@
+   Compiling crew-theme v0.27.21 (/work/crew/crates/crew-theme)
+error[E0631]: type mismatch in function arguments
+    --> crates/crew-theme/src/glasslegend.rs:90:30
+     |
+  90 |         .fold(f32::INFINITY, f32::min)
+     |          ----                ^^^^^^^^
+     |          |                   |
+     |          |                   expected due to this
+     |          |                   found signature defined here
+     |          required by a bound introduced by this call
+     |
+     = note: expected function signature `fn(_, f64) -> _`
+                found function signature `fn(_, f32) -> _`
+note: required by a bound in `std::iter::Iterator::fold`
+    --> /home/you/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:2669:12
+     |
+2666 |     fn fold<B, F>(mut self, init: B, mut f: F) -> B
+     |        ---- required by a bound in this associated function
+...
+2669 |         F: [const] FnMut(B, Self::Item) -> B + [const] Destruct,
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Iterator::fold`
+help: consider wrapping the function in a closure
+     |
+  90 |         .fold(f32::INFINITY, |arg0: f32, arg1: f64| f32::min(arg0, /* f32 */))
+     |                              ++++++++++++++++++++++         +++++++++++++++++
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/oklch.rs:220:38
+    |
+220 |     if contrast_ratio(at(far), bg) < target {
+    |        ---------------------------   ^^^^^^ expected `f64`, found `f32`
+    |        |
+    |        expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+220 |     if contrast_ratio(at(far), bg) < target.into() {
+    |                                            +++++++
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/oklch.rs:227:43
+    |
+227 |         if contrast_ratio(at(mid), bg) >= target {
+    |            ---------------------------    ^^^^^^ expected `f64`, found `f32`
+    |            |
+    |            expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+227 |         if contrast_ratio(at(mid), bg) >= target.into() {
+    |                                                 +++++++
+
+error[E0308]: mismatched types
+  --> crates/crew-theme/src/readable.rs:64:38
+   |
+64 |     if contrast_ratio(want, page) >= floor {
+   |        --------------------------    ^^^^^ expected `f64`, found `f32`
+   |        |
+   |        expected because this is `f64`
+   |
+help: you can convert an `f32` to an `f64`
+   |
+64 |     if contrast_ratio(want, page) >= floor.into() {
+   |                                           +++++++
+
+error[E0308]: mismatched types
+  --> crates/crew-theme/src/readable.rs:84:17
+   |
+84 |         if r >= floor {
+   |            -    ^^^^^ expected `f64`, found `f32`
+   |            |
+   |            expected because this is `f64`
+   |
+help: you can convert an `f32` to an `f64`
+   |
+84 |         if r >= floor.into() {
+   |                      +++++++
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/readable.rs:106:18
+    |
+106 |     if best_r >= floor {
+    |        ------    ^^^^^ expected `f64`, found `f32`
+    |        |
+    |        expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+106 |     if best_r >= floor.into() {
+    |                       +++++++
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/readable.rs:131:25
+    |
+131 |                 if r >= floor {
+    |                    -    ^^^^^ expected `f64`, found `f32`
+    |                    |
+    |                    expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+131 |                 if r >= floor.into() {
+    |                              +++++++
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/signal.rs:123:9
+    |
+119 |     oklch::solve_for_contrast(
+    |     ------------------------- arguments to this function are incorrect
+...
+123 |         crate::contrast_ratio(status, page),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `f32`, found `f64`
+    |
+note: function defined here
+   --> crates/crew-theme/src/oklch.rs:205:8
+    |
+205 | pub fn solve_for_contrast(
+    |        ^^^^^^^^^^^^^^^^^^
+...
+209 |     target: f32,
+    |     -----------
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/tagcolor.rs:145:47
+    |
+145 |         if contrast_ratio(cand, t.page_bg) >= floor() {
+    |            -------------------------------    ^^^^^^^ expected `f64`, found `f32`
+    |            |
+    |            expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+145 |         if contrast_ratio(cand, t.page_bg) >= floor().into() {
+    |                                                      +++++++
+
+Some errors have detailed explanations: E0308, E0631.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `crew-theme` (lib) due to 9 previous errors
+warning: build failed, waiting for other jobs to finish...
+error[E0277]: a value of type `Vec<f32>` cannot be built from an iterator over elements of type `f64`
+    --> crates/crew-theme/src/ansi_tests.rs:64:14
+     |
+  64 |             .collect();
+     |              ^^^^^^^ value of type `Vec<f32>` cannot be built from `std::iter::Iterator<Item=f64>`
+     |
+help: the trait `FromIterator<f64>` is not implemented for `Vec<f32>`
+      but trait `FromIterator<f32>` is implemented for it
+    --> /home/you/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3888:1
+     |
+3888 | impl<T> FromIterator<T> for Vec<T> {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for that trait implementation, expected `f32`, found `f64`
+note: the method call chain might not have had the expected associated types
+    --> crates/crew-theme/src/ansi_tests.rs:63:14
+     |
+  62 |         let ratios: Vec<f32> = (1..7)
+     |                                ------ this expression has type `Range<usize>`
+  63 |             .map(|i| contrast_ratio(slots[i], t.term_bg))
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Iterator::Item` is `f64` here
+note: required by a bound in `collect`
+    --> /home/you/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:2079:19
+     |
+2079 |     fn collect<B: FromIterator<Self::Item>>(self) -> B
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Iterator::collect`
+
+error[E0308]: mismatched types
+  --> crates/crew-theme/src/glassborder.rs:78:26
+   |
+78 |             assert!(n >= NORMAL_FLOOR - 0.3, "{id:?}: normal frame {n:.2}");
+   |                     -    ^^^^^^^^^^^^^^^^^^ expected `f64`, found `f32`
+   |                     |
+   |                     expected because this is `f64`
+   |
+help: you can convert an `f32` to an `f64`
+   |
+78 |             assert!(n >= (NORMAL_FLOOR - 0.3).into(), "{id:?}: normal frame {n:.2}");
+   |                          +                  ++++++++
+
+error[E0308]: mismatched types
+  --> crates/crew-theme/src/glassborder.rs:79:26
+   |
+79 |             assert!(f >= FOCUSED_FLOOR - 0.6, "{id:?}: focused frame {f:.2}");
+   |                     -    ^^^^^^^^^^^^^^^^^^^ expected `f64`, found `f32`
+   |                     |
+   |                     expected because this is `f64`
+   |
+help: you can convert an `f32` to an `f64`
+   |
+79 |             assert!(f >= (FOCUSED_FLOOR - 0.6).into(), "{id:?}: focused frame {f:.2}");
+   |                          +                   ++++++++
+
+error[E0277]: a value of type `Vec<f32>` cannot be built from an iterator over elements of type `f64`
+    --> crates/crew-theme/src/oklch_tests.rs:63:10
+     |
+  63 |         .collect();
+     |          ^^^^^^^ value of type `Vec<f32>` cannot be built from `std::iter::Iterator<Item=f64>`
+     |
+help: the trait `FromIterator<f64>` is not implemented for `Vec<f32>`
+      but trait `FromIterator<f32>` is implemented for it
+    --> /home/you/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3888:1
+     |
+3888 | impl<T> FromIterator<T> for Vec<T> {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for that trait implementation, expected `f32`, found `f64`
+note: the method call chain might not have had the expected associated types
+    --> crates/crew-theme/src/oklch_tests.rs:59:10
+     |
+  58 |       let lums: Vec<f32> = (0..12)
+     |                            ------- this expression has type `Range<{integer}>`
+  59 |           .map(|i| {
+     |  __________^
+  60 | |             let rgb = Oklch::new(l, 0.10, i as f32 * 30.0).to_srgb();
+  61 | |             crate::contrast_ratio(rgb, (0, 0, 0))
+  62 | |         })
+     | |__________^ `Iterator::Item` is `f64` here
+note: required by a bound in `collect`
+    --> /home/you/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:2079:19
+     |
+2079 |     fn collect<B: FromIterator<Self::Item>>(self) -> B
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Iterator::collect`
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/oklch_tests.rs:133:30
+    |
+133 |                     ratio >= target - 0.02,
+    |                     -----    ^^^^^^^^^^^^^ expected `f64`, found `f32`
+    |                     |
+    |                     expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+133 |                     ratio >= (target - 0.02).into(),
+    |                              +             ++++++++
+
+error[E0308]: mismatched types
+    --> crates/crew-theme/src/ramp_tests.rs:121:31
+     |
+ 121 |                     free.push(contrast_ratio(c, t.page_bg));
+     |                          ---- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `f32`, found `f64`
+     |                          |
+     |                          arguments to this method are incorrect
+     |
+note: method defined here
+    --> /home/you/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:1003:12
+     |
+1003 |     pub fn push(&mut self, value: T) {
+     |            ^^^^
+
+error[E0308]: mismatched types
+  --> crates/crew-theme/src/readable_tests.rs:25:20
+   |
+25 |             if r < floor {
+   |                -   ^^^^^ expected `f64`, found `f32`
+   |                |
+   |                expected because this is `f64`
+   |
+help: you can convert an `f32` to an `f64`
+   |
+25 |             if r < floor.into() {
+   |                         +++++++
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/readable_tests.rs:124:43
+    |
+124 |     assert!(contrast_ratio(want, page) >= TEXT_FLOOR, "premise");
+    |             --------------------------    ^^^^^^^^^^ expected `f64`, found `f32`
+    |             |
+    |             expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+124 |     assert!(contrast_ratio(want, page) >= TEXT_FLOOR.into(), "premise");
+    |                                                     +++++++
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/readable_tests.rs:139:43
+    |
+139 |     assert!(contrast_ratio(got, light) >= TEXT_FLOOR);
+    |             --------------------------    ^^^^^^^^^^ expected `f64`, found `f32`
+    |             |
+    |             expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+139 |     assert!(contrast_ratio(got, light) >= TEXT_FLOOR.into());
+    |                                                     +++++++
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/readable_tests.rs:277:24
+    |
+277 |             if quiet < MARK_FLOOR - 0.01 {
+    |                -----   ^^^^^^^^^^^^^^^^^ expected `f64`, found `f32`
+    |                |
+    |                expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+277 |             if quiet < (MARK_FLOOR - 0.01).into() {
+    |                        +                 ++++++++
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/readable_tests.rs:323:67
+    |
+323 |             if contrast_ratio(against(want, page, floor), page) < floor {
+    |                ------------------------------------------------   ^^^^^ expected `f64`, found `f32`
+    |                |
+    |                expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+323 |             if contrast_ratio(against(want, page, floor), page) < floor.into() {
+    |                                                                        +++++++
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/readable_tests.rs:327:20
+    |
+327 |             if r < floor - 0.01 {
+    |                -   ^^^^^^^^^^^^ expected `f64`, found `f32`
+    |                |
+    |                expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+327 |             if r < (floor - 0.01).into() {
+    |                    +            ++++++++
+
+error[E0277]: a value of type `Vec<(f32, &str)>` cannot be built from an iterator over elements of type `(f64, &str)`
+    --> crates/crew-theme/src/signal_tests.rs:185:18
+     |
+ 185 |                 .collect();
+     |                  ^^^^^^^ value of type `Vec<(f32, &str)>` cannot be built from `std::iter::Iterator<Item=(f64, &str)>`
+     |
+help: the trait `FromIterator<(f64, &_)>` is not implemented for `Vec<(f32, &str)>`
+      but trait `FromIterator<(f32, &_)>` is implemented for it
+    --> /home/you/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3888:1
+     |
+3888 | impl<T> FromIterator<T> for Vec<T> {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for that trait implementation, expected `f32`, found `f64`
+note: the method call chain might not have had the expected associated types
+    --> crates/crew-theme/src/signal_tests.rs:179:18
+     |
+ 177 |               let mut v: Vec<(f32, &str)> = ids
+     |                                             --- this expression has type `Vec<ThemeId>`
+ 178 |                   .iter()
+     |                    ------ `Iterator::Item` is `&ThemeId` here
+ 179 |                   .map(|id| {
+     |  __________________^
+ 180 | |                     (
+ 181 | |                         contrast_ratio(get(id.theme()), id.theme().page_bg),
+ 182 | |                         id.as_str(),
+ 183 | |                     )
+ 184 | |                 })
+     | |__________________^ `Iterator::Item` changed to `(f64, &str)` here
+note: required by a bound in `collect`
+    --> /home/you/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:2079:19
+     |
+2079 |     fn collect<B: FromIterator<Self::Item>>(self) -> B
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Iterator::collect`
+
+error[E0277]: a value of type `Vec<f32>` cannot be built from an iterator over elements of type `f64`
+    --> crates/crew-theme/src/signal_tests.rs:216:22
+     |
+ 216 |                     .collect();
+     |                      ^^^^^^^ value of type `Vec<f32>` cannot be built from `std::iter::Iterator<Item=f64>`
+     |
+help: the trait `FromIterator<f64>` is not implemented for `Vec<f32>`
+      but trait `FromIterator<f32>` is implemented for it
+    --> /home/you/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3888:1
+     |
+3888 | impl<T> FromIterator<T> for Vec<T> {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for that trait implementation, expected `f32`, found `f64`
+note: the method call chain might not have had the expected associated types
+    --> crates/crew-theme/src/signal_tests.rs:215:22
+     |
+ 213 |                 let mut v: Vec<f32> = ids
+     |                                       --- this expression has type `&Vec<ThemeId>`
+ 214 |                     .iter()
+     |                      ------ `Iterator::Item` is `&ThemeId` here
+ 215 |                     .map(|id| contrast_ratio(get(id.theme()), id.theme().page_bg))
+     |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Iterator::Item` changed to `f64` here
+note: required by a bound in `collect`
+    --> /home/you/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:2079:19
+     |
+2079 |     fn collect<B: FromIterator<Self::Item>>(self) -> B
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Iterator::collect`
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/tagcolor_tests.rs:126:26
+    |
+126 |                 ratio >= want - 0.02,
+    |                 -----    ^^^^^^^^^^^ expected `f64`, found `f32`
+    |                 |
+    |                 expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+126 |                 ratio >= (want - 0.02).into(),
+    |                          +           ++++++++
+
+error[E0308]: mismatched types
+   --> crates/crew-theme/src/tagcolor_tests.rs:159:20
+    |
+159 |             if r < raised - 0.02 {
+    |                -   ^^^^^^^^^^^^^ expected `f64`, found `f32`
+    |                |
+    |                expected because this is `f64`
+    |
+help: you can convert an `f32` to an `f64`
+    |
+159 |             if r < (raised - 0.02).into() {
+    |                    +             ++++++++
+
+Some errors have detailed explanations: E0277, E0308, E0631.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `crew-theme` (lib test) due to 25 previous errors
