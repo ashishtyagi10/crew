@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.54
+
+**`/todo`: "standup tomorrow at 9am" is due tomorrow at 9.**
+- A date, then "at", then a time, the commonest way to say when, was read as the time alone:
+  the row was due today at 9 and kept "tomorrow" in its title (with the Reminders sync on, on
+  the phone too). `t` on a mail asking for the deck "by Friday at 5pm" made it due the day
+  the mail was sent, its reason reading "by at 5pm". The "at" now belongs to the date before
+  it, in the composer, in the todo card's due line, and in what `t` reads from a mail.
+
 ## 0.28.53
 
 **Document windows keep a column of air inside their frame.**

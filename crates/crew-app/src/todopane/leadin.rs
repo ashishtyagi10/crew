@@ -24,6 +24,14 @@ pub(crate) fn start(toks: &[(usize, usize, String)], s: usize) -> usize {
     toks[i].0
 }
 
+/// The date before a time, without the `at` between them: `fri at 5pm`,
+/// `tomorrow at 9am`. Read without it, only the bare time parsed: the row
+/// was due today at 9 and "tomorrow" stayed in its title, and a mail's "by
+/// Friday at 5pm" came out due the day it was sent.
+pub(crate) fn dated<'a>(w: &'a [&'a str]) -> &'a [&'a str] {
+    w.strip_suffix(&["at"]).unwrap_or(w)
+}
+
 #[cfg(test)]
 #[path = "leadin_tests.rs"]
 mod tests;

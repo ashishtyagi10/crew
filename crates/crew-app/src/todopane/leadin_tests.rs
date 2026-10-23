@@ -71,3 +71,24 @@ fn a_lead_in_word_with_no_date_behind_it_is_not_a_parse() {
         assert!(find(input, now()).is_none(), "{input}");
     }
 }
+
+/// A date, `at`, a time: one due, and the title loses all three. Without the
+/// `at` read as the date's, only `at 9am` parsed: due today, "tomorrow" kept.
+#[test]
+fn a_date_at_a_time_is_one_due() {
+    assert_eq!(
+        split("send deck fri at 5pm"),
+        ("send deck".into(), "fri at 5pm".into())
+    );
+    assert_eq!(split("standup tomorrow at 9am").0, "standup");
+    let due = |s: &str| {
+        find(s, now())
+            .unwrap()
+            .due
+            .format("%Y-%m-%d %H:%M")
+            .to_string()
+    };
+    assert_eq!(due("standup tomorrow at 9am"), "2026-08-13 09:00");
+    assert_eq!(due("dentist aug 24 at 10am"), "2026-08-24 10:00");
+    assert_eq!(due("demo next fri at 3pm"), "2026-08-21 15:00");
+}
