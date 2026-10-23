@@ -95,20 +95,11 @@ pub(crate) fn spans(
         return crate::cmdheader::line(item, label_w + GAP + sw, avail, dim);
     }
     let fg = if item.dim { dim } else { label_fg };
-    // A card can be narrower than the command it is listing.
-    let label = crate::chatwidth::clip_w(&item.label, avail);
-    let mut out: Vec<Span> = Vec::new();
-    let hit_style = hit_style(fg);
-    for (i, c) in label.chars().enumerate() {
-        let style = match item.hit.contains(&i) {
-            true => hit_style,
-            false => Style::new().fg(fg),
-        };
-        out.push(Span::styled(c.to_string(), style));
-    }
+    // A card can be narrower than the command it is listing (`cmdlabel`).
+    let mut out = crate::cmdlabel::spans(item, avail, fg);
     // Columns drawn so far, so every later gap is padding to a column rather
     // than arithmetic on what was supposed to have been drawn.
-    let mut col = label.chars().count();
+    let mut col = out.len();
     // A label wider than the column pushes its own description rather than
     // being cut in half by a column it overflowed.
     let mut desc_col = label_w.max(col) + GAP;
