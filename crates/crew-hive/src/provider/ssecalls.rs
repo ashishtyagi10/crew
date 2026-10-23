@@ -74,6 +74,11 @@ impl CallAsm {
         c.3.push_str(&f.arguments);
     }
 
+    /// No fragment of any call has arrived.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.calls.is_empty()
+    }
+
     /// The assembled calls. One with no name never became a call — a server
     /// that streams `finish_reason: tool_calls` without the frames leaves
     /// nothing here, and the caller falls back to the non-streamed request.

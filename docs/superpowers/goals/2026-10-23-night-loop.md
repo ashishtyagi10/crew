@@ -137,3 +137,16 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   open when it landed, a second or two after `y y`, and `e` moves on at once.
 - **Only the invite with the answer's UID is marked** (`icsanswer.rs`). The test fails
   without it.
+
+**Round A3 (v0.28.35): a reply whose stream closed early is picked up, not passed off as whole.**
+
+- **The survey** (loop 15's open item): a stream that ended cleanly with no `[DONE]` and no
+  finish reason was taken as the whole reply; the resume of 0.28.17 only heard streams that
+  failed. Checked on a loopback server: both providers returned `Ok "…the two bran"`.
+- **Built in a worktree lane** (`feat/a3-stream-end`, an implementer agent) and reviewed: a
+  stream is finished only when it says so (`[DONE]`, a finish reason, usage; `message_stop`),
+  and one that closes before that with text or a call under way is a transient error, so the
+  resume picks it up. `openai_http.rs` shrank 601 → 538 (`sseframe.rs`).
+- **Live, through a proxy that ends the stream cleanly after N chunks** (qwen-max, reply
+  route): before, 189 characters ending "This process involves", no error; after, resumed to
+  892 characters (N=9) and 683 (N=14), joined cleanly.

@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use super::super::anthropicsse::Fold;
-use super::super::openai_http::{parse_response, parse_sse_frame, SseItem};
+use super::super::openai_http::parse_response;
+use super::super::sseframe::{parse_sse_frame, SseItem};
 use super::super::{AnthropicProvider, Chunk, ChunkFn};
 use crate::graph::ModelTier;
 use crate::pricing::usage_cost;
@@ -95,10 +96,11 @@ fn an_anthropic_stream_reads_cache_and_model_from_message_start() {
     fold.feed(
         "data: {\"type\":\"message_start\",\"message\":{\"model\":\"claude-haiku-4-5\",\
          \"usage\":{\"input_tokens\":100,\"cache_read_input_tokens\":900,\"output_tokens\":1}}}\n\
-         data: {\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"hi\"}}\n",
+         data: {\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"hi\"}}\n\
+         data: {\"type\":\"message_stop\"}\n",
         &f,
     );
-    let c = fold.finish(&f).unwrap();
+    let c = fold.finish("https://api.anthropic.com", &f).unwrap();
     assert_eq!((c.input_tokens, c.cached_input_tokens), (1000, 900));
     assert_eq!(c.model, "claude-haiku-4-5");
 }
@@ -124,7 +126,7 @@ fn a_reply_that_reads_and_writes_the_cache_prices_each_part() {
          data: {\"type\":\"message_delta\",\"usage\":{\"output_tokens\":16}}\n",
         &f,
     );
-    let streamed = fold.finish(&f).unwrap();
+    let streamed = fold.finish("https://api.anthropic.com", &f).unwrap();
     for c in [whole, streamed] {
         assert_eq!(
             c.input_tokens, 2050,

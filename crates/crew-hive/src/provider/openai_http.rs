@@ -6,11 +6,12 @@ use futures::StreamExt;
 use serde::Deserialize;
 
 use super::retry::{again, retry_after};
-use super::ssecalls::{frags, CallAsm, Frag};
+use super::ssecalls::CallAsm;
+use super::sseframe::{parse_sse_frame, SseItem};
 use super::status::settle;
 use super::thinktags::{Piece, ThinkTags};
 use super::utf8carry::Utf8Carry;
-use super::wire::wire_error;
+use super::wire::{host_of, wire_error};
 use super::{served, stopreason, thinking, Chunk, ChunkFn, Completion, ProviderError};
 
 /// One model's request with transient-error retry (see [`super::retry`]).
@@ -192,7 +193,9 @@ enum SseOutcome {
 /// final line still in `carry` (no trailing `\n` — often the usage frame),
 /// it is parsed too (Important-2) rather than silently dropped. A transport
 /// error partway through the stream is returned as-is — the caller must not
-/// synthesize a partial success.
+/// synthesize a partial success. Nor is a body that closes CLEANLY with words
+/// or a call under way but without the stream saying it was over
+/// ([`SseState::ended`]): it was cut, and fails as a broken stream does.
 ///
 /// `req_body` (the pre-`stream` request JSON) only backs the chars/4 token
 /// estimate used when no `usage` frame ever arrives (e.g. the endpoint
@@ -243,6 +246,16 @@ async fn consume_sse(
     for piece in st.tags.finish() {
         st.route(piece, on_chunk, started);
     }
+    // Cut, not finished. As an `Ok` it stood as the WHOLE reply, ending
+    // mid-word: only a stream that FAILS is picked up where it stopped
+    // (`crew-plugin`'s `resume`). Whitespace alone, or reasoning alone, stays
+    // a blank reply, which is asked again.
+    if !st.ended && (!st.text.trim().is_empty() || !st.calls.is_empty()) {
+        return Err(ProviderError::Http(format!(
+            "{} closed the stream before the reply ended (no [DONE], no finish_reason)",
+            host_of(endpoint)
+        )));
+    }
     let (input_tokens, output_tokens, cost_microusd) = match st.usage {
         Some((i, o, cost)) => (
             i.min(u32::MAX as u64) as u32,
@@ -288,6 +301,11 @@ struct SseState {
     /// Any Done/Delta/Thought/Calls/Usage frame ever seen — distinguishes a
     /// genuine (if empty) stream from a non-SSE error body (Critical-1).
     any_frame: bool,
+    /// The stream said it was over: `[DONE]`, a `finish_reason`, or a usage
+    /// frame (sent once, after the last token — a host that sent it did
+    /// finish). A proxy or host that drops the connection between deltas
+    /// with a clean close sends none of them.
+    ended: bool,
 }
 
 impl SseState {
@@ -336,11 +354,20 @@ fn apply_sse_line(
             }
             SseItem::Thought(s) => st.route(Piece::Thought(s), on_chunk, started),
             SseItem::Calls(fs) => fs.into_iter().for_each(|f| st.calls.push(f)),
-            SseItem::Usage(i, o, cost) => st.usage = Some((i, o, cost)),
+            SseItem::Usage(i, o, cost) => {
+                st.usage = Some((i, o, cost));
+                st.ended = true;
+            }
             SseItem::Cached(read, written) => st.cached = (read, written),
             SseItem::Model(m) => st.model = m,
-            SseItem::Stop(why) => st.truncated = stopreason::openai(Some(&why)),
-            SseItem::Done => done = true,
+            SseItem::Stop(why) => {
+                st.truncated = stopreason::openai(Some(&why));
+                st.ended = true;
+            }
+            SseItem::Done => {
+                done = true;
+                st.ended = true;
+            }
         }
     }
     done
@@ -374,100 +401,6 @@ fn estimate_input_tokens(req_body: &serde_json::Value) -> u32 {
 
 fn chars_to_tokens(chars: usize) -> u32 {
     ((chars as u64) / 4).min(u32::MAX as u64) as u32
-}
-
-/// One parsed item of an OpenAI-compatible SSE frame.
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) enum SseItem {
-    /// Reply text (`delta.content`).
-    Delta(String),
-    /// Reasoning: DashScope/vLLM/NIM `delta.reasoning_content`, OpenRouter
-    /// `delta.reasoning` or `delta.reasoning_details[].text|summary`.
-    Thought(String),
-    /// Tool-call fragments (`delta.tool_calls`), see [`CallAsm`].
-    Calls(Vec<Frag>),
-    /// `finish_reason`, on the frame that ends the choice. The last one
-    /// wins, and only `"length"` matters (`stopreason`).
-    Stop(String),
-    Usage(u64, u64, u64),
-    /// `(read, written)` prompt-cache tokens on the usage frame
-    /// (`served::openai_cache`), when there were any.
-    Cached(u32, u32),
-    /// The model the usage frame names — the one that answered.
-    Model(String),
-    Done,
-}
-
-/// The reasoning text a delta carries, under whichever of the three names
-/// this endpoint uses. `reasoning_details` is OpenRouter's structured form —
-/// `text` for models that show their reasoning, `summary` for ones that only
-/// summarise it; encrypted-only entries have neither and yield nothing.
-fn reasoning_of(delta: &serde_json::Value) -> String {
-    let mut out = String::new();
-    for key in ["reasoning_content", "reasoning"] {
-        if let Some(s) = delta[key].as_str() {
-            out.push_str(s);
-        }
-    }
-    if let Some(details) = delta["reasoning_details"].as_array() {
-        for d in details {
-            if let Some(s) = d["text"].as_str().or_else(|| d["summary"].as_str()) {
-                out.push_str(s);
-            }
-        }
-    }
-    out
-}
-
-/// Pure classifier for one SSE line: everything the frame carries, in the
-/// order it should apply — reasoning, then text, then tool-call fragments,
-/// then why it stopped, then usage — or nothing for noise (keep-alives, blanks, junk). One frame
-/// CAN carry several: some endpoints put the usage on the last content
-/// frame, and a first-item-only read dropped it. Never errors: a malformed
-/// frame is ignored and the stream carries on.
-pub(crate) fn parse_sse_frame(line: &str) -> Vec<SseItem> {
-    let Some(data) = line.strip_prefix("data:").map(str::trim) else {
-        return Vec::new();
-    };
-    if data == "[DONE]" {
-        return vec![SseItem::Done];
-    }
-    let Ok(v) = serde_json::from_str::<serde_json::Value>(data) else {
-        return Vec::new();
-    };
-    let mut out = Vec::new();
-    let delta = &v["choices"][0]["delta"];
-    let thought = reasoning_of(delta);
-    if !thought.is_empty() {
-        out.push(SseItem::Thought(thought));
-    }
-    if let Some(s) = delta["content"].as_str().filter(|s| !s.is_empty()) {
-        out.push(SseItem::Delta(s.to_string()));
-    }
-    let fs = frags(delta);
-    if !fs.is_empty() {
-        out.push(SseItem::Calls(fs));
-    }
-    if let Some(why) = v["choices"][0]["finish_reason"].as_str() {
-        out.push(SseItem::Stop(why.to_string()));
-    }
-    if let Some(u) = v.get("usage").filter(|u| !u.is_null()) {
-        let i = u["prompt_tokens"].as_u64().unwrap_or(0);
-        let o = u["completion_tokens"].as_u64().unwrap_or(0);
-        let cost = (u["cost"].as_f64().unwrap_or(0.0) * 1_000_000.0) as u64;
-        if i > 0 || o > 0 {
-            out.push(SseItem::Usage(i, o, cost));
-            let (read, written) = served::openai_cache(&u["prompt_tokens_details"]);
-            if read > 0 || written > 0 {
-                out.push(SseItem::Cached(read, written));
-            }
-            let model = served::model_of(&v);
-            if !model.is_empty() {
-                out.push(SseItem::Model(model));
-            }
-        }
-    }
-    out
 }
 
 #[derive(Deserialize)]
@@ -599,3 +532,7 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
 #[cfg(test)]
 #[path = "openai_http_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "sseend_tests.rs"]
+mod sseend_tests;
