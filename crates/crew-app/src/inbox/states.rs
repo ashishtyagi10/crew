@@ -166,7 +166,9 @@ pub(crate) fn known(e: &str) -> Option<(&'static str, &'static str)> {
             "Google no longer knows your OAuth client",
             "/inbox signout, then set up a new one",
         ),
-        _ if has("401") || has("refused the sign-in") => {
+        // A refresh token Google no longer honours (revoked, or expired
+        // unused): raw, a Calendar answer read "not added: invalid_grant…".
+        _ if has("401") || has("refused the sign-in") || has("invalid_grant") => {
             ("Gmail turned down crew\u{2019}s sign-in", sign)
         }
         _ if has(" 429") || has("rate limit") || has("quota") => {
