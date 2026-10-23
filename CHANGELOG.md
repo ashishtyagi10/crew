@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.52
+
+**An edit that misses on whitespace is shown the lines as the file has them.**
+- When an agent's `old` text is in the file but with other indentation, the refusal said so
+  and sent it to read the file, a round spent, and it often retyped the indentation wrong
+  again (14 of tonight's 69 failed edits). It now shows the lines that hold the text, numbered
+  as a read shows them, so the agent can copy them as they are.
+- From Aider's failed-edit reply, as 0.28.50's nearest-line hint is.
+
 ## 0.28.51
 
 **`/settings`: a picker never loses its left chevron.**

@@ -131,9 +131,12 @@ fn miss(body: &str, old: &str) -> String {
     }
     let flat = |s: &str| s.split_whitespace().collect::<String>();
     if !flat(old).is_empty() && body.lines().count() > 0 && flat(body).contains(&flat(old)) {
-        return "`old` is not in the file, but the same text is there with different \
-                whitespace \u{2014} read the file and copy the indentation exactly"
-            .into();
+        let lines = super::editnear::spaced(body, old).unwrap_or_default();
+        return format!(
+            "`old` is not in the file, but the same text is there with different \
+             whitespace \u{2014} copy it as it is, indentation and all (without the \
+             numbers):\n{lines}"
+        );
     }
     if let Some(line) = old.lines().find(|l| !l.trim().is_empty()) {
         if body.contains(line.trim()) {

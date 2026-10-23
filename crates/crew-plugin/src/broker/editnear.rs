@@ -32,7 +32,32 @@ pub(super) fn nearest(body: &str, old: &str) -> Option<String> {
         return None;
     }
     let span = old.trim().lines().count().clamp(1, SHOWN);
-    let end = (at + span).min(lines.len());
+    Some(rows(&lines, at, (at + span).min(lines.len())))
+}
+
+/// The lines of `body` that hold `old` once its whitespace is ignored,
+/// numbered: the "different whitespace" miss said only to read the file, and
+/// was 14 of the probes' 69 failed edits. Shown, the lines can be copied as
+/// they are, indentation and all.
+pub(super) fn spaced(body: &str, old: &str) -> Option<String> {
+    let want: String = old.split_whitespace().collect();
+    // Each non-space char of `body`, with the line it is on.
+    let (flat, line): (String, Vec<usize>) = (body.lines().enumerate())
+        .flat_map(|(i, l)| {
+            l.chars()
+                .filter(|c| !c.is_whitespace())
+                .map(move |c| (c, i))
+        })
+        .unzip();
+    let start = flat.find(&want)?;
+    let (first, chars) = (flat[..start].chars().count(), want.chars().count());
+    let (a, b) = (line[first], line[first + chars.max(1) - 1]);
+    let lines: Vec<&str> = body.lines().collect();
+    Some(rows(&lines, a, (b + 1).min(a + SHOWN)))
+}
+
+/// `lines[at..end]`, each under its number as a read shows it.
+fn rows(lines: &[&str], at: usize, end: usize) -> String {
     let w = end.to_string().len();
     let row = |(k, l): (usize, &&str)| {
         let text: String = l.chars().take(CAP).collect();
@@ -43,8 +68,8 @@ pub(super) fn nearest(body: &str, old: &str) -> Option<String> {
         };
         format!("{:>w$}\u{2502} {text}{cut}", at + k + 1)
     };
-    let rows: Vec<String> = lines[at..end].iter().enumerate().map(row).collect();
-    Some(rows.join("\n"))
+    let shown: Vec<String> = lines[at..end].iter().enumerate().map(row).collect();
+    shown.join("\n")
 }
 
 /// How alike two lines are, 0 to 1: twice their longest common subsequence
