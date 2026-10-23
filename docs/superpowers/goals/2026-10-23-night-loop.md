@@ -150,3 +150,10 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **Live, through a proxy that ends the stream cleanly after N chunks** (qwen-max, reply
   route): before, 189 characters ending "This process involves", no error; after, resumed to
   892 characters (N=9) and 683 (N=14), joined cleanly.
+
+**Round U5 (v0.28.36): `/disk` names keep the same air from their tile's edge.**
+
+- **The survey** (finding 6): a name went one column past its tile's edge floored, so `crates`
+  and `.git` sat a tenth of a cell from their borders and `target` most of a cell.
+- **Half a cell at least, each side** (`diskdraw.rs`); a test sweeping 40–90 columns failed
+  at 42 without it. Shot compared.

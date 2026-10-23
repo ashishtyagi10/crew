@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.36
+
+**`/disk`: every name keeps the same air from its tile's edge.**
+- A tile's name was written one column past its edge rounded down, so a tile starting just short
+  of a column put its name a tenth of a cell from its border (`crates` and `.git` jammed
+  against theirs) while one starting just past a column had most of a cell (`target`). Names
+  now keep at least half a cell from either edge.
+
 ## 0.28.35
 
 **A reply whose stream closed early is picked up, not passed off as whole.**

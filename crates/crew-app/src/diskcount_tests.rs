@@ -73,3 +73,48 @@ fn a_label_never_sits_on_the_tile_above() {
         }
     }
 }
+
+/// Every name keeps at least half a cell of air from its tile's left edge.
+/// The column was the edge floored plus one, so a tile starting at 10.9
+/// wrote its name a tenth of a cell from the edge while its neighbour at
+/// 10.1 had most of a cell: `.git` jammed against its border, `target` not.
+#[test]
+fn a_label_keeps_half_a_cell_from_its_tiles_edge() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = DiskPane::new(std::path::PathBuf::from("/tmp/air"));
+    let kids = [
+        ("target", 4_200_000_000, true),
+        ("crates", 774_000_000, true),
+        (".git", 383_000_000, true),
+        ("vendor", 160_000_000, true),
+        ("docs", 90_000_000, true),
+    ];
+    p.set_children_for_test(&kids, 0);
+    let mut seen = 0;
+    for cols in 40u16..=90 {
+        let rows = 24;
+        let map = crate::diskwalk::tiles(&p.children, cols, rows);
+        let cells = p.cells(cols, rows);
+        for tile in &map {
+            let first = kids[tile.index].0.chars().next().unwrap();
+            let top = tile.y.ceil() as u16;
+            let lo = tile.x.floor() as u16;
+            let hi = (tile.x + tile.w) as u16;
+            let at = cells
+                .iter()
+                .filter(|c| c.row == top && (lo..hi).contains(&c.col) && c.c != ' ')
+                .min_by_key(|c| c.col);
+            if let Some(c) = at.filter(|c| c.c == first) {
+                seen += 1;
+                assert!(
+                    f32::from(c.col) >= tile.x + 0.5 - 0.001,
+                    "{cols} cols: {} at col {} in a tile from {}",
+                    kids[tile.index].0,
+                    c.col,
+                    tile.x
+                );
+            }
+        }
+    }
+    assert!(seen > 40, "the labels were found ({seen})");
+}
