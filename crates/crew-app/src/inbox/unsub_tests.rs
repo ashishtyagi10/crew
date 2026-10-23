@@ -183,3 +183,18 @@ fn one_click_is_one_form_post_and_a_mail_is_sent_through_gmail() {
     let err = gmail(&refused).unsubscribe(&How::OneClick(format!("{refused}/u")));
     assert!(err.unwrap_err().contains("refused the unsubscribe"));
 }
+
+/// `e` is offered only over the mail it was from: after `u u` `n` it took the next thread.
+#[test]
+fn the_archive_offer_waits_for_the_mail_it_was_about() {
+    let got = || crate::inbox::worker::Got::Unsubscribed("Acme News".into());
+    let (mut p, _) = reading(Some(How::OneClick("https://acme.example/u".into())));
+    p.take(got());
+    assert_eq!(
+        p.note,
+        "unsubscribed from Acme News \u{b7} e archives this mail"
+    );
+    p.reading = Some(Reading::new(Thread::default()));
+    p.take(got());
+    assert_eq!(p.note, "unsubscribed from Acme News");
+}

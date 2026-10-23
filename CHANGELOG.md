@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.61
+
+**`/inbox`: "e archives this mail" only over the mail you unsubscribed from.**
+- An unsubscribe can take a while to answer (up to 20 s for a one-click one), and `n` moves on
+  at once. When it landed, the foot said "unsubscribed from Acme · e archives this mail" over
+  whatever thread was open, and `e` archived that one, someone else's mail. The offer now
+  comes only while the sender's mail is the one open; elsewhere it just says you unsubscribed.
+
 ## 0.28.60
 
 **An agent that resends an edit that just failed is told, not charged a round.**
