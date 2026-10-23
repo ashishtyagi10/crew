@@ -12,6 +12,14 @@ fn item(label: &str, hit: Vec<usize>) -> MenuItem {
     }
 }
 
+/// A row its picker marks as a path, as `/view` and `@` files do.
+fn path(label: &str, hit: Vec<usize>) -> MenuItem {
+    MenuItem {
+        path: true,
+        ..item(label, hit)
+    }
+}
+
 fn text(item: &MenuItem, avail: usize) -> String {
     spans(item, avail, Color::Reset)
         .iter()
@@ -22,11 +30,11 @@ fn text(item: &MenuItem, avail: usize) -> String {
 /// A path keeps the file it names, cut on a separator after its `@`.
 #[test]
 fn a_long_path_keeps_its_file_name() {
-    let got = text(&item(LONG, vec![]), 30);
+    let got = text(&path(LONG, vec![]), 30);
     assert_eq!(got, "@\u{2026}/viewpane/render_tests.rs");
     assert!(got.chars().count() <= 30);
     assert_eq!(
-        text(&item("@a/b.rs", vec![]), 30),
+        text(&path("@a/b.rs", vec![]), 30),
         "@a/b.rs",
         "whole when it fits"
     );
@@ -36,7 +44,7 @@ fn a_long_path_keeps_its_file_name() {
 #[test]
 fn a_match_mark_follows_its_letter() {
     let r = LONG.find("render").unwrap();
-    let marked: String = spans(&item(LONG, vec![0, r]), 30, Color::Reset)
+    let marked: String = spans(&path(LONG, vec![0, r]), 30, Color::Reset)
         .iter()
         .filter(|s| s.style.bg.is_some())
         .map(|s| s.content.to_string())
@@ -65,4 +73,17 @@ fn a_sentence_with_a_slash_keeps_its_start() {
         "{}",
         text(&hit, 30)
     );
+}
+
+/// A path with a space in it is still a path: six files under
+/// `Application Support` all read `@Library/Application Su…`, the same row
+/// six times, when a space made it read as words.
+#[test]
+fn a_path_with_a_space_keeps_its_file_name() {
+    let row = path(
+        "@Library/Application Support/Code/User/settings.json",
+        vec![],
+    );
+    let got = text(&row, 24);
+    assert!(got.ends_with("/settings.json"), "{got}");
 }

@@ -113,3 +113,38 @@ fn the_typed_leaf_is_marked() {
         .collect();
     assert_eq!(marked, "rea", "{:?}", row.label);
 }
+
+/// Every row keeps its own name when cut to a narrow card: a folder (it has
+/// a description), a file under a spaced path, and a long file at the root
+/// (no `/`). Guessed from the text, each read as words and lost its tail:
+/// six rows of `Application Support/Code/U…`.
+#[test]
+fn every_row_cut_to_fit_keeps_its_name() {
+    let base = fixture("names");
+    let user = base.join("Application Support").join("Code").join("User");
+    std::fs::create_dir_all(user.join("snippets")).unwrap();
+    std::fs::write(user.join("settings.json"), b"x").unwrap();
+    let long = "a-very-long-file-name-that-somebody-generated-2026-09-02T10-15-00.log";
+    std::fs::write(base.join(long), b"x").unwrap();
+    let shown = |i: &MenuItem| -> String {
+        let spans = crate::cmdlabel::spans(i, 24, ratatui::style::Color::Reset);
+        spans.iter().map(|s| s.content.to_string()).collect()
+    };
+    for row in rows("/view Application Support/Code/User/", &base).unwrap() {
+        let name = row
+            .label
+            .trim_end_matches('/')
+            .rsplit('/')
+            .next()
+            .unwrap()
+            .to_string();
+        assert!(
+            shown(&row).trim_end_matches('/').ends_with(&name),
+            "{}",
+            shown(&row)
+        );
+    }
+    let root = rows("/view a-very", &base).unwrap();
+    assert!(shown(&root[0]).ends_with(".log"), "{}", shown(&root[0]));
+    let _ = std::fs::remove_dir_all(&base);
+}

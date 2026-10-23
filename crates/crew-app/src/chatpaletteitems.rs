@@ -154,6 +154,7 @@ pub(crate) fn attach_items(
         .into_iter()
         .filter(|e| !multi || matches!(e, MentionEntry::Agent { .. }))
         .map(|e| MenuItem {
+            path: matches!(e, MentionEntry::File(_)),
             // Where the query matched, as the filter matched it.
             hit: crate::histhits::mention_hits(&e, query),
             label: format!("@{}", e.token()),

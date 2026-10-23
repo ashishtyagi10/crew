@@ -38,6 +38,8 @@ pub(crate) struct MenuItem {
     /// so a fuzzy hit explains itself. Empty when nothing matched (an empty
     /// query, or a row that is not a search result).
     pub hit: Vec<usize>,
+    /// A path (`/view`, `@` files): cut to fit, it keeps its file name.
+    pub path: bool,
     /// Colours this row stands for, drawn between the label and the
     /// description ([`crate::swatch`]). Empty for a value that is not a
     /// colour, which is most of them.

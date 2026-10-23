@@ -18,6 +18,7 @@ fn attach_items(m: &crate::chatmention::MentionState, input: &str) -> Vec<MenuIt
     m.matches
         .iter()
         .map(|e| MenuItem {
+            path: matches!(e, crate::chatmention::MentionEntry::File(_)),
             label: format!("@{}", e.token()),
             desc: e.desc(),
             hit: crate::histhits::mention_hits(e, query),

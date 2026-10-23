@@ -496,3 +496,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The fourth UI survey** (regressions: U13–U17 all hold; finding 1): arrowed to `light`, the
   bar read `/theme dark`. It ghosts the row Tab fills now (shot: paper-light and glass-clear).
+
+**Round U19 (v0.28.89): a path cut to fit keeps its file name.**
+
+- **The fourth UI survey** (finding 2): text alone could not tell a path with a space, a folder
+  row or a root file from words. The pickers mark their path rows now (`MenuItem::path`).
