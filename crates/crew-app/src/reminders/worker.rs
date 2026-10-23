@@ -85,12 +85,14 @@ fn wait(rx: &Receiver<()>, stop: &AtomicBool) {
 fn pass(kit: &Kit) -> Result<usize, String> {
     let file = pairs::path();
     let mut state = pairs::load_at(file.as_deref());
-    let (list, other) = kit.list(&state.list)?;
+    let (list, other) = kit.list(&state.list, state.remake)?;
+    // Asked once, used once: a list deleted later stays deleted.
+    let asked = std::mem::take(&mut state.remake);
     if other {
         // Not the list the pairs were made in: pair again, by title.
         state = pairs::State {
             list: Kit::id(&list),
-            pairs: Vec::new(),
+            ..Default::default()
         };
     }
     let rems = kit.fetch(&list)?;
@@ -132,7 +134,7 @@ fn pass(kit: &Kit) -> Result<usize, String> {
         }
     };
     let agreed: Vec<Pair> = plan.pairs.into_iter().chain(made).chain(born).collect();
-    if other || agreed != state.pairs {
+    if other || asked || agreed != state.pairs {
         state.pairs = agreed;
         pairs::save_at(file.as_deref(), &state);
     }

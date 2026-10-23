@@ -2017,7 +2017,9 @@ longer aim at.
   history, and this month's new one is news. Delete the `crew` list in
   Reminders and the sync stops, says so, and leaves it deleted;
   `/todo reminders` makes it again. `reminders.toml`, beside `todos.toml`,
-  remembers the pairs. A change arriving from the phone re-sorts the list
+  remembers the pairs, and turning the sync off and on again keeps them: a
+  todo ticked or deleted in crew meanwhile is ticked or deleted on the phone
+  at the next pass, not brought back as a new one. A change arriving from the phone re-sorts the list
   under you, and the highlight goes with the todo it was on, so `d` never
   lands on the one that slid into its row.
 - **`/smith`** — opens **agent smith**, a **multi-agent pane** where the

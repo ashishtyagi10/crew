@@ -60,3 +60,12 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   rose smoke with white words, and nebula named the retired "modern" family.
 - **Two lines rewritten** (`ThemeId::describe`), and a test that no dark palette's line says
   light or warm and none says modern. Shot of the picker checked.
+
+**Round I2 (v0.28.27): `/todo reminders` keeps the pairs.**
+
+- **The survey** (finding 1): `/todo reminders` reset `reminders.toml` whole, list and pairs,
+  so after the sync was off (or refused access, or the command was typed again to check) the
+  next pass paired by title alone. Since I2 of loop 15 a title pairs only with one as done as
+  it is, so a todo ticked or deleted in crew meanwhile came back as a new todo.
+- **`turned_on`** keeps the list and the pairs and sets `remake`, which lets a deleted `crew`
+  list be made again once (`pick`); the pass takes it and saves.
