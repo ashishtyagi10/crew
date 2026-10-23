@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.59
+
+**`/todo`: `e` then Enter leaves a todo as it was.**
+- `e` puts a todo back in the composer to edit, title first, then its tags and its due. Sent
+  back unchanged it could come out different: a title ending in "on", "by" or "at" ("turn the
+  heater on") lost the word, read as the due's lead-in, and a title holding an `@word` ("Bump
+  @types/node to 22", the kind `t` files from mail) had it taken for the project. With the
+  Reminders sync on, the change went to the phone too. The composer now reads back tags first
+  and the due before the title, so the title comes back whole.
+
 ## 0.28.58
 
 **A build too long to show names every error's place at the top.**

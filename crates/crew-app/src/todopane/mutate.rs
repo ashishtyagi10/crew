@@ -93,20 +93,20 @@ impl TodoPane {
             return;
         };
         let it = &self.items[idx];
-        let mut s = it.title.clone();
         // The FULL chip list, not the row's: an item edited from under its
-        // own band must not come back belonging to nobody.
-        for chip in super::rowchips::chips(it) {
-            s.push(' ');
-            s.push_str(&chip);
+        // own band must not come back belonging to nobody. Chips first, so a
+        // title's own `@types/node` is not read back as its project; the due
+        // before the title unless the title names a date itself, so its last
+        // word ("turn the heater on") is not read as the date's lead-in.
+        let mut parts = super::rowchips::chips(it);
+        let due = (it.due_ms).and_then(|d| super::duedate::edit_text(d, it.due_has_time));
+        let dated = super::duedate::find(&it.title, super::duedate::now_local()).is_some();
+        match due {
+            Some(d) if !dated => parts.extend([d, it.title.clone()]),
+            Some(d) => parts.extend([it.title.clone(), d]),
+            None => parts.push(it.title.clone()),
         }
-        if let Some(txt) = it
-            .due_ms
-            .and_then(|d| super::duedate::edit_text(d, it.due_has_time))
-        {
-            s.push(' ');
-            s.push_str(&txt);
-        }
+        let s = parts.join(" ");
         self.cursor = s.chars().count();
         self.input = s;
         self.editing = Some(it.id);

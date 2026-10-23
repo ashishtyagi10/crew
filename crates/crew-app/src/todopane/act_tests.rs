@@ -43,3 +43,34 @@ fn an_assignee_round_trips_through_an_edit() {
     assert_eq!(items[0].project.as_deref(), Some("crew"));
     assert_eq!(items[0].title, "ship notes");
 }
+
+/// `e` then Enter keeps a todo exactly as it was: a title ending in "on"
+/// lost the word to the due's lead-in, and a title's own `@types/node`
+/// became the project.
+#[test]
+fn editing_unchanged_keeps_the_todo_whole() {
+    let day = crate::chattime::unix_now_ms() + 3 * 86_400_000;
+    let it = |title: &str, project: Option<&str>| super::super::item::TodoItem {
+        id: 7,
+        title: title.into(),
+        project: project.map(str::to_string),
+        due_ms: Some(day),
+        ..Default::default()
+    };
+    for want in [
+        it("turn the heater on", None),
+        it("Bump @types/node to 22", Some("crew")),
+    ] {
+        let _g = super::super::store::test_guard(vec![want.clone()]);
+        let mut p = super::super::TodoPane::new();
+        p.edit_at(0);
+        p.submit();
+        let got = &super::super::store::snapshot()[0];
+        assert_eq!(
+            (&got.title, &got.project),
+            (&want.title, &want.project),
+            "{}",
+            p.input
+        );
+    }
+}
