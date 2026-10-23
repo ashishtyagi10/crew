@@ -123,10 +123,12 @@ pub(crate) fn inked(bg: Color) -> (Color, Color) {
         true => {
             let c = crew_theme::oklch::from_srgb(bg);
             let dark = crew_theme::oklch::Toward::Dark;
-            (
-                t.ink,
-                crew_theme::oklch::solve_for_contrast(t.ink, c.h, c.c, floor, dark),
-            )
+            // Neon's fills are neons: at the pale tag's chroma they came out
+            // dusty (smith 0.07). Asked past the gamut, as vivid as it allows.
+            let holo = t.liquid.is_some_and(|l| l.holo > 0.0);
+            let chroma = if holo { HOLO_FILL_CHROMA } else { c.c };
+            let fill = crew_theme::oklch::solve_for_contrast(t.ink, c.h, chroma, floor, dark);
+            (t.ink, fill)
         }
         false => (page_ink(bg), bg),
     }
@@ -137,6 +139,9 @@ pub(crate) fn inked(bg: Color) -> (Color, Color) {
 /// to 4.5, glass survey D-M1). No deeper: a badge's block must still clear
 /// the mark floor on the page it rests on, idle dim and all (`summarypulse`).
 pub(crate) const GLOW_ROOM: f32 = 1.1;
+
+/// A holographic fill's chroma: past any sRGB colour, so the gamut sets it.
+const HOLO_FILL_CHROMA: f32 = 0.3;
 
 /// [`badge`] in [`inked`]'s ink and fill.
 pub(crate) fn badge_on(text: &str, bg: Color, caps: Caps) -> Vec<Cell> {
@@ -187,6 +192,9 @@ pub(crate) fn to_card(cells: &[Cell]) -> Vec<CardCell> {
         .collect()
 }
 
+#[cfg(test)]
+#[path = "segment_holo_tests.rs"]
+mod holo_tests;
 #[cfg(test)]
 #[path = "segment_tests.rs"]
 mod tests;

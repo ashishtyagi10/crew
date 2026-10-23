@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.19
+
+**On neon, agent badges and chips glow instead of looking dusty.**
+- Neon's badges (an agent's name, a code block's language, a pane's legend) were deepened
+  until white letters read on them, but kept the pale tag's own little colour, so `smith`
+  came out a dusty mauve on a screen of electric blues and violets. On neon each fill is
+  now as vivid as its depth allows, and the white letters still read on every one.
+
 ## 0.28.18
 
 **An "Accepted:" mail is an answer to your invite, not an invite.**
