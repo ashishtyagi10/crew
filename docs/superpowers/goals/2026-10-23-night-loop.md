@@ -382,3 +382,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The second inbox/todo audit** (also noted): smith's `2026-10-23T17:00` on the todo card was
   no date `/todo` reads and was dropped. `todofill::untee` reads it; a zoned one stays out.
+
+**Round U16 (v0.28.70): `/theme` in a narrow tile, every row says what sets it apart.**
+
+- **The UI regression survey** (N1): cut to fit, `dark` and `light` both read "Ink Reader — an…"
+  and three glass rows "iPhone liquid…". The descriptions lead with what differs now.

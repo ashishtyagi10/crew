@@ -218,15 +218,15 @@ impl ThemeId {
     /// A short human description, for the `/theme` value picker.
     pub fn describe(self) -> &'static str {
         match self {
-            ThemeId::PaperDark => "Ink Reader: an e-reader's black page (dark)",
-            ThemeId::PaperLight => "Ink Reader: an e-reader's white page (light)",
-            ThemeId::CrtGreen => "neon green phosphor CRT",
-            ThemeId::CrtAmber => "neon amber phosphor CRT",
+            ThemeId::PaperDark => "black page, white words: the Ink Reader (dark)",
+            ThemeId::PaperLight => "white page, black words: the Ink Reader (light)",
+            ThemeId::CrtGreen => "green phosphor CRT",
+            ThemeId::CrtAmber => "amber phosphor CRT",
             ThemeId::Nebula => "violet smoked glass, orchid\u{2192}rose ring, white text",
             ThemeId::Blossom => "cherry-blossom smoked glass, pink accents, white text",
-            ThemeId::GlassNight => "iPhone liquid glass, clear and navy-smoked, white text",
-            ThemeId::GlassClear => "iPhone liquid glass, clear and lightly smoked, white text",
-            ThemeId::NeonDark => "neon: holographic glass over a lit grid",
+            ThemeId::GlassNight => "navy-smoked clear glass, white text (iPhone liquid glass)",
+            ThemeId::GlassClear => "lightly smoked clear glass, white text (iPhone liquid glass)",
+            ThemeId::NeonDark => "holographic glass over a lit grid",
         }
     }
 
@@ -464,13 +464,13 @@ impl RandomMode {
     /// A short human description, for the `/theme` value picker and listings.
     pub fn describe(self) -> &'static str {
         match self {
-            RandomMode::Dark => "Ink Reader \u{2014} an e-reader's black page, white words",
-            RandomMode::Light => "Ink Reader \u{2014} an e-reader's white page, black words",
+            RandomMode::Dark => "black page, white words \u{2014} the Ink Reader, an e-reader's look",
+            RandomMode::Light => "white page, black words \u{2014} the Ink Reader, an e-reader's look",
             RandomMode::Crt => "rotating CRT phosphor themes",
             RandomMode::Glass => {
-                "iPhone liquid glass \u{2014} clear smoked panes, bright white text, your desktop behind"
+                "clear smoked panes, bright white text, your desktop behind \u{2014} iPhone liquid glass"
             }
-            RandomMode::Neon => "neon \u{2014} holographic glass over a lit grid, always dark",
+            RandomMode::Neon => "holographic glass over a lit grid, always dark",
             RandomMode::Auto => {
                 "follows your OS appearance \u{2014} light by day, dark by night on macOS Appearance: Auto"
             }
