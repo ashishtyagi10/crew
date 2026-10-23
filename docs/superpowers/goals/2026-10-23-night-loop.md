@@ -458,3 +458,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The third inbox/todo audit** (finding 4): an answer to an invite Google does not have went by
   mail, yet the card said "on your Google Calendar" and `c` refused to add it. Only an event
   Google has takes Google's answer now.
+
+**Round I28 (v0.28.83): "by EOD Friday" in a mail is due Friday at five.**
+
+- **The third inbox/todo audit** (finding 3): an end-of-day word made the mail's own day the
+  due, whatever day followed it, and "next Friday at 5pm" lost its time to an older branch the
+  grammar now covers.

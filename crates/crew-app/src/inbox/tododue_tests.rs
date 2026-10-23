@@ -87,3 +87,42 @@ fn a_date_months_ahead_is_not_read_as_passed() {
         "an overdue notice"
     );
 }
+
+/// A day after an end-of-day word is that day's end, and "next Friday" keeps
+/// its time: "by EOD Friday" was due the Tuesday it was sent, at five.
+#[test]
+fn an_end_of_day_names_its_day_and_next_keeps_its_time() {
+    let read = |s| {
+        let d = deadline(s, tue()).unwrap();
+        (d.0.format("%Y-%m-%d %H:%M").to_string(), d.1, d.2)
+    };
+    for (mail, due, said) in [
+        (
+            "Please send it by EOD Friday.",
+            "2026-10-23 17:00",
+            "by eod friday",
+        ),
+        (
+            "Numbers by end of day tomorrow?",
+            "2026-10-21 17:00",
+            "by end of day tomorrow",
+        ),
+        (
+            "Need sign-off by COB on Monday.",
+            "2026-10-26 17:00",
+            "by cob monday",
+        ),
+        (
+            "Need the slides by EOD please.",
+            "2026-10-20 17:00",
+            "by eod",
+        ),
+        (
+            "Send the deck by next Friday at 5pm.",
+            "2026-10-30 17:00",
+            "by next friday at 5pm",
+        ),
+    ] {
+        assert_eq!(read(mail), (due.into(), true, said.into()), "{mail}");
+    }
+}
