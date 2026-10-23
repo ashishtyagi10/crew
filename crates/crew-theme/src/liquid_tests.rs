@@ -94,3 +94,28 @@ fn glass_text_reads_over_any_desktop() {
         under.join("\n  ")
     );
 }
+
+/// The `/theme` picker reads these to someone choosing. Blossom said "on
+/// warm white (modern light)" for two weeks after it became a rose smoke with
+/// white words, so the one picked for its light page came up dark; nebula
+/// still named the "modern" family it left for the glass rotation.
+#[test]
+fn a_dark_palette_is_never_described_as_light() {
+    for id in ALL_THEMES {
+        let words: Vec<String> = id
+            .describe()
+            .split(|c: char| !c.is_alphanumeric())
+            .map(str::to_lowercase)
+            .collect();
+        let says = |w: &str| words.iter().any(|x| x == w);
+        if id.is_dark() {
+            assert!(!says("light"), "{id:?} is dark: {}", id.describe());
+            assert!(!says("warm"), "{id:?} has no warm page: {}", id.describe());
+        }
+        assert!(
+            !says("modern"),
+            "{id:?}: the modern family is gone: {}",
+            id.describe()
+        );
+    }
+}

@@ -42,3 +42,21 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **Live, qwen-max, two identical `let floor = 4.5;` blocks, "change only the second"**:
   before, 2 refusals a run, 26–42 s, and 1 of 3 ended with `"all": true` changing both; after,
   1 refusal, the next call `"line": 15`, 3 of 3 right.
+
+**Round I1 (v0.28.25): a change from the phone no longer moves the highlight to another todo.**
+
+- **The survey** (the inbox/todo audit, finding 2): the todo pane's `poll` re-read the store
+  keeping the selection as a row NUMBER, and since the Reminders sync a phone moves the store
+  unasked. A reminder ticked or added there re-sorted the rows; `d` (no undo) deleted the todo
+  that slid under the highlight, and the next pass deleted it on the phone too.
+- **`follow`** (`todopane/mutate.rs`): a write from elsewhere keeps the highlight on its todo's
+  id; a gone todo leaves it on the row. Keys still move by row. Two of the three tests fail
+  without it.
+
+**Round U1 (v0.28.26): `/theme` describes blossom and nebula as they are now.**
+
+- **The survey** (every shot on every palette; 128 shot tests, 483 PNGs): the theme picker
+  called blossom "violet→rose on warm white (modern light)", two weeks after it became a dark
+  rose smoke with white words, and nebula named the retired "modern" family.
+- **Two lines rewritten** (`ThemeId::describe`), and a test that no dark palette's line says
+  light or warm and none says modern. Shot of the picker checked.
