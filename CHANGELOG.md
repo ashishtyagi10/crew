@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.88
+
+**Input bar: in a value picker, the grey ghost text is the row you highlighted.**
+- After arrowing to `light` in `/theme`, the bar still read `/theme dark` while the window
+  previewed light and Tab would put in `light`. Every value picker (`/theme`, `/gradient`,
+  `/marks`…) did this. The ghost is now the highlighted row's value, which is what Tab fills.
+
 ## 0.28.87
 
 **`/inbox`: in a long smith session, Tab's draft still arrives.**
