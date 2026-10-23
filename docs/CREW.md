@@ -1771,7 +1771,10 @@ longer aim at.
   who will be told, then `y` yes, `n` no, `m` maybe, or Esc for not now.
   On your Google Calendar the answer is set there and Google tells the
   organizer; otherwise crew sends the organizer a short reply mail with
-  your answer, as Outlook and Apple Mail do. An answer to an invite you
+  your answer, as Outlook and Apple Mail do. An answer to one occurrence of a
+  repeating meeting (a moved one's "Updated invitation") goes by mail and
+  names that occurrence, so the rest of the series is left as it was. An
+  answer to an invite you
   sent (the "Accepted: …" mail) is no invite: its card says who answered
   (`Bo Lee accepted your invite`) and offers no keys; so does a new time
   someone proposes (`Bo Lee proposed a new time`) and its refusal.

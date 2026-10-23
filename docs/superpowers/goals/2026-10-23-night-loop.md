@@ -339,3 +339,10 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The second inbox/todo audit** (finding 7): an unsubscribe answered after `n` offered `e`
   over the next thread, and `e` archived it. The offer now needs the sender's mail open.
+
+**Round I16 (v0.28.62): declining one moved meeting no longer declines the series.**
+
+- **The second inbox/todo audit** (finding 3): an invite for one occurrence lost its
+  `RECURRENCE-ID` when read, so the reply answered the series, and the Calendar path patched the
+  series event. `Invite.occurrence` keeps it as written; the reply names it; an occurrence goes
+  by mail. The Calendar half is from the code, not run against Google.

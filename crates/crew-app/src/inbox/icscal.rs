@@ -105,7 +105,9 @@ pub(crate) fn answer(g: &mut Gmail, ics: &str, a: Answer, me: &str) -> Vec<Got> 
     let who = who
         .or_else(|| inv.organizer.as_ref().map(|o| o.email.clone()))
         .unwrap_or_default();
-    let on = match g.calendar_ok() {
+    // An occurrence goes by mail: the event Google finds by its UID is the
+    // whole series, and patching it answered every meeting in it.
+    let on = match g.calendar_ok() && inv.occurrence.is_none() {
         true => g.on_calendar(&inv.uid).ok().flatten(),
         false => None,
     };

@@ -23,6 +23,18 @@ impl Prop {
             .find(|(k, _)| k.eq_ignore_ascii_case(key));
         hit.map(|(_, v)| v.as_str())
     }
+
+    /// The line after its name, as written: `;TZID=America/New_York:2026…`.
+    pub(crate) fn tail(&self) -> String {
+        let quoted = |v: &str| match v.contains([':', ';', ',']) {
+            true => format!("\"{v}\""),
+            false => v.to_string(),
+        };
+        let params: String = (self.params.iter())
+            .map(|(k, v)| format!(";{k}={}", quoted(v)))
+            .collect();
+        format!("{params}:{}", self.value.trim())
+    }
 }
 
 /// The file's content lines: a line that starts with a space or a tab

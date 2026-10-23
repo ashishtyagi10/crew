@@ -7,12 +7,14 @@
 
 /// Files where a straight-quoted value is syntax, not prose: an `@"path"`
 /// mention, an HTTP header, a line injected into an agent's prompt, a MIME
-/// parameter (`boundary="…"`, `filename="…"`), an AppleScript string.
+/// parameter (`boundary="…"`, `filename="…"`), an iCalendar parameter
+/// (`TZID="…"`), an AppleScript string.
 const SYNTAX: &[&str] = &[
     "filedrop.rs",
     "voice/openai.rs",
     "askroute.rs",
     "inbox/mime.rs",
+    "inbox/icsline.rs",
     "inbox/pick.rs",
 ];
 

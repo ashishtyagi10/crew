@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.62
+
+**`/inbox`: declining one moved meeting no longer declines the series.**
+- When one occurrence of a repeating meeting moves, the organizer sends an invite for that
+  occurrence alone, and its card shows that one date. Answering it answered the whole series:
+  the reply mail left out which occurrence it was about, which the organizer's calendar reads
+  as the series, and on the Google Calendar path the event found by its id was the series
+  itself. The reply now names the occurrence, and an occurrence is always answered by mail, so
+  the rest of the series is left as it was.
+
 ## 0.28.61
 
 **`/inbox`: "e archives this mail" only over the mail you unsubscribed from.**
