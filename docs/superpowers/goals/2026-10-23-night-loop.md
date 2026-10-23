@@ -407,3 +407,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The inbox audits' open item**: answering on Google Calendar with no guest who is you
   changed nothing and said "was told". `mark_mine` reports it, and the answer says why not.
+
+**Round I22 (v0.28.75): unread mail a further page brings in says it went on top.**
+
+- **The inbox audits' open item** (#8): a next page's unread went above the reader, unsaid, by
+  the "unread on top" rule. The rule stands; the foot says `N more unread on top`.

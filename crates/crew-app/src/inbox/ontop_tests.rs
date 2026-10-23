@@ -75,6 +75,8 @@ fn unread_on_a_further_page_goes_on_top_and_the_selection_keeps_its_thread() {
     );
     assert_eq!(ids(&p.rows), ["a", "d", "b", "c", "e"]);
     assert_eq!(p.rows[p.sel].id, "c");
+    // …and says so: `j` and `n` go on down, and would never meet `d`.
+    assert_eq!(p.note, "1 more unread on top");
 }
 
 #[test]

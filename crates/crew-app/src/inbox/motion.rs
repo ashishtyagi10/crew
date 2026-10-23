@@ -107,11 +107,15 @@ impl InboxPane {
         let was: Vec<String> = (self.rows.iter().filter(|t| t.on_top))
             .map(|t| t.id.clone())
             .collect();
+        // A next page's unread go on top, above where you are reading: said,
+        // since `n` and `j` go on down and never meet them.
+        let mut lifted = 0;
         if more {
             let new: Vec<Thread> = rows
                 .into_iter()
                 .filter(|t| !self.rows.iter().any(|h| h.id == t.id))
                 .collect();
+            lifted = new.iter().filter(|t| t.unread).count();
             self.rows.extend(new);
         } else {
             let fresh = fresh(&self.rows, &rows);
@@ -123,7 +127,10 @@ impl InboxPane {
         self.sel = keep
             .and_then(|id| self.rows.iter().position(|t| t.id == id))
             .unwrap_or(here);
-        self.note.clear();
+        self.note = match lifted {
+            0 => String::new(),
+            n => format!("{n} more unread on top"),
+        };
         self.failed = None;
         self.checked_ms = Some(chrono::Utc::now().timestamp_millis());
     }

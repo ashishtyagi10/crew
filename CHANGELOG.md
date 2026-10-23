@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.75
+
+**`/inbox`: unread mail a further page brings in says it went on top.**
+- Reading on past the end of the list (`j`, `n`) brings in the next page, and its unread mail goes
+  to the top with the rest, as unread always does: above where you are reading, where `j` and
+  `n`, going on down, never meet it. The foot now says so, `2 more unread on top`.
+
 ## 0.28.74
 
 **`/inbox`: an invite you are not a guest of says so, not "was told".**
