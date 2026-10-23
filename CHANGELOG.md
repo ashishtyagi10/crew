@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.17
+
+**A reply whose connection drops is picked up where it stopped.**
+- When the connection to the model broke partway through a reply, the turn failed with
+  `dropped the response mid-stream` and the words already on screen went with it. Now what
+  was shown goes back to the model as its own words, it is told it was interrupted and where,
+  and the rest streams on into the same reply. A reply that comes back empty is asked for
+  again. Three tries at most, inside the turn's time; a missing or rejected key is never
+  retried.
+- Checked live through a proxy that cuts the stream partway: before, the turn ended in an
+  error; now the answer completes and the halves join cleanly.
+- From Claude Code and Cline: continue a reply that died mid-stream; retry an empty one.
+
 ## 0.28.16
 
 **A selection looks like a selection in the editor and the viewer.**

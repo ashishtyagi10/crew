@@ -47,15 +47,16 @@ pub(crate) fn marked(text: &str, truncated: bool) -> String {
 }
 
 /// The same request again, with the partial as the model's own turn and
-/// [`CONTINUE`] as the user's. The partial goes back verbatim, trailing space
-/// and all: the rest has to fit onto exactly what was said.
-fn continuation(req: &CompletionRequest, partial: &str) -> CompletionRequest {
+/// `ask` ([`CONTINUE`], or `resume`'s line) as the user's. The partial goes
+/// back verbatim, trailing space and all: the rest has to fit onto exactly
+/// what was said.
+fn continuation(req: &CompletionRequest, partial: &str, ask: &str) -> CompletionRequest {
     let mut next = req.clone();
     next.turns.push(Turn::Assistant {
         text: partial.to_string(),
         calls: Vec::new(),
     });
-    next.turns.push(Turn::User(CONTINUE.to_string()));
+    next.turns.push(Turn::User(ask.to_string()));
     next
 }
 
@@ -65,7 +66,8 @@ fn continuation(req: &CompletionRequest, partial: &str) -> CompletionRequest {
 /// continuation gets what is left of it, less [`GRACE`], and one that fails
 /// or runs out leaves the first half standing, marked. A reply cut before it
 /// said anything (a reasoning model that spent the ceiling thinking) is not
-/// continued: there is nothing to continue FROM.
+/// continued: there is nothing to continue FROM. The first half is itself
+/// [`resume::reply`]: picked up if its stream broke, asked again if empty.
 pub(crate) async fn whole(
     provider: Arc<dyn Provider>,
     req: CompletionRequest,
@@ -73,12 +75,16 @@ pub(crate) async fn whole(
     budget: Duration,
 ) -> Result<Completion, ProviderError> {
     let start = Instant::now();
-    let first = call(&provider, req.clone(), on_chunk.clone()).await?;
+    let first = resume::reply(&provider, &req, on_chunk.clone(), budget).await?;
     if !first.truncated || first.text.trim().is_empty() {
         return Ok(joined(first, None));
     }
     let left = budget.saturating_sub(start.elapsed()).saturating_sub(GRACE);
-    let rest = call(&provider, continuation(&req, &first.text), on_chunk);
+    let rest = call(
+        &provider,
+        continuation(&req, &first.text, CONTINUE),
+        on_chunk,
+    );
     let rest = tokio::time::timeout(left, rest)
         .await
         .ok()
@@ -99,31 +105,41 @@ fn call(provider: &Arc<dyn Provider>, req: CompletionRequest, on_chunk: Option<C
 /// the bill is the number worth keeping right.) Cut is whatever the LAST
 /// half was, and a cut reply's text ends with [`CUT_OFF`].
 fn joined(first: Completion, rest: Option<Completion>) -> Completion {
-    let mut c = first;
-    if let Some(r) = rest {
-        c.text.push_str(&r.text);
-        c.input_tokens = c.input_tokens.saturating_add(r.input_tokens);
-        c.cached_input_tokens = c.cached_input_tokens.saturating_add(r.cached_input_tokens);
-        c.cache_write_tokens = c.cache_write_tokens.saturating_add(r.cache_write_tokens);
-        c.output_tokens = c.output_tokens.saturating_add(r.output_tokens);
-        if c.model.is_empty() {
-            c.model = r.model;
-        }
-        c.cost_microusd = c.cost_microusd.saturating_add(r.cost_microusd);
-        if !r.thought.is_empty() {
-            if !c.thought.is_empty() {
-                c.thought.push('\n');
-            }
-            c.thought.push_str(&r.thought);
-        }
-        c.calls.extend(r.calls);
-        c.truncated = r.truncated;
-    }
+    let mut c = match rest {
+        Some(r) => summed(first, r),
+        None => first,
+    };
     if c.truncated {
         c.text = marked(&c.text, true);
     }
     c
 }
+
+/// `first` then `r` as one reply, unmarked: [`joined`] without the line.
+fn summed(first: Completion, r: Completion) -> Completion {
+    let mut c = first;
+    c.text.push_str(&r.text);
+    c.input_tokens = c.input_tokens.saturating_add(r.input_tokens);
+    c.cached_input_tokens = c.cached_input_tokens.saturating_add(r.cached_input_tokens);
+    c.cache_write_tokens = c.cache_write_tokens.saturating_add(r.cache_write_tokens);
+    c.output_tokens = c.output_tokens.saturating_add(r.output_tokens);
+    if c.model.is_empty() {
+        c.model = r.model;
+    }
+    c.cost_microusd = c.cost_microusd.saturating_add(r.cost_microusd);
+    if !r.thought.is_empty() {
+        if !c.thought.is_empty() {
+            c.thought.push('\n');
+        }
+        c.thought.push_str(&r.thought);
+    }
+    c.calls.extend(r.calls);
+    c.truncated = r.truncated;
+    c
+}
+
+#[path = "resume.rs"]
+mod resume;
 
 #[cfg(test)]
 #[path = "cutoff_tests.rs"]
