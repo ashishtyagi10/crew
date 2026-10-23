@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.32
+
+**`t` on an overdue notice keeps its date in the past, and "lobby" holds no "by".**
+- A mail of Oct 20 saying "this was due by Oct 15" gave a todo due Oct 15 of next year: a
+  month and day was always read as the next one, and the card's reason line hid the year. A
+  month and day in a mail is now the one nearest the day it was sent, and the reason line says
+  the year when it is not this one. "In 300 days" and a written year mean what they say.
+- "by", "due" and the other words must start a word: "meet in the lobby at 3pm" set a 3pm due,
+  and "the overdue invoice from Oct 3" a due of next October.
+- A todo filed from mail with its due already passed is filed as told about, as one typed in
+  `/todo` is; it toasted a minute after you added it.
+
 ## 0.28.31
 
 **`/theme` on the light page: every palette's colours show, the white ones included.**

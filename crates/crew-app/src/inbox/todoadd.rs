@@ -29,11 +29,15 @@ impl InboxPane {
         };
         let (project, assignee) = (tag(c.text(Line::Project)), tag(c.text(Line::Who)));
         let now = crate::chattime::unix_now_ms();
+        let due_ms = due.as_ref().and_then(|h| duedate::to_epoch_ms(h.due));
         let item = crate::todopane::item::TodoItem {
             title: title.clone(),
             project: project.clone(),
             assignee: assignee.clone(),
-            due_ms: due.as_ref().and_then(|h| duedate::to_epoch_ms(h.due)),
+            due_ms,
+            // Passed already, as the composer has it: a toast a minute later
+            // about the deadline you just filed is noise.
+            notified: due_ms.is_some_and(|d| d <= now),
             due_has_time: due.as_ref().is_some_and(|h| h.has_time),
             created_ms: now,
             ..Default::default()

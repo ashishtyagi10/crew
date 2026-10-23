@@ -134,6 +134,28 @@ fn a_due_line_must_read_as_a_date() {
     assert_eq!(crate::todopane::store::snapshot().len(), 1);
 }
 
+/// A due already passed is filed as told about, as the composer files one:
+/// it toasted a minute after you added it.
+#[test]
+fn a_passed_due_is_filed_without_its_toast() {
+    for (line, told) in [("2020-01-01", true), ("2099-01-01", false)] {
+        let _g = crate::todopane::store::test_guard(Vec::new());
+        let mut p = reading();
+        typed(&mut p, "t");
+        p.todo.as_mut().unwrap().on = Line::Due;
+        for _ in 0..20 {
+            press(&mut p, named(NamedKey::Backspace));
+        }
+        typed(&mut p, line);
+        press(&mut p, named(NamedKey::Enter));
+        assert_eq!(
+            crate::todopane::store::snapshot()[0].notified,
+            told,
+            "{line}"
+        );
+    }
+}
+
 /// Esc lets an unchanged card go at once, and a changed one only when asked
 /// twice, as the reply box does.
 #[test]

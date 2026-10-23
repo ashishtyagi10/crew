@@ -114,3 +114,13 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   (`swatch::chip_of`, under 1.5:1): the glass inks and the brightest phosphor faces. Nebula's
   survey item (its chips washed by a bloom twice glass-clear's) is left for later: the fix is
   either its bloom (its look) or deeper fills (the mark floor), both bigger than a round.
+
+**Round I4 (v0.28.32): `t` on an overdue notice keeps its date in the past.**
+
+- **The survey** (findings 4 and 5): a month and day in a mail was read as the next one, so
+  "was due by Oct 15" in a mail of Oct 20 filed a todo for next October, its reason line
+  hiding the year; "by" and "due" matched inside words ("lobby at 3pm" set a 3pm due); and a
+  todo filed from mail with a passed due toasted a minute later.
+- **`tododue::nearest`**: a month and day is the one nearest the mail's day; the keys must
+  start a word; the reason line names a year that is not this one; `add_todo` files a passed
+  due as told about, as the composer does.
