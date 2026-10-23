@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.93
+
+**Agents: a build cut for length quotes each error's line of code, not only where it is.**
+- A long failing build reached the agent as its last few errors, plus one line naming every
+  error's file and line (0.28.58). To fix the rest, agents read each file first or retyped the
+  line from memory and missed. Under that line, the result now quotes each error the way rustc
+  showed it, grouped by file, for example "220│ if contrast_ratio(at(far), bg) < target { —
+  expected f64, found f32". That is the line to copy as `old`, and the number to give as `line`. All 25
+  errors of the night's test build fit in about 2.9 KB, and anything past that is counted. A
+  note's or help's code is not quoted.
+- The idea comes from Aider, which hands lint and test errors back with the code lines they
+  point at, and SWE-agent's edit linter. Live, three runs of the compile-error task with the
+  advisor off: one solved in 23 s. It read the quoted errors, all "expected f64, found f32"
+  around `contrast_ratio`, and fixed that function, where the change came from. The six earlier
+  advisor-off runs tonight solved none. The other two runs looked things up and missed edits
+  no less than before. Small numbers.
+
 ## 0.28.92
 
 **Agents: a `line` given beside a one-edit `edits` list applies to that edit.**

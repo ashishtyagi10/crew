@@ -519,3 +519,10 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **A18's third live run** sent `line` beside `edits` and was refused as if it had not. A list of
   one takes it now; a longer list is refused saying where it goes. Unit tests only.
+
+**Round A20 (v0.28.93): a cut build quotes each error's line of code.**
+
+- **AI survey 2** (#3, from Aider and SWE-agent): under the line of places, each rustc error
+  comes back as its code row and rustc's word on it, grouped by file (all 25 of the test build
+  in ~2.9 KB). Live, advisor off: 1 of 3 solved in 23 s by fixing the source function, against
+  0 of 6 earlier tonight; the other two were no better on lookups or misses.
