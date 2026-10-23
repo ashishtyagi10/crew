@@ -25,6 +25,8 @@ const JUDGE_MAX_TOKENS: u32 = 384;
 /// Chars of the answer and the request the judge reads.
 const ANSWER_CAP: usize = 2_500;
 const LEAD: &str = "agent smith";
+/// The most of the last turn's tool lines a revision is given.
+const PROOF_TAIL: usize = 12;
 
 /// Answer `task` as one agent's reply and, when `verify`, judge it until it
 /// holds (`replyloop::run`).
@@ -71,11 +73,24 @@ pub(crate) fn prompt(task: &str, proof: &str, answer: &str) -> String {
     )
 }
 
-/// A revision's task: the gap first, then the request it serves.
-pub(crate) fn revise(task: &str, why: &str) -> String {
+/// A revision's task: the gap first, then what the last turn's tools did,
+/// then the request it serves. Without the tools' record a revision began
+/// from the gap alone: 7 of 19 on 2026-10-23 opened by re-running the test
+/// the last turn had just run, and they took 3.4 rounds to land an edit.
+pub(crate) fn revise(task: &str, why: &str, proof: &str) -> String {
+    let lines: Vec<&str> = proof.lines().filter(|l| !l.trim().is_empty()).collect();
+    let tail = &lines[lines.len().saturating_sub(PROOF_TAIL)..];
+    let did = match tail.len() {
+        0 => String::new(),
+        n => format!(
+            "\n\nWHAT YOUR LAST TURN'S TOOLS DID (the last {n} of {}):\n{}",
+            lines.len(),
+            tail.join("\n")
+        ),
+    };
     format!(
         "A check of your last turn found: {why}\nDo only what closes that gap, and run \
-         what proves it.\n\nTHE REQUEST:\n{task}"
+         what proves it.{did}\n\nTHE REQUEST:\n{task}"
     )
 }
 

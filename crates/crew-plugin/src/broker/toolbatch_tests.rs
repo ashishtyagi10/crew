@@ -147,9 +147,10 @@ fn a_batch_with_an_edit_runs_in_the_order_written() {
     assert!(t.took >= nap * 3, "took {:?}", t.took);
 }
 
-/// Budget 2 ROUNDS, two replies of four reads: eight calls run, a batch being
-/// one round however many calls it makes, and the third ask meets the
-/// budget-spent path, its text kept and its calls cut.
+/// Budget 2 ROUNDS, two replies of four reads: a batch is one round however
+/// many calls it makes, and the third ask meets the budget-spent path. Its
+/// call runs (the edits and check an answer stands on) but is never dialed
+/// back, and its text is the answer.
 #[test]
 fn a_batch_is_one_round_of_the_budget() {
     let then = [
@@ -162,8 +163,12 @@ fn a_batch_is_one_round_of_the_budget() {
         2,
         Duration::ZERO,
     );
-    assert_eq!(t.ran.len(), 8, "{:?}", t.ran);
-    assert_eq!(t.dialed.len(), 2);
+    assert_eq!(t.ran.len(), 9, "{:?}", t.ran);
+    assert_eq!(
+        t.ran[8], "read_file {\"path\":\"i\"}",
+        "the ask past the budget ran"
+    );
+    assert_eq!(t.dialed.len(), 2, "and nothing read it");
     assert!(t.dialed[1].contains("That was your LAST round of tool calls"));
     assert_eq!(t.answer, "one more");
     let spent = t
