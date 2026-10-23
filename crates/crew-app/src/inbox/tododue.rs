@@ -74,7 +74,14 @@ pub(crate) fn deadline(text: &str, at: NaiveDateTime) -> Option<(NaiveDateTime, 
             if let Some((due, timed, said)) = end_of(phrase, at) {
                 return Some((due, timed, format!("{k}{said}")));
             }
-            let h = duedate::find(phrase, at)?;
+            // The date comes right after its key: "By the way, Friday works"
+            // and "signed by Ann on Oct 15" set no deadline. Cut back a word
+            // at a time, so "by Friday, Oct 23" still reads Friday.
+            let cuts: Vec<usize> = (phrase.match_indices(' ').map(|(j, _)| j))
+                .chain([phrase.len()])
+                .collect();
+            let h = (cuts.into_iter().rev())
+                .find_map(|j| duedate::find(&phrase[..j], at).filter(|h| h.start == 0))?;
             let said: String = phrase.chars().skip(h.start).take(h.end - h.start).collect();
             // "was due by", "were due": an overdue notice.
             let before = lower[..i - k.len()].split_whitespace().rev().take(2);

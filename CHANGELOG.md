@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.84
+
+**`/inbox`: "By the way, Friday works for me" is not a deadline.**
+- `t` read a date anywhere in the four words after "by", "until", "before" or "due". "By the
+  way, Friday works for me" filed a todo due Friday, and "Signed by Ann on Oct 15" gave a reason
+  line quoting "by on oct 15", words no mail said. The date must now come right after its word.
+  "By Friday, Oct 23" and "by tomorrow morning" read as they did.
+- One loss: "by noon Friday" now sets no due. Before, it read as Friday at 09:00, the wrong time,
+  because `noon` is not a time `/todo` reads.
+
 ## 0.28.83
 
 **`/inbox`: "by EOD Friday" in a mail is due Friday at five, not the day it was sent.**

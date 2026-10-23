@@ -464,3 +464,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The third inbox/todo audit** (finding 3): an end-of-day word made the mail's own day the
   due, whatever day followed it, and "next Friday at 5pm" lost its time to an older branch the
   grammar now covers.
+
+**Round I29 (v0.28.84): "By the way, Friday works for me" is not a deadline.**
+
+- **The third inbox/todo audit** (finding 6): a date anywhere in the four words after a key
+  counted. It must start right after it now; "by noon Friday" goes blank (noon is not a time the
+  grammar reads), said in the changelog.
