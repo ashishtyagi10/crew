@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.56
+
+**`/inbox`: `t` right after you answer names who asked, not you.**
+- With no plain "can you…" in a thread, the todo card falls back to "Reply to <who>: <subject>",
+  and <who> was whoever sent the thread's last mail. Pressing `t` just after answering "will
+  look today" filed "Reply to <your name>: Deck". It now names the last person who wrote to
+  you, as the card's guesses already read them: "Reply to Ann Lee: Deck".
+
 ## 0.28.55
 
 **The `@` and `/view` pickers keep a long path's file name.**

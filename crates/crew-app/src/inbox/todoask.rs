@@ -44,7 +44,7 @@ const MOST: usize = 72;
 
 pub(super) fn title(r: &Reading, theirs: Option<&Mail>) -> Guess {
     let plain = || Guess {
-        text: super::super::super::smith::todo_title(r),
+        text: super::super::super::smith::todo_title(r, theirs),
         why: String::new(),
     };
     let Some(m) = theirs else {

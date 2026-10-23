@@ -6,6 +6,7 @@
 //! writes back can only become a draft: crew takes the body out of the
 //! answer, writes the headers itself, and the draft waits in Gmail for the
 //! user to send.
+use super::api::Mail;
 use super::reader::when;
 use super::wire::sender_name;
 use super::Reading;
@@ -102,12 +103,14 @@ pub(crate) fn draft_body(answer: &str) -> Option<String> {
     (!body.trim().is_empty()).then(|| body.to_string())
 }
 
-/// `t`: the row's words — who to answer, and about what.
-pub(crate) fn todo_title(r: &Reading) -> String {
-    let who = r
-        .mails
-        .as_deref()
-        .and_then(|m| m.last())
+/// `t`: the row's words — who to answer, and about what: `theirs`, the
+/// newest mail someone else sent, else the thread's last. Named off the last
+/// mail alone, a thread you had just answered ("will look today") filed
+/// "Reply to <you>".
+pub(crate) fn todo_title(r: &Reading, theirs: Option<&Mail>) -> String {
+    let last = r.mails.as_deref().and_then(|m| m.last());
+    let who = theirs
+        .or(last)
         .map_or_else(|| sender_name(&r.thread.from), |m| sender_name(&m.from));
     format!("Reply to {who}: {}", r.thread.subject.trim())
 }

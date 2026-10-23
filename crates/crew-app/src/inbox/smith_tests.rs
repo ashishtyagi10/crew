@@ -68,7 +68,7 @@ fn the_draft_is_the_text_between_the_markers_and_nothing_else() {
 #[test]
 fn the_todo_title_names_who_and_what() {
     assert_eq!(
-        super::todo_title(&reading(&["hi"])),
+        super::todo_title(&reading(&["hi"]), None),
         "Reply to Ann Lee: Q4 review"
     );
 }
