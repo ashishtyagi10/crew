@@ -39,12 +39,10 @@ impl InboxPane {
                 self.note = "esc again discards it".into();
             }
             // Once: a second Tab while smith writes would land a second draft.
-            Key::Named(NamedKey::Tab) if on == On::Body && !forward => {
-                match self.waiting.is_some() || self.to_smith.is_some() {
-                    true => self.note = "agent smith is still writing the draft\u{2026}".into(),
-                    false => self.act(super::handoff::Then::Draft),
-                }
-            }
+            Key::Named(NamedKey::Tab) if on == On::Body && !forward => match self.smith_busy() {
+                Some(line) => self.note = line,
+                None => self.act(super::handoff::Then::Draft),
+            },
             Key::Named(NamedKey::Tab) => c.on = next,
             Key::Named(NamedKey::Enter) if matches!(on, On::To | On::Cc) => c.on = next,
             _ if on == On::Files => self.files_key(key),

@@ -387,3 +387,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The UI regression survey** (N1): cut to fit, `dark` and `light` both read "Ink Reader — an…"
   and three glass rows "iPhone liquid…". The descriptions lead with what differs now.
+
+**Round I19 (v0.28.71): Tab while agent smith works says what it is working on.**
+
+- **The second inbox/todo audit** (also noted): the busy line named the key's job, so Tab on the
+  card while a draft came said "still filling the card". `smith_busy` names smith's own job.

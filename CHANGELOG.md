@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.71
+
+**`/inbox`: Tab while agent smith works says what it is working on.**
+- Tab asks agent smith to fill the todo card, or, in the reply box, to write the draft; a second
+  Tab while it works says it is still at it. The line named the key's job, not smith's: Tab on
+  the card while a draft was coming said "still filling the card", and the other way about. It
+  now names the job smith was given: writing the draft, filling the card, or reading the thread.
+
 ## 0.28.70
 
 **`/theme` in a narrow tile: every row's description says what sets it apart.**
