@@ -185,3 +185,14 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   half on every card. The first shot showed a pill per word: a legend's spaces sit on the rule
   cells and `notch::runs` read them as rule; now the later cell wins, as drawing does, which
   also makes a pane title's rim gap one gap.
+
+**Round A5 (v0.28.40): your own commands can check or block an agent's tool calls.**
+
+- **The survey** (item 4): crew had no hooks; every tool call passes `SessionTools::call`.
+- **Built in a worktree lane** (`feat/a5-hooks`) and reviewed: pre hooks after the approval
+  gate block by exit 2 or a JSON decision, the reason read by the agent as its result; post
+  hooks' output is added under the result; only the user's own `hooks.json` is read; a broken
+  file blocks; `CREW_HOOKS=0`. `session.rs` shrank 660 → 633 (`sessionask.rs`).
+- **Live, through a scratch HOME** (qwen-max): a guard refusing `rm` blocked it twice with its
+  reason, and the agent's next call took the `mv` the reason named; the post hook's line came
+  back under each of three reads; nothing was deleted.

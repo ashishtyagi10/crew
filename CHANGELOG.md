@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.40
+
+**Hooks: your own commands can check or block an agent's tool calls.**
+- Put `hooks.json` in crew's config folder (`~/Library/Application Support/crew/` on a Mac):
+  `{"pre_tool": [{"match": "sys:run", "cmd": "~/bin/guard.sh", "on_failure": "block"}],
+  "post_tool": [{"match": "sys:edit", "cmd": "…"}]}`. A pre hook gets the call as one JSON
+  line on stdin (`event`, `tool`, `args`, `cwd`) and blocks it by exiting 2 or printing
+  `{"decision": "block", "reason": "…"}`: the call does not run, and the agent reads `blocked
+  by hook: <reason>` as its result and carries on. A post hook's output is added under the
+  result, so a formatter or linter can answer back. Matches are a `server:tool`, `server:*`
+  or `*`; each hook has 5 seconds. Only your own file is read, never a project's, so a cloned
+  repo cannot make crew run its commands. A file that will not parse blocks every call until
+  it is fixed, rather than look like a guard that is on. `CREW_HOOKS=0` turns them all off.
+- Live, a guard refusing `rm`: the agent's `rm` was blocked with the guard's reason, and its
+  next call took the way the reason named; the post hook's line came back under every read.
+- From Claude Code's hooks (exit 2 blocks, the reason fed back), Codex's and Kiro's.
+
 ## 0.28.39
 
 **Pop-ups on glass: the words on their bottom edge are no longer struck through.**

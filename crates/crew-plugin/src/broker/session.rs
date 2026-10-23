@@ -314,6 +314,9 @@ struct SessionTools {
     diag: super::editdiag::Shared,
     /// The task's `/stop` flag — an approval it is waiting on gives up the moment it is set.
     cancel: Arc<AtomicBool>,
+    /// The user's tool hooks (`hooks`), read afresh on every call. `None` with `CREW_HOOKS=0`,
+    /// and under test, where no suite may run what the developer's own `hooks.json` says.
+    hooks: Option<hooks::Source>,
 }
 
 impl SessionTools {
@@ -346,6 +349,7 @@ impl SessionTools {
             reads: super::readset::ReadSet::new(),
             todo: crew_hive::tools::todo::Checklist::new(),
             cancel: Arc::new(AtomicBool::new(false)),
+            hooks: (!cfg!(test)).then(hooks::Source::live).flatten(),
         }
     }
 
@@ -355,51 +359,6 @@ impl SessionTools {
     fn note(&self, r: super::ledger::Record) {
         if let Some(l) = &self.ledger {
             let _ = l.append(&r);
-        }
-    }
-
-    /// Put approval `id` for `name` to the person at the pane and wait for their answer.
-    /// `Ok` = they allowed it. `Err(None)` = nobody here can be asked; `Err(Some(why))` = they
-    /// refused, did not answer in time, or stopped the task — `why` is told to the model.
-    fn ask(
-        &self,
-        id: &str,
-        name: &str,
-        args: &str,
-        danger: Option<&str>,
-    ) -> Result<(), Option<String>> {
-        use super::approval as a;
-        let pending = self
-            .gate
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .pending()
-            .iter()
-            .find(|p| p.id == id)
-            .cloned();
-        let asked = self.requester.is_present_human()
-            && pending.is_some_and(|p| a::ask_host_about(&p, &a::what(name, args), danger));
-        if !asked {
-            return Err(None);
-        }
-        let answer = a::wait_for_answer_or(id, self.policy.timeout_ms, || {
-            self.cancel.load(Ordering::Relaxed)
-        });
-        self.gate
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .answer(id, answer == Some(true));
-        match answer {
-            Some(true) => Ok(()),
-            Some(false) => Err(Some(format!(
-                "the user refused {name}, so it did not run — do not try it again; say what you \
-                 wanted it for and ask how they would like to proceed"
-            ))),
-            None => Err(Some(format!(
-                "{name} did not run: nobody approved it (no answer in {} minutes, or the task \
-                 was stopped)",
-                self.policy.timeout_ms / 60_000
-            ))),
         }
     }
 }
@@ -587,6 +546,13 @@ impl super::toolcall::ToolRunner for SessionTools {
             }
             Decision::Allow => {}
         }
+        // The user's hooks have the last word before a call the gate let through, so a pre
+        // hook only ever sees calls about to run, and every one it allows meets its post hook.
+        let hooks = self.hooks.as_ref().map(hooks::Source::load);
+        if let Some(why) = hooks.as_ref().and_then(|h| h.pre(&name, args).err()) {
+            self.note(rec("hook", &why).with_outcome("denied"));
+            return Err(why);
+        }
 
         let out = if server == "sys" && tool == "find_tools" {
             // Answered HERE rather than in `systools`, because the thing being searched is the
@@ -636,10 +602,17 @@ impl super::toolcall::ToolRunner for SessionTools {
             };
             self.note(rec("allow", note).with_outcome(outcome));
         }
-        out
+        match hooks {
+            Some(h) => out.map(|t| h.post(&name, args, t)),
+            None => out,
+        }
     }
 }
 
+#[path = "hooks.rs"]
+mod hooks;
+#[path = "sessionask.rs"]
+mod sessionask;
 #[path = "toolchoice.rs"]
 pub(crate) mod toolchoice;
 #[path = "toolmemo.rs"]

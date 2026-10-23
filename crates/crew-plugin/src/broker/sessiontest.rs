@@ -68,6 +68,16 @@ impl SessionTools {
     pub(super) fn with_picker(self, picker: Arc<Picker>) -> Self {
         Self { picker, ..self }
     }
+
+    /// The same runner under the hooks in `source` — a temp file, never the user's own.
+    /// Its tests run a real `sh`, so they are Unix-only.
+    #[cfg_attr(not(unix), allow(dead_code))]
+    pub(super) fn with_hooks(self, source: super::hooks::Source) -> Self {
+        Self {
+            hooks: Some(source),
+            ..self
+        }
+    }
 }
 
 /// A manifest with more tools than the budget and none of crew's own: the shape in which

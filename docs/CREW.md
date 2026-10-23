@@ -3074,6 +3074,38 @@ refused after five minutes, and `/stop` ends the wait at once; either way the
 agent is told it did not run. The mode governs a person at a pane only: a
 phone or a schedule keeps the stricter gate it always had.
 
+**Hooks (`hooks.json`).** A command of your own can stand on either side of
+every tool call an agent makes — `sys`, MCP, a language server or an
+integration alike — the way Claude Code's PreToolUse and PostToolUse hooks do.
+They are declared in one file, `~/.config/crew/hooks.json`, and never in a
+project: a hook runs any command at all, and a file a cloned repo could ship
+must not be a way to run one on your machine.
+
+```json
+{"pre_tool":  [{"match": "sys:run",  "cmd": "~/bin/no-push-to-main", "on_failure": "block"}],
+ "post_tool": [{"match": "sys:edit", "cmd": "~/bin/fmt-changed"}]}
+```
+
+`match` is a tool's `server:tool` label, `server:*` for every tool of a server,
+or `*`. Each `cmd` runs through `/bin/sh -c` (`cmd /C` on Windows) in the
+project directory, reads the call as one JSON line on stdin — `{"event":
+"pre_tool", "tool": "sys:run", "args": {…}, "cwd": "…"}`, and the `result` too
+once the call has run — and is killed at five seconds. A pre hook is the last
+word on a call the approval mode let through: exit 2, or `{"decision":
+"block", "reason": "…"}` on stdout, stops it, the agent reads `blocked by hook:`
+and the reason (or the hook's stderr) as the call's result and carries on, and
+the ledger records the refusal. Any other exit lets the call through — Claude
+Code's rule, so a hook written for it means the same thing here — with a line
+in the LOG when it was not 0. A hook that cannot start, is not found or runs
+out of time lets the call through too, unless it says `"on_failure":
+"block"`: then a guard that cannot run is a guard that refuses. A post hook's
+stdout, up to 2,000 characters, lands under the tool's result as a `hook:`
+block, so a formatter or a linter answers back in the same turn; a post hook
+never fails a call. The file is read on every call, so an edit counts from the
+next one, and a file that does not parse — a misspelt key included — refuses
+every call and says so, rather than leaving a guard you think is on switched
+off. `CREW_HOOKS=0` turns hooks off entirely.
+
 **Built-in sys tools.** Agents can touch the workspace without any MCP server:
 five bounded tools ride the same `@tool` surface — **`sys:run`** (one
 non-interactive shell command via `/bin/sh -c`, 120s deadline —

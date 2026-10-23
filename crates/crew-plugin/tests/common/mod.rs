@@ -134,6 +134,10 @@ fn configure(command: &mut Command, path_dir: &Path, env: &[(&str, &str)]) {
         // developer's real macOS keychain. Empty = "no keychain here" (the
         // file backend); a test that wants one passes a fake via `env`.
         .env("CREW_SECURITY_BIN", "")
+        // …and never run what the developer's own `hooks.json` says around a
+        // test's tool calls: the hooks file is user-level by design, so no
+        // project dir can stand in for it, and the switch is the way out.
+        .env("CREW_HOOKS", "0")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         // To a file, not /dev/null: stderr is one of the log sinks the
