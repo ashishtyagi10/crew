@@ -664,7 +664,8 @@ and each page naming its lines and the next offset; `line` starts one at a
 project only, and replaces an existing file only once the task has read it
 with `sys:read_file`), `sys:edit` (replace an exact, unique fragment
 — part of a file without rewriting the whole of it — or, with `"all": true`,
-every occurrence of it, for a rename), `sys:list_dir`,
+every occurrence of it, for a rename, or with `"line": N` the one of several
+copies that line falls in), `sys:list_dir`,
 `sys:grep` and `sys:glob` (a regex over the project's files, with `context`
 lines around each hit on request, and files by name or path — both over what
 git lists, so nothing `.gitignore` names crowds out the project's own code),

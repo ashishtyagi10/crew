@@ -24,6 +24,7 @@ impl Scratch {
                 old,
                 new,
                 all: false,
+                line: None,
             })
             .collect();
         edit_all(&self.0, &swaps).unwrap()

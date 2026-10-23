@@ -106,15 +106,16 @@ pub(crate) fn tools() -> Vec<McpTool> {
         ),
         mk(
             "edit",
-            "change PART of a file, leaving the rest alone: {\"path\": …, \"old\": \"the exact text to replace\", \"new\": …}, or several at once with {\"path\": …, \"edits\": [{\"old\": …, \"new\": …}, …]}; add \"all\": true to replace every occurrence (a rename) \u{2014} prefer this to write_file on a file that already exists; the result shows the edited lines, numbered",
+            "change PART of a file, leaving the rest alone: {\"path\": …, \"old\": \"the exact text to replace\", \"new\": …}, or several at once with {\"path\": …, \"edits\": [{\"old\": …, \"new\": …}, …]}; add \"all\": true to replace every occurrence (a rename), or \"line\": N to pick one of several \u{2014} prefer this to write_file on a file that already exists; the result shows the edited lines, numbered",
             serde_json::json!({
                 "type": "object",
                 "properties": {
                     "path": {"type": "string"},
                     "old": {
                         "type": "string",
-                        "description": "the exact text to replace, copied from the file including its indentation; it must appear EXACTLY ONCE, so include surrounding lines if it would not",
+                        "description": "the exact text to replace, copied from the file including its indentation; it must appear EXACTLY ONCE, so include surrounding lines if it would not, or pass `line`",
                     },
+                    "line": {"type": "integer", "description": "when `old` appears more than once: the number of a line inside the one to change, as the file read before this call"},
                     "new": {"type": "string", "description": "what to put in its place"},
                     "all": {
                         "type": "boolean",
@@ -129,6 +130,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
                                 "old": {"type": "string"},
                                 "new": {"type": "string"},
                                 "all": {"type": "boolean"},
+                                "line": {"type": "integer"},
                             },
                             "required": ["old", "new"],
                         },
@@ -296,7 +298,7 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "run" => super::sysrun::run(str_arg(&v, "cmd")?),
         "read_file" => super::sysreadline::read(str_arg(&v, "path")?, &v),
         "write_file" => super::syswrite::write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
-        "edit" => edit(&v),
+        "edit" => super::editargs::edit(&v),
         "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),
         "grep" => super::sysgrep::grep(&v),
         "glob" => super::sysgrep::glob(&v),
@@ -313,42 +315,8 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
     }
 }
 
-/// `sys:edit`, in either shape: one `old`/`new` pair, or an `edits` array of
-/// them. Both end in the same all-or-nothing call, so the batch is not a
-/// second code path that can drift from the single edit's contract.
-fn edit(v: &serde_json::Value) -> Result<String, String> {
-    let path = str_arg(v, "path")?;
-    let all = |e: &serde_json::Value| e.get("all").and_then(|a| a.as_bool()) == Some(true);
-    let Some(edits) = v.get("edits").and_then(|e| e.as_array()) else {
-        let (old, new) = (str_arg(v, "old")?, str_arg(v, "new")?);
-        let swap = super::sysedit::Swap {
-            old,
-            new,
-            all: all(v),
-        };
-        return super::sysedit::edit_all(path, &[swap]);
-    };
-    let swaps: Result<Vec<_>, String> = edits
-        .iter()
-        .enumerate()
-        .map(|(i, e)| {
-            let at = |k: &str| {
-                e.get(k)
-                    .and_then(|x| x.as_str())
-                    .ok_or_else(|| format!("edits[{i}] has no string \u{201c}{k}\u{201d}"))
-            };
-            Ok(super::sysedit::Swap {
-                old: at("old")?,
-                new: at("new")?,
-                all: all(e),
-            })
-        })
-        .collect();
-    super::sysedit::edit_all(path, &swaps?)
-}
-
 /// A required string argument, with an agent-readable error.
-fn str_arg<'a>(v: &'a serde_json::Value, key: &str) -> Result<&'a str, String> {
+pub(super) fn str_arg<'a>(v: &'a serde_json::Value, key: &str) -> Result<&'a str, String> {
     v.get(key)
         .and_then(|s| s.as_str())
         .ok_or_else(|| format!("missing string argument \u{201c}{key}\u{201d}"))

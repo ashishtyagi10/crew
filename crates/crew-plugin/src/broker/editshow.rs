@@ -27,9 +27,8 @@ struct Span {
 }
 
 impl Landed {
-    /// Note that the one `old` in `before` was replaced by `new`.
-    pub(super) fn swap(&mut self, before: &str, old: &str, new: &str) {
-        let at = before.find(old).unwrap_or(0);
+    /// Note that the `old` at byte `at` of `before` was replaced by `new`.
+    pub(super) fn swap(&mut self, before: &str, at: usize, old: &str, new: &str) {
         let (gone, grew) = (at + old.len(), new.len() as isize - old.len() as isize);
         let whole = new.is_empty() && old.ends_with('\n') && line_start(before, at);
         let cut = if whole { old.matches('\n').count() } else { 0 };

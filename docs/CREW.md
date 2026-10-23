@@ -3264,7 +3264,14 @@ appearing twice means the edit has no single answer, and a guess that
 succeeds silently is worse than a failure that says what to do instead. A
 rename means every occurrence, and says so: `"all": true` (Claude Code's
 `replace_all`) replaces each one and answers `edited a.rs in 3 places (every
-one)`, and the "appears 3 times" refusal names it as the way out. So a
+one)`. **One of several** is named by a line: the refusal says where the copies
+are (`` `old` appears 2 times (lines 2 and 9) ``), and `"line": 9` with the same
+`old` changes the copy whose lines hold line 9 and no other. A line that falls
+in none of them is refused with the list again, never taken as a guess, and in
+an `edits` batch every `line` means the file as it was read, before the
+batch's earlier edits moved it. Models asked for this on their own: qwen-max
+sent `"line": N` thirty times across two probe runs while crew still dropped
+it, and Codex's `apply_patch` anchors a hunk by a context line the same way. So a
 miss is never a write, and the errors say WHY the match failed: text present
 with different indentation reads differently from text that is not there at
 all, because the model's next move differs. On success it answers

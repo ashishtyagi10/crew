@@ -94,7 +94,13 @@ fn a_row_copied_from_a_read_page_into_an_edit_is_caught() {
     let old = rows.join("\n");
     assert!(carries_numbers(&old), "{old}");
     assert!(carries_numbers(rows[1]), "{}", rows[1]);
-    let e = crate::broker::sysedit::replace(&file, &old, "", false).unwrap_err();
+    let swap = crate::broker::sysedit::Swap {
+        old: &old,
+        new: "",
+        all: false,
+        line: None,
+    };
+    let e = crate::broker::sysedit::place(&file, &swap, &Default::default()).unwrap_err();
     assert!(e.contains("line numbers"), "{e}");
     let _ = std::fs::remove_file(&path);
 }

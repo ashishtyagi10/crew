@@ -20,7 +20,7 @@
 //! So a miss is never a write. It is an error the model can act on, which is
 //! why the errors here go to the trouble of saying WHY the match failed —
 //! a near-miss on indentation is a different next move from no match at all.
-use std::path::Path;
+use super::editpick::Shift;
 
 /// One replacement to make.
 pub(crate) struct Swap<'a> {
@@ -28,6 +28,9 @@ pub(crate) struct Swap<'a> {
     pub new: &'a str,
     /// Every occurrence (a rename), as Claude Code's `replace_all`.
     pub all: bool,
+    /// A line inside the one to change, when `old` is in the file more than
+    /// once, numbered as the file read before the call (`super::editpick`).
+    pub line: Option<usize>,
 }
 
 /// Make every `swaps` replacement in `path`, or none of them.
@@ -62,16 +65,21 @@ pub(crate) fn edit_all(path: &str, swaps: &[Swap]) -> Result<String, String> {
         std::fs::read_to_string(path).map_err(|e| super::syspath::with_hint("edit", path, e))?;
     let mut edited = body.clone();
     let mut landed = super::editshow::Landed::default();
+    let (mut shift, mut first) = (Shift::default(), Vec::new());
     for (i, s) in swaps.iter().enumerate() {
-        let next = replace(&edited, s.old, s.new, s.all)
+        let ats = place(&edited, s, &shift)
             .map_err(|e| format!("edit {path}: {}", numbered(swaps.len(), i, &e)))?;
-        landed.swap(&edited, s.old, s.new);
-        edited = next;
+        landed.swap(&edited, ats[0], s.old, s.new);
+        shift.note(&edited, &ats, s.old, s.new);
+        edited = splice(&edited, &ats, s.old, s.new);
+        if i == 0 {
+            first = ats;
+        }
     }
     std::fs::write(path, &edited).map_err(|e| format!("edit {path}: {e}"))?;
     // The report line, then the edited lines as they now read, so the edit
     // can be checked without spending a round on sys:read_file.
-    let report = report_all(path, &body, swaps);
+    let report = super::editreport::report_all(path, &body, swaps, &first);
     match landed.show(&edited) {
         shown if shown.is_empty() => Ok(report),
         shown => Ok(format!("{report}\n{shown}")),
@@ -87,18 +95,31 @@ fn numbered(total: usize, i: usize, why: &str) -> String {
     }
 }
 
-/// `body` with its one `old` replaced (every one, when `all`), or why not.
-pub(crate) fn replace(body: &str, old: &str, new: &str, all: bool) -> Result<String, String> {
-    match body.matches(old).count() {
-        0 => Err(miss(body, old)),
-        1 => Ok(body.replacen(old, new, 1)),
-        _ if all => Ok(body.replace(old, new)),
-        n => Err(format!(
-            "`old` appears {n} times, so there is no single place to put `new` \u{2014} \
-             include more of the surrounding lines to name just one, or pass \
-             \"all\": true to replace every one"
-        )),
+/// Where in `body` the swap goes: its one `old`, the one its `line` names,
+/// or every one when `all` — byte offsets, never empty — or why nowhere.
+pub(super) fn place(body: &str, s: &Swap, shift: &Shift) -> Result<Vec<usize>, String> {
+    let ats: Vec<usize> = body.match_indices(s.old).map(|(at, _)| at).collect();
+    match (ats.len(), s.line) {
+        (0, _) => Err(miss(body, s.old)),
+        (1, _) => Ok(ats),
+        _ if s.all => Ok(ats),
+        (_, Some(line)) => {
+            super::editpick::choose(body, s.old, &ats, shift.now(line)).map(|at| vec![at])
+        }
+        _ => Err(super::editpick::ambiguous(body, &ats)),
     }
+}
+
+/// `body` with `new` in place of the `old` at each of `ats`.
+fn splice(body: &str, ats: &[usize], old: &str, new: &str) -> String {
+    let mut out = String::with_capacity(body.len() + new.len() * ats.len());
+    let mut from = 0;
+    for &at in ats {
+        out.push_str(&body[from..at]);
+        out.push_str(new);
+        from = at + old.len();
+    }
+    out + &body[from..]
 }
 
 /// Why a match failed, in the terms the model's next move depends on.
@@ -125,60 +146,6 @@ fn miss(body: &str, old: &str) -> String {
     }
     "`old` is not in the file \u{2014} read it with sys:read_file and copy the text to replace"
         .into()
-}
-
-/// What changed, said in the units a reader checks: which line, and whether
-/// the file grew or shrank. A byte count alone never told anyone whether the
-/// right thing happened.
-fn report_all(path: &str, before: &str, swaps: &[Swap]) -> String {
-    let [one] = swaps else {
-        let lines: isize = swaps
-            .iter()
-            .map(|s| s.new.lines().count() as isize - s.old.lines().count() as isize)
-            .sum();
-        let delta = match lines {
-            0 => String::new(),
-            d if d > 0 => format!(", +{d} lines"),
-            d => format!(", {d} lines"),
-        };
-        return format!("edited {} in {} places{delta}", name(path), swaps.len());
-    };
-    match before.matches(one.old).count() {
-        n if one.all && n > 1 => format!("edited {} in {n} places (every one)", name(path)),
-        _ => report(path, before, one.old, one.new),
-    }
-}
-
-fn report(path: &str, before: &str, old: &str, new: &str) -> String {
-    // Newlines BEFORE the match, not lines: a prefix ending in `\n` has
-    // finished its last line, and the match starts on the one after it.
-    let at = before[..before.find(old).unwrap_or(0)]
-        .matches('\n')
-        .count()
-        + 1;
-    let name = name(path);
-    let (was, now) = (old.lines().count(), new.lines().count());
-    let delta = match now as isize - was as isize {
-        0 => format!("{was} line{}", plural(was)),
-        d if d > 0 => format!("{was} line{} \u{2192} {now}, +{d}", plural(was)),
-        d => format!("{was} line{} \u{2192} {now}, {d}", plural(was)),
-    };
-    format!("edited {name} at line {at} ({delta})")
-}
-
-/// The file's own name: the path is the caller's, the name is the reader's.
-fn name(path: &str) -> &str {
-    Path::new(path)
-        .file_name()
-        .map_or(path, |n| n.to_str().unwrap_or(path))
-}
-
-fn plural(n: usize) -> &'static str {
-    if n == 1 {
-        ""
-    } else {
-        "s"
-    }
 }
 
 /// A fragment short enough to sit inside an error message.
