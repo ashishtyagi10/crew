@@ -105,7 +105,7 @@ fn parse_window(w: &[&str], now: NaiveDateTime) -> Option<(NaiveDateTime, bool)>
     if w.len() >= 2 {
         if let (Some(t), Some(d)) = (
             parse_time(w[w.len() - 1]),
-            parse_date(&w[..w.len() - 1], now.date()),
+            parse_date(super::leadin::dated(&w[..w.len() - 1]), now.date()),
         ) {
             return Some((d.and_time(t), true));
         }

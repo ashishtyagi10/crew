@@ -288,3 +288,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   column, so its sticky heading band ran 4 px from the strokes. `docwin::PAD` gives it a pane's
   gutter in the resize, the click mapping and the drawing. The band's tightness under the
   legend, vertically, is left as it was.
+
+**Round I11 (v0.28.54): "standup tomorrow at 9am" is due tomorrow at 9.**
+
+- **The second inbox/todo audit** (finding 1): a date, "at", a time parsed as the time alone,
+  due today with the date left in the title; a mail's "by Friday at 5pm" came out due the day
+  it was sent. `leadin::dated` lets the date before a time keep its "at".

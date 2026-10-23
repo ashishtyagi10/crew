@@ -59,3 +59,12 @@ fn a_day_in_another_year_says_its_year() {
     let now = crate::todopane::duedate::now_local();
     assert!(!day(now, false).contains(&now.format("%Y").to_string()));
 }
+
+/// "by Friday at 5pm" is Friday at five, said as it was written.
+#[test]
+fn a_deadline_at_a_time_is_that_day_at_that_time() {
+    let d = deadline("Please send the deck by Friday at 5pm.", tue()).expect("a deadline");
+    assert_eq!(d.0.format("%Y-%m-%d %H:%M").to_string(), "2026-10-23 17:00");
+    assert!(d.1, "a time was said");
+    assert_eq!(d.2, "by friday at 5pm");
+}
