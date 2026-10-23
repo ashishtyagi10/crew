@@ -402,3 +402,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 
 - **The second inbox/todo audit** (also noted): Enter on a todo deleted elsewhere while it was
   open for editing dropped the words silently; they are added as a todo of their own now.
+
+**Round I21 (v0.28.74): an invite you are not a guest of says so, not "was told".**
+
+- **The inbox audits' open item**: answering on Google Calendar with no guest who is you
+  changed nothing and said "was told". `mark_mine` reports it, and the answer says why not.

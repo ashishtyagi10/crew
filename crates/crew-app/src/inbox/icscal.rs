@@ -135,14 +135,11 @@ fn patch_answer(g: &mut Gmail, id: &str, me: &str, a: Answer) -> Result<(), Stri
     let url = format!("{}/{}", g.cal, enc(id));
     let ev = g.get(&url)?;
     let mut people = ev["attendees"].as_array().cloned().unwrap_or_default();
-    for p in &mut people {
-        let mine = p["self"] == true
-            || p["email"]
-                .as_str()
-                .is_some_and(|e| e.eq_ignore_ascii_case(me));
-        if mine {
-            p["responseStatus"] = json!(a.google());
-        }
+    if !mark_mine(&mut people, me, a) {
+        return Err(format!(
+            "you are not on its guest list as {me} \u{2014} it reached you another way (a \
+             group, another address), so there was no answer to set"
+        ));
     }
     g.patch(
         &format!("{url}?sendUpdates=all"),
@@ -150,6 +147,28 @@ fn patch_answer(g: &mut Gmail, id: &str, me: &str, a: Answer) -> Result<(), Stri
     )
     .map(|_| ())
 }
+
+/// Set your answer on the guests who are you: Google's `self`, or your
+/// address. Whether one was. With none, the patch changed nothing and the
+/// foot still said the organizer "was told" (a group's invite, an alias).
+fn mark_mine(people: &mut [serde_json::Value], me: &str, a: Answer) -> bool {
+    let mut found = false;
+    for p in people {
+        let mine = p["self"] == true
+            || p["email"]
+                .as_str()
+                .is_some_and(|e| e.eq_ignore_ascii_case(me));
+        if mine {
+            p["responseStatus"] = json!(a.google());
+            found = true;
+        }
+    }
+    found
+}
+
+#[cfg(test)]
+#[path = "icscalmine_tests.rs"]
+mod mine_tests;
 
 #[cfg(test)]
 #[path = "icscal_tests.rs"]

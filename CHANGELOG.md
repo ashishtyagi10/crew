@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.74
+
+**`/inbox`: an invite you are not a guest of says so, not "was told".**
+- An invite that reached you through a group or another of your addresses has no guest who is
+  you on Google Calendar. Answering it there changed nothing, and the foot still said "you
+  accepted · Ann was told". It now says it could not answer: you are not on its guest list as
+  this address.
+
 ## 0.28.73
 
 **`/todo`: an edit to a todo deleted meanwhile is kept.**
