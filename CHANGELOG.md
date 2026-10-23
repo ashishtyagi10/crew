@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.39
+
+**Pop-ups on glass: the words on their bottom edge are no longer struck through.**
+- A pop-up's words on its frame (the `/keys` hint `↑↓ for more · type to filter · esc`, a
+  toast's or the palette's legend) stand on the rule, half outside the card, and there the
+  card's own shadow ran through them: over a light desktop they read as struck through. The
+  pop-up's backdrop now reaches out behind them, a cell high, and its shadow stops there, as
+  a pane's sheet already thickens behind its title.
+- Found on the way: the spaces of a legend written over the rule were read as rule, so the
+  gap the rim leaves for a legend broke at every space. It is one gap now, words and spaces.
+
 ## 0.28.38
 
 **`/inbox`: `r` answers the right mail when someone's address holds yours.**

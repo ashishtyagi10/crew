@@ -174,3 +174,14 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **The survey** (also noted): which mail a reply answers was decided by a substring, so
   signed in as ann@, joann@'s mail was "yours" and `r` answered the one before it.
 - **Your whole address, any case** (`draft::answered`), as the rest of the inbox compares.
+
+**Round U6 (v0.28.39): a pop-up's edge words stand on its backdrop, not its shadow.**
+
+- **The survey** (finding 5): the `/keys` hint on the pop-up's bottom rule had the card's own
+  shadow through its middle on glass over a light desktop: pop-ups have no sheet, so the veil
+  a pane's title gets never applied to them.
+- **`popupback.rs`**: the overlay backdrop (moved out of `scene.rs`, 556 → 537) reaches a cell
+  high behind each word run on its rules, and the shader's shadow stops under a legend's outer
+  half on every card. The first shot showed a pill per word: a legend's spaces sit on the rule
+  cells and `notch::runs` read them as rule; now the later cell wins, as drawing does, which
+  also makes a pane title's rim gap one gap.
