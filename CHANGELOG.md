@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.92
+
+**Agents: a `line` given beside a one-edit `edits` list applies to that edit.**
+- In one of the last round's three live runs, the agent sent `{"edits": [{"old": …, "new": …}],
+  "line": 15}`. The `line` was ignored and the edit refused as "appears 2 times, pass `line`",
+  although it had. Beside a list of one, `line` and `all` are now that edit's. Beside a longer
+  list they belong to no single edit, so the call is refused with where they go instead of
+  being silently dropped.
+- Unit tests replay that call's shape. It was not run live again.
+
 ## 0.28.91
 
 **Agents: crew's own tools are described whole to models on the text tool path.**
