@@ -227,3 +227,8 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
   prose line as quoting now holds a three-line explanation or a retraction.
 - **Live, inconclusive**: two runs of the compile-error task never finish in the budget either
   way; they changed 12 and 3 files against 4–7 before. Unit tests carry it.
+
+**Round I9 (v0.28.45): `-` on an overdue row no longer toasts it again.**
+
+- **The survey** (also noted): any `+`/`-` re-armed the due toast, so moving an overdue row
+  further back toasted it again. Now a due still past counts as told, as the composer has it.
