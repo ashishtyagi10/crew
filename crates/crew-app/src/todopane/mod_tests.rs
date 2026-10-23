@@ -94,7 +94,7 @@ fn edit_round_trips_title_tag_and_due() {
     let due = store::snapshot()[0].due_ms;
 
     p.edit_at(0);
-    assert_eq!(p.input, "@crew 2027-03-05 17:30 ship build");
+    assert_eq!(p.input, "@crew ship build 2027-03-05 17:30");
     assert_eq!(p.editing, Some(id));
     // Resubmitting unchanged keeps everything, including the due instant.
     p.submit();

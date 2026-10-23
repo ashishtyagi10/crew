@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.78
+
+**`/todo`: retyping a todo's date with `e` changes the date again, not the title.**
+- 0.28.59 put a todo's due before its title when `e` reloads it, so a title ending in "on" kept
+  its word. But the due had always been last, where Backspace from the end edits it: erasing it
+  and typing a new one now ate the title instead, and "call mom" became "2026-10-2fri". The due
+  is last again, and goes before the title only for a title ending on such a word ("turn the
+  heater on").
+
 ## 0.28.77
 
 **When a build or test an agent runs fails, a second model reads it and advises.**

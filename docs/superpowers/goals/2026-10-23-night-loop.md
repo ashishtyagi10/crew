@@ -426,3 +426,9 @@ AI harness against loop 15's open list; the inbox and todo code, newest first.
 - **Live, the compile-error task** (qwen-max engineer, qwen3.8-max advisor): with it 1 of 2
   solved in 27 s (the advice named the uncommitted `f64` change; the agent reverted it), without
   it 0 of 2, and 0 of 9 earlier tonight. Small numbers, and the first solve of the night.
+
+**Round I24 (v0.28.78): retyping a todo's date with `e` changes the date, not the title.**
+
+- **The third inbox/todo audit** (finding 2) caught I14's edge: the due before every title put
+  it where Backspace from the end no longer reached it. It is last again, before the title only
+  when the title ends on a lead-in word.

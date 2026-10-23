@@ -94,3 +94,32 @@ fn an_edit_of_a_todo_deleted_meanwhile_is_kept() {
     assert_eq!(now.len(), 1, "kept");
     assert_eq!(now[0].title, "call mom back", "as typed");
 }
+
+/// `e`, Backspace over the date the edit put back, a new one typed: the todo
+/// moves and keeps its title. With the due put before every title, the
+/// Backspaces ate the title instead ("2026-10-2fri").
+#[test]
+fn an_edit_that_retypes_the_due_keeps_the_title() {
+    use super::super::duedate::to_epoch_ms;
+    let day = |d| {
+        chrono::NaiveDate::from_ymd_opt(2026, 10, d)
+            .unwrap()
+            .and_hms_opt(9, 0, 0)
+            .unwrap()
+    };
+    let it = super::super::item::TodoItem {
+        id: 7,
+        title: "call mom".into(),
+        due_ms: to_epoch_ms(day(24)),
+        ..Default::default()
+    };
+    let _g = super::super::store::test_guard(vec![it]);
+    let mut p = super::super::TodoPane::new();
+    p.edit_at(0);
+    (0.."2026-10-24".len()).for_each(|_| p.backspace());
+    p.paste("2026-10-29");
+    p.submit();
+    let now = &super::super::store::snapshot()[0];
+    assert_eq!(now.title, "call mom", "draft was {:?}", p.input);
+    assert_eq!(now.due_ms, to_epoch_ms(day(29)), "moved");
+}
