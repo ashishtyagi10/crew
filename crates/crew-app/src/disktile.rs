@@ -29,15 +29,20 @@ pub fn bytes(n: u64) -> String {
 /// Rows the header claims above the map.
 pub(crate) const HEAD: u16 = 1;
 
-/// The map's rect inside a `cols`×`rows` pane, in cells.
+/// The map's rect inside a `cols`×`rows` pane, in cells, with [`AIR`] above
+/// it and below: flush, the header's descenders touched the first tile and
+/// the last tile sat on the key hint (UI survey 2026-10-22, J8).
 pub(crate) fn map_rect(cols: u16, rows: u16) -> (f32, f32, f32, f32) {
     (
         1.0,
-        f32::from(HEAD),
+        f32::from(HEAD) + AIR,
         f32::from(cols.saturating_sub(2)),
-        f32::from(rows.saturating_sub(HEAD + 1)),
+        (f32::from(rows.saturating_sub(HEAD + 1)) - 2.0 * AIR).max(0.0),
     )
 }
+
+/// Rows of air between the map and the lines above and below it.
+const AIR: f32 = 0.5;
 
 pub(crate) fn put(
     out: &mut Vec<CellView>,
@@ -166,5 +171,18 @@ pub(crate) fn short_path(p: &Path) -> String {
             None => s.into_owned(),
         },
         None => s.into_owned(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    /// The map keeps half a row clear of the header and of the key hint.
+    #[test]
+    fn the_map_has_air_above_and_below() {
+        let (_, y, _, h) = super::map_rect(100, 30);
+        assert!(y >= f32::from(super::HEAD) + 0.5, "top {y}");
+        assert!(y + h <= 29.0 - 0.5, "bottom {}", y + h);
+        assert!(h > 20.0, "still nearly the whole pane: {h}");
+        assert_eq!(super::map_rect(10, 1).3, 0.0, "never negative");
     }
 }
