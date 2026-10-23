@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.42
+
+**`/inbox`: an invite answer that fails says it did not go, and names Google Calendar.**
+- Answering or adding an invite goes through Google Calendar, and its failures were worded as
+  Gmail's, then shortened to the inbox's own words, head and all: "not answered: could not
+  reach Gmail" came out as "Gmail can't be reached from here", so nothing said the answer had
+  not gone, and the card, unchanged, read like success. A Calendar 409 read "Gmail 409". Now
+  the foot says `not answered: Gmail can't be reached from here`, and Google Calendar's own
+  failures are named as Google Calendar's.
+
 ## 0.28.41
 
 **`/inbox`: a proposed new time is not an invite.**
