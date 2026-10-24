@@ -1,5 +1,5 @@
 use super::*;
-use crate::broker::Adapter;
+use crate::broker::{Adapter, Registry};
 use std::sync::Mutex;
 
 /// A scripted agent: returns its replies in order, repeating the last once

@@ -1,5 +1,5 @@
 use super::*;
-use crate::broker::Adapter;
+use crate::broker::{Adapter, Registry};
 use std::sync::Mutex;
 use std::time::Duration;
 

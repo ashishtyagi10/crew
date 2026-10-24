@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.7
+
+**Internal: two more relay files split under the 200-line limit.**
+- The relay's hop loop and its API agent were split into smaller files. Two stretches of code
+  that had each been written twice now exist once, with the same results. Nothing changes in the
+  app.
+
 ## 0.29.6
 
 **Internal: the agent-turn code is split into smaller files.**

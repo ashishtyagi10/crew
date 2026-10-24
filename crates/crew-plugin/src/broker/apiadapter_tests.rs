@@ -1,5 +1,5 @@
 use super::*;
-use crew_hive::MockProvider;
+use crew_hive::{CompletionRequest, MockProvider};
 
 fn mock(reply: &str) -> Arc<dyn Provider> {
     Arc::new(MockProvider {
