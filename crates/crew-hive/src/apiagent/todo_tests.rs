@@ -5,7 +5,7 @@
 use super::*;
 use crate::bus::{AgentId, EventBus};
 use crate::graph::{AgentKind, ModelTier, TaskId, TaskSpec};
-use crate::provider::{Completion, ProviderError, ToolInvocation, Turn};
+use crate::provider::{Completion, CompletionRequest, ProviderError, ToolInvocation, Turn};
 use crate::tools::todo::Checklist;
 use crate::tools::ToolSpec;
 use std::sync::Mutex;

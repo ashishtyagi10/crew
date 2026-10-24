@@ -97,7 +97,7 @@ const RATES: &[(&str, u64, u64, u64)] = &[
     // NVIDIA NIM (build.nvidia.com): crew's free first-run key, and the free
     // developer tier has no per-token price. Listed at 0 rather than left
     // out, because an unlisted model is billed at its TIER's Claude model
-    // (`apiagent::billed`) — a free call read as a Haiku one. OpenRouter's
+    // (`harness::billed`) — a free call read as a Haiku one. OpenRouter's
     // paid `nvidia/…` slugs report their own cost, which outranks this row.
     ("nvidia/", 0, 0, 0),
 ];

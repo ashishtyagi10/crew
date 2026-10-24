@@ -1,7 +1,7 @@
 //! A steer reaches a worker's next request, on the text path and the native
 //! one, through the whole `ApiAgent` (the branch that picks the path included).
-use super::super::ApiAgent;
 use crate::agent::{Agent, AgentContext};
+use crate::apiagent::ApiAgent;
 use crate::bus::{AgentId, EventBus};
 use crate::graph::{AgentKind, ModelTier, TaskId, TaskSpec};
 use crate::provider::{

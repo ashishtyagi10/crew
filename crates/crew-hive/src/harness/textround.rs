@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use super::pending::{self, Rules};
 use super::toolloop;
-use crate::agent::AgentContext;
+use super::TurnContext;
 use crate::tools::exchanges::Exchanges;
 use crate::tools::{seen::Seen, ToolCall, Tools};
 
@@ -19,7 +19,7 @@ use crate::tools::{seen::Seen, ToolCall, Tools};
 /// drawn `used` already this task: how many calls got one, and how many
 /// rounds are left after the last that did. The first refusal ends it, so the
 /// pool is asked once for a round it cannot give, as it always was.
-pub(super) fn draw(ctx: &AgentContext, used: &mut u32, calls: usize) -> (usize, u32) {
+pub(super) fn draw(ctx: &TurnContext, used: &mut u32, calls: usize) -> (usize, u32) {
     let mut left = 0;
     for granted in 0..calls {
         match ctx.take_round(*used) {
@@ -40,7 +40,7 @@ pub(super) fn draw(ctx: &AgentContext, used: &mut u32, calls: usize) -> (usize, 
 /// at the one call it repeats, and only while that call is still shown whole
 /// (`Exchanges::repeat`).
 pub(super) async fn run(
-    ctx: &AgentContext,
+    ctx: &TurnContext,
     tools: &Arc<dyn Tools>,
     seen: &mut Seen,
     log: &mut Exchanges,

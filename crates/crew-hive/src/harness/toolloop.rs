@@ -1,8 +1,8 @@
-//! Prompt assembly for [`super::ApiAgent`]'s tool rounds.
+//! Prompt assembly for the `@tool` loop's rounds (`text.rs`).
 //!
-//! Split out of `apiagent/mod.rs` so the agent's `run` stays readable: this
-//! module is pure string work and is tested as such, with no provider, bus or
-//! runtime in sight.
+//! Split out of the loop so the loop stays readable: this module is pure
+//! string work and is tested as such, with no provider, bus or runtime in
+//! sight.
 
 #[cfg(test)]
 #[path = "toolloop_tests.rs"]

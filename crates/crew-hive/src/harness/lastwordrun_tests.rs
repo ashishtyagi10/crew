@@ -1,5 +1,5 @@
 use super::*;
-use crate::agent::Agent;
+use crate::agent::{Agent, AgentContext};
 use crate::bus::{AgentId, EventBus};
 use crate::graph::{AgentKind, ModelTier, TaskId, TaskSpec};
 use crate::provider::{Completion, ProviderError};
@@ -125,7 +125,7 @@ async fn run(
         deps: vec![],
         bus: bus.clone(),
     };
-    let agent = super::super::ApiAgent::new(provider, 256).with_tools(Arc::new(Weather));
+    let agent = crate::apiagent::ApiAgent::new(provider, 256).with_tools(Arc::new(Weather));
     let out = agent.run(ctx).await.output;
     let mut billed = 0;
     while let Ok(ev) = rx.try_recv() {

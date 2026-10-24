@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.28.99
+
+**Under the hood: the `/crew` swarm's tool loop is now crew's one agent harness.**
+- Each `/crew` worker runs its task through one shared turn loop (`crew_hive::harness`): the model
+  call, the tools it asks for, the results sent back, until it answers. The `@agent` relay moves
+  onto the same loop next, so both will call tools, count rounds and stop the same way.
+- Nothing you see changes in this release: the same prompts, events and answers as before.
+
 ## 0.28.98
 
 **`/todo reminders` keeps all your reminders, not a `crew` list of its own.**

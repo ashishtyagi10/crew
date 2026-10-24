@@ -52,7 +52,7 @@ pub enum HiveEvent {
     /// working is not the reply, and a subscriber that appended it to the
     /// reply card would read the model's scratch back to it as its own
     /// words on the next turn. Unlike `OutputDelta` there is no settled twin
-    /// — the deltas are the only carrier — so `apiagent::chunks` publishes a
+    /// — the deltas are the only carrier — so `harness::chunks` publishes a
     /// non-streamed completion's whole `thought` as one of these.
     ThoughtDelta {
         agent: AgentId,

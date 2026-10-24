@@ -7,8 +7,8 @@ use std::sync::Arc;
 use super::super::pending::{self, Rules};
 use super::super::toolloop::{clip, RESULT_CAP};
 use super::{label_of, outcome_for_unknown, MAX_CALLS_PER_TURN};
-use crate::agent::AgentContext;
 use crate::bus::HiveEvent;
+use crate::harness::TurnContext;
 use crate::provider::{Completion, ToolInvocation, ToolOutcome};
 use crate::tools::{seen::Seen, ToolCall, ToolCatalog, Tools};
 
@@ -16,7 +16,7 @@ use crate::tools::{seen::Seen, ToolCall, ToolCatalog, Tools};
 /// one outcome per call in the order they were asked. Every call publishes
 /// its own `ToolCall` and `ToolResult`, as before.
 pub(super) async fn run(
-    ctx: &AgentContext,
+    ctx: &TurnContext,
     tools: &Arc<dyn Tools>,
     catalog: &ToolCatalog,
     seen: &mut Seen,
@@ -61,7 +61,7 @@ pub(super) async fn run(
     // result's label, and a refusal sent while a call of the same name was
     // still running would have closed that one.
     for (i, text) in refused {
-        ctx.bus.publish(HiveEvent::ToolResult {
+        ctx.publish(HiveEvent::ToolResult {
             agent: ctx.agent.clone(),
             label: label_of(&calls[i], catalog),
             ok: false,

@@ -72,7 +72,7 @@ async fn a_fallback_reply_is_billed_at_the_model_that_answered() {
     assert_eq!(asked.lock().unwrap().as_slice(), ["qwen-max", "qwen-plus"]);
     assert_eq!(c.model, "qwen-plus");
     assert_eq!(c.fell_back, "qwen-max: The model `qwen-max` does not exist");
-    let billed = crate::apiagent::billed("qwen-max", ModelTier::Standard, &c);
+    let billed = crate::harness::billed("qwen-max", ModelTier::Standard, &c);
     assert_eq!(billed, 400 + 120, "priced at qwen-plus");
     assert_ne!(billed, 1600 + 640, "priced at qwen-max, which 404ed");
 }

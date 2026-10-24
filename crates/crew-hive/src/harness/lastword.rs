@@ -24,8 +24,9 @@ mod tests;
 use std::sync::Arc;
 
 use super::chunks::ChunkSink;
-use crate::agent::AgentContext;
+use super::TurnContext;
 use crate::bus::HiveEvent;
+use crate::graph::ModelTier;
 use crate::provider::{CompletionRequest, Provider, ToolInvocation, Turn};
 use crate::tools::exchanges::Exchange;
 
@@ -102,16 +103,18 @@ fn written(said: &str, rounds: impl Iterator<Item = (String, String, String)>) -
     shown.join("\n\n")
 }
 
-/// Send `prompt` once with no tools, billed like any other round. The answer,
-/// or `None` when the call failed or said nothing, or the run was stopped
-/// before it answered (the caller looks at `ctx.stopped()` for that one);
-/// otherwise the caller keeps the output it had. The tool directives the
-/// reply ends on are cut, as `toolloop::budget_spent` cuts them: nothing is
-/// left to run them.
+/// Send `prompt` once with no tools, billed like any other round (`tier`
+/// when `model_id` has no price of its own). The answer, or `None` when the
+/// call failed or said nothing, or the turn was stopped before it answered
+/// (the caller looks at `ctx.stopped()` for that one); otherwise the caller
+/// keeps the output it had. The tool directives the reply ends on are cut, as
+/// `toolloop::budget_spent` cuts them: nothing is left to run them.
+#[allow(clippy::too_many_arguments)] // two call sites, one per loop
 pub(super) async fn ask(
-    ctx: &AgentContext,
+    ctx: &TurnContext,
     provider: &Arc<dyn Provider>,
     model_id: &str,
+    tier: ModelTier,
     system: Option<String>,
     prompt: String,
     max_tokens: u32,
@@ -130,14 +133,14 @@ pub(super) async fn ask(
     let call = provider.complete_streaming(req, Arc::clone(&sink.on_chunk));
     let completion = ctx.unless_stopped(call).await?.ok()?;
     sink.settle(&completion);
-    ctx.bus.publish(HiveEvent::TokenDelta {
+    ctx.publish(HiveEvent::TokenDelta {
         agent: ctx.agent.clone(),
         input: completion.input_tokens,
         output: completion.output_tokens,
     });
-    ctx.bus.publish(HiveEvent::CostDelta {
+    ctx.publish(HiveEvent::CostDelta {
         agent: ctx.agent.clone(),
-        micros_usd: super::cost::billed(model_id, ctx.task.model, &completion),
+        micros_usd: super::cost::billed(model_id, tier, &completion),
     });
     let text =
         crate::tools::split_tool_calls(&completion.text).map_or(completion.text, |(body, _)| body);

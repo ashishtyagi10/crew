@@ -16,7 +16,7 @@
 //! needed is a round spent reading it again.
 
 use super::stubs::{shrink, size, stubbed};
-use crate::agent::AgentContext;
+use super::TurnContext;
 use crate::bus::HiveEvent;
 use crate::provider::{ProviderError, ToolInvocation, Turn};
 use crate::tools::exchanges::{Exchanges, CONTEXT_FULL};
@@ -25,8 +25,8 @@ use crate::tools::seen::Seen;
 /// Say the cut in the worker's live card: a delta, which settles away when
 /// the answer lands, so it is shown while the retry runs and not kept as the
 /// worker's words.
-pub(super) fn say(ctx: &AgentContext) {
-    ctx.bus.publish(HiveEvent::OutputDelta {
+pub(super) fn say(ctx: &TurnContext) {
+    ctx.publish(HiveEvent::OutputDelta {
         agent: ctx.agent.clone(),
         text: format!("\n{CONTEXT_FULL}\n"),
     });
@@ -34,7 +34,7 @@ pub(super) fn say(ctx: &AgentContext) {
 
 /// The text loop's one retry: `err` is the context, and the log had older
 /// rounds to cut (said in the pane when so). `false` sends the error on.
-pub(super) fn tightened(ctx: &AgentContext, err: &ProviderError, log: &mut Exchanges) -> bool {
+pub(super) fn tightened(ctx: &TurnContext, err: &ProviderError, log: &mut Exchanges) -> bool {
     let again = err.is_context_overflow() && log.tighten();
     if again {
         say(ctx);
@@ -85,7 +85,7 @@ impl<'a> Cut<'a> {
     /// [`Cut::after_round`]), say so, and `true` to send it again.
     pub(super) fn refused(
         &mut self,
-        ctx: &AgentContext,
+        ctx: &TurnContext,
         err: &ProviderError,
         turns: &mut Vec<Turn>,
         seen: &mut Seen,

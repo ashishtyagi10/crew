@@ -18,7 +18,8 @@
 //! Brain & workers (bring-your-own-LLM):
 //! - [`provider`] — LLM provider abstraction: [`Provider`], [`MockProvider`], [`AnthropicProvider`]
 //! - [`planner`] — goal → task-graph: [`Planner`], [`StubPlanner`], [`LlmPlanner`]
-//! - [`apiagent`] — native LLM agent (futures, no PTY): [`ApiAgent`]
+//! - [`harness`] — one agent turn, the tool loop every engine runs: [`harness::run`], [`TurnContext`], [`TurnSpec`], [`Ended`]
+//! - [`apiagent`] — native LLM agent (futures, no PTY), a task as one harness turn: [`ApiAgent`]
 //! - [`tools`] — the tool surface both engines share: [`Tools`], [`parse_tool_call`]
 //! - [`clipmiddle`] — a long output cut from the middle, head and conclusion kept: [`clip_middle`]
 //!
@@ -53,6 +54,7 @@ pub mod clipmiddle;
 pub mod deviceflow;
 pub mod govern;
 pub mod graph;
+pub mod harness;
 pub mod oauth;
 pub mod planner;
 pub mod pricing;
@@ -87,6 +89,9 @@ pub use clipmiddle::clip_middle;
 
 // AgentName
 pub use agentname::{role_clamp, slug, slug_or};
+
+// Harness
+pub use harness::{Ended, Events, TurnContext, TurnSpec};
 
 // ApiAgent
 pub use apiagent::{ApiAgent, ApiFactory};

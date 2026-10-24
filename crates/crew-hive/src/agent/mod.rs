@@ -12,12 +12,13 @@ pub use stub::StubAgent;
 use std::collections::HashSet;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 use crate::board::TaskResult;
 use crate::bus::{AgentId, EventBus};
 use crate::graph::{AgentKind, TaskId, TaskSpec};
+use crate::harness::TurnContext;
 use crate::tools::budget::ToolBudget;
 
 /// Everything an agent needs to do its task: its id, the task spec, the
@@ -29,7 +30,7 @@ pub struct AgentContext {
     pub deps: Vec<TaskResult>,
     pub bus: EventBus,
     /// The run's pool of tool rounds, shared with every other agent in it.
-    /// Draw through [`AgentContext::take_round`], which announces the draw.
+    /// Draw through [`TurnContext::take_round`], which announces the draw.
     pub budget: ToolBudget,
     /// The run's cancel flag, the scheduler's own (`Scheduler::with_cancel`).
     /// An agent that honours it stops at its next look and says so with
@@ -39,29 +40,15 @@ pub struct AgentContext {
 }
 
 impl AgentContext {
-    /// Draw one tool round from the run's pool for an agent that has drawn
-    /// `used` already this task (see [`ToolBudget::take`]), and publish the
-    /// pool's state so the run can watch it drain. The one way an agent
-    /// spends a round: a draw nobody announced is a pool nobody can show.
-    pub fn take_round(&self, used: u32) -> Option<u32> {
-        let left = self.budget.take(used);
-        let total = self.budget.total();
-        self.bus.publish(crate::bus::HiveEvent::ToolBudget {
-            used: total - self.budget.left(),
-            total,
-        });
-        left
-    }
-
-    /// Whether the run has been stopped.
-    pub fn stopped(&self) -> bool {
-        self.cancel.load(Ordering::Relaxed)
-    }
-
-    /// `work`'s output, or `None` when the run is stopped first — `work`
-    /// dropped unfinished (see [`stop::unless`]).
-    pub async fn unless_stopped<F: Future>(&self, work: F) -> Option<F::Output> {
-        stop::unless(&self.cancel, work).await
+    /// The harness turn this task runs as: its agent, publishing on the run's
+    /// bus, drawing on the run's pool, stopped by the run's stop.
+    pub fn turn(&self) -> TurnContext {
+        TurnContext {
+            agent: self.agent.clone(),
+            events: Arc::new(self.bus.clone()),
+            budget: self.budget.clone(),
+            cancel: Arc::clone(&self.cancel),
+        }
     }
 }
 

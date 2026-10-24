@@ -305,7 +305,7 @@ pub trait Provider: Send + Sync {
     ///
     /// Defaults to FALSE so a provider that has not been taught the mapping
     /// cannot silently drop a `tools` array and return prose. The caller
-    /// (`crate::apiagent`) reads this to choose between the native path and
+    /// (`crate::harness`) reads this to choose between the native path and
     /// the `@tool` text convention, so a wrong `true` here is a swarm that
     /// advertises tools no model was ever shown.
     fn supports_tools(&self) -> bool {

@@ -1,6 +1,6 @@
 //! Anthropic's prompt cache, asked for when the prefix will be sent again.
 //!
-//! A native tool loop (`apiagent::native`) resends the whole conversation
+//! A native tool loop (`harness::native`) resends the whole conversation
 //! every round — system, tools, the opening prompt and every turn since — so
 //! round N paid the full input price, and the full prefill wait, for all
 //! that rounds 1..N-1 had already sent. One TOP-LEVEL field,

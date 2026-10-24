@@ -29,7 +29,7 @@ impl Spent {
         Spent {
             input: u64::from(c.input_tokens),
             output: u64::from(c.output_tokens),
-            micros_usd: crate::apiagent::billed(model, tier, c),
+            micros_usd: crate::harness::billed(model, tier, c),
         }
     }
 

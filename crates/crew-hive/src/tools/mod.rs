@@ -68,7 +68,7 @@ pub use said::said;
 /// (the broker's MCP host and `sys` surface) is blocking, and pretending
 /// otherwise would mean an async wrapper around a blocking call — the worst of
 /// both. Callers inside a future MUST therefore push it to a blocking pool;
-/// see [`crate::apiagent`], where a tool call that blocked the scheduler's
+/// see [`crate::harness`], where a tool call that blocked the scheduler's
 /// current-thread runtime would stall every other agent in the swarm and the
 /// event drain with them.
 pub trait Tools: Send + Sync {
