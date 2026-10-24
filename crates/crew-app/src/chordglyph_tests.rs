@@ -41,13 +41,14 @@ fn what_is_not_a_chord_is_left_alone() {
     }
 }
 
-/// Off a Mac the tables are drawn as written; on one, as glyphs.
+/// On a Mac a chord is drawn as glyphs; off one, as the key it stands in
+/// for there: a chord a Mac shifts keeps Ctrl+Shift (`offmac`).
 #[test]
 fn shown_follows_the_platform() {
     let want = if cfg!(target_os = "macos") {
         "\u{21e7}\u{2318}T"
     } else {
-        "Cmd+Shift+T"
+        "Ctrl+Shift+T"
     };
     assert_eq!(shown("Cmd+Shift+T"), want);
     assert_eq!(shown("Esc"), "Esc");
@@ -59,7 +60,8 @@ fn prose_rewrites_only_the_chords() {
     let s = "no shell here \u{2014} press Cmd+T to open one";
     let want = match cfg!(target_os = "macos") {
         true => "no shell here \u{2014} press \u{2318}T to open one",
-        false => "no shell here \u{2014} press Ctrl+Shift+T to open one",
+        // Plain Ctrl off a Mac since v0.27.44: a terminal leaves Ctrl+T to crew.
+        false => "no shell here \u{2014} press Ctrl+T to open one",
     };
     assert_eq!(prose(s), want);
     assert_eq!(prose("no pane is waiting"), "no pane is waiting");

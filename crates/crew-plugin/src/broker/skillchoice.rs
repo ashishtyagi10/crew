@@ -66,6 +66,11 @@ enum Mode {
 pub(crate) struct Decider {
     mode: Mode,
     memo: Memo<(Vec<String>, bool)>,
+    /// Whether the step is switched off (`CREW_SKILL_PICK=0`), looked at on
+    /// every pick: the process's env for a live decider, what a test says for
+    /// an injected one. A test that read the env raced the one that sets it,
+    /// and a `none` came back as the name match (CI, 2026-10-24).
+    off: fn() -> bool,
 }
 
 /// The process's decider, built on first use.
@@ -83,15 +88,26 @@ impl Decider {
     pub(crate) fn off() -> Self {
         Self::with(Mode::Off)
     }
-    /// An injected chooser — the seam the tests decide through.
+    /// An injected chooser — the seam the tests decide through. Asked
+    /// whatever the process env says: the knob is a test of its own.
     #[cfg(test)]
     pub(crate) fn fixed(f: Box<ChooseFn>) -> Self {
-        Self::with(Mode::Fixed(f))
+        Self {
+            off: || false,
+            ..Self::with(Mode::Fixed(f))
+        }
+    }
+    /// This decider with its step switched off, as `CREW_SKILL_PICK=0` does.
+    #[cfg(test)]
+    pub(crate) fn switched_off(mut self) -> Self {
+        self.off = || true;
+        self
     }
     fn with(mode: Mode) -> Self {
         Self {
             mode,
             memo: Memo::new(MEMO_CAP),
+            off: disabled,
         }
     }
 
@@ -111,7 +127,7 @@ impl Decider {
     /// The skills `task` pulls in: the memo's answer, else the model's, else
     /// the name match's. Under two skills, or with the step off, no call.
     pub(crate) fn pick<'s>(&self, task: &str, skills: &'s [Skill]) -> Pick<'s> {
-        if skills.len() < AUTO_MAX || disabled() {
+        if skills.len() < AUTO_MAX || (self.off)() {
             return fallback(task, skills);
         }
         let key = memo_key(task, skills);
