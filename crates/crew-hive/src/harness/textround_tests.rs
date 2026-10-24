@@ -109,28 +109,48 @@ async fn three_reads_on_the_last_lines_run_in_one_round() {
     }
     assert_eq!(follow.matches("split three ways").count(), 1, "{follow}");
     assert!(
-        follow.contains("You may make 1 more tool call(s)"),
-        "{follow}"
+        follow.contains("You may make 3 more round(s) of tool calls"),
+        "one round for the three: {follow}"
     );
     // Together is one nap; in turn is three.
     assert!(took < NAP * 2, "took {took:?}");
 }
 
-/// Four rounds on the solo budget: three go to the first reply, one to the
-/// second, and its other two reach the last word as refused, together.
+/// Four rounds on the solo budget, one per reply however many calls it
+/// made: five replies of three reads each run all fifteen, the fifth past the
+/// budget, and the last word reads every one.
 #[tokio::test]
-async fn the_calls_past_the_budget_go_to_the_last_word_together() {
-    let first = reads("", &["a", "b", "c"]);
-    let second = reads("then these", &["d", "e", "f"]);
-    let (ran, prompts, out, _) = task(&[&first, &second, "what I found"]).await;
-    assert_eq!(ran.len(), 4, "{ran:?}");
-    assert_eq!(prompts.len(), 3, "first, follow-up, last word");
-    let last = &prompts[2];
-    assert!(last.contains("read of {\"path\":\"d\"}"), "{last}");
-    assert_eq!(
-        last.matches("not run \u{2014} tool budget spent").count(),
-        2
-    );
-    assert!(last.contains("CALLED fs:read {\"path\":\"f\"}"), "{last}");
+async fn a_round_is_a_reply_and_the_batch_past_the_budget_still_runs() {
+    let names = [
+        "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o",
+    ];
+    let replies: Vec<String> = names.chunks(3).map(|p| reads("more", p)).collect();
+    let mut script: Vec<&str> = replies.iter().map(String::as_str).collect();
+    script.push("what I found");
+    let (ran, prompts, out, _) = task(&script).await;
+    assert_eq!(ran.len(), 15, "{ran:?}");
+    assert_eq!(prompts.len(), 6, "first, four follow-ups, last word");
+    let last = &prompts[5];
+    assert!(last.contains("read of {\"path\":\"o\"}"), "{last}");
+    assert!(!last.contains("not run"), "{last}");
     assert!(out.starts_with("what I found"), "{out}");
+}
+
+/// A reply past the per-reply bound runs eight, and the rest are answered
+/// without running, so the model learns why.
+#[tokio::test]
+async fn calls_past_eight_in_one_reply_are_answered_not_run() {
+    let paths: Vec<String> = (0..10).map(|i| format!("p{i}")).collect();
+    let paths: Vec<&str> = paths.iter().map(String::as_str).collect();
+    let first = reads("ten reads", &paths);
+    let (ran, prompts, _, _) = task(&[&first, "read eight"]).await;
+    assert_eq!(ran.len(), 8, "{ran:?}");
+    let follow = &prompts[1];
+    assert_eq!(
+        follow
+            .matches("not run \u{2014} at most 8 tools per turn")
+            .count(),
+        2,
+        "{follow}"
+    );
 }

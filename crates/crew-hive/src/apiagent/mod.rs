@@ -124,6 +124,7 @@ impl Agent for ApiAgent {
             let spec = TurnSpec {
                 ask: ctx.task.prompt.clone(),
                 prompt: build_prompt(&ctx.task.prompt, &ctx.deps),
+                hinted: None,
                 system: with_preamble(system, preamble.as_deref()),
                 model: model.unwrap_or_else(|| tier.model_id().to_owned()),
                 tier,

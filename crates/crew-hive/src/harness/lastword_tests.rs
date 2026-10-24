@@ -30,7 +30,7 @@ fn a_transcript_writes_each_call_with_its_result() {
         "A".repeat(700)
     );
     assert_eq!(t, want);
-    let p = prompt("task", "", "", &refused("", [("t:c".into(), "{}".into())]));
-    let want = "task\n\nTOOL EXCHANGES SO FAR:\nCALLED t:c {}\nRESULT:\nnot run \u{2014} tool budget spent";
+    let p = prompt("task", "", "CALLED t:c {}\nRESULT:\nC");
+    let want = "task\n\nTOOL EXCHANGES SO FAR:\nCALLED t:c {}\nRESULT:\nC";
     assert_eq!(p, format!("{want}\n\n{INSTRUCTION}"));
 }

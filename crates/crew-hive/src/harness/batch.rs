@@ -89,7 +89,7 @@ fn runnable(
         return Err(ToolOutcome {
             id: call.id.clone(),
             name: call.name.clone(),
-            content: format!("not run \u{2014} at most {MAX_CALLS_PER_TURN} tools per turn"),
+            content: super::past_bound(),
             is_error: true,
         });
     }

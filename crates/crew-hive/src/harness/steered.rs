@@ -7,11 +7,11 @@
 //! finds it at the end of its first prompt.
 
 use crate::provider::Turn;
-use crate::steers::{section, Steers, WORKER_TAIL};
+use crate::steers::{section, Steers};
 
 /// The section for everything this run was told so far; empty with no steers.
 pub(super) fn heard(steers: Option<&Steers>) -> String {
-    steers.map_or_else(String::new, |s| section(&s.all(), WORKER_TAIL))
+    steers.map_or_else(String::new, |s| section(&s.all(), s.tail()))
 }
 
 /// `prompt` with what the run was told before this worker started at its
@@ -24,15 +24,16 @@ pub(super) fn opening(prompt: String, steers: Option<&Steers>) -> (String, usize
     if all.is_empty() {
         return (prompt, 0);
     }
-    let text = format!("{prompt}\n\n{}", section(&all, WORKER_TAIL).trim_end());
+    let text = format!("{prompt}\n\n{}", section(&all, s.tail()).trim_end());
     (text, all.len())
 }
 
 /// A user turn with the steers after the first `taken`, when there are any.
 pub(super) fn turn(steers: Option<&Steers>, taken: &mut usize) -> Option<Turn> {
-    let all = steers?.all();
+    let steers = steers?;
+    let all = steers.all();
     let new = all.get(*taken..).filter(|n| !n.is_empty())?;
-    let text = section(new, WORKER_TAIL).trim_end().to_string();
+    let text = section(new, steers.tail()).trim_end().to_string();
     *taken = all.len();
     Some(Turn::User(text))
 }

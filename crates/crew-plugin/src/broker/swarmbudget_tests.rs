@@ -122,40 +122,32 @@ fn the_aggregate_stats_carries_the_pool_after_a_run_with_tools() {
     assert!(spent_notes(&evs).is_empty(), "nine rounds were left");
 }
 
+/// The note comes once for the run, and nothing is refused after it: the
+/// batch each worker asked for past the pool still runs, for its last word.
 #[test]
-fn a_pool_that_runs_dry_is_said_once_before_the_refused_call() {
+fn a_pool_that_runs_dry_is_said_once_and_the_batches_past_it_still_run() {
     let evs = run(Arc::new(AlwaysAsks));
     assert_eq!(stats_tools(&evs), Some((12, 12)), "every round was drawn");
     let notes = spent_notes(&evs);
     assert_eq!(
         notes,
-        vec!["tool budget spent \u{2014} 12 calls over 3 tasks; the workers answer from what they have"],
+        vec!["tool budget spent \u{2014} 12 rounds over 3 tasks; the workers answer from what they have"],
         "one note for the run, not one per agent"
     );
-    let note_at = evs
-        .iter()
-        .position(|e| matches!(e, PluginEvent::Message { text, .. } if text.starts_with("tool budget spent")))
-        .unwrap();
-    let refused_at = evs
-        .iter()
-        .position(|e| {
-            matches!(
-                e,
-                PluginEvent::Hive { event: HiveEvent::ToolResult { ok: false, text, .. } }
-                    if text.contains("budget spent")
-            )
-        })
-        .expect("an agent was refused a round");
-    assert!(
-        note_at < refused_at,
-        "the note explains the refusal that follows"
-    );
+    let refused = evs.iter().any(|e| {
+        matches!(
+            e,
+            PluginEvent::Hive { event: HiveEvent::ToolResult { ok: false, text, .. } }
+                if text.contains("budget spent")
+        )
+    });
+    assert!(!refused, "no call is refused for the budget: {evs:?}");
 }
 
 #[test]
 fn the_note_words_its_counts() {
     assert_eq!(
         swarmtally::spent_note(4, 1),
-        "tool budget spent \u{2014} 4 calls over 1 task; the workers answer from what they have"
+        "tool budget spent \u{2014} 4 rounds over 1 task; the workers answer from what they have"
     );
 }

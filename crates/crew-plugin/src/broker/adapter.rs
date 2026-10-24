@@ -107,6 +107,19 @@ impl HopStream {
     }
 }
 
+/// The model behind an API agent, as the harness drives it: a hop with tools
+/// on runs such an agent's whole turn in `crew_hive::harness` (`apiturn`),
+/// native tool-use included, where a CLI's is a prompt in and a reply out.
+pub struct Engine<'a> {
+    pub provider: &'a std::sync::Arc<dyn crew_hive::Provider>,
+    pub model: &'a str,
+    pub system: Option<&'a str>,
+    /// Output token ceiling per model call.
+    pub max_tokens: u32,
+    /// The runtime the agent's calls block on; the turn runs on it.
+    pub rt: &'a tokio::runtime::Runtime,
+}
+
 /// A registered agent the broker can address by name.
 pub trait Adapter: Send + Sync {
     /// The name messages are addressed to (lowercase, e.g. `"claude"`).
@@ -132,6 +145,12 @@ pub trait Adapter: Send + Sync {
     }
     /// Whether this agent's CLI is installed and usable on this machine.
     fn probe(&self) -> bool;
+    /// The model behind this agent when the harness can drive it whole, or
+    /// `None` for a program the broker can only hand a prompt to (the CLIs,
+    /// manifest agents).
+    fn engine(&self) -> Option<Engine<'_>> {
+        None
+    }
     /// Send `body` to the agent and return its normalized reply, or an error
     /// string (launch failure / timeout) the broker can log.
     fn call(&self, body: &str, timeout: Duration) -> Result<String, String>;

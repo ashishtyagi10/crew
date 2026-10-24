@@ -8,11 +8,17 @@
 //! handed an empty task. So that prompt goes out once more, with no tools on
 //! it and one instruction at the end: answer now.
 //!
+//! The batch the budget stopped is RUN first, and the last word reads it.
+//! The swarm refused it and the relay ran it unread; the relay was right that
+//! it should run (22 of 22 of its budget stops asked for one, live
+//! 2026-10-23: the batch is the edits and the check that prove the answer),
+//! and the swarm right that something should read it.
+//!
 //! Both loops send it as ONE plain prompt: the task, every exchange so far,
-//! the call that was refused, the instruction. The native loop's turns are
-//! written out as text rather than resent as turns, because a request that
-//! carries tool_use and tool_result blocks with no tools beside it is one
-//! Anthropic refuses, and a refused last word leaves the worker where it was.
+//! the instruction. The native loop's turns are written out as text rather
+//! than resent as turns, because a request that carries tool_use and
+//! tool_result blocks with no tools beside it is one Anthropic refuses, and a
+//! refused last word leaves the worker where it was.
 
 #[cfg(test)]
 #[path = "lastwordrun_tests.rs"]
@@ -34,35 +40,12 @@ use crate::tools::exchanges::Exchange;
 pub(super) const INSTRUCTION: &str = "Your tool budget is spent. Answer the task now from \
      what you have gathered; say plainly what you could not check.";
 
-/// The result a refused call shows in the last word's prompt, so the model
-/// sees what it was about to do and that it did not happen, rather than a log
-/// that stops just short of its own last message.
-const NOT_RUN: &str = "not run \u{2014} tool budget spent";
-
 /// The whole request text. `body` is the task WITHOUT a tools section: a
 /// syntax the model can no longer use is an invitation to use it anyway.
 /// `list` is the task's checklist section, above the exchanges as in every
 /// follow-up, so the answer can say which steps it did not reach.
-pub(super) fn prompt(body: &str, list: &str, done: &str, refused: &str) -> String {
-    let log: Vec<&str> = [done, refused]
-        .into_iter()
-        .filter(|s| !s.is_empty())
-        .collect();
-    format!(
-        "{body}\n\n{list}TOOL EXCHANGES SO FAR:\n{}\n\n{INSTRUCTION}",
-        log.join("\n\n")
-    )
-}
-
-/// The calls the budget refused, `(label, args)` each, as exchanges whose
-/// result says they did not run; the first carries what the model wrote.
-pub(super) fn refused(said: &str, calls: impl IntoIterator<Item = (String, String)>) -> String {
-    written(
-        said,
-        calls
-            .into_iter()
-            .map(|(label, args)| (label, args, NOT_RUN.to_string())),
-    )
+pub(super) fn prompt(body: &str, list: &str, done: &str) -> String {
+    format!("{body}\n\n{list}TOOL EXCHANGES SO FAR:\n{done}\n\n{INSTRUCTION}")
 }
 
 /// The native loop's turns as the text loop writes its exchanges, every

@@ -1,11 +1,11 @@
 use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use super::text::HEAD;
 use super::*;
 
 /// The briefs an advisor was given, in order.
-pub(super) type Briefs = Rc<RefCell<Vec<String>>>;
+pub(super) type Briefs = Arc<Mutex<Vec<String>>>;
 
 /// What one fake advice call cost.
 const SPENT: Spent = Spent {
@@ -22,13 +22,13 @@ type Reply = Result<&'static str, &'static str>;
 
 thread_local! {
     /// The advisor this thread's test installed.
-    static INSTALLED: RefCell<Option<Rc<Ask>>> = const { RefCell::new(None) };
+    static INSTALLED: RefCell<Option<Arc<Ask>>> = const { RefCell::new(None) };
 }
 
 /// An advisor that answers `reply` and keeps every brief it was given.
 fn fake(reply: Reply, briefs: Briefs) -> Box<Ask> {
     Box::new(move |brief: &str| {
-        briefs.borrow_mut().push(brief.to_string());
+        briefs.lock().unwrap().push(brief.to_string());
         reply
             .map(|r| (r.to_string(), SPENT))
             .map_err(str::to_string)
@@ -52,13 +52,13 @@ impl Drop for Installed {
 
 /// `ask` as this thread's advisor.
 pub(super) fn install(ask: Box<Ask>) -> Installed {
-    INSTALLED.with(|i| *i.borrow_mut() = Some(Rc::from(ask)));
+    INSTALLED.with(|i| *i.borrow_mut() = Some(Arc::from(ask)));
     Installed
 }
 
 pub(super) fn advising(reply: Reply) -> (Briefs, Installed) {
     let briefs = Briefs::default();
-    let on = install(fake(reply, Rc::clone(&briefs)));
+    let on = install(fake(reply, Arc::clone(&briefs)));
     (briefs, on)
 }
 
@@ -82,7 +82,7 @@ impl ToolRunner for Runs {
 
 fn advisor(reply: Reply) -> (Advisor, Briefs) {
     let briefs = Briefs::default();
-    let ask = fake(reply, Rc::clone(&briefs));
+    let ask = fake(reply, Arc::clone(&briefs));
     let advisor = Advisor {
         ask: Some(Some(ask)),
         ..Default::default()
@@ -127,7 +127,7 @@ fn a_failed_run_is_read_once_and_its_advice_heads_a_section() {
              rerun cargo build\n- third\n\n"
         )
     );
-    let briefs = briefs.borrow();
+    let briefs = briefs.lock().unwrap();
     assert_eq!(briefs.len(), 1);
     let b = &briefs[0];
     assert!(b.contains("THE REQUEST:\nmake it build"), "{b}");
@@ -151,7 +151,7 @@ fn a_round_with_no_failure_asks_nothing_and_adds_nothing() {
     let (mut a, briefs) = advisor(Ok("unused"));
     let added = round(&mut a, run("cargo test"), &mut RunStats::default());
     assert_eq!(added, "");
-    assert!(briefs.borrow().is_empty());
+    assert!(briefs.lock().unwrap().is_empty());
 }
 
 #[test]
@@ -162,8 +162,8 @@ fn a_turn_asks_at_most_twice_and_keeps_the_newest_advice() {
         let added = round(&mut a, run("cargo build"), &mut stats);
         assert_eq!(added, format!("{HEAD}\n- rerun with the fix\n\n"));
     }
-    assert_eq!(briefs.borrow().len(), PER_TURN as usize);
-    let second = &briefs.borrow()[1];
+    assert_eq!(briefs.lock().unwrap().len(), PER_TURN as usize);
+    let second = &briefs.lock().unwrap()[1];
     assert!(second.contains("2. sys:run"), "the calls so far: {second}");
 }
 
@@ -172,7 +172,7 @@ fn an_advisor_that_errors_adds_nothing() {
     let (mut a, briefs) = advisor(Err("timed out after 30s"));
     let mut stats = RunStats::default();
     assert_eq!(round(&mut a, run("cargo build"), &mut stats), "");
-    assert_eq!(briefs.borrow().len(), 1);
+    assert_eq!(briefs.lock().unwrap().len(), 1);
     assert_eq!(stats, RunStats::default(), "nothing billed");
     let (mut a, _) = advisor(Ok("\n```\n"));
     assert_eq!(
@@ -189,6 +189,6 @@ fn a_stopped_turn_is_not_read() {
     let (mut a, briefs) = advisor(Ok("unused"));
     let mut stats = RunStats::default();
     assert_eq!(round_of(&mut a, run("cargo build"), &mut stats, true), "");
-    assert!(briefs.borrow().is_empty());
+    assert!(briefs.lock().unwrap().is_empty());
     assert_eq!(stats, RunStats::default(), "nothing billed");
 }

@@ -163,8 +163,11 @@ pub fn finished(answer: String, list: Option<&Checklist>) -> String {
     let Some(line) = list.and_then(Checklist::unfinished) else {
         return answer;
     };
+    // Once: a relay answer the harness finished is finished again where the
+    // thread ends (crew-plugin `toolround::finished`).
     match answer.trim_end() {
         "" => line,
+        kept if kept.ends_with(line.as_str()) => answer,
         kept => format!("{kept}\n\n{line}"),
     }
 }

@@ -1,10 +1,10 @@
 # Goal — one agent harness for crew: the relay and the swarm run the same turn loop
 
-**Status: PHASE 1 SHIPPED (v0.28.99).** Phases 2–4 open.
+**Status: PHASES 1–2 SHIPPED (v0.28.99, v0.29.0).** Phases 3–4 open.
 
 **Set:** 2026-10-24 by the user. "Do you know how to build harness ?" → "Yes I am talking about
 Agent Harness." → offered a standalone harness, one harness for crew, or a teaching one: "Option 2,
-one harness for crew" → "yes, write the doc and start phase 1".
+one harness for crew" → "yes, write the doc and start phase 1" → "yes, start phase 2".
 
 ## Where it stands today
 
@@ -18,28 +18,30 @@ model called again with the result) in TWO places, written twice:
   text `@tool` loop (`harness/text.rs`). Before phase 1 both lived in `apiagent/`, the text loop
   inline in `ApiAgent::attempt`.
 - **The relay** (`@agent`, the `reply` / `loop` / `goal` shapes, keyless starters): the broker's
-  `Broker::run` (`crates/crew-plugin/src/broker/engine.rs:84`) routes hops between agents with
-  `@next`/`@done`, and inside each hop `run_tools` (`broker/toolcall.rs:113`) runs a text `@tool`
-  loop of its own. Its API agents never go native: `ApiAdapter` builds every request with
-  `..Default::default()`, so `tools` and `turns` are always empty (`broker/apiadapter.rs`, both
-  call paths).
+  `Broker::run` (`crates/crew-plugin/src/broker/engine.rs`) routes hops between agents with
+  `@next`/`@done`. Since phase 2 an API agent's hop with tools on runs whole on the harness
+  (`broker/apiturn.rs`), native tool-use included; any other agent's hop is a dial, and
+  `run_tools` (`broker/toolcall.rs`) runs the text `@tool` loop over its reply. Before phase 2
+  every hop went through `run_tools`, and API agents never went native: `ApiAdapter` built every
+  request with `..Default::default()`, so `tools` and `turns` were always empty.
 
 Already shared, from the 2026-08-31 goal (`2026-08-31-agents-that-reach-the-world.md`, Pillar 1):
 the `Tools` trait and its parser, `Seen`, `Exchanges`, the todo checklist, `MAX_TOOL_ROUNDS`, and
 the approval gate, which sits inside `SessionTools::call` (`broker/session.rs:497`), so a relay
 call and a swarm call are asked about the same way.
 
-Built twice, and drifted:
+Built twice, and drifted (the table as it stood before phase 2; since then the relay's column is
+the CLI agents' alone):
 
 | piece | swarm (crew-hive) | relay (broker) |
 |---|---|---|
 | the loop | `harness/text.rs`, `harness/native.rs` | `toolcall.rs:113` `run_tools` |
 | one reply's batch | `pending.rs` (`spawn_blocking`), at most 8 (`native.rs:32`) | `toolbatch.rs` (`thread::scope`), at most 4 (`toolbatch.rs:21`) |
 | the follow-up prompt | `toolloop.rs` | `toolfull.rs`, `toolround.rs` |
-| a long result | `toolloop.rs` `RESULT_CAP`, keeps the head | `toolclip.rs`, keeps the last line |
+| a long result | `toolloop.rs` `RESULT_CAP`, kept the head (both ends since phase 2) | `toolclip.rs`, keeps the last line |
 | context overflow | `overflow.rs` (cut, retry once) | `toolfull.rs` (follow-ups only) |
-| budget spent | refuses the batch, then a last-word call (`lastword.rs`) | runs the batch, nothing reads it (`toolcall.rs`, `budget_answer`) |
-| what a round is | text: one per CALL (`textround.rs:22`); native: one per turn | one per ROUND TRIP |
+| budget spent | refused the batch, then a last-word call (`lastword.rs`); since phase 2 runs it, then the last word | runs the batch, nothing reads it (`toolcall.rs`, `budget_answer`) |
+| what a round is | text: one per CALL (one per reply since phase 2); native: one per turn | one per ROUND TRIP |
 | steering | `steered.rs` | `steer.rs` |
 | stop | `TurnContext::cancel` | `cancelscope` — the same `Arc<AtomicBool>` type |
 
@@ -80,7 +82,9 @@ The loop's three seams, which are exactly where the two engines differ:
 2. **The relay's API agents run on it.** A Provider-backed hop calls `harness::run` (blocking on
    it as `ApiAdapter` already blocks on its provider), with an `Events` that feeds the hop's
    `HopStream` and `RunStats`. The relay gets native tool-use, schemas, bad-argument refusals and
-   the last word — the "NOT DONE" of the 2026-08-31 goal. Hop routing is untouched.
+   the last word — the "NOT DONE" of the 2026-08-31 goal. Hop routing is untouched. **Done
+   (v0.29.0)** — and the advisor came with it, through a hook (`harness::Advice`), since it was
+   built for exactly these agents; phase 4 moves its body down.
 3. **The CLI agents run on it.** `claude`, `codex`, `opencode` and manifest agents are wrapped as a
    text-only model (a `Provider` that says it has no tools), so the harness's text loop runs any
    `@tool` line they print, as `run_tools` does today; their own internal tools stay theirs. Then
@@ -90,6 +94,9 @@ The loop's three seams, which are exactly where the two engines differ:
    continuation, `never_ran`.
 
 ## Decisions (where the two disagree)
+
+All four in the harness since phase 2, so the swarm and the relay's API agents share them; the
+CLI agents' `run_tools` keeps its own until phase 3 removes it.
 
 - **A round is a round trip**, as the relay counts it: counted per call, a rename's six edits
   spent a solo turn's budget before its last file (live, 2026-10-20). Changes the swarm's text
@@ -135,3 +142,28 @@ The loop's three seams, which are exactly where the two engines differ:
 - Finding for phases 2–3: because of that delegation, the person's everyday plain message runs on
   the relay's `claude` CLI adapter, whose real tools are Claude Code's own. Phase 3 changes only
   the `@tool` lines it prints; phase 2 (API agents) matters for specialists and keyless setups.
+- 2026-10-24 — phase 2 started on branch `harness-relay` ("yes, start phase 2").
+- 2026-10-24 — **phase 2 shipped (v0.29.0).** `Adapter::engine` exposes an API agent's provider,
+  model, persona and runtime; `Broker::run` hands such a hop, with tools on, to `api_turn`
+  (`broker/apiturn.rs`), which runs `harness::run` on the adapter's runtime. The broker's parts go
+  in as seams: `Pane` (the harness's events into the hop's `HopStream`: text, reasoning, the tool
+  lane `toolhive` used, a checklist as the plan once accepted), `Bounded` (the agent's provider
+  with the broker's timeout, the `cutoff` continuation — now skipped for a reply that made tool
+  calls — and its usage into `RunStats`), `Advised` (the advisor, read each round through the new
+  `harness::Advice`), `Steers` with the relay's closing line (`Steers::with_tail`) and
+  `ToolBudget::turn(tool_rounds)`. `TurnSpec::hinted` keeps the `@tool` hint where the frame puts
+  it, in TASK above HOW TO REPLY. Ended maps to the hop as `run_tools` ended: an error card when
+  nothing ran, `failed_answer` / `stopped_answer` after a tool. The four decisions land in the
+  harness, so the swarm changes too: one round per reply on the text loop, at most 8 calls a
+  reply, the batch past the budget runs before the last word, results cut from the middle; the
+  swarm's "pool ran dry" note counts rounds and rides the empty `ToolBudget` reading alone.
+  `todo::finished` adds its line once, since a relay answer is finished twice. CLI agents, which
+  have no engine, still dial and go through `run_tools`. Gate: crew-hive 593, crew-plugin 1,584 +
+  integration. LIVE (broker over stdio, `CREW_PROVIDER=dashscope`, `@system-administrator`, a
+  stored specialist): native `sys:run {"cmd":"uname -r"}` answered from `27.2.0`, 2 exchanges with
+  real usage; a two-round turn ran `sys:glob` then `sys:read_file` with schema arguments
+  (`line`, `lines`) and quoted the line. The text loop live: `CREW_PROVIDER=claude-code` puts
+  specialists on `claude -p`, which has no tool-use, but Claude answered through the person's own
+  Node REPL MCP server instead of an `@tool` line — `ClaudeCliProvider` passes `--tools ""`,
+  which leaves MCP servers on, so those calls bypass crew's approval gate. The first prompt was
+  byte for byte the old relay's, so this predates phase 2; reported, not fixed here.

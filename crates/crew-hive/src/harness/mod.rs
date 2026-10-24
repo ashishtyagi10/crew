@@ -6,15 +6,17 @@
 //! `ApiAgent` and the relay's `run_tools` in the broker — and the two had
 //! drifted: one went native while the other stayed on `@tool` lines, they
 //! counted a round differently, and each had answers the other lacked
-//! (`docs/superpowers/goals/2026-10-24-one-harness.md`). This is the one the
-//! swarm runs; the relay moves onto it next.
+//! (`docs/superpowers/goals/2026-10-24-one-harness.md`). The swarm runs every
+//! task on it, and the relay every hop of an API agent with tools.
 //!
 //! What an engine hands in is a [`TurnContext`] — who is acting, where its
 //! events go, the rounds it may draw, the stop it honours — and a
 //! [`TurnSpec`], what the turn is for. What it gets back is how the turn
 //! [`Ended`]. What is one engine's own stays with that engine: the swarm's
 //! dependency results and planner-written system prompt, its checklist per
-//! task, and the scheduler's `Attempt` are `ApiAgent`'s, not the harness's.
+//! task, and the scheduler's `Attempt` are `ApiAgent`'s, not the harness's;
+//! the relay's frame, hop routing and advisor are the broker's, handed in as
+//! a prompt and an [`Advice`].
 
 mod chunks;
 mod cost;
@@ -31,6 +33,10 @@ mod text;
 mod textround;
 mod toolloop;
 
+#[cfg(test)]
+#[path = "advice_tests.rs"]
+mod advice_tests;
+
 pub(crate) use cost::billed;
 pub(crate) use failure::reason;
 
@@ -43,7 +49,7 @@ use crate::graph::ModelTier;
 use crate::provider::Provider;
 use crate::steers::Steers;
 use crate::tools::budget::ToolBudget;
-use crate::tools::{ToolCatalog, Tools};
+use crate::tools::{ToolCall, ToolCatalog, Tools};
 
 /// Where a turn's events go: the swarm's bus, or whatever an engine that has
 /// no bus feeds them to. Best effort, like [`EventBus::publish`]: a turn
@@ -56,6 +62,18 @@ impl Events for EventBus {
     fn publish(&self, ev: HiveEvent) {
         EventBus::publish(self, ev);
     }
+}
+
+/// What an engine makes of a round of tools beyond their results: the
+/// relay's advisor, a second model reading a failed check (crew-plugin
+/// `toolround::advise`). What it says joins the turn after the round's
+/// results, and stands until it says something else.
+pub trait Advice: Send + Sync {
+    /// One round's `calls` and how each came back, `(ok, text)`, in order:
+    /// the section the turn carries from here on, or empty for none. Called
+    /// on the turn's own thread, between rounds and never once it is
+    /// stopped; it may block.
+    fn read(&self, calls: &[ToolCall], ran: &[(bool, String)]) -> String;
 }
 
 /// Who a turn is, and what it answers to while it runs.
@@ -71,6 +89,8 @@ pub struct TurnContext {
     /// The stop. A turn looks before each model call and each tool call, and
     /// races a model call in flight against it (`agent::stop`).
     pub cancel: Arc<AtomicBool>,
+    /// What the engine reads each round for, when it reads one.
+    pub advice: Option<Arc<dyn Advice>>,
 }
 
 impl TurnContext {
@@ -103,6 +123,15 @@ impl TurnContext {
     pub async fn unless_stopped<F: Future>(&self, work: F) -> Option<F::Output> {
         crate::agent::stop::unless(&self.cancel, work).await
     }
+
+    /// What the engine's [`Advice`] makes of a round, or `kept` (what it
+    /// said last) when it has none or the turn was stopped.
+    pub(crate) fn advised(&self, calls: &[ToolCall], ran: &[(bool, String)], kept: &str) -> String {
+        match &self.advice {
+            Some(a) if !self.stopped() => a.read(calls, ran),
+            _ => kept.to_string(),
+        }
+    }
 }
 
 /// What a turn is for.
@@ -112,8 +141,15 @@ pub struct TurnSpec {
     /// (`Tools::specs_for`, `hint_for`, `note_for`).
     pub ask: String,
     /// The first prompt whole: the ask, and whatever the engine adds to it
-    /// (the swarm: what the task's dependencies found).
+    /// (the swarm: what the task's dependencies found). No `@tool` hint: on
+    /// the native loop the tools are on the wire, and naming the text
+    /// convention beside them invites a model to use both.
     pub prompt: String,
+    /// The same prompt with the `@tool` hint already in place, for an engine
+    /// whose prompt has a place for it (the relay's frame: inside its TASK,
+    /// above HOW TO REPLY). Only the text loop reads it; `None` puts the hint
+    /// at the end of `prompt`.
+    pub hinted: Option<String>,
     pub system: Option<String>,
     /// The model id every request names.
     pub model: String,
