@@ -16,7 +16,7 @@
 //! needed is a round spent reading it again.
 
 use super::stubs::{shrink, size, stubbed};
-use super::TurnContext;
+use super::{Shed, TurnContext};
 use crate::bus::HiveEvent;
 use crate::provider::{ProviderError, ToolInvocation, Turn};
 use crate::tools::exchanges::{Exchanges, CONTEXT_FULL};
@@ -33,13 +33,36 @@ pub(super) fn say(ctx: &TurnContext) {
 }
 
 /// The text loop's one retry: `err` is the context, and the log had older
-/// rounds to cut (said in the pane when so). `false` sends the error on.
-pub(super) fn tightened(ctx: &TurnContext, err: &ProviderError, log: &mut Exchanges) -> bool {
-    let again = err.is_context_overflow() && log.tighten();
+/// rounds to cut or the prompts something to `shed` (said in the pane when
+/// so). Both are cut, whatever the first gave: they stay cut for the rest of
+/// the turn. `false` sends the error on.
+pub(super) fn tightened(
+    ctx: &TurnContext,
+    err: &ProviderError,
+    log: &mut Exchanges,
+    prompts: [&mut String; 2],
+    shed: Option<Shed>,
+) -> bool {
+    if !err.is_context_overflow() {
+        return false;
+    }
+    let shed = prompts.map(|p| shed_from(p, shed)).contains(&true);
+    let again = log.tighten() | shed;
     if again {
         say(ctx);
     }
     again
+}
+
+/// `prompt` with what `shed` cuts from it: whether it lost anything.
+pub(super) fn shed_from(prompt: &mut String, shed: Option<Shed>) -> bool {
+    match shed.and_then(|f| f(prompt)) {
+        Some(rest) => {
+            *prompt = rest;
+            true
+        }
+        None => false,
+    }
 }
 
 /// A native task's one cut: whether it has been made, and what it must come
@@ -81,19 +104,24 @@ impl<'a> Cut<'a> {
     }
 
     /// It was refused with `err`. When that is the context, the first time,
-    /// and there is something to cut: cut `turns`, forget every read (see
-    /// [`Cut::after_round`]), say so, and `true` to send it again.
+    /// and there is something to cut: cut `turns` and what `prompt` can
+    /// `shed`, forget every read (see [`Cut::after_round`]), say so, and
+    /// `true` to send it again.
     pub(super) fn refused(
         &mut self,
         ctx: &TurnContext,
         err: &ProviderError,
         turns: &mut Vec<Turn>,
         seen: &mut Seen,
+        (prompt, shed): (&mut String, Option<Shed>),
     ) -> bool {
-        if self.made
-            || !err.is_context_overflow()
-            || !shrink(turns, self.fixed, self.fit, self.label)
-        {
+        if self.made || !err.is_context_overflow() {
+            return false;
+        }
+        let before = prompt.len();
+        let shed = shed_from(prompt, shed);
+        self.fixed -= before - prompt.len();
+        if !(shrink(turns, self.fixed, self.fit, self.label) | shed) {
             return false;
         }
         self.made = true;

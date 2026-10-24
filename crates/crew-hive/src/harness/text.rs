@@ -24,18 +24,21 @@ pub(super) async fn run(
     let agent_id = ctx.agent.clone();
     let TurnSpec {
         ask,
-        prompt: body,
+        prompt: mut body,
         hinted,
+        shed,
+        ending,
         system,
         model: model_id,
         tier,
         max_tokens,
     } = spec;
+    let ending = ending.unwrap_or_default();
     // The tools section is part of the BASE prompt, not just the first
     // request: every follow-up re-states it, or an agent that used one tool
     // would find the syntax for the second one gone. Where the engine put it,
     // when it placed it itself.
-    let base = hinted.unwrap_or_else(|| {
+    let mut base = hinted.unwrap_or_else(|| {
         tools::augment(
             &body,
             &tools.as_ref().map(|t| t.hint_for(&ask)).unwrap_or_default(),
@@ -82,11 +85,20 @@ pub(super) async fn run(
             None => return Ended::Stopped,
             Some(Ok(c)) => c,
             // Too long for the model: once, the log cut to fit.
-            Some(Err(err)) if !cut && overflow::tightened(&ctx, &err, &mut exchanges) => {
+            Some(Err(err))
+                if !cut
+                    && overflow::tightened(
+                        &ctx,
+                        &err,
+                        &mut exchanges,
+                        [&mut base, &mut body],
+                        shed,
+                    ) =>
+            {
                 cut = true;
                 let list = tools::todo::section(tools.as_ref().and_then(|t| t.checklist()));
                 let heard = steered::heard(steers.as_ref()) + &advice;
-                prompt = toolloop::follow_up(&base, &list, &exchanges, &heard, left);
+                prompt = toolloop::follow_up(&base, &list, &exchanges, &heard, left, &ending);
                 continue;
             }
             Some(Err(err)) => return failure::failed(&ctx, &err),
@@ -127,6 +139,7 @@ pub(super) async fn run(
                 &body,
                 &tools::todo::section(runner.checklist()),
                 &exchanges.render(),
+                &ending,
             );
             let answer = lastword::ask(
                 &ctx, &provider, &model_id, tier, system, last, max_tokens, &sink,
@@ -146,6 +159,6 @@ pub(super) async fn run(
         advice = ctx.advised(&calls[..ran.len()], &ran, &advice);
         let list = tools::todo::section(runner.checklist());
         let heard = steered::heard(steers.as_ref()) + &advice;
-        prompt = toolloop::follow_up(&base, &list, &exchanges, &heard, left);
+        prompt = toolloop::follow_up(&base, &list, &exchanges, &heard, left, &ending);
     }
 }

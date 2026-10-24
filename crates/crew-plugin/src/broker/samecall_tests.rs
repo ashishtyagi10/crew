@@ -1,40 +1,11 @@
 //! A read the turn already made, with nothing written since, is not run again
 //! (`crew_hive::tools::seen`). Each test counts REAL executions on a runner
 //! that classifies tools the way the session does (`tier_of`).
-use std::sync::Mutex;
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
 
 use super::*;
 use crate::broker::tier::{tier_of, Tier};
-use crate::Registry;
-
-/// Replies in order, then `@done`; keeps every prompt it was dialed with.
-struct Scripted(Mutex<Vec<String>>, Mutex<Vec<String>>);
-
-impl Scripted {
-    fn new(replies: &[&str]) -> Self {
-        let v = replies.iter().rev().map(|s| s.to_string()).collect();
-        Self(Mutex::new(v), Mutex::new(Vec::new()))
-    }
-}
-
-impl Adapter for Scripted {
-    fn name(&self) -> &str {
-        "planner"
-    }
-    fn probe(&self) -> bool {
-        true
-    }
-    fn call(&self, body: &str, _t: Duration) -> Result<String, String> {
-        self.1.lock().unwrap().push(body.to_string());
-        Ok(self
-            .0
-            .lock()
-            .unwrap()
-            .pop()
-            .unwrap_or_else(|| "@done".into()))
-    }
-}
+use crate::broker::turnkit::{turn as relay, Script};
 
 /// Counts every call it actually runs. `read_file` answers `result`.
 struct Counting {
@@ -62,34 +33,24 @@ impl ToolRunner for Counting {
 }
 
 /// Run a turn whose first reply is `first` and whose later replies are
-/// `then`; hand back the calls that ran, the prompts dialed and the tool
-/// lane's events, read as cards (`toolhive::lane`).
+/// `then`, then `@done`; hand back the calls that ran, the prompts dialed and
+/// the tool lane's events, read as cards.
 fn turn(
     result: Result<String, String>,
     first: &str,
     then: &[&str],
 ) -> (Vec<String>, Vec<String>, Vec<String>) {
-    let runner = std::sync::Arc::new(Counting {
+    let runner = Arc::new(Counting {
         ran: Mutex::new(Vec::new()),
         result,
     });
-    let b =
-        Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5)).with_tools(runner.clone());
-    let agent = Scripted::new(then);
-    let (tools, stream) = crate::broker::toolhive::lane::capture();
-    b.run_tools(
-        &agent,
-        "base prompt",
-        first.to_string(),
-        &mut RunStats::default(),
-        &mut Usage::default(),
-        &Envelope::new("user", "planner", "t1", "task"),
-        &stream,
-        &mut |_| {},
-    );
+    let tools: Arc<dyn ToolRunner> = runner.clone();
+    let mut replies = vec![first];
+    replies.extend(then);
+    replies.push("@done");
+    let t = relay(Script::new(&replies), |b| b.with_tools(tools), "task");
     let ran = runner.ran.lock().unwrap().clone();
-    let dialed = agent.1.lock().unwrap().clone();
-    (ran, dialed, crate::broker::toolhive::lane::cards(&tools))
+    (ran, t.prompts.clone(), t.cards())
 }
 
 const READ: &str = "reading\n@tool sys:read_file {\"path\":\"a.rs\"}";

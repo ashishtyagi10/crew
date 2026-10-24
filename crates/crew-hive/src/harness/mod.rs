@@ -7,7 +7,7 @@
 //! drifted: one went native while the other stayed on `@tool` lines, they
 //! counted a round differently, and each had answers the other lacked
 //! (`docs/superpowers/goals/2026-10-24-one-harness.md`). The swarm runs every
-//! task on it, and the relay every hop of an API agent with tools.
+//! task on it, and the relay every hop with tools, CLI agents' included.
 //!
 //! What an engine hands in is a [`TurnContext`] — who is acting, where its
 //! events go, the rounds it may draw, the stop it honours — and a
@@ -150,6 +150,16 @@ pub struct TurnSpec {
     /// above HOW TO REPLY). Only the text loop reads it; `None` puts the hint
     /// at the end of `prompt`.
     pub hinted: Option<String>,
+    /// What the prompt can lose when the model refuses its length: the
+    /// prompt without it, or `None` when it has nothing to lose (the relay's
+    /// recalled turns, crew-plugin `recall::cut`). Applied once, with the
+    /// turn's own cut of its tool results (`overflow`).
+    pub shed: Option<Shed>,
+    /// How the engine's prompt says to end an answer, pointed at in every
+    /// follow-up and in the last word so neither can disagree with it (the
+    /// relay: `end it as HOW TO REPLY says`, its `@done` / `@next` line), or
+    /// `None` for an answer that ends however it ends.
+    pub ending: Option<String>,
     pub system: Option<String>,
     /// The model id every request names.
     pub model: String,
@@ -158,6 +168,9 @@ pub struct TurnSpec {
     pub tier: ModelTier,
     pub max_tokens: u32,
 }
+
+/// A prompt with what it can live without cut out, or `None` (`TurnSpec::shed`).
+pub type Shed = fn(&str) -> Option<String>;
 
 /// How a turn ended. Each has already been published by the time it is
 /// returned: an answer as the agent's `OutputChunk`, a failure as `Failed`.

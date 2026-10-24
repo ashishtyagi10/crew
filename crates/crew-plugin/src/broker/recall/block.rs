@@ -104,7 +104,7 @@ pub(crate) fn block(
 /// `prompt` with the recalled block taken out, or `None` when it has none.
 ///
 /// The relay drops it first when a follow-up outgrows the model's context
-/// (`toolfull`): of what rides in front of a task it is the one part that is
+/// (`TurnSpec::shed`, `hopturn`): of what rides in front of a task it is the one part that is
 /// a guess, turns a word matched, where the project card and AGENTS.md are
 /// the project's own word and stay. Read back by the shape [`block`] writes,
 /// the head on a line of its own and one `- ` line per entry, so a task that

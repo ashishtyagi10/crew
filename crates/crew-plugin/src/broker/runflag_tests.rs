@@ -1,53 +1,24 @@
 //! A command that ran and failed is a FAILED call on both engines, through
 //! the surface a live session builds — a real `/bin/sh`, not a fake result.
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
-use crate::broker::adapter::Usage;
-use crate::broker::hop::RunStats;
 use crate::broker::session::sessiontest::sys_surface;
-use crate::broker::{Adapter, Broker, Envelope};
-use crate::Registry;
+use crate::broker::turnkit::{turn, Script};
 
 const FAILING: &str = "echo x; exit 3";
 
-/// Answers once the tool result is back, and keeps what it was shown.
-struct Agent(Mutex<Vec<String>>);
-
-impl Adapter for Agent {
-    fn name(&self) -> &str {
-        "planner"
-    }
-    fn probe(&self) -> bool {
-        true
-    }
-    fn call(&self, body: &str, _t: Duration) -> Result<String, String> {
-        self.0.lock().unwrap().push(body.to_string());
-        Ok("it exited 3".into())
-    }
-}
-
 #[test]
 fn the_relay_shows_a_non_zero_exit_as_a_failed_card() {
-    let broker =
-        Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5)).with_tools(sys_surface());
-    let agent = Agent(Mutex::new(Vec::new()));
-    let (tools, stream) = crate::broker::toolhive::lane::capture();
-    broker.run_tools(
-        &agent,
+    let call = format!("@tool sys:run {{\"cmd\": \"{FAILING}\"}}");
+    let t = turn(
+        Script::new(&[&call, "it exited 3"]),
+        |b| b.with_tools(sys_surface()),
         "task",
-        format!("@tool sys:run {{\"cmd\": \"{FAILING}\"}}"),
-        &mut RunStats::default(),
-        &mut Usage::default(),
-        &Envelope::new("user", "planner", "t1", "task"),
-        &stream,
-        &mut |_| {},
     );
-    let cards = crate::broker::toolhive::lane::cards(&tools);
-    let card = cards.get(1).cloned().expect("a result");
+    let card = t.cards().get(1).cloned().expect("a result");
     assert!(card.starts_with("[tool] sys:run \u{2717}"), "{card}");
     // Only the flag changed: the agent still reads what the command said.
-    let seen = agent.0.lock().unwrap().concat();
+    let seen = t.prompts.concat();
     assert!(seen.contains("RESULT:\nexit 3\nx\n"), "{seen}");
 }
 

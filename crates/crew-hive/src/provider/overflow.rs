@@ -6,7 +6,7 @@
 //! 30720]`. Of all the errors a call can end on, that one is crew's to fix:
 //! the same request with less in it goes through. So the loops ask this
 //! before they give up, and cut the request down once (`harness::overflow`,
-//! the relay's `toolfull`).
+//! which every relay turn runs on too).
 //!
 //! The answer comes from the table the hint reads (`hint`), not a list of its
 //! own, so what is retried and what a person is told "no longer fits the

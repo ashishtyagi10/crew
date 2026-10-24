@@ -1,4 +1,4 @@
-//! The advisor meeting an API agent's turn on the harness (`apiturn`): a
+//! The advisor meeting an API agent's turn on the harness (`hopturn`): a
 //! failed build is read before the next call, and what it said rides the
 //! rest of the turn — in each follow-up on the text loop, as a turn of its
 //! own on the native one.

@@ -27,7 +27,6 @@
 use std::sync::Arc;
 
 use crate::broker::intent::classify::{complete_once, ONESHOT_TIMEOUT};
-use crate::broker::toolbatch::Ran;
 use crate::broker::toolcall::ToolRunner;
 use crate::broker::{Envelope, RunStats};
 use crew_hive::tools::ToolCall;
@@ -60,7 +59,8 @@ pub(crate) struct Advisor {
 }
 
 impl Advisor {
-    /// Note one round's `calls` and what each came back as (`ran`), and when
+    /// Note one round's `calls` and what each came back as (`ran`, `(ok,
+    /// text)`), and when
     /// one was a failed `sys:run` and the turn has a read left, ask what the
     /// first of them means against the request in `env`. Its cost joins
     /// `stats`. Returns the section the follow-up carries: the newest advice,
@@ -74,26 +74,26 @@ impl Advisor {
         runner: &dyn ToolRunner,
         env: &Envelope,
         calls: &[ToolCall],
-        ran: &[Ran],
+        ran: &[(bool, String)],
         stats: &mut RunStats,
         stopped: bool,
     ) -> String {
-        for (call, r) in calls.iter().zip(ran) {
+        for (call, (ok, _)) in calls.iter().zip(ran) {
             let n = self.calls.len() + 1;
-            self.calls.push(text::call_line(n, call, r.ok));
+            self.calls.push(text::call_line(n, call, *ok));
         }
-        let failed = calls.iter().zip(ran).find(|(c, r)| {
+        let failed = calls.iter().zip(ran).find(|(c, (_, text))| {
             (c.server.as_str(), c.tool.as_str()) == ("sys", "run")
-                && runner.failed(&c.server, &c.tool, &r.text)
+                && runner.failed(&c.server, &c.tool, text)
         });
-        let Some((call, r)) = failed.filter(|_| self.asked < PER_TURN && !stopped) else {
+        let Some((call, (_, said))) = failed.filter(|_| self.asked < PER_TURN && !stopped) else {
             return self.advice.clone();
         };
         let Some(ask) = self.ask.get_or_insert_with(live).as_deref() else {
             return self.advice.clone();
         };
         self.asked += 1;
-        let Ok((reply, spent)) = ask(&text::brief(&env.body, &self.calls, call, &r.text)) else {
+        let Ok((reply, spent)) = ask(&text::brief(&env.body, &self.calls, call, said)) else {
             return self.advice.clone();
         };
         stats.real_tokens += spent.tokens() as usize;

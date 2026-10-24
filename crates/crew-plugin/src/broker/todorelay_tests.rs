@@ -6,6 +6,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use super::*;
+use crate::broker::adapter::Adapter;
+use crate::broker::hop::HopKind;
 use crate::Registry;
 use crew_hive::tools::todo::Checklist;
 
@@ -131,7 +133,7 @@ fn the_list_heads_each_follow_up_and_the_answer_names_what_was_left() {
         !dialed[0].contains("YOUR CHECKLIST:"),
         "nothing written yet"
     );
-    let heads = |list: &str| format!("YOUR CHECKLIST:\n{list}\n\nTOOL EXCHANGES THIS TURN:\n");
+    let heads = |list: &str| format!("YOUR CHECKLIST:\n{list}\n\nTOOL EXCHANGES SO FAR:\n");
     let first =
         "\u{25b6} add the command\n\u{2610} add a test\n\u{2610} write the docs\n0 of 3 done";
     let then =
@@ -167,7 +169,7 @@ fn the_list_is_whole_above_exchanges_that_were_shortened() {
     let last = &dialed[4];
     let (list_at, log_at) = (
         last.find("YOUR CHECKLIST:"),
-        last.find("TOOL EXCHANGES THIS TURN:"),
+        last.find("TOOL EXCHANGES SO FAR:"),
     );
     assert!(list_at.is_some() && list_at < log_at, "{last}");
     let log = &last[log_at.unwrap()..];
@@ -182,7 +184,7 @@ fn the_list_is_whole_above_exchanges_that_were_shortened() {
         );
     }
     assert!(
-        last.contains("0 of 6 done\n\nTOOL EXCHANGES THIS TURN:\n"),
+        last.contains("0 of 6 done\n\nTOOL EXCHANGES SO FAR:\n"),
         "{last}"
     );
 }
@@ -202,9 +204,9 @@ fn a_turn_that_keeps_no_list_is_sent_and_answers_as_before() {
     assert_eq!(
         kept[1],
         format!(
-            "{}\n\nTOOL EXCHANGES THIS TURN:\n{exchange}\n\nYou may make 7 more round(s) of \
-             tool calls this turn, up to 4 calls in one reply, or answer now and end the \
-             answer as HOW TO REPLY says.",
+            "{}\n\nTOOL EXCHANGES SO FAR:\n{exchange}\n\nYou may make 7 more round(s) of \
+             tool calls for this task, up to 8 calls in one reply, or give your final answer \
+             and end it as HOW TO REPLY says.",
             kept[0]
         )
     );

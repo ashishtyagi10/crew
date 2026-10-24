@@ -97,7 +97,7 @@ fn alone_neither_the_frame_nor_its_tool_follow_up_offers_a_hand_off() {
         !follow.contains("@next"),
         "the alone follow-up offered a hand-off:\n{follow}"
     );
-    assert!(follow.ends_with("as HOW TO REPLY says."), "{follow}");
+    assert!(follow.ends_with("end it as HOW TO REPLY says."), "{follow}");
 }
 
 #[test]

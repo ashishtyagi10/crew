@@ -8,8 +8,8 @@
 //! (`instant_interrupt`) all moved the same way.
 //!
 //! How: the stdin loop drops a [`crate::PluginCommand::Steer`] here while a
-//! task runs; the relay's tool loop (`toolcall::run_tools`) [`take`]s what is
-//! waiting between rounds — announcing each as a
+//! task runs; a relay turn on the harness (`hopturn`, through
+//! `crew_hive::steers`) [`take`]s what is waiting between rounds — announcing each as a
 //! [`crate::PluginEvent::Steered`] BEFORE it dials, so the host drops its
 //! queued copy ahead of the answer — and every follow-up of the turn from
 //! then on carries it ([`section`]).
@@ -18,10 +18,12 @@
 //! for a task. A swarm runs on that thread's runtime, so its workers take
 //! through a run-wide log (`crew_hive::steers`, fed by [`take`]) that every
 //! worker reads, and the lead's closing answer and the judge read what was
-//! taken ([`told`]). A fan's threads and CLI agents (claude/opencode relays),
-//! which run their own loops out of reach of this one, never do — their
-//! steers go untaken, the last task out empties the inbox, and the host's
-//! queued copy is sent when the turn settles, as it always was.
+//! taken ([`told`]). A CLI agent's relay turn (claude, opencode) takes what
+//! is waiting as it starts and between the `@tool` rounds it prints, but not
+//! inside one of its calls, where its own loop runs out of reach of this one;
+//! a fan's threads never take. What nobody takes stays untaken, the last
+//! task out empties the inbox, and the host's queued copy is sent when the
+//! turn settles, as it always was.
 //!
 //! One inbox per process, like `approval`'s mailbox: a broker is one session
 //! with one stdin. With several tasks running, the first to reach a round
