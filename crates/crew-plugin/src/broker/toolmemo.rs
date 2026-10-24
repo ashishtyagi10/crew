@@ -1,7 +1,7 @@
 //! The per-task memo around `toolchoice`, and the record the pane reads.
 //!
 //! WHY a memo: the engine asks the tool surface THREE times per task — `hint_for`,
-//! `specs_for`, `note_for` (`crew_hive::apiagent`) — and a retried worker asks again with
+//! `specs_for`, `note_for` (`crew_hive::harness`) — and a retried worker asks again with
 //! the same text. A decision that costs a model call must be made once per question, not
 //! once per read, so the answer is keyed on the task text (and the catalog's spelling) and
 //! kept for a handful of tasks: a run's width and a retry or two, not a history.

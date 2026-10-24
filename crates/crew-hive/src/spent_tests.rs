@@ -30,7 +30,7 @@ fn an_unreported_cost_is_priced_the_way_a_workers_round_is() {
     let s = Spent::billed("mock", ModelTier::Cheap, &c);
     assert_eq!(
         s.micros_usd,
-        crate::apiagent::billed("mock", ModelTier::Cheap, &c)
+        crate::harness::billed("mock", ModelTier::Cheap, &c)
     );
     assert_eq!(s.micros_usd, 15, "the tier's own model, not zero");
 }

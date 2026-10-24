@@ -17,7 +17,7 @@
 //! One type for both loops, so the rule, and what it means for a repeat that
 //! [`Seen`] would answer with a pointer, exist once. A turn that outgrows the
 //! model's context anyway is cut harder (`fitted`). The native path is not
-//! here: it resends its turns as turns and cuts them itself (`apiagent`).
+//! here: it resends its turns as turns and cuts them itself (`harness::overflow`).
 
 use super::seen::Seen;
 use super::ToolCall;

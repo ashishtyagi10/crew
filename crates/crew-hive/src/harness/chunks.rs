@@ -12,28 +12,32 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use crate::bus::{AgentId, EventBus, HiveEvent};
+use super::{Events, TurnContext};
+use crate::bus::{AgentId, HiveEvent};
 use crate::provider::{Chunk, ChunkFn, Completion};
 
 pub(super) struct ChunkSink {
     pub on_chunk: ChunkFn,
     streamed_thought: Arc<AtomicBool>,
-    bus: EventBus,
+    events: Arc<dyn Events>,
     agent: AgentId,
 }
 
 impl ChunkSink {
-    pub(super) fn new(bus: EventBus, agent: AgentId) -> Self {
+    /// The sink for `ctx`'s turn: its events, under its agent's id.
+    pub(super) fn new(ctx: &TurnContext) -> Self {
+        let (events, agent) = (Arc::clone(&ctx.events), ctx.agent.clone());
         let streamed_thought = Arc::new(AtomicBool::new(false));
-        let (delta_bus, delta_agent, seen) = (bus.clone(), agent.clone(), streamed_thought.clone());
+        let (delta_events, delta_agent, seen) =
+            (Arc::clone(&events), agent.clone(), streamed_thought.clone());
         let on_chunk: ChunkFn = Arc::new(move |c: Chunk<'_>| match c {
-            Chunk::Text(s) => delta_bus.publish(HiveEvent::OutputDelta {
+            Chunk::Text(s) => delta_events.publish(HiveEvent::OutputDelta {
                 agent: delta_agent.clone(),
                 text: s.to_string(),
             }),
             Chunk::Thought(s) => {
                 seen.store(true, Ordering::SeqCst);
-                delta_bus.publish(HiveEvent::ThoughtDelta {
+                delta_events.publish(HiveEvent::ThoughtDelta {
                     agent: delta_agent.clone(),
                     text: s.to_string(),
                 });
@@ -42,7 +46,7 @@ impl ChunkSink {
         Self {
             on_chunk,
             streamed_thought,
-            bus,
+            events,
             agent,
         }
     }
@@ -52,7 +56,7 @@ impl ChunkSink {
     pub(super) fn settle(&self, c: &Completion) {
         let streamed = self.streamed_thought.swap(false, Ordering::SeqCst);
         if !streamed && !c.thought.is_empty() {
-            self.bus.publish(HiveEvent::ThoughtDelta {
+            self.events.publish(HiveEvent::ThoughtDelta {
                 agent: self.agent.clone(),
                 text: c.thought.clone(),
             });

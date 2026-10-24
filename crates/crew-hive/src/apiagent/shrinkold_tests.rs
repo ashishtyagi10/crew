@@ -4,7 +4,7 @@
 use super::*;
 use crate::bus::{AgentId, EventBus};
 use crate::graph::{AgentKind, ModelTier, TaskId, TaskSpec};
-use crate::provider::{Completion, ProviderError};
+use crate::provider::{Completion, CompletionRequest, ProviderError};
 use std::sync::Mutex;
 
 /// Replays completions in order; keeps every prompt it was sent.

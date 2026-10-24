@@ -28,7 +28,7 @@ fn openai_cached_tokens_are_billed_at_the_cached_rate() {
     assert_eq!((c.cached_input_tokens, c.cache_write_tokens), (800, 0));
     assert_eq!(c.model, "qwen-plus");
     assert_eq!(usage_cost("qwen-plus", &c), 80 + 64 + 120);
-    let billed = crate::apiagent::billed("qwen-plus", ModelTier::Standard, &c);
+    let billed = crate::harness::billed("qwen-plus", ModelTier::Standard, &c);
     assert_eq!(billed, 264);
     assert_ne!(billed, 400 + 120, "cache hits billed as full input");
 }

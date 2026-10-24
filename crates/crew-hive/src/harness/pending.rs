@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use tokio::task::JoinHandle;
 
-use crate::agent::AgentContext;
+use super::TurnContext;
 use crate::bus::HiveEvent;
 use crate::tools::{seen::Seen, ToolCall, Tools};
 
@@ -57,7 +57,7 @@ pub(super) struct Rules<'a> {
 /// Run `calls` and answer each, `(ok, text)`, in the order written. Each
 /// publishes its own `ToolCall` as it starts and `ToolResult` as it ends.
 pub(super) async fn run(
-    ctx: &AgentContext,
+    ctx: &TurnContext,
     tools: &Arc<dyn Tools>,
     seen: &mut Seen,
     calls: &[ToolCall],
@@ -70,7 +70,7 @@ pub(super) async fn run(
     let mut out = Vec::with_capacity(calls.len());
     let mut waiting = Vec::new();
     for (k, call) in calls.iter().enumerate() {
-        ctx.bus.publish(HiveEvent::ToolCall {
+        ctx.publish(HiveEvent::ToolCall {
             agent: ctx.agent.clone(),
             label: call.label(),
             args: call.args.clone(),
@@ -125,7 +125,7 @@ fn start(tools: &Arc<dyn Tools>, call: &ToolCall) -> Pending {
 
 /// Wait for `pending`, note it in `seen` as `entry`, and publish its result.
 async fn finish(
-    ctx: &AgentContext,
+    ctx: &TurnContext,
     tools: &Arc<dyn Tools>,
     seen: &mut Seen,
     call: &ToolCall,
@@ -156,7 +156,7 @@ async fn finish(
             (ok, text, ms)
         }
     };
-    ctx.bus.publish(HiveEvent::ToolResult {
+    ctx.publish(HiveEvent::ToolResult {
         agent: ctx.agent.clone(),
         label: call.label(),
         ok,

@@ -17,7 +17,7 @@ mod batch;
 
 use std::sync::Arc;
 
-use crate::agent::{AgentContext, Attempt};
+use super::{Ended, TurnContext, TurnSpec};
 use crate::bus::HiveEvent;
 use crate::provider::{CompletionRequest, Provider, ToolInvocation, ToolOutcome, Turn};
 use crate::steers::Steers;
@@ -49,24 +49,26 @@ fn outcome_for_unknown(call: &ToolInvocation, catalog: &ToolCatalog) -> ToolOutc
     }
 }
 
-/// Run one task with native tool use. Returns the task's attempt; every model
-/// call, tool call and failure publishes on `ctx.bus` as it happens.
-#[allow(clippy::too_many_arguments)] // one call site: `ApiAgent::attempt`'s native branch
+/// Run one turn with native tool use. Returns how it ended; every model call,
+/// tool call and failure publishes on `ctx`'s events as it happens.
 pub(super) async fn run(
-    ctx: AgentContext,
+    ctx: TurnContext,
+    spec: TurnSpec,
     provider: Arc<dyn Provider>,
     tools: Arc<dyn Tools>,
     catalog: ToolCatalog,
-    model_id: String,
-    system: Option<String>,
-    prompt: String,
-    max_tokens: u32,
     sink: super::chunks::ChunkSink,
     steers: Option<Steers>,
-) -> Attempt {
-    let task_id = ctx.task.id;
+) -> Ended {
     let agent_id = ctx.agent.clone();
-    let tier = ctx.task.model;
+    let TurnSpec {
+        prompt,
+        system,
+        model: model_id,
+        tier,
+        max_tokens,
+        ..
+    } = spec;
     let mut turns: Vec<Turn> = Vec::new();
     let mut round: u32 = 0;
     // Reads this task has made. A repeat is answered from the result already
@@ -84,7 +86,7 @@ pub(super) async fn run(
         // A stop pressed while the last round's tools ran: no next call
         // (`agent::stop`). The tools already run are not undone.
         if ctx.stopped() {
-            return Attempt::stopped(task_id);
+            return Ended::Stopped;
         }
         // Between rounds only: before the first, `opening` just asked.
         if !turns.is_empty() {
@@ -102,19 +104,19 @@ pub(super) async fn run(
         // Raced against the stop: dropping the call aborts the request.
         let call = provider.complete_streaming(req, Arc::clone(&sink.on_chunk));
         let completion = match ctx.unless_stopped(call).await {
-            None => return Attempt::stopped(task_id),
+            None => return Ended::Stopped,
             Some(Ok(c)) => c,
             Some(Err(err)) if cut.refused(&ctx, &err, &mut turns, &mut seen) => continue,
             Some(Err(err)) => return super::failure::failed(&ctx, &err),
         };
         cut.answered();
         sink.settle(&completion);
-        ctx.bus.publish(HiveEvent::TokenDelta {
+        ctx.publish(HiveEvent::TokenDelta {
             agent: agent_id.clone(),
             input: completion.input_tokens,
             output: completion.output_tokens,
         });
-        ctx.bus.publish(HiveEvent::CostDelta {
+        ctx.publish(HiveEvent::CostDelta {
             agent: agent_id.clone(),
             micros_usd: super::cost::billed(&model_id, tier, &completion),
         });
@@ -129,7 +131,7 @@ pub(super) async fn run(
             // whatever the model said, plus a note that it stopped early.
             let total = ctx.budget.total();
             for call in &completion.calls {
-                ctx.bus.publish(HiveEvent::ToolResult {
+                ctx.publish(HiveEvent::ToolResult {
                     agent: agent_id.clone(),
                     label: label_of(call, &catalog),
                     ok: false,
@@ -150,11 +152,12 @@ pub(super) async fn run(
                 &super::lastword::transcript(&turns, label),
                 &super::lastword::refused(&completion.text, asked),
             );
-            let answer =
-                super::lastword::ask(&ctx, &provider, &model_id, system, last, max_tokens, &sink)
-                    .await;
+            let answer = super::lastword::ask(
+                &ctx, &provider, &model_id, tier, system, last, max_tokens, &sink,
+            )
+            .await;
             if ctx.stopped() {
-                return Attempt::stopped(task_id);
+                return Ended::Stopped;
             }
             let text = super::toolloop::with_budget_note(
                 answer.as_deref().unwrap_or(&completion.text),

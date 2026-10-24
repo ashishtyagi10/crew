@@ -11,7 +11,7 @@ use super::*;
 use crate::agent::{Agent, AgentContext, Attempt};
 use crate::bus::{AgentId, EventBus};
 use crate::graph::{AgentKind, ModelTier, TaskId, TaskSpec};
-use crate::provider::{Completion, ProviderError, ToolInvocation};
+use crate::provider::{Completion, CompletionRequest, ProviderError, ToolInvocation};
 use crate::tools::ToolSpec;
 
 /// Asks for tools until its script runs out, then answers; counts every call

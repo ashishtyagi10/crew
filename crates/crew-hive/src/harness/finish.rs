@@ -7,23 +7,17 @@
 
 use std::sync::Arc;
 
-use crate::agent::{AgentContext, Attempt};
-use crate::board::TaskResult;
+use super::{Ended, TurnContext};
 use crate::bus::HiveEvent;
 use crate::tools::{todo, Tools};
 
-/// `text` as the task's output: published as the output chunk and returned as
-/// its result, with the unfinished line under it when `tools` kept a list.
-pub(super) fn answer(ctx: &AgentContext, tools: Option<&Arc<dyn Tools>>, text: String) -> Attempt {
+/// `text` as the turn's answer: published as the output chunk and returned,
+/// with the unfinished line under it when `tools` kept a list.
+pub(super) fn answer(ctx: &TurnContext, tools: Option<&Arc<dyn Tools>>, text: String) -> Ended {
     let text = todo::finished(text, tools.and_then(|t| t.checklist()));
-    ctx.bus.publish(HiveEvent::OutputChunk {
+    ctx.publish(HiveEvent::OutputChunk {
         agent: ctx.agent.clone(),
         text: text.clone(),
     });
-    TaskResult {
-        task: ctx.task.id,
-        output: text,
-        success: true,
-    }
-    .into()
+    Ended::Answered(text)
 }

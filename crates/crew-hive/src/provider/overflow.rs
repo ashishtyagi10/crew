@@ -5,7 +5,7 @@
 //! the provider refuses the call, `Range of input length should be [1,
 //! 30720]`. Of all the errors a call can end on, that one is crew's to fix:
 //! the same request with less in it goes through. So the loops ask this
-//! before they give up, and cut the request down once (`apiagent::overflow`,
+//! before they give up, and cut the request down once (`harness::overflow`,
 //! the relay's `toolfull`).
 //!
 //! The answer comes from the table the hint reads (`hint`), not a list of its

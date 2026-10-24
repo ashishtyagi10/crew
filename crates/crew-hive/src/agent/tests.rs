@@ -92,7 +92,7 @@ async fn take_round_publishes_the_pools_state_on_every_draw_including_the_refuse
     };
     let mut seen = Vec::new();
     for used in 0..=4 {
-        let left = ctx.take_round(used);
+        let left = ctx.turn().take_round(used);
         assert_eq!(left.is_some(), used < 4, "four rounds for one task");
         match rx.try_recv() {
             Ok(HiveEvent::ToolBudget { used, total }) => seen.push((used, total)),
