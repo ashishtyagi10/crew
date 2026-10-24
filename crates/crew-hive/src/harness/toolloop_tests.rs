@@ -9,18 +9,28 @@ fn log(rounds: &[(&str, &str)]) -> Exchanges {
     log
 }
 
+/// A long result keeps its head, what it is about, and its end, where a
+/// build says what failed and `sys:read_file` says where to go on.
 #[test]
-fn clip_keeps_the_head_and_marks_the_cut() {
+fn clip_keeps_both_ends_and_marks_the_cut() {
     let s = "abcdefghij";
     assert_eq!(clip(s, 20), "abcdefghij");
-    assert_eq!(clip(s, 4), "abcd… [clipped 6 chars]");
+    let long = format!(
+        "HEAD\n{}\nerror[E0308]: mismatched types",
+        "x\n".repeat(4_000)
+    );
+    let cut = clip(&long, RESULT_CAP);
+    assert!(cut.starts_with("HEAD\n"), "{cut}");
+    assert!(cut.ends_with("error[E0308]: mismatched types"), "{cut}");
+    assert!(cut.contains("chars cut from the middle"), "{cut}");
 }
 
 #[test]
 fn clip_counts_chars_not_bytes() {
-    // Four 3-byte chars: a byte-based clip at 2 would split one and panic.
-    let s = "日本語だ";
-    assert_eq!(clip(s, 2), "日本… [clipped 2 chars]");
+    // 3-byte chars: a byte-based clip would split one and panic.
+    let s = "日本語だ".repeat(50);
+    let cut = clip(&s, 30);
+    assert!(cut.starts_with('日') && cut.ends_with('だ'), "{cut}");
 }
 
 #[test]
@@ -28,7 +38,7 @@ fn exchange_caps_a_huge_result() {
     let huge = "x".repeat(RESULT_CAP + 500);
     let e = exchange("", "fs:read", "{}", &huge).to_string();
     assert!(e.starts_with("CALLED fs:read {}\nRESULT:\n"));
-    assert!(e.contains("[clipped 500 chars]"));
+    assert!(e.contains("[500 chars cut from the middle]"), "{e}");
     // The whole exchange must stay near the cap, not near the input size.
     assert!(e.chars().count() < RESULT_CAP + 100);
 }
@@ -47,14 +57,17 @@ fn follow_up_restates_the_base_prompt_and_every_exchange() {
     assert!(p.contains("TOOLS: @tool sys:run"));
     assert!(p.contains("first"));
     assert!(p.contains("second"));
-    assert!(p.contains("You may make 2 more tool call(s)"));
+    assert!(
+        p.contains("You may make 2 more round(s) of tool calls for this task, up to 8 calls"),
+        "{p}"
+    );
 }
 
 #[test]
 fn follow_up_tells_the_agent_when_it_is_out_of_calls() {
     let p = follow_up("TASK", "", &log(&[("a:b", "r")]), "", 0);
-    assert!(p.contains("LAST tool call"));
-    assert!(!p.contains("more tool call(s)"));
+    assert!(p.contains("LAST round of tool calls"), "{p}");
+    assert!(!p.contains("more round(s)"), "{p}");
 }
 
 #[test]
@@ -66,16 +79,13 @@ fn budget_spent_strips_the_unrun_directive() {
     // becomes a dependency's context and gets imitated downstream.
     assert!(!out.contains("@tool"));
     assert!(out.contains("I checked the first city."));
-    assert!(out.contains("[tool budget spent — 4 calls"));
+    assert!(out.contains("[tool budget spent — 4 rounds"), "{out}");
 }
 
 #[test]
 fn budget_spent_on_a_bare_directive_is_just_the_note() {
     let out = budget_spent("@tool weather:current {}", 4);
-    assert_eq!(
-        out,
-        "[tool budget spent — 4 calls for this run; the last request was not run]"
-    );
+    assert_eq!(out, "[tool budget spent — 4 rounds of tool calls]");
 }
 
 #[test]
@@ -103,8 +113,7 @@ fn budget_spent_strips_a_fenced_multi_line_call_whole() {
                  \"q\": \"Oslo\"\n}\n```\n@done";
     assert_eq!(
         budget_spent(reply, 4),
-        "Two of three cities checked.\n\n\
-         [tool budget spent — 4 calls for this run; the last request was not run]"
+        "Two of three cities checked.\n\n[tool budget spent — 4 rounds of tool calls]"
     );
 }
 

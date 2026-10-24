@@ -44,8 +44,9 @@ const TIER: ModelTier = ModelTier::Capable;
 /// thinks first, and its thinking is paid out of this.
 const MAX_TOKENS: u32 = 1024;
 
-/// One advisor call: its brief in, its reply and what it cost out.
-pub(crate) type Ask = dyn Fn(&str) -> Result<(String, Spent), String>;
+/// One advisor call: its brief in, its reply and what it cost out. `Send`:
+/// a relay turn on the harness holds its advisor in an `Advice`.
+pub(crate) type Ask = dyn Fn(&str) -> Result<(String, Spent), String> + Send + Sync;
 
 /// One turn's advisor: the call, once a failure needed it (`Some(None)` when
 /// none may run), how often it was asked, the turn's calls so far, and the
@@ -164,3 +165,7 @@ mod round_tests;
 #[cfg(test)]
 #[path = "adviselive_tests.rs"]
 mod live_tests;
+
+#[cfg(test)]
+#[path = "advisehive_tests.rs"]
+mod hive_tests;

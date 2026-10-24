@@ -3,11 +3,12 @@
 //! of the run added by [`Tally::spend`]), and the one thing it SAYS mid-run:
 //! that the tool pool ran dry.
 //!
-//! Every agent already learns that privately — a refused call, a note in
-//! its own output — but the person watching the pane saw N workers go quiet
-//! at once with no line saying why. The pool's draws arrive as
-//! `HiveEvent::ToolBudget`; the first one that reads `used == total` earns
-//! one quiet line under the lead's name, and no later one repeats it.
+//! Every agent already learns that privately — its last word, a note in its
+//! own output — but the person watching the pane saw N workers go quiet at
+//! once with no line saying why. The pool's draws arrive as
+//! `HiveEvent::ToolBudget`, the refused ones too (`TurnContext::take_round`
+//! announces every draw); the first that reads `used == total` earns one
+//! quiet line under the lead's name, and no later one repeats it.
 use crew_hive::{HiveEvent, Spent};
 
 use crate::broker::relay::msg;
@@ -20,8 +21,6 @@ pub(super) struct Tally {
     pub cost: u64,
     tasks: usize,
     spent_said: bool,
-    /// The pool's size, from the last `ToolBudget` reading.
-    total: u32,
 }
 
 impl Tally {
@@ -34,7 +33,6 @@ impl Tally {
             cost: 0,
             tasks,
             spent_said: false,
-            total: 0,
         }
     }
 
@@ -60,21 +58,9 @@ impl Tally {
                 self.tok_out += o;
             }
             HiveEvent::CostDelta { micros_usd, .. } => self.cost += micros_usd,
-            HiveEvent::ToolBudget { used, total } => {
-                self.total = *total;
-                if used >= total && !self.spent_said {
-                    self.spent_said = true;
-                    return Some(msg("agent smith", spent_note(*total, self.tasks)));
-                }
-            }
-            // Agents draw from the pool concurrently: the one REFUSED can
-            // publish before the one whose draw emptied it, so the first
-            // refusal says the note too — whichever lands first, once.
-            HiveEvent::ToolResult {
-                ok: false, text, ..
-            } if text.contains("tool budget spent") && !self.spent_said && self.total > 0 => {
+            HiveEvent::ToolBudget { used, total } if used >= total && !self.spent_said => {
                 self.spent_said = true;
-                return Some(msg("agent smith", spent_note(self.total, self.tasks)));
+                return Some(msg("agent smith", spent_note(*total, self.tasks)));
             }
             _ => {}
         }
@@ -82,12 +68,13 @@ impl Tally {
     }
 }
 
-/// `tool budget spent — 12 calls over 3 tasks; the workers answer from what
+/// `tool budget spent — 12 rounds over 3 tasks; the workers answer from what
 /// they have`: the pool, the plan it was sized from, and what happens next.
+/// Rounds: a worker's reply is one, however many calls it made.
 pub(super) fn spent_note(total: u32, tasks: usize) -> String {
     let s = |n: u64| if n == 1 { "" } else { "s" };
     format!(
-        "tool budget spent \u{2014} {total} call{} over {tasks} task{}; \
+        "tool budget spent \u{2014} {total} round{} over {tasks} task{}; \
          the workers answer from what they have",
         s(u64::from(total)),
         s(tasks as u64)

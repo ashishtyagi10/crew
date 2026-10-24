@@ -32,17 +32,22 @@ pub(super) fn call(stream: &HopStream, env: &Envelope, call: &ToolCall) {
 /// what it said. Only for a call that was made: one past the budget never
 /// opened a line, and the turn's `[stopped]` note says why it stopped.
 pub(super) fn result(stream: &HopStream, env: &Envelope, call: &ToolCall, ran: &Ran) {
-    let mut text: String = ran.text.trim_end().chars().take(RESULT_KEEP).collect();
-    if ran.text.trim_end().chars().count() > RESULT_KEEP {
-        text.push_str("\n\u{2026}");
-    }
     (stream.on_tool)(HiveEvent::ToolResult {
         agent: AgentId::minted(&env.to),
         label: call.label(),
         ok: ran.ok,
-        text,
+        text: kept(&ran.text),
         ms: ran.ms,
     });
+}
+
+/// The head of a result the tool line keeps, marked when there was more.
+pub(super) fn kept(text: &str) -> String {
+    let mut kept: String = text.trim_end().chars().take(RESULT_KEEP).collect();
+    if text.trim_end().chars().count() > RESULT_KEEP {
+        kept.push_str("\n\u{2026}");
+    }
+    kept
 }
 
 /// For tests of the tool loop: a stream whose tool lane keeps what it is

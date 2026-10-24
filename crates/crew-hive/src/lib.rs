@@ -91,7 +91,7 @@ pub use clipmiddle::clip_middle;
 pub use agentname::{role_clamp, slug, slug_or};
 
 // Harness
-pub use harness::{Ended, Events, TurnContext, TurnSpec};
+pub use harness::{Advice, Ended, Events, TurnContext, TurnSpec};
 
 // ApiAgent
 pub use apiagent::{ApiAgent, ApiFactory};

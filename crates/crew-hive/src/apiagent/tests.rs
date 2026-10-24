@@ -578,7 +578,8 @@ async fn a_failing_tool_is_reported_to_the_agent_not_raised_as_a_task_failure() 
 
 #[tokio::test]
 async fn the_round_cap_bounds_the_calls_and_the_unrun_directive_is_stripped() {
-    // Ten asks in a row: only MAX_TOOL_ROUNDS may actually fire.
+    // Ten asks in a row: MAX_TOOL_ROUNDS rounds, and the batch the budget
+    // stopped, which still runs for the last word to read.
     let asking = "@tool weather:current {}";
     let (provider, _) = Scripted::new(&[asking; 10]);
     let (tools, calls) = fake(Ok("4C".into()));
@@ -587,7 +588,7 @@ async fn the_round_cap_bounds_the_calls_and_the_unrun_directive_is_stripped() {
 
     let result = agent.run(ctx(&bus)).await;
 
-    assert_eq!(calls.lock().unwrap().len(), MAX_TOOL_ROUNDS as usize);
+    assert_eq!(calls.lock().unwrap().len(), MAX_TOOL_ROUNDS as usize + 1);
     // The output must not end on a directive that never ran.
     assert!(
         !result.output.contains("@tool"),
@@ -634,7 +635,8 @@ async fn every_round_is_billed() {
 }
 
 /// The cap is the RUN's, not the task's: in a three-task run an agent that
-/// needs eight rounds gets them, and the ninth is refused.
+/// needs eight rounds gets them, and the ninth is the last: it runs, and the
+/// last word reads it.
 #[tokio::test]
 async fn a_run_budget_lets_one_agent_past_the_old_cap() {
     let asking = "@tool weather:current {}";
@@ -646,9 +648,12 @@ async fn a_run_budget_lets_one_agent_past_the_old_cap() {
     let mut c = ctx(&bus);
     c.budget = budget.clone();
     let result = agent.run(c).await;
-    assert_eq!(calls.lock().unwrap().len(), 2 * MAX_TOOL_ROUNDS as usize);
+    assert_eq!(
+        calls.lock().unwrap().len(),
+        2 * MAX_TOOL_ROUNDS as usize + 1
+    );
     assert!(
-        result.output.contains("12 calls for this run"),
+        result.output.contains("12 rounds of tool calls"),
         "{}",
         result.output
     );

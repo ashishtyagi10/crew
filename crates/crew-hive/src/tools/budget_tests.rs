@@ -48,3 +48,14 @@ fn what_is_promised_is_the_smaller_of_the_pool_and_the_ceiling() {
     assert_eq!(b.take(0), None);
     assert_eq!(b.left(), 0, "a refusal takes nothing");
 }
+
+/// A relay hop's pool: every round its own, and the one past them refused.
+#[test]
+fn a_turn_gets_exactly_its_rounds() {
+    let b = ToolBudget::turn(8);
+    assert_eq!(b.total(), 8);
+    for used in 0..8 {
+        assert_eq!(b.take(used), Some(8 - used - 1), "round {used}");
+    }
+    assert_eq!(b.take(8), None, "the ninth is refused");
+}

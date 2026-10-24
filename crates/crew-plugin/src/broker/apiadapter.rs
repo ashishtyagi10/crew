@@ -14,7 +14,7 @@ use std::time::Duration;
 
 use crew_hive::{CompletionRequest, Provider};
 
-use super::adapter::{Adapter, HopStream, Usage};
+use super::adapter::{Adapter, Engine, HopStream, Usage};
 
 /// Output token ceiling per agent reply. 2048 was too few for real work — a
 /// long answer, a `sys:write_file` of a whole file, a `sys:edit` with a big
@@ -24,7 +24,7 @@ use super::adapter::{Adapter, HopStream, Usage};
 /// reaches it is continued once (`cutoff`). 4096, not 8192: some endpoints
 /// (NVIDIA NIM models among them) reject a request whose ceiling is over the
 /// model's own output limit, and a rejected request answers nothing at all.
-const MAX_TOKENS: u32 = 4096;
+pub(super) const MAX_TOKENS: u32 = 4096;
 
 /// An agent driven by an in-process LLM API call rather than an external CLI.
 pub struct ApiAdapter {
@@ -114,6 +114,16 @@ impl Adapter for ApiAdapter {
     /// are always usable.
     fn probe(&self) -> bool {
         true
+    }
+
+    fn engine(&self) -> Option<Engine<'_>> {
+        Some(Engine {
+            provider: &self.provider,
+            model: &self.model,
+            system: self.system.as_deref(),
+            max_tokens: MAX_TOKENS,
+            rt: &self.rt,
+        })
     }
 
     fn call(&self, body: &str, timeout: Duration) -> Result<String, String> {

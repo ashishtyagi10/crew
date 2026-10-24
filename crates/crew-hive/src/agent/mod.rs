@@ -41,13 +41,15 @@ pub struct AgentContext {
 
 impl AgentContext {
     /// The harness turn this task runs as: its agent, publishing on the run's
-    /// bus, drawing on the run's pool, stopped by the run's stop.
+    /// bus, drawing on the run's pool, stopped by the run's stop. No advice:
+    /// the advisor is the relay's until it moves down (phase 4 of the goal).
     pub fn turn(&self) -> TurnContext {
         TurnContext {
             agent: self.agent.clone(),
             events: Arc::new(self.bus.clone()),
             budget: self.budget.clone(),
             cancel: Arc::clone(&self.cancel),
+            advice: None,
         }
     }
 }

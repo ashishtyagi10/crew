@@ -21,7 +21,7 @@ use super::{Ended, TurnContext, TurnSpec};
 use crate::bus::HiveEvent;
 use crate::provider::{CompletionRequest, Provider, ToolInvocation, ToolOutcome, Turn};
 use crate::steers::Steers;
-use crate::tools::{seen::Seen, todo, ToolCatalog, Tools};
+use crate::tools::{seen::Seen, todo, ToolCall, ToolCatalog, Tools};
 
 /// Most tools one turn may fire, however many the model asked for.
 ///
@@ -29,7 +29,14 @@ use crate::tools::{seen::Seen, todo, ToolCatalog, Tools};
 /// is exactly what a swarm wants — but "however many it emitted" is not a
 /// bound. A model that emits fifty calls in one turn would run fifty shell
 /// commands before anything counted a round.
+///
+/// The text loop holds a reply to the same number (`textround`).
 pub(super) const MAX_CALLS_PER_TURN: usize = 8;
+
+/// What a call past [`MAX_CALLS_PER_TURN`] is answered with.
+pub(super) fn past_bound() -> String {
+    format!("not run \u{2014} at most {MAX_CALLS_PER_TURN} tools per turn")
+}
 
 /// What a call resolved to, or why it did not.
 fn outcome_for_unknown(call: &ToolInvocation, catalog: &ToolCatalog) -> ToolOutcome {
@@ -81,6 +88,8 @@ pub(super) async fn run(
     let (prompt, mut taken) = super::steered::opening(prompt, steers.as_ref());
     let label = |c: &ToolInvocation| label_of(c, &catalog);
     let mut cut = super::overflow::Cut::new(&prompt, system.as_deref(), &label);
+    // What the engine made of the latest round it read (`Advice`).
+    let mut advice = String::new();
 
     loop {
         // A stop pressed while the last round's tools ran: no next call
@@ -125,32 +134,30 @@ pub(super) async fn run(
             return super::finish::answer(&ctx, Some(&tools), completion.text);
         }
 
-        if ctx.take_round(round).is_none() {
-            // Unlike the text path there is no directive to strip — a
-            // structured call never lands in the output — so the answer is
-            // whatever the model said, plus a note that it stopped early.
+        // The batch runs whether or not the pool has a round for it: past the
+        // budget, its edits and its check are what the answer stands on.
+        let drawn = ctx.take_round(round);
+        let wrote = tools.checklist().map(todo::Checklist::writes);
+        let results = batch::run(&ctx, &tools, &catalog, &mut seen, &completion, round).await;
+        let ran = ran_of(&completion.calls, &results, &catalog);
+        let said = completion.text.clone();
+        turns.push(Turn::Assistant {
+            text: completion.text,
+            calls: completion.calls,
+        });
+        turns.push(Turn::ToolResults(results));
+
+        if drawn.is_none() {
+            // Everything gathered, that batch included, goes back once more
+            // as plain text with no tools on the wire, for an answer
+            // (`lastword`); failing that, what it had written beside the ask
+            // is all there is. Unlike the text path there is no directive to
+            // strip — a structured call never lands in the output.
             let total = ctx.budget.total();
-            for call in &completion.calls {
-                ctx.publish(HiveEvent::ToolResult {
-                    agent: agent_id.clone(),
-                    label: label_of(call, &catalog),
-                    ok: false,
-                    text: format!("not run \u{2014} tool budget spent ({total} rounds this run)"),
-                    ms: 0,
-                });
-            }
-            // Everything gathered goes back once more as plain text with no
-            // tools on the wire, for an answer (`lastword`); failing that,
-            // what it had written beside the ask is all there is.
-            let asked = completion
-                .calls
-                .iter()
-                .map(|c| (label(c), c.input.to_string()));
             let last = super::lastword::prompt(
                 &prompt,
                 &todo::section(tools.checklist()),
                 &super::lastword::transcript(&turns, label),
-                &super::lastword::refused(&completion.text, asked),
             );
             let answer = super::lastword::ask(
                 &ctx, &provider, &model_id, tier, system, last, max_tokens, &sink,
@@ -159,21 +166,10 @@ pub(super) async fn run(
             if ctx.stopped() {
                 return Ended::Stopped;
             }
-            let text = super::toolloop::with_budget_note(
-                answer.as_deref().unwrap_or(&completion.text),
-                total,
-            );
+            let text = super::toolloop::with_budget_note(answer.as_deref().unwrap_or(&said), total);
             return super::finish::answer(&ctx, Some(&tools), text);
         }
 
-        let wrote = tools.checklist().map(todo::Checklist::writes);
-        let results = batch::run(&ctx, &tools, &catalog, &mut seen, &completion, round).await;
-
-        turns.push(Turn::Assistant {
-            text: completion.text,
-            calls: completion.calls,
-        });
-        turns.push(Turn::ToolResults(results));
         cut.after_round(&mut turns, &mut seen);
         // The checklist as a note of its own, in the rounds that changed it
         // and no other: every turn here is resent whole, so a note sent every
@@ -185,8 +181,38 @@ pub(super) async fn run(
                 turns.push(Turn::User(note.trim_end().to_string()));
             }
         }
+        // What the engine made of the round (`Advice`), as a note of its own
+        // when it says something new, for the same reason.
+        let (calls, outcomes): (Vec<ToolCall>, Vec<(bool, String)>) = ran.into_iter().unzip();
+        let read = ctx.advised(&calls, &outcomes, &advice);
+        if read != advice && !read.trim().is_empty() {
+            turns.push(Turn::User(read.trim_end().to_string()));
+        }
+        advice = read;
         round += 1;
     }
+}
+
+/// Each call of a round that names a tool, as crew names it, beside how it
+/// came back `(ok, text)`: what the engine's `Advice` reads.
+fn ran_of(
+    calls: &[ToolInvocation],
+    results: &[ToolOutcome],
+    catalog: &ToolCatalog,
+) -> Vec<(ToolCall, (bool, String))> {
+    calls
+        .iter()
+        .zip(results)
+        .filter_map(|(c, r)| {
+            let (server, tool) = catalog.resolve(&c.name)?;
+            let call = ToolCall {
+                server: server.to_string(),
+                tool: tool.to_string(),
+                args: c.input.to_string(),
+            };
+            Some((call, (!r.is_error, r.content.clone())))
+        })
+        .collect()
 }
 
 /// `server:tool` when the name resolves, else the name the model invented.

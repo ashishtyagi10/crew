@@ -54,6 +54,16 @@ impl RunStats {
         self.tok_out += u64::from(u.output_tokens);
         self.cost_microusd += u.cost_microusd;
     }
+
+    /// `other`'s tally on top of this one: a turn's, kept apart while it ran.
+    pub(crate) fn merge(&mut self, other: &RunStats) {
+        self.exchanges += other.exchanges;
+        self.approx_tokens += other.approx_tokens;
+        self.real_tokens += other.real_tokens;
+        self.tok_in += other.tok_in;
+        self.tok_out += other.tok_out;
+        self.cost_microusd += other.cost_microusd;
+    }
 }
 
 use super::Envelope;

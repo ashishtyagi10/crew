@@ -66,7 +66,10 @@ fn continuation(req: &CompletionRequest, partial: &str, ask: &str) -> Completion
 /// continuation gets what is left of it, less [`GRACE`], and one that fails
 /// or runs out leaves the first half standing, marked. A reply cut before it
 /// said anything (a reasoning model that spent the ceiling thinking) is not
-/// continued: there is nothing to continue FROM. The first half is itself
+/// continued: there is nothing to continue FROM. Nor is one that made tool
+/// calls (native tool-use, `apiturn`): what the ceiling cut is a call's
+/// arguments, and the harness answers a cut call by asking for it again
+/// (`badargs`). The first half is itself
 /// [`resume::reply`]: picked up if its stream broke, asked again if empty.
 pub(crate) async fn whole(
     provider: Arc<dyn Provider>,
@@ -76,7 +79,7 @@ pub(crate) async fn whole(
 ) -> Result<Completion, ProviderError> {
     let start = Instant::now();
     let first = resume::reply(&provider, &req, on_chunk.clone(), budget).await?;
-    if !first.truncated || first.text.trim().is_empty() {
+    if !first.truncated || first.text.trim().is_empty() || !first.calls.is_empty() {
         return Ok(joined(first, None));
     }
     let left = budget.saturating_sub(start.elapsed()).saturating_sub(GRACE);

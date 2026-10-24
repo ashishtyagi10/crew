@@ -7,8 +7,7 @@ use crate::tools::{budget::ToolBudget, ToolSpec, Tools, MAX_TOOL_ROUNDS};
 use std::sync::Mutex;
 
 const HINT: &str = "TOOLS: @tool weather:current";
-const NOTE: &str =
-    "[tool budget spent \u{2014} 4 calls for this run; the last request was not run]";
+const NOTE: &str = "[tool budget spent \u{2014} 4 rounds of tool calls]";
 
 /// Asks for a tool on every call that offers one (schemas on the wire, or the
 /// text hint in the prompt) until `asks` runs out, then answers "done early".
@@ -135,13 +134,13 @@ async fn run(
     (out, seen, billed)
 }
 
-/// Two rounds run, the third ask is refused, and one more call with the
-/// tools taken away turns what was gathered into the answer.
+/// Two rounds run, the third ask's batch runs past the budget, and one more
+/// call with the tools taken away turns all three into the answer.
 #[tokio::test]
 async fn a_worker_the_budget_stops_answers_from_what_it_gathered() {
     for native in [true, false] {
         let (out, seen, billed) = run(native, u32::MAX, Some("the answer is 42")).await;
-        // Two rounds, the refused ask, then the last word.
+        // Two rounds, the ask past the budget, then the last word.
         assert_eq!(seen.len(), 4, "native {native}");
         let offered = |r: &CompletionRequest| !r.tools.is_empty() || r.prompt.contains(HINT);
         assert!(seen[..3].iter().all(offered), "native {native}");
@@ -157,13 +156,19 @@ async fn a_worker_the_budget_stops_answers_from_what_it_gathered() {
         );
         // Tool turns with no tools beside them are a request Anthropic refuses.
         assert!(last.turns.is_empty(), "native {native}");
-        let refused = "RESULT:\nnot run \u{2014} tool budget spent";
-        let carried = ["weather?", "RESULT:\nOslo 4C", refused, INSTRUCTION];
+        let carried = ["weather?", INSTRUCTION];
         assert!(
             carried.iter().all(|s| last.prompt.contains(s)),
             "{}",
             last.prompt
         );
+        assert_eq!(
+            last.prompt.matches("RESULT:\nOslo 4C").count(),
+            3,
+            "native {native}: the batch past the budget ran, and is read: {}",
+            last.prompt
+        );
+        assert!(!last.prompt.contains("not run"), "{}", last.prompt);
         assert_eq!(
             out,
             format!("the answer is 42\n\n{NOTE}"),

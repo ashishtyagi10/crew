@@ -27,20 +27,37 @@ pub const WORKER_TAIL: &str = "This was said to the whole crew: act on it where 
 
 type Source = Arc<dyn Fn() -> Vec<String> + Send + Sync>;
 
-/// One run's steers: a source to take new ones from, and the log of every
-/// one taken so far, shared by all its workers.
+/// One run's steers: a source to take new ones from, the log of every one
+/// taken so far, shared by all its workers, and the line their section ends
+/// on.
 #[derive(Clone)]
 pub struct Steers {
     source: Source,
     log: Arc<Mutex<Vec<String>>>,
+    tail: &'static str,
 }
 
 impl Steers {
+    /// A swarm's steers, said to the whole crew ([`WORKER_TAIL`]).
     pub fn new(source: impl Fn() -> Vec<String> + Send + Sync + 'static) -> Self {
         Self {
             source: Arc::new(source),
             log: Arc::default(),
+            tail: WORKER_TAIL,
         }
+    }
+
+    /// The same steers closed by `tail`: the relay's agent has the whole
+    /// request, not a part of it, so its line says the later word replaces
+    /// the earlier (crew-plugin `steer::TAIL`).
+    pub fn with_tail(mut self, tail: &'static str) -> Self {
+        self.tail = tail;
+        self
+    }
+
+    /// The line this run's section ends on.
+    pub fn tail(&self) -> &'static str {
+        self.tail
     }
 
     /// Everything said to this run so far, taking what is new first.

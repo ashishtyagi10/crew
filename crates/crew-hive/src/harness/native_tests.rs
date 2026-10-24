@@ -272,7 +272,9 @@ async fn the_round_cap_stops_the_loop_and_says_so_in_the_answer() {
         .collect();
     let (out, calls, _) = run_agent(replies, Ok("4C".into())).await;
 
-    assert_eq!(calls.lock().unwrap().len(), MAX_TOOL_ROUNDS as usize);
+    // The rounds the budget gave, and the batch it stopped: that one still
+    // runs, for the last word to read.
+    assert_eq!(calls.lock().unwrap().len(), MAX_TOOL_ROUNDS as usize + 1);
     assert!(out.output.contains("tool budget spent"), "{}", out.output);
 }
 

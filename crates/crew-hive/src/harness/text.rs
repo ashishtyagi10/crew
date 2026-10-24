@@ -25,6 +25,7 @@ pub(super) async fn run(
     let TurnSpec {
         ask,
         prompt: body,
+        hinted,
         system,
         model: model_id,
         tier,
@@ -32,11 +33,14 @@ pub(super) async fn run(
     } = spec;
     // The tools section is part of the BASE prompt, not just the first
     // request: every follow-up re-states it, or an agent that used one tool
-    // would find the syntax for the second one gone.
-    let base = tools::augment(
-        &body,
-        &tools.as_ref().map(|t| t.hint_for(&ask)).unwrap_or_default(),
-    );
+    // would find the syntax for the second one gone. Where the engine put it,
+    // when it placed it itself.
+    let base = hinted.unwrap_or_else(|| {
+        tools::augment(
+            &body,
+            &tools.as_ref().map(|t| t.hint_for(&ask)).unwrap_or_default(),
+        )
+    });
     // Fragments publish as they arrive. NOTE that with tool rounds the deltas
     // now carry MORE than the final `OutputChunk`: every round's thinking
     // streams, while the chunk is the ANSWER. That is the right split — the
@@ -55,6 +59,9 @@ pub(super) async fn run(
     // in `exchanges`, while the follow-up still carries it whole
     // (`Exchanges::repeat`); once shortened, it runs again.
     let mut seen = tools::seen::Seen::default();
+    // What the engine made of the latest round it read (`Advice`), for every
+    // follow-up after it.
+    let mut advice = String::new();
     loop {
         // A stop pressed while the last round's tools ran: no next call. The
         // tools already run are not undone (`stop`).
@@ -78,7 +85,7 @@ pub(super) async fn run(
             Some(Err(err)) if !cut && overflow::tightened(&ctx, &err, &mut exchanges) => {
                 cut = true;
                 let list = tools::todo::section(tools.as_ref().and_then(|t| t.checklist()));
-                let heard = steered::heard(steers.as_ref());
+                let heard = steered::heard(steers.as_ref()) + &advice;
                 prompt = toolloop::follow_up(&base, &list, &exchanges, &heard, left);
                 continue;
             }
@@ -105,38 +112,21 @@ pub(super) async fn run(
             // No tool asked for: this reply is the answer.
             return finish::answer(&ctx, tools.as_ref(), completion.text);
         };
-        // Every call draws its own round; the ones granted run as one batch
-        // and each becomes its own exchange (`textround`).
-        let (granted, rounds_left) = textround::draw(&ctx, &mut round, calls.len());
-        let (run, refused) = calls.split_at(granted);
-        if !run.is_empty() {
-            textround::run(&ctx, runner, &mut seen, &mut exchanges, &said, run).await;
-        }
-        if !refused.is_empty() {
-            // Asked for more with the budget gone. Say so in the output
-            // rather than returning an unrun directive that reads like a call
-            // which happened.
+        // One round for the reply, however many calls it made: a round is a
+        // round trip (`textround`). The batch runs either way.
+        let drawn = ctx.take_round(round);
+        let ran = textround::run(&ctx, runner, &mut seen, &mut exchanges, &said, &calls).await;
+        let Some(rounds_left) = drawn else {
+            // Past the budget the batch still ran: its edits and its check
+            // are what the answer stands on. What it gathered, that batch
+            // included, goes back once more, tools hint left out, for an
+            // answer (`lastword`); failing that, what it had written beside
+            // the ask is all there is.
             let total = ctx.budget.total();
-            for call in refused {
-                ctx.publish(HiveEvent::ToolResult {
-                    agent: agent_id.clone(),
-                    label: call.label(),
-                    ok: false,
-                    text: format!("not run — tool budget spent ({total} calls this run)"),
-                    ms: 0,
-                });
-            }
-            // What it gathered goes back once more, tools hint left out, for
-            // an answer (`lastword`); failing that, what it had written beside
-            // the ask is all there is. The message is already in the log when
-            // any call of the reply ran.
-            let said = if run.is_empty() { said.as_str() } else { "" };
-            let asked = refused.iter().map(|c| (c.label(), c.args.clone()));
             let last = lastword::prompt(
                 &body,
                 &tools::todo::section(runner.checklist()),
                 &exchanges.render(),
-                &lastword::refused(said, asked),
             );
             let answer = lastword::ask(
                 &ctx, &provider, &model_id, tier, system, last, max_tokens, &sink,
@@ -150,10 +140,12 @@ pub(super) async fn run(
                 None => toolloop::budget_spent(&completion.text, total),
             };
             return finish::answer(&ctx, Some(runner), text);
-        }
+        };
+        round += 1;
         left = rounds_left;
+        advice = ctx.advised(&calls[..ran.len()], &ran, &advice);
         let list = tools::todo::section(runner.checklist());
-        let heard = steered::heard(steers.as_ref());
+        let heard = steered::heard(steers.as_ref()) + &advice;
         prompt = toolloop::follow_up(&base, &list, &exchanges, &heard, left);
     }
 }

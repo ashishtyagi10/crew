@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.0
+
+**`@agent` API agents now run on the same agent harness as the `/crew` swarm.**
+- An API agent you address in the relay (a stored specialist, or any agent crew calls on your
+  API key) now calls tools natively when its provider supports it: each tool's schema goes to
+  the model, and the provider checks the arguments, instead of the agent hand-writing a `@tool`
+  line. A call whose arguments aren't valid JSON is refused with the reason, and the agent asks
+  again.
+- When an agent runs out of tool rounds, its last batch of calls still runs, and one more model
+  call (with no tools) writes the answer from everything it gathered. Before, the relay ran that
+  batch but never read it, and the swarm refused it.
+- A round is now one reply, however many calls it makes, with up to 8 calls in a reply, in the
+  relay and the swarm alike. Long tool results keep their start and their end, so a build's error
+  at the bottom isn't cut off.
+- The advisor that reads a failed check, what you type mid-turn, `/stop`, and the tool lines in
+  the pane all work as before. CLI agents (`claude`, `codex`, `opencode`) are unchanged for now.
+
 ## 0.28.99
 
 **Under the hood: the `/crew` swarm's tool loop is now crew's one agent harness.**

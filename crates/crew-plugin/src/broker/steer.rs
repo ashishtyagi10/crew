@@ -187,3 +187,7 @@ mod swarm_tests;
 #[cfg(test)]
 #[path = "steerround_tests.rs"]
 mod round_tests;
+
+#[cfg(test)]
+#[path = "steerhive_tests.rs"]
+mod hive_tests;

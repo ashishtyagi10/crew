@@ -68,8 +68,12 @@ fn a_failed_build_is_advised_before_the_next_dial_and_for_the_rest_of_the_turn()
     let (briefs, _on) = advising(Ok("E0308 at src/a.rs:3 \u{2014} fix the call site"));
     let prompts = build_then_test();
     assert_eq!(prompts.len(), 2);
-    assert_eq!(briefs.borrow().len(), 1, "the passing test asked nothing");
-    assert!(briefs.borrow()[0].contains("THE REQUEST:\nmake it build"));
+    assert_eq!(
+        briefs.lock().unwrap().len(),
+        1,
+        "the passing test asked nothing"
+    );
+    assert!(briefs.lock().unwrap()[0].contains("THE REQUEST:\nmake it build"));
     for p in &prompts {
         let (exchanges, added) = p.split_once(HEAD).expect("the advice rides the follow-up");
         assert!(exchanges.contains("TOOL EXCHANGES THIS TURN"), "{p}");
@@ -88,7 +92,7 @@ fn a_failed_build_is_advised_before_the_next_dial_and_for_the_rest_of_the_turn()
 fn an_advisor_that_fails_leaves_the_follow_up_as_it_was() {
     let (briefs, _on) = advising(Err("timed out after 30s"));
     let prompts = build_then_test();
-    assert_eq!(briefs.borrow().len(), 1);
+    assert_eq!(briefs.lock().unwrap().len(), 1);
     assert!(prompts.iter().all(|p| !p.contains(HEAD)), "{prompts:?}");
 }
 
@@ -120,7 +124,7 @@ fn a_stop_pressed_while_the_build_ran_is_not_read() {
     let flag = Arc::new(AtomicBool::new(false));
     let runs = Arc::new(Pressing(Arc::clone(&flag)));
     let (reply, prompts) = turn(broker().with_tools(runs).with_cancel_flag(flag));
-    assert!(briefs.borrow().is_empty(), "read after the stop");
+    assert!(briefs.lock().unwrap().is_empty(), "read after the stop");
     assert!(prompts.is_empty(), "dialed after the stop: {prompts:?}");
     assert_eq!(reply, "stopped \u{2014} 1 tool call made");
 }

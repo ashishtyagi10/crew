@@ -45,6 +45,16 @@ impl ToolBudget {
         Self::for_run(1)
     }
 
+    /// A pool of `rounds` for one turn alone, all of them its own: a relay
+    /// hop, whose rounds are counted per hop, not shared with a run.
+    pub fn turn(rounds: u32) -> Self {
+        Self {
+            left: Arc::new(AtomicU32::new(rounds)),
+            total: rounds,
+            per_agent: rounds,
+        }
+    }
+
     /// Take one round for an agent that has taken `used` already this task.
     /// `Some(n)` is how many more it may take after this one; `None` means
     /// the pool, or this agent's own ceiling, is spent — and nothing was

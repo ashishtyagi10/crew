@@ -23,7 +23,7 @@ pub struct Broker {
     pub token_budget: usize,
     /// Checked between hops; when it flips true (`/stop`), the thread ends
     /// with a Terminated hop instead of dialling the next agent.
-    cancel: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    pub(crate) cancel: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     /// When set, agents can call tools mid-relay (see [`super::toolcall`]).
     pub(crate) tools: Option<std::sync::Arc<dyn super::toolcall::ToolRunner>>,
     /// When set, transcript overflow is summarized instead of dropped
@@ -141,26 +141,19 @@ impl Broker {
                 on_thought: hop_thinker(tick_emit.clone(), env.to.clone()),
                 on_tool: hop_tooler(tick_emit.clone(), env.to.clone()),
             };
-            let (reply, mut usage) =
-                match agent.call_with_usage_ticked(&prompt, self.timeout, &stream) {
-                    Ok((r, u)) if !r.trim().is_empty() => (r, u),
-                    Ok(_) => {
-                        sink(back(&env, HopKind::Error, "empty reply".into()));
-                        return stats;
-                    }
-                    Err(e) => {
-                        sink(back(&env, HopKind::Error, e));
-                        return stats;
-                    }
-                };
-            stats.add((prompt.len() + reply.len()) / 4, &usage);
-            // Resolve any `@tool` directives before routing (no-op without tools).
-            // Reuse this hop's ticker for every follow-up dial too, so the
-            // per-agent 150ms gate and growth rule span the whole hop instead
-            // of resetting per tool round.
-            let reply = self.run_tools(
-                agent, &prompt, reply, &mut stats, &mut usage, &env, &stream, sink,
-            );
+            // An API agent with tools on runs its whole turn on the harness,
+            // the swarm's loop (`apiturn`); any other agent is dialed, and its
+            // `@tool` lines resolved here (`run_tools`).
+            let dialed = match agent.engine().filter(|_| self.tools.is_some()) {
+                Some(engine) => {
+                    let bare = frame(&env, intro_of(agent), &peers, body, "", &tail);
+                    self.api_turn(engine, &env, body, bare, prompt, &mut stats, &stream, sink)
+                }
+                None => self.dial(agent, &prompt, &mut stats, &env, &stream, sink),
+            };
+            let Some((reply, mut usage)) = dialed else {
+                return stats;
+            };
             // If the agent forgot its control line and a hand-off is possible,
             // re-ask it once to add one (bounded to a single repair per thread)
             // — but only mid-chain. An agent answering the USER with no
@@ -247,6 +240,36 @@ impl Broker {
                 }
             }
         }
+    }
+
+    /// Dial `agent` with `prompt` and resolve any `@tool` directives in its
+    /// reply before routing (no-op without tools): the reply and its usage,
+    /// or `None` when the dial failed, on an error hop. Every follow-up dial
+    /// reuses this hop's `stream`, so the per-agent 150ms gate and growth
+    /// rule span the whole hop instead of resetting per tool round.
+    fn dial(
+        &self,
+        agent: &dyn super::adapter::Adapter,
+        prompt: &str,
+        stats: &mut RunStats,
+        env: &Envelope,
+        stream: &HopStream,
+        sink: &mut dyn FnMut(Hop),
+    ) -> Option<(String, super::adapter::Usage)> {
+        let (reply, mut usage) = match agent.call_with_usage_ticked(prompt, self.timeout, stream) {
+            Ok((r, u)) if !r.trim().is_empty() => (r, u),
+            Ok(_) => {
+                sink(back(env, HopKind::Error, "empty reply".into()));
+                return None;
+            }
+            Err(e) => {
+                sink(back(env, HopKind::Error, e));
+                return None;
+            }
+        };
+        stats.add((prompt.len() + reply.len()) / 4, &usage);
+        let reply = self.run_tools(agent, prompt, reply, stats, &mut usage, env, stream, sink);
+        Some((reply, usage))
     }
 
     /// The hop that ends the thread with `answer`: the one place a relay
