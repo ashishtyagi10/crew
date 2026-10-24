@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.4
+
+**Fix: the Windows build check passes again.**
+- A Reminders helper that only the macOS sync uses failed the Windows build check as unused code
+  (since 0.28.98). Nothing changes in the app on any platform.
+
 ## 0.29.3
 
 **`/crew` workers now get what `@agent` turns had: the advisor, the cut-off continuation, and the "never ran" note.**
