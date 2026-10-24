@@ -30,7 +30,9 @@ pub(crate) fn path() -> Option<PathBuf> {
 /// and pairs again, so an empty list here is not read as every todo deleted.
 static UNREADABLE: AtomicBool = AtomicBool::new(false);
 
-/// Whether the list was loaded from a file that would not load, once.
+/// Whether the list was loaded from a file that would not load, once. Only
+/// the Reminders sync asks, and it runs on macOS alone.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub(crate) fn take_unreadable() -> bool {
     UNREADABLE.swap(false, Ordering::Relaxed)
 }
