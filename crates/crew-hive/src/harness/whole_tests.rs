@@ -3,7 +3,9 @@
 use std::sync::{Arc, Mutex};
 
 use super::*;
+use crate::bus::{AgentId, EventBus};
 use crate::provider::{Completion, CompletionRequest, ProviderError};
+use crate::tools::budget::ToolBudget;
 
 /// Cut at the ceiling on the first call, finished on the second; keeps the
 /// requests.

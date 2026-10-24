@@ -23,9 +23,12 @@ mod tests;
 #[path = "todo_tests.rs"]
 mod todo_tests;
 
+mod advice;
+mod attempt;
 mod context;
 mod factory;
 
+pub use advice::Say;
 pub(crate) use context::build_prompt;
 pub use factory::ApiFactory;
 
@@ -33,15 +36,16 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use crate::advisor::{Advisor, Find, Hooks};
+use crate::advisor::Find;
 use crate::agent::{Agent, AgentContext, Attempt};
 use crate::board::TaskResult;
-use crate::bus::HiveEvent;
-use crate::graph::{AgentKind, TaskId};
-use crate::harness::{self, Ended, TurnSpec};
+use crate::graph::AgentKind;
+use crate::harness::{self, TurnSpec};
 use crate::provider::Provider;
 use crate::steers::Steers;
 use crate::tools::{self, Tools};
+use advice::advisor_for;
+use attempt::attempt_of;
 
 pub struct ApiAgent {
     provider: Arc<dyn Provider>,
@@ -63,9 +67,6 @@ pub struct ApiAgent {
     /// (`crate::advisor`); `None` for no advisor.
     advisor: Option<(Find, Say)>,
 }
-
-/// How an advisor says its one quiet line (`advisor::Hooks::say`).
-pub type Say = Arc<dyn Fn(&str) + Send + Sync>;
 
 impl ApiAgent {
     pub fn new(provider: Arc<dyn Provider>, max_tokens: u32) -> Self {
@@ -110,34 +111,6 @@ impl ApiAgent {
         self.advisor = Some((find, say));
         self
     }
-}
-
-/// The advisor for `ctx`'s task on `tools`, billing each read on the run's
-/// bus under the task's agent, where the swarm's sums and its budget
-/// governor read every worker's spend.
-fn advisor_for(ctx: &AgentContext, tools: &Arc<dyn Tools>, (find, say): &(Find, Say)) -> Advisor {
-    let (bus, agent) = (ctx.bus.clone(), ctx.agent.clone());
-    let spent = Arc::new(move |s: crate::spent::Spent| {
-        bus.publish(HiveEvent::TokenDelta {
-            agent: agent.clone(),
-            input: u32::try_from(s.input).unwrap_or(u32::MAX),
-            output: u32::try_from(s.output).unwrap_or(u32::MAX),
-        });
-        bus.publish(HiveEvent::CostDelta {
-            agent: agent.clone(),
-            micros_usd: s.micros_usd,
-        });
-    });
-    let hooks = Hooks {
-        say: Arc::clone(say),
-        spent,
-    };
-    Advisor::new(
-        ctx.task.prompt.clone(),
-        Arc::clone(tools),
-        Arc::clone(find),
-        hooks,
-    )
 }
 
 impl Agent for ApiAgent {
@@ -189,30 +162,6 @@ impl Agent for ApiAgent {
             let ended = harness::run(turn, spec, provider, tools, steers).await;
             attempt_of(ended, task_id)
         })
-    }
-}
-
-/// How a turn ended, as the scheduler hears it for `task`: an answer is a
-/// success, a failure carries its reason as the output and whether it
-/// passes, and a stop is recorded cancelled, never failed.
-fn attempt_of(ended: Ended, task: TaskId) -> Attempt {
-    match ended {
-        Ended::Answered(output) => TaskResult {
-            task,
-            output,
-            success: true,
-        }
-        .into(),
-        Ended::Failed { why, transient } => Attempt {
-            result: TaskResult {
-                task,
-                output: why,
-                success: false,
-            },
-            transient,
-            stopped: false,
-        },
-        Ended::Stopped => Attempt::stopped(task),
     }
 }
 

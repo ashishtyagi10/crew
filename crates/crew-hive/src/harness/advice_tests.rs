@@ -4,7 +4,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use super::*;
+use crate::bus::{AgentId, EventBus};
 use crate::provider::{Completion, CompletionRequest, ProviderError};
+use crate::tools::budget::ToolBudget;
+use crate::tools::ToolCall;
 
 /// Asks for `fs:read` once, then answers; keeps every prompt.
 struct Once(Mutex<u32>, Arc<Mutex<Vec<String>>>);
