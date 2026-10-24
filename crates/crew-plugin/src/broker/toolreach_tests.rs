@@ -7,7 +7,7 @@
 //! and described a web framework that does not exist.
 use super::*;
 use crate::broker::toolcall::ToolRunner;
-use crate::broker::Adapter;
+use crate::broker::{Adapter, Registry};
 use std::sync::{Arc, Mutex};
 
 struct Recorder(Arc<Mutex<Vec<String>>>);

@@ -9,12 +9,16 @@
 //! (`@next`/`@done`, peers, transcript) already arrives in the framed `body`
 //! (see [`super::route::frame`]); the name and role only select the model + a
 //! light system prompt.
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crew_hive::{CompletionRequest, Provider};
+use crew_hive::Provider;
 
 use super::adapter::{Adapter, Engine, HopStream, Usage};
+
+#[path = "apicall.rs"]
+mod call;
 
 /// Output token ceiling per agent reply. 2048 was too few for real work — a
 /// long answer, a `sys:write_file` of a whole file, a `sys:edit` with a big
@@ -133,32 +137,8 @@ impl Adapter for ApiAdapter {
     /// API replies carry real usage: the provider's reported prompt/completion
     /// tokens (the prompt size is the agent's live context fill).
     fn call_with_usage(&self, body: &str, timeout: Duration) -> Result<(String, Usage), String> {
-        let req = CompletionRequest {
-            model: self.model.clone(),
-            system: self.system.clone(),
-            prompt: body.to_string(),
-            max_tokens: MAX_TOKENS,
-            ..Default::default()
-        };
-        let fut =
-            crew_hive::provider::cutoff::whole(Arc::clone(&self.provider), req, None, timeout);
-        // Raced against the task's /stop (`cancelscope`): Esc ends the wait.
-        let stop = super::cancelscope::current();
-        let raced = super::cancelscope::unless(stop, async move {
-            // Built inside the runtime: a timer made outside it has no reactor.
-            tokio::time::timeout(timeout, fut).await
-        });
-        let Some(outcome) = self.rt.block_on(raced) else {
-            return Err(super::cancelscope::STOPPED.to_string());
-        };
-        match outcome {
-            Ok(Ok(c)) => Ok((c.text.trim().to_string(), Usage::of(&self.model, &c))),
-            Ok(Err(e)) => Err(e.to_string()),
-            Err(_) => Err(format!(
-                "{}: api call timed out after {timeout:?} (raise CREW_BROKER_TIMEOUT_MS?)",
-                self.model
-            )),
-        }
+        let c = self.ask(body, timeout, None)?;
+        Ok((c.text.trim().to_string(), Usage::of(&self.model, &c)))
     }
 
     /// Same call as `call_with_usage`, but streams the reply: reports a
@@ -173,70 +153,16 @@ impl Adapter for ApiAdapter {
         timeout: Duration,
         stream: &HopStream,
     ) -> Result<(String, Usage), String> {
-        let req = CompletionRequest {
-            model: self.model.clone(),
-            system: self.system.clone(),
-            prompt: body.to_string(),
-            max_tokens: MAX_TOKENS,
-            ..Default::default()
-        };
-        let chars = Arc::new(std::sync::atomic::AtomicU64::new(0));
-        let counter = chars.clone();
-        let on_tokens = Arc::clone(&stream.on_tokens);
-        let on_text = Arc::clone(&stream.on_text);
-        let on_thought = Arc::clone(&stream.on_thought);
-        let streamed_thought = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let seen_thought = streamed_thought.clone();
-        let on_chunk: crew_hive::ChunkFn = Arc::new(move |c: crew_hive::Chunk<'_>| {
-            let s = match c {
-                crew_hive::Chunk::Text(s) => s,
-                crew_hive::Chunk::Thought(s) => {
-                    seen_thought.store(true, std::sync::atomic::Ordering::SeqCst);
-                    if !s.is_empty() {
-                        on_thought(s);
-                    }
-                    return;
-                }
-            };
-            // Text first: it is what the user sees, and the token estimate
-            // must never delay it.
-            on_text(s);
-            // Unicode chars, not bytes — byte counts over-report CJK ~3×
-            // (same convention as the provider-side chars/4 estimators).
-            let n = s.chars().count() as u64;
-            let total = counter.fetch_add(n, std::sync::atomic::Ordering::SeqCst) + n;
-            on_tokens(total / 4);
-        });
-        let fut = crew_hive::provider::cutoff::whole(
-            Arc::clone(&self.provider),
-            req,
-            Some(on_chunk),
-            timeout,
-        );
-        let stop = super::cancelscope::current();
-        let raced = super::cancelscope::unless(stop, async move {
-            // Built inside the runtime: a timer made outside it has no reactor.
-            tokio::time::timeout(timeout, fut).await
-        });
-        let Some(outcome) = self.rt.block_on(raced) else {
-            (stream.on_thought)(""); // the hop is over: flush the gate's tail
-            return Err(super::cancelscope::STOPPED.to_string());
-        };
-        if let Ok(Ok(c)) = &outcome {
-            if !c.thought.is_empty() && !streamed_thought.load(std::sync::atomic::Ordering::SeqCst)
-            {
+        let (on_chunk, streamed_thought) = call::chunks(stream);
+        let asked = self.ask(body, timeout, Some(on_chunk));
+        if let Ok(c) = &asked {
+            if !c.thought.is_empty() && !streamed_thought.load(Ordering::SeqCst) {
                 (stream.on_thought)(&c.thought);
             }
         }
         (stream.on_thought)(""); // the hop is over: flush the gate's tail
-        match outcome {
-            Ok(Ok(c)) => Ok((c.text.trim().to_string(), Usage::of(&self.model, &c))),
-            Ok(Err(e)) => Err(e.to_string()),
-            Err(_) => Err(format!(
-                "{}: api call timed out after {timeout:?} (raise CREW_BROKER_TIMEOUT_MS?)",
-                self.model
-            )),
-        }
+        let c = asked?;
+        Ok((c.text.trim().to_string(), Usage::of(&self.model, &c)))
     }
 }
 

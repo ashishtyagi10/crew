@@ -3,80 +3,21 @@
 //! back to the sender, or finish — until the thread ends or the hop limit trips
 //! the loop guard. Every hop is reported through a sink for observability.
 use std::sync::Arc;
-use std::time::Duration;
 
-use super::adapter::HopStream;
 use super::compact::{is_dup, keep_in_transcript, Compactor};
-use super::hop::{back, note, Hop, HopKind, RunStats};
-use super::hoptool::hop_tooler;
-use super::route::{clip, frame, has_directive, intro_of, repair_prompt};
-use super::tick::{hop_texter, hop_thinker, hop_ticker};
-use super::{parse_routing, Envelope, Registry, Routing};
+use super::hop::{note, Hop, HopKind, RunStats};
+use super::route::{clip, frame, has_directive, intro_of};
+use super::{parse_routing, Envelope, Routing};
 use crate::PluginEvent;
 
-/// Routes messages between agents in a [`Registry`], with a per-call timeout, a
-/// maximum hop count, and an approximate token budget (0 = unlimited).
-pub struct Broker {
-    pub registry: Registry,
-    pub max_hops: u32,
-    pub timeout: Duration,
-    pub token_budget: usize,
-    /// Checked between hops; when it flips true (`/stop`), the thread ends
-    /// with a Terminated hop instead of dialling the next agent.
-    pub(crate) cancel: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
-    /// When set, agents can call tools mid-relay (see [`super::toolcall`]).
-    pub(crate) tools: Option<std::sync::Arc<dyn super::toolcall::ToolRunner>>,
-    /// When set, transcript overflow is summarized instead of dropped
-    /// (see [`super::compact`]); `None` keeps the fixed-tail clipping.
-    summarizer: Option<super::compact::Summarize>,
-    /// Tool rounds one hop may take ([`MAX_TOOL_ROUNDS`] unless raised).
-    pub(crate) tool_rounds: u32,
-}
+#[path = "enginebuild.rs"]
+mod build;
+#[path = "enginedial.rs"]
+mod dial;
+
+pub use build::Broker;
 
 impl Broker {
-    pub fn new(registry: Registry, max_hops: u32, timeout: Duration) -> Self {
-        Self {
-            registry,
-            max_hops,
-            timeout,
-            token_budget: 0,
-            cancel: None,
-            tools: None,
-            summarizer: None,
-            tool_rounds: super::toolcall::MAX_TOOL_ROUNDS,
-        }
-    }
-
-    /// Raise (or lower) the tool rounds one hop may take.
-    pub(crate) fn with_tool_rounds(mut self, n: u32) -> Self {
-        self.tool_rounds = n.max(1);
-        self
-    }
-
-    /// Attach a transcript summarizer (`None` = keep clipping).
-    pub(crate) fn with_summarizer(mut self, s: Option<super::compact::Summarize>) -> Self {
-        self.summarizer = s;
-        self
-    }
-
-    /// Cap a thread's approximate token spend (0 = unlimited).
-    pub fn with_budget(mut self, tokens: usize) -> Self {
-        self.token_budget = tokens;
-        self
-    }
-
-    /// Attach a cooperative cancel flag (the `/stop` construct).
-    pub fn with_cancel_flag(mut self, flag: std::sync::Arc<std::sync::atomic::AtomicBool>) -> Self {
-        self.cancel = Some(flag);
-        self
-    }
-
-    pub(super) fn cancelled(&self) -> bool {
-        self.cancel
-            .as_ref()
-            .is_some_and(|c| c.load(std::sync::atomic::Ordering::Relaxed))
-    }
-
     /// Drive a relay from `from` to `to`; hops stream through `sink`. Every
     /// agent hop also gets its own rate-limited `StatsTick` emitter, built
     /// fresh per call so successive hops (and the retry below) pace
@@ -136,12 +77,7 @@ impl Broker {
                 text: String::new(),
                 usage: Default::default(),
             });
-            let stream = HopStream {
-                on_tokens: hop_ticker(tick_emit.clone(), env.to.clone()),
-                on_text: hop_texter(tick_emit.clone(), env.to.clone()),
-                on_thought: hop_thinker(tick_emit.clone(), env.to.clone()),
-                on_tool: hop_tooler(tick_emit.clone(), env.to.clone()),
-            };
+            let stream = dial::stream(tick_emit, &env.to);
             // With tools on, the agent's whole turn runs on the harness, the
             // swarm's loop (`hopturn`); with none, it is one dial.
             let dialed = match self.tools.is_some() {
@@ -165,21 +101,8 @@ impl Broker {
             let open = !answering_user && !peers.is_empty() && !self.cancelled();
             let reply = if !repaired && open && !has_directive(&reply) {
                 repaired = true;
-                let nudge = repair_prompt(&peers, &reply);
-                let stream = HopStream {
-                    on_tokens: hop_ticker(tick_emit.clone(), env.to.clone()),
-                    on_text: hop_texter(tick_emit.clone(), env.to.clone()),
-                    on_thought: hop_thinker(tick_emit.clone(), env.to.clone()),
-                    on_tool: hop_tooler(tick_emit.clone(), env.to.clone()),
-                };
-                match agent.call_with_usage_ticked(&nudge, self.timeout, &stream) {
-                    Ok((r, u)) if !r.trim().is_empty() => {
-                        stats.add((nudge.len() + r.len()) / 4, &u);
-                        usage.latest(u); // the repair call's context is the latest
-                        r
-                    }
-                    _ => reply,
-                }
+                let stream = dial::stream(tick_emit, &env.to);
+                self.repair(agent, &peers, reply, &mut usage, &mut stats, &stream)
             } else {
                 reply
             };
@@ -239,44 +162,6 @@ impl Broker {
                     return stats;
                 }
             }
-        }
-    }
-
-    /// Dial `agent` with `prompt`, a hop with no tools to call: the reply and
-    /// its usage, or `None` when the dial failed, on an error hop.
-    fn dial(
-        &self,
-        agent: &dyn super::adapter::Adapter,
-        prompt: &str,
-        stats: &mut RunStats,
-        env: &Envelope,
-        stream: &HopStream,
-        sink: &mut dyn FnMut(Hop),
-    ) -> Option<(String, super::adapter::Usage)> {
-        match agent.call_with_usage_ticked(prompt, self.timeout, stream) {
-            Ok((reply, usage)) if !reply.trim().is_empty() => {
-                stats.add((prompt.len() + reply.len()) / 4, &usage);
-                Some((reply, usage))
-            }
-            Ok(_) => {
-                sink(back(env, HopKind::Error, "empty reply".into()));
-                None
-            }
-            Err(e) => {
-                sink(back(env, HopKind::Error, e));
-                None
-            }
-        }
-    }
-
-    /// The hop that ends the thread with `answer`: the one place a relay
-    /// turn's final answer is made, so the checklist's line lands under every
-    /// answer however the thread ended (`toolround::finished`).
-    fn done(&self, env: &Envelope, answer: String, usage: super::adapter::Usage) -> Hop {
-        let answer = super::toolround::finished(self.tools.as_deref(), answer);
-        Hop {
-            usage,
-            ..back(env, HopKind::Done, answer)
         }
     }
 }
