@@ -144,16 +144,10 @@ async fn a_worker_the_budget_stops_answers_from_what_it_gathered() {
         assert_eq!(seen.len(), 4, "native {native}");
         let offered = |r: &CompletionRequest| !r.tools.is_empty() || r.prompt.contains(HINT);
         assert!(seen[..3].iter().all(offered), "native {native}");
+        // No tools on the last word, on the wire or in the prompt.
         let last = &seen[3];
-        assert!(
-            last.tools.is_empty(),
-            "native {native}: tools on the last word"
-        );
-        assert!(
-            !last.prompt.contains(HINT),
-            "native {native}: {}",
-            last.prompt
-        );
+        let bare = last.tools.is_empty() && !last.prompt.contains(HINT);
+        assert!(bare, "native {native}: {}", last.prompt);
         // Tool turns with no tools beside them are a request Anthropic refuses.
         assert!(last.turns.is_empty(), "native {native}");
         let carried = ["weather?", INSTRUCTION];

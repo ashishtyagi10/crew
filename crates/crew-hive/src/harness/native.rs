@@ -7,6 +7,12 @@
 //! description clip and asked to hand-write JSON on the last line of a reply.
 
 #[cfg(test)]
+#[path = "nativecalls_tests.rs"]
+mod calls_tests;
+#[cfg(test)]
+#[path = "nativekit_tests.rs"]
+mod kit;
+#[cfg(test)]
 #[path = "native_tests.rs"]
 mod tests;
 
@@ -14,14 +20,17 @@ mod tests;
 mod badargs;
 #[path = "batch.rs"]
 mod batch;
+#[path = "names.rs"]
+mod names;
 
 use std::sync::Arc;
 
 use super::{Ended, TurnContext, TurnSpec};
 use crate::bus::HiveEvent;
-use crate::provider::{CompletionRequest, Provider, ToolInvocation, ToolOutcome, Turn};
+use crate::provider::{CompletionRequest, Provider, ToolInvocation, Turn};
 use crate::steers::Steers;
 use crate::tools::{seen::Seen, todo, ToolCall, ToolCatalog, Tools};
+use names::{label_of, outcome_for_unknown, ran_of};
 
 /// Most tools one turn may fire, however many the model asked for.
 ///
@@ -36,24 +45,6 @@ pub(super) const MAX_CALLS_PER_TURN: usize = 8;
 /// What a call past [`MAX_CALLS_PER_TURN`] is answered with.
 pub(super) fn past_bound() -> String {
     format!("not run \u{2014} at most {MAX_CALLS_PER_TURN} tools per turn")
-}
-
-/// What a call resolved to, or why it did not.
-fn outcome_for_unknown(call: &ToolInvocation, catalog: &ToolCatalog) -> ToolOutcome {
-    let known = catalog.names();
-    // Naming the near misses turns an invented name into one recoverable
-    // round instead of a repeat of the same wrong guess — and at retrieval
-    // scale the whole list would be the wall the picker exists to avoid.
-    let tail = match known.contains(&"sys__find_tools") {
-        true => "; sys__find_tools searches them",
-        false => "",
-    };
-    ToolOutcome {
-        id: call.id.clone(),
-        name: call.name.clone(),
-        content: crate::tools::near::unknown("tool", &call.name, &known, tail),
-        is_error: true,
-    }
 }
 
 /// Run one turn with native tool use. Returns how it ended; every model call,
@@ -197,35 +188,5 @@ pub(super) async fn run(
         }
         advice = read;
         round += 1;
-    }
-}
-
-/// Each call of a round that names a tool, as crew names it, beside how it
-/// came back `(ok, text)`: what the engine's `Advice` reads.
-fn ran_of(
-    calls: &[ToolInvocation],
-    results: &[ToolOutcome],
-    catalog: &ToolCatalog,
-) -> Vec<(ToolCall, (bool, String))> {
-    calls
-        .iter()
-        .zip(results)
-        .filter_map(|(c, r)| {
-            let (server, tool) = catalog.resolve(&c.name)?;
-            let call = ToolCall {
-                server: server.to_string(),
-                tool: tool.to_string(),
-                args: c.input.to_string(),
-            };
-            Some((call, (!r.is_error, r.content.clone())))
-        })
-        .collect()
-}
-
-/// `server:tool` when the name resolves, else the name the model invented.
-fn label_of(call: &ToolInvocation, catalog: &ToolCatalog) -> String {
-    match catalog.resolve(&call.name) {
-        Some((s, t)) => format!("{s}:{t}"),
-        None => call.name.clone(),
     }
 }

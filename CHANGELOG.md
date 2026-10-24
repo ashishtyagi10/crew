@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.6
+
+**Internal: the agent-turn code is split into smaller files.**
+- The one-harness work (0.28.99–0.29.3) left eight files past the project's 200-line limit. They
+  are split into smaller ones, and the code inside is unchanged, so `/crew` and `@agent` turns
+  work exactly as before. Nothing changes in the app.
+
 ## 0.29.5
 
 **Fix: the Windows and coverage checks pass again.**
