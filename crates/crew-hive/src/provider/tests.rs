@@ -506,9 +506,9 @@ fn anthropic_base_url_seam_targets_v1_messages() {
 
 /// One request is one `claude -p` run: print mode, the STREAMED JSON
 /// envelope (`--verbose` is what lets `-p` stream; partial messages carry
-/// the deltas), Claude Code's own tools OFF (this is a model, not an
-/// agent), no session left on disk, the request's model, and the system
-/// prompt only when there is one.
+/// the deltas), Claude Code's own tools OFF and the person's MCP servers
+/// with them (this is a model, not an agent), no session left on disk, the
+/// request's model, and the system prompt only when there is one.
 #[test]
 fn claude_cli_args_are_the_documented_headless_contract() {
     use crate::provider::ClaudeCliProvider;
@@ -526,6 +526,7 @@ fn claude_cli_args_are_the_documented_headless_contract() {
             "--include-partial-messages",
             "--tools",
             "",
+            "--strict-mcp-config",
             "--no-session-persistence",
             "--model",
             "claude-sonnet-4-6",

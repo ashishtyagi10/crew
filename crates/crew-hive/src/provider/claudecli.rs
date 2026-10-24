@@ -9,8 +9,12 @@
 //! The run STREAMS (`claudestream`): each text and thinking delta reaches
 //! `on_chunk` as it arrives, so the pane shows the model working instead of
 //! a silent minute. Claude Code's built-in tools are switched off
-//! (`--tools ""`): this is a model, not an agent. Crew's own tools reach it
-//! through the swarm's text convention, since `supports_tools` stays false.
+//! (`--tools ""`), and so are the person's MCP servers (`--strict-mcp-config`
+//! with no `--mcp-config`): this is a model, not an agent. `--tools ""` alone
+//! left every MCP server on, and a specialist asked for a kernel version ran
+//! its command through the person's Node REPL server, past crew's approval
+//! gate (live, 2026-10-24). Crew's own tools reach it through the swarm's text
+//! convention, since `supports_tools` stays false.
 //! Sessions are not persisted; a multi-turn request is flattened into one
 //! prompt.
 use std::future::Future;
@@ -54,8 +58,9 @@ impl ClaudeCliProvider {
 
     /// The argv one request becomes — pure, so the contract is testable:
     /// print mode, the streamed JSON envelope (which needs `--verbose`) with
-    /// partial messages, no built-in tools, no session left behind, the
-    /// request's model, and its system prompt when it has one.
+    /// partial messages, no built-in tools and no MCP servers, no session
+    /// left behind, the request's model, and its system prompt when it has
+    /// one.
     pub fn args(req: &CompletionRequest) -> Vec<String> {
         let mut v = vec![
             "-p".to_string(),
@@ -66,6 +71,7 @@ impl ClaudeCliProvider {
             "--include-partial-messages".into(),
             "--tools".into(),
             String::new(),
+            "--strict-mcp-config".into(),
             "--no-session-persistence".into(),
         ];
         if !req.model.is_empty() {

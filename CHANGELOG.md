@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.1
+
+**Fix: Claude running as a model no longer gets your MCP servers.**
+- When crew uses your Claude Code sign-in as a model (the planner, judges and specialists on
+  `claude-code`), it switched off Claude's built-in tools but left every MCP server you had
+  configured switched on. A specialist could then run commands through one of them, such as a
+  Node REPL server, without crew's approval prompt. Those runs now load no MCP servers, so every
+  tool call goes through crew's own tools and its approval gate.
+
 ## 0.29.0
 
 **`@agent` API agents now run on the same agent harness as the `/crew` swarm.**

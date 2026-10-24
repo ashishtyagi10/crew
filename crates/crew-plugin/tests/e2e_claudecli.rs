@@ -90,8 +90,8 @@ fn a_signed_in_claude_code_serves_the_swarm_through_its_cli() {
     for run in &json_runs {
         assert!(run.starts_with("-p "), "{run}");
         assert!(
-            run.contains("--tools  --no-session-persistence"),
-            "tools not switched off: {run}"
+            run.contains("--tools  --strict-mcp-config --no-session-persistence"),
+            "tools and MCP servers not switched off: {run}"
         );
         assert!(run.contains("--model "), "{run}");
         assert!(run.contains("--system-prompt "), "no role prompt: {run}");

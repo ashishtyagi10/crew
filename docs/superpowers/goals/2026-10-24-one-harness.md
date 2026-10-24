@@ -167,3 +167,10 @@ CLI agents' `run_tools` keeps its own until phase 3 removes it.
   Node REPL MCP server instead of an `@tool` line — `ClaudeCliProvider` passes `--tools ""`,
   which leaves MCP servers on, so those calls bypass crew's approval gate. The first prompt was
   byte for byte the old relay's, so this predates phase 2; reported, not fixed here.
+- 2026-10-24 — the MCP leak fixed (v0.29.1, "fix the MCP leak first, then phase 3"):
+  `ClaudeCliProvider` adds `--strict-mcp-config`, so `claude -p` as a model loads no MCP server.
+  Measured on this Mac: asked to list its tools, `--tools ""` alone named four (`node_repl`,
+  `nx-mcp`); with the flag, none. LIVE, the same `@system-administrator` probe on
+  `CREW_PROVIDER=claude-code`: Claude now wrote crew's own `@tool sys:run {"cmd": "uname -srv"}`
+  line, which the harness's text loop ran through crew's gate and answered from — the text loop's
+  first live turn.
