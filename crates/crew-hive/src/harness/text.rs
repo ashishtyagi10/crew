@@ -32,6 +32,7 @@ pub(super) async fn run(
         model: model_id,
         tier,
         max_tokens,
+        ..
     } = spec;
     let ending = ending.unwrap_or_default();
     // The tools section is part of the BASE prompt, not just the first
@@ -156,7 +157,7 @@ pub(super) async fn run(
         };
         round += 1;
         left = rounds_left;
-        advice = ctx.advised(&calls[..ran.len()], &ran, &advice);
+        advice = ctx.advised(&calls[..ran.len()], &ran, &advice).await;
         let list = tools::todo::section(runner.checklist());
         let heard = steered::heard(steers.as_ref()) + &advice;
         prompt = toolloop::follow_up(&base, &list, &exchanges, &heard, left, &ending);

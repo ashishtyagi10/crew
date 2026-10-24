@@ -21,7 +21,7 @@ use super::adapter::{Adapter, Engine, HopStream, Usage};
 /// `new` string — which stopped mid-sentence or mid-JSON. Providers bill the
 /// output actually generated, not the ceiling, so a concise hand-off costs
 /// what it did; the ceiling only bounds a runaway, and a reply that still
-/// reaches it is continued once (`cutoff`). 4096, not 8192: some endpoints
+/// reaches it is continued once (`crew_hive::provider::cutoff`). 4096, not 8192: some endpoints
 /// (NVIDIA NIM models among them) reject a request whose ceiling is over the
 /// model's own output limit, and a rejected request answers nothing at all.
 pub(super) const MAX_TOKENS: u32 = 4096;
@@ -140,7 +140,8 @@ impl Adapter for ApiAdapter {
             max_tokens: MAX_TOKENS,
             ..Default::default()
         };
-        let fut = super::cutoff::whole(Arc::clone(&self.provider), req, None, timeout);
+        let fut =
+            crew_hive::provider::cutoff::whole(Arc::clone(&self.provider), req, None, timeout);
         // Raced against the task's /stop (`cancelscope`): Esc ends the wait.
         let stop = super::cancelscope::current();
         let raced = super::cancelscope::unless(stop, async move {
@@ -206,7 +207,12 @@ impl Adapter for ApiAdapter {
             let total = counter.fetch_add(n, std::sync::atomic::Ordering::SeqCst) + n;
             on_tokens(total / 4);
         });
-        let fut = super::cutoff::whole(Arc::clone(&self.provider), req, Some(on_chunk), timeout);
+        let fut = crew_hive::provider::cutoff::whole(
+            Arc::clone(&self.provider),
+            req,
+            Some(on_chunk),
+            timeout,
+        );
         let stop = super::cancelscope::current();
         let raced = super::cancelscope::unless(stop, async move {
             // Built inside the runtime: a timer made outside it has no reactor.

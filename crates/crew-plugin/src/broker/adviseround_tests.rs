@@ -6,10 +6,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use super::tests::{advising, install, Runs};
-use super::text::HEAD;
 use crate::broker::toolcall::ToolRunner;
 use crate::broker::turnkit::{turn as relay, Script};
 use crate::broker::Broker;
+use crew_hive::advisor::HEAD;
 
 /// A turn on a broker `setup` gives its tools that builds (and fails), then
 /// tests (and passes), then answers: its answer, and the follow-up prompts

@@ -1,11 +1,11 @@
 # Goal — one agent harness for crew: the relay and the swarm run the same turn loop
 
-**Status: PHASES 1–3 SHIPPED (v0.28.99, v0.29.0, v0.29.2).** Phase 4 open.
+**Status: COMPLETE — all four phases shipped (v0.28.99, v0.29.0, v0.29.2, v0.29.3).**
 
 **Set:** 2026-10-24 by the user. "Do you know how to build harness ?" → "Yes I am talking about
 Agent Harness." → offered a standalone harness, one harness for crew, or a teaching one: "Option 2,
 one harness for crew" → "yes, write the doc and start phase 1" → "yes, start phase 2" → "fix
-the MCP leak first, then phase 3".
+the MCP leak first, then phase 3" → "yes, start phase 4".
 
 ## Where it stands today
 
@@ -47,10 +47,11 @@ agents' alone in phase 2, and is gone since phase 3):
 | steering | `steered.rs` | `steer.rs` |
 | stop | `TurnContext::cancel` | `cancelscope` — the same `Arc<AtomicBool>` type |
 
-Only the swarm has: native tool-use, bad-argument refusals (`badargs.rs`), the last word. Only the
-relay has: the advisor that reads a failed check (`advise.rs`), the cut-off continuation
+Only the swarm had: native tool-use, bad-argument refusals (`badargs.rs`), the last word. Only the
+relay had: the advisor that reads a failed check (`advise.rs`), the cut-off continuation
 (`cutoff.rs`), `never_ran` for a call a reply narrated but never made (`toolround.rs`), and
 cross-hop summary compaction (`compact.rs` — that one belongs to hop routing and stays there).
+Since phase 4 all of it but the compaction is the harness's, so both engines have it.
 
 ## The shape
 
@@ -96,7 +97,7 @@ The loop's three seams, which are exactly where the two engines differ:
    and `toolclip` its clip, which the swarm's message card uses, and the sizes the `sys` tools fit
    to.
 4. **The relay's extras move down**, so the swarm has them too: the advisor, the cut-off
-   continuation, `never_ran`.
+   continuation, `never_ran`. **Done (v0.29.3).**
 
 ## Decisions (where the two disagree)
 
@@ -204,3 +205,28 @@ agents since phase 2, its CLI agents since phase 3.
   no `CREW_PROVIDER`): a plain message on the `claude` relay — Claude Code ran its own `Bash`
   (`uname -r; uname -sv`), the call and result reached the pane's tool lane under `claude`, the
   reply streamed and was answered from `27.2.0`, 1 exchange with Claude's own usage.
+- 2026-10-24 — phase 4 started on branch `harness-extras`.
+- 2026-10-24 — **phase 4 shipped (v0.29.3); the goal is complete.** The relay's three extras are
+  the harness's, so a swarm worker has them too:
+  - the **cut-off continuation** — `cutoff.rs` and `resume.rs` moved to `crew_hive::provider`; the
+    harness wraps every turn's provider in `cutoff::Whole`, so each reply is continued once when
+    the ceiling cut it, picked up when its stream broke, asked again when it came back empty,
+    within `TurnSpec::call_timeout` (the relay's per-call timeout, else the provider's own). The
+    relay's `Bounded` keeps only its timeout and usage;
+  - **`never_ran`** — `crew_hive::tools::never_ran`, run where the harness finishes an answer
+    (with tools on); the relay's thread end still says it, once, for a hop that ran no turn.
+    `tools::is_note` names the lines the engines write under an answer, which `routed_last` keeps
+    above the routing line;
+  - the **advisor** — `crew_hive::advisor` (the body of `advise.rs` and of advicetext, now `advisor/text.rs`, with
+    `failexcerpt.rs` moved beside it), an `Advice` whose `read` is now async: a swarm runs every
+    worker on one thread, and a read that blocked would have stopped them all. A read is raced
+    against the stop. The engine hands in where its model comes from (`Find`, still crew-plugin's
+    `advise`: the `CREW_ADVISOR` knobs and the provider lookup), how its line is said and how a
+    read is billed (`Hooks`): the relay into the turn's `RunStats`, the swarm on the bus under
+    the worker (`ApiFactory::with_advisor`, `ApiAgent::advisor_for`), where its sums and budget
+    governor already read every worker's spend.
+  Gate: crew-hive 630, crew-plugin 1,543 + integration (tests moved with their code). LIVE
+  (broker over stdio, DashScope qwen-max): a `/crew` swarm (`CREW_INTENT=0`) whose worker's
+  `sys:run` of `ls /nonexistent-crew-probe-dir` exited 1 — smith said `advised · The directory
+  … does not exist`, the first advice a swarm worker ever got; the same command through
+  `@system-administrator` on the relay was advised the same way, the read in the turn's stats.

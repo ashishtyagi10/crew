@@ -113,3 +113,36 @@ fn ticked_estimates_count_chars_not_bytes() {
         "final estimate uses chars: {ticks:?}"
     );
 }
+
+/// What the provider's chain skipped reaches the adapter's usage through the
+/// cut-off join (`crew_hive::provider::cutoff`), so smith can say "fell back
+/// to" once per agent.
+#[test]
+fn a_fallback_reaches_the_adapters_usage() {
+    struct Fell;
+    impl Provider for Fell {
+        fn complete(
+            &self,
+            _req: CompletionRequest,
+        ) -> std::pin::Pin<
+            Box<
+                dyn std::future::Future<
+                        Output = Result<crew_hive::Completion, crew_hive::ProviderError>,
+                    > + Send,
+            >,
+        > {
+            Box::pin(async {
+                Ok(crew_hive::Completion {
+                    text: "hi".into(),
+                    model: "qwen-flash".into(),
+                    fell_back: "qwen-max: gone".into(),
+                    ..Default::default()
+                })
+            })
+        }
+    }
+    let a = ApiAdapter::new("planner", "m", "", None, Arc::new(Fell)).unwrap();
+    let (text, usage) = a.call_with_usage("task", Duration::from_secs(5)).unwrap();
+    assert_eq!(text, "hi");
+    assert_eq!(usage.fell_back, "qwen-flash \u{b7} qwen-max: gone");
+}

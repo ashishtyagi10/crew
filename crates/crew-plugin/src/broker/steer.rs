@@ -144,7 +144,7 @@ pub(crate) fn take() -> Vec<String> {
 
 /// Tell the host `ev` from this thread's task, the way a taken steer is
 /// announced; nothing on a thread holding no [`Taking`]. The tool loop's way
-/// to a quiet line of its own (`toolround::advise`): its hops are cards.
+/// to a quiet line of its own (the advisor, `advise::say`): its hops are cards.
 pub(crate) fn say(ev: PluginEvent) {
     if let Some(emit) = TAKER.with(|t| t.borrow().clone()) {
         emit(ev);

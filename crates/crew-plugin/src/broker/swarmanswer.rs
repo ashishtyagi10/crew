@@ -37,7 +37,7 @@ pub(crate) type Synth<'a> = Option<&'a AnswerFn>;
 /// (~550 words) was short for merging several workers' lists or code, and
 /// the provider bills what is written, not the ceiling, so a short answer
 /// costs what it did. An answer that still reaches it ends with
-/// `cutoff::CUT_OFF` and is not continued: it is the last word of a run that
+/// `crew_hive::provider::cutoff::CUT_OFF` and is not continued: it is the last word of a run that
 /// has already paid for every worker.
 const SYNTH_MAX_TOKENS: u32 = 2048;
 /// Chars of the user's request carried into a brief; mirrors `route::TASK_CAP`.

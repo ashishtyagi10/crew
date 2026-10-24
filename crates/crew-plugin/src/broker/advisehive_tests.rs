@@ -6,11 +6,11 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use super::tests::{advising, Runs};
-use super::text::HEAD;
 use crate::broker::adapter::Adapter;
 use crate::broker::apiadapter::ApiAdapter;
 use crate::broker::Broker;
 use crate::Registry;
+use crew_hive::advisor::HEAD;
 use crew_hive::provider::ToolInvocation;
 use crew_hive::{Completion, CompletionRequest, Provider, ProviderError, ToolSpec, Turn};
 

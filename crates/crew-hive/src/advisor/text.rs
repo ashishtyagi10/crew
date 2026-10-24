@@ -1,12 +1,11 @@
-//! The advisor's words (`advise`): the brief it reads, and what of its reply
-//! reaches the agent and the pane.
-use crate::broker::route::clip;
-use crew_hive::clip_middle;
-use crew_hive::tools::ToolCall;
+//! The advisor's words: the brief it reads, and what of its reply reaches the
+//! agent and the pane.
+use crate::clipmiddle::clip_middle;
+use crate::tools::ToolCall;
 
 /// The heading the advice rides under in the follow-up: whose words they are,
 /// and that the agent is not bound by them.
-pub(super) const HEAD: &str = "ADVICE (a second model read the failure; you decide):";
+pub const HEAD: &str = "ADVICE (a second model read the failure; you decide):";
 
 /// Lines of advice kept, and chars of each.
 const LINES: usize = 3;
@@ -46,7 +45,7 @@ pub(super) fn brief(request: &str, calls: &[String], call: &ToolCall, output: &s
          not point at. Plain lines: no preamble, no code fences.",
         clip_middle(request, REQUEST_CAP),
         calls.join("\n"),
-        clip_middle(&crate::broker::failexcerpt::excerpt(output), FAILURE_CAP)
+        clip_middle(&crate::failexcerpt::excerpt(output), FAILURE_CAP)
     )
 }
 
@@ -80,6 +79,15 @@ pub(super) fn said(first: &str) -> String {
     format!("advised \u{b7} {}", clip(first, SAID_CAP))
 }
 
+/// `s` on one line, its whitespace collapsed, held to `max` chars.
+fn clip(s: &str, max: usize) -> String {
+    let flat = s.split_whitespace().collect::<Vec<_>>().join(" ");
+    match flat.chars().count() <= max {
+        true => flat,
+        false => format!("{}\u{2026}", flat.chars().take(max).collect::<String>()),
+    }
+}
+
 #[cfg(test)]
-#[path = "advicetext_tests.rs"]
+#[path = "text_tests.rs"]
 mod tests;

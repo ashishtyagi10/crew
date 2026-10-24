@@ -95,7 +95,7 @@ pub(crate) fn line(cmd: &str, o: &Outcome) -> String {
     if o.ok {
         return format!("check: {cmd} \u{2014} passed");
     }
-    let said = super::failexcerpt::headline(&o.text, FAIL_LINES);
+    let said = crew_hive::failexcerpt::headline(&o.text, FAIL_LINES);
     format!("check: {cmd} \u{2014} FAILED\n{}", said.join("\n"))
 }
 

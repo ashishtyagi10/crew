@@ -6,7 +6,8 @@
 
 use std::sync::Arc;
 
-use super::ApiAgent;
+use super::{ApiAgent, Say};
+use crate::advisor::Find;
 use crate::agent::Agent;
 use crate::graph::AgentKind;
 use crate::provider::Provider;
@@ -29,6 +30,8 @@ pub struct ApiFactory {
     preamble: Option<String>,
     /// The run's steers: one log, so every worker reads what any took.
     steers: Option<Steers>,
+    /// Each task's advisor: where it finds its model, how it says its line.
+    advisor: Option<(Find, Say)>,
 }
 
 impl ApiFactory {
@@ -40,6 +43,7 @@ impl ApiFactory {
             tools: None,
             preamble: None,
             steers: None,
+            advisor: None,
         }
     }
 
@@ -66,6 +70,12 @@ impl ApiFactory {
         self.tools = Some(tools);
         self
     }
+
+    /// Give every task an advisor (see [`ApiAgent::with_advisor`]).
+    pub fn with_advisor(mut self, find: Find, say: Say) -> Self {
+        self.advisor = Some((find, say));
+        self
+    }
 }
 
 impl AgentFactory for ApiFactory {
@@ -82,6 +92,9 @@ impl AgentFactory for ApiFactory {
         }
         if let Some(s) = &self.steers {
             agent = agent.with_steers(s.clone());
+        }
+        if let Some((find, say)) = &self.advisor {
+            agent = agent.with_advisor(Arc::clone(find), Arc::clone(say));
         }
         Box::new(agent)
     }

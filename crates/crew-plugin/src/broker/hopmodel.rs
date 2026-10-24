@@ -16,8 +16,8 @@ use crate::broker::adapter::{Adapter, HopStream, Usage};
 type Call = Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>>;
 
 /// An API agent's provider as its relay dial called it: bounded by the
-/// broker's timeout, continued once when the token ceiling cut it
-/// (`cutoff`), and its usage kept for the hop.
+/// broker's timeout, and its usage kept for the hop. The turn makes each
+/// reply whole itself (`provider::cutoff`, `TurnSpec::call_timeout`).
 pub(super) struct Bounded {
     pub(super) inner: Arc<dyn Provider>,
     pub(super) model: String,
@@ -31,8 +31,11 @@ impl Bounded {
         let (model, timeout) = (self.model.clone(), self.timeout);
         let sent = sent_chars(&req);
         Box::pin(async move {
-            let whole = crate::broker::cutoff::whole(inner, req, on_chunk, timeout);
-            let c = match tokio::time::timeout(timeout, whole).await {
+            let call = match on_chunk {
+                Some(f) => inner.complete_streaming(req, f),
+                None => inner.complete(req),
+            };
+            let c = match tokio::time::timeout(timeout, call).await {
                 Ok(got) => got?,
                 Err(_) => {
                     return Err(ProviderError::Http(format!(

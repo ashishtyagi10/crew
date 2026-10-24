@@ -22,6 +22,8 @@
 //! - [`apiagent`] — native LLM agent (futures, no PTY), a task as one harness turn: [`ApiAgent`]
 //! - [`tools`] — the tool surface both engines share: [`Tools`], [`parse_tool_call`]
 //! - [`clipmiddle`] — a long output cut from the middle, head and conclusion kept: [`clip_middle`]
+//! - [`advisor`] — a second model reads a failed check, for a turn's `Advice`
+//! - [`failexcerpt`] — the part of a failing check worth reading
 //!
 //! Scale & control:
 //! - [`batch`] — flat parallel-job graph: [`batch_graph`], [`Job`]
@@ -42,6 +44,7 @@
 //!                 Blackboard, EventBus, Scheduler, StubAgent, AgentFactory};
 //! ```
 
+pub mod advisor;
 pub mod agent;
 pub mod agentname;
 pub mod apiagent;
@@ -52,6 +55,7 @@ pub mod catalog;
 pub mod childproc;
 pub mod clipmiddle;
 pub mod deviceflow;
+pub mod failexcerpt;
 pub mod govern;
 pub mod graph;
 pub mod harness;
