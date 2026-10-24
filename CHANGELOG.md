@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.3
+
+**`/crew` workers now get what `@agent` turns had: the advisor, the cut-off continuation, and the "never ran" note.**
+- When a `/crew` worker's command fails (a build, a test run), a second model now reads the
+  failure and tells the worker what it most likely means, as `@agent` turns already did. You see
+  it as one quiet `advised · …` line. `CREW_ADVISOR=0` still turns it off, for both.
+- A worker's reply that hits the output-token limit is now continued once instead of stopping
+  mid-sentence; a reply whose stream breaks is picked up where it stopped; an empty reply is
+  asked again.
+- A worker's answer that still contains a tool call it never made now says so underneath.
+- This finishes the one-harness work: the `/crew` swarm and every `@agent` turn now run the same
+  agent loop, with the same rules and the same extras.
+
 ## 0.29.2
 
 **Every `@agent` relay turn now runs on crew's one agent harness, CLI agents included.**

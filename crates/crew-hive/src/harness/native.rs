@@ -191,7 +191,7 @@ pub(super) async fn run(
         // What the engine made of the round (`Advice`), as a note of its own
         // when it says something new, for the same reason.
         let (calls, outcomes): (Vec<ToolCall>, Vec<(bool, String)>) = ran.into_iter().unzip();
-        let read = ctx.advised(&calls, &outcomes, &advice);
+        let read = ctx.advised(&calls, &outcomes, &advice).await;
         if read != advice && !read.trim().is_empty() {
             turns.push(Turn::User(read.trim_end().to_string()));
         }

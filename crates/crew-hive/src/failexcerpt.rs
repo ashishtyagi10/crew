@@ -41,7 +41,7 @@ const PROGRESS: &str = "Compiling Checking Building Downloading Downloaded Fresh
 /// What the repair pass is shown of a failed check: the `exit N` line, the
 /// failure lines with their context, then the last lines, with `…` wherever
 /// something was skipped. Nothing that names a failure: the end instead.
-pub(crate) fn excerpt(text: &str) -> String {
+pub fn excerpt(text: &str) -> String {
     let (exit, lines) = split(text);
     let useful = useful(&lines);
     let picks = picks(&lines, &useful);
@@ -83,7 +83,7 @@ pub(crate) fn excerpt(text: &str) -> String {
 /// the summary last, `test result: FAILED. 39 passed; 1 failed` when cargo
 /// printed one, otherwise the last failure line. Nothing that names a
 /// failure: the last lines.
-pub(crate) fn headline(text: &str, max: usize) -> Vec<&str> {
+pub fn headline(text: &str, max: usize) -> Vec<&str> {
     let (_, lines) = split(text);
     let useful = useful(&lines);
     let picks = picks(&lines, &useful);
@@ -115,7 +115,7 @@ pub(crate) fn headline(text: &str, max: usize) -> Vec<&str> {
 }
 
 /// The `exit N` line `sys:run` opens with, and the lines after it.
-pub(crate) fn split(text: &str) -> (Option<&str>, Vec<&str>) {
+pub fn split(text: &str) -> (Option<&str>, Vec<&str>) {
     let mut lines: Vec<&str> = text.lines().collect();
     let exit = lines.first().copied().filter(|l| {
         l.strip_prefix("exit ")
@@ -130,7 +130,7 @@ pub(crate) fn split(text: &str) -> (Option<&str>, Vec<&str>) {
 /// Indices of the lines worth reading at all: not blank, not progress. An
 /// output that is ALL progress keeps its non-blank lines, so it still says
 /// something.
-pub(crate) fn useful(lines: &[&str]) -> Vec<usize> {
+pub fn useful(lines: &[&str]) -> Vec<usize> {
     let real = |i: &usize| !lines[*i].trim().is_empty();
     let quiet: Vec<usize> = (0..lines.len())
         .filter(|i| real(i) && !progress(lines[*i]))
@@ -143,7 +143,7 @@ pub(crate) fn useful(lines: &[&str]) -> Vec<usize> {
 
 /// Positions in `useful` of the failure lines, or of the warnings when
 /// nothing failed outright.
-pub(crate) fn picks(lines: &[&str], useful: &[usize]) -> Vec<usize> {
+pub fn picks(lines: &[&str], useful: &[usize]) -> Vec<usize> {
     let find = |f: fn(&str) -> bool| -> Vec<usize> {
         (0..useful.len()).filter(|&p| f(lines[useful[p]])).collect()
     };

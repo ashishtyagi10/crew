@@ -1,7 +1,8 @@
 //! How a relay turn's answer ends, whatever ran it: the line under an answer
 //! a failure or a stop cut short, the checklist's last word, and the note
-//! under an answer that still holds a call nobody ran. The tool rounds
-//! themselves are the harness's (`hopturn`).
+//! under an answer that still holds a call nobody ran — both said by the
+//! harness for a turn it ran, and here again, once, where the thread ends.
+//! The tool rounds themselves are the harness's (`hopturn`).
 use super::toolcall::ToolRunner;
 
 /// The answer of a turn whose next model call failed after a tool round:
@@ -38,42 +39,11 @@ pub(super) fn finished(runner: Option<&dyn ToolRunner>, answer: String) -> Strin
     never_ran(answer)
 }
 
-/// `answer` with one line under it when it still holds a call: a finished
-/// answer has run its trailing calls, so one left in it never ran, and the
-/// work it says comes next was not done. The call stays as written. An
-/// answer whose rounds ran out (the harness's budget note) says the budget
-/// stopped it: the generic line told the reader, and the reply judge, that
-/// the turn "ended before any call in it ran", which sent the judge after a
-/// turn that had run every round it had (live, 2026-10-23). One that already
-/// says what did not run says it once.
+/// `answer` with one line under it when it still holds a call that never
+/// ran (`crew_hive::tools::never_ran`, where the harness finishes its own).
 pub(super) fn never_ran(answer: String) -> String {
-    let stray = crew_hive::tools::stray_calls(&answer);
-    let said = answer.trim_end().rsplit('\n').next().unwrap_or("");
-    let Some(first) = stray.first().filter(|_| !said.starts_with("not run")) else {
-        return answer;
-    };
-    let why = match said.starts_with("[tool budget spent") {
-        true => "the tool budget was spent before it could run",
-        false => "the turn ended before any call in it ran",
-    };
-    format!(
-        "{}\n\nnot run \u{2014} the answer asks for `{first}`{}, but {why}",
-        answer.trim_end(),
-        more(stray.len())
-    )
+    crew_hive::tools::never_ran(answer)
 }
-
-/// ` and 2 more`, after the first of `n` calls named.
-fn more(n: usize) -> String {
-    match n {
-        0 | 1 => String::new(),
-        n => format!(" and {} more", n - 1),
-    }
-}
-
-/// What a second model makes of a failed check, for the follow-up.
-#[path = "advise.rs"]
-pub(super) mod advise;
 
 #[cfg(test)]
 #[path = "toolround_tests.rs"]

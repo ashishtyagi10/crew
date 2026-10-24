@@ -110,7 +110,7 @@ pub(crate) fn repair_task(f: &Failure<'_>, change: Option<&str>) -> String {
          Fix the cause. Change as little as possible, do not weaken or delete \
          the check itself, and do not commit anything.",
         f.cmd,
-        super::failexcerpt::excerpt(&f.o.text),
+        crew_hive::failexcerpt::excerpt(&f.o.text),
     )
 }
 

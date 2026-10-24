@@ -15,7 +15,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use crew_hive::{Chunk, ChunkFn, Completion, CompletionRequest, Provider, ProviderError};
+use crate::provider::{Chunk, ChunkFn, Completion, CompletionRequest, Provider, ProviderError};
 
 use super::{call, continuation, summed, GRACE};
 

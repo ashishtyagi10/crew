@@ -1,9 +1,7 @@
-//! Through the relay's own adapter: a scripted provider answers each call in
-//! turn, and records what it was asked.
+//! A scripted provider answers each call in turn, and records what it was
+//! asked; each test makes one call through [`whole`], as a turn does.
 use super::*;
-use crate::broker::adapter::{Adapter, HopStream};
-use crate::broker::apiadapter::ApiAdapter;
-use crew_hive::Chunk;
+use crate::provider::Chunk;
 use std::collections::VecDeque;
 use std::sync::Mutex;
 
@@ -62,9 +60,25 @@ fn scripted(replies: Vec<Completion>, slow: Option<(usize, Duration)>) -> Arc<Sc
     })
 }
 
-fn adapter(p: &Arc<Scripted>) -> ApiAdapter {
+/// One call to `p` through [`whole`] within `budget`, streamed to `on_chunk`
+/// when there is one: the completion, its text trimmed as a reply is.
+fn call(p: &Arc<Scripted>, budget: Duration, on_chunk: Option<ChunkFn>) -> Completion {
     let provider: Arc<dyn Provider> = p.clone();
-    ApiAdapter::new("planner", "m", "", None, provider).unwrap()
+    let req = CompletionRequest {
+        model: "m".into(),
+        prompt: "task".into(),
+        max_tokens: 4096,
+        ..Default::default()
+    };
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let mut c = rt
+        .block_on(whole(provider, req, on_chunk, budget))
+        .expect("a reply");
+    c.text = c.text.trim().to_string();
+    c
 }
 
 const SECS: Duration = Duration::from_secs(5);
@@ -75,9 +89,9 @@ fn a_cut_reply_is_continued_once_and_the_halves_joined() {
         vec![reply("The answer is forty", true), reply("-two.", false)],
         None,
     );
-    let (text, usage) = adapter(&p).call_with_usage("task", SECS).unwrap();
-    assert_eq!(text, "The answer is forty-two.");
-    assert_eq!(usage.output_tokens, 8195, "both halves were billed");
+    let c = call(&p, SECS, None);
+    assert_eq!(c.text, "The answer is forty-two.");
+    assert_eq!(c.output_tokens, 8195, "both halves were billed");
     let asked = p.asked.lock().unwrap();
     assert_eq!(asked.len(), 2, "one reply, one continuation");
     assert_eq!(asked[0].max_tokens, 4096);
@@ -100,7 +114,7 @@ fn a_reply_cut_twice_stops_at_two_calls_and_says_so() {
         vec![reply("a ", true), reply("b", true), reply("c", false)],
         None,
     );
-    let text = adapter(&p).call("task", SECS).unwrap();
+    let text = call(&p, SECS, None).text;
     assert_eq!(p.asked.lock().unwrap().len(), 2, "never a third call");
     assert_eq!(text, format!("a b\n\n{CUT_OFF}"));
     assert!(text.ends_with("\u{2026} (cut off at the token limit)"));
@@ -109,14 +123,14 @@ fn a_reply_cut_twice_stops_at_two_calls_and_says_so() {
 #[test]
 fn a_finished_reply_is_one_call_and_unmarked() {
     let p = scripted(vec![reply("whole", false), reply("never", false)], None);
-    assert_eq!(adapter(&p).call("task", SECS).unwrap(), "whole");
+    assert_eq!(call(&p, SECS, None).text, "whole");
     assert_eq!(p.asked.lock().unwrap().len(), 1);
 }
 
 #[test]
 fn a_reply_cut_before_it_said_anything_is_marked_not_continued() {
     let p = scripted(vec![reply("  ", true), reply("never", false)], None);
-    assert_eq!(adapter(&p).call("task", SECS).unwrap(), CUT_OFF);
+    assert_eq!(call(&p, SECS, None).text, CUT_OFF);
     assert_eq!(p.asked.lock().unwrap().len(), 1);
 }
 
@@ -128,13 +142,12 @@ fn the_continuation_streams_on_from_where_the_reply_stopped() {
     );
     let seen = Arc::new(Mutex::new(String::new()));
     let sink = Arc::clone(&seen);
-    let stream = HopStream {
-        on_text: Arc::new(move |s| sink.lock().unwrap().push_str(s)),
-        ..HopStream::noop()
-    };
-    let (text, _) = adapter(&p)
-        .call_with_usage_ticked("task", SECS, &stream)
-        .unwrap();
+    let on_chunk: ChunkFn = Arc::new(move |c| {
+        if let Chunk::Text(s) = c {
+            sink.lock().unwrap().push_str(s);
+        }
+    });
+    let text = call(&p, SECS, Some(on_chunk)).text;
     assert_eq!(text, "The answer is forty-two.");
     assert_eq!(*seen.lock().unwrap(), "The answer is forty-two.");
     assert_eq!(p.asked.lock().unwrap().len(), 2);
@@ -148,9 +161,7 @@ fn a_continuation_that_outlives_the_budget_keeps_the_first_half() {
         vec![reply("The answer is forty", true), reply("-two.", false)],
         Some((1, Duration::from_secs(30))),
     );
-    let text = adapter(&p)
-        .call("task", Duration::from_secs(2))
-        .expect("the first half, not a timeout");
+    let text = call(&p, Duration::from_secs(2), None).text;
     assert_eq!(text, format!("The answer is forty\n\n{CUT_OFF}"));
 }
 
@@ -164,14 +175,17 @@ fn marked_adds_the_line_only_to_a_cut_reply() {
     assert_eq!(marked("", true), CUT_OFF);
 }
 
-/// What the provider's chain skipped reaches the adapter's usage through the
-/// join: every reply is joined onto `resume`'s empty first half, which kept
-/// only its own (empty) `fell_back`, so smith never said "fell back to".
+/// What the provider's chain skipped survives the join: every reply is
+/// joined onto `resume`'s empty first half, which kept only its own (empty)
+/// `fell_back`, so smith never said "fell back to".
 #[test]
 fn a_fallback_survives_the_join() {
     let mut c = reply("hi", false);
     (c.model, c.fell_back) = ("qwen-flash".into(), "qwen-max: gone".into());
     let p = scripted(vec![c], None);
-    let (_, usage) = adapter(&p).call_with_usage("task", SECS).unwrap();
-    assert_eq!(usage.fell_back, "qwen-flash \u{b7} qwen-max: gone");
+    let c = call(&p, SECS, None);
+    assert_eq!(
+        (c.model.as_str(), c.fell_back.as_str()),
+        ("qwen-flash", "qwen-max: gone")
+    );
 }

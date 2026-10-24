@@ -45,7 +45,7 @@ pub(crate) struct Prior {
 /// every build failure digested alike and "seen before" said a new error
 /// had happened three times already.
 pub(crate) fn digest(output: &str) -> String {
-    use super::super::failexcerpt::{picks, split, useful};
+    use crew_hive::failexcerpt::{picks, split, useful};
     let (_, lines) = split(output);
     let useful = useful(&lines);
     let from = picks(&lines, &useful).first().copied().unwrap_or(0);

@@ -16,20 +16,20 @@
 //! its tools hint in place (`TurnSpec::hinted`) and its recalled turns the
 //! first thing to go when the model refuses the length (`TurnSpec::shed`);
 //! the pane, as [`Pane`], the hop's stream behind the harness's events; what
-//! the user types mid-turn (`steer`); and the advisor, as [`Advised`]. Hop
+//! the user types mid-turn (`steer`); and where the advisor's model comes
+//! from (`advise`). Hop
 //! routing is untouched: the answer comes back to `Broker::run` as the hop's
 //! reply.
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crew_hive::harness::{self, Advice, Ended, Events, TurnContext, TurnSpec};
+use crew_hive::advisor::Advisor;
+use crew_hive::harness::{self, Ended, Events, TurnContext, TurnSpec};
 use crew_hive::steers::Steers;
-use crew_hive::tools::{budget::ToolBudget, todowire, ToolCall};
-use crew_hive::{AgentId, HiveEvent, ModelTier, Provider};
+use crew_hive::tools::{budget::ToolBudget, todowire};
+use crew_hive::{AgentId, HiveEvent, ModelTier, Provider, Spent};
 
 use super::adapter::{Adapter, HopStream, Usage};
 use super::hop::{back, Hop, HopKind, RunStats};
-use super::toolcall::ToolRunner;
-use super::toolround::advise::Advisor;
 use super::{Broker, Envelope};
 
 #[path = "hopmodel.rs"]
@@ -160,17 +160,15 @@ fn kept(text: &str) -> String {
 }
 
 /// `answer` with its routing line last again. The harness writes its own
-/// notes under a reply — the checklist's unfinished steps, the spent budget —
+/// notes under a reply — the checklist's unfinished steps, the spent budget,
+/// a call that never ran (`crew_hive::tools::is_note`) —
 /// and the reply's own last line was its `@done` or `@next`, the only line
 /// routing reads (`route::parse_routing`): under a note, the `@done` stayed
 /// in the answer as text and an `@next` hand-off was lost. The notes stay,
 /// above it.
 fn routed_last(answer: &str) -> String {
     let lines: Vec<&str> = answer.trim().lines().collect();
-    let note = |l: &str| {
-        let l = l.trim();
-        l.is_empty() || l.starts_with("checklist: ") || l.starts_with("[tool budget spent")
-    };
+    let note = |l: &str| l.trim().is_empty() || crew_hive::tools::is_note(l);
     let Some(at) = lines.iter().rposition(|l| !note(l)) else {
         return answer.trim().to_string();
     };
@@ -188,31 +186,6 @@ fn routed_last(answer: &str) -> String {
     )
     .trim()
     .to_string()
-}
-
-/// The relay's advisor, read each round (`toolround::advise`): a second model
-/// on a failed check, its cost added to the turn's.
-struct Advised {
-    advisor: Mutex<Advisor>,
-    runner: Arc<dyn ToolRunner>,
-    env: Envelope,
-    tally: Shared,
-}
-
-impl Advice for Advised {
-    fn read(&self, calls: &[ToolCall], ran: &[(bool, String)]) -> String {
-        let mut spent = RunStats::default();
-        let said = lock(&self.advisor).read(
-            self.runner.as_ref(),
-            &self.env,
-            calls,
-            ran,
-            &mut spent,
-            false,
-        );
-        lock(&self.tally).stats.merge(&spent);
-        said
-    }
 }
 
 impl Broker {
@@ -283,12 +256,17 @@ impl Broker {
                 CLI_MAX_TOKENS,
             ),
         };
-        let advised = Advised {
-            advisor: Mutex::default(),
-            runner: Arc::clone(&runner),
-            env: env.clone(),
-            tally: Arc::clone(&tally),
-        };
+        // The advisor reads a failed check (`crew_hive::advisor`); what it
+        // costs joins the thread's sums.
+        let billed = Arc::clone(&tally);
+        let advisor = Advisor::new(
+            env.body.clone(),
+            Arc::clone(&runner),
+            super::advise::find(),
+            super::advise::hooks(Arc::new(move |s: Spent| {
+                lock(&billed).stats.spend(&s);
+            })),
+        );
         let ctx = TurnContext {
             agent: AgentId::minted(&env.to),
             events: Arc::new(Pane {
@@ -297,7 +275,7 @@ impl Broker {
             }),
             budget: ToolBudget::turn(self.tool_rounds),
             cancel: self.stop_flag(),
-            advice: Some(Arc::new(advised)),
+            advice: Some(Arc::new(advisor)),
         };
         let spec = TurnSpec {
             ask: ask.to_string(),
@@ -308,6 +286,8 @@ impl Broker {
             // How to finish is the frame's HOW TO REPLY, pointed at, never
             // restated: alone it is `@done`, with peers `@next` or `@done`.
             ending: Some("end it as HOW TO REPLY says".into()),
+            // A reply's continuation and retries fit the hop's own timeout.
+            call_timeout: Some(self.timeout),
             system,
             model,
             // Billing's fallback only, and the relay bills from the model's usage.

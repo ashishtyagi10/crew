@@ -55,6 +55,15 @@ impl RunStats {
         self.cost_microusd += u.cost_microusd;
     }
 
+    /// A call no agent dial made — the advisor's — into the tally: its
+    /// tokens and cost, not an exchange.
+    pub(crate) fn spend(&mut self, s: &crew_hive::Spent) {
+        self.real_tokens += s.tokens() as usize;
+        self.tok_in += s.input;
+        self.tok_out += s.output;
+        self.cost_microusd += s.micros_usd;
+    }
+
     /// `other`'s tally on top of this one: a turn's, kept apart while it ran.
     pub(crate) fn merge(&mut self, other: &RunStats) {
         self.exchanges += other.exchanges;

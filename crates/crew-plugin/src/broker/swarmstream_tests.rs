@@ -4,8 +4,8 @@
 use super::super::swarmanswer::combine;
 use super::super::swarmgap::Gap;
 use super::*;
-use crate::broker::cutoff::CUT_OFF;
 use crate::broker::testenv;
+use crew_hive::provider::cutoff::CUT_OFF;
 use crew_hive::{AgentKind, ModelTier, ProviderError, TaskGraph, TaskId, TaskResult, TaskSpec};
 use std::future::Future;
 use std::pin::Pin;

@@ -114,7 +114,9 @@ pub(super) fn backend_at(
                     let mut f = crew_hive::ApiFactory::new(provider, WORK_MAX_TOKENS)
                         .with_model(model.clone())
                         // What the user types mid-run, read by every worker.
-                        .with_steers(Steers::new(crate::broker::steer::take));
+                        .with_steers(Steers::new(crate::broker::steer::take))
+                        // A failed check read by a second model, as a relay turn's is.
+                        .with_advisor(crate::broker::advise::find(), crate::broker::advise::say());
                     if let Some(t) = tools {
                         f = f.with_tools(t);
                     }

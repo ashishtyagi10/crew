@@ -21,6 +21,7 @@ mod catalog;
 pub mod exchanges;
 mod jsondepth;
 pub mod near;
+mod neverran;
 mod parse;
 mod said;
 pub mod seen;
@@ -59,6 +60,7 @@ impl ToolSpec {
 
 pub use catalog::ToolCatalog;
 pub use jsondepth::JsonDepth;
+pub use neverran::{is_note, never_ran};
 pub use parse::{parse_tool_call, split_tool_call, split_tool_calls, stray_calls};
 pub use said::said;
 

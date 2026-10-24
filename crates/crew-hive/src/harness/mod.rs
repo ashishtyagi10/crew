@@ -15,8 +15,11 @@
 //! [`Ended`]. What is one engine's own stays with that engine: the swarm's
 //! dependency results and planner-written system prompt, its checklist per
 //! task, and the scheduler's `Attempt` are `ApiAgent`'s, not the harness's;
-//! the relay's frame, hop routing and advisor are the broker's, handed in as
-//! a prompt and an [`Advice`].
+//! the relay's frame and hop routing are the broker's, handed in as a prompt.
+//! What every turn gets, whoever runs it: each reply made whole
+//! (`provider::cutoff`), the advisor on a failed check (an [`Advice`],
+//! `crate::advisor`), and the lines under an answer — the checklist's, a call
+//! that never ran (`finish`).
 
 mod chunks;
 mod cost;
@@ -36,6 +39,9 @@ mod toolloop;
 #[cfg(test)]
 #[path = "advice_tests.rs"]
 mod advice_tests;
+#[cfg(test)]
+#[path = "whole_tests.rs"]
+mod whole_tests;
 
 pub(crate) use cost::billed;
 pub(crate) use failure::reason;
@@ -46,6 +52,7 @@ use std::sync::Arc;
 
 use crate::bus::{AgentId, EventBus, HiveEvent};
 use crate::graph::ModelTier;
+use crate::provider::cutoff::Whole;
 use crate::provider::Provider;
 use crate::steers::Steers;
 use crate::tools::budget::ToolBudget;
@@ -64,16 +71,22 @@ impl Events for EventBus {
     }
 }
 
-/// What an engine makes of a round of tools beyond their results: the
-/// relay's advisor, a second model reading a failed check (crew-plugin
-/// `toolround::advise`). What it says joins the turn after the round's
-/// results, and stands until it says something else.
+/// What a turn is told about a round of tools beyond their results: the
+/// advisor, a second model reading a failed check (`crate::advisor`). What it
+/// says joins the turn after the round's results, and stands until it says
+/// something else.
 pub trait Advice: Send + Sync {
     /// One round's `calls` and how each came back, `(ok, text)`, in order:
-    /// the section the turn carries from here on, or empty for none. Called
-    /// on the turn's own thread, between rounds and never once it is
-    /// stopped; it may block.
-    fn read(&self, calls: &[ToolCall], ran: &[(bool, String)]) -> String;
+    /// the section the turn carries from here on, or empty for none. Read on
+    /// the turn's own thread, between rounds, never once it is stopped, and
+    /// dropped unfinished when the stop comes while it reads. Async: a swarm
+    /// runs every worker on one thread, and a read that blocked it would
+    /// stop them all.
+    fn read<'a>(
+        &'a self,
+        calls: &'a [ToolCall],
+        ran: &'a [(bool, String)],
+    ) -> std::pin::Pin<Box<dyn Future<Output = String> + Send + 'a>>;
 }
 
 /// Who a turn is, and what it answers to while it runs.
@@ -124,11 +137,20 @@ impl TurnContext {
         crate::agent::stop::unless(&self.cancel, work).await
     }
 
-    /// What the engine's [`Advice`] makes of a round, or `kept` (what it
-    /// said last) when it has none or the turn was stopped.
-    pub(crate) fn advised(&self, calls: &[ToolCall], ran: &[(bool, String)], kept: &str) -> String {
+    /// What the turn's [`Advice`] makes of a round, or `kept` (what it said
+    /// last) when it has none or the turn was stopped, before or during the
+    /// read.
+    pub(crate) async fn advised(
+        &self,
+        calls: &[ToolCall],
+        ran: &[(bool, String)],
+        kept: &str,
+    ) -> String {
         match &self.advice {
-            Some(a) if !self.stopped() => a.read(calls, ran),
+            Some(a) if !self.stopped() => self
+                .unless_stopped(a.read(calls, ran))
+                .await
+                .unwrap_or_else(|| kept.to_string()),
             _ => kept.to_string(),
         }
     }
@@ -160,6 +182,10 @@ pub struct TurnSpec {
     /// relay: `end it as HOW TO REPLY says`, its `@done` / `@next` line), or
     /// `None` for an answer that ends however it ends.
     pub ending: Option<String>,
+    /// How long one model call may take, the cut-off continuation and the
+    /// retries of a broken or empty reply included (`provider::cutoff`):
+    /// the relay's per-call timeout, or `None` for the provider's own.
+    pub call_timeout: Option<std::time::Duration>,
     pub system: Option<String>,
     /// The model id every request names.
     pub model: String,
@@ -200,6 +226,12 @@ pub async fn run(
     tools: Option<Arc<dyn Tools>>,
     steers: Option<Steers>,
 ) -> Ended {
+    // Every reply whole: continued once when the token ceiling cut it, picked
+    // up when its stream broke, asked again when it came back empty.
+    let budget = spec
+        .call_timeout
+        .unwrap_or_else(crate::provider::request_timeout);
+    let provider: Arc<dyn Provider> = Arc::new(Whole::new(provider, budget));
     // NATIVE OR TEXT, decided once. Native needs BOTH halves — schemas from
     // the tool surface and tool support from the provider — and when either
     // is missing the `@tool` convention still works, which is why it stays

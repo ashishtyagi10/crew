@@ -32,6 +32,15 @@ impl Provider for Kept {
     }
 }
 
+/// `ask` called with `brief`, and waited for.
+fn answer(ask: &Ask, brief: &str) -> Result<(String, Spent), String> {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    rt.block_on(ask(brief.to_string()))
+}
+
 fn kept() -> (Asked, impl FnOnce() -> Found) {
     let asked = Asked::default();
     let provider: Arc<dyn Provider> = Arc::new(Kept(Arc::clone(&asked)));
@@ -59,7 +68,7 @@ fn no_advisor_under_the_mock_or_with_no_provider() {
 fn one_plain_bounded_completion_on_the_tier_model() {
     let (asked, found) = kept();
     let ask = resolve(None, None, found).expect("a provider resolved");
-    let (reply, spent) = ask("the brief").unwrap();
+    let (reply, spent) = answer(&ask, "the brief").unwrap();
     assert_eq!(reply, "read the E0308");
     assert_eq!((spent.input, spent.output), (12, 4));
     let asked = asked.lock().unwrap();
@@ -74,10 +83,10 @@ fn one_plain_bounded_completion_on_the_tier_model() {
 fn the_model_knob_names_the_model_and_a_blank_one_does_not() {
     let (asked, found) = kept();
     let ask = resolve(None, Some("qwen3.8-max".into()), found).unwrap();
-    ask("b").unwrap();
+    answer(&ask, "b").unwrap();
     assert_eq!(asked.lock().unwrap()[0].model, "qwen3.8-max");
     let (asked, found) = kept();
     let ask = resolve(None, Some("  ".into()), found).unwrap();
-    ask("b").unwrap();
+    answer(&ask, "b").unwrap();
     assert_eq!(asked.lock().unwrap()[0].model, "qwen-max");
 }

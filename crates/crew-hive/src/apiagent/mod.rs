@@ -3,6 +3,9 @@
 //! telemetry events as it goes. The default headless scale worker.
 
 #[cfg(test)]
+#[path = "advisor_tests.rs"]
+mod advisor_tests;
+#[cfg(test)]
 #[path = "preamble_tests.rs"]
 mod preamble_tests;
 #[cfg(test)]
@@ -30,8 +33,10 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
+use crate::advisor::{Advisor, Find, Hooks};
 use crate::agent::{Agent, AgentContext, Attempt};
 use crate::board::TaskResult;
+use crate::bus::HiveEvent;
 use crate::graph::{AgentKind, TaskId};
 use crate::harness::{self, Ended, TurnSpec};
 use crate::provider::Provider;
@@ -54,7 +59,13 @@ pub struct ApiAgent {
     preamble: Option<String>,
     /// What the user typed into the run, read between rounds (`steered`).
     steers: Option<Steers>,
+    /// Where each task's advisor finds its model, and how it says its line
+    /// (`crate::advisor`); `None` for no advisor.
+    advisor: Option<(Find, Say)>,
 }
+
+/// How an advisor says its one quiet line (`advisor::Hooks::say`).
+pub type Say = Arc<dyn Fn(&str) + Send + Sync>;
 
 impl ApiAgent {
     pub fn new(provider: Arc<dyn Provider>, max_tokens: u32) -> Self {
@@ -65,6 +76,7 @@ impl ApiAgent {
             tools: None,
             preamble: None,
             steers: None,
+            advisor: None,
         }
     }
 
@@ -90,6 +102,42 @@ impl ApiAgent {
         self.tools = Some(tools);
         self
     }
+
+    /// Give each task an advisor (`crate::advisor`): a second model that
+    /// reads a failed check, its model found by `find` when one first fails,
+    /// its one line said through `say`. Only a task with tools has checks.
+    pub fn with_advisor(mut self, find: Find, say: Say) -> Self {
+        self.advisor = Some((find, say));
+        self
+    }
+}
+
+/// The advisor for `ctx`'s task on `tools`, billing each read on the run's
+/// bus under the task's agent, where the swarm's sums and its budget
+/// governor read every worker's spend.
+fn advisor_for(ctx: &AgentContext, tools: &Arc<dyn Tools>, (find, say): &(Find, Say)) -> Advisor {
+    let (bus, agent) = (ctx.bus.clone(), ctx.agent.clone());
+    let spent = Arc::new(move |s: crate::spent::Spent| {
+        bus.publish(HiveEvent::TokenDelta {
+            agent: agent.clone(),
+            input: u32::try_from(s.input).unwrap_or(u32::MAX),
+            output: u32::try_from(s.output).unwrap_or(u32::MAX),
+        });
+        bus.publish(HiveEvent::CostDelta {
+            agent: agent.clone(),
+            micros_usd: s.micros_usd,
+        });
+    });
+    let hooks = Hooks {
+        say: Arc::clone(say),
+        spent,
+    };
+    Advisor::new(
+        ctx.task.prompt.clone(),
+        Arc::clone(tools),
+        Arc::clone(find),
+        hooks,
+    )
 }
 
 impl Agent for ApiAgent {
@@ -110,6 +158,7 @@ impl Agent for ApiAgent {
         let tools = self.tools.clone().map(tools::todo::per_task);
         let preamble = self.preamble.clone();
         let steers = self.steers.clone();
+        let advisor = self.advisor.clone();
         Box::pin(async move {
             let task_id = ctx.task.id;
             // Honour the per-task model tier the planner assigned, not a fixed
@@ -127,12 +176,17 @@ impl Agent for ApiAgent {
                 hinted: None,
                 shed: None,
                 ending: None,
+                call_timeout: None,
                 system: with_preamble(system, preamble.as_deref()),
                 model: model.unwrap_or_else(|| tier.model_id().to_owned()),
                 tier,
                 max_tokens,
             };
-            let ended = harness::run(ctx.turn(), spec, provider, tools, steers).await;
+            let mut turn = ctx.turn();
+            if let (Some(t), Some(a)) = (&tools, &advisor) {
+                turn.advice = Some(Arc::new(advisor_for(&ctx, t, a)));
+            }
+            let ended = harness::run(turn, spec, provider, tools, steers).await;
             attempt_of(ended, task_id)
         })
     }

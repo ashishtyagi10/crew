@@ -47,12 +47,16 @@ impl Tools for Read {
 struct Says(Mutex<Vec<String>>);
 
 impl Advice for Says {
-    fn read(&self, calls: &[ToolCall], ran: &[(bool, String)]) -> String {
+    fn read<'a>(
+        &'a self,
+        calls: &'a [ToolCall],
+        ran: &'a [(bool, String)],
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = String> + Send + 'a>> {
         self.0
             .lock()
             .unwrap()
             .push(format!("{} {}", calls[0].label(), ran[0].1));
-        "ADVICE\n\n".into()
+        Box::pin(async { "ADVICE\n\n".to_string() })
     }
 }
 
@@ -98,6 +102,7 @@ fn spec(hinted: Option<String>) -> TurnSpec {
         hinted,
         shed: None,
         ending: None,
+        call_timeout: None,
         system: None,
         model: "m".into(),
         tier: ModelTier::Standard,

@@ -1,4 +1,6 @@
-//! A relay reply that ran into the output-token ceiling, finished.
+//! A reply that ran into the output-token ceiling, finished — every model
+//! call a turn makes, on either engine (`harness`), and the relay's own
+//! dials outside a turn (crew-plugin `ApiAdapter`).
 //!
 //! Nothing used to notice the ceiling. A long answer reached the pane ending
 //! mid-sentence as if that were all of it, and a `sys:write_file` of a real
@@ -16,10 +18,10 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use crew_hive::{ChunkFn, Completion, CompletionRequest, Provider, ProviderError, Turn};
+use super::{ChunkFn, Completion, CompletionRequest, Provider, ProviderError, Turn};
 
 /// The last line of a reply that stayed cut off.
-pub(crate) const CUT_OFF: &str = "\u{2026} (cut off at the token limit)";
+pub const CUT_OFF: &str = "\u{2026} (cut off at the token limit)";
 
 /// The follow-up turn. "No preamble, no repetition": asked to go on, a model
 /// otherwise opens with "Continuing from where I left off:" or re-sends the
@@ -36,7 +38,7 @@ const GRACE: Duration = Duration::from_secs(1);
 type Call = Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>>;
 
 /// `text` with [`CUT_OFF`] under it when the reply was cut, else as it is.
-pub(crate) fn marked(text: &str, truncated: bool) -> String {
+pub fn marked(text: &str, truncated: bool) -> String {
     if !truncated {
         return text.to_string();
     }
@@ -67,11 +69,11 @@ fn continuation(req: &CompletionRequest, partial: &str, ask: &str) -> Completion
 /// or runs out leaves the first half standing, marked. A reply cut before it
 /// said anything (a reasoning model that spent the ceiling thinking) is not
 /// continued: there is nothing to continue FROM. Nor is one that made tool
-/// calls (native tool-use, `hopturn`): what the ceiling cut is a call's
+/// calls (native tool-use): what the ceiling cut is a call's
 /// arguments, and the harness answers a cut call by asking for it again
 /// (`badargs`). The first half is itself
 /// [`resume::reply`]: picked up if its stream broke, asked again if empty.
-pub(crate) async fn whole(
+pub async fn whole(
     provider: Arc<dyn Provider>,
     req: CompletionRequest,
     on_chunk: Option<ChunkFn>,
@@ -93,6 +95,43 @@ pub(crate) async fn whole(
         .ok()
         .and_then(Result::ok);
     Ok(joined(first, rest))
+}
+
+/// `inner` with every reply made [`whole`], the extra calls within `budget`:
+/// the provider a turn calls (`harness::run`), so every call either engine
+/// makes is finished the same way.
+pub struct Whole {
+    inner: Arc<dyn Provider>,
+    budget: Duration,
+}
+
+impl Whole {
+    pub fn new(inner: Arc<dyn Provider>, budget: Duration) -> Self {
+        Self { inner, budget }
+    }
+}
+
+impl Provider for Whole {
+    fn supports_tools(&self) -> bool {
+        self.inner.supports_tools()
+    }
+
+    fn complete(&self, req: CompletionRequest) -> Call {
+        Box::pin(whole(Arc::clone(&self.inner), req, None, self.budget))
+    }
+
+    fn warm(&self) {
+        self.inner.warm();
+    }
+
+    fn complete_streaming(&self, req: CompletionRequest, on_chunk: ChunkFn) -> Call {
+        Box::pin(whole(
+            Arc::clone(&self.inner),
+            req,
+            Some(on_chunk),
+            self.budget,
+        ))
+    }
 }
 
 fn call(provider: &Arc<dyn Provider>, req: CompletionRequest, on_chunk: Option<ChunkFn>) -> Call {

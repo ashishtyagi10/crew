@@ -10,6 +10,7 @@
 //! directive (`TO <peer>:` / `DONE`), logs every hop, and stops at the hop
 //! limit so a thread can never loop forever.
 mod adapter;
+mod advise;
 mod agents;
 mod agentsmd;
 mod apiadapter;
@@ -27,7 +28,6 @@ mod claudeagent;
 mod commands;
 mod compact;
 mod constructs;
-mod cutoff;
 mod danger;
 mod diff;
 mod directs;
@@ -46,7 +46,6 @@ mod editrows;
 mod editshow;
 mod elect;
 mod engine;
-mod failexcerpt;
 mod fan;
 mod fellback;
 mod gitmsg;

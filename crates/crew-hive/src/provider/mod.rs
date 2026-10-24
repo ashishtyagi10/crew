@@ -6,6 +6,7 @@ mod anthropiccache;
 mod anthropicsse;
 mod claudecli;
 pub mod claudestream;
+pub mod cutoff;
 mod fellback;
 mod hint;
 mod io;

@@ -1,11 +1,9 @@
-//! Through the relay's own adapter, as `cutoff_tests` does: a flaky provider
-//! plays each call's part in turn — streams its words, then answers with
-//! them or fails — and records what it was asked.
-use super::super::Call;
+//! Through [`whole`](super::super::whole), as `cutoff_tests` does: a flaky
+//! provider plays each call's part in turn — streams its words, then answers
+//! with them or fails — and records what it was asked.
+use super::super::{whole, Call};
 use super::*;
-use crate::broker::adapter::{Adapter, HopStream};
-use crate::broker::apiadapter::ApiAdapter;
-use crew_hive::Turn;
+use crate::provider::Turn;
 use std::collections::VecDeque;
 
 /// One call's part: the words it streams, then the failure it ends on.
@@ -59,9 +57,22 @@ fn flaky(parts: Vec<Part>, slow: Option<usize>) -> Arc<Flaky> {
     })
 }
 
-fn adapter(p: &Arc<Flaky>) -> ApiAdapter {
+/// One call to `p` through [`whole`] within `budget`, streamed to `on_chunk`
+/// when there is one: the reply's text trimmed, or the error said.
+fn call(p: &Arc<Flaky>, budget: Duration, on_chunk: Option<ChunkFn>) -> Result<String, String> {
     let provider: Arc<dyn Provider> = p.clone();
-    ApiAdapter::new("planner", "m", "", None, provider).unwrap()
+    let req = CompletionRequest {
+        model: "m".into(),
+        prompt: "task".into(),
+        ..Default::default()
+    };
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    rt.block_on(whole(provider, req, on_chunk, budget))
+        .map(|c| c.text.trim().to_string())
+        .map_err(|e| e.to_string())
 }
 
 /// The wire giving out mid-reply, as `wire::wire_error` says it.
@@ -75,13 +86,12 @@ fn dropped() -> Option<ProviderError> {
 fn streamed(p: &Arc<Flaky>, budget: Duration) -> (Result<String, String>, String) {
     let seen = Arc::new(Mutex::new(String::new()));
     let sink = Arc::clone(&seen);
-    let stream = HopStream {
-        on_text: Arc::new(move |s| sink.lock().unwrap().push_str(s)),
-        ..HopStream::noop()
-    };
-    let text = adapter(p)
-        .call_with_usage_ticked("task", budget, &stream)
-        .map(|(t, _)| t);
+    let on_chunk: ChunkFn = Arc::new(move |c| {
+        if let Chunk::Text(s) = c {
+            sink.lock().unwrap().push_str(s);
+        }
+    });
+    let text = call(p, budget, Some(on_chunk));
     let seen = seen.lock().unwrap().clone();
     (text, seen)
 }
@@ -115,7 +125,7 @@ fn a_stream_that_broke_mid_reply_is_picked_up_where_it_stopped() {
 #[test]
 fn an_empty_reply_is_asked_again_until_one_answers() {
     let p = flaky(vec![("", None), ("  ", None), ("Here.", None)], None);
-    assert_eq!(adapter(&p).call("task", SECS).unwrap(), "Here.");
+    assert_eq!(call(&p, SECS, None).unwrap(), "Here.");
     let asked = p.asked.lock().unwrap();
     assert_eq!(asked.len(), 3);
     assert!(
@@ -132,7 +142,7 @@ fn three_empty_replies_are_the_end_of_it() {
         vec![("", None), ("", None), ("", None), ("never", None)],
         None,
     );
-    assert_eq!(adapter(&p).call("task", SECS).unwrap(), "");
+    assert_eq!(call(&p, SECS, None).unwrap(), "");
     assert_eq!(p.asked.lock().unwrap().len(), 3, "never a fourth call");
 }
 

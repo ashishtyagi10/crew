@@ -29,7 +29,7 @@ use crate::broker::tick::{text_streaming_enabled, TextGate};
 use crate::protocol::PluginEvent;
 
 /// The closing call: the brief in, the whole answer out (marked when the
-/// ceiling cut it, `cutoff::marked`) with what the call cost, and each paced
+/// ceiling cut it, `crew_hive::provider::cutoff::marked`) with what the call cost, and each paced
 /// piece of it handed to the sink on the way — reply text or reasoning, as
 /// the provider told them apart. The judge keeps `swarmanswer::SynthFn`,
 /// which has no sink: a verdict is one line of chrome, not an answer to
@@ -53,7 +53,10 @@ pub(super) fn over(provider: Arc<dyn Provider>, model: String, max_tokens: u32) 
         };
         let c = streamed(&provider, req, sink)?;
         let spent = Spent::billed(&model, ModelTier::Standard, &c);
-        Ok((crate::broker::cutoff::marked(&c.text, c.truncated), spent))
+        Ok((
+            crew_hive::provider::cutoff::marked(&c.text, c.truncated),
+            spent,
+        ))
     })
 }
 
