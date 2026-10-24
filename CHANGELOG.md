@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.5
+
+**Fix: the Windows and coverage checks pass again.**
+- Four app tests had been failing on Windows (the check has been red since Oct 20), hidden
+  behind the build error 0.29.4 fixed. Each was the test's mistake, not the app's: two still
+  expected the shortcut names from before Windows switched to plain Ctrl, one used Mac-style file
+  paths, and one compared mail fixtures whose line endings a Windows checkout changes.
+- A skills test raced another test over a process-wide setting and failed the coverage check now
+  and then. Nothing changes in the app.
+
 ## 0.29.4
 
 **Fix: the Windows build check passes again.**

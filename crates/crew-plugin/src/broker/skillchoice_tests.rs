@@ -1,6 +1,7 @@
 //! The model's pick outranks the name match; every stop lands on the name
 //! match exactly; one decision is one call. The env test holds `testenv`'s
-//! lock: `CREW_SKILL_PICK=0` is process-wide.
+//! lock: `CREW_SKILL_PICK=0` is process-wide, and an injected decider never
+//! reads it (`Decider::fixed`), so no other test here races it.
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -136,14 +137,15 @@ fn crew_skill_pick_0_makes_no_call_and_the_name_match_decides() {
     }
     let _unset = Unset;
     std::env::set_var("CREW_SKILL_PICK", "0");
+    assert!(disabled(), "the knob reads the env");
+    assert!(live().is_none(), "and the live chooser is off too");
     let lib = library();
     let calls = Arc::new(AtomicUsize::new(0));
-    let d = counting("SKILLS: none", &calls);
+    let d = counting("SKILLS: none", &calls).switched_off();
     let p = d.pick("run a review", &lib);
     assert_eq!(names(&p), ["review"]);
     assert!(!p.by_model);
     assert_eq!(calls.load(Ordering::SeqCst), 0);
-    assert!(live().is_none(), "and the live chooser is off too");
 }
 
 #[test]

@@ -132,8 +132,13 @@ fn a_type_is_named_by_the_extension_and_the_chooser_prints_paths() {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
     assert_eq!(mime_of("noext"), "application/octet-stream");
-    let got = crate::inbox::pick::paths("/a/b c.pdf\n\nrelative.txt\n/d.png\n");
-    assert_eq!(got, [PathBuf::from("/a/b c.pdf"), PathBuf::from("/d.png")]);
+    // Absolute as this system writes it: a Windows path has a drive.
+    let (a, d) = match cfg!(windows) {
+        true => (r"C:\a\b c.pdf", r"C:\d.png"),
+        false => ("/a/b c.pdf", "/d.png"),
+    };
+    let got = crate::inbox::pick::paths(&format!("{a}\n\nrelative.txt\n{d}\n"));
+    assert_eq!(got, [PathBuf::from(a), PathBuf::from(d)]);
     let names: Vec<String> = crate::inbox::pick::commands()
         .iter()
         .map(|c| c.get_program().to_string_lossy().into_owned())
