@@ -96,6 +96,8 @@ fn spec(hinted: Option<String>) -> TurnSpec {
         ask: "read it".into(),
         prompt: "TASK: read it\n\nHOW TO REPLY: end with @done".into(),
         hinted,
+        shed: None,
+        ending: None,
         system: None,
         model: "m".into(),
         tier: ModelTier::Standard,

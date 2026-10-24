@@ -114,7 +114,7 @@ impl Broker {
                 ));
                 return stats;
             }
-            let Some(agent) = self.registry.get(&env.to) else {
+            let Some(shared) = self.registry.shared(&env.to) else {
                 sink(note(
                     &env,
                     HopKind::Error,
@@ -122,6 +122,7 @@ impl Broker {
                 ));
                 return stats;
             };
+            let agent = shared.as_ref();
             let peers = self.registry.roster_excluding(&env.to);
             let tail = compact.tail(&mut transcript);
             let prompt = frame(&env, intro_of(agent), &peers, body, &tools, &tail);
@@ -141,15 +142,14 @@ impl Broker {
                 on_thought: hop_thinker(tick_emit.clone(), env.to.clone()),
                 on_tool: hop_tooler(tick_emit.clone(), env.to.clone()),
             };
-            // An API agent with tools on runs its whole turn on the harness,
-            // the swarm's loop (`apiturn`); any other agent is dialed, and its
-            // `@tool` lines resolved here (`run_tools`).
-            let dialed = match agent.engine().filter(|_| self.tools.is_some()) {
-                Some(engine) => {
+            // With tools on, the agent's whole turn runs on the harness, the
+            // swarm's loop (`hopturn`); with none, it is one dial.
+            let dialed = match self.tools.is_some() {
+                true => {
                     let bare = frame(&env, intro_of(agent), &peers, body, "", &tail);
-                    self.api_turn(engine, &env, body, bare, prompt, &mut stats, &stream, sink)
+                    self.harnessed(shared, &env, body, bare, prompt, &mut stats, &stream, sink)
                 }
-                None => self.dial(agent, &prompt, &mut stats, &env, &stream, sink),
+                false => self.dial(agent, &prompt, &mut stats, &env, &stream, sink),
             };
             let Some((reply, mut usage)) = dialed else {
                 return stats;
@@ -160,7 +160,7 @@ impl Broker {
             // directive has answered: routing already reads bare prose as
             // done, and the re-ask cost a second full call, typing the same
             // answer out twice, to add one word nobody reads. Nor after a
-            // stop: a reply `run_tools` cut short has no directive to add.
+            // stop: a reply the stop cut short has no directive to add.
             let answering_user = env.from == "user";
             let open = !answering_user && !peers.is_empty() && !self.cancelled();
             let reply = if !repaired && open && !has_directive(&reply) {
@@ -242,11 +242,8 @@ impl Broker {
         }
     }
 
-    /// Dial `agent` with `prompt` and resolve any `@tool` directives in its
-    /// reply before routing (no-op without tools): the reply and its usage,
-    /// or `None` when the dial failed, on an error hop. Every follow-up dial
-    /// reuses this hop's `stream`, so the per-agent 150ms gate and growth
-    /// rule span the whole hop instead of resetting per tool round.
+    /// Dial `agent` with `prompt`, a hop with no tools to call: the reply and
+    /// its usage, or `None` when the dial failed, on an error hop.
     fn dial(
         &self,
         agent: &dyn super::adapter::Adapter,
@@ -256,20 +253,20 @@ impl Broker {
         stream: &HopStream,
         sink: &mut dyn FnMut(Hop),
     ) -> Option<(String, super::adapter::Usage)> {
-        let (reply, mut usage) = match agent.call_with_usage_ticked(prompt, self.timeout, stream) {
-            Ok((r, u)) if !r.trim().is_empty() => (r, u),
+        match agent.call_with_usage_ticked(prompt, self.timeout, stream) {
+            Ok((reply, usage)) if !reply.trim().is_empty() => {
+                stats.add((prompt.len() + reply.len()) / 4, &usage);
+                Some((reply, usage))
+            }
             Ok(_) => {
                 sink(back(env, HopKind::Error, "empty reply".into()));
-                return None;
+                None
             }
             Err(e) => {
                 sink(back(env, HopKind::Error, e));
-                return None;
+                None
             }
-        };
-        stats.add((prompt.len() + reply.len()) / 4, &usage);
-        let reply = self.run_tools(agent, prompt, reply, stats, &mut usage, env, stream, sink);
-        Some((reply, usage))
+        }
     }
 
     /// The hop that ends the thread with `answer`: the one place a relay

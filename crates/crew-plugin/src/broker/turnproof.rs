@@ -3,7 +3,8 @@
 //! A reply's answer is the agent's claim. The judge that checks it against
 //! the request (`replyverify`) needs the other half: the calls that ran and
 //! how each came back. Both engines report their tools on one lane — crew's
-//! own loop through `toolhive`, Claude Code's through its stream — and every
+//! own through the harness's events (`hopturn::Pane`), Claude Code's through
+//! its stream — and every
 //! event passes `hoptool`, which notes it here. One log per process, like
 //! `steer`'s inbox: a broker serves one session, and a verified reply clears
 //! it ([`start`]) before its turn, so another task's calls reach the judge

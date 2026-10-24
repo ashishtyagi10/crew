@@ -44,8 +44,13 @@ pub(super) const INSTRUCTION: &str = "Your tool budget is spent. Answer the task
 /// syntax the model can no longer use is an invitation to use it anyway.
 /// `list` is the task's checklist section, above the exchanges as in every
 /// follow-up, so the answer can say which steps it did not reach.
-pub(super) fn prompt(body: &str, list: &str, done: &str) -> String {
-    format!("{body}\n\n{list}TOOL EXCHANGES SO FAR:\n{done}\n\n{INSTRUCTION}")
+/// `ending` is the engine's line on how an answer ends (`TurnSpec::ending`).
+pub(super) fn prompt(body: &str, list: &str, done: &str, ending: &str) -> String {
+    let instruction = match super::toolloop::ended(ending) {
+        and if and.is_empty() => INSTRUCTION.to_string(),
+        and => format!("{}{and}.", INSTRUCTION.trim_end_matches('.')),
+    };
+    format!("{body}\n\n{list}TOOL EXCHANGES SO FAR:\n{done}\n\n{instruction}")
 }
 
 /// The native loop's turns as the text loop writes its exchanges, every

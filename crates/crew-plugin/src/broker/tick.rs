@@ -162,8 +162,8 @@ pub(crate) fn hop_texter_sub(
 /// off state used to SET it — serialised against each other by a lock, and
 /// against nothing else. Every other test in the process that built a texter
 /// and expected a `Delta` was racing them, which is exactly the flake that
-/// turned up here: `run_tools_follow_up_dial_reports_usage_and_emits_ticks`
-/// failing in a full run and never in isolation. A test that needs to know
+/// turned up here: a relay test of a follow-up dial's ticks failing in a
+/// full run and never in isolation. A test that needs to know
 /// something about the world should be told it, not made to look.
 pub(crate) fn hop_texter_with(
     tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,

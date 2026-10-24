@@ -133,7 +133,7 @@ fn the_pane_says_it_under_the_turn_when_the_task_ends() {
     assert!(last.text.starts_with("\u{2713} checked"), "{}", last.text);
 }
 
-/// crew's own tools on the hive lane (`toolhive`), as the S6 replay sent
+/// crew's own tools on the hive lane (`hopturn::Pane`), as the S6 replay sent
 /// them: an edit and a run in one reply, then both results.
 #[test]
 fn crews_tools_on_the_hive_lane_are_heard_too() {

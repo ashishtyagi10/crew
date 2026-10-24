@@ -1,7 +1,7 @@
 //! How long a tool took, as the turn's timeline writes it.
 //!
 //! The call and result lines themselves are the pane's now: the API engine
-//! sends its tools on the same lane as Claude Code's (`toolhive`), and the
+//! sends its tools on the same lane as Claude Code's (`hopturn::Pane`), and the
 //! pane's tool line reads the command or path out of the arguments.
 
 /// `0.4s` / `12s` / `2m04` — a tool's duration, as long as it needs.

@@ -1,4 +1,4 @@
-//! A steer meeting an API agent's turn on the harness (`apiturn`): taken
+//! A steer meeting an API agent's turn on the harness (`hopturn`): taken
 //! between rounds, announced as it is taken, and said with the relay's own
 //! closing line, not the swarm's.
 use std::sync::{Arc, Mutex};

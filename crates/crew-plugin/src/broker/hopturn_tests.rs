@@ -409,10 +409,10 @@ fn a_stop_between_rounds_dials_nothing_more() {
     );
 }
 
-/// A CLI agent has no model the harness can drive: its hop is still a dial,
-/// and its `@tool` lines are the relay's own loop's.
+/// A CLI agent is a model with no tool-use: the `@tool` line it prints is
+/// the harness's text loop to run, and the follow-up is the harness's.
 #[test]
-fn an_agent_without_an_engine_is_dialed_as_before() {
+fn a_cli_agent_runs_on_the_text_loop() {
     struct Cli;
     impl Adapter for Cli {
         fn name(&self) -> &str {
@@ -422,7 +422,7 @@ fn an_agent_without_an_engine_is_dialed_as_before() {
             true
         }
         fn call(&self, body: &str, _t: Duration) -> Result<String, String> {
-            Ok(match body.contains("TOOL EXCHANGES THIS TURN") {
+            Ok(match body.contains("TOOL EXCHANGES SO FAR") {
                 true => "read it\n@done".into(),
                 false => "@tool fs:read {\"path\": \"a.rs\"}".into(),
             })
@@ -443,4 +443,128 @@ fn an_agent_without_an_engine_is_dialed_as_before() {
     assert_eq!(ran.lock().unwrap().len(), 1);
     let done = hops.iter().find(|h| h.kind == HopKind::Done).unwrap();
     assert_eq!(done.text, "read it");
+}
+
+/// A CLI agent's failure is its own words on the card, as its dial showed
+/// them, not a provider's.
+#[test]
+fn a_cli_agents_error_is_its_own_words() {
+    struct Down;
+    impl Adapter for Down {
+        fn name(&self) -> &str {
+            "coder"
+        }
+        fn probe(&self) -> bool {
+            true
+        }
+        fn call(&self, _: &str, _: Duration) -> Result<String, String> {
+            Err("claude: not signed in".into())
+        }
+    }
+    let broker = Broker::new(
+        Registry::new(vec![Box::new(Down)]),
+        6,
+        Duration::from_secs(5),
+    )
+    .with_tools(Arc::new(Files(Arc::default())));
+    let emit: Arc<dyn Fn(PluginEvent) + Send + Sync> = Arc::new(|_| {});
+    let mut hops = Vec::new();
+    broker.run("user", "coder", "read a.rs", "t1", &emit, &mut |h| {
+        hops.push(h)
+    });
+    let errors: Vec<&str> = hops
+        .iter()
+        .filter(|h| h.kind == HopKind::Error)
+        .map(|h| h.text.as_str())
+        .collect();
+    assert_eq!(errors, ["claude: not signed in"]);
+}
+
+/// The notes the harness writes under an answer go above its routing line,
+/// the only line routing reads: the `@done` comes off the answer, and an
+/// `@next` still hands off.
+#[test]
+fn the_harness_notes_go_above_the_routing_line() {
+    use super::routed_last;
+    let budget = "[tool budget spent \u{2014} 4 rounds of tool calls]";
+    let done = format!("both read\n@done\n\n{budget}");
+    assert_eq!(routed_last(&done), format!("both read\n\n{budget}\n@done"));
+    let routed = crate::broker::parse_routing(&routed_last(&done));
+    assert!(
+        matches!(&routed, crate::broker::Routing::Done(a) if !a.contains("@done") && a.ends_with(budget)),
+        "{routed:?}"
+    );
+    let list = "checklist: 1 of 3 done \u{2014} not done: add a test";
+    let next = format!("half done\n@next reviewer\n\n{list}");
+    let routed = crate::broker::parse_routing(&routed_last(&next));
+    assert!(
+        matches!(&routed, crate::broker::Routing::Relay { to, .. } if to == "reviewer"),
+        "{routed:?}"
+    );
+    assert_eq!(routed_last("plain answer"), "plain answer");
+    assert_eq!(routed_last("ends\n@done"), "ends\n@done");
+    assert_eq!(
+        routed_last(&format!("no directive\n\n{budget}")),
+        format!("no directive\n\n{budget}")
+    );
+}
+
+/// Through the whole hop: a budget stop whose last word ends on `@done`
+/// answers without it.
+#[test]
+fn a_budget_stop_answers_without_its_directive_showing() {
+    let ask = |p: &str| said(&format!("@tool fs:read {{\"path\": \"{p}\"}}"));
+    let replies = vec![
+        Ok(ask("a.rs")),
+        Ok(ask("b.rs")),
+        Ok(said("both read\n@done")),
+    ];
+    let t = hop(false, replies, 1, Arc::default());
+    let done = t.done().unwrap();
+    assert!(!done.contains("@done"), "{done}");
+    assert!(done.starts_with("both read"), "{done}");
+    assert!(
+        done.ends_with("[tool budget spent \u{2014} 1 round of tool calls]"),
+        "{done}"
+    );
+}
+
+/// The tool line keeps a long result's head for its click-open view, and
+/// says it was cut; the model still reads the result as the harness clips it.
+#[test]
+fn the_tool_line_keeps_a_long_results_head() {
+    let long = format!("{}TAIL", "y".repeat(3_000));
+    assert_eq!(super::kept("short\n"), "short");
+    let kept = super::kept(&long);
+    assert!(
+        kept.starts_with("yyy") && kept.ends_with("\n\u{2026}"),
+        "{kept}"
+    );
+    assert_eq!(kept.chars().count(), 2_000 + 2);
+    assert!(!kept.contains("TAIL"));
+}
+
+/// The hop's token estimate only grows, whatever each call of the turn
+/// streams: a short follow-up after a long first reply still reads past it,
+/// so the tick gate, which emits only on growth, never swallows it.
+#[test]
+fn the_token_estimate_only_grows_across_calls() {
+    let seen: Arc<Mutex<Vec<u64>>> = Arc::default();
+    let keep = Arc::clone(&seen);
+    let mut stream = crate::broker::adapter::HopStream::noop();
+    stream.on_tokens = Arc::new(move |n| keep.lock().unwrap().push(n));
+    let pane = super::Pane {
+        stream,
+        tally: Arc::default(),
+    };
+    let delta = |text: &str| HiveEvent::OutputDelta {
+        agent: crew_hive::AgentId(1),
+        text: text.into(),
+    };
+    use crew_hive::harness::Events;
+    pane.publish(delta(&"x".repeat(800))); // the first call's long reply
+    pane.publish(delta("short")); // the follow-up's
+    pane.publish(delta(" answer"));
+    let seen = seen.lock().unwrap().clone();
+    assert_eq!(seen, [200, 201, 203]);
 }

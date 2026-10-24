@@ -70,6 +70,8 @@ pub(super) async fn run(
     let agent_id = ctx.agent.clone();
     let TurnSpec {
         prompt,
+        shed,
+        ending,
         system,
         model: model_id,
         tier,
@@ -85,7 +87,7 @@ pub(super) async fn run(
     let mut seen = Seen::default();
     // What the user said before this worker started ends its prompt; what
     // comes after joins as a turn of its own (`steered`).
-    let (prompt, mut taken) = super::steered::opening(prompt, steers.as_ref());
+    let (mut prompt, mut taken) = super::steered::opening(prompt, steers.as_ref());
     let label = |c: &ToolInvocation| label_of(c, &catalog);
     let mut cut = super::overflow::Cut::new(&prompt, system.as_deref(), &label);
     // What the engine made of the latest round it read (`Advice`).
@@ -115,7 +117,11 @@ pub(super) async fn run(
         let completion = match ctx.unless_stopped(call).await {
             None => return Ended::Stopped,
             Some(Ok(c)) => c,
-            Some(Err(err)) if cut.refused(&ctx, &err, &mut turns, &mut seen) => continue,
+            Some(Err(err))
+                if cut.refused(&ctx, &err, &mut turns, &mut seen, (&mut prompt, shed)) =>
+            {
+                continue
+            }
             Some(Err(err)) => return super::failure::failed(&ctx, &err),
         };
         cut.answered();
@@ -158,6 +164,7 @@ pub(super) async fn run(
                 &prompt,
                 &todo::section(tools.checklist()),
                 &super::lastword::transcript(&turns, label),
+                ending.as_deref().unwrap_or_default(),
             );
             let answer = super::lastword::ask(
                 &ctx, &provider, &model_id, tier, system, last, max_tokens, &sink,

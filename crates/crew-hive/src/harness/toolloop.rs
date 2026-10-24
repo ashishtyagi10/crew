@@ -54,27 +54,41 @@ pub(super) fn exchange(said: &str, label: &str, args: &str, result: &str) -> Exc
 ///
 /// One sentence per case. "You may call another tool" used to follow every
 /// budget line, "This was your LAST tool call" included, so the last round
-/// was told both to stop calling and that it could call again.
+/// was told both to stop calling and that it could call again. Each ends on
+/// the engine's `ending`, when it has one: how to finish is pointed at, not
+/// restated, so the follow-up cannot disagree with the prompt that said it.
 pub(super) fn follow_up(
     base: &str,
     list: &str,
     exchanges: &Exchanges,
     heard: &str,
     rounds_left: u32,
+    ending: &str,
 ) -> String {
+    let and = ended(ending);
     let next = match rounds_left {
-        0 => "That was your LAST round of tool calls for this task: answer now with what \
-              you have."
-            .to_string(),
+        0 => format!(
+            "That was your LAST round of tool calls for this task: answer now with what \
+             you have{and}."
+        ),
         n => format!(
             "You may make {n} more round(s) of tool calls for this task, up to \
-             {MAX_CALLS_PER_TURN} calls in one reply, or give your final answer."
+             {MAX_CALLS_PER_TURN} calls in one reply, or give your final answer{and}."
         ),
     };
     format!(
         "{base}\n\n{list}TOOL EXCHANGES SO FAR:\n{}\n\n{heard}{next}",
         exchanges.render()
     )
+}
+
+/// ` and <ending>` for a sentence that closes on how the answer ends
+/// (`TurnSpec::ending`), or nothing.
+pub(super) fn ended(ending: &str) -> String {
+    match ending.trim() {
+        "" => String::new(),
+        e => format!(" and {e}"),
+    }
 }
 
 /// What an agent's output becomes when the budget ran out and the last word
@@ -99,7 +113,8 @@ pub(super) fn budget_spent(reply: &str, max_rounds: u32) -> String {
 /// structured tool call never lands in the output text, so there is nothing to
 /// strip — only the note to add.
 pub(super) fn with_budget_note(body: &str, max_rounds: u32) -> String {
-    let note = format!("[tool budget spent \u{2014} {max_rounds} rounds of tool calls]");
+    let s = if max_rounds == 1 { "" } else { "s" };
+    let note = format!("[tool budget spent \u{2014} {max_rounds} round{s} of tool calls]");
     if body.trim().is_empty() {
         note
     } else {

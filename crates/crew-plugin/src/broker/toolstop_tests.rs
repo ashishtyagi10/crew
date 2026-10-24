@@ -70,27 +70,22 @@ fn stopping_broker() -> (Broker, Arc<Mutex<Vec<String>>>, Arc<AtomicUsize>) {
 #[test]
 fn a_stop_during_round_one_dials_no_round_two() {
     let (b, dials, ran) = stopping_broker();
-    let agent = Builder {
-        name: "planner",
-        dials: Arc::clone(&dials),
-    };
+    let tick: Arc<dyn Fn(PluginEvent) + Send + Sync> = Arc::new(|_| {});
     let mut hops = Vec::new();
-    let reply = b.run_tools(
-        &agent,
-        "base",
-        "building now\n@tool fs:build {}".into(),
-        &mut RunStats::default(),
-        &mut Usage::default(),
-        &Envelope::new("user", "planner", "t1", "task"),
-        &HopStream::noop(),
-        &mut |h| hops.push(h),
-    );
+    b.run("user", "planner", "task", "t1", &tick, &mut |h| {
+        hops.push(h)
+    });
     assert_eq!(ran.load(Ordering::SeqCst), 1, "round one's tool ran");
-    assert!(
-        dials.lock().unwrap().is_empty(),
+    assert_eq!(
+        dials.lock().unwrap().len(),
+        1,
         "a round-two model call went out after the stop"
     );
-    assert_eq!(reply, "building now\n\nstopped \u{2014} 1 tool call made");
+    let done = hops.iter().find(|h| h.kind == HopKind::Done).unwrap();
+    assert_eq!(
+        done.text,
+        "building now\n\nstopped \u{2014} 1 tool call made"
+    );
 }
 
 /// Through the whole engine, mid-chain: the stopped reply is the answer, and

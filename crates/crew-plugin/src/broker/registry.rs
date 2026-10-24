@@ -2,16 +2,22 @@
 //! resolves the provider-backed inbuilt roster plus any manifest plugin
 //! agents (see [`super::discover`]), keeping only usable ones, so the broker
 //! never routes to an agent that isn't there.
+use std::sync::Arc;
+
 use super::adapter::Adapter;
 
+/// Shared, not owned: a hop on the harness hands its agent to the turn as a
+/// model (`hopturn`), and the turn's future must hold it.
 pub struct Registry {
-    agents: Vec<Box<dyn Adapter>>,
+    agents: Vec<Arc<dyn Adapter>>,
 }
 
 impl Registry {
     /// Wrap an explicit set of adapters (used by tests with fake agents).
     pub fn new(agents: Vec<Box<dyn Adapter>>) -> Self {
-        Self { agents }
+        Self {
+            agents: agents.into_iter().map(Arc::from).collect(),
+        }
     }
 
     /// Build the roster: the inbuilt API agents (planner/coder/reviewer) on
@@ -66,10 +72,14 @@ impl Registry {
 
     /// Look up an agent by name, case-insensitively.
     pub fn get(&self, name: &str) -> Option<&dyn Adapter> {
+        self.shared(name).map(|a| a.as_ref())
+    }
+
+    /// [`Registry::get`], as the shared handle a turn can keep.
+    pub(crate) fn shared(&self, name: &str) -> Option<&Arc<dyn Adapter>> {
         self.agents
             .iter()
             .find(|a| a.name().eq_ignore_ascii_case(name))
-            .map(|b| b.as_ref())
     }
 
     /// Names of every registered agent except `name` (its potential peers).

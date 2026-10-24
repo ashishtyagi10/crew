@@ -108,8 +108,9 @@ impl HopStream {
 }
 
 /// The model behind an API agent, as the harness drives it: a hop with tools
-/// on runs such an agent's whole turn in `crew_hive::harness` (`apiturn`),
-/// native tool-use included, where a CLI's is a prompt in and a reply out.
+/// on runs such an agent's whole turn in `crew_hive::harness` (`hopturn`),
+/// native tool-use included, where a CLI agent is spoken to through its
+/// prompt and reply alone (`hopturn::model::Spoken`).
 pub struct Engine<'a> {
     pub provider: &'a std::sync::Arc<dyn crew_hive::Provider>,
     pub model: &'a str,

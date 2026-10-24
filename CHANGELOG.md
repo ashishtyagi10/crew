@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.2
+
+**Every `@agent` relay turn now runs on crew's one agent harness, CLI agents included.**
+- `claude`, `codex`, `opencode` and manifest agents now run their relay turns on the same loop as
+  API agents and the `/crew` swarm. A `@tool` line they print gets the same handling: up to 8
+  calls in a reply, a reply counted as one round, the last batch still run when the rounds run
+  out, then a final answer written from everything gathered. Claude Code's own tools (Bash, Read
+  and the rest) are still its own, and still show in the pane's tool lines.
+- When a turn's prompt grows past the model's context, the recalled earlier turns are dropped
+  first again, before the turn's own tool results. API agents had lost that in 0.29.0.
+- Fixed in 0.29.0: an API agent's answer that ended with a checklist or tool-budget note could
+  show its `@done` line as text, and an `@next` hand-off after such a note was lost. Also fixed:
+  an answer cut short by an error or `/stop` after a tool call now keeps what the agent had
+  written before it.
+
 ## 0.29.1
 
 **Fix: Claude running as a model no longer gets your MCP servers.**

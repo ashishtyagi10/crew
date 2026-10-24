@@ -1,47 +1,10 @@
-use std::sync::Mutex;
-use std::time::Duration;
+use std::sync::Arc;
 
 use super::*;
-use crate::broker::adapter::HopStream;
+use crate::broker::hop::HopKind;
 use crate::broker::toolclip::clip_result;
-use crate::{PluginEvent, Registry};
+use crate::broker::turnkit::{turn, Script, Turn};
 use crew_hive::tools::parse_tool_call;
-
-/// An agent whose replies are scripted; repeats the last one when exhausted.
-/// Records every prompt body it was dialed with, so tests can inspect exactly
-/// what the engine sent back (e.g. a clipped tool result).
-struct Scripted(Mutex<Vec<String>>, Mutex<Vec<String>>);
-
-impl Scripted {
-    fn new(replies: &[&str]) -> Self {
-        let mut v: Vec<String> = replies.iter().rev().map(|s| s.to_string()).collect();
-        v.shrink_to_fit();
-        Self(Mutex::new(v), Mutex::new(Vec::new()))
-    }
-
-    /// Every body the agent was dialed with, in call order.
-    fn seen(&self) -> Vec<String> {
-        self.1.lock().unwrap().clone()
-    }
-}
-
-impl Adapter for Scripted {
-    fn name(&self) -> &str {
-        "planner"
-    }
-    fn probe(&self) -> bool {
-        true
-    }
-    fn call(&self, body: &str, _t: Duration) -> Result<String, String> {
-        self.1.lock().unwrap().push(body.to_string());
-        let mut v = self.0.lock().unwrap();
-        Ok(match v.len() {
-            0 => "@done".into(),
-            1 => v[0].clone(),
-            _ => v.pop().unwrap(),
-        })
-    }
-}
 
 struct FakeTools(Result<String, String>);
 
@@ -56,14 +19,13 @@ impl ToolRunner for FakeTools {
     }
 }
 
-fn broker_with(runner: FakeTools) -> Broker {
-    Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5))
-        .with_tools(std::sync::Arc::new(runner))
+/// One turn of `replies` with `tools` on the default round budget.
+fn with(tools: impl ToolRunner + 'static, replies: &[&str]) -> Turn {
+    let tools: Arc<dyn ToolRunner> = Arc::new(tools);
+    turn(Script::new(replies), |b| b.with_tools(tools), "task")
 }
 
-fn env() -> Envelope {
-    Envelope::new("user", "planner", "t1", "task")
-}
+const READ: &str = "@tool fs:read {\"path\": \"x\"}";
 
 #[test]
 fn parse_tool_call_reads_the_last_line() {
@@ -131,25 +93,14 @@ fn a_multi_line_description_stays_one_line_in_the_hint() {
 }
 
 #[test]
-fn run_tools_feeds_the_result_back_and_returns_the_final_reply() {
-    let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
-    let agent = Scripted::new(&["used the file\n@done"]);
-    let mut stats = RunStats::default();
-    let mut usage = Usage::default();
-    let (tools, stream) = crate::broker::toolhive::lane::capture();
-    let reply = b.run_tools(
-        &agent,
-        "base prompt",
-        "let me look\n@tool fs:read {\"path\": \"x\"}".into(),
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |_| {},
+fn a_tool_result_goes_back_and_the_turn_answers() {
+    let t = with(
+        FakeTools(Ok("FILE CONTENTS".into())),
+        &[&format!("let me look\n{READ}"), "used the file\n@done"],
     );
-    assert_eq!(reply, "used the file\n@done");
-    assert_eq!(stats.exchanges, 1);
-    let cards = crate::broker::toolhive::lane::cards(&tools);
+    assert_eq!(t.answer(), Some("used the file"));
+    assert_eq!(t.stats.exchanges, 2);
+    let cards = t.cards();
     assert!(
         cards.iter().any(|c| c.contains("[tool] fs:read")),
         "{cards:?}"
@@ -158,155 +109,102 @@ fn run_tools_feeds_the_result_back_and_returns_the_final_reply() {
         cards.iter().any(|c| c.contains("FILE CONTENTS")),
         "{cards:?}"
     );
+    assert!(
+        t.prompts[1].contains("RESULT:\nFILE CONTENTS"),
+        "{}",
+        t.prompts[1]
+    );
 }
 
 #[test]
-fn run_tools_shows_errors_to_the_agent_and_continues() {
-    let b = broker_with(FakeTools(Err("no such file".into())));
-    let agent = Scripted::new(&["cannot read it\n@done"]);
-    let mut stats = RunStats::default();
-    let mut usage = Usage::default();
-    let (tools, stream) = crate::broker::toolhive::lane::capture();
-    let reply = b.run_tools(
-        &agent,
-        "base",
-        "trying\n@tool fs:read {\"path\": \"x\"}".into(),
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |_| {},
+fn a_tool_error_is_shown_to_the_agent_and_the_turn_goes_on() {
+    let t = with(
+        FakeTools(Err("no such file".into())),
+        &[&format!("trying\n{READ}"), "cannot read it\n@done"],
     );
-    assert_eq!(reply, "cannot read it\n@done");
-    let cards = crate::broker::toolhive::lane::cards(&tools);
+    assert_eq!(t.answer(), Some("cannot read it"));
+    let cards = t.cards();
     assert!(
         cards.iter().any(|c| c.contains("ERROR: no such file")),
         "{cards:?}"
     );
 }
 
+/// An agent that asks every time: its rounds, the batch past them, and one
+/// last call with no tools for the answer, which says the budget ran out.
 #[test]
-fn run_tools_stops_at_the_round_cap() {
-    let b = broker_with(FakeTools(Ok("more".into())));
-    // The agent asks for a tool every single time.
-    let agent = Scripted::new(&["again\n@tool fs:read {\"path\": \"x\"}"]);
-    let mut stats = RunStats::default();
-    let mut usage = Usage::default();
-    let stream = HopStream::noop();
-    let mut hops = Vec::new();
-    let reply = b.run_tools(
-        &agent,
-        "base",
-        "again\n@tool fs:read {\"path\": \"x\"}".into(),
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |h| hops.push(h),
-    );
-    assert_eq!(stats.exchanges, MAX_TOOL_ROUNDS);
-    // The unrun call is cut out of the answer; the text above it is kept.
+fn the_round_cap_ends_on_the_last_word_and_says_so() {
+    let ran = Arc::new(std::sync::Mutex::new(0u32));
+    struct Counting(Arc<std::sync::Mutex<u32>>);
+    impl ToolRunner for Counting {
+        fn hint(&self) -> String {
+            "TOOLS: fs:read".into()
+        }
+        fn call(&self, _: &str, _: &str, _: &str) -> Result<String, String> {
+            *self.0.lock().unwrap() += 1;
+            Ok("more".into())
+        }
+    }
+    let t = with(Counting(Arc::clone(&ran)), &[&format!("again\n{READ}")]);
     assert_eq!(
-        reply, "again",
-        "the answer is the text above the unrun call"
+        *ran.lock().unwrap(),
+        MAX_TOOL_ROUNDS + 1,
+        "the batch past the budget ran"
     );
-    // …and SAYS the budget ran out. The last request ran, but no dial read
-    // it; without this the turn just stopped, with nothing anywhere
-    // explaining why it ended mid-sequence.
-    let note = hops
-        .iter()
-        .find(|h| h.kind == HopKind::Terminated)
-        .unwrap_or_else(|| {
-            panic!(
-                "no budget note: {:?}",
-                hops.iter().map(|h| &h.text).collect::<Vec<_>>()
-            )
-        });
-    assert!(note.text.contains("tool budget spent"), "{}", note.text);
-    assert!(note.text.contains("its last request ran"), "{}", note.text);
+    assert_eq!(
+        t.stats.exchanges,
+        MAX_TOOL_ROUNDS + 2,
+        "the dials, then the last word"
+    );
+    let answer = t.answer().unwrap();
+    assert!(!answer.contains("@tool"), "{answer}");
+    assert!(answer.starts_with("again"), "{answer}");
+    assert!(answer.contains("tool budget spent"), "{answer}");
+    let last = t.prompts.last().unwrap();
+    assert!(last.contains("Your tool budget is spent"), "{last}");
+    assert!(
+        !last.contains("TOOLS: fs:read"),
+        "no tools on the last word: {last}"
+    );
 }
 
 /// An agent that finishes inside its budget is told nothing about budgets —
 /// the note is for the turn that actually hit the wall.
 #[test]
 fn finishing_within_the_budget_says_nothing_about_it() {
-    let b = broker_with(FakeTools(Ok("contents".into())));
-    let agent = Scripted::new(&["all done\n@done"]);
-    let mut stats = RunStats::default();
-    let mut usage = Usage::default();
-    let stream = HopStream::noop();
-    let mut hops = Vec::new();
-    let reply = b.run_tools(
-        &agent,
-        "base",
-        "let me look\n@tool fs:read {\"path\": \"x\"}".into(),
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |h| hops.push(h),
+    let t = with(
+        FakeTools(Ok("contents".into())),
+        &[&format!("let me look\n{READ}"), "all done\n@done"],
     );
-    assert_eq!(reply, "all done\n@done");
-    assert!(
-        !hops.iter().any(|h| h.kind == HopKind::Terminated),
-        "budget note on a turn that never hit the cap: {:?}",
-        hops.iter().map(|h| &h.text).collect::<Vec<_>>()
-    );
+    assert_eq!(t.answer(), Some("all done"));
+    assert!(t.of(HopKind::Terminated).is_empty(), "{:?}", t.hops);
 }
 
 /// The agent is told what it has left, and told plainly when the next call
 /// would be its last. A budget it cannot see is one it plans straight past.
 #[test]
 fn the_follow_up_prompt_states_the_remaining_budget() {
-    let b = broker_with(FakeTools(Ok("contents".into())));
-    // Always asks for another tool, so the budget is spent in full.
-    let agent = Scripted::new(&["again\n@tool fs:read {\"path\": \"x\"}"]);
-    let mut stats = RunStats::default();
-    let mut usage = Usage::default();
-    let stream = HopStream::noop();
-    let _ = b.run_tools(
-        &agent,
-        "base",
-        "look\n@tool fs:read {\"path\": \"x\"}".into(),
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |_| {},
+    let t = with(
+        FakeTools(Ok("contents".into())),
+        &[&format!("again\n{READ}")],
     );
-    let seen = agent.seen();
-    assert_eq!(seen.len(), MAX_TOOL_ROUNDS as usize, "one dial per round");
+    let follow_ups = &t.prompts[1..=MAX_TOOL_ROUNDS as usize];
     assert!(
-        seen[0].contains("more round(s) of tool calls"),
+        follow_ups[0].contains("more round(s) of tool calls"),
         "the first follow-up must state the remaining budget: {}",
-        seen[0]
+        follow_ups[0]
     );
-    assert!(
-        seen.last().unwrap().contains("LAST round of tool calls"),
-        "the final round must say so plainly: {}",
-        seen.last().unwrap()
-    );
+    let last = follow_ups.last().unwrap();
+    assert!(last.contains("LAST round of tool calls"), "{last}");
 }
 
+/// With no tool surface a hop is one dial, and a `@tool` line is just text.
 #[test]
-fn run_tools_without_a_runner_is_a_no_op() {
-    let b = Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5));
-    let agent = Scripted::new(&[]);
-    let mut stats = RunStats::default();
-    let mut usage = Usage::default();
-    let stream = HopStream::noop();
-    let reply = b.run_tools(
-        &agent,
-        "base",
-        "answer\n@tool fs:read {}".into(),
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |_| {},
-    );
-    assert_eq!(reply, "answer\n@tool fs:read {}");
-    assert_eq!(stats.exchanges, 0);
+fn without_tools_a_hop_is_one_dial() {
+    let t = turn(Script::new(&["answer\n@tool fs:read {}"]), |b| b, "task");
+    assert_eq!(t.prompts.len(), 1);
+    assert_eq!(t.stats.exchanges, 1);
+    assert!(t.answer().unwrap().starts_with("answer\n@tool fs:read {}"));
 }
 
 /// A runner that routes `sys:` to the real built-in tools (the session
@@ -325,29 +223,17 @@ impl ToolRunner for SysOnly {
 
 #[test]
 fn relay_runs_a_real_sys_command_and_logs_hops() {
-    let broker = Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5))
-        .with_tools(std::sync::Arc::new(SysOnly));
-    let agent = Scripted::new(&[
-        "@tool sys:run {\"cmd\":\"echo tool-e2e\"}",
-        "the command printed tool-e2e",
-    ]);
-    let mut stats = RunStats::default();
-    let mut usage = Usage::default();
-    let (tools, stream) = crate::broker::toolhive::lane::capture();
-    let reply = broker.run_tools(
-        &agent,
-        "task",
-        "@tool sys:run {\"cmd\":\"echo tool-e2e\"}".into(),
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |_| {},
+    let t = with(
+        SysOnly,
+        &[
+            "@tool sys:run {\"cmd\":\"echo tool-e2e\"}",
+            "the command printed tool-e2e",
+        ],
     );
-    assert_eq!(reply, "the command printed tool-e2e");
+    assert_eq!(t.answer(), Some("the command printed tool-e2e"));
     // The call and its result go out on the tool lane, as Claude Code's do;
     // the pane's tool line reads the command out of the arguments.
-    let cards = crate::broker::toolhive::lane::cards(&tools);
+    let cards = t.cards();
     assert!(
         cards[0].starts_with("[tool] sys:run ") && cards[0].contains("echo tool-e2e"),
         "{cards:?}"
@@ -371,40 +257,29 @@ fn pointer_framed_skill_lets_the_agent_read_the_playbook() {
     assert!(frame.contains("Full playbook:"), "got: {frame}");
     assert!(frame.contains(&p.display().to_string()), "got: {frame}");
 
-    let broker = Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5))
-        .with_tools(std::sync::Arc::new(SysOnly));
-    let agent = Scripted::new(&["read it, proceeding"]);
-    let mut stats = RunStats::default();
-    let mut usage = Usage::default();
-    let (tools, stream) = crate::broker::toolhive::lane::capture();
-    let reply = broker.run_tools(
-        &agent,
-        &frame,
-        format!(
-            "checking\n@tool sys:read_file {{\"path\": \"{}\"}}",
-            p.display()
-        ),
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |_| {},
+    let first = format!(
+        "checking\n@tool sys:read_file {{\"path\": \"{}\"}}",
+        p.display()
     );
-    assert_eq!(reply, "read it, proceeding");
+    let tools: Arc<dyn ToolRunner> = Arc::new(SysOnly);
+    let t = turn(
+        Script::new(&[&first, "read it, proceeding"]),
+        |b| b.with_tools(tools),
+        &frame,
+    );
+    assert_eq!(t.answer(), Some("read it, proceeding"));
     assert!(
-        crate::broker::toolhive::lane::cards(&tools)
-            .iter()
-            .any(|c| c.contains("needle-content")),
+        t.cards().iter().any(|c| c.contains("needle-content")),
         "the tool result carries the playbook text"
     );
     let _ = std::fs::remove_file(&p);
 }
 
+/// A big `sys:read_file`-shaped result is cut from the middle: its lines
+/// stay lines, and the notice on its last line, which the agent needs
+/// verbatim to read on, survives.
 #[test]
-fn run_tools_clips_large_results_but_keeps_newlines_and_the_final_line() {
-    // A big multi-line `sys:read_file`-shaped result: many short lines, then a
-    // truncation notice as the final line that the agent MUST see verbatim to
-    // continue the read. The whole thing is well over the 6000-char budget.
+fn a_large_result_keeps_its_newlines_and_its_final_line() {
     let mut body = String::new();
     for i in 0..2000 {
         body.push_str(&format!("line {i}: some padding text here\n"));
@@ -413,35 +288,18 @@ fn run_tools_clips_large_results_but_keeps_newlines_and_the_final_line() {
                   continue with {\"offset\": 5480})";
     body.push_str(notice);
     assert!(body.len() > 6000, "fixture must exceed the clip budget");
-
-    let b = broker_with(FakeTools(Ok(body)));
-    let agent = std::sync::Arc::new(Scripted::new(&["got it\n@done"]));
-    let mut stats = RunStats::default();
-    let mut usage = Usage::default();
-    let stream = HopStream::noop();
-    let reply = b.run_tools(
-        agent.as_ref(),
-        "base prompt",
-        "reading\n@tool fs:read {\"path\": \"x\"}".into(),
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |_| {},
+    let t = with(
+        FakeTools(Ok(body)),
+        &[&format!("reading\n{READ}"), "got it\n@done"],
     );
-    assert_eq!(reply, "got it\n@done");
-
-    let seen = agent.seen();
-    let follow = seen.last().expect("agent was dialed with the follow-up");
+    let follow = &t.prompts[1];
+    let result = follow.split("RESULT:\n").nth(1).unwrap();
+    assert!(result.contains("line 0: "), "the head: {result}");
     assert!(
-        follow.contains('\n'),
-        "clipped result must preserve newlines, got: {follow}"
+        result.contains(notice),
+        "the final line, verbatim: {result}"
     );
-    assert!(
-        follow.contains(notice),
-        "clipped result must preserve the final line verbatim, got tail: {}",
-        &follow[follow.len().saturating_sub(200)..]
-    );
+    assert!(result.chars().count() < 6_500, "{}", result.chars().count());
 }
 
 #[test]
@@ -464,214 +322,27 @@ fn clip_result_keeps_the_final_line_when_it_alone_fits_the_budget() {
 }
 
 #[test]
-fn run_tools_clips_single_line_results_with_no_newline() {
-    // Minified/base64-shaped output: no embedded newline at all, so the
-    // "final line" is the entire text. clip_result must still hard-cap it
-    // instead of returning the whole thing unbounded.
-    let body = "x".repeat(7000);
-    assert!(body.len() > 6000, "fixture must exceed the clip budget");
-
-    let b = broker_with(FakeTools(Ok(body)));
-    let agent = std::sync::Arc::new(Scripted::new(&["got it\n@done"]));
-    let mut stats = RunStats::default();
-    let mut usage = Usage::default();
-    let stream = HopStream::noop();
-    let reply = b.run_tools(
-        agent.as_ref(),
-        "base prompt",
-        "reading\n@tool fs:read {\"path\": \"x\"}".into(),
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |_| {},
+fn a_single_line_result_is_held_to_the_budget() {
+    // Minified/base64-shaped output: no newline at all, so the cut falls in
+    // the line, and the result is still held near the 6,000 budget.
+    let t = with(
+        FakeTools(Ok("x".repeat(7000))),
+        &[&format!("reading\n{READ}"), "got it\n@done"],
     );
-    assert_eq!(reply, "got it\n@done");
-
-    let seen = agent.seen();
-    let follow = seen.last().expect("agent was dialed with the follow-up");
-    assert!(
-        follow.len() < 6500,
-        "single-line result must be hard-capped near the 6000 budget, got {} chars",
-        follow.len()
-    );
-}
-
-/// A tool round's follow-up dial must go through `call_with_usage_ticked` on
-/// the SAME hop ticker the primary dial uses — not `agent.call`, which
-/// accounts no usage and emits no ticks — so the roster's tok display and
-/// per-agent Stats reconcile after tool-heavy hops the same way a plain reply
-/// does. Exercised against a real `ApiAdapter` + `MockProvider` so the ticks
-/// come from real streaming, not a hand-rolled fake.
-#[test]
-fn run_tools_follow_up_dial_reports_usage_and_emits_ticks() {
-    let provider: std::sync::Arc<dyn crew_hive::Provider> =
-        std::sync::Arc::new(crew_hive::MockProvider {
-            reply: "used the file\n@done".into(),
-        });
-    let agent =
-        crate::broker::apiadapter::ApiAdapter::new("planner", "m", "", None, provider).unwrap();
-    let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
-    let mut stats = RunStats::default();
-    let mut usage = crate::broker::adapter::Usage::default();
-
-    let events: std::sync::Arc<Mutex<Vec<PluginEvent>>> = Default::default();
-    let tick_sink = events.clone();
-    let tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync> =
-        std::sync::Arc::new(move |ev| tick_sink.lock().unwrap().push(ev));
-    let stream = HopStream {
-        on_tokens: crate::broker::tick::hop_ticker(tick_emit.clone(), "planner".into()),
-        on_text: crate::broker::tick::hop_texter(tick_emit.clone(), "planner".into()),
-        on_thought: crate::broker::tick::hop_thinker(tick_emit, "planner".into()),
-        on_tool: std::sync::Arc::new(|_| {}),
-    };
-
-    let mut hops = Vec::new();
-    let reply = b.run_tools(
-        &agent,
-        "base prompt",
-        "let me look\n@tool fs:read {\"path\": \"x\"}".into(),
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |h| hops.push(h),
-    );
-
-    assert_eq!(reply, "used the file\n@done");
-    assert_eq!(stats.exchanges, 1);
-    assert!(
-        stats.real_tokens > 0,
-        "follow-up usage must be accounted, not just approx_tokens"
-    );
-    assert!(
-        usage.input_tokens > 0 || usage.output_tokens > 0,
-        "the surrounding hop's usage must carry the follow-up's real usage"
-    );
-    assert!(
-        events.lock().unwrap().iter().any(|e| matches!(
-            e,
-            PluginEvent::StatsTick { agent, .. } if agent == "planner"
-        )),
-        "the follow-up dial must emit at least one StatsTick when the gate allows: {:?}",
-        events.lock().unwrap()
-    );
-    assert!(
-        events
-            .lock()
-            .unwrap()
-            .iter()
-            .any(|e| matches!(e, PluginEvent::Delta { agent, .. } if agent == "planner")),
-        "the follow-up dial streams text too, not just token ticks: {:?}",
-        events.lock().unwrap()
-    );
-}
-
-/// Reviewer-confirmed defect: `run_tools` reuses the primary dial's ticker
-/// as-is, but `call_with_usage_ticked` restarts its chars/4 estimate at 0 for
-/// EACH dial. The ticker's "must grow" gate still holds the primary dial's
-/// high last-reported value, so a follow-up whose own running total never
-/// climbs past it emits ZERO ticks for its whole duration — the roster's
-/// live token count freezes during tool rounds. Repro: prime the shared
-/// ticker as a long primary dial would (a big last tick, 167), then drive a
-/// SHORT follow-up reply through `run_tools` on that SAME ticker and require
-/// it to still tick, with values past the primed one.
-#[test]
-fn run_tools_follow_up_dial_ticks_past_the_hops_running_estimate() {
-    let events: std::sync::Arc<Mutex<Vec<PluginEvent>>> = Default::default();
-    let tick_sink = events.clone();
-    let tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync> =
-        std::sync::Arc::new(move |ev| tick_sink.lock().unwrap().push(ev));
-    let on_tokens = crate::broker::tick::hop_ticker(tick_emit, "planner".into());
-
-    // Prime the ticker as if a long primary dial already streamed to a
-    // running estimate of 167 (the ticker's first call always passes the
-    // gate, mirroring the primary dial's final in-flight tick).
-    on_tokens(167);
-    // The 150ms gap gate runs on a real clock (hop_ticker's own
-    // `Instant::now()`); give the follow-up dial's ticks room to clear it.
-    std::thread::sleep(Duration::from_millis(160));
-
-    // `run_tools` seeds its cumulative offset from THIS string's chars/4 —
-    // size it so the offset lands at/above the primed value (167), matching
-    // a primary reply that produced that running estimate.
-    let primary_reply = format!("{}\n@tool fs:read {{\"path\": \"x\"}}", "z".repeat(4 * 167));
-
-    let provider: std::sync::Arc<dyn crew_hive::Provider> =
-        std::sync::Arc::new(crew_hive::MockProvider {
-            reply: "used the file\n@done".into(), // short: alone, never re-passes the gate
-        });
-    let agent =
-        crate::broker::apiadapter::ApiAdapter::new("planner", "m", "", None, provider).unwrap();
-    let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
-    let mut stats = RunStats::default();
-    let mut usage = crate::broker::adapter::Usage::default();
-    let mut hops = Vec::new();
-
-    let stream = HopStream {
-        on_tokens,
-        on_text: std::sync::Arc::new(|_| {}),
-        on_thought: std::sync::Arc::new(|_| {}),
-        on_tool: std::sync::Arc::new(|_| {}),
-    };
-    let primed = events.lock().unwrap().len(); // the priming tick recorded above
-    let reply = b.run_tools(
-        &agent,
-        "base prompt",
-        primary_reply,
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |h| hops.push(h),
-    );
-
-    assert_eq!(reply, "used the file\n@done");
-    let ticks: Vec<u64> = events
-        .lock()
-        .unwrap()
-        .iter()
-        .skip(primed) // only the follow-up dial's ticks, not the priming one
-        .filter_map(|e| match e {
-            PluginEvent::StatsTick { agent, tokens } if agent == "planner" => Some(*tokens),
-            _ => None,
-        })
-        .collect();
-    assert!(
-        !ticks.is_empty(),
-        "the short follow-up must still tick, offset past the hop's running estimate"
-    );
-    assert!(
-        ticks.iter().all(|&t| t > 167),
-        "follow-up ticks must exceed the primed value: {ticks:?}"
-    );
-}
-
-/// Run one tool round and hand back the hops it emitted.
-fn run_tools_cards(b: &Broker, agent: &Scripted, reply: &str) -> Vec<String> {
-    let mut stats = RunStats::default();
-    let mut usage = Usage::default();
-    let (tools, stream) = crate::broker::toolhive::lane::capture();
-    b.run_tools(
-        agent,
-        "task",
-        reply.to_string(),
-        &mut stats,
-        &mut usage,
-        &env(),
-        &stream,
-        &mut |_| {},
-    );
-    crate::broker::toolhive::lane::cards(&tools)
+    let follow = &t.prompts[1];
+    let longest = follow.split(|c| c != 'x').map(str::len).max().unwrap();
+    assert!(longest <= 6_000, "{longest}");
 }
 
 /// A result says whether it worked and carries what the tool said: the
 /// pane's tool line marks it ✓ or ✗ and opens the text on a click.
 #[test]
 fn a_relay_tool_result_is_marked_the_way_the_swarm_marks_it() {
-    let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
-    let agent = Scripted::new(&["done\n@done"]);
-    let cards = run_tools_cards(&b, &agent, "reading\n@tool fs:read {\"path\":\"x\"}");
+    let t = with(
+        FakeTools(Ok("FILE CONTENTS".into())),
+        &["reading\n@tool fs:read {\"path\":\"x\"}", "done\n@done"],
+    );
+    let cards = t.cards();
     let result = cards
         .iter()
         .find(|c| c.starts_with("[tool] fs:read \u{2713}"));
@@ -682,9 +353,11 @@ fn a_relay_tool_result_is_marked_the_way_the_swarm_marks_it() {
 
 #[test]
 fn a_relay_tool_failure_carries_the_failure_mark() {
-    let b = broker_with(FakeTools(Err("connection refused".into())));
-    let agent = Scripted::new(&["gave up\n@done"]);
-    let cards = run_tools_cards(&b, &agent, "trying\n@tool fs:read {\"path\":\"x\"}");
+    let t = with(
+        FakeTools(Err("connection refused".into())),
+        &["trying\n@tool fs:read {\"path\":\"x\"}", "gave up\n@done"],
+    );
+    let cards = t.cards();
     let result = cards
         .iter()
         .find(|c| c.starts_with("[tool] fs:read \u{2717}"));
@@ -693,47 +366,35 @@ fn a_relay_tool_failure_carries_the_failure_mark() {
         .contains("connection refused"));
 }
 
-/// An agent whose every dial after the first comes back `Err` (or empty).
-struct Failing(Result<String, String>);
-
-impl Adapter for Failing {
-    fn name(&self) -> &str {
-        "planner"
-    }
-    fn probe(&self) -> bool {
-        true
-    }
-    fn call(&self, _body: &str, _t: Duration) -> Result<String, String> {
-        self.0.clone()
-    }
-}
-
-/// A follow-up dial that fails ends the turn on what the agent had said,
-/// with a line saying why — never on its raw `@tool` line, which the caller
-/// would otherwise show as the answer (inventory 2026-10-16, item 7).
+/// A follow-up that fails ends the turn on what the agent had said, with a
+/// line saying why — never on its raw `@tool` line, which the caller would
+/// otherwise show as the answer (inventory 2026-10-16, item 7).
 #[test]
 fn a_failed_follow_up_never_leaves_the_raw_call_as_the_answer() {
-    for (agent, why) in [
-        (Failing(Err("connection reset".into())), "connection reset"),
-        (Failing(Ok("  ".into())), "an empty reply"),
+    for (then, why) in [
+        (Err("connection reset".to_string()), "connection reset"),
+        (Ok("  ".to_string()), "an empty reply"),
     ] {
-        let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
-        let reply = b.run_tools(
-            &agent,
-            "base",
-            "Let me look at x.\n@tool fs:read {\"path\": \"x\"}".into(),
-            &mut RunStats::default(),
-            &mut Usage::default(),
-            &env(),
-            &HopStream::noop(),
-            &mut |_| {},
+        let first = Ok(format!("Let me look at x.\n{READ}"));
+        let tools: Arc<dyn ToolRunner> = Arc::new(FakeTools(Ok("FILE CONTENTS".into())));
+        let t = turn(
+            Script::of(vec![first, then]),
+            |b| b.with_tools(tools),
+            "task",
         );
+        let answer = t.answer().unwrap();
         assert!(
-            !reply.contains("@tool"),
-            "raw call as the answer: {reply:?}"
+            !answer.contains("@tool"),
+            "raw call as the answer: {answer:?}"
         );
-        assert!(reply.starts_with("Let me look at x."), "{reply:?}");
-        assert!(reply.contains(why), "says why it stopped: {reply:?}");
+        assert!(answer.starts_with("Let me look at x."), "{answer:?}");
+        assert!(answer.contains(why), "says why it stopped: {answer:?}");
+        assert_eq!(
+            t.of(HopKind::Error).len(),
+            1,
+            "and the error card: {:?}",
+            t.hops
+        );
     }
 }
 
@@ -771,4 +432,27 @@ fn crews_own_tools_are_listed_whole() {
     }]);
     let line = other.lines().find(|l| l.starts_with("- fs:read")).unwrap();
     assert!(line.chars().count() < 130, "{line}");
+}
+
+/// Three reads on a reply's last lines run as one round: one follow-up
+/// carries all three results, and one round of the budget is spent.
+#[test]
+fn a_replys_batch_is_one_round() {
+    let reads = "three files\n@tool fs:read {\"path\": \"a\"}\n@tool fs:read {\"path\": \"b\"}\n\
+                 @tool fs:read {\"path\": \"c\"}";
+    let t = with(
+        FakeTools(Ok("FILE".into())),
+        &[reads, "read all three\n@done"],
+    );
+    assert_eq!(t.prompts.len(), 2, "one follow-up for the three");
+    let follow = &t.prompts[1];
+    assert_eq!(follow.matches("RESULT:\nFILE").count(), 3, "{follow}");
+    assert!(
+        follow.contains(&format!(
+            "You may make {} more round(s)",
+            MAX_TOOL_ROUNDS - 1
+        )),
+        "{follow}"
+    );
+    assert_eq!(t.answer(), Some("read all three"));
 }

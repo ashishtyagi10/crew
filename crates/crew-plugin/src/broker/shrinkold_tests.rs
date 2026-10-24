@@ -2,33 +2,11 @@
 //! repeat of a shortened read runs again instead of pointing at a result that
 //! is no longer there (`crew_hive::tools::exchanges`). Each test runs a whole
 //! turn against a scripted agent and reads the prompts it was really sent.
-use std::sync::Mutex;
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
 
 use super::*;
 use crate::broker::tier::{tier_of, Tier};
-use crate::Registry;
-
-/// Replies in order, then `@done`; keeps every prompt it was dialed with.
-struct Scripted(Mutex<Vec<String>>, Mutex<Vec<String>>);
-
-impl Adapter for Scripted {
-    fn name(&self) -> &str {
-        "planner"
-    }
-    fn probe(&self) -> bool {
-        true
-    }
-    fn call(&self, body: &str, _t: Duration) -> Result<String, String> {
-        self.1.lock().unwrap().push(body.to_string());
-        Ok(self
-            .0
-            .lock()
-            .unwrap()
-            .pop()
-            .unwrap_or_else(|| "@done".into()))
-    }
-}
+use crate::broker::turnkit::{turn as relay, Script};
 
 /// Answers every read with [`file`] for its path, and keeps the paths it ran.
 struct Files(Mutex<Vec<String>>);
@@ -63,34 +41,26 @@ fn read(name: &str) -> String {
 }
 
 /// Run a turn of up to 8 tool rounds that reads `names` in order and then
-/// answers; hand back the reads that ran and every follow-up prompt.
-fn turn(names: &[&str]) -> (Vec<String>, Vec<String>) {
-    let runner = std::sync::Arc::new(Files(Mutex::new(Vec::new())));
-    let b = Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5))
-        .with_tools(runner.clone())
-        .with_tool_rounds(8);
-    let mut then: Vec<String> = names[1..].iter().map(|n| read(n)).collect();
-    then.push("answer\n@done".into());
-    then.reverse();
-    let agent = Scripted(Mutex::new(then), Mutex::new(Vec::new()));
-    b.run_tools(
-        &agent,
-        "base prompt",
-        read(names[0]),
-        &mut RunStats::default(),
-        &mut Usage::default(),
-        &Envelope::new("user", "planner", "t1", "task"),
-        &HopStream::noop(),
-        &mut |_| {},
+/// answers; hand back the reads that ran, the base every follow-up starts
+/// from (the first prompt), and every follow-up prompt.
+fn turn(names: &[&str]) -> (Vec<String>, String, Vec<String>) {
+    let runner = Arc::new(Files(Mutex::new(Vec::new())));
+    let tools: Arc<dyn ToolRunner> = runner.clone();
+    let mut replies: Vec<String> = names.iter().map(|n| read(n)).collect();
+    replies.push("answer\n@done".into());
+    let replies: Vec<&str> = replies.iter().map(String::as_str).collect();
+    let t = relay(
+        Script::new(&replies),
+        |b| b.with_tools(tools).with_tool_rounds(8),
+        "task",
     );
     let ran = runner.0.lock().unwrap().clone();
-    let dialed = agent.1.lock().unwrap().clone();
-    (ran, dialed)
+    (ran, t.prompts[0].clone(), t.prompts[1..].to_vec())
 }
 
-/// The follow-up as it was built before anything was shortened: every read
-/// in `names` whole, with `left` calls to go.
-fn whole(names: &[&str], left: u32) -> String {
+/// The follow-up as it was built before anything was shortened: `base`, then
+/// every read in `names` whole, with `left` rounds to go.
+fn whole(base: &str, names: &[&str], left: u32) -> String {
     let exchanges: Vec<String> = names
         .iter()
         .map(|n| {
@@ -102,9 +72,9 @@ fn whole(names: &[&str], left: u32) -> String {
         })
         .collect();
     format!(
-        "base prompt\n\nTOOL EXCHANGES THIS TURN:\n{}\n\nYou may make {left} more round(s) \
-         of tool calls this turn, up to 4 calls in one reply, or answer now and end the \
-         answer as HOW TO REPLY says.",
+        "{base}\n\nTOOL EXCHANGES SO FAR:\n{}\n\nYou may make {left} more round(s) of tool \
+         calls for this task, up to 8 calls in one reply, or give your final answer and end \
+         it as HOW TO REPLY says.",
         exchanges.join("\n\n")
     )
 }
@@ -118,13 +88,13 @@ fn exchange<'a>(prompt: &'a str, name: &str) -> &'a str {
 }
 
 /// Less than three whole results: the shortened prompt carries two and two
-/// heads, the whole one all four.
+/// heads, the whole one all four (on top of the base both carry).
 const BOUND: usize = 3 * 5_203;
 
 #[test]
 fn the_fourth_prompt_carries_the_last_two_results_whole_and_the_first_two_shortened() {
     assert_eq!(file("f1").chars().count(), 5_203);
-    let (ran, dialed) = turn(&["f1", "f2", "f3", "f4"]);
+    let (ran, base, dialed) = turn(&["f1", "f2", "f3", "f4"]);
     assert_eq!(ran, ["f1", "f2", "f3", "f4"]);
     let fourth = &dialed[3];
     let note = "\n\u{2026} (result shortened \u{2014} 5,203 chars; the call can be made again \
@@ -148,27 +118,28 @@ fn the_fourth_prompt_carries_the_last_two_results_whole_and_the_first_two_shorte
     for n in ["f1", "f2", "f3", "f4"] {
         assert!(fourth.contains(&format!("CALLED sys:read_file {{\"path\":\"{n}\"}}")));
     }
-    let before = whole(&["f1", "f2", "f3", "f4"], 4);
+    let before = whole(&base, &["f1", "f2", "f3", "f4"], 4);
     eprintln!(
         "fourth follow-up: {} chars, whole: {}",
         fourth.len(),
         before.len()
     );
-    assert!(before.len() > BOUND, "whole is {}", before.len());
-    assert!(fourth.len() < BOUND, "shortened is {}", fourth.len());
+    let bound = base.len() + BOUND;
+    assert!(before.len() > bound, "whole is {}", before.len());
+    assert!(fourth.len() < bound, "shortened is {}", fourth.len());
 }
 
 #[test]
 fn a_turn_of_two_reads_is_sent_exactly_as_before() {
-    let (_, dialed) = turn(&["f1", "f2"]);
+    let (_, base, dialed) = turn(&["f1", "f2"]);
     assert_eq!(dialed.len(), 2);
-    assert_eq!(dialed[0], whole(&["f1"], 7));
-    assert_eq!(dialed[1], whole(&["f1", "f2"], 6));
+    assert_eq!(dialed[0], whole(&base, &["f1"], 7));
+    assert_eq!(dialed[1], whole(&base, &["f1", "f2"], 6));
 }
 
 #[test]
 fn a_repeat_of_a_shortened_read_runs_and_a_fresh_one_still_points() {
-    let (ran, dialed) = turn(&["A", "B", "C", "C", "A", "A"]);
+    let (ran, _, dialed) = turn(&["A", "B", "C", "C", "A", "A"]);
     // C straight after C is still whole in the prompt the pointer goes into.
     assert!(
         dialed[3].contains("same call as round 3"),

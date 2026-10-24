@@ -1,4 +1,4 @@
-//! A steer meeting the relay's tool loop (`toolcall::run_tools`): taken
+//! A steer meeting a CLI agent's relay turn on the harness (`hopturn`): taken
 //! between rounds, announced before the dial that carries it, and kept in
 //! every follow-up for the rest of the turn. The inbox itself is tested in
 //! `steer_tests`, whose turn-taking these share.
@@ -6,12 +6,13 @@ use std::time::Duration;
 
 use super::tests::{offer, taking, turn, Log};
 use super::*;
-use crate::broker::adapter::{Adapter, HopStream, Usage};
-use crate::broker::{Broker, Envelope, RunStats};
+use crate::broker::adapter::Adapter;
+use crate::broker::Broker;
 use crate::Registry;
 
-/// An agent that answers from a script and writes each dial to the log.
-struct Agent(Mutex<Vec<&'static str>>, Mutex<Vec<String>>, Log);
+/// An agent that answers from a script, keeps every prompt, and writes each
+/// dial to the log.
+struct Agent(Mutex<Vec<&'static str>>, Arc<Mutex<Vec<String>>>, Log);
 
 impl Adapter for Agent {
     fn name(&self) -> &str {
@@ -40,29 +41,34 @@ impl crate::broker::toolcall::ToolRunner for Tools {
     }
 }
 
-/// Run one tool turn on this thread as a task: the prompts the agent was
-/// dialed with, and the log of announcements and dials, in order.
+/// Run one tool turn on this thread as a task: the follow-up prompts the
+/// agent was dialed with, and the log of announcements and dials (the first
+/// included), in order.
 fn run_turn(during: fn()) -> (Vec<String>, Vec<String>) {
     let log = Log::default();
     let _task = taking(&log);
-    let b = Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5))
-        .with_tools(Arc::new(Tools(during)));
-    let replies = vec!["@tool fs:read {\"path\": \"b\"}", "checked both\n@done"];
-    let agent = Agent(Mutex::new(replies), Mutex::default(), Arc::clone(&log));
-    let first = "@tool fs:read {\"path\": \"a\"}".to_string();
-    let env = Envelope::new("user", "planner", "t1", "task");
-    let reply = b.run_tools(
-        &agent,
-        "task",
-        first,
-        &mut RunStats::default(),
-        &mut Usage::default(),
-        &env,
-        &HopStream::noop(),
-        &mut |_| {},
-    );
-    assert!(reply.contains("checked both"), "{reply}");
-    let prompts = agent.1.lock().unwrap().clone();
+    let prompts = Arc::new(Mutex::new(Vec::new()));
+    let replies = vec![
+        "@tool fs:read {\"path\": \"a\"}",
+        "@tool fs:read {\"path\": \"b\"}",
+        "checked both\n@done",
+    ];
+    let agent = Agent(Mutex::new(replies), Arc::clone(&prompts), Arc::clone(&log));
+    let b = Broker::new(
+        Registry::new(vec![Box::new(agent)]),
+        6,
+        Duration::from_secs(5),
+    )
+    .with_tools(Arc::new(Tools(during)));
+    let emit: Arc<dyn Fn(PluginEvent) + Send + Sync> = Arc::new(|_| {});
+    let mut answer = String::new();
+    b.run("user", "planner", "task", "t1", &emit, &mut |h| {
+        if h.kind == crate::broker::hop::HopKind::Done {
+            answer = h.text;
+        }
+    });
+    assert!(answer.contains("checked both"), "{answer}");
+    let prompts = prompts.lock().unwrap()[1..].to_vec();
     let order = log.lock().unwrap().clone();
     (prompts, order)
 }
@@ -77,7 +83,7 @@ fn a_steer_typed_during_a_round_joins_the_next_prompt_and_stays_for_the_turn() {
             .split_once(HEAD)
             .expect("the section rides every follow-up");
         assert!(
-            exchanges.contains("TOOL EXCHANGES THIS TURN"),
+            exchanges.contains("TOOL EXCHANGES SO FAR"),
             "after the exchanges: {p}"
         );
         assert!(added.starts_with("\n- also check the tests\n"), "{p}");
@@ -93,6 +99,7 @@ fn a_steer_typed_during_a_round_joins_the_next_prompt_and_stays_for_the_turn() {
     assert_eq!(
         order,
         [
+            "dial",
             "steered crew: also check the tests",
             "dial",
             "steered crew: also check the tests",
@@ -108,5 +115,5 @@ fn a_turn_nobody_steered_carries_no_section() {
     let (prompts, order) = run_turn(|| {});
     assert_eq!(prompts.len(), 2);
     assert!(prompts.iter().all(|p| !p.contains(HEAD)), "{prompts:?}");
-    assert_eq!(order, ["dial", "dial"]);
+    assert_eq!(order, ["dial", "dial", "dial"]);
 }

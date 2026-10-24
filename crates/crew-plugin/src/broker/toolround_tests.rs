@@ -4,7 +4,6 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use super::*;
 use crate::broker::toolcall::ToolRunner;
 use crate::broker::{Adapter, Broker, Hop, HopKind, Registry};
 
@@ -103,6 +102,8 @@ fn the_follow_up_prompt_carries_what_the_agent_wrote_with_its_call() {
     );
 }
 
+/// A spent budget's last word is cut of its calls, a fenced one whole, and
+/// says the budget ran out.
 #[test]
 fn a_spent_budget_answers_with_the_text_above_a_fenced_call() {
     let text = "clip() cuts at the budget, not at a line end.";
@@ -111,44 +112,27 @@ fn a_spent_budget_answers_with_the_text_above_a_fenced_call() {
          \"offset\": 5480\n}}\n```\n@done"
     );
     let (_, answer) = turn(&[&reply]);
-    assert_eq!(answer, text);
+    assert!(answer.starts_with(text), "{answer}");
+    assert!(answer.ends_with(BUDGET), "{answer}");
     assert!(!answer.contains("@tool"), "{answer}");
     assert!(!answer.contains("```"), "{answer}");
     assert!(!answer.contains('{'), "{answer}");
 }
 
+/// The budget's note, for the default rounds.
+const BUDGET: &str = "[tool budget spent \u{2014} 4 rounds of tool calls]";
+
 #[test]
 fn a_spent_budget_on_a_bare_call_answers_with_one_plain_line() {
     let (_, answer) = turn(&["@tool sys:read_file {\"path\":\"a.rs\"}"]);
-    assert_eq!(
-        answer,
-        format!(
-            "stopped before answering: the tool budget ({} rounds) ran out",
-            crew_hive::tools::MAX_TOOL_ROUNDS
-        )
-    );
-}
-
-#[test]
-fn a_reply_that_was_only_the_call_adds_no_message() {
-    let e = exchange("", "sys:read_file", "{}", "fn clip() {}");
-    assert_eq!(
-        e.to_string(),
-        "CALLED sys:read_file {}\nRESULT:\nfn clip() {}"
-    );
-}
-
-#[test]
-fn text_above_the_call_is_the_answer_when_it_is_all_there_is() {
-    assert_eq!(budget_answer("  kept  \n", 4), "kept");
+    assert_eq!(answer, BUDGET);
 }
 
 /// Calls left in the answer by a spent budget: edits, an explanation too long
 /// to be an aside, then a test run (on the 2026-10-23 probe the gap was one
 /// line, which now runs every group). Only the run is the reply's call, so
-/// the edits stayed in the text; the budget refused all of them, and the note
-/// said the turn "ended before any call in it ran", which sent the reply
-/// judge after a turn that had run every round it had.
+/// the edits stayed in the text and never ran; the line under the answer
+/// says the budget stopped them, not that the turn ran no call at all.
 #[test]
 fn edits_left_by_a_spent_budget_say_the_budget_stopped_them() {
     let reply = "Let's make these changes.\n\n```rust\n\
@@ -159,12 +143,10 @@ fn edits_left_by_a_spent_budget_say_the_budget_stopped_them() {
                  If one fails, the edit above is the place to look.\n\n\
                  @tool sys:run {\"cmd\": \"cargo test\"}";
     let (_, answer) = turn(&[reply]);
-    let answer = super::finished(None, answer);
-    let rounds = crew_hive::tools::MAX_TOOL_ROUNDS;
-    let note = format!(
-        "not run \u{2014} the tool budget ({rounds} rounds) was spent before `sys:edit` could run"
-    );
-    assert!(answer.ends_with(&note), "{answer}");
+    let note = "not run \u{2014} the answer asks for `sys:edit`, but the tool budget was \
+                spent before it could run";
+    assert!(answer.ends_with(note), "{answer}");
+    assert!(answer.contains(BUDGET), "{answer}");
     assert_eq!(answer.matches("not run").count(), 1, "one note: {answer}");
     assert!(
         !answer.contains("cargo test"),

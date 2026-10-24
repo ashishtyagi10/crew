@@ -101,11 +101,7 @@ fn run(cmd: &str) -> ToolCall {
 /// One round of `call`, run on [`Runs`], after a stop when `stopped`.
 fn round_of(a: &mut Advisor, call: ToolCall, stats: &mut RunStats, stopped: bool) -> String {
     let text = Runs.call(&call.server, &call.tool, &call.args).unwrap();
-    let ran = Ran {
-        ok: !Runs.failed(&call.server, &call.tool, &text),
-        text,
-        ms: 0,
-    };
+    let ran = (!Runs.failed(&call.server, &call.tool, &text), text);
     let env = Envelope::new("user", "engineer", "t1", "make it build");
     a.read(&Runs, &env, &[call], &[ran], stats, stopped)
 }

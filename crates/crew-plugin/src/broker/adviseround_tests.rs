@@ -1,64 +1,37 @@
-//! The advisor meeting the relay's tool loop (`toolcall::run_tools`): a
-//! failed build is read before the follow-up is dialed, and the advice rides
-//! that follow-up and the rest of the turn's; a stop pressed while the build
-//! ran or while it was read still dials nothing more.
+//! The advisor meeting a CLI agent's relay turn on the harness (`hopturn`):
+//! a failed build is read before the follow-up is dialed, and the advice
+//! rides that follow-up and the rest of the turn's; a stop pressed while the
+//! build ran or while it was read still dials nothing more.
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::sync::Arc;
 
 use super::tests::{advising, install, Runs};
 use super::text::HEAD;
-use crate::broker::adapter::{Adapter, HopStream, Usage};
 use crate::broker::toolcall::ToolRunner;
-use crate::broker::{Broker, Envelope, RunStats};
-use crate::Registry;
+use crate::broker::turnkit::{turn as relay, Script};
+use crate::broker::Broker;
 
-/// An agent that answers from a script and keeps every prompt it was sent.
-struct Agent(Mutex<Vec<&'static str>>, Mutex<Vec<String>>);
-
-impl Adapter for Agent {
-    fn name(&self) -> &str {
-        "engineer"
-    }
-    fn probe(&self) -> bool {
-        true
-    }
-    fn call(&self, body: &str, _t: Duration) -> Result<String, String> {
-        self.1.lock().unwrap().push(body.to_string());
-        Ok(self.0.lock().unwrap().remove(0).to_string())
-    }
-}
-
-fn broker() -> Broker {
-    Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5))
-}
-
-/// A turn on `b` that builds (and fails), then tests (and passes), then
-/// answers: its answer, and the follow-up prompts it was dialed with.
-fn turn(b: Broker) -> (String, Vec<String>) {
-    let replies = vec![
+/// A turn on a broker `setup` gives its tools that builds (and fails), then
+/// tests (and passes), then answers: its answer, and the follow-up prompts
+/// it was dialed with.
+fn turn(setup: impl FnOnce(Broker) -> Broker) -> (String, Vec<String>) {
+    let replies = [
+        "@tool sys:run {\"cmd\": \"cargo build\"}",
         "@tool sys:run {\"cmd\": \"cargo test\"}",
         "it builds\n@done",
     ];
-    let agent = Agent(Mutex::new(replies), Mutex::default());
-    let first = "@tool sys:run {\"cmd\": \"cargo build\"}".to_string();
-    let env = Envelope::new("user", "engineer", "t1", "make it build");
-    let reply = b.run_tools(
-        &agent,
+    let t = relay(
+        Script::new(&replies).named("engineer"),
+        setup,
         "make it build",
-        first,
-        &mut RunStats::default(),
-        &mut Usage::default(),
-        &env,
-        &HopStream::noop(),
-        &mut |_| {},
     );
-    let prompts = agent.1.lock().unwrap().clone();
-    (reply, prompts)
+    let answer = t.answer().expect("an answer").to_string();
+    (answer, t.prompts[1..].to_vec())
 }
 
 fn build_then_test() -> Vec<String> {
-    let (reply, prompts) = turn(broker().with_tools(Arc::new(Runs)));
+    let runs: Arc<dyn ToolRunner> = Arc::new(Runs);
+    let (reply, prompts) = turn(|b| b.with_tools(runs));
     assert!(reply.contains("it builds"), "{reply}");
     prompts
 }
@@ -76,7 +49,7 @@ fn a_failed_build_is_advised_before_the_next_dial_and_for_the_rest_of_the_turn()
     assert!(briefs.lock().unwrap()[0].contains("THE REQUEST:\nmake it build"));
     for p in &prompts {
         let (exchanges, added) = p.split_once(HEAD).expect("the advice rides the follow-up");
-        assert!(exchanges.contains("TOOL EXCHANGES THIS TURN"), "{p}");
+        assert!(exchanges.contains("TOOL EXCHANGES SO FAR"), "{p}");
         assert!(
             added.starts_with("\n- E0308 at src/a.rs:3 \u{2014} fix the call site\n\n"),
             "{p}"
@@ -123,7 +96,7 @@ fn a_stop_pressed_while_the_build_ran_is_not_read() {
     let (briefs, _on) = advising(Ok("unused"));
     let flag = Arc::new(AtomicBool::new(false));
     let runs = Arc::new(Pressing(Arc::clone(&flag)));
-    let (reply, prompts) = turn(broker().with_tools(runs).with_cancel_flag(flag));
+    let (reply, prompts) = turn(|b| b.with_tools(runs).with_cancel_flag(flag));
     assert!(briefs.lock().unwrap().is_empty(), "read after the stop");
     assert!(prompts.is_empty(), "dialed after the stop: {prompts:?}");
     assert_eq!(reply, "stopped \u{2014} 1 tool call made");
@@ -140,7 +113,7 @@ fn a_stop_pressed_while_the_advisor_read_dials_no_follow_up() {
         Ok(("fix the call site".into(), crew_hive::Spent::default()))
     }));
     let runs = Arc::new(Runs);
-    let (reply, prompts) = turn(broker().with_tools(runs).with_cancel_flag(flag));
+    let (reply, prompts) = turn(|b| b.with_tools(runs).with_cancel_flag(flag));
     assert!(prompts.is_empty(), "dialed after the stop: {prompts:?}");
     assert_eq!(reply, "stopped \u{2014} 1 tool call made");
 }

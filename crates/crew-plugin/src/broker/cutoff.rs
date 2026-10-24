@@ -67,7 +67,7 @@ fn continuation(req: &CompletionRequest, partial: &str, ask: &str) -> Completion
 /// or runs out leaves the first half standing, marked. A reply cut before it
 /// said anything (a reasoning model that spent the ceiling thinking) is not
 /// continued: there is nothing to continue FROM. Nor is one that made tool
-/// calls (native tool-use, `apiturn`): what the ceiling cut is a call's
+/// calls (native tool-use, `hopturn`): what the ceiling cut is a call's
 /// arguments, and the harness answers a cut call by asking for it again
 /// (`badargs`). The first half is itself
 /// [`resume::reply`]: picked up if its stream broke, asked again if empty.
