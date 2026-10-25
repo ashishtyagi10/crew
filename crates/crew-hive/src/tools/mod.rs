@@ -125,6 +125,7 @@ pub trait Tools: Send + Sync {
     /// model is serving.
     ///
     /// [`specs`]: Tools::specs
+    /// [`hint_for`]: Tools::hint_for
     fn specs_for(&self, _task: &str) -> Vec<ToolSpec> {
         self.specs()
     }
@@ -145,7 +146,7 @@ pub trait Tools: Send + Sync {
         None
     }
 
-    /// The task's checklist (`sys:todo`, [`todo`]), when this surface keeps
+    /// The task's checklist (`sys:todo`, [`todo`](mod@todo)), when this surface keeps
     /// one: the loops head each follow-up prompt with it and name what it left
     /// undone under the answer. Defaults to none, which leaves both as they were.
     fn checklist(&self) -> Option<&todo::Checklist> {
