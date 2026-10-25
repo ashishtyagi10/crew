@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.9
+
+**Internal: two broken links in the tool docs are fixed.**
+- Two cross-references in the documentation for crew's tool surface pointed nowhere; they now
+  link to the right place. Nothing changes in the app.
+
 ## 0.29.8
 
 **Internal: the last files the agent-turn work grew are split under the 200-line limit.**
