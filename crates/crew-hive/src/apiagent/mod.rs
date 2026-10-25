@@ -18,10 +18,19 @@ mod shrinkold_tests;
 #[path = "stop_tests.rs"]
 mod stop_tests;
 #[cfg(test)]
+#[path = "stream_tests.rs"]
+mod stream_tests;
+#[cfg(test)]
 mod tests;
 #[cfg(test)]
 #[path = "todo_tests.rs"]
 mod todo_tests;
+#[cfg(test)]
+#[path = "toolkit_tests.rs"]
+mod tool_kit;
+#[cfg(test)]
+#[path = "tools_tests.rs"]
+mod tools_tests;
 
 mod advice;
 mod attempt;

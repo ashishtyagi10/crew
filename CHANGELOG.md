@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.8
+
+**Internal: the last files the agent-turn work grew are split under the 200-line limit.**
+- Seven more files that the one-harness work (0.28.99–0.29.3) made longer were still past the
+  project's 200-line limit: the provider module, the `claude -p` provider, the tool surface, the
+  checklist (`sys:todo`), and three test files. Each is split into smaller files and the code is
+  unchanged, so nothing changes in the app.
+
 ## 0.29.7
 
 **Internal: two more relay files split under the 200-line limit.**

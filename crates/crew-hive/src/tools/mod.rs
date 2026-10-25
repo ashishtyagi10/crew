@@ -25,6 +25,7 @@ mod neverran;
 mod parse;
 mod said;
 pub mod seen;
+mod spec;
 pub mod todo;
 pub mod todowire;
 
@@ -34,35 +35,12 @@ mod tests;
 #[cfg(test)]
 mod failed_tests;
 
-/// One tool as CREW names it, before any provider gets to see it.
-///
-/// crew's identity for a tool is `server:tool`, which no provider accepts as a
-/// function name — Anthropic and the OpenAI shape both require
-/// `[a-zA-Z0-9_-]{1,64}`. Keeping crew's spelling here and doing the encoding
-/// in exactly one place ([`ToolCatalog`]) is what stops `server:tool`,
-/// `server__tool` and `server-tool` all existing at once.
-#[derive(Clone, Debug, PartialEq)]
-pub struct ToolSpec {
-    pub server: String,
-    pub tool: String,
-    pub description: String,
-    /// JSON Schema for the arguments. `{"type":"object"}` when the source
-    /// declared nothing — never `null`, which providers reject.
-    pub input_schema: serde_json::Value,
-}
-
-impl ToolSpec {
-    /// `server:tool` — crew's spelling, for prompts, events and the ledger.
-    pub fn label(&self) -> String {
-        format!("{}:{}", self.server, self.tool)
-    }
-}
-
 pub use catalog::ToolCatalog;
 pub use jsondepth::JsonDepth;
 pub use neverran::{is_note, never_ran};
 pub use parse::{parse_tool_call, split_tool_call, split_tool_calls, stray_calls};
 pub use said::said;
+pub use spec::ToolSpec;
 
 /// Executes tool calls on behalf of an agent.
 ///

@@ -91,3 +91,7 @@ mod toolstop_tests;
 #[cfg(test)]
 #[path = "todorelay_tests.rs"]
 mod todorelay_tests;
+
+#[cfg(test)]
+#[path = "todorelaykit_tests.rs"]
+mod todorelay_kit;
