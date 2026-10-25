@@ -2,8 +2,8 @@
 //!
 //! Both are written against `BufRead`/`Write` rather than against a process, so the whole
 //! conversation — a delta, a tool call, a result, a done — is testable over two in-memory
-//! buffers. [`StdioTransport`] is then a thin thing that owns a child process and calls
-//! [`converse`].
+//! buffers. [`StdioTransport`](stdio::StdioTransport) is then a thin thing that owns a child
+//! process and calls [`converse`].
 use crate::wire::{Host, HostMsg, RemoteReply, RemoteTask, Transport, TransportError, WorkerMsg};
 use std::future::Future;
 use std::io::{BufRead, Write};

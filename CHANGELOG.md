@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.10
+
+**Internal: the last broken link in the agent-engine docs is fixed.**
+- A cross-reference in the documentation for the worker bridge pointed nowhere; it now links to
+  the right place. Nothing changes in the app.
+
 ## 0.29.9
 
 **Internal: two broken links in the tool docs are fixed.**
