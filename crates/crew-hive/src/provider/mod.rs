@@ -5,8 +5,12 @@ mod anthropic;
 mod anthropiccache;
 mod anthropicsse;
 mod claudecli;
+#[cfg(test)]
+mod claudecli_tests;
 pub mod claudestream;
+mod completion;
 pub mod cutoff;
+mod error;
 mod fellback;
 mod hint;
 mod io;
@@ -14,6 +18,8 @@ mod mock;
 mod openai_http;
 mod openrouter;
 mod overflow;
+#[cfg(test)]
+mod reply_tests;
 mod retry;
 mod served;
 mod ssecalls;
@@ -26,12 +32,17 @@ mod thinking;
 mod thinktags;
 mod tokencap;
 mod toolargs;
+#[cfg(test)]
+mod toolwire_tests;
 mod utf8carry;
 mod warm;
 mod wire;
 
 pub use anthropic::AnthropicProvider;
 pub use claudecli::ClaudeCliProvider;
+pub use completion::{Completion, CompletionRequest, ToolDef, ToolInvocation, ToolOutcome, Turn};
+pub use error::{api_message, ProviderError};
+use error::{extract_message, one_line};
 pub use mock::MockProvider;
 pub use openrouter::OpenRouterProvider;
 pub use overflow::says_context_overflow;
@@ -81,204 +92,6 @@ pub(crate) fn http_client(timeout: Duration) -> reqwest::Client {
         // Builder only fails on TLS/resolver misconfiguration; a plain client
         // (no timeouts) still works, so degrade rather than panic.
         .unwrap_or_else(|_| reqwest::Client::new())
-}
-
-/// One tool a model may call, with the JSON Schema for its arguments.
-///
-/// The schema is the point. crew's previous tool surface handed the model a
-/// name and a 100-character description CLIP and asked it to write JSON by
-/// guesswork; here the provider validates the shape and the model chooses on
-/// the argument structure rather than on half a sentence.
-#[derive(Clone, Debug, PartialEq)]
-pub struct ToolDef {
-    /// The WIRE name — `[a-zA-Z0-9_-]{1,64}`, which `server:tool` is not.
-    /// See `crate::tools::wire_name`, which owns the encoding and the map back.
-    pub name: String,
-    pub description: String,
-    /// JSON Schema object for the arguments. An empty object is legal and
-    /// means "no arguments"; it must never be `null`, which some providers
-    /// reject outright.
-    pub input_schema: serde_json::Value,
-}
-
-/// A tool call the model made, as the provider reported it.
-#[derive(Clone, Debug, PartialEq)]
-pub struct ToolInvocation {
-    /// The provider's own id for this call. It is echoed back verbatim in the
-    /// result and is how a provider pairs the two across a parallel batch —
-    /// never reconstruct it, and never assume one call per turn.
-    pub id: String,
-    pub name: String,
-    /// Arguments as the model produced them. Kept as `Value`, not `String`,
-    /// so nothing re-parses provider-validated JSON.
-    pub input: serde_json::Value,
-    /// Why `input` is not what the model sent: the argument string it wrote
-    /// did not parse (`toolargs`), so `input` is `{}`. Such a call must not
-    /// run, since a tool handed `{}` answers "missing argument" and the model
-    /// never learns its JSON was the problem; the loop answers it with this.
-    /// `None` whenever the arguments were read, which is always on a provider
-    /// that hands them over parsed (Anthropic).
-    pub bad_args: Option<String>,
-}
-
-/// The outcome of one [`ToolInvocation`], on its way back to the model.
-#[derive(Clone, Debug, PartialEq)]
-pub struct ToolOutcome {
-    pub id: String,
-    pub name: String,
-    pub content: String,
-    /// A refusal or failure. Providers have a flag for this; without it a
-    /// model reads "ERROR: connection refused" as data it should use.
-    pub is_error: bool,
-}
-
-/// One exchange after the opening user prompt.
-#[derive(Clone, Debug, PartialEq)]
-pub enum Turn {
-    /// What the model said, and anything it asked to call.
-    Assistant {
-        text: String,
-        calls: Vec<ToolInvocation>,
-    },
-    /// Results for the calls in the immediately preceding assistant turn.
-    /// Providers require these to arrive together, in one turn, covering
-    /// EVERY call — a missing result is a protocol error, not a partial answer.
-    ToolResults(Vec<ToolOutcome>),
-    /// Something the user says after the model has spoken. The relay needs
-    /// it to ask for the rest of a reply cut at the token limit: an assistant
-    /// turn with nothing after it is a PREFILL, which Anthropic continues but
-    /// an OpenAI-shaped endpoint answers afresh, repeating itself.
-    User(String),
-}
-
-/// `Default` is derived so a new field can be added here without touching
-/// every construction site again; the existing ones all spell
-/// `..Default::default()`.
-#[derive(Clone, Debug, Default)]
-pub struct CompletionRequest {
-    pub model: String,
-    pub system: Option<String>,
-    /// The opening user message.
-    pub prompt: String,
-    pub max_tokens: u32,
-    /// Everything after `prompt`. Empty for a one-shot completion, which is
-    /// what every caller but the tool loop wants.
-    pub turns: Vec<Turn>,
-    /// Tools the model may call. Empty = a plain completion, and providers
-    /// must then send NO tools field at all: an empty array is not the same
-    /// as absent, and some endpoints reject it.
-    pub tools: Vec<ToolDef>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct Completion {
-    pub text: String,
-    /// The model that actually answered: the response's own `model` field,
-    /// else the model the answering attempt asked for. Not always the
-    /// request's — a fallback chain moves on when its first model 404s, and
-    /// a reply billed at the model that was asked for was billed wrong.
-    /// Empty when the provider cannot say (the mock, the Claude CLI).
-    pub model: String,
-    /// The WHOLE prompt, cached or not — the pane's context-fill reading.
-    pub input_tokens: u32,
-    /// The part of `input_tokens` the provider served from its prompt cache
-    /// (OpenAI-shape `prompt_tokens_details.cached_tokens`, Anthropic
-    /// `cache_read_input_tokens`), billed at the cached rate, not the full one.
-    pub cached_input_tokens: u32,
-    /// The part of `input_tokens` written INTO the cache this call (Anthropic
-    /// `cache_creation_input_tokens`, DashScope's explicit cache), which
-    /// costs more than plain input.
-    pub cache_write_tokens: u32,
-    pub output_tokens: u32,
-    /// Exact provider-reported cost in micro-USD (OpenRouter `usage.cost`);
-    /// 0 when the provider doesn't report cost.
-    pub cost_microusd: u64,
-    /// Tool calls the model made in this reply. Empty on every provider that
-    /// does not support tools, and on every reply that simply answered.
-    pub calls: Vec<ToolInvocation>,
-    /// The model's REASONING for this reply, when the provider exposed it
-    /// (`reasoning_content`, a `thinking` block, `<think>` tags in the text)
-    /// — the whole of it, so a path that never streamed still carries it.
-    /// Empty when the model showed none. Never part of `text`: the reply is
-    /// what the model SAID, and a transcript that kept the working would
-    /// read it back to the model as its own words on the next turn.
-    pub thought: String,
-    /// Generation stopped at `max_tokens`, not because the model was done
-    /// (`stopreason`). Without it a reply cut mid-sentence reads as finished,
-    /// and a tool call cut mid-JSON fails as malformed with nothing saying why.
-    pub truncated: bool,
-    /// What a model chain skipped before this reply's model answered, as
-    /// `model: why` (`; `-joined when several fell), empty when the first
-    /// model answered. Recorded where the chain moves on (`fellback`): a
-    /// response naming another model may only be naming a snapshot id.
-    pub fell_back: String,
-}
-
-#[derive(Debug)]
-pub enum ProviderError {
-    Http(String),
-    Decode(String),
-    Api(String),
-    /// An answer with no provider sentence in it (a proxy's HTML error page,
-    /// an empty body, a 2xx that is not JSON), said as its status and host:
-    /// `HTTP 502 from dashscope-intl.aliyuncs.com: Bad Gateway` (`status`).
-    Status(String),
-    /// No key for the named variable. It carries the name because
-    /// `OpenRouterProvider` backs six providers through different variables —
-    /// a fixed string here named `ANTHROPIC_API_KEY` for all of them.
-    MissingKey(&'static str),
-}
-
-impl std::fmt::Display for ProviderError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ProviderError::Http(s) => write!(f, "http error: {s}"),
-            ProviderError::Decode(s) => write!(f, "decode error: {s}"),
-            ProviderError::Api(s) => write!(f, "{}", api_message(s)),
-            ProviderError::Status(s) => write!(f, "{}", hint::told("", s, "")),
-            ProviderError::MissingKey(var) => write!(f, "{var} not set"),
-        }
-    }
-}
-
-impl std::error::Error for ProviderError {}
-
-/// A provider's API error, in a sentence rather than a JSON blob.
-///
-/// Providers answer failures with a JSON envelope, and it used to reach the
-/// user verbatim — pasted into the chat and truncated mid-structure, so the
-/// one useful sentence inside it arrived cut in half. The message field is
-/// what a person needs; the envelope is what a debugger needs, and a
-/// debugger can read the log.
-///
-/// An error the user can fix additionally gets told what to DO (`hint`): a
-/// rejected key first, the most common provider error there is and the only
-/// one the user can always fix, then a spent rate limit, an empty account,
-/// a thread past the model's context, and a model the host does not serve.
-pub fn api_message(body: &str) -> String {
-    let msg = extract_message(body).unwrap_or_else(|| one_line(body));
-    hint::told("api error: ", &msg, body)
-}
-
-/// The `error.message` string from a provider's JSON envelope, if it has one.
-/// Hand-rolled rather than a serde type: every provider nests it slightly
-/// differently, and a parse failure here must degrade to showing the body,
-/// never to hiding the error.
-fn extract_message(body: &str) -> Option<String> {
-    let v: serde_json::Value = serde_json::from_str(body).ok()?;
-    let msg = v
-        .get("error")
-        .and_then(|e| e.get("message"))
-        .or_else(|| v.get("message"))?
-        .as_str()?;
-    (!msg.trim().is_empty()).then(|| one_line(msg))
-}
-
-/// Whitespace collapsed to single spaces and trimmed to something a status
-/// line can hold — a multi-line body must not become a multi-line error.
-fn one_line(s: &str) -> String {
-    let flat: String = s.split_whitespace().collect::<Vec<_>>().join(" ");
-    flat.chars().take(200).collect()
 }
 
 /// One streamed fragment: reply text, or a piece of the model's reasoning.
@@ -366,7 +179,3 @@ impl<P: Provider + ?Sized> Provider for std::sync::Arc<P> {
         (**self).complete_streaming(req, on_chunk)
     }
 }
-
-#[cfg(test)]
-#[path = "apimessage_tests.rs"]
-mod api_message_tests;
