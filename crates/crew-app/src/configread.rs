@@ -21,31 +21,14 @@ impl CrewConfig {
     /// (`handler.rs`) and config adoption (`apply_config`) go through, so
     /// they can never disagree. A saved value that parses keeps exactly its
     /// meaning (an explicit pick is an intent — never hijacked). **No saved
-    /// value resolves to the OS-following `auto` mode**: a fresh install
-    /// comes up light on a light system, dark on a dark one. A saved value
-    /// that does NOT parse falls back to the fixed default palette, as it
-    /// always has — a broken string is not an intent to follow the OS.
+    /// value resolves to `auto`**, every look in turn. A saved value that
+    /// does NOT parse falls back to the fixed default palette, as it always
+    /// has — a broken string is not an intent to rotate.
     pub fn theme_selection(&self) -> crew_theme::Selection {
         match self.theme.as_deref() {
             None => crew_theme::Selection::Mode(crew_theme::RandomMode::Auto),
             Some(s) => crew_theme::parse_selection(s).unwrap_or(self.theme_id().selection()),
         }
-    }
-
-    /// The `auto` theme's per-appearance pairing (`theme_dark` /
-    /// `theme_light`), parsed: each side is a pool mode or pinned palette.
-    /// `auto` itself is rejected as a side (it can't serve itself — crew-theme
-    /// would drop it anyway; rejecting here keeps config's view honest), and
-    /// unknown names fall back to `None` = that side's built-in paper pool.
-    pub fn auto_pool_selections(
-        &self,
-    ) -> (Option<crew_theme::Selection>, Option<crew_theme::Selection>) {
-        let parse = |s: &Option<String>| {
-            s.as_deref()
-                .and_then(crew_theme::parse_selection)
-                .filter(|sel| *sel != crew_theme::Selection::Mode(crew_theme::RandomMode::Auto))
-        };
-        (parse(&self.theme_dark), parse(&self.theme_light))
     }
 
     /// Read the OS preferences crew follows and publish them. Call it where
@@ -67,7 +50,7 @@ impl CrewConfig {
     /// A display label for the configured selection: the rotation mode name
     /// (`dark`/`light`/`crt`/`auto`) if it is one, the pinned palette name if
     /// a specific palette is saved, or `auto` when unset (the fresh-install
-    /// default follows the OS). Used by the settings picker, which offers
+    /// default). Used by the settings picker, which offers
     /// only the consolidated modes.
     pub fn theme_label(&self) -> String {
         match self.theme_selection() {

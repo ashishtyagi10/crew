@@ -14,7 +14,6 @@ mod fit;
 mod form;
 mod keys;
 mod labels;
-mod pairing;
 mod press;
 mod render;
 mod stepper;

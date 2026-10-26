@@ -73,7 +73,7 @@ fn widest_value(f: Field) -> Option<usize> {
         Field::Smooth => longest(&["off", "light", "medium", "heavy", "255"]),
         Field::FontGamma => longest(&["off", "light", "medium", "full", "255"]),
         // Palette names, the case that started all of this.
-        Field::Theme | Field::ThemeDark | Field::ThemeLight => crew_theme::ALL_THEMES
+        Field::Theme => crew_theme::ALL_THEMES
             .iter()
             .map(|t| t.as_str().chars().count())
             .max()

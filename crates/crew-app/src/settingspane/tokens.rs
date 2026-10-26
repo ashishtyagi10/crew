@@ -8,8 +8,7 @@
 //!
 //! The hazard that buys is silent quantisation. A config hand-set to 5123456
 //! displays as `5.12`, and committing that back would round it to 5120000 —
-//! the form rewriting a value the user never touched, which is the failure
-//! the pairing picker's full value list exists to avoid. [`commit`] closes it
+//! the form rewriting a value the user never touched. [`commit`] closes it
 //! by treating a buffer that still reads as the stored value as no edit at
 //! all.
 

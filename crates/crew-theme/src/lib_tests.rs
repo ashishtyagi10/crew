@@ -216,13 +216,12 @@ fn cycle_next_walks_every_mode_and_wraps() {
     // ...then glass, the white-text liquid glass...
     assert_eq!(cycle_next(4), "glass");
     assert!(current_id().is_clear_glass());
-    // ...then neon, its page for the reported OS appearance...
-    set_os_dark(true);
+    // ...then neon, its one dark page...
     assert_eq!(cycle_next(5), "neon");
     assert_eq!(current_id(), ThemeId::NeonDark);
-    // ...then auto, whose pool follows the same appearance...
+    // ...then auto, which moves straight on to another look...
     assert_eq!(cycle_next(6), "auto");
-    assert!(dark(current_id()));
+    assert_ne!(current_id().mode(), RandomMode::Neon);
     // ...and wraps back to dark — six stops, no more.
     assert_eq!(cycle_next(7), "dark");
     assert!(dark(current_id()));
@@ -230,87 +229,80 @@ fn cycle_next_walks_every_mode_and_wraps() {
 }
 
 #[test]
-fn auto_is_advertised_and_follows_the_os_appearance() {
-    let _g = guard();
-    // Auto is a first-class listed theme (last, after the fixed pools).
+fn auto_is_advertised_and_holds_every_palette() {
+    // Auto is a first-class listed theme (last, after the pools it walks).
     assert_eq!(THEME_MODES[THEME_MODES.len() - 1], RandomMode::Auto);
-    // Its pool tracks set_os_dark: light OS → light pages only (paper and
-    // modern glow alike — never a tube).
-    set_os_dark(false);
-    assert!(ALL_THEMES
-        .into_iter()
-        .filter(|id| RandomMode::Auto.in_pool(*id))
-        .all(light));
-    set_os_dark(true);
-    assert!(ALL_THEMES
-        .into_iter()
-        .filter(|id| RandomMode::Auto.in_pool(*id))
-        .all(dark));
-    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
-}
-
-/// `auto` serves the OS appearance's side, pinned or scheduled: a Mac pinned
-/// to Dark keeps it dark at noon (the user, 2026-10-22: "make auto stay dark
-/// too"), where crew's light-hours clock used to turn it light from 07:00 to
-/// 19:00. `theme_dark` / `theme_light` still decide what each side serves.
-#[test]
-fn auto_follows_the_os_appearance_pinned_or_not() {
-    let _g = guard();
-    set_auto_pools(None, None);
-    set_os_dark(true);
-    assert!(auto_dark());
-    apply_selection(Selection::Mode(RandomMode::Auto), 11);
-    assert!(dark(current_id()));
-    set_os_dark(false);
-    assert!(!auto_dark());
-    apply_selection(Selection::Mode(RandomMode::Auto), 12);
-    assert!(light(current_id()));
-    // Phosphor at night, paper by day.
-    set_auto_pools(Some(Selection::Mode(RandomMode::Crt)), None);
-    set_os_dark(true);
-    apply_selection(Selection::Mode(RandomMode::Auto), 13);
-    assert!(
-        current_id().theme().crt.is_some(),
-        "a dark OS must serve the paired CRT pool, got {:?}",
-        current_id()
-    );
-    set_auto_pools(None, None);
-    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
-}
-
-#[test]
-fn auto_pools_pair_each_appearance_with_its_configured_side() {
-    let _g = guard();
-    // Dark side paired to the CRT pool: night is phosphor now.
-    set_auto_pools(Some(Selection::Mode(RandomMode::Crt)), None);
-    set_os_dark(true);
-    apply_selection(Selection::Mode(RandomMode::Auto), 7);
-    assert!(
-        current_id().theme().crt.is_some(),
-        "dark side must serve the CRT pool, got {:?}",
-        current_id()
-    );
-    // The unpaired light side keeps its built-in light pool.
-    set_os_dark(false);
-    apply_selection(Selection::Mode(RandomMode::Auto), 8);
-    assert!(light(current_id()));
-    // A pinned side is a one-palette pool: always exactly that palette.
-    set_auto_pools(Some(Selection::Fixed(ThemeId::Nebula)), None);
-    set_os_dark(true);
-    apply_selection(Selection::Mode(RandomMode::Auto), 9);
-    assert_eq!(current_id(), ThemeId::Nebula);
-    // ...and a rotation tick can't drift off a pinned side.
     assert_eq!(
-        random_pick(current_id(), 12345, RandomMode::Auto),
-        ThemeId::Nebula
+        auto_looks().collect::<Vec<_>>(),
+        [
+            RandomMode::Dark,
+            RandomMode::Light,
+            RandomMode::Crt,
+            RandomMode::Glass,
+            RandomMode::Neon
+        ]
     );
-    // `auto` as its own side is dropped: default pool, no recursion.
-    set_auto_pools(Some(Selection::Mode(RandomMode::Auto)), None);
-    apply_selection(Selection::Mode(RandomMode::Auto), 10);
-    assert!(dark(current_id()));
-    // Reset shared state for the other tests.
-    set_auto_pools(None, None);
-    set_os_dark(true);
+    assert!(ALL_THEMES
+        .into_iter()
+        .all(|id| RandomMode::Auto.in_pool(id)));
+}
+
+/// `auto` steps to the next look every rotation, light and dark pages alike,
+/// whatever the clock or the OS appearance (the user, 2026-10-25: "rotate
+/// through all available theme, irrespective of time … dark, light, glass,
+/// neon"). Five ticks show all five looks.
+#[test]
+fn auto_walks_every_look_in_turn() {
+    let _g = guard();
+    for seed in [0u64, 7, 1_000, 123_456_789] {
+        apply_selection(Selection::Mode(RandomMode::Auto), seed);
+        let mut seen = vec![current_id().mode()];
+        for i in 1..=4u64 {
+            let before = current_id();
+            assert!(tick_random(seed + i * ROTATE_MS), "seed {seed} tick {i}");
+            assert_eq!(
+                current_id().mode(),
+                auto_next(before),
+                "seed {seed} tick {i}"
+            );
+            seen.push(current_id().mode());
+        }
+        assert!(
+            auto_looks().all(|m| seen.contains(&m)),
+            "seed {seed}: five ticks showed {seen:?}"
+        );
+        assert_eq!(mode(), Some(RandomMode::Auto), "a tick left auto");
+    }
+    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
+}
+
+/// Switching to `auto` changes the look on screen at once, and launch (where
+/// the page on screen is always the zeroed default) doesn't open on the same
+/// look every time.
+#[test]
+fn auto_opens_on_another_look_and_not_always_the_same_one() {
+    let _g = guard();
+    for id in ALL_THEMES {
+        for seed in 0..20u64 {
+            apply_selection(Selection::Fixed(id), 0);
+            apply_selection(Selection::Mode(RandomMode::Auto), seed);
+            assert_ne!(
+                current_id().mode(),
+                id.mode(),
+                "{} seed {seed}",
+                id.as_str()
+            );
+        }
+    }
+    let mut opened = Vec::new();
+    for seed in 0..40u64 {
+        apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
+        apply_selection(Selection::Mode(RandomMode::Auto), seed * 997);
+        if !opened.contains(&current_id().mode()) {
+            opened.push(current_id().mode());
+        }
+    }
+    assert!(opened.len() > 1, "auto always opened on {opened:?}");
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
 
@@ -939,21 +931,6 @@ fn apply_selection_modes_pick_from_their_pool_immediately() {
     assert_eq!(current_id(), ThemeId::PaperDark);
 }
 
-#[test]
-fn auto_mode_follows_the_os_appearance() {
-    let _g = guard();
-    set_os_dark(true);
-    apply_selection(Selection::Mode(RandomMode::Auto), 1_000);
-    assert!(dark(current_id()), "auto + OS dark → dark pool");
-    // OS flips to light: the NEXT tick (or re-apply) must land light.
-    set_os_dark(false);
-    ROTATED_MS.store(0, Ordering::Relaxed);
-    assert!(tick_random(ROTATE_MS));
-    assert!(light(current_id()), "auto + OS light → light pool");
-    set_os_dark(true);
-    apply_selection(Selection::Fixed(ThemeId::PaperDark), 2_000);
-}
-
 /// `light` is one Ink Reader page (2026-10-16): the clock comes round and
 /// the page stays, with nothing to repaint.
 #[test]
@@ -1121,24 +1098,19 @@ fn the_ink_reader_pages_are_their_rotations() {
     }
 }
 
-/// `neon` is dark in either appearance (the user, 2026-10-22: "neon doesn't
+/// `neon` is one dark page (the user, 2026-10-22: "neon doesn't
 /// have to be light color, keep it default dark"). It had a light page and
 /// served it with the appearance, which on a Mac pinned to Dark was then
 /// crew's clock, so `neon` came up light until 19:00. One page now, so its
 /// name is the theme: `neon-dark` loads as `neon`, and so does the retired
 /// `neon-light`.
 #[test]
-fn neon_is_dark_in_either_appearance() {
+fn neon_is_one_dark_page() {
     let _g = guard();
-    for os_dark in [false, true] {
-        set_os_dark(os_dark);
-        let at = format!("os_dark {os_dark}");
-        apply_selection(Selection::Mode(RandomMode::Neon), 1_000);
-        assert_eq!(current_id(), ThemeId::NeonDark, "{at}");
-        assert!(!follow_appearance(2_000), "{at}: neon followed it");
-        assert!(!tick_random(1_000 + ROTATE_MS), "{at}: neon rotated");
-        assert_eq!(current_id(), ThemeId::NeonDark, "{at}");
-    }
+    apply_selection(Selection::Mode(RandomMode::Neon), 1_000);
+    assert_eq!(current_id(), ThemeId::NeonDark);
+    assert!(!tick_random(1_000 + ROTATE_MS), "neon rotated");
+    assert_eq!(current_id(), ThemeId::NeonDark);
     for name in ["neon", "neon-dark", "neon-light"] {
         assert_eq!(
             parse_selection(name),
@@ -1150,6 +1122,5 @@ fn neon_is_dark_in_either_appearance() {
         pinnable_themes().all(|t| t != ThemeId::NeonDark),
         "neon-dark is offered beside `neon`"
     );
-    set_os_dark(true);
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }

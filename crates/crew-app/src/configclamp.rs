@@ -41,8 +41,6 @@ impl CrewConfig {
                 .filter(|p| !p.is_empty())
                 .collect(),
             theme: self.theme.filter(|s| !s.is_empty()),
-            theme_dark: self.theme_dark.filter(|s| !s.is_empty()),
-            theme_light: self.theme_light.filter(|s| !s.is_empty()),
             crt: self.crt,
             glass: self.glass,
             motion: self.motion,

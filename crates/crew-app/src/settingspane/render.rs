@@ -95,9 +95,7 @@ fn swatch(buf: &mut Buffer, r: Rect, f: Field, value: &str) {
     let name =
         value.trim_matches(|c: char| c.is_whitespace() || c == '\u{2039}' || c == '\u{203a}');
     let chips = match f {
-        Field::Theme | Field::ThemeDark | Field::ThemeLight => {
-            crate::swatch::for_value("/theme", name)
-        }
+        Field::Theme => crate::swatch::for_value("/theme", name),
         // The accent is a hex colour, so it is its own swatch.
         Field::Accent => crate::swatch::hex_chip(value).into_iter().collect(),
         _ => return,

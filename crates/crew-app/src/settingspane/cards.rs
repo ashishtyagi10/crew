@@ -49,15 +49,6 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     cy += pair(rects, ix, iw, cy, Field::Smooth, Field::FontGamma);
     rects.push((Field::Theme, Rect::new(ix, cy, iw, 3)));
     cy += 3;
-    // `auto`'s settings, under the Theme they belong to: WHAT it serves per
-    // appearance.
-    //
-    // These two used to be pinned full-width by hand, because their values are
-    // palette names — `‹ sepia-light ›` is 15 columns, a half-width box held
-    // 14 at an 80-column pane, and the clipped leading chevron read as a
-    // rendering fault. `pair` now takes that decision from the width itself,
-    // so they stack where they must and sit side by side on a pane with room.
-    cy += pair(rects, ix, iw, cy, Field::ThemeDark, Field::ThemeLight);
     rects.push((Field::Accent, Rect::new(ix, cy, iw, 3)));
     cy += 3;
     cy + 1 - y

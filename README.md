@@ -914,10 +914,9 @@ look, rotating four palettes: `glass-clear` (neutral smoke, rose accents),
 accents) and `blossom` (cherry-blossom smoke, pink accents). `crt` is a
 phosphor tube in glass, in `crt-green` and `crt-amber`, each one hue at six
 brightnesses. A rotation changes palette every 10 minutes; `light` and `dark`
-are one page each and stay put. And `auto` follows the OS appearance,
-serving the dark page in dark mode and the light one in light mode (re-wire
-the pairing with `theme_dark` / `theme_light`). A Mac set to Dark keeps it
-dark all day; macOS Appearance: Auto is what turns it light by day.
+are one page each and stay put. And `auto` walks every look in turn —
+`dark` → `light` → `crt` → `glass` → `neon` → `dark` — a new one every 10
+minutes, whatever the clock or the OS appearance.
 
 `neon` is a holographic control room in electric blue, violet and cyan, and
 it is always dark, whatever the OS appearance or the clock. A fine grid glows

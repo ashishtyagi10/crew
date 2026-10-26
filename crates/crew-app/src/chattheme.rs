@@ -31,10 +31,10 @@ fn parse_theme_cmd(arg: &str) -> ThemeCmd {
     }
 }
 
-/// The `/theme` (no-arg) listing: the four themes (`dark`, `light`, `crt`,
-/// `auto`), each a rotation over its own palette pool — auto's follows the OS
-/// appearance — the active one marked with `\u{25cf}`. The individual
-/// palettes are pool members, not list entries.
+/// The `/theme` (no-arg) listing: every theme in [`crew_theme::THEME_MODES`],
+/// each a rotation over its own palette pool — auto's is every look in turn —
+/// the active one marked with `\u{25cf}`. The individual palettes are pool
+/// members, not list entries.
 fn theme_list_line(mode: Option<crew_theme::RandomMode>) -> String {
     let items: Vec<String> = crew_theme::THEME_MODES
         .iter()
@@ -94,7 +94,7 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> ThemeIntercept {
             crew_theme::apply_selection(sel, now_ms);
             outcome = ThemeIntercept::Switched;
             match crew_theme::mode() {
-                // `auto` names the half it just served (and the dormant one);
+                // `auto` names the look it just served and the next one;
                 // every other selection is its own whole story.
                 Some(crew_theme::RandomMode::Auto) => crate::themereport::live_report(),
                 _ => format!("theme \u{2192} {}", crew_theme::selection_label()),
