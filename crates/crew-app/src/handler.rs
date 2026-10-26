@@ -129,18 +129,6 @@ impl CrewApp {
             self.config.save();
         }
 
-        // Seed the OS appearance for `/theme auto` (ThemeChanged keeps it live).
-        if let Some(t) = window.theme() {
-            crew_theme::set_os_dark(t == winit::window::Theme::Dark);
-            self.config.publish_appearance_sources();
-            if crew_theme::follow_appearance(crate::chattime::unix_now_ms()) {
-                // The re-apply can flip pools (startup guessed OS-dark before
-                // the window existed), so refresh the theme-following accent
-                // too — same pairing as the ThemeChanged arm in events.rs.
-                crate::palette::set_accent(self.config.accent_rgb());
-            }
-        }
-
         // Font size is in logical points; multiply by the display scale so text is
         // the right physical size on HiDPI/Retina (the surface is in physical px).
         let font_px = self.config.font_size * window.scale_factor() as f32;
@@ -223,14 +211,8 @@ pub fn run() -> anyhow::Result<()> {
     crate::cmdrecents::set(config.command_recents.clone());
     // Apply the theme first; the accent default reads the active theme.
     // `theme_selection` is the shared resolution: a saved rotation mode
-    // resumes, a saved palette pins, and NO saved theme follows the OS
-    // (`auto`). The OS appearance isn't known until the window exists, so
-    // a fresh install opens on auto's dark guess and `handler`'s
-    // `window.theme()` seed re-applies moments later — through the same
-    // develop-fade every theme switch gets. The per-appearance pairing must
-    // land BEFORE the apply, or auto's first pick comes from the wrong pool.
-    let (pool_dark, pool_light) = config.auto_pool_selections();
-    crew_theme::set_auto_pools(pool_dark, pool_light);
+    // resumes, a saved palette pins, and NO saved theme is `auto`, every
+    // look in turn.
     config.publish_appearance_sources();
     crew_theme::apply_selection(config.theme_selection(), crate::chattime::unix_now_ms());
     // Seed the themeable accent from config before the first frame.

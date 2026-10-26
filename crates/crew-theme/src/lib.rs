@@ -11,8 +11,7 @@
 //! shipped presets to what it produces, so the palettes and the system cannot
 //! drift apart — which is exactly what they had done every time one of those
 //! modules had to be written.
-use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, AtomicU8, Ordering};
 
 mod favorite;
 mod fonts;
@@ -402,14 +401,10 @@ pub fn theme() -> &'static Theme {
 
 /// Rotation mode: when set, the active theme changes every [`ROTATE_MS`]
 /// within the mode's pool. Stored as a lock-free u8 for per-frame reads:
-/// 0 = off, 1 = dark pool, 2 = light pool, 3 = auto (pool follows
-/// [`auto_dark`]).
+/// 0 = off, else [`RandomMode::as_u8`] (3 = auto, every look in turn).
 static MODE: AtomicU8 = AtomicU8::new(0);
 /// Wall-clock ms of the last rotation (or of enabling a mode).
 static ROTATED_MS: AtomicU64 = AtomicU64::new(0);
-/// The OS appearance, fed by winit's ThemeChanged. Defaults to dark so a
-/// platform that never reports stays on the dark pool.
-static OS_DARK: AtomicBool = AtomicBool::new(true);
 /// How long each rotated theme is shown: 10 minutes (fonts share this).
 pub const ROTATE_MS: u64 = 600_000;
 
@@ -420,9 +415,8 @@ pub const ROTATE_MS: u64 = 600_000;
 /// a palette's own appearance decides which it is in: the modern (Gemini /
 /// Codex look) palettes are dark and light pages like any other and rotate
 /// inside `dark` / `light` rather than standing apart as their own themes.
-/// `Auto` borrows the dark or light pool depending on the appearance
-/// [`auto_dark`] resolves — the OS's; [`THEME_MODES`] is the list the picker
-/// advertises.
+/// `Auto` walks the other looks in turn ([`auto_next`]), whatever the clock
+/// or the OS appearance; [`THEME_MODES`] is the list the picker advertises.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RandomMode {
     Dark,
@@ -432,14 +426,16 @@ pub enum RandomMode {
     /// The neon control room: one dark page of holographic glass, whatever
     /// the appearance (the user, 2026-10-22: "keep it default dark").
     Neon,
+    /// Every look in turn, a new one each [`ROTATE_MS`] (the user,
+    /// 2026-10-25: "rotate through all available theme, irrespective of
+    /// time").
     Auto,
 }
 
-/// The themes crew offers: five pools plus `auto`, which serves one of them
-/// per OS appearance. This is the whole user-facing theme list (`/theme`, the
-/// settings picker, the `Ctrl+Shift+L` cycle); everything else (legacy
-/// `random-*` / `modern*` names, individual palettes) parses for back-compat
-/// but isn't advertised.
+/// The themes crew offers: five pools plus `auto`, which walks them all.
+/// This is the whole user-facing theme list (`/theme`, the settings picker,
+/// the `Ctrl+Shift+L` cycle); everything else (legacy `random-*` / `modern*`
+/// names, individual palettes) parses for back-compat but isn't advertised.
 pub const THEME_MODES: [RandomMode; 6] = [
     RandomMode::Dark,
     RandomMode::Light,
@@ -472,7 +468,7 @@ impl RandomMode {
             }
             RandomMode::Neon => "holographic glass over a lit grid, always dark",
             RandomMode::Auto => {
-                "follows your OS appearance \u{2014} light by day, dark by night on macOS Appearance: Auto"
+                "every look in turn \u{2014} dark, light, crt, glass, neon \u{2014} a new one every 10 minutes"
             }
         }
     }
@@ -502,8 +498,7 @@ impl RandomMode {
 
     /// The one palette this rotation serves when its pool is a single page
     /// (`dark` and `light`, the Ink Reader pages, and `neon`). `None` for a
-    /// pool that changes palette, and for `auto`, whose page follows the
-    /// appearance.
+    /// pool that changes palette, and for `auto`, which serves them all.
     pub fn sole_palette(self) -> Option<ThemeId> {
         if self == RandomMode::Auto {
             return None;
@@ -515,27 +510,12 @@ impl RandomMode {
         }
     }
 
-    /// Whether this rotation serves the page for the current appearance —
-    /// `auto`, its pairing's side — so an appearance change has to re-serve
-    /// it ([`follow_appearance`]). Neon did too while it had a light page.
-    pub fn follows_appearance(self) -> bool {
-        self == RandomMode::Auto
-    }
-
     /// Whether `id` belongs to this mode's rotation pool: its
     /// [`ThemeId::mode`], so every palette lands in exactly one of
     /// Dark/Light/Crt/Glass/Neon and a rotation stays inside one look. `Auto`
-    /// serves its per-appearance pairing ([`auto_side`]) — by default the
-    /// dark or light pool depending on [`auto_dark`], a pinned side being a
-    /// one-palette pool.
+    /// holds every palette.
     pub fn in_pool(self, id: ThemeId) -> bool {
-        match self {
-            RandomMode::Auto => match auto_side() {
-                Selection::Mode(m) => m.in_pool(id),
-                Selection::Fixed(f) => id == f,
-            },
-            mode => id.mode() == mode,
-        }
+        self == RandomMode::Auto || id.mode() == self
     }
 }
 
@@ -624,62 +604,35 @@ pub fn is_random() -> bool {
     mode().is_some()
 }
 
-/// Report the OS appearance (winit ThemeChanged / startup Window::theme).
-/// While `auto` is active the change takes effect on the next rotation tick;
-/// callers that want an immediate flip re-apply the selection (the app does).
-pub fn set_os_dark(dark: bool) {
-    OS_DARK.store(dark, Ordering::Relaxed);
+/// The looks `auto` walks, in [`THEME_MODES`] order: every theme but
+/// `auto` itself.
+pub fn auto_looks() -> impl Iterator<Item = RandomMode> {
+    THEME_MODES.into_iter().filter(|&m| m != RandomMode::Auto)
 }
 
-/// The last reported OS appearance (defaults to dark).
-pub fn os_dark() -> bool {
-    OS_DARK.load(Ordering::Relaxed)
+/// The look `auto` turns to after `current`'s: the next of [`auto_looks`],
+/// wrapping, so every rotation changes the look and all five come round in
+/// turn. Neither the clock nor the OS appearance has a say — `auto` used to
+/// serve the appearance's page, which on a Mac pinned to Dark was `dark` for
+/// good.
+pub fn auto_next(current: ThemeId) -> RandomMode {
+    let looks: Vec<RandomMode> = auto_looks().collect();
+    let i = looks.iter().position(|&m| m == current.mode()).unwrap_or(0);
+    looks[(i + 1) % looks.len()]
 }
 
-/// Which half `auto` should serve, as a single yes/no, so every caller (pool
-/// membership, the `/theme` report, the settings blurb) agrees: the OS
-/// appearance, pinned or scheduled. A Mac pinned to Dark keeps `auto` dark
-/// (the user, 2026-10-22: "make auto stay dark too"); crew's own light-hours
-/// clock, which turned a pinned Mac's `auto` light from 07:00 to 19:00, is
-/// retired. Day and night come from macOS Appearance: Auto.
-pub fn auto_dark() -> bool {
-    os_dark()
+/// The look switching TO `auto` opens on: any but `current`'s, from `seed`.
+/// Not simply [`auto_next`], because at launch `current` is always the
+/// zeroed default, and every launch would open on the same look.
+fn auto_start(current: ThemeId, seed: u64) -> RandomMode {
+    let others: Vec<RandomMode> = auto_looks().filter(|&m| m != current.mode()).collect();
+    others[spread(seed, others.len())]
 }
 
-/// What `auto` serves per OS appearance: `.0` while dark, `.1` while light.
-/// `None` = the built-in pairing (the dark/light paper pool). Read on theme
-/// application and rotation ticks, not per frame, so a mutex is fine.
-static AUTO_POOLS: Mutex<(Option<Selection>, Option<Selection>)> = Mutex::new((None, None));
-
-/// Configure `auto`'s per-appearance pairing (config `theme_dark` /
-/// `theme_light`): each side is a rotation pool (`dark`|`light`|`crt`) or a
-/// pinned palette — e.g. phosphor tubes at night, light paper by day. A side
-/// of `auto` itself would recurse and is dropped to the default; `None`
-/// keeps the built-in paper pool for that appearance.
-pub fn set_auto_pools(dark: Option<Selection>, light: Option<Selection>) {
-    let clean = |s: Option<Selection>| s.filter(|s| *s != Selection::Mode(RandomMode::Auto));
-    *AUTO_POOLS.lock().unwrap() = (clean(dark), clean(light));
-}
-
-/// The configured pairing itself: `.0` for the dark appearance, `.1` for the
-/// light one, `None` on a side meaning "the built-in paper pool". Read it to
-/// TELL the user what `auto` is holding — a side paired for the appearance
-/// they are not currently in has no other symptom (`theme_light =
-/// "modern-light"` under a dark OS looks exactly like a setting that does
-/// nothing at all).
-pub fn auto_pools() -> (Option<Selection>, Option<Selection>) {
-    *AUTO_POOLS.lock().unwrap()
-}
-
-/// The selection `auto` resolves to under the current appearance. Never
-/// `Mode(Auto)` (see [`set_auto_pools`]), so pool membership can't recurse.
-pub fn auto_side() -> Selection {
-    let (dark, light) = *AUTO_POOLS.lock().unwrap();
-    if auto_dark() {
-        dark.unwrap_or(Selection::Mode(RandomMode::Dark))
-    } else {
-        light.unwrap_or(Selection::Mode(RandomMode::Light))
-    }
+/// An index below `n` from `seed`, spread so that neighbouring seeds (two
+/// wall-clock ms apart) land far apart.
+fn spread(seed: u64, n: usize) -> usize {
+    (seed.wrapping_mul(6364136223846793005).rotate_right(29) as usize) % n
 }
 
 /// Pick a theme from `mode`'s pool that is NOT `current`, deterministically
@@ -701,13 +654,13 @@ pub fn random_pick(current: ThemeId, seed: u64, mode: RandomMode) -> ThemeId {
             .filter(|&t| mode.in_pool(t))
             .collect();
     }
-    let idx = (seed.wrapping_mul(6364136223846793005).rotate_right(29) as usize) % others.len();
-    others[idx]
+    others[spread(seed, others.len())]
 }
 
 /// Apply a parsed selection: a fixed theme pins it (mode off); a mode
 /// switches immediately to a pick from its pool (so the effect is visible)
-/// and starts the 10-minute clock.
+/// and starts the 10-minute clock. `auto` opens on a look other than the
+/// one on screen ([`auto_start`]).
 pub fn apply_selection(sel: Selection, now_ms: u64) {
     match sel {
         Selection::Fixed(id) => {
@@ -716,22 +669,13 @@ pub fn apply_selection(sel: Selection, now_ms: u64) {
         }
         Selection::Mode(m) => {
             MODE.store(m.as_u8(), Ordering::Relaxed);
-            set_theme(random_pick(current_id(), now_ms, m));
+            let pool = match m {
+                RandomMode::Auto => auto_start(current_id(), now_ms),
+                m => m,
+            };
+            set_theme(random_pick(current_id(), now_ms, pool));
             ROTATED_MS.store(now_ms, Ordering::Relaxed);
         }
-    }
-}
-
-/// Re-serve a rotation that follows the appearance ([`RandomMode::follows_appearance`])
-/// after the OS appearance flipped. Returns whether one was active, so the
-/// caller knows to refresh the accent and repaint.
-pub fn follow_appearance(now_ms: u64) -> bool {
-    match mode() {
-        Some(m) if m.follows_appearance() => {
-            apply_selection(Selection::Mode(m), now_ms);
-            true
-        }
-        _ => false,
     }
 }
 
@@ -746,8 +690,8 @@ pub fn selection_label() -> &'static str {
 
 /// Called each poll tick with the current wall-clock ms. When a mode is on
 /// and `ROTATE_MS` has elapsed, switch to a new pick from the mode's pool
-/// (auto re-reads the OS appearance every tick) and return `true` so the
-/// caller repaints. A one-page pool (the Ink Reader modes) holds its page and
+/// (auto's: the next look, [`auto_next`]) and return `true` so the caller
+/// repaints. A one-page pool (the Ink Reader modes) holds its page and
 /// returns `false`: nothing changed. Cheap and lock-free — safe at ~62 Hz on
 /// the winit thread.
 pub fn tick_random(now_ms: u64) -> bool {
@@ -758,7 +702,11 @@ pub fn tick_random(now_ms: u64) -> bool {
     if now_ms.saturating_sub(last) < ROTATE_MS {
         return false;
     }
-    let next = random_pick(current_id(), now_ms, m);
+    let pool = match m {
+        RandomMode::Auto => auto_next(current_id()),
+        m => m,
+    };
+    let next = random_pick(current_id(), now_ms, pool);
     ROTATED_MS.store(now_ms, Ordering::Relaxed);
     if next == current_id() {
         return false;
@@ -786,7 +734,7 @@ pub fn cycle_next(now_ms: u64) -> &'static str {
 }
 
 /// The lock every test that writes a process-wide theme global takes —
-/// the selection, the OS appearance, the pole shift. One lock for the whole
+/// the selection, the pole shift. One lock for the whole
 /// crate rather than one per test file, because the globals are shared: two
 /// files with two locks would serialise against themselves and race each
 /// other, which is worse than no lock at all for being harder to see.

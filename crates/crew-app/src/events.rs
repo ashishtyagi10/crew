@@ -289,15 +289,9 @@ impl CrewApp {
             // One event per dropped file; routing (and why it targets the
             // FOCUSED pane, not the cursor) lives in `filedrop`.
             WindowEvent::DroppedFile(path) => self.drop_file(&path),
-            WindowEvent::ThemeChanged(t) => {
-                crew_theme::set_os_dark(t == winit::window::Theme::Dark);
-                self.config.publish_appearance_sources();
-                // An appearance flip lands immediately in `auto`.
-                if crew_theme::follow_appearance(crate::chattime::unix_now_ms()) {
-                    crate::palette::set_accent(self.config.accent_rgb());
-                    self.redraw();
-                }
-            }
+            // The OS appearance picks no theme (`auto` walks every look), but
+            // a flip is when the accessibility switches may have moved too.
+            WindowEvent::ThemeChanged(_) => self.config.publish_appearance_sources(),
             _ => {}
         }
     }

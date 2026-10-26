@@ -18,8 +18,6 @@ fn edits(f: Field) -> &'static str {
         Field::NavWidth => "nav_width",
         Field::ShowNav => "show_nav",
         Field::Theme => "theme",
-        Field::ThemeDark => "theme_dark",
-        Field::ThemeLight => "theme_light",
         Field::Accent => "accent",
         Field::BorderMarks => "border_marks",
         Field::Invisibles => "invisibles",

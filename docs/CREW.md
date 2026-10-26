@@ -898,16 +898,11 @@ The docked command bar supports:
   six themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, **`neon`**
   and **`auto`** — and each one *rotates* through a pool of palettes every 10
   minutes (dark paper palettes, light paper palettes, CRT phosphor palettes,
-  the iPhone's light liquid glass over your desktop; `auto` borrows the
-  dark or light paper pool to **follow the OS appearance**, flipping live when
-  the system switches modes). A fresh install with no saved theme follows the
-  OS out of the box; picking `dark`, `light`, `crt` or `glass` opts out of following,
-  and picking `auto` opts back in. (If the platform never reports an
-  appearance, `auto` assumes dark.) Two `config.toml` keys re-pair what `auto`
-  serves per appearance: `theme_dark` and `theme_light` each name a pool
-  (`dark` | `light` | `crt` | `glass`) or a pinned palette — `theme_dark = "crt"` makes
-  night phosphor while day stays light paper. No argument reports the current
-  selection.
+  the iPhone's light liquid glass over your desktop; `auto` **walks every
+  look in turn** — `dark → light → crt → glass → neon` — a new look every 10
+  minutes, whatever the clock or the OS appearance). A fresh install with no
+  saved theme starts on `auto`. No argument reports the current selection —
+  for `auto`, the look on screen and the one coming next.
   Selecting `/theme` in the palette opens an arrow-selectable **picker** of
   the six themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
   `dark → light → crt → glass → neon → auto`. The old names — `paper-dark` and
@@ -4358,15 +4353,11 @@ palette to it).
 Crew offers **six themes**: **`light`**, **`dark`**, **`glass`**,
 **`crt`**, **`neon`** and **`auto`**. `light` and `dark` are one page each. `glass` and
 `crt` are *rotations*, changing palette every 10 minutes. `neon` is one dark
-page, whatever the OS appearance or the clock. `auto` follows the
-**OS appearance**: the dark page while the system is in dark mode, the light
-one in light mode, flipping live (through the develop-fade) the moment the
-system switches. An appearance set to Dark or Light (not Auto) is obeyed
-too: a Mac set to Dark keeps `auto` dark all day. For light by day and dark
-by night, set macOS Appearance to Auto. With no theme saved at all, crew
-defaults to `auto`.
-`theme_dark` / `theme_light` in `config.toml` re-wire that pairing (`crt` at
-night is the classic) or pin one palette per appearance.
+page, whatever the OS appearance or the clock. `auto` **walks every look in
+turn** — `dark → light → crt → glass → neon`, then `dark` again — moving to
+the next look every 10 minutes (through the develop-fade), whatever the clock
+or the OS appearance. Switching to it moves off the look on screen at once.
+With no theme saved at all, crew defaults to `auto`.
 
 - **`light`** — Ink Reader's white page: near-black words, black lines.
 - **`dark`** — Ink Reader's black page: white-grey words, grey lines, the
@@ -4514,7 +4505,5 @@ characters, not its columns.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `auto`), one of the palette names (pins it), or a legacy `random-*` / `modern*` mode; unset follows the OS appearance |
-| `theme_dark` | unset | while `theme = "auto"`: what dark mode serves — a theme (`dark`\|`light`\|`glass`\|`crt`) or a palette name; unset = `dark`, Ink Reader's black page |
-| `theme_light` | unset | while `theme = "auto"`: same for light mode; unset = `light`, Ink Reader's white page |
+| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `glass`, `neon`, `auto`), one of the palette names (pins it), or a legacy `random-*` / `modern*` mode; unset = `auto`, every look in turn |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |

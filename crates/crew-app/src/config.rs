@@ -77,16 +77,6 @@ pub struct CrewConfig {
     /// `paper-dark`. Applied app-wide via [`crew_theme`].
     #[serde(default)]
     pub theme: Option<String>,
-    /// While `theme = "auto"`: what serves when the OS is in dark mode — a
-    /// theme (`dark` | `light` | `glass` | `crt`) or a pinned palette name
-    /// (e.g. `crt-green`). Unset → `dark`, Ink Reader's black page. `auto`
-    /// itself is rejected (it can't serve as its own side).
-    #[serde(default)]
-    pub theme_dark: Option<String>,
-    /// While `theme = "auto"`: what serves when the OS is in light mode.
-    /// Same values as `theme_dark`; unset → `light`, Ink Reader's white page.
-    #[serde(default)]
-    pub theme_light: Option<String>,
     /// Whether a pane's card marks what it knows on its border: the ticks
     /// where each command began and the bars beside error lines.
     ///
@@ -212,8 +202,6 @@ impl Default for CrewConfig {
             notify_min_secs: default_notify_min_secs(),
             notify_patterns: Vec::new(),
             theme: None,
-            theme_dark: None,
-            theme_light: None,
             border_marks: true,
             invisibles: false,
             lsp: true,

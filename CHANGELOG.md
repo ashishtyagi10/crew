@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.11
+
+**`/theme auto` now rotates through every look.**
+- `auto` steps to the next look every 10 minutes: `dark` → `light` → `crt` → `glass` → `neon`,
+  then `dark` again. The time of day and the OS appearance no longer decide anything. Before, it
+  only followed the OS appearance, so on a Mac set to Dark it stayed on the dark page all day.
+- Switching to `auto` changes the look straight away. It never opens on the look already on
+  screen, and it doesn't open on the same look at every launch.
+- `/theme` with no argument, while on `auto`, names the look on screen and the one coming next.
+- The Settings pickers "Auto dark" and "Auto light", and the `theme_dark` / `theme_light` config
+  keys behind them, are gone: they chose what `auto` showed in each OS appearance, and `auto` no
+  longer looks at the appearance. An old config file that still has those keys loads fine, and
+  the keys are dropped the next time crew saves the config.
+
 ## 0.29.10
 
 **Internal: the last broken link in the agent-engine docs is fixed.**

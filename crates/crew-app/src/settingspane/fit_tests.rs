@@ -8,17 +8,14 @@ fn a_palette_picker_does_not_fit_a_half_box_at_eighty_columns() {
     // 80-col pane → card inner width 76 → half is 37. A palette picker
     // needs more than a half of the inner width the ORIGINAL bug had:
     // the card was narrower than the pane. Assert on the cost directly.
-    let need = min_cols(Field::ThemeDark);
+    let need = min_cols(Field::Theme);
     assert!(
         need > 14,
         "a palette picker fitting 14 columns is the old bug"
     );
     // …and it is the VALUE that makes it wide, not the legend.
     assert!(
-        need > (super::super::labels::label_of(Field::ThemeDark)
-            .chars()
-            .count()
-            + CHROME) as u16,
+        need > (super::super::labels::label_of(Field::Theme).chars().count() + CHROME) as u16,
         "the widest value has to be what drives the cost"
     );
 }
@@ -61,12 +58,7 @@ fn a_pickers_cost_covers_its_own_widest_option() {
 /// kept the end of its 15-column value and lost the `‹ `.
 #[test]
 fn a_pickers_widest_value_fits_with_its_chevrons() {
-    for f in [
-        Field::Motion,
-        Field::Theme,
-        Field::ThemeDark,
-        Field::ThemeLight,
-    ] {
+    for f in [Field::Motion, Field::Theme] {
         let widest = widest_value(f).expect("a picker");
         let shown = format!("\u{2039} {} \u{203a}", "x".repeat(widest));
         let room = usize::from(min_cols(f)) - 4;

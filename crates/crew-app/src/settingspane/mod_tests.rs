@@ -224,57 +224,6 @@ fn save_commits_the_focused_edit_and_applies() {
     assert_eq!(cfg.font_size, 20.0);
 }
 
-/// Each pairing picker edits its OWN side. A two-branch cycle is exactly
-/// where a copy-paste writes the wrong field, and both sides holding the same
-/// value looks plausible enough to ship.
-#[test]
-fn each_pairing_picker_edits_only_its_own_side() {
-    for (field, other) in [
-        (Field::ThemeDark, Field::ThemeLight),
-        (Field::ThemeLight, Field::ThemeDark),
-    ] {
-        let mut p = pane();
-        focus(&mut p, field);
-        let before = (p.draft.theme_dark.clone(), p.draft.theme_light.clone());
-        super::cycle_value(&mut p, false);
-        let after = (p.draft.theme_dark.clone(), p.draft.theme_light.clone());
-        let (mine, theirs) = if field == Field::ThemeDark {
-            ((before.0, after.0), (before.1, after.1))
-        } else {
-            ((before.1, after.1), (before.0, after.0))
-        };
-        assert_ne!(mine.0, mine.1, "{field:?} did not change its own side");
-        assert_eq!(theirs.0, theirs.1, "{field:?} also moved {other:?}");
-    }
-}
-
-/// The pickers walk the whole list and land back where they started, driven
-/// through `cycle_value` rather than the pure helper — so the wiring from the
-/// focused field to the config key is what is under test.
-#[test]
-fn cycling_a_pairing_picker_returns_to_default() {
-    let mut p = pane();
-    focus(&mut p, Field::ThemeDark);
-    let n = super::pairing::values().len();
-    let mut seen = Vec::new();
-    for _ in 0..n {
-        super::cycle_value(&mut p, false);
-        seen.push(p.draft.theme_dark.clone());
-    }
-    assert_eq!(p.draft.theme_dark, None, "did not wrap back to unset");
-    assert_eq!(
-        seen.iter().filter(|v| v.is_some()).count(),
-        n - 1,
-        "some entries were visited twice or skipped: {seen:?}"
-    );
-    // Every visited value survives a round trip through the config file.
-    for v in seen.into_iter().flatten() {
-        let cfg = CrewConfig::from_toml_str(&format!("theme_dark = \"{v}\"\n"));
-        assert_eq!(cfg.theme_dark.as_deref(), Some(v.as_str()));
-        assert!(cfg.auto_pool_selections().0.is_some(), "`{v}` was dropped");
-    }
-}
-
 /// The budget boxes are typed in millions and stored in tokens — the same
 /// trade the opacity box makes with percentages.
 #[test]
@@ -384,15 +333,15 @@ fn fields_pair_up_on_a_wide_form_and_stack_on_a_narrow_one() {
             .find(|(f, _)| *f == want)
             .map(|(_, r)| (r.y, r.width))
     };
-    // The palette pickers carry theme names. Narrow, they stack; wide, they
-    // pair — which is the whole point of taking the decision from the width.
-    let (dy, _) = row_of(80, Field::ThemeDark).expect("ThemeDark");
-    let (ly, _) = row_of(80, Field::ThemeLight).expect("ThemeLight");
-    assert_ne!(dy, ly, "palette pickers must stack when they do not fit");
-    let (dy, _) = row_of(240, Field::ThemeDark).expect("ThemeDark");
-    let (ly, _) = row_of(240, Field::ThemeLight).expect("ThemeLight");
+    // Narrow, a pair stacks; wide, it shares a row — which is the whole
+    // point of taking the decision from the width.
+    let (sy, _) = row_of(24, Field::Smooth).expect("Smooth");
+    let (gy, _) = row_of(24, Field::FontGamma).expect("FontGamma");
+    assert_ne!(sy, gy, "a pair must stack when it does not fit");
+    let (sy, _) = row_of(240, Field::Smooth).expect("Smooth");
+    let (gy, _) = row_of(240, Field::FontGamma).expect("FontGamma");
     assert_eq!(
-        dy, ly,
+        sy, gy,
         "…and pair once there is room — the decision belongs to the width"
     );
 }

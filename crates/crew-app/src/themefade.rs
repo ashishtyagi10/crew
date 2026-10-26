@@ -1,8 +1,8 @@
 //! Cinematic theme switches: instead of hard-cutting (or blanking behind a
 //! solid wash, the old behavior), the renderer holds a snapshot of the last
 //! old-theme frame and crossfades it over the fully-rendered new-theme frame
-//! (~450ms) — `/theme`, the cycle hotkey, auto-rotation and an OS appearance
-//! flip all read as one look melting into the next, never a blank screen.
+//! (~450ms) — `/theme`, the cycle hotkey and auto-rotation all read as one
+//! look melting into the next, never a blank screen.
 //!
 //! Detection is a per-frame diff of the active theme id (the same pattern as
 //! focus bookkeeping): every one of the half-dozen switch paths is caught in

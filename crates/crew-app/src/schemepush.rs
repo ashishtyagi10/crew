@@ -4,8 +4,8 @@
 //! leaves a TUI on the old palette with only the contrast floor keeping it
 //! readable. Opted-in programs (neovim's TUI and friends) get a
 //! `CSI ? 997 ; Ps n` report the tick the active theme's darkness flips —
-//! any switch path: an OS appearance flip under `auto`, `/theme`,
-//! `Ctrl+Shift+L`, the Settings form.
+//! any switch path: a rotation tick (`auto` crosses light and dark pages),
+//! `/theme`, `Ctrl+Shift+L`, the Settings form.
 use std::io::Write;
 
 use crate::app::CrewApp;
