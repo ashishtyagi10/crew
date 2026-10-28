@@ -105,7 +105,14 @@ fn crt_glass_shot() {
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn glass_window_shot() {
     let _g = crate::app::theme_test_guard();
-    for id in [ThemeId::GlassClear, ThemeId::GlassNight, ThemeId::NeonDark] {
+    for id in [ThemeId::GlassClear, ThemeId::GlassNight, ThemeId::NeonDark]
+        .into_iter()
+        .chain(
+            crew_theme::ALL_THEMES
+                .into_iter()
+                .filter(|id| id.mode() == crew_theme::RandomMode::Classic),
+        )
+    {
         let name = format!("{}-window", id.as_str());
         let Some(px) = window(&name, id) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");

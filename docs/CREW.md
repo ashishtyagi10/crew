@@ -425,7 +425,7 @@ way that machine presses it.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |
-| Cycle themes (dark → light → crt → glass → neon → auto) | **Ctrl+Shift+L** |
+| Cycle themes (dark → light → crt → glass → neon → classic → auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Toggle the chat's compact transcript view | **Ctrl+O** (falls through to the terminal when the focused pane isn't a chat) |
 | Reverse-search the chat composer's send history | **Ctrl+R** (again steps to the next older match) |
@@ -895,17 +895,18 @@ The docked command bar supports:
   The fresh process re-reads `config.toml`, so external config edits ride
   along too.
 - **`/theme [name]`** — switches the theme live and persists it. There are
-  six themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, **`neon`**
-  and **`auto`** — and each one *rotates* through a pool of palettes every 10
-  minutes (dark paper palettes, light paper palettes, CRT phosphor palettes,
-  the iPhone's light liquid glass over your desktop; `auto` **walks every
-  look in turn** — `dark → light → crt → glass → neon` — a new look every 10
+  seven themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, **`neon`**,
+  **`classic`** and **`auto`** — and each one *rotates* through a pool of
+  palettes every 10 minutes (dark paper palettes, light paper palettes, CRT
+  phosphor palettes, the iPhone's light liquid glass over your desktop, five
+  editor classics; `auto` **walks every look in turn** —
+  `dark → light → crt → glass → neon → classic` — a new look every 10
   minutes, whatever the clock or the OS appearance). A fresh install with no
   saved theme starts on `auto`. No argument reports the current selection —
   for `auto`, the look on screen and the one coming next.
   Selecting `/theme` in the palette opens an arrow-selectable **picker** of
-  the six themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
-  `dark → light → crt → glass → neon → auto`. The old names — `paper-dark` and
+  the seven themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
+  `dark → light → crt → glass → neon → classic → auto`. The old names — `paper-dark` and
   `paper-light` (now simply `dark` and `light`) and the pre-consolidation
   rotation modes (`random-dark`/`random`, `random-light`) — still resolve for
   back-compat but aren't listed. See [Themes](#themes).
@@ -4350,11 +4351,11 @@ dims the desktop a little more than the glass between the lines, so text
 reads over a black or a white desktop alike (a test holds every glass
 palette to it).
 
-Crew offers **six themes**: **`light`**, **`dark`**, **`glass`**,
-**`crt`**, **`neon`** and **`auto`**. `light` and `dark` are one page each. `glass` and
-`crt` are *rotations*, changing palette every 10 minutes. `neon` is one dark
+Crew offers **seven themes**: **`light`**, **`dark`**, **`glass`**,
+**`crt`**, **`neon`**, **`classic`** and **`auto`**. `light` and `dark` are one page each.
+`glass`, `crt` and `classic` are *rotations*, changing palette every 10 minutes. `neon` is one dark
 page, whatever the OS appearance or the clock. `auto` **walks every look in
-turn** — `dark → light → crt → glass → neon`, then `dark` again — moving to
+turn** — `dark → light → crt → glass → neon → classic`, then `dark` again — moving to
 the next look every 10 minutes (through the develop-fade), whatever the clock
 or the OS appearance. Switching to it moves off the look on screen at once.
 With no theme saved at all, crew defaults to `auto`.
@@ -4388,8 +4389,23 @@ With no theme saved at all, crew defaults to `auto`.
   signature colours from cyan to violet in place of the terminal's red,
   yellow and green. The face is SF Mono. It had a light page,
   `neon-light`, which `neon` served by day; that name now loads `neon`.
+- **`classic`** — five editor palettes people know by name, as smoked glass
+  with bright words (the same optics as `nebula`): **`tokyo-night`** (deep
+  navy, cyan accent, a blue→magenta focus ring), **`solarized`** (deep teal,
+  yellow accent, blue→cyan), **`everforest`** (forest green-grey, parchment
+  words, aqua accent, green→aqua), **`gruvbox`** (charcoal, cream words,
+  orange accent, yellow→orange) and **`monokai`** (olive-black, lime accent,
+  pink→purple). Each keeps its page's hue, its ink's hue and its signature
+  colours for the frame, accent, ring and status marks; the text ladder, the
+  search highlight and the sixteen ANSI slots are derived like every other
+  palette's, so shell output wears crew's sixteen, not the originals'. The
+  pages sit a step deeper than the originals where the ladder needed the
+  room (Solarized's `base03`, Gruvbox's `#282828`). The five were picked by
+  measurement: on these deep pages Dracula, Catppuccin and Nord came out
+  within a visible step of `nebula`, `neon` or `glass-night`. The face is
+  IBM Plex Mono.
 
-The picker offers the six themes first and then **every other palette by
+The picker offers the seven themes first and then **every other palette by
 name**, under a heading; a palette named there is pinned (no rotation). The
 Ink Reader pages and neon's are not repeated there: `dark`, `light` and
 `neon` already are them, and their names `paper-dark`, `paper-light` and
@@ -4505,5 +4521,5 @@ characters, not its columns.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `glass`, `neon`, `auto`), one of the palette names (pins it), or a legacy `random-*` / `modern*` mode; unset = `auto`, every look in turn |
+| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `glass`, `neon`, `classic`, `auto`), one of the palette names (pins it), or a legacy `random-*` / `modern*` mode; unset = `auto`, every look in turn |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |

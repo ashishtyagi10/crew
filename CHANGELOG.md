@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.12
+
+**Five new themes: the editor classics, as `/theme classic`.**
+- `tokyo-night` (deep navy, cyan accent, a blue→magenta focus ring), `solarized` (deep teal,
+  yellow accent, blue→cyan), `everforest` (forest green-grey, parchment words, green→aqua),
+  `gruvbox` (charcoal, cream words, orange accent, yellow→orange) and `monokai` (olive-black,
+  lime accent, pink→purple). Each is smoked glass with bright words, like `nebula`.
+- `/theme classic` rotates the five every 10 minutes; `/theme gruvbox` (or any of the five
+  names) pins one. The `/theme` picker lists `classic` and each palette, `Ctrl+Shift+L` now
+  steps dark → light → crt → glass → neon → classic → auto, and `auto` walks `classic` too.
+- Each keeps its page's hue and its own colours for the frame, accent, ring and status marks.
+  The text ladder, search highlight and the sixteen terminal colours are crew's, worked out
+  the same way as for every other theme, so shell output uses crew's colours, not the
+  originals'. The face is IBM Plex Mono.
+- Dracula, Catppuccin and Nord were tried and left out: on crew's deep pages with bright text
+  they measured too close to `nebula`, `neon` and `glass-night` to tell apart.
+
 ## 0.29.11
 
 **`/theme auto` now rotates through every look.**
