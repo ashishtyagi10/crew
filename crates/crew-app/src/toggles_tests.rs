@@ -26,9 +26,13 @@ fn toggle_theme_cycles_every_mode_and_wraps() {
     app.toggle_theme();
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Neon));
     assert_eq!(app.config.theme.as_deref(), Some("neon"));
-    // …then the OS-following auto — six stops, no more: the modern glow
-    // palettes are members of the glass pool, not extra presses on the way
-    // round.
+    // …then the editor classics…
+    app.toggle_theme();
+    assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Classic));
+    assert_eq!(app.config.theme.as_deref(), Some("classic"));
+    // …then auto, every look in turn — seven stops, no more: the modern
+    // glow palettes are members of the glass pool, not extra presses on the
+    // way round.
     app.toggle_theme();
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Auto));
     assert_eq!(app.config.theme.as_deref(), Some("auto"));

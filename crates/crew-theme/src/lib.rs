@@ -1,7 +1,6 @@
 //! Crew's color themes. A single `Theme` struct holds every UI colour, and
-//! nine `&'static` presets fill it across four families: paper (the e-ink
-//! reader look crew started as), sepia, the modern Gemini/Codex glow, and
-//! three phosphor tubes. The active theme lives behind a lock-free `AtomicU8`
+//! fourteen `&'static` presets fill it: the Ink Reader pages, the smoked
+//! glass, two phosphor tubes, neon, and five classic editor palettes. The active theme lives behind a lock-free `AtomicU8`
 //! so the winit render thread can read it every frame without blocking. No
 //! dependencies and no knowledge of the other crates — they import this one.
 //!
@@ -99,6 +98,8 @@ pub mod marks;
 mod modernstyle;
 pub mod oklch;
 pub mod poleshift;
+mod presets_classic;
+mod presets_classic2;
 mod presets_crt;
 mod presets_glass;
 mod presets_glass_clear;
@@ -139,6 +140,8 @@ impl Theme {
     }
 }
 
+pub use presets_classic::{SOLARIZED, TOKYO_NIGHT};
+pub use presets_classic2::{EVERFOREST, GRUVBOX, MONOKAI};
 pub use presets_crt::{CRT_AMBER, CRT_GREEN};
 pub use presets_glass::GLASS_NIGHT;
 pub use presets_glass_clear::GLASS_CLEAR;
@@ -183,11 +186,16 @@ pub enum ThemeId {
     GlassNight,
     GlassClear,
     NeonDark,
+    TokyoNight,
+    Solarized,
+    Everforest,
+    Gruvbox,
+    Monokai,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 9] = [
+pub const ALL_THEMES: [ThemeId; 14] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::Nebula,
@@ -197,6 +205,11 @@ pub const ALL_THEMES: [ThemeId; 9] = [
     ThemeId::CrtGreen,
     ThemeId::CrtAmber,
     ThemeId::NeonDark,
+    ThemeId::TokyoNight,
+    ThemeId::Solarized,
+    ThemeId::Everforest,
+    ThemeId::Gruvbox,
+    ThemeId::Monokai,
 ];
 
 impl ThemeId {
@@ -211,6 +224,11 @@ impl ThemeId {
             ThemeId::GlassNight => "glass-night",
             ThemeId::GlassClear => "glass-clear",
             ThemeId::NeonDark => "neon-dark",
+            ThemeId::TokyoNight => "tokyo-night",
+            ThemeId::Solarized => "solarized",
+            ThemeId::Everforest => "everforest",
+            ThemeId::Gruvbox => "gruvbox",
+            ThemeId::Monokai => "monokai",
         }
     }
 
@@ -226,6 +244,13 @@ impl ThemeId {
             ThemeId::GlassNight => "navy-smoked clear glass, white text (iPhone liquid glass)",
             ThemeId::GlassClear => "lightly smoked clear glass, white text (iPhone liquid glass)",
             ThemeId::NeonDark => "holographic glass over a lit grid",
+            ThemeId::TokyoNight => "Tokyo Night: deep navy, cyan accent, blue\u{2192}magenta ring",
+            ThemeId::Solarized => "Solarized: deep teal, yellow accent, blue\u{2192}cyan ring",
+            ThemeId::Everforest => {
+                "Everforest: forest green-grey, parchment text, green\u{2192}aqua ring"
+            }
+            ThemeId::Gruvbox => "Gruvbox: retro charcoal, cream text, yellow\u{2192}orange ring",
+            ThemeId::Monokai => "Monokai: olive-black, green accent, pink\u{2192}purple ring",
         }
     }
 
@@ -249,7 +274,7 @@ impl ThemeId {
     }
 
     /// The rotation this palette belongs to — exactly one of `dark`,
-    /// `light`, `crt`, `glass` and `neon`. Named per palette. `dark` and `light` are
+    /// `light`, `crt`, `glass`, `neon` and `classic`. Named per palette. `dark` and `light` are
     /// the Ink Reader pages alone (the user, 2026-10-16: the light and dark
     /// themes "Ink Reader like"): a light mode that rotated to a dark glass
     /// palette every ten minutes would not be one. Nebula and blossom joined
@@ -263,6 +288,11 @@ impl ThemeId {
                 RandomMode::Glass
             }
             ThemeId::NeonDark => RandomMode::Neon,
+            ThemeId::TokyoNight
+            | ThemeId::Solarized
+            | ThemeId::Everforest
+            | ThemeId::Gruvbox
+            | ThemeId::Monokai => RandomMode::Classic,
         }
     }
 
@@ -336,6 +366,11 @@ impl ThemeId {
             // Neon had a light page until 2026-10-22; a config that saved
             // it gets the one neon there is.
             "neon-dark" | "neon-light" => Some(ThemeId::NeonDark),
+            "tokyo-night" => Some(ThemeId::TokyoNight),
+            "solarized" => Some(ThemeId::Solarized),
+            "everforest" => Some(ThemeId::Everforest),
+            "gruvbox" => Some(ThemeId::Gruvbox),
+            "monokai" => Some(ThemeId::Monokai),
             _ => None,
         }
     }
@@ -351,6 +386,11 @@ impl ThemeId {
             ThemeId::GlassNight => &GLASS_NIGHT,
             ThemeId::GlassClear => &GLASS_CLEAR,
             ThemeId::NeonDark => &NEON_DARK,
+            ThemeId::TokyoNight => &TOKYO_NIGHT,
+            ThemeId::Solarized => &SOLARIZED,
+            ThemeId::Everforest => &EVERFOREST,
+            ThemeId::Gruvbox => &GRUVBOX,
+            ThemeId::Monokai => &MONOKAI,
         }
     }
 
@@ -426,22 +466,27 @@ pub enum RandomMode {
     /// The neon control room: one dark page of holographic glass, whatever
     /// the appearance (the user, 2026-10-22: "keep it default dark").
     Neon,
+    /// The editor classics — Tokyo Night, Solarized, Everforest, Gruvbox
+    /// and Monokai — as smoked glass (the user, 2026-10-28: "add 5 new
+    /// theme for crew").
+    Classic,
     /// Every look in turn, a new one each [`ROTATE_MS`] (the user,
     /// 2026-10-25: "rotate through all available theme, irrespective of
     /// time").
     Auto,
 }
 
-/// The themes crew offers: five pools plus `auto`, which walks them all.
+/// The themes crew offers: six pools plus `auto`, which walks them all.
 /// This is the whole user-facing theme list (`/theme`, the settings picker,
 /// the `Ctrl+Shift+L` cycle); everything else (legacy `random-*` / `modern*`
 /// names, individual palettes) parses for back-compat but isn't advertised.
-pub const THEME_MODES: [RandomMode; 6] = [
+pub const THEME_MODES: [RandomMode; 7] = [
     RandomMode::Dark,
     RandomMode::Light,
     RandomMode::Crt,
     RandomMode::Glass,
     RandomMode::Neon,
+    RandomMode::Classic,
     RandomMode::Auto,
 ];
 
@@ -453,6 +498,7 @@ impl RandomMode {
             RandomMode::Crt => "crt",
             RandomMode::Glass => "glass",
             RandomMode::Neon => "neon",
+            RandomMode::Classic => "classic",
             RandomMode::Auto => "auto",
         }
     }
@@ -467,8 +513,11 @@ impl RandomMode {
                 "clear smoked panes, bright white text, your desktop behind \u{2014} iPhone liquid glass"
             }
             RandomMode::Neon => "holographic glass over a lit grid, always dark",
+            RandomMode::Classic => {
+                "Tokyo Night, Solarized, Everforest, Gruvbox, Monokai \u{2014} the editor classics as smoked glass"
+            }
             RandomMode::Auto => {
-                "every look in turn \u{2014} dark, light, crt, glass, neon \u{2014} a new one every 10 minutes"
+                "every look in turn \u{2014} dark, light, crt, glass, neon, classic \u{2014} a new one every 10 minutes"
             }
         }
     }
@@ -481,6 +530,7 @@ impl RandomMode {
             RandomMode::Crt => 4,
             RandomMode::Glass => 5,
             RandomMode::Neon => 6,
+            RandomMode::Classic => 7,
         }
     }
 
@@ -492,6 +542,7 @@ impl RandomMode {
             4 => Some(RandomMode::Crt),
             5 => Some(RandomMode::Glass),
             6 => Some(RandomMode::Neon),
+            7 => Some(RandomMode::Classic),
             _ => None,
         }
     }
@@ -512,7 +563,7 @@ impl RandomMode {
 
     /// Whether `id` belongs to this mode's rotation pool: its
     /// [`ThemeId::mode`], so every palette lands in exactly one of
-    /// Dark/Light/Crt/Glass/Neon and a rotation stays inside one look. `Auto`
+    /// Dark/Light/Crt/Glass/Neon/Classic and a rotation stays inside one look. `Auto`
     /// holds every palette.
     pub fn in_pool(self, id: ThemeId) -> bool {
         self == RandomMode::Auto || id.mode() == self
@@ -578,6 +629,9 @@ pub fn parse_selection(s: &str) -> Option<Selection> {
     if s.eq_ignore_ascii_case("neon") {
         return Some(Selection::Mode(RandomMode::Neon));
     }
+    if s.eq_ignore_ascii_case("classic") {
+        return Some(Selection::Mode(RandomMode::Classic));
+    }
     if s.eq_ignore_ascii_case("auto") {
         return Some(Selection::Mode(RandomMode::Auto));
     }
@@ -611,7 +665,7 @@ pub fn auto_looks() -> impl Iterator<Item = RandomMode> {
 }
 
 /// The look `auto` turns to after `current`'s: the next of [`auto_looks`],
-/// wrapping, so every rotation changes the look and all five come round in
+/// wrapping, so every rotation changes the look and all six come round in
 /// turn. Neither the clock nor the OS appearance has a say — `auto` used to
 /// serve the appearance's page, which on a Mac pinned to Dark was `dark` for
 /// good.
@@ -636,11 +690,10 @@ fn spread(seed: u64, n: usize) -> usize {
 }
 
 /// Pick a theme from `mode`'s pool that is NOT `current`, deterministically
-/// from `seed`. Every pool has exactly 3 entries since the nine-theme cut
-/// (`every_pool_survives_the_cut` is where that is pinned), so minus `current`
-/// it is never empty; the `current` filter is skipped only if a future cut
-/// WOULD empty the pool, which keeps the modulo safe rather than relying on a
-/// roster size to stay where it is.
+/// from `seed`. A one-page pool (`dark`, `light`, `neon`) holds only
+/// `current` (`every_pool_survives_the_cut` pins the sizes), so the `current`
+/// filter is skipped when it WOULD empty the pool, which keeps the modulo
+/// safe rather than relying on a roster size to stay where it is.
 pub fn random_pick(current: ThemeId, seed: u64, mode: RandomMode) -> ThemeId {
     let mut others: Vec<ThemeId> = ALL_THEMES
         .iter()
@@ -716,7 +769,7 @@ pub fn tick_random(now_ms: u64) -> bool {
 }
 
 /// Advance the `Ctrl+Shift+L` cycle one step through [`THEME_MODES`]:
-/// dark → light → crt → glass → neon → auto → dark, wrapping. Any other state (a pinned
+/// dark → light → crt → glass → neon → classic → auto → dark, wrapping. Any other state (a pinned
 /// palette) enters at `dark`. The order IS `THEME_MODES` — walking the list
 /// rather than hand-writing the successors is what keeps a newly added mode
 /// from being silently unreachable by the hotkey (which is exactly what

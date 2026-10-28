@@ -219,11 +219,14 @@ fn cycle_next_walks_every_mode_and_wraps() {
     // ...then neon, its one dark page...
     assert_eq!(cycle_next(5), "neon");
     assert_eq!(current_id(), ThemeId::NeonDark);
+    // ...then classic, the editor palettes...
+    assert_eq!(cycle_next(6), "classic");
+    assert_eq!(current_id().mode(), RandomMode::Classic);
     // ...then auto, which moves straight on to another look...
-    assert_eq!(cycle_next(6), "auto");
-    assert_ne!(current_id().mode(), RandomMode::Neon);
-    // ...and wraps back to dark — six stops, no more.
-    assert_eq!(cycle_next(7), "dark");
+    assert_eq!(cycle_next(7), "auto");
+    assert_ne!(current_id().mode(), RandomMode::Classic);
+    // ...and wraps back to dark — seven stops, no more.
+    assert_eq!(cycle_next(8), "dark");
     assert!(dark(current_id()));
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
@@ -239,7 +242,8 @@ fn auto_is_advertised_and_holds_every_palette() {
             RandomMode::Light,
             RandomMode::Crt,
             RandomMode::Glass,
-            RandomMode::Neon
+            RandomMode::Neon,
+            RandomMode::Classic
         ]
     );
     assert!(ALL_THEMES
@@ -250,14 +254,14 @@ fn auto_is_advertised_and_holds_every_palette() {
 /// `auto` steps to the next look every rotation, light and dark pages alike,
 /// whatever the clock or the OS appearance (the user, 2026-10-25: "rotate
 /// through all available theme, irrespective of time … dark, light, glass,
-/// neon"). Five ticks show all five looks.
+/// neon"). Six ticks show all six looks, `classic` (2026-10-28) among them.
 #[test]
 fn auto_walks_every_look_in_turn() {
     let _g = guard();
     for seed in [0u64, 7, 1_000, 123_456_789] {
         apply_selection(Selection::Mode(RandomMode::Auto), seed);
         let mut seen = vec![current_id().mode()];
-        for i in 1..=4u64 {
+        for i in 1..=5u64 {
             let before = current_id();
             assert!(tick_random(seed + i * ROTATE_MS), "seed {seed} tick {i}");
             assert_eq!(
@@ -269,7 +273,7 @@ fn auto_walks_every_look_in_turn() {
         }
         assert!(
             auto_looks().all(|m| seen.contains(&m)),
-            "seed {seed}: five ticks showed {seen:?}"
+            "seed {seed}: six ticks showed {seen:?}"
         );
         assert_eq!(mode(), Some(RandomMode::Auto), "a tick left auto");
     }
@@ -353,12 +357,15 @@ fn every_pool_survives_the_cut() {
     let crt = count(|id: ThemeId| id.mode() == RandomMode::Crt);
     let glass = count(|id: ThemeId| id.mode() == RandomMode::Glass);
     let neon = count(|id: ThemeId| id.mode() == RandomMode::Neon);
+    let classic = count(|id: ThemeId| id.mode() == RandomMode::Classic);
     // One Ink Reader page each for dark and light (2026-10-16), two tubes,
-    // the four glass palettes, and neon's one dark page.
+    // the four glass palettes, neon's one dark page, and the five editor
+    // classics (2026-10-28).
     assert_eq!(
-        (dark, light, crt, glass, neon),
-        (1, 1, 2, 4, 1),
-        "pools are dark {dark}, light {light}, crt {crt}, glass {glass}, neon {neon} — \
+        (dark, light, crt, glass, neon, classic),
+        (1, 1, 2, 4, 1, 5),
+        "pools are dark {dark}, light {light}, crt {crt}, glass {glass}, neon {neon}, \
+         classic {classic} — \
          `auto` needs both appearances and the tubes and the glass are their \
          own rotations"
     );
@@ -417,10 +424,11 @@ fn every_retired_theme_name_still_resolves() {
     // `glass-night` when the light pair (`glass-sky`, `glass-dawn`) was drawn
     // on 2026-10-08, and `glass-clear` on 2026-10-09, which the light pair
     // folded into the same day. The neon pair was drawn on 2026-10-22, and
-    // its light page retired the same day.
+    // its light page retired the same day. The five editor classics were
+    // drawn on 2026-10-28.
     assert_eq!(
         RETIRED.len() + ALL_THEMES.len(),
-        32,
+        37,
         "every retiree is listed"
     );
 }
@@ -885,6 +893,7 @@ fn every_palette_lands_in_exactly_one_of_the_pools() {
         RandomMode::Crt,
         RandomMode::Glass,
         RandomMode::Neon,
+        RandomMode::Classic,
     ];
     for id in ALL_THEMES {
         let n = pools.iter().filter(|m| m.in_pool(id)).count();

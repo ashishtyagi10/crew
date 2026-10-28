@@ -274,7 +274,7 @@ way that machine presses it.
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Label every URL, file and hash on the pane (a letter copies, its capital opens) | **Cmd+E** |
 | Open another crew window | **Cmd+N** |
-| Cycle the theme rotations (dark → light → crt → glass → neon → auto) | **Ctrl+Shift+L** |
+| Cycle the theme rotations (dark → light → crt → glass → neon → classic → auto) | **Ctrl+Shift+L** |
 | Step the canvas gradient (… → the theme's own) | **Ctrl+Shift+G** |
 | Focus mode: hold notifications, never steal focus | **Ctrl+Shift+F** (or `/focus`) |
 | Agent pane: markdown preview ↔ raw source | **Ctrl+Shift+M** |
@@ -915,8 +915,8 @@ accents) and `blossom` (cherry-blossom smoke, pink accents). `crt` is a
 phosphor tube in glass, in `crt-green` and `crt-amber`, each one hue at six
 brightnesses. A rotation changes palette every 10 minutes; `light` and `dark`
 are one page each and stay put. And `auto` walks every look in turn —
-`dark` → `light` → `crt` → `glass` → `neon` → `dark` — a new one every 10
-minutes, whatever the clock or the OS appearance.
+`dark` → `light` → `crt` → `glass` → `neon` → `classic` → `dark` — a new one
+every 10 minutes, whatever the clock or the OS appearance.
 
 `neon` is a holographic control room in electric blue, violet and cyan, and
 it is always dark, whatever the OS appearance or the clock. A fine grid glows
@@ -929,7 +929,17 @@ cyan-white rim, its frame's light bleeding a little way in and turning cyan
 to violet across the card like a hologram's foil, and a halo of blue round
 it; the pane you are in burns cyan. Words are bright white and the face is
 SF Mono. Its palette's own name, `neon-dark`, loads as `neon`, and so does
-the retired `neon-light`. That makes **nine palettes** in all.
+the retired `neon-light`.
+
+`classic` is five editor palettes people already know by name, as smoked
+glass with bright words: `tokyo-night` (deep navy, cyan accent, a blue→magenta
+ring), `solarized` (deep teal, yellow accent, blue→cyan), `everforest`
+(forest green-grey, parchment words, green→aqua), `gruvbox` (charcoal, cream
+words, orange accent, yellow→orange) and `monokai` (olive-black, lime accent,
+pink→purple). `/theme classic` rotates them; `/theme gruvbox` pins one. Each
+keeps its page's hue and its signature colours; the text ladder and the
+sixteen ANSI slots are crew's own, derived like every other palette's. The
+face is IBM Plex Mono. That makes **fourteen palettes** in all.
 
 Almost every colour in a palette is **derived, not chosen**: the ramp produces
 the whole text ladder and all sixteen ANSI slots from the page and the ink, a
