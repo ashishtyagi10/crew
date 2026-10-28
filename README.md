@@ -274,7 +274,7 @@ way that machine presses it.
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Label every URL, file and hash on the pane (a letter copies, its capital opens) | **Cmd+E** |
 | Open another crew window | **Cmd+N** |
-| Cycle the theme rotations (dark → light → crt → glass → neon → classic → auto) | **Ctrl+Shift+L** |
+| Cycle the theme rotations (dark → light → crt → glass → neon → classic → purple → auto) | **Ctrl+Shift+L** |
 | Step the canvas gradient (… → the theme's own) | **Ctrl+Shift+G** |
 | Focus mode: hold notifications, never steal focus | **Ctrl+Shift+F** (or `/focus`) |
 | Agent pane: markdown preview ↔ raw source | **Ctrl+Shift+M** |
@@ -915,7 +915,7 @@ accents) and `blossom` (cherry-blossom smoke, pink accents). `crt` is a
 phosphor tube in glass, in `crt-green` and `crt-amber`, each one hue at six
 brightnesses. A rotation changes palette every 10 minutes; `light` and `dark`
 are one page each and stay put. And `auto` walks every look in turn —
-`dark` → `light` → `crt` → `glass` → `neon` → `classic` → `dark` — a new one
+`dark` → `light` → `crt` → `glass` → `neon` → `classic` → `purple` → `dark` — a new one
 every 10 minutes, whatever the clock or the OS appearance.
 
 `neon` is a holographic control room in electric blue, violet and cyan, and
@@ -939,7 +939,13 @@ words, orange accent, yellow→orange) and `monokai` (olive-black, lime accent,
 pink→purple). `/theme classic` rotates them; `/theme gruvbox` pins one. Each
 keeps its page's hue and its signature colours; the text ladder and the
 sixteen ANSI slots are crew's own, derived like every other palette's. The
-face is IBM Plex Mono. That makes **fourteen palettes** in all.
+face is IBM Plex Mono.
+
+`purple` is one page, `amethyst`: the smoked glass on a royal-purple page,
+white words with a lilac cast, a lavender accent, a vivid violet frame and a
+violet→magenta ring. `nebula` is violet too, but on a near-black page; here
+the page itself is purple. `/theme purple` or `/theme amethyst` turns it on.
+That makes **fifteen palettes** in all.
 
 Almost every colour in a palette is **derived, not chosen**: the ramp produces
 the whole text ladder and all sixteen ANSI slots from the page and the ink, a

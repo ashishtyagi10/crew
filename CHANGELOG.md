@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.13
+
+**A purple theme: `/theme purple`.**
+- `amethyst` is smoked glass on a royal-purple page: white words with a lilac cast, a lavender
+  accent, a vivid violet frame and a violet→magenta focus ring. `/theme purple` or
+  `/theme amethyst` turns it on.
+- It is a look of its own, one page like `neon`: the `/theme` picker lists `purple`,
+  `Ctrl+Shift+L` now steps dark → light → crt → glass → neon → classic → purple → auto, and
+  `auto` walks it too. The `glass` and `classic` rotations are unchanged.
+- `nebula` was already violet, but on a near-black page, and any purple accent on a page like
+  that measured too close to it to tell apart. Amethyst puts the purple in the page itself.
+  Its text ladder, search highlight and terminal colours are worked out like every other
+  theme's. The face is JetBrains Mono.
+
 ## 0.29.12
 
 **Five new themes: the editor classics, as `/theme classic`.**
