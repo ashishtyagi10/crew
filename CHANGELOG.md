@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.14
+
+**`/theme auto` shows all five classics every lap.**
+- `auto` used to give `classic` one step and pick one of the five at random, so seeing all
+  five could take several laps. It now steps through them in turn, tokyo-night → solarized →
+  everforest → gruvbox → monokai, ten minutes each, then moves on to `purple`.
+- A lap is now dark → light → crt → glass → neon → the five classics → purple: eleven steps,
+  110 minutes. The other looks still get one step each, `glass` and `crt` on a palette picked
+  at random.
+- Switching to `auto` onto `classic` opens on tokyo-night, so the first lap shows all five
+  too. `/theme` with no argument lists `classic (all 5)` in the walk and names the next
+  classic (`now classic (gruvbox), next classic (monokai)`).
+
 ## 0.29.13
 
 **A purple theme: `/theme purple`.**

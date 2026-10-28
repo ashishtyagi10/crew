@@ -900,8 +900,10 @@ The docked command bar supports:
   palettes every 10 minutes (dark paper palettes, light paper palettes, CRT
   phosphor palettes, the iPhone's light liquid glass over your desktop, five
   editor classics, a royal-purple page; `auto` **walks every look in turn** —
-  `dark → light → crt → glass → neon → classic → purple` — a new look every 10
-  minutes, whatever the clock or the OS appearance). A fresh install with no
+  `dark → light → crt → glass → neon → classic → purple` — a new one every 10
+  minutes, and all five classics one after another (tokyo-night → solarized →
+  everforest → gruvbox → monokai), so a lap takes 110 minutes, whatever the
+  clock or the OS appearance). A fresh install with no
   saved theme starts on `auto`. No argument reports the current selection —
   for `auto`, the look on screen and the one coming next.
   Selecting `/theme` in the palette opens an arrow-selectable **picker** of
@@ -4355,9 +4357,10 @@ Crew offers **eight themes**: **`light`**, **`dark`**, **`glass`**,
 **`crt`**, **`neon`**, **`classic`**, **`purple`** and **`auto`**. `light` and `dark` are one page each.
 `glass`, `crt` and `classic` are *rotations*, changing palette every 10 minutes. `neon` and `purple` are one dark
 page each, whatever the OS appearance or the clock. `auto` **walks every look in
-turn** — `dark → light → crt → glass → neon → classic → purple`, then `dark` again — moving to
-the next look every 10 minutes (through the develop-fade), whatever the clock
-or the OS appearance. Switching to it moves off the look on screen at once.
+turn** — `dark → light → crt → glass → neon → classic → purple`, then `dark` again — moving on
+every 10 minutes (through the develop-fade), whatever the clock or the OS appearance. Inside
+`classic` it shows all five in turn, `tokyo-night → solarized → everforest → gruvbox →
+monokai`, rather than one at random, so every lap (110 minutes) shows every classic. Switching to it moves off the look on screen at once.
 With no theme saved at all, crew defaults to `auto`.
 
 - **`light`** — Ink Reader's white page: near-black words, black lines.

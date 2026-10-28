@@ -916,7 +916,8 @@ phosphor tube in glass, in `crt-green` and `crt-amber`, each one hue at six
 brightnesses. A rotation changes palette every 10 minutes; `light` and `dark`
 are one page each and stay put. And `auto` walks every look in turn —
 `dark` → `light` → `crt` → `glass` → `neon` → `classic` → `purple` → `dark` — a new one
-every 10 minutes, whatever the clock or the OS appearance.
+every 10 minutes, whatever the clock or the OS appearance. In `classic` it shows all five,
+one after another, so every lap (110 minutes) shows every classic.
 
 `neon` is a holographic control room in electric blue, violet and cyan, and
 it is always dark, whatever the OS appearance or the clock. A fine grid glows

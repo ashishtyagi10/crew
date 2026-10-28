@@ -83,6 +83,7 @@ pub struct Theme {
 }
 
 pub mod ansi;
+mod autowalk;
 pub mod contrast;
 mod crtstyle;
 pub mod deco;
@@ -112,6 +113,7 @@ pub mod ramp;
 pub mod readable;
 pub mod signal;
 mod tagcolor;
+pub use autowalk::{auto_looks, auto_next, auto_next_palette, auto_steps};
 pub use crtstyle::CrtStyle;
 pub use glass::{
     style as glass_style, style_at as glass_style_at, style_for as glass_style_for, GlassLevel,
@@ -466,8 +468,9 @@ pub const ROTATE_MS: u64 = 600_000;
 /// a palette's own appearance decides which it is in: the modern (Gemini /
 /// Codex look) palettes are dark and light pages like any other and rotate
 /// inside `dark` / `light` rather than standing apart as their own themes.
-/// `Auto` walks the other looks in turn ([`auto_next`]), whatever the clock
-/// or the OS appearance; [`THEME_MODES`] is the list the picker advertises.
+/// `Auto` walks the other looks in turn ([`auto_next`]), the classics one by
+/// one, whatever the clock or the OS appearance; [`THEME_MODES`] is the list
+/// the picker advertises.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RandomMode {
     Dark,
@@ -534,7 +537,7 @@ impl RandomMode {
             }
             RandomMode::Purple => "amethyst: royal-purple smoked glass, lavender accent, always dark",
             RandomMode::Auto => {
-                "every look in turn \u{2014} dark, light, crt, glass, neon, classic, purple \u{2014} a new one every 10 minutes"
+                "every look in turn \u{2014} dark, light, crt, glass, neon, all five classics, purple \u{2014} a new one every 10 minutes"
             }
         }
     }
@@ -681,31 +684,6 @@ pub fn is_random() -> bool {
     mode().is_some()
 }
 
-/// The looks `auto` walks, in [`THEME_MODES`] order: every theme but
-/// `auto` itself.
-pub fn auto_looks() -> impl Iterator<Item = RandomMode> {
-    THEME_MODES.into_iter().filter(|&m| m != RandomMode::Auto)
-}
-
-/// The look `auto` turns to after `current`'s: the next of [`auto_looks`],
-/// wrapping, so every rotation changes the look and all seven come round in
-/// turn. Neither the clock nor the OS appearance has a say — `auto` used to
-/// serve the appearance's page, which on a Mac pinned to Dark was `dark` for
-/// good.
-pub fn auto_next(current: ThemeId) -> RandomMode {
-    let looks: Vec<RandomMode> = auto_looks().collect();
-    let i = looks.iter().position(|&m| m == current.mode()).unwrap_or(0);
-    looks[(i + 1) % looks.len()]
-}
-
-/// The look switching TO `auto` opens on: any but `current`'s, from `seed`.
-/// Not simply [`auto_next`], because at launch `current` is always the
-/// zeroed default, and every launch would open on the same look.
-fn auto_start(current: ThemeId, seed: u64) -> RandomMode {
-    let others: Vec<RandomMode> = auto_looks().filter(|&m| m != current.mode()).collect();
-    others[spread(seed, others.len())]
-}
-
 /// An index below `n` from `seed`, spread so that neighbouring seeds (two
 /// wall-clock ms apart) land far apart.
 fn spread(seed: u64, n: usize) -> usize {
@@ -736,7 +714,8 @@ pub fn random_pick(current: ThemeId, seed: u64, mode: RandomMode) -> ThemeId {
 /// Apply a parsed selection: a fixed theme pins it (mode off); a mode
 /// switches immediately to a pick from its pool (so the effect is visible)
 /// and starts the 10-minute clock. `auto` opens on a look other than the
-/// one on screen ([`auto_start`]).
+/// one on screen, and a look `auto` walks palette by palette on its first
+/// ([`autowalk`]).
 pub fn apply_selection(sel: Selection, now_ms: u64) {
     match sel {
         Selection::Fixed(id) => {
@@ -745,11 +724,10 @@ pub fn apply_selection(sel: Selection, now_ms: u64) {
         }
         Selection::Mode(m) => {
             MODE.store(m.as_u8(), Ordering::Relaxed);
-            let pool = match m {
-                RandomMode::Auto => auto_start(current_id(), now_ms),
-                m => m,
-            };
-            set_theme(random_pick(current_id(), now_ms, pool));
+            set_theme(match m {
+                RandomMode::Auto => autowalk::auto_start(current_id(), now_ms),
+                m => random_pick(current_id(), now_ms, m),
+            });
             ROTATED_MS.store(now_ms, Ordering::Relaxed);
         }
     }
@@ -766,10 +744,10 @@ pub fn selection_label() -> &'static str {
 
 /// Called each poll tick with the current wall-clock ms. When a mode is on
 /// and `ROTATE_MS` has elapsed, switch to a new pick from the mode's pool
-/// (auto's: the next look, [`auto_next`]) and return `true` so the caller
-/// repaints. A one-page pool (the Ink Reader modes) holds its page and
-/// returns `false`: nothing changed. Cheap and lock-free — safe at ~62 Hz on
-/// the winit thread.
+/// (auto's: the next look, or the next classic, [`auto_next`]) and return
+/// `true` so the caller repaints. A one-page pool (the Ink Reader modes)
+/// holds its page and returns `false`: nothing changed. Cheap and lock-free
+/// — safe at ~62 Hz on the winit thread.
 pub fn tick_random(now_ms: u64) -> bool {
     let Some(m) = mode() else {
         return false;
@@ -778,11 +756,10 @@ pub fn tick_random(now_ms: u64) -> bool {
     if now_ms.saturating_sub(last) < ROTATE_MS {
         return false;
     }
-    let pool = match m {
-        RandomMode::Auto => auto_next(current_id()),
-        m => m,
+    let next = match m {
+        RandomMode::Auto => autowalk::auto_step(current_id(), now_ms),
+        m => random_pick(current_id(), now_ms, m),
     };
-    let next = random_pick(current_id(), now_ms, pool);
     ROTATED_MS.store(now_ms, Ordering::Relaxed);
     if next == current_id() {
         return false;
