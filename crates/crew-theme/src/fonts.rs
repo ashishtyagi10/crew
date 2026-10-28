@@ -148,6 +148,9 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Lilex",
         ],
+        // Purple: amethyst is nebula's sibling on a purple page, so it wears
+        // the same contemporary face, with Geist Mono behind it.
+        ThemeId::Amethyst => &["JetBrains Mono", "Geist Mono", "SF Mono", "Menlo", "Lilex"],
         // CRT: a terminal face with squared-off shoulders — straight modern
         // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
         // contemporary take on that IBM-terminal DNA).

@@ -425,7 +425,7 @@ way that machine presses it.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |
-| Cycle themes (dark → light → crt → glass → neon → classic → auto) | **Ctrl+Shift+L** |
+| Cycle themes (dark → light → crt → glass → neon → classic → purple → auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Toggle the chat's compact transcript view | **Ctrl+O** (falls through to the terminal when the focused pane isn't a chat) |
 | Reverse-search the chat composer's send history | **Ctrl+R** (again steps to the next older match) |
@@ -895,18 +895,18 @@ The docked command bar supports:
   The fresh process re-reads `config.toml`, so external config edits ride
   along too.
 - **`/theme [name]`** — switches the theme live and persists it. There are
-  seven themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, **`neon`**,
-  **`classic`** and **`auto`** — and each one *rotates* through a pool of
+  eight themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, **`neon`**,
+  **`classic`**, **`purple`** and **`auto`** — and each one *rotates* through a pool of
   palettes every 10 minutes (dark paper palettes, light paper palettes, CRT
   phosphor palettes, the iPhone's light liquid glass over your desktop, five
-  editor classics; `auto` **walks every look in turn** —
-  `dark → light → crt → glass → neon → classic` — a new look every 10
+  editor classics, a royal-purple page; `auto` **walks every look in turn** —
+  `dark → light → crt → glass → neon → classic → purple` — a new look every 10
   minutes, whatever the clock or the OS appearance). A fresh install with no
   saved theme starts on `auto`. No argument reports the current selection —
   for `auto`, the look on screen and the one coming next.
   Selecting `/theme` in the palette opens an arrow-selectable **picker** of
-  the seven themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
-  `dark → light → crt → glass → neon → classic → auto`. The old names — `paper-dark` and
+  the eight themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
+  `dark → light → crt → glass → neon → classic → purple → auto`. The old names — `paper-dark` and
   `paper-light` (now simply `dark` and `light`) and the pre-consolidation
   rotation modes (`random-dark`/`random`, `random-light`) — still resolve for
   back-compat but aren't listed. See [Themes](#themes).
@@ -4351,11 +4351,11 @@ dims the desktop a little more than the glass between the lines, so text
 reads over a black or a white desktop alike (a test holds every glass
 palette to it).
 
-Crew offers **seven themes**: **`light`**, **`dark`**, **`glass`**,
-**`crt`**, **`neon`**, **`classic`** and **`auto`**. `light` and `dark` are one page each.
-`glass`, `crt` and `classic` are *rotations*, changing palette every 10 minutes. `neon` is one dark
-page, whatever the OS appearance or the clock. `auto` **walks every look in
-turn** — `dark → light → crt → glass → neon → classic`, then `dark` again — moving to
+Crew offers **eight themes**: **`light`**, **`dark`**, **`glass`**,
+**`crt`**, **`neon`**, **`classic`**, **`purple`** and **`auto`**. `light` and `dark` are one page each.
+`glass`, `crt` and `classic` are *rotations*, changing palette every 10 minutes. `neon` and `purple` are one dark
+page each, whatever the OS appearance or the clock. `auto` **walks every look in
+turn** — `dark → light → crt → glass → neon → classic → purple`, then `dark` again — moving to
 the next look every 10 minutes (through the develop-fade), whatever the clock
 or the OS appearance. Switching to it moves off the look on screen at once.
 With no theme saved at all, crew defaults to `auto`.
@@ -4404,12 +4404,20 @@ With no theme saved at all, crew defaults to `auto`.
   measurement: on these deep pages Dracula, Catppuccin and Nord came out
   within a visible step of `nebula`, `neon` or `glass-night`. The face is
   IBM Plex Mono.
+- **`purple`** — **`amethyst`**: the smoked glass on a royal-purple page,
+  white words with a lilac cast, a lavender accent, a vivid violet frame and
+  a violet→magenta focus ring. `nebula` is violet too, but its page is
+  near-black and its purple is in the accent; any purple accent on a page
+  like that sat within a visible step of it, so amethyst's page carries the
+  colour instead, as saturated as the text ladder allows. The text ladder,
+  search highlight and ANSI slots are derived like every other palette's.
+  The face is JetBrains Mono.
 
-The picker offers the seven themes first and then **every other palette by
+The picker offers the eight themes first and then **every other palette by
 name**, under a heading; a palette named there is pinned (no rotation). The
-Ink Reader pages and neon's are not repeated there: `dark`, `light` and
-`neon` already are them, and their names `paper-dark`, `paper-light` and
-`neon-dark` load as those three.
+Ink Reader pages, neon's and amethyst are not repeated there: `dark`, `light`,
+`neon` and `purple` already are them, and their names `paper-dark`,
+`paper-light`, `neon-dark` and `amethyst` load as those four.
 Older palettes were folded into these eight and their names still load the
 nearest survivor: `glass-sky` and `glass-dawn` → `glass-clear`; `sepia-dark`
 and `harbor` → `dark`; `sepia-light` → `light`; `fern` →
@@ -4521,5 +4529,5 @@ characters, not its columns.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `glass`, `neon`, `classic`, `auto`), one of the palette names (pins it), or a legacy `random-*` / `modern*` mode; unset = `auto`, every look in turn |
+| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `glass`, `neon`, `classic`, `purple`, `auto`), one of the palette names (pins it), or a legacy `random-*` / `modern*` mode; unset = `auto`, every look in turn |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |
