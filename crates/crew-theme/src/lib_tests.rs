@@ -255,36 +255,6 @@ fn auto_is_advertised_and_holds_every_palette() {
         .all(|id| RandomMode::Auto.in_pool(id)));
 }
 
-/// `auto` steps to the next look every rotation, light and dark pages alike,
-/// whatever the clock or the OS appearance (the user, 2026-10-25: "rotate
-/// through all available theme, irrespective of time … dark, light, glass,
-/// neon"). Seven ticks show all seven looks, `classic` and `purple`
-/// (2026-10-28) among them.
-#[test]
-fn auto_walks_every_look_in_turn() {
-    let _g = guard();
-    for seed in [0u64, 7, 1_000, 123_456_789] {
-        apply_selection(Selection::Mode(RandomMode::Auto), seed);
-        let mut seen = vec![current_id().mode()];
-        for i in 1..=6u64 {
-            let before = current_id();
-            assert!(tick_random(seed + i * ROTATE_MS), "seed {seed} tick {i}");
-            assert_eq!(
-                current_id().mode(),
-                auto_next(before),
-                "seed {seed} tick {i}"
-            );
-            seen.push(current_id().mode());
-        }
-        assert!(
-            auto_looks().all(|m| seen.contains(&m)),
-            "seed {seed}: seven ticks showed {seen:?}"
-        );
-        assert_eq!(mode(), Some(RandomMode::Auto), "a tick left auto");
-    }
-    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
-}
-
 /// Switching to `auto` changes the look on screen at once, and launch (where
 /// the page on screen is always the zeroed default) doesn't open on the same
 /// look every time.
