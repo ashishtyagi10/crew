@@ -19,8 +19,9 @@
 use crate::{CrtStyle, ModernStyle, Theme};
 
 /// Neon, dark: a near-black blue-violet room, bright white words, the
-/// electric blue for the accent and the grid, cyan for the focused frame and
-/// progress, violet for the broadcast.
+/// electric blue for the accent and the grid, cyan for the focused frame, a
+/// bluer cyan for progress (it runs along that frame, so it has to show on
+/// it), violet for the broadcast.
 pub static NEON_DARK: Theme = Theme {
     page_bg: (7, 8, 24),
     ink: (228, 232, 242),
@@ -34,7 +35,7 @@ pub static NEON_DARK: Theme = Theme {
     accent_default: (92, 162, 255),
     status_fg: (64, 226, 255),
     broadcast: (178, 112, 255),
-    activity: (90, 200, 255),
+    activity: (107, 198, 255),
     bell: (255, 120, 150),
     dim: (117, 121, 140),
     placeholder: (109, 113, 132),

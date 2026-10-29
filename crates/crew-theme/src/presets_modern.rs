@@ -26,7 +26,7 @@ pub static NEBULA: Theme = Theme {
     accent_default: (202, 148, 250),
     status_fg: (215, 185, 250),
     broadcast: (255, 150, 200),
-    activity: (206, 152, 250),
+    activity: (145, 172, 255),
     bell: (255, 196, 160),
     dim: (128, 123, 137),
     placeholder: (120, 115, 129),

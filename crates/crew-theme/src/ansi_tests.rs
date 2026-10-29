@@ -36,7 +36,7 @@ const SEPARABLE: f32 = 0.04;
 fn every_slot_including_the_blacks_and_whites_is_legible() {
     for id in ALL_THEMES {
         let t = id.theme();
-        let slots = AnsiRamp::fitted(t).slots();
+        let slots = AnsiRamp::fitted(id).slots();
         for (i, c) in slots.iter().enumerate() {
             let cr = contrast_ratio(*c, t.term_bg);
             // 3.0 is the existing floor for the chromatic slots; the neutrals
@@ -58,7 +58,7 @@ fn every_slot_including_the_blacks_and_whites_is_legible() {
 fn the_chromatic_slots_share_one_level_within_a_theme() {
     for id in ALL_THEMES.iter().filter(|id| !id.is_crt()) {
         let t = id.theme();
-        let slots = AnsiRamp::fitted(t).slots();
+        let slots = AnsiRamp::fitted(*id).slots();
         let ratios: Vec<f32> = (1..7)
             .map(|i| contrast_ratio(slots[i], t.term_bg))
             .collect();
@@ -91,8 +91,7 @@ fn the_chromatic_slots_share_one_level_within_a_theme() {
 #[test]
 fn no_two_slots_are_indistinguishable() {
     for id in ALL_THEMES {
-        let t = id.theme();
-        let slots = AnsiRamp::fitted(t).slots();
+        let slots = AnsiRamp::fitted(id).slots();
         let groups: Vec<Vec<usize>> = if id.is_crt() {
             vec![(1..7).collect(), (9..15).collect()]
         } else {
@@ -125,7 +124,7 @@ fn no_two_slots_are_indistinguishable() {
 fn every_bright_slot_is_a_consistent_step_from_its_base() {
     for id in ALL_THEMES {
         let t = id.theme();
-        let slots = AnsiRamp::fitted(t).slots();
+        let slots = AnsiRamp::fitted(id).slots();
         let dark = t.dark;
         let mut steps = Vec::new();
         for i in 1..7 {
@@ -165,7 +164,7 @@ fn every_bright_slot_is_a_consistent_step_from_its_base() {
 fn a_coloured_phosphor_tube_keeps_one_hue() {
     let mut checked = 0;
     for id in ALL_THEMES {
-        let ramp = AnsiRamp::fitted(id.theme());
+        let ramp = AnsiRamp::fitted(id);
         let AnsiMode::Monochrome { hue, .. } = ramp.mode() else {
             continue;
         };
@@ -196,7 +195,7 @@ fn every_shipped_ansi_palette_is_what_the_ramp_produces() {
     let mut off: Vec<String> = Vec::new();
     for id in ALL_THEMES {
         let t = id.theme();
-        let slots = AnsiRamp::fitted(t).slots();
+        let slots = AnsiRamp::fitted(id).slots();
         for (i, (&got, &have)) in slots.iter().zip(t.ansi.iter()).enumerate() {
             let d = |a: u8, b: u8| (a as i16 - b as i16).abs();
             if d(got.0, have.0) > 1 || d(got.1, have.1) > 1 || d(got.2, have.2) > 1 {

@@ -4401,12 +4401,15 @@ With no theme saved at all, crew defaults to `auto`.
   pink→purple). Each keeps its page's hue, its ink's hue and its signature
   colours for the frame, accent, ring and status marks; the text ladder, the
   search highlight and the sixteen ANSI slots are derived like every other
-  palette's, so shell output wears crew's sixteen, not the originals'. The
+  palette's, but the ANSI slots take the scheme's own six hues
+  (`crew_theme::ansihue`) at crew's contrast and chroma, so shell output and
+  syntax colours read as the scheme's. The
   pages sit a step deeper than the originals where the ladder needed the
   room (Solarized's `base03`, Gruvbox's `#282828`). The five were picked by
   measurement: on these deep pages Dracula, Catppuccin and Nord came out
-  within a visible step of `nebula`, `neon` or `glass-night`. The face is
-  IBM Plex Mono.
+  within a visible step of `nebula`, `neon` or `glass-night`. Each wears its
+  own face (JetBrains Mono, IBM Plex Mono, Comic Shanns Mono, MonoLisa, SF
+  Mono), because `auto` walks the five one step at a time.
 - **`purple`** — **`amethyst`**: the smoked glass on a royal-purple page,
   white words with a lilac cast, a lavender accent, a vivid violet frame and
   a violet→magenta focus ring. `nebula` is violet too, but its page is

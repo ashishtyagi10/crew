@@ -33,7 +33,7 @@ pub static AMETHYST: Theme = Theme {
     accent_default: (225, 185, 255),
     status_fg: (228, 206, 255),
     broadcast: (255, 130, 200),
-    activity: (196, 170, 255),
+    activity: (165, 180, 255),
     bell: (255, 184, 150),
     dim: (140, 119, 168),
     placeholder: (132, 111, 160),

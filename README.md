@@ -938,9 +938,12 @@ ring), `solarized` (deep teal, yellow accent, blue→cyan), `everforest`
 (forest green-grey, parchment words, green→aqua), `gruvbox` (charcoal, cream
 words, orange accent, yellow→orange) and `monokai` (olive-black, lime accent,
 pink→purple). `/theme classic` rotates them; `/theme gruvbox` pins one. Each
-keeps its page's hue and its signature colours; the text ladder and the
-sixteen ANSI slots are crew's own, derived like every other palette's. The
-face is IBM Plex Mono.
+keeps its page's hue and its signature colours; the text ladder is crew's
+own. Shell output and syntax colours use each scheme's own hues (gruvbox's
+teal "blue", monokai's pink red) at crew's contrast, so they stay as legible
+as on any other palette. Each wears its own face, so stepping through them
+changes the font too: JetBrains Mono, IBM Plex Mono, Comic Shanns Mono,
+MonoLisa and SF Mono.
 
 `purple` is one page, `amethyst`: the smoked glass on a royal-purple page,
 white words with a lilac cast, a lavender accent, a vivid violet frame and a

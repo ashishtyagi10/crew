@@ -139,3 +139,7 @@ pub fn alarm_for(id: crate::ThemeId) -> (u8, u8, u8) {
 #[cfg(test)]
 #[path = "signal_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "activity_tests.rs"]
+mod activity_tests;

@@ -27,8 +27,9 @@
 /// on the machine that turned it on, it comes up as often as the rest.
 ///
 /// `Comic Shanns Mono` (2026-09-27) is the user's own install, asked for by
-/// name ("I like them very much"): the face Comic Mono was cut from. It leads
-/// the Sepia family (see `font_prefs`). Its sibling `Serious Shanns` came in
+/// name ("I like them very much"): the face Comic Mono was cut from. It led
+/// the Sepia family until sepia retired, and leads `everforest` since
+/// 2026-10-28 (see `font_prefs`). Its sibling `Serious Shanns` came in
 /// with it and was asked out the next day — too small beside the rest.
 pub const FAVORITES: &[&str] = &[
     "Comic Shanns Mono",
