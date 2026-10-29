@@ -2,8 +2,9 @@
 use super::*;
 use crate::{ThemeId, ALL_THEMES};
 
-/// Every palette with a map of its own: the classics, neon and amethyst.
-const OWN_MAP: [ThemeId; 7] = [
+/// Every palette with a map of its own: the classics, neon, amethyst and
+/// blossom.
+const OWN_MAP: [ThemeId; 8] = [
     ThemeId::TokyoNight,
     ThemeId::Solarized,
     ThemeId::Everforest,
@@ -11,6 +12,7 @@ const OWN_MAP: [ThemeId; 7] = [
     ThemeId::Monokai,
     ThemeId::NeonDark,
     ThemeId::Amethyst,
+    ThemeId::Blossom,
 ];
 
 /// Every slot names a chromatic ANSI colour: 0 and 7 are the greys.

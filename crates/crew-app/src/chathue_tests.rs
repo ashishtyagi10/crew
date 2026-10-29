@@ -110,7 +110,7 @@ fn a_number_shares_the_code_slot() {
         house += 1;
         assert_eq!(derive(t).number, chatink::derive(t).code, "{}", id.as_str());
     }
-    assert!(house >= 8, "the house map went missing ({house} palettes)");
+    assert!(house >= 7, "the house map went missing ({house} palettes)");
 }
 
 /// A slot that cannot be lifted to the floors is not drawn faint: it falls

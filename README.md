@@ -911,7 +911,8 @@ pane is a slab of smoked glass over it, and the words on it are bright, with
 a soft shadow behind them. `glass` is the iPhone's liquid glass in its Clear
 look, rotating four palettes: `glass-clear` (neutral smoke, rose accents),
 `glass-night` (navy smoke, mint), `nebula` (violet smoke, orchid→rose
-accents) and `blossom` (cherry-blossom smoke, pink accents). `crt` is a
+accents) and `blossom` (a wine-rose smoke, pink accents, a blush frame, code
+in spring colours and Comic Mono). `crt` is a
 phosphor tube in glass, in `crt-green` and `crt-amber`, each one hue at six
 brightnesses. A rotation changes palette every 10 minutes; `light` and `dark`
 are one page each and stay put. And `auto` walks every look in turn —

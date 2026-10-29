@@ -4370,7 +4370,11 @@ With no theme saved at all, crew defaults to `auto`.
   **`glass-night`** (navy smoke, mint), **`nebula`** (violet smoke,
   orchid→rose accents) and **`blossom`** (cherry-blossom smoke, pink
   accents): the iPhone's liquid glass in its Clear look. A pane hides about
-  60% of the desktop (`nebula`'s deeper smoke about 70%). The face is SF Mono.
+  60% of the desktop (`nebula`'s deeper smoke about 70%). The face is SF Mono
+  (JetBrains Mono on `nebula`). `blossom`'s smoke is a wine rose, its focused
+  frame a blush white and its progress marks a leaf green; its code is in
+  spring colours of its own (sakura keywords, leaf-green strings, apricot
+  types, sky calls, coral numbers) and its face is Comic Mono.
 - **`crt`** — **`crt-green`** and **`crt-amber`**: a phosphor tube in glass,
   its faceplate a deep smoke (which phosphor green needs over a white
   desktop) and its panes lit by their own phosphor.

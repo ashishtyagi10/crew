@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.20
+
+**`blossom` looks like a cherry tree in spring.**
+- In the `glass` rotation, `blossom` was a near-grey smoke with pink accents, closer to
+  `glass-clear` than any other two themes are to each other, and it shared `nebula`'s font.
+  It now has a look of its own:
+  - a wine-rose smoke where the near-grey was, and a blush-white focused frame;
+  - code and shell output in spring colours: sakura-pink keywords, leaf-green strings,
+    apricot types, sky-blue calls, coral numbers, mint identifiers;
+  - progress marks (git dirty dot, gauge warnings) in a fresh leaf green instead of the
+    yellow it shared with `glass-clear`;
+  - Comic Mono, a favourite face that no other theme led with.
+- Words stay bright white and every role keeps its contrast: the text ladder, the search
+  highlight and the terminal colours are re-derived for the new page.
+
 ## 0.29.19
 
 **`neon` and `amethyst` have colours of their own for code and shell output.**

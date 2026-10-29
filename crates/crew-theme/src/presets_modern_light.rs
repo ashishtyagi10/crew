@@ -6,42 +6,47 @@
 
 use crate::{CrtStyle, ModernStyle, Theme};
 
-/// **Blossom**: a cherry-blossom smoke, pink accents, white words.
+/// **Blossom**: a cherry-blossom smoke, pink accents, white words. Since
+/// 2026-10-29 the smoke is a wine rose (it was a near-grey within Δ 0.052
+/// of `glass-clear`, the closest pair on the roster), the focused frame a
+/// blush white, progress a fresh leaf green, and code in spring colours
+/// ([`crate::ansihue`]): sakura keywords, leaf strings, apricot types, sky
+/// calls, coral numbers.
 pub static BLOSSOM: Theme = Theme {
-    page_bg: (36, 22, 30),
+    page_bg: (46, 15, 31),
     ink: (247, 239, 243),
-    text_muted: (216, 205, 211),
+    text_muted: (222, 202, 211),
     term_fg: (247, 239, 243),
-    term_bg: (36, 22, 30),
-    border_normal: (87, 71, 79),
-    border_focused: (226, 232, 246),
+    term_bg: (46, 15, 31),
+    border_normal: (100, 65, 81),
+    border_focused: (252, 228, 238),
     border_thickness: 3.5,
-    legend_off: (162, 147, 155),
+    legend_off: (173, 142, 156),
     accent_default: (255, 170, 200),
-    status_fg: (255, 214, 10),
+    status_fg: (184, 231, 147),
     broadcast: (210, 140, 255),
     activity: (100, 210, 255),
     bell: (255, 118, 110),
-    dim: (143, 128, 136),
-    placeholder: (134, 119, 127),
-    hint_fg: (144, 129, 137),
-    find_hl_bg: (115, 31, 68),
+    dim: (155, 123, 137),
+    placeholder: (146, 114, 129),
+    hint_fg: (156, 124, 138),
+    find_hl_bg: (122, 32, 71),
     ansi: [
-        (111, 104, 107), // 0  black
-        (255, 172, 161), // 1  red
-        (129, 211, 145), // 2  green
-        (230, 187, 92),  // 3  yellow
-        (147, 197, 255), // 4  blue
-        (236, 170, 243), // 5  magenta
-        (58, 212, 218),  // 6  cyan
-        (234, 226, 230), // 7  white
-        (149, 142, 145), // 8  bright black
+        (116, 102, 107), // 0  black
+        (255, 171, 163), // 1  red
+        (149, 208, 129), // 2  green
+        (243, 181, 98),  // 3  yellow
+        (131, 199, 255), // 4  blue
+        (253, 165, 220), // 5  magenta
+        (74, 213, 191),  // 6  cyan
+        (240, 223, 230), // 7  white
+        (154, 140, 146), // 8  bright black
         (255, 203, 195), // 9  bright red
-        (149, 232, 165), // 10 bright green
-        (251, 207, 113), // 11 bright yellow
-        (184, 217, 255), // 12 bright blue
-        (250, 196, 255), // 13 bright magenta
-        (86, 233, 239),  // 14 bright cyan
+        (169, 229, 149), // 10 bright green
+        (255, 205, 141), // 11 bright yellow
+        (174, 218, 255), // 12 bright blue
+        (255, 198, 232), // 13 bright magenta
+        (99, 234, 211),  // 14 bright cyan
         (255, 250, 252), // 15 bright white
     ],
     dark: true,
@@ -62,6 +67,6 @@ pub static BLOSSOM: Theme = Theme {
         drift_ms: 6_000,
     }),
     liquid: Some(crate::presets_glass_clear::LIGHT_LIQUID),
-    syntax: crate::SyntaxSlots::HOUSE,
+    syntax: crate::syntaxslot::BLOSSOM,
     selection: None,
 };

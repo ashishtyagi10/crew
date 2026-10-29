@@ -86,7 +86,13 @@ fn scale_colors() -> ((u8, u8, u8), (u8, u8, u8)) {
     );
     let minor = crew_theme::readable::secondary(major, t.page_bg);
     let glassed = |c| crew_theme::glasslegend::on_glass(t, c, crew_theme::readable::MARK_FLOOR);
-    (glassed(major), glassed(minor))
+    let (major, minor) = (glassed(major), glassed(minor));
+    // Where the glass lifts both to one point, rounding can leave the minor
+    // a hair louder (blossom's rose: 9.95 over 9.91). They collapse to one
+    // weight rather than swap, as `secondary` does on a page with no room.
+    let louder =
+        |a, b| crew_theme::contrast_ratio(a, t.page_bg) > crew_theme::contrast_ratio(b, t.page_bg);
+    (major, if louder(minor, major) { major } else { minor })
 }
 
 /// Whether this nav width gets dials.

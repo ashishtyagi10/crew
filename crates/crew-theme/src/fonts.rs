@@ -117,7 +117,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // happens to be one the user asked to see more of (`FAVORITES`),
         // which is the tie-breaker between it and Google's own. Google Sans
         // Code and Geist stay behind it.
-        ThemeId::Nebula | ThemeId::Blossom => &[
+        ThemeId::Nebula => &[
             "JetBrains Mono",
             "SF Mono",
             "Google Sans Code",
@@ -125,6 +125,9 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Lilex",
         ],
+        // Blossom is the soft one of the glass: Comic Mono, a favourite
+        // no other palette leads with, round and friendly as the petals.
+        ThemeId::Blossom => &["Comic Mono", "JetBrains Mono", "SF Mono", "Menlo", "Lilex"],
         // Glass is the iPhone's material, so it wears the iPhone's face: SF
         // Mono, then the nearest geometric monospaces.
         ThemeId::GlassClear | ThemeId::GlassNight => {
