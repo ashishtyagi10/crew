@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.24
+
+**On see-through windows the focused pane's frame is always the brightest one.**
+- The focused pane is framed by a ring that blends the theme's two signature colours.
+  When the window is see-through, crew brightens every unfocused frame so cards still
+  read over a busy desktop, and it brightened the plain focused frame a full step further.
+  The ring was left out of that. On five themes the focused ring came out *dimmer* than the
+  cards around it: `solarized`, `monokai`, `amethyst`, `glass-clear` and `glass-night`.
+- The ring now gets the same lift as the focused frame it replaces: every point along it
+  clears 7:1 against the page, a clear step above any unfocused frame on every theme. It
+  keeps its colours and only gets brighter where it was too dim.
+- Only the ring is lifted. The page's background glow uses the same two colours and stays
+  as it was, and opaque windows are unchanged.
+
 ## 0.29.23
 
 **Every step of `/theme auto` changes the font.**
