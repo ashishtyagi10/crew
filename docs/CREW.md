@@ -4363,6 +4363,12 @@ every 10 minutes (through the develop-fade), whatever the clock or the OS appear
 monokai`, rather than one at random, so every lap (110 minutes) shows every classic. Switching to it moves off the look on screen at once.
 With no theme saved at all, crew defaults to `auto`.
 
+Every glass theme's focused pane wears a gradient ring between its two
+signature colours. On a see-through window each cell of it is held at 7:1
+against the page (`glassborder::focus_stroke`), the same lift the plain
+focused frame gets, so it always outshines the unfocused frames (raised to
+4.5:1 there). No two palettes share a ring.
+
 - **`light`** — Ink Reader's white page: near-black words, black lines.
   Code is coloured after Xcode's Default (Light) (`SyntaxSlots::PAPER_LIGHT`):
   magenta keywords, red strings, blue numbers, teal types, green calls,
@@ -4373,7 +4379,8 @@ With no theme saved at all, crew defaults to `auto`.
   magenta keywords, salmon strings, yellow numbers, cyan types, teal-green
   calls, slate comments.
 - **`glass`** — **`glass-clear`** (neutral smoke, rose accents),
-  **`glass-night`** (navy smoke, mint), **`nebula`** (violet smoke,
+  **`glass-night`** (navy smoke, mint, its focus ring an aurora from aqua
+  green to violet), **`nebula`** (violet smoke,
   orchid→rose accents) and **`blossom`** (cherry-blossom smoke, pink
   accents): the iPhone's liquid glass in its Clear look. A pane hides about
   60% of the desktop (`nebula`'s deeper smoke about 70%). The face is SF Mono
@@ -4383,7 +4390,10 @@ With no theme saved at all, crew defaults to `auto`.
   types, sky calls, coral numbers) and its face is Comic Mono.
 - **`crt`** — **`crt-green`** and **`crt-amber`**: a phosphor tube in glass,
   its faceplate a deep smoke (which phosphor green needs over a white
-  desktop) and its panes lit by their own phosphor.
+  desktop) and its panes lit by their own phosphor. With one hue, code is
+  highlighted on a brightness ladder (`chathue::tube`): prose, then keywords
+  a rung under it (bold), types and calls, numbers with plain code, strings,
+  comments, each about 1.2:1 from the next.
 - **`neon`** — **`neon-dark`**: a holographic control room in electric
   blue, violet and cyan, always dark. It is a near-black
   blue-violet window that lets a little of the desktop through, with a fine

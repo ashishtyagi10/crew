@@ -21,3 +21,7 @@ pub struct ModernStyle {
     /// contract).
     pub drift_ms: u64,
 }
+
+#[cfg(test)]
+#[path = "ring_tests.rs"]
+mod ring_tests;
