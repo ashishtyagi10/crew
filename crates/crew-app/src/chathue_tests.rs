@@ -110,8 +110,9 @@ fn paper_presets_draw_keyword_type_and_call_in_three_hues() {
 /// the same walk, so it lands ON the code colour. Pinned so the choice is a
 /// stated one: a number that read in a fifth hue would need a slot of its
 /// own, and the ladder has none left that clears the floors on the tubes.
-/// A palette with its own map gives its numbers their own slot, and `own_map_classes_*`
-/// holds those apart instead.
+/// Since 2026-10-29 only the tubes keep that map; every palette with its own
+/// gives its numbers their own slot, and `own_map_classes_*` holds those
+/// apart instead.
 #[test]
 fn a_number_shares_the_code_slot() {
     let _g = crate::app::theme_test_guard();
@@ -124,7 +125,7 @@ fn a_number_shares_the_code_slot() {
         house += 1;
         assert_eq!(derive(t).number, chatink::derive(t).code, "{}", id.as_str());
     }
-    assert!(house >= 5, "the house map went missing ({house} palettes)");
+    assert!(house >= 2, "the tubes' house map went missing ({house})");
 }
 
 /// A slot that cannot be lifted to the floors is not drawn faint: it falls
@@ -167,3 +168,7 @@ mod classic;
 #[cfg(test)]
 #[path = "chathue_tube_tests.rs"]
 mod tube;
+
+#[cfg(test)]
+#[path = "chathue_apart_tests.rs"]
+mod apart;

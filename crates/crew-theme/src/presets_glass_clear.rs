@@ -36,20 +36,20 @@ pub static GLASS_CLEAR: Theme = Theme {
     find_hl_bg: (100, 30, 55),
     ansi: [
         (100, 101, 103), // 0  black
-        (255, 161, 149), // 1  red
-        (122, 204, 138), // 2  green
-        (223, 180, 85),  // 3  yellow
-        (134, 190, 255), // 4  blue
-        (229, 163, 236), // 5  magenta
-        (46, 205, 211),  // 6  cyan
+        (255, 157, 185), // 1  red
+        (126, 203, 134), // 2  green
+        (217, 182, 85),  // 3  yellow
+        (149, 187, 255), // 4  blue
+        (217, 167, 247), // 5  magenta
+        (82, 199, 245),  // 6  cyan
         (219, 220, 222), // 7  white
         (137, 138, 140), // 8  bright black
-        (255, 193, 184), // 9  bright red
-        (142, 225, 158), // 10 bright green
-        (244, 200, 106), // 11 bright yellow
-        (171, 210, 255), // 12 bright blue
-        (248, 185, 255), // 13 bright magenta
-        (77, 226, 232),  // 14 bright cyan
+        (255, 190, 207), // 9  bright red
+        (146, 224, 154), // 10 bright green
+        (238, 202, 106), // 11 bright yellow
+        (181, 208, 255), // 12 bright blue
+        (231, 193, 255), // 13 bright magenta
+        (130, 217, 255), // 14 bright cyan
         (242, 243, 245), // 15 bright white
     ],
     dark: true,
@@ -60,7 +60,7 @@ pub static GLASS_CLEAR: Theme = Theme {
         drift_ms: 6_000,
     }),
     liquid: Some(CLEAR_LIQUID),
-    syntax: crate::SyntaxSlots::HOUSE,
+    syntax: crate::syntaxslot::GLASS_CLEAR,
     selection: None,
 };
 

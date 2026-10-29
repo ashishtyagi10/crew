@@ -4384,7 +4384,14 @@ focused frame gets, so it always outshines the unfocused frames (raised to
   orchid→rose accents) and **`blossom`** (cherry-blossom smoke, pink
   accents): the iPhone's liquid glass in its Clear look. A pane hides about
   60% of the desktop (`nebula`'s deeper smoke about 70%). The face is SF Mono
-  (JetBrains Mono on `nebula`). `blossom`'s smoke is a wine rose, its focused
+  (JetBrains Mono on `nebula`). Each draws code and shell output in colours
+  it already wears (`crew_theme::ansihue`, `crew_theme::SyntaxSlots`):
+  `glass-clear` in the iPhone's system colours (pink keywords, purple
+  types, blue calls, yellow numbers, green strings, cyan names),
+  `glass-night` in an aurora's (mint keywords, violet types, pink calls,
+  gold numbers, green strings, sky-blue names), `nebula` in an emission
+  nebula's (rose keywords, teal types, orchid calls, gold numbers, seafoam
+  strings, lavender names). `blossom`'s smoke is a wine rose, its focused
   frame a blush white and its progress marks a leaf green; its code is in
   spring colours of its own (sakura keywords, leaf-green strings, apricot
   types, sky calls, coral numbers) and its face is Comic Mono.

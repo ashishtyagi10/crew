@@ -34,20 +34,20 @@ pub static NEBULA: Theme = Theme {
     find_hl_bg: (67, 47, 101),
     ansi: [
         (101, 100, 105), // 0  black
-        (255, 160, 148), // 1  red
-        (121, 203, 137), // 2  green
-        (222, 179, 84),  // 3  yellow
-        (132, 189, 255), // 4  blue
-        (228, 162, 235), // 5  magenta
-        (45, 204, 210),  // 6  cyan
+        (254, 156, 188), // 1  red
+        (91, 205, 160),  // 2  green
+        (227, 177, 86),  // 3  yellow
+        (162, 182, 255), // 4  blue
+        (210, 168, 251), // 5  magenta
+        (47, 205, 205),  // 6  cyan
         (220, 218, 224), // 7  white
         (138, 137, 143), // 8  bright black
-        (255, 192, 183), // 9  bright red
-        (141, 224, 157), // 10 bright green
-        (243, 199, 105), // 11 bright yellow
-        (169, 209, 255), // 12 bright blue
-        (248, 183, 255), // 13 bright magenta
-        (76, 225, 231),  // 14 bright cyan
+        (255, 189, 209), // 9  bright red
+        (113, 226, 180), // 10 bright green
+        (248, 197, 107), // 11 bright yellow
+        (189, 204, 255), // 12 bright blue
+        (225, 195, 255), // 13 bright magenta
+        (77, 226, 226),  // 14 bright cyan
         (243, 241, 247), // 15 bright white
     ],
     dark: true,
@@ -66,6 +66,6 @@ pub static NEBULA: Theme = Theme {
         drift_ms: 6_000,
     }),
     liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
-    syntax: crate::SyntaxSlots::HOUSE,
+    syntax: crate::syntaxslot::NEBULA,
     selection: None,
 };

@@ -2,9 +2,8 @@
 use super::*;
 use crate::{ThemeId, ALL_THEMES};
 
-/// Every palette with a map of its own: the classics, neon, amethyst,
-/// blossom and the Ink Reader pages.
-const OWN_MAP: [ThemeId; 10] = [
+/// Every palette with a map of its own: all but the tubes.
+const OWN_MAP: [ThemeId; 13] = [
     ThemeId::TokyoNight,
     ThemeId::Solarized,
     ThemeId::Everforest,
@@ -13,6 +12,9 @@ const OWN_MAP: [ThemeId; 10] = [
     ThemeId::NeonDark,
     ThemeId::Amethyst,
     ThemeId::Blossom,
+    ThemeId::Nebula,
+    ThemeId::GlassClear,
+    ThemeId::GlassNight,
     ThemeId::PaperDark,
     ThemeId::PaperLight,
 ];
@@ -45,8 +47,8 @@ fn an_own_map_gives_the_five_classes_five_slots() {
     }
 }
 
-/// Every other palette keeps crew's mapping. A new palette that wants its
-/// own has to be named in [`OWN_MAP`].
+/// Every other palette (the tubes, which draw it by brightness) keeps crew's
+/// mapping. A new palette that wants its own has to be named in [`OWN_MAP`].
 #[test]
 fn every_other_palette_keeps_the_house_map() {
     for id in ALL_THEMES.into_iter().filter(|id| !OWN_MAP.contains(id)) {
@@ -75,4 +77,14 @@ fn neon_and_amethyst_count_in_their_red() {
     for id in [ThemeId::NeonDark, ThemeId::Amethyst] {
         assert_eq!(id.theme().syntax.number, 1, "{}", id.as_str());
     }
+}
+
+/// Each glass keys in a colour it already wears: nebula in its ring's rose,
+/// glass-clear in its pink accent, glass-night in its mint one. Until
+/// 2026-10-29 all three drew the house's magenta keyword.
+#[test]
+fn each_glass_keys_in_its_own_colour() {
+    assert_eq!(ThemeId::Nebula.theme().syntax.keyword, 1);
+    assert_eq!(ThemeId::GlassClear.theme().syntax.keyword, 1);
+    assert_eq!(ThemeId::GlassNight.theme().syntax.keyword, 6);
 }
