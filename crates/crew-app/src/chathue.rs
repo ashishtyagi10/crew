@@ -65,10 +65,44 @@ fn hued(slot: Color, t: &Theme, code: Color, code_bg: Color) -> Color {
     }
 }
 
+/// A tube's keyword rung, as a ratio under its ink. A tube has one hue, so
+/// every slot walked to [`SEPARATION_FLOOR`] landed on ONE colour: keyword,
+/// type, call, number and plain code all measured 7.4:1 on crt-green, told
+/// apart by the keyword's weight alone. On a tube the classes stand on a
+/// brightness ladder instead, the bright / normal / dim a phosphor terminal
+/// drew with: prose, keywords a rung under it, identifiers (types and calls)
+/// a rung lower, plain code and numbers (the house map's own pairing), then
+/// strings, comments last. Each rung is about 1.2:1 from the next. A number
+/// stays on the code rung rather than joining the strings because the
+/// fence badge draws it on the code field, where the string rung reads
+/// under [`crate::chatink::CODE_ON_FIELD_FLOOR`].
+const TUBE_KEYWORD: f32 = 1.25;
+/// A tube's type and call rung, under its ink: between the keyword and plain
+/// code, so an identifier reads off both prose (the viewer draws plain code
+/// in ink) and a chat fence's code.
+const TUBE_IDENT: f32 = 1.5;
+
+/// The tube ladder ([`TUBE_KEYWORD`]): the ink walked toward the page to
+/// each rung, so every class keeps the phosphor's own hue.
+fn tube(t: &Theme, base: &chatink::Ink) -> Hue {
+    let rung = |r: f32| chatink::separated_to(t.ink, t, r, PAGE_FLOOR);
+    let ident = rung(TUBE_IDENT);
+    Hue {
+        keyword: rung(TUBE_KEYWORD),
+        ty: ident,
+        func: ident,
+        number: base.code,
+        attr: base.comment,
+    }
+}
+
 /// Derive one preset's hues. Pure in `t`, so the sweep can assert all
 /// presets without touching the global theme.
 pub(crate) fn derive(t: &Theme) -> Hue {
     let base = chatink::derive(t);
+    if t.is_tube() {
+        return tube(t, &base);
+    }
     let (code, bg) = (base.code, base.code_bg);
     let slot = |k: usize| hued(t.ansi[k], t, code, bg);
     let s = t.syntax;
