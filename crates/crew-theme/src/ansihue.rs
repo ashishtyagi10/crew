@@ -23,8 +23,9 @@
 //! apart half a degree at a time until every slot cleared it with a margin —
 //! 5.5° at most, short of anything that reads as a different colour.
 //!
-//! Two of crew's own palettes have hues of their own too: `neon` and
-//! `amethyst`, whose characters are colours (a neon sign, a gemstone) that
+//! Three of crew's own palettes have hues of their own too: `neon`,
+//! `amethyst` and `blossom`, whose characters are colours (a neon sign, a
+//! gemstone, a cherry tree in spring) that
 //! crew's median six flattened into the same shell output every other
 //! palette prints.
 use crate::ThemeId;
@@ -50,12 +51,17 @@ const NEON: [f32; 6] = [6.0, 142.0, 88.0, 262.0, 306.0, 210.0];
 /// on purple read as somebody else's palette.
 const AMETHYST: [f32; 6] = [12.0, 170.0, 65.0, 268.0, 330.0, 215.0];
 
+/// Blossom (2026-10-29): spring round a cherry tree — coral, leaf green,
+/// apricot, sky, sakura pink and mint.
+const BLOSSOM: [f32; 6] = [25.0, 138.0, 72.0, 245.0, 342.0, 180.0];
+
 /// The hue of each chromatic slot on `id`, indexed by ANSI slot minus one:
 /// red, green, yellow, blue, magenta, cyan.
 pub fn hues(id: ThemeId) -> [f32; 6] {
     match id {
         ThemeId::NeonDark => NEON,
         ThemeId::Amethyst => AMETHYST,
+        ThemeId::Blossom => BLOSSOM,
         ThemeId::TokyoNight => TOKYO_NIGHT,
         ThemeId::Solarized => SOLARIZED,
         ThemeId::Everforest => EVERFOREST,
