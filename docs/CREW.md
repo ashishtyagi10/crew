@@ -4393,8 +4393,8 @@ focused frame gets, so it always outshines the unfocused frames (raised to
   nebula's (rose keywords, teal types, orchid calls, gold numbers, seafoam
   strings, lavender names). `blossom`'s smoke is a wine rose, its focused
   frame a blush white and its progress marks a leaf green; its code is in
-  spring colours of its own (sakura keywords, leaf-green strings, apricot
-  types, sky calls, coral numbers) and its face is Comic Mono.
+  spring colours of its own (sakura keywords, leaf-green strings, sky
+  types, mint calls, coral numbers, apricot names) and its face is Comic Mono.
 - **`crt`** — **`crt-green`** and **`crt-amber`**: a phosphor tube in glass,
   its faceplate a deep smoke (which phosphor green needs over a white
   desktop) and its panes lit by their own phosphor. With one hue, code is
