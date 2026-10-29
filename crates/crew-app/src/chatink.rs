@@ -167,9 +167,9 @@ fn diff_removed(t: &Theme) -> Color {
 /// Derive one preset's semantic colours. Pure in `t` so the floor can be
 /// asserted for all 16 presets without touching the global theme atomic.
 pub(crate) fn derive(t: &Theme) -> Ink {
-    let code = separated(t.ansi[6], t);
+    let code = separated(t.ansi[t.syntax.code], t);
     let code_bg = crate::codefield::code_field(t, code);
-    let string = separated_to(t.ansi[2], t, STRING_FLOOR, PAGE_FLOOR);
+    let string = separated_to(t.ansi[t.syntax.string], t, STRING_FLOOR, PAGE_FLOOR);
     let [code, string, comment] = crate::codefield::glassed(t, code_bg, code, string);
     Ink {
         code,

@@ -75,4 +75,5 @@ pub static NEON_DARK: Theme = Theme {
         drift_ms: 6_000,
     }),
     liquid: Some(crate::holo::HOLO_LIQUID),
+    syntax: crate::SyntaxSlots::HOUSE,
 };

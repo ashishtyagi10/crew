@@ -80,6 +80,9 @@ pub struct Theme {
     /// Liquid glass: the window and its panes let the desktop through
     /// ([`LiquidStyle`]). `Some` on every palette since 2026-10-09.
     pub liquid: Option<LiquidStyle>,
+    /// Which ANSI slot each syntax class draws from ([`SyntaxSlots`]): the
+    /// house's on crew's own palettes, the scheme's own on a classic.
+    pub syntax: SyntaxSlots,
 }
 
 pub mod ansi;
@@ -113,6 +116,7 @@ mod presets_purple;
 pub mod ramp;
 pub mod readable;
 pub mod signal;
+pub mod syntaxslot;
 mod tagcolor;
 pub use autowalk::{auto_looks, auto_next, auto_next_palette, auto_steps};
 pub use crtstyle::CrtStyle;
@@ -122,6 +126,7 @@ pub use glass::{
 };
 pub use liquid::LiquidStyle;
 pub use modernstyle::ModernStyle;
+pub use syntaxslot::SyntaxSlots;
 
 impl Theme {
     /// Whether this palette is a phosphor tube. The FILAMENT is the tell ([`CrtStyle::core`]):

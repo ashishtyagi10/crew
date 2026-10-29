@@ -64,4 +64,5 @@ pub static GLASS_NIGHT: Theme = Theme {
     // Clear glass, as `glass-clear` is: the shadow behind the words, not
     // thick smoke, is what holds white text over a white desktop.
     liquid: Some(crate::presets_glass_clear::CLEAR_LIQUID),
+    syntax: crate::SyntaxSlots::HOUSE,
 };

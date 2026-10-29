@@ -54,6 +54,7 @@ pub static PAPER_DARK: Theme = Theme {
     // ink. Flat print, nothing drifting or glowing.
     modern: None,
     liquid: None,
+    syntax: crate::SyntaxSlots::HOUSE,
 };
 
 /// Ink Reader, light: an e-reader's white theme, the look of the Kindle app
@@ -104,4 +105,5 @@ pub static PAPER_LIGHT: Theme = Theme {
     crt: None,
     modern: None,
     liquid: None,
+    syntax: crate::SyntaxSlots::HOUSE,
 };
