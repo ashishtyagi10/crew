@@ -11,13 +11,13 @@
 //! So each palette says which slot each class takes. The colours themselves
 //! are still derived from the slot by `crew-app`'s `chatink` and `chathue`,
 //! on the same floors, so a class that moves slot is exactly as readable as
-//! the one it replaced. A classic names its comment colour too, which tints
-//! the comment rung at the rung's lightness.
+//! the one it replaced. A classic or an Ink Reader page names its comment
+//! colour too, which tints the comment rung at the rung's lightness.
 //!
 //! On a classic the five hued classes take five different slots, which is
-//! how each scheme draws them. So do `neon`, `amethyst` and `blossom`, whose own six
-//! hues ([`crate::ansihue`]) want a map that puts their signature colours on
-//! the words read most. `code`, the plain identifier colour of a chat fence,
+//! how each scheme draws them. So do the Ink Reader pages, after Xcode, and
+//! `neon`, `amethyst` and `blossom`, whose own six hues ([`crate::ansihue`])
+//! want a map that puts their signature colours on the words read most. `code`, the plain identifier colour of a chat fence,
 //! may share one (solarized draws its identifiers and calls in one blue).
 
 /// The ANSI slot (1–6) each syntax class takes on one palette.
@@ -160,6 +160,34 @@ pub const BLOSSOM: SyntaxSlots = SyntaxSlots {
     string: 2,
     code: 6,
     comment: None,
+};
+
+/// The Ink Reader's dark page reads code the way Apple's own editor does,
+/// Xcode's Default (Dark): magenta keywords (Xcode's pink), salmon strings
+/// in the red slot (Xcode's sits at 28°, crew's red at 27.5°), yellow
+/// numbers, cyan types, teal-green calls, slate comments. The shell keeps
+/// crew's six hues; only which class takes which changes.
+pub const PAPER_DARK: SyntaxSlots = SyntaxSlots {
+    keyword: 5,
+    ty: 6,
+    func: 2,
+    number: 3,
+    string: 1,
+    code: 6,
+    comment: Some((0x6c, 0x79, 0x86)),
+};
+
+/// The Ink Reader's white page, after Xcode's Default (Light): magenta
+/// keywords, red strings, blue numbers, teal types, green calls, slate
+/// comments.
+pub const PAPER_LIGHT: SyntaxSlots = SyntaxSlots {
+    keyword: 5,
+    ty: 6,
+    func: 2,
+    number: 4,
+    string: 1,
+    code: 6,
+    comment: Some((0x5d, 0x6c, 0x79)),
 };
 
 #[cfg(test)]

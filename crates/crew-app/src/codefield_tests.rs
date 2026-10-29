@@ -69,7 +69,7 @@ fn the_field_reads_over_any_desktop() {
     }
 }
 
-/// A classic's comments wear its scheme's comment tint once every floor has
+/// A classic's (or an Ink Reader page's) comments wear its comment tint once every floor has
 /// had its say: Tokyo Night's storm blue measured C 0.020 (a grey) before,
 /// against the scheme's 0.068, and monokai's olive sat 21° off at a third
 /// of its chroma.
@@ -97,5 +97,5 @@ fn a_classic_comment_wears_its_schemes_tint() {
             want.c
         );
     }
-    assert_eq!(classics, 5);
+    assert_eq!(classics, 7, "the classics and the two Ink Reader pages");
 }

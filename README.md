@@ -904,7 +904,10 @@ you are in. (The old names `paper-light` and `paper-dark` still load, as
 the weight of the others. Both are opaque print, with no glass, glow, gradient or text
 shadow. Grey is the only second ink. Colour stays where it means something
 (a terminal's ANSI output, a diff, the status marks) in deep printed inks
-that read on the page.
+that read on the page. Code reads the way Apple's own editor shows it, Xcode's
+Default themes: on `dark`, magenta keywords, salmon strings, yellow numbers,
+cyan types; on `light`, magenta keywords, red strings, blue numbers, teal
+types; slate comments on both.
 
 Every other theme is see-through glass: the window shows your desktop, each
 pane is a slab of smoked glass over it, and the words on it are bright, with
