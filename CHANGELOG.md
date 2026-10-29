@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.21
+
+**The CRT tubes highlight code by brightness, like a phosphor terminal.**
+- A tube has one colour, so code highlighting there has to come from brightness. On
+  `crt-green` and `crt-amber`, keywords, types, function calls, numbers and plain code all
+  came out at the same brightness, one shade under ordinary text. Only bold keywords and
+  dim comments stood out, and keywords were dimmer than the names around them.
+- Each kind of word now has its own brightness step, from brightest to dimmest: ordinary
+  text, keywords (bold), types and function calls, numbers (and plain code in chat),
+  strings, comments. The steps are evenly spaced, so each one is visibly different from the next,
+  and every word keeps the tube's own colour.
+- Applies to files opened with `/view` and to code blocks in chat. Every step stays
+  readable. The other themes are unchanged.
+
 ## 0.29.20
 
 **`blossom` looks like a cherry tree in spring.**

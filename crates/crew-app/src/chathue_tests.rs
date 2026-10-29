@@ -15,7 +15,9 @@ fn hues(h: Hue) -> [(&'static str, Color); 4] {
 
 /// Every hue, every preset: readable on the page, apart from body text,
 /// readable on the code field. The attribute rides the comment rung and
-/// answers to the comment's own (lower) page floor.
+/// answers to the comment's own (lower) page floor. A tube's classes stand
+/// on its brightness ladder instead of [`SEPARATION_FLOOR`] from the ink
+/// (`tube::*` holds them there), so only the page and field are asked of it.
 #[test]
 fn every_hue_clears_the_three_floors_on_every_preset() {
     let _g = crate::app::theme_test_guard();
@@ -23,7 +25,7 @@ fn every_hue_clears_the_three_floors_on_every_preset() {
     for id in ALL_THEMES {
         let t = id.theme();
         let (base, h) = (chatink::derive(t), derive(t));
-        for (what, c) in hues(h) {
+        for (what, c) in hues(h).into_iter().filter(|_| !t.is_tube()) {
             let (page, ink, field) = (
                 contrast_ratio(c, t.page_bg),
                 contrast_ratio(c, t.ink),
@@ -34,6 +36,18 @@ fn every_hue_clears_the_three_floors_on_every_preset() {
                 "{}: {what} page={page:.2} (need {PAGE_FLOOR}) ink={ink:.2} (need \
                  {SEPARATION_FLOOR}) field={field:.2} (need {CODE_ON_FIELD_FLOOR})",
                 id.as_str(),
+            );
+        }
+        for (what, c) in hues(h).into_iter().filter(|_| t.is_tube()) {
+            let (page, field) = (
+                contrast_ratio(c, t.page_bg),
+                contrast_ratio(c, base.code_bg),
+            );
+            assert!(page >= PAGE_FLOOR, "{}: {what} page={page:.2}", id.as_str());
+            assert!(
+                field >= CODE_ON_FIELD_FLOOR,
+                "{}: {what} field={field:.2}",
+                id.as_str()
             );
         }
         let attr_page = contrast_ratio(h.attr, t.page_bg);
@@ -149,3 +163,7 @@ fn token_fg_gives_a_keyword_a_colour_of_its_own() {
 #[cfg(test)]
 #[path = "chathue_classic_tests.rs"]
 mod classic;
+
+#[cfg(test)]
+#[path = "chathue_tube_tests.rs"]
+mod tube;
