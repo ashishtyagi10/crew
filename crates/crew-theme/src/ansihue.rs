@@ -22,6 +22,11 @@
 //! red and magenta, Tokyo Night's cyan and magenta. Each pair was pushed
 //! apart half a degree at a time until every slot cleared it with a margin —
 //! 5.5° at most, short of anything that reads as a different colour.
+//!
+//! Two of crew's own palettes have hues of their own too: `neon` and
+//! `amethyst`, whose characters are colours (a neon sign, a gemstone) that
+//! crew's median six flattened into the same shell output every other
+//! palette prints.
 use crate::ThemeId;
 
 /// Tokyo Night: `#f7768e #9ece6a #e0af68 #7aa2f7 #bb9af7 #7dcfff`.
@@ -35,10 +40,22 @@ const GRUVBOX: [f32; 6] = [35.9, 110.8, 83.0, 169.8, 356.7, 137.7];
 /// Monokai: `#f92672 #a6e22e #e6db74 #66d9ef #ae81ff #a1efe4`.
 const MONOKAI: [f32; 6] = [7.5, 127.3, 103.2, 212.0, 298.1, 184.8];
 
+/// Neon (2026-10-29): crew's six turned toward the brief's neons — a pink
+/// red, electric blue, violet magenta and a cooler cyan; green and gold stay
+/// where they read brightest at the house contrast (a lemon yellow at this
+/// lightness comes out olive).
+const NEON: [f32; 6] = [6.0, 142.0, 88.0, 262.0, 306.0, 210.0];
+/// Amethyst (2026-10-29): jewel tones round a royal-purple page — rose,
+/// mint, amber, periwinkle, orchid and sky — rather than crew's six, which
+/// on purple read as somebody else's palette.
+const AMETHYST: [f32; 6] = [12.0, 170.0, 65.0, 268.0, 330.0, 215.0];
+
 /// The hue of each chromatic slot on `id`, indexed by ANSI slot minus one:
 /// red, green, yellow, blue, magenta, cyan.
 pub fn hues(id: ThemeId) -> [f32; 6] {
     match id {
+        ThemeId::NeonDark => NEON,
+        ThemeId::Amethyst => AMETHYST,
         ThemeId::TokyoNight => TOKYO_NIGHT,
         ThemeId::Solarized => SOLARIZED,
         ThemeId::Everforest => EVERFOREST,

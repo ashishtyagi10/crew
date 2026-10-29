@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.19
+
+**`neon` and `amethyst` have colours of their own for code and shell output.**
+- crew's own themes all printed shell output and code in the same six colours, so code in
+  `neon` looked like code in every other glass theme. Two themes whose character *is* their
+  colour now have their own:
+  - `neon`: violet keywords, electric-blue function calls, cyan types, hot-pink numbers and
+    green strings. Shell red leans pink, blue is the electric blue, magenta is violet.
+  - `amethyst`: jewel tones on the purple page: orchid keywords, amber types, periwinkle
+    calls, rose numbers and mint strings.
+- Every colour keeps crew's contrast, so they are as readable as before, and the twelve
+  colour slots stay distinct from each other. The other themes are unchanged.
+- The README and `docs/CREW.md` now describe the last three releases: the classics' code
+  colours, selections and comments, and amethyst's mint progress marks.
+
 ## 0.29.18
 
 **The classic themes select and comment in their schemes' own colours.**

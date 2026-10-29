@@ -39,7 +39,7 @@ fn a_classic_selects_in_its_schemes_tint() {
 fn only_a_classic_names_its_selection() {
     for id in ALL_THEMES {
         let t = id.theme();
-        let classic = t.syntax != crate::SyntaxSlots::HOUSE;
+        let classic = id.mode() == crate::RandomMode::Classic;
         assert_eq!(t.selection.is_some(), classic, "{}", id.as_str());
     }
 }

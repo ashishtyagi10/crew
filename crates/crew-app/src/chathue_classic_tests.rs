@@ -2,11 +2,12 @@
 //! floors: split from `chathue_tests` (line cap).
 use super::super::*;
 
-/// A classic's five syntax classes read as five colours: each pair at
-/// least a visible step apart in OKLab. Its scheme's map is worth nothing
-/// if two of its classes land on one ink once the floors have lifted them.
+/// On a palette with a map of its own (the classics, neon, amethyst) the
+/// five syntax classes read as five colours: each pair at least a visible
+/// step apart in OKLab. A map is worth nothing if two of its classes land on
+/// one ink once the floors have lifted them.
 #[test]
-fn classic_classes_read_as_five_colours() {
+fn own_map_classes_read_as_five_colours() {
     let _g = crate::app::theme_test_guard();
     let mut classics = 0;
     for id in ALL_THEMES {
@@ -36,7 +37,7 @@ fn classic_classes_read_as_five_colours() {
             }
         }
     }
-    assert_eq!(classics, 5);
+    assert_eq!(classics, 7, "the classics, neon and amethyst");
 }
 
 /// A class in a slot of its own never lands on the code colour, on any

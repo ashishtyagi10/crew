@@ -96,7 +96,7 @@ fn paper_presets_draw_keyword_type_and_call_in_three_hues() {
 /// the same walk, so it lands ON the code colour. Pinned so the choice is a
 /// stated one: a number that read in a fifth hue would need a slot of its
 /// own, and the ladder has none left that clears the floors on the tubes.
-/// A classic gives its numbers their own slot, and `classic_classes_*`
+/// A palette with its own map gives its numbers their own slot, and `own_map_classes_*`
 /// holds those apart instead.
 #[test]
 fn a_number_shares_the_code_slot() {
@@ -110,7 +110,7 @@ fn a_number_shares_the_code_slot() {
         house += 1;
         assert_eq!(derive(t).number, chatink::derive(t).code, "{}", id.as_str());
     }
-    assert!(house >= 10, "the house map went missing ({house} palettes)");
+    assert!(house >= 8, "the house map went missing ({house} palettes)");
 }
 
 /// A slot that cannot be lifted to the floors is not drawn faint: it falls

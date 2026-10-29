@@ -4390,7 +4390,10 @@ With no theme saved at all, crew defaults to `auto`.
   broadcast violet, and the focus ring runs cyan to violet. Pane titles,
   agent names and `@project` tags keep to the same family — twelve
   signature colours from cyan to violet in place of the terminal's red,
-  yellow and green. The face is SF Mono. It had a light page,
+  yellow and green. Shell output and code take neon's own six hues
+  (`crew_theme::ansihue`): a pink red, electric blue, violet, a cooler
+  cyan; code puts violet on keywords, electric blue on calls, cyan on types
+  and hot pink on numbers (`crew_theme::SyntaxSlots`). The face is SF Mono. It had a light page,
   `neon-light`, which `neon` served by day; that name now loads `neon`.
 - **`classic`** — five editor palettes people know by name, as smoked glass
   with bright words (the same optics as `nebula`): **`tokyo-night`** (deep
@@ -4407,7 +4410,11 @@ With no theme saved at all, crew defaults to `auto`.
   is the scheme's too (`crew_theme::SyntaxSlots`): monokai's keywords in its
   pink, strings in its yellow, numbers in its purple; solarized's keywords
   green and strings cyan; everforest's and gruvbox's keywords red; Tokyo
-  Night's types cyan and numbers orange. The
+  Night's types cyan and numbers orange. Each selects in its scheme's own
+  selection tint (`Theme::selection`: solarized deep teal, Tokyo Night night
+  blue, everforest plum, gruvbox and monokai warm and olive greys) at crew's
+  selection depth, and its comment rung wears the scheme's comment colour
+  (`SyntaxSlots::comment`). The
   pages sit a step deeper than the originals where the ladder needed the
   room (Solarized's `base03`, Gruvbox's `#282828`). The five were picked by
   measurement: on these deep pages Dracula, Catppuccin and Nord came out
@@ -4420,7 +4427,11 @@ With no theme saved at all, crew defaults to `auto`.
   near-black and its purple is in the accent; any purple accent on a page
   like that sat within a visible step of it, so amethyst's page carries the
   colour instead, as saturated as the text ladder allows. The text ladder,
-  search highlight and ANSI slots are derived like every other palette's.
+  search highlight and ANSI slots are derived like every other palette's,
+  the ANSI slots from amethyst's own jewel-tone hues (rose, mint, amber,
+  periwinkle, orchid, sky): orchid keywords, amber types, periwinkle calls,
+  rose numbers, mint strings. Progress marks are a pale mint, purple's
+  complement, so they stand off the lavender accent.
   The face is JetBrains Mono.
 
 The picker offers the eight themes first and then **every other palette by

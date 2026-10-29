@@ -929,7 +929,8 @@ is a slab of blue-smoked glass over the grid, which shows through it: a
 cyan-white rim, its frame's light bleeding a little way in and turning cyan
 to violet across the card like a hologram's foil, and a halo of blue round
 it; the pane you are in burns cyan. Words are bright white and the face is
-SF Mono. Its palette's own name, `neon-dark`, loads as `neon`, and so does
+SF Mono. Code and shell output take neon's own colours: violet keywords,
+electric-blue calls, cyan types and hot-pink numbers. Its palette's own name, `neon-dark`, loads as `neon`, and so does
 the retired `neon-light`.
 
 `classic` is five editor palettes people already know by name, as smoked
@@ -943,14 +944,19 @@ own. Shell output and syntax colours use each scheme's own hues (gruvbox's
 teal "blue", monokai's pink red) at crew's contrast, so they stay as legible
 as on any other palette, and code is coloured the way each scheme colours it:
 monokai's keywords pink and strings yellow, solarized's keywords green,
-gruvbox's and everforest's red, Tokyo Night's purple with cyan types. Each wears its own face, so stepping through them
-changes the font too: JetBrains Mono, IBM Plex Mono, Comic Shanns Mono,
+gruvbox's and everforest's red, Tokyo Night's purple with cyan types. Each
+selects in its scheme's own tint (solarized's deep teal, gruvbox's warm grey)
+and its comments carry the scheme's comment colour (Tokyo Night's storm blue,
+monokai's olive). Each wears its own face, so stepping through them changes
+the font too: JetBrains Mono, IBM Plex Mono, Comic Shanns Mono,
 MonoLisa and SF Mono.
 
 `purple` is one page, `amethyst`: the smoked glass on a royal-purple page,
 white words with a lilac cast, a lavender accent, a vivid violet frame and a
-violet→magenta ring. `nebula` is violet too, but on a near-black page; here
-the page itself is purple. `/theme purple` or `/theme amethyst` turns it on.
+violet→magenta ring, with progress marks in a pale mint. Its code is in
+jewel tones: orchid keywords, amber types, periwinkle calls, rose numbers and
+mint strings. `nebula` is violet too, but on a near-black page; here the page
+itself is purple. `/theme purple` or `/theme amethyst` turns it on.
 That makes **fifteen palettes** in all.
 
 Almost every colour in a palette is **derived, not chosen**: the ramp produces

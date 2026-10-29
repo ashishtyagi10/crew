@@ -42,20 +42,20 @@ pub static AMETHYST: Theme = Theme {
     find_hl_bg: (80, 60, 118),
     ansi: [
         (105, 101, 113), // 0  black
-        (255, 165, 153), // 1  red
-        (125, 207, 141), // 2  green
-        (226, 183, 88),  // 3  yellow
-        (140, 192, 255), // 4  blue
-        (232, 166, 239), // 5  magenta
-        (52, 208, 214),  // 6  cyan
+        (255, 163, 174), // 1  red
+        (86, 209, 171),  // 2  green
+        (245, 174, 100), // 3  yellow
+        (162, 188, 255), // 4  blue
+        (238, 164, 231), // 5  magenta
+        (64, 205, 234),  // 6  cyan
         (226, 221, 235), // 7  white
         (143, 138, 150), // 8  bright black
-        (255, 196, 188), // 9  bright red
-        (145, 228, 161), // 10 bright green
-        (247, 203, 109), // 11 bright yellow
-        (177, 212, 255), // 12 bright blue
-        (249, 190, 255), // 13 bright magenta
-        (81, 229, 235),  // 14 bright cyan
+        (255, 195, 201), // 9  bright red
+        (109, 230, 191), // 10 bright green
+        (255, 199, 143), // 11 bright yellow
+        (191, 209, 255), // 12 bright blue
+        (255, 188, 248), // 13 bright magenta
+        (91, 226, 255),  // 14 bright cyan
         (249, 244, 255), // 15 bright white
     ],
     dark: true,
@@ -74,7 +74,7 @@ pub static AMETHYST: Theme = Theme {
         drift_ms: 6_000,
     }),
     liquid: Some(DARK_LIQUID),
-    syntax: crate::SyntaxSlots::HOUSE,
+    syntax: crate::syntaxslot::AMETHYST,
     selection: None,
 };
 
