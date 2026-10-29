@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.28
+
+**`blossom` and `amethyst` no longer draw code alike.**
+- The two themes used one scheme for code, with types in their amber/apricot and calls in
+  their blue, on hues only a few degrees apart. Side by side, their code looked the same.
+- `blossom` now uses sky-blue types, mint calls and apricot names, keeping its sakura
+  keywords, coral numbers and leaf-green strings. The two are now nearly three times as far
+  apart as before, and `blossom`'s nearest theme for code is tokyo-night. `amethyst` is
+  unchanged.
+- The test that keeps themes apart now asks every pair for the same visible step the
+  theme roster and the focus rings use. Two classics may sit closer, because everforest
+  and gruvbox colour code alike in their real schemes.
+
 ## 0.29.27
 
 **In an open email, ↓ and ↑ go to the next and the previous one.**

@@ -153,15 +153,17 @@ pub const AMETHYST: SyntaxSlots = SyntaxSlots {
     comment: None,
 };
 
-/// Blossom: sakura keywords, leaf-green strings, apricot types, sky calls,
-/// coral numbers, mint identifiers.
+/// Blossom: sakura keywords, leaf-green strings, sky types, mint calls,
+/// coral numbers, apricot identifiers. Until 2026-10-29 it handed its hues
+/// out as amethyst does (types in the yellow slot, calls in the blue, names
+/// in the cyan), and with neighbouring hues the two drew code 0.041 apart.
 pub const BLOSSOM: SyntaxSlots = SyntaxSlots {
     keyword: 5,
-    ty: 3,
-    func: 4,
+    ty: 4,
+    func: 6,
     number: 1,
     string: 2,
-    code: 6,
+    code: 3,
     comment: None,
 };
 
