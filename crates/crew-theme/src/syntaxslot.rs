@@ -12,10 +12,13 @@
 //! are still derived from the slot by `crew-app`'s `chatink` and `chathue`,
 //! on the same floors, so a class that moves slot is exactly as readable as
 //! the one it replaced. A classic names its comment colour too, which tints
-//! the comment rung at the rung's lightness. On a classic the five hued classes take five
-//! different slots, which is how each scheme draws them; `code`, the plain
-//! identifier colour of a chat fence, may share one (solarized draws its
-//! identifiers and calls in one blue).
+//! the comment rung at the rung's lightness.
+//!
+//! On a classic the five hued classes take five different slots, which is
+//! how each scheme draws them. So do `neon` and `amethyst`, whose own six
+//! hues ([`crate::ansihue`]) want a map that puts their signature colours on
+//! the words read most. `code`, the plain identifier colour of a chat fence,
+//! may share one (solarized draws its identifiers and calls in one blue).
 
 /// The ANSI slot (1–6) each syntax class takes on one palette.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -121,6 +124,30 @@ pub const MONOKAI: SyntaxSlots = SyntaxSlots {
     string: 3,
     code: 6,
     comment: Some((0x75, 0x71, 0x5e)),
+};
+
+/// Neon: violet keywords, electric-blue calls, cyan types, hot-pink
+/// numbers, green strings.
+pub const NEON_DARK: SyntaxSlots = SyntaxSlots {
+    keyword: 5,
+    ty: 6,
+    func: 4,
+    number: 1,
+    string: 2,
+    code: 6,
+    comment: None,
+};
+
+/// Amethyst: orchid keywords, amber types, periwinkle calls, rose numbers,
+/// mint strings, sky identifiers.
+pub const AMETHYST: SyntaxSlots = SyntaxSlots {
+    keyword: 5,
+    ty: 3,
+    func: 4,
+    number: 1,
+    string: 2,
+    code: 6,
+    comment: None,
 };
 
 #[cfg(test)]

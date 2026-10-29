@@ -43,20 +43,20 @@ pub static NEON_DARK: Theme = Theme {
     find_hl_bg: (30, 50, 120),
     ansi: [
         (95, 97, 105),   // 0  black
-        (254, 153, 141), // 1  red
-        (116, 198, 132), // 2  green
-        (218, 174, 79),  // 3  yellow
-        (124, 184, 255), // 4  blue
-        (223, 158, 230), // 5  magenta
-        (37, 200, 206),  // 6  cyan
+        (252, 151, 173), // 1  red
+        (130, 197, 123), // 2  green
+        (213, 176, 78),  // 3  yellow
+        (140, 181, 255), // 4  blue
+        (204, 163, 247), // 5  magenta
+        (44, 198, 220),  // 6  cyan
         (212, 213, 223), // 7  white
         (131, 133, 142), // 8  bright black
-        (255, 185, 175), // 9  bright red
-        (136, 219, 151), // 10 bright green
-        (239, 194, 100), // 11 bright yellow
-        (162, 204, 255), // 12 bright blue
-        (244, 178, 251), // 13 bright magenta
-        (70, 221, 227),  // 14 bright cyan
+        (255, 183, 197), // 9  bright red
+        (150, 218, 142), // 10 bright green
+        (234, 196, 99),  // 11 bright yellow
+        (172, 202, 255), // 12 bright blue
+        (220, 188, 255), // 13 bright magenta
+        (75, 219, 241),  // 14 bright cyan
         (234, 236, 246), // 15 bright white
     ],
     dark: true,
@@ -75,6 +75,6 @@ pub static NEON_DARK: Theme = Theme {
         drift_ms: 6_000,
     }),
     liquid: Some(crate::holo::HOLO_LIQUID),
-    syntax: crate::SyntaxSlots::HOUSE,
+    syntax: crate::syntaxslot::NEON_DARK,
     selection: None,
 };

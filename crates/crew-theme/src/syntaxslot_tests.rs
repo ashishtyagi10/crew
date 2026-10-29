@@ -2,12 +2,15 @@
 use super::*;
 use crate::{ThemeId, ALL_THEMES};
 
-const CLASSICS: [ThemeId; 5] = [
+/// Every palette with a map of its own: the classics, neon and amethyst.
+const OWN_MAP: [ThemeId; 7] = [
     ThemeId::TokyoNight,
     ThemeId::Solarized,
     ThemeId::Everforest,
     ThemeId::Gruvbox,
     ThemeId::Monokai,
+    ThemeId::NeonDark,
+    ThemeId::Amethyst,
 ];
 
 /// Every slot names a chromatic ANSI colour: 0 and 7 are the greys.
@@ -21,12 +24,12 @@ fn every_class_takes_a_chromatic_slot() {
     }
 }
 
-/// On a classic the five hued classes are five different slots, which is
-/// how each scheme draws them, and the map is the scheme's own rather than
-/// the house's.
+/// On a palette with a map of its own the five hued classes are five
+/// different slots, which is how each scheme draws them, and the map is
+/// really its own rather than the house's.
 #[test]
-fn a_classic_gives_its_five_classes_five_slots() {
-    for id in CLASSICS {
+fn an_own_map_gives_the_five_classes_five_slots() {
+    for id in OWN_MAP {
         let s = id.theme().syntax;
         assert_ne!(s, SyntaxSlots::HOUSE, "{}", id.as_str());
         let c = s.classes();
@@ -38,11 +41,11 @@ fn a_classic_gives_its_five_classes_five_slots() {
     }
 }
 
-/// crew's own palettes keep crew's mapping. A new palette that wants its
-/// own has to be named here, as a classic is.
+/// Every other palette keeps crew's mapping. A new palette that wants its
+/// own has to be named in [`OWN_MAP`].
 #[test]
 fn every_other_palette_keeps_the_house_map() {
-    for id in ALL_THEMES.into_iter().filter(|id| !CLASSICS.contains(id)) {
+    for id in ALL_THEMES.into_iter().filter(|id| !OWN_MAP.contains(id)) {
         assert_eq!(id.theme().syntax, SyntaxSlots::HOUSE, "{}", id.as_str());
     }
 }
@@ -59,4 +62,13 @@ fn each_classic_keyword_is_its_schemes() {
     assert_eq!(keyword(ThemeId::Everforest), 1);
     assert_eq!(keyword(ThemeId::Gruvbox), 1);
     assert_eq!(keyword(ThemeId::TokyoNight), 5);
+}
+
+/// Neon's and amethyst's numbers are their hot red slot: a hot pink on
+/// neon, a rose on amethyst.
+#[test]
+fn neon_and_amethyst_count_in_their_red() {
+    for id in [ThemeId::NeonDark, ThemeId::Amethyst] {
+        assert_eq!(id.theme().syntax.number, 1, "{}", id.as_str());
+    }
 }
