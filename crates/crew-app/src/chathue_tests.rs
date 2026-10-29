@@ -56,7 +56,9 @@ fn every_hue_clears_the_three_floors_on_every_preset() {
 /// On main the keyword slot WAS the code slot (`ansi[6]`, by design), so a
 /// keyword and the identifier after it were one colour told apart by weight.
 /// On every paper preset keyword, type and call now take three hues of their
-/// own, and none of them is the code colour.
+/// own, and none of them is the code colour — unless the palette's map puts
+/// that class in the code's own slot, as Tokyo Night does its types and
+/// solarized its calls (`classic::no_class_falls_back_to_code` covers those).
 #[test]
 fn paper_presets_draw_keyword_type_and_call_in_three_hues() {
     let _g = crate::app::theme_test_guard();
@@ -68,8 +70,15 @@ fn paper_presets_draw_keyword_type_and_call_in_three_hues() {
         }
         papers += 1;
         let (base, h) = (chatink::derive(t), derive(t));
-        for (what, c) in [("keyword", h.keyword), ("type", h.ty), ("func", h.func)] {
-            assert_ne!(c, base.code, "{}: {what} fell back to code", id.as_str());
+        let s = t.syntax;
+        for (what, c, slot) in [
+            ("keyword", h.keyword, s.keyword),
+            ("type", h.ty, s.ty),
+            ("func", h.func, s.func),
+        ] {
+            if slot != s.code {
+                assert_ne!(c, base.code, "{}: {what} fell back to code", id.as_str());
+            }
         }
         assert_ne!(h.keyword, h.ty, "{}: keyword == type", id.as_str());
         assert_ne!(h.ty, h.func, "{}: type == func", id.as_str());
@@ -83,17 +92,25 @@ fn paper_presets_draw_keyword_type_and_call_in_three_hues() {
     );
 }
 
-/// The number takes `ansi[6]` — the code slot — through the same walk, so it
-/// lands ON the code colour on every preset. Pinned so the choice is a
+/// On crew's own map the number takes `ansi[6]` — the code slot — through
+/// the same walk, so it lands ON the code colour. Pinned so the choice is a
 /// stated one: a number that read in a fifth hue would need a slot of its
 /// own, and the ladder has none left that clears the floors on the tubes.
+/// A classic gives its numbers their own slot, and `classic_classes_*`
+/// holds those apart instead.
 #[test]
 fn a_number_shares_the_code_slot() {
     let _g = crate::app::theme_test_guard();
+    let mut house = 0;
     for id in ALL_THEMES {
         let t = id.theme();
+        if t.syntax.number != t.syntax.code {
+            continue;
+        }
+        house += 1;
         assert_eq!(derive(t).number, chatink::derive(t).code, "{}", id.as_str());
     }
+    assert!(house >= 10, "the house map went missing ({house} palettes)");
 }
 
 /// A slot that cannot be lifted to the floors is not drawn faint: it falls
@@ -128,3 +145,7 @@ fn token_fg_gives_a_keyword_a_colour_of_its_own() {
     // A ladder token asked of this module answers with code, not a panic.
     assert_eq!(token_fg(Token::Comment), chatink::code_fg());
 }
+
+#[cfg(test)]
+#[path = "chathue_classic_tests.rs"]
+mod classic;

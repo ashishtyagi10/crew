@@ -60,6 +60,7 @@ pub static GLASS_CLEAR: Theme = Theme {
         drift_ms: 6_000,
     }),
     liquid: Some(CLEAR_LIQUID),
+    syntax: crate::SyntaxSlots::HOUSE,
 };
 
 /// The `dark` mode's glass (the user, 2026-10-09: dark, light and CRT "with

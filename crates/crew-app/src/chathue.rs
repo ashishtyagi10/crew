@@ -6,7 +6,8 @@
 //! alone, while the theme's palette held five more hues nobody was drawing
 //! with. These classes take those hues — magenta keywords, yellow types,
 //! blue calls — from the theme's own ANSI slots, the way the ladder already
-//! takes its colours.
+//! takes its colours. Which slot each class takes is the palette's to say
+//! ([`crew_theme::SyntaxSlots`]): a classic draws them where its scheme does.
 //!
 //! A hue is not a licence to skip the floors. Every colour here goes through
 //! the same three checks the ladder answers to — readable on the page
@@ -27,7 +28,8 @@ use crew_theme::{contrast_ratio, readable, Theme, ALL_THEMES};
 /// table: the lift is an oklch walk plus a lerp walk, not per-glyph work.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct Hue {
-    /// `fn`, `let`, `def`… — `ansi[5]`, magenta on the paper presets.
+    /// `fn`, `let`, `def`… — `ansi[5]`, magenta, on crew's own palettes; a
+    /// classic says which of its slots ([`crew_theme::SyntaxSlots`]).
     pub(crate) keyword: Color,
     /// A capitalised identifier — `ansi[3]`, yellow: the marker slot, which
     /// every theme already tunes to read on its page.
@@ -68,11 +70,13 @@ fn hued(slot: Color, t: &Theme, code: Color, code_bg: Color) -> Color {
 pub(crate) fn derive(t: &Theme) -> Hue {
     let base = chatink::derive(t);
     let (code, bg) = (base.code, base.code_bg);
+    let slot = |k: usize| hued(t.ansi[k], t, code, bg);
+    let s = t.syntax;
     Hue {
-        keyword: hued(t.ansi[5], t, code, bg),
-        ty: hued(t.ansi[3], t, code, bg),
-        func: hued(t.ansi[4], t, code, bg),
-        number: hued(t.ansi[6], t, code, bg),
+        keyword: slot(s.keyword),
+        ty: slot(s.ty),
+        func: slot(s.func),
+        number: slot(s.number),
         attr: base.comment,
     }
 }

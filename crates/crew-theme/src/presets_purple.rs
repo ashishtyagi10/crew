@@ -73,6 +73,7 @@ pub static AMETHYST: Theme = Theme {
         drift_ms: 6_000,
     }),
     liquid: Some(DARK_LIQUID),
+    syntax: crate::SyntaxSlots::HOUSE,
 };
 
 #[cfg(test)]

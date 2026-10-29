@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.16
+
+**The classic themes colour code the way their schemes do.**
+- Last release gave the five classics their schemes' own colours, but code still handed
+  them out the way crew's other themes do, so monokai's keywords came out purple and its
+  strings green. Each classic now puts each kind of word where its scheme puts it:
+  - `monokai`: pink keywords, yellow strings, purple numbers, green function calls, cyan
+    types.
+  - `solarized`: green keywords, cyan strings, magenta numbers, blue calls, yellow types.
+  - `everforest`: red keywords, aqua strings, purple numbers, green calls, yellow types.
+  - `gruvbox`: red keywords, green strings, purple numbers, aqua calls, yellow types.
+  - `tokyo-night`: purple keywords, green strings, orange numbers, blue calls, cyan types.
+- This applies to files opened with `/view` and to code blocks in chat. Every colour is
+  as readable as before, and on each classic the five kinds of word are five distinct
+  colours. crew's own themes are unchanged.
+
 ## 0.29.15
 
 **Themes fine-tuned: the classics use their own colours, and no marker shares a colour with the accent.**

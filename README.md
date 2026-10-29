@@ -941,7 +941,9 @@ pink→purple). `/theme classic` rotates them; `/theme gruvbox` pins one. Each
 keeps its page's hue and its signature colours; the text ladder is crew's
 own. Shell output and syntax colours use each scheme's own hues (gruvbox's
 teal "blue", monokai's pink red) at crew's contrast, so they stay as legible
-as on any other palette. Each wears its own face, so stepping through them
+as on any other palette, and code is coloured the way each scheme colours it:
+monokai's keywords pink and strings yellow, solarized's keywords green,
+gruvbox's and everforest's red, Tokyo Night's purple with cyan types. Each wears its own face, so stepping through them
 changes the font too: JetBrains Mono, IBM Plex Mono, Comic Shanns Mono,
 MonoLisa and SF Mono.
 

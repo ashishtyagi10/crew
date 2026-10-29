@@ -4403,7 +4403,11 @@ With no theme saved at all, crew defaults to `auto`.
   search highlight and the sixteen ANSI slots are derived like every other
   palette's, but the ANSI slots take the scheme's own six hues
   (`crew_theme::ansihue`) at crew's contrast and chroma, so shell output and
-  syntax colours read as the scheme's. The
+  syntax colours read as the scheme's. Which slot each syntax class takes
+  is the scheme's too (`crew_theme::SyntaxSlots`): monokai's keywords in its
+  pink, strings in its yellow, numbers in its purple; solarized's keywords
+  green and strings cyan; everforest's and gruvbox's keywords red; Tokyo
+  Night's types cyan and numbers orange. The
   pages sit a step deeper than the originals where the ladder needed the
   room (Solarized's `base03`, Gruvbox's `#282828`). The five were picked by
   measurement: on these deep pages Dracula, Catppuccin and Nord came out

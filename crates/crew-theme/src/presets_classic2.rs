@@ -56,6 +56,7 @@ pub static EVERFOREST: Theme = Theme {
         drift_ms: 6_000,
     }),
     liquid: Some(DARK_LIQUID),
+    syntax: crate::syntaxslot::EVERFOREST,
 };
 
 /// **Gruvbox** (dark): the retro groove's charcoal deepened a step (on
@@ -110,6 +111,7 @@ pub static GRUVBOX: Theme = Theme {
         drift_ms: 6_000,
     }),
     liquid: Some(DARK_LIQUID),
+    syntax: crate::syntaxslot::GRUVBOX,
 };
 
 /// **Monokai**: the olive-black of the classic, deepened a step, white
@@ -163,4 +165,5 @@ pub static MONOKAI: Theme = Theme {
         drift_ms: 6_000,
     }),
     liquid: Some(DARK_LIQUID),
+    syntax: crate::syntaxslot::MONOKAI,
 };
