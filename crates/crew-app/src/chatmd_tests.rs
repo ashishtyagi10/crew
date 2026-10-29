@@ -138,7 +138,7 @@ fn inline_code_inside_a_quote_is_still_code_coloured() {
 #[test]
 fn fenced_code_inside_a_quote_still_renders_as_code() {
     let _guard = crate::app::theme_test_guard();
-    let out = lines("> ```\n> x = 1\n> ```", 40, (9, 9, 9));
+    let out = lines("> ```\n> x = y\n> ```", 40, (9, 9, 9));
     let code_cells: Vec<_> = out
         .iter()
         .flatten()
@@ -151,7 +151,7 @@ fn fenced_code_inside_a_quote_still_renders_as_code() {
     // The code itself, not the field's language row or its padding.
     let code_row = out
         .iter()
-        .find(|l| row_text(l).contains("x = 1"))
+        .find(|l| row_text(l).contains("x = y"))
         .expect("the code line");
     // The bar in front of it stays off the field and stays a marker — see
     // `the_bar_of_a_quoted_fence_is_a_marker_not_code`.
@@ -164,14 +164,14 @@ fn fenced_code_inside_a_quote_still_renders_as_code() {
 #[test]
 fn the_bar_of_a_quoted_fence_is_a_marker_not_code() {
     let _guard = crate::app::theme_test_guard();
-    let out = lines("> ```\n> x = 1\n> ```", 40, (9, 9, 9));
+    let out = lines("> ```\n> x = y\n> ```", 40, (9, 9, 9));
     // Every line of the quoted block carries the bar, including the actual
     // `Code` row ("x = 1") — not just the CodeHeader/CodeFooter chrome rows,
     // whose cells have `bg: None` regardless of whether `marker` or `kind`
     // wins in `span_style`. Only the Code row can distinguish the two.
     let bar = out
         .iter()
-        .find(|l| row_text(l).contains("x = 1"))
+        .find(|l| row_text(l).contains("x = y"))
         .expect("the code line");
     assert_eq!(
         bar[1].fg,

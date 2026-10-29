@@ -4364,8 +4364,14 @@ monokai`, rather than one at random, so every lap (110 minutes) shows every clas
 With no theme saved at all, crew defaults to `auto`.
 
 - **`light`** — Ink Reader's white page: near-black words, black lines.
+  Code is coloured after Xcode's Default (Light) (`SyntaxSlots::PAPER_LIGHT`):
+  magenta keywords, red strings, blue numbers, teal types, green calls,
+  slate comments. Shell output keeps crew's six hues.
 - **`dark`** — Ink Reader's black page: white-grey words, grey lines, the
   focused frame white.
+  Code is coloured after Xcode's Default (Dark) (`SyntaxSlots::PAPER_DARK`):
+  magenta keywords, salmon strings, yellow numbers, cyan types, teal-green
+  calls, slate comments.
 - **`glass`** — **`glass-clear`** (neutral smoke, rose accents),
   **`glass-night`** (navy smoke, mint), **`nebula`** (violet smoke,
   orchid→rose accents) and **`blossom`** (cherry-blossom smoke, pink

@@ -54,7 +54,7 @@ pub static PAPER_DARK: Theme = Theme {
     // ink. Flat print, nothing drifting or glowing.
     modern: None,
     liquid: None,
-    syntax: crate::SyntaxSlots::HOUSE,
+    syntax: crate::syntaxslot::PAPER_DARK,
     selection: None,
 };
 
@@ -106,6 +106,6 @@ pub static PAPER_LIGHT: Theme = Theme {
     crt: None,
     modern: None,
     liquid: None,
-    syntax: crate::SyntaxSlots::HOUSE,
+    syntax: crate::syntaxslot::PAPER_LIGHT,
     selection: None,
 };

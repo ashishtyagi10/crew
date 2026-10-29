@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.22
+
+**`light` and `dark` colour code the way Xcode does.**
+- The Ink Reader pages are crew's Apple Books-style print look, but their code used crew's
+  generic colour assignments. They now follow Apple's own editor, Xcode's Default themes:
+  - `dark`: magenta keywords, salmon strings, yellow numbers, cyan types, teal-green
+    function calls, slate-grey comments.
+  - `light`: magenta keywords, red strings, blue numbers, teal types, green calls,
+    slate-grey comments.
+- Only which colour each kind of word gets has changed. The colours are crew's own (Xcode's
+  string red and crew's red are within half a degree of each other), so shell output, `ls`
+  and `git diff` look exactly as before, and every colour keeps its contrast.
+- Applies to files opened with `/view` and to code blocks in chat.
+
 ## 0.29.21
 
 **The CRT tubes highlight code by brightness, like a phosphor terminal.**
