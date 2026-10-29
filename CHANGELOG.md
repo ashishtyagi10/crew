@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.17
+
+**No two status markers share a colour on any theme.**
+- crew draws five markers side by side in the nav and on the cards: the accent (a pane
+  at work), progress (git dirty dot, gauges past their warning line, input-bar status), the
+  broadcast mark, the unread dot and the alarm (a pane that needs you). Earlier releases
+  kept the alarm apart from progress and the unread dot apart from the accent. The other
+  pairs were never checked, and three were within a shade of each other:
+  - `everforest`: the alarm was its red, next to the broadcast's pink-purple. It is now
+    everforest's own orange.
+  - `amethyst`: progress was a lilac, next to the lavender accent. It is now a pale mint,
+    purple's opposite.
+  - `glass-clear`: the alarm was a rose-red, next to the rose accent. It is now a warmer
+    coral.
+- Each new colour keeps the brightness of the one it replaced. The two phosphor tubes are
+  the exception by design: they have one hue and tell markers apart by brightness and the
+  blinking alarm.
+
 ## 0.29.16
 
 **The classic themes colour code the way their schemes do.**

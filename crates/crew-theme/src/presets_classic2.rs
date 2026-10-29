@@ -7,7 +7,8 @@ use crate::{CrtStyle, ModernStyle, Theme};
 
 /// **Everforest** (dark): a forest at night, the green-grey `bg0` deepened,
 /// warm parchment words, green for the frame, aqua for the accent and the
-/// ring running green to aqua.
+/// ring running green to aqua. The alarm is its orange: its red sat Δ 0.051
+/// from the broadcast's purple.
 pub static EVERFOREST: Theme = Theme {
     page_bg: (21, 26, 30),
     ink: (254, 241, 212),
@@ -22,7 +23,7 @@ pub static EVERFOREST: Theme = Theme {
     status_fg: (179, 215, 210),
     broadcast: (214, 153, 182),
     activity: (223, 180, 89),
-    bell: (235, 154, 155),
+    bell: (243, 153, 121),
     dim: (118, 134, 135),
     placeholder: (111, 125, 127),
     hint_fg: (120, 136, 137),
