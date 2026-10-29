@@ -35,20 +35,20 @@ pub static GLASS_NIGHT: Theme = Theme {
     find_hl_bg: (44, 52, 112),
     ansi: [
         (97, 97, 108),   // 0  black
-        (255, 155, 142), // 1  red
-        (118, 200, 134), // 2  green
+        (254, 152, 171), // 1  red
+        (116, 200, 135), // 2  green
         (219, 176, 81),  // 3  yellow
-        (127, 186, 255), // 4  blue
-        (225, 159, 232), // 5  magenta
-        (39, 201, 207),  // 6  cyan
+        (119, 187, 255), // 4  blue
+        (204, 165, 249), // 5  magenta
+        (45, 202, 194),  // 6  cyan
         (214, 214, 227), // 7  white
         (133, 134, 145), // 8  bright black
-        (255, 187, 177), // 9  bright red
-        (138, 221, 153), // 10 bright green
+        (255, 185, 196), // 9  bright red
+        (136, 221, 154), // 10 bright green
         (240, 196, 102), // 11 bright yellow
-        (165, 206, 255), // 12 bright blue
-        (246, 179, 253), // 13 bright magenta
-        (72, 222, 228),  // 14 bright cyan
+        (159, 206, 255), // 12 bright blue
+        (220, 191, 255), // 13 bright magenta
+        (76, 223, 214),  // 14 bright cyan
         (236, 237, 249), // 15 bright white
     ],
     dark: true,
@@ -68,6 +68,6 @@ pub static GLASS_NIGHT: Theme = Theme {
     // Clear glass, as `glass-clear` is: the shadow behind the words, not
     // thick smoke, is what holds white text over a white desktop.
     liquid: Some(crate::presets_glass_clear::CLEAR_LIQUID),
-    syntax: crate::SyntaxSlots::HOUSE,
+    syntax: crate::syntaxslot::GLASS_NIGHT,
     selection: None,
 };

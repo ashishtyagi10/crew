@@ -1,6 +1,6 @@
 //! Which ANSI slot each syntax class draws from.
 //!
-//! crew's own palettes share one mapping: magenta keywords, yellow types,
+//! crew's palettes once shared one mapping: magenta keywords, yellow types,
 //! blue calls, green strings, and numbers in the code colour itself. The
 //! classics took their schemes' six hues in v0.29.15 ([`crate::ansihue`]),
 //! but still handed them out by crew's mapping, so monokai drew its keywords
@@ -16,9 +16,12 @@
 //!
 //! On a classic the five hued classes take five different slots, which is
 //! how each scheme draws them. So do the Ink Reader pages, after Xcode, and
-//! `neon`, `amethyst` and `blossom`, whose own six hues ([`crate::ansihue`])
-//! want a map that puts their signature colours on the words read most. `code`, the plain identifier colour of a chat fence,
-//! may share one (solarized draws its identifiers and calls in one blue).
+//! every glass and neon palette, whose own six hues ([`crate::ansihue`])
+//! want a map that puts their signature colours on the words read most.
+//! Only the tubes keep the house map, and they draw it by brightness
+//! (`crew-app`'s `chathue::tube`). `code`, the plain identifier colour of a
+//! chat fence, may share one (solarized draws its identifiers and calls in
+//! one blue).
 
 /// The ANSI slot (1–6) each syntax class takes on one palette.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -42,7 +45,7 @@ pub struct SyntaxSlots {
 }
 
 impl SyntaxSlots {
-    /// crew's own mapping, on every palette that is not a classic.
+    /// crew's own mapping, kept by the tubes.
     pub const HOUSE: SyntaxSlots = SyntaxSlots {
         keyword: 5,
         ty: 3,
@@ -159,6 +162,44 @@ pub const BLOSSOM: SyntaxSlots = SyntaxSlots {
     number: 1,
     string: 2,
     code: 6,
+    comment: None,
+};
+
+/// Nebula: rose keywords (its ring's rose end), orchid calls (its accent),
+/// oxygen-teal types, star-gold numbers, seafoam strings, and lavender
+/// identifiers on its violet page.
+pub const NEBULA: SyntaxSlots = SyntaxSlots {
+    keyword: 1,
+    ty: 6,
+    func: 5,
+    number: 3,
+    string: 2,
+    code: 4,
+    comment: None,
+};
+
+/// Glass clear: pink keywords (its accent), purple types, blue calls (its
+/// ring's blue end), yellow numbers, green strings, cyan identifiers.
+pub const GLASS_CLEAR: SyntaxSlots = SyntaxSlots {
+    keyword: 1,
+    ty: 5,
+    func: 4,
+    number: 3,
+    string: 2,
+    code: 6,
+    comment: None,
+};
+
+/// Glass night: mint keywords (its accent), violet types (its aurora's far
+/// end), pink calls, gold numbers, aurora-green strings, sky-blue
+/// identifiers.
+pub const GLASS_NIGHT: SyntaxSlots = SyntaxSlots {
+    keyword: 6,
+    ty: 5,
+    func: 1,
+    number: 3,
+    string: 2,
+    code: 4,
     comment: None,
 };
 

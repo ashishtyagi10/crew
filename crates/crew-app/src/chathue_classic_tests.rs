@@ -2,8 +2,8 @@
 //! floors: split from `chathue_tests` (line cap).
 use super::super::*;
 
-/// On a palette with a map of its own (classics, neon, amethyst, blossom, paper) the
-/// five syntax classes read as five colours: each pair at least a visible
+/// On a palette with a map of its own (every one but the tubes) the five
+/// syntax classes read as five colours: each pair at least a visible
 /// step apart in OKLab. A map is worth nothing if two of its classes land on
 /// one ink once the floors have lifted them.
 #[test]
@@ -37,7 +37,7 @@ fn own_map_classes_read_as_five_colours() {
             }
         }
     }
-    assert_eq!(classics, 10, "the classics, neon, amethyst, blossom, paper");
+    assert_eq!(classics, 13, "every palette but the tubes");
 }
 
 /// A class in a slot of its own never lands on the code colour, on any

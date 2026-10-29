@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.26
+
+**`nebula`, `glass-clear` and `glass-night` draw code in colours of their own.**
+- The three themes printed the same shell colours and highlighted code with the same
+  colours, almost to the bit: switching between them changed the background and the
+  frame, but the code on screen stayed the same. Each now takes its colours from ones
+  it already wears.
+- `glass-clear` uses the iPhone's system colours, as its frame and marks do: pink
+  keywords (its accent), purple types, blue calls, yellow numbers, green strings and
+  cyan names.
+- `glass-night` uses an aurora's: mint keywords (its accent), violet types (the far end
+  of its focus ring), pink calls, gold numbers, aurora-green strings and sky-blue names.
+- `nebula` uses an emission nebula's: rose keywords (the rose end of its ring), teal
+  types, orchid calls (its accent), gold numbers, seafoam strings and lavender names on
+  its violet page.
+- Shell output (`ls`, `git diff` and the rest) takes the same new colours. Every colour
+  still clears the same contrast floors as before.
+- A new test compares how every pair of themes draws code and fails if two draw it
+  alike. These three were the only pairs that did. Only the CRT tubes keep crew's
+  default code colours, which they draw by brightness.
+
 ## 0.29.25
 
 **`glass-night` gets a focus ring of its own: an aurora.**

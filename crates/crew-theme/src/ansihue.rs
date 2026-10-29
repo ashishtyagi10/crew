@@ -23,11 +23,13 @@
 //! apart half a degree at a time until every slot cleared it with a margin —
 //! 5.5° at most, short of anything that reads as a different colour.
 //!
-//! Three of crew's own palettes have hues of their own too: `neon`,
+//! Six of crew's own palettes have hues of their own too: `neon`,
 //! `amethyst` and `blossom`, whose characters are colours (a neon sign, a
 //! gemstone, a cherry tree in spring) that
 //! crew's median six flattened into the same shell output every other
-//! palette prints.
+//! palette prints; and `nebula`, `glass-clear` and `glass-night`, which until
+//! 2026-10-29 printed one shell and drew one code look between them, bit for
+//! bit, taking their six from the colours they already wear.
 use crate::ThemeId;
 
 /// Tokyo Night: `#f7768e #9ece6a #e0af68 #7aa2f7 #bb9af7 #7dcfff`.
@@ -55,6 +57,19 @@ const AMETHYST: [f32; 6] = [12.0, 170.0, 65.0, 268.0, 330.0, 215.0];
 /// apricot, sky, sakura pink and mint.
 const BLOSSOM: [f32; 6] = [25.0, 138.0, 72.0, 245.0, 342.0, 180.0];
 
+/// Nebula (2026-10-29): an emission nebula — hydrogen rose, seafoam, star
+/// gold, lavender, its orchid and oxygen teal.
+const NEBULA: [f32; 6] = [359.0, 165.0, 80.0, 272.0, 307.0, 195.0];
+
+/// Glass clear (2026-10-29): the iPhone's own system colours, which its
+/// frame and marks already wear — its pink accent, green, yellow, its ring's
+/// blue, purple and cyan.
+const GLASS_CLEAR: [f32; 6] = [2.0, 147.0, 90.0, 262.0, 312.0, 228.0];
+
+/// Glass night (2026-10-29): an aurora over a night sky — pink fringe,
+/// aurora green, starlight gold, sky blue, its ring's violet and its mint.
+const GLASS_NIGHT: [f32; 6] = [8.0, 150.0, 85.0, 250.0, 305.0, 190.0];
+
 /// The hue of each chromatic slot on `id`, indexed by ANSI slot minus one:
 /// red, green, yellow, blue, magenta, cyan.
 pub fn hues(id: ThemeId) -> [f32; 6] {
@@ -62,6 +77,9 @@ pub fn hues(id: ThemeId) -> [f32; 6] {
         ThemeId::NeonDark => NEON,
         ThemeId::Amethyst => AMETHYST,
         ThemeId::Blossom => BLOSSOM,
+        ThemeId::Nebula => NEBULA,
+        ThemeId::GlassClear => GLASS_CLEAR,
+        ThemeId::GlassNight => GLASS_NIGHT,
         ThemeId::TokyoNight => TOKYO_NIGHT,
         ThemeId::Solarized => SOLARIZED,
         ThemeId::Everforest => EVERFOREST,
