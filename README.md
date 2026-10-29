@@ -913,11 +913,13 @@ Every other theme is see-through glass: the window shows your desktop, each
 pane is a slab of smoked glass over it, and the words on it are bright, with
 a soft shadow behind them. `glass` is the iPhone's liquid glass in its Clear
 look, rotating four palettes: `glass-clear` (neutral smoke, rose accents),
-`glass-night` (navy smoke, mint), `nebula` (violet smoke, orchid→rose
+`glass-night` (navy smoke, mint, an aurora focus ring), `nebula` (violet smoke, orchid→rose
 accents) and `blossom` (a wine-rose smoke, pink accents, a blush frame, code
 in spring colours and Comic Mono). `crt` is a
 phosphor tube in glass, in `crt-green` and `crt-amber`, each one hue at six
-brightnesses. A rotation changes palette every 10 minutes; `light` and `dark`
+brightnesses; code is highlighted by brightness alone, as on a phosphor
+terminal (keywords brightest, then types and calls, numbers, strings,
+comments). A rotation changes palette every 10 minutes; `light` and `dark`
 are one page each and stay put. And `auto` walks every look in turn —
 `dark` → `light` → `crt` → `glass` → `neon` → `classic` → `purple` → `dark` — a new one
 every 10 minutes, whatever the clock or the OS appearance. In `classic` it shows all five,

@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.25
+
+**`glass-night` gets a focus ring of its own: an aurora.**
+- `glass-night` drew the focus ring and the tint on every card frame with exactly the
+  blue→pink pair `glass-clear` uses, so switching between the two glass themes changed
+  the background and the accent and left the most-watched colour on screen unchanged. Its
+  ring now runs from aqua green, the colour of its mint accent, to violet, like an aurora
+  over its navy night. The two colours sit at the old pair's brightness, so the page's
+  background glow and every text colour keep their contrast.
+- A new test measures every pair of themes' rings and requires them to differ by at least
+  the same step the roster's near-duplicate check uses. The glass pair was the only
+  exact duplicate.
+- The README and `docs/CREW.md` now describe the tubes' brightness ladder and the focus
+  ring's lift on see-through windows from the last releases.
+
 ## 0.29.24
 
 **On see-through windows the focused pane's frame is always the brightest one.**

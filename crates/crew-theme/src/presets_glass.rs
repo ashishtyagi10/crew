@@ -5,8 +5,9 @@
 //! glass over the desktop — the window is see-through and paints no
 //! wallpaper of its own — with a bright specular edge on top
 //! ([`crate::LiquidStyle`], `glass::liquid_glass`). The accent is the
-//! iPhone's dark-mode mint — aqua, the colour of the glass itself — and the
-//! face is SF Mono.
+//! iPhone's dark-mode mint — aqua, the colour of the glass itself — the
+//! focus ring an aurora from that aqua green to violet, and the face is SF
+//! Mono.
 //!
 //! Every derived role is what the ramp, the alarm and the wash produce for
 //! this page and ink — the parity tests in `ramp_tests`, `signal_tests` and
@@ -56,9 +57,12 @@ pub static GLASS_NIGHT: Theme = Theme {
         glow: 0.55,
         ..crate::presets_glass_clear::CLEAR_BLOOM
     }),
+    // An aurora over the night sky: the mint's aqua green turning to violet.
+    // Until 2026-10-29 these were glass-clear's blue→pink, bit for bit, so
+    // the two glasses drew one focus ring (`ring_tests`).
     modern: Some(ModernStyle {
-        pole_a: (70, 130, 255),
-        pole_b: (255, 64, 150),
+        pole_a: (20, 165, 140),
+        pole_b: (190, 100, 230),
         drift_ms: 6_000,
     }),
     // Clear glass, as `glass-clear` is: the shadow behind the words, not
