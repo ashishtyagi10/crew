@@ -133,9 +133,12 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ThemeId::GlassClear | ThemeId::GlassNight => {
             &["SF Mono", "Geist Mono", "JetBrains Mono", "Menlo", "Lilex"]
         }
-        // Neon: a control room's lettering — SF Mono, the cleanest and most
-        // precise favourite, then Geist Mono's geometric cut.
-        ThemeId::NeonDark => &["SF Mono", "Geist Mono", "JetBrains Mono", "Menlo", "Lilex"],
+        // Neon: a control room's lettering — IBM Plex Mono, an engineer's
+        // face, then SF Mono and Geist Mono's geometric cut. It led with SF
+        // Mono until 2026-10-29, but `auto` steps from `glass` to `neon`, and
+        // on glass-clear or glass-night (SF Mono both) that step changed the
+        // colours and never the face (`every_step_of_an_auto_lap_*`).
+        ThemeId::NeonDark => &["IBM Plex Mono", "SF Mono", "Geist Mono", "Menlo", "Lilex"],
         // Classic: each editor palette wears its own face, because `auto`
         // walks the five one step at a time — under one shared lead (IBM
         // Plex Mono, until 2026-10-28) five steps in a row changed the

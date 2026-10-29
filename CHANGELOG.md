@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.23
+
+**Every step of `/theme auto` changes the font.**
+- Each theme has its own font, so `auto` changes the face along with the colours. One
+  step didn't: from `glass` to `neon`. When the glass step landed on `glass-clear` or
+  `glass-night` (both SF Mono), neon followed in SF Mono too, and for ten minutes only the
+  colours changed.
+- `neon` now leads with IBM Plex Mono, an engineer's face for a control room (SF Mono is
+  next in its list). A test now walks every possible step of an `auto` lap and checks that
+  the font changes. The one deliberate exception is `dark` → `light`: it is the same page
+  inverted and keeps its face.
+- A fresh measurement of all fifteen themes after the last seven releases found no other
+  problems. The two most similar themes are now 0.057 apart, up from 0.052, and every
+  marker, text and code colour clears its contrast floor.
+
 ## 0.29.22
 
 **`light` and `dark` colour code the way Xcode does.**

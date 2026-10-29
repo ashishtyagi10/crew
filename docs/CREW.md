@@ -4403,7 +4403,9 @@ With no theme saved at all, crew defaults to `auto`.
   yellow and green. Shell output and code take neon's own six hues
   (`crew_theme::ansihue`): a pink red, electric blue, violet, a cooler
   cyan; code puts violet on keywords, electric blue on calls, cyan on types
-  and hot pink on numbers (`crew_theme::SyntaxSlots`). The face is SF Mono. It had a light page,
+  and hot pink on numbers (`crew_theme::SyntaxSlots`). The face is IBM Plex
+  Mono, so `auto`'s step from `glass` (SF Mono on glass-clear and
+  glass-night) changes the face too. It had a light page,
   `neon-light`, which `neon` served by day; that name now loads `neon`.
 - **`classic`** — five editor palettes people know by name, as smoked glass
   with bright words (the same optics as `nebula`): **`tokyo-night`** (deep
