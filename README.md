@@ -933,7 +933,7 @@ is a slab of blue-smoked glass over the grid, which shows through it: a
 cyan-white rim, its frame's light bleeding a little way in and turning cyan
 to violet across the card like a hologram's foil, and a halo of blue round
 it; the pane you are in burns cyan. Words are bright white and the face is
-SF Mono. Code and shell output take neon's own colours: violet keywords,
+IBM Plex Mono. Code and shell output take neon's own colours: violet keywords,
 electric-blue calls, cyan types and hot-pink numbers. Its palette's own name, `neon-dark`, loads as `neon`, and so does
 the retired `neon-light`.
 
