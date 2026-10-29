@@ -26,7 +26,9 @@
 //! shared contrast so no colour shouts louder than another. The hues are
 //! crew's own, measured as the median across the 19 non-CRT presets rather
 //! than taken from a standard: red 27.5°, yellow 84.5°, green 149.1°,
-//! cyan 199.4°, blue 253.3°, magenta 323.2°.
+//! cyan 199.4°, blue 253.3°, magenta 323.2°. The classics are the exception:
+//! a scheme known by its shell colours brings its own six
+//! ([`crate::ansihue`]), at the same contrast and chroma.
 //!
 //! [`AnsiMode::Monochrome`] is for the phosphor tubes, where every slot is the
 //! *same* hue by design and spreading them would destroy the theme. A real
@@ -45,8 +47,12 @@ pub const HUES: [f32; 6] = [27.5, 149.1, 84.5, 253.3, 323.2, 199.4];
 /// How a palette separates its slots.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AnsiMode {
-    /// Six hues around the wheel at one shared contrast.
-    Chromatic,
+    /// Six hues around the wheel at one shared contrast: [`HUES`], or a
+    /// classic's own ([`crate::ansihue`]).
+    Chromatic {
+        /// Red, green, yellow, blue, magenta, cyan, in OKLCH degrees.
+        hues: [f32; 6],
+    },
     /// One hue at six lightness steps — a monochrome phosphor tube.
     Monochrome {
         /// The phosphor's hue in OKLCH degrees.
@@ -144,8 +150,10 @@ impl AnsiRamp {
 
     /// The ramp a shipped preset implies: a phosphor tube keeps its hue and
     /// the lightness span its own slots already occupy; everything else
-    /// separates by hue.
-    pub fn fitted(t: &crate::Theme) -> Self {
+    /// separates by hue — its own, where it is a scheme with hues of its own
+    /// ([`crate::ansihue`]).
+    pub fn fitted(id: crate::ThemeId) -> Self {
+        let t = id.theme();
         // A *white* phosphor is not a coloured one: it can show hues, and
         // `crt-paperwhite` ships an ANSI palette that does. Treating it as
         // monochrome painted its red `(255, 180, 175)` blue, which is the
@@ -163,7 +171,9 @@ impl AnsiRamp {
                 hi,
             }
         } else {
-            AnsiMode::Chromatic
+            AnsiMode::Chromatic {
+                hues: crate::ansihue::hues(id),
+            }
         };
         let house = if t.dark { ANSI_DARK } else { ANSI_LIGHT };
         Self::new(t.term_bg, mode, house)
@@ -200,9 +210,9 @@ impl AnsiRamp {
     /// Chromatic slot `i` (0 = red … 5 = cyan).
     fn chromatic(&self, i: usize) -> (u8, u8, u8) {
         match self.mode {
-            AnsiMode::Chromatic => oklch::solve_for_contrast(
+            AnsiMode::Chromatic { hues } => oklch::solve_for_contrast(
                 self.bg,
-                HUES[i],
+                hues[i],
                 self.house.chroma,
                 self.house.chromatic,
                 self.toward,

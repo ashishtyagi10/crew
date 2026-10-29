@@ -133,21 +133,28 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // Neon: a control room's lettering — SF Mono, the cleanest and most
         // precise favourite, then Geist Mono's geometric cut.
         ThemeId::NeonDark => &["SF Mono", "Geist Mono", "JetBrains Mono", "Menlo", "Lilex"],
-        // Classic: the editor palettes wear a classic programmer's face —
-        // IBM Plex Mono, a favourite no other family leads with, then the
-        // faces those palettes' own screenshots are usually set in.
-        ThemeId::TokyoNight
-        | ThemeId::Solarized
-        | ThemeId::Everforest
-        | ThemeId::Gruvbox
-        | ThemeId::Monokai => &[
+        // Classic: each editor palette wears its own face, because `auto`
+        // walks the five one step at a time — under one shared lead (IBM
+        // Plex Mono, until 2026-10-28) five steps in a row changed the
+        // colours and never the font, the bug `theme_leads_are_diverse`
+        // was written for. Every lead is a favourite.
+        //
+        // Tokyo Night: JetBrains Mono, the face its own screenshots wear.
+        ThemeId::TokyoNight => &["JetBrains Mono", "Fira Code", "SF Mono", "Menlo", "Lilex"],
+        // Solarized: IBM Plex Mono, a designer's palette in a designed face.
+        ThemeId::Solarized => &["IBM Plex Mono", "Fira Code", "SF Mono", "Menlo", "Lilex"],
+        // Everforest is the soft one: Comic Shanns Mono, the user's own pick.
+        ThemeId::Everforest => &[
+            "Comic Shanns Mono",
+            "Comic Mono",
             "IBM Plex Mono",
-            "JetBrains Mono",
-            "Fira Code",
-            "SF Mono",
             "Menlo",
             "Lilex",
         ],
+        // Gruvbox, the retro groove: MonoLisa's warm, wide letters.
+        ThemeId::Gruvbox => &["MonoLisa", "IBM Plex Mono", "Fira Code", "Menlo", "Lilex"],
+        // Monokai grew up in TextMate and Sublime on the Mac: SF Mono.
+        ThemeId::Monokai => &["SF Mono", "JetBrains Mono", "Fira Code", "Menlo", "Lilex"],
         // Purple: amethyst is nebula's sibling on a purple page, so it wears
         // the same contemporary face, with Geist Mono behind it.
         ThemeId::Amethyst => &["JetBrains Mono", "Geist Mono", "SF Mono", "Menlo", "Lilex"],
@@ -170,3 +177,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
 #[cfg(test)]
 #[path = "fonts_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "walkfont_tests.rs"]
+mod walkfont_tests;

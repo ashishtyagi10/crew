@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.15
+
+**Themes fine-tuned: the classics use their own colours, and no marker shares a colour with the accent.**
+- The five classics now colour shell output and code in their own schemes' hues: gruvbox's
+  teal "blue" and aqua, monokai's pink red and purple, solarized's magenta and cyan, Tokyo
+  Night's violet-blue and sky cyan, everforest's soft pink and aqua. Before, all five used the
+  same sixteen colours as every other theme. Contrast and saturation stay crew's, so every
+  colour is as readable as before. Four pairs that came out too alike at that contrast were
+  nudged apart by 5.5° at most.
+- The unread dot (and the progress bar, which uses the same colour) no longer matches the
+  accent or the focused frame. On `nebula` and `monokai` it was the accent's exact colour; on
+  `everforest` it was the frame's green, so a progress bar on the focused card disappeared
+  into the frame. New dots: nebula and amethyst periwinkle, monokai its yellow, everforest its
+  sand yellow, solarized its cyan, and neon a slightly bluer cyan. Each keeps the contrast it
+  had.
+- Each classic has its own font, so `/theme auto` changes the face as it steps through them:
+  tokyo-night JetBrains Mono, solarized IBM Plex Mono, everforest Comic Shanns Mono, gruvbox
+  MonoLisa, monokai SF Mono. Before, all five used IBM Plex Mono.
+
 ## 0.29.14
 
 **`/theme auto` shows all five classics every lap.**

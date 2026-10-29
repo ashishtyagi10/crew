@@ -83,6 +83,7 @@ pub struct Theme {
 }
 
 pub mod ansi;
+pub mod ansihue;
 mod autowalk;
 pub mod contrast;
 mod crtstyle;

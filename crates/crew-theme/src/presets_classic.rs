@@ -3,8 +3,9 @@
 //! signature colours (frame, accent, the focus ring's poles and the status
 //! roles) and its ink's hue. The rest is derived like every other palette's:
 //! the text ladder ([`crate::ramp`]), the ANSI slots ([`crate::ansi`]) and
-//! the search wash ([`crate::highlight`]), so shell output keeps crew's
-//! sixteen colours, not the originals'.
+//! the search wash ([`crate::highlight`]). The ANSI slots take the scheme's
+//! own six hues ([`crate::ansihue`]) at crew's contrast, so shell output and
+//! syntax colours read as the scheme's.
 //!
 //! The five were picked by measurement. On crew's deep pages, with the
 //! house's near-white ink, Dracula, Catppuccin and Nord came out within
@@ -56,20 +57,20 @@ pub static TOKYO_NIGHT: Theme = Theme {
     find_hl_bg: (32, 50, 140),
     ansi: [
         (106, 107, 112), // 0  black
-        (255, 174, 163), // 1  red
-        (131, 212, 146), // 2  green
-        (232, 189, 94),  // 3  yellow
-        (149, 198, 255), // 4  blue
-        (238, 172, 245), // 5  magenta
-        (61, 214, 220),  // 6  cyan
+        (255, 172, 183), // 1  red
+        (165, 207, 120), // 2  green
+        (242, 184, 98),  // 3  yellow
+        (165, 195, 255), // 4  blue
+        (212, 181, 255), // 5  magenta
+        (103, 206, 255), // 6  cyan
         (228, 229, 236), // 7  white
         (144, 145, 150), // 8  bright black
-        (255, 205, 197), // 9  bright red
-        (151, 233, 166), // 10 bright green
-        (253, 209, 115), // 11 bright yellow
-        (186, 218, 255), // 12 bright blue
-        (250, 200, 255), // 13 bright magenta
-        (89, 235, 241),  // 14 bright cyan
+        (255, 204, 209), // 9  bright red
+        (185, 228, 140), // 10 bright green
+        (255, 207, 140), // 11 bright yellow
+        (196, 216, 255), // 12 bright blue
+        (227, 208, 255), // 13 bright magenta
+        (160, 223, 255), // 14 bright cyan
         (253, 253, 255), // 15 bright white
     ],
     dark: true,
@@ -102,7 +103,7 @@ pub static SOLARIZED: Theme = Theme {
     accent_default: (203, 172, 75),
     status_fg: (176, 213, 239),
     broadcast: (143, 147, 210),
-    activity: (181, 193, 99),
+    activity: (62, 206, 194),
     bell: (238, 153, 151),
     dim: (108, 136, 142),
     placeholder: (99, 128, 134),
@@ -110,20 +111,20 @@ pub static SOLARIZED: Theme = Theme {
     find_hl_bg: (71, 79, 50),
     ansi: [
         (96, 108, 111),  // 0  black
-        (255, 171, 160), // 1  red
-        (129, 210, 144), // 2  green
-        (230, 187, 92),  // 3  yellow
-        (146, 196, 255), // 4  blue
-        (236, 170, 243), // 5  magenta
-        (58, 212, 218),  // 6  cyan
+        (255, 171, 155), // 1  red
+        (182, 201, 105), // 2  green
+        (228, 187, 91),  // 3  yellow
+        (131, 199, 255), // 4  blue
+        (255, 166, 204), // 5  magenta
+        (64, 213, 201),  // 6  cyan
         (216, 230, 234), // 7  white
         (133, 146, 149), // 8  bright black
-        (255, 202, 194), // 9  bright red
-        (149, 231, 164), // 10 bright green
-        (251, 207, 113), // 11 bright yellow
-        (183, 216, 255), // 12 bright blue
-        (250, 196, 255), // 13 bright magenta
-        (86, 233, 239),  // 14 bright cyan
+        (255, 202, 191), // 9  bright red
+        (202, 222, 125), // 10 bright green
+        (249, 207, 112), // 11 bright yellow
+        (174, 218, 255), // 12 bright blue
+        (255, 200, 222), // 13 bright magenta
+        (91, 234, 221),  // 14 bright cyan
         (244, 252, 255), // 15 bright white
     ],
     dark: true,
