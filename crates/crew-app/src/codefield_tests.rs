@@ -68,3 +68,34 @@ fn the_field_reads_over_any_desktop() {
         }
     }
 }
+
+/// A classic's comments wear its scheme's comment tint once every floor has
+/// had its say: Tokyo Night's storm blue measured C 0.020 (a grey) before,
+/// against the scheme's 0.068, and monokai's olive sat 21° off at a third
+/// of its chroma.
+#[test]
+fn a_classic_comment_wears_its_schemes_tint() {
+    let gap = |a: f32, b: f32| (a - b).rem_euclid(360.0).min((b - a).rem_euclid(360.0));
+    let mut classics = 0;
+    for id in crew_theme::ALL_THEMES {
+        let t = id.theme();
+        let Some(tint) = t.syntax.comment else {
+            continue;
+        };
+        classics += 1;
+        let (got, want) = (
+            oklch::from_srgb(crate::chatink::derive(t).comment),
+            oklch::from_srgb(tint),
+        );
+        let d = gap(got.h, want.h);
+        assert!(d < 12.0, "{}: comment hue {d:.0}° off", id.as_str());
+        assert!(
+            (got.c - want.c).abs() < 0.015,
+            "{}: comment chroma {:.3}, the scheme's {:.3}",
+            id.as_str(),
+            got.c,
+            want.c
+        );
+    }
+    assert_eq!(classics, 5);
+}

@@ -83,6 +83,10 @@ pub struct Theme {
     /// Which ANSI slot each syntax class draws from ([`SyntaxSlots`]): the
     /// house's on crew's own palettes, the scheme's own on a classic.
     pub syntax: SyntaxSlots,
+    /// A scheme's own selection colour, whose hue and chroma tint the
+    /// selection at crew's depth ([`readable::selection_bg`]). `None` on
+    /// crew's own palettes, which select in their accent's hue.
+    pub selection: Option<(u8, u8, u8)>,
 }
 
 pub mod ansi;

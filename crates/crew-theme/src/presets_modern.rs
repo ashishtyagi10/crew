@@ -67,4 +67,5 @@ pub static NEBULA: Theme = Theme {
     }),
     liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
     syntax: crate::SyntaxSlots::HOUSE,
+    selection: None,
 };

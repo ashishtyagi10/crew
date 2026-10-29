@@ -61,6 +61,7 @@ pub static GLASS_CLEAR: Theme = Theme {
     }),
     liquid: Some(CLEAR_LIQUID),
     syntax: crate::SyntaxSlots::HOUSE,
+    selection: None,
 };
 
 /// The `dark` mode's glass (the user, 2026-10-09: dark, light and CRT "with

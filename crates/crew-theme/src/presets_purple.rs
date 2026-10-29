@@ -75,6 +75,7 @@ pub static AMETHYST: Theme = Theme {
     }),
     liquid: Some(DARK_LIQUID),
     syntax: crate::SyntaxSlots::HOUSE,
+    selection: None,
 };
 
 #[cfg(test)]

@@ -11,7 +11,8 @@
 //! So each palette says which slot each class takes. The colours themselves
 //! are still derived from the slot by `crew-app`'s `chatink` and `chathue`,
 //! on the same floors, so a class that moves slot is exactly as readable as
-//! the one it replaced. On a classic the five hued classes take five
+//! the one it replaced. A classic names its comment colour too, which tints
+//! the comment rung at the rung's lightness. On a classic the five hued classes take five
 //! different slots, which is how each scheme draws them; `code`, the plain
 //! identifier colour of a chat fence, may share one (solarized draws its
 //! identifiers and calls in one blue).
@@ -31,6 +32,10 @@ pub struct SyntaxSlots {
     pub string: usize,
     /// Plain code in a chat fence or an inline span.
     pub code: usize,
+    /// The scheme's comment colour. Its hue and chroma tint the comment
+    /// rung at the rung's own lightness; `None` leaves the rung the text
+    /// ladder's muted grey, as on crew's own palettes.
+    pub comment: Option<(u8, u8, u8)>,
 }
 
 impl SyntaxSlots {
@@ -42,6 +47,7 @@ impl SyntaxSlots {
         number: 6,
         string: 2,
         code: 6,
+        comment: None,
     };
 
     /// The five hued classes, in a fixed order, for the tests and the shots.
@@ -56,8 +62,8 @@ impl SyntaxSlots {
     }
 }
 
-/// Tokyo Night: purple keywords, blue calls, green strings, cyan types and
-/// its orange numbers (the yellow slot is its nearest).
+/// Tokyo Night: purple keywords, blue calls, green strings, cyan types, its
+/// orange numbers (the yellow slot is its nearest) and storm-blue comments.
 pub const TOKYO_NIGHT: SyntaxSlots = SyntaxSlots {
     keyword: 5,
     ty: 6,
@@ -65,10 +71,11 @@ pub const TOKYO_NIGHT: SyntaxSlots = SyntaxSlots {
     number: 3,
     string: 2,
     code: 6,
+    comment: Some((0x56, 0x5f, 0x89)),
 };
 
 /// Solarized: green statements, yellow types, blue calls and identifiers,
-/// cyan strings, magenta numbers.
+/// cyan strings, magenta numbers, `base01` comments.
 pub const SOLARIZED: SyntaxSlots = SyntaxSlots {
     keyword: 2,
     ty: 3,
@@ -76,10 +83,11 @@ pub const SOLARIZED: SyntaxSlots = SyntaxSlots {
     number: 5,
     string: 6,
     code: 4,
+    comment: Some((0x58, 0x6e, 0x75)),
 };
 
 /// Everforest: red keywords, green calls, yellow types, aqua strings,
-/// purple numbers, blue identifiers.
+/// purple numbers, blue identifiers, green-grey comments.
 pub const EVERFOREST: SyntaxSlots = SyntaxSlots {
     keyword: 1,
     ty: 3,
@@ -87,11 +95,12 @@ pub const EVERFOREST: SyntaxSlots = SyntaxSlots {
     number: 5,
     string: 6,
     code: 4,
+    comment: Some((0x85, 0x92, 0x89)),
 };
 
 /// Gruvbox: red keywords, yellow types, green strings, purple numbers, blue
-/// identifiers, and aqua calls (gruvbox draws calls and strings in one
-/// green; the aqua is the scheme's own next step, where its built-ins go).
+/// identifiers, warm grey comments, and aqua calls (gruvbox draws calls and
+/// strings in one green; the aqua is its next step, where its built-ins go).
 pub const GRUVBOX: SyntaxSlots = SyntaxSlots {
     keyword: 1,
     ty: 3,
@@ -99,10 +108,11 @@ pub const GRUVBOX: SyntaxSlots = SyntaxSlots {
     number: 5,
     string: 2,
     code: 4,
+    comment: Some((0x92, 0x83, 0x74)),
 };
 
 /// Monokai: pink keywords, green calls, cyan types, yellow strings, purple
-/// numbers.
+/// numbers, olive comments.
 pub const MONOKAI: SyntaxSlots = SyntaxSlots {
     keyword: 1,
     ty: 4,
@@ -110,6 +120,7 @@ pub const MONOKAI: SyntaxSlots = SyntaxSlots {
     number: 5,
     string: 3,
     code: 6,
+    comment: Some((0x75, 0x71, 0x5e)),
 };
 
 #[cfg(test)]

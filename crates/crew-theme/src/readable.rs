@@ -250,12 +250,25 @@ pub fn selection_bg(t: &Theme) -> (u8, u8, u8) {
 /// A page's selection colour off a tube: [`SELECTION_HUE`]'s depth turned
 /// to the palette's own accent. The one navy was off every palette but the
 /// blue ones — glass-clear's rose letters landed on indigo (glass survey
-/// D-M5). A grey accent has no hue to lend and keeps the navy.
+/// D-M5). A grey accent has no hue to lend and keeps the navy. A scheme
+/// with a selection of its own ([`Theme::selection`]) lends its hue and
+/// chroma instead.
 fn selection_tint(t: &Theme) -> oklch::Oklch {
     let (sel, acc) = (
         oklch::from_srgb(SELECTION_HUE),
         oklch::from_srgb(t.accent_default),
     );
+    // A classic selects in its scheme's own tint: in its accent's hue,
+    // solarized's yellow selected in a mud olive where solarized selects in
+    // deep teal, and gruvbox's in a brown where it selects in warm grey.
+    if let Some(own) = t.selection {
+        let o = oklch::from_srgb(own);
+        return oklch::Oklch {
+            h: o.h,
+            c: o.c,
+            ..sel
+        };
+    }
     match acc.c < GREY_ACCENT {
         true => sel,
         false => oklch::Oklch { h: acc.h, ..sel },
@@ -324,3 +337,7 @@ const SPARK_HUE: (u8, u8, u8) = (120, 200, 255);
 #[cfg(test)]
 #[path = "readable_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "selection_tests.rs"]
+mod selection_tests;
