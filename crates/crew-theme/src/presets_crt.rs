@@ -73,6 +73,7 @@ pub static CRT_GREEN: Theme = Theme {
     }),
     liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
     syntax: crate::SyntaxSlots::HOUSE,
+    selection: None,
 };
 
 /// **Neon amber phosphor** (P3, Tron-grid): saturated amber traced over a
@@ -136,4 +137,5 @@ pub static CRT_AMBER: Theme = Theme {
     }),
     liquid: Some(crate::presets_glass_clear::DARK_LIQUID),
     syntax: crate::SyntaxSlots::HOUSE,
+    selection: None,
 };

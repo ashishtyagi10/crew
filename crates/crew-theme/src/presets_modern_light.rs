@@ -63,4 +63,5 @@ pub static BLOSSOM: Theme = Theme {
     }),
     liquid: Some(crate::presets_glass_clear::LIGHT_LIQUID),
     syntax: crate::SyntaxSlots::HOUSE,
+    selection: None,
 };

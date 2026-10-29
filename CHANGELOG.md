@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.18
+
+**The classic themes select and comment in their schemes' own colours.**
+- Selected text was tinted with each theme's accent colour. That suits crew's own themes,
+  where the accent is the theme. On the classics it gave `solarized`, whose accent is
+  yellow, a muddy olive selection, and `gruvbox` a brown one. Each classic now selects in
+  its scheme's own tint, at the same depth as before: `solarized` deep teal, `tokyo-night`
+  night blue, `everforest` plum, `gruvbox` warm grey, `monokai` olive grey.
+- Code comments in `/view` and in chat code blocks now carry each scheme's comment tint
+  at the same brightness as before: Tokyo Night's storm blue and Monokai's olive are the
+  clearest changes. Solarized, Gruvbox and Everforest were already close and now match.
+- Plain text on a selection and comments on a code block are as readable as before.
+  crew's own themes are unchanged.
+
 ## 0.29.17
 
 **No two status markers share a colour on any theme.**

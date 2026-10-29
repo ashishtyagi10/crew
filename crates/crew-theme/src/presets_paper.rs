@@ -55,6 +55,7 @@ pub static PAPER_DARK: Theme = Theme {
     modern: None,
     liquid: None,
     syntax: crate::SyntaxSlots::HOUSE,
+    selection: None,
 };
 
 /// Ink Reader, light: an e-reader's white theme, the look of the Kindle app
@@ -106,4 +107,5 @@ pub static PAPER_LIGHT: Theme = Theme {
     modern: None,
     liquid: None,
     syntax: crate::SyntaxSlots::HOUSE,
+    selection: None,
 };

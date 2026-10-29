@@ -5,7 +5,7 @@ use crate::chatbody::Color;
 use crate::chatink::{
     CODE_BG_MIX, CODE_ON_FIELD_FLOOR, COMMENT_FLOOR, COMMENT_PAGE_FLOOR, FIELD_FLOOR,
 };
-use crew_theme::{contrast_ratio, Theme};
+use crew_theme::{contrast_ratio, oklch, Theme};
 
 /// The floor on a LIGHT page. 1.55 is a tube's number: on paper it walked the
 /// field a third of the way to the ink, a mid-grey slab the comments and
@@ -63,10 +63,33 @@ pub(crate) fn comment_room(t: &Theme, code: Color, field: Color) -> f32 {
 }
 
 /// A comment's colour: `text_muted` walked back from the ink (the ladder's
-/// furthest rung) while it still reads [`comment_room`] on the field.
+/// furthest rung) while it still reads [`comment_room`] on the field — in
+/// the scheme's own comment tint where the palette names one
+/// ([`crew_theme::SyntaxSlots::comment`]).
 pub(crate) fn comment(t: &Theme, code: Color, field: Color) -> Color {
     let room = comment_room(t, code, field);
-    separated_on(t.text_muted, t, COMMENT_FLOOR, room, field)
+    let rung = separated_on(t.text_muted, t, COMMENT_FLOOR, room, field);
+    match t.syntax.comment {
+        Some(tint) => tinted(rung, tint, t, room, field),
+        None => rung,
+    }
+}
+
+/// `rung` at its own lightness in `tint`'s hue and chroma, floored again in
+/// case the hue moved it. The rung's lightness is what puts a comment behind
+/// code and in front of the field; the hue is all a scheme's comment colour
+/// adds — Tokyo Night's storm blue, monokai's olive — since the ladder
+/// already sat each classic's comments within a few degrees of grey.
+fn tinted(rung: Color, tint: Color, t: &Theme, room: f32, field: Color) -> Color {
+    let (r, s) = (oklch::from_srgb(rung), oklch::from_srgb(tint));
+    let c = oklch::Oklch {
+        h: s.h,
+        c: s.c,
+        ..r
+    }
+    .to_srgb();
+    let c = crew_theme::readable::against(c, field, room);
+    separated_on(c, t, COMMENT_FLOOR, room, field)
 }
 
 /// How far code stands above a comment on the glass's field, once both

@@ -76,4 +76,5 @@ pub static NEON_DARK: Theme = Theme {
     }),
     liquid: Some(crate::holo::HOLO_LIQUID),
     syntax: crate::SyntaxSlots::HOUSE,
+    selection: None,
 };

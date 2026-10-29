@@ -85,6 +85,7 @@ pub static TOKYO_NIGHT: Theme = Theme {
     }),
     liquid: Some(DARK_LIQUID),
     syntax: crate::syntaxslot::TOKYO_NIGHT,
+    selection: Some((0x28, 0x34, 0x57)),
 };
 
 /// **Solarized** (dark): the deep teal of `base03`, deepened a step so the
@@ -140,6 +141,7 @@ pub static SOLARIZED: Theme = Theme {
     }),
     liquid: Some(DARK_LIQUID),
     syntax: crate::syntaxslot::SOLARIZED,
+    selection: Some((0x07, 0x36, 0x42)),
 };
 
 #[cfg(test)]
