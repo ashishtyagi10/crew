@@ -19,7 +19,8 @@ use crate::{CrtStyle, ModernStyle, Theme};
 
 /// **Amethyst**: a royal-purple page, white words with a lilac cast,
 /// lavender for the accent, a vivid violet frame, and the ring running
-/// violet to magenta.
+/// violet to magenta. Progress is a pale mint, purple's complement: in the
+/// palette's own lilac it sat Δ 0.054 from the accent.
 pub static AMETHYST: Theme = Theme {
     page_bg: (34, 6, 58),
     ink: (245, 239, 254),
@@ -31,7 +32,7 @@ pub static AMETHYST: Theme = Theme {
     border_thickness: 3.5,
     legend_off: (158, 139, 184),
     accent_default: (225, 185, 255),
-    status_fg: (228, 206, 255),
+    status_fg: (161, 228, 213),
     broadcast: (255, 130, 200),
     activity: (165, 180, 255),
     bell: (255, 184, 150),

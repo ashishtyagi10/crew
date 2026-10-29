@@ -29,7 +29,7 @@ pub static GLASS_CLEAR: Theme = Theme {
     status_fg: (255, 214, 10),
     broadcast: (191, 90, 242),
     activity: (100, 210, 255),
-    bell: (255, 118, 110),
+    bell: (252, 123, 77),
     dim: (124, 126, 130),
     placeholder: (116, 118, 122),
     hint_fg: (126, 128, 132),

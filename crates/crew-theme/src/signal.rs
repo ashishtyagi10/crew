@@ -143,3 +143,7 @@ mod tests;
 #[cfg(test)]
 #[path = "activity_tests.rs"]
 mod activity_tests;
+
+#[cfg(test)]
+#[path = "markers_tests.rs"]
+mod markers_tests;
