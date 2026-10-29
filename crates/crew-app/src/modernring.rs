@@ -62,7 +62,7 @@ pub(crate) fn ring(v: &mut [CellView], cols: u16, rows: u16, busy: bool, ignite_
     let lift = (1.0 - ignite_t) * IGNITE_LIFT;
     let (pole_a, pole_b) = live_poles(&style);
     paint(v, cols, rows, base, |d| {
-        ring_color(pole_a, pole_b, d, phase, lift)
+        crew_theme::glassborder::focus_stroke(ring_color(pole_a, pole_b, d, phase, lift), t)
     });
 }
 

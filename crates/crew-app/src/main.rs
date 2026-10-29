@@ -520,6 +520,9 @@ mod popupshot_tests;
 #[cfg(test)]
 #[path = "popupsweep_tests.rs"]
 mod popupsweep_tests;
+#[cfg(test)]
+#[path = "ringfocus_tests.rs"]
+mod ringfocus_tests;
 // Only a Windows PowerShell pane starts oh-my-posh (a Mac zsh brings its own
 // prompt); the tests run everywhere.
 mod inboxclick;

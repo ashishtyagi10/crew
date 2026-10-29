@@ -57,6 +57,24 @@ pub fn lift(t: &Theme) -> Theme {
     l
 }
 
+/// One cell of the focused ring as the window serves it: lifted to
+/// [`FOCUSED_FLOOR`] while sheer (same hue, same chroma), exactly as
+/// `border_focused` is. The ring is drawn IN PLACE of that border, so it
+/// owes the same step over the unfocused frames, and it did not keep it:
+/// its poles were never in [`lift`], and on a sheer window, where every
+/// unfocused frame rises to [`NORMAL_FLOOR`], five palettes drew the ring
+/// DIMMER than the cards round it (solarized, monokai, amethyst and both
+/// clear glasses, 0.85–0.94x a quiet stroke). Per cell rather than per pole,
+/// because the blend between two lifted poles still dipped (glass-night's
+/// to 6.4:1 midway). Only the ring: the page wash and the quiet strokes
+/// share these poles, and the wash cannot get brighter.
+pub fn focus_stroke(c: (u8, u8, u8), t: &Theme) -> (u8, u8, u8) {
+    match sheer() {
+        true => against(c, t.page_bg, FOCUSED_FLOOR),
+        false => c,
+    }
+}
+
 /// The lifted twin of `id`'s palette.
 pub(crate) fn lifted(id: ThemeId) -> &'static Theme {
     LIFTED[usize::from(id.as_u8())].get_or_init(|| lift(id.theme()))
