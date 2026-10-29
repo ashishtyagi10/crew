@@ -1,6 +1,6 @@
 //! The inbox's keys. One letter each, as a terminal mail reader has them: the
-//! arrows (or j/k) move, Enter reads, `/` searches with Gmail's own syntax,
-//! `R` re-lists, `o` opens Gmail in the browser, Esc steps back.
+//! arrows (or j/k) move, in a thread to the next or previous one, Enter reads,
+//! `/` searches with Gmail's syntax, `R` re-lists, `o` opens Gmail, Esc steps back.
 use winit::event::KeyEvent;
 use winit::keyboard::{Key, NamedKey};
 
@@ -141,11 +141,12 @@ impl InboxPane {
         let (_, width) = self.reader_box(cols);
         let r = self.reading.as_mut()?;
         let last = super::reader::height(r, width).saturating_sub(page);
+        let older = matches!(ch, "n" | "J") || named(NamedKey::ArrowDown);
         if named(NamedKey::Escape) || named(NamedKey::Backspace) || named(NamedKey::ArrowLeft) {
             self.reading = None;
-        } else if named(NamedKey::ArrowUp) || ch == "k" {
+        } else if ch == "k" {
             r.scroll = r.scroll.saturating_sub(1);
-        } else if named(NamedKey::ArrowDown) || ch == "j" {
+        } else if ch == "j" {
             r.scroll = (r.scroll + 1).min(last);
         } else if named(NamedKey::PageUp) {
             r.scroll = r.scroll.saturating_sub(page);
@@ -154,8 +155,8 @@ impl InboxPane {
         } else if ch == "o" {
             let id = r.thread.id.clone();
             self.browse(Some(&id));
-        } else if matches!(ch, "n" | "p" | "J" | "K") {
-            self.note = self.next_thread(matches!(ch, "n" | "J")).into();
+        } else if older || matches!(ch, "p" | "K") || named(NamedKey::ArrowUp) {
+            self.note = self.next_thread(older).into();
         } else if ch == "x" {
             self.note = r.fold_all().into();
         } else if ch == "c" || ch == "y" {

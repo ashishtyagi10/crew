@@ -8,11 +8,11 @@ pub(crate) const HEAD: &str = "in the /inbox pane";
 pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
     (
         "Up / Down \u{b7} j / k",
-        "Move through the list; in a thread, scroll it",
+        "Move through the list; in a thread, Up / Down open the next or previous one, j / k scroll it",
     ),
     ("Enter", "Read the thread (marks it read, as Gmail does)"),
     (
-        "n / p \u{b7} J / K",
+        "n / p \u{b7} J / K \u{b7} Down / Up",
         "In a thread: open the next thread down the list, or the one above",
     ),
     (

@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.27
+
+**In an open email, ↓ and ↑ go to the next and the previous one.**
+- Reading a thread in `/inbox`, ↓ now opens the next thread down the list and ↑ the one
+  above, as `n` and `p` (and `J` and `K`) already did. At the end of the list the arrows
+  say so, the same as `n` and `p`; past the last loaded row, ↓ loads older threads.
+- `j` and `k` still scroll the open email a line at a time, and space, PageUp and PageDown
+  a page. In the list, the arrows move the selection as before. The pop-out mail window
+  (`w`) takes the same keys.
+- `/keys` and the README list the arrows with `n` and `p`.
+
 ## 0.29.26
 
 **`nebula`, `glass-clear` and `glass-night` draw code in colours of their own.**

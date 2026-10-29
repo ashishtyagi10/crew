@@ -149,6 +149,20 @@ fn n_and_p_in_the_reader_open_the_next_and_the_previous_thread_in_place() {
     );
 }
 
+/// Down and Up in the reader are n and p; j and k still scroll the mail.
+#[test]
+fn the_arrows_in_the_reader_open_the_next_and_the_previous_thread() {
+    use winit::keyboard::NamedKey::{ArrowDown, ArrowUp};
+    let (mut p, _asks, _) = reading(&["a", "b", "c"], 1);
+    p.press(&Key::Named(ArrowDown), 80, 24);
+    assert_eq!((open_id(&p), p.sel), (Some("c"), 2), "down: the row below");
+    p.press(&Key::Named(ArrowUp), 80, 24);
+    p.press(&Key::Named(ArrowUp), 80, 24);
+    assert_eq!((open_id(&p), p.sel), (Some("a"), 0), "up: the row above");
+    press(&mut p, "j");
+    assert_eq!(open_id(&p), Some("a"), "j scrolls, never leaves the thread");
+}
+
 #[test]
 fn a_long_thread_folds_its_older_mails_to_a_line_until_a_click_or_x_opens_them() {
     let (mut p, _asks, _) = reading(&["a"], 0);
