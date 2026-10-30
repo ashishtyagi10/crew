@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.46
+
+**In `/todo`, each person's todos stand apart from the next person's.**
+- Grouped by person, `/todo` put `#sam`'s header directly under the last of `#priya`'s
+  rows, so the groups ran together into one list with bold lines in it. The inbox keeps a
+  blank row between its groups.
+- Every person's group after the first now has a row of air above its header. Scrolling,
+  paging and clicks count it the same way the drawing does, so a click on the gap selects
+  nothing. The done list's day headers stay packed: a log of a tick or two a day would be
+  mostly air.
+
 ## 0.29.45
 
 **An MCP tool's answer reaches the agent whole, and every tool is listed.**

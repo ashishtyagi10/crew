@@ -148,10 +148,9 @@ pub(crate) fn done_day(it: &TodoItem) -> Option<chrono::NaiveDate> {
 }
 
 /// Rows display entry `di` occupies: the item's wrapped title plus the band
-/// header it opens, if any ([`super::group::starts`]). THE height truth for
+/// header it opens, if any ([`super::group::head_h`]). THE height truth for
 /// scroll, page and click math — they must all sum this, or they disagree.
 pub(crate) fn row_h(p: &TodoPane, order: &[usize], di: usize, cols: u16, now_ms: u64) -> u16 {
     let cols = content(cols);
-    item_h(&p.items[order[di]], cols, now_ms, p.rowctx())
-        + u16::from(super::group::starts(p, order, di))
+    item_h(&p.items[order[di]], cols, now_ms, p.rowctx()) + super::group::head_h(p, order, di)
 }

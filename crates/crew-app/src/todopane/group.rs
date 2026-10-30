@@ -104,6 +104,21 @@ pub(crate) fn starts(p: &TodoPane, order: &[usize], di: usize) -> bool {
     }
 }
 
+/// Rows the band header at display row `di` takes: none where no band
+/// starts, its header row, and — between people — one of air above it after
+/// the first band: `#sam` sat directly under the last of `#priya`'s rows,
+/// where the inbox keeps a blank row between its groups (2026-10-30 shot
+/// survey). The done log's day headers stay packed: a log of a tick or two a
+/// day would be mostly air. THE height of a band head: draw, scroll and
+/// hit-test all add this.
+pub(crate) fn head_h(p: &TodoPane, order: &[usize], di: usize) -> u16 {
+    match (starts(p, order, di), di, p.bands()) {
+        (false, ..) => 0,
+        (true, 1.., Bands::People) => 2,
+        (true, ..) => 1,
+    }
+}
+
 /// The roll-up beside a band's name: how many of that person's items are
 /// open, how many of those are overdue, and how many they ticked today.
 ///
@@ -143,3 +158,7 @@ pub(crate) fn tally(items: &[TodoItem], f: Filters, key: Option<&str>, now_ms: u
 #[cfg(test)]
 #[path = "group_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "groupair_tests.rs"]
+mod air_tests;

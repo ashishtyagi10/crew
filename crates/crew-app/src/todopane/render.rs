@@ -117,11 +117,11 @@ pub(crate) fn click_at(
         if top >= bottom {
             break;
         }
-        let head = u16::from(super::group::starts(p, &order, di));
+        let head = super::group::head_h(p, &order, di);
         let h = item_h(&p.items[idx], cols, now_ms, p.rowctx()) + head;
         if row < top + h {
-            // A band header is not a row of the item it rides on.
-            if head == 1 && row == top {
+            // A band header (and the air above it) is not a row of the item.
+            if row < top + head {
                 return None;
             }
             let first = top + head;
@@ -168,12 +168,13 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
         if row >= bottom {
             break;
         }
-        if super::group::starts(p, &order, di) {
-            headrow::band(&mut out, p, idx, row, cols);
-            row += 1;
-            if row >= bottom {
+        let head = super::group::head_h(p, &order, di);
+        if head > 0 {
+            row += head;
+            if row > bottom {
                 break;
             }
+            headrow::band(&mut out, p, idx, row - 1, cols);
         }
         let selected = p.sel == Some(di);
         row_cells(&mut out, p, idx, (row, cols, bottom), selected, now_ms);
