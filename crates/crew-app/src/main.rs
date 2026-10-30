@@ -502,6 +502,9 @@ mod panescroll;
 mod paneview;
 mod panezoom;
 mod pastesafe;
+#[cfg(test)]
+#[path = "pastewords_tests.rs"]
+mod pastewords_tests;
 mod pathcomplete;
 mod pathexpand;
 mod pathhl;

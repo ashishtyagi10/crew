@@ -2135,6 +2135,9 @@ it. One trailing newline is not multi-line: copying a line out of a file takes
 its terminator with it, and holding that would train you to confirm
 everything. A hold older than fifteen seconds is dropped rather than sent,
 because a confirmation you have forgotten giving is not a confirmation.
+Either way a paste is words, never keys: escape and the other control
+characters are taken out (tab and line breaks stay), so text that carries the
+bracket's own end marker cannot close it early and run the rest as typed.
 
 ## When a program says something itself
 
