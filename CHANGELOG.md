@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.35
+
+**Claude Code starts on your message at once, with no skill pick in front of it.**
+- Before each turn relayed to Claude Code, crew asked a model which of your installed
+  skills the task needs. Signed in to Claude Code, that model was Claude Code itself: a
+  second `claude -p` that started, decided, and exited before the real one began. Every
+  plain message waited 4.6 to 7 seconds for it (measured with the 17 example skills
+  installed), and the answer was usually "none".
+- An agent that opens files itself now gets the catalog instead: each skill's name, its one
+  line, and the file that holds it. It reads the playbook the task needs within the turn
+  it was already running. Asked to turn notes into a PDF, Claude Code read
+  `pdf/SKILL.md` first. Asked what a file says, it read no skill. Codex and opencode get the
+  same catalog.
+- Agents without file tools of their own, and the swarm, still have their playbooks
+  chosen for them and framed in, as before. From Claude Code's own skills: the name and one
+  line up front, the body read on demand.
+
 ## 0.29.34
 
 **New mail shows up after you page down, and a failed list is never "inbox zero".**
