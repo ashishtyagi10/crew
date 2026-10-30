@@ -106,3 +106,18 @@ fn the_foot_shows_the_search_s_keys_while_it_is_typed() {
     assert!(text.contains("cancel") && text.contains("erase"), "{text}");
     assert!(!text.contains("archive"), "{text}");
 }
+
+/// An empty list offers what an empty list can use: refresh first.
+#[test]
+fn an_empty_list_offers_refresh_search_undo_and_gmail_only() {
+    use crate::inbox::worker::Worker;
+    use crate::inbox::{InboxPane, Stage};
+    let ((tx, _), (_, rx)) = (std::sync::mpsc::channel(), std::sync::mpsc::channel());
+    let p = InboxPane::with(Stage::Ready(Worker { tx, rx }));
+    let text: String = p.cells(80, 24).iter().map(|c| c.c).collect();
+    assert!(text.contains("refresh") && text.contains("gmail"), "{text}");
+    assert!(
+        !text.contains("archive") && !text.contains("reply"),
+        "{text}"
+    );
+}

@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.41
+
+**An empty inbox offers the keys it can use, and listings lose their `#`.**
+- With no threads to show (inbox zero, the first page loading, or Gmail out of reach),
+  `/inbox`'s footer still listed all sixteen thread keys: archive, delete, reply, star.
+  None of them had anything to act on. When Gmail couldn't be reached, the one key that
+  helps, `R`, was third in the list.
+- An empty list now shows `R refresh`, `/ search`, `z undo` and `o gmail`, with refresh
+  first. The full list comes back with the first thread.
+- `/tools`, `/watching`, `/integrations`, `/lsp` and a block's listing opened with a
+  markdown `# ` before their title, which the viewer shows as plain text, so a stray `#`
+  led every one of them. They now begin with the title itself.
+
 ## 0.29.40
 
 **A follow-up to Claude Code picks up where its last turn left off.**

@@ -21,7 +21,7 @@ pub(crate) type Row = (String, String, bool);
 /// The listing for `rows` and the `running` `(language, root)` pairs, as
 /// viewer text.
 pub(crate) fn listing(rows: &[Row], running: &[(String, PathBuf)]) -> String {
-    let mut out = String::from("# lsp \u{b7} language servers\n");
+    let mut out = String::from("lsp \u{b7} language servers\n");
     let installed = rows.iter().filter(|r| r.2).count();
     let lang_w = rows.iter().map(|r| r.0.chars().count()).max().unwrap_or(4);
     // The command column is capped so a row fits a tile ([`toolsrow::ROW_W`],

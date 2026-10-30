@@ -101,6 +101,16 @@ pub(crate) const LIST: Keys = &[
     ("L", "lines"),
     ("o", "gmail"),
 ];
+/// A list with nothing in it — inbox zero, the first page loading, Gmail
+/// out of reach: the thread keys had nothing to act on, and on a list that
+/// could not be had the one key that helps, `R`, sat third among sixteen.
+pub(crate) const EMPTY: Keys = &[
+    ("R", "refresh"),
+    ("/", "search"),
+    GAP,
+    ("z", "undo"),
+    ("o", "gmail"),
+];
 pub(crate) const READER: Keys = &[
     ("esc", "back"),
     ("n", "next"),

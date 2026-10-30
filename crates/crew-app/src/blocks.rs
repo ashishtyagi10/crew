@@ -62,7 +62,7 @@ fn elapsed(ms: u64) -> String {
 /// `now` is the monotonic clock, so a block still running reports how long it
 /// has been at it rather than nothing at all.
 pub(crate) fn listing(spans: &Spans, title: &str, now: u64) -> String {
-    let mut out = format!("# blocks \u{b7} {title}\n\n");
+    let mut out = format!("blocks \u{b7} {title}\n\n");
     let mut any = false;
     for (i, s) in spans.recent().enumerate() {
         any = true;
