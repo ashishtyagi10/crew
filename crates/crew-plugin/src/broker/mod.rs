@@ -26,6 +26,7 @@ mod checkpoint;
 mod ckptgate;
 mod claudeagent;
 mod claudelane;
+mod clauderesume;
 mod clistop;
 mod commands;
 mod compact;

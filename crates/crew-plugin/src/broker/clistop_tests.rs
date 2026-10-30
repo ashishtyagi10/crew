@@ -50,6 +50,7 @@ fn a_stop_ends_the_running_claude_relay() {
         program: sleeper().to_str().unwrap().into(),
         model: None,
         idle_floor: Duration::from_secs(60),
+        resume: Default::default(),
     };
     let (got, took) = stopped_while(|| {
         agent.call_with_usage_ticked("hi", Duration::from_secs(60), &HopStream::noop())

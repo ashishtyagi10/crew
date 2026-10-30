@@ -53,6 +53,7 @@ fn agent(path: &std::path::Path, idle_floor: Duration) -> ClaudeAgent {
         program: path.to_str().unwrap().into(),
         model: None,
         idle_floor,
+        resume: Default::default(),
     }
 }
 
@@ -181,7 +182,7 @@ fn the_deadline_restarts_on_every_line_and_kills_a_silent_cli() {
     let mut a = agent(&path, Duration::ZERO);
     a.model = Some("claude-fable-5".into());
     assert!(a
-        .args("x")
+        .args("x", None)
         .ends_with(&["--model".to_string(), "claude-fable-5".to_string()]));
     let t0 = std::time::Instant::now();
     let err = a.call("go", Duration::from_millis(300)).unwrap_err();

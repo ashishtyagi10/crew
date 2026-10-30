@@ -10,7 +10,7 @@ fn known_adapters_are_the_three_agents() {
 fn claude_is_the_streaming_agent_with_the_body_as_an_argument() {
     let c = claude();
     assert_eq!(c.program, "claude");
-    let args = c.args("say hi");
+    let args = c.args("say hi", None);
     assert_eq!(&args[..2], ["-p", "say hi"]);
     assert!(args.contains(&"stream-json".to_string()));
     assert!(

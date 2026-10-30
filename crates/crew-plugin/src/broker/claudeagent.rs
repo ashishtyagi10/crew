@@ -21,6 +21,7 @@ use crew_hive::claudestream::{parse_line, Fold};
 
 use super::adapter::{Adapter, HopStream, Usage};
 use super::claudelane::{finish, Lane};
+use super::clauderesume::{Resume, Task};
 use super::clistop::{end, Stop};
 use super::run::on_path;
 
@@ -33,6 +34,8 @@ pub struct ClaudeAgent {
     pub model: Option<String>,
     /// Test seam: the idle floor (`IDLE_FLOOR` in the real adapter).
     pub idle_floor: Duration,
+    /// The session the next message continues (`clauderesume`).
+    pub resume: Resume,
 }
 
 impl ClaudeAgent {
@@ -41,14 +44,16 @@ impl ClaudeAgent {
             program: "claude".into(),
             model: model.filter(|m| !m.is_empty()),
             idle_floor: IDLE_FLOOR,
+            resume: Resume::shared(),
         }
     }
 
     /// The argv one call becomes: print mode with the body as an ARGUMENT
     /// (never piped as chatter), the streamed envelope (`--verbose` is what
     /// lets `-p` stream; partial messages carry the deltas), the model when
-    /// one is pinned. No `--tools ""`: the agent keeps its hands.
-    pub fn args(&self, body: &str) -> Vec<String> {
+    /// one is pinned, and the session it continues. No `--tools ""`: the
+    /// agent keeps its hands.
+    pub fn args(&self, body: &str, resume: Option<&str>) -> Vec<String> {
         let mut v = vec![
             "-p".to_string(),
             body.to_string(),
@@ -61,18 +66,23 @@ impl ClaudeAgent {
             v.push("--model".into());
             v.push(m.clone());
         }
+        if let Some(id) = resume {
+            v.extend(["--resume".into(), id.to_string()]);
+        }
         v
     }
 
-    fn run(
+    pub(super) fn run_once(
         &self,
         body: &str,
         timeout: Duration,
         stream: &HopStream,
+        resume: Option<&str>,
+        task: &Task,
     ) -> Result<(String, Usage), String> {
         let program = &self.program;
         let mut child = no_console_window(&mut Command::new(program))
-            .args(self.args(body))
+            .args(self.args(body, resume))
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -130,6 +140,9 @@ impl ClaudeAgent {
         let stderr = erx
             .recv_timeout(Duration::from_millis(250))
             .unwrap_or_default();
+        if let Some(r) = fold.result.as_ref() {
+            self.resume.keep(&r.session_id, task);
+        }
         finish(fold, program, &stderr)
     }
 }
