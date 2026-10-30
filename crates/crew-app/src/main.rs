@@ -419,6 +419,7 @@ mod menuink;
 #[cfg(test)]
 #[path = "menushot_tests.rs"]
 mod menushot_tests;
+mod menuwash;
 mod metertrack;
 mod minpreview;
 #[cfg(test)]

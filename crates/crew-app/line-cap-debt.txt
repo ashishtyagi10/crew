@@ -39,7 +39,7 @@ src/chattype.rs 314
 src/chatview.rs 275
 src/chatview_tests.rs 786
 src/clipboard.rs 301
-src/cmdmenu_tests.rs 208
+src/cmdmenu_tests.rs 205
 src/cmdrow_tests.rs 223
 src/cmdspan.rs 211
 src/cmdspan_tests.rs 332
