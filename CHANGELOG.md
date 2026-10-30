@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.40
+
+**A follow-up to Claude Code picks up where its last turn left off.**
+- Every message relayed to Claude Code started a fresh `claude -p`. What it had read, run
+  and changed the turn before was gone; a follow-up got only a short recap of the words.
+  Asked "rename it and fix the callers" after "where is relative_luminance used?", it
+  searched the repo again: six rounds, five commands, 18.8 s.
+- A new message now continues Claude Code's own session (`--resume`), as its interactive
+  sessions do. The same follow-up took two rounds, one command and 8.8 s. A follow-up that
+  needs nothing from before costs the same either way (22.8 s against 25.5 s).
+- Only the first run of a message resumes. A session older than 30 minutes, or one a stop
+  or failure ended, is not resumed, and a resume Claude Code refuses runs again fresh. Bare
+  `/stop` and `/clear` start over. From Claude Code's own `--continue`.
+
 ## 0.29.39
 
 **While smith works, its tool calls fold to the last three and a count.**

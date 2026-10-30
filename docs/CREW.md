@@ -2977,6 +2977,12 @@ and a typo gets a **did-you-mean** suggestion):
   to tell a follow-up from a fresh request. Failed and stopped turns are not
   kept; bare `/stop` or a broker restart clears it (the session log above
   remains the durable record); `/doctor` reports `thread: N turns remembered`.
+  Relayed to Claude Code, a follow-up does better than a recap: it
+  **continues Claude Code's own session** (`--resume`), so what the last turn
+  read, ran and changed is still in front of it. Only the first run of a new
+  message resumes, a session older than 30 minutes or one a stop or failure
+  ended is not, and a resume Claude Code refuses runs again fresh; bare
+  `/stop` and `/clear` forget it with the thread.
 - **the repo's own instructions are followed** — no command, no import: on
   every task crew looks for an **`AGENTS.md`**, **`CLAUDE.md`** or **`GEMINI.md`**, from the
   working directory up to the repository root (`.git`, at most eight levels),

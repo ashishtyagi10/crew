@@ -15,8 +15,7 @@ pub enum StreamEvent {
     Text(String),
     /// A fragment of the model's reasoning.
     Thought(String),
-    /// A whole text block on an `assistant` message — the fallback reply
-    /// source for a CLI that never sent partial deltas.
+    /// A whole `assistant` text block: the reply of a CLI with no deltas.
     AssistantText(String),
     /// The model asked for one of Claude Code's tools; `input` is the
     /// compact JSON of its arguments.
@@ -46,6 +45,8 @@ pub struct RunResult {
     /// The run's `stop_reason` was the token ceiling (`stopreason`). Older
     /// CLIs send none, which reads as finished — the answer they always got.
     pub truncated: bool,
+    /// The session the run was, which `--resume` continues.
+    pub session_id: String,
 }
 
 /// Parse one stdout line. `None` for a blank line or one that is not a JSON
@@ -77,16 +78,15 @@ pub fn parse_line(line: &str) -> Option<StreamEvent> {
             output_tokens: v["usage"]["output_tokens"].as_u64().unwrap_or(0) as u32,
             cost_microusd: (v["total_cost_usd"].as_f64().unwrap_or(0.0) * 1e6).round() as u64,
             truncated: super::stopreason::anthropic(v["stop_reason"].as_str()),
+            session_id: str_of(&v["session_id"]),
         }),
         _ => StreamEvent::Other,
     })
 }
 
-/// The context fill a `result` line's usage stands for: the whole prompt of
-/// the run's LAST call. The usage is summed over every call of the run, and
-/// its `input_tokens` is only the uncached remainder (2 of a 30,381-token
-/// prompt, 2026-10-30), so read alone it put "2 in" under every relay reply.
-/// `iterations` carries the last call; a CLI that sends none is read whole.
+/// The context a `result` line's usage stands for: the run's LAST call's
+/// whole prompt (`iterations`), not its summed, uncached `input_tokens` —
+/// "2 in" under every relay reply of a 30,381-token prompt (2026-10-30).
 fn context_of(usage: &Value) -> u32 {
     let last = usage["iterations"]
         .as_array()

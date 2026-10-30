@@ -159,6 +159,13 @@ fn now_ms() -> u64 {
     since.map(|d| d.as_millis() as u64).unwrap_or_default()
 }
 
+/// A fresh start (`/stop`, `/clear`): the thread, and the Claude Code
+/// session a follow-up would have continued (`clauderesume`).
+pub(crate) fn forget(thread: &SharedThread) {
+    lock(thread).clear();
+    super::clauderesume::Resume::shared().forget();
+}
+
 /// The shared slot, poison-tolerant.
 pub(crate) fn lock(thread: &SharedThread) -> MutexGuard<'_, Thread> {
     thread.lock().unwrap_or_else(|e| e.into_inner())

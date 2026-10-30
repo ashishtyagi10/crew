@@ -252,7 +252,7 @@ fn send(
     if trimmed == "/stop" || trimmed.starts_with("/stop ") {
         let arg = trimmed.strip_prefix("/stop").unwrap().trim();
         if arg.is_empty() {
-            super::thread::lock(&session.thread).clear(); // a fresh start, not a follow-up
+            super::thread::forget(&session.thread); // a fresh start, not a follow-up
             super::steer::clear(); // nor does a cancelled run take what was typed into it
             let n = tasks.cancel_all();
             let m = if n == 0 {
@@ -275,7 +275,7 @@ fn send(
     // stops, and the thread, a pending plan and anything typed into a run are
     // forgotten. The pane clears its own transcript (`chatslash`).
     if trimmed == "/clear" {
-        super::thread::lock(&session.thread).clear();
+        super::thread::forget(&session.thread);
         super::steer::clear();
         *session.plan.lock().unwrap_or_else(|e| e.into_inner()) = None;
         let m = match tasks.cancel_all() {
