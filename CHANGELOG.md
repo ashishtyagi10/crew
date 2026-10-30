@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.43
+
+**A mail attachment that is a program is saved, never opened.**
+- Clicking an attachment in `/inbox` saved it to Downloads and opened it with whatever
+  macOS assigns to its kind. For `invoice.pdf.command` that is Terminal: one click ran a
+  stranger's script with no question asked. The file was also written without the
+  "downloaded from the internet" mark that Mail and every browser add, so macOS never
+  checked it either.
+- An attachment now opens only when it is a document, a picture, sound or video (PDF,
+  Office and iWork files, images, text, calendar and contact files, audio and video, zip).
+  Anything else is saved and left closed, and the note says "not opened: it is not a
+  document". Every saved file now carries the downloaded mark, so Gatekeeper asks before
+  it runs.
+- The README said Cmd+click; a plain click is what saves it.
+
 ## 0.29.42
 
 **A program killed mid-frame no longer freezes its pane.**

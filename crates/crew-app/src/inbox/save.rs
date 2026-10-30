@@ -44,6 +44,54 @@ pub(crate) fn free_path(dir: &Path, name: &str) -> PathBuf {
         .expect("an unbounded range finds a free name")
 }
 
+/// Kinds a click may open once saved: documents, pictures, sound and video.
+/// Everything else — `.command`, `.app`, `.pkg`, `.sh`, `.jar`, a name with
+/// no kind at all — is saved and NOT opened: a mail's attachment is a
+/// stranger's file, and `invoice.pdf.command` ran in Terminal on one click.
+const OPENS: &[&str] = &[
+    "pdf", "png", "jpg", "jpeg", "gif", "heic", "webp", "svg", "bmp", "tiff", "txt", "md", "csv",
+    "rtf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pages", "numbers", "key", "odt", "ods",
+    "odp", "ics", "vcf", "eml", "json", "xml", "log", "mp3", "m4a", "wav", "aac", "mp4", "mov",
+    "m4v", "webm", "zip",
+];
+
+/// What a saved attachment does next, and the line that says so: a
+/// document or picture opens in its app; anything else stays in Downloads,
+/// marked as downloaded (`quarantine`) so macOS checks it when you open it.
+pub(crate) fn opened(path: &Path) -> String {
+    quarantine(path);
+    let name = path
+        .file_name()
+        .map_or(String::new(), |n| n.to_string_lossy().into());
+    let kind = path
+        .extension()
+        .map(|e| e.to_string_lossy().to_ascii_lowercase());
+    match kind.filter(|k| OPENS.contains(&k.as_str())) {
+        Some(_) => {
+            crate::linkclick::open_external(&path.to_string_lossy());
+            format!("saved {name} to Downloads \u{2014} opening it")
+        }
+        None => format!("saved {name} to Downloads \u{2014} not opened: it is not a document"),
+    }
+}
+
+/// Mark `path` as downloaded from the internet, as Mail and every browser
+/// do, so Gatekeeper asks before it runs (`/usr/bin/xattr`: no new crate).
+fn quarantine(path: &Path) {
+    #[cfg(all(target_os = "macos", not(test)))]
+    {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs());
+        let _ = std::process::Command::new("/usr/bin/xattr")
+            .args(["-w", "com.apple.quarantine", &format!("0081;{now:x};crew;")])
+            .arg(path)
+            .stderr(std::process::Stdio::null())
+            .status();
+    }
+    let _ = path;
+}
+
 /// The worker's answer to [`Ask::Save`]: the file written, or why not.
 pub(crate) fn save(
     g: &mut Gmail,
@@ -131,3 +179,7 @@ mod tests {
 #[cfg(test)]
 #[path = "attach_tests.rs"]
 mod attach_tests;
+
+#[cfg(test)]
+#[path = "saveopen_tests.rs"]
+mod open_tests;
