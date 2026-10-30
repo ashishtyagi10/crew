@@ -534,6 +534,9 @@ mod navinboxcard;
 #[cfg(any(windows, test))]
 mod posh;
 mod procname;
+#[cfg(test)]
+#[path = "proofshot_tests.rs"]
+mod proofshot_tests;
 mod quit;
 mod readout;
 mod reducemotion;
@@ -608,6 +611,7 @@ mod termimg;
 #[path = "termshot_tests.rs"]
 mod termshot_tests;
 mod termwrite;
+mod testtally;
 mod themefade;
 mod themepeek;
 mod themereport;
