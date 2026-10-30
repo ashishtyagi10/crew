@@ -10,6 +10,7 @@ mod model;
 mod modes;
 mod osc;
 mod pty;
+mod ptyident;
 mod schemenotify;
 pub use graphicscmd::ImageCmd;
 pub use model::{GridSize, HeadlessTerm, PlacedImage, RenderCell, TermModel};
