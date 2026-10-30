@@ -89,8 +89,11 @@ impl InboxPane {
             return false;
         };
         if self.star_at(cols, rows, i, row, col) {
-            self.select(i);
-            self.triage("s");
+            // Beside an open mail the selection stays where `n` steps from.
+            if self.reading.is_none() {
+                self.select(i);
+            }
+            self.star_row(i);
             return true;
         }
         match (self.reading.is_some(), i == self.sel) {
@@ -129,3 +132,7 @@ impl InboxPane {
 #[cfg(test)]
 #[path = "mouse_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "clickkeep_tests.rs"]
+mod keep_tests;

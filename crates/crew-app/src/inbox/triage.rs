@@ -97,13 +97,32 @@ impl InboxPane {
         on: &str,
         field: fn(&mut Thread) -> &mut bool,
     ) {
-        let Some((at, before)) = self.target() else {
+        if let Some((at, _)) = self.target() {
+            self.flip_at(at, label, (off, on), field);
+        }
+    }
+
+    /// The star on row `at` clicked: that row's, whichever thread is open.
+    /// It went through the keys' target — the open thread first — so beside
+    /// an open mail a click on another row's ★ starred the open one.
+    pub(crate) fn star_row(&mut self, at: usize) {
+        self.flip_at(at, "STARRED", ("unstarred", "starred"), |t| &mut t.starred);
+    }
+
+    fn flip_at(
+        &mut self,
+        at: usize,
+        label: &'static str,
+        (off, on): (&str, &str),
+        field: fn(&mut Thread) -> &mut bool,
+    ) {
+        let Some(before) = self.rows.get(at).cloned() else {
             return;
         };
         let row = &mut self.rows[at];
         let set = !*field(row);
         *field(row) = set;
-        if let Some(r) = self.reading.as_mut() {
+        if let Some(r) = self.reading.as_mut().filter(|r| r.thread.id == before.id) {
             *field(&mut r.thread) = set;
         }
         let (add, remove) = if set {

@@ -39,6 +39,9 @@ impl InboxPane {
         self.opened(&thread.id);
         self.reading = Some(Reading::new(thread));
         self.pics.clear();
+        // `a`, `t` or `r` pressed on a thread that was then left with Esc is
+        // forgotten: opened again later, it handed the mail to smith anyway.
+        self.then = None;
         true
     }
 
