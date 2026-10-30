@@ -359,6 +359,7 @@ mod ipc_types;
 #[cfg(windows)]
 mod ipc_win;
 mod keychord;
+mod keyenc;
 mod keyentry;
 mod keyhint;
 mod keyroute;

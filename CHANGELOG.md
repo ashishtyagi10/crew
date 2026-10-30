@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.37
+
+**Option+arrows jump a word, and F1–F12 reach the program.**
+- In a crew terminal pane, Option+← and Option+→ moved one character and Option+Backspace
+  deleted one, unlike in every other Mac terminal. F1 to F12 sent nothing at all, so
+  htop's F10, mc's bottom row and vim's mapped function keys did nothing.
+- Option+←/→ now send the shell's own word keys and Option+Backspace deletes the word
+  before the cursor, as Terminal.app and Ghostty do (checked in a bare zsh and bash). The
+  function keys send xterm's sequences, with Shift, Option or Ctrl folded in. A program
+  that puts the cursor keys in application mode gets the arrows in that mode.
+- Shift- and Ctrl-arrows still send plain arrows. Their xterm forms are unbound in a bare
+  zsh or bash, which swallowed them and the next key typed.
+
 ## 0.29.36
 
 **The row you're on in the palette and every picker is highlighted.**
