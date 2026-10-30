@@ -42,16 +42,35 @@ pub(crate) fn text(msg: &Value) -> (Rich, Vec<String>) {
 }
 
 /// The first part of `mime` in the tree, depth first: its text, and the
-/// charset it was in when that is not one crew reads.
+/// charset it was in when that is not one crew reads. Inside a
+/// `multipart/mixed` it is every such piece in order, joined: Apple Mail
+/// sends a file placed in the middle of the text as html, the file, then
+/// more html, and only the first piece was read — the ask and the signature
+/// after an inline PDF were never shown, forwarded or handed to smith.
 pub(crate) fn find(part: &Value, mime: &str) -> Option<(String, Option<String>)> {
-    let named_file = part["filename"].as_str().is_some_and(|f| !f.is_empty());
-    if part["mimeType"].as_str() == Some(mime) && !named_file {
+    if part["mimeType"].as_str() == Some(mime) && !named(part) {
         if let Some(bytes) = part["body"]["data"].as_str().and_then(bytes) {
             let cs = super::charset::of(&header(part, "Content-Type"));
             return Some(super::charset::decode(&bytes, cs.as_deref()));
         }
     }
-    part["parts"].as_array()?.iter().find_map(|p| find(p, mime))
+    let kids = part["parts"].as_array()?;
+    if part["mimeType"].as_str() != Some("multipart/mixed") {
+        return kids.iter().find_map(|p| find(p, mime));
+    }
+    let pieces: Vec<_> = kids
+        .iter()
+        .filter(|p| !named(p))
+        .filter_map(|p| find(p, mime))
+        .collect();
+    let cs = pieces.iter().find_map(|(_, cs)| cs.clone());
+    let text: Vec<String> = pieces.into_iter().map(|(t, _)| t).collect();
+    (!text.is_empty()).then(|| (text.join("\n"), cs))
+}
+
+/// A part sent as a file: it has a name.
+fn named(part: &Value) -> bool {
+    part["filename"].as_str().is_some_and(|f| !f.is_empty())
 }
 
 /// A part's own header (`payload.headers`, or a sub-part's `headers`).
@@ -171,3 +190,7 @@ pub(crate) fn clean(text: &str) -> String {
 #[cfg(test)]
 #[path = "body_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "bodymixed_tests.rs"]
+mod mixed_tests;
