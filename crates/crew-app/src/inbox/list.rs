@@ -125,7 +125,7 @@ impl InboxPane {
     fn motion_paint(&self, cols: u16, rows: u16) -> Vec<Paint> {
         let now = crate::anim::now_ms();
         let shown = self.shown_at(rows, now);
-        let (w, lines) = (f32::from(cols.saturating_sub(1)), f32::from(shown.lines));
+        let (w, lines) = (f32::from(cols), f32::from(shown.lines));
         let at = |i: usize| {
             shown
                 .threads()
