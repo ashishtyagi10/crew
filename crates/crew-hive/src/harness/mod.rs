@@ -41,6 +41,9 @@ mod toolloop;
 #[path = "advice_tests.rs"]
 mod advice_tests;
 #[cfg(test)]
+#[path = "stopdial_tests.rs"]
+mod stopdial_tests;
+#[cfg(test)]
 #[path = "whole_tests.rs"]
 mod whole_tests;
 

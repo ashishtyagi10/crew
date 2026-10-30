@@ -73,7 +73,11 @@ pub fn run_cli(program: &str, args: &[String], timeout: Duration) -> Result<Stri
     });
 
     let deadline = Instant::now() + timeout;
+    let stop = super::clistop::Stop::current();
     loop {
+        if stop.pressed() {
+            return Err(super::clistop::end(&mut child));
+        }
         match rx.recv_timeout(Duration::from_millis(50)) {
             Ok(out) if !out.trim().is_empty() => {
                 let _ = child.wait();

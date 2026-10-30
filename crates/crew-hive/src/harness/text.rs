@@ -85,6 +85,10 @@ pub(super) async fn run(
         let completion = match ctx.unless_stopped(call).await {
             None => return Ended::Stopped,
             Some(Ok(c)) => c,
+            // A dial that blocks (a relay CLI) cannot be dropped mid-call; it
+            // ends itself on the stop and comes back an error, which the
+            // stop is, not a failure.
+            Some(Err(_)) if ctx.stopped() => return Ended::Stopped,
             // Too long for the model: once, the log cut to fit.
             Some(Err(err))
                 if !cut

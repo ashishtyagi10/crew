@@ -11,17 +11,17 @@
 //! is the broker's call timeout with a floor (`IDLE_FLOOR`), because one
 //! long-running tool call (a build, a test run) prints nothing until it
 //! returns.
-use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read};
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use crew_hive::childproc::no_console_window;
-use crew_hive::claudestream::{parse_line, Fold, StreamEvent};
-use crew_hive::{AgentId, HiveEvent};
+use crew_hive::claudestream::{parse_line, Fold};
 
 use super::adapter::{Adapter, HopStream, Usage};
+use super::claudelane::Lane;
+use super::clistop::{end, Stop};
 use super::run::{explain_failure, on_path};
 
 /// The least idle time a streaming agent is granted, whatever the call
@@ -98,45 +98,20 @@ impl ClaudeAgent {
         });
 
         let idle = timeout.max(self.idle_floor);
-        let agent = AgentId::minted("claude");
+        let mut lane = Lane::new();
         let mut fold = Fold::default();
-        let mut open: HashMap<String, (String, Instant)> = HashMap::new();
-        let mut chars = 0u64;
         let mut last = Instant::now();
+        let stop = Stop::current();
         loop {
+            if stop.pressed() {
+                (stream.on_thought)("");
+                return Err(end(&mut child));
+            }
             match rx.recv_timeout(Duration::from_millis(50)) {
                 Ok(line) => {
                     last = Instant::now();
                     let ev = parse_line(&line);
-                    match ev.as_ref() {
-                        Some(StreamEvent::Text(t)) => {
-                            (stream.on_text)(t);
-                            chars += t.chars().count() as u64;
-                            (stream.on_tokens)(chars / 4);
-                        }
-                        Some(StreamEvent::Thought(t)) => (stream.on_thought)(t),
-                        Some(StreamEvent::ToolUse { id, name, input }) => {
-                            open.insert(id.clone(), (name.clone(), Instant::now()));
-                            (stream.on_tool)(HiveEvent::ToolCall {
-                                agent: agent.clone(),
-                                label: name.clone(),
-                                args: input.clone(),
-                            });
-                        }
-                        Some(StreamEvent::ToolResult { id, ok, text }) => {
-                            let (label, t0) = open
-                                .remove(id)
-                                .unwrap_or_else(|| ("tool".into(), Instant::now()));
-                            (stream.on_tool)(HiveEvent::ToolResult {
-                                agent: agent.clone(),
-                                label,
-                                ok: *ok,
-                                text: text.clone(),
-                                ms: t0.elapsed().as_millis() as u64,
-                            });
-                        }
-                        _ => {}
-                    }
+                    lane.forward(ev.as_ref(), stream);
                     fold.push(ev.as_ref(), &line);
                 }
                 Err(mpsc::RecvTimeoutError::Disconnected) => break,
