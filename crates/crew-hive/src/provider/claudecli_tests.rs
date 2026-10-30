@@ -86,7 +86,7 @@ fn claude_cli_reads_the_json_envelope() {
     let c = ClaudeCliProvider::parse_result(ok).unwrap();
     assert_eq!(
         (c.text.as_str(), c.input_tokens, c.output_tokens),
-        ("pong", 10, 50)
+        ("pong", 25_225, 50)
     );
     assert_eq!(c.cost_microusd, 0);
     assert!(c.calls.is_empty());

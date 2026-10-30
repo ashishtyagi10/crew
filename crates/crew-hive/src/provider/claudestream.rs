@@ -73,13 +73,26 @@ pub fn parse_line(line: &str) -> Option<StreamEvent> {
             text: str_of(&v["result"]),
             is_error: v["is_error"].as_bool().unwrap_or(false),
             subtype: str_of(&v["subtype"]),
-            input_tokens: v["usage"]["input_tokens"].as_u64().unwrap_or(0) as u32,
+            input_tokens: context_of(&v["usage"]),
             output_tokens: v["usage"]["output_tokens"].as_u64().unwrap_or(0) as u32,
             cost_microusd: (v["total_cost_usd"].as_f64().unwrap_or(0.0) * 1e6).round() as u64,
             truncated: super::stopreason::anthropic(v["stop_reason"].as_str()),
         }),
         _ => StreamEvent::Other,
     })
+}
+
+/// The context fill a `result` line's usage stands for: the whole prompt of
+/// the run's LAST call. The usage is summed over every call of the run, and
+/// its `input_tokens` is only the uncached remainder (2 of a 30,381-token
+/// prompt, 2026-10-30), so read alone it put "2 in" under every relay reply.
+/// `iterations` carries the last call; a CLI that sends none is read whole.
+fn context_of(usage: &Value) -> u32 {
+    let last = usage["iterations"]
+        .as_array()
+        .and_then(|calls| calls.last())
+        .unwrap_or(usage);
+    super::served::anthropic_input(last)
 }
 
 fn delta(ev: &Value) -> StreamEvent {
