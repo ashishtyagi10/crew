@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.34
+
+**New mail shows up after you page down, and a failed list is never "inbox zero".**
+- `/inbox` checks Gmail every minute and lists again only when the mailbox moved since it
+  last looked. But "last looked" also counted the older threads `j` fetched at the end of
+  the list. Mail that arrived before you paged stayed hidden until something else changed
+  the mailbox.
+- It also counted a list that failed. When Gmail asked crew to slow down, or a thread
+  timed out, the next minute's check found nothing new and the pane drew "inbox zero ·
+  checked just now" over a list it had never received.
+- Only the first page that actually arrived counts now. Paging on doesn't stand in for
+  it, and a failed list makes the next check list again.
+
 ## 0.29.33
 
 **Smith's proof says how many tests ran, and none is not a check.**
