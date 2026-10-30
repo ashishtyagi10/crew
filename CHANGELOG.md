@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.33
+
+**Smith's proof says how many tests ran, and none is not a check.**
+- When a turn edits files, agent smith says under its receipt whether a build or test ran
+  after the last edit. That line went by the exit code alone. "`cargo test` passed" read
+  the same for 400 tests as for a filter that matched none: `cargo test some_name` that
+  finds nothing exits 0, so a turn that ran nothing read as checked.
+- The line now reads the runner's own count, straight after the command so a folded
+  receipt keeps it: "✓ checked: `cargo test -p crew-theme` — 42 tests passed in 12s after
+  the last edit", or "✗ failing: … — 2 of 44 tests failed after the last edit:
+  luminance_swaps, ratio_is_symmetric". A run of no tests reads "! not checked: … ran no
+  tests after the last edit".
+- It reads the counts cargo prints (summed over every test binary), pytest's closing line,
+  and jest's and vitest's `Tests` line. A build, or a runner it doesn't recognise, gets
+  the old wording. From Claude Code and Codex, which quote the runner's summary rather
+  than say "tests pass".
+
 ## 0.29.32
 
 **Programs in a pane know they run in crew, and in full colour.**

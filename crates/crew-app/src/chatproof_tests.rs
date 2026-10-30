@@ -3,7 +3,7 @@ use crew_plugin::PluginEvent;
 
 use super::Proof;
 
-fn call(label: &str, args: &str) -> PluginEvent {
+pub(super) fn call(label: &str, args: &str) -> PluginEvent {
     PluginEvent::Hive {
         event: HiveEvent::ToolCall {
             agent: AgentId::minted("claude"),
@@ -35,7 +35,7 @@ fn card(text: &str) -> PluginEvent {
     }
 }
 
-fn settled(events: &[PluginEvent]) -> Option<String> {
+pub(super) fn settled(events: &[PluginEvent]) -> Option<String> {
     let mut p = Proof::default();
     events.iter().for_each(|e| p.hear(e));
     p.settle()
