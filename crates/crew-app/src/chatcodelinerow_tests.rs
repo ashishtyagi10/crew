@@ -64,3 +64,6 @@ fn a_busy_pane_draws_it_directly_above_the_composer() {
         text(&cells)
     );
 }
+
+#[path = "chatcodelinetool_tests.rs"]
+mod tool_tests;

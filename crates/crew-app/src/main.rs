@@ -201,6 +201,7 @@ mod chattoolfold;
 mod chattoolkind;
 mod chattoolline;
 mod chattoolview;
+mod chattoolwindow;
 mod chattranscript;
 mod chattype;
 mod chatusage;
@@ -653,6 +654,9 @@ mod toolshot_tests;
 mod toolsrow;
 mod toolstally;
 mod toolsview;
+#[cfg(test)]
+#[path = "toolwindowshot_tests.rs"]
+mod toolwindowshot_tests;
 mod tubesheer;
 mod tui;
 mod turndone;

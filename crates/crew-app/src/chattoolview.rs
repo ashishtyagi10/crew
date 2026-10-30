@@ -62,17 +62,21 @@ pub(crate) fn header(b: &ToolBlock) -> CardLine {
     line
 }
 
-/// The block's rows: every line (plus opened text) while live; the summary
-/// alone once settled, the summary then the lines when clicked open.
+/// The block's rows: the last calls (plus opened text) under a head counting
+/// the rest while live (`chattoolwindow`); the summary alone once settled,
+/// the summary then the lines when clicked open.
 pub(crate) fn block_lines(b: &ToolBlock, now_ms: u64, cols: usize, on: bool) -> Vec<CardLine> {
     let mut out = Vec::new();
+    let fold = crate::chattoolwindow::fold(b);
     if b.settled {
         out.push(summary(b, cols, on));
         if !b.expanded {
             return out;
         }
+    } else if let Some(hidden) = fold {
+        out.push(crate::chattoolwindow::head(b, hidden, cols, on));
     }
-    for l in &b.lines {
+    for l in b.lines.iter().skip(fold.unwrap_or(0)) {
         out.push(render(l, now_ms, cols, on));
         out.extend(text_rows(l, cols));
     }
@@ -82,17 +86,15 @@ pub(crate) fn block_lines(b: &ToolBlock, now_ms: u64, cols: usize, on: bool) -> 
 /// Which of the block's [`block_lines`] rows `offset` is — the same walk,
 /// so the two cannot disagree.
 pub(crate) fn hit(b: &ToolBlock, cols: usize, offset: usize) -> Option<ToolHit> {
-    let mut at = 0;
-    if b.settled {
-        if offset == 0 {
-            return Some(ToolHit::Summary);
-        }
-        if !b.expanded {
-            return None;
-        }
-        at = 1;
+    let fold = crate::chattoolwindow::fold(b);
+    if (b.settled || fold.is_some()) && offset == 0 {
+        return Some(ToolHit::Summary);
     }
-    for (i, l) in b.lines.iter().enumerate() {
+    if b.settled && !b.expanded {
+        return None;
+    }
+    let mut at = usize::from(b.settled || fold.is_some());
+    for (i, l) in b.lines.iter().enumerate().skip(fold.unwrap_or(0)) {
         let n = 1 + text_rows(l, cols).len();
         if offset < at + n {
             return Some(ToolHit::Line(i));

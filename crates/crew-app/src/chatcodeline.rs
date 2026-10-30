@@ -125,7 +125,7 @@ pub(crate) fn cells_at(f: &Frame, now: u64) -> Vec<CellView> {
         return out;
     }
     let quiet = now.saturating_sub(f.last_work);
-    let stalled = quiet > STALL_MS;
+    let stalled = quiet > STALL_MS && !f.tool; // a tool's run is work, if silent
     let lit = 1.0 - (quiet as f32 / LIT_MS as f32).min(1.0);
     let slow = if stalled { STALL_SLOW } else { 1 };
     let ms = |base: u64| crate::shimmer::period(base, f.level);
