@@ -36,7 +36,7 @@ pub(crate) fn relay_turn(
     // could false-match a name), then standing memory rides on top. Each
     // applied playbook is announced under the agent being dialled — the one
     // whose reply the pane draws the skill line above.
-    let framed = super::skillframe::with_skills_on(skills_on, body);
+    let framed = super::skillcatalog::framed(broker, start, skills_on, body);
     for ev in super::skillframe::loaded_events(&framed.applied, start) {
         emit(ev)?;
     }

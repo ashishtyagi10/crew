@@ -93,6 +93,7 @@ mod session;
 mod sessionlog;
 mod shellenv;
 mod signin;
+mod skillcatalog;
 mod skillchoice;
 mod skillframe;
 mod skills;

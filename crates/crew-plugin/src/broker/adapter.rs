@@ -102,6 +102,13 @@ pub trait Adapter: Send + Sync {
     fn introduced(&self) -> bool {
         false
     }
+    /// Whether this agent opens files with tools of its own (Claude Code,
+    /// codex, opencode): it is handed the skill catalog and reads the
+    /// playbook it needs, rather than waiting on a model to pick one for it
+    /// (`skillcatalog`).
+    fn reads_files(&self) -> bool {
+        false
+    }
     /// Whether this agent's CLI is installed and usable on this machine.
     fn probe(&self) -> bool;
     /// The model behind this agent when the harness can drive it whole, or
@@ -156,6 +163,10 @@ impl Adapter for CliAdapter {
 
     fn probe(&self) -> bool {
         on_path(&self.program)
+    }
+
+    fn reads_files(&self) -> bool {
+        true
     }
 
     fn call(&self, body: &str, timeout: Duration) -> Result<String, String> {

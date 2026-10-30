@@ -20,9 +20,9 @@ use crew_hive::childproc::no_console_window;
 use crew_hive::claudestream::{parse_line, Fold};
 
 use super::adapter::{Adapter, HopStream, Usage};
-use super::claudelane::Lane;
+use super::claudelane::{finish, Lane};
 use super::clistop::{end, Stop};
-use super::run::{explain_failure, on_path};
+use super::run::on_path;
 
 /// The least idle time a streaming agent is granted, whatever the call
 /// timeout says: a tool call prints nothing while it runs.
@@ -134,36 +134,6 @@ impl ClaudeAgent {
     }
 }
 
-/// The reply a folded run is: the CLI's own refusal reads as the error it
-/// printed; an empty run is explained from stderr (`run::explain_failure`).
-fn finish(fold: Fold, program: &str, stderr: &str) -> Result<(String, Usage), String> {
-    if let Some(r) = fold.result.as_ref() {
-        if r.is_error || (!r.subtype.is_empty() && r.subtype != "success") {
-            let text = r.text.trim();
-            return Err(if text.is_empty() {
-                format!("{program} exited with {}", r.subtype)
-            } else {
-                format!("{program}: {text}")
-            });
-        }
-    }
-    let text = fold.reply();
-    if text.is_empty() {
-        return Err(explain_failure(program, stderr));
-    }
-    let r = fold.result.unwrap_or_default();
-    Ok((
-        text,
-        Usage {
-            input_tokens: r.input_tokens,
-            output_tokens: r.output_tokens,
-            // No cost: the plan covers it, and a list-price figure would
-            // show a bill the user never gets.
-            ..Default::default()
-        },
-    ))
-}
-
 impl Adapter for ClaudeAgent {
     fn name(&self) -> &str {
         "claude"
@@ -175,6 +145,10 @@ impl Adapter for ClaudeAgent {
 
     fn probe(&self) -> bool {
         on_path(&self.program)
+    }
+
+    fn reads_files(&self) -> bool {
+        true
     }
 
     fn call(&self, body: &str, timeout: Duration) -> Result<String, String> {

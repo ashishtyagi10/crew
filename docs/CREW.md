@@ -2875,7 +2875,11 @@ and a typo gets a **did-you-mean** suggestion):
   that names one picks it up by itself when the model cannot be asked, and
   when skills are loaded but none chosen the relay carries a one-line
   roster of them; asking "what skills are loaded?" lists them
-  (the `/skill` slash form is retired — see *Extending* below).
+  (the `/skill` slash form is retired — see *Extending* below). An agent
+  CLI that opens files itself — Claude Code, codex, opencode — is not
+  chosen for: it gets the catalog (each skill's name, one line and file)
+  and reads the playbook that fits inside its own turn, so no pick call
+  runs before it starts.
 - **“what do you remember?”** — the memory, read out rather than inferred.
   Asking (with or without a subject — “what do you know about the router?”,
   “do you remember the nav crash?”) is answered by crew itself, with **no
@@ -3476,7 +3480,11 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   failed or off-grammar reply) or when only one skill is loaded, and when
   skills are loaded but none chosen the prompt carries a one-line roster (origin,
   directory marker, and `N KB → outline` for the framed ones), so every
-  agent in the thread knows what it could ask for.
+  agent in the thread knows what it could ask for. A relay to an agent
+  CLI with file tools of its own (Claude Code, codex, opencode) skips the
+  choosing call: the prompt lists every skill's name, one line and file,
+  and the agent reads the one the task needs, as Claude Code's own skills
+  work.
 - **Plugin agents** join the roster from JSON manifests in
   `~/.config/crew/agents/*.json` or `./.crew/agents/*.json`:
   `{"name": "aider", "command": "aider", "args": ["--message", "{}"],
