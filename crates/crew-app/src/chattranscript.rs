@@ -17,10 +17,13 @@ impl ChatPane {
             self.running_tasks.push(id);
         } else if self.running_tasks.is_empty() {
             self.asking.clear(); // nothing is left to be waiting on an answer
-                                 // The plan was the run's, and the run is over.
+                                 // The plan was the run's, and the run is over: what it left
+                                 // undone is said once (`chatchecklist::left_note`), then it goes.
+            let left = crate::chatchecklist::left_note(&self.checklist);
             self.checklist.clear();
-            // What the turn's own runs prove about its edits (`chatproof`).
-            if let Some(said) = self.watch.proof.settle() {
+            // What the turn's own runs prove about its edits (`chatproof`),
+            // then its plan's unfinished steps, in its receipt when it has one.
+            for said in self.watch.proof.settle().into_iter().chain(left) {
                 if !self.into_receipt("agent smith", &said) {
                     self.push_note(said);
                 }

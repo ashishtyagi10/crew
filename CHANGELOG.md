@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.44
+
+**A turn that stops short of its plan says which steps were left.**
+- While Claude Code or crew's own agent works, its plan is drawn above the code line,
+  with the steps done, the one it is on, and the rest. When the turn ended the plan simply
+  went. A turn that was stopped, failed, or answered at step 2 of 5 left no trace of the
+  three steps it never did.
+- Now such a turn leaves one line, in its receipt under the proof when there is one:
+  "○ plan 2/5 · left: Run the tests, +2 more". A turn that finished its plan adds
+  nothing. Neither does one whose only open step is the last, still marked in progress,
+  because Claude Code leaves that as it writes the answer. From Claude Code, which leaves
+  its final todo list in the transcript.
+
 ## 0.29.43
 
 **A mail attachment that is a program is saved, never opened.**

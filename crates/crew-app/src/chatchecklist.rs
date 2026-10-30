@@ -108,6 +108,43 @@ pub(crate) fn window(steps: &[Step], r: usize) -> Vec<Row> {
     out
 }
 
+/// The line a turn that ends with its plan unfinished leaves behind:
+/// `○ plan 2/5 · left: Run the tests, +2 more`. The plan is drawn only while
+/// its agent works, so a turn that stopped, failed or simply answered at 2/5
+/// left no trace of the three steps it never did. `None` when every step is
+/// done — and when the one left is the LAST, still marked active: Claude Code
+/// leaves its final step in progress while it writes the answer.
+pub(crate) fn left_note(steps: &[Step]) -> Option<String> {
+    let left: Vec<&Step> = steps
+        .iter()
+        .filter(|s| s.state != StepState::Done)
+        .collect();
+    match left.as_slice() {
+        [] => return None,
+        [last] if last.state == StepState::Active && std::ptr::eq(*last, steps.last()?) => {
+            return None
+        }
+        _ => {}
+    }
+    let first = clip(&left[0].text, 48);
+    let more = match left.len() - 1 {
+        0 => String::new(),
+        n => format!(", +{n} more"),
+    };
+    Some(format!(
+        "\u{25cb} plan {} \u{b7} left: {first}{more}",
+        tally(steps)
+    ))
+}
+
+fn clip(s: &str, max: usize) -> String {
+    let s = s.trim();
+    match s.chars().count() > max {
+        true => format!("{}\u{2026}", s.chars().take(max - 1).collect::<String>()),
+        false => s.to_string(),
+    }
+}
+
 /// `done/total`, for the edge of the plan's first row.
 pub(crate) fn tally(steps: &[Step]) -> String {
     let done = steps.iter().filter(|s| s.state == StepState::Done).count();
@@ -117,3 +154,7 @@ pub(crate) fn tally(steps: &[Step]) -> String {
 #[cfg(test)]
 #[path = "chatchecklist_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "chatchecklistleft_tests.rs"]
+mod left_tests;
