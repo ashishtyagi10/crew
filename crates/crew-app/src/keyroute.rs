@@ -22,13 +22,17 @@ impl CrewApp {
         let mut view_action: Option<crate::viewpane::ViewAction> = None;
         let mut todo_action: Option<crate::todopane::TodoAction> = None;
         let mut is_terminal = false;
+        let mut app_cursor = false;
         let mut swarm_close = false;
         let mut disk_action: Option<crate::diskpane::DiskAction> = None;
         let mut inbox_action: Option<crate::inbox::keys::InboxAction> = None;
         if let Some(pane) = self.panes.get_mut(focused) {
             match &mut pane.content {
                 // Terminal input is written below (so broadcast can reach all panes).
-                PaneContent::Terminal(_) => is_terminal = true,
+                PaneContent::Terminal(t) => {
+                    is_terminal = true;
+                    app_cursor = t.pty.input_modes().app_cursor;
+                }
                 PaneContent::Chat(c) => {
                     chat_action = c.on_key(event, (shift, mstate.control_key(), alt), &self.cwd)
                 }
@@ -127,7 +131,12 @@ impl CrewApp {
             None => {}
         }
         if is_terminal {
-            if let Some(bytes) = key_to_bytes(event, mstate.control_key(), shift) {
+            let m = crate::keyenc::Mods {
+                shift,
+                alt,
+                ctrl: mstate.control_key(),
+            };
+            if let Some(bytes) = key_to_bytes(event, m, app_cursor) {
                 self.write_to_terminals(&bytes);
             }
         }

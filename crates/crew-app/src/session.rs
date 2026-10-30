@@ -22,14 +22,16 @@ pub fn grid_for(width: u32, height: u32, cell_w: f32, cell_h: f32) -> GridSize {
 }
 
 /// Map a winit key press event to the bytes that should be sent to the PTY.
-/// `ctrl`/`shift` are the live modifier states (Ctrl+letter control codes and
-/// Shift+Tab "backtab").
-pub fn key_to_bytes(event: &KeyEvent, ctrl: bool, shift: bool) -> Option<Vec<u8>> {
+/// `m` is the live modifier state (Ctrl+letter control codes, Shift+Tab
+/// "backtab", Option-word motion); `app_cursor`, whether the program set the
+/// cursor keys' application mode (`keyenc`).
+pub fn key_to_bytes(event: &KeyEvent, m: crate::keyenc::Mods, app_cursor: bool) -> Option<Vec<u8>> {
     if !event.state.is_pressed() {
         return None;
     }
+    let (ctrl, shift) = (m.ctrl, m.shift);
     if let Key::Named(n) = &event.logical_key {
-        return named_bytes_shift(*n, shift);
+        return crate::keyenc::named(*n, m, app_cursor).or_else(|| named_bytes_shift(*n, shift));
     }
     if let Key::Character(s) = &event.logical_key {
         // Ctrl+<letter/@-_> → the ASCII control code (Ctrl+C = 0x03, etc.).

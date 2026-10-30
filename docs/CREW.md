@@ -432,6 +432,7 @@ way that machine presses it.
 | Find in the chat transcript | **Cmd+F** (or **Ctrl+F**; Enter/Ctrl+F step older, Up newer) |
 | Complete the leading `@agent` name or slash construct | **Tab** |
 | Insert a newline in a terminal | **Shift+Enter** (line feed, not submit) |
+| Jump / delete a word in a terminal | **Option+←/→** / **Option+Backspace** |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
 | Reopen the pane you just closed | **Cmd+Shift+T** (or `/reopen`) |
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |
@@ -619,7 +620,11 @@ markings.
 Inside a terminal pane, all other keys (arrows, Home/End, PageUp/Down, Ctrl+C,
 Shift+Tab, …) pass through to the program. **Shift+Enter** sends a line feed
 (0x0a) instead of a carriage-return, so agent CLIs and editors insert a newline
-rather than submitting. Shells launch as your `$SHELL` login shell, so your full
+rather than submitting. **Option+←/→** jump a word and **Option+Backspace**
+deletes one (`ESC b` / `ESC f` / `ESC DEL`, the shell's own word keys, as
+Terminal.app sends them), **F1–F12** send xterm's sequences (htop, mc, vim
+mappings), and a program that switches the cursor keys to application mode gets
+`ESC O A`-style arrows. Shells launch as your `$SHELL` login shell, so your full
 config and plugins load.
 
 On **Windows** a pane is PowerShell — **PowerShell 7** (`pwsh`) when it is

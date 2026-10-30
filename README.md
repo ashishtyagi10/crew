@@ -282,6 +282,7 @@ way that machine presses it.
 | Reverse-search the chat composer's send history | **Ctrl+R** |
 | Find: the chat transcript, or `/find` in the bar | **Cmd+F** (or **Ctrl+F**) |
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |
+| Jump / delete a word in a terminal | **Option+←/→** / **Option+Backspace** |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
 | Reopen the pane you just closed | **Cmd+Shift+T** (or `/reopen`) |
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |
