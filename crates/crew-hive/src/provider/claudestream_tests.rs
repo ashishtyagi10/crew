@@ -74,8 +74,21 @@ fn the_result_line_carries_reply_usage_and_cost() {
     assert_eq!(r.text, "hello from stream");
     assert!(!r.is_error);
     assert_eq!(r.subtype, "success");
-    assert_eq!((r.input_tokens, r.output_tokens), (2, 7));
+    // 2 uncached + 41,162 written to the cache: the whole prompt.
+    assert_eq!((r.input_tokens, r.output_tokens), (41_164, 7));
     assert_eq!(r.cost_microusd, 164_722);
+}
+
+/// `claude` 2.x on 2026-10-30, one Read then the answer: the usage is summed
+/// over both calls (4 uncached, 19,113 written, 41,326 read) and only the
+/// last call's prompt, in `iterations`, is what the context holds.
+#[test]
+fn a_run_of_several_calls_reads_its_last_prompt_whole() {
+    let line = r#"{"type":"result","subtype":"success","is_error":false,"result":"beta","usage":{"input_tokens":4,"cache_creation_input_tokens":19113,"cache_read_input_tokens":41326,"output_tokens":136,"iterations":[{"input_tokens":2,"output_tokens":19,"cache_read_input_tokens":30060,"cache_creation_input_tokens":319,"type":"message"}]}}"#;
+    let Some(StreamEvent::Result(r)) = parse_line(line) else {
+        panic!("not a result");
+    };
+    assert_eq!((r.input_tokens, r.output_tokens), (30_381, 136));
 }
 
 /// The reply is the `result` line's text; the deltas are only the live

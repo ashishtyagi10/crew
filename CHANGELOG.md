@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.29
+
+**Under a Claude Code reply, the token count is the whole prompt, not "2 in".**
+- `claude -p` reports only the uncached part of each prompt as its input tokens. Nearly
+  all of a Claude Code prompt is read from or written to the cache, so every reply relayed
+  through agent smith read "2 in", the context meter sat near empty, and the session's
+  token totals missed about 30,000 tokens a reply.
+- The count now adds the cached part back, as crew's own Anthropic calls already did. On
+  a run of several calls it takes the last call's prompt, which is what the context holds
+  (the run's own total is summed over every call). A Read-then-answer run that read "4 in"
+  now reads 30,381.
+- The swarm's Claude Code agents count the same way. Token totals and `/usage` grow to
+  match: they now count what was sent.
+
 ## 0.29.28
 
 **`blossom` and `amethyst` no longer draw code alike.**
