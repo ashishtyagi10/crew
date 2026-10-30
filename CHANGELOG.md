@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.38
+
+**Mail from an iPhone or Apple Mail shows what comes after an attachment.**
+- When you place a file in the middle of a message in Apple Mail, it sends the text as
+  pieces: the words before the file, the file, then the words after it. `/inbox` read only
+  the first piece. The ask after an inline PDF, and the signature, never showed in the
+  reader, in a forward (`f`), or in what smith and the todo card read.
+- Every piece is now read in order, around the file. A file sent with the mail, even a
+  text file, stays an attachment and is never read into the body.
+
 ## 0.29.37
 
 **Option+arrows jump a word, and F1–F12 reach the program.**
