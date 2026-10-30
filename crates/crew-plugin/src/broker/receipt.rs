@@ -10,15 +10,35 @@
 //! turn into it (`chatreceipt`).
 
 /// `task #{id}: 1 file changed (+12 −3): ~ src/lib.rs …` — the summary line
-/// with the turn's line totals, when it added or removed any.
-pub(crate) fn headline(id: u64, summary: &str, (add, del): (usize, usize)) -> String {
+/// with the turn's line totals, when it added or removed any. A turn that
+/// was stopped or failed says so first (`task #4 stopped · 2 files…`), so the
+/// one card says what happened, what the tree now holds and how to undo it.
+pub(crate) fn headline(
+    id: u64,
+    ending: Option<&str>,
+    summary: &str,
+    (add, del): (usize, usize),
+) -> String {
     let counted = match summary.split_once(": ") {
         Some((head, rest)) if add + del > 0 => {
             format!("{head} (+{add} \u{2212}{del}): {rest}")
         }
         _ => summary.to_string(),
     };
-    format!("task #{id}: {counted}")
+    match ending {
+        Some(how) => format!("task #{id} {} \u{b7} {counted}", said(how)),
+        None => format!("task #{id}: {counted}"),
+    }
+}
+
+/// How a task that did not finish ended, for its receipt's head: `stopped`
+/// or `failed` — the error itself follows whole, as its own note, which the
+/// pane files into the receipt: a head is not where an error is read.
+pub(crate) fn said(ending: &str) -> &'static str {
+    match ending {
+        "stopped" => "stopped",
+        _ => "failed",
+    }
 }
 
 /// Lines added and removed in `patch`, its file headers not counted.
