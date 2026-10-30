@@ -26,20 +26,17 @@ fn card_has_fieldset_border_legend_and_command_text() {
 }
 
 #[test]
-fn card_bg_uniform_no_highlight_bar() {
+fn only_the_selected_row_wears_a_wash() {
     let _g = crate::app::theme_test_guard();
     let matches = crate::suggest::menu_items("/s");
     let cells = menu_card("commands", &matches, 0, 40, menu_rows(matches.len()));
-    // No selection bar washing out text: every background is the page, bar
-    // a matched glyph (`/s` marks the `s`) in the search wash — never a bar.
-    let bg = crew_theme::theme().page_bg;
-    let hl = crew_theme::theme().find_hl_bg;
-    assert!(
-        cells
-            .iter()
-            .all(|c| c.bg == bg || (c.bg == hl && c.c != ' ')),
-        "menu background must be uniform (no highlight bar)"
-    );
+    // The page, bar a matched glyph in the search wash and the row under `›`.
+    let t = crew_theme::theme();
+    let wash = crew_theme::readable::selection_bg(&t);
+    let row = cells.iter().find(|c| c.c == '\u{203a}').map(|c| c.row);
+    let page = |c: &&CellView| c.bg == t.page_bg || (c.bg == t.find_hl_bg && c.c != ' ');
+    let washed = |c: &&CellView| c.bg == wash && Some(c.row) == row;
+    assert!(cells.iter().all(|c| page(&c) || washed(&c)), "one wash");
 }
 
 #[test]

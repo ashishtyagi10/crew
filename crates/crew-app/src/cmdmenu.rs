@@ -6,7 +6,7 @@ use crew_render::CellView;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
-use ratatui::widgets::{List, ListItem, ListState, StatefulWidget};
+use ratatui::widgets::{HighlightSpacing, List, ListItem, ListState, StatefulWidget};
 
 use crate::popupplace::Popup;
 use crate::suggest::MenuItem;
@@ -101,9 +101,9 @@ pub(crate) fn offset_in(n: usize, sel: usize, visible: usize) -> usize {
 }
 
 /// Render the command list into the card's `cols × rows` interior. Every cell is
-/// transparent over the card's black backdrop — the selected row is marked by the
-/// `›` symbol, bold text and its description in full ink, never a background
-/// bar (a bar washed out the dim description text).
+/// transparent over the card's black backdrop but the selected row's: the `›`
+/// symbol, bold text, its description in full ink, and the selection wash
+/// under it all (`menuwash`).
 pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16) -> Vec<CellView> {
     if cols < 2 || rows < 1 || matches.is_empty() {
         return Vec::new();
@@ -132,7 +132,10 @@ pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16)
     let list = List::new(items)
         // No background bar — bold the selected row so its text stays fully legible.
         .highlight_style(Style::new().add_modifier(Modifier::BOLD))
-        .highlight_symbol("› ");
+        .highlight_symbol("› ")
+        // The marker's two columns stay when nothing is selectable, so a lone
+        // note ("no command matches") lines up with the rows it stands for.
+        .highlight_spacing(HighlightSpacing::Always);
     let mut state = ListState::default();
     // A list of nothing but notes and titles has no row to mark.
     state.select(crate::cmdnote::selectable(matches).then(|| sel.min(matches.len() - 1)));
@@ -149,11 +152,15 @@ pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16)
             c.fg = ink;
         }
     }
+    let row = state.selected().map(|s| (s - state.offset()) as u16);
     // The marker wears the accent, as the composer's `❯` does: the same
     // glyph family saying "here" in the same colour, one row apart.
     let accent = crate::palette::accent();
     for c in cells.iter_mut().filter(|c| c.col == 0 && c.c == '\u{203a}') {
         c.fg = accent;
+    }
+    if let Some(row) = row {
+        crate::menuwash::wash_row(&mut cells, row, w);
     }
     cells
 }

@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.36
+
+**The row you're on in the palette and every picker is highlighted.**
+- In the command palette, `/model`, `/theme` and every other picker, the selected row was
+  marked only by a small `›` and bold text. On a CRT tube, where every glyph glows the
+  same, it was hard to find. In the model picker the section titles (`anthropic`,
+  `openrouter`) are bold too, and read as selected.
+- The selected row now wears the selection highlight across its whole width, as the inbox
+  and `/far` do. Its colours are lifted to read on it, and its description comes up to
+  full ink as before. A fuzzy-match chip and a theme's colour swatch keep their own ground
+  inside it.
+- "no command matches …" now starts two columns in, under the commands it stands for,
+  instead of against the card's edge.
+
 ## 0.29.35
 
 **Claude Code starts on your message at once, with no skill pick in front of it.**
