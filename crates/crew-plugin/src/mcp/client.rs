@@ -12,6 +12,10 @@ use serde_json::{json, Value};
 use super::config::ServerConfig;
 use crew_hive::childproc::no_console_window;
 
+/// `tools/list` pages read at most: a server whose cursor never ends cannot
+/// hold the broker's start.
+const PAGES: usize = 20;
+
 /// Per-request deadline. `CREW_MCP_TIMEOUT_MS` overrides (default 30 s).
 fn timeout() -> Duration {
     let ms = std::env::var("CREW_MCP_TIMEOUT_MS")
@@ -116,13 +120,24 @@ impl McpClient {
     ///
     /// The description is returned WHOLE; shortening it is the prompt's job,
     /// not the parser's (see [`crate::mcp::McpTool::description`]).
+    /// A server with many tools pages them (`nextCursor`); every page is
+    /// read, up to [`PAGES`], where only the first was.
     pub fn tools(&mut self) -> Result<Vec<(String, String, Value)>, String> {
-        let r = self.request("tools/list", json!({}))?;
-        let tools = r
-            .get("tools")
-            .and_then(Value::as_array)
-            .cloned()
-            .unwrap_or_default();
+        let mut tools = Vec::new();
+        let mut cursor: Option<String> = None;
+        for _ in 0..PAGES {
+            let params = cursor.map_or(json!({}), |c| json!({"cursor": c}));
+            let r = self.request("tools/list", params)?;
+            let page = r.get("tools").and_then(Value::as_array).cloned();
+            tools.extend(page.unwrap_or_default());
+            cursor = r
+                .get("nextCursor")
+                .and_then(Value::as_str)
+                .map(str::to_string);
+            if cursor.is_none() {
+                break;
+            }
+        }
         Ok(tools
             .iter()
             .filter_map(|t| {
@@ -150,21 +165,11 @@ impl McpClient {
             .collect())
     }
 
-    /// `tools/call` → the text content joined; `isError` results become `Err`.
+    /// `tools/call` → its content as text (`content::text_of`); `isError`
+    /// results become `Err`.
     pub fn call(&mut self, tool: &str, arguments: Value) -> Result<String, String> {
         let r = self.request("tools/call", json!({"name": tool, "arguments": arguments}))?;
-        let text: Vec<&str> = r
-            .get("content")
-            .and_then(Value::as_array)
-            .map(|items| {
-                items
-                    .iter()
-                    .filter(|c| c.get("type").and_then(Value::as_str) == Some("text"))
-                    .filter_map(|c| c.get("text").and_then(Value::as_str))
-                    .collect()
-            })
-            .unwrap_or_default();
-        let text = text.join("\n");
+        let text = super::content::text_of(&r);
         if r.get("isError").and_then(Value::as_bool).unwrap_or(false) {
             Err(if text.is_empty() {
                 format!("{tool} failed")
@@ -188,3 +193,7 @@ impl Drop for McpClient {
 #[cfg(test)]
 #[path = "client_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "clientpage_tests.rs"]
+mod page_tests;

@@ -3511,7 +3511,10 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   `{"mcpServers": {"fs": {"command": "mcp-server-fs", "args": ["--root", "."],
   "env": {}}}}` — and connect lazily over stdio (JSON-RPC 2.0, hard
   per-request deadlines, killed with the pane). `/doctor` lists each server's
-  tools. When servers are configured, every relay prompt advertises the tools
+  tools — every page of them, when a server pages its list. A tool's answer
+  reaches the agent whole: text as it is, an image or audio clip as its kind
+  and size, a resource link as its name and address, an embedded resource as
+  its text, and a structured-only answer as its JSON. When servers are configured, every relay prompt advertises the tools
   and an agent calls one by ending its reply with
   `` `@tool <server>:<tool> {"arg": …}` `` — the broker runs the tool, logs
   the call and result as visible hops, feeds the result back to the same
