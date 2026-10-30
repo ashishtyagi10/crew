@@ -1,6 +1,7 @@
 //! The proof under a turn's receipt, with the run's own count in it: a green
 //! run, a red one naming its failures, and a run of no tests — at a quarter
-//! tile and a half, on a light page and on glass.
+//! tile and a half, on a light page and on glass — the last one with the
+//! plan steps its turn left undone.
 //!
 //! `CREW_SHOT_DIR=<dir> cargo test -p crew-app --bin crew proof_shot -- --ignored`
 use crate::chatlayout::Message;
@@ -43,6 +44,9 @@ fn proof_shot() {
             p.messages.push(smith(RECEIPT));
             assert!(p.into_receipt("agent smith", v));
         }
+        // The last turn stopped short of its plan (`chatchecklist::left_note`).
+        let left = "\u{25cb} plan 2/5 \u{b7} left: Run the tests, +2 more";
+        assert!(p.into_receipt("agent smith", left));
         for w in [470, 700] {
             let shot = format!("{name}-{w}");
             if shot_at(&shot, w, 760, 13.0, "crew", |cols, rows, aspect| {
