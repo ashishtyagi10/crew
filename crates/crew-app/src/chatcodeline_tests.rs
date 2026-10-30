@@ -7,7 +7,7 @@ const COLS: u16 = 60;
 const SINCE: u64 = 1_000_000;
 const WORD: &str = "deciphering";
 
-fn frame(last_work: u64) -> Frame {
+pub(super) fn frame(last_work: u64) -> Frame {
     let (cols, row, since, tool, level) = (COLS, 5, SINCE, false, MotionLevel::Full);
     Frame {
         cols,

@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.39
+
+**While smith works, its tool calls fold to the last three and a count.**
+- A turn's tool block drew one row for every call while the turn ran, so a long Claude
+  Code turn grew a wall of thirty rows under smith's card. That is the tool-call list the
+  smith pane was meant to do without.
+- A live block of more than four calls now shows the last three under one row that counts
+  the rest: "▸ 9 earlier · 1 failed", with any of them still running counted too. Click the
+  row to see every call, and click it again to fold them. Once the turn ends, the block
+  folds to its summary line as before.
+- The code line above the composer no longer dims and crawls while a tool runs quietly. A
+  `cargo test` that prints nothing for two minutes is work, not a stall. A tool that really
+  hangs is still named by the watchdog's note after 90 seconds. From Claude Code's "+N more
+  tool uses".
+
 ## 0.29.38
 
 **Mail from an iPhone or Apple Mail shows what comes after an attachment.**
