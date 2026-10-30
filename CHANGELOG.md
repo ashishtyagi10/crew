@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.49
+
+**Beside an open email, a star click stars the row you clicked.**
+- With an email open beside the list (a wide pane shows both), clicking the ★ on another
+  row in the list starred or unstarred the open email instead, because the click went
+  through the keys, which act on the open one. It also moved the list's selection, so `n`
+  then stepped from the wrong place.
+- The click now stars exactly the row it lands on, and leaves both the open email and the
+  selection where they were.
+- Pressing `a`, `t` or `r` on a thread in the list and then leaving with Esc before it
+  opened no longer comes back later. Opening that thread again had handed it to smith (or
+  opened a reply) as if the key had just been pressed.
+
 ## 0.29.48
 
 **A stopped or failed turn ends in one card: what changed and how to undo it.**
