@@ -9,8 +9,15 @@ impl State {
         let more = from.is_some();
         let mut out = Vec::new();
         // Read before the page, so a mail landing mid-list moves it again.
+        // Kept as the mailbox the pane's FIRST page saw — the minute's check
+        // lists again only when it moved since. A further page (`j`) saw
+        // none of the mail that landed on page one meanwhile, and a page
+        // that failed was not seen at all: taking their history hid new mail
+        // until something else moved the box, and turned a failed list into
+        // "inbox zero" a minute later.
+        let mut seen = None;
         if let Ok((email, h)) = g.profile() {
-            self.history = h;
+            seen = (!more).then_some(h);
             // Offline at the start, the account comes with the first list
             // that reaches Gmail: without it `me` is no one, so the list
             // never says "me" and reply-all writes to yourself as well.
@@ -21,6 +28,9 @@ impl State {
         out.push(g.unread().map_or_else(fail, Got::Unread));
         out.push(match g.page(&self.query, from.as_deref()) {
             Ok((rows, next)) => {
+                if let Some(h) = seen {
+                    self.history = h;
+                }
                 let whole = next.is_none();
                 self.went(more, next);
                 Got::Page {
@@ -31,7 +41,12 @@ impl State {
                     whole,
                 }
             }
-            Err(e) => fail(e),
+            Err(e) => {
+                if !more {
+                    self.history.clear();
+                }
+                fail(e)
+            }
         });
         out
     }
@@ -50,3 +65,7 @@ impl State {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "workerlist_tests.rs"]
+mod tests;
