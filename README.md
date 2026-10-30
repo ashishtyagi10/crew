@@ -346,8 +346,9 @@ pictures drawn in place — the mail's own and, as in Gmail, those from the web
 (`i` hides those: fetching one tells the sender you opened the mail; tracking
 pixels are never fetched), and a link opened by Cmd+click or
 `Cmd+E` at its real address (one whose words name another site shows where
-it really goes), each attachment a row you Cmd+click to save it to
-`~/Downloads` and open it, `n` and `p` (or `J` and `K`, or ↓ and ↑; `j` and `k` scroll) for the next and the previous thread (a long thread reads as Gmail's
+it really goes), each attachment a row you click to save it to
+`~/Downloads` and open it (a document or a picture; a program, or a file of no
+known kind, is saved and left closed), `n` and `p` (or `J` and `K`, or ↓ and ↑; `j` and `k` scroll) for the next and the previous thread (a long thread reads as Gmail's
 does, its older mails folded to a line each until a click or `x` opens them, and
 lines never run wider than a reading measure)
 without going back to the list, and `w` for the thread in a window of its

@@ -1802,10 +1802,13 @@ longer aim at.
   (`Bo Lee accepted your invite`) and offers no keys; so does a new time
   someone proposes (`Bo Lee proposed a new time`) and its refusal.
   Every attachment is a row under its message (`↓ report.pdf · 1.2 MB`):
-  Cmd+click its name, or its capital letter in `Cmd+E`'s hint mode, and crew
+  click its name, or its capital letter in `Cmd+E`'s hint mode, and crew
   saves it to `~/Downloads` under a safe version of its name (no folders, no
-  leading dot, never over a file already there: `report (1).pdf`) and opens
-  it with the system's app — the only thing the reader ever writes to disk.
+  leading dot, never over a file already there: `report (1).pdf`), marked as
+  downloaded so macOS checks it before it runs, and opens it with the
+  system's app when it is a document, a picture, sound or video. Anything else
+  (`.command`, `.pkg`, `.app`, `.sh`, a name with no kind) is saved and not
+  opened: the note says so. It is the only thing the reader ever writes to disk.
   `w` opens the thread in a window of its own, sized for reading: it is the
   inbox pane drawn a second time, so every key works in it, it and the tile
   never disagree, and Esc from the list or Cmd+W closes it — `e` archives (takes the `INBOX` label away, as Gmail's archive does),

@@ -139,14 +139,7 @@ impl InboxPane {
                 self.then = self.then.take().filter(|(_, t)| *t != id);
             }
             Got::Picture(key, bm) => self.pics.set(key, bm),
-            Got::Saved(Ok(path)) => {
-                let name = path.file_name().map(|n| n.to_string_lossy().into_owned());
-                self.note = format!(
-                    "saved {} to Downloads \u{2014} opening it",
-                    name.unwrap_or_default()
-                );
-                crate::linkclick::open_external(&path.to_string_lossy());
-            }
+            Got::Saved(Ok(path)) => self.note = super::save::opened(&path),
             Got::Saved(Err(e)) => self.note = e,
             Got::Forwarded(to) => {
                 self.compose = None;
