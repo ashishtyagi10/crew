@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.48
+
+**A stopped or failed turn ends in one card: what changed and how to undo it.**
+- Stopping a turn that had already edited files gave three separate notes: "interrupting",
+  then "✗ task #1 stopped", then the receipt of what changed. The receipt offered "undo that"
+  only the first time in a session, so from the second stop on nothing said how to put the
+  files back.
+- The receipt now says how the turn ended and always offers the undo after a stop or a
+  failure: "task #1 stopped · 1 file changed (+1 −0): ~ src/badge.rs — /diff shows them;
+  "undo that" puts them back". The separate ✗ line is gone when files changed. A failure's
+  full error follows in the same card.
+- A stop that changed nothing says so: "✗ task #1 stopped — no file changed". Checked live
+  through the real broker: Esc after Claude Code's edit left the one card, and the shell
+  command it was running was gone.
+
 ## 0.29.47
 
 **A paste can't smuggle in keystrokes.**

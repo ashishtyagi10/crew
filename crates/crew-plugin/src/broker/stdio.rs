@@ -443,18 +443,28 @@ fn send(
             // Announce only the exceptional endings — a clean finish says nothing
             // (the streamed reply is the result). Errors and user stops must stay
             // visible.
-            let done = match (res, snap.cancelled()) {
-                (Err(e), _) => Some(format!("\u{2717} task #{id}: {e}")),
-                (Ok(_), true) => Some(format!("\u{2717} task #{id} stopped")),
+            let ending = match (res, snap.cancelled()) {
+                (Err(e), _) => Some(e.to_string()),
+                (Ok(_), true) => Some("stopped".to_string()),
                 (Ok(_), false) => None,
+            };
+            // …and what it DID to the files, measured from the snapshot: one
+            // card for a stop or a failure that changed something (its head
+            // says how it ended, `receipt::headline`), else the ✗ line alone.
+            let _ = ckpt.join();
+            let changed = report_changes(&snap, id, &out_thread, ending.as_deref());
+            let done = match (ending.as_deref(), changed) {
+                (None, _) => None,
+                (Some("stopped"), true) => None,
+                (Some("stopped"), false) => Some(format!(
+                    "\u{2717} task #{id} stopped \u{2014} no file changed"
+                )),
+                (Some(e), true) => Some(format!("\u{2717} {e}")),
+                (Some(e), false) => Some(format!("\u{2717} task #{id}: {e}")),
             };
             if let Some(done) = done {
                 let _ = emit(&out_thread, &msg("agent smith", done));
             }
-            // …and then what it DID to the files, which nothing on screen said —
-            // measured from the snapshot, so it must have landed.
-            let _ = ckpt.join();
-            report_changes(&snap, id, &out_thread);
             // Before the end is announced: the host sends its untaken copy on it.
             drop(steer);
             // The end of the task, emitted by the only thing that knows when that
@@ -585,30 +595,32 @@ fn auto_checkpoint(session: &Session, label: &str, out: &Out) {
 /// Silent on every failure, for the reason the checkpoint is: running outside
 /// a git repository is normal, and a safety net that announces its own absence
 /// is noise.
-fn report_changes(session: &Session, id: u64, out: &Out) {
+fn report_changes(session: &Session, id: u64, out: &Out, ending: Option<&str>) -> bool {
     let Ok(dir) = std::env::current_dir() else {
-        return;
+        return false;
     };
     let base = {
         let last = session.last_tree.lock().unwrap_or_else(|e| e.into_inner());
         last.clone()
     };
-    let Some(base) = base else { return };
+    let Some(base) = base else { return false };
     let Ok(changes) = super::changed::since(&dir, &base) else {
-        return;
+        return false;
     };
     // Checked BEFORE the flag is taken: a run of questions that touch no
     // files must not spend the one-time hint on notes nobody ever saw.
     if changes.is_empty() {
-        return;
+        return false;
     }
     // What changed TOGETHER, into the graph: the model's next question about
     // any one of these files reaches the others (`recall::ingest`).
     let paths: Vec<String> = changes.iter().map(|(_, p)| p.clone()).collect();
     super::recall::record_changes(&session.recall, &paths);
+    // A stop or a failure always says how to undo it, not just the first time.
     let hint = !session
         .announced_changes
-        .swap(true, std::sync::atomic::Ordering::Relaxed);
+        .swap(true, std::sync::atomic::Ordering::Relaxed)
+        || ending.is_some();
     // The receipt's head and WHAT changed go out together, at once (the
     // pane folds the diff under the head), then what the language servers
     // make of it as its own note, which the pane files into the receipt
@@ -616,7 +628,7 @@ fn report_changes(session: &Session, id: u64, out: &Out) {
     // the budget is a deadline on the asks (`taskdiag`).
     let counts = super::changed::patch(&dir, &base).map_or((0, 0), |p| super::receipt::totals(&p));
     let mut head = super::changed::summary(&changes, hint)
-        .map(|line| super::receipt::headline(id, &line, counts));
+        .map(|line| super::receipt::headline(id, ending, &line, counts));
     let diagnostics = |files: &[String]| {
         super::taskdiag::lsp_diagnostics(&session.lsp, files, super::taskdiff::DIAG_BUDGET)
     };
@@ -641,6 +653,7 @@ fn report_changes(session: &Session, id: u64, out: &Out) {
     };
     let mut send = |ev: PluginEvent| emit(out, &ev);
     let _ = super::selfcheck::after_task(session, true, &mut repair, &mut send);
+    true
 }
 
 /// Whether this session has already mentioned checkpoints; marks it as told.
