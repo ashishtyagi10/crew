@@ -57,8 +57,8 @@ fn matches(r: &Record, filter: &str) -> bool {
 /// says so is worth more than one that quietly shows fewer rows.
 pub(crate) fn listing(records: &[Record], bad: usize, filter: &str, now_ms: u64) -> String {
     let mut out = match filter.is_empty() {
-        true => String::from("# tools \u{b7} what agents ran\n"),
-        false => format!("# tools \u{b7} matching \u{201c}{filter}\u{201d}\n"),
+        true => String::from("tools \u{b7} what agents ran\n"),
+        false => format!("tools \u{b7} matching \u{201c}{filter}\u{201d}\n"),
     };
     let hits: Vec<&Record> = records.iter().filter(|r| matches(r, filter)).collect();
     if hits.is_empty() {

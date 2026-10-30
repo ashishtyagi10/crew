@@ -55,7 +55,7 @@ fn credential(i: &Integration, set: &dyn Fn(&str) -> bool) -> String {
 
 /// The listing for `ints`, as viewer text.
 pub(crate) fn listing(ints: &[Integration], set: &dyn Fn(&str) -> bool) -> String {
-    let mut out = String::from("# integrations \u{b7} what crew can reach\n");
+    let mut out = String::from("integrations \u{b7} what crew can reach\n");
     if ints.is_empty() {
         // One paragraph, for the viewer to wrap at its own width (see
         // `watchview` for why).

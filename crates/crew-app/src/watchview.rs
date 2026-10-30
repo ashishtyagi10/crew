@@ -37,7 +37,7 @@ pub(crate) fn listing(
     history: &BTreeMap<String, Fired>,
     now_ms: u64,
 ) -> String {
-    let mut out = String::from("# watching \u{b7} what crew is waiting to do\n");
+    let mut out = String::from("watching \u{b7} what crew is waiting to do\n");
     if intents.is_empty() {
         // A headline and ONE paragraph: the viewer wraps prose on words at
         // the pane's width, and a hint broken by hand at the tile's read as
