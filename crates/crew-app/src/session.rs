@@ -91,11 +91,21 @@ fn ctrl_byte(c: char) -> Option<u8> {
     (up.is_ascii() && ('@'..='_').contains(&up)).then_some((up as u8) & 0x1f)
 }
 
-/// Prepare clipboard `text` for writing to a PTY: normalize newlines to `\r`,
-/// and wrap in bracketed-paste markers when the program enabled that mode (so a
-/// multi-line paste isn't executed line-by-line).
+/// Prepare clipboard `text` for writing to a PTY: control characters out,
+/// newlines normalized to `\r`, and wrapped in bracketed-paste markers when
+/// the program enabled that mode (so a multi-line paste isn't executed
+/// line-by-line).
+///
+/// A paste is words, never keys: an `ESC [201~` inside it closed the bracket
+/// early and everything after it ran as typed — the one paste crew does not
+/// hold for a second look (`pastesafe`), since bracketed paste is on. Only
+/// tab and the line breaks survive, as xterm and kitty strip the rest.
 pub fn wrap_paste(text: &str, bracketed: bool) -> Vec<u8> {
-    let body = text.replace("\r\n", "\r").replace('\n', "\r");
+    let words: String = text
+        .chars()
+        .filter(|&c| matches!(c, '\t' | '\n' | '\r') || !c.is_control())
+        .collect();
+    let body = words.replace("\r\n", "\r").replace('\n', "\r");
     if bracketed {
         let mut out = b"\x1b[200~".to_vec();
         out.extend_from_slice(body.as_bytes());

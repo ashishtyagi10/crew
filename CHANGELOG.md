@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.47
+
+**A paste can't smuggle in keystrokes.**
+- crew sends what you paste wrapped in bracketed-paste markers when the program asks for
+  them, and in that case it doesn't hold a multi-line paste to confirm, because the
+  program decides what to do with it. But the text was sent as it was. Pasted text that
+  carried the end marker (`ESC [201~`) closed the bracket early, and everything after it
+  ran as if typed. A web page's "copy this command" button can put exactly that on the
+  clipboard.
+- A paste is now words only. Escape and the other control characters are taken out, and
+  tab and line breaks stay, as xterm and kitty do. The bracket you see is the only one
+  the program gets.
+
 ## 0.29.46
 
 **In `/todo`, each person's todos stand apart from the next person's.**
