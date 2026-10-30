@@ -322,6 +322,8 @@ mod modelcells;
 mod modellast;
 #[path = "modelsel.rs"]
 mod modelsel;
+#[path = "modelsync.rs"]
+mod modelsync;
 #[path = "modelwrap.rs"]
 mod modelwrap;
 pub use headless::HeadlessTerm;

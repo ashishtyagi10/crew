@@ -107,6 +107,7 @@ impl PtyTerm {
                 }
             }
         }
+        total = total.max(usize::from(self.core.flush_stale_sync()));
         // Queries parsed above (OSC color probes, DSR) owe the child an
         // answer on its input; unanswered probes make agent CLIs assume a
         // dark background and mis-pick their output palette.
