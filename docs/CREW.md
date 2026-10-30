@@ -4573,6 +4573,11 @@ of their own — now resolve to the pool that swallowed them (`dark` and `light`
 respectively), so a saved config keeps opening on the appearance it asked for.
 None of these appear in the picker.
 
+**A frame is drawn whole.** A program that wraps a redraw in a synchronized
+update (DECSET 2026, as neovim, helix and Claude Code do) has it shown at once
+when it closes the update. One that dies before closing it, or never closes it,
+is shown anyway after 150 ms, so a killed program never freezes its pane.
+
 **Programs know they run in crew.** Every terminal pane sets
 `TERM=xterm-256color`, `COLORTERM=truecolor` (crew draws every 24-bit
 colour, so chalk-based CLIs such as Claude Code use them all),

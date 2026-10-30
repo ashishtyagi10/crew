@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.42
+
+**A program killed mid-frame no longer freezes its pane.**
+- Full-screen programs (neovim, helix, Claude Code) wrap each redraw in a synchronized
+  update, so the terminal holds the output until the frame is complete. The parser gives
+  an update 150 ms, but only the terminal can end one that runs over, and crew never did.
+  A program killed between starting and finishing a frame (Ctrl+C at the wrong moment)
+  left its pane frozen, the shell prompt after it included, until 2 MB more output
+  arrived.
+- Every pane now ends an update that has run past its time on its next read, about every
+  16 ms, and draws what was held, as Alacritty does. An update that closes itself is
+  untouched.
+
 ## 0.29.41
 
 **An empty inbox offers the keys it can use, and listings lose their `#`.**
