@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.45
+
+**An MCP tool's answer reaches the agent whole, and every tool is listed.**
+- crew's MCP client kept only the text blocks of a tool's answer. A tool that answered
+  with a resource link (the file it found), an embedded resource, an image, or structured
+  data alone reached the agent as an empty result, so a search that found three files read
+  as having found nothing.
+- Every kind now says what it is: a link as its name and address, an embedded resource as
+  its text, an image or audio clip as its kind and size (never its bytes), and
+  structured-only data as its JSON.
+- A server that pages its tool list had only its first page read, so its later tools never
+  existed for crew. Every page is read now, up to twenty. Checked against canned servers
+  in the tests; no live MCP server was run.
+
 ## 0.29.44
 
 **A turn that stops short of its plan says which steps were left.**

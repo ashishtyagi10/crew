@@ -4,6 +4,7 @@
 //! to the `/crew` relay as callable tools.
 mod client;
 pub(crate) mod config;
+mod content;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
