@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.31
+
+**The selected email's highlight keeps air at both ends of its words.**
+- In `/inbox` the highlight on the selected thread stopped a column short of the list's
+  box on the right, and the time ("5h", "Thu") ran right up to its edge. The names began
+  three columns in, so every selected row looked pushed to the right.
+- The highlight now runs the whole width of the list, inset from its box equally on both
+  sides. The time ends two columns before the highlight's edge, as the names start after
+  the unread dot and a column of air. The same applies in the split view and on one-line
+  rows. The highlight's glide to a new row and the glow of new mail take the same width.
+
 ## 0.29.30
 
 **Esc stops Claude Code where it stands, not when its run ends.**

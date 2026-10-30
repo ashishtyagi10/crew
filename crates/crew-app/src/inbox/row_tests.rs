@@ -130,7 +130,7 @@ fn the_selected_row_is_washed_edge_to_edge_and_its_ink_reads_on_it() {
             let cols: Vec<u16> = c.iter().filter(|c| c.row == row).map(|c| c.col).collect();
             assert_eq!(
                 cols,
-                (0..59).collect::<Vec<_>>(),
+                (0..60).collect::<Vec<_>>(),
                 "{id:?}: line {row} is whole"
             );
         }

@@ -25,6 +25,9 @@ type Rgb = (u8, u8, u8);
 const WHO_CAP_TWO: usize = 36;
 /// Between the subject and the snippet, and before the time.
 const AIR: u16 = 2;
+/// The selection's wash past the time: the time touched the wash's edge
+/// while the names began three columns in (2026-10-30 shot survey).
+const RIGHT: u16 = 2;
 
 /// The thread at `row` (and `row + 1` on two lines).
 #[cfg(test)]
@@ -52,8 +55,10 @@ pub(crate) fn washed(out: &mut Vec<CellView>, th: &Thread, row: u16, wash: Optio
     } else {
         bright
     };
-    let end = x.cols.saturating_sub(1);
-    let mut top = Line::new(end);
+    // The wash runs the whole width; the text stops [`RIGHT`] short of its
+    // end, as it starts [`TEXT`] in from its start.
+    let end = x.cols.saturating_sub(RIGHT);
+    let mut top = Line::new(x.cols);
     if th.unread {
         top.put(DOT, DOT + 1, "\u{25cf}", lead, false);
     }
@@ -86,7 +91,7 @@ pub(crate) fn washed(out: &mut Vec<CellView>, th: &Thread, row: u16, wash: Optio
         };
         after = top.put(after + 1, stop, tl.text(), fg, false);
     }
-    let mut second = x.two.then(|| Line::new(end));
+    let mut second = x.two.then(|| Line::new(x.cols));
     let (at, stop) = match x.two {
         true => (TEXT, end),
         false => (TEXT + x.who_w + AIR + 1, stop),
@@ -129,3 +134,7 @@ mod tests;
 #[cfg(test)]
 #[path = "rowmarks_tests.rs"]
 mod marks_tests;
+
+#[cfg(test)]
+#[path = "rowair_tests.rs"]
+mod air_tests;
