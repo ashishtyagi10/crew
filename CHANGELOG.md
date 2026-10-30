@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.32
+
+**Programs in a pane know they run in crew, and in full colour.**
+- A shell in a crew pane got crew's own environment, so what it saw depended on how crew
+  was started. From the Dock there was no `COLORTERM`, so chalk-based CLIs (Claude Code
+  among them) drew in 256 colours on a terminal that draws every 24-bit colour. From
+  another terminal the pane carried that terminal's name: `TERM_PROGRAM=iTerm.app`, a
+  `KITTY_WINDOW_ID`, even a `TMUX` that was not there. Programs then used that terminal's
+  escape codes, or tmux refused to start "nested".
+- Every pane now sets `COLORTERM=truecolor`, `TERM_PROGRAM=crew` and `TERM_PROGRAM_VERSION`,
+  and drops the names iTerm2, kitty, WezTerm, Ghostty, Alacritty, Windows Terminal, VTE,
+  Konsole, Warp, tmux and screen leave behind, as each of those terminals does for its own
+  panes.
+
 ## 0.29.31
 
 **The selected email's highlight keeps air at both ends of its words.**

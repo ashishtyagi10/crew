@@ -50,6 +50,7 @@ impl PtyTerm {
         // Advertise a capable terminal so TUI programs behave (env is otherwise
         // inherited from the host process, so $HOME/$PATH etc. are present).
         cmd.env("TERM", "xterm-256color");
+        crate::ptyident::identify(&mut cmd);
         // Light/dark hint for programs that read $COLORFGBG instead of (or as
         // a fallback to) querying OSC 11 — agent CLIs pick their palette from
         // it, so it must match the theme active at spawn time.

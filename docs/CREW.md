@@ -4554,6 +4554,13 @@ of their own — now resolve to the pool that swallowed them (`dark` and `light`
 respectively), so a saved config keeps opening on the appearance it asked for.
 None of these appear in the picker.
 
+**Programs know they run in crew.** Every terminal pane sets
+`TERM=xterm-256color`, `COLORTERM=truecolor` (crew draws every 24-bit
+colour, so chalk-based CLIs such as Claude Code use them all),
+`TERM_PROGRAM=crew` and `TERM_PROGRAM_VERSION`, and drops the variables other
+terminals set to name themselves (`LC_TERMINAL`, `KITTY_WINDOW_ID`,
+`WEZTERM_PANE`, `GHOSTTY_*`, `TMUX`, …) when crew was started from one.
+
 **Programs keep reading after a switch.** Terminal panes answer color queries
 (OSC 10/11) and set `$COLORFGBG` from the active theme, so CLIs that probe the
 background pick the right palette at launch. Scheme-aware TUIs can do better:
