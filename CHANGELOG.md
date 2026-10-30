@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.30
+
+**Esc stops Claude Code where it stands, not when its run ends.**
+- A task relayed to Claude Code (or codex, or opencode) waited for the CLI to finish even
+  after `/stop` or Esc. The pane said the task had stopped while Claude Code went on
+  reading, running and editing the tree, for as long as its run took — up to the
+  ten-minute idle window.
+- The relay now checks the stop every 50 ms while the CLI runs. Once you press it, the CLI
+  gets TERM, then KILL after two seconds. Claude Code ends the shell commands it was running
+  as it exits (measured with a `sleep` it was waiting on). The turn ends as stopped, not as
+  a failure to re-plan around.
+- From Claude Code's own Esc, and Codex's interrupt: a stop that the agent obeys at once.
+
 ## 0.29.29
 
 **Under a Claude Code reply, the token count is the whole prompt, not "2 in".**

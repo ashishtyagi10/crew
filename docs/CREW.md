@@ -3039,7 +3039,9 @@ and a typo gets a **did-you-mean** suggestion):
   task doesn't wait for the first, every streamed reply is tagged with a dim
   `#N` chip naming its task, the pane footer lists what's running (`#id ·
   age`), and `/stop #n` cancels one task — bare `/stop` cancels them all —
-  at its next checkpoint (between hops/rounds). Quick constructs and
+  at its next checkpoint (between hops/rounds). An agent CLI the task is
+  waiting on — Claude Code on the relay, codex, opencode — is ended at once
+  (TERM, then KILL after 2 s), so it stops editing the tree when you do. Quick constructs and
   `/doctor` answer immediately while tasks are in flight.
 
 **The composer's control keys.** The agent pane's composer answers to the keys

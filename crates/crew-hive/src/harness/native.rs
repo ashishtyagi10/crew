@@ -108,6 +108,8 @@ pub(super) async fn run(
         let completion = match ctx.unless_stopped(call).await {
             None => return Ended::Stopped,
             Some(Ok(c)) => c,
+            // A blocking dial ends itself on the stop: a stop, not a failure.
+            Some(Err(_)) if ctx.stopped() => return Ended::Stopped,
             Some(Err(err))
                 if cut.refused(&ctx, &err, &mut turns, &mut seen, (&mut prompt, shed)) =>
             {
