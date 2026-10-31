@@ -279,6 +279,7 @@ async fn consume_sse(
         cost_microusd,
         calls: st.calls.finish(),
         truncated: st.truncated,
+        refused: st.refused,
         ..Default::default()
     }))
 }
@@ -298,6 +299,8 @@ struct SseState {
     model: String,
     /// The last `finish_reason` said the token ceiling ended it.
     truncated: bool,
+    /// …or that the model declined (`stopreason::refused`).
+    refused: bool,
     /// Any Done/Delta/Thought/Calls/Usage frame ever seen — distinguishes a
     /// genuine (if empty) stream from a non-SSE error body (Critical-1).
     any_frame: bool,
@@ -362,6 +365,7 @@ fn apply_sse_line(
             SseItem::Model(m) => st.model = m,
             SseItem::Stop(why) => {
                 st.truncated = stopreason::openai(Some(&why));
+                st.refused = stopreason::refused(Some(&why));
                 st.ended = true;
             }
             SseItem::Done => {
@@ -486,7 +490,8 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
         return Err(ProviderError::Api(body.to_string()));
     }
     let msg = r.choices.first().map(|c| &c.message);
-    let truncated = stopreason::openai(r.choices.first().and_then(|c| c.finish_reason.as_deref()));
+    let why = r.choices.first().and_then(|c| c.finish_reason.as_deref());
+    let (truncated, refused) = (stopreason::openai(why), stopreason::refused(why));
     // `<think>` tags in the body route to reasoning here exactly as they do
     // in a stream (`ThinkTags`), so the two paths agree on what the reply IS.
     let (text, mut thought) =
@@ -525,6 +530,7 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
         cost_microusd: (usage.cost.unwrap_or(0.0) * 1_000_000.0) as u64,
         calls,
         truncated,
+        refused,
         ..Default::default()
     })
 }

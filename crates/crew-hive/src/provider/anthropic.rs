@@ -185,6 +185,7 @@ impl AnthropicProvider {
             })
             .collect();
         let truncated = super::stopreason::anthropic(r.stop_reason.as_deref());
+        let refused = super::stopreason::refused(r.stop_reason.as_deref());
         let usage = r
             .usage
             .filter(|u| u.is_object())
@@ -200,6 +201,7 @@ impl AnthropicProvider {
             output_tokens: super::served::count(&usage["output_tokens"]),
             calls,
             truncated,
+            refused,
             ..Default::default()
         })
     }

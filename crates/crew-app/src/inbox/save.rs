@@ -83,7 +83,8 @@ fn quarantine(path: &Path) {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_secs());
-        let _ = std::process::Command::new("/usr/bin/xattr")
+        let mut xattr = std::process::Command::new("/usr/bin/xattr");
+        let _ = crew_hive::childproc::no_console_window(&mut xattr)
             .args(["-w", "com.apple.quarantine", &format!("0081;{now:x};crew;")])
             .arg(path)
             .stderr(std::process::Stdio::null())

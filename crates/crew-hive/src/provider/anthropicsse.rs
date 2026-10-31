@@ -88,6 +88,7 @@ impl Fold {
                 }
                 if let Some(why) = v["delta"]["stop_reason"].as_str() {
                     self.out.truncated = super::stopreason::anthropic(Some(why));
+                    self.out.refused = super::stopreason::refused(Some(why));
                     self.ended = true;
                 }
             }

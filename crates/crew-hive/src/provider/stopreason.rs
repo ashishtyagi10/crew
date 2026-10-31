@@ -20,6 +20,19 @@ pub(super) fn anthropic(stop_reason: Option<&str>) -> bool {
     stop_reason == Some("max_tokens")
 }
 
+/// The model declined the request rather than answering it: Anthropic's
+/// `refusal` stop reason, the OpenAI shape's `content_filter` finish. Read
+/// as nothing more, it was an empty reply — asked again twice (`resume`),
+/// declined twice more, then shown as no answer with no reason.
+pub(super) fn refused(reason: Option<&str>) -> bool {
+    matches!(reason, Some("refusal" | "content_filter"))
+}
+
+/// What a declined request ends as: the same request is declined again, so
+/// it is never retried, and the turn says why it has no answer.
+pub(super) const DECLINED: &str =
+    "the model declined to answer this request (its stop reason was a refusal)";
+
 #[cfg(test)]
 #[path = "stopreason_tests.rs"]
 mod tests;
@@ -27,3 +40,7 @@ mod tests;
 #[cfg(test)]
 #[path = "stopreason_wire_tests.rs"]
 mod wire_tests;
+
+#[cfg(test)]
+#[path = "stoprefused_tests.rs"]
+mod refused_tests;

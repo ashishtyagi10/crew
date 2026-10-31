@@ -125,6 +125,9 @@ pub struct Completion {
     /// (`stopreason`). Without it a reply cut mid-sentence reads as finished,
     /// and a tool call cut mid-JSON fails as malformed with nothing saying why.
     pub truncated: bool,
+    /// The model declined the request (`stopreason::refused`): Anthropic's
+    /// `refusal`, the OpenAI shape's `content_filter`.
+    pub refused: bool,
     /// What a model chain skipped before this reply's model answered, as
     /// `model: why` (`; `-joined when several fell), empty when the first
     /// model answered. Recorded where the chain moves on (`fellback`): a
