@@ -84,6 +84,11 @@ pub(super) async fn reply(
         };
         let heard = std::mem::take(&mut *heard.lock().unwrap_or_else(|e| e.into_inner()));
         match got {
+            Ok(c) if c.refused && blank(&c) => {
+                return Err(ProviderError::Api(
+                    crate::provider::stopreason::DECLINED.into(),
+                ))
+            }
             Ok(c) if shown.is_empty() && blank(&c) => blanks = summed(blanks, c),
             Ok(c) => {
                 blanks.text = shown;

@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.50
+
+**When a model declines a request, crew says so instead of showing nothing.**
+- A model can decline a request instead of answering it: Anthropic's API reports this as a
+  `refusal`, and OpenAI-style hosts (DashScope, OpenRouter, NIM) as `content_filter`. crew
+  read neither. A declined request looked like an empty reply, so it was asked twice more,
+  declined twice more, and the turn ended with no answer and no reason.
+- Both are now read, on streamed and whole replies alike. A declined request isn't asked
+  again, since the same request is declined again. The turn ends saying "the model
+  declined to answer this request". From Claude Code, which shows a refusal as one.
+  Checked by tests only: no request was sent to be refused.
+
 ## 0.29.49
 
 **Beside an open email, a star click stars the row you clicked.**
