@@ -8,7 +8,7 @@ use crew_hive::HiveEvent;
 use super::ClaudeAgent;
 use crate::broker::adapter::{Adapter, HopStream};
 
-fn fake(script: &str) -> (std::path::PathBuf, std::path::PathBuf) {
+pub(super) fn fake(script: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     let dir = std::env::temp_dir().join(format!(
         "crew-claudeagent-{}-{}",
         std::process::id(),
@@ -48,7 +48,7 @@ fn put(path: &std::path::Path, script: &str) {
     std::fs::write(path, script).unwrap();
 }
 
-fn agent(path: &std::path::Path, idle_floor: Duration) -> ClaudeAgent {
+pub(super) fn agent(path: &std::path::Path, idle_floor: Duration) -> ClaudeAgent {
     ClaudeAgent {
         program: path.to_str().unwrap().into(),
         model: None,

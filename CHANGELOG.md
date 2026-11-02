@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.52
+
+**When Claude Code isn't allowed to use a tool, crew names the tool and says where to allow it.**
+- `claude -p` can't ask for permission. A tool your Claude Code settings don't allow is
+  refused, the run goes on, and the reply only says something "needed approval". A crew pane
+  has no prompt to approve it from, so the turn just came back short.
+- Claude Code lists each refusal on its last line. crew now reads that list and puts one
+  line under the reply, for example: "Claude Code was not allowed to: Write
+  /path/hello.txt · Bash `touch made.txt`. Allow it under `permissions.allow` in
+  .claude/settings.json, or run `claude` in this folder once and approve it." Repeats are
+  folded, and after four it counts the rest.
+- From Claude Code's own `permission_denials`, which its SDK hands to the host for exactly
+  this, and Codex's approval line. Checked live through the broker in a folder set to
+  default mode, plus tests against the captured line.
+
 ## 0.29.51
 
 **smith's "✓ checked" now means a build or test really ran after the last edit.**

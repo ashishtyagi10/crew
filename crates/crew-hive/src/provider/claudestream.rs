@@ -47,6 +47,8 @@ pub struct RunResult {
     pub truncated: bool,
     /// The session the run was, which `--resume` continues.
     pub session_id: String,
+    /// The tool calls the user's settings refused (`clauderesult`).
+    pub denied: Vec<super::clauderesult::Denied>,
 }
 
 /// Parse one stdout line. `None` for a blank line or one that is not a JSON
@@ -74,25 +76,15 @@ pub fn parse_line(line: &str) -> Option<StreamEvent> {
             text: str_of(&v["result"]),
             is_error: v["is_error"].as_bool().unwrap_or(false),
             subtype: str_of(&v["subtype"]),
-            input_tokens: context_of(&v["usage"]),
+            input_tokens: super::clauderesult::context_of(&v["usage"]),
             output_tokens: v["usage"]["output_tokens"].as_u64().unwrap_or(0) as u32,
             cost_microusd: (v["total_cost_usd"].as_f64().unwrap_or(0.0) * 1e6).round() as u64,
             truncated: super::stopreason::anthropic(v["stop_reason"].as_str()),
             session_id: str_of(&v["session_id"]),
+            denied: super::clauderesult::denials(&v),
         }),
         _ => StreamEvent::Other,
     })
-}
-
-/// The context a `result` line's usage stands for: the run's LAST call's
-/// whole prompt (`iterations`), not its summed, uncached `input_tokens` —
-/// "2 in" under every relay reply of a 30,381-token prompt (2026-10-30).
-fn context_of(usage: &Value) -> u32 {
-    let last = usage["iterations"]
-        .as_array()
-        .and_then(|calls| calls.last())
-        .unwrap_or(usage);
-    super::served::anthropic_input(last)
 }
 
 fn delta(ev: &Value) -> StreamEvent {

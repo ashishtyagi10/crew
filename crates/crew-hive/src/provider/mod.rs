@@ -7,6 +7,7 @@ mod anthropicsse;
 mod claudecli;
 #[cfg(test)]
 mod claudecli_tests;
+pub mod clauderesult;
 pub mod claudestream;
 mod completion;
 pub mod cutoff;
