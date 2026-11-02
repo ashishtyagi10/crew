@@ -188,8 +188,8 @@ fn a_wide_card_keeps_the_list_at_its_measure_on_the_left() {
     let matches = crate::suggest::menu_items("/s");
     let wide = 200u16;
     let cells = menu_cells(&matches, 0, wide, menu_rows(matches.len()) - 2);
-    let left = cells.iter().map(|c| c.col).min().expect("rows drew");
-    let right = cells.iter().map(|c| c.col).max().unwrap();
+    let text = || cells.iter().filter(|c| c.c != ' ').map(|c| c.col); // not the wash
+    let (left, right) = (text().min().expect("rows drew"), text().max().unwrap());
     let measure = crate::cmdrow::content_w(&matches) as u16;
     assert!(right - left < measure, "the rows kept their measure");
     assert_eq!(left, 0, "the list starts where the eye does");

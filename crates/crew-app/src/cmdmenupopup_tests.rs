@@ -69,7 +69,7 @@ fn the_frame_ends_at_the_hugged_width() {
     let text_end = p
         .cells
         .iter()
-        .filter(|c| c.row == 2 && c.c != '│')
+        .filter(|c| c.row == 2 && c.c != '│' && c.c != ' ')
         .map(|c| c.col)
         .max();
     assert_eq!(
