@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.56
+
+**smith's "still working" note no longer stays in the transcript after the turn.**
+- When a turn has had nothing new for 90 seconds, smith says what it's waiting on and that
+  Esc stops it. A long test run hits this on every turn. Each note became a card in the
+  transcript, another every three minutes, and they stayed after the answer, so finished
+  turns read "still working — nothing new for 1m30".
+- Now there is one note at a time: a later one replaces the earlier with the new time, and
+  it goes when the turn ends. While the turn runs, it still says what it's waiting on and
+  that Esc stops it.
+- Checked by the watchdog's test, which fails with the clean-up taken out.
+
 ## 0.29.55
 
 **The highlight on a picker's selected row reaches both edges, and the font list has one too.**

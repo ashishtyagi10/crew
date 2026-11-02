@@ -17,8 +17,9 @@ impl ChatPane {
             self.running_tasks.push(id);
         } else if self.running_tasks.is_empty() {
             self.asking.clear(); // nothing is left to be waiting on an answer
-                                 // The plan was the run's, and the run is over: what it left
-                                 // undone is said once (`chatchecklist::left_note`), then it goes.
+            self.drop_quiet_notes(); // and nothing is quiet any more
+                                     // The plan was the run's, and the run is over: what it left
+                                     // undone is said once (`chatchecklist::left_note`), then it goes.
             let left = crate::chatchecklist::left_note(&self.checklist);
             self.checklist.clear();
             // What the turn's own runs prove about its edits (`chatproof`),

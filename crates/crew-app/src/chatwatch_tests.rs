@@ -63,7 +63,8 @@ fn a_broker_that_stops_beating_is_restarted_and_one_that_never_beat_is_not() {
 }
 
 /// A task with nothing new for 90 s gets a note saying what it waits on and
-/// that Esc stops it — once, then again only after three more minutes.
+/// that Esc stops it — once, then again only after three more minutes, the
+/// newer note in place of the older. The turn's end takes it away.
 #[test]
 fn a_quiet_task_says_what_it_is_waiting_on() {
     let (mut p, _) = pane("quiet");
@@ -94,7 +95,12 @@ fn a_quiet_task_says_what_it_is_waiting_on() {
     p.watchdog_at(1_000 + 200_000);
     assert_eq!(notes(&p), 1, "not again so soon");
     p.watchdog_at(1_000 + 90_001 + 180_001);
-    assert_eq!(notes(&p), 2, "and again after three minutes");
+    assert_eq!(notes(&p), 1, "said again after three minutes, in its place");
+    assert!(last_note(&p).contains("4m30"), "{}", last_note(&p));
+    p.push_note("an answer".into());
+    p.absorb_task(1, false);
+    assert_eq!(notes(&p), 0, "a finished turn keeps no quiet note");
+    assert!(p.messages.iter().any(|m| m.text == "an answer"));
 }
 
 /// Esc arms the stop clock; a stop that has not taken in 20 s ends the
