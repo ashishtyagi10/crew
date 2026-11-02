@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.51
+
+**smith's "✓ checked" now means a build or test really ran after the last edit.**
+- The proof judged a command by its words. Anything with "test", "check" or "build" in it
+  counted, file names included. So `wc -l src/x_tests.rs` or `cat build.rs` after a failing
+  `cargo test` replaced that run and the turn read "✓ checked". A test run sent to the
+  background read as passed the moment it started. A green `cargo fmt --check` after a
+  red test erased the red.
+- Now each part of a command is judged by its program: `cargo test`, `npm run test`,
+  `pytest`, `go vet`, `make` and the like are checks, behind `cd …&&`, `CI=1` or `npx`. A
+  background run stays "still running". A failed run is cleared only by running the same
+  command again.
+- Edits made through the shell count as edits: `sed -i`, `cargo fmt`, `git apply`,
+  `git checkout --`, `> file`, `tee file`. A green test followed by `cargo fmt` is "not
+  checked". Writes to `/tmp` and `/dev/null` are not edits.
+- From Claude Code's own habit of reading a command by what it runs. Checked by tests:
+  five of the six new ones fail on v0.29.50.
+
 ## 0.29.50
 
 **When a model declines a request, crew says so instead of showing nothing.**
