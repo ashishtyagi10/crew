@@ -59,3 +59,25 @@ fn a_card_the_list_cuts_through_is_blanked_below_it() {
         "the far card keeps its frame"
     );
 }
+
+/// The cursor row is washed across the list, inside the strokes, and no
+/// other row is: the current family's bold `✓` no longer reads as a second
+/// cursor.
+#[test]
+fn the_cursor_row_wears_the_selection_wash_edge_to_edge() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = SettingsPane::new(CrewConfig::default(), vec!["Lilex".into(), "Menlo".into()]);
+    p.family_open = true;
+    p.family_query.clear();
+    p.family_sel = 1;
+    let mut buf = Buffer::empty(Rect::new(0, 0, 30, 8));
+    dropdown(&mut buf, &p, Rect::new(0, 0, 30, 1), &[]);
+    let (r, g, b) = crew_theme::readable::selection_bg(&crew_theme::theme());
+    let wash = ratatui::style::Color::Rgb(r, g, b);
+    let washed = |y: u16| (0..30).filter(|&x| buf[(x, y)].bg == wash).count();
+    let y = (1..8)
+        .find(|&y| cell_text(&buf, y).contains('\u{203a}'))
+        .unwrap();
+    assert_eq!(washed(y), 28, "{}", cell_text(&buf, y));
+    assert_eq!((1..8).filter(|&y| washed(y) > 0).count(), 1);
+}

@@ -48,3 +48,28 @@ fn the_selected_row_is_washed_whole_and_its_ink_reads_on_it() {
         assert_eq!(other.bg, t.page_bg, "{id:?}: the other rows stay clear");
     }
 }
+
+/// A picker's wash meets both strokes of its card, as the inbox row's does:
+/// it was only as wide as the rows' measure, so it ended two columns short
+/// of the right stroke, and ten in a floored card.
+#[test]
+fn the_wash_meets_both_strokes() {
+    let _g = crate::app::theme_test_guard();
+    let wash = crew_theme::readable::selection_bg(&crew_theme::theme());
+    for text in ["/d", "/theme ", "/model "] {
+        let items = crate::suggest::menu_items(text);
+        for cols in [crate::cmdmenu::popup_size(&items, 120).0, 60] {
+            let rows = crate::cmdmenu::menu_rows(items.len());
+            let cells = crate::cmdmenu::menu_card("t", &items, 1, cols, rows);
+            let row = cells
+                .iter()
+                .find(|c| c.c == '\u{203a}')
+                .expect("marked")
+                .row;
+            let on = cells.iter().filter(|c| c.row == row && c.bg == wash);
+            let washed: Vec<u16> = on.map(|c| c.col).collect();
+            assert_eq!(washed.iter().min(), Some(&1), "{text} at {cols}");
+            assert_eq!(washed.iter().max(), Some(&(cols - 2)), "{text} at {cols}");
+        }
+    }
+}

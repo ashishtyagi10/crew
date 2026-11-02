@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.55
+
+**The highlight on a picker's selected row reaches both edges, and the font list has one too.**
+- Since v0.29.36 the selected row in the palette and every picker has worn a highlight. It
+  was only as wide as the rows' text, so it stopped two columns before the card's right
+  edge. In `/todo`'s `@project` pop-up, whose card is wider than its list, it stopped about
+  ten columns short and floated in the card.
+- It now runs from edge to edge with even air at both ends, as the inbox's selected email
+  has since v0.29.31. The text keeps its margin inside it.
+- Settings → Font family marked the row you're on with `›` and bold alone, and the font in
+  use is bold too, so the two looked alike. That row now wears the same highlight.
+- Shots: palette, `@project` pop-up, font list.
+
 ## 0.29.54
 
 **A Claude Code run that times out ends its own commands first.**

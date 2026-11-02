@@ -160,7 +160,7 @@ pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16)
         c.fg = accent;
     }
     if let Some(row) = row {
-        crate::menuwash::wash_row(&mut cells, row, w);
+        crate::menuwash::wash_row(&mut cells, row, cols);
     }
     cells
 }
