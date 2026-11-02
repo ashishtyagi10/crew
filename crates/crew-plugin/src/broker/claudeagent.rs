@@ -127,8 +127,7 @@ impl ClaudeAgent {
                 Err(mpsc::RecvTimeoutError::Disconnected) => break,
                 Err(mpsc::RecvTimeoutError::Timeout) => {
                     if last.elapsed() >= idle {
-                        let _ = child.kill();
-                        let _ = child.wait();
+                        super::clistop::ended(&mut child);
                         (stream.on_thought)("");
                         return Err(format!("{program}: no output for {idle:?} \u{2014} killed"));
                     }

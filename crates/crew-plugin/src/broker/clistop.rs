@@ -39,6 +39,14 @@ impl Stop {
 /// End `child` — TERM, then KILL after [`GRACE`] — and say why the dial
 /// came back without a reply.
 pub(super) fn end(child: &mut Child) -> String {
+    ended(child);
+    cancelscope::STOPPED.to_string()
+}
+
+/// End `child` as a stop does. The idle timeout and the wall deadline end
+/// a CLI this way too: their SIGKILL left the Bash child Claude Code was
+/// waiting on (a hung test, a dev server) running under launchd.
+pub(super) fn ended(child: &mut Child) {
     #[cfg(unix)]
     // SAFETY: signalling a pid this process spawned and has not yet reaped.
     unsafe {
@@ -47,13 +55,12 @@ pub(super) fn end(child: &mut Child) -> String {
     let t0 = Instant::now();
     while t0.elapsed() < GRACE {
         if let Ok(Some(_)) = child.try_wait() {
-            return cancelscope::STOPPED.to_string();
+            return;
         }
         std::thread::sleep(Duration::from_millis(20));
     }
     let _ = child.kill();
     let _ = child.wait();
-    cancelscope::STOPPED.to_string()
 }
 
 #[cfg(all(test, unix))]
