@@ -68,3 +68,49 @@ fn a_stop_ends_a_running_agent_cli() {
     assert_eq!(got.unwrap_err(), cancelscope::STOPPED);
     assert!(took < Duration::from_secs(5), "took {took:?}");
 }
+
+/// A CLI that traps TERM and leaves `marker` when it gets one, after one
+/// stream line: SIGKILL never runs the trap, so the marker says which ended it.
+fn trapper(marker: &std::path::Path) -> std::path::PathBuf {
+    use std::os::unix::fs::PermissionsExt;
+    let script = format!(
+        "#!/bin/sh\ntrap 'touch \"{}\"; exit 0' TERM\necho '{{\"type\":\"system\",\"subtype\":\"status\",\"status\":\"requesting\"}}'\nsleep 30 &\nwait\n",
+        marker.display()
+    );
+    let path = sleeper();
+    let src = path.with_extension("trap");
+    std::fs::write(&src, script).unwrap();
+    std::fs::set_permissions(&src, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let dst = path.with_file_name("claude-trap");
+    let cp = std::process::Command::new("cp")
+        .arg("-p")
+        .arg(&src)
+        .arg(&dst)
+        .status();
+    assert!(cp.unwrap().success());
+    dst
+}
+
+/// The idle timeout and the wall deadline end a CLI the way a stop does —
+/// TERM first, so Claude Code can end the Bash children it was running —
+/// and still say they timed out.
+#[test]
+fn a_timed_out_cli_gets_term_before_kill() {
+    let dir = sleeper().parent().unwrap().to_path_buf();
+    let marker = dir.join("termed-relay");
+    let agent = ClaudeAgent {
+        program: trapper(&marker).to_str().unwrap().into(),
+        model: None,
+        idle_floor: Duration::from_millis(300),
+        resume: Default::default(),
+    };
+    let err = agent.call("hi", Duration::ZERO).unwrap_err();
+    assert!(err.contains("no output"), "{err}");
+    assert!(marker.exists(), "the relay's idle timeout sent no TERM");
+    let marker = dir.join("termed-run");
+    let program = trapper(&marker);
+    let err =
+        crate::broker::run::run_cli(program.to_str().unwrap(), &[], Duration::from_millis(300));
+    assert!(err.unwrap_err().contains("timed out"));
+    assert!(marker.exists(), "run_cli's deadline sent no TERM");
+}

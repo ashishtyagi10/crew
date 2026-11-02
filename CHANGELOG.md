@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.54
+
+**A Claude Code run that times out ends its own commands first.**
+- Since v0.29.30, Esc sends Claude Code TERM and waits two seconds before KILL. On TERM it
+  ends the Bash commands it was running. The ten-minute silence timeout, and the deadline
+  on Codex and opencode runs, still sent KILL straight away. KILL can't be caught, so a
+  hung test or a dev server Claude Code had started kept running after crew said "no
+  output for 600s — killed".
+- Both now end the CLI the way a stop does: TERM, then KILL after two seconds. Their
+  messages are unchanged.
+- From the TERM, grace, KILL pattern of Codex's exec and crew's own `sys:run`. Checked by a
+  test whose fake CLI leaves a mark when it gets TERM. Without the change it gets none.
+
 ## 0.29.53
 
 **Pasting into a program that has stopped reading no longer freezes crew.**

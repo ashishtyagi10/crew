@@ -104,8 +104,7 @@ pub fn run_cli(program: &str, args: &[String], timeout: Duration) -> Result<Stri
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 if Instant::now() >= deadline {
-                    let _ = child.kill();
-                    let _ = child.wait();
+                    super::clistop::ended(&mut child);
                     return Err(format!("{program}: timed out after {timeout:?}"));
                 }
             }
