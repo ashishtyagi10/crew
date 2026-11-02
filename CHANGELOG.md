@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.57
+
+**Panes speak UTF-8 when crew is started from the Dock.**
+- macOS gives an app started from the Dock no `LANG`, and many shell setups don't set one
+  (this machine's has it commented out). Panes then ran in the C locale: `ls` printed
+  `caf??.txt`, zsh treated `é` as two characters and deleted half of one, and less and
+  git's pager showed `<C3><A9>`. Panes that run a single command with `zsh -c`, the agent
+  CLIs among them, read no rc file, so a `LANG` set there never reached them either.
+- A pane with no locale now gets the language macOS is set to, as a UTF-8 locale
+  (`en_US.UTF-8` here), or `en_US.UTF-8` if that one isn't installed. A `LANG`, `LC_ALL` or
+  `LC_CTYPE` you set yourself is left alone.
+- Terminal.app, iTerm2, alacritty, WezTerm and Ghostty all do the same. Checked through a
+  real pty with no locale in the environment: `locale charmap` reads UTF-8 now and US-ASCII
+  without the change.
+
 ## 0.29.56
 
 **smith's "still working" note no longer stays in the transcript after the turn.**
