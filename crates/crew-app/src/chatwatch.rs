@@ -20,6 +20,8 @@ const WEDGED_MS: u64 = 4 * crew_plugin::HEARTBEAT_MS;
 const QUIET_MS: u64 = 90_000;
 const QUIET_AGAIN_MS: u64 = 180_000;
 const STOP_MS: u64 = 20_000;
+/// How a quiet note begins: one is live at a time, and none outlives its turn.
+const QUIET_HEAD: &str = "still working \u{2014} nothing new for ";
 
 /// The watchdog's clocks for one pane.
 #[derive(Default)]
@@ -119,14 +121,22 @@ impl ChatPane {
             .is_none_or(|t| now.saturating_sub(t) > QUIET_AGAIN_MS);
         if busy && quiet > QUIET_MS && again {
             self.watch.noted = Some(now);
-            let note = format!(
-                "still working \u{2014} nothing new for {}, {}. Esc stops it.",
-                crate::runclock::ladder(quiet / 1000),
-                self.waiting_on()
-            );
-            self.push_note(note);
+            let (took, on) = (crate::runclock::ladder(quiet / 1000), self.waiting_on());
+            self.drop_quiet_notes();
+            self.push_note(format!("{QUIET_HEAD}{took}, {on}. Esc stops it."));
         }
         None
+    }
+
+    /// Take the quiet note out of the transcript: it says how long the
+    /// task has been quiet, which is stale once a newer one says it again,
+    /// and once the turn is over. It stayed as a card for good, a "still
+    /// working" under every long test run's finished answer.
+    pub(crate) fn drop_quiet_notes(&mut self) {
+        let quiet = |m: &crate::chatlayout::Message| {
+            m.sender == "agent smith" && m.text.starts_with(QUIET_HEAD)
+        };
+        self.messages.retain(|m| !quiet(m));
     }
 
     /// What a quiet task is waiting on, in a few words.
