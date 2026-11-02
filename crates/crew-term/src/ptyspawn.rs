@@ -89,7 +89,7 @@ impl PtyTerm {
         Ok(Self {
             core: TermCore::new(size),
             master: pair.master,
-            input: std::sync::Arc::new(std::sync::Mutex::new(input)),
+            input: ptywrite::start(input),
             rx,
             exited: false,
             pending: false,
