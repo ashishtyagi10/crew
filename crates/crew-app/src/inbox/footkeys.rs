@@ -73,6 +73,15 @@ pub(crate) const FORWARD: Keys = &[
     ("\u{2191}", "to and cc"),
     ("\u{2193}", "attach"),
 ];
+/// A new mail's words: its lines above are to, cc and subject.
+pub(crate) const NEW: Keys = &[
+    (SEND, "send"),
+    ("esc", "close"),
+    GAP,
+    ("\u{2191}", "to, cc, subject"),
+    ("\u{2193}", "attach"),
+    ("tab", "agent smith drafts it"),
+];
 pub(crate) const FILES: Keys = &[
     (SEND, "send"),
     ("esc", "close"),

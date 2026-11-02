@@ -134,3 +134,47 @@ fn the_new_mail_sits_under_the_list_with_a_subject_line_and_rows_stay_held() {
     assert!(p.reading.is_none());
     assert!(p.note.contains("being written"), "{}", p.note);
 }
+
+#[test]
+fn the_foot_names_the_subject_line_over_a_new_mails_words() {
+    let (mut p, _asks) = listing();
+    typed(&mut p, "c");
+    p.compose.as_mut().unwrap().on = On::Body;
+    let keys = p.compose_keys();
+    assert!(keys.iter().any(|k| k.1 == "to, cc, subject"));
+    assert!(keys.iter().any(|k| k.0 == "tab"), "smith drafts it");
+}
+
+#[test]
+fn tab_in_a_new_mail_asks_smith_and_its_draft_replaces_the_notes() {
+    let (mut p, _asks) = listing();
+    typed(&mut p, "c");
+    // Nothing to go on yet: smith is not asked.
+    p.compose.as_mut().unwrap().on = On::Body;
+    named(&mut p, NamedKey::Tab);
+    assert!(p.to_smith.is_none(), "{}", p.note);
+    p.compose.as_mut().unwrap().on = On::To;
+    typed(&mut p, "ed@x.org");
+    for _ in 0..3 {
+        named(&mut p, NamedKey::Tab);
+    }
+    typed(&mut p, "move lunch to fri");
+    named(&mut p, NamedKey::Tab);
+    let ask = p.to_smith.take().expect("smith asked");
+    assert_eq!(ask.wants, crate::inbox::handoff::Wants::Draft);
+    assert!(ask.prompt.contains("to ed@x.org"), "{}", ask.prompt);
+    assert!(ask.prompt.contains("move lunch to fri"), "{}", ask.prompt);
+    assert!(ask.shown.contains("draft a mail to"), "{}", ask.shown);
+    // Smith answers with nothing open but the list: it lands in the box.
+    p.waiting = Some(crate::inbox::handoff::Waiting {
+        since: 0,
+        at_ms: 0,
+        wants: crate::inbox::handoff::Wants::Draft,
+        thread: ask.thread,
+    });
+    p.from_smith(Some(vec![
+        "<<<DRAFT\nHi Ed, can we do Friday?\nDRAFT>>>".into()
+    ]));
+    let c = p.compose.as_ref().unwrap();
+    assert_eq!(c.body.text, "Hi Ed, can we do Friday?", "notes replaced");
+}
