@@ -65,7 +65,7 @@ fn line1_shows_model_branch_cost_and_split() {
 }
 
 #[test]
-fn line1_hides_cost_when_unpriced_but_always_shows_tokens() {
+fn line1_hides_cost_when_unpriced_and_tokens_until_there_are_some() {
     let empty_ctx = HashMap::new();
     let mut f = fc(&[], &empty_ctx);
     f.cost_microusd = 0;
@@ -73,7 +73,7 @@ fn line1_hides_cost_when_unpriced_but_always_shows_tokens() {
     f.tok_out = 0;
     f.branch = None;
     let lines = footer_lines(&f, 120);
-    assert_eq!(text(&lines[0]), "0 in / 0 out");
+    assert_eq!(text(&lines[0]), "");
 }
 
 #[test]
@@ -88,12 +88,12 @@ fn line2_shows_countdowns_and_bars() {
 }
 
 #[test]
-fn line2_dashes_when_no_window_and_drops_ctx_without_agents() {
+fn line2_is_empty_with_no_window_and_no_ctx_without_agents() {
     let empty_ctx = HashMap::new();
     let mut f = fc(&[], &empty_ctx);
     f.windows = crate::usageledger::Windows::default();
     let l2 = text(&footer_lines(&f, 120)[1]);
-    assert_eq!(l2, "5h:-- | 7d:--");
+    assert_eq!(l2, "");
 }
 
 #[test]

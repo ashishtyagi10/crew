@@ -180,26 +180,20 @@ pub(crate) fn footer_lines_with(
         let shown = fc.readouts.cost.tick(fc.cost_microusd as f64, now);
         l1.push(((fmt_cost(shown.round() as u64), green), P_COST));
     }
-    l1.push((
-        (
-            format!(
-                "{} in / {} out",
-                fmt_tokens(fc.readouts.tok_in.tick(fc.tok_in as f64, now).round() as u64),
-                fmt_tokens(fc.readouts.tok_out.tick(fc.tok_out as f64, now).round() as u64)
-            ),
-            magenta,
-        ),
-        P_TOKENS,
-    ));
+    if fc.tok_in + fc.tok_out > 0 {
+        let i = fmt_tokens(fc.readouts.tok_in.tick(fc.tok_in as f64, now).round() as u64);
+        let o = fmt_tokens(fc.readouts.tok_out.tick(fc.tok_out as f64, now).round() as u64);
+        l1.push(((format!("{i} in / {o} out"), magenta), P_TOKENS));
+    }
 
     // Line 2: 5h/7d countdowns, then budget + context bars (bars are the
     // first thing to go on a narrow pane).
     let mut l2: Vec<(Seg, u8)> = Vec::new();
-    let left = |w: Option<crate::usageledger::WindowStat>| {
-        w.map_or("--".to_string(), |w| fmt_left(w.left_ms))
-    };
-    l2.push(((format!("5h:{}", left(fc.windows.five_h)), blue), 0));
-    l2.push(((format!("7d:{}", left(fc.windows.seven_d)), blue), 1));
+    // Only what is known: a fresh pane read `0 in / 0 out` over `5h:--`.
+    for (tag, w, p) in [("5h", fc.windows.five_h, 0), ("7d", fc.windows.seven_d, 1)] {
+        let left = w.map(|w| format!("{tag}:{}", fmt_left(w.left_ms)));
+        l2.extend(left.map(|t| ((t, blue), p)));
+    }
     // The meters fill rather than snap: a bar that jumps two cells reads as a
     // glitch, a sliding one as a gauge. No width gate: `budget` drops a meter
     // that does not fit, the account's 5h one first (survey H4).
@@ -214,7 +208,9 @@ pub(crate) fn footer_lines_with(
         let pct = fc.readouts.bar_5h.tick(f64::from(pct), now);
         gauge(&mut l2, pct, "5h", 3);
     }
-    if let Some(fill) = ctx_fill(fc.agents, fc.ctx) {
+    // No gauge before anything was sent: `▭ 0% (ctx)` under a fresh pane.
+    let sent = fc.ctx.values().any(|&n| n > 0);
+    if let Some(fill) = ctx_fill(fc.agents, fc.ctx).filter(|_| sent) {
         let fill = fc.readouts.ctx.tick(f64::from(fill), now);
         gauge(&mut l2, fill, "ctx", 2);
     }
