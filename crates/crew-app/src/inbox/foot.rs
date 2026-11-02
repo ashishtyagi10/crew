@@ -94,6 +94,7 @@ impl InboxPane {
             (Stage::Ready(_), Some(_)) if self.answering() => ANSWER,
             (Stage::Ready(_), Some(_)) if self.compose.is_some() => self.compose_keys(),
             (Stage::Ready(_), Some(_)) => READER,
+            (Stage::Ready(_), None) if self.compose.is_some() => self.compose_keys(),
             // The list's keys type into the search while it is written.
             (Stage::Ready(_), None) if self.typing.is_some() => SEARCH,
             (Stage::Ready(_), None) if self.rows.is_empty() => EMPTY,

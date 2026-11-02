@@ -7,7 +7,8 @@
 //! the box has `to` and `cc` lines to change and a row of files
 //! (`composekeys` moves between them, `attach` fills the row). Cmd+Enter
 //! (Ctrl+Enter off a Mac) sends (`composesend`); Esc closes it, a second Esc
-//! when there are words.
+//! when there are words. `c` in the list opens the same box for a new mail
+//! (`Kind::New`): no thread, a `subject` line under `cc`, under the list.
 use std::sync::mpsc::Receiver;
 
 use super::attach::Attached;
@@ -21,6 +22,8 @@ pub(crate) enum Kind {
     /// To everyone the mail went to.
     Reply,
     Forward,
+    /// A new mail, from the list: to no one yet, on no thread.
+    New,
 }
 
 /// Where the caret is: a line of addresses, the words, or the files.
@@ -28,6 +31,8 @@ pub(crate) enum Kind {
 pub(crate) enum On {
     To,
     Cc,
+    /// A new mail's subject; a reply's is the thread's.
+    Subject,
     Body,
     Files,
 }
@@ -39,6 +44,7 @@ pub(crate) struct Compose {
     pub answer: Answer,
     pub to: Field,
     pub cc: Field,
+    pub subject: Field,
     pub body: Field,
     pub on: On,
     /// Files of yours sent with it, and the one chosen on their row
@@ -62,6 +68,7 @@ impl Compose {
         match self.on {
             On::To => &mut self.to,
             On::Cc => &mut self.cc,
+            On::Subject => &mut self.subject,
             On::Body | On::Files => &mut self.body,
         }
     }
@@ -71,7 +78,27 @@ impl Compose {
         self.body.text.trim().is_empty()
             && self.to.text == self.answer.to
             && self.cc.text == self.answer.cc
+            && self.subject.text == self.answer.subject
             && self.files.is_empty()
+    }
+
+    /// The place after `on`, as Tab goes: a reply has no subject line.
+    pub(crate) fn after(&self, on: On) -> On {
+        match on {
+            On::To => On::Cc,
+            On::Cc if self.kind == Kind::New => On::Subject,
+            On::Cc | On::Subject => On::Body,
+            On::Body => On::Files,
+            On::Files => On::To,
+        }
+    }
+
+    /// The place before the words, as ↑ goes from their first line.
+    pub(crate) fn above_body(&self) -> On {
+        match self.kind {
+            Kind::New => On::Subject,
+            _ => On::Cc,
+        }
     }
 }
 
@@ -105,18 +132,35 @@ impl InboxPane {
                 }
                 None => (None, None),
             },
+            Kind::New => (Some(Answer::default()), None),
         };
         let Some(answer) = answer else {
             return "nothing in this thread to reply to";
         };
+        self.compose = Some(Compose::of(kind, answer, forward));
+        ""
+    }
+
+    /// `c` in the list: a new mail, under the list, the caret on its `to`
+    /// line.
+    pub(crate) fn open_new(&mut self) {
+        if self.compose.is_none() && self.todo.is_none() {
+            self.compose = Some(Compose::of(Kind::New, Answer::default(), None));
+        }
+    }
+}
+
+impl Compose {
+    fn of(kind: Kind, answer: Answer, forward: Option<Box<Forwarded>>) -> Self {
         let on = match kind {
-            Kind::Forward => On::To,
-            _ => On::Body,
+            Kind::Forward | Kind::New => On::To,
+            Kind::Reply => On::Body,
         };
-        self.compose = Some(Compose {
+        Self {
             kind,
             to: Field::with(&answer.to),
             cc: Field::with(&answer.cc),
+            subject: Field::with(&answer.subject),
             answer,
             body: Field::default(),
             on,
@@ -126,11 +170,14 @@ impl InboxPane {
             forward,
             armed: false,
             sending: false,
-        });
-        ""
+        }
     }
 }
 
 #[cfg(test)]
 #[path = "compose_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "composenew_tests.rs"]
+mod new_tests;

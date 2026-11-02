@@ -10,6 +10,8 @@ pub(crate) struct Geo {
     /// The `to` line's row, and the `cc` line's when it shows.
     pub to: u16,
     pub cc: Option<u16>,
+    /// A new mail's `subject` line, under `cc`: always shown.
+    pub subject: Option<u16>,
     /// The words' first row, and how many they have.
     pub words: u16,
     pub room: u16,
@@ -23,9 +25,10 @@ pub(crate) fn geo(c: &Compose, top: u16, h: u16, w: u16) -> Geo {
     let inside = h.saturating_sub(2);
     let n = super::composefiles::rows(c, w);
     let carried = u16::from(c.forward.is_some());
+    let subject = u16::from(c.kind == super::compose::Kind::New);
     // The `to` line and a row of words, and whatever else still shows.
     let need = |cc: bool, air: bool, files: bool| {
-        2 + u16::from(cc) + u16::from(air) + if files { n } else { 0 } + carried
+        2 + subject + u16::from(cc) + u16::from(air) + if files { n } else { 0 } + carried
     };
     let (mut cc, mut air, mut files) = (true, true, true);
     air &= need(cc, air, files) <= inside;
@@ -35,13 +38,14 @@ pub(crate) fn geo(c: &Compose, top: u16, h: u16, w: u16) -> Geo {
     cc &= need(cc, air, files) <= inside || c.on == On::Cc;
     files &= need(cc, air, files) <= inside || c.on == On::Files;
     let to = top + 1;
-    let words = to + 1 + u16::from(cc) + u16::from(air);
+    let words = to + 1 + u16::from(cc) + subject + u16::from(air);
     // The rows the files and the carried mail take, above the bottom edge.
     let under = (top + h).saturating_sub(1 + carried);
     let first = under.saturating_sub(n);
     Geo {
         to,
         cc: cc.then_some(to + 1),
+        subject: (subject == 1).then_some(to + 1 + u16::from(cc)),
         words,
         room: if files { first } else { under }.saturating_sub(words),
         files: files.then_some(first),
@@ -71,11 +75,12 @@ pub(crate) fn caret_at(c: &mut Compose, g: &Geo, w: u16, (row, col): (u16, u16))
             });
             c.body.at = at.last().unwrap_or(n);
         }
-        On::To | On::Cc => {
-            let room = w.saturating_sub(usize::from(super::composehead::VALUE - X));
+        On::To | On::Cc | On::Subject => {
+            let value = super::composehead::value(c);
+            let room = w.saturating_sub(usize::from(value - X));
             let f = c.field();
             if crate::chatwidth::str_w(&f.text) < room {
-                let col = usize::from(col.saturating_sub(super::composehead::VALUE));
+                let col = usize::from(col.saturating_sub(value));
                 let mut x = 0;
                 f.at = f
                     .text

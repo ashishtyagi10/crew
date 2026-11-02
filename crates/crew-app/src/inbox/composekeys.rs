@@ -17,13 +17,10 @@ impl InboxPane {
         };
         let armed = std::mem::take(&mut c.armed);
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
-        let (on, forward) = (c.on, c.kind == Kind::Forward);
-        let next = match on {
-            On::To => On::Cc,
-            On::Cc => On::Body,
-            On::Body => On::Files,
-            On::Files => On::To,
-        };
+        // A forward's words are a note, a new mail's on no thread: smith
+        // drafts only a reply.
+        let (on, forward) = (c.on, c.kind != Kind::Reply);
+        let next = c.after(on);
         match key {
             // On its way: the box goes when Gmail says it went, so that word
             // cannot close a box opened since.
@@ -44,13 +41,16 @@ impl InboxPane {
                 None => self.act(super::handoff::Then::Draft),
             },
             Key::Named(NamedKey::Tab) => c.on = next,
-            Key::Named(NamedKey::Enter) if matches!(on, On::To | On::Cc) => c.on = next,
+            Key::Named(NamedKey::Enter) if matches!(on, On::To | On::Cc | On::Subject) => {
+                c.on = next
+            }
             _ if on == On::Files => self.files_key(key),
             // A line up or down in the words, else the place above or below.
             Key::Named(NamedKey::ArrowUp) => {
                 if !c.field().line(true) {
                     c.on = match on {
-                        On::Body => On::Cc,
+                        On::Body => c.above_body(),
+                        On::Subject => On::Cc,
                         _ => On::To,
                     };
                 }
@@ -119,9 +119,9 @@ impl InboxPane {
     pub(crate) fn compose_keys(&self) -> super::footkeys::Keys {
         use super::footkeys::{ADDRESS, COMPOSE, FILES, FORWARD};
         match self.compose.as_ref().map(|c| (c.on, c.kind)) {
-            Some((On::To | On::Cc, _)) => ADDRESS,
+            Some((On::To | On::Cc | On::Subject, _)) => ADDRESS,
             Some((On::Files, _)) => FILES,
-            Some((On::Body, Kind::Forward)) => FORWARD,
+            Some((On::Body, Kind::Forward | Kind::New)) => FORWARD,
             _ => COMPOSE,
         }
     }

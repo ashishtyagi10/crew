@@ -42,9 +42,15 @@ impl InboxPane {
         }
         c.sending = true;
         let list = |f: &super::field::Field| addr::split(&f.text).join(", ");
+        // A new mail goes on the subject its line says; a reply on its thread's.
+        let subject = match c.kind {
+            super::compose::Kind::New => c.subject.text.trim().to_string(),
+            _ => c.answer.subject.clone(),
+        };
         let answer = Answer {
             to: list(&c.to),
             cc: list(&c.cc),
+            subject,
             ..c.answer.clone()
         };
         let to = answer.to.clone();
@@ -57,7 +63,8 @@ impl InboxPane {
             },
             false => Ask::Mail(Box::new(Outgoing {
                 head: draft::head(&answer),
-                thread_id: c.forward.is_none().then(|| answer.thread_id.clone()),
+                thread_id: (c.forward.is_none() && !answer.thread_id.is_empty())
+                    .then(|| answer.thread_id.clone()),
                 words: c.body.text.clone(),
                 forward: c.forward.clone(),
                 files: c.files.clone(),

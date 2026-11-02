@@ -144,9 +144,13 @@ fn encoded(s: &str) -> String {
 }
 
 impl Gmail {
-    /// Send `raw` (RFC 2822, base64url) in the thread: `gmail.modify` covers it.
+    /// Send `raw` (RFC 2822, base64url) in the thread, or on none (a new
+    /// mail, `thread_id` empty): `gmail.modify` covers it.
     pub(crate) fn send(&mut self, thread_id: &str, raw: &str) -> Result<(), String> {
-        let body = serde_json::json!({"raw": raw, "threadId": thread_id});
+        let body = match thread_id {
+            "" => serde_json::json!({ "raw": raw }),
+            id => serde_json::json!({"raw": raw, "threadId": id}),
+        };
         self.post("/messages/send", body).map(|_| ())
     }
 }

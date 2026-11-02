@@ -1,5 +1,6 @@
-//! The reply box's `to` and `cc` lines: a muted name, the addresses, and on
-//! the line the caret is on, the caret, where a long line shows its end.
+//! The reply box's `to` and `cc` lines, and a new mail's `subject`: a muted
+//! name, the value, and on the line the caret is on, the caret, where a long
+//! line shows its end.
 use super::compose::{Compose, Kind, On};
 use super::composedraw::X;
 use super::composegeo::Geo;
@@ -7,6 +8,14 @@ use super::draw::Canvas;
 
 /// Where an address line's value starts, after `to` or `cc`.
 pub(crate) const VALUE: u16 = X + 4;
+
+/// Where `c`'s lines' values start: after `subject`, on a new mail.
+pub(crate) fn value(c: &Compose) -> u16 {
+    match c.kind {
+        Kind::New => X + 9,
+        _ => VALUE,
+    }
+}
 
 /// The lines on the rows `g` gives them, their words ending before column
 /// `end`. The line being written shows the part around its caret; the
@@ -16,24 +25,26 @@ pub(super) fn draw(cv: &mut Canvas, c: &Compose, g: &Geo, end: u16) {
     let lines = [
         (Some(g.to), "to", &c.to, On::To),
         (g.cc, "cc", &c.cc, On::Cc),
+        (g.subject, "subject", &c.subject, On::Subject),
     ];
+    let value = value(c);
     for (row, name, f, on) in lines {
         let Some(row) = row else { continue };
         let focused = c.on == on;
         let label = if focused { t.ink } else { t.text_muted };
-        cv.text(row, X, VALUE, name, label, focused);
-        let room = usize::from(end.saturating_sub(VALUE));
+        cv.text(row, X, value, name, label, focused);
+        let room = usize::from(end.saturating_sub(value));
         let (shown, at) = match focused {
             true => window(&f.text, f.at, room),
             false => (f.text.clone(), 0),
         };
         match (shown.is_empty(), focused) {
             // After the caret, so it does not stand on the first letter.
-            (true, true) => cv.text(row, VALUE + 1, end, hint(c, on), t.text_muted, false),
-            _ => cv.text(row, VALUE, end, &shown, t.ink, false),
+            (true, true) => cv.text(row, value + 1, end, hint(c, on), t.text_muted, false),
+            _ => cv.text(row, value, end, &shown, t.ink, false),
         }
         if focused {
-            caret(cv, c, (row, VALUE + at as u16), end);
+            caret(cv, c, (row, value + at as u16), end);
         }
     }
 }
@@ -57,7 +68,9 @@ pub(super) fn hint(c: &Compose, on: On) -> &'static str {
     match (on, c.kind) {
         (On::To, _) => "who it goes to",
         (On::Cc, _) => "add people, commas between",
+        (On::Subject, _) => "what it is about",
         (On::Body | On::Files, Kind::Forward) => "add a note, or send it as it is",
+        (On::Body | On::Files, Kind::New) => "write your mail",
         (On::Body | On::Files, _) => "write your reply \u{b7} tab: agent smith drafts it",
     }
 }

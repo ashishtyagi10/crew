@@ -26,15 +26,24 @@ impl InboxPane {
         let Some(c) = &self.compose else {
             return self.todo_h(cols, rows);
         };
-        let w = text_w(self.mail_cols(cols).1);
+        let w = text_w(self.compose_cols(cols).1);
         let lines = wrap(&c.body.text, w).len() as u16;
-        let carried = u16::from(c.forward.is_some());
+        let carried = u16::from(c.forward.is_some()) + u16::from(c.kind == Kind::New);
         let rest = HEAD + super::composefiles::rows(c, w as u16) + carried + 2;
         let body = self.body_rows(cols, rows);
         let most = (body / 3)
             .max(MIN_ROWS + rest)
             .min(body.saturating_sub(1) / 2);
         (lines.max(MIN_ROWS) + rest).min(most)
+    }
+
+    /// The box's first column and width, its edges included: under the
+    /// mail, or under the list for a new mail.
+    pub(crate) fn compose_cols(&self, cols: u16) -> (u16, u16) {
+        match self.reading {
+            Some(_) => self.mail_cols(cols),
+            None => (1, cols.saturating_sub(2)),
+        }
     }
 
     /// The rows the open mail's words draw in: inside its card, above the
@@ -60,6 +69,8 @@ impl InboxPane {
             (false, Kind::Reply, false) => format!("reply to {who}"),
             (false, Kind::Forward, true) => "forward".to_string(),
             (false, Kind::Forward, false) => format!("forward to {who}"),
+            (false, Kind::New, true) => "new mail".to_string(),
+            (false, Kind::New, false) => format!("new mail to {who}"),
         };
         let b = super::cards::Rect {
             col: 0,
