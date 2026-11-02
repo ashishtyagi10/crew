@@ -101,6 +101,7 @@ impl InboxPane {
         let what = match c.kind {
             Kind::Reply => "your reply",
             Kind::Forward => "your forward",
+            Kind::New => "your new mail",
         };
         let who = super::addr::names(&c.to.text);
         Some(match who.is_empty() {

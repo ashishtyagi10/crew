@@ -166,6 +166,7 @@ impl InboxPane {
             _ if files.is_some() => On::Files,
             r if r <= g.to => On::To,
             r if Some(r) == g.cc => On::Cc,
+            r if Some(r) == g.subject => On::Subject,
             _ => On::Body,
         };
         super::composegeo::caret_at(c, &g, w, (row, col));

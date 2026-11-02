@@ -6,9 +6,10 @@
 use super::worker::Ask;
 use super::{InboxPane, Reading};
 
-/// Said when another thread is asked for while a reply is being written:
-/// the box answers the thread it was opened on, so the mail under it stays.
-pub(crate) const HELD: &str = "a reply is open \u{2014} send it, or esc to close it, first";
+/// Said when another thread is asked for while a reply (or a new mail) is
+/// being written: the box answers the thread it was opened on, so the mail
+/// under it stays.
+pub(crate) const HELD: &str = "a mail is being written \u{2014} send it, or esc to close it, first";
 /// The same, for the todo card (`todocard`).
 pub(crate) const TODO_HELD: &str =
     "a todo is open \u{2014} enter adds it, or esc lets it go, first";

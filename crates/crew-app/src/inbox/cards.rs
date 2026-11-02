@@ -63,10 +63,16 @@ impl InboxPane {
             h: body,
         };
         match (&self.stage, &self.reading) {
-            (Stage::Ready(_), None) => Cards {
-                list: Some(whole),
-                ..Cards::default()
-            },
+            (Stage::Ready(_), None) => {
+                let h = self.compose_h(cols, rows);
+                let (mut list, mut reply) = (whole, whole);
+                (list.h, reply.row, reply.h) = (body - h, body - h, h);
+                Cards {
+                    list: Some(list),
+                    reply: (h > 0).then_some(reply),
+                    ..Cards::default()
+                }
+            }
             (Stage::Ready(_), Some(_)) => {
                 let (col, w) = self.mail_cols(cols);
                 let h = self.compose_h(cols, rows);

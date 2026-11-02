@@ -92,7 +92,8 @@ impl InboxPane {
             (Stage::Ready(_), reading) => {
                 let k = self.cards(cols, rows);
                 if let Some(b) = k.list {
-                    super::cards::frame(&mut cv, b, "", "", reading.is_none());
+                    let keys = reading.is_none() && self.compose.is_none();
+                    super::cards::frame(&mut cv, b, "", "", keys);
                     let inner = b.inner();
                     let mut list = Canvas::new(inner.w, inner.h);
                     self.list(&mut list);

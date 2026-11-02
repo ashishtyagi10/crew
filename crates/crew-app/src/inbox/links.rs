@@ -62,6 +62,17 @@ impl InboxPane {
     }
 }
 
+impl super::InboxPane {
+    /// Gmail in the browser, on this account: the thread, or the list.
+    pub(super) fn browse(&self, thread: Option<&str>) {
+        let who = super::query::enc(&self.email);
+        let at = thread.map_or_else(|| "#inbox".to_string(), |id| format!("#all/{id}"));
+        crate::linkclick::open_external(&format!(
+            "https://mail.google.com/mail/?authuser={who}{at}"
+        ));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::inbox::api::Mail;

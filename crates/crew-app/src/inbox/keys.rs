@@ -1,6 +1,7 @@
 //! The inbox's keys. One letter each, as a terminal mail reader has them: the
 //! arrows (or j/k) move, in a thread to the next or previous one, Enter reads,
-//! `/` searches with Gmail's syntax, `R` re-lists, `o` opens Gmail, Esc steps back.
+//! `c` writes a new mail, `/` searches with Gmail's syntax, `R` re-lists, `o`
+//! opens Gmail, Esc steps back.
 use winit::event::KeyEvent;
 use winit::keyboard::{Key, NamedKey};
 
@@ -37,7 +38,8 @@ impl InboxPane {
     /// One key, pressed (`press` wraps it): the pane's whole keyboard.
     pub(crate) fn press_key(&mut self, key: &Key, cols: u16, rows: u16) -> Option<InboxAction> {
         // A reply box waits out a sign-in: the setup page's keys are its own.
-        if self.carded() && self.reading.is_some() && self.ready() {
+        // A new mail's box is open over the list, not a thread.
+        if self.carded() && self.ready() && (self.reading.is_some() || self.compose.is_some()) {
             self.card_key(key);
             return Some(InboxAction::Redraw);
         }
@@ -116,6 +118,8 @@ impl InboxPane {
             if !self.open_at(self.sel) {
                 return None;
             }
+        } else if ch == "c" {
+            self.open_new();
         } else if ch == "/" {
             self.typing = Some(self.query.clone());
         } else if ch == "R" {
@@ -187,14 +191,5 @@ impl InboxPane {
         self.sel = 0;
         self.failed = None;
         self.ask(Ask::List(self.query.clone()));
-    }
-
-    /// Gmail in the browser, on this account: the thread, or the list.
-    fn browse(&self, thread: Option<&str>) {
-        let who = super::query::enc(&self.email);
-        let at = thread.map_or_else(|| "#inbox".to_string(), |id| format!("#all/{id}"));
-        crate::linkclick::open_external(&format!(
-            "https://mail.google.com/mail/?authuser={who}{at}"
-        ));
     }
 }

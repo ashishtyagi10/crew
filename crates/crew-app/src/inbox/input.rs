@@ -36,6 +36,14 @@ impl InboxPane {
             };
             return;
         }
+        // Under a new mail's box the arrows are its own: the selection moves.
+        if self.compose.is_some() {
+            let i = match up {
+                true => self.sel.saturating_sub(n),
+                false => (self.sel + n).min(self.rows.len().saturating_sub(1)),
+            };
+            return self.select(i);
+        }
         let key = Key::Named(if up {
             NamedKey::ArrowUp
         } else {

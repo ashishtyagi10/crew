@@ -85,6 +85,7 @@ pub(crate) const FILES: Keys = &[
 pub(crate) const ADDRESS: Keys = &[(SEND, "send"), ("esc", "close"), GAP, ("tab", "next line")];
 pub(crate) const LIST: Keys = &[
     ("enter", "read"),
+    ("c", "compose"),
     ("/", "search"),
     ("R", "refresh"),
     GAP,
@@ -106,6 +107,7 @@ pub(crate) const LIST: Keys = &[
 /// could not be had the one key that helps, `R`, sat third among sixteen.
 pub(crate) const EMPTY: Keys = &[
     ("R", "refresh"),
+    ("c", "compose"),
     ("/", "search"),
     GAP,
     ("z", "undo"),

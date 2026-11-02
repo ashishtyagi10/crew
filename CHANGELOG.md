@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.59
+
+**The inbox writes new mail: `c` in the list.**
+- Until now the inbox could only answer: `r` replied and `f` forwarded, both from an open
+  thread. There was no way to start a mail of your own.
+- `c` in the list (or its keycap in the foot) opens a `new mail` box under the list, as wide
+  as it: `to`, `cc`, `subject`, the words, and the row of files. Tab and Enter step down the
+  lines; ⌘↩ (Ctrl+Enter off a Mac) sends; Esc closes it, a second Esc when there are words.
+- It goes as a fresh thread on the subject you wrote. Attachments, the address checks and
+  "the box stays until Gmail says it went" are the reply box's own.
+- While it is open, the list's letters type into it. The wheel still moves the selection,
+  and opening a thread waits until the mail is sent or closed.
+
 ## 0.29.58
 
 **A new chat or smith pane's footer shows only what it knows.**

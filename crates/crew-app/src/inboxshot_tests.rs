@@ -79,4 +79,13 @@ fn inbox_shot_screens() {
         ..Reading::new(rows()[0].clone())
     });
     take("reader", &reading);
+    // `c` in the list: a new mail, half written, under the list.
+    let mut new = ready();
+    new.open_new();
+    let c = new.compose.as_mut().unwrap();
+    c.to.put("Ann Lee <ann@x.org>", true);
+    c.subject.put("Q4 roadmap", true);
+    c.body.put("Hi Ann,\n\nThursday works.", false);
+    c.on = crate::inbox::compose::On::Body;
+    take("compose-new", &new);
 }
