@@ -53,6 +53,7 @@ pub(crate) fn identify(cmd: &mut CommandBuilder) {
     cmd.env("COLORTERM", "truecolor");
     cmd.env("TERM_PROGRAM", "crew");
     cmd.env("TERM_PROGRAM_VERSION", env!("CARGO_PKG_VERSION"));
+    crate::ptylocale::settle(cmd);
 }
 
 #[cfg(test)]
