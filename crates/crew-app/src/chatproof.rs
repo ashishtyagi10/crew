@@ -16,30 +16,8 @@ use crew_hive::HiveEvent;
 use crew_plugin::PluginEvent;
 
 use crate::chatphase::{of_tool, Phase};
+use crate::chatproofcmd::{effects, Effect};
 use crate::testtally::{tally, Tally};
-
-/// Words that make a command a build, a test or a check.
-const VERIFIES: &[&str] = &[
-    "test",
-    "tests",
-    "check",
-    "build",
-    "clippy",
-    "lint",
-    "pytest",
-    "jest",
-    "vitest",
-    "tsc",
-    "mypy",
-    "ruff",
-    "eslint",
-    "make",
-    "ctest",
-    "rspec",
-    "gradle",
-    "mvn",
-    "typecheck",
-];
 
 /// Chars of a command the verdict quotes.
 const CMD_MAX: usize = 60;
@@ -53,6 +31,9 @@ pub(crate) struct Proof {
     run: Option<(String, Option<bool>, Option<Tally>, u64)>,
     /// The project's own check reported this turn.
     checked: bool,
+    /// The run went to the background: its result is the hand-off, not
+    /// the outcome.
+    bg: bool,
 }
 
 impl Proof {
@@ -80,7 +61,7 @@ impl Proof {
                 let first = card.lines().next().unwrap_or_default();
                 let (label, rest) = first.split_once(' ').unwrap_or((first, ""));
                 match (first.contains('\u{2713}'), first.contains('\u{2717}')) {
-                    (false, false) => self.call(label, rest.trim()),
+                    (false, false) => self.call(label, &(rest.trim().to_string(), false)),
                     (ok, _) => self.result(label, ok, "", 0),
                 }
             }
@@ -88,19 +69,31 @@ impl Proof {
         }
     }
 
-    fn call(&mut self, label: &str, command: &str) {
+    fn call(&mut self, label: &str, (command, bg): &(String, bool)) {
         match of_tool(label) {
             Phase::Rewriting => (self.edited, self.run) = (true, None),
-            Phase::Compiling if verifies(command) => {
-                self.run = Some((clip(command), None, None, 0));
-            }
+            Phase::Compiling => effects(command).into_iter().for_each(|e| match e {
+                Effect::Write => (self.edited, self.run) = (true, None),
+                Effect::Verify => self.ran(clip(command), *bg),
+            }),
             _ => {}
         }
     }
 
+    /// A new run stands for the turn, except over a failure: only running
+    /// the same command again clears a red run, so a green lint after a
+    /// red test is still failing.
+    fn ran(&mut self, cmd: String, bg: bool) {
+        if matches!(&self.run, Some((was, Some(false), ..)) if *was != cmd) {
+            return;
+        }
+        self.run = Some((cmd, None, None, 0));
+        self.bg = bg;
+    }
+
     fn result(&mut self, label: &str, ok: bool, out: &str, ms: u64) {
         if of_tool(label) == Phase::Compiling {
-            if let Some((_, end @ None, counted, took)) = &mut self.run {
+            if let (Some((_, end @ None, counted, took)), false) = (&mut self.run, self.bg) {
                 (*end, *counted, *took) = (Some(ok), tally(out), ms);
             }
         }
@@ -154,19 +147,15 @@ fn counted(cmd: &str, ok: bool, t: &Tally, ms: u64) -> String {
 }
 
 /// The command a call runs: Claude Code's `Bash` sends `{"command": …}`,
-/// crew's `sys:run` `{"cmd": …}`.
-fn command_of(args: &str) -> String {
+/// crew's `sys:run` `{"cmd": …}`, and whether it went to the background.
+fn command_of(args: &str) -> (String, bool) {
     let v = serde_json::from_str::<serde_json::Value>(args).ok();
     let field = |k: &str| v.as_ref()?.get(k)?.as_str().map(str::to_string);
-    field("command")
-        .or_else(|| field("cmd"))
-        .unwrap_or_default()
-}
-
-fn verifies(command: &str) -> bool {
-    command
-        .split(|c: char| !c.is_alphanumeric())
-        .any(|w| VERIFIES.contains(&w.to_ascii_lowercase().as_str()))
+    let bg = v
+        .as_ref()
+        .and_then(|v| v.get("run_in_background")?.as_bool());
+    let cmd = field("command").or_else(|| field("cmd"));
+    (cmd.unwrap_or_default(), bg.unwrap_or(false))
 }
 
 fn clip(command: &str) -> String {
