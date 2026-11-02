@@ -25,7 +25,7 @@ pub struct PtyTerm {
     /// The single pty writer, shared between the app's input path (see
     /// [`PtyTerm::writer`]) and `try_read`'s query replies (OSC color / DSR
     /// answers) — portable-pty only hands out one writer per master.
-    input: std::sync::Arc<std::sync::Mutex<Box<dyn std::io::Write + Send>>>,
+    input: ptywrite::Input,
     rx: Receiver<Vec<u8>>,
     exited: bool,
     /// Set by `try_read` when it stopped at `READ_BUDGET` with bytes still
@@ -57,7 +57,7 @@ impl PtyTerm {
     /// Returns a fresh writer to the master PTY end (sends input to the shell).
     /// Handles share one underlying writer, so this can be called repeatedly.
     pub fn writer(&self) -> Box<dyn std::io::Write + Send> {
-        Box::new(SharedWriter(std::sync::Arc::clone(&self.input)))
+        Box::new(self.input.clone())
     }
 
     /// Whether the program enabled DECSET 2031 — it wants a
@@ -112,10 +112,7 @@ impl PtyTerm {
         // answer on its input; unanswered probes make agent CLIs assume a
         // dark background and mis-pick their output palette.
         if let Some(reply) = self.core.take_replies() {
-            let mut w = self.input.lock().unwrap_or_else(|e| e.into_inner());
-            let _ = w
-                .write_all(reply.as_bytes())
-                .and_then(|_| std::io::Write::flush(&mut *w));
+            let _ = std::io::Write::write_all(&mut self.input, reply.as_bytes());
         }
         total
     }
@@ -164,19 +161,6 @@ impl PtyTerm {
     }
 }
 
-/// A handle onto the pane's shared pty writer (see [`PtyTerm::writer`]).
-struct SharedWriter(std::sync::Arc<std::sync::Mutex<Box<dyn std::io::Write + Send>>>);
-
-impl std::io::Write for SharedWriter {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.0.lock().unwrap_or_else(|e| e.into_inner()).write(buf)
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.0.lock().unwrap_or_else(|e| e.into_inner()).flush()
-    }
-}
-
 /// Max bytes of partial (newline-free) output carried between [`scan`] calls, so
 /// a pattern split across reads still matches without letting a newline-free
 /// flood (e.g. a progress bar redrawing with `\r`) grow the carry unbounded.
@@ -188,6 +172,8 @@ mod ptyscan;
 mod ptyspawn;
 #[path = "ptyview.rs"]
 mod ptyview;
+#[path = "ptywrite.rs"]
+mod ptywrite;
 use ptyscan::scan;
 #[cfg(test)]
 use ptyscan::strip_ansi;

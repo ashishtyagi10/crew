@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.53
+
+**Pasting into a program that has stopped reading no longer freezes crew.**
+- Every key, paste and query reply was written to the pane on the window's thread, and a
+  write to a terminal waits while the program on the other end isn't reading. A raw-mode
+  program that was busy or stuck (a hung full-screen app, ssh over a stalled link) took
+  nothing, so a paste of more than about a kilobyte froze every pane and the whole window
+  until it read or died. Measured: a 4 KiB write waited 3.8 s on a program that slept for
+  4 s.
+- Each pane now has its own writer thread, and keys, pastes and replies queue for it in
+  the order they were sent. A 64 KiB paste into the same stuck program returns at once,
+  and the other panes keep working.
+- As in every other terminal, a Ctrl+C typed behind a big paste waits its turn.
+
 ## 0.29.52
 
 **When Claude Code isn't allowed to use a tool, crew names the tool and says where to allow it.**
