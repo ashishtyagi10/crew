@@ -94,3 +94,28 @@ fn a_footer_badge_keeps_its_weight() {
     assert!(!label.is_empty(), "the footer wears a badge");
     assert!(label.iter().all(|c| c.bold), "every label cell is bold");
 }
+
+/// A fresh pane's footer says nothing it doesn't know: no `0 in / 0 out`,
+/// no `5h:--`, no empty context gauge. Its badge row stays on the footer's last row, so the first
+/// reply's numbers fill in above it rather than pushing it down.
+#[test]
+fn a_fresh_pane_footer_says_nothing_it_does_not_know() {
+    let _g = crate::app::theme_test_guard();
+    let plugin =
+        crew_plugin::Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()])
+            .unwrap();
+    let pane = crate::chat::ChatPane::new(plugin, "crew".into());
+    let (cells, _) = summary_art(&pane, 80, 5, MAX_BLOCK, 2.0);
+    let row = |r: u16| {
+        let mut v: Vec<_> = cells.iter().filter(|c| c.row == r).collect();
+        v.sort_by_key(|c| c.col);
+        v.iter().map(|c| c.c).collect::<String>()
+    };
+    let all: Vec<String> = (5..5 + MAX_BLOCK).map(row).collect();
+    assert!(
+        !all.concat().contains(" in / ") && !all.concat().contains("--"),
+        "{all:?}"
+    );
+    assert!(all[usize::from(MAX_BLOCK) - 1].contains("mode"), "{all:?}");
+    assert!(all[0].trim().is_empty(), "air above, not below: {all:?}");
+}

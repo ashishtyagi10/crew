@@ -214,11 +214,11 @@ fn cells_render_header_and_summary_footer_not_agent_chips() {
         "header title must be gone:\n{text}"
     );
     // The summary footer replaces the per-agent chip grid: a 3-line
-    // statusline with the shared model, the token split, and the (empty,
-    // since no fill recorded) context bar. A tall pane (20 rows) shows all
-    // three lines.
+    // statusline with the shared model and the token split; no context bar,
+    // since no fill was recorded (an empty gauge says nothing). A tall pane
+    // (20 rows) has room for all three lines.
     assert!(text.contains("qwen"), "footer model:\n{text}");
-    assert!(text.contains("0% (ctx)"), "footer context row:\n{text}");
+    assert!(!text.contains("(ctx)"), "no empty context gauge:\n{text}");
     assert!(
         text.contains("600 in / 350 out"),
         "footer token split:\n{text}"

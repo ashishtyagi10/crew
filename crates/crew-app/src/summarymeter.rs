@@ -52,8 +52,14 @@ pub(crate) fn summary_art(
     let lines = footer_lines_with(&footer_ctx(pane), cols as usize, &mut meters);
     let bg = crew_theme::theme().page_bg;
     let mut cells = Vec::new();
-    for (i, line) in lines.into_iter().take(height as usize).enumerate() {
-        let row = top + i as u16;
+    // A line with nothing known to say (no tokens yet, no plan windows) is
+    // left out, and the rest sit at the foot: the badge row stays where it
+    // is, and the air goes between the composer and the footer.
+    let lines: Vec<_> = lines.into_iter().filter(|l| !l.is_empty()).collect();
+    let lines = &lines[..lines.len().min(height as usize)];
+    let first = top + height - lines.len() as u16;
+    for (i, line) in lines.iter().cloned().enumerate() {
+        let row = first + i as u16;
         let line = line.into_iter().map(|(c, fg, block)| (c, (fg, block)));
         // A badge cell carries its block; everything else sits on the page.
         crate::chatwidth::place_row(

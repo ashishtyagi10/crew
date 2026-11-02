@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.58
+
+**A new chat or smith pane's footer shows only what it knows.**
+- Before anything was sent, two of the footer's three rows were placeholders: `0 in / 0
+  out` over `5h:-- | 7d:-- | ▭ 0% (ctx)`. They read as a broken meter, under the welcome
+  hint, under "No agents available", and even while a swarm was visibly running.
+- Now the token count appears with the first tokens, the 5h and 7d countdowns when the plan
+  has windows, and the context gauge once something has been sent. A row with nothing to
+  say is left out.
+- The rows that remain sit at the foot, so the mode badges stay where they are and the new
+  numbers fill in above them.
+- Shots: the empty composer, and a busy chat on paper-light.
+
 ## 0.29.57
 
 **Panes speak UTF-8 when crew is started from the Dock.**
