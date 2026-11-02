@@ -70,7 +70,7 @@ pub(super) fn hint(c: &Compose, on: On) -> &'static str {
         (On::Cc, _) => "add people, commas between",
         (On::Subject, _) => "what it is about",
         (On::Body | On::Files, Kind::Forward) => "add a note, or send it as it is",
-        (On::Body | On::Files, Kind::New) => "write your mail",
+        (On::Body | On::Files, Kind::New) => "write your mail \u{b7} tab: agent smith drafts it",
         (On::Body | On::Files, _) => "write your reply \u{b7} tab: agent smith drafts it",
     }
 }

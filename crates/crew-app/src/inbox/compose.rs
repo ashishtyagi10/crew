@@ -57,6 +57,9 @@ pub(crate) struct Compose {
     pub forward: Option<Box<Forwarded>>,
     /// Esc pressed once over words: a second discards them.
     pub armed: bool,
+    /// A new mail's notes when agent smith was asked to draft it: its draft
+    /// replaces them, unless they were changed meanwhile.
+    pub asked: Option<String>,
     /// Sent, and waiting for Gmail to say so: the box stays until it does.
     pub sending: bool,
 }
@@ -169,6 +172,7 @@ impl Compose {
             picking: None,
             forward,
             armed: false,
+            asked: None,
             sending: false,
         }
     }

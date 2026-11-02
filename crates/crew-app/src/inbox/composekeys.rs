@@ -17,9 +17,8 @@ impl InboxPane {
         };
         let armed = std::mem::take(&mut c.armed);
         let named = |n: NamedKey| matches!(key, Key::Named(k) if *k == n);
-        // A forward's words are a note, a new mail's on no thread: smith
-        // drafts only a reply.
-        let (on, forward) = (c.on, c.kind != Kind::Reply);
+        // A forward's words are a note: smith drafts a reply or a new mail.
+        let (on, forward) = (c.on, c.kind == Kind::Forward);
         let next = c.after(on);
         match key {
             // On its way: the box goes when Gmail says it went, so that word
@@ -36,10 +35,7 @@ impl InboxPane {
                 self.note = "esc again discards it".into();
             }
             // Once: a second Tab while smith writes would land a second draft.
-            Key::Named(NamedKey::Tab) if on == On::Body && !forward => match self.smith_busy() {
-                Some(line) => self.note = line,
-                None => self.act(super::handoff::Then::Draft),
-            },
+            Key::Named(NamedKey::Tab) if on == On::Body && !forward => self.smith_drafts(),
             Key::Named(NamedKey::Tab) => c.on = next,
             Key::Named(NamedKey::Enter) if matches!(on, On::To | On::Cc | On::Subject) => {
                 c.on = next
@@ -111,17 +107,21 @@ impl InboxPane {
             return;
         };
         c.on = On::Body;
-        c.body.put(text, false);
+        match c.asked.take() {
+            Some(notes) if notes == c.body.text => c.body = super::field::Field::with(text),
+            _ => c.body.put(text, false),
+        }
     }
 
     /// The keys the foot shows while the box is open: what works where the
     /// caret is.
     pub(crate) fn compose_keys(&self) -> super::footkeys::Keys {
-        use super::footkeys::{ADDRESS, COMPOSE, FILES, FORWARD};
+        use super::footkeys::{ADDRESS, COMPOSE, FILES, FORWARD, NEW};
         match self.compose.as_ref().map(|c| (c.on, c.kind)) {
             Some((On::To | On::Cc | On::Subject, _)) => ADDRESS,
             Some((On::Files, _)) => FILES,
-            Some((On::Body, Kind::Forward | Kind::New)) => FORWARD,
+            Some((On::Body, Kind::Forward)) => FORWARD,
+            Some((On::Body, Kind::New)) => NEW,
             _ => COMPOSE,
         }
     }

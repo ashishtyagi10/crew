@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.60
+
+**agent smith drafts a new mail, and the foot names its subject line.**
+- In v0.29.59 Tab in a new mail's words did nothing, and the foot said "↑ to and cc" over a
+  box that also has a subject line.
+- Tab in a new mail's words now asks agent smith to write it, from the `to` and `subject`
+  lines and any notes you've typed. The draft lands in the box and replaces the notes,
+  unless you've changed them meanwhile. Then it is yours to edit and send. Nothing is sent
+  by smith.
+- With no address, subject or notes, Tab says what to write first.
+- The foot over a new mail's words reads `↑ to, cc, subject` and `tab agent smith drafts it`.
+
 ## 0.29.59
 
 **The inbox writes new mail: `c` in the list.**

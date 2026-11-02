@@ -7,6 +7,7 @@
 //! answer, writes the headers itself, and the draft waits in Gmail for the
 //! user to send.
 use super::api::Mail;
+use super::compose::Kind;
 use super::reader::when;
 use super::wire::sender_name;
 use super::Reading;
@@ -101,6 +102,63 @@ pub(crate) fn draft_body(answer: &str) -> Option<String> {
         .trim_matches(['\n', '\r', ' '])
         .trim_end();
     (!body.trim().is_empty()).then(|| body.to_string())
+}
+
+/// Tab in a new mail's words: the whole mail, from its `to` and `subject`
+/// lines and the notes written so far (all yours: nothing here is fenced).
+pub(crate) fn new_prompt(to: &str, subject: &str, notes: &str, me: &str) -> String {
+    let to = match to.trim() {
+        "" => "someone".to_string(),
+        t => t.to_string(),
+    };
+    let about = match subject.trim() {
+        "" => String::new(),
+        s => format!(", subject \u{201c}{s}\u{201d}"),
+    };
+    let mut p = format!(
+        "Write a new email from me ({me}) to {to}{about}. Answer with the email's body \
+         ONLY, between a line `{OPEN}` and a line `{CLOSE}` \u{2014} no subject, no headers. \
+         crew puts it in my compose box; it is not sent. Keep it short and plain."
+    );
+    if !notes.trim().is_empty() {
+        p.push_str(&format!(
+            "\n\nMy notes on what it should say \u{2014} work them in, the draft replaces \
+             them:\n{}",
+            notes.trim()
+        ));
+    }
+    p
+}
+
+impl super::InboxPane {
+    /// Tab in the words: agent smith drafts a reply (the open thread's), or a
+    /// new mail from its lines and notes. Never a forward's note.
+    pub(crate) fn smith_drafts(&mut self) {
+        if let Some(line) = self.smith_busy() {
+            return self.note = line;
+        }
+        let Some(c) = self.compose.as_mut().filter(|c| c.kind == Kind::New) else {
+            return self.act(super::handoff::Then::Draft);
+        };
+        let (to, subject, notes) = (&c.to.text, c.subject.text.trim(), &c.body.text);
+        if to.trim().is_empty() && subject.is_empty() && notes.trim().is_empty() {
+            return self.note = "write who it is to, a subject or a few notes first".into();
+        }
+        let who = super::addr::names(to);
+        let shown = match subject {
+            "" => format!("\u{2709} draft a mail to {who}"),
+            s => format!("\u{2709} draft a mail to {who} on \u{201c}{s}\u{201d}"),
+        };
+        let prompt = new_prompt(to, subject, notes, &self.email);
+        c.asked = Some(notes.clone());
+        self.to_smith = Some(super::handoff::ToSmith {
+            prompt,
+            shown,
+            wants: super::handoff::Wants::Draft,
+            thread: String::new(),
+        });
+        self.note = "agent smith is writing a draft into the box\u{2026}".into();
+    }
 }
 
 /// `t`: the row's words — who to answer, and about what: `theirs`, the
