@@ -185,3 +185,7 @@ impl Adapter for ClaudeAgent {
 #[cfg(test)]
 #[path = "claudeagent_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "claudedenied_tests.rs"]
+mod denied_tests;

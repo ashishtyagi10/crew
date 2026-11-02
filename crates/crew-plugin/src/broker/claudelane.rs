@@ -65,6 +65,7 @@ impl Lane {
 
 /// The reply a folded run is: the CLI's own refusal reads as the error it
 /// printed; an empty run is explained from stderr (`run::explain_failure`).
+/// Tool calls the user's settings refused are named under the reply.
 pub(super) fn finish(fold: Fold, program: &str, stderr: &str) -> Result<(String, Usage), String> {
     if let Some(r) = fold.result.as_ref() {
         if r.is_error || (!r.subtype.is_empty() && r.subtype != "success") {
@@ -76,11 +77,14 @@ pub(super) fn finish(fold: Fold, program: &str, stderr: &str) -> Result<(String,
             });
         }
     }
-    let text = fold.reply();
+    let mut text = fold.reply();
     if text.is_empty() {
         return Err(explain_failure(program, stderr));
     }
     let r = fold.result.unwrap_or_default();
+    if let Some(note) = crew_hive::clauderesult::note(&r.denied) {
+        text = format!("{}\n\n{note}", text.trim_end());
+    }
     Ok((
         text,
         Usage {
