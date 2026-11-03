@@ -125,6 +125,7 @@ fn send_fetches_the_files_then_uploads_the_mail_as_itself() {
         forward: Some(Box::new(f)),
         files: vec![],
         to: "Dee <dee@x.org>".into(),
+        draft: None,
     };
     crate::inbox::outgoing::send(&mut g, &o).expect("sent");
     let log = log.lock().unwrap().clone();

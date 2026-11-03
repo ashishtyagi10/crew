@@ -79,6 +79,14 @@ impl CrewApp {
         }
     }
 
+    /// Save the box in the focused inbox pane as a Gmail draft, if one is.
+    pub(crate) fn inbox_save_draft(&mut self) -> bool {
+        match self.panes.get_mut(self.focused).map(|p| &mut p.content) {
+            Some(PaneContent::Inbox(p)) => p.save_draft(),
+            _ => false,
+        }
+    }
+
     /// Whether pane `i` has a thread under the pointer: the hand.
     pub(crate) fn inbox_hover_on(&self, i: usize) -> bool {
         self.inbox_cell_at_cursor().is_some_and(|(at, row, col)| {

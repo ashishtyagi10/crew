@@ -60,7 +60,12 @@ pub(crate) struct Compose {
     /// A new mail's notes when agent smith was asked to draft it: its draft
     /// replaces them, unless they were changed meanwhile.
     pub asked: Option<String>,
-    /// Sent, and waiting for Gmail to say so: the box stays until it does.
+    /// The Gmail draft it is saved as (`draftsave`), and the words it opened
+    /// with: a draft reopened is untouched until they change.
+    pub draft: Option<String>,
+    pub base: String,
+    /// Sent (or being saved), and waiting for Gmail to say so: the box stays
+    /// until it does.
     pub sending: bool,
 }
 
@@ -78,7 +83,7 @@ impl Compose {
 
     /// Nothing written or changed since it opened: Esc lets it go at once.
     pub(crate) fn untouched(&self) -> bool {
-        self.body.text.trim().is_empty()
+        self.body.text.trim() == self.base.trim()
             && self.to.text == self.answer.to
             && self.cc.text == self.answer.cc
             && self.subject.text == self.answer.subject
@@ -154,7 +159,7 @@ impl InboxPane {
 }
 
 impl Compose {
-    fn of(kind: Kind, answer: Answer, forward: Option<Box<Forwarded>>) -> Self {
+    pub(crate) fn of(kind: Kind, answer: Answer, forward: Option<Box<Forwarded>>) -> Self {
         let on = match kind {
             Kind::Forward | Kind::New => On::To,
             Kind::Reply => On::Body,
@@ -173,6 +178,8 @@ impl Compose {
             forward,
             armed: false,
             asked: None,
+            draft: None,
+            base: String::new(),
             sending: false,
         }
     }

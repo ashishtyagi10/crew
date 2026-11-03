@@ -32,7 +32,10 @@ impl InboxPane {
             }
             Key::Named(NamedKey::Escape) => {
                 c.armed = true;
-                self.note = "esc again discards it".into();
+                self.note = format!(
+                    "esc again discards it \u{b7} {} saves a draft",
+                    super::drafts::SAVE
+                );
             }
             // Once: a second Tab while smith writes would land a second draft.
             Key::Named(NamedKey::Tab) if on == On::Body && !forward => self.smith_drafts(),

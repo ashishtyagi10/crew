@@ -158,6 +158,8 @@ impl CrewApp {
             // mirrored the keystrokes that followed into every other shell
             // (a Claude Code session typed itself into its neighbour). A
             // mode that copies your typing is reached by name: `/broadcast`.
+            // In the inbox's box it saves a Gmail draft.
+            "s" if self.inbox_save_draft() => {}
             "s" => {
                 self.save_focused_settings();
             }

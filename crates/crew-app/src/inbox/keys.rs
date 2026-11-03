@@ -120,6 +120,8 @@ impl InboxPane {
             }
         } else if ch == "c" {
             self.open_new();
+        } else if ch == "D" {
+            self.search("in:drafts");
         } else if ch == "/" {
             self.typing = Some(self.query.clone());
         } else if ch == "R" {

@@ -1,7 +1,7 @@
 //! Cmd+Enter in the reply box: every address checked, then to Gmail. A
 //! plain reply goes as it always did (`Ask::Send`); a forward, or anything
-//! carrying files, is built by the worker (`outgoing`).
-use super::compose::On;
+//! carrying files or saved as a draft, is built by the worker (`outgoing`).
+use super::compose::{Compose, On};
 use super::draft::{self, Answer};
 use super::outgoing::Outgoing;
 use super::worker::Ask;
@@ -41,37 +41,52 @@ impl InboxPane {
             return;
         }
         c.sending = true;
-        let list = |f: &super::field::Field| addr::split(&f.text).join(", ");
-        // A new mail goes on the subject its line says; a reply on its thread's.
-        let subject = match c.kind {
-            super::compose::Kind::New => c.subject.text.trim().to_string(),
-            _ => c.answer.subject.clone(),
-        };
-        let answer = Answer {
-            to: list(&c.to),
-            cc: list(&c.cc),
-            subject,
-            ..c.answer.clone()
-        };
-        let to = answer.to.clone();
-        self.note = format!("sending to {}\u{2026}", addr::names(&to));
-        let ask = match c.forward.is_none() && c.files.is_empty() {
+        let o = c.outgoing();
+        self.note = format!("sending to {}\u{2026}", addr::names(&o.to));
+        // A plain reply goes as it always did; anything else is built.
+        let plain = c.forward.is_none() && c.files.is_empty() && c.draft.is_none();
+        let ask = match plain {
             true => Ask::Send {
-                thread_id: answer.thread_id.clone(),
-                raw: draft::raw(&answer, &c.body.text),
-                to,
+                thread_id: o.thread_id.clone().unwrap_or_default(),
+                raw: draft::raw(&c.answer_now(), &c.body.text),
+                to: o.to,
             },
-            false => Ask::Mail(Box::new(Outgoing {
-                head: draft::head(&answer),
-                thread_id: (c.forward.is_none() && !answer.thread_id.is_empty())
-                    .then(|| answer.thread_id.clone()),
-                words: c.body.text.clone(),
-                forward: c.forward.clone(),
-                files: c.files.clone(),
-                to,
-            })),
+            false => Ask::Mail(Box::new(o)),
         };
         self.ask(ask);
+    }
+}
+
+impl Compose {
+    /// The headers as the box has them now: its lines' addresses and, for a
+    /// new mail, its subject; a reply's subject and threading are the thread's.
+    pub(crate) fn answer_now(&self) -> Answer {
+        let list = |f: &super::field::Field| addr::split(&f.text).join(", ");
+        let subject = match self.kind {
+            super::compose::Kind::New => self.subject.text.trim().to_string(),
+            _ => self.answer.subject.clone(),
+        };
+        Answer {
+            to: list(&self.to),
+            cc: list(&self.cc),
+            subject,
+            ..self.answer.clone()
+        }
+    }
+
+    /// The whole mail, for the worker to build: to send, or to save as a draft.
+    pub(crate) fn outgoing(&self) -> Outgoing {
+        let answer = self.answer_now();
+        Outgoing {
+            head: draft::head(&answer),
+            thread_id: (self.forward.is_none() && !answer.thread_id.is_empty())
+                .then(|| answer.thread_id.clone()),
+            words: self.body.text.clone(),
+            forward: self.forward.clone(),
+            files: self.files.clone(),
+            to: answer.to,
+            draft: self.draft.clone(),
+        }
     }
 }
 
