@@ -49,6 +49,8 @@ fn a_line_not_being_written_shows_its_start_and_a_hint_follows_the_caret() {
     for _ in 0..8 {
         press(&mut p, NamedKey::Backspace);
     }
+    // The foot's keys change with the line: the box is where it is now.
+    let b = p.cards(40, 20).reply.unwrap();
     let cc = row(&p, 40, 20, b.row + 2);
     assert!(cc.contains("cc  \u{258f}add people"), "{cc}");
 }

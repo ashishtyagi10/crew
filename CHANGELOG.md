@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.61
+
+**Save a mail as a Gmail draft and finish it later.**
+- ⌘S (Ctrl+S off a Mac) in the reply, forward or new-mail box saves it to Gmail's Drafts
+  and closes the box. Its files go with it. The draft shows up in Gmail on the web and on
+  your phone too.
+- `D` in the list shows your drafts. Opening a thread that holds one puts the draft back in
+  the box, with its words and files. A reply's draft opens under its thread. A draft that
+  isn't part of a thread opens as a new mail under the list.
+- ⌘S again updates that same draft. Sending it sends the draft itself, so it leaves Drafts.
+- Esc on a reopened draft you haven't changed just closes it, and the draft stays saved.
+  The first Esc over changed words now also says ⌘S saves a draft.
+
 ## 0.29.60
 
 **agent smith drafts a new mail, and the foot names its subject line.**

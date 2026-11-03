@@ -22,13 +22,12 @@ pub(crate) fn root(api: &str) -> String {
 
 /// The upload's kind, its `Content-Type` and its body: the bare message, or
 /// the thread's JSON and the message as two parts of a `multipart/related`.
-fn body(message: Vec<u8>, thread: Option<&str>) -> (&'static str, String, Vec<u8>) {
-    let Some(id) = thread else {
+fn body(message: Vec<u8>, meta: Option<serde_json::Value>) -> (&'static str, String, Vec<u8>) {
+    let Some(meta) = meta else {
         return ("media", "message/rfc822".into(), message);
     };
     // `=_crew_up` never begins the message's own boundaries (`=_crew_<n>`).
     let b = "=_crew_upload";
-    let meta = serde_json::json!({ "threadId": id });
     let mut out = format!(
         "--{b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n{meta}\r\n--{b}\r\nContent-Type: message/rfc822\r\n\r\n"
     )
@@ -46,15 +45,33 @@ impl Gmail {
         message: Vec<u8>,
         thread: Option<&str>,
     ) -> Result<(), String> {
-        let (kind, mime, message) = body(message, thread);
-        let url = format!("{}/messages/send?uploadType={kind}", root(&self.api));
+        let meta = thread.map(|id| serde_json::json!({ "threadId": id }));
+        self.upload(false, "/messages/send", message, meta)
+            .map(|_| ())
+    }
+
+    /// `message` up to `path` (`/messages/send`, `/drafts`, `/drafts/{id}`),
+    /// by POST or (`put`) PUT, `meta` the JSON beside it: Gmail's answer.
+    pub(crate) fn upload(
+        &mut self,
+        put: bool,
+        path: &str,
+        message: Vec<u8>,
+        meta: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, String> {
+        let (kind, mime, message) = body(message, meta);
+        let url = format!("{}{path}?uploadType={kind}", root(&self.api));
+        let method = match put {
+            true => reqwest::Method::PUT,
+            false => reqwest::Method::POST,
+        };
         for attempt in 0..2 {
             let token = self.token()?;
             let (http, url, body) = (self.http.clone(), url.clone(), message.clone());
-            let mime = mime.clone();
-            let (status, reason) = self.rt.block_on(async move {
+            let (mime, method) = (mime.clone(), method.clone());
+            let (status, reason, v) = self.rt.block_on(async move {
                 let r = http
-                    .post(&url)
+                    .request(method, &url)
                     .bearer_auth(token)
                     .header(reqwest::header::CONTENT_TYPE, mime)
                     .body(body)
@@ -65,10 +82,10 @@ impl Gmail {
                 let status = r.status().as_u16();
                 let v: serde_json::Value = r.json().await.unwrap_or_default();
                 let reason = v["error"]["message"].as_str().unwrap_or("no reason given");
-                Ok::<_, String>((status, reason.to_string()))
+                Ok::<_, String>((status, reason.to_string(), v))
             })?;
             match status {
-                200..=299 => return Ok(()),
+                200..=299 => return Ok(v),
                 401 if attempt == 0 => self.access = None,
                 401 => return Err("Gmail refused the sign-in (401)".into()),
                 _ => {

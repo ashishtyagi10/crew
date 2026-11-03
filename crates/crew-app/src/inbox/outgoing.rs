@@ -18,10 +18,26 @@ pub(crate) struct Outgoing {
     pub files: Vec<Attached>,
     /// Who it goes to, for the line that says it went.
     pub to: String,
+    /// The Gmail draft it was saved as (`drafts`): sent as that draft, which
+    /// takes it out of Drafts.
+    pub draft: Option<String>,
 }
 
-/// Build `o` and send it.
+/// Build `o` and send it: a saved draft by its own `drafts.send`, the draft
+/// first brought up to what the box says.
 pub(crate) fn send(g: &mut Gmail, o: &Outgoing) -> Result<(), String> {
+    if let Some(id) = &o.draft {
+        super::drafts::save(g, o)?;
+        return g
+            .post("/drafts/send", serde_json::json!({ "id": id }))
+            .map(|_| ());
+    }
+    let m = build(g, o)?;
+    g.upload_send(m, o.thread_id.as_deref())
+}
+
+/// `o` as RFC 2822 bytes: your files read from disk, a forward's fetched.
+pub(crate) fn build(g: &mut Gmail, o: &Outgoing) -> Result<Vec<u8>, String> {
     let mut mine = Vec::new();
     for f in &o.files {
         let bytes =
@@ -39,8 +55,7 @@ pub(crate) fn send(g: &mut Gmail, o: &Outgoing) -> Result<(), String> {
             Node::multi("mixed", parts)
         }
     };
-    let m = mime::message(&o.head, &tree);
-    g.upload_send(m.into_bytes(), o.thread_id.as_deref())
+    Ok(mime::message(&o.head, &tree).into_bytes())
 }
 
 #[cfg(test)]

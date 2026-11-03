@@ -51,6 +51,9 @@ impl InboxPane {
                 self.send_reply();
                 return Clicked::Done;
             }
+            if k == super::drafts::SAVE && self.save_draft() {
+                return Clicked::Done;
+            }
             return match super::footkeys::key_of(k).map(|key| self.press(&key, cols, rows)) {
                 Some(Some(InboxAction::Redraw) | None) => Clicked::Done,
                 Some(Some(act)) => Clicked::Then(act),

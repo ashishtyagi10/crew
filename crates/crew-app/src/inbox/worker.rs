@@ -71,7 +71,10 @@ impl State {
                 None => Vec::new(),
             },
             Ask::Open(id) => vec![match g.open(&id) {
-                Ok(m) => Got::Opened(id, m),
+                Ok(mut m) => {
+                    super::drafts::find(g, &mut m);
+                    Got::Opened(id, m)
+                }
                 Err(e) => failed_as(e, |e| Got::Unopened(id, e)),
             }],
             // The pane already shows the change. A refusal: the list as Gmail
@@ -114,6 +117,7 @@ impl State {
                     },
                 )]
             }
+            Ask::SaveDraft(o) => vec![Got::DraftSaved(super::drafts::save(g, &o))],
             Ask::Unsubscribe { how, who } => {
                 vec![g
                     .unsubscribe(&how)

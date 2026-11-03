@@ -41,6 +41,15 @@ pub(crate) const INBOX_BINDINGS: &[(&str, &str)] = &[
         "Down, then Enter",
         "In the reply box: + attach picks files (or drop them); Enter opens one, Backspace takes it off",
     ),
+    (
+        "c",
+        "In the list: write a new mail; Tab in its words: smith drafts it",
+    ),
+    (
+        "\u{2318}/Ctrl+S",
+        "In the box: save it to Gmail's Drafts; its thread opens it again",
+    ),
+    ("D", "In the list: your Gmail drafts"),
     ("a", "Ask agent smith about the thread"),
     ("t", "A /todo card under the mail: title, @project, #assignee, due; Tab: smith fills it"),
     ("/", "Search with Gmail's own syntax (from:ann is:unread)"),

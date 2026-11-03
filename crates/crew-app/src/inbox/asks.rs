@@ -45,6 +45,8 @@ pub(crate) enum Ask {
     },
     /// A forward, or a reply with files: built and sent by the worker.
     Mail(Box<super::outgoing::Outgoing>),
+    /// ⌘S in the box: saved as a Gmail draft (`drafts`).
+    SaveDraft(Box<super::outgoing::Outgoing>),
     /// `u`, confirmed: unsubscribe from `who`.
     Unsubscribe {
         how: super::unsub::How,
@@ -77,6 +79,7 @@ impl Ask {
                 | Ask::Unsubscribe { .. }
                 | Ask::Send { .. }
                 | Ask::Mail(_)
+                | Ask::SaveDraft(_)
                 | Ask::OnCalendar(_)
                 | Ask::AddEvent(_)
                 | Ask::Answer { .. }
@@ -109,6 +112,8 @@ pub(crate) enum Got {
     Sent(String),
     /// A forward went, to these addresses.
     Forwarded(String),
+    /// The box saved as a draft (its id), or why not.
+    DraftSaved(Result<String, String>),
     /// Mail going out (a reply, a forward) did not go, and why: the one
     /// answer that unlocks the box, so another call's failure never lets a
     /// reply still on its way be sent twice.

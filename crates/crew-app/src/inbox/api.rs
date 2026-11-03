@@ -4,15 +4,13 @@
 //! `format=metadata` for each id, run together: one after another they were a
 //! round trip each before the first row could draw. An opened thread is one
 //! `threads.get` with `format=full`; the unread count, one `labels.get INBOX`.
-//!
 //! The access token lives here, an hour at a time, renewed from the grant's
 //! refresh token a minute before it lapses or when Gmail answers 401.
 use std::time::{Duration, Instant};
 
-use serde_json::Value;
-
 use super::grant::Grant;
 use super::wire::{self, Thread};
+use serde_json::Value;
 
 #[path = "apipeek.rs"]
 mod peek;
@@ -44,6 +42,8 @@ pub(crate) struct Mail {
     pub unsub: Option<super::unsub::How>,
     /// A calendar invite it carries (`text/calendar`), as written.
     pub calendar: Option<String>,
+    /// When it is a draft of yours: which (`drafts`).
+    pub draft: Option<Box<super::drafts::Draft>>,
 }
 
 pub(crate) struct Gmail {
@@ -188,6 +188,7 @@ impl Gmail {
                     reply: super::draft::Reply::of(m),
                     unsub: super::unsub::of(m),
                     calendar: super::body::find(&m["payload"], "text/calendar").map(|(t, _)| t),
+                    draft: wire::draft(m),
                 }
             })
             .collect())

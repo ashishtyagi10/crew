@@ -129,6 +129,11 @@ pub(crate) fn header(msg: &Value, name: &str) -> String {
         .to_string()
 }
 
+/// A message marked `DRAFT`: a draft, its id still to find (`drafts::find`).
+pub(crate) fn draft(msg: &Value) -> Option<Box<super::drafts::Draft>> {
+    has_label(msg, "DRAFT").then(Box::default)
+}
+
 fn has_label(msg: &Value, label: &str) -> bool {
     msg["labelIds"]
         .as_array()

@@ -2,8 +2,8 @@
 //!
 //! The list, Gmail's own search, a thread read, filed and answered, and the
 //! browser one key away for anything more. Nothing is stored on disk but the
-//! grant (`grant`); the rows live in memory and go with the pane. The network
-//! is a thread of its own (`worker`), and the pane only drains what it says.
+//! grant (`grant`) and a reopened draft's files; the rows live in memory. The
+//! network is a thread of its own (`worker`); the pane drains what it says.
 mod addr;
 mod advance;
 pub(crate) mod age;
@@ -22,6 +22,7 @@ pub(crate) mod composekeys;
 mod composesend;
 pub(crate) mod days;
 pub(crate) mod draft;
+pub(crate) mod drafts;
 pub(crate) mod draw;
 pub(crate) mod fetch;
 mod field;

@@ -4,6 +4,8 @@
 
 use winit::keyboard::NamedKey;
 
+use super::drafts::SAVE;
+
 pub(crate) type Key = (&'static str, &'static str);
 
 /// The key a keycap names, as a press: a letter, `esc`, `enter`.
@@ -60,6 +62,7 @@ pub(crate) const SEND: &str = if cfg!(target_os = "macos") {
 /// its `to` or `cc` line, [`FILES`] on its row of files.
 pub(crate) const COMPOSE: Keys = &[
     (SEND, "send"),
+    (SAVE, "save draft"),
     ("esc", "close"),
     GAP,
     ("\u{2191}", "to and cc"),
@@ -68,6 +71,7 @@ pub(crate) const COMPOSE: Keys = &[
 ];
 pub(crate) const FORWARD: Keys = &[
     (SEND, "send"),
+    (SAVE, "save draft"),
     ("esc", "close"),
     GAP,
     ("\u{2191}", "to and cc"),
@@ -76,6 +80,7 @@ pub(crate) const FORWARD: Keys = &[
 /// A new mail's words: its lines above are to, cc and subject.
 pub(crate) const NEW: Keys = &[
     (SEND, "send"),
+    (SAVE, "save draft"),
     ("esc", "close"),
     GAP,
     ("\u{2191}", "to, cc, subject"),
@@ -84,6 +89,7 @@ pub(crate) const NEW: Keys = &[
 ];
 pub(crate) const FILES: Keys = &[
     (SEND, "send"),
+    (SAVE, "save draft"),
     ("esc", "close"),
     GAP,
     ("\u{2190}\u{2192}", "choose"),
@@ -91,10 +97,17 @@ pub(crate) const FILES: Keys = &[
     ("del", "take off"),
     ("\u{2191}", "back to the words"),
 ];
-pub(crate) const ADDRESS: Keys = &[(SEND, "send"), ("esc", "close"), GAP, ("tab", "next line")];
+pub(crate) const ADDRESS: Keys = &[
+    (SEND, "send"),
+    (SAVE, "save draft"),
+    ("esc", "close"),
+    GAP,
+    ("tab", "next line"),
+];
 pub(crate) const LIST: Keys = &[
     ("enter", "read"),
     ("c", "compose"),
+    ("D", "drafts"),
     ("/", "search"),
     ("R", "refresh"),
     GAP,

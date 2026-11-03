@@ -31,6 +31,7 @@ fn a_reply_with_a_file_goes_up_in_its_thread_the_file_read_from_disk() {
             size: 11,
         }],
         to: "ann@x.org".into(),
+        draft: None,
     };
     send(&mut g, &o).expect("sent");
     let log = log.lock().unwrap().clone();

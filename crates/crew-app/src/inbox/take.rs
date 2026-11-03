@@ -121,6 +121,7 @@ impl InboxPane {
                     // New mails (a reply just sent among them): a new layout.
                     *r.laid.get_mut().unwrap_or_else(|e| e.into_inner()) = None;
                     r.mails = Some(mails);
+                    self.reopen_draft();
                     if let Some((then, _)) = self.then.take().filter(|(_, t)| *t == id) {
                         self.act(then);
                     }
@@ -141,6 +142,7 @@ impl InboxPane {
             Got::Picture(key, bm) => self.pics.set(key, bm),
             Got::Saved(Ok(path)) => self.note = super::save::opened(&path),
             Got::Saved(Err(e)) => self.note = e,
+            Got::DraftSaved(saved) => self.draft_saved(saved),
             Got::Forwarded(to) => {
                 self.compose = None;
                 self.note = format!("forwarded to {}", super::addr::names(&to));
