@@ -12,12 +12,15 @@ use crate::chatwidth::str_w;
 pub(crate) use super::footkeys::{Key, Keys, GAP, LIST, READER};
 use super::footkeys::{ANSWER, EMPTY, SEARCH, SETUP, SIGNING_IN, TODO};
 
-/// Between two keys on a line.
-const SEP: &str = "  ";
-/// What stands for the keys a short pane leaves out.
-const MORE: Key = ("?", "keys");
 /// The foot's key lines at most, however many keys there are.
 const LINES: u16 = 4;
+
+#[path = "footwrap.rs"]
+mod wrap;
+pub(crate) use wrap::lines;
+use wrap::{key_w, placed, Placed};
+#[cfg(test)]
+use wrap::{width, MORE};
 
 impl InboxPane {
     /// The rows the foot takes in a pane `cols` by `rows`: the note's line
@@ -50,16 +53,29 @@ impl InboxPane {
             cv.text(row, 1, cv.cols, &text, fg, false);
             row += 1;
         }
+        // The first key is what the place is for (send, read, back): its
+        // keycap in the accent, its words in ink, the rest quiet.
+        let first = self.keys().first().copied();
         for line in lines(self.keys(), room(cv.cols), most(cv.rows)) {
-            for (col, (k, what)) in placed(&line) {
-                // The key on a keycap: the capsule inline code wears.
+            for (col, at) in placed(&line) {
+                let Placed::Key((k, what)) = at else {
+                    cv.text(row, col, cv.cols, wrap::DOT, t.border_normal, false);
+                    continue;
+                };
+                let lead = first == Some((k, what));
+                // The key on a keycap: the capsule inline code wears; the
+                // lead's filled with the accent, a button to press.
+                let (ink, cap) = match lead {
+                    true => (t.page_bg, crate::palette::accent()),
+                    false => (t.ink, crate::chatink::code_bg()),
+                };
                 let from = cv.out.len();
-                cv.text(row, col, cv.cols, k, t.ink, true);
+                cv.text(row, col, cv.cols, k, ink, true);
                 for c in &mut cv.out[from..] {
-                    (c.mark, c.bg) = (true, crate::chatink::code_bg());
+                    (c.mark, c.bg) = (true, cap);
                 }
-                let at = col + str_w(k) as u16 + 1;
-                cv.text(row, at, cv.cols, what, t.text_muted, false);
+                let words = if lead { t.ink } else { t.text_muted };
+                cv.text(row, col + str_w(k) as u16 + 1, cv.cols, what, words, false);
             }
             row += 1;
         }
@@ -80,10 +96,10 @@ impl InboxPane {
         let first = rows.saturating_sub(self.foot_h(cols, rows)) + said;
         let lines = lines(self.keys(), room(cols), most(rows));
         let line = lines.get(usize::from(row.checked_sub(first)?))?;
-        let (_, (k, _)) = placed(line)
-            .into_iter()
-            .find(|&(c, key)| (c..c + key_w(key) as u16).contains(&col))?;
-        Some(k)
+        placed(line).into_iter().find_map(|(c, at)| match at {
+            Placed::Key(key) if (c..c + key_w(key) as u16).contains(&col) => Some(key.0),
+            _ => None,
+        })
     }
 
     fn keys(&self) -> Keys {
@@ -137,62 +153,6 @@ const SAID: usize = 3;
 /// least and [`LINES`] at most.
 fn most(rows: u16) -> usize {
     usize::from((rows / 4).clamp(1, LINES))
-}
-
-/// A key's columns: its keycap, a space, what it does; a group's end none.
-fn key_w(key: Key) -> usize {
-    match key == GAP {
-        true => 0,
-        false => str_w(key.0) + 1 + str_w(key.1),
-    }
-}
-
-fn width(line: &[Key]) -> usize {
-    let keys: usize = line.iter().map(|&k| key_w(k)).sum();
-    keys + str_w(SEP) * line.len().saturating_sub(1)
-}
-
-/// Each key on `line` with the column it starts at; a group's end leaves
-/// its gap and no key.
-fn placed(line: &[Key]) -> Vec<(u16, Key)> {
-    let mut col = 1;
-    let mut out = Vec::new();
-    for &key in line {
-        if key != GAP {
-            out.push((col as u16, key));
-        }
-        col += key_w(key) + str_w(SEP);
-    }
-    out
-}
-
-/// `keys` wrapped whole into lines of at most `room` columns, in order. Past
-/// `most` lines, the last ends with `? keys` in place of what is left out.
-pub(crate) fn lines(keys: Keys, room: usize, most: usize) -> Vec<Vec<Key>> {
-    let mut out: Vec<Vec<Key>> = Vec::new();
-    for &key in keys {
-        match out.last_mut() {
-            Some(line) if width(line) + str_w(SEP) + width(&[key]) <= room => line.push(key),
-            // A group that starts a line needs no gap before it.
-            _ if key == GAP => {}
-            _ => out.push(vec![key]),
-        }
-    }
-    for line in &mut out {
-        while line.last() == Some(&GAP) {
-            line.pop();
-        }
-    }
-    if out.len() > most {
-        out.truncate(most);
-        if let Some(last) = out.last_mut() {
-            while !last.is_empty() && width(last) + str_w(SEP) + width(&[MORE]) > room {
-                last.pop();
-            }
-            last.push(MORE);
-        }
-    }
-    out
 }
 
 #[cfg(test)]

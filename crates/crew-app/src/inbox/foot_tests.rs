@@ -121,3 +121,47 @@ fn an_empty_list_offers_refresh_search_undo_and_gmail_only() {
         "{text}"
     );
 }
+
+#[test]
+fn a_group_stays_on_one_line_when_a_line_holds_it_whole() {
+    use crate::inbox::footkeys::GAP;
+    for room in [58, 78, 94, 118] {
+        let got = lines(READER, room, 9);
+        // Every group of the reader's keys, as it is written.
+        let groups: Vec<Vec<Key>> = READER.split(|&k| k == GAP).map(<[Key]>::to_vec).collect();
+        for g in groups.iter().filter(|g| width(g) <= room) {
+            let whole = got
+                .iter()
+                .any(|l| l.windows(g.len()).any(|w| w == g.as_slice()));
+            assert!(whole, "{room}: {g:?} split across {:?}", said(&got));
+        }
+    }
+}
+
+#[test]
+fn groups_on_one_line_part_at_a_dot_and_the_lead_key_is_a_filled_button() {
+    let _g = crate::app::motion_test_guard();
+    let p = crate::inboxshot_tests::ready();
+    let cells = p.cells(160, 30);
+    let top = 30 - p.foot_h(160, 30);
+    let line: String = (0..160u16)
+        .map(|col| {
+            let c = cells.iter().find(|c| c.row == top && c.col == col);
+            c.map_or(' ', |c| c.c)
+        })
+        .collect();
+    assert!(line.contains("refresh \u{b7} e archive"), "{line:?}");
+    assert!(!line.contains("\u{b7} \u{b7}"), "{line:?}");
+    let at = |ch: char| {
+        cells
+            .iter()
+            .find(|c| c.row == top && c.c == ch)
+            .map(|c| c.bg)
+    };
+    assert_eq!(
+        at('e'),
+        Some(crate::palette::accent()),
+        "enter: the accent's button"
+    );
+    assert_eq!(at('R'), Some(crate::chatink::code_bg()));
+}
