@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.62
+
+**The inbox's button bar reads in groups, its main key a button.**
+- The keys at the foot of the inbox broke wherever a line ran out, so a group split in two:
+  `s star` ended one line and `m read/unread` began the next. Groups were told apart by a
+  slightly wider gap, and nothing said which key was the one you came for.
+- Now each group stays whole on a line when the lines the pane spares can hold it so. When
+  they can't, the keys pack as before, so every key still shows.
+- Groups sharing a line part at a quiet `·`.
+- The first key of each place is a filled accent button with its words in ink: `enter
+  read` in the list, `esc back` in a thread, `⌘↩ send` in the box. The rest stay quiet
+  keycaps.
+- Shots: the list, a thread and the new-mail box, on paper-light and glass.
+
 ## 0.29.61
 
 **Save a mail as a Gmail draft and finish it later.**
