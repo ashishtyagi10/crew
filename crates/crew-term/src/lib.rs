@@ -7,6 +7,7 @@ mod graphics;
 mod graphicscmd;
 mod listener;
 mod model;
+mod modelinverse;
 mod modes;
 mod osc;
 mod pty;

@@ -7,7 +7,7 @@ use alacritty_terminal::term::cell::Flags;
 use alacritty_terminal::term::{Config, Term, TermMode};
 use alacritty_terminal::vte::ansi::Processor;
 
-use crate::color::{default_bg, default_fg, resolve_color};
+use crate::color::{default_bg, resolve_color};
 use crate::listener::TermEvents;
 
 #[derive(Clone, Copy, Debug)]

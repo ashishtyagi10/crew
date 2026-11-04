@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.63
+
+**Full-screen programs get their reverse-video bars back.**
+- vim's status line, nano's title and shortcut rows, less's `(END)` prompt and search hits, and
+  the selected row in mc, tig and htop are drawn as bars again: SGR 7 now swaps the colours on
+  the alternate screen, reversed blanks included.
+- On the primary screen reverse video still reads as plain text, so the line an agent CLI
+  echoes back doesn't turn into a block.
+
 ## 0.29.62
 
 **The inbox's button bar reads in groups, its main key a button.**

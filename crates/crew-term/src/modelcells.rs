@@ -76,6 +76,7 @@ impl TermCore {
         let cursor = content.cursor;
         let selection = content.selection;
         let dark = crate::contrast::luminance(default_bg()) < 0.5;
+        let alt = self.term.mode().contains(TermMode::ALT_SCREEN);
         let sheer = crew_theme::glassborder::sheer();
         let mut page = crate::contrast::PageFloor::new(crew_theme::theme(), sheer);
         let mut out: Vec<RenderCell> = content
@@ -96,11 +97,11 @@ impl TermCore {
                         .intersects(Flags::WIDE_CHAR_SPACER | Flags::LEADING_WIDE_CHAR_SPACER)
             })
             .filter_map(|ind| {
-                let mut bg = resolve_color(ind.bg, palette, default_bg());
-                // Reverse-video (SGR 7) is intentionally NOT honoured: programs
-                // (e.g. agent CLIs) use it to "highlight" the line you just sent,
-                // which renders as a hard-to-read block. Dropping the fg/bg swap
-                // shows that text plainly instead.
+                // Reverse video (SGR 7) swaps only on the alternate screen
+                // (see `modelinverse`): agent CLIs on the primary screen use
+                // it to "highlight" the line you just sent, a hard block.
+                let (fg, mut bg, swapped) =
+                    crate::modelinverse::pair(ind.fg, ind.bg, ind.flags, palette, alt);
                 // Agent CLIs (Claude/codex) also paint the just-sent line with a
                 // real near-grey background tuned to the theme they detected at
                 // startup — dark grey on dark, light grey on light — which reads
@@ -108,10 +109,9 @@ impl TermCore {
                 // echo greys so the text shows plainly, while keeping saturated
                 // backgrounds that carry meaning (diffs, errors). In a dark
                 // theme this also flattens MID-grey and any light "highlight"
-                // background (see `should_drop_bg`), since the flat-canvas
-                // vision is stricter there than the light-theme extremes-only
-                // check.
-                if should_drop_bg(bg, dark, is_slot(ind.bg)) {
+                // background (see `should_drop_bg`). A reversed bar keeps its
+                // background: there the grey IS the bar.
+                if !swapped && should_drop_bg(bg, dark, is_slot(ind.bg)) {
                     bg = default_bg();
                 }
                 // Selected cells take the selection background, drawn over any
@@ -142,7 +142,6 @@ impl TermCore {
                 }
                 let bold = ind.flags.contains(Flags::BOLD);
                 let italic = ind.flags.contains(Flags::ITALIC);
-                let fg = resolve_color(ind.fg, palette, default_fg());
                 // Legibility floor: a program that sampled the background once
                 // (or guessed wrong) keeps painting for the other theme after a
                 // live switch — nudge any too-close fg until it reads.
