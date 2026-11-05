@@ -595,7 +595,9 @@ cards, links):
   protocol (kitty's `APC G` form — `kitten icat`, `timg`, matplotlib's kitty
   backend), so a plot or a screenshot arrives inside the output: anchored to
   the line it came in on, scrolling with it, clipped to the pane, decoded off
-  the frame thread and drawn on the sub-cell paint layer.
+  the frame thread and drawn on the sub-cell paint layer. It leaves with its
+  text: `clear` takes it, and a file manager's preview goes when the program
+  quits instead of hanging over the shell.
 - **`/view <file>`** opens a zoomed **file viewer** pane — a
   single, read-only pane over the file, rendered by format: markdown
   (headings/lists/links/code fences), a numbered-gutter code view, aligned

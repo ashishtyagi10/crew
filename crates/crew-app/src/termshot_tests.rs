@@ -201,7 +201,7 @@ fn term_shot(name: &str, body: &str, w: u32, h: u32, o: Overlay) -> Option<Vec<u
         }
         if o.picture {
             let mut store = crate::termimg::TermImages::default();
-            store.collect(t.take_images());
+            store.sync(t.take_image_wipes(), t.take_images());
             // The decode is on a worker, as it is in the app; a shot has to
             // wait for it rather than photograph a pane mid-load.
             for _ in 0..400 {

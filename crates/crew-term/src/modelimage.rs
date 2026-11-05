@@ -2,6 +2,7 @@
 //! reserves, and the answer to a kitty `a=q` probe. Split from `model.rs`
 //! for the 200-line cap (child module, parent-private access kept).
 use alacritty_terminal::grid::Dimensions;
+use alacritty_terminal::term::TermMode;
 
 use super::TermCore;
 
@@ -25,8 +26,10 @@ impl TermCore {
             self.events.replies.lock().unwrap().push_str(&reply);
             return;
         }
+        // Any delete drops them all, the ones the app holds too: the
+        // narrower kinds (by id, by cell) are not told apart yet.
         if cmd.deletes() {
-            self.images.clear();
+            self.wipe(crate::wipescan::ImageWipe::All);
             return;
         }
         if !cmd.displays() || cmd.data.is_empty() {
@@ -52,6 +55,7 @@ impl TermCore {
             line,
             col: point.column.0 as u16,
             cells,
+            alt: self.term.mode().contains(TermMode::ALT_SCREEN),
             cmd,
         });
         // The protocol leaves the cursor past the picture; a line feed at the
@@ -60,5 +64,17 @@ impl TermCore {
         for _ in 0..rows {
             self.parser.advance(&mut self.term, b"\n");
         }
+    }
+
+    /// Take the pictures placed since the last call — `crew-app` decodes them
+    /// off this thread.
+    pub(crate) fn take_images(&mut self) -> Vec<crate::model::PlacedImage> {
+        std::mem::take(&mut self.images)
+    }
+
+    /// Lines of scrollback above the screen, for mapping an image's absolute
+    /// anchor back to the row it is on now.
+    pub(crate) fn history_lines(&self) -> usize {
+        self.term.grid().history_size()
     }
 }

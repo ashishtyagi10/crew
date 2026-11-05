@@ -87,6 +87,8 @@ pub(crate) struct TermCore {
     graphics: crate::graphics::GraphicsScanner,
     /// Pictures placed since the app last collected them.
     images: Vec<PlacedImage>,
+    /// Watches for the erases and screen switches that drop pictures.
+    wipes: modelwipe::Wipes,
     /// The frame's cell size in pixels: the rows a picture reserves, and the
     /// size reports (`modelsize`). The app publishes it on every relayout; a
     /// plausible 8×16 until then.
@@ -102,6 +104,8 @@ pub struct PlacedImage {
     pub col: u16,
     /// How many columns and rows of the grid it covers.
     pub cells: (u16, u16),
+    /// Placed on the alternate screen: shown only there (see `wipescan`).
+    pub alt: bool,
     pub cmd: crate::graphicscmd::ImageCmd,
 }
 
@@ -122,6 +126,7 @@ impl TermCore {
             sel_anchor: None,
             graphics: crate::graphics::GraphicsScanner::default(),
             images: Vec::new(),
+            wipes: Default::default(),
             cell_px: (8, 16),
             cellq: modelsize::Queries::default(),
         };
@@ -171,30 +176,18 @@ impl TermCore {
         let mut scanner = std::mem::take(&mut self.graphics);
         for seg in scanner.feed(bytes) {
             match seg {
-                crate::graphics::Seg::Bytes(b) => self.parser.advance(&mut self.term, b),
-                crate::graphics::Seg::Held(b) => self.parser.advance(&mut self.term, &b),
+                crate::graphics::Seg::Bytes(b) => self.advance(b),
+                crate::graphics::Seg::Held(b) => self.advance(&b),
                 crate::graphics::Seg::Image(cmd) => self.place_image(cmd),
             }
         }
         self.graphics = scanner;
     }
 
-    /// Take the pictures placed since the last call — `crew-app` decodes them
-    /// off this thread.
-    pub(crate) fn take_images(&mut self) -> Vec<crate::model::PlacedImage> {
-        std::mem::take(&mut self.images)
-    }
-
     /// Publish the frame's cell size (pictures' rows, size reports).
     pub(crate) fn set_cell_px(&mut self, w: u32, h: u32) {
         self.cell_px = (w.max(1), h.max(1));
         self.publish_size();
-    }
-
-    /// Lines of scrollback above the screen, for mapping an image's absolute
-    /// anchor back to the row it is on now.
-    pub(crate) fn history_lines(&self) -> usize {
-        self.term.grid().history_size()
     }
 
     /// Whether the program enabled DECSET 2031 (wants scheme-change reports).
@@ -266,6 +259,8 @@ mod modelsel;
 mod modelsize;
 #[path = "modelsync.rs"]
 mod modelsync;
+#[path = "modelwipe.rs"]
+mod modelwipe;
 #[path = "modelwrap.rs"]
 mod modelwrap;
 pub use headless::HeadlessTerm;

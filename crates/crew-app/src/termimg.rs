@@ -14,7 +14,7 @@
 use std::sync::mpsc::{self, Receiver};
 
 use crew_render::Paint;
-use crew_term::PlacedImage;
+use crew_term::{ImageWipe, PlacedImage};
 
 use crate::viewpane::bitmap::{self, Bitmap};
 
@@ -35,6 +35,8 @@ enum Art {
 
 struct Shown {
     line: u64,
+    /// Placed on the alternate screen (see `crew_term::ImageWipe`).
+    alt: bool,
     col: u16,
     cells: (u16, u16),
     art: Art,
@@ -44,9 +46,24 @@ struct Shown {
 #[derive(Default)]
 pub(crate) struct TermImages {
     shown: Vec<Shown>,
+    /// The pane is on its alternate screen: only pictures placed there show.
+    alt: bool,
 }
 
 impl TermImages {
+    /// Drop what the program threw away (`clear`, leaving a full-screen
+    /// program), then take what it asked to show since. In that order: the
+    /// new pictures already had the same wipes applied in `crew_term`.
+    pub(crate) fn sync(&mut self, wipes: Vec<ImageWipe>, placed: Vec<PlacedImage>) {
+        for w in wipes {
+            self.shown.retain(|s| w.keeps(s.line, s.alt));
+            if let ImageWipe::Alt(on) = w {
+                self.alt = on;
+            }
+        }
+        self.collect(placed);
+    }
+
     /// Take what the program asked to show since the last call and start
     /// decoding it. Called where the pane's bytes are read.
     pub(crate) fn collect(&mut self, placed: Vec<PlacedImage>) {
@@ -57,6 +74,7 @@ impl TermImages {
             });
             self.shown.push(Shown {
                 line: p.line,
+                alt: p.alt,
                 col: p.col,
                 cells: p.cells,
                 art: Art::Loading(rx),
@@ -112,6 +130,9 @@ impl TermImages {
         let mut out = Vec::new();
         for s in &self.shown {
             let Art::Ready(bm) = &s.art else { continue };
+            if s.alt != self.alt {
+                continue;
+            }
             let row = s.line as i64 - top;
             // Entirely above or below the window: not merely invisible but
             // not worth rasterizing, which is most of a long session's worth.

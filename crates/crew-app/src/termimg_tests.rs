@@ -6,6 +6,7 @@ fn at(line: u64, col: u16, cells: (u16, u16)) -> TermImages {
     TermImages {
         shown: vec![Shown {
             line,
+            alt: false,
             col,
             cells,
             art: Art::Ready(Bitmap {
@@ -15,6 +16,7 @@ fn at(line: u64, col: u16, cells: (u16, u16)) -> TermImages {
                 src: (2, 2),
             }),
         }],
+        alt: false,
     }
 }
 
@@ -81,6 +83,7 @@ fn only_the_last_few_pictures_are_kept() {
             line: i as u64,
             col: 0,
             cells: (4, 2),
+            alt: false,
             cmd: crew_term::ImageCmd::default(),
         }]);
     }
@@ -97,6 +100,7 @@ fn a_payload_that_is_not_a_picture_lands_as_a_failure() {
         line: 0,
         col: 0,
         cells: (4, 2),
+        alt: false,
         cmd: crew_term::ImageCmd {
             action: b'T',
             format: 100,
@@ -112,4 +116,57 @@ fn a_payload_that_is_not_a_picture_lands_as_a_failure() {
     }
     assert!(!t.loading(), "the worker must always report back");
     assert!(t.paint(0, 0, 40, 24, 2.0).is_empty(), "and draw nothing");
+}
+
+/// What a pane shows after `kitten icat x.png; clear`, driven through a real
+/// terminal core: a young pane's history is emptied by `clear`, so without
+/// the wipe the picture's anchor (line 1) is back on screen, over the prompt.
+#[test]
+fn clear_takes_the_picture_with_it() {
+    let mut term = crew_term::HeadlessTerm::new(crew_term::GridSize { cols: 40, rows: 12 });
+    use crew_term::TermModel;
+    term.feed(b"$ icat x.png\r\n");
+    let mut t = at(1, 0, (8, 2));
+    assert!(
+        rows_of(&t, 0, 0, 12).is_some(),
+        "on screen before the clear"
+    );
+    term.feed(b"\x1b[H\x1b[2J\x1b[3J$ ");
+    t.sync(term.take_image_wipes(), term.take_images());
+    assert_eq!(term.history_lines(), 0, "the clear emptied the history");
+    assert!(
+        rows_of(&t, 0, 0, 12).is_none(),
+        "a ghost over the new prompt"
+    );
+}
+
+/// A full-screen program's preview is placed on the alternate screen: it is
+/// drawn only there, and it is gone once the program quits; the shell's own
+/// pictures hide under the program and come back after it.
+#[test]
+fn the_alternate_screen_keeps_its_pictures_to_itself() {
+    let mut term = crew_term::HeadlessTerm::new(crew_term::GridSize { cols: 40, rows: 12 });
+    use crew_term::TermModel;
+    let mut t = at(2, 0, (8, 2));
+    term.feed(b"\x1b[?1049h");
+    t.sync(term.take_image_wipes(), Vec::new());
+    assert!(
+        rows_of(&t, 0, 0, 12).is_none(),
+        "the shell's picture over vim"
+    );
+    let mut preview = at(4, 20, (8, 2)).shown.remove(0);
+    preview.alt = true;
+    t.shown.push(preview);
+    assert!(
+        rows_of(&t, 0, 0, 12).is_some(),
+        "the preview is drawn in the program"
+    );
+    term.feed(b"\x1b[?1049l");
+    t.sync(term.take_image_wipes(), Vec::new());
+    assert_eq!(t.shown.len(), 1, "the preview left with the program");
+    assert!(!t.shown[0].alt, "and the shell's picture stayed");
+    assert!(
+        rows_of(&t, 0, 0, 12).is_some(),
+        "drawn again on the shell's screen"
+    );
 }

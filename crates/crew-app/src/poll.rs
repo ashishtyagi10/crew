@@ -196,7 +196,7 @@ impl CrewApp {
                     more_pending |= t.pty.has_pending();
                     // Pictures the program sent, off to a worker to be
                     // decoded; `poll` lands them a frame or two later.
-                    t.images.collect(t.pty.take_images());
+                    t.images.sync(t.pty.take_image_wipes(), t.pty.take_images());
                     let landed = t.images.poll();
                     rang = t.pty.take_bell();
                     // A program can ask for a notification outright (OSC 9 /
