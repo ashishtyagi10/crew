@@ -96,13 +96,26 @@ pub(crate) fn hex_chip(value: &str) -> Option<Chip> {
 }
 
 /// One chip per palette this mode rotates through, in `ALL_THEMES` order.
+/// An Ink page shows its page and its words instead (`swatchmono`), and in a
+/// pool of many its page alone: one cell each keeps `auto`, the widest strip,
+/// from pushing every row's description out.
 fn pool_chips(m: RandomMode) -> Vec<Chip> {
-    ALL_THEMES
+    let pool: Vec<ThemeId> = ALL_THEMES
         .iter()
-        .filter(|&&id| m.in_pool(id))
-        .map(|&id| chip_of(id, |t| t.accent_default))
+        .copied()
+        .filter(|&id| m.in_pool(id))
+        .collect();
+    let keep = if pool.len() > 1 { 1 } else { 2 };
+    pool.iter()
+        .flat_map(|&id| match mono::chips(id) {
+            Some(both) => both.into_iter().take(keep).collect(),
+            None => vec![chip_of(id, |t| t.accent_default)],
+        })
         .collect()
 }
+
+#[path = "swatchmono.rs"]
+mod mono;
 
 /// A palette as one cell: `over`, a square, on a cell of its page. Two
 /// colours in one cell is what makes a dark pool's chips tell each other
