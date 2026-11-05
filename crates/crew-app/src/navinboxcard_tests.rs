@@ -67,3 +67,32 @@ fn quiet_states_take_one_row_and_signed_out_takes_none() {
     assert_eq!(super::block(&Card::Off), 0);
     assert!(super::cells(&Card::Off, 30).is_empty());
 }
+
+/// The survey's narrow nav (`sidebar-glance-narrow`): 14 columns of room.
+#[test]
+fn a_narrow_card_cuts_between_words_not_inside_one() {
+    let _g = crate::app::theme_test_guard();
+    let card = Card::Count {
+        unread: 12,
+        newest: Some(("Ann Lee".into(), "Q4 roadmap review".into())),
+    };
+    let cols = 18;
+    let cells = super::cells(&card, cols);
+    let row = |r: u16| -> String {
+        let mut line = vec![' '; cols as usize];
+        for c in cells.iter().filter(|c| c.row == r) {
+            line[c.col as usize] = c.c;
+        }
+        line.into_iter().collect::<String>().trim().to_string()
+    };
+    assert_eq!(row(1), "\u{25cf} 12 unread", "the noun goes whole");
+    let said = row(2);
+    assert!(said.ends_with('\u{2026}'), "{said:?}");
+    let kept = said.trim_end_matches('\u{2026}');
+    assert!(
+        "Ann Lee \u{b7} Q4 roadmap review"
+            .strip_prefix(kept)
+            .is_some_and(|rest| rest.starts_with(' ')),
+        "cut on a word's end: {said:?}"
+    );
+}

@@ -60,7 +60,8 @@ pub fn depth_key(shown: usize, total: usize) -> String {
     }
 }
 
-/// Write `s` at the nav's indent on `row`, ellipsized to the row's budget.
+/// Write `s` at the nav's indent on `row`, ellipsized between words to the
+/// row's budget.
 pub fn put(out: &mut Vec<CellView>, s: &str, row: u16, cols: u16, fg: (u8, u8, u8)) {
     put_at(out, s, INDENT, row, cols.saturating_sub(1), fg);
 }
@@ -76,7 +77,10 @@ pub fn put_at(
     fg: (u8, u8, u8),
 ) {
     let bg = crew_theme::theme().page_bg;
-    let clipped = crate::chatwidth::clip_w(s, max_col.saturating_sub(col) as usize);
+    // Cut between words, as the LOG and every legend are: a sender's
+    // `Q4 roadm…` read as a word the nav had mangled. A single token (a host
+    // name) still clips by character, the only cut it has.
+    let clipped = crate::chatwidth::clip_words(s, max_col.saturating_sub(col) as usize);
     crate::chatwidth::place_row(
         col,
         max_col,

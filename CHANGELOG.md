@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.82
+
+**A narrow nav's glance cards cut between words.**
+- The INBOX card's count drops its noun whole (`● 12 unread`) rather than showing `● 12 unread t…`.
+- Every nav line written through the shared placement (the newest sender, the host's uptime, net) ellipsizes on a word's end, as the LOG already did: `Ann Lee · Q4…`, not `Ann Lee · Q4 r…`. A single token like a host name still clips by character.
+
 ## 0.29.81
 
 **Crew names itself when a program asks.**
