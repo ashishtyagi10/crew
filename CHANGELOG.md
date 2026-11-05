@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.94
+
+**The welcome's headline folds onto spare rows instead of being cut.**
+- A tall narrow tile cut the release headline at its first clause (`new in … · mouse drags and…`) over twenty empty rows. Where the page has rows to spare, it now folds between words onto up to four of them, and only what still does not fit is cut.
+- The rows are balanced, so no word sits alone under a full row. A wide window still shows the headline on one line.
+
 ## 0.29.93
 
 **Mouse drags and moves reach programs that asked for them.**

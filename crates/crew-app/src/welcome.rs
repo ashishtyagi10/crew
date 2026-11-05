@@ -5,7 +5,8 @@ use crew_render::CellView;
 
 use crate::charrain::{rain, RAIN_H, RAIN_MIN_H, RAIN_MIN_W, RAIN_W};
 use crate::welcomeart::{nameplate, push_hint, push_spans, push_str};
-use crate::welcometext::{chord_fg, fits, hint_spans, restore_hint, whats_new, TAGLINE};
+use crate::welcomenews::news_lines;
+use crate::welcometext::{chord_fg, fits, hint_spans, restore_hint, TAGLINE};
 
 /// Poll ticks per rendered frame. The tick doubles as the rain's clock, so this
 /// sets the fall speed as well as the frame rate: at the loop's ~62 Hz this
@@ -57,10 +58,10 @@ fn rain_width(cols: u16, rows: u16) -> Option<u16> {
 pub fn rain_box(cols: u16, rows: u16, restore: bool) -> Option<(u16, u16, u16, u16)> {
     let w = rain_width(cols, rows)?;
     let h = w / ASPECT;
-    // Rows under the rain: blank, tagline, hint — then the news line, or a
-    // blank and the restore offer under it.
-    let news = whats_new(usize::from(cols)).is_some();
-    let below = 3 + if restore { 3 } else { u16::from(news) };
+    // Rows under the rain: blank, tagline, hint — then the news lines, and
+    // (restoring) a blank and the offer under them.
+    let n = news_lines(cols, rows, h, restore).len() as u16;
+    let below = 3 + if restore { 2 + n.max(1) } else { n };
     let stack = if h + below < rows { h + below } else { h + 3 };
     Some(((rows - stack) / 2, (cols - w) / 2, w, h))
 }
@@ -116,20 +117,22 @@ pub fn welcome_cells_animated(
         // What this build brought. Crew ships often and every release's
         // headline is compiled in already; a first frame that says what is
         // new is how any of it gets found.
-        let news_row = hint_row + 1;
-        if news_row + 1 < rows {
-            if let Some(line) = whats_new(usize::from(cols)) {
+        let news = news_lines(cols, rows, h, restore.is_some());
+        for (i, line) in news.iter().enumerate() {
+            let news_row = hint_row + 1 + i as u16;
+            if news_row + 1 < rows {
                 let w = line.chars().count() as u16;
                 // `dim`, like the version stamp: this is meta about the
                 // build rather than part of the welcome itself — and the
                 // rain is told apart from the text below it by colour.
-                push_str(&mut cells, news_row, (cols - w) / 2, &line, t.dim, bg);
+                push_str(&mut cells, news_row, (cols - w) / 2, line, t.dim, bg);
                 said = true;
             }
         }
         if let Some(n) = restore {
             let line = restore_hint(n);
-            let (row, w) = (hint_row + 3, line.chars().count() as u16);
+            let row = hint_row + 2 + news.len().max(1) as u16;
+            let w = line.chars().count() as u16;
             // `row + 1 < rows`: the bottom row belongs to the version stamp
             // (drawn after, last-write-wins) — skip rather than collide.
             if row + 1 < rows && fits(w as usize, cols) {

@@ -217,7 +217,7 @@ fn a_wide_window_gets_the_roomiest_form() {
 #[test]
 fn the_welcome_names_what_this_build_brought() {
     let _g = crate::app::theme_test_guard();
-    let line = super::whats_new(120).expect("a headline for this build");
+    let line = crate::welcometext::whats_new(120).expect("a headline for this build");
     assert!(line.starts_with("new in "), "{line}");
     let version = env!("CARGO_PKG_VERSION");
     assert!(line.contains(version), "{line} does not name {version}");
@@ -239,13 +239,13 @@ fn the_welcome_names_what_this_build_brought() {
 #[test]
 fn a_narrow_window_drops_the_headline_and_a_long_one_is_clipped() {
     assert_eq!(
-        super::whats_new(10),
+        crate::welcometext::whats_new(10),
         None,
         "no room for a version and a word"
     );
-    assert_eq!(super::whats_new(24), None);
-    let wide = super::whats_new(400).expect("a headline at any sane width");
-    let narrow = super::whats_new(60).expect("60 columns is not narrow");
+    assert_eq!(crate::welcometext::whats_new(24), None);
+    let wide = crate::welcometext::whats_new(400).expect("a headline at any sane width");
+    let narrow = crate::welcometext::whats_new(60).expect("60 columns is not narrow");
     assert!(narrow.chars().count() <= 60);
     assert!(narrow.starts_with("new in "));
     if wide.chars().count() > 60 {

@@ -127,18 +127,7 @@ pub(crate) fn plain(s: &str) -> String {
 /// Trimmed to a sentence: the entries themselves run to paragraphs, and a
 /// welcome screen is not where anyone reads one.
 pub(crate) fn whats_new(cols: usize) -> Option<String> {
-    let body = crate::appregister::CHANGELOG;
-    let heading = body.find("\n## ")? + 4;
-    let rest = &body[heading..];
-    let bold = rest.find("**")? + 2;
-    let end = rest[bold..].find("**")?;
-    let head: String = plain(&rest[bold..bold + end])
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
-    let version = rest[..rest.find('\n')?].trim();
-    let lead = format!("new in {version} \u{b7} ");
-    let head = lowered(head.trim_end_matches('.'));
+    let (lead, head) = crate::welcomenews::headline()?;
     // The line sits inside the rain block's card (`welcomecard`: padding and
     // a frame each side), so it is fitted to that, not the window: 0.24.77's
     // full-width headline left the block no room and its card vanished. A
@@ -160,7 +149,7 @@ const PROPER: &[&str] = &[
 /// The welcome screen speaks in lowercase (`fast terminals. clean flow.`), so
 /// a headline opening `The palette…` was the one capital on it. Only a plain
 /// capitalised word is lowered: `AI`, `README`, `/far` and a name keep theirs.
-fn lowered(head: &str) -> String {
+pub(crate) fn lowered(head: &str) -> String {
     let word = head
         .split(|c: char| !c.is_alphanumeric())
         .next()
@@ -176,7 +165,7 @@ fn lowered(head: &str) -> String {
 
 /// `head` in `room` columns, cut between words the way a folded reply is
 /// (`chathidden`): `Every picker shows what y…` read as a typo, not a cut.
-fn fit_head(head: &str, room: usize) -> String {
+pub(crate) fn fit_head(head: &str, room: usize) -> String {
     if head.chars().count() <= room {
         return head.to_string();
     }
