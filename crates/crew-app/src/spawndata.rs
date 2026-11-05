@@ -29,6 +29,7 @@ impl CrewApp {
             attention: None,
             born_ms: crate::anim::now_ms(),
             zoom: None,
+            tab: 0,
         });
         self.focus_new_pane();
     }
@@ -56,6 +57,7 @@ impl CrewApp {
             attention: None,
             born_ms: crate::anim::now_ms(),
             zoom: None,
+            tab: 0,
         });
         self.focus_new_pane();
     }
@@ -81,6 +83,7 @@ impl CrewApp {
             attention: None,
             born_ms: crate::anim::now_ms(),
             zoom: None,
+            tab: 0,
         });
         self.focus_new_pane();
     }

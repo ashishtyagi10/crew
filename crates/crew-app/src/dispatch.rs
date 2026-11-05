@@ -67,6 +67,7 @@ impl CrewApp {
             "dash" => self.spawn_dash_pane(),
             "inbox" => self.inbox_command(""),
             "shell" => self.spawn_new_pane(),
+            "tab" => self.tab_command(""),
             // Reopen last session's shells (their cwds snapshot on quit).
             "restore" => self.restore_session(),
             // Undo the last close, this session — `/restore` is the same idea

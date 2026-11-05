@@ -52,6 +52,7 @@ fn far_pane(name: &str) -> Pane {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: Some(false), // a tile: these rows are about the grid
+        tab: 0,
     }
 }
 

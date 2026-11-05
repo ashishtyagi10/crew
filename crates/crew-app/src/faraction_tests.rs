@@ -23,6 +23,7 @@ fn far_pane_app() -> CrewApp {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     });
     app
 }

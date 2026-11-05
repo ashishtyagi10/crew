@@ -46,7 +46,7 @@ impl CrewApp {
         }
         let (nav, g) = (self.nav_px(scale), self.gutter());
         let sb = chrome::stats_card_rect(sh, nav, g, ch, self.nav_top_card());
-        let pane_rows = self.pane_rows();
+        let pane_rows = self.nav_list();
         let sidebar = &self.sidebar;
         let log = &self.log;
         let log_back = self.log_back;
@@ -106,7 +106,9 @@ impl CrewApp {
         let (nav, g) = (self.nav_px(scale), self.gutter());
         let sb = chrome::stats_card_rect(sh, nav, g, ch, self.nav_top_card());
         let (_, rows) = crate::layout::card_inner_cells(sb.w, sb.h, cw, ch);
-        let l = self.sidebar.layout(rows, self.nav_tail(), self.panes.len());
+        let l = self
+            .sidebar
+            .layout(rows, self.nav_tail(), self.nav_lines().len());
         Some((sb, ch, l))
     }
 
@@ -160,7 +162,9 @@ impl CrewApp {
                 title: p.title_text(),
                 focused: i == self.focused,
                 activity: p.activity,
+                // In a tab behind this one, only what was put away is.
                 minimized: match zoomed {
+                    _ if !self.in_active_tab(i) => p.hidden,
                     Some(z) => i != z,
                     None => !self.on_grid(i) || strip_hidden.contains(&i),
                 },

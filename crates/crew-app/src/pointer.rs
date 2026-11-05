@@ -79,6 +79,7 @@ impl CrewApp {
         }
         if self.hover_btn().is_some()
             || self.pane_at_sidebar().is_some()
+            || self.tab_at_nav().is_some()
             || self.cursor_on_overflow()
         {
             return Over::Control;

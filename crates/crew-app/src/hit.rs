@@ -10,7 +10,7 @@ impl CrewApp {
             self.input.focused = true;
             return None;
         }
-        let hit = self.inbox_card_click().or_else(|| self.pane_at_sidebar());
+        let hit = self.inbox_card_click().or_else(|| self.nav_click());
         if let Some(i) = hit.or_else(|| self.pane_at_cursor()) {
             self.focused = i;
             self.input.focused = false;
@@ -70,8 +70,8 @@ impl CrewApp {
             return self.pane_at_rail();
         }
         let (rel_row, l) = self.sidebar_row()?;
-        let idx = sidebar_pane_index(rel_row, l.panes_top)?;
-        (idx < self.panes.len()).then_some(idx)
+        let k = sidebar_pane_index(rel_row, l.panes_top)?;
+        self.nav_pane_at(k)
     }
 
     /// Which full tile's border button (per `rect_of`) is under the cursor.

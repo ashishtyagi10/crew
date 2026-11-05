@@ -39,6 +39,7 @@ impl CrewApp {
             self.closed.remember(p);
             self.panes.remove(idx);
             self.grid.on_close(idx);
+            self.tabs.on_close(idx);
         }
         if self.panes.is_empty() {
             // No panel selected → focus returns to the input bar; reset modes.
@@ -51,11 +52,16 @@ impl CrewApp {
         if had_screen && self.focus_grid() {
             return false;
         }
+        // The tab's last pane gone: the tab goes, and its neighbour comes on.
+        if !(0..self.panes.len()).any(|i| self.in_active_tab(i)) {
+            self.sync_tabs();
+            return false;
+        }
         self.focused = self.focused.min(self.panes.len() - 1);
-        // Never let the clamp land focus on a pane minimized into the nav —
-        // reconcile_grid would silently restore it. Prefer a visible pane;
-        // with none left, the input bar takes focus and the pane stays tucked.
-        if self.panes[self.focused].hidden {
+        // Never let the clamp land focus on a pane minimized into the nav, or
+        // in another tab — reconcile_grid would silently bring it forward.
+        // Prefer a visible pane here; with none, the input bar takes focus.
+        if self.panes[self.focused].hidden || !self.in_active_tab(self.focused) {
             match self.nearest_visible(self.focused) {
                 Some(i) => self.focused = i,
                 None => self.input.focused = true,
@@ -67,7 +73,7 @@ impl CrewApp {
     /// The non-hidden pane index nearest to `idx`, if any pane is visible.
     pub(crate) fn nearest_visible(&self, idx: usize) -> Option<usize> {
         (0..self.panes.len())
-            .filter(|&i| !self.panes[i].hidden)
+            .filter(|&i| !self.panes[i].hidden && self.in_active_tab(i))
             .min_by_key(|&i| i.abs_diff(idx))
     }
 
@@ -76,6 +82,7 @@ impl CrewApp {
     /// stale indices, and marks the focused pane most-recently-active. Called
     /// once per frame from `build_frame`.
     pub(crate) fn reconcile_grid(&mut self) {
+        self.sync_tabs();
         let n = self.panes.len();
         // Keyboard-focusing a hidden pane restores it — the one rule that makes
         // every focus path (nav-row click, Cmd+N, spawn) a restore path. The
@@ -95,9 +102,12 @@ impl CrewApp {
         // panes vec intact, unlike a close — and so do zoomed ones, which have
         // a screen of their own (`panezoom`). Also drops any stale index past
         // the end (defensive; close_pane already fixes the common case).
-        let panes = &self.panes;
-        self.grid
-            .retain(|i| panes.get(i).is_some_and(|p| !p.hidden && !p.zoomed()));
+        let (panes, tab) = (&self.panes, self.tabs.active);
+        self.grid.retain(|i| {
+            panes
+                .get(i)
+                .is_some_and(|p| !p.hidden && !p.zoomed() && (p.tab == tab || p.tab == 0))
+        });
         for idx in 0..n {
             if self.on_grid(idx)
                 && !self.grid.full().contains(&idx)
@@ -106,7 +116,7 @@ impl CrewApp {
                 self.grid.add(idx);
             }
         }
-        if n > 0 {
+        if n > 0 && self.in_active_tab(self.focused.min(n - 1)) {
             self.grid.touch(self.focused.min(n - 1));
         }
     }

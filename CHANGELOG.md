@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.2
+
+**Tabs: groups of panes, one on screen at a time, a bordered card each in the nav.**
+- **Cmd+T** now opens a new tab with a fresh shell; **Cmd+D** adds a shell to the tab you are in. **Cmd+{** / **Cmd+}** step between tabs, **Cmd+Opt+1 … 9** jump to one, and **Cmd+Shift+M** fills in `/tab move ` to send the focused pane to another tab.
+- Only the tab on screen is on the grid. The others keep running, like minimized panes do, and coming back lands on the pane you left.
+- With more than one tab, the nav's PANES list is a card per tab: `╭─ 2 · web ── 3 ─╮` with its panes inside. The tab on screen is framed in the accent, and a tab behind it whose pane needs you is framed in the bell colour. Click a card's edge to switch. The collapsed rail shows a `─2──` divider per tab.
+- Pane numbers stay global: `crew ask 3`, **Cmd+3** and a click on a row reach the pane, and bring its tab forward, wherever it is.
+- `/tab` lists the tabs. `/tab <n>`, `/tab new`, `/tab next` / `/tab prev`, `/tab rename <name>` and `/tab move <n>` do the rest; a number one past the last tab opens a new one. A tab goes when its last pane closes, and `/restore` brings tabs back with their names.
+- Moving a pane left or right by index (the old Cmd+{ / Cmd+}) is gone; **Cmd+Shift+Arrow** still swaps panes on the grid.
+
 ## 0.30.1
 
 **A tool Claude Code was refused is smith's row, not the agent's words.**

@@ -102,6 +102,7 @@ fn the_hovered_button_draws_lifted_and_the_pointer_becomes_the_hand() {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     });
     assert!(app.plan_hover_on(0), "the pane reports its hovered button");
     assert_eq!(

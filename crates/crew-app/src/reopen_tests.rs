@@ -28,6 +28,7 @@ fn pane(content: PaneContent) -> Pane {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     }
 }
 

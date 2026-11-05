@@ -19,11 +19,19 @@ fn the_drawn_log_starts_on_the_row_the_layout_reserved() {
             text: format!("12:00 line{i}"),
         })
         .collect();
-    let panes = Vec::new();
+    let panes: Vec<crate::panelist::PaneRow> = Vec::new();
     let (cols, rows) = (26u16, 48u16);
     let l = s.layout(rows, crate::navlayout::Tail::Log(log.len()), 0);
     assert!(l.log_lines > 0, "the fixture has room for a LOG");
-    let cells = s.cells(cols, rows, &panes, &log, 0, None, None);
+    let cells = s.cells(
+        cols,
+        rows,
+        &crate::tabnav::NavList::from(panes.clone()),
+        &log,
+        0,
+        None,
+        None,
+    );
     // The `LOG` legend sits on the rule row the layout named.
     let legend: String = {
         let mut v: Vec<_> = cells.iter().filter(|c| c.row == l.log_top).collect();
@@ -78,8 +86,8 @@ fn check_seam(git: bool, log_len: usize, n: usize, rows: u16) {
             text: format!("12:00 line{i}"),
         })
         .collect();
-    let panes: Vec<PaneRow> = (0..n)
-        .map(|i| PaneRow {
+    let panes: Vec<crate::panelist::PaneRow> = (0..n)
+        .map(|i| crate::panelist::PaneRow {
             index: i + 1,
             title: format!("{}pane", (b'a' + i as u8) as char),
             focused: false,
@@ -93,7 +101,15 @@ fn check_seam(git: bool, log_len: usize, n: usize, rows: u16) {
         .collect();
     let cols = 26u16;
     let l = s.layout(rows, crate::navlayout::Tail::Log(log.len()), n);
-    let cells = s.cells(cols, rows, &panes, &log, 0, None, None);
+    let cells = s.cells(
+        cols,
+        rows,
+        &crate::tabnav::NavList::from(panes.clone()),
+        &log,
+        0,
+        None,
+        None,
+    );
     for (k, p) in panes.iter().enumerate() {
         // The row this pane's own TITLE was drawn on, found in the frame
         // rather than recomputed from the offsets under test. The title,

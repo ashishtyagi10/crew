@@ -95,6 +95,7 @@ fn live_terminal_pane_answers_through_the_full_pipeline() {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     });
 
     // Ask pane p0. Fixed id so the responder can hardcode its marker.

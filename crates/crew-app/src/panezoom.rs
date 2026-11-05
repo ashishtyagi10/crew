@@ -42,7 +42,7 @@ impl CrewApp {
     pub(crate) fn zoomed_pane(&self) -> Option<usize> {
         let i = self.focused.min(self.panes.len().checked_sub(1)?);
         let p = &self.panes[i];
-        (p.zoomed() && !p.hidden).then_some(i)
+        (p.zoomed() && !p.hidden && self.in_active_tab(i)).then_some(i)
     }
 
     /// Whether one pane fills the content area, rather than the grid.
@@ -52,7 +52,7 @@ impl CrewApp {
 
     /// Whether pane `i` sits on the grid: neither minimized nor zoomed.
     pub(crate) fn on_grid(&self, i: usize) -> bool {
-        self.panes.get(i).is_some_and(|p| !p.hidden && !p.zoomed())
+        self.in_active_tab(i) && self.panes.get(i).is_some_and(|p| !p.hidden && !p.zoomed())
     }
 
     /// Back to the grid, on the tile used last. `false` when the grid is
@@ -82,7 +82,7 @@ impl CrewApp {
             .into_iter()
             .chain(
                 (0..self.panes.len())
-                    .filter(|&i| self.panes[i].zoomed())
+                    .filter(|&i| self.panes[i].zoomed() && self.in_active_tab(i))
                     .map(Some),
             )
             .collect();

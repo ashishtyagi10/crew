@@ -82,6 +82,7 @@ fn a_spawn_that_pushes_no_pane_does_not_adopt_an_unrelated_panes_born_ms() {
         attention: None,
         born_ms: unrelated_born,
         zoom: None,
+        tab: 0,
     });
 
     let focused = 0; // the viewer

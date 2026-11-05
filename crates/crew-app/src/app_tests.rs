@@ -29,6 +29,7 @@ fn tests_far_pane(name: &str) -> crate::pane::Pane {
         born_ms: crate::anim::now_ms(),
         // Docked: a far that is a tile, since these tests are about the grid.
         zoom: Some(false),
+        tab: 0,
     }
 }
 
@@ -58,6 +59,7 @@ fn tests_chat_pane() -> crate::pane::Pane {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     }
 }
 
@@ -441,6 +443,7 @@ fn typing_clears_a_terminal_selection() {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     });
     app.focused = 0;
     if let Some(PaneContent::Terminal(t)) = app.panes.get_mut(0).map(|p| &mut p.content) {

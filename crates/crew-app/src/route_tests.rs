@@ -56,6 +56,7 @@ fn far_pane(name: &str) -> crate::pane::Pane {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     }
 }
 

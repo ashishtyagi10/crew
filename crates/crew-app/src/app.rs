@@ -118,6 +118,8 @@ pub struct CrewApp {
     pub(crate) ignite_anim: crate::ease::Timeline,
     /// LRU of pane indices: which panes are full tiles vs. minimized.
     pub(crate) grid: GridLayout,
+    /// The tabs, and which one's panes are on the grid ([`crate::tabs`]).
+    pub(crate) tabs: crate::tabs::Tabs,
     pub(crate) mods: Modifiers,
     pub(crate) cursor: (f32, f32),
     /// Whether the pointer is inside the window at all.

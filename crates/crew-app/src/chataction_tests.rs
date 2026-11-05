@@ -46,6 +46,7 @@ fn font_action_echoes_the_status_into_the_pane() {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     });
     app.apply_chat_action(ChatAction::Font("18".into()), 0);
     let crate::pane::PaneContent::Chat(c) = &app.panes[0].content else {

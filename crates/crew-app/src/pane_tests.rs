@@ -64,6 +64,7 @@ fn title_text_prefers_user_name() {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     };
     assert_eq!(p.title_text(), "settings");
     p.name = Some("build".into());

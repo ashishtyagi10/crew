@@ -49,9 +49,7 @@ fn unknown_kind_spawns_nothing() {
     app.restore_from(vec![SavedPane {
         kind: "hologram".into(),
         dir: None,
-        min: false,
-        remote: false,
-        window: 0,
+        ..Default::default()
     }]);
     assert!(app.panes.is_empty());
 }
@@ -80,6 +78,7 @@ fn session_panes_snapshots_a_crew_chat_pane_by_its_routing_label() {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     });
     assert_eq!(app.session_panes(), vec![SavedPane::crew()]);
     // A label-less chat pane (Cmd+J) is NOT snapshot.

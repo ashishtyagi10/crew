@@ -7,11 +7,13 @@
 
 /// `(keys, description)` rows shown in the overlay.
 pub(crate) const BINDINGS: &[(&str, &str)] = &[
-    ("Ctrl+Tab / Ctrl+Shift+Tab", "Next / previous pane"),
+    ("Ctrl+Tab / Ctrl+Shift+Tab", "Next / previous pane in this tab"),
     ("Cmd+] / Cmd+[", "Next / previous pane, skipping minimized ones"),
     ("Cmd+1 … 9", "Jump to pane N"),
     ("Cmd+A / Cmd+.", "Jump to next active / waiting pane"),
-    ("Cmd+{ / Cmd+}", "Move pane left / right"),
+    ("Cmd+{ / Cmd+}", "Previous / next tab"),
+    ("Cmd+Opt+1 \u{2026} 9", "Jump to tab N"),
+    ("Cmd+Shift+M", "Send the focused pane to another tab (/tab move <n>)"),
     (
         "Cmd+\u{2190}\u{2191}\u{2192}\u{2193}",
         "Focus the pane that way on the grid",
@@ -28,7 +30,8 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
         "Cmd+Opt+\u{2191}\u{2193}",
         "Scroll a terminal to the previous / next command you ran in it",
     ),
-    ("Cmd+I / Cmd+T", "Focus the input bar / new shell pane"),
+    ("Cmd+I / Cmd+T", "Focus the input bar / new tab with a shell"),
+    ("Cmd+D", "New shell pane in this tab"),
     ("Cmd+F", "Find: in a chat transcript, or /find in the bar"),
     ("Cmd+,", "Settings"),
     ("Cmd+O", "Open agent smith (same as /smith)"),

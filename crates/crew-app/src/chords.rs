@@ -1,4 +1,4 @@
-//! Super-chord (Cmd/Ctrl + key) dispatch and pane reordering.
+//! Super-chord (Cmd/Ctrl + key) dispatch, and stepping through the panes.
 use crate::app::CrewApp;
 
 /// Status label when toggling broadcast (input → all panes). The on-label
@@ -21,27 +21,13 @@ pub(crate) fn next_active_index(active: &[bool], from: usize) -> Option<usize> {
     (1..=n).map(|s| (from + s) % n).find(|&i| active[i])
 }
 
-/// Index to swap the pane at `i` with when moving in `dir` (-1 left, +1 right),
-/// or `None` at the ends / with fewer than two panes.
-pub(crate) fn swap_target(i: usize, n: usize, dir: i32) -> Option<usize> {
-    if n < 2 {
-        None
-    } else if dir < 0 {
-        i.checked_sub(1)
-    } else if i + 1 < n {
-        Some(i + 1)
-    } else {
-        None
-    }
-}
-
 impl CrewApp {
     /// Step focus to the previous/next VISIBLE pane (wrapping), skipping panes
     /// minimized into the nav — cycling is incidental traversal, so it must
     /// not restore them (the nav row and Cmd+digit are the explicit paths).
     pub(crate) fn focus_visible_step(&mut self, dir: i32) {
         let vis: Vec<usize> = (0..self.panes.len())
-            .filter(|&i| !self.panes[i].hidden)
+            .filter(|&i| !self.panes[i].hidden && self.in_active_tab(i))
             .collect();
         let Some(n) = i32::try_from(vis.len()).ok().filter(|&n| n > 0) else {
             return;
@@ -77,12 +63,18 @@ impl CrewApp {
         }
     }
 
-    /// Move the focused pane one slot left/right in the grid order.
-    pub(crate) fn move_pane(&mut self, dir: i32) {
-        if let Some(j) = swap_target(self.focused, self.panes.len(), dir) {
-            self.panes.swap(self.focused, j);
-            self.focused = j;
-        }
+    /// Ctrl+Tab / Ctrl+Shift+Tab: the next or previous pane of the tab on
+    /// screen, minimized ones included (wrapping).
+    pub(crate) fn cycle_tab_panes(&mut self, dir: i32) {
+        let mine: Vec<usize> = (0..self.panes.len())
+            .filter(|&i| self.in_active_tab(i))
+            .collect();
+        let Some(n) = i32::try_from(mine.len()).ok().filter(|&n| n > 0) else {
+            return;
+        };
+        let pos = mine.iter().position(|&i| i == self.focused).unwrap_or(0) as i32;
+        self.input.focused = false;
+        self.focused = mine[((pos + dir).rem_euclid(n)) as usize];
     }
 
     /// Handle a Super-chord key.  Returns `true` if the app should exit.
@@ -93,7 +85,9 @@ impl CrewApp {
             "i" => self.input.focused = !self.input.focused,
             "," => self.spawn_settings_pane(),
             "g" => self.toggle_sidebar(),
-            "t" => self.spawn_new_pane(),
+            "t" => self.new_tab(),
+            "d" => self.spawn_new_pane(),
+            "M" => self.input.prefill("/tab move "),
             // Cmd+Shift+T, the browser's undo-close — the shifted character
             // arrives as its own logical key, exactly like `{` and `}` above.
             "T" => self.reopen_pane(),
@@ -145,8 +139,8 @@ impl CrewApp {
             "m" => self.toggle_maximize(),
             "[" => self.focus_visible_step(-1),
             "]" => self.focus_visible_step(1),
-            "{" => self.move_pane(-1),
-            "}" => self.move_pane(1),
+            "{" => self.step_tab(-1),
+            "}" => self.step_tab(1),
             "z" => self.toggle_zoom(),
             "a" => self.focus_next_active(),
             // Cmd+.: jump to the next pane waiting on the user (see `blocked`).

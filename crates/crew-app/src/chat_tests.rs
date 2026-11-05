@@ -957,6 +957,7 @@ fn show_source_false_chat_title_has_no_suffix() {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     };
 
     let title = pane.title_text();
@@ -1014,6 +1015,7 @@ fn show_source_true_chat_title_has_source_suffix() {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     };
 
     let title = pane.title_text();

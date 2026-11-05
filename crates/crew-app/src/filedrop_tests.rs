@@ -72,6 +72,7 @@ fn chat_app(dir: Option<&str>) -> CrewApp {
         attention: None,
         born_ms: 0,
         zoom: None,
+        tab: 0,
     });
     app
 }

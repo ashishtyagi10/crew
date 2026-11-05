@@ -148,6 +148,7 @@ fn a_path_an_agent_wrote_opens_the_viewer() {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     });
     let before = app.panes.len();
 
