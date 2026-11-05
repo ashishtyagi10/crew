@@ -89,7 +89,7 @@ fn body_at(m: &Message, cols: usize, view: View<'_>, reveal: Reveal) -> Vec<Card
     let shown = reveal.map_or(text, |(r, now)| {
         crate::chatreveal::clip_at(text, r, now, level)
     });
-    let mut body = crate::chatbody::body_lines_at(shown, cols, fg, view.source, view.cwd);
+    let mut body = crate::chatreceipthead::body(m, shown, cols, fg, view);
     if let Some((r, now)) = reveal {
         crate::chatreveal::glow_tail(&mut body, r, now, text.chars().count(), level);
     }

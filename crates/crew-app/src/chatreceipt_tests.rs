@@ -102,7 +102,10 @@ fn a_folded_receipt_keeps_its_verdicts_and_folds_its_diff() {
         .map(|r| r.iter().map(|c| c.c).collect::<String>())
         .collect();
     let all = rows.join("\n");
-    assert!(all.contains("1 file changed"), "{all}");
+    assert!(
+        all.contains("~ lib.rs  +1 \u{2212}1"),
+        "the drawn head:\n{all}"
+    );
     assert!(all.contains("checked:"), "the verdict shows folded:\n{all}");
     assert!(!all.contains("+new"), "the diff is folded:\n{all}");
 }
