@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.65
+
+**Claude Code is no longer offered crew's copies of its own tools.**
+- Every relay hop listed crew's `sys:read_file`, `sys:write_file`, `sys:edit`, `sys:run`, grep
+  and glob. Claude Code has all of these itself, and with its own Write denied it wrote the
+  file through `sys:write_file` instead, round the user's settings.
+- An agent that opens files itself (Claude Code, codex, opencode) now gets only what it lacks:
+  MCP servers, integrations, `sys:todo`, `sys:outline`, the web. If it calls a copy anyway, it
+  is told to use its own tool, or to say what was refused.
+
 ## 0.29.64
 
 **The theme picker says what each look is on a narrow tile.**

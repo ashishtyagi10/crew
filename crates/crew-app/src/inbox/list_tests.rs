@@ -75,11 +75,23 @@ fn two_lines_only_when_six_fit_with_air_and_l_picks_for_the_session() {
 fn each_day_gets_a_band_after_a_blank_row_and_the_selection_stays_in_view() {
     let _g = crate::app::motion_test_guard();
     let now = chrono::Utc::now().timestamp_millis();
+    // Days are local: "now minus a few minutes" crosses midnight when CI runs
+    // just after it (Windows, 00:02 UTC, v0.29.63), so each row is placed
+    // from today's local midnight instead.
+    let midnight = chrono::Local::now()
+        .date_naive()
+        .and_hms_opt(0, 0, 0)
+        .and_then(|t| t.and_local_timezone(chrono::Local).earliest())
+        .map_or(now, |t| t.timestamp_millis());
     let mut p = pane(12);
     for (i, t) in p.rows.iter_mut().enumerate() {
         // Three today, three yesterday, then a year back.
-        let days = [0, 0, 0, 1, 1, 1, 400][i.min(6)];
-        t.at_ms = now - days * 86_400_000 - i as i64 * 60_000;
+        let m = i as i64 * 60_000;
+        t.at_ms = match i {
+            0..=2 => (now - m).max(midnight),
+            3..=5 => midnight - 12 * 3_600_000 - m,
+            _ => now - 400 * 86_400_000 - m,
+        };
     }
     p.density = Density::One;
     let got = slots(&p, 14);

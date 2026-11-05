@@ -14,6 +14,8 @@ use crate::PluginEvent;
 mod build;
 #[path = "enginedial.rs"]
 mod dial;
+#[path = "ownhands.rs"]
+pub(super) mod ownhands;
 
 pub use build::Broker;
 
@@ -66,6 +68,10 @@ impl Broker {
             let agent = shared.as_ref();
             let peers = self.registry.roster_excluding(&env.to);
             let tail = compact.tail(&mut transcript);
+            let tools = match agent.reads_files() {
+                true => ownhands::for_own_hands(&tools),
+                false => tools.clone(),
+            };
             let prompt = frame(&env, intro_of(agent), &peers, body, &tools, &tail);
             // The dial names its real sender (`user`, or the relaying peer) so
             // the host's activity row can show who the agent is working for.
