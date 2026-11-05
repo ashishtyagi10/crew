@@ -23,8 +23,9 @@ fn put_ellipsizes_rather_than_cutting_mid_word() {
         out.sort_by_key(|c| c.col);
         out.iter().map(|c| c.c).collect()
     };
-    assert!(text.ends_with('…'), "{text:?}");
-    assert_eq!(crate::chatwidth::str_w(&text), budget(18));
+    // `Mac.lan · Darw…` filled the budget and still cut a word in half.
+    assert_eq!(text, "Mac.lan…");
+    assert!(crate::chatwidth::str_w(&text) <= budget(18));
     assert_eq!(out[0].col, INDENT);
 }
 

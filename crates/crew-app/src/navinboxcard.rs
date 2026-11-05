@@ -50,8 +50,13 @@ pub(crate) fn cells(card: &Card, cols: u16) -> Vec<CellView> {
         Card::Problem(why) => line(&mut out, 1, why, t.text_muted, false),
         Card::Count { unread: 0, .. } => line(&mut out, 1, "nothing unread", t.text_muted, false),
         Card::Count { unread, newest } => {
+            // A count drops its noun rather than half of it: `● 12 unread`
+            // on a narrow nav, never `● 12 unread t…`.
             let threads = crate::wording::count(*unread as usize, "unread thread");
-            line(&mut out, 1, &format!("\u{25cf} {threads}"), accent(), true);
+            let full = format!("\u{25cf} {threads}");
+            let short = format!("\u{25cf} {unread} unread");
+            let count = crate::navtext::fit(&[&full, &short], cols);
+            line(&mut out, 1, count, accent(), true);
             if let Some((who, subject)) = newest {
                 let said = match subject.is_empty() {
                     true => who.clone(),
