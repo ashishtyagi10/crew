@@ -250,6 +250,7 @@ impl winit::application::ApplicationHandler for Application {
                                 bottom: top.floor() as i32 + physical_size.height,
                             },
                             default_color: FONT_COLOR,
+                            baseline: None,
                             custom_glyphs: &[],
                         };
 

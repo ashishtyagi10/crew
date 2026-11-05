@@ -197,6 +197,7 @@ impl winit::application::ApplicationHandler for Application {
                                 bottom: 160,
                             },
                             default_color: Color::rgb(255, 255, 255),
+                            baseline: None,
                             custom_glyphs: &[],
                         }],
                         swash_cache,

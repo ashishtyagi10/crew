@@ -122,6 +122,13 @@ pub struct TextArea<'a> {
     pub default_color: Color,
     /// Additional custom glyphs to render.
     pub custom_glyphs: &'a [CustomGlyph],
+    /// CREW PATCH (6, see the root Cargo.toml): every line's baseline, as an
+    /// offset below its top, in place of the one cosmic-text centres from
+    /// the glyphs on that line. A cell grid's baseline is the grid's: a
+    /// fallback face on one row (`▣` from a Nerd Font) moved that row's
+    /// baseline a pixel, and every glyph on it (card strokes included)
+    /// with it. `None` keeps cosmic-text's own.
+    pub baseline: Option<f32>,
 }
 
 pub(crate) struct State<'a> {

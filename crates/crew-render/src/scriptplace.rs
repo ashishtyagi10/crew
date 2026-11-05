@@ -41,11 +41,13 @@ pub(crate) fn place(
     // Each row's top, and its baseline below that top, as the snapped
     // buffer laid them out: Hindi beside English sits on English's line.
     let mut rows: Vec<Option<(f32, f32)>> = Vec::new();
+    let grid = crate::gridbase::baseline(main);
     for run in main.layout_runs() {
         if rows.len() <= run.line_i {
             rows.resize(run.line_i + 1, None);
         }
-        rows[run.line_i] = Some((run.line_top, run.line_y - run.line_top));
+        let at = crate::gridbase::line_y(&run, grid) - run.line_top;
+        rows[run.line_i] = Some((run.line_top, at));
     }
     let phrases =
         specs.chunk_by(|a, b| a.row == b.row && a.spare > 0 && a.col + a.cols + 1 == b.col);
