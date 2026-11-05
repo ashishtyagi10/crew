@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.72
+
+**Mouse clicks reach the programs that ask for them.**
+- htop, mc, lazygit, tmux and vim with `mouse=a` now get left, middle and right clicks as
+  xterm mouse reports (SGR 1006, or legacy X10), instead of a click starting crew's selection.
+- Shift+click and Shift+drag still select on crew's side; right-click pastes where no program asked.
+
 ## 0.29.71
 
 **A Claude Code pane shows how full its context is.**

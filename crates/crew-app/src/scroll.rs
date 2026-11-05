@@ -11,7 +11,7 @@ use crate::pane::{Pane, PaneContent};
 const PIXELS_PER_LINE: f32 = 24.0;
 
 /// Write `bytes` to a terminal pane's program, snapping to the live bottom first.
-fn forward_to_program(pane: &mut Pane, bytes: &[u8]) {
+pub(crate) fn forward_to_program(pane: &mut Pane, bytes: &[u8]) {
     if let PaneContent::Terminal(t) = &mut pane.content {
         t.pty.scroll_to_bottom();
         let _ = t.input.write_all(bytes).and_then(|_| t.input.flush());
