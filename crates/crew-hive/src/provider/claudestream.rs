@@ -8,6 +8,8 @@
 //! broker, so both read the same envelope the same way.
 use serde_json::Value;
 
+pub use super::claudefold::Fold;
+
 /// One line of the stream, reduced to what crew acts on.
 #[derive(Clone, Debug, PartialEq)]
 pub enum StreamEvent {
@@ -30,6 +32,14 @@ pub enum StreamEvent {
     Status(String),
     /// The closing line: the reply, whether the CLI refused, and the usage.
     Result(RunResult),
+    /// A line a subagent wrote — a call, outcome or text inside the lead's
+    /// `Agent`/`Task` call `parent`. Wrapped, not flattened: it is not the
+    /// lead's own work, so a reader that only knows the lead's events (the
+    /// reply fold, the plan, the proof) passes it by without being told.
+    Sub {
+        parent: String,
+        event: Box<StreamEvent>,
+    },
     /// A line crew does not act on.
     Other,
 }
@@ -63,7 +73,7 @@ pub fn parse_line(line: &str) -> Option<StreamEvent> {
     }
     let v: Value = serde_json::from_str(line).ok()?;
     let kind = v.get("type").and_then(Value::as_str).unwrap_or_default();
-    Some(match kind {
+    let ev = match kind {
         "stream_event" => delta(&v["event"]),
         "assistant" => v["message"]["content"]
             .as_array()
@@ -87,6 +97,15 @@ pub fn parse_line(line: &str) -> Option<StreamEvent> {
             denied: super::clauderesult::denials(&v),
         }),
         _ => StreamEvent::Other,
+    };
+    // Claude Code 2.1.x tags every line a subagent writes with the id of
+    // the lead's call that spawned it (probed live 2026-11-05).
+    Some(match v["parent_tool_use_id"].as_str() {
+        Some(p) if !p.is_empty() && ev != StreamEvent::Other => StreamEvent::Sub {
+            parent: p.to_string(),
+            event: Box::new(ev),
+        },
+        _ => ev,
     })
 }
 
@@ -137,57 +156,6 @@ fn tool_result(b: &Value) -> Option<StreamEvent> {
 
 fn str_of(v: &Value) -> String {
     v.as_str().unwrap_or_default().to_string()
-}
-
-/// What one run adds up to: the reply (deltas, else whole assistant text,
-/// else raw non-JSON lines), the reasoning, and the closing `result`.
-#[derive(Debug, Default)]
-pub struct Fold {
-    pub text: String,
-    pub thought: String,
-    pub raw: String,
-    pub result: Option<RunResult>,
-    seen_delta: bool,
-}
-
-impl Fold {
-    /// Fold one parsed line in (`None` = a raw line, kept as text).
-    pub fn push(&mut self, ev: Option<&StreamEvent>, raw_line: &str) {
-        match ev {
-            None => {
-                if !raw_line.trim().is_empty() {
-                    self.raw.push_str(raw_line.trim_end());
-                    self.raw.push('\n');
-                }
-            }
-            Some(StreamEvent::Text(t)) => {
-                self.seen_delta = true;
-                self.text.push_str(t);
-            }
-            Some(StreamEvent::Thought(t)) => self.thought.push_str(t),
-            Some(StreamEvent::AssistantText(t)) if !self.seen_delta => {
-                if !self.text.is_empty() {
-                    self.text.push('\n');
-                }
-                self.text.push_str(t);
-            }
-            Some(StreamEvent::Result(r)) => self.result = Some(r.clone()),
-            Some(_) => {}
-        }
-    }
-
-    /// The reply: the `result` line's text, else what streamed, else the
-    /// raw lines. Empty when the CLI said nothing usable.
-    pub fn reply(&self) -> String {
-        let settled = self.result.as_ref().map(|r| r.text.trim()).unwrap_or("");
-        if !settled.is_empty() {
-            return settled.to_string();
-        }
-        if !self.text.trim().is_empty() {
-            return self.text.trim().to_string();
-        }
-        self.raw.trim().to_string()
-    }
 }
 
 #[cfg(test)]

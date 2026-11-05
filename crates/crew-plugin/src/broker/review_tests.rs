@@ -33,3 +33,14 @@ fn review_prompt_orders_findings_by_severity() {
     );
     assert!(b < w && w < n, "severities are introduced worst-first");
 }
+
+/// Loop 39's S9 probe: a reviewer listed two blockers and then ended on
+/// "no findings", because the prompt asked for a verdict line and named
+/// "no findings" in the same breath. The verdict now counts what was found,
+/// and `no findings` is reserved for a review that found nothing.
+#[test]
+fn the_verdict_counts_findings_and_no_findings_stands_alone() {
+    let p = review_prompt("diff --git a/x b/x", "");
+    assert!(p.contains("`verdict: 2 blocker, 1 warn`"), "{p}");
+    assert!(p.contains("never under a finding"), "{p}");
+}
