@@ -41,6 +41,9 @@ pub(crate) fn prepare_renderer(
             },
             default_color: DEFAULT_TEXT,
             custom_glyphs: &[],
+            // Every row on the grid's baseline, which the drawn glyphs
+            // `presmooth` cut were placed for (see `gridbase`).
+            baseline: crate::gridbase::baseline(buf),
         })
         .collect();
 

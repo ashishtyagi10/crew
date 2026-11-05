@@ -93,6 +93,7 @@ fn run_bench(ctx: &mut Criterion) {
                             bottom: 1000,
                         },
                         default_color: Color::rgb(0, 0, 0),
+                        baseline: None,
                         custom_glyphs: &[],
                     })
                     .collect();

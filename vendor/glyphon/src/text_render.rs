@@ -263,7 +263,10 @@ impl TextRenderer {
                         GlyphMetadata {
                             x: physical_glyph.x,
                             y: physical_glyph.y,
-                            line_y: run.line_y,
+                            // CREW PATCH (6): the area's fixed baseline.
+                            line_y: text_area
+                                .baseline
+                                .map_or(run.line_y, |b| run.line_top + b),
                             color,
                             metadata: glyph.metadata,
                             cache_key: GlyphonCacheKey::Text(physical_glyph.cache_key),

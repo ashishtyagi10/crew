@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.73
+
+**A card's frame stays whole beside a picture row.**
+- A row with a glyph from a fallback font (the inbox's `▣ 1 picture from the web hidden`) sat a
+  pixel off its neighbours, and broke the card's side strokes at its foot. Every row of a pane
+  now sits on one baseline, as in a terminal.
+
 ## 0.29.72
 
 **Mouse clicks reach the programs that ask for them.**

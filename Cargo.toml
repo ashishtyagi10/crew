@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.29.72"
+version = "0.29.73"
 edition = "2021"
 authors = ["crew contributors"]
 license = "MIT OR Apache-2.0"
@@ -121,6 +121,10 @@ self_update = { version = "0.42", default-features = false, features = ["archive
 #      edge over see-through glass blends against what is really there.
 #      All five guarded by vendored_glyphon_patches_are_applied in
 #      crew-render's prewarm tests.
+# 6)   lib.rs TextArea::baseline + text_render.rs: draw every line on the
+#      baseline the embedder gives (crew-render's `gridbase`), not the one
+#      cosmic-text centres per line — a fallback glyph moved its row a pixel
+#      and broke the card strokes on it. Guarded in gridbase_tests.rs.
 [patch.crates-io]
 glyphon = { path = "vendor/glyphon" }
 

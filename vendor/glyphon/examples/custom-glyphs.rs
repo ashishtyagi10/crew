@@ -250,6 +250,7 @@ impl winit::application::ApplicationHandler for Application {
                                 bottom: 180,
                             },
                             default_color: Color::rgb(255, 255, 255),
+                            baseline: None,
                             custom_glyphs: &[
                                 CustomGlyph {
                                     id: 0,
