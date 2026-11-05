@@ -12,6 +12,7 @@ mod activitylog;
 #[cfg(test)]
 #[path = "aicaps_tests.rs"]
 mod aicaps_tests;
+mod altmeta;
 mod altscroll;
 mod anim;
 mod app;

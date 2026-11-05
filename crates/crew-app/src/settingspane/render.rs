@@ -68,6 +68,7 @@ fn control(buf: &mut Buffer, p: &SettingsPane, f: Field, r: Rect, focused: bool)
         Field::Invisibles => check(buf, d.invisibles),
         Field::Lsp => check(buf, d.lsp),
         Field::Maximized => check(buf, d.maximized),
+        Field::OptionMeta => check(buf, d.option_as_meta),
         Field::Notify => check(buf, d.notify),
         Field::NotifyAgentDone => check(buf, d.notify_agent_done),
         Field::NotifyBell => check(buf, d.notify_bell),

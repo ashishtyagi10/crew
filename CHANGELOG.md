@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.90
+
+**Alt+key is Meta in a terminal, and on a Mac Option can be.**
+- Alt+b, Alt+f, Alt+d and Alt+. now send `ESC` then the key, so readline's word keys, M-. (last argument), emacs's M-x and htop's Alt-combos work. Before, they typed the bare letter.
+- On a Mac Option still types `∫` and `™` by default; turn on **Option key is Meta** in Settings (Window card) to make it Meta.
+- Ctrl+Alt is left alone, so AltGr on Windows still types `@` and `{`.
+
 ## 0.29.89
 
 **"Review my diff" gets a review, and the reviewer can't touch your files.**

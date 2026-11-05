@@ -30,6 +30,7 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         // Kept short: this sits in a half-width box beside Nav width, and a
         // legend wider than its border is a legend the user reads truncated.
         Field::Maximized => "Launch maximized",
+        Field::OptionMeta => "Option key is Meta",
         Field::Notify => "Notifications",
         // Commands AND agent turns since 0.25.32: "cmd done" undersold it.
         Field::NotifyAgentDone => "Notify: done",
@@ -114,6 +115,7 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
             false,
         ),
         Field::Maximized => (onoff(p.draft.maximized), false),
+        Field::OptionMeta => (onoff(p.draft.option_as_meta), false),
         Field::Notify => (onoff(p.draft.notify), false),
         Field::NotifyAgentDone => (onoff(p.draft.notify_agent_done), false),
         Field::NotifyBell => (onoff(p.draft.notify_bell), false),

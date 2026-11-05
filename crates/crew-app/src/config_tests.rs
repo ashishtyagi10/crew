@@ -120,6 +120,7 @@ fn round_trip() {
         font_family: Some("Menlo".to_string()),
         font_random: false,
         todo_reminders: true,
+        option_as_meta: true,
         accent: Some("#112233".to_string()),
         maximized: true,
         last_dir: Some("/tmp".to_string()),

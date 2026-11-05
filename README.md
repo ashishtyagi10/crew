@@ -288,6 +288,7 @@ way that machine presses it.
 | Find: the chat transcript, or `/find` in the bar | **Cmd+F** (or **Ctrl+F**) |
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |
 | Jump / delete a word in a terminal | **Option+←/→** / **Option+Backspace** |
+| Meta (M-b, M-f, M-d, M-.) in a terminal | **Alt+key** (on a Mac: **Option+key** with Settings → **Option key is Meta**) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
 | Reopen the pane you just closed | **Cmd+Shift+T** (or `/reopen`) |
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |
@@ -893,7 +894,7 @@ configurable property: font family/size, font smoothing (the `/smooth`
 ladder), text gamma
 (the `/gamma` ladder), line spacing
 (`/leading`), density, nav width + visibility, theme, accent, card border
-marks, revealed invisibles, launch-maximized, and the whole
+marks, revealed invisibles, launch-maximized, Option as Meta, and the whole
 notification block (master + per-event toggles, min-secs threshold, watched
 output patterns as a one-per-line text area). Every key in the config file has
 a field here, and a test that parses `config.rs` says so. **Cmd+S / Alt+S**

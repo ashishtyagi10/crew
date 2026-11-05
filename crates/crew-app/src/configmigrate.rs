@@ -7,6 +7,20 @@
 //! answer" would be overwriting taste.
 use super::*;
 
+/// What `font_smooth` defaulted to before 0.19.28. Back then the stem
+/// darkening was the only correction crew had, and its calibration was
+/// quietly covering the gamma-encoded blend's deficit as well as doing its
+/// own job (see [`crew_render::DEFAULT_SMOOTH`]).
+pub const SMOOTH_BEFORE_GAMMA: u8 = 100;
+
+/// What `font_smooth` defaulted to between 0.19.28 and 0.19.62 — the
+/// rebalanced strength, back when the darkening was still on at all.
+pub const SMOOTH_AFTER_GAMMA: u8 = 70;
+
+/// What `font_gamma` defaulted to over the same span: half the sRGB
+/// correction, because the darkening was delivering the other half.
+pub const GAMMA_WITH_DILATION: u8 = 130;
+
 impl CrewConfig {
     /// One-shot upgrade heal: a config still carrying the pre-gamma default
     /// takes the rebalanced one, because `/gamma` now does the half of the
