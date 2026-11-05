@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.77
+
+**A receipt lists its files one per row, with counts and a bar.**
+- The head under a turn that changed files was one printed line. At a quarter tile it split a
+  file's `~` from its path. Each file now has a row of its own, `~ crates/…/lib.rs  +4 −1 ━━━━━`,
+  with the counts in the added and removed inks and a bar showing the file's share.
+- Up to three files get rows, then `+N more files`. A task that stopped or failed says so on a
+  lead row. When a row is too narrow it drops its bar, then the left end of the path. The
+  marker always stays with its path.
+
 ## 0.29.76
 
 **With no agents, the footer stops offering a swarm.**

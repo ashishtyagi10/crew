@@ -101,6 +101,8 @@ mod chatphase;
 mod chatproof;
 mod chatproofcmd;
 mod chatreceipt;
+mod chatreceipthead;
+mod chatreceiptparse;
 #[cfg(test)]
 #[path = "chatshot_tests.rs"]
 mod chatshot_tests;
