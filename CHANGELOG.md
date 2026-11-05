@@ -8,6 +8,11 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.85
+
+**`dark` and `light` show a page and its words, not a hollow checkbox.**
+- In `/theme` and the settings form's Theme field, the Ink pages were one accent square ringed in its page colour: on the light page `dark` drew a white square in a black ring, the same glyph as an unticked option. Each now shows two plain squares, its page then its ink, and in `auto`'s strip its page alone, so the strip is no wider.
+
 ## 0.29.84
 
 **A picture leaves with its text: `clear` and quitting a file manager take it.**

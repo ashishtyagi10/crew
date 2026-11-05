@@ -36,9 +36,11 @@ fn an_unknown_gradient_name_has_no_swatch() {
 
 /// A mode shows the palettes it will actually rotate through — one chip each,
 /// and pools with different members look different. `dark` is one Ink Reader
-/// page (2026-10-16): one chip, its accent over its black page.
+/// page (2026-10-16), which has no hue: it shows its page and its words
+/// (`swatchmono`), two bare squares.
 #[test]
 fn a_theme_mode_shows_one_chip_per_palette_in_its_pool() {
+    let _g = crate::app::theme_test_guard();
     let glass = for_value("/theme", "glass");
     let crt = for_value("/theme", "crt");
     let dark = for_value("/theme", "dark");
@@ -47,13 +49,7 @@ fn a_theme_mode_shows_one_chip_per_palette_in_its_pool() {
         crt.len(),
         ALL_THEMES.iter().filter(|id| id.is_crt()).count()
     );
-    let page = ThemeId::PaperDark.theme();
-    let ink_chip = Chip {
-        c: '\u{25a0}',
-        fg: page.accent_default,
-        bg: Some(page.page_bg),
-    };
-    assert_eq!(dark, vec![ink_chip], "the dark page as one chip");
+    assert_eq!(dark, mono::chips(ThemeId::PaperDark).unwrap());
     let fgs = |v: &[Chip]| v.iter().map(|c| c.fg).collect::<Vec<_>>();
     assert_ne!(fgs(&glass), fgs(&crt), "two pools drew the same swatch");
 }
@@ -98,6 +94,7 @@ fn on_an_opaque_page_a_faint_glass_chip_is_darkened_to_read_alone() {
 /// their accents are the one colour a user is most likely to have overridden.
 #[test]
 fn a_named_palette_shows_the_colours_that_tell_it_apart() {
+    let _g = crate::app::theme_test_guard();
     let t = ThemeId::CrtGreen.theme();
     let fgs: Vec<(u8, u8, u8)> = for_value("/theme", "crt-green")
         .iter()
@@ -176,12 +173,17 @@ fn a_hex_value_is_a_chip_and_anything_else_is_not() {
 /// floor is 3.0, the one crew holds marks and non-text signals to.
 ///
 /// A chip nobody can see is worse than no chip: it says the palette HAS no
-/// such colour.
+/// such colour. An Ink page's two bare squares (`swatchmono`) sit on the page
+/// under the picker, so that is the page they are read against, on both.
 #[test]
 fn every_face_reads_against_its_own_page() {
     let _g = crate::app::theme_test_guard();
-    for id in ALL_THEMES {
-        let page = id.theme().page_bg;
+    for (under, id) in [ThemeId::PaperDark, ThemeId::PaperLight]
+        .into_iter()
+        .flat_map(|u| ALL_THEMES.iter().map(move |id| (u, *id)))
+    {
+        crew_theme::set_theme(under);
+        let page = mono::chips(id).map_or(id.theme().page_bg, |_| under.theme().page_bg);
         for (i, chip) in for_value("/theme", id.as_str()).iter().enumerate() {
             let cr = crew_theme::contrast_ratio(chip.fg, page);
             assert!(
