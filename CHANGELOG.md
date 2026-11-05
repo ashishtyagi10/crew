@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.68
+
+**A folded receipt keeps its verdict whole and names its fold.**
+- The ` … +N` at the end of a folded receipt cut the last words off its verdict, and its
+  number sat under the head's `(+4 −1)`, where it read as lines added.
+- The fold now has a row of its own, `▸ diff · 2 lines`, counting the patch's lines.
+
 ## 0.29.67
 
 **A diff's last line number is the hunk's last line.**

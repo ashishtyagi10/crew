@@ -194,9 +194,7 @@ pub(crate) fn card_lines_spanned(
             let hidden = body.len() - keep;
             body.truncate(keep);
             if hidden > 0 {
-                // The body line holds its indent cell; the last column stays margin.
-                let room = cols.saturating_sub(1);
-                crate::chathidden::append_hidden_suffix(&mut body[keep - 1], hidden, room);
+                crate::chatreceipt::mark_fold(m, &mut body, hidden, cols, view.compact);
             }
         }
         if !(splash || view.compact || view.source) && crate::chatlead::framed(&m.text) {

@@ -46,6 +46,52 @@ pub(crate) fn kept_rows(m: &Message, cols: usize, view: crate::chatmsgs::View<'_
     crate::chatmsgs::full_body(&head, cols, view).len()
 }
 
+/// The patch lines under a receipt's head: the fenced diff, fences not
+/// counted. 0 for a receipt with no diff (or any other card).
+pub(crate) fn diff_lines(text: &str) -> usize {
+    let Some(at) = text.find("\n```") else {
+        return 0;
+    };
+    let fenced = text[at + 1..].lines().count();
+    let fences = if text.trim_end().ends_with("```") {
+        2
+    } else {
+        1
+    };
+    fenced.saturating_sub(fences)
+}
+
+/// Marks what a fold hid. A receipt's kept rows end on a verdict, and the
+/// ` … +N` that rode that line cut its last words off and sat under the
+/// head's `(+4 −1)`, where it read as five more lines added. So a receipt's
+/// fold gets a row of its own that names it, `▸ diff · 9 lines`; any other
+/// card (and the compact view, one line a card) keeps the suffix.
+pub(crate) fn mark_fold(
+    m: &Message,
+    body: &mut Vec<crate::chatbody::CardLine>,
+    hidden: usize,
+    cols: usize,
+    compact: bool,
+) {
+    let room = cols.saturating_sub(1); // the last column stays margin
+    let n = diff_lines(&m.text);
+    if compact || n == 0 || !is_receipt(m) {
+        if let Some(last) = body.last_mut() {
+            crate::chathidden::append_hidden_suffix(last, hidden, room);
+        }
+        return;
+    }
+    let muted = crew_theme::theme().text_muted;
+    let unit = if n == 1 { "line" } else { "lines" };
+    let row = format!(" \u{25b8} diff \u{b7} {n} {unit}");
+    body.push(
+        row.chars()
+            .take(room)
+            .map(|c| crate::chatbody::plain(c, muted, false))
+            .collect(),
+    );
+}
+
 impl ChatPane {
     /// File `text` into the receipt it follows; `false` when it is not a
     /// note of that turn, and the caller posts it as a card of its own.

@@ -106,3 +106,34 @@ fn a_folded_receipt_keeps_its_verdicts_and_folds_its_diff() {
     assert!(all.contains("checked:"), "the verdict shows folded:\n{all}");
     assert!(!all.contains("+new"), "the diff is folded:\n{all}");
 }
+
+/// The verdict is what a folded receipt is for, so it keeps every word: the
+/// ` … +N` that used to ride its line cut "edit" off and sat under the head's
+/// `(+1 −1)`, where it read as lines added. The fold takes a row of its own.
+#[test]
+fn a_folded_receipt_names_its_fold_and_never_cuts_its_verdict() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = crate::chat::tests::pane();
+    let verdict = "\u{2713} checked: cargo test -p crew-theme \u{2014} 42 tests passed in 12s after the last edit";
+    let text = filed(RECEIPT, verdict);
+    p.absorb_message("agent smith".into(), text, String::new(), String::new());
+    let rows: Vec<String> = p
+        .cells(verdict.chars().count() as u16 + 3, 20)
+        .chunk_by(|a, b| a.row == b.row)
+        .map(|r| r.iter().map(|c| c.c).collect::<String>())
+        .collect();
+    let all = rows.join("\n");
+    let line = rows
+        .iter()
+        .find(|r| r.contains("checked:"))
+        .expect("verdict");
+    assert!(line.trim_end().ends_with("last edit"), "{all}");
+    assert!(!all.contains("\u{2026} +"), "no suffix:\n{all}");
+    assert!(all.contains("\u{25b8} diff \u{b7} 2 lines"), "{all}");
+}
+
+#[test]
+fn the_fold_row_counts_the_patch_lines() {
+    assert_eq!(super::diff_lines(RECEIPT), 2);
+    assert_eq!(super::diff_lines("task #2: 1 file changed: + a.rs"), 0);
+}
