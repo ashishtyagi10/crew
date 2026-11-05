@@ -34,6 +34,8 @@ pub(crate) struct Proof {
     /// The run went to the background: its result is the hand-off, not
     /// the outcome.
     bg: bool,
+    /// A red run before the first edit (`chatrepro`).
+    repro: crate::chatrepro::Repro,
 }
 
 impl Proof {
@@ -95,6 +97,10 @@ impl Proof {
         if of_tool(label) == Phase::Compiling {
             if let (Some((_, end @ None, counted, took)), false) = (&mut self.run, self.bg) {
                 (*end, *counted, *took) = (Some(ok), tally(out), ms);
+                if !self.edited {
+                    let (cmd, _, t, _) = self.run.as_ref().expect("just set");
+                    self.repro.before_edit(cmd, ok, t.as_ref());
+                }
             }
         }
     }
@@ -105,6 +111,11 @@ impl Proof {
         let p = std::mem::take(self);
         if !p.edited || p.checked {
             return None;
+        }
+        if let Some((cmd, Some(true), t, ms)) = &p.run {
+            if let Some(fixed) = p.repro.fixed(cmd, t.as_ref(), *ms) {
+                return Some(fixed);
+            }
         }
         Some(match p.run {
             Some((cmd, Some(true), Some(t), _)) if t.ran() == 0 => {

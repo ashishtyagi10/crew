@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.95
+
+**A fix that was reproduced first says red → green.**
+- When a turn ran the failing test before its edit and the same run (or a wider one) passes after, the proof under its receipt reads `✓ fixed: cargo test -p crew-theme — 2 of 44 failed before the fix; 44 pass (12s)` instead of `✓ checked`.
+- A turn that never reproduced keeps `✓ checked`. A red lint, or a red run that went green again before the edit, does not count as the reproduction.
+
 ## 0.29.94
 
 **The welcome's headline folds onto spare rows instead of being cut.**

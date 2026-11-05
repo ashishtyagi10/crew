@@ -106,6 +106,7 @@ mod chatreceipt;
 mod chatreceiptcells;
 mod chatreceipthead;
 mod chatreceiptparse;
+mod chatrepro;
 #[cfg(test)]
 #[path = "chatshot_tests.rs"]
 mod chatshot_tests;
