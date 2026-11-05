@@ -204,26 +204,6 @@ impl TermCore {
         self.publish_size();
     }
 
-    pub(crate) fn scroll(&mut self, delta: i32) {
-        self.term.scroll_display(Scroll::Delta(delta));
-    }
-
-    pub(crate) fn scroll_to_bottom(&mut self) {
-        self.term.scroll_display(Scroll::Bottom);
-    }
-
-    pub(crate) fn display_offset(&self) -> usize {
-        self.term.grid().display_offset()
-    }
-
-    /// Every line the viewport can reach: the scrollback history plus the live
-    /// screen. The denominator of a scroll indicator — `display_offset` alone
-    /// says how far back you are, never how far back there is.
-    pub(crate) fn scrollable_lines(&self) -> usize {
-        let g = self.term.grid();
-        g.history_size() + g.screen_lines()
-    }
-
     pub(crate) fn bracketed_paste(&self) -> bool {
         self.term.mode().contains(TermMode::BRACKETED_PASTE)
     }
@@ -253,6 +233,8 @@ mod modelimage;
 mod modellast;
 #[path = "modelmodes.rs"]
 mod modelmodes;
+#[path = "modelscroll.rs"]
+mod modelscroll;
 #[path = "modelsel.rs"]
 mod modelsel;
 #[path = "modelsize.rs"]

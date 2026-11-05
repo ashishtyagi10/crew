@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.87
+
+**`/find` reaches the whole scrollback at once and shows the hit mid-view.**
+- `/find` reads the pane's grid in one pass instead of scrolling a line at a time: a match 9,000 lines back lands in under 2 ms, where before anything past 5,000 lines came back "no match" after freezing the window for a sixth of a second.
+- The hit lands on the middle row (the view stays put if it's already on screen), a word a soft wrap split across two rows matches, and repeating `/find` or `/errors` walks on to the next older one.
+- `/find all` and `/errors all` count every pane through the same walk, without moving any view.
+
 ## 0.29.86
 
 **A review reads the callers of what changed, not just the diff.**

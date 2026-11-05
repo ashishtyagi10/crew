@@ -3,98 +3,37 @@
 //! focuses the first matching pane, and runs the normal `/find` there so the
 //! view scrolls to the match and repeat-`/find` continues upward. Repeating
 //! `/findall` with the same term cycles to the NEXT matching pane
-//! (wrapping) — n/N stepping at fleet granularity. Counting
-//! pages a whole screen per grid snapshot — the naive one-`cells()`-per-line
-//! walk measured ~1s/pane on a fat history, far past what the winit thread
-//! tolerates; paging is ~rows× fewer snapshots.
+//! (wrapping) — n/N stepping at fleet granularity. Counting reads each
+//! pane's grid text in one pass (`find_back`): no screen of cells is built
+//! and no view moves.
 use crate::app::CrewApp;
+use crate::findback::matches_in;
 use crate::pane::PaneContent;
-use crate::search::{needle, rows_text};
-use crew_term::{PtyTerm, TermModel};
+use crate::search::needle;
+use crew_term::PtyTerm;
 
-/// Total scrollback lines examined per pane (matches `dump::capture_scrollback`).
-const MAX_LINES: usize = 50_000;
-
-/// Non-overlapping `needle` occurrences across `lines` (pre-folded).
-fn count_lines(lines: &[String], needle: &str) -> usize {
-    lines.iter().map(|l| l.matches(needle).count()).sum()
-}
-
-/// Smart-case match count of `term` across the pane's full scrollback,
-/// paging by whole screens and restoring the viewport where it found it.
-/// Uses the same ASCII fold as `/find`, so a `/findall` hit is always a
-/// `/find` hit in the pane it lands on.
-fn count_scrollback(pty: &mut PtyTerm, cols: u16, rows: u16, term: &str) -> usize {
+/// Smart-case match count of `term` across the pane's full scrollback, in
+/// one pass over its grid (`find_back`) with the view left where it is.
+/// Uses the same fold as `/find`, so a `/findall` hit is always a `/find`
+/// hit in the pane it lands on.
+fn count_scrollback(pty: &PtyTerm, term: &str) -> usize {
     let (needle, ci) = needle(term);
-    if needle.is_empty() {
-        return 0;
-    }
-    let start = pty.display_offset();
-    // Page up to the top of the scrollback.
-    loop {
-        let before = pty.display_offset();
-        pty.scroll(rows as i32);
-        if pty.display_offset() == before {
-            break;
-        }
-    }
-    // The top screen contributes every row; each page down then reveals
-    // exactly `delta` new rows at the bottom (delta < rows on the last page
-    // — slicing the tail avoids double-counting the overlap).
-    let mut count = count_lines(&rows_text(&pty.cells(false), cols, rows, ci), &needle);
-    let mut seen = rows as usize;
-    while pty.display_offset() > 0 && seen < MAX_LINES {
-        let before = pty.display_offset();
-        pty.scroll(-(rows as i32));
-        let delta = before - pty.display_offset();
-        if delta == 0 {
-            break;
-        }
-        let lines = rows_text(&pty.cells(false), cols, rows, ci);
-        count += count_lines(&lines[rows as usize - delta..], &needle);
-        seen += delta;
-    }
-    pty.scroll_to_bottom();
-    if start > 0 {
-        pty.scroll(start as i32);
-    }
+    let mut count = 0;
+    pty.find_back(0, &mut |l| {
+        count += matches_in(l, &needle, ci);
+        false
+    });
     count
 }
 
-/// Errors across a pane's whole scrollback, counted the way `/findall` counts
-/// matches: page by whole screens, restore the viewport, cap the walk.
-fn count_errors(pty: &mut PtyTerm, cols: u16, rows: u16) -> usize {
-    let start = pty.display_offset();
-    loop {
-        let before = pty.display_offset();
-        pty.scroll(rows as i32);
-        if pty.display_offset() == before {
-            break;
-        }
-    }
-    let errs = |lines: &[String]| -> usize {
-        lines
-            .iter()
-            .filter(|l| crate::errscan::looks_like_error(l))
-            .count()
-    };
-    let mut count = errs(&rows_text(&pty.cells(false), cols, rows, false));
-    let mut seen = rows as usize;
-    while pty.display_offset() > 0 && seen < MAX_LINES {
-        let before = pty.display_offset();
-        pty.scroll(-(rows as i32));
-        let delta = before - pty.display_offset();
-        if delta == 0 {
-            break;
-        }
-        let lines = rows_text(&pty.cells(false), cols, rows, false);
-        count += errs(&lines[rows as usize - delta..]);
-        seen += delta;
-    }
-    pty.scroll_to_bottom();
-    if start > 0 {
-        pty.scroll(start as i32);
-    }
+/// Errors across a pane's whole scrollback, counted the way `/findall`
+/// counts matches.
+fn count_errors(pty: &PtyTerm) -> usize {
+    let mut count = 0;
+    pty.find_back(0, &mut |l| {
+        count += usize::from(crate::errscan::looks_like_error(l));
+        false
+    });
     count
 }
 
@@ -107,9 +46,8 @@ impl CrewApp {
     pub(crate) fn find_errors_everywhere(&mut self) {
         let mut hits: Vec<(usize, usize)> = Vec::new();
         for i in 0..self.panes.len() {
-            let (cols, rows) = (self.panes[i].grid.cols, self.panes[i].grid.rows);
-            if let PaneContent::Terminal(t) = &mut self.panes[i].content {
-                let n = count_errors(&mut t.pty, cols, rows);
+            if let PaneContent::Terminal(t) = &self.panes[i].content {
+                let n = count_errors(&t.pty);
                 if n > 0 {
                     hits.push((i, n));
                 }
@@ -152,9 +90,8 @@ impl CrewApp {
         }
         let mut hits: Vec<(usize, usize)> = Vec::new();
         for i in 0..self.panes.len() {
-            let (cols, rows) = (self.panes[i].grid.cols, self.panes[i].grid.rows);
-            if let PaneContent::Terminal(t) = &mut self.panes[i].content {
-                let n = count_scrollback(&mut t.pty, cols, rows, term);
+            if let PaneContent::Terminal(t) = &self.panes[i].content {
+                let n = count_scrollback(&t.pty, term);
                 if n > 0 {
                     hits.push((i, n));
                 }

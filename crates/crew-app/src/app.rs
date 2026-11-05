@@ -193,12 +193,12 @@ pub struct CrewApp {
     /// [`crate::panedrag`]). Mutually exclusive with `drag`: the legend row is
     /// the one row of a card that holds nothing to select.
     pub(crate) card_drag: Option<crate::panedrag::CardDrag>,
-    /// Active text selection over a non-terminal pane (chat/settings/etc.),
-    /// which lack alacritty's grid model. Persists after the drag so `Cmd+C`
-    /// can copy it; cleared by the next press or a scroll. See [`crate::gridsel`].
+    /// Text selected over a non-terminal pane (no alacritty grid there), kept
+    /// for `Cmd+C`; cleared by the next press or a scroll ([`crate::gridsel`]).
     pub(crate) cell_sel: Option<crate::gridsel::CellSel>,
-    /// Last `/find` term, so repeating it walks to the next older match.
+    /// Last `/find` term, and its hit's row above the view's bottom: a repeat walks on.
     pub(crate) last_find: Option<String>,
+    pub(crate) find_hit: Option<usize>,
     /// The last `/findall` term — repeating it cycles through matching panes.
     pub(crate) last_findall: Option<String>,
     /// Crew's working directory: shown in the input-bar legend and used as the

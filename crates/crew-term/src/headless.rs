@@ -87,6 +87,12 @@ impl HeadlessTerm {
         self.core.take_replies()
     }
 
+    /// The newest line at or above depth `from` that `hit` accepts (see
+    /// `scrollfind`).
+    pub fn find_back(&self, from: usize, hit: &mut dyn FnMut(&str) -> bool) -> Option<usize> {
+        self.core.find_back(from, hit)
+    }
+
     /// The DEC private modes the program has on (wheel, keys, focus).
     pub fn input_modes(&self) -> crate::modes::InputModes {
         self.core.input_modes()

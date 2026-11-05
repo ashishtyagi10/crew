@@ -298,6 +298,7 @@ mod farpane;
 mod farshot_tests;
 mod filedrop;
 mod fileindex;
+mod findback;
 mod findhl;
 mod findsnip;
 mod focusmode;

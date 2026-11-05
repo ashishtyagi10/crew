@@ -1,4 +1,4 @@
-use super::{count_lines, count_scrollback};
+use super::count_scrollback;
 use crate::app::CrewApp;
 use crate::pane::{spawn_pane, PaneContent};
 use crew_term::GridSize;
@@ -9,13 +9,6 @@ use crew_term::GridSize;
 /// code touched none of this. The wait is a liveness bound, not the
 /// claim: a shell that never echoes still fails, just later.
 const MARKER_WAIT: std::time::Duration = std::time::Duration::from_secs(30);
-
-#[test]
-fn count_lines_counts_non_overlapping_occurrences() {
-    let lines = vec!["error error".to_string(), "no".into(), "error".into()];
-    assert_eq!(count_lines(&lines, "error"), 3);
-    assert_eq!(count_lines(&lines, "zzz"), 0);
-}
 
 #[test]
 fn findall_usage_hint_and_no_panes() {
@@ -47,7 +40,7 @@ fn findall_focuses_the_first_matching_pane_from_the_bottom() {
     while std::time::Instant::now() < deadline {
         if let PaneContent::Terminal(t) = &mut app.panes[1].content {
             t.pty.try_read();
-            if count_scrollback(&mut t.pty, grid.cols, grid.rows, "crewfindallmarker") > 0 {
+            if count_scrollback(&t.pty, "crewfindallmarker") > 0 {
                 found = true;
                 break;
             }
@@ -88,7 +81,7 @@ fn count_scrollback_is_smart_case_like_find() {
     loop {
         t.pty.try_read();
         // Lowercase term: case-insensitive — sees the mixed-case output.
-        if count_scrollback(&mut t.pty, grid.cols, grid.rows, "crewcasemarker") > 0 {
+        if count_scrollback(&t.pty, "crewcasemarker") > 0 {
             break;
         }
         assert!(
@@ -98,10 +91,7 @@ fn count_scrollback_is_smart_case_like_find() {
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
     // Uppercase in the term: exact-case only — the wrong case finds nothing.
-    assert_eq!(
-        count_scrollback(&mut t.pty, grid.cols, grid.rows, "CREWCASEMARKER"),
-        0
-    );
+    assert_eq!(count_scrollback(&t.pty, "CREWCASEMARKER"), 0);
 }
 
 #[test]
@@ -126,7 +116,7 @@ fn repeating_findall_cycles_matching_panes_and_wraps() {
         for i in [0usize, 2] {
             if let PaneContent::Terminal(t) = &mut app.panes[i].content {
                 t.pty.try_read();
-                if count_scrollback(&mut t.pty, grid.cols, grid.rows, "crewcyclemarker") > 0 {
+                if count_scrollback(&t.pty, "crewcyclemarker") > 0 {
                     ready += 1;
                 }
             }
