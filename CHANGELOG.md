@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.79
+
+**Keys stand out on the Ink pages.**
+- On paper-light, `/keys` drew its keys in the accent's grey, paler than the descriptions beside
+  them. Where the accent is a grey, keys are now bold in the page's ink, on `/keys` and the far
+  F-key bar alike; a coloured accent is unchanged.
+- The welcome's `⌘T ⌘O /` chords take the same ink, so they no longer fade into the words.
+
 ## 0.29.78
 
 **Ctrl and Shift navigation keys reach vim, micro and helix.**
