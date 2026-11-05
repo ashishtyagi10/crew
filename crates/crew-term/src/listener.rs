@@ -3,7 +3,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use alacritty_terminal::event::{Event, EventListener};
+use alacritty_terminal::event::{Event, EventListener, WindowSize};
 
 /// Shared state captured from terminal events (cloned into the alacritty `Term`).
 #[derive(Clone, Default)]
@@ -14,6 +14,9 @@ pub(crate) struct TermEvents {
     /// Bytes owed back to the child on the pty: answers to color queries
     /// (OSC 10/11) and status reports (DSR) raised while parsing its output.
     pub replies: Arc<Mutex<String>>,
+    /// The grid and cell size, kept by `TermCore` for `CSI 14 t` (`modelsize`);
+    /// set from its first moment (`TermCore::new`).
+    pub size: Arc<Mutex<Option<WindowSize>>>,
 }
 
 impl TermEvents {
@@ -40,6 +43,11 @@ impl EventListener for TermEvents {
             Event::ColorRequest(index, format) => {
                 if let Some(rgb) = crate::color::query_color(index) {
                     self.replies.lock().unwrap().push_str(&format(rgb));
+                }
+            }
+            Event::TextAreaSizeRequest(format) => {
+                if let Some(size) = *self.size.lock().unwrap() {
+                    self.replies.lock().unwrap().push_str(&format(size));
                 }
             }
             _ => {}
