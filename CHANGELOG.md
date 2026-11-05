@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.99
+
+**A crashed program's mouse mode no longer types into the prompt.**
+- A full-screen program killed on the main screen (fzf, a crashed TUI) could leave mouse and focus reporting on, so every wheel tick, click and pane switch typed escape codes into the shell's command line. When the shell has the pane back, crew now turns those modes off and the wheel scrolls history again.
+- Programs on the alternate screen and the shell's own key modes are left alone.
+
 ## 0.29.98
 
 **A "fixed" with nothing changed is named a diagnosis.**
