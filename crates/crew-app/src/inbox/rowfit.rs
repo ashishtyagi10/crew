@@ -78,18 +78,40 @@ pub(crate) fn tail_w(tail: &[Tail]) -> u16 {
 }
 
 /// The one-line names column for these rows: as wide as the widest names
-/// and tail on screen, never a fixed gap, and at most a third of the pane.
+/// and tail on screen, never a fixed gap, and at most a third of what the
+/// names and the subject share. A third of the PANE let a quarter tile's
+/// names take 12 columns and leave the subject 10 (`Photos fr…` beside
+/// `Google Cloud`, 2026-11-05 shot): the subject is what tells threads
+/// apart, and a long sender falls back to a first name before it is cut.
 pub(crate) fn who_w(rows: &[Thread], cols: u16, me: &str) -> u16 {
     let fit = Fit::at(cols, false);
-    let widest = rows
-        .iter()
-        .map(|th| {
-            let names = super::who::names(th, me, WHO_CAP, fit.all);
-            str_w(&names) as u16 + tail_w(&tail(th, fit))
-        })
-        .max()
-        .unwrap_or(0);
-    widest.min(cols / 3)
+    // The widest names and tail: the names in `room`, or in `room` less
+    // the tail (as `row` writes them in the column).
+    let widest = |room: u16, less_tail: bool| {
+        let w = |th: &Thread| {
+            let tw = tail_w(&tail(th, fit));
+            let room = usize::from(room.saturating_sub(if less_tail { tw } else { 0 }));
+            str_w(&super::who::names(th, me, room, fit.all)) as u16 + tw
+        };
+        rows.iter().map(w).max().unwrap_or(0)
+    };
+    let full = widest(WHO_CAP as u16, false);
+    let cap = full.min(shared(cols, fit) / 3).max(full.min(WHO_FLOOR));
+    // Then as wide as the names really are in it: a sender that fell back
+    // to its first name leaves the rest of the cap to the subject.
+    widest(cap, true).min(cap)
+}
+
+/// The fewest columns the names give up to the subject: `Bo Park`,
+/// `Cy Diaz` and `Stripe` stay whole on the narrowest pane.
+const WHO_FLOOR: u16 = 8;
+
+/// What the names and the subject share on a one-line row: the pane less
+/// the gutter, the gap after the names, the air and the widest time
+/// (`Oct 30`, or `5mo` compact) and the margin at the right.
+fn shared(cols: u16, fit: Fit) -> u16 {
+    let time = if fit.compact { 3 } else { 6 };
+    cols.saturating_sub(TEXT + 3 + 2 + time + 2)
 }
 
 /// The attachment mark: a paperclip from the icon set when the font really

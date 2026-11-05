@@ -136,5 +136,9 @@ mod tests;
 mod marks_tests;
 
 #[cfg(test)]
+#[path = "rowcols_tests.rs"]
+mod cols_tests;
+
+#[cfg(test)]
 #[path = "rowair_tests.rs"]
 mod air_tests;
