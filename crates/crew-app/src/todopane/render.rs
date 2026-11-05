@@ -177,7 +177,7 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
             headrow::band(&mut out, p, idx, row - 1, cols);
         }
         let selected = p.sel == Some(di);
-        row_cells(&mut out, p, idx, (row, cols, bottom), selected, now_ms);
+        super::selwash::item(&mut out, p, idx, (row, cols, bottom), selected, now_ms);
         row += item_h(&p.items[idx], cols, now_ms, p.rowctx());
     }
     if order.is_empty() && lh >= 2 {
