@@ -79,6 +79,7 @@ impl ClaudeAgent {
         stream: &HopStream,
         resume: Option<&str>,
         task: &Task,
+        seen: super::resumedelta::Seen,
     ) -> Result<(String, Usage), String> {
         let program = &self.program;
         let mut child = no_console_window(&mut Command::new(program))
@@ -140,7 +141,7 @@ impl ClaudeAgent {
             .recv_timeout(Duration::from_millis(250))
             .unwrap_or_default();
         if let Some(r) = fold.result.as_ref() {
-            self.resume.keep(&r.session_id, task);
+            self.resume.keep(&r.session_id, task, seen);
         }
         finish(fold, program, &stderr)
     }

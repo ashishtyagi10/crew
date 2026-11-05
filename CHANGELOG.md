@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.83
+
+**A Claude Code follow-up is sent only what is new.**
+- A message that continues the pane's Claude Code session no longer re-sends the tools hint, project card, skills list and a recap of the turns the session already holds: a one-line follow-up went from 5.8 KB to 45 bytes.
+- The session's context now grows by the message, not ~2.5k tokens a turn; a paragraph that changed (the card after a commit, a newly picked skill) is still sent.
+
 ## 0.29.82
 
 **A narrow nav's glance cards cut between words.**
