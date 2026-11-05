@@ -82,7 +82,7 @@ pub(super) fn window(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> 
     let mut cy = y + 1;
     lone(rects, ix, iw, cy, Field::NavWidth);
     cy += 3;
-    for f in [Field::ShowNav, Field::Maximized] {
+    for f in [Field::ShowNav, Field::Maximized, Field::OptionMeta] {
         rects.push((f, Rect::new(ix, cy, iw, 1)));
         cy += 1;
     }

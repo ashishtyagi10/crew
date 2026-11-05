@@ -62,6 +62,10 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ("Shift+PageUp / Shift+PageDown", "Scroll the focused pane"),
     ("Shift+Home / Shift+End", "Scroll to top / bottom"),
     (
+        "Alt+key",
+        "Meta in a terminal: ESC+key (Mac: Settings \u{2192} Option key is Meta)",
+    ),
+    (
         "Drag a card's right edge",
         "Scroll it \u{b7} the nav's LOG scrolls with the wheel",
     ),

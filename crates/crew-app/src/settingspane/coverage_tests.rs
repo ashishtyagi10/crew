@@ -30,6 +30,7 @@ fn edits(f: Field) -> &'static str {
         Field::ShapeCues => "shape_cues",
         Field::Gradient => "gradient",
         Field::Maximized => "maximized",
+        Field::OptionMeta => "option_as_meta",
         Field::Notify => "notify",
         Field::NotifyAgentDone => "notify_agent_done",
         Field::NotifyBell => "notify_bell",

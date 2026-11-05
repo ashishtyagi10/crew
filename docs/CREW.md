@@ -433,6 +433,7 @@ way that machine presses it.
 | Complete the leading `@agent` name or slash construct | **Tab** |
 | Insert a newline in a terminal | **Shift+Enter** (line feed, not submit) |
 | Jump / delete a word in a terminal | **Option+←/→** / **Option+Backspace** |
+| Meta (M-b, M-f, M-d, M-.) in a terminal | **Alt+key** (on a Mac: **Option+key** with Settings → **Option key is Meta**) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
 | Reopen the pane you just closed | **Cmd+Shift+T** (or `/reopen`) |
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |
@@ -635,7 +636,11 @@ Terminal.app sends them), **F1–F12** send xterm's sequences (htop, mc, vim
 mappings), and a program that switches the cursor keys to application mode gets
 `ESC O A`-style arrows. Ctrl+Space and Ctrl+2 send NUL (set-mark, a C-Space
 tmux prefix), Ctrl+/ sends `0x1f` (emacs/nano undo), and Ctrl+3…8 send xterm's
-ESC, FS, GS, RS, US and DEL. Shells launch as your `$SHELL` login shell, so
+ESC, FS, GS, RS, US and DEL. **Alt+key** is Meta: `ESC` then the key, so
+readline's M-b, M-f, M-d and M-. (last argument) and emacs's M-x work (Ctrl+Alt
+is AltGr on Windows and still types `@` or `{`). On a Mac Option types
+characters (`∫`, `™`), so Meta there is the Settings switch **Option key is
+Meta**, off by default. Shells launch as your `$SHELL` login shell, so
 your full config and plugins load.
 
 On **Windows** a pane is PowerShell — **PowerShell 7** (`pwsh`) when it is
@@ -4221,7 +4226,8 @@ value.
   spacing**, **Contrast**, **Shape cues**, **Gradient colour** (`off · subtle
   · lively`), and the on/off switches **Card border marks**, **Reveal
   invisibles** and **Code diagnostics (LSP)**.
-- **WINDOW** — **Nav width**, **Show nav**, **Launch maximized**.
+- **WINDOW** — **Nav width**, **Show nav**, **Launch maximized**, **Option key
+  is Meta** (macOS: Option+key sends `ESC`+key to a terminal).
 - **NOTIFICATIONS** — the master switch plus per-event toggles (**done** — a command or an agent's turn,
   **bell**, **pane exit**), the **min secs** threshold, and the watched
   output **patterns** as a one-per-line text area.

@@ -61,6 +61,10 @@ pub(crate) enum Field {
     /// much the canvas is allowed to do on its own.
     Gradient,
     Maximized,
+    /// macOS: Option+<key> sends ESC+<key> to a terminal (see `altmeta`).
+    /// In the Window card beside Launch maximized: both are how crew sits
+    /// on this machine rather than how it looks.
+    OptionMeta,
     Notify,
     NotifyAgentDone,
     NotifyBell,
@@ -77,7 +81,7 @@ pub(crate) enum Field {
 
 /// Every focusable field, for the coverage guards and as `tab_order`'s
 /// backstop — a field the layout does not place still has to be reachable.
-pub(crate) const FIELDS: [Field; 29] = [
+pub(crate) const FIELDS: [Field; 30] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -97,6 +101,7 @@ pub(crate) const FIELDS: [Field; 29] = [
     Field::ShapeCues,
     Field::Gradient,
     Field::Maximized,
+    Field::OptionMeta,
     Field::Notify,
     Field::NotifyAgentDone,
     Field::NotifyBell,

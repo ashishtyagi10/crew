@@ -14,6 +14,7 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
         Field::Invisibles => d.invisibles = !d.invisibles,
         Field::Lsp => d.lsp = !d.lsp,
         Field::Maximized => d.maximized = !d.maximized,
+        Field::OptionMeta => d.option_as_meta = !d.option_as_meta,
         Field::Notify => d.notify = !d.notify,
         Field::NotifyAgentDone => d.notify_agent_done = !d.notify_agent_done,
         Field::NotifyBell => d.notify_bell = !d.notify_bell,
