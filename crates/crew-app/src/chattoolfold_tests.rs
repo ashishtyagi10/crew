@@ -111,9 +111,13 @@ fn the_reply_settling_collapses_the_block_to_a_summary_above_the_card() {
     let r = rows(&p);
     let sum = r
         .iter()
-        .position(|l| l.contains("tool call"))
+        .position(|l| l.contains("1 read"))
         .expect("summary");
-    assert_eq!(r[sum], "  \u{25b8} 1 tool call \u{00b7} 120ms");
+    assert!(
+        r[sum].starts_with("  \u{25b8} 1 read \u{00b7} 120ms"),
+        "{}",
+        r[sum]
+    );
     assert!(r[sum + 1].contains("coder"), "right above the reply: {r:?}");
     assert!(
         !r.iter().any(|l| l.contains("\u{2713} fs:read")),
@@ -133,7 +137,7 @@ fn clicking_the_summary_opens_the_list_and_clicking_a_line_opens_its_text() {
         "500".into(),
         String::new(),
     );
-    let row = row_of(&p, "tool call");
+    let row = row_of(&p, "1 read");
     assert!(
         p.fold_target_at(COLS, ROWS, row),
         "the press arms on the summary"
@@ -152,7 +156,7 @@ fn clicking_the_summary_opens_the_list_and_clicking_a_line_opens_its_text() {
     );
     assert!(p.toggle_fold_at(COLS, ROWS, line), "click again closes it");
     assert!(!rows(&p).iter().any(|l| l.contains("fn main")));
-    assert!(p.toggle_fold_at(COLS, ROWS, row_of(&p, "tool call")));
+    assert!(p.toggle_fold_at(COLS, ROWS, row_of(&p, "1 read")));
     assert!(
         !rows(&p).iter().any(|l| l.contains("\u{2713} fs:read")),
         "collapsed again"

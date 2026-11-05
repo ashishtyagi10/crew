@@ -201,6 +201,7 @@ mod chattoolblock;
 mod chattoolfold;
 mod chattoolkind;
 mod chattoolline;
+mod chattoolstrip;
 mod chattoolview;
 mod chattoolwindow;
 mod chattranscript;

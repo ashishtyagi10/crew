@@ -48,13 +48,13 @@ fn the_summary_counts_calls_time_and_failures() {
     b.settled = true;
     assert_eq!(
         text(&summary(&b, 60, false)),
-        "  \u{25b8} 2 tool calls \u{00b7} 2.1s \u{00b7} 1 failed"
+        "  \u{25b8} 2 read \u{00b7} 2.1s \u{00b7} 1 failed  ".to_string() + &"\u{2501}".repeat(12)
     );
     b.expanded = true;
     b.lines.pop();
     assert_eq!(
         text(&summary(&b, 60, false)),
-        "  \u{25be} 1 tool call \u{00b7} 2.0s"
+        "  \u{25be} 1 read \u{00b7} 2.0s  ".to_string() + &"\u{2501}".repeat(12)
     );
     assert!(
         text(&summary(&b, 60, true)).contains('\u{f0ad}'),
@@ -105,7 +105,7 @@ fn a_settled_block_sits_above_its_reply_a_live_one_under_the_streaming_card() {
         ..View::default()
     };
     let rows = texts(&card_lines(&[&reply, &stream], 60, 0, view));
-    assert!(rows[0].contains("1 tool call"), "summary first: {rows:?}");
+    assert!(rows[0].contains("1 read"), "summary first: {rows:?}");
     assert!(
         rows[1].contains("coder"),
         "then the reply's header: {rows:?}"
