@@ -102,6 +102,7 @@ mod chatphase;
 mod chatproof;
 mod chatproofcmd;
 mod chatreceipt;
+mod chatreceiptcells;
 mod chatreceipthead;
 mod chatreceiptparse;
 #[cfg(test)]

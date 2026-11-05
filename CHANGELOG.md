@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.80
+
+**A five-file receipt head is four rows again.**
+- The files with no row of their own are counted on the lead row (`5 files changed  +9 −3 · 2 more`), not on a row under the list.
+- The once-a-session "undo that" tip rides the head's first row, muted, when it fits; the card's own `▸ diff` row replaces "/diff shows them".
+- Five files: 6 → 4 rows at 700 px (5 at 470 px); one file with the tip: 2 → 1.
+
 ## 0.29.79
 
 **Keys stand out on the Ink pages.**
