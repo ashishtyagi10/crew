@@ -4604,6 +4604,10 @@ colour, so chalk-based CLIs such as Claude Code use them all),
 `TERM_PROGRAM=crew` and `TERM_PROGRAM_VERSION`, and drops the variables other
 terminals set to name themselves (`LC_TERMINAL`, `KITTY_WINDOW_ID`,
 `WEZTERM_PANE`, `GHOSTTY_*`, `TMUX`, …) when crew was started from one.
+Where those variables cannot reach (over ssh, inside tmux), a program can ask
+the terminal itself: **XTVERSION** (`CSI > q` or `CSI > 0 q`) answers
+`DCS > | crew <version> ST`, which is how neovim, yazi and notcurses tell
+which terminal they are drawing on.
 
 **Programs keep reading after a switch.** Terminal panes answer color queries
 (OSC 10/11) and set `$COLORFGBG` from the active theme, so CLIs that probe the

@@ -77,8 +77,8 @@ pub(crate) struct TermCore {
     osc7: crate::osc::OscScanner,
     /// Sniffs DECSET 2031 (color-scheme notifications), invisible to the parser.
     scheme: crate::schemenotify::SchemeNotify,
-    /// Answers `CSI 16 t`, which the parser does not dispatch (`modelsize`).
-    cellq: modelsize::CellQuery,
+    /// Answers `CSI 16 t` and XTVERSION, which the parser does not dispatch.
+    cellq: modelsize::Queries,
     /// Where the drag began, and its kind. Kept because a selection's sides
     /// depend on the drag's DIRECTION, which only the anchor can tell us, and
     /// `Selection` doesn't hand its anchor back. See `sel_update`.
@@ -123,7 +123,7 @@ impl TermCore {
             graphics: crate::graphics::GraphicsScanner::default(),
             images: Vec::new(),
             cell_px: (8, 16),
-            cellq: modelsize::CellQuery::default(),
+            cellq: modelsize::Queries::default(),
         };
         core.publish_size();
         core

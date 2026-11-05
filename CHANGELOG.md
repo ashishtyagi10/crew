@@ -8,6 +8,11 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.81
+
+**Crew names itself when a program asks.**
+- XTVERSION (`CSI > q` / `CSI > 0 q`) answers `DCS >|crew <version> ST`, so neovim, yazi and notcurses recognise crew over ssh and inside tmux, where `TERM_PROGRAM` never arrives.
+
 ## 0.29.80
 
 **A five-file receipt head is four rows again.**
