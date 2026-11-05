@@ -6,7 +6,7 @@ use super::*;
 
 #[test]
 fn review_prompt_carries_the_diff_and_the_reviewer_contract() {
-    let p = review_prompt("+ let x = unwrap();");
+    let p = review_prompt("+ let x = unwrap();", "");
     assert!(p.contains("+ let x = unwrap();"), "diff included");
     let lower = p.to_lowercase();
     for word in ["blocker", "warn", "nit"] {
@@ -25,7 +25,7 @@ fn review_prompt_carries_the_diff_and_the_reviewer_contract() {
 
 #[test]
 fn review_prompt_orders_findings_by_severity() {
-    let lower = review_prompt("x").to_lowercase();
+    let lower = review_prompt("x", "").to_lowercase();
     let (b, w, n) = (
         lower.find("blocker").unwrap(),
         lower.find("warn").unwrap(),

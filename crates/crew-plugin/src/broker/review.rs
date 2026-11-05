@@ -9,9 +9,11 @@ use super::relay::msg;
 use super::session::{call_timeout, Session};
 use super::stdio::roster;
 
-/// The one-completion prompt for the reviewer.
-pub(crate) fn review_prompt(diff: &str) -> String {
-    format!(
+/// The one-completion prompt for the reviewer. `callers` is the
+/// [`super::reviewcallers::section`] block ("" when nothing calls what the
+/// diff changed): the call sites a diff cannot show.
+pub(crate) fn review_prompt(diff: &str, callers: &str) -> String {
+    let mut p = format!(
         "You are a strict code reviewer. Review this diff for correctness \
          bugs, edge cases, and risky patterns.\n\
          Report each finding as one bullet, ordered worst-first by severity — \
@@ -19,7 +21,12 @@ pub(crate) fn review_prompt(diff: &str) -> String {
          `nit` (style) — in the shape `severity — file:line — what and why`.\n\
          End with a one-line verdict. If the diff is clean, say so in one \
          line (\"no findings\") instead of inventing issues.\n\nDIFF:\n{diff}"
-    )
+    );
+    if !callers.is_empty() {
+        p.push_str("\n\n");
+        p.push_str(callers);
+    }
+    p
 }
 
 /// `/review`: review the current diff and stream the findings back.
@@ -41,6 +48,7 @@ pub(crate) fn review_cmd(
         }
         Ok(Some(d)) => d,
     };
+    let callers = super::reviewcallers::section(&dir, &diff);
     let reg = session.registry();
     if reg.is_empty() {
         return emit(msg("agent smith", roster(&reg)));
@@ -66,7 +74,7 @@ pub(crate) fn review_cmd(
     })?;
     let reply = reg
         .get(&author)
-        .map(|a| a.call(&review_prompt(&diff), call_timeout()));
+        .map(|a| a.call(&review_prompt(&diff, &callers), call_timeout()));
     emit(PluginEvent::Activity {
         agent: String::new(),
         state: "idle".into(),
