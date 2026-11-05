@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.75
+
+**Programs learn the pane's size in pixels.**
+- The pty now carries the pane's pixel size, and `CSI 14 t` / `CSI 16 t` are answered, so kitty
+  `icat`, chafa, timg and yazi size their pictures to the pane instead of guessing.
+
 ## 0.29.74
 
 **A finished turn's tool row says what the calls were, and where the time went.**

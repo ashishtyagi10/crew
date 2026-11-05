@@ -185,3 +185,6 @@ use ptyscan::strip_ansi;
 #[cfg(test)]
 #[path = "pty_tests.rs"]
 mod pty_tests;
+#[cfg(all(test, unix))]
+#[path = "ptysize_tests.rs"]
+mod ptysize_tests;

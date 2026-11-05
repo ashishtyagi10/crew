@@ -75,9 +75,10 @@ pub(crate) struct TermCore {
     /// Sniffs OSC 7 working-directory reports — which the ANSI parser ignores —
     /// so a `cd` inside the pane can retitle it.
     osc7: crate::osc::OscScanner,
-    /// Sniffs DECSET 2031 (color-scheme notifications) — also invisible to
-    /// the ANSI parser — so theme flips can be pushed to opted-in TUIs.
+    /// Sniffs DECSET 2031 (color-scheme notifications), invisible to the parser.
     scheme: crate::schemenotify::SchemeNotify,
+    /// Answers `CSI 16 t`, which the parser does not dispatch (`modelsize`).
+    cellq: modelsize::CellQuery,
     /// Where the drag began, and its kind. Kept because a selection's sides
     /// depend on the drag's DIRECTION, which only the anchor can tell us, and
     /// `Selection` doesn't hand its anchor back. See `sel_update`.
@@ -86,10 +87,9 @@ pub(crate) struct TermCore {
     graphics: crate::graphics::GraphicsScanner,
     /// Pictures placed since the app last collected them.
     images: Vec<PlacedImage>,
-    /// The frame's cell size in pixels, for turning a picture's pixel size
-    /// into the rows it has to reserve. Published by the app on every resize;
-    /// the default is a plausible 8×16 so a picture that arrives before the
-    /// first resize is still roughly the right size.
+    /// The frame's cell size in pixels: the rows a picture reserves, and the
+    /// size reports (`modelsize`). The app publishes it on every relayout; a
+    /// plausible 8×16 until then.
     cell_px: (u32, u32),
 }
 
@@ -113,7 +113,7 @@ impl TermCore {
         };
         let events = TermEvents::default();
         let term = Term::new(Config::default(), &dims, events.clone());
-        Self {
+        let core = Self {
             term,
             parser: Processor::new(),
             events,
@@ -123,7 +123,10 @@ impl TermCore {
             graphics: crate::graphics::GraphicsScanner::default(),
             images: Vec::new(),
             cell_px: (8, 16),
-        }
+            cellq: modelsize::CellQuery::default(),
+        };
+        core.publish_size();
+        core
     }
 
     /// The current program-set window title (empty if none).
@@ -156,9 +159,9 @@ impl TermCore {
 
     pub(crate) fn feed(&mut self, bytes: &[u8]) {
         self.osc7.feed(bytes);
-        // Scheme queries answer from the ACTIVE theme, like every OSC 10/11
-        // reply — one source of truth for what we'd paint.
-        let replies = self.scheme.feed(bytes, crew_theme::theme().dark);
+        // Scheme queries answer from the ACTIVE theme, like OSC 10/11.
+        let mut replies = self.scheme.feed(bytes, crew_theme::theme().dark);
+        replies.push_str(&self.cellq.feed(bytes, self.cell_px));
         if !replies.is_empty() {
             self.events.replies.lock().unwrap().push_str(&replies);
         }
@@ -176,72 +179,16 @@ impl TermCore {
         self.graphics = scanner;
     }
 
-    /// Record where a picture goes, and move the cursor past it.
-    ///
-    /// The anchor is an ABSOLUTE line — history plus the cursor's screen row —
-    /// so the picture scrolls with the text it arrived in instead of staying
-    /// at a screen position the output has long since left.
-    fn place_image(&mut self, cmd: crate::graphicscmd::ImageCmd) {
-        // A producer asks before it sends: `a=q` is "can you draw one of
-        // these?", and a terminal that never answers is one every image tool
-        // treats as unable. The answer is per-command, so a format crew
-        // cannot decode is refused rather than accepted and dropped.
-        if cmd.action == b'q' {
-            let body = match cmd.supported() {
-                true => "OK",
-                false => "ENOTSUPPORTED:unsupported format",
-            };
-            let reply = format!("\x1b_Gi={};{body}\x1b\\", cmd.id);
-            self.events.replies.lock().unwrap().push_str(&reply);
-            return;
-        }
-        if cmd.deletes() {
-            self.images.clear();
-            return;
-        }
-        if !cmd.displays() || cmd.data.is_empty() {
-            return;
-        }
-        let point = self.term.grid().cursor.point;
-        let line = self.term.grid().history_size() as u64 + point.line.0.max(0) as u64;
-        // How much of the grid the picture claims. The sender may say (`c`,
-        // `r`); otherwise it is the picture's own pixel size over the cell's,
-        // which is why the header is read before the bytes are decoded.
-        let cells = match cmd.cells {
-            (c, r) if c > 0 && r > 0 => (c, r),
-            _ => {
-                let Some((w, h)) = cmd.pixel_size() else {
-                    return;
-                };
-                let up = |n: u32, d: u32| n.div_ceil(d.max(1)).clamp(1, u16::MAX.into()) as u16;
-                (up(w, self.cell_px.0), up(h, self.cell_px.1))
-            }
-        };
-        let rows = cells.1;
-        self.images.push(crate::model::PlacedImage {
-            line,
-            col: point.column.0 as u16,
-            cells,
-            cmd,
-        });
-        // The protocol leaves the cursor past the picture; a line feed at the
-        // bottom of the screen scrolls, which is exactly what reserves the
-        // room the picture is drawn over.
-        for _ in 0..rows {
-            self.parser.advance(&mut self.term, b"\n");
-        }
-    }
-
     /// Take the pictures placed since the last call — `crew-app` decodes them
     /// off this thread.
     pub(crate) fn take_images(&mut self) -> Vec<crate::model::PlacedImage> {
         std::mem::take(&mut self.images)
     }
 
-    /// Publish the frame's cell size, so a picture's pixel dimensions can be
-    /// turned into the rows it reserves.
+    /// Publish the frame's cell size (pictures' rows, size reports).
     pub(crate) fn set_cell_px(&mut self, w: u32, h: u32) {
         self.cell_px = (w.max(1), h.max(1));
+        self.publish_size();
     }
 
     /// Lines of scrollback above the screen, for mapping an image's absolute
@@ -261,6 +208,7 @@ impl TermCore {
             rows: size.rows as usize,
         };
         self.term.resize(dims);
+        self.publish_size();
     }
 
     pub(crate) fn scroll(&mut self, delta: i32) {
@@ -306,12 +254,16 @@ mod cursorpos;
 mod headless;
 #[path = "modelcells.rs"]
 mod modelcells;
+#[path = "modelimage.rs"]
+mod modelimage;
 #[path = "modellast.rs"]
 mod modellast;
 #[path = "modelmodes.rs"]
 mod modelmodes;
 #[path = "modelsel.rs"]
 mod modelsel;
+#[path = "modelsize.rs"]
+mod modelsize;
 #[path = "modelsync.rs"]
 mod modelsync;
 #[path = "modelwrap.rs"]

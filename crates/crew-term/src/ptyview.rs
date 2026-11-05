@@ -25,9 +25,14 @@ impl PtyTerm {
         self.core.take_images()
     }
 
-    /// Publish the frame's cell size in pixels (see [`PlacedImage::cells`]).
+    /// Publish the frame's cell size in pixels (see [`PlacedImage::cells`]),
+    /// telling the pty when it changes the text area's pixel size.
     pub fn set_cell_px(&mut self, w: u32, h: u32) {
+        let before = self.core.pty_size();
         self.core.set_cell_px(w, h);
+        if self.core.pty_size() != before {
+            let _ = self.master.resize(self.core.pty_size());
+        }
     }
 
     /// Lines of scrollback above the screen — the offset that maps an image's
@@ -183,12 +188,7 @@ impl TermModel for PtyTerm {
 
     fn resize(&mut self, size: GridSize) {
         self.core.resize(size);
-        let _ = self.master.resize(PtySize {
-            rows: size.rows,
-            cols: size.cols,
-            pixel_width: 0,
-            pixel_height: 0,
-        });
+        let _ = self.master.resize(self.core.pty_size());
     }
 }
 
