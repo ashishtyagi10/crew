@@ -179,6 +179,8 @@ pub struct CrewApp {
     pub(crate) fold_click: Option<(usize, u16)>,
     /// In-progress mouse drag selection over any pane, if any.
     pub(crate) drag: Option<crate::select::Drag>,
+    /// A click a program was sent, until its release (see [`crate::mouseroute`]).
+    pub(crate) mouse_held: Option<crate::mouseroute::Held>,
     /// The pane whose right-border scroll gutter is in hand (see
     /// [`crate::panegutter`]).
     pub(crate) gutter_drag: Option<usize>,

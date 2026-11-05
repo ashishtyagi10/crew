@@ -450,6 +450,15 @@ command comes back whole. A fourth click starts the run over rather than
 latching the widest gesture. It works on any pane kind: the transcript in an
 agent pane selects by word exactly as a shell does.
 
+A terminal program that turns on mouse reporting (DECSET 1000, 1002 or
+1003; SGR-encoded under 1006, legacy X10 otherwise) gets the click instead:
+left, middle and right presses and their releases, with Alt and Ctrl bits,
+at the cell under the pointer — so htop, mc, lazygit, tmux and vim's
+`mouse=a` work by mouse. Right-click pastes only where no program asked.
+**Shift** keeps crew's own click: Shift+drag selects and copies as before.
+Crew's own targets — the border buttons, the scroll gutter, the legend row,
+a toast — still win.
+
 On a card's **top border** — the legend row, which holds nothing to select —
 the mouse does structural things instead. **Double-click** toggles zoom (where
 the convention puts it: a window's title bar, not its contents). **Drag** picks

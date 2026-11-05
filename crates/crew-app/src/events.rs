@@ -1,7 +1,6 @@
 //! Window-event dispatch: mouse focus/zoom/paste/scroll, keyboard forwarding,
 //! resize, scale changes, and redraw — split out of the `ApplicationHandler`
 //! impl so each surface stays small.
-use std::time::Instant;
 
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
@@ -156,7 +155,12 @@ impl CrewApp {
                 // A click in a settings form or on a disk map acts where it
                 // lands — a checkbox flips, a chevron steps, a tile is picked
                 // (and a second click on the same tile walks into it).
-                if self.settings_click_at_cursor() || self.disk_click_at_cursor() {
+                // …and a program that asked for the mouse gets the click
+                // (`mouseroute`; Shift keeps crew's own selection).
+                if self.settings_click_at_cursor()
+                    || self.disk_click_at_cursor()
+                    || self.report_press(MouseButton::Left)
+                {
                     self.redraw();
                     return;
                 }
@@ -179,6 +183,12 @@ impl CrewApp {
                 self.pointer_sync();
                 self.redraw();
             }
+            // A release ending a press a program was sent is the program's too.
+            WindowEvent::MouseInput {
+                state: ElementState::Released,
+                button,
+                ..
+            } if self.report_release(button) => self.redraw(),
             WindowEvent::MouseInput {
                 state: ElementState::Released,
                 button: MouseButton::Left,
@@ -199,12 +209,15 @@ impl CrewApp {
             }
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
-                button: MouseButton::Right,
+                button: b @ (MouseButton::Right | MouseButton::Middle),
                 ..
             } => {
-                // Right-click pastes into the surface under the cursor.
-                self.focus_at_cursor();
-                self.paste();
+                // Right-click pastes into the surface under the cursor, unless
+                // the program there asked for the mouse.
+                if !self.report_press(b) && b == MouseButton::Right {
+                    self.focus_at_cursor();
+                    self.paste();
+                }
             }
             WindowEvent::MouseWheel { delta, .. } => {
                 let lines = self.wheel_lines_boosted(delta);
@@ -212,28 +225,9 @@ impl CrewApp {
             }
             WindowEvent::KeyboardInput { event, .. } => self.on_key_event(event_loop, &event),
             WindowEvent::Occluded(hidden) => self.set_occluded(hidden),
-            WindowEvent::Resized(size) => {
-                if let Some(renderer) = &mut self.renderer {
-                    renderer.resize(size.width, size.height);
-                }
-                // Remember the new logical size to persist (debounced in poll_panes).
-                // Skip while maximized so the restore size stays the un-maximized one.
-                if let Some(w) = &self.window {
-                    if !w.is_maximized() {
-                        let scale = w.scale_factor() as f32;
-                        self.config.win_w = Some(size.width as f32 / scale);
-                        self.config.win_h = Some(size.height as f32 / scale);
-                        self.resize_at = Some(Instant::now());
-                    }
-                }
-                self.redraw();
-            }
+            WindowEvent::Resized(size) => self.on_resized(size),
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                if let Some(renderer) = &mut self.renderer {
-                    renderer.set_font_size(self.config.font_size * scale_factor as f32);
-                    renderer.set_leading(self.config.leading().ratio());
-                }
-                self.redraw();
+                self.on_scale_changed(scale_factor)
             }
             WindowEvent::RedrawRequested => {
                 if self.renderer.is_none() {

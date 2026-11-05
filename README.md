@@ -198,6 +198,11 @@ border the mouse does structural things instead: **double-click** zooms, and
 **dragging** the card onto another swaps the two. A scrolled-back pane shows a
 proportional thumb down its right border beside the `⇡N` count.
 
+A program that asks for the mouse (htop, mc, lazygit, tmux, vim with
+`mouse=a`) gets your clicks: left, middle and right presses and releases
+reach it as xterm reports. **Shift+click** and **Shift+drag** still select
+on crew's side, as in xterm.
+
 **Cmd+Arrow** moves focus the way the eye does: the card to the left, the one
 below, the one across. Pane cycling (Cmd+[ / Cmd+]) walks the panes in index
 order, which in a tiled grid is not the order they appear in — in a 2×2 grid,

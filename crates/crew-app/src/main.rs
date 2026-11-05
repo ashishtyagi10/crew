@@ -435,6 +435,8 @@ mod modelroute;
 mod modelsignin;
 mod modernring;
 mod motion;
+mod mousereport;
+mod mouseroute;
 mod navcard;
 #[cfg(test)]
 #[path = "navcontrast_tests.rs"]
@@ -697,6 +699,7 @@ mod welcometext;
 mod wincon;
 mod windowblur;
 mod windowtitle;
+mod winresize;
 // Windows program lookup (pwsh, oh-my-posh); the tests run everywhere.
 #[cfg(any(windows, test))]
 mod winexe;
