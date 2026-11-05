@@ -14,7 +14,7 @@ use crate::chatwidth::str_w;
 use crate::suggest::MenuItem;
 
 /// Gap between the label column and the descriptions.
-const GAP: usize = 2;
+pub(crate) const GAP: usize = 2;
 /// The label column never takes more than this share of the row: one very long
 /// command must not push every description off the card.
 const MAX_LABEL_SHARE: usize = 2;
@@ -106,13 +106,18 @@ pub(crate) fn spans(
     // The swatch comes first after the label: on a row whose whole subject IS
     // a colour, the colour outranks the sentence describing it. The column is
     // the list's widest swatch, so a row with fewer chips, or none, still
-    // starts its description where the others do.
-    let sw = swatch_w.max(item.swatch.len());
+    // starts its description where the others do; a longer strip is cut to
+    // the column (`swatchfit`), not allowed to push its description out.
+    let sw = if swatch_w > 0 {
+        swatch_w
+    } else {
+        item.swatch.len()
+    };
     if sw > 0 && avail >= desc_col + sw {
         if !item.swatch.is_empty() {
             out.push(Span::raw(" ".repeat(desc_col - col)));
             col = desc_col;
-            for chip in &item.swatch {
+            for chip in item.swatch.iter().take(sw) {
                 let mut style = Style::new().fg(Color::Rgb(chip.fg.0, chip.fg.1, chip.fg.2));
                 // Its own capsule (a mark, as `hit_style`'s): the page cells
                 // of a column of faint chips ran together into one black bar.

@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.64
+
+**The theme picker says what each look is on a narrow tile.**
+- At a quarter tile `/theme` cut every description to a few letters (`black…`, `rotatin…`):
+  `auto`'s fifteen-chip strip set a swatch column that every row reserved.
+- The column now stops where the description still has room for a few words. `auto`'s strip
+  is cut to fit, the palettes keep all six chips, and a wide card shows the whole strip.
+
 ## 0.29.63
 
 **Full-screen programs get their reverse-video bars back.**
