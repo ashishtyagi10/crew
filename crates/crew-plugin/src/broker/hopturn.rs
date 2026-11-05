@@ -62,7 +62,7 @@ impl Broker {
         stream: &HopStream,
         sink: &mut dyn FnMut(Hop),
     ) -> Option<(String, Usage)> {
-        let runner = self.tools.clone()?;
+        let runner = super::engine::ownhands::fitted(agent.as_ref(), self.tools.clone()?);
         let tally: Shared = Arc::default();
         let engine = agent.engine();
         // A CLI's calls block on a thread of their own (`model::Spoken`);
