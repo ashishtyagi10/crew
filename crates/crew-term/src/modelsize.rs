@@ -45,35 +45,10 @@ impl TermCore {
     }
 }
 
-/// The one query this scanner answers: `CSI 16 t`, "report the cell size".
-const CELL_QUERY: &[u8] = b"\x1b[16t";
-
-/// Watches the raw pty bytes for [`CELL_QUERY`]. Only the length of the
-/// match so far is kept, so a query split across reads still answers.
-#[derive(Default)]
-pub(crate) struct CellQuery {
-    matched: usize,
-}
-
-impl CellQuery {
-    /// Scan a chunk; the replies owed for it (`CSI 6 ; h ; w t` per query).
-    pub(crate) fn feed(&mut self, bytes: &[u8], (w, h): (u32, u32)) -> String {
-        let mut out = String::new();
-        for &b in bytes {
-            self.matched = match b {
-                _ if b == CELL_QUERY[self.matched] => self.matched + 1,
-                // An ESC always starts a new sequence, whatever came before.
-                0x1b => 1,
-                _ => 0,
-            };
-            if self.matched == CELL_QUERY.len() {
-                out.push_str(&format!("\x1b[6;{h};{w}t"));
-                self.matched = 0;
-            }
-        }
-        out
-    }
-}
+/// The scanner that answers `CSI 16 t` (and XTVERSION) from the raw bytes.
+#[path = "modelquery.rs"]
+mod modelquery;
+pub(super) use modelquery::Queries;
 
 #[cfg(test)]
 #[path = "modelsize_tests.rs"]

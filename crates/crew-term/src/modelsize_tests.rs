@@ -38,7 +38,7 @@ fn the_reports_follow_a_resize_and_a_new_cell_size() {
 
 #[test]
 fn a_cell_query_split_across_reads_still_answers() {
-    let mut q = CellQuery::default();
+    let mut q = Queries::default();
     let mut out = String::new();
     for &b in b"ab\x1b\x1b[16t\x1b[1" {
         out.push_str(&q.feed(&[b], (9, 18)));
