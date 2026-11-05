@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.0
+
+**A narrow inbox gives the subject the room, not the sender.**
+- On a quarter-width inbox, the sender column took a third of the pane, so `Google Cloud` sat beside `Your Gmail A…` and most subjects read about ten characters. The names now take at most a third of what they share with the subject, a long sender falls back to a first name, and the subjects read about seventeen characters (`Q4 roadmap review`, `Photos from th…`).
+- Wider panes are unchanged.
+
 ## 0.29.99
 
 **A crashed program's mouse mode no longer types into the prompt.**
