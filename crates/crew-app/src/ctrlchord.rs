@@ -35,7 +35,8 @@ impl CrewApp {
     }
 
     /// An arrow with the modifiers that make it crew's: Cmd+Opt+←/→ steps
-    /// the screens ([`crate::panezoom`]), Cmd+Arrow walks focus across the
+    /// the screens ([`crate::panezoom`]), Cmd+Opt+↑/↓ steps a terminal's
+    /// commands ([`crate::cmdjump`]), Cmd+Arrow walks focus across the
     /// grid the way the eye does, and Cmd+Shift+Arrow carries the pane with
     /// it ([`crate::panedir`]). `true` when the key was one of them.
     pub(crate) fn arrow_chord(&mut self, key: &Key, mods: ModifiersState) -> bool {
@@ -49,8 +50,13 @@ impl CrewApp {
             Dir::Right => 1,
             Dir::Up | Dir::Down => 0,
         };
+        // Up/down on the screens' chord belongs to a focused terminal; on
+        // any other pane it keeps the meaning it had before.
+        let updown = step == 0 && screen_held(mods, mac);
         if step != 0 && screen_held(mods, mac) {
             self.step_screen(step);
+        } else if updown && self.jump_command(dir == Dir::Up) {
+            return true;
         } else if !grid_held(mods, mac) {
             return false;
         } else if mods.shift_key() {
