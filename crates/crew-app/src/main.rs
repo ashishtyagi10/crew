@@ -912,6 +912,8 @@ mod inboxlive_tests;
 #[cfg(test)]
 mod inboxmailshot_tests;
 #[cfg(test)]
+mod inboxquartershot_tests;
+#[cfg(test)]
 mod inboxreadshot_tests;
 #[cfg(test)]
 mod inboxrows_tests;

@@ -132,3 +132,29 @@ fn a_long_line_being_written_shows_its_end_around_the_caret() {
         "its end and the caret: {cc}"
     );
 }
+
+/// A new mail on a quarter tile (380 px is 42 by 23): the box had
+/// room for its three lines of words but kept a row of air under the
+/// subject, so `Hi Ann,` scrolled out of a box with nothing in that row.
+#[test]
+fn the_words_take_the_air_before_they_scroll() {
+    let _g = crate::app::motion_test_guard();
+    for (cols, rows) in [(42u16, 23u16), (42, 22), (60, 23)] {
+        let mut p = crate::inboxshot_tests::ready();
+        p.open_new();
+        let c = p.compose.as_mut().unwrap();
+        c.to.put("Ann Lee <ann@x.org>", true);
+        c.subject.put("Q4 roadmap", true);
+        c.body.put("Hi Ann,\n\nThursday works.", false);
+        c.on = On::Body;
+        let b = p.cards(cols, rows).reply.expect("the box");
+        let inside: Vec<String> = (b.row + 1..b.row + b.h - 1)
+            .map(|r| row(&p, cols, rows, r))
+            .collect();
+        assert!(
+            inside.iter().any(|l| l.contains("Hi Ann,")),
+            "{cols}x{rows}: the first line of three shows: {inside:#?}"
+        );
+        assert!(inside.iter().any(|l| l.contains("Thursday works.")));
+    }
+}

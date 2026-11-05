@@ -11,7 +11,7 @@ use super::draw::{wrap, Canvas};
 use super::InboxPane;
 
 /// Text rows the box shows at least.
-const MIN_ROWS: u16 = 3;
+pub(crate) const MIN_ROWS: u16 = 3;
 /// The `to` and `cc` lines, and a row of air under them.
 const HEAD: u16 = 3;
 /// Where the box's words start: its edge and two columns of air, under its

@@ -8,6 +8,11 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.97
+
+**A new mail on a narrow tile shows what you have written.**
+- On a quarter-width inbox, the new-mail box kept an empty row under the subject while the first line you wrote scrolled out of view. That spacer row now gives way first, and the box shows up to three lines of your text. Wider panes keep the spacer.
+
 ## 0.29.96
 
 **Cmd+Opt+↑/↓ jumps to the previous / next command.**

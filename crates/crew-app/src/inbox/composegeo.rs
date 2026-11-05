@@ -3,8 +3,12 @@
 //! gives way first: the row of air under the addresses, then an empty `cc`
 //! line the caret is not on, then an empty row of files, and only then a
 //! filled one. The `to` line, the place the caret is on and a row for the
-//! words show first, and nothing is drawn on the box's edge.
+//! words show first, and nothing is drawn on the box's edge. The words count
+//! as the rows they wrap to, up to the box's least ([`MIN_ROWS`]): on a
+//! quarter tile a new mail kept its row of air while `Hi Ann,` scrolled out
+//! above two lines of three.
 use super::compose::{Compose, On};
+use super::composedraw::MIN_ROWS;
 
 pub(crate) struct Geo {
     /// The `to` line's row, and the `cc` line's when it shows.
@@ -26,17 +30,26 @@ pub(crate) fn geo(c: &Compose, top: u16, h: u16, w: u16) -> Geo {
     let n = super::composefiles::rows(c, w);
     let carried = u16::from(c.forward.is_some());
     let subject = u16::from(c.kind == super::compose::Kind::New);
-    // The `to` line and a row of words, and whatever else still shows.
+    let words_want =
+        (super::draw::wrap(&c.body.text, usize::from(w)).len() as u16).clamp(1, MIN_ROWS);
+    // The `to` line and the words, and whatever else still shows.
     let need = |cc: bool, air: bool, files: bool| {
-        2 + subject + u16::from(cc) + u16::from(air) + if files { n } else { 0 } + carried
+        1 + words_want
+            + subject
+            + u16::from(cc)
+            + u16::from(air)
+            + if files { n } else { 0 }
+            + carried
     };
     let (mut cc, mut air, mut files) = (true, true, true);
     air &= need(cc, air, files) <= inside;
     cc &= need(cc, air, files) <= inside || c.on == On::Cc || !c.cc.text.is_empty();
     files &= need(cc, air, files) <= inside || c.on == On::Files || !c.files.is_empty();
-    // Still too many: the words win over a line the caret is not on.
-    cc &= need(cc, air, files) <= inside || c.on == On::Cc;
-    files &= need(cc, air, files) <= inside || c.on == On::Files;
+    // Still too many for one row of words: the words win over a filled line
+    // the caret is not on (a second and third row of words do not).
+    let one = |cc, air, files| need(cc, air, files) - (words_want - 1) <= inside;
+    cc &= one(cc, air, files) || c.on == On::Cc;
+    files &= one(cc, air, files) || c.on == On::Files;
     let to = top + 1;
     let words = to + 1 + u16::from(cc) + subject + u16::from(air);
     // The rows the files and the carried mail take, above the bottom edge.
