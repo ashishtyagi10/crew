@@ -58,6 +58,7 @@ pub(crate) fn hit(p: &SettingsPane, cols: u16, rows: u16, row: u16, col: u16) ->
         .rects
         .iter()
         .copied()
+        .filter(|&(g, r)| !super::foot::split(r, off, viewport, g == p.focused_field()))
         .find(|(_, r)| hits(*r, virt, col))?;
     Some(match chevron(p, f, r, virt, col) {
         Some(back) => Hit::Step(f, back),

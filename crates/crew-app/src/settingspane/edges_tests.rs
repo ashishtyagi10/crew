@@ -33,8 +33,10 @@ fn the_rows_at_a_cut_fade_toward_the_page() {
     let cut = strokes(&p.cells(80, rows), rows - 3);
     let whole = strokes(&p.cells(80, rows + 4), rows - 3);
     assert!(!cut.is_empty(), "a frame crosses the cut");
-    assert_eq!(cut.len(), whole.len());
-    for ((col, faded), (_, full)) in cut.iter().zip(&whole) {
+    // A field the cut would split is left out (`foot`), so only the strokes
+    // drawn at both heights compare: the group cards' sides.
+    for (col, faded) in &cut {
+        let full = &whole.iter().find(|(c, _)| c == col).expect("drawn uncut").1;
         assert!(
             from_page(*faded) < from_page(*full),
             "col {col}: {faded:?} vs {full:?}"

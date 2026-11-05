@@ -11,6 +11,7 @@ mod dropdown;
 mod edges;
 mod fields;
 mod fit;
+mod foot;
 mod form;
 mod keys;
 mod labels;
