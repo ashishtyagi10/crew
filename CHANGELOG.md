@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.1
+
+**A tool Claude Code was refused is smith's row, not the agent's words.**
+- When your Claude Code settings refused a call, the note naming it was glued to the end of the agent's answer as a long sentence with the full path. Smith now says it on a row of its own under the reply: `! not allowed: Write notes.txt — allow it under permissions.allow in .claude/settings.json`.
+- Files inside the project are named relative to it.
+
 ## 0.30.0
 
 **A narrow inbox gives the subject the room, not the sender.**

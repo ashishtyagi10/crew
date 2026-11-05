@@ -70,7 +70,9 @@ impl Lane {
 
 /// The reply a folded run is: the CLI's own refusal reads as the error it
 /// printed; an empty run is explained from stderr (`run::explain_failure`).
-/// Tool calls the user's settings refused are named under the reply.
+/// Tool calls the user's settings refused ride the usage as smith's verdict
+/// row (`Usage::refused`), not the reply: appended to it, the note was
+/// drawn as the agent's own markdown and no receipt ever said it.
 pub(super) fn finish(fold: Fold, program: &str, stderr: &str) -> Result<(String, Usage), String> {
     if let Some(r) = fold.result.as_ref() {
         if r.is_error || (!r.subtype.is_empty() && r.subtype != "success") {
@@ -82,23 +84,31 @@ pub(super) fn finish(fold: Fold, program: &str, stderr: &str) -> Result<(String,
             });
         }
     }
-    let mut text = fold.reply();
+    let text = fold.reply();
     if text.is_empty() {
         return Err(explain_failure(program, stderr));
     }
     let r = fold.result.unwrap_or_default();
-    if let Some(note) = crew_hive::clauderesult::note(&r.denied) {
-        text = format!("{}\n\n{note}", text.trim_end());
-    }
     Ok((
         text,
         Usage {
             input_tokens: r.input_tokens,
             output_tokens: r.output_tokens,
             context_window: r.context_window,
+            refused: here(crew_hive::clauderesult::note(&r.denied).unwrap_or_default()),
             // No cost: the plan covers it, and a list-price figure would
             // show a bill the user never gets.
             ..Default::default()
         },
     ))
+}
+
+/// `note` with this project's own paths made relative: Claude Code names
+/// each refused file absolutely, and a temp-dir project's path alone ran
+/// past 90 columns (live probe, 2026-11-05) before the file's name.
+fn here(note: String) -> String {
+    match std::env::current_dir() {
+        Ok(dir) => note.replace(&format!("{}/", dir.display()), ""),
+        Err(_) => note,
+    }
 }

@@ -84,8 +84,10 @@ pub(super) fn denials(result: &Value) -> Vec<Denied> {
     out
 }
 
-/// The line under the reply: what was refused, and how to let it through.
-/// `None` when nothing was.
+/// Smith's verdict row on the run: what was refused, and where to let it
+/// through. `None` when nothing was. A `!` row, as the pane's other
+/// verdicts (`! not checked`, `! nothing changed`), not a sentence: it rode
+/// the reply as prose and read as the agent's own words.
 pub fn note(denied: &[Denied]) -> Option<String> {
     if denied.is_empty() {
         return None;
@@ -103,8 +105,8 @@ pub fn note(denied: &[Denied]) -> Option<String> {
         n => format!(" (+{n} more)"),
     };
     Some(format!(
-        "Claude Code was not allowed to: {}{more}. Allow it under `permissions.allow` in \
-         .claude/settings.json, or run `claude` in this folder once and approve it.",
+        "! not allowed: {}{more} \u{2014} allow it under permissions.allow in \
+         .claude/settings.json",
         named.join(" \u{b7} ")
     ))
 }

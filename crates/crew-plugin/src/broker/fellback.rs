@@ -7,6 +7,10 @@
 //! (`Completion::fell_back`), and smith says so under the agent's reply —
 //! ONCE per agent a turn: a chain whose first model is gone falls through on
 //! every call, and a line per call would bury the answers between them.
+//!
+//! The same row says what Claude Code's settings refused on the reply
+//! (`Usage::refused`): a verdict of smith's, filed like the others, rather
+//! than a sentence appended to the agent's answer.
 use super::adapter::Usage;
 use super::relay::msg;
 use crate::PluginEvent;
@@ -30,14 +34,20 @@ pub(crate) struct Told(Vec<String>);
 
 impl Told {
     /// Smith's line for `agent`'s reply usage `u` — `fell back to qwen-flash
-    /// · qwen-max: <why>` — the first time `agent` falls back this turn;
-    /// `None` after that, and for a reply its first model answered.
+    /// · qwen-max: <why>` — the first time `agent` falls back this turn,
+    /// then every refusal the reply met (`Usage::refused`), each call's own;
+    /// `None` when neither has anything to say.
     pub(crate) fn line(&mut self, agent: &str, u: &Usage) -> Option<PluginEvent> {
-        if u.fell_back.is_empty() || self.0.iter().any(|a| a == agent) {
-            return None;
+        let fell = !u.fell_back.is_empty() && !self.0.iter().any(|a| a == agent);
+        let mut rows = Vec::new();
+        if fell {
+            self.0.push(agent.to_string());
+            rows.push(format!("fell back to {}", u.fell_back));
         }
-        self.0.push(agent.to_string());
-        Some(msg("agent smith", format!("fell back to {}", u.fell_back)))
+        if !u.refused.is_empty() {
+            rows.push(u.refused.clone());
+        }
+        (!rows.is_empty()).then(|| msg("agent smith", rows.join("\n")))
     }
 }
 
