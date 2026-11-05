@@ -16,8 +16,9 @@ use super::super::session::Session;
 /// files, so a "yes" it is holding must never reach a draft instead. Then the
 /// session switches (plan-first, the memory question — neither touches
 /// anything), then commit — on the overlapping confirm words ("yes", "do it")
-/// a pending commit outranks a pending plan — then the plan verdict. Anything
-/// else falls through and the draft stays pending.
+/// a pending commit outranks a pending plan — then the plan verdict, then a
+/// review of the working changes. Anything else falls through and the draft
+/// stays pending.
 pub(crate) fn human_gates(
     task: &str,
     session: &mut Session,
@@ -46,7 +47,37 @@ pub(crate) fn human_gates(
             return Some(crate::broker::plan::reject_cmd(session, emit));
         }
     }
+    // Last, and only when nothing above held the message: it reads but
+    // writes nothing (`reviewask`, `handsoff`).
+    if crate::broker::reviewask::asks_review(task) {
+        return Some(crate::broker::review::review_cmd(session, emit));
+    }
     None
+}
+
+/// A turn with a lead still passes the gates.
+///
+/// With a CLI provider signed in (Claude Code on a subscription), a plain
+/// message skips the router and goes to that CLI as the turn's lead
+/// (`auth::starter`). The gates in front of the router went with it: "undo
+/// that" became a task for Claude, and "review my diff" an open task that a
+/// peer answered by editing the callers it should have reported (loop 39
+/// S8). The gates read the message rather than ask a model, so they cost the
+/// lead nothing; they run first here as they do in [`super::routed`].
+///
+/// So: `task` through the human gates, then to `lead` as `@lead task` would go.
+pub(crate) fn led(
+    task: &str,
+    lead: &str,
+    session: &mut Session,
+    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
+    if let Some(done) = human_gates(task, session, emit) {
+        return done;
+    }
+    let dialled = format!("@{lead} {task}");
+    super::super::stdio::relay_counting(&dialled, None, false, session, tick_emit, emit)
 }
 
 /// Whether `task` is a conversational confirm for the pending commit.

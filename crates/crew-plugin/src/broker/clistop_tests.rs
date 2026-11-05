@@ -51,6 +51,7 @@ fn a_stop_ends_the_running_claude_relay() {
         model: None,
         idle_floor: Duration::from_secs(60),
         resume: Default::default(),
+        read_only: false,
     };
     let (got, took) = stopped_while(|| {
         agent.call_with_usage_ticked("hi", Duration::from_secs(60), &HopStream::noop())
@@ -103,6 +104,7 @@ fn a_timed_out_cli_gets_term_before_kill() {
         model: None,
         idle_floor: Duration::from_millis(300),
         resume: Default::default(),
+        read_only: false,
     };
     let err = agent.call("hi", Duration::ZERO).unwrap_err();
     assert!(err.contains("no output"), "{err}");

@@ -22,6 +22,7 @@ mod context;
 mod fallback;
 mod grammar;
 mod hints;
+mod led;
 mod plangate;
 mod replypick;
 mod routereval;

@@ -77,6 +77,7 @@ fn messages(refuse: bool, one: &str, two: &str) -> (Result<String, String>, Stri
         model: None,
         idle_floor: Duration::from_secs(30),
         resume: Resume::default(),
+        read_only: false,
     };
     let dial = |agent: &ClaudeAgent, body: &str| {
         let _scope = cancelscope::enter(Arc::new(AtomicBool::new(false)));

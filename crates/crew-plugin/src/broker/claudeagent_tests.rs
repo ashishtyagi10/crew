@@ -54,6 +54,7 @@ pub(super) fn agent(path: &std::path::Path, idle_floor: Duration) -> ClaudeAgent
         model: None,
         idle_floor,
         resume: Default::default(),
+        read_only: false,
     }
 }
 

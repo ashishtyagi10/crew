@@ -1,7 +1,8 @@
 //! `/review` — AI code review of the working tree (à la Codex's `/review`):
 //! the reviewer agent reads the diff `/commit` would describe (staged wins,
 //! else everything the tree has changed) and reports severity-ordered findings in
-//! the pane. Read-only: unlike `/commit` there is nothing to apply, so the
+//! the pane. Read-only, and the reviewer's CLI runs in its read-only mode
+//! (`handsoff`): unlike `/commit` there is nothing to apply, so the
 //! construct carries no session state.
 use crate::PluginEvent;
 
@@ -15,7 +16,8 @@ use super::stdio::roster;
 pub(crate) fn review_prompt(diff: &str, callers: &str) -> String {
     let mut p = format!(
         "You are a strict code reviewer. Review this diff for correctness \
-         bugs, edge cases, and risky patterns.\n\
+         bugs, edge cases, and risky patterns. Report only: change no file, \
+         since the author decides what to fix.\n\
          Report each finding as one bullet, ordered worst-first by severity — \
          `blocker` (would break users), then `warn` (likely trouble), then \
          `nit` (style) — in the shape `severity — file:line — what and why`.\n\
@@ -72,9 +74,11 @@ pub(crate) fn review_cmd(
         state: "thinking".into(),
         from: "review".into(),
     })?;
+    // Read-only: a reviewer that fixes what it was asked to judge takes the
+    // decision from the person who asked (`handsoff`).
     let reply = reg
         .get(&author)
-        .map(|a| a.call(&review_prompt(&diff, &callers), call_timeout()));
+        .map(|a| a.call_read_only(&review_prompt(&diff, &callers), call_timeout()));
     emit(PluginEvent::Activity {
         agent: String::new(),
         state: "idle".into(),

@@ -421,14 +421,7 @@ fn send(
             } else if dialled {
                 relay_counting(&trimmed, None, false, &snap, &tick_emit, &mut counting)
             } else if let Some(starter) = starter {
-                relay_counting(
-                    &format!("@{starter} {trimmed}"),
-                    None,
-                    false,
-                    &snap,
-                    &tick_emit,
-                    &mut counting,
-                )
+                super::intent::gate::led(&trimmed, &starter, &mut snap, &tick_emit, &mut counting)
             } else {
                 // The intent router: the model picks the execution shape (reply/
                 // fan/loop/plan/swarm); anything that stops it falls back to the
