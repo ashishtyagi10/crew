@@ -12,7 +12,7 @@ use crate::inbox::{InboxPane, Reading};
 use crate::inboxshot_tests::{ready, rows};
 use crate::shotgpu_tests::shot_pics;
 
-fn both(name: &str, w: u32, h: u32, p: &InboxPane) {
+pub(crate) fn both(name: &str, w: u32, h: u32, p: &InboxPane) {
     let _a = crate::palette::test_guard();
     let _g = crate::app::theme_test_guard();
     for id in [
