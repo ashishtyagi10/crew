@@ -10,10 +10,13 @@
 //! normal-mode arrows.
 //!
 //! The words go as `ESC b` / `ESC f` / `ESC DEL` — readline's and zsh's own
-//! word bindings, as Terminal.app and Ghostty send them on a Mac. Shift- and
-//! Ctrl-arrows stay plain on purpose: their xterm forms (`ESC [1;2D`) are
-//! unbound in a bare zsh or bash, which swallowed them AND the next key typed
-//! (measured 2026-10-30).
+//! word bindings, as Terminal.app and Ghostty send them on a Mac. At the shell
+//! prompt Shift- and Ctrl-arrows stay plain on purpose: their xterm forms
+//! (`ESC [1;2D`) are unbound in a bare zsh or bash, which swallowed them AND
+//! the next key typed (measured 2026-10-30). On the alternate screen they do
+//! carry the modifier (`modified`): there the program is vim, micro, helix or
+//! less, which bind Ctrl+← word motion, Shift+arrow selection and Ctrl+PgUp
+//! tab switching, and plain keys left those dead.
 use winit::keyboard::NamedKey;
 
 /// The modifiers held with a key, as a terminal encodes them.
@@ -43,8 +46,9 @@ impl Mods {
 }
 
 /// The bytes for `n` held with `m`, or `None` for a key the plain table in
-/// `session` answers. `app_cursor`: the program set DECCKM.
-pub(crate) fn named(n: NamedKey, m: Mods, app_cursor: bool) -> Option<Vec<u8>> {
+/// `session` answers. `app_cursor`: the program set DECCKM; `alt_screen`: a
+/// full-screen program holds the pane.
+pub(crate) fn named(n: NamedKey, m: Mods, app_cursor: bool, alt_screen: bool) -> Option<Vec<u8>> {
     // winit names Space, so the Ctrl+letter table never saw it: Ctrl+Space
     // sent a plain space instead of NUL (emacs set-mark, tmux C-Space prefix).
     if n == NamedKey::Space && m.ctrl {
@@ -69,6 +73,11 @@ pub(crate) fn named(n: NamedKey, m: Mods, app_cursor: bool) -> Option<Vec<u8>> {
         };
         return Some(seq.into_bytes());
     }
+    if alt_screen && (m.shift || m.ctrl) {
+        if let Some(seq) = modified(n, m) {
+            return Some(seq);
+        }
+    }
     let letter = match n {
         NamedKey::ArrowUp => b'A',
         NamedKey::ArrowDown => b'B',
@@ -79,6 +88,27 @@ pub(crate) fn named(n: NamedKey, m: Mods, app_cursor: bool) -> Option<Vec<u8>> {
         _ => return None,
     };
     (app_cursor && m.none()).then(|| vec![0x1b, b'O', letter])
+}
+
+/// xterm's modified navigation keys: `CSI 1;m X` for the arrows, Home and
+/// End, `CSI n;m ~` for PgUp/PgDn/Delete/Insert. Only Shift or Ctrl reach
+/// here; Option alone keeps its word motion above.
+fn modified(n: NamedKey, m: Mods) -> Option<Vec<u8>> {
+    let p = m.param();
+    let seq = match n {
+        NamedKey::ArrowUp => format!("\x1b[1;{p}A"),
+        NamedKey::ArrowDown => format!("\x1b[1;{p}B"),
+        NamedKey::ArrowRight => format!("\x1b[1;{p}C"),
+        NamedKey::ArrowLeft => format!("\x1b[1;{p}D"),
+        NamedKey::Home => format!("\x1b[1;{p}H"),
+        NamedKey::End => format!("\x1b[1;{p}F"),
+        NamedKey::Insert => format!("\x1b[2;{p}~"),
+        NamedKey::Delete => format!("\x1b[3;{p}~"),
+        NamedKey::PageUp => format!("\x1b[5;{p}~"),
+        NamedKey::PageDown => format!("\x1b[6;{p}~"),
+        _ => return None,
+    };
+    Some(seq.into_bytes())
 }
 
 /// F1 → 1 … F12 → 12.
