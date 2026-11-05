@@ -99,9 +99,28 @@ fn a_pure_deletion_has_nothing_on_its_right() {
     assert_eq!((*n, *rt), (None, None));
 }
 
+/// Nothing in, nothing numbered out: the one empty row `split` yields is no
+/// line of either file.
 #[test]
 fn nothing_in_no_rows_out() {
     assert!(rows("")
         .iter()
-        .all(|r| matches!(r, Row::Pair(_, Some(""), _, Some("")))));
+        .all(|r| matches!(r, Row::Pair(None, None, None, None))));
+}
+
+/// The split view stops numbering where the hunk stops, as the unified one
+/// does (`diffnums`): git's final newline left a numbered blank pair past the
+/// last line, and `\ No newline` was numbered as a context line.
+#[test]
+fn neither_side_numbers_a_line_past_the_hunk() {
+    let r = rows("@@ -1,1 +1,1 @@\n-a\n\\ No newline at end of file\n+b\n");
+    assert!(matches!(r[2], Row::Full(_, Kind::File)), "the note");
+    let Row::Pair(_, _, n, rt) = &r[3] else {
+        panic!("expected the addition")
+    };
+    assert_eq!((*n, *rt), (Some(1), Some("+b")));
+    assert!(
+        matches!(r.last(), Some(Row::Pair(None, None, None, None))),
+        "the tail is blank on both sides, unnumbered"
+    );
 }

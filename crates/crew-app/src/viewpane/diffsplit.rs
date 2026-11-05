@@ -73,6 +73,17 @@ pub(super) fn rows(text: &str) -> Vec<Row<'_>> {
     let (mut old, mut new) = (0usize, 0usize);
     let mut i = 0;
     while i < lines.len() {
+        // In the patch but in neither file (`diffnums::no_line`): git's note
+        // spans both sides like a header; the empty tail is a blank pair, so
+        // the divider still runs to the foot, with no number past the hunk.
+        if super::diffnums::no_line(lines[i], i + 1 == lines.len()) {
+            out.push(match lines[i].is_empty() {
+                true => Row::Pair(None, None, None, None),
+                false => Row::Full(lines[i], Kind::File),
+            });
+            i += 1;
+            continue;
+        }
         match kinds[i] {
             Kind::Hunk => {
                 if let Some((o, n)) = hunk_start(lines[i]) {

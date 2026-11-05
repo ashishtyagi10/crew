@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.67
+
+**A diff's last line number is the hunk's last line.**
+- `/diff` and `/review` numbered an empty line past the end of every hunk, because git's
+  final newline was read as one more line of context. The side-by-side view did it on both sides.
+- Git's `\ No newline at end of file` note is no longer numbered, so the line after it keeps
+  its real number.
+
 ## 0.29.66
 
 **Programs that ask are told when their pane gains or loses focus.**
