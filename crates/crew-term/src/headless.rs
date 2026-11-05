@@ -81,6 +81,11 @@ impl HeadlessTerm {
     pub fn take_replies(&self) -> Option<String> {
         self.core.take_replies()
     }
+
+    /// The DEC private modes the program has on (wheel, keys, focus).
+    pub fn input_modes(&self) -> crate::modes::InputModes {
+        self.core.input_modes()
+    }
 }
 
 impl HeadlessTerm {

@@ -16,4 +16,7 @@ pub struct InputModes {
     /// Alternate-scroll (DECSET 1007): translate the wheel to arrow keys in the
     /// alternate screen. Enabled by default in xterm-compatible terminals.
     pub alternate_scroll: bool,
+    /// Focus reporting (DECSET 1004): the program wants `CSI I` / `CSI O`
+    /// when its pane gains or loses keyboard focus (see `focusreport`).
+    pub focus_events: bool,
 }

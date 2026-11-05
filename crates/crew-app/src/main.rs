@@ -532,6 +532,7 @@ mod popupsweep_tests;
 mod ringfocus_tests;
 // Only a Windows PowerShell pane starts oh-my-posh (a Mac zsh brings its own
 // prompt); the tests run everywhere.
+mod focuspush;
 mod inboxclick;
 mod inboxglance;
 mod inboxsmith;

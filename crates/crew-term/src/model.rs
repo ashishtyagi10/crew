@@ -287,18 +287,6 @@ impl TermCore {
         self.term.mode().contains(TermMode::BRACKETED_PASTE)
     }
 
-    /// Snapshot the DEC private modes that govern how a scroll wheel is routed.
-    pub(crate) fn input_modes(&self) -> crate::modes::InputModes {
-        let m = self.term.mode();
-        crate::modes::InputModes {
-            alt_screen: m.contains(TermMode::ALT_SCREEN),
-            mouse: m.intersects(TermMode::MOUSE_MODE),
-            sgr_mouse: m.contains(TermMode::SGR_MOUSE),
-            app_cursor: m.contains(TermMode::APP_CURSOR),
-            alternate_scroll: m.contains(TermMode::ALTERNATE_SCROLL),
-        }
-    }
-
     /// Take a pending bell (rung since the last check), clearing it.
     pub(crate) fn take_bell(&self) -> bool {
         self.events.bell.swap(false, Ordering::Relaxed)
@@ -320,6 +308,8 @@ mod headless;
 mod modelcells;
 #[path = "modellast.rs"]
 mod modellast;
+#[path = "modelmodes.rs"]
+mod modelmodes;
 #[path = "modelsel.rs"]
 mod modelsel;
 #[path = "modelsync.rs"]

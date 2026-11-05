@@ -45,6 +45,8 @@ pub struct PtyTerm {
     /// (zero overhead). See crew-app `askwait`.
     capture: Option<String>,
     child: Box<dyn portable_pty::Child + Send + Sync>,
+    /// The focus state last reported under DECSET 1004 (see `focusreport`).
+    focus_told: Option<bool>,
 }
 
 impl PtyTerm {
@@ -166,6 +168,8 @@ impl PtyTerm {
 /// flood (e.g. a progress bar redrawing with `\r`) grow the carry unbounded.
 const SCAN_CARRY_CAP: usize = 4096;
 
+#[path = "focusreport.rs"]
+mod focusreport;
 #[path = "ptyscan.rs"]
 mod ptyscan;
 #[path = "ptyspawn.rs"]
