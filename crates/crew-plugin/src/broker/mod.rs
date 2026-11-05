@@ -27,6 +27,7 @@ mod ckptgate;
 mod claudeagent;
 mod claudelane;
 mod clauderesume;
+mod claudesub;
 mod clistop;
 mod commands;
 mod compact;

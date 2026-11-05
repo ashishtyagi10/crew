@@ -17,6 +17,7 @@ pub(super) struct Lane {
     agent: AgentId,
     open: HashMap<String, (String, Instant)>,
     chars: u64,
+    subs: super::claudesub::Subagents,
 }
 
 impl Lane {
@@ -25,6 +26,7 @@ impl Lane {
             agent: AgentId::minted("claude"),
             open: HashMap::new(),
             chars: 0,
+            subs: Default::default(),
         }
     }
 
@@ -54,10 +56,13 @@ impl Lane {
                     agent: self.agent.clone(),
                     label,
                     ok: *ok,
-                    text: text.clone(),
+                    text: self.subs.lead(id, text),
                     ms: t0.elapsed().as_millis() as u64,
                 });
             }
+            // A subagent's line is counted under its spawning call, never
+            // drawn as the lead's own (`claudesub`).
+            Some(StreamEvent::Sub { parent, event }) => self.subs.absorb(parent, event),
             _ => {}
         }
     }

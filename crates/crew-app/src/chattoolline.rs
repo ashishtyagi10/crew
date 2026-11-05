@@ -12,8 +12,21 @@ use crate::glyphs::{fallback, nerd, Glyph};
 pub(crate) const TEXT_ROWS: usize = 12;
 /// Characters of the call's subject kept on the line.
 const ARGS_CHARS: usize = 60;
-/// Argument names that ARE the call (the broker's `toolline` rule).
-const HEADLINE: &[&str] = &["cmd", "command", "path", "file", "url", "query", "pattern"];
+/// Argument names that ARE the call (the broker's `toolline` rule), in
+/// order of precedence. `file_path` is Claude Code's Read/Edit/Write;
+/// `description` comes last, for its `Agent`/`Task` call (whose other
+/// fields are a long prompt) — a Bash call's `command` still wins over it.
+const HEADLINE: &[&str] = &[
+    "cmd",
+    "command",
+    "path",
+    "file_path",
+    "file",
+    "url",
+    "query",
+    "pattern",
+    "description",
+];
 
 /// The argument worth showing: the headline field of a JSON object (or its
 /// only string field), else the raw arguments — flattened and clipped.

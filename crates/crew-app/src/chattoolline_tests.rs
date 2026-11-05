@@ -153,3 +153,16 @@ fn a_pending_line_past_a_minute_counts_like_the_finished_one() {
     let row = text(&render(&line("sh", "cargo test", 0), 184_000, 60, false));
     assert!(row.ends_with("3m04"), "the runclock ladder: {row}");
 }
+
+/// Claude Code's calls show what they are about, not their raw JSON: an
+/// `Agent` call its task, an Edit its file, a Bash call its command (not
+/// the description it also carries).
+#[test]
+fn claude_codes_calls_show_their_headline_argument() {
+    let agent = r#"{"description":"explore the renderer","subagent_type":"general-purpose","prompt":"read every file under src/"}"#;
+    assert_eq!(subject(agent), "explore the renderer");
+    let edit = r#"{"file_path":"/x/a.rs","old_string":"a","new_string":"b"}"#;
+    assert_eq!(subject(edit), "/x/a.rs");
+    let bash = r#"{"command":"cargo test","description":"run the tests"}"#;
+    assert_eq!(subject(bash), "cargo test");
+}

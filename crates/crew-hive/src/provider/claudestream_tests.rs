@@ -127,3 +127,26 @@ fn fold_keeps_raw_lines_as_the_reply_of_last_resort() {
     assert!(f.result.is_none());
     assert_eq!(f.reply(), "claude here\nsecond line");
 }
+
+/// A subagent's lines (Claude Code tags them with the spawning call's id)
+/// come back wrapped, so the lead's readers pass them by: its text is not
+/// the reply, its calls are not the lead's.
+#[test]
+fn a_subagents_lines_are_wrapped_under_their_parent() {
+    let sub = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_2","name":"Read","input":{}}]},"parent_tool_use_id":"toolu_A"}"#;
+    let Some(StreamEvent::Sub { parent, event }) = parse_line(sub) else {
+        panic!("{:?}", parse_line(sub))
+    };
+    assert_eq!(parent, "toolu_A");
+    assert!(matches!(*event, StreamEvent::ToolUse { ref name, .. } if name == "Read"));
+    // The lead's own line, `null` parent, is not wrapped.
+    assert!(matches!(
+        parse_line(TOOL_USE),
+        Some(StreamEvent::ToolUse { .. })
+    ));
+    let said = r#"{"type":"assistant","message":{"content":[{"type":"text","text":"sub says"}]},"parent_tool_use_id":"toolu_A"}"#;
+    let mut fold = Fold::default();
+    fold.push(parse_line(said).as_ref(), said);
+    fold.push(parse_line(ASSISTANT).as_ref(), ASSISTANT);
+    assert_eq!(fold.text, "hello from stream");
+}

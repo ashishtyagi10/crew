@@ -21,8 +21,10 @@ pub(crate) fn review_prompt(diff: &str, callers: &str) -> String {
          Report each finding as one bullet, ordered worst-first by severity — \
          `blocker` (would break users), then `warn` (likely trouble), then \
          `nit` (style) — in the shape `severity — file:line — what and why`.\n\
-         End with a one-line verdict. If the diff is clean, say so in one \
-         line (\"no findings\") instead of inventing issues.\n\nDIFF:\n{diff}"
+         End with one verdict line that counts the findings, e.g. \
+         `verdict: 2 blocker, 1 warn`. Only when there are none at all, \
+         the whole review is the one line `no findings` — never under a \
+         finding — rather than inventing issues.\n\nDIFF:\n{diff}"
     );
     if !callers.is_empty() {
         p.push_str("\n\n");

@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.92
+
+**A Claude Code subagent's calls fold into its Agent line.**
+- A subagent's Reads, Greps and edits no longer stack up in the pane as the lead's own calls. The Agent line that spawned it now reads `✓ Agent explore the renderer · 41s  14 calls · 6 Read · 3 Grep`, and a click still opens its report.
+- A subagent's checklist no longer replaces the lead's plan, and its words never become the reply.
+- Claude Code's Agent and Edit lines show their task and file, not raw JSON.
+- `/review` ends on a count of what it found; `no findings` is kept for a clean diff.
+
 ## 0.29.91
 
 **A "waiting" toast asks in amber; red is kept for what broke.**
