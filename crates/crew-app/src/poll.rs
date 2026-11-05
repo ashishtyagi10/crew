@@ -216,7 +216,7 @@ impl CrewApp {
                             crew_term::ShellMark::Done(code) => t.spans.finished(code, at, ms),
                             // A prompt being drawn means whatever was running
                             // is over, whether or not the shell said `D`.
-                            crew_term::ShellMark::Prompt => t.spans.close_at(at, ms),
+                            crew_term::ShellMark::Prompt => t.shell_back(at, ms),
                             // `C` is where output begins. The span is opened
                             // by the foreground-process watch, which is also
                             // the only thing that knows the command's NAME —
@@ -452,7 +452,7 @@ impl CrewApp {
                         let ms = crate::anim::now_ms();
                         match &cmd {
                             Some(name) => t.spans.started(name.clone(), at, ms),
-                            None => t.spans.close_at(at, ms),
+                            None => t.shell_back(at, ms),
                         }
                         t.cmd = cmd;
                         t.cmd_since = outcome.since;

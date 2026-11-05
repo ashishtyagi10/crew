@@ -170,6 +170,8 @@ const SCAN_CARRY_CAP: usize = 4096;
 
 #[path = "focusreport.rs"]
 mod focusreport;
+#[path = "promptmodes.rs"]
+mod promptmodes;
 #[path = "ptyimage.rs"]
 mod ptyimage;
 #[path = "ptyscan.rs"]

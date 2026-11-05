@@ -139,6 +139,7 @@ mod popupband;
 #[path = "quotestyle_tests.rs"]
 mod quotestyle_tests;
 mod segment;
+mod shellback;
 mod signoutpick;
 
 mod canvas;
