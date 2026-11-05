@@ -78,24 +78,24 @@ fn ready_state_is_the_hint_and_two_example_asks() {
     let cells = empty_cells(80, 20, 2, true, &a);
     let hint = row_text(&cells, 3);
     assert!(hint.contains("Type a task"), "hint missing: {hint}");
-    // The hint wraps to two rows at 80 columns; the spacer is row 5; the
+    // The hint is one row at 80 columns; the spacer is row 4; the
     // examples take two more; nothing else follows.
-    let all: String = (3..=4).map(|r| row_text(&cells, r) + " ").collect();
+    let all: String = row_text(&cells, 3);
     assert!(all.contains("@planner"), "@-example missing: {all}");
     assert!(
-        all.contains("/ for commands."),
+        all.contains("(e.g. @planner).") && !all.contains("for commands"),
         "the sentence is whole: {all}"
     );
     assert!(
-        row_text(&cells, 5).is_empty(),
+        row_text(&cells, 4).is_empty(),
         "a spacer row separates them"
     );
-    let examples: String = (6..=7).map(|r| row_text(&cells, r) + " ").collect();
+    let examples: String = (5..=6).map(|r| row_text(&cells, r) + " ").collect();
     assert!(examples.starts_with("Try "), "{examples}");
     assert!(examples.contains("make the tests pass"), "{examples}");
     assert!(examples.contains("draft a plan first"), "{examples}");
     assert!(
-        cells.iter().all(|c| c.row <= 7),
+        cells.iter().all(|c| c.row <= 6),
         "the hint and the examples, nothing else",
     );
 }
@@ -141,7 +141,7 @@ fn the_hint_wraps_instead_of_clipping() {
         rows[1].contains("who starts"),
         "wrapped onto a second row: {rows:?}"
     );
-    assert!(rows.join(" ").contains("/ for commands."), "{rows:?}");
+    assert!(rows.join(" ").contains("(e.g. @smith)."), "{rows:?}");
     assert!(cells.iter().all(|c| c.col < 42));
 }
 
@@ -187,7 +187,7 @@ fn everything_clips_to_bounds() {
 /// Balanced, not greedy: no lone last word, and no more rows than greedy.
 #[test]
 fn wrapped_rows_are_balanced() {
-    let text = "Type a task and press Enter \u{2014} @agent to pick who starts (e.g. @smith), / for commands.";
+    let text = "Type a task and press Enter \u{2014} @agent to pick who starts (e.g. @smith).";
     for cols in [60u16, 80, 100] {
         let rows = wrap_to(text, cols);
         assert_eq!(rows.len(), greedy(text, wrap_width(cols)).len(), "{cols}");

@@ -1,6 +1,4 @@
 use super::*;
-use crew_plugin::AgentInfo;
-use std::collections::HashMap;
 
 pub(crate) fn agent(name: &str, model: &str) -> AgentInfo {
     AgentInfo {
@@ -27,6 +25,7 @@ pub(crate) fn fc<'a>(agents: &'a [AgentInfo], ctxm: &'a HashMap<String, u64>) ->
     FooterCtx {
         readouts: readouts(),
         agents,
+        no_agents: false,
         ctx: ctxm,
         ctx_window: Box::leak(Box::default()),
         tok_in: 41_600,

@@ -12,6 +12,7 @@ fn readouts() -> &'static crate::readout::Readouts {
 fn fc<'a>(agents: &'a [AgentInfo], ctx: &'a HashMap<String, u64>) -> FooterCtx<'a> {
     FooterCtx {
         agents,
+        no_agents: false,
         ctx,
         ctx_window: Box::leak(Box::default()),
         tok_in: 0,
@@ -174,4 +175,23 @@ fn a_code_span_reads_as_quotes_on_the_footer() {
     );
     assert_eq!(unticked("run echo it`s"), "run echo it`s");
     assert_eq!(unticked("edit a.rs"), "edit a.rs");
+}
+
+/// With no agents the card says "No agents available" — the footer under it
+/// offered a filled `▶▶ swarm mode` and `@ to relay to an agent` anyway. It
+/// says what the card says now. Still connecting is not "no agents": the
+/// roster has not come back, so the pane's footer keeps the mode.
+#[test]
+fn with_no_agents_the_footer_offers_no_swarm() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = crate::composershot_tests::pane();
+    p.agents.clear();
+    let line = text(&route_line(&crate::chatsummary::footer_ctx(&p), 80));
+    assert!(!line.contains("swarm mode"), "{line:?}");
+    assert!(!line.contains("relay to an agent"), "{line:?}");
+    assert!(line.starts_with("no agents \u{00b7} /model"), "{line:?}");
+    assert!(line.contains("/ for commands"), "{line:?}");
+    p.connected = false;
+    let line = text(&route_line(&crate::chatsummary::footer_ctx(&p), 80));
+    assert!(line.contains("swarm mode"), "connecting: {line:?}");
 }

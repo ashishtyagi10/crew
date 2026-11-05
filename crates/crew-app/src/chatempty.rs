@@ -93,11 +93,11 @@ fn block(cols: u16, connected: bool, agents: &[AgentInfo], avail: usize) -> Vec<
     // Minimal, Claude-Code-style: a single muted hint. No roster dump and no
     // keybind table — the pane shouldn't spend rows on chrome before the first
     // task. `@agent` picks who starts; plain text runs the swarm. Wrapped: on
-    // a half tile the one sentence ended `/ for comm`.
+    // a half tile the one sentence ended `/ for comm`. `/` is taught once,
+    // by the footer's hints two rows below, which outlive this card.
     let first = &agents[0].name;
-    let hint = format!(
-        "Type a task and press Enter \u{2014} @agent to pick who starts (e.g. @{first}), / for commands."
-    );
+    let hint =
+        format!("Type a task and press Enter \u{2014} @agent to pick who starts (e.g. @{first}).");
     let mut rows: Vec<Row> = wrap_to(&hint, cols).into_iter().map(muted).collect();
     // Two asks that show what agent smith decides now (a spacer between,
     // the first row to go on a short tile): a swarm that checks its own

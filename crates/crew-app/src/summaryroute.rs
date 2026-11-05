@@ -93,7 +93,13 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
         Some(name) => format!("\u{25b6}\u{25b6} @{name} relay"),
         None => "\u{25b6}\u{25b6} swarm mode".to_string(),
     };
-    let mut segs: Vec<(Vec<FCell>, u8)> = vec![(badge(&mode, accent), 1)];
+    // With no agents there is no swarm to be in: a filled badge offering
+    // one sat under the card saying "No agents available". The mode reads
+    // what the card says instead, in the hints' ink, and the `@` hint goes.
+    let mut segs: Vec<(Vec<FCell>, u8)> = match fc.no_agents {
+        true => vec![(plain("no agents \u{00b7} /model", muted), 1)],
+        false => vec![(badge(&mode, accent), 1)],
+    };
     // Shift+Tab's mode, beside the routing mode — unless it is the default,
     // which says nothing, as Claude Code's does.
     let approve = fc.approval.mode;
@@ -155,7 +161,9 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
     } else if fc.active.is_empty() {
         // Only show hints when there are no active agents and no running work.
         segs.push((plain("/ for commands", muted), 2));
-        segs.push((plain("@ to relay to an agent", muted), 3));
+        if !fc.no_agents {
+            segs.push((plain("@ to relay to an agent", muted), 3));
+        }
         segs.push((plain(&approvals_hint(), muted), 3));
     }
     let mut out = Vec::new();
