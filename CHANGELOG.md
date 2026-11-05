@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.96
+
+**Cmd+Opt+↑/↓ jumps to the previous / next command.**
+- In a terminal pane, each press scrolls so the previous (↑) or next (↓) command you ran starts on the top row: the same starts the left border ticks. ↓ past the newest returns to the live screen.
+- Windows and Linux press Ctrl+Alt+↑/↓. On any pane that is not a terminal the chord walks the grid as before.
+
 ## 0.29.95
 
 **A fix that was reproduced first says red → green.**

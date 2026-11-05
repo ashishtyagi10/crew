@@ -411,6 +411,7 @@ way that machine presses it.
 | Focus the pane that way on the grid | **Cmd+←↑→↓** |
 | Swap the focused pane with that neighbour | **Cmd+Shift+←↑→↓** |
 | Next / previous screen: the grid, then each zoomed pane (inbox, far, …) | **Cmd+Opt+←→** |
+| Scroll a terminal to the previous / next command you ran in it | **Cmd+Opt+↑↓** |
 | Focus the input bar | **Cmd+I** |
 | Recall a line you typed before | **↑** / **↓** — filtered by what is already in the bar; the top border says `hist 2/5 · git` |
 | Find: in a chat transcript, or `/find` in the bar | **Cmd+F** |
@@ -1623,6 +1624,13 @@ longer aim at.
   starts — the block structure other terminals need shell integration for,
   drawn as chrome rather than in the program's own columns. An error bar on the
   same row wins it: "this failed" outranks "this began".
+
+  **Cmd+Opt+↑↓** (Ctrl+Alt+↑↓ on Windows and Linux) walks those ticks: each
+  press scrolls the focused terminal so the previous / next command's first
+  row is the window's top row, and ↓ past the newest returns to the live
+  screen. It is the screens' chord turned vertical (←→ steps the screens,
+  ↑↓ steps the commands), since the Cmd+↑↓ other terminals use already walks
+  the grid. On a pane that is not a terminal it walks the grid as before.
 - **`/close all`** and **`/close others`** **ask once**: the first run says what it
   would close and the same command again does it. A closed pane takes its
   scrollback, its running command and its agent with it, and both commands sit

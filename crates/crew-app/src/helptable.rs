@@ -24,6 +24,10 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
         "Cmd+Opt+\u{2190}\u{2192}",
         "Next / previous screen: the grid, then each zoomed pane (inbox, far, \u{2026})",
     ),
+    (
+        "Cmd+Opt+\u{2191}\u{2193}",
+        "Scroll a terminal to the previous / next command you ran in it",
+    ),
     ("Cmd+I / Cmd+T", "Focus the input bar / new shell pane"),
     ("Cmd+F", "Find: in a chat transcript, or /find in the bar"),
     ("Cmd+,", "Settings"),

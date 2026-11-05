@@ -227,6 +227,7 @@ mod cmdcheck;
 mod cmddefs;
 mod cmdhead;
 mod cmdheader;
+mod cmdjump;
 mod cmdkeys;
 mod cmdlabel;
 mod cmdmenu;
