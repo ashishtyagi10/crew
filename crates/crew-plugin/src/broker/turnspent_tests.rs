@@ -16,6 +16,7 @@ fn stat(agent: &str, tok_in: u64, tok_out: u64, cost: u64) -> PluginEvent {
         agent: agent.into(),
         ms: 0,
         ctx: 0,
+        window: 0,
         tok_in,
         tok_out,
         cost_microusd: cost,

@@ -25,6 +25,9 @@ const ALLOWED: &[(&str, &str)] = &[
     ("sysrun.rs", "Command::new(\"/bin/sh\")"),
     ("sysrun.rs", "Command::new(\"/bin/kill\")"),
     ("host.rs", "Command::new(\"kill\")"),
+    // macOS-only (`#[cfg(target_os = "macos")]`): a pane with no locale
+    // asks `defaults` for the Mac's own; never compiled on Windows.
+    ("ptylocale.rs", "Command::new(\"/usr/bin/defaults\")"),
     // macOS-only TEST probe (`#[cfg(all(test, target_os = "macos"))]`) that
     // cross-checks Reduce Motion against the `defaults` CLI. Never compiled
     // on Windows, and never in a shipped binary.

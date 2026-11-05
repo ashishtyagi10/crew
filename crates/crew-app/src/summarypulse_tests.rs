@@ -16,6 +16,7 @@ fn coder_block(map: &HashMap<String, u64>, now: u64) -> Color {
     let fc = FooterCtx {
         agents: &[],
         ctx: &ctx,
+        ctx_window: Box::leak(Box::default()),
         tok_in: 0,
         tok_out: 0,
         cost_microusd: 0,

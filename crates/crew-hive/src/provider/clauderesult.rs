@@ -1,5 +1,6 @@
 //! What Claude Code's closing `result` line says beyond the reply: the
-//! context the run's last call held, and the tool calls it refused.
+//! context the run's last call held, the window it held it in, and the tool
+//! calls it refused.
 //!
 //! `claude -p` cannot ask. A tool the user's settings do not allow is
 //! denied, the run goes on, and the line lists each denial in
@@ -30,6 +31,32 @@ pub(super) fn context_of(usage: &Value) -> u32 {
         .and_then(|calls| calls.last())
         .unwrap_or(usage);
     super::served::anthropic_input(last)
+}
+
+/// The context window, in tokens, of the model that did the run's work:
+/// `modelUsage.<model>.contextWindow` (2.1.x, probed 2026-11-04: 1000000 for
+/// claude-opus-5-5). The relay's agent pins no model, so this is the only
+/// place its gauge can learn the window. A run that also called a helper
+/// model lists both, so the one that read the most prompt is the one asked.
+/// 0 when the CLI says none.
+pub(super) fn window_of(result: &Value) -> u64 {
+    let read = |m: &Value| {
+        [
+            "inputTokens",
+            "cacheReadInputTokens",
+            "cacheCreationInputTokens",
+        ]
+        .iter()
+        .map(|k| m[*k].as_u64().unwrap_or(0))
+        .sum::<u64>()
+    };
+    result["modelUsage"]
+        .as_object()
+        .into_iter()
+        .flat_map(|models| models.values())
+        .max_by_key(|m| read(m))
+        .and_then(|m| m["contextWindow"].as_u64())
+        .unwrap_or(0)
 }
 
 /// The refusals a `result` line lists, repeats folded.

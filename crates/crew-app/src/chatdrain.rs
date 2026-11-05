@@ -116,12 +116,14 @@ impl ChatPane {
                         agent,
                         ms,
                         ctx,
+                        window,
                         tok_in,
                         tok_out,
                         cost_microusd,
                         tools,
                         ..
                     } => {
+                        self.note_window(&agent, window);
                         self.absorb_stats(tokens, agent, ms, ctx, tok_in, tok_out, cost_microusd);
                         self.note_swarm_tools(tools);
                     }

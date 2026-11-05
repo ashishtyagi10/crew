@@ -30,6 +30,7 @@ impl ChatPane {
             token_pulse: std::collections::HashMap::new(),
             agent_stats: std::collections::HashMap::new(),
             ctx: std::collections::HashMap::new(),
+            ctx_window: std::collections::HashMap::new(),
             unread: 0,
             pill_pop: crate::chatpop::Pop::default(),
             pulse: crate::chatpulse::Pulse::new(),

@@ -46,6 +46,8 @@ pub struct ChatPane {
     /// Each agent's latest real prompt size in tokens (its live context fill,
     /// from reply-level `Stats.ctx`) — the pulse lanes' ctx meter.
     pub(crate) ctx: std::collections::HashMap<String, u64>,
+    /// Each agent's context window as its backend reported it (`Stats.window`).
+    pub(crate) ctx_window: std::collections::HashMap<String, u64>,
     /// Messages that arrived while scrolled up — the `↓ N new` pill. Cleared
     /// when the view returns to the live bottom.
     pub(crate) unread: usize,

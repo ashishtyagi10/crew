@@ -94,17 +94,13 @@ pub(crate) fn relay_turn(
     } else {
         (stats.approx_tokens, true)
     };
-    emit(PluginEvent::Stats {
-        exchanges: stats.exchanges,
-        tokens: total as u64,
-        agent: String::new(),
-        ms: 0,
-        ctx: 0,
-        tok_in: stats.tok_in,
-        tok_out: stats.tok_out,
-        cost_microusd: stats.cost_microusd,
-        tools: None,
-    })?;
+    let spent = (stats.tok_in, stats.tok_out, stats.cost_microusd);
+    emit(super::zerostat::turn_total(
+        stats.exchanges,
+        total as u64,
+        spent,
+        None,
+    ))?;
     // The chain's timeline, when there WAS a chain. A turn one agent
     // answered alone is already summed up by the answer card's own usage
     // line — `turn done — coder 3s · 1 exchange · 2133 tok` under it

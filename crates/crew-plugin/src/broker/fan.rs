@@ -135,17 +135,13 @@ pub(crate) fn fan_out(
     } else {
         format!("{total} tok")
     };
-    emit(PluginEvent::Stats {
-        exchanges: names.len() as u32,
-        tokens: total as u64,
-        agent: String::new(),
-        ms: 0,
-        ctx: 0,
-        tok_in,
-        tok_out,
-        cost_microusd,
-        tools: None,
-    })?;
+    let spent = (tok_in, tok_out, cost_microusd);
+    emit(super::zerostat::turn_total(
+        names.len() as u32,
+        total as u64,
+        spent,
+        None,
+    ))?;
     emit(msg(
         "agent smith",
         format!(

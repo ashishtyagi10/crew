@@ -61,17 +61,7 @@ fn add(ev: &mut PluginEvent, s: Spent) -> bool {
 
 /// A turn total of `s` alone: no exchange with an agent, no tool pool.
 fn total(s: Spent) -> PluginEvent {
-    PluginEvent::Stats {
-        exchanges: 0,
-        tokens: s.tokens(),
-        agent: String::new(),
-        ms: 0,
-        ctx: 0,
-        tok_in: s.input,
-        tok_out: s.output,
-        cost_microusd: s.micros_usd,
-        tools: None,
-    }
+    super::zerostat::turn_total(0, s.tokens(), (s.input, s.output, s.micros_usd), None)
 }
 
 #[cfg(test)]

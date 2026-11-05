@@ -19,6 +19,7 @@ pub(crate) fn with_usage(agent: &str, elapsed: Duration, u: &Usage) -> PluginEve
         agent: agent.to_string(),
         ms: elapsed.as_millis() as u64,
         ctx: u64::from(u.input_tokens),
+        window: u.context_window,
         tok_in: u64::from(u.input_tokens),
         tok_out: u64::from(u.output_tokens),
         cost_microusd: u.cost_microusd,
@@ -28,15 +29,34 @@ pub(crate) fn with_usage(agent: &str, elapsed: Duration, u: &Usage) -> PluginEve
 
 /// `agent` took `elapsed` and reported nothing else.
 pub(crate) fn latency_only(agent: &str, elapsed: Duration) -> PluginEvent {
+    with_usage(agent, elapsed, &Usage::default())
+}
+
+/// What a whole turn spent (`spent` = tokens in, out, micro-USD): no one
+/// agent, so no latency, context or window. The relay, the fan-out, the
+/// swarm and `turnspent` all close a turn with one, built here so a field
+/// added to `Stats` lands in all four at once. Only a swarm has `tools`.
+pub(crate) fn turn_total(
+    exchanges: u32,
+    tokens: u64,
+    spent: (u64, u64, u64),
+    tools: Option<(u32, u32)>,
+) -> PluginEvent {
+    let (tok_in, tok_out, cost_microusd) = spent;
     PluginEvent::Stats {
-        exchanges: 0,
-        tokens: 0,
-        agent: agent.to_string(),
-        ms: elapsed.as_millis() as u64,
+        exchanges,
+        tokens,
+        agent: String::new(),
+        ms: 0,
         ctx: 0,
-        tok_in: 0,
-        tok_out: 0,
-        cost_microusd: 0,
-        tools: None,
+        window: 0,
+        tok_in,
+        tok_out,
+        cost_microusd,
+        tools,
     }
 }
+
+#[cfg(test)]
+#[path = "zerostat_tests.rs"]
+mod tests;

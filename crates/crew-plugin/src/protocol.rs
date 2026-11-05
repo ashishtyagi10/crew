@@ -143,6 +143,10 @@ pub enum PluginEvent {
         /// fill — when the backend reports usage; 0 = unknown.
         #[serde(default)]
         ctx: u64,
+        /// The window `ctx` fills, when the backend said it (Claude Code,
+        /// whose model crew is not told); 0 = known by the model's name.
+        #[serde(default)]
+        window: u64,
         /// Prompt/completion token split for the same usage `tokens` reports,
         /// and the broker-computed cost in micro-USD (0 = unpriced model).
         /// All serde-defaulted so old payloads still decode.
