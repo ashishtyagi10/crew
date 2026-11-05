@@ -1,7 +1,8 @@
-//! The proof under a turn's receipt, with the run's own count in it: a green
-//! run, a red one naming its failures, and a run of no tests — at a quarter
-//! tile and a half, on a light page and on glass — the last one with the
-//! plan steps its turn left undone.
+//! The proof under a turn's receipt, with the run's own count in it: a red
+//! run turned green (`chatrepro`), a green run, a red one naming its
+//! failures, and a run of no tests — at a quarter tile and a half, on a
+//! light page and on glass — the last one with the plan steps its turn
+//! left undone.
 //!
 //! `CREW_SHOT_DIR=<dir> cargo test -p crew-app --bin crew proof_shot -- --ignored`
 use crate::chatlayout::Message;
@@ -28,6 +29,7 @@ fn proof_shot() {
     let _a = crate::palette::test_guard();
     let _g = crate::app::theme_test_guard();
     let verdicts = [
+        "\u{2713} fixed: `cargo test -p crew-theme` \u{2014} 2 of 44 failed before the fix; 44 pass (12s)",
         "\u{2713} checked: `cargo test -p crew-theme` \u{2014} 42 tests passed in 12s after the last edit",
         "\u{2717} failing: `cargo test -p crew-theme` \u{2014} 2 of 44 tests failed after the last edit: luminance_swaps, ratio_is_symmetric",
         "! not checked: `cargo test -p crew-theme lum` ran no tests after the last edit",
