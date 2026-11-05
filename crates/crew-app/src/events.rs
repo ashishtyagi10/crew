@@ -72,14 +72,11 @@ impl CrewApp {
             }
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor = (position.x as f32, position.y as f32);
-                // Extend an in-progress selection as the cursor drags.
+                // A move reaches a program that asked (`mouseroute`), or extends a drag.
+                self.report_motion();
                 self.selection_drag();
-                // …scroll to where a carried gutter points…
-                if self.gutter_drag_move() {
-                    self.redraw();
-                }
-                // …resize the sidebar if its edge is in hand…
-                if self.nav_edge_drag() {
+                // …scroll to where a carried gutter points, or resize the sidebar…
+                if self.gutter_drag_move() | self.nav_edge_drag() {
                     self.redraw();
                 }
                 // …light the card a carried one would land on…

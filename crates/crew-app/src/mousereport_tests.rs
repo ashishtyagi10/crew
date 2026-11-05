@@ -70,3 +70,22 @@ fn a_plain_shell_keeps_crews_own_click() {
         false
     ));
 }
+
+#[test]
+fn moves_carry_the_motion_bit_only_where_asked() {
+    let click = modes_after(b"\x1b[?1000h");
+    let drag = modes_after(b"\x1b[?1002h");
+    let any = modes_after(b"\x1b[?1003h");
+    assert!(drag.mouse_drag && !drag.mouse_motion);
+    assert!(any.mouse_motion);
+    // Left held: 0 + 32 under drag or any-motion; nothing under clicks only.
+    assert_eq!(motion_code(&click, Some(0), 0), None);
+    assert_eq!(motion_code(&drag, Some(0), 0), Some(32));
+    assert_eq!(motion_code(&any, Some(2), 0), Some(34));
+    // No button: 3 + 32, and only under any-motion; modifiers ride along.
+    assert_eq!(motion_code(&drag, None, 0), None);
+    assert_eq!(motion_code(&any, None, 0), Some(35));
+    assert_eq!(motion_code(&any, None, 16), Some(51));
+    // The held press's own Ctrl bit is replaced by the modifiers held now.
+    assert_eq!(motion_code(&drag, Some(16), 0), Some(32));
+}

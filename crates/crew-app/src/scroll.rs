@@ -21,11 +21,12 @@ pub(crate) fn forward_to_program(pane: &mut Pane, bytes: &[u8]) {
 /// Forward a wheel scroll to a full-screen program (alt-screen/mouse app) as
 /// mouse or arrow-key bytes. Returns true when forwarded — false means the pane
 /// owns no full-screen program, so the caller should scroll local scrollback.
-fn forward_wheel(pane: &mut Pane, lines: i32, cell: (u16, u16)) -> bool {
+fn forward_wheel(pane: &mut Pane, lines: i32, cell: (u16, u16), mods: u8) -> bool {
     let PaneContent::Terminal(t) = &pane.content else {
         return false;
     };
-    let Some(bytes) = crate::altscroll::wheel_bytes(&t.pty.input_modes(), lines, cell) else {
+    let m = t.pty.input_modes();
+    let Some(bytes) = crate::altscroll::wheel_bytes(&m, lines, cell, mods) else {
         return false;
     };
     forward_to_program(pane, &bytes);
@@ -139,8 +140,9 @@ impl CrewApp {
         };
         // The hovered cell positions forwarded mouse events; (0,0) when unknown.
         let cell = self.cursor_term_cell().map_or((0, 0), |(_, c, r)| (c, r));
+        let mods = crate::mousereport::wheel_mods(self.mods.state());
         if let Some(pane) = self.panes.get_mut(i) {
-            if !forward_wheel(pane, lines, cell) {
+            if !forward_wheel(pane, lines, cell, mods) {
                 scroll_pane(pane, lines);
             }
             self.redraw();

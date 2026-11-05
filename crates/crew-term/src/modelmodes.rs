@@ -11,6 +11,8 @@ impl TermCore {
         crate::modes::InputModes {
             alt_screen: m.contains(TermMode::ALT_SCREEN),
             mouse: m.intersects(TermMode::MOUSE_MODE),
+            mouse_drag: m.contains(TermMode::MOUSE_DRAG),
+            mouse_motion: m.contains(TermMode::MOUSE_MOTION),
             sgr_mouse: m.contains(TermMode::SGR_MOUSE),
             app_cursor: m.contains(TermMode::APP_CURSOR),
             alternate_scroll: m.contains(TermMode::ALTERNATE_SCROLL),

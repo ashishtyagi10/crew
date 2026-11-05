@@ -9,6 +9,11 @@ pub struct InputModes {
     pub alt_screen: bool,
     /// The program requested mouse reporting (any of click/drag/motion).
     pub mouse: bool,
+    /// Drag reporting (DECSET 1002): a move with a button held is reported.
+    pub mouse_drag: bool,
+    /// Any-motion reporting (DECSET 1003): every move is reported, button or
+    /// not, so a program can light what the pointer hovers (btop, k9s).
+    pub mouse_motion: bool,
     /// Mouse events should be SGR-encoded (`ESC [ < … M`) rather than legacy X10.
     pub sgr_mouse: bool,
     /// Application cursor keys (DECCKM): arrows are `ESC O A` not `ESC [ A`.

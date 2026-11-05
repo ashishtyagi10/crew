@@ -2,10 +2,12 @@
 //! (see [`crate::mousereport`]). The press is checked AFTER crew's own targets
 //! (toasts, gutter, docked buttons, the legend row), which sit outside a
 //! terminal's content cells or are tested first in `events`, so they still win.
+use std::io::Write;
+
 use winit::event::MouseButton;
 
 use crate::app::CrewApp;
-use crate::mousereport::{button_code, mod_bits, report, reports_click};
+use crate::mousereport::{button_code, mod_bits, motion_code, report, reports_click};
 use crate::pane::PaneContent;
 
 /// A press that went to a program, waiting for its release: the pane, the
@@ -16,6 +18,15 @@ pub(crate) struct Held {
     pane: usize,
     code: u8,
     cell: (u16, u16),
+}
+
+/// What the routing remembers between events: the press waiting for its
+/// release, and the pane and cell the pointer was last over, so a move is
+/// reported once per cell crossed rather than once per pixel.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct MouseState {
+    held: Option<Held>,
+    last: Option<(usize, (u16, u16))>,
 }
 
 impl CrewApp {
@@ -48,11 +59,12 @@ impl CrewApp {
             &mut self.panes[i],
             &report(code, (col, row), m.sgr_mouse, true),
         );
-        self.mouse_held = Some(Held {
+        self.mouse.held = Some(Held {
             pane: i,
             code,
             cell: (col, row),
         });
+        self.mouse.last = Some((i, (col, row)));
         true
     }
 
@@ -60,15 +72,17 @@ impl CrewApp {
     /// when `b` ends such a press, so crew's own release (selection copy,
     /// fold toggle, card drop) is skipped for a gesture that was never crew's.
     pub(crate) fn report_release(&mut self, b: MouseButton) -> bool {
-        let Some(held) = self.mouse_held else {
+        let Some(held) = self.mouse.held else {
             return false;
         };
         if button_code(b) != Some(held.code & 3) {
             return false;
         }
-        self.mouse_held = None;
-        let cell = match self.term_content_cell() {
-            Some((i, col, row)) if i == held.pane => (col, row),
+        self.mouse.held = None;
+        // Off the pane, the release lands where the drag last was reported.
+        let cell = match (self.term_content_cell(), self.mouse.last) {
+            (Some((i, col, row)), _) if i == held.pane => (col, row),
+            (_, Some((i, cell))) if i == held.pane => cell,
             _ => held.cell,
         };
         if let Some(p) = self.panes.get_mut(held.pane) {
@@ -82,6 +96,42 @@ impl CrewApp {
                 }
             }
         }
+        true
+    }
+
+    /// Report a pointer move to the program under it, once per cell crossed:
+    /// a drag (button held, DECSET 1002 or 1003) to the pane the press went
+    /// to, a bare move (1003) to whichever pane it is over. Nothing while
+    /// crew's own selection drag is in hand, or with Shift/Cmd held and no
+    /// reported button down. True when bytes were written.
+    pub(crate) fn report_motion(&mut self) -> bool {
+        let here = self.term_content_cell();
+        let key = here.map(|(i, col, row)| (i, (col, row)));
+        if key == self.mouse.last {
+            return false;
+        }
+        self.mouse.last = key;
+        let Some((i, col, row)) = here else {
+            return false;
+        };
+        let held = self.mouse.held;
+        let mods = self.mods.state();
+        let free = held.is_none() && (self.drag.is_some() || mods.shift_key());
+        if free || mods.super_key() || held.is_some_and(|h| h.pane != i) {
+            return false;
+        }
+        let Some(PaneContent::Terminal(t)) = self.panes.get_mut(i).map(|p| &mut p.content) else {
+            return false;
+        };
+        let m = t.pty.input_modes();
+        let bits = mod_bits(mods.alt_key(), mods.control_key());
+        let Some(code) = motion_code(&m, held.map(|h| h.code), bits) else {
+            return false;
+        };
+        // Written straight to the program, without the snap to the live
+        // bottom a click makes: hovering must not scroll the view.
+        let bytes = report(code, (col, row), m.sgr_mouse, true);
+        let _ = t.input.write_all(&bytes).and_then(|_| t.input.flush());
         true
     }
 
