@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.69
+
+**Ctrl+Space, Ctrl+/ and Ctrl+2…8 send their control bytes.**
+- Ctrl+Space sent a plain space; it now sends NUL, for emacs set-mark and a C-Space tmux prefix.
+- Ctrl+/ sends 0x1f (emacs and nano undo), and Ctrl+2…8 send xterm's NUL, ESC, FS, GS, RS, US
+  and DEL instead of the bare digit.
+
 ## 0.29.68
 
 **A folded receipt keeps its verdict whole and names its fold.**
