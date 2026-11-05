@@ -130,10 +130,21 @@ pub(crate) fn join_with(segs: &[Seg], sep: &str) -> Vec<(char, Fg)> {
 
 /// The tightest remaining context across agents with a known window, as a
 /// fill percentage — the agent nearest its ceiling is the one that matters.
-pub(crate) fn ctx_fill(agents: &[AgentInfo], ctx: &HashMap<String, u64>) -> Option<u8> {
+/// A window the backend reported (`window`, by agent) wins over the model
+/// table: Claude Code's relay agent names no model, so the table never knew
+/// its window and its pane showed no gauge at all.
+pub(crate) fn ctx_fill(
+    agents: &[AgentInfo],
+    ctx: &HashMap<String, u64>,
+    window: &HashMap<String, u64>,
+) -> Option<u8> {
     let mut max_fill: Option<u8> = None;
     for a in agents {
-        let Some(limit) = crate::ctxlimit::context_limit(&a.model).filter(|&l| l > 0) else {
+        let said = window.get(&a.name).copied().filter(|&w| w > 0);
+        let Some(limit) = said
+            .or_else(|| crate::ctxlimit::context_limit(&a.model))
+            .filter(|&l| l > 0)
+        else {
             continue;
         };
         let used = ctx.get(&a.name).copied().unwrap_or(0);
@@ -141,6 +152,16 @@ pub(crate) fn ctx_fill(agents: &[AgentInfo], ctx: &HashMap<String, u64>) -> Opti
         max_fill = Some(max_fill.map_or(fill, |m| m.max(fill)));
     }
     max_fill
+}
+
+impl crate::chat::ChatPane {
+    /// Keep the context window a reply's stat reported for `agent`; a stat
+    /// that said none (0) leaves a known one alone.
+    pub(crate) fn note_window(&mut self, agent: &str, window: u64) {
+        if window > 0 {
+            self.ctx_window.insert(agent.to_string(), window);
+        }
+    }
 }
 
 #[cfg(test)]

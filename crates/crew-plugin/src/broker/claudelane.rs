@@ -90,6 +90,7 @@ pub(super) fn finish(fold: Fold, program: &str, stderr: &str) -> Result<(String,
         Usage {
             input_tokens: r.input_tokens,
             output_tokens: r.output_tokens,
+            context_window: r.context_window,
             // No cost: the plan covers it, and a list-price figure would
             // show a bill the user never gets.
             ..Default::default()

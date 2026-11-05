@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.71
+
+**A Claude Code pane shows how full its context is.**
+- The relay's Claude Code agent names no model, so crew never knew its window and drew no
+  context gauge under it. Claude Code's closing line says the window itself
+  (`contextWindow`); the pane now reads it and draws `▓░░░░░░░ 3% (ctx)` like any other.
+
 ## 0.29.70
 
 **The selected todo is washed like every other list's.**

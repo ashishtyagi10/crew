@@ -17,6 +17,9 @@ pub struct Usage {
     /// through; empty when the first model answered, or the backend has no
     /// chain. Agent smith says it once per agent a turn (`fellback`).
     pub fell_back: String,
+    /// The answering model's context window in tokens, when the backend says
+    /// it (Claude Code's `result` line); 0 = look it up by model name.
+    pub context_window: u64,
 }
 
 impl Usage {
@@ -33,6 +36,7 @@ impl Usage {
                 exact => exact,
             },
             fell_back: crate::broker::fellback::detail(c),
+            context_window: 0,
         }
     }
 

@@ -297,17 +297,12 @@ pub(crate) fn run_with_synth(
     // and stdio's per-task counter aren't left empty for swarm runs. It is
     // every call of the run: the workers' from the bus, and the plan, a
     // re-plan, the closing answer and the verdict, which no worker made.
-    emit(PluginEvent::Stats {
-        exchanges: outcome.done.len() as u32,
-        tokens: tally.tokens,
-        agent: String::new(),
-        ms: 0,
-        ctx: 0,
-        tok_in: tally.tok_in,
-        tok_out: tally.tok_out,
-        cost_microusd: tally.cost,
-        tools: Some(outcome.tool_rounds),
-    })?;
+    emit(super::zerostat::turn_total(
+        outcome.done.len() as u32,
+        tally.tokens,
+        (tally.tok_in, tally.tok_out, tally.cost),
+        Some(outcome.tool_rounds),
+    ))?;
     if let Some(summary) = summary {
         emit(msg("agent smith", summary))?;
     }

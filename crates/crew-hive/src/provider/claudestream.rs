@@ -47,6 +47,8 @@ pub struct RunResult {
     pub truncated: bool,
     /// The session the run was, which `--resume` continues.
     pub session_id: String,
+    /// The answering model's context window in tokens; 0 = not said.
+    pub context_window: u64,
     /// The tool calls the user's settings refused (`clauderesult`).
     pub denied: Vec<super::clauderesult::Denied>,
 }
@@ -81,6 +83,7 @@ pub fn parse_line(line: &str) -> Option<StreamEvent> {
             cost_microusd: (v["total_cost_usd"].as_f64().unwrap_or(0.0) * 1e6).round() as u64,
             truncated: super::stopreason::anthropic(v["stop_reason"].as_str()),
             session_id: str_of(&v["session_id"]),
+            context_window: super::clauderesult::window_of(&v),
             denied: super::clauderesult::denials(&v),
         }),
         _ => StreamEvent::Other,

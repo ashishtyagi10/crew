@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use super::{denials, note, Denied};
+use super::{denials, note, window_of, Denied};
 use crate::claudestream::{parse_line, StreamEvent};
 
 /// The shape a real `claude -p` printed on 2026-11-02 in default mode, asked
@@ -66,4 +66,17 @@ fn a_long_command_is_clipped_and_a_bare_tool_is_named_alone() {
     assert!(got[0].on.ends_with("\u{2026}`"));
     assert_eq!(got[1], d("WebSearch", ""));
     assert!(note(&got).unwrap().contains(" \u{b7} WebSearch."));
+}
+
+/// The window is the probed `modelUsage` field (2026-11-04, claude 2.1.x),
+/// taken from the model that read the most prompt, not a helper it called.
+#[test]
+fn the_window_is_the_working_models_context_window() {
+    let line = r#"{"type":"result","subtype":"success","is_error":false,"result":"hi","usage":{"input_tokens":2,"output_tokens":18},"modelUsage":{"claude-haiku-4-5":{"inputTokens":900,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"contextWindow":200000},"claude-opus-5-5":{"inputTokens":2,"outputTokens":18,"cacheReadInputTokens":11266,"cacheCreationInputTokens":19353,"contextWindow":1000000,"maxOutputTokens":128000}}}"#;
+    let Some(StreamEvent::Result(r)) = parse_line(line) else {
+        panic!("a result line");
+    };
+    assert_eq!(r.context_window, 1_000_000);
+    assert_eq!(window_of(&json!({"type":"result"})), 0);
+    assert_eq!(window_of(&json!({"modelUsage":{"m":{"inputTokens":1}}})), 0);
 }

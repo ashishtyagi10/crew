@@ -87,6 +87,7 @@ pub(crate) fn roster_seg(agents: &[AgentInfo], cols: usize) -> Option<String> {
 pub(crate) struct FooterCtx<'a> {
     pub agents: &'a [AgentInfo],
     pub ctx: &'a HashMap<String, u64>,
+    pub ctx_window: &'a HashMap<String, u64>,
     pub tok_in: u64,
     pub tok_out: u64,
     pub cost_microusd: u64,
@@ -210,7 +211,7 @@ pub(crate) fn footer_lines_with(
     }
     // No gauge before anything was sent: `▭ 0% (ctx)` under a fresh pane.
     let sent = fc.ctx.values().any(|&n| n > 0);
-    if let Some(fill) = ctx_fill(fc.agents, fc.ctx).filter(|_| sent) {
+    if let Some(fill) = ctx_fill(fc.agents, fc.ctx, fc.ctx_window).filter(|_| sent) {
         let fill = fc.readouts.ctx.tick(f64::from(fill), now);
         gauge(&mut l2, fill, "ctx", 2);
     }
@@ -240,6 +241,7 @@ pub(crate) fn footer_ctx(pane: &ChatPane) -> FooterCtx<'_> {
         readouts: &pane.readouts,
         agents: &pane.agents,
         ctx: &pane.ctx,
+        ctx_window: &pane.ctx_window,
         tok_in: pane.tok_in,
         tok_out: pane.tok_out,
         cost_microusd: pane.cost_microusd,

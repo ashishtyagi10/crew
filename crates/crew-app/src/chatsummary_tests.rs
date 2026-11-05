@@ -28,6 +28,7 @@ pub(crate) fn fc<'a>(agents: &'a [AgentInfo], ctxm: &'a HashMap<String, u64>) ->
         readouts: readouts(),
         agents,
         ctx: ctxm,
+        ctx_window: Box::leak(Box::default()),
         tok_in: 41_600,
         tok_out: 314,
         cost_microusd: 129_000, // $0.129

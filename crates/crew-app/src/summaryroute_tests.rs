@@ -13,6 +13,7 @@ fn fc<'a>(agents: &'a [AgentInfo], ctx: &'a HashMap<String, u64>) -> FooterCtx<'
     FooterCtx {
         agents,
         ctx,
+        ctx_window: Box::leak(Box::default()),
         tok_in: 0,
         tok_out: 0,
         cost_microusd: 0,
