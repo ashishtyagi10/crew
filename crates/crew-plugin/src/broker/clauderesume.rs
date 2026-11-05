@@ -13,13 +13,15 @@
 //! carry their own transcript. A session older than [`FRESH_FOR`], one a
 //! stop or a failure ended, and one another task already took are not
 //! resumed, and a resume Claude Code refuses (a session it no longer has)
-//! runs again fresh.
+//! runs again fresh. A resumed session is sent only what it has not read
+//! (`resumedelta`).
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use super::adapter::{HopStream, Usage};
 use super::claudeagent::ClaudeAgent;
+use super::resumedelta::{news, seen_with, Seen};
 
 /// How long a session stays worth continuing.
 const FRESH_FOR: Duration = Duration::from_secs(30 * 60);
@@ -35,6 +37,8 @@ struct Last {
     /// given the same address, which read as the same task.
     task: Arc<AtomicBool>,
     at: Instant,
+    /// What the session has been sent, every message of it.
+    seen: Seen,
 }
 
 /// Which task a run belongs to: its stop flag.
@@ -52,7 +56,7 @@ impl Resume {
     /// The session a run of `task` may continue, taken so no other run
     /// continues it too: the last run's, when that ran for another task (so
     /// this is a new message) less than [`FRESH_FOR`] ago.
-    pub(super) fn take_for(&self, task: &Task) -> Option<String> {
+    pub(super) fn take_for(&self, task: &Task) -> Option<(String, Seen)> {
         let task = task.as_ref()?;
         let mut slot = self.0.lock().unwrap_or_else(|e| e.into_inner());
         let last = slot.take()?;
@@ -60,11 +64,11 @@ impl Resume {
             *slot = Some(last); // a later dial of the same message
             return None;
         }
-        (last.at.elapsed() < FRESH_FOR).then_some(last.id)
+        (last.at.elapsed() < FRESH_FOR).then_some((last.id, last.seen))
     }
 
-    /// Keep the session a run of `task` ended on.
-    pub(super) fn keep(&self, id: &str, task: &Task) {
+    /// Keep the session a run of `task` ended on, and what it was sent.
+    pub(super) fn keep(&self, id: &str, task: &Task, seen: Seen) {
         let (Some(task), false) = (task, id.is_empty()) else {
             return;
         };
@@ -72,6 +76,7 @@ impl Resume {
             id: id.to_string(),
             task: Arc::clone(task),
             at: Instant::now(),
+            seen,
         };
         *self.0.lock().unwrap_or_else(|e| e.into_inner()) = Some(last);
     }
@@ -92,12 +97,18 @@ impl ClaudeAgent {
         s: &HopStream,
     ) -> Result<(String, Usage), String> {
         let task = super::cancelscope::current();
-        let from = self.resume.take_for(&task);
-        let got = match self.run_once(body, t, s, from.as_deref(), &task) {
-            Err(e) if from.is_some() && e != super::cancelscope::STOPPED => {
-                self.run_once(body, t, s, None, &task)
+        let fresh = || seen_with(Seen::new(), body);
+        let got = match self.resume.take_for(&task) {
+            Some((id, seen)) => {
+                let sent = news(body, &seen);
+                match self.run_once(&sent, t, s, Some(&id), &task, seen_with(seen, body)) {
+                    Err(e) if e != super::cancelscope::STOPPED => {
+                        self.run_once(body, t, s, None, &task, fresh())
+                    }
+                    got => got,
+                }
             }
-            got => got,
+            None => self.run_once(body, t, s, None, &task, fresh()),
         };
         if got.is_err() {
             self.resume.forget();

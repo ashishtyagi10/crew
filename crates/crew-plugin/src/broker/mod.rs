@@ -80,6 +80,7 @@ mod receipt;
 mod registry;
 mod relay;
 mod replyverify;
+mod resumedelta;
 mod retired;
 mod review;
 mod rosterev;

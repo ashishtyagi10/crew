@@ -26,7 +26,7 @@ pub(crate) const ANSWER_CAP: usize = 3 * 1024;
 pub(crate) const CONTEXT_CAP: usize = 2048;
 /// Chars of the last request the router is shown (`World::recent`).
 pub(crate) const RECENT_CAP: usize = 160;
-const HEAD: &str = "Earlier in this conversation:";
+pub(crate) const HEAD: &str = "Earlier in this conversation:";
 
 /// The slot the session owns, shared with its worker-thread snapshots.
 pub(crate) type SharedThread = Arc<Mutex<Thread>>;
