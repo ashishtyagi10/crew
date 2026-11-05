@@ -1622,7 +1622,7 @@ longer aim at.
   between replaces the question rather than answering it, and a question older
   than ten seconds is asked again.
 - **`/errors all`** — the fleet-wide version: counts the errors in **every**
-  terminal pane's scrollback (bounded and paged, like `/find all`), reports
+  terminal pane's scrollback (in one pass, like `/find all`), reports
   which panes have them and how many — `4 errors in 2 panes: →#3 (3) #5 (1)` —
   and lands on the first, walked to its most recent one. With six agents
   running, "which of these went wrong" is the question you have before you go
@@ -2220,13 +2220,16 @@ an agent TUI like `claude`) there's no terminal scrollback to move, so the wheel
 is **forwarded to the program** instead: as mouse-wheel events when it enabled
 mouse reporting, or arrow keys under xterm "alternate scroll" — so scrolling its
 own view just works. Typing into a pane clears any leftover mouse-selection
-highlight, so a stale selection never lingers over fresh output. **`/find <text>`** scrolls
-back to the most recent line containing the text (smart case: case-insensitive
-unless the term has an uppercase letter), **highlights every match** in the
+highlight, so a stale selection never lingers over fresh output. **`/find <text>`** brings
+the most recent line containing the text into view, from anywhere in the
+scrollback, in one pass that reads the grid rather than scrolling it (a match
+9,000 lines back lands in under 2 ms), centred unless it was already on screen;
+a word a soft wrap splits across two rows still matches (smart case:
+case-insensitive unless the term has an uppercase letter), **highlights every match** in the
 viewport with an amber wash, and reports the in-view match count on the status
 line (a miss reports too). Returning to the live bottom clears the highlight.
 **`/find all <text>`** searches **every terminal pane's full scrollback**
-(hidden panes included, bounded per pane), focuses the first matching pane
+(hidden panes included, read in one pass without moving any view), focuses the first matching pane
 (restoring it if minimized), scrolls it to the most recent match, and reports
 the fleet-wide tally — `12 matches for “error” in 3 panes (#2 #4 #7)` — using
 the same pane numbers as Cmd+1..9 and the tile badges (the landed pane is

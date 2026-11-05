@@ -93,8 +93,6 @@ src/plot/canvas.rs 349
 src/poll.rs 877
 src/render.rs 561
 src/reopen_tests.rs 230
-src/search.rs 208
-src/searchall.rs 213
 src/sessionrestore.rs 259
 src/sessionrestore_tests.rs 260
 src/sessionsave.rs 269
