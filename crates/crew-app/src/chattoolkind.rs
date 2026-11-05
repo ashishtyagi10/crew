@@ -75,8 +75,8 @@ fn plural(n: usize) -> &'static str {
     }
 }
 
-/// The summary line's text after its mark: `4 tool calls · 1 skill · 2.1 s`.
-/// Loads are counted by kind, zero counts omitted; the time is the calls'
+/// The summary line's text after its mark: `3 read · 1 run · 1 skill · 2.1 s`
+/// — calls named by what they did (`chattoolstrip::kinds_text`). Loads by kind, zero counts omitted; the time is the calls'
 /// alone and goes with them (a block of loads has nothing to time). An
 /// empty block still reads `0 tool calls · 0 ms`.
 pub(crate) fn summary_text(b: &ToolBlock) -> String {
@@ -84,11 +84,10 @@ pub(crate) fn summary_text(b: &ToolBlock) -> String {
     let with_calls = calls > 0 || b.lines.is_empty();
     let mut parts = Vec::new();
     if with_calls {
-        parts.push(format!(
-            "{calls} {}{}",
-            LineKind::Tool.noun(),
-            plural(calls)
-        ));
+        parts.push(crate::chattoolstrip::kinds_text(b).unwrap_or_else(|| {
+            let noun = LineKind::Tool.noun();
+            format!("{calls} {noun}{}", plural(calls))
+        }));
     }
     for k in [LineKind::Skill, LineKind::Mcp, LineKind::Lsp] {
         let n = b.lines.iter().filter(|l| l.kind == k).count();

@@ -22,9 +22,9 @@ pub(crate) enum ToolHit {
     Line(usize),
 }
 
-/// `  ▸ 4 tool calls · 1 skill · 2.1 s` (`▾` open; a wrench on the icon
+/// `  ▸ 3 read · 1 run · 1 skill · 2.1 s` (`▾` open; a wrench on the icon
 /// set; the counts are `chattoolkind::summary_text`'s) with a `· 1 failed`
-/// in the removed ink when any call did.
+/// in the removed ink when any call did, then the time strip when it fits.
 pub(crate) fn summary(b: &ToolBlock, cols: usize, on: bool) -> CardLine {
     let th = crew_theme::theme();
     let (_, failed, _) = b.tally();
@@ -49,6 +49,12 @@ pub(crate) fn summary(b: &ToolBlock, cols: usize, on: bool) -> CardLine {
     let w: usize = out.iter().map(|c| crate::chatwidth::char_w(c.c)).sum();
     if w > cols {
         out.truncate(cols);
+        return out;
+    }
+    // The strip goes on the same row or not at all: it never costs a row.
+    let strip = crate::chattoolstrip::strip(b);
+    if w + strip.len() <= cols {
+        out.extend(strip);
     }
     out
 }

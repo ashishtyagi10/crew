@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.74
+
+**A finished turn's tool row says what the calls were, and where the time went.**
+- `▸ 11 tool calls · 37.7s` now reads `▸ 6 read · 3 edit · 2 run · 37.7s`, then a thin drawn strip
+  giving reading, editing and running each their share of the time, in their own inks. Same row.
+
 ## 0.29.73
 
 **A card's frame stays whole beside a picture row.**

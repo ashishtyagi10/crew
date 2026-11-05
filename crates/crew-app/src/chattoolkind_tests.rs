@@ -132,7 +132,7 @@ fn the_summary_counts_calls_then_loads_by_kind_and_times_only_the_calls() {
     assert_eq!(b.tally(), (2, 1, 2_100), "loads are not calls");
     assert_eq!(
         summary_text(b),
-        "2 tool calls \u{b7} 1 skill \u{b7} 1 mcp server \u{b7} 2.1s"
+        "2 read \u{b7} 1 skill \u{b7} 1 mcp server \u{b7} 2.1s"
     );
     let mut only = ToolLines::default();
     only.absorb(&loaded("coder", "skill", "a", ""), 0);
