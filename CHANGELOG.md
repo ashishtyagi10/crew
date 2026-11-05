@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.84
+
+**A picture leaves with its text: `clear` and quitting a file manager take it.**
+- `kitten icat x.png; clear` leaves a clean screen; the picture no longer comes back over the new prompt in a young pane.
+- A preview a full-screen program drew (yazi, ranger) goes when the program quits, and the shell's own pictures hide under the program and return after it. A kitty delete now reaches pictures already on screen.
+
 ## 0.29.83
 
 **A Claude Code follow-up is sent only what is new.**

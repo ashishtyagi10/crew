@@ -30,6 +30,11 @@ impl HeadlessTerm {
         self.core.take_images()
     }
 
+    /// Pictures the fed program dropped (see [`crate::ImageWipe`]).
+    pub fn take_image_wipes(&mut self) -> Vec<crate::ImageWipe> {
+        self.core.take_image_wipes()
+    }
+
     /// Scrollback above the screen, for placing those pictures.
     pub fn history_lines(&self) -> usize {
         self.core.history_lines()

@@ -19,12 +19,6 @@ impl PtyTerm {
         self.core.cursor_cell()
     }
 
-    /// Take the pictures this pane's program asked to show since the last
-    /// call. Raw payloads: decoding one on this thread would freeze the grid.
-    pub fn take_images(&mut self) -> Vec<crate::model::PlacedImage> {
-        self.core.take_images()
-    }
-
     /// Publish the frame's cell size in pixels (see [`PlacedImage::cells`]),
     /// telling the pty when it changes the text area's pixel size.
     pub fn set_cell_px(&mut self, w: u32, h: u32) {
