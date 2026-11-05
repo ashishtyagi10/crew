@@ -105,6 +105,11 @@ impl Proof {
         }
     }
 
+    /// Whether the turn has edited a file so far (`chatnofix` asks).
+    pub(crate) fn edited(&self) -> bool {
+        self.edited
+    }
+
     /// The turn's verdict, once: `None` when it edited nothing or the
     /// project's check spoke. The evidence is cleared for the next turn.
     pub(crate) fn settle(&mut self) -> Option<String> {

@@ -22,9 +22,12 @@ impl ChatPane {
                                      // undone is said once (`chatchecklist::left_note`), then it goes.
             let left = crate::chatchecklist::left_note(&self.checklist);
             self.checklist.clear();
-            // What the turn's own runs prove about its edits (`chatproof`),
-            // then its plan's unfinished steps, in its receipt when it has one.
-            for said in self.watch.proof.settle().into_iter().chain(left) {
+            // A fix that edited nothing (`chatnofix`), what the turn's own
+            // runs prove about its edits (`chatproof`), then its plan's
+            // unfinished steps, in its receipt when it has one.
+            let nofix = crate::chatnofix::note(&self.messages, self.watch.proof.edited());
+            let proof = self.watch.proof.settle();
+            for said in nofix.map(String::from).into_iter().chain(proof).chain(left) {
                 if !self.into_receipt("agent smith", &said) {
                     self.push_note(said);
                 }

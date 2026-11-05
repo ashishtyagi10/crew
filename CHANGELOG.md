@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.98
+
+**A "fixed" with nothing changed is named a diagnosis.**
+- When you ask smith to fix something and the answer says "fixed" but no file was edited, a line under the answer now says `! nothing changed — this answer is a diagnosis, not a fix`.
+- An answer that only explains the cause, suggests a change, or says it is already fixed gets no line.
+
 ## 0.29.97
 
 **A new mail on a narrow tile shows what you have written.**

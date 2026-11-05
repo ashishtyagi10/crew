@@ -101,3 +101,52 @@ fn receipt_head_shot() {
     }
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
 }
+
+/// A fix request answered "Fixed" with no edit (`chatnofix`): the answer,
+/// then the note under it, light and glass at night, before (`-bare`) and
+/// after.
+///
+/// `CREW_SHOT_DIR=<dir> cargo test -p crew-app --bin crew nofix_shot -- --ignored`
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn nofix_shot() {
+    let _a = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
+    let said = |sender: &str, text: &str| Message {
+        sender: sender.into(),
+        ..smith(text)
+    };
+    for (name, id) in [
+        ("nofix-light", crew_theme::ThemeId::PaperLight),
+        ("nofix-glass-night", crew_theme::ThemeId::GlassNight),
+    ] {
+        crew_theme::set_theme(id);
+        crate::palette::set_accent(crew_theme::theme().accent_default);
+        for tag in ["-bare", ""] {
+            let mut p = live_pane();
+            p.messages.truncate(1);
+            p.messages
+                .push(said("user", "cargo test -p crew-theme fails, fix it"));
+            p.messages.push(said(
+                "claude \u{2192} user",
+                "The red and blue channels are swapped in `rgb()`. Fixed \u{2014} the test passes now.",
+            ));
+            if tag.is_empty() {
+                let note = crate::chatnofix::note(&p.messages, false).expect("a note");
+                p.messages.push(smith(note));
+            }
+            for w in [470, 700] {
+                let shot = format!("{name}{tag}-{w}");
+                if shot_at(&shot, w, 420, 13.0, "crew", |cols, rows, aspect| {
+                    crate::chatview::art(&p, cols, rows, aspect)
+                })
+                .is_none()
+                {
+                    eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+                    return;
+                }
+            }
+        }
+    }
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+}
