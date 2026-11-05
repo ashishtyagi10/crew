@@ -56,6 +56,12 @@ fn the_latest_dial_keeps_an_earlier_fallback() {
 /// Replies in order, repeating the last, each one reporting `fell`.
 struct Falls(&'static str, Vec<&'static str>, &'static str, Mutex<usize>);
 
+std::thread_local! {
+    /// What the next replies' settings refused (`Usage::refused`); the
+    /// relay dials on the test's own thread.
+    static REFUSED: std::cell::RefCell<String> = Default::default();
+}
+
 impl Adapter for Falls {
     fn name(&self) -> &str {
         self.0
@@ -72,6 +78,7 @@ impl Adapter for Falls {
         *i += 1;
         let u = Usage {
             fell_back: self.2.into(),
+            refused: REFUSED.with(|r| r.borrow().clone()),
             ..Default::default()
         };
         Ok((r, u))
@@ -136,4 +143,22 @@ fn a_turn_its_first_models_answered_says_nothing() {
         !msgs.iter().any(|(_, t)| t.starts_with("fell back")),
         "{msgs:#?}"
     );
+}
+
+/// A reply whose tool calls were refused leaves the refusal as smith's row
+/// right under it, and the reply's own text without it (it rode the
+/// answer as prose and read as the agent's words).
+#[test]
+fn a_refusal_is_smiths_row_under_the_reply_not_the_reply() {
+    const NOTE: &str = "! not allowed: Write notes.txt \u{2014} allow it under permissions.allow";
+    REFUSED.with(|r| *r.borrow_mut() = NOTE.into());
+    let a = Falls("a", vec!["could not write it\n@done"], "", Mutex::new(0));
+    let msgs = turn(vec![a], "a");
+    REFUSED.with(|r| r.borrow_mut().clear());
+    let at = msgs
+        .iter()
+        .position(|(s, t)| s == "agent smith" && t == NOTE);
+    let at = at.unwrap_or_else(|| panic!("no refusal row: {msgs:#?}"));
+    assert!(msgs[at - 1].0.starts_with("a \u{2192}"), "{msgs:#?}");
+    assert!(!msgs[at - 1].1.contains("not allowed"), "{msgs:#?}");
 }

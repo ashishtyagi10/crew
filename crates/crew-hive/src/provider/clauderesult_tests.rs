@@ -44,14 +44,14 @@ fn the_note_names_what_was_refused_and_where_to_allow_it() {
     let said = note(&denials(&captured())).unwrap();
     assert!(
         said.starts_with(
-            "Claude Code was not allowed to: Write /x/hello.txt \u{b7} Bash `touch made.txt`."
+            "! not allowed: Write /x/hello.txt \u{b7} Bash `touch made.txt` \u{2014} allow"
         ),
         "{said}"
     );
     assert!(said.contains("permissions.allow"), "{said}");
     let many: Vec<Denied> = (0..6).map(|i| d("Read", &format!("f{i}"))).collect();
     let said = note(&many).unwrap();
-    assert!(said.contains("Read f3 (+2 more)."), "{said}");
+    assert!(said.contains("Read f3 (+2 more) \u{2014}"), "{said}");
     assert!(!said.contains("f4"), "{said}");
 }
 
@@ -65,7 +65,7 @@ fn a_long_command_is_clipped_and_a_bare_tool_is_named_alone() {
     assert_eq!(got[0].on.chars().count(), 62, "{}", got[0].on);
     assert!(got[0].on.ends_with("\u{2026}`"));
     assert_eq!(got[1], d("WebSearch", ""));
-    assert!(note(&got).unwrap().contains(" \u{b7} WebSearch."));
+    assert!(note(&got).unwrap().contains(" \u{b7} WebSearch \u{2014}"));
 }
 
 /// The window is the probed `modelUsage` field (2026-11-04, claude 2.1.x),

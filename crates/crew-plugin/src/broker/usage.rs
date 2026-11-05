@@ -20,6 +20,10 @@ pub struct Usage {
     /// The answering model's context window in tokens, when the backend says
     /// it (Claude Code's `result` line); 0 = look it up by model name.
     pub context_window: u64,
+    /// `! not allowed: Write notes.txt …` when Claude Code's settings
+    /// refused tool calls on this hop (`clauderesult::note`): smith's row
+    /// under the reply (`fellback::Told::line`), never the reply's own text.
+    pub refused: String,
 }
 
 impl Usage {
@@ -37,17 +41,23 @@ impl Usage {
             },
             fell_back: crate::broker::fellback::detail(c),
             context_window: 0,
+            refused: String::new(),
         }
     }
 
     /// `next` as the hop's usage — its prompt is the latest context fill —
-    /// still carrying a fallback an earlier dial of the same hop made: the
-    /// chain fell through then, whatever the dial after it did.
+    /// still carrying a fallback or a refusal an earlier dial of the same
+    /// hop made: the chain fell through then, and the write was refused
+    /// then, whatever the dial after it did.
     pub(crate) fn latest(&mut self, next: Usage) {
         let earlier = std::mem::take(&mut self.fell_back);
+        let refused = std::mem::take(&mut self.refused);
         *self = next;
         if self.fell_back.is_empty() {
             self.fell_back = earlier;
+        }
+        if self.refused.is_empty() {
+            self.refused = refused;
         }
     }
 }
