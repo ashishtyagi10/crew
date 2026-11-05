@@ -99,6 +99,7 @@ mod chatmd;
 mod chatmdcells;
 mod chatmention;
 mod chatmotion;
+mod chatnofix;
 mod chatphase;
 mod chatproof;
 mod chatproofcmd;
