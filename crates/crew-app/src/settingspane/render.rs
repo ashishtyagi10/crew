@@ -28,14 +28,15 @@ pub(crate) fn render(p: &SettingsPane, cols: u16, rows: u16) -> Vec<CellView> {
         let active = frect.is_some_and(|r| c.rect.intersects(r));
         form::card(&mut virt, c, active);
     }
-    for &(f, r) in &lay.rects {
-        control(&mut virt, p, f, r, f == focused);
-    }
-
     let viewport = rows.saturating_sub(2); // gap + button row
                                            // Save/Cancel live on the pinned button row: keep the form tail visible.
     let tail = Rect::new(0, lay.height.saturating_sub(1), 1, 1);
     let off = form::scroll_for(frect.unwrap_or(tail), lay.height, viewport);
+    for &(f, r) in &lay.rects {
+        if !super::foot::split(r, off, viewport, f == focused) {
+            control(&mut virt, p, f, r, f == focused);
+        }
+    }
 
     let mut out = Buffer::empty(Rect::new(0, 0, cols, rows));
     blit(&mut out, &virt, off, viewport);

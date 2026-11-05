@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.88
+
+**A scrolled settings form shows whole fields, never half a box.**
+- Where the form runs past the pane, a field the edge would split (a `Min secs` legend with nothing under it, a `Line spacing` box missing its value) is left out; the fade and the `↓` still say there is more.
+- The field beside it in the other column stays, the field you are typing in always shows, and the blank stretch takes no click.
+
 ## 0.29.87
 
 **`/find` reaches the whole scrollback at once and shows the hit mid-view.**
