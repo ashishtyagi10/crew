@@ -120,3 +120,44 @@ fn shift_or_a_program_without_the_mouse_keeps_crews_click() {
         "right-click still pastes"
     );
 }
+
+#[test]
+fn a_drag_reaches_a_program_that_asked_for_drags() {
+    let (mut app, log) = app_on_cell("drag", b"\x1b[?1002h\x1b[?1006h");
+    assert!(app.report_press(MouseButton::Left));
+    assert!(
+        !app.report_motion(),
+        "a move inside the pressed cell is not one"
+    );
+    app.cursor.0 += CELL.0;
+    assert!(app.report_motion());
+    assert!(!app.report_motion(), "once per cell crossed, not per pixel");
+    assert!(app.report_release(MouseButton::Left));
+    let got = read_log(&log, 30);
+    let _ = std::fs::remove_file(&log);
+    assert_eq!(
+        String::from_utf8_lossy(&got),
+        "\x1b[<0;5;3M\x1b[<32;6;3M\x1b[<0;6;3m"
+    );
+}
+
+#[test]
+fn a_bare_move_reaches_only_a_program_that_asked_for_every_move() {
+    let (mut app, log) = app_on_cell("hover", b"\x1b[?1003h\x1b[?1006h");
+    app.cursor.0 += CELL.0;
+    assert!(app.report_motion());
+    let got = read_log(&log, 10);
+    let _ = std::fs::remove_file(&log);
+    assert_eq!(String::from_utf8_lossy(&got), "\x1b[<35;6;3M");
+    // Clicks only (1000), or drags only (1002) with no button down: silent.
+    for (tag, modes) in [("click", &b"\x1b[?1000h"[..]), ("drag0", b"\x1b[?1002h")] {
+        let (mut app, _) = app_on_cell(tag, modes);
+        app.cursor.0 += CELL.0;
+        assert!(!app.report_motion(), "{tag}");
+    }
+    // Shift keeps the move crew's.
+    let (mut app, _) = app_on_cell("hshift", b"\x1b[?1003h");
+    app.mods = ModifiersState::SHIFT.into();
+    app.cursor.0 += CELL.0;
+    assert!(!app.report_motion());
+}

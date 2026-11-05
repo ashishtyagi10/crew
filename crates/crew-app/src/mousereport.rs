@@ -3,6 +3,9 @@
 //! (`altscroll`), so a click in htop, mc, lazygit, tmux or vim `mouse=a` started
 //! crew's own text selection instead of reaching the program. Shift+click keeps
 //! crew's selection, the xterm convention for "the terminal, not the app".
+//! Moves are reported too where the program asked (1002 with a button held,
+//! 1003 always), so tmux splitters drag, vim's visual mode follows the mouse
+//! and btop lights what the pointer hovers.
 use crew_term::InputModes;
 use winit::event::MouseButton;
 
@@ -21,6 +24,28 @@ pub(crate) fn button_code(b: MouseButton) -> Option<u8> {
 /// Shift (4) is never sent: a shifted click is crew's, not the program's.
 pub(crate) fn mod_bits(alt: bool, ctrl: bool) -> u8 {
     (if alt { 8 } else { 0 }) | (if ctrl { 16 } else { 0 })
+}
+
+/// The modifier bits a wheel report carries: Shift 4 and Alt 8. Unlike a
+/// click, Shift+wheel has no crew meaning to keep, so the program gets it.
+/// Ctrl (and Cmd) + wheel never gets here: it is crew's font zoom.
+pub(crate) fn wheel_mods(m: winit::keyboard::ModifiersState) -> u8 {
+    mod_bits(m.alt_key(), false) | if m.shift_key() { 4 } else { 0 }
+}
+
+/// The bit xterm adds to a button number when the report is a move.
+const MOTION: u8 = 32;
+
+/// The button code a pointer move reports, or `None` when the program did not
+/// ask for this kind of move: with a button held (`held`, its press code) under
+/// drag (1002) or any-motion (1003) mode; with none held only under 1003, as
+/// button 3, "no button". `mods` are the modifier bits held now.
+pub(crate) fn motion_code(m: &InputModes, held: Option<u8>, mods: u8) -> Option<u8> {
+    match held {
+        Some(code) if m.mouse_drag || m.mouse_motion => Some((code & 3) | mods | MOTION),
+        None if m.mouse_motion => Some(3 | mods | MOTION),
+        _ => None,
+    }
 }
 
 /// Whether a click goes to the program: it enabled any mouse mode, and the

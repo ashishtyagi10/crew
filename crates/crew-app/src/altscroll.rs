@@ -10,15 +10,17 @@ use crew_term::InputModes;
 const MAX_TICKS: u32 = 10;
 
 /// Bytes to forward a wheel scroll of `lines` (>0 = up/older) at the hovered,
-/// 0-based `cell`, or `None` to fall back to local scrollback.
-pub fn wheel_bytes(m: &InputModes, lines: i32, cell: (u16, u16)) -> Option<Vec<u8>> {
+/// 0-based `cell`, or `None` to fall back to local scrollback. `mods` are the
+/// xterm modifier bits a mouse report carries (Shift 4, Alt 8): without them
+/// Alt+wheel and Shift+wheel reached a program as a plain wheel.
+pub fn wheel_bytes(m: &InputModes, lines: i32, cell: (u16, u16), mods: u8) -> Option<Vec<u8>> {
     if lines == 0 {
         return None;
     }
     let up = lines > 0;
     let n = lines.unsigned_abs().min(MAX_TICKS) as usize;
     if m.mouse {
-        Some(repeat(&mouse_tick(m.sgr_mouse, up, cell), n))
+        Some(repeat(&mouse_tick(m.sgr_mouse, up, cell, mods), n))
     } else if m.alt_screen && m.alternate_scroll {
         Some(repeat(&arrow(m.app_cursor, up), n))
     } else {
@@ -49,9 +51,10 @@ fn arrow(app_cursor: bool, up: bool) -> Vec<u8> {
     vec![0x1b, intro, dir]
 }
 
-/// One wheel-button report. Wheel up/down are CSI mouse buttons 64/65.
-fn mouse_tick(sgr: bool, up: bool, cell: (u16, u16)) -> Vec<u8> {
-    let btn: u32 = if up { 64 } else { 65 };
+/// One wheel-button report. Wheel up/down are CSI mouse buttons 64/65, plus
+/// any modifier bits.
+fn mouse_tick(sgr: bool, up: bool, cell: (u16, u16), mods: u8) -> Vec<u8> {
+    let btn = u32::from(if up { 64 } else { 65 } | mods);
     let x = cell.0 as u32 + 1; // mouse coordinates are 1-based
     let y = cell.1 as u32 + 1;
     if sgr {

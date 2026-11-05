@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.93
+
+**Mouse drags and moves reach programs that asked for them.**
+- A held drag in tmux, zellij or vim's `mouse=a` now reaches the program (DECSET 1002), so splitters drag and visual mode follows the mouse instead of crew starting its own selection.
+- Under 1003 every move is reported once per cell crossed, so btop and k9s light what the pointer hovers. Hovering never scrolls the view.
+- Alt+wheel and Shift+wheel carry their modifier bits; Ctrl/Cmd+wheel stays crew's font zoom.
+
 ## 0.29.92
 
 **A Claude Code subagent's calls fold into its Agent line.**
