@@ -47,6 +47,7 @@ pub(crate) mod rowchips;
 mod runlive;
 mod runmark;
 mod scrollpos;
+mod selwash;
 pub(crate) mod store;
 mod tagmenu;
 

@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.70
+
+**The selected todo is washed like every other list's.**
+- `/todo` marked the row the next key acts on with a `›` and bold alone, which read like the
+  bold group heads. It now wears the selection wash edge to edge, as the pickers and the inbox do.
+- A wrapped title and a stacked chip row are washed as one block, so the item reads as one.
+
 ## 0.29.69
 
 **Ctrl+Space, Ctrl+/ and Ctrl+2…8 send their control bytes.**
