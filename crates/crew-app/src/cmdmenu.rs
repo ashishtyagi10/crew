@@ -123,7 +123,7 @@ pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16)
     // width the list actually draws in.
     let avail = usize::from(w).saturating_sub(2);
     let label_w = crate::cmdrow::label_col(matches, avail);
-    let swatch_w = crate::cmdrow::swatch_col(matches);
+    let swatch_w = crate::swatchfit::col(matches, label_w, avail);
     let dim = crate::menuink::desc_color();
     let items: Vec<ListItem> = matches
         .iter()

@@ -610,6 +610,7 @@ mod swarmpane;
 #[path = "swarmshot_tests.rs"]
 mod swarmshot_tests;
 mod swatch;
+mod swatchfit;
 #[cfg(test)]
 mod sweepshot_tests;
 mod sysdials;
