@@ -10,73 +10,15 @@
 //! the user never sees anywhere else. A file is now a row that never wraps:
 //! the path gives up its LEFT end (`…/src/lib.rs`), never its marker.
 use crate::chatbody::{plain, CardLine, Color};
+#[cfg(test)]
+use crate::chatreceiptcells::CELL;
+use crate::chatreceiptcells::{ink, push, push_bar, push_counts, tail_fit, BAR};
 use crate::chatreceiptparse::{parse, per_file};
-use crate::chatwidth::{char_w, str_w};
+use crate::chatwidth::str_w;
 use crate::md::syntax::Token;
 
-/// How many files get a row; the rest are counted on one.
+/// How many files get a row; the rest are counted on the lead row.
 pub(crate) const SHOWN: usize = 3;
-/// The bar's width at the largest file's change, in cells.
-pub(crate) const BAR: usize = 5;
-/// The bar's cell: the heavy rule the tool strip uses, drawn whole.
-const CELL: char = '\u{2501}';
-
-fn ink(token: Token) -> Color {
-    crate::chatink::token_fg(token)
-}
-
-fn push(row: &mut CardLine, s: &str, fg: Color) {
-    row.extend(s.chars().map(|c| plain(c, fg, false)));
-}
-
-/// `+a −d`, each in its diff ink.
-fn push_counts(row: &mut CardLine, (a, d): (usize, usize)) {
-    push(row, &format!("+{a}"), ink(Token::Added));
-    push(row, &format!(" \u{2212}{d}"), ink(Token::Removed));
-}
-
-/// The bar: as long as this file's change against the largest's, split
-/// between the added and removed inks in their proportion.
-fn push_bar(row: &mut CardLine, (a, d): (usize, usize), max: usize) {
-    let t = a + d;
-    if t == 0 || max == 0 {
-        return;
-    }
-    let cells = (t * BAR).div_ceil(max).clamp(1, BAR);
-    let mut add = (cells * a + t / 2) / t;
-    if a > 0 && add == 0 {
-        add = 1;
-    }
-    if d > 0 && add == cells && cells > 1 {
-        add = cells - 1;
-    }
-    row.extend(std::iter::repeat_n(
-        plain(CELL, ink(Token::Added), false),
-        add,
-    ));
-    let del = ink(Token::Removed);
-    row.extend(std::iter::repeat_n(plain(CELL, del, false), cells - add));
-}
-
-/// `path` in at most `w` cells, its left end given up first: the file's
-/// name is what a reader looks for.
-fn tail_fit(path: &str, w: usize) -> String {
-    if str_w(path) <= w {
-        return path.to_string();
-    }
-    let mut kept: Vec<char> = Vec::new();
-    let mut used = 1; // the ellipsis
-    for c in path.chars().rev() {
-        if used + char_w(c) > w {
-            break;
-        }
-        used += char_w(c);
-        kept.push(c);
-    }
-    std::iter::once('\u{2026}')
-        .chain(kept.into_iter().rev())
-        .collect()
-}
 
 /// The drawn head of the receipt whose whole text is `text`, `cols` wide;
 /// `None` when its first line does not parse.
@@ -98,6 +40,13 @@ pub(crate) fn rows(text: &str, cols: usize, fg: Color) -> Option<Vec<CardLine>> 
         if let Some(t) = head.total.filter(|_| head.files > 1) {
             push(&mut row, "  ", fg);
             push_counts(&mut row, t);
+        }
+        // The files with no row of their own are counted HERE, not on a
+        // row of their own under the list: v0.29.77's `+2 more files` row
+        // made a five-file head six rows.
+        if let Some(more) = head.files.checked_sub(SHOWN).filter(|n| *n > 0) {
+            let muted = crew_theme::theme().text_muted;
+            push(&mut row, &format!(" \u{b7} {more} more"), muted);
         }
         out.push(row.into_iter().take(width + 1).collect());
     }
@@ -147,17 +96,28 @@ pub(crate) fn rows(text: &str, cols: usize, fg: Color) -> Option<Vec<CardLine>> 
         }
         out.push(row.into_iter().take(width + 1).collect());
     }
-    if let Some(more) = head.files.checked_sub(shown.len()).filter(|n| *n > 0) {
-        let muted = crew_theme::theme().text_muted;
-        let s = if more == 1 { "" } else { "s" };
-        let mut row = vec![plain(' ', fg, false)];
-        push(&mut row, &format!("+{more} more file{s}"), muted);
-        out.push(row);
-    }
-    if let Some(h) = head.hint {
-        out.extend(crate::chatbody::body_lines(h, cols, fg, false));
+    if let Some(h) = head.hint.map(tip) {
+        tip_on(&mut out, h, cols, fg);
     }
     Some(out)
+}
+
+/// The broker's once-a-session hint as the pane says it. Its `/diff shows
+/// them` is dropped: the card under this head holds the diff itself, one
+/// click on its `▸ diff` row away, so the lesson is the card's own job.
+fn tip(hint: &str) -> &str {
+    hint.strip_prefix("/diff shows them; ").unwrap_or(hint)
+}
+
+/// `tip` muted at the end of the head's first row when it fits there, so
+/// it costs no row; on a row of its own under the head when it does not.
+fn tip_on(out: &mut Vec<CardLine>, tip: &str, cols: usize, fg: Color) {
+    let muted = crew_theme::theme().text_muted;
+    let suffix = format!(" \u{b7} {tip}");
+    match out.first_mut() {
+        Some(first) if first.len() + str_w(&suffix) < cols => push(first, &suffix, muted),
+        _ => out.extend(crate::chatbody::body_lines(tip, cols, fg, false)),
+    }
 }
 
 /// A card's body: a receipt's head drawn ([`rows`]) over the rest of
