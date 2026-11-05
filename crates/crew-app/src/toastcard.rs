@@ -102,8 +102,9 @@ pub(crate) fn card_cells(c: &CardText, cols: u16, fade: f32, hovered: bool) -> V
         actionable,
     } = *c;
     let t = crew_theme::theme();
-    let mut border = if alert { t.bell } else { t.border_normal };
-    let mut legend_fg = if alert { t.bell } else { t.legend_off };
+    let alert_ink = crate::toastalert::ink(legend);
+    let mut border = if alert { alert_ink } else { t.border_normal };
+    let mut legend_fg = if alert { alert_ink } else { t.legend_off };
     // A repeat count is part of what the card says, so it survives the hover
     // rewrite rather than being replaced by it: the reason you are hovering
     // may well be that the card said it happened four times.

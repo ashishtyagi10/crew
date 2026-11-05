@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.91
+
+**A "waiting" toast asks in amber; red is kept for what broke.**
+- A card saying an agent has a question for you wore the same red stroke and legend as `failed` and `exited`. It now takes the attention ink the footer's `allow?` asks in: amber on dark and paper pages, the tube's own phosphor on a CRT.
+- `failed`, `exited` and errors stay red.
+
 ## 0.29.90
 
 **Alt+key is Meta in a terminal, and on a Mac Option can be.**

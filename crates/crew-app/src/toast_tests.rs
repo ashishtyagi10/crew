@@ -77,7 +77,7 @@ fn alert_toasts_border_in_the_bell_color() {
         card_cells(
             &CardText {
                 text: "x",
-                legend: "waiting",
+                legend: "failed",
                 repeats: 1,
                 alert,
                 actionable: false,

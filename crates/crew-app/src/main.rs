@@ -635,6 +635,7 @@ mod themepeek;
 mod themereport;
 mod titlebar;
 mod toast;
+mod toastalert;
 mod toastcard;
 #[cfg(test)]
 mod toastnarrowshot_tests;
