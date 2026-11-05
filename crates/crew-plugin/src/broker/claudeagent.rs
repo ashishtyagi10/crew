@@ -36,6 +36,8 @@ pub struct ClaudeAgent {
     pub idle_floor: Duration,
     /// The session the next message continues (`clauderesume`).
     pub resume: Resume,
+    /// Plan mode: reads, never edits (`handsoff`), for a review.
+    pub read_only: bool,
 }
 
 impl ClaudeAgent {
@@ -45,6 +47,7 @@ impl ClaudeAgent {
             model: model.filter(|m| !m.is_empty()),
             idle_floor: IDLE_FLOOR,
             resume: Resume::shared(),
+            read_only: false,
         }
     }
 
@@ -63,8 +66,10 @@ impl ClaudeAgent {
             "--include-partial-messages".into(),
         ];
         if let Some(m) = &self.model {
-            v.push("--model".into());
-            v.push(m.clone());
+            v.extend(["--model".into(), m.clone()]);
+        }
+        if self.read_only {
+            v.extend(super::handsoff::CLAUDE.map(String::from));
         }
         if let Some(id) = resume {
             v.extend(["--resume".into(), id.to_string()]);
@@ -166,6 +171,10 @@ impl Adapter for ClaudeAgent {
 
     fn call(&self, body: &str, timeout: Duration) -> Result<String, String> {
         self.run(body, timeout, &HopStream::noop()).map(|(t, _)| t)
+    }
+
+    fn call_read_only(&self, body: &str, timeout: Duration) -> Result<String, String> {
+        super::handsoff::claude(self, body, timeout)
     }
 
     fn call_with_usage(&self, body: &str, timeout: Duration) -> Result<(String, Usage), String> {

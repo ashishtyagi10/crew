@@ -138,6 +138,13 @@ pub trait Adapter: Send + Sync {
         let _ = stream;
         self.call_with_usage(body, timeout)
     }
+    /// [`Adapter::call`] with the agent's hands off the tree, for work that
+    /// must only read: a review. An API agent's one completion runs no tools,
+    /// so the default is already that; a CLI agent edits in place and says
+    /// otherwise (`handsoff`).
+    fn call_read_only(&self, body: &str, timeout: Duration) -> Result<String, String> {
+        self.call(body, timeout)
+    }
 }
 
 /// An agent driven by one CLI command. `args` may contain the placeholder
@@ -171,6 +178,12 @@ impl Adapter for CliAdapter {
 
     fn call(&self, body: &str, timeout: Duration) -> Result<String, String> {
         let args = self.build_args(body);
+        let raw = run_cli(&self.program, &args, timeout)?;
+        Ok(self.normalize.apply(&raw))
+    }
+
+    fn call_read_only(&self, body: &str, timeout: Duration) -> Result<String, String> {
+        let args = super::handsoff::cli_args(&self.program, self.build_args(body));
         let raw = run_cli(&self.program, &args, timeout)?;
         Ok(self.normalize.apply(&raw))
     }

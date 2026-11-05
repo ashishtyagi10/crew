@@ -111,7 +111,7 @@ fn overruled(d: Decision, because: &str) -> Decision {
 /// Whether `task` says any of `phrases`, as whole words. Paths and file
 /// names are taken out first: "fix the bug in review.rs" names a file, and a
 /// fix to it is not a code review.
-fn says_any(task: &str, phrases: &[&str]) -> bool {
+pub(crate) fn says_any(task: &str, phrases: &[&str]) -> bool {
     let said = words(task, true);
     phrases.iter().any(|phrase| {
         let want = words(phrase, false);

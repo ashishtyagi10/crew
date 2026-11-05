@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.89
+
+**"Review my diff" gets a review, and the reviewer can't touch your files.**
+- Asking for a review of your changes now goes straight to the review, even when Claude Code leads the turn. It no longer becomes an open task that a peer answers by editing the code it was asked to judge.
+- The reviewer's CLI runs in its read-only mode: Claude Code in plan mode, opencode's `plan` agent, codex's read-only sandbox.
+- With Claude Code leading, "undo that" now offers to undo your last change instead of being sent to Claude as a task.
+
 ## 0.29.88
 
 **A scrolled settings form shows whole fields, never half a box.**

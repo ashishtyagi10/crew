@@ -25,7 +25,7 @@ fn route_on(session: &mut Session, task: &str, call: Classifier) -> Vec<PluginEv
     evs
 }
 
-fn git(dir: &Path, args: &[&str]) -> String {
+pub(super) fn git(dir: &Path, args: &[&str]) -> String {
     let out = std::process::Command::new("git")
         .current_dir(dir)
         .args(args)
@@ -41,7 +41,7 @@ fn git(dir: &Path, args: &[&str]) -> String {
 
 /// Turn the guard's fresh project dir into a git repo with one seed commit
 /// and one uncommitted edit — the diff a commit message would describe.
-fn seed_repo() -> PathBuf {
+pub(super) fn seed_repo() -> PathBuf {
     let dir = PathBuf::from(std::env::var("CREW_PROJECT_DIR").unwrap());
     for args in [
         vec!["init", "-q"],

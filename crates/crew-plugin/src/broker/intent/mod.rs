@@ -31,7 +31,7 @@ pub(crate) mod decision;
 mod fanout;
 pub(crate) mod gate;
 mod hints;
-mod shapeguard;
+pub(crate) mod shapeguard;
 mod skillhint;
 mod world;
 
