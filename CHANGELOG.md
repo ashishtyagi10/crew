@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.86
+
+**A review reads the callers of what changed, not just the diff.**
+- Asking smith to review your diff now also hands the reviewer the call sites of every function the diff redefines or edits, found with a bounded `git grep -w` (definitions, imports and comments dropped, production callers before tests, at most 20).
+- A signature change that leaves a caller behind is now a finding with its file and line, where before the reviewer could not see the caller at all.
+
 ## 0.29.85
 
 **`dark` and `light` show a page and its words, not a hollow checkbox.**
