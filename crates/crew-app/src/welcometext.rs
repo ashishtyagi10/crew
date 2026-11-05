@@ -12,7 +12,6 @@
 //! * and the one line telling a new user what to press was drawn in the same
 //!   muted grey as the prose around it, so nothing on crew's first screen was
 //!   crew's own colour.
-use crate::palette::accent;
 
 pub(crate) const TAGLINE: &str = "fast terminals. clean flow.";
 
@@ -97,9 +96,10 @@ fn is_chord(token: &str) -> bool {
     token.starts_with('/') || token.starts_with(CMD) || token.starts_with("Ctrl+")
 }
 
-/// The accent the hint's chords wear.
+/// The accent the hint's chords wear — the page's ink where a grey accent
+/// would draw them fainter than the words around them (`keyink`).
 pub(crate) fn chord_fg() -> (u8, u8, u8) {
-    accent()
+    crate::keyink::key_ink()
 }
 
 /// One extra hint row when a saved session exists: `restore` carries the

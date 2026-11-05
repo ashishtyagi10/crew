@@ -130,27 +130,7 @@ pub fn legend_accent() -> (u8, u8, u8) {
 /// How far a card's legend row sits off the page toward the ink.
 pub(crate) const LEGEND_ROW_SHADE: f32 = 0.06;
 
-/// A key and its label, as `/keys` and the far F-key bar set them: the key
-/// in the accent, the label in ink. On a tube accent and ink are one phosphor
-/// 1.1:1 apart (1.02 on amber) and the pair read as one run of text, so there
-/// the key goes bold and the label steps back to `text_muted` — brightness
-/// and weight, the two things a one-hue screen still has.
-pub fn key_label() -> (ratatui::style::Style, ratatui::style::Style) {
-    use ratatui::style::{Modifier, Style};
-    let t = crew_theme::theme();
-    let rgb = |(r, g, b): (u8, u8, u8)| ratatui::style::Color::Rgb(r, g, b);
-    match t.is_tube() {
-        // `focus_accent`: the accent pushed until it clears muted on a tube.
-        true => (
-            Style::new().fg(focus_color()).add_modifier(Modifier::BOLD),
-            Style::new().fg(rgb(t.text_muted)),
-        ),
-        false => (
-            Style::new().fg(rgb(crate::accentink::accent_ink())),
-            Style::new().fg(rgb(t.ink)),
-        ),
-    }
-}
+pub use crate::keyink::key_label;
 
 /// [`focus_accent`] as a ratatui colour.
 pub fn focus_color() -> ratatui::style::Color {

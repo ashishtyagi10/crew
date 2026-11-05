@@ -52,6 +52,7 @@ mod chartshot_tests;
 mod chattrunk;
 mod chordglyph;
 mod codefield;
+mod keyink;
 
 mod chat;
 mod chataction;
