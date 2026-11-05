@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.76
+
+**With no agents, the footer stops offering a swarm.**
+- A pane with no agents showed a filled `▶▶ swarm mode` badge and `@ to relay to an agent` under
+  a card saying "No agents available". The footer now reads `no agents · /model`, as the card
+  does; a pane still connecting keeps its mode.
+- A fresh pane teaches `/` once: the empty card's hint leaves it to the footer below.
+
 ## 0.29.75
 
 **Programs learn the pane's size in pixels.**

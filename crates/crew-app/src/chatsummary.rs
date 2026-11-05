@@ -86,6 +86,8 @@ pub(crate) fn roster_seg(agents: &[AgentInfo], cols: usize) -> Option<String> {
 
 pub(crate) struct FooterCtx<'a> {
     pub agents: &'a [AgentInfo],
+    /// Connected, and the roster came back empty (not merely not yet here).
+    pub no_agents: bool,
     pub ctx: &'a HashMap<String, u64>,
     pub ctx_window: &'a HashMap<String, u64>,
     pub tok_in: u64,
@@ -100,9 +102,8 @@ pub(crate) struct FooterCtx<'a> {
     pub plan_pending: bool,
     /// Shift+Tab's mode, and a tool call's question if one waits.
     pub approval: crate::chatapprove::Footer<'a>,
-    /// Names of agents thinking RIGHT NOW (`ChatPane::active_names`) —
-    /// `Activity` events name agents for both relay hops and swarm tasks,
-    /// so this one field covers both. Empty when idle.
+    /// Names of agents thinking RIGHT NOW (`ChatPane::active_names`), relay
+    /// hops and swarm tasks alike (`Activity` names both). Empty when idle.
     pub active: Vec<&'a str>,
     /// Where this pane's broker operates, already `~`-abbreviated.
     pub cwd: Option<&'a str>,
@@ -240,6 +241,7 @@ pub(crate) fn footer_ctx(pane: &ChatPane) -> FooterCtx<'_> {
     FooterCtx {
         readouts: &pane.readouts,
         agents: &pane.agents,
+        no_agents: pane.connected && pane.agents.is_empty(),
         ctx: &pane.ctx,
         ctx_window: &pane.ctx_window,
         tok_in: pane.tok_in,
