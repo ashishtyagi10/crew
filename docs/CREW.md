@@ -624,8 +624,10 @@ rather than submitting. **Option+←/→** jump a word and **Option+Backspace**
 deletes one (`ESC b` / `ESC f` / `ESC DEL`, the shell's own word keys, as
 Terminal.app sends them), **F1–F12** send xterm's sequences (htop, mc, vim
 mappings), and a program that switches the cursor keys to application mode gets
-`ESC O A`-style arrows. Shells launch as your `$SHELL` login shell, so your full
-config and plugins load.
+`ESC O A`-style arrows. Ctrl+Space and Ctrl+2 send NUL (set-mark, a C-Space
+tmux prefix), Ctrl+/ sends `0x1f` (emacs/nano undo), and Ctrl+3…8 send xterm's
+ESC, FS, GS, RS, US and DEL. Shells launch as your `$SHELL` login shell, so
+your full config and plugins load.
 
 On **Windows** a pane is PowerShell — **PowerShell 7** (`pwsh`) when it is
 installed (on `PATH`, in `Program Files\PowerShell\7`, or from winget, the

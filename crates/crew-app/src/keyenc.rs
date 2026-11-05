@@ -45,6 +45,11 @@ impl Mods {
 /// The bytes for `n` held with `m`, or `None` for a key the plain table in
 /// `session` answers. `app_cursor`: the program set DECCKM.
 pub(crate) fn named(n: NamedKey, m: Mods, app_cursor: bool) -> Option<Vec<u8>> {
+    // winit names Space, so the Ctrl+letter table never saw it: Ctrl+Space
+    // sent a plain space instead of NUL (emacs set-mark, tmux C-Space prefix).
+    if n == NamedKey::Space && m.ctrl {
+        return Some(vec![0]);
+    }
     if m.alt_only() {
         match n {
             NamedKey::ArrowLeft => return Some(b"\x1bb".to_vec()),

@@ -71,3 +71,15 @@ fn ctrl_letters_become_control_codes() {
     assert_eq!(ctrl_byte('a'), Some(0x01));
     assert_eq!(ctrl_byte('1'), None);
 }
+
+#[test]
+fn ctrl_digits_and_slash_follow_xterms_table() {
+    assert_eq!(ctrl_byte('2'), Some(0x00));
+    assert_eq!(ctrl_byte('3'), Some(0x1b));
+    assert_eq!(ctrl_byte('4'), Some(0x1c));
+    assert_eq!(ctrl_byte('7'), Some(0x1f));
+    assert_eq!(ctrl_byte('8'), Some(0x7f));
+    assert_eq!(ctrl_byte('/'), Some(0x1f));
+    assert_eq!(ctrl_byte('9'), None);
+    assert_eq!(ctrl_byte('0'), None);
+}

@@ -50,3 +50,9 @@ fn cursor_keys_follow_application_mode_and_leave_the_rest_alone() {
     assert_eq!(sent(Enter, ALT, false), None);
     assert_eq!(sent(PageUp, NONE, true), None);
 }
+
+#[test]
+fn ctrl_space_sends_nul_and_a_plain_space_stays_for_the_table() {
+    assert_eq!(named(Space, CTRL, false), Some(vec![0]));
+    assert_eq!(named(Space, NONE, false), None);
+}

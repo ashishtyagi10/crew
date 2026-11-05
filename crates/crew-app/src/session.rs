@@ -85,8 +85,18 @@ fn named_bytes(n: NamedKey) -> Option<Vec<u8>> {
 }
 
 /// The ASCII control byte for a Ctrl+`c` chord (`Ctrl+C` → 0x03), or `None` if
-/// `c` has no control mapping.
+/// `c` has no control mapping. The digits and `/` follow xterm's table, since
+/// the keys that type NUL, ESC and FS…US need Shift on most layouts: Ctrl+2 is
+/// NUL (tmux/emacs set-mark), Ctrl+3…7 are ESC, FS, GS, RS, US, Ctrl+8 is DEL,
+/// and Ctrl+/ is US (emacs/nano undo). They sent the bare digit or slash.
 fn ctrl_byte(c: char) -> Option<u8> {
+    match c {
+        '2' => return Some(0),
+        '3'..='7' => return Some(c as u8 - b'3' + 0x1b),
+        '8' => return Some(0x7f),
+        '/' => return Some(0x1f),
+        _ => {}
+    }
     let up = c.to_ascii_uppercase();
     (up.is_ascii() && ('@'..='_').contains(&up)).then_some((up as u8) & 0x1f)
 }
