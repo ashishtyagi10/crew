@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.78
+
+**Ctrl and Shift navigation keys reach vim, micro and helix.**
+- In a full-screen program, Ctrl/Shift with the arrows, Home, End, PgUp, PgDn, Delete and Insert
+  now send xterm's modified forms (`ESC[1;5D`, `ESC[5;5~`), so word motion, Shift-selection and
+  Ctrl+PgUp tab switching work. At the shell prompt the keys stay plain, because bare zsh and
+  bash swallow those forms.
+
 ## 0.29.77
 
 **A receipt lists its files one per row, with counts and a bar.**
