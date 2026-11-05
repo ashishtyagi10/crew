@@ -257,17 +257,19 @@ way that machine presses it.
 
 | Action | Keys |
 |--------|------|
-| Next / previous pane | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also Cmd+] / Cmd+[) |
+| Next / previous pane in this tab | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also Cmd+] / Cmd+[) |
 | Jump to pane N | **Cmd+1 … 9** |
 | Jump to next active / waiting pane | **Cmd+A** / **Cmd+.** |
-| Move pane left / right | **Cmd+{** / **Cmd+}** |
+| Previous / next tab | **Cmd+{** / **Cmd+}** |
+| Jump to tab N | **Cmd+Opt+1 … 9** |
+| Send the focused pane to another tab | **Cmd+Shift+M** (`/tab move <n>`) |
 | Focus the pane that way on the grid | **Cmd+←↑→↓** |
 | Swap the focused pane with that neighbour | **Cmd+Shift+←↑→↓** |
 | Next / previous screen: the grid, then each zoomed pane (inbox, far, …) | **Cmd+Opt+←→** |
 | Scroll a terminal to the previous / next command you ran in it | **Cmd+Opt+↑↓** |
 | Focus the input bar | **Cmd+I** |
 | Recall a line you typed before | **↑** / **↓** — filtered by what is already in the bar; the top border says `hist 2/5 · git` |
-| New shell pane | **Cmd+T** |
+| New tab with a shell / new shell pane in this tab | **Cmd+T** / **Cmd+D** |
 | Reopen last session's panes (shells, Far, agent smith) | `/restore` |
 | Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
@@ -321,7 +323,7 @@ formatted post-mortem.
 Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
 (alias `/crew`), `/goal <text>`, `/batch <file>`, `/view <file>`, `/doc <file>`,
 `/diff`, `/settings`, `/find [all] <text>`, `/errors`,
-`/out`, `/marks`, `/name <text>`, `/pin`, `/clear`, `/close`,
+`/out`, `/marks`, `/name <text>`, `/tab`, `/pin`, `/clear`, `/close`,
 `/copy`, `/dump`, `/reopen`,
 `/restore`, `/blame`, `/lsp`, `/pwd`, `/about`, `/log`, `/nav`,
 `/model`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,

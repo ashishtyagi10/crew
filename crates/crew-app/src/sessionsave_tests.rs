@@ -176,9 +176,7 @@ fn a_viewer_is_saved_with_its_path() {
     let sp = SavedPane {
         kind: "view".into(),
         dir: Some("/tmp/x.rs".into()),
-        min: false,
-        remote: false,
-        window: 0,
+        ..Default::default()
     };
     assert!(sp.restorable_with(|p| p == std::path::Path::new("/tmp/x.rs")));
 }
@@ -188,9 +186,7 @@ fn a_viewer_on_a_deleted_file_is_dropped_not_restored_empty() {
     let sp = SavedPane {
         kind: "view".into(),
         dir: Some("/tmp/gone.rs".into()),
-        min: false,
-        remote: false,
-        window: 0,
+        ..Default::default()
     };
     assert!(!sp.restorable_with(|_| false));
 }

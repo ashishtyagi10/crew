@@ -55,6 +55,7 @@ fn todo_pane(app: &mut CrewApp, items: Vec<TodoItem>) {
         attention: None,
         born_ms: 0,
         zoom: None,
+        tab: 0,
     });
 }
 

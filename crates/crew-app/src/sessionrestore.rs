@@ -89,6 +89,7 @@ impl CrewApp {
                 };
                 sp.map(|mut sp| {
                     sp.min = p.hidden;
+                    self.stamp_tab(&mut sp, p.tab);
                     sp
                 })
             })
@@ -193,8 +194,11 @@ impl CrewApp {
         let n = panes.len();
         let before = self.panes.len();
         let kept = std::mem::take(&mut self.cwd);
+        let tabs = self.restore_tabs(&panes);
         for sp in panes {
-            self.open_saved(&sp, &kept);
+            if self.open_saved(&sp, &kept) {
+                self.retab_last(&tabs, sp.tab);
+            }
         }
         self.cwd = kept;
         // A restore lands on the grid when it has one. `[view, shell, shell]`
@@ -214,6 +218,7 @@ impl CrewApp {
                 None => self.input.focused = true,
             }
         }
+        self.land_on_tab(tabs.first().map(|t| t.1));
         // Count what actually opened — the spawners report failures via
         // set_status, and a blanket "restored n" would overwrite the error
         // with a lie.

@@ -403,11 +403,13 @@ way that machine presses it.
 
 | Action | Keys |
 |--------|------|
-| Next / previous pane | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also **Cmd+]** / **Cmd+[**, which skip minimized panes) |
+| Next / previous pane in this tab | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also **Cmd+]** / **Cmd+[**, which skip minimized panes) |
 | Jump to pane N | **Cmd+1 … 9** |
 | Jump to next active pane | **Cmd+A** |
 | Jump to next pane waiting on you | **Cmd+.** |
-| Move pane left / right | **Cmd+{** / **Cmd+}** |
+| Previous / next tab | **Cmd+{** / **Cmd+}** (Cmd+Shift+[ / ]) |
+| Jump to tab N | **Cmd+Opt+1 … 9** (Ctrl+Alt+1 … 9 on Windows and Linux) |
+| Send the focused pane to another tab | **Cmd+Shift+M** (fills in `/tab move `) |
 | Focus the pane that way on the grid | **Cmd+←↑→↓** |
 | Swap the focused pane with that neighbour | **Cmd+Shift+←↑→↓** |
 | Next / previous screen: the grid, then each zoomed pane (inbox, far, …) | **Cmd+Opt+←→** |
@@ -415,7 +417,8 @@ way that machine presses it.
 | Focus the input bar | **Cmd+I** |
 | Recall a line you typed before | **↑** / **↓** — filtered by what is already in the bar; the top border says `hist 2/5 · git` |
 | Find: in a chat transcript, or `/find` in the bar | **Cmd+F** |
-| New shell pane | **Cmd+T** |
+| New tab with a shell | **Cmd+T** |
+| New shell pane in this tab | **Cmd+D** |
 | Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | Accept the ghost text, or fill the highlighted palette row | **Tab** / **→** (in the input bar) |
@@ -2133,6 +2136,20 @@ longer aim at.
   /restore` under the keyboard hint — so the feature introduces itself.
 - **`/name <text>`** titles the focused pane (shown in its title bar); bare
   `/name` clears it back to the program title.
+- **Tabs** group panes. **Cmd+T** opens a tab with a fresh shell, **Cmd+D**
+  adds a shell to the tab you are in, **Cmd+{** / **Cmd+}** step between tabs
+  and **Cmd+Opt+1 … 9** jump to one. Only the tab on screen is on the grid;
+  the others keep running exactly as minimized panes do. With more than one
+  tab the nav's PANES list becomes a bordered card per tab — `╭─ 2 · web ── 3 ─╮`
+  with its panes inside — framed in the accent for the tab on screen, in the
+  bell colour for a tab behind it whose pane needs you; click a card's edge to
+  switch. The collapsed rail draws a `─2──` divider per tab. Pane numbers stay
+  global, so `crew ask 3`, **Cmd+3** and a click on a row reach the pane (and
+  bring its tab forward) wherever it is. `/tab` lists them; `/tab <n>`,
+  `/tab new`, `/tab next` / `/tab prev`, `/tab rename <name>` (bare: back to
+  the first pane's title) and `/tab move <n>` — the focused pane to tab n, or
+  to a new tab one past the last. A tab whose last pane closes goes, and
+  `/restore` brings the tabs back with their names (up to 6 panes a tab).
 - **Status flashes** — transient messages (e.g. "copied 12 lines", "cd: no such
   directory") appear briefly on the input card's bottom border.
 - Anything that isn't a slash command or `cd` is sent to the focused terminal.

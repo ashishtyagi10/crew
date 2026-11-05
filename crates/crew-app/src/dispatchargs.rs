@@ -44,6 +44,8 @@ impl CrewApp {
                 Some(t) => self.find_all(t.trim()),
                 None => self.find_in_terminal(term.trim()),
             }
+        } else if let Some(a) = other.strip_prefix("tab ") {
+            self.tab_command(a);
         } else if let Some(n) = other.strip_prefix("name ") {
             self.name_focused_pane(n.trim());
         } else if let Some(c) = other.strip_prefix("run ") {

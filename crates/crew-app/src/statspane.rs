@@ -12,7 +12,6 @@ use crate::navglance::Glance;
 use crate::navlayout::{self, NavLayout, Tail, CHART_OFF, CHART_ROWS};
 use crate::navslot;
 use crate::net;
-use crate::panelist::{self, PaneRow};
 use crate::stats::SysSampler;
 
 /// The smallest peak the CPU chart scales to (%): below it the trace draws small.
@@ -187,7 +186,7 @@ impl StatsPane {
         &self,
         cols: u16,
         rows: u16,
-        panes: &[PaneRow],
+        panes: &crate::tabnav::NavList,
         log: &[crate::applog::LogEntry],
         // How far back the LOG is scrolled — 0 follows the newest line.
         log_back: usize,
@@ -259,7 +258,7 @@ impl StatsPane {
             let limit = (rows - panes_off - LIST_OFF) as usize;
             // A busy pane's row spins; with motion off it holds one frame.
             let spin = crate::update::spinner_frame(crate::anim::now_ms());
-            for mut c in panelist::pane_cells(panes, cols, limit, spin) {
+            for mut c in panes.cells(cols, limit, spin) {
                 c.row += panes_off;
                 out.push(c);
             }

@@ -70,7 +70,15 @@ fn sidebar_shot_glance() {
             concat!("crew v", env!("CARGO_PKG_VERSION")),
             |cols, rows, aspect| {
                 (
-                    sp.cells(cols, rows, &panes, &[], 0, Some(&glance), Some(strip)),
+                    sp.cells(
+                        cols,
+                        rows,
+                        &crate::tabnav::NavList::from(panes.clone()),
+                        &[],
+                        0,
+                        Some(&glance),
+                        Some(strip),
+                    ),
                     sp.chart_paint(cols, rows, aspect, Some(&glance), panes.len()),
                 )
             },
@@ -94,7 +102,15 @@ fn sidebar_shot_glance() {
         concat!("crew v", env!("CARGO_PKG_VERSION")),
         |cols, rows, aspect| {
             (
-                sp.cells(cols, rows, &panes, &[], 0, Some(&looking), Some(strip)),
+                sp.cells(
+                    cols,
+                    rows,
+                    &crate::tabnav::NavList::from(panes.clone()),
+                    &[],
+                    0,
+                    Some(&looking),
+                    Some(strip),
+                ),
                 sp.chart_paint(cols, rows, aspect, Some(&looking), panes.len()),
             )
         },

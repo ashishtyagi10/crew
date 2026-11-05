@@ -1,21 +1,14 @@
 //! The nav at its smallest: one column of panes and the chevron that opens it.
 //!
 //! The full nav is a dashboard — clock, dials, load, host, net, git, the LOG or
-//! the glance cards, then the pane list. It is worth its 160-320 px when you
-//! are reading it and it is a third of a laptop screen when you are not, and
-//! what you actually need from it most of the time is the last section: which
-//! panes exist, which one has focus, and which one wants you.
+//! the glance cards, then the pane list — worth its 160-320 px when you read it
+//! and a third of a laptop screen when you do not. What you need from it most
+//! of the time is the last section: which panes exist, which has focus, and
+//! which wants you. So that is the rail: the focus caret, the pane's number and
+//! the mark its full row would carry (attention over busy over unread, in the
+//! same colours), with a `─N─` divider per tab once there is more than one.
 //!
-//! So that is the rail, and nothing else. Seven columns: the focus caret, the
-//! pane's number, and the same mark its full row would carry — attention over
-//! busy over unread, in the same three colours, so the two readings can never
-//! disagree about what a pane is doing. Everything else the nav knows is one
-//! click away and stays there.
-//!
-//! The chevron is the first character of the card's own legend, which is where
-//! this window already puts what a card is called: `› ` collapsed, `‹ crew
-//! v0.22.41` open. One place in both states, and it points the way the edge
-//! will move.
+//! The chevron leads the card's legend (`› ` collapsed, `‹ crew v…` open).
 use crew_render::{CellView, PaneScene};
 
 use crate::app::CrewApp;
@@ -117,9 +110,17 @@ pub(crate) fn rail_cells(panes: &[PaneRow], cols: u16, rows: u16, spin: char) ->
 }
 
 impl CrewApp {
-    /// The rail's row under the cursor. Its own mapping, because the rail has
-    /// no NavLayout to divide: row 1 of the card is the first pane.
+    /// The pane whose rail row is under the cursor.
     pub(crate) fn pane_at_rail(&self) -> Option<usize> {
+        match self.rail_line_at_cursor()? {
+            crate::tabnav::Line::Pane(i) => Some(i),
+            _ => None,
+        }
+    }
+
+    /// The rail's line under the cursor. Its own mapping: the rail has no
+    /// NavLayout to divide, and row 1 of the card is its first line.
+    pub(crate) fn rail_line_at_cursor(&self) -> Option<crate::tabnav::Line> {
         let (cw, ch, _sw, sh, scale) = self.frame_geometry()?;
         let sb = chrome::stats_card_rect(sh, self.nav_px(scale), self.gutter(), ch, false);
         if !chrome::point_in(sb, self.cursor.0, self.cursor.1) {
@@ -128,7 +129,7 @@ impl CrewApp {
         let (_, rows) = crate::layout::card_inner_cells(sb.w, sb.h, cw, ch);
         let dy = crate::panellevel::level_dy(sb, &self.panes, cw, ch);
         let rel = ((self.cursor.1 - sb.y - dy) / ch).floor() as u16;
-        crate::navrail::pane_at_row(rel, rows, self.panes.len())
+        self.rail_line(rel, rows)
     }
 
     /// Whether the cursor is on the nav card's chevron — the one control that
@@ -165,7 +166,7 @@ impl CrewApp {
         ch: f32,
     ) {
         let sb = chrome::stats_card_rect(sh, self.nav_px(scale), self.gutter(), ch, false);
-        let rows = self.pane_rows();
+        let rows = self.nav_list();
         let spin = crate::update::spinner_frame(crate::anim::now_ms());
         let legend = legend(true, "");
         let foot = crate::navrailfoot::Foot {
@@ -180,8 +181,8 @@ impl CrewApp {
         let label = (legend.as_str(), crew_theme::theme().legend_off);
         let dy = crate::panellevel::level_dy(sb, &self.panes, cw, ch);
         crate::panellevel::push_card_art_level(scenes, sb, (cw, ch), label, dy, |cols, irows| {
-            let mut cells = rail_cells(&rows, cols, irows, spin);
-            let used = rows.len().min(usize::from(irows)) as u16;
+            let mut cells = rows.rail_cells(cols, irows, spin);
+            let used = rows.rail_len().min(usize::from(irows)) as u16;
             let (foot, paint) = crate::navrailfoot::foot(&foot, cols, irows, used, aspect);
             cells.extend(foot);
             (cells, paint)

@@ -24,6 +24,7 @@ fn pane() -> Pane {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     }
 }
 

@@ -21,6 +21,7 @@ fn pane_with(content: PaneContent, born_ms: u64) -> Pane {
         attention: None,
         born_ms,
         zoom: None,
+        tab: 0,
     }
 }
 
@@ -355,6 +356,7 @@ fn live_pty_claude_style_dialog_autofocuses() {
         attention: None,
         born_ms: 2,
         zoom: None,
+        tab: 0,
     });
     app.last_input_ms = 0; // hands-off since forever
 

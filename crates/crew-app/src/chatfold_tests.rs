@@ -263,6 +263,7 @@ fn app_with_folded_card() -> (crate::app::CrewApp, u16) {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     });
     (app, suffix_row)
 }

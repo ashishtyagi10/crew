@@ -2,8 +2,7 @@
 //! narrow card, the shape the app actually docks — so the column can be looked
 //! at as a column. The per-widget shots in `chartshot_tests` each pass on a
 //! wide card and still stack into something that reads badly: a chart that is
-//! a smear at 2 rows, a log line that clips mid-word, a mark that overpowers
-//! the legend beside it. Only the full stack shows that.
+//! a smear at 2 rows, a clipped log line, an overpowering mark. Only the stack shows that.
 //!
 //! `#[ignore]`d (needs a GPU adapter, writes PNGs):
 //! `cargo test -p crew-app --bin crew sidebar_shot -- --ignored --nocapture`
@@ -76,6 +75,7 @@ fn nav_shot(name: &str, w: u32) -> Option<Vec<u8>> {
         pane(4, "dash", false, false),
     ];
     panes[2].attention = Some(('!', true));
+    let panes = crate::tabnav::NavList::from(panes);
     shot_at(
         name,
         w,
@@ -197,7 +197,7 @@ fn sidebar_shot_fresh_launch() {
         ("23:20 updated to crew v0.19.38", LogLevel::Info),
         ("23:20 font → MonoLisa 13px", LogLevel::Info),
     ]);
-    let panes = vec![pane(1, "dash", true, false)];
+    let panes = crate::tabnav::NavList::from(vec![pane(1, "dash", true, false)]);
     let px = shot_at(
         "sidebar-fresh",
         210 + 24,

@@ -21,9 +21,8 @@ use crate::viewpane::ViewPane;
 pub struct TermPane {
     pub pty: PtyTerm,
     pub input: Box<dyn Write + Send>,
-    /// Name of the foreground command running in the pane (e.g. `claude`),
-    /// shown alongside the directory in the title. `None` when the shell is idle.
-    /// Refreshed ~1×/s by `poll_panes` via [`crate::procname::ProcNames`].
+    /// The foreground command (e.g. `claude`), shown beside the directory in
+    /// the title; `None` when idle. Refreshed ~1×/s by `poll_panes`.
     pub cmd: Option<String>,
     /// When `cmd` started — gates "command finished" on a minimum runtime.
     pub cmd_since: Option<std::time::Instant>,
@@ -102,15 +101,16 @@ pub struct Pane {
     /// until the pane is focused again. See the `attention` module.
     pub attention: Option<crate::attention::Attention>,
     /// When this pane came into being, on the shared animation clock — the
-    /// start of its assemble animation (see [`crate::panecard`]).
-    ///
-    /// A field on the pane, not a timeline in the app: panes are pushed, closed
-    /// and reordered from a dozen places, so anything keyed on position or
-    /// count animated the wrong card when two of those met in one frame.
+    /// start of its assemble animation (see [`crate::panecard`]). A field on
+    /// the pane, not a timeline in the app: panes are pushed, closed and
+    /// reordered from a dozen places, so anything keyed on position or count
+    /// animated the wrong card when two of those met in one frame.
     pub born_ms: u64,
     /// Cmd+Z's word on whether this pane takes the whole content area when
     /// focused; `None` leaves it to the kind ([`crate::panezoom`]).
     pub zoom: Option<bool>,
+    /// The tab it lives in ([`crate::tabs`]); `0` until the next frame adopts it.
+    pub tab: u32,
 }
 
 impl Pane {
@@ -277,6 +277,7 @@ pub fn spawn_pane(
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     })
 }
 

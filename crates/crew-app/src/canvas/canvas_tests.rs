@@ -28,6 +28,7 @@ fn pane() -> Pane {
         attention: None,
         born_ms: 0,
         zoom: None,
+        tab: 0,
     }
 }
 

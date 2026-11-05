@@ -13,6 +13,7 @@ use crew_render::CellView;
 use crate::palette::accent;
 
 /// One row of the PANES list.
+#[derive(Clone)]
 pub struct PaneRow {
     pub index: usize,
     pub title: String,

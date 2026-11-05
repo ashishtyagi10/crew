@@ -351,6 +351,7 @@ fn cmd_f_opens_find_on_the_focused_chat_pane_and_enter_jumps() {
         attention: None,
         born_ms: crate::anim::now_ms(),
         zoom: None,
+        tab: 0,
     });
     assert!(!app.handle_super_chord("f"), "Cmd+F never exits the app");
     let crate::pane::PaneContent::Chat(c) = &app.panes[0].content else {

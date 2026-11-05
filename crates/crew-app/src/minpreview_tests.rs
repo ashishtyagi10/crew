@@ -23,6 +23,7 @@ fn pane_with(content: PaneContent) -> Pane {
         attention: None,
         born_ms: 0,
         zoom: None,
+        tab: 0,
     }
 }
 

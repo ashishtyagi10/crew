@@ -67,7 +67,15 @@ fn every_nav_glyph_clears_the_mark_floor_on_every_theme() {
         for (cols, g) in [(26, None), (26, Some(&glance)), (17, Some(&glance))] {
             let strip = g.is_none().then_some("\u{2600} 24\u{00b0}");
             for c in sp
-                .cells(cols, 64, &panes, &log, 0, g, strip)
+                .cells(
+                    cols,
+                    64,
+                    &crate::tabnav::NavList::from(panes.clone()),
+                    &log,
+                    0,
+                    g,
+                    strip,
+                )
                 .iter()
                 .filter(|c| c.c != ' ' && !FURNITURE.contains(c.c))
             {
@@ -106,7 +114,15 @@ fn a_hostile_user_accent_cannot_take_the_nav_below_the_floor() {
             crate::palette::set_accent(accent);
             let (sp, log, panes) = fixture();
             let worst = sp
-                .cells(26, 48, &panes, &log, 0, None, None)
+                .cells(
+                    26,
+                    48,
+                    &crate::tabnav::NavList::from(panes.clone()),
+                    &log,
+                    0,
+                    None,
+                    None,
+                )
                 .iter()
                 .filter(|c| c.c != ' ' && !FURNITURE.contains(c.c))
                 .map(|c| (crew_theme::contrast_ratio(c.fg, c.bg) * 100.0) as i32)
@@ -156,7 +172,15 @@ fn high_contrast_raises_the_navs_floor_too() {
         }
         let (sp, log, panes) = fixture();
         for c in sp
-            .cells(26, 48, &panes, &log, 0, None, None)
+            .cells(
+                26,
+                48,
+                &crate::tabnav::NavList::from(panes.clone()),
+                &log,
+                0,
+                None,
+                None,
+            )
             .iter()
             .filter(|c| c.c != ' ' && !FURNITURE.contains(c.c))
         {

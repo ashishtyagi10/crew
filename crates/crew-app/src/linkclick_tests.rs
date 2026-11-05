@@ -1,6 +1,5 @@
 //! A Cmd+click followed end to end: from the pixel the pointer is on, through
-//! the cell the frame drew there, to what opens. `OPENED` records the system
-//! opener's targets, so no browser opens on the machine running these.
+//! the cell the frame drew there, to what opens. `OPENED` records the opener's targets: no browser opens.
 #![cfg(unix)]
 use super::{logical_line, OPENED};
 use crate::app::CrewApp;
@@ -42,6 +41,7 @@ fn term_pane(dir: Option<std::path::PathBuf>) -> Pane {
         attention: None,
         born_ms: 0,
         zoom: None,
+        tab: 0,
     }
 }
 

@@ -50,6 +50,10 @@ pub(crate) const WORK: &[Cmd] = &[
         desc: "Back to the most recent error here (repeat for the one before; /errors all counts every pane)",
     },
     Cmd {
+        name: "/tab",
+        desc: "Tabs \u{2014} /tab <n>, /tab new, /tab rename <name>, /tab move <n> (send the focused pane there)",
+    },
+    Cmd {
         name: "/name",
         desc: "Rename the focused pane (/name <text>)",
     },

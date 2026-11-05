@@ -10,14 +10,25 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-/// Most panes a snapshot keeps (and `/restore` reopens) — matches the
-/// grid's full-tile cap so a restore never lands panes straight in the
-/// minimized strip.
+/// Most panes a snapshot keeps (and `/restore` reopens) per tab — the grid's
+/// full-tile cap, so a restore never lands panes straight in the minimized
+/// strip — and the most tabs' worth of them in all.
 pub(crate) const MAX_PANES: usize = 6;
+const MAX_TOTAL: usize = MAX_PANES * 6;
+
+/// A filter keeping the first [`MAX_PANES`] of each window's tab.
+fn per_tab() -> impl FnMut(&SavedPane) -> bool {
+    let mut seen = std::collections::HashMap::new();
+    move |sp| {
+        let n: &mut usize = seen.entry((sp.window, sp.tab)).or_default();
+        *n += 1;
+        *n <= MAX_PANES
+    }
+}
 
 /// One restorable pane. `kind` is an open string so a newer file read by an
 /// older build skips unknown kinds instead of failing the whole load.
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 pub(crate) struct SavedPane {
     pub kind: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -37,6 +48,13 @@ pub(crate) struct SavedPane {
     /// it always did.
     #[serde(default, skip_serializing_if = "crate::sessionsave::is_zero")]
     pub window: usize,
+    /// Which tab of its window it was in, counted from `0` (the first, and
+    /// what every file from before tabs says by omission) — and that tab's
+    /// `/tab rename` name, if it had one.
+    #[serde(default, skip_serializing_if = "crate::sessionsave::is_zero")]
+    pub tab: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tab_name: Option<String>,
 }
 
 /// `serde` skip helper: a pane in the first window says nothing about it.
@@ -45,66 +63,40 @@ pub(crate) fn is_zero(n: &usize) -> bool {
 }
 
 impl SavedPane {
-    pub(crate) fn shell(dir: String) -> Self {
+    fn of(kind: &str, dir: Option<String>) -> Self {
         SavedPane {
-            kind: "shell".into(),
-            dir: Some(dir),
-            min: false,
-            remote: false,
-            window: 0,
+            kind: kind.into(),
+            dir,
+            ..Default::default()
         }
     }
+    pub(crate) fn shell(dir: String) -> Self {
+        Self::of("shell", Some(dir))
+    }
     pub(crate) fn far(dir: String) -> Self {
-        SavedPane {
-            kind: "far".into(),
-            dir: Some(dir),
-            min: false,
-            remote: false,
-            window: 0,
-        }
+        Self::of("far", Some(dir))
     }
     /// A Far pane whose active panel was browsing an rclone remote —
     /// `addr` is that panel's `Location::rclone_addr()` (`remote:sub/path`).
     pub(crate) fn far_remote(addr: String) -> Self {
         SavedPane {
-            kind: "far".into(),
-            dir: Some(addr),
-            min: false,
             remote: true,
-            window: 0,
+            ..Self::of("far", Some(addr))
         }
     }
     pub(crate) fn crew() -> Self {
-        SavedPane {
-            kind: "crew".into(),
-            dir: None,
-            min: false,
-            remote: false,
-            window: 0,
-        }
+        Self::of("crew", None)
     }
     /// A todo pane — its list lives in the global store, so presence is all
     /// the snapshot needs.
     pub(crate) fn todo() -> Self {
-        SavedPane {
-            kind: "todo".into(),
-            dir: None,
-            min: false,
-            remote: false,
-            window: 0,
-        }
+        Self::of("todo", None)
     }
     /// A file-viewer pane. `dir` carries the **full resolved path** of the
     /// file it had open — not a cwd-relative one, since the cwd at restore
     /// time may not be the cwd it was opened from.
     pub(crate) fn view(path: String) -> Self {
-        SavedPane {
-            kind: "view".into(),
-            dir: Some(path),
-            min: false,
-            remote: false,
-            window: 0,
-        }
+        Self::of("view", Some(path))
     }
 
     /// Restorable: known kind, and dir-backed kinds still have their
@@ -156,7 +148,8 @@ pub(crate) fn save_at(p: Option<PathBuf>, panes: Vec<SavedPane>) {
     let panes: Vec<SavedPane> = panes
         .into_iter()
         .filter(|sp| seen.insert(dedupe_key(sp)))
-        .take(MAX_PANES)
+        .filter(per_tab())
+        .take(MAX_TOTAL)
         .collect();
     if panes.is_empty() {
         let _ = std::fs::remove_file(&p);
@@ -192,7 +185,8 @@ pub(crate) fn load_at(p: Option<PathBuf>) -> Vec<SavedPane> {
         .into_iter()
         .filter(SavedPane::restorable)
         .filter(|sp| seen.insert(dedupe_key(sp)))
-        .take(MAX_PANES)
+        .filter(per_tab())
+        .take(MAX_TOTAL)
         .collect()
 }
 
@@ -203,14 +197,9 @@ pub(crate) fn load_at(p: Option<PathBuf>) -> Vec<SavedPane> {
 /// window and start working in the same project — save as one pane and
 /// restore as one window. Found by planting a two-window session and
 /// counting the windows that came back: there was one.
-fn dedupe_key(sp: &SavedPane) -> (String, Option<String>, bool, bool, usize) {
-    (
-        sp.kind.clone(),
-        sp.dir.clone(),
-        sp.min,
-        sp.remote,
-        sp.window,
-    )
+fn dedupe_key(sp: &SavedPane) -> (String, Option<String>, bool, bool, usize, usize) {
+    let sp = sp.clone();
+    (sp.kind, sp.dir, sp.min, sp.remote, sp.window, sp.tab)
 }
 
 /// How many panes the current snapshot would reopen — drives the welcome

@@ -543,6 +543,9 @@ mod popupsweep_tests;
 #[cfg(test)]
 #[path = "ringfocus_tests.rs"]
 mod ringfocus_tests;
+#[cfg(test)]
+#[path = "tabshot_tests.rs"]
+mod tabshot_tests;
 // Only a Windows PowerShell pane starts oh-my-posh (a Mac zsh brings its own
 // prompt); the tests run everywhere.
 mod focuspush;
@@ -628,6 +631,13 @@ mod swatchfit;
 #[cfg(test)]
 mod sweepshot_tests;
 mod sysdials;
+mod tabcard;
+mod tabcmd;
+mod tablines;
+mod tabnav;
+mod tabrestore;
+mod tabs;
+mod tabsapp;
 mod termimg;
 #[cfg(test)]
 #[path = "termshot_tests.rs"]

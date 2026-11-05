@@ -492,6 +492,7 @@ fn only_a_working_pane_carries_a_scan() {
         attention: None,
         born_ms: 0,
         zoom: None,
+        tab: 0,
     };
     assert!(!crate::paneview::pane_busy(&idle), "fixture must be idle");
     let scenes = crate::paneview::build_scenes(

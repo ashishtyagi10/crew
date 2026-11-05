@@ -1,6 +1,5 @@
-use std::hash::{DefaultHasher, Hash, Hasher};
-
 use super::*;
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 fn bar(focused: bool) -> Bar<'static> {
     Bar {
@@ -49,6 +48,7 @@ fn far_pane() -> Pane {
         attention: None,
         born_ms: 0,
         zoom: None,
+        tab: 0,
     }
 }
 

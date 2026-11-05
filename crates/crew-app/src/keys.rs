@@ -80,15 +80,7 @@ impl CrewApp {
             && mstate.control_key()
             && matches!(&event.logical_key, Key::Named(NamedKey::Tab))
         {
-            if !self.panes.is_empty() {
-                let n = self.panes.len();
-                self.input.focused = false;
-                self.focused = if mstate.shift_key() {
-                    (self.focused + n - 1) % n
-                } else {
-                    (self.focused + 1) % n
-                };
-            }
+            self.cycle_tab_panes(if mstate.shift_key() { -1 } else { 1 });
             self.redraw();
             return;
         }
@@ -160,6 +152,14 @@ impl CrewApp {
         // arrives as a NamedKey, and above the input-bar early-return so the
         // grid stays navigable while the composer holds the keys.
         if event.state.is_pressed() && self.arrow_chord(&event.logical_key, mstate) {
+            self.redraw();
+            return;
+        }
+
+        // Cmd+Opt+1…9 (Ctrl+Alt off a Mac) brings tab N on: read off the
+        // physical key, since Opt turns the digit into another character.
+        if let Some(n) = crate::tablines::tab_digit(event, mstate) {
+            self.goto_tab(n);
             self.redraw();
             return;
         }
