@@ -4601,7 +4601,10 @@ crew supports **DECSET 2031** (the contour convention) — a program that
 enables it gets a `CSI ? 997 ; Ps n` report the moment crew's light/dark
 scheme changes (OS flip under `auto`, `/theme`, the hotkey cycle), and
 `CSI ? 996 n` answers the current scheme on demand, so neovim-class programs
-re-query OSC 10/11 and repaint mid-session. Everything else samples **once at
+re-query OSC 10/11 and repaint mid-session. Programs that enable **focus
+reporting** (DECSET 1004 — neovim's `FocusGained`, tmux, vim) get `CSI I` when
+their pane takes the keys and `CSI O` when another pane, the input bar or
+another app does. Everything else samples **once at
 startup** — after a live theme switch it keeps painting colors tuned to the
 old background. Crew therefore enforces a **minimum-contrast floor** on
 program-painted text (à la iTerm2's Minimum Contrast): any foreground within a

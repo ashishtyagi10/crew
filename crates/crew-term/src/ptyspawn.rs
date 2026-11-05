@@ -98,6 +98,7 @@ impl PtyTerm {
             hits: Vec::new(),
             capture: None,
             child,
+            focus_told: None,
         })
     }
 }

@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.29.66
+
+**Programs that ask are told when their pane gains or loses focus.**
+- Focus reporting (DECSET 1004) works: neovim's `FocusGained` and `autoread`, tmux focus
+  events and vim get `CSI I` when their pane takes the keys and `CSI O` when another pane,
+  the input bar or another app does. Each change is reported once.
+
 ## 0.29.65
 
 **Claude Code is no longer offered crew's copies of its own tools.**
