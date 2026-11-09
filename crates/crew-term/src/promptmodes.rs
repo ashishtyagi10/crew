@@ -10,6 +10,12 @@
 //! mark), and no shell turns these modes on itself, so they are switched off
 //! there: fed to the parser, not written to the program.
 //!
+//! Crew's own DECSET 2031 flag (colour-scheme notifications, sniffed by
+//! `schemenotify`) is one of them: Claude Code turns it on at start and off
+//! only on a clean exit, so after a `kill -9` every light/dark flip of the
+//! theme wrote `ESC [ ? 997 ; 1 n` into the shell (zsh: `command not found:
+//! 997`). It goes with the mouse, through the same parser feed.
+//!
 //! Only on the primary screen. A pane whose command is a program and not a
 //! shell (an agent run straight in the pane) also reads as "the shell has it"
 //! when a job it ran ends, and on the alternate screen that program may still
@@ -21,20 +27,24 @@ use crate::modes::InputModes;
 use super::PtyTerm;
 
 /// Mouse tracking (clicks, drags, any motion), its UTF-8 and SGR encodings
-/// and focus reporting: every one of them the parser tracks, all reset.
-const RESET: &[u8] = b"\x1b[?1000;1002;1003;1005;1006;1004l";
+/// and focus reporting: every one of them the parser tracks, all reset; and
+/// 2031, which only crew's scheme scanner tracks (it sees the same feed).
+const RESET: &[u8] = b"\x1b[?1000;1002;1003;1005;1006;1004;2031l";
 
 /// The bytes that clear what a dead program left in `m`, or `None` when
 /// there is nothing to clear or a full-screen program may still own it.
-pub fn leftover_reset(m: InputModes) -> Option<&'static [u8]> {
-    (!m.alt_screen && (m.mouse || m.focus_events)).then_some(RESET)
+/// `scheme` is whether DECSET 2031 is on (not an `InputModes` field: the
+/// parser never sees it).
+pub fn leftover_reset(m: InputModes, scheme: bool) -> Option<&'static [u8]> {
+    (!m.alt_screen && (m.mouse || m.focus_events || scheme)).then_some(RESET)
 }
 
 impl PtyTerm {
-    /// The shell has the pane back: drop the mouse and focus reporting a
+    /// The shell has the pane back: drop the mouse, focus and scheme reporting a
     /// program left on (see the module doc). Returns whether any was on.
     pub fn release_leftover_modes(&mut self) -> bool {
-        let Some(reset) = leftover_reset(self.core.input_modes()) else {
+        let scheme = self.core.scheme_notify_enabled();
+        let Some(reset) = leftover_reset(self.core.input_modes(), scheme) else {
             return false;
         };
         self.core.feed(reset);

@@ -5,6 +5,9 @@ use std::sync::{Arc, Mutex};
 
 use alacritty_terminal::event::{Event, EventListener, WindowSize};
 
+/// alacritty's DECRPM for a mode it doesn't know, asked about 2031.
+const UNKNOWN_2031: &str = "\x1b[?2031;0$y";
+
 /// Shared state captured from terminal events (cloned into the alacritty `Term`).
 #[derive(Clone, Default)]
 pub(crate) struct TermEvents {
@@ -36,6 +39,10 @@ impl EventListener for TermEvents {
             Event::Bell => self.bell.store(true, Ordering::Relaxed),
             // Status reports (DSR cursor position, device attributes, …) the
             // child expects as terminal input.
+            // Not alacritty's "2031 unknown": crew's scheme scanner already
+            // answered that DECRQM ("supported"), and a program reading the
+            // last answer would turn its notifications off.
+            Event::PtyWrite(text) if text == UNKNOWN_2031 => {}
             Event::PtyWrite(text) => self.replies.lock().unwrap().push_str(&text),
             // Color queries (OSC 4/10/11/12): answer from the active theme so
             // agent CLIs probing the background pick the matching light/dark

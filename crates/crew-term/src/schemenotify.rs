@@ -13,8 +13,10 @@
 //! [`scheme_report`]; the app pushes it to every enabled pane when the active
 //! theme's darkness flips (any switch path — OS flip, `/theme`, rotation).
 /// Longest CSI parameter run worth buffering; anything longer is not one of
-/// ours, so the scanner bails to ground rather than hoarding bytes.
-const MAX_PARAMS: usize = 16;
+/// ours, so the scanner bails to ground rather than hoarding bytes. Room for
+/// a run of modes in one DECSET (`?1000;1002;1006;1004;2031h`, crew's own
+/// leftover reset): 16 dropped those, so 2031 among them was never seen.
+const MAX_PARAMS: usize = 64;
 
 /// The `CSI ? 997 ; Ps n` color-scheme report: `Ps` 1 = dark, 2 = light.
 pub fn scheme_report(dark: bool) -> &'static str {
@@ -68,6 +70,13 @@ impl SchemeNotify {
                 },
                 State::Esc => match b {
                     b'[' => State::Csi,
+                    // RIS (`ESC c`, what `reset` sends) puts every mode back
+                    // to its default; 2031 too, or a dead program's flag
+                    // outlives the reset meant to clear it.
+                    b'c' => {
+                        self.enabled = false;
+                        State::Ground
+                    }
                     0x1b => State::Esc,
                     _ => State::Ground,
                 },

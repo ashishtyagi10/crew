@@ -11,6 +11,9 @@ fn decset_2031_enables_and_decrst_disables() {
     // Multi-param DECSET (alt screen + 2031 in one sequence) still counts.
     s.feed(b"\x1b[?1049;2031h", true);
     assert!(s.enabled());
+    // A long run of modes ending in 2031 still counts.
+    s.feed(b"\x1b[?1000;1002;1003;1005;1006;1004;2031l", true);
+    assert!(!s.enabled());
 }
 
 #[test]
@@ -62,4 +65,16 @@ fn unrelated_sequences_and_text_are_ignored() {
 fn scheme_report_encodes_dark_and_light() {
     assert_eq!(scheme_report(true), "\x1b[?997;1n");
     assert_eq!(scheme_report(false), "\x1b[?997;2n");
+}
+
+/// `reset` (RIS, `ESC c`) puts every mode back, 2031 among them; a split
+/// read still counts, and other ESC finals (`ESC 7`, `ESC M`) do not.
+#[test]
+fn ris_turns_notifications_off() {
+    let mut s = SchemeNotify::default();
+    s.feed(b"\x1b[?2031h\x1b7\x1bM", true);
+    assert!(s.enabled(), "save-cursor and reverse-index are not a reset");
+    s.feed(b"\x1b", true);
+    s.feed(b"c", true);
+    assert!(!s.enabled());
 }
