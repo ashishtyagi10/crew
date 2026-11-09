@@ -3204,7 +3204,24 @@ never fails a call. The file is read on every call, so an edit counts from the
 next one, and a file that does not parse — a misspelt key included — refuses
 every call and says so, rather than leaving a guard you think is on switched
 off. `CREW_HOOKS=0` turns hooks off entirely. `/doctor` has a `hooks` line: off,
-none, how many run before and after a call, or a file that will not load.
+none, how many run before and after a call and at a turn's end, or a file that
+will not load.
+
+A **Stop hook** is the user's own "done?" check, Claude Code's `Stop` hook:
+`"stop": [{"cmd": "~/bin/tests-pass", "on_failure": "block"}]`, with no
+`match`, since it is about the turn rather than one tool. It runs when an
+agent answers without asking for a tool, and reads `{"event": "stop",
+"answer": "…", "stop_hook_active": false, "cwd": "…"}`. Exit 2 or
+`{"decision": "block", "reason": "…"}` holds the turn open: the reason goes back
+to the agent as a note of its own, the turn goes on, and the pane shows a
+`hook:stop` row saying the turn was held and why. `stop_hook_active` is true
+once the turn has been held already, so a hook can let the second try through.
+A turn is held at most three times, and not again once the answer stops
+changing; past that the answer stands with a failed `hook:stop` row saying the
+hook still objects. A Stop hook that cannot run or runs out of time ends the
+turn as a failed row too, unless it says `"on_failure": "block"`, which holds
+the turn (to the same cap). A `hooks.json` that will not load does not hold an
+answer; it says so on the row.
 
 **Built-in sys tools.** Agents can touch the workspace without any MCP server:
 five bounded tools ride the same `@tool` surface — **`sys:run`** (one

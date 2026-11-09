@@ -19,6 +19,8 @@ use std::time::Duration;
 mod file;
 #[path = "hookrun.rs"]
 mod run;
+#[path = "hookstop.rs"]
+mod stop;
 pub(crate) use file::Source;
 use file::{File, OnFailure, Rule};
 use run::Ran;
@@ -96,13 +98,17 @@ impl Hooks {
     }
 
     fn run(&self, rule: &Rule, event: &str, tool: &str, args: &str, result: Option<&str>) -> Ran {
-        let cwd = self
-            .cwd
-            .clone()
-            .or_else(|| crate::broker::gitmsg::project_dir().ok())
-            .unwrap_or_else(|| PathBuf::from("."));
+        let cwd = self.cwd();
         let line = stdin_line(event, tool, args, &cwd, result);
         run::run(&rule.cmd, &cwd, &line, self.deadline)
+    }
+
+    /// Where hooks run: the file's own choice under test, else the project.
+    fn cwd(&self) -> PathBuf {
+        self.cwd
+            .clone()
+            .or_else(|| crate::broker::gitmsg::project_dir().ok())
+            .unwrap_or_else(|| PathBuf::from("."))
     }
 }
 
@@ -163,16 +169,17 @@ pub(crate) fn doctor_line(src: Option<&Source>) -> (char, String) {
             '\u{2717}',
             format!("{e} \u{2014} every tool call is blocked until it is fixed"),
         ),
-        Ok(f) if f.pre_tool.is_empty() && f.post_tool.is_empty() => (
+        Ok(f) if f.pre_tool.is_empty() && f.post_tool.is_empty() && f.stop.is_empty() => (
             '\u{2013}',
             format!("none ({} adds them)", src.path.display()),
         ),
         Ok(f) => (
             '\u{2713}',
             format!(
-                "{} before a tool call, {} after",
+                "{} before a tool call, {} after, {} at a turn's end",
                 f.pre_tool.len(),
-                f.post_tool.len()
+                f.post_tool.len(),
+                f.stop.len()
             ),
         ),
     }

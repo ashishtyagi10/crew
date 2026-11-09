@@ -66,6 +66,19 @@ pub(super) struct File {
     pub(super) pre_tool: Vec<Rule>,
     #[serde(default)]
     pub(super) post_tool: Vec<Rule>,
+    /// Run when an agent is about to end its turn (`hookstop`).
+    #[serde(default)]
+    pub(super) stop: Vec<StopRule>,
+}
+
+/// A Stop hook: no `match`, since it is about the turn and not one tool, and a stray one is
+/// refused like any unknown key rather than read as a filter that is not there.
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct StopRule {
+    pub(super) cmd: String,
+    #[serde(default)]
+    pub(super) on_failure: OnFailure,
 }
 
 /// One hook: the calls it is for, the command, and what a hook that cannot run means.

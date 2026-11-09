@@ -26,6 +26,7 @@ mod parse;
 mod said;
 pub mod seen;
 mod spec;
+mod stopcheck;
 pub mod todo;
 pub mod todowire;
 
@@ -41,6 +42,7 @@ pub use neverran::{is_note, never_ran, not_run, split_note};
 pub use parse::{parse_tool_call, split_tool_call, split_tool_calls, stray_calls};
 pub use said::said;
 pub use spec::ToolSpec;
+pub use stopcheck::StopCheck;
 
 /// Executes tool calls on behalf of an agent.
 ///
@@ -151,6 +153,14 @@ pub trait Tools: Send + Sync {
     /// undone under the answer. Defaults to none, which leaves both as they were.
     fn checklist(&self) -> Option<&todo::Checklist> {
         None
+    }
+
+    /// Whether the turn may end on `answer` ([`StopCheck`]): the user's Stop
+    /// hooks, when the surface has any. `held` is true once this turn has
+    /// been held already, so a check can let a second try through rather
+    /// than loop. Blocking, like [`call`](Tools::call). Defaults to `End`.
+    fn stop(&self, _answer: &str, _held: bool) -> StopCheck {
+        StopCheck::End
     }
 }
 

@@ -1,6 +1,6 @@
 use super::*;
 use crate::agent::{Agent, AgentContext};
-use crate::bus::{AgentId, EventBus};
+use crate::bus::{AgentId, EventBus, HiveEvent};
 use crate::graph::{AgentKind, ModelTier, TaskId, TaskSpec};
 use crate::provider::{Completion, ProviderError};
 use crate::tools::{budget::ToolBudget, ToolSpec, Tools, MAX_TOOL_ROUNDS};

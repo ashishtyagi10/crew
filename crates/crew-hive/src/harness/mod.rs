@@ -26,6 +26,7 @@ mod context;
 mod cost;
 mod failure;
 mod finish;
+mod hold;
 mod lastword;
 mod native;
 mod note;

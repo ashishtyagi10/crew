@@ -810,7 +810,12 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-smith-alias-crew):
   as one JSON line on stdin and has five seconds. A pre hook that exits 2, or
   prints `{"decision": "block", "reason": "…"}`, stops the call and the agent
   reads why as its result; a post hook's output lands under the result, so a
-  formatter or linter answers back. `CREW_HOOKS=0` turns hooks off.
+  formatter or linter answers back. A `"stop": [{"cmd": "…"}]` hook runs when
+  an agent is about to end its turn (Claude Code's Stop hook): it reads the
+  answer and `stop_hook_active`, and exit 2 or a block decision sends the
+  reason back and the turn goes on, at most three times; a hook that fails
+  or times out ends the turn as a failed `hook:stop` row instead.
+  `CREW_HOOKS=0` turns hooks off.
 
 The pane itself reads like a multi-agent console: a header with a live status
 (`| coder · 12s` while an agent thinks, `| 3 working · 8s` during a parallel

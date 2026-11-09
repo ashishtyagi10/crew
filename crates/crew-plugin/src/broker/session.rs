@@ -489,6 +489,12 @@ impl super::toolcall::ToolRunner for SessionTools {
         self.sys.then_some(self.todo.as_ref())
     }
 
+    /// The user's Stop hooks (`hookstop`), read afresh like the tool hooks: none, no check.
+    fn stop(&self, answer: &str, held: bool) -> crew_hive::tools::StopCheck {
+        let hooks = self.hooks.as_ref().map(hooks::Source::load);
+        hooks.map_or(crew_hive::tools::StopCheck::End, |h| h.stop(answer, held))
+    }
+
     /// Every tool call in the running broker passes through here — `sys` and MCP alike — which
     /// is why the gate is installed at this one point rather than in each tool.
     ///
