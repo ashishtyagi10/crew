@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.30.3"
+version = "0.30.4"
 edition = "2021"
 authors = ["crew contributors"]
 license = "MIT OR Apache-2.0"
@@ -84,7 +84,7 @@ vt100 = "0.15"
 
 # Crew dependencies
 winit = "=0.30.13"
-wgpu = "=29.0.3"
+wgpu = "=30.0.1"
 glyphon = "=0.11.0"
 alacritty_terminal = "=0.26.0"
 
@@ -125,6 +125,8 @@ self_update = { version = "0.42", default-features = false, features = ["archive
 #      baseline the embedder gives (crew-render's `gridbase`), not the one
 #      cosmic-text centres per line — a fallback glyph moved its row a pixel
 #      and broke the card strokes on it. Guarded in gridbase_tests.rs.
+# 7)   Cargo.toml + cache.rs + text_render.rs moved to wgpu 30 (0.11 is a
+#      wgpu 29 crate): Some(vertex layout), get_mapped_range_mut's Result.
 [patch.crates-io]
 glyphon = { path = "vendor/glyphon" }
 

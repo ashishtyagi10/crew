@@ -138,7 +138,7 @@ fn render(device: &wgpu::Device, queue: &wgpu::Queue, alpha: f32) -> Vec<u8> {
     device.poll(wait()).expect("poll failed");
     buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});
     device.poll(wait()).expect("poll failed");
-    let out = buf.slice(..).get_mapped_range().to_vec();
+    let out = buf.slice(..).get_mapped_range().expect("mapped").to_vec();
     buf.unmap();
     out
 }
@@ -150,6 +150,7 @@ fn translucent_paint_blends_with_what_is_under_it() {
         power_preference: wgpu::PowerPreference::default(),
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("translucent_paint_blends_with_what_is_under_it: no GPU adapter, skipping");
         return;

@@ -169,7 +169,7 @@ fn render_lit(
             timeout: None,
         })
         .expect("poll failed");
-    let data = buf.slice(..).get_mapped_range().to_vec();
+    let data = buf.slice(..).get_mapped_range().expect("mapped").to_vec();
     buf.unmap();
     data
 }
@@ -184,6 +184,7 @@ fn glass_scan_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("glass_scan_headless: no GPU adapter, skipping");
         return;
@@ -231,6 +232,7 @@ fn glass_edge_glow_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("glass_edge_glow_headless: no GPU adapter, skipping");
         return;
@@ -281,6 +283,7 @@ fn glass_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) {
         Ok(a) => a,
         Err(_) => {
@@ -402,6 +405,7 @@ fn glass_lift_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("glass_lift_headless: no GPU adapter, skipping");
         return;
@@ -438,6 +442,7 @@ fn glass_lift_thickens_the_sheet_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("glass_lift_thickens_the_sheet_headless: no GPU adapter, skipping");
         return;
@@ -467,6 +472,7 @@ fn glass_well_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("glass_well_headless: no GPU adapter, skipping");
         return;
@@ -507,6 +513,7 @@ fn glass_glint_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("glass_glint_headless: no GPU adapter, skipping");
         return;
@@ -542,6 +549,7 @@ fn glass_tilt_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("glass_tilt_headless: no GPU adapter, skipping");
         return;
@@ -568,6 +576,7 @@ fn glass_bevel_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("glass_bevel_headless: no GPU adapter, skipping");
         return;
@@ -595,6 +604,7 @@ fn glass_notch_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("glass_notch_headless: no GPU adapter, skipping");
         return;
@@ -653,6 +663,7 @@ fn glass_gloss_and_glow_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("glass_gloss_and_glow_headless: no GPU adapter, skipping");
         return;
@@ -723,6 +734,7 @@ fn glass_etch_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("glass_etch_headless: no GPU adapter, skipping");
         return;

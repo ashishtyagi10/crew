@@ -182,11 +182,11 @@ impl GlassLayer {
                 module: &shader,
                 entry_point: Some("vs"),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
-                buffers: &[wgpu::VertexBufferLayout {
+                buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: (INSTANCE_FLOATS * 4) as u64,
                     step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &inst_attrs,
-                }],
+                })],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,

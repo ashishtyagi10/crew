@@ -64,7 +64,7 @@ default-features = false
 version = "2.1.1"
 
 [dependencies.wgpu]
-version = "29.0.0"
+version = "30.0.1"
 features = ["wgsl"]
 default-features = false
 
@@ -80,7 +80,7 @@ version = "0.45.1"
 default-features = false
 
 [dev-dependencies.wgpu]
-version = "29.0.0"
+version = "30.0.1"
 
 [dev-dependencies.winit]
 version = "0.30.12"

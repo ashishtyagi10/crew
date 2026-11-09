@@ -97,7 +97,7 @@ fn render(device: &wgpu::Device, queue: &wgpu::Queue, phase: f32) -> Vec<u8> {
     device.poll(wait()).expect("poll failed");
     buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});
     device.poll(wait()).expect("poll failed");
-    let data = buf.slice(..).get_mapped_range().to_vec();
+    let data = buf.slice(..).get_mapped_range().expect("mapped").to_vec();
     buf.unmap();
     data
 }
@@ -115,6 +115,7 @@ fn the_grid_lights_neon_alone_and_only_its_sparks_move() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("holo: no GPU adapter, skipping");
         return;

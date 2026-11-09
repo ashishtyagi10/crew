@@ -122,7 +122,7 @@ pub(crate) fn render(
     }
 
     gpu.queue().submit(Some(enc.finish()));
-    frame.present();
+    gpu.queue().present(frame);
 }
 
 /// Maintain the device on a path that will not submit.

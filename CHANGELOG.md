@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.4
+
+**Under the hood: crew draws with wgpu 30.**
+- The GPU layer moved from wgpu 29 to wgpu 30, with crew's own glyphon copy moved along and all its patches kept. Nothing should look different: the window keeps the same sRGB colours, and every theme, the glass and the CRT tube draw as before.
+- This is the groundwork for 3D themes built on threers, which needs wgpu 30.
+
 ## 0.30.3
 
 **The inbox loads more: about 100 threads when it opens, not 25.**

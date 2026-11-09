@@ -87,7 +87,7 @@ fn render(pane: &ChatPane) -> Option<(Vec<u8>, u16, u16, f32)> {
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
-        force_fallback_adapter: false,
+        ..Default::default()
     }))
     .ok()?;
     let (device, queue) =
@@ -198,7 +198,7 @@ fn render(pane: &ChatPane) -> Option<(Vec<u8>, u16, u16, f32)> {
             timeout: None,
         })
         .ok()?;
-    let padded = readback.slice(..).get_mapped_range().to_vec();
+    let padded = readback.slice(..).get_mapped_range().ok()?.to_vec();
     readback.unmap();
 
     let mut px = Vec::with_capacity((W * H * BPP) as usize);
