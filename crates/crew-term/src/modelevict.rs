@@ -45,9 +45,9 @@ impl TermCore {
             return;
         }
         let before = self.evicted;
-        // Pieces short enough that even a screenful per byte stays inside
-        // the spare room, so no line is thrown away uncounted.
-        for piece in bytes.chunks((SPARE / rows).max(1)) {
+        while !bytes.is_empty() {
+            let (piece, rest) = bytes.split_at(piece_len(bytes, rows));
+            bytes = rest;
             // Only the primary's limit is raised: `grid_mut` is the active
             // screen's grid, and a piece's first byte may have switched.
             if !self.alt() {
@@ -92,6 +92,37 @@ impl TermCore {
     fn alt(&self) -> bool {
         self.term.mode().contains(TermMode::ALT_SCREEN)
     }
+}
+
+/// How long the next piece may be so the lines it pushes fit the spare room.
+/// A byte outside an escape sequence scrolls at most one line (a line feed,
+/// a wrap): vte leaves its ground state only on ESC. Only a sequence's final
+/// byte can scroll a screenful, and each sequence starts with an ESC — plus
+/// one carried in unfinished from the piece before. So plain text runs in
+/// pieces near SPARE bytes long rather than SPARE/rows: each piece costs two
+/// `update_history` calls and a parser entry, and 20-byte pieces made every
+/// read of a full scrollback ~14% slower. ESCs are counted 64 bytes at a time
+/// (the count vectorises); a byte-at-a-time scan, or one stop per ESC, cost
+/// as much as the pieces it saved.
+fn piece_len(bytes: &[u8], rows: usize) -> usize {
+    let fits = |len: usize, escs: usize| len + rows * (escs + 1) <= SPARE;
+    let (mut len, mut escs) = (0, 0);
+    for block in bytes.chunks(64) {
+        let n = block.iter().filter(|&&b| b == 0x1B).count();
+        if fits(len + block.len(), escs + n) {
+            (len, escs) = (len + block.len(), escs + n);
+            continue;
+        }
+        for &b in block {
+            let e = escs + usize::from(b == 0x1B);
+            if !fits(len + 1, e) {
+                break;
+            }
+            (len, escs) = (len + 1, e);
+        }
+        break;
+    }
+    len.max(1)
 }
 
 #[cfg(test)]

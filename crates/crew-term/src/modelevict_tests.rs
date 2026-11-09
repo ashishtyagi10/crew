@@ -109,3 +109,67 @@ fn the_alternate_screen_keeps_no_history() {
     assert_eq!(t.history_lines(), 20);
     assert!(!t.cells(false).is_empty());
 }
+
+/// Plain text needs no screenful per byte, so it runs in long pieces; each
+/// ESC may finish a scroll of a whole screen, so ESC-dense text runs short.
+#[test]
+fn plain_text_runs_in_long_pieces_and_escapes_in_short_ones() {
+    let plain = "x".repeat(4096);
+    assert_eq!(super::piece_len(plain.as_bytes(), 50), 950, "plain");
+    let scrolls = "\x1b[50S".repeat(500);
+    let n = super::piece_len(scrolls.as_bytes(), 50);
+    assert!(n + 50 * (n.div_ceil(5) + 1) <= 1000, "{n} bytes of scrolls");
+}
+
+/// A read dense in whole-screen scrolls still counts every line.
+#[test]
+fn every_line_of_back_to_back_screen_scrolls_is_counted() {
+    let mut t = HeadlessTerm::new(GridSize { cols: 40, rows: 50 });
+    t.set_scrollback(20);
+    t.feed("x\r\n".repeat(100).as_bytes());
+    let top = t.screen_line();
+    t.feed(format!("{}tail\n", "\x1b[50S".repeat(300)).as_bytes());
+    assert_eq!(t.screen_line(), top + 50 * 300 + 1);
+}
+
+/// Throughput of a full scrollback: 20 MB of lines, plain and with SGR
+/// colours, in 4 KiB reads at 50 rows — counted (`parse`) against the bare
+/// parser that counted nothing (the path before eviction counting), and the
+/// whole `feed` with and without that difference. Best of five each.
+/// `cargo test --release -p crew-term evict_bench -- --ignored --nocapture`
+#[test]
+#[ignore]
+fn evict_bench() {
+    use crate::model::TermCore;
+    let plain = "the quick brown fox jumps over the lazy dog 0123456789\r\n";
+    let sgr = "\x1b[1;32mok\x1b[0m src/\x1b[34mmodel.rs\x1b[0m:42 \x1b[2mwarn\x1b[0m\r\n";
+    for (name, line) in [("plain", plain), ("sgr", sgr)] {
+        let text = line.repeat(20_000_000 / line.len());
+        let mut best = [f64::MAX; 3];
+        for round in 0..15 {
+            let mode = round % 3;
+            let mut core = TermCore::new(GridSize {
+                cols: 120,
+                rows: 50,
+            });
+            core.parse("x\r\n".repeat(11_000).as_bytes());
+            let start = std::time::Instant::now();
+            for read in text.as_bytes().chunks(4096) {
+                match mode {
+                    0 => core.parser.advance(&mut core.term, read),
+                    1 => core.parse(read),
+                    _ => core.feed(read),
+                }
+            }
+            let secs = &mut best[mode];
+            *secs = secs.min(start.elapsed().as_secs_f64());
+        }
+        let mbs = best.map(|secs| text.len() as f64 / secs / 1e6);
+        // The whole feed as it was: today's less what counting adds.
+        let old_feed = text.len() as f64 / (best[2] - best[1] + best[0]) / 1e6;
+        eprintln!(
+            "{name:5} parse {:.1} -> {:.1} MB/s, feed {old_feed:.1} -> {:.1} MB/s",
+            mbs[0], mbs[1], mbs[2]
+        );
+    }
+}
