@@ -345,6 +345,7 @@ mod helpinbox;
 mod helpkeys;
 mod helplayout;
 mod helppanes;
+mod helpscrim;
 #[cfg(test)]
 #[path = "helpshot_tests.rs"]
 mod helpshot_tests;
