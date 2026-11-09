@@ -88,6 +88,10 @@ pub(crate) fn body_lines_at(
     if text.starts_with(crate::chatswarmrec::LEAD) {
         return crate::chatswarmrec::card_lines(text, width, fg);
     }
+    // A checked `/review` draws its findings as chips (`chatfinding`).
+    if crate::chatfinding::is_review(text) {
+        return crate::chatfinding::card_lines(text, cols, fg, cwd);
+    }
     // Markdown mode: render through the markdown engine.
     let md_lines = crate::md::render_chat(text, width);
     crate::chatmd::map_chat(md_lines, width, fg, cwd)

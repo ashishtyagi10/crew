@@ -26,10 +26,10 @@ pub(crate) struct Tidied {
     pub dropped: Vec<String>,
 }
 
-const SEVERITIES: &[&str] = &["blocker", "warn", "nit"];
+pub const SEVERITIES: &[&str] = &["blocker", "warn", "nit"];
 
 /// A finding bullet split into (severity, file, line): `- blocker — a.rs:4 — why`.
-fn finding(line: &str) -> Option<(&'static str, String, Option<usize>)> {
+pub fn finding(line: &str) -> Option<(&'static str, String, Option<usize>)> {
     let t = line.trim_start();
     let t = t
         .strip_prefix("- ")
@@ -69,7 +69,7 @@ fn is_stray_no_findings(line: &str) -> bool {
     t.trim().eq_ignore_ascii_case("no findings")
 }
 
-fn is_verdict(line: &str) -> bool {
+pub fn is_verdict(line: &str) -> bool {
     let t = line.trim().trim_start_matches(['*', '`', '_']);
     t.to_lowercase().starts_with("verdict")
 }

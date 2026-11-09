@@ -21,6 +21,11 @@ pub mod credentials;
 pub mod html {
     pub use crate::broker::sysfetchtext::readable;
 }
+/// A `/review` finding read the way the broker checked it, so the pane draws
+/// exactly the bullets `reviewfindings` kept and no second reading of them.
+pub mod review {
+    pub use crate::broker::reviewfindings::{finding, is_verdict, SEVERITIES};
+}
 mod echo;
 mod host;
 pub mod lsp;

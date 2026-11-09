@@ -74,6 +74,7 @@ mod chatevents;
 mod chatexport;
 mod chatfield;
 mod chatfind;
+mod chatfinding;
 mod chatflash;
 mod chatflow;
 mod chatfold;
@@ -579,6 +580,9 @@ mod restartnote;
 #[cfg(test)]
 #[path = "restartshot_tests.rs"]
 mod restartshot_tests;
+#[cfg(test)]
+#[path = "reviewshot_tests.rs"]
+mod reviewshot_tests;
 mod route;
 mod runclock;
 mod runpane;
